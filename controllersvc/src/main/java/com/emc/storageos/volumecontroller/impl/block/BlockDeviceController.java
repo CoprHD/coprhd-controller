@@ -23,6 +23,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 
 import javax.xml.bind.DataBindingException;
@@ -78,6 +79,7 @@ import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.plugins.BaseCollectionException;
 import com.emc.storageos.plugins.StorageSystemViewObject;
 import com.emc.storageos.plugins.common.Constants;
+import com.emc.storageos.protectioncontroller.impl.recoverpoint.RPHelper;
 import com.emc.storageos.services.util.StorageDriverManager;
 import com.emc.storageos.srdfcontroller.SRDFDeviceController;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
@@ -4149,17 +4151,82 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
             }
 
             if (addVolumesList != null && !addVolumesList.isEmpty()) {
-                String groupName = ControllerUtils.generateReplicationGroupName(storageSystem, cg, null, _dbClient);
-                waitFor = workflow.createStep(UPDATE_CONSISTENCY_GROUP_STEP_GROUP,
-                        String.format("Adding volumes to consistency group %s", consistencyGroup),
-                        waitFor, storage, storageSystem.getSystemType(),
-                        this.getClass(),
-                        addToConsistencyGroupMethod(storage, consistencyGroup, groupName, addVolumesList),
-                        rollbackMethodNullMethod(), null);
 
-                // call ReplicaDeviceController
-                waitFor = _replicaDeviceController.addStepsForAddingSessionsToCG(workflow, waitFor, consistencyGroup, addVolumesList,
-                        groupName, task);
+                // Specific flow for updating RP CG with VMAX CG information
+                if (cg.checkForType(Types.RP)) {
+                    Set<URI> vplexVolumes = new HashSet<URI>();
+                    Set<URI> addVolumeSet = new HashSet<URI>();
+                    // get source and target volumes to be added the CG (in case of RP)
+                    addVolumeSet = RPHelper.getReplicationSetVolumes(addVolumesList, _dbClient);
+                    // split up add volumes list by source and target
+                    List<URI> allAddSourceVolumes = new ArrayList<URI>();
+                    List<URI> allAddTargetVolumes = new ArrayList<URI>();
+                    Map<URI, List<URI>> storageSystemToVolumesMap = new HashMap<URI, List<URI>>();
+                    for (URI volUri : addVolumeSet) {
+                        Volume vol = _dbClient.queryObject(Volume.class, volUri);
+                        if (vol.checkPersonality(Volume.PersonalityTypes.SOURCE.name())) {
+                            addBackendVolumes(vol, true, allAddSourceVolumes, vplexVolumes);
+                        } else if (vol.checkPersonality(Volume.PersonalityTypes.TARGET.name())) {
+                            addBackendVolumes(vol, true, allAddTargetVolumes, vplexVolumes);
+                        }
+                    }
+
+                    // Generate groupName and create step for source storage system
+                    String groupName = ControllerUtils.generateReplicationGroupName(storageSystem, cg, null, _dbClient);
+                    waitFor = workflow.createStep(UPDATE_CONSISTENCY_GROUP_STEP_GROUP,
+                            String.format("Adding RP source volumes to consistency group %s on storage system %s", consistencyGroup, storageSystem.forDisplay()),
+                            waitFor, storage, storageSystem.getSystemType(),
+                            this.getClass(),
+                            addToConsistencyGroupMethod(storage, consistencyGroup, groupName, addVolumesList),
+                            rollbackMethodNullMethod(), null);
+
+                    // call ReplicaDeviceController
+                    waitFor = _replicaDeviceController.addStepsForAddingSessionsToCG(workflow, waitFor, consistencyGroup, addVolumesList,
+                            groupName, task);
+                    
+                    // Group together target volumes by storage system
+                    for (URI volUri : allAddTargetVolumes) {
+                        Volume vol = _dbClient.queryObject(Volume.class, volUri);
+                        if (storageSystemToVolumesMap.get(vol.getStorageController()) == null) {
+                            storageSystemToVolumesMap.put(vol.getStorageController(), new ArrayList<URI>());
+                        }
+                        storageSystemToVolumesMap.get(vol.getStorageController()).add(volUri);
+                    }
+                    
+                    // Create steps based on storage systems
+                    for (Entry<URI, List<URI>> entry : storageSystemToVolumesMap.entrySet()) {
+                        URI storageSystemId = entry.getKey();
+                        List<URI> volumesToAdd = entry.getValue();
+                        
+                        StorageSystem targetStorageSystem = _dbClient.queryObject(StorageSystem.class, storageSystemId);
+                        
+                        // Generate groupName and create step for source storage system
+                        groupName = ControllerUtils.generateReplicationGroupName(targetStorageSystem, cg, null, _dbClient) + RPHelper.REPLICATION_GROUP_RPTARGET_SUFFIX;
+                        waitFor = workflow.createStep(UPDATE_CONSISTENCY_GROUP_STEP_GROUP,
+                                String.format("Adding RP target volumes to consistency group %s to storage system %s", consistencyGroup, targetStorageSystem.forDisplay()),
+                                waitFor, storageSystemId, targetStorageSystem.getSystemType(),
+                                this.getClass(),
+                                addToConsistencyGroupMethod(storageSystemId, consistencyGroup, groupName, addVolumesList),
+                                rollbackMethodNullMethod(), null);
+
+                        // call ReplicaDeviceController
+                        waitFor = _replicaDeviceController.addStepsForAddingSessionsToCG(workflow, waitFor, consistencyGroup, volumesToAdd,
+                                groupName, task);
+                    }                    
+                } else {
+                    // Generic non-RP CG flow
+                    String groupName = ControllerUtils.generateReplicationGroupName(storageSystem, cg, null, _dbClient);
+                    waitFor = workflow.createStep(UPDATE_CONSISTENCY_GROUP_STEP_GROUP,
+                            String.format("Adding volumes to consistency group %s", consistencyGroup),
+                            waitFor, storage, storageSystem.getSystemType(),
+                            this.getClass(),
+                            addToConsistencyGroupMethod(storage, consistencyGroup, groupName, addVolumesList),
+                            rollbackMethodNullMethod(), null);
+
+                    // call ReplicaDeviceController
+                    waitFor = _replicaDeviceController.addStepsForAddingSessionsToCG(workflow, waitFor, consistencyGroup, addVolumesList,
+                            groupName, task);
+                }
             }
 
             if (removeVolumesList != null && !removeVolumesList.isEmpty()) {
@@ -6301,5 +6368,30 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
         _log.info("Created workflow step to restore volume from full copies");
 
         return waitFor;
+    }
+
+    /**
+     * Add block(backend) volumes if the volume is a VPLEX volume to the Block volume list to call to BlockDeviceController.
+     * @param volume The volume will be processed
+     * @param isAdd if the volume is for add or remove
+     * @param allVolumes output all block volume list
+     * @param vplexVolumes output all vplex volumes whose backend volumes are not in RG
+     */
+    private void addBackendVolumes(Volume volume, boolean isAdd, List<URI> allVolumes, Set<URI> vplexVolumes) {
+        if (RPHelper.isVPlexVolume(volume)) {
+            StringSet backends = volume.getAssociatedVolumes();
+            for (String backendId : backends) {
+                URI backendUri = URI.create(backendId);
+                allVolumes.add(backendUri);
+                if (isAdd && !vplexVolumes.contains(volume.getId())) {
+                    Volume backVol = _dbClient.queryObject(Volume.class, backendUri);
+                    if (backVol != null && !backVol.getInactive() && NullColumnValueGetter.isNullValue(backVol.getReplicationGroupInstance())) {
+                        vplexVolumes.add(volume.getId());
+                    }
+                }
+            }
+        } else {
+            allVolumes.add(volume.getId());
+        }
     }
 }

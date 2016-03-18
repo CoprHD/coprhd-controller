@@ -161,7 +161,6 @@ import com.google.common.base.Joiner;
  */
 public class RPDeviceController implements RPController, BlockOrchestrationInterface, MaskingOrchestrator {
 
-    private static final String REPLICATION_GROUP_RPTARGET_SUFFIX = "-RPTARGET";
     private static final String DASHED_NEWLINE = "---------------------------------%n";
     private static final String ALPHA_NUMERICS = "[^A-Za-z0-9_]";
     
@@ -6111,7 +6110,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                 addSourceVols.setVolumes(allAddSourceVolumes);
 
                 addTargetVols.setConsistencyGroup(addVolCg);
-                addTargetVols.setReplicationGroupName(addVolList.getReplicationGroupName() + REPLICATION_GROUP_RPTARGET_SUFFIX);
+                addTargetVols.setReplicationGroupName(addVolList.getReplicationGroupName() + RPHelper.REPLICATION_GROUP_RPTARGET_SUFFIX);
                 addTargetVols.setVolumes(allAddTargetVolumes);
             }
 

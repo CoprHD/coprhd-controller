@@ -114,6 +114,7 @@ import com.emc.storageos.model.block.VolumeDeleteTypeEnum;
 import com.emc.storageos.model.block.VolumeFullCopyCreateParam;
 import com.emc.storageos.model.block.VolumeRestRep;
 import com.emc.storageos.protectioncontroller.RPController;
+import com.emc.storageos.protectioncontroller.impl.recoverpoint.RPHelper;
 import com.emc.storageos.security.audit.AuditLogManager;
 import com.emc.storageos.security.authentication.StorageOSUser;
 import com.emc.storageos.security.authorization.ACL;
@@ -1277,9 +1278,11 @@ public class BlockConsistencyGroupService extends TaskResourceService {
         // This method also supports adding volumes or replicas to CG (VMAX - SMIS 8.0.x)
         if ((!consistencyGroup.created() || NullColumnValueGetter.isNullURI(consistencyGroup.getStorageController()))
                 && param.hasVolumesToAdd()) { // we just need to check the case of add volumes in this case
-            BlockObject bo = BlockObject.fetch(_dbClient, param.getAddVolumesList().getVolumes().get(0));
-            cgStorageSystem = _permissionsHelper.getObjectById(
+            for (URI boId : param.getAddVolumesList().getVolumes()) {
+                BlockObject bo = BlockObject.fetch(_dbClient, boId);
+                cgStorageSystem = _permissionsHelper.getObjectById(
                     bo.getStorageController(), StorageSystem.class);
+            }
         } else {
             cgStorageSystem = _permissionsHelper.getObjectById(
                     consistencyGroup.getStorageController(), StorageSystem.class);
@@ -1316,6 +1319,45 @@ public class BlockConsistencyGroupService extends TaskResourceService {
             }
         }
 
+        // Validate RP use case:
+        //
+        // We allow ingestion into VMAX CG for ingested RP CG volumes under certain conditions:
+        // 1. All of the volumes submitted for update are all RP source volumes
+        // 2. All of the volumes submitted are VMAX (or VPLEX->VMAX) volumes
+        // 3. All of the volumes sent down are all of the (SOURCE) volumes in the RP CG
+        boolean isRPVMAXIngestion = false;
+        if (consistencyGroup.checkForType(Types.RP) && param.hasVolumesToAdd() && !param.hasVolumesToRemove()) {
+            isRPVMAXIngestion = true;
+            for (URI boId : param.getAddVolumesList().getVolumes()) {
+                BlockObject bo = BlockObject.fetch(_dbClient, boId);
+                if (!(bo instanceof Volume)) {
+                    // UI would not allow this condition
+                    throw APIException.badRequests.cantAddNonVolumeToCG(bo.forDisplay());
+                }
+                Volume volume = (Volume)bo;
+
+                // 1. Check to make sure all volumes are RP source volumes
+                if (!PersonalityTypes.SOURCE.name().equalsIgnoreCase(volume.getPersonality())) {
+                    // UI would not allow this condition
+                    throw APIException.badRequests.cantAddNonSourceToCG(volume.forDisplay());
+                }
+                
+                // 2. Check to make sure all volumes are VMAX volumes
+                StorageSystem system = _dbClient.queryObject(StorageSystem.class, volume.getStorageController());
+                if (!system.deviceIsType(Type.vmax)) {
+                    throw APIException.badRequests.cantAddRPVolumeToNonVMAXCG(volume.forDisplay());
+                }
+            }
+            
+            List<Volume> volumes = RPHelper.getCgSourceVolumes(consistencyGroup.getId(), _dbClient);
+            
+            // 3. Make sure all of the volumes sent down are all of the (SOURCE) volumes in the RP CG
+            if (param.getAddVolumesList().getVolumes().size() != volumes.size()) {
+                throw APIException.badRequests.mustSpecifyAllVolumesForRPVMAXCGIngestion(consistencyGroup.forDisplay());
+            }
+            
+        }
+        
         List<Volume> cgVolumes = blockServiceApiImpl.getActiveCGVolumes(consistencyGroup);
         // check if add volume list is same as existing volumes in CG
         boolean volsAlreadyInCG = false;
@@ -1446,7 +1488,8 @@ public class BlockConsistencyGroupService extends TaskResourceService {
                 addVolumesList.add(volumeURI);
             }
 
-            if (!volumes.isEmpty()) {
+            // We allow replica ingestion in the RP/VMAX CG use case
+            if (!volumes.isEmpty() && !isRPVMAXIngestion) {
                 blockServiceApiImpl.verifyReplicaCount(volumes, cgVolumes, volsAlreadyInCG);
             }
         }

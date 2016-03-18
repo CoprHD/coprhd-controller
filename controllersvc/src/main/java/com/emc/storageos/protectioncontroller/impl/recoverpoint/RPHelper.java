@@ -91,6 +91,7 @@ public class RPHelper {
     public static final Long DEFAULT_RP_JOURNAL_SIZE_IN_BYTES = 10737418240L; // default minimum journal size is 10GB (in bytes)
 
     private DbClient _dbClient;
+    public static final String REPLICATION_GROUP_RPTARGET_SUFFIX = "-RPTARGET";
     private static final Logger _log = LoggerFactory.getLogger(RPHelper.class);
 
     private static final String HTTPS = "https";

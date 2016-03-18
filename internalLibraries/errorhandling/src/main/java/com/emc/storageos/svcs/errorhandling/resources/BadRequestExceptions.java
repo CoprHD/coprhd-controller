@@ -2931,4 +2931,16 @@ public interface BadRequestExceptions {
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException cgReplicationNotAllowedMissingReplicationGroup(final String volumeLabel);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException cantAddNonVolumeToCG(final String volName);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException cantAddNonSourceToCG(final String volName);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException cantAddRPVolumeToNonVMAXCG(final String volName);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException mustSpecifyAllVolumesForRPVMAXCGIngestion(final String cgName);
 }

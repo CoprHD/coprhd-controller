@@ -168,7 +168,19 @@ public class NetAppFileStorageDevice extends AbstractFileStorageDevice {
                 // Set FS path and Mount Path information
                 args.setFsPath(nativeId);
                 args.setFsMountPath(nativeId);
+
+                // set the target to restricted
+                FileShare fileshare = args.getFs();
+                if (fileshare.getPersonality().equals(FileShare.PersonalityTypes.TARGET.toString())) {
+                    if (!nApi.setVolumeRestricted(args.getFsName())) {
+                        // rollback create file system
+                        // ServiceError serviceError = DeviceControllerErrors.netapp.unableToCreateFileSystem();
+                        // result = BiosCommandResult.createErrorResult(serviceError);
+                    }
+                }
+
                 result = BiosCommandResult.createSuccessfulResult();
+
             }
         } catch (NetAppException e) {
             _log.error("NetAppFileStorageDevice::doCreateFS failed with a NetAppException", e);

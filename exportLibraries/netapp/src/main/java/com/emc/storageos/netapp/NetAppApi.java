@@ -267,7 +267,7 @@ public class NetAppApi {
             netAppFacade.setVolumeOffline(volName, 1);
             return true;
         } catch (Exception e) {
-            throw NetAppException.exceptions.deleteFSFailed(volName,
+            throw NetAppException.exceptions.setVolumeRestrictFailed(volName,
                     _ipAddress, e.getMessage());
         }
     }
@@ -1072,7 +1072,7 @@ public class NetAppApi {
             return failedStatus;
 
         } catch (Exception e) {
-            throw NetAppException.exceptions.createFSFailed("snapmirror", e.getMessage());
+            throw NetAppException.exceptions.initializeSnapMirrorFailed(destPath, _ipAddress, e.getMessage());
         }
     }
 
@@ -1087,7 +1087,7 @@ public class NetAppApi {
             return failedStatus;
 
         } catch (Exception e) {
-            throw NetAppException.exceptions.createFSFailed("snapmirror", e.getMessage());
+            throw NetAppException.exceptions.setScheduleSnapMirrorFailed(type, _ipAddress, e.getMessage());
         }
     }
 
@@ -1118,7 +1118,7 @@ public class NetAppApi {
             return failedStatus;
 
         } catch (Exception e) {
-            throw NetAppException.exceptions.createFSFailed("snapmirror", e.getMessage());
+            throw NetAppException.exceptions.resyncSnapMirrorFailed(sourcePath, destPath, e.getMessage());
         }
     }
 
@@ -1133,7 +1133,7 @@ public class NetAppApi {
             return failedStatus;
 
         } catch (Exception e) {
-            throw NetAppException.exceptions.createFSFailed("snapmirror", e.getMessage());
+            throw NetAppException.exceptions.releaseSnapMirrorFailed(sourcePath, _ipAddress, e.getMessage());
         }
     }
 
@@ -1158,7 +1158,7 @@ public class NetAppApi {
             return failedStatus;
 
         } catch (Exception e) {
-            throw NetAppException.exceptions.createFSFailed("snapmirror", e.getMessage());
+            throw NetAppException.exceptions.breakSnapMirrorFailed(pathLocation, _ipAddress, e.getMessage());
         }
     }
 }

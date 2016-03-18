@@ -131,4 +131,23 @@ public interface NetAppExceptions {
 
     @DeclareServiceCode(ServiceCode.NETAPP_ERROR)
     public NetAppException deleteQtreeFailed(final String QtreeName, final String message);
+
+    @DeclareServiceCode(ServiceCode.NETAPP_ERROR)
+    public NetAppException setVolumeRestrictFailed(final String volName, String ip, final String message);
+
+    @DeclareServiceCode(ServiceCode.NETAPP_ERROR)
+    public NetAppException initializeSnapMirrorFailed(final String volName, final String ip, final String message);
+
+    @DeclareServiceCode(ServiceCode.NETAPP_ERROR)
+    public NetAppException breakSnapMirrorFailed(final String volName, final String ip, final String message);
+
+    @DeclareServiceCode(ServiceCode.NETAPP_ERROR)
+    public NetAppException releaseSnapMirrorFailed(final String volName, final String ip, final String message);
+
+    @DeclareServiceCode(ServiceCode.NETAPP_ERROR)
+    public NetAppException setScheduleSnapMirrorFailed(final String volName, final String ip, final String message);
+
+    @DeclareServiceCode(ServiceCode.NETAPP_ERROR)
+    public NetAppException resyncSnapMirrorFailed(final String sourceLocation, final String destLocation, final String message);
+
 }

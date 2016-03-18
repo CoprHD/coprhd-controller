@@ -44,7 +44,7 @@ public interface BackupConstants {
     public static final int SCHEDULER_SLEEP_TIME_FOR_UPGRADING = 10 * 60 * 1000;
 
     public static final String SCHEDULED_BACKUP_DATE_PATTERN = "yyyyMMddHHmmss";
-    public static final String SCHEDULED_BACKUP_TAG_REGEX_PATTERN = "^%s-[0-9]\.[0-9].*-\d+-\d{%d}$";
+    public static final String SCHEDULED_BACKUP_TAG_REGEX_PATTERN = "^%s-[0-9]\\.[0-9].*-\\d+-\\d{%d}$";
 
     // Number of Gigabyte compare to byte
     public static final long GIGABYTE = 1024 * 1024 * 1024;

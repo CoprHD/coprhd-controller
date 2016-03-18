@@ -567,14 +567,6 @@ public class VolumeGroupService extends TaskResourceService {
             throw APIException.badRequests.replicaOperationNotAllowedOnEmptyVolumeGroup(volumeGroup.getLabel(), ReplicaTypeEnum.FULL_COPY.toString());
         }
 
-        List<VolumeGroupUtils> utils = getVolumeGroupUtils(volumeGroup);
-        for (VolumeGroupUtils util : utils) {
-            // TODO XtremIO array does not support clone.
-            // If volume group has mix of storage arrays, entire Clone creation workflow will fail (rolled back)
-            // In such cases and not to have partial clone, we may need to restrict user at API level.
-            // may be use Copy-VolumeGroupUtils to validate such things.
-        }
-
         if (param.getPartial()) {
             log.info("Full Copy requested for subset of array groups in Application.");
 
@@ -589,6 +581,7 @@ public class VolumeGroupService extends TaskResourceService {
                 // Get the Volume.
                 Volume volume = (Volume) BlockFullCopyUtils.queryFullCopyResource(volumeURI,
                         uriInfo, true, _dbClient);
+
 
                 String arrayGroupName = volume.getReplicationGroupInstance();
                 if (volume.isVPlexVolume(_dbClient)) {
@@ -621,10 +614,13 @@ public class VolumeGroupService extends TaskResourceService {
 
                 volumesInRequest.add(volume);
             }
-
-            // send create request after validating all volumes
-            String name = param.getName();
             
+            // check for xtremio volumes
+            for (String groupName : arrayGroupNames) {
+                checkForXtremio(CustomQueryUtility.queryActiveResourcesByConstraint(_dbClient, Volume.class,
+                        AlternateIdConstraint.Factory.getVolumeReplicationGroupInstanceConstraint(groupName)));
+            }
+
             for (Volume volume : volumesInRequest) {
                 // set Flag in Volume so that we will know about partial request during processing.
                 volume.addInternalFlags(Flag.VOLUME_GROUP_PARTIAL_REQUEST);
@@ -649,6 +645,10 @@ public class VolumeGroupService extends TaskResourceService {
             }
         } else {
             log.info("Full Copy requested for entire Application");
+
+            // make sure there are no xtremio volumes in the application
+            checkForXtremio(volumes);
+
             auditOp(OperationTypeEnum.CREATE_VOLUME_GROUP_FULL_COPY, true, AuditLogManager.AUDITOP_BEGIN, volumeGroup.getId().toString(),
                     param.getName(), param.getCount());
 
@@ -657,6 +657,29 @@ public class VolumeGroupService extends TaskResourceService {
         }
 
         return taskList;
+    }
+
+    /**
+     * checks the list of volumes to see if any is on xtremio storage; handles vplex; throws if xtremio exists
+     * 
+     * @param volumes
+     */
+    private void checkForXtremio(List<Volume> volumes) {
+        for (Volume volume : volumes) {
+            if (volume.getAssociatedVolumes() != null) {
+                for (String backendVolId : volume.getAssociatedVolumes()) {
+                    Volume backendVol = _dbClient.queryObject(Volume.class, URI.create(backendVolId));
+                    if (backendVol != null && !backendVol.getInactive() && ControllerUtils.isXtremIOVolume(volume, _dbClient)) {
+                        throw APIException.badRequests
+                                .replicaOperationNotAllowedApplicationHasXtremio(ReplicaTypeEnum.FULL_COPY.toString());
+                    }
+                }
+            } else {
+                if (ControllerUtils.isXtremIOVolume(volume, _dbClient)) {
+                    throw APIException.badRequests.replicaOperationNotAllowedApplicationHasXtremio(ReplicaTypeEnum.FULL_COPY.toString());
+                }
+            }
+        }
     }
 
     /**
@@ -3148,13 +3171,19 @@ public class VolumeGroupService extends TaskResourceService {
             String addedVolType = null;
             String firstVolLabel = null;
             URI consistencyGroupURI = null;
+            URI tenantId = null;
             List<URI> addVolList = param.getAddVolumesList().getVolumes();
             List<Volume> volumes = new ArrayList<Volume>();
+            Volume firstAddedVolume = null;
             for (URI volUri : addVolList) {
                 ArgValidator.checkFieldUriType(volUri, Volume.class, "id");
                 Volume volume = dbClient.queryObject(Volume.class, volUri);
                 if (volume == null || volume.getInactive()) {
                     throw APIException.badRequests.volumeCantBeAddedToVolumeGroup(volUri.toString(), "the volume has been deleted");
+                }
+
+                if (firstAddedVolume == null) {
+                    firstAddedVolume = volume;
                 }
 
                 URI cgUri = volume.getConsistencyGroup();
@@ -3169,6 +3198,14 @@ public class VolumeGroupService extends TaskResourceService {
                     // volume is not from the same CG
                     throw APIException.badRequests.volumeCantBeAddedToVolumeGroup(volume.getLabel(),
                             "Volume is not in the same consistency group as others in the same request");
+                }
+
+                if (tenantId == null) {
+                    tenantId = volume.getTenant().getURI();
+                } else if (!tenantId.equals(volume.getTenant().getURI())) {
+                    // volume is not from the same CG
+                    throw APIException.badRequests.volumeCantBeAddedToVolumeGroup(volume.getLabel(),
+                            "the volume does not have the same tenant as others in the same request");
                 }
 
                 BlockConsistencyGroup cg = dbClient.queryObject(BlockConsistencyGroup.class, cgUri);
@@ -3225,6 +3262,7 @@ public class VolumeGroupService extends TaskResourceService {
                 volumes.add(volume);
                 impactedCGs.add(volume.getConsistencyGroup());
             }
+
             // Check if the to-add volumes are the same volume type as existing volumes in the application
             List<Volume> existingVols = ControllerUtils.getVolumeGroupVolumes(dbClient, volumeGroup);
             if (!existingVols.isEmpty()) {
@@ -3234,6 +3272,28 @@ public class VolumeGroupService extends TaskResourceService {
                 if (!existingType.equals(addedVolType)) {
                     throw APIException.badRequests.volumeCantBeAddedToVolumeGroup(firstVolLabel,
                             "The volume type is not same as existing volumes in the application");
+                }
+
+                // check to make sure the new volumes are the same tenant as existing volumes
+                if (!firstVolume.getTenant().getURI().equals(tenantId)) {
+                    throw APIException.badRequests.volumeCantBeAddedToVolumeGroup(firstVolLabel,
+                            "volume does not have the same tenant as existing volumes in the application");
+                }
+
+                // if volumes are vplex, make sure local vs distributed matches
+                if (DiscoveredDataObject.Type.vplex.name().equals(existingType) && firstAddedVolume != null) {
+                    boolean isExistingDistributed = firstVolume.getAssociatedVolumes() != null
+                            && firstVolume.getAssociatedVolumes().size() > 1;
+                    boolean isAddVolsDistributed = firstAddedVolume.getAssociatedVolumes() != null
+                            && firstAddedVolume.getAssociatedVolumes().size() > 1;
+
+                    if (isAddVolsDistributed && !isExistingDistributed) {
+                        throw APIException.badRequests.volumeCantBeAddedToVolumeGroup(firstAddedVolume.getLabel(),
+                                "the VPlex volume is being added is distributed and the existing volumes in the application are not");
+                    } else if (!isAddVolsDistributed && isExistingDistributed) {
+                        throw APIException.badRequests.volumeCantBeAddedToVolumeGroup(firstAddedVolume.getLabel(),
+                                "the existing volumes in the application are distributed and the VPlex volume is being added is not");
+                    }
                 }
             }
 

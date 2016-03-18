@@ -6175,7 +6175,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                        waitFor, storage, storageSystem.getSystemType(),
                        this.getClass(),
                        deleteConsistencyGroupMethod(storage, cgUri, groupName, false, false),
-                       rollbackMethodNullMethod(), null);
+                       createConsistencyGroupMethod(storage, cgUri, groupName), null);
            }
         }
        
@@ -6203,7 +6203,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                        waitFor, storage, storageSystem.getSystemType(),
                        this.getClass(),
                        createConsistencyGroupMethod(storage, cgUri, rgName),
-                       rollbackMethodNullMethod(), null);
+                       deleteConsistencyGroupMethod(storage, cgUri, rgName, false, false), null);
            }
 
            waitFor = workflow.createStep(UPDATE_CONSISTENCY_GROUP_STEP_GROUP,
@@ -6211,7 +6211,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                    waitFor, storage, storageSystem.getSystemType(),
                    this.getClass(),
                    addToConsistencyGroupMethod(storage, cgUri, rgName, addVolumeList),
-                   rollbackMethodNullMethod(), null);
+                   removeFromConsistencyGroupMethod(storage, cgUri, addVolumeList, false), null);
 
            if (!isNewRG) {
                // call ReplicaDeviceController

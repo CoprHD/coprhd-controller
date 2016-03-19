@@ -4158,39 +4158,65 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                     Set<URI> addVolumeSet = new HashSet<URI>();
                     // get source and target volumes to be added the CG (in case of RP)
                     addVolumeSet = RPHelper.getReplicationSetVolumes(addVolumesList, _dbClient);
+                    if (addVolumeSet == null || addVolumeSet.isEmpty()) {
+                        // BlockSnapshot case
+                        addVolumeSet.addAll(addVolumesList);
+                    }
                     // split up add volumes list by source and target
                     List<URI> allAddSourceVolumes = new ArrayList<URI>();
                     List<URI> allAddTargetVolumes = new ArrayList<URI>();
                     Map<URI, List<URI>> storageSystemToVolumesMap = new HashMap<URI, List<URI>>();
-                    for (URI volUri : addVolumeSet) {
-                        Volume vol = _dbClient.queryObject(Volume.class, volUri);
+                    URI sourceStorageSystemId = storageSystem.getId();
+                    boolean snapshotIngestion = false;
+                    for (URI boUri : addVolumeSet) {
+                        BlockObject bo = BlockObject.fetch(_dbClient, boUri);
+                        Volume vol = null;
+                        if (bo instanceof BlockSnapshot) {
+                            BlockSnapshot snapshot = (BlockSnapshot)bo; 
+                            URI parentUri = snapshot.getParent().getURI();
+                            vol = _dbClient.queryObject(Volume.class, parentUri);
+                            snapshotIngestion = true;
+                        } else {
+                            vol = (Volume)bo;
+                        }
+                        
                         if (vol.checkPersonality(Volume.PersonalityTypes.SOURCE.name())) {
-                            addBackendVolumes(vol, true, allAddSourceVolumes, vplexVolumes);
+                            addBackendVolumes(bo, vol, true, allAddSourceVolumes, vplexVolumes);
+                            if (sourceStorageSystemId != null) {
+                                if (!sourceStorageSystemId.equals(vol.getStorageController())) {
+                                    String message = "Can't ingest sources from different VMAX arrays into the same VMAX CG."; 
+                                    _log.error(message);
+                                    throw DeviceControllerException.exceptions.failedToUpdateConsistencyGroup(message);
+                                }
+                            }
+                            sourceStorageSystemId = vol.getStorageController();
                         } else if (vol.checkPersonality(Volume.PersonalityTypes.TARGET.name())) {
-                            addBackendVolumes(vol, true, allAddTargetVolumes, vplexVolumes);
+                            addBackendVolumes(bo, vol, true, allAddTargetVolumes, vplexVolumes);
                         }
                     }
 
                     // Generate groupName and create step for source storage system
+
+                    storageSystem = _dbClient.queryObject(StorageSystem.class, sourceStorageSystemId);
                     String groupName = ControllerUtils.generateReplicationGroupName(storageSystem, cg, null, _dbClient);
                     waitFor = workflow.createStep(UPDATE_CONSISTENCY_GROUP_STEP_GROUP,
-                            String.format("Adding RP source volumes to consistency group %s on storage system %s", consistencyGroup, storageSystem.forDisplay()),
-                            waitFor, storage, storageSystem.getSystemType(),
+                            String.format("Adding RP source volumes/replicas to consistency group %s on storage system %s", consistencyGroup, storageSystem.forDisplay()),
+                            waitFor, sourceStorageSystemId, storageSystem.getSystemType(),
                             this.getClass(),
-                            addToConsistencyGroupMethod(storage, consistencyGroup, groupName, addVolumesList),
+                            addToConsistencyGroupMethod(sourceStorageSystemId, consistencyGroup, groupName, allAddSourceVolumes),
                             rollbackMethodNullMethod(), null);
 
                     // call ReplicaDeviceController
-                    waitFor = _replicaDeviceController.addStepsForAddingSessionsToCG(workflow, waitFor, consistencyGroup, addVolumesList,
+                    waitFor = _replicaDeviceController.addStepsForAddingSessionsToCG(workflow, waitFor, consistencyGroup, allAddSourceVolumes,
                             groupName, task);
                     
-                    // Group together target volumes by storage system.  If any volume doesn't belong to vmax, throw out that set of targets
-                    for (URI volUri : allAddTargetVolumes) {
-                        Volume vol = _dbClient.queryObject(Volume.class, volUri);
-                        if (storageSystemToVolumesMap.get(vol.getStorageController()) == null) {
-                            storageSystemToVolumesMap.put(vol.getStorageController(), new ArrayList<URI>());
+                    // Group together target volumes/replicas by storage system.  If any volume/replica doesn't belong to vmax, throw out that set of targets
+                    for (URI boUri : allAddTargetVolumes) {
+                        BlockObject bo = BlockObject.fetch(_dbClient, boUri);
+                        if (storageSystemToVolumesMap.get(bo.getStorageController()) == null) {
+                            storageSystemToVolumesMap.put(bo.getStorageController(), new ArrayList<URI>());
                         }
-                        storageSystemToVolumesMap.get(vol.getStorageController()).add(volUri);
+                        storageSystemToVolumesMap.get(bo.getStorageController()).add(boUri);
                     }
                     
                     // Create steps based on storage systems
@@ -4203,8 +4229,8 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                         // 2. There's more than one target RP Copy on the same VMAX
                         //
                         // We passively warn in the logs why we can't group them, but we continue to group others as possible.
-                        if (volumesToAdd.size() != addVolumesList.size()) {
-                            _log.error(String.format("Can't add target volumes %s to VMAX CG because we found %d volumes associated with this storage array in the RP CG versus %d RP Source volumes.",
+                        if (!snapshotIngestion && volumesToAdd.size() != addVolumesList.size()) {
+                            _log.error(String.format("Can't add target volumes/replicas %s to VMAX CG because we found %d volumes associated with this storage array in the RP CG versus %d RP Source volumes.",
                                     Joiner.on(',').join(volumesToAdd), volumesToAdd.size(), addVolumesList.size()));
                             continue;                            
                         }
@@ -4213,18 +4239,24 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                         
                         // Validation to ensure we're dealing with VMAX
                         if (!targetStorageSystem.deviceIsType(Type.vmax)) {
-                            _log.error(String.format("Can't add target volumes %s to VMAX CG because the storage array %s is not VMAX",
+                            _log.error(String.format("Can't add target volumes/replicas %s to VMAX CG because the storage array %s is not VMAX",
                                     Joiner.on(',').join(volumesToAdd), targetStorageSystem.forDisplay()));
                             continue;                                                        
                         }
                         
                         // Generate groupName and create step for source storage system
-                        groupName = ControllerUtils.generateReplicationGroupName(targetStorageSystem, cg, null, _dbClient) + RPHelper.REPLICATION_GROUP_RPTARGET_SUFFIX;
+                        if (snapshotIngestion) {
+                            // The RPTARGET suffix is already specified on the parent volume, so we don't want to add it again.
+                            groupName = ControllerUtils.generateReplicationGroupName(targetStorageSystem, cg, null, _dbClient);
+                        } else {
+                            groupName = ControllerUtils.generateReplicationGroupName(targetStorageSystem, cg, null, _dbClient) + RPHelper.REPLICATION_GROUP_RPTARGET_SUFFIX;
+                        }
+                        
                         waitFor = workflow.createStep(UPDATE_CONSISTENCY_GROUP_STEP_GROUP,
-                                String.format("Adding RP target volumes to consistency group %s to storage system %s", consistencyGroup, targetStorageSystem.forDisplay()),
+                                String.format("Adding RP target volumes/replicas to consistency group %s to storage system %s", consistencyGroup, targetStorageSystem.forDisplay()),
                                 waitFor, storageSystemId, targetStorageSystem.getSystemType(),
                                 this.getClass(),
-                                addToConsistencyGroupMethod(storageSystemId, consistencyGroup, groupName, addVolumesList),
+                                addToConsistencyGroupMethod(storageSystemId, consistencyGroup, groupName, volumesToAdd),
                                 rollbackMethodNullMethod(), null);
 
                         // call ReplicaDeviceController
@@ -6390,12 +6422,13 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
 
     /**
      * Add block(backend) volumes if the volume is a VPLEX volume to the Block volume list to call to BlockDeviceController.
-     * @param volume The volume will be processed
+     * @param bo block object to add
+     * @param volume The volume (parent in case of replica)
      * @param isAdd if the volume is for add or remove
      * @param allVolumes output all block volume list
      * @param vplexVolumes output all vplex volumes whose backend volumes are not in RG
      */
-    private void addBackendVolumes(Volume volume, boolean isAdd, List<URI> allVolumes, Set<URI> vplexVolumes) {
+    private void addBackendVolumes(BlockObject bo, Volume volume, boolean isAdd, List<URI> allVolumes, Set<URI> vplexVolumes) {
         if (RPHelper.isVPlexVolume(volume)) {
             StringSet backends = volume.getAssociatedVolumes();
             for (String backendId : backends) {
@@ -6409,7 +6442,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                 }
             }
         } else {
-            allVolumes.add(volume.getId());
+            allVolumes.add(bo.getId());
         }
     }
 }

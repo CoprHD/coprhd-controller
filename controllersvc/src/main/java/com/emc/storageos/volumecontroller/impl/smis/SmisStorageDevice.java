@@ -2303,7 +2303,7 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
             BlockConsistencyGroup consistencyGroup, List<URI> replicas,
             Map<URI, BlockObject> uriToBlockObjectMap) throws Exception {
         String replicationGroupName = ControllerUtils.getGroupNameFromReplicas(
-                replicas, consistencyGroup, _dbClient);
+                storage, replicas, consistencyGroup, _dbClient);
         if (replicationGroupName == null) {
             // create Replication Group with random name
             _log.info("Creating Replication Group for replicas");

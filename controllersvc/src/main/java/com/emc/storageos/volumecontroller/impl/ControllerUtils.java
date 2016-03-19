@@ -1059,9 +1059,15 @@ public class ControllerUtils {
 
     /**
      * Gets the replication group name from replicas of all volumes in CG.
+     * 
+     * @param storage storage system to focus on
+     * @param replicas replicas
+     * @param consistencyGroup consistency group
+     * @param dbClient dbclient
+     * @return replication group name to use
      */
-    public static String getGroupNameFromReplicas(List<URI> replicas,
-            BlockConsistencyGroup consistencyGroup, DbClient dbClient) {
+    public static String getGroupNameFromReplicas(StorageSystem storage,
+            List<URI> replicas, BlockConsistencyGroup consistencyGroup, DbClient dbClient) {
         URI replicaURI = replicas.iterator().next();
         // get volumes part of this CG
         List<Volume> volumes = ControllerUtils.
@@ -1069,6 +1075,12 @@ public class ControllerUtils {
 
         // check if replica of any of these volumes have replicationGroupInstance set
         for (Volume volume : volumes) {
+            // We want to find the name corresponding to the same storage array.
+            // This CG may contain replication group names from several arrays.
+            if (!volume.getStorageController().equals(storage.getId())) {
+                continue;
+            }
+            
             if (URIUtil.isType(replicaURI, BlockSnapshot.class)) {
                 URIQueryResultList list = new URIQueryResultList();
                 dbClient.queryByConstraint(ContainmentConstraint.Factory

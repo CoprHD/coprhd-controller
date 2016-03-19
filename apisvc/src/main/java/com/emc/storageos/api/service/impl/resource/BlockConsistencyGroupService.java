@@ -130,6 +130,7 @@ import com.emc.storageos.util.VPlexUtil;
 import com.emc.storageos.volumecontroller.BlockController;
 import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.volumecontroller.impl.ControllerUtils;
+import com.google.common.base.Joiner;
 import com.google.common.collect.Table;
 import com.google.common.collect.Table.Cell;
 
@@ -1319,6 +1320,14 @@ public class BlockConsistencyGroupService extends TaskResourceService {
             }
         }
 
+        if (param.hasVolumesToAdd()) {
+            _log.info(String.format("Request to add: %s to CG %s", Joiner.on(',').join(param.getAddVolumesList().getVolumes()), consistencyGroup.forDisplay()));
+        }
+
+        if (param.hasVolumesToRemove()) {
+            _log.info(String.format("Request to remove: %s from CG %s", Joiner.on(',').join(param.getRemoveVolumesList().getVolumes()), consistencyGroup.forDisplay()));
+        }
+
         // Validate RP use case:
         //
         // We allow ingestion into VMAX CG for ingested RP CG volumes under certain conditions:
@@ -1327,35 +1336,44 @@ public class BlockConsistencyGroupService extends TaskResourceService {
         // 3. All of the volumes sent down are all of the (SOURCE) volumes in the RP CG
         boolean isRPVMAXIngestion = false;
         if (consistencyGroup.checkForType(Types.RP) && param.hasVolumesToAdd() && !param.hasVolumesToRemove()) {
-            isRPVMAXIngestion = true;
+            boolean rpSnapIngestion = false;
             for (URI boId : param.getAddVolumesList().getVolumes()) {
                 BlockObject bo = BlockObject.fetch(_dbClient, boId);
                 if (!(bo instanceof Volume)) {
-                    // UI would not allow this condition
-                    throw APIException.badRequests.cantAddNonVolumeToCG(bo.forDisplay());
+                    rpSnapIngestion = true;
+                    break;
                 }
-                Volume volume = (Volume)bo;
+            }
+            if (!rpSnapIngestion) {
+                isRPVMAXIngestion = true;
+                for (URI boId : param.getAddVolumesList().getVolumes()) {
+                    BlockObject bo = BlockObject.fetch(_dbClient, boId);
+                    if (!(bo instanceof Volume)) {
+                        // UI would not allow this condition
+                        throw APIException.badRequests.cantAddNonVolumeToCG(bo.forDisplay());
+                    }
+                    Volume volume = (Volume)bo;
 
-                // 1. Check to make sure all volumes are RP source volumes
-                if (!PersonalityTypes.SOURCE.name().equalsIgnoreCase(volume.getPersonality())) {
-                    // UI would not allow this condition
-                    throw APIException.badRequests.cantAddNonSourceToCG(volume.forDisplay());
+                    // 1. Check to make sure all volumes are RP source volumes
+                    if (!PersonalityTypes.SOURCE.name().equalsIgnoreCase(volume.getPersonality())) {
+                        // UI would not allow this condition
+                        throw APIException.badRequests.cantAddNonSourceToCG(volume.forDisplay());
+                    }
+
+                    // 2. Check to make sure all volumes are VMAX volumes
+                    StorageSystem system = _dbClient.queryObject(StorageSystem.class, volume.getStorageController());
+                    if (!system.deviceIsType(Type.vmax)) {
+                        throw APIException.badRequests.cantAddRPVolumeToNonVMAXCG(volume.forDisplay());
+                    }
                 }
-                
-                // 2. Check to make sure all volumes are VMAX volumes
-                StorageSystem system = _dbClient.queryObject(StorageSystem.class, volume.getStorageController());
-                if (!system.deviceIsType(Type.vmax)) {
-                    throw APIException.badRequests.cantAddRPVolumeToNonVMAXCG(volume.forDisplay());
+
+                List<Volume> volumes = RPHelper.getCgSourceVolumes(consistencyGroup.getId(), _dbClient);
+
+                // 3. Make sure all of the volumes sent down are all of the (SOURCE) volumes in the RP CG
+                if (param.getAddVolumesList().getVolumes().size() != volumes.size()) {
+                    throw APIException.badRequests.mustSpecifyAllVolumesForRPVMAXCGIngestion(consistencyGroup.forDisplay());
                 }
             }
-            
-            List<Volume> volumes = RPHelper.getCgSourceVolumes(consistencyGroup.getId(), _dbClient);
-            
-            // 3. Make sure all of the volumes sent down are all of the (SOURCE) volumes in the RP CG
-            if (param.getAddVolumesList().getVolumes().size() != volumes.size()) {
-                throw APIException.badRequests.mustSpecifyAllVolumesForRPVMAXCGIngestion(consistencyGroup.forDisplay());
-            }
-            
         }
         
         List<Volume> cgVolumes = blockServiceApiImpl.getActiveCGVolumes(consistencyGroup);

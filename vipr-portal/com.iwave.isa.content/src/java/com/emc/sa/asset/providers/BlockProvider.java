@@ -1752,7 +1752,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
                 boolean localSnapSupported = isLocalSnapshotSupported(detail.vpool);
                 boolean isRPTargetVolume = isRPTargetVolume(detail.volume);
                 boolean isRPSourceVolume = isRPSourceVolume(detail.volume);
-                boolean isInConsistencyGroup = BlockProvider.isInConsistencyGroup(detail.volume);
+                boolean isInConsistencyGroup = StringUtils.isEmpty(detail.volume.getReplicationGroupInstance());
                 boolean isSnapshotSessionSupported = isSnapshotSessionSupportedForVolume(detail.volume);
 
                 debug("filter[ localSnapSupported=%s, isRPTargetVolume=%s, isRPSourceVolume=%s, isInConsistencyGroup=%s, isXio3XVolume=%s ]",
@@ -1790,7 +1790,8 @@ public class BlockProvider extends BaseAssetOptionsProvider {
             List<VolumeRestRep> volumes = client.blockVolumes().findByProject(project, new DefaultResourceFilter<VolumeRestRep>() {
                 @Override
                 public boolean accept(VolumeRestRep volume) {
-                    if (!(client.blockSnapshots().getByVolume(volume.getId())).isEmpty() && !isInConsistencyGroup(volume)) {
+                    if (!(client.blockSnapshots().getByVolume(volume.getId())).isEmpty()
+                            && StringUtils.isEmpty(volume.getReplicationGroupInstance())) {
                         return true;
                     } else {
                         return false;
@@ -1933,7 +1934,8 @@ public class BlockProvider extends BaseAssetOptionsProvider {
             List<VolumeRestRep> volumes = client.blockVolumes().findByProject(project, new DefaultResourceFilter<VolumeRestRep>() {
                 @Override
                 public boolean accept(VolumeRestRep volume) {
-                    if (!client.blockVolumes().getFullCopies(volume.getId()).isEmpty() && !isInConsistencyGroup(volume)) {
+                    if (!client.blockVolumes().getFullCopies(volume.getId()).isEmpty()
+                            && StringUtils.isEmpty(volume.getReplicationGroupInstance())) {
                         return true;
                     } else {
                         return false;

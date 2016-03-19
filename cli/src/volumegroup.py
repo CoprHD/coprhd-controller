@@ -48,6 +48,7 @@ class VolumeGroup(object):
     URI_VOLUME_GROUP_SNAPSHOT_RESTORE = URI_VOLUME_GROUP_SNAPSHOT + "/restore"
     URI_VOLUME_GROUP_SNAPSHOT_RESYNCHRONIZE = URI_VOLUME_GROUP_SNAPSHOT + "/resynchronize"
     URI_VOLUME_GROUP_SNAPSHOT_LIST = URI_VOLUME_GROUP_SNAPSHOT
+    URI_VOLUME_GROUP_SNAPSHOT_ACTIVATE = URI_VOLUME_GROUP_SNAPSHOT + "/activate"
     URI_VOLUME_GROUP_SNAPSHOT_SHOW= URI_VOLUME_GROUP_SNAPSHOT + "/{1}"
     URI_VOLUME_GROUP_SNAPSHOT_GET_COPY_SETS= URI_VOLUME_GROUP_SNAPSHOT + "/copy-sets"
 
@@ -517,11 +518,12 @@ class VolumeGroup(object):
             return o   
 
     # Creates snapshot for the given volume group
-    def snapshot(self, name, snapshot_name, readonly, partial, volumeUris):
+    def snapshot(self, name, snapshot_name, create_inactive, readonly, partial, volumeUris):
         '''
         Makes REST API call to create volume group snapshot
         Parameters:
-            name: name with which snapshot to be created
+            name: name with which snapshot to be created.
+            create_inactive: with this flag, created snapshot will not be activated.
             readonly: with this flag, created snapshot will be read only.
             partial: Enable the flag to create snapshot for subset of VolumeGroup.
                      Please specify one volume from each Array Replication Group.
@@ -535,6 +537,7 @@ class VolumeGroup(object):
 
         request = {
             'name': snapshot_name,
+            'create_inactive': create_inactive,
             'read_only': readonly
         }
 
@@ -647,7 +650,7 @@ class VolumeGroup(object):
 
     def volume_group_snapshot_operation(self, name, snapshots, partial, uri):
         '''
-        Makes REST API call to deactivate/restore/resync volume group snapshot
+        Makes REST API call to acitvate/deactivate/restore/resync volume group snapshot
         Parameters:
             partial: Enable the flag to operate on snapshots for subset of VolumeGroup.
                      Please specify one snapshot from each Array Replication Group
@@ -769,7 +772,7 @@ class VolumeGroup(object):
                 snapshotsessionnames.remove(ss['name'])
 
         if len(snapshotsessionnames) != 0:
-            raise SOSError(SOSError.SOS_FAILURE_ERR, "Snapshot Session(s) " + ', '.join(snapshotsessionnames) +
+            raise SOSError(SOSError.SOS_FAILURE_ERR, "Snapshot session(s) " + ', '.join(snapshotsessionnames) +
                     ": not found")
 
         return snapshotSessionUris
@@ -888,7 +891,7 @@ class VolumeGroup(object):
                 else:
                     raise SOSError(
                         SOSError.CMD_LINE_ERR,
-                        "Please specify :delete if the target volume is to be deleted")
+                        "Please specify :delete if the target volume need to be deleted")
             else:
                 targetDict['delete_target'] = False
 
@@ -1749,7 +1752,7 @@ def clone_get_sets_parser(subcommand_parsers, common_parser):
         'clone-get-sets',
         parents=[common_parser],
         conflict_handler='resolve',
-        help='Get clone copy set names of a VolumeGroup',
+        help='Get clone copy set names of a volume group',
         description='ViPR Get Copy Set Names of a VolumeGroup CLI usage.')
 
     mandatory_args = clone_get_sets_parser.add_argument_group('mandatory arguments')
@@ -1773,14 +1776,14 @@ def volume_group_clone_get_sets(args):
         if (e.err_code == SOSError.SOS_FAILURE_ERR):
             raise SOSError(
                 SOSError.SOS_FAILURE_ERR,
-                "Clone get sets: " +
+                "Get clone copy sets for " +
                 args.name +
-                ", Failed\n" +
+                " failed\n" +
                 e.err_text)
         else:
             common.format_err_msg_and_raise(
-                "clone",
-                "get sets",
+                "get",
+                "clone copy sets",
                 e.err_text,
                 e.err_code)
 
@@ -1790,7 +1793,7 @@ def clone_get_parser(subcommand_parsers, common_parser):
         'clone-get',
         parents=[common_parser],
         conflict_handler='resolve',
-        help='Get clones of a VolumeGroup by set name',
+        help='Get clones of a volume group by set name',
         description='ViPR Get Clones of a VolumeGroup by Copy Set Name CLI usage.')
 
     mandatory_args = clone_get_parser.add_argument_group('mandatory arguments')
@@ -1819,14 +1822,14 @@ def volume_group_clone_get(args):
         if (e.err_code == SOSError.SOS_FAILURE_ERR):
             raise SOSError(
                 SOSError.SOS_FAILURE_ERR,
-                "Clones get" +
-                args.name + " with " + args.setname +
-                ", Failed\n" +
+                "Get clones by copy set for " +
+                args.name + " with set " + args.setname +
+                " failed\n" +
                 e.err_text)
         else:
             common.format_err_msg_and_raise(
-                "clone",
-                "get clones by set name",
+                "get",
+                "clones by set name",
                 e.err_text,
                 e.err_code)
 
@@ -1837,7 +1840,7 @@ def snapshot_parser(subcommand_parsers, common_parser):
         description='ViPR VolumeGroup Snapshot CLI usage.',
         parents=[common_parser],
         conflict_handler='resolve',
-        help='VolumeGroup Snapshot')
+        help='Create volume group snapshot')
 
     mandatory_args = snapshot_parser.add_argument_group('mandatory arguments')
     mandatory_args.add_argument('-name', '-n',
@@ -1850,6 +1853,10 @@ def snapshot_parser(subcommand_parsers, common_parser):
                                 dest='snapshotname',
                                 help='Name of snapshot set',
                                 required=True)
+    snapshot_parser.add_argument('-createinactive', '-ci',
+                              dest='createinactive',
+                              action='store_true',
+                              help='Create snapshot with inactive state')
     snapshot_parser.add_argument('-readonly', '-ro',
                               dest='readonly',
                               action='store_true',
@@ -1872,7 +1879,7 @@ def volume_group_snapshot(args):
 
     try:
         volumeUris = query_volumes_for_partial_request(args)
-        obj.snapshot(args.name, args.snapshotname, args.readonly, args.partial, ",".join(volumeUris))
+        obj.snapshot(args.name, args.snapshotname, args.createinactive, args.readonly, args.partial, ",".join(volumeUris))
         return
 
     except SOSError as e:
@@ -1917,9 +1924,9 @@ def volume_group_snapshot_operation(args, operation, uri):
         if (e.err_code == SOSError.SOS_FAILURE_ERR):
             raise SOSError(
                 SOSError.SOS_FAILURE_ERR,
-                operation + " snapshot: " +
+                operation + " snapshot for " +
                 args.name +
-                ", Failed\n" +
+                " failed\n" +
                 e.err_text)
         else:
             common.format_err_msg_and_raise(
@@ -1928,13 +1935,30 @@ def volume_group_snapshot_operation(args, operation, uri):
                 e.err_text,
                 e.err_code)
 
+# snapshot_activate_parser
+def snapshot_activate_parser(subcommand_parsers, common_parser):
+    snapshot_activate_parser = subcommand_parsers.add_parser(
+        'snapshot-activate',
+        parents=[common_parser],
+        conflict_handler='resolve',
+        help='Activate volume group snapshot',
+        description='ViPR Activate Snapshot of a VolumeGroup CLI usage.')
+
+    # Add parameter from common snapshot parser.
+    volume_group_snapshot_common_parser(snapshot_activate_parser)
+    snapshot_activate_parser.set_defaults(func=volume_group_snapshot_activate)
+
+# Activate Snapshot Function
+def volume_group_snapshot_activate(args):
+    volume_group_snapshot_operation(args, "activate", VolumeGroup.URI_VOLUME_GROUP_SNAPSHOT_ACTIVATE)
+
 # snapshot_deactivate_parser
 def snapshot_deactivate_parser(subcommand_parsers, common_parser):
     snapshot_deactivate_parser = subcommand_parsers.add_parser(
         'snapshot-deactivate',
         parents=[common_parser],
         conflict_handler='resolve',
-        help='Deactivate snapshot of a VolumeGroup',
+        help='Deactivate volume group snapshot',
         description='ViPR Deactivate Snapshot of a VolumeGroup CLI usage.')
 
     # Add parameter from common snapshot parser.
@@ -1951,7 +1975,7 @@ def snapshot_restore_parser(subcommand_parsers, common_parser):
         'snapshot-restore',
         parents=[common_parser],
         conflict_handler='resolve',
-        help='Restore snapshot of a VolumeGroup',
+        help='Restore volume group snapshot',
         description='ViPR Restore Snapshot of a VolumeGroup CLI usage.')
 
     # Add parameter from common snapshot parser.
@@ -1968,7 +1992,7 @@ def snapshot_resync_parser(subcommand_parsers, common_parser):
         'snapshot-resync',
         parents=[common_parser],
         conflict_handler='resolve',
-        help='Resynchronize snapshot of a VolumeGroup',
+        help='Resynchronize volume group snapshot',
         description='ViPR Resynchronize Snapshot of a VolumeGroup CLI usage.')
 
     # Add parameter from common snapshot parser.
@@ -1985,7 +2009,7 @@ def snapshot_list_parser(subcommand_parsers, common_parser):
         'snapshot-list',
         parents=[common_parser],
         conflict_handler='resolve',
-        help='Get Snapshot list of a VolumeGroup',
+        help='Get all snapshots of a volume group',
         description='ViPR List Snapshot of a VolumeGroup CLI usage.')
 
     mandatory_args = snapshot_list_parser.add_argument_group('mandatory arguments')
@@ -2009,14 +2033,14 @@ def volume_group_snapshot_list(args):
         if (e.err_code == SOSError.SOS_FAILURE_ERR):
             raise SOSError(
                 SOSError.SOS_FAILURE_ERR,
-                "Snapshot List: " +
+                "List snapshot for " +
                 args.name +
-                ", Failed\n" +
+                " failed\n" +
                 e.err_text)
         else:
             common.format_err_msg_and_raise(
-                "snapshot",
                 "list",
+                "snapshot",
                 e.err_text,
                 e.err_code)
 
@@ -2026,7 +2050,7 @@ def snapshot_show_parser(subcommand_parsers, common_parser):
         'snapshot-show',
         parents=[common_parser],
         conflict_handler='resolve',
-        help='Show a Snapshot details of a VolumeGroup',
+        help='Show details of a volume group snapshot',
         description='ViPR Show Snapshot of a VolumeGroup CLI usage.')
 
     mandatory_args = snapshot_show_parser.add_argument_group('mandatory arguments')
@@ -2057,14 +2081,14 @@ def volume_group_snapshot_show(args):
         if (e.err_code == SOSError.SOS_FAILURE_ERR):
             raise SOSError(
                 SOSError.SOS_FAILURE_ERR,
-                "Snapshot show: " +
+                "Show snapshot for " +
                 args.name +
-                ", Failed\n" +
+                " failed\n" +
                 e.err_text)
         else:
             common.format_err_msg_and_raise(
-                "snapshot",
                 "show",
+                "snapshot",
                 e.err_text,
                 e.err_code)
 
@@ -2074,7 +2098,7 @@ def snapshot_get_sets_parser(subcommand_parsers, common_parser):
         'snapshot-get-sets',
         parents=[common_parser],
         conflict_handler='resolve',
-        help='Get copy set names of a VolumeGroup',
+        help='Get snapshot copy set names of a volume group',
         description='ViPR Get Snapshot Copy Set Names of a VolumeGroup CLI usage.')
 
     mandatory_args = snapshot_get_sets_parser.add_argument_group('mandatory arguments')
@@ -2098,14 +2122,14 @@ def volume_group_snapshot_get_sets(args):
         if (e.err_code == SOSError.SOS_FAILURE_ERR):
             raise SOSError(
                 SOSError.SOS_FAILURE_ERR,
-                "Snapshot get sets: " +
+                "Get snapshot copy sets for " +
                 args.name +
-                ", Failed\n" +
+                " failed\n" +
                 e.err_text)
         else:
             common.format_err_msg_and_raise(
-                "snapshot",
-                "get sets",
+                "get",
+                "snapshot copy sets",
                 e.err_text,
                 e.err_code)
 
@@ -2115,7 +2139,7 @@ def snapshot_get_parser(subcommand_parsers, common_parser):
         'snapshot-get',
         parents=[common_parser],
         conflict_handler='resolve',
-        help='Get snapshots of a VolumeGroup by set name',
+        help='Get snapshots of a volume group by set name',
         description='ViPR Get Snapshots of a VolumeGroup by Copy Set Name CLI usage.')
 
     mandatory_args = snapshot_get_parser.add_argument_group('mandatory arguments')
@@ -2144,14 +2168,14 @@ def volume_group_snapshot_get(args):
         if (e.err_code == SOSError.SOS_FAILURE_ERR):
             raise SOSError(
                 SOSError.SOS_FAILURE_ERR,
-                "Snapshots get" +
-                args.name + " with " + args.setname +
-                ", Failed\n" +
+                "Get snapshot for " +
+                args.name + " with set " + args.setname +
+                " failed\n" +
                 e.err_text)
         else:
             common.format_err_msg_and_raise(
-                "snapshot",
-                "get snapshots by set name",
+                "get",
+                "snapshot by set name",
                 e.err_text,
                 e.err_code)
 
@@ -2162,7 +2186,7 @@ def snapshotsession_parser(subcommand_parsers, common_parser):
         description='ViPR VolumeGroup Snapshot Session CLI usage.',
         parents=[common_parser],
         conflict_handler='resolve',
-        help='VolumeGroup Snapshot Session')
+        help='Create volume group snapshot session')
 
     mandatory_args = snapshotsession_parser.add_argument_group('mandatory arguments')
     mandatory_args.add_argument('-name', '-n',
@@ -2257,9 +2281,9 @@ def volume_group_snapshotsession_operation(args, operation, uri):
         if (e.err_code == SOSError.SOS_FAILURE_ERR):
             raise SOSError(
                 SOSError.SOS_FAILURE_ERR,
-                operation + " snapshot session: " +
+                operation + " snapshot session for " +
                 args.name +
-                ", Failed\n" +
+                " failed\n" +
                 e.err_text)
         else:
             common.format_err_msg_and_raise(
@@ -2274,7 +2298,7 @@ def snapshotsession_deactivate_parser(subcommand_parsers, common_parser):
         'snapshotsession-deactivate',
         parents=[common_parser],
         conflict_handler='resolve',
-        help='Deactivate snapshot session of a VolumeGroup',
+        help='Deactivate volume group snapshot session',
         description='ViPR Deactivate Snapshot Session of a VolumeGroup CLI usage.')
 
     snapshotsession_deactivate_parser.add_argument('-snapshotsessions', '-s',
@@ -2298,7 +2322,7 @@ def snapshotsession_restore_parser(subcommand_parsers, common_parser):
         'snapshotsession-restore',
         parents=[common_parser],
         conflict_handler='resolve',
-        help='Restore snapshot session of a VolumeGroup',
+        help='Restore volume group snapshot session',
         description='ViPR Restore Snapshot Session of a VolumeGroup CLI usage.')
 
     snapshotsession_restore_parser.add_argument('-snapshotsessions', '-s',
@@ -2322,7 +2346,7 @@ def snapshotsession_link_parser(subcommand_parsers, common_parser):
         'snapshotsession-link',
         parents=[common_parser],
         conflict_handler='resolve',
-        help='Link snapshot session of a VolumeGroup',
+        help='Link volume group snapshot session targets',
         description='ViPR Link Snapshot Session of a VolumeGroup CLI usage.')
 
     snapshotsession_link_parser.add_argument('-snapshotsession', '-s',
@@ -2364,11 +2388,19 @@ def volume_group_snapshotsession_link(args):
         return
 
     except SOSError as e:
-        common.format_err_msg_and_raise(
-            "snapshot session",
-            "link",
-            e.err_text,
-            e.err_code)
+        if (e.err_code == SOSError.SOS_FAILURE_ERR):
+            raise SOSError(
+                SOSError.SOS_FAILURE_ERR,
+                "Link snapshot session target for " +
+                args.name +
+                " failed\n" +
+                e.err_text)
+        else:
+            common.format_err_msg_and_raise(
+                "link",
+                "snapshot session target",
+                e.err_text,
+                e.err_code)
 
 # snapshotsession_target_common_parser
 def snapshotsession_target_common_parser(common_parser):
@@ -2398,14 +2430,14 @@ def volume_group_snapshotsession_target_operation(args, operation, uri):
         if (e.err_code == SOSError.SOS_FAILURE_ERR):
             raise SOSError(
                 SOSError.SOS_FAILURE_ERR,
-                operation + " snapshot session: " +
+                operation + " snapshot session target for " +
                 args.name +
-                ", Failed\n" +
+                " failed\n" +
                 e.err_text)
         else:
             common.format_err_msg_and_raise(
                 operation,
-                "snapshot session",
+                "snapshot session target",
                 e.err_text,
                 e.err_code)
 
@@ -2415,7 +2447,7 @@ def snapshotsession_relink_parser(subcommand_parsers, common_parser):
         'snapshotsession-relink',
         parents=[common_parser],
         conflict_handler='resolve',
-        help='Relink snapshot session of a VolumeGroup',
+        help='Relink volume group snapshot session targets',
         description='ViPR Relink Snapshot Session of a VolumeGroup CLI usage.')
 
     snapshotsession_relink_parser.add_argument('-targets', '-t',
@@ -2438,7 +2470,7 @@ def snapshotsession_unlink_parser(subcommand_parsers, common_parser):
         'snapshotsession-unlink',
         parents=[common_parser],
         conflict_handler='resolve',
-        help='Unlink snapshot session of a VolumeGroup',
+        help='Unlink volume group snapshot session targets',
         description='ViPR Unlink Snapshot Session of a VolumeGroup CLI usage.')
 
     snapshotsession_unlink_parser.add_argument('-targets', '-t',
@@ -2461,7 +2493,7 @@ def snapshotsession_list_parser(subcommand_parsers, common_parser):
         'snapshotsession-list',
         parents=[common_parser],
         conflict_handler='resolve',
-        help='Get Snapshot Session list of a VolumeGroup',
+        help='Get all snapshot sessions of a volume group',
         description='ViPR List Snapshot Session of a VolumeGroup CLI usage.')
 
     mandatory_args = snapshotsession_list_parser.add_argument_group('mandatory arguments')
@@ -2484,14 +2516,14 @@ def volume_group_snapshotsession_list(args):
         if (e.err_code == SOSError.SOS_FAILURE_ERR):
             raise SOSError(
                 SOSError.SOS_FAILURE_ERR,
-                "Snapshot Session List: " +
+                "List snapshot session for " +
                 args.name +
-                ", Failed\n" +
+                " failed\n" +
                 e.err_text)
         else:
             common.format_err_msg_and_raise(
-                "snapshot session",
                 "list",
+                "snapshot session",
                 e.err_text,
                 e.err_code)
 
@@ -2501,7 +2533,7 @@ def snapshotsession_show_parser(subcommand_parsers, common_parser):
         'snapshotsession-show',
         parents=[common_parser],
         conflict_handler='resolve',
-        help='Show a Snapshot Session details of a VolumeGroup',
+        help='Show details of a volume group snapshot session',
         description='ViPR Show Snapshot Session of a VolumeGroup CLI usage.')
 
     mandatory_args = snapshotsession_show_parser.add_argument_group('mandatory arguments')
@@ -2532,14 +2564,14 @@ def volume_group_snapshotsession_show(args):
         if (e.err_code == SOSError.SOS_FAILURE_ERR):
             raise SOSError(
                 SOSError.SOS_FAILURE_ERR,
-                "Snapshot Session Show: " +
+                "Show snapshot session for " +
                 args.name +
-                ", Failed\n" +
+                " failed\n" +
                 e.err_text)
         else:
             common.format_err_msg_and_raise(
-                "snapshot session",
                 "show",
+                "snapshot session",
                 e.err_text,
                 e.err_code)
 
@@ -2549,7 +2581,7 @@ def snapshotsession_get_sets_parser(subcommand_parsers, common_parser):
         'snapshotsession-get-sets',
         parents=[common_parser],
         conflict_handler='resolve',
-        help='Get Snapshot Session copy set names of a VolumeGroup',
+        help='Get snapshot session copy set names of a volume group',
         description='ViPR Get Snapshot Session Copy Set Names of a VolumeGroup CLI usage.')
 
     mandatory_args = snapshotsession_get_sets_parser.add_argument_group('mandatory arguments')
@@ -2573,14 +2605,14 @@ def volume_group_snapshotsession_get_sets(args):
         if (e.err_code == SOSError.SOS_FAILURE_ERR):
             raise SOSError(
                 SOSError.SOS_FAILURE_ERR,
-                "Snapshot Session Get Sets: " +
+                "Get snapshot session copy sets for " +
                 args.name +
-                ", Failed\n" +
+                " failed\n" +
                 e.err_text)
         else:
             common.format_err_msg_and_raise(
-                "snapshot session",
-                "get sets",
+                "get",
+                "snapshot session copy sets",
                 e.err_text,
                 e.err_code)
 
@@ -2590,7 +2622,7 @@ def snapshotsession_get_parser(subcommand_parsers, common_parser):
         'snapshotsession-get',
         parents=[common_parser],
         conflict_handler='resolve',
-        help='Get Snapshot Session of a VolumeGroup by set name',
+        help='Get snapshot session of a volume group by set name',
         description='ViPR Get Snapshot Session of a VolumeGroup by Copy Set Name CLI usage.')
 
     mandatory_args = snapshotsession_get_parser.add_argument_group('mandatory arguments')
@@ -2619,14 +2651,14 @@ def volume_group_snapshotsession_get(args):
         if (e.err_code == SOSError.SOS_FAILURE_ERR):
             raise SOSError(
                 SOSError.SOS_FAILURE_ERR,
-                "Snapshot Session Get" +
-                args.name + " with " + args.setname +
-                ", Failed\n" +
+                "Get snapshot session for " +
+                args.name + " with set " + args.setname +
+                " failed\n" +
                 e.err_text)
         else:
             common.format_err_msg_and_raise(
-                "snapshot session",
-                "get snapshot session by set name",
+                "get",
+                "snapshot session by set name",
                 e.err_text,
                 e.err_code)
 
@@ -2697,6 +2729,9 @@ def volume_group_parser(parent_subparser, common_parser):
     #snapshot
     # snapshot create command parser
     snapshot_parser(subcommand_parsers, common_parser)
+
+    # snapshot activate command parser
+    snapshot_activate_parser(subcommand_parsers, common_parser)
 
     # snapshot deactivate command parser
     snapshot_deactivate_parser(subcommand_parsers, common_parser)

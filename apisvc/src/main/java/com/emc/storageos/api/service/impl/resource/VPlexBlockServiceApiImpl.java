@@ -537,6 +537,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
         List<Class<? extends DataObject>> allExcludeTypes = new ArrayList<Class<? extends DataObject>>();
         allExcludeTypes.add(VplexMirror.class);
         allExcludeTypes.add(Task.class);
+        allExcludeTypes.add(Migration.class);
         if (excludeTypes != null) {
             allExcludeTypes.addAll(excludeTypes);
         }

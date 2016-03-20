@@ -35,7 +35,7 @@ public class IPSecMonitor implements Runnable {
 
     private static final long SHORT_SLEEP = 10 * 1000;
     public static int IPSEC_CHECK_INTERVAL = 10;  // minutes
-    public static int IPSEC_CHECK_INITIAL_DELAY = 10;  // minutes
+    public static int IPSEC_CHECK_INITIAL_DELAY = 5;  // minutes
 
     private static final int NUMBER_OF_CHAR_IN_IPSEC_KEY_WITHOUT_MASK = 5;
     private static final String MASKED_IPSEC_KEY = "*********";
@@ -90,9 +90,6 @@ public class IPSecMonitor implements Runnable {
     @Override
     public void run() {
         try {
-            // geo checking
-            log.info("the dbclient instance is {}", getDbClient());
-
             log.info("step 1: start checking ipsec connections");
             String[] problemNodes = LocalRepository.getInstance().checkIpsecConnection();
 

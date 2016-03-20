@@ -17,7 +17,7 @@
         $selector_interval = $("#" + intervalId + "_selector");
         var isValidInterval = false; //check $backup_interval.val()
         $intervals = {};
-        $intervals['1'] = '1day'; //only support 1/2 times per day now
+        $intervals['1'] = '1day'; //only support 1 or 2 times per day now
         $intervals['2'] = '12hour';
         for (var key in $intervals) {
             var value = $intervals[key];

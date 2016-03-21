@@ -43,8 +43,6 @@ import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import sun.net.util.IPAddressUtil;
-
 import com.emc.storageos.cimadapter.connections.cim.CimConnection;
 import com.emc.storageos.cimadapter.connections.cim.CimConstants;
 import com.emc.storageos.cimadapter.connections.cim.CimObjectPathCreator;
@@ -100,6 +98,8 @@ import com.google.common.base.Joiner;
 import com.google.common.base.Strings;
 import com.google.common.collect.ListMultimap;
 import com.google.common.collect.Sets;
+
+import sun.net.util.IPAddressUtil;
 
 /**
  * Helper for Smis commands
@@ -2724,12 +2724,14 @@ public class SmisCommandHelper implements SmisConstants {
 
     }
 
-    public CIMArgument[] getRestoreFromSettingsStateInputArguments(CIMObjectPath settingsStatePath) {
-        return new CIMArgument[] {
-                _cimArgument.uint16(CP_OPERATION, RESTORE_FROM_SYNC_SETTINGS),
-                _cimArgument.reference(CP_SETTINGS_STATE, settingsStatePath),
-                _cimArgument.uint16(CP_WAIT_FOR_COPY_STATE, RESTORED_COPY_STATE)
-        };
+    public CIMArgument[] getRestoreFromSettingsStateInputArguments(CIMObjectPath settingsStatePath, boolean waitForCopyState) {
+        List<CIMArgument> args = new ArrayList<CIMArgument>();
+        args.add(_cimArgument.uint16(CP_OPERATION, RESTORE_FROM_SYNC_SETTINGS));
+        args.add(_cimArgument.reference(CP_SETTINGS_STATE, settingsStatePath));
+        if (waitForCopyState) {
+            args.add(_cimArgument.uint16(CP_WAIT_FOR_COPY_STATE, RESTORED_COPY_STATE));
+        }
+        return args.toArray(new CIMArgument[args.size()]);
     }
 
     public CIMArgument[] getDeleteReplicationGroupInputArguments(StorageSystem storage, String groupName) {

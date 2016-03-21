@@ -1779,12 +1779,12 @@ public class BackupOps {
             throw new IllegalArgumentException("Backup file name is empty");
         }
 
-        if (!backupName.contains(BackupConstants.COLLECTED_BACKUP_NAME_DELIMITER)) {
-            log.error("Backup file name should contain {}", BackupConstants.COLLECTED_BACKUP_NAME_DELIMITER);
-            throw new IllegalArgumentException("Invalid backup file name: " + backupName);
+        if (!backupName.contains(BackupConstants.SCHEDULED_BACKUP_TAG_DELIMITER)) {
+            log.warn("Can't get create time from name of scheduled backup with old name format and manual backup");
+            return 0;
         }
 
-        String[] nameSegs = backupName.split(BackupConstants.COLLECTED_BACKUP_NAME_DELIMITER);
+        String[] nameSegs = backupName.split(BackupConstants.SCHEDULED_BACKUP_TAG_DELIMITER);
 
         for (String segment : nameSegs) {
             if (isTimeFormat(segment)) {

@@ -992,6 +992,7 @@ renderFunctions.backupupload.status.cancel=Cancelled
 renderFunctions.backupupload.error.notconf=FTP server has not been configured
 renderFunctions.backupupload.error.notexist=Can not find the target backup files on disk
 renderFunctions.backupupload.error.tobereclaimed=To be reclaimed
+renderFunctions.backupupload.error.alreadyexist=Backup already exist on external server
 renderFunctions.backupupload.error.invalid=Target backup is invalid
 renderFunctions.backupupload.error.failure=Internal failures during the upload
 renderFunction.backupupload.status.unknown=Unknown

@@ -14,6 +14,7 @@ import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.rackhd.RackHdException;
 import com.emc.storageos.services.restutil.StandardRestClient;
+import com.google.gson.Gson;
 import com.sun.jersey.api.client.Client;
 import com.sun.jersey.api.client.ClientResponse;
 import com.sun.jersey.api.client.WebResource;
@@ -92,21 +93,20 @@ public class RackHdRestClient extends StandardRestClient {
         ClientResponse.Status status = response.getClientResponseStatus();
         int errorCode = status.getStatusCode();
         if (errorCode >= 300) {
-            JSONObject obj = null;
-            int code = 0;
+            String entity = null;
             try {
-                obj = response.getEntity(JSONObject.class);
-                code = obj.getInt("httpStatusCode");
-            } catch (Exception e) {
-                log.error("Parsing the failure response object failed", e);
+                entity = response.getEntity(String.class);
+            } catch (Exception e) {   
+                log.error("Parsing the failure response object failed.  " +
+                        e.getMessage() + " where entity was " + 
+                        entity ,e);
             }
-
-            if (code == 404 || code == 410) {
+            if (errorCode == 404 || errorCode == 410) {
                 throw RackHdException.exceptions.resourceNotFound(uri.toString());
-            } else if (code == 401) {
+            } else if (errorCode == 401) {
                 throw RackHdException.exceptions.authenticationFailure(uri.toString());
             } else {
-                throw RackHdException.exceptions.internalError(uri.toString(), obj.toString());
+                throw RackHdException.exceptions.internalError(uri.toString(), entity);
             }
         } else {
             return errorCode;

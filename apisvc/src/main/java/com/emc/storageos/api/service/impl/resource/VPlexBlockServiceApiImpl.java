@@ -3597,15 +3597,29 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
         }
         return varrayRecommendationsMap;
     }
-    
+    /**
+     * Takes a set of recommendations and makes the backend volumes and volume descriptors needed to 
+     * provision. When possible (e.g. for SRDF and Block),
+     * calls the underlying storage routine createVolumesAndDescriptors().
+     * @param recommendation -- a VPlex recommendation
+     * @param project - Project containing the Vplex volumes
+     * @param vplexProject -- private project of the Vplex
+     * @param volumeLabel -- label component used in all volumes
+     * @param varrayCount -- instance count of the varray being provisioned
+     * @param resourceCount -- number of resources to provision
+     * @param size -- size of each volume
+     * @param backendCG -- the CG to be used on the backend Storage Systems
+     * @param vPoolCapabilities - a VirtualPoolCapabilityValuesWrapper containing provisioning arguments
+     * @param createTask -- boolean if true creates a task
+     * @param task -- Overall task id
+     * @return -- list of VolumeDescriptors to be provisioned
+     */
     private List<VolumeDescriptor> makeBackendVolumeDescriptors(VPlexRecommendation recommendation, 
             Project project, Project vplexProject, 
             String volumeLabel, int varrayCount, int resourceCount, long size, 
             BlockConsistencyGroup backendCG, VirtualPoolCapabilityValuesWrapper vPoolCapabilities,
             boolean createTask, String task) {
-        // The consistency group or null when not specified.
-        final BlockConsistencyGroup consistencyGroup = vPoolCapabilities.getBlockConsistencyGroup() == null ? null : _dbClient
-                .queryObject(BlockConsistencyGroup.class, vPoolCapabilities.getBlockConsistencyGroup());
+        
         List<VolumeDescriptor> descriptors = new ArrayList<VolumeDescriptor>();
         URI varrayId = recommendation.getVirtualArray();
         VirtualPool vpool = recommendation.getVirtualPool();
@@ -3619,6 +3633,8 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
         
         if (recommendation.getRecommendation() != null) {
             // If this recommendation has a lower level recommendation, process that.
+            // This path is used for the source side of Distributed Volumes and for Local volumes
+            // where we support building on top of SRDF or the BlockStorage as approprite.
             VirtualArray varray = _dbClient.queryObject(VirtualArray.class, varrayId);
             String newVolumeLabel = generateVolumeLabel(volumeLabel, varrayCount, volumeCounter, 0);
             Recommendation childRecommendation = recommendation.getRecommendation();
@@ -3646,10 +3662,17 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
                                 VolumeDescriptor.Type.SRDF_EXISTING_SOURCE};
             }
             descriptors = VolumeDescriptor.filterByType(descriptors, types);
-            markVolumesInternal(descriptors);
+            for (VolumeDescriptor descriptor : descriptors) {
+                Volume volume = _dbClient.queryObject(Volume.class, descriptor.getVolumeURI());
+                volume.addInternalFlags(DataObject.Flag.INTERNAL_OBJECT);
+                configureCGAndReplicationGroup(vPoolCapabilities, backendCG, volume);
+                _dbClient.updateObject(volume);
+            }
             return descriptors;
         }
         
+        // The code below is used for the HA side of distributed volumes.
+        // The HA side does not currently call the lower level schedulers to get descriptors.
         for (int i = 0; i < resourceCount; i++) {
             s_logger.info("Recommendation is for {} resources in pool {}", resourceCount,
                     storagePoolURI.toString());
@@ -3659,7 +3682,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
             s_logger.info("Volume label is {}", newVolumeLabel);
             VirtualArray varray = _dbClient.queryObject(VirtualArray.class,varrayId);
                     
-
+            // This is also handled in StorageScheduler.prepareRecomendedVolumes
             long thinVolumePreAllocationSize = 0;
             if (null != vpool.getThinVolumePreAllocationPercentage()) {
                 thinVolumePreAllocationSize = VirtualPoolUtil
@@ -3671,28 +3694,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
                     size, thinVolumePreAllocationSize, vplexProject,
                     varray, vpool, storageDeviceURI,
                     storagePoolURI, newVolumeLabel, backendCG, vPoolCapabilities);
-
-            // Check if it is RP target or journal volumes
-            String rpPersonality = vPoolCapabilities.getPersonality();
-            boolean isRPTargetOrJournal = false;
-            if (rpPersonality != null && (rpPersonality.equals(PersonalityTypes.TARGET.name()) 
-                    || rpPersonality.equals(PersonalityTypes.METADATA.name()))) {
-                s_logger.info("It is RP target or journal volume");
-                isRPTargetOrJournal = true;
-            }
-
-            // Set replicationGroupInstance if CG's arrayConsistency is true
-            if (backendCG != null && backendCG.getArrayConsistency() && !isRPTargetOrJournal) {
-                String repGroupInstance = consistencyGroup.getCgNameOnStorageSystem(storageDeviceURI);
-                if (NullColumnValueGetter.isNullValue(repGroupInstance)) {
-                    repGroupInstance = consistencyGroup.getLabel();
-                }
-                volume.setReplicationGroupInstance(repGroupInstance);
-            }
-
-            if (consistencyGroup != null) {
-                volume.setConsistencyGroup(consistencyGroup.getId());
-            }
+            configureCGAndReplicationGroup(vPoolCapabilities, backendCG, volume);
             volume.addInternalFlags(Flag.INTERNAL_OBJECT);
             _dbClient.persistObject(volume);
 
@@ -3711,6 +3713,43 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
             volumeCounter++;
         }   
         return descriptors;
+    }
+    
+    /**
+     * Configures the consistency group(s) and sets the volume replicationGroupInstance.
+     * @param vPoolCapabilities -- a VirtualPoolCapabilitiesWrapper
+     * @param backendCG -- the consistency group for the backend array
+     * @param volume -- volume being configured
+     */
+    private void configureCGAndReplicationGroup(VirtualPoolCapabilityValuesWrapper vPoolCapabilities,
+            BlockConsistencyGroup backendCG, Volume volume) {
+        // The consistency group or null when not specified.
+        final BlockConsistencyGroup consistencyGroup = vPoolCapabilities.getBlockConsistencyGroup() == null ? null : _dbClient
+                .queryObject(BlockConsistencyGroup.class, vPoolCapabilities.getBlockConsistencyGroup());
+        // Check if it is RP target or journal volumes
+        // This is not handled in StorageScheduler.
+        String rpPersonality = vPoolCapabilities.getPersonality();
+        boolean isRPTargetOrJournal = false;
+        if (rpPersonality != null && (rpPersonality.equals(PersonalityTypes.TARGET.name()) 
+                || rpPersonality.equals(PersonalityTypes.METADATA.name()))) {
+            s_logger.info("{} {} is RP target or journal volume", volume.getLabel(), volume.getId());
+            isRPTargetOrJournal = true;
+        }
+
+        // Set replicationGroupInstance if CG's arrayConsistency is true
+        // This is also done in StorageScheduler.prepareVolume
+        if (backendCG != null && backendCG.getArrayConsistency() && !isRPTargetOrJournal) {
+            String repGroupInstance = consistencyGroup.getCgNameOnStorageSystem(volume.getStorageController());
+            if (NullColumnValueGetter.isNullValue(repGroupInstance)) {
+                repGroupInstance = consistencyGroup.getLabel();
+            }
+            volume.setReplicationGroupInstance(repGroupInstance);
+        }
+        
+        // Set the volume's consistency group
+        if (consistencyGroup != null) {
+            volume.setConsistencyGroup(consistencyGroup.getId());
+        }
     }
     
     /**
@@ -3960,13 +3999,5 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
             checkedRGMap.put(key, containAll);
             return containAll;
         }
-    }
-    
-    private void markVolumesInternal(List<VolumeDescriptor> descriptors) {
-       for (VolumeDescriptor descriptor : descriptors) {
-           BlockObject blockObject = BlockObject.fetch(_dbClient, descriptor.getVolumeURI());
-           blockObject.addInternalFlags(DataObject.Flag.INTERNAL_OBJECT);
-           _dbClient.updateObject(blockObject);;
-       }
     }
 }

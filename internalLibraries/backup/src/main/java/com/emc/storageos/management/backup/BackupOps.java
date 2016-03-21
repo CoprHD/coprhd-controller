@@ -1473,25 +1473,6 @@ public class BackupOps {
         log.info("merged backup info {}", dst);
     }
 
-    /*
-    private BackupInfo toBackupInfo(List<BackupSetInfo> backupSetInfos) {
-        BackupSetInfo info = new BackupSetInfo();
-
-        long size = 0;
-        for (BackupSetInfo fileInfo: backupSetInfos) {
-            size += fileInfo.getSize();
-
-            if (fileInfo.getName().endsWith(BackupConstants.BACKUP_INFO_SUFFIX)) {
-                info.setCreateTime(fileInfo.getCreateTime());
-            }
-
-        }
-
-        info.setSize(size);
-
-    }
-    */
-
     private List<BackupSetInfo> filterToCreateBackupsetList(BackupFileSet clusterBackupFiles) {
         List<BackupSetInfo> backupSetList = new ArrayList<>();
         for (String backupTag : clusterBackupFiles.uniqueTags()) {

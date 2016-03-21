@@ -80,7 +80,6 @@ public interface BackupConstants {
     public static final String LIST_BACKUP_TITLE = "  %%-%ds%%-10s%%-20s";
     public static final String LIST_BACKUP_INFO = "  %%-%ds%%-10.2f%%-20s";
     public static final String COLLECTED_BACKUP_REGEX_PATTERN = "^(\\S+)*-\\d+-\\d+-(\\S+)*\\.zip$";
-
     public static final String SCHEDULED_BACKUP_DATE_REGEX_PATTERN = "^\\d{%d}$";
 
     // The common part of backup info file name

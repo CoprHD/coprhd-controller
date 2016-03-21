@@ -319,14 +319,15 @@ public class UploadExecutor {
         return fileName.endsWith(BackupConstants.COMPRESS_SUFFIX);
     }
 
-    private void markIncompleteZipFileFinished(String fileName, boolean success) {
+    private void markIncompleteZipFileFinished(String fileName, boolean success) throws Exception {
         try {
             String suffix = success ? BackupConstants.COMPRESS_SUFFIX : BackupConstants.INVALID_COMPRESS_SUFFIX;
-            String finishedName = fileName.replaceFirst(BackupConstants.INCOMPLETE_COMPRESS_SUFFIX+ "$", suffix + "$");
+            String finishedName = fileName.replaceFirst(BackupConstants.INCOMPLETE_COMPRESS_SUFFIX + "$", suffix);
             uploader.rename(fileName, finishedName);
             log.warn("Marked the uploading backup zip file({}) as {}", fileName, (success ? "completed" : "invalid"));
         } catch (Exception e) {
-            log.warn("Failed to rename the uploading backup zip file({})", fileName, e);
+            log.error("Failed to rename the uploading backup zip file({})", fileName, e);
+            throw e;
         }
     }
 

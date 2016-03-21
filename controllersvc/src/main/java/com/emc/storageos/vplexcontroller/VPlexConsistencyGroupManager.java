@@ -338,7 +338,7 @@ public class VPlexConsistencyGroupManager extends AbstractConsistencyGroupManage
             // adding volumes to a CG after volume creation.
             for (Volume vplexVolume : vplexVolumes) {
                 vplexVolume.setConsistencyGroup(cgURI);
-                dbClient.updateAndReindexObject(vplexVolume);
+                dbClient.updateObject(vplexVolume);
             }
 
             // Update workflow step state to success.

@@ -48,6 +48,7 @@ import com.emc.storageos.coordinator.client.model.RepositoryInfo;
 import com.emc.storageos.coordinator.client.model.Site;
 import com.emc.storageos.coordinator.client.model.SiteError;
 import com.emc.storageos.coordinator.client.model.SiteInfo;
+import com.emc.storageos.coordinator.client.model.SiteNetworkState;
 import com.emc.storageos.coordinator.client.model.SiteState;
 import com.emc.storageos.coordinator.client.model.SoftwareVersion;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
@@ -74,6 +75,7 @@ import com.emc.storageos.security.ipsec.IPsecConfig;
 import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.services.util.SysUtils;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
+import com.emc.storageos.svcs.errorhandling.resources.BadRequestException;
 import com.emc.storageos.svcs.errorhandling.resources.InternalServerErrorException;
 import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
 import com.emc.vipr.client.ViPRCoreClient;
@@ -210,6 +212,10 @@ public class DisasterRecoveryServiceTest {
         doThrow(CoordinatorException.retryables.cannotFindSite(NONEXISTENT_ID)).when(drUtil)
                 .getSiteFromLocalVdc(NONEXISTENT_ID);
         doReturn(primarySite).when(drUtil).getSiteFromLocalVdc(primarySite.getUuid());
+
+        SiteNetworkState siteNetworkState = new SiteNetworkState();
+        siteNetworkState.setNetworkHealth(SiteNetworkState.NetworkHealth.GOOD);
+        doReturn(siteNetworkState).when(drUtil).getSiteNetworkState(any(String.class));
         
         CoordinatorClientInetAddressMap addressMap = new CoordinatorClientInetAddressMap();
         addressMap.setDualInetAddress(DualInetAddress.fromAddresses("10.247.101.110", ""));
@@ -274,6 +280,7 @@ public class DisasterRecoveryServiceTest {
         doReturn(new PropertyInfoExt()).when(coordinator).getTargetInfo(PropertyInfoExt.class);
 
         // mock checking and validating methods
+        doNothing().when(drService).precheckForSiteNumber();
         doNothing().when(drService).precheckForStandbyAdd(any(SiteConfigRestRep.class), any(ViPRCoreClient.class));
         doNothing().when(drService).validateAddParam(any(SiteAddParam.class), any(List.class));
         doReturn(standbySite1).when(drUtil).getActiveSite();
@@ -614,7 +621,7 @@ public class DisasterRecoveryServiceTest {
             // Mock a stable status for primary, so go to next check
             doReturn(true).when(drService).isClusterStable();
 
-            doReturn(ClusterInfo.ClusterState.DEGRADED).when(coordinator).getControlNodesState(eq(standbyUUID), anyInt());
+            doReturn(ClusterInfo.ClusterState.DEGRADED).when(coordinator).getControlNodesState(eq(standbyUUID));
             drService.precheckForSwitchover(standbyUUID);
             fail("should throw exception when site to failover to is not stable");
         } catch (InternalServerErrorException e) {
@@ -624,7 +631,7 @@ public class DisasterRecoveryServiceTest {
         // test for standby not STANDBY_CYNCED state
         try {
             // Mock a stable status for standby, so go to next check
-            doReturn(ClusterInfo.ClusterState.STABLE).when(coordinator).getControlNodesState(anyString(), anyInt());
+            doReturn(ClusterInfo.ClusterState.STABLE).when(coordinator).getControlNodesState(anyString());
 
             config.setConfig("state", "STANDBY_SYNCING"); // not fully synced
             doReturn(config).when(coordinator).queryConfiguration(String.format("%s/vdc1", Site.CONFIG_KIND),
@@ -791,7 +798,7 @@ public class DisasterRecoveryServiceTest {
         doReturn(sites).when(drUtil).listSites();
         doReturn(primarySite).when(drUtil).getActiveSite();
         doReturn(true).when(drUtil).isSiteUp(standbySite2.getUuid());
-        doReturn(ClusterInfo.ClusterState.STABLE).when(coordinator).getControlNodesState(standbySite2.getUuid(), standbySite2.getNodeCount());
+        doReturn(ClusterInfo.ClusterState.STABLE).when(coordinator).getControlNodesState(standbySite2.getUuid());
         doReturn(mock(DistributedBarrier.class)).when(coordinator).getDistributedBarrier(any(String.class));
         doNothing().when(drService).precheckForSwitchover(standbySite2.getUuid());
         
@@ -807,7 +814,7 @@ public class DisasterRecoveryServiceTest {
         addrLookupMap.setNodeId("vipr1");
         
         doReturn(standbySite2).when(drUtil).getLocalSite();
-        doReturn(ClusterInfo.ClusterState.STABLE).when(coordinator).getControlNodesState(standbySite2.getUuid(), 1);
+        doReturn(ClusterInfo.ClusterState.STABLE).when(coordinator).getControlNodesState(standbySite2.getUuid());
         doReturn("leader").when(drUtil).getLocalCoordinatorMode("vipr1");
         doReturn(addrLookupMap).when(coordinator).getInetAddessLookupMap();
         
@@ -842,14 +849,14 @@ public class DisasterRecoveryServiceTest {
             doReturn(true).when(drUtil).isActiveSite();
             drService.precheckForFailover();
             fail();
-        } catch (InternalServerErrorException e) {
+        } catch (InternalServerErrorException | BadRequestException e) {
             //ignore
         }
         
         // should be stable
         try {
             doReturn(false).when(drUtil).isActiveSite();
-            doReturn(ClusterInfo.ClusterState.DEGRADED).when(coordinator).getControlNodesState(standbySite1.getUuid(), 1);
+            doReturn(ClusterInfo.ClusterState.DEGRADED).when(coordinator).getControlNodesState(standbySite1.getUuid());
             drService.precheckForFailover();
             fail();
         } catch (InternalServerErrorException e) {
@@ -862,7 +869,7 @@ public class DisasterRecoveryServiceTest {
             addrLookupMap.setNodeId("vipr1");
             
             doReturn(addrLookupMap).when(coordinator).getInetAddessLookupMap();
-            doReturn(ClusterInfo.ClusterState.STABLE).when(coordinator).getControlNodesState(standbySite1.getUuid(), 1);
+            doReturn(ClusterInfo.ClusterState.STABLE).when(coordinator).getControlNodesState(standbySite1.getUuid());
             doReturn("observer").when(drUtil).getLocalCoordinatorMode("vipr1");
             
             drService.precheckForFailover();

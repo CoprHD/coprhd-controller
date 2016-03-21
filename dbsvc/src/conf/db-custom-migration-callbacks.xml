@@ -105,7 +105,6 @@
             <list>
                 <bean class="com.emc.storageos.db.client.upgrade.callbacks.VirtualPoolVarrayIndexFix"/>
                 <bean class="com.emc.storageos.db.client.upgrade.callbacks.SRDFTargetVolumeRDFGroupMigration"/>
-                <bean class="com.emc.storageos.db.client.upgrade.callbacks.BlockSnapshotSessionMigration"/>
                 <bean class="com.emc.storageos.db.client.upgrade.callbacks.FCZoneReferenceMigration"/>
                 <bean class="com.emc.storageos.db.client.upgrade.callbacks.ComputeImageMigration"/>
             </list>
@@ -118,6 +117,7 @@
                 <bean class="com.emc.storageos.db.client.upgrade.callbacks.VolumesInCGMigration"/>
                 <bean class="com.emc.storageos.db.client.upgrade.callbacks.VirtualNASMultipleProjectsAssociationMigration"/>
                 <bean class="com.emc.storageos.db.client.upgrade.callbacks.XtremioBlockSnapshotReplicationGroupInstanceMigration"/>
+                <bean class="com.emc.storageos.db.client.upgrade.callbacks.BlockSnapshotSessionMigration"/>
             </list>
         </entry>
     </util:map>

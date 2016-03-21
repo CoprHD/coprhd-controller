@@ -29,11 +29,13 @@ public class DataObjectChangeAnalyzer {
         public String _key;                 // key (field name)
         public Object _left;                // left object
         public Object _right;               // right object
+        public String name;                 // plain name of the change
 
-        public Change(String key, Object left, Object right) {
+        public Change(String key, Object left, Object right, String name) {
             _key = key;
             _left = left;
             _right = right;
+            this.name = name;
         }
 
         @Override
@@ -41,6 +43,7 @@ public class DataObjectChangeAnalyzer {
             StringBuffer output = new StringBuffer(_key);
             output.append(" (source is ").append(_left);
             output.append(" and target is ").append(_right);
+            output.append(" and name is ").append(name);
             output.append(")");
             return output.toString();
         }
@@ -110,7 +113,7 @@ public class DataObjectChangeAnalyzer {
                     continue;
                 }
                 String key = name + "." + val;
-                Change change = new Change(key, val, null);
+                Change change = new Change(key, val, null, name);
                 changes.put(key, change);
             }
         }
@@ -122,7 +125,7 @@ public class DataObjectChangeAnalyzer {
                     continue;
                 }
                 String key = name + "." + val;
-                Change change = new Change(key, null, val);
+                Change change = new Change(key, null, val, name);
                 changes.put(key, change);
             }
         }
@@ -149,12 +152,12 @@ public class DataObjectChangeAnalyzer {
                     continue;
                 }
                 String key = name + "." + val;
-                Change change = new Change(key, val, null);
+                Change change = new Change(key, val, null, name);
                 changes.put(key, change);
             }
         } else if (a == null && b != null) {
             String key = name;
-            Change change = new Change(key, null, NOT_NULL);
+            Change change = new Change(key, null, NOT_NULL, name);
             changes.put(key, change);
         }
     }
@@ -178,7 +181,7 @@ public class DataObjectChangeAnalyzer {
                     continue;
                 }
                 Object bval = (b != null) ? b.get(key) : null;
-                Change change = new Change(name + "." + key, a.get(key), bval);
+                Change change = new Change(name + "." + key, a.get(key), bval, name);
                 changes.put(change._key, change);
             }
         }
@@ -189,7 +192,7 @@ public class DataObjectChangeAnalyzer {
                     continue;
                 }
                 Object aval = (a != null) ? a.get(key) : null;
-                Change change = new Change(name + "." + key, aval, b.get(key));
+                Change change = new Change(name + "." + key, aval, b.get(key), name);
                 changes.put(change._key, change);
             }
         }
@@ -214,7 +217,7 @@ public class DataObjectChangeAnalyzer {
                     continue;
                 }
                 Object bval = (b != null) ? b.get(key) : null;
-                Change change = new Change(name + "." + key, a.get(key), bval);
+                Change change = new Change(name + "." + key, a.get(key), bval, name);
                 changes.put(change._key, change);
             }
         }
@@ -225,7 +228,7 @@ public class DataObjectChangeAnalyzer {
                     continue;
                 }
                 Object aval = (a != null) ? a.get(key) : null;
-                Change change = new Change(name + "." + key, aval, b.get(key));
+                Change change = new Change(name + "." + key, aval, b.get(key), name);
                 changes.put(change._key, change);
             }
         }
@@ -283,7 +286,7 @@ public class DataObjectChangeAnalyzer {
                     analyzeStringSetMaps((StringSetMap) obja, (StringSetMap) objb, key, changes);
                 } else {
                     if (!isEqual(obja, objb)) {
-                        Change change = new Change(key, obja, objb);
+                        Change change = new Change(key, obja, objb, nameAnn.value());
                         changes.put(key, change);
                     }
                 }

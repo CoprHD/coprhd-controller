@@ -52,7 +52,8 @@ public class MirrorFilePauseTaskCompleter extends MirrorFileTaskCompleter {
 
     @Override
     protected FileShare.MirrorStatus getFileMirrorStatusForSuccess() {
-        return this.mirrorSyncStatus = MirrorStatus.SUSPENDED;
+        this.mirrorSyncStatus = MirrorStatus.PAUSED;
+        return mirrorSyncStatus;
     }
 
 }

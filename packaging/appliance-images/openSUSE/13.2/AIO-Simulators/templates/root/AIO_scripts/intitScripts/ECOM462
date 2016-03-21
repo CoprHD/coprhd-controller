@@ -20,28 +20,12 @@ ECOM80disable="/var/log/ECOM80enable"
 
 
 start() {
-    #if [ -f $ECOM80disable ];then
 
             echo -n $"Starting ECOM462:..hold on 60sec .."
             ${ECOM_HOME}/bin/ECOM462  >/var/log/ECOM462.log 2>&1 &
             RETVAL=$?
+            return
 
-            while [ $DELAY -gt 0 ]; do
-            #echo "delay $DELAY"
-    	if [ -f "${ECOM_HOME}/log/simulator-provider.log" ] ; then 
-    	 START=`grep "ECOM has started" /var/log/ECOM462.log`
-             if [ "${START}" != "" ] ; then
-               echo "${START}" >> /var/log/ECOM462.log 2>&1            
-               echo "..OK"
-               return
-             fi
-            fi
-            sleep 2
-            DELAY=$((DELAY -1))
-           done
-
-           echo "Failed to start in 60 sec..try manual start" >> /var/log/ECOM462.log 2>&1
-    #fi
 }
 
 stop() {

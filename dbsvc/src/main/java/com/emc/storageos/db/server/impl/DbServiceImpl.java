@@ -98,6 +98,8 @@ public class DbServiceImpl implements DbService {
     private Boolean backCompatPreYoda = false;
     
     @Autowired
+    private DbCompactWorker compactWorker;
+    @Autowired
     private DbManager dbMgr;
 
     /**
@@ -819,6 +821,12 @@ public class DbServiceImpl implements DbService {
             }
         }
         startBackgroundDetectorTask();
+        startBackgroundCompactTask();
+        
+    }
+    
+    private void startBackgroundCompactTask() {
+    	this.compactWorker.start();
     }
 
     /**

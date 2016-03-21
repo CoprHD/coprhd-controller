@@ -43,7 +43,7 @@ public class Main {
 
     private enum Command {
         LOCK, HOLD, RELEASE, INFO, PATH, EPHEMERAL, RESET, GETLASTVALIDZXID, TRUNCATETXNLOG, GETKEYANDCERT, EXPORTKEYSTORE, SAVE_SSH_KEYS,
-        GEN_SSH_AUTH_KEYS, SET, ADD_DR_CONFIG
+        GEN_SSH_AUTH_KEYS, SET, TUNE_DR_CONFIG
     }
 
     /**
@@ -69,7 +69,7 @@ public class Main {
         System.out.println(String.format("\t%s <arg>(in hex)\t\tTruncate to the specific txn log.", Command.TRUNCATETXNLOG.name()
                 .toLowerCase()));
         System.out.println(String.format("\t%s <key> <value>\t\tAdd \"key=value\" line to DR configuration",
-                Command.ADD_DR_CONFIG.name().toLowerCase()));
+                Command.TUNE_DR_CONFIG.name().toLowerCase()));
 
         System.out.println("\n\tHandle Lock Process:");
         System.out.println(String.format("\t%s <arg>\t\tLock to prevent starting <arg> process",
@@ -148,7 +148,7 @@ public class Main {
                     initZkCmdHandler(host, port, withData);
                     zkCmdHandler.printEphemeralNodes();
                     break;
-                case ADD_DR_CONFIG:
+                case TUNE_DR_CONFIG:
                     if (args.length != 3) {
                         throw new IllegalArgumentException("Invalid parameters");
                     }
@@ -159,7 +159,7 @@ public class Main {
                     }
                     processZkCmdArgs(args);
                     initZkCmdHandler(host, port, withData);
-                    zkCmdHandler.addDrConfig(key, value);
+                    zkCmdHandler.tuneDrConfig(key, value);
                     break;
                 case GETLASTVALIDZXID:
                     if (args.length > 1) {

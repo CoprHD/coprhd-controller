@@ -146,7 +146,7 @@ public class BlockMapper {
                     to.setSupportsSnapshotSessions(Boolean.TRUE);
                 }
             }
-            // Set xio3xvolume in virtual volume only if it's backend volume belongs to xtremio & version is 3.x
+            // Set xio3xvolume in virtual volume only if its backend volume belongs to xtremio & version is 3.x
             for (String backendVolumeuri : from.getAssociatedVolumes()) {
                 Volume backendVol = dbClient.queryObject(Volume.class, URIUtil.uri(backendVolumeuri));
                 if (null != backendVol) {
@@ -255,7 +255,9 @@ public class BlockMapper {
             to.setProtection(toProtection);
         }
 
-        to.setReplicationGroupInstance(from.getReplicationGroupInstance());
+        if (NullColumnValueGetter.isNotNullValue((from.getReplicationGroupInstance()))) {
+            to.setReplicationGroupInstance(from.getReplicationGroupInstance());
+        }
 
         if ((from.getAssociatedVolumes() != null) && (!from.getAssociatedVolumes().isEmpty())) {
             List<RelatedResourceRep> backingVolumes = new ArrayList<RelatedResourceRep>();
@@ -265,7 +267,8 @@ public class BlockMapper {
             // Get ReplicationGroupInstance from source back end volume
             if (NullColumnValueGetter.isNullValue(to.getReplicationGroupInstance())) {
                 Volume sourceSideBackingVolume = VPlexUtil.getVPLEXBackendVolume(from, true, dbClient);
-                if (sourceSideBackingVolume != null) {
+                if (sourceSideBackingVolume != null
+                        && NullColumnValueGetter.isNotNullValue((sourceSideBackingVolume.getReplicationGroupInstance()))) {
                     to.setReplicationGroupInstance(sourceSideBackingVolume.getReplicationGroupInstance());
                 }
             }

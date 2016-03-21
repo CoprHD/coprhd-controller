@@ -1,3 +1,4 @@
+RUN_DIR=`pwd`
 NAME=ViPRBase
 VERSION=3.0.0.0
 JOB=1
@@ -17,16 +18,16 @@ prepare: clean
 	mount /disks/adgbuild/SLES12/SLE-12-Server-DVD-x86_64-GM-DVD1.iso /slesmedia/12-SLES-DVD1
 
 createAppliance:
-	cat ../configurations.sh > config.sh
-	cat ViPRBase_config.sh >> config.sh
+	cat ${RUN_DIR/../configurations.sh > ${RUN_DIR}/config.sh
+	cat ${RUN_DIR/ViPRBase_config.sh >> ${RUN_DIR}/config.sh
 	${CREATE_APPLIANCE_TOOL} -lc${DEBUG} ${CONF} ${JOB} -p appliance
 
 bless:
 	${CREATE_APPLIANCE_TOOL} -b ${CONF} ${JOB}
 
 clean:
-	git checkout LISTS/${NAME}.list
-	rm -rf config.sh
+	git checkout ${RUN_DIR}/LISTS/${NAME}.list
+	rm -rf ${RUN_DIR}/config.sh
 	rm -rf ${JOB_DIR}
 
 destroy: clean

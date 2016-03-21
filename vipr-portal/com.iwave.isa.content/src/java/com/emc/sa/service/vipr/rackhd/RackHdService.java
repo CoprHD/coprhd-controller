@@ -7,8 +7,9 @@ package com.emc.sa.service.vipr.rackhd;
 import com.emc.sa.service.vipr.ViPRExecutionUtils;
 import com.emc.sa.service.vipr.ViPRService;
 import com.emc.sa.service.vipr.rackhd.tasks.RackHdTask;
-import com.google.gson.Gson;
 import java.util.Map;
+import java.util.ArrayList;
+import java.util.List;
 
 import org.apache.commons.lang.StringUtils;
 
@@ -28,7 +29,8 @@ public class RackHdService extends ViPRService {
     
     private Map<String, Object> params = null;
     private String workflowName = null;
-    private String playbookName = null;
+    private String playbookNames = null;
+    private List<String> playbookNameList = new ArrayList<>();
 
     @Override
     public void precheck() throws Exception {
@@ -47,10 +49,17 @@ public class RackHdService extends ViPRService {
 
         if(!params.containsKey(PLAYBOOK_PARAM_NAME)) {
             info("No playbook specified.");
-            playbookName = null;
+            playbookNames = null;
         } else {
-            playbookName = params.get(PLAYBOOK_PARAM_NAME).toString();
-            params.remove(PLAYBOOK_PARAM_NAME);            
+            playbookNames = params.get(PLAYBOOK_PARAM_NAME).toString();
+            params.remove(PLAYBOOK_PARAM_NAME);   
+            
+            // convert playbook names to list (may be >1)
+            //TODO: allow playbooks to be associated with specific tasks in WF
+            //TODO: requires reading tasks for selected workflows (dependent AssetOptions providers?)   
+            for(String playbook: playbookNames.split(";")){
+                playbookNameList.add(playbook);
+            }
         }
 
         // TODO: fix: can't detect type, so interpret Storage Sizes in GB
@@ -63,27 +72,33 @@ public class RackHdService extends ViPRService {
                 }
             }
         }
+        
+        // possible bug:  when catalog form is filled out, params have quotes 
+        // around them, but when fields are locked in catalog, the quotes are missing.
+        for( String paramKey : params.keySet() ){
+            String paramValue = params.get(paramKey).toString();
+            if(paramValue.endsWith("\"") && paramValue.startsWith("\"")) {
+                String unquotedParam = paramValue.substring(1, paramValue.length()-1);
+                warn("Removing quotes from param " + paramKey + ":" + paramValue + 
+                        "  (Result: " + unquotedParam + ")");
+                params.put(paramKey, unquotedParam);
+            }
+        }
     }
 
     @Override
     public void execute() throws Exception {
-
         ExecutionUtils.currentContext().logInfo("Starting RackHD Workflow '" +
                 workflowName + "'");
-
         String workflowResponse =
-                ViPRExecutionUtils.execute(new RackHdTask(params,workflowName,playbookName));
-
+                ViPRExecutionUtils.execute(new RackHdTask(params,workflowName,playbookNameList));
         String errMsg = RackHdUtils.checkForWorkflowFailed(workflowResponse); 
         if(errMsg != null) {
             ExecutionUtils.currentContext().logError("RackHD Workflow " +
                     "completed, but failed.");
             throw new IllegalStateException(errMsg);
-        }
-        
+        }  
         ExecutionUtils.currentContext().logInfo("RackHD Workflow " +
                 "completed successfully.");
-    }
-
-    
+    } 
 } 

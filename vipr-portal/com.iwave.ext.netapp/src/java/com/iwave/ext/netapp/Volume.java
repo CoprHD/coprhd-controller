@@ -68,8 +68,8 @@ class Volume {
      *            Use zero to take restrict immediately.
      */
     void setVolumeRestrict(int delayInMinutes) {
-        if (!isRestrict()) {
-            log.info("volume " + name + " is already restrict.");
+        if (isRestrict()) {
+            log.info("volume " + name + " is already restricted.");
             return;
         }
 
@@ -80,7 +80,7 @@ class Volume {
         try {
             server.invokeElem(elem);
         } catch (Exception e) {
-            String msg = "Failed to volume restrict: " + name;
+            String msg = "Failed to restrict volume: " + name;
             log.error(msg, e);
             throw new NetAppException(msg, e);
         }

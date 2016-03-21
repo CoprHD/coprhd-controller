@@ -180,7 +180,7 @@ public class SysSvcImpl extends AbstractSecuredWebServer implements SysSvc {
     }
 
     private void startNetworkMonitor() {
-        if (_drSiteNetworkMonitor.shouldStart()) {
+        if (_drSiteNetworkMonitor.shouldStartOnCurrentSite()) {
             _drNetworkMonitorThread = new Thread(_drSiteNetworkMonitor);
             _drNetworkMonitorThread.setName("DrSiteNetworkMonitor");
             _drNetworkMonitorThread.start();

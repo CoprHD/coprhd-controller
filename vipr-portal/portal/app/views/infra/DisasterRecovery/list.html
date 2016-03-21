@@ -137,6 +137,10 @@ angular.module('tags').directive({
 				scope.isTestSite = false;
 				scope.isFailover = false;
              }
+             
+             if (scope.row.networkStatus.toUpperCase() == "BROKEN") {
+             	scope.isFailover = false;
+             }
          }
      }
  },

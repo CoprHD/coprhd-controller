@@ -43,7 +43,7 @@ public class DrSiteNetworkMonitor implements Runnable{
 
     private CoordinatorClient coordinatorClient;
     private String myNodeId;
-
+    private boolean isSingleNode;
 
     private static final int NETWORK_MONITORING_INTERVAL = 60; // in seconds
     public static final String ZOOKEEPER_MODE_LEADER = "leader";
@@ -59,6 +59,7 @@ public class DrSiteNetworkMonitor implements Runnable{
     public void init() {
         coordinatorClient = coordinator.getCoordinatorClient();
         myNodeId = coordinator.getMyNodeId();
+        isSingleNode = drUtil.getLocalSite().getNodeCount() == 1;
     }
 
     public void run() {
@@ -72,7 +73,7 @@ public class DrSiteNetworkMonitor implements Runnable{
      * 
      * @return true if we should start it
      */
-    public boolean shouldStart() {
+    public boolean shouldStartOnCurrentSite() {
         if (drUtil.isActiveSite()) {
             return true;
         }
@@ -85,20 +86,14 @@ public class DrSiteNetworkMonitor implements Runnable{
         _log.info("This site is not active site or standby paused, no need to do network monitor");
         return false;
     }
+
     
     private Runnable networkMonitor = new Runnable(){
         public void run() {
-
-            //Only leader on active site will test ping (no networking info if active down?)
-            String zkState = drUtil.getLocalCoordinatorMode(myNodeId);
-
-            //Check if this node is the leader
-            if (!ZOOKEEPER_MODE_LEADER.equals(zkState) && !ZOOKEEPER_MODE_STANDALONE.equals(zkState)) {
-                return;
-            }
-
             try {
-                checkPing();
+                if (shouldStartOnCurrentNode()) {
+                    checkPing();
+                }
             } catch (Exception e) {
                 //try catch exception to make sure next scheduled run can be launched.
                 _log.error("Error occurs when monitor standby network", e);
@@ -106,13 +101,23 @@ public class DrSiteNetworkMonitor implements Runnable{
 
         }
     };
+    
+    private boolean shouldStartOnCurrentNode() {
+        // current node should do it if it is single node cluster 
+        if (isSingleNode) {
+            return true;
+        }
+        
+        //Only leader on active site will test ping
+        String zkState = drUtil.getLocalCoordinatorMode(myNodeId);
+        if (ZOOKEEPER_MODE_LEADER.equals(zkState))  {
+            return true;
+        }
+        return false;
+    }
 
     private void checkPing() {
         Site localSite = drUtil.getLocalSite();
-        
-        if (!shouldStart()) {
-            return;
-        }
         
         SiteNetworkState localNetworkState = drUtil.getSiteNetworkState(localSite.getUuid());
         if (!NetworkHealth.GOOD.equals(localNetworkState.getNetworkHealth()) || localNetworkState.getNetworkLatencyInMs() != 0) {

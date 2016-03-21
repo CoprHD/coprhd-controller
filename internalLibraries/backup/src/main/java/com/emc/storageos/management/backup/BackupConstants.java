@@ -57,10 +57,17 @@ public interface BackupConstants {
 
     // Delimiter for backup file name
     public static final String BACKUP_NAME_DELIMITER = "_";
-    public static final String COLLECTED_BACKUP_NAME_DELIMITER = "-";
+    public static final String SCHEDULED_BACKUP_TAG_DELIMITER = "-";
+    public static final String UPLOAD_ZIP_FILE_NAME_DELIMITER = "_";
+
+    // Backup related name format
+    public static final String SCHEDULED_BACKUP_TAG_TEMPLATE = "%s-%d-%s";
+    public static final String UPLOAD_ZIP_FILENAME_FORMAT = "%s_%s_%s_%s%s"; //tag_totalNodes_availableNodes_siteId.COMPRESS_SUFFIX
 
     // Backup compress format
     public static final String COMPRESS_SUFFIX = ".zip";
+    public static final String INVALID_COMPRESS_SUFFIX = ".zip.invalid";
+    public static final String INCOMPLETE_COMPRESS_SUFFIX = ".zip.tmp";
 
     // Backup retry max count
     public static final int RETRY_MAX_CNT = 3;
@@ -73,6 +80,7 @@ public interface BackupConstants {
     public static final String LIST_BACKUP_TITLE = "  %%-%ds%%-10s%%-20s";
     public static final String LIST_BACKUP_INFO = "  %%-%ds%%-10.2f%%-20s";
     public static final String COLLECTED_BACKUP_REGEX_PATTERN = "^(\\S+)*-\\d+-\\d+-(\\S+)*\\.zip$";
+
     public static final String SCHEDULED_BACKUP_DATE_REGEX_PATTERN = "^\\d{%d}$";
 
     // The common part of backup info file name
@@ -116,6 +124,7 @@ public interface BackupConstants {
     String CURRENT_DOWNLOADING_BACKUP_NAME_KEY="name";
     String CURRENT_DOWNLOADING_BACKUP_ISLOCAL_KEY="isLocal";
 
+    public String CASSANDRA_CF_NAME_DELIMITER = "-";
     public static final String SITE_ID_FILE_NAME = "siteid";
     public static final int SYSTOOL_TIMEOUT_MILLIS = 120000; // 2 min
     public static final String VDC_PROPS_FILE_NAME = "vdcconfig.properties";

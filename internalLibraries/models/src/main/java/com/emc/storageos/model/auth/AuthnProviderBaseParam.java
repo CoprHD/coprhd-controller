@@ -40,13 +40,13 @@ public abstract class AuthnProviderBaseParam {
      * Name of the provider.
      * Valid value:
      *  provider names unique within a virtual data center
-     * 
+     *
      */
     private String label;
 
     /**
      * Description of the provider
-     * 
+     *
      */
     private String description;
 
@@ -59,7 +59,7 @@ public abstract class AuthnProviderBaseParam {
      * syntactically correct.
      * During the operation of the system, a disabled provider will exist but
      * not be considered when authenticating principals.
-     * 
+     *
      */
     private Boolean disable;
 
@@ -70,20 +70,20 @@ public abstract class AuthnProviderBaseParam {
 
     /**
      * Distinguished Name for the bind user.
-     * 
+     *
      */
     private String managerDn;
 
     /**
      * Password for the manager DN "bind" user.
-     * 
+     *
      */
     private String managerPassword;
 
     /**
      * Search base from which the LDAP search will start when authenticating
      * users. See also: search_scope
-     * 
+     *
      */
     private String searchBase;
 
@@ -92,7 +92,7 @@ public abstract class AuthnProviderBaseParam {
      * Valid value:
      *  %u whole username string
      *  %U username portion only of the string containing the domain
-     * 
+     *
      */
     private String searchFilter;
 
@@ -108,19 +108,19 @@ public abstract class AuthnProviderBaseParam {
     /**
      * Attribute for group search. This is the attribute name that will be used to represent group membership.
      * Once set during creation of the provider, the value for this parameter cannot be changed.
-     * 
+     *
      */
     private String groupAttribute;
 
     /**
      * Maximum number of results that the LDAP server will return on a single page.
-     * 
+     *
      */
     private Integer maxPageSize;
 
     /**
      * Whether or not to validate certificates when ldaps is used.
-     * 
+     *
      */
     private Boolean validateCertificates;
 
@@ -185,7 +185,7 @@ public abstract class AuthnProviderBaseParam {
         this.disable = disable;
     }
 
-    @XmlElement(name = "autoRegCoprHDNImportOSProjects", required = false, defaultValue = "false")
+    @XmlElement(name = "autoreg_coprhd_import_osprojects", required = false, defaultValue = "false")
     public Boolean getAutoRegCoprHDNImportOSProjects() {
         return autoRegCoprHDNImportOSProjects;
     }
@@ -285,7 +285,7 @@ public abstract class AuthnProviderBaseParam {
         sb.append(description);
         sb.append(", disable=");
         sb.append(disable);
-        sb.append(", autoRegCoprHDNImportOSProjects=");
+        sb.append(", autoreg_coprhd_import_osprojects=");
         sb.append(autoRegCoprHDNImportOSProjects);
         sb.append(", manager_dn=");
         sb.append(managerDn);

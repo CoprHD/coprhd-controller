@@ -144,7 +144,7 @@ public class XtremIOSnapshotOperations extends XtremIOOperations implements Snap
             String snapshotSetTagName = XtremIOProvUtils.createTagsForVolumeAndSnaps(client,
                     getVolumeFolderName(snapshotObj.getProject().getURI(), storage), clusterName)
                     .get(XtremIOConstants.SNAPSHOT_KEY);
-            snapsetLabel = snapsetLabel + "_" +  new SimpleDateFormat("yyyyMMddhhmmssSSS").format(new Date());
+            snapsetLabel = snapsetLabel + "_" + new SimpleDateFormat("yyyyMMddhhmmssSSS").format(new Date());
             client.createConsistencyGroupSnapshot(cgName, snapsetLabel, "", snapType, clusterName);
             // tag the created the snapshotSet
             client.tagObject(snapshotSetTagName, XTREMIO_ENTITY_TYPE.SnapshotSet.name(), snapsetLabel, clusterName);
@@ -163,9 +163,11 @@ public class XtremIOSnapshotOperations extends XtremIOOperations implements Snap
                 XtremIOVolume xioSnap = client.getSnapShotDetails(snapDetails.get(1).toString(), clusterName);
                 _log.info("XIO Snap : {}", xioSnap);
                 BlockSnapshot snapshot = volumeToSnapMap.get(xioSnap.getAncestoVolInfo().get(1));
-                processSnapshot(xioSnap, snapshot, storage);
-                snapshot.setReplicationGroupInstance(snapsetLabel);
-                dbClient.updateObject(snapshot);
+                if (snapshot != null) {
+                    processSnapshot(xioSnap, snapshot, storage);
+                    snapshot.setReplicationGroupInstance(snapsetLabel);
+                    dbClient.updateObject(snapshot);
+                }
             }
             taskCompleter.ready(dbClient);
         } catch (Exception e) {
@@ -234,7 +236,8 @@ public class XtremIOSnapshotOperations extends XtremIOOperations implements Snap
             BlockSnapshot snapshotObj = dbClient.queryObject(BlockSnapshot.class, snapshot);
             String clusterName = client.getClusterDetails(storage.getSerialNumber()).getName();
             String rgName = snapshotObj.getReplicationGroupInstance();
-            if (NullColumnValueGetter.isNotNullValue(rgName) && null != XtremIOProvUtils.isSnapsetAvailableInArray(client, rgName, clusterName)) {
+            if (NullColumnValueGetter.isNotNullValue(rgName)
+                    && null != XtremIOProvUtils.isSnapsetAvailableInArray(client, rgName, clusterName)) {
                 client.deleteSnapshotSet(rgName, clusterName);
             }
             // Set inactive=true for all snapshots in the snap

@@ -360,7 +360,7 @@ public class BucketService extends TaskResourceService {
         bucket.setHardQuota(SizeUtil.translateSize(param.getHardQuota()));
         bucket.setSoftQuota(SizeUtil.translateSize(param.getSoftQuota()));
         bucket.setRetention(Integer.valueOf(param.getRetention()));
-        bucket.setOwner(getOwner(param.getOwner()));
+        bucket.setOwner(param.getOwner());
         bucket.setNamespace(tenantOrg.getNamespace());
         bucket.setVirtualPool(param.getVpool());
         if (project != null) {
@@ -610,15 +610,6 @@ public class BucketService extends TaskResourceService {
                 ContainmentConstraint.Factory.getProjectBucketConstraint(projectId),
                 resRepList);
         return resRepList;
-    }
-
-    private String getOwner(String orgOwner) {
-        String owner = orgOwner;
-        if (null == orgOwner || orgOwner.isEmpty()) {
-            StorageOSUser user = getUserFromContext();
-            owner = user.getName();
-        }
-        return owner;
     }
 
     /**

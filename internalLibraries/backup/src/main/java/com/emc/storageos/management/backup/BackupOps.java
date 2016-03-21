@@ -579,16 +579,16 @@ public class BackupOps {
      * Persist download status to ZK
      */
     public void setBackupFileNames(String backupName, List<String> filenames) {
-        updateRestoreStatus(backupName, null, null, null, 0, false, filenames, true, false);
+        updateRestoreStatus(backupName, false, null, null, null, 0, false, filenames, true, false);
     }
 
-    public void setRestoreStatus(String backupName, BackupRestoreStatus.Status s, String details,
+    public void setRestoreStatus(String backupName, boolean isLocal, BackupRestoreStatus.Status s, String details,
                                  boolean increaseCompleteNumber, boolean doLock) {
-        updateRestoreStatus(backupName, s, details, null, 0, increaseCompleteNumber, null, true, doLock);
+        updateRestoreStatus(backupName, isLocal, s, details, null, 0, increaseCompleteNumber, null, true, doLock);
     }
 
     public void updateDownloadedSize(String backupName, long size, boolean doLock) {
-        updateRestoreStatus(backupName, null, null, null, size, false, null, false, doLock);
+        updateRestoreStatus(backupName, false, null, null, null, size, false, null, false, doLock);
     }
 
     public long getSizeToDownload(String backupName) throws UnknownHostException {
@@ -600,7 +600,7 @@ public class BackupOps {
         return map.get(localHostName);
     }
 
-    public void updateRestoreStatus(String backupName, BackupRestoreStatus.Status status, String details,
+    public void updateRestoreStatus(String backupName, boolean isLocal, BackupRestoreStatus.Status status, String details,
                                      Map<String, Long>downloadSize, long increasedSize, boolean increaseCompletedNodeNumber,
                                      List<String> backupfileNames, boolean doLog, boolean doLock) {
         InterProcessLock lock = null;
@@ -614,7 +614,7 @@ public class BackupOps {
                 log.info("get lock {}", BackupConstants.RESTORE_STATUS_UPDATE_LOCK);
             }
 
-            BackupRestoreStatus s = queryBackupRestoreStatus(backupName, false);
+            BackupRestoreStatus s = queryBackupRestoreStatus(backupName, isLocal);
 
             if (!canBeUpdated(status, s)) {
                 return;
@@ -649,7 +649,7 @@ public class BackupOps {
 
             updateBackupRestoreStatus(s);
 
-            persistBackupRestoreStatus(s, false, doLog);
+            persistBackupRestoreStatus(s, isLocal, doLog);
 
             if (doLog) {
                 log.info("Persist backup restore status {} to zk successfully", s);
@@ -684,6 +684,12 @@ public class BackupOps {
     }
 
     private boolean canBeUpdated(BackupRestoreStatus.Status status, BackupRestoreStatus s) {
+        if (status == BackupRestoreStatus.Status.RESTORE_FAILED
+                || status == BackupRestoreStatus.Status.RESTORING
+                || status == BackupRestoreStatus.Status.RESTORE_SUCCESS) {
+            return true;
+        }
+
         if (s.getStatus() == BackupRestoreStatus.Status.DOWNLOAD_SUCCESS) {
             return false;
         }
@@ -795,7 +801,7 @@ public class BackupOps {
         }
 
         if (!isLocal) {
-            setRestoreStatus(backupName, BackupRestoreStatus.Status.DOWNLOAD_CANCELLED, null, false, true);
+            setRestoreStatus(backupName, false, BackupRestoreStatus.Status.DOWNLOAD_CANCELLED, null, false, true);
             log.info("Persist the cancel flag into ZK");
         }
     }
@@ -878,11 +884,13 @@ public class BackupOps {
                 if (exist) {
                     throw BackupException.fatals.failedToCreateBackup(backupTag, errorList.toString(), e);
                 }
+
                 if (!checkCreateResult(backupTag, errorList, force)) {
                     deleteBackupWithoutLock(backupTag, true);
                     Throwable cause = (e.getCause() == null ? e : e.getCause());
                     throw BackupException.fatals.failedToCreateBackup(backupTag, errorList.toString(), cause);
                 }
+
                 break;
             }
         }
@@ -913,21 +921,28 @@ public class BackupOps {
             }
         }
         if (dbFailedCnt == 0 && geodbFailedCnt == 0 && zkFailedCnt < hosts.size()) {
-            log.info("Create backup({}) success", backupTag);
-            persistBackupInfo(backupTag);
-            return true;
-        } else if (force == true
-                && dbFailedCnt <= (hosts.size() - quorumSize)
-                && geodbFailedCnt <= hosts.size() - quorumSize
-                && zkFailedCnt < hosts.size()) {
-            log.warn("Create backup({}) on nodes({}) failed, but force ignore the errors",
-                    backupTag, errorList.toString());
-            persistBackupInfo(backupTag);
-            return true;
-        } else {
-            log.error("Create backup({}) on nodes({}) failed", backupTag, errorList.toString());
-            return false;
+            try {
+                persistBackupInfo(backupTag);
+                log.info("Create backup({}) success", backupTag);
+                return true;
+            }catch (Exception e) {
+                //ignore
+            }
         }
+
+        if (force && dbFailedCnt <= (hosts.size() - quorumSize) && geodbFailedCnt <= hosts.size() - quorumSize
+                && zkFailedCnt < hosts.size()) {
+            log.warn("Create backup({}) on nodes({}) failed, but force ignore the errors", backupTag, errorList);
+            try {
+                persistBackupInfo(backupTag);
+                return true;
+            }catch (Exception e) {
+                //ignore
+            }
+        }
+
+        log.error("Create backup({}) on nodes({}) failed", backupTag, errorList.toString());
+        return false;
     }
 
     public static synchronized String createBackupName() {
@@ -982,7 +997,7 @@ public class BackupOps {
     /**
      * Records backup info
      */
-    private void persistBackupInfo(String backupTag) {
+    private void persistBackupInfo(String backupTag) throws Exception {
         File targetDir = new File(getBackupDir(), backupTag);
         if (!targetDir.exists() || !targetDir.isDirectory()) {
             return;
@@ -1000,6 +1015,7 @@ public class BackupOps {
             FileUtils.chmod(infoFile, BACKUP_FILE_PERMISSION);
         } catch (Exception ex) {
             log.error("Failed to record backup info", ex);
+            throw ex;
         }
     }
 

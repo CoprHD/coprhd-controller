@@ -25,6 +25,7 @@ import com.iwave.ext.netapp.model.CifsAccess;
 import com.iwave.ext.netapp.model.CifsAcl;
 import com.iwave.ext.netapp.model.ExportsRuleInfo;
 import com.iwave.ext.netapp.model.Qtree;
+import com.iwave.ext.netapp.model.Quota;
 
 @SuppressWarnings({ "findbugs:ST_WRITE_TO_STATIC_FROM_INSTANCE_METHOD", "squid:S2175", "squid:S2444" })
 /*
@@ -469,11 +470,21 @@ public class NetAppApi {
         }
     }
     
-    public List<Qtree> listQtrees(Collection<String> attrs) throws NetAppException {
+    public List<Qtree> listQtrees() throws NetAppException {
         try {
             netAppFacade = new NetAppFacade(_ipAddress, _portNumber, _userName,
                     _password, _https);
             return netAppFacade.listQtrees();
+        } catch (Exception e) {
+            throw NetAppException.exceptions.listQtreesFailed();
+        }
+    }
+    
+    public List<Quota> listQuotas() throws NetAppException {
+        try {
+            netAppFacade = new NetAppFacade(_ipAddress, _portNumber, _userName,
+                    _password, _https);
+            return netAppFacade.listQuotas();
         } catch (Exception e) {
             throw NetAppException.exceptions.listQtreesFailed();
         }

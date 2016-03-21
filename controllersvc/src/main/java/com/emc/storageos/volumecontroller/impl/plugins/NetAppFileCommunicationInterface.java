@@ -45,6 +45,7 @@ import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedCif
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedFSExport;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedFSExportMap;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedFileExportRule;
+import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedFileQuotaDirectory;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedFileSystem;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedFileSystem.SupportedFileSystemCharacterstics;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedFileSystem.SupportedFileSystemInformation;
@@ -77,6 +78,8 @@ import com.iwave.ext.netapp.VFilerInfo;
 import com.iwave.ext.netapp.model.CifsAcl;
 import com.iwave.ext.netapp.model.ExportsHostnameInfo;
 import com.iwave.ext.netapp.model.ExportsRuleInfo;
+import com.iwave.ext.netapp.model.Qtree;
+import com.iwave.ext.netapp.model.Quota;
 import com.iwave.ext.netapp.model.SecurityRuleInfo;
 
 public class NetAppFileCommunicationInterface extends
@@ -676,6 +679,7 @@ public class NetAppFileCommunicationInterface extends
                         .equals(StorageSystem.Discovery_Namespaces.UNMANAGED_FILESYSTEMS
                                 .toString()))) {
             discoverUmanagedFileSystems(accessProfile);
+            discoverUmanagedFileQuotaDirectory(accessProfile);
             // discoverUnManagedExports(accessProfile);
             discoverUnManagedNewExports(accessProfile);
             discoverUnManagedCifsShares(accessProfile);
@@ -859,6 +863,52 @@ public class NetAppFileCommunicationInterface extends
                 }
             }
         }
+    }
+    
+    private void discoverUmanagedFileQuotaDirectory(AccessProfile profile) {
+        URI storageSystemId = profile.getSystemId();
+
+        StorageSystem storageSystem = _dbClient.queryObject(
+                StorageSystem.class, storageSystemId);
+
+        if (null == storageSystem) {
+            return;
+        }
+
+        String detailedStatusMessage = "Discovery of NetApp Unmanaged QuotaDirectoey started";
+
+        NetAppApi netAppApi = new NetAppApi.Builder(
+                storageSystem.getIpAddress(), storageSystem.getPortNumber(),
+                storageSystem.getUsername(), storageSystem.getPassword())
+                .https(true).build();
+
+        Collection<String> attrs = new ArrayList<String>();
+        for (String property : ntpPropertiesList) {
+            attrs.add(SupportedNtpFileSystemInformation
+                    .getFileSystemInformation(property));
+        }
+
+        try {
+            // Retrieve all the qtree info.
+            List<Qtree> qtrees = netAppApi.listQtrees();            
+            List<VFilerInfo> vFilers = netAppApi.listVFilers(null);
+            List<Quota> quotas = netAppApi.listQuotas();
+
+        } catch (NetAppException ve) {
+            if (null != storageSystem) {
+                cleanupDiscovery(storageSystem);
+            }
+            _logger.error("discoverStorage failed.  Storage system: "
+                    + storageSystemId);
+            throw ve;
+        } catch (Exception e) {
+            if (null != storageSystem) {
+                cleanupDiscovery(storageSystem);
+            }
+            _logger.error("discoverStorage failed. Storage system: "
+                    + storageSystemId, e);
+            throw NetAppException.exceptions.discoveryFailed(storageSystemId.toString(), e);
+        } 
     }
 
     private void validateListSizeLimitAndPersist(List<UnManagedFileSystem> newUnManagedFileSystems,

@@ -43,6 +43,8 @@ import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import sun.net.util.IPAddressUtil;
+
 import com.emc.storageos.cimadapter.connections.cim.CimConnection;
 import com.emc.storageos.cimadapter.connections.cim.CimConstants;
 import com.emc.storageos.cimadapter.connections.cim.CimObjectPathCreator;
@@ -98,8 +100,6 @@ import com.google.common.base.Joiner;
 import com.google.common.base.Strings;
 import com.google.common.collect.ListMultimap;
 import com.google.common.collect.Sets;
-
-import sun.net.util.IPAddressUtil;
 
 /**
  * Helper for Smis commands
@@ -2328,7 +2328,8 @@ public class SmisCommandHelper implements SmisConstants {
         boolean tagSet = false;
         // Set/Unset the RP tag (if applicable)
         if (volume != null && storageSystem != null && volume.checkForRp() && storageSystem.getSystemType() != null
-                && storageSystem.getSystemType().equalsIgnoreCase(DiscoveredDataObject.Type.vmax.toString())) {
+                && storageSystem.getSystemType().equalsIgnoreCase(DiscoveredDataObject.Type.vmax.toString())
+                && !storageSystem.checkIfVmax3()) {
             List<CIMObjectPath> volumePathList = new ArrayList<CIMObjectPath>();
             volumePathList.add(_cimPath.getBlockObjectPath(storageSystem, volume));
 
@@ -2798,6 +2799,7 @@ public class SmisCommandHelper implements SmisConstants {
     public CIMArgument[] getCreateGroupReplicaInputArgumentsForVMAX(
             StorageSystem storage, CIMObjectPath cgPath,
             boolean createInactive, String label, CIMObjectPath targetGroupPath,
+            CIMObjectPath targetVPSnapPoolPath,
             CIMInstance replicaSettingConsistentPointInTime,
             SYNC_TYPE syncType) {
         final CIMArgument[] basicArgs = new CIMArgument[] {
@@ -2806,6 +2808,9 @@ public class SmisCommandHelper implements SmisConstants {
         final List<CIMArgument> args = new ArrayList<CIMArgument>(asList(basicArgs));
         if (null != targetGroupPath) {
             args.add(_cimArgument.reference(CP_TARGET_GROUP, targetGroupPath));
+        }
+        if (null != targetVPSnapPoolPath) {
+            args.add(_cimArgument.reference(CP_TARGET_POOL, targetVPSnapPoolPath));
         }
         // If active, add the RelationshipName
         if (!createInactive) {
@@ -4201,7 +4206,7 @@ public class SmisCommandHelper implements SmisConstants {
 
     }
 
-    /*
+    /**
      * Giver 2 strings: str1 and str2, this method concatenates them by using the delimeter
      * and restricting the size of the resulting string to maxLength.
      *
@@ -6523,7 +6528,7 @@ public class SmisCommandHelper implements SmisConstants {
      */
     public CIMArgument[] getCreateListReplicaInputArguments(StorageSystem storageDevice, CIMObjectPath[] sourceVolumePath,
             CIMObjectPath[] targetVolumePath, List<String> labels, int syncType, String replicaName, String sessionName,
-            boolean createInactive) {
+            boolean createInactive, CIMObjectPath targetVPSnapPoolPath) {
         List<CIMArgument> args = new ArrayList<CIMArgument>();
         int inactiveValue = (syncType == SmisConstants.CLONE_VALUE) ? PREPARED_VALUE : INACTIVE_VALUE;
         int waitForCopyState = (createInactive) ? inactiveValue : ACTIVATE_VALUE;
@@ -6558,6 +6563,10 @@ public class SmisCommandHelper implements SmisConstants {
                 // For VMAX2 arrays use the VPSNAPS during createListReplica.
                 if (!storageDevice.checkIfVmax3()) {
                     repSettingData = getReplicationSettingDataInstanceForDesiredCopyMethod(storageDevice, replicaName, VP_SNAP_VALUE, true);
+                    if (targetVPSnapPoolPath != null) {
+                        // set the target pool path
+                        args.add(_cimArgument.reference(CP_TARGET_POOL, targetVPSnapPoolPath));
+                    }
                 } else {
                     // For VMAX3, we always create snapvx snapshots
                     repSettingData = getReplicationSettingDataInstanceForDesiredCopyMethod(storageDevice, sessionName,
@@ -6897,16 +6906,14 @@ public class SmisCommandHelper implements SmisConstants {
         return false;
     }
 
-    /*
+    /**
      * Creates an explicitly sized array of generic type T, containing the given value for all its elements.
      *
      * Example:
      * toMultiElementArray(2, true); => boolean[] array = new boolean[2] { true, true};
      *
      * @param count size of the array
-     *
      * @param value value for each element
-     *
      * @param <T> type of array
      *
      * @return Array of T, containing the same value for each element.
@@ -6926,11 +6933,10 @@ public class SmisCommandHelper implements SmisConstants {
                 CREATE_OR_MODIFY_ELEMENT_FROM_STORAGE_POOL;
     }
 
-    /*
+    /**
      * Get source object for a replica.
      *
      * @param dbClient
-     *
      * @param replica
      *
      * @return source object
@@ -7172,45 +7178,45 @@ public class SmisCommandHelper implements SmisConstants {
     private String formatSessionLabelForFabrication(String systemSerial, String replicationGroupName, String sessionLabel) {
         return String.format("%s+%s##SSNAME+%s", systemSerial, replicationGroupName, sessionLabel);
     }
-    
+
     private String formatSessionLabelForFabrication(String systemSerial, String replicationGroupName) {
         return String.format("%s+%s##SSNAME", systemSerial, replicationGroupName);
     }
 
     /**
-     * Remove EMCSFSEntry containing the groupSynchronized information. It would find the entry using the clone/snapshot replication group name 
-     * and source replication group name, then remove it. This operation is necessary before deleting an attached clone/snaphost replication group. 
-     * @param system 
-     * @param replicationSvc
-     * @param replicaReplicationGroupName
-     * @param sourceReplicationGroupName
-     * @return
+     * Remove EMCSFSEntry containing the groupSynchronized information. It would find the entry using the clone/snapshot replication group
+     * name and source replication group name, then remove it. This operation is necessary before deleting an attached clone/snaphost
+     * replication group.
+     *
+     * @param system the storage system
+     * @param replicationSvc the replication service
+     * @param replicaReplicationGroupName the replica replication group name
+     * @param sourceReplicationGroupName the source repilcation group name
      */
     public void removeSFSEntryForReplicaReplicationGroup(StorageSystem system,
             CIMObjectPath replicationSvc,
             String replicaReplicationGroupName,
             String sourceReplicationGroupName) {
-        List<String>sfsEntries = getEMCSFSEntries(system, replicationSvc);
+        List<String> sfsEntries = getEMCSFSEntries(system, replicationSvc);
         String entryLabel = formatReplicaLabelForSFSEntry(system.getSerialNumber(), replicaReplicationGroupName, sourceReplicationGroupName);
-        List<String> removeEntryList = new ArrayList<String>();
+        String removeEntry = null;
 
         if (sfsEntries != null && !sfsEntries.isEmpty()) {
             for (String entry : sfsEntries) {
                 if (entry.contains(entryLabel)) {
-                	removeEntryList.add(entry);
+                    removeEntry = entry;
+                    break;
                 }
             }
         }
-        if (removeEntryList.isEmpty()) {
-            _log.info(String.format("The SFS entry is not found for the replica group %s and source group %s", replicaReplicationGroupName, 
+        if (removeEntry == null) {
+            _log.info(String.format("The SFS entry is not found for the replica group %s and source group %s", replicaReplicationGroupName,
                     sourceReplicationGroupName));
             return;
         }
         try {
-        	String[] removeEntries = new String[removeEntryList.size()];
-        	removeEntries = removeEntryList.toArray(removeEntries);
             CIMArgument[] inArgs = new CIMArgument[] {
-                    _cimArgument.stringArray("SFSEntries", removeEntries)};
+                    _cimArgument.stringArray("SFSEntries", new String[] { removeEntry }) };
             CIMArgument[] outArgs = new CIMArgument[5];
             invokeMethod(system, replicationSvc, SmisConstants.EMC_REMOVE_SFSENTRIES, inArgs, outArgs);
         } catch (WBEMException e) {
@@ -7222,11 +7228,10 @@ public class SmisCommandHelper implements SmisConstants {
      * Remove EMCSFSEntry containing the groupSynchronizedAspect information. It would find the entry using the snap session
      * source replication group name, then remove it. This operation is necessary before deleting an attached snaphost session replication
      * group.
-     * 
+     *
      * @param system
      * @param replicationSvc
      * @param sourceReplicationGroupName
-     * @return
      */
     public void removeSFSEntryForReplicaReplicationGroup(StorageSystem system,
             CIMObjectPath replicationSvc,
@@ -7261,6 +7266,7 @@ public class SmisCommandHelper implements SmisConstants {
 
     /**
      * Construct a String using clone/snapshot replication group name and source replication group name for searching the EMCSFSEntries.
+     *
      * @param systemSerial array serial number
      * @param replicaReplicationGroupName - clone/snapshot replication group name
      * @param sourceRGName - source replication group name
@@ -7272,6 +7278,7 @@ public class SmisCommandHelper implements SmisConstants {
 
     /**
      * Get EMCSFSEntries
+     *
      * @param storage
      * @param replicationSvc
      * @return the list of EMCSFSEntries

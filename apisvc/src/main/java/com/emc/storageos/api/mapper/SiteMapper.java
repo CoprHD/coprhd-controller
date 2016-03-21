@@ -64,6 +64,7 @@ public class SiteMapper {
 
     public void map(SiteParam from, Site to) {
         to.setUuid(from.getUuid());
+        to.setName(from.getName());
         to.setVip(from.getVip());
         to.setVip6(from.getVip6());
         to.getHostIPv4AddressMap().putAll(from.getHostIPv4AddressMap());

@@ -257,8 +257,8 @@ public interface BlockStorageDriver extends StorageDriver {
      * Create clone of consistency group.
      * It is implementation responsibility to validate consistency of this group operation.
      *
-     * @param consistencyGroup input/output
-     * @param clones output
+     * @param consistencyGroup input
+     * @param clones input/output
      * @param capabilities Capabilities of clones. Type: Input.
      * @return
      */
@@ -269,7 +269,7 @@ public interface BlockStorageDriver extends StorageDriver {
      * Delete consistency group clone
      * It is implementation responsibility to validate consistency of this group operation.
      *
-     * @param clones  output
+     * @param clones  input
      * @return
      */
     public DriverTask deleteConsistencyGroupClone(List<VolumeClone> clones);

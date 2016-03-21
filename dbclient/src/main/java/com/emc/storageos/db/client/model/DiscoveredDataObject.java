@@ -5,6 +5,9 @@
 package com.emc.storageos.db.client.model;
 
 import com.emc.storageos.services.util.StorageDriverManager;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.context.ApplicationContext;
 
 import java.io.Serializable;
 import java.util.HashMap;
@@ -12,18 +15,27 @@ import java.util.Map;
 
 public class DiscoveredDataObject extends DataObject {
 
+    private static final Logger _log = LoggerFactory.getLogger(DiscoveredDataObject.class);
+
     // Unique Bourne identifier.
     private String _nativeGuid;
 
     // Indicates if the object is Southbound driver managed.
     private Boolean _isDriverManaged = false;
 
-    // Junits don't have the application context populated, so for them storageDriverManager is null.
-    private static StorageDriverManager storageDriverManager = 
-            ((StorageDriverManager.getApplicationContext() != null) ?
-            (StorageDriverManager) StorageDriverManager.getApplicationContext()
-                    .getBean(StorageDriverManager.STORAGE_DRIVER_MANAGER) :
-            null);
+    private static StorageDriverManager storageDriverManager = null;
+    static {
+        // This class can be used in test setups without application context.
+        // Ex. DB migration test framework.
+        ApplicationContext context = StorageDriverManager.getApplicationContext();
+        if (context != null) {
+            storageDriverManager = (StorageDriverManager)StorageDriverManager.
+                    getApplicationContext().getBean(StorageDriverManager.STORAGE_DRIVER_MANAGER);
+        } else {
+            _log.warn("Cannot set storageDriverManager. Application context is null. Assuming not a real deployment.");
+        }
+    }
+
     // known device types
     public static class Type implements Serializable {
         private static final long serialVersionUID = 1L;
@@ -108,7 +120,7 @@ public class DiscoveredDataObject extends DataObject {
 
 
         static public boolean isDriverManagedStorageSystem(String storageType) {
-            return storageDriverManager.isDriverManaged(storageType);
+            return storageDriverManager != null && storageDriverManager.isDriverManaged(storageType);
         }
 
         static public boolean isFileStorageSystem(String storageType) {

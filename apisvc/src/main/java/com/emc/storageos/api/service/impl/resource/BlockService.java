@@ -2768,7 +2768,7 @@ public class BlockService extends TaskResourceService {
         status.setResourceType(ProtectionOp.getResourceOperationTypeEnum(op));
         _dbClient.createTaskOpStatus(Volume.class, volume.getId(), task, status);
 
-        if (Volume.isSRDFProtectedTargetVolume(copyVolume)) {
+        if (Volume.isSRDFProtectedVolume(copyVolume)) {
 
             if (op.equalsIgnoreCase(ProtectionOp.FAILOVER_TEST_CANCEL.getRestOp()) ||
                     op.equalsIgnoreCase(ProtectionOp.FAILOVER_TEST.getRestOp())) {
@@ -3339,7 +3339,7 @@ public class BlockService extends TaskResourceService {
         } catch (Exception e) {
             String errorMsg = String.format(
                     "Volume VirtualPool change error: %s", e.getMessage());
-            _log.error(errorMsg);
+            _log.error(errorMsg, e);            
             for (TaskResourceRep volumeTask : taskList.getTaskList()) {
                 volumeTask.setState(Operation.Status.error.name());
                 volumeTask.setMessage(errorMsg);

@@ -787,11 +787,15 @@ public abstract class VdcOpHandler {
                     VDC_OP_BARRIER_TIMEOUT, site.getNodeCount(), false);
             barrier.enter();
             
-            if (coordinator.isVirtualIPHolder()) {
-                log.info("This node is virtual IP holder, notify remote old active site to reboot");
-                DistributedBarrier restartBarrier = coordinator.getCoordinatorClient().getDistributedBarrier(
-                        restartBarrierPath);
-                restartBarrier.removeBarrier();
+            try {
+                if (coordinator.isVirtualIPHolder()) {
+                    log.info("This node is virtual IP holder, notify remote old active site to reboot");
+                    DistributedBarrier restartBarrier = coordinator.getCoordinatorClient().getDistributedBarrier(
+                            restartBarrierPath);
+                    restartBarrier.removeBarrier();
+                }
+            } finally {
+                barrier.leave();
             }
             
             log.info("reboot remote old active site and go on");

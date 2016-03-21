@@ -264,7 +264,9 @@ public class BlockMapper {
             to.setProtection(toProtection);
         }
 
-        to.setReplicationGroupInstance(from.getReplicationGroupInstance());
+        if (NullColumnValueGetter.isNotNullValue((from.getReplicationGroupInstance()))) {
+            to.setReplicationGroupInstance(from.getReplicationGroupInstance());
+        }
 
         if ((from.getAssociatedVolumes() != null) && (!from.getAssociatedVolumes().isEmpty())) {
             List<RelatedResourceRep> backingVolumes = new ArrayList<RelatedResourceRep>();
@@ -274,7 +276,8 @@ public class BlockMapper {
             // Get ReplicationGroupInstance from source back end volume
             if (NullColumnValueGetter.isNullValue(to.getReplicationGroupInstance())) {
                 Volume sourceSideBackingVolume = VPlexUtil.getVPLEXBackendVolume(from, true, dbClient);
-                if (sourceSideBackingVolume != null) {
+                if (sourceSideBackingVolume != null
+                        && NullColumnValueGetter.isNotNullValue((sourceSideBackingVolume.getReplicationGroupInstance()))) {
                     to.setReplicationGroupInstance(sourceSideBackingVolume.getReplicationGroupInstance());
                 }
             }

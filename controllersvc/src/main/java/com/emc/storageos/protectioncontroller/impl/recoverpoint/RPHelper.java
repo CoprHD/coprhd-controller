@@ -1095,15 +1095,15 @@ public class RPHelper {
      *
      * @param dbClient DbClient reference
      * @param cgURI URI of the CG to query
-     * @param internalSiteNameOrCopyName Either a valid RP internal site name or the RP copy name.
+     * @param rpCopyName Either a valid RP copy name.
      * @return Existing matching journals for the copy or internal site sorted from largest to smallest
      */
-    public static List<Volume> findExistingJournalsForCopy(DbClient dbClient, URI cgURI, String internalSiteNameOrCopyName) {
+    public static List<Volume> findExistingJournalsForCopy(DbClient dbClient, URI cgURI, String rpCopyName) {
         // Return as a list for easy consumption
         List<Volume> matchingJournals = new ArrayList<Volume>();
 
         // Ensure we have been passed valid arguments
-        if (dbClient == null || cgURI == null || internalSiteNameOrCopyName == null) {
+        if (dbClient == null || cgURI == null || rpCopyName == null) {
             return matchingJournals;
         }
 
@@ -1115,12 +1115,10 @@ public class RPHelper {
 
         // Filter journals based on internal site name or copy name matching the passed in value.
         if (cgJournalVolumes != null && !cgJournalVolumes.isEmpty()) {
-            for (Volume cgJournalVolume : cgJournalVolumes) {
-                boolean internalSiteNamesMatch = (NullColumnValueGetter.isNotNullValue(cgJournalVolume.getInternalSiteName())
-                        && cgJournalVolume.getInternalSiteName().equals(internalSiteNameOrCopyName));
+            for (Volume cgJournalVolume : cgJournalVolumes) {               
                 boolean copyNamesMatch = (NullColumnValueGetter.isNotNullValue(cgJournalVolume.getRpCopyName())
-                        && cgJournalVolume.getRpCopyName().equals(internalSiteNameOrCopyName));
-                if (internalSiteNamesMatch || copyNamesMatch) {
+                        && cgJournalVolume.getRpCopyName().equals(rpCopyName));
+                if (copyNamesMatch) {
                     matchingJournalsSortedBySize.put(cgJournalVolume.getProvisionedCapacity(), cgJournalVolume);
                 }
             }
@@ -1167,7 +1165,8 @@ public class RPHelper {
             Long cgVolumeSizeInBytes = 0L;
             for (Volume cgVolume : cgVolumes) {
                 if (!cgVolume.checkPersonality(Volume.PersonalityTypes.METADATA.name())
-                        && copyName.equalsIgnoreCase(cgVolume.getRpCopyName()) && !cgVolume.checkInternalFlags(Flag.INTERNAL_OBJECT)) {
+                        && copyName.equalsIgnoreCase(cgVolume.getRpCopyName()) 
+                        && !cgVolume.checkInternalFlags(Flag.INTERNAL_OBJECT)) {
                     cgVolumeSize += cgVolume.getProvisionedCapacity();
                 }
             }
@@ -1404,10 +1403,10 @@ public class RPHelper {
                             sourceVolume.getRpCopyName());
 
                     // Check for Stanbdy journals in the case of MetroPoint
-                    String standbyInternalSite = getStandbyInternalSite(dbClient, sourceVolume);
-                    if (standbyInternalSite != null) {
+                    String standbyCopyName = getStandbyProductionCopyName(dbClient, sourceVolume);
+                    if (standbyCopyName != null) {
                         sourceJournals.addAll(RPHelper.findExistingJournalsForCopy(dbClient, sourceVolume.getConsistencyGroup(),
-                                standbyInternalSite));
+                                standbyCopyName));
                     }
 
                     allRelatedVolumes.addAll(sourceJournals);
@@ -1420,7 +1419,7 @@ public class RPHelper {
 
                         if (includeJournalVolumes) {
                             List<Volume> targetJournals = RPHelper.findExistingJournalsForCopy(dbClient,
-                                    targetVolume.getConsistencyGroup(), targetVolume.getInternalSiteName());
+                                    targetVolume.getConsistencyGroup(), targetVolume.getRpCopyName());
                             allRelatedVolumes.addAll(targetJournals);
                         }
                     }
@@ -1505,18 +1504,19 @@ public class RPHelper {
     public static String getStandbyProductionCopyName(DbClient dbClient, Volume sourceVolume) {
         String standbyProductionCopyName = null;
         if (sourceVolume != null
-                && Volume.PersonalityTypes.SOURCE.name().equals(sourceVolume.getPersonality())) {
-            if (isMetroPointVolume(dbClient, sourceVolume)) {
-                // Check the associated volumes to find the non-matching internal site and return that one.
-                for (String associatedVolId : sourceVolume.getAssociatedVolumes()) {
-                    Volume associatedVolume = dbClient.queryObject(Volume.class, URI.create(associatedVolId));
-                    if (associatedVolume != null && !associatedVolume.getInactive()) {
-                        if (NullColumnValueGetter.isNotNullValue(associatedVolume.getInternalSiteName())
-                                && !associatedVolume.getInternalSiteName().equals(sourceVolume.getInternalSiteName())) {
-                            // If the internal site names are different, this is the standby internal site
-                            standbyProductionCopyName = associatedVolume.getRpCopyName();
-                            break;
-                        }
+                && Volume.PersonalityTypes.SOURCE.name().equals(sourceVolume.getPersonality())
+                && sourceVolume.getAssociatedVolumes() != null
+                && sourceVolume.getAssociatedVolumes().size() > 1) {
+            // Check the associated volumes to find the non-matching internal site and return that one.
+            for (String associatedVolId : sourceVolume.getAssociatedVolumes()) {
+                Volume associatedVolume = dbClient.queryObject(Volume.class, URI.create(associatedVolId));
+                if (associatedVolume != null && !associatedVolume.getInactive()) {
+                    if (NullColumnValueGetter.isNotNullValue(associatedVolume.getInternalSiteName())
+                            && !associatedVolume.getInternalSiteName().equals(sourceVolume.getInternalSiteName())
+                            && NullColumnValueGetter.isNotNullValue(associatedVolume.getRpCopyName())) {
+                        // If the internal site names are different, this is the standby volume
+                        standbyProductionCopyName = associatedVolume.getRpCopyName();
+                        break;
                     }
                 }
             }
@@ -1914,17 +1914,15 @@ public class RPHelper {
     /**
      * Creates an export group with the proper settings for RP usage
      *
-     * @param internalSiteName internal site name of export
+     * @param exportGroupGeneratedName the generated ExportGroup name to use
      * @param virtualArray virtual array
      * @param project project
-     * @param protectionSystem protection system
-     * @param storageSystem storage system
      * @param numPaths number of paths
+     * @param isJournalExport flag indicating if this is an ExportGroup intended only for journal volumes
      * @return an export group
      */
-    public static ExportGroup createRPExportGroup(String internalSiteName, VirtualArray virtualArray, Project project,
-            ProtectionSystem protectionSystem,
-            StorageSystem storageSystem, Integer numPaths, boolean isJournalExport) {
+    public static ExportGroup createRPExportGroup(String exportGroupGeneratedName, VirtualArray virtualArray, Project project,
+            Integer numPaths, boolean isJournalExport) {
         ExportGroup exportGroup;
         exportGroup = new ExportGroup();
         exportGroup.setId(URIUtil.createId(ExportGroup.class));
@@ -1932,14 +1930,6 @@ public class RPHelper {
         exportGroup.setProject(new NamedURI(project.getId(), project.getLabel()));
         exportGroup.setVirtualArray(virtualArray.getId());
         exportGroup.setTenant(new NamedURI(project.getTenantOrg().getURI(), project.getTenantOrg().getName()));
-        // This name generation needs to match ingestion code found in RPDeviceController until
-        // we come up with better export group matching criteria.
-        String protectionSiteName = protectionSystem.getRpSiteNames().get(internalSiteName);
-        String exportGroupGeneratedName = protectionSystem.getNativeGuid() + "_" + storageSystem.getLabel() + "_" + protectionSiteName
-                + "_"
-                + virtualArray.getLabel();
-        // Remove all non alpha-numeric characters, excluding "_".
-        exportGroupGeneratedName = exportGroupGeneratedName.replaceAll("[^A-Za-z0-9_]", "");
         exportGroup.setGeneratedName(exportGroupGeneratedName);
         // When created by CoprHD natively, it's usually the CG name.
         exportGroup.setLabel(exportGroupGeneratedName);
@@ -1959,6 +1949,30 @@ public class RPHelper {
         }
 
         return exportGroup;
+    }
+
+    /**
+     * Generates a RecoverPoint ExportGroup name based on the standard
+     * ViPR RecoverPoint ExportGroup label pattern.
+     * 
+     * @param protectionSystem the ProtectionSystem for the ExportGroup
+     * @param storageSystem the StorageSystem for the ExportGroup
+     * @param internalSiteName the RecoverPoint internal site name
+     * @param virtualArray the VirtualArray for the ExportGroup
+     * @return a RecoverPoint ExportGroup name String
+     */
+    public static String generateExportGroupName(ProtectionSystem protectionSystem, 
+            StorageSystem storageSystem, String internalSiteName, VirtualArray virtualArray) {
+        // This name generation needs to match ingestion code found in RPDeviceController until
+        // we come up with better export group matching criteria.
+        String protectionSiteName = protectionSystem.getRpSiteNames().get(internalSiteName);
+        String exportGroupGeneratedName = protectionSystem.getNativeGuid() + "_" + storageSystem.getLabel() + "_" + protectionSiteName
+                + "_"
+                + virtualArray.getLabel();
+        // Remove all non alpha-numeric characters, excluding "_".
+        exportGroupGeneratedName = exportGroupGeneratedName.replaceAll("[^A-Za-z0-9_]", "");
+        _log.info("ExportGroup generated name is " + exportGroupGeneratedName);
+        return exportGroupGeneratedName;
     }
 
     /**

@@ -843,3 +843,15 @@ render.editableLink = function(o, val) {
         return val;
     }
 }
+
+
+render.markSoftLimitExceeded = function(o, val) {
+	var exceeded=o.aData.exceeded;
+	var message=Messages.get("renderFunction.fileSystem.status.exceeded");
+	var exceededIcon='<span style="padding: 0.6em 0.8em 0.6em;" class="label label-warning"><span class="glyphicon glyphicon-warning-sign"></span> '+message+'</span>';
+	if(exceeded){
+	    return o.aData.capacity+" "+exceededIcon;
+	}else{
+		return o.aData.capacity;
+	}
+}

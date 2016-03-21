@@ -384,9 +384,9 @@ public class AuthnConfigurationService extends TaggedResource {
 
         // Checks whether url should point to cinderv2 or to cinder service.
         if(isCinderv2){
-            url = CinderConstants.HTTP_URL + clusterVIP + CinderConstants.COPRHD_URL_V2;
+            url = CinderConstants.HTTPS_URL + clusterVIP + CinderConstants.COPRHD_URL_V2;
         }else{
-            url = CinderConstants.HTTP_URL + clusterVIP + CinderConstants.COPRHD_URL_V1;
+            url = CinderConstants.HTTPS_URL + clusterVIP + CinderConstants.COPRHD_URL_V1;
         }
 
         EndpointV2 endpoint = new EndpointV2();
@@ -550,6 +550,9 @@ public class AuthnConfigurationService extends TaggedResource {
             AuthnProvider provider, AuthnProviderParamsToValidate validateP) {
         String oldPassword = provider.getManagerPassword();
         boolean isAutoRegistered = provider.getAutoRegCoprHDNImportOSProjects();
+        //if the configured domain has tenant then we can't update 
+        //that domain.
+        checkForActiveTenantsUsingDomains(provider.getDomains());
         overlayProvider(provider, param);
         // Set old password if new one is a blank or null.
         provider.setManagerPassword(getPassword(provider, oldPassword));
@@ -814,7 +817,7 @@ public class AuthnConfigurationService extends TaggedResource {
             Map<URI, List<UserMapping>> mappings = _permissionsHelper.getAllUserMappingsForDomain(domainToCheck);
             Set<URI> tenantIDset;
             if (mappings == null) {
-                _log.debug("No matching tenant found for domain {}", domainToCheck);
+            	_log.debug("No matching tenant found for domain {}", domainToCheck);
                 continue;
             }
             tenantIDset = mappings.keySet();

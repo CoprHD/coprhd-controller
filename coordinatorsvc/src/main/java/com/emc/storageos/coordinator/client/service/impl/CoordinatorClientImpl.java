@@ -1130,7 +1130,7 @@ public class CoordinatorClientImpl implements CoordinatorClient {
         }
 
         // add site specific properties
-        PropertyInfoExt siteScopePropInfo = getTargetInfo(PropertyInfoExt.class, getSiteId(), PropertyInfoExt.TARGET_PROPERTY);
+        PropertyInfoExt siteScopePropInfo = getTargetInfo(getSiteId(), PropertyInfoExt.class);
         if (siteScopePropInfo != null) {
             info.getProperties().putAll(siteScopePropInfo.getProperties());
         }
@@ -1264,12 +1264,6 @@ public class CoordinatorClientImpl implements CoordinatorClient {
         String kind = coordinatorInfo.kind;
 
         return getTargetInfo(siteId, clazz, id, kind);
-    }
-    
-    public <T extends CoordinatorSerializable> T getTargetInfo(final Class<T> clazz, String id,
-            String kind) throws CoordinatorException {
-        
-        return getTargetInfo(null, clazz, id, kind);
     }
 
     private <T extends CoordinatorSerializable> T getTargetInfo(String siteId, final Class<T> clazz, String id,

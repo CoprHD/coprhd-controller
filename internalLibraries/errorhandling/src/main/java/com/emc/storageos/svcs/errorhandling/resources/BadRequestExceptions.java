@@ -2939,7 +2939,7 @@ public interface BadRequestExceptions {
     public BadRequestException cantAddNonSourceToCG(final String volName);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
-    public BadRequestException cantAddRPVolumeToNonVMAXCG(final String volName);
+    public BadRequestException cantAddRPVolumeToNonVMAXVNXCG(final String volName);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException mustSpecifyAllVolumesForRPVMAXCGIngestion(final String cgName);

@@ -4152,7 +4152,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
 
             if (addVolumesList != null && !addVolumesList.isEmpty()) {
 
-                // Specific flow for updating RP CG with VMAX CG information
+                // Specific flow for updating RP CG with VMAX/VNX CG information
                 if (cg.checkForType(Types.RP)) {
                     Set<URI> vplexVolumes = new HashSet<URI>();
                     Set<URI> addVolumeSet = new HashSet<URI>();
@@ -4173,7 +4173,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                     List<URI> allAddTargetVolumes = new ArrayList<URI>();
                     Map<URI, List<URI>> storageSystemToVolumesMap = new HashMap<URI, List<URI>>();
                     URI sourceStorageSystemId = storageSystem.getId();
-                    boolean snapshotIngestion = false;
+                    boolean replicaIngestion = false;
                     for (URI boUri : addVolumeSet) {
                         BlockObject bo = BlockObject.fetch(_dbClient, boUri);
                         Volume vol = null;
@@ -4181,7 +4181,12 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                             BlockSnapshot snapshot = (BlockSnapshot)bo; 
                             URI parentUri = snapshot.getParent().getURI();
                             vol = _dbClient.queryObject(Volume.class, parentUri);
-                            snapshotIngestion = true;
+                            replicaIngestion = true;
+                        } else if (bo instanceof BlockMirror) {
+                            BlockMirror mirror = (BlockMirror)bo; 
+                            URI parentUri = mirror.getAssociatedSourceVolume();
+                            vol = _dbClient.queryObject(BlockMirror.class, parentUri);
+                            replicaIngestion = true;
                         } else {
                             vol = (Volume)bo;
                         }
@@ -4190,7 +4195,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                             addBackendVolumes(bo, vol, true, allAddSourceVolumes, vplexVolumes);
                             if (sourceStorageSystemId != null) {
                                 if (!sourceStorageSystemId.equals(vol.getStorageController())) {
-                                    String message = "Can't ingest sources from different VMAX arrays into the same VMAX CG."; 
+                                    String message = "Can't ingest sources from different VMAX/VNX arrays into the same VMAX/VNX CG."; 
                                     _log.error(message);
                                     throw DeviceControllerException.exceptions.failedToUpdateConsistencyGroup(message);
                                 }
@@ -4215,7 +4220,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                     waitFor = _replicaDeviceController.addStepsForAddingSessionsToCG(workflow, waitFor, consistencyGroup, allAddSourceVolumes,
                             groupName, task);
                     
-                    // Group together target volumes/replicas by storage system.  If any volume/replica doesn't belong to vmax, throw out that set of targets
+                    // Group together target volumes/replicas by storage system.  If any volume/replica doesn't belong to vmax/vnx, throw out that set of targets
                     for (URI boUri : allAddTargetVolumes) {
                         BlockObject bo = BlockObject.fetch(_dbClient, boUri);
                         if (storageSystemToVolumesMap.get(bo.getStorageController()) == null) {
@@ -4230,27 +4235,27 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                         List<URI> volumesToAdd = entry.getValue();
 
                         // Verify there are as many volumes in this target as there in the source.  This will catch issues where:
-                        // 1. There's a "straggler" volume on another VMAX than the other target volumes for that RP Copy
-                        // 2. There's more than one target RP Copy on the same VMAX
+                        // 1. There's a "straggler" volume on another VMAX/VNX than the other target volumes for that RP Copy
+                        // 2. There's more than one target RP Copy on the same VMAX/VNX
                         //
                         // We passively warn in the logs why we can't group them, but we continue to group others as possible.
-                        if (!snapshotIngestion && volumesToAdd.size() != addVolumesList.size()) {
-                            _log.error(String.format("Can't add target volumes/replicas %s to VMAX CG because we found %d volumes associated with this storage array in the RP CG versus %d RP Source volumes.",
+                        if (!replicaIngestion && volumesToAdd.size() != addVolumesList.size()) {
+                            _log.error(String.format("Can't add target volumes/replicas %s to VMAX/VNX CG because we found %d volumes associated with this storage array in the RP CG versus %d RP Source volumes.",
                                     Joiner.on(',').join(volumesToAdd), volumesToAdd.size(), addVolumesList.size()));
                             continue;                            
                         }
                         
                         StorageSystem targetStorageSystem = _dbClient.queryObject(StorageSystem.class, storageSystemId);
                         
-                        // Validation to ensure we're dealing with VMAX
-                        if (!targetStorageSystem.deviceIsType(Type.vmax)) {
-                            _log.error(String.format("Can't add target volumes/replicas %s to VMAX CG because the storage array %s is not VMAX",
+                        // Validation to ensure we're dealing with VMAX/VNX
+                        if (!targetStorageSystem.deviceIsType(Type.vmax) && !targetStorageSystem.deviceIsType(Type.vnxblock)) {
+                            _log.error(String.format("Can't add target volumes/replicas %s to VMAX/VNX CG because the storage array %s is not VMAX/VNX",
                                     Joiner.on(',').join(volumesToAdd), targetStorageSystem.forDisplay()));
                             continue;                                                        
                         }
                         
                         // Generate groupName and create step for source storage system
-                        if (snapshotIngestion) {
+                        if (replicaIngestion) {
                             // The RPTARGET suffix is already specified on the parent volume, so we don't want to add it again.
                             groupName = ControllerUtils.generateReplicationGroupName(targetStorageSystem, cg, null, _dbClient);
                         } else {

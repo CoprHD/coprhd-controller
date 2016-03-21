@@ -21,6 +21,8 @@ public class ApplicationSnapSetDataTable extends DataTable {
 		addColumn("subGroup");
         sortAll();
 	}
+	
+	@SuppressWarnings("ClassVariableVisibilityCheck ")
 	public static class ApplicationSnapSets {
 		public String snapsetGroups;
 		public long createdTime;

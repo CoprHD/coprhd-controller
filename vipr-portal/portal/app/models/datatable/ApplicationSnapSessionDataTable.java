@@ -25,6 +25,7 @@ public class ApplicationSnapSessionDataTable extends DataTable {
         sortAll();
 	}
 	
+	@SuppressWarnings("ClassVariableVisibilityCheck ")
 	public static class ApplicationSnapshotSession {
 		public URI id;
 		public String name;

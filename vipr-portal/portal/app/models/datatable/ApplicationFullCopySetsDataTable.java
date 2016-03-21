@@ -22,6 +22,7 @@ public class ApplicationFullCopySetsDataTable extends DataTable {
         sortAll();
 	}
 	
+	@SuppressWarnings("ClassVariableVisibilityCheck ")
 	public static class ApplicationFullCopySets {
 		public String cloneGroups;
 		public long createdTime;

@@ -9,7 +9,8 @@
 	#{DataTable.header titleKey:'disasterRecovery.title'/}
 #{/else}
 
-#{alerts /}
+<div class="clear"></div>
+
 #{if (isActiveSite && util.DisasterRecoveryUtils.hasPausedSite()) }
 <div class="alert alert-info">
 	<div style="display: inline-block;vertical-align: middle"><img class="glyphicon glyphicon-ok" src="/public/img/Warning.png"></div>
@@ -138,7 +139,7 @@ angular.module('tags').directive({
 				scope.isFailover = false;
              }
              
-             if (scope.row.networkStatus.toUpperCase() == "BROKEN") {
+             if (scope.row.networkHealth.toUpperCase() == "BROKEN") {
              	scope.isFailover = false;
              }
          }

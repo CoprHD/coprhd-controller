@@ -32,6 +32,7 @@ import com.emc.storageos.db.client.model.DiscoveredDataObject.DiscoveryStatus;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.RegistrationStatus;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.Type;
 import com.emc.storageos.db.client.model.FileShare;
+import com.emc.storageos.db.client.model.NASServer;
 import com.emc.storageos.db.client.model.NasCifsServer;
 import com.emc.storageos.db.client.model.PhysicalNAS;
 import com.emc.storageos.db.client.model.Snapshot;
@@ -78,7 +79,6 @@ import com.emc.storageos.volumecontroller.impl.utils.UnManagedExportVerification
 import com.google.common.base.Joiner;
 import com.google.common.collect.Sets;
 import com.iwave.ext.netapp.AggregateInfo;
-import com.iwave.ext.netapp.NameServerInfo;
 import com.iwave.ext.netapp.VFNetInfo;
 import com.iwave.ext.netapp.VFilerInfo;
 import com.iwave.ext.netapp.model.CifsAcl;
@@ -315,6 +315,9 @@ public class NetAppFileCommunicationInterface extends
         List<VirtualNAS> newvNasServers = new ArrayList<VirtualNAS>();
         List<VirtualNAS> existingvNasServers = new ArrayList<VirtualNAS>();
 
+        // Get the CIFS protocol config!!!
+        Map<String, String> cifsConfig = netAppApi.getCIFSConfig();
+
         StorageHADomain portGroup = null;
         List<VFilerInfo> vFilers = netAppApi.listVFilers(null);
         if (null == vFilers || vFilers.isEmpty()) {
@@ -357,6 +360,8 @@ public class NetAppFileCommunicationInterface extends
             PhysicalNAS existingNas = DiscoveryUtils.findPhysicalNasByNativeId(_dbClient, system, String.valueOf(DEFAULT_FILER));
             if (existingNas != null) {
                 existingNas.setProtocols(protocols);
+                // Set the CIFS map!!
+                setCifsServerMapForNASServer(cifsConfig, existingNas);
                 // existingNas.setCifsServersMap(cifsServersMap);
                 existingNasServers.add(existingNas);
 
@@ -366,7 +371,8 @@ public class NetAppFileCommunicationInterface extends
                 PhysicalNAS physicalNas = createPhysicalNas(system, defaultvFiler);
                 if (physicalNas != null) {
                     physicalNas.setProtocols(protocols);
-                    // physicalNas.setCifsServersMap(cifsServersMap);
+                    // Set the CIFS map!!
+                    setCifsServerMapForNASServer(cifsConfig, physicalNas);
                     newNasServers.add(physicalNas);
                 }
             }
@@ -415,37 +421,11 @@ public class NetAppFileCommunicationInterface extends
                     existingPortGroups.add(portGroup);
                 }
 
-                // Get the Domain!!
-                CifsServerMap cifsServersMap = new CifsServerMap();
-                for (NameServerInfo dnsServer : vf.getDnsServers()) {
-                    _logger.info("Cifs Server {} for {} ", dnsServer.getName(), vf.getName());
-                    if (dnsServer.getName() != null) {
-                        // protocols.add(StorageProtocol.File.CIFS.name());
-
-                        NasCifsServer nasCifsServer = new NasCifsServer();
-                        dnsServer.getName();
-                        dnsServer.getNameServers();
-
-                        if (dnsServer.getNameServers() != null && !dnsServer.getNameServers().isEmpty()) {
-                            List<String> serverInterfaces = new ArrayList<String>();
-                            for (VFNetInfo server : dnsServer.getNameServers()) {
-                                serverInterfaces.add(server.getIpAddress());
-                            }
-                            nasCifsServer.setInterfaces(serverInterfaces);
-                        }
-
-                        nasCifsServer.setMoverIdIsVdm(true);
-                        nasCifsServer.setName(vf.getName());
-
-                        nasCifsServer.setDomain(dnsServer.getName());
-                        cifsServersMap.put(dnsServer.getName(), nasCifsServer);
-                    }
-                }
-
                 VirtualNAS existingNas = DiscoveryUtils.findvNasByNativeId(_dbClient, system, vf.getName());
                 if (existingNas != null) {
                     existingNas.setProtocols(protocols);
-                    existingNas.setCifsServersMap(cifsServersMap);
+                    // Set the CIFS map!!
+                    setCifsServerMapForNASServer(cifsConfig, existingNas);
                     existingNas.setNasState("LOADED");
                     existingNas.setDiscoveryStatus(DiscoveryStatus.VISIBLE.name());
                     PhysicalNAS parentNas = DiscoveryUtils.findPhysicalNasByNativeId(_dbClient, system, DEFAULT_FILER);
@@ -454,11 +434,12 @@ public class NetAppFileCommunicationInterface extends
                     }
                     existingvNasServers.add(existingNas);
                 } else {
-                    VirtualNAS vNas = createVirtualNas(system, vdm);
+                    VirtualNAS vNas = createVirtualNas(system, vf);
                     if (vNas != null) {
                         vNas.setProtocols(protocols);
-                        vNas.setCifsServersMap(cifsServersMap);
-                        newNasServers.add(vNas);
+                        // Set the CIFS map!!
+                        setCifsServerMapForNASServer(cifsConfig, vNas);
+                        newvNasServers.add(vNas);
                     }
                 }
             }
@@ -2432,6 +2413,44 @@ public class NetAppFileCommunicationInterface extends
         }
 
         return vNas;
+    }
+
+    /**
+     * Set the cifs servers for NASServer
+     * 
+     * @param cifsConfig
+     *            cifs config map
+     * @param nasServer
+     *            the NAS server in which CIFS server map will be set
+     */
+    private void setCifsServerMapForNASServer(Map<String, String> cifsConfig, NASServer nasServer) {
+
+        if (nasServer == null) {
+            return;
+        }
+
+        _logger.info("Set the authentication providers for NAS: {}", nasServer.getNasName());
+        String serverName = cifsConfig.get("NetBIOS-servername");
+        String domain = cifsConfig.get("NetBIOS-domainName");
+        if (domain == null || domain.isEmpty()) {
+            domain = cifsConfig.get("DNS-domainName");
+        }
+
+        CifsServerMap cifsServersMap = nasServer.getCifsServersMap();
+        if (cifsServersMap != null) {
+            cifsServersMap.clear();
+        } else {
+            cifsServersMap = new CifsServerMap();
+        }
+        if (cifsConfig != null && !cifsConfig.isEmpty()) {
+
+            NasCifsServer nasCifsServer = new NasCifsServer();
+            nasCifsServer.setName(serverName);
+            nasCifsServer.setDomain(domain);
+            cifsServersMap.put(serverName, nasCifsServer);
+            _logger.info("Setting provider: {} and domain: {}", serverName, domain);
+        }
+        nasServer.setCifsServersMap(cifsServersMap);
     }
 
 }

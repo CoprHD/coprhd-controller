@@ -131,4 +131,7 @@ public interface NetAppExceptions {
 
     @DeclareServiceCode(ServiceCode.NETAPP_ERROR)
     public NetAppException deleteQtreeFailed(final String QtreeName, final String message);
+
+    @DeclareServiceCode(ServiceCode.NETAPP_ERROR)
+    public NetAppException listCIFSConfigFailed();
 }

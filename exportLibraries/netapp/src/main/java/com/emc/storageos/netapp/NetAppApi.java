@@ -1029,4 +1029,23 @@ public class NetAppApi {
         }
 
     }
+
+    public Map<String, String> getCIFSConfig() throws NetAppException {
+        Map<String, String> cifsConfig = null;
+        try {
+            if (netAppFacade == null) {
+                _logger.warn("Invalid Facade found {} creating now...", netAppFacade);
+                netAppFacade = new NetAppFacade(_ipAddress, _portNumber, _userName, _password, _https);
+                _logger.warn("Facade created : {} ", netAppFacade);
+            }
+
+            cifsConfig = netAppFacade.listCIFSConfig();
+        } catch (Exception e) {
+            _logger.error("Error Occured {} ", e.getMessage(), e);
+            throw NetAppException.exceptions.listCIFSConfigFailed();
+        }
+
+        return cifsConfig;
+    }
+
 }

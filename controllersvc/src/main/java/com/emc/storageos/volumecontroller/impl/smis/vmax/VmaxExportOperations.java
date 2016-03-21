@@ -60,6 +60,7 @@ import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.networkcontroller.impl.NetworkDeviceController;
 import com.emc.storageos.plugins.common.Constants;
+import com.emc.storageos.protectioncontroller.impl.recoverpoint.RPHelper;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
 import com.emc.storageos.util.ExportUtils;
 import com.emc.storageos.volumecontroller.TaskCompleter;
@@ -105,6 +106,13 @@ public class VmaxExportOperations implements ExportMaskOperations {
     private CIMObjectPathFactory _cimPath;
 
     public static final String VIPR_NO_CLUSTER_SPECIFIED_NULL_VALUE = "VIPR-NO-CLUSTER-SPECIFIED-NULL-VALUE";
+
+    // Max retries for remove RP volumes from export group
+    private static final int MAX_RP_RETRIES = 100;
+    // Wait 10 seconds before attempting another call to remove RP volumes from export group
+    private static final int RP_WAIT_FOR_RETRY = 10000;
+    // Remote copy session error message. Used for error handling/retry.
+    private static String COPY_SESSION_ERROR = "A specified device is involved in a Remote Copy session and cannot be modified";
 
     @Autowired
     private DataSourceFactory dataSourceFactory;
@@ -213,11 +221,11 @@ public class VmaxExportOperations implements ExportMaskOperations {
      * resource. A compute resource is either a host or a cluster. A host is a single
      * entity with multiple initiators. A cluster is an entity consisting of multiple
      * hosts.
-     * 
+     *
      * The idea is to maintain 1 MaskingView to 1 compute resource,
      * regardless of the number of ViPR Export*Groups* that are created. An
      * Export*Mask* will map to a MaskingView.
-     * 
+     *
      * @param storage
      * @param exportMaskURI
      * @param volumeURIHLUs
@@ -400,7 +408,7 @@ public class VmaxExportOperations implements ExportMaskOperations {
                             if (!_helper.isFastPolicy(childGroupByFastEntry.getKey().getAutoTierPolicyName())) {
                                 /**
                                  * Remove the volumes from any phantom storage group (CTRL-8217).
-                                 * 
+                                 *
                                  * Volumes part of Phantom Storage Group will be in Non-CSG Non-FAST Storage Group
                                  */
                                 if (!_helper.isCascadedSG(storage, maskingGroupPath)) {
@@ -481,7 +489,7 @@ public class VmaxExportOperations implements ExportMaskOperations {
     /**
      * This method is used for VMAX3 to add volumes to parking storage group
      * once volumes are unexported.
-     * 
+     *
      * @param storage
      * @param policyName
      * @param volumeDeviceIds
@@ -503,7 +511,7 @@ public class VmaxExportOperations implements ExportMaskOperations {
 
     /**
      * Export mask operation rollback method.
-     * 
+     *
      * @param storage storage device
      * @param taskCompleter task completer
      */
@@ -714,7 +722,7 @@ public class VmaxExportOperations implements ExportMaskOperations {
 
             /**
              * Group Volumes by Fast Policy and Host IO limit attributes
-             * 
+             *
              * policyToVolumeGroupEntry - this will essentially have multiple Groups
              * E.g Group 1--> Fast Policy (FP1)+ FEBandwidth (100)
              * Group 2--> Fast Policy (FP2)+ IOPS (100)
@@ -1005,7 +1013,7 @@ public class VmaxExportOperations implements ExportMaskOperations {
 
     /**
      * Convenience method that collects volumes from the array that match the storage group.
-     * 
+     *
      * @param volumeURIHLUs volume objects
      * @param storageGroupPolicyLimitsParam storage group attributes
      * @return thinned-out list of volume objects that correspond to the supplied policy, or null
@@ -1073,7 +1081,7 @@ public class VmaxExportOperations implements ExportMaskOperations {
 
                 /**
                  * For each child Group bucket, remove the volumes from those bucket
-                 * 
+                 *
                  */
                 for (Entry<String, List<URI>> volumeByGroupEntry : volumesByGroup.entrySet()) {
                     String childGroupName = volumeByGroupEntry.getKey();
@@ -1134,9 +1142,61 @@ public class VmaxExportOperations implements ExportMaskOperations {
                         CIMArgument[] inArgs = _helper.getRemoveVolumesFromMaskingGroupInputArguments(storage, childGroupName,
                                 volumesInSG, forceFlag);
                         CIMArgument[] outArgs = new CIMArgument[5];
-                        _helper.invokeMethodSynchronously(storage, _cimPath.getControllerConfigSvcPath(storage),
-                                "RemoveMembers", inArgs, outArgs, new SmisMaskingViewRemoveVolumeJob(null,
-                                        storage.getId(), volumePaths, parentGroupName, childGroupName, _cimPath, completer));
+
+                        // If any of the volumes being removed are tied to RecoverPoint, we need to be aware that there
+                        // might be some lag in terminating the remote copy session between VMAX and RP. So we need to
+                        // catch a specific exception in this case and wait/retry.
+
+                        boolean containsRPVolume = false;
+
+                        // Inspect each volume to see if any of them are RecoverPoint related.
+                        for (URI volumeUri : volumesInSG) {
+                            Volume volume = _dbClient.queryObject(Volume.class, volumeUri);
+                            if (volume.checkForRp() || RPHelper.isAssociatedToAnyRpVplexTypes(volume, _dbClient)) {
+                                // Determined that the volume is RP related
+                                containsRPVolume = true;
+                                break;
+                            }
+                        }
+
+                        // Initialize the retry/attempt variables
+                        int attempt = 0;
+                        int retries = 1;
+
+                        if (containsRPVolume) {
+                            // If we are dealing with an RP volume, we need to set the retry count appropriately
+                            retries = MAX_RP_RETRIES;
+                        }
+
+                        while (attempt++ <= retries) {
+                            try {
+                                _helper.invokeMethodSynchronously(storage, _cimPath.getControllerConfigSvcPath(storage),
+                                        "RemoveMembers", inArgs, outArgs, new SmisMaskingViewRemoveVolumeJob(null,
+                                                storage.getId(), volumePaths, parentGroupName, childGroupName, _cimPath, completer));
+
+                                // If the invoke succeeds without exception, break out of the retry loop.
+                                break;
+                            } catch (SmisException se) {
+                                if (attempt != retries
+                                        && containsRPVolume
+                                        && se.getMessage().contains(COPY_SESSION_ERROR)) {
+                                    // There is some delay in terminating the remote copy session between VMAX and RecoverPoint
+                                    // so we need to wait and retry.
+                                    _log.warn(String
+                                            .format("Encountered exception during attempt %s/%s to remove volumes %s from export group.  Waiting %s milliseconds before trying again.  Error: %s",
+                                                    attempt, MAX_RP_RETRIES, volumesInSG.toString(), RP_WAIT_FOR_RETRY, se.getMessage()));
+                                    try {
+                                        Thread.sleep(RP_WAIT_FOR_RETRY);
+                                    } catch (InterruptedException e1) {
+                                        Thread.currentThread().interrupt();
+                                    }
+                                } else {
+                                    // This is not RP related so just re-throw the exception instead of retrying.
+                                    throw se;
+                                }
+                            }
+                        }
+
                         if (isVmax3) {
                             // we need to add volumes to parking storage group
                             URI blockObjectURI = volumeURIList.get(0);
@@ -1165,7 +1225,7 @@ public class VmaxExportOperations implements ExportMaskOperations {
 
     /**
      * Removes the volumes from any phantom storage group.
-     * 
+     *
      * Determine if the volumes are associated with any phantom storage groups.
      * If so, we need to remove volumes from those storage groups and potentially remove them.
      */
@@ -1530,8 +1590,8 @@ public class VmaxExportOperations implements ExportMaskOperations {
     /**
      * This call can be used to look up the passed in initiator/port names and find (if
      * any) to which export masks they belong on the 'storage' array.
-     * 
-     * 
+     *
+     *
      * @param storage [in] - StorageSystem object representing the array
      * @param initiatorNames [in] - Port identifiers (WWPN or iSCSI name)
      * @param mustHaveAllInitiators [in] - Indicates if true, *all* the passed in initiators
@@ -2332,7 +2392,7 @@ public class VmaxExportOperations implements ExportMaskOperations {
      * Find a cascading initiator group that contains a subset of the child initiator groups sent in.
      * To match the orchestrator functionality, you should find more than one child initiator group
      * in the cascading group in order to qualify it.
-     * 
+     *
      * @param storage storage system
      * @param mask the mask
      * @param cigPath cascaded initiator group path desired
@@ -2618,7 +2678,7 @@ public class VmaxExportOperations implements ExportMaskOperations {
      * InitiatorGroup. The routine tries to collect all of the IGs using cimObjectPath
      * as the root, so this allows you get a listing of all SGs for a Storage Group
      * in case it has a cascaded-SG.
-     * 
+     *
      * @param storage [in] - StorageSystem object
      * @param cimObjectPath [in] - Object to start the search from
      * @param collectedPaths [in/out] - List of CIMObjectPath objects used for keeping
@@ -2655,8 +2715,7 @@ public class VmaxExportOperations implements ExportMaskOperations {
     private List<CIMObjectPath> getMembersFromArguments(CIMArgument[] args) {
         CIMObjectPath[] members = null;
         List<CIMObjectPath> memberList = new ArrayList<CIMObjectPath>();
-        for (int i = 0; i < args.length; i++) {
-            CIMArgument inArg = args[i];
+        for (CIMArgument inArg : args) {
             if (inArg != null) {
                 if (inArg.getName().equals("Members")) {
                     members = (CIMObjectPath[]) inArg.getValue();
@@ -2779,7 +2838,7 @@ public class VmaxExportOperations implements ExportMaskOperations {
      * InitiatorGroup. The routine tries to collect all of the IGs using cimObjectPath
      * as the root, so this allows you get a listing of all IGs for a MaskingView
      * in case it has a cascaded-IG.
-     * 
+     *
      * @param storage [in] - StorageSystem object
      * @param cimObjectPath [in] - Object to start the search from (can be MaskingView
      *            or InitiatorGroup)
@@ -2819,7 +2878,7 @@ public class VmaxExportOperations implements ExportMaskOperations {
      * determining if any can be deleted. The IG will be delete if it no longer belongs
      * to any MaskingView. Any child IGs of the specified IGs will also be deleted,
      * if they are no longer part of any MaskingView.
-     * 
+     *
      * @param storage [in] - StorageSystem object
      * @param igList [in] - List of CIMObjectPath objects to be checked
      * @throws Exception
@@ -2886,7 +2945,7 @@ public class VmaxExportOperations implements ExportMaskOperations {
     /**
      * Returns a List of CIMObjectObject of Symm_LunMaskingView objects for a given IG
      * CIMObjectPath.
-     * 
+     *
      * @param storage [in] - StorageSystem object
      * @param igPath [in] - CIMObjectPath object to be query
      * @return List of CIMObjectPath
@@ -2912,7 +2971,7 @@ public class VmaxExportOperations implements ExportMaskOperations {
 
     /**
      * Returns a List of CIMObjectObject of SE_InitiatorMaskingGroup objects for a given IG CIMObjectPath.
-     * 
+     *
      * @param storage [in] - StorageSystem object
      * @param igPath [in] - CIMObjectPath object to be query
      * @return List of CIMObjectPath
@@ -2937,7 +2996,7 @@ public class VmaxExportOperations implements ExportMaskOperations {
 
     /**
      * Function will delete the IG specified by the CIMObjectPath from the array.
-     * 
+     *
      * @param storage [in] - StorageSystem object
      * @param igPath [in] - CIMObjectPath object to be query
      * @throws WBEMException
@@ -2959,7 +3018,7 @@ public class VmaxExportOperations implements ExportMaskOperations {
     /**
      * A functor used in Collection2.transform for the purpose of generating a list of
      * InstanceIDs from a list of CIMObjectPath objects.
-     * 
+     *
      * @return Function that can be used by the transform operations
      */
     private Function<CIMObjectPath, String> cimObjectPathInstanceId() {
@@ -3017,16 +3076,16 @@ public class VmaxExportOperations implements ExportMaskOperations {
 
         /**
          * Group Volumes by Fast Policy and Host IO limit attributes
-         * 
+         *
          * policyToVolumeGroupEntry - this will essentially have multiple Groups
          * E.g Group 1--> Fast Policy (FP1)+ FEBandwidth (100)
          * Group 2--> Fast Policy (FP2)+ IOPS (100)
          * Group 3--> FEBandwidth (100) + IOPS (100) ..
-         * 
+         *
          * For each Group {
          * 1. Create a Storage Group.
          * 2. Associate Fast Policy, bandwidth and IOPs ,based on the Group key.
-         * 
+         *
          * On failure ,remove the storage group, disassociate the added properties.
          * }
          */
@@ -3506,7 +3565,7 @@ public class VmaxExportOperations implements ExportMaskOperations {
     /**
      * Given a masking view and a host, find a standalone or child IG that has a subset of
      * initiators and return that ig name.
-     * 
+     *
      * @param storage storage
      * @param mask export mask
      * @param host host uri
@@ -3581,7 +3640,7 @@ public class VmaxExportOperations implements ExportMaskOperations {
 
     /**
      * Compare initiators sent in with initiators in an initiator group. Any subset (intersection) returns true.
-     * 
+     *
      * @param storage storage
      * @param igInstance initiator group
      * @param initiatorsInDb initiators to compare against
@@ -3623,8 +3682,8 @@ public class VmaxExportOperations implements ExportMaskOperations {
      * SE_InitiatorMaskingGroup CIMObject that the Initiator.port is in. It also
      * returns a list of SE_InitiatorMaskingGroup CIMObjects to as list of Initiator
      * .port Strings.
-     * 
-     * 
+     *
+     *
      * @param igToInitiators - For the list of Initiators passed in,
      *            a MultiSet of initiator groups to the list of initiators
      *            will be returned. Essentially, given a set of initiators,
@@ -3766,7 +3825,7 @@ public class VmaxExportOperations implements ExportMaskOperations {
      * mustHaveAllPorts=false, then we return true. If mustHaveAllPorts=true,
      * then we will attempt find out if all the initiators are in the exportMask and
      * only return true if so.
-     * 
+     *
      * @param exportMask [in] - ExportMask object.
      * @param initiatorNames [in] - Initiator name list (WWN/iSCSI name)
      * @param mustHaveAllPorts [in] - All 'initiatorNames' should be in exportMask or not
@@ -3797,7 +3856,7 @@ public class VmaxExportOperations implements ExportMaskOperations {
 
     /**
      * This function is to retrieve the initiators of the given host id (uri)
-     * 
+     *
      * @param hostId - host uri
      * @return a list of initiator port transform name
      */
@@ -3818,7 +3877,7 @@ public class VmaxExportOperations implements ExportMaskOperations {
 
     /**
      * This function is to retrieve the initiators of the given host id (uri)
-     * 
+     *
      * @param hostId - host uri
      * @return a list of initiator port transform name
      */
@@ -3843,7 +3902,7 @@ public class VmaxExportOperations implements ExportMaskOperations {
 
     /**
      * Updates fast policy and host io limits for the SGs in the given Export Mask.
-     * 
+     *
      * @param storage the storage
      * @param exportMask the export mask
      * @param volumeURIs the volume uris
@@ -3892,7 +3951,7 @@ public class VmaxExportOperations implements ExportMaskOperations {
                  * and associate the new policy if provided.
                  * (no) throw error to error that FAST policy change cannot
                  * be done for this case (partial list)
-                 * 
+                 *
                  * Note : Do not move volumes from one SG to another as
                  * it is a disruptive process (host cannot access it)
                  * (Exception: phantom SG case, and VMAX3 where array & provider (8.0.3) supports it)
@@ -4014,7 +4073,7 @@ public class VmaxExportOperations implements ExportMaskOperations {
 
     /**
      * Validates and updates fast policy in storage group.
-     * 
+     *
      * @param storage the storage system
      * @param exportMask exportMask
      * @param childGroupName the child group name
@@ -4056,12 +4115,12 @@ public class VmaxExportOperations implements ExportMaskOperations {
             _log.info("**** Phantom Storage Group ****");
             /**
              * For Volumes in Phantom SG - Volumes part of Phantom SG will be in Non-cascaded Non-FAST Storage Group (CTRL-9064)
-             * 
+             *
              * We have the phantom SGs having volumes which are part of this Masking view
              * Group requested volumes by SG
              * volumes in each Phantom SG
              * also add an entry with volumes to Non-FAST SG (volumes requested minus volumes already in phantom SG)
-             * 
+             *
              * For each SG,
              * If Phantom SG:
              * If it is requested for all volumes
@@ -4177,7 +4236,7 @@ public class VmaxExportOperations implements ExportMaskOperations {
         } else {
             /**
              * Usual flow for regular SGs
-             * 
+             *
              * check if SG has the same set of volumes as the volume list provided.
              */
             if (isGivenVolumeListSameAsInStorageGroup(storage, childGroupPath, volumeURIs)) {
@@ -4243,10 +4302,10 @@ public class VmaxExportOperations implements ExportMaskOperations {
             } else if (isVmax3) {
                 /**
                  * Requested for fewer members in a SG
-                 * 
+                 *
                  * V3 supports moveMembers from one SG to another, provided some conditions met.
                  * see #helper.moveVolumesFromOneStorageGroupToAnother() for criteria.
-                 * 
+                 *
                  * validate that current SG is not a parent SG and it is not associated with MV
                  * check if there is another SG under CSG with new fastSetting & limits
                  * else create new SG (with new fastSetting, IO limits) and associate it with CSG
@@ -4473,7 +4532,7 @@ public class VmaxExportOperations implements ExportMaskOperations {
      * Leverage custom name generator module, this method generates storage group name via the following configuration
      * {host_name.FIRST(20)}_{array_serial_number.LAST(3)}_SG_{auto_tiering_policy_name.FIRST(32)} + {_count(3)}
      * NOTE: the generated name should be no more than 64 characters
-     * 
+     *
      * @param storage
      * @param mask
      * @param initiators
@@ -4525,7 +4584,7 @@ public class VmaxExportOperations implements ExportMaskOperations {
 
     /**
      * Determines whether or not the BO passed in is a RP Journal Volume.
-     * 
+     *
      * @param bo The BO to check
      * @return True if it's an RP Journal, false otherwise.
      */

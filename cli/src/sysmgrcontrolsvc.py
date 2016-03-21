@@ -550,7 +550,7 @@ def create_backup_parser(subcommand_parsers, common_parser):
         description='ViPR create backup CLI usage',
         parents=[common_parser],
         conflict_handler='resolve',
-        help="Creates a ViPR backup set.")
+        help="Creates a ViPR backup set")
     mandatory_args = create_backup_parser.add_argument_group(
         'mandatory arguments')
     mandatory_args.add_argument('-name', '-n',

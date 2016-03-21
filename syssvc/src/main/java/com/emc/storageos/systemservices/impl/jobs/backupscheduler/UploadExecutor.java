@@ -4,6 +4,7 @@
  */
 package com.emc.storageos.systemservices.impl.jobs.backupscheduler;
 
+import com.emc.storageos.management.backup.BackupConstants;
 import com.emc.storageos.management.backup.BackupFileSet;
 import com.emc.storageos.security.audit.AuditLogManager;
 import com.emc.storageos.services.OperationTypeEnum;
@@ -47,10 +48,10 @@ public class UploadExecutor {
     }
 
     public void upload() throws Exception {
-        upload(null);
+        upload(null, false);
     }
 
-    public void upload(String backupTag) throws Exception {
+    public void upload(String backupTag, boolean force) throws Exception {
         setUploader(Uploader.create(cfg, cli));
         if (this.uploader == null) {
             log.info("Upload URL is empty, upload disabled");
@@ -60,7 +61,7 @@ public class UploadExecutor {
         try (AutoCloseable lock = this.cfg.lock()) {
             this.cfg.reload();
             cleanupCompletedTags();
-            doUpload(backupTag);
+            doUpload(backupTag, force);
         } catch (Exception e) {
             log.error("Fail to run upload backup", e);
         }
@@ -70,10 +71,11 @@ public class UploadExecutor {
      * Try several times to upload a backup.
      * 
      * @param tag
+     * @param force
      * @return null if succeeded, or error message from last retry if failed.
      * @throws InterruptedException
      */
-    private String tryUpload(String tag) throws InterruptedException {
+    private String tryUpload(String tag, boolean force) throws InterruptedException {
         String lastErrorMessage = null;
 
         setUploadStatus(tag, Status.PENDING, null, null);
@@ -95,8 +97,14 @@ public class UploadExecutor {
                 }
 
                 String zipName = this.cli.generateZipFileName(tag, files);
-
-                markStaleIncompletedZipFile(zipName);
+                if (hasCompleteBackupFileOnServer(tag, zipName)) {
+                    if (force) {
+                        zipName = renameToSolveDuplication(zipName);
+                    } else {
+                        setUploadStatus(null, Status.FAILED, null, ErrorCode.REMOTE_ALREADY_EXIST);
+                        return String.format("Backup(%s) already exist on external server", tag);
+                    }
+                }
 
                 Long existingLen = uploader.getFileSize(zipName);
                 long len = existingLen == null ? 0 : existingLen;
@@ -105,6 +113,7 @@ public class UploadExecutor {
                     this.cli.uploadTo(files, len, uploadStream);
                 }
 
+                markIncompleteZipFileFinished(zipName, true);
                 setUploadStatus(null, Status.DONE, 100, null);
                 return null;
             } catch (Exception e) {
@@ -123,7 +132,7 @@ public class UploadExecutor {
         return lastErrorMessage;
     }
 
-    private void doUpload(String backupTag) throws Exception {
+    private void doUpload(String backupTag, boolean force) throws Exception {
         log.info("Begin upload");
 
         List<String> toUpload = getWaitingUploads(backupTag);
@@ -137,7 +146,7 @@ public class UploadExecutor {
         List<String> errMsgs = new ArrayList<>();
 
         for (String tag : toUpload) {
-            String errMsg = tryUpload(tag);
+            String errMsg = tryUpload(tag, force);
             if (errMsg == null) {
                 log.info("Upload backup {} to {} successfully", tag, uploader.cfg.uploadUrl);
                 this.cfg.uploadedBackups.add(tag);
@@ -278,39 +287,57 @@ public class UploadExecutor {
         }
     }
 
-    /**
-     * Mark invalid for stale incomplete backup file on server based on the input filename.
-     *
-     * @param toUploadedFileName the filename about to upload,
-     */
-    private void markStaleIncompletedZipFile(String toUploadedFileName) {
-        String noExtendFileName = toUploadedFileName.split(ScheduledBackupTag.ZIP_FILE_SURFIX)[0];
-        String toUploadFilePrefix = noExtendFileName.substring(0, noExtendFileName.length() - 2);
-        log.info("Check with prefix  {}", toUploadFilePrefix);
-        try {
-            List<String> ftpFiles = uploader.listFiles(toUploadFilePrefix);
-            for (String file : ftpFiles) {
-                if (isIncompletedFile(file, toUploadFilePrefix)) {
-                    if (isFullNodeFileName(noExtendFileName) && file.equals(toUploadedFileName)) {
-                        continue;
-                    }
-                    uploader.rename(file, ScheduledBackupTag.toInvalidFileName(file));
-                }
+    private boolean hasCompleteBackupFileOnServer(String backupTag, String toUploadedFileName) throws Exception {
+        String prefix = backupTag + BackupConstants.UPLOAD_ZIP_FILE_NAME_DELIMITER;
+        log.info("Check with prefix  {}", prefix);
+
+        List<String> ftpFiles = uploader.listFiles(prefix);
+        for (String file : ftpFiles) {
+            if (isCompletedFile(file)) {
+                log.warn("There is complete uploaded backup zip file on server already");
+                return true;
             }
-        } catch (Exception e) {
-            log.warn("Failed to mark the previous uploaded backup zip file of ({}) as invalid", toUploadedFileName, e);
+            // Mark invalid for stale incomplete backup file on server based on the input filename
+            if (!isFullNodeFileName(toUploadedFileName) || !isFullNodeFileName(file)) {
+                markIncompleteZipFileFinished(file, false);
+                continue;
+            }
+            log.info("Found incomplete uploaded file:{}, will continue from the break point", file);
         }
+        return false;
     }
 
-    private boolean isFullNodeFileName(String noExtendFileName) {
-        String[] filenames = noExtendFileName.split(ScheduledBackupTag.BACKUP_TAG_SEPERATOR);
-        String availableNodes = filenames[filenames.length - 1];
-        String allNodes = filenames[filenames.length - 2];
+    private boolean isFullNodeFileName(String fileName) {
+        String[] nameSegs = fileName.split(BackupConstants.UPLOAD_ZIP_FILE_NAME_DELIMITER);
+        String availableNodes = nameSegs[2];
+        String allNodes = nameSegs[1];
         return allNodes.equals(availableNodes);
     }
 
-    private boolean isIncompletedFile(String filename, String prefix) {
-        Pattern pattern = Pattern.compile("^" + prefix + "-\\d" + ScheduledBackupTag.ZIP_FILE_SURFIX + "$");
-        return pattern.matcher(filename).matches();
+    private boolean isCompletedFile(String fileName) {
+        return fileName.endsWith(BackupConstants.COMPRESS_SUFFIX);
+    }
+
+    private void markIncompleteZipFileFinished(String fileName, boolean success) throws Exception {
+        try {
+            String suffix = success ? BackupConstants.COMPRESS_SUFFIX : BackupConstants.INVALID_COMPRESS_SUFFIX;
+            String finishedName = fileName.replaceFirst(BackupConstants.INCOMPLETE_COMPRESS_SUFFIX + "$", suffix);
+            uploader.rename(fileName, finishedName);
+            log.warn("Marked the uploading backup zip file({}) as {}", fileName, (success ? "completed" : "invalid"));
+        } catch (Exception e) {
+            log.error("Failed to rename the uploading backup zip file({})", fileName, e);
+            throw e;
+        }
+    }
+
+    public static String toZipFileName(String tag, int totalNodes, int backupNodes, String siteName) {
+        return String.format(BackupConstants.UPLOAD_ZIP_FILENAME_FORMAT,
+                tag, totalNodes, backupNodes, siteName, BackupConstants.INCOMPLETE_COMPRESS_SUFFIX);
+    }
+
+    private String renameToSolveDuplication(String zipFileName) {
+        return zipFileName.split(BackupConstants.INCOMPLETE_COMPRESS_SUFFIX)[0]
+                + "(" + System.currentTimeMillis() + ")"
+                + BackupConstants.INCOMPLETE_COMPRESS_SUFFIX + "$";
     }
 }

@@ -2724,12 +2724,14 @@ public class SmisCommandHelper implements SmisConstants {
 
     }
 
-    public CIMArgument[] getRestoreFromSettingsStateInputArguments(CIMObjectPath settingsStatePath) {
-        return new CIMArgument[] {
-                _cimArgument.uint16(CP_OPERATION, RESTORE_FROM_SYNC_SETTINGS),
-                _cimArgument.reference(CP_SETTINGS_STATE, settingsStatePath),
-                _cimArgument.uint16(CP_WAIT_FOR_COPY_STATE, RESTORED_COPY_STATE)
-        };
+    public CIMArgument[] getRestoreFromSettingsStateInputArguments(CIMObjectPath settingsStatePath, boolean waitForCopyState) {
+        List<CIMArgument> args = new ArrayList<CIMArgument>();
+        args.add(_cimArgument.uint16(CP_OPERATION, RESTORE_FROM_SYNC_SETTINGS));
+        args.add(_cimArgument.reference(CP_SETTINGS_STATE, settingsStatePath));
+        if (waitForCopyState) {
+            args.add(_cimArgument.uint16(CP_WAIT_FOR_COPY_STATE, RESTORED_COPY_STATE));
+        }
+        return args.toArray(new CIMArgument[args.size()]);
     }
 
     public CIMArgument[] getDeleteReplicationGroupInputArguments(StorageSystem storage, String groupName) {
@@ -2799,6 +2801,7 @@ public class SmisCommandHelper implements SmisConstants {
     public CIMArgument[] getCreateGroupReplicaInputArgumentsForVMAX(
             StorageSystem storage, CIMObjectPath cgPath,
             boolean createInactive, String label, CIMObjectPath targetGroupPath,
+            CIMObjectPath targetVPSnapPoolPath,
             CIMInstance replicaSettingConsistentPointInTime,
             SYNC_TYPE syncType) {
         final CIMArgument[] basicArgs = new CIMArgument[] {
@@ -2807,6 +2810,9 @@ public class SmisCommandHelper implements SmisConstants {
         final List<CIMArgument> args = new ArrayList<CIMArgument>(asList(basicArgs));
         if (null != targetGroupPath) {
             args.add(_cimArgument.reference(CP_TARGET_GROUP, targetGroupPath));
+        }
+        if (null != targetVPSnapPoolPath) {
+            args.add(_cimArgument.reference(CP_TARGET_POOL, targetVPSnapPoolPath));
         }
         // If active, add the RelationshipName
         if (!createInactive) {
@@ -6529,7 +6535,7 @@ public class SmisCommandHelper implements SmisConstants {
      */
     public CIMArgument[] getCreateListReplicaInputArguments(StorageSystem storageDevice, CIMObjectPath[] sourceVolumePath,
             CIMObjectPath[] targetVolumePath, List<String> labels, int syncType, String replicaName, String sessionName,
-            boolean createInactive) {
+            boolean createInactive, CIMObjectPath targetVPSnapPoolPath) {
         List<CIMArgument> args = new ArrayList<CIMArgument>();
         int inactiveValue = (syncType == SmisConstants.CLONE_VALUE) ? PREPARED_VALUE : INACTIVE_VALUE;
         int waitForCopyState = (createInactive) ? inactiveValue : ACTIVATE_VALUE;
@@ -6564,6 +6570,10 @@ public class SmisCommandHelper implements SmisConstants {
                 // For VMAX2 arrays use the VPSNAPS during createListReplica.
                 if (!storageDevice.checkIfVmax3()) {
                     repSettingData = getReplicationSettingDataInstanceForDesiredCopyMethod(storageDevice, replicaName, VP_SNAP_VALUE, true);
+                    if (targetVPSnapPoolPath != null) {
+                        // set the target pool path
+                        args.add(_cimArgument.reference(CP_TARGET_POOL, targetVPSnapPoolPath));
+                    }
                 } else {
                     // For VMAX3, we always create snapvx snapshots
                     repSettingData = getReplicationSettingDataInstanceForDesiredCopyMethod(storageDevice, sessionName,

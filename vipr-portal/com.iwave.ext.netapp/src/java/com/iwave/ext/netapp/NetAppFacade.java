@@ -1769,6 +1769,7 @@ public class NetAppFacade {
 
     public static void main(String[] args) {
         NetAppFacade facade = new NetAppFacade("10.247.96.204", 80, "root", "dangerous1", false);
-        System.out.println(facade.checkSnapMirrorLicense());
+        System.out.println(facade.setSnapMirrorSchedule("hours", "1", "700001401776:netappFS3Mar21",
+                "vfiler0:netappFS3Mar21targetTEST_VARRAY"));
     }
 }

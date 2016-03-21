@@ -83,25 +83,25 @@ public class SnapMirror {
         }
 
         if ("days-of-month".equals(type)) {
-            elem.addNewChild("days-of-month", "1-30/" + scheduleTime);
+            elem.addNewChild("days-of-month", "1-31/" + scheduleTime);
         } else {
             elem.addNewChild("days-of-month", "*");
         }
 
         if ("days-of-week".equals(type)) {
-            elem.addNewChild("days-of-week", scheduleTime);
+            elem.addNewChild("days-of-week", "0-6/" + scheduleTime);
         } else {
             elem.addNewChild("days-of-week", "*");
         }
 
         if ("hours".equals(type)) {
-            elem.addNewChild("hours", "1-24/" + scheduleTime);
+            elem.addNewChild("hours", "0-23/" + scheduleTime);
         } else {
             elem.addNewChild("hours", "*");
         }
 
         if ("minutes".equals(type)) {
-            elem.addNewChild("minutes", "0-55/" + scheduleTime);
+            elem.addNewChild("minutes", "0-59/" + scheduleTime);
         } else {
             elem.addNewChild("minutes", "*");
         }

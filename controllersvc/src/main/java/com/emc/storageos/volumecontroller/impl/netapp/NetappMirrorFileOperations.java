@@ -380,16 +380,20 @@ public class NetappMirrorFileOperations implements FileMirrorOperations {
                 break;
         }
 
-        String destLocation = getLocation(targetStorage, targetFs);
-
         // make api call on source to set schedule
         String portGroupSource = findVfilerName(sourceFs);
+        StringBuilder builderLocSource = new StringBuilder(portGroupSource);
+        builderLocSource.append(":").append(sourceFs.getName());
+
+        String portGroupTarget = findVfilerName(targetFs);
+        StringBuilder builderLocTarget = new StringBuilder(portGroupTarget);
+        builderLocTarget.append(":").append(targetFs.getName());
+
         NetAppApi nApiSource = new NetAppApi.Builder(sourceStorage.getIpAddress(),
                 sourceStorage.getPortNumber(), sourceStorage.getUsername(),
                 sourceStorage.getPassword()).https(true).vFiler(portGroupSource).build();
-        String sourceLocation = getLocation(nApiSource, sourceFs);
 
-        nApiSource.setScheduleSnapMirror(rpoType, rpoValue, sourceLocation, destLocation, portGroupSource);
+        nApiSource.setScheduleSnapMirror(rpoType, rpoValue, builderLocSource.toString(), builderLocTarget.toString(), portGroupSource);
         return BiosCommandResult.createSuccessfulResult();
     }
 

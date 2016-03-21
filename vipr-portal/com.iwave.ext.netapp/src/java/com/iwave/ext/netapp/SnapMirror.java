@@ -72,10 +72,7 @@ public class SnapMirror {
     // snapmirror-set-schedule
     public boolean setSnapMirrorSchedule(String type, String scheduleTime, String sourceLocation, String destLocation) {
         NaElement elem = new NaElement("snapmirror-set-schedule");
-        // Remaining params are optional
-        if (type != null && !type.isEmpty()) {
-            elem.addNewChild(type, scheduleTime);
-        }
+
         // Remaining params are optional
         if (sourceLocation != null && !sourceLocation.isEmpty()) {
 
@@ -83,6 +80,30 @@ public class SnapMirror {
         }
         if (destLocation != null && !destLocation.isEmpty()) {
             elem.addNewChild("destination-location", destLocation);
+        }
+
+        if (type.equals("days-of-month")) {
+            elem.addNewChild("days-of-month", scheduleTime);
+        } else {
+            elem.addNewChild("days-of-month", "-");
+        }
+
+        if (type.equals("days-of-week")) {
+            elem.addNewChild("days-of-week", scheduleTime);
+        } else {
+            elem.addNewChild("days-of-week", "-");
+        }
+
+        if (type.equals("hours")) {
+            elem.addNewChild("hours", scheduleTime);
+        } else {
+            elem.addNewChild("hours", "-");
+        }
+
+        if (type.equals("minutes")) {
+            elem.addNewChild("minutes", scheduleTime);
+        } else {
+            elem.addNewChild("minutes", "-");
         }
 
         try {

@@ -35,6 +35,7 @@ public class NetappMirrorFileOperations implements FileMirrorOperations {
     @Override
     public void createMirrorFileShareLink(StorageSystem system, URI source, URI target, TaskCompleter completer)
             throws DeviceControllerException {
+        _log.info("NetappMirrorFileOperations -  createMirrorFileShareLink started ");
         // TODO Auto-generated method stub
         FileShare sourceFileShare = _dbClient.queryObject(FileShare.class, source);
         FileShare targetFileShare = _dbClient.queryObject(FileShare.class, target);
@@ -46,6 +47,10 @@ public class NetappMirrorFileOperations implements FileMirrorOperations {
         // send netapp api call
         String portGroup = findVfilerName(sourceFileShare);
         VirtualPool virtualPool = _dbClient.queryObject(VirtualPool.class, sourceFileShare.getVirtualPool());
+
+        _log.info("NetappMirrorFileOperations -  createMirrorFileShareLink source file {} and dest file {} - complete ",
+                sourceFileShare.getName(), targetFileShare.getName());
+        completer.ready(_dbClient);
 
     }
 
@@ -71,7 +76,7 @@ public class NetappMirrorFileOperations implements FileMirrorOperations {
     public void
             startMirrorFileShareLink(StorageSystem sourceStorage, FileShare targetFileShare, TaskCompleter completer, String policyName)
                     throws DeviceControllerException {
-
+        _log.info("NetappMirrorFileOperations -  startMirrorFileShareLink started ");
         FileShare sourceFileShare = _dbClient.queryObject(FileShare.class, targetFileShare.getParentFileShare().getURI());
         StorageSystem targetStorageSystem = _dbClient.queryObject(StorageSystem.class, targetFileShare.getStorageDevice());
         VirtualPool vPool = _dbClient.queryObject(VirtualPool.class, sourceFileShare.getVirtualPool());
@@ -92,6 +97,9 @@ public class NetappMirrorFileOperations implements FileMirrorOperations {
         } else {
             completer.error(_dbClient, cmdResult.getServiceCoded());
         }
+
+        _log.info("NetappMirrorFileOperations -  startMirrorFileShareLink source file {} and dest file {} - complete ",
+                sourceFileShare.getName(), targetFileShare.getName());
     }
 
     @Override
@@ -199,14 +207,8 @@ public class NetappMirrorFileOperations implements FileMirrorOperations {
      */
     public BiosCommandResult doInitializeSnapMirror(StorageSystem sourceStorage, StorageSystem targetStorage, FileShare sourceFs,
             FileShare targetFs, TaskCompleter taskCompleter) {
-        // netapp source client
-        String portGroupSource = findVfilerName(sourceFs);
-        NetAppApi nApiSource = new NetAppApi.Builder(sourceStorage.getIpAddress(),
-                sourceStorage.getPortNumber(), sourceStorage.getUsername(),
-                sourceStorage.getPassword()).https(true).vFiler(portGroupSource).build();
-
         // get source system name
-        String sourceLocation = getLocation(nApiSource, sourceFs);
+        String sourceLocation = getLocation(sourceStorage, sourceFs);
 
         // target netapp
         String portGroupTarget = findVfilerName(targetFs);

@@ -218,7 +218,7 @@ abstract public class AbstractBasicMaskingOrchestrator extends AbstractDefaultMa
         boolean anyOperationsToDo = false;
         Map<String, Set<URI>> matchingExportMaskURIs =
                 device.findExportMasks(storage, portNames, false);
-        if (!matchingExportMaskURIs.isEmpty()) {
+        if (matchingExportMaskURIs != null && !matchingExportMaskURIs.isEmpty()) {
             // There were some exports out there that already have some or all of the
             // initiators that we are attempting to add. We need to only add
             // volumes to those existing exports.

@@ -17,6 +17,7 @@ import java.net.InetAddress;
 import java.net.URISyntaxException;
 import java.net.UnknownHostException;
 import java.util.*;
+import java.util.zip.Deflater;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 import java.net.URI;
@@ -813,13 +814,11 @@ public class BackupService {
 
     public void collectData(BackupFileSet files, OutputStream outStream) throws IOException {
         ZipOutputStream zos = new ZipOutputStream(outStream);
-        String backupTag = files.first().tag;
+        zos.setLevel(Deflater.BEST_SPEED);
 
-        Set<String> uniqueNodes = files.uniqueNodes();
-
-        List<NodeInfo> nodes = ClusterNodesUtil.getClusterNodeInfo(new ArrayList<>(Arrays.asList(uniqueNodes.toArray(new String[uniqueNodes
-                .size()]))));
-
+        List<String> uniqueNodes = new ArrayList<String>();
+        uniqueNodes.addAll(files.uniqueNodes());
+        List<NodeInfo> nodes = ClusterNodesUtil.getClusterNodeInfo(uniqueNodes);
         if (nodes.size() < uniqueNodes.size()) {
             log.info("Only {}/{} nodes available for the backup, cannot download.", uniqueNodes.size(), nodes.size());
             return;
@@ -836,6 +835,7 @@ public class BackupService {
         boolean propertiesFileFound = false;
         int collectFileCount = 0;
         int totalFileCount = files.size() * 2;
+        String backupTag = files.first().tag;
 
         //upload *_info.properties file first
         for (final NodeInfo node : nodes) {
@@ -856,7 +856,8 @@ public class BackupService {
         }
 
         if (!propertiesFileFound) {
-            throw new FileNotFoundException(String.format("No live node contains %s%s", backupTag, BackupConstants.BACKUP_INFO_SUFFIX));
+            throw new FileNotFoundException(String.format("No live node contains %s%s",
+                    backupTag, BackupConstants.BACKUP_INFO_SUFFIX));
         }
 
         for (final NodeInfo node : nodes) {

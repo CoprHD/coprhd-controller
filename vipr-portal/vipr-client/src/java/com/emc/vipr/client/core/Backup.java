@@ -46,9 +46,12 @@ public class Backup {
         return client.get(ExternalBackups.class, BACKUP_EXTERNAL_URL);
     }
 
-    public BackupInfo getExternalBackup(String name) {
+    public BackupInfo getBackupInfo(String name, boolean isLocal) {
         UriBuilder builder = client.uriBuilder(BACKUP_INFO_URL);
         addQueryParam(builder, "name", name);
+        if (isLocal) {
+            addQueryParam(builder, "local", isLocal);
+        }
         return client.getURI(BackupInfo.class, builder.build());
     }
 
@@ -111,7 +114,7 @@ public class Backup {
         client.postURI(String.class, builder.build());
     }
 
-    public BackupRestoreStatus restoreStatus(String name, boolean isLocal) {
+    public BackupRestoreStatus getRestoreStatus(String name, boolean isLocal) {
         BackupRestoreStatus status = null;
         UriBuilder builder = client.uriBuilder(RESTORE_STATUS_URL);
         addQueryParam(builder, "backupname", name);

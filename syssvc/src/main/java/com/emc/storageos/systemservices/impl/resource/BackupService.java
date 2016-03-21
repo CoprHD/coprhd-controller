@@ -230,13 +230,13 @@ public class BackupService {
     }
 
     /**
-     * Get info for a specific backup file on external server
-     *
-     * @brief Get a specific backup file info
-     * @param backupFileName The name of backup file
+     * Get info for a specific backup
+     * 
+     * @brief Get a specific backup info
+     * @param backupName The name of backup
      * @param isLocal The backup is local or not, false by default
      * @prereq none
-     * @return Info of a specific backup file
+     * @return Info of a specific backup
      */
     @GET
     @Path("backup/info/")

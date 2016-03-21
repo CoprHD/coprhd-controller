@@ -4,28 +4,32 @@
  */
 package com.emc.sa.asset.providers;
 
+import java.io.IOException;
+import java.net.URI;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import com.emc.sa.asset.AssetOptionsContext;
-import com.emc.sa.asset.BaseAssetOptionsProvider;
-
 import org.apache.commons.io.IOUtils;
 import org.springframework.stereotype.Component;
 
+import com.emc.sa.asset.AssetOptionsContext;
+import com.emc.sa.asset.BaseAssetOptionsProvider;
 import com.emc.sa.asset.annotation.Asset;
 import com.emc.sa.asset.annotation.AssetNamespace;
-import com.emc.vipr.model.catalog.AssetOption;
-import com.google.gson.Gson;
-import com.sun.jersey.api.client.ClientResponse;
+import com.emc.sa.service.vipr.rackhd.gson.AssetOptionPair;
+import com.emc.sa.service.vipr.rackhd.gson.FinishedTask;
+import com.emc.sa.service.vipr.rackhd.gson.Node;
+import com.emc.sa.service.vipr.rackhd.gson.Workflow;
+import com.emc.sa.service.vipr.rackhd.gson.WorkflowDefinition;
 import com.emc.storageos.rackhd.api.restapi.RackHdRestClient;
 import com.emc.storageos.rackhd.api.restapi.RackHdRestClientFactory;
-
-import java.io.IOException;
-import java.net.URI;
+import com.emc.vipr.model.catalog.AssetOption;
+import com.google.gson.Gson;
+import com.google.gson.JsonSyntaxException;
+import com.sun.jersey.api.client.ClientResponse;
 
 @Component
 @AssetNamespace("rackhd")
@@ -127,19 +131,19 @@ public class RackHdProvider extends BaseAssetOptionsProvider {
                     getWorkflowTaskId(workflowResponse));
             if( isTimedOut(++intervals) ) {
                 error("RackHD workflow " + getWorkflowTaskId(workflowResponse) + " timed out.");
-                return jsonToOptions(WORKFLOW_TIMEOUT_RESPONSE);
+                return jsonToOptions(Arrays.asList(WORKFLOW_TIMEOUT_RESPONSE));
             }
         }        
-        String optionListJson = getRackHdResult(workflowResponse);
+        List<String> optionListJson = getRackHdResults(workflowResponse);
 
         return jsonToOptions(optionListJson);       
     }
 
     private List<AssetOption> getWorkflowOptions(String workflowJson) {
-        RackHdWfDescr[] wfDescrs = getRackHdWfLib(workflowJson);
-        List<RackHdWfDescr> wfList = Arrays.asList(wfDescrs);
+        WorkflowDefinition[] wfDescrs = getRackHdWfLib(workflowJson);
+        List<WorkflowDefinition> wfList = Arrays.asList(wfDescrs);
         List<AssetOption> assetOptionList = new ArrayList<>();
-        for(RackHdWfDescr wfDef: wfList) {
+        for(WorkflowDefinition wfDef: wfList) {
             assetOptionList.add(new AssetOption(wfDef.getInjectableName(),
                     wfDef.getFriendlyName()));
         }
@@ -151,23 +155,29 @@ public class RackHdProvider extends BaseAssetOptionsProvider {
                 RACKHD_WORKFLOW_CHECK_TIMEOUT;
     }
 
-    private String getRackHdResult(String workflowResponse) {
-        return getWorkflowObjFromJson(workflowResponse).getContext().getAnsibleResultFile();
+    private List<String> getRackHdResults(String workflowResponse) {
+        FinishedTask[] finishedTasks = 
+                getWorkflowObjFromJson(workflowResponse).getFinishedTasks();
+        List<String> ansibleResults = new ArrayList<>();
+        for(FinishedTask finishedTask : finishedTasks) {
+            ansibleResults.add(finishedTask.getContext().getAnsibleResultFile());
+        }
+        return ansibleResults;
     }
 
     private String getWorkflowTaskId(String workflowResponse) {
-        RackHdWorkflow rackHdWorkflow = getWorkflowObjFromJson(workflowResponse);  
+        Workflow rackHdWorkflow = getWorkflowObjFromJson(workflowResponse);  
         return rackHdWorkflow.getId();
     }
 
     private boolean isWorkflowSuccess(String workflowResponse) {
-        RackHdWorkflow rackHdWorkflow = getWorkflowObjFromJson(workflowResponse);  
+        Workflow rackHdWorkflow = getWorkflowObjFromJson(workflowResponse);  
         info("RackHD workflow status=" + rackHdWorkflow.get_status());
         return rackHdWorkflow.get_status().equalsIgnoreCase(WORKFLOW_SUCCESS_STATE);
     }
 
-    private RackHdWorkflow getWorkflowObjFromJson(String workflowResponse){
-        return gson.fromJson(workflowResponse,RackHdWorkflow.class);
+    private Workflow getWorkflowObjFromJson(String workflowResponse){
+        return gson.fromJson(workflowResponse,Workflow.class);
     }
 
     private String makePostBody(String thisAssetType) {
@@ -176,16 +186,28 @@ public class RackHdProvider extends BaseAssetOptionsProvider {
     }
 
     private String getAnyNode(String responseString) {
-        RackHdNode[] rackHdNodeArray = gson.fromJson(responseString,RackHdNode[].class);    
+        Node[] rackHdNodeArray = gson.fromJson(responseString,Node[].class);    
         return getComputeNodeId(rackHdNodeArray);  
     }
 
-    private List<AssetOption> jsonToOptions(String ansibleResultFile) {
-        AssetOptionPair[] assetOptionArray = gson.fromJson(ansibleResultFile,AssetOptionPair[].class);  
-        List<AssetOptionPair> assetOptionPairList = Arrays.asList(assetOptionArray);
+    private List<AssetOption> jsonToOptions(List<String> ansibleResultFiles) {
+        
+        //options will be combined from all ansible result files 
+        //  (i.e.: all RackHD ansible tasks that returned valid results)
         List<AssetOption> assetOptionList = new ArrayList<>();
-        for(AssetOptionPair aop: assetOptionPairList) {
-            assetOptionList.add(new AssetOption(aop.getKey(),aop.getValue()));
+        for(String ansibleResultFile : ansibleResultFiles) {
+            AssetOptionPair[] assetOptionArray = null;
+            try {
+                assetOptionArray = gson.fromJson(ansibleResultFile,AssetOptionPair[].class);  
+                for(AssetOptionPair aop: assetOptionArray) {
+                    assetOptionList.add(new AssetOption(aop.getKey(),aop.getValue()));
+                }  
+            } catch(JsonSyntaxException e) {
+                // not all task results will always be asset options
+                getLog().warn("Unable to parse RackHD task result as valid asset " + 
+                        "options.  " + e.getMessage() + "  Unparsable string was: " + 
+                ansibleResultFile);
+            }
         }
         info("Found " + assetOptionList.size()+ " options from RackHD: " + 
                 assetOptionList);   
@@ -227,118 +249,17 @@ public class RackHdProvider extends BaseAssetOptionsProvider {
         return responseString;
     }
 
-    private class RackHdNode {
-        private String id;
-        private String type;
-
-        private String getId() {
-            return id;
-        }
-        private void setId(String id) {
-            this.id = id;
-        }
-        private String getType() {
-            return type;
-        }
-        private void setType(String type) {
-            this.type = type;
-        }
-
-        private boolean isComputeNode() {
-            return (getType() != null) && getType().equals("compute");
-        }
-    }
-
-    private static String getComputeNodeId(RackHdNode[] nodeArray) {
-        for(RackHdNode rackHdNode : nodeArray)
+    private static String getComputeNodeId(Node[] nodeArray) {
+        for(Node rackHdNode : nodeArray)
             if(rackHdNode.isComputeNode())
                 return rackHdNode.getId();	
         return null;
     }
 
-    private class RackHdWorkflow {
-        private String _status;
-        private String id;
-        private Context context; 
-
-        public Context getContext() {
-            return context;
-        }
-
-        public void setContext(Context context) {
-            this.context = context;
-        }
-
-        public String getId() {
-            return id;
-        }
-
-        public void setId(String id) {
-            this.id = id;
-        }
-
-        public String get_status() {
-            return _status;
-        }
-
-        public void set_status(String _status) {
-            this._status = _status;
-        }
-    }
-
-    private class Context {
-        private String ansibleResultFile;
-
-        public String getAnsibleResultFile() {
-            return ansibleResultFile;
-        }
-
-        public void setAnsibleResultFile(String ansibleResultFile) {
-            this.ansibleResultFile = ansibleResultFile;
-        }
-    }
-
-    private class AssetOptionPair {
-        private String key;
-        private String value;
-
-        public String getKey() {
-            return key;
-        }
-        public void setKey(String key) {
-            this.key = key;
-        }
-        public String getValue() {
-            return value;
-        }
-        public void setValue(String value) {
-            this.value = value;
-        }
-
-    }
-
-    private RackHdWfDescr[] getRackHdWfLib(String responseString) {
-        RackHdWfDescr[] wfs = 
-                gson.fromJson(responseString,RackHdWfDescr[].class);    
+    private WorkflowDefinition[] getRackHdWfLib(String responseString) {
+        WorkflowDefinition[] wfs = 
+                gson.fromJson(responseString,WorkflowDefinition[].class);    
         return wfs;  
     }
 
-    private class RackHdWfDescr {
-        
-        private String friendlyName;
-        private String injectableName;
-
-        public String getFriendlyName() {
-            return friendlyName;
-        }
-        public void setFriendlyName(String friendlyName) {
-            this.friendlyName = friendlyName;
-        }
-        public String getInjectableName() {
-            return injectableName;
-        }
-        public void setInjectableName(String injectableName) {
-            this.injectableName = injectableName;
-        }
-    }
 }

@@ -2,28 +2,23 @@ package com.emc.sa.service.vipr.rackhd.tasks;
 
 import java.io.IOException;
 import java.net.URI;
-import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
-
 import org.apache.commons.io.IOUtils;
 
 import com.emc.sa.engine.ExecutionUtils;
 import com.emc.sa.service.vipr.rackhd.RackHdUtils;
+import com.emc.sa.service.vipr.rackhd.gson.Task;
 import com.emc.sa.service.vipr.tasks.ViPRExecutionTask;
 import com.emc.storageos.rackhd.api.restapi.RackHdRestClient;
 import com.emc.storageos.rackhd.api.restapi.RackHdRestClientFactory;
 import com.sun.jersey.api.client.ClientResponse;
 
-public class RackHdTask extends ViPRExecutionTask<String> {
+public class RackHdGetWorkflowTasks extends ViPRExecutionTask<List<Task>> {
 
     // Note: this is a ViPR Task, which calls a RackHD workflow
     //     (which has its own RackHD Tasks)
     
-    private static final String RACKHD_API_NODES = "/api/1.1/nodes"; //include leading slash
-    private static final String RACKHD_API_WORKFLOWS = "/api/1.1/workflows";
-    private static final int RACKHD_WORKFLOW_CHECK_INTERVAL = 10; // secs
-
+    private static final String RACKHD_API_WORKFLOWS = "/api/1.1/workflows/library";
     //TODO: move these hard-coded strings out
     private static final String USER = "root";
     private static final String PASSWORD = "ChangeMe1!";
@@ -31,16 +26,12 @@ public class RackHdTask extends ViPRExecutionTask<String> {
     private static final String RACKHDSERVER = "lgloc189.lss.emc.com";
     private static final String RACKHDSERVERPORT = "8080";
 
-    private Map<String, Object> params;
     private String workflowName;
-    private List<String> playbookNameList;
     private RackHdRestClient restClient;
 
-    public RackHdTask(Map<String, Object> params, String workflowName, List<String> playbookNameList) {
+    public RackHdGetWorkflowTasks(String workflowName) {
         super();
-        this.params = params;
         this.workflowName = workflowName;
-        this.playbookNameList = playbookNameList;
 
         //init rest client
         RackHdRestClientFactory factory = new RackHdRestClientFactory();
@@ -57,44 +48,21 @@ public class RackHdTask extends ViPRExecutionTask<String> {
     }
 
     @Override
-    public String executeTask() throws Exception {
-
-        String nodeListResponse = makeRestCall(RACKHD_API_NODES);
-        String nodeId = RackHdUtils.getAnyNode(nodeListResponse);         
-
-        ExecutionUtils.currentContext().logInfo("Selected RackHD node to run workflow against.  " +
-                "ID " + nodeId);
+    public List<Task> executeTask() throws Exception {
         
-        String apiWorkflowUri = "/api/1.1/nodes/" + nodeId + "/workflows";
-        String postBody = RackHdUtils.makePostBody(params,workflowName,playbookNameList);
-        String workflowResponse = makeRestCall(apiWorkflowUri, postBody);
+        String apiWorkflowUri = RACKHD_API_WORKFLOWS + "/" + workflowName;
 
-        ExecutionUtils.currentContext().logInfo("Started Workflow on RackHD.  ID " +
-                RackHdUtils.getWorkflowId(workflowResponse) + 
-                "  API Call: POST " + apiWorkflowUri + " with body " + postBody);
+        String workflowResponse = makeRestCall(apiWorkflowUri);
+
+        ExecutionUtils.currentContext().logInfo("Found workflow in RackHD" +
+                 workflowResponse + " using API call " + apiWorkflowUri);
         
-        // Get results - wait for RackHD workflow to complete
-
-        int intervals = 0;
-        List<String> finishedTaskIds = new ArrayList<>();
-        do { 
-            RackHdUtils.sleep(RACKHD_WORKFLOW_CHECK_INTERVAL);
-            workflowResponse = makeRestCall(RACKHD_API_WORKFLOWS + "/" + 
-                    RackHdUtils.getWorkflowId(workflowResponse));            
-            finishedTaskIds = RackHdUtils.
-                    updateAffectedResources(workflowResponse,finishedTaskIds);
-            if( RackHdUtils.isTimedOut(++intervals) ) {
-                ExecutionUtils.currentContext().logError("RackHD Workflow " +
-                        RackHdUtils.getWorkflowId(workflowResponse) + 
-                        " timed out.");
-                break;
-            }
-        } while ( !RackHdUtils.isWorkflowComplete(workflowResponse) ||  // does complete flag matter?
-                // status not updated from 'valid' even when complete?! :
-                RackHdUtils.isWorkflowValid(workflowResponse) );
-        return workflowResponse;
+        return RackHdUtils.getTasksInWorkflowDefinition(workflowResponse);
     }
 
+    
+    //TODO: move this duplicated code out to reusable class:
+    //  (it's also in other RackHd Task(s)
     private String makeRestCall(String uriString) {
         return makeRestCall(uriString,null);
     }

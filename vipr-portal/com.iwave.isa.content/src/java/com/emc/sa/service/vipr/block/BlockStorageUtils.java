@@ -1220,6 +1220,21 @@ public class BlockStorageUtils {
                 || (storageSystemType != null && storageSystemType.equals(StorageProvider.InterfaceType.vplex.name()));
     }
 
+    public static boolean isVplexOrRPVolume(String volumeId) {
+        if (volumeId == null) {
+            return false;
+        }
+        VolumeRestRep volume = execute(new GetBlockVolume(volumeId));
+        if (volume == null) {
+            return false;
+        }
+        if (volume.getProtection() != null && volume.getProtection().getRpRep() != null) {
+            return true;
+        }
+
+        return isVplexVolume(volume, volume.getSystemType());
+    }
+
     public static String stripRPTargetFromReplicationGroup(String group) {
         String[] parts = StringUtils.split(group, '-');
         if (parts.length > 1 && parts[parts.length - 1].equals("RPTARGET")) {

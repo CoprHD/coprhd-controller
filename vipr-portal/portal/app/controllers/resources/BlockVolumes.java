@@ -235,8 +235,6 @@ public class BlockVolumes extends ResourceController {
 
         SnapshotSessionUnlinkTargetsParam sessionTargets = new SnapshotSessionUnlinkTargetsParam();
 
-        SnapshotSessionUnlinkTargetParam targetList = new SnapshotSessionUnlinkTargetParam();
-
         List<SnapshotSessionUnlinkTargetParam> targetLists = Lists.newArrayList();
 
         List<RelatedResourceRep> targets = client.blockSnapshotSessions().get(uri(sessionId)).getLinkedTarget();
@@ -244,6 +242,8 @@ public class BlockVolumes extends ResourceController {
         List<BlockSnapshotRestRep> snapshots = client.blockSnapshots().getByRefs(targets);
 
         for (BlockSnapshotRestRep snap : snapshots) {
+
+			SnapshotSessionUnlinkTargetParam targetList = new SnapshotSessionUnlinkTargetParam();
 
             targetList.setId(snap.getId());
 

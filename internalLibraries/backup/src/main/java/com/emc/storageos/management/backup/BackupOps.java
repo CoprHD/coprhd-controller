@@ -884,11 +884,13 @@ public class BackupOps {
                 if (exist) {
                     throw BackupException.fatals.failedToCreateBackup(backupTag, errorList.toString(), e);
                 }
+
                 if (!checkCreateResult(backupTag, errorList, force)) {
                     deleteBackupWithoutLock(backupTag, true);
                     Throwable cause = (e.getCause() == null ? e : e.getCause());
                     throw BackupException.fatals.failedToCreateBackup(backupTag, errorList.toString(), cause);
                 }
+
                 break;
             }
         }
@@ -919,21 +921,28 @@ public class BackupOps {
             }
         }
         if (dbFailedCnt == 0 && geodbFailedCnt == 0 && zkFailedCnt < hosts.size()) {
-            log.info("Create backup({}) success", backupTag);
-            persistBackupInfo(backupTag);
-            return true;
-        } else if (force == true
-                && dbFailedCnt <= (hosts.size() - quorumSize)
-                && geodbFailedCnt <= hosts.size() - quorumSize
-                && zkFailedCnt < hosts.size()) {
-            log.warn("Create backup({}) on nodes({}) failed, but force ignore the errors",
-                    backupTag, errorList.toString());
-            persistBackupInfo(backupTag);
-            return true;
-        } else {
-            log.error("Create backup({}) on nodes({}) failed", backupTag, errorList.toString());
-            return false;
+            try {
+                persistBackupInfo(backupTag);
+                log.info("Create backup({}) success", backupTag);
+                return true;
+            }catch (Exception e) {
+                //ignore
+            }
         }
+
+        if (force && dbFailedCnt <= (hosts.size() - quorumSize) && geodbFailedCnt <= hosts.size() - quorumSize
+                && zkFailedCnt < hosts.size()) {
+            log.warn("Create backup({}) on nodes({}) failed, but force ignore the errors", backupTag, errorList);
+            try {
+                persistBackupInfo(backupTag);
+                return true;
+            }catch (Exception e) {
+                //ignore
+            }
+        }
+
+        log.error("Create backup({}) on nodes({}) failed", backupTag, errorList.toString());
+        return false;
     }
 
     public static synchronized String createBackupName() {
@@ -988,7 +997,7 @@ public class BackupOps {
     /**
      * Records backup info
      */
-    private void persistBackupInfo(String backupTag) {
+    private void persistBackupInfo(String backupTag) throws Exception {
         File targetDir = new File(getBackupDir(), backupTag);
         if (!targetDir.exists() || !targetDir.isDirectory()) {
             return;
@@ -1006,6 +1015,7 @@ public class BackupOps {
             FileUtils.chmod(infoFile, BACKUP_FILE_PERMISSION);
         } catch (Exception ex) {
             log.error("Failed to record backup info", ex);
+            throw ex;
         }
     }
 

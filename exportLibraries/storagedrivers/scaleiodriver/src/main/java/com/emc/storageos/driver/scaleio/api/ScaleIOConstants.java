@@ -44,12 +44,10 @@ public class ScaleIOConstants {
     public static final int END_POS=4;
     public static final Boolean INCOMPATIBLE=false;
     public static final Boolean COMPATIBLE=true;
-    public static final String TASK_TYPE_DISCOVER_STORAGE_SYSTEM="discover-storage-system";
-    public static final String TASK_TYPE_DISCOVER_STORAGE_POOLS="discover-storage-pools";
-    public static final String TASK_TYPE_DISCOVER_STORAGE_PORTS="discover-storage-ports";
-    public static final long GB_BYTE = 1073741824L;
     public static final String OPERATIONAL_STATUS_CONNECTED="Normal";
-
+    public static final Long maxVolumeSize = 1048576L;
+    public static final Long minVolumeSize = 1L;
+    public static final Long GB_BYTE = 1073741824L;
     public enum TaskType{
         DISCOVER_STORAGE_SYSTEM,
         DISCOVER_STORAGE_POOLS,

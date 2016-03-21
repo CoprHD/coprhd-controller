@@ -5,10 +5,10 @@
 
 package com.emc.storageos.driver.scaleio;
 
-import com.emc.storageos.svcs.errorhandling.annotations.DeclareServiceCode;
-import com.emc.storageos.svcs.errorhandling.annotations.MessageBundle;
-import com.emc.storageos.svcs.errorhandling.model.ServiceError;
-import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
+import com.emc.storageos.driver.scaleio.errorhandling.annotations.DeclareServiceCode;
+import com.emc.storageos.driver.scaleio.errorhandling.annotations.MessageBundle;
+import com.emc.storageos.driver.scaleio.errorhandling.model.ServiceError;
+import com.emc.storageos.driver.scaleio.errorhandling.resources.ServiceCode;
 
 @MessageBundle
 public interface ScaleIOErrors {

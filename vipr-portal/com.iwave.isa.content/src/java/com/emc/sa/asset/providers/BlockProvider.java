@@ -1752,7 +1752,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
                 boolean localSnapSupported = isLocalSnapshotSupported(detail.vpool);
                 boolean isRPTargetVolume = isRPTargetVolume(detail.volume);
                 boolean isRPSourceVolume = isRPSourceVolume(detail.volume);
-                boolean isInConsistencyGroup = BlockProvider.isInConsistencyGroup(detail.volume);
+                boolean isInConsistencyGroup = StringUtils.isEmpty(detail.volume.getReplicationGroupInstance());
                 boolean isSnapshotSessionSupported = isSnapshotSessionSupportedForVolume(detail.volume);
 
                 debug("filter[ localSnapSupported=%s, isRPTargetVolume=%s, isRPSourceVolume=%s, isInConsistencyGroup=%s, isXio3XVolume=%s ]",
@@ -1790,7 +1790,8 @@ public class BlockProvider extends BaseAssetOptionsProvider {
             List<VolumeRestRep> volumes = client.blockVolumes().findByProject(project, new DefaultResourceFilter<VolumeRestRep>() {
                 @Override
                 public boolean accept(VolumeRestRep volume) {
-                    if (!(client.blockSnapshots().getByVolume(volume.getId())).isEmpty() && !isInConsistencyGroup(volume)) {
+                    if (!(client.blockSnapshots().getByVolume(volume.getId())).isEmpty()
+                            && StringUtils.isEmpty(volume.getReplicationGroupInstance())) {
                         return true;
                     } else {
                         return false;
@@ -1933,7 +1934,8 @@ public class BlockProvider extends BaseAssetOptionsProvider {
             List<VolumeRestRep> volumes = client.blockVolumes().findByProject(project, new DefaultResourceFilter<VolumeRestRep>() {
                 @Override
                 public boolean accept(VolumeRestRep volume) {
-                    if (!client.blockVolumes().getFullCopies(volume.getId()).isEmpty() && !isInConsistencyGroup(volume)) {
+                    if (!client.blockVolumes().getFullCopies(volume.getId()).isEmpty()
+                            && StringUtils.isEmpty(volume.getReplicationGroupInstance())) {
                         return true;
                     } else {
                         return false;
@@ -2190,21 +2192,6 @@ public class BlockProvider extends BaseAssetOptionsProvider {
         return createBaseResourceOptions(volumeGroups);
     }
 
-    private List<String> stripRPTargetFromReplicationGroup(Collection<String> groups) {
-        List<String> stripped = new ArrayList<String>();
-
-        for (String group : groups) {
-            String[] parts = StringUtils.split(group, '-');
-            if (parts.length > 1 && parts[parts.length - 1].equals("RPTARGET")) {
-                stripped.add(StringUtils.join(parts, '-', 0, parts.length - 1));
-            } else {
-                stripped.add(group);
-            }
-        }
-
-        return stripped;
-    }
-
     @Asset("applicationBlockVolume")
     @AssetDependencies("application")
     public List<AssetOption> getApplicationVolumes(AssetOptionsContext ctx, URI application) {
@@ -2244,7 +2231,8 @@ public class BlockProvider extends BaseAssetOptionsProvider {
         final ViPRCoreClient client = api(ctx);
         List<VolumeRestRep> allCopyVols = client.blockVolumes()
                 .getByRefs(client.application().getFullCopiesByApplication(applicationId).getVolumes());
-        return createStringOptions(stripRPTargetFromReplicationGroup(groupFullCopyByApplicationSubGroup(ctx,
+        return createStringOptions(BlockStorageUtils.stripRPTargetFromReplicationGroup(
+                groupFullCopyByApplicationSubGroup(ctx,
                 filterByCopyName(allCopyVols, copyName)).keySet()));
     }
 

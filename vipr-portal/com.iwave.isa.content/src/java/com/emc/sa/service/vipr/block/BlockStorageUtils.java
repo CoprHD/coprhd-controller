@@ -546,13 +546,13 @@ public class BlockStorageUtils {
 
     private static void removeContinuousCopy(URI volumeId, URI continuousCopyId, VolumeDeleteTypeEnum type) {
         if (VolumeDeleteTypeEnum.VIPR_ONLY != type) {
-        	BlockObjectRestRep obj = getVolume(volumeId);
-        	if (obj instanceof VolumeRestRep) {
+            BlockObjectRestRep obj = getVolume(volumeId);
+            if (obj instanceof VolumeRestRep) {
                 VolumeRestRep volume = (VolumeRestRep) obj;
                 if (!StringUtils.equalsIgnoreCase(volume.getSystemType(), DiscoveredDataObject.Type.vplex.name())) {
-                	execute(new PauseContinuousCopy(volumeId, continuousCopyId, COPY_NATIVE));
+                    execute(new PauseContinuousCopy(volumeId, continuousCopyId, COPY_NATIVE));
                 }
-        	}
+            }
         }
         Tasks<VolumeRestRep> tasks = execute(new DeactivateContinuousCopy(volumeId, continuousCopyId, COPY_NATIVE, type));
         addAffectedResources(tasks);
@@ -665,7 +665,7 @@ public class BlockStorageUtils {
 
     public static boolean canRemoveReplicas(URI blockResourceId) {
         BlockObjectRestRep volume = getVolume(blockResourceId);
-        if (volume.getConsistencyGroup() != null) {
+        if (volume.getConsistencyGroup() != null && NullColumnValueGetter.isNotNullValue(volume.getReplicationGroupInstance())) {
             StorageSystemRestRep storageSystem = getStorageSystem(volume.getStorageController());
             if (storageSystem != null
                     && storageSystem.getSystemType() != null
@@ -870,7 +870,7 @@ public class BlockStorageUtils {
 
     /**
      * Finds the exports (itl) for the given initiators.
-     * 
+     *
      * @param exports
      *            the list of all exports (itl)
      * @param initiators
@@ -1056,7 +1056,7 @@ public class BlockStorageUtils {
 
     /**
      * Helper method for creating a list of all the params for the createBlockVolumesHelper.
-     * 
+     *
      * @param table volume table
      * @param params for volume creation
      * @return map of all params
@@ -1070,7 +1070,7 @@ public class BlockStorageUtils {
 
     /**
      * Get source volume for vplexVolume by checking HA volumes with matching varrays
-     * 
+     *
      * @param vplexVolume vplex volume to use
      * @return source volume
      */
@@ -1191,7 +1191,7 @@ public class BlockStorageUtils {
             List<VolumeRestRep> parentVolumes = execute(new GetBlockVolumes(parentVolIds));
             if (parentVolumes != null && !parentVolumes.isEmpty()) {
                 for (VolumeRestRep parentVolume : parentVolumes) {
-                    String rgName = parentVolume.getReplicationGroupInstance();
+                    String rgName = stripRPTargetFromReplicationGroup(parentVolume.getReplicationGroupInstance());
                     URI storage = parentVolume.getStorageController();
                     if (!storageRgToVolumes.contains(storage, rgName)) {
                         storageRgToVolumes.put(storage, rgName, volume);
@@ -1218,5 +1218,39 @@ public class BlockStorageUtils {
     public static boolean isVplexVolume(VolumeRestRep volume, String storageSystemType) {
         return (volume.getHaVolumes() != null && !volume.getHaVolumes().isEmpty())
                 || (storageSystemType != null && storageSystemType.equals(StorageProvider.InterfaceType.vplex.name()));
+    }
+
+    public static boolean isVplexOrRPVolume(String volumeId) {
+        if (volumeId == null) {
+            return false;
+        }
+        VolumeRestRep volume = execute(new GetBlockVolume(volumeId));
+        if (volume == null) {
+            return false;
+        }
+        if (volume.getProtection() != null && volume.getProtection().getRpRep() != null) {
+            return true;
+        }
+
+        return isVplexVolume(volume, volume.getSystemType());
+    }
+
+    public static String stripRPTargetFromReplicationGroup(String group) {
+        String[] parts = StringUtils.split(group, '-');
+        if (parts.length > 1 && parts[parts.length - 1].equals("RPTARGET")) {
+            return StringUtils.join(parts, '-', 0, parts.length - 1);
+        } else {
+            return group;
+        }
+    }
+
+    public static List<String> stripRPTargetFromReplicationGroup(Collection<String> groups) {
+        List<String> stripped = new ArrayList<String>();
+
+        for (String group : groups) {
+            stripped.add(stripRPTargetFromReplicationGroup(group));
+        }
+
+        return stripped;
     }
 }

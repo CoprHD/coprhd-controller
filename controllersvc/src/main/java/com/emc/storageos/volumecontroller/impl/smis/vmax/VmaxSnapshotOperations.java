@@ -224,25 +224,37 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
             CIMObjectPath syncObjectPath = _cimPath.getSyncObject(storage, snap);
             if (_helper.checkExists(storage, syncObjectPath, false, false) != null) {
                 deactivateSnapshot(storage, snap, syncObjectPath);
+                boolean copyModeTarget = false;
                 if (storage.checkIfVmax3()) {
                     _helper.removeVolumeFromParkingSLOStorageGroup(storage, snap.getNativeId(), false);
                     _log.info("Done invoking remove volume {} from parking SLO storage group", snap.getNativeId());
 
-                    // If COPY mode snapshot, detach the element synchronization before deleting it.
-                    // TODO enhance ReplicaDeviceController to handle remove single session & target while removing volume from group.
                     if (BlockSnapshot.CopyMode.copy.toString().equals(snap.getCopyMode())) {
-                        CIMArgument[] inArgsDetach = _helper.getUnlinkBlockSnapshotSessionTargetInputArguments(syncObjectPath);
-                        CIMArgument[] outArgsDetach = new CIMArgument[5];
-                        CIMObjectPath replicationSvcPath = _cimPath.getControllerReplicationSvcPath(storage);
-                        _helper.invokeMethodSynchronously(storage, replicationSvcPath, SmisConstants.MODIFY_REPLICA_SYNCHRONIZATION,
-                                inArgsDetach, outArgsDetach, null);
+                        copyModeTarget = true;
                     }
                 }
-                CIMArgument[] outArgs = new CIMArgument[5];
-                _helper.callModifyReplica(storage, _helper.getDeleteSnapshotSynchronousInputArguments(syncObjectPath), outArgs);
+                // If COPY mode snapshot target, detach the element synchronization before deleting it.
+                // TODO enhance ReplicaDeviceController to handle remove single session & target while removing volume from group.
+                if (copyModeTarget) {
+                    CIMArgument[] inArgsDetach = _helper.getUnlinkBlockSnapshotSessionTargetInputArguments(syncObjectPath);
+                    CIMArgument[] outArgsDetach = new CIMArgument[5];
+                    CIMObjectPath replicationSvcPath = _cimPath.getControllerReplicationSvcPath(storage);
+                    _helper.invokeMethodSynchronously(storage, replicationSvcPath, SmisConstants.MODIFY_REPLICA_SYNCHRONIZATION,
+                            inArgsDetach, outArgsDetach, null);
+
+                    // delete the target snapshot device
+                    CIMObjectPath configSvcPath = _cimPath.getConfigSvcPath(storage);
+                    CIMArgument[] inArgs = _helper.getDeleteVolumesInputArguments(storage, new String[] { snap.getNativeId() });
+                    CIMArgument[] outArgs = new CIMArgument[5];
+                    _helper.invokeMethodSynchronously(storage, configSvcPath,
+                            SmisConstants.RETURN_ELEMENTS_TO_STORAGE_POOL, inArgs, outArgs, null);
+                } else {
+                    CIMArgument[] outArgs = new CIMArgument[5];
+                    _helper.callModifyReplica(storage, _helper.getDeleteSnapshotSynchronousInputArguments(syncObjectPath), outArgs);
+                }
                 snap.setInactive(true);
                 snap.setIsSyncActive(false);
-                _dbClient.persistObject(snap);
+                _dbClient.updateObject(snap);
                 taskCompleter.ready(_dbClient);
             } else {
                 // Perhaps, it's already been deleted or was deleted on the array.
@@ -250,7 +262,7 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
                 // is idempotent.
                 snap.setInactive(true);
                 snap.setIsSyncActive(false);
-                _dbClient.persistObject(snap);
+                _dbClient.updateObject(snap);
                 taskCompleter.ready(_dbClient);
             }
         } catch (WBEMException e) {
@@ -405,11 +417,11 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
             // For VMAX3, we need the target group to tag the setting instance
             if (storage.checkIfVmax3() || !storage.getUsingSmis80()) {
                 targetDeviceIds = new ArrayList<String>();
-                CIMObjectPath volumeGroupPath = _helper.getVolumeGroupPath(storage, snapVolume, null);
                 for (Entry<String, List<Volume>> entry : volumesBySizeMap.entrySet()) {
                     final List<Volume> volumes = entry.getValue();
                     final Volume volume = volumes.get(0);
                     final URI poolId = volume.getPool();
+                    CIMObjectPath volumeGroupPath = _helper.getVolumeGroupPath(storage, volume, null);
 
                     // Create target devices based on the array model
                     final List<String> newDeviceIds = kickOffTargetDevicesCreation(storage, volumeGroupPath,
@@ -424,8 +436,8 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
                         _dbClient, _helper, _cimPath,
                         SYNC_TYPE.SNAPSHOT);
             }
-            // Create CG snapshot
 
+            // Create CG snapshot
             CIMObjectPath job = VmaxGroupOperationsUtils.internalCreateGroupReplica(storage, sourceGroupName,
                     snapLabelToUse, targetGroupPath, createInactive, thinProvisioning,
                     taskCompleter, SYNC_TYPE.SNAPSHOT, _dbClient, _helper, _cimPath);
@@ -1392,9 +1404,10 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
 
             taskCompleter.ready(_dbClient);
         } catch (Exception e) {
-            _log.error(
-                    "Failed to establish group relation between volume group and snapshot group. Volume: {}, Snapshot: {}",
+            String msg =
+                    String.format("Failed to establish group relation between volume group and snapshot group. Volume: %s, Snapshot: %s",
                     sourceVolume, snapshot);
+            _log.error(msg, e);
             ServiceError serviceError = DeviceControllerException.errors.jobFailed(e);
             taskCompleter.error(_dbClient, serviceError);
         }

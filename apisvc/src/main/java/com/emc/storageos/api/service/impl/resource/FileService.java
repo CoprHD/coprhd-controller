@@ -3512,8 +3512,7 @@ public class FileService extends TaskResourceService {
                 throw APIException.badRequests
                         .unableToProcessRequest("Error occured while getting Filesystem policy Snapshots task information");
 
-            }
-            else if (taskObject.isReady()) {
+            } else if (taskObject.isReady()) {
                 URIQueryResultList snapshotsURIs = new URIQueryResultList();
                 _dbClient.queryByConstraint(ContainmentConstraint.Factory.getFileshareSnapshotConstraint(id),
                         snapshotsURIs);
@@ -3737,6 +3736,14 @@ public class FileService extends TaskResourceService {
         String currentMirrorStatus = fs.getMirrorStatus();
         boolean isSupported = false;
 
+        // This validation is required after stop operation
+        if (fs.getPersonality() == null || !fs.getPersonality().equals(PersonalityTypes.SOURCE.name())) {
+            notSuppReasonBuff.append(String.format("File system - %s given in request is not having any active replication.",
+                    fs.getLabel()));
+            _log.info(notSuppReasonBuff.toString());
+            return false;
+        }
+
         switch (operation) {
 
         // Refresh operation can be performed without any check.
@@ -3744,10 +3751,9 @@ public class FileService extends TaskResourceService {
                 isSupported = true;
                 break;
 
-            // START operation can be performed only if Mirror status is UNKNOWN or DETACHED
+            // START operation can be performed only if Mirror status is UNKNOWN
             case "start":
-                if (currentMirrorStatus.equalsIgnoreCase(MirrorStatus.UNKNOWN.toString())
-                        || currentMirrorStatus.equalsIgnoreCase(MirrorStatus.DETACHED.toString()))
+                if (currentMirrorStatus.equalsIgnoreCase(MirrorStatus.UNKNOWN.toString()))
                     isSupported = true;
                 break;
 
@@ -3765,9 +3771,9 @@ public class FileService extends TaskResourceService {
                     isSupported = true;
                 break;
 
-            // RESUME operation can be performed only if Mirror status is SUSPENDED.
+            // RESUME operation can be performed only if Mirror status is PAUSED.
             case "resume":
-                if (currentMirrorStatus.equalsIgnoreCase(MirrorStatus.SUSPENDED.toString()))
+                if (currentMirrorStatus.equalsIgnoreCase(MirrorStatus.PAUSED.toString()))
                     isSupported = true;
                 break;
 

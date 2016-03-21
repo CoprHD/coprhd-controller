@@ -165,7 +165,7 @@ public final class DownloadExecutor implements  Runnable {
                 }else {
                     log.error("Failed to pull backup file from other node e=", e);
                 }
-                backupOps.setRestoreStatus(remoteBackupFileName, Status.DOWNLOAD_FAILED, e.getMessage(), false, true);
+                backupOps.setRestoreStatus(remoteBackupFileName, false, Status.DOWNLOAD_FAILED, e.getMessage(), false, true);
             }
         }finally {
             try {
@@ -188,7 +188,7 @@ public final class DownloadExecutor implements  Runnable {
             }
         }
 
-        backupOps.setRestoreStatus(remoteBackupFileName, null, null, true, true);
+        backupOps.setRestoreStatus(remoteBackupFileName, false, null, null, true, true);
     }
 
     private void pullFileFromNode(URI endpoint, String filename) throws IOException {
@@ -216,7 +216,10 @@ public final class DownloadExecutor implements  Runnable {
 
         try {
             backupOps.checkBackup(backupFolder);
+            long size = backupOps.getSizeToDownload(remoteBackupFileName);
+            backupOps.updateDownloadedSize(remoteBackupFileName, size, false);
             log.info("The backup {} for this node has already been downloaded", remoteBackupFileName);
+            backupOps.setRestoreStatus(remoteBackupFileName, false, null, null, true, false);
             return; //no need to download again
         } catch (Exception e) {
             // no backup or invalid backup, so download it again
@@ -257,7 +260,7 @@ public final class DownloadExecutor implements  Runnable {
         //Step3: delete the downloaded zip file
         zipFile.delete();
 
-        backupOps.setRestoreStatus(remoteBackupFileName, null, null, true, false);
+        backupOps.setRestoreStatus(remoteBackupFileName, false, null, null, true, false);
     }
 
     private void postDownload() {
@@ -297,7 +300,7 @@ public final class DownloadExecutor implements  Runnable {
         }catch (Exception e) {
             log.error("Invalid backup e=", e);
             Status s = Status.DOWNLOAD_FAILED;
-            backupOps.setRestoreStatus(remoteBackupFileName, Status.DOWNLOAD_FAILED, e.getMessage(), false, true);
+            backupOps.setRestoreStatus(remoteBackupFileName, false, Status.DOWNLOAD_FAILED, e.getMessage(), false, true);
         }
     }
 
@@ -316,7 +319,7 @@ public final class DownloadExecutor implements  Runnable {
             }
         }catch (Exception e) {
             String errMsg = String.format("Failed to send %s to %s", pushUri, node);
-            backupOps.setRestoreStatus(backupName, Status.DOWNLOAD_FAILED, e.getMessage(), false, true);
+            backupOps.setRestoreStatus(backupName, false, Status.DOWNLOAD_FAILED, e.getMessage(), false, true);
             throw BackupException.fatals.pullBackupFailed(backupName, errMsg);
         }
     }
@@ -347,6 +350,8 @@ public final class DownloadExecutor implements  Runnable {
         log.info("To skip={} bytes", skip);
         in.skip(file.length());
 
+        backupOps.updateDownloadedSize(remoteBackupFileName, skip, doLock);
+
         int length;
         try (BufferedOutputStream out = new BufferedOutputStream(new FileOutputStream(file, true))) {
             length = in.read(buffer);
@@ -359,7 +364,7 @@ public final class DownloadExecutor implements  Runnable {
             }
         } catch(IOException e) {
             log.error("Failed to download file {} e=", backupFileName, e);
-            backupOps.setRestoreStatus(remoteBackupFileName, Status.DOWNLOAD_FAILED, e.getMessage(), true, doLock);
+            backupOps.setRestoreStatus(remoteBackupFileName, false, Status.DOWNLOAD_FAILED, e.getMessage(), true, doLock);
             throw e;
         }
 

@@ -172,7 +172,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
     // Various steps for workflows
     private static final String STEP_REMOVE_PROTECTION = "rpRemoveProtectionStep";
     private static final String STEP_CG_CREATION = "rpCgCreation";
-    private static final String STEP_CG_UPDATE = "rpCgUpdate";
+    private static final String STEP_CG_MODIFY = "rpCgModify";
     private static final String STEP_EXPORT_GROUP = "rpExportGroup";
     private static final String STEP_DV_REMOVE_CG = "rpDvRemoveCG";
     private static final String STEP_DV_REMOVE_VOLUME_EXPORT = "rpDvRemoveVolumeExport";
@@ -204,8 +204,8 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
     private static final String METHOD_ADD_JOURNAL_ROLLBACK_STEP = "addJournalRollbackStep";
 
     // Methods in the update workflow.
-    private static final String METHOD_CG_UPDATE_STEP = "cgUpdateStep";
-    private static final String METHOD_CG_UPDATE_ROLLBACK_STEP = "cgUpdateRollbackStep";
+    private static final String METHOD_CG_MODIFY_STEP = "cgModifyStep";
+    private static final String METHOD_CG_MODIFY_ROLLBACK_STEP = "cgModifyRollbackStep";
 
     // Methods in the delete workflow.
     private static final String METHOD_DELETE_CG_STEP = "cgDeleteStep";
@@ -518,13 +518,13 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
             }
 
             if (executeCreateSteps) {
-                _log.info("Adding steps for Create CG...");
-                lastStep = addCreateCGStep(workflow, volumeDescriptors, params, rpSystem, taskId);
+                _log.info("Adding steps for Create/Update CG...");
+                lastStep = addCreateOrUpdateCGStep(workflow, volumeDescriptors, params, rpSystem, taskId);
                 lastStep = addPostVolumeCreateSteps(workflow, volumeDescriptors, rpSystem, taskId);
             }
             else {
-                _log.info("Adding steps for Update CG...");
-                lastStep = addUpdateCGStep(workflow, volumeDescriptors, params, rpSystem, taskId);
+                _log.info("Adding steps for Modifying CG...");
+                lastStep = addModifyCGStep(workflow, volumeDescriptors, params, rpSystem, taskId);
             }
 
         } catch (Exception e) {
@@ -1077,10 +1077,11 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                 _log.info(String.format("RP Export: StorageSystem = [%s] RPSite = [%s] VirtualArray = [%s]", storageSystem.getLabel(),
                         rpSiteName, varray.getLabel()));
 
+                String exportGroupGeneratedName = RPHelper.generateExportGroupName(rpSystem, storageSystem, internalSiteName, varray);
                 boolean isJournalExport = rpExport.getIsJournalExport();
                 // Setup the export group - we may or may not need to create it, but we need to have everything ready in case we do
-                ExportGroup exportGroup = RPHelper.createRPExportGroup(internalSiteName, varray, _dbClient.queryObject(Project.class,
-                        params.getProject()), rpSystem, storageSystem, 0, isJournalExport);
+                ExportGroup exportGroup = RPHelper.createRPExportGroup(exportGroupGeneratedName, varray, _dbClient.queryObject(Project.class,
+                        params.getProject()), 0, isJournalExport);
 
                 // Get the initiators of the RP Cluster (all of the RPAs on one side of a configuration)
                 Map<String, Map<String, String>> rpaWWNs = RPHelper.getRecoverPointClient(rpSystem).getInitiatorWWNs(internalSiteName);
@@ -1504,7 +1505,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
      * @throws InternalException
      * @return the step group
      */
-    private String addCreateCGStep(Workflow workflow, List<VolumeDescriptor> volumeDescriptors, CGRequestParams cgParams,
+    private String addCreateOrUpdateCGStep(Workflow workflow, List<VolumeDescriptor> volumeDescriptors, CGRequestParams cgParams,
             ProtectionSystem rpSystem,
             String taskId) throws InternalException {
         String stepId = workflow.createStepId();
@@ -5241,8 +5242,14 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
         URIQueryResultList exportGroupIdsForSnapshot = new URIQueryResultList();
         _dbClient.queryByConstraint(constraint, exportGroupIdsForSnapshot);
+        
+        Iterator<URI> exportGroupIdsForSnapshotIter = exportGroupIdsForSnapshot.iterator();
+        List<URI> exportGroupURIs = new ArrayList<URI>();
+        while (exportGroupIdsForSnapshotIter.hasNext()) {
+            exportGroupURIs.add(exportGroupIdsForSnapshotIter.next());
+        }
                    
-        if (exportGroupIdsForSnapshot.size() > 1) {
+        if (exportGroupURIs.size() > 1) {
             _log.info(String.format("Snapshot %s is in %d active exportGroups. Not safe to disable the CG", snapshot.getEmName(),
                     exportGroupIdsForSnapshot.size()));
             return false;
@@ -5689,34 +5696,45 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
         }
     }
 
-    private String addUpdateCGStep(Workflow workflow,
+    /**
+     * Adds steps for modifying a RP CG.
+     * 
+     * @param workflow The current workflow
+     * @param volumeDescriptors VolumeDescriptors for the operation
+     * @param cgParams Current CG params
+     * @param rpSystem The RecoverPoint system
+     * @param taskId Current task id
+     * @return The step group
+     * @throws InternalException
+     */
+    private String addModifyCGStep(Workflow workflow,
             List<VolumeDescriptor> volumeDescriptors,
             CGRequestParams cgParams, ProtectionSystem rpSystem, String taskId) throws InternalException {
         String stepId = workflow.createStepId();
-        Workflow.Method cgCreationExecuteMethod = new Workflow.Method(METHOD_CG_UPDATE_STEP,
+        Workflow.Method cgCreationExecuteMethod = new Workflow.Method(METHOD_CG_MODIFY_STEP,
                 rpSystem.getId(),
                 volumeDescriptors,
                 cgParams);
-        Workflow.Method cgCreationExecutionRollbackMethod = new Workflow.Method(METHOD_CG_UPDATE_ROLLBACK_STEP,
+        Workflow.Method cgCreationExecutionRollbackMethod = new Workflow.Method(METHOD_CG_MODIFY_ROLLBACK_STEP,
                 rpSystem.getId());
 
-        workflow.createStep(STEP_CG_UPDATE, "Update consistency group subtask for RP CG: " + cgParams.getCgName(),
+        workflow.createStep(STEP_CG_MODIFY, "Modify consistency group subtask for RP CG: " + cgParams.getCgName(),
                 STEP_EXPORT_ORCHESTRATION, rpSystem.getId(), rpSystem.getSystemType(), this.getClass(),
                 cgCreationExecuteMethod, cgCreationExecutionRollbackMethod, stepId);
 
-        return STEP_CG_UPDATE;
+        return STEP_CG_MODIFY;
     }
 
     /**
-     * Workflow step method for updating a consistency group.
+     * Workflow step method for modifying a consistency group.
      *
      * @param rpSystemId RP system Id
      * @param recommendation parameters needed to create the CG
      * @param token the task
-     * @return
+     * @return true if the operation is a success, false otherwise
      * @throws InternalException
      */
-    public boolean cgUpdateStep(URI rpSystemId, List<VolumeDescriptor> volumeDescriptors, CGRequestParams cgParams, String token)
+    public boolean cgModifyStep(URI rpSystemId, List<VolumeDescriptor> volumeDescriptors, CGRequestParams cgParams, String token)
             throws InternalException {
         try {
             // Get only the RP_EXISTING_PROTECTED_SOURCE descriptors
@@ -5725,7 +5743,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                     new VolumeDescriptor.Type[] {});
 
             WorkflowStepCompleter.stepExecuting(token);
-            _log.info("Update CG step executing");
+            _log.info("Modify CG step executing");
 
             ProtectionSystem rpSystem = _dbClient.queryObject(ProtectionSystem.class, rpSystemId);
 
@@ -5764,11 +5782,11 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
             collectRPStatistics(rpSystem);
 
             // Update the workflow state.
-            _log.info("Update CG step completed");
+            _log.info("Modify CG step completed");
             WorkflowStepCompleter.stepSucceded(token);
         } catch (Exception e) {
-            _log.error("Failed updating cg: " + e.getStackTrace());
-            doFailCgUpdateStep(volumeDescriptors, cgParams, rpSystemId, token, e);
+            _log.error("Failed modifying cg: " + e.getStackTrace());
+            doFailCgModifyStep(volumeDescriptors, cgParams, rpSystemId, token, e);
             return false;
         }
         return true;
@@ -5784,11 +5802,18 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
      */
     private void upgradeRPVPlexToMetroPoint(Volume sourceVolume, VirtualPool newVpool, VirtualPool oldVpool, ProtectionSystem rpSystem) {
         // Grab the new standby journal from the CG
-        String standbyInternalSiteName = RPHelper.getStandbyInternalSite(_dbClient, sourceVolume);
+        String standbyCopyName = RPHelper.getStandbyProductionCopyName(_dbClient, sourceVolume);
         List<Volume> existingStandbyJournals = RPHelper.findExistingJournalsForCopy(_dbClient, sourceVolume.getConsistencyGroup(),
-                standbyInternalSiteName);
+                standbyCopyName);
+        
+        if (existingStandbyJournals.isEmpty()) {
+            _log.error(String.format("Could not find standby journal during upgrade to MetroPoint operation. "
+                    + "Expected to find a new standby journal for RP copy [%s]", standbyCopyName));
+            throw RecoverPointException.exceptions.cannotFindJournal(String.format("for RP copy [%s]", standbyCopyName));
+        }
+        
         Volume standbyProdJournal = existingStandbyJournals.get(0);
-
+        
         // Add new standby journal
         if (standbyProdJournal != null) {
             _log.info(String.format("Upgrade RP+VPLEX CG to MetroPoint by adding new standby journal [%s] to the CG",
@@ -5824,7 +5849,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
             // Next we need to update the vpool reference of any existing related volumes
             // that were referencing the old vpool.
-            // We'll start by getting all source volums from the ViPR CG
+            // We'll start by getting all source volumes from the ViPR CG
             BlockConsistencyGroup viprCG = _dbClient.queryObject(BlockConsistencyGroup.class, sourceVolume.getConsistencyGroup());
             List<Volume> allSourceVolumesInCG = BlockConsistencyGroupUtils.getActiveVplexVolumesInCG(viprCG, _dbClient,
                     Volume.PersonalityTypes.SOURCE);
@@ -5852,17 +5877,17 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
      * @param rpSystem RP system
      * @param params parameters needed to create the CG
      * @param token the task
-     * @return
+     * @return true if the operation is a success, false otherwise
      * @throws WorkflowException
      */
-    public boolean cgUpdateRollbackStep(URI rpSystemId, String token) throws WorkflowException {
+    public boolean cgModifyRollbackStep(URI rpSystemId, String token) throws WorkflowException {
         // nothing to do for now.
         WorkflowStepCompleter.stepSucceded(token);
         return true;
     }
 
     /**
-     * process failure of creating a cg step.
+     * Process failure of modifying a cg step.
      *
      * @param volumeDescriptors volumes
      * @param cgParams cg parameters
@@ -5871,14 +5896,14 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
      * @param e exception
      * @throws InternalException
      */
-    private void doFailCgUpdateStep(
+    private void doFailCgModifyStep(
             List<VolumeDescriptor> volumeDescriptors, CGRequestParams cgParams, URI protectionSetId,
             String token, Exception e) throws InternalException {
         // Record Audit operation. (vpool change only)
         if (VolumeDescriptor.getVirtualPoolChangeVolume(volumeDescriptors) != null) {
             AuditBlockUtil.auditBlock(_dbClient, OperationTypeEnum.CHANGE_VOLUME_VPOOL, true, AuditLogManager.AUDITOP_END, token);
         }
-        stepFailed(token, e, "cgUpdateStep");
+        stepFailed(token, e, METHOD_CG_MODIFY_STEP);
     }
 
     /**
@@ -6349,5 +6374,4 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
         }
         return lockName;
     }
-
 }

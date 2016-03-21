@@ -979,7 +979,7 @@ class Configuration(object):
         o = common.json_decode(s)
         return o
 
-    def disable_update_check(self):
+    def update_config_properties(self):
         params = self.prepare_properties_body(['system_update_repo='])
         body = json.dumps(params)
         (s, h) = common.service_json_request(self.__ipAddr, self.__port,
@@ -1386,7 +1386,7 @@ def get_log_level_parser(subcommand_parsers, common_parser):
         ' the logging level',
         parents=[common_parser],
         conflict_handler='resolve',
-        help='Get log level')
+        help='Get logging level')
 
     get_log_level_parser.add_argument('-logs', '-lg',
                                       metavar='<logs>',
@@ -1569,16 +1569,16 @@ def update_cluster_version_parser(subcommand_parsers, common_parser):
         parents=[common_parser],
         conflict_handler='resolve',
         help='Updates target version. Version can only be updated' +
-        ' incrementally. Ex: storageos-1.0.0.2.xx can only be' +
-        ' updated to sotrageos-1.0.0.3.xx and not to storageos-1.0.0.4.xx')
+        ' incrementally. Ex: vipr-3.0.0.2.x can only be' +
+        ' updated to vipr-3.0.0.3.x and not to vipr-3.0.0.4.x')
     update_cluster_version_parser.add_argument('-f', '-force',
                                                action='store_true',
                                                dest='force',
                                                help='Version numbers' +
                                                ' will not be verified.' +
                                                ' Can be updated from' +
-                                               ' storageos-1.0.0.2.xx to' +
-                                               ' storageos-1.0.0.4.xx')
+                                               ' vipr-3.0.0.2.x to' +
+                                               ' vipr-3.0.0.4.x')
 
     mandatory_args = update_cluster_version_parser.add_argument_group(
         'mandatory arguments')
@@ -1830,7 +1830,7 @@ def get_license_parser(subcommand_parsers, common_parser):
                                                        parents=[common_parser],
                                                        conflict_handler='res' +
                                                        'olve',
-                                                       help='Get License.')
+                                                       help='Get License')
 
     get_license_parser.set_defaults(func=get_license)
 
@@ -1854,7 +1854,7 @@ def get_esrsconfig_parser(subcommand_parsers, common_parser):
         description='ViPR: CLI usage to get esrs configuration',
         parents=[common_parser],
         conflict_handler='resolve',
-        help='Get Esrs config.')
+        help='Get Esrs config')
 
     get_esrsconfig_parser.set_defaults(func=get_esrsconfig)
 
@@ -1878,7 +1878,7 @@ def send_heartbeat_parser(subcommand_parsers, common_parser):
         description='ViPR: CLI usage to send heartbeat',
         parents=[common_parser],
         conflict_handler='resolve',
-        help='Send heart beat.')
+        help='Send heart beat')
 
     send_heartbeat_parser.set_defaults(func=send_heartbeat)
 
@@ -1902,7 +1902,7 @@ def send_registration_parser(subcommand_parsers, common_parser):
         description='ViPR: CLI usage to send registration',
         parents=[common_parser],
         conflict_handler='resolve',
-        help='Send registration.')
+        help='Send registration')
 
     send_registration_parser.set_defaults(func=send_registration)
 
@@ -1929,7 +1929,7 @@ def send_alert_parser(subcommand_parsers, common_parser):
         help='Send alert with logs. Event attachments size' +
         ' cannot exceed more than 16 MB compressed size.' +
         ' Please select time window for logs (with help of start,' +
-        ' end parameters) during which issue might have occurred.')
+        ' end parameters) during which issue might have occurred')
 
     add_log_args(send_alert_parser, True)
 
@@ -1985,7 +1985,7 @@ def connectemc_ftps_parser(subcommand_parsers, common_parser):
         description='ViPR: CLI usage of connect EMC by ftps',
         parents=[common_parser],
         conflict_handler='resolve',
-        help='Connect EMC using ftps.')
+        help='Connect EMC using ftps')
 
     mandatory_args = connectemc_ftps_parser.add_argument_group(
         'mandatory arguments')
@@ -2018,7 +2018,7 @@ def connectemc_smtp_parser(subcommand_parsers, common_parser):
         description='ViPR: CLI usage of connect EMC by smtp',
         parents=[common_parser],
         conflict_handler='resolve',
-        help='Connect EMC using smtp.')
+        help='Connect EMC using smtp')
 
     mandatory_args = connectemc_smtp_parser.add_argument_group(
         'mandatory arguments')
@@ -2063,7 +2063,7 @@ def get_stats_parser(subcommand_parsers, common_parser):
         description='ViPR: CLI usage to get statistics',
         parents=[common_parser],
         conflict_handler='resolve',
-        help='Get Statistics.')
+        help='Get Statistics')
 
     get_stats_parser.add_argument('-node', '-nd',
                                   metavar='<node>',
@@ -2101,7 +2101,7 @@ def get_health_parser(subcommand_parsers, common_parser):
         description='ViPR: CLI usage to get health',
         parents=[common_parser],
         conflict_handler='resolve',
-        help='Get health.')
+        help='Get health')
 
     get_health_parser.add_argument('-node', '-nd',
                                    metavar='<node>',
@@ -2139,7 +2139,7 @@ def get_diagnostics_parser(subcommand_parsers, common_parser):
         description='ViPR: CLI usage to get diagnostics',
         parents=[common_parser],
         conflict_handler='resolve',
-        help='Get Diagnostics.')
+        help='Get Diagnostics')
 
     get_diagnostics_parser.add_argument('-node', '-nd',
                                         metavar='<node>',
@@ -2182,7 +2182,7 @@ def get_storage_parser(subcommand_parsers, common_parser):
         description='ViPR: CLI usage to get storage',
         parents=[common_parser],
         conflict_handler='resolve',
-        help='Get Storage.')
+        help='Get managed storage capacity')
 
     get_storage_parser.set_defaults(func=get_storage)
 
@@ -2259,7 +2259,7 @@ def get_dbrepair_status_parser(subcommand_parsers, common_parser):
         description='ViPR: CLI usage to check dbrepair status',
         parents=[common_parser],
         conflict_handler='resolve',
-        help='DBREPAIR STATUS')
+        help='Get dbrepair status')
 
     get_dbrepair_status_parser.set_defaults(func=get_dbrepair_status)
 
@@ -2281,10 +2281,10 @@ def get_properties_parser(subcommand_parsers, common_parser):
 
     get_properties_parser = subcommand_parsers.add_parser(
         'get-properties',
-        description='ViPR: CLI usage to get properties',
+        description='ViPR: CLI usage to get system properties',
         parents=[common_parser],
         conflict_handler='resolve',
-        help='Get Properties.')
+        help='Get system properties')
     get_properties_parser.add_argument(
         '-type', '-t',
         choices=Configuration.URI_CONFIG_PROPERTY_TYPE,
@@ -2315,7 +2315,7 @@ def get_properties_metadata_parser(subcommand_parsers, common_parser):
         description='ViPR: CLI usage to get properties metadata',
         parents=[common_parser],
         conflict_handler='resolve',
-        help='Get Properties Meta Data.')
+        help='Get Properties Meta Data')
     mandatory_args = get_properties_metadata_parser.add_argument_group(
         'mandatory arguments')
     
@@ -2343,7 +2343,7 @@ def set_properties_parser(subcommand_parsers, common_parser):
         description='ViPR: CLI usage to set properties',
         parents=[common_parser],
         conflict_handler='resolve',
-        help='Set Properties.')
+        help='Set Properties')
 
     mandatory_args = set_properties_parser.add_argument_group(
         'mandatory arguments')
@@ -2406,7 +2406,7 @@ def reset_properties_parser(subcommand_parsers, common_parser):
         description='ViPR: CLI usage to reset properties',
         parents=[common_parser],
         conflict_handler='resolve',
-        help='Reset Properties.')
+        help='Reset Properties')
 
     mandatory_args = reset_properties_parser.add_argument_group(
         'mandatory arguments')
@@ -2440,26 +2440,26 @@ def reset_properties(args):
             e.err_code)
 
 
-def disable_update_check_parser(subcommand_parsers, common_parser):
+def update_config_properties_parser(subcommand_parsers, common_parser):
 
-    disable_update_check_parser = subcommand_parsers.add_parser(
-        'disable-update-check',
-        description='ViPR: CLI usage to disable check for updates',
+    update_config_properties_parser = subcommand_parsers.add_parser(
+        'update-config-properties',
+        description='ViPR: CLI usage to update system configuration properties',
         parents=[common_parser],
         conflict_handler='resolve',
-        help='Disable Update Check')
+        help='Update system configuration properties')
 
-    disable_update_check_parser.set_defaults(func=disable_update_check)
+    update_config_properties_parser.set_defaults(func=update_config_properties)
 
 
-def disable_update_check(args):
+def update_config_properties(args):
     obj = Configuration(args.ip, Configuration.DEFAULT_SYSMGR_PORT)
     try:
-        return common.format_json_object(obj.disable_update_check())
+        return common.format_json_object(obj.update_config_properties())
     except SOSError as e:
         common.format_err_msg_and_raise(
-            "disable",
-            "update check",
+            "update",
+            "config properties",
             e.err_text,
             e.err_code)
 
@@ -2712,7 +2712,7 @@ def show_site_parser(subcommand_parsers,common_parser):
         description='ViPR: CLI usage to show a site details',
         parents=[common_parser],
         conflict_handler='resolve',
-        help='Show a site')
+        help='Show a standby site')
 
     mandatory_args = show_site_parser.add_argument_group(
         'mandatory arguments')
@@ -3099,7 +3099,7 @@ def system_parser(parent_subparser, common_parser):
 
     get_properties_metadata_parser(subcommand_parsers, common_parser)
 
-    disable_update_check_parser(subcommand_parsers, common_parser)
+    update_config_properties_parser(subcommand_parsers, common_parser)
 
     sysmgrcontrolsvc.restart_service_parser(subcommand_parsers, common_parser)
 
@@ -3113,10 +3113,34 @@ def system_parser(parent_subparser, common_parser):
     
     sysmgrcontrolsvc.list_backup_parser(subcommand_parsers, common_parser)
     
-    sysmgrcontrolsvc.download_backup_parser(subcommand_parsers, common_parser)    
-    
+    sysmgrcontrolsvc.download_backup_parser(subcommand_parsers, common_parser)
+
+    sysmgrcontrolsvc.upload_backup_parser(subcommand_parsers, common_parser)
+
+    sysmgrcontrolsvc.upload_backup_status_parser(subcommand_parsers, common_parser)
+
+    sysmgrcontrolsvc.query_backup_parser(subcommand_parsers, common_parser)
+
+    sysmgrcontrolsvc.restore_backup_parser(subcommand_parsers,common_parser)
+
+    sysmgrcontrolsvc.restore_backup_status_parser(subcommand_parsers,common_parser)
+
+    sysmgrcontrolsvc.list_external_backup_parser(subcommand_parsers, common_parser)
+
+    sysmgrcontrolsvc.query_backup_info_parser(subcommand_parsers,common_parser)
+
+    sysmgrcontrolsvc.pull_backup_parser(subcommand_parsers,common_parser)
+
+    sysmgrcontrolsvc.pull_backup_cancel_parser(subcommand_parsers,common_parser)
+
     sysmgrcontrolsvc.delete_tasks_parser(subcommand_parsers, common_parser)
 
+    sysmgrcontrolsvc.dbconsistency_check_cancel_parser(subcommand_parsers, common_parser)
+
+    sysmgrcontrolsvc.dbconsistency_check_status_parser(subcommand_parsers, common_parser)
+
+    sysmgrcontrolsvc.trigger_dbconsistency_check_parser(subcommand_parsers, common_parser)
+    
     upload_file_parser(subcommand_parsers, common_parser)
     
     skip_initial_setup_parser(subcommand_parsers, common_parser)
@@ -3135,30 +3159,6 @@ def system_parser(parent_subparser, common_parser):
     
     add_site_parser(subcommand_parsers,common_parser)
    
-    sysmgrcontrolsvc.dbconsistency_check_cancel_parser(subcommand_parsers, common_parser)
-    
-    sysmgrcontrolsvc.dbconsistency_check_status_parser(subcommand_parsers, common_parser)
-    
-    sysmgrcontrolsvc.trigger_dbconsistency_check_parser(subcommand_parsers, common_parser)
-    
-    sysmgrcontrolsvc.upload_backup_parser(subcommand_parsers, common_parser)
-    
-    sysmgrcontrolsvc.upload_backup_status_parser(subcommand_parsers, common_parser)
-    
-    sysmgrcontrolsvc.backup_info_parser(subcommand_parsers, common_parser)
-    
-    sysmgrcontrolsvc.backupset_restore_parser(subcommand_parsers,common_parser)
-    
-    sysmgrcontrolsvc.backupset_restore_status_parser(subcommand_parsers,common_parser)
-    
-    sysmgrcontrolsvc.get_backupsets_external_parser(subcommand_parsers, common_parser)
-    
-    sysmgrcontrolsvc.get_backupsets_info_parser(subcommand_parsers,common_parser)
-    
-    sysmgrcontrolsvc.backupset_pull_parser(subcommand_parsers,common_parser)
-    
-    sysmgrcontrolsvc.backupset_pull_cancel_parser(subcommand_parsers,common_parser)
-    
     list_sites_parser(subcommand_parsers,common_parser)
     
     show_site_parser(subcommand_parsers,common_parser)

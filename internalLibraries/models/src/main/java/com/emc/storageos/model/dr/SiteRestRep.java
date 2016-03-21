@@ -22,6 +22,7 @@ public class SiteRestRep extends DataObjectRestRep {
     private String state;
     private String networkHealth;
     private long createTime;
+    private Boolean runningState;
 
     @XmlElement(name = "create_time")
     public long getCreateTime() {
@@ -94,6 +95,16 @@ public class SiteRestRep extends DataObjectRestRep {
     public void setNetworkHealth(String networkHealth) {
         this.networkHealth = networkHealth;
     }
+    
+    @XmlElement(name = "running_state")
+    public Boolean getRunningState() {
+        return runningState;
+    }
+
+    public void setRunningState(Boolean runningState) {
+        this.runningState = runningState;
+    }
+
     @Override
     public String toString() {
         StringBuilder builder = new StringBuilder();
@@ -111,6 +122,8 @@ public class SiteRestRep extends DataObjectRestRep {
         builder.append(state);
         builder.append(", networkHealth=");
         builder.append(networkHealth);
+        builder.append(", runningState=");
+        builder.append(runningState);
         builder.append("]");
         return builder.toString();
     }

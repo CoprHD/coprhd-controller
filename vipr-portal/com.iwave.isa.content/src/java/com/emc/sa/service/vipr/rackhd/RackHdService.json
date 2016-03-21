@@ -26,17 +26,24 @@
       lockable: true
     },
     VolumeName:{
-      type:"text"
+      type:"text",
+      lockable: true
     }, 
     Size:{
-      type:"text"
+      type:"text",
+      lockable: true
     },        
     NumberOfVolumes:{
       type:"number",
       initialValue: "1",
       validation:{
         min:1
-      }
+      },
+      lockable: true
+    },
+    email_address:{
+      type:"text",
+      lockable: true
     }
   }
 }

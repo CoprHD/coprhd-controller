@@ -192,8 +192,9 @@ public class SRDFOperations implements SmisConstants {
             } else {
                 CIMObjectPath repCollectionPath = cimPath.getRemoteReplicationCollection(systemWithCg,
                         group);
+                String groupName = ConsistencyGroupUtils.getSourceConsistencyGroupName(firstSource, dbClient);
                 inArgs = helper.getCreateGroupReplicaForSRDFInputArguments(sourceSystem,
-                        sourceGroupName, srcCGPath, tgtCGPath, repCollectionPath, modeValue, replicationSettingDataInstance);
+                        groupName, srcCGPath, tgtCGPath, repCollectionPath, modeValue, replicationSettingDataInstance);
                 helper.invokeMethodSynchronously(systemWithCg, srcRepSvcPath,
                         SmisConstants.CREATE_GROUP_REPLICA, inArgs, outArgs,
                         new SmisSRDFCreateMirrorJob(null, systemWithCg.getId(), completer));
@@ -1876,9 +1877,9 @@ public class SRDFOperations implements SmisConstants {
                     raGroup);
             // look for existing volumes, if found then use AddSyncPair
             CIMInstance replicationSettingDataInstance = getReplicationSettingDataInstance(sourceSystem, modeValue);
-
+            String groupName = ConsistencyGroupUtils.getSourceConsistencyGroupName(firstSource, dbClient);
             CIMArgument[] inArgs = helper.getCreateGroupReplicaForSRDFInputArguments(sourceSystem,
-                    sourceGroupName, srcCGPath, tgtCGPath, repCollectionPath, modeValue, replicationSettingDataInstance);
+                    groupName, srcCGPath, tgtCGPath, repCollectionPath, modeValue, replicationSettingDataInstance);
             CIMArgument[] outArgs = new CIMArgument[5];
             completer.setCGName(sourceGroupName, targetGroupName,
                     firstSource.getConsistencyGroup());

@@ -224,18 +224,14 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
             CIMObjectPath syncObjectPath = _cimPath.getSyncObject(storage, snap);
             if (_helper.checkExists(storage, syncObjectPath, false, false) != null) {
                 deactivateSnapshot(storage, snap, syncObjectPath);
-                boolean copyModeTarget = false;
                 if (storage.checkIfVmax3()) {
                     _helper.removeVolumeFromParkingSLOStorageGroup(storage, snap.getNativeId(), false);
                     _log.info("Done invoking remove volume {} from parking SLO storage group", snap.getNativeId());
 
-                    if (BlockSnapshot.CopyMode.copy.toString().equals(snap.getCopyMode())) {
-                        copyModeTarget = true;
-                    }
-                }
-                // If COPY mode snapshot target, detach the element synchronization before deleting it.
-                // TODO enhance ReplicaDeviceController to handle remove single session & target while removing volume from group.
-                if (copyModeTarget) {
+                    // If VMAX3 linked target removed from Replication Group (both copy and no copy mode),
+                    // detach the element synchronization before deleting it.
+                    // COP-21476 - 'no copy' mode target too needs to be detached when snap session has linked copy mode target.
+                    // TODO enhance ReplicaDeviceController to handle remove single session & target while removing volume from group.
                     CIMArgument[] inArgsDetach = _helper.getUnlinkBlockSnapshotSessionTargetInputArguments(syncObjectPath);
                     CIMArgument[] outArgsDetach = new CIMArgument[5];
                     CIMObjectPath replicationSvcPath = _cimPath.getControllerReplicationSvcPath(storage);

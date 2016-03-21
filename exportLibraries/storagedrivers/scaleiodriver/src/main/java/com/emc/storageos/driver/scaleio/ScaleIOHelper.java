@@ -18,6 +18,7 @@
 package com.emc.storageos.driver.scaleio;
 
 import com.emc.storageos.driver.scaleio.api.ScaleIOConstants;
+import com.emc.storageos.storagedriver.model.VolumeClone;
 import com.emc.storageos.storagedriver.model.VolumeSnapshot;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -60,11 +61,11 @@ public class ScaleIOHelper {
      */
     public static boolean isFromSameStorageSystem(List<VolumeSnapshot> snapshots) {
         boolean isSameSys = false;
-        if (snapshots != null && snapshots.size() > 0) {
+        if (snapshots != null && !snapshots.isEmpty()) {
             String storageSystemId = snapshots.get(0).getStorageSystemId();
             isSameSys = true;
             for (VolumeSnapshot snapshot : snapshots) {
-                if (snapshot.getStorageSystemId() != storageSystemId) {
+                if (!snapshot.getStorageSystemId().equals(storageSystemId)) {
                     isSameSys = false;
                     break;
                 }
@@ -81,11 +82,11 @@ public class ScaleIOHelper {
      */
     public static boolean isFromSameCGgroup(List<VolumeSnapshot> snapshots) {
         boolean isSameCG = false;
-        if (snapshots != null && snapshots.size() > 0) {
+        if (snapshots != null && !snapshots.isEmpty()) {
             String groupId = snapshots.get(0).getConsistencyGroup();
             isSameCG = true;
             for (VolumeSnapshot snapshot : snapshots) {
-                if (snapshot.getConsistencyGroup() != groupId) {
+                if (!snapshot.getConsistencyGroup().equals(groupId)) {
                     isSameCG = false;
                     break;
                 }
@@ -102,6 +103,48 @@ public class ScaleIOHelper {
      */
     public static Boolean compare(String domainName, String systemName) {
         return domainName.equalsIgnoreCase(systemName);
+    }
+
+    /**
+     * Check if all clones are from same consistency group
+     *
+     * @param clones
+     * @return true if all volumes are from same consistency group, false otherwise
+     */
+    public static boolean isFromSameStorageSystemClone(List<VolumeClone> clones) {
+        boolean isSameCG = false;
+        if (clones != null && !clones.isEmpty()) {
+            String storageSystemId = clones.get(0).getStorageSystemId();
+            isSameCG = true;
+            for (VolumeClone clone : clones) {
+                if (!clone.getStorageSystemId().equals(storageSystemId)) {
+                    isSameCG = false;
+                    break;
+                }
+            }
+        }
+        return isSameCG;
+    }
+
+    /**
+     * Check if all clones are from same consistency group
+     *
+     * @param clones
+     * @return true if all volumes are from same consistency group, false otherwise
+     */
+    public static boolean isFromSameCGgroupClone(List<VolumeClone> clones) {
+        boolean isSameCG = false;
+        if (clones != null && !clones.isEmpty()) {
+            String groupId = clones.get(0).getConsistencyGroup();
+            isSameCG = true;
+            for (VolumeClone clone : clones) {
+                if (!clone.getConsistencyGroup().equals(groupId)) {
+                    isSameCG = false;
+                    break;
+                }
+            }
+        }
+        return isSameCG;
     }
 
 }

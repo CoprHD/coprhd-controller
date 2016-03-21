@@ -73,6 +73,7 @@ public class ScaleIOConstants {
         CG_SNAP_DELETE,
         CG_CLONE_CREATE,
         CG_CLONE_DELETE,
+        CG_CLONE_DETACH,
 
         /*Not Supported Operations in ScaleIO*/
         SNAPSHOT_RESTORE,

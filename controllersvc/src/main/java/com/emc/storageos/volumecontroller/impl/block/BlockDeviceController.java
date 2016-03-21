@@ -4156,12 +4156,18 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                 if (cg.checkForType(Types.RP)) {
                     Set<URI> vplexVolumes = new HashSet<URI>();
                     Set<URI> addVolumeSet = new HashSet<URI>();
+
+                    // Turn on the array consistency flag on the CG
+                    cg.setArrayConsistency(true);
+                    _dbClient.updateObject(cg);
+                    
                     // get source and target volumes to be added the CG (in case of RP)
                     addVolumeSet = RPHelper.getReplicationSetVolumes(addVolumesList, _dbClient);
                     if (addVolumeSet == null || addVolumeSet.isEmpty()) {
                         // BlockSnapshot case
                         addVolumeSet.addAll(addVolumesList);
                     }
+                    
                     // split up add volumes list by source and target
                     List<URI> allAddSourceVolumes = new ArrayList<URI>();
                     List<URI> allAddTargetVolumes = new ArrayList<URI>();
@@ -4196,7 +4202,6 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                     }
 
                     // Generate groupName and create step for source storage system
-
                     storageSystem = _dbClient.queryObject(StorageSystem.class, sourceStorageSystemId);
                     String groupName = ControllerUtils.generateReplicationGroupName(storageSystem, cg, null, _dbClient);
                     waitFor = workflow.createStep(UPDATE_CONSISTENCY_GROUP_STEP_GROUP,
@@ -4262,7 +4267,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                         // call ReplicaDeviceController
                         waitFor = _replicaDeviceController.addStepsForAddingSessionsToCG(workflow, waitFor, consistencyGroup, volumesToAdd,
                                 groupName, task);
-                    }                    
+                    }                
                 } else {
                     // Generic non-RP CG flow
                     String groupName = ControllerUtils.generateReplicationGroupName(storageSystem, cg, null, _dbClient);

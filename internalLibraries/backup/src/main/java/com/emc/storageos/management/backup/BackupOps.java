@@ -1636,23 +1636,17 @@ public class BackupOps {
     public BackupInfo getBackupInfo(String backupName, String serverUri, String username, String password) throws IOException {
         log.info("To get backup info of {} from server={} ", backupName, serverUri);
 
-        /*
-        File backupFolder= getDownloadDirectory(backupName);
-        try {
-            checkBackup(backupFolder);
-            log.info("The backup {} for this node has already been downloaded", backupName);
-            BackupInfo info = getBackupInfo(backupFolder, false);
-            info.setRestoreStatus(queryBackupRestoreStatus(backupName, false));
-            return info;
-        } catch (Exception e) {
-            // The backup has not been downloaded yet or is invalid, query from the server
-        }
-        */
-
         BackupInfo backupInfo = new BackupInfo();
-        // backupInfo.setFileName(backupName);
 
         FtpClient client = new FtpClient(serverUri, username, password);
+        try {
+            long size = client.getFileSize(backupName);
+            backupInfo.setBackupSize(size);
+        }catch(Exception  e) {
+            log.warn("Failed to get the backup file size, e=", e);
+            throw BackupException.fatals.failedToGetBackupSize(backupName, e);
+        }
+
         InputStream in = client.download(backupName);
         ZipInputStream zin = new ZipInputStream(in);
         ZipEntry zentry = zin.getNextEntry();

@@ -247,10 +247,6 @@ public class BackupService {
         try {
             if (isLocal) {
                 //query info of a local backup
-                /*
-                File localBackupFolder = backupOps.getBackupDir(backupFileName, true);
-                return backupOps.getBackupInfo(localBackupFolder, true);
-                */
                 return backupOps.queryLocalBackupInfo(backupName);
             }
 

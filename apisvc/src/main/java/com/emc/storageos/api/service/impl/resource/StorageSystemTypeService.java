@@ -20,7 +20,7 @@ import com.emc.storageos.api.service.impl.resource.utils.StorageSystemTypeServic
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.StorageSystemType;
 import com.emc.storageos.model.ResourceTypeEnum;
-import com.emc.storageos.model.storagesystem.type.StorageSystemTypeAdd;
+import com.emc.storageos.model.storagesystem.type.StorageSystemTypeAddParam;
 import com.emc.storageos.model.storagesystem.type.StorageSystemTypeList;
 import com.emc.storageos.model.storagesystem.type.StorageSystemTypeRestRep;
 import com.emc.storageos.security.audit.AuditLogManager;
@@ -136,25 +136,28 @@ public class StorageSystemTypeService extends TaskResourceService {
 	@Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
 	@Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
 	@CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
-	public StorageSystemTypeRestRep addStorageSystemType(StorageSystemTypeAdd param) {
+	public StorageSystemTypeRestRep addStorageSystemType(StorageSystemTypeAddParam addparam) {
 		log.info("addStorageSystemType");
 		if (!checkForStorageSystemType()) {
 			StorageSystemTypeServiceUtils.InitializeStorageSystemTypes(_dbClient);
 		}
 		// unique name required
-		ArgValidator.checkFieldNotEmpty(param.getName(), "name");
-		checkDuplicateLabel(StorageSystemType.class, param.getName());
+		ArgValidator.checkFieldNotEmpty(addparam.getStorageTypeName(), "name");
+		checkDuplicateLabel(StorageSystemType.class, addparam.getStorageTypeName());
 
-		ArgValidator.checkFieldNotEmpty(param.getId(), "id");
-		ArgValidator.checkUrl(param.getId(), "id");
+		ArgValidator.checkFieldNotEmpty(addparam.getStorageTypeId(), "id");
+		ArgValidator.checkUrl(addparam.getStorageTypeId(), "id");
 
 		StorageSystemType ssType = new StorageSystemType();
 		ssType.setId(URIUtil.createId(StorageSystemType.class));
 
-		ssType.setStorageTypeName(param.getName());
-		ssType.setStorageTypeType(param.getStorageType());
-		ssType.setIsSmiProvider(param.getIsProvider());
-
+		ssType.setStorageTypeName(addparam.getStorageTypeName());
+		ssType.setStorageTypeType(addparam.getStorageTypeType());
+		ssType.setIsSmiProvider(addparam.getIsSmiProvider());
+		
+		// ALIK 
+		//Need to add all other paramaetrs here
+		
 		_dbClient.createObject(ssType);
 
 		auditOp(OperationTypeEnum.ADD_STORAGE_SYSTEM_TYPE, true, AuditLogManager.AUDITOP_BEGIN,

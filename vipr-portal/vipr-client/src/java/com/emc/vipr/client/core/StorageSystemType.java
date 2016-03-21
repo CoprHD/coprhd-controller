@@ -2,7 +2,7 @@ package com.emc.vipr.client.core;
 
 import java.util.List;
 
-import com.emc.storageos.model.storagesystem.type.StorageSystemTypeAdd;
+import com.emc.storageos.model.storagesystem.type.StorageSystemTypeAddParam;
 import com.emc.storageos.model.storagesystem.type.StorageSystemTypeList;
 import com.emc.storageos.model.storagesystem.type.StorageSystemTypeRestRep;
 import com.emc.vipr.client.core.impl.PathConstants;
@@ -18,7 +18,7 @@ private RestClient client;
         this.client = client;
     }	
 
-    public StorageSystemTypeRestRep createStorageSystemType(StorageSystemTypeAdd input) {
+    public StorageSystemTypeRestRep createStorageSystemType(StorageSystemTypeAddParam input) {
         return client.post(StorageSystemTypeRestRep.class, input, PathConstants.STORAGE_SYSTEM_TYPE_URL);
     }
 

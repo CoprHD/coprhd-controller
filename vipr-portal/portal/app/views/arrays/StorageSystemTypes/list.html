@@ -1,0 +1,8 @@
+#{extends 'main.html' /}
+#{set navSelected: ['nav.settings', 'nav.storageSystemTypes'] /}
+
+#{DataTable.header titleKey:'storageSystemTypes.list.title' /}
+#{DataTable.crudTable id:'storageSystemTypes', 
+                      dataTable:dataTable,
+                      deleteConfirm:messages.get('storageSystemTypes.deleteConfirm')}
+#{/DataTable.crudTable}

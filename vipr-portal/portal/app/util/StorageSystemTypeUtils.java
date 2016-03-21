@@ -4,7 +4,7 @@ import static util.BourneUtil.getViprClient;
 
 import java.util.List;
 
-import com.emc.storageos.model.storagesystem.type.StorageSystemTypeAdd;
+import com.emc.storageos.model.storagesystem.type.StorageSystemTypeAddParam;
 import com.emc.storageos.model.storagesystem.type.StorageSystemTypeList;
 import com.emc.storageos.model.storagesystem.type.StorageSystemTypeRestRep;
 import com.sun.jersey.api.client.ClientResponse;
@@ -23,7 +23,7 @@ public class StorageSystemTypeUtils {
         return getViprClient().storageSystemType().deleteStorageSystemType(id);
     }
     
-    public static StorageSystemTypeRestRep addStorageSystemType(StorageSystemTypeAdd addparam) {
+    public static StorageSystemTypeRestRep addStorageSystemType(StorageSystemTypeAddParam addparam) {
         return getViprClient().storageSystemType().createStorageSystemType(addparam);
     }
 

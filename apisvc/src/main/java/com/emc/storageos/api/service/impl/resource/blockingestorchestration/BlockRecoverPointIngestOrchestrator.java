@@ -623,8 +623,8 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
         List<String> rpVolumes = new ArrayList<String>();
         for (Volume volume : volumes) {
             rpVolumes.add(volume.getId().toString());
-            StringSet associatedVolumes = volume.getAssociatedVolumes();
-            if (associatedVolumes != null && !associatedVolumes.isEmpty()) {
+            if (RPHelper.isVPlexVolume(volume)) {
+                StringSet associatedVolumes = volume.getAssociatedVolumes();
                 rpVolumes.addAll(associatedVolumes);
             }
         }

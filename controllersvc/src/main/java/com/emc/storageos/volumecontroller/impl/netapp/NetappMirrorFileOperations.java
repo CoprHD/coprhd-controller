@@ -216,7 +216,7 @@ public class NetappMirrorFileOperations implements FileMirrorOperations {
                 targetStorage.getPortNumber(), sourceStorage.getUsername(),
                 targetStorage.getPassword()).https(true).vFiler(portGroupTarget).build();
 
-        String destLocation = getLocation(nApiTarget, sourceFs);
+        String destLocation = getLocation(nApiTarget, targetFs);
 
         // make api call
         nApiTarget.initializeSnapMirror(sourceLocation, destLocation, portGroupTarget);

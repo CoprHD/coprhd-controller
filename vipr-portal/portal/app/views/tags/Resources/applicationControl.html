@@ -10,9 +10,9 @@
 #{if tenants?.size() > 1}
   #{tenantSelector}  
     #{ifnot projects}
-     
+     	#{ifnot applications}
       	<span class="text-warning">&{'resources.noprojects'}</span>
-     
+     	#{/ifnot}
     #{/ifnot}
     #{else}
     		#{Form.selectFilter filters:filterOptions/}
@@ -30,8 +30,8 @@
   #{elseif projects}
     <div class="well well-sm form-inline">
     		#{Form.selectFilter filters:filterOptions/}
-    		#{Form.selectProject projects:projects, selectedProject:session?.activeProjectId/}
-      		#{Form.selectApplication applications:applications,selectedApplication:session?.activeApplicationId/}
+    		#{Form.selectProject projects:projects/}
+      		#{Form.selectApplication applications:applications/}
     </div>
   #{/elseif}
 #{/else}

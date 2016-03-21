@@ -1416,7 +1416,7 @@ public class BackupOps {
                 throw new IllegalStateException(String.format("Get backup info of %s returns null", backupName));
             }
 
-            log.info("Node({}:{}) - Get backup info {} success", host, port, backupName);
+            log.info("Node({}:{}) - Get backup info {} success", new Object[] {host, port, backupName});
             log.info("backupInfo={}", backupInfo);
 
             return backupInfo;
@@ -1695,7 +1695,6 @@ public class BackupOps {
         BackupInfo backupInfo = new BackupInfo();
 
         String backupName = backupFolder.getName();
-        // backupInfo.setFileName(backupName);
 
         try (FileInputStream in = new FileInputStream(propFile)) {
             setBackupInfo(backupInfo, backupName, in);

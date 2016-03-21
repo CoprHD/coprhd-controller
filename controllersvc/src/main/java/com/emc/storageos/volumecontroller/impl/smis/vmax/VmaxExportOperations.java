@@ -111,6 +111,8 @@ public class VmaxExportOperations implements ExportMaskOperations {
     private static final int MAX_RP_RETRIES = 100;
     // Wait 10 seconds before attempting another call to remove RP volumes from export group
     private static final int RP_WAIT_FOR_RETRY = 10000;
+    // Remote copy session error message. Used for error handling/retry.
+    private static String COPY_SESSION_ERROR = "A specified device is involved in a Remote Copy session and cannot be modified";
 
     @Autowired
     private DataSourceFactory dataSourceFactory;
@@ -1177,8 +1179,7 @@ public class VmaxExportOperations implements ExportMaskOperations {
                             } catch (SmisException se) {
                                 if (attempt != retries
                                         && containsRPVolume
-                                        && se.getMessage().contains(
-                                                "A specified device is involved in a Remote Copy session and cannot be modified")) {
+                                        && se.getMessage().contains(COPY_SESSION_ERROR)) {
                                     // There is some delay in terminating the remote copy session between VMAX and RecoverPoint
                                     // so we need to wait and retry.
                                     _log.warn(String

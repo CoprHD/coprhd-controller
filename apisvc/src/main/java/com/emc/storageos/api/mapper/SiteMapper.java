@@ -5,6 +5,7 @@
 package com.emc.storageos.api.mapper;
 
 import com.emc.storageos.coordinator.client.model.Site;
+import com.emc.storageos.coordinator.client.model.SiteMonitorResult;
 import com.emc.storageos.coordinator.client.model.SiteNetworkState.NetworkHealth;
 import com.emc.storageos.coordinator.client.model.SiteState;
 import com.emc.storageos.coordinator.client.service.DrUtil;
@@ -32,6 +33,17 @@ public class SiteMapper {
         if ( networkHealth != null ) {
             to.setNetworkHealth(networkHealth.toString());
         }
+        
+        // check if syssvc are up
+        boolean runningState = drUtil.isSiteUp(from.getUuid());
+        if (runningState) {
+            // check if dbsvc are up
+            SiteMonitorResult monitorResult = drUtil.getCoordinator().getTargetInfo(from.getUuid(), SiteMonitorResult.class);
+            if (monitorResult != null && monitorResult.getDbQuorumLostSince() > 0) {
+                runningState = false;
+            }
+        }
+        to.setRunningState(runningState); 
         return to;
     }
     

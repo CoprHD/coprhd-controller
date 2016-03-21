@@ -368,15 +368,12 @@ public class NetappMirrorFileOperations implements FileMirrorOperations {
         switch (vPool.getFrRpoType()) {
             case "MINUTES":
                 rpoType = "minutes";
-                rpoValue = rpoType;
                 break;
             case "HOURS":
                 rpoType = "hours";
-                rpoValue = rpoType;
                 break;
             case "DAYS":
                 rpoType = "days-of-month";
-                rpoValue = rpoType;
                 break;
         }
 
@@ -407,7 +404,7 @@ public class NetappMirrorFileOperations implements FileMirrorOperations {
             sourcePath = builderLocSource.toString();
         }
 
-        nApiSource.setScheduleSnapMirror(rpoType, rpoValue, sourcePath, targetPath.toString(), portGroupSource);
+        nApiSource.setScheduleSnapMirror(rpoType, String.valueOf(rpo), sourcePath, targetPath, portGroupSource);
         return BiosCommandResult.createSuccessfulResult();
     }
 

@@ -156,7 +156,6 @@ public class VolumeGroupService extends TaskResourceService {
             DiscoveredDataObject.Type.xtremio.name(),
             DiscoveredDataObject.Type.scaleio.name(),
             DiscoveredDataObject.Type.rp.name(),
-            DiscoveredDataObject.Type.srdf.name(),
             DiscoveredDataObject.Type.ibmxiv.name()));
 
     private static final Set<String> PENDING_TASK_NAMES = new HashSet<String>(Arrays.asList(
@@ -3231,6 +3230,16 @@ public class VolumeGroupService extends TaskResourceService {
                             "Storage system type that the volume created in is not allowed");
                 }
                 String volType = getVolumeType(volume, dbClient);
+
+                /*
+                 * Adding SRDF Volume into Application is not supported.
+                 */
+
+                if (DiscoveredDataObject.Type.srdf.name().equals(volType)) {
+                    throw APIException.badRequests.volumeCantBeAddedToVolumeGroup(volume.getLabel(),
+                            "Adding SRDF Volume into application is not supported");
+                }
+
                 if (addedVolType == null) {
                     addedVolType = volType;
                     firstVolLabel = volume.getLabel();
@@ -3239,6 +3248,7 @@ public class VolumeGroupService extends TaskResourceService {
                     throw APIException.badRequests.volumeCantBeAddedToVolumeGroup(volume.getLabel(),
                             "Volume type is not same as others");
                 }
+
 
                 // check to make sure this volume is not part of another application
                 StringSet volumeGroups = volume.getVolumeGroupIds();

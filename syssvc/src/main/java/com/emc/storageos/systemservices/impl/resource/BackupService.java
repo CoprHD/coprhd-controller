@@ -17,6 +17,7 @@ import java.net.InetAddress;
 import java.net.URISyntaxException;
 import java.net.UnknownHostException;
 import java.util.*;
+import java.util.zip.Deflater;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 import java.net.URI;
@@ -43,8 +44,6 @@ import com.emc.storageos.security.authorization.Role;
 import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.services.util.Exec;
 import com.emc.storageos.services.util.NamedThreadPoolExecutor;
-import com.emc.storageos.systemservices.exceptions.SysClientException;
-import com.emc.storageos.systemservices.exceptions.SyssvcException;
 import com.emc.storageos.systemservices.impl.jobs.backupscheduler.BackupScheduler;
 import com.emc.storageos.systemservices.impl.jobs.backupscheduler.SchedulerConfig;
 import com.emc.storageos.systemservices.impl.restore.DownloadExecutor;
@@ -232,25 +231,24 @@ public class BackupService {
     }
 
     /**
-     * Get info for a specific backup file on external server
-     *
-     * @brief Get a specific backup file info
-     * @param backupFileName The name of backup file
+     * Get info for a specific backup
+     * 
+     * @brief Get a specific backup info
+     * @param backupName The name of backup
      * @param isLocal The backup is local or not, false by default
      * @prereq none
-     * @return Info of a specific backup file
+     * @return Info of a specific backup
      */
     @GET
     @Path("backup/info/")
     @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR, Role.RESTRICTED_SYSTEM_ADMIN })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    public BackupInfo queryBackupInfo(@QueryParam("name") String backupFileName, @QueryParam("local") @DefaultValue("false") boolean isLocal) {
-        log.info("Query backup info backupFileName={} isLocal={}", backupFileName, isLocal);
+    public BackupInfo queryBackupInfo(@QueryParam("name") String backupName, @QueryParam("local") @DefaultValue("false") boolean isLocal) {
+        log.info("Query backup info backupFileName={} isLocal={}", backupName, isLocal);
         try {
             if (isLocal) {
                 //query info of a local backup
-                File localBackupFolder = backupOps.getBackupDir(backupFileName, true);
-                return backupOps.getBackupInfo(localBackupFolder, true);
+                return backupOps.queryLocalBackupInfo(backupName);
             }
 
             checkExternalServer();
@@ -261,7 +259,7 @@ public class BackupService {
             String username = cfg.getExternalServerUserName();
             String password = cfg.getExternalServerPassword();
 
-            BackupInfo backupInfo =  backupOps.getBackupInfo(backupFileName, serverUri, username, password);
+            BackupInfo backupInfo =  backupOps.getBackupInfo(backupName, serverUri, username, password);
 
             log.info("The backupInfo={}", backupInfo);
             return backupInfo;
@@ -701,7 +699,30 @@ public class BackupService {
                                   @QueryParam("password") String password,
                                   @QueryParam("isgeofromscratch") @DefaultValue("false") boolean isGeoFromScratch) {
         log.info("Receive restore request");
+
+        if (!canDoRestore(backupName, isLocal)) {
+            return Response.status(ASYNC_STATUS).build();
+        }
+
         return doRestore(backupName, isLocal, password, isGeoFromScratch);
+    }
+
+    private boolean canDoRestore(String backupName, boolean isLocal) {
+        BackupRestoreStatus s = backupOps.queryBackupRestoreStatus(backupName, isLocal);
+        log.info("{} : {}", backupName, s);
+
+        BackupRestoreStatus.Status status = s.getStatus();
+        if (isLocal && status == BackupRestoreStatus.Status.RESTORING) {
+            log.info("The restore from the {} is in progress");
+            return false;
+        }
+
+        if (!isLocal && status != BackupRestoreStatus.Status.DOWNLOAD_SUCCESS) {
+            log.info("The restore from the remote {} is in {} status so can't be restored", status);
+            return false;
+        }
+
+        return true;
     }
 
     private void setRestoreFailed(String backupName, boolean isLocal, String msg, Throwable cause) {
@@ -793,13 +814,11 @@ public class BackupService {
 
     public void collectData(BackupFileSet files, OutputStream outStream) throws IOException {
         ZipOutputStream zos = new ZipOutputStream(outStream);
-        String backupTag = files.first().tag;
+        zos.setLevel(Deflater.BEST_SPEED);
 
-        Set<String> uniqueNodes = files.uniqueNodes();
-
-        List<NodeInfo> nodes = ClusterNodesUtil.getClusterNodeInfo(new ArrayList<>(Arrays.asList(uniqueNodes.toArray(new String[uniqueNodes
-                .size()]))));
-
+        List<String> uniqueNodes = new ArrayList<String>();
+        uniqueNodes.addAll(files.uniqueNodes());
+        List<NodeInfo> nodes = ClusterNodesUtil.getClusterNodeInfo(uniqueNodes);
         if (nodes.size() < uniqueNodes.size()) {
             log.info("Only {}/{} nodes available for the backup, cannot download.", uniqueNodes.size(), nodes.size());
             return;
@@ -816,6 +835,7 @@ public class BackupService {
         boolean propertiesFileFound = false;
         int collectFileCount = 0;
         int totalFileCount = files.size() * 2;
+        String backupTag = files.first().tag;
 
         //upload *_info.properties file first
         for (final NodeInfo node : nodes) {
@@ -836,7 +856,8 @@ public class BackupService {
         }
 
         if (!propertiesFileFound) {
-            throw new FileNotFoundException(String.format("No live node contains %s%s", backupTag, BackupConstants.BACKUP_INFO_SUFFIX));
+            throw new FileNotFoundException(String.format("No live node contains %s%s",
+                    backupTag, BackupConstants.BACKUP_INFO_SUFFIX));
         }
 
         for (final NodeInfo node : nodes) {

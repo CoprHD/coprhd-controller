@@ -10,6 +10,7 @@ import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Pattern;
+import java.util.regex.Matcher;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -136,12 +137,26 @@ public class FtpClient {
     }
 
     public void rename(String sourceFileName, String destFileName) throws Exception {
+        String server = uri;
+        String folder = null;
+
+        Pattern portPattern = Pattern.compile(":\\d+");
+        Matcher portMatcher = portPattern.matcher(uri);
+        if (portMatcher.find()) {
+            server = uri.trim().substring(0, portMatcher.end());
+            if (!uri.endsWith(portMatcher.group())) {
+                folder = uri.trim().substring(portMatcher.end() + 1);
+                folder = folder.endsWith("/") ? folder : (folder + "/");
+            }
+        }
+
         ProcessBuilder builder = getBuilder();
-        builder.command().add(uri);
+        builder.command().add(server);
         builder.command().add("-Q");
-        builder.command().add("RNFR " + sourceFileName);
+        builder.command().add("RNFR " + folder + sourceFileName);
         builder.command().add("-Q");
-        builder.command().add("RNTO " + destFileName);
+        builder.command().add("RNTO " + folder + destFileName);
+        log.info("cmd={}", builder.command());
 
         try (ProcessRunner processor = new ProcessRunner(builder.start(), false)) {
             StringBuilder errText = new StringBuilder();

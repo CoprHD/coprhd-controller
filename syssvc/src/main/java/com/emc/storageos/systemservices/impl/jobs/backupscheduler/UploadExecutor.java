@@ -97,12 +97,12 @@ public class UploadExecutor {
                 }
 
                 String zipName = this.cli.generateZipFileName(tag, files);
-                if (hasCompleteBackupFileOnServer(zipName)) {
+                if (hasCompleteBackupFileOnServer(tag, zipName)) {
                     if (force) {
                         zipName = renameToSolveDuplication(zipName);
                     } else {
                         setUploadStatus(null, Status.FAILED, null, ErrorCode.REMOTE_ALREADY_EXIST);
-                        return String.format("Cannot find target backup set '%s'.", tag);
+                        return String.format("Backup(%s) already exist on external server", tag);
                     }
                 }
 
@@ -113,8 +113,8 @@ public class UploadExecutor {
                     this.cli.uploadTo(files, len, uploadStream);
                 }
 
-                setUploadStatus(null, Status.DONE, 100, null);
                 markIncompleteZipFileFinished(zipName, true);
+                setUploadStatus(null, Status.DONE, 100, null);
                 return null;
             } catch (Exception e) {
                 lastErrorMessage = e.getMessage();
@@ -287,8 +287,7 @@ public class UploadExecutor {
         }
     }
 
-    private boolean hasCompleteBackupFileOnServer(String toUploadedFileName) throws Exception {
-        String backupTag = toUploadedFileName.split(BackupConstants.UPLOAD_ZIP_FILE_NAME_DELIMITER)[0];
+    private boolean hasCompleteBackupFileOnServer(String backupTag, String toUploadedFileName) throws Exception {
         String prefix = backupTag + BackupConstants.UPLOAD_ZIP_FILE_NAME_DELIMITER;
         log.info("Check with prefix  {}", prefix);
 

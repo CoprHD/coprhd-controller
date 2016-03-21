@@ -5704,11 +5704,12 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                 snapshotsIterable = filtered;
             }
 
+            String waitFor = null;
             for (URI snapshotURI : snapshotsIterable) {
-                workflow.createStep(
+                waitFor = workflow.createStep(
                         RELINK_SNAPSHOT_SESSION_TARGET_STEP_GROUP,
                         String.format("Re-linking target to snapshot session %s", tgtSnapSessionURI),
-                        null, systemURI, getDeviceType(systemURI), getClass(),
+                        waitFor, systemURI, getDeviceType(systemURI), getClass(),
                         relinkBlockSnapshotSessionTargetMethod(systemURI, tgtSnapSessionURI, snapshotURI),
                         null, null);
             }

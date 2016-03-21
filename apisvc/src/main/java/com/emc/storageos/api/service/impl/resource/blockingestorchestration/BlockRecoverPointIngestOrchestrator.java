@@ -28,6 +28,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext;
+import com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.VolumeIngestionContext;
 import com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.impl.RecoverPointVolumeIngestionContext;
 import com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.impl.RpVplexVolumeIngestionContext;
 import com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.impl.VplexVolumeIngestionContext;
@@ -39,6 +40,7 @@ import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.BlockMirror;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.BlockSnapshot;
+import com.emc.storageos.db.client.model.BlockSnapshotSession;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.Initiator;
@@ -584,7 +586,7 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
 
         VolumeIngestionUtil.decorateRPVolumesCGInfo(volumes, pset, cg, updatedObjects, _dbClient, requestContext);
         VolumeIngestionUtil.clearPersistedReplicaFlags(requestContext, volumes, updatedObjects, _dbClient);
-        clearReplicaFlagsInIngestionContext(volumeContext);
+        clearReplicaFlagsInIngestionContext(volumeContext, volumes);
 
         for (DataObject volume : updatedObjects) {
             if (volumeContext.getManagedBlockObject().getId().equals(volume.getId())
@@ -602,16 +604,50 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
      * Clear the flags of replicas which have been updated during the ingestion process
      *
      * @param volumeContext
+     * @param volumes RP volumes
      */
-    private void clearReplicaFlagsInIngestionContext(RecoverPointVolumeIngestionContext volumeContext) {
+    private void clearReplicaFlagsInIngestionContext(RecoverPointVolumeIngestionContext volumeContext, List<Volume> volumes) {
         for (Set<DataObject> updatedObjects : volumeContext.getDataObjectsToBeUpdatedMap().values()) {
             for (DataObject updatedObject : updatedObjects) {
                 if (updatedObject instanceof BlockMirror || updatedObject instanceof BlockSnapshot
+                        || updatedObject instanceof BlockSnapshotSession
                         || (updatedObject instanceof Volume && ((Volume) updatedObject).getAssociatedSourceVolume() != null)) {
+                    _logger.info("Clearing internal volume flag of replica {} of RP volume ", updatedObject.getLabel());
                     updatedObject.clearInternalFlags(INTERNAL_VOLUME_FLAGS);
                 }
             }
         }
+
+        // We need to look for all snapshots and snapshot session in the contexts related to the rp volumes and its backend volumes and
+        // clear their flags.
+        List<String> rpVolumes = new ArrayList<String>();
+        for (Volume volume : volumes) {
+            rpVolumes.add(volume.getId().toString());
+            StringSet associatedVolumes = volume.getAssociatedVolumes();
+            if (associatedVolumes != null && !associatedVolumes.isEmpty()) {
+                rpVolumes.addAll(associatedVolumes);
+            }
+        }
+        for (VolumeIngestionContext volumeIngestionContext : volumeContext.getRootIngestionRequestContext().getProcessedUnManagedVolumeMap()
+                .values()) {
+            if (volumeIngestionContext instanceof IngestionRequestContext) {
+                for (Set<DataObject> objectsToBeUpdated : ((IngestionRequestContext) volumeIngestionContext).getDataObjectsToBeUpdatedMap()
+                        .values()) {
+                    for (DataObject o : objectsToBeUpdated) {
+                        if (o instanceof BlockSnapshot && rpVolumes.contains(((BlockSnapshot) o).getParent().getURI().toString())) {
+                            _logger.info("Clearing internal volume flag of BlockSnapshot {} of RP volume ", o.getLabel());
+                            o.clearInternalFlags(INTERNAL_VOLUME_FLAGS);
+
+                        } else if (o instanceof BlockSnapshotSession
+                                && rpVolumes.contains(((BlockSnapshotSession) o).getParent().getURI().toString())) {
+                            _logger.info("Clearing internal volume flag of BlockSnapshotSession {} of RP volume ", o.getLabel());
+                            o.clearInternalFlags(INTERNAL_VOLUME_FLAGS);
+                        }
+                    }
+                }
+            }
+        }
+
     }
 
     /**
@@ -718,7 +754,8 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
                 em = unManagedRPExportMasks.get(0);
             }
 
-            String exportGroupGeneratedName = RPHelper.generateExportGroupName(protectionSystem, storageSystem, internalSiteName, virtualArray);
+            String exportGroupGeneratedName = RPHelper.generateExportGroupName(protectionSystem, storageSystem, internalSiteName,
+                    virtualArray);
 
             ExportGroup exportGroup = VolumeIngestionUtil.verifyExportGroupExists(
                     parentRequestContext, exportGroupGeneratedName, project.getId(),

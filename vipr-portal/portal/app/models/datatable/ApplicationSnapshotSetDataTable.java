@@ -24,14 +24,19 @@ public class ApplicationSnapshotSetDataTable extends DataTable {
 	public static class ApplicationSnapshotSets {
 		public String snapshotGroups;
 		public long createdTime;
+		public String groups;
 		public List<String> subGroup = Lists.newArrayList();
 		
 		public ApplicationSnapshotSets(String sets, List<NamedRelatedResourceRep> snapshotDetails) {
 			snapshotGroups = sets;
-			for(NamedRelatedResourceRep snap : snapshotDetails) {
-    			BlockSnapshotRestRep snapshots = BourneUtil.getViprClient().blockSnapshots().get((snap.getId()));
-    			createdTime = snapshots.getCreationTime().getTime().getTime();;
-    			subGroup.add(snapshots.getReplicationGroupInstance());
+			for (NamedRelatedResourceRep snap : snapshotDetails) {
+				BlockSnapshotRestRep snapshots = BourneUtil.getViprClient()
+						.blockSnapshots().get((snap.getId()));
+				createdTime = snapshots.getCreationTime().getTime().getTime();
+				groups = snapshots.getReplicationGroupInstance();
+				if (!subGroup.contains(groups)) {
+					subGroup.add(groups);
+				}
 			}
 		}
 	}

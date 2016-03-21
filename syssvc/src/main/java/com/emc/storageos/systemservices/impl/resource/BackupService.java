@@ -17,6 +17,7 @@ import java.net.InetAddress;
 import java.net.URISyntaxException;
 import java.net.UnknownHostException;
 import java.util.*;
+import java.util.zip.Deflater;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 import java.net.URI;
@@ -230,25 +231,24 @@ public class BackupService {
     }
 
     /**
-     * Get info for a specific backup file on external server
-     *
-     * @brief Get a specific backup file info
-     * @param backupFileName The name of backup file
+     * Get info for a specific backup
+     * 
+     * @brief Get a specific backup info
+     * @param backupName The name of backup
      * @param isLocal The backup is local or not, false by default
      * @prereq none
-     * @return Info of a specific backup file
+     * @return Info of a specific backup
      */
     @GET
     @Path("backup/info/")
     @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR, Role.RESTRICTED_SYSTEM_ADMIN })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    public BackupInfo queryBackupInfo(@QueryParam("name") String backupFileName, @QueryParam("local") @DefaultValue("false") boolean isLocal) {
-        log.info("Query backup info backupFileName={} isLocal={}", backupFileName, isLocal);
+    public BackupInfo queryBackupInfo(@QueryParam("name") String backupName, @QueryParam("local") @DefaultValue("false") boolean isLocal) {
+        log.info("Query backup info backupFileName={} isLocal={}", backupName, isLocal);
         try {
             if (isLocal) {
                 //query info of a local backup
-                File localBackupFolder = backupOps.getBackupDir(backupFileName, true);
-                return backupOps.getBackupInfo(localBackupFolder, true);
+                return backupOps.queryLocalBackupInfo(backupName);
             }
 
             checkExternalServer();
@@ -259,7 +259,7 @@ public class BackupService {
             String username = cfg.getExternalServerUserName();
             String password = cfg.getExternalServerPassword();
 
-            BackupInfo backupInfo =  backupOps.getBackupInfo(backupFileName, serverUri, username, password);
+            BackupInfo backupInfo =  backupOps.getBackupInfo(backupName, serverUri, username, password);
 
             log.info("The backupInfo={}", backupInfo);
             return backupInfo;
@@ -814,13 +814,11 @@ public class BackupService {
 
     public void collectData(BackupFileSet files, OutputStream outStream) throws IOException {
         ZipOutputStream zos = new ZipOutputStream(outStream);
-        String backupTag = files.first().tag;
+        zos.setLevel(Deflater.BEST_SPEED);
 
-        Set<String> uniqueNodes = files.uniqueNodes();
-
-        List<NodeInfo> nodes = ClusterNodesUtil.getClusterNodeInfo(new ArrayList<>(Arrays.asList(uniqueNodes.toArray(new String[uniqueNodes
-                .size()]))));
-
+        List<String> uniqueNodes = new ArrayList<String>();
+        uniqueNodes.addAll(files.uniqueNodes());
+        List<NodeInfo> nodes = ClusterNodesUtil.getClusterNodeInfo(uniqueNodes);
         if (nodes.size() < uniqueNodes.size()) {
             log.info("Only {}/{} nodes available for the backup, cannot download.", uniqueNodes.size(), nodes.size());
             return;
@@ -837,6 +835,7 @@ public class BackupService {
         boolean propertiesFileFound = false;
         int collectFileCount = 0;
         int totalFileCount = files.size() * 2;
+        String backupTag = files.first().tag;
 
         //upload *_info.properties file first
         for (final NodeInfo node : nodes) {
@@ -857,7 +856,8 @@ public class BackupService {
         }
 
         if (!propertiesFileFound) {
-            throw new FileNotFoundException(String.format("No live node contains %s%s", backupTag, BackupConstants.BACKUP_INFO_SUFFIX));
+            throw new FileNotFoundException(String.format("No live node contains %s%s",
+                    backupTag, BackupConstants.BACKUP_INFO_SUFFIX));
         }
 
         for (final NodeInfo node : nodes) {

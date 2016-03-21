@@ -399,6 +399,10 @@ public class SchedulerConfig {
         return false;
     }
 
+    public boolean isClusterUpgradable() {
+        return coordinator.isClusterUpgradable();
+    }
+
     public String getSoftwareVersion() {
         return softwareVersion;
     }

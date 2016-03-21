@@ -1706,7 +1706,7 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
      * @param replicationGroupName name of the replication group to be deleted
      * @param keepRGName Boolean if true, ViPR will keep group name for CG
      * @param markInactive True, if the user initiated removal of the BlockConsistencyGroup
-     * @param sourceReplicatoinGroup source replication group name
+     * @param sourceReplicationGroup source replication group name
      * @param taskCompleter TaskCompleter
 
      * @throws DeviceControllerException
@@ -1744,40 +1744,37 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
 
             // Find a provider with reference to the CG
             storage = findProviderFactory.withGroup(storage, groupName).find();
-            if (storage == null) {
-                // Fail the task
-                serviceError = DeviceControllerErrors.smis.noConsistencyGroupWithGivenName();
-                _log.warn(String.format("Consistency group %s not found on %s", groupName, systemURI));
-                return;
-            }
+            if (storage != null) {
+                // Check if the CG exists
+                CIMObjectPath cgPath = _cimPath.getReplicationGroupPath(storage, groupName);
+                CIMObjectPath replicationSvc = _cimPath.getControllerReplicationSvcPath(storage);
+                CIMInstance cgPathInstance = _helper.checkExists(storage, cgPath, false, false);
 
-            // Check if the CG exists
-            CIMObjectPath cgPath = _cimPath.getReplicationGroupPath(storage, groupName);
-            CIMObjectPath replicationSvc = _cimPath.getControllerReplicationSvcPath(storage);
-            CIMInstance cgPathInstance = _helper.checkExists(storage, cgPath, false, false);
+                if (cgPathInstance != null) {
+                    if (storage.deviceIsType(Type.vnxblock)) {
+                        cleanupAnyGroupBackupSnapshots(storage, cgPath);
+                    }
 
-            if (cgPathInstance != null) {
-                if (storage.deviceIsType(Type.vnxblock)) {
-                    cleanupAnyGroupBackupSnapshots(storage, cgPath);
+                    if (storage.deviceIsType(Type.vmax) && storage.checkIfVmax3()) {
+                        // if deleting snap session replication group, we need to remove the EMCSFSEntries first
+                        _helper.removeSFSEntryForReplicaReplicationGroup(storage, replicationSvc, replicationGroupName);
+                    }
+
+                    if (sourceReplicationGroup != null && !sourceReplicationGroup.isEmpty()) {
+                        //  if deleting full copy replication group, we need to remove the EMCSFSEntries first
+                        _helper.removeSFSEntryForReplicaReplicationGroup(storage, replicationSvc, replicationGroupName,
+                                sourceReplicationGroup);
+
+                    }
+                    // Invoke the deletion of the consistency group
+                    CIMArgument[] inArgs;
+                    CIMArgument[] outArgs = new CIMArgument[5];
+                    inArgs = _helper.getDeleteReplicationGroupInputArguments(storage, groupName);
+                    _helper.invokeMethod(storage, replicationSvc, SmisConstants.DELETE_GROUP, inArgs,
+                            outArgs);
                 }
-
-                if (storage.deviceIsType(Type.vmax) && storage.checkIfVmax3()) {
-                    // if deleting snap session replication group, we need to remove the EMCSFSEntries first
-                    _helper.removeSFSEntryForReplicaReplicationGroup(storage, replicationSvc, replicationGroupName);
-                }
-
-                if (sourceReplicationGroup != null && !sourceReplicationGroup.isEmpty()) {
-                    //  if deleting full copy replication group, we need to remove the EMCSFSEntries first
-                    _helper.removeSFSEntryForReplicaReplicationGroup(storage, replicationSvc, replicationGroupName,
-                            sourceReplicationGroup);
-                    
-                }
-                // Invoke the deletion of the consistency group
-                CIMArgument[] inArgs;
-                CIMArgument[] outArgs = new CIMArgument[5];
-                inArgs = _helper.getDeleteReplicationGroupInputArguments(storage, groupName);
-                _helper.invokeMethod(storage, replicationSvc, SmisConstants.DELETE_GROUP, inArgs,
-                        outArgs);
+            } else {
+                _log.info("No storage provider available with group {}.  Assume it has already been deleted.");
             }
 
             if (keepRGName || consistencyGroup == null) {

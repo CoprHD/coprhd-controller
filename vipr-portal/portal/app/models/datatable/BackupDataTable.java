@@ -8,6 +8,7 @@ import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 import java.util.List;
 
+import com.emc.vipr.model.sys.backup.BackupInfo;
 import com.emc.vipr.model.sys.backup.BackupRestoreStatus;
 import play.Logger;
 import util.BackupUtils;
@@ -30,16 +31,22 @@ public class BackupDataTable extends DataTable {
 
     public BackupDataTable(Type type) {
         addColumn("name");
-        addColumn("creationtime").setCssClass("time");
+        addColumn("sitename");
+        addColumn("version");
+        addColumn("size");
+        addColumn("creationtime").setSearchable(false).setCssClass("time");
         addColumn("actionstatus").setSearchable(false).setRenderFunction(
                 "render.uploadAndRestoreProgress");
         if (type == Type.LOCAL) {
-            addColumn("size").setRenderFunction("render.backupSize");
             alterColumn("creationtime").setRenderFunction("render.localDate");
+            alterColumn("size").setRenderFunction("render.backupSize");
             addColumn("action").setSearchable(false).setRenderFunction(
                     "render.uploadAndRestoreBtn");
         } else if (type == Type.REMOTE) {
-            alterColumn("creationtime").setSearchable(false).setRenderFunction("render.externalLoading");
+            alterColumn("creationtime").setRenderFunction("render.externalLoading");
+            alterColumn("sitename").setRenderFunction("render.externalLoading");
+            alterColumn("version").setRenderFunction("render.externalLoading");
+            alterColumn("size").setRenderFunction("render.externalLoading");
             addColumn("action").setSearchable(false).setRenderFunction(
                     "render.restoreBtn");
         }
@@ -53,8 +60,8 @@ public class BackupDataTable extends DataTable {
         if (type == Type.LOCAL) {
             for (BackupSet backupSet : BackupUtils.getBackups()) {
                 Backup backup = new Backup(backupSet);
-                BackupRestoreStatus restoreStatus = BackupUtils.getRestoreStatus(backupSet.getName(), true);
-                backup.alterLocalBackupRestoreStatus(restoreStatus);
+                BackupInfo backupInfo = BackupUtils.getBackupInfo(backupSet.getName(), true);
+                backup.alterLocalBackupInfo(backupInfo);
                 results.add(backup);
             }
         } else if (type == Type.REMOTE) {
@@ -72,6 +79,8 @@ public class BackupDataTable extends DataTable {
 
     public static class Backup {
         public String name;
+        public String version;
+        public String sitename;
         public long creationtime;
         public long size;
         public String id;
@@ -130,6 +139,12 @@ public class BackupDataTable extends DataTable {
                     this.error = restoreStatus.getDetails();
                 }
             }
+        }
+
+        public void alterLocalBackupInfo(BackupInfo backupInfo) {
+            this.version = backupInfo.getVersion();
+            this.sitename = backupInfo.getSiteName();
+            this.alterLocalBackupRestoreStatus(backupInfo.getRestoreStatus());
         }
     }
 }

@@ -71,12 +71,17 @@ import com.emc.storageos.db.client.model.UserGroup;
 import com.emc.storageos.db.client.model.Vcenter;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
+import com.emc.storageos.db.client.model.Volume;
+import com.emc.storageos.db.client.model.VolumeGroup;
+import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.common.VdcUtil;
 import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.model.BulkIdParam;
+import com.emc.storageos.model.NamedRelatedResourceRep;
 import com.emc.storageos.model.RelatedResourceRep;
 import com.emc.storageos.model.ResourceTypeEnum;
 import com.emc.storageos.model.TaskResourceRep;
+import com.emc.storageos.model.application.VolumeGroupList;
 import com.emc.storageos.model.auth.PrincipalsToValidate;
 import com.emc.storageos.model.auth.RoleAssignmentChanges;
 import com.emc.storageos.model.auth.RoleAssignmentEntry;
@@ -117,6 +122,7 @@ import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.svcs.errorhandling.resources.BadRequestException;
 import com.emc.storageos.svcs.errorhandling.resources.ForbiddenException;
+import com.emc.storageos.volumecontroller.impl.ControllerUtils;
 import com.emc.storageos.volumecontroller.impl.monitoring.RecordableBourneEvent;
 import com.emc.storageos.volumecontroller.impl.monitoring.RecordableEventManager;
 import com.emc.storageos.volumecontroller.impl.monitoring.cim.enums.RecordType;
@@ -725,6 +731,44 @@ public class TenantsService extends TaggedResource {
                     toNamedRelatedResource(ResourceTypeEnum.PROJECT, el.getId(), el.getName()));
         }
         return list;
+    }
+
+    /**
+     * List volume groups the user is authorized to see
+     * 
+     * @param id the URN of a ViPR Tenant/Subtenant
+     * @prereq none
+     * @brief List volume groups
+     * @return List of volume groups
+     */
+    @GET
+    @Path("/{id}/volume-groups")
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    public VolumeGroupList listVolumeGroups(@PathParam("id") URI id) {
+        // tenant id and user permission will get validated in listProjects()
+        ProjectList projectList = listProjects(id);
+        Set<URI> projects = new HashSet<URI>();
+        for (NamedRelatedResourceRep projectRep : projectList.getProjects()) {
+            projects.add(projectRep.getId());
+        }
+
+        // for each project, get all volumes. Collect volume group ids for all volumes
+        StringSet volumeGroups = new StringSet();
+        for (URI project : projects) {
+            List<Volume> volumes = CustomQueryUtility.queryActiveResourcesByConstraint(_dbClient, Volume.class,
+                    ContainmentConstraint.Factory.getProjectVolumeConstraint(project));
+            for (Volume volume : volumes) {
+                volumeGroups.addAll(volume.getVolumeGroupIds());
+            }
+        }
+
+        // form Volume Group list response
+        VolumeGroupList volumeGroupList = new VolumeGroupList();
+        for (String vg : volumeGroups) {
+            VolumeGroup volumeGroup = _dbClient.queryObject(VolumeGroup.class, URI.create(vg));
+            volumeGroupList.getVolumeGroups().add(toNamedRelatedResource(volumeGroup));
+        }
+        return volumeGroupList;
     }
 
     /**

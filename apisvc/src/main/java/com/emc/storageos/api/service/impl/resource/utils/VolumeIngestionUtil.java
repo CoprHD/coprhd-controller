@@ -2362,13 +2362,15 @@ public class VolumeIngestionUtil {
      * be what the caller wants.
      *
      * @param requestContext current unManagedVolume Ingestion context.
+     * @param exportGroupGeneratedName the generated name for the ExportGroup label
      * @param project project
      * @param knownInitiatorUris initiators list
      * @param vArray virtual array
      * @param dbClient dbclient
      * @return export group
      */
-    public static ExportGroup verifyExportGroupExists(IngestionRequestContext requestContext, URI project, StringSet knownInitiatorUris,
+    public static ExportGroup verifyExportGroupExists(IngestionRequestContext requestContext, 
+            String exportGroupGeneratedName, URI project, StringSet knownInitiatorUris,
             URI vArray, DbClient dbClient) {
         ExportGroup exportGroup = null;
 
@@ -2378,6 +2380,11 @@ public class VolumeIngestionUtil {
             dbClient.queryByConstraint(constraint, egUris);
             List<ExportGroup> queryExportGroups = dbClient.queryObject(ExportGroup.class, egUris);
             for (ExportGroup eg : queryExportGroups) {
+
+                if (!eg.getGeneratedName().equals(exportGroupGeneratedName)) {
+                    continue;
+                }
+
                 if (!eg.getProject().getURI().equals(project)) {
                     continue;
                 }

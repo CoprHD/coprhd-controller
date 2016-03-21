@@ -4,20 +4,20 @@ public class Workflow {
     private String _status;
     private String id;
     private Context context; 
-    private String instanceId;
-    private WorkflowTasks workflowTasks;
+    private String completeEventString;
+    private FinishedTask[] finishedTasks;
 
-    public WorkflowTasks getWorkflowTasks() {
-        return workflowTasks;
+    public FinishedTask[] getFinishedTasks() {
+        return finishedTasks;
     }
-    public void setWorkflowTasks(WorkflowTasks workflowTasks) {
-        this.workflowTasks = workflowTasks;
+    public void setFinishedTasks(FinishedTask[] finishedTasks) {
+        this.finishedTasks = finishedTasks;
     }
-    public String getInstanceId() {
-        return instanceId;
+    public String getCompleteEventString() {
+        return completeEventString;
     }
-    public void setInstanceId(String instanceId) {
-        this.instanceId = instanceId;
+    public void setCompleteEventString(String completeEventString) {
+        this.completeEventString = completeEventString;
     }
     public Context getContext() {
         return context;

@@ -33,14 +33,14 @@ public class RackHdTask extends ViPRExecutionTask<String> {
 
     private Map<String, Object> params;
     private String workflowName;
-    private String playbookName;
+    private List<String> playbookNameList;
     private RackHdRestClient restClient;
 
-    public RackHdTask(Map<String, Object> params, String workflowName, String playbookName) {
+    public RackHdTask(Map<String, Object> params, String workflowName, List<String> playbookNameList) {
         super();
         this.params = params;
         this.workflowName = workflowName;
-        this.playbookName = playbookName;
+        this.playbookNameList = playbookNameList;
 
         //init rest client
         RackHdRestClientFactory factory = new RackHdRestClientFactory();
@@ -62,28 +62,27 @@ public class RackHdTask extends ViPRExecutionTask<String> {
         String nodeListResponse = makeRestCall(RACKHD_API_NODES);
         String nodeId = RackHdUtils.getAnyNode(nodeListResponse);         
 
-        ExecutionUtils.currentContext().logInfo("RackHD Workflow executing " +
-                "against node '" + nodeId + "'");
+        ExecutionUtils.currentContext().logInfo("Selected RackHD node to run workflow against.  " +
+                "ID " + nodeId);
         
         String apiWorkflowUri = "/api/1.1/nodes/" + nodeId + "/workflows";
+        String postBody = RackHdUtils.makePostBody(params,workflowName,playbookNameList);
+        String workflowResponse = makeRestCall(apiWorkflowUri, postBody);
 
-        String workflowResponse = makeRestCall(apiWorkflowUri,
-                RackHdUtils.makePostBody(params, workflowName,playbookName));
-
-        ExecutionUtils.currentContext().logInfo("RackHD Workflow " +
+        ExecutionUtils.currentContext().logInfo("Started Workflow on RackHD.  ID " +
                 RackHdUtils.getWorkflowId(workflowResponse) + 
-                " started at " + apiWorkflowUri + " with params " + params);
+                "  API Call: POST " + apiWorkflowUri + " with body " + postBody);
         
         // Get results - wait for RackHD workflow to complete
 
         int intervals = 0;
-        List<String> finishedTasks = new ArrayList<>();
+        List<String> finishedTaskIds = new ArrayList<>();
         do { 
             RackHdUtils.sleep(RACKHD_WORKFLOW_CHECK_INTERVAL);
             workflowResponse = makeRestCall(RACKHD_API_WORKFLOWS + "/" + 
                     RackHdUtils.getWorkflowId(workflowResponse));            
-            finishedTasks = RackHdUtils.
-                    updateAffectedResources(workflowResponse,finishedTasks);
+            finishedTaskIds = RackHdUtils.
+                    updateAffectedResources(workflowResponse,finishedTaskIds);
             if( RackHdUtils.isTimedOut(++intervals) ) {
                 ExecutionUtils.currentContext().logError("RackHD Workflow " +
                         RackHdUtils.getWorkflowId(workflowResponse) + 

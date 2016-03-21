@@ -27,22 +27,19 @@ import com.emc.storageos.customconfigcontroller.DataSourceFactory;
 import com.emc.storageos.customconfigcontroller.impl.CustomConfigHandler;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
-import com.emc.storageos.db.client.constraint.ContainmentConstraint;
-import com.emc.storageos.db.client.constraint.QueryResultList;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
+import com.emc.storageos.db.client.model.DiscoveredDataObject.DataCollectionJobStatus;
+import com.emc.storageos.db.client.model.DiscoveredDataObject.RegistrationStatus;
 import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.ExportMask;
-import com.emc.storageos.db.client.model.FCEndpoint;
 import com.emc.storageos.db.client.model.FCZoneReference;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.NetworkSystem;
 import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.model.StorageProtocol;
-import com.emc.storageos.db.client.model.DiscoveredDataObject.DataCollectionJobStatus;
-import com.emc.storageos.db.client.model.DiscoveredDataObject.RegistrationStatus;
 import com.emc.storageos.db.client.model.StorageProtocol.Transport;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringSet;
@@ -311,10 +308,7 @@ public class NetworkScheduler {
                 networkFabricInfo.getEndPoints().addAll(endPoints);
                 networkFabricInfo.setAltNetworkDeviceId(URI.create(altNetworkSystem.getId().toString()));
                 nameZone(networkFabricInfo, networkSystem.getSystemType(), hostName, initiatorPort, storagePort, !portNet.equals(iniNet));
-            } else {
-                // This should not happen unless the transport zones were manually entered
-                throw DeviceControllerException.exceptions.cannotFindSwitchConnectionToInitiator();
-            }
+            } 
             return networkFabricInfo;
         }
     }
@@ -436,7 +430,6 @@ public class NetworkScheduler {
         	}	
         } else {
         	_log.info("No FC Zone References for key found");
-        	return null;
         }
         return list;
     }
@@ -473,7 +466,7 @@ public class NetworkScheduler {
      */
     List<NetworkSystem> getZoningNetworkSystems(NetworkLite iniNetwork,
             NetworkLite portNetwork) {
-        Iterator<NetworkSystem> orderedNetworkSystems = null;
+        List<NetworkSystem> orderedNetworkSystems = new ArrayList<NetworkSystem>();
         List<NetworkSystem> idleNetworkSystems = new ArrayList<NetworkSystem>();
         List<NetworkSystem> deRegisteredNetworkSystems = new ArrayList<NetworkSystem>();
         List<URI> iniNetSys = (iniNetwork == null) ?
@@ -490,25 +483,24 @@ public class NetworkScheduler {
             allSys.addAll(portNetSys);
         }
         if (!allSys.isEmpty()) {
-            orderedNetworkSystems = _dbClient.queryIterativeObjects(NetworkSystem.class, allSys, true);
-            if (orderedNetworkSystems.hasNext()) {
-	            while (orderedNetworkSystems.hasNext()) {
-	            	NetworkSystem networkSystem = orderedNetworkSystems.next();
-	            	if (networkSystem.getRegistrationStatus().equals(RegistrationStatus.UNREGISTERED.toString())) {
-	                    _log.info("Network System {} is not used as it is not registered.", networkSystem.getLabel());
-	                    deRegisteredNetworkSystems.add(networkSystem);
-	                } else if (networkSystem.getDiscoveryStatus().equals(DataCollectionJobStatus.ERROR.toString()) ||
-	                        networkSystem.getDiscoveryStatus().equals(DataCollectionJobStatus.CREATED.toString())) {
-	                    _log.info("Network System {} is moved to the end of Network System list as its discovery is not successful.",
-	                            networkSystem.getLabel());
-	                    idleNetworkSystems.add(networkSystem);
-	                }      	
-	            }
-                ((QueryResultList<URI>) orderedNetworkSystems).removeAll(deRegisteredNetworkSystems);
-                ((QueryResultList<URI>) orderedNetworkSystems).removeAll(idleNetworkSystems);
-                Collections.shuffle((List<?>) orderedNetworkSystems);
+            orderedNetworkSystems = _dbClient.queryObject(NetworkSystem.class, allSys, true);
+            if (!orderedNetworkSystems.isEmpty()) {
+                for (NetworkSystem networkSystem : orderedNetworkSystems) {
+                    if (networkSystem.getRegistrationStatus().equals(RegistrationStatus.UNREGISTERED.toString())) {
+                        _log.info("Network System {} is not used as it is not registered.", networkSystem.getLabel());
+                        deRegisteredNetworkSystems.add(networkSystem);
+                    } else if (networkSystem.getDiscoveryStatus().equals(DataCollectionJobStatus.ERROR.toString()) ||
+                            networkSystem.getDiscoveryStatus().equals(DataCollectionJobStatus.CREATED.toString())) {
+                        _log.info("Network System {} is moved to the end of Network System list as its discovery is not successful.",
+                                networkSystem.getLabel());
+                        idleNetworkSystems.add(networkSystem);
+                    }
+                }
+                orderedNetworkSystems.removeAll(deRegisteredNetworkSystems);
+                orderedNetworkSystems.removeAll(idleNetworkSystems);
+                Collections.shuffle(orderedNetworkSystems);
                 Collections.shuffle(idleNetworkSystems);
-                ((QueryResultList<URI>) orderedNetworkSystems).addAll((Collection)idleNetworkSystems);
+                orderedNetworkSystems.addAll(idleNetworkSystems);
             } else {
                 _log.warn("Could not find any active network systems that can be used to zone.");
             }
@@ -516,38 +508,7 @@ public class NetworkScheduler {
             _log.warn("Could not find any network systems that can be used to zone.");
 
         }
-        return (List<NetworkSystem>) orderedNetworkSystems;
-    }
-
-    /**
-     * Returns all the FCEndpoint instances discovered on a network system
-     * filtered by an initiator and storage port
-     * 
-     * @param ns the network system
-     * @param initiator the initiator
-     * @param port the storage port
-     * @return
-     */
-    private List<FCEndpoint> getFCEndpointsForNetworkSystem(NetworkSystem ns,
-            String initiator, String port) {
-        List<FCEndpoint> eps = new ArrayList<FCEndpoint>();
-        URIQueryResultList result = new URIQueryResultList();
-        _dbClient.queryByConstraint(
-                ContainmentConstraint.Factory
-                        .getNetworkSystemFCPortConnectionConstraint(ns.getId()), result);
-        // loop thru the connections and get all those we need
-        for (URI uriFcPortConnection : result) {
-            FCEndpoint connection = _dbClient.queryObject(
-                    FCEndpoint.class, uriFcPortConnection);
-            if (connection == null) {
-                continue;
-            }
-            if (port.equals(connection.getRemotePortName()) ||
-                    initiator.equals(connection.getRemotePortName())) {
-                eps.add(connection);
-            }
-        }
-        return eps;
+        return orderedNetworkSystems;
     }
 
     /**
@@ -1121,7 +1082,6 @@ public class NetworkScheduler {
      * @return List<NetworkFCZoneInfo> detailing zones to be removed or at least unreferenced
      * @throws IOException
      */
-    @SuppressWarnings("deprecation")
     public List<NetworkFCZoneInfo> unexportVolumes(URI nbrUri, Collection<URI> volUris, URI exportGroupUri,
             URI storagePortUri, String initiatorPort) {
         List<NetworkFCZoneInfo> ourReferences = new ArrayList<NetworkFCZoneInfo>();
@@ -1324,7 +1284,7 @@ public class NetworkScheduler {
         }
         if (changed) {
             // Update the mask to save the zoningMap entries.
-            dbClient.persistObject(mask);
+            dbClient.updateObject(mask);
         }
     }
 

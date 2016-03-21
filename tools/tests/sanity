@@ -7482,13 +7482,26 @@ dr_basic_tests()
     dr waitforstable 30 1200
     project show ${projectid_new}
 
+    echo "---PREPARING STANDBY_DEGRADED TEST---"
+    syssvc $CONFIG_FILE "$DR_SITE_A_IP" set_prop system_permit_root_ssh yes
+    dr waitforstable 10 600
+    tune_dr_config ${DR_SITE_A_IP} degrade_standby_threshold_millis 0
+    stop_vdc_services "$DR_SITE_B_IP"
+    BOURNE_IPADDR=$DR_SITE_A_IP
+    security login $LOCAL_LDAP_GROUPUSER_USERNAME $LOCAL_LDAP_GROUPUSER_PASSWORD 10 600
+
+    echo "---WAIT FOR $standby_site TO BECOME DEGRADED---"
+    dr waitforstate $standby_site STANDBY_DEGRADED 30 1200
+
+    echo "---PREPARING STANDBY REJOIN TEST---"
+    start_vdc_services "$DR_SITE_B_IP"
+
+    echo "---WAIT FOR RESYNC $standby_site---"
+    dr waitforstate $standby_site STANDBY_SYNCED 30 1200
+
     # wait both active and standby to be stable, ready to do switchover
     echo "---WAIT BOTH ACTIVE AND STANBY TO BE STABLE, READY FOR SWITCHOVER---"
     # there's no point in updating the property on both active and standby since they are shared
-    BOURNE_IPADDR=$DR_SITE_A_IP
-    security login $LOCAL_LDAP_GROUPUSER_USERNAME $LOCAL_LDAP_GROUPUSER_PASSWORD 10 600
-    syssvc $CONFIG_FILE "$DR_SITE_A_IP" set_prop system_permit_root_ssh yes
-    dr waitforstable 10 600
     BOURNE_IPADDR=$DR_SITE_B_IP
     security login $LOCAL_LDAP_GROUPUSER_USERNAME $LOCAL_LDAP_GROUPUSER_PASSWORD 10 600
     dr waitforstable 10 600
@@ -7880,10 +7893,29 @@ dr_multisite_tests()
     dr waitforstable 30 1200
     project show ${projectid_new}
 
-    # switchover test part
-    echo "---WAIT BOTH ACTIVE AND STANBY TO BE STABLE, READY FOR SWITCHOVER---"
+    echo "---PREPARING STANDBY_DEGRADED TEST---"
+    syssvc $CONFIG_FILE "$DR_SITE_A_IP" set_prop system_permit_root_ssh yes
+    dr waitforstable 10 600
+    tune_dr_config ${DR_SITE_A_IP} degrade_standby_threshold_millis 0
+    stop_vdc_services "$DR_SITE_B_IP"
+    time_start degrade_standby_b
     BOURNE_IPADDR=$DR_SITE_A_IP
     security login $LOCAL_LDAP_GROUPUSER_USERNAME $LOCAL_LDAP_GROUPUSER_PASSWORD 10 600
+
+    echo "---WAIT FOR $standby_site_b TO BECOME DEGRADED---"
+    dr waitforstate $standby_site_b STANDBY_DEGRADED 30 1200
+    time_finish degrade_standby_b
+
+    echo "---PREPARING STANDBY REJOIN TEST---"
+    start_vdc_services "$DR_SITE_B_IP"
+    time_start rejoin_standby_b
+
+    echo "---WAIT FOR RESYNC $standby_site_b---"
+    dr waitforstate $standby_site_b STANDBY_SYNCED 30 1200
+    time_finish rejoin_standby_b
+
+    # switchover test part
+    echo "---WAIT BOTH ACTIVE AND STANBY TO BE STABLE, READY FOR SWITCHOVER---"
     dr waitforstable 10 800
     BOURNE_IPADDR=$DR_SITE_C_IP
     security login $LOCAL_LDAP_GROUPUSER_USERNAME $LOCAL_LDAP_GROUPUSER_PASSWORD 10 600
@@ -8350,6 +8382,23 @@ vdc_tests()
     project delete $VDC_TEST_PROJECT
 
     echo "ALL VDC TEST DONE"
+}
+
+tune_dr_config()
+{
+    VIP=$1
+    CONFIG_KEY=$2
+    CONFIG_VALUE=$3
+    OPT=""
+    if [[ $VIP == \[* ]];
+    then
+        tmp=${VIP#*[}
+        VIP=${tmp%]*}
+        OPT="-6"
+    fi
+
+    echo "VIP=${VIP} OPT=${OPT} KEY=${CONFIG_KEY} VALUE=${CONFIG_VALUE}"
+    SSH ${VIP} "/opt/storageos/bin/zkutils tune_dr_config ${CONFIG_KEY} ${CONFIG_VALUE}" ${OPT}
 }
 
 stop_vdc_services()

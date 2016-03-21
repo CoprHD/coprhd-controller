@@ -4455,12 +4455,12 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
             URI volumeURI = volumeDescriptor.getVolumeURI();
             Volume volume = _dbClient.queryObject(Volume.class, volumeURI);
             if (volume != null ) {
-            	/*
+                /*
                  * No need to remove replication group as SRDF volume's 
                  * rep group will be removed as part of srdf volume delete steps.
                  */
-            	if(!Volume.isSRDFProtectedVolume(volume)){
-            		String replicationGroup = volume.getReplicationGroupInstance();
+                if(!Volume.isSRDFProtectedVolume(volume)){
+                    String replicationGroup = volume.getReplicationGroupInstance();
                     if (NullColumnValueGetter.isNotNullValue(replicationGroup)) {
                         URI storage = volume.getStorageController();
                         String key = storage.toString() + replicationGroup;
@@ -4471,9 +4471,9 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                         }
                         rgVolumeList.add(volumeURI);
                     }
-            	} else{
-            		_log.info("post delete not required for SRDF Volume :{}",volume.getId());
-            	}
+                } else{
+                    _log.info("post delete not required for SRDF Volume :{}",volume.getId());
+                }
             }
         }
 
@@ -5704,11 +5704,12 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                 snapshotsIterable = filtered;
             }
 
+            String waitFor = null;
             for (URI snapshotURI : snapshotsIterable) {
-                workflow.createStep(
+                waitFor = workflow.createStep(
                         RELINK_SNAPSHOT_SESSION_TARGET_STEP_GROUP,
                         String.format("Re-linking target to snapshot session %s", tgtSnapSessionURI),
-                        null, systemURI, getDeviceType(systemURI), getClass(),
+                        waitFor, systemURI, getDeviceType(systemURI), getClass(),
                         relinkBlockSnapshotSessionTargetMethod(systemURI, tgtSnapSessionURI, snapshotURI),
                         null, null);
             }
@@ -6175,7 +6176,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                        waitFor, storage, storageSystem.getSystemType(),
                        this.getClass(),
                        deleteConsistencyGroupMethod(storage, cgUri, groupName, false, false),
-                       rollbackMethodNullMethod(), null);
+                       createConsistencyGroupMethod(storage, cgUri, groupName), null);
            }
         }
        
@@ -6203,7 +6204,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                        waitFor, storage, storageSystem.getSystemType(),
                        this.getClass(),
                        createConsistencyGroupMethod(storage, cgUri, rgName),
-                       rollbackMethodNullMethod(), null);
+                       deleteConsistencyGroupMethod(storage, cgUri, rgName, false, false), null);
            }
 
            waitFor = workflow.createStep(UPDATE_CONSISTENCY_GROUP_STEP_GROUP,
@@ -6211,7 +6212,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                    waitFor, storage, storageSystem.getSystemType(),
                    this.getClass(),
                    addToConsistencyGroupMethod(storage, cgUri, rgName, addVolumeList),
-                   rollbackMethodNullMethod(), null);
+                   removeFromConsistencyGroupMethod(storage, cgUri, addVolumeList, false), null);
 
            if (!isNewRG) {
                // call ReplicaDeviceController

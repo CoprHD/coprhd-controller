@@ -840,6 +840,7 @@
         <property name="devices">
             <map>
                 <entry key="isilon" value-ref="isilonDevice"/>
+                <entry key="netapp" value-ref="netappFileDevice"/>
             </map>
         </property>
         

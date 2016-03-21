@@ -82,28 +82,28 @@ public class SnapMirror {
             elem.addNewChild("destination-location", destLocation);
         }
 
-        if (type.equals("days-of-month")) {
+        if ("days-of-month".equals(type)) {
             elem.addNewChild("days-of-month", scheduleTime);
         } else {
-            elem.addNewChild("days-of-month", "-");
+            elem.addNewChild("days-of-month", "*");
         }
 
-        if (type.equals("days-of-week")) {
+        if ("days-of-week".equals(type)) {
             elem.addNewChild("days-of-week", scheduleTime);
         } else {
-            elem.addNewChild("days-of-week", "-");
+            elem.addNewChild("days-of-week", "*");
         }
 
-        if (type.equals("hours")) {
+        if ("hours".equals(type)) {
             elem.addNewChild("hours", scheduleTime);
         } else {
-            elem.addNewChild("hours", "-");
+            elem.addNewChild("hours", "*");
         }
 
-        if (type.equals("minutes")) {
+        if ("minutes".equals(type)) {
             elem.addNewChild("minutes", scheduleTime);
         } else {
-            elem.addNewChild("minutes", "-");
+            elem.addNewChild("minutes", "*");
         }
 
         try {

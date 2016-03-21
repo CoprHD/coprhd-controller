@@ -126,6 +126,18 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver implements Block
 
                 try {
 
+                    volume.setRequestedCapacity(newCapacity);
+                    newCapacity = newCapacity / ScaleIOConstants.GB_BYTE;
+                    // size must be a positive number in granularity of 8 GB
+                    if (newCapacity % 8 != 0) {
+                        long tmp = Math.floorDiv(newCapacity, 8) * 8;
+                        if (tmp < newCapacity) {
+                            newCapacity = tmp + 8;
+                        } else {
+                            newCapacity = tmp;
+                        }
+                    }
+
                     result = restClient.modifyVolumeCapacity(volume.getNativeId(), String.valueOf(newCapacity));
 
                     if (result != null) {
@@ -325,17 +337,22 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver implements Block
                 log.info("Start to get Rest client for volume {} of ScaleIO storage system: {}", clone.getParentId(),
                         clone.getStorageSystemId());
                 client = this.getClientBySystemId(clone.getStorageSystemId());
-                if (client != null) {//  Note: ScaleIO snapshots can be treated as full copies, hence re-use of #snapshotVolume
+
+                if (client != null) {// Note: ScaleIO snapshots can be treated as full copies, hence re-use of #snapshotVolume
                     ScaleIOSnapshotVolumeResponse result = null;
                     try {
                         result = client.snapshotVolume(clone.getParentId(), clone.getDisplayName(), clone.getStorageSystemId());
                         log.info("Client got! Create clone for volume {}:{} - start", clone.getDisplayName(), clone.getParentId());
-                        //Set O/P Value
+
+                        // Set O/P Value
+
                         if (result != null) {
                             clone.setNativeId(result.getVolumeIdList().get(0));
                             clone.setAccessStatus(StorageObject.AccessStatus.READ_WRITE);
                             clone.setReplicationState(VolumeClone.ReplicationState.CREATED);
-                            //Set Device Label
+
+                            // Set Device Label
+
                             Map<String, String> CloneVolNameIdMap = client.getVolumes(result.getVolumeIdList());
                             clone.setDeviceLabel(CloneVolNameIdMap.get(clone.getNativeId()));
                             countSucc++;
@@ -349,7 +366,9 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver implements Block
                     }
                 } else {
                     log.error("Exception while getting client instance for volume {}:{}", clone.getDisplayName(), clone.getParentId());
-                    log.error("Exception while getting client instance for volume {}", clone.getStorageSystemId() );
+
+                    log.error("Exception while getting client instance for volume {}", clone.getStorageSystemId());
+
                 }
             }
             setTaskStatus(clones.size(), countSucc, task);
@@ -682,59 +701,59 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver implements Block
      * Create clone of consistency group.
      *
      * @param consistencyGroup input
-     * @param clones           output
-     * @param capabilities     Capabilities of clones. Type: Input.
+     * @param clones output
+     * @param capabilities Capabilities of clones. Type: Input.
      * @return task
      */
     @Override
     public DriverTask createConsistencyGroupClone(VolumeConsistencyGroup consistencyGroup, List<VolumeClone> clones,
-                                                  List<CapabilityInstance> capabilities) {
+            List<CapabilityInstance> capabilities) {
         log.info("Request to create consistency group clone -- Start :");
         DriverTask task = new DriverTaskImpl(ScaleIOHelper.getTaskId(ScaleIOConstants.TaskType.CG_CLONE_CREATE));
         countSucc = 0;
         if (ScaleIOHelper.isFromSameStorageSystemClone(clones)) {
-            String systemId = clones.get(0).getStorageSystemId();
-            log.info("Start to get Rest client for ScaleIO storage system: {}", systemId);
-            ScaleIORestClient client = this.getClientBySystemId(systemId);
-            if (client != null) {
-                try {
-                    log.info("Rest Client Got! Create consistency group clone - Start:");
-                    Map<String, String> parent2snap = new HashMap<>();
-                    for (VolumeClone clone : clones) {
-                        parent2snap.put(clone.getParentId(), clone.getDisplayName());
-                    }
-                    ScaleIOSnapshotVolumeResponse result = client.snapshotMultiVolume(parent2snap, systemId);
+            if(consistencyGroup!=null) {
 
-                    // set value to the output
-                    if (consistencyGroup == null) {
-                        consistencyGroup = new VolumeConsistencyGroup();
-                    }
-                    consistencyGroup.setNativeId(result.getSnapshotGroupId());
-                    consistencyGroup.setStorageSystemId(systemId);
+                String systemId = clones.get(0).getStorageSystemId();
+                log.info("Start to get Rest client for ScaleIO storage system: {}", systemId);
+                ScaleIORestClient client = this.getClientBySystemId(systemId);
+                if (client != null) {
+                    try {
+                        log.info("Rest Client Got! Create consistency group clone - Start:");
+                        Map<String, String> parent2snap = new HashMap<>();
+                        for (VolumeClone clone : clones) {
+                            parent2snap.put(clone.getParentId(), clone.getDisplayName());
+                        }
+                        ScaleIOSnapshotVolumeResponse result = client.snapshotMultiVolume(parent2snap, systemId);
+                        consistencyGroup.setStorageSystemId(systemId);
 
-                    // get parentID
-                    List<String> nativeIds = result.getVolumeIdList();
-                    Map<String, ScaleIOVolume> snapIdInfoMap = client.getVolumeNameMap(nativeIds);
-                    for (VolumeClone clone : clones) {
-                        for (ScaleIOVolume snapInfo : snapIdInfoMap.values()) {
-                            if (clone.getParentId().equalsIgnoreCase(snapInfo.getAncestorVolumeId())) {
-                                clone.setNativeId(snapInfo.getId());
-                                clone.setAccessStatus(StorageObject.AccessStatus.READ_WRITE);
-                                clone.setDeviceLabel(snapInfo.getName());
-                                clone.setConsistencyGroup(result.getSnapshotGroupId());
-                                countSucc++;
+                        // get parentID
+                        List<String> nativeIds = result.getVolumeIdList();
+                        Map<String, ScaleIOVolume> snapIdInfoMap = client.getVolumeNameMap(nativeIds);
+                        for (VolumeClone clone : clones) {
+                            for (ScaleIOVolume snapInfo : snapIdInfoMap.values()) {
+                                if (clone.getParentId().equalsIgnoreCase(snapInfo.getAncestorVolumeId())) {
+                                    clone.setNativeId(snapInfo.getId());
+                                    clone.setAccessStatus(StorageObject.AccessStatus.READ_WRITE);
+                                    clone.setDeviceLabel(snapInfo.getName());
+                                    clone.setConsistencyGroup(result.getSnapshotGroupId());
+                                    countSucc++;
+                                }
                             }
                         }
+                        setTaskStatus(clones.size(), countSucc, task);
+                        log.info("Create consistency group clone with group ID:{} - End:", consistencyGroup.getNativeId());
+                    } catch (Exception e) {
+                        log.error("Exception while Creating consistency group clone in storage system: {}", systemId, e);
+                        task.setStatus(DriverTask.TaskStatus.FAILED);
                     }
-                    setTaskStatus(clones.size(), countSucc, task);
-                    log.info("Create consistency group clone with group ID:{} - End:", consistencyGroup.getNativeId());
-                } catch (Exception e) {
-                    log.error("Exception while Creating consistency group clone in storage system: {}", systemId, e);
+                } else {
+                    log.error("Exception while getting Rest client instance for storage system {} ", systemId);
                     task.setStatus(DriverTask.TaskStatus.FAILED);
                 }
-            } else {
-                log.error("Exception while getting Rest client instance for storage system {} ", systemId);
-                task.setStatus(DriverTask.TaskStatus.FAILED);
+            }else{
+                log.error("Consistency group value is null{}", consistencyGroup.getDisplayName());
+
             }
         } else {
             log.error("Clones are not from same storage system");
@@ -747,7 +766,8 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver implements Block
 
     /**
      * Detach clone of consistency group.
-     * @param clones           Input/Output
+     * 
+     * @param clones Input/Output
      * @return task
      */
     public DriverTask detachConsistencyGroupClone(List<VolumeClone> clones) {
@@ -794,7 +814,9 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver implements Block
             if (client != null) {
                 try {
                     log.info("Rest Client Got! delete consistency group clones - Start:");
-                    //Since Clones are treated as Snaphot, so will call remove Consistency Group Snapshot.
+
+                    // Since Clones are treated as Snapshot, so will call remove Consistency Group Snapshot.
+
                     client.removeConsistencyGroupSnapshot(clones.get(0).getConsistencyGroup());
                     task.setStatus(DriverTask.TaskStatus.READY);
                     log.info("Successfully delete consistency group clones - End:");

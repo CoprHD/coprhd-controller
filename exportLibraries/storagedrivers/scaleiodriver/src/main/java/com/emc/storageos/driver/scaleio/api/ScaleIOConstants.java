@@ -47,7 +47,7 @@ public class ScaleIOConstants {
     public static final String TASK_TYPE_DISCOVER_STORAGE_SYSTEM="discover-storage-system";
     public static final String TASK_TYPE_DISCOVER_STORAGE_POOLS="discover-storage-pools";
     public static final String TASK_TYPE_DISCOVER_STORAGE_PORTS="discover-storage-ports";
-
+    public static final long GB_BYTE = 1073741824L;
     public static final String OPERATIONAL_STATUS_CONNECTED="Normal";
 
     public enum TaskType{

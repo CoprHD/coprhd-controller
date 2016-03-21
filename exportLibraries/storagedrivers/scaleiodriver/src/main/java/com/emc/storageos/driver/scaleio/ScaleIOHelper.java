@@ -17,17 +17,18 @@
 
 package com.emc.storageos.driver.scaleio;
 
-import com.emc.storageos.driver.scaleio.api.ScaleIOConstants;
-import com.emc.storageos.storagedriver.model.VolumeClone;
-import com.emc.storageos.storagedriver.model.VolumeSnapshot;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
 import java.util.UUID;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.emc.storageos.driver.scaleio.api.ScaleIOConstants;
+import com.emc.storageos.storagedriver.model.VolumeClone;
+import com.emc.storageos.storagedriver.model.VolumeSnapshot;
 
 public class ScaleIOHelper {
     private static final Logger log = LoggerFactory.getLogger(ScaleIOHelper.class);
@@ -104,6 +105,7 @@ public class ScaleIOHelper {
     public static Boolean compare(String domainName, String systemName) {
         return domainName.equalsIgnoreCase(systemName);
     }
+
     /**
      * Check if all clones are from same consistency group
      *
@@ -115,7 +117,7 @@ public class ScaleIOHelper {
         if (clones != null && !clones.isEmpty()) {
             String storageSystemId = clones.get(0).getStorageSystemId();
             isSameCG = true;
-            for (VolumeClone clone  : clones) {
+            for (VolumeClone clone : clones) {
                 if (!clone.getStorageSystemId().equals(storageSystemId)) {
                     isSameCG = false;
                     break;
@@ -145,4 +147,5 @@ public class ScaleIOHelper {
         }
         return isSameCG;
     }
+
 }

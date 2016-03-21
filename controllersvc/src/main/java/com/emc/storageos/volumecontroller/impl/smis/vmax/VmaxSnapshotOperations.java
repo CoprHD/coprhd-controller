@@ -228,8 +228,7 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
                     _helper.removeVolumeFromParkingSLOStorageGroup(storage, snap.getNativeId(), false);
                     _log.info("Done invoking remove volume {} from parking SLO storage group", snap.getNativeId());
 
-                    // If VMAX3 linked target removed from Replication Group (both copy and no copy mode),
-                    // detach the element synchronization before deleting it.
+                    // If VMAX3 linked target (both copy and no copy mode), detach the element synchronization before deleting it.
                     // COP-21476 - 'no copy' mode target too needs to be detached when snap session has linked copy mode target.
                     // TODO enhance ReplicaDeviceController to handle remove single session & target while removing volume from group.
                     CIMArgument[] inArgsDetach = _helper.getUnlinkBlockSnapshotSessionTargetInputArguments(syncObjectPath);

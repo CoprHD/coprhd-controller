@@ -45,8 +45,8 @@ public class BackupUtils {
         return BourneUtil.getSysClient().backup().getBackup(name);
     }
 
-    public static BackupInfo getExternalBackup(String name) {
-        return BourneUtil.getSysClient().backup().getExternalBackup(name);
+    public static BackupInfo getBackupInfo(String name, boolean isLocal) {
+        return BourneUtil.getSysClient().backup().getBackupInfo(name, isLocal);
     }
 
     public static void pullBackup(String name) {
@@ -62,6 +62,6 @@ public class BackupUtils {
     }
 
     public static BackupRestoreStatus getRestoreStatus(String name, boolean isLocal) {
-        return BourneUtil.getSysClient().backup().restoreStatus(name, isLocal);
+        return BourneUtil.getSysClient().backup().getRestoreStatus(name, isLocal);
     }
 }

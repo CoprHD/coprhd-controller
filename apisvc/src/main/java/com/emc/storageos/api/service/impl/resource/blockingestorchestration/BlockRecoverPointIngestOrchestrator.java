@@ -718,9 +718,11 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
                 em = unManagedRPExportMasks.get(0);
             }
 
-            ExportGroup exportGroup = VolumeIngestionUtil.verifyExportGroupExists(parentRequestContext, project.getId(),
-                    em.getKnownInitiatorUris(),
-                    virtualArray.getId(), _dbClient);
+            String exportGroupGeneratedName = RPHelper.generateExportGroupName(protectionSystem, storageSystem, internalSiteName, virtualArray);
+
+            ExportGroup exportGroup = VolumeIngestionUtil.verifyExportGroupExists(
+                    parentRequestContext, exportGroupGeneratedName, project.getId(),
+                    em.getKnownInitiatorUris(), virtualArray.getId(), _dbClient);
             if (null == exportGroup) {
                 volumeContext.setExportGroupCreated(true);
                 Integer numPaths = em.getZoningMap().size();
@@ -733,8 +735,8 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
                 if (em.getMaskName().toLowerCase().contains("journal")) {
                     isJournalExport = true;
                 }
-                exportGroup = RPHelper.createRPExportGroup(internalSiteName, virtualArray, project, protectionSystem,
-                        storageSystem, numPaths, isJournalExport);
+                exportGroup = RPHelper.createRPExportGroup(exportGroupGeneratedName, virtualArray, project,
+                        numPaths, isJournalExport);
             }
 
             if (null != exportGroup) {

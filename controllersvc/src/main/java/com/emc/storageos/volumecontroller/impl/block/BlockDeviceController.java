@@ -4139,11 +4139,12 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
             // check if cg is created, if not create it
             if (!cg.created()) {
                 _log.info("Consistency group not created. Creating it");
+                String groupName = ControllerUtils.generateReplicationGroupName(storageSystem, cg, null, _dbClient);
                 waitFor = workflow.createStep(UPDATE_CONSISTENCY_GROUP_STEP_GROUP,
                         String.format("Creating consistency group %s", consistencyGroup),
                         waitFor, storage, storageSystem.getSystemType(),
                         this.getClass(),
-                        createConsistencyGroupMethod(storage, consistencyGroup),
+                        createConsistencyGroupMethod(storage, consistencyGroup, groupName),
                         rollbackMethodNullMethod(), null);
             }
 
@@ -4200,12 +4201,9 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                     "Update consistency group successful for %s", consistencyGroup);
             workflow.executePlan(completer, successMessage);
         } catch (Exception e) {
+            _log.error("Error updating consistency group: {}", consistencyGroup, e);
             completer.error(_dbClient, DeviceControllerException.exceptions.failedToUpdateConsistencyGroup(e.getMessage()));
         }
-    }
-
-    private static Workflow.Method createConsistencyGroupMethod(URI storage, URI consistencyGroup) {
-        return new Workflow.Method("createConsistencyGroupStep", storage, consistencyGroup, null);
     }
 
     private static Workflow.Method createConsistencyGroupMethod(URI storage, URI consistencyGroup, String replicationGroupName) {
@@ -4222,7 +4220,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                     _dbClient);
 
             // Lock the CG for the step duration.
-            List<String> lockKeys = new ArrayList<String>();
+            List<String> lockKeys = new ArrayList<>();
             lockKeys.add(ControllerLockingUtil.getReplicationGroupStorageKey(_dbClient, replicationGroupName, storage));
             _workflowService.acquireWorkflowStepLocks(opId, lockKeys, LockTimeoutValue.get(LockType.ARRAY_CG));
 
@@ -4384,11 +4382,12 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
             StorageSystem targetSystem = _dbClient.queryObject(StorageSystem.class, targetVolume.getStorageController());
             if (createGroup || !targetCG.created()) {
                 _log.info("Creating target Consistency group on Array.");
+                String groupName = ControllerUtils.generateReplicationGroupName(targetSystem, targetCG, null, _dbClient);
                 waitFor = workflow.createStep(UPDATE_CONSISTENCY_GROUP_STEP_GROUP,
                         String.format("Creating consistency group %s", targetCG.getId()),
                         waitFor, targetSystem.getId(), targetSystem.getSystemType(),
                         this.getClass(),
-                        createConsistencyGroupMethod(targetSystem.getId(), targetCG.getId()),
+                        createConsistencyGroupMethod(targetSystem.getId(), targetCG.getId(), groupName),
                         rollbackMethodNullMethod(), null);
             }
 
@@ -6171,15 +6170,15 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                     removeFromConsistencyGroupMethod(storage, cgUri, removeVolumeList, false),
                     addToConsistencyGroupMethod(storage, cgUri, groupName, removeVolumeList), null);
 
-            // remove replication group if the CG will become empty
-            if (ControllerUtils.replicationGroupHasNoOtherVolume(_dbClient, groupName, removeVolumeList, storage)) {
-                waitFor = workflow.createStep(UPDATE_CONSISTENCY_GROUP_STEP_GROUP,
-                        String.format("Deleting replication group for consistency group %s", cgUri.toString()),
-                        waitFor, storage, storageSystem.getSystemType(),
-                        this.getClass(),
-                        deleteConsistencyGroupMethod(storage, cgUri, groupName, false, false),
-                        rollbackMethodNullMethod(), null);
-            }
+           // remove replication group if the CG will become empty
+           if (ControllerUtils.replicationGroupHasNoOtherVolume(_dbClient, groupName, removeVolumeList, storage)) {
+               waitFor = workflow.createStep(UPDATE_CONSISTENCY_GROUP_STEP_GROUP,
+                       String.format("Deleting replication group for consistency group %s", cgUri.toString()),
+                       waitFor, storage, storageSystem.getSystemType(),
+                       this.getClass(),
+                       deleteConsistencyGroupMethod(storage, cgUri, groupName, false, false),
+                       createConsistencyGroupMethod(storage, cgUri, groupName), null);
+           }
         }
 
         if (addVolumeList != null && !addVolumeList.isEmpty()) {
@@ -6195,19 +6194,20 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                 _log.info("Consistency group not created. Creating it");
                 isNewRG = true;
 
-                if (storageSystem.deviceIsType(Type.vnxblock)) {
-                    // set arrayConsistency to false, so that no replication group will be created on array
-                    cg.setArrayConsistency(false);
-                    _dbClient.updateObject(cg);
-                }
+               waitFor = workflow.createStep(UPDATE_CONSISTENCY_GROUP_STEP_GROUP,
+                       String.format("Creating consistency group %s", rgName),
+                       waitFor, storage, storageSystem.getSystemType(),
+                       this.getClass(),
+                       createConsistencyGroupMethod(storage, cgUri, rgName),
+                       deleteConsistencyGroupMethod(storage, cgUri, rgName, false, false), null);
+           }
 
-                waitFor = workflow.createStep(UPDATE_CONSISTENCY_GROUP_STEP_GROUP,
-                        String.format("Creating consistency group %s", rgName),
-                        waitFor, storage, storageSystem.getSystemType(),
-                        this.getClass(),
-                        createConsistencyGroupMethod(storage, cgUri, rgName),
-                        rollbackMethodNullMethod(), null);
-            }
+           waitFor = workflow.createStep(UPDATE_CONSISTENCY_GROUP_STEP_GROUP,
+                   String.format("Adding volumes to consistency group %s", cgUri.toString()),
+                   waitFor, storage, storageSystem.getSystemType(),
+                   this.getClass(),
+                   addToConsistencyGroupMethod(storage, cgUri, rgName, addVolumeList),
+                   removeFromConsistencyGroupMethod(storage, cgUri, addVolumeList, false), null);
 
             waitFor = workflow.createStep(UPDATE_CONSISTENCY_GROUP_STEP_GROUP,
                     String.format("Adding volumes to consistency group %s", cgUri.toString()),

@@ -10,6 +10,7 @@ import javax.management.ObjectName;
 
 import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileWriter;
 import java.io.FilenameFilter;
 import java.io.IOException;
@@ -18,7 +19,9 @@ import java.lang.management.ManagementFactory;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.zip.Deflater;
 
+import com.emc.vipr.model.sys.backup.BackupInfo;
 import com.google.common.base.Preconditions;
 import com.google.common.hash.Hashing;
 import com.google.common.io.Files;
@@ -272,7 +275,7 @@ public class BackupManager implements BackupManagerMBean {
         File backupZip = new File(backupFolder.getParentFile(),
                 backupFolder.getName() + BackupConstants.COMPRESS_SUFFIX);
         try {
-            ZipUtil.pack(backupFolder, backupZip);
+            ZipUtil.pack(backupFolder, backupZip, Deflater.NO_COMPRESSION);
         } catch (IOException ex) {
             if (backupZip.exists()) {
                 backupZip.delete();
@@ -327,43 +330,91 @@ public class BackupManager implements BackupManagerMBean {
             return backupSetInfoList;
         }
         for (File dir : backupDirs) {
-            if (!dir.isDirectory()) {
-                continue;
-            }
-
-            File[] backupFiles = dir.listFiles(new FilenameFilter() {
-                @Override
-                public boolean accept(File dir, String name) {
-                    return name.endsWith(BackupConstants.COMPRESS_SUFFIX) || name.endsWith(BackupConstants.BACKUP_INFO_SUFFIX);
-                }
-            });
-
-            if (backupFiles == null || backupFiles.length == 0) {
-                continue;
-            }
-
-            for (File file : backupFiles) {
-                BackupSetInfo backupSetInfo = new BackupSetInfo();
-                backupSetInfo.setName(file.getName());
-
-                long createTime = 0;
-                if (file.getName().endsWith(BackupConstants.BACKUP_INFO_SUFFIX)) {
-                    log.info("Get the create time from info file {}", file.getName());
-                    BackupOps ops = new BackupOps();
-                    createTime = ops.getCreateTimeFromPropFile(file);
-                }
-
-                if (createTime == 0) {
-                    createTime = file.lastModified();
-                }
-
-                backupSetInfo.setCreateTime(createTime);
-                backupSetInfo.setSize(file.length());
-                backupSetInfoList.add(backupSetInfo);
-            }
+            addBackupFileSetInfo(backupSetInfoList, dir);
         }
         log.info("Backup is listed successfully: {}", backupSetInfoList);
         return backupSetInfoList;
+    }
+
+    private void addBackupFileSetInfo(List<BackupSetInfo> backupSetInfoList, File dir) {
+        if (!dir.isDirectory()) {
+            return;
+        }
+
+        File[] backupFiles = dir.listFiles(new FilenameFilter() {
+            @Override
+            public boolean accept(File dir, String name) {
+                return name.endsWith(BackupConstants.COMPRESS_SUFFIX) || name.endsWith(BackupConstants.BACKUP_INFO_SUFFIX);
+            }
+        });
+
+        if (backupFiles == null || backupFiles.length == 0) {
+            return;
+        }
+
+        for (File file : backupFiles) {
+            BackupSetInfo backupSetInfo = new BackupSetInfo();
+            backupSetInfo.setName(file.getName());
+
+            long createTime = 0;
+            if (file.getName().endsWith(BackupConstants.BACKUP_INFO_SUFFIX)) {
+                log.info("Get the create time from info file {}", file.getName());
+                BackupOps ops = new BackupOps();
+                createTime = ops.getCreateTimeFromPropFile(file);
+            }
+
+            if (createTime == 0) {
+                createTime = file.lastModified();
+            }
+
+            backupSetInfo.setCreateTime(createTime);
+            backupSetInfo.setSize(file.length());
+            backupSetInfoList.add(backupSetInfo);
+        }
+    }
+
+    @Override
+    public BackupInfo queryBackupInfo(String backupName) {
+        checkBackupDir();
+        BackupInfo backupInfo = new BackupInfo();
+        backupInfo.setBackupName(backupName);
+        File backupRootDir = backupContext.getBackupDir();
+
+        File backupDir = new File(backupRootDir, backupName);
+        if (!backupDir.isDirectory()) {
+            return null;
+        }
+
+        File[] backupFiles = backupDir.listFiles(new FilenameFilter() {
+            @Override
+            public boolean accept(File dir, String name) {
+                return name.endsWith(BackupConstants.COMPRESS_SUFFIX) || name.endsWith(BackupConstants.BACKUP_INFO_SUFFIX);
+            }
+        });
+
+        if (backupFiles == null || backupFiles.length == 0) {
+            return null;
+        }
+
+        long size = 0;
+        for (File file : backupFiles) {
+            if (file.getName().endsWith(BackupConstants.BACKUP_INFO_SUFFIX)) {
+                log.info("Get the create time from info file {}", file.getName());
+                BackupOps ops = new BackupOps();
+                try (FileInputStream in = new FileInputStream(file)) {
+                    ops.setBackupInfo(backupInfo, backupName, in);
+                }catch (IOException e) {
+                    log.error("Failed to read info file {}", file.getAbsolutePath());
+                    return null;
+                }
+            }
+            size += file.length();
+        }
+
+        backupInfo.setBackupSize(size);
+
+        log.info("Query backup successfully: {}", backupInfo);
+        return backupInfo;
     }
 
     @Override

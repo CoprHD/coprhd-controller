@@ -1891,7 +1891,9 @@ public class RecoverPointScheduler implements Scheduler {
                     pools = VirtualPool.getValidStoragePools(vpool, dbClient, true);
                 } else {
                     VirtualPool haVpool = VirtualPoolChangeAnalyzer.getHaVpool(vpool, dbClient);
-                    pools = VirtualPool.getValidStoragePools(haVpool, dbClient, true);
+                    if (haVpool != null) {
+                        pools = VirtualPool.getValidStoragePools(haVpool, dbClient, true);
+                    }
                 }
                 
                 if (!pools.isEmpty()) {

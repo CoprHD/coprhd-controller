@@ -259,7 +259,7 @@ public class BlockConsistencyGroupUtils {
         URIQueryResultList uriQueryResultList = new URIQueryResultList();
         dbClient.queryByConstraint(getVolumesByConsistencyGroup(cg.getId()),
                 uriQueryResultList);
-        if (uriQueryResultList != null && !uriQueryResultList.isEmpty()) {
+        if (uriQueryResultList != null) {
             Iterator<Volume> volumeIterator = dbClient.queryIterativeObjects(Volume.class,
                     uriQueryResultList);
             if (volumeIterator != null) {

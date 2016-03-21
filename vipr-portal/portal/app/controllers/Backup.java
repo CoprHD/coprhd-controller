@@ -99,9 +99,12 @@ public class Backup extends Controller {
         if (ids != null) {
             for (String id : ids) {
                 if (StringUtils.isNotBlank(id)) {
-                    BackupInfo backupInfo = BackupUtils.getExternalBackup(id);
+                    BackupInfo backupInfo = BackupUtils.getBackupInfo(id, false);
                     BackupDataTable.Backup backup = new BackupDataTable.Backup(id, false);
                     backup.creationtime = backupInfo.getCreateTime();
+                    backup.sitename = backupInfo.getSiteName();
+                    backup.version = backupInfo.getVersion();
+                    backup.size = backupInfo.getBackupSize();
                     results.add(backup);
                 }
             }
@@ -217,10 +220,6 @@ public class Backup extends Controller {
         RestoreForm restoreForm = new RestoreForm(name, params.get("restoreForm.password"), isLocal, params.get("restoreForm.isGeoFromScratch", boolean.class));
         restoreForm.restore();
 
-        BackupRestoreStatus status = BackupUtils.getRestoreStatus(name, isLocal);
-        if (status.isNotSuccess()) {
-            list(type);
-        }
         Maintenance.maintenance(Common.reverseRoute(Backup.class, "list", "type", type));
     }
 

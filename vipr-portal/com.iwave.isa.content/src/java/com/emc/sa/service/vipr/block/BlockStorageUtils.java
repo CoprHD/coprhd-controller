@@ -1215,6 +1215,17 @@ public class BlockStorageUtils {
         return fullCopyIds;
     }
 
+    public static List<URI> getAllFullCopyVolumes(URI applicationId, String copySet, List<String> subGroups) {
+        List<URI> fullCopyIds = Lists.newArrayList();
+
+        List<NamedRelatedResourceRep> fullCopies = execute(new GetFullCopyList(applicationId, copySet)).getVolumes();
+        for (NamedRelatedResourceRep fullCopy : fullCopies) {
+            fullCopyIds.add(fullCopy.getId());
+        }
+
+        return fullCopyIds;
+    }
+
     public static boolean isVplexVolume(VolumeRestRep volume, String storageSystemType) {
         return (volume.getHaVolumes() != null && !volume.getHaVolumes().isEmpty())
                 || (storageSystemType != null && storageSystemType.equals(StorageProvider.InterfaceType.vplex.name()));

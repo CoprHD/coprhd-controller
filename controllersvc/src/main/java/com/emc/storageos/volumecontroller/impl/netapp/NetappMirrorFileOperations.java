@@ -380,20 +380,34 @@ public class NetappMirrorFileOperations implements FileMirrorOperations {
                 break;
         }
 
-        // make api call on source to set schedule
-        String portGroupSource = findVfilerName(sourceFs);
-        StringBuilder builderLocSource = new StringBuilder(portGroupSource);
-        builderLocSource.append(":").append(sourceFs.getName());
-
+        String targetPath = null;
         String portGroupTarget = findVfilerName(targetFs);
-        StringBuilder builderLocTarget = new StringBuilder(portGroupTarget);
-        builderLocTarget.append(":").append(targetFs.getName());
+        if (portGroupTarget == null) {
+            // Set target path from storage system
+            targetPath = getLocation(targetStorage, targetFs);
+        } else {
+            // Set target path from port group (vFiler)
+            StringBuilder builderLocTarget = new StringBuilder(portGroupTarget);
+            builderLocTarget.append(":").append(targetFs.getName());
+            targetPath = builderLocTarget.toString();
+        }
+
+        String portGroupSource = findVfilerName(sourceFs);
 
         NetAppApi nApiSource = new NetAppApi.Builder(sourceStorage.getIpAddress(),
                 sourceStorage.getPortNumber(), sourceStorage.getUsername(),
                 sourceStorage.getPassword()).https(true).vFiler(portGroupSource).build();
 
-        nApiSource.setScheduleSnapMirror(rpoType, rpoValue, builderLocSource.toString(), builderLocTarget.toString(), portGroupSource);
+        String sourcePath = null;
+        if (portGroupSource == null) {
+            sourcePath = getLocation(nApiSource, sourceFs);
+        } else {
+            StringBuilder builderLocSource = new StringBuilder(portGroupSource);
+            builderLocSource.append(":").append(sourceFs.getName());
+            sourcePath = builderLocSource.toString();
+        }
+
+        nApiSource.setScheduleSnapMirror(rpoType, rpoValue, sourcePath, targetPath.toString(), portGroupSource);
         return BiosCommandResult.createSuccessfulResult();
     }
 

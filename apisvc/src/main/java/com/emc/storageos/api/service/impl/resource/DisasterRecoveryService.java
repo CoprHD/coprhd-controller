@@ -2062,7 +2062,7 @@ public class DisasterRecoveryService {
                 }
                 try (InternalSiteServiceClient client = new InternalSiteServiceClient(remoteSite, coordinator, apiSignatureGenerator)) {
                     SiteList sites = client.getSiteList();
-                    if (isSiteRemoved(localSiteId, sites) || isSiteDegraded(localSiteId, sites)) {
+                    if (!isSiteContainedBy(localSiteId, sites) || isSiteDegraded(localSiteId, sites)) {
                         log.info("Local site {} is in ACTIVE_DEGRADED state or removed according data returned from site {}", localSiteId, remoteSite.getUuid());
                         return true;
                     }
@@ -2074,14 +2074,14 @@ public class DisasterRecoveryService {
             return false;
         }
 
-        private boolean isSiteRemoved(String siteId, SiteList sites) {
+        private boolean isSiteContainedBy(String siteId, SiteList sites) {
             for (SiteRestRep site : sites.getSites()) {
                 if (siteId.equals(site.getUuid())) {
-                    return false;
+                    return true;
                 }
             }
             log.info("Site {} is removed", siteId);
-            return true;
+            return false;
         }
 
         private boolean isSiteDegraded(String siteId, SiteList sites) {

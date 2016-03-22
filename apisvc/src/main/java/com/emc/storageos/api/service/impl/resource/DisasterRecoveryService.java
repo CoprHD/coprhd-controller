@@ -1487,11 +1487,12 @@ public class DisasterRecoveryService {
 
         return standbyDetails;
     }
+
     @GET
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    @Path("/internal/{uuid}/details")
-    public SiteDetailRestRep getSiteDetailsInternally(@PathParam("uuid") String uuid) {
-        return this.getSiteDetails(uuid);
+    @Path("/internal/list")
+    public SiteList getSitesInternally() {
+        return this.getSites();
     }
 
     /**
@@ -2012,7 +2013,7 @@ public class DisasterRecoveryService {
         @Override
         public void run() {
             try {
-                if (!needCheckFailback() || !hasActiveSiteInRemote()) {
+                if (!needCheckFailback() || !isLocalSiteDiscarded()) {
                     log.info("No need to check failback locally or there's no remote active site, return");
                     return;
                 }
@@ -2057,7 +2058,10 @@ public class DisasterRecoveryService {
             return false;
         }
 
-        private boolean hasActiveSiteInRemote() {
+        /**
+         * @return true when Local site is in ACTIVE_DEGRADED state or can't be found according returned result from other site
+         */
+        private boolean isLocalSiteDiscarded() {
             String localSiteId = drUtil.getLocalSite().getUuid();
             for (Site remoteSite : drUtil.listStandbySites()) {
                 if (drUtil.isSiteUp(remoteSite.getUuid()) || remoteSite.getState() == SiteState.ACTIVE_DEGRADED) {
@@ -2065,14 +2069,34 @@ public class DisasterRecoveryService {
                     continue;
                 }
                 try (InternalSiteServiceClient client = new InternalSiteServiceClient(remoteSite, coordinator, apiSignatureGenerator)) {
-                    SiteDetailRestRep remoteSiteDetails = client.getSiteDetails(localSiteId);
-                    if (SiteState.ACTIVE_DEGRADED.toString().equals(remoteSiteDetails.getSiteState())) {
-                        log.info("Local site {} is in ACTIVE_DEGRADED state according data returned from site {}", localSiteId, remoteSite.getUuid());
+                    SiteList sites = client.getSiteList();
+                    if (!isSiteContainedBy(localSiteId, sites) || isSiteDegraded(localSiteId, sites)) {
+                        log.info("Local site {} is in ACTIVE_DEGRADED state or removed according data returned from site {}", localSiteId, remoteSite.getUuid());
                         return true;
                     }
                 } catch (Exception e) {
                     log.warn("Failed to check remote site information during failback detect", e);
                     continue;
+                }
+            }
+            return false;
+        }
+
+        private boolean isSiteContainedBy(String siteId, SiteList sites) {
+            for (SiteRestRep site : sites.getSites()) {
+                if (siteId.equals(site.getUuid())) {
+                    return true;
+                }
+            }
+            log.info("Site {} is removed", siteId);
+            return false;
+        }
+
+        private boolean isSiteDegraded(String siteId, SiteList sites) {
+            for (SiteRestRep site : sites.getSites()) {
+                if (siteId.equals(site.getUuid()) && SiteState.ACTIVE_DEGRADED.toString().equals(site.getState())) {
+                    log.info("Site {} is ACTIVE_DEGRADED", siteId);
+                    return true;
                 }
             }
             return false;

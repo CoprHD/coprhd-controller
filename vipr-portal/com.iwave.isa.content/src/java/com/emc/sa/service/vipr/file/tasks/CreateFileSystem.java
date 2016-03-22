@@ -6,13 +6,13 @@ package com.emc.sa.service.vipr.file.tasks;
 
 import java.net.URI;
 
-import com.emc.sa.service.vipr.tasks.WaitForTask;
+import com.emc.sa.service.vipr.tasks.WaitForTasks;
 import com.emc.sa.util.DiskSizeConversionUtils;
 import com.emc.storageos.model.file.FileShareRestRep;
 import com.emc.storageos.model.file.FileSystemParam;
-import com.emc.vipr.client.Task;
+import com.emc.vipr.client.Tasks;
 
-public class CreateFileSystem extends WaitForTask<FileShareRestRep> {
+public class CreateFileSystem extends WaitForTasks<FileShareRestRep> {
     private final String label;
     private final double sizeInGB;
     private final URI vpoolId;
@@ -47,7 +47,7 @@ public class CreateFileSystem extends WaitForTask<FileShareRestRep> {
     }
 
     @Override
-    protected Task<FileShareRestRep> doExecute() throws Exception {
+    protected Tasks<FileShareRestRep> doExecute() throws Exception {
         FileSystemParam input = new FileSystemParam();
         input.setLabel(label);
         input.setSize(String.valueOf(DiskSizeConversionUtils.gbToBytes(sizeInGB)));

@@ -149,8 +149,8 @@ public class FileSystems extends ProjectResources<FileShareRestRep> implements T
     public Tasks<FileShareRestRep> create(URI projectId, FileSystemParam input) {
         URI targetUri = client.uriBuilder(baseUrl).queryParam(PROJECT_PARAM, projectId).build();
         
-//        return postTaskURI(input, targetUri);
-        return postTasks(input, getContinuousCopiesUrl() + "/failover", targetUri);
+        return postTasksURI(input, targetUri);
+        
         
     }
 

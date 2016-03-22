@@ -669,7 +669,7 @@ public class BlockStorageUtils {
             VolumeRestRep volume = (VolumeRestRep) getVolume(blockResourceId);
             if (volume.getConsistencyGroup() != null
                     && (volume.getSystemType().equalsIgnoreCase(DiscoveredDataObject.Type.vmax.name()) || 
-                    		volume.getSystemType().equalsIgnoreCase("vmax3"))) {
+                    		volume.getSystemType().equalsIgnoreCase(DiscoveredDataObject.Type.vmax3.name()))) {
                 return false;
             }
         }

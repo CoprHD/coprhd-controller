@@ -1768,8 +1768,8 @@ public class NetAppFacade {
     }
 
     public static void main(String[] args) {
-        NetAppFacade facade = new NetAppFacade("10.247.96.204", 80, "root", "dangerous1", false);
-        System.out.println(facade.setSnapMirrorSchedule("hours", "1", "700001401776:netappFS3Mar21",
-                "vfiler0:netappFS3Mar21targetTEST_VARRAY"));
+        NetAppFacade facade = new NetAppFacade("10.247.96.205", 80, "root", "dangerous1", false);
+        System.out.println(facade.setSnapMirrorSchedule("minutes", "2", "lglw6204:netappFS4Mar22",
+                "lglw6205:netappFS4Mar22targetremoteVA"));
     }
 }

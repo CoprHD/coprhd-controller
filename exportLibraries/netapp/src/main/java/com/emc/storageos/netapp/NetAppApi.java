@@ -1076,11 +1076,11 @@ public class NetAppApi {
         }
     }
 
-    public Boolean setScheduleSnapMirror(String type, String scheduleTime, String sourceLocation, String destLocation, String vfilerName) {
+    public Boolean setScheduleSnapMirror(String type, String scheduleTime, String sourceLocation, String destLocation) {
         boolean failedStatus = false;
         try {
             netAppFacade = new NetAppFacade(_ipAddress, _portNumber, _userName,
-                    _password, _https, vfilerName);
+                    _password, _https, null);
 
             failedStatus = netAppFacade.setSnapMirrorSchedule(type, scheduleTime, sourceLocation, destLocation);
 

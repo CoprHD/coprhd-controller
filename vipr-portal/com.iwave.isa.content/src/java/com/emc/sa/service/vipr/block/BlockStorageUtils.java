@@ -664,12 +664,12 @@ public class BlockStorageUtils {
     }
 
     public static boolean canRemoveReplicas(URI blockResourceId) {
-        BlockObjectRestRep volume = getVolume(blockResourceId);
-        if (volume.getConsistencyGroup() != null && NullColumnValueGetter.isNotNullValue(volume.getReplicationGroupInstance())) {
-            StorageSystemRestRep storageSystem = getStorageSystem(volume.getStorageController());
-            if (storageSystem != null
-                    && storageSystem.getSystemType() != null
-                    && storageSystem.getSystemType().equals(DiscoveredDataObject.Type.vmax.name())) {
+        ResourceType volumeType = ResourceType.fromResourceId(blockResourceId.toString());
+        if (volumeType == ResourceType.VOLUME) {
+            VolumeRestRep volume = (VolumeRestRep) getVolume(blockResourceId);
+            if (volume.getConsistencyGroup() != null
+                    && (volume.getSystemType().equalsIgnoreCase(DiscoveredDataObject.Type.vmax.name()) || 
+                    		volume.getSystemType().equalsIgnoreCase(DiscoveredDataObject.Type.vmax3.name()))) {
                 return false;
             }
         }

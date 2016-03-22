@@ -685,19 +685,31 @@ public class VolumeGroupService extends TaskResourceService {
      * @param volumes
      */
     private void checkForXtremio(List<Volume> volumes) {
+        // getVolumeByAssociatedVolumesConstraint
+        Set<URI> virtualVolAlreadyChecked = new HashSet<URI>();
         for (Volume volume : volumes) {
-            if (volume.getAssociatedVolumes() != null) {
-                for (String backendVolId : volume.getAssociatedVolumes()) {
-                    Volume backendVol = _dbClient.queryObject(Volume.class, URI.create(backendVolId));
-                    if (backendVol != null && !backendVol.getInactive() && ControllerUtils.isXtremIOVolume(volume, _dbClient)) {
-                        throw APIException.badRequests
-                                .replicaOperationNotAllowedApplicationHasXtremio(ReplicaTypeEnum.FULL_COPY.toString());
+            Volume checkVolume = volume;
+            
+            // check to see if the volume is a vplex virtual volume
+            Volume vplexBackendVol = VPlexUtil.getVPLEXBackendVolume(volume, true, _dbClient, false);
+            if (vplexBackendVol != null) {
+                checkVolume = vplexBackendVol;
+            } else {
+                // check to see if this volume is a backing volume for a vplex virtual volume
+                List<Volume> vplexSrcVols = CustomQueryUtility.queryActiveResourcesByConstraint(_dbClient, Volume.class,
+                        AlternateIdConstraint.Factory.getVolumeByAssociatedVolumesConstraint(checkVolume.getId().toString()));
+                if (vplexSrcVols != null && !vplexSrcVols.isEmpty()) {
+                    if (virtualVolAlreadyChecked.contains(vplexSrcVols.get(0).getId())) {
+                        continue;
+                    } else {
+                        checkVolume = VPlexUtil.getVPLEXBackendVolume(vplexSrcVols.get(0), true, _dbClient, false);
+                        virtualVolAlreadyChecked.add(vplexSrcVols.get(0).getId());
                     }
                 }
-            } else {
-                if (ControllerUtils.isXtremIOVolume(volume, _dbClient)) {
-                    throw APIException.badRequests.replicaOperationNotAllowedApplicationHasXtremio(ReplicaTypeEnum.FULL_COPY.toString());
-                }
+            }
+            
+            if (ControllerUtils.isXtremIOVolume(checkVolume, _dbClient)) {
+                throw APIException.badRequests.replicaOperationNotAllowedApplicationHasXtremio(ReplicaTypeEnum.FULL_COPY.toString());
             }
         }
     }
@@ -3347,10 +3359,10 @@ public class VolumeGroupService extends TaskResourceService {
 
                     if (isAddVolsDistributed && !isExistingDistributed) {
                         throw APIException.badRequests.volumeCantBeAddedToVolumeGroup(firstAddedVolume.getLabel(),
-                                "the VPlex volume is being added is distributed and the existing volumes in the application are not");
+                                "the VPlex volume being added is distributed and the existing volumes in the application are not");
                     } else if (!isAddVolsDistributed && isExistingDistributed) {
                         throw APIException.badRequests.volumeCantBeAddedToVolumeGroup(firstAddedVolume.getLabel(),
-                                "the existing volumes in the application are distributed and the VPlex volume is being added is not");
+                                "the existing volumes in the application are distributed and the VPlex volume being added is not");
                     }
                 }
             }

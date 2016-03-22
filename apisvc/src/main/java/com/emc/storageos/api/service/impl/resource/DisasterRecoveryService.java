@@ -57,6 +57,7 @@ import com.emc.storageos.coordinator.client.model.SiteInfo;
 import com.emc.storageos.coordinator.client.model.SiteMonitorResult;
 import com.emc.storageos.coordinator.client.model.SiteState;
 import com.emc.storageos.coordinator.client.model.SoftwareVersion;
+import com.emc.storageos.coordinator.client.model.DrOperationStatus.InterState;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.coordinator.client.service.DrUtil;
 import com.emc.storageos.coordinator.client.service.impl.CoordinatorClientInetAddressMap;
@@ -230,7 +231,7 @@ public class DisasterRecoveryService {
             log.info("Persist standby site to ZK {}", shortId);
             // coordinator.setTargetInfo(standbySite);
             coordinator.persistServiceConfiguration(standbySite.toConfiguration());
-            drUtil.recordDrOperationStatus(standbySite);
+            drUtil.recordDrOperationStatus(standbySite.getUuid(), InterState.ADDING_STANDBY);
 
             // wake up syssvc to regenerate configurations
             long vdcConfigVersion = DrUtil.newVdcConfigVersion();
@@ -571,7 +572,7 @@ public class DisasterRecoveryService {
             for (Site site : toBeRemovedSites) {
                 site.setState(SiteState.STANDBY_REMOVING);
                 coordinator.persistServiceConfiguration(site.toConfiguration());
-                drUtil.recordDrOperationStatus(site);
+                drUtil.recordDrOperationStatus(site.getUuid(), InterState.REMOVING_STANDBY);
                 sitesString.add(site.toBriefString());
             }
             log.info("Notify all sites for reconfig");
@@ -751,7 +752,7 @@ public class DisasterRecoveryService {
                 site.setState(SiteState.STANDBY_PAUSING);
                 site.setLastStateUpdateTime(System.currentTimeMillis());
                 coordinator.persistServiceConfiguration(site.toConfiguration());
-                drUtil.recordDrOperationStatus(site);
+                drUtil.recordDrOperationStatus(site.getUuid(), InterState.PAUSING_STANDBY);
                 sitesString.add(site.toBriefString());
                 // notify the to-be-paused sites before others.
                 drUtil.updateVdcTargetVersion(site.getUuid(), SiteInfo.DR_OP_PAUSE_STANDBY, vdcTargetVersion);
@@ -860,7 +861,7 @@ public class DisasterRecoveryService {
                     // update the site state AFTER checking the last state update time
                     site.setState(SiteState.STANDBY_RESUMING);
                     coordinator.persistServiceConfiguration(site.toConfiguration());
-                    drUtil.recordDrOperationStatus(site);
+                    drUtil.recordDrOperationStatus(site.getUuid(), InterState.RESUMING_STANDBY);
                 }
 
                 if (dataRevision != 0) {
@@ -1102,7 +1103,7 @@ public class DisasterRecoveryService {
                     oldActiveSite.getUuid(), Constants.SWITCHOVER_BARRIER_RESTART));
             restartBarrier.setBarrier();
        
-            drUtil.recordDrOperationStatus(oldActiveSite);
+            drUtil.recordDrOperationStatus(oldActiveSite.getUuid(), InterState.SWITCHINGOVER_ACTIVE);
 
             // trigger reconfig
             long vdcConfigVersion = System.currentTimeMillis(); // a version for all sites.
@@ -1247,7 +1248,7 @@ public class DisasterRecoveryService {
 
             currentSite.setState(SiteState.STANDBY_FAILING_OVER);
             coordinator.persistServiceConfiguration(currentSite.toConfiguration());
-            drUtil.recordDrOperationStatus(currentSite);
+            drUtil.recordDrOperationStatus(currentSite.getUuid(), InterState.FAILINGOVER_STANDBY);
 
             long vdcTargetVersion = DrUtil.newVdcConfigVersion();
             //reconfig other standby sites

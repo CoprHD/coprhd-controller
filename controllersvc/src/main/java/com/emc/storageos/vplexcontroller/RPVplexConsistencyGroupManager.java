@@ -29,7 +29,6 @@ import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.Volume.PersonalityTypes;
 import com.emc.storageos.db.client.model.util.BlockConsistencyGroupUtils;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
-import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.locking.LockTimeoutValue;
 import com.emc.storageos.locking.LockType;
 import com.emc.storageos.protectioncontroller.impl.recoverpoint.RPHelper;
@@ -220,12 +219,6 @@ public class RPVplexConsistencyGroupManager extends AbstractConsistencyGroupMana
                 }
 
                 addVolumesToCG(cgURI, entry.getValue(), cgName, clusterName, client);
-            }
-            
-            if (true) {
-                //TEMP Force Exception
-                throw DeviceControllerException.exceptions.failedToAcquireLock(lockKeys.toString(),
-                        "STOP!!!!!!!!!!!!!!!!!");
             }
 
             // Update workflow step state to success.

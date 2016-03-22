@@ -546,13 +546,13 @@ public class BlockStorageUtils {
 
     private static void removeContinuousCopy(URI volumeId, URI continuousCopyId, VolumeDeleteTypeEnum type) {
         if (VolumeDeleteTypeEnum.VIPR_ONLY != type) {
-        	BlockObjectRestRep obj = getVolume(volumeId);
-        	if (obj instanceof VolumeRestRep) {
+            BlockObjectRestRep obj = getVolume(volumeId);
+            if (obj instanceof VolumeRestRep) {
                 VolumeRestRep volume = (VolumeRestRep) obj;
                 if (!StringUtils.equalsIgnoreCase(volume.getSystemType(), DiscoveredDataObject.Type.vplex.name())) {
-                	execute(new PauseContinuousCopy(volumeId, continuousCopyId, COPY_NATIVE));
+                    execute(new PauseContinuousCopy(volumeId, continuousCopyId, COPY_NATIVE));
                 }
-        	}
+            }
         }
         Tasks<VolumeRestRep> tasks = execute(new DeactivateContinuousCopy(volumeId, continuousCopyId, COPY_NATIVE, type));
         addAffectedResources(tasks);
@@ -665,7 +665,7 @@ public class BlockStorageUtils {
 
     public static boolean canRemoveReplicas(URI blockResourceId) {
         BlockObjectRestRep volume = getVolume(blockResourceId);
-        if (volume.getConsistencyGroup() != null) {
+        if (volume.getConsistencyGroup() != null && NullColumnValueGetter.isNotNullValue(volume.getReplicationGroupInstance())) {
             StorageSystemRestRep storageSystem = getStorageSystem(volume.getStorageController());
             if (storageSystem != null
                     && storageSystem.getSystemType() != null
@@ -870,7 +870,7 @@ public class BlockStorageUtils {
 
     /**
      * Finds the exports (itl) for the given initiators.
-     * 
+     *
      * @param exports
      *            the list of all exports (itl)
      * @param initiators
@@ -1056,7 +1056,7 @@ public class BlockStorageUtils {
 
     /**
      * Helper method for creating a list of all the params for the createBlockVolumesHelper.
-     * 
+     *
      * @param table volume table
      * @param params for volume creation
      * @return map of all params
@@ -1070,7 +1070,7 @@ public class BlockStorageUtils {
 
     /**
      * Get source volume for vplexVolume by checking HA volumes with matching varrays
-     * 
+     *
      * @param vplexVolume vplex volume to use
      * @return source volume
      */
@@ -1098,7 +1098,7 @@ public class BlockStorageUtils {
                 vplexVolume = volume;
                 volume = getSourceVolume(volume);
             }
-            String rgName = volume.getReplicationGroupInstance();
+            String rgName = BlockStorageUtils.stripRPTargetFromReplicationGroup(volume.getReplicationGroupInstance());
             URI storage = volume.getStorageController();
             if (!storageRgToVolumes.contains(storage, rgName)) {
                 if (isVPlex) {
@@ -1212,6 +1212,17 @@ public class BlockStorageUtils {
                 fullCopyIds.add(cell.getValue().getId());
             }
         }
+        return fullCopyIds;
+    }
+
+    public static List<URI> getAllFullCopyVolumes(URI applicationId, String copySet, List<String> subGroups) {
+        List<URI> fullCopyIds = Lists.newArrayList();
+
+        List<NamedRelatedResourceRep> fullCopies = execute(new GetFullCopyList(applicationId, copySet)).getVolumes();
+        for (NamedRelatedResourceRep fullCopy : fullCopies) {
+            fullCopyIds.add(fullCopy.getId());
+        }
+
         return fullCopyIds;
     }
 

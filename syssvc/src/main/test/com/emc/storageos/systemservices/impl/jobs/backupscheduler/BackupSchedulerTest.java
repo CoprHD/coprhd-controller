@@ -307,7 +307,7 @@ class FakeBackupClient extends BackupScheduler {
     @Override
     public String generateZipFileName(String tag, BackupFileSet files) {
         Set<String> availableNodes = files.uniqueNodes();
-        return ScheduledBackupTag.toZipFileName(tag, 1, availableNodes.size(), "");
+        return UploadExecutor.toZipFileName(tag, 1, availableNodes.size(), "site");
     }
 
     @Override

@@ -2342,7 +2342,7 @@
     },
     {
         key : "backup_scheduler_interval",
-        label : "Backup Interval per Day",
+        label : "Backups per Day",
         description : "The frequency scheduled backup starts per day",
         type : "string",
         maxLen : 15,

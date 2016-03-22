@@ -377,11 +377,25 @@ public class NetappMirrorFileOperations implements FileMirrorOperations {
                 break;
         }
 
-        String targetPath = null;
+        String sourcePath = null;
+        String portGroupSource = findVfilerName(sourceFs);
+        if (portGroupSource == null) {
+            sourcePath = getLocation(sourceStorage, sourceFs);
+        } else {
+            StringBuilder builderLocSource = new StringBuilder(portGroupSource);
+            builderLocSource.append(":").append(sourceFs.getName());
+            sourcePath = builderLocSource.toString();
+        }
+
         String portGroupTarget = findVfilerName(targetFs);
+        NetAppApi nApiTarget = new NetAppApi.Builder(targetStorage.getIpAddress(),
+                targetStorage.getPortNumber(), targetStorage.getUsername(),
+                targetStorage.getPassword()).https(true).vFiler(portGroupTarget).build();
+
+        String targetPath = null;
         if (portGroupTarget == null) {
             // Set target path from storage system
-            targetPath = getLocation(targetStorage, targetFs);
+            targetPath = getLocation(nApiTarget, targetFs);
         } else {
             // Set target path from port group (vFiler)
             StringBuilder builderLocTarget = new StringBuilder(portGroupTarget);
@@ -389,22 +403,7 @@ public class NetappMirrorFileOperations implements FileMirrorOperations {
             targetPath = builderLocTarget.toString();
         }
 
-        String portGroupSource = findVfilerName(sourceFs);
-
-        NetAppApi nApiSource = new NetAppApi.Builder(sourceStorage.getIpAddress(),
-                sourceStorage.getPortNumber(), sourceStorage.getUsername(),
-                sourceStorage.getPassword()).https(true).vFiler(portGroupSource).build();
-
-        String sourcePath = null;
-        if (portGroupSource == null) {
-            sourcePath = getLocation(nApiSource, sourceFs);
-        } else {
-            StringBuilder builderLocSource = new StringBuilder(portGroupSource);
-            builderLocSource.append(":").append(sourceFs.getName());
-            sourcePath = builderLocSource.toString();
-        }
-
-        nApiSource.setScheduleSnapMirror(rpoType, String.valueOf(rpo), sourcePath, targetPath, portGroupSource);
+        nApiTarget.setScheduleSnapMirror(rpoType, String.valueOf(rpo), sourcePath, targetPath, portGroupSource);
         return BiosCommandResult.createSuccessfulResult();
     }
 

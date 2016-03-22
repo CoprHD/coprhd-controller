@@ -260,11 +260,11 @@ public class NetAppApi {
         }
     }
 
-    public Boolean setVolumeRestricted(String volName) throws NetAppException {
+    public Boolean restrictVolume(String volName) throws NetAppException {
         try {
             netAppFacade = new NetAppFacade(_ipAddress, _portNumber, _userName,
                     _password, _https);
-            netAppFacade.setVolumeRestricted(volName, 1);
+            netAppFacade.setVolumeRestricted(volName, 0);
             return true;
         } catch (Exception e) {
             throw NetAppException.exceptions.setVolumeRestrictFailed(volName,

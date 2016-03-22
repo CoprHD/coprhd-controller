@@ -2794,35 +2794,32 @@ public class VolumeGroupService extends TaskResourceService {
 
     private static class MobilityVolumeGroupUtils extends VolumeGroupUtils {
 
-    	protected void validateSameCG(DbClient dbClient, VolumeGroup volumeGroup, List<Volume> volumes) {
+        protected void validateSameCG(DbClient dbClient, VolumeGroup volumeGroup, List<Volume> volumes) {
             Set<URI> consistencyGroups = Sets.newHashSet();
+            List<URI> volumeIds = new ArrayList<URI>();
             // Get list of all consistency groups for these volumes
-            if (volumes != null && volumes.size() > 0) {
+            if (volumes != null && !volumes.isEmpty()) {
                 for (Volume volume : volumes) {
+                    volumeIds.add(volume.getId());
                     if (!NullColumnValueGetter.isNullURI(volume.getConsistencyGroup())) {
                         consistencyGroups.add(volume.getConsistencyGroup());
                     }
                 }
-            }
 
-            Volume firstVol = volumes.get(0);
-            BlockServiceApi blockService = CopyVolumeGroupUtils.getBlockService(dbClient, firstVol);
+                Volume firstVol = volumes.get(0);
+                BlockServiceApi blockService = CopyVolumeGroupUtils.getBlockService(dbClient, firstVol);
 
-            for (URI consistencyGroupId : consistencyGroups) {
-                BlockConsistencyGroup consistencyGroup = dbClient.queryObject(BlockConsistencyGroup.class, consistencyGroupId);
-                List<Volume> cgVolumes = blockService.getActiveCGVolumes(consistencyGroup);
+                for (URI consistencyGroupId : consistencyGroups) {
+                    BlockConsistencyGroup consistencyGroup = dbClient.queryObject(BlockConsistencyGroup.class, consistencyGroupId);
+                    List<Volume> cgVolumes = blockService.getActiveCGVolumes(consistencyGroup);
 
-                // make sure all volumes in 'cgVolumes' are also in 'volumes'
-                for (Volume cgVolume : cgVolumes) {
-                    boolean found = false;
-                    for (Volume volume : volumes) {
-                        if (cgVolume.getId().equals(volume.getId())) {
-                            found = true;
+                    // make sure all volumes in 'cgVolumes' are also in 'volumes'
+                    for (Volume cgVolume : cgVolumes) {
+                        if (!volumeIds.contains(cgVolume.getId())) {
+                            throw APIException.badRequests.volumeGroupCantBeUpdated(volumeGroup.getLabel(),
+                                    String.format("a consistency group %s does not contain all of its volumes",
+                                            consistencyGroup.getLabel()));
                         }
-                    }
-                    if (!found) {
-                        throw APIException.badRequests.volumeGroupCantBeUpdated(volumeGroup.getLabel(),
-                                String.format("a consistency group %s does not contain all of its volumes", consistencyGroup.getLabel()));
                     }
                 }
             }

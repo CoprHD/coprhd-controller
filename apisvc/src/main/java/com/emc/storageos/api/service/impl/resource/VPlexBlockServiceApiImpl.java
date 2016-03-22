@@ -3722,6 +3722,10 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
      */
     private void configureCGAndReplicationGroup(VirtualPoolCapabilityValuesWrapper vPoolCapabilities,
             BlockConsistencyGroup backendCG, Volume volume) {
+        // Don't process CGs / replication groups on SRDF volumes.
+        if (volume.checkForSRDF()) {
+            return;
+        }
         // The consistency group or null when not specified.
         final BlockConsistencyGroup consistencyGroup = vPoolCapabilities.getBlockConsistencyGroup() == null ? null : _dbClient
                 .queryObject(BlockConsistencyGroup.class, vPoolCapabilities.getBlockConsistencyGroup());

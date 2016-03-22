@@ -12,6 +12,7 @@ import javax.cim.CIMProperty;
 import javax.wbem.CloseableIterator;
 import javax.wbem.client.WBEMClient;
 
+import com.emc.storageos.volumecontroller.impl.smis.SmisUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -78,33 +79,9 @@ public class SmisSnapShotJob extends SmisJob {
         }
     }
 
-    /*
-     * Set settings instance for VMAX V3 only
-     * 
-     * @param StorageSytem storage
-     * 
-     * @param snapshot BlockSnapshot to be updated
-     * 
-     * @param sourceElementId String of source volume (or source group) ID
-     * 
-     * @elementName String used as ElementName when creating ReplicationSettingData during single snapshot creation,
-     * or RelationshipName used in CreateGroupReplica for group snapshot
-     * 
-     * Note elementName should be target device's DeviceID or target group ID
-     * 
-     * @see com.emc.storageos.volumecontroller.impl.smis.vmax.VmaxSnapshotOperations#getReplicationSettingData
-     */
     private void setSettingsInstance(StorageSystem storage,
-            BlockSnapshot snapshot, String sourceElementId, String elementName) {
-        if (storage.checkIfVmax3()) {
-            // SYMMETRIX-+-000196700567-+-<sourceElementId>-+-<elementName>-+-0
-            StringBuilder sb = new StringBuilder("SYMMETRIX");
-            sb.append(Constants.SMIS80_DELIMITER)
-                    .append(storage.getSerialNumber())
-                    .append(Constants.SMIS80_DELIMITER).append(sourceElementId)
-                    .append(Constants.SMIS80_DELIMITER).append(elementName)
-                    .append(Constants.SMIS80_DELIMITER).append("0");
-            snapshot.setSettingsInstance(sb.toString());
-        }
+                                     BlockSnapshot snapshot, String sourceElementId, String elementName) {
+        String instance = SmisUtils.generateVmax3SettingsInstance(storage, sourceElementId, elementName);
+        snapshot.setSettingsInstance(instance);
     }
 }

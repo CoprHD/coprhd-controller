@@ -447,6 +447,7 @@ public class SystemsMapper {
 		to.setIsElementMgr(from.getIsElementMgr());
 		to.setNonSslPort(from.getNonSslPort());
 		to.setSslPort(from.getSslPort());
+		to.setDriverClassName(from.getDriverClassName());
 
 		return to;
 	}
@@ -467,6 +468,7 @@ public class SystemsMapper {
 		to.setIsElementMgr(from.getIsElementMgr());
 		to.setNonSslPort(from.getNonSslPort());
 		to.setSslPort(from.getSslPort());
+		to.setDriverClassName(from.getDriverClassName());
 
 		return to;
 	}

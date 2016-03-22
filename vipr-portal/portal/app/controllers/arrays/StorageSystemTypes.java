@@ -8,21 +8,17 @@ import java.util.List;
 import org.apache.commons.lang.StringUtils;
 
 import com.emc.storageos.model.dr.SiteIdListParam;
-import com.emc.storageos.model.dr.SiteRestRep;
 import com.emc.storageos.model.storagesystem.type.StorageSystemTypeAddParam;
 import com.emc.storageos.model.storagesystem.type.StorageSystemTypeRestRep;
 import com.google.common.collect.Lists;
 
 import controllers.Common;
-import controllers.arrays.StorageProviders.StorageProviderForm;
 import controllers.deadbolt.Restrict;
 import controllers.deadbolt.Restrictions;
 import controllers.util.FlashException;
 import controllers.util.ViprResourceController;
-import models.datatable.DisasterRecoveryDataTable;
 import models.datatable.StorageSystemTypeDataTable;
 import models.datatable.StorageSystemTypeDataTable.StorageSystemTypeInfo;
-import models.datatable.DisasterRecoveryDataTable.StandByInfo;
 import play.data.binding.As;
 import play.data.validation.MaxSize;
 import play.data.validation.MinSize;
@@ -133,6 +129,8 @@ public class StorageSystemTypes extends ViprResourceController {
 		@Required
 		public String sslPortNumber;
 
+		public String driverClassName;
+
 		public Boolean useSSL = false;
 
 		public Boolean isOnlyMDM = false;
@@ -161,6 +159,9 @@ public class StorageSystemTypes extends ViprResourceController {
 			if (null != storageSysType.getSslPort()) {
 				this.sslPortNumber = storageSysType.getSslPort();
 			}
+			if (storageSysType.getDriverClassName() != null) {
+				this.driverClassName = storageSysType.getDriverClassName();
+			}
 
 			this.useSSL = storageSysType.getIsDefaultSsl();
 			this.isOnlyMDM = storageSysType.getIsOnlyMDM();
@@ -188,33 +189,35 @@ public class StorageSystemTypes extends ViprResourceController {
 			addParams.setStorageTypeName(storageSystemTypeName);
 			addParams.setStorageTypeDispName(storageSystemTypeDisplayName);
 			addParams.setStorageType(storageSystemTypeType);
-			if (isProvider != null ) {
+			addParams.setDriverClassName(driverClassName);
+
+			if (isProvider != null) {
 				addParams.setIsSmiProvider(isProvider);
 			} else {
 				addParams.setIsSmiProvider(false);
 			}
-			if (useSSL != null ) {
+			if (useSSL != null) {
 				addParams.setIsDefaultSsl(useSSL);
 			} else {
 				addParams.setIsDefaultSsl(false);
 			}
-			if (sslPortNumber != null ) {
+			if (sslPortNumber != null) {
 				addParams.setSslPort(sslPortNumber);
 			}
 			if (portNumber != null) {
 				addParams.setNonSslPort(portNumber);
 			}
-			if (useMDM != null ) {
+			if (useMDM != null) {
 				addParams.setIsDefaultMDM(useMDM);
 			} else {
 				addParams.setIsDefaultMDM(false);
 			}
-			if (isOnlyMDM != null ) {
+			if (isOnlyMDM != null) {
 				addParams.setIsOnlyMDM(isOnlyMDM);
 			} else {
 				addParams.setIsOnlyMDM(false);
 			}
-			if (isElementMgr != null ) {
+			if (isElementMgr != null) {
 				addParams.setIsElementMgr(isElementMgr);
 			} else {
 				addParams.setIsElementMgr(false);

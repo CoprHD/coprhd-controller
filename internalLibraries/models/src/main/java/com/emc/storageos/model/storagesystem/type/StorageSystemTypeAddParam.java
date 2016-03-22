@@ -46,6 +46,9 @@ public class StorageSystemTypeAddParam {
 	@XmlElement(name = "sslPort")
 	private String sslPort;
 
+	@XmlElement(name = "driverClassName")
+	private String driverClassName;
+
 	public StorageSystemTypeAddParam() {
 	}
 
@@ -137,6 +140,14 @@ public class StorageSystemTypeAddParam {
 		this.nonSslPort = nonSslPort;
 	}
 
+	public String getDriverClassName() {
+		return driverClassName;
+	}
+
+	public void setDriverClassName(String driverClassName) {
+		this.driverClassName = driverClassName;
+	}
+
 	public String toString() {
 		StringBuilder builder = new StringBuilder();
 		builder.append("StorageSystemTypeRestRep [storage_type_id=");
@@ -153,6 +164,8 @@ public class StorageSystemTypeAddParam {
 		builder.append(nonSslPort);
 		builder.append(", sslPort=");
 		builder.append(sslPort);
+		builder.append(", driverClassName=");
+		builder.append(driverClassName);
 		builder.append("]");
 		return builder.toString();
 	}

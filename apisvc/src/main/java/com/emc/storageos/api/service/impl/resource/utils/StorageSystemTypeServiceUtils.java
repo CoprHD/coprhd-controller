@@ -153,6 +153,7 @@ public class StorageSystemTypeServiceUtils {
 			ssType.setStorageTypeName(file);
 			ssType.setStorageTypeDispName(nameDisplayNameMap.get(file));
 			ssType.setStorageTypeType("file");
+			ssType.setDriverClassName("file");
 			ssType.setIsSmiProvider(false);
 
 			if (defaultSSL.get(file) != null) {
@@ -186,6 +187,7 @@ public class StorageSystemTypeServiceUtils {
 			ssType.setStorageTypeName(file);
 			ssType.setStorageTypeDispName(nameDisplayNameMap.get(file));
 			ssType.setStorageTypeType("file");
+			ssType.setDriverClassName("file");
 			ssType.setIsSmiProvider(true);
 			if (defaultSSL.get(file) != null) {
 				ssType.setIsDefaultSsl(true);
@@ -216,6 +218,7 @@ public class StorageSystemTypeServiceUtils {
 			ssType.setStorageTypeName(block);
 			ssType.setStorageTypeDispName(nameDisplayNameMap.get(block));
 			ssType.setStorageTypeType("block");
+			ssType.setDriverClassName("block");
 			ssType.setIsSmiProvider(false);
 			if (defaultSSL.get(block) != null) {
 				ssType.setIsDefaultSsl(true);
@@ -247,6 +250,7 @@ public class StorageSystemTypeServiceUtils {
 			ssType.setStorageTypeName(block);
 			ssType.setStorageTypeDispName(nameDisplayNameMap.get(block));
 			ssType.setStorageTypeType("block");
+			ssType.setDriverClassName("block");
 			ssType.setIsSmiProvider(true);
 			if (defaultSSL.get(block) != null) {
 				ssType.setIsDefaultSsl(true);
@@ -278,6 +282,7 @@ public class StorageSystemTypeServiceUtils {
 			ssType.setStorageTypeName(object);
 			ssType.setStorageTypeDispName(nameDisplayNameMap.get(object));
 			ssType.setStorageTypeType("object");
+			ssType.setDriverClassName("object");
 			ssType.setIsSmiProvider(false);
 			if (defaultSSL.get(object) != null) {
 				ssType.setIsDefaultSsl(true);

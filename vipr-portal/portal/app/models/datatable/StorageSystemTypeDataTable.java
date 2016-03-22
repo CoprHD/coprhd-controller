@@ -26,6 +26,7 @@ public class StorageSystemTypeDataTable extends DataTable {
 		public Boolean isElementMgr;
 		public Boolean useMDM;
 		public Boolean isProvider;
+		public String driverClassname;
 
 		public StorageSystemTypeInfo() {
 		}
@@ -42,6 +43,7 @@ public class StorageSystemTypeDataTable extends DataTable {
 			this.isElementMgr = storageSysType.getIsElementMgr();
 			this.useMDM = storageSysType.getIsDefaultMDM();
 			this.isProvider = storageSysType.getIsSmiProvider();
+			this.driverClassname = storageSysType.getDriverClassName();
 		}
 	}
 }

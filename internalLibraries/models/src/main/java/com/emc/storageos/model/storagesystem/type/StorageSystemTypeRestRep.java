@@ -21,6 +21,7 @@ public class StorageSystemTypeRestRep extends DataObjectRestRep {
 	private boolean isElementMgr = false;
 	private String nonSslPort;
 	private String sslPort;
+	private String driverClassName;
 
 	public StorageSystemTypeRestRep() {
 	}
@@ -125,6 +126,15 @@ public class StorageSystemTypeRestRep extends DataObjectRestRep {
 		this.nonSslPort = nonSslPort;
 	}
 
+	@XmlElement(name = "driverClassName")
+	public String getDriverClassName() {
+		return driverClassName;
+	}
+
+	public void setDriverClassName(String driverClassName) {
+		this.driverClassName = driverClassName;
+	}
+
 	@Override
 	public String toString() {
 		StringBuilder builder = new StringBuilder();
@@ -142,6 +152,8 @@ public class StorageSystemTypeRestRep extends DataObjectRestRep {
 		builder.append(nonSslPort);
 		builder.append(", sslPort=");
 		builder.append(sslPort);
+		builder.append(", driverClassName=");
+		builder.append(driverClassName);
 		builder.append("]");
 		return builder.toString();
 	}

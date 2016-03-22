@@ -47,22 +47,22 @@ public class StorageSystemTypeService extends TaskResourceService {
 	private static final Logger log = LoggerFactory.getLogger(StorageSystemTypeService.class);
 	private static final String EVENT_SERVICE_TYPE = "StorageSystemTypeService";
 
-//	private static final String ISILON = "isilon";
-//	private static final String VNX_BLOCK = "vnxblock";
-//	private static final String VNXe = "vnxe";
-//	private static final String VNX_FILE = "vnxfile";
-//	private static final String VMAX = "smis";
-//	private static final String NETAPP = "netapp";
-//	private static final String NETAPPC = "netappc";
-//	private static final String HITACHI = "hds";
-//	private static final String IBMXIV = "ibmxiv";
-//	private static final String VPLEX = "vplex";
-//	private static final String OPENSTACK = "openstack";
-//	private static final String SCALEIO = "scaleio";
-//	private static final String SCALEIOAPI = "scaleioapi";
-//	private static final String XTREMIO = "xtremio";
-//	private static final String DATA_DOMAIN = "datadomain";
-//	private static final String ECS = "ecs";
+	// private static final String ISILON = "isilon";
+	// private static final String VNX_BLOCK = "vnxblock";
+	// private static final String VNXe = "vnxe";
+	// private static final String VNX_FILE = "vnxfile";
+	// private static final String VMAX = "smis";
+	// private static final String NETAPP = "netapp";
+	// private static final String NETAPPC = "netappc";
+	// private static final String HITACHI = "hds";
+	// private static final String IBMXIV = "ibmxiv";
+	// private static final String VPLEX = "vplex";
+	// private static final String OPENSTACK = "openstack";
+	// private static final String SCALEIO = "scaleio";
+	// private static final String SCALEIOAPI = "scaleioapi";
+	// private static final String XTREMIO = "xtremio";
+	// private static final String DATA_DOMAIN = "datadomain";
+	// private static final String ECS = "ecs";
 
 	/**
 	 * Show compute image attribute.
@@ -154,10 +154,10 @@ public class StorageSystemTypeService extends TaskResourceService {
 		ssType.setStorageTypeName(addparam.getStorageTypeName());
 		ssType.setStorageTypeType(addparam.getStorageTypeType());
 		ssType.setIsSmiProvider(addparam.getIsSmiProvider());
-		
-		// ALIK 
-		//Need to add all other paramaetrs here
-		
+
+		// ALIK
+		// Need to add all other paramaetrs here
+
 		_dbClient.createObject(ssType);
 
 		auditOp(OperationTypeEnum.ADD_STORAGE_SYSTEM_TYPE, true, AuditLogManager.AUDITOP_BEGIN,
@@ -232,209 +232,4 @@ public class StorageSystemTypeService extends TaskResourceService {
 		return null;
 	}
 
-	private void addDefaultStorageSystemTypes() {
-		// // Default File arrays
-		// List<String> storageArrayFile = asList(VNX_FILE, ISILON, NETAPP,
-		// NETAPPC);
-		//
-		// // Default Provider for File
-		// List<String> storageProviderFile = asList(SCALEIOAPI);
-		//
-		// // Default block arrays
-		// List<String> storageArrayBlock = asList(VNX_BLOCK, VNXe);
-		//
-		// // Default Storage provider for Block
-		// List<String> storageProviderBlock = asList(VMAX, HITACHI, VPLEX,
-		// OPENSTACK, SCALEIO, DATA_DOMAIN, IBMXIV,
-		// XTREMIO);
-		//
-		// // Default object arrays
-		// List<String> storageArrayObject = asList(ECS);
-		//
-		// // Default SSL providers
-		// HashMap<String, Boolean> defaultSSL = new HashMap<String, Boolean>();
-		// // VNX_BLOCK,
-		// // VMAX,
-		// // SCALEIOAPI,
-		// // VPLEX,
-		// // VNX_FILE,
-		// // VNXe,
-		// // IBMXIV
-		// defaultSSL.put(VNX_BLOCK, true);
-		// defaultSSL.put(VMAX, true);
-		// defaultSSL.put(SCALEIOAPI, true);
-		// defaultSSL.put(VPLEX, true);
-		// defaultSSL.put(VNX_FILE, true);
-		// defaultSSL.put(VNXe, true);
-		// defaultSSL.put(IBMXIV, true);
-		//
-		// // MDM_DEFAULT_OPTIONS = StringOption.options(new String[] { SCALEIO,
-		// // SCALEIOAPI });
-		// HashMap<String, Boolean> defaultMDM = new HashMap<String, Boolean>();
-		// defaultMDM.put(SCALEIO, true);
-		// defaultMDM.put(SCALEIOAPI, true);
-		//
-		// // MDM_ONLY_OPTIONS = StringOption.options(new String[]
-		// {SCALEIOAPI});
-		// HashMap<String, Boolean> onlyMDM = new HashMap<String, Boolean>();
-		// onlyMDM.put(SCALEIOAPI, true);
-		//
-		// // ELEMENT_MANAGER_OPTIONS = StringOption.options(new String[] {
-		// SCALEIO
-		// // });
-		// HashMap<String, Boolean> elementManager = new HashMap<String,
-		// Boolean>();
-		// elementManager.put(SCALEIO, true);
-		//
-		// // Name of Array and its Display Name mapping
-		// HashMap<String, String> nameDisplayNameMap = new HashMap<String,
-		// String>();
-		// nameDisplayNameMap.put(VNX_FILE, "EMC VNX File");
-		// nameDisplayNameMap.put(ISILON, "EMC Isilon");
-		// nameDisplayNameMap.put(NETAPP, "NetApp 7-mode");
-		// nameDisplayNameMap.put(NETAPPC, "NetApp Cluster-mode");
-		// nameDisplayNameMap.put(SCALEIOAPI, "ScaleIO Gateway");
-		// nameDisplayNameMap.put(VNX_BLOCK, "EMC VNX Block");
-		// nameDisplayNameMap.put(VNXe, "EMC VNXe");
-		// nameDisplayNameMap.put(VMAX, "Storage Provider for EMC VMAX or VNX
-		// Block");
-		// nameDisplayNameMap.put(HITACHI, "Storage Provider for Hitachi storage
-		// systems");
-		// nameDisplayNameMap.put(VPLEX, "Storage Provider for EMC VPLEX");
-		// nameDisplayNameMap.put(OPENSTACK, "Storage Provider for Third-party
-		// block storage systems");
-		// nameDisplayNameMap.put(SCALEIO, "Block Storage Powered by ScaleIO");
-		// nameDisplayNameMap.put(DATA_DOMAIN, "Storage Provider for Data Domain
-		// Management Center");
-		// nameDisplayNameMap.put(IBMXIV, "Storage Provider for IBM XIV");
-		// nameDisplayNameMap.put(XTREMIO, "Storage Provider for EMC XtremIO");
-		// nameDisplayNameMap.put(ECS, "EMC Elastic Cloud Storage");
-		//
-		// for (String file : storageArrayFile) {
-		// StorageSystemType ssType = new StorageSystemType();
-		// URI ssTyeUri = URIUtil.createId(StorageSystemType.class);
-		// ssType.setId(ssTyeUri);
-		// ssType.setStorageTypeId(ssTyeUri.toString());
-		// ssType.setStorageTypeName(file);
-		// ssType.setStorageTypeDispName(nameDisplayNameMap.get(file));
-		// ssType.setStorageTypeType("file");
-		// ssType.setIsSmiProvider(false);
-		//
-		// if (defaultSSL.get(file) != null ) {
-		// ssType.setIsDefaultSsl(true);
-		// }
-		//
-		// if (defaultMDM.get(file) != null ) {
-		// ssType.setIsDefaultMDM(true);
-		// }
-		// if (onlyMDM.get(file) != null ) {
-		// ssType.setIsOnlyMDM(true);
-		// }
-		// if (elementManager.get(file) != null ) {
-		// ssType.setIsElementMgr(true);
-		// }
-		//
-		// _dbClient.createObject(ssType);
-		// }
-		//
-		// for (String file : storageProviderFile) {
-		// StorageSystemType ssType = new StorageSystemType();
-		// URI ssTyeUri = URIUtil.createId(StorageSystemType.class);
-		// ssType.setId(ssTyeUri);
-		// ssType.setStorageTypeId(ssTyeUri.toString());
-		// ssType.setStorageTypeName(file);
-		// ssType.setStorageTypeDispName(nameDisplayNameMap.get(file));
-		// ssType.setStorageTypeType("file");
-		// ssType.setIsSmiProvider(true);
-		// if (defaultSSL.get(file) != null ) {
-		// ssType.setIsDefaultSsl(true);
-		// }
-		// if (defaultMDM.get(file) != null ) {
-		// ssType.setIsDefaultMDM(true);
-		// }
-		// if (onlyMDM.get(file) != null ) {
-		// ssType.setIsOnlyMDM(true);
-		// }
-		// if (elementManager.get(file) != null ) {
-		// ssType.setIsElementMgr(true);
-		// }
-		//
-		// _dbClient.createObject(ssType);
-		// }
-		//
-		// for (String block : storageArrayBlock) {
-		// StorageSystemType ssType = new StorageSystemType();
-		// URI ssTyeUri = URIUtil.createId(StorageSystemType.class);
-		// ssType.setId(ssTyeUri);
-		// ssType.setStorageTypeId(ssTyeUri.toString());
-		// ssType.setStorageTypeName(block);
-		// ssType.setStorageTypeDispName(nameDisplayNameMap.get(block));
-		// ssType.setStorageTypeType("block");
-		// ssType.setIsSmiProvider(false);
-		// if (defaultSSL.get(block) != null ) {
-		// ssType.setIsDefaultSsl(true);
-		// }
-		// if (defaultMDM.get(block) != null ) {
-		// ssType.setIsDefaultMDM(true);
-		// }
-		// if (onlyMDM.get(block) != null ) {
-		// ssType.setIsOnlyMDM(true);
-		// }
-		// if (elementManager.get(block) != null ) {
-		// ssType.setIsElementMgr(true);
-		// }
-		//
-		// _dbClient.createObject(ssType);
-		// }
-		//
-		// for (String block : storageProviderBlock) {
-		// StorageSystemType ssType = new StorageSystemType();
-		// URI ssTyeUri = URIUtil.createId(StorageSystemType.class);
-		// ssType.setId(ssTyeUri);
-		// ssType.setStorageTypeId(ssTyeUri.toString());
-		// ssType.setStorageTypeName(block);
-		// ssType.setStorageTypeDispName(nameDisplayNameMap.get(block));
-		// ssType.setStorageTypeType("block");
-		// ssType.setIsSmiProvider(true);
-		// if (defaultSSL.get(block) != null ) {
-		// ssType.setIsDefaultSsl(true);
-		// }
-		// if (defaultMDM.get(block) != null ) {
-		// ssType.setIsDefaultMDM(true);
-		// }
-		// if (onlyMDM.get(block) != null ) {
-		// ssType.setIsOnlyMDM(true);
-		// }
-		// if (elementManager.get(block) != null ) {
-		// ssType.setIsElementMgr(true);
-		// }
-		//
-		// _dbClient.createObject(ssType);
-		// }
-		//
-		// for (String object : storageArrayObject) {
-		// StorageSystemType ssType = new StorageSystemType();
-		// URI ssTyeUri = URIUtil.createId(StorageSystemType.class);
-		// ssType.setId(ssTyeUri);
-		// ssType.setStorageTypeId(ssTyeUri.toString());
-		// ssType.setStorageTypeName(object);
-		// ssType.setStorageTypeDispName(nameDisplayNameMap.get(object));
-		// ssType.setStorageTypeType("object");
-		// ssType.setIsSmiProvider(false);
-		// if (defaultSSL.get(object) != null ) {
-		// ssType.setIsDefaultSsl(true);
-		// }
-		// if (defaultMDM.get(object) != null ) {
-		// ssType.setIsDefaultMDM(true);
-		// }
-		// if (onlyMDM.get(object) != null ) {
-		// ssType.setIsOnlyMDM(true);
-		// }
-		// if (elementManager.get(object) != null ) {
-		// ssType.setIsElementMgr(true);
-		// }
-		//
-		// _dbClient.createObject(ssType);
-		// }
-	}
 }

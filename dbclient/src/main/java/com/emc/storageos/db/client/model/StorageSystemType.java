@@ -30,6 +30,7 @@ public class StorageSystemType extends DataObject {
 
 	private String sslPort;
 	private String nonSslPort;
+	private String driverClassName;
 
 	@Name("storageTypeName")
 	public String getStorageTypeName() {
@@ -139,6 +140,16 @@ public class StorageSystemType extends DataObject {
 	public void setNonSslPort(String nonSslPort) {
 		this.nonSslPort = nonSslPort;
 		setChanged("nonSslPort");
+	}
+
+	@Name("driverClassName")
+	public String getDriverClassName() {
+		return driverClassName;
+	}
+
+	public void setDriverClassName(String driverClassName) {
+		this.driverClassName = driverClassName;
+		setChanged("driverClassName");
 	}
 
 	public static enum StorageType {

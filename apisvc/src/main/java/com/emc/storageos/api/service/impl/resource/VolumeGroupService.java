@@ -2855,7 +2855,7 @@ public class VolumeGroupService extends TaskResourceService {
                 while (remVolItr.hasNext()) {
                     removeVols.add(remVolItr.next());
                 }
-                //validateSameCG(dbClient, volumeGroup, addVols);
+                validateSameCG(dbClient, volumeGroup, removeVols);
             }
 
             List<Host> removeHosts = new ArrayList<Host>();

@@ -243,7 +243,7 @@ public class BackupService {
     @Path("backup/info/")
     @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR, Role.RESTRICTED_SYSTEM_ADMIN })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    public BackupInfo queryBackupInfo(@QueryParam("name") String backupName, @QueryParam("local") @DefaultValue("false") boolean isLocal) {
+    public BackupInfo queryBackupInfo(@QueryParam("backupname") String backupName, @QueryParam("isLocal") @DefaultValue("false") boolean isLocal) {
         log.info("Query backup info backupFileName={} isLocal={}", backupName, isLocal);
         try {
             if (isLocal) {

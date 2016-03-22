@@ -180,9 +180,11 @@ public class SysSvcImpl extends AbstractSecuredWebServer implements SysSvc {
     }
 
     private void startNetworkMonitor() {
-        _drNetworkMonitorThread = new Thread(_drSiteNetworkMonitor);
-        _drNetworkMonitorThread.setName("DrSiteNetworkMonitor");
-        _drNetworkMonitorThread.start();
+        if (_drSiteNetworkMonitor.shouldStartOnCurrentSite()) {
+            _drNetworkMonitorThread = new Thread(_drSiteNetworkMonitor);
+            _drNetworkMonitorThread.setName("DrSiteNetworkMonitor");
+            _drNetworkMonitorThread.start();
+        }
     }
 
     private void startDiagnosticsScheduler() {
@@ -223,9 +225,7 @@ public class SysSvcImpl extends AbstractSecuredWebServer implements SysSvc {
             startPropertyManager();
             startVdcManager();
 
-            if (drUtil.isActiveSite()) {
-                startNetworkMonitor();
-            }
+            startNetworkMonitor();
 
             startDiagnosticsScheduler();
             

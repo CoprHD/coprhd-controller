@@ -85,6 +85,7 @@ import com.emc.storageos.volumecontroller.impl.smis.srdf.collectors.BrokenSynchr
 import com.emc.storageos.volumecontroller.impl.smis.srdf.collectors.ErrorOnEmptyFilter;
 import com.emc.storageos.volumecontroller.impl.smis.srdf.exceptions.NoSynchronizationsFoundException;
 import com.emc.storageos.volumecontroller.impl.smis.srdf.exceptions.RemoteGroupAssociationNotFoundException;
+import com.emc.storageos.volumecontroller.impl.utils.ConsistencyGroupUtils;
 import com.emc.storageos.workflow.WorkflowStepCompleter;
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
@@ -99,6 +100,7 @@ public class SRDFOperations implements SmisConstants {
     private static final String STORAGE_SYNCHRONIZATION_NOT_FOUND = "Storage Synchronization instance not found";
     private static final String REPLICATION_NOT_IN_RIGHT_STATE = "Storage replication not in expected state for failover-cancel";
     private static final String REPLICATION_GROUP_NOT_FOUND_ON_BOTH_PROVIDERS = "Replication group not found on both R1 and R2 providers";
+    private static final String COPY_SESSION_SOURCE_ERROR = "Cannot use the device for this function because it is a Copy Session source";
 
     private static final int RESUME_AFTER_SWAP_MAX_ATTEMPTS = 15;
     private static final int RESUME_AFTER_SWAP_SLEEP = 30000; // 30 seconds
@@ -191,8 +193,9 @@ public class SRDFOperations implements SmisConstants {
             } else {
                 CIMObjectPath repCollectionPath = cimPath.getRemoteReplicationCollection(systemWithCg,
                         group);
-                inArgs = helper.getCreateGroupReplicaForSRDFInputArguments(srcCGPath,
-                        tgtCGPath, repCollectionPath, modeValue, replicationSettingDataInstance);
+                String groupName = ConsistencyGroupUtils.getSourceConsistencyGroupName(firstSource, dbClient);
+                inArgs = helper.getCreateGroupReplicaForSRDFInputArguments(sourceSystem,
+                        groupName, srcCGPath, tgtCGPath, repCollectionPath, modeValue, replicationSettingDataInstance);
                 helper.invokeMethodSynchronously(systemWithCg, srcRepSvcPath,
                         SmisConstants.CREATE_GROUP_REPLICA, inArgs, outArgs,
                         new SmisSRDFCreateMirrorJob(null, systemWithCg.getId(), completer));
@@ -269,8 +272,9 @@ public class SRDFOperations implements SmisConstants {
                     group);
             // look for existing volumes, if found then use AddSyncPair
             CIMInstance replicationSettingDataInstance = getReplicationSettingDataInstance(sourceSystem, modeValue);
-            CIMArgument[] inArgs = helper.getCreateGroupReplicaForSRDFInputArguments(srcCGPath,
-                    tgtCGPath, repCollectionPath, modeValue, replicationSettingDataInstance);
+            String groupName = ConsistencyGroupUtils.getSourceConsistencyGroupName(sourceblockObj, dbClient);
+            CIMArgument[] inArgs = helper.getCreateGroupReplicaForSRDFInputArguments(sourceSystem,
+                    groupName, srcCGPath, tgtCGPath, repCollectionPath, modeValue, replicationSettingDataInstance);
             CIMArgument[] outArgs = new CIMArgument[5];
             helper.invokeMethodSynchronously(sourceSystem, srcRepSvcPath,
                     SmisConstants.CREATE_GROUP_REPLICA, inArgs, outArgs,
@@ -1321,7 +1325,7 @@ public class SRDFOperations implements SmisConstants {
             log.warn("No remote group association found for {}. It may have already been removed.", target.getId());
         } catch (Exception e) {
             log.error("Failed to swap srdf link {}", target.getSrdfParent().getURI(), e);
-            error = SmisException.errors.jobFailed(e.getMessage());
+            error = getServiceError(e);
         } finally {
             if (error == null) {
                 completer.ready(dbClient);
@@ -1873,9 +1877,9 @@ public class SRDFOperations implements SmisConstants {
                     raGroup);
             // look for existing volumes, if found then use AddSyncPair
             CIMInstance replicationSettingDataInstance = getReplicationSettingDataInstance(sourceSystem, modeValue);
-
-            CIMArgument[] inArgs = helper.getCreateGroupReplicaForSRDFInputArguments(srcCGPath,
-                    tgtCGPath, repCollectionPath, modeValue, replicationSettingDataInstance);
+            String groupName = ConsistencyGroupUtils.getSourceConsistencyGroupName(firstSource, dbClient);
+            CIMArgument[] inArgs = helper.getCreateGroupReplicaForSRDFInputArguments(sourceSystem,
+                    groupName, srcCGPath, tgtCGPath, repCollectionPath, modeValue, replicationSettingDataInstance);
             CIMArgument[] outArgs = new CIMArgument[5];
             completer.setCGName(sourceGroupName, targetGroupName,
                     firstSource.getConsistencyGroup());
@@ -2288,6 +2292,14 @@ public class SRDFOperations implements SmisConstants {
             }
         }
 
+    }
+
+    private ServiceError getServiceError(Exception e) {
+        String message = e.getMessage();
+        if (message != null && message.contains(COPY_SESSION_SOURCE_ERROR)) {
+            return SmisException.errors.swapOperationNotAllowedDueToActiveCopySessions();
+        }
+        return SmisException.errors.jobFailed(message);
     }
 
 }

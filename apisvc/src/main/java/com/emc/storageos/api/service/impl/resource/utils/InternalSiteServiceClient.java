@@ -13,8 +13,8 @@ import com.emc.storageos.coordinator.client.model.Site;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.model.dr.FailoverPrecheckResponse;
 import com.emc.storageos.model.dr.SiteConfigParam;
-import com.emc.storageos.model.dr.SiteDetailRestRep;
 import com.emc.storageos.model.dr.SiteErrorResponse;
+import com.emc.storageos.model.dr.SiteList;
 import com.emc.storageos.security.authentication.InternalApiSignatureKeyGenerator;
 import com.emc.storageos.security.helpers.BaseServiceClient;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
@@ -34,7 +34,7 @@ public class InternalSiteServiceClient extends BaseServiceClient {
     private static final String SITE_INTERNAL_RESUMEPRECHECK = INTERNAL_SITE_ROOT + "/resumeprecheck";
     private static final String SITE_INTERNAL_SWITCHOVERPRECHECK = INTERNAL_SITE_ROOT + "/switchoverprecheck";
     private static final String SITE_INTERNAL_SWITCHOVER = INTERNAL_SITE_ROOT + "/switchover?newActiveSiteUUid=%s&vdcVersion=%d";
-    private static final String SITE_INTERNAL_DETAILS = INTERNAL_SITE_ROOT + "/%s/details";
+    private static final String SITE_INTERNAL_LIST = INTERNAL_SITE_ROOT + "/list";
 
     final private Logger log = LoggerFactory
             .getLogger(InternalSiteServiceClient.class);
@@ -131,12 +131,12 @@ public class InternalSiteServiceClient extends BaseServiceClient {
         
     }
     
-    public SiteDetailRestRep getSiteDetails(String siteId) {
-        WebResource rRoot = createRequest(String.format(SITE_INTERNAL_DETAILS, siteId));
+    public SiteList getSiteList() {
+        WebResource rRoot = createRequest(SITE_INTERNAL_LIST);
         ClientResponse resp = null;
         
         resp = addSignature(rRoot).get(ClientResponse.class);
-        SiteDetailRestRep response = resp.getEntity(SiteDetailRestRep.class);
+        SiteList response = resp.getEntity(SiteList.class);
         return response;
     }
 

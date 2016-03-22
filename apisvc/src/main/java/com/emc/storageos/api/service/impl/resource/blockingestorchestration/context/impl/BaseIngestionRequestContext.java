@@ -21,7 +21,9 @@ import com.emc.storageos.api.service.impl.resource.blockingestorchestration.cont
 import com.emc.storageos.api.service.impl.resource.utils.VolumeIngestionUtil;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
+import com.emc.storageos.db.client.model.BlockMirror;
 import com.emc.storageos.db.client.model.BlockObject;
+import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.ExportMask;
@@ -868,8 +870,11 @@ public class BaseIngestionRequestContext implements IngestionRequestContext {
         getDataObjectsToBeCreatedMap().get(unManagedVolume.getNativeGuid()).add(dataObject);
     }
 
-    /* (non-Javadoc)
-     * @see com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext#findExportGroup(java.lang.String)
+    /*
+     * (non-Javadoc)
+     * 
+     * @see com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext#findExportGroup(java.lang.
+     * String)
      */
     @Override
     public ExportGroup findExportGroup(String exportGroupLabel, URI project, URI varray, URI computeResource, String resourceType) {
@@ -877,9 +882,9 @@ public class BaseIngestionRequestContext implements IngestionRequestContext {
 
             ExportGroup localExportGroup = getExportGroup();
             if (null != localExportGroup && exportGroupLabel.equals(localExportGroup.getLabel())) {
-                if (VolumeIngestionUtil.verifyExportGroupMatches(localExportGroup, 
+                if (VolumeIngestionUtil.verifyExportGroupMatches(localExportGroup,
                         exportGroupLabel, project, varray, computeResource, resourceType)) {
-                    _logger.info("Found existing local ExportGroup {} in base ingestion request context", 
+                    _logger.info("Found existing local ExportGroup {} in base ingestion request context",
                             localExportGroup.forDisplay());
                     return localExportGroup;
                 }
@@ -892,27 +897,29 @@ public class BaseIngestionRequestContext implements IngestionRequestContext {
                             exportGroupLabel, project, varray, computeResource, resourceType);
                 }
                 if (null != nestedExportGroup) {
-                    if (VolumeIngestionUtil.verifyExportGroupMatches(nestedExportGroup, 
+                    if (VolumeIngestionUtil.verifyExportGroupMatches(nestedExportGroup,
                             exportGroupLabel, project, varray, computeResource, resourceType)) {
-                        _logger.info("Found existing nested ExportGroup {} in volume context {}", 
+                        _logger.info("Found existing nested ExportGroup {} in volume context {}",
                                 nestedExportGroup.forDisplay(), volumeContext.getUnmanagedVolume().forDisplay());
                         return nestedExportGroup;
                     }
                 }
             }
         }
-        
+
         _logger.info("Could not find existing export group for label " + exportGroupLabel);
         return null;
     }
 
-    /* (non-Javadoc)
+    /*
+     * (non-Javadoc)
+     * 
      * @see com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext#findAllNewExportMasks()
      */
     @Override
     public List<ExportMask> findAllNewExportMasks() {
         List<ExportMask> newExportMasks = new ArrayList<ExportMask>();
-        
+
         for (Set<DataObject> createdObjects : this.getDataObjectsToBeCreatedMap().values()) {
             for (DataObject createdObject : createdObjects) {
                 if (createdObject instanceof ExportMask) {
@@ -931,16 +938,23 @@ public class BaseIngestionRequestContext implements IngestionRequestContext {
         return newExportMasks;
     }
 
-    /* (non-Javadoc)
-     * @see com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext#getRootIngestionRequestContext()
+    /*
+     * (non-Javadoc)
+     * 
+     * @see
+     * com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext#getRootIngestionRequestContext()
      */
     @Override
     public IngestionRequestContext getRootIngestionRequestContext() {
         return this;
     }
 
-    /* (non-Javadoc)
-     * @see com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext#findObjectAnywhere(java.lang.Class, java.net.URI)
+    /*
+     * (non-Javadoc)
+     * 
+     * @see
+     * com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext#findObjectAnywhere(java.lang.
+     * Class, java.net.URI)
      */
     @Override
     public <T extends DataObject> T findDataObjectByType(Class<T> clazz, URI id, boolean fallbackToDatabase) {
@@ -951,15 +965,15 @@ public class BaseIngestionRequestContext implements IngestionRequestContext {
         DataObject dob = this.findInUpdatedObjects(id);
         if (clazz.isInstance(dob)) {
             _logger.info("\tfound in updated objects: " + dob.forDisplay());
-            return (T) clazz.cast(dob);
+            return clazz.cast(dob);
         }
 
-        // check for BlockObjects/Volumes that have been created
-        if (clazz.equals(BlockObject.class) || clazz.equals(Volume.class)) {
+        // check for Mirrors/Snapshots/Volumes that have been created
+        if (clazz.equals(BlockMirror.class) || clazz.equals(Volume.class) || clazz.equals(BlockSnapshot.class)) {
             BlockObject bo = this.findCreatedBlockObject(id);
             if (clazz.isInstance(bo)) {
                 _logger.info("\tfound in created objects: " + bo.forDisplay());
-                return (T) clazz.cast(bo);
+                return clazz.cast(bo);
             }
         }
 
@@ -969,7 +983,7 @@ public class BaseIngestionRequestContext implements IngestionRequestContext {
             for (UnManagedVolume umv : this.findAllUnManagedVolumesToBeDeleted()) {
                 if (umv != null && umv.getId().equals(id)) {
                     _logger.info("\tfound in volumes to be deleted: " + umv.forDisplay());
-                    return (T) clazz.cast(umv);
+                    return clazz.cast(umv);
                 }
             }
 
@@ -978,7 +992,7 @@ public class BaseIngestionRequestContext implements IngestionRequestContext {
                 UnManagedVolume umv = currentVolumeContext.getUnmanagedVolume();
                 if (umv != null && umv.getId().equals(id)) {
                     _logger.info("\tfound in current volume context: " + umv.forDisplay());
-                    return (T) clazz.cast(umv);
+                    return clazz.cast(umv);
                 }
             }
 
@@ -987,7 +1001,7 @@ public class BaseIngestionRequestContext implements IngestionRequestContext {
                     UnManagedVolume umv = volumeContext.getUnmanagedVolume();
                     if (umv != null && umv.getId().equals(id)) {
                         _logger.info("\tfound in already-processed volume context: " + umv.forDisplay());
-                        return (T) clazz.cast(umv);
+                        return clazz.cast(umv);
                     }
                 }
             }
@@ -998,10 +1012,11 @@ public class BaseIngestionRequestContext implements IngestionRequestContext {
 
             VolumeIngestionContext currentVolumeContext = getVolumeContext();
             if (currentVolumeContext != null && currentVolumeContext instanceof RecoverPointVolumeIngestionContext) {
-                UnManagedProtectionSet umpset = ((RecoverPointVolumeIngestionContext) currentVolumeContext).getUnManagedProtectionSetLocal();
+                UnManagedProtectionSet umpset = ((RecoverPointVolumeIngestionContext) currentVolumeContext)
+                        .getUnManagedProtectionSetLocal();
                 if (umpset != null && umpset.getId().equals(id)) {
                     _logger.info("\tfound in current volume context: " + umpset.forDisplay());
-                    return (T) clazz.cast(umpset);
+                    return clazz.cast(umpset);
                 }
             }
 
@@ -1010,7 +1025,7 @@ public class BaseIngestionRequestContext implements IngestionRequestContext {
                     UnManagedProtectionSet umpset = ((RecoverPointVolumeIngestionContext) volumeContext).getUnManagedProtectionSetLocal();
                     if (umpset != null && umpset.getId().equals(id)) {
                         _logger.info("\tfound in already-processed volume context: " + umpset.forDisplay());
-                        return (T) clazz.cast(umpset);
+                        return clazz.cast(umpset);
                     }
                 }
             }
@@ -1021,7 +1036,7 @@ public class BaseIngestionRequestContext implements IngestionRequestContext {
             T dataObject = _dbClient.queryObject(clazz, id);
             if (dataObject != null) {
                 _logger.info("\tloaded object from database: " + dataObject.forDisplay());
-                return (T) clazz.cast(dataObject);
+                return clazz.cast(dataObject);
             }
         }
 

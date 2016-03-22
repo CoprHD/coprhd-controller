@@ -501,6 +501,8 @@ public enum OperationTypeEnum {
     STANDBY_SWITCHOVER("STANDBY BECOME ACTIVE AFTER SWITCHOVER", "", "operation that marks switchover on new active site complete"),
     FAILOVER("FAILOVER TO A STANDBY", "", "operation to initiate failing over to a standby site"),
     STANDBY_FAILOVER("STANDBY BECOME ACTIVE AFTER FAILOVER", "", "operation that marks failover on new active site complete"),
+    STANDBY_DEGRADE("DEGRADE STANDBY", "", "operation that marks standby as degraded"),
+    STANDBY_REJOIN("STANDBY REJOIN VDC FROM STANDBY_DEGRADED STATE", "", "operation that marks standby has rejoined vdc rom degraded state"),
     UPDATE_SITE("UPDATE SITE", "", "operation to update site information"),
     CREATE_SCHEDULE_POLICY("SchedulePolicyCreated", "", "create schedule policy.");
 

@@ -160,7 +160,7 @@ public class NetappMirrorFileOperations implements FileMirrorOperations {
             throws DeviceControllerException {
 
         FileShare sourceFileShare = _dbClient.queryObject(FileShare.class, source);
-        FileShare targetFileShare = _dbClient.queryObject(FileShare.class, source);
+        FileShare targetFileShare = _dbClient.queryObject(FileShare.class, target);
         StorageSystem targetStorage = _dbClient.queryObject(StorageSystem.class, targetFileShare.getStorageDevice());
 
         BiosCommandResult cmdResult = doReleaseSnapMirror(system, targetStorage,
@@ -247,15 +247,14 @@ public class NetappMirrorFileOperations implements FileMirrorOperations {
         String sourceLocation = getLocation(nApiSource, sourceFs);
 
         // target netapp
-        String portGroupTarget = findVfilerName(targetFs);
         NetAppApi nApiTarget = new NetAppApi.Builder(targetStorage.getIpAddress(),
                 targetStorage.getPortNumber(), sourceStorage.getUsername(),
-                targetStorage.getPassword()).https(true).vFiler(portGroupTarget).build();
+                targetStorage.getPassword()).https(true).build();
 
         String destLocation = getLocation(nApiTarget, targetFs);
 
         // make api call on source
-        nApiSource.releaseSnapMirror(sourceLocation, destLocation, portGroupSource);
+        nApiSource.releaseSnapMirror(sourceLocation, destLocation);
         return BiosCommandResult.createSuccessfulResult();
     }
 

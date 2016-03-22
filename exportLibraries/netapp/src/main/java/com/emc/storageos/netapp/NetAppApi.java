@@ -1106,12 +1106,12 @@ public class NetAppApi {
         }
     }
 
-    public Boolean releaseSnapMirror(String sourcePath, String destPath, String vfilerName)
+    public Boolean releaseSnapMirror(String sourcePath, String destPath)
             throws NetAppException {
         boolean failedStatus = false;
         try {
             netAppFacade = new NetAppFacade(_ipAddress, _portNumber, _userName,
-                    _password, _https, vfilerName);
+                    _password, _https);
 
             failedStatus = netAppFacade.releaseSnapMirror(sourcePath, destPath);
             return failedStatus;

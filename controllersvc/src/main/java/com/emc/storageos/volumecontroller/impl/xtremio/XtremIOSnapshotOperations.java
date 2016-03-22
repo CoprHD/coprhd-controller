@@ -355,7 +355,7 @@ public class XtremIOSnapshotOperations extends XtremIOOperations implements Snap
             // Update the new snapshot set name in all the CG snapshots
             List<BlockSnapshot> snapshots = ControllerUtils.getSnapshotsPartOfReplicationGroup(snapshotObj, dbClient);
             for (BlockSnapshot snap : snapshots) {
-                if (!NullColumnValueGetter.isNotNullValue(newSnapsetName)) {
+                if (NullColumnValueGetter.isNotNullValue(newSnapsetName)) {
                     _log.info("Updating replicationGroupInstance to {} in snapshot- {}:{}", newSnapsetName, snap.getLabel(), snap.getId());
                     snap.setReplicationGroupInstance(newSnapsetName);
                     dbClient.updateObject(snap);

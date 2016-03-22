@@ -187,7 +187,7 @@ public interface BlockSnapshotSessionApi {
      * @param snapSession A reference to the BlockSnapshotSession instance.
      * @param snapshotMap A map of the containing the URIs of the BlockSnapshot instances representing the targets to be unlinked and
      *            whether or not each target should be deleted.
-     * @param opType The operation type for the audit log.
+     * @param opType The operation type for the audit and event logs.
      * @param taskId A unique task identifier.
      */
     public void unlinkTargetVolumesFromSnapshotSession(BlockObject snapSessionSourceObj, BlockSnapshotSession snapSession,

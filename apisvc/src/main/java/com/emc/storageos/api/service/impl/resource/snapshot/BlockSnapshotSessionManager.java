@@ -605,7 +605,7 @@ public class BlockSnapshotSessionManager {
      * 
      * @param snapSessionURI The URI of a BlockSnapshotSession instance.
      * @param param The linked target information.
-     * @param opType The operation type for the audit log.
+     * @param opType The operation type for the audit and event logs.
      * 
      * @return A TaskResourceRep.
      */

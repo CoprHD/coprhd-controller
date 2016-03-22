@@ -498,7 +498,7 @@ public class BlockControllerImpl extends AbstractDiscoveredSystemController impl
     @Override
     public void unlinkTargetsFromSnapshotSession(URI systemURI, URI snapSessionURI,
             Map<URI, Boolean> snapshotDeletionMap, OperationTypeEnum opType, String opId) {
-        blockRMI("unlinkTargetsFromSnapshotSession", systemURI, snapSessionURI, snapshotDeletionMap, opId);
+        blockRMI("unlinkTargetsFromSnapshotSession", systemURI, snapSessionURI, snapshotDeletionMap, opType, opId);
     }
 
     /**

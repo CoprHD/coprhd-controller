@@ -39,6 +39,7 @@ public class BlockSnapshotSessionUnlinkTargetsWorkflowCompleter extends BlockSna
      * Constructor
      * 
      * @param snapSessionURI The URI of the BlockSnapshotSession instance.
+     * @param opType The operation type for the audit and event logs.
      * @param taskId The unique task identifier.
      */
     public BlockSnapshotSessionUnlinkTargetsWorkflowCompleter(URI snapSessionURI, OperationTypeEnum opType, String taskId) {

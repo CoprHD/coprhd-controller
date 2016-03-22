@@ -525,7 +525,7 @@ public interface BlockController extends BlockStorageManagementController {
      * @param snapSessionURI The URI of the snapshot session.
      * @param snapshotMap A map of the containing the URIs of the BlockSnapshot instances representing the targets to be unlinked and
      *            whether or not each target should be deleted.
-     * @param opType The operation type for the audit log
+     * @param opType The operation type for the audit and event logs.
      * @param opId The unique task identifier.
      */
     public void unlinkTargetsFromSnapshotSession(URI systemURI, URI snapSessionURI,

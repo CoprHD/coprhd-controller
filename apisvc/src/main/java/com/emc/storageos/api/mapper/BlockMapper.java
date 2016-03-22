@@ -110,7 +110,7 @@ public class BlockMapper {
         }
         to.setProvisionedCapacity(CapacityUtils.convertBytesToGBInStr(from.getProvisionedCapacity()));
         // For VPLEX virtual volumes return allocated capacity as provisioned capacity (cop-18608)
-        if (null != dbClient && null != from.getAssociatedVolumes() && !from.getAssociatedVolumes().isEmpty()) {
+        if (dbClient != null && VPlexUtil.isVplexVolume(from, dbClient)) {
             to.setAllocatedCapacity(CapacityUtils.convertBytesToGBInStr(from.getProvisionedCapacity()));
         } else {
             to.setAllocatedCapacity(CapacityUtils.convertBytesToGBInStr(from.getAllocatedCapacity()));

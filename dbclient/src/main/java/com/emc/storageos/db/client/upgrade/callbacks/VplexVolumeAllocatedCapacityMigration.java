@@ -8,6 +8,8 @@ import java.net.URI;
 import java.util.Iterator;
 import java.util.List;
 
+import com.emc.storageos.db.client.model.DiscoveredDataObject;
+import com.emc.storageos.db.client.model.StorageSystem;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -41,9 +43,9 @@ public class VplexVolumeAllocatedCapacityMigration extends BaseCustomMigrationCa
             while (volumes.hasNext()) {
                 Volume volume = volumes.next();
 
-                StringSet associatedVolumes = volume.getAssociatedVolumes();
-                if ((associatedVolumes != null) && (!associatedVolumes.isEmpty())) {
-                    // associated volumes indicate that this is a vplex volume
+                URI storageURI = volume.getStorageController();
+                StorageSystem storage = dbClient.queryObject(StorageSystem.class, storageURI);
+                if (DiscoveredDataObject.Type.vplex.name().equals(storage.getSystemType())) {
                     Long allocatedCapacity = volume.getAllocatedCapacity();
                     // For Vplex virtual volumes set allocated capacity to 0 (cop-18608)
                     if (allocatedCapacity != null && allocatedCapacity != 0) {

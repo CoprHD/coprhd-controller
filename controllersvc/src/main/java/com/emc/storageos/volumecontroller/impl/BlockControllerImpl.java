@@ -21,6 +21,7 @@ import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.db.exceptions.RetryableDatabaseException;
 import com.emc.storageos.exceptions.ClientControllerException;
 import com.emc.storageos.impl.AbstractDiscoveredSystemController;
+import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
 import com.emc.storageos.volumecontroller.ApplicationAddVolumeList;
@@ -496,7 +497,7 @@ public class BlockControllerImpl extends AbstractDiscoveredSystemController impl
      */
     @Override
     public void unlinkTargetsFromSnapshotSession(URI systemURI, URI snapSessionURI,
-            Map<URI, Boolean> snapshotDeletionMap, String opId) {
+            Map<URI, Boolean> snapshotDeletionMap, OperationTypeEnum opType, String opId) {
         blockRMI("unlinkTargetsFromSnapshotSession", systemURI, snapSessionURI, snapshotDeletionMap, opId);
     }
 

@@ -78,6 +78,7 @@ import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.plugins.BaseCollectionException;
 import com.emc.storageos.plugins.StorageSystemViewObject;
 import com.emc.storageos.plugins.common.Constants;
+import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.services.util.StorageDriverManager;
 import com.emc.storageos.srdfcontroller.SRDFDeviceController;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
@@ -5768,8 +5769,8 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
      */
     @Override
     public void unlinkTargetsFromSnapshotSession(URI systemURI, URI snapSessionURI,
-            Map<URI, Boolean> snapshotDeletionMap, String opId) {
-        TaskCompleter completer = new BlockSnapshotSessionUnlinkTargetsWorkflowCompleter(snapSessionURI, opId);
+            Map<URI, Boolean> snapshotDeletionMap, OperationTypeEnum opType, String opId) {
+        TaskCompleter completer = new BlockSnapshotSessionUnlinkTargetsWorkflowCompleter(snapSessionURI, opType, opId);
         try {
             // Get a new workflow to unlinking of the targets from session.
             Workflow workflow = _workflowService.getNewWorkflow(this, UNLINK_SNAPSHOT_SESSION_TARGETS_WF_NAME, false, opId);

@@ -30,9 +30,6 @@ import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.core.SecurityContext;
 import javax.ws.rs.core.UriInfo;
 
-
-
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -49,7 +46,6 @@ import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.BlockSnapshotSession;
-import com.emc.storageos.db.client.model.BlockSnapshotSession.CopyMode;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.NamedURI;
@@ -58,8 +54,8 @@ import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
-import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.client.model.util.BlockConsistencyGroupUtils;
+import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.model.TaskList;
 import com.emc.storageos.model.TaskResourceRep;
@@ -79,7 +75,6 @@ import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
-import com.emc.storageos.util.VPlexUtil;
 import com.emc.storageos.volumecontroller.impl.ControllerUtils;
 import com.google.common.base.Joiner;
 import com.google.common.collect.Lists;
@@ -601,6 +596,20 @@ public class BlockSnapshotSessionManager {
      * @return A TaskResourceRep.
      */
     public TaskResourceRep unlinkTargetVolumesFromSnapshotSession(URI snapSessionURI, SnapshotSessionUnlinkTargetsParam param) {
+        return unlinkTargetVolumesFromSnapshotSession(snapSessionURI, param, OperationTypeEnum.UNLINK_SNAPSHOT_SESSION_TARGET);
+    }
+
+    /**
+     * Implements a request to unlink the passed targets from the
+     * BlockSnapshotSession instance with the passed URI.
+     * 
+     * @param snapSessionURI The URI of a BlockSnapshotSession instance.
+     * @param param The linked target information.
+     * @param opType The operation type for the audit log.
+     * 
+     * @return A TaskResourceRep.
+     */
+    public TaskResourceRep unlinkTargetVolumesFromSnapshotSession(URI snapSessionURI, SnapshotSessionUnlinkTargetsParam param, OperationTypeEnum opType) {
         s_logger.info("START unlink targets from snapshot session {}", snapSessionURI);
 
         // Get the snapshot session.
@@ -641,7 +650,7 @@ public class BlockSnapshotSessionManager {
 
         // Unlink the targets from the snapshot session.
         try {
-            snapSessionApiImpl.unlinkTargetVolumesFromSnapshotSession(snapSessionSourceObj, snapSession, targetMap, taskId);
+            snapSessionApiImpl.unlinkTargetVolumesFromSnapshotSession(snapSessionSourceObj, snapSession, targetMap, opType, taskId);
         } catch (Exception e) {
             String errorMsg = format("Failed to unlink targets from snapshot session %s: %s", snapSessionURI, e.getMessage());
             ServiceCoded sc = null;
@@ -655,8 +664,8 @@ public class BlockSnapshotSessionManager {
         }
 
         // Create the audit log entry.
-        auditOp(OperationTypeEnum.UNLINK_SNAPSHOT_SESSION_TARGET, true, AuditLogManager.AUDITOP_BEGIN,
-                snapSessionURI.toString(), snapSessionSourceObj.getId().toString(), snapSessionSourceObj.getStorageController().toString());
+        auditOp(opType, true, AuditLogManager.AUDITOP_BEGIN, snapSessionURI.toString(), snapSessionSourceObj.getId().toString(),
+                snapSessionSourceObj.getStorageController().toString());
 
         s_logger.info("FINISH unlink targets from snapshot session {}", snapSessionURI);
         return response;

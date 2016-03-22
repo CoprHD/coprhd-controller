@@ -17,6 +17,7 @@ import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.BlockSnapshotSession;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.Volume;
+import com.emc.storageos.services.OperationTypeEnum;
 
 /**
  * Defines the API for platform specific implementations for block snapshot
@@ -186,10 +187,11 @@ public interface BlockSnapshotSessionApi {
      * @param snapSession A reference to the BlockSnapshotSession instance.
      * @param snapshotMap A map of the containing the URIs of the BlockSnapshot instances representing the targets to be unlinked and
      *            whether or not each target should be deleted.
+     * @param opType The operation type for the audit log.
      * @param taskId A unique task identifier.
      */
     public void unlinkTargetVolumesFromSnapshotSession(BlockObject snapSessionSourceObj, BlockSnapshotSession snapSession,
-            Map<URI, Boolean> snapshotDeletionMap, String taskId);
+            Map<URI, Boolean> snapshotDeletionMap, OperationTypeEnum opType, String taskId);
 
     /**
      * Validates a restore snapshot session request.

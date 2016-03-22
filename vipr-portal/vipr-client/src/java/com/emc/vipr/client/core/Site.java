@@ -14,6 +14,7 @@ import com.emc.storageos.model.dr.SiteDetailRestRep;
 import com.emc.storageos.model.dr.SiteErrorResponse;
 import com.emc.storageos.model.dr.SiteIdListParam;
 import com.emc.storageos.model.dr.SiteList;
+import com.emc.storageos.model.dr.SiteRemoved;
 import com.emc.storageos.model.dr.SiteRestRep;
 import com.emc.storageos.model.dr.SiteUpdateParam;
 import com.emc.vipr.client.core.impl.PathConstants;
@@ -37,7 +38,8 @@ public class Site {
     }
 
     public boolean isLocalSiteRemoved() {
-        return client.get(Boolean.class, PathConstants.SITE_URL + "/islocalsiteremoved");
+        SiteRemoved response = client.get(SiteRemoved.class, PathConstants.SITE_URL + "/islocalsiteremoved");
+        return response.getIsRemoved();
     }
 
     public ClientResponse deleteSite(SiteIdListParam uuids) {

@@ -81,6 +81,7 @@ import com.emc.storageos.model.dr.SiteErrorResponse;
 import com.emc.storageos.model.dr.SiteIdListParam;
 import com.emc.storageos.model.dr.SiteList;
 import com.emc.storageos.model.dr.SiteParam;
+import com.emc.storageos.model.dr.SiteRemoved;
 import com.emc.storageos.model.dr.SiteRestRep;
 import com.emc.storageos.model.dr.SiteUpdateParam;
 import com.emc.storageos.model.property.PropertyConstants;
@@ -500,24 +501,26 @@ public class DisasterRecoveryService {
     @CheckPermission(roles = { Role.SECURITY_ADMIN, Role.RESTRICTED_SECURITY_ADMIN,
             Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN, Role.SYSTEM_MONITOR })
     @Path("/islocalsiteremoved")
-    public boolean isLocalSiteRemoved() {
+    public SiteRemoved isLocalSiteRemoved() {
+        SiteRemoved response = new SiteRemoved();
         Site localSite = drUtil.getLocalSite();
         if (SiteState.ACTIVE == localSite.getState()) {
-            return true;
+            return response;
         }
         for (Site remoteSite : drUtil.listStandbySites()) {
             try (InternalSiteServiceClient client = new InternalSiteServiceClient(remoteSite, coordinator, apiSignatureGenerator)) {
                 SiteList sites = client.getSiteList();
                 if (isActiveSite(remoteSite.getUuid(), sites) && !isSiteContainedBy(localSite.getUuid(), sites)) {
                     log.info("According returned result from current active site {}, local site {} has been removed", remoteSite.getUuid(), localSite.getUuid());
-                    return true;
+                    response.setIsRemoved(true);
+                    return response;
                 }
             } catch (Exception e) {
                 log.warn("Error happened when fetching site list from site {}", remoteSite.getUuid(), e);
                 continue;
             }
         }
-        return false;
+        return response;
     }
 
     private boolean isActiveSite(String siteId, SiteList sites) {

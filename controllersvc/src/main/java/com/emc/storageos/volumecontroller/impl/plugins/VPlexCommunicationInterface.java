@@ -973,15 +973,12 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
         unManagedVolumeInformation.put(SupportedVolumeInformation.SYSTEM_TYPE.toString(), systemTypes);
 
         // set volume capacity
-        // For Vplex virtual volumes set allocated capacity to 0 (cop-18608)
         StringSet provCapacity = new StringSet();
         provCapacity.add(String.valueOf(info.getCapacityBytes()));
-        StringSet allocatedCapacity = new StringSet();
-        allocatedCapacity.add(String.valueOf(0));
         unManagedVolumeInformation.put(SupportedVolumeInformation.PROVISIONED_CAPACITY.toString(),
                 provCapacity);
         unManagedVolumeInformation.put(SupportedVolumeInformation.ALLOCATED_CAPACITY.toString(),
-                allocatedCapacity);
+                provCapacity);
 
         // set vplex virtual volume properties
         unManagedVolumeCharacteristics.put(SupportedVolumeCharacterstics.IS_VPLEX_VOLUME.toString(), TRUE);

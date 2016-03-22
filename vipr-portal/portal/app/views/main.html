@@ -20,7 +20,7 @@
       #{if !isActiveSite }
       	<span class="navbar-brand" style="background-color:#d8d9d8">Standby Site: ${localSiteName}</span>
       #{/if}
-      #{if !isLocalsiteRemoved }
+      #{if isLocalsiteRemoved }
         <span class="navbar-brand" style="background-color:#ff0000">This site is obsolete, please delete it from disk</span>
       #{/if}
       <button class="navbar-toggle" type="button" data-toggle="collapse" data-target="#navbar-collapse-1">

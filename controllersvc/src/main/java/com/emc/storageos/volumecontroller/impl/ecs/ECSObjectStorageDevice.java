@@ -10,6 +10,7 @@ import java.net.URISyntaxException;
 import java.util.Iterator;
 import java.util.List;
 
+import org.jsoup.helper.StringUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -89,7 +90,7 @@ public class ECSObjectStorageDevice implements ObjectStorageDevice {
             
             //ECS throws error if we try to set new owner which is same as current owner
             //This would lead to confusion as if there is an error
-            if (!currentOwner.equals(args.getOwner())) {
+            if (!StringUtil.isBlank(args.getOwner()) && !currentOwner.equals(args.getOwner())) {
             	ecsApi.updateBucketOwner(args.getName(), args.getNamespace(), args.getOwner());
                 aceName = args.getOwner();
             }

@@ -1077,10 +1077,11 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                 _log.info(String.format("RP Export: StorageSystem = [%s] RPSite = [%s] VirtualArray = [%s]", storageSystem.getLabel(),
                         rpSiteName, varray.getLabel()));
 
+                String exportGroupGeneratedName = RPHelper.generateExportGroupName(rpSystem, storageSystem, internalSiteName, varray);
                 boolean isJournalExport = rpExport.getIsJournalExport();
                 // Setup the export group - we may or may not need to create it, but we need to have everything ready in case we do
-                ExportGroup exportGroup = RPHelper.createRPExportGroup(internalSiteName, varray, _dbClient.queryObject(Project.class,
-                        params.getProject()), rpSystem, storageSystem, 0, isJournalExport);
+                ExportGroup exportGroup = RPHelper.createRPExportGroup(exportGroupGeneratedName, varray, _dbClient.queryObject(Project.class,
+                        params.getProject()), 0, isJournalExport);
 
                 // Get the initiators of the RP Cluster (all of the RPAs on one side of a configuration)
                 Map<String, Map<String, String>> rpaWWNs = RPHelper.getRecoverPointClient(rpSystem).getInitiatorWWNs(internalSiteName);
@@ -5241,8 +5242,14 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
         URIQueryResultList exportGroupIdsForSnapshot = new URIQueryResultList();
         _dbClient.queryByConstraint(constraint, exportGroupIdsForSnapshot);
+        
+        Iterator<URI> exportGroupIdsForSnapshotIter = exportGroupIdsForSnapshot.iterator();
+        List<URI> exportGroupURIs = new ArrayList<URI>();
+        while (exportGroupIdsForSnapshotIter.hasNext()) {
+            exportGroupURIs.add(exportGroupIdsForSnapshotIter.next());
+        }
                    
-        if (exportGroupIdsForSnapshot.size() > 1) {
+        if (exportGroupURIs.size() > 1) {
             _log.info(String.format("Snapshot %s is in %d active exportGroups. Not safe to disable the CG", snapshot.getEmName(),
                     exportGroupIdsForSnapshot.size()));
             return false;

@@ -2074,6 +2074,7 @@ rpvplex_ha()
         --provisionType 'Thin' \
         --multiVolumeConsistency \
         --neighborhoods $RECOVERPOINT_VARRAY1 $RECOVERPOINT_VARRAY2 $RECOVERPOINT_VARRAY3 $RECOVERPOINT_VARRAY4 \
+        --max_snapshots 10 \
         --highavailability vplex_local
 }
 
@@ -2098,6 +2099,7 @@ rpvplex_local_regular()
         --numpaths 2 \
         --provisionType 'Thin' \
         --neighborhoods $RECOVERPOINT_VARRAY1 \
+        --max_snapshots 10 \
         --highavailability vplex_local
 }
 
@@ -2112,6 +2114,7 @@ rpvplex_dist_regular()
         --neighborhoods $RECOVERPOINT_VARRAY1 \
         --highavailability vplex_distributed \
         --haNeighborhood $RECOVERPOINT_VARRAY2 \
+        --max_snapshots 10 \
         --haCos rpvplex_ha
 }
 
@@ -2250,8 +2253,8 @@ rpvplex_cdp()
         --rp_copy_mode ASYNCHRONOUS \
         --rp_rpo_value 5 \
         --rp_rpo_type MINUTES \
-	--journalVpool rp_targets \
-	--journalVarray $RECOVERPOINT_VARRAY1 \
+        --journalVpool rp_targets \
+        --journalVarray $RECOVERPOINT_VARRAY1 \
         --highavailability vplex_local
 
     run cos create block rpvplex_cdp$1-sync $POOLS_AUTO_MATCH \
@@ -2262,11 +2265,12 @@ rpvplex_cdp()
         --neighborhoods $RECOVERPOINT_VARRAY1 \
         --multiVolumeConsistency \
         --protectionCoS $RECOVERPOINT_VARRAY1':rp_targets'$1':min' \
+        --max_snapshots 10 \
         --rp_copy_mode SYNCHRONOUS \
         --rp_rpo_value 5 \
         --rp_rpo_type MINUTES \
-	--journalVpool rp_targets \
-	--journalVarray $RECOVERPOINT_VARRAY1 \
+        --journalVpool rp_targets \
+        --journalVarray $RECOVERPOINT_VARRAY1 \
         --highavailability vplex_local
 }
 
@@ -2297,6 +2301,7 @@ rpvplex_crr()
         --neighborhoods $RECOVERPOINT_VARRAY1 \
         --multiVolumeConsistency \
         --protectionCoS $RECOVERPOINT_VARRAY3':rp_targets'$1':min' \
+        --max_snapshots 10 \
         --rp_copy_mode SYNCHRONOUS \
         --rp_rpo_value 5 \
         --rp_rpo_type MINUTES \
@@ -2322,8 +2327,8 @@ rpvplex_clr()
         --rp_rpo_type MINUTES \
         --highavailability vplex_distributed \
         --haNeighborhood $RECOVERPOINT_VARRAY2 \
-	--journalVpool rp_targets \
-	--journalVarray $RECOVERPOINT_VARRAY1 \
+        --journalVpool rp_targets \
+        --journalVarray $RECOVERPOINT_VARRAY1 \
         --haCos rpvplex_ha
 
     run cos create block rpvplex_clr$1-sync $POOLS_AUTO_MATCH \
@@ -2334,13 +2339,14 @@ rpvplex_clr()
         --neighborhoods $RECOVERPOINT_VARRAY1 \
         --multiVolumeConsistency \
         --protectionCoS $RECOVERPOINT_VARRAY1':rp_targets'$1':min',$RECOVERPOINT_VARRAY3':rp_targets'$1':min' \
+        --max_snapshots 10 \
         --rp_copy_mode SYNCHRONOUS \
         --rp_rpo_value 5 \
         --rp_rpo_type MINUTES \
         --highavailability vplex_distributed \
         --haNeighborhood $RECOVERPOINT_VARRAY2 \
-	--journalVpool rp_targets \
-	--journalVarray $RECOVERPOINT_VARRAY1 \
+        --journalVpool rp_targets \
+        --journalVarray $RECOVERPOINT_VARRAY1 \
         --haCos rpvplex_ha
 }
 
@@ -2355,6 +2361,7 @@ rpmp_cdp()
         --neighborhoods $RECOVERPOINT_VARRAY1 \
         --multiVolumeConsistency \
         --protectionCoS $RECOVERPOINT_VARRAY1':rp_targets'$1':min',$RECOVERPOINT_VARRAY2':rp_targets'$1':min' \
+        --max_snapshots 10 \
         --rp_copy_mode ASYNCHRONOUS \
         --rp_rpo_value 5 \
         --rp_rpo_type MINUTES \
@@ -2372,6 +2379,7 @@ rpmp_cdp()
         --neighborhoods $RECOVERPOINT_VARRAY1 \
         --multiVolumeConsistency \
         --protectionCoS $RECOVERPOINT_VARRAY1':rp_targets'$1':min',$RECOVERPOINT_VARRAY2':rp_targets'$1':min' \
+        --max_snapshots 10 \
         --rp_copy_mode SYNCHRONOUS \
         --rp_rpo_value 5 \
         --rp_rpo_type MINUTES \
@@ -2393,6 +2401,7 @@ rpmp_crr()
         --neighborhoods $RECOVERPOINT_VARRAY1 \
         --multiVolumeConsistency \
         --protectionCoS $RECOVERPOINT_VARRAY3':rp_targets'$1':min' \
+        --max_snapshots 10 \
         --rp_copy_mode ASYNCHRONOUS \
         --rp_rpo_value 5 \
         --rp_rpo_type MINUTES \
@@ -2410,6 +2419,7 @@ rpmp_crr()
         --neighborhoods $RECOVERPOINT_VARRAY1 \
         --multiVolumeConsistency \
         --protectionCoS $RECOVERPOINT_VARRAY3':rp_targets'$1':min' \
+        --max_snapshots 10 \
         --rp_copy_mode SYNCHRONOUS \
         --rp_rpo_value 5 \
         --rp_rpo_type MINUTES \
@@ -2431,6 +2441,7 @@ rpmp_clr()
         --neighborhoods $RECOVERPOINT_VARRAY1 \
         --multiVolumeConsistency \
         --protectionCoS $RECOVERPOINT_VARRAY1':rp_targets'$1':min',$RECOVERPOINT_VARRAY2':rp_targets'$1':min',$RECOVERPOINT_VARRAY3':rp_targets'$1':min' \
+        --max_snapshots 10 \
         --rp_copy_mode ASYNCHRONOUS \
         --rp_rpo_value 5 \
         --rp_rpo_type MINUTES \
@@ -2448,6 +2459,7 @@ rpmp_clr()
         --neighborhoods $RECOVERPOINT_VARRAY1 \
         --multiVolumeConsistency \
         --protectionCoS $RECOVERPOINT_VARRAY1':rp_targets'$1':min',$RECOVERPOINT_VARRAY2':rp_targets'$1':min',$RECOVERPOINT_VARRAY3':rp_targets'$1':min' \
+        --max_snapshots 10 \
         --rp_copy_mode SYNCHRONOUS \
         --rp_rpo_value 5 \
         --rp_rpo_type MINUTES \
@@ -2467,6 +2479,7 @@ rp_noprotection()
         --numpaths 2 \
         --provisionType 'Thin' \
         --neighborhoods $RECOVERPOINT_VARRAY1 \
+        --max_snapshots 10 \
         --multiVolumeConsistency
 }
 
@@ -2479,6 +2492,7 @@ rpvplexlocal_noprotection()
         --numpaths 2 \
         --provisionType 'Thin' \
         --neighborhoods $RECOVERPOINT_VARRAY1 \
+        --max_snapshots 10 \
         --multiVolumeConsistency \
         --highavailability vplex_local
 }
@@ -2493,6 +2507,7 @@ rpvplexdist_noprotection()
         --provisionType 'Thin' \
         --neighborhoods $RECOVERPOINT_VARRAY1 \
         --multiVolumeConsistency \
+        --max_snapshots 10 \
         --highavailability vplex_distributed \
         --haNeighborhood $RECOVERPOINT_VARRAY2 \
         --haCos rpvplex_ha
@@ -7467,13 +7482,26 @@ dr_basic_tests()
     dr waitforstable 30 1200
     project show ${projectid_new}
 
+    echo "---PREPARING STANDBY_DEGRADED TEST---"
+    syssvc $CONFIG_FILE "$DR_SITE_A_IP" set_prop system_permit_root_ssh yes
+    dr waitforstable 10 600
+    tune_dr_config ${DR_SITE_A_IP} degrade_standby_threshold_millis 0
+    stop_vdc_services "$DR_SITE_B_IP"
+    BOURNE_IPADDR=$DR_SITE_A_IP
+    security login $LOCAL_LDAP_GROUPUSER_USERNAME $LOCAL_LDAP_GROUPUSER_PASSWORD 10 600
+
+    echo "---WAIT FOR $standby_site TO BECOME DEGRADED---"
+    dr waitforstate $standby_site STANDBY_DEGRADED 30 1200
+
+    echo "---PREPARING STANDBY REJOIN TEST---"
+    start_vdc_services "$DR_SITE_B_IP"
+
+    echo "---WAIT FOR RESYNC $standby_site---"
+    dr waitforstate $standby_site STANDBY_SYNCED 30 1200
+
     # wait both active and standby to be stable, ready to do switchover
     echo "---WAIT BOTH ACTIVE AND STANBY TO BE STABLE, READY FOR SWITCHOVER---"
     # there's no point in updating the property on both active and standby since they are shared
-    BOURNE_IPADDR=$DR_SITE_A_IP
-    security login $LOCAL_LDAP_GROUPUSER_USERNAME $LOCAL_LDAP_GROUPUSER_PASSWORD 10 600
-    syssvc $CONFIG_FILE "$DR_SITE_A_IP" set_prop system_permit_root_ssh yes
-    dr waitforstable 10 600
     BOURNE_IPADDR=$DR_SITE_B_IP
     security login $LOCAL_LDAP_GROUPUSER_USERNAME $LOCAL_LDAP_GROUPUSER_PASSWORD 10 600
     dr waitforstable 10 600
@@ -7865,10 +7893,29 @@ dr_multisite_tests()
     dr waitforstable 30 1200
     project show ${projectid_new}
 
-    # switchover test part
-    echo "---WAIT BOTH ACTIVE AND STANBY TO BE STABLE, READY FOR SWITCHOVER---"
+    echo "---PREPARING STANDBY_DEGRADED TEST---"
+    syssvc $CONFIG_FILE "$DR_SITE_A_IP" set_prop system_permit_root_ssh yes
+    dr waitforstable 10 600
+    tune_dr_config ${DR_SITE_A_IP} degrade_standby_threshold_millis 0
+    stop_vdc_services "$DR_SITE_B_IP"
+    time_start degrade_standby_b
     BOURNE_IPADDR=$DR_SITE_A_IP
     security login $LOCAL_LDAP_GROUPUSER_USERNAME $LOCAL_LDAP_GROUPUSER_PASSWORD 10 600
+
+    echo "---WAIT FOR $standby_site_b TO BECOME DEGRADED---"
+    dr waitforstate $standby_site_b STANDBY_DEGRADED 30 1200
+    time_finish degrade_standby_b
+
+    echo "---PREPARING STANDBY REJOIN TEST---"
+    start_vdc_services "$DR_SITE_B_IP"
+    time_start rejoin_standby_b
+
+    echo "---WAIT FOR RESYNC $standby_site_b---"
+    dr waitforstate $standby_site_b STANDBY_SYNCED 30 1200
+    time_finish rejoin_standby_b
+
+    # switchover test part
+    echo "---WAIT BOTH ACTIVE AND STANBY TO BE STABLE, READY FOR SWITCHOVER---"
     dr waitforstable 10 800
     BOURNE_IPADDR=$DR_SITE_C_IP
     security login $LOCAL_LDAP_GROUPUSER_USERNAME $LOCAL_LDAP_GROUPUSER_PASSWORD 10 600
@@ -8335,6 +8382,23 @@ vdc_tests()
     project delete $VDC_TEST_PROJECT
 
     echo "ALL VDC TEST DONE"
+}
+
+tune_dr_config()
+{
+    VIP=$1
+    CONFIG_KEY=$2
+    CONFIG_VALUE=$3
+    OPT=""
+    if [[ $VIP == \[* ]];
+    then
+        tmp=${VIP#*[}
+        VIP=${tmp%]*}
+        OPT="-6"
+    fi
+
+    echo "VIP=${VIP} OPT=${OPT} KEY=${CONFIG_KEY} VALUE=${CONFIG_VALUE}"
+    SSH ${VIP} "/opt/storageos/bin/zkutils tune_dr_config ${CONFIG_KEY} ${CONFIG_VALUE}" ${OPT}
 }
 
 stop_vdc_services()

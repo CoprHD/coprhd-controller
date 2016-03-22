@@ -42,14 +42,16 @@
         $('#creationTime-' + '${uuid}').text(formatLocalDateTime(new Date(epocCreateTime)));
     </script>
   #{/if}
-  <dt>&{'disasterRecovery.networkLatencyInMs'}</dt>
-    #{if disasterSiteDetails.networkLatencyInMs == -1.0}
-    <dd>&{'disasterRecovery.networkLatency.notAvailable'}</dd>
-    #{/if}
-    #{else}
-    <dd>${disasterSiteDetails.networkLatencyInMs}</dd>
-    #{/else}
+
   #{if isActive == false}
+      <dt>&{'disasterRecovery.networkLatencyInMs'}</dt>
+      #{if disasterSiteDetails.networkLatencyInMs == -1.0}
+      <dd>&{'disasterRecovery.networkLatency.notAvailable'}</dd>
+      #{/if}
+      #{else}
+      <dd>${disasterSiteDetails.networkLatencyInMs}</dd>
+      #{/else}
+    
       <dt>&{'disasterRecovery.sync.status'}</dt>
       <dd id="syncStatus-${uuid}">&{'disasterRecovery.sync.status.notAvailable'}</dd>
       #{if disasterSiteDetails.dataSynced}

@@ -164,7 +164,8 @@ public class BackupUploadStatus implements Serializable {
         BACKUP_NOT_EXIST,        // Can not find the target backup files on disk
         INVALID_BACKUP,          // Target backup is invalid
         UPLOAD_FAILURE,          // internal failures during the upload
-        TO_BE_RECLAIMED,        // the backup is to be reclaimed
+        TO_BE_RECLAIMED,         // the backup is to be reclaimed
+        REMOTE_ALREADY_EXIST     // The backup already exist on external server
     }
 
 

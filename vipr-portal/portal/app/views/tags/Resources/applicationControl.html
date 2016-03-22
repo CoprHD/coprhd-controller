@@ -14,12 +14,12 @@
       	<span class="text-warning">&{'resources.noprojectsapplications'}</span>
      	#{/ifnot}
     #{/ifnot}
-    #{if projects || applications}
+    #{elseif projects || applications}
     		#{Form.selectFilter filters:filterOptions/}
     		#{Form.selectProject projects:projects/}
       		#{Form.selectApplication applications:applications/}
   
-    #{/if}
+    #{/elseif}
   #{/tenantSelector}
 #{/if}
 #{else}
@@ -28,13 +28,13 @@
     <div class="alert alert-warning">&{'resources.noprojects'}</div> 
     #{/ifnot}
   #{/ifnot}
-  #{if projects || applications}
+  #{elseif projects || applications}
     <div class="well well-sm form-inline">
     		#{Form.selectFilter filters:filterOptions/}
     		#{Form.selectProject projects:projects/}
       		#{Form.selectApplication applications:applications/}
     </div>
-  #{/if}
+  #{/elseif}
 #{/else}
 <script>
 
@@ -50,6 +50,7 @@ function loadOptions() {
 		$('.project-select select').attr("style", "display:none");
 		$('.application-select *').attr("style", "display:none");
 		$('.application-select').attr("disabled","disabled");
+	}
 }
 	
 $(document).ready(function() {

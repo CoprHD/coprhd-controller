@@ -1,7 +1,7 @@
 /*
-   * Copyright (c) 2015 EMC Corporation
-   * All Rights Reserved
-   */
+ * Copyright (c) 2015 EMC Corporation
+ * All Rights Reserved
+ */
 package com.emc.storageos.model.file;
 
 import java.io.Serializable;
@@ -12,7 +12,7 @@ public class FileSystemReplicationSettings implements Serializable {
 
     private static final long serialVersionUID = 1L;
     private Long rpoValue;
-    private String rpoType = ReplicationRPOType.HOURS.name();
+    private String rpoType;
 
     public enum ReplicationRPOType {
         MINUTES, HOURS, DAYS

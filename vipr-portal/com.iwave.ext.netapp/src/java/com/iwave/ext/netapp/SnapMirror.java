@@ -136,7 +136,7 @@ public class SnapMirror {
         try {
             server.invokeElem(elem);
         } catch (Exception e) {
-            String msg = "Failed to delete snapmirror: " + destinationLocation;
+            String msg = "Failed to delete snapmirror schedule: " + destinationLocation;
             log.error(msg, e);
             throw new NetAppException(msg, e);
         }

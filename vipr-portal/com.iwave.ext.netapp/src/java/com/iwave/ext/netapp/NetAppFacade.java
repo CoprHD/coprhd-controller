@@ -1666,7 +1666,7 @@ public class NetAppFacade {
      */
     public boolean deleteSnapMirrorSchedule(String destinationLocation) {
         if (log.isDebugEnabled()) {
-            log.debug("delete snap mirror");
+            log.debug("delete snapmirror schedule");
         }
 
         SnapMirror snapMirror = new SnapMirror(server.getNaServer(), null);

@@ -1091,6 +1091,21 @@ public class NetAppApi {
         }
     }
 
+    public Boolean deleteSnapMirrorSchedule(String destPath, String vfilerName)
+            throws NetAppException {
+        boolean failedStatus = false;
+        try {
+            netAppFacade = new NetAppFacade(_ipAddress, _portNumber, _userName,
+                    _password, _https, vfilerName);
+
+            failedStatus = netAppFacade.deleteSnapMirrorSchedule(destPath);
+            return failedStatus;
+
+        } catch (Exception e) {
+            throw NetAppException.exceptions.deleteScheduleSnapMirrorFailed(destPath, _ipAddress, e.getMessage());
+        }
+    }
+
     public Boolean resyncSnapMirror(String sourcePath, String destPath, String vfilerName)
             throws NetAppException {
         boolean failedStatus = false;

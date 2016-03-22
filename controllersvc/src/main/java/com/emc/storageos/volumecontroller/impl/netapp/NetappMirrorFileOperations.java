@@ -52,7 +52,6 @@ public class NetappMirrorFileOperations implements FileMirrorOperations {
         _log.info("NetappMirrorFileOperations -  createMirrorFileShareLink source file {} and dest file {} - complete ",
                 sourceFileShare.getName(), targetFileShare.getName());
         completer.ready(_dbClient);
-
     }
 
     @Override
@@ -118,10 +117,7 @@ public class NetappMirrorFileOperations implements FileMirrorOperations {
             String policyName)
             throws DeviceControllerException {
 
-        FileShare sourceFileShare = _dbClient.queryObject(FileShare.class, targetFileShare.getParentFileShare().getURI());
-        StorageSystem sourceStorage = _dbClient.queryObject(StorageSystem.class, sourceFileShare.getStorageDevice());
-
-        BiosCommandResult cmdResult = doFailoverSnapMirror(sourceStorage, targetSystem, sourceFileShare, targetFileShare, completer);
+        BiosCommandResult cmdResult = doFailoverSnapMirror(targetSystem, targetFileShare, completer);
 
         if (cmdResult.getCommandSuccess()) {
             completer.ready(_dbClient);
@@ -156,14 +152,14 @@ public class NetappMirrorFileOperations implements FileMirrorOperations {
     }
 
     @Override
-    public void deleteMirrorFileShareLink(StorageSystem system, URI source, URI target, TaskCompleter completer)
+    public void deleteMirrorFileShareLink(StorageSystem sourceSystem, URI source, URI target, TaskCompleter completer)
             throws DeviceControllerException {
 
         FileShare sourceFileShare = _dbClient.queryObject(FileShare.class, source);
         FileShare targetFileShare = _dbClient.queryObject(FileShare.class, target);
         StorageSystem targetStorage = _dbClient.queryObject(StorageSystem.class, targetFileShare.getStorageDevice());
 
-        BiosCommandResult cmdResult = doReleaseSnapMirror(system, targetStorage,
+        BiosCommandResult cmdResult = doReleaseSnapMirror(sourceSystem, targetStorage,
                 sourceFileShare, targetFileShare, completer);
         if (cmdResult.getCommandSuccess()) {
             completer.ready(_dbClient);
@@ -254,6 +250,7 @@ public class NetappMirrorFileOperations implements FileMirrorOperations {
         String destLocation = getLocation(nApiTarget, targetFs);
 
         // make api call on source
+        /* The snapmirror-release API removes a SnapMirror relationship on the source endpoint */
         nApiSource.releaseSnapMirror(sourceLocation, destLocation);
         return BiosCommandResult.createSuccessfulResult();
     }
@@ -289,16 +286,15 @@ public class NetappMirrorFileOperations implements FileMirrorOperations {
      * @return
      */
     public BiosCommandResult
-            doFailoverSnapMirror(StorageSystem sourceStorage, StorageSystem targetStorage, FileShare sourceFs,
-                    FileShare targetFs, TaskCompleter taskCompleter) {
+            doFailoverSnapMirror(StorageSystem storage, FileShare fileShare, TaskCompleter taskCompleter) {
         // get vfiler
-        String portGroupTarget = findVfilerName(targetFs);
-        NetAppApi nApi = new NetAppApi.Builder(targetStorage.getIpAddress(),
-                targetStorage.getPortNumber(), targetStorage.getUsername(),
-                targetStorage.getPassword()).https(true).vFiler(portGroupTarget).build();
+        String portGroup = findVfilerName(fileShare);
+        NetAppApi nApi = new NetAppApi.Builder(storage.getIpAddress(),
+                storage.getPortNumber(), storage.getUsername(),
+                storage.getPassword()).https(true).vFiler(portGroup).build();
         // make api call
-        String destLocation = getLocation(targetStorage, targetFs);
-        nApi.breakSnapMirror(destLocation, portGroupTarget);
+        String location = getLocation(nApi, fileShare);
+        nApi.breakSnapMirror(location, portGroup);
         return BiosCommandResult.createSuccessfulResult();
     }
 
@@ -345,6 +341,17 @@ public class NetappMirrorFileOperations implements FileMirrorOperations {
         // make api call destination system
         String destLocation = getLocation(targetStorage, targetFs);
         nApi.resumeSnapMirror(destLocation, portGroupTarget);
+        return BiosCommandResult.createSuccessfulResult();
+    }
+
+    public BiosCommandResult doDeleteSchedularSnapMirror(StorageSystem targetStorage, FileShare targetFs) {
+        String portGroupTarget = findVfilerName(targetFs);
+        NetAppApi nApi = new NetAppApi.Builder(targetStorage.getIpAddress(),
+                targetStorage.getPortNumber(), targetStorage.getUsername(),
+                targetStorage.getPassword()).https(true).vFiler(portGroupTarget).build();
+        // make api call destination system
+        String destLocation = getLocation(targetStorage, targetFs);
+        nApi.deleteSnapMirrorSchedule(destLocation, portGroupTarget);
         return BiosCommandResult.createSuccessfulResult();
     }
 

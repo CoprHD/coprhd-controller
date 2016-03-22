@@ -148,6 +148,9 @@ public interface NetAppExceptions {
     public NetAppException setScheduleSnapMirrorFailed(final String volName, final String ip, final String message);
 
     @DeclareServiceCode(ServiceCode.NETAPP_ERROR)
+    public NetAppException deleteScheduleSnapMirrorFailed(final String volName, final String ip, final String message);
+
+    @DeclareServiceCode(ServiceCode.NETAPP_ERROR)
     public NetAppException resyncSnapMirrorFailed(final String sourceLocation, final String destLocation, final String message);
 
     @DeclareServiceCode(ServiceCode.NETAPP_ERROR)

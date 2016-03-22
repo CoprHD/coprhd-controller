@@ -8,6 +8,7 @@ package com.emc.storageos.systemservices.impl.util;
 import com.emc.storageos.coordinator.client.model.Site;
 import com.emc.storageos.coordinator.client.model.SiteNetworkState;
 import com.emc.storageos.coordinator.client.model.SiteNetworkState.NetworkHealth;
+import com.emc.storageos.coordinator.client.model.SiteState;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.coordinator.client.service.DrUtil;
 import com.emc.storageos.services.util.AlertsLogger;
@@ -42,7 +43,7 @@ public class DrSiteNetworkMonitor implements Runnable{
 
     private CoordinatorClient coordinatorClient;
     private String myNodeId;
-
+    private boolean isSingleNode;
 
     private static final int NETWORK_MONITORING_INTERVAL = 60; // in seconds
     public static final String ZOOKEEPER_MODE_LEADER = "leader";
@@ -58,6 +59,7 @@ public class DrSiteNetworkMonitor implements Runnable{
     public void init() {
         coordinatorClient = coordinator.getCoordinatorClient();
         myNodeId = coordinator.getMyNodeId();
+        isSingleNode = drUtil.getLocalSite().getNodeCount() == 1;
     }
 
     public void run() {
@@ -66,19 +68,32 @@ public class DrSiteNetworkMonitor implements Runnable{
         exe.scheduleAtFixedRate(networkMonitor, 0, NETWORK_MONITORING_INTERVAL, TimeUnit.SECONDS);
     }
 
+    /**
+     * Whether we should bring up network monitor. Only active site(or degraded), or paused standby site need run network monitor 
+     * 
+     * @return true if we should start it
+     */
+    public boolean shouldStartOnCurrentSite() {
+        if (drUtil.isActiveSite()) {
+            return true;
+        }
+        
+        Site localSite = drUtil.getLocalSite();
+        SiteState state = localSite.getState();
+        if ( state == SiteState.STANDBY_PAUSED || state == SiteState.ACTIVE_DEGRADED) {
+            return true;
+        }
+        _log.info("This site is not active site or standby paused, no need to do network monitor");
+        return false;
+    }
+
+    
     private Runnable networkMonitor = new Runnable(){
         public void run() {
-
-            //Only leader on active site will test ping (no networking info if active down?)
-            String zkState = drUtil.getLocalCoordinatorMode(myNodeId);
-
-            //Check if this node is the leader
-            if (!ZOOKEEPER_MODE_LEADER.equals(zkState) && !ZOOKEEPER_MODE_STANDALONE.equals(zkState)) {
-                return;
-            }
-
             try {
-                checkPing();
+                if (shouldStartOnCurrentNode()) {
+                    checkPing();
+                }
             } catch (Exception e) {
                 //try catch exception to make sure next scheduled run can be launched.
                 _log.error("Error occurs when monitor standby network", e);
@@ -86,24 +101,36 @@ public class DrSiteNetworkMonitor implements Runnable{
 
         }
     };
+    
+    private boolean shouldStartOnCurrentNode() {
+        // current node should do it if it is single node cluster 
+        if (isSingleNode) {
+            return true;
+        }
+        
+        //Only leader on active site will test ping
+        String zkState = drUtil.getLocalCoordinatorMode(myNodeId);
+        if (ZOOKEEPER_MODE_LEADER.equals(zkState))  {
+            return true;
+        }
+        return false;
+    }
 
     private void checkPing() {
+        Site localSite = drUtil.getLocalSite();
         
-        if (!drUtil.isActiveSite()) {
-            _log.info("This site is not active site, no need to do network monitor");
-            return;
+        SiteNetworkState localNetworkState = drUtil.getSiteNetworkState(localSite.getUuid());
+        if (!NetworkHealth.GOOD.equals(localNetworkState.getNetworkHealth()) || localNetworkState.getNetworkLatencyInMs() != 0) {
+            localNetworkState.setNetworkLatencyInMs(0);
+            localNetworkState.setNetworkHealth(NetworkHealth.GOOD);
+            coordinatorClient.setTargetInfo(localSite.getUuid(), localNetworkState);
         }
 
-        Site active = drUtil.getActiveSite();
-        SiteNetworkState activeNetworkState = drUtil.getSiteNetworkState(active.getUuid());
-        if (!NetworkHealth.GOOD.equals(activeNetworkState.getNetworkHealth()) || activeNetworkState.getNetworkLatencyInMs() != 0) {
-
-            activeNetworkState.setNetworkLatencyInMs(0);
-            activeNetworkState.setNetworkHealth(NetworkHealth.GOOD);
-            coordinatorClient.setTargetInfo(active.getUuid(), activeNetworkState);
-        }
-
-        for (Site site : drUtil.listStandbySites()){
+        for (Site site : drUtil.listSites()){
+            if (drUtil.isLocalSite(site)) {
+                continue; // skip local site
+            }
+            
             SiteNetworkState siteNetworkState = drUtil.getSiteNetworkState(site.getUuid());
             NetworkHealth previousState = siteNetworkState.getNetworkHealth();
             String host = site.getVipEndPoint();
@@ -138,10 +165,12 @@ public class DrSiteNetworkMonitor implements Runnable{
 
             coordinatorClient.setTargetInfo(site.getUuid(), siteNetworkState);
 
-            if (!NetworkHealth.BROKEN.equals(previousState)
-                    && NetworkHealth.BROKEN.equals(siteNetworkState.getNetworkHealth())){
-                //send email alert
-                mailHandler.sendSiteNetworkBrokenMail(site);
+            if (drUtil.isActiveSite()) {
+                if (!NetworkHealth.BROKEN.equals(previousState)
+                        && NetworkHealth.BROKEN.equals(siteNetworkState.getNetworkHealth())){
+                    //send email alert
+                    mailHandler.sendSiteNetworkBrokenMail(site);
+                }
             }
         }
     }

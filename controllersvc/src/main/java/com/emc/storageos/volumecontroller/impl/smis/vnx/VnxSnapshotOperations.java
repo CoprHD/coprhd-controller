@@ -471,7 +471,7 @@ public class VnxSnapshotOperations extends AbstractSnapshotOperations {
                 }
 
                 // Restore snapshot
-                CIMArgument[] restoreInput = _helper.getRestoreFromSettingsStateInputArguments(settingsPath);
+                CIMArgument[] restoreInput = _helper.getRestoreFromSettingsStateInputArguments(settingsPath, false);
                 CIMObjectPath cimJob = _helper.callModifySettingsDefineState(storage, restoreInput);
                 ControllerServiceImpl.enqueueJob(new QueueJob(new SmisBlockRestoreSnapshotJob(cimJob, storage.getId(), taskCompleter)));
             } else {

@@ -402,6 +402,8 @@ public abstract class VdcOpHandler {
                 flushVdcConfigToLocal();
                 refreshIPsec();
                 refreshFirewall();
+                localRepository.restart(Constants.GEODBSVC_NAME);
+                localRepository.restart(Constants.DBSVC_NAME);
             } else {
                 reconfigVdc();
                 checkAndPauseOnActive();

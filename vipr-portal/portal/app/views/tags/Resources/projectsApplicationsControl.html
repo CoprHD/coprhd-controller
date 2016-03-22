@@ -14,12 +14,12 @@
       	<span class="text-warning">&{'resources.noprojectsapplications'}</span>
      	#{/ifnot}
     #{/ifnot}
-    #{elseif projects || applications}
+    #{if projects || applications}
     		#{Form.selectFilter filters:filterOptions/}
     		#{Form.selectProject projects:projects/}
       		#{Form.selectApplication applications:applications/}
   
-    #{/elseif}
+    #{/if}
   #{/tenantSelector}
 #{/if}
 #{else}
@@ -28,13 +28,13 @@
     <div class="alert alert-warning">&{'resources.noprojects'}</div> 
     #{/ifnot}
   #{/ifnot}
-  #{elseif projects || applications}
+  #{if projects || applications}
     <div class="well well-sm form-inline">
     		#{Form.selectFilter filters:filterOptions/}
     		#{Form.selectProject projects:projects/}
       		#{Form.selectApplication applications:applications/}
     </div>
-  #{/elseif}
+  #{/if}
 #{/else}
 <script>
 

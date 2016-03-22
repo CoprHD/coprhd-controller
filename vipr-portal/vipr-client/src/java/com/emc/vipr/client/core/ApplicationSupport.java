@@ -29,6 +29,7 @@ import static com.emc.vipr.client.core.impl.PathConstants.APP_SUPPORT_SNAPSHOT_S
 import static com.emc.vipr.client.core.impl.PathConstants.APP_SUPPORT_UNLINK_SNAPSHOT_SESSION_URL;
 import static com.emc.vipr.client.core.impl.PathConstants.APP_SUPPORT_UPDATE_APP_URL;
 import static com.emc.vipr.client.core.impl.PathConstants.APP_SUPPORT_VOLUME_URL;
+import static com.emc.vipr.client.core.impl.PathConstants.VOLUME_GROUPS_BY_TENANT_URL;
 import static com.emc.vipr.client.core.util.ResourceUtils.defaultList;
 
 import java.net.URI;
@@ -424,4 +425,14 @@ public class ApplicationSupport extends AbstractResources<VolumeGroupRestRep> {
         UriBuilder uribuilder = client.uriBuilder(APP_SUPPORT_SNAPSHOT_SET_URL);
         return client.postURI(SnapshotList.class, input, uribuilder.build(id));
     }
+
+    /**
+     * Gets the volume-groups for a given tenant
+     * API Call: GET /tenants/{tenantId}/volume-groups
+     *
+     */
+	public VolumeGroupList getVolumeGroupsByTenant(URI id) {
+		return client.get(VolumeGroupList.class, VOLUME_GROUPS_BY_TENANT_URL,
+				id);
+	}
 }

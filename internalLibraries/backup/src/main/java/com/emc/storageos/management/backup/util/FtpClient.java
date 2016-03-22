@@ -138,14 +138,14 @@ public class FtpClient {
 
     public void rename(String sourceFileName, String destFileName) throws Exception {
         String server = uri;
-        String folder = null;
+        String folder = "";
 
-        Pattern portPattern = Pattern.compile(":\\d+");
+        Pattern portPattern = Pattern.compile("[^/]/[^/]");
         Matcher portMatcher = portPattern.matcher(uri);
         if (portMatcher.find()) {
-            server = uri.trim().substring(0, portMatcher.end());
+            server = uri.trim().substring(0, portMatcher.end() - 1);
             if (!uri.endsWith(portMatcher.group())) {
-                folder = uri.trim().substring(portMatcher.end() + 1);
+                folder = uri.trim().substring(portMatcher.end() - 1);
                 folder = folder.endsWith("/") ? folder : (folder + "/");
             }
         }
@@ -156,7 +156,7 @@ public class FtpClient {
         builder.command().add("RNFR " + folder + sourceFileName);
         builder.command().add("-Q");
         builder.command().add("RNTO " + folder + destFileName);
-        log.info("cmd={}", builder.command());
+        log.info("cmd={}", hidePassword(builder.command()));
 
         try (ProcessRunner processor = new ProcessRunner(builder.start(), false)) {
             StringBuilder errText = new StringBuilder();

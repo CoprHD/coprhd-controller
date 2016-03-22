@@ -400,6 +400,8 @@ public abstract class VdcOpHandler {
             if (localSiteState.equals(SiteState.STANDBY_PAUSING) || localSiteState.equals(SiteState.STANDBY_PAUSED)) {
                 checkAndPauseOnStandby();
                 flushVdcConfigToLocal();
+                refreshIPsec();
+                refreshFirewall();
             } else {
                 reconfigVdc();
                 checkAndPauseOnActive();

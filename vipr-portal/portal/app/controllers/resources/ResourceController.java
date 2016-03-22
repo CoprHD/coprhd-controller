@@ -15,9 +15,10 @@ import org.apache.commons.lang.StringUtils;
 
 import play.mvc.Controller;
 import play.mvc.Util;
+import util.AppSupportUtil;
 import util.ProjectUtils;
 
-import com.emc.sa.util.ResourceType;
+import com.emc.storageos.model.NamedRelatedResourceRep;
 import com.emc.storageos.model.project.ProjectRestRep;
 
 import controllers.tenant.TenantSelector;
@@ -31,6 +32,7 @@ public class ResourceController extends Controller {
         TenantSelector.addRenderArgs();
         String tenantId = Models.currentAdminTenant();
         renderArgs.put("projects", getProjects(tenantId));
+        renderArgs.put("applications", getApplications(tenantId));
         getActiveProjectId(); // called here to make sure active project id is init
     }
 
@@ -47,6 +49,20 @@ public class ResourceController extends Controller {
         return projects;
     }
 
+    @Util
+	public static List<NamedRelatedResourceRep> getApplications(String tenantId) {
+		List<NamedRelatedResourceRep> applications = AppSupportUtil
+				.getVolumeGroupByTenant(tenantId);
+		Collections.sort(applications,
+				new Comparator<NamedRelatedResourceRep>() {
+					@Override
+					public int compare(NamedRelatedResourceRep app1,
+							NamedRelatedResourceRep app2) {
+						return app1.getName().compareTo(app2.getName());
+					}
+				});
+		return applications;
+	}
     
     @Util
     public static String getActiveProjectId() {

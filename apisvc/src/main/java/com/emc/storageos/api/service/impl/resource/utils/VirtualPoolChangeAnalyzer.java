@@ -1252,7 +1252,7 @@ public class VirtualPoolChangeAnalyzer extends DataObjectChangeAnalyzer {
                         REF_VPOOL, MIRROR_VPOOL,
                         HIGH_AVAILABILITY,
                         FAST_EXPANSION, ACLS,
-                        INACTIVE, HA_CONNECTED_TO_RP };
+                        INACTIVE, HA_CONNECTED_TO_RP, JOURNAL_SIZE };
                 Map<String, Change> changes = analyzeChanges(currentVpool, newVpool, include, null, null);
                 if (!changes.isEmpty()) {
                     notSuppReasonBuff.append("These target virtual pool differences are invalid: ");

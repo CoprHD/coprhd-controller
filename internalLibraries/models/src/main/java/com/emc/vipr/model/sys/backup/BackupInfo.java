@@ -99,6 +99,10 @@ public class BackupInfo implements Serializable {
         sb.append(backupName);
         sb.append(", version:");
         sb.append(version);
+        sb.append(", site_id:");
+        sb.append(siteId);
+        sb.append(", site_name:");
+        sb.append(siteName);
         sb.append(", CreateTime:");
         sb.append(createTime);
         sb.append(", backupSize:");

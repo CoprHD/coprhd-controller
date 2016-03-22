@@ -1098,7 +1098,7 @@ public class BlockStorageUtils {
                 vplexVolume = volume;
                 volume = getSourceVolume(volume);
             }
-            String rgName = volume.getReplicationGroupInstance();
+            String rgName = BlockStorageUtils.stripRPTargetFromReplicationGroup(volume.getReplicationGroupInstance());
             URI storage = volume.getStorageController();
             if (!storageRgToVolumes.contains(storage, rgName)) {
                 if (isVPlex) {
@@ -1212,6 +1212,17 @@ public class BlockStorageUtils {
                 fullCopyIds.add(cell.getValue().getId());
             }
         }
+        return fullCopyIds;
+    }
+
+    public static List<URI> getAllFullCopyVolumes(URI applicationId, String copySet, List<String> subGroups) {
+        List<URI> fullCopyIds = Lists.newArrayList();
+
+        List<NamedRelatedResourceRep> fullCopies = execute(new GetFullCopyList(applicationId, copySet)).getVolumes();
+        for (NamedRelatedResourceRep fullCopy : fullCopies) {
+            fullCopyIds.add(fullCopy.getId());
+        }
+
         return fullCopyIds;
     }
 

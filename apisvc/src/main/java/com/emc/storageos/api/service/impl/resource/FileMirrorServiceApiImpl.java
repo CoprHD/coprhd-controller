@@ -4,6 +4,9 @@
  */
 package com.emc.storageos.api.service.impl.resource;
 
+
+import static com.emc.storageos.api.mapper.TaskMapper.toTask;
+
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -293,7 +296,7 @@ public class FileMirrorServiceApiImpl extends AbstractFileServiceApiImpl<FileMir
                 fileLabelBuilder = new StringBuilder(targetFsPrefix).append("-target-" + varrayName);
                 _log.info("Target file system name {}", fileLabelBuilder.toString());
                 targetFileShare = prepareEmptyFileSystem(fileLabelBuilder.toString(), sourceFileShare.getCapacity(),
-                        project, recommendation, tenantOrg, varray, vpool, targetVpool, flags, task);
+                        project, recommendation, tenantOrg, varray, vpool, targetVpool, flags, task,taskList);
                 // Set target file recommendations to target file system!!!
                 setFileMirrorRecommendation(recommendation, vpool, varray, true, false, targetFileShare);
 
@@ -323,7 +326,7 @@ public class FileMirrorServiceApiImpl extends AbstractFileServiceApiImpl<FileMir
                     fileLabelBuilder = new StringBuilder(targetFsPrefix).append("-target-" + varrayName);
                     _log.info("Target file system name {}", fileLabelBuilder.toString());
                     targetFileShare = prepareEmptyFileSystem(fileLabelBuilder.toString(), sourceFileShare.getCapacity(),
-                            project, recommendation, tenantOrg, varray, vpool, targetVpool, flags, task);
+                            project, recommendation, tenantOrg, varray, vpool, targetVpool, flags, task,taskList);
 
                     // Set target file recommendations to target file system!!!
                     setFileMirrorRecommendation(recommendation, targetVpool, targetVArray, true, false, targetFileShare);
@@ -334,6 +337,7 @@ public class FileMirrorServiceApiImpl extends AbstractFileServiceApiImpl<FileMir
                 }
             }
         }
+        
         return preparedFileSystems;
     }
 
@@ -415,7 +419,7 @@ public class FileMirrorServiceApiImpl extends AbstractFileServiceApiImpl<FileMir
      */
     private FileShare prepareEmptyFileSystem(String newFileLabel, Long fileshareSize, Project project,
             FileMirrorRecommendation fileMirrorRecommendation, TenantOrg tenantOrg,
-            VirtualArray varray, VirtualPool sourceVpool, VirtualPool targetVpool, DataObject.Flag[] flags, String taskId) {
+            VirtualArray varray, VirtualPool sourceVpool, VirtualPool targetVpool, DataObject.Flag[] flags, String taskId,TaskList taskList ) {
 
         _log.debug("prepareEmptyFileSystem start...");
 
@@ -467,6 +471,8 @@ public class FileMirrorServiceApiImpl extends AbstractFileServiceApiImpl<FileMir
         fs.getOpStatus().createTaskStatus(taskId, op);
 
         _dbClient.createObject(fs);
+        TaskResourceRep targetTask= toTask(fs,taskId,op);
+        taskList.addTask(targetTask);
         return fs;
     }
 

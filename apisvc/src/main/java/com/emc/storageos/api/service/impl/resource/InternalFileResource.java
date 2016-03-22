@@ -65,28 +65,33 @@ public class InternalFileResource extends ResourceService {
     @POST
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    public TaskResourceRep createFileSystemInternal(FileSystemParam param) {
+    public TaskList createFileSystemInternal(FileSystemParam param) {
         TenantOrg tenant = _permissionsHelper.getRootTenant();
         TaskResourceRep rep = null;
+        TaskList fileTaskList;
         if (!_permissionsHelper.userHasGivenRole(getUserFromContext(), tenant.getId(),
                 Role.SYSTEM_ADMIN, Role.TENANT_ADMIN)) {
             rep = new TaskResourceRep();
             _log.error("Unable to process the request as Only [system_admin, tenant_admin] can provision file systems for object");
             rep.setMessage("Only [system_admin, tenant_admin] can provision file systems for object");
             rep.setState(Operation.Status.error.name());
-            return rep;
+            fileTaskList= new TaskList();
+            fileTaskList.addTask(rep);
+            return fileTaskList;
             
         }
         try {
-        	rep = _fileService.createFSInternal(param, _internalProject, tenant, INTERNAL_FILESHARE_FLAGS);
+        	fileTaskList = _fileService.createFSInternal(param, _internalProject, tenant, INTERNAL_FILESHARE_FLAGS);
         } catch (Exception ex) {
             rep = new TaskResourceRep();
             _log.error("Exception occurred while creating file system due to:", ex);
             rep.setMessage(ex.getMessage());
             rep.setState(Operation.Status.error.name());
+            fileTaskList= new TaskList();
+            fileTaskList.addTask(rep);
         }
 
-        return rep;
+        return fileTaskList;
     }
 
     /*

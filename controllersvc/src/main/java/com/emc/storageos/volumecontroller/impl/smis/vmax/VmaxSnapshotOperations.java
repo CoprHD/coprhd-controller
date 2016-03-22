@@ -224,18 +224,13 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
             CIMObjectPath syncObjectPath = _cimPath.getSyncObject(storage, snap);
             if (_helper.checkExists(storage, syncObjectPath, false, false) != null) {
                 deactivateSnapshot(storage, snap, syncObjectPath);
-                boolean copyModeTarget = false;
                 if (storage.checkIfVmax3()) {
                     _helper.removeVolumeFromParkingSLOStorageGroup(storage, snap.getNativeId(), false);
                     _log.info("Done invoking remove volume {} from parking SLO storage group", snap.getNativeId());
 
-                    if (BlockSnapshot.CopyMode.copy.toString().equals(snap.getCopyMode())) {
-                        copyModeTarget = true;
-                    }
-                }
-                // If COPY mode snapshot target, detach the element synchronization before deleting it.
-                // TODO enhance ReplicaDeviceController to handle remove single session & target while removing volume from group.
-                if (copyModeTarget) {
+                    // If VMAX3 linked target (both copy and no copy mode), detach the element synchronization before deleting it.
+                    // COP-21476 - 'no copy' mode target too needs to be detached when snap session has linked copy mode target.
+                    // TODO enhance ReplicaDeviceController to handle remove single session & target while removing volume from group.
                     CIMArgument[] inArgsDetach = _helper.getUnlinkBlockSnapshotSessionTargetInputArguments(syncObjectPath);
                     CIMArgument[] outArgsDetach = new CIMArgument[5];
                     CIMObjectPath replicationSvcPath = _cimPath.getControllerReplicationSvcPath(storage);
@@ -417,11 +412,11 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
             // For VMAX3, we need the target group to tag the setting instance
             if (storage.checkIfVmax3() || !storage.getUsingSmis80()) {
                 targetDeviceIds = new ArrayList<String>();
-                CIMObjectPath volumeGroupPath = _helper.getVolumeGroupPath(storage, snapVolume, null);
                 for (Entry<String, List<Volume>> entry : volumesBySizeMap.entrySet()) {
                     final List<Volume> volumes = entry.getValue();
                     final Volume volume = volumes.get(0);
                     final URI poolId = volume.getPool();
+                    CIMObjectPath volumeGroupPath = _helper.getVolumeGroupPath(storage, volume, null);
 
                     // Create target devices based on the array model
                     final List<String> newDeviceIds = kickOffTargetDevicesCreation(storage, volumeGroupPath,
@@ -436,8 +431,8 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
                         _dbClient, _helper, _cimPath,
                         SYNC_TYPE.SNAPSHOT);
             }
-            // Create CG snapshot
 
+            // Create CG snapshot
             CIMObjectPath job = VmaxGroupOperationsUtils.internalCreateGroupReplica(storage, sourceGroupName,
                     snapLabelToUse, targetGroupPath, createInactive, thinProvisioning,
                     taskCompleter, SYNC_TYPE.SNAPSHOT, _dbClient, _helper, _cimPath);
@@ -641,7 +636,7 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
                     CIMObjectPath settingsPath = _cimPath.getGroupSynchronizedSettingsPath(storage, consistencyGroupName,
                             snapshotObj.getSettingsInstance());
                     cimJob = _helper
-                            .callModifySettingsDefineState(storage, _helper.getRestoreFromSettingsStateInputArguments(settingsPath));
+                            .callModifySettingsDefineState(storage, _helper.getRestoreFromSettingsStateInputArguments(settingsPath, false));
                 } else {
                     CIMArgument[] restoreCGSnapInput = _helper.getRestoreFromReplicaInputArguments(groupSynchronized);
                     cimJob = _helper.callModifyReplica(storage, restoreCGSnapInput);
@@ -2009,7 +2004,7 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
                 CIMObjectPath replicationSvcPath = _cimPath.getControllerReplicationSvcPath(system);
                 CIMArgument[] inArgs = null;
                 CIMArgument[] outArgs = new CIMArgument[5];
-                inArgs = _helper.getRestoreFromSettingsStateInputArguments(settingsStatePath);
+                inArgs = _helper.getRestoreFromSettingsStateInputArguments(settingsStatePath, true);
                 _helper.invokeMethod(system, replicationSvcPath, SmisConstants.MODIFY_SETTINGS_DEFINE_STATE, inArgs, outArgs);
                 CIMObjectPath jobPath = _cimPath.getCimObjectPathFromOutputArgs(outArgs, SmisConstants.JOB);
                 ControllerServiceImpl.enqueueJob(new QueueJob(new SmisBlockSnapshotSessionRestoreJob(jobPath,

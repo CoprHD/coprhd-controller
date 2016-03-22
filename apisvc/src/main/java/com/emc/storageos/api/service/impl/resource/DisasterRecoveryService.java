@@ -493,6 +493,43 @@ public class DisasterRecoveryService {
     }
 
     /**
+     * @return true if local site exists in current active site's ZK, otherwise return false
+     */
+    @GET
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @CheckPermission(roles = { Role.SECURITY_ADMIN, Role.RESTRICTED_SECURITY_ADMIN,
+            Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN, Role.SYSTEM_MONITOR })
+    @Path("/islocalsiteremoved")
+    public boolean isLocalSiteRemoved() {
+        Site localSite = drUtil.getLocalSite();
+        if (SiteState.ACTIVE == localSite.getState()) {
+            return true;
+        }
+        for (Site remoteSite : drUtil.listStandbySites()) {
+            try (InternalSiteServiceClient client = new InternalSiteServiceClient(remoteSite, coordinator, apiSignatureGenerator)) {
+                SiteList sites = client.getSiteList();
+                if (isActiveSite(remoteSite.getUuid(), sites) && !isSiteContainedBy(localSite.getUuid(), sites)) {
+                    log.info("According returned result from current active site {}, local site {} has been removed", remoteSite.getUuid(), localSite.getUuid());
+                    return true;
+                }
+            } catch (Exception e) {
+                log.warn("Error happened when fetching site list from site {}", remoteSite.getUuid(), e);
+                continue;
+            }
+        }
+        return false;
+    }
+
+    private boolean isActiveSite(String siteId, SiteList sites) {
+        for (SiteRestRep site : sites.getSites()) {
+            if (siteId.equals(site.getUuid()) && SiteState.ACTIVE.toString().equals(site.getState())) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
      * Remove a standby. After successfully done, it stops data replication to this site
      * 
      * @param uuid standby site uuid
@@ -2009,6 +2046,16 @@ public class DisasterRecoveryService {
         }
     }
 
+    private boolean isSiteContainedBy(String siteId, SiteList sites) {
+        for (SiteRestRep site : sites.getSites()) {
+            if (siteId.equals(site.getUuid())) {
+                return true;
+            }
+        }
+        log.info("Site {} is removed", siteId);
+        return false;
+    }
+
     private Runnable failbackDetectMonitor = new Runnable() {
 
         @Override
@@ -2080,16 +2127,6 @@ public class DisasterRecoveryService {
                     continue;
                 }
             }
-            return false;
-        }
-
-        private boolean isSiteContainedBy(String siteId, SiteList sites) {
-            for (SiteRestRep site : sites.getSites()) {
-                if (siteId.equals(site.getUuid())) {
-                    return true;
-                }
-            }
-            log.info("Site {} is removed", siteId);
             return false;
         }
 

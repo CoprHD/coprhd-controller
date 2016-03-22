@@ -36,6 +36,10 @@ public class Site {
         return client.post(SiteRestRep.class, input, PathConstants.SITE_URL);
     }
 
+    public boolean isLocalSiteRemoved() {
+        return client.get(Boolean.class, PathConstants.SITE_URL + "/islocalsiteremoved");
+    }
+
     public ClientResponse deleteSite(SiteIdListParam uuids) {
         return client.post(ClientResponse.class, uuids, PathConstants.SITE_URL + "/remove");
     }

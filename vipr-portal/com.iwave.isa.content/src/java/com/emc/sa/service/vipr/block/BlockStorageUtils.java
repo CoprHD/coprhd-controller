@@ -1098,7 +1098,7 @@ public class BlockStorageUtils {
                 vplexVolume = volume;
                 volume = getSourceVolume(volume);
             }
-            String rgName = volume.getReplicationGroupInstance();
+            String rgName = BlockStorageUtils.stripRPTargetFromReplicationGroup(volume.getReplicationGroupInstance());
             URI storage = volume.getStorageController();
             if (!storageRgToVolumes.contains(storage, rgName)) {
                 if (isVPlex) {

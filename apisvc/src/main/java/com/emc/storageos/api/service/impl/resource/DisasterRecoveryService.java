@@ -507,10 +507,18 @@ public class DisasterRecoveryService {
         if (SiteState.ACTIVE == localSite.getState()) {
             return response;
         }
-        for (Site remoteSite : drUtil.listStandbySites()) {
+        for (Site remoteSite : drUtil.listSites()) {
+            if (remoteSite.getUuid().equals(localSite.getUuid())) {
+                continue;
+            }
             try (InternalSiteServiceClient client = new InternalSiteServiceClient(remoteSite, coordinator, apiSignatureGenerator)) {
                 SiteList sites = client.getSiteList();
-                if (isActiveSite(remoteSite.getUuid(), sites) && !isSiteContainedBy(localSite.getUuid(), sites)) {
+                if (!isActiveSite(remoteSite.getUuid(), sites)) {
+                    continue;
+                }
+                if (isSiteContainedBy(localSite.getUuid(), sites)) {
+                    return response;
+                } else {
                     log.info("According returned result from current active site {}, local site {} has been removed", remoteSite.getUuid(), localSite.getUuid());
                     response.setIsRemoved(true);
                     return response;

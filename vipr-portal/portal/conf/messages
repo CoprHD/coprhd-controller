@@ -3166,7 +3166,9 @@ resources.nfsExport.permissions=Permission:
 resources.nfsExport=NFS Export
 resources.nfsExport.image=serviceCatalog/icon_folder_NFS.png
 
-resources.noprojects=There are no projects configured.  No data will be displayed on this page until a project is added.
+resources.noprojects=There are no projects configured.  Please try with filter by Applications.
+resources.noprojectsapplications=There are no projects nor applications configured.  No data will be displayed on this page until a project or an application is added.
+resources.noapplications=There are no applications configured.  Please try with filter by Projects.
 
 resources.tasks=Tasks
 resources.task=Task Details

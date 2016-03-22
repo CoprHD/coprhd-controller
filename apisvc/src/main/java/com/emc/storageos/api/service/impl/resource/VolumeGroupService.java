@@ -3262,7 +3262,7 @@ public class VolumeGroupService extends TaskResourceService {
                 if (tenantId == null) {
                     tenantId = volume.getTenant().getURI();
                 } else if (!tenantId.equals(volume.getTenant().getURI())) {
-                    // volume is not from the same CG
+                    // volume is not from the same tenant
                     throw APIException.badRequests.volumeCantBeAddedToVolumeGroup(volume.getLabel(),
                             "the volume does not have the same tenant as others in the same request");
                 }

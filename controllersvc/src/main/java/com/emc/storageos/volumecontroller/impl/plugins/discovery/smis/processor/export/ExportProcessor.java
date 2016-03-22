@@ -206,7 +206,7 @@ public class ExportProcessor extends Processor {
                 try {
                     client.closeEnumeration(Constants.MASKING_PATH, response.getContext());
                 } catch (Exception e) {
-                    _logger.warn("Exception occurred while closing enumeration", e);
+                    _logger.debug("Exception occurred while closing enumeration", e);
                 }
             }
         }

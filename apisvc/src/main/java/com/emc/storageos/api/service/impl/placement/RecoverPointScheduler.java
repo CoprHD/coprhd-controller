@@ -1891,7 +1891,9 @@ public class RecoverPointScheduler implements Scheduler {
                     pools = VirtualPool.getValidStoragePools(vpool, dbClient, true);
                 } else {
                     VirtualPool haVpool = VirtualPoolChangeAnalyzer.getHaVpool(vpool, dbClient);
-                    pools = VirtualPool.getValidStoragePools(haVpool, dbClient, true);
+                    if (haVpool != null) {
+                        pools = VirtualPool.getValidStoragePools(haVpool, dbClient, true);
+                    }
                 }
                 
                 if (!pools.isEmpty()) {
@@ -2180,7 +2182,7 @@ public class RecoverPointScheduler implements Scheduler {
             recommendation.setStandbyJournalRecommendation(standbyJournalRecommendation);
         }
 
-        // Build the source
+        // Build the source recommendation
         RPRecommendation sourceRecommendation = new RPRecommendation();
         sourceRecommendation.setSourceStoragePool(sourceVolume.getPool());
         sourceRecommendation.setSourceStorageSystem(sourceVolume.getStorageController());
@@ -2213,7 +2215,7 @@ public class RecoverPointScheduler implements Scheduler {
             sourceRecommendation.setVirtualVolumeRecommendation(virtualVolumeRecommendation);
         }
 
-        // build HA recommendation if specified.
+        // Build HA recommendation if specified
         if (VirtualPool.vPoolSpecifiesMetroPoint(vpool)
                 || VirtualPool.vPoolSpecifiesHighAvailabilityDistributed(vpool)) {
             RPRecommendation haRec = new RPRecommendation();
@@ -2248,7 +2250,7 @@ public class RecoverPointScheduler implements Scheduler {
 
         Map<URI, VpoolProtectionVarraySettings> protectionSettings = VirtualPool.getProtectionSettings(vpool, dbClient);
 
-        // Build targets
+        // Build recommendations for targets
         for (VirtualArray protectionVarray : protectionVarrays) {
             RPRecommendation targetRecommendation = new RPRecommendation();
             Volume targetVolume = getTargetVolumeForProtectionVirtualArray(sourceVolume, protectionVarray);
@@ -2257,14 +2259,13 @@ public class RecoverPointScheduler implements Scheduler {
             targetRecommendation.setInternalSiteName(targetVolume.getInternalSiteName());
             targetRecommendation.setRpCopyName(targetVolume.getRpCopyName());
             targetRecommendation.setVirtualArray(targetVolume.getVirtualArray());
-            targetRecommendation.setVirtualPool(targetVpool);
-            StoragePool targetPool = dbClient.queryObject(StoragePool.class, targetVolume.getPool());
-            targetRecommendation.setSourceStoragePool(targetPool.getId());
-            targetRecommendation.setSourceStorageSystem(targetPool.getStorageDevice());
-
+            targetRecommendation.setVirtualPool(targetVpool);            
+            targetRecommendation.setSourceStoragePool(targetVolume.getPool());
+            targetRecommendation.setSourceStorageSystem(targetVolume.getStorageController());
             targetRecommendation.setSize(capabilities.getSize());
             targetRecommendation.setResourceCount(capabilities.getResourceCount());
 
+            // Build vplex recommendation of the target if specified
             if (VirtualPool.vPoolSpecifiesHighAvailability(targetVpool)) {
                 VPlexRecommendation virtualVolumeRecommendation = new VPlexRecommendation();
                 virtualVolumeRecommendation.setVPlexStorageSystem(targetVolume.getStorageController());
@@ -2286,7 +2287,7 @@ public class RecoverPointScheduler implements Scheduler {
                 targetRecommendation.setVirtualVolumeRecommendation(virtualVolumeRecommendation);
             }
 
-            // build HA recommendation if specified.
+            // Build HA recommendation if specified
             if (VirtualPool.vPoolSpecifiesHighAvailabilityDistributed(targetVpool)) {
                 RPRecommendation haRec = new RPRecommendation();
                 for (String associatedVolume : targetVolume.getAssociatedVolumes()) {
@@ -2323,7 +2324,7 @@ public class RecoverPointScheduler implements Scheduler {
             }
             sourceRecommendation.getTargetRecommendations().add(targetRecommendation);
 
-            // Build target Journals
+            // Build target journal recommendation
             List<Volume> targetJournals = RPHelper.findExistingJournalsForCopy(dbClient, targetVolume.getConsistencyGroup(), targetVolume.getRpCopyName());
             Volume targetJournal = targetJournals.get(0);         
             if (targetJournal == null) {
@@ -2347,6 +2348,7 @@ public class RecoverPointScheduler implements Scheduler {
             targetJournalRecommendation.setInternalSiteName(targetJournal.getInternalSiteName());
             targetJournalRecommendation.setRpCopyName(targetJournal.getRpCopyName());
 
+            // Build vplex recommendation of the target journal if specified
             if (VirtualPool.vPoolSpecifiesHighAvailability(targetJournalVpool)) {
                 // Journal is VPLEX, we only support VPLEX local in this case
                 if (targetJournal.getAssociatedVolumes() != null) {

@@ -143,6 +143,7 @@ nav.object.buckets=Buckets
 nav.app=Applications
 nav.mobilityGroups=Mobility Groups
 nav.disasterRecovery=System Disaster Recovery
+nav.removed.site.warning=This site is obsolete, please delete it from disk
 nav.ipsec=IPsec
 
 # Override messages in the Secure plugin

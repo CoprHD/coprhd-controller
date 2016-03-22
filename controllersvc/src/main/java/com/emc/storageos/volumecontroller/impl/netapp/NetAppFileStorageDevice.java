@@ -1890,28 +1890,33 @@ public class NetAppFileStorageDevice extends AbstractFileStorageDevice {
     // snapmirror operations
     @Override
     public void doCreateMirrorLink(StorageSystem system, URI source, URI target, TaskCompleter completer) {
-        getMirrorOperations().createMirrorFileShareLink(system, source, target, completer);
+        mirrorOperations.createMirrorFileShareLink(system, source, target, completer);
     }
 
     @Override
     public void doStartMirrorLink(StorageSystem system, FileShare target, TaskCompleter completer, String policyName) {
-        getMirrorOperations().startMirrorFileShareLink(system, target, completer, policyName);
+        mirrorOperations.startMirrorFileShareLink(system, target, completer, policyName);
     }
 
     @Override
     public void doFailoverLink(StorageSystem systemTarget, FileShare target, TaskCompleter completer, String devSpecificPolicyName) {
-        getMirrorOperations().failoverMirrorFileShareLink(systemTarget, target, completer, devSpecificPolicyName);
+        mirrorOperations.failoverMirrorFileShareLink(systemTarget, target, completer, devSpecificPolicyName);
     }
 
     @Override
     public void doResyncLink(StorageSystem primarySystem, StorageSystem secondarySystem, FileShare target, TaskCompleter completer,
             String devSpecificPolicyName) {
-        getMirrorOperations().resyncMirrorFileShareLink(primarySystem, secondarySystem, target, completer, devSpecificPolicyName);
+        mirrorOperations.resyncMirrorFileShareLink(primarySystem, secondarySystem, target, completer, devSpecificPolicyName);
     }
 
     @Override
     public void doStopMirrorLink(StorageSystem system, FileShare target, TaskCompleter completer) {
-        getMirrorOperations().stopMirrorFileShareLink(system, target, completer);
+        mirrorOperations.stopMirrorFileShareLink(system, target, completer);
+    }
+
+    @Override
+    public void doDetachMirrorLink(StorageSystem system, URI source, URI target, TaskCompleter completer) {
+        mirrorOperations.deleteMirrorFileShareLink(system, source, target, completer);
     }
 
 }

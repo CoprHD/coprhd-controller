@@ -17,6 +17,7 @@ import com.emc.storageos.netapp.NetAppApi;
 import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.volumecontroller.impl.BiosCommandResult;
 import com.emc.storageos.volumecontroller.impl.file.FileMirrorOperations;
+import com.emc.storageos.workflow.WorkflowStepCompleter;
 
 public class NetappMirrorFileOperations implements FileMirrorOperations {
     private static final Logger _log = LoggerFactory
@@ -162,11 +163,11 @@ public class NetappMirrorFileOperations implements FileMirrorOperations {
         FileShare targetFileShare = _dbClient.queryObject(FileShare.class, source);
         StorageSystem targetStorage = _dbClient.queryObject(StorageSystem.class, targetFileShare.getStorageDevice());
 
-        String portGroup = findVfilerName(sourceFileShare);
         BiosCommandResult cmdResult = doReleaseSnapMirror(system, targetStorage,
                 sourceFileShare, targetFileShare, completer);
         if (cmdResult.getCommandSuccess()) {
             completer.ready(_dbClient);
+            WorkflowStepCompleter.stepSucceded(completer.getOpId());
         } else {
             completer.error(_dbClient, cmdResult.getServiceCoded());
         }

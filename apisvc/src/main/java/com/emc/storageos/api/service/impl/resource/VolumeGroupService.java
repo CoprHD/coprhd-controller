@@ -2848,12 +2848,14 @@ public class VolumeGroupService extends TaskResourceService {
                 while (addVolItr.hasNext()) {
                     addVols.add(addVolItr.next());
                 }
+                validateSameCG(dbClient, volumeGroup, addVols);
             }
             if (param.hasVolumesToRemove()) {
                 Iterator<Volume> remVolItr = dbClient.queryIterativeObjects(Volume.class, param.getRemoveVolumesList().getVolumes());
                 while (remVolItr.hasNext()) {
                     removeVols.add(remVolItr.next());
                 }
+                //validateSameCG(dbClient, volumeGroup, addVols);
             }
 
             List<Host> removeHosts = new ArrayList<Host>();

@@ -62,6 +62,7 @@ public class MailHandler {
                     new Date().getTime(),
                     AuditLogManager.AUDITLOG_FAILURE,
                     null, site.getName());
+            return;
         }
 
         Map parameters = Maps.newHashMap();

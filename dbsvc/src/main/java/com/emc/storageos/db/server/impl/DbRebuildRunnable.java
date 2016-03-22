@@ -14,6 +14,7 @@ import org.slf4j.LoggerFactory;
 import com.emc.storageos.coordinator.client.model.Constants;
 import com.emc.storageos.coordinator.client.model.Site;
 import com.emc.storageos.coordinator.client.model.SiteInfo;
+import com.emc.storageos.coordinator.client.model.SiteMonitorResult;
 import com.emc.storageos.coordinator.client.model.SiteState;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.coordinator.client.service.DrUtil;
@@ -88,6 +89,14 @@ public class DbRebuildRunnable implements Runnable {
             // do nothing if it gets set to STANDBY_ERROR earlier
             if (localSite.getState().equals(SiteState.STANDBY_SYNCING)) {
                 purgeOldDataRevision(drUtil);
+                // reset heartbeat for this site 
+                SiteMonitorResult dbHeartbeat = coordinator.getTargetInfo(localSite.getUuid(), SiteMonitorResult.class);
+                if (dbHeartbeat != null) {
+                    dbHeartbeat.setDbQuorumLostSince(0);
+                    coordinator.setTargetInfo(localSite.getUuid(), dbHeartbeat);
+                    log.info("Reset db heartbeat state for {}", localSite.getUuid());
+                }
+                
                 log.info("all db rebuild finish, updating site state to STANDBY_SYNCED");
                 localSite.setState(SiteState.STANDBY_SYNCED);
                 coordinator.persistServiceConfiguration(localSite.toConfiguration());

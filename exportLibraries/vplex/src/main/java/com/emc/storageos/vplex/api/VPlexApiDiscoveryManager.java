@@ -921,8 +921,7 @@ public class VPlexApiDiscoveryManager {
     /**
      * Find the virtual volume containing the passed name.
      * 
-     * @param clusterId The id of the cluster on which to find the virtual
-     *            volume.
+     * @param clusterId The id of the cluster on which to find the virtual volume.
      * @param volumeName The name of the virtual volume.
      * @param fetchAtts true to fetch the virtual volume attributes.
      * 
@@ -939,8 +938,7 @@ public class VPlexApiDiscoveryManager {
     /**
      * Find the virtual volume containing the passed name.
      * 
-     * @param clusterId The id of the cluster on which to find the virtual
-     *            volume.
+     * @param clusterId The id of the cluster on which to find the virtual volume.
      * @param volumeName The name of the virtual volume.
      * @param fetchAtts true to fetch the virtual volume attributes.
      * @param retry Indicates retry should occur if the first attempt to find
@@ -2455,7 +2453,7 @@ public class VPlexApiDiscoveryManager {
                 URI.create(uriBuilder.toString()));
         s_logger.info("Get consistency groups request URI is {}", requestURI.toString());
         ClientResponse response = _vplexApiClient.get(requestURI, VPlexApiConstants.ACCEPT_JSON_FORMAT_1);
-                   
+
         String responseStr = response.getEntity(String.class);
         int status = response.getStatus();
         response.close();

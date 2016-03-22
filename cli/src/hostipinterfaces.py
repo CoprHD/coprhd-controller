@@ -761,7 +761,7 @@ def task_parser(subcommand_parsers, common_parser):
         '-hl', '-hostlabel',
         dest='hostlabel',
         metavar='<hostlabel>',
-        help='Host for which ip-interface to be deleted',
+        help='Ip-interface of the host',
         required=True)
 
     task_parser.add_argument('-id',

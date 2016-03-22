@@ -4,13 +4,13 @@
  */
 package com.emc.storageos.management.backup.util;
 
+import java.net.URI;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.regex.Pattern;
-import java.util.regex.Matcher;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -137,26 +137,23 @@ public class FtpClient {
     }
 
     public void rename(String sourceFileName, String destFileName) throws Exception {
-        String server = uri;
-        String folder = "";
-
-        Pattern portPattern = Pattern.compile("[^/]/[^/]");
-        Matcher portMatcher = portPattern.matcher(uri);
-        if (portMatcher.find()) {
-            server = uri.trim().substring(0, portMatcher.end() - 1);
-            if (!uri.endsWith(portMatcher.group())) {
-                folder = uri.trim().substring(portMatcher.end() - 1);
-                folder = folder.endsWith("/") ? folder : (folder + "/");
-            }
+        if (uri == null) {
+            throw new IllegalStateException("uri is null");
         }
+        URI serverUri = new URI(uri);
+        String endpoint = serverUri.getScheme() + "://" + serverUri.getAuthority();
+        String path = serverUri.getPath();
+        String sourceName = (new File(path, sourceFileName)).toString().substring(1);
+        String destName = (new File(path, destFileName)).toString().substring(1);
 
         ProcessBuilder builder = getBuilder();
-        builder.command().add(server);
+        builder.command().add(endpoint);
         builder.command().add("-Q");
-        builder.command().add("RNFR " + folder + sourceFileName);
+        builder.command().add("RNFR " + sourceName);
         builder.command().add("-Q");
-        builder.command().add("RNTO " + folder + destFileName);
+        builder.command().add("RNTO " + destName);
         log.info("cmd={}", hidePassword(builder.command()));
+
 
         try (ProcessRunner processor = new ProcessRunner(builder.start(), false)) {
             StringBuilder errText = new StringBuilder();

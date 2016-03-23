@@ -1632,6 +1632,14 @@ public class NetAppFacade {
         return snapMirror.setSnapMirrorOn();
     }
 
+    public String getSnapMirrorState(String destLocation) {
+        if (log.isDebugEnabled()) {
+            log.debug("get snapmirror state: " + destLocation);
+        }
+        SnapMirror snapMirror = new SnapMirror(server.getNaServer(), null);
+        return snapMirror.getSnapMirrorState(destLocation);
+    }
+
     /**
      * Initialize the snap mirror and state will be snap mirrored
      * 
@@ -1754,7 +1762,7 @@ public class NetAppFacade {
 
     public static void main(String[] args) {
         NetAppFacade facade = new NetAppFacade("10.247.96.205", 80, "root", "dangerous1", false);
-        System.out.println(facade.setSnapMirrorSchedule("minutes", "2", "lglw6204:netappFS4Mar22",
+        System.out.println(facade.getSnapMirrorState(
                 "lglw6205:netappFS4Mar22targetremoteVA"));
     }
 }

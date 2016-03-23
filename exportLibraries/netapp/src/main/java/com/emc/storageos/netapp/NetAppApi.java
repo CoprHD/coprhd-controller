@@ -10,6 +10,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -1123,13 +1124,26 @@ public class NetAppApi {
 
     public Boolean releaseSnapMirror(String sourcePath, String destPath)
             throws NetAppException {
-        boolean failedStatus = false;
+        boolean success = false;
         try {
             netAppFacade = new NetAppFacade(_ipAddress, _portNumber, _userName,
                     _password, _https);
 
-            failedStatus = netAppFacade.releaseSnapMirror(sourcePath, destPath);
-            return failedStatus;
+            success = netAppFacade.releaseSnapMirror(sourcePath, destPath);
+
+            if (success) {
+                String state = netAppFacade.getSnapMirrorState(destPath);
+                success = false;
+
+                while (state != null) {
+                    TimeUnit.SECONDS.sleep(5);
+                    state = netAppFacade.getSnapMirrorState(destPath);
+                }
+                if (state == null) {
+                    success = true;
+                }
+            }
+            return success;
 
         } catch (Exception e) {
             throw NetAppException.exceptions.resyncSnapMirrorFailed(sourcePath, destPath, e.getMessage());
@@ -1160,16 +1174,41 @@ public class NetAppApi {
      * @return
      * @throws NetAppException
      */
-    public Boolean breakSnapMirror(String pathLocation, String vfilerName)
+    public Boolean breakSnapMirror(String pathLocation)
             throws NetAppException {
-        boolean failedStatus = false;
+        boolean success = false;
         try {
             netAppFacade = new NetAppFacade(_ipAddress, _portNumber, _userName,
-                    _password, _https, vfilerName);
+                    _password, _https, null);
 
-            failedStatus = netAppFacade.breakSnapMirrorSchedule(pathLocation);
+            String state = netAppFacade.getSnapMirrorState(pathLocation);
+            if ("quiesced".equals(state)) {
+                success = netAppFacade.breakSnapMirrorSchedule(pathLocation);
+            } else {
+                throw new Exception("Cannot break snapmirror because snapmirror relationship is not quiesced.");
+            }
 
-            return failedStatus;
+            if (success) {
+                state = netAppFacade.getSnapMirrorState(pathLocation);
+                while (true) {
+                    if (!"quiesced".equals(state)) {
+                        success = false;
+                        break;
+                    }
+                    TimeUnit.SECONDS.sleep(2);
+                    state = netAppFacade.getSnapMirrorState(pathLocation);
+                }
+
+                if ("broken-off".equals(state)) {
+                    success = true;
+                }
+            }
+
+            if (!success) {
+                throw new Exception("Cannot break snapmirror.");
+            }
+
+            return success;
 
         } catch (Exception e) {
             throw NetAppException.exceptions.breakSnapMirrorFailed(pathLocation, _ipAddress, e.getMessage());
@@ -1192,16 +1231,31 @@ public class NetAppApi {
         }
     }
 
-    public Boolean quiesceSnapMirror(String pathLocation, String vfilerName)
+    public Boolean quiesceSnapMirror(String pathLocation)
             throws NetAppException {
-        boolean failedStatus = false;
+        boolean success = false;
         try {
             netAppFacade = new NetAppFacade(_ipAddress, _portNumber, _userName,
-                    _password, _https, vfilerName);
+                    _password, _https, null);
+            String state = netAppFacade.getSnapMirrorState(pathLocation);
+            if ("snapmirrored".equals(state)) {
+                success = netAppFacade.quiesceSnapMirror(pathLocation);
+                if (success) {
+                    while ("snapmirrored".equals(state)) {
+                        TimeUnit.SECONDS.sleep(2);
+                        state = netAppFacade.getSnapMirrorState(pathLocation);
+                    }
 
-            failedStatus = netAppFacade.quiesceSnapMirror(pathLocation);
+                    if (!"paused".equals(state)) {
+                        success = false;
+                    }
+                }
+            }
 
-            return failedStatus;
+            if (!success) {
+                throw new Exception("Unable to quiesce snapmirror on destination location.");
+            }
+            return success;
 
         } catch (Exception e) {
             throw NetAppException.exceptions.breakSnapMirrorFailed(pathLocation, _ipAddress, e.getMessage());
@@ -1216,6 +1270,18 @@ public class NetAppApi {
 
             licenseExists = netAppFacade.checkSnapMirrorLicense();
             return licenseExists;
+
+        } catch (Exception e) {
+            throw NetAppException.exceptions.checkSnapMirrorLicenseFailed(_ipAddress, e.getMessage());
+        }
+    }
+
+    public String getSnapMirrorState(String destinationLocation) throws NetAppException {
+        try {
+            netAppFacade = new NetAppFacade(_ipAddress, _portNumber, _userName,
+                    _password, _https, null);
+
+            return netAppFacade.getSnapMirrorState(destinationLocation);
 
         } catch (Exception e) {
             throw NetAppException.exceptions.checkSnapMirrorLicenseFailed(_ipAddress, e.getMessage());

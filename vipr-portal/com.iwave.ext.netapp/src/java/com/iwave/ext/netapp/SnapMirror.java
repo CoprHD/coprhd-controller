@@ -371,6 +371,33 @@ public class SnapMirror {
         }
     }
 
+    @SuppressWarnings("unchecked")
+    public String getSnapMirrorState(String destinationLocation) {
+        NaElement elem = new NaElement("snapmirror-get-status");
+
+        if (destinationLocation != null) {
+            elem.addNewChild("location", destinationLocation);
+        }
+
+        List<NaElement> resultElem = null;
+        try {
+            resultElem = server.invokeElem(elem).getChildren();
+            if (resultElem != null && !resultElem.isEmpty()) {
+                for (Iterator<NaElement> iterator = resultElem.iterator(); iterator.hasNext();) {
+                    NaElement naElement = iterator.next();
+                    naElement.getChildByName("snapmirror-status");
+                    String value = naElement.getChildByName("snapmirror-status-info").getChildByName("state").getContent();
+                    return value;
+                }
+            }
+            return null;
+        } catch (Exception e) {
+            String msg = "Failed to get snapmirror status";
+            log.error(msg, e);
+            throw new NetAppException(msg, e);
+        }
+    }
+
     /**
      * Enables snap mirror
      * 

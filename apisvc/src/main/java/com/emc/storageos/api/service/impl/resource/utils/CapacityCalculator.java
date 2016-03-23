@@ -13,6 +13,8 @@ public interface CapacityCalculator {
      * for the given requested capacity.
      *
      * @param requestedCapacity the requested volume capacity
+     * @param volume the for which we want to calculate the allocated capacity
+     * @dbClient the DB client
      * @return the actually array allocated capacity
      */
     public Long calculateAllocatedCapacity(Long requestedCapacity, Volume volume, DbClient dbClient);

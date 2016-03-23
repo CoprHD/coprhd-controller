@@ -12,11 +12,15 @@ import com.emc.storageos.db.client.model.StorageHADomain;
 import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.VirtualPool;
+import com.emc.storageos.exceptions.DeviceControllerErrors;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.netapp.NetAppApi;
+import com.emc.storageos.svcs.errorhandling.model.ServiceError;
 import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.volumecontroller.impl.BiosCommandResult;
+import com.emc.storageos.volumecontroller.impl.ControllerServiceImpl;
 import com.emc.storageos.volumecontroller.impl.file.FileMirrorOperations;
+import com.emc.storageos.volumecontroller.impl.job.QueueJob;
 import com.emc.storageos.workflow.WorkflowStepCompleter;
 
 public class NetappMirrorFileOperations implements FileMirrorOperations {
@@ -270,7 +274,19 @@ public class NetappMirrorFileOperations implements FileMirrorOperations {
         /* The snapmirror-release API removes a SnapMirror relationship on the source endpoint */
         _log.info("Calling snapmirror release on source: {}, target: {}", sourceLocation, destLocation);
         nApiSource.releaseSnapMirror(sourceLocation, destLocation);
-        return BiosCommandResult.createSuccessfulResult();
+        NetAppSnapMirrorStatus snapMirrorStatusJob = new NetAppSnapMirrorStatus(destLocation, targetStorage.getId(), taskCompleter,
+                destLocation);
+        try {
+            ControllerServiceImpl.enqueueJob(new QueueJob(snapMirrorStatusJob));
+            return BiosCommandResult.createPendingResult();
+        } catch (Exception e) {
+            _log.error("Release Snapmirror failed", e);
+            ServiceError error = DeviceControllerErrors.netapp.jobFailed("Release Snapmirror failed:" + e.getMessage());
+            if (taskCompleter != null) {
+                taskCompleter.error(_dbClient, error);
+            }
+            return BiosCommandResult.createErrorResult(error);
+        }
     }
 
     public BiosCommandResult deleteSnapMirrorSchedule(StorageSystem targetStorage,
@@ -329,7 +345,21 @@ public class NetappMirrorFileOperations implements FileMirrorOperations {
         String location = getLocation(nApi, fileShare);
         _log.info("Calling snapmirror break on path: {}", location);
         nApi.breakSnapMirror(location);
-        return BiosCommandResult.createSuccessfulResult();
+
+        NetAppSnapMirrorStatus snapMirrorStatusJob = new NetAppSnapMirrorStatus(location, storage.getId(), taskCompleter,
+                location);
+
+        try {
+            ControllerServiceImpl.enqueueJob(new QueueJob(snapMirrorStatusJob));
+            return BiosCommandResult.createPendingResult();
+        } catch (Exception e) {
+            _log.error("Snapmirror quiesce failed", e);
+            ServiceError error = DeviceControllerErrors.netapp.jobFailed("Snapmirror break failed:" + e.getMessage());
+            if (taskCompleter != null) {
+                taskCompleter.error(_dbClient, error);
+            }
+            return BiosCommandResult.createErrorResult(error);
+        }
     }
 
     /**
@@ -353,7 +383,20 @@ public class NetappMirrorFileOperations implements FileMirrorOperations {
         String destLocation = getLocation(targetStorage, targetFs);
         _log.info("Calling snapmirror quiesce on destination: {}", destLocation);
         nApi.quiesceSnapMirror(destLocation);
-        return BiosCommandResult.createSuccessfulResult();
+
+        NetAppSnapMirrorStatus snapMirrorStatusJob = new NetAppSnapMirrorStatus(destLocation, targetStorage.getId(), taskCompleter,
+                destLocation);
+        try {
+            ControllerServiceImpl.enqueueJob(new QueueJob(snapMirrorStatusJob));
+            return BiosCommandResult.createPendingResult();
+        } catch (Exception e) {
+            _log.error("Snapmirror quiesce failed", e);
+            ServiceError error = DeviceControllerErrors.netapp.jobFailed("Snapmirror quiesce failed:" + e.getMessage());
+            if (taskCompleter != null) {
+                taskCompleter.error(_dbClient, error);
+            }
+            return BiosCommandResult.createErrorResult(error);
+        }
 
     }
 

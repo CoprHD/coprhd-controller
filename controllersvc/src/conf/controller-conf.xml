@@ -898,6 +898,9 @@
     
     <bean id="vnxeApiClientFactory" class="com.emc.storageos.vnxe.VNXeApiClientFactory"
           init-method="init"/>
+    
+    <bean id="netAppApiFactory" class="com.emc.storageos.netapp.NetappApiFactory"
+          init-method="init"/>
 
     <bean id="maskingWorkflowEntryPoints" class="com.emc.storageos.volumecontroller.impl.block.MaskingWorkflowEntryPoints">
         <property name="name" value="maskingWorkflowEntryPoints"/>
@@ -1343,8 +1346,9 @@
 		<property name="isilonApiFactory" ref="isilonapifactory" />
         <property name="cinderApiFactory" ref="cinderapifactory"/>
 		<property name="vnxeApiClientFactory" ref="vnxeApiClientFactory"/>
+		<property name="netAppApiFactory" ref="netAppApiFactory"/>
 		<property name="workflowService" ref="workflowService" />
-                <property name="distributedOwnerLockService" ref="distributedOwnerLockService"/>
+        <property name="distributedOwnerLockService" ref="distributedOwnerLockService"/>
         <property name="smisCommandHelper" ref="vmaxSmisCommandHelper"/>
 		<property name="xivSmisCommandHelper" ref="xivSmisCommandHelper"/>
 		<property name="monitoringJobConsumer" ref="monitoringJobConsumer" />

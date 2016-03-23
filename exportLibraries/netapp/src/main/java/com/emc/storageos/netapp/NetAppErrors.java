@@ -68,4 +68,7 @@ public interface NetAppErrors {
     @DeclareServiceCode(ServiceCode.NETAPP_INVALID_OPERATION)
     public ServiceError operationNotSupported();
 
+    @DeclareServiceCode(ServiceCode.NETAPP_ERROR)
+    public ServiceError jobFailed(final String operationName);
+
 }

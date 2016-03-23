@@ -150,11 +150,11 @@ public class CinderUtils
         CinderEndPointInfo ep = new CinderEndPointInfo(hostName, userName, password, tenantName);
         if (baseUri.startsWith(CinderConstants.HTTP_URL))
         {
-            ep.setCinderBaseUriHttp(baseUri);
+            ep.setCinderBaseUriHttp(CinderConstants.HTTP_URL+hostName+":"+CinderConstants.CINDER_REST_PORT);
         }
         else
         {
-            ep.setCinderBaseUriHttps(baseUri);
+            ep.setCinderBaseUriHttp(CinderConstants.HTTPS_URL+hostName+":"+CinderConstants.CINDER_REST_PORT);
         }
 
         ep.setCinderToken(token);

@@ -407,11 +407,11 @@ public class CinderCommunicationInterface extends ExtendedCommunicationInterface
                     endPointInfo = new CinderEndPointInfo(hostName, restuserName, restPassword, tenantName);
                     if (restBaseUri.startsWith(CinderConstants.HTTP_URL))
                     {
-                        endPointInfo.setCinderBaseUriHttp(restBaseUri);
+                        endPointInfo.setCinderBaseUriHttp(CinderConstants.HTTP_URL+hostName+":"+CinderConstants.CINDER_REST_PORT);
                     }
                     else
                     {
-                        endPointInfo.setCinderBaseUriHttps(restBaseUri);
+                        endPointInfo.setCinderBaseUriHttps(CinderConstants.HTTPS_URL+hostName+":"+CinderConstants.CINDER_REST_PORT);
                     }
 
                     // Always set the token and tenant id, when new instance is created

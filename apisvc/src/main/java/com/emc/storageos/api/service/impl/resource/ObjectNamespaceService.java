@@ -47,7 +47,7 @@ public class ObjectNamespaceService extends TaggedResource {
      */
     @GET
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    @CheckPermission(roles = { Role.TENANT_ADMIN, Role.SECURITY_ADMIN })
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR, Role.TENANT_ADMIN, Role.SECURITY_ADMIN })
     public ObjectNamespaceList getObjectNamespaces() {
         _log.info("Getting namespaces from all object storage systesm");
         ObjectNamespaceList objNamespaceList = new ObjectNamespaceList();
@@ -71,7 +71,7 @@ public class ObjectNamespaceService extends TaggedResource {
     @GET
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}")
-    @CheckPermission(roles = { Role.TENANT_ADMIN, Role.SECURITY_ADMIN })
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR, Role.TENANT_ADMIN, Role.SECURITY_ADMIN })
     public ObjectNamespaceRestRep getObjectNamespace(@PathParam("id") URI id) {
         _log.info("Getting details for the namespace: {}", id);
         ArgValidator.checkFieldUriType(id, ObjectNamespace.class, "id");

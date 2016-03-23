@@ -379,15 +379,17 @@ public class SnapMirror {
             elem.addNewChild("location", destinationLocation);
         }
 
-        List<NaElement> resultElem = null;
+        NaElement resultElem = null;
         try {
-            resultElem = server.invokeElem(elem).getChildren();
-            if (resultElem != null && !resultElem.isEmpty()) {
-                for (Iterator<NaElement> iterator = resultElem.iterator(); iterator.hasNext();) {
-                    NaElement naElement = iterator.next();
-                    naElement.getChildByName("snapmirror-status");
-                    String value = naElement.getChildByName("snapmirror-status-info").getChildByName("state").getContent();
-                    return value;
+            resultElem = server.invokeElem(elem);
+            if (resultElem != null) {
+                NaElement snapmirrorStatusElem = resultElem.getChildByName("snapmirror-status");
+                if (snapmirrorStatusElem != null) {
+                    NaElement snapmirrorStatusInfoElem = snapmirrorStatusElem.getChildByName("snapmirror-status-info");
+                    if (snapmirrorStatusInfoElem != null) {
+                        String state = snapmirrorStatusInfoElem.getChildByName("state").getContent();
+                        return state;
+                    }
                 }
             }
             return null;

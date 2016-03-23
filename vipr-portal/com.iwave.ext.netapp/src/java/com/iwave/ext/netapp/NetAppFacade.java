@@ -1761,8 +1761,8 @@ public class NetAppFacade {
     }
 
     public static void main(String[] args) {
-        NetAppFacade facade = new NetAppFacade("10.247.96.205", 80, "root", "dangerous1", false);
+        NetAppFacade facade = new NetAppFacade("10.247.96.204", 80, "root", "dangerous1", false);
         System.out.println(facade.getSnapMirrorState(
-                "lglw6205:netappFS4Mar22targetremoteVA"));
+                "lglw6204:netappFS1Mar22targetTEST_VARRAY"));
     }
 }

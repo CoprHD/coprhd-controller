@@ -139,8 +139,8 @@ public class DbBackupHandler extends BackupHandler {
                     // Filters ignored Column Family
                     if (ignoreCfList != null) {
                         String cfName = cfDir.getName();
-                        if (cfDir.getName().contains(BackupConstants.COLLECTED_BACKUP_NAME_DELIMITER)) {
-                            cfName = cfDir.getName().split(BackupConstants.COLLECTED_BACKUP_NAME_DELIMITER)[0];
+                        if (cfDir.getName().contains(BackupConstants.CASSANDRA_CF_NAME_DELIMITER)) {
+                            cfName = cfDir.getName().split(BackupConstants.CASSANDRA_CF_NAME_DELIMITER)[0];
                         }
                         if (ignoreCfList.contains(cfName)) {
                             FileUtils.deleteQuietly(snapshotFolder);

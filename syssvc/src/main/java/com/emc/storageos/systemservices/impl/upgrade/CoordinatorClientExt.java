@@ -1545,8 +1545,10 @@ public class CoordinatorClientExt {
                         DrUtil.ZOOKEEPER_MODE_STANDALONE.equals(state) ||
                         state == null) {
 
-                    // node is in participant mode, update the local site state accordingly
-                    checkAndUpdateLocalSiteState();
+                    if (state != null) {
+                        // node is in participant mode, update the local site state accordingly
+                        checkAndUpdateLocalSiteState();
+                    }
 
                     // check if active site is back
                     if (isActiveSiteHealthy()) {

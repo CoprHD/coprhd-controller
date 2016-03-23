@@ -352,7 +352,7 @@ public class ReplicationUtils {
         CIMObjectPath targetpoolPath = null;
         CloseableIterator<CIMObjectPath> poolPathItr = null;
         try {
-            if (!storage.checkIfVmax3() && thinProvisioning) {
+            if (Type.vmax.toString().equals(storage.getSystemType()) && !storage.checkIfVmax3() && thinProvisioning) {
                 if (targetGroupName != null) {
                     existingTarget = getExistingTargetForTargetReplicationGroup(storage, targetGroupName, dbClient);
                 } else if (sourceGroupName != null) {

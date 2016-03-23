@@ -633,7 +633,7 @@
           "baseService": "CreateMobilityGroup"
         },
         {
-          "image": "Service_Delete_GroupMigration.png",
+          "image": "Service_Delete_MobilityGroup.png",
           "baseService": "DeleteMobilityGroup"
         },
         {

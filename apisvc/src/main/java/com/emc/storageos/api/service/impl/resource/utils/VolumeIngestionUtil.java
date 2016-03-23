@@ -2369,7 +2369,7 @@ public class VolumeIngestionUtil {
      * @param dbClient dbclient
      * @return export group
      */
-    public static ExportGroup verifyExportGroupExists(IngestionRequestContext requestContext, 
+    public static ExportGroup verifyExportGroupExists(IngestionRequestContext requestContext,
             String exportGroupGeneratedName, URI project, StringSet knownInitiatorUris,
             URI vArray, DbClient dbClient) {
         ExportGroup exportGroup = null;
@@ -3505,7 +3505,7 @@ public class VolumeIngestionUtil {
         }
         if (rpContext != null) {
             pset = rpContext.findExistingProtectionSet(
-                umpset.getCgName(), rpProtectionId, umpset.getProtectionSystemUri(), umpset.getNativeGuid());
+                    umpset.getCgName(), rpProtectionId, umpset.getProtectionSystemUri(), umpset.getNativeGuid());
             if (pset != null) {
                 rpContext.setManagedPsetWasCreatedByAnotherContext(true);
             }
@@ -3568,7 +3568,7 @@ public class VolumeIngestionUtil {
      * @return a BlockConsistencyGroup for the volume context and ProtectionSet
      */
     public static BlockConsistencyGroup findOrCreateRPBlockConsistencyGroup(
-            IngestionRequestContext requestContext, UnManagedVolume unManagedVolume, 
+            IngestionRequestContext requestContext, UnManagedVolume unManagedVolume,
             ProtectionSet pset, DbClient dbClient) {
 
         BlockConsistencyGroup cg = null;
@@ -4176,19 +4176,11 @@ public class VolumeIngestionUtil {
             Set<DataObject> updatedObjects, DbClient dbClient) {
         List<Volume> associatedVolumes = new ArrayList<Volume>();
         if (volume.getAssociatedVolumes() != null) {
-            StringSet managedVolumesInDB = new StringSet(volume.getAssociatedVolumes());
             for (String volumeId : volume.getAssociatedVolumes()) {
-                BlockObject bo = requestContext.findCreatedBlockObject(URI.create(volumeId));
+                BlockObject bo = requestContext.findDataObjectByType(Volume.class, URI.create(volumeId), true);
                 if (null != bo && bo instanceof Volume) {
                     associatedVolumes.add((Volume) bo);
-                    managedVolumesInDB.remove(bo.getId().toString());
                 }
-            }
-            List<URI> associatedVolumesUris = new ArrayList<URI>(Collections2.transform(managedVolumesInDB,
-                    CommonTransformerFunctions.FCTN_STRING_TO_URI));
-            Iterator<Volume> associatedVolumesIterator = dbClient.queryIterativeObjects(Volume.class, associatedVolumesUris);
-            while (associatedVolumesIterator.hasNext()) {
-                associatedVolumes.add(associatedVolumesIterator.next());
             }
             _logger.info("Clearing internal volume flag of replicas of associatedVolumes of RP volume {}", volume.getLabel());
             clearPersistedReplicaFlags(requestContext, associatedVolumes, updatedObjects, dbClient);
@@ -4239,22 +4231,13 @@ public class VolumeIngestionUtil {
     public static void clearMirrorsFlags(IngestionRequestContext requestContext, Volume volume, Set<DataObject> updatedObjects,
             DbClient dbClient) {
         if (volume.getMirrors() != null) {
-            StringSet mirrorsInDB = new StringSet(volume.getMirrors());
             for (String volumeId : volume.getMirrors()) {
-                BlockObject bo = requestContext.findCreatedBlockObject(URI.create(volumeId));
+                BlockObject bo = requestContext.findDataObjectByType(BlockMirror.class, URI.create(volumeId), true);
                 if (null != bo && bo instanceof BlockMirror) {
                     _logger.info("Clearing internal volume flag of mirror {} of RP volume {}", bo.getLabel(), volume.getLabel());
                     bo.clearInternalFlags(BlockIngestOrchestrator.INTERNAL_VOLUME_FLAGS);
-                    mirrorsInDB.remove(bo.getId().toString());
+                    updatedObjects.add(bo);
                 }
-            }
-            List<URI> mirrorUris = new ArrayList<URI>(Collections2.transform(mirrorsInDB, CommonTransformerFunctions.FCTN_STRING_TO_URI));
-            Iterator<BlockMirror> mirrorIterator = dbClient.queryIterativeObjects(BlockMirror.class, mirrorUris);
-            while (mirrorIterator.hasNext()) {
-                BlockMirror mirror = mirrorIterator.next();
-                _logger.info("Clearing internal volume flag of mirror {} of RP volume {}", mirror.getLabel(), volume.getLabel());
-                mirror.clearInternalFlags(BlockIngestOrchestrator.INTERNAL_VOLUME_FLAGS);
-                updatedObjects.add(mirror);
             }
         }
     }
@@ -4270,23 +4253,13 @@ public class VolumeIngestionUtil {
     public static void clearFullCopiesFlags(IngestionRequestContext requestContext, Volume volume, Set<DataObject> updatedObjects,
             DbClient dbClient) {
         if (volume.getFullCopies() != null) {
-            StringSet fullCopiesInDB = new StringSet(volume.getFullCopies());
             for (String volumeId : volume.getFullCopies()) {
                 BlockObject bo = requestContext.findCreatedBlockObject(URI.create(volumeId));
                 if (null != bo && bo instanceof Volume) {
                     _logger.info("Clearing internal volume flag of full copy {} of RP volume {}", bo.getLabel(), volume.getLabel());
                     bo.clearInternalFlags(BlockIngestOrchestrator.INTERNAL_VOLUME_FLAGS);
-                    fullCopiesInDB.remove(bo.getId().toString());
+                    updatedObjects.add(bo);
                 }
-            }
-            List<URI> fullCopiesUris = new ArrayList<URI>(
-                    Collections2.transform(fullCopiesInDB, CommonTransformerFunctions.FCTN_STRING_TO_URI));
-            Iterator<Volume> fullCopiesIterator = dbClient.queryIterativeObjects(Volume.class, fullCopiesUris);
-            while (fullCopiesIterator.hasNext()) {
-                Volume fullCopy = fullCopiesIterator.next();
-                _logger.info("Clearing internal volume flag of full copy {} of RP volume {}", fullCopy.getLabel(), volume.getLabel());
-                fullCopy.clearInternalFlags(BlockIngestOrchestrator.INTERNAL_VOLUME_FLAGS);
-                updatedObjects.add(fullCopy);
             }
         }
     }

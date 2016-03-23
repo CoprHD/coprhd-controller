@@ -1358,10 +1358,27 @@ public class BlockConsistencyGroupService extends TaskResourceService {
                         throw APIException.badRequests.cantAddNonSourceToCG(volume.forDisplay());
                     }
 
+                    
                     // 2. Check to make sure all volumes are VMAX/VNX volumes
-                    StorageSystem system = _dbClient.queryObject(StorageSystem.class, volume.getStorageController());
-                    if (!system.deviceIsType(Type.vmax) && !system.deviceIsType(Type.vnxblock)) {
-                        throw APIException.badRequests.cantAddRPVolumeToNonVMAXVNXCG(volume.forDisplay());
+                    Set<URI> systemsCheck = new HashSet<URI>();
+                    systemsCheck.add(volume.getStorageController());
+                    // Get associated storage systems
+                    if (volume.getAssociatedVolumes() != null && !volume.getAssociatedVolumes().isEmpty()) {
+                        for (String associatedVolumeUri : volume.getAssociatedVolumes()) {
+                            Volume associatedVolume = _dbClient.queryObject(Volume.class, URI.create(associatedVolumeUri));
+                            systemsCheck.add(associatedVolume.getStorageController());
+                        }
+                    }
+
+                    for (URI systemId : systemsCheck) {
+                        StorageSystem system = _dbClient.queryObject(StorageSystem.class, systemId);
+                        if (system.deviceIsType(Type.vplex)) {
+                            continue;
+                        }
+                        
+                        if (!system.deviceIsType(Type.vmax) && !system.deviceIsType(Type.vnxblock)) {
+                            throw APIException.badRequests.cantAddRPVolumeToNonVMAXVNXCG(volume.forDisplay());
+                        }
                     }
                 }
 
@@ -1377,11 +1394,13 @@ public class BlockConsistencyGroupService extends TaskResourceService {
         List<Volume> cgVolumes = blockServiceApiImpl.getActiveCGVolumes(consistencyGroup);
         // check if add volume list is same as existing volumes in CG
         boolean volsAlreadyInCG = false;
-        if (!isReplica && cgVolumes != null && !cgVolumes.isEmpty()) {
+        if (!consistencyGroup.checkForType(Types.RP) && !isReplica && cgVolumes != null && !cgVolumes.isEmpty()) {
             Collection<URI> cgVolIds = transform(cgVolumes, fctnDataObjectToID());
             if (addSet.size() == cgVolIds.size()) {
                 volsAlreadyInCG = addSet.containsAll(cgVolIds);
             }
+        } else if (consistencyGroup.checkForType(Types.RP)) {
+            volsAlreadyInCG = true;
         }
 
         // Verify that the add and remove lists do not contain the same volume.

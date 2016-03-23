@@ -60,7 +60,6 @@ import com.emc.storageos.db.client.model.BlockSnapshotSession;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.DataObject.Flag;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
-import com.emc.storageos.db.client.model.DiscoveredDataObject.Type;
 import com.emc.storageos.db.client.model.Migration;
 import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.model.OpStatusMap;
@@ -3398,7 +3397,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
      * @param addVolumesList
      */
     private void verifyAddVolumesToIngestedCG(BlockConsistencyGroup cg, List<URI> addVolumesList) {
-        if (cg.getTypes().contains(Types.LOCAL.toString())) {
+        if (cg.getTypes().contains(Types.LOCAL.toString()) || cg.getTypes().contains(Types.RP.toString())) {
             // Not ingested CG
             return;
         }

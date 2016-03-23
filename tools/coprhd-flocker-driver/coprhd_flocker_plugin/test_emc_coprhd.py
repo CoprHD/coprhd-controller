@@ -49,11 +49,11 @@ class EMCCoprHDBlockDeviceAPIImplementationTests(SynchronousTestCase):
           '''
           Creates an Export Group
           '''
-          name = '10.110.110.119'
+          name = 'test-exportgroup'
           exportgrouptype = 'Host'
+          host = 'test-host'
           try:
-             export_group = cli_obj.create_export_group(name,exportgrouptype)
-             print export_group
+             export_group = cli_obj.create_export_group(name,host,exportgrouptype)
           except Exception as e:
              traceback.print_exc()
              self.fail(e.message)
@@ -64,7 +64,7 @@ class EMCCoprHDBlockDeviceAPIImplementationTests(SynchronousTestCase):
           '''
           name = 'test-host'
           label = 'test-host'
-          hosttype = "Windows"
+          hosttype = "Other"
           
           try:
              create_host = cli_obj.create_host(name,label,hosttype)

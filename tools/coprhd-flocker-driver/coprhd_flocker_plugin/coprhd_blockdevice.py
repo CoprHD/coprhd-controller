@@ -361,7 +361,7 @@ class CoprHDCLIDriver(object):
             if e.err_code == utils.SOSError.ENTRY_ALREADY_EXISTS_ERR:
                 Message.new(Debug="Project with "+name+" already exists").write(_logger)
 
-    def create_export_group(self,name,exportgrouptype="Host"):
+    def create_export_group(self,name,host,exportgrouptype="Host"):
         self.authenticate_user()
         try:
             self.exportgroup_obj.exportgroup_create(
@@ -370,19 +370,42 @@ class CoprHDCLIDriver(object):
                 self.tenant,
                 self.varray,
                 exportgrouptype)
+            
+            '''
+            Adding Host to Export Group
+            '''
+           
+            sync = False
+            self.exportgroup_obj.exportgroup_add_host(exportgroupname=name,tenantname=self.tenant,
+                                                      projectname=self.project,hostlabels=[host],sync=sync)
+
+            '''
+            Adding Host Initiator to Export Group
+            '''
+            
+            initator = None
+            f = open ('/etc/iscsi/initiatorname.iscsi_0','r')
+            for line in f:
+               if ( line[0] != '#' ):
+                  current_line=line.split('=')
+                  initator = current_line[1]
+                  if "\n" in initator:
+                    initator = initator.split('\n')[0]
+                  self.exportgroup_obj.exportgroup_add_initiator(name,self.tenant,self.project,[initator], host, sync)
+        
         except utils.SOSError as e:
             Message.new(Debug="Export group creation Failed").write(_logger)
 
-    def create_host(self,name,label1,hosttype1="Windows"):
+    def create_host(self,name,label,hosttype="Other"):
         self.authenticate_user()
         try:
             self.host_obj.create(
                  name,
-                 hosttype=hosttype1,
-                 label=label1,
+                 hosttype=hosttype,
+                 label=label,
                  tenant=self.tenant,
                  port=5985,
-                 username="root",
+                 username=self.username,
                  passwd= None,
                  usessl=True,
                  osversion=None,
@@ -398,13 +421,15 @@ class CoprHDCLIDriver(object):
 
     def add_initiators(self,sync, hostlabel, protocol, initiatorwwn, portwwn):
         self.authenticate_user()
+        portwwn = None
         try:
            f = open ('/etc/iscsi/initiatorname.iscsi','r')
-           initiatorname=None
            for line in f:
               if ( line[0] != '#' ):
                 s1=line.split('=')
-                portwwn = s1[1]
+                portwwn = str(s1[1])
+                if "\n" in portwwn:
+                   portwwn = portwwn.split('\n')[0]
                 break
            initname = 'test-initiator'
            self.hostinitiator_obj.create(sync,hostlabel,protocol,initiatorwwn,portwwn,initname)
@@ -420,9 +445,9 @@ class CoprHDCLIDriver(object):
                 name,
                 nwtype)
             varray_uri = self.varray_obj.varray_list()
-            self.network_obj.assign(
-                name,
-                varray=varray_uri)
+            #self.network_obj.assign(
+            #    name,
+            #    varray=varray_uri)
             storage_ports = self.varray_obj.list_storageports(self.varray)
             storagesystem_name = []
             storagesystem_list = []
@@ -448,6 +473,17 @@ class CoprHDCLIDriver(object):
                        except utils.SOSError as e:
                           if e.err_code==utils.SOSError.ENTRY_ALREADY_EXISTS_ERR:
                              continue
+            "Adding Host Ports to Network"
+            f = open ('/etc/iscsi/initiatorname.iscsi_0','r')
+            for line in f:
+               if ( line[0] != '#' ):
+                  current_line=line.split('=')
+                  host_port = current_line[1]
+                  if "\n" in host_port[1]:
+                    host_port = host_port.split('\n')[0]
+                  self.network_obj.add_endpoint(name,endpoint=host_port)
+                  break
+
         except utils.SOSError as e:
            print e
            if(e.err_code == utils.SOSError.ENTRY_ALREADY_EXISTS_ERR):

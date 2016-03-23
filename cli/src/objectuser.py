@@ -37,21 +37,27 @@ class ObjectUser(object):
         self.__port = port
         
 
-    def objectuser_secretkey_create(self, systemUri, userId, secretkey):
+    def objectuser_secretkey_create(self, storagesystem, objectuser, secretkey):
         '''
         Makes a REST API call to retrieve create secret key of an object user
+        
         '''
+        stsystem_uri = None
+        from storagesystem import StorageSystem
+        obj = StorageSystem(self.__ipAddr, self.__port)
+                 
+        stsystem_uri = obj.query_by_name_and_type(storagesystem, "ecs")
         request = {
                   'secret_key' : secretkey
                   }
         body = json.dumps(request)
         print "only body " + body
-        print "Full body  "+ ObjectUser.URI_OBJECTUSER_SECRET_KEYS.format(systemUri, userId)
+        print "Full body  "+ ObjectUser.URI_OBJECTUSER_SECRET_KEYS.format(stsystem_uri, objectuser)
 
         (s, h) = common.service_json_request(
                 self.__ipAddr, self.__port,
                 "POST",ObjectUser.URI_OBJECTUSER_SECRET_KEYS.format(
-                systemUri, userId), body, None)
+                stsystem_uri, objectuser), body, None)
         o = common.json_decode(s)
         return o
 
@@ -68,30 +74,29 @@ def create_secretkey_parser(subcommand_parsers, common_parser):
 
     mandatory_args = create_secretkey_parser.add_argument_group('mandatory arguments')
 
-    mandatory_args.add_argument('-storagesystemUri', '-st',
-                             metavar='<storagesystemUri>',
-                             dest='storagesystemUri',
-                             help='storage system URI',
+    mandatory_args.add_argument('-storagesystem', '-st',
+                             metavar='<storagesystem>',
+                             dest='storagesystem',
+                             help='Name of the storage system',
                              required=True)
     mandatory_args.add_argument('-objectuser', '-ob',
                              metavar='<objectuser>',
                              dest='objectuser',
-                             help='obect user id',
+                             help='The object user id',
                              required=True)
-    mandatory_args.add_argument('-secretkey', '-sk',
-                             metavar='<secretkey>',
-                             dest='secretkey',
-                             help='secret key for user specified',
-                             required=True)
+    
 
     create_secretkey_parser.set_defaults(func=objectuser_secretkey_create)
 
 def objectuser_secretkey_create(args):
     obj = ObjectUser(args.ip, args.port)
+    secretkey = None
+    if (args.objectuser and not args.autogenerate):
+        secretkey = common.get_password("SecretKey")
     try:
-        res = obj.objectuser_secretkey_create(args.storagesystemUri, args.objectuser, args.secretkey)
+        res = obj.objectuser_secretkey_create(args.storagesystem, args.objectuser, secretkey)
 
-        return common.format_json_object(res)
+        
     except SOSError as e:
         common.format_err_msg_and_raise("create_secretkey", "objectuser",
                                         e.err_text, e.err_code)

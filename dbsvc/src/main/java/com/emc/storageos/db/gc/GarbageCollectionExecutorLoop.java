@@ -120,7 +120,9 @@ abstract class GarbageCollectionExecutorLoop implements Runnable {
         for (Future f : futures) {
             try {
                 f.get();
-            } catch (ExecutionException | InterruptedException ex) {
+            }catch (InterruptedException ex) {
+                log.warn("The GC was interrupted e=", ex);
+            } catch (ExecutionException ex) {
                 log.error("Exception caught: ", ex);
             }
         }

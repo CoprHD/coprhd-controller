@@ -948,6 +948,7 @@ public abstract class BlockIngestOrchestrator {
         }
         // If RP volume and fully ingested, set up the RP CG
         if (isParentRPVolume && allRPCGVolumesIngested && umpset != null) {
+            VolumeIngestionUtil.validateRPVolumesAlignWithIngestVpool(requestContext, umpset, _dbClient);
             VolumeIngestionUtil.setupRPCG(requestContext, umpset, currentUnmanagedVolume, updateObjects, _dbClient);
         }
     }

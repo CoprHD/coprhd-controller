@@ -226,4 +226,10 @@ public interface IngestionExceptions {
 
     @DeclareServiceCode(ServiceCode.UNMANAGED_VOLUME_INGESTION_EXCEPTION)
     public IngestionException cannotIngestMirrorsOfRPVolumes(String mirrorLabel, String parentLabel);
+
+    @DeclareServiceCode(ServiceCode.UNMANAGED_VOLUME_INGESTION_EXCEPTION)
+    public IngestionException validationFailedRPIngestionVpoolMisalignment(String volumeName, String targetVarrayNames, String varrayName);
+
+    @DeclareServiceCode(ServiceCode.UNMANAGED_VOLUME_INGESTION_EXCEPTION)
+    public IngestionException validationFailedRPIngestionMissingTargets(String varrayNames);
 }

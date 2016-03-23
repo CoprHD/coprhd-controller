@@ -338,12 +338,8 @@ public class IPSecMonitor implements Runnable {
 
         // vdc_config_version is the same, further comparing ip,
         // if local is smaller, no need to sync. otherwise, do sync.
-        } else if (result == 0) {
-            if (localIP.compareTo(props.get(NODE_IP)) < 0) {
-                return false;
-            } else {
-                return true;
-            }
+        } else if (result == 0 && localIP.compareTo(props.get(NODE_IP)) < 0) {
+            return false;
 
         // local vdc_config_version is smaller, remote node is newer, need to sync
         } else {

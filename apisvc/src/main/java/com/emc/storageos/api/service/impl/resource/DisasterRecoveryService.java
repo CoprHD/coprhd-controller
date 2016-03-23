@@ -1719,10 +1719,16 @@ public class DisasterRecoveryService {
                             standby.getUuid(), standbyUuid));
         }
         
-        // should be SYNCED or PAUSED
-        if (standby.getState() != SiteState.STANDBY_SYNCED && standby.getState() != SiteState.STANDBY_PAUSED) {
+        // should be PAUSED, either marked by itself or user
+        if (standby.getState() != SiteState.STANDBY_PAUSED) {
             throw APIException.internalServerErrors.failoverPrecheckFailed(standby.getName(),
-                    "Only paused or synced standby site can do failover");
+                    "Only paused standby site can do failover");
+        }
+
+        SiteNetworkState networkState = drUtil.getSiteNetworkState(drUtil.getActiveSite().getUuid());
+        if (networkState.getNetworkHealth() != NetworkHealth.BROKEN) {
+            throw APIException.internalServerErrors.failoverPrecheckFailed(standby.getName(),
+                    "Active site is still available");
         }
 
         precheckForFailover();

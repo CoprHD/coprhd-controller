@@ -8,11 +8,10 @@
 # limited to the terms and conditions of the License Agreement under which
 # it is provided by or on behalf of EMC.
 #
-RUN_DIR=`pwd`
 # Devkit related for containerized build
-DEVKIT_IMAGE := nile-registry.lss.emc.com:5000/emcadg/devkit:latest
+DEVKIT_IMAGE := nile-registry.lss.emc.com:5000/viprcontroller/viprdevkit-sles12:3.0.0.0.13
 # for building OVF in viprdevkit container
-DOCKER_RUN_OVF_BUILD := docker run --rm -it --net=host --privileged -v "/home/ionixauto/.subversion:/root/.subversion" -v "/workspace:/workspace" -v "/opt/ADG/createAppliance/jobs:/opt/ADG/createAppliance/jobs" -v "/opt/ADG/createAppliance/log:/opt/ADG/createAppliance/log" -v "/opt/downloads/images:/opt/downloads/images" -w "$(RUN_DIR)" "$(DEVKIT_IMAGE)"
+DOCKER_RUN_OVF_BUILD := docker run --rm --net=host --privileged -v "/home/ionixauto/.subversion:/root/.subversion" -v "$(CURDIR)/../../../../../..:/workspace" -v "/opt/ADG/createAppliance/jobs:/opt/ADG/createAppliance/jobs" -v "/opt/ADG/createAppliance/log:/opt/ADG/createAppliance/log" -v "/opt/downloads/images:/opt/downloads/images" -w "/workspace/coprhd-controller/packaging/appliance-images/sles/12.0/ViPRBase" "$(DEVKIT_IMAGE)"
 
 
 # Default target which will call target in Makefile to build ViPRBase in container

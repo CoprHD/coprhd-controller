@@ -75,13 +75,14 @@ class CoprHDCLIDriver(object):
     AUTHENTICATED = False
     def __init__(self, coprhdhost, 
                  port, username, password, tenant, 
-                 project, varray, cookiedir, vpool,vpool_platinum,vpool_gold,vpool_silver,vpool_bronze,hostexportgroup,coprhdcli_security_file):
+                 project, varray, cookiedir, vpool,vpool_platinum,vpool_gold,vpool_silver,vpool_bronze,hostexportgroup,coprhdcli_security_file,cluster_id):
+        self.cluster_id = cluster_id
         self.coprhdhost = coprhdhost
         self.port =  port
         self.username = username
         self.password = password
         self.tenant = tenant
-        self.project = project
+        self.project = str(project)+'-'+str(cluster_id)
         self.varray = varray
         self.cookiedir = cookiedir
         self.vpool = vpool
@@ -89,9 +90,10 @@ class CoprHDCLIDriver(object):
         self.vpool_gold=vpool_gold
         self.vpool_silver=vpool_silver
         self.vpool_bronze=vpool_bronze
-        self.hostexportgroup = hostexportgroup
+        self.hostexportgroup = str(hostexportgroup)+'-'+str(cluster_id)
         self.coprhdcli_security_file = coprhdcli_security_file
         self.host = unicode(socket.gethostname())
+        self.network = 'ipnetwork-'+str(cluster_id)
         self.volume_obj = volume.Volume(
             self.coprhdhost,
             self.port )
@@ -128,6 +130,15 @@ class CoprHDCLIDriver(object):
             self.coprhdhost,
             self.port)
          
+        self.create_project(self.project)
+
+        self.create_host(name=self.host,label=self.host,hosttype="Other") 
+
+        self.add_initiators(False, hostlabel=self.host, protocol='iSCSI', initiatorwwn=None, portwwn=None)
+
+        self.create_network(name=self.network,nwtype='IP')
+
+        self.create_export_group(name=self.hostexportgroup,host=self.host,exportgrouptype="Host")
     @retry_wrapper
     def authenticate_user(self):
          
@@ -686,12 +697,12 @@ class CoprHDBlockDeviceAPI(object):
             
 
 def configuration(coprhdhost, port, username, password, tenant,
-                           project, varray, cookiedir, vpool,vpool_platinum,vpool_gold,vpool_silver,vpool_bronze,hostexportgroup,coprhdcli_security_file):
+                           project, varray, cookiedir, vpool,vpool_platinum,vpool_gold,vpool_silver,vpool_bronze,hostexportgroup,coprhdcli_security_file,cluster_id):
     """
     :return:CoprHDBlockDeviceAPI object
     """
     return CoprHDBlockDeviceAPI(
         coprhdcliconfig=CoprHDCLIDriver(coprhdhost, 
         port, username, password, tenant, 
-        project, varray, cookiedir, vpool,vpool_platinum,vpool_gold,vpool_silver,vpool_bronze,hostexportgroup,coprhdcli_security_file),allocation_unit=1
+        project, varray, cookiedir, vpool,vpool_platinum,vpool_gold,vpool_silver,vpool_bronze,hostexportgroup,coprhdcli_security_file,cluster_id),allocation_unit=1
     )

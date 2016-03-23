@@ -24,7 +24,7 @@ public class FileSystemReplicationSettings implements Serializable {
     /**
      * File system replication RPO value.
      */
-    @XmlElement(name = "rpo_value", required = true)
+    @XmlElement(name = "rpo_value")
     public Long getRpoValue() {
         return rpoValue;
     }

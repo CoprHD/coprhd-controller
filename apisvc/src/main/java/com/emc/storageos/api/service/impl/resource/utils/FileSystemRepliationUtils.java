@@ -78,7 +78,7 @@ public class FileSystemRepliationUtils {
         // Failover state, the mirror copy would be in production!!!
         if (fs.getPersonality() != null && fs.getPersonality().equalsIgnoreCase(PersonalityTypes.SOURCE.name())
                 && (MirrorStatus.FAILED_OVER.name().equalsIgnoreCase(fs.getMirrorStatus())
-                        || MirrorStatus.SUSPENDED.name().equalsIgnoreCase(fs.getMirrorStatus()))) {
+                || MirrorStatus.SUSPENDED.name().equalsIgnoreCase(fs.getMirrorStatus()))) {
             notSuppReasonBuff.append(String.format("File system given in request is in active or failover state %s.",
                     fs.getLabel()));
             _log.info(notSuppReasonBuff.toString());
@@ -111,12 +111,21 @@ public class FileSystemRepliationUtils {
         if (!doBasicMirrorValidation(fs, currentVpool, notSuppReasonBuff)) {
             return false;
         }
+
+        // This validation is required after stop operation
+        if (fs.getPersonality() == null || !fs.getPersonality().equals(PersonalityTypes.SOURCE.name())) {
+            notSuppReasonBuff.append(String.format("File system - %s given in request is not having any active replication.",
+                    fs.getLabel()));
+            _log.info(notSuppReasonBuff.toString());
+            return false;
+        }
+
         String currentMirrorStatus = fs.getMirrorStatus();
         boolean isSupported = false;
 
         switch (operation) {
 
-            // Refresh operation can be performed without any check.
+        // Refresh operation can be performed without any check.
             case "refresh":
                 isSupported = true;
                 break;
@@ -150,7 +159,7 @@ public class FileSystemRepliationUtils {
             // Fail over can be performed if Mirror status is NOT UNKNOWN or FAILED_OVER.
             case "failover":
                 if (!(currentMirrorStatus.equalsIgnoreCase(MirrorStatus.UNKNOWN.toString())
-                        || currentMirrorStatus.equalsIgnoreCase(MirrorStatus.FAILED_OVER.toString())))
+                || currentMirrorStatus.equalsIgnoreCase(MirrorStatus.FAILED_OVER.toString())))
                     isSupported = true;
                 break;
 
@@ -187,13 +196,6 @@ public class FileSystemRepliationUtils {
         // File system should not be the target file system..
         if (fs.getPersonality() != null && fs.getPersonality().equalsIgnoreCase(PersonalityTypes.TARGET.name())) {
             notSuppReasonBuff.append(String.format("File system - %s given in request is an active Target file system.",
-                    fs.getLabel()));
-            _log.info(notSuppReasonBuff.toString());
-            return false;
-        }
-        // This validation is required after stop operation
-        if (fs.getPersonality() == null || !fs.getPersonality().equals(PersonalityTypes.SOURCE.name())) {
-            notSuppReasonBuff.append(String.format("File system - %s given in request is not having any active replication.",
                     fs.getLabel()));
             _log.info(notSuppReasonBuff.toString());
             return false;

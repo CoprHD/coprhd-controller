@@ -89,6 +89,7 @@ public class LocalRepository {
     private static final String _SYSTOOL_RECONFIG_COORDINATOR = "--reconfig-coordinator";
     private static final String _SYSTOOL_REMOTE_SYSTOOL = "--remote-systool";
     private static final String _SYSTOOL_RESTART_COORDINATOR = "--restart-coordinator";
+    private static final String _SYSTOOL_GEN_DHPARAM = "--dhparam";
 
     private static final String _IPSECTOOL_CMD = "/etc/ipsectool";
     private static final String MASK_IPSEC_KEY_PATTERN = "ipsec_key=.*?\\n";
@@ -783,5 +784,12 @@ public class LocalRepository {
         _log.debug(prefix + result);
 
         return result.getExitValue() == 0;
+    }
+
+    public void genDHParam() {
+        final String prefix = String.format("gen DHParam: ");
+        final String[] cmd = { _SYSTOOL_CMD, _SYSTOOL_GEN_DHPARAM};
+        final Exec.Result result = Exec.sudo(_SYSTOOL_TIMEOUT, cmd);
+        checkFailure(result, prefix);
     }
 }

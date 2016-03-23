@@ -46,6 +46,7 @@ _usage() {
     echo "   or: $0 --reload ntp|ssh|connectemc" >&2
     echo "   or: $0 --reconfig-coordinator observer|participant" >&2
     echo "   or: $0 --remote-systool node_id command parameter" >&2
+    echo "   or: $0 --dhparam generate dhparam" >&2
     echo "   or: $0 --test"             >&2
     exit 2
 }
@@ -439,6 +440,13 @@ EOF
     _fatal     "Failed to exec /etc/genconfig ${1}"
 }
 
+_gen_dhparam() {
+    [ -f ${bootfs_dhparam} ] && openssl dhparam -in ${bootfs_dhparam} -check
+    [[ $? == 0 ]] && return 0
+
+    openssl dhparam -out ${bootfs_dhparam} 2048
+}
+
 # 
 # Reconfigure coordinatorsvc mode. for standby only
 #
@@ -817,6 +825,7 @@ props_temp='/tmp/config.properties'
 tmp_mutated_file='/tmp/mutated.properties'
 controller_props='controller-ovf.properties'
 bootfs_controller_props='/.volumes/bootfs/etc/'${controller_props}
+bootfs_dhparam=${bootfs_dhparam:-${bootfs_mntp}/etc/dhparam}
 nl='
 '
 
@@ -869,6 +878,7 @@ case ${#} in
             --remount-rw)             _x _bootfs_mount_rw "no" ;;
             --remount-ro)             _x true ;;
             --is-appliance)           _s _is_appliance_wrapper ;;
+            --dhparam)                _x _gen_dhparam ;;
             *)                        _usage
         esac;;
     2)  case ${1} in

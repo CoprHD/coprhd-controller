@@ -34,6 +34,7 @@ _usage() {
     echo "   or: $0 --reconfig-security" >&2
     echo "   or: $0 --restart service"  >&2
     echo "   or: $0 --reload ntp|ssh|connectemc" >&2
+    echo "   or: $0 --dhparam generate dhparam" >&2
     exit 2
 }
 
@@ -523,6 +524,8 @@ case ${#} in
             --getsslprops)            _s _get_ssl_props ;;
             --initializeprops)        _x _initialize_props ;;
             --is-appliance)           echo "false" ;;
+            --dhparam)                exit 0 ;;
+
             *)                        _usage
         esac;;
     2)  case ${1} in

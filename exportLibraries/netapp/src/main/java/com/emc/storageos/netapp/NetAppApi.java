@@ -252,7 +252,7 @@ public class NetAppApi {
         try {
             netAppFacade = new NetAppFacade(_ipAddress, _portNumber, _userName,
                     _password, _https);
-            netAppFacade.setVolumeOffline(volName, 1);
+            netAppFacade.setVolumeOffline(volName, 0);
             return true;
         } catch (Exception e) {
             throw NetAppException.exceptions.deleteFSFailed(volName,
@@ -1136,18 +1136,18 @@ public class NetAppApi {
         }
     }
 
-    public Boolean releaseSnapMirrorSchedule(String sourcePath, String vfilerName)
+    public Boolean deleteSnapMirrorSchedule(String destinationPath)
             throws NetAppException {
         boolean failedStatus = false;
         try {
             netAppFacade = new NetAppFacade(_ipAddress, _portNumber, _userName,
-                    _password, _https, vfilerName);
+                    _password, _https, null);
 
-            failedStatus = netAppFacade.releaseSnapMirrorSchedule(sourcePath);
+            failedStatus = netAppFacade.deleteSnapMirrorSchedule(destinationPath);
             return failedStatus;
 
         } catch (Exception e) {
-            throw NetAppException.exceptions.releaseSnapMirrorFailed(sourcePath, _ipAddress, e.getMessage());
+            throw NetAppException.exceptions.releaseSnapMirrorFailed(destinationPath, _ipAddress, e.getMessage());
         }
     }
 

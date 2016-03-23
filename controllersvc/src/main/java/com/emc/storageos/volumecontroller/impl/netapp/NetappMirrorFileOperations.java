@@ -159,11 +159,16 @@ public class NetappMirrorFileOperations implements FileMirrorOperations {
         FileShare targetFileShare = _dbClient.queryObject(FileShare.class, target);
         StorageSystem targetStorage = _dbClient.queryObject(StorageSystem.class, targetFileShare.getStorageDevice());
 
-        BiosCommandResult cmdResult = doReleaseSnapMirror(sourceSystem, targetStorage,
-                sourceFileShare, targetFileShare, completer);
+        BiosCommandResult cmdResult = deleteSnapMirrorSchedule(targetStorage, targetFileShare, completer);
         if (cmdResult.getCommandSuccess()) {
-            completer.ready(_dbClient);
-            WorkflowStepCompleter.stepSucceded(completer.getOpId());
+            cmdResult = doReleaseSnapMirror(sourceSystem, targetStorage,
+                    sourceFileShare, targetFileShare, completer);
+            if (cmdResult.getCommandSuccess()) {
+                completer.ready(_dbClient);
+                WorkflowStepCompleter.stepSucceded(completer.getOpId());
+            } else {
+                completer.error(_dbClient, cmdResult.getServiceCoded());
+            }
         } else {
             completer.error(_dbClient, cmdResult.getServiceCoded());
         }
@@ -234,17 +239,16 @@ public class NetappMirrorFileOperations implements FileMirrorOperations {
             FileShare targetFs, TaskCompleter taskCompleter) {
 
         // netapp source client
-        String portGroupSource = findVfilerName(sourceFs);
         NetAppApi nApiSource = new NetAppApi.Builder(sourceStorage.getIpAddress(),
                 sourceStorage.getPortNumber(), sourceStorage.getUsername(),
-                sourceStorage.getPassword()).https(true).vFiler(portGroupSource).build();
+                sourceStorage.getPassword()).https(true).build();
 
         // get source system name
         String sourceLocation = getLocation(nApiSource, sourceFs);
 
         // target netapp
         NetAppApi nApiTarget = new NetAppApi.Builder(targetStorage.getIpAddress(),
-                targetStorage.getPortNumber(), sourceStorage.getUsername(),
+                targetStorage.getPortNumber(), targetStorage.getUsername(),
                 targetStorage.getPassword()).https(true).build();
 
         String destLocation = getLocation(nApiTarget, targetFs);
@@ -252,6 +256,22 @@ public class NetappMirrorFileOperations implements FileMirrorOperations {
         // make api call on source
         /* The snapmirror-release API removes a SnapMirror relationship on the source endpoint */
         nApiSource.releaseSnapMirror(sourceLocation, destLocation);
+        return BiosCommandResult.createSuccessfulResult();
+    }
+
+    public BiosCommandResult deleteSnapMirrorSchedule(StorageSystem targetStorage,
+            FileShare targetFs, TaskCompleter taskCompleter) {
+
+        // target netapp
+        NetAppApi nApiTarget = new NetAppApi.Builder(targetStorage.getIpAddress(),
+                targetStorage.getPortNumber(), targetStorage.getUsername(),
+                targetStorage.getPassword()).https(true).build();
+
+        String destLocation = getLocation(nApiTarget, targetFs);
+
+        // make api call on source
+        /* The snapmirror-release API removes a SnapMirror relationship on the source endpoint */
+        nApiTarget.deleteSnapMirrorSchedule(destLocation);
         return BiosCommandResult.createSuccessfulResult();
     }
 

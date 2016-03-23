@@ -1730,26 +1730,11 @@ public class NetAppFacade {
 
     public boolean releaseSnapMirror(String sourceLocation, String destLocation) {
         if (log.isDebugEnabled()) {
-            log.debug("release snap mirror");
+            log.debug("release snapmirror");
         }
 
         SnapMirror snapMirror = new SnapMirror(server.getNaServer(), null);
         return snapMirror.releaseSnapMirror(sourceLocation, destLocation);
-    }
-
-    /**
-     * The snapmirror-release API removes a SnapMirror relationship on the source endpoint.
-     * 
-     * @param destinationLocation
-     * @return
-     */
-    public boolean releaseSnapMirrorSchedule(String destinationLocation) {
-        if (log.isDebugEnabled()) {
-            log.debug("delete snap mirror");
-        }
-
-        SnapMirror snapMirror = new SnapMirror(server.getNaServer(), null);
-        return snapMirror.deleteSnapMirrorSchedule(destinationLocation);
     }
 
     /**

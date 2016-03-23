@@ -4,33 +4,82 @@
  */
 package com.emc.storageos.api.service.impl.resource.utils;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
+import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StorageSystem;
+import com.emc.storageos.db.client.model.VirtualPool;
+import com.emc.storageos.db.client.model.Volume;
+import com.emc.storageos.volumecontroller.impl.smis.MetaVolumeRecommendation;
+import com.emc.storageos.volumecontroller.impl.utils.MetaVolumeUtils;
 
 public class VmaxCapacityCalculator implements CapacityCalculator {
+    private static final Logger logger = LoggerFactory.getLogger(VmaxCapacityCalculator.class);
+
     private static final long tracksPerCylinder = 15;
     private static final long blocksPerTrack = 128;
     private static final long blocksPerTrackVMAX3 = 256;
     private static final long bytesPerBlock = 512;
-    
+
     /**
      * {@inheritDoc}
      */
     @Override
-    public Long calculateAllocatedCapacity(Long requestedCapacity, StorageSystem storageSystem) {
-        if (requestedCapacity != null) {            
+    public Long calculateAllocatedCapacity(Long requestedCapacity, Volume volume, DbClient dbClient) {
+        StorageSystem storageSystem = dbClient.queryObject(StorageSystem.class, volume.getStorageController());
+
+        if (requestedCapacity != null) {
             long bytesPerCylinder = 0L;
             if (storageSystem != null &&
                     storageSystem.checkIfVmax3()) {
                 bytesPerCylinder = (tracksPerCylinder * blocksPerTrackVMAX3 * bytesPerBlock);
             } else {
                 bytesPerCylinder = (tracksPerCylinder * blocksPerTrack * bytesPerBlock);
+
+                VirtualPool vPool = dbClient.queryObject(VirtualPool.class, volume.getVirtualPool());
+                StoragePool storagePool = dbClient.queryObject(StoragePool.class, volume.getPool());
+                // Determine if we are provisioning meta volumes. Meta volume provisioning only applies to non-VMAX3.
+                MetaVolumeRecommendation metaRecommendation = MetaVolumeUtils.getCreateRecommendation(storageSystem, storagePool,
+                        requestedCapacity, volume.getThinlyProvisioned(), vPool.getFastExpansion(), null);
+
+                if (metaRecommendation.isCreateMetaVolumes()) {
+                    long metaCount = metaRecommendation.getMetaMemberCount();
+                    long metaSize = metaRecommendation.getMetaMemberSize();
+                    long metaCylinderCount = getCylinderCount(metaSize, bytesPerCylinder);
+                    long allocatedSingleMetaCapacity = (metaCylinderCount * bytesPerCylinder);
+
+                    // Return the total meta allocation size
+                    long allocatedMetaCapacity = (metaCount * allocatedSingleMetaCapacity);
+
+                    logger.info(String
+                            .format(
+                                    "Determined that volume %s is being provisioned as meta volumes.  Allocated capacity per meta will be %s. Total volume allocation (%s metas) will be %s.",
+                                    volume.getLabel(), allocatedSingleMetaCapacity, metaCount, allocatedMetaCapacity));
+
+                    return allocatedMetaCapacity;
+                }
             }
-            long cyls = (long) Math.ceil((double) requestedCapacity / bytesPerCylinder);
+
+            long cyls = getCylinderCount(requestedCapacity, bytesPerCylinder);
             return (cyls * bytesPerCylinder);
         }
 
         return requestedCapacity;
+    }
+
+    /**
+     * Computes the provisioned cylinder count for a given requested capacity size
+     * and bytes-per-cylinder value.
+     * 
+     * @param requestedCapacity the requested capacity size
+     * @param bytesPerCylinder the bytes per cylinder
+     * @return the cylinder count
+     */
+    private long getCylinderCount(long requestedCapacity, long bytesPerCylinder) {
+        return (long) Math.ceil((double) requestedCapacity / bytesPerCylinder);
     }
 
     /**
@@ -42,5 +91,12 @@ public class VmaxCapacityCalculator implements CapacityCalculator {
             return false;
         }
         return true;
+    }
+
+    public static void main(String[] args) {
+        long bytesPerCylinder = (tracksPerCylinder * blocksPerTrack * bytesPerBlock);
+        long capacity = 68719476736L;
+        long cyls = (long) Math.ceil((double) capacity / bytesPerCylinder);
+        System.out.println(cyls * bytesPerCylinder);
     }
 }

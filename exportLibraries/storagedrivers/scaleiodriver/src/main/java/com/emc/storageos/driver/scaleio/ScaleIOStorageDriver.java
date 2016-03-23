@@ -16,6 +16,15 @@
  */
 package com.emc.storageos.driver.scaleio;
 
+import java.util.*;
+
+import org.apache.commons.lang.mutable.MutableBoolean;
+import org.apache.commons.lang.mutable.MutableInt;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.context.ApplicationContext;
+import org.springframework.context.support.ClassPathXmlApplicationContext;
+
 import com.emc.storageos.driver.scaleio.api.ScaleIOConstants;
 import com.emc.storageos.driver.scaleio.api.restapi.ScaleIORestClient;
 import com.emc.storageos.driver.scaleio.api.restapi.response.*;
@@ -26,14 +35,6 @@ import com.emc.storageos.storagedriver.RegistrationData;
 import com.emc.storageos.storagedriver.model.*;
 import com.emc.storageos.storagedriver.storagecapabilities.CapabilityInstance;
 import com.emc.storageos.storagedriver.storagecapabilities.StorageCapabilities;
-import org.apache.commons.lang.mutable.MutableBoolean;
-import org.apache.commons.lang.mutable.MutableInt;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.context.ApplicationContext;
-import org.springframework.context.support.ClassPathXmlApplicationContext;
-
-import java.util.*;
 
 public class ScaleIOStorageDriver extends AbstractStorageDriver implements BlockStorageDriver {
     private static final Logger log = LoggerFactory.getLogger(ScaleIOStorageDriver.class);
@@ -84,15 +85,12 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver implements Block
                             log.error("Error while creating volume " + volume.getDisplayName() +
                                     " in system " + volume.getStorageSystemId());
                         }
-
                     } catch (Exception e) {
                         log.error("Error while processing volume " + volume.getDisplayName(), e);
-
                     }
 
                 } else {
                     log.error("Could not get client for storage system: " + volume.getStorageSystemId());
-
                 }
             }
 
@@ -129,8 +127,10 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver implements Block
                     volume.setRequestedCapacity(newCapacity);
                     newCapacity = newCapacity / ScaleIOConstants.GB_BYTE;
                     // size must be a positive number in granularity of 8 GB
+                    if (newCapacity == 0)
+                        newCapacity = 8;
                     if (newCapacity % 8 != 0) {
-                        long tmp = Math.floorDiv(newCapacity,8) * 8;
+                        long tmp = Math.floorDiv(newCapacity, 8) * 8;
                         if (tmp < newCapacity) {
                             newCapacity = tmp + 8;
                         } else {
@@ -349,6 +349,7 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver implements Block
                             clone.setNativeId(result.getVolumeIdList().get(0));
                             clone.setAccessStatus(StorageObject.AccessStatus.READ_WRITE);
                             clone.setReplicationState(VolumeClone.ReplicationState.CREATED);
+
                             // Set Device Label
                             Map<String, String> CloneVolNameIdMap = client.getVolumes(result.getVolumeIdList());
                             clone.setDeviceLabel(CloneVolNameIdMap.get(clone.getNativeId()));
@@ -552,8 +553,8 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver implements Block
      */
     @Override
     public DriverTask exportVolumesToInitiators(List<Initiator> initiators, List<StorageVolume> volumes,
-                                                Map<String, String> volumeToHLUMap, List<StoragePort> recommendedPorts, List<StoragePort> availablePorts,
-                                                StorageCapabilities capabilities, MutableBoolean usedRecommendedPorts, List<StoragePort> selectedPorts) {
+            Map<String, String> volumeToHLUMap, List<StoragePort> recommendedPorts, List<StoragePort> availablePorts,
+            StorageCapabilities capabilities, MutableBoolean usedRecommendedPorts, List<StoragePort> selectedPorts) {
         String volId, portId;
         log.info("Request to export volumes to initiators -- start: ");
         DriverTask task = new DriverTaskImpl(ScaleIOHelper.getTaskId(ScaleIOConstants.TaskType.EXPORT));
@@ -757,7 +758,7 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver implements Block
      */
     @Override
     public DriverTask createConsistencyGroupSnapshot(VolumeConsistencyGroup consistencyGroup, List<VolumeSnapshot> snapshots,
-                                                     List<CapabilityInstance> capabilities) {
+            List<CapabilityInstance> capabilities) {
         log.info("Request to create consistency group snapshot -- Start :");
         DriverTask task = new DriverTaskImpl(ScaleIOHelper.getTaskId(ScaleIOConstants.TaskType.CG_SNAP_CREATE));
         countSucc = 0;
@@ -869,13 +870,12 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver implements Block
      */
     @Override
     public DriverTask createConsistencyGroupClone(VolumeConsistencyGroup consistencyGroup, List<VolumeClone> clones,
-                                                  List<CapabilityInstance> capabilities) {
+            List<CapabilityInstance> capabilities) {
         log.info("Request to create consistency group clone -- Start :");
         DriverTask task = new DriverTaskImpl(ScaleIOHelper.getTaskId(ScaleIOConstants.TaskType.CG_CLONE_CREATE));
         countSucc = 0;
         if (ScaleIOHelper.isFromSameStorageSystemClone(clones)) {
-            if(consistencyGroup!=null) {
-
+            if (consistencyGroup != null) {
                 String systemId = clones.get(0).getStorageSystemId();
                 log.info("Start to get Rest client for ScaleIO storage system: {}", systemId);
                 ScaleIORestClient client = this.getClientBySystemId(systemId);
@@ -891,22 +891,23 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver implements Block
 
                         // get parentID
                         List<String> nativeIds = result.getVolumeIdList();
-                        Map<String, ScaleIOVolume> snapIdInfoMap = client.getVolumeNameMap(nativeIds);
+                        Map<String, ScaleIOVolume> cloneIdInfoMap = client.getVolumeNameMap(nativeIds);
                         for (VolumeClone clone : clones) {
-                            for (ScaleIOVolume snapInfo : snapIdInfoMap.values()) {
-                                if (clone.getParentId().equalsIgnoreCase(snapInfo.getAncestorVolumeId())) {
-                                    clone.setNativeId(snapInfo.getId());
+                            for (ScaleIOVolume cloneInfo : cloneIdInfoMap.values()) {
+                                if (clone.getParentId().equalsIgnoreCase(cloneInfo.getAncestorVolumeId())) {
+                                    clone.setNativeId(cloneInfo.getId());
                                     clone.setAccessStatus(StorageObject.AccessStatus.READ_WRITE);
-                                    clone.setDeviceLabel(snapInfo.getName());
-                                    //map real CG id with fake CG id
-                                    setInfoToRegistry(clone.getStorageSystemId(),consistencyGroup.getDisplayName(),result.getSnapshotGroupId());
+                                    clone.setDeviceLabel(cloneInfo.getName());
+                                    // map real CG id with fake CG id
+                                    setInfoToRegistry(clone.getStorageSystemId(), consistencyGroup.getDisplayName(),
+                                            result.getSnapshotGroupId());
                                     clone.setConsistencyGroup(consistencyGroup.getDisplayName());
                                     countSucc++;
                                 }
                             }
                         }
                         setTaskStatus(clones.size(), countSucc, task);
-                        log.info("Create consistency group clone with group ID:{} - End:", consistencyGroup.getNativeId());
+                        log.info("Create consistency group clone with group ID:{} - End:", consistencyGroup.getDisplayName());
                     } catch (Exception e) {
                         log.error("Exception while Creating consistency group clone in storage system: {}", systemId, e);
                         task.setStatus(DriverTask.TaskStatus.FAILED);
@@ -915,8 +916,8 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver implements Block
                     log.error("Exception while getting Rest client instance for storage system {} ", systemId);
                     task.setStatus(DriverTask.TaskStatus.FAILED);
                 }
-            }else{
-                log.error("Consistency group value is null{}", consistencyGroup.getDisplayName());
+            } else {
+                log.error("Consistency group value is null");
             }
         } else {
             log.error("Clones are not from same storage system");
@@ -1087,12 +1088,14 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver implements Block
                 for (ScaleIOProtectionDomain protectionDomain : protectionDomains) {
                     String domainID = protectionDomain.getId();
                     if (ScaleIOHelper.compare(domainID, storageSystem.getNativeId())) {
-                        List<ScaleIOStoragePool> scaleIOStoragePoolList = scaleIOHandle.getProtectionDomainStoragePools(protectionDomain
-                                .getId());
+                        List<ScaleIOStoragePool> scaleIOStoragePoolList = scaleIOHandle
+                                .getProtectionDomainStoragePools(protectionDomain
+                                        .getId());
                         for (ScaleIOStoragePool storagePool : scaleIOStoragePoolList) {
                             StoragePool pool = new StoragePool();
                             pool.setNativeId(storagePool.getId());
-                            log.info("StorageDriver: Discovered Pool {}, storageSystem {}", pool.getNativeId(), pool.getStorageSystemId());
+                            log.info("StorageDriver: Discovered Pool {}, storageSystem {}", pool.getNativeId(),
+                                    pool.getStorageSystemId());
                             pool.setStorageSystemId(protectionDomain.getId());
                             pool.setPoolName(storagePool.getName());
                             Set<StoragePool.Protocols> protocols = new HashSet<>();
@@ -1117,9 +1120,12 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver implements Block
                         }
                     }
                 }
-                task.setStatus(DriverTask.TaskStatus.READY);
-                log.info("StorageDriver: Discovery of storage pools for storage system {}, name {} - End", storageSystem.getIpAddress(),
+
+                log.info("StorageDriver: Discovery of storage pools for storage system {}, name {} - End",
+                        storageSystem.getIpAddress(),
                         storageSystem.getSystemName());
+                task.setStatus(DriverTask.TaskStatus.READY);
+
             } else {
                 log.info("StorageDriver: Failed to get an handle for the storage system {}, name {}", storageSystem.getIpAddress(),
                         storageSystem.getSystemName());

@@ -37,23 +37,34 @@ import java.util.Random;
 @RunWith(value = SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = { "/scaleio-driver-prov.xml" })
 public class ScaleIOStorageDriverTest {
-
-    String SYS_NATIVE_ID_A = "1c865e9900000000";
-    String SYS_NATIVE_ID_B = "08af5d6100000000";
-    String SYS_NATIVE_ID_C = "1c865e9900000000";
-    String POOL_ID_C = "45306a6b00000000";
+    // ScaleIO cluster A
+    String SYS_NATIVE_ID_A = "4cfb6cb679474b00";
+    String PROTECTION_DOMAIN_ID_A = "1c865e9900000000";
+    String POOL_ID_A = "45306a6b00000000";
     String IP_ADDRESS_A = "10.193.17.97";
-    String IP_ADDRESS_B = "10.193.17.88";
-
-    int PORT_NUMBER = 443;
-    String USER_NAME = "admin";
-    String PASSWORD = "Scaleio123";
     String VOLUME_ID_1A = "08bee36300000007";
     String VOLUME_ID_2A = "08bee3a900000002";
     String SNAPSHOT_OF_1A = "08bee3ab00000008";
+
+    // ScaleIO cluster B
+    String SYS_NATIVE_ID_B = "5b5b9f3a1fd8f1fd";
+    String PROTECTION_DOMAIN_ID_B = "25c950f300000000";
+    String POOL_ID_B = "7a001f3300000000";
+    String IP_ADDRESS_B = "10.193.17.88";
     String VOLUME_ID_1B = "83f1779000000000";
     String VOLUME_ID_2B = "83f177bf00000001";
+
+    // ScaleIO cluster C
+    String SYS_NATIVE_ID_C = "1c865e9900000000";
+    String POOL_ID_C = "45306a6b00000000";
+
+    // ScaleIO cluster common info
+    int PORT_NUMBER = 443;
+    String USER_NAME = "admin";
+    String PASSWORD = "Scaleio123";
     String INVALID_VOLUME_ID_1 = "83f177070000000";
+    Long MAX_SIZE_IN_KB = 1099511627776L;
+    Long VOLUME_SIZE_5GB = 5368709120L;
 
     private ScaleIOStorageDriver driver;
     private DriverTask task;
@@ -67,7 +78,7 @@ public class ScaleIOStorageDriverTest {
 
     @Test
     public void testCreateVolumes() throws Exception {
-        driver.setConnInfoToRegistry(SYS_NATIVE_ID_C, IP_ADDRESS_A, PORT_NUMBER, USER_NAME, PASSWORD);
+        driver.setConnInfoToRegistry(PROTECTION_DOMAIN_ID_A, IP_ADDRESS_A, PORT_NUMBER, USER_NAME, PASSWORD);
 
         List<StorageVolume> storageVolumes = new ArrayList<>();
         StorageCapabilities capabilities = null;
@@ -78,7 +89,7 @@ public class ScaleIOStorageDriverTest {
 
         for (int i = 0; i < numVolumes; i++) {
             long requestedCapacity = 800000000;
-            StorageVolume newVolume = initializeVolume(SYS_NATIVE_ID_C, POOL_ID_C, requestedCapacity);
+            StorageVolume newVolume = initializeVolume(PROTECTION_DOMAIN_ID_A, POOL_ID_A, requestedCapacity);
             storageVolumes.add(newVolume);
         }
 
@@ -88,7 +99,7 @@ public class ScaleIOStorageDriverTest {
         storageVolumes.clear();
 
         // Create volume with invalid (negative) size
-        StorageVolume newVolume = initializeVolume(SYS_NATIVE_ID_C, POOL_ID_C, -200);
+        StorageVolume newVolume = initializeVolume(PROTECTION_DOMAIN_ID_A, POOL_ID_A, -200);
         storageVolumes.add(newVolume);
 
         task = driver.createVolumes(storageVolumes, capabilities);
@@ -96,18 +107,16 @@ public class ScaleIOStorageDriverTest {
         Assert.assertEquals(DriverTask.TaskStatus.FAILED, task.getStatus());
         storageVolumes.clear();
 
-        /*
-         * // Create very large volume
-         * newVolume = initializeVolume(SYS_NATIVE_ID_C, POOL_ID_C, (int) (Math.pow(2,32) - 1));
-         * storageVolumes.add(newVolume);
-         *
-         * task = driver.createVolumes(storageVolumes, capabilities);
-         * Assert.assertNotNull(task);
-         * Assert.assertEquals(DriverTask.TaskStatus.FAILED, task.getStatus());
-         */
+        // Create very large volume
+        newVolume = initializeVolume(SYS_NATIVE_ID_C, POOL_ID_C, MAX_SIZE_IN_KB);
+        storageVolumes.add(newVolume);
+
+        task = driver.createVolumes(storageVolumes, capabilities);
+        Assert.assertNotNull(task);
+        Assert.assertEquals(DriverTask.TaskStatus.FAILED, task.getStatus());
 
         // Create volume size 0
-        newVolume = initializeVolume(SYS_NATIVE_ID_C, POOL_ID_C, 0);
+        newVolume = initializeVolume(PROTECTION_DOMAIN_ID_A, POOL_ID_A, 0);
         storageVolumes.add(newVolume);
 
         task = driver.createVolumes(storageVolumes, capabilities);
@@ -118,18 +127,17 @@ public class ScaleIOStorageDriverTest {
 
     @Test
     public void testExpandVolume() throws Exception {
-        driver.setConnInfoToRegistry(SYS_NATIVE_ID_C, IP_ADDRESS_A, PORT_NUMBER, USER_NAME, PASSWORD);
+        driver.setConnInfoToRegistry(PROTECTION_DOMAIN_ID_A, IP_ADDRESS_A, PORT_NUMBER, USER_NAME, PASSWORD);
 
         List<StorageVolume> storageVolumes = new ArrayList<>();
         StorageCapabilities capabilities = null;
 
-        StorageVolume volume = initializeVolume(SYS_NATIVE_ID_C, POOL_ID_C, 11111111);
+        StorageVolume volume = initializeVolume(PROTECTION_DOMAIN_ID_A, POOL_ID_A, VOLUME_SIZE_5GB);
         storageVolumes.add(volume);
 
         driver.createVolumes(storageVolumes, capabilities);
 
-        long capacity = volume.getAllocatedCapacity() / (long) Math.pow(10, 9); // convert bytes to GB
-        capacity = volume.getAllocatedCapacity() * 2;
+        long capacity = VOLUME_SIZE_5GB * 2;
 
         // Expand storage volume
         task = driver.expandVolume(volume, capacity);
@@ -153,15 +161,15 @@ public class ScaleIOStorageDriverTest {
 
     @Test
     public void testDeleteVolumes() throws Exception {
-        driver.setConnInfoToRegistry(SYS_NATIVE_ID_C, IP_ADDRESS_A, PORT_NUMBER, USER_NAME, PASSWORD);
+        driver.setConnInfoToRegistry(PROTECTION_DOMAIN_ID_A, IP_ADDRESS_A, PORT_NUMBER, USER_NAME, PASSWORD);
 
         List<StorageVolume> storageVolumes = new ArrayList<>();
         StorageCapabilities capabilities = null;
 
-        StorageVolume volume1 = initializeVolume(SYS_NATIVE_ID_C, POOL_ID_C, 79999999);
+        StorageVolume volume1 = initializeVolume(PROTECTION_DOMAIN_ID_A, POOL_ID_A, 79999999);
         storageVolumes.add(volume1);
 
-        StorageVolume volume2 = initializeVolume(SYS_NATIVE_ID_C, POOL_ID_C, 89898989);
+        StorageVolume volume2 = initializeVolume(PROTECTION_DOMAIN_ID_A, POOL_ID_A, 89898989);
         storageVolumes.add(volume2);
 
         driver.createVolumes(storageVolumes, capabilities);
@@ -173,7 +181,7 @@ public class ScaleIOStorageDriverTest {
         storageVolumes.clear();
 
         // Delete storage volume that does not already exist in the storage system
-        StorageVolume notCreated = initializeVolume(SYS_NATIVE_ID_C, POOL_ID_C, 45679999);
+        StorageVolume notCreated = initializeVolume(PROTECTION_DOMAIN_ID_A, POOL_ID_A, 45679999);
         storageVolumes.add(notCreated);
 
         task = driver.deleteVolumes(storageVolumes);
@@ -189,10 +197,10 @@ public class ScaleIOStorageDriverTest {
 
         validStorageSystem.setSystemName("pdomain");
         validStorageSystem.setSystemType("scaleio");
-        validStorageSystem.setPortNumber(443);
-        validStorageSystem.setUsername("admin");
-        validStorageSystem.setPassword("Scaleio123");
-        validStorageSystem.setIpAddress("10.193.17.88");
+        validStorageSystem.setPortNumber(PORT_NUMBER);
+        validStorageSystem.setUsername(USER_NAME);
+        validStorageSystem.setPassword(PASSWORD);
+        validStorageSystem.setIpAddress(IP_ADDRESS_A);
 
         // Valid list of storage systems
         storageSystems.add(validStorageSystem);
@@ -204,7 +212,7 @@ public class ScaleIOStorageDriverTest {
 
         invalidStorageSystem.setSystemName("TestInvalidSystem");
         invalidStorageSystem.setSystemType("scaleio");
-        invalidStorageSystem.setPortNumber(443);
+        invalidStorageSystem.setPortNumber(PORT_NUMBER);
         invalidStorageSystem.setUsername("username");
         invalidStorageSystem.setPassword("password");
         invalidStorageSystem.setIpAddress("10.193.17.99");
@@ -235,10 +243,10 @@ public class ScaleIOStorageDriverTest {
         StorageSystem invalidStorageSystem = new StorageSystem();
 
         validStorageSystem.setSystemType("scaleio");
-        validStorageSystem.setPortNumber(443);
-        validStorageSystem.setUsername("admin");
-        validStorageSystem.setPassword("Scaleio123");
-        validStorageSystem.setIpAddress("10.193.17.97");
+        validStorageSystem.setPortNumber(PORT_NUMBER);
+        validStorageSystem.setUsername(USER_NAME);
+        validStorageSystem.setPassword(PASSWORD);
+        validStorageSystem.setIpAddress(IP_ADDRESS_A);
 
         invalidStorageSystem.setSystemName("TestInvalidSystem");
         invalidStorageSystem.setSystemType("scaleio");
@@ -255,13 +263,13 @@ public class ScaleIOStorageDriverTest {
         task = driver.discoverStoragePools(validStorageSystem, storagePools);
 
         Assert.assertNotNull(task);
-        Assert.assertEquals(task.getStatus().toString(), "READY");
+        Assert.assertEquals("READY", task.getStatus().toString());
 
         task = driver.discoverStoragePools(invalidStorageSystem, storagePools);
         System.out.println(task);
 
         Assert.assertNotNull(task);
-        Assert.assertEquals(task.getStatus().toString(), "ABORTED");
+        Assert.assertEquals("FAILED", task.getStatus().toString());
     }
 
     @Test

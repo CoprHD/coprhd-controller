@@ -178,6 +178,7 @@ public enum OperationTypeEnum {
     START_FILE_MIRROR("FileSystemMirrorStart", "FileSystemMirrorStartFailed", "FileSystemMirror Start"),
     REFRESH_FILE_MIRROR("FileSystemMirrorRefresh", "FileSystemMirrorRefreshFailed", "FileSystemMirror Refresh"),
     RESYNC_FILE_MIRROR("FileSystemMirrorResync", "FileSystemMirrorResyncFailed", "FileSystemMirror Resync"),
+    MODIFY_FILE_MIRROR_RPO("UPDATE FILE SHARE REPLICATION RPO", "FileSystemMirrorModifyRPOFailed", "operation to update filesystem replication RPO"),
 
     CREATE_BUCKET("BucketCreated", "BucketCreateFailed", "Bucket created"),
     DELETE_BUCKET("BucketDeleted", "BucketDeleteFailed", "Bucket deleted"),

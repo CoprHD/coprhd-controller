@@ -2794,6 +2794,13 @@ public class VolumeGroupService extends TaskResourceService {
 
     private static class MobilityVolumeGroupUtils extends VolumeGroupUtils {
 
+        /**
+         * Validate if all volumes within a CG are part of the specified volume list. 
+         * If a CG doesn't contain all its volumes, the order will fail. 
+         * 
+         * @param volumeGroup being update
+         * @param volumes being added or removed
+         */
         protected void validateSameCG(DbClient dbClient, VolumeGroup volumeGroup, List<Volume> volumes) {
             Set<URI> consistencyGroups = Sets.newHashSet();
             List<URI> volumeIds = new ArrayList<URI>();

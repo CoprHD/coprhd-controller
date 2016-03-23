@@ -1190,17 +1190,13 @@ public class NetAppApi {
 
             if (success) {
                 state = netAppFacade.getSnapMirrorState(pathLocation);
-                while (true) {
-                    if (!"quiesced".equals(state)) {
-                        success = false;
+                while (!"broken-off".equals(state)) {
+                    if ("broken-off".equals(state)) {
+                        success = true;
                         break;
                     }
                     TimeUnit.SECONDS.sleep(2);
                     state = netAppFacade.getSnapMirrorState(pathLocation);
-                }
-
-                if ("broken-off".equals(state)) {
-                    success = true;
                 }
             }
 
@@ -1238,6 +1234,10 @@ public class NetAppApi {
             netAppFacade = new NetAppFacade(_ipAddress, _portNumber, _userName,
                     _password, _https, null);
             String state = netAppFacade.getSnapMirrorState(pathLocation);
+            if ("quiesced".equals(state)) {
+                _logger.info("Snapmirror is already quiesced for : {}", pathLocation);
+                return true;
+            }
             if ("snapmirrored".equals(state)) {
                 success = netAppFacade.quiesceSnapMirror(pathLocation);
                 if (success) {
@@ -1246,7 +1246,7 @@ public class NetAppApi {
                         state = netAppFacade.getSnapMirrorState(pathLocation);
                     }
 
-                    if (!"paused".equals(state)) {
+                    if (!"quiesced".equals(state)) {
                         success = false;
                     }
                 }

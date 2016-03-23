@@ -130,7 +130,7 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver implements Block
                     newCapacity = newCapacity / ScaleIOConstants.GB_BYTE;
                     // size must be a positive number in granularity of 8 GB
                     if (newCapacity % 8 != 0) {
-                        long tmp = Math.floorDiv(newCapacity, 8) * 8;
+                        long tmp = Math.floorDiv(newCapacity,8) * 8;
                         if (tmp < newCapacity) {
                             newCapacity = tmp + 8;
                         } else {
@@ -898,7 +898,9 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver implements Block
                                     clone.setNativeId(snapInfo.getId());
                                     clone.setAccessStatus(StorageObject.AccessStatus.READ_WRITE);
                                     clone.setDeviceLabel(snapInfo.getName());
-                                    clone.setConsistencyGroup(result.getSnapshotGroupId());
+                                    //map real CG id with fake CG id
+                                    setInfoToRegistry(clone.getStorageSystemId(),consistencyGroup.getDisplayName(),result.getSnapshotGroupId());
+                                    clone.setConsistencyGroup(consistencyGroup.getDisplayName());
                                     countSucc++;
                                 }
                             }
@@ -976,7 +978,10 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver implements Block
                 try {
                     log.info("Rest Client Got! delete consistency group clones - Start:");
                     // Since Clones are treated as Snapshot, so will call remove Consistency Group Snapshot.
-                    client.removeConsistencyGroupSnapshot(clones.get(0).getConsistencyGroup());
+                    List<String> cgIds = getInfoFromRegistry(systemId, clones.get(0).getConsistencyGroup());
+                    for (String cgId : cgIds) {
+                        client.removeConsistencyGroupSnapshot(cgId);
+                    }
                     task.setStatus(DriverTask.TaskStatus.READY);
                     log.info("Successfully delete consistency group clones - End:");
                 } catch (Exception e) {

@@ -56,21 +56,13 @@ public class ScaleIOStorageDriverTest {
     String INVALID_VOLUME_ID_1 = "83f177070000000";
 
     private ScaleIOStorageDriver driver;
-    // @Autowired
-    // private ScaleIORestHandleFactory scaleIORestHandleFactory;
     private DriverTask task;
 
     @Before
     public void setUp() throws Exception {
         Registry registry = new InMemoryRegistryImpl();
         driver = new ScaleIOStorageDriver();
-
-        // driver.setHandleFactory(handleFactory);
-
-        // driver.setScaleIORestHandleFactory(scaleIORestHandleFactory);
-
         driver.setDriverRegistry(registry);
-        // testDiscoverStorageSystem();
     }
 
     @Test

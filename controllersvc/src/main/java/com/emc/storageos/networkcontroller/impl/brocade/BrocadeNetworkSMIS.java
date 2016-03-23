@@ -491,6 +491,9 @@ public class BrocadeNetworkSMIS extends BaseSANCIMObject {
         } else {
             CIMProperty switchPathProperty = topins
                     .getProperty(_AntecedentSystem);
+//            checking if intance, if it is then leave it otehrwise
+//            follow the paper to make it and pass it.
+            Boolean fre = (switchPathProperty.getValue() instanceof String);
             CIMObjectPath switchPath = (CIMObjectPath) switchPathProperty
                     .getValue();
             CloseableIterator<CIMInstance> switchIt = client

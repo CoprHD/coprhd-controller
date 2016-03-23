@@ -7,6 +7,7 @@ package com.emc.storageos.volumecontroller.impl.smis;
 import static com.emc.storageos.volumecontroller.impl.smis.ReplicationUtils.callEMCRefreshIfRequired;
 import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.CREATE_LIST_REPLICA;
 import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.JOB;
+import static com.google.common.base.Strings.isNullOrEmpty;
 import static java.text.MessageFormat.format;
 
 import java.net.URI;
@@ -117,7 +118,7 @@ public abstract class AbstractReplicaOperations implements ReplicaOperations {
             CIMObjectPath[] sourceVolumePaths = _cimPath.getVolumePaths(storage, sourceIds.toArray(new String[sourceIds.size()]));
             CIMObjectPath[] targetDevicePaths = _cimPath.getVolumePaths(storage, targetDeviceIds.toArray(new String[targetDeviceIds.size()]));
             CIMObjectPath targetVPSnapPoolPath = null;
-            if (syncType == SmisConstants.SNAPSHOT_VALUE && !isSecondSnapshotRequest(source)) {
+            if (syncType == SmisConstants.SNAPSHOT_VALUE && !volumeHasSnapshot(source)) {
                 targetVPSnapPoolPath = ReplicationUtils.getTargetPoolForVPSnapCreation(storage, null, replicaGroupName,
                         isThinlyProvisioned, _dbClient, _helper, _cimPath);
             }
@@ -156,7 +157,7 @@ public abstract class AbstractReplicaOperations implements ReplicaOperations {
      * @param source the volume
      * @return true, if is second snapshot request
      */
-    private boolean isSecondSnapshotRequest(Volume source) {
+    private boolean volumeHasSnapshot(Volume source) {
         int snapshotCount = 0;
         if (source != null) {
             URIQueryResultList snapshotURIs = new URIQueryResultList();
@@ -164,7 +165,7 @@ public abstract class AbstractReplicaOperations implements ReplicaOperations {
                     source.getId()), snapshotURIs);
             List<BlockSnapshot> snapshots = _dbClient.queryObject(BlockSnapshot.class, snapshotURIs);
             for (BlockSnapshot snapshot : snapshots) {
-                if (snapshot != null && snapshot.getNativeId() != null) {
+                if (snapshot != null && !snapshot.getInactive() && !isNullOrEmpty(snapshot.getNativeId())) {
                     // snapshot created on array
                     snapshotCount++;
                 }

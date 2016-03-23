@@ -3206,7 +3206,7 @@ def schedule_snapshots_list(args):
         res = obj.schedule_snapshots_list(args.tenant + "/" + args.project + "/" + args.name,
                       args.polname,
                       args.tenant, policyid)
-        return res
+        return common.format_json_object(res)
     except SOSError as e:
         common.format_err_msg_and_raise("fileshare", "schedule snapshots",
                                         e.err_text, e.err_code)

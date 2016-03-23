@@ -27,6 +27,7 @@ public class DisasterRecoveryDataTable extends DataTable {
         public String status;
         public String id;
         public String networkHealth;
+        public String runningState;
 
         public StandByInfo() {
         }
@@ -38,6 +39,7 @@ public class DisasterRecoveryDataTable extends DataTable {
             this.id = standByInfo.getUuid();
             this.description = standByInfo.getDescription();
             this.networkHealth = standByInfo.getNetworkHealth();
+            this.runningState = String.valueOf(standByInfo.getRunningState()).toUpperCase();
         }
     }
 }

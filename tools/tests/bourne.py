@@ -4065,10 +4065,15 @@ class Bourne:
     # Block Consistency Groups
     #
 
-    def block_consistency_group_create(self, project, label):
+    def block_consistency_group_create(self, project, label, arrayconsistency):
+	arrayconsistencyvalue = "false"
+	if (arrayconsistency):
+	    arrayconsistencyvalue=arrayconsistency
+	    
         parms = {
             'name'  : label,
             'project' : project,
+	    'array_consistency' : arrayconsistencyvalue,
         }
 
         return self.api('POST', URI_BLOCK_CONSISTENCY_GROUP_CREATE, parms)

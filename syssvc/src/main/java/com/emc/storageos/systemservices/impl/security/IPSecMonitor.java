@@ -35,7 +35,7 @@ public class IPSecMonitor implements Runnable {
 
     private static final long SHORT_SLEEP = 10 * 1000;
     public static int IPSEC_CHECK_INTERVAL = 10;  // minutes
-    public static int IPSEC_CHECK_INITIAL_DELAY = 10;  // minutes
+    public static int IPSEC_CHECK_INITIAL_DELAY = 5;  // minutes
 
     private static final int NUMBER_OF_CHAR_IN_IPSEC_KEY_WITHOUT_MASK = 5;
     private static final String MASKED_IPSEC_KEY = "*********";
@@ -90,9 +90,6 @@ public class IPSecMonitor implements Runnable {
     @Override
     public void run() {
         try {
-            // geo checking
-            log.info("the dbclient instance is {}", getDbClient());
-
             log.info("step 1: start checking ipsec connections");
             String[] problemNodes = LocalRepository.getInstance().checkIpsecConnection();
 
@@ -103,8 +100,11 @@ public class IPSecMonitor implements Runnable {
 
             log.info("Found problem nodes which are: " + Arrays.toString(problemNodes));
 
-            log.info("step 2: get latest ipsec properties of the no connection nodes");
-            Map<String, String> latest = getLatestIPSecProperties(problemNodes);
+            log.info("step 2: get latest ipsec properties of all remote nodes of the cluster");
+            String[] allRemoteNodes = LocalRepository.getInstance().getAllRemoteNodesIncluster();
+            log.info("all remote nodes in the cluster are: " + Arrays.toString(allRemoteNodes));
+            Map<String, String> latest = getLatestIPSecProperties(allRemoteNodes);
+
             if (latest == null) {
                 log.info("no latest ipsec properties found, skip following check steps");
                 return;
@@ -122,11 +122,13 @@ public class IPSecMonitor implements Runnable {
                 localRepository.reconfigProperties("ipsec");
                 localRepository.reload("ipsec");
             } else {
-                log.info("Local already has latest ipsec key, checking local ...");
+                log.info("Local property file already has latest ipsec key, checking local ipsec config file...");
                 LocalRepository localRepository = LocalRepository.getInstance();
                 if (!localRepository.isLocalIpsecConfigSynced()) {
                     log.info("Local IPsec config files mismatched, need to reconfig");
                     localRepository.reconfigProperties("ipsec");
+                } else {
+                    log.info("ipsec key config files match.");
                 }
                 localRepository.reload("ipsec");
             }
@@ -135,7 +137,7 @@ public class IPSecMonitor implements Runnable {
 
             log.info("Step 4: rechecking ipsec status ...");
             problemNodes = LocalRepository.getInstance().checkIpsecConnection();
-            if (problemNodes == null || problemNodes.length == 0) {
+            if (problemNodes == null || problemNodes.length == 0 || problemNodes[0].isEmpty()) {
                 log.info("All connections issues are fixed.");
             } else {
                 log.info("ipsec still has problems on : " + Arrays.toString(problemNodes));

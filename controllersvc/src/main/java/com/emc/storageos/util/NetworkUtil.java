@@ -37,7 +37,7 @@ public class NetworkUtil {
     private static final Logger _log = LoggerFactory.getLogger(NetworkUtil.class);
 
     /**
-     * Given the URI for a Network, obtain it's NetworkLite structure.
+     * Given the URI for a Network, obtain its NetworkLite structure.
      * This is done without instantiating the endpoint data in the Network
      * by calling DbClient.queryObjectFields, which retrieves only certain
      * fields from the database.

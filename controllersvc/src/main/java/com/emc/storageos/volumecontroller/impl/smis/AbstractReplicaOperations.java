@@ -84,6 +84,7 @@ public abstract class AbstractReplicaOperations implements ReplicaOperations {
             Map<String, String> tgtToSrcMap = new HashMap<String, String>();
             String replicaGroupName = null;
             String sessionName = null;
+            boolean isThinlyProvisioned = false;
             for (URI replicaURI : replicaList) {
                 BlockObject replica = BlockObject.fetch(_dbClient, replicaURI);
                 // Use the existing replica group instance name for the new snaps to add.
@@ -94,6 +95,7 @@ public abstract class AbstractReplicaOperations implements ReplicaOperations {
                 }
                 Volume source = (Volume) _helper.getSource(replica);
                 String sourceNativeId = source.getNativeId();
+                isThinlyProvisioned = source.getThinlyProvisioned();
                 sourceIds.add(sourceNativeId);
                 srcNativeIdToReplicaUriMap.put(sourceNativeId, replica.getId());
 
@@ -101,7 +103,7 @@ public abstract class AbstractReplicaOperations implements ReplicaOperations {
                     // need to create target devices first
                     final URI poolId = source.getPool();
                     final List<String> newDeviceIds = ReplicationUtils.createTargetDevices(storage, replicaGroupName, replica.getLabel(),
-                            createInactive, 1, poolId, source.getCapacity(), source.getThinlyProvisioned(), null, taskCompleter,
+                            createInactive, 1, poolId, source.getCapacity(), isThinlyProvisioned, null, taskCompleter,
                             _dbClient, _helper, _cimPath);
                     targetDeviceIds.addAll(newDeviceIds);
                     tgtToSrcMap.put(newDeviceIds.get(0), source.getNativeId());
@@ -111,8 +113,13 @@ public abstract class AbstractReplicaOperations implements ReplicaOperations {
             int syncType = getSyncType(replicaList.get(0));
             CIMObjectPath[] sourceVolumePaths = _cimPath.getVolumePaths(storage, sourceIds.toArray(new String[sourceIds.size()]));
             CIMObjectPath[] targetDevicePaths = _cimPath.getVolumePaths(storage, targetDeviceIds.toArray(new String[targetDeviceIds.size()]));
+            CIMObjectPath targetVPSnapPoolPath = null;
+            if (syncType == SmisConstants.SNAPSHOT_VALUE) {
+                targetVPSnapPoolPath = ReplicationUtils.getTargetPoolForVPSnapCreation(storage, null, replicaGroupName,
+                        isThinlyProvisioned, _dbClient, _helper, _cimPath);
+            }
             CIMArgument[] inArgs = _helper.getCreateListReplicaInputArguments(storage, sourceVolumePaths, targetDevicePaths, labels, syncType,
-                    replicaGroupName, sessionName, createInactive);
+                    replicaGroupName, sessionName, createInactive, targetVPSnapPoolPath);
             CIMArgument[] outArgs = new CIMArgument[5];
             CIMObjectPath replicationSvc = _cimPath.getControllerReplicationSvcPath(storage);
             _helper.invokeMethod(storage, replicationSvc, CREATE_LIST_REPLICA, inArgs, outArgs);

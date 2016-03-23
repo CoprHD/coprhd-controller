@@ -103,6 +103,7 @@ import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.VirtualPool.RPCopyMode;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.Volume.PersonalityTypes;
+import com.emc.storageos.db.client.model.VolumeGroup;
 import com.emc.storageos.db.client.model.VplexMirror;
 import com.emc.storageos.db.client.model.VpoolRemoteCopyProtectionSettings;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
@@ -2171,16 +2172,14 @@ public class BlockService extends TaskResourceService {
         }
         String snapshotType = param.getType();
 
-        if (param.getType().equalsIgnoreCase(TechnologyType.NATIVE.toString())) {
-            // Don't allow snapshots on single volumes that are in consistency groups, but don't have replication group instance set
-            BlockServiceUtils.validateNotInCG(requestedVolume, _dbClient, true);
-        }    
-        
         validateSourceVolumeHasExported(requestedVolume);
 
         // Make sure that we don't have some pending
         // operation against the volume
         checkForPendingTasks(Arrays.asList(requestedVolume.getTenant().getURI()), Arrays.asList(requestedVolume));
+        
+        // validate the volume is not part of a RP or VPlex CG that is part of an application
+        validateCGIsNotInApplication(requestedVolume, snapshotType);
 
         // Set whether or not the snapshot be activated when created.
         Boolean createInactive = Boolean.FALSE;
@@ -2237,6 +2236,33 @@ public class BlockService extends TaskResourceService {
                         .toString());
 
         return response;
+    }
+
+    /**
+     * validates that the volume is not part of a RP or VPlex CG that is part of an application
+     * @param requestedVolume
+     * @param snapshotType indicates if this is an array snapshot or RP bookmark request
+     */
+    private void validateCGIsNotInApplication(Volume requestedVolume, String snapshotType) {
+        // validation should only apply to non-RP snapshots
+        if (TechnologyType.RP.toString().equalsIgnoreCase(snapshotType)) {
+            return;
+        }
+        URI cgId = requestedVolume.getConsistencyGroup();
+        if (!NullColumnValueGetter.isNullURI(cgId)) {
+            BlockConsistencyGroup cg = _dbClient.queryObject(BlockConsistencyGroup.class, cgId);
+            if (cg != null && !cg.getInactive()) {
+                URIQueryResultList volumesInCg = new URIQueryResultList();
+                _dbClient.queryByConstraint(getVolumesByConsistencyGroup(cgId), volumesInCg);
+                Iterator<Volume> volumeIterator = _dbClient.queryIterativeObjects(Volume.class, volumesInCg);
+                while (volumeIterator.hasNext()) {
+                    VolumeGroup application = volumeIterator.next().getApplication(_dbClient);
+                    if (application != null) {
+                        throw APIException.badRequests.cannotCreateSnapshotCgPartOfApplication(application.getLabel(), cg.getLabel());
+                    }
+                }
+            }
+        }
     }
 
     /**
@@ -2727,7 +2753,7 @@ public class BlockService extends TaskResourceService {
         status.setResourceType(ProtectionOp.getResourceOperationTypeEnum(op));
         _dbClient.createTaskOpStatus(Volume.class, volume.getId(), task, status);
 
-        if (Volume.isSRDFProtectedTargetVolume(copyVolume)) {
+        if (Volume.isSRDFProtectedVolume(copyVolume)) {
 
             if (op.equalsIgnoreCase(ProtectionOp.FAILOVER_TEST_CANCEL.getRestOp()) ||
                     op.equalsIgnoreCase(ProtectionOp.FAILOVER_TEST.getRestOp())) {
@@ -3268,7 +3294,7 @@ public class BlockService extends TaskResourceService {
             taskList.getTaskList().add(volumeTask);
         }
 
-        // if this vpool request change has a consistency group, set it's requested types
+        // if this vpool request change has a consistency group, set its requested types
         if (param.getConsistencyGroup() != null) {
             BlockConsistencyGroup cg = _dbClient.queryObject(BlockConsistencyGroup.class, param.getConsistencyGroup());
             if (cg != null && !cg.getInactive()) {
@@ -3298,7 +3324,7 @@ public class BlockService extends TaskResourceService {
         } catch (Exception e) {
             String errorMsg = String.format(
                     "Volume VirtualPool change error: %s", e.getMessage());
-            _log.error(errorMsg);
+            _log.error(errorMsg, e);            
             for (TaskResourceRep volumeTask : taskList.getTaskList()) {
                 volumeTask.setState(Operation.Status.error.name());
                 volumeTask.setMessage(errorMsg);
@@ -3976,7 +4002,7 @@ public class BlockService extends TaskResourceService {
                     // protection. This is usually for RP+VPLEX upgrade to MetroPoint but other operations could be
                     // supported in the future.
                     if (VirtualPool.vPoolSpecifiesRPVPlex(currentVpool)) {
-                        if (!VirtualPoolChangeAnalyzer.isSupportedRPChangeProtectionVirtualPoolChange(volume, currentVpool, newVpool,
+                        if (!VirtualPoolChangeAnalyzer.isSupportedUpgradeToMetroPointVirtualPoolChange(volume, currentVpool, newVpool,
                                 _dbClient, notSuppReasonBuff)) {
                             _log.warn("RP Change Protection VirtualPool change for volume is not supported: {}",
                                     notSuppReasonBuff.toString());
@@ -3985,7 +4011,7 @@ public class BlockService extends TaskResourceService {
                         }
                     }
                     // Otherwise, check to see if we're trying to protect a VPLEX volume.
-                    else if (!VirtualPoolChangeAnalyzer.isSupportedRPVPlexVolumeVirtualPoolChange(volume, currentVpool, newVpool,
+                    else if (!VirtualPoolChangeAnalyzer.isSupportedAddRPProtectionVirtualPoolChange(volume, currentVpool, newVpool,
                             _dbClient, notSuppReasonBuff)) {
                         _log.warn("RP+VPLEX VirtualPool change for volume is not supported: {}",
                                 notSuppReasonBuff.toString());
@@ -4130,7 +4156,7 @@ public class BlockService extends TaskResourceService {
             } else if (VirtualPool.vPoolSpecifiesProtection(newVpool)) {
                 // VNX/VMAX import to RP cases (currently one)
                 notSuppReasonBuff.setLength(0);
-                if (!VirtualPoolChangeAnalyzer.isSupportedRPVolumeVirtualPoolChange(volume, currentVpool, newVpool, _dbClient,
+                if (!VirtualPoolChangeAnalyzer.isSupportedAddRPProtectionVirtualPoolChange(volume, currentVpool, newVpool, _dbClient,
                         notSuppReasonBuff)) {
                     _log.warn("VirtualPool change to Add RP Protection for volume is not supported: {}",
                             notSuppReasonBuff.toString());

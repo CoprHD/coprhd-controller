@@ -66,7 +66,7 @@ public class SSNProcessor extends Processor {
                 try {
                     client.closeEnumeration(Constants.SYNC_PATH, synchronizedInstanceChunks.getContext());
                 } catch (WBEMException e) {
-                    _logger.warn("Exception occurred while closing enumeration", e);
+                    _logger.debug("Exception occurred while closing enumeration", e);
                 }
             }
         }

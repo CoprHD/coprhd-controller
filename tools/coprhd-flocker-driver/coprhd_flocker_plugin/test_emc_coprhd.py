@@ -82,9 +82,9 @@ class EMCCoprHDBlockDeviceAPIImplementationTests(SynchronousTestCase):
           protocol = 'iSCSI'
           initiatorwwn = None
           portwwn = None
-
+          initname = 'test-host'       
           try:
-             create_initiator = cli_obj.add_initiators(sync, hostlabel, protocol, initiatorwwn, portwwn)
+             create_initiator = cli_obj.add_initiators(sync, hostlabel, protocol, initiatorwwn, portwwn,initname)
 
           except Exception as e:
              traceback.print_exc()

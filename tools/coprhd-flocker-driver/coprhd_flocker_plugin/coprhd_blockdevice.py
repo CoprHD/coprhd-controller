@@ -419,7 +419,7 @@ class CoprHDCLIDriver(object):
         except utils.SOSError as e:
             Message.new(Debug="Host Creation Failed").write(_logger)
 
-    def add_initiators(self,sync, hostlabel, protocol, initiatorwwn, portwwn):
+    def add_initiators(self,sync, hostlabel, protocol, initiatorwwn, portwwn,initname):
         self.authenticate_user()
         portwwn = None
         try:
@@ -431,7 +431,6 @@ class CoprHDCLIDriver(object):
                 if "\n" in portwwn:
                    portwwn = portwwn.split('\n')[0]
                 break
-           initname = 'test-initiator'
            self.hostinitiator_obj.create(sync,hostlabel,protocol,initiatorwwn,portwwn,initname)
 
         except utils.SOSError as e:

@@ -25,6 +25,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 
 import javax.xml.bind.DataBindingException;
 
@@ -5095,9 +5096,9 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
 
             if (!clonesToRollback.isEmpty()) {
                 _log.info("Detach list clone for rollback");
-                detachListClone(storage, clonesToRollback, taskId);
+                detachListClone(storage, clonesToRollback, generateStepIdForDependentCallDurinRollBack());
                 _log.info("Delete clones for rollback");
-                deleteVolumes(storage, clonesToRollback, taskId);
+                deleteVolumes(storage, clonesToRollback, generateStepIdForDependentCallDurinRollBack());
             }
 
             WorkflowStepCompleter.stepSucceded(taskId);
@@ -5210,13 +5211,13 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                 String mirrorNativeIds = Joiner.on(", ").join(transform(mirrorsToRollback, fctnBlockObjectToNativeID()));
                 if (mirrorIsPausable(mirrorsToRollback)) {
                     _log.info("Attempting to fracture {} for rollback", mirrorNativeIds);
-                    fractureMirror(storage, mirrorURIsToRollback, false, false, taskId);
+                    fractureMirror(storage, mirrorURIsToRollback, false, false, generateStepIdForDependentCallDurinRollBack());
                 }
 
                 _log.info("Attempting to detach {} for rollback", mirrorNativeIds);
-                detachMirror(storage, mirrorURIsToRollback, false, false, taskId);
+                detachMirror(storage, mirrorURIsToRollback, false, false, generateStepIdForDependentCallDurinRollBack());
                 _log.info("Attempting to delete {} for rollback", mirrorNativeIds);
-                deleteMirror(storage, mirrorURIsToRollback, false, taskId);
+                deleteMirror(storage, mirrorURIsToRollback, false, generateStepIdForDependentCallDurinRollBack());
             }
             WorkflowStepCompleter.stepSucceded(taskId);
         } catch (InternalException ie) {
@@ -5304,7 +5305,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                 String snapshotNativeIds = Joiner.on(", ").join(transform(snapshotsToRollback, fctnBlockObjectToNativeID()));
                 _log.info("Attempting to delete {} for rollback", snapshotNativeIds);
                 for (URI snapshotURI : snapshotURIsToRollback) {
-                    deleteSelectedSnapshotMethod(storage, snapshotURI);
+                    deleteSelectedSnapshot(storage, snapshotURI, generateStepIdForDependentCallDurinRollBack());
                 }
             }
             WorkflowStepCompleter.stepSucceded(taskId);
@@ -5317,6 +5318,18 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
             WorkflowStepCompleter.stepFailed(taskId, serviceError);
             doFailTask(BlockSnapshot.class, snapshotList, taskId, serviceError);
         }
+    }
+
+    /**
+     * Generates step id for dependent calls during rollback step execution.
+     * As we cannot add new step for dependent calls to ROLLBACK steps group during workflow execution,
+     * generate a new operation id for the dependent call. This is to avoid dependent call marking the rollback step completed.
+     * TODO find a solution
+     *
+     * @return the string
+     */
+    private String generateStepIdForDependentCallDurinRollBack() {
+        return UUID.randomUUID().toString();
     }
 
     /**

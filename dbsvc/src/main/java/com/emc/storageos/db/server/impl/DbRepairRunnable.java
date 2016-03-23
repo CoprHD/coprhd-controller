@@ -221,7 +221,7 @@ public class DbRepairRunnable implements Runnable {
                     while (true) {
                         if (runner.runRepair()) {
                             log.info("Repair keyspace {} at cluster state {} completed successfully", keySpaceName,
-                                    this.state.getCurrentDigest());
+                                    state.getCurrentDigest());
 
                             // Repair succeeded, update state info in ZK
                             if (!this.state.success(getClusterStateDigest())) {

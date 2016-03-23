@@ -18,7 +18,7 @@
         var isValidInterval = false; //check $backup_interval.val()
         $intervals = {};
         $intervals['1'] = '1day'; //only support 1 or 2 times per day now
-        $intervals['2'] = '12hour';
+        $intervals['2'] = '12hour'; //start time is listening to this value, if we select this one, start time will be changed. The related logic is in controller.js.
         for (var key in $intervals) {
             var value = $intervals[key];
             var $option = $("<option value=" + key + ">" + key + "</option>");
@@ -105,7 +105,7 @@ disabled:unstable;
     <label class="control-label col-sm-3" for="${id}">${label}:</label>
 
     <div class="col-sm-6 controls">
-        <div class="row col-gap-sm">
+        <div class="row col-gap-sm" id="backup-interval">
             <input id="${id}" type="hidden" name="${name}" value="${originalValue}" data-originalvalue="${originalValue}">
             <select id="${id}_selector" class="form-control" onchange="setBackupSchedulerInterval()">
             </select>

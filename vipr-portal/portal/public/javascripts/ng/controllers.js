@@ -1311,14 +1311,23 @@ angular.module("portalApp").controller("AuditLogCtrl", function($scope, $http, $
 });
 
 angular.module("portalApp").controller("ConfigBackupCtrl", function($scope) {
+    var hint = 'AM and PM';
+    var twicePerDay = '12hour'; // this value comes from back-end
+
     angular.element("#backup-time").ready(function () {
         $scope.$apply(function() {
             $scope.backup_startTime = getLocalTimeFromOffset($schedulerTimeOffset);
         });
-
     });
-    $scope.$watch('backup_startTime', function() {
+
+    angular.element("#backup-interval").change(function () {
+        withHint();
+    });
+
+    $scope.$watch('backup_startTime', function (newVal, oldVal) {
+        console.info("%s, old: %s", newVal, oldVal);
         setOffsetFromLocalTime($scope.backup_startTime);
+        withHint();
     });
 
     function getLocalTimeFromOffset(offset) {
@@ -1330,10 +1339,29 @@ angular.module("portalApp").controller("ConfigBackupCtrl", function($scope) {
     }
 
     function setOffsetFromLocalTime(localTime) {
-        var localMoment = moment(localTime, "HH:mm");
-        var utcOffset = parseInt(moment.utc(localMoment.toDate()).format("HHmm"));
-        var $backup_time = $("#backup_scheduler_time");
-        $backup_time.val(utcOffset);
-        checkForm();
+        if ($scope.backup_startTime !== undefined &&
+            $scope.backup_startTime.indexOf(hint) === -1) {
+            var localMoment = moment(localTime, "HH:mm");
+            var utcOffset = parseInt(moment.utc(localMoment.toDate()).format("HHmm"));
+            var $backup_time = $("#backup_scheduler_time");
+            $backup_time.val(utcOffset);
+            console.info("offset %s %s", localTime, $backup_time.val());
+            checkForm();
+        }
+    }
+
+    function withHint() {
+        console.info("in hint");
+
+        if ($scope.backup_startTime !== undefined) {
+            if ($scope.backup_startTime.indexOf(hint) === -1 && $backup_interval.val() === twicePerDay) {
+                $scope.backup_startTime += '\t' + hint;
+            }
+            else if ($scope.backup_startTime.indexOf(hint) > -1 && $backup_interval.val() !== twicePerDay) {
+                $scope.backup_startTime = $scope.backup_startTime.replace(hint, '').trim();
+
+            }
+            console.info("in %s", $scope.backup_startTime);
+        }
     }
 });

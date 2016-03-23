@@ -494,7 +494,7 @@ public class DisasterRecoveryService {
     }
 
     /**
-     * @return true if local site exists in current active site's ZK, otherwise return false
+     * @return result that indicates whether local site is removed
      */
     @GET
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })

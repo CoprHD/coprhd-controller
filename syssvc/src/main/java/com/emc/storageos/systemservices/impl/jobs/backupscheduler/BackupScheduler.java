@@ -289,7 +289,7 @@ public class BackupScheduler extends Notifier implements Runnable, Callable<Obje
         // Remove all non alphanumeric characters
         drSiteId = drSiteId.replaceAll("^[^a-zA-Z0-9]+|[^a-zA-Z0-9]+$", "");
         
-        return ScheduledBackupTag.toZipFileName(tag, nodeIds.size(), backupNodeCount, drSiteId);
+        return UploadExecutor.toZipFileName(tag, nodeIds.size(), backupNodeCount, drSiteId);
     }
 
     public List<String> getDescParams(final String tag) {
@@ -368,17 +368,9 @@ public class BackupScheduler extends Notifier implements Runnable, Callable<Obje
 
             isLeader = false;
 
-            // Stop scheduler thread
+            // Stop scheduler thread.
             service.shutdown();
-            try {
-                while (!service.awaitTermination(30, TimeUnit.SECONDS)) {
-                    log.info("Waiting scheduler thread pool to shutdown for another 30s");
-                }
-            } catch (InterruptedException e) {
-                log.error("Interrupted while waiting to shutdown scheduler thread pool.", e);
-                Thread.currentThread().interrupt();
-                return;
-            }
+            // Never block here. It may block all other node listeners 
         }
     }
 }

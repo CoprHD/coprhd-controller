@@ -1466,6 +1466,13 @@ public class VNXeStorageDevice extends VNXeOperations
     }
 
     @Override
+    public void doDeleteConsistencyGroup(StorageSystem storage, final URI consistencyGroupId,
+            String replicationGroupName, Boolean keepRGName, Boolean markInactive, 
+            String sourceReplicationGroup, final TaskCompleter taskCompleter) throws DeviceControllerException {
+        doDeleteConsistencyGroup(storage, consistencyGroupId, replicationGroupName, keepRGName, markInactive, taskCompleter);
+    }
+    
+    @Override
     public String doAddStorageSystem(StorageSystem storage)
             throws DeviceControllerException {
         // TODO Auto-generated method stub

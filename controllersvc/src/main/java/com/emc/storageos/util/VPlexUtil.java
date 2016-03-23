@@ -393,7 +393,7 @@ public class VPlexUtil {
         // Read the initiators and partition them by Network
         List<Initiator> initiators = dbClient.queryObject(Initiator.class, initiatorURIs);
         Map<NetworkLite, List<Initiator>> networkToInitiators = NetworkUtil.getInitiatorsByNetwork(initiators, dbClient);
-        // Build the output map. For each varray, look at each Network to see if it's connected virtual arrays
+        // Build the output map. For each varray, look at each Network to see if its connected virtual arrays
         // contains this varray. If so, add all the Initiators in that Network to the varrayToInitiators map.
         for (URI varrayURI : varrayURIs) {
             for (NetworkLite network : networkToInitiators.keySet()) {

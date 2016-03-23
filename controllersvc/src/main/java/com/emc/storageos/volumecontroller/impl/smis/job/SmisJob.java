@@ -189,6 +189,10 @@ public class SmisJob extends Job implements Serializable
                                     _status = JobStatus.SUCCESS;
                                     _logger.info("SmisJob: {} succeeded", instanceID.getValue());
                                 }
+                                if (statusValues[j].intValue() == 6) {
+                                    _status = JobStatus.FAILED;
+                                    _logger.info("SmisJob: {} returned exception", instanceID.getValue());
+                                }
                             }
                         }
                         if ((_status != JobStatus.SUCCESS) && (_status != JobStatus.IN_PROGRESS)) {

@@ -283,7 +283,7 @@ public class BlockSnapshotService extends TaskResourceService {
         // Determine all snapshots to delete.
         List<BlockSnapshot> snapshots = new ArrayList<BlockSnapshot>();
         final URI cgId = snap.getConsistencyGroup();
-        if (!NullColumnValueGetter.isNullURI(cgId)) {
+        if (!NullColumnValueGetter.isNullURI(cgId) && !NullColumnValueGetter.isNullValue(snap.getReplicationGroupInstance())) {
             // Collect all the BlockSnapshots if part of a CG.
             snapshots = ControllerUtils.getSnapshotsPartOfReplicationGroup(snap, _dbClient);
         } else {

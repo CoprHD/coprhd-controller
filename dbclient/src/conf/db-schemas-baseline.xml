@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <!--
  The following schema is auto generated
-by com.emc.storageos.db.common.DbSchemaChecker against ViPR version 3.0, at Wed Mar 02 07:25:10 UTC 2016
+by com.emc.storageos.db.common.DbSchemaChecker against ViPR version 3.0, at Mon Mar 07 05:45:43 UTC 2016
 Please DO NOT modify the content.
 -->
 <dbschemas>
@@ -72,6 +72,7 @@ Please DO NOT modify the content.
             <field name="volume" type="java.net.URI">
                 <annotations>
                     <annotation name="RelationIndex" type="com.emc.storageos.db.client.model.RelationIndex">
+                        <annotation_value name="types" value=""/>
                         <annotation_value name="cf" value="RelationIndex"/>
                         <annotation_value name="deactivateIfEmpty" value="false"/>
                         <annotation_value name="type" type="com.emc.storageos.db.client.model.Volume" value="Volume"/>
@@ -172,6 +173,7 @@ Please DO NOT modify the content.
             <field name="computeSystem" type="java.net.URI">
                 <annotations>
                     <annotation name="RelationIndex" type="com.emc.storageos.db.client.model.RelationIndex">
+                        <annotation_value name="types" value=""/>
                         <annotation_value name="cf" value="RelationIndex"/>
                         <annotation_value name="deactivateIfEmpty" value="false"/>
                         <annotation_value name="type" type="com.emc.storageos.db.client.model.ComputeSystem" value="ComputeSystem"/>
@@ -268,6 +270,7 @@ Please DO NOT modify the content.
             <field name="serviceProfileTemplate" type="java.net.URI">
                 <annotations>
                     <annotation name="RelationIndex" type="com.emc.storageos.db.client.model.RelationIndex">
+                        <annotation_value name="types" value=""/>
                         <annotation_value name="cf" value="RelationIndex"/>
                         <annotation_value name="deactivateIfEmpty" value="false"/>
                         <annotation_value name="type" type="com.emc.storageos.db.client.model.UCSServiceProfileTemplate" value="UCSServiceProfileTemplate"/>
@@ -306,6 +309,7 @@ Please DO NOT modify the content.
             <field name="computeImages" type="com.emc.storageos.db.client.model.StringSet">
                 <annotations>
                     <annotation name="RelationIndex" type="com.emc.storageos.db.client.model.RelationIndex">
+                        <annotation_value name="types" value=""/>
                         <annotation_value name="cf" value="RelationIndex"/>
                         <annotation_value name="deactivateIfEmpty" value="false"/>
                         <annotation_value name="type" type="com.emc.storageos.db.client.model.ComputeImage" value="ComputeImage"/>
@@ -509,6 +513,7 @@ Please DO NOT modify the content.
             <field name="bootVolumeId" type="java.net.URI">
                 <annotations>
                     <annotation name="RelationIndex" type="com.emc.storageos.db.client.model.RelationIndex">
+                        <annotation_value name="types" value=""/>
                         <annotation_value name="cf" value="RelationIndex"/>
                         <annotation_value name="deactivateIfEmpty" value="false"/>
                         <annotation_value name="type" type="com.emc.storageos.db.client.model.Volume" value="Volume"/>
@@ -518,6 +523,7 @@ Please DO NOT modify the content.
             <field name="cluster" type="java.net.URI">
                 <annotations>
                     <annotation name="RelationIndex" type="com.emc.storageos.db.client.model.RelationIndex">
+                        <annotation_value name="types" value=""/>
                         <annotation_value name="cf" value="RelationIndex"/>
                         <annotation_value name="deactivateIfEmpty" value="false"/>
                         <annotation_value name="type" type="com.emc.storageos.db.client.model.Cluster" value="Cluster"/>
@@ -534,6 +540,7 @@ Please DO NOT modify the content.
             <field name="computeElement" type="java.net.URI">
                 <annotations>
                     <annotation name="RelationIndex" type="com.emc.storageos.db.client.model.RelationIndex">
+                        <annotation_value name="types" value=""/>
                         <annotation_value name="cf" value="RelationIndex"/>
                         <annotation_value name="deactivateIfEmpty" value="false"/>
                         <annotation_value name="type" type="com.emc.storageos.db.client.model.ComputeElement" value="ComputeElement"/>
@@ -543,6 +550,7 @@ Please DO NOT modify the content.
             <field name="computeVirtualPoolId" type="java.net.URI">
                 <annotations>
                     <annotation name="RelationIndex" type="com.emc.storageos.db.client.model.RelationIndex">
+                        <annotation_value name="types" value=""/>
                         <annotation_value name="cf" value="RelationIndex"/>
                         <annotation_value name="deactivateIfEmpty" value="false"/>
                         <annotation_value name="type" type="com.emc.storageos.db.client.model.ComputeVirtualPool" value="ComputeVirtualPool"/>
@@ -653,6 +661,7 @@ Please DO NOT modify the content.
             <field name="project" type="java.net.URI">
                 <annotations>
                     <annotation name="RelationIndex" type="com.emc.storageos.db.client.model.RelationIndex">
+                        <annotation_value name="types" value=""/>
                         <annotation_value name="cf" value="RelationIndex"/>
                         <annotation_value name="deactivateIfEmpty" value="false"/>
                         <annotation_value name="type" type="com.emc.storageos.db.client.model.Project" value="Project"/>
@@ -689,6 +698,7 @@ Please DO NOT modify the content.
             <field name="tenant" type="java.net.URI">
                 <annotations>
                     <annotation name="RelationIndex" type="com.emc.storageos.db.client.model.RelationIndex">
+                        <annotation_value name="types" value=""/>
                         <annotation_value name="cf" value="RelationIndex"/>
                         <annotation_value name="deactivateIfEmpty" value="false"/>
                         <annotation_value name="type" type="com.emc.storageos.db.client.model.TenantOrg" value="TenantOrg"/>
@@ -714,6 +724,7 @@ Please DO NOT modify the content.
             <field name="vcenterDataCenter" type="java.net.URI">
                 <annotations>
                     <annotation name="RelationIndex" type="com.emc.storageos.db.client.model.RelationIndex">
+                        <annotation_value name="types" value=""/>
                         <annotation_value name="cf" value="RelationIndex"/>
                         <annotation_value name="deactivateIfEmpty" value="false"/>
                         <annotation_value name="type" type="com.emc.storageos.db.client.model.VcenterDataCenter" value="VcenterDataCenter"/>
@@ -849,6 +860,7 @@ Please DO NOT modify the content.
             <field name="pool" type="java.net.URI">
                 <annotations>
                     <annotation name="RelationIndex" type="com.emc.storageos.db.client.model.RelationIndex">
+                        <annotation_value name="types" value=""/>
                         <annotation_value name="cf" value="RelationIndex"/>
                         <annotation_value name="deactivateIfEmpty" value="false"/>
                         <annotation_value name="type" type="com.emc.storageos.db.client.model.StoragePool" value="StoragePool"/>
@@ -861,6 +873,7 @@ Please DO NOT modify the content.
             <field name="project" type="com.emc.storageos.db.client.model.NamedURI">
                 <annotations>
                     <annotation name="NamedRelationIndex" type="com.emc.storageos.db.client.model.NamedRelationIndex">
+                        <annotation_value name="types" value=""/>
                         <annotation_value name="cf" value="NamedRelation"/>
                         <annotation_value name="type" type="com.emc.storageos.db.client.model.Project" value="Project"/>
                     </annotation>
@@ -881,6 +894,7 @@ Please DO NOT modify the content.
             <field name="storageDevice" type="java.net.URI">
                 <annotations>
                     <annotation name="RelationIndex" type="com.emc.storageos.db.client.model.RelationIndex">
+                        <annotation_value name="types" value=""/>
                         <annotation_value name="cf" value="RelationIndex"/>
                         <annotation_value name="deactivateIfEmpty" value="false"/>
                         <annotation_value name="type" type="com.emc.storageos.db.client.model.StorageSystem" value="StorageSystem"/>
@@ -890,6 +904,7 @@ Please DO NOT modify the content.
             <field name="storagePort" type="java.net.URI">
                 <annotations>
                     <annotation name="RelationIndex" type="com.emc.storageos.db.client.model.RelationIndex">
+                        <annotation_value name="types" value=""/>
                         <annotation_value name="cf" value="RelationIndex"/>
                         <annotation_value name="deactivateIfEmpty" value="false"/>
                         <annotation_value name="type" type="com.emc.storageos.db.client.model.StoragePort" value="StoragePort"/>
@@ -907,6 +922,7 @@ Please DO NOT modify the content.
             <field name="tenant" type="com.emc.storageos.db.client.model.NamedURI">
                 <annotations>
                     <annotation name="NamedRelationIndex" type="com.emc.storageos.db.client.model.NamedRelationIndex">
+                        <annotation_value name="types" value=""/>
                         <annotation_value name="cf" value="NamedRelation"/>
                         <annotation_value name="type" type="com.emc.storageos.db.client.model.DataObject" value="DataObject"/>
                     </annotation>
@@ -927,6 +943,7 @@ Please DO NOT modify the content.
             <field name="varray" type="java.net.URI">
                 <annotations>
                     <annotation name="RelationIndex" type="com.emc.storageos.db.client.model.RelationIndex">
+                        <annotation_value name="types" value=""/>
                         <annotation_value name="cf" value="RelationIndex"/>
                         <annotation_value name="deactivateIfEmpty" value="false"/>
                         <annotation_value name="type" type="com.emc.storageos.db.client.model.VirtualArray" value="VirtualArray"/>
@@ -942,6 +959,7 @@ Please DO NOT modify the content.
             <field name="virtualPool" type="java.net.URI">
                 <annotations>
                     <annotation name="RelationIndex" type="com.emc.storageos.db.client.model.RelationIndex">
+                        <annotation_value name="types" value=""/>
                         <annotation_value name="cf" value="RelationIndex"/>
                         <annotation_value name="deactivateIfEmpty" value="false"/>
                         <annotation_value name="type" type="com.emc.storageos.db.client.model.VirtualPool" value="VirtualPool"/>
@@ -959,6 +977,7 @@ Please DO NOT modify the content.
             <field name="host" type="java.net.URI">
                 <annotations>
                     <annotation name="RelationIndex" type="com.emc.storageos.db.client.model.RelationIndex">
+                        <annotation_value name="types" value=""/>
                         <annotation_value name="cf" value="RelationIndex"/>
                         <annotation_value name="deactivateIfEmpty" value="false"/>
                         <annotation_value name="type" type="com.emc.storageos.db.client.model.Host" value="Host"/>
@@ -1183,6 +1202,7 @@ Please DO NOT modify the content.
             <field name="storageDevice" type="java.net.URI">
                 <annotations>
                     <annotation name="RelationIndex" type="com.emc.storageos.db.client.model.RelationIndex">
+                        <annotation_value name="types" value=""/>
                         <annotation_value name="cf" value="RelationIndex"/>
                         <annotation_value name="deactivateIfEmpty" value="false"/>
                         <annotation_value name="type" type="com.emc.storageos.db.client.model.StorageSystem" value="StorageSystem"/>
@@ -1192,6 +1212,7 @@ Please DO NOT modify the content.
             <field name="storageHADomain" type="java.net.URI">
                 <annotations>
                     <annotation name="RelationIndex" type="com.emc.storageos.db.client.model.RelationIndex">
+                        <annotation_value name="types" value=""/>
                         <annotation_value name="cf" value="RelationIndex"/>
                         <annotation_value name="deactivateIfEmpty" value="false"/>
                         <annotation_value name="type" type="com.emc.storageos.db.client.model.StorageHADomain" value="StorageHADomain"/>
@@ -1329,6 +1350,7 @@ Please DO NOT modify the content.
             <field name="storageSystems" type="com.emc.storageos.db.client.model.StringSet">
                 <annotations>
                     <annotation name="RelationIndex" type="com.emc.storageos.db.client.model.RelationIndex">
+                        <annotation_value name="types" value=""/>
                         <annotation_value name="cf" value="RelationIndex"/>
                         <annotation_value name="deactivateIfEmpty" value="false"/>
                         <annotation_value name="type" type="com.emc.storageos.db.client.model.StorageSystem" value="StorageSystem"/>
@@ -1625,6 +1647,7 @@ Please DO NOT modify the content.
             <field name="storageSystems" type="com.emc.storageos.db.client.model.StringSet">
                 <annotations>
                     <annotation name="RelationIndex" type="com.emc.storageos.db.client.model.RelationIndex">
+                        <annotation_value name="types" value=""/>
                         <annotation_value name="cf" value="RelationIndex"/>
                         <annotation_value name="deactivateIfEmpty" value="false"/>
                         <annotation_value name="type" type="com.emc.storageos.db.client.model.StorageSystem" value="StorageSystem"/>
@@ -1660,6 +1683,7 @@ Please DO NOT modify the content.
             <field name="computeSanBoot" type="java.net.URI">
                 <annotations>
                     <annotation name="RelationIndex" type="com.emc.storageos.db.client.model.RelationIndex">
+                        <annotation_value name="types" value=""/>
                         <annotation_value name="cf" value="RelationIndex"/>
                         <annotation_value name="deactivateIfEmpty" value="false"/>
                         <annotation_value name="type" type="com.emc.storageos.db.client.model.ComputeSanBoot" value="ComputeSanBoot"/>
@@ -1872,6 +1896,7 @@ Please DO NOT modify the content.
             <field name="computeSystem" type="java.net.URI">
                 <annotations>
                     <annotation name="RelationIndex" type="com.emc.storageos.db.client.model.RelationIndex">
+                        <annotation_value name="types" value=""/>
                         <annotation_value name="cf" value="ComputeRelationIndex"/>
                         <annotation_value name="deactivateIfEmpty" value="false"/>
                         <annotation_value name="type" type="com.emc.storageos.db.client.model.ComputeSystem" value="ComputeSystem"/>
@@ -2195,6 +2220,7 @@ Please DO NOT modify the content.
             <field name="workflow" type="java.net.URI">
                 <annotations>
                     <annotation name="RelationIndex" type="com.emc.storageos.db.client.model.RelationIndex">
+                        <annotation_value name="types" value=""/>
                         <annotation_value name="cf" value="RelationIndex"/>
                         <annotation_value name="deactivateIfEmpty" value="false"/>
                         <annotation_value name="type" type="com.emc.storageos.db.client.model.Workflow" value="Workflow"/>
@@ -2222,6 +2248,7 @@ Please DO NOT modify the content.
             <field name="consistencyGroup" type="java.net.URI">
                 <annotations>
                     <annotation name="RelationIndex" type="com.emc.storageos.db.client.model.RelationIndex">
+                        <annotation_value name="types" value=""/>
                         <annotation_value name="cf" value="RelationIndex"/>
                         <annotation_value name="deactivateIfEmpty" value="false"/>
                         <annotation_value name="type" type="com.emc.storageos.db.client.model.BlockConsistencyGroup" value="BlockConsistencyGroup"/>
@@ -2323,6 +2350,7 @@ Please DO NOT modify the content.
             <field name="parent" type="com.emc.storageos.db.client.model.NamedURI">
                 <annotations>
                     <annotation name="NamedRelationIndex" type="com.emc.storageos.db.client.model.NamedRelationIndex">
+                        <annotation_value name="types" value=""/>
                         <annotation_value name="cf" value="NamedRelationIndex"/>
                         <annotation_value name="type" type="com.emc.storageos.db.client.model.Volume" value="Volume"/>
                     </annotation>
@@ -2340,6 +2368,7 @@ Please DO NOT modify the content.
             <field name="project" type="com.emc.storageos.db.client.model.NamedURI">
                 <annotations>
                     <annotation name="NamedRelationIndex" type="com.emc.storageos.db.client.model.NamedRelationIndex">
+                        <annotation_value name="types" value=""/>
                         <annotation_value name="cf" value="NamedRelationIndex"/>
                         <annotation_value name="type" type="com.emc.storageos.db.client.model.Project" value="Project"/>
                     </annotation>
@@ -2348,6 +2377,7 @@ Please DO NOT modify the content.
             <field name="protectionDevice" type="java.net.URI">
                 <annotations>
                     <annotation name="RelationIndex" type="com.emc.storageos.db.client.model.RelationIndex">
+                        <annotation_value name="types" value=""/>
                         <annotation_value name="cf" value="RelationIndex"/>
                         <annotation_value name="deactivateIfEmpty" value="false"/>
                         <annotation_value name="type" type="com.emc.storageos.db.client.model.ProtectionSystem" value="ProtectionSystem"/>
@@ -2357,6 +2387,7 @@ Please DO NOT modify the content.
             <field name="protectionSet" type="java.net.URI">
                 <annotations>
                     <annotation name="RelationIndex" type="com.emc.storageos.db.client.model.RelationIndex">
+                        <annotation_value name="types" value=""/>
                         <annotation_value name="cf" value="RelationIndex"/>
                         <annotation_value name="deactivateIfEmpty" value="false"/>
                         <annotation_value name="type" type="com.emc.storageos.db.client.model.ProtectionSet" value="ProtectionSet"/>
@@ -2405,6 +2436,7 @@ Please DO NOT modify the content.
             <field name="storageDevice" type="java.net.URI">
                 <annotations>
                     <annotation name="RelationIndex" type="com.emc.storageos.db.client.model.RelationIndex">
+                        <annotation_value name="types" value=""/>
                         <annotation_value name="cf" value="RelationIndex"/>
                         <annotation_value name="deactivateIfEmpty" value="false"/>
                         <annotation_value name="type" type="com.emc.storageos.db.client.model.StorageSystem" value="StorageSystem"/>
@@ -2425,6 +2457,7 @@ Please DO NOT modify the content.
             <field name="varray" type="java.net.URI">
                 <annotations>
                     <annotation name="RelationIndex" type="com.emc.storageos.db.client.model.RelationIndex">
+                        <annotation_value name="types" value=""/>
                         <annotation_value name="cf" value="RelationIndex"/>
                         <annotation_value name="deactivateIfEmpty" value="false"/>
                         <annotation_value name="type" type="com.emc.storageos.db.client.model.VirtualArray" value="VirtualArray"/>
@@ -2493,6 +2526,7 @@ Please DO NOT modify the content.
             <field name="parentTenant" type="com.emc.storageos.db.client.model.NamedURI">
                 <annotations>
                     <annotation name="NamedRelationIndex" type="com.emc.storageos.db.client.model.NamedRelationIndex">
+                        <annotation_value name="types" value=""/>
                         <annotation_value name="cf" value="NamedRelation"/>
                         <annotation_value name="type" type="com.emc.storageos.db.client.model.TenantOrg" value="TenantOrg"/>
                     </annotation>
@@ -2534,6 +2568,7 @@ Please DO NOT modify the content.
             <field name="assignedVirtualArrays" type="com.emc.storageos.db.client.model.StringSet">
                 <annotations>
                     <annotation name="RelationIndex" type="com.emc.storageos.db.client.model.RelationIndex">
+                        <annotation_value name="types" value=""/>
                         <annotation_value name="cf" value="SecondaryRelationIndex"/>
                         <annotation_value name="deactivateIfEmpty" value="false"/>
                         <annotation_value name="type" type="com.emc.storageos.db.client.model.VirtualArray" value="VirtualArray"/>
@@ -2544,6 +2579,7 @@ Please DO NOT modify the content.
             <field name="connectedVirtualArrays" type="com.emc.storageos.db.client.model.StringSet">
                 <annotations>
                     <annotation name="RelationIndex" type="com.emc.storageos.db.client.model.RelationIndex">
+                        <annotation_value name="types" value=""/>
                         <annotation_value name="cf" value="TertiaryRelationIndex"/>
                         <annotation_value name="deactivateIfEmpty" value="false"/>
                         <annotation_value name="type" type="com.emc.storageos.db.client.model.VirtualArray" value="VirtualArray"/>
@@ -2613,6 +2649,7 @@ Please DO NOT modify the content.
             <field name="networkSystems" type="com.emc.storageos.db.client.model.StringSet">
                 <annotations>
                     <annotation name="RelationIndex" type="com.emc.storageos.db.client.model.RelationIndex">
+                        <annotation_value name="types" value=""/>
                         <annotation_value name="cf" value="RelationIndex"/>
                         <annotation_value name="deactivateIfEmpty" value="true"/>
                         <annotation_value name="type" type="com.emc.storageos.db.client.model.NetworkSystem" value="NetworkSystem"/>
@@ -2637,6 +2674,7 @@ Please DO NOT modify the content.
             <field name="routedNetworks" type="com.emc.storageos.db.client.model.StringSet">
                 <annotations>
                     <annotation name="RelationIndex" type="com.emc.storageos.db.client.model.RelationIndex">
+                        <annotation_value name="types" value=""/>
                         <annotation_value name="cf" value="RelationIndex"/>
                         <annotation_value name="deactivateIfEmpty" value="false"/>
                         <annotation_value name="type" type="com.emc.storageos.db.client.model.Network" value="Network"/>
@@ -2658,6 +2696,7 @@ Please DO NOT modify the content.
             <field name="varray" type="java.net.URI">
                 <annotations>
                     <annotation name="RelationIndex" type="com.emc.storageos.db.client.model.RelationIndex">
+                        <annotation_value name="types" value=""/>
                         <annotation_value name="cf" value="RelationIndex"/>
                         <annotation_value name="deactivateIfEmpty" value="false"/>
                         <annotation_value name="type" type="com.emc.storageos.db.client.model.VirtualArray" value="VirtualArray"/>
@@ -3015,6 +3054,7 @@ Please DO NOT modify the content.
             <field name="varray" type="java.net.URI">
                 <annotations>
                     <annotation name="RelationIndex" type="com.emc.storageos.db.client.model.RelationIndex">
+                        <annotation_value name="types" value=""/>
                         <annotation_value name="cf" value="RelationIndex"/>
                         <annotation_value name="deactivateIfEmpty" value="false"/>
                         <annotation_value name="type" type="com.emc.storageos.db.client.model.VirtualArray" value="VirtualArray"/>
@@ -3200,6 +3240,7 @@ Please DO NOT modify the content.
             <field name="tenantOrg" type="com.emc.storageos.db.client.model.NamedURI">
                 <annotations>
                     <annotation name="NamedRelationIndex" type="com.emc.storageos.db.client.model.NamedRelationIndex">
+                        <annotation_value name="types" value=""/>
                         <annotation_value name="cf" value="NamedRelation"/>
                         <annotation_value name="type" type="com.emc.storageos.db.client.model.TenantOrg" value="TenantOrg"/>
                     </annotation>
@@ -3286,6 +3327,7 @@ Please DO NOT modify the content.
             <field name="parent" type="com.emc.storageos.db.client.model.NamedURI">
                 <annotations>
                     <annotation name="NamedRelationIndex" type="com.emc.storageos.db.client.model.NamedRelationIndex">
+                        <annotation_value name="types" value=""/>
                         <annotation_value name="cf" value="NamedRelationIndex"/>
                         <annotation_value name="type" type="com.emc.storageos.db.client.model.FileShare" value="FileShare"/>
                     </annotation>
@@ -3301,6 +3343,7 @@ Please DO NOT modify the content.
             <field name="project" type="com.emc.storageos.db.client.model.NamedURI">
                 <annotations>
                     <annotation name="NamedRelationIndex" type="com.emc.storageos.db.client.model.NamedRelationIndex">
+                        <annotation_value name="types" value=""/>
                         <annotation_value name="cf" value="NamedRelationIndex"/>
                         <annotation_value name="type" type="com.emc.storageos.db.client.model.Project" value="Project"/>
                     </annotation>
@@ -3332,6 +3375,7 @@ Please DO NOT modify the content.
             <field name="tenant" type="com.emc.storageos.db.client.model.NamedURI">
                 <annotations>
                     <annotation name="NamedRelationIndex" type="com.emc.storageos.db.client.model.NamedRelationIndex">
+                        <annotation_value name="types" value=""/>
                         <annotation_value name="cf" value="NamedRelation"/>
                         <annotation_value name="type" type="com.emc.storageos.db.client.model.DataObject" value="DataObject"/>
                     </annotation>
@@ -3358,6 +3402,7 @@ Please DO NOT modify the content.
             <field name="computeSystem" type="java.net.URI">
                 <annotations>
                     <annotation name="RelationIndex" type="com.emc.storageos.db.client.model.RelationIndex">
+                        <annotation_value name="types" value=""/>
                         <annotation_value name="cf" value="ComputeRelationIndex"/>
                         <annotation_value name="deactivateIfEmpty" value="false"/>
                         <annotation_value name="type" type="com.emc.storageos.db.client.model.ComputeSystem" value="ComputeSystem"/>
@@ -3580,6 +3625,7 @@ Please DO NOT modify the content.
             <field name="userid" type="java.net.URI">
                 <annotations>
                     <annotation name="RelationIndex" type="com.emc.storageos.db.client.model.RelationIndex">
+                        <annotation_value name="types" value=""/>
                         <annotation_value name="cf" value="RelationIndex"/>
                         <annotation_value name="deactivateIfEmpty" value="false"/>
                         <annotation_value name="type" type="com.emc.storageos.db.client.model.StorageOSUserDAO" value="StorageOSUserDAO"/>
@@ -3930,6 +3976,7 @@ Please DO NOT modify the content.
             <field name="lastKnownIds" type="com.emc.storageos.db.client.model.StringSet">
                 <annotations>
                     <annotation name="RelationIndex" type="com.emc.storageos.db.client.model.RelationIndex">
+                        <annotation_value name="types" value=""/>
                         <annotation_value name="cf" value="RelationIndex"/>
                         <annotation_value name="deactivateIfEmpty" value="false"/>
                         <annotation_value name="type" type="com.emc.storageos.db.client.model.StorageOSUserDAO" value="StorageOSUserDAO"/>
@@ -4021,6 +4068,7 @@ Please DO NOT modify the content.
             <field name="project" type="java.net.URI">
                 <annotations>
                     <annotation name="RelationIndex" type="com.emc.storageos.db.client.model.RelationIndex">
+                        <annotation_value name="types" value=""/>
                         <annotation_value name="cf" value="RelationIndex"/>
                         <annotation_value name="deactivateIfEmpty" value="false"/>
                         <annotation_value name="type" type="com.emc.storageos.db.client.model.Project" value="Project"/>
@@ -4038,6 +4086,7 @@ Please DO NOT modify the content.
             <field name="tenant" type="java.net.URI">
                 <annotations>
                     <annotation name="RelationIndex" type="com.emc.storageos.db.client.model.RelationIndex">
+                        <annotation_value name="types" value=""/>
                         <annotation_value name="cf" value="RelationIndex"/>
                         <annotation_value name="deactivateIfEmpty" value="false"/>
                         <annotation_value name="type" type="com.emc.storageos.db.client.model.TenantOrg" value="TenantOrg"/>
@@ -4047,6 +4096,7 @@ Please DO NOT modify the content.
             <field name="vcenterDataCenter" type="java.net.URI">
                 <annotations>
                     <annotation name="RelationIndex" type="com.emc.storageos.db.client.model.RelationIndex">
+                        <annotation_value name="types" value=""/>
                         <annotation_value name="cf" value="RelationIndex"/>
                         <annotation_value name="deactivateIfEmpty" value="false"/>
                         <annotation_value name="type" type="com.emc.storageos.db.client.model.VcenterDataCenter" value="VcenterDataCenter"/>
@@ -4125,6 +4175,7 @@ Please DO NOT modify the content.
             <field name="project" type="com.emc.storageos.db.client.model.NamedURI">
                 <annotations>
                     <annotation name="NamedRelationIndex" type="com.emc.storageos.db.client.model.NamedRelationIndex">
+                        <annotation_value name="types" value=""/>
                         <annotation_value name="cf" value="NamedRelation"/>
                         <annotation_value name="type" type="com.emc.storageos.db.client.model.Project" value="Project"/>
                     </annotation>
@@ -4136,6 +4187,7 @@ Please DO NOT modify the content.
             <field name="source" type="com.emc.storageos.db.client.model.NamedURI">
                 <annotations>
                     <annotation name="NamedRelationIndex" type="com.emc.storageos.db.client.model.NamedRelationIndex">
+                        <annotation_value name="types" value=""/>
                         <annotation_value name="cf" value="NamedRelation"/>
                         <annotation_value name="type" type="com.emc.storageos.db.client.model.Volume" value="Volume"/>
                     </annotation>
@@ -4144,6 +4196,7 @@ Please DO NOT modify the content.
             <field name="storageDevice" type="java.net.URI">
                 <annotations>
                     <annotation name="RelationIndex" type="com.emc.storageos.db.client.model.RelationIndex">
+                        <annotation_value name="types" value=""/>
                         <annotation_value name="cf" value="RelationIndex"/>
                         <annotation_value name="deactivateIfEmpty" value="false"/>
                         <annotation_value name="type" type="com.emc.storageos.db.client.model.StorageSystem" value="StorageSystem"/>
@@ -4161,6 +4214,7 @@ Please DO NOT modify the content.
             <field name="tenant" type="com.emc.storageos.db.client.model.NamedURI">
                 <annotations>
                     <annotation name="NamedRelationIndex" type="com.emc.storageos.db.client.model.NamedRelationIndex">
+                        <annotation_value name="types" value=""/>
                         <annotation_value name="cf" value="NamedRelation"/>
                         <annotation_value name="type" type="com.emc.storageos.db.client.model.DataObject" value="DataObject"/>
                     </annotation>
@@ -4175,6 +4229,7 @@ Please DO NOT modify the content.
             <field name="varray" type="java.net.URI">
                 <annotations>
                     <annotation name="RelationIndex" type="com.emc.storageos.db.client.model.RelationIndex">
+                        <annotation_value name="types" value=""/>
                         <annotation_value name="cf" value="RelationIndex"/>
                         <annotation_value name="deactivateIfEmpty" value="false"/>
                         <annotation_value name="type" type="com.emc.storageos.db.client.model.VirtualArray" value="VirtualArray"/>
@@ -4184,6 +4239,7 @@ Please DO NOT modify the content.
             <field name="virtualPool" type="java.net.URI">
                 <annotations>
                     <annotation name="RelationIndex" type="com.emc.storageos.db.client.model.RelationIndex">
+                        <annotation_value name="types" value=""/>
                         <annotation_value name="cf" value="RelationIndex"/>
                         <annotation_value name="deactivateIfEmpty" value="false"/>
                         <annotation_value name="type" type="com.emc.storageos.db.client.model.VirtualPool" value="VirtualPool"/>
@@ -4291,6 +4347,7 @@ Please DO NOT modify the content.
             <field name="project" type="java.net.URI">
                 <annotations>
                     <annotation name="RelationIndex" type="com.emc.storageos.db.client.model.RelationIndex">
+                        <annotation_value name="types" value=""/>
                         <annotation_value name="cf" value="RelationIndex"/>
                         <annotation_value name="deactivateIfEmpty" value="false"/>
                         <annotation_value name="type" type="com.emc.storageos.db.client.model.Project" value="Project"/>
@@ -4317,6 +4374,7 @@ Please DO NOT modify the content.
             <field name="vpool" type="java.net.URI">
                 <annotations>
                     <annotation name="RelationIndex" type="com.emc.storageos.db.client.model.RelationIndex">
+                        <annotation_value name="types" value=""/>
                         <annotation_value name="cf" value="RelationIndex"/>
                         <annotation_value name="deactivateIfEmpty" value="false"/>
                         <annotation_value name="type" type="com.emc.storageos.db.client.model.VirtualPool" value="VirtualPool"/>
@@ -4338,6 +4396,7 @@ Please DO NOT modify the content.
             <field name="computeBootDef" type="java.net.URI">
                 <annotations>
                     <annotation name="RelationIndex" type="com.emc.storageos.db.client.model.RelationIndex">
+                        <annotation_value name="types" value=""/>
                         <annotation_value name="cf" value="RelationIndex"/>
                         <annotation_value name="deactivateIfEmpty" value="false"/>
                         <annotation_value name="type" type="com.emc.storageos.db.client.model.ComputeBootDef" value="ComputeBootDef"/>
@@ -4347,6 +4406,7 @@ Please DO NOT modify the content.
             <field name="computeBootPolicy" type="java.net.URI">
                 <annotations>
                     <annotation name="RelationIndex" type="com.emc.storageos.db.client.model.RelationIndex">
+                        <annotation_value name="types" value=""/>
                         <annotation_value name="cf" value="RelationIndex"/>
                         <annotation_value name="deactivateIfEmpty" value="false"/>
                         <annotation_value name="type" type="com.emc.storageos.db.client.model.ComputeBootPolicy" value="ComputeBootPolicy"/>
@@ -4475,6 +4535,7 @@ Please DO NOT modify the content.
             <field name="bucketId" type="java.net.URI">
                 <annotations>
                     <annotation name="RelationIndex" type="com.emc.storageos.db.client.model.RelationIndex">
+                        <annotation_value name="types" value=""/>
                         <annotation_value name="cf" value="RelationIndex"/>
                         <annotation_value name="deactivateIfEmpty" value="false"/>
                         <annotation_value name="type" type="com.emc.storageos.db.client.model.Bucket" value="Bucket"/>
@@ -4617,6 +4678,7 @@ Please DO NOT modify the content.
             <field name="computeSystem" type="java.net.URI">
                 <annotations>
                     <annotation name="RelationIndex" type="com.emc.storageos.db.client.model.RelationIndex">
+                        <annotation_value name="types" value=""/>
                         <annotation_value name="cf" value="RelationIndex"/>
                         <annotation_value name="deactivateIfEmpty" value="false"/>
                         <annotation_value name="type" type="com.emc.storageos.db.client.model.ComputeSystem" value="ComputeSystem"/>
@@ -4702,6 +4764,7 @@ Please DO NOT modify the content.
             <field name="fileSystemId" type="java.net.URI">
                 <annotations>
                     <annotation name="RelationIndex" type="com.emc.storageos.db.client.model.RelationIndex">
+                        <annotation_value name="types" value=""/>
                         <annotation_value name="cf" value="RelationIndex"/>
                         <annotation_value name="deactivateIfEmpty" value="false"/>
                         <annotation_value name="type" type="com.emc.storageos.db.client.model.FileShare" value="FileShare"/>
@@ -4762,6 +4825,7 @@ Please DO NOT modify the content.
             <field name="snapshotId" type="java.net.URI">
                 <annotations>
                     <annotation name="RelationIndex" type="com.emc.storageos.db.client.model.RelationIndex">
+                        <annotation_value name="types" value=""/>
                         <annotation_value name="cf" value="RelationIndex"/>
                         <annotation_value name="deactivateIfEmpty" value="false"/>
                         <annotation_value name="type" type="com.emc.storageos.db.client.model.Snapshot" value="Snapshot"/>
@@ -5338,6 +5402,7 @@ Please DO NOT modify the content.
             <field name="resource" type="com.emc.storageos.db.client.model.NamedURI">
                 <annotations>
                     <annotation name="NamedRelationIndex" type="com.emc.storageos.db.client.model.NamedRelationIndex">
+                        <annotation_value name="types" value="Volume,BlockSnapshot,VolumeGroup,BlockConsistencyGroup,Host,ExportGroup,FileShare,Snapshot,"/>
                         <annotation_value name="cf" value="TaskResource"/>
                         <annotation_value name="type" type="com.emc.storageos.db.client.model.DataObject" value="DataObject"/>
                     </annotation>
@@ -5369,6 +5434,7 @@ Please DO NOT modify the content.
             <field name="tenant" type="java.net.URI">
                 <annotations>
                     <annotation name="RelationIndex" type="com.emc.storageos.db.client.model.RelationIndex">
+                        <annotation_value name="types" value=""/>
                         <annotation_value name="cf" value="RelationIndex"/>
                         <annotation_value name="deactivateIfEmpty" value="false"/>
                         <annotation_value name="type" type="com.emc.storageos.db.client.model.TenantOrg" value="TenantOrg"/>
@@ -5517,6 +5583,7 @@ Please DO NOT modify the content.
             <field name="storageDevice" type="java.net.URI">
                 <annotations>
                     <annotation name="RelationIndex" type="com.emc.storageos.db.client.model.RelationIndex">
+                        <annotation_value name="types" value=""/>
                         <annotation_value name="cf" value="TierToStorageDevice"/>
                         <annotation_value name="deactivateIfEmpty" value="false"/>
                         <annotation_value name="type" type="com.emc.storageos.db.client.model.StorageSystem" value="StorageSystem"/>
@@ -5708,6 +5775,7 @@ Please DO NOT modify the content.
             <field name="computeSystem" type="java.net.URI">
                 <annotations>
                     <annotation name="RelationIndex" type="com.emc.storageos.db.client.model.RelationIndex">
+                        <annotation_value name="types" value=""/>
                         <annotation_value name="cf" value="RelationIndex"/>
                         <annotation_value name="deactivateIfEmpty" value="false"/>
                         <annotation_value name="type" type="com.emc.storageos.db.client.model.ComputeSystem" value="ComputeSystem"/>
@@ -5879,6 +5947,7 @@ Please DO NOT modify the content.
             <field name="rpProtectionSystem" type="java.net.URI">
                 <annotations>
                     <annotation name="RelationIndex" type="com.emc.storageos.db.client.model.RelationIndex">
+                        <annotation_value name="types" value=""/>
                         <annotation_value name="cf" value="RelationIndex"/>
                         <annotation_value name="deactivateIfEmpty" value="false"/>
                         <annotation_value name="type" type="com.emc.storageos.db.client.model.ProtectionSystem" value="ProtectionSystem"/>
@@ -5891,6 +5960,7 @@ Please DO NOT modify the content.
             <field name="storageSystem" type="java.net.URI">
                 <annotations>
                     <annotation name="RelationIndex" type="com.emc.storageos.db.client.model.RelationIndex">
+                        <annotation_value name="types" value=""/>
                         <annotation_value name="cf" value="RelationIndex"/>
                         <annotation_value name="deactivateIfEmpty" value="false"/>
                         <annotation_value name="type" type="com.emc.storageos.db.client.model.StorageSystem" value="StorageSystem"/>
@@ -5982,6 +6052,7 @@ Please DO NOT modify the content.
             <field name="computeLanBoot" type="java.net.URI">
                 <annotations>
                     <annotation name="RelationIndex" type="com.emc.storageos.db.client.model.RelationIndex">
+                        <annotation_value name="types" value=""/>
                         <annotation_value name="cf" value="RelationIndex"/>
                         <annotation_value name="deactivateIfEmpty" value="false"/>
                         <annotation_value name="type" type="com.emc.storageos.db.client.model.ComputeLanBoot" value="ComputeLanBoot"/>
@@ -6113,6 +6184,7 @@ Please DO NOT modify the content.
             <field name="computeBootDef" type="java.net.URI">
                 <annotations>
                     <annotation name="RelationIndex" type="com.emc.storageos.db.client.model.RelationIndex">
+                        <annotation_value name="types" value=""/>
                         <annotation_value name="cf" value="RelationIndex"/>
                         <annotation_value name="deactivateIfEmpty" value="false"/>
                         <annotation_value name="type" type="com.emc.storageos.db.client.model.ComputeBootDef" value="ComputeBootDef"/>
@@ -6122,6 +6194,7 @@ Please DO NOT modify the content.
             <field name="computeBootPolicy" type="java.net.URI">
                 <annotations>
                     <annotation name="RelationIndex" type="com.emc.storageos.db.client.model.RelationIndex">
+                        <annotation_value name="types" value=""/>
                         <annotation_value name="cf" value="RelationIndex"/>
                         <annotation_value name="deactivateIfEmpty" value="false"/>
                         <annotation_value name="type" type="com.emc.storageos.db.client.model.ComputeBootPolicy" value="ComputeBootPolicy"/>
@@ -6328,6 +6401,7 @@ Please DO NOT modify the content.
             <field name="storagePool" type="java.net.URI">
                 <annotations>
                     <annotation name="RelationIndex" type="com.emc.storageos.db.client.model.RelationIndex">
+                        <annotation_value name="types" value=""/>
                         <annotation_value name="cf" value="RelationIndex"/>
                         <annotation_value name="deactivateIfEmpty" value="false"/>
                         <annotation_value name="type" type="com.emc.storageos.db.client.model.StoragePool" value="StoragePool"/>
@@ -6337,6 +6411,7 @@ Please DO NOT modify the content.
             <field name="storageSystem" type="java.net.URI">
                 <annotations>
                     <annotation name="RelationIndex" type="com.emc.storageos.db.client.model.RelationIndex">
+                        <annotation_value name="types" value=""/>
                         <annotation_value name="cf" value="RelationIndex"/>
                         <annotation_value name="deactivateIfEmpty" value="false"/>
                         <annotation_value name="type" type="com.emc.storageos.db.client.model.StorageSystem" value="StorageSystem"/>
@@ -6495,6 +6570,7 @@ Please DO NOT modify the content.
             <field name="tenant" type="java.net.URI">
                 <annotations>
                     <annotation name="RelationIndex" type="com.emc.storageos.db.client.model.RelationIndex">
+                        <annotation_value name="types" value=""/>
                         <annotation_value name="cf" value="RelationIndex"/>
                         <annotation_value name="deactivateIfEmpty" value="false"/>
                         <annotation_value name="type" type="com.emc.storageos.db.client.model.TenantOrg" value="TenantOrg"/>
@@ -6588,6 +6664,7 @@ Please DO NOT modify the content.
             <field name="tenantOrg" type="com.emc.storageos.db.client.model.NamedURI">
                 <annotations>
                     <annotation name="NamedRelationIndex" type="com.emc.storageos.db.client.model.NamedRelationIndex">
+                        <annotation_value name="types" value=""/>
                         <annotation_value name="cf" value="NamedRelation"/>
                         <annotation_value name="type" type="com.emc.storageos.db.client.model.TenantOrg" value="TenantOrg"/>
                     </annotation>
@@ -6667,6 +6744,7 @@ Please DO NOT modify the content.
             <field name="computeImageId" type="java.net.URI">
                 <annotations>
                     <annotation name="RelationIndex" type="com.emc.storageos.db.client.model.RelationIndex">
+                        <annotation_value name="types" value=""/>
                         <annotation_value name="cf" value="ComputeRelationIndex"/>
                         <annotation_value name="deactivateIfEmpty" value="false"/>
                         <annotation_value name="type" type="com.emc.storageos.db.client.model.ComputeImage" value="ComputeImage"/>
@@ -6676,6 +6754,7 @@ Please DO NOT modify the content.
             <field name="computeImageServerId" type="java.net.URI">
                 <annotations>
                     <annotation name="RelationIndex" type="com.emc.storageos.db.client.model.RelationIndex">
+                        <annotation_value name="types" value=""/>
                         <annotation_value name="cf" value="ComputeRelationIndex"/>
                         <annotation_value name="deactivateIfEmpty" value="false"/>
                         <annotation_value name="type" type="com.emc.storageos.db.client.model.ComputeImageServer" value="ComputeImageServer"/>
@@ -6694,6 +6773,7 @@ Please DO NOT modify the content.
             <field name="hostId" type="java.net.URI">
                 <annotations>
                     <annotation name="RelationIndex" type="com.emc.storageos.db.client.model.RelationIndex">
+                        <annotation_value name="types" value=""/>
                         <annotation_value name="cf" value="ComputeRelationIndex"/>
                         <annotation_value name="deactivateIfEmpty" value="false"/>
                         <annotation_value name="type" type="com.emc.storageos.db.client.model.Host" value="Host"/>
@@ -6840,6 +6920,7 @@ Please DO NOT modify the content.
             <field name="storagePool" type="java.net.URI">
                 <annotations>
                     <annotation name="RelationIndex" type="com.emc.storageos.db.client.model.RelationIndex">
+                        <annotation_value name="types" value=""/>
                         <annotation_value name="cf" value="RelationIndex"/>
                         <annotation_value name="deactivateIfEmpty" value="false"/>
                         <annotation_value name="type" type="com.emc.storageos.db.client.model.StoragePool" value="StoragePool"/>
@@ -6849,6 +6930,7 @@ Please DO NOT modify the content.
             <field name="storageSystem" type="java.net.URI">
                 <annotations>
                     <annotation name="RelationIndex" type="com.emc.storageos.db.client.model.RelationIndex">
+                        <annotation_value name="types" value=""/>
                         <annotation_value name="cf" value="RelationIndex"/>
                         <annotation_value name="deactivateIfEmpty" value="false"/>
                         <annotation_value name="type" type="com.emc.storageos.db.client.model.StorageSystem" value="StorageSystem"/>
@@ -6890,6 +6972,7 @@ Please DO NOT modify the content.
             <field name="host" type="java.net.URI">
                 <annotations>
                     <annotation name="RelationIndex" type="com.emc.storageos.db.client.model.RelationIndex">
+                        <annotation_value name="types" value=""/>
                         <annotation_value name="cf" value="RelationIndex"/>
                         <annotation_value name="deactivateIfEmpty" value="false"/>
                         <annotation_value name="type" type="com.emc.storageos.db.client.model.Host" value="Host"/>
@@ -7055,6 +7138,7 @@ Please DO NOT modify the content.
             <field name="tenant" type="java.net.URI">
                 <annotations>
                     <annotation name="RelationIndex" type="com.emc.storageos.db.client.model.RelationIndex">
+                        <annotation_value name="types" value=""/>
                         <annotation_value name="cf" value="RelationIndex"/>
                         <annotation_value name="deactivateIfEmpty" value="false"/>
                         <annotation_value name="type" type="com.emc.storageos.db.client.model.TenantOrg" value="TenantOrg"/>
@@ -7082,6 +7166,7 @@ Please DO NOT modify the content.
             <field name="exportMasks" type="com.emc.storageos.db.client.model.StringSet">
                 <annotations>
                     <annotation name="RelationIndex" type="com.emc.storageos.db.client.model.RelationIndex">
+                        <annotation_value name="types" value=""/>
                         <annotation_value name="cf" value="RelationIndex"/>
                         <annotation_value name="deactivateIfEmpty" value="false"/>
                         <annotation_value name="type" type="com.emc.storageos.db.client.model.ExportMask" value="ExportMask"/>
@@ -7150,6 +7235,7 @@ Please DO NOT modify the content.
             <field name="project" type="com.emc.storageos.db.client.model.NamedURI">
                 <annotations>
                     <annotation name="NamedRelationIndex" type="com.emc.storageos.db.client.model.NamedRelationIndex">
+                        <annotation_value name="types" value=""/>
                         <annotation_value name="cf" value="NamedRelation"/>
                         <annotation_value name="type" type="com.emc.storageos.db.client.model.Project" value="Project"/>
                     </annotation>
@@ -7158,6 +7244,7 @@ Please DO NOT modify the content.
             <field name="snapshots" type="com.emc.storageos.db.client.model.StringSet">
                 <annotations>
                     <annotation name="RelationIndex" type="com.emc.storageos.db.client.model.RelationIndex">
+                        <annotation_value name="types" value=""/>
                         <annotation_value name="cf" value="RelationIndex"/>
                         <annotation_value name="deactivateIfEmpty" value="false"/>
                         <annotation_value name="type" type="com.emc.storageos.db.client.model.BlockSnapshot" value="BlockSnapshot"/>
@@ -7176,6 +7263,7 @@ Please DO NOT modify the content.
             <field name="tenant" type="com.emc.storageos.db.client.model.NamedURI">
                 <annotations>
                     <annotation name="NamedRelationIndex" type="com.emc.storageos.db.client.model.NamedRelationIndex">
+                        <annotation_value name="types" value=""/>
                         <annotation_value name="cf" value="NamedRelation"/>
                         <annotation_value name="type" type="com.emc.storageos.db.client.model.DataObject" value="DataObject"/>
                     </annotation>
@@ -7198,6 +7286,7 @@ Please DO NOT modify the content.
             <field name="volumes" type="com.emc.storageos.db.client.model.StringMap">
                 <annotations>
                     <annotation name="RelationIndex" type="com.emc.storageos.db.client.model.RelationIndex">
+                        <annotation_value name="types" value=""/>
                         <annotation_value name="cf" value="RelationIndex"/>
                         <annotation_value name="deactivateIfEmpty" value="false"/>
                         <annotation_value name="type" type="com.emc.storageos.db.client.model.Volume" value="Volume"/>
@@ -7311,6 +7400,7 @@ Please DO NOT modify the content.
             <field name="associatedSourceVolume" type="java.net.URI">
                 <annotations>
                     <annotation name="RelationIndex" type="com.emc.storageos.db.client.model.RelationIndex">
+                        <annotation_value name="types" value=""/>
                         <annotation_value name="cf" value="associatedSourceVolumeIndex"/>
                         <annotation_value name="deactivateIfEmpty" value="false"/>
                         <annotation_value name="type" type="com.emc.storageos.db.client.model.Volume" value="Volume"/>
@@ -7342,6 +7432,7 @@ Please DO NOT modify the content.
             <field name="consistencyGroup" type="java.net.URI">
                 <annotations>
                     <annotation name="RelationIndex" type="com.emc.storageos.db.client.model.RelationIndex">
+                        <annotation_value name="types" value=""/>
                         <annotation_value name="cf" value="RelationIndex"/>
                         <annotation_value name="deactivateIfEmpty" value="false"/>
                         <annotation_value name="type" type="com.emc.storageos.db.client.model.BlockConsistencyGroup" value="BlockConsistencyGroup"/>
@@ -7454,6 +7545,7 @@ Please DO NOT modify the content.
             <field name="pool" type="java.net.URI">
                 <annotations>
                     <annotation name="RelationIndex" type="com.emc.storageos.db.client.model.RelationIndex">
+                        <annotation_value name="types" value=""/>
                         <annotation_value name="cf" value="RelationIndex"/>
                         <annotation_value name="deactivateIfEmpty" value="false"/>
                         <annotation_value name="type" type="com.emc.storageos.db.client.model.StoragePool" value="StoragePool"/>
@@ -7463,6 +7555,7 @@ Please DO NOT modify the content.
             <field name="project" type="com.emc.storageos.db.client.model.NamedURI">
                 <annotations>
                     <annotation name="NamedRelationIndex" type="com.emc.storageos.db.client.model.NamedRelationIndex">
+                        <annotation_value name="types" value=""/>
                         <annotation_value name="cf" value="NamedRelation"/>
                         <annotation_value name="type" type="com.emc.storageos.db.client.model.Project" value="Project"/>
                     </annotation>
@@ -7471,6 +7564,7 @@ Please DO NOT modify the content.
             <field name="protectionDevice" type="java.net.URI">
                 <annotations>
                     <annotation name="RelationIndex" type="com.emc.storageos.db.client.model.RelationIndex">
+                        <annotation_value name="types" value=""/>
                         <annotation_value name="cf" value="RelationIndex"/>
                         <annotation_value name="deactivateIfEmpty" value="false"/>
                         <annotation_value name="type" type="com.emc.storageos.db.client.model.ProtectionSystem" value="ProtectionSystem"/>
@@ -7480,6 +7574,7 @@ Please DO NOT modify the content.
             <field name="protectionSet" type="com.emc.storageos.db.client.model.NamedURI">
                 <annotations>
                     <annotation name="NamedRelationIndex" type="com.emc.storageos.db.client.model.NamedRelationIndex">
+                        <annotation_value name="types" value=""/>
                         <annotation_value name="cf" value="NamedRelation"/>
                         <annotation_value name="type" type="com.emc.storageos.db.client.model.ProtectionSet" value="ProtectionSet"/>
                     </annotation>
@@ -7516,6 +7611,7 @@ Please DO NOT modify the content.
             <field name="rpJournalVolume" type="java.net.URI">
                 <annotations>
                     <annotation name="RelationIndex" type="com.emc.storageos.db.client.model.RelationIndex">
+                        <annotation_value name="types" value=""/>
                         <annotation_value name="cf" value="JournalVolumeIndex"/>
                         <annotation_value name="deactivateIfEmpty" value="false"/>
                         <annotation_value name="type" type="com.emc.storageos.db.client.model.Volume" value="Volume"/>
@@ -7532,6 +7628,7 @@ Please DO NOT modify the content.
             <field name="secondaryRpJournalVolume" type="java.net.URI">
                 <annotations>
                     <annotation name="RelationIndex" type="com.emc.storageos.db.client.model.RelationIndex">
+                        <annotation_value name="types" value=""/>
                         <annotation_value name="cf" value="SecondaryJournalVolumeIndex"/>
                         <annotation_value name="deactivateIfEmpty" value="false"/>
                         <annotation_value name="type" type="com.emc.storageos.db.client.model.Volume" value="Volume"/>
@@ -7553,6 +7650,7 @@ Please DO NOT modify the content.
             <field name="storageDevice" type="java.net.URI">
                 <annotations>
                     <annotation name="RelationIndex" type="com.emc.storageos.db.client.model.RelationIndex">
+                        <annotation_value name="types" value=""/>
                         <annotation_value name="cf" value="RelationIndex"/>
                         <annotation_value name="deactivateIfEmpty" value="false"/>
                         <annotation_value name="type" type="com.emc.storageos.db.client.model.StorageSystem" value="StorageSystem"/>
@@ -7573,6 +7671,7 @@ Please DO NOT modify the content.
             <field name="tenant" type="com.emc.storageos.db.client.model.NamedURI">
                 <annotations>
                     <annotation name="NamedRelationIndex" type="com.emc.storageos.db.client.model.NamedRelationIndex">
+                        <annotation_value name="types" value=""/>
                         <annotation_value name="cf" value="NamedRelation"/>
                         <annotation_value name="type" type="com.emc.storageos.db.client.model.DataObject" value="DataObject"/>
                     </annotation>
@@ -7590,6 +7689,7 @@ Please DO NOT modify the content.
             <field name="varray" type="java.net.URI">
                 <annotations>
                     <annotation name="RelationIndex" type="com.emc.storageos.db.client.model.RelationIndex">
+                        <annotation_value name="types" value=""/>
                         <annotation_value name="cf" value="RelationIndex"/>
                         <annotation_value name="deactivateIfEmpty" value="false"/>
                         <annotation_value name="type" type="com.emc.storageos.db.client.model.VirtualArray" value="VirtualArray"/>
@@ -7599,6 +7699,7 @@ Please DO NOT modify the content.
             <field name="virtualPool" type="java.net.URI">
                 <annotations>
                     <annotation name="RelationIndex" type="com.emc.storageos.db.client.model.RelationIndex">
+                        <annotation_value name="types" value=""/>
                         <annotation_value name="cf" value="RelationIndex"/>
                         <annotation_value name="deactivateIfEmpty" value="false"/>
                         <annotation_value name="type" type="com.emc.storageos.db.client.model.VirtualPool" value="VirtualPool"/>
@@ -7800,6 +7901,7 @@ Please DO NOT modify the content.
             <field name="storageDevice" type="java.net.URI">
                 <annotations>
                     <annotation name="RelationIndex" type="com.emc.storageos.db.client.model.RelationIndex">
+                        <annotation_value name="types" value=""/>
                         <annotation_value name="cf" value="RelationIndex"/>
                         <annotation_value name="deactivateIfEmpty" value="false"/>
                         <annotation_value name="type" type="com.emc.storageos.db.client.model.StorageSystem" value="StorageSystem"/>
@@ -8046,6 +8148,7 @@ Please DO NOT modify the content.
             <field name="parentNasUri" type="java.net.URI">
                 <annotations>
                     <annotation name="RelationIndex" type="com.emc.storageos.db.client.model.RelationIndex">
+                        <annotation_value name="types" value=""/>
                         <annotation_value name="cf" value="RelationIndex"/>
                         <annotation_value name="deactivateIfEmpty" value="false"/>
                         <annotation_value name="type" type="com.emc.storageos.db.client.model.PhysicalNAS" value="PhysicalNAS"/>
@@ -8064,6 +8167,7 @@ Please DO NOT modify the content.
             <field name="storageDevice" type="java.net.URI">
                 <annotations>
                     <annotation name="RelationIndex" type="com.emc.storageos.db.client.model.RelationIndex">
+                        <annotation_value name="types" value=""/>
                         <annotation_value name="cf" value="RelationIndex"/>
                         <annotation_value name="deactivateIfEmpty" value="false"/>
                         <annotation_value name="type" type="com.emc.storageos.db.client.model.StorageSystem" value="StorageSystem"/>
@@ -8112,6 +8216,7 @@ Please DO NOT modify the content.
             <field name="fileSystemId" type="java.net.URI">
                 <annotations>
                     <annotation name="RelationIndex" type="com.emc.storageos.db.client.model.RelationIndex">
+                        <annotation_value name="types" value=""/>
                         <annotation_value name="cf" value="RelationIndex"/>
                         <annotation_value name="deactivateIfEmpty" value="false"/>
                         <annotation_value name="type" type="com.emc.storageos.db.client.model.FileShare" value="FileShare"/>
@@ -8175,6 +8280,7 @@ Please DO NOT modify the content.
             <field name="snapshotId" type="java.net.URI">
                 <annotations>
                     <annotation name="RelationIndex" type="com.emc.storageos.db.client.model.RelationIndex">
+                        <annotation_value name="types" value=""/>
                         <annotation_value name="cf" value="RelationIndex"/>
                         <annotation_value name="deactivateIfEmpty" value="false"/>
                         <annotation_value name="type" type="com.emc.storageos.db.client.model.Snapshot" value="Snapshot"/>
@@ -8323,6 +8429,7 @@ Please DO NOT modify the content.
             <field name="computeSanBootImage" type="java.net.URI">
                 <annotations>
                     <annotation name="RelationIndex" type="com.emc.storageos.db.client.model.RelationIndex">
+                        <annotation_value name="types" value=""/>
                         <annotation_value name="cf" value="RelationIndex"/>
                         <annotation_value name="deactivateIfEmpty" value="false"/>
                         <annotation_value name="type" type="com.emc.storageos.db.client.model.ComputeSanBootImage" value="ComputeSanBootImage"/>
@@ -8460,6 +8567,7 @@ Please DO NOT modify the content.
             <field name="computeSystem" type="java.net.URI">
                 <annotations>
                     <annotation name="RelationIndex" type="com.emc.storageos.db.client.model.RelationIndex">
+                        <annotation_value name="types" value=""/>
                         <annotation_value name="cf" value="RelationIndex"/>
                         <annotation_value name="deactivateIfEmpty" value="false"/>
                         <annotation_value name="type" type="com.emc.storageos.db.client.model.ComputeSystem" value="ComputeSystem"/>
@@ -8628,6 +8736,7 @@ Please DO NOT modify the content.
             <field name="matchedComputeElements" type="com.emc.storageos.db.client.model.StringSet">
                 <annotations>
                     <annotation name="RelationIndex" type="com.emc.storageos.db.client.model.RelationIndex">
+                        <annotation_value name="types" value=""/>
                         <annotation_value name="cf" value="MatchedComputeElementsToVCpool"/>
                         <annotation_value name="deactivateIfEmpty" value="false"/>
                         <annotation_value name="type" type="com.emc.storageos.db.client.model.ComputeElement" value="ComputeElement"/>
@@ -8687,6 +8796,7 @@ Please DO NOT modify the content.
             <field name="serviceProfileTemplates" type="com.emc.storageos.db.client.model.StringSet">
                 <annotations>
                     <annotation name="RelationIndex" type="com.emc.storageos.db.client.model.RelationIndex">
+                        <annotation_value name="types" value=""/>
                         <annotation_value name="cf" value="ComputeRelationIndex"/>
                         <annotation_value name="deactivateIfEmpty" value="false"/>
                         <annotation_value name="type" type="com.emc.storageos.db.client.model.UCSServiceProfileTemplate" value="UCSServiceProfileTemplate"/>
@@ -8715,6 +8825,7 @@ Please DO NOT modify the content.
             <field name="virtualArrays" type="com.emc.storageos.db.client.model.StringSet">
                 <annotations>
                     <annotation name="RelationIndex" type="com.emc.storageos.db.client.model.RelationIndex">
+                        <annotation_value name="types" value=""/>
                         <annotation_value name="cf" value="ComputeRelationIndex"/>
                         <annotation_value name="deactivateIfEmpty" value="false"/>
                         <annotation_value name="type" type="com.emc.storageos.db.client.model.VirtualArray" value="VirtualArray"/>
@@ -8797,6 +8908,7 @@ Please DO NOT modify the content.
             <field name="tenant" type="java.net.URI">
                 <annotations>
                     <annotation name="RelationIndex" type="com.emc.storageos.db.client.model.RelationIndex">
+                        <annotation_value name="types" value=""/>
                         <annotation_value name="cf" value="RelationIndex"/>
                         <annotation_value name="deactivateIfEmpty" value="false"/>
                         <annotation_value name="type" type="com.emc.storageos.db.client.model.TenantOrg" value="TenantOrg"/>
@@ -8864,6 +8976,7 @@ Please DO NOT modify the content.
             <field name="networkDevice" type="java.net.URI">
                 <annotations>
                     <annotation name="RelationIndex" type="com.emc.storageos.db.client.model.RelationIndex">
+                        <annotation_value name="types" value=""/>
                         <annotation_value name="cf" value="RelationIndex"/>
                         <annotation_value name="deactivateIfEmpty" value="false"/>
                         <annotation_value name="type" type="com.emc.storageos.db.client.model.NetworkSystem" value="NetworkSystem"/>
@@ -8964,6 +9077,7 @@ Please DO NOT modify the content.
             <field name="project" type="java.net.URI">
                 <annotations>
                     <annotation name="RelationIndex" type="com.emc.storageos.db.client.model.RelationIndex">
+                        <annotation_value name="types" value=""/>
                         <annotation_value name="cf" value="RelationIndex"/>
                         <annotation_value name="deactivateIfEmpty" value="false"/>
                         <annotation_value name="type" type="com.emc.storageos.db.client.model.Project" value="Project"/>
@@ -8983,6 +9097,7 @@ Please DO NOT modify the content.
             <field name="protectionSystem" type="java.net.URI">
                 <annotations>
                     <annotation name="RelationIndex" type="com.emc.storageos.db.client.model.RelationIndex">
+                        <annotation_value name="types" value=""/>
                         <annotation_value name="cf" value="RelationIndex"/>
                         <annotation_value name="deactivateIfEmpty" value="false"/>
                         <annotation_value name="type" type="com.emc.storageos.db.client.model.ProtectionSystem" value="ProtectionSystem"/>
@@ -9082,6 +9197,7 @@ Please DO NOT modify the content.
             <field name="assignedStoragePools" type="com.emc.storageos.db.client.model.StringSet">
                 <annotations>
                     <annotation name="RelationIndex" type="com.emc.storageos.db.client.model.RelationIndex">
+                        <annotation_value name="types" value=""/>
                         <annotation_value name="cf" value="AssignedPoolsToVpool"/>
                         <annotation_value name="deactivateIfEmpty" value="false"/>
                         <annotation_value name="type" type="com.emc.storageos.db.client.model.StoragePool" value="StoragePool"/>
@@ -9162,6 +9278,7 @@ Please DO NOT modify the content.
             <field name="invalidMatchedPools" type="com.emc.storageos.db.client.model.StringSet">
                 <annotations>
                     <annotation name="RelationIndex" type="com.emc.storageos.db.client.model.RelationIndex">
+                        <annotation_value name="types" value=""/>
                         <annotation_value name="cf" value="InvalidPoolsToVpool"/>
                         <annotation_value name="deactivateIfEmpty" value="false"/>
                         <annotation_value name="type" type="com.emc.storageos.db.client.model.StoragePool" value="StoragePool"/>
@@ -9197,6 +9314,7 @@ Please DO NOT modify the content.
             <field name="matchedPools" type="com.emc.storageos.db.client.model.StringSet">
                 <annotations>
                     <annotation name="RelationIndex" type="com.emc.storageos.db.client.model.RelationIndex">
+                        <annotation_value name="types" value=""/>
                         <annotation_value name="cf" value="MatchedPoolsToVpool"/>
                         <annotation_value name="deactivateIfEmpty" value="false"/>
                         <annotation_value name="type" type="com.emc.storageos.db.client.model.StoragePool" value="StoragePool"/>
@@ -9254,6 +9372,7 @@ Please DO NOT modify the content.
             <field name="protectionVarraySettings" type="com.emc.storageos.db.client.model.StringMap">
                 <annotations>
                     <annotation name="RelationIndex" type="com.emc.storageos.db.client.model.RelationIndex">
+                        <annotation_value name="types" value=""/>
                         <annotation_value name="cf" value="VpoolProtRelationIndex"/>
                         <annotation_value name="deactivateIfEmpty" value="false"/>
                         <annotation_value name="type" type="com.emc.storageos.db.client.model.VpoolProtectionVarraySettings" value="VpoolProtectionVarraySettings"/>
@@ -9321,6 +9440,7 @@ Please DO NOT modify the content.
             <field name="virtualArrays" type="com.emc.storageos.db.client.model.StringSet">
                 <annotations>
                     <annotation name="RelationIndex" type="com.emc.storageos.db.client.model.RelationIndex">
+                        <annotation_value name="types" value=""/>
                         <annotation_value name="cf" value="RelationIndex"/>
                         <annotation_value name="deactivateIfEmpty" value="false"/>
                         <annotation_value name="type" type="com.emc.storageos.db.client.model.VirtualArray" value="VirtualArray"/>
@@ -9352,6 +9472,7 @@ Please DO NOT modify the content.
             <field name="fileSystemId" type="java.net.URI">
                 <annotations>
                     <annotation name="RelationIndex" type="com.emc.storageos.db.client.model.RelationIndex">
+                        <annotation_value name="types" value=""/>
                         <annotation_value name="cf" value="RelationIndex"/>
                         <annotation_value name="deactivateIfEmpty" value="false"/>
                         <annotation_value name="type" type="com.emc.storageos.db.client.model.FileShare" value="FileShare"/>
@@ -9432,6 +9553,7 @@ Please DO NOT modify the content.
             <field name="snapshotId" type="java.net.URI">
                 <annotations>
                     <annotation name="RelationIndex" type="com.emc.storageos.db.client.model.RelationIndex">
+                        <annotation_value name="types" value=""/>
                         <annotation_value name="cf" value="RelationIndex"/>
                         <annotation_value name="deactivateIfEmpty" value="false"/>
                         <annotation_value name="type" type="com.emc.storageos.db.client.model.Snapshot" value="Snapshot"/>
@@ -9739,6 +9861,7 @@ Please DO NOT modify the content.
             <field name="storageDevice" type="java.net.URI">
                 <annotations>
                     <annotation name="RelationIndex" type="com.emc.storageos.db.client.model.RelationIndex">
+                        <annotation_value name="types" value=""/>
                         <annotation_value name="cf" value="RelationIndex"/>
                         <annotation_value name="deactivateIfEmpty" value="false"/>
                         <annotation_value name="type" type="com.emc.storageos.db.client.model.StorageSystem" value="StorageSystem"/>
@@ -9818,6 +9941,7 @@ Please DO NOT modify the content.
             <field name="project" type="com.emc.storageos.db.client.model.NamedURI">
                 <annotations>
                     <annotation name="NamedRelationIndex" type="com.emc.storageos.db.client.model.NamedRelationIndex">
+                        <annotation_value name="types" value=""/>
                         <annotation_value name="cf" value="NamedRelation"/>
                         <annotation_value name="type" type="com.emc.storageos.db.client.model.Project" value="Project"/>
                     </annotation>
@@ -9829,6 +9953,7 @@ Please DO NOT modify the content.
             <field name="storageDevice" type="java.net.URI">
                 <annotations>
                     <annotation name="RelationIndex" type="com.emc.storageos.db.client.model.RelationIndex">
+                        <annotation_value name="types" value=""/>
                         <annotation_value name="cf" value="RelationIndex"/>
                         <annotation_value name="deactivateIfEmpty" value="false"/>
                         <annotation_value name="type" type="com.emc.storageos.db.client.model.StorageSystem" value="StorageSystem"/>
@@ -9849,6 +9974,7 @@ Please DO NOT modify the content.
             <field name="tenant" type="com.emc.storageos.db.client.model.NamedURI">
                 <annotations>
                     <annotation name="NamedRelationIndex" type="com.emc.storageos.db.client.model.NamedRelationIndex">
+                        <annotation_value name="types" value=""/>
                         <annotation_value name="cf" value="NamedRelation"/>
                         <annotation_value name="type" type="com.emc.storageos.db.client.model.DataObject" value="DataObject"/>
                     </annotation>
@@ -9863,6 +9989,7 @@ Please DO NOT modify the content.
             <field name="varray" type="java.net.URI">
                 <annotations>
                     <annotation name="RelationIndex" type="com.emc.storageos.db.client.model.RelationIndex">
+                        <annotation_value name="types" value=""/>
                         <annotation_value name="cf" value="RelationIndex"/>
                         <annotation_value name="deactivateIfEmpty" value="false"/>
                         <annotation_value name="type" type="com.emc.storageos.db.client.model.VirtualArray" value="VirtualArray"/>
@@ -9951,6 +10078,7 @@ Please DO NOT modify the content.
             <field name="storageDevice" type="java.net.URI">
                 <annotations>
                     <annotation name="RelationIndex" type="com.emc.storageos.db.client.model.RelationIndex">
+                        <annotation_value name="types" value=""/>
                         <annotation_value name="cf" value="storageSystemToFASTPolicy"/>
                         <annotation_value name="deactivateIfEmpty" value="false"/>
                         <annotation_value name="type" type="com.emc.storageos.db.client.model.StorageSystem" value="StorageSystem"/>
@@ -10035,6 +10163,7 @@ Please DO NOT modify the content.
             <field name="tenant" type="java.net.URI">
                 <annotations>
                     <annotation name="RelationIndex" type="com.emc.storageos.db.client.model.RelationIndex">
+                        <annotation_value name="types" value=""/>
                         <annotation_value name="cf" value="RelationIndex"/>
                         <annotation_value name="deactivateIfEmpty" value="false"/>
                         <annotation_value name="type" type="com.emc.storageos.db.client.model.TenantOrg" value="TenantOrg"/>
@@ -10044,6 +10173,7 @@ Please DO NOT modify the content.
             <field name="vcenter" type="java.net.URI">
                 <annotations>
                     <annotation name="RelationIndex" type="com.emc.storageos.db.client.model.RelationIndex">
+                        <annotation_value name="types" value=""/>
                         <annotation_value name="cf" value="RelationIndex"/>
                         <annotation_value name="deactivateIfEmpty" value="false"/>
                         <annotation_value name="type" type="com.emc.storageos.db.client.model.Vcenter" value="Vcenter"/>
@@ -10058,6 +10188,7 @@ Please DO NOT modify the content.
             <field name="computeSystem" type="java.net.URI">
                 <annotations>
                     <annotation name="RelationIndex" type="com.emc.storageos.db.client.model.RelationIndex">
+                        <annotation_value name="types" value=""/>
                         <annotation_value name="cf" value="ComputeRelationIndex"/>
                         <annotation_value name="deactivateIfEmpty" value="false"/>
                         <annotation_value name="type" type="com.emc.storageos.db.client.model.ComputeSystem" value="ComputeSystem"/>
@@ -10183,6 +10314,7 @@ Please DO NOT modify the content.
             <field name="parent" type="java.net.URI">
                 <annotations>
                     <annotation name="RelationIndex" type="com.emc.storageos.db.client.model.RelationIndex">
+                        <annotation_value name="types" value=""/>
                         <annotation_value name="cf" value="VolumeGroupParent"/>
                         <annotation_value name="deactivateIfEmpty" value="false"/>
                         <annotation_value name="type" type="com.emc.storageos.db.client.model.VolumeGroup" value="VolumeGroup"/>
@@ -10215,6 +10347,7 @@ Please DO NOT modify the content.
             <field name="computeImageServer" type="java.net.URI">
                 <annotations>
                     <annotation name="RelationIndex" type="com.emc.storageos.db.client.model.RelationIndex">
+                        <annotation_value name="types" value=""/>
                         <annotation_value name="cf" value="ComputeRelationIndex"/>
                         <annotation_value name="deactivateIfEmpty" value="false"/>
                         <annotation_value name="type" type="com.emc.storageos.db.client.model.ComputeImageServer" value="ComputeImageServer"/>
@@ -10488,6 +10621,7 @@ Please DO NOT modify the content.
             <field name="parent" type="com.emc.storageos.db.client.model.NamedURI">
                 <annotations>
                     <annotation name="NamedRelationIndex" type="com.emc.storageos.db.client.model.NamedRelationIndex">
+                        <annotation_value name="types" value=""/>
                         <annotation_value name="cf" value="NamedRelationIndex"/>
                         <annotation_value name="type" type="com.emc.storageos.db.client.model.FileShare" value="FileShare"/>
                     </annotation>
@@ -10503,6 +10637,7 @@ Please DO NOT modify the content.
             <field name="project" type="com.emc.storageos.db.client.model.NamedURI">
                 <annotations>
                     <annotation name="NamedRelationIndex" type="com.emc.storageos.db.client.model.NamedRelationIndex">
+                        <annotation_value name="types" value=""/>
                         <annotation_value name="cf" value="NamedRelationIndex"/>
                         <annotation_value name="type" type="com.emc.storageos.db.client.model.Project" value="Project"/>
                     </annotation>
@@ -10527,6 +10662,7 @@ Please DO NOT modify the content.
             <field name="computeElement" type="java.net.URI">
                 <annotations>
                     <annotation name="RelationIndex" type="com.emc.storageos.db.client.model.RelationIndex">
+                        <annotation_value name="types" value=""/>
                         <annotation_value name="cf" value="ComputeRelationIndex"/>
                         <annotation_value name="deactivateIfEmpty" value="false"/>
                         <annotation_value name="type" type="com.emc.storageos.db.client.model.ComputeElement" value="ComputeElement"/>
@@ -10542,6 +10678,7 @@ Please DO NOT modify the content.
             <field name="host" type="java.net.URI">
                 <annotations>
                     <annotation name="RelationIndex" type="com.emc.storageos.db.client.model.RelationIndex">
+                        <annotation_value name="types" value=""/>
                         <annotation_value name="cf" value="ComputeRelationIndex"/>
                         <annotation_value name="deactivateIfEmpty" value="false"/>
                         <annotation_value name="type" type="com.emc.storageos.db.client.model.Host" value="Host"/>
@@ -10605,6 +10742,7 @@ Please DO NOT modify the content.
             <field name="serviceProfileTemplate" type="java.net.URI">
                 <annotations>
                     <annotation name="RelationIndex" type="com.emc.storageos.db.client.model.RelationIndex">
+                        <annotation_value name="types" value=""/>
                         <annotation_value name="cf" value="ComputeRelationIndex"/>
                         <annotation_value name="deactivateIfEmpty" value="false"/>
                         <annotation_value name="type" type="com.emc.storageos.db.client.model.UCSServiceProfileTemplate" value="UCSServiceProfileTemplate"/>
@@ -10868,6 +11006,7 @@ Please DO NOT modify the content.
             <field name="computeElement" type="java.net.URI">
                 <annotations>
                     <annotation name="RelationIndex" type="com.emc.storageos.db.client.model.RelationIndex">
+                        <annotation_value name="types" value=""/>
                         <annotation_value name="cf" value="ComputeRelationIndex"/>
                         <annotation_value name="deactivateIfEmpty" value="false"/>
                         <annotation_value name="type" type="com.emc.storageos.db.client.model.ComputeElement" value="ComputeElement"/>
@@ -10933,6 +11072,7 @@ Please DO NOT modify the content.
             <field name="serviceProfileTemplate" type="java.net.URI">
                 <annotations>
                     <annotation name="RelationIndex" type="com.emc.storageos.db.client.model.RelationIndex">
+                        <annotation_value name="types" value=""/>
                         <annotation_value name="cf" value="ComputeRelationIndex"/>
                         <annotation_value name="deactivateIfEmpty" value="false"/>
                         <annotation_value name="type" type="com.emc.storageos.db.client.model.UCSServiceProfileTemplate" value="UCSServiceProfileTemplate"/>
@@ -11183,6 +11323,7 @@ Please DO NOT modify the content.
             <field name="sourceStorageSystem" type="java.net.URI">
                 <annotations>
                     <annotation name="RelationIndex" type="com.emc.storageos.db.client.model.RelationIndex">
+                        <annotation_value name="types" value=""/>
                         <annotation_value name="cf" value="RelationIndex"/>
                         <annotation_value name="deactivateIfEmpty" value="false"/>
                         <annotation_value name="type" type="com.emc.storageos.db.client.model.StorageSystem" value="StorageSystem"/>
@@ -11310,6 +11451,7 @@ Please DO NOT modify the content.
             <field name="associatedSourceVolume" type="java.net.URI">
                 <annotations>
                     <annotation name="RelationIndex" type="com.emc.storageos.db.client.model.RelationIndex">
+                        <annotation_value name="types" value=""/>
                         <annotation_value name="cf" value="associatedSourceVolumeIndex"/>
                         <annotation_value name="deactivateIfEmpty" value="false"/>
                         <annotation_value name="type" type="com.emc.storageos.db.client.model.Volume" value="Volume"/>
@@ -11341,6 +11483,7 @@ Please DO NOT modify the content.
             <field name="consistencyGroup" type="java.net.URI">
                 <annotations>
                     <annotation name="RelationIndex" type="com.emc.storageos.db.client.model.RelationIndex">
+                        <annotation_value name="types" value=""/>
                         <annotation_value name="cf" value="RelationIndex"/>
                         <annotation_value name="deactivateIfEmpty" value="false"/>
                         <annotation_value name="type" type="com.emc.storageos.db.client.model.BlockConsistencyGroup" value="BlockConsistencyGroup"/>
@@ -11453,6 +11596,7 @@ Please DO NOT modify the content.
             <field name="pool" type="java.net.URI">
                 <annotations>
                     <annotation name="RelationIndex" type="com.emc.storageos.db.client.model.RelationIndex">
+                        <annotation_value name="types" value=""/>
                         <annotation_value name="cf" value="RelationIndex"/>
                         <annotation_value name="deactivateIfEmpty" value="false"/>
                         <annotation_value name="type" type="com.emc.storageos.db.client.model.StoragePool" value="StoragePool"/>
@@ -11462,6 +11606,7 @@ Please DO NOT modify the content.
             <field name="project" type="com.emc.storageos.db.client.model.NamedURI">
                 <annotations>
                     <annotation name="NamedRelationIndex" type="com.emc.storageos.db.client.model.NamedRelationIndex">
+                        <annotation_value name="types" value=""/>
                         <annotation_value name="cf" value="NamedRelation"/>
                         <annotation_value name="type" type="com.emc.storageos.db.client.model.Project" value="Project"/>
                     </annotation>
@@ -11470,6 +11615,7 @@ Please DO NOT modify the content.
             <field name="protectionDevice" type="java.net.URI">
                 <annotations>
                     <annotation name="RelationIndex" type="com.emc.storageos.db.client.model.RelationIndex">
+                        <annotation_value name="types" value=""/>
                         <annotation_value name="cf" value="RelationIndex"/>
                         <annotation_value name="deactivateIfEmpty" value="false"/>
                         <annotation_value name="type" type="com.emc.storageos.db.client.model.ProtectionSystem" value="ProtectionSystem"/>
@@ -11479,6 +11625,7 @@ Please DO NOT modify the content.
             <field name="protectionSet" type="com.emc.storageos.db.client.model.NamedURI">
                 <annotations>
                     <annotation name="NamedRelationIndex" type="com.emc.storageos.db.client.model.NamedRelationIndex">
+                        <annotation_value name="types" value=""/>
                         <annotation_value name="cf" value="NamedRelation"/>
                         <annotation_value name="type" type="com.emc.storageos.db.client.model.ProtectionSet" value="ProtectionSet"/>
                     </annotation>
@@ -11515,6 +11662,7 @@ Please DO NOT modify the content.
             <field name="rpJournalVolume" type="java.net.URI">
                 <annotations>
                     <annotation name="RelationIndex" type="com.emc.storageos.db.client.model.RelationIndex">
+                        <annotation_value name="types" value=""/>
                         <annotation_value name="cf" value="JournalVolumeIndex"/>
                         <annotation_value name="deactivateIfEmpty" value="false"/>
                         <annotation_value name="type" type="com.emc.storageos.db.client.model.Volume" value="Volume"/>
@@ -11531,6 +11679,7 @@ Please DO NOT modify the content.
             <field name="secondaryRpJournalVolume" type="java.net.URI">
                 <annotations>
                     <annotation name="RelationIndex" type="com.emc.storageos.db.client.model.RelationIndex">
+                        <annotation_value name="types" value=""/>
                         <annotation_value name="cf" value="SecondaryJournalVolumeIndex"/>
                         <annotation_value name="deactivateIfEmpty" value="false"/>
                         <annotation_value name="type" type="com.emc.storageos.db.client.model.Volume" value="Volume"/>
@@ -11540,6 +11689,7 @@ Please DO NOT modify the content.
             <field name="source" type="com.emc.storageos.db.client.model.NamedURI">
                 <annotations>
                     <annotation name="NamedRelationIndex" type="com.emc.storageos.db.client.model.NamedRelationIndex">
+                        <annotation_value name="types" value=""/>
                         <annotation_value name="cf" value="NamedRelation"/>
                         <annotation_value name="type" type="com.emc.storageos.db.client.model.Volume" value="Volume"/>
                     </annotation>
@@ -11560,6 +11710,7 @@ Please DO NOT modify the content.
             <field name="storageDevice" type="java.net.URI">
                 <annotations>
                     <annotation name="RelationIndex" type="com.emc.storageos.db.client.model.RelationIndex">
+                        <annotation_value name="types" value=""/>
                         <annotation_value name="cf" value="RelationIndex"/>
                         <annotation_value name="deactivateIfEmpty" value="false"/>
                         <annotation_value name="type" type="com.emc.storageos.db.client.model.StorageSystem" value="StorageSystem"/>
@@ -11589,6 +11740,7 @@ Please DO NOT modify the content.
             <field name="tenant" type="com.emc.storageos.db.client.model.NamedURI">
                 <annotations>
                     <annotation name="NamedRelationIndex" type="com.emc.storageos.db.client.model.NamedRelationIndex">
+                        <annotation_value name="types" value=""/>
                         <annotation_value name="cf" value="NamedRelation"/>
                         <annotation_value name="type" type="com.emc.storageos.db.client.model.DataObject" value="DataObject"/>
                     </annotation>
@@ -11606,6 +11758,7 @@ Please DO NOT modify the content.
             <field name="varray" type="java.net.URI">
                 <annotations>
                     <annotation name="RelationIndex" type="com.emc.storageos.db.client.model.RelationIndex">
+                        <annotation_value name="types" value=""/>
                         <annotation_value name="cf" value="RelationIndex"/>
                         <annotation_value name="deactivateIfEmpty" value="false"/>
                         <annotation_value name="type" type="com.emc.storageos.db.client.model.VirtualArray" value="VirtualArray"/>
@@ -11615,6 +11768,7 @@ Please DO NOT modify the content.
             <field name="virtualPool" type="java.net.URI">
                 <annotations>
                     <annotation name="RelationIndex" type="com.emc.storageos.db.client.model.RelationIndex">
+                        <annotation_value name="types" value=""/>
                         <annotation_value name="cf" value="RelationIndex"/>
                         <annotation_value name="deactivateIfEmpty" value="false"/>
                         <annotation_value name="type" type="com.emc.storageos.db.client.model.VirtualPool" value="VirtualPool"/>
@@ -11649,6 +11803,7 @@ Please DO NOT modify the content.
             <field name="computeSystem" type="java.net.URI">
                 <annotations>
                     <annotation name="RelationIndex" type="com.emc.storageos.db.client.model.RelationIndex">
+                        <annotation_value name="types" value=""/>
                         <annotation_value name="cf" value="ComputeRelationIndex"/>
                         <annotation_value name="deactivateIfEmpty" value="false"/>
                         <annotation_value name="type" type="com.emc.storageos.db.client.model.ComputeSystem" value="ComputeSystem"/>
@@ -11841,6 +11996,7 @@ Please DO NOT modify the content.
             <field name="pool" type="java.net.URI">
                 <annotations>
                     <annotation name="RelationIndex" type="com.emc.storageos.db.client.model.RelationIndex">
+                        <annotation_value name="types" value=""/>
                         <annotation_value name="cf" value="RelationIndex"/>
                         <annotation_value name="deactivateIfEmpty" value="false"/>
                         <annotation_value name="type" type="com.emc.storageos.db.client.model.StoragePool" value="StoragePool"/>
@@ -11850,6 +12006,7 @@ Please DO NOT modify the content.
             <field name="project" type="com.emc.storageos.db.client.model.NamedURI">
                 <annotations>
                     <annotation name="NamedRelationIndex" type="com.emc.storageos.db.client.model.NamedRelationIndex">
+                        <annotation_value name="types" value=""/>
                         <annotation_value name="cf" value="NamedRelation"/>
                         <annotation_value name="type" type="com.emc.storageos.db.client.model.Project" value="Project"/>
                     </annotation>
@@ -11867,6 +12024,7 @@ Please DO NOT modify the content.
             <field name="storageDevice" type="java.net.URI">
                 <annotations>
                     <annotation name="RelationIndex" type="com.emc.storageos.db.client.model.RelationIndex">
+                        <annotation_value name="types" value=""/>
                         <annotation_value name="cf" value="RelationIndex"/>
                         <annotation_value name="deactivateIfEmpty" value="false"/>
                         <annotation_value name="type" type="com.emc.storageos.db.client.model.StorageSystem" value="StorageSystem"/>
@@ -11884,6 +12042,7 @@ Please DO NOT modify the content.
             <field name="tenant" type="com.emc.storageos.db.client.model.NamedURI">
                 <annotations>
                     <annotation name="NamedRelationIndex" type="com.emc.storageos.db.client.model.NamedRelationIndex">
+                        <annotation_value name="types" value=""/>
                         <annotation_value name="cf" value="NamedRelation"/>
                         <annotation_value name="type" type="com.emc.storageos.db.client.model.DataObject" value="DataObject"/>
                     </annotation>
@@ -11895,6 +12054,7 @@ Please DO NOT modify the content.
             <field name="varray" type="java.net.URI">
                 <annotations>
                     <annotation name="RelationIndex" type="com.emc.storageos.db.client.model.RelationIndex">
+                        <annotation_value name="types" value=""/>
                         <annotation_value name="cf" value="RelationIndex"/>
                         <annotation_value name="deactivateIfEmpty" value="false"/>
                         <annotation_value name="type" type="com.emc.storageos.db.client.model.VirtualArray" value="VirtualArray"/>
@@ -11904,6 +12064,7 @@ Please DO NOT modify the content.
             <field name="virtualPool" type="java.net.URI">
                 <annotations>
                     <annotation name="RelationIndex" type="com.emc.storageos.db.client.model.RelationIndex">
+                        <annotation_value name="types" value=""/>
                         <annotation_value name="cf" value="RelationIndex"/>
                         <annotation_value name="deactivateIfEmpty" value="false"/>
                         <annotation_value name="type" type="com.emc.storageos.db.client.model.VirtualPool" value="VirtualPool"/>
@@ -11918,6 +12079,7 @@ Please DO NOT modify the content.
             <field name="consistencyGroup" type="java.net.URI">
                 <annotations>
                     <annotation name="RelationIndex" type="com.emc.storageos.db.client.model.RelationIndex">
+                        <annotation_value name="types" value=""/>
                         <annotation_value name="cf" value="RelationIndex"/>
                         <annotation_value name="deactivateIfEmpty" value="false"/>
                         <annotation_value name="type" type="com.emc.storageos.db.client.model.BlockConsistencyGroup" value="BlockConsistencyGroup"/>
@@ -11958,6 +12120,7 @@ Please DO NOT modify the content.
             <field name="linkedTargets" type="com.emc.storageos.db.client.model.StringSet">
                 <annotations>
                     <annotation name="RelationIndex" type="com.emc.storageos.db.client.model.RelationIndex">
+                        <annotation_value name="types" value=""/>
                         <annotation_value name="cf" value="LinkedTargetsIndex"/>
                         <annotation_value name="deactivateIfEmpty" value="false"/>
                         <annotation_value name="type" type="com.emc.storageos.db.client.model.BlockSnapshot" value="BlockSnapshot"/>
@@ -11975,6 +12138,7 @@ Please DO NOT modify the content.
             <field name="parent" type="com.emc.storageos.db.client.model.NamedURI">
                 <annotations>
                     <annotation name="NamedRelationIndex" type="com.emc.storageos.db.client.model.NamedRelationIndex">
+                        <annotation_value name="types" value=""/>
                         <annotation_value name="cf" value="NamedRelationIndex"/>
                         <annotation_value name="type" type="com.emc.storageos.db.client.model.BlockObject" value="BlockObject"/>
                     </annotation>
@@ -11983,6 +12147,7 @@ Please DO NOT modify the content.
             <field name="project" type="com.emc.storageos.db.client.model.NamedURI">
                 <annotations>
                     <annotation name="NamedRelationIndex" type="com.emc.storageos.db.client.model.NamedRelationIndex">
+                        <annotation_value name="types" value=""/>
                         <annotation_value name="cf" value="NamedRelationIndex"/>
                         <annotation_value name="type" type="com.emc.storageos.db.client.model.Project" value="Project"/>
                     </annotation>
@@ -12019,6 +12184,7 @@ Please DO NOT modify the content.
             <field name="storageDevice" type="java.net.URI">
                 <annotations>
                     <annotation name="RelationIndex" type="com.emc.storageos.db.client.model.RelationIndex">
+                        <annotation_value name="types" value=""/>
                         <annotation_value name="cf" value="RelationIndex"/>
                         <annotation_value name="deactivateIfEmpty" value="false"/>
                         <annotation_value name="type" type="com.emc.storageos.db.client.model.StorageSystem" value="StorageSystem"/>
@@ -12222,6 +12388,7 @@ Please DO NOT modify the content.
             <field name="storageDevice" type="java.net.URI">
                 <annotations>
                     <annotation name="RelationIndex" type="com.emc.storageos.db.client.model.RelationIndex">
+                        <annotation_value name="types" value=""/>
                         <annotation_value name="cf" value="RelationIndex"/>
                         <annotation_value name="deactivateIfEmpty" value="false"/>
                         <annotation_value name="type" type="com.emc.storageos.db.client.model.StorageSystem" value="StorageSystem"/>
@@ -12242,6 +12409,7 @@ Please DO NOT modify the content.
             <field name="tenant" type="java.net.URI">
                 <annotations>
                     <annotation name="RelationIndex" type="com.emc.storageos.db.client.model.RelationIndex">
+                        <annotation_value name="types" value=""/>
                         <annotation_value name="cf" value="RelationIndex"/>
                         <annotation_value name="deactivateIfEmpty" value="false"/>
                         <annotation_value name="type" type="com.emc.storageos.db.client.model.TenantOrg" value="TenantOrg"/>
@@ -12358,6 +12526,7 @@ Please DO NOT modify the content.
             <field name="storageDevice" type="java.net.URI">
                 <annotations>
                     <annotation name="RelationIndex" type="com.emc.storageos.db.client.model.RelationIndex">
+                        <annotation_value name="types" value=""/>
                         <annotation_value name="cf" value="RelationIndex"/>
                         <annotation_value name="deactivateIfEmpty" value="false"/>
                         <annotation_value name="type" type="com.emc.storageos.db.client.model.StorageSystem" value="StorageSystem"/>
@@ -12468,6 +12637,7 @@ Please DO NOT modify the content.
             <field name="catalogCategoryId" type="com.emc.storageos.db.client.model.NamedURI">
                 <annotations>
                     <annotation name="NamedRelationIndex" type="com.emc.storageos.db.client.model.NamedRelationIndex">
+                        <annotation_value name="types" value=""/>
                         <annotation_value name="cf" value="NamedRelationIndex"/>
                         <annotation_value name="type" type="com.emc.storageos.db.client.model.uimodels.CatalogCategory" value="CatalogCategory"/>
                     </annotation>
@@ -12684,6 +12854,7 @@ Please DO NOT modify the content.
             <field name="orderId" type="java.net.URI">
                 <annotations>
                     <annotation name="RelationIndex" type="com.emc.storageos.db.client.model.RelationIndex">
+                        <annotation_value name="types" value=""/>
                         <annotation_value name="cf" value="RelationIndex"/>
                         <annotation_value name="deactivateIfEmpty" value="false"/>
                         <annotation_value name="type" type="com.emc.storageos.db.client.model.uimodels.Order" value="Order"/>
@@ -12772,6 +12943,7 @@ Please DO NOT modify the content.
             <field name="catalogServiceId" type="java.net.URI">
                 <annotations>
                     <annotation name="RelationIndex" type="com.emc.storageos.db.client.model.RelationIndex">
+                        <annotation_value name="types" value=""/>
                         <annotation_value name="cf" value="RelationIndex"/>
                         <annotation_value name="deactivateIfEmpty" value="false"/>
                         <annotation_value name="type" type="com.emc.storageos.db.client.model.uimodels.CatalogService" value="CatalogService"/>
@@ -12951,6 +13123,7 @@ Please DO NOT modify the content.
             <field name="datacenterId" type="com.emc.storageos.db.client.model.NamedURI">
                 <annotations>
                     <annotation name="NamedRelationIndex" type="com.emc.storageos.db.client.model.NamedRelationIndex">
+                        <annotation_value name="types" value=""/>
                         <annotation_value name="cf" value="NamedRelationIndex"/>
                         <annotation_value name="type" type="com.emc.storageos.db.client.model.VcenterDataCenter" value="VcenterDataCenter"/>
                     </annotation>
@@ -13159,6 +13332,7 @@ Please DO NOT modify the content.
             <field name="orderId" type="java.net.URI">
                 <annotations>
                     <annotation name="RelationIndex" type="com.emc.storageos.db.client.model.RelationIndex">
+                        <annotation_value name="types" value=""/>
                         <annotation_value name="cf" value="RelationIndex"/>
                         <annotation_value name="deactivateIfEmpty" value="false"/>
                         <annotation_value name="type" type="com.emc.storageos.db.client.model.uimodels.Order" value="Order"/>
@@ -13438,6 +13612,7 @@ Please DO NOT modify the content.
             <field name="catalogCategoryId" type="com.emc.storageos.db.client.model.NamedURI">
                 <annotations>
                     <annotation name="NamedRelationIndex" type="com.emc.storageos.db.client.model.NamedRelationIndex">
+                        <annotation_value name="types" value=""/>
                         <annotation_value name="cf" value="NamedRelationIndex"/>
                         <annotation_value name="type" type="com.emc.storageos.db.client.model.uimodels.CatalogCategory" value="CatalogCategory"/>
                     </annotation>
@@ -13521,6 +13696,7 @@ Please DO NOT modify the content.
             <field name="catalogServiceId" type="com.emc.storageos.db.client.model.NamedURI">
                 <annotations>
                     <annotation name="NamedRelationIndex" type="com.emc.storageos.db.client.model.NamedRelationIndex">
+                        <annotation_value name="types" value=""/>
                         <annotation_value name="cf" value="NamedRelationIndex"/>
                         <annotation_value name="type" type="com.emc.storageos.db.client.model.uimodels.CatalogService" value="CatalogService"/>
                     </annotation>
@@ -13715,6 +13891,7 @@ Please DO NOT modify the content.
             <field name="storagePool" type="java.net.URI">
                 <annotations>
                     <annotation name="RelationIndex" type="com.emc.storageos.db.client.model.RelationIndex">
+                        <annotation_value name="types" value=""/>
                         <annotation_value name="cf" value="UnManagedVolumeRelationIndex"/>
                         <annotation_value name="deactivateIfEmpty" value="false"/>
                         <annotation_value name="type" type="com.emc.storageos.db.client.model.StoragePool" value="StoragePool"/>
@@ -13727,6 +13904,7 @@ Please DO NOT modify the content.
             <field name="storageDevice" type="java.net.URI">
                 <annotations>
                     <annotation name="RelationIndex" type="com.emc.storageos.db.client.model.RelationIndex">
+                        <annotation_value name="types" value=""/>
                         <annotation_value name="cf" value="UnManagedVolumeRelationIndex"/>
                         <annotation_value name="deactivateIfEmpty" value="false"/>
                         <annotation_value name="type" type="com.emc.storageos.db.client.model.StorageSystem" value="StorageSystem"/>
@@ -13779,6 +13957,7 @@ Please DO NOT modify the content.
             <field name="fileSystemId" type="java.net.URI">
                 <annotations>
                     <annotation name="RelationIndex" type="com.emc.storageos.db.client.model.RelationIndex">
+                        <annotation_value name="types" value=""/>
                         <annotation_value name="cf" value="RelationIndex"/>
                         <annotation_value name="deactivateIfEmpty" value="false"/>
                         <annotation_value name="type" type="com.emc.storageos.db.client.model.FileShare" value="FileShare"/>
@@ -13846,6 +14025,7 @@ Please DO NOT modify the content.
             <field name="snapshotId" type="java.net.URI">
                 <annotations>
                     <annotation name="RelationIndex" type="com.emc.storageos.db.client.model.RelationIndex">
+                        <annotation_value name="types" value=""/>
                         <annotation_value name="cf" value="RelationIndex"/>
                         <annotation_value name="deactivateIfEmpty" value="false"/>
                         <annotation_value name="type" type="com.emc.storageos.db.client.model.Snapshot" value="Snapshot"/>
@@ -13890,6 +14070,7 @@ Please DO NOT modify the content.
             <field name="fileSystemId" type="java.net.URI">
                 <annotations>
                     <annotation name="RelationIndex" type="com.emc.storageos.db.client.model.RelationIndex">
+                        <annotation_value name="types" value=""/>
                         <annotation_value name="cf" value="RelationIndex"/>
                         <annotation_value name="deactivateIfEmpty" value="false"/>
                         <annotation_value name="type" type="com.emc.storageos.db.client.model.FileShare" value="FileShare"/>
@@ -13960,6 +14141,7 @@ Please DO NOT modify the content.
             <field name="snapshotId" type="java.net.URI">
                 <annotations>
                     <annotation name="RelationIndex" type="com.emc.storageos.db.client.model.RelationIndex">
+                        <annotation_value name="types" value=""/>
                         <annotation_value name="cf" value="RelationIndex"/>
                         <annotation_value name="deactivateIfEmpty" value="false"/>
                         <annotation_value name="type" type="com.emc.storageos.db.client.model.Snapshot" value="Snapshot"/>
@@ -14064,6 +14246,7 @@ Please DO NOT modify the content.
             <field name="storagePool" type="java.net.URI">
                 <annotations>
                     <annotation name="RelationIndex" type="com.emc.storageos.db.client.model.RelationIndex">
+                        <annotation_value name="types" value=""/>
                         <annotation_value name="cf" value="UnManagedFileSystemRelationIndex"/>
                         <annotation_value name="deactivateIfEmpty" value="false"/>
                         <annotation_value name="type" type="com.emc.storageos.db.client.model.StoragePool" value="StoragePool"/>
@@ -14073,6 +14256,7 @@ Please DO NOT modify the content.
             <field name="storageDevice" type="java.net.URI">
                 <annotations>
                     <annotation name="RelationIndex" type="com.emc.storageos.db.client.model.RelationIndex">
+                        <annotation_value name="types" value=""/>
                         <annotation_value name="cf" value="UnManagedFileSystemRelationIndex"/>
                         <annotation_value name="deactivateIfEmpty" value="false"/>
                         <annotation_value name="type" type="com.emc.storageos.db.client.model.StorageSystem" value="StorageSystem"/>
@@ -14185,6 +14369,7 @@ Please DO NOT modify the content.
             <field name="storageSystem" type="java.net.URI">
                 <annotations>
                     <annotation name="RelationIndex" type="com.emc.storageos.db.client.model.RelationIndex">
+                        <annotation_value name="types" value=""/>
                         <annotation_value name="cf" value="UnManagedExportMaskRelationIndex"/>
                         <annotation_value name="deactivateIfEmpty" value="false"/>
                         <annotation_value name="type" type="com.emc.storageos.db.client.model.StorageSystem" value="StorageSystem"/>
@@ -14284,6 +14469,7 @@ Please DO NOT modify the content.
             <field name="storageDevice" type="java.net.URI">
                 <annotations>
                     <annotation name="RelationIndex" type="com.emc.storageos.db.client.model.RelationIndex">
+                        <annotation_value name="types" value=""/>
                         <annotation_value name="cf" value="UnManagedCGRelationIndex"/>
                         <annotation_value name="deactivateIfEmpty" value="false"/>
                         <annotation_value name="type" type="com.emc.storageos.db.client.model.StorageSystem" value="StorageSystem"/>
@@ -14383,6 +14569,7 @@ Please DO NOT modify the content.
             <field name="protectionDevice" type="java.net.URI">
                 <annotations>
                     <annotation name="RelationIndex" type="com.emc.storageos.db.client.model.RelationIndex">
+                        <annotation_value name="types" value=""/>
                         <annotation_value name="cf" value="UnManagedCGRelationIndex"/>
                         <annotation_value name="deactivateIfEmpty" value="false"/>
                         <annotation_value name="type" type="com.emc.storageos.db.client.model.ProtectionSystem" value="ProtectionSystem"/>
@@ -14445,6 +14632,7 @@ Please DO NOT modify the content.
             <field name="fileSystemId" type="java.net.URI">
                 <annotations>
                     <annotation name="RelationIndex" type="com.emc.storageos.db.client.model.RelationIndex">
+                        <annotation_value name="types" value=""/>
                         <annotation_value name="cf" value="RelationIndex"/>
                         <annotation_value name="deactivateIfEmpty" value="false"/>
                         <annotation_value name="type" type="com.emc.storageos.db.client.model.FileShare" value="FileShare"/>

@@ -465,10 +465,6 @@ public interface BadRequestExceptions {
     public BadRequestException invalidParameterConsistencyGroupAlreadyContainsVolume(URI volumeURI);
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
-    public BadRequestException invalidParameterConsistencyGroupCannotAddProtectedVolume(
-            URI volumeURI);
-
-    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException invalidParameterConsistencyGroupNotForVplexStorageSystem(
             URI consistencyGroup);
 
@@ -2233,6 +2229,9 @@ public interface BadRequestExceptions {
     public BadRequestException sourceNotExported(final URI sourceId);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException cannotCreateSnapshotCgPartOfApplication(final String cgName, String applicationName);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException invalidParameterRemovePreexistingInitiator(final String maskName, final String initiatorPort);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
@@ -2926,4 +2925,13 @@ public interface BadRequestExceptions {
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException mustDeleteTargetsOnUnlinkForVPlex();
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException singleVolumeReplicationNotAllowedOnCG(final String volumeLabel);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException cgReplicationNotAllowedMissingReplicationGroupNoVols(final String cgLabel);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException cgReplicationNotAllowedMissingReplicationGroup(final String volumeLabel);
 }

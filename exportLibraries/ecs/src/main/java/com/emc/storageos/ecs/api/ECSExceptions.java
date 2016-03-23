@@ -63,6 +63,12 @@ public interface ECSExceptions {
     public ECSException getNamespaceDetailsFailedAry(final String info);
 
     @DeclareServiceCode(ServiceCode.ECS_GET_NAMESPACE_DETAILS_ERROR)
+    public ECSException getNamespaceDetailsFailed(final String namespace, final Throwable e);
+    
+    @DeclareServiceCode(ServiceCode.ECS_BUCKET_ACL_ERROR)
+    public ECSException getBucketACLFailed(final String bucketName, final String message);
+
+    @DeclareServiceCode(ServiceCode.ECS_GET_NAMESPACE_DETAILS_ERROR)
     public ECSException getNamespaceDetailsFailedExc(final String namespace, final Throwable e);
     
     @DeclareServiceCode(ServiceCode.ECS_GET_USER_SECRET_KEYS_ERROR)
@@ -76,5 +82,6 @@ public interface ECSExceptions {
 
     @DeclareServiceCode(ServiceCode.ECS_ADD_USER_SECRET_KEYS_ERROR)
     public ECSException addUserSecretKeysFailedExc(final String user, final Throwable e);
+
 
 }

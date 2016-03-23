@@ -11,6 +11,7 @@ import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 import com.emc.storageos.coordinator.client.model.*;
+import com.emc.storageos.coordinator.client.model.DrOperationStatus.InterState;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.systemservices.impl.ipsec.IPsecManager;
 
@@ -348,7 +349,7 @@ public class VdcManager extends AbstractManager {
                 Long.parseLong(localVdcPropInfo.getProperty(VdcConfigUtil.VDC_CONFIG_VERSION));
         long targetVdcConfigVersion = targetSiteInfo.getVdcConfigVersion();
         log.info("local vdc config version: {}, target vdc config version: {}", localVdcConfigVersion, targetVdcConfigVersion);
-        return localVdcConfigVersion < targetVdcConfigVersion;
+        return localVdcConfigVersion != targetVdcConfigVersion;
     }
 
     private boolean isGeoUpgradeFromPreYoda() {
@@ -465,14 +466,14 @@ public class VdcManager extends AbstractManager {
             for (Configuration config : configs) {
                 DrOperationStatus operation = new DrOperationStatus(config);
                 String siteId = operation.getSiteUuid();
-                SiteState interState = operation.getSiteState();
+                InterState interState = operation.getInterState();
                 Site site = null;
                 try {
                     site = drUtil.getSiteFromLocalVdc(siteId);
                 } catch (RetryableCoordinatorException e) {
                     // It's expected that site id is not found if we're removing this site because it has been removed
                     // Under this situation, just record audit log and clear DR operation status
-                    if (interState.equals(SiteState.STANDBY_REMOVING) &&e.getServiceCode() == ServiceCode.COORDINATOR_SITE_NOT_FOUND) {
+                    if (interState.equals(InterState.REMOVING_STANDBY) &&e.getServiceCode() == ServiceCode.COORDINATOR_SITE_NOT_FOUND) {
                         this.auditMgr.recordAuditLog(null, null, EVENT_SERVICE_TYPE, getOperationType(interState), System.currentTimeMillis(),
                                 AuditLogManager.AUDITLOG_SUCCESS, AuditLogManager.AUDITOP_END, siteId);
                         coordinator.getCoordinatorClient().removeServiceConfiguration(config);
@@ -512,29 +513,35 @@ public class VdcManager extends AbstractManager {
         }
     }
 
-    private OperationTypeEnum getOperationType(SiteState state) {
+    private OperationTypeEnum getOperationType(InterState state) {
         OperationTypeEnum operationType = null;
         switch(state) {
-            case STANDBY_ADDING:
+            case ADDING_STANDBY:
                 operationType = OperationTypeEnum.ADD_STANDBY;
                 break;
-            case STANDBY_REMOVING:
+            case REMOVING_STANDBY:
                 operationType = OperationTypeEnum.REMOVE_STANDBY;
                 break;
-            case STANDBY_PAUSING:
+            case PAUSING_STANDBY:
                 operationType = OperationTypeEnum.PAUSE_STANDBY;
                 break;
-            case STANDBY_RESUMING:
+            case RESUMING_STANDBY:
                 operationType = OperationTypeEnum.RESUME_STANDBY;
                 break;
-            case ACTIVE_SWITCHING_OVER:
+            case SWITCHINGOVER_ACTIVE:
                 operationType = OperationTypeEnum.ACTIVE_SWITCHOVER;
                 break;
-            case STANDBY_SWITCHING_OVER:
+            case SWITCHINGOVER_STANDBY:
                 operationType = OperationTypeEnum.STANDBY_SWITCHOVER;
                 break;
-            case STANDBY_FAILING_OVER:
+            case FAILINGOVER_STANDBY:
                 operationType = OperationTypeEnum.STANDBY_FAILOVER;
+                break;
+            case DEGRADING_STANDBY:
+                operationType = OperationTypeEnum.STANDBY_DEGRADE;
+                break;
+            case REJOINING_STANDBY:
+                operationType = OperationTypeEnum.STANDBY_REJOIN;
                 break;
         }
         return operationType;

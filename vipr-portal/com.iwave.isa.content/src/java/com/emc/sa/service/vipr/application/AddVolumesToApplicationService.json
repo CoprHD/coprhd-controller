@@ -7,15 +7,6 @@
       type:"assetType.vipr.application"
     },
     
-    consistencyGroup:{
-     type:"assetType.vipr.consistencyGroupAll"
-    },
-    
-    volume:{
-      type:"assetType.vipr.sourceBlockVolumeForAddToApplication",
-      select: "many"
-    },
-    
     applicationSubGroup:{
      type:"assetType.vipr.replicationGroup",
      required:"false"
@@ -24,6 +15,15 @@
     newApplicationSubGroup:{
      type:"text",
      required:false
+    },
+    
+    consistencyGroup:{
+     type:"assetType.vipr.consistencyGroupAll"
+    },
+    
+    volume:{
+      type:"assetType.vipr.sourceBlockVolumeForAddToApplication",
+      select: "many"
     }
   }
 }

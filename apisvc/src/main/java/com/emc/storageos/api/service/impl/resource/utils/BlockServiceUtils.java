@@ -16,9 +16,9 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.UUID;
 
 import javax.ws.rs.core.SecurityContext;
 import javax.ws.rs.core.UriInfo;
@@ -47,6 +47,7 @@ import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.Task;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.Volume;
+import com.emc.storageos.db.client.model.VolumeGroup;
 import com.emc.storageos.db.client.model.VplexMirror;
 import com.emc.storageos.db.client.model.util.TaskUtils;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
@@ -685,5 +686,58 @@ public class BlockServiceUtils {
         ArgValidator.checkEntity(snapshot, snapshotURI,
                 BlockServiceUtils.isIdEmbeddedInURL(snapshotURI, uriInfo), true);
         return snapshot;
+    }
+
+    /**
+     * validate volume with no replica
+     *
+     * @param volume
+     * @param application
+     * @param dbClient
+     */
+    public static void validateVolumeNoReplica(Volume volume, VolumeGroup application, DbClient dbClient) {
+        // check if the volume has any replica
+        // no need to check backing volumes for vplex virtual volumes because for full copies
+        // there will be a virtual volume for the clone
+        boolean hasReplica = volume.getFullCopies() != null && !volume.getFullCopies().isEmpty() ||
+                    volume.getMirrors() != null && !volume.getMirrors().isEmpty();
+
+        // check for snaps only if no full copies
+        if (!hasReplica) {
+            Volume snapSource = volume;
+            if (volume.isVPlexVolume(dbClient)) {
+                snapSource = VPlexUtil.getVPLEXBackendVolume(volume, true, dbClient);
+                if (snapSource == null || snapSource.getInactive()) {
+                    return;
+                }
+            }
+
+            hasReplica = ControllerUtils.checkIfVolumeHasSnapshot(snapSource, dbClient);
+
+            // check for VMAX3 individual session and group session
+            if (!hasReplica && snapSource.isVmax3Volume(dbClient)) {
+                hasReplica = ControllerUtils.checkIfVolumeHasSnapshotSession(snapSource.getId(), dbClient);
+
+                String rgName = snapSource.getReplicationGroupInstance();
+                if (!hasReplica && NullColumnValueGetter.isNotNullValue(rgName)) {
+                    URI cgURI = snapSource.getConsistencyGroup();
+                    List<BlockSnapshotSession> sessionsList = CustomQueryUtility.queryActiveResourcesByConstraint(dbClient,
+                            BlockSnapshotSession.class,
+                            ContainmentConstraint.Factory.getBlockSnapshotSessionByConsistencyGroup(cgURI));
+
+                    for (BlockSnapshotSession session : sessionsList) {
+                        if (rgName.equals(session.getReplicationGroupInstance())) {
+                            hasReplica = true;
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+
+        if (hasReplica) {
+            throw APIException.badRequests.volumeGroupCantBeUpdated(application.getLabel(),
+                    String.format("the volume %s has replica. please remove all replicas from the volume", volume.getLabel()));
+        }
     }
 }

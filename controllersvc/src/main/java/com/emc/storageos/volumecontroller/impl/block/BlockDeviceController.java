@@ -7,6 +7,7 @@ package com.emc.storageos.volumecontroller.impl.block;
 
 import static com.emc.storageos.db.client.util.CommonTransformerFunctions.FCTN_MIRROR_TO_URI;
 import static com.emc.storageos.db.client.util.CommonTransformerFunctions.fctnBlockObjectToNativeID;
+import static com.emc.storageos.db.client.util.CommonTransformerFunctions.fctnDataObjectToID;
 import static com.emc.storageos.volumecontroller.impl.ControllerUtils.checkCloneConsistencyGroup;
 import static com.emc.storageos.volumecontroller.impl.ControllerUtils.checkSnapshotSessionConsistencyGroup;
 import static com.google.common.base.Strings.isNullOrEmpty;
@@ -5220,13 +5221,38 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
             WorkflowStepCompleter.stepSucceded(taskId);
         } catch (InternalException ie) {
             _log.error(String.format("rollbackListMirror failed - Array:%s, Mirror:%s", storage, Joiner.on("\t").join(mirrorList)));
-            doFailTask(Volume.class, mirrorList, taskId, ie);
+            doFailTask(BlockMirror.class, mirrorList, taskId, ie);
             WorkflowStepCompleter.stepFailed(taskId, ie);
         } catch (Exception e) {
             ServiceError serviceError = DeviceControllerException.errors.jobFailed(e);
             WorkflowStepCompleter.stepFailed(taskId, serviceError);
-            doFailTask(Volume.class, mirrorList, taskId, serviceError);
+            doFailTask(BlockMirror.class, mirrorList, taskId, serviceError);
         }
+    }
+
+    /**
+     * Add Steps to create list mirror.
+     *
+     * @param workflow The Workflow being built
+     * @param storageSystem Storage system
+     * @param waitFor Previous step to waitFor
+     * @param mirrorList List of URIs for mirrors to be created
+     * @return last step added to waitFor
+     */
+    public String createListSnapshotStep(Workflow workflow, String waitFor, StorageSystem storageSystem, List<URI> snapshotList)
+            throws ControllerException {
+        URI storage = storageSystem.getId();
+        waitFor = workflow.createStep(CREATE_SNAPSHOTS_STEP_GROUP,
+                "Create list snapshot", waitFor, storage, storageSystem.getSystemType(),
+                this.getClass(),
+                createListSnapshotMethod(storage, snapshotList, false, false),
+                rollbackListSnapshotMethod(storage, snapshotList), null);
+
+        return waitFor;
+    }
+
+    public Workflow.Method createListSnapshotMethod(URI storage, List<URI> snapshotList, Boolean createInactive, Boolean readOnly) {
+        return new Workflow.Method("createListSnapshot", storage, snapshotList, createInactive, readOnly);
     }
 
     public void createListSnapshot(URI storage, List<URI> snapshotList, Boolean createInactive, Boolean readOnly, String opId)
@@ -5245,6 +5271,51 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
             } else {
                 throw DeviceControllerException.exceptions.createVolumeSnapshotFailed(e);
             }
+        }
+    }
+
+    public Workflow.Method rollbackListSnapshotMethod(URI storage, List<URI> snapshotList) {
+        return new Workflow.Method("rollbackListSnapshot", storage, snapshotList);
+    }
+
+    public void rollbackListSnapshot(URI storage, List<URI> snapshotList, String taskId) {
+        WorkflowStepCompleter.stepExecuting(taskId);
+        try {
+            List<BlockSnapshot> snapshotsNoRollback = new ArrayList<BlockSnapshot>();
+            List<BlockSnapshot> snapshotsToRollback = new ArrayList<BlockSnapshot>();
+            Iterator<BlockSnapshot> itr = _dbClient.queryIterativeObjects(BlockSnapshot.class, snapshotList);
+            while (itr.hasNext()) {
+                BlockSnapshot snapshot = itr.next();
+                if (snapshot != null && !snapshot.getInactive()) {
+                    if (isNullOrEmpty(snapshot.getNativeId())) {
+                        snapshot.setInactive(true);
+                        snapshotsNoRollback.add(snapshot);
+                    } else {
+                        snapshotsToRollback.add(snapshot);
+                    }
+                }
+            }
+
+            if (!snapshotsNoRollback.isEmpty()) {
+                _dbClient.updateObject(snapshotsNoRollback);
+            }
+            if (!snapshotsToRollback.isEmpty()) {
+                List<URI> snapshotURIsToRollback = new ArrayList<URI>(transform(snapshotsToRollback, fctnDataObjectToID()));
+                String snapshotNativeIds = Joiner.on(", ").join(transform(snapshotsToRollback, fctnBlockObjectToNativeID()));
+                _log.info("Attempting to delete {} for rollback", snapshotNativeIds);
+                for (URI snapshotURI : snapshotURIsToRollback) {
+                    deleteSelectedSnapshotMethod(storage, snapshotURI);
+                }
+            }
+            WorkflowStepCompleter.stepSucceded(taskId);
+        } catch (InternalException ie) {
+            _log.error(String.format("rollbackListSnapshot failed - Array:%s, Snapshots:%s", storage, Joiner.on("\t").join(snapshotList)));
+            doFailTask(BlockSnapshot.class, snapshotList, taskId, ie);
+            WorkflowStepCompleter.stepFailed(taskId, ie);
+        } catch (Exception e) {
+            ServiceError serviceError = DeviceControllerException.errors.jobFailed(e);
+            WorkflowStepCompleter.stepFailed(taskId, serviceError);
+            doFailTask(BlockSnapshot.class, snapshotList, taskId, serviceError);
         }
     }
 

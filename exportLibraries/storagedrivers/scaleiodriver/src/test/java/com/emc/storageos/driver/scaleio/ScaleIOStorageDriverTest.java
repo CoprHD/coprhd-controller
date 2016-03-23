@@ -42,17 +42,17 @@ public class ScaleIOStorageDriverTest {
     String PROTECTION_DOMAIN_ID_A = "1c865e9900000000";
     String POOL_ID_A = "45306a6b00000000";
     String IP_ADDRESS_A = "10.193.17.97";
-    String VOLUME_ID_1A = "08bee36300000007";
-    String VOLUME_ID_2A = "08bee3a900000002";
-    String SNAPSHOT_OF_1A = "08bee3ab00000008";
+    String VOLUME_ID_1A = "08bf09f400000003";
+    String VOLUME_ID_2A = "08bf09f500000004";
+    String SNAPSHOT_OF_1A = "08bf0a3300000011";
 
     // ScaleIO cluster B
     String SYS_NATIVE_ID_B = "5b5b9f3a1fd8f1fd";
     String PROTECTION_DOMAIN_ID_B = "25c950f300000000";
     String POOL_ID_B = "7a001f3300000000";
     String IP_ADDRESS_B = "10.193.17.88";
-    String VOLUME_ID_1B = "83f1779000000000";
-    String VOLUME_ID_2B = "83f177bf00000001";
+    String VOLUME_ID_1B = "562b358300000000";
+    String VOLUME_ID_2B = "562b358400000001";
 
     // ScaleIO cluster C
     String SYS_NATIVE_ID_C = "1c865e9900000000";
@@ -78,7 +78,7 @@ public class ScaleIOStorageDriverTest {
 
     @Test
     public void testCreateVolumes() throws Exception {
-        driver.setConnInfoToRegistry(PROTECTION_DOMAIN_ID_A, IP_ADDRESS_A, PORT_NUMBER, USER_NAME, PASSWORD);
+        driver.setConnInfoToRegistry(PROTECTION_DOMAIN_ID_B, IP_ADDRESS_B, PORT_NUMBER, USER_NAME, PASSWORD);
 
         List<StorageVolume> storageVolumes = new ArrayList<>();
         StorageCapabilities capabilities = null;
@@ -89,7 +89,7 @@ public class ScaleIOStorageDriverTest {
 
         for (int i = 0; i < numVolumes; i++) {
             long requestedCapacity = 800000000;
-            StorageVolume newVolume = initializeVolume(PROTECTION_DOMAIN_ID_A, POOL_ID_A, requestedCapacity);
+            StorageVolume newVolume = initializeVolume(PROTECTION_DOMAIN_ID_B, POOL_ID_B, requestedCapacity);
             storageVolumes.add(newVolume);
         }
 
@@ -410,13 +410,14 @@ public class ScaleIOStorageDriverTest {
         Assert.assertNotNull(task);
         Assert.assertEquals("FAILED", task.getStatus().toString());
 
+        cg = new VolumeConsistencyGroup();
+        cg.setDisplayName("cg_fake_name");
+
         // volumes from same storage system
         snapshots = this.createSnapListSameSys(false);
-        cg = new VolumeConsistencyGroup();
         task = driver.createConsistencyGroupSnapshot(cg, snapshots, null);
         Assert.assertNotNull(task);
         Assert.assertEquals("READY", task.getStatus().toString());
-        Assert.assertNotNull(cg.getNativeId());
         for (VolumeSnapshot snapshot : snapshots) {
             Assert.assertNotNull(snapshot.getNativeId());
             Assert.assertNotNull(snapshot.getConsistencyGroup());
@@ -424,19 +425,15 @@ public class ScaleIOStorageDriverTest {
 
         // same storage system, some volumes are not existed
         snapshots = this.createSnapListSameSys(true);
-        cg = new VolumeConsistencyGroup();
         task = driver.createConsistencyGroupSnapshot(cg, snapshots, null);
         Assert.assertNotNull(task);
         Assert.assertEquals("FAILED", task.getStatus().toString());
-        Assert.assertNull(cg.getNativeId());
 
         // volumes from different storage system
         snapshots = this.createSnapListDiffSys(false);
-        cg = new VolumeConsistencyGroup();
         task = driver.createConsistencyGroupSnapshot(cg, snapshots, null);
         Assert.assertNotNull(task);
         Assert.assertEquals("FAILED", task.getStatus().toString());
-        Assert.assertNull(cg.getNativeId());
 
     }
 
@@ -456,11 +453,6 @@ public class ScaleIOStorageDriverTest {
         task = driver.deleteConsistencyGroupSnapshot(snapshots);
         Assert.assertNotNull(task);
         Assert.assertEquals("READY", task.getStatus().toString());
-
-        snapshots = this.createSnapListSameCG(true);
-        task = driver.deleteConsistencyGroupSnapshot(snapshots); // snapshots not existed
-        Assert.assertNotNull(task);
-        Assert.assertEquals("FAILED", task.getStatus().toString());
 
         // snapshots in different consistency group
         snapshots = this.createSnapListDiffCG(false);
@@ -508,7 +500,7 @@ public class ScaleIOStorageDriverTest {
     private List<VolumeSnapshot> createSnapListSameSys(boolean withInvalid) {
         List<VolumeSnapshot> snapshots = new LinkedList<>();
         snapshots.add(initializeSnapshot(null, VOLUME_ID_1A, SYS_NATIVE_ID_A));
-        snapshots.add(initializeSnapshot(null, SNAPSHOT_OF_1A, SYS_NATIVE_ID_A));
+        snapshots.add(initializeSnapshot(null, VOLUME_ID_2A, SYS_NATIVE_ID_A));
         if (withInvalid) {
             snapshots.add(initializeSnapshot(null, INVALID_VOLUME_ID_1, SYS_NATIVE_ID_A));
         }
@@ -571,11 +563,12 @@ public class ScaleIOStorageDriverTest {
     private List<VolumeSnapshot> createSnapListDiffCG(boolean withInvalid) {
         List<VolumeSnapshot> snapshots = this.createSnapListSameCG(false);
 
-        // create another group of snapshots
+        // create another group of snapshots from another system; Note: in integration test, this situation never happened
         List<VolumeSnapshot> snapshotsB = new LinkedList<>();
         snapshotsB.add(initializeSnapshot(null, VOLUME_ID_1B, SYS_NATIVE_ID_B));
         snapshotsB.add(initializeSnapshot(null, VOLUME_ID_2B, SYS_NATIVE_ID_B));
         VolumeConsistencyGroup cgB = new VolumeConsistencyGroup();
+        cgB.setDisplayName("ut-cg2");
         driver.createConsistencyGroupSnapshot(cgB, snapshotsB, null);
 
         snapshots.addAll(snapshotsB);
@@ -678,7 +671,7 @@ public class ScaleIOStorageDriverTest {
     }
 
     @Test
-    public void testCreateConsistencyGroup() throws Exception {
+    public void testCreateConsistencyGroupClone() throws Exception {
         driver.setConnInfoToRegistry(SYS_NATIVE_ID_A, IP_ADDRESS_A, PORT_NUMBER, USER_NAME, PASSWORD);
         driver.setConnInfoToRegistry(SYS_NATIVE_ID_B, IP_ADDRESS_B, PORT_NUMBER, USER_NAME, PASSWORD);
         // test with null input parameters
@@ -691,10 +684,10 @@ public class ScaleIOStorageDriverTest {
         // volumes from same storage system
         clones = this.createCloneListSameSys(false);
         cg = new VolumeConsistencyGroup();
+        cg.setDisplayName("ut-clone-cg");
         task = driver.createConsistencyGroupClone(cg, clones, null);
         Assert.assertNotNull(task);
         Assert.assertEquals("READY", task.getStatus().toString());
-        Assert.assertNotNull(cg.getNativeId());
         for (VolumeClone clone : clones) {
             Assert.assertNotNull(clone.getNativeId());
             Assert.assertNotNull(clone.getConsistencyGroup());
@@ -706,15 +699,12 @@ public class ScaleIOStorageDriverTest {
         task = driver.createConsistencyGroupClone(cg, clones, null);
         Assert.assertNotNull(task);
         Assert.assertEquals("FAILED", task.getStatus().toString());
-        Assert.assertNull(cg.getNativeId());
 
         // volumes from different storage system
         clones = this.createCloneListDiffCG(false);
-        cg = new VolumeConsistencyGroup();
         task = driver.createConsistencyGroupClone(cg, clones, null);
         Assert.assertNotNull(task);
         Assert.assertEquals("FAILED", task.getStatus().toString());
-        Assert.assertNull(cg.getNativeId());
     }
 
     @Test
@@ -750,12 +740,6 @@ public class ScaleIOStorageDriverTest {
         task = driver.deleteConsistencyGroupClone(clones);
         Assert.assertNotNull(task);
         Assert.assertEquals("READY", task.getStatus().toString());
-
-        // Clone which does not exist.
-        clones = this.createCloneListSameCG(true);
-        task = driver.deleteConsistencyGroupClone(clones);
-        Assert.assertNotNull(task);
-        Assert.assertEquals("FAILED", task.getStatus().toString());
 
         // Clones in different consistency group
         clones = this.createCloneListDiffCG(false);
@@ -841,6 +825,7 @@ public class ScaleIOStorageDriverTest {
     private List<VolumeClone> createCloneListSameCG(boolean withInvalid) {
         List<VolumeClone> clones = this.createCloneListSameSys(withInvalid);
         VolumeConsistencyGroup cg = new VolumeConsistencyGroup();
+        cg.setDisplayName("ut-clone-cg");
         driver.createConsistencyGroupClone(cg, clones, null);
         return clones;
     }
@@ -852,13 +837,14 @@ public class ScaleIOStorageDriverTest {
      * @return
      */
     private List<VolumeClone> createCloneListDiffCG(boolean withInvalid) {
-        List<VolumeClone> clones = this.createCloneListSameSys(false);
+        List<VolumeClone> clones = this.createCloneListSameCG(withInvalid);
 
         // create another group of clones
         List<VolumeClone> clonesB = new LinkedList<>();
         clonesB.add(initializeClone(null, VOLUME_ID_1B, SYS_NATIVE_ID_B));
         clonesB.add(initializeClone(null, VOLUME_ID_2B, SYS_NATIVE_ID_B));
         VolumeConsistencyGroup cgB = new VolumeConsistencyGroup();
+        cgB.setDisplayName("ut-clone-cg2");
         driver.createConsistencyGroupClone(cgB, clonesB, null);
 
         clones.addAll(clonesB);

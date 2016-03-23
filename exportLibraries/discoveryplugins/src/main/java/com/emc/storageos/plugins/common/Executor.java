@@ -189,15 +189,6 @@ public abstract class Executor {
                             throw e;
                         }
                     }
-                    // We want to fail this operation if any part of UnManagedVolume discovery is incomplete
-                    Object o = getKeyMap().get(Constants.ACCESSPROFILE);
-                    if (null != o && o instanceof AccessProfile) {
-                        AccessProfile accessProfile = (AccessProfile) o;
-                        if (Discovery_Namespaces.UNMANAGED_VOLUMES.name().equalsIgnoreCase(accessProfile.getnamespace())) {
-                            _LOGGER.error("Unmanaged volume discovery execution failed.");
-                            throw e;
-                        }
-                    }
                 }
             }
         } catch (final Exception e) {

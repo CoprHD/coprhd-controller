@@ -3334,9 +3334,9 @@ resources.fullcopy.protocol=Protocol
 resources.applications=Applications
 resources.protocol=Protocols
 resources.applications.snapshot.sessionSet=Snapshot Session Set
-resources.applications.snapshots.session=Snapshots for Set
+resources.applications.snapshots.session=Snap Sessions
 resources.application.snapSet=Snapshot Set
-resources.application.snapSet.snapShots=Snapshots for Set
+resources.application.snapSet.snapShots=Snapshots
 
 volumeApplication.name=Name
 volumeApplication.capacity=Size
@@ -3345,7 +3345,7 @@ volumeApplication.vpool=Virtual Pool
 volumeApplication.protocols=Protocols
 volumeApplication.wwn=WWN
 volumeApplication.consistencyGroup=Consistency Group
-volumeApplication.associatedVolumeRG=Application Sub Group
+volumeApplication.associatedVolumeRG=Application Subgroup
 
 cloneApplication.name=Copy Name
 cloneApplication.size=Size
@@ -3353,15 +3353,15 @@ cloneApplication.status=Status
 cloneApplication.protocol=Protocol
 cloneApplication.cloneGroups=Clone Sets
 cloneApplication.createdTime= Creation Time
-cloneApplication.subGroup=Replication Group
+cloneApplication.subGroup=Application Subgroup
 
 snapsessionApplication.snapsetGroups=SnapSets
 snapsessionApplication.createdTime=Creation Time
-snapsessionApplication.subGroup=Replication Group
+snapsessionApplication.subGroup=Application Subgroup
 
 snapshotApplication.snapshotGroups=Snapshot Sets
 snapshotApplication.createdTime=Creation Time
-snapshotApplication.subGroup=Replication Group
+snapshotApplication.subGroup=Application Subgroup
 
 resources.snapshots=Block Snapshots
 resources.snapshots.none=No Snapshots

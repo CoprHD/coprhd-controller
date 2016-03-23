@@ -21,6 +21,7 @@ import org.apache.log4j.Logger;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import com.iwave.ext.netapp.SnapMirror.StatusInfo;
 import com.iwave.ext.netapp.model.CifsAcl;
 import com.iwave.ext.netapp.model.DiskDetailInfo;
 import com.iwave.ext.netapp.model.ExportsRuleInfo;
@@ -1632,7 +1633,7 @@ public class NetAppFacade {
         return snapMirror.setSnapMirrorOn();
     }
 
-    public String getSnapMirrorState(String destLocation) {
+    public StatusInfo getSnapMirrorState(String destLocation) {
         if (log.isDebugEnabled()) {
             log.debug("get snapmirror state: " + destLocation);
         }

@@ -17,6 +17,26 @@ public class SnapMirror {
     private String name = "";
     private NaServer server = null;
 
+    public static class StatusInfo {
+        private String status;
+        private String state;
+
+        public StatusInfo(String status, String state) {
+            super();
+            this.status = status;
+            this.state = state;
+        }
+
+        public String getStatus() {
+            return status;
+        }
+
+        public String getState() {
+            return state;
+        }
+
+    }
+
     public SnapMirror(NaServer server, String name)
     {
         this.name = name;
@@ -372,7 +392,7 @@ public class SnapMirror {
     }
 
     @SuppressWarnings("unchecked")
-    public String getSnapMirrorState(String destinationLocation) {
+    public StatusInfo getSnapMirrorState(String destinationLocation) {
         NaElement elem = new NaElement("snapmirror-get-status");
 
         if (destinationLocation != null) {
@@ -388,7 +408,9 @@ public class SnapMirror {
                     NaElement snapmirrorStatusInfoElem = snapmirrorStatusElem.getChildByName("snapmirror-status-info");
                     if (snapmirrorStatusInfoElem != null) {
                         String state = snapmirrorStatusInfoElem.getChildByName("state").getContent();
-                        return state;
+                        String status = snapmirrorStatusInfoElem.getChildByName("status").getContent();
+                        StatusInfo info = new StatusInfo(status, state);
+                        return info;
                     }
                 }
             }

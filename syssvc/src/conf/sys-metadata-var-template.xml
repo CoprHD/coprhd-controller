@@ -2329,7 +2329,7 @@
 		<property name="notifiers" value="backupscheduler" />
 	</bean>
 	<bean id="backup_scheduler_interval" class="com.emc.storageos.model.property.PropertyMetadata">
-		<property name="label" value="Backups per Day" />
+		<property name="label" value="Number of Backups per Day" />
 		<property name="description" value="The frequency scheduled backup starts per day" />
 		<property name="type" value="string" />
 		<property name="maxLen" value="15" />

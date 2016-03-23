@@ -5096,9 +5096,9 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
 
             if (!clonesToRollback.isEmpty()) {
                 _log.info("Detach list clone for rollback");
-                detachListClone(storage, clonesToRollback, generateStepIdForDependentCallDurinRollBack());
+                detachListClone(storage, clonesToRollback, generateStepIdForDependentCallDuringRollback());
                 _log.info("Delete clones for rollback");
-                deleteVolumes(storage, clonesToRollback, generateStepIdForDependentCallDurinRollBack());
+                deleteVolumes(storage, clonesToRollback, generateStepIdForDependentCallDuringRollback());
             }
 
             WorkflowStepCompleter.stepSucceded(taskId);
@@ -5211,13 +5211,13 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                 String mirrorNativeIds = Joiner.on(", ").join(transform(mirrorsToRollback, fctnBlockObjectToNativeID()));
                 if (mirrorIsPausable(mirrorsToRollback)) {
                     _log.info("Attempting to fracture {} for rollback", mirrorNativeIds);
-                    fractureMirror(storage, mirrorURIsToRollback, false, false, generateStepIdForDependentCallDurinRollBack());
+                    fractureMirror(storage, mirrorURIsToRollback, false, false, generateStepIdForDependentCallDuringRollback());
                 }
 
                 _log.info("Attempting to detach {} for rollback", mirrorNativeIds);
-                detachMirror(storage, mirrorURIsToRollback, false, false, generateStepIdForDependentCallDurinRollBack());
+                detachMirror(storage, mirrorURIsToRollback, false, false, generateStepIdForDependentCallDuringRollback());
                 _log.info("Attempting to delete {} for rollback", mirrorNativeIds);
-                deleteMirror(storage, mirrorURIsToRollback, false, generateStepIdForDependentCallDurinRollBack());
+                deleteMirror(storage, mirrorURIsToRollback, false, generateStepIdForDependentCallDuringRollback());
             }
             WorkflowStepCompleter.stepSucceded(taskId);
         } catch (InternalException ie) {
@@ -5305,7 +5305,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                 String snapshotNativeIds = Joiner.on(", ").join(transform(snapshotsToRollback, fctnBlockObjectToNativeID()));
                 _log.info("Attempting to delete {} for rollback", snapshotNativeIds);
                 for (URI snapshotURI : snapshotURIsToRollback) {
-                    deleteSelectedSnapshot(storage, snapshotURI, generateStepIdForDependentCallDurinRollBack());
+                    deleteSelectedSnapshot(storage, snapshotURI, generateStepIdForDependentCallDuringRollback());
                 }
             }
             WorkflowStepCompleter.stepSucceded(taskId);
@@ -5328,7 +5328,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
      *
      * @return the string
      */
-    private String generateStepIdForDependentCallDurinRollBack() {
+    private String generateStepIdForDependentCallDuringRollback() {
         return UUID.randomUUID().toString();
     }
 

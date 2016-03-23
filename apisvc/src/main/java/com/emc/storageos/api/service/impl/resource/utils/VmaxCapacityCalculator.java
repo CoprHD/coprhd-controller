@@ -73,7 +73,7 @@ public class VmaxCapacityCalculator implements CapacityCalculator {
     /**
      * Computes the provisioned cylinder count for a given requested capacity size
      * and bytes-per-cylinder value.
-     * 
+     *
      * @param requestedCapacity the requested capacity size
      * @param bytesPerCylinder the bytes per cylinder
      * @return the cylinder count
@@ -91,12 +91,5 @@ public class VmaxCapacityCalculator implements CapacityCalculator {
             return false;
         }
         return true;
-    }
-
-    public static void main(String[] args) {
-        long bytesPerCylinder = (tracksPerCylinder * blocksPerTrack * bytesPerBlock);
-        long capacity = 68719476736L;
-        long cyls = (long) Math.ceil((double) capacity / bytesPerCylinder);
-        System.out.println(cyls * bytesPerCylinder);
     }
 }

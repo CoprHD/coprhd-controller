@@ -228,20 +228,7 @@ public class RepairJobRunner implements NotificationListener, AutoCloseable {
 
                 StringTokenRange range = localRanges.get(_completedRepairSessions);
 
-                listener.onStartToken(range.end, getProgress());
-
-                repairRangeDone = false;
-
-                int cmd = svcProxy.forceRepairRangeAsync(range.begin, range.end, keySpaceName, true, false, true);
-
-                _log.info("Wait for repairing this range to be done cmd={}", cmd);
-                if (cmd > 0) {
-                    while (!repairRangeDone) {
-                        finished.await();
-                    }
-                }
-
-                _log.info("Repair this range is done success={}", _success);
+                repairRange(range);
 
                 if (!_success) {
                     _log.error("Fail to repair range {} {}. Stopping the job", range.begin, range.end);
@@ -268,6 +255,23 @@ public class RepairJobRunner implements NotificationListener, AutoCloseable {
                 repairMillis / TimeUtils.MINUTES + " minutes" : repairMillis / TimeUtils.SECONDS + " seconds");
 
         return _success;
+    }
+
+    private void repairRange(StringTokenRange range) throws InterruptedException {
+        listener.onStartToken(range.end, getProgress());
+
+        repairRangeDone = false;
+
+        int cmd = svcProxy.forceRepairRangeAsync(range.begin, range.end, keySpaceName, true, false, true);
+
+        _log.info("Wait for repairing this range to be done cmd={}", cmd);
+        if (cmd > 0) {
+            while (!repairRangeDone) {
+                finished.await();
+            }
+        }
+
+        _log.info("Repair this range is done success={}", _success);
     }
 
     /**

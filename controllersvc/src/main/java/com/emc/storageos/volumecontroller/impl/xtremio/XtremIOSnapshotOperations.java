@@ -346,7 +346,7 @@ public class XtremIOSnapshotOperations extends XtremIOOperations implements Snap
                 client.refreshSnapshotFromCG(clusterName, cgName, snapshotObj.getReplicationGroupInstance(), true);
             } catch (XtremIOApiException ex) {
                 // providing noBackup option was resulting in an error which has been fixed in XIO 4.0.2 version.
-                // So if we get an exception try again by not passing noBackup option.
+                // So if we get an exception, it may be pre 4.0.2 version, try again by not passing noBackup option.
                 client.refreshSnapshotFromCG(clusterName, cgName, snapshotObj.getReplicationGroupInstance(), false);
             }
 

@@ -21,7 +21,7 @@ public class ApplicationSnapshotSetDataTable extends DataTable {
         sortAll();
 	}
 	
-	@SuppressWarnings("ClassVariableVisibilityCheck ")
+	@SuppressWarnings("ClassVariableVisibilityCheck")
 	public static class ApplicationSnapshotSets {
 		public String snapshotGroups;
 		public long createdTime;

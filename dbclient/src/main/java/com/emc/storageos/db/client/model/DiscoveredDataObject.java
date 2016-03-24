@@ -47,6 +47,7 @@ public class DiscoveredDataObject extends DataObject {
         static public Type vnxblock = new Type("vnxblock", types.values().size());
         static public Type vnxfile = new Type("vnxfile", types.values().size());
         static public Type vmax = new Type("vmax", types.values().size());
+        static public Type vmax3 = new Type("vmax3", types.values().size());
         static public Type netapp = new Type("netapp", types.values().size());
         static public Type netappc = new Type("netappc", types.values().size());
         static public Type vplex = new Type("vplex", types.values().size());

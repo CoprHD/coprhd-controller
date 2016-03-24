@@ -24,11 +24,4 @@ public interface DbService {
      * 
      */
     public void stop();
-
-    /**
-     * Stops service beacon and database service with node decommisioned.
-     * Which could protect data and save the restart time. It's usually need a
-     * system exit after the decommission.
-     */
-    public void stopWithDecommission();
 }

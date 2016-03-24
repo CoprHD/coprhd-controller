@@ -896,15 +896,6 @@ public class DbServiceImpl implements DbService {
 
     @Override
     public void stop() {
-        stop(false);
-    }
-
-    @Override
-    public void stopWithDecommission() {
-        stop(true);
-    }
-
-    private void stop(Boolean decommission) {
         if (_log.isInfoEnabled()) {
             _log.info("Stopping DB service...");
         }
@@ -913,15 +904,7 @@ public class DbServiceImpl implements DbService {
             _gcExecutor.stop();
         }
 
-        if (decommission && cassandraInitialized) {
-            flushCassandra();
-        }
-
         _exe.shutdownNow();
-
-        if (cassandraInitialized) {
-            _service.stop();
-        }
 
         if (_jmxServer != null) {
             _jmxServer.stop();
@@ -930,28 +913,6 @@ public class DbServiceImpl implements DbService {
         if (_log.isInfoEnabled()) {
             _log.info("DB service stopped...");
         }
-    }
-
-    /**
-     * Shut down gossip/thrift and then drain
-     */
-    private void flushCassandra() {
-        StorageServiceMBean svc = StorageService.instance;
-
-        if (svc.isInitialized()) {
-            svc.stopGossiping();
-        }
-
-        if (svc.isRPCServerRunning()) {
-            svc.stopRPCServer();
-        }
-
-        try {
-            svc.drain();
-        } catch (Exception e) {
-            _log.error("Fail to drain:", e);
-        }
-
     }
 
     /**

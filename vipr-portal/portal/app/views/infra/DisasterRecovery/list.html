@@ -9,7 +9,8 @@
 	#{DataTable.header titleKey:'disasterRecovery.title'/}
 #{/else}
 
-#{alerts /}
+<div class="clear"></div>
+
 #{if (isActiveSite && util.DisasterRecoveryUtils.hasPausedSite()) }
 <div class="alert alert-info">
 	<div style="display: inline-block;vertical-align: middle"><img class="glyphicon glyphicon-ok" src="/public/img/Warning.png"></div>
@@ -138,7 +139,7 @@ angular.module('tags').directive({
 				scope.isFailover = false;
              }
              
-             if (scope.row.networkStatus.toUpperCase() == "BROKEN") {
+             if (scope.row.networkHealth.toUpperCase() == "BROKEN") {
              	scope.isFailover = false;
              }
          }
@@ -168,7 +169,7 @@ function renderLink(o, val) {
 
 <script type="text/javascript">
 function watchLoadStatus(datatable, itemsJson) {
-    var fields = ['status','VirtualIP','name','networkHealth'];
+    var fields = ['status','VirtualIP','name','networkHealth', 'runningState'];
     var fieldToWatch = 'status';
     var triggerValues = ['STANDBY_ADDING','STANDBY_SYNCING','STANDBY_PAUSING','STANDBY_RESUMING',
     	'STANDBY_SWITCHING_OVER','STANDBY_FAILING_OVER','ACTIVE_SWITCHING_OVER','ACTIVE_FAILING_OVER',

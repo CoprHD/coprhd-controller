@@ -904,7 +904,7 @@ disasterRecovery.standby.pauseLink=Pause Synchronization
 disasterRecovery.standby.resumeLink=Resume Synchronization
 disasterRecovery.standby.stopConfirm=Are you sure you want to Pause Standby Site?
 disasterRecovery.backToUpgrade=Back To Upgrade
-disasterRecovery.pausedSiteWarning=At least one of the standby sites is in paused state and will remain in the previous version until resumed.<br>Resuming the paused site will automatically update it to the same version with the active site.
+disasterRecovery.pausedSiteWarning=At least one of the Standby site(s) is Paused. During an Upgrade, these Paused site(s) will not be upgraded. <br/>Resuming these site(s) after the Upgrade is complete will result in an automatic upgrade to the same Controller version as the Active site.
 disasterRecovery.pausedSiteDataNotConsistentWarning=Status of Disaster Recovery sites shown may not be up to date due to broken connection with Active site.
 disasterRecovery.create.title=Add Standby
 disasterRecovery.edit.title=Edit Standby
@@ -1020,6 +1020,13 @@ system.noderecovery.title=Node Recovery
 systemHealth.startNodeRecovery=Start Node Recovery
 systemHealth.downloadConfigParameters=Download Config Parameters
 systemHealth.fetchingRecoveryStatus=Fetching Node Recovery Status
+nodeRecovery.steps.heading=Recovery Steps
+nodeRecovery.steps.lists=<ol><li>Remove the virtual machine (VM) for each of the failed nodes from your hypervisor environment.</li><li>Save the network configuration parameters to a local properties file using the download button below.</li><li>Use the ViPR deployment script to redeploy a VM for each of the failed nodes, using the properties file created in step 2 as the file argument.  Do not power on the redeployed VM(s).</li><li>Activate the recovery process using the Start Node Recovery button.</li><li>Power on the redeployed VM(s).</li><li>Monitor this page for status updates until the process completes.</li>  </ol>
+nodeRecovery.status.heading=Recovery Status
+nodeRecovery.status=Status
+nodeRecovery.start.time=Start Time
+nodeRecovery.end.time=End Time
+
 
 # System Health Dashboard
 system.healthdashboard.title=System Health
@@ -3169,7 +3176,9 @@ resources.nfsExport.permissions=Permission:
 resources.nfsExport=NFS Export
 resources.nfsExport.image=serviceCatalog/icon_folder_NFS.png
 
-resources.noprojects=There are no projects configured.  No data will be displayed on this page until a project is added.
+resources.noprojects=There are no projects configured.  Please try with filter by Applications.
+resources.noprojectsapplications=There are no projects nor applications configured.  No data will be displayed on this page until a project or an application is added.
+resources.noapplications=There are no applications configured.  Please try with filter by Projects.
 
 resources.tasks=Tasks
 resources.task=Task Details
@@ -4092,7 +4101,7 @@ logout.message=You are not currently logged in. Click the login button to authen
 
 tenant=Tenant
 project=Project
-
+filterBy=Filter By
 
 status.degraded=Degraded
 status.destarted=Restarted

@@ -1466,7 +1466,8 @@ public class BackupOps {
         long size = dst.getBackupSize() + info.getBackupSize();
         dst.setBackupSize(size);
 
-        if (!info.getSiteId().isEmpty()) {
+        String siteId = info.getSiteId();
+        if (siteId != null && !siteId.isEmpty()) {
             dst.setSiteId(info.getSiteId());
             dst.setSiteName(info.getSiteName());
             dst.setCreateTime(info.getCreateTime());

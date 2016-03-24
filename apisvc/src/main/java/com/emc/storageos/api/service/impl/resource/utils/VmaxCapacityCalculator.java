@@ -56,7 +56,7 @@ public class VmaxCapacityCalculator implements CapacityCalculator {
 
                     logger.info(String
                             .format(
-                                    "Determined that volume %s is being provisioned as meta volumes.  Allocated capacity per meta will be %s. Total volume allocation (%s metas) will be %s.",
+                                    "Determined that volume %s is being provisioned as meta volumes.  Allocated capacity per meta will be %d. Total volume allocation (%d metas) will be %d.",
                                     volume.getLabel(), allocatedSingleMetaCapacity, metaCount, allocatedMetaCapacity));
 
                     return allocatedMetaCapacity;

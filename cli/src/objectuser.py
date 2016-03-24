@@ -47,15 +47,10 @@ class ObjectUser(object):
         obj = StorageSystem(self.__ipAddr, self.__port)
                  
         stsystem_uri = obj.query_by_name_and_type(storagesystem, "ecs")
-        request = {}
-        if(secretkey):
-            request = {
+        request = {
                   'secret_key' : secretkey
                   }
         body = json.dumps(request)
-        print "only body " + body
-        print "Full body  "+ ObjectUser.URI_OBJECTUSER_SECRET_KEYS.format(stsystem_uri, objectuser)
-
         (s, h) = common.service_json_request(
                 self.__ipAddr, self.__port,
                 "POST",ObjectUser.URI_OBJECTUSER_SECRET_KEYS.format(
@@ -86,21 +81,15 @@ def create_secretkey_parser(subcommand_parsers, common_parser):
                              dest='objectuser',
                              help='The object user id',
                              required=True)
-    create_secretkey_parser.add_argument('-autogenerate', '-autogen',
-                             metavar='<autogenerate>',
-                             help='Provide the option',
-                             action='store_true')
     
-
+    
     create_secretkey_parser.set_defaults(func=objectuser_secretkey_create)
 
 def objectuser_secretkey_create(args):
     obj = ObjectUser(args.ip, args.port)
     secretkey = None
-    if (args.objectuser and not args.autogenerate):
+    if (args.objectuser):
         secretkey = common.get_password("SecretKey")
-    else: 
-        secretkey=None
     try:
         res = obj.objectuser_secretkey_create(args.storagesystem, args.objectuser, secretkey)
 
@@ -111,16 +100,15 @@ def objectuser_secretkey_create(args):
 
 
 def objectuser_parser(parent_subparser, common_parser):
-    # main objectuser parser
-    parser = parent_subparser.add_parser(
-        'objectuser',
-        description='ViPR object user CLI usage',
-        parents=[common_parser],
-        conflict_handler='resolve',
-        help='Operations on Object user')
-    subcommand_parsers = parser.add_subparsers(
-        help='Use one of sub commands(list_secretkey, create_secretkey)')
+    # main project parser
 
-    # create_secretkey command parser
+    parser = parent_subparser.add_parser('objectuser',
+                                         description='ViPR Objectuser CLI usage',
+                                         parents=[common_parser],
+                                         conflict_handler='resolve',
+                                         help='Operations on Object User')
+    subcommand_parsers = parser.add_subparsers(help='Use one of subcommands')
+
+    # create command parser
     create_secretkey_parser(subcommand_parsers, common_parser)
 

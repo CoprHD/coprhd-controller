@@ -3953,6 +3953,26 @@ public class FileService extends TaskResourceService {
                 if (rpoParam.getRpoValue() == null || rpoParam.getRpoValue() <= 0) {
                     throw APIException.badRequests.invalidReplicationRPOValue();
                 }
+                // Validate the RPO values!!
+                switch (rpoParam.getRpoType().toUpperCase()) {
+                    case "MINUTES":
+                        if (rpoParam.getRpoValue() > MINUTES_PER_HOUR) {
+                            throw APIException.badRequests.invalidReplicationRPOValueForType(
+                                    rpoParam.getRpoValue().toString(), rpoParam.getRpoType());
+                        }
+                        break;
+                    case "HOURS":
+                        if (rpoParam.getRpoValue() > HOURS_PER_DAY) {
+                            throw APIException.badRequests.invalidReplicationRPOValueForType(
+                                    rpoParam.getRpoValue().toString(), rpoParam.getRpoType());
+                        }
+                        break;
+                    case "DAYS":
+                        // No validation required for Days.
+                        break;
+                    default:
+                        throw APIException.badRequests.invalidReplicationRPOType(rpoParam.getRpoType());
+                }
 
                 Long rpoInMinuts = getMinutRpoValue(rpoParam.getRpoType(), rpoParam.getRpoValue());
                 Long vpoolRpoInMinuts = getMinutRpoValue(vpool.getFrRpoType(), vpool.getFrRpoValue());

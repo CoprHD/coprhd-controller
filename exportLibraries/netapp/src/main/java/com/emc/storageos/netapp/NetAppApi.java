@@ -1178,6 +1178,7 @@ public class NetAppApi {
 
             } else if ("quiesced".equals(statusInfo.getState())
                     && ("idle".equals(statusInfo.getStatus()) || "pending".equals(statusInfo.getStatus()))) {
+                _logger.info("Calling Snapmirror break on {}", pathLocation);
                 success = netAppFacade.breakSnapMirrorSchedule(pathLocation);
             } else {
                 _logger.error("Snapmirror relationship is not quiesced.");
@@ -1233,7 +1234,8 @@ public class NetAppApi {
                 _logger.info("Snapmirror is already quiesced for : {}", pathLocation);
                 return true;
             }
-            if ("snapmirrored".equals(statusInfo.getStatus()) && "idle".equals(statusInfo.getStatus())) {
+            if ("snapmirrored".equals(statusInfo.getState()) && "idle".equals(statusInfo.getStatus())) {
+                _logger.info("Calling Snapmirror quiesce for : {}", pathLocation);
                 success = netAppFacade.quiesceSnapMirror(pathLocation);
                 if (!success) {
                     throw new Exception("Unable to quiesce snapmirror on destination location.");

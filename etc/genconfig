@@ -404,6 +404,10 @@ _genconfig_system_init() {
     for svc in controller sa vasa ; do
         _genconfig_dr_flag ${svc}
     done
+	
+	if [ "${_GENCONFIG_site_is_standby}" == "true" ]; then
+		/etc/datatool --revert-snapshot /data/zk/version-2
+	fi
 }
 
 _genconfig_exec_scripts() {

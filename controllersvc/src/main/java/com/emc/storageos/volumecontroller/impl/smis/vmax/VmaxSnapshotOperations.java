@@ -524,12 +524,13 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
                  * -after detaching group synchronization, or after deleting target group
                  * When user retries this operation, make required call based on what is needed.
                  */
-                String[] targetDeviceIds = new String[snapshotList.size()];
+                List<String> targetDeviceIds = new ArrayList<String>();
                 Iterator<BlockSnapshot> snapshotIter = snapshotList.iterator();
-                int index = 0;
                 while (snapshotIter.hasNext()) {
                     BlockSnapshot snap = snapshotIter.next();
-                    targetDeviceIds[index++] = snap.getNativeId();
+                    if (!isNullOrEmpty(snap.getNativeId())) {
+                        targetDeviceIds.add(snap.getNativeId());
+                    }
                 }
                 // Remove target group
                 if (targetGroupPath != null) {
@@ -537,8 +538,9 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
                 }
 
                 // Remove target devices
-                if (targetDeviceIds.length > 0) {
-                    ReplicationUtils.deleteTargetDevices(storage, targetDeviceIds, taskCompleter, _dbClient, _helper, _cimPath);
+                if (!targetDeviceIds.isEmpty()) {
+                    ReplicationUtils.deleteTargetDevices(storage, targetDeviceIds.toArray(new String[targetDeviceIds.size()]),
+                            taskCompleter, _dbClient, _helper, _cimPath);
                 }
             }
             // Set inactive=true for all snapshots in the snaps set

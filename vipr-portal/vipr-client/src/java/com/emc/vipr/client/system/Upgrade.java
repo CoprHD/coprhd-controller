@@ -152,10 +152,25 @@ public class Upgrade {
     }
 
     /**
-     * Shows the cluster information with all removable versions.
+     * Update target version. Version can only be updated incrementally. Ex: storageos-1.0.0.2.xx
+     * can only be updated to sotrageos-1.0.0.3.xx and not to storageos-1.0.0.4.xx
+     * Keep this for backward compatibility
+     * <p>
+     * API Call: PUT /upgrade/target-version
+     *
+     * @param version The new version number
+     * @return The cluster information
+     */
+    public ClusterInfo setTargetVersion(String version) {
+        return setTargetVersion(version, true);
+    }
+
+    /**
+     * Shows the cluster information of a specific site with all removable versions.
      * <p>
      * API Call: GET /upgrade/cluster-state
-     * 
+     *
+     * @param siteId the UUID of the target site
      * @param showAllVersions If true, will show all removable versions even though
      *            the installed versions are less than MAX_SOFTWARE_VERSIONS
      * @return The cluster information
@@ -172,6 +187,20 @@ public class Upgrade {
     }
 
     /**
+     * Shows the cluster information with all removable versions.
+     * Keep this for backward compatibility
+     * <p>
+     * API Call: GET /upgrade/cluster-state
+     *
+     * @param showAllVersions If true, will show all removable versions even though
+     *            the installed versions are less than MAX_SOFTWARE_VERSIONS
+     * @return The cluster information
+     */
+    public ClusterInfo getClusterInfo(boolean showAllVersions) {
+        return getClusterInfo(null, showAllVersions);
+    }
+
+    /**
      * Shows the cluster information for the local site, excluding all removable versions.
      * 
      * @return The cluster state information
@@ -183,6 +212,7 @@ public class Upgrade {
     /**
      * Shows the cluster information for a specific site, excluding all removable versions.
      *
+     * @param siteId the UUID of the target site
      * @return The cluster state information
      */
     public ClusterInfo getClusterInfo(String siteId) {

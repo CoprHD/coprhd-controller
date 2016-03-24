@@ -109,7 +109,12 @@ public class BlockMapper {
             to.setTenant(toRelatedResource(ResourceTypeEnum.TENANT, from.getTenant().getURI()));
         }
         to.setProvisionedCapacity(CapacityUtils.convertBytesToGBInStr(from.getProvisionedCapacity()));
-        to.setAllocatedCapacity(CapacityUtils.convertBytesToGBInStr(from.getAllocatedCapacity()));
+        // For VPLEX virtual volumes return allocated capacity as provisioned capacity (cop-18608)
+        if (dbClient != null && VPlexUtil.isVplexVolume(from, dbClient)) {
+            to.setAllocatedCapacity(CapacityUtils.convertBytesToGBInStr(from.getProvisionedCapacity()));
+        } else {
+            to.setAllocatedCapacity(CapacityUtils.convertBytesToGBInStr(from.getAllocatedCapacity()));
+        }
         to.setCapacity(CapacityUtils.convertBytesToGBInStr(from.getCapacity()));
         if (from.getThinlyProvisioned()) {
             to.setPreAllocationSize(CapacityUtils.convertBytesToGBInStr(from.getThinVolumePreAllocationSize()));
@@ -255,7 +260,9 @@ public class BlockMapper {
             to.setProtection(toProtection);
         }
 
-        to.setReplicationGroupInstance(from.getReplicationGroupInstance());
+        if (NullColumnValueGetter.isNotNullValue((from.getReplicationGroupInstance()))) {
+            to.setReplicationGroupInstance(from.getReplicationGroupInstance());
+        }
 
         if ((from.getAssociatedVolumes() != null) && (!from.getAssociatedVolumes().isEmpty())) {
             List<RelatedResourceRep> backingVolumes = new ArrayList<RelatedResourceRep>();
@@ -265,7 +272,8 @@ public class BlockMapper {
             // Get ReplicationGroupInstance from source back end volume
             if (NullColumnValueGetter.isNullValue(to.getReplicationGroupInstance())) {
                 Volume sourceSideBackingVolume = VPlexUtil.getVPLEXBackendVolume(from, true, dbClient);
-                if (sourceSideBackingVolume != null) {
+                if (sourceSideBackingVolume != null
+                        && NullColumnValueGetter.isNotNullValue((sourceSideBackingVolume.getReplicationGroupInstance()))) {
                     to.setReplicationGroupInstance(sourceSideBackingVolume.getReplicationGroupInstance());
                 }
             }

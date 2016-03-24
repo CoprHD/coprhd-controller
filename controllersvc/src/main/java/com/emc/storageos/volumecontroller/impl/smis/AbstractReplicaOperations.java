@@ -7,6 +7,7 @@ package com.emc.storageos.volumecontroller.impl.smis;
 import static com.emc.storageos.volumecontroller.impl.smis.ReplicationUtils.callEMCRefreshIfRequired;
 import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.CREATE_LIST_REPLICA;
 import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.JOB;
+import static com.google.common.base.Strings.isNullOrEmpty;
 import static java.text.MessageFormat.format;
 
 import java.net.URI;
@@ -19,9 +20,11 @@ import javax.cim.CIMArgument;
 import javax.cim.CIMObjectPath;
 
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
+import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.BlockSnapshotSession;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.volumecontroller.impl.ControllerUtils;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -84,6 +87,8 @@ public abstract class AbstractReplicaOperations implements ReplicaOperations {
             Map<String, String> tgtToSrcMap = new HashMap<String, String>();
             String replicaGroupName = null;
             String sessionName = null;
+            Volume source = null;
+            boolean isThinlyProvisioned = false;
             for (URI replicaURI : replicaList) {
                 BlockObject replica = BlockObject.fetch(_dbClient, replicaURI);
                 // Use the existing replica group instance name for the new snaps to add.
@@ -92,8 +97,9 @@ public abstract class AbstractReplicaOperations implements ReplicaOperations {
                 if (sessionName == null) {
                     sessionName = getSnapshotSessionNameFromReplicaGroupName(replicaGroupName, storage.getId());
                 }
-                Volume source = (Volume) _helper.getSource(replica);
+                source = (Volume) _helper.getSource(replica);
                 String sourceNativeId = source.getNativeId();
+                isThinlyProvisioned = source.getThinlyProvisioned();
                 sourceIds.add(sourceNativeId);
                 srcNativeIdToReplicaUriMap.put(sourceNativeId, replica.getId());
 
@@ -101,7 +107,7 @@ public abstract class AbstractReplicaOperations implements ReplicaOperations {
                     // need to create target devices first
                     final URI poolId = source.getPool();
                     final List<String> newDeviceIds = ReplicationUtils.createTargetDevices(storage, replicaGroupName, replica.getLabel(),
-                            createInactive, 1, poolId, source.getCapacity(), source.getThinlyProvisioned(), null, taskCompleter,
+                            createInactive, 1, poolId, source.getCapacity(), isThinlyProvisioned, null, taskCompleter,
                             _dbClient, _helper, _cimPath);
                     targetDeviceIds.addAll(newDeviceIds);
                     tgtToSrcMap.put(newDeviceIds.get(0), source.getNativeId());
@@ -111,8 +117,13 @@ public abstract class AbstractReplicaOperations implements ReplicaOperations {
             int syncType = getSyncType(replicaList.get(0));
             CIMObjectPath[] sourceVolumePaths = _cimPath.getVolumePaths(storage, sourceIds.toArray(new String[sourceIds.size()]));
             CIMObjectPath[] targetDevicePaths = _cimPath.getVolumePaths(storage, targetDeviceIds.toArray(new String[targetDeviceIds.size()]));
+            CIMObjectPath targetVPSnapPoolPath = null;
+            if (syncType == SmisConstants.SNAPSHOT_VALUE && !volumeHasSnapshot(source)) {
+                targetVPSnapPoolPath = ReplicationUtils.getTargetPoolForVPSnapCreation(storage, null, replicaGroupName,
+                        isThinlyProvisioned, _dbClient, _helper, _cimPath);
+            }
             CIMArgument[] inArgs = _helper.getCreateListReplicaInputArguments(storage, sourceVolumePaths, targetDevicePaths, labels, syncType,
-                    replicaGroupName, sessionName, createInactive);
+                    replicaGroupName, sessionName, createInactive, targetVPSnapPoolPath);
             CIMArgument[] outArgs = new CIMArgument[5];
             CIMObjectPath replicationSvc = _cimPath.getControllerReplicationSvcPath(storage);
             _helper.invokeMethod(storage, replicationSvc, CREATE_LIST_REPLICA, inArgs, outArgs);
@@ -136,6 +147,31 @@ public abstract class AbstractReplicaOperations implements ReplicaOperations {
             taskCompleter.error(_dbClient, error);
         }
         _log.info("createListReplica operation END");
+    }
+
+    /**
+     * Checks if the request is for second snapshot creation for the same volume.
+     * This is a temporary fix for COP-20864 (OPT# 497150).
+     * TODO remove this method and condition check once the OPT is resolved.
+     *
+     * @param source the volume
+     * @return true, if is second snapshot request
+     */
+    private boolean volumeHasSnapshot(Volume source) {
+        int snapshotCount = 0;
+        if (source != null) {
+            URIQueryResultList snapshotURIs = new URIQueryResultList();
+            _dbClient.queryByConstraint(ContainmentConstraint.Factory.getVolumeSnapshotConstraint(
+                    source.getId()), snapshotURIs);
+            List<BlockSnapshot> snapshots = _dbClient.queryObject(BlockSnapshot.class, snapshotURIs);
+            for (BlockSnapshot snapshot : snapshots) {
+                if (snapshot != null && !snapshot.getInactive() && !isNullOrEmpty(snapshot.getNativeId())) {
+                    // snapshot created on array
+                    snapshotCount++;
+                }
+            }
+        }
+        return (snapshotCount > 0) ? true : false;
     }
 
     @Override

@@ -29,7 +29,7 @@ import java.util.Set;
  * Class implements ResourceFilterFactory to add permissions filter where needed
  */
 public class SyssvcPermissionsFilterFactory extends AbstractPermissionsFilterFactory {
-    private static final List<String> FORBIDDEN_PATHS = Arrays.asList("backupset", "control/cluster/recovery", "control/cluster/ipreconfig");
+    private static final List<String> FORBIDDEN_PATHS = Arrays.asList("backupset", "control/cluster/recovery", "control/cluster/ipreconfig", "upgrade/image/install");
     private static final List<String> READ_ONLY_PATHS = Arrays.asList("ipsec");
     private static final List<String> CONFIG_PATHS = Arrays.asList("config");
 

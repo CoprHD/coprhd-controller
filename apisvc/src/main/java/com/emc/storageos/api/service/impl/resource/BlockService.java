@@ -103,6 +103,7 @@ import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.VirtualPool.RPCopyMode;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.Volume.PersonalityTypes;
+import com.emc.storageos.db.client.model.VolumeGroup;
 import com.emc.storageos.db.client.model.VplexMirror;
 import com.emc.storageos.db.client.model.VpoolRemoteCopyProtectionSettings;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
@@ -2176,6 +2177,9 @@ public class BlockService extends TaskResourceService {
         // Make sure that we don't have some pending
         // operation against the volume
         checkForPendingTasks(Arrays.asList(requestedVolume.getTenant().getURI()), Arrays.asList(requestedVolume));
+        
+        // validate the volume is not part of a RP or VPlex CG that is part of an application
+        validateCGIsNotInApplication(requestedVolume, snapshotType);
 
         // Set whether or not the snapshot be activated when created.
         Boolean createInactive = Boolean.FALSE;
@@ -2232,6 +2236,33 @@ public class BlockService extends TaskResourceService {
                         .toString());
 
         return response;
+    }
+
+    /**
+     * validates that the volume is not part of a RP or VPlex CG that is part of an application
+     * @param requestedVolume
+     * @param snapshotType indicates if this is an array snapshot or RP bookmark request
+     */
+    private void validateCGIsNotInApplication(Volume requestedVolume, String snapshotType) {
+        // validation should only apply to non-RP snapshots
+        if (TechnologyType.RP.toString().equalsIgnoreCase(snapshotType)) {
+            return;
+        }
+        URI cgId = requestedVolume.getConsistencyGroup();
+        if (!NullColumnValueGetter.isNullURI(cgId)) {
+            BlockConsistencyGroup cg = _dbClient.queryObject(BlockConsistencyGroup.class, cgId);
+            if (cg != null && !cg.getInactive()) {
+                URIQueryResultList volumesInCg = new URIQueryResultList();
+                _dbClient.queryByConstraint(getVolumesByConsistencyGroup(cgId), volumesInCg);
+                Iterator<Volume> volumeIterator = _dbClient.queryIterativeObjects(Volume.class, volumesInCg);
+                while (volumeIterator.hasNext()) {
+                    VolumeGroup application = volumeIterator.next().getApplication(_dbClient);
+                    if (application != null) {
+                        throw APIException.badRequests.cannotCreateSnapshotCgPartOfApplication(application.getLabel(), cg.getLabel());
+                    }
+                }
+            }
+        }
     }
 
     /**
@@ -3293,7 +3324,7 @@ public class BlockService extends TaskResourceService {
         } catch (Exception e) {
             String errorMsg = String.format(
                     "Volume VirtualPool change error: %s", e.getMessage());
-            _log.error(errorMsg);
+            _log.error(errorMsg, e);            
             for (TaskResourceRep volumeTask : taskList.getTaskList()) {
                 volumeTask.setState(Operation.Status.error.name());
                 volumeTask.setMessage(errorMsg);

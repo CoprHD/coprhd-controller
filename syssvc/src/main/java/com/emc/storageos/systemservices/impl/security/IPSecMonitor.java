@@ -35,7 +35,7 @@ public class IPSecMonitor implements Runnable {
 
     private static final long SHORT_SLEEP = 10 * 1000;
     public static int IPSEC_CHECK_INTERVAL = 10;  // minutes
-    public static int IPSEC_CHECK_INITIAL_DELAY = 10;  // minutes
+    public static int IPSEC_CHECK_INITIAL_DELAY = 5;  // minutes
 
     private static final int NUMBER_OF_CHAR_IN_IPSEC_KEY_WITHOUT_MASK = 5;
     private static final String MASKED_IPSEC_KEY = "*********";
@@ -90,9 +90,6 @@ public class IPSecMonitor implements Runnable {
     @Override
     public void run() {
         try {
-            // geo checking
-            log.info("the dbclient instance is {}", getDbClient());
-
             log.info("step 1: start checking ipsec connections");
             String[] problemNodes = LocalRepository.getInstance().checkIpsecConnection();
 
@@ -168,6 +165,9 @@ public class IPSecMonitor implements Runnable {
         Map<String, String> latest = null;
 
         if (nodes != null && nodes.length != 0) {
+            // sort remote ips, to make sure to find the node with latest properties
+            // AND with smallest ip.
+            Arrays.sort(nodes);
             for (String node : nodes) {
                 if (StringUtils.isEmpty(node) || node.trim().length() == 0) {
                     continue;
@@ -193,13 +193,15 @@ public class IPSecMonitor implements Runnable {
                         compareVdcConfigVersion(configVersion,
                                 latest.get(VDC_CONFIG_VERSION)) > 0) {
                     latest = props;
+                    latest.put(NODE_IP, node);
                 }
 
                 log.info("checking " + node + ": " + " configVersion=" + configVersion
                     + ", ipsecKey=" + maskIpsecKey(props.get(Constants.IPSEC_KEY))
                     + ", ipsecStatus=" + props.get(Constants.IPSEC_STATUS)
                     + ", latestKey=" + maskIpsecKey(latest.get(Constants.IPSEC_KEY))
-                    + ", latestStatus=" + latest.get(Constants.IPSEC_STATUS));
+                    + ", latestStatus=" + latest.get(Constants.IPSEC_STATUS)
+                    + ", nodeIp=" + latest.get(Constants.NODE_IP));
             }
         }
 
@@ -302,7 +304,7 @@ public class IPSecMonitor implements Runnable {
 
         boolean bKeyEqual = false;
         boolean bStatusEqual = false;
-        
+
         if (StringUtils.isEmpty(props.get(IPSEC_KEY))) {
             log.info("remote nodes' latest ipsec_key is empty, skip sync");
             return false;
@@ -329,8 +331,17 @@ public class IPSecMonitor implements Runnable {
         int result = compareVdcConfigVersion(
                 localIpsecProp.get(VDC_CONFIG_VERSION),
                 props.get(VDC_CONFIG_VERSION));
+
+        // local vdc_configure_version is larger, local is newer, no need to sync.
         if (result > 0) {
             return false;
+
+        // vdc_config_version is the same, further comparing ip,
+        // if local is smaller, no need to sync. otherwise, do sync.
+        } else if (result == 0 && localIP.compareTo(props.get(NODE_IP)) < 0) {
+            return false;
+
+        // local vdc_config_version is smaller, remote node is newer, need to sync
         } else {
             return true;
         }

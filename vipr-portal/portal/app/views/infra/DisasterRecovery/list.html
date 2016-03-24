@@ -8,6 +8,23 @@
 #{else}
 	#{DataTable.header titleKey:'disasterRecovery.title'/}
 #{/else}
+
+<div class="clear"></div>
+
+#{if (isActiveSite && util.DisasterRecoveryUtils.hasPausedSite()) }
+<div class="alert alert-info">
+	<div style="display: inline-block;vertical-align: middle"><img class="glyphicon glyphicon-ok" src="/public/img/Warning.png"></div>
+	<div style="display: inline-block;vertical-align: middle">&{'disasterRecovery.pausedSiteWarning'}</div>
+</div>
+#{/if}
+
+#{if !isActiveSite && controllers.infra.DisasterRecovery.getLocalSiteState() == "STANDBY_PAUSED" }
+<div class="alert alert-info">
+	<div style="display: inline-block;vertical-align: middle"><img class="glyphicon glyphicon-ok" src="/public/img/Warning.png"></div>
+	<div style="display: inline-block;vertical-align: middle">&{'disasterRecovery.pausedSiteDataNotConsistentWarning'}</div>
+</div>
+#{/if}
+
 #{DataTable.baseCrudTable id:'disasterRecovery',
 					dataTable:dataTable,
 					expandable: true}
@@ -29,15 +46,7 @@
 #{if showPauseButton}
 	<a href="@{infra.Upgrade.index()}">&{'disasterRecovery.backToUpgrade'}</a>
 #{/if}
-#{elseif (isActiveSite && util.DisasterRecoveryUtils.hasPausedSite()) }
-	<div style="display: inline-block;vertical-align: middle"><img class="glyphicon glyphicon-ok" src="/public/img/Warning.png"></div>
-	<div style="display: inline-block;vertical-align: middle;color: red">&{'disasterRecovery.pausedSiteWarning'}</div>
-#{/elseif}
 
-#{if !isActiveSite && controllers.infra.DisasterRecovery.getLocalSiteState() == "STANDBY_PAUSED" }
-	<div style="display: inline-block;vertical-align: middle"><img class="glyphicon glyphicon-ok" src="/public/img/Warning.png"></div>
-	<div style="display: inline-block;vertical-align: middle;color: red">&{'disasterRecovery.pausedSiteDataNotConsistentWarning'}</div>
-#{/if}
 
 <script id="inlineActions.html" type="text/ng-template">
     <div class="btn-group-site">
@@ -129,6 +138,10 @@ angular.module('tags').directive({
 				scope.isTestSite = false;
 				scope.isFailover = false;
              }
+             
+             if (scope.row.networkHealth.toUpperCase() == "BROKEN") {
+             	scope.isFailover = false;
+             }
          }
      }
  },
@@ -156,7 +169,7 @@ function renderLink(o, val) {
 
 <script type="text/javascript">
 function watchLoadStatus(datatable, itemsJson) {
-    var fields = ['status','VirtualIP','name','networkHealth'];
+    var fields = ['status','VirtualIP','name','networkHealth', 'runningState'];
     var fieldToWatch = 'status';
     var triggerValues = ['STANDBY_ADDING','STANDBY_SYNCING','STANDBY_PAUSING','STANDBY_RESUMING',
     	'STANDBY_SWITCHING_OVER','STANDBY_FAILING_OVER','ACTIVE_SWITCHING_OVER','ACTIVE_FAILING_OVER',
@@ -236,7 +249,12 @@ function standbyStatusIcon(o, val) {
 
     var label = defaultValue(labels[o.aData.status], 'label-default');
     var icon = defaultValue(icons[o.aData.status], 'glyphicon glyphicon-question-sign');
-
+    
+	if (o.aData.runningState == "FALSE" && (o.aData.status == "ACTIVE" || o.aData.status == "STANDBY_SYNCED")) {
+	    label = 'label-warning';
+	    icon = 'glyphicon glyphicon-warning-sign'
+	}
+	
     var message = defaultValue(messages[o.aData.status], Messages.get("renderFunctions.disasterRecovery.status.unknown"));
 
     return '<span class="label ' + label + '"><span class="' + icon + '"></span></span> <span>' + ' ' + message+'</span>';

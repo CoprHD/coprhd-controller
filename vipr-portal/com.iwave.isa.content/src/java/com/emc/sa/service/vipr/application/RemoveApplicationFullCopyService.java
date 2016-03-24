@@ -32,6 +32,10 @@ public class RemoveApplicationFullCopyService extends ViPRService {
         List<URI> fullCopyIds = BlockStorageUtils.getSingleFullCopyPerSubGroupAndStorageSystem(applicationId, name,
                 subGroups);
 
-        BlockStorageUtils.removeBlockResources(fullCopyIds, VolumeDeleteTypeEnum.FULL);
+        List<URI> allFullCopyIds = BlockStorageUtils.getAllFullCopyVolumes(applicationId, name, subGroups);
+
+        BlockStorageUtils.detachFullCopies(fullCopyIds);
+
+        BlockStorageUtils.removeBlockResources(allFullCopyIds, VolumeDeleteTypeEnum.FULL);
     }
 }

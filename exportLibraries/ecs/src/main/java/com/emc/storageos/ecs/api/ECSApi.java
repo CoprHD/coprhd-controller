@@ -721,13 +721,8 @@ public class ECSApi {
                     JSONObject data = jArray.getJSONObject(i);
                     String model = data.getString("model");
                     if("ViPR_ECS".equals(model)){
-                        String notice = data.getString("notice");
-                        if(!StringUtil.isBlank(notice)){
-                            String[] licenseInfo = notice.split(":");
-                            if(licenseInfo.length > 1){
-                                responseString =  licenseInfo[1].trim();
-                            }
-                        }
+                        responseString = data.getString("serial");
+                        break;
                     }
                 }
                

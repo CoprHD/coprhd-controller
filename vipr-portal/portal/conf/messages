@@ -3711,7 +3711,7 @@ snapshots.created=Date Created
 snapshots.capacity=Size
 snapshots.varray=Virtual Array
 snapshots.vpool=Virtual Pool
-snapshots.subGroup=Sub Group
+snapshots.subGroup=Application Subgroup
 
 exportGroups.name=Export Group Name
 exportGroups.type=Type
@@ -3725,7 +3725,7 @@ volumes.protocols=Protocols
 volumes.consistencygroup=Consistency Group
 volumes.wwn=WWN
 volumes.replicationGroup=Sub Group
-volumes.associatedVolumeRG=Source Application Sub Group
+volumes.associatedVolumeRG=Source Application Subgroup
 
 fileSystems.name=File System Name
 fileSystems.capacity=Size

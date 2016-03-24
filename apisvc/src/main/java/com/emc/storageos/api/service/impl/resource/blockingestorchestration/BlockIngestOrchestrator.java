@@ -743,11 +743,11 @@ public abstract class BlockIngestOrchestrator {
                         String blockObjectNativeGUID = rootUnManagedVolume.getNativeGuid().replace(VolumeIngestionUtil.UNMANAGEDVOLUME,
                                 VolumeIngestionUtil.VOLUME);
 
-                        rootBlockObject = VolumeIngestionUtil.getBlockObject(blockObjectNativeGUID, _dbClient);
-                        // If the volumeobject is not found in DB. check in locally createdObjects.
+                        rootBlockObject = requestContext.getRootIngestionRequestContext().findCreatedBlockObject(blockObjectNativeGUID);
+
+                        // If the root object is not found in locally createdObjects, check in DB.
                         if (rootBlockObject == null) {
-                            rootBlockObject = 
-                                    requestContext.getRootIngestionRequestContext().findCreatedBlockObject(blockObjectNativeGUID);
+                            rootBlockObject = VolumeIngestionUtil.getBlockObject(blockObjectNativeGUID, _dbClient);
                         }
 
                         // Get the parent unmanagedvolume for the current unmanagedvolume.

@@ -875,7 +875,8 @@ public class VplexVolumeIngestionContext extends VplexBackendIngestionContext im
                         vplexMirror.setCapacity(mirrorVolume.getCapacity());
                         vplexMirror.setLabel(mirrorVolume.getLabel());
                         vplexMirror.setNativeId(entry.getValue());
-                        vplexMirror.setAllocatedCapacity(mirrorVolume.getAllocatedCapacity());
+                        // For Vplex virtual volumes set allocated capacity to 0 (cop-18608)
+                        vplexMirror.setAllocatedCapacity(0L);
                         vplexMirror.setProvisionedCapacity(mirrorVolume.getProvisionedCapacity());
                         vplexMirror.setSource(new NamedURI(virtualVolume.getId(), virtualVolume.getLabel()));
                         vplexMirror.setStorageController(virtualVolume.getStorageController());

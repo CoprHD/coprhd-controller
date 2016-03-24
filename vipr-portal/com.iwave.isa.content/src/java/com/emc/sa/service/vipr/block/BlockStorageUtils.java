@@ -664,12 +664,12 @@ public class BlockStorageUtils {
     }
 
     public static boolean canRemoveReplicas(URI blockResourceId) {
-        BlockObjectRestRep volume = getVolume(blockResourceId);
-        if (volume.getConsistencyGroup() != null && NullColumnValueGetter.isNotNullValue(volume.getReplicationGroupInstance())) {
-            StorageSystemRestRep storageSystem = getStorageSystem(volume.getStorageController());
-            if (storageSystem != null
-                    && storageSystem.getSystemType() != null
-                    && storageSystem.getSystemType().equals(DiscoveredDataObject.Type.vmax.name())) {
+        ResourceType volumeType = ResourceType.fromResourceId(blockResourceId.toString());
+        if (volumeType == ResourceType.VOLUME) {
+            VolumeRestRep volume = (VolumeRestRep) getVolume(blockResourceId);
+            if (volume.getConsistencyGroup() != null
+                    && (volume.getSystemType().equalsIgnoreCase(DiscoveredDataObject.Type.vmax.name()) || 
+                    		volume.getSystemType().equalsIgnoreCase(DiscoveredDataObject.Type.vmax3.name()))) {
                 return false;
             }
         }
@@ -1212,6 +1212,17 @@ public class BlockStorageUtils {
                 fullCopyIds.add(cell.getValue().getId());
             }
         }
+        return fullCopyIds;
+    }
+
+    public static List<URI> getAllFullCopyVolumes(URI applicationId, String copySet, List<String> subGroups) {
+        List<URI> fullCopyIds = Lists.newArrayList();
+
+        List<NamedRelatedResourceRep> fullCopies = execute(new GetFullCopyList(applicationId, copySet)).getVolumes();
+        for (NamedRelatedResourceRep fullCopy : fullCopies) {
+            fullCopyIds.add(fullCopy.getId());
+        }
+
         return fullCopyIds;
     }
 

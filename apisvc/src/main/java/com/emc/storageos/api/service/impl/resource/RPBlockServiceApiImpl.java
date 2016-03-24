@@ -2048,26 +2048,9 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                 throw APIException.badRequests.cannotCreateRPVolumesInCG(volume.getLabel(), cg.getLabel());
             }
 
-            // CTRL-2792: This is a workaround for the UI not providing a field for
-            // consistency group. We are basing the CG name off the volume
-            // name until this support is added. In the future, the cg should
-            // never be null.
+            // The user needs to specify a CG for this operation.
             if (vpoolChangeParam.getConsistencyGroup() == null) {
-                // create a consistency group corresponding to volume name
-                BlockConsistencyGroup cg = new BlockConsistencyGroup();
-                String modifiedCGName = volume.getLabel().replaceAll("\\s+", "").replaceAll("[^A-Za-z0-9]", "");
-                // Make sure the name doesn't start with a number
-                if (modifiedCGName.substring(0, 1).matches("[0-9]")) {
-                    modifiedCGName = "cg_" + modifiedCGName;
-                }
-                cg.setProject(new NamedURI(project.getId(), modifiedCGName));
-                cg.setTenant(new NamedURI(project.getTenantOrg().getURI(), modifiedCGName));
-                cg.setId(URIUtil.createId(BlockConsistencyGroup.class));
-                cg.setLabel(modifiedCGName);
-
-                _dbClient.createObject(cg);
-
-                vpoolChangeParam.setConsistencyGroup(cg.getId());
+                throw APIException.badRequests.addRecoverPointProtectionRequiresCG();
             }
         }
 

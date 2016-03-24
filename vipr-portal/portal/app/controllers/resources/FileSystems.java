@@ -10,27 +10,12 @@ import static com.emc.vipr.client.core.util.ResourceUtils.uris;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import models.datatable.FilePolicySnapshotsDataTable;
-import models.datatable.FileSystemsDataTable;
-import models.datatable.NfsACLDataTable;
-import models.datatable.ShareACLDataTable;
-
 import org.apache.commons.lang.StringUtils;
-
-import play.data.binding.As;
-import play.data.validation.Required;
-import play.data.validation.Validation;
-import play.mvc.With;
-import util.BourneUtil;
-import util.FileUtils;
-import util.FileUtils.ExportRuleInfo;
-import util.MessagesUtils;
-import util.StringOption;
-import util.datatable.DataTablesSupport;
 
 import com.emc.sa.util.DiskSizeConversionUtils;
 import com.emc.storageos.model.NamedRelatedResourceRep;
@@ -78,6 +63,20 @@ import controllers.Common;
 import controllers.security.Security;
 import controllers.util.FlashException;
 import controllers.util.Models;
+import models.datatable.FilePolicySnapshotsDataTable;
+import models.datatable.FileSystemsDataTable;
+import models.datatable.NfsACLDataTable;
+import models.datatable.ShareACLDataTable;
+import play.data.binding.As;
+import play.data.validation.Required;
+import play.data.validation.Validation;
+import play.mvc.With;
+import util.BourneUtil;
+import util.FileUtils;
+import util.FileUtils.ExportRuleInfo;
+import util.MessagesUtils;
+import util.StringOption;
+import util.datatable.DataTablesSupport;
 
 @With(Common.class)
 public class FileSystems extends ResourceController {
@@ -151,7 +150,15 @@ public class FileSystems extends ResourceController {
             }
 
             Tasks<FileShareRestRep> tasksResponse = client.fileSystems().getTasks(fileSystem.getId());
+            
+            FileProtectionRestRep targetFileSystems = client.fileSystems().get(fileSystem.getId()).getProtection();
+            
             List<Task<FileShareRestRep>> tasks = tasksResponse.getTasks();
+            for (VirtualArrayRelatedResourceRep virtualResource : targetFileSystems.getTargetFileSystems()) {
+                Tasks<FileShareRestRep> targetTasks = client.fileSystems().getTasks(virtualResource.getId());
+                tasks.add(targetTasks.firstTask());
+            }            
+            
             renderArgs.put("tasks", tasks);
         } else {
             notFound(MessagesUtils.get("resources.filesystems.notfound"));
@@ -160,9 +167,22 @@ public class FileSystems extends ResourceController {
         renderArgs.put("permissionTypeOptions", PERMISSION_TYPES);
         render(fileSystem);
     }
+    
+    
+    public static void getVarrayVopool(String resourceId){
+        HashMap<String,String> response = new HashMap<String, String>();
+        URI fileShareId= uri(resourceId);
+        ViPRCoreClient client = BourneUtil.getViprClient();
+        URI vArray= client.fileSystems().get(fileShareId).getVirtualArray().getId();
+        URI vPool= client.fileSystems().get(fileShareId).getVirtualPool().getId();
+        response.put("vArray",client.varrays().get(vArray).getName());
+        response.put("vPool", client.fileVpools().get(vPool).getName());
+        renderJSON(response);
+    }
 
     public static void fileSystemExports(String fileSystemId) {
         URI id = uri(fileSystemId);
+        ViPRCoreClient client = BourneUtil.getViprClient();
         List<ExportRule> exports = FileUtils.getFSExportRules(id);
         List<FileSystemExportParam> exportsParam = FileUtils.getExports(id);
         renderArgs.put("permissionTypeOptions", Lists.newArrayList(FileShareExport.Permissions.values()));
@@ -189,6 +209,7 @@ public class FileSystems extends ResourceController {
 
     public static void fileSystemNfsACLs(String fileSystemId) {
         ViPRCoreClient client = BourneUtil.getViprClient();
+        
         List<NfsACL> nfsAcls = client.fileSystems().getAllNfsACLs(
                 uri(fileSystemId));
         render(nfsAcls);

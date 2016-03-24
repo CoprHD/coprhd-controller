@@ -602,17 +602,20 @@ angular.module('fields', ['vipr']).directive({  //NOSONAR ("Suppressing Sonar vi
      * @restrict E
      */
     timePicker: function(tag, $timeout) {
+        const twicePerDay = '12hour'; //use 12-hour o'clock when 'format' set to this
         return tag('timePicker', {
             require: "ngModel",
             scope: {
-                model: "=ngModel"
+                model: "=ngModel",
+                format: "=ngFormat"
             },
             controller: function($scope) {
                 $scope.$watch('model', function() {
+                    timePickerMaxHour = $scope.format === twicePerDay ? 12 : 24;
                     $scope.hour = zeroPad(getHour($scope.model));
                     $scope.minute = zeroPad(getMinute($scope.model));
                 });
-                
+
                 $scope.nextHour = function() {
                     setTime(getHour($scope.model) + 1, getMinute($scope.model));
                 };
@@ -660,7 +663,7 @@ angular.module('fields', ['vipr']).directive({  //NOSONAR ("Suppressing Sonar vi
                 }
                 
                 function setTime(hour, minute) {
-                    hour = (hour < 0) ? (hour + 24) : (hour % 24);
+                    hour = (hour < 0) ? (hour + timePickerMaxHour) : (hour % timePickerMaxHour);
                     minute = (minute < 0) ? (minute + 60) : (minute % 60);
                     $scope.model = zeroPad(hour) + ":" + zeroPad(minute);
                 }

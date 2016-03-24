@@ -1315,19 +1315,25 @@ angular.module("portalApp").controller("ConfigBackupCtrl", function($scope) {
     var twicePerDay = '12hour'; // this value comes from back-end
 
     angular.element("#backup-time").ready(function () {
-        $scope.$apply(function() {
+        $scope.$apply(function () {
             $scope.backup_startTime = getLocalTimeFromOffset($schedulerTimeOffset);
+            $scope.backup_format = $backup_interval.val();
         });
     });
 
     angular.element("#backup-interval").change(function () {
-        withHint();
+        var $interval = $backup_interval.val();
+        $scope.backup_format = $interval;
+        withHint($interval);
+        $scope.$apply();
     });
 
     $scope.$watch('backup_startTime', function (newVal, oldVal) {
-        console.info("%s, old: %s", newVal, oldVal);
+        //console.info("%s, old: %s", newVal, oldVal);
         setOffsetFromLocalTime($scope.backup_startTime);
-        withHint();
+        if (typeof $backup_interval != 'undefined') {
+            withHint($backup_interval.val());
+        }
     });
 
     function getLocalTimeFromOffset(offset) {
@@ -1350,14 +1356,13 @@ angular.module("portalApp").controller("ConfigBackupCtrl", function($scope) {
         }
     }
 
-    function withHint() {
-        console.info("in hint");
-
+    function withHint($interval) {
+        console.info("in1 %s", $scope.backup_startTime);
         if ($scope.backup_startTime !== undefined) {
-            if ($scope.backup_startTime.indexOf(hint) === -1 && $backup_interval.val() === twicePerDay) {
+            if ($scope.backup_startTime.indexOf(hint) === -1 && $interval === twicePerDay) {
                 $scope.backup_startTime += '\t' + hint;
             }
-            else if ($scope.backup_startTime.indexOf(hint) > -1 && $backup_interval.val() !== twicePerDay) {
+            else if ($scope.backup_startTime.indexOf(hint) > -1 && $interval !== twicePerDay) {
                 $scope.backup_startTime = $scope.backup_startTime.replace(hint, '').trim();
 
             }

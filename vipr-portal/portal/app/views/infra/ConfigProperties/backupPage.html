@@ -80,7 +80,7 @@
     <div class="col-sm-6 controls" ng-controller="ConfigBackupCtrl">
         <div class="row col-gap-sm" id="backup-time">
             <input id="${id}" type="hidden" name="${name}" value="${originalValue}" data-originalvalue="${originalValue}">
-            <time-picker ng-model="backup_startTime"></time-picker>
+            <time-picker ng-model="backup_startTime" ng-format="backup_format"></time-picker>
             <div class="col-sm-12">#{if description}<p class="help-block clear">${description}</p>#{/if}</div>
         </div>
     </div>

@@ -23,6 +23,7 @@ public class ApplicationSnapSessionDataTable extends DataTable {
         sortAll();
 	}
 	
+	//Suppressing sonar violation for need of accessor methods. Accessor methods are not needed and we use public variables
 	@SuppressWarnings("ClassVariableVisibilityCheck")
 	public static class ApplicationSnapshotSession {
 		public URI id;

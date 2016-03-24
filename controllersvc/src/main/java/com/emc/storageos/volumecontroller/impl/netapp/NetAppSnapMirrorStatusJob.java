@@ -62,10 +62,12 @@ public class NetAppSnapMirrorStatusJob extends Job implements Serializable {
                     case "pending":
                     case "transferring":
                         _status = JobStatus.IN_PROGRESS;
+                        break;
                     case "idle":
                         _status = JobStatus.SUCCESS;
                         _pollResult.setJobPercentComplete(100);
                         _logger.info("SnapMirror Job: {} succeeded", currentJob);
+                        break;
                 }
             }
         } catch (Exception e) {

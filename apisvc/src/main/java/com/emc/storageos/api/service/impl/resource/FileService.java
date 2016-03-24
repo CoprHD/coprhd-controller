@@ -170,6 +170,8 @@ public class FileService extends TaskResourceService {
     private static final String EVENT_SERVICE_TYPE = "file";
     protected static final String PROTOCOL_NFS = "NFS";
     protected static final String PROTOCOL_CIFS = "CIFS";
+    private static final Long MINUTES_PER_HOUR = 60L;
+    private static final Long HOURS_PER_DAY = 24L;
 
     @Override
     public String getServiceType() {
@@ -2900,10 +2902,11 @@ public class FileService extends TaskResourceService {
         ArgValidator.checkFieldUriType(id, FileShare.class, "id");
         ArgValidator.checkEntity(fs, id, isIdEmbeddedInURL(id));
         ArgValidator.checkFieldNotNull(param.getCopies().get(0).getReplicationSettingParam(), "replication_settings");
-        ArgValidator.checkFieldValueFromEnum(param.getCopies().get(0).getReplicationSettingParam().getRpoType(), "rpo_type",
-                EnumSet.allOf(FileSystemReplicationSettings.ReplicationRPOType.class));
 
         VirtualPool vpool = _dbClient.queryObject(VirtualPool.class, fs.getVirtualPool());
+
+        validateProtectionSettings(vpool, param);
+
         StringBuffer notSuppReasonBuff = new StringBuffer();
         if (!FileSystemRepliationUtils.doBasicMirrorValidation(fs, vpool, notSuppReasonBuff)) {
             throw APIException.badRequests.unableToPerformMirrorOperation(ProtectionOp.UPDATE_RPO.toString(), fs.getId(),
@@ -3909,6 +3912,54 @@ public class FileService extends TaskResourceService {
                 _log.info(notSuppReasonBuff.toString());
                 return true;
 
+            }
+        }
+
+        return false;
+    }
+
+    private Long getMinutRpoValue(String rpoType, Long rpoValue) {
+
+        Long multiplier = 1L;
+        switch (rpoType.toUpperCase()) {
+            case "MINUTES":
+                multiplier = 1L;
+                break;
+            case "HOURS":
+                multiplier = MINUTES_PER_HOUR;
+                break;
+            case "DAYS":
+                multiplier = HOURS_PER_DAY * MINUTES_PER_HOUR;
+                break;
+        }
+        Long rpoInMinuts = rpoValue * multiplier;
+        return rpoInMinuts;
+
+    }
+
+    private boolean validateProtectionSettings(VirtualPool vpool, FileReplicationParam param) {
+
+        if (param.getCopies() != null && !param.getCopies().isEmpty()) {
+            ArgValidator.checkFieldValueFromEnum(param.getCopies().get(0).getReplicationSettingParam().getRpoType(), "rpo_type",
+                    EnumSet.allOf(FileSystemReplicationSettings.ReplicationRPOType.class));
+
+            if (param.getCopies().get(0).getReplicationSettingParam() != null) {
+                String rpoType = param.getCopies().get(0).getReplicationSettingParam().getRpoType();
+                Long rpoValue = param.getCopies().get(0).getReplicationSettingParam().getRpoValue();
+
+                if (rpoValue == null || rpoValue <= 0) {
+                    throw APIException.badRequests.invalidReplicationRPOValue();
+                }
+
+                Long rpoInMinuts = getMinutRpoValue(rpoType, rpoValue);
+                Long vpoolRpoInMinuts = getMinutRpoValue(vpool.getFrRpoType(), vpool.getFrRpoValue());
+
+                if (rpoInMinuts < vpoolRpoInMinuts) {
+                    throw APIException.badRequests.lessRPOThanVpoolRpo();
+                }
+                return true;
+            } else {
+                throw APIException.badRequests.noProtectionSettingsProvided();
             }
         }
 

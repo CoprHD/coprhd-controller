@@ -673,19 +673,15 @@ public class ECSApi {
             String responseString = "";
             getAuthToken();
             clientResp = get(URI_GET_ECS_VERSION);
+            if (clientResp != null && clientResp.getStatus() == 200) {
+                responseString = getFieldValue(clientResp, "version");
+            }
             if (null == clientResp) {
                 throw ECSException.exceptions.getECSVesrionFailed(URI_GET_ECS_VERSION, "no response from ECS");
             } else if (clientResp.getStatus() != 200) {
                 throw ECSException.exceptions.getECSVesrionFailed(URI_GET_ECS_VERSION, getResponseDetails(clientResp));
             }
 
-            responseString = clientResp.getEntity(String.class);
-            _log.info("ECSApi:getECSVesrion response is {}", responseString);
-            if (responseString != null) {
-                StringBuffer resStringBuffer = new StringBuffer(responseString);
-                responseString = resStringBuffer.substring(resStringBuffer.indexOf("<version>"), resStringBuffer.indexOf("</version>"))
-                        .replace("<version>", "");
-            }
             return responseString;
         } catch (Exception e) {
             throw ECSException.exceptions.getECSVesrionFailed(URI_GET_ECS_VERSION, e.getMessage());

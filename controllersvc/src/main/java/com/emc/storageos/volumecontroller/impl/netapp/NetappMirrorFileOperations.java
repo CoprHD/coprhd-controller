@@ -162,44 +162,18 @@ public class NetappMirrorFileOperations implements FileMirrorOperations {
         StorageSystem targetStorage = _dbClient.queryObject(StorageSystem.class, targetFileShare.getStorageDevice());
 
         BiosCommandResult cmdResult = null;
-        _log.info("Calling snapmirror pause.");
-        cmdResult = doPauseSnapMirror(sourceSystem, targetStorage, sourceFileShare, targetFileShare, completer);
+
+        _log.info("Calling snapmirror release.");
+        cmdResult = doReleaseSnapMirror(sourceSystem, targetStorage,
+                sourceFileShare, targetFileShare, completer);
         if (cmdResult.getCommandSuccess()) {
-            // Call snapmirror break
-            _log.info("Calling snapmirror break.");
-            cmdResult = doFailoverSnapMirror(targetStorage, targetFileShare, completer);
+            cmdResult = deleteSnapMirrorSchedule(targetStorage, targetFileShare, completer);
             if (cmdResult.getCommandSuccess()) {
-                _log.info("Calling snapmirror release.");
-                cmdResult = doReleaseSnapMirror(sourceSystem, targetStorage,
-                        sourceFileShare, targetFileShare, completer);
-                if (cmdResult.getCommandSuccess()) {
-                    _log.info("Calling snapmirror delete schedule.");
-                    cmdResult = deleteSnapMirrorSchedule(targetStorage, targetFileShare, completer);
-                    if (cmdResult.getCommandSuccess()) {
-                        completer.ready(_dbClient);
-                        WorkflowStepCompleter.stepSucceded(completer.getOpId());
-                    } else {
-                        _log.error("Snapmirror delete schedule failed.");
-                        completer.error(_dbClient, cmdResult.getServiceCoded());
-                    }
-                } else if (cmdResult.getCommandPending()) {
-                    completer.statusPending(_dbClient, cmdResult.getMessage());
-                } else {
-                    _log.error("Snapmirror release failed.");
-                    completer.error(_dbClient, cmdResult.getServiceCoded());
-                }
-            } else if (cmdResult.getCommandPending()) {
-                completer.statusPending(_dbClient, cmdResult.getMessage());
-            } else {
-                _log.error("Snapmirror break/failover failed.");
-                completer.error(_dbClient, cmdResult.getServiceCoded());
+                completer.ready(_dbClient);
+                WorkflowStepCompleter.stepSucceded(completer.getOpId());
             }
-        } else if (cmdResult.getCommandPending()) {
-            completer.statusPending(_dbClient, cmdResult.getMessage());
-        } else {
-            _log.error("Snapmirror quiesce failed.");
-            completer.error(_dbClient, cmdResult.getServiceCoded());
         }
+
     }
 
     @Override
@@ -249,7 +223,20 @@ public class NetappMirrorFileOperations implements FileMirrorOperations {
 
         // make api call
         nApiTarget.initializeSnapMirror(sourceLocation, destLocation, portGroupTarget);
-        return BiosCommandResult.createSuccessfulResult();
+
+        NetAppSnapMirrorStatusJob snapMirrorStatusJob = new NetAppSnapMirrorStatusJob(destLocation, targetStorage.getId(), taskCompleter,
+                destLocation);
+        try {
+            ControllerServiceImpl.enqueueJob(new QueueJob(snapMirrorStatusJob));
+            return BiosCommandResult.createPendingResult();
+        } catch (Exception e) {
+            _log.error("Snapmirror quiesce failed", e);
+            ServiceError error = DeviceControllerErrors.netapp.jobFailed("Snapmirror initialize failed:" + e.getMessage());
+            if (taskCompleter != null) {
+                taskCompleter.error(_dbClient, error);
+            }
+            return BiosCommandResult.createErrorResult(error);
+        }
     }
 
     /**
@@ -283,19 +270,22 @@ public class NetappMirrorFileOperations implements FileMirrorOperations {
         /* The snapmirror-release API removes a SnapMirror relationship on the source endpoint */
         _log.info("Calling snapmirror release on source: {}, target: {}", sourceLocation, destLocation);
         nApiSource.releaseSnapMirror(sourceLocation, destLocation);
-        NetAppSnapMirrorStatusJob snapMirrorStatusJob = new NetAppSnapMirrorStatusJob(destLocation, targetStorage.getId(), taskCompleter,
-                destLocation);
-        try {
-            ControllerServiceImpl.enqueueJob(new QueueJob(snapMirrorStatusJob));
-            return BiosCommandResult.createPendingResult();
-        } catch (Exception e) {
-            _log.error("Release Snapmirror failed", e);
-            ServiceError error = DeviceControllerErrors.netapp.jobFailed("Release Snapmirror failed:" + e.getMessage());
-            if (taskCompleter != null) {
-                taskCompleter.error(_dbClient, error);
-            }
-            return BiosCommandResult.createErrorResult(error);
-        }
+        /*
+         * NetAppSnapMirrorStatusJob snapMirrorStatusJob = new NetAppSnapMirrorStatusJob(destLocation, targetStorage.getId(), taskCompleter,
+         * destLocation);
+         * try {
+         * ControllerServiceImpl.enqueueJob(new QueueJob(snapMirrorStatusJob));
+         * return BiosCommandResult.createPendingResult();
+         * } catch (Exception e) {
+         * _log.error("Release Snapmirror failed", e);
+         * ServiceError error = DeviceControllerErrors.netapp.jobFailed("Release Snapmirror failed:" + e.getMessage());
+         * if (taskCompleter != null) {
+         * taskCompleter.error(_dbClient, error);
+         * }
+         * return BiosCommandResult.createErrorResult(error);
+         * }
+         */
+        return BiosCommandResult.createSuccessfulResult();
     }
 
     public BiosCommandResult deleteSnapMirrorSchedule(StorageSystem targetStorage,
@@ -432,14 +422,13 @@ public class NetappMirrorFileOperations implements FileMirrorOperations {
         return BiosCommandResult.createSuccessfulResult();
     }
 
-    public BiosCommandResult doDeleteSchedularSnapMirror(StorageSystem targetStorage, FileShare targetFs) {
-        String portGroupTarget = findVfilerName(targetFs);
+    public BiosCommandResult doDeleteSnapMirrorSchedule(StorageSystem targetStorage, FileShare targetFs) {
         NetAppApi nApi = new NetAppApi.Builder(targetStorage.getIpAddress(),
                 targetStorage.getPortNumber(), targetStorage.getUsername(),
-                targetStorage.getPassword()).https(true).vFiler(portGroupTarget).build();
+                targetStorage.getPassword()).https(true).build();
         // make api call destination system
         String destLocation = getLocation(targetStorage, targetFs);
-        nApi.deleteSnapMirrorSchedule(destLocation, portGroupTarget);
+        nApi.deleteSnapMirrorSchedule(destLocation);
         return BiosCommandResult.createSuccessfulResult();
     }
 

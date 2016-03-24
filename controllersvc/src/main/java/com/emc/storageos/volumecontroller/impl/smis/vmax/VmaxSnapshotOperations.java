@@ -496,7 +496,7 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
                     snapshotObj, _dbClient);
             CIMArgument[] outArgs = new CIMArgument[5];
             boolean deleteTarget = true;
-            CIMObjectPath targetGroupPath = cimPathFactory.getReplicationGroupPath(system, snapshotGroupName);
+            CIMObjectPath targetGroupPath = _cimPath.getReplicationGroupPath(storage, snapshotGroupName);
             if (targetGroupPath != null) {
                 CIMObjectPath groupSynchronized = _cimPath.getGroupSynchronizedPath(storage, consistencyGroupName, snapshotGroupName);
                 if (_helper.checkExists(storage, groupSynchronized, false, false) != null) {
@@ -537,7 +537,7 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
                 }
 
                 // Remove target devices
-                if (!targetDeviceIds.isEmpty()) {
+                if (targetDeviceIds.length > 0) {
                     ReplicationUtils.deleteTargetDevices(storage, targetDeviceIds, taskCompleter, _dbClient, _helper, _cimPath);
                 }
             }

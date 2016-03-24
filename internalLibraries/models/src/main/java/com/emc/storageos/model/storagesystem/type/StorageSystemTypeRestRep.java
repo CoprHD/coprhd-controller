@@ -26,7 +26,6 @@ public class StorageSystemTypeRestRep extends DataObjectRestRep {
 	public StorageSystemTypeRestRep() {
 	}
 
-	// TODO remove 2 methods
 	@XmlElement(name = "storage_type_id")
 	public String getStorageTypeId() {
 		return storageTypeId;

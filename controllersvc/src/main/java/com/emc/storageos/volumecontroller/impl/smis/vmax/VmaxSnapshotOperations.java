@@ -495,23 +495,51 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
             List<BlockSnapshot> snapshotList = ControllerUtils.getSnapshotsPartOfReplicationGroup(
                     snapshotObj, _dbClient);
             CIMArgument[] outArgs = new CIMArgument[5];
-            CIMObjectPath groupSynchronized = _cimPath.getGroupSynchronizedPath(storage, consistencyGroupName, snapshotGroupName);
-            if (_helper.checkExists(storage, groupSynchronized, false, false) != null) {
+            boolean deleteTarget = true;
+            CIMObjectPath targetGroupPath = cimPathFactory.getReplicationGroupPath(system, snapshotGroupName);
+            if (targetGroupPath != null) {
+                CIMObjectPath groupSynchronized = _cimPath.getGroupSynchronizedPath(storage, consistencyGroupName, snapshotGroupName);
+                if (_helper.checkExists(storage, groupSynchronized, false, false) != null) {
+                    deleteTarget = false;
 
-                // remove targets from parking SLO group
-                if (storage.checkIfVmax3()) {
-                    Iterator<BlockSnapshot> iter = snapshotList.iterator();
-                    while (iter.hasNext()) {
-                        BlockSnapshot blockSnapshot = iter.next();
-                        _helper.removeVolumeFromParkingSLOStorageGroup(storage, blockSnapshot.getNativeId(), false);
-                        _log.info("Done invoking remove volume {} from parking SLO storage group", blockSnapshot.getNativeId());
+                    // remove targets from parking SLO group
+                    if (storage.checkIfVmax3()) {
+                        Iterator<BlockSnapshot> iter = snapshotList.iterator();
+                        while (iter.hasNext()) {
+                            BlockSnapshot blockSnapshot = iter.next();
+                            _helper.removeVolumeFromParkingSLOStorageGroup(storage, blockSnapshot.getNativeId(), false);
+                            _log.info("Done invoking remove volume {} from parking SLO storage group", blockSnapshot.getNativeId());
+                        }
                     }
+
+                    CIMArgument[] deleteCGSnapInput = _helper.getDeleteSnapshotSynchronousInputArguments(groupSynchronized);
+                    _helper.callModifyReplica(storage, deleteCGSnapInput, outArgs);
+                } else {
+                    _log.info("GroupSynchronized {} not found", groupSynchronized.toString());
+                }
+            }
+            if (deleteTarget) {
+                /**
+                 * If ModifyReplicaSynchrnization for group synchronized fails, it may have failed at any stage.
+                 * -after detaching group synchronization, or after deleting target group
+                 * When user retries this operation, make required call based on what is needed.
+                 */
+                String[] targetDeviceIds = new String[snapshotList.size()];
+                Iterator<BlockSnapshot> snapshotIter = snapshotList.iterator();
+                int index = 0;
+                while (snapshotIter.hasNext()) {
+                    BlockSnapshot snap = snapshotIter.next();
+                    targetDeviceIds[index++] = snap.getNativeId();
+                }
+                // Remove target group
+                if (targetGroupPath != null) {
+                    ReplicationUtils.deleteTargetDeviceGroup(storage, targetGroupPath, _dbClient, _helper, _cimPath);
                 }
 
-                CIMArgument[] deleteCGSnapInput = _helper.getDeleteSnapshotSynchronousInputArguments(groupSynchronized);
-                _helper.callModifyReplica(storage, deleteCGSnapInput, outArgs);
-            } else {
-                _log.info("GroupSynchronized {} not found", groupSynchronized.toString());
+                // Remove target devices
+                if (!targetDeviceIds.isEmpty()) {
+                    ReplicationUtils.deleteTargetDevices(storage, targetDeviceIds, taskCompleter, _dbClient, _helper, _cimPath);
+                }
             }
             // Set inactive=true for all snapshots in the snaps set
             Iterator<BlockSnapshot> snapshotIter = snapshotList.iterator();

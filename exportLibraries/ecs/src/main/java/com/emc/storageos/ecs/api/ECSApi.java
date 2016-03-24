@@ -672,7 +672,7 @@ public class ECSApi {
      * @return ECS version
      * @throws ECSException
      */
-    public String getECSVesrion() throws ECSException {
+    public String getECSVersion() throws ECSException {
         _log.debug("ECSApi:getECSVesrion");
         ClientResponse clientResp = null;
 

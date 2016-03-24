@@ -47,8 +47,9 @@ class ObjectUser(object):
         obj = StorageSystem(self.__ipAddr, self.__port)
                  
         stsystem_uri = obj.query_by_name_and_type(storagesystem, "ecs")
-    
-        request = {
+        request = {}
+        if(secretkey):
+            request = {
                   'secret_key' : secretkey
                   }
         body = json.dumps(request)
@@ -98,6 +99,8 @@ def objectuser_secretkey_create(args):
     secretkey = None
     if (args.objectuser and not args.autogenerate):
         secretkey = common.get_password("SecretKey")
+    else: 
+        secretkey=None
     try:
         res = obj.objectuser_secretkey_create(args.storagesystem, args.objectuser, secretkey)
 

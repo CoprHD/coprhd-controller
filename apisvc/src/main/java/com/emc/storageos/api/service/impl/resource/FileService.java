@@ -87,6 +87,7 @@ import com.emc.storageos.db.client.model.Task;
 import com.emc.storageos.db.client.model.TenantOrg;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
+import com.emc.storageos.db.client.model.VirtualPool.FileReplicationRPOType;
 import com.emc.storageos.db.client.model.util.TaskUtils;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.NameGenerator;
@@ -3940,18 +3941,20 @@ public class FileService extends TaskResourceService {
     private boolean validateProtectionSettings(VirtualPool vpool, FileReplicationParam param) {
 
         if (param.getCopies() != null && !param.getCopies().isEmpty()) {
-            ArgValidator.checkFieldValueFromEnum(param.getCopies().get(0).getReplicationSettingParam().getRpoType(), "rpo_type",
-                    EnumSet.allOf(FileSystemReplicationSettings.ReplicationRPOType.class));
-
             if (param.getCopies().get(0).getReplicationSettingParam() != null) {
-                String rpoType = param.getCopies().get(0).getReplicationSettingParam().getRpoType();
-                Long rpoValue = param.getCopies().get(0).getReplicationSettingParam().getRpoValue();
 
-                if (rpoValue == null || rpoValue <= 0) {
+                FileSystemReplicationSettings rpoParam = param.getCopies().get(0).getReplicationSettingParam();
+                if (rpoParam.getRpoType() == null
+                        || FileReplicationRPOType.lookup(rpoParam.getRpoType()) == null) {
+                    throw APIException.badRequests
+                            .invalidReplicationRPOType(rpoParam.getRpoType());
+                }
+
+                if (rpoParam.getRpoValue() == null || rpoParam.getRpoValue() <= 0) {
                     throw APIException.badRequests.invalidReplicationRPOValue();
                 }
 
-                Long rpoInMinuts = getMinutRpoValue(rpoType, rpoValue);
+                Long rpoInMinuts = getMinutRpoValue(rpoParam.getRpoType(), rpoParam.getRpoValue());
                 Long vpoolRpoInMinuts = getMinutRpoValue(vpool.getFrRpoType(), vpool.getFrRpoValue());
 
                 if (rpoInMinuts < vpoolRpoInMinuts) {

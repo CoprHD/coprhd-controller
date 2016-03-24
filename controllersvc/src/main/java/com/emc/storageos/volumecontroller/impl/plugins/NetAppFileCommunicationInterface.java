@@ -445,6 +445,34 @@ public class NetAppFileCommunicationInterface extends
             }
         }
 
+        // Persist the NAS servers!!!
+        if (existingNasServers != null && !existingNasServers.isEmpty()) {
+            _logger.info("discoverPortGroups - modified PhysicalNAS servers size {}", existingNasServers.size());
+            _dbClient.updateObject(existingNasServers);
+        }
+
+        if (newNasServers != null && !newNasServers.isEmpty()) {
+            _logger.info("discoverPortGroups - new VirtualNAS servers size {}", newNasServers.size());
+            _dbClient.createObject(newNasServers);
+        }
+
+        List<VirtualNAS> discoveredVNasServers = new ArrayList<VirtualNAS>();
+        // Persist the NAS servers!!!
+        if (existingvNasServers != null && !existingvNasServers.isEmpty()) {
+            _logger.info("discoverPortGroups - modified PhysicalNAS servers size {}", existingNasServers.size());
+            _dbClient.updateObject(existingNasServers);
+            discoveredVNasServers.addAll(existingvNasServers);
+        }
+
+        if (newvNasServers != null && !newvNasServers.isEmpty()) {
+            _logger.info("discoverPortGroups - new VirtualNAS servers size {}", newNasServers.size());
+            _dbClient.createObject(newNasServers);
+            discoveredVNasServers.addAll(newvNasServers);
+        }
+
+        // Verify the existing vnas servers!!!
+        DiscoveryUtils.checkVirtualNasNotVisible(discoveredVNasServers, _dbClient, system.getId());
+
         portGroups.put(NEW, newPortGroups);
         portGroups.put(EXISTING, existingPortGroups);
         return portGroups;

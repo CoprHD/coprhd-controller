@@ -57,10 +57,6 @@ class ObjectUser(object):
         else: 
             body = None
         
-        print "the body is "
-        print body 
-        print "---------------"
-        print ObjectUser.URI_OBJECTUSER_SECRET_KEYS.format(stsystem_uri, objectuser)
        
         (s, h) = common.service_json_request(
                 self.__ipAddr, self.__port,

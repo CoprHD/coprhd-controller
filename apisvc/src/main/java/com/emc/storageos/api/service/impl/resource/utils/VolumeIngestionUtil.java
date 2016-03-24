@@ -4365,4 +4365,87 @@ public class VolumeIngestionUtil {
         return null;
     }
 
+    /**
+     * Run Ingestion validation of RP by checking the vpool configurations and verifying the ingested volumes line up.
+     * This method will ensure that the customer attempts to ingest volumes against the proper target virtual arrays
+     * associated with the RP virtual pool that was selected during ingestion.  Otherwise we may allow CDP-style targets
+     * to be ingested into a CRR-style virtual pool.
+     * 
+     * @param requestContext request context
+     * @param umpset unmanaged protection set
+     * @param _dbClient dbclient
+     */
+    public static void validateRPVolumesAlignWithIngestVpool(IngestionRequestContext requestContext, UnManagedProtectionSet umpset,
+            DbClient dbClient) {
+
+        VirtualPool sourceVirtualPool = null;
+        List<URI> targetVarrays = null;
+        if (umpset.getManagedVolumeIds() != null) {
+
+            // Gather the RP source vpool and the target varrays
+            for (String volumeID : umpset.getManagedVolumeIds()) {
+                Volume volume = null;
+                BlockObject bo = requestContext.getRootIngestionRequestContext().findCreatedBlockObject(URI.create(volumeID));
+                if (bo != null && bo instanceof Volume) {
+                    volume = (Volume) bo;
+                }
+
+                if (volume == null) {
+                    _logger.error("Unable to retrieve volume : " + volumeID + " from database or created volumes.");
+                    throw IngestionException.exceptions.validationFailedRPIngestionMissingVolume(volumeID, umpset.getCgName());
+                }
+
+                // Collect the vpool of the source volume(s)
+                if (sourceVirtualPool == null && volume.checkPersonality(PersonalityTypes.SOURCE.name())) {
+                    sourceVirtualPool = dbClient.queryObject(VirtualPool.class, volume.getVirtualPool());
+                    targetVarrays = new ArrayList<URI>(Collections2.transform(sourceVirtualPool.getProtectionVarraySettings().keySet(),
+                            CommonTransformerFunctions.FCTN_STRING_TO_URI));
+                    break;
+                }
+            }
+            
+            // Verify the target volumes are in those target varrays
+            List<URI> varraysCovered = new ArrayList<URI>(targetVarrays);
+            for (String volumeID : umpset.getManagedVolumeIds()) {
+                Volume volume = null;
+                BlockObject bo = requestContext.getRootIngestionRequestContext().findCreatedBlockObject(URI.create(volumeID));
+                if (bo != null && bo instanceof Volume) {
+                    volume = (Volume) bo;
+                }
+
+                if (volume == null) {
+                    _logger.error("Unable to retrieve volume : " + volumeID + " from database or created volumes.");
+                    throw IngestionException.exceptions.validationFailedRPIngestionMissingVolume(volumeID, umpset.getCgName());
+                }
+
+                // Verify the target volume(s) are in a target varray of the RP source vpool
+                if (volume.checkPersonality(PersonalityTypes.TARGET.name())) {
+                    if (!targetVarrays.contains(volume.getVirtualArray())) {
+                        Set<String> targetVarrayNames = new HashSet<String>();
+                        for (URI targetVarrayId : targetVarrays) {
+                            VirtualArray va = dbClient.queryObject(VirtualArray.class, targetVarrayId);
+                            targetVarrayNames.add(va.forDisplay());
+                        }
+                        VirtualArray va = dbClient.queryObject(VirtualArray.class, volume.getVirtualArray());
+                        throw IngestionException.exceptions.validationFailedRPIngestionVpoolMisalignment(
+                                volume.forDisplay(), Joiner.on(",").join(targetVarrayNames), va.forDisplay());
+                    } else {
+                        varraysCovered.remove(volume.getVirtualArray());
+                    }
+                }
+            }
+            
+            // Verify that all of the target volumes make up all of the target varrays
+            if (!varraysCovered.isEmpty()) {
+                Set<String> targetVarrayNames = new HashSet<String>();
+                for (URI targetVarrayId : varraysCovered) {
+                    VirtualArray va = dbClient.queryObject(VirtualArray.class, targetVarrayId);
+                    targetVarrayNames.add(va.forDisplay());
+                }
+                throw IngestionException.exceptions.validationFailedRPIngestionMissingTargets(
+                        Joiner.on(",").join(targetVarrayNames));
+            }
+        }
+    }
+
 }

@@ -4,8 +4,9 @@
  */
 package com.emc.storageos.api.service.impl.resource.utils;
 
+import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
-import com.emc.storageos.db.client.model.StorageSystem;
+import com.emc.storageos.db.client.model.Volume;
 
 public class DefaultCapacityCalculator implements CapacityCalculator {
     private String systemType = null;
@@ -14,7 +15,7 @@ public class DefaultCapacityCalculator implements CapacityCalculator {
      * {@inheritDoc}
      */
     @Override
-    public Long calculateAllocatedCapacity(Long requestedCapacity, StorageSystem storageSystem) {
+    public Long calculateAllocatedCapacity(Long requestedCapacity, Volume volume, DbClient dbClient) {
         return requestedCapacity;
     }
 

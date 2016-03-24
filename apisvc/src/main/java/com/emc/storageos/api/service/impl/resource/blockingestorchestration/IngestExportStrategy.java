@@ -108,6 +108,7 @@ public class IngestExportStrategy {
                             }
                             // If fully ingested, then setup the RP CG too.
                             if (VolumeIngestionUtil.validateAllVolumesInCGIngested(ingestedUnManagedVolumes, umpset, _dbClient)) {
+                                VolumeIngestionUtil.validateRPVolumesAlignWithIngestVpool(requestContext, umpset, _dbClient);
                                 VolumeIngestionUtil.setupRPCG(requestContext, umpset, unManagedVolume, updateObjects, _dbClient);
                             } else { // else mark the volume as internal. This will be marked visible when the RP CG is ingested
                                 blockObject.addInternalFlags(BlockRecoverPointIngestOrchestrator.INTERNAL_VOLUME_FLAGS);

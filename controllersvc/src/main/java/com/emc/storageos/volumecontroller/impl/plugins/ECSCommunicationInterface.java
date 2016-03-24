@@ -110,12 +110,14 @@ public class ECSCommunicationInterface extends ExtendedCommunicationInterfaceImp
                 _logger.error("Discovery failed");
                 throw ECSException.exceptions.discoverFailed("User is not ECS System Admin");
             }
+            String ecsVersion = ecsApi.getECSVesrion();
 
             // Get details of storage system
             String nativeGuid = NativeGUIDGenerator.generateNativeGuid(DiscoveredDataObject.Type.ecs.toString(),
                     ECS_SERIAL_NUM);
             storageSystem.setNativeGuid(nativeGuid);
             storageSystem.setSerialNumber(nativeGuid); // No serial num API exposed
+            storageSystem.setMajorVersion(ecsVersion);
             storageSystem.setUsername(accessProfile.getUserName());
             storageSystem.setPassword(accessProfile.getPassword());
             storageSystem.setPortNumber(accessProfile.getPortNumber());

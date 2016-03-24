@@ -49,6 +49,7 @@ public class ECSApi {
     private static final String URI_GET_NAMESPACE_DETAILS = "/object/namespaces/namespace/{0}.json";
     private static final String URI_USER_SECRET_KEYS = "/object/user-secret-keys/{0}.json"; 
     private static final String URI_GET_BUCKET_ACL = "/object/bucket/{0}/acl.json?namespace={1}";
+    private static final String URI_GET_ECS_VERSION = "/vdc/nodes.json";
     private static final long DAY_TO_SECONDS = 24 * 60 * 60;
     private static final long BYTES_TO_GB = 1024 * 1024 * 1024;
 
@@ -661,6 +662,38 @@ public class ECSApi {
                 clientResp.close();
             }
             _log.debug("ECSApi:addUserSecretKey exit");
+        }
+    }
+    
+    public String getECSVesrion() throws ECSException {
+        _log.debug("ECSApi:getECSVesrion");
+        ClientResponse clientResp = null;
+
+        try {
+            String responseString = "";
+            getAuthToken();
+            clientResp = get(URI_GET_ECS_VERSION);
+            if (null == clientResp) {
+                throw ECSException.exceptions.getECSVesrionFailed(URI_GET_ECS_VERSION, "no response from ECS");
+            } else if (clientResp.getStatus() != 200) {
+                throw ECSException.exceptions.getECSVesrionFailed(URI_GET_ECS_VERSION, getResponseDetails(clientResp));
+            }
+
+            responseString = clientResp.getEntity(String.class);
+            _log.info("ECSApi:getECSVesrion response is {}", responseString);
+            if (responseString != null) {
+                StringBuffer resStringBuffer = new StringBuffer(responseString);
+                responseString = resStringBuffer.substring(resStringBuffer.indexOf("<version>"), resStringBuffer.indexOf("</version>"))
+                        .replace("<version>", "");
+            }
+            return responseString;
+        } catch (Exception e) {
+            throw ECSException.exceptions.getECSVesrionFailed(URI_GET_ECS_VERSION, e.getMessage());
+        } finally {
+            if (clientResp != null) {
+                clientResp.close();
+            }
+            _log.debug("ECSApi:getECSVesrion exit");
         }
     }
     

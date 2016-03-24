@@ -8,6 +8,7 @@ import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Date;
@@ -21,7 +22,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
 
-import com.emc.storageos.db.client.model.Stat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -36,6 +36,7 @@ import com.emc.storageos.db.client.model.DiscoveredDataObject.DiscoveryStatus;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.RegistrationStatus;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.Type;
 import com.emc.storageos.db.client.model.Initiator;
+import com.emc.storageos.db.client.model.Stat;
 import com.emc.storageos.db.client.model.StorageHADomain;
 import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.model.StoragePort.PortType;
@@ -45,12 +46,12 @@ import com.emc.storageos.db.client.model.StorageProvider.ConnectionStatus;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.StringSet;
+import com.emc.storageos.db.client.model.VirtualPool;
+import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedExportMask;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume.SupportedVolumeCharacterstics;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume.SupportedVolumeInformation;
-import com.emc.storageos.db.client.model.VirtualPool;
-import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.client.util.WWNUtility;
@@ -581,6 +582,19 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
                     _dbClient);
 
             if (null != allVirtualVolumes) {
+                
+                // Pre-populate the virtual pools
+                List<URI> allVpoolUris = _dbClient.queryByType(VirtualPool.class, true);
+                Iterator<VirtualPool> vpoolIter = _dbClient.queryIterativeObjects(VirtualPool.class, allVpoolUris);
+                List<VirtualPool> allVpools = new ArrayList<VirtualPool>();
+                while (vpoolIter.hasNext()) {
+                    VirtualPool vpool = vpoolIter.next();
+                    // Only cache vplex virtual pools for vpool filtering
+                    if (VirtualPool.vPoolSpecifiesHighAvailability(vpool)) {
+                        allVpools.add(vpool);
+                    }
+                }
+                
                 for (String name : allVirtualVolumes.keySet()) {
                     timer = System.currentTimeMillis();
                     s_logger.info("Discovering Virtual Volume {}", name);
@@ -641,7 +655,7 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
 
                             updateUnmanagedVolume(info, vplex, unmanagedVolume, volumesToCgs,
                                     clusterIdToNameMap, varrayToClusterIdMap, distributedDevicePathToClusterMap,
-                                    backendVolumeGuidToVvolGuidMap, volumeToStorageViewMap);
+                                    backendVolumeGuidToVvolGuidMap, volumeToStorageViewMap, allVpools);
                             knownUnmanagedVolumes.add(unmanagedVolume);
                         } else {
                             // set up new unmanaged vplex volume
@@ -649,7 +663,7 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
 
                             unmanagedVolume = createUnmanagedVolume(info, vplex, volumesToCgs,
                                     clusterIdToNameMap, varrayToClusterIdMap, distributedDevicePathToClusterMap,
-                                    backendVolumeGuidToVvolGuidMap, volumeToStorageViewMap);
+                                    backendVolumeGuidToVvolGuidMap, volumeToStorageViewMap, allVpools);
                             newUnmanagedVolumes.add(unmanagedVolume);
                         }
 
@@ -908,6 +922,7 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
      * @param vplex the VPLEX storage system managing the volume
      * @param volume the existing UnManagedVolume
      * @param volumesToCgs a Map of volume labels to consistency group names
+     * @param allVPools cache of all virtual pools for filtering
      */
     private void updateUnmanagedVolume(VPlexVirtualVolumeInfo info,
             StorageSystem vplex, UnManagedVolume volume,
@@ -916,7 +931,8 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
             Map<String, String> varrayToClusterIdMap,
             Map<String, String> distributedDevicePathToClusterMap,
             Map<String, String> backendVolumeGuidToVvolGuidMap,
-            Map<String, Set<VPlexStorageViewInfo>> volumeToStorageViewMap) {
+            Map<String, Set<VPlexStorageViewInfo>> volumeToStorageViewMap, 
+            Collection<VirtualPool> allVpools) {
 
         s_logger.info("Updating UnManagedVolume {} with latest from VPLEX volume {}",
                 volume.getLabel(), info.getName());
@@ -1002,19 +1018,28 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
         StringSet matchedVPools = new StringSet();
         String highAvailability = info.getLocality().equals(LOCAL) ? VirtualPool.HighAvailabilityType.vplex_local.name()
                 : VirtualPool.HighAvailabilityType.vplex_distributed.name();
-        List<URI> allVpoolUris = _dbClient.queryByType(VirtualPool.class, true);
-        List<VirtualPool> allVpools = _dbClient.queryObject(VirtualPool.class, allVpoolUris);
         s_logger.info("finding valid virtual pools for UnManagedVolume {}", volume.getLabel());
 
         for (VirtualPool vpool : allVpools) {
-
-            // VPool must specify the correct VPLEX HA.
-            if ((vpool.getHighAvailability() == null) ||
-                    (!vpool.getHighAvailability().equals(highAvailability))) {
+            // We need to filter out virtual pools that don't apply to this unmanaged VPLEX volume, so...
+            // For this vpool, check to see if:
+            // - The vpool doesn't have a VPLEX attribute in the first place, filter it out
+            if (vpool.getHighAvailability() == null) {
                 s_logger.info("   virtual pool {} is not valid because "
-                        + "its high availability setting does not match the unmanaged volume",
+                        + "it does not have a high availability setting",
                         vpool.getLabel());
                 continue;
+            }
+            
+            // Now check to see if:
+            // - The vpool's HA type doesn't match the volume's, unless...
+            // - The vpool is RPVPLEX and this is a VPLEX local volume (likely a journal)
+            if (!vpool.getHighAvailability().equals(highAvailability) &&  
+                !(VirtualPool.vPoolSpecifiesRPVPlex(vpool) && highAvailability.equals(VirtualPool.HighAvailabilityType.vplex_local.name()))) {
+                    s_logger.info("   virtual pool {} is not valid because "
+                            + "its high availability setting does not match the unmanaged volume",
+                            vpool.getLabel());
+                    continue;
             }
 
             // If the volume is in a CG, the vpool must specify multi-volume consistency.
@@ -1230,12 +1255,14 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
      * @param info a VPlexVirtualVolumeInfo descriptor
      * @param vplex the VPLEX storage system managing the volume
      * @param volumesToCgs a Map of volume labels to consistency group names
+     * @param allVpools cache of virtual pools to filter
      */
     private UnManagedVolume createUnmanagedVolume(VPlexVirtualVolumeInfo info,
             StorageSystem vplex, Map<String, String> volumesToCgs, Map<String, String> clusterIdToNameMap,
             Map<String, String> varrayToClusterIdMap, Map<String, String> distributedDevicePathToClusterMap,
             Map<String, String> backendVolumeGuidToVvolGuidMap,
-            Map<String, Set<VPlexStorageViewInfo>> volumeToStorageViewMap) {
+            Map<String, Set<VPlexStorageViewInfo>> volumeToStorageViewMap, 
+            Collection<VirtualPool> allVpools) {
 
         s_logger.info("Creating new UnManagedVolume from VPLEX volume {}",
                 info.getName());
@@ -1245,7 +1272,7 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
 
         updateUnmanagedVolume(info, vplex, volume, volumesToCgs,
                 clusterIdToNameMap, varrayToClusterIdMap, distributedDevicePathToClusterMap,
-                backendVolumeGuidToVvolGuidMap, volumeToStorageViewMap);
+                backendVolumeGuidToVvolGuidMap, volumeToStorageViewMap, allVpools);
 
         return volume;
     }

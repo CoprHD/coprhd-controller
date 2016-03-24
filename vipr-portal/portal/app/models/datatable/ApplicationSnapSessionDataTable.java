@@ -28,8 +28,6 @@ public class ApplicationSnapSessionDataTable extends DataTable {
 		public URI id;
 		public String name;
 		public String subGroup;
-		public Map<URI, String> virtualArrays = ResourceUtils.mapNames(BourneUtil.getViprClient().varrays().list());
-        public Map<URI, String> virtualPools = ResourceUtils.mapNames(BourneUtil.getViprClient().blockVpools().list());
 		
 		public ApplicationSnapshotSession(BlockSnapshotSessionRestRep blockSnapSession) {
 			id = blockSnapSession.getId();

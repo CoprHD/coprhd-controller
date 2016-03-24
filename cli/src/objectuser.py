@@ -47,14 +47,25 @@ class ObjectUser(object):
         obj = StorageSystem(self.__ipAddr, self.__port)
                  
         stsystem_uri = obj.query_by_name_and_type(storagesystem, "ecs")
-        request = {
+        request = {}
+        if(secretkey):
+            request = {
                   'secret_key' : secretkey
                   }
-        body = json.dumps(request)
+        
+            body = json.dumps(request)
+        else: 
+            body = None
+        
+        print "the body is "
+        print body 
+        print "---------------"
+        print ObjectUser.URI_OBJECTUSER_SECRET_KEYS.format(stsystem_uri, objectuser)
+       
         (s, h) = common.service_json_request(
                 self.__ipAddr, self.__port,
                 "POST",ObjectUser.URI_OBJECTUSER_SECRET_KEYS.format(
-                stsystem_uri, objectuser), body, None)
+                stsystem_uri, objectuser), None)
         o = common.json_decode(s)
         return o
 
@@ -81,6 +92,10 @@ def create_secretkey_parser(subcommand_parsers, common_parser):
                              dest='objectuser',
                              help='The object user id',
                              required=True)
+    create_secretkey_parser.add_argument('-autogenerate', '-autogen',
+                               dest='autogenerate',
+                               help='Execute in synchronous mode',
+                               action='store_true')
     
     
     create_secretkey_parser.set_defaults(func=objectuser_secretkey_create)
@@ -88,7 +103,7 @@ def create_secretkey_parser(subcommand_parsers, common_parser):
 def objectuser_secretkey_create(args):
     obj = ObjectUser(args.ip, args.port)
     secretkey = None
-    if (args.objectuser):
+    if (args.objectuser and not args.autogenerate ):
         secretkey = common.get_password("SecretKey")
     try:
         res = obj.objectuser_secretkey_create(args.storagesystem, args.objectuser, secretkey)

@@ -441,10 +441,17 @@ EOF
 }
 
 _gen_dhparam() {
-    [ -f ${bootfs_dhparam} ] && openssl dhparam -in ${bootfs_dhparam} -check
-    [[ $? == 0 ]] && return 0
+    local tmp_dhparam=/tmp/dhparam
 
-    openssl dhparam -out ${bootfs_dhparam} 2048
+    [ -f ${bootfs_dhparam} ] && openssl dhparam -in ${bootfs_dhparam} -check &>/dev/null && return 0
+    openssl dhparam -out ${tmp_dhparam} 2048
+    _x _store_dhparam ${tmp_dhparam}
+    rm -rf ${1} &>/dev/null
+}
+
+_store_dhparam() {
+    _bootfs_mount_rw
+    [ -f ${1} ] && openssl dhparam -in ${tmp_dhparam} -check && /usr/bin/cp ${1} ${bootfs_dhparam}
 }
 
 # 
@@ -878,7 +885,7 @@ case ${#} in
             --remount-rw)             _x _bootfs_mount_rw "no" ;;
             --remount-ro)             _x true ;;
             --is-appliance)           _s _is_appliance_wrapper ;;
-            --dhparam)                _x _gen_dhparam ;;
+            --dhparam)                _gen_dhparam ;;
             *)                        _usage
         esac;;
     2)  case ${1} in

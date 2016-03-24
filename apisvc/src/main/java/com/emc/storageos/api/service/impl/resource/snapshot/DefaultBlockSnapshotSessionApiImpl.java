@@ -48,6 +48,7 @@ import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.client.util.ResourceOnlyNameGenerator;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
+import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.util.VPlexUtil;
 import com.emc.storageos.volumecontroller.impl.smis.SmisConstants;
@@ -583,7 +584,7 @@ public class DefaultBlockSnapshotSessionApiImpl implements BlockSnapshotSessionA
      */
     @Override
     public void unlinkTargetVolumesFromSnapshotSession(BlockObject snapSessionSourceObj, BlockSnapshotSession snapSession,
-            Map<URI, Boolean> snapshotDeletionMap, String taskId) {
+            Map<URI, Boolean> snapshotDeletionMap, OperationTypeEnum opType, String taskId) {
         throw APIException.methodNotAllowed.notSupported();
     }
 

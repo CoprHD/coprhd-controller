@@ -81,6 +81,7 @@ import com.emc.storageos.model.dr.SiteErrorResponse;
 import com.emc.storageos.model.dr.SiteIdListParam;
 import com.emc.storageos.model.dr.SiteList;
 import com.emc.storageos.model.dr.SiteParam;
+import com.emc.storageos.model.dr.SiteRemoved;
 import com.emc.storageos.model.dr.SiteRestRep;
 import com.emc.storageos.model.dr.SiteUpdateParam;
 import com.emc.storageos.model.property.PropertyConstants;
@@ -490,6 +491,53 @@ public class DisasterRecoveryService {
             log.error("Can't find local site", e);
             throw APIException.badRequests.siteIdNotFound();
         }
+    }
+
+    /**
+     * @return result that indicates whether local site is removed
+     */
+    @GET
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @CheckPermission(roles = { Role.SECURITY_ADMIN, Role.RESTRICTED_SECURITY_ADMIN,
+            Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN, Role.SYSTEM_MONITOR })
+    @Path("/islocalsiteremoved")
+    public SiteRemoved isLocalSiteRemoved() {
+        SiteRemoved response = new SiteRemoved();
+        Site localSite = drUtil.getLocalSite();
+        if (SiteState.ACTIVE == localSite.getState()) {
+            return response;
+        }
+        for (Site remoteSite : drUtil.listSites()) {
+            if (remoteSite.getUuid().equals(localSite.getUuid())) {
+                continue;
+            }
+            try (InternalSiteServiceClient client = new InternalSiteServiceClient(remoteSite, coordinator, apiSignatureGenerator)) {
+                SiteList sites = client.getSiteList();
+                if (!isActiveSite(remoteSite.getUuid(), sites)) {
+                    continue;
+                }
+                if (isSiteContainedBy(localSite.getUuid(), sites)) {
+                    return response;
+                } else {
+                    log.info("According returned result from current active site {}, local site {} has been removed", remoteSite.getUuid(), localSite.getUuid());
+                    response.setIsRemoved(true);
+                    return response;
+                }
+            } catch (Exception e) {
+                log.warn("Error happened when fetching site list from site {}", remoteSite.getUuid(), e);
+                continue;
+            }
+        }
+        return response;
+    }
+
+    private boolean isActiveSite(String siteId, SiteList sites) {
+        for (SiteRestRep site : sites.getSites()) {
+            if (siteId.equals(site.getUuid()) && SiteState.ACTIVE.toString().equals(site.getState())) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**
@@ -2007,6 +2055,16 @@ public class DisasterRecoveryService {
                 return;
             }
         }
+    }
+
+    private boolean isSiteContainedBy(String siteId, SiteList sites) {
+        for (SiteRestRep site : sites.getSites()) {
+            if (siteId.equals(site.getUuid())) {
+                return true;
+            }
+        }
+        log.info("Site {} is removed", siteId);
+        return false;
     }
 
     private Runnable failbackDetectMonitor = new Runnable() {

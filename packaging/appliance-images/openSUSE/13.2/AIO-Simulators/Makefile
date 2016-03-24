@@ -86,7 +86,18 @@ destroy:
 	rm -fr $(WORKSPACE)/{iso,build,image,output,zypper}
 	$(call targetLog,-)
 
-appliance: | $(OVF)
+appliance: | ovf vmx
+
+ovf: | $(OVF)
+	$(call targetLog,+)
+	chmod a+r $(BUILD_DIR)/*
+	$(call targetLog,-)
+
+vmx: | $(VMX)
+	$(call targetLog,+)
+	chmod a+r $(BUILD_DIR)/*
+	$(call targetLog,-)
+
 
 $(VMDK): | downloadISO createREPO
 	$(call targetLog,+)
@@ -118,5 +129,12 @@ $(OVF): | $(VMDK)
 	VBoxManage export "$(NAME)-$(VERSION).$(JOB)" --vsys 0 --product $(NAME) --version $(VERSION).$(JOB) --vendor $(VENDOR) --output $(WORKSPACE)/build/$(NAME)-$(VERSION).$(JOB)/$(NAME).x86_64-$(VERSION).$(JOB).ovf
 	VBoxManage unregistervm "$(NAME)-$(VERSION).$(JOB)" --delete
 	mv -f $(OUTPUT_DIR)/$(NAME).x86_64-$(VERSION).$(JOB).vmdk.bak $(OUTPUT_DIR)/$(NAME).x86_64-$(VERSION).$(JOB).vmdk
-	bash $(WORKSPACE)/configure.sh $(WORKSPACE)/build/$(NAME)-$(VERSION).$(JOB)/$(NAME).x86_64-$(VERSION).$(JOB).ovf
+	bash $(WORKSPACE)/configure.sh updateOVF $(OVF)
+	$(call targetLog,-)
+
+
+$(VMX): | $(VMDK)
+	$(call targetLog,+)
+	[ -f $(BUILD_DIR)/$(NAME).x86_64-$(VERSION).$(JOB).vmdk ] || cp $(VMDK) $(BUILD_DIR)/$(NAME).x86_64-$(VERSION).$(JOB).vmdk
+	cp $(OUTPUT_DIR)/$(NAME).x86_64-$(VERSION).$(JOB).vmx $(VMX)
 	$(call targetLog,-)

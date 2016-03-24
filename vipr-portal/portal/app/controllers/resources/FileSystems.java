@@ -150,15 +150,7 @@ public class FileSystems extends ResourceController {
             }
 
             Tasks<FileShareRestRep> tasksResponse = client.fileSystems().getTasks(fileSystem.getId());
-            
-            FileProtectionRestRep targetFileSystems = client.fileSystems().get(fileSystem.getId()).getProtection();
-            
             List<Task<FileShareRestRep>> tasks = tasksResponse.getTasks();
-            for (VirtualArrayRelatedResourceRep virtualResource : targetFileSystems.getTargetFileSystems()) {
-                Tasks<FileShareRestRep> targetTasks = client.fileSystems().getTasks(virtualResource.getId());
-                tasks.add(targetTasks.firstTask());
-            }            
-            
             renderArgs.put("tasks", tasks);
         } else {
             notFound(MessagesUtils.get("resources.filesystems.notfound"));
@@ -182,7 +174,6 @@ public class FileSystems extends ResourceController {
 
     public static void fileSystemExports(String fileSystemId) {
         URI id = uri(fileSystemId);
-        ViPRCoreClient client = BourneUtil.getViprClient();
         List<ExportRule> exports = FileUtils.getFSExportRules(id);
         List<FileSystemExportParam> exportsParam = FileUtils.getExports(id);
         renderArgs.put("permissionTypeOptions", Lists.newArrayList(FileShareExport.Permissions.values()));

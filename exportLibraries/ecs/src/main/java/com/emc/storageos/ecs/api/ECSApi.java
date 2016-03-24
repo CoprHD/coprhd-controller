@@ -15,6 +15,7 @@ import javax.ws.rs.core.MultivaluedMap;
 import org.codehaus.jettison.json.JSONArray;
 import org.codehaus.jettison.json.JSONException;
 import org.codehaus.jettison.json.JSONObject;
+import org.jsoup.helper.StringUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -602,7 +603,11 @@ public class ECSApi {
     public UserSecretKeysAddCommandResult addUserSecretKey(String user, String key) throws ECSException {
         _log.debug("ECSApi:addUserSecretKey enter");
         ClientResponse clientResp = null;
-        String body = " { \"secretkey\": \"" + key + "\" }" ;
+        String body = " {}";
+        if (!StringUtil.isBlank(key)) {
+            body = " { \"secretkey\": \"" + key + "\" }";
+        }
+
         try {
             String responseString = null;
             final String path = MessageFormat.format(URI_USER_SECRET_KEYS, user);

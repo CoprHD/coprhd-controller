@@ -31,6 +31,7 @@ import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 
 import org.apache.commons.lang.StringUtils;
+import org.jsoup.helper.StringUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -1332,7 +1333,11 @@ public class StorageSystemService extends TaskResourceService {
         }
         
         ObjectController controller = getController(ObjectController.class, system.getSystemType());
-        ObjectUserSecretKey secretKeyRes = controller.addUserSecretKey(id, userId, param.getSecretkey());
+        String secretKey = null;
+        if (!StringUtil.isBlank( param.getSecretkey() )){
+            secretKey = param.getSecretkey();
+        }
+        ObjectUserSecretKey secretKeyRes = controller.addUserSecretKey(id, userId, secretKey);
         //Return key details as this is synchronous call
         return map(secretKeyRes, true);
     }

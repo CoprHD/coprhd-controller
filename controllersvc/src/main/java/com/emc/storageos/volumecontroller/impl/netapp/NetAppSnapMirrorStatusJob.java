@@ -19,9 +19,9 @@ import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.volumecontroller.impl.JobPollResult;
 import com.iwave.ext.netapp.SnapMirror.StatusInfo;
 
-public class NetAppSnapMirrorStatus extends Job implements Serializable {
+public class NetAppSnapMirrorStatusJob extends Job implements Serializable {
 
-    private static final Logger _logger = LoggerFactory.getLogger(NetAppSnapMirrorStatus.class);
+    private static final Logger _logger = LoggerFactory.getLogger(NetAppSnapMirrorStatusJob.class);
     private static final long ERROR_TRACKING_LIMIT = 60 * 1000; // tracking limit for transient errors. set for 2 hours
 
     private String _jobName;
@@ -35,7 +35,7 @@ public class NetAppSnapMirrorStatus extends Job implements Serializable {
     private JobPollResult _pollResult = new JobPollResult();
     private String _errorDescription = null;
 
-    public NetAppSnapMirrorStatus(String jobId, URI storageSystemUri, TaskCompleter taskCompleter, String jobName) {
+    public NetAppSnapMirrorStatusJob(String jobId, URI storageSystemUri, TaskCompleter taskCompleter, String jobName) {
         this._storageSystemUri = storageSystemUri;
         this._taskCompleter = taskCompleter;
         this._jobName = jobName;
@@ -54,17 +54,19 @@ public class NetAppSnapMirrorStatus extends Job implements Serializable {
                 _pollResult.setJobName(_jobName);
                 _pollResult.setJobId(_taskCompleter.getOpId());
 
-                StatusInfo statusInfo = null;
-
-                statusInfo = netAppApi.getSnapMirrorState(currentJob);
-                if ("pending".equals(statusInfo.getStatus())) {
-                    _status = JobStatus.IN_PROGRESS;
-                } else if ("idle".equals(statusInfo.getStatus())) {
-                    _status = JobStatus.SUCCESS;
-                    _pollResult.setJobPercentComplete(100);
-                    _logger.info("SnapMirror Job: {} succeeded", currentJob);
+                StatusInfo statusInfo = netAppApi.getSnapMirrorState(currentJob);
+                if (statusInfo == null) {
+                    throw new Exception("Snapmirror status not found for path: " + currentJob);
                 }
-
+                switch (statusInfo.getStatus()) {
+                    case "pending":
+                    case "transferring":
+                        _status = JobStatus.IN_PROGRESS;
+                    case "idle":
+                        _status = JobStatus.SUCCESS;
+                        _pollResult.setJobPercentComplete(100);
+                        _logger.info("SnapMirror Job: {} succeeded", currentJob);
+                }
             }
         } catch (Exception e) {
             processTransientError(currentJob, trackingPeriodInMillis, e.getMessage(), e);

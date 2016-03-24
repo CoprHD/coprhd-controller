@@ -10,7 +10,6 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.TimeUnit;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -1171,23 +1170,17 @@ public class NetAppApi {
                     _password, _https, null);
 
             StatusInfo statusInfo = netAppFacade.getSnapMirrorState(pathLocation);
-            if ("quiesced".equals(statusInfo.getState())) {
+            if ("broken-off".equals(statusInfo.getState()) &&
+                    "idle".equals(statusInfo.getStatus())) {
+                _logger.info("Snapmirror relationship is already broken.");
+                return true;
+
+            } else if ("quiesced".equals(statusInfo.getState()) &&
+                    "idle".equals(statusInfo.getStatus())) {
                 success = netAppFacade.breakSnapMirrorSchedule(pathLocation);
             } else {
+                _logger.error("Snapmirror relationship is not quiesced.");
                 throw new Exception("Cannot break snapmirror because snapmirror relationship is not quiesced.");
-            }
-
-            if (success) {
-                statusInfo = netAppFacade.getSnapMirrorState(pathLocation);
-                success = false;
-                while (statusInfo != null && "pending".equals(statusInfo.getStatus())) {
-                    if ("broken-off".equals(statusInfo.getState())) {
-                        success = true;
-                        break;
-                    }
-                    TimeUnit.SECONDS.sleep(2);
-                    statusInfo = netAppFacade.getSnapMirrorState(pathLocation);
-                }
             }
 
             if (!success) {
@@ -1224,15 +1217,22 @@ public class NetAppApi {
             netAppFacade = new NetAppFacade(_ipAddress, _portNumber, _userName,
                     _password, _https, null);
 
-            success = netAppFacade.quiesceSnapMirror(pathLocation);
-
-            if (!success) {
-                throw new Exception("Unable to quiesce snapmirror on destination location.");
+            StatusInfo statusInfo = netAppFacade.getSnapMirrorState(pathLocation);
+            if ("idle".equals(statusInfo.getStatus()) &&
+                    "quiesced".equals(statusInfo.getState())) {
+                _logger.info("Snapmirror is already quiesced for : {}", pathLocation);
+                return true;
+            }
+            if ("snapmirrored".equals(statusInfo.getStatus()) && "idle".equals(statusInfo.getStatus())) {
+                success = netAppFacade.quiesceSnapMirror(pathLocation);
+                if (!success) {
+                    throw new Exception("Unable to quiesce snapmirror on destination location.");
+                }
             }
             return success;
 
         } catch (Exception e) {
-            throw NetAppException.exceptions.breakSnapMirrorFailed(pathLocation, _ipAddress, e.getMessage());
+            throw NetAppException.exceptions.quiesceSnapMirrorLicenseFailed(_ipAddress, pathLocation, e.getMessage());
         }
     }
 

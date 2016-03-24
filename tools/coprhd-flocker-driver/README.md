@@ -24,7 +24,17 @@ Pre-requsities
 	a. Verify the Storage arrays recognized . After login to the Vipr we can check the storage systems
 Below is a sample screenshot
 
-![alt text]( ViprStorageSystems.jpeg "Storage Arrays")
+	![alt text]( ViprStorageSystems.jpeg "Storage Arrays")
+    
+       b. Configure Virtual array 
+
+	![alt text]( ViprVirtualArrays.png "Virtual Arrays")
+
+      c. Configure Virtual Pools - In Virtual pools policies are configured 
+
+	![alt text]( ViprVirtualPools.jpeg "Virtual Pools")
+
+
 2. Install scsi tools
 
 sudo apt-get update
@@ -90,6 +100,12 @@ docker run -v <volume-name>:/data --volume-driver=<driver-name> -ti busybox sh
 Debug: 
 
 	The log files are /var/log/flocker  
+
+When docker starts host will get created on Vipr 
+
+![alt text]( ViprExportGroups.jpeg "Storage Arrays")
+
+In Vipr when storage is getting provisioned the same will get refrected in the vipr Dashboard in the task list
 
 ## Future
 - Add Chap protocol support for iSCSI

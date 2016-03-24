@@ -42,7 +42,7 @@ public class Main {
             public void run() {
                 _log.info("Shutting down {}", SERVICE_BEAN);
                 try {
-                    dbsvc.stopWithDecommission();
+                    dbsvc.stop();
                 } catch (Exception e) {
                     _log.error("Failed to stop {}:", SERVICE_BEAN, e);
                 }

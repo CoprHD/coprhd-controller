@@ -84,7 +84,7 @@ public interface ECSExceptions {
     public ECSException addUserSecretKeysFailedExc(final String user, final Throwable e);
     
     @DeclareServiceCode(ServiceCode.ECS_BUCKET_ACL_ERROR)
-    public ECSException getECSVesrionFailed(final String url, final String message);
+    public ECSException getECSVersionFailed(final String url, final String message);
 
 
 }

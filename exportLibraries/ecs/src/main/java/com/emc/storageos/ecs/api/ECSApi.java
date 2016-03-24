@@ -673,7 +673,7 @@ public class ECSApi {
      * @throws ECSException
      */
     public String getECSVersion() throws ECSException {
-        _log.debug("ECSApi:getECSVesrion");
+        _log.debug("ECSApi:getECSVersion");
         ClientResponse clientResp = null;
 
         try {
@@ -689,20 +689,20 @@ public class ECSApi {
                 }
             }
             if (null == clientResp) {
-                throw ECSException.exceptions.getECSVesrionFailed(URI_GET_ECS_VERSION, "no response from ECS");
+                throw ECSException.exceptions.getECSVersionFailed(URI_GET_ECS_VERSION, "no response from ECS");
             } else if (clientResp.getStatus() != 200) {
-                throw ECSException.exceptions.getECSVesrionFailed(URI_GET_ECS_VERSION, getResponseDetails(clientResp));
+                throw ECSException.exceptions.getECSVersionFailed(URI_GET_ECS_VERSION, getResponseDetails(clientResp));
             }
 
-            _log.debug("ECSApi:getECSVesrion responseString : " + responseString);
+            _log.debug("ECSApi:getECSVersion responseString : " + responseString);
             return responseString;
         } catch (Exception e) {
-            throw ECSException.exceptions.getECSVesrionFailed(URI_GET_ECS_VERSION, e.getMessage());
+            throw ECSException.exceptions.getECSVersionFailed(URI_GET_ECS_VERSION, e.getMessage());
         } finally {
             if (clientResp != null) {
                 clientResp.close();
             }
-            _log.debug("ECSApi:getECSVesrion exit");
+            _log.debug("ECSApi:getECSVersion exit");
         }
     }
     
@@ -718,7 +718,7 @@ public class ECSApi {
                 JSONObject jObj = clientResp.getEntity(JSONObject.class);
                 JSONArray jArray = jObj.getJSONArray("license_feature");
                 for(int i=0; i<jArray.length(); i++){
-                    JSONObject data = jArray.getJSONObject(0);
+                    JSONObject data = jArray.getJSONObject(i);
                     String model = data.getString("model");
                     if("ViPR_ECS".equals(model)){
                         String notice = data.getString("notice");
@@ -733,15 +733,15 @@ public class ECSApi {
                
             }
             if (null == clientResp) {
-                throw ECSException.exceptions.getECSVesrionFailed(URI_GET_ECS_VERSION, "no response from ECS");
+                throw ECSException.exceptions.getECSVersionFailed(URI_GET_ECS_VERSION, "no response from ECS");
             } else if (clientResp.getStatus() != 200) {
-                throw ECSException.exceptions.getECSVesrionFailed(URI_GET_ECS_VERSION, getResponseDetails(clientResp));
+                throw ECSException.exceptions.getECSVersionFailed(URI_GET_ECS_VERSION, getResponseDetails(clientResp));
             }
 
             _log.debug("ECSApi:getECSSerialNum responseString : " + responseString);
             return responseString;
         } catch (Exception e) {
-            throw ECSException.exceptions.getECSVesrionFailed(URI_GET_ECS_VERSION, e.getMessage());
+            throw ECSException.exceptions.getECSVersionFailed(URI_GET_ECS_VERSION, e.getMessage());
         } finally {
             if (clientResp != null) {
                 clientResp.close();

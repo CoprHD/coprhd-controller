@@ -489,6 +489,7 @@ public abstract class VdcOpHandler {
                 localSite.setState(SiteState.STANDBY_PAUSED);
                 log.info("Updating local site state to STANDBY_PAUSED");
                 coordinator.getCoordinatorClient().persistServiceConfiguration(localSite.toConfiguration());
+                coordinator.rescheduleDrSiteNetworkMonitor();
 
                 for (Site standby : drUtil.listStandbySites()) {
                     if (SiteState.STANDBY_PAUSING.equals(standby.getState())) {

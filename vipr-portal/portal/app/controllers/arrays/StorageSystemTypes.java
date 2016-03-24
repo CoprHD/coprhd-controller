@@ -30,7 +30,6 @@ import play.data.validation.Required;
 import play.data.validation.Validation;
 import play.mvc.With;
 import util.DisasterRecoveryUtils;
-import util.LicenseUtils;
 import util.MessagesUtils;
 import util.StorageSystemTypeUtils;
 import util.datatable.DataTablesSupport;

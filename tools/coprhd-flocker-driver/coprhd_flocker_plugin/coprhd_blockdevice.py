@@ -16,7 +16,7 @@ import socket
 import viprcli.authentication as auth
 import viprcli.common as utils
 import viprcli.exportgroup as exportgroup
-#import viprcli.host as host
+import viprcli.host as hosts
 import viprcli.hostinitiators as host_initiator
 import viprcli.snapshot as snapshot
 import viprcli.virtualarray as virtualarray
@@ -24,6 +24,9 @@ import viprcli.volume as volume
 import viprcli.consistencygroup as consistencygroup
 import viprcli.tag as tag
 import viprcli.project as coprhdproject
+import viprcli.storagesystem as storagesystem
+import viprcli.storageport as storageport
+import viprcli.network as network
 
 from eliot import Message, Logger
 from twisted.python.filepath import FilePath
@@ -72,13 +75,14 @@ class CoprHDCLIDriver(object):
     AUTHENTICATED = False
     def __init__(self, coprhdhost, 
                  port, username, password, tenant, 
-                 project, varray, cookiedir, vpool,vpool_platinum,vpool_gold,vpool_silver,vpool_bronze,hostexportgroup,coprhdcli_security_file):
+                 project, varray, cookiedir, vpool,vpool_platinum,vpool_gold,vpool_silver,vpool_bronze,hostexportgroup,coprhdcli_security_file,cluster_id):
+        self.cluster_id = cluster_id
         self.coprhdhost = coprhdhost
         self.port =  port
         self.username = username
         self.password = password
         self.tenant = tenant
-        self.project = project
+        self.project = str(project)+'-'+str(cluster_id)
         self.varray = varray
         self.cookiedir = cookiedir
         self.vpool = vpool
@@ -86,9 +90,10 @@ class CoprHDCLIDriver(object):
         self.vpool_gold=vpool_gold
         self.vpool_silver=vpool_silver
         self.vpool_bronze=vpool_bronze
-        self.hostexportgroup = hostexportgroup
+        self.hostexportgroup = str(hostexportgroup)+'-'+str(cluster_id)
         self.coprhdcli_security_file = coprhdcli_security_file
         self.host = unicode(socket.gethostname())
+        self.network = 'ipnetwork-'+str(cluster_id)
         self.volume_obj = volume.Volume(
             self.coprhdhost,
             self.port )
@@ -101,7 +106,40 @@ class CoprHDCLIDriver(object):
             self.coprhdhost,
             self.port)
 
-    @retry_wrapper    
+        self.host_obj = hosts.Host(
+            self.coprhdhost,
+            self.port)
+
+        self.hostinitiator_obj = host_initiator.HostInitiator(
+            self.coprhdhost,
+            self.port)
+
+        self.storagesystem_obj = storagesystem.StorageSystem(
+            self.coprhdhost,
+            self.port)
+
+        self.storageport_obj = storageport.Storageport(
+            self.coprhdhost,
+            self.port)
+
+        self.varray_obj = virtualarray.VirtualArray(
+            self.coprhdhost,
+            self.port)
+
+        self.network_obj = network.Network(
+            self.coprhdhost,
+            self.port)
+         
+        self.create_project(self.project)
+
+        self.create_host(name=self.host,label=self.host,hosttype="Other") 
+
+        self.add_initiators(False, hostlabel=self.host, protocol='iSCSI', initiatorwwn=None, portwwn=None)
+
+        self.create_network(name=self.network,nwtype='IP')
+
+        self.create_export_group(name=self.hostexportgroup,host=self.host,exportgrouptype="Host")
+    @retry_wrapper
     def authenticate_user(self):
          
         # we should check to see if we are already authenticated before blindly
@@ -323,7 +361,145 @@ class CoprHDCLIDriver(object):
             else:
                 Message.new(Debug="Volume : delete failed").write(_logger)
                 
-@implementer(IProfiledBlockDeviceAPI)        
+    def create_project(self,name):
+        self.authenticate_user()
+        Message.new(Debug="coprhd create_project").write(_logger)
+        try:
+            self.project_obj.project_create(
+                name,
+                self.tenant)
+        except utils.SOSError as e:
+            if e.err_code == utils.SOSError.ENTRY_ALREADY_EXISTS_ERR:
+                Message.new(Debug="Project with "+name+" already exists").write(_logger)
+
+    def create_export_group(self,name,host,exportgrouptype="Host"):
+        self.authenticate_user()
+        try:
+            self.exportgroup_obj.exportgroup_create(
+                name,
+                self.project,
+                self.tenant,
+                self.varray,
+                exportgrouptype)
+            
+            '''
+            Adding Host to Export Group
+            '''
+           
+            sync = False
+            self.exportgroup_obj.exportgroup_add_host(exportgroupname=name,tenantname=self.tenant,
+                                                      projectname=self.project,hostlabels=[host],sync=sync)
+
+            '''
+            Adding Host Initiator to Export Group
+            '''
+            
+            initator = None
+            f = open ('/etc/iscsi/initiatorname.iscsi_0','r')
+            for line in f:
+               if ( line[0] != '#' ):
+                  current_line=line.split('=')
+                  initator = current_line[1]
+                  if "\n" in initator:
+                    initator = initator.split('\n')[0]
+                  self.exportgroup_obj.exportgroup_add_initiator(name,self.tenant,self.project,[initator], host, sync)
+        
+        except utils.SOSError as e:
+            Message.new(Debug="Export group creation Failed").write(_logger)
+
+    def create_host(self,name,label,hosttype="Other"):
+        self.authenticate_user()
+        try:
+            self.host_obj.create(
+                 name,
+                 hosttype=hosttype,
+                 label=label,
+                 tenant=self.tenant,
+                 port=5985,
+                 username=self.username,
+                 passwd= None,
+                 usessl=True,
+                 osversion=None,
+                 cluster=None,
+                 datacenter=None,
+                 vcenter=None,
+                 autodiscovery=False,
+                 project=None,
+                 bootvolume=None,
+                 testconnection=None)
+        except utils.SOSError as e:
+            Message.new(Debug="Host Creation Failed").write(_logger)
+
+    def add_initiators(self,sync, hostlabel, protocol, initiatorwwn, portwwn,initname):
+        self.authenticate_user()
+        portwwn = None
+        try:
+           f = open ('/etc/iscsi/initiatorname.iscsi','r')
+           for line in f:
+              if ( line[0] != '#' ):
+                s1=line.split('=')
+                portwwn = str(s1[1])
+                if "\n" in portwwn:
+                   portwwn = portwwn.split('\n')[0]
+                break
+           self.hostinitiator_obj.create(sync,hostlabel,protocol,initiatorwwn,portwwn,initname)
+
+        except utils.SOSError as e:
+             print e
+             Message.new(Debug="Host Creation Failed").write(_logger)
+    def create_network(self,name,nwtype):
+        #self.authenticate_user()
+        try:
+            self.authenticate_user()
+            self.network_obj.create(
+                name,
+                nwtype)
+            varray_uri = self.varray_obj.varray_list()
+            #self.network_obj.assign(
+            #    name,
+            #    varray=varray_uri)
+            storage_ports = self.varray_obj.list_storageports(self.varray)
+            storagesystem_name = []
+            storagesystem_list = []
+            port_list = []
+            for st in storage_ports:
+                if st['storage_system'] not in storagesystem_name:
+                   storagesystem_name.append(st['storage_system'])
+                   storagesystem_list.append(self.storagesystem_obj.show_by_name(st['storage_system']))
+            for st in storagesystem_list:
+                storage_port=self.storageport_obj.storageport_list(
+                   storagedeviceName=st['name'],
+                   serialNumber=st['serial_number'],
+                   storagedeviceType=st['system_type'])
+                for ps in storage_port:
+            	    port = ps['name'].split('+')[3]
+                    #to find all ports starting with 'i'.as IP port start with iqn
+                    if port[0]=='i':
+                       try:
+                          port_list.append(port)
+                          self.network_obj.add_endpoint(
+                            name,
+                            endpoint=port)
+                       except utils.SOSError as e:
+                          if e.err_code==utils.SOSError.ENTRY_ALREADY_EXISTS_ERR:
+                             continue
+            "Adding Host Ports to Network"
+            f = open ('/etc/iscsi/initiatorname.iscsi_0','r')
+            for line in f:
+               if ( line[0] != '#' ):
+                  current_line=line.split('=')
+                  host_port = current_line[1]
+                  if "\n" in host_port[1]:
+                    host_port = host_port.split('\n')[0]
+                  self.network_obj.add_endpoint(name,endpoint=host_port)
+                  break
+
+        except utils.SOSError as e:
+           print e
+           if(e.err_code == utils.SOSError.ENTRY_ALREADY_EXISTS_ERR):
+                Message.new(Debug="Network with same name already exists").write(_logger)
+
+@implementer(IProfiledBlockDeviceAPI)
 @implementer(IBlockDeviceAPI)
 class CoprHDBlockDeviceAPI(object):
     """
@@ -521,12 +697,12 @@ class CoprHDBlockDeviceAPI(object):
             
 
 def configuration(coprhdhost, port, username, password, tenant,
-                           project, varray, cookiedir, vpool,vpool_platinum,vpool_gold,vpool_silver,vpool_bronze,hostexportgroup,coprhdcli_security_file):
+                           project, varray, cookiedir, vpool,vpool_platinum,vpool_gold,vpool_silver,vpool_bronze,hostexportgroup,coprhdcli_security_file,cluster_id):
     """
     :return:CoprHDBlockDeviceAPI object
     """
     return CoprHDBlockDeviceAPI(
         coprhdcliconfig=CoprHDCLIDriver(coprhdhost, 
         port, username, password, tenant, 
-        project, varray, cookiedir, vpool,vpool_platinum,vpool_gold,vpool_silver,vpool_bronze,hostexportgroup,coprhdcli_security_file),allocation_unit=1
+        project, varray, cookiedir, vpool,vpool_platinum,vpool_gold,vpool_silver,vpool_bronze,hostexportgroup,coprhdcli_security_file,cluster_id),allocation_unit=1
     )

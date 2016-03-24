@@ -29,7 +29,6 @@ public class StorageSystemTypeAddParam {
 	public StorageSystemTypeAddParam() {
 	}
 
-	@XmlElement(name = "storage_type_id")
 	public String getStorageTypeId() {
 		return storageTypeId;
 	}
@@ -38,7 +37,7 @@ public class StorageSystemTypeAddParam {
 		this.storageTypeId = storageTypeId;
 	}
 
-	@XmlElement(name = "storage_type_name")
+
 	public String getStorageTypeName() {
 		return storageTypeName;
 	}
@@ -47,7 +46,7 @@ public class StorageSystemTypeAddParam {
 		this.storageTypeName = storageSystemTypeName;
 	}
 
-	@XmlElement(name = "storage_type_type")
+
 	public String getStorageTypeType() {
 		return storageTypeType;
 	}
@@ -56,7 +55,7 @@ public class StorageSystemTypeAddParam {
 		this.storageTypeType = storageType;
 	}
 
-	@XmlElement(name = "is_smi_provider")
+
 	public boolean getIsSmiProvider() {
 		return isSmiProvider;
 	}
@@ -65,7 +64,7 @@ public class StorageSystemTypeAddParam {
 		this.isSmiProvider = isSmiProvider;
 	}
 
-	@XmlElement(name = "storage_type_disp_name")
+
 	public String getStorageTypeDispName() {
 		return storageTypeDispName;
 	}
@@ -74,7 +73,7 @@ public class StorageSystemTypeAddParam {
 		this.storageTypeDispName = storageTypeDispName;
 	}
 
-	@XmlElement(name = "is_default_ssl")
+
 	public boolean getIsDefaultSsl() {
 		return isDefaultSsl;
 	}
@@ -83,7 +82,7 @@ public class StorageSystemTypeAddParam {
 		this.isDefaultSsl = isDefaultSsl;
 	}
 
-	@XmlElement(name = "is_default_mdm")
+
 	public boolean getIsDefaultMDM() {
 		return isDefaultMDM;
 	}
@@ -92,7 +91,7 @@ public class StorageSystemTypeAddParam {
 		this.isDefaultMDM = isDefaultMDM;
 	}
 
-	@XmlElement(name = "is_only_mdm")
+
 	public boolean getIsOnlyMDM() {
 		return isOnlyMDM;
 	}
@@ -101,7 +100,7 @@ public class StorageSystemTypeAddParam {
 		this.isOnlyMDM = isOnlyMDM;
 	}
 
-	@XmlElement(name = "is_element_mgr")
+
 	public boolean getIsElementMgr() {
 		return isElementMgr;
 	}
@@ -110,7 +109,7 @@ public class StorageSystemTypeAddParam {
 		this.isElementMgr = isElementMgr;
 	}
 
-	@XmlElement(name = "ssl_port")
+
 	public String getSslPort() {
 		return sslPort;
 	}
@@ -119,7 +118,7 @@ public class StorageSystemTypeAddParam {
 		this.sslPort = sslPort;
 	}
 
-	@XmlElement(name = "non_ssl_port")
+
 	public String getNonSslPort() {
 		return nonSslPort;
 	}
@@ -128,7 +127,7 @@ public class StorageSystemTypeAddParam {
 		this.nonSslPort = nonSslPort;
 	}
 
-	@XmlElement(name = "driver_class_name")
+
 	public String getDriverClassName() {
 		return driverClassName;
 	}
@@ -139,21 +138,21 @@ public class StorageSystemTypeAddParam {
 
 	public String toString() {
 		StringBuilder builder = new StringBuilder();
-		builder.append("StorageSystemTypeRestRep [storage_type_id=");
+		builder.append("StorageSystemTypeRestRep [storageTypeId=");
 		builder.append(storageTypeId);
-		builder.append(", storage_type_name=");
+		builder.append(", storageTypeName=");
 		builder.append(storageTypeName);
-		builder.append(", storage_type_type=");
+		builder.append(", storageTypeType=");
 		builder.append(storageTypeType);
-		builder.append(", is_smi_provider=");
+		builder.append(", isSmiProvider=");
 		builder.append(isSmiProvider);
-		builder.append(", is_default_ssl=");
+		builder.append(", isDefaultSsl=");
 		builder.append(isDefaultSsl);
-		builder.append(", non_ssl_port=");
+		builder.append(", nonSslPort=");
 		builder.append(nonSslPort);
-		builder.append(", ssl_port=");
+		builder.append(", sslPort=");
 		builder.append(sslPort);
-		builder.append(", driver_class_name=");
+		builder.append(", driverClassName=");
 		builder.append(driverClassName);
 		builder.append("]");
 		return builder.toString();

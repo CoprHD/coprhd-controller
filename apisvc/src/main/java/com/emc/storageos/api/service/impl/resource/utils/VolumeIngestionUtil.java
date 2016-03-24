@@ -4438,7 +4438,7 @@ public class VolumeIngestionUtil {
             // Verify that all of the target volumes make up all of the target varrays
             if (!varraysCovered.isEmpty()) {
                 Set<String> targetVarrayNames = new HashSet<String>();
-                for (URI targetVarrayId : targetVarrays) {
+                for (URI targetVarrayId : varraysCovered) {
                     VirtualArray va = dbClient.queryObject(VirtualArray.class, targetVarrayId);
                     targetVarrayNames.add(va.forDisplay());
                 }

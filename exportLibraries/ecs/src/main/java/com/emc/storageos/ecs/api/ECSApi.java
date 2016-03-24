@@ -15,6 +15,7 @@ import javax.ws.rs.core.MultivaluedMap;
 import org.codehaus.jettison.json.JSONArray;
 import org.codehaus.jettison.json.JSONException;
 import org.codehaus.jettison.json.JSONObject;
+import org.jsoup.helper.StringUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -50,6 +51,7 @@ public class ECSApi {
     private static final String URI_USER_SECRET_KEYS = "/object/user-secret-keys/{0}.json"; 
     private static final String URI_GET_BUCKET_ACL = "/object/bucket/{0}/acl.json?namespace={1}";
     private static final String URI_GET_ECS_VERSION = "/vdc/nodes.json";
+    private static final String URI_GET_ECS_LICENSE = "/license.json";
     private static final long DAY_TO_SECONDS = 24 * 60 * 60;
     private static final long BYTES_TO_GB = 1024 * 1024 * 1024;
 
@@ -701,6 +703,50 @@ public class ECSApi {
                 clientResp.close();
             }
             _log.debug("ECSApi:getECSVesrion exit");
+        }
+    }
+    
+    public String getECSSerialNum() throws ECSException {
+        _log.debug("ECSApi:getECSSerialNum");
+        ClientResponse clientResp = null;
+
+        try {
+            String responseString = "";
+            getAuthToken();
+            clientResp = get(URI_GET_ECS_LICENSE);
+            if (clientResp != null && clientResp.getStatus() == 200) {
+                JSONObject jObj = clientResp.getEntity(JSONObject.class);
+                JSONArray jArray = jObj.getJSONArray("license_feature");
+                for(int i=0; i<jArray.length(); i++){
+                    JSONObject data = jArray.getJSONObject(0);
+                    String model = data.getString("model");
+                    if("ViPR_ECS".equals(model)){
+                        String notice = data.getString("notice");
+                        if(!StringUtil.isBlank(notice)){
+                            String[] licenseInfo = notice.split(":");
+                            if(licenseInfo.length > 1){
+                                responseString =  licenseInfo[1].trim();
+                            }
+                        }
+                    }
+                }
+               
+            }
+            if (null == clientResp) {
+                throw ECSException.exceptions.getECSVesrionFailed(URI_GET_ECS_VERSION, "no response from ECS");
+            } else if (clientResp.getStatus() != 200) {
+                throw ECSException.exceptions.getECSVesrionFailed(URI_GET_ECS_VERSION, getResponseDetails(clientResp));
+            }
+
+            _log.debug("ECSApi:getECSSerialNum responseString : " + responseString);
+            return responseString;
+        } catch (Exception e) {
+            throw ECSException.exceptions.getECSVesrionFailed(URI_GET_ECS_VERSION, e.getMessage());
+        } finally {
+            if (clientResp != null) {
+                clientResp.close();
+            }
+            _log.debug("ECSApi:getECSSerialNum exit");
         }
     }
     

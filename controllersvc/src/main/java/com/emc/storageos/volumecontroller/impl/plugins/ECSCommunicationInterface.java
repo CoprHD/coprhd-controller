@@ -54,8 +54,7 @@ public class ECSCommunicationInterface extends ExtendedCommunicationInterfaceImp
     private static final int BYTESCONVERTER = 1024;
     private static final String NEW = "new";
     private static final String EXISTING = "existing";
-    private static final String ECS_SERIAL_NUM = "0123456789";
-
+    
     private static final Logger _logger = LoggerFactory.getLogger(ECSCommunicationInterface.class);
     private ECSApiFactory ecsApiFactory;
 
@@ -111,12 +110,13 @@ public class ECSCommunicationInterface extends ExtendedCommunicationInterfaceImp
                 throw ECSException.exceptions.discoverFailed("User is not ECS System Admin");
             }
             String ecsVersion = ecsApi.getECSVesrion();
+            String ecsSerialNumber = ecsApi.getECSVesrion();
 
             // Get details of storage system
             String nativeGuid = NativeGUIDGenerator.generateNativeGuid(DiscoveredDataObject.Type.ecs.toString(),
-                    ECS_SERIAL_NUM);
+                    ecsSerialNumber);
             storageSystem.setNativeGuid(nativeGuid);
-            storageSystem.setSerialNumber(nativeGuid); // No serial num API exposed
+            storageSystem.setSerialNumber(ecsSerialNumber);
             storageSystem.setFirmwareVersion(ecsVersion);
             storageSystem.setUsername(accessProfile.getUserName());
             storageSystem.setPassword(accessProfile.getPassword());

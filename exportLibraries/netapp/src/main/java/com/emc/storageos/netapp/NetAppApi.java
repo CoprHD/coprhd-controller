@@ -10,6 +10,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -1171,7 +1172,7 @@ public class NetAppApi {
 
             StatusInfo statusInfo = netAppFacade.getSnapMirrorState(pathLocation);
             if ("broken-off".equals(statusInfo.getState()) &&
-                    "idle".equals(statusInfo.getStatus())) {
+                    "idle".equals(statusInfo.getStatus()) || "pending".equals(statusInfo.getStatus())) {
                 _logger.info("Snapmirror relationship is already broken.");
                 return true;
 
@@ -1185,6 +1186,15 @@ public class NetAppApi {
 
             if (!success) {
                 throw new Exception("Cannot break snapmirror.");
+            }
+
+            while (true) {
+                statusInfo = netAppFacade.getSnapMirrorState(pathLocation);
+                if ("broken-off".equals(statusInfo.getState()) &&
+                        ("idle".equals(statusInfo.getStatus()) || "pending".equals(statusInfo.getStatus()))) {
+                    break;
+                }
+                TimeUnit.SECONDS.sleep(2);
             }
 
             return success;
@@ -1218,8 +1228,8 @@ public class NetAppApi {
                     _password, _https, null);
 
             StatusInfo statusInfo = netAppFacade.getSnapMirrorState(pathLocation);
-            if ("idle".equals(statusInfo.getStatus()) &&
-                    "quiesced".equals(statusInfo.getState())) {
+            if ("quiesced".equals(statusInfo.getState()) &&
+                    ("idle".equals(statusInfo.getStatus()) || "pending".equals(statusInfo.getStatus()))) {
                 _logger.info("Snapmirror is already quiesced for : {}", pathLocation);
                 return true;
             }
@@ -1227,6 +1237,15 @@ public class NetAppApi {
                 success = netAppFacade.quiesceSnapMirror(pathLocation);
                 if (!success) {
                     throw new Exception("Unable to quiesce snapmirror on destination location.");
+                }
+
+                while (true) {
+                    statusInfo = netAppFacade.getSnapMirrorState(pathLocation);
+                    if ("quiesced".equals(statusInfo.getState()) &&
+                            ("idle".equals(statusInfo.getStatus()) || "pending".equals(statusInfo.getStatus()))) {
+                        break;
+                    }
+                    TimeUnit.SECONDS.sleep(2);
                 }
             }
             return success;

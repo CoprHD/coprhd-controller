@@ -163,7 +163,7 @@ public class NetappMirrorFileOperations implements FileMirrorOperations {
 
         BiosCommandResult cmdResult = null;
         _log.info("Calling snapmirror pause.");
-        cmdResult = doPauseSnapMirror(sourceSystem, targetStorage, sourceFileShare, targetFileShare, completer);
+        cmdResult = doPauseSnapMirror(targetStorage, targetFileShare, completer);
         if (cmdResult.getCommandSuccess()) {
             // Call snapmirror break
             _log.info("Calling snapmirror break.");
@@ -403,7 +403,7 @@ public class NetappMirrorFileOperations implements FileMirrorOperations {
      * @param taskCompleter
      * @return
      */
-    public BiosCommandResult doPauseSnapMirror(StorageSystem sourceStorage, StorageSystem targetStorage, FileShare sourceFs,
+    public BiosCommandResult doPauseSnapMirror(StorageSystem targetStorage,
             FileShare targetFs, TaskCompleter taskCompleter) {
         // get vfiler
         String portGroupTarget = findVfilerName(targetFs);

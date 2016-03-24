@@ -19,24 +19,29 @@ Tested the coprHD
 
 Pre-requsities
 ---------------
+1. Install CoprHD - Vipr 
 
-1. Install scsi tools
+	a. Verify the Storage arrays recognized . After login to the Vipr we can check the storage systems
+Below is a sample screenshot
+
+![alt text]( ViprStorageSystems.jpeg "Storage Arrays")
+2. Install scsi tools
 
 sudo apt-get update
 sudo apt-get install -y open-iscsi
 sudo apt-get install -y lsscsi
 sudo apt-get -y install scsitools
 
-2. Install ClusterHQ/Flocker
+3. Install ClusterHQ/Flocker
 Refer to ubuntu install notes -> https://docs.clusterhq.com/en/0.4.0/
 
-3. Install EMC Plugin 
+4. Install EMC Plugin 
 
 git clone https://github.com/emccode/flocker-drivers
 cd copr-hd
 sudo /opt/flocker/bin/python setup.py install
 
-4. Install vipr-cli 2.4 or above
+5. Install vipr-cli 2.4 or above
 
 Refer the below link for more information
 http://www.emc.com/collateral/TechnicalDocument/docu62079.pdf

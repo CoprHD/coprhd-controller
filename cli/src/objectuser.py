@@ -47,6 +47,7 @@ class ObjectUser(object):
         obj = StorageSystem(self.__ipAddr, self.__port)
                  
         stsystem_uri = obj.query_by_name_and_type(storagesystem, "ecs")
+    
         request = {
                   'secret_key' : secretkey
                   }
@@ -84,6 +85,10 @@ def create_secretkey_parser(subcommand_parsers, common_parser):
                              dest='objectuser',
                              help='The object user id',
                              required=True)
+    create_secretkey_parser.add_argument('-autogenerate', '-autogen',
+                             metavar='<autogenerate>',
+                             help='Provide the option',
+                             action='store_true')
     
 
     create_secretkey_parser.set_defaults(func=objectuser_secretkey_create)

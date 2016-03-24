@@ -63,15 +63,15 @@ public class AlertsLogger {
         return _instance;
     }
 
-    public void fatal(Object... message) {
+    public void fatal(Object message) {
         _log.fatal(message);
     }
 
-    public void error(Object... message) {
+    public void error(Object message) {
         _log.error(message);
     }
 
-    public void warn(Object... message) {
+    public void warn(Object message) {
         _log.warn(message);
     }
 }

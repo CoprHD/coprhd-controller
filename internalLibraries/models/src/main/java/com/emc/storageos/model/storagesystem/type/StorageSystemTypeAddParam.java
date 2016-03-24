@@ -56,7 +56,7 @@ public class StorageSystemTypeAddParam {
 		this.storageTypeType = storageType;
 	}
 
-	@XmlElement(name = "isSmiProvider")
+	@XmlElement(name = "is_smi_provider")
 	public boolean getIsSmiProvider() {
 		return isSmiProvider;
 	}
@@ -74,7 +74,7 @@ public class StorageSystemTypeAddParam {
 		this.storageTypeDispName = storageTypeDispName;
 	}
 
-	@XmlElement(name = "isDefaultSsl")
+	@XmlElement(name = "is_default_ssl")
 	public boolean getIsDefaultSsl() {
 		return isDefaultSsl;
 	}
@@ -83,7 +83,7 @@ public class StorageSystemTypeAddParam {
 		this.isDefaultSsl = isDefaultSsl;
 	}
 
-	@XmlElement(name = "isDefaultMDM")
+	@XmlElement(name = "is_default_mdm")
 	public boolean getIsDefaultMDM() {
 		return isDefaultMDM;
 	}
@@ -92,7 +92,7 @@ public class StorageSystemTypeAddParam {
 		this.isDefaultMDM = isDefaultMDM;
 	}
 
-	@XmlElement(name = "isOnlyMDM")
+	@XmlElement(name = "is_only_mdm")
 	public boolean getIsOnlyMDM() {
 		return isOnlyMDM;
 	}
@@ -101,7 +101,7 @@ public class StorageSystemTypeAddParam {
 		this.isOnlyMDM = isOnlyMDM;
 	}
 
-	@XmlElement(name = "isElementMgr")
+	@XmlElement(name = "is_element_mgr")
 	public boolean getIsElementMgr() {
 		return isElementMgr;
 	}
@@ -110,7 +110,7 @@ public class StorageSystemTypeAddParam {
 		this.isElementMgr = isElementMgr;
 	}
 
-	@XmlElement(name = "sslPort")
+	@XmlElement(name = "ssl_port")
 	public String getSslPort() {
 		return sslPort;
 	}
@@ -119,7 +119,7 @@ public class StorageSystemTypeAddParam {
 		this.sslPort = sslPort;
 	}
 
-	@XmlElement(name = "nonSslPort")
+	@XmlElement(name = "non_ssl_port")
 	public String getNonSslPort() {
 		return nonSslPort;
 	}
@@ -128,7 +128,7 @@ public class StorageSystemTypeAddParam {
 		this.nonSslPort = nonSslPort;
 	}
 
-	@XmlElement(name = "driverClassName")
+	@XmlElement(name = "driver_class_name")
 	public String getDriverClassName() {
 		return driverClassName;
 	}
@@ -145,15 +145,15 @@ public class StorageSystemTypeAddParam {
 		builder.append(storageTypeName);
 		builder.append(", storage_type_type=");
 		builder.append(storageTypeType);
-		builder.append(", isSmiProvider=");
+		builder.append(", is_smi_provider=");
 		builder.append(isSmiProvider);
-		builder.append(", isDefaultSsl=");
+		builder.append(", is_default_ssl=");
 		builder.append(isDefaultSsl);
-		builder.append(", nonSslPort=");
+		builder.append(", non_ssl_port=");
 		builder.append(nonSslPort);
-		builder.append(", sslPort=");
+		builder.append(", ssl_port=");
 		builder.append(sslPort);
-		builder.append(", driverClassName=");
+		builder.append(", driver_class_name=");
 		builder.append(driverClassName);
 		builder.append("]");
 		return builder.toString();

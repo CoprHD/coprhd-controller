@@ -117,7 +117,7 @@ public class ECSCommunicationInterface extends ExtendedCommunicationInterfaceImp
                     ECS_SERIAL_NUM);
             storageSystem.setNativeGuid(nativeGuid);
             storageSystem.setSerialNumber(nativeGuid); // No serial num API exposed
-            storageSystem.setMajorVersion(ecsVersion);
+            storageSystem.setFirmwareVersion(ecsVersion);
             storageSystem.setUsername(accessProfile.getUserName());
             storageSystem.setPassword(accessProfile.getPassword());
             storageSystem.setPortNumber(accessProfile.getPortNumber());

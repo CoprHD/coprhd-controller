@@ -665,6 +665,11 @@ public class ECSApi {
         }
     }
     
+    /**
+     * Get the ECS node version.
+     * @return ECS version
+     * @throws ECSException
+     */
     public String getECSVesrion() throws ECSException {
         _log.debug("ECSApi:getECSVesrion");
         ClientResponse clientResp = null;
@@ -674,7 +679,12 @@ public class ECSApi {
             getAuthToken();
             clientResp = get(URI_GET_ECS_VERSION);
             if (clientResp != null && clientResp.getStatus() == 200) {
-                responseString = getFieldValue(clientResp, "version");
+                JSONObject jObj = clientResp.getEntity(JSONObject.class);
+                JSONArray jArray = jObj.getJSONArray("node");
+                if(jArray != null && jArray.length() > 0){
+                    JSONObject data = jArray.getJSONObject(0);
+                    responseString =  data.getString("version");
+                }
             }
             if (null == clientResp) {
                 throw ECSException.exceptions.getECSVesrionFailed(URI_GET_ECS_VERSION, "no response from ECS");
@@ -682,6 +692,7 @@ public class ECSApi {
                 throw ECSException.exceptions.getECSVesrionFailed(URI_GET_ECS_VERSION, getResponseDetails(clientResp));
             }
 
+            _log.debug("ECSApi:getECSVesrion responseString : " + responseString);
             return responseString;
         } catch (Exception e) {
             throw ECSException.exceptions.getECSVesrionFailed(URI_GET_ECS_VERSION, e.getMessage());

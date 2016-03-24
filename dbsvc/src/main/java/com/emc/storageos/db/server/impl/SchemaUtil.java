@@ -36,6 +36,8 @@ import org.apache.cassandra.config.DatabaseDescriptor;
 import org.apache.cassandra.gms.Gossiper;
 import org.apache.cassandra.locator.IEndpointSnitch;
 import org.apache.cassandra.thrift.Cassandra;
+import org.apache.cassandra.thrift.CfDef;
+import org.apache.cassandra.thrift.KsDef;
 import org.apache.commons.lang.StringUtils;
 import org.apache.curator.framework.recipes.locks.InterProcessLock;
 import org.slf4j.Logger;
@@ -981,7 +983,8 @@ public class SchemaUtil {
         AstyanaxContext<Cluster> context = clientContext.getClusterContext();
         final KeyspaceTracerFactory ks = EmptyKeyspaceTracerFactory.getInstance();
         ConnectionPool<Cassandra.Client> pool = (ConnectionPool<Cassandra.Client>) context.getConnectionPool();
-        _log.info("Adding CF: {}", def.getName());
+        String cfname = def.getName();
+        _log.info("Adding CF: {}", cfname);
         try {
             return pool.executeWithFailover(
                     new AbstractOperationImpl<String>(
@@ -989,6 +992,16 @@ public class SchemaUtil {
                         @Override
                         public String internalExecute(Cassandra.Client client, ConnectionContext context) throws Exception {
                             client.set_keyspace(_keyspaceName);
+                            KsDef kd = client.describe_keyspace(_keyspaceName);
+                            List<CfDef> cfs = kd.getCf_defs();
+                            for (CfDef cf : cfs) {
+                                if (cf.getName().equals(cfname)) {
+                                    _log.info("The CF {} has already been created", cfname);
+                                    return null;
+                                }
+                            }
+
+                            _log.info("To create CF {}", cfname);
                             return client.system_add_column_family(((ThriftColumnFamilyDefinitionImpl) def)
                                     .getThriftColumnFamilyDefinition());
                         }
@@ -996,6 +1009,7 @@ public class SchemaUtil {
         } catch (final OperationException e) {
             throw DatabaseException.retryables.operationFailed(e);
         } catch (final ConnectionException e) {
+            _log.info("lbya e=",e);
             throw DatabaseException.retryables.connectionFailed(e);
         }
     }

@@ -314,6 +314,9 @@ public abstract class VdcOpHandler {
         
         @Override
         public void execute() throws Exception {
+            log.info("Standby removal op - reconfig all services");
+            reconfigVdc();
+
             log.info("Processing standby removal");
             if (drUtil.isActiveSite()) {
                 log.info("Active site - start removing db nodes from gossip and strategy options");
@@ -343,8 +346,6 @@ public abstract class VdcOpHandler {
                     }
                 }
             }
-            log.info("Standby removal op - reconfig all services");
-            reconfigVdc();
         }
         
         private void removeDbNodes() throws Exception {

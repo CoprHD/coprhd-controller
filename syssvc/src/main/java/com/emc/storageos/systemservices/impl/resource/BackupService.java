@@ -506,6 +506,7 @@ public class BackupService {
             if (!backupName.equals(curBackupName)) {
                 String errmsg = curBackupName + " is downloading";
                 backupOps.setRestoreStatus(backupName, false, BackupRestoreStatus.Status.DOWNLOAD_FAILED, errmsg, false, false);
+                backupOps.persistCurrentBackupInfo(curBackupName, false);
             }else {
                 log.info("The backup {} is downloading, no need to trigger again", backupName);
             }

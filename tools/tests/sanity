@@ -8515,6 +8515,9 @@ backup_tests()
 
     echo "List local backup ${backupname} successful"
 
+    echo "Query local backup ${backupname} info"
+    backup query-info "${backupname}" "true"
+
     echo "Uploading backup(${backupname}) to ${BACKUP_SERVER_URL}"
     backup upload "${backupname}"
 
@@ -8559,6 +8562,9 @@ backup_tests()
        echo "Failed to find backup ${backupname} on ${BACKUP_SERVER_URL}"
        exit 1
     fi
+
+    echo "Query remote backup ${found} info"
+    backup query-info "${found}" "false"
 
     echo "Pull backup(${found} from ${BACKUP_SERVER_URL})"
     backup pull "${found}"

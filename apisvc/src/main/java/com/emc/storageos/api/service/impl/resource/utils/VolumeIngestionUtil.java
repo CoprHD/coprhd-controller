@@ -4391,11 +4391,8 @@ public class VolumeIngestionUtil {
                 }
 
                 if (volume == null) {
-                    _logger.error("Unable to retrieve volume : " + volumeID
-                            + " from database or created volumes.  Ignoring in protection set ingestion.");
-                    // this will be the expected case for a newly-ingested Volume (because it hasn't been saved yet,
-                    // so we make sure to add the volume in RecoverPointVolumeIngestionContext.commitBackend
-                    continue;
+                    _logger.error("Unable to retrieve volume : " + volumeID + " from database or created volumes.");
+                    throw IngestionException.exceptions.validationFailedRPIngestionMissingVolume(volumeID, umpset.getCgName());
                 }
 
                 // Collect the vpool of the source volume(s)
@@ -4417,11 +4414,8 @@ public class VolumeIngestionUtil {
                 }
 
                 if (volume == null) {
-                    _logger.error("Unable to retrieve volume : " + volumeID
-                            + " from database or created volumes.  Ignoring in protection set ingestion.");
-                    // this will be the expected case for a newly-ingested Volume (because it hasn't been saved yet,
-                    // so we make sure to add the volume in RecoverPointVolumeIngestionContext.commitBackend
-                    continue;
+                    _logger.error("Unable to retrieve volume : " + volumeID + " from database or created volumes.");
+                    throw IngestionException.exceptions.validationFailedRPIngestionMissingVolume(volumeID, umpset.getCgName());
                 }
 
                 // Verify the target volume(s) are in a target varray of the RP source vpool

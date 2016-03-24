@@ -3619,6 +3619,9 @@ storageSystemTypes.useSSL=Use SSL
 storageSystemTypes.isOnlyMDM=Use Only MDM
 storageSystemTypes.isElementMgr=Is Element Manager
 storageSystemTypes.useMDM=Use MDM
+storageSystemTypes.driverClassName=Driver Class Name
+storageSystemTypes.uploadButton=Upload Device Driver
+storageSystemTypes.deviceDriverFile=Device Driver Jar
 
 tasks.task=Task
 tasks.id=ID

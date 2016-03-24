@@ -2,9 +2,12 @@ package controllers.arrays;
 
 import static controllers.Common.backToReferrer;
 
+import java.io.File;
+import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
 
+import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang.StringUtils;
 
 import com.emc.storageos.model.dr.SiteIdListParam;
@@ -19,6 +22,7 @@ import controllers.util.FlashException;
 import controllers.util.ViprResourceController;
 import models.datatable.StorageSystemTypeDataTable;
 import models.datatable.StorageSystemTypeDataTable.StorageSystemTypeInfo;
+import play.Logger;
 import play.data.binding.As;
 import play.data.validation.MaxSize;
 import play.data.validation.MinSize;
@@ -26,6 +30,7 @@ import play.data.validation.Required;
 import play.data.validation.Validation;
 import play.mvc.With;
 import util.DisasterRecoveryUtils;
+import util.LicenseUtils;
 import util.MessagesUtils;
 import util.StorageSystemTypeUtils;
 import util.datatable.DataTablesSupport;
@@ -107,6 +112,21 @@ public class StorageSystemTypes extends ViprResourceController {
 		list();
 	}
 
+    public static void uploadDriver(File newDeviceDriver) {
+
+        File storaeDirectory = new File ("/data/");
+        
+        if (newDeviceDriver != null) {
+            try {
+            	FileUtils.copyFileToDirectory(newDeviceDriver, storaeDirectory);
+            } catch (IOException e) {
+                Validation.addError("newLicenseFile", MessagesUtils.get("license.invalidLicenseFile"));
+                Logger.error(e, "Failed to read license text file");
+            }
+        }
+    }
+	
+	
 	@SuppressWarnings("squid:S2068")
 	public static class StorageSystemTypeForm {
 

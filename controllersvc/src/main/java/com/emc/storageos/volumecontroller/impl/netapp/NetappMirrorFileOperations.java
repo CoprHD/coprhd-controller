@@ -164,13 +164,18 @@ public class NetappMirrorFileOperations implements FileMirrorOperations {
         BiosCommandResult cmdResult = null;
 
         _log.info("Calling snapmirror release.");
-        cmdResult = doReleaseSnapMirror(sourceSystem, targetStorage,
-                sourceFileShare, targetFileShare, completer);
+        cmdResult = deleteSnapMirrorSchedule(targetStorage, targetFileShare, completer);
+
         if (cmdResult.getCommandSuccess()) {
-            cmdResult = deleteSnapMirrorSchedule(targetStorage, targetFileShare, completer);
+            cmdResult = doReleaseSnapMirror(sourceSystem, targetStorage,
+                    sourceFileShare, targetFileShare, completer);
             if (cmdResult.getCommandSuccess()) {
                 completer.ready(_dbClient);
                 WorkflowStepCompleter.stepSucceded(completer.getOpId());
+            } else if (cmdResult.getCommandPending()) {
+                completer.statusPending(_dbClient, cmdResult.getMessage());
+            } else {
+                completer.error(_dbClient, cmdResult.getServiceCoded());
             }
         }
 
@@ -270,22 +275,21 @@ public class NetappMirrorFileOperations implements FileMirrorOperations {
         /* The snapmirror-release API removes a SnapMirror relationship on the source endpoint */
         _log.info("Calling snapmirror release on source: {}, target: {}", sourceLocation, destLocation);
         nApiSource.releaseSnapMirror(sourceLocation, destLocation);
-        /*
-         * NetAppSnapMirrorStatusJob snapMirrorStatusJob = new NetAppSnapMirrorStatusJob(destLocation, targetStorage.getId(), taskCompleter,
-         * destLocation);
-         * try {
-         * ControllerServiceImpl.enqueueJob(new QueueJob(snapMirrorStatusJob));
-         * return BiosCommandResult.createPendingResult();
-         * } catch (Exception e) {
-         * _log.error("Release Snapmirror failed", e);
-         * ServiceError error = DeviceControllerErrors.netapp.jobFailed("Release Snapmirror failed:" + e.getMessage());
-         * if (taskCompleter != null) {
-         * taskCompleter.error(_dbClient, error);
-         * }
-         * return BiosCommandResult.createErrorResult(error);
-         * }
-         */
-        return BiosCommandResult.createSuccessfulResult();
+
+        NetAppSnapMirrorStatusJob snapMirrorStatusJob = new NetAppSnapMirrorStatusJob(destLocation, targetStorage.getId(), taskCompleter,
+                destLocation);
+        try {
+            ControllerServiceImpl.enqueueJob(new QueueJob(snapMirrorStatusJob));
+            return BiosCommandResult.createPendingResult();
+        } catch (Exception e) {
+            _log.error("Release Snapmirror failed", e);
+            ServiceError error = DeviceControllerErrors.netapp.jobFailed("Release Snapmirror failed:" + e.getMessage());
+            if (taskCompleter != null) {
+                taskCompleter.error(_dbClient, error);
+            }
+            return BiosCommandResult.createErrorResult(error);
+        }
+
     }
 
     public BiosCommandResult deleteSnapMirrorSchedule(StorageSystem targetStorage,

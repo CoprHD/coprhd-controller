@@ -55,6 +55,7 @@ public class LocalRepository {
     }
 
     private static final long _SYSTOOL_TIMEOUT = 120000;             // 2 min
+    private static final long _SYSTOOL_LONG_TIMEOUT = 600000;             // 10 min
     private static final int _SYSTOOL_DEVKIT_ERROR = 66;
     private static final int _SYSTOOL_SUCCESS = 0;
 
@@ -789,7 +790,7 @@ public class LocalRepository {
     public void genDHParam() {
         final String prefix = String.format("gen DHParam: ");
         final String[] cmd = { _SYSTOOL_CMD, _SYSTOOL_GEN_DHPARAM};
-        final Exec.Result result = Exec.sudo(_SYSTOOL_TIMEOUT, cmd);
+        final Exec.Result result = Exec.sudo(_SYSTOOL_LONG_TIMEOUT, cmd);
         checkFailure(result, prefix);
     }
 }

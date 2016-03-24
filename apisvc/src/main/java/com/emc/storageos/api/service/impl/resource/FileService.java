@@ -303,7 +303,7 @@ public class FileService extends TaskResourceService {
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @CheckPermission(roles = { Role.TENANT_ADMIN }, acls = { ACL.OWN, ACL.ALL })
-    public TaskList createFileSystem(FileSystemParam param, @QueryParam("project") URI id) throws InternalException {
+    public TaskResourceRep createFileSystem(FileSystemParam param, @QueryParam("project") URI id) throws InternalException {
         // check project
         ArgValidator.checkFieldUriType(id, Project.class, "project");
 
@@ -324,7 +324,7 @@ public class FileService extends TaskResourceService {
      * the internal object case
      * NOTE - below method should always work with project being null
      */
-    public TaskList createFSInternal(FileSystemParam param, Project project,
+    public TaskResourceRep createFSInternal(FileSystemParam param, Project project,
             TenantOrg tenant, DataObject.Flag[] flags) throws InternalException {
         ArgValidator.checkFieldUriType(param.getVpool(), VirtualPool.class, "vpool");
         ArgValidator.checkFieldUriType(param.getVarray(), VirtualArray.class, "varray");
@@ -399,7 +399,7 @@ public class FileService extends TaskResourceService {
                 project == null ? null : project.getId().toString());
         // Till we Support multiple file system create
         // return the file share taskrep
-        return taskList;
+        return taskList.getTaskList().get(0);
     }
 
     /**

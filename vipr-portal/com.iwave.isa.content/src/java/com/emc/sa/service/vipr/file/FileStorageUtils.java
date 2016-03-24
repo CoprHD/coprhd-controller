@@ -123,11 +123,8 @@ public class FileStorageUtils {
 
     public static URI createFileSystem(URI project, URI virtualArray, URI virtualPool, String label, double sizeInGb, int advisoryLimit,
             int softLimit, int gracePeriod) {
-        Tasks<FileShareRestRep> taskList = execute(new CreateFileSystem(label, sizeInGb, advisoryLimit, softLimit, gracePeriod, virtualPool,
+        Task<FileShareRestRep> task = execute(new CreateFileSystem(label, sizeInGb, advisoryLimit, softLimit, gracePeriod, virtualPool,
                 virtualArray, project));
-//        Task<FileShareRestRep> task = execute(new CreateFileSystem(label, sizeInGb, advisoryLimit, softLimit, gracePeriod, virtualPool,
-//                virtualArray, project));
-        Task<FileShareRestRep> task = taskList.firstTask();
         addAffectedResource(task);
         URI fileSystemId = task.getResourceId();
         addRollback(new DeactivateFileSystem(fileSystemId, FileControllerConstants.DeleteTypeEnum.FULL));
@@ -136,10 +133,7 @@ public class FileStorageUtils {
     }
 
     public static URI createFileSystem(URI project, URI virtualArray, URI virtualPool, String label, double sizeInGb) {
-        
-        
-        Tasks<FileShareRestRep> taskList = execute(new CreateFileSystem(label, sizeInGb, virtualPool, virtualArray, project));
-        Task<FileShareRestRep> task =taskList.firstTask();
+        Task<FileShareRestRep> task = execute(new CreateFileSystem(label, sizeInGb, virtualPool, virtualArray, project));
         addAffectedResource(task);
         URI fileSystemId = task.getResourceId();
         addRollback(new DeactivateFileSystem(fileSystemId, FileControllerConstants.DeleteTypeEnum.FULL));

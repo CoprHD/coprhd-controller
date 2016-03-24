@@ -60,7 +60,6 @@ import com.emc.storageos.db.client.model.BlockSnapshotSession;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.DataObject.Flag;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
-import com.emc.storageos.db.client.model.DiscoveredDataObject.Type;
 import com.emc.storageos.db.client.model.Migration;
 import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.model.OpStatusMap;
@@ -3108,8 +3107,17 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
     @Override
     public List<BlockSnapshot> getSnapshots(Volume vplexVolume) {
         if (!vplexVolume.isIngestedVolume(_dbClient)) {
-            Volume snapshotSourceVolume = getVPLEXSnapshotSourceVolume(vplexVolume);
-            return super.getSnapshots(snapshotSourceVolume);
+            Volume snapshotSourceVolume = null;
+            try {
+                snapshotSourceVolume = getVPLEXSnapshotSourceVolume(vplexVolume);
+            } catch (Exception e) {
+                // Just log a warning and return the empty list.
+                s_logger.warn("Cound not find source side backend volume for VPLEX volume {}", vplexVolume.getId());
+                return new ArrayList<BlockSnapshot>();
+            }
+            if (snapshotSourceVolume != null) {
+                return super.getSnapshots(snapshotSourceVolume);
+            }
         }
 
         return new ArrayList<BlockSnapshot>();

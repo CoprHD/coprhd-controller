@@ -1172,12 +1172,12 @@ public class NetAppApi {
 
             StatusInfo statusInfo = netAppFacade.getSnapMirrorState(pathLocation);
             if ("broken-off".equals(statusInfo.getState()) &&
-                    "idle".equals(statusInfo.getStatus()) || "pending".equals(statusInfo.getStatus())) {
+                    ("idle".equals(statusInfo.getStatus()) || "pending".equals(statusInfo.getStatus()))) {
                 _logger.info("Snapmirror relationship is already broken.");
                 return true;
 
-            } else if ("quiesced".equals(statusInfo.getState()) &&
-                    "idle".equals(statusInfo.getStatus())) {
+            } else if ("quiesced".equals(statusInfo.getState())
+                    && ("idle".equals(statusInfo.getStatus()) || "pending".equals(statusInfo.getStatus()))) {
                 success = netAppFacade.breakSnapMirrorSchedule(pathLocation);
             } else {
                 _logger.error("Snapmirror relationship is not quiesced.");

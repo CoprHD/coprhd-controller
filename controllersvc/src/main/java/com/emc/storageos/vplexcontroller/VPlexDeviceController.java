@@ -5324,7 +5324,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
 
             // Get the migration.
             migration = _dbClient.queryObject(Migration.class, migrationURI);
-            
+
             // Get the VPLEX volume for the migration.
             Volume migrationVolume = _dbClient.queryObject(Volume.class, migration.getVolume());
             if (migrationVolume != null) {

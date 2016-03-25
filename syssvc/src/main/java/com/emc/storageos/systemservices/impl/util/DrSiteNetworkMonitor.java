@@ -42,7 +42,7 @@ public class DrSiteNetworkMonitor implements Runnable {
     private CoordinatorClient coordinatorClient;
     private String myNodeId;
     private boolean isSingleNode;
-    protected final Waiter waiter = new Waiter();
+    private final Waiter waiter = new Waiter();
 
     private static final int NETWORK_MONITORING_INTERVAL = 60; // in seconds
     public static final String ZOOKEEPER_MODE_LEADER = "leader";

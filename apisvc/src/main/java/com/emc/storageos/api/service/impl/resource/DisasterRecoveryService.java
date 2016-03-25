@@ -360,6 +360,11 @@ public class DisasterRecoveryService {
 
             ipsecConfig.setPreSharedKey(activeSiteParam.getIpsecKey());
 
+            log.info("Clean up all existing site configurations");
+            for (Site siteToRemove : drUtil.listSites()) {
+                drUtil.removeSite(siteToRemove);
+            }
+
             coordinator.addSite(activeSiteParam.getUuid());
             Site activeSite = new Site();
             siteMapper.map(activeSiteParam, activeSite);

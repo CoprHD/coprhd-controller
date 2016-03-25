@@ -244,7 +244,7 @@ public class BackupService {
     @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR, Role.RESTRICTED_SYSTEM_ADMIN })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     public BackupInfo queryBackupInfo(@QueryParam("name") String backupName, @QueryParam("local") @DefaultValue("false") boolean isLocal) {
-        log.info("Query backup info backupFileName={} isLocal={}", backupName, isLocal);
+        log.info("Query backup info backupName={} isLocal={}", backupName, isLocal);
         try {
             if (isLocal) {
                 //query info of a local backup
@@ -506,6 +506,7 @@ public class BackupService {
             if (!backupName.equals(curBackupName)) {
                 String errmsg = curBackupName + " is downloading";
                 backupOps.setRestoreStatus(backupName, false, BackupRestoreStatus.Status.DOWNLOAD_FAILED, errmsg, false, false);
+                backupOps.persistCurrentBackupInfo(curBackupName, false);
             }else {
                 log.info("The backup {} is downloading, no need to trigger again", backupName);
             }
@@ -630,11 +631,6 @@ public class BackupService {
     private Response doRestore(String backupName, boolean isLocal, String password, boolean isGeoFromScratch) {
         log.info("Do restore with backup name={} isLocal={} isGeoFromScratch={}", new Object[] {backupName, isLocal, isGeoFromScratch});
         auditBackup(OperationTypeEnum.RESTORE_BACKUP, AuditLogManager.AUDITOP_BEGIN, null, backupName);
-
-        if (!backupOps.isActiveSite()) {
-            setRestoreFailed(backupName, isLocal, "The current site is not an active site", null);
-            return Response.status(ASYNC_STATUS).build();
-        }
 
         if (!backupOps.isClusterStable()) {
             setRestoreFailed(backupName, isLocal, "The cluster is not stable", null);

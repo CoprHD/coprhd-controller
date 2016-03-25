@@ -9,7 +9,7 @@ import javax.xml.bind.annotation.XmlAccessorType;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 
-@XmlRootElement(name = "storagesystem_type_add")
+@XmlRootElement(name = "storagesystemtype_add")
 @XmlAccessorType(XmlAccessType.FIELD)
 public class StorageSystemTypeAddParam {
 

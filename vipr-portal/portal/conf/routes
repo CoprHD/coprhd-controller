@@ -102,6 +102,7 @@ GET     /storagearrays/edit/{id}                arrays.StorageSystems.edit
 
 GET     /storagesystemtype/edit/{id}           arrays.StorageSystemTypes.edit
 GET     /storagesystemtype/list				   arrays.StorageSystemTypes.list
+*       /storagesystemtype/{action}			   arrays.StorageSystemTypes.{action}
 
 
 GET     /dataprotectionsystems/edit/{id}        arrays.DataProtectionSystems.edit

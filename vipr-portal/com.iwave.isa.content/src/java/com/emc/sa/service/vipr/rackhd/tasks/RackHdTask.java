@@ -81,15 +81,18 @@ public class RackHdTask extends ViPRExecutionTask<String> {
             RackHdUtils.sleep(RACKHD_WORKFLOW_CHECK_INTERVAL);
             workflowResponse = makeRestCall(RACKHD_API_WORKFLOWS + "/" + 
                     RackHdUtils.getWorkflowId(workflowResponse));            
+
             finishedTaskIds = RackHdUtils.
                     updateAffectedResources(workflowResponse,finishedTaskIds);
+
             if( RackHdUtils.isTimedOut(++intervals) ) {
                 ExecutionUtils.currentContext().logError("RackHD Workflow " +
                         RackHdUtils.getWorkflowId(workflowResponse) + 
                         " timed out.");
                 break;
             }
-        } while ( !RackHdUtils.isWorkflowComplete(workflowResponse) ||  // does complete flag matter?
+        } while ( 
+                //!RackHdUtils.isWorkflowComplete(workflowResponse) ||  // does complete flag matter?
                 // status not updated from 'valid' even when complete?! :
                 RackHdUtils.isWorkflowValid(workflowResponse) );
         return workflowResponse;

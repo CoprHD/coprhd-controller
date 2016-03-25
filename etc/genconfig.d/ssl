@@ -22,4 +22,18 @@ _gen_nginx_keys() {
     _genconfig_done
 }
 
+_gen_dhparam() {
+    local dhparam_real=/.volume/bootfs/etc/dhparam
+    local dhparam_default=/opt/storageos/conf/dhparam.dft
+    local dhparam_nginx=/etc/nginx/ssl/dhparam.pem
+
+    if [[ -f  ${dhparam_real} ]]; then
+       /usr/bin/cp ${dhparam_real} ${dhparam_nginx}
+    else
+       /usr/bin/cp ${dhparam_default} ${dhparam_nginx}
+    fi
+    _genconfig_done
+}
+
 _genconfig_exec _gen_nginx_keys
+_genconfig_exec _gen_dhparam

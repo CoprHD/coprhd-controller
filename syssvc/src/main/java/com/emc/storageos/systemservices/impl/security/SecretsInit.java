@@ -10,6 +10,7 @@ import com.emc.storageos.coordinator.client.service.DrUtil;
 import com.emc.storageos.security.ipsec.IPsecConfig;
 import com.emc.storageos.svcs.errorhandling.resources.ServiceUnavailableException;
 import com.emc.storageos.systemservices.impl.ipsec.IPsecManager;
+import com.emc.storageos.systemservices.impl.property.Notifier;
 import com.emc.storageos.systemservices.impl.upgrade.CoordinatorClientExt;
 import com.emc.storageos.systemservices.impl.upgrade.LocalRepository;
 import com.sun.corba.se.spi.resolver.LocalResolver;
@@ -62,7 +63,12 @@ public class SecretsInit implements Runnable {
         LocalRepository localRepository = LocalRepository.getInstance();
         try {
             localRepository.genDHParam();
-            localRepository.reconfigProperties("dhparam");
+
+            log.info("Reconfiguring SSL related config files");
+            localRepository.reconfigProperties("ssl");
+
+            log.info("Invoking SSL notifier");
+            Notifier.getInstance("ssl").doNotify();
         } catch (Exception e) {
             log.warn("Failed to generate dhparam.", e);
             return false;

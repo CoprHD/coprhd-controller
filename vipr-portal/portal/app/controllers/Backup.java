@@ -220,7 +220,7 @@ public class Backup extends Controller {
         RestoreForm restoreForm = new RestoreForm(name, params.get("restoreForm.password"), isLocal, params.get("restoreForm.isGeoFromScratch", boolean.class));
         restoreForm.restore();
 
-        //flash("initialTimeout", 10000);
+        flash("initialTimeout", 10000);
         Maintenance.maintenance(Common.reverseRoute(Backup.class, "list", "type", type));
     }
 

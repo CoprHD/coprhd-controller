@@ -942,13 +942,13 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
                 system = dbClient.queryObject(StorageSystem.class, group.getSourceStorageSystemUri());
                 targetSystem = dbClient.queryObject(StorageSystem.class, group.getRemoteStorageSystemUri());
 
+                boolean activeMode = target.getSrdfCopyMode() != null && target.getSrdfCopyMode().equals(Mode.ACTIVE.toString());
+                boolean consExempt = true;
+                if (activeMode) {
+                    consExempt = false;
+                }
                 if (!source.hasConsistencyGroup()) {
                     // No CG, so suspend single link (cons_exempt used in case of Asynchronous)
-                    boolean consExempt = true;
-                    boolean activeMode = target.getSrdfCopyMode() != null && target.getSrdfCopyMode().equals(Mode.ACTIVE.toString());
-                    if (activeMode) {
-                        consExempt = false;
-                    }
                     Workflow.Method suspendMethod = suspendSRDFLinkMethod(system.getId(),
                             source.getId(), targetURI, consExempt);
                     String suspendStep = workflow.createStep(DELETE_SRDF_MIRRORS_STEP_GROUP,
@@ -981,28 +981,43 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
                     // Defensive steps to prevent orphaned SRDF Volumes, which cannot be deleted.
                     // First we remove the sync pair from Async CG...
                     targetVolumeURIs.add(targetURI);
-                    Workflow.Method removePairFromGroupMethod = removePairFromGroup(system.getId(),
-                            source.getId(), targetURI, true);
-                    String removePairFromGroupWorkflowDesc = String.format(REMOVE_SRDF_PAIR_STEP_DESC, target.getSrdfCopyMode());
-                    String detachVolumePairWorkflowDesc = String.format(DETACH_SRDF_PAIR_STEP_DESC, target.getSrdfCopyMode());
-
-                    String removePairFromGroupStep = workflow.createStep(DELETE_SRDF_MIRRORS_STEP_GROUP,
-                            removePairFromGroupWorkflowDesc, waitFor, system.getId(),
-                            system.getSystemType(), getClass(), removePairFromGroupMethod, null, null);
-                    // suspend the removed async pair
+                    // Keep the methods handy
                     Workflow.Method suspendPairMethod = suspendSRDFLinkMethod(system.getId(),
-                            source.getId(), targetURI, true);
-                    String suspendPairStep = workflow.createStep(DELETE_SRDF_MIRRORS_STEP_GROUP,
-                            SUSPEND_SRDF_MIRRORS_STEP_DESC, removePairFromGroupStep, system.getId(),
-                            system.getSystemType(), getClass(), suspendPairMethod, null, null);
-                    // Finally we detach the removed async pair...
-                    // don't proceed if detach fails, earlier we were allowing the delete operation
-                    // to proceed even if there is a failure on detach.
-                    Workflow.Method detachPairMethod = detachVolumePairMethod(system.getId(),
+                            source.getId(), targetURI, consExempt);
+                    Workflow.Method resumePairMethod = resumeSyncPairMethod(system.getId(),
                             source.getId(), targetURI);
+                    if (activeMode) {
+                        // suspend the Active pair
+                        waitFor = workflow.createStep(DELETE_SRDF_MIRRORS_STEP_GROUP,
+                                SUSPEND_SRDF_MIRRORS_STEP_DESC, waitFor, system.getId(),
+                                system.getSystemType(), getClass(), suspendPairMethod, resumePairMethod, null);
+                    }
+                        Workflow.Method removePairFromGroupMethod = removePairFromGroup(system.getId(),
+                                source.getId(), targetURI, true);
+                        String removePairFromGroupWorkflowDesc = String.format(REMOVE_SRDF_PAIR_STEP_DESC, target.getSrdfCopyMode());
+                        waitFor = workflow.createStep(DELETE_SRDF_MIRRORS_STEP_GROUP,
+                            removePairFromGroupWorkflowDesc, waitFor, system.getId(),
+                            system.getSystemType(), getClass(), removePairFromGroupMethod, rollbackMethodNullMethod(), null);
+                    if (!activeMode) {
+                        waitFor = workflow.createStep(DELETE_SRDF_MIRRORS_STEP_GROUP,
+                                SUSPEND_SRDF_MIRRORS_STEP_DESC, waitFor, system.getId(),
+                                system.getSystemType(), getClass(), suspendPairMethod, null, null);
+                    }
+                        // We now detach the active p...
+                        // don't proceed if detach fails, earlier we were allowing the delete operation
+                        // to proceed even if there is a failure on detach.
+                        String detachVolumePairWorkflowDesc = String.format(DETACH_SRDF_PAIR_STEP_DESC, target.getSrdfCopyMode());
+                        Workflow.Method detachPairMethod = detachVolumePairMethod(system.getId(),
+                                source.getId(), targetURI);
                     waitFor = workflow.createStep(DELETE_SRDF_MIRRORS_STEP_GROUP,
-                            detachVolumePairWorkflowDesc, suspendPairStep, system.getId(),
-                            system.getSystemType(), getClass(), detachPairMethod, null, null);
+                            detachVolumePairWorkflowDesc, waitFor, system.getId(),
+                                system.getSystemType(), getClass(), detachPairMethod, rollbackMethodNullMethod(), null);
+                    if (activeMode) {
+                        // Now resume the remaining active pairs..
+                        waitFor = workflow.createStep(RESUME_SRDF_MIRRORS_STEP_GROUP,
+                                RESUME_SRDF_MIRRORS_STEP_DESC, waitFor, system.getId(),
+                                system.getSystemType(), getClass(), resumePairMethod, rollbackMethodNullMethod(), null);
+                    }
                 }
             }
         }

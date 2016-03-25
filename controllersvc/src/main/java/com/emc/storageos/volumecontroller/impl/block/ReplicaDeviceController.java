@@ -621,7 +621,14 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
         snapshot.setVirtualArray(volume.getVirtualArray());
         snapshot.setProtocol(new StringSet());
         snapshot.getProtocol().addAll(volume.getProtocol());
-        snapshot.setProject(new NamedURI(volume.getProject().getURI(), volume.getProject().getName()));
+        NamedURI project = volume.getProject();
+        // if this volume is a backend volume for VPLEX virtual volume,
+        // get the project from VPLEX volume as backend volume have different project set with internal flag.
+        if (Volume.checkForVplexBackEndVolume(_dbClient, volume)) {
+            Volume vplexVolume = Volume.fetchVplexVolume(_dbClient, volume);
+            project = vplexVolume.getProject();
+        }
+        snapshot.setProject(new NamedURI(project.getURI(), project.getName()));
 
         String existingSnapSnapSetLabel = ControllerUtils.getSnapSetLabelFromExistingSnaps(repGroupName, volume.getStorageController(), _dbClient);
         if (null == existingSnapSnapSetLabel) {

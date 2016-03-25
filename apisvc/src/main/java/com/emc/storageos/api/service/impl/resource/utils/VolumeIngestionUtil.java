@@ -2675,8 +2675,15 @@ public class VolumeIngestionUtil {
      * @return true if the given UnManagedVolume can be deleted safely
      */
     public static boolean canDeleteUnManagedVolume(UnManagedVolume unManagedVolume) {
-        return null == unManagedVolume.getUnmanagedExportMasks()
+        boolean canDelete = null == unManagedVolume.getUnmanagedExportMasks()
                 || unManagedVolume.getUnmanagedExportMasks().isEmpty();
+
+        if (!canDelete) {
+            _logger.info("cannot delete unmanaged volume {} because these unmanaged export masks are remaining to be ingested: {}",
+                    unManagedVolume.forDisplay(), unManagedVolume.getUnmanagedExportMasks());
+        }
+
+        return canDelete;
     }
 
     /**
@@ -3338,6 +3345,8 @@ public class VolumeIngestionUtil {
             _logger.warn("INGEST VALIDATION: unmanaged protection set is null");
             return false;
         }
+
+        _logger.info("Checking if all volumes in UnManagedProtectionSet {} have been ingested yet...", umpset.forDisplay());
         // Make sure that none of the managed volumes still have a corresponding unmanaged volume. This means that there is
         // some information left to be ingested.
         if (umpset.getManagedVolumeIds() != null && !umpset.getManagedVolumeIds().isEmpty()) {
@@ -3594,6 +3603,7 @@ public class VolumeIngestionUtil {
             cg.setId(URIUtil.createId(BlockConsistencyGroup.class));
             cg.setLabel(pset.getLabel());
             cg.setProject(projectNamedUri);
+            cg.addConsistencyGroupTypes(Types.RP.name());
             // By default, the array consistency is false. However later when we iterate over volumes in the BCG and we
             // see any replicationGroupInstance information, we'll flip this bit to true. (See decorateRPVolumesCGInfo())
             cg.setArrayConsistency(false);
@@ -4055,7 +4065,9 @@ public class VolumeIngestionUtil {
      */
     public static void setupRPCG(IngestionRequestContext requestContext, UnManagedProtectionSet umpset, UnManagedVolume unManagedVolume,
             Set<DataObject> updatedObjects, DbClient dbClient) {
-        _logger.info("Ingesting all volumes associated with RP consistency group");
+
+        _logger.info("All volumes in UnManagedProtectionSet {} have been ingested, creating RecoverPoint Consistency Group now", 
+                umpset.forDisplay());
 
         ProtectionSet pset = VolumeIngestionUtil.findOrCreateProtectionSet(requestContext, unManagedVolume, umpset, dbClient);
         BlockConsistencyGroup cg = VolumeIngestionUtil.findOrCreateRPBlockConsistencyGroup(requestContext, unManagedVolume, pset, dbClient);

@@ -62,10 +62,12 @@ public class IngestExportStrategy {
                 ingestExportOrchestrator.ingestExportMasks(
                         requestContext, unManagedVolume, blockObject, unManagedMasks, masksIngestedCount);
 
+                _logger.info("{} of {} unmanaged export masks were ingested", masksIngestedCount, originalSize);
                 List<String> errorMessages = requestContext.getErrorMessagesForVolume(unManagedVolume.getNativeGuid());
 
                 // If the internal flags are set, return the block object
                 if (blockObject.checkInternalFlags(Flag.PARTIALLY_INGESTED)) {
+                    _logger.info("block object {} is partially ingested", blockObject.forDisplay());
                     // check if none of the export masks are ingested
                     if (masksIngestedCount.intValue() == 0) {
                         if (null != errorMessages && !errorMessages.isEmpty()) {
@@ -78,6 +80,9 @@ public class IngestExportStrategy {
                     } else {
                         // If the unmanaged volume is not marked for deletion, then it should be updated with the changes done.
                         requestContext.addDataObjectToUpdate(unManagedVolume, unManagedVolume);
+                        _logger.info("all export masks of unmanaged volume {} have been ingested, "
+                                + "but the volume is still marked as partially ingested, returning block object {}", 
+                                unManagedVolume.forDisplay(), blockObject.forDisplay());
                         return blockObject;
                     }
                 }
@@ -90,6 +95,8 @@ public class IngestExportStrategy {
                         boolean isRPVolume = VolumeIngestionUtil.checkUnManagedResourceIsRecoverPointEnabled(unManagedVolume);
                         // if its RP volume and non RP exported, then check whether the RP CG is fully ingested
                         if (isRPVolume && VolumeIngestionUtil.checkUnManagedResourceIsNonRPExported(unManagedVolume)) {
+                            _logger.info("unmanaged volume {} is both RecoverPoint protected and exported to another Host or Cluster",
+                                    unManagedVolume.forDisplay());
                             Set<DataObject> updateObjects = requestContext.getDataObjectsToBeUpdatedMap()
                                     .get(unManagedVolume.getNativeGuid());
                             if (updateObjects == null) {

@@ -1311,14 +1311,29 @@ angular.module("portalApp").controller("AuditLogCtrl", function($scope, $http, $
 });
 
 angular.module("portalApp").controller("ConfigBackupCtrl", function($scope) {
-    angular.element("#backup-time").ready(function () {
-        $scope.$apply(function() {
-            $scope.backup_startTime = getLocalTimeFromOffset($schedulerTimeOffset);
-        });
+    var hint = 'AM and PM';
+    var twicePerDay = '12hour';
 
+    angular.element("#backup-time").ready(function () {
+        $scope.$apply(function () {
+            $scope.backup_startTime = getLocalTimeFromOffset($schedulerTimeOffset);
+            $scope.backup_format = $backup_interval.val();
+        });
     });
-    $scope.$watch('backup_startTime', function() {
+
+    angular.element("#backup-interval").change(function () {
+        var $interval = $backup_interval.val();
+        $scope.backup_format = $interval;
+        withHint($interval);
+        $scope.$apply();
+    });
+
+    $scope.$watch('backup_startTime', function (newVal, oldVal) {
+        if (newVal === undefined || newVal.indexOf(hint) > -1) return;
         setOffsetFromLocalTime($scope.backup_startTime);
+        if (typeof $backup_interval != 'undefined') {
+            withHint($backup_interval.val());
+        }
     });
 
     function getLocalTimeFromOffset(offset) {
@@ -1330,10 +1345,25 @@ angular.module("portalApp").controller("ConfigBackupCtrl", function($scope) {
     }
 
     function setOffsetFromLocalTime(localTime) {
-        var localMoment = moment(localTime, "HH:mm");
-        var utcOffset = parseInt(moment.utc(localMoment.toDate()).format("HHmm"));
-        var $backup_time = $("#backup_scheduler_time");
-        $backup_time.val(utcOffset);
-        checkForm();
+        if ($scope.backup_startTime !== undefined &&
+            $scope.backup_startTime.indexOf(hint) === -1) {
+            var localMoment = moment(localTime, "HH:mm");
+            var utcOffset = parseInt(moment.utc(localMoment.toDate()).format("HHmm"));
+            var $backup_time = $("#backup_scheduler_time");
+            $backup_time.val(utcOffset);
+            checkForm();
+        }
+    }
+
+    function withHint($interval) {
+        if ($scope.backup_startTime !== undefined) {
+            if ($scope.backup_startTime.indexOf(hint) === -1 && $interval === twicePerDay) {
+                $scope.backup_startTime += '\t' + hint;
+            }
+            else if ($scope.backup_startTime.indexOf(hint) > -1 && $interval !== twicePerDay) {
+                $scope.backup_startTime = $scope.backup_startTime.replace(hint, '').trim();
+
+            }
+        }
     }
 });

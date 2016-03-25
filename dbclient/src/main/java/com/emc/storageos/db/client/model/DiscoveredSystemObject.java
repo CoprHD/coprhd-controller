@@ -77,7 +77,7 @@ public class DiscoveredSystemObject extends DiscoveredDataObject {
         return Type.isFileStorageSystem(_systemType);
     }
 
-    public boolean storageSystemHasProvider() {
+    public boolean isStorageSystemManagedByProvider() {
         return Type.isProviderStorageSystem(_systemType);
     }
 

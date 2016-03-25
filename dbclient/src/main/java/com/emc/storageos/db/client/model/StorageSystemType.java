@@ -24,9 +24,9 @@ public class StorageSystemType extends DataObject {
 	// Default SSL
 	private Boolean isDefaultSsl = false;
 
-	private boolean isDefaultMDM = false;
-	private boolean isOnlyMDM = false;
-	private boolean isElementMgr = false;
+	private Boolean isDefaultMDM = false;
+	private Boolean isOnlyMDM = false;
+	private Boolean isElementMgr = false;
 
 	private String sslPort;
 	private String nonSslPort;

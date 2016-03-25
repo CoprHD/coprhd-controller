@@ -124,22 +124,46 @@ public class StorageSystemTypeService extends TaskResourceService {
 		if (!checkForStorageSystemType()) {
 			StorageSystemTypeServiceUtils.InitializeStorageSystemTypes(_dbClient);
 		}
-		// unique name required
-		ArgValidator.checkFieldNotEmpty(addparam.getStorageTypeName(), "name");
+
+		ArgValidator.checkFieldNotEmpty(addparam.getStorageTypeName(), "storageTypeName");
 		checkDuplicateLabel(StorageSystemType.class, addparam.getStorageTypeName());
 
-		ArgValidator.checkFieldNotEmpty(addparam.getStorageTypeId(), "id");
-		ArgValidator.checkUrl(addparam.getStorageTypeId(), "id");
+		ArgValidator.checkFieldNotEmpty(addparam.getStorageTypeType(), "storageTypeType");
+
+		ArgValidator.checkFieldNotEmpty(addparam.getDriverClassName(), "driverClassName");
+
+		if (addparam.getIsDefaultSsl()) {
+			ArgValidator.checkFieldNotEmpty(addparam.getSslPort(), "sslPort");
+		} else {
+			ArgValidator.checkFieldNotEmpty(addparam.getNonSslPort(), "nonSslPort");
+		}
 
 		StorageSystemType ssType = new StorageSystemType();
-		ssType.setId(URIUtil.createId(StorageSystemType.class));
+		URI ssTyeUri = URIUtil.createId(StorageSystemType.class);
+		ssType.setId(ssTyeUri);
+		ssType.setStorageTypeId(ssTyeUri.toString());
 
 		ssType.setStorageTypeName(addparam.getStorageTypeName());
 		ssType.setStorageTypeType(addparam.getStorageTypeType());
-		ssType.setIsSmiProvider(addparam.getIsSmiProvider());
+		ssType.setDriverClassName(addparam.getDriverClassName());
 
-		// ALIK
-		// Need to add all other paramaetrs here
+		if (addparam.getStorageTypeDispName() != null) {
+			ssType.setStorageTypeDispName(addparam.getStorageTypeDispName());
+		}
+
+		if (addparam.getNonSslPort() != null) {
+			ssType.setNonSslPort(addparam.getNonSslPort());
+		}
+
+		if (addparam.getSslPort() != null) {
+			ssType.setSslPort(addparam.getSslPort());
+		}
+
+		ssType.setIsSmiProvider(addparam.getIsSmiProvider());
+		ssType.setIsDefaultSsl(addparam.getIsDefaultSsl());
+		ssType.setIsDefaultMDM(addparam.getIsDefaultMDM());
+		ssType.setIsOnlyMDM(addparam.getIsOnlyMDM());
+		ssType.setIsElementMgr(addparam.getIsElementMgr());
 
 		_dbClient.createObject(ssType);
 

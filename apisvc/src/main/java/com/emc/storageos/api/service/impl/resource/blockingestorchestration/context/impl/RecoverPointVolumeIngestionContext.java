@@ -10,6 +10,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 
 import org.slf4j.Logger;
@@ -64,6 +65,7 @@ public class RecoverPointVolumeIngestionContext extends BlockVolumeIngestionCont
     private ExportGroup _exportGroup;
     private List<Initiator> _deviceInitiators;
     private List<BlockObject> _objectsIngestedByExportProcessing;
+    private Map<ExportGroup, Boolean> _rpExportGroupMap;
 
     // other RecoverPoint backend tracking members, used for commit and rollback
     private Volume _managedBlockObject;
@@ -352,13 +354,15 @@ public class RecoverPointVolumeIngestionContext extends BlockVolumeIngestionCont
             }
         }
 
-        ExportGroup exportGroup = getExportGroup();
-        if (isExportGroupCreated()) {
-            _logger.info("Creating ExportGroup {} (hash {})", exportGroup.forDisplay(), exportGroup.hashCode());
-            _dbClient.createObject(exportGroup);
-        } else {
-            _logger.info("Updating ExportGroup {} (hash {})", exportGroup.forDisplay(), exportGroup.hashCode());
-            _dbClient.updateObject(exportGroup);
+        for (Entry<ExportGroup, Boolean> entry : getRpExportGroupMap().entrySet()) {
+            ExportGroup exportGroup = entry.getKey();
+            if (entry.getValue()) {
+                _logger.info("Creating ExportGroup {} (hash {})", exportGroup.forDisplay(), exportGroup.hashCode());
+                _dbClient.createObject(exportGroup);
+            } else {
+                _logger.info("Updating ExportGroup {} (hash {})", exportGroup.forDisplay(), exportGroup.hashCode());
+                _dbClient.updateObject(exportGroup);
+            }
         }
 
         super.commit();
@@ -410,8 +414,10 @@ public class RecoverPointVolumeIngestionContext extends BlockVolumeIngestionCont
 
         // the ExportGroup was created by this ingestion
         // process, make sure it gets cleaned up
-        if (_exportGroupCreated) {
-            _dbClient.markForDeletion(_exportGroup);
+        for (Entry<ExportGroup, Boolean> entry : getRpExportGroupMap().entrySet()) {
+            if (entry.getValue()) {
+                _dbClient.markForDeletion(entry.getKey());
+            }
         }
 
         super.rollback();
@@ -987,15 +993,16 @@ public class RecoverPointVolumeIngestionContext extends BlockVolumeIngestionCont
      */
     @Override
     public ExportGroup findExportGroup(String exportGroupLabel, URI project, URI varray, URI computeResource, String resourceType) {
-        if (exportGroupLabel != null) {
 
-            ExportGroup localExportGroup = getExportGroup();
-            if (null != localExportGroup && exportGroupLabel.equals(localExportGroup.getLabel())) {
-                if (VolumeIngestionUtil.verifyExportGroupMatches(localExportGroup,
-                        exportGroupLabel, project, varray, computeResource, resourceType)) {
-                    _logger.info("Found existing local ExportGroup {} in RP ingestion request context",
-                            localExportGroup.forDisplay());
-                    return localExportGroup;
+        if (exportGroupLabel != null) {
+            for (ExportGroup localExportGroup : getRpExportGroupMap().keySet()) {
+                if (null != localExportGroup && exportGroupLabel.equals(localExportGroup.getLabel())) {
+                    if (VolumeIngestionUtil.verifyExportGroupMatches(localExportGroup,
+                            exportGroupLabel, project, varray, computeResource, resourceType)) {
+                        _logger.info("Found existing local ExportGroup {} in RP ingestion request context",
+                                localExportGroup.forDisplay());
+                        return localExportGroup;
+                    }
                 }
             }
         }
@@ -1117,4 +1124,20 @@ public class RecoverPointVolumeIngestionContext extends BlockVolumeIngestionCont
         return null;
     }
 
+    /**
+     * A Map of ExportGroup to a Boolean flag indicating whether it
+     * was created new or already existed.  This would generally always
+     * have only one entry except in the notable case of a MetroPoint volume
+     * that may be ingested to more than one ExportGroup for the source and
+     * high availability sides.
+     * 
+     * @return a Map of ExportGroup to a Boolean "created" flag
+     */
+    public Map<ExportGroup, Boolean> getRpExportGroupMap() {
+        if (_rpExportGroupMap == null) {
+            _rpExportGroupMap = new HashMap<ExportGroup, Boolean>();
+        }
+        
+        return _rpExportGroupMap;
+    }
 }

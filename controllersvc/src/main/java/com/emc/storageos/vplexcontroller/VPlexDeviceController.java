@@ -11080,6 +11080,10 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
 
             // The workflow depends on if the VPLEX volume is local or distributed.
             boolean isLocal = firstVplexVolume.getAssociatedVolumes().size() == 1;
+
+            // Check for RP, there are pre/post steps that need to be executed in this case.
+            boolean isRP = firstVplexVolume.checkForRp();
+
             String waitFor = null;
             if (isLocal) {
                 for (Volume vplexVolume : vplexVolumes) {
@@ -11094,12 +11098,23 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 // but what if the invalidate cache fails, but the restore succeeds,
                 // the cache now has invalid data and a cache read hit could return
                 // invalid data.
-                createWorkflowStepForRestoreNativeSnapshotSession(workflow, snapSessionSystem,
+                waitFor = createWorkflowStepForRestoreNativeSnapshotSession(workflow, snapSessionSystem,
                         snapSessionURI, waitFor, null);
-            } else {
-                // Check for RP, there are pre/post steps that need to be executed in this case.
-                boolean isRP = firstVplexVolume.checkForRp();
 
+                // Create the pre/post RP steps if necessary.
+                if (isRP) {
+                    ProtectionSystem rpSystem = getDataObject(ProtectionSystem.class,
+                            firstVplexVolume.getProtectionController(), _dbClient);
+
+                    // Create the pre restore step which will be the first step executed
+                    // in the workflow.
+                    waitFor = createWorkflowStepForDeleteReplicationSet(workflow, rpSystem, vplexVolumes, waitFor);
+
+                    // Create the post restore step, which will be the last step executed
+                    // in the workflow after the volume shave been rebuilt.
+                    createWorkflowStepForRecreateReplicationSet(workflow, rpSystem, vplexVolumes, waitFor);
+                }
+            } else {
                 // Create the steps that need to be executed on each VPLEX volume.
                 for (Volume vplexVolume : vplexVolumes) {
                     // For distributed volumes we take snaps of and restore the

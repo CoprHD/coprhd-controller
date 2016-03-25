@@ -1960,9 +1960,9 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                             continue;
                         }
                         storageSystemBySerialNumber.put(associatedStorageSystemSerialNumber, associatedStorageSystem);
-                        if (ConnectivityUtil.isAVPlex(associatedStorageSystem)) {
-                            continue;
-                        }
+                    }
+                    if (ConnectivityUtil.isAVPlex(associatedStorageSystem)) {
+                        continue;
                     }
 
                     StorageSystemConnectivityRestRep connection = new StorageSystemConnectivityRestRep();

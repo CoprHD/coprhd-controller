@@ -1379,7 +1379,9 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
             Map<String, String> targetPortToPwwnMap = new HashMap<String, String>();
             List<VPlexPortInfo> cachedPortInfos = client.getPortInfo(true);
             for (VPlexPortInfo cachedPortInfo : cachedPortInfos) {
-                targetPortToPwwnMap.put(cachedPortInfo.getTargetPort(), cachedPortInfo.getPortWwn());
+                if (null != cachedPortInfo.getPortWwn()) {
+                    targetPortToPwwnMap.put(cachedPortInfo.getTargetPort(), cachedPortInfo.getPortWwn());
+                }
             }
 
             Set<URI> allCurrentUnManagedExportMaskUris = new HashSet<URI>();
@@ -1852,6 +1854,12 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
             Map<String, VPlexTargetInfo> portTargetMap = client.getTargetInfoForPorts(portInfoList);
             for (VPlexPortInfo portInfo : portInfoList) {
                 s_logger.debug("VPlex port info: {}", portInfo.toString());
+
+                if (null == portInfo.getPortWwn()) {
+                    s_logger.debug("Not a FC port, skipping port {}",
+                            portInfo.getName());
+                    continue;
+                }
 
                 // VPlex director port can have a variety of roles. They can
                 // be front-end ports for exposing VPlex virtual volumes to

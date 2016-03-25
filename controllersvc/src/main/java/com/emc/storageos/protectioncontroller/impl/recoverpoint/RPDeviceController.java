@@ -1725,6 +1725,12 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                 new VolumeDescriptor.Type[] { VolumeDescriptor.Type.RP_SOURCE,
                         VolumeDescriptor.Type.RP_EXISTING_SOURCE,
                         VolumeDescriptor.Type.RP_VPLEX_VIRT_SOURCE },
+            	new VolumeDescriptor.Type[] {});
+        
+        // Get only the RP source volumes from the descriptors.
+        List<VolumeDescriptor> journalVolumeDescriptors = VolumeDescriptor.filterByType(volumeDescriptors,
+                new VolumeDescriptor.Type[] { VolumeDescriptor.Type.RP_JOURNAL,
+                        VolumeDescriptor.Type.RP_VPLEX_VIRT_JOURNAL},
                 new VolumeDescriptor.Type[] {});
 
         if (sourceVolumeDescriptors == null || sourceVolumeDescriptors.isEmpty()) {
@@ -1736,8 +1742,13 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
         for (VolumeDescriptor descriptor : sourceVolumeDescriptors) {
             volumeIDs.add(descriptor.getVolumeURI());
         }
+        
+        List<URI> journalVolumeIDs = new ArrayList<URI>();
+        for(VolumeDescriptor journalDescriptor : journalVolumeDescriptors) {
+        	journalVolumeIDs.add(journalDescriptor.getVolumeURI());
+        }
 
-        return cgDeleteStep(rpSystemId, volumeIDs, token);
+        return cgDeleteStep(rpSystemId, volumeIDs, journalVolumeIDs, token);
     }
 
     /**
@@ -2033,7 +2044,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
      * @return true if successful
      * @throws ControllerException
      */
-    public boolean cgDeleteStep(URI rpSystem, List<URI> volumeIDs, String token) throws ControllerException {
+    public boolean cgDeleteStep(URI rpSystem, List<URI> volumeIDs, List<URI> journalVolumeIDs, String token) throws ControllerException {
         WorkflowStepCompleter.stepExecuting(token);
 
         _log.info("cgDeleteStep is running");
@@ -2183,6 +2194,21 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                 }
                 // Remove the Replication Sets from RP
                 rp.deleteReplicationSets(replicationSetsToRemove);
+                
+                
+                //Remove any journal volumes that were added in this operation. Otherwise CG ends up in a weird state.
+                if (journalVolumeIDs.isEmpty()) {
+                	_log.info("There are no journal volumes to be deleted");
+                } else {
+                	List<Volume> journalVolumes = _dbClient.queryObject(Volume.class, journalVolumeIDs);
+                	for(Volume journalVolume : journalVolumes) {
+                		String journalWWN = RPHelper.getRPWWn(journalVolume.getId(), _dbClient);
+                		_log.info(String.format("Removing Journal volume - %s : WWN - %s", journalVolume.getLabel(), journalWWN));
+                		volumeProtectionInfo = rp.getProtectionInfoForVolume(journalWWN);
+                		rp.deleteJournalFromCopy(volumeProtectionInfo, journalWWN);
+                		removeVolumeIDs.add(journalVolume.getId().toString());
+                	}
+                }
 
                 // Cleanup the ViPR Protection Set
                 cleanupProtectionSetVolumes(protectionSet, removeVolumeIDs, false);

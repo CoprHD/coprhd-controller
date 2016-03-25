@@ -340,18 +340,12 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
             snapshotList.add(snapshotId);
         }
 
-        Workflow.Method createMethod = new Workflow.Method(
-                BlockDeviceController.CREATE_LIST_SNAPSHOT_METHOD, storage, snapshotList, false, false);
-        waitFor = workflow.createStep(BlockDeviceController.CREATE_SNAPSHOTS_STEP_GROUP,
-                "Create list snapshot", waitFor, storage, storageSystem.getSystemType(),
-                _blockDeviceController.getClass(),
-                createMethod, _blockDeviceController.rollbackMethodNullMethod(), null);
-
+        waitFor = _blockDeviceController.createListSnapshotStep(workflow, waitFor, storageSystem, snapshotList);
         waitFor = workflow.createStep(BlockDeviceController.UPDATE_CONSISTENCY_GROUP_STEP_GROUP,
                 String.format("Updating consistency group  %s", cgURI), waitFor, storage,
                 _blockDeviceController.getDeviceType(storage), this.getClass(),
                 addToReplicationGroupMethod(storage, cgURI, repGroupName, snapshotList),
-                _blockDeviceController.rollbackMethodNullMethod(), null);
+                removeFromReplicationGroupMethod(storage, cgURI, repGroupName, snapshotList), null);
         log.info(String.format("Step created for adding snapshot [%s] to group on device [%s]",
                 Joiner.on("\t").join(snapshotList), storage));
 
@@ -600,7 +594,7 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
                 String.format("Updating consistency group  %s", cgURI), waitFor, storage,
                 _blockDeviceController.getDeviceType(storage), this.getClass(),
                 addToReplicationGroupMethod(storage, cgURI, repGroupName, cloneList),
-                _blockDeviceController.rollbackMethodNullMethod(), null);
+                removeFromReplicationGroupMethod(storage, cgURI, repGroupName, cloneList), null);
         log.info(String.format("Step created for adding clone [%s] to group on device [%s]",
                 Joiner.on("\t").join(cloneList), storage));
 
@@ -723,7 +717,7 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
                 String.format("Updating consistency group  %s", cgURI), waitFor, storage,
                 _blockDeviceController.getDeviceType(storage), this.getClass(),
                 addToReplicationGroupMethod(storage, cgURI, repGroupName, mirrorList),
-                _blockDeviceController.rollbackMethodNullMethod(), null);
+                removeFromReplicationGroupMethod(storage, cgURI, repGroupName, mirrorList), null);
         log.info(String.format("Step created for adding mirror [%s] to group on device [%s]",
                 Joiner.on("\t").join(mirrorList), storage));
 

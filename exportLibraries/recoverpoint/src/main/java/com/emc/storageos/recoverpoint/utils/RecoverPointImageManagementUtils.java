@@ -1153,10 +1153,7 @@ public class RecoverPointImageManagementUtils {
                 }
 
                 if (allLinksInDesiredState) {
-                	
-                	//TODO: Bharath - remove this intentional ERROR after testing
-                	throw RecoverPointException.exceptions.cgLinksFailedToBecomeActive(cgName);
-                   // return;
+                	return;
                 } else {
                     logger.info("All links not in desired state.  Sleep 15 seconds and retry");
                     Thread.sleep(WAIT_FOR_LINKS_SLEEP_INTERVAL);

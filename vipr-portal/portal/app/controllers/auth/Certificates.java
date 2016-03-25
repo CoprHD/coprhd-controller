@@ -107,7 +107,7 @@ public class Certificates extends Controller {
     public static void saveSettings(TruststoreSettingsChanges certificateSettings) {
         new SaveCertificateSettingsJob(api(), certificateSettings).in(3);
         flash.success(MessagesUtils.get("certificateSettings.submitted"));
-        Maintenance.maintenance(Common.reverseRoute(Certificates.class, "list"), null);
+        Maintenance.maintenance(Common.reverseRoute(Certificates.class, "list"));
     }
 
     @FlashException(value = "list")

@@ -91,7 +91,7 @@ public class Keystores extends ViprResourceController {
         }
 
         flash.success(MessagesUtils.get("keystore.saved.reboot"));
-        Maintenance.maintenance(Common.reverseRoute(Keystores.class, "updateCertificate"), null);
+        Maintenance.maintenance(Common.reverseRoute(Keystores.class, "updateCertificate"));
     }
 
     public static String viewChain(KeystoreForm keystore) {

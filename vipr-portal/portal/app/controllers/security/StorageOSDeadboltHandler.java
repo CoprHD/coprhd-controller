@@ -50,7 +50,7 @@ public class StorageOSDeadboltHandler extends Controller implements controllers.
         } catch (ViPRHttpException e) {
             // NGinx Throws a 503 if the API service is unavailable
             if (e.getHttpCode() == HttpStatus.SC_BAD_GATEWAY || e.getHttpCode() == HttpStatus.SC_SERVICE_UNAVAILABLE) {
-                Maintenance.maintenance(Common.reverseRoute(Dashboard.class, "index"), null);
+                Maintenance.maintenance(Common.reverseRoute(Dashboard.class, "index"));
             }
             else {
                 Logger.info("Error retrieving user info. Session may have expired. CODE: %s, REASON: %s", e.getHttpCode(), e.getMessage());

@@ -563,7 +563,7 @@ public class SystemHealth extends Controller {
         if(nodeHealth!=null && nodeHealth.getStatus().equals("Good")){
             new RebootNodeJob(getSysClient(), nodeId).in(3);
             flash.success(Messages.get("adminDashboard.nodeRebooting", node));
-            Maintenance.maintenance(Common.reverseRoute(SystemHealth.class, "systemHealth"), null);
+            Maintenance.maintenance(Common.reverseRoute(SystemHealth.class, "systemHealth"));
         }else{
             flash.error(Messages.get("systemHealth.message.reboot.unavailable", node));
             systemHealth();
@@ -594,7 +594,7 @@ public class SystemHealth extends Controller {
             Logger.warn("Could not determine node name.");
         }
         flash.success(Messages.get("adminDashboard.serviceRestarting", serviceName, node));
-        Maintenance.maintenance(Common.reverseRoute(SystemHealth.class, "services","nodeId", nodeId), null);
+        Maintenance.maintenance(Common.reverseRoute(SystemHealth.class, "services","nodeId", nodeId));
     }
 
     public static void downloadConfigParameters() throws UnsupportedEncodingException {

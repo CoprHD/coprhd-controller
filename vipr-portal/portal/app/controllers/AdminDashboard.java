@@ -144,7 +144,7 @@ public class AdminDashboard extends Controller {
     public static void nodeReboot(@Required String nodeId) {
         new RebootNodeJob(getSysClient(), nodeId).in(3);
         flash.success(Messages.get("adminDashboard.nodeRebooting", nodeId));
-        Maintenance.maintenance(Common.reverseRoute(AdminDashboard.class, "dashboard"), null);
+        Maintenance.maintenance(Common.reverseRoute(AdminDashboard.class, "dashboard"));
     }
 
     @Restrictions({ @Restrict("SYSTEM_ADMIN"), @Restrict("SECURITY_ADMIN"), @Restrict("RESTRICTED_SECURITY_ADMIN") })
@@ -152,7 +152,7 @@ public class AdminDashboard extends Controller {
         new PoweroffJob(getSysClient()).in(3);
         flash.success(MessagesUtils.get("adminDashboard.clusterPoweroff.description"));
         flash("isShuttingDown", true);
-        Maintenance.maintenance(Common.reverseRoute(AdminDashboard.class, "dashboard"), null);
+        Maintenance.maintenance(Common.reverseRoute(AdminDashboard.class, "dashboard"));
     }
 
     /**

@@ -86,8 +86,9 @@ $(document).ready(function() {
   // Render the cluster state at time of the page load
   render.clusterStatus('#clusterState', "${clusterInfo?.currentState}");
   $.ajaxSetup({timeout:10000}); // ensures checkClusterState keeps looping if ajax call doesn't return
-  // Use a shorter delay when checking initial cluster state
-  window.setTimeout(checkClusterState, ${timeout});
+  // Use a shorter delay when checking initial cluster state, 6s by default
+  var initTimeout = #{if flash.initialTimeout}${flash.initialTimeout}#{/if} #{else }6000#{/else};
+  window.setTimeout(checkClusterState, initTimeout);
 });
 
 </script>

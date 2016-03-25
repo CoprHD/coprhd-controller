@@ -45,6 +45,7 @@ import com.emc.sa.util.ResourceType;
 import com.emc.sa.util.StringComparator;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup.Types;
+import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.Volume.ReplicationState;
 import com.emc.storageos.db.client.model.VolumeGroup;
 import com.emc.storageos.model.BulkIdParam;
@@ -1715,7 +1716,12 @@ public class BlockProvider extends BaseAssetOptionsProvider {
                 boolean localSnapSupported = isLocalSnapshotSupported(detail.vpool);
                 boolean isRPTargetVolume = isRPTargetVolume(detail.volume);
                 boolean isRPSourceVolume = isRPSourceVolume(detail.volume);
-                boolean isInConsistencyGroup = StringUtils.isEmpty(detail.volume.getReplicationGroupInstance());
+                boolean isInConsistencyGroup = BlockProvider.isInConsistencyGroup(detail.volume);
+                if (detail.volume.getSystemType().equalsIgnoreCase(DiscoveredDataObject.Type.vmax.name()) || 
+                        detail.volume.getSystemType().equalsIgnoreCase(DiscoveredDataObject.Type.vmax3.name()) ||
+                        detail.volume.getSystemType().equalsIgnoreCase(DiscoveredDataObject.Type.xtremio.name())) {
+                    isInConsistencyGroup = !StringUtils.isEmpty(detail.volume.getReplicationGroupInstance());
+                }
                 boolean isSnapshotSessionSupported = isSnapshotSessionSupportedForVolume(detail.volume);
 
                 debug("filter[ localSnapSupported=%s, isRPTargetVolume=%s, isRPSourceVolume=%s, isInConsistencyGroup=%s, isXio3XVolume=%s ]",
@@ -1753,11 +1759,16 @@ public class BlockProvider extends BaseAssetOptionsProvider {
             List<VolumeRestRep> volumes = client.blockVolumes().findByProject(project, new DefaultResourceFilter<VolumeRestRep>() {
                 @Override
                 public boolean accept(VolumeRestRep volume) {
-                    if (!(client.blockSnapshots().getByVolume(volume.getId())).isEmpty()
-                            && StringUtils.isEmpty(volume.getReplicationGroupInstance())) {
-                        return true;
-                    } else {
+                    if (client.blockSnapshots().getByVolume(volume.getId()).isEmpty()) {
                         return false;
+                    } else {
+                        if (volume.getSystemType().equalsIgnoreCase(DiscoveredDataObject.Type.vmax.name()) || 
+                                volume.getSystemType().equalsIgnoreCase(DiscoveredDataObject.Type.vmax3.name()) ||
+                                volume.getSystemType().equalsIgnoreCase(DiscoveredDataObject.Type.xtremio.name())) {
+                            return StringUtils.isEmpty(volume.getReplicationGroupInstance());
+                        } else {
+                            return !isInConsistencyGroup(volume);
+                        }
                     }
                 }
             });
@@ -1897,11 +1908,16 @@ public class BlockProvider extends BaseAssetOptionsProvider {
             List<VolumeRestRep> volumes = client.blockVolumes().findByProject(project, new DefaultResourceFilter<VolumeRestRep>() {
                 @Override
                 public boolean accept(VolumeRestRep volume) {
-                    if (!client.blockVolumes().getFullCopies(volume.getId()).isEmpty()
-                            && StringUtils.isEmpty(volume.getReplicationGroupInstance())) {
-                        return true;
-                    } else {
+                    if (client.blockVolumes().getFullCopies(volume.getId()).isEmpty()) {
                         return false;
+                    } else {
+                        if (volume.getSystemType().equalsIgnoreCase(DiscoveredDataObject.Type.vmax.name()) || 
+                                volume.getSystemType().equalsIgnoreCase(DiscoveredDataObject.Type.vmax3.name()) ||
+                                volume.getSystemType().equalsIgnoreCase(DiscoveredDataObject.Type.xtremio.name())) {
+                            return StringUtils.isEmpty(volume.getReplicationGroupInstance());
+                        } else {
+                            return !isInConsistencyGroup(volume);
+                        }
                     }
                 }
             });

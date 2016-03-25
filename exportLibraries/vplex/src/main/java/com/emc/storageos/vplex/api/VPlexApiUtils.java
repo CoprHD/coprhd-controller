@@ -365,5 +365,30 @@ public class VPlexApiUtils {
 
         return !volumeInfo.getITLs().isEmpty();
     }
-    
+
+    /**
+     * Filters a List of VPlexResourceInfo based on String that 
+     * matches the VPlexResourceInfo.getType value.
+     * 
+     * @param resources the VPlexResourceInfos to filter
+     * @param typeToKeep the value to compare with VPlexResourceInfo.getType
+     * 
+     * @return a filtered List of VPlexResourceInfo
+     */
+    public static List<? extends VPlexResourceInfo> filterByType(List<? extends VPlexResourceInfo> resources, String typeToKeep) {
+
+        if (typeToKeep != null && resources != null && !resources.isEmpty()) {
+            Iterator<? extends VPlexResourceInfo> resourceItr = resources.iterator();
+            while (resourceItr.hasNext()) {
+                VPlexResourceInfo resource = resourceItr.next();
+                if (!typeToKeep.equals(resource.getType())) {
+                    s_logger.info("type {} of resource {} does not match type {}, removing from collection", 
+                            resource.getType(), resource.getName(), typeToKeep);
+                    resourceItr.remove();
+                }
+            }
+        }
+
+        return resources;
+    }
 }

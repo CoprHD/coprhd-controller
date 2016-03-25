@@ -449,7 +449,7 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
         Volume cloneObject = null;
         try {
             cloneObject = dbClient.queryObject(Volume.class, clone);
-            BlockObject sourceVolume = BlockObject.fetch(dbClient, volume);
+            Volume sourceVolume = dbClient.queryObject(Volume.class, volume);
 
             List<VolumeClone> driverClones = new ArrayList<>();
             // Prepare driver clone
@@ -471,6 +471,9 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
                 cloneObject.setDeviceLabel(driverCloneResult.getDeviceLabel());
                 cloneObject.setNativeGuid(NativeGUIDGenerator.generateNativeGuid(dbClient, cloneObject));
                 cloneObject.setReplicaState(driverCloneResult.getReplicationState().name());
+                cloneObject.setCapacity(sourceVolume.getCapacity());
+                cloneObject.setProvisionedCapacity(sourceVolume.getProvisionedCapacity());
+                cloneObject.setAllocatedCapacity(sourceVolume.getAllocatedCapacity());
                 cloneObject.setInactive(false);
                 dbClient.updateObject(cloneObject);
 

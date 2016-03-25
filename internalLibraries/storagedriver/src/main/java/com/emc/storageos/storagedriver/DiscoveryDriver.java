@@ -27,12 +27,7 @@ import com.emc.storageos.storagedriver.model.StorageVolume;
  * When method is not supported, return DriverTask in FAILED state with message indicating that operation is not supported.
  *
  */
-public interface DiscoveryDriver extends StorageDriver{
-
-    /**
-     *  Get driver registration data.
-     */
-    public RegistrationData getRegistrationData();
+public interface DiscoveryDriver extends StorageDriver {
 
     /**
      * Discover storage systems and their capabilities

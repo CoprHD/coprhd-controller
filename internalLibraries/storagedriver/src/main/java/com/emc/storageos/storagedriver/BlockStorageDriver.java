@@ -19,6 +19,7 @@ import com.emc.storageos.storagedriver.model.VolumeSnapshot;
 import com.emc.storageos.storagedriver.storagecapabilities.CapabilityInstance;
 import com.emc.storageos.storagedriver.storagecapabilities.StorageCapabilities;
 import org.apache.commons.lang.mutable.MutableBoolean;
+import org.apache.commons.lang.mutable.MutableInt;
 
 /**
  * BlockStorageDriver interface.
@@ -184,13 +185,16 @@ public interface BlockStorageDriver extends StorageDriver {
 
     // Block Export operations
     /**
-     * Get export masks for a given set of initiators.
+     * Get export mappings defined in the specified storage system for a given set of initiators.
+     * If "initiators" parameter is null, all storage system export mappings should be returned.
      *
      * @param storageSystem Storage system to get ITLs from. Type: Input.
-     * @param initiators Type: Input.
-     * @return list of export masks
+     * @param initiators Type: Input. When null value is passed, all storage system export mappings should be returned.
+     * @param token used for paging. Input 0 indicates that the first page should be returned. Output 0 indicates
+     *              that last page was returned. Type: Input/Output.
+     * @return list of export mappings
      */
-    public List<ITL> getITL(StorageSystem storageSystem, List<Initiator> initiators);
+    public List<ITL> getITL(StorageSystem storageSystem, List<Initiator> initiators, MutableInt token);
 
     /**
      * Export volumes to initiators through a given set of ports. If ports are not provided,

@@ -49,8 +49,9 @@ public class StorageDriverSimulator extends AbstractStorageDriver implements Blo
     //StorageDriver implementation
 
     @Override
-    public List<String> getSystemTypes() {
-        return null;
+    public RegistrationData getRegistrationData() {
+        RegistrationData registrationData = new RegistrationData("driverSimulator", "driversystem", null);
+        return registrationData;
     }
 
     @Override
@@ -68,11 +69,6 @@ public class StorageDriverSimulator extends AbstractStorageDriver implements Blo
         return (T) obj;
     }
     // DiscoveryDriver implementation
-
-    @Override
-    public RegistrationData getRegistrationData() {
-        return null;
-    }
 
     @Override
     public DriverTask discoverStorageSystem(List<StorageSystem> storageSystems) {
@@ -421,7 +417,7 @@ public class StorageDriverSimulator extends AbstractStorageDriver implements Blo
     }
 
     @Override
-    public List<ITL> getITL(StorageSystem storageSystem, List<Initiator> initiators) {
+    public List<ITL> getITL(StorageSystem storageSystem, List<Initiator> initiators, MutableInt token) {
         return null;
     }
 
@@ -545,7 +541,18 @@ public class StorageDriverSimulator extends AbstractStorageDriver implements Blo
 
     @Override
     public DriverTask getStorageVolumes(StorageSystem storageSystem, List<StorageVolume> storageVolumes, MutableInt token) {
-        return null;
+        String taskType = "create-storage-volumes";
+
+        String taskId = String.format("%s+%s+%s", DRIVER_NAME, taskType, UUID.randomUUID().toString());
+        DriverTask task = new DriverSimulatorTask(taskId);
+        task.setStatus(DriverTask.TaskStatus.READY);
+        task.setMessage("Get storage volumes: page " + token);
+
+        _log.info("StorageDriver: get storage volumes information for storage system {}, token  {} - end",
+                storageSystem.getNativeId(), token);
+        // set next value
+        token.setValue(0); // tbd
+        return task;
     }
 
     @Override

@@ -118,10 +118,20 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
             volumeContext = (VplexVolumeIngestionContext) requestContext.getVolumeContext();
         }
 
+        // set the name of the cluster to which this virtual volume ingestion request's varray is connected
         String clusterName = getClusterNameForVarray(requestContext.getVarray(unManagedVolume), requestContext.getStorageSystem());
         volumeContext.setVirtualVolumeVplexClusterName(clusterName);
 
-        if (ingestBackend) {
+        // determine if the backend has already been ingested. this could be the case if the volume is
+        // exported via multipe varrays or hosts and needs to be ingested for export multiple times
+        String volumeNativeGuid = unManagedVolume.getNativeGuid().replace(VolumeIngestionUtil.UNMANAGEDVOLUME, VolumeIngestionUtil.VOLUME);
+        Volume volume = VolumeIngestionUtil.checkIfVolumeExistsInDB(volumeNativeGuid, _dbClient);
+        boolean backendAlreadyIngested = volume != null 
+                && volume.getAssociatedVolumes() != null && !volume.getAssociatedVolumes().isEmpty();
+
+        if (backendAlreadyIngested) {
+            _logger.info("backend volumes have already been ingested for UnManagedVolume {}", unManagedVolume.forDisplay());
+        } else if (ingestBackend) {
 
             volumeContext.setIngestionInProgress(true);
 

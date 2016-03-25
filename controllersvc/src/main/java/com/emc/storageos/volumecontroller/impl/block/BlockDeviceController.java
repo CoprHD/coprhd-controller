@@ -5232,12 +5232,12 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
     }
 
     /**
-     * Add Steps to create list mirror.
+     * Add Steps to create list snapshot.
      *
      * @param workflow The Workflow being built
      * @param storageSystem Storage system
      * @param waitFor Previous step to waitFor
-     * @param mirrorList List of URIs for mirrors to be created
+     * @param snapshotList List of URIs for snapshots to be created
      * @return last step added to waitFor
      */
     public String createListSnapshotStep(Workflow workflow, String waitFor, StorageSystem storageSystem, List<URI> snapshotList)

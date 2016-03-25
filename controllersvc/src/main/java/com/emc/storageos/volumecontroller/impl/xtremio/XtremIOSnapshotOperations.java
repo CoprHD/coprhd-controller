@@ -346,7 +346,6 @@ public class XtremIOSnapshotOperations extends XtremIOOperations implements Snap
             if (XtremIOProvUtils.isXtremIOVersion402OrGreater(storage.getFirmwareVersion())) {
                 client.refreshSnapshotFromCG(clusterName, cgName, snapshotObj.getReplicationGroupInstance(), true);
             } else {
-
                 client.refreshSnapshotFromCG(clusterName, cgName, snapshotObj.getReplicationGroupInstance(), false);
             }
 

@@ -466,7 +466,7 @@ public class XtremIOProvUtils {
     /**
      * Check if the version is greater than or equal to 4.0.2
      *
-     * @param model
+     * @param version XIO storage system firmware version
      * @return true if the version is 4.0.2 or greater
      */
     public static boolean isXtremIOVersion402OrGreater(String version) {

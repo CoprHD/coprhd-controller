@@ -139,26 +139,20 @@ public class RackHdUtils {
     }
 
     public static String checkForWorkflowFailed(String workflowResponse) {
-        String errMsg = null;
-        
+        StringBuffer errMsg = new StringBuffer();
         if(isWorkflowFailed(workflowResponse)) { 
-            errMsg = "Workflow failed.  Status is '" +
-                    getWorkflowObjFromJson(workflowResponse).get_status() +
-                    "'.  Message from RackHD was: '" + 
-                    getFinishedTasksResults(workflowResponse) + "'.";
-            
-            if( getFinishedTasksResults(workflowResponse).isEmpty() ) { 
-                JsonParser parser = new JsonParser();
-                JsonObject json = parser.parse(workflowResponse).getAsJsonObject();
-                Gson gson = new GsonBuilder().setPrettyPrinting().create();
-                String prettyJson = gson.toJson(json);
-                errMsg = errMsg + "  Workflow details: " + prettyJson;
+            Workflow workflowObj = getWorkflowObjFromJson(workflowResponse);
+            errMsg.append("Workflow failed.  Status is '" +
+                    workflowObj.get_status() +
+                    "'.  Message from RackHD was: ");
+            for(String ansibleResult : workflowObj.getContext().getAnsibleResultFile()) {
+                errMsg.append(ansibleResult + "  ");
             }
-        }
-        return errMsg;
+        }   
+        return errMsg.toString();
     }
     
-    private static Map<String,String> getFinishedTasksResults(String workflowResponse) {
+/**    private static Map<String,String> getFinishedTasksResults(String workflowResponse) {
         Map<String,String> results = new HashMap<>();
         for(FinishedTask t : 
             getWorkflowObjFromJson(workflowResponse).getFinishedTasks()) {
@@ -171,7 +165,7 @@ public class RackHdUtils {
         }
         return results;
     }
-
+**/
     public static boolean isWorkflowComplete(String workflowResponse) {
         Workflow rackHdWorkflow = 
                 getWorkflowObjFromJson(workflowResponse);       
@@ -181,62 +175,47 @@ public class RackHdUtils {
 
     public static String getWorkflowId(String workflowResponse) {
         Workflow rackHdWorkflow = getWorkflowObjFromJson(workflowResponse);  
-        return rackHdWorkflow.getId();
+        return rackHdWorkflow.getInstanceId();
     }
 
     public static List<String> updateAffectedResources(String workflowResponse) {
         return updateAffectedResources(workflowResponse,null);
     }
-    
+
     public static List<String> updateAffectedResources(String workflowResponse,
             List<String> finishedTaskIds) {
-        Workflow wf = 
-               RackHdUtils.getWorkflowObjFromJson(workflowResponse);  
-       for(FinishedTask task : wf.getFinishedTasks()) {
-           
-           if(finishedTaskIds.contains(task.getInstanceId())) {
-               continue;  // skip if already added resources for this task
-           }
-           finishedTaskIds.add(task.getInstanceId());
-           
-           String resultJson = 
-                   task.getContext().getAnsibleResultFile();
-           
-           ExecutionUtils.currentContext().logInfo("RackHD Workflow " +
-                   "Task '" + task.getFriendlyName() + "' (" + 
-                   task.getInstanceId() + ") has completed.  " +
-                   "Result: " + ( resultJson == null ? "(none)" : resultJson));
-
-           if( resultJson == null ) {
-               break; // skip if no results
-           }
-           
-           try {
-               AffectedResource[] affectedResources = 
-                       gson.fromJson(resultJson,AffectedResource[].class);
-               for(AffectedResource rsrc:affectedResources ) {
-                   StringSet currentResources = ExecutionUtils.
-                           currentContext().getExecutionState().
-                           getAffectedResources();
-                   if(!currentResources.contains(rsrc.getValue())) {  
-                       ExecutionUtils.currentContext().logInfo("Adding " +
-                               " completed resource '" + rsrc.getKey() + "'");
-                       currentResources.add(rsrc.getValue());
-                   }
-               }
-           } catch(JsonSyntaxException e) {
-               // ignore syntax exceptions, if not valid JSON
-               // there may normally be unexpected results in the response
-               ExecutionUtils.currentContext().logInfo("RackHD Workflow " +
-                       "result was not valid JSON" + resultJson);
-           }
-       }
-       return finishedTaskIds;
-   }
+        Workflow wf = RackHdUtils.getWorkflowObjFromJson(workflowResponse);  
+        String[] resultJsons =  wf.getContext().getAnsibleResultFile();
+        for(String resultJson : resultJsons) {
+            if( resultJson == null ) {
+                break; // skip if no results
+            }
+            try {
+                AffectedResource[] affectedResources = 
+                        gson.fromJson(resultJson,AffectedResource[].class);
+                for(AffectedResource rsrc:affectedResources ) {
+                    StringSet currentResources = ExecutionUtils.
+                            currentContext().getExecutionState().
+                            getAffectedResources();
+                    if(!currentResources.contains(rsrc.getValue())) {  
+                        ExecutionUtils.currentContext().logInfo("Adding " +
+                                " completed resource '" + rsrc.getKey() + "'");
+                        currentResources.add(rsrc.getValue());
+                    }
+                }
+            } catch(JsonSyntaxException e) {
+                // ignore syntax exceptions, if not valid JSON
+                // there may normally be unexpected results in the response
+                ExecutionUtils.currentContext().logInfo("RackHD Workflow " +
+                        "result was not valid JSON" + resultJson);
+            }
+        }
+        return finishedTaskIds;
+    }
 
     public static List<Task> getTasksInWorkflowDefinition(String workflowJson) {
-        WorkflowDefinition[] wf = gson.fromJson(workflowJson,WorkflowDefinition[].class);
+        WorkflowDefinition wf = gson.fromJson(workflowJson,WorkflowDefinition.class);
         // should return array of one workflow
-        return Arrays.asList(wf[0].getTasks());
+        return Arrays.asList(wf.getTasks());
     }
 }

@@ -93,7 +93,7 @@ public class RackHdService extends ViPRService {
         String workflowResponse =
                 ViPRExecutionUtils.execute(new RackHdTask(params,workflowName,playbookNameList));
         String errMsg = RackHdUtils.checkForWorkflowFailed(workflowResponse); 
-        if(errMsg != null) {
+        if(StringUtils.isNotBlank(errMsg)) {
             ExecutionUtils.currentContext().logError("RackHD Workflow " +
                     "completed, but failed.");
             throw new IllegalStateException(errMsg);

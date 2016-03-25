@@ -24,6 +24,8 @@ import com.emc.sa.service.vipr.rackhd.gson.FinishedTask;
 import com.emc.sa.service.vipr.rackhd.gson.Node;
 import com.emc.sa.service.vipr.rackhd.gson.Workflow;
 import com.emc.sa.service.vipr.rackhd.gson.WorkflowDefinition;
+import com.emc.sa.service.vipr.rackhd.gson.WorkflowTask;
+import com.emc.sa.service.vipr.rackhd.gson.WorkflowTasks;
 import com.emc.storageos.rackhd.api.restapi.RackHdRestClient;
 import com.emc.storageos.rackhd.api.restapi.RackHdRestClientFactory;
 import com.emc.vipr.model.catalog.AssetOption;
@@ -50,13 +52,13 @@ public class RackHdProvider extends BaseAssetOptionsProvider {
     private static final String RACKHDSERVERPORT = "8080";
 
     // constants
-    private static final String RACKHD_API_NODES = "/api/1.1/nodes"; //include leading slash
+//    private static final String RACKHD_API_NODES = "/api/1.1/nodes"; //include leading slash
     private static final String RACKHD_API_WORKFLOWS = "/api/1.1/workflows";
     private static final int RACKHD_WORKFLOW_CHECK_INTERVAL = 1; // secs
     private static final int RACKHD_WORKFLOW_CHECK_TIMEOUT = 30; // secs
     private static final String WORKFLOW_SUCCESS_STATE =  "succeeded";
     private static final String WORKFLOW_TIMEOUT_RESPONSE = "[{\"key\":\"TIMEOUT_ERROR\",\"value\":\"TIMEOUT_ERROR\"}]";
-    private static final String RACKHD_API_WORKFLOW_LIBRARY = "/api/1.1/workflows/library";
+    private static final String RACKHD_API_WORKFLOW_LIBRARY = "/api/1.1/workflows/library/*";
 
     // JSON converter
     private static Gson gson = new Gson();
@@ -116,12 +118,13 @@ public class RackHdProvider extends BaseAssetOptionsProvider {
         // Provider needs the ID of a node in RackHD to run a WF, but it does 
         //  not matter which node we run the WF against, since the WF  
         //  will run locally on the RackHD server.
-        String nodeListResponse = makeRestCall(RACKHD_API_NODES);
-        String nodeId = getAnyNode(nodeListResponse);
+// REMOVED IN LIEU OF NODE-AGNOSTIC CALL!!
+        //String nodeListResponse = makeRestCall(RACKHD_API_NODES);
+        //String nodeId = getAnyNode(nodeListResponse);
 
         // Start the workflow to get options
-        String workflowResponse = makeRestCall(RACKHD_API_NODES + "/" 
-                + nodeId + "/workflows",makePostBody(thisAssetType));
+        String workflowResponse = makeRestCall(RACKHD_API_WORKFLOWS,
+                makePostBody(thisAssetType));
 
         // Get results (wait for RackHD workflow to complete)
         int intervals = 0;
@@ -156,18 +159,15 @@ public class RackHdProvider extends BaseAssetOptionsProvider {
     }
 
     private List<String> getRackHdResults(String workflowResponse) {
-        FinishedTask[] finishedTasks = 
-                getWorkflowObjFromJson(workflowResponse).getFinishedTasks();
-        List<String> ansibleResults = new ArrayList<>();
-        for(FinishedTask finishedTask : finishedTasks) {
-            ansibleResults.add(finishedTask.getContext().getAnsibleResultFile());
-        }
-        return ansibleResults;
+        Workflow workflow = getWorkflowObjFromJson(workflowResponse);
+        String[] ansibleResultArray = 
+                workflow.getContext().getAnsibleResultFile();
+        return Arrays.asList(ansibleResultArray);
     }
 
     private String getWorkflowTaskId(String workflowResponse) {
         Workflow rackHdWorkflow = getWorkflowObjFromJson(workflowResponse);  
-        return rackHdWorkflow.getId();
+        return rackHdWorkflow.getInstanceId();
     }
 
     private boolean isWorkflowSuccess(String workflowResponse) {

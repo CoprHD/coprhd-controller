@@ -216,7 +216,6 @@ public class VPlexApiConstants {
     public static final String REGISTERED_INITIATOR_PREFIX = "REGISTERED_";
     public static final String UNREGISTERED_INITIATOR_PREFIX = "UNREGISTERED-";
     public static final String WWN_PREFIX = "0x";
-    public static final String PORT_TYPE_FC = "fc-port";
 
     // The delimiter used to separate the port and node WWNs when
     // registering an initiator port.

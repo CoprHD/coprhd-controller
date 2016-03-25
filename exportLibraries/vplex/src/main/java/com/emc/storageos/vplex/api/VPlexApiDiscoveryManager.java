@@ -232,8 +232,6 @@ public class VPlexApiDiscoveryManager {
             }
         }
 
-        VPlexApiUtils.filterByType(portInfoList, VPlexApiConstants.PORT_TYPE_FC);
-
         return portInfoList;
     }
 
@@ -267,10 +265,8 @@ public class VPlexApiDiscoveryManager {
 
         if (status == VPlexApiConstants.SUCCESS_STATUS) {
             try {
-                List<VPlexPortInfo> ports = VPlexApiUtils.getResourcesFromResponseContext(uriBuilder.toString(),
+                return VPlexApiUtils.getResourcesFromResponseContext(uriBuilder.toString(),
                         responseStr, VPlexPortInfo.class);
-                VPlexApiUtils.filterByType(ports, VPlexApiConstants.PORT_TYPE_FC);
-                return ports;
             } catch (Exception e) {
                 throw VPlexApiException.exceptions.errorProcessingPortInformation(e.getLocalizedMessage());
             }

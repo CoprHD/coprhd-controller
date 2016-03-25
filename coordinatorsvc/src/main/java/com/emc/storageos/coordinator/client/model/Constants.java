@@ -43,6 +43,7 @@ public interface Constants {
     public static final String VDC_CONFIG_VERSION = "vdc_config_version";
     public static final String IPSEC_KEY = "ipsec_key";
     public static final String IPSEC_STATUS = "ipsec_status";
+    public static final String NODE_IP = "node_ip";
     public static final String IPSEC_CHECK_CONNECTION = "check-connection";
     public static final String IPSEC_GET_ALL_REMOTE_NODES = "get-remote-nodes";
     public static final String IPSEC_GET_PROPS = "get-props";

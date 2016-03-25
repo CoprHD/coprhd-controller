@@ -379,6 +379,8 @@ _genconfig_system_init() {
     if [ ! -d "/data/backup" ]; then
        _genconfig_mkdir 755 storageos:storageos /data/backup
     fi
+    # correct permission of bkutils.log for log service use
+    _genconfig_create 644 root:root '/var/log/bkutils.log'
 
     # create audit dir so auditd can run
     if [ ! -d "/var/log/audit" ]; then

@@ -180,6 +180,8 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
             if (validateAllVolumesInCGIngested(parentRequestContext, volumeContext, unManagedVolume)) {
                 _logger.info("Successfully ingested all volumes associated with RP consistency group");
 
+                VolumeIngestionUtil.validateRPVolumesAlignWithIngestVpool(parentRequestContext, umpset, _dbClient);
+                
                 createProtectionSet(volumeContext);
                 BlockConsistencyGroup bcg = createBlockConsistencyGroup(volumeContext);
                 volumeContext.getCGObjectsToCreateMap().put(bcg.getId().toString(), bcg);

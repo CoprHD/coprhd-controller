@@ -1312,7 +1312,7 @@ angular.module("portalApp").controller("AuditLogCtrl", function($scope, $http, $
 
 angular.module("portalApp").controller("ConfigBackupCtrl", function($scope) {
     var hint = 'AM and PM';
-    var twicePerDay = '12hour'; // this value comes from back-end
+    var twicePerDay = '12hour';
 
     angular.element("#backup-time").ready(function () {
         $scope.$apply(function () {
@@ -1329,7 +1329,7 @@ angular.module("portalApp").controller("ConfigBackupCtrl", function($scope) {
     });
 
     $scope.$watch('backup_startTime', function (newVal, oldVal) {
-        //console.info("%s, old: %s", newVal, oldVal);
+        if (newVal === undefined || newVal.indexOf(hint) > -1) return;
         setOffsetFromLocalTime($scope.backup_startTime);
         if (typeof $backup_interval != 'undefined') {
             withHint($backup_interval.val());
@@ -1351,13 +1351,11 @@ angular.module("portalApp").controller("ConfigBackupCtrl", function($scope) {
             var utcOffset = parseInt(moment.utc(localMoment.toDate()).format("HHmm"));
             var $backup_time = $("#backup_scheduler_time");
             $backup_time.val(utcOffset);
-            console.info("offset %s %s", localTime, $backup_time.val());
             checkForm();
         }
     }
 
     function withHint($interval) {
-        console.info("in1 %s", $scope.backup_startTime);
         if ($scope.backup_startTime !== undefined) {
             if ($scope.backup_startTime.indexOf(hint) === -1 && $interval === twicePerDay) {
                 $scope.backup_startTime += '\t' + hint;
@@ -1366,7 +1364,6 @@ angular.module("portalApp").controller("ConfigBackupCtrl", function($scope) {
                 $scope.backup_startTime = $scope.backup_startTime.replace(hint, '').trim();
 
             }
-            console.info("in %s", $scope.backup_startTime);
         }
     }
 });

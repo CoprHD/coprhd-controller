@@ -657,6 +657,7 @@ angular.module('fields', ['vipr']).directive({  //NOSONAR ("Suppressing Sonar vi
                     if (time) {
                         var index = time.indexOf(":");
                         var value = time.substring(index + 1);
+                        value = parseInt(value);
                         return !isNaN(value) ? Number(value) : 0;
                     }
                     return 0;

@@ -473,7 +473,8 @@ public class ReplicationUtils {
     public static void deleteTargetDeviceGroup(final StorageSystem storage, final CIMObjectPath targetGroupPath,
             final DbClient dbClient, final SmisCommandHelper helper, final CIMObjectPathFactory cimPath) {
 
-        _log.info(format("Removing target device group {0} from storage system {1}", targetGroupPath, storage.getId()));
+        _log.info(format("Removing target device group {0} from storage system {1}",
+                targetGroupPath.toString(), storage.getId()));
 
         try {
             CIMObjectPath replicationSvc = cimPath.getControllerReplicationSvcPath(storage);
@@ -629,7 +630,8 @@ public class ReplicationUtils {
     public static void deleteTargetDevices(final StorageSystem storageSystem, final String[] deviceIds, final TaskCompleter taskCompleter,
             final DbClient dbClient, final SmisCommandHelper helper, final CIMObjectPathFactory cimPath) {
 
-        _log.info(format("Removing target devices {0} from storage system {1}", deviceIds, storageSystem.getId()));
+        _log.info(format("Removing target devices {0} from storage system {1}",
+                Joiner.on(',').join(deviceIds), storageSystem.getId()));
 
         try {
             if (storageSystem.checkIfVmax3()) {

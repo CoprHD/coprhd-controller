@@ -45,14 +45,17 @@ public class ApplicationSnapshotDataTable extends DataTable {
 			if (blockSnapshot.getVirtualArray() != null) {
                 varray = virtualArrays.get(blockSnapshot.getVirtualArray().getId());
             }
-			subGroup = blockSnapshot.getReplicationGroupInstance();
+
 			if(blockSnapshot.getParent()!=null) {
 				sourceVolume = BourneUtil.getViprClient().blockVolumes().get(blockSnapshot.getParent().getId());
 			}
 			if(sourceVolume!=null) {
+				subGroup = sourceVolume.getReplicationGroupInstance();
 				if(sourceVolume.getVirtualPool()!=null) {
 					vpool = virtualPools.get(sourceVolume.getVirtualPool().getId());
 				}
+			}  else {
+				subGroup = blockSnapshot.getReplicationGroupInstance();
 			}
 		}
 		

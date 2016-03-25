@@ -20,8 +20,8 @@ import com.google.common.collect.Lists;
 
 import models.datatable.ApplicationSnapSessionDataTable;
 import models.datatable.ApplicationSnapSessionDataTable.ApplicationSnapshotSession;
-import models.datatable.ApplicationSnapSetDataTable;
-import models.datatable.ApplicationSnapSetDataTable.ApplicationSnapSets;
+import models.datatable.ApplicationSnapSessionSetDataTable;
+import models.datatable.ApplicationSnapSessionSetDataTable.ApplicationSnapSessionSets;
 import models.datatable.ApplicationSnapshotDataTable;
 import models.datatable.ApplicationSnapshotSetDataTable;
 import models.datatable.ApplicationSnapshotSetDataTable.ApplicationSnapshotSets;
@@ -60,7 +60,7 @@ public class BlockApplications extends ResourceController {
         renderArgs.put("dataTable", new VolumeApplicationDataTable());
         renderArgs.put("cloneDataTable", new ApplicationFullCopySetsDataTable());
         renderArgs.put("snapshotDataTable", new ApplicationSnapshotSetDataTable());
-        renderArgs.put("snapsessionDataTable", new ApplicationSnapSetDataTable());
+        renderArgs.put("snapsessionDataTable", new ApplicationSnapSessionSetDataTable());
         VolumeGroupRestRep application = AppSupportUtil.getApplication(id);
         render(application);
     }
@@ -89,13 +89,13 @@ public class BlockApplications extends ResourceController {
 	}
     
 	public static void applicationSnapSessionJson(String id) {
-		List<ApplicationSnapSets> snapDetails = Lists.newArrayList();
+		List<ApplicationSnapSessionSets> snapDetails = Lists.newArrayList();
 		Set<String> sessionSet = AppSupportUtil
 				.getVolumeGroupSnapsetSessionSets(id);
 		for (String snap : sessionSet) {
 			List<NamedRelatedResourceRep> snapshots = AppSupportUtil
 					.getVolumeGroupSnapshotSessionsByCopySet(id, snap);
-			snapDetails.add(new ApplicationSnapSets(snap, snapshots));
+			snapDetails.add(new ApplicationSnapSessionSets(snap, snapshots));
 		}
 		renderJSON(DataTablesSupport.createJSON(snapDetails, params));
 	}

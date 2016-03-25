@@ -14,8 +14,8 @@ import com.google.common.collect.Lists;
 import util.BourneUtil;
 import util.datatable.DataTable;
 
-public class ApplicationSnapSetDataTable extends DataTable {
-	public ApplicationSnapSetDataTable() {
+public class ApplicationSnapSessionSetDataTable extends DataTable {
+	public ApplicationSnapSessionSetDataTable() {
 		addColumn("snapsetGroups").setRenderFunction("renderSnapsets");
 		addColumn("createdTime").setRenderFunction("render.localDate");
 		addColumn("subGroup");
@@ -24,13 +24,13 @@ public class ApplicationSnapSetDataTable extends DataTable {
 	
 	//Suppressing sonar violation for need of accessor methods. Accessor methods are not needed and we use public variables
 	@SuppressWarnings("ClassVariableVisibilityCheck")
-	public static class ApplicationSnapSets {
+	public static class ApplicationSnapSessionSets {
 		public String snapsetGroups;
 		public long createdTime;
 		public String groups;
 		public List<String> subGroup = Lists.newArrayList();
 		
-		public ApplicationSnapSets(String sets, List<NamedRelatedResourceRep> snapshotDetails) {
+		public ApplicationSnapSessionSets(String sets, List<NamedRelatedResourceRep> snapshotDetails) {
 			snapsetGroups = sets;
 			for (NamedRelatedResourceRep snap : snapshotDetails) {
 				BlockSnapshotSessionRestRep snapshots = BourneUtil

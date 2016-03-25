@@ -4,10 +4,12 @@
  */
 package models.datatable;
 
+import java.net.URI;
 import java.util.List;
 
 import com.emc.storageos.model.NamedRelatedResourceRep;
 import com.emc.storageos.model.block.BlockSnapshotRestRep;
+import com.emc.storageos.model.block.VolumeRestRep;
 import com.google.common.collect.Lists;
 
 import util.BourneUtil;
@@ -28,17 +30,28 @@ public class ApplicationSnapshotSetDataTable extends DataTable {
 		public long createdTime;
 		public String groups;
 		public List<String> subGroup = Lists.newArrayList();
+		public URI sourceVolumeId;
+		private VolumeRestRep sourceVolume;
 		
 		public ApplicationSnapshotSets(String sets, List<NamedRelatedResourceRep> snapshotDetails) {
 			snapshotGroups = sets;
 			for (NamedRelatedResourceRep snap : snapshotDetails) {
 				BlockSnapshotRestRep snapshots = BourneUtil.getViprClient()
 						.blockSnapshots().get((snap.getId()));
-				createdTime = snapshots.getCreationTime().getTime().getTime();
-				groups = snapshots.getReplicationGroupInstance();
+				if (snapshots.getParent() != null) {
+					sourceVolumeId = snapshots.getParent().getId();
+					sourceVolume = BourneUtil.getViprClient().blockVolumes()
+							.get(sourceVolumeId);
+					if (sourceVolume != null) {
+						groups = sourceVolume.getReplicationGroupInstance();
+					}
+				} else {
+					groups = snapshots.getReplicationGroupInstance();
+				}
 				if (!subGroup.contains(groups)) {
 					subGroup.add(groups);
 				}
+				createdTime = snapshots.getCreationTime().getTime().getTime();
 			}
 		}
 	}

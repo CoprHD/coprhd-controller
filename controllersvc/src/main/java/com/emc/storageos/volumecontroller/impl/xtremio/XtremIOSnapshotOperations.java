@@ -35,7 +35,6 @@ import com.emc.storageos.volumecontroller.impl.xtremio.prov.utils.XtremIOProvUti
 import com.emc.storageos.xtremio.restapi.XtremIOClient;
 import com.emc.storageos.xtremio.restapi.XtremIOConstants;
 import com.emc.storageos.xtremio.restapi.XtremIOConstants.XTREMIO_ENTITY_TYPE;
-import com.emc.storageos.xtremio.restapi.errorhandling.XtremIOApiException;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOConsistencyGroup;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOVolume;
 
@@ -342,11 +341,12 @@ public class XtremIOSnapshotOperations extends XtremIOOperations implements Snap
                                 group.getCgNameOnStorageSystem(storage.getId())));
                 return;
             }
-            try {
+            // providing noBackup option was resulting in an error which has been fixed in XIO 4.0.2 version.
+            // So for pre 4.0.2 version, do not use noBackup option.
+            if (XtremIOProvUtils.isXtremIOVersion402OrGreater(storage.getFirmwareVersion())) {
                 client.refreshSnapshotFromCG(clusterName, cgName, snapshotObj.getReplicationGroupInstance(), true);
-            } catch (XtremIOApiException ex) {
-                // providing noBackup option was resulting in an error which has been fixed in XIO 4.0.2 version.
-                // So if we get an exception, it may be pre 4.0.2 version, try again by not passing noBackup option.
+            } else {
+
                 client.refreshSnapshotFromCG(clusterName, cgName, snapshotObj.getReplicationGroupInstance(), false);
             }
 
@@ -355,6 +355,9 @@ public class XtremIOSnapshotOperations extends XtremIOOperations implements Snap
             XtremIOVolume xioSnap = client.getSnapShotDetails(snapshotObj.getDeviceLabel(), clusterName);
             if (xioSnap.getSnapSetList() != null && !xioSnap.getSnapSetList().isEmpty()) {
                 List<Object> snapsetDetails = xioSnap.getSnapSetList().get(0);
+                // The REST response for the snapsetList will contain 3 elements.
+                // Example - {"00a07269b55e42fa91c1aabadb6ea85c","SnapshotSet.1458111462198",27}
+                // We need the 2nd element which is the snapset name.
                 newSnapsetName = snapsetDetails.get(1).toString();
             }
 

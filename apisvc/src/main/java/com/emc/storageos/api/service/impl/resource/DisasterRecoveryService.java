@@ -984,8 +984,8 @@ public class DisasterRecoveryService {
         if (!drOperation.equals(standby.getLastState().getDRAction())) {
             log.error("Active site last operation was {}, retry is only supported if no other operations have been performed", drOperation);
             throw APIException.internalServerErrors.retryStandbyPrecheckFailed(standby.getName(), standby.getLastState().toString(),
-                    "Another DR operation has been run on Active site. Only the latest operation can be retried. " +
-                            "This is an unrecoverable Error, please remove site and deploy a new one.");
+                    String.format("Another DR operation %s has been run on Active site. Only the latest operation can be retried. " +
+                            "This is an unrecoverable Error, please remove site and deploy a new one.",drOperation));
         }
         
         InterProcessLock lock = drUtil.getDROperationLock();

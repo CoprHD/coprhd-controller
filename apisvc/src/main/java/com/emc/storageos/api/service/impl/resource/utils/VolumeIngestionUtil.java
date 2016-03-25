@@ -95,6 +95,7 @@ import com.emc.storageos.util.VPlexUtil;
 import com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.processor.detailedDiscovery.RemoteMirrorObject;
 import com.emc.storageos.volumecontroller.impl.utils.ExportMaskUtils;
 import com.emc.storageos.volumecontroller.placement.BlockStorageScheduler;
+import com.emc.storageos.vplex.api.VPlexApiConstants;
 import com.emc.storageos.vplexcontroller.VPlexControllerUtils;
 import com.google.common.base.Joiner;
 import com.google.common.collect.Collections2;
@@ -4458,6 +4459,39 @@ public class VolumeIngestionUtil {
                         Joiner.on(",").join(targetVarrayNames));
             }
         }
+    }
+
+    /**
+     * Validates that the given UnManagedExportMask exists on the same VPLEX Cluster
+     * as the VirtualArray in the ingestion request.  The cluster name is actually
+     * set by the BlockVplexIngestOrchestrator in order to re-use the cluster-id-to-name
+     * cache, avoiding a expensive call to get cluster name info from the VPLEX API.
+     * 
+     * @param requestContext the current IngestionRequestContext
+     * @param unManagedVolume the current UnManagedVolume being processed for exports
+     * @param unManagedExportMask the current UnManagdExportMask being processed
+     * 
+     * @return true if the mask exists on the same VPLEX cluster as the ingestion request VirtualArray
+     */
+    public static boolean validateExportMaskMatchesVplexCluster(IngestionRequestContext requestContext,
+            UnManagedVolume unManagedVolume, UnManagedExportMask unManagedExportMask) {
+        VolumeIngestionContext volumeContext = requestContext.getProcessedVolumeContext(unManagedVolume.getNativeGuid());
+
+        if (volumeContext != null && volumeContext instanceof VplexVolumeIngestionContext) {
+            String clusterName = ((VplexVolumeIngestionContext) volumeContext).getVirtualVolumeVplexClusterName();
+            String maskingViewPath = unManagedExportMask.getMaskingViewPath();
+            _logger.info("cluster name is {} and masking view path is {}", clusterName, maskingViewPath);
+            if (clusterName != null) {
+                String startOfPath = VPlexApiConstants.URI_CLUSTERS_RELATIVE + clusterName;
+                if (maskingViewPath.startsWith(startOfPath)) {
+                    _logger.info("\tUnManagedExportMask {} is on VPLEX cluster {} and will be processed now", 
+                            unManagedExportMask.getMaskName(), clusterName);
+                    return true;
+                }
+            }
+        }
+
+        return false;
     }
 
 }

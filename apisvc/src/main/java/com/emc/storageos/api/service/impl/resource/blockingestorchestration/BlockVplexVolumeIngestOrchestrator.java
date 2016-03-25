@@ -104,21 +104,24 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
                 || vplexIngestionMethod.isEmpty()
                 || (!vplexIngestionMethod.equals(VplexBackendIngestionContext.INGESTION_METHOD_VVOL_ONLY));
 
+        VplexVolumeIngestionContext volumeContext = null;
+
+        boolean isRpVplexContext = requestContext.getVolumeContext() instanceof RpVplexVolumeIngestionContext;
+        if (isRpVplexContext) {
+            // if this volume is RP/VPLEX, we need to get the volume context
+            // from the RpVplexVolumeIngestionContext
+            volumeContext =
+                    ((RpVplexVolumeIngestionContext)
+                    requestContext.getVolumeContext()).getVplexVolumeIngestionContext();
+        } else {
+            // this is just a plain VPLEX volume backend ingestion
+            volumeContext = (VplexVolumeIngestionContext) requestContext.getVolumeContext();
+        }
+
+        String clusterName = getClusterNameForVarray(requestContext.getVarray(unManagedVolume), requestContext.getStorageSystem());
+        volumeContext.setVirtualVolumeVplexClusterName(clusterName);
+
         if (ingestBackend) {
-
-            VplexVolumeIngestionContext volumeContext = null;
-
-            boolean isRpVplexContext = requestContext.getVolumeContext() instanceof RpVplexVolumeIngestionContext;
-            if (isRpVplexContext) {
-                // if this volume is RP/VPLEX, we need to get the volume context
-                // from the RpVplexVolumeIngestionContext
-                volumeContext =
-                        ((RpVplexVolumeIngestionContext)
-                        requestContext.getVolumeContext()).getVplexVolumeIngestionContext();
-            } else {
-                // this is just a plain VPLEX volume backend ingestion
-                volumeContext = (VplexVolumeIngestionContext) requestContext.getVolumeContext();
-            }
 
             volumeContext.setIngestionInProgress(true);
 

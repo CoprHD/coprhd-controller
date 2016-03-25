@@ -1840,11 +1840,6 @@ public class BackupOps {
         return state == ClusterInfo.ClusterState.STABLE;
     }
 
-    public boolean isActiveSite() {
-        DrUtil util = new DrUtil();
-        util.setCoordinator(coordinatorClient);
-        return util.isActiveSite();
-    }
     /**
      * Create a connection to the JMX agent
      */

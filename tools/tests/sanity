@@ -7914,6 +7914,9 @@ dr_multisite_tests()
     dr waitforstate $standby_site_b STANDBY_SYNCED 30 1200
     time_finish rejoin_standby_b
 
+    # set degrade_standby_threshold_millis to default value: 15 minutes
+    tune_dr_config ${DR_SITE_A_IP} degrade_standby_threshold_millis 900000
+
     # switchover test part
     echo "---WAIT BOTH ACTIVE AND STANBY TO BE STABLE, READY FOR SWITCHOVER---"
     dr waitforstable 10 800
@@ -8515,6 +8518,9 @@ backup_tests()
 
     echo "List local backup ${backupname} successful"
 
+    echo "Query local backup ${backupname} info"
+    backup query-info "${backupname}" "true"
+
     echo "Uploading backup(${backupname}) to ${BACKUP_SERVER_URL}"
     backup upload "${backupname}"
 
@@ -8559,6 +8565,9 @@ backup_tests()
        echo "Failed to find backup ${backupname} on ${BACKUP_SERVER_URL}"
        exit 1
     fi
+
+    echo "Query remote backup ${found} info"
+    backup query-info "${found}" "false"
 
     echo "Pull backup(${found} from ${BACKUP_SERVER_URL})"
     backup pull "${found}"

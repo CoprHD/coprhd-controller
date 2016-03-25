@@ -46,7 +46,7 @@ upload_backup() {
         return
     fi
 
-    echo -n "Uploading backup files to all nodes ... "
+    echo "Uploading backup files to all nodes ... "
     create_restore_folder
     extract_backup_files
     copy_to_other_nodes

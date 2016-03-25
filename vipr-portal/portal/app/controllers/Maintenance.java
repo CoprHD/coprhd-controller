@@ -21,8 +21,9 @@ import plugin.StorageOsPlugin;
 import util.BourneUtil;
 
 public class Maintenance extends Controller {
-    public static void maintenance(String targetUrl) {
+    public static void maintenance(String targetUrl, Integer timeout) {
         ClusterInfo clusterInfo = null;
+        timeout = timeout != null ? timeout : 6000; // 6s by default
         try {
             clusterInfo = getClusterState();
         } catch (Exception e) {
@@ -31,7 +32,7 @@ public class Maintenance extends Controller {
             Logger.info(e, "Failed to get cluster state");
             clusterInfo = defaultClusterInfo(clusterInfo);
         }
-        render(targetUrl, clusterInfo);
+        render(targetUrl, clusterInfo, timeout);
     }
     
     public static void fail(String targetUrl) {

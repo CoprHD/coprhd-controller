@@ -99,7 +99,7 @@ public class Setup extends Controller {
             notLicensed();
         }
         if (!Common.isClusterStable()) {
-            Maintenance.maintenance(request.url);
+            Maintenance.maintenance(request.url, null);
         }
     }
 
@@ -296,7 +296,7 @@ public class Setup extends Controller {
     @Util
     private static void restarting() {
         flash.success(MessagesUtils.get("setup.waitStable.description"));
-        Maintenance.maintenance(Common.reverseRoute(Setup.class, "index"));
+        Maintenance.maintenance(Common.reverseRoute(Setup.class, "index"), null);
     }
 
     /**

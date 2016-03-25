@@ -121,7 +121,7 @@ public class Upgrade extends Controller {
             flash.error(e.getMessage());
         }
         flash.success(MessagesUtils.get("upgrade.setTargetVersion", version));
-        Maintenance.maintenance(Common.reverseRoute(Upgrade.class, "index"));
+        Maintenance.maintenance(Common.reverseRoute(Upgrade.class, "index"), null);
     }
 
     public static void removeImage(String version) {

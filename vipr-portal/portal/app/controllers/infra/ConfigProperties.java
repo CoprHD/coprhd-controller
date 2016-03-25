@@ -134,7 +134,7 @@ public class ConfigProperties extends Controller {
                     try {
                         ConfigPropertyUtils.saveProperties(updated);
                         flash.success(MessagesUtils.get("configProperties.submittedReboot"));
-                        Maintenance.maintenance(Common.reverseRoute(ConfigProperties.class, "properties"));
+                        Maintenance.maintenance(Common.reverseRoute(ConfigProperties.class, "properties"), null);
                     } catch (Exception e) {
                         Logger.error("reboot exception - ", e);
                         flashException(e);

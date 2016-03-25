@@ -87,7 +87,7 @@ $(document).ready(function() {
   render.clusterStatus('#clusterState', "${clusterInfo?.currentState}");
   $.ajaxSetup({timeout:10000}); // ensures checkClusterState keeps looping if ajax call doesn't return
   // Use a shorter delay when checking initial cluster state
-  window.setTimeout(checkClusterState, 6000);
+  window.setTimeout(checkClusterState, ${timeout});
 });
 
 </script>

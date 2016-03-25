@@ -32,6 +32,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.blockorchestrationcontroller.BlockOrchestrationInterface;
+import com.emc.storageos.blockorchestrationcontroller.BlockSnapshotSessionOperations;
 import com.emc.storageos.blockorchestrationcontroller.VolumeDescriptor;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
@@ -177,7 +178,7 @@ import com.google.common.collect.Table.Cell;
  *
  *
  */
-public class BlockDeviceController implements BlockController, BlockOrchestrationInterface {
+public class BlockDeviceController implements BlockController, BlockOrchestrationInterface, BlockSnapshotSessionOperations {
     // Constants for Event Types
     private static final String EVENT_SERVICE_TYPE = "block";
     private static final String EVENT_SERVICE_SOURCE = "BlockController";
@@ -2080,6 +2081,25 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                 volume, snapshot);
 
         return RESTORE_VOLUME_STEP;
+    }
+
+    @Override
+    public String addStepsForRestoreFromSnapshotSession(Workflow workflow, String waitFor,
+            URI storage, URI volume, URI snapSession, Boolean updateOpStatus, String taskId) throws ControllerException {
+
+        Workflow.Method restoreSnapSessionMethod = restoreBlockSnapshotSessionMethod(storage, snapSession);
+
+        waitFor = workflow.createStep(RESTORE_VOLUME_STEP, String.format(
+                "Restore volume %s from snapshot session%s",
+                volume, snapSession), waitFor,
+                storage, getDeviceType(storage),
+                BlockDeviceController.class, restoreSnapSessionMethod, null, null);
+        _log.info(
+                "Created workflow step to restore block volume {} from snapshot session {}",
+                volume, snapSession);
+
+        return waitFor;
+
     }
 
     private static final String BLOCK_VOLUME_RESTORE_GROUP = "BlockDeviceRestoreVolumeGroup";

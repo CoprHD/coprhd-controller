@@ -116,6 +116,10 @@ public interface DeviceControllerErrors {
             final Throwable cause);
 
     @DeclareServiceCode(ServiceCode.CONTROLLER_JOB_ERROR)
+    public ServiceError restoreVolumeFromSnapshotSessionFailed(final String volUri, final String snapshotUri, final String operationName,
+            final Throwable cause);
+
+    @DeclareServiceCode(ServiceCode.CONTROLLER_JOB_ERROR)
     public ServiceError deleteVolumesFailed(final String volUris, final String operationName, final Throwable cause);
 
     @DeclareServiceCode(ServiceCode.CONTROLLER_JOB_ERROR)

@@ -11081,6 +11081,10 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             // The workflow depends on if the VPLEX volume is local or distributed.
             boolean isLocal = firstVplexVolume.getAssociatedVolumes().size() == 1;
             String waitFor = null;
+
+            // Check for RP, there are pre/post steps that need to be executed in this case.
+            boolean isRP = firstVplexVolume.checkForRp();
+
             if (isLocal) {
                 for (Volume vplexVolume : vplexVolumes) {
                     // Create a step to invalidate the read cache for the VPLEX volume.
@@ -11094,11 +11098,24 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 // but what if the invalidate cache fails, but the restore succeeds,
                 // the cache now has invalid data and a cache read hit could return
                 // invalid data.
-                createWorkflowStepForRestoreNativeSnapshotSession(workflow, snapSessionSystem,
+                waitFor = createWorkflowStepForRestoreNativeSnapshotSession(workflow, snapSessionSystem,
                         snapSessionURI, waitFor, null);
+
+                // Create the pre/post RP steps if necessary.
+                if (isRP) {
+                    ProtectionSystem rpSystem = getDataObject(ProtectionSystem.class,
+                            firstVplexVolume.getProtectionController(), _dbClient);
+
+                    // Create the pre restore step which will be the first step executed
+                    // in the workflow.
+                    waitFor = createWorkflowStepForDeleteReplicationSet(workflow, rpSystem, vplexVolumes, waitFor);
+
+                    // Create the post restore step, which will be the last step executed
+                    // in the workflow after the volume shave been rebuilt.
+                    createWorkflowStepForRecreateReplicationSet(workflow, rpSystem, vplexVolumes, waitFor);
+                }
+
             } else {
-                // Check for RP, there are pre/post steps that need to be executed in this case.
-                boolean isRP = firstVplexVolume.checkForRp();
 
                 // Create the steps that need to be executed on each VPLEX volume.
                 for (Volume vplexVolume : vplexVolumes) {

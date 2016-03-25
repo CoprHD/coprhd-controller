@@ -44,6 +44,7 @@ import com.emc.storageos.db.client.model.BlockConsistencyGroup.Types;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.BlockSnapshot.TechnologyType;
+import com.emc.storageos.db.client.model.BlockSnapshotSession;
 import com.emc.storageos.db.client.model.Cluster;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.RegistrationStatus;
 import com.emc.storageos.db.client.model.ExportGroup;
@@ -4723,6 +4724,52 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
     }
 
     /**
+     * Gets a list of volume IDs to be restored. If the snapshot session corresponds to
+     * a consistency group, we must get all the volumes associated to other
+     * BlockSnapshotSessions that share the same replicationGroupInstance label.
+     *
+     * @param snapshotSession the snapshotSession to restore.
+     * @param volume the volume to be restored.
+     * @return a list of volume IDs to be restored.
+     */
+    private List<URI> getVolumesForRestore(BlockSnapshotSession snapshotSession, Volume volume) {
+        List<URI> volumeURIs = new ArrayList<URI>();
+
+        URI cgURI = snapshotSession.getConsistencyGroup();
+        if (NullColumnValueGetter.isNullURI(cgURI) || NullColumnValueGetter.isNullValue(snapshotSession.getReplicationGroupInstance())) {
+            // If the snapshot session is not in a CG, restore the replication
+            // for only the requested volume.
+            volumeURIs.add(volume.getId());
+        } else {
+            // Otherwise, get all source volume of cg volumes based on the
+            // replicationGroupInstance value.
+            
+            URIQueryResultList queryResults = new URIQueryResultList();
+            _dbClient.queryByConstraint(AlternateIdConstraint.Factory
+                    .getVolumeReplicationGroupInstanceConstraint(snapshotSession.getReplicationGroupInstance()), queryResults);
+            Iterator<URI> resultsIter = queryResults.iterator();
+            while (resultsIter.hasNext()) {
+                Volume vol = _dbClient.queryObject(Volume.class, resultsIter.next());
+                if(vol !=null && !vol.getInactive()){
+                    URIQueryResultList qryResults = new URIQueryResultList();
+                    _dbClient.queryByConstraint(AlternateIdConstraint.Factory
+                            .getVolumeByAssociatedVolumesConstraint(vol.getId().toString()), qryResults);
+                    URI vplexVolumeURI = null;
+                    if (queryResults.iterator().hasNext()) {
+                        vplexVolumeURI = queryResults.iterator().next();
+                        if (vplexVolumeURI != null) {
+                            volumeURIs.add(vplexVolumeURI);
+                        }
+                    } else {
+                        volumeURIs.add(vol.getId());
+                    }
+                }
+            }
+        }
+        return volumeURIs;
+    }
+
+    /**
      * Adds the necessary RecoverPoint controller steps that need to be executed prior
      * to restoring a volume from snapshot. The pre-restore step is required if we
      * are restoring a native array snapshot of the following parent volumes:
@@ -4734,7 +4781,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
      * @param workflow the Workflow being constructed
      * @param storageSystemURI the URI of storage controller
      * @param volumeURI the URI of volume to be restored
-     * @param snapshotURI the URI of snapshot used for restoration
+     * @param snapshotURI the URI of snapshot/snap session used for restoration
      * @param taskId the top level operation's taskId
      * @return A waitFor key that can be used by subsequent controllers to wait on
      */
@@ -4742,11 +4789,22 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
             URI storageSystemURI, URI volumeURI, URI snapshotURI, String taskId) {
 
         String waitFor = null;
-        BlockSnapshot snapshot = _dbClient.queryObject(BlockSnapshot.class, snapshotURI);
+        boolean isSnapSessionFlow = URIUtil.isType(snapshotURI, BlockSnapshotSession.class);
+
+        BlockSnapshot snapshot = null;
+        
+        BlockSnapshotSession snapSession = null;
+        if(isSnapSessionFlow){
+            snapSession = _dbClient.queryObject(BlockSnapshotSession.class, snapshotURI);
+        } else{
+            snapshot = _dbClient.queryObject(BlockSnapshot.class, snapshotURI);
+        }
+        
+        
 
         // Only consider native snapshots
-        if (snapshot != null && NullColumnValueGetter.isNotNullValue(snapshot.getTechnologyType()) &&
-                snapshot.getTechnologyType().equals(TechnologyType.NATIVE.toString())) {
+        if ((isSnapSessionFlow) || (snapshot != null && NullColumnValueGetter.isNotNullValue(snapshot.getTechnologyType()) &&
+                snapshot.getTechnologyType().equals(TechnologyType.NATIVE.toString()))) {
 
             Volume volume = _dbClient.queryObject(Volume.class, volumeURI);
             StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, storageSystemURI);
@@ -4782,8 +4840,13 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                         // Verify non-null storage device returned from the database client.
                         throw DeviceControllerExceptions.recoverpoint.failedConnectingForMonitoring(volume.getProtectionController());
                     }
-
-                    List<URI> volumeURIs = getVolumesForRestore(snapshot, volume);
+                    List<URI> volumeURIs = new ArrayList<>();
+                    if(isSnapSessionFlow){
+                        volumeURIs = getVolumesForRestore(snapSession, volume);
+                    }else {
+                        volumeURIs = getVolumesForRestore(snapshot, volume);
+                    }
+                    
 
                     Map<String, RecreateReplicationSetRequestParams> rsetParams =
                             new HashMap<String, RecreateReplicationSetRequestParams>();
@@ -4810,7 +4873,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                             rpSystem.getId(), volumeURIs, rsetParams);
 
                     waitFor = workflow.createStep(STEP_PRE_VOLUME_RESTORE,
-                            "Pre volume restore from snapshot, delete replication set step for RP: " + volumeURI.toString(),
+                            "Pre volume restore from snapshot/snapsession, delete replication set step for RP: " + volumeURI.toString(),
                             null, rpSystem.getId(), rpSystem.getSystemType(), this.getClass(),
                             deleteRsetExecuteMethod, recreateRSetExecuteMethod, stepId);
 
@@ -4841,11 +4904,20 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
     public String addPostRestoreVolumeSteps(Workflow workflow,
             String waitFor, URI storageSystemURI, URI volumeURI, URI snapshotURI, String taskId) {
 
-        BlockSnapshot snapshot = _dbClient.queryObject(BlockSnapshot.class, snapshotURI);
+        boolean isSnapSessionFlow = URIUtil.isType(snapshotURI, BlockSnapshotSession.class);
+
+        BlockSnapshot snapshot = null;
+
+        BlockSnapshotSession snapSession = null;
+        if (isSnapSessionFlow) {
+            snapSession = _dbClient.queryObject(BlockSnapshotSession.class, snapshotURI);
+        } else {
+            snapshot = _dbClient.queryObject(BlockSnapshot.class, snapshotURI);
+        }
 
         // Only consider native snapshots
-        if (snapshot != null && NullColumnValueGetter.isNotNullValue(snapshot.getTechnologyType()) &&
-                snapshot.getTechnologyType().equals(TechnologyType.NATIVE.name())) {
+        if (isSnapSessionFlow || (snapshot != null && NullColumnValueGetter.isNotNullValue(snapshot.getTechnologyType()) &&
+                snapshot.getTechnologyType().equals(TechnologyType.NATIVE.name()))) {
 
             Volume volume = _dbClient.queryObject(Volume.class, volumeURI);
             StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, storageSystemURI);
@@ -4880,7 +4952,12 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                         throw DeviceControllerExceptions.recoverpoint.failedConnectingForMonitoring(volume.getProtectionController());
                     }
 
-                    List<URI> volumeURIs = getVolumesForRestore(snapshot, volume);
+                    List<URI> volumeURIs = new ArrayList<>();
+                    if (isSnapSessionFlow) {
+                        volumeURIs = getVolumesForRestore(snapSession, volume);
+                    } else {
+                        volumeURIs = getVolumesForRestore(snapshot, volume);
+                    }
 
                     Map<String, RecreateReplicationSetRequestParams> rsetParams =
                             new HashMap<String, RecreateReplicationSetRequestParams>();
@@ -4896,7 +4973,8 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                             rpSystem.getId(), volumeURIs, rsetParams);
 
                     waitFor = workflow.createStep(STEP_POST_VOLUME_RESTORE,
-                            "Post volume restore from snapshot, re-create replication set step for RP: " + volume.toString(),
+                            "Post volume restore from snapshot/snapshot session, re-create replication set step for RP: "
+                                    + volume.toString(),
                             waitFor, rpSystem.getId(), rpSystem.getSystemType(), this.getClass(),
                             recreateRSetExecuteMethod, rollbackMethodNullMethod(), stepId);
 

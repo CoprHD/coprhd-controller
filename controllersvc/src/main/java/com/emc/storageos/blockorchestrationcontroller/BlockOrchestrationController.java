@@ -91,4 +91,16 @@ public interface BlockOrchestrationController extends Controller {
      */
     public void restoreFromFullCopy(URI storage, List<URI> fullCopyURIs, String opId)
             throws InternalException;
+
+    /**
+     * Restores volume content from a snapshot session.
+     * 
+     * @param storage - URI of storage controller
+     * @param volume - URI of volume to be restored
+     * @param snapSession - URI of snapshotSession used for restoration
+     * @param taskId - The top level operation's taskId
+     * @throws ControllerException
+     */
+    void restoreFromSnapSession(URI storage, URI volume, URI snapSession, String taskId)
+            throws ControllerException;
 }

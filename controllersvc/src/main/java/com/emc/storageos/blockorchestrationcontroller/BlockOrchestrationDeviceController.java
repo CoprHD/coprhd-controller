@@ -32,6 +32,7 @@ import com.emc.storageos.volumecontroller.ControllerLockingService;
 import com.emc.storageos.volumecontroller.impl.block.BlockDeviceController;
 import com.emc.storageos.volumecontroller.impl.block.ReplicaDeviceController;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.BlockSnapshotRestoreCompleter;
+import com.emc.storageos.volumecontroller.impl.block.taskcompleter.BlockSnapshotSessionRestoreWorkflowCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.CloneRestoreCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.VolumeCreateWorkflowCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.VolumeVarrayChangeTaskCompleter;
@@ -57,6 +58,7 @@ public class BlockOrchestrationDeviceController implements BlockOrchestrationCon
     static final String DELETE_VOLUMES_WF_NAME = "DELETE_VOLUMES_WORKFLOW";
     static final String EXPAND_VOLUMES_WF_NAME = "EXPAND_VOLUMES_WORKFLOW";
     static final String RESTORE_VOLUME_FROM_SNAPSHOT_WF_NAME = "RESTORE_VOLUME_FROM_SNAPSHOT_WORKFLOW";
+    static final String RESTORE_VOLUME_FROM_SNAP_SESSION_WF_NAME = "RESTORE_VOLUME_FROM_SNAP_SESSION_WORKFLOW";
     static final String CHANGE_VPOOL_WF_NAME = "CHANGE_VPOOL_WORKFLOW";
     static final String CHANGE_VARRAY_WF_NAME = "CHANGE_VARRAY_WORKFLOW";
     static final String RESTORE_FROM_FULLCOPY_WF_NAME = "RESTORE_FROM_FULLCOPY_WORKFLOW";
@@ -290,6 +292,48 @@ public class BlockOrchestrationDeviceController implements BlockOrchestrationCon
         }
     }
 
+
+
+    @Override
+    public void restoreFromSnapSession(URI storage, URI volume, URI snapSession, String taskId)
+            throws ControllerException {
+
+        List<URI> volUris = Arrays.asList(volume);
+        BlockSnapshotSessionRestoreWorkflowCompleter completer = new BlockSnapshotSessionRestoreWorkflowCompleter(snapSession, taskId);
+        try {
+            // Generate the Workflow.
+            Workflow workflow = _workflowService.getNewWorkflow(this,
+                    RESTORE_VOLUME_FROM_SNAP_SESSION_WF_NAME, true, taskId);
+            String waitFor = null;    // the wait for key returned by previous call
+
+            s_logger.info("Created restore snapshot session workflow with operation id {}", taskId);
+
+            // First, call the RP controller to add RP steps for volume restore from snapshot session
+            waitFor = _rpDeviceController.addPreRestoreVolumeSteps(
+                    workflow, storage, volume, snapSession, taskId);
+
+            // Call the BlockDeviceController to add its steps for restore volume from snapshotSession
+            waitFor = _blockDeviceController.addStepsForRestoreFromSnapshotSession(workflow, waitFor, storage, volume, snapSession,
+                    Boolean.TRUE, taskId);
+
+            // Call the RP controller to add RP post restore steps
+            waitFor = _rpDeviceController.addPostRestoreVolumeSteps(
+                    workflow, waitFor, storage, volume, snapSession, taskId);
+
+            // Finish up and execute the plan.
+            // The Workflow will handle the TaskCompleter
+            String successMessage = String.format("Restore of volume %s from %s completed successfully", volume, snapSession);
+            Object[] callbackArgs = new Object[] { new ArrayList<URI>(volUris) };
+            workflow.executePlan(completer, successMessage, new WorkflowCallback(), callbackArgs, null, null);
+        } catch (Exception ex) {
+            s_logger.error("Could not restore volume: {}", volUris.toString(), ex);
+            String opName = ResourceOperationTypeEnum.RESTORE_SNAPSHOT_SESSION.getName();
+            ServiceError serviceError = DeviceControllerException.errors.restoreVolumeFromSnapshotSessionFailed(volUris.toString(),
+                    snapSession.toString(), opName, ex);
+            completer.error(s_dbClient, _locker, serviceError);
+        }
+
+    }
     /*
      * (non-Javadoc)
      * 

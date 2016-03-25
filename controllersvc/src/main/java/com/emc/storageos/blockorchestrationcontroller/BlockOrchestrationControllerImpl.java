@@ -89,4 +89,10 @@ public class BlockOrchestrationControllerImpl implements BlockOrchestrationContr
         execOrchestration("restoreFromFullCopy", storage, fullCopyURIs, opId);
         
     }
+
+    @Override
+    public void restoreFromSnapSession(URI storage, URI volume, URI snapSession, String taskId)
+            throws ControllerException {
+        execOrchestration("restoreFromSnapSession", storage, volume, snapSession, taskId);
+    }
 }

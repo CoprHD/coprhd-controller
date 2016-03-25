@@ -13,17 +13,20 @@ import javax.ws.rs.core.UriInfo;
 
 import com.emc.storageos.api.service.authorization.PermissionsHelper;
 import com.emc.storageos.api.service.impl.resource.fullcopy.BlockFullCopyManager;
+import com.emc.storageos.blockorchestrationcontroller.BlockOrchestrationController;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.BlockSnapshotSession;
+import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.protectioncontroller.impl.recoverpoint.RPHelper;
 import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
+import com.emc.storageos.vplexcontroller.VPlexController;
 
 /**
  * Block snapshot session implementation for RP protected volumes.
@@ -161,8 +164,20 @@ public class RPBlockSnapshotSessionApiImpl extends DefaultBlockSnapshotSessionAp
      */
     @Override
     public void restoreSnapshotSession(BlockSnapshotSession snapSession, BlockObject snapSessionSourceObj, String taskId) {
-        BlockSnapshotSessionApi snapSessionImpl = getImplementationForBackendSystem(snapSessionSourceObj.getStorageController());
-        snapSessionImpl.restoreSnapshotSession(snapSession, snapSessionSourceObj, taskId);
+        // RP + Vplex snap session code flow should be go through via VplexDeviceController.
+        if (RPHelper.isVPlexVolume((Volume) snapSessionSourceObj)) {
+            VPlexController controller = getController(VPlexController.class,
+                    DiscoveredDataObject.Type.vplex.toString());
+            controller.restoreSnapshotSession(snapSessionSourceObj.getId(), snapSession.getId(),
+                    taskId);
+        } else {
+            BlockOrchestrationController controller = getController(BlockOrchestrationController.class,
+                BlockOrchestrationController.BLOCK_ORCHESTRATION_DEVICE);
+            controller.restoreFromSnapSession(snapSessionSourceObj.getStorageController(), snapSessionSourceObj.getId(),
+                    snapSession.getId(),
+                taskId);
+        }
+
     }
 
     /**

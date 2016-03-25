@@ -1009,7 +1009,6 @@ public class SchemaUtil {
         } catch (final OperationException e) {
             throw DatabaseException.retryables.operationFailed(e);
         } catch (final ConnectionException e) {
-            _log.info("lbya e=",e);
             throw DatabaseException.retryables.connectionFailed(e);
         }
     }

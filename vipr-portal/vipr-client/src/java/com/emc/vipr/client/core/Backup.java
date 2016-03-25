@@ -48,9 +48,9 @@ public class Backup {
 
     public BackupInfo getBackupInfo(String name, boolean isLocal) {
         UriBuilder builder = client.uriBuilder(BACKUP_INFO_URL);
-        addQueryParam(builder, "name", name);
+        addQueryParam(builder, "backupname", name);
         if (isLocal) {
-            addQueryParam(builder, "local", isLocal);
+            addQueryParam(builder, "isLocal", isLocal);
         }
         return client.getURI(BackupInfo.class, builder.build());
     }

@@ -12,7 +12,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.Serializable;
 
-@XmlRootElement(name = "external_backup_info")
+@XmlRootElement(name = "backup_info")
 public class BackupInfo implements Serializable {
     private static final long serialVersionUID = -1125934063451834517L;
 

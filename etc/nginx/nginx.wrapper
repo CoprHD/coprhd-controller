@@ -13,7 +13,7 @@
 key_file="/opt/storageos/conf/storageos.key"
 crt_file="/opt/storageos/conf/storageos.crt"
 
-dhparam_real=/.volume/bootfs/etc/dhparam
+dhparam_real=/.volumes/bootfs/etc/dhparam
 dhparam_default=/opt/storageos/conf/dhparam.dft
 dhparam_nginx=/etc/nginx/dhparam.pem
 

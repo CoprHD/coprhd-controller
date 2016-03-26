@@ -134,7 +134,7 @@ class CoprHDCLIDriver(object):
 
         self.create_host(name=self.host,label=self.host,hosttype="Other") 
 
-        self.add_initiators(False, hostlabel=self.host, protocol='iSCSI', initiatorwwn=None, portwwn=None)
+        self.add_initiators(False, hostlabel=self.host, protocol='iSCSI', initiatorwwn=None, portwwn=None, initname=None)
 
         self.create_network(name=self.network,nwtype='IP')
 
@@ -450,16 +450,13 @@ class CoprHDCLIDriver(object):
              print e
              Message.new(Debug="Host Creation Failed").write(_logger)
     def create_network(self,name,nwtype):
-        #self.authenticate_user()
+        self.authenticate_user()
         try:
             self.authenticate_user()
             self.network_obj.create(
                 name,
                 nwtype)
             varray_uri = self.varray_obj.varray_list()
-            #self.network_obj.assign(
-            #    name,
-            #    varray=varray_uri)
             storage_ports = self.varray_obj.list_storageports(self.varray)
             storagesystem_name = []
             storagesystem_list = []

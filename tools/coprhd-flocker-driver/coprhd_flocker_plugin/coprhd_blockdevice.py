@@ -56,7 +56,7 @@ def retry_wrapper(func):
 			    (e.err_text.find('401') != -1 or
 				 e.err_text.lower().find('cookie') != -1)):
                 retry = True
-                EMCViPRDriverCommon.AUTHENTICATED = False
+                CoprHDCLIDriver.AUTHENTICATED = False
             else:
                 exception_message = "\nViPR Exception: %s\nStack Trace:\n%s" \
                     % (e.err_text, traceback.format_exc())

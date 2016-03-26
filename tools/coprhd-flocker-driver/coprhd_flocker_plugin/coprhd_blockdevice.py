@@ -8,11 +8,12 @@ from decimal import *
 from flocker.node.agents.blockdevice import (
     VolumeException, AlreadyAttachedVolume,
     UnknownVolume, UnattachedVolume,
-    IBlockDeviceAPI, BlockDeviceVolume,
+    IBlockDeviceAPI, BlockDeviceVolume, IProfiledBlockDeviceAPI,
     UnknownInstanceID, get_blockdevice_volume
 )
 
 import socket
+import traceback
 import viprcli.authentication as auth
 import viprcli.common as utils
 import viprcli.exportgroup as exportgroup
@@ -48,13 +49,13 @@ def retry_wrapper(func):
         retry = False
         try:
             return func(*args, **kwargs)
-        except vipr_utils.SOSError as e:
+        except utils.SOSError as e:
             # if we got an http error and
             # the string contains 401 or if the string contains the word cookie
-            if (e.err_code == vipr_utils.SOSError.HTTP_ERR and
+            if (e.err_code == utils.SOSError.HTTP_ERR and
 			    (e.err_text.find('401') != -1 or
 				 e.err_text.lower().find('cookie') != -1)):
-				retry = True
+                retry = True
                 EMCViPRDriverCommon.AUTHENTICATED = False
             else:
                 exception_message = "\nViPR Exception: %s\nStack Trace:\n%s" \
@@ -63,8 +64,7 @@ def retry_wrapper(func):
         except Exception:
             exception_message = "\nGeneral Exception: %s\nStack Trace:\n%s" \
                 % (sys.exc_info()[0], traceback.format_exc())
-            raise exception.VolumeBackendAPIException(
-                data=exception_message)
+            raise utils.SOSError(utils.SOSError.SOS_FAILURE_ERR,"Exception is : "+exception_message)
         if retry:
             return func(*args, **kwargs)
     return try_and_retry
@@ -222,7 +222,7 @@ class CoprHDCLIDriver(object):
     @retry_wrapper                
     def get_volume_details(self, vol):
         self.authenticate_user()
-		volume_dict = {}
+        volume_dict = {}
         Message.new(Info="coprhd-get-volume-details" + vol).write(_logger)
         try:
            volumeuri = self.volume_obj.volume_query(
@@ -241,8 +241,10 @@ class CoprHDCLIDriver(object):
            Message.new(Info="coprhd-get-volume-details for loop").write(_logger)
            for evolumes in exportedvolumes:
               if volumeuri == evolumes['id']:
-               return volume_dict[volumedetails['name'][8:]]={'size':volumedetails['provisioned_capacity_gb'],'attached_to':self.host}
-           return volume_dict[volumedetails['name'][8:]]={'size':volumedetails['provisioned_capacity_gb'],'attached_to':None}
+               volume_dict[volumedetails['name'][8:]]={'size':volumedetails['provisioned_capacity_gb'],'attached_to':self.host}
+               return volume_dict
+           volume_dict[volumedetails['name'][8:]]={'size':volumedetails['provisioned_capacity_gb'],'attached_to':None}
+           return volume_dict
         except utils.SOSError:
                     Message.new(Debug="coprhd get volume details failed").write(_logger)
     
@@ -274,7 +276,7 @@ class CoprHDCLIDriver(object):
                     break
              if attach_to is None:
               showvolume = self.volume_obj.show_by_uri(v_uri)
-			  if showvolume['name'].startswith('flocker'):
+              if showvolume['name'].startswith('flocker'):
                   flocker_volumes[showvolume['name'][8:]] = {'size' : showvolume['allocated_capacity_gb'] , 'attached_to' : None}
         except utils.SOSError:
             Message.new(Debug="coprhd list volumes failed").write(_logger)
@@ -679,11 +681,11 @@ class CoprHDBlockDeviceAPI(object):
         for volume_name,volume_attr in volumes_dict.iteritems():
           attached_to = None
           Message.new(Debug="coprhd list_volumes for loop").write(_logger)
-            Message.new(Debug="coprhd list_volumes" + volume_name).write(_logger)
-            if volume_attr['attached_to'] is None:
+          Message.new(Debug="coprhd list_volumes" + volume_name).write(_logger)
+          if volume_attr['attached_to'] is None:
            Message.new(Debug="coprhd list_volumes attached None").write(_logger)
           else:
-                attached_to = volume_attr['attached_to']
+            attached_to = volume_attr['attached_to']
             Message.new(Debug="coprhd list_volumes creating blockvolume size is "+volume_attr['size']).write(_logger)
             size = Decimal(volume_attr['size'])
           volume = BlockDeviceVolume(

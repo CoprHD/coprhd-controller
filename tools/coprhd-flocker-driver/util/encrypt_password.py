@@ -20,9 +20,9 @@ mandatory_args.add_argument('-securityfile',
                     help='securityfile',
                     required=True)
 
-mandatory_args.add_argument('-cinderuser',
-                    metavar='<cinderuser>',
-                    dest='cinderuser',
+mandatory_args.add_argument('-flockeruser',
+                    metavar='<flockeruser>',
+                    dest='flockeruser',
                     help='user account used by cinder service',
                     required=True)
 
@@ -31,7 +31,7 @@ args = parser.parse_args()
 
 from Crypto.Cipher import ARC4
 #obj1 = ARC4.new(getpass.getuser())
-obj1 = ARC4.new(args.cinderuser)
+obj1 = ARC4.new(args.flockeruser)
 
 cipher_text = obj1.encrypt(args.user)
 security_file = open(args.securityfile, 'w+')

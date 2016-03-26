@@ -15,7 +15,7 @@ crt_file="/opt/storageos/conf/storageos.crt"
 
 dhparam_real=/.volume/bootfs/etc/dhparam
 dhparam_default=/opt/storageos/conf/dhparam.dft
-dhparam_nginx=/etc/nginx/ssl/dhparam.pem
+dhparam_nginx=/etc/nginx/dhparam.pem
 
 # exit 0 to avoid systemd keeps restarting if key file is not generated 
 # during fresh install

@@ -94,7 +94,7 @@ class CoprHDCLIDriver(object):
         self.hostexportgroup = hostexportgroup
         self.coprhdcli_security_file = coprhdcli_security_file
         self.host = unicode(socket.gethostname())
-        self.network = 'ipnetwork-'+str(cluster_id)
+        self.networkname = 'flockeripnetwork'
         self.volume_obj = volume.Volume(
             self.coprhdhost,
             self.port )
@@ -137,7 +137,7 @@ class CoprHDCLIDriver(object):
 
         self.add_initiators(True, hostlabel=self.host, protocol='iSCSI', initiatorwwn=None, portwwn=None, initname=None)
 
-        self.create_network(name=self.network,nwtype='IP')
+        self.create_network(name=self.networkname,nwtype='IP')
 
         self.create_export_group(name=self.hostexportgroup,host=self.host,exportgrouptype="Host")
     @retry_wrapper
@@ -446,8 +446,8 @@ class CoprHDCLIDriver(object):
                 if "\n" in portwwn:
                    portwwn = portwwn.split('\n')[0]
                 break
+           initname = portwwn
            self.hostinitiator_obj.create(sync,hostlabel,protocol,initiatorwwn,portwwn,initname)
-
         except utils.SOSError as e:
              print e
              Message.new(Debug="Host Creation Failed").write(_logger)

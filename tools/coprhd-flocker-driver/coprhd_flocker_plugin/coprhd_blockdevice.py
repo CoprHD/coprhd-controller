@@ -13,6 +13,7 @@ from flocker.node.agents.blockdevice import (
 )
 
 import socket
+import sys
 import traceback
 import viprcli.authentication as auth
 import viprcli.common as utils
@@ -63,7 +64,7 @@ def retry_wrapper(func):
                 raise utils.SOSError(utils.SOSError.SOS_FAILURE_ERR,"Exception is : "+exception_message)
         except Exception:
             exception_message = "\nGeneral Exception: %s\nStack Trace:\n%s" \
-                % (e.err_text, traceback.format_exc())
+                % (sys.exc_info()[0], traceback.format_exc())
             raise utils.SOSError(utils.SOSError.SOS_FAILURE_ERR,"Exception is : "+exception_message)
         if retry:
             return func(*args, **kwargs)

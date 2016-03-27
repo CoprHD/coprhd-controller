@@ -91,7 +91,7 @@ class CoprHDCLIDriver(object):
         self.vpool_gold=vpool_gold
         self.vpool_silver=vpool_silver
         self.vpool_bronze=vpool_bronze
-        self.hostexportgroup = str(hostexportgroup)+'-'+str(cluster_id)
+        self.hostexportgroup = hostexportgroup
         self.coprhdcli_security_file = coprhdcli_security_file
         self.host = unicode(socket.gethostname())
         self.network = 'ipnetwork-'+str(cluster_id)
@@ -337,12 +337,12 @@ class CoprHDCLIDriver(object):
                 True,
                 self.hostexportgroup,
                 self.tenant,
+                '1',
+                '1',
+                '1',
                 self.project,
-                [vol],
-                None,
-                None,
-                None)
-
+                [vol])
+                
     @retry_wrapper
     def delete_volume(self, vol):
         self.authenticate_user()

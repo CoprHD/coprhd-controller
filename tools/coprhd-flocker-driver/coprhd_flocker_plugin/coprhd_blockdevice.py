@@ -630,6 +630,7 @@ class CoprHDBlockDeviceAPI(object):
         #[4:0:0:0]    disk                                    /dev/sdc
         #[4:0:0:3]    disk                                    /dev/sdd
 
+        self.rescan_scsi()
         dataset_id = UUID(blockdevice_id[6:])
         # Query WWN from CoprHD
         wwn = self.coprhdcli.get_volume_wwn("flocker-{}".format(dataset_id))

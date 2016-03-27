@@ -134,7 +134,7 @@ class CoprHDCLIDriver(object):
 
         self.create_host(name=self.host,label=self.host,hosttype="Other") 
 
-        self.add_initiators(False, hostlabel=self.host, protocol='iSCSI', initiatorwwn=None, portwwn=None, initname=None)
+        self.add_initiators(True, hostlabel=self.host, protocol='iSCSI', initiatorwwn=None, portwwn=None, initname=None)
 
         self.create_network(name=self.network,nwtype='IP')
 
@@ -388,7 +388,7 @@ class CoprHDCLIDriver(object):
             Adding Host to Export Group
             '''
            
-            sync = False
+            sync = True
             self.exportgroup_obj.exportgroup_add_host(exportgroupname=name,tenantname=self.tenant,
                                                       projectname=self.project,hostlabels=[host],sync=sync)
 
@@ -397,7 +397,7 @@ class CoprHDCLIDriver(object):
             '''
             
             initator = None
-            f = open ('/etc/iscsi/initiatorname.iscsi_0','r')
+            f = open ('/etc/iscsi/initiatorname.iscsi','r')
             for line in f:
                if ( line[0] != '#' ):
                   current_line=line.split('=')
@@ -483,7 +483,7 @@ class CoprHDCLIDriver(object):
                           if e.err_code==utils.SOSError.ENTRY_ALREADY_EXISTS_ERR:
                              continue
             "Adding Host Ports to Network"
-            f = open ('/etc/iscsi/initiatorname.iscsi_0','r')
+            f = open ('/etc/iscsi/initiatorname.iscsi','r')
             for line in f:
                if ( line[0] != '#' ):
                   current_line=line.split('=')
@@ -674,7 +674,7 @@ class CoprHDBlockDeviceAPI(object):
         Message.new(Debug="coprhd list_volumes invoked").write(_logger)
         volumes_dict = self.coprhdcli.list_volume()
         if volumes_dict is None:
-         return None
+         return volumes
         for volume_name,volume_attr in volumes_dict.iteritems():
           attached_to = None
           Message.new(Debug="coprhd list_volumes for loop").write(_logger)
@@ -683,11 +683,11 @@ class CoprHDBlockDeviceAPI(object):
            Message.new(Debug="coprhd list_volumes attached None").write(_logger)
           else:
             attached_to = volume_attr['attached_to']
-            Message.new(Debug="coprhd list_volumes creating blockvolume size is "+volume_attr['size']).write(_logger)
-            size = Decimal(volume_attr['size'])
+          size = Decimal(volume_attr['size'])
+          Message.new(Debug="coprhd list_volumes creating blockvolume size is "+volume_attr['size']).write(_logger)
           volume = BlockDeviceVolume(
                                     size=size, attached_to=attached_to,
-                                    dataset_id=UUID(volumeslist[num].name), blockdevice_id=u"block-{0}".format(volumeslist[num].name)
+                                    dataset_id=UUID(volume_name), blockdevice_id=u"block-{0}".format(volume_name)
                                     )
           Message.new(Debug="coprhd list_volumes appending volume").write(_logger)
           volumes.append(volume)

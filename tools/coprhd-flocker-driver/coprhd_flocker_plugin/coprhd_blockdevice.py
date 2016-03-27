@@ -162,8 +162,8 @@ class CoprHDCLIDriver(object):
                 cipher_text = security_file.readline().rstrip()
                 self.password = objARC.decrypt(cipher_text)
                 security_file.close()
-            objAuth.authenticate_user('root',
-                                  'Changeme@1',
+            objAuth.authenticate_user(self.username,
+                                  self.password,
                                   cookiedir,
                                   None)
             CoprHDCLIDriver.AUTHENTICATED = True

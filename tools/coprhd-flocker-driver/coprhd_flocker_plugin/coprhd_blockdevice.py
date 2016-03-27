@@ -340,6 +340,7 @@ class CoprHDCLIDriver(object):
                 self.project,
                 [vol],
                 None,
+                None,
                 None)
 
     @retry_wrapper

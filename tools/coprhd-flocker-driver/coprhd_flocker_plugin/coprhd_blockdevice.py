@@ -684,6 +684,7 @@ class CoprHDBlockDeviceAPI(object):
           else:
             attached_to = volume_attr['attached_to']
           size = Decimal(volume_attr['size'])
+          size = 1073741824 * int(size)
           Message.new(Debug="coprhd list_volumes creating blockvolume size is "+volume_attr['size']).write(_logger)
           volume = BlockDeviceVolume(
                                     size=size, attached_to=attached_to,

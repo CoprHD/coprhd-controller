@@ -162,8 +162,8 @@ class CoprHDCLIDriver(object):
                 cipher_text = security_file.readline().rstrip()
                 self.password = objARC.decrypt(cipher_text)
                 security_file.close()
-            objAuth.authenticate_user(self.username,
-                                  self.password,
+            objAuth.authenticate_user('root',
+                                  'Changeme@1',
                                   cookiedir,
                                   None)
             CoprHDCLIDriver.AUTHENTICATED = True
@@ -413,6 +413,10 @@ class CoprHDCLIDriver(object):
 
     def create_host(self,name,label,hosttype="Other"):
         self.authenticate_user()
+        hostname = self.host_obj.search_by_name(name)
+        if(hostname):
+         Message.new(Debug="host"+name+"already exists").write(_logger)
+         return
         try:
             self.host_obj.create(
                  name,
@@ -450,14 +454,15 @@ class CoprHDCLIDriver(object):
            self.hostinitiator_obj.create(sync,hostlabel,protocol,initiatorwwn,portwwn,initname)
         except utils.SOSError as e:
              print e
-             Message.new(Debug="Host Creation Failed").write(_logger)
+             Message.new(Debug="Add Initiator Failed").write(_logger)
     def create_network(self,name,nwtype):
         self.authenticate_user()
         try:
-            self.authenticate_user()
-            self.network_obj.create(
-                name,
-                nwtype)
+            networkId = self.network_obj.query_by_name(name)
+            if(networkId):
+             Message.new(Debug="Network Already Exists").write(_logger)
+            else: 
+             self.network_obj.create(name,nwtype)
             varray_uri = self.varray_obj.varray_list()
             storage_ports = self.varray_obj.list_storageports(self.varray)
             storagesystem_name = []
@@ -478,9 +483,7 @@ class CoprHDCLIDriver(object):
                     if port[0]=='i':
                        try:
                           port_list.append(port)
-                          self.network_obj.add_endpoint(
-                            name,
-                            endpoint=port)
+                          self.network_obj.add_endpoint(name,endpoint=port)
                        except utils.SOSError as e:
                           if e.err_code==utils.SOSError.ENTRY_ALREADY_EXISTS_ERR:
                              continue
@@ -494,7 +497,6 @@ class CoprHDCLIDriver(object):
                     host_port = host_port.split('\n')[0]
                   self.network_obj.add_endpoint(name,endpoint=host_port)
                   break
-
         except utils.SOSError as e:
            print e
            if(e.err_code == utils.SOSError.ENTRY_ALREADY_EXISTS_ERR):

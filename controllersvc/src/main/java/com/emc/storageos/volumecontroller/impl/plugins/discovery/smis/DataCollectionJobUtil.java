@@ -550,6 +550,9 @@ public class DataCollectionJobUtil {
             accessProfile.setPassword(storageDevice.getPassword());
             accessProfile.setPortNumber(storageDevice.getPortNumber());
             accessProfile.setLastSampleTime(0L);
+            if (null != nameSpace) {
+                accessProfile.setnamespace(nameSpace);
+            }
         } else {
             throw new RuntimeException("populateAccessProfile: Device type unknown : "
                     + storageDevice.getSystemType());

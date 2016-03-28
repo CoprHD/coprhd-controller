@@ -8,18 +8,18 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
-import com.emc.storageos.storagedriver.BlockStorageDriver;
-import com.emc.storageos.storagedriver.model.StorageHostComponent;
 import org.apache.commons.lang.mutable.MutableBoolean;
 import org.apache.commons.lang.mutable.MutableInt;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.storagedriver.AbstractStorageDriver;
+import com.emc.storageos.storagedriver.BlockStorageDriver;
 import com.emc.storageos.storagedriver.DriverTask;
 import com.emc.storageos.storagedriver.RegistrationData;
 import com.emc.storageos.storagedriver.model.ITL;
 import com.emc.storageos.storagedriver.model.Initiator;
+import com.emc.storageos.storagedriver.model.StorageHostComponent;
 import com.emc.storageos.storagedriver.model.StorageObject;
 import com.emc.storageos.storagedriver.model.StoragePool;
 import com.emc.storageos.storagedriver.model.StoragePort;
@@ -541,6 +541,24 @@ public class StorageDriverSimulator extends AbstractStorageDriver implements Blo
 
     @Override
     public DriverTask getStorageVolumes(StorageSystem storageSystem, List<StorageVolume> storageVolumes, MutableInt token) {
+
+        // create set of native volumes for our storage pools
+        for (int vol = 0; vol < 3; vol ++) {
+            StorageVolume driverVolume = new StorageVolume();
+            driverVolume.setStorageSystemId(storageSystem.getNativeId());
+            driverVolume.setStoragePoolId("pool-1234577-" + token.intValue() + storageSystem.getNativeId());
+            driverVolume.setNativeId("driverSimulatorVolume-1234567-"+token.intValue()+ "-"+vol);
+            driverVolume.setAccessStatus(StorageVolume.AccessStatus.READ_WRITE);
+            driverVolume.setThinlyProvisioned(true);
+            driverVolume.setThinVolumePreAllocationSize(3000L);
+            driverVolume.setProvisionedCapacity(100000L);
+            driverVolume.setAllocatedCapacity(50000L);
+            driverVolume.setDeviceLabel(driverVolume.getNativeId());
+            driverVolume.setWwn(String.format("%s%s", driverVolume.getStorageSystemId(), driverVolume.getNativeId()));
+            storageVolumes.add(driverVolume);
+            _log.info("Unmanaged volume info: pool {}, volume {}", driverVolume.getStoragePoolId(), driverVolume);
+        }
+
         String taskType = "create-storage-volumes";
 
         String taskId = String.format("%s+%s+%s", DRIVER_NAME, taskType, UUID.randomUUID().toString());
@@ -551,7 +569,11 @@ public class StorageDriverSimulator extends AbstractStorageDriver implements Blo
         _log.info("StorageDriver: get storage volumes information for storage system {}, token  {} - end",
                 storageSystem.getNativeId(), token);
         // set next value
-        token.setValue(0); // tbd
+        if (token.intValue() < 2) {
+            token.setValue(token.intValue() + 1);
+        } else {
+            token.setValue(0); // last page
+        }
         return task;
     }
 

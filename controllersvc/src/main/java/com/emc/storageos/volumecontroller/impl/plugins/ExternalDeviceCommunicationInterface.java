@@ -10,7 +10,6 @@ import static com.emc.storageos.db.client.util.CustomQueryUtility.queryActiveRes
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -18,9 +17,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import com.emc.storageos.db.client.model.StorageHADomain;
-import com.emc.storageos.volumecontroller.impl.externaldevice.ExternalDeviceUnManagedVolumeDiscoverer;
-import com.emc.storageos.xtremio.restapi.errorhandling.XtremIOApiException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -28,6 +24,7 @@ import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.Network;
+import com.emc.storageos.db.client.model.StorageHADomain;
 import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
@@ -47,6 +44,7 @@ import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
 import com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator;
 import com.emc.storageos.volumecontroller.impl.StoragePortAssociationHelper;
 import com.emc.storageos.volumecontroller.impl.externaldevice.ExternalDeviceCollectionException;
+import com.emc.storageos.volumecontroller.impl.externaldevice.ExternalDeviceUnManagedVolumeDiscoverer;
 import com.emc.storageos.volumecontroller.impl.plugins.metering.smis.processor.MetricsKeys;
 import com.emc.storageos.volumecontroller.impl.utils.DiscoveryUtils;
 

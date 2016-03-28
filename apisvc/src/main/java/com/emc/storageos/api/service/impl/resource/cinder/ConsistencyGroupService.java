@@ -169,9 +169,8 @@ public class ConsistencyGroupService extends AbstractConsistencyGroupService {
                     .createId(BlockConsistencyGroup.class));
             consistencyGroup.setLabel(param.consistencygroup.name);
             consistencyGroup.setProject(new NamedURI(project.getId(),
-                    param.consistencygroup.name));
-            consistencyGroup.setTenant(new NamedURI(project.getTenantOrg()
-                    .getURI(), param.consistencygroup.name));
+                    project.getLabel()));
+            consistencyGroup.setTenant(project.getTenantOrg());
             consistencyGroup.setCreationTime(Calendar.getInstance());
             ScopedLabelSet tagSet = new ScopedLabelSet();
             consistencyGroup.setTag(tagSet);

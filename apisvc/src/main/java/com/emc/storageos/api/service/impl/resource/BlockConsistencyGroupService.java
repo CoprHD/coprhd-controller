@@ -271,8 +271,8 @@ public class BlockConsistencyGroupService extends TaskResourceService {
         final BlockConsistencyGroup consistencyGroup = new BlockConsistencyGroup();
         consistencyGroup.setId(URIUtil.createId(BlockConsistencyGroup.class));
         consistencyGroup.setLabel(param.getName());
-        consistencyGroup.setProject(new NamedURI(project.getId(), param.getName()));
-        consistencyGroup.setTenant(new NamedURI(project.getTenantOrg().getURI(), param.getName()));
+        consistencyGroup.setProject(new NamedURI(project.getId(), project.getLabel()));
+        consistencyGroup.setTenant(project.getTenantOrg());
         // disable array consistency if user has selected not to create backend replication group
         consistencyGroup.setArrayConsistency(param.getArrayConsistency());
 

@@ -348,7 +348,7 @@ public class RecoverPointVolumeIngestionContext extends BlockVolumeIngestionCont
         // commit the BlockConsistencyGroup, if created
         if (null != getManagedBlockConsistencyGroup()) {
             if (!_managedBcgWasCreatedByAnotherContext) {
-                _logger.info("Creating BlockConsistencyGroup {} (hash {})", 
+                _logger.info("Creating BlockConsistencyGroup {} (hash {})" + 
                         _managedBlockConsistencyGroup.forDisplay(), _managedBlockConsistencyGroup.hashCode());
                 _dbClient.createObject(_managedBlockConsistencyGroup);
             }

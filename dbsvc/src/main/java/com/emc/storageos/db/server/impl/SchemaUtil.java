@@ -992,6 +992,9 @@ public class SchemaUtil {
                         @Override
                         public String internalExecute(Cassandra.Client client, ConnectionContext context) throws Exception {
                             client.set_keyspace(_keyspaceName);
+                            // This method can be retried several times, so server may already have received the 'creating CF' request
+                            // and created the CF, we check the existence of the CF first before issuing another 'creating CF' request
+                            // which will cause the 'CF already exists' exception
                             KsDef kd = client.describe_keyspace(_keyspaceName);
                             List<CfDef> cfs = kd.getCf_defs();
                             for (CfDef cf : cfs) {

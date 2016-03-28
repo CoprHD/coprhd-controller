@@ -45,8 +45,6 @@ public class DrSiteNetworkMonitor implements Runnable {
     private final Waiter waiter = new Waiter();
 
     private static final int NETWORK_MONITORING_INTERVAL = 60; // in seconds
-    public static final String ZOOKEEPER_MODE_LEADER = "leader";
-    public static final String ZOOKEEPER_MODE_STANDALONE = "standalone";
 
     private static final int SOCKET_TEST_PORT = 443;
     private static final int NETWORK_SLOW_THRESHOLD = 150;
@@ -109,10 +107,7 @@ public class DrSiteNetworkMonitor implements Runnable {
         
         //Only leader on active site will test ping
         String zkState = drUtil.getLocalCoordinatorMode(myNodeId);
-        if (ZOOKEEPER_MODE_LEADER.equals(zkState))  {
-            return true;
-        }
-        return false;
+        return DrUtil.ZOOKEEPER_MODE_LEADER.equals(zkState);
     }
 
     private void checkPing() {

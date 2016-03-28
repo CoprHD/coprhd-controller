@@ -483,20 +483,21 @@ public abstract class VdcOpHandler {
                 retrySleep();
             }
 
-            String state = drUtil.getLocalCoordinatorMode(coordinator.getMyNodeId());
-            if (DrUtil.ZOOKEEPER_MODE_READONLY.equals(state)) {
+            String localZkMode = drUtil.getLocalCoordinatorMode(coordinator.getMyNodeId());
+            if (DrUtil.ZOOKEEPER_MODE_READONLY.equals(localZkMode)) {
                 coordinator.reconfigZKToWritable();
             }
 
             Site localSite = drUtil.getLocalSite();
-            if (localSite.getState().equals(SiteState.STANDBY_PAUSING)) {
+            if (localSite.getState() == SiteState.STANDBY_PAUSING && DrUtil.ZOOKEEPER_MODE_LEADER.equals(localZkMode)) {
                 localSite.setState(SiteState.STANDBY_PAUSED);
                 log.info("Updating local site state to STANDBY_PAUSED");
                 coordinator.getCoordinatorClient().persistServiceConfiguration(localSite.toConfiguration());
+                // start checking network states of other DR sites for potential failover requests.
                 coordinator.rescheduleDrSiteNetworkMonitor();
 
                 for (Site standby : drUtil.listStandbySites()) {
-                    if (SiteState.STANDBY_PAUSING.equals(standby.getState())) {
+                    if (standby.getState() == SiteState.STANDBY_PAUSING) {
                         // standby sites that are paused at the same time also block each other
                         standby.setState(SiteState.STANDBY_PAUSED);
                         log.info("Updating state of site {} to STANDBY_PAUSED", standby.getUuid());

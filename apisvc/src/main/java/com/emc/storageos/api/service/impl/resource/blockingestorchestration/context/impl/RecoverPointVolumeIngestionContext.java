@@ -356,7 +356,8 @@ public class RecoverPointVolumeIngestionContext extends BlockVolumeIngestionCont
 
         for (Entry<ExportGroup, Boolean> entry : getRpExportGroupMap().entrySet()) {
             ExportGroup exportGroup = entry.getKey();
-            if (entry.getValue()) {
+            boolean exportGroupIsCreated = entry.getValue();
+            if (exportGroupIsCreated) {
                 _logger.info("Creating ExportGroup {} (hash {})", exportGroup.forDisplay(), exportGroup.hashCode());
                 _dbClient.createObject(exportGroup);
             } else {

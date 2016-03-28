@@ -5,17 +5,16 @@
 
 package com.emc.storageos.systemservices.impl.propertyhandler;
 
-import com.emc.storageos.services.util.TimeUtils;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.emc.storageos.services.util.TimeUtils;
 import com.emc.storageos.management.backup.BackupConstants;
 import com.emc.storageos.model.property.PropertyInfoRestRep;
 import com.emc.storageos.svcs.errorhandling.resources.BadRequestException;
 import com.emc.storageos.systemservices.impl.jobs.backupscheduler.ScheduleTimeRange;
 import com.emc.storageos.systemservices.impl.jobs.backupscheduler.ScheduleTimeRange.ScheduleInterval;
-
-import javax.activation.UnsupportedDataTypeException;
 
 /**
  * This class serves as an extra validator for the backup related properties
@@ -90,7 +89,7 @@ public class BackupConfigurationHandler extends DefaultUpdateHandler {
         }
 
         // Format is ...dddHHmm
-        startTime = Integer.parseInt(startTimeStr);
+        this.startTime = Integer.parseInt(startTimeStr);
         if (this.startTime < 0) {
             _log.error("The backup start time parsed from string({}) is invalid", startTime, startTimeStr);
             throw BadRequestException.badRequests.backupStartTimeIsInvalid(startTimeStr);

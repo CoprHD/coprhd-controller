@@ -46,7 +46,7 @@ _usage() {
     echo "   or: $0 --reload ntp|ssh|connectemc" >&2
     echo "   or: $0 --reconfig-coordinator observer|participant" >&2
     echo "   or: $0 --remote-systool node_id command parameter" >&2
-    echo "   or: $0 --dhparam generate dhparam" >&2
+    echo "   or: $0 --dhparam"  >&2
     echo "   or: $0 --test"             >&2
     exit 2
 }
@@ -446,12 +446,13 @@ _gen_dhparam() {
     [ -f ${bootfs_dhparam} ] && openssl dhparam -in ${bootfs_dhparam} -check &>/dev/null && return 0
     openssl dhparam -out ${tmp_dhparam} 2048
     _x _store_dhparam ${tmp_dhparam}
-    rm -rf ${1} &>/dev/null
+    rm -rf ${tmp_dhparam} &>/dev/null
 }
 
 _store_dhparam() {
     _bootfs_mount_rw
     [ -f ${1} ] && openssl dhparam -in ${tmp_dhparam} -check && /usr/bin/cp ${1} ${bootfs_dhparam}
+    chmod 600 ${bootfs_dhparam}
 }
 
 # 

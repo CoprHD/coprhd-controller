@@ -32,6 +32,7 @@ _gen_dhparam() {
     else
        /usr/bin/cp ${dhparam_default} ${dhparam_nginx}
     fi
+    chmod 600 ${dhparam_nginx} 
     _genconfig_done
 }
 

@@ -12,21 +12,13 @@
 
 key_file="/opt/storageos/conf/storageos.key"
 crt_file="/opt/storageos/conf/storageos.crt"
-
-dhparam_real=/.volumes/bootfs/etc/dhparam
-dhparam_default=/opt/storageos/conf/dhparam.dft
-dhparam_nginx=/etc/nginx/dhparam.pem
+dhparam_file="/etc/nginx/dhparam.pem"
 
 # exit 0 to avoid systemd keeps restarting if key file is not generated 
 # during fresh install
 test -s ${key_file} || { echo "The file ${key_file} doesn't exist"; exit 0; }
 test -s ${crt_file} || { echo "The file ${crt_file} doesn't exist"; exit 0; }
-
-if [[ -f  ${dhparam_real} ]]; then
-   /usr/bin/cp ${dhparam_real} ${dhparam_nginx}
-else
-   /usr/bin/cp ${dhparam_default} ${dhparam_nginx}
-fi
+test -s ${dhparam_file} || { echo "The file ${dhparam_file} doesn't exist"; exit 0; }
 
 exec "${@}"
 exit 0

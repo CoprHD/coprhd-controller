@@ -2868,6 +2868,9 @@ public interface BadRequestExceptions {
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException backupIntervalIsInvalid(String interval);
 
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException backupStartTimeIsInvalid(String startTime);
+
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException invalidPermissionForBucketACL(String permission);
 

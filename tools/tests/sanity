@@ -7965,6 +7965,10 @@ dr_multisite_tests()
     echo "wait for site to become STANDBY_PAUSED before failover"
     dr waitforstate $active_site STANDBY_PAUSED 30 1200
 
+    # COP-20918
+    echo "Sleep 1m before failover"
+    sleep 60
+
     time_start failover_standby_a
     echo "Failover to promote site $DR_SITE_A_NAME as active"
     dr failover --ip "${DR_SITE_A_IP}" $active_site || { echo "failover to site $DR_SITE_A_NAME failed."; exit 1; }

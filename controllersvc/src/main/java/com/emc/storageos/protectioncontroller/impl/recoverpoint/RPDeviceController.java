@@ -2040,6 +2040,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
      *
      * @param rpSystem protection system
      * @param volumeIDs volume IDs
+     * @param journalVolumeIDs Volume IDs of journals
      * @param token task ID
      * @return true if successful
      * @throws ControllerException

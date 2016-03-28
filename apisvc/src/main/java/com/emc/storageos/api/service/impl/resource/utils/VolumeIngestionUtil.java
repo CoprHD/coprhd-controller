@@ -1330,7 +1330,7 @@ public class VolumeIngestionUtil {
                 cg.setId(URIUtil.createId(BlockConsistencyGroup.class));
                 cg.setLabel(cgName);
                 cg.setProject(new NamedURI(project.getId(), project.getLabel()));
-                cg.setTenant(new NamedURI(tenant.getId(), tenant.getLabel()));
+                cg.setTenant(project.getTenantOrg());
                 cg.setArrayConsistency(false);
                 cg.addConsistencyGroupTypes(Types.VPLEX.name());
                 cg.setStorageController(storageSystem.getId());
@@ -3777,9 +3777,7 @@ public class VolumeIngestionUtil {
         _logger.info("UnManagedVolume {} is added to consistency group {}",
                 unManagedVolume.getLabel(), cgName);
         URI projectUri = context.getProject().getId();
-        String projectName = context.getProject().getLabel();
         URI tenantUri = context.getTenant().getId();
-        String tenantName = context.getTenant().getLabel();
         URI varrayUri = context.getVarray(unManagedVolume).getId();
         VirtualPool vpool = context.getVpool(unManagedVolume);
         if (!vpool.getMultivolumeConsistency()) {
@@ -3830,8 +3828,8 @@ public class VolumeIngestionUtil {
             BlockConsistencyGroup cg = new BlockConsistencyGroup();
             cg.setId(URIUtil.createId(BlockConsistencyGroup.class));
             cg.setLabel(cgName);
-            cg.setProject(new NamedURI(projectUri, projectName));
-            cg.setTenant(new NamedURI(tenantUri, tenantName));
+            cg.setProject(new NamedURI(projectUri, context.getProject().getLabel()));
+            cg.setTenant(context.getProject().getTenantOrg());
             cg.addConsistencyGroupTypes(Types.LOCAL.name());
             cg.addSystemConsistencyGroup(storageSystem.getId().toString(), cgName);
             cg.setStorageController(storageSystem.getId());

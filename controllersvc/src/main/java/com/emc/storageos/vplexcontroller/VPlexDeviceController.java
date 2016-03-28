@@ -11092,14 +11092,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                             vplexVolume.getId(), null, null);
                 }
 
-                // Now create a workflow step to natively restore the backend
-                // volume. We execute this after the invalidate cache. We
-                // could execute these in parallel for a little better efficiency,
-                // but what if the invalidate cache fails, but the restore succeeds,
-                // the cache now has invalid data and a cache read hit could return
-                // invalid data.
-                waitFor = createWorkflowStepForRestoreNativeSnapshotSession(workflow, snapSessionSystem,
-                        snapSessionURI, waitFor, null);
+
 
                 // Create the pre/post RP steps if necessary.
                 if (isRP) {
@@ -11110,9 +11103,27 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                     // in the workflow.
                     waitFor = createWorkflowStepForDeleteReplicationSet(workflow, rpSystem, vplexVolumes, waitFor);
 
+                    // Now create a workflow step to natively restore the backend
+                    // volume. We execute this after the invalidate cache. We
+                    // could execute these in parallel for a little better efficiency,
+                    // but what if the invalidate cache fails, but the restore succeeds,
+                    // the cache now has invalid data and a cache read hit could return
+                    // invalid data.
+                    waitFor = createWorkflowStepForRestoreNativeSnapshotSession(workflow, snapSessionSystem,
+                            snapSessionURI, waitFor, null);
+
                     // Create the post restore step, which will be the last step executed
                     // in the workflow after the volume shave been rebuilt.
                     createWorkflowStepForRecreateReplicationSet(workflow, rpSystem, vplexVolumes, waitFor);
+                } else {
+                    // Now create a workflow step to natively restore the backend
+                    // volume. We execute this after the invalidate cache. We
+                    // could execute these in parallel for a little better efficiency,
+                    // but what if the invalidate cache fails, but the restore succeeds,
+                    // the cache now has invalid data and a cache read hit could return
+                    // invalid data.
+                    waitFor = createWorkflowStepForRestoreNativeSnapshotSession(workflow, snapSessionSystem,
+                            snapSessionURI, waitFor, null);
                 }
             } else {
                 // Create the steps that need to be executed on each VPLEX volume.

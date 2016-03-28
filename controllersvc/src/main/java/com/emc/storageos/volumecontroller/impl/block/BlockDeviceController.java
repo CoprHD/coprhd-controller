@@ -3427,8 +3427,15 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
             // if number of clones more than 1 we need to use createListReplica
             if (isCG || fullCopyVolumes.size() > 1) {
                 boolean isListReplicaFlow = false;
-                StorageSystem storageObj = _dbClient.queryObject(StorageSystem.class, storage);
                 Volume sourceVolumeObj = _dbClient.queryObject(Volume.class, sourceVolume);
+                
+                // take a lock on the group and storage system to prevent two clones of the same group from being
+                // created at the same time
+                if (NullColumnValueGetter.isNotNullValue(sourceVolumeObj.getReplicationGroupInstance())) {
+                    List<String> lockKeys = new ArrayList<>();
+                    lockKeys.add(ControllerLockingUtil.getReplicationGroupStorageKey(_dbClient, sourceVolumeObj.getReplicationGroupInstance(), storage));
+                    _workflowService.acquireWorkflowStepLocks(taskId, lockKeys, LockTimeoutValue.get(LockType.ARRAY_CG));
+                }
 
                 /**
                  * VPLEX/RP CG volumes may not be having back end Array Group.

@@ -416,7 +416,8 @@ public class RecoverPointVolumeIngestionContext extends BlockVolumeIngestionCont
         // the ExportGroup was created by this ingestion
         // process, make sure it gets cleaned up
         for (Entry<ExportGroup, Boolean> entry : getRpExportGroupMap().entrySet()) {
-            if (entry.getValue()) {
+            boolean exportGroupIsCreated = entry.getValue();
+            if (exportGroupIsCreated) {
                 _dbClient.markForDeletion(entry.getKey());
             }
         }

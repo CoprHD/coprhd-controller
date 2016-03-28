@@ -9,6 +9,7 @@ import static com.emc.storageos.api.mapper.BucketMapper.map;
 import static com.emc.storageos.api.mapper.TaskMapper.toTask;
 
 import java.net.URI;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
@@ -637,6 +638,10 @@ public class BucketService extends TaskResourceService {
     }
     
     private void syncBucketACL(Bucket bucket) throws InternalException {
+        
+        // Make sure that we don't have some pending
+        // operation against the bucket
+        checkForPendingTasks(Arrays.asList(bucket.getTenant().getURI()), Arrays.asList(bucket));
 
         StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, bucket.getStorageDevice());
         ObjectController controller = getController(ObjectController.class, storageSystem.getSystemType());

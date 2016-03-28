@@ -853,19 +853,20 @@ class Fileshare(object):
         self.isTimeout = True
 
     # Blocks the opertaion until the task is complete/error out/timeout
-    def check_for_sync(self, result, sync,synctimeout=0):
+    def check_for_sync(self, result, sync, synctimeout=0):
         if(sync):
-            if(len(result["resource"]) > 0):
-                resource = result["resource"]
-                return (
-                    common.block_until_complete("fileshare", resource["id"],
-                                                result["id"], self.__ipAddr,
-                                                self.__port,synctimeout)
-                )
-            else:
-                raise SOSError(
-                    SOSError.SOS_FAILURE_ERR,
-                    "error: task list is empty, no task response found")
+            if 'resource' in result :
+                if(len(result["resource"]) > 0):
+                    resource = result["resource"]
+                    return (
+                        common.block_until_complete("fileshare", resource["id"],
+                                                    result["id"], self.__ipAddr,
+                                                    self.__port,synctimeout)
+                    )
+                else:
+                    raise SOSError(
+                        SOSError.SOS_FAILURE_ERR,
+                        "error: task list is empty, no task response found")
         else:
             return result
 
@@ -3205,7 +3206,7 @@ def schedule_snapshots_list(args):
         res = obj.schedule_snapshots_list(args.tenant + "/" + args.project + "/" + args.name,
                       args.polname,
                       args.tenant, policyid)
-        return res
+        return common.format_json_object(res)
     except SOSError as e:
         common.format_err_msg_and_raise("fileshare", "schedule snapshots",
                                         e.err_text, e.err_code)

@@ -940,7 +940,7 @@ disasterRecovery.sync.status.synced=Data is synchronized with active site
 disasterRecovery.sync.status.lastSyncTime=Last time synchronized with active site is
 disasterRecovery.networkLatencyInMs=Latency (ms)
 disasterRecovery.networkLatency.notAvailable=Not Available
-disasterRecovery.cluster.state=Cluster State
+disasterRecovery.cluster.state=Controller Status
 disasterRecovery.switchover.failed.instruction=Please contact an administrator or EMC Support
 disasterRecovery.site.creation.time=Site Creation Time
 

@@ -27,6 +27,11 @@ public enum SiteState {
         public boolean isDROperationOngoing() {
             return true;
         }
+
+        @Override
+        public String getDRAction() {
+            return SiteInfo.DR_OP_SWITCHOVER;
+        }
     },
 
     /**
@@ -36,6 +41,11 @@ public enum SiteState {
         @Override
         public boolean isDROperationOngoing() {
             return true;
+        }
+
+        @Override
+        public String getDRAction() {
+            return SiteInfo.DR_OP_FAILOVER;
         }
     },
     
@@ -56,6 +66,11 @@ public enum SiteState {
         @Override
         public boolean isDROperationOngoing() {
             return true;
+        }
+
+        @Override
+        public String getDRAction() {
+            return SiteInfo.DR_OP_ADD_STANDBY;
         }
     },
 
@@ -87,6 +102,11 @@ public enum SiteState {
         public boolean isDROperationOngoing() {
             return true;
         }
+
+        @Override
+        public String getDRAction() {
+            return SiteInfo.DR_OP_PAUSE_STANDBY;
+        }
     },
 
     /**
@@ -106,6 +126,11 @@ public enum SiteState {
         @Override
         public boolean isDROperationOngoing() {
             return true;
+        }
+
+        @Override
+        public String getDRAction() {
+            return SiteInfo.DR_OP_DEGRADE_STANDBY;
         }
     },
 
@@ -137,6 +162,11 @@ public enum SiteState {
         public boolean isDROperationOngoing() {
             return true;
         }
+
+        @Override
+        public String getDRAction() {
+            return SiteInfo.DR_OP_SWITCHOVER;
+        }
     },
 
     /**
@@ -146,6 +176,11 @@ public enum SiteState {
         @Override
         public boolean isDROperationOngoing() {
             return true;
+        }
+
+        @Override
+        public String getDRAction() {
+            return SiteInfo.DR_OP_FAILOVER;
         }
     },
 
@@ -157,6 +192,11 @@ public enum SiteState {
         public boolean isDROperationOngoing() {
             return true;
         }
+
+        @Override
+        public String getDRAction() {
+            return SiteInfo.DR_OP_REMOVE_STANDBY;
+        }
     },
 
     /**
@@ -166,6 +206,11 @@ public enum SiteState {
         @Override
         public boolean isDROperationOngoing() {
             return true;
+        }
+
+        @Override
+        public String getDRAction() {
+            return SiteInfo.DR_OP_RESUME_STANDBY;
         }
     },
 
@@ -195,4 +240,8 @@ public enum SiteState {
      * @return True if there is a DR Operation ongoing, false otherwise
      */
     public abstract boolean isDROperationOngoing();
+
+    public String getDRAction() {
+        return SiteInfo.NONE;
+    }
 }

@@ -33,6 +33,7 @@
             <list value-type="java.lang.String">
                 <value>/data/db/1/commitlog</value>
                 <value>/data/db/1/saved_caches</value>
+                <value>/data/zk/peer2</value>
             </list>
         </property>
     </bean>

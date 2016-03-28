@@ -400,6 +400,10 @@ public abstract class VdcOpHandler {
             if (localSiteState.equals(SiteState.STANDBY_PAUSING) || localSiteState.equals(SiteState.STANDBY_PAUSED)) {
                 checkAndPauseOnStandby();
                 flushVdcConfigToLocal();
+                refreshIPsec();
+                refreshFirewall();
+                localRepository.restart(Constants.GEODBSVC_NAME);
+                localRepository.restart(Constants.DBSVC_NAME);
             } else {
                 reconfigVdc();
                 checkAndPauseOnActive();
@@ -489,6 +493,7 @@ public abstract class VdcOpHandler {
                 localSite.setState(SiteState.STANDBY_PAUSED);
                 log.info("Updating local site state to STANDBY_PAUSED");
                 coordinator.getCoordinatorClient().persistServiceConfiguration(localSite.toConfiguration());
+                coordinator.rescheduleDrSiteNetworkMonitor();
 
                 for (Site standby : drUtil.listStandbySites()) {
                     if (SiteState.STANDBY_PAUSING.equals(standby.getState())) {

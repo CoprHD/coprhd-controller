@@ -199,7 +199,7 @@ public class TypeService extends TaskResourceService {
     public Response deleteVolumeType(@PathParam("tenant_id") String openstackTenantId,
     		@PathParam("volume_type_id") String volumeTypeId) {
         _log.info("VolumeType deletion is not supported");
-        return CinderApiUtils.createErrorResponse(400, "Bad Request : Unable to delete volumetype");
+        return CinderApiUtils.createErrorResponse(400, "Bad Request : Delete volume type not supported");
     }    
    
     /**

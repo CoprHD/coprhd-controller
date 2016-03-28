@@ -81,11 +81,13 @@ import com.emc.storageos.systemservices.exceptions.SyssvcException;
 import com.emc.storageos.systemservices.impl.SysSvcBeaconImpl;
 import com.emc.storageos.systemservices.impl.client.SysClientFactory;
 import com.emc.storageos.systemservices.impl.client.SysClientFactory.SysClient;
+import com.emc.storageos.systemservices.impl.util.DrSiteNetworkMonitor;
 import com.emc.storageos.systemservices.impl.vdc.DbsvcQuorumMonitor;
 import com.emc.vipr.model.sys.ClusterInfo;
 import com.emc.vipr.model.sys.ClusterInfo.ClusterState;
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableSet;
+import org.springframework.beans.factory.annotation.Autowired;
 
 public class CoordinatorClientExt {
     private static final Logger _log = LoggerFactory.getLogger(CoordinatorClientExt.class);
@@ -125,6 +127,9 @@ public class CoordinatorClientExt {
     
     private DbServiceStatusChecker statusChecker = null;
     private boolean backCompatPreYoda = true;
+
+    @Autowired
+    private DrSiteNetworkMonitor drSiteNetworkMonitor;
     
     public CoordinatorClient getCoordinatorClient() {
         return _coordinator;
@@ -1490,6 +1495,10 @@ public class CoordinatorClientExt {
             exe.scheduleAtFixedRate(new DbsvcQuorumMonitor(getMyNodeId(), _coordinator, dbCommonInfo)
                     , 0, DB_MONITORING_INTERVAL, TimeUnit.SECONDS);
         }
+
+        Thread drNetworkMonitorThread = new Thread(drSiteNetworkMonitor);
+        drNetworkMonitorThread.setName("DrSiteNetworkMonitor");
+        drNetworkMonitorThread.start();
     }
 
     public void stopCoordinatorSvcMonitor() {
@@ -1500,6 +1509,11 @@ public class CoordinatorClientExt {
     public void startCoordinatorSvcMonitor() {
         stopCoordinatorSvcMonitor = false;
         _log.info("coordinatorsvc monitor thread started");
+    }
+
+    public void rescheduleDrSiteNetworkMonitor() {
+        drSiteNetworkMonitor.wakeup();
+        _log.info("drSiteNetworkMonitor rescheduled");
     }
     
     /**
@@ -1576,6 +1590,7 @@ public class CoordinatorClientExt {
                         localSite.getState());
                 localSite.setState(SiteState.STANDBY_PAUSED);
                 _coordinator.persistServiceConfiguration(localSite.toConfiguration());
+                rescheduleDrSiteNetworkMonitor();
             } else if (SiteState.STANDBY_SYNCING.equals(localSite.getState()) ||
                     SiteState.STANDBY_RESUMING.equals(localSite.getState()) ||
                     SiteState.STANDBY_ADDING.equals(localSite.getState())){

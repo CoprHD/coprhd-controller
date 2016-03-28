@@ -107,7 +107,7 @@ public class NetappMirrorFileOperations implements FileMirrorOperations {
     @Override
     public void pauseMirrorFileShareLink(StorageSystem system, FileShare target, TaskCompleter completer) throws DeviceControllerException {
 
-        _log.info("Calling NetappMirrorFileOperations - pauseMirrorFileShareLink on destination {} - complete ",
+        _log.info("Calling NetappMirrorFileOperations - pauseMirrorFileShareLink on destination {} - start ",
                 target.getName());
 
         StorageSystem targetStorageSystem = _dbClient.queryObject(StorageSystem.class, target.getStorageDevice());
@@ -128,10 +128,10 @@ public class NetappMirrorFileOperations implements FileMirrorOperations {
     @Override
     public void resumeMirrorFileShareLink(StorageSystem system, FileShare target, TaskCompleter completer) throws DeviceControllerException {
 
-        _log.info("Calling NetappMirrorFileOperations - resumeMirrorFileShareLink on destination {} - complete ",
+        StorageSystem targetStorageSystem = _dbClient.queryObject(StorageSystem.class, target.getStorageDevice());
+        _log.info("Calling NetappMirrorFileOperations - resumeMirrorFileShareLink on destination {} - start",
                 target.getName());
-
-        BiosCommandResult cmdResult = doResumeSnapMirror(system, target, completer);
+        BiosCommandResult cmdResult = doResumeSnapMirror(targetStorageSystem, target, completer);
 
         if (cmdResult.getCommandSuccess()) {
             completer.ready(_dbClient);

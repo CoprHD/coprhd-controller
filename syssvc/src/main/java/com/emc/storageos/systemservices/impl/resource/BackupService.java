@@ -704,17 +704,27 @@ public class BackupService {
     }
 
     private boolean canDoRestore(String backupName, boolean isLocal) {
+        log.info("precheck of restore: {}", backupName);
+
+        if (backupOps.hasStandbySites()) {
+            String errmsg = "Please remove all standby sites before restore";
+            setRestoreFailed(backupName, isLocal, errmsg, null);
+            return false;
+        }
+
         BackupRestoreStatus s = backupOps.queryBackupRestoreStatus(backupName, isLocal);
-        log.info("{} : {}", backupName, s);
+        log.info("Status:{}", s);
 
         BackupRestoreStatus.Status status = s.getStatus();
         if (isLocal && status == BackupRestoreStatus.Status.RESTORING) {
-            log.info("The restore from the {} is in progress");
+            String errmsg = String.format("The restore from the %s is in progress", backupName);
+            setRestoreFailed(backupName, isLocal, errmsg, null);
             return false;
         }
 
         if (!isLocal && status != BackupRestoreStatus.Status.DOWNLOAD_SUCCESS) {
-            log.info("The restore from the remote {} is in {} status so can't be restored", status);
+            String errmsg = String.format("The backup %s is not downloaded successfully", backupName);
+            setRestoreFailed(backupName, isLocal, errmsg, null);
             return false;
         }
 

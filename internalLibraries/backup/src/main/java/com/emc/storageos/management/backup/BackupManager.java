@@ -375,6 +375,7 @@ public class BackupManager implements BackupManagerMBean {
 
     @Override
     public BackupInfo queryBackupInfo(String backupName) {
+        log.info("To query backup {}", backupName);
         checkBackupDir();
         BackupInfo backupInfo = new BackupInfo();
         backupInfo.setBackupName(backupName);
@@ -382,7 +383,8 @@ public class BackupManager implements BackupManagerMBean {
 
         File backupDir = new File(backupRootDir, backupName);
         if (!backupDir.isDirectory()) {
-            return null;
+            log.error("The {} is not a directory", backupDir.getAbsolutePath());
+            return backupInfo;
         }
 
         File[] backupFiles = backupDir.listFiles(new FilenameFilter() {
@@ -393,7 +395,8 @@ public class BackupManager implements BackupManagerMBean {
         });
 
         if (backupFiles == null || backupFiles.length == 0) {
-            return null;
+            log.info("The {} has no backup files", backupDir.getAbsolutePath());
+            return backupInfo;
         }
 
         long size = 0;
@@ -405,7 +408,7 @@ public class BackupManager implements BackupManagerMBean {
                     ops.setBackupInfo(backupInfo, backupName, in);
                 }catch (IOException e) {
                     log.error("Failed to read info file {}", file.getAbsolutePath());
-                    return null;
+                    return backupInfo;
                 }
             }
             size += file.length();

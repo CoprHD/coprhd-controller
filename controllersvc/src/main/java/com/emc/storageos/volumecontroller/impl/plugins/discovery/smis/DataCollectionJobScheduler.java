@@ -378,7 +378,7 @@ public class DataCollectionJobScheduler {
                         continue;
                     }
                     // check devices managed by SMIS/hicommand/vplex device mgr has ActiveProviderURI or not.
-                    if (systemObj.storageSystemHasProvider()) {
+                    if (systemObj.isStorageSystemManagedByProvider()) {
                         if (systemObj.getActiveProviderURI() == null
                                 || NullColumnValueGetter.getNullURI().equals(systemObj.getActiveProviderURI())) {
                             _logger.info("Skipping {} Job : StorageSystem {} does not have an active provider",

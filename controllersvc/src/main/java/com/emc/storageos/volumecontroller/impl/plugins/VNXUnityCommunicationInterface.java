@@ -1071,7 +1071,8 @@ public class VNXUnityCommunicationInterface extends
                 port.setPortNetworkId(node.getName());
                 port.setPortGroup(spIdStr);
                 port.setStorageHADomain(haDomainUri);
-                List<Integer> opstatus = eport.getOperationalStatus();
+		//FIXME:
+                /*List<Integer> opstatus = eport.getOperationalStatus();
                 Integer ok = 2;
                 if (opstatus.contains(ok)) {
                     port.setOperationalStatus(StoragePort.OperationalStatus.OK
@@ -1079,7 +1080,9 @@ public class VNXUnityCommunicationInterface extends
                 } else {
                     port.setOperationalStatus(StoragePort.OperationalStatus.NOT_OK
                             .name());
-                }
+                }*/
+		port.setOperationalStatus(StoragePort.OperationalStatus.OK
+                            .name());
                 VNXeIscsiPortal portal = node.getIscsiPortal();
                 if (portal != null) {
                     port.setIpAddress(portal.getIpAddress());

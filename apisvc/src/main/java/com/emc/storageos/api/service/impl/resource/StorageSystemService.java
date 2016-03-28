@@ -272,7 +272,7 @@ public class StorageSystemService extends TaskResourceService {
             ArgValidator.checkFieldValueFromSystemType(param.getSystemType(), "system_type",
                     Arrays.asList(StorageSystem.Type.vnxfile, StorageSystem.Type.isilon, StorageSystem.Type.rp,
                             StorageSystem.Type.netapp, StorageSystem.Type.netappc, StorageSystem.Type.vnxe,
-                            StorageSystem.Type.xtremio, StorageSystem.Type.ecs));
+                            StorageSystem.Type.xtremio, StorageSystem.Type.ecs, StorageSystem.Type.vnxunity));
         }
         StorageSystem.Type systemType = StorageSystem.Type.valueOf(param.getSystemType());
         if (systemType.equals(StorageSystem.Type.vnxfile)) {
@@ -997,7 +997,8 @@ public class StorageSystemService extends TaskResourceService {
                 || systemType.equals(StorageSystem.Type.vnxfile.toString())
                 || systemType.equals(StorageSystem.Type.netapp.toString())
                 || systemType.equals(StorageSystem.Type.netappc.toString())
-                || systemType.equals(StorageSystem.Type.vnxe.toString())) {
+                || systemType.equals(StorageSystem.Type.vnxe.toString())
+                || systemType.equals(StorageSystem.Type.vnxunity.toString())) {
             return FileController.class;
         } else if (systemType.equals(StorageSystem.Type.rp.toString())) {
             return RPController.class;
@@ -1949,6 +1950,15 @@ public class StorageSystemService extends TaskResourceService {
                 return true;
             }
         }
+        // VNX Unity storage system supports both block and file type unmanaged objects discovery
+        if (Type.vnxunity.toString().equalsIgnoreCase(storageSystem.getSystemType())) {
+            if (nameSpace.equalsIgnoreCase(Discovery_Namespaces.UNMANAGED_FILESYSTEMS.toString()) ||
+                    nameSpace.equalsIgnoreCase(Discovery_Namespaces.UNMANAGED_VOLUMES.toString()) ||
+                    nameSpace.equalsIgnoreCase(Discovery_Namespaces.ALL.toString())) {
+                return true;
+            }
+        }
+
 
         boolean isFileStorageSystem = storageSystem.storageSystemIsFile();
         if (isFileStorageSystem) {

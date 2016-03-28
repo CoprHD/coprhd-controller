@@ -32,6 +32,7 @@ public class KHClient {
     private URI _uri;
     private WebResource _resource;
     private Set<NewCookie> _cookie;
+    private boolean isUnity = false;
 
     public KHClient(String host, int port, String username, String password) {
 
@@ -55,6 +56,14 @@ public class KHClient {
 
     public KHClient(String host, String username, String password) {
         this(host, PORT, username, password);
+    }
+   
+    public KHClient(String host, int port, String username, String password, boolean isUnity) {
+        this(host, port, username, password);
+        this.isUnity = isUnity;
+    }
+    public boolean isUnity(){
+	return this.isUnity;
     }
 
     public WebResource getResource() {

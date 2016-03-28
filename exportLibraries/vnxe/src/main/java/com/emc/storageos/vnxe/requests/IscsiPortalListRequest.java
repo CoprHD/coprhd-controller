@@ -18,10 +18,12 @@ import com.emc.storageos.vnxe.models.VNXeIscsiPortal;
 public class IscsiPortalListRequest extends KHRequests<VNXeIscsiPortal> {
     private static final Logger _logger = LoggerFactory.getLogger(IscsiPortalListRequest.class);
     private static final String URL = "/api/types/iscsiPortal/instances";
+    private static final String FIELDS = "ipAddress";
 
     public IscsiPortalListRequest(KHClient client) {
         super(client);
         _url = URL;
+        _fields = FIELDS;
     }
 
     /**

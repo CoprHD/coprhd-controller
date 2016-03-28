@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
+
+    <bean id="vnxeApiClientFactory" class="com.emc.storageos.vnxe.VNXeApiClientFactory"
+		init-method="init" >
+	</bean>
+	<bean id="unManagedObjectDiscoverer"
+        class="com.emc.storageos.volumecontroller.impl.vnxe.VNXeUnManagedObjectDiscoverer">
+        <property name="vnxeApiClientFactory" ref="vnxeApiClientFactory" />
+    </bean>
+
+    <bean id="partitionManager" class="com.emc.storageos.plugins.common.PartitionManager" />
+
+	<bean id="vnxunity"
+		class="com.emc.storageos.volumecontroller.impl.plugins.VNXUnityCommunicationInterface">
+        <property name="vnxeApiClientFactory" ref="vnxeApiClientFactory" />
+        <property name="unManagedObjectDiscoverer" ref="unManagedObjectDiscoverer" />
+        <property name="partitionManager" ref="partitionManager"/>
+	</bean>
+
+</beans>

@@ -471,7 +471,8 @@ public class DataCollectionJobUtil {
             }
         } else if (storageDevice.getSystemType().equals(Type.netapp.toString())
                 || storageDevice.getSystemType().equals(Type.netappc.toString())
-                || Type.vnxe.toString().equalsIgnoreCase(storageDevice.getSystemType())) {
+                || Type.vnxe.toString().equalsIgnoreCase(storageDevice.getSystemType())
+                || Type.vnxunity.toString().equalsIgnoreCase(storageDevice.getSystemType())) {
             accessProfile.setSystemType(storageDevice.getSystemType());
             accessProfile.setIpAddress(storageDevice.getIpAddress());
             accessProfile.setUserName(storageDevice.getUsername());

@@ -45,4 +45,26 @@ public class VNXeApiClientFactory {
         return apiClient;
     }
 
+ public VNXeApiClient getUnityClient(String host, int port, String user, String password) {
+        StringBuilder builder = new StringBuilder();
+        builder.append(host);
+        builder.append("_");
+        builder.append("port");
+        builder.append("_");
+        builder.append("user");
+        builder.append("_");
+        builder.append("password");
+        String key = builder.toString();
+        VNXeApiClient apiClient = null;
+        if (clientMap.get(key) != null) {
+            apiClient = clientMap.get(key);
+        } else {
+            KHClient client = new KHClient(host, port, user, password, true);
+            apiClient = new VNXeApiClient(client);
+            clientMap.putIfAbsent(key, apiClient);
+        }
+        return apiClient;
+    }
+
+
 }

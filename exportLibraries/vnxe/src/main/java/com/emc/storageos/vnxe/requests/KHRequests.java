@@ -46,6 +46,7 @@ public class KHRequests<T> {
     private static final Logger _logger = LoggerFactory.getLogger(KHRequests.class);
     protected MultivaluedMap<String, String> _queryParams;
     protected String _url;
+    protected String _fields;
     protected KHClient _client;
     private WebResource _resource;
     private Set<NewCookie> _requestCookies = new HashSet<NewCookie>();
@@ -66,7 +67,23 @@ public class KHRequests<T> {
     }
 
     public void setQueryParameters(MultivaluedMap<String, String> queryParams) {
+for (String key: queryParams.keySet()){
+                List<String> values = queryParams.get(key);
+                for (String value : values){
+                        _logger.info("key:"+key+" value:"+ value);
+                }
+          }
+
+       if (_queryParams!=null){
+          for (String key: queryParams.keySet()){
+		List<String> values = queryParams.get(key);
+                for (String value : values){
+			_queryParams.add(key,value);
+                }
+	  }
+       } else{
         _queryParams = queryParams;
+       }
     }
 
     public WebResource buildResource(WebResource resource) {
@@ -105,15 +122,17 @@ public class KHRequests<T> {
 
         builder = builder.accept(MediaType.APPLICATION_JSON_TYPE);
         builder = builder.type(MediaType.APPLICATION_JSON_TYPE);
-
+        
+        _logger.info("Resource:"+builder.toString());
         return builder;
     }
 
     protected WebResource addQueryParameters(WebResource resource) {
         if (_queryParams == null) {
+            _logger.info("_queryParams is null");
             return resource; // no query parameters
         }
-
+_logger.info("_queryParams:"+_queryParams);
         return resource.queryParams(_queryParams);
     }
 
@@ -131,11 +150,11 @@ public class KHRequests<T> {
      */
     public List<T> getDataForObjects(Class<T> valueType)
             throws VNXeException {
-        _logger.debug("getting data: {}", _url);
+        _logger.info("getting data: {}", _url);
         ClientResponse response = sendGetRequest(_resource);
         saveClientCookies();
         String resString = response.getEntity(String.class);
-        _logger.debug("got data: " + resString);
+        _logger.info("got data: " + resString);
         JSONObject res;
         List<T> returnedObjects = new ArrayList<T>();
         try {
@@ -369,10 +388,14 @@ public class KHRequests<T> {
      * Send GET request to KittyHawk server, and handle redirect/cookies
      */
     private ClientResponse sendGetRequest(WebResource resource) throws VNXeException {
-        _logger.debug("getting data: {} ", _url);
+        _logger.info("getting data: {} ", _url);
+        if (_client.isUnity() == true){
+		setFields();
+	}
         ClientResponse response = buildRequest(addQueryParameters(buildResource(resource))
                 .getRequestBuilder()).get(ClientResponse.class);
         Status statusCode = response.getClientResponseStatus();
+        _logger.info(response.getStatus()+":"+ response.toString());
         if (statusCode == ClientResponse.Status.OK) {
             saveClientCookies();
             return response;
@@ -552,6 +575,16 @@ public class KHRequests<T> {
         queryParams.add(VNXeConstants.FILTER, filter);
         setQueryParameters(queryParams);
     }
+
+    protected void setFields() {
+        _logger.info("Setting fields:"+_fields);
+        if (_fields != null){
+	        MultivaluedMap<String, String> queryParams = new MultivaluedMapImpl();
+        	queryParams.add(VNXeConstants.FIELDS, _fields);
+	        setQueryParameters(queryParams);
+	}
+    }
+
 
     private void authenticate() {
         // calling a GET operation would authenticate the client again.

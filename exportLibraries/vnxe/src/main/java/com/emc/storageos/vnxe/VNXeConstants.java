@@ -26,5 +26,5 @@ public class VNXeConstants {
     public static final int REDIRECT_MAX = 100;
     public static final int MAX_NAME_LENGTH = 63;
     public static final String VNXE_BASE_SOFT_VER = "3.0.1";
-
+    public static final String FIELDS = "fields";
 }

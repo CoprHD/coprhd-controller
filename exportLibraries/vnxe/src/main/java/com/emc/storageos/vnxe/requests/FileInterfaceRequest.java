@@ -9,10 +9,13 @@ import com.emc.storageos.vnxe.models.VNXeFileInterface;
 
 public class FileInterfaceRequest extends KHRequests<VNXeFileInterface> {
     private static final String URL = "/api/instances/fileInterface/";
+    private static final String FIELDS = "name,nasServer.id,ipAddress";
+
 
     public FileInterfaceRequest(KHClient client, String id) {
         super(client);
         _url = URL + id;
+	_fields = FIELDS;
     }
 
     public VNXeFileInterface get() {

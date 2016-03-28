@@ -12,10 +12,12 @@ import com.emc.storageos.vnxe.models.VNXeCifsServer;
 
 public class CifsServerListRequest extends KHRequests<VNXeCifsServer> {
     private static final String URL = "/api/types/cifsServer/instances";
+    private static final String FIELDS = "name,smbProtocolVersions,smbcaSupported,nasServer,netbiosName,workgroup,health";
 
     public CifsServerListRequest(KHClient client) {
         super(client);
-        _url = URL;
+        _url = URL ;
+	_fields = FIELDS;
     }
 
     public List<VNXeCifsServer> get() {

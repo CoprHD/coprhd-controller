@@ -362,6 +362,10 @@ public class DisasterRecoveryService {
 
             log.info("Clean up all existing site configurations");
             for (Site siteToRemove : drUtil.listSites()) {
+                if (siteToRemove.getUuid().equals(coordinator.getSiteId())) {
+                    // spare the local site since VdcManager is watching the site target
+                    continue;
+                }
                 drUtil.removeSite(siteToRemove);
             }
 

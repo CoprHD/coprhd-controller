@@ -138,17 +138,6 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
             throw IngestionException.exceptions.rpIngestingNonVolumeObject(unManagedVolume.getNativeGuid());
         }
 
-        Volume volume = (Volume) blockObject;
-
-        boolean unManagedVolumeExported = 
-                VolumeIngestionUtil.checkUnManagedResourceIsNonRPExported(unManagedVolume)
-                    && !unManagedVolume.getUnmanagedExportMasks().isEmpty();
-        if (isExportIngestionPending(volume, unManagedVolume.getId(), unManagedVolumeExported)) {
-            _logger.info("Volume {} has already been ingested for RecoverPoint, but is still exported via UnManagedExportMasks: {}", 
-                    volume.forDisplay(), unManagedVolume.getUnmanagedExportMasks());
-            return clazz.cast(volume);
-        }
-
         // Make sure there's an unmanaged protection set
         UnManagedProtectionSet umpset = volumeContext.getUnManagedProtectionSet();
 
@@ -165,6 +154,17 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
         // Test ingestion status message
         _logger.info("Printing Ingestion Report before Ingestion Attempt");
         _logger.info(getRPIngestionStatus(volumeContext));
+
+        Volume volume = (Volume) blockObject;
+
+        boolean unManagedVolumeExported = 
+                VolumeIngestionUtil.checkUnManagedResourceIsNonRPExported(unManagedVolume)
+                    && !unManagedVolume.getUnmanagedExportMasks().isEmpty();
+        if (isExportIngestionPending(volume, unManagedVolume.getId(), unManagedVolumeExported)) {
+            _logger.info("Volume {} has already been ingested for RecoverPoint, but is still exported via UnManagedExportMasks: {}", 
+                    volume.forDisplay(), unManagedVolume.getUnmanagedExportMasks());
+            return clazz.cast(volume);
+        }
 
         // Perform RP-specific volume ingestion
         volume = performRPVolumeIngestion(parentRequestContext, volumeContext, unManagedVolume, volume);

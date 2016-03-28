@@ -12,18 +12,18 @@ import org.slf4j.LoggerFactory;
 
 import java.io.Serializable;
 
-@XmlRootElement(name = "external_backup_info")
+@XmlRootElement(name = "backup_info")
 public class BackupInfo implements Serializable {
     private static final long serialVersionUID = -1125934063451834517L;
 
     private static final Logger log = LoggerFactory.getLogger(BackupSets.class);
 
-    private String backupName;
-    private long backupSize;
-    private String version;
+    private String backupName="";
+    private long backupSize = 0;
+    private String version ="";
     private String siteId="";
     private String siteName="";
-    private long createTime;
+    private long createTime = 0;
     private BackupRestoreStatus restoreStatus;
 
     public BackupInfo() {
@@ -99,6 +99,10 @@ public class BackupInfo implements Serializable {
         sb.append(backupName);
         sb.append(", version:");
         sb.append(version);
+        sb.append(", site_id:");
+        sb.append(siteId);
+        sb.append(", site_name:");
+        sb.append(siteName);
         sb.append(", CreateTime:");
         sb.append(createTime);
         sb.append(", backupSize:");

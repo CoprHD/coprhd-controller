@@ -27,6 +27,7 @@ import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.coordinator.client.model.Constants;
 import com.emc.storageos.coordinator.client.model.DrOperationStatus;
+import com.emc.storageos.coordinator.client.model.DrOperationStatus.InterState;
 import com.emc.storageos.coordinator.client.model.PropertyInfoExt;
 import com.emc.storageos.coordinator.client.model.Site;
 import com.emc.storageos.coordinator.client.model.SiteInfo;
@@ -94,16 +95,7 @@ public class DrUtil {
         this.coordinator = coordinator;
     }
 
-    /**
-     * Record new DR operation
-     * 
-     * @param site
-     */
-    public void recordDrOperationStatus(Site site) {
-        recordDrOperationStatus(site.getUuid(), site.getState());
-    }
-
-    public void recordDrOperationStatus(String siteId, SiteState state) {
+    public void recordDrOperationStatus(String siteId, InterState state) {
         if (isDrOperationRecorded(siteId, state)) {
             return;
         }
@@ -111,13 +103,13 @@ public class DrUtil {
             if (isDrOperationRecorded(siteId, state)) {
                 return;
             }
-            if (siteId == null || siteId.isEmpty() || state == null || !state.isDROperationOngoing()) {
+            if (siteId == null || siteId.isEmpty() || state == null) {
                 log.error("Can't record DR operation status due to Illegal site state, siteId: {}, state: {}", siteId, state);
                 return;
             }
             DrOperationStatus operation = new DrOperationStatus();
             operation.setSiteUuid(siteId);
-            operation.setSiteState(state);
+            operation.setInterState(state);
             coordinator.persistServiceConfiguration(operation.toConfiguration());
             log.info("DR operation status has been recorded: {}", operation.toString());
         } catch (Exception e) {
@@ -125,12 +117,12 @@ public class DrUtil {
         }
     }
 
-    private boolean isDrOperationRecorded(String siteId, SiteState state) {
-        if (siteId == null || siteId.isEmpty() || state == null || !state.isDROperationOngoing()) {
+    private boolean isDrOperationRecorded(String siteId, InterState state) {
+        if (siteId == null || siteId.isEmpty() || state == null) {
             return false;
         }
         DrOperationStatus status = new DrOperationStatus(coordinator.queryConfiguration(DrOperationStatus.CONFIG_KIND, siteId));
-        if (status.getSiteState() == state) {
+        if (status.getInterState() == state) {
             log.info("DR operation status {} for site {} has been recorded by another node", siteId, state);
             return true;
         }
@@ -711,7 +703,7 @@ public class DrUtil {
             stop = System.nanoTime();
             timeToRespond = (stop - start);
         } catch (Exception e) {
-            log.error(String.format("Fail to check cross-site network latency to node {} with Exception: ",hostAddress),e);
+            log.error("Fail to check cross-site network latency to node {} with Exception: ",hostAddress,e);
             return -1;
         } finally {
             try {
@@ -719,7 +711,7 @@ public class DrUtil {
                     socket.close();
                 }
             } catch (Exception e) {
-                log.error(String.format("Fail to close connection to node {} with Exception: ",hostAddress),e);
+                log.error("Fail to close connection to node {} with Exception: ",hostAddress,e);
             }
         }
     

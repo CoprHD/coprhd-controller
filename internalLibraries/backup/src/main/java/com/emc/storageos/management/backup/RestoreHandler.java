@@ -93,19 +93,26 @@ public class RestoreHandler {
     /**
      * Purges ViPR data files before restore.
      */
-    public void purge() throws IOException {
+    public void purge() throws Exception {
         if (!viprDataDir.getParentFile().exists()) {
             throw new FileNotFoundException(String.format(
                     "%s is not exist, please initialize ViPR first", viprDataDir.getParent()));
         }
+
         log.info("\tDelete: {}", viprDataDir.getAbsolutePath());
-        FileUtils.deleteDirectory(viprDataDir);
-        for (String fileName : extraCleanDirs) {
-            log.info("\tDelete: {}", fileName);
-            File file = new File(fileName);
-            if (file.exists()) {
-                FileUtils.forceDelete(file);
+
+        try {
+            FileUtils.deleteDirectory(viprDataDir);
+            for (String fileName : extraCleanDirs) {
+                log.info("\tDelete: {}", fileName);
+                File file = new File(fileName);
+                if (file.exists()) {
+                    FileUtils.forceDelete(file);
+                }
             }
+        }catch (Exception e) {
+            log.error("Purge data failed e=", e);
+            throw e;
         }
     }
 

@@ -261,7 +261,7 @@ public class BlockSnapshotService extends TaskResourceService {
                 targetInfoList.add(targetInfo);
                 param.setLinkedTargets(targetInfoList);
                 response.getTaskList().add(getSnapshotSessionManager().unlinkTargetVolumesFromSnapshotSession(
-                        snapSessionURIsIter.next(), param));
+                        snapSessionURIsIter.next(), param, OperationTypeEnum.DELETE_VOLUME_SNAPSHOT));
                 return response;
             }
 

@@ -2369,7 +2369,7 @@ public class VolumeIngestionUtil {
      * @param dbClient dbclient
      * @return export group
      */
-    public static ExportGroup verifyExportGroupExists(IngestionRequestContext requestContext, 
+    public static ExportGroup verifyExportGroupExists(IngestionRequestContext requestContext,
             String exportGroupGeneratedName, URI project, StringSet knownInitiatorUris,
             URI vArray, DbClient dbClient) {
         ExportGroup exportGroup = null;
@@ -2675,8 +2675,15 @@ public class VolumeIngestionUtil {
      * @return true if the given UnManagedVolume can be deleted safely
      */
     public static boolean canDeleteUnManagedVolume(UnManagedVolume unManagedVolume) {
-        return null == unManagedVolume.getUnmanagedExportMasks()
+        boolean canDelete = null == unManagedVolume.getUnmanagedExportMasks()
                 || unManagedVolume.getUnmanagedExportMasks().isEmpty();
+
+        if (!canDelete) {
+            _logger.info("cannot delete unmanaged volume {} because these unmanaged export masks are remaining to be ingested: {}",
+                    unManagedVolume.forDisplay(), unManagedVolume.getUnmanagedExportMasks());
+        }
+
+        return canDelete;
     }
 
     /**
@@ -3338,6 +3345,8 @@ public class VolumeIngestionUtil {
             _logger.warn("INGEST VALIDATION: unmanaged protection set is null");
             return false;
         }
+
+        _logger.info("Checking if all volumes in UnManagedProtectionSet {} have been ingested yet...", umpset.forDisplay());
         // Make sure that none of the managed volumes still have a corresponding unmanaged volume. This means that there is
         // some information left to be ingested.
         if (umpset.getManagedVolumeIds() != null && !umpset.getManagedVolumeIds().isEmpty()) {
@@ -3505,7 +3514,7 @@ public class VolumeIngestionUtil {
         }
         if (rpContext != null) {
             pset = rpContext.findExistingProtectionSet(
-                umpset.getCgName(), rpProtectionId, umpset.getProtectionSystemUri(), umpset.getNativeGuid());
+                    umpset.getCgName(), rpProtectionId, umpset.getProtectionSystemUri(), umpset.getNativeGuid());
             if (pset != null) {
                 rpContext.setManagedPsetWasCreatedByAnotherContext(true);
             }
@@ -3568,7 +3577,7 @@ public class VolumeIngestionUtil {
      * @return a BlockConsistencyGroup for the volume context and ProtectionSet
      */
     public static BlockConsistencyGroup findOrCreateRPBlockConsistencyGroup(
-            IngestionRequestContext requestContext, UnManagedVolume unManagedVolume, 
+            IngestionRequestContext requestContext, UnManagedVolume unManagedVolume,
             ProtectionSet pset, DbClient dbClient) {
 
         BlockConsistencyGroup cg = null;
@@ -3594,6 +3603,7 @@ public class VolumeIngestionUtil {
             cg.setId(URIUtil.createId(BlockConsistencyGroup.class));
             cg.setLabel(pset.getLabel());
             cg.setProject(projectNamedUri);
+            cg.addConsistencyGroupTypes(Types.RP.name());
             // By default, the array consistency is false. However later when we iterate over volumes in the BCG and we
             // see any replicationGroupInstance information, we'll flip this bit to true. (See decorateRPVolumesCGInfo())
             cg.setArrayConsistency(false);
@@ -4055,7 +4065,9 @@ public class VolumeIngestionUtil {
      */
     public static void setupRPCG(IngestionRequestContext requestContext, UnManagedProtectionSet umpset, UnManagedVolume unManagedVolume,
             Set<DataObject> updatedObjects, DbClient dbClient) {
-        _logger.info("Ingesting all volumes associated with RP consistency group");
+
+        _logger.info("All volumes in UnManagedProtectionSet {} have been ingested, creating RecoverPoint Consistency Group now", 
+                umpset.forDisplay());
 
         ProtectionSet pset = VolumeIngestionUtil.findOrCreateProtectionSet(requestContext, unManagedVolume, umpset, dbClient);
         BlockConsistencyGroup cg = VolumeIngestionUtil.findOrCreateRPBlockConsistencyGroup(requestContext, unManagedVolume, pset, dbClient);
@@ -4176,19 +4188,11 @@ public class VolumeIngestionUtil {
             Set<DataObject> updatedObjects, DbClient dbClient) {
         List<Volume> associatedVolumes = new ArrayList<Volume>();
         if (volume.getAssociatedVolumes() != null) {
-            StringSet managedVolumesInDB = new StringSet(volume.getAssociatedVolumes());
             for (String volumeId : volume.getAssociatedVolumes()) {
-                BlockObject bo = requestContext.findCreatedBlockObject(URI.create(volumeId));
+                BlockObject bo = requestContext.findDataObjectByType(Volume.class, URI.create(volumeId), true);
                 if (null != bo && bo instanceof Volume) {
                     associatedVolumes.add((Volume) bo);
-                    managedVolumesInDB.remove(bo.getId().toString());
                 }
-            }
-            List<URI> associatedVolumesUris = new ArrayList<URI>(Collections2.transform(managedVolumesInDB,
-                    CommonTransformerFunctions.FCTN_STRING_TO_URI));
-            Iterator<Volume> associatedVolumesIterator = dbClient.queryIterativeObjects(Volume.class, associatedVolumesUris);
-            while (associatedVolumesIterator.hasNext()) {
-                associatedVolumes.add(associatedVolumesIterator.next());
             }
             _logger.info("Clearing internal volume flag of replicas of associatedVolumes of RP volume {}", volume.getLabel());
             clearPersistedReplicaFlags(requestContext, associatedVolumes, updatedObjects, dbClient);
@@ -4239,22 +4243,13 @@ public class VolumeIngestionUtil {
     public static void clearMirrorsFlags(IngestionRequestContext requestContext, Volume volume, Set<DataObject> updatedObjects,
             DbClient dbClient) {
         if (volume.getMirrors() != null) {
-            StringSet mirrorsInDB = new StringSet(volume.getMirrors());
             for (String volumeId : volume.getMirrors()) {
-                BlockObject bo = requestContext.findCreatedBlockObject(URI.create(volumeId));
+                BlockObject bo = requestContext.findDataObjectByType(BlockMirror.class, URI.create(volumeId), true);
                 if (null != bo && bo instanceof BlockMirror) {
                     _logger.info("Clearing internal volume flag of mirror {} of RP volume {}", bo.getLabel(), volume.getLabel());
                     bo.clearInternalFlags(BlockIngestOrchestrator.INTERNAL_VOLUME_FLAGS);
-                    mirrorsInDB.remove(bo.getId().toString());
+                    updatedObjects.add(bo);
                 }
-            }
-            List<URI> mirrorUris = new ArrayList<URI>(Collections2.transform(mirrorsInDB, CommonTransformerFunctions.FCTN_STRING_TO_URI));
-            Iterator<BlockMirror> mirrorIterator = dbClient.queryIterativeObjects(BlockMirror.class, mirrorUris);
-            while (mirrorIterator.hasNext()) {
-                BlockMirror mirror = mirrorIterator.next();
-                _logger.info("Clearing internal volume flag of mirror {} of RP volume {}", mirror.getLabel(), volume.getLabel());
-                mirror.clearInternalFlags(BlockIngestOrchestrator.INTERNAL_VOLUME_FLAGS);
-                updatedObjects.add(mirror);
             }
         }
     }
@@ -4270,23 +4265,13 @@ public class VolumeIngestionUtil {
     public static void clearFullCopiesFlags(IngestionRequestContext requestContext, Volume volume, Set<DataObject> updatedObjects,
             DbClient dbClient) {
         if (volume.getFullCopies() != null) {
-            StringSet fullCopiesInDB = new StringSet(volume.getFullCopies());
             for (String volumeId : volume.getFullCopies()) {
                 BlockObject bo = requestContext.findCreatedBlockObject(URI.create(volumeId));
                 if (null != bo && bo instanceof Volume) {
                     _logger.info("Clearing internal volume flag of full copy {} of RP volume {}", bo.getLabel(), volume.getLabel());
                     bo.clearInternalFlags(BlockIngestOrchestrator.INTERNAL_VOLUME_FLAGS);
-                    fullCopiesInDB.remove(bo.getId().toString());
+                    updatedObjects.add(bo);
                 }
-            }
-            List<URI> fullCopiesUris = new ArrayList<URI>(
-                    Collections2.transform(fullCopiesInDB, CommonTransformerFunctions.FCTN_STRING_TO_URI));
-            Iterator<Volume> fullCopiesIterator = dbClient.queryIterativeObjects(Volume.class, fullCopiesUris);
-            while (fullCopiesIterator.hasNext()) {
-                Volume fullCopy = fullCopiesIterator.next();
-                _logger.info("Clearing internal volume flag of full copy {} of RP volume {}", fullCopy.getLabel(), volume.getLabel());
-                fullCopy.clearInternalFlags(BlockIngestOrchestrator.INTERNAL_VOLUME_FLAGS);
-                updatedObjects.add(fullCopy);
             }
         }
     }
@@ -4390,6 +4375,89 @@ public class VolumeIngestionUtil {
         }
 
         return null;
+    }
+
+    /**
+     * Run Ingestion validation of RP by checking the vpool configurations and verifying the ingested volumes line up.
+     * This method will ensure that the customer attempts to ingest volumes against the proper target virtual arrays
+     * associated with the RP virtual pool that was selected during ingestion.  Otherwise we may allow CDP-style targets
+     * to be ingested into a CRR-style virtual pool.
+     * 
+     * @param requestContext request context
+     * @param umpset unmanaged protection set
+     * @param _dbClient dbclient
+     */
+    public static void validateRPVolumesAlignWithIngestVpool(IngestionRequestContext requestContext, UnManagedProtectionSet umpset,
+            DbClient dbClient) {
+
+        VirtualPool sourceVirtualPool = null;
+        List<URI> targetVarrays = null;
+        if (umpset.getManagedVolumeIds() != null) {
+
+            // Gather the RP source vpool and the target varrays
+            for (String volumeID : umpset.getManagedVolumeIds()) {
+                Volume volume = null;
+                BlockObject bo = requestContext.getRootIngestionRequestContext().findCreatedBlockObject(URI.create(volumeID));
+                if (bo != null && bo instanceof Volume) {
+                    volume = (Volume) bo;
+                }
+
+                if (volume == null) {
+                    _logger.error("Unable to retrieve volume : " + volumeID + " from database or created volumes.");
+                    throw IngestionException.exceptions.validationFailedRPIngestionMissingVolume(volumeID, umpset.getCgName());
+                }
+
+                // Collect the vpool of the source volume(s)
+                if (sourceVirtualPool == null && volume.checkPersonality(PersonalityTypes.SOURCE.name())) {
+                    sourceVirtualPool = dbClient.queryObject(VirtualPool.class, volume.getVirtualPool());
+                    targetVarrays = new ArrayList<URI>(Collections2.transform(sourceVirtualPool.getProtectionVarraySettings().keySet(),
+                            CommonTransformerFunctions.FCTN_STRING_TO_URI));
+                    break;
+                }
+            }
+            
+            // Verify the target volumes are in those target varrays
+            List<URI> varraysCovered = new ArrayList<URI>(targetVarrays);
+            for (String volumeID : umpset.getManagedVolumeIds()) {
+                Volume volume = null;
+                BlockObject bo = requestContext.getRootIngestionRequestContext().findCreatedBlockObject(URI.create(volumeID));
+                if (bo != null && bo instanceof Volume) {
+                    volume = (Volume) bo;
+                }
+
+                if (volume == null) {
+                    _logger.error("Unable to retrieve volume : " + volumeID + " from database or created volumes.");
+                    throw IngestionException.exceptions.validationFailedRPIngestionMissingVolume(volumeID, umpset.getCgName());
+                }
+
+                // Verify the target volume(s) are in a target varray of the RP source vpool
+                if (volume.checkPersonality(PersonalityTypes.TARGET.name())) {
+                    if (!targetVarrays.contains(volume.getVirtualArray())) {
+                        Set<String> targetVarrayNames = new HashSet<String>();
+                        for (URI targetVarrayId : targetVarrays) {
+                            VirtualArray va = dbClient.queryObject(VirtualArray.class, targetVarrayId);
+                            targetVarrayNames.add(va.forDisplay());
+                        }
+                        VirtualArray va = dbClient.queryObject(VirtualArray.class, volume.getVirtualArray());
+                        throw IngestionException.exceptions.validationFailedRPIngestionVpoolMisalignment(
+                                volume.forDisplay(), Joiner.on(",").join(targetVarrayNames), va.forDisplay());
+                    } else {
+                        varraysCovered.remove(volume.getVirtualArray());
+                    }
+                }
+            }
+            
+            // Verify that all of the target volumes make up all of the target varrays
+            if (!varraysCovered.isEmpty()) {
+                Set<String> targetVarrayNames = new HashSet<String>();
+                for (URI targetVarrayId : varraysCovered) {
+                    VirtualArray va = dbClient.queryObject(VirtualArray.class, targetVarrayId);
+                    targetVarrayNames.add(va.forDisplay());
+                }
+                throw IngestionException.exceptions.validationFailedRPIngestionMissingTargets(
+                        Joiner.on(",").join(targetVarrayNames));
+            }
+        }
     }
 
 }

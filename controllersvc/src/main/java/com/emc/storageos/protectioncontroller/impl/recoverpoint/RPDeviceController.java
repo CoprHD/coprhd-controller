@@ -2192,14 +2192,14 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                         removeVolumeIDs.add(targetVol.getId().toString());
                     }
                 }
+                
                 // Remove the Replication Sets from RP. 
                 // Wait for a min before attempting to delete the rsets. 
                 // RP has not yet synced up with the fact that new rsets were added and we attempted to delete them because the rollback started.
                 // This delay helps in RP catching up before we issue another command. 
                 _log.info("waiting for 1 min before deleting replication sets");
                 Thread.sleep(1000*60);
-                rp.deleteReplicationSets(replicationSetsToRemove);
-                
+                rp.deleteReplicationSets(replicationSetsToRemove);                
                 
                 //Remove any journal volumes that were added in this operation. Otherwise CG ends up in a weird state.
                 if (journalVolumeIDs.isEmpty()) {

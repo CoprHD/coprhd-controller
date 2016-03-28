@@ -5,7 +5,6 @@
 
 package com.emc.storageos.systemservices.impl.propertyhandler;
 
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -24,7 +23,6 @@ public class BackupConfigurationHandler extends DefaultUpdateHandler {
     private ScheduleInterval intervalUnit;
     private int intervalValue;
     private int startTime;
-
 
     /**
      * Check if backup related configurations conformed to rules, if not fail the property update.

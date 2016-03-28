@@ -363,7 +363,7 @@ public class UnManagedVolumeService extends TaskResourceService {
                 }
 
                 // Commit any ingested CG
-                commitIngestedCG(requestContext, unManagedVolume);
+                commitIngestedCG(requestContext, volumeContext);
 
                 // Commit the volume's internal resources
                 volumeContext.commit();
@@ -686,7 +686,7 @@ public class UnManagedVolumeService extends TaskResourceService {
 
             for (VolumeIngestionContext volumeContext : requestContext.getProcessedUnManagedVolumeMap().values()) {
                 // If there is a CG involved in the ingestion, organize, pollenate, and commit.
-                commitIngestedCG(requestContext, volumeContext.getUnmanagedVolume());
+                commitIngestedCG(requestContext, volumeContext);
 
                 // commit the volume itself
                 volumeContext.commit();
@@ -768,12 +768,13 @@ public class UnManagedVolumeService extends TaskResourceService {
      * Commit ingested consistency group
      *
      * @param requestContext request context
-     * @param unManagedVolume unmanaged volume to ingest against this CG
+     * @param volumeContext the VolumeIngestionContext being ingested
      * @throws Exception
      */
-    private void commitIngestedCG(IngestionRequestContext requestContext, UnManagedVolume unManagedVolume) throws Exception {
+    private void commitIngestedCG(IngestionRequestContext requestContext, 
+            VolumeIngestionContext volumeContext) throws Exception {
 
-        VolumeIngestionContext volumeContext = requestContext.getVolumeContext();
+        UnManagedVolume unManagedVolume = volumeContext.getUnmanagedVolume();
 
         // Get the CG's created as part of the ingestion process
         // Iterate through each CG & decorate its objects.

@@ -887,7 +887,7 @@ public class BlockSnapshotSessionManager {
             snapSessionApi = _snapshotSessionImpls.get(SnapshotSessionImpl.rp.name());
         } else {
             VirtualPool vpool = BlockSnapshotSessionUtils.querySnapshotSessionSourceVPool(sourceObj, _dbClient);
-            if (VirtualPool.vPoolSpecifiesHighAvailability(vpool)) {
+            if (VirtualPool.vPoolSpecifiesHighAvailability(vpool) && sourceObj.isVPlexVolume(_dbClient)) {
                 snapSessionApi = _snapshotSessionImpls.get(SnapshotSessionImpl.vplex.name());
             } else {
                 URI systemURI = sourceObj.getStorageController();

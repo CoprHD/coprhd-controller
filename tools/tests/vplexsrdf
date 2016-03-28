@@ -1,0 +1,696 @@
+#!/bin/sh
+#
+# Copyright (c) 2015 EMC Corporation
+# All Rights Reserved
+#
+
+
+# Save the command arguments
+ARGC=$#
+[ $ARGC -eq 0 ] && {
+    echo "usage: vplexsrdf config_file"
+    exit 2;
+}
+
+SANITY_CONFIG_FILE=""
+# ============================================================
+# Check if there is a sanity configuration file specified
+# on the command line. In, which case, we should use that
+# ============================================================
+if [ "$1"x != "x" ]; then
+   if [ -f "$1" ]; then
+      SANITY_CONFIG_FILE=$1
+      echo Using sanity configuration file $SANITY_CONFIG_FILE
+      shift
+   fi
+fi
+
+ARGV=$*
+CWD=$(pwd)
+export PATH=$CWD:$PATH
+echo "PATH: " $PATH
+
+# Tenant and project and consistency group
+rootTenant=`tenant root`
+export rootTenant
+[ "$tenant" ] || {
+    tenant=$rootTenant
+}
+export tenant
+echo tenant $tenant 
+[ "$project" ] || {
+    project="Tom"
+}
+cglabel=
+
+
+# Virtual arrays
+SITE1=site1			# The source SRDF site and source 1st VPLEX site
+SITE2=site2			# The target SRDF site and possible 2nd VPLEX site
+SITE3=site3			# The 1st VPLEX HA site
+
+# Virtual pools
+VPOOL1=vplexL-405-srdf-343_A	# The virtual pool under test
+
+# Configuration file to be used  
+source $SANITY_CONFIG_FILE 
+
+# Variables that should be inherited from sanity
+BLK_SIZE=${BLK_SIZE:-1073741824}
+BLK_SIZE2=${BLK_SIZE2:-2147483648}
+
+macaddr=`/sbin/ifconfig eth0 | /usr/bin/awk '/HWaddr/ { print $5 }'`
+echo macaddr ${macaddr}
+hostseed=`echo ${macaddr} | awk -F: '{print $5$6}'`
+export hostseed
+hostbase=host${hostseed}
+export hostbase
+echo "hostbase $hostbase"
+seed=`date "+%H%M%S%N"`
+seed2b=`printf "%02X" $$ | cut -b1-2`
+echo "seed $seed seed2b $seed2b"
+
+echoit() {
+    echo "******************************************************************"
+    echo $*
+    echo "******************************************************************"
+}
+run() {
+    cmd=$*
+    date
+    echoit $cmd
+    $cmd 2>&1
+    status=$?
+    date
+    if [ $status -ne 0 ]; then
+        echoit $cmd failed
+	date
+	exit $status
+    fi
+}
+
+
+pwwn() {
+    idx=$1; echo 50:${macaddr}:${idx}
+}
+nwwn() {
+    idx=$1; echo 51:${macaddr}:${idx}
+}
+
+
+# $1 = failure message
+fail() {
+    [ "$1" = ""	] && {
+        $1="Failed- please see previous messages"
+    }
+    echoit fail: $1
+    date
+    exit 2
+}
+
+#
+# Create a volume
+# $1=name, $2=varray, $3=vpool, $4=cg
+volume_create() {
+    name=$1; varray=$2; vpool=$3; cg=$4
+    echoit "Creating volume $name in $varray $vpool"
+    run volume create --consistencyGroup $cg $name $project $varray $vpool $BLK_SIZE
+}
+
+# Control over running individual parts of the test (true/false)
+create_volume=true			# if false, specify volname1 and CGlabel
+test_protection_ops=true
+test_expand=true
+test_r1_snapvx_nocopy=true
+test_r2_snapvx_nocopy=true
+test_r1_fullcopy=true
+test_r2_fullcopy=true
+delete_volume=true
+
+vplexsrdf_test() {
+volname1=${volname1:-"vplexSrdfA$hostseed$seed2b"}
+volname1target=${volname1}-target-${SITE2}
+
+security login root 'ChangeMe1!'
+if [ $create_volume = "true" ];
+then
+    # Create consistency group 
+    CGlabel=${CGlabel:-"Tom${seed2b}"}
+    export CGlabel
+    run blockconsistencygroup create $project $CGlabel
+    security login root 'ChangeMe1!'
+    echoit "create volume $volname1"
+    volume_create "$volname1" $SITE1 $VPOOL1 $CGlabel
+else
+    echoit "Using existing volume $volname1 cg $CGlabel"
+fi
+CGtarget=$CGlabel-Target-$SITE2
+
+if [ "$test_protection_ops" = "true" ];
+then
+security login root 'ChangeMe1!'
+echoit "Testing Failover/cancel CG"
+run blockconsistencygroup failover $CGlabel --targetVarray ${SITE2} --copyType srdf
+run blockconsistencygroup failover_cancel $CGlabel --targetVarray ${SITE2} --copyType srdf
+echoit "Testing Swap/back CG"
+run blockconsistencygroup swap $CGlabel --targetVarray ${SITE2} --copyType srdf
+run blockconsistencygroup swap ${CGlabel}-Target-site2 --targetVarray ${SITE1} --copyType srdf
+fi
+
+if [ "$test_expand" = "true" ];
+then
+security login root 'ChangeMe1!'
+echoit "Testing volume expand"
+run volume expand $project/$volname1 ${BLK_SIZE2}
+fi
+
+if [ "$test_r1_snapvx_nocopy" = "true" ];
+then
+security login root 'ChangeMe1!'
+# Create snapvx sessions with no linked targets
+SNAP_SESSION_NAME1=$CGlabel-snap1
+SNAP_SESSION_NAME2=$CGlabel-snap2
+SNAP_SESSION_TGT_NAME1=${volname1}-snap1
+SNAP_SESSION_TGT_NAME2=${volname1}-snap2
+echoit "Creating snapvx session $SNAP_SESSION_NAME1"
+run blockconsistencygroup create_snapshot_session $CGlabel $SNAP_SESSION_NAME1
+echoit "Creating snapvx session $SNAP_SESSION_NAME2"
+run blockconsistencygroup create_snapshot_session $CGlabel $SNAP_SESSION_NAME2
+# Restore the snapvx session.
+echoit "Restoring snapvx session $SNAP_SESSION_NAME1"
+run blockconsistencygroup restore_targets $CGlabel/$SNAP_SESSION_NAME1
+# Link target to the snapvx session 1 in default nocopy mode.
+echoit "Linking target $SNAP_SESSION_TGT_NAME1 to snapvx session $SNAP_SESSION_NAME1"
+run blockconsistencygroup link_targets $CGlabel/$SNAP_SESSION_NAME1 1 $SNAP_SESSION_TGT_NAME1
+# Relink target to the snapvx session 2.
+echoit "Relinking target $SNAP_SESSION_TGT_NAME1 to SnapVx session 2"
+run blockconsistencygroup relink_targets $CGlabel/$SNAP_SESSION_NAME2 $CGlabel/${SNAP_SESSION_TGT_NAME1}-1
+# Unlink target from the snapvx session and delete target volume.
+echoit "unlinking target from SnapVx session 2"
+run blockconsistencygroup unlink_targets $CGlabel/$SNAP_SESSION_NAME2 $CGlabel/${SNAP_SESSION_TGT_NAME1}-1 --delete_target true
+# Delete the snapvx sessions.
+echoit "Deleting SnapVx sessions $SNAP_SESSION_NAME1 and $SNAP_SESSION_NAME2"
+run blockconsistencygroup delete_snapshot_session $CGlabel/$SNAP_SESSION_NAME1
+run blockconsistencygroup delete_snapshot_session $CGlabel/$SNAP_SESSION_NAME2
+fi
+
+if [ "$test_r2_snapvx_nocopy" = "true" ];
+then
+security login root 'ChangeMe1!'
+# Create snapvx sessions with no linked targets
+SNAP_SESSION_NAME1=$CGtarget-snap1
+SNAP_SESSION_NAME2=$CGtarget-snap2
+SNAP_SESSION_TGT_NAME1=${volname1}-r2-snap1
+SNAP_SESSION_TGT_NAME2=${volname1}-r2-snap2
+echoit "Creating snapvx session $SNAP_SESSION_NAME1"
+run blockconsistencygroup create_snapshot_session $CGtarget $SNAP_SESSION_NAME1
+echoit "Creating snapvx session $SNAP_SESSION_NAME2"
+run blockconsistencygroup create_snapshot_session $CGtarget $SNAP_SESSION_NAME2
+# Restore the snapvx session.
+echoit "Pausing the link so can restore R2"
+run volume change_link $project/$volname1 pause $project/$volname1-target-$SITE2 srdf
+echoit "Restoring snapvx session $SNAP_SESSION_NAME1"
+run blockconsistencygroup restore_targets $CGtarget/$SNAP_SESSION_NAME1
+echoit "Resuming the link"
+run volume change_link $project/$volname1 resume $project/$volname1-target-$SITE2 srdf
+# Link target to the snapvx session 1 in default nocopy mode.
+echoit "Linking target $SNAP_SESSION_TGT_NAME1 to snapvx session $SNAP_SESSION_NAME1"
+run blockconsistencygroup link_targets $CGtarget/$SNAP_SESSION_NAME1 1 $SNAP_SESSION_TGT_NAME1
+# Relink target to the snapvx session 2.
+echoit "Relinking target $SNAP_SESSION_TGT_NAME1 to SnapVx session 2"
+run blockconsistencygroup relink_targets $CGtarget/$SNAP_SESSION_NAME2 $CGtarget/${SNAP_SESSION_TGT_NAME1}-1
+# Unlink target from the snapvx session and delete target volume.
+echoit "unlinking target from SnapVx session 2"
+run blockconsistencygroup unlink_targets $CGtarget/$SNAP_SESSION_NAME2 $CGtarget/${SNAP_SESSION_TGT_NAME1}-1 --delete_target true
+# Delete the snapvx sessions.
+echoit "Deleting SnapVx sessions $SNAP_SESSION_NAME1 and $SNAP_SESSION_NAME2"
+run blockconsistencygroup delete_snapshot_session $CGtarget/$SNAP_SESSION_NAME1
+run blockconsistencygroup delete_snapshot_session $CGtarget/$SNAP_SESSION_NAME2
+fi
+
+if [ "$test_r1_fullcopy" = "true" ];
+then
+security login root 'ChangeMe1!'
+r1copy1=${volname1}_r1_copy1
+echoit "Creating full copy $r1copy1"
+volume full_copy $r1copy1 $project/$volname1
+echoit "Resyncing full copy $11copy1"
+volume full_copy_resync $project/$r1copy1
+echoit "Restoring full copy $r1copy1"
+volume full_copy_restore $project/$r1copy1
+echoit "Detaching full copy $r1copy1"
+volume detach $project/$volname1 $project/$r1copy1
+echoit "Deleting full copy $r1copy1"
+volume delete $project/$r1copy1 --wait
+fi
+
+if [ "$test_r2_fullcopy" = "true" ];
+then
+security login root 'ChangeMe1!'
+r2copy1=${volname1}_r2_copy1
+echoit "Creating full copy $r1copy1"
+run volume full_copy $r2copy1 $project/$volname1target
+echoit "Resyncing full copy $r2copy1"
+run volume full_copy_resync $project/$r2copy1
+echoit "Restoring full copy $r2copy1"
+run volume full_copy_restore $project/$r2copy1
+echoit "Detaching full copy $r2copy1"
+run volume detach $project/$volname1target $project/$r2copy1
+echoit "Deleting full copy $r2copy1"
+run volume delete $project/$r2copy1
+echoit "Resuming synchronization on link after restore"
+run volume change_link $project/$volname1 resume $project/$volname1target srdf
+fi
+
+if [ "$delete_volume" = "true" ];
+then
+security login root 'ChangeMe1!'
+echoit "remove volume $volname1"
+run volume delete $project/$volname1 --wait
+echoit "Delete consistency group $CGlabel"
+run blockconsistencygroup delete $CGlabel
+fi
+
+echoit "passed"
+date
+}
+
+vplexsrdf_test
+
+
+##################### =========== below here for possible future additions ======================= #######################
+
+# The export test uses different virtual arrays than sanity.
+# This is so we can have more explicit control--
+# VACC1 -- cross connected in cluster-1 (both network ports)
+# VACC2 -- cross connected in cluster-2 (both network ports)
+# VANC1 -- non cross connected in cluster-1 (cluster-1 network ports)
+# VANC2 -- non cross connected in cluster-2 (cluster-2 network ports)
+# setup_virtual_arrays() {
+#     existingVAs=$(neighborhood list | awk ' { print $1; }')
+#     # Ensure the virtual arrays are present
+#     $(echo $existingVAs | grep -q $VACC1 ) || {
+#         neighborhood create $VACC1
+#     }
+#     $(echo $existingVAs | grep -q $VACC2 ) || {
+#         neighborhood create $VACC2
+#     }
+#     $(echo $existingVAs | grep -q $VANC1 ) || {
+#         neighborhood create $VANC1
+#     }
+#     $(echo $existingVAs | grep -q $VANC2 ) || {
+#         neighborhood create $VANC2
+#     }
+#     existingVAs=$(neighborhood list | awk ' { print $1; }')
+#     echo "Virtual arrays: $existingVAs"
+# }
+# 
+# # Function to create a cluster. $1 is the cluster name
+# cluster_create() {
+#     name=$1
+#     exists=$(cluster list ${tenant} | grep $name | wc -l)
+#     [ $exists -ne 1 ] && {
+#         echoit "creating cluster $name"
+#         cluster create $name $tenant --project $project
+#     }
+# }
+# 
+# # Function to create a host.
+# # $1 = host name, $2 = cluster name
+# # $3 = arg to pwwn for first initiator, 
+# # $4 = arg to pwwn for second initiator
+# # $5 = network to add first initiator to
+# # $6 = network to add second initiator to
+# host_create() {
+#     name=$1; cluster=$2; init1=$3; init2=$4; net1=$5; net2=$6
+#     exists=$(hosts list ${tenant} | grep $name | wc -l)
+#     [ $exists -ne 1 ] && {
+#         echoit "creating host $name"
+#         hosts create $name $tenant Other ${name}.org --port 2222 --cluster $tenant/$cluster
+#         initiator create $name FC $(pwwn $init1) --node $(nwwn $init1)
+#         initiator create $name FC $(pwwn $init2) --node $(nwwn $init2)
+#         transportzone add $net1 $(pwwn $init1)
+#         transportzone add $net2 $(pwwn $init2)
+#     }
+# }
+# 
+# # Sets up hosts and clusters
+# setup_hosts() {
+#     # Cross connected cluster
+#     cluster_create $CCCluster
+#     host_create $CCHost1 $CCCluster E0 E1 $CLUSTER1NET $CLUSTER2NET
+#     host_create $CCHost2 $CCCluster E2 E3 $CLUSTER1NET $CLUSTER2NET
+#     # Non cross connected cluster
+#     cluster_create $NCCluster
+#     host_create $NCHost1 $NCCluster E8 E9 $CLUSTER1NET $CLUSTER1NET
+#     host_create $NCHost2 $NCCluster EA EB $CLUSTER2NET $CLUSTER2NET
+# }
+# 
+# # Assign a vplex port to a varray
+# # $1=port_names (plural), $2=port_group, $3=virtual_array
+# assign_vplex_ports() {
+#     echo assigning ports $1 , $2 , $3
+#     for port_name in $1
+#     do
+#         echoit "Assigning $port_name $2 to VA $3"
+#         storageport update $VPLEX_GUID FC --name $port_name --group $2 --addvarrays $3
+#     done
+# }
+# 
+# # Setup the Vplex ports
+# setup_vplexports() {
+#     TMPFILE=/tmp/storage.ports.setup
+#     storageport list $VPLEX_GUID --v >$TMPFILE
+# 
+#     # Front end port groups
+#     FECL1A082=`grep $CLUSTER1NET $TMPFILE | grep VPLEXCL1_PORTID_GREP | grep '^A0' | awk ' { print $1; }' `
+#     echo FECL1A082 : $FECL1A082
+#     FECL1B082=`grep $CLUSTER1NET $TMPFILE | grep $VPLEXCL1_PORTID_GREP | grep '^B0' | awk ' { print $1; }' `
+#     echo FECL1B082 : $FECL1B082
+#     FECL2A082=`grep $CLUSTER1NET $TMPFILE | grep $VPLEXCL2_PORTID_GREP | grep '^A0' | awk ' { print $1; }' `
+#     echo FECL2A082 : $FECL2A082
+#     FECL2B082=`grep $CLUSTER1NET $TMPFILE | grep $VPLEXCL2_PORTID_GREP | grep '^B0' | awk ' { print $1; }' `
+#     echo FECL2B082 : $FECL2B082
+#     FECL1A154=`grep $CLUSTER2NET $TMPFILE | grep $VPLEXCL1_PORTID_GREP | grep '^A0' | awk ' { print $1; }' `
+#     echo FECL1A154 : $FECL1A154
+#     FECL1B154=`grep $CLUSTER2NET $TMPFILE | grep $VPLEXCL1_PORTID_GREP | grep '^B0' | awk ' { print $1; }' `
+#     echo FECL1B154 : $FECL1B154
+#     FECL2A154=`grep $CLUSTER2NET $TMPFILE | grep $VPLEXCL2_PORTID_GREP | grep '^A0' | awk ' { print $1; }' `
+#     echo FECL2A154 : $FECL2A154
+#     FECL2B154=`grep $CLUSTER2NET $TMPFILE | grep $VPLEXCL2_PORTID_GREP | grep '^B0' | awk ' { print $1; }' `
+#     echo FECL2B154 : $FECL2B154
+# 
+#     # Back end port groups
+#     BECL1A=`grep $VPLEXCL1_PORTID_GREP $TMPFILE | grep '^A1' | awk ' { print $1; }' `
+#     echo BECL1A : $BECL1A
+#     BECL1B=`grep $VPLEXCL1_PORTID_GREP $TMPFILE | grep '^B1' | awk ' { print $1; }' `
+#     echo $BECL1B : $BECL1B
+#     BECL2A=`grep $VPLEXCL2_PORTID_GREP $TMPFILE | grep '^A1' | awk ' { print $1; }' `
+#     echo BECL2A : $BECL2A
+#     BECL2B=`grep $VPLEXCL2_PORTID_GREP $TMPFILE | grep '^B1' | awk ' { print $1; }' `
+#     echo $BECL2B : $BECL2B
+# 
+#     # Assign the ports to the Cross Connected Varrays
+#     assign_vplex_ports "$FECL1A082 $FECL1A154 $BECL1A" director-1-1-A $VACC1
+#     assign_vplex_ports "$FECL1B082 $FECL1B154 $BECL1B" director-1-1-B $VACC1
+#     assign_vplex_ports "$FECL2A082 $FECL2A154 $BECL2A" director-2-1-A $VACC2
+#     assign_vplex_ports "$FECL2B082 $FECL2B154 $BECL2B" director-2-1-B $VACC2
+# 
+#     # Assign the ports to the Non Cross Connected Varrays
+#     assign_vplex_ports "$FECL1A082 $BECL1A" director-1-1-A $VANC1
+#     assign_vplex_ports "$FECL1B082 $BECL1B" director-1-1-B $VANC1
+#     assign_vplex_ports "$FECL2A154 $BECL2A" director-2-1-A $VANC2
+#     assign_vplex_ports "$FECL2B154 $BECL2B" director-2-1-B $VANC2
+# }
+# 
+# setup_arrayports() {
+#     storageport update $VPLEX_VNX1_NATIVEGUID FC --addvarrays ${VACC1},${VANC1}
+#     storageport update $VPLEX_VNX2_NATIVEGUID FC --addvarrays ${VACC1},${VANC1}
+#     storageport update $VPLEX_VMAX_NATIVEGUID FC --addvarrays ${VACC2},${VANC2}
+# }
+# 
+# # Note- this has to happen after the Vplex ports are assigned
+# add_networks_to_varrays() {
+#     # Cross connected
+#     transportzone assign $CLUSTER1NET $VACC1
+#     transportzone assign $CLUSTER2NET $VACC1
+#     transportzone assign $CLUSTER1NET $VACC2
+#     transportzone assign $CLUSTER2NET $VACC2
+# 
+#     # Non cross connected
+#     transportzone assign $CLUSTER1NET $VANC1
+#     transportzone assign $CLUSTER2NET $VANC2
+# }
+# 
+# vplexexport_setup() {
+#     # Check if the environment has already been setup.
+#     # This is detected because array ports are assigned to each Varray.
+#     CC1COUNT=$(neighborhood storageports VAcc1 | grep -c CLAR )
+#     CC2COUNT=$(neighborhood storageports VAcc2 | grep -c SYMM )
+#     NC1COUNT=$(neighborhood storageports VAnc1 | grep -c CLAR )
+#     NC2COUNT=$(neighborhood storageports VAnc2 | grep -c SYMM )
+#     echo array counts: $CC1COUNT $CC2COUNT $NC1COUNT $NC2COUNT
+#     if [ $CC1COUNT -gt 0 -a $CC2COUNT -gt 0 -a $NC1COUNT -gt 0 -a $NC2COUNT -gt 0 ]; then
+#         echo "Skipping vplex export setup; varrays are already populated."
+#         return;
+#     fi
+# 
+#     # Check for the existence of our two networks
+#     CLUSTER1NET=$(transportzone listall | grep $CLUSTER1NET_NAME | wc -l )
+#     [ $CLUSTER1NET -eq 1 ] || {
+#         echo "No cluster-1 network found"
+#         exit 2
+#     }
+#     CLUSTER1NET=$(transportzone listall | grep $CLUSTER1NET_NAME )
+#     CLUSTER2NET=$(transportzone listall | grep $CLUSTER2NET_NAME | wc -l )
+#     [ $CLUSTER2NET -eq 1 ] || {
+#         echo "No cluster-2 network found"
+# 	exit 2
+#     }
+#     CLUSTER2NET=$(transportzone listall | grep $CLUSTER2NET_NAME )
+#     echo $CLUSTER1NET $CLUSTER2NET
+# 
+#     setup_virtual_arrays
+#     setup_hosts
+#     setup_vplexports
+#     setup_arrayports
+#     add_networks_to_varrays
+# }
+# 
+# # Setup the virtual pools
+# setup_virtual_pools() {
+#     # Get the existing virtual pools
+#     existingVpools=$(cos list block)
+# 
+#     #################### Cross-Connected Vpools ##########################
+# 
+#     CC1NoHA_exists=$(echo $existingVpools | grep -c CC1NoHA)
+#     if [ $CC1NoHA_exists -eq 0 ]; then
+# 	    echoit "Creating Virtual Pool CC1NoHA"
+# 	    cos create block CC1NoHA                                   \
+# 			     --description 'Non HA CC1'	true \
+# 			     --protocols FC                                 \
+# 			     --numpaths 4                                   \
+# 			     --provisionType 'Thin'                         \
+# 			     --neighborhoods $VACC1 			    \
+# 			     --max_snapshots 1
+# 
+# 	    cos allow CC1NoHA block $tenant
+# 	    cos update block CC1NoHA --storage $VPLEX_VNX1_NATIVEGUID
+# 	    cos update block CC1NoHA --storage $VPLEX_VNX2_NATIVEGUID
+#     fi
+# 
+#     CC2NoHA=$(echo $existingVpools | grep -c CC2NoHA)
+#     if [ $CC2NoHA -eq 0 ]; then
+# 	    echoit "Creating Virtual Pool CC2NoHA"
+# 	    cos create block CC2NoHA                                   \
+# 			     --description 'Non HA CC2' true \
+# 			     --protocols FC                                 \
+# 			     --numpaths 4                                   \
+# 			     --provisionType 'Thin'                         \
+# 			     --neighborhoods $VACC2 			    \
+# 			     --max_snapshots 1
+# 
+# 	    cos allow CC2NoHA block $tenant
+# 	    cos update block CC2NoHA --storage $VPLEX_VMAX_NATIVEGUID
+#     fi
+# 
+#     CC1Dist_exists=$(echo $existingVpools | grep -c CC1Dist)
+#     if [ $CC1Dist_exists -eq 0 ]; then
+# 	    echoit "Creating Virtual Pool CC1Dist"
+# 	    cos create block CC1Dist                                   \
+# 			     --description 'Distributed CoS for VPlex' true \
+# 			     --protocols FC                                 \
+# 			     --numpaths 4                                   \
+# 			     --provisionType 'Thin'                         \
+# 			     --highavailability vplex_distributed           \
+# 			     --neighborhoods $VACC1 			    \
+# 			     --haNeighborhood $VACC2                        \
+# 			     --haCos CC2NoHA				    \
+# 			     --max_snapshots 1
+# 
+# 	    cos allow CC1Dist block $tenant
+# 	    cos update block CC1Dist --storage $VPLEX_VNX2_NATIVEGUID
+# 	    cos update block CC1Dist --storage $VPLEX_VMAX_NATIVEGUID
+#     fi
+# 
+#     CC1DNCCE_exists=$(echo $existingVpools | grep -c CC1DNCCE)
+#     if [ $CC1DNCCE_exists -eq 0 ]; then
+# 	    echoit "Creating Virtual Pool CC1DNCCE"
+# 	    cos create block CC1DNCCE                                   \
+# 			     --description 'Distributed CoS for VPlex, no CC export' true \
+# 			     --protocols FC                                 \
+# 			     --numpaths 4                                   \
+# 			     --provisionType 'Thin'                         \
+# 			     --highavailability vplex_distributed           \
+# 			     --neighborhoods $VACC1 			    \
+# 			     --haNeighborhood $VACC2                        \
+# 			     --haCos CC2NoHA				    \
+# 			     --max_snapshots 1				    \
+# 			     --auto_cross_connect false
+# 
+# 	    cos allow CC1DNCCE block $tenant
+# 	    cos update block CC1DNCCE --storage $VPLEX_VNX2_NATIVEGUID
+# 	    cos update block CC1DNCCE --storage $VPLEX_VMAX_NATIVEGUID
+#     fi
+# 
+# 
+#     CC2Dist_exists=$(echo $existingVpools | grep -c CC2Dist)
+#     if [ $CC2Dist_exists -eq 0 ]; then
+#             echoit "Creating Virtual Pool CC2Dist"
+# 	    cos create block CC2Dist                                   \
+# 			     --description 'Distributed CoS for VPlex' true \
+# 			     --protocols FC                                 \
+# 			     --numpaths 4                                   \
+# 			     --provisionType 'Thin'                         \
+# 			     --highavailability vplex_distributed           \
+# 			     --neighborhoods $VACC2 			    \
+# 			     --haNeighborhood $VACC1                        \
+# 			     --haCos CC1NoHA				    \
+# 			     --max_snapshots 1
+# 
+# 	    cos allow CC2Dist block $tenant
+# 	    cos update block CC2Dist --storage $VPLEX_VNX1_NATIVEGUID
+# 	    cos update block CC2Dist --storage $VPLEX_VNX2_NATIVEGUID
+# 	    cos update block CC2Dist --storage $VPLEX_VMAX_NATIVEGUID
+#     fi
+# 
+#     CC2DNCCE_exists=$(echo $existingVpools | grep -c CC2DNCCE)
+#     if [ $CC2DNCCE_exists -eq 0 ]; then
+#             echoit "Creating Virtual Pool CC2DNCCE"
+# 	    cos create block CC2DNCCE                                   \
+# 			     --description 'Distributed CoS for VPlex no CC export' true \
+# 			     --protocols FC                                 \
+# 			     --numpaths 4                                   \
+# 			     --provisionType 'Thin'                         \
+# 			     --highavailability vplex_distributed           \
+# 			     --neighborhoods $VACC2 			    \
+# 			     --haNeighborhood $VACC1                        \
+# 			     --haCos CC1NoHA				    \
+# 			     --max_snapshots 1				    \
+# 			     --auto_cross_connect false
+# 
+# 	    cos allow CC2DNCCE block $tenant
+# 	    cos update block CC2DNCCE --storage $VPLEX_VNX1_NATIVEGUID
+# 	    cos update block CC2DNCCE --storage $VPLEX_VNX2_NATIVEGUID
+# 	    cos update block CC2DNCCE --storage $VPLEX_VMAX_NATIVEGUID
+#     fi
+# 
+# 
+#     CCLocal_exists=$(echo $existingVpools | grep -c CCLocal)
+#     if [ $CCLocal_exists -eq 0 ]; then
+# 	    echoit "Creating Virtual Pool CCLocal"
+# 	    cos create block CCLocal                            \
+# 			     --description 'Local CoS for VPlex' true \
+# 			     --protocols FC                           \
+# 			     --numpaths 4                             \
+# 			     --provisionType 'Thin'                   \
+# 			     --highavailability vplex_local           \
+# 			     --neighborhoods $VACC1 $VACC2            \
+# 			     --max_snapshots 1                        \
+# 			     --max_mirrors 1                          \
+# 			     --expandable false 
+# 
+# 	    cos allow CCLocal block $tenant
+# 	    cos update block CCLocal --storage $VPLEX_VNX1_NATIVEGUID
+# 	    cos update block CCLocal --storage $VPLEX_VNX2_NATIVEGUID
+# 	    cos update block CCLocal --storage $VPLEX_VMAX_NATIVEGUID
+#     fi
+# 
+#     #################### Non Cross-Connected Vpools ######################
+# 
+#     NC1NoHA_exists=$(echo $existingVpools | grep -c NC1NoHA)
+#     if [ $NC1NoHA_exists -eq 0 ]; then
+# 	    echoit "Creating Virtual Pool NC1NoHA"
+# 	    cos create block NC1NoHA                                   \
+# 			     --description 'Non HA NC1'	true \
+# 			     --protocols FC                                 \
+# 			     --numpaths 2                                   \
+# 			     --provisionType 'Thin'                         \
+# 			     --neighborhoods $VANC1 			    \
+# 			     --max_snapshots 1
+# 
+# 	    cos allow NC1NoHA block $tenant
+# 	    cos update block NC1NoHA --storage $VPLEX_VNX1_NATIVEGUID
+# 	    cos update block NC1NoHA --storage $VPLEX_VNX2_NATIVEGUID
+#     fi
+# 
+#     NC2NoHA=$(echo $existingVpools | grep -c NC2NoHA)
+#     if [ $NC2NoHA -eq 0 ]; then
+# 	    echoit "Creating Virtual Pool NC2NoHA"
+# 	    cos create block NC2NoHA                                   \
+# 			     --description 'Non HA NC2' true \
+# 			     --protocols FC                                 \
+# 			     --numpaths 2                                   \
+# 			     --provisionType 'Thin'                         \
+# 			     --neighborhoods $VANC2 			    \
+# 			     --max_snapshots 1
+# 
+# 	    cos allow NC2NoHA block $tenant
+# 	    cos update block NC2NoHA --storage $VPLEX_VMAX_NATIVEGUID
+#     fi
+# 
+#     NC1Dist_exists=$(echo $existingVpools | grep -c NC1Dist)
+#     if [ $NC1Dist_exists -eq 0 ]; then
+# 	    echoit "Creating Virtual Pool NC1Dist"
+# 	    cos create block NC1Dist                                   \
+# 			     --description 'Distributed CoS for VPlex' true \
+# 			     --protocols FC                                 \
+# 			     --numpaths 4                                   \
+# 			     --provisionType 'Thin'                         \
+# 			     --highavailability vplex_distributed           \
+# 			     --neighborhoods $VANC1 			    \
+# 			     --haNeighborhood $VANC2                        \
+# 			     --haCos NC2NoHA				    \
+# 			     --max_snapshots 1
+# 
+# 	    cos allow NC1Dist block $tenant
+# 	    cos update block NC1Dist --storage $VPLEX_VNX2_NATIVEGUID
+# 	    cos update block NC1Dist --storage $VPLEX_VMAX_NATIVEGUID
+#     fi
+# 
+# 
+#     NC2Dist_exists=$(echo $existingVpools | grep -c NC2Dist)
+#     if [ $NC2Dist_exists -eq 0 ]; then
+#             echoit "Creating Virtual Pool NC2Dist"
+# 	    cos create block NC2Dist                                   \
+# 			     --description 'Distributed CoS for VPlex' true \
+# 			     --protocols FC                                 \
+# 			     --numpaths 4                                   \
+# 			     --provisionType 'Thin'                         \
+# 			     --highavailability vplex_distributed           \
+# 			     --neighborhoods $VANC2 			    \
+# 			     --haNeighborhood $VANC1                        \
+# 			     --haCos NC1NoHA				    \
+# 			     --max_snapshots 1
+# 
+# 	    cos allow NC2Dist block $tenant
+# 	    cos update block NC2Dist --storage $VPLEX_VNX1_NATIVEGUID
+# 	    cos update block NC2Dist --storage $VPLEX_VNX2_NATIVEGUID
+# 	    cos update block NC2Dist --storage $VPLEX_VMAX_NATIVEGUID
+#     fi
+# 
+# 
+#     NCLocal_exists=$(echo $existingVpools | grep -c NCLocal)
+#     if [ $NCLocal_exists -eq 0 ]; then
+# 	    echoit "Creating Virtual Pool NCLocal"
+# 	    cos create block NCLocal                            \
+# 			     --description 'Local CoS for VPlex' true \
+# 			     --protocols FC                           \
+# 			     --numpaths 4                             \
+# 			     --provisionType 'Thin'                   \
+# 			     --highavailability vplex_local           \
+# 			     --neighborhoods $VANC1 $VANC2            \
+# 			     --max_snapshots 1                        \
+# 			     --max_mirrors 1                          \
+# 			     --expandable false 
+# 
+# 	    cos allow NCLocal block $tenant
+# 	    cos update block NCLocal --storage $VPLEX_VNX1_NATIVEGUID
+# 	    cos update block NCLocal --storage $VPLEX_VNX2_NATIVEGUID
+# 	    cos update block NCLocal --storage $VPLEX_VMAX_NATIVEGUID
+#     fi
+# 
+#     cos list block
+# }
+

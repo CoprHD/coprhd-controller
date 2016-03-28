@@ -1106,7 +1106,6 @@ public class SRDFOperations implements SmisConstants {
         cgObj.getRequestedTypes().add(Types.SRDF.toString());
 
         // Update CG types
-        cgObj.getTypes().clear();
         cgObj.getTypes().add(Types.SRDF.toString());
 
         // volumes from same array will reside in one CG

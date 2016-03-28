@@ -107,10 +107,40 @@ public class NetappMirrorFileOperations implements FileMirrorOperations {
     @Override
     public void pauseMirrorFileShareLink(StorageSystem system, FileShare target, TaskCompleter completer) throws DeviceControllerException {
 
+        _log.info("Calling NetappMirrorFileOperations - pauseMirrorFileShareLink on destination {} - complete ",
+                target.getName());
+
+        StorageSystem targetStorageSystem = _dbClient.queryObject(StorageSystem.class, target.getStorageDevice());
+
+        BiosCommandResult cmdResult = doPauseSnapMirror(targetStorageSystem, target, completer);
+
+        if (cmdResult.getCommandSuccess()) {
+            completer.ready(_dbClient);
+        } else {
+            completer.error(_dbClient, cmdResult.getServiceCoded());
+        }
+
+        _log.info("NetappMirrorFileOperations - pauseMirrorFileShareLink on destination {} - complete ",
+                target.getName());
+
     }
 
     @Override
     public void resumeMirrorFileShareLink(StorageSystem system, FileShare target, TaskCompleter completer) throws DeviceControllerException {
+
+        _log.info("Calling NetappMirrorFileOperations - resumeMirrorFileShareLink on destination {} - complete ",
+                target.getName());
+
+        BiosCommandResult cmdResult = doResumeSnapMirror(system, target, completer);
+
+        if (cmdResult.getCommandSuccess()) {
+            completer.ready(_dbClient);
+        } else {
+            completer.error(_dbClient, cmdResult.getServiceCoded());
+        }
+
+        _log.info("NetappMirrorFileOperations - resumeMirrorFileShareLink on destination {} - complete ",
+                target.getName());
 
     }
 
@@ -444,8 +474,7 @@ public class NetappMirrorFileOperations implements FileMirrorOperations {
      * @param taskCompleter
      * @return
      */
-    public BiosCommandResult doResumeSnapMirror(StorageSystem sourceStorage, StorageSystem targetStorage, FileShare sourceFs,
-            FileShare targetFs, TaskCompleter taskCompleter) {
+    public BiosCommandResult doResumeSnapMirror(StorageSystem targetStorage, FileShare targetFs, TaskCompleter taskCompleter) {
         // get vfiler
         String portGroupTarget = findVfilerName(targetFs);
         NetAppApi nApi = new NetAppApi.Builder(targetStorage.getIpAddress(),

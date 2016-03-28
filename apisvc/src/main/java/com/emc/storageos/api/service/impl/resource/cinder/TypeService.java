@@ -179,7 +179,7 @@ public class TypeService extends TaskResourceService {
     public Response setVolumeTypeKey(@PathParam("tenant_id") URI openstacktenant_id,
             @PathParam("volume_type_id") URI volumeTypeId, @Context HttpHeaders header) {       
         _log.info("VolumeType updation is not supported");
-        return CinderApiUtils.createErrorResponse(400, "Bad Request: Unable to update volumetype");
+        return CinderApiUtils.createErrorResponse(400, "Bad Request: Update volume type not supported");
     }
     
     

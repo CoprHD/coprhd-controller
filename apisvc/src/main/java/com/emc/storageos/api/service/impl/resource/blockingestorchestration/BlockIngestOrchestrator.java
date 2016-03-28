@@ -922,9 +922,16 @@ public abstract class BlockIngestOrchestrator {
                 } else if (replica instanceof Volume) {
                     if (isSRDFTargetVolume(replica, processedUnManagedVolumes)) {
                         VolumeIngestionUtil.setupSRDFParentRelations(replica, parent, _dbClient);
-                    } else if (VolumeIngestionUtil.isVplexVolume(parent, _dbClient)
-                            && VolumeIngestionUtil.isVplexBackendVolume(replica, _dbClient)) {
-                        VolumeIngestionUtil.setupVplexParentRelations(replica, parent, _dbClient);
+                    } else if (VolumeIngestionUtil.isVplexVolume(parent, _dbClient)) {
+                        if (parent instanceof Volume) {
+                            StringSet associatedVolumes = ((Volume) parent).getAssociatedVolumes();
+                            if (associatedVolumes != null && associatedVolumes.contains(replica.getId().toString())) {
+                                _logger.info("associated volume {} of {} has already been ingested", 
+                                        replica.forDisplay(), parent.forDisplay());
+                            }
+                        } else if (VolumeIngestionUtil.isVplexBackendVolume(replica, _dbClient)) {
+                            VolumeIngestionUtil.setupVplexParentRelations(replica, parent, _dbClient);
+                       }
                     } else {
                         VolumeIngestionUtil.setupCloneParentRelations(replica, parent, _dbClient);
                     }

@@ -1919,4 +1919,14 @@ public class NetAppFileStorageDevice extends AbstractFileStorageDevice {
         mirrorOperations.deleteMirrorFileShareLink(system, source, target, completer);
     }
 
+    @Override
+    public void doSuspendLink(StorageSystem system, FileShare target, TaskCompleter completer) {
+        mirrorOperations.pauseMirrorFileShareLink(system, target, completer);
+    }
+
+    @Override
+    public void doResumeLink(StorageSystem system, FileShare target, TaskCompleter completer) {
+        mirrorOperations.resumeMirrorFileShareLink(system, target, completer);
+    }
+
 }

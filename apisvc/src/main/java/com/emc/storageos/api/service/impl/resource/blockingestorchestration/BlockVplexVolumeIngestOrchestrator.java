@@ -761,7 +761,7 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
             IngestionRequestContext context, DbClient dbClient) {
         if (VolumeIngestionUtil.checkUnManagedResourceAddedToConsistencyGroup(unManagedVolume)) {
             return VolumeIngestionUtil.getVplexConsistencyGroup(unManagedVolume, blockObj, context.getVpool(unManagedVolume),
-                    context.getProject().getId(), context.getTenant().getId(), context.getVarray(unManagedVolume).getId(),
+                    context.getProject(), context.getTenant(), context.getVarray(unManagedVolume).getId(),
                     dbClient);
         }
         return null;

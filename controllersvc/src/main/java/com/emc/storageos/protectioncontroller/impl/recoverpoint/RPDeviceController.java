@@ -1727,7 +1727,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                         VolumeDescriptor.Type.RP_VPLEX_VIRT_SOURCE },
             	new VolumeDescriptor.Type[] {});
         
-        // Get only the RP source volumes from the descriptors.
+        // Get all journal volumes
         List<VolumeDescriptor> journalVolumeDescriptors = VolumeDescriptor.filterByType(volumeDescriptors,
                 new VolumeDescriptor.Type[] { VolumeDescriptor.Type.RP_JOURNAL,
                         VolumeDescriptor.Type.RP_VPLEX_VIRT_JOURNAL},

@@ -815,7 +815,7 @@ public class DisasterRecoveryServiceTest {
         
         doReturn(standbySite2).when(drUtil).getLocalSite();
         doReturn(ClusterInfo.ClusterState.STABLE).when(coordinator).getControlNodesState(standbySite2.getUuid());
-        doReturn("leader").when(drUtil).getLocalCoordinatorMode("vipr1");
+        doReturn("leader").when(drUtil).getLocalCoordinatorMode();
         doReturn(addrLookupMap).when(coordinator).getInetAddessLookupMap();
         
         drService.precheckForFailover();
@@ -870,7 +870,7 @@ public class DisasterRecoveryServiceTest {
             
             doReturn(addrLookupMap).when(coordinator).getInetAddessLookupMap();
             doReturn(ClusterInfo.ClusterState.STABLE).when(coordinator).getControlNodesState(standbySite1.getUuid());
-            doReturn("observer").when(drUtil).getLocalCoordinatorMode("vipr1");
+            doReturn("observer").when(drUtil).getLocalCoordinatorMode();
             
             drService.precheckForFailover();
             fail();

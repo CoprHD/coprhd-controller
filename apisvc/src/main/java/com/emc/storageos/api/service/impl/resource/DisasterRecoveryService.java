@@ -1766,7 +1766,7 @@ public class DisasterRecoveryService {
     /*
      * Internal method to check whether failover to standby is allowed
      */
-    protected void precheckForFailoverLocally(String standbyUuid) {
+    private void precheckForFailoverLocally(String standbyUuid) {
         Site standby = drUtil.getLocalSite();
 
         // API should be only send to local site
@@ -1791,7 +1791,7 @@ public class DisasterRecoveryService {
         precheckForFailover();
     }
 
-    protected void precheckForFailover() {
+    void precheckForFailover() {
         Site standby = drUtil.getLocalSite();
         String standbyUuid = standby.getUuid();
         String standbyName = standby.getName();
@@ -1809,14 +1809,11 @@ public class DisasterRecoveryService {
                     String.format("Site %s is not stable", standby.getName()));
         }
 
-        // this is standby site and NOT in ZK read-only or observer mode,
-        // it means active is down and local ZK has been reconfig to participant
-        // this precheck implies that the active site is unreachable
-        CoordinatorClientInetAddressMap addrLookupMap = coordinator.getInetAddessLookupMap();
-        String myNodeId = addrLookupMap.getNodeId();
-        String coordinatorMode = drUtil.getLocalCoordinatorMode(myNodeId);
+        // Make sure that the local ZK has been reconfigured to participant
+        // This DOES NOT implies that the active site is unreachable, notably when the local site is manually paused
+        String coordinatorMode = drUtil.getLocalCoordinatorMode();
         log.info("Local coordinator mode is {}", coordinatorMode);
-        if (coordinatorMode == null || DrUtil.ZOOKEEPER_MODE_OBSERVER.equals(coordinatorMode) || DrUtil.ZOOKEEPER_MODE_READONLY.equals(coordinatorMode)) {
+        if (coordinatorMode == null || !drUtil.isParticipantNode(coordinatorMode)) {
             log.info("Active site is available now, can't do failover");
             throw APIException.internalServerErrors.failoverPrecheckFailed(standbyName, "Active site is available now, can't do failover");
         }

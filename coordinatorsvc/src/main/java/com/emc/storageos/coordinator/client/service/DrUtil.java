@@ -484,12 +484,13 @@ public class DrUtil {
     }
     
     /**
-     * Use Zookeeper 4 letter command to check status of local coordinatorsvc. The return value could 
-     * be one of the following - follower, leader, observer, read-only
-     * 
+     * Use Zookeeper 4 letter command to check status of coordinatorsvc on the node specified by nodeId.
+     * The return value could be one of the following - follower, leader, observer, read-only
+     *
+     * @param nodeId target node id
      * @return zookeeper mode
      */
-    public String getLocalCoordinatorMode(String nodeId) {
+    public String getCoordinatorMode(String nodeId) {
         Socket sock = null;
         try {
             log.info("get local coordinator mode from {}:{}", nodeId, COORDINATOR_PORT);
@@ -517,6 +518,41 @@ public class DrUtil {
             } catch (Exception ex) {}
         }
         return null;
+    }
+
+    /**
+     * Use Zookeeper 4 letter command to check status of coordinatorsvc on the local node.
+     * The return value could be one of the following - follower, leader, observer, read-only
+     *
+     * @return zookeeper mode
+     */
+    public String getLocalCoordinatorMode() {
+        String myNodeId = coordinator.getInetAddessLookupMap().getNodeId();
+        return getCoordinatorMode(myNodeId);
+    }
+
+    /**
+     * Determine if the current node is a ZK leader/standalone
+     * @return true if ZK leader/standalone, false otherwise
+     */
+    public boolean isLeaderNode() {
+        String myNodeId = coordinator.getInetAddessLookupMap().getNodeId();
+        String localZkMode = getCoordinatorMode(myNodeId);
+        return isLeaderNode(localZkMode);
+    }
+
+    /**
+     * Determine if the specified ZK mode represents a leader/standalone
+     * @param localZkMode local ZK mode
+     * @return true if the ZK mode is leader/standalone, false otherwise
+     */
+    public boolean isLeaderNode(String localZkMode) {
+        return ZOOKEEPER_MODE_LEADER.equals(localZkMode) || ZOOKEEPER_MODE_STANDALONE.equals(localZkMode);
+    }
+
+    public boolean isParticipantNode(String localZkMode) {
+        return ZOOKEEPER_MODE_LEADER.equals(localZkMode) || ZOOKEEPER_MODE_FOLLOWER.equals(localZkMode)
+                || ZOOKEEPER_MODE_STANDALONE.equals(localZkMode);
     }
 
     private String getSitePath(String siteId) {

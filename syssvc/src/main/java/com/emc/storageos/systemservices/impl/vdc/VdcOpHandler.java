@@ -483,13 +483,13 @@ public abstract class VdcOpHandler {
                 retrySleep();
             }
 
-            String localZkMode = drUtil.getLocalCoordinatorMode(coordinator.getMyNodeId());
+            String localZkMode = drUtil.getLocalCoordinatorMode();
             if (DrUtil.ZOOKEEPER_MODE_READONLY.equals(localZkMode)) {
                 coordinator.reconfigZKToWritable();
             }
 
             Site localSite = drUtil.getLocalSite();
-            if (localSite.getState() == SiteState.STANDBY_PAUSING && DrUtil.ZOOKEEPER_MODE_LEADER.equals(localZkMode)) {
+            if (localSite.getState() == SiteState.STANDBY_PAUSING && drUtil.isLeaderNode(localZkMode)) {
                 localSite.setState(SiteState.STANDBY_PAUSED);
                 log.info("Updating local site state to STANDBY_PAUSED");
                 coordinator.getCoordinatorClient().persistServiceConfiguration(localSite.toConfiguration());

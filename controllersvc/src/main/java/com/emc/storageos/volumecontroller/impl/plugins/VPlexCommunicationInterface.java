@@ -1021,17 +1021,7 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
         s_logger.info("finding valid virtual pools for UnManagedVolume {}", volume.getLabel());
 
         for (VirtualPool vpool : allVpools) {
-            // We need to filter out virtual pools that don't apply to this unmanaged VPLEX volume, so...
-            // For this vpool, check to see if:
-            // - The vpool doesn't have a VPLEX attribute in the first place, filter it out
-            if (vpool.getHighAvailability() == null) {
-                s_logger.info("   virtual pool {} is not valid because "
-                        + "it does not have a high availability setting",
-                        vpool.getLabel());
-                continue;
-            }
-            
-            // Now check to see if:
+            // Check to see if:
             // - The vpool's HA type doesn't match the volume's, unless...
             // - The vpool is RPVPLEX and this is a VPLEX local volume (likely a journal)
             if (!vpool.getHighAvailability().equals(highAvailability) &&  

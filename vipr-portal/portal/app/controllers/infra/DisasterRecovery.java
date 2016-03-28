@@ -280,7 +280,11 @@ public class DisasterRecovery extends ViprResourceController {
     public static boolean isActiveSite() {
         return DisasterRecoveryUtils.isActiveSite();
     }
-    
+
+    public static boolean isLocalsiteRemoved() {
+        return DisasterRecoveryUtils.isLocalSiteRemoved();
+    }
+
     public static boolean isMultiDrSite() {
         return DisasterRecoveryUtils.isMultiDrSite();
     }

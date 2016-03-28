@@ -65,7 +65,7 @@ public abstract class BlockIngestExportOrchestrator extends ResourceService {
             List<UnManagedExportMask> unManagedMasks, MutableInt masksIngestedCount)
                     throws IngestionException {
         try {
-            _logger.info("Starting with unmanaged masks {} for unmanaged volume {}",
+            _logger.info("Ingesting unmanaged masks {} for unmanaged volume {}",
                     Joiner.on(",").join(unManagedVolume.getUnmanagedExportMasks()), unManagedVolume.getNativeGuid());
             List<UnManagedExportMask> uemsToPersist = new ArrayList<UnManagedExportMask>();
             Iterator<UnManagedExportMask> itr = unManagedMasks.iterator();
@@ -229,8 +229,9 @@ public abstract class BlockIngestExportOrchestrator extends ResourceService {
 
                 // remove the unmanaged mask from unmanaged volume only if the block object has not been marked as internal
                 if (!blockObject.checkInternalFlags(Flag.PARTIALLY_INGESTED)) {
-                    _logger.info("breaking relationship between UnManagedExportMask {} and UnManagedVolume {}",
-                            unManagedExportMask.getMaskName(), unManagedVolume.forDisplay());
+                    _logger.info("block object {} is fully ingested, "
+                            + "breaking relationship between UnManagedExportMask {} and UnManagedVolume {}",
+                            blockObject.forDisplay(), unManagedExportMask.getMaskName(), unManagedVolume.forDisplay());
                     unManagedVolume.getUnmanagedExportMasks().remove(unManagedExportMask.getId().toString());
                     unManagedExportMask.getUnmanagedVolumeUris().remove(unManagedVolume.getId().toString());
                     uemsToPersist.add(unManagedExportMask);

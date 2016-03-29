@@ -1365,7 +1365,7 @@ angular.module("portalApp").controller("ConfigBackupCtrl", function($scope) {
                     $scope.backup_startTime = time.replace(hour, newHour) + '\t' + hint;
                 }
                 else {
-                    $scope.backup_startTime += '\t' + hint;
+                    $scope.backup_startTime = time + '\t' + hint;
                 }
             }
             else if (time.indexOf(hint) > -1 && $interval !== twicePerDay) {

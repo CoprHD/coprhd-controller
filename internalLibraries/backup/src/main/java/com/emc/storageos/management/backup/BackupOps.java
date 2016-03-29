@@ -768,7 +768,7 @@ public class BackupOps {
                 throw new RuntimeException(errMsg);
             }
 
-            String[] tokens = lines.get(0).split("\\s");
+            String[] tokens = lines.get(0).split("\\t");
 
             if (tokens.length != 3) {
                 String errMsg = String.format("Invalid md5 file %s : only 3 fields allowed in a line", md5Filename);

@@ -846,7 +846,8 @@ fix_sshd_config() {
 s/AuthorizedKeysFile.*authorized_keys$/AuthorizedKeysFile    \.ssh\/authorized_keys2/
 s/^\#HostKey \/etc\/ssh\/ssh_host_rsa_key/HostKey \/etc\/ssh\/ssh_host_rsa_key/
 s/^\#HostKey \/etc\/ssh\/ssh_host_dsa_key/HostKey \/etc\/ssh\/ssh_host_dsa_key /
-s/^\#HostKey \/etc\/ssh\/ssh_host_ecdsa_key/HostKey \/etc\/ssh\/ssh_host_ecdsa_key/'
+s/^\#HostKey \/etc\/ssh\/ssh_host_ecdsa_key/HostKey \/etc\/ssh\/ssh_host_ecdsa_key/
+s/^\#UseDNS yes/UseDNS no/'
 }
 
 fix_sudoers() {

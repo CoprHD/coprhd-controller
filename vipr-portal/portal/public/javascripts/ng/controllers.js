@@ -1352,7 +1352,6 @@ angular.module("portalApp").controller("ConfigBackupCtrl", function($scope) {
             var $backup_time = $("#backup_scheduler_time");
             $backup_time.val(utcOffset);
             checkForm();
-            console.info(utcOffset);
         }
     }
 

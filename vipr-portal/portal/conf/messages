@@ -3635,13 +3635,15 @@ storageSystemTypes.isProvider=Is Provider
 storageSystemTypes.description=Description
 storageSystemTypes.create.title=Add New Storage System Type
 storageSystemTypes.add.title=Enter all information needed to add a new Storage System Type
+storageSystemTypes.upload.title=Upload Device Driver
+storageSystemTypes.upload.description=Upload Device Driver jar file
 storageSystemTypes.useSSL=Use SSL
 storageSystemTypes.isOnlyMDM=Use Only MDM
 storageSystemTypes.isElementMgr=Is Element Manager
 storageSystemTypes.useMDM=Use MDM
 storageSystemTypes.driverClassName=Driver Class Name
-storageSystemTypes.uploadButton=Upload Device Driver
-storageSystemTypes.deviceDriverFile=Device Driver Jar
+storageSystemTypes.uploadButton=Upload
+deviceDriverFile=Device Driver Jar
 
 tasks.task=Task
 tasks.id=ID

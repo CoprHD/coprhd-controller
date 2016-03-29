@@ -12,6 +12,17 @@
   #{breadcrumb.item active:true}#{get 'title'/}#{/breadcrumb.item}
 #{/breadcrumb.container}
 
+#{alerts/}
+
+#{Form.header titleKey:'storageSystemTypes.upload.title' /}
+#{form @uploadDriver(), enctype:'multipart/form-data', method:'POST', id: 'StorageSystemTypeForm', class:'form form-horizontal', autocomplete:"off"}
+     #{field 'deviceDriverFile'}
+        #{Form.fileUploadControlGroup field:field/}
+     #{/field}
+     #{Form.buttonBar}
+      	<button type="submit" class="btn btn-default">#{icon 'upload'/} &{'storageSystemTypes.uploadButton'}</button>
+     #{/Form.buttonBar}
+#{/form}
 
 <div class="container" >
   <form-header title-key="${titleKey}"
@@ -19,8 +30,6 @@
                image-val="/public/img/assets/AddStandbySite.png">
   </form-header>
 
-  #{alerts/}
-  
   %{ editing = storageSystemTypes?.storageTypeId }%
   
   #{form @save(), class:'form form-horizontal', autocomplete:"off"}
@@ -34,18 +43,6 @@
     #{/field}
 
   <fieldset>
-  	<div id="fileUploads">
-	    #{field 'storageSystemTypes.deviceDriverFile'}
-	      %{
-	        field.fieldKey = 'storageSystemTypes.deviceDriverFile'
-	      }%
-	      #{Form.fileUploadControlGroup field:field/}
-	    #{/field}
-		#{Form.buttonBar}
-			<button type="submit" class="btn btn-default">#{icon 'upload'/} &{'storageSystemTypes.uploadButton'}</button>
-		#{/Form.buttonBar}
-	</div>
-	<br/>
     #{field 'storageSystemTypes.storageSystemTypeName'}
       %{
         field.cssClass = 'span6 initialFocus';

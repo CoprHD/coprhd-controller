@@ -7,6 +7,8 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
 
+import javax.ws.rs.core.Response;
+
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang.StringUtils;
 
@@ -111,21 +113,13 @@ public class StorageSystemTypes extends ViprResourceController {
 		list();
 	}
 
-    public static void uploadDriver(File newDeviceDriver) {
+	public static void uploadDriver(File deviceDriverFile) {
+		if (deviceDriverFile != null) {
+			Response restResponse = StorageSystemTypeUtils.uploadDriver(deviceDriverFile);
+			flash.success("Response from server: " + restResponse.getStatus());
+		}
+	}
 
-        File storaeDirectory = new File ("/data/");
-        
-        if (newDeviceDriver != null) {
-            try {
-            	FileUtils.copyFileToDirectory(newDeviceDriver, storaeDirectory);
-            } catch (IOException e) {
-                Validation.addError("newLicenseFile", MessagesUtils.get("license.invalidLicenseFile"));
-                Logger.error(e, "Failed to read license text file");
-            }
-        }
-    }
-	
-	
 	@SuppressWarnings("squid:S2068")
 	public static class StorageSystemTypeForm {
 

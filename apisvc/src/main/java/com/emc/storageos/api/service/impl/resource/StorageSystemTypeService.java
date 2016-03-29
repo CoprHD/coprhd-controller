@@ -2,9 +2,9 @@ package com.emc.storageos.api.service.impl.resource;
 
 import java.net.URI;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+
 import javax.ws.rs.Consumes;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
@@ -29,10 +29,15 @@ import com.emc.storageos.security.authorization.DefaultPermissions;
 import com.emc.storageos.security.authorization.Role;
 import com.emc.storageos.services.OperationTypeEnum;
 import com.google.common.collect.Lists;
+import com.sun.jersey.core.header.FormDataContentDisposition;
+import com.sun.jersey.multipart.FormDataParam;
 
-//import util.StringOption;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 
-import static java.util.Arrays.asList;
 import static com.emc.storageos.api.mapper.SystemsMapper.map;
 
 /**
@@ -46,6 +51,7 @@ public class StorageSystemTypeService extends TaskResourceService {
 
 	private static final Logger log = LoggerFactory.getLogger(StorageSystemTypeService.class);
 	private static final String EVENT_SERVICE_TYPE = "StorageSystemTypeService";
+	private static final String UPLOAD_DEVICE_DRIVER = "/data";
 
 	/**
 	 * Show compute image attribute.
@@ -199,6 +205,31 @@ public class StorageSystemTypeService extends TaskResourceService {
 
 	}
 
+	/**
+	 * Upload the device driver file. Consumes MediaType.MULTIPART_FORM_DATA.
+	 * This is an asynchronous operation.
+	 * 
+	 * @brief Upload the specified device driver file
+	 * @return Response information.
+	 */
+
+	@POST
+	@Path("/upload")
+	@CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
+	@Consumes(MediaType.MULTIPART_FORM_DATA)
+	@Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+	public Response uploadFile(@FormDataParam("file") InputStream fileInputStream,
+			@FormDataParam("file") FormDataContentDisposition contentDispositionHeader) {
+		log.info("Upload of device driver file started, time: " + System.currentTimeMillis());
+
+		String filePath = UPLOAD_DEVICE_DRIVER + contentDispositionHeader.getFileName();
+		// save the file to the server
+		saveFile(fileInputStream, filePath);
+		String output = "File saved to server location : " + filePath;
+		log.info("Device driver file uploaded.");
+		return Response.status(200).entity(output).build();
+	}
+
 	@Override
 	public String getServiceType() {
 		return EVENT_SERVICE_TYPE;
@@ -237,6 +268,23 @@ public class StorageSystemTypeService extends TaskResourceService {
 	protected URI getTenantOwner(URI id) {
 		// TODO Auto-generated method stub
 		return null;
+	}
+
+	// save uploaded file to a defined location on the server
+	private void saveFile(InputStream uploadedInputStream, String serverLocation) {
+		try {
+			OutputStream outpuStream = new FileOutputStream(new File(serverLocation));
+			int read = 0;
+			byte[] bytes = new byte[1024];
+			outpuStream = new FileOutputStream(new File(serverLocation));
+			while ((read = uploadedInputStream.read(bytes)) != -1) {
+				outpuStream.write(bytes, 0, read);
+			}
+			outpuStream.flush();
+			outpuStream.close();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
 	}
 
 }

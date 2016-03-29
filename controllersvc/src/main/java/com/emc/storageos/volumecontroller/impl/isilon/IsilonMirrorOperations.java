@@ -7,6 +7,7 @@ package com.emc.storageos.volumecontroller.impl.isilon;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -383,7 +384,7 @@ public class IsilonMirrorOperations implements FileMirrorOperations {
                         policyState);
                 ServiceError error = DeviceControllerErrors.isilon
                         .jobFailed(
-                                "doCancelReplicationPolicy as : Replication Policy Job can't be Cancel because policy's last job is NOT in PAUSED state");
+                        "doCancelReplicationPolicy as : Replication Policy Job can't be Cancel because policy's last job is NOT in PAUSED state");
                 return BiosCommandResult.createErrorResult(error);
             }
         } catch (IsilonException e) {
@@ -411,12 +412,17 @@ public class IsilonMirrorOperations implements FileMirrorOperations {
                 modifiedPolicy.setName(policyName);
                 modifiedPolicy.setLastJobState(JobState.canceled);
                 isi.modifyReplicationPolicy(policyName, modifiedPolicy);
+                _log.info("Sleeping for 10 seconds for detach to complete...");
+                TimeUnit.SECONDS.sleep(10);
             }
             isi.deleteReplicationPolicy(policyName);
             _log.info("dodeleteReplicationPolicy - {} finished succesfully", policy.toString());
             return BiosCommandResult.createSuccessfulResult();
         } catch (IsilonException e) {
             return BiosCommandResult.createErrorResult(e);
+        } catch (InterruptedException e) {
+            _log.warn("dodeleteReplicationPolicy - {} intertupted");
+            return BiosCommandResult.createSuccessfulResult();
         }
 
     }
@@ -530,7 +536,7 @@ public class IsilonMirrorOperations implements FileMirrorOperations {
      */
     public BiosCommandResult isiResyncPrep(StorageSystem primarySystem, StorageSystem secondarySystem, String policyName,
             TaskCompleter completer)
-                    throws IsilonException {
+            throws IsilonException {
 
         IsilonApi isiPrimary = getIsilonDevice(primarySystem);
         IsilonSyncJob job = new IsilonSyncJob();

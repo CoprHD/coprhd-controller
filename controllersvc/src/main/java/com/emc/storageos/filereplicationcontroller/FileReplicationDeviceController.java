@@ -14,7 +14,6 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.TimeUnit;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -409,8 +408,6 @@ public class FileReplicationDeviceController implements FileOrchestrationInterfa
             StorageSystem system = getStorageSystem(systemURI);
             completer = new FileMirrorDetachTaskCompleter(sourceURI, opId);
             getRemoteMirrorDevice(system).doDetachMirrorLink(system, sourceURI, targetURI, completer);
-            log.info("Sleeping for 10 seconds for detach to complete...");
-            TimeUnit.SECONDS.sleep(10);
         } catch (Exception e) {
             ServiceError error = DeviceControllerException.errors.jobFailed(e);
             if (null != completer) {

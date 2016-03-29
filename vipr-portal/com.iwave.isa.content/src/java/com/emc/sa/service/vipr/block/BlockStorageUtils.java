@@ -26,6 +26,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -1255,13 +1256,26 @@ public class BlockStorageUtils {
         }
     }
 
-    public static List<String> stripRPTargetFromReplicationGroup(Collection<String> groups) {
-        List<String> stripped = new ArrayList<String>();
+    public static Set<String> stripRPTargetFromReplicationGroup(Collection<String> groups) {
+        Set<String> stripped = new HashSet<String>();
 
         for (String group : groups) {
             stripped.add(stripRPTargetFromReplicationGroup(group));
         }
 
         return stripped;
+    }
+    
+    public static boolean isRPVolume(VolumeRestRep volume) {
+        return (volume.getProtection() != null && volume.getProtection().getRpRep() != null);
+    }
+    
+    public static boolean isRPSourceVolume(VolumeRestRep volume) {
+        if (isRPVolume(volume)
+                && volume.getProtection().getRpRep().getPersonality() != null
+                && volume.getProtection().getRpRep().getPersonality().equalsIgnoreCase("SOURCE")) {
+            return true;
+        }
+        return false;
     }
 }

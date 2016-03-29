@@ -4481,7 +4481,7 @@ public class VolumeIngestionUtil {
             String clusterName = ((VplexVolumeIngestionContext) volumeContext).getVirtualVolumeVplexClusterName();
             String maskingViewPath = unManagedExportMask.getMaskingViewPath();
             _logger.info("cluster name is {} and masking view path is {}", clusterName, maskingViewPath);
-            if (clusterName != null) {
+            if (clusterName != null && maskingViewPath != null) {
                 // the start of the path would be like: /clusters/cluster-1
                 // the masking view path would be like: /clusters/cluster-1/virtual-volumes/dd_V000195701351-021DA_V000198700412-030CF_vol
                 // if the start of the path (as determined by getting the cluster name connected to the varray

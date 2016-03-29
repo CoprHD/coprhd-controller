@@ -1725,6 +1725,12 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                 new VolumeDescriptor.Type[] { VolumeDescriptor.Type.RP_SOURCE,
                         VolumeDescriptor.Type.RP_EXISTING_SOURCE,
                         VolumeDescriptor.Type.RP_VPLEX_VIRT_SOURCE },
+            	new VolumeDescriptor.Type[] {});
+        
+        // Get all journal volumes
+        List<VolumeDescriptor> journalVolumeDescriptors = VolumeDescriptor.filterByType(volumeDescriptors,
+                new VolumeDescriptor.Type[] { VolumeDescriptor.Type.RP_JOURNAL,
+                        VolumeDescriptor.Type.RP_VPLEX_VIRT_JOURNAL},
                 new VolumeDescriptor.Type[] {});
 
         if (sourceVolumeDescriptors == null || sourceVolumeDescriptors.isEmpty()) {
@@ -1736,8 +1742,13 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
         for (VolumeDescriptor descriptor : sourceVolumeDescriptors) {
             volumeIDs.add(descriptor.getVolumeURI());
         }
+        
+        List<URI> journalVolumeIDs = new ArrayList<URI>();
+        for(VolumeDescriptor journalDescriptor : journalVolumeDescriptors) {
+        	journalVolumeIDs.add(journalDescriptor.getVolumeURI());
+        }
 
-        return cgDeleteStep(rpSystemId, volumeIDs, token);
+        return cgDeleteStep(rpSystemId, volumeIDs, journalVolumeIDs, token);
     }
 
     /**
@@ -2029,11 +2040,12 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
      *
      * @param rpSystem protection system
      * @param volumeIDs volume IDs
+     * @param journalVolumeIDs Volume IDs of journals
      * @param token task ID
      * @return true if successful
      * @throws ControllerException
      */
-    public boolean cgDeleteStep(URI rpSystem, List<URI> volumeIDs, String token) throws ControllerException {
+    public boolean cgDeleteStep(URI rpSystem, List<URI> volumeIDs, List<URI> journalVolumeIDs, String token) throws ControllerException {
         WorkflowStepCompleter.stepExecuting(token);
 
         _log.info("cgDeleteStep is running");
@@ -2181,8 +2193,28 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                         removeVolumeIDs.add(targetVol.getId().toString());
                     }
                 }
-                // Remove the Replication Sets from RP
-                rp.deleteReplicationSets(replicationSetsToRemove);
+                
+                // Remove the Replication Sets from RP. 
+                // Wait for a min before attempting to delete the rsets. 
+                // RP has not yet synced up with the fact that new rsets were added and we attempted to delete them because the rollback started.
+                // This delay helps in RP catching up before we issue another command. 
+                _log.info("waiting for 1 min before deleting replication sets");
+                Thread.sleep(1000*60);
+                rp.deleteReplicationSets(replicationSetsToRemove);                
+                
+                //Remove any journal volumes that were added in this operation. Otherwise CG ends up in a weird state.
+                if (journalVolumeIDs.isEmpty()) {
+                	_log.info("There are no journal volumes to be deleted");
+                } else {
+                	List<Volume> journalVolumes = _dbClient.queryObject(Volume.class, journalVolumeIDs);
+                	for(Volume journalVolume : journalVolumes) {
+                		String journalWWN = RPHelper.getRPWWn(journalVolume.getId(), _dbClient);
+                		_log.info(String.format("Removing Journal volume - %s : WWN - %s", journalVolume.getLabel(), journalWWN));
+                		volumeProtectionInfo = rp.getProtectionInfoForVolume(journalWWN);
+                		rp.deleteJournalFromCopy(volumeProtectionInfo, journalWWN);
+                		removeVolumeIDs.add(journalVolume.getId().toString());
+                	}
+                }
 
                 // Cleanup the ViPR Protection Set
                 cleanupProtectionSetVolumes(protectionSet, removeVolumeIDs, false);

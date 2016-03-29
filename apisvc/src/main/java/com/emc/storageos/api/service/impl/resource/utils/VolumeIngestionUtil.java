@@ -95,6 +95,7 @@ import com.emc.storageos.util.VPlexUtil;
 import com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.processor.detailedDiscovery.RemoteMirrorObject;
 import com.emc.storageos.volumecontroller.impl.utils.ExportMaskUtils;
 import com.emc.storageos.volumecontroller.placement.BlockStorageScheduler;
+import com.emc.storageos.vplex.api.VPlexApiConstants;
 import com.emc.storageos.vplexcontroller.VPlexControllerUtils;
 import com.google.common.base.Joiner;
 import com.google.common.collect.Collections2;
@@ -1237,14 +1238,14 @@ public class VolumeIngestionUtil {
      *
      * @param unManagedVolume the unmanaged virtual volume object
      * @param vpool the VirtualPool for the Volume
-     * @param projectUri the Project URI
-     * @param tenantUri the Tenant URI
+     * @param project the Project
+     * @param tenant the Tenant
      * @param varrayUri the VirtualArray URI
      * @param _dbClient the ViPR database client
      * @return a BlockConsistencyGroup, or null if none could be found or created
      */
     public static BlockConsistencyGroup getVplexConsistencyGroup(UnManagedVolume unManagedVolume, BlockObject blockObj, VirtualPool vpool,
-            URI projectUri, URI tenantUri, URI varrayUri, DbClient _dbClient) {
+            Project project, TenantOrg tenant, URI varrayUri, DbClient _dbClient) {
 
         String cgName = PropertySetterUtil.extractValueFromStringSet(
                 SupportedVolumeInformation.VPLEX_CONSISTENCY_GROUP_NAME.toString(),
@@ -1287,8 +1288,8 @@ public class VolumeIngestionUtil {
                 if (!groups.isEmpty()) {
                     for (BlockConsistencyGroup cg : groups) {
                         // first check that the tenant and project are a match
-                        if (cg.getProject().getURI().equals(projectUri) &&
-                                cg.getTenant().getURI().equals(tenantUri)) {
+                        if (cg.getProject().getURI().equals(project.getId()) &&
+                                cg.getTenant().getURI().equals(tenant.getId())) {
                             // need to check for several matching properties
                             URI storageControllerUri = cg.getStorageController();
                             URI virtualArrayUri = cg.getVirtualArray();
@@ -1329,8 +1330,8 @@ public class VolumeIngestionUtil {
                 BlockConsistencyGroup cg = new BlockConsistencyGroup();
                 cg.setId(URIUtil.createId(BlockConsistencyGroup.class));
                 cg.setLabel(cgName);
-                cg.setProject(new NamedURI(projectUri, cgName));
-                cg.setTenant(new NamedURI(tenantUri, cgName));
+                cg.setProject(new NamedURI(project.getId(), project.getLabel()));
+                cg.setTenant(project.getTenantOrg());
                 cg.setArrayConsistency(false);
                 cg.addConsistencyGroupTypes(Types.VPLEX.name());
                 cg.setStorageController(storageSystem.getId());
@@ -3295,8 +3296,8 @@ public class VolumeIngestionUtil {
         BlockConsistencyGroup consistencyGroup = new BlockConsistencyGroup();
         consistencyGroup.setId(URIUtil.createId(BlockConsistencyGroup.class));
         consistencyGroup.setLabel(unManagedCG.getLabel());
-        consistencyGroup.setProject(new NamedURI(project.getId(), unManagedCG.getLabel()));
-        consistencyGroup.setTenant(new NamedURI(project.getTenantOrg().getURI(), unManagedCG.getLabel()));
+        consistencyGroup.setProject(new NamedURI(project.getId(), project.getLabel()));
+        consistencyGroup.setTenant(project.getTenantOrg());
         consistencyGroup.setStorageController(unManagedCG.getStorageSystemUri());
         consistencyGroup.addSystemConsistencyGroup(unManagedCG.getStorageSystemUri().toString(), consistencyGroup.getLabel());
         consistencyGroup.addConsistencyGroupTypes(Types.LOCAL.name());
@@ -3828,8 +3829,8 @@ public class VolumeIngestionUtil {
             BlockConsistencyGroup cg = new BlockConsistencyGroup();
             cg.setId(URIUtil.createId(BlockConsistencyGroup.class));
             cg.setLabel(cgName);
-            cg.setProject(new NamedURI(projectUri, cgName));
-            cg.setTenant(new NamedURI(tenantUri, cgName));
+            cg.setProject(new NamedURI(projectUri, context.getProject().getLabel()));
+            cg.setTenant(context.getProject().getTenantOrg());
             cg.addConsistencyGroupTypes(Types.LOCAL.name());
             cg.addSystemConsistencyGroup(storageSystem.getId().toString(), cgName);
             cg.setStorageController(storageSystem.getId());
@@ -4458,6 +4459,43 @@ public class VolumeIngestionUtil {
                         Joiner.on(",").join(targetVarrayNames));
             }
         }
+    }
+
+    /**
+     * Validates that the given UnManagedExportMask exists on the same VPLEX Cluster
+     * as the VirtualArray in the ingestion request.  The cluster name is actually
+     * set by the BlockVplexIngestOrchestrator in order to re-use the cluster-id-to-name
+     * cache, avoiding a expensive call to get cluster name info from the VPLEX API.
+     * 
+     * @param requestContext the current IngestionRequestContext
+     * @param unManagedVolume the current UnManagedVolume being processed for exports
+     * @param unManagedExportMask the current UnManagdExportMask being processed
+     * 
+     * @return true if the mask exists on the same VPLEX cluster as the ingestion request VirtualArray
+     */
+    public static boolean validateExportMaskMatchesVplexCluster(IngestionRequestContext requestContext,
+            UnManagedVolume unManagedVolume, UnManagedExportMask unManagedExportMask) {
+        VolumeIngestionContext volumeContext = requestContext.getProcessedVolumeContext(unManagedVolume.getNativeGuid());
+
+        if (volumeContext != null && volumeContext instanceof VplexVolumeIngestionContext) {
+            String clusterName = ((VplexVolumeIngestionContext) volumeContext).getVirtualVolumeVplexClusterName();
+            String maskingViewPath = unManagedExportMask.getMaskingViewPath();
+            _logger.info("cluster name is {} and masking view path is {}", clusterName, maskingViewPath);
+            if (clusterName != null && maskingViewPath != null) {
+                String startOfPath = VPlexApiConstants.URI_CLUSTERS_RELATIVE + clusterName;
+                // the start of the path would be like: /clusters/cluster-1 or /clusters/cluster-2
+                // the masking view path would be like: /clusters/cluster-1/virtual-volumes/dd_V000195701351-021DA_V000198700412-030CF_vol
+                // if the start of the path (as determined by getting the cluster name connected to the varray
+                // for this ingestion request) overlaps the masking view path, then we are on the right vplex cluster
+                if (maskingViewPath.startsWith(startOfPath)) {
+                    _logger.info("\tUnManagedExportMask {} is on VPLEX cluster {} and will be processed now", 
+                            unManagedExportMask.getMaskName(), clusterName);
+                    return true;
+                }
+            }
+        }
+
+        return false;
     }
 
 }

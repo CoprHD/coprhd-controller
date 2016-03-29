@@ -75,13 +75,11 @@ class CoprHDCLIDriver(object):
 
     AUTHENTICATED = False
     def __init__(self, coprhdhost, 
-                 port, username, password, tenant, 
+                 port, tenant, 
                  project, varray, cookiedir, vpool,vpool_platinum,vpool_gold,vpool_silver,vpool_bronze,hostexportgroup,coprhdcli_security_file,cluster_id):
         self.cluster_id = cluster_id
         self.coprhdhost = coprhdhost
         self.port =  port
-        self.username = username
-        self.password = password
         self.tenant = tenant
         self.project = str(project)+'-'+str(cluster_id)
         self.varray = varray
@@ -364,7 +362,7 @@ class CoprHDCLIDriver(object):
                     "Volume " + name + ": Delete failed\n" + e.err_text)
             else:
                 Message.new(Debug="Volume : delete failed").write(_logger)
-                
+    
     def create_project(self,name):
         self.authenticate_user()
         Message.new(Debug="coprhd create_project").write(_logger)
@@ -455,6 +453,7 @@ class CoprHDCLIDriver(object):
         except utils.SOSError as e:
              print e
              Message.new(Debug="Add Initiator Failed").write(_logger)
+    
     def create_network(self,name,nwtype):
         self.authenticate_user()
         try:
@@ -703,13 +702,13 @@ class CoprHDBlockDeviceAPI(object):
         return volumes
             
 
-def configuration(coprhdhost, port, username, password, tenant,
+def configuration(coprhdhost, port, tenant,
                            project, varray, cookiedir, vpool,vpool_platinum,vpool_gold,vpool_silver,vpool_bronze,hostexportgroup,coprhdcli_security_file,cluster_id):
     """
     :return:CoprHDBlockDeviceAPI object
     """
     return CoprHDBlockDeviceAPI(
         coprhdcliconfig=CoprHDCLIDriver(coprhdhost, 
-        port, username, password, tenant, 
+        port, tenant, 
         project, varray, cookiedir, vpool,vpool_platinum,vpool_gold,vpool_silver,vpool_bronze,hostexportgroup,coprhdcli_security_file,cluster_id),allocation_unit=1
     )

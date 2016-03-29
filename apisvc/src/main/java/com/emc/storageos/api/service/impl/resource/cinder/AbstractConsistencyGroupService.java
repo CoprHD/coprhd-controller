@@ -57,6 +57,7 @@ public abstract class AbstractConsistencyGroupService extends TaskResourceServic
     protected CinderHelpers getCinderHelper() {
         return CinderHelpers.getInstance(_dbClient, _permissionsHelper);
     }
+    
 
     /**
      * This function returns consistency group
@@ -67,8 +68,8 @@ public abstract class AbstractConsistencyGroupService extends TaskResourceServic
      */
     protected BlockConsistencyGroup findConsistencyGroup(
             String consistencyGroupId, String openstackTenantId) {
-        BlockConsistencyGroup blockConsistencyGroup =(BlockConsistencyGroup) getCinderHelper().queryByTag(URI.create(consistencyGroupId),
-                getUserFromContext(),BlockConsistencyGroup.class);
+        BlockConsistencyGroup blockConsistencyGroup = (BlockConsistencyGroup) getCinderHelper().queryByTag(URI.create(consistencyGroupId),
+                getUserFromContext(), BlockConsistencyGroup.class);
         return blockConsistencyGroup;
     }
 
@@ -134,7 +135,7 @@ public abstract class AbstractConsistencyGroupService extends TaskResourceServic
     }
     
     /**
-     * To Chaeck Snapshot creation allowed on ViPR or not
+     * To Check Snapshot creation allowed on ViPR or not
      * @param consistencyGroup consistency grp instance
      * @return
      */
@@ -157,23 +158,6 @@ public abstract class AbstractConsistencyGroupService extends TaskResourceServic
             }
         }
         return isPermissible;
-    }
-    
-    /**
-     * If the Consistency Group has Snapshot(s), then Volume can not be created.
-     * 
-     * @param blockConsistencyGroup Block Consistency Grp Instance
-     * @return 
-     */
-    protected boolean verifyConsistencyGroupHasSnapshot(BlockConsistencyGroup consistencyGroup) {
-        final URIQueryResultList cgSnapshotsResults = new URIQueryResultList();
-        _dbClient.queryByConstraint(getBlockSnapshotByConsistencyGroup(consistencyGroup.getId()),
-                cgSnapshotsResults);
-        Iterator<BlockSnapshot> blockSnapshotIterator = _dbClient.queryIterativeObjects(BlockSnapshot.class, cgSnapshotsResults);
-        if (blockSnapshotIterator.hasNext()) {
-            return true;
-        }
-        return false;
     }
   
 }

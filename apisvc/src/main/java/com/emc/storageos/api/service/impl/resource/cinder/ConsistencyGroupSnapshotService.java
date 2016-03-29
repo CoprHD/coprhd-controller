@@ -127,10 +127,18 @@ public class ConsistencyGroupSnapshotService extends AbstractConsistencyGroupSer
         // Query Consistency Group
         final String consistencyGroupId = param.cgsnapshot.consistencygroup_id;
         final BlockConsistencyGroup consistencyGroup = findConsistencyGroup(consistencyGroupId, openstackTenantId);
+        
+        if (consistencyGroup == null) {
+            _log.error("Not Found : No Such Consistency Group Found {}", consistencyGroupId);
+            return CinderApiUtils.createErrorResponse(404, "Not Found : No Such Consistency Group Found");
+        } else if (!consistencyGroupId.equals(CinderApiUtils.splitString(consistencyGroup.getId().toString(), ":", 3))) {
+            _log.error("Bad Request : Invalid Snapshot Id {} : Please enter valid or full Id", consistencyGroupId);
+            return CinderApiUtils.createErrorResponse(400, "Bad Request : No such consistency id exist, Please enter valid or full Id");
+        }
 
-        if(!isSnapshotCreationpermissible(consistencyGroup)){
-            _log.error("Bad Request : ViPR permission needed for snapshot creation");
-            return CinderApiUtils.createErrorResponse(400, "Bad Request : ViPR permission needed for snapshot creation"); 
+        if (!isSnapshotCreationpermissible(consistencyGroup)) {
+            _log.error("Bad Request : vpool not being configured for the snapshots creation");
+            return CinderApiUtils.createErrorResponse(400, "Bad Request : vpool not being configured for the snapshots creation");
         }
         // Ensure that the Consistency Group has been created on all of its defined
         // system types.
@@ -266,8 +274,9 @@ public class ConsistencyGroupSnapshotService extends AbstractConsistencyGroupSer
             @Context HttpHeaders header) {
         Project project = getCinderHelper().getProject(openstackTenantId, getUserFromContext());
         if (project == null) {
-            _log.error("Bad Request: Project not exist for the request");
-            return CinderApiUtils.createErrorResponse(400, "Bad Request: Project not exist for the request");
+            String message = "Bad Request: Project with the OpenStack Tenant Id : " + openstackTenantId + " does not exist";
+            _log.error(message);
+            return CinderApiUtils.createErrorResponse(400, message);
         }
         final BlockSnapshot snapshot = findSnapshot(consistencyGroupSnapshotId, openstackTenantId);
         if (null == snapshot) {
@@ -449,9 +458,9 @@ public class ConsistencyGroupSnapshotService extends AbstractConsistencyGroupSer
                             .toString(), snapshot.getLabel());
 
             return Response.status(202).build();
+        } else {
+            return CinderApiUtils.createErrorResponse(400, "Snapshot not attached to any active consistencygroup");
         }
-
-        return CinderApiUtils.createErrorResponse(400, "Snapshot not attached to any active consistencygroup");
 
     }
 

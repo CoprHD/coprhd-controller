@@ -5,9 +5,12 @@
 
 package com.emc.storageos.api.service.impl.resource.cinder;
 
+import static com.emc.storageos.db.client.constraint.ContainmentConstraint.Factory.getBlockSnapshotByConsistencyGroup;
+
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.List;
 
 import org.slf4j.Logger;
@@ -20,6 +23,7 @@ import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.PrefixConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
+import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.VirtualArray;
@@ -321,6 +325,23 @@ public class CinderHelpers {
             }
         }
         return snapshotUris;
+    }
+    
+    /**
+     * If the Consistency Group has Snapshot(s), then Volume can not be created.
+     * 
+     * @param blockConsistencyGroup Block Consistency Grp Instance
+     * @return 
+     */
+    public boolean verifyConsistencyGroupHasSnapshot(BlockConsistencyGroup consistencyGroup) {
+        final URIQueryResultList cgSnapshotsResults = new URIQueryResultList();
+        _dbClient.queryByConstraint(getBlockSnapshotByConsistencyGroup(consistencyGroup.getId()),
+                cgSnapshotsResults);
+        Iterator<BlockSnapshot> blockSnapshotIterator = _dbClient.queryIterativeObjects(BlockSnapshot.class, cgSnapshotsResults);
+        if (blockSnapshotIterator.hasNext()) {
+            return true;
+        }
+        return false;
     }
 
 }

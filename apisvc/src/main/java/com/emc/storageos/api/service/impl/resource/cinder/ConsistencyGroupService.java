@@ -93,14 +93,18 @@ public class ConsistencyGroupService extends AbstractConsistencyGroupService {
             @Context HttpHeaders header) {
         Project project = getCinderHelper().getProject(openstackTenantId, getUserFromContext());
         if (project == null) {
-            return CinderApiUtils.createErrorResponse(400, "Bad Request: Project not exist for the request");
+            String message = "Bad Request: Project with the OpenStack Tenant Id : " + openstackTenantId + " does not exist";
+            _log.error(message);
+            return CinderApiUtils.createErrorResponse(400, message);
         }
         final BlockConsistencyGroup blockConsistencyGroup = findConsistencyGroup(consistencyGroupId, openstackTenantId);
         if (blockConsistencyGroup == null) {
             return CinderApiUtils.createErrorResponse(404, "Invalid Request: No Such Consistency Group Found");
         }else if (!consistencyGroupId.equals(CinderApiUtils.splitString(blockConsistencyGroup.getId().toString(), ":", 3))) {
-            _log.error("Bad Request : Invalid Snapshot Id {} : Please enter valid or full Id", consistencyGroupId);
-            return CinderApiUtils.createErrorResponse(400, "Bad Request : No such consistency id exist, Please enter valid or full Id");
+            _log.error("Bad Request : There is no consistency group with id {} , please retry with correct consistency group id",
+                    consistencyGroupId);
+            return CinderApiUtils.createErrorResponse(400,
+                    "Bad Request : There is no consistency group exist, please retry with correct consistency group id");
         } else {
             ConsistencyGroupDetail response = getConsistencyGroupDetail(blockConsistencyGroup);
             return CinderApiUtils.getCinderResponse(response, header, true);
@@ -164,8 +168,8 @@ public class ConsistencyGroupService extends AbstractConsistencyGroupService {
         VirtualPool vPool = getCinderHelper().getVpool(volumeTypes);
         if (null != project && vPool != null ) {
         	if(!vPool.getMultivolumeConsistency()){
-        	    _log.error("Bad Request : Multi volume consistency feature not enabled");
-        	    return CinderApiUtils.createErrorResponse(400, "Bad Request : Multi volume consistency feature not enabled");
+                _log.error("Bad Request : Multi volume consistency is not enabled in the volume type {}", volumeTypes);
+                return CinderApiUtils.createErrorResponse(400, "Bad Request : Multi volume consistency is not enabled");
         	}
             // Validate name
             ArgValidator.checkFieldNotEmpty(param.consistencygroup.name, "name");
@@ -233,15 +237,17 @@ public class ConsistencyGroupService extends AbstractConsistencyGroupService {
             _log.error("Not Found : No Such Consistency Group Found {}", consistencyGroupId); 
             return CinderApiUtils.createErrorResponse(404, "Not Found : No Such Consistency Group Found");
         } else if (!consistencyGroupId.equals(CinderApiUtils.splitString(consistencyGroup.getId().toString(), ":", 3))) {
-            _log.error("Bad Request : Invalid Snapshot Id {} : Please enter valid or full Id", consistencyGroupId);
-            return CinderApiUtils.createErrorResponse(400, "Bad Request : No such consistency id exist, Please enter valid or full Id");
+            _log.error("Bad Request : There is no consistency group with id {} , please retry with correct consistency group id",
+                    consistencyGroupId);
+            return CinderApiUtils.createErrorResponse(400,
+                    "Bad Request : There is no consistency group exist, please retry with correct consistency group id");
         }
 
         String task = UUID.randomUUID().toString();
         TaskResourceRep taskRep = null;
 
-        if (verifyConsistencyGroupHasSnapshot(consistencyGroup)) {
-            _log.error("Bad Request : Consistency Group has Snapshot ");
+        if (getCinderHelper().verifyConsistencyGroupHasSnapshot(consistencyGroup)) {
+            _log.error("Bad Request : Consistency Group {} has Snapshot", consistencyGroupId);
             return CinderApiUtils.createErrorResponse(400, "Bad Request : Consistency Group has Snapshot ");
         }
 
@@ -272,7 +278,7 @@ public class ConsistencyGroupService extends AbstractConsistencyGroupService {
             ArgValidator.checkReference(BlockConsistencyGroup.class, consistencyGroup.getId(),
                     checkForDelete(consistencyGroup));
         } catch (APIException e) {
-            _log.error("Bad Request : Consistency Group Contains active references : {}", e.getMessage());
+            _log.error("Bad Request : Consistency Group Contains active references of type : {}", e.getMessage());
             return CinderApiUtils.createErrorResponse(400, "Bad Request : Consistency Group Contains active references");
         }
         // srdf/rp cgs can be deleted from vipr only if there are no more volumes associated.

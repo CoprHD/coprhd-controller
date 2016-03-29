@@ -265,6 +265,10 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
     public void setWorkflowService(WorkflowService workflowService) {
         _workflowService = workflowService;
     }
+    
+    public WorkflowService getWorkflowService() {
+        return _workflowService;
+    }
 
     public void setReplicaDeviceController(ReplicaDeviceController replicaDeviceController) {
         _replicaDeviceController = replicaDeviceController;
@@ -3090,13 +3094,17 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
              * FullCopy volume will not have CGURI.
              * Added null check to avoid NPE.
              */
-            if (!NullColumnValueGetter.isNullURI(consistencyGroup)) {
+            
+            List<String> lockKeys = new ArrayList<String>();
+            if (groupName  != null && !groupName.isEmpty()) {
+                lockKeys.add(ControllerLockingUtil.getReplicationGroupStorageKey(_dbClient, groupName, storage));
+            } else if (!NullColumnValueGetter.isNullURI(consistencyGroup)) {
                 // Lock the CG for the step duration.
-                List<String> lockKeys = new ArrayList<String>();
                 lockKeys.add(ControllerLockingUtil.getConsistencyGroupStorageKey(_dbClient, consistencyGroup, storage));
+            }
+            if (!lockKeys.isEmpty()) {
                 _workflowService.acquireWorkflowStepLocks(opId, lockKeys, LockTimeoutValue.get(LockType.ARRAY_CG));
             }
-
             StorageSystem storageObj = _dbClient.queryObject(StorageSystem.class, storage);
             completer = new BlockConsistencyGroupDeleteCompleter(consistencyGroup, opId);
             getDevice(storageObj.getSystemType()).doDeleteConsistencyGroup(storageObj, consistencyGroup, groupName, keepRGName,
@@ -4231,11 +4239,11 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
 
             // Lock the CG for the step duration.
             List<String> lockKeys = new ArrayList<>();
-            lockKeys.add(ControllerLockingUtil.getReplicationGroupStorageKey(_dbClient, replicationGroupName, storage));
+            lockKeys.add(ControllerLockingUtil.getReplicationGroupStorageKey(_dbClient, groupName, storage));
             _workflowService.acquireWorkflowStepLocks(opId, lockKeys, LockTimeoutValue.get(LockType.ARRAY_CG));
 
             // make sure this array consistency group was not just created by another thread that held the lock
-            if (ControllerUtils.replicationGroupExists(storage, replicationGroupName, _dbClient)) {
+            if (ControllerUtils.replicationGroupExists(storage, groupName, _dbClient)) {
                 taskCompleter.ready(_dbClient);
                 return true;
             }
@@ -4315,10 +4323,18 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
             taskCompleter = new BlockConsistencyGroupRemoveVolumeCompleter(consistencyGroup, removeVolumesList, keepRGReference, opId);
 
             // Lock the CG for the step duration.
-            List<String> lockKeys = new ArrayList<String>();
-            lockKeys.add(ControllerLockingUtil.getConsistencyGroupStorageKey(_dbClient, consistencyGroup, storage));
-            _workflowService.acquireWorkflowStepLocks(opId, lockKeys, LockTimeoutValue.get(LockType.ARRAY_CG));
-
+            if (removeVolumesList != null && !removeVolumesList.isEmpty()) {
+                List<String> lockKeys = new ArrayList<String>();
+                URI volumeUri = removeVolumesList.get(0);
+                Volume volume = _dbClient.queryObject(Volume.class, volumeUri);
+                String repGroup = volume.getReplicationGroupInstance();
+                if (NullColumnValueGetter.isNotNullValue(repGroup)) {
+                    lockKeys.add(ControllerLockingUtil.getReplicationGroupStorageKey(_dbClient, repGroup, storage));
+                } else {
+                    lockKeys.add(ControllerLockingUtil.getConsistencyGroupStorageKey(_dbClient, consistencyGroup, storage));
+                }
+                _workflowService.acquireWorkflowStepLocks(opId, lockKeys, LockTimeoutValue.get(LockType.ARRAY_CG));
+            }
             getDevice(storageSystem.getSystemType()).doRemoveFromConsistencyGroup(
                     storageSystem, consistencyGroup, removeVolumesList, taskCompleter);
         } catch (Exception e) {

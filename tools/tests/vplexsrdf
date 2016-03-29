@@ -39,7 +39,7 @@ export rootTenant
 export tenant
 echo tenant $tenant 
 [ "$project" ] || {
-    project="vplexsrdf7"
+    project="vplexsrdf8"
 }
 cglabel=
 
@@ -154,12 +154,12 @@ host_create vplexsrdfhost2 $clusterId A2 A3 FABRIC_losam082-fabric FABRIC_losam0
 # Control over running individual parts of the test (true/false)
 create_volume=false			# if false, specify volname1 and CGlabel
 export_volume=false
-test_protection_ops=false
-test_expand=false
-test_r1_snapvx_nocopy=false
-test_r2_snapvx_nocopy=false
-test_r1_fullcopy=false
-test_r2_fullcopy=false
+test_protection_ops=true
+test_expand=true
+test_r1_snapvx_nocopy=true
+test_r2_snapvx_nocopy=true
+test_r1_fullcopy=true
+test_r2_fullcopy=true
 delete_volume=true
 
 vplexsrdf_test() {
@@ -197,7 +197,7 @@ run blockconsistencygroup failover $CGlabel --targetVarray ${SITEr2} --copyType 
 run blockconsistencygroup failover_cancel $CGlabel --targetVarray ${SITEr2} --copyType srdf
 echoit "Testing Swap/back CG"
 run blockconsistencygroup swap $CGlabel --targetVarray ${SITEr2} --copyType srdf
-run blockconsistencygroup swap ${CGlabel}-Target-site2 --targetVarray ${SITEr1} --copyType srdf
+run blockconsistencygroup swap ${CGlabel}-Target-${SITEr2} --targetVarray ${SITEr1} --copyType srdf
 fi
 
 if [ "$test_expand" = "true" ];

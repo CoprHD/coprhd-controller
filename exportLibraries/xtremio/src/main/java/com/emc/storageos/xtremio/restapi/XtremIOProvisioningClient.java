@@ -10,7 +10,7 @@ public interface XtremIOProvisioningClient {
 
     /**
      * Create a tag.
-     * 
+     *
      * @param tagName
      * @param parentTag
      * @param entityType
@@ -21,7 +21,7 @@ public interface XtremIOProvisioningClient {
 
     /**
      * Delete a tag
-     * 
+     *
      * @param tagName
      * @param tagEntityType
      * @param clusterName
@@ -31,7 +31,7 @@ public interface XtremIOProvisioningClient {
 
     /**
      * Tag an object with the given tag name
-     * 
+     *
      * @param tagName
      * @param entityType
      * @param entityDetail
@@ -42,7 +42,7 @@ public interface XtremIOProvisioningClient {
 
     /**
      * Creates a volume
-     * 
+     *
      * @param volumeName
      * @param size
      * @param parentFolderName
@@ -55,7 +55,7 @@ public interface XtremIOProvisioningClient {
 
     /**
      * Deletes a volume
-     * 
+     *
      * @param projectName
      * @return
      * @throws Exception
@@ -64,7 +64,7 @@ public interface XtremIOProvisioningClient {
 
     /**
      * Expands a volume
-     * 
+     *
      * @param volumeName
      * @param size
      * @param clusterName
@@ -74,7 +74,7 @@ public interface XtremIOProvisioningClient {
 
     /**
      * Creates a snapshot
-     * 
+     *
      * @param parentVolumeName
      * @param snapName
      * @param folderName
@@ -88,7 +88,7 @@ public interface XtremIOProvisioningClient {
 
     /**
      * Creates a snapshot for the consistency group
-     * 
+     *
      * @param consistencyGroupName
      * @param snapshotSetName
      * @param folderName
@@ -102,7 +102,7 @@ public interface XtremIOProvisioningClient {
 
     /**
      * Deletes a snapshot
-     * 
+     *
      * @param snapName
      * @param clusterName
      * @throws Exception
@@ -111,7 +111,7 @@ public interface XtremIOProvisioningClient {
 
     /**
      * Deletes a snapshot set
-     * 
+     *
      * @param snapshotSetName
      * @param clusterName
      * @throws Exception
@@ -120,7 +120,7 @@ public interface XtremIOProvisioningClient {
 
     /**
      * Creates an initiator & add it to InitiatorGroup.
-     * 
+     *
      * @param initiatorName - InitiatorName to register.
      * @param igId - InitiatorGroup to add initiator.
      * @param portAddress - Initiator wwn.
@@ -134,7 +134,7 @@ public interface XtremIOProvisioningClient {
 
     /**
      * Delete initiator
-     * 
+     *
      * @param initiatorName
      * @throws Exception
      */
@@ -142,7 +142,7 @@ public interface XtremIOProvisioningClient {
 
     /**
      * Creates a new XtremIO IG
-     * 
+     *
      * @param projectName
      * @return
      * @throws Exception
@@ -151,7 +151,7 @@ public interface XtremIOProvisioningClient {
 
     /**
      * Deletes the initiator group
-     * 
+     *
      * @param igName
      * @param clusterName
      * @throws Exception
@@ -160,7 +160,7 @@ public interface XtremIOProvisioningClient {
 
     /**
      * Creates a lun map
-     * 
+     *
      * @param volName
      * @param igName
      * @param hlu
@@ -171,7 +171,7 @@ public interface XtremIOProvisioningClient {
 
     /**
      * Deletes a lunMap
-     * 
+     *
      * @param projectName
      * @return
      * @throws Exception
@@ -180,7 +180,7 @@ public interface XtremIOProvisioningClient {
 
     /**
      * Creates a consistency group
-     * 
+     *
      * @param cgName
      * @param clusterName
      * @return
@@ -190,7 +190,7 @@ public interface XtremIOProvisioningClient {
 
     /**
      * Deletes the consistency group
-     * 
+     *
      * @param cgName
      * @param clusterName
      * @throws Exception
@@ -199,7 +199,7 @@ public interface XtremIOProvisioningClient {
 
     /**
      * Add volume to the consistency group
-     * 
+     *
      * @param volName
      * @param cgName
      * @param clusterName
@@ -211,7 +211,7 @@ public interface XtremIOProvisioningClient {
 
     /**
      * Remove volume from the consistency group
-     * 
+     *
      * @param volName
      * @param cgName
      * @param clusterName
@@ -222,7 +222,7 @@ public interface XtremIOProvisioningClient {
 
     /**
      * Restores the volume from the snapshot
-     * 
+     *
      * @param clusterName
      * @param volName
      * @param snapshotName
@@ -233,7 +233,7 @@ public interface XtremIOProvisioningClient {
 
     /**
      * Restores the CG from the snapshot set
-     * 
+     *
      * @param clusterName
      * @param cgName
      * @param snapshotName
@@ -244,7 +244,7 @@ public interface XtremIOProvisioningClient {
 
     /**
      * refresh the snapshot from the parent volume
-     * 
+     *
      * @param clusterName
      * @param volName
      * @param snapshotName
@@ -255,13 +255,14 @@ public interface XtremIOProvisioningClient {
 
     /**
      * Refresh the snapshot set from the CG
-     * 
+     *
      * @param clusterName
      * @param cgName
      * @param snapshotName
+     * @param noBackup
      * @return
      * @throws Exception
      */
-    public XtremIOResponse refreshSnapshotFromCG(String clusterName, String cgName, String snapshotName) throws Exception;
+    public XtremIOResponse refreshSnapshotFromCG(String clusterName, String cgName, String snapshotName, boolean noBackup) throws Exception;
 
 }

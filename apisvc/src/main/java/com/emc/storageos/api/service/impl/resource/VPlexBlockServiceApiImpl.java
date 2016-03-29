@@ -121,6 +121,8 @@ import com.emc.storageos.vplexcontroller.VPlexController;
 import com.google.common.base.Joiner;
 import com.google.common.base.Predicate;
 import com.google.common.collect.Collections2;
+import com.google.common.collect.HashBasedTable;
+import com.google.common.collect.Table;
 
 /**
  * Implementation of the {@link BlockServiceApi} when the VirtualPool specifies that created
@@ -1238,7 +1240,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
         // in a VPLEX CG with corresponding local consistency
         // group(s) for the backend volumes.
         BlockConsistencyGroup cg = null;
-        if (allVolumesInSameBackendCG(volumes)) {
+        if ((cg = isVPlexVolumeInCgWithLocalType(volumes)) != null) {
             s_logger.info("Change vpool request for volume in VPLEX CG with backing local CGs");
             // If any of the volumes is in such a CG and if this is a data
             // migration of the volumes, then the volumes passed must be all
@@ -1253,43 +1255,76 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
             if ((vpoolChange != null) && (vpoolChange == VirtualPoolChangeOperationEnum.VPLEX_DATA_MIGRATION)) {
                 s_logger.info("Vpool change is a data migration");
 
-                // All volumes will be migrated in the same workflow.
-                // If there are many volumes in the CG, the workflow
-                // will have many steps. Worse, if an error occurs
-                // additional workflow steps get added for rollback.
-                // An issue can then arise trying to persist the
-                // workflow to Zoo Keeper because the workflow
-                // persistence is restricted to 250000 bytes. So
-                // we add a restriction on the number of volumes in
-                // the CG that will be allowed for a data migration
-                // vpool change.
-                if (volumes.size() > _maxCgVolumesForMigration) {
-                    throw APIException.badRequests
-                            .cgContainsTooManyVolumesForVPoolChange(cg.getLabel(),
-                                    volumes.size(), _maxCgVolumesForMigration);
-                }
-
-                // When migrating multiple volumes in the CG we
-                // want to be sure the target vpool ensures the
-                // migration targets will be placed on the same
-                // storage system as the migration targets will
-                // be placed in a CG on the target storage system.
-                if (volumes.size() > 1) {
-                    s_logger.info("Multiple volume request, verifying target storage systems");
-                    verifyTargetSystemsForCGDataMigration(volumes, vpool, cg.getVirtualArray());
-                }
-
-                // Get all volume descriptors for all volumes to be migrated.
-                URI systemURI = changeVPoolVolume.getStorageController();
-                StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, systemURI);
-                List<VolumeDescriptor> descriptors = new ArrayList<VolumeDescriptor>();
+                Table<URI, String, List<Volume>> groupVolumes = HashBasedTable.create();
+                List<Volume> volumesNotInRG = new ArrayList<Volume>();
+                // Group volumes by array groups
                 for (Volume volume : volumes) {
-                    descriptors.addAll(createChangeVirtualPoolDescriptors(storageSystem,
-                            volume, vpool, taskId, null, null));
+                    Volume backedVol = VPlexUtil.getVPLEXBackendVolume(volume, true, _dbClient);
+                    URI backStorage = backedVol.getStorageController();
+                    String replicaGroup = backedVol.getReplicationGroupInstance();
+                    if (NullColumnValueGetter.isNotNullValue(replicaGroup)) {
+                        List<Volume> volumeList = groupVolumes.get(backStorage, replicaGroup);
+                        if (volumeList == null) {
+                            volumeList = new ArrayList<Volume>();
+                            groupVolumes.put(backStorage, replicaGroup, volumeList);
+                        }
+                        volumeList.add(volume);
+                    } else {
+                        volumesNotInRG.add(volume);
+                    }
                 }
-
-                // Orchestrate the vpool changes of all volumes as a single request.
-                orchestrateVPoolChanges(volumes, descriptors, taskId);
+                for (Table.Cell<URI, String, List<Volume>> cell : groupVolumes.cellSet()) {
+                    List<Volume> volumesInRGRequest = cell.getValue();
+                    List<Volume> rgVolumes = getVolumesInSameReplicationGroup(cell.getColumnKey(), cell.getRowKey());
+                    if (volumesInRGRequest.size() != rgVolumes.size()) {
+                        throw APIException.badRequests.cantChangeVpoolNotAllCGVolumes();
+                    }
+                
+                
+                    // All volumes will be migrated in the same workflow.
+                    // If there are many volumes in the CG, the workflow
+                    // will have many steps. Worse, if an error occurs
+                    // additional workflow steps get added for rollback.
+                    // An issue can then arise trying to persist the
+                    // workflow to Zoo Keeper because the workflow
+                    // persistence is restricted to 250000 bytes. So
+                    // we add a restriction on the number of volumes in
+                    // the CG that will be allowed for a data migration
+                    // vpool change.
+                    if (volumesInRGRequest.size() > _maxCgVolumesForMigration) {
+                        throw APIException.badRequests
+                                .cgContainsTooManyVolumesForVPoolChange(cg.getLabel(),
+                                        volumes.size(), _maxCgVolumesForMigration);
+                    }
+    
+                    // When migrating multiple volumes in the CG we
+                    // want to be sure the target vpool ensures the
+                    // migration targets will be placed on the same
+                    // storage system as the migration targets will
+                    // be placed in a CG on the target storage system.
+                    if (volumesInRGRequest.size() > 1) {
+                        s_logger.info("Multiple volume request, verifying target storage systems");
+                        verifyTargetSystemsForCGDataMigration(volumesInRGRequest, vpool, cg.getVirtualArray());
+                    }
+    
+                    // Get all volume descriptors for all volumes to be migrated.
+                    URI systemURI = changeVPoolVolume.getStorageController();
+                    StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, systemURI);
+                    List<VolumeDescriptor> descriptors = new ArrayList<VolumeDescriptor>();
+                    for (Volume volume : volumesInRGRequest) {
+                        descriptors.addAll(createChangeVirtualPoolDescriptors(storageSystem,
+                                volume, vpool, taskId, null, null));
+                    }
+    
+                    // Orchestrate the vpool changes of all volumes as a single request.
+                    orchestrateVPoolChanges(volumesInRGRequest, descriptors, taskId);
+                }
+                if (!volumesNotInRG.isEmpty()) {
+                    for (Volume volume : volumesNotInRG) {
+                        changeVolumeVirtualPool(volume.getStorageController(), volume, vpool,
+                                vpoolChangeParam, taskId);
+                    }
+                }
                 return;
             }
         }
@@ -3706,5 +3741,37 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
             checkedRGMap.put(key, containAll);
             return containAll;
         }
+    }
+    
+    /**
+     * Determines in any of the passed volumes is A VPLEX volume in a VPLEX
+     * consistency group with corresponding consistency group(s) for the backend
+     * storage.
+     * 
+     * @param volumes The list of volumes to check
+     * 
+     * @return A reference to the CG if any of the passed volumes is A VPLEX
+     *         volume in a VPLEX consistency group with corresponding
+     *         consistency group(s) for the backend storage, null otherwise.
+     */
+    private BlockConsistencyGroup isVPlexVolumeInCgWithLocalType(List<Volume> volumes) {
+        BlockConsistencyGroup cg = null;
+        for (Volume volume : volumes) {
+            URI systemURI = volume.getStorageController();
+            StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, systemURI);
+            String systemType = storageSystem.getSystemType();
+            if (DiscoveredDataObject.Type.vplex.name().equals(systemType)) {
+                URI cgURI = volume.getConsistencyGroup();
+                if (!NullColumnValueGetter.isNullURI(cgURI)) {
+                    BlockConsistencyGroup volCG = _dbClient.queryObject(BlockConsistencyGroup.class, cgURI);
+                    if (volCG.checkForType(Types.LOCAL)) {
+                        cg = volCG;
+                        break;
+                    }
+                }
+            }
+        }
+
+        return cg;
     }
 }

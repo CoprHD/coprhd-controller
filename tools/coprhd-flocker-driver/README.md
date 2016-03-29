@@ -24,7 +24,7 @@ Pre-requsities
 	a. Verify the Storage arrays recognized . After login to the Vipr we can check the storage systems
 Below is a sample screenshot
 
-	![alt text]( ViprStorageSystems.jpeg "Storage Arrays")
+	![alt text]( ViprStorageSystems.png "Storage Arrays")
     
        b. Configure Virtual array 
 
@@ -32,7 +32,7 @@ Below is a sample screenshot
 
       c. Configure Virtual Pools - In Virtual pools policies are configured 
 
-	![alt text]( ViprVirtualPools.jpeg "Virtual Pools")
+	![alt text]( ViprVirtualPools.png "Virtual Pools")
 
 
 2. Install scsi tools
@@ -103,7 +103,7 @@ Debug:
 
 When docker starts host will get created on Vipr 
 
-![alt text]( ViprExportGroups.jpeg "Storage Arrays")
+![alt text]( ViprExportGroups.png "Storage Arrays")
 
 In Vipr when storage is getting provisioned the same will get refrected in the vipr Dashboard in the task list
 

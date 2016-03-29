@@ -5309,10 +5309,11 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
     public void rollbackMigrateVirtualVolume(URI vplexURI, URI migrationURI,
             String migrateStepId, String stepId) throws WorkflowException {
         Migration migration = null;
+        String migrationVolumeLabel = null;
         try {
             // Update step state to executing.
             WorkflowStepCompleter.stepExecuting(stepId);
-
+            
             // Was the migration created and started? If so, then
             // we'll try and cancel the migration and clean up.
             // Otherwise, there is nothing to do.
@@ -5325,6 +5326,12 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
 
             // Get the migration.
             migration = _dbClient.queryObject(Migration.class, migrationURI);
+
+            // Get the VPLEX volume for the migration.
+            Volume migrationVolume = _dbClient.queryObject(Volume.class, migration.getVolume());
+            if (migrationVolume != null) {
+                migrationVolumeLabel = migrationVolume.getLabel();
+            }
 
             // The migration could have failed due to an error or it may have
             // failed because it was cancelled outside the scope of the
@@ -5352,7 +5359,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             if (migration != null) {
                 setOrClearVolumeInternalFlag(migration.getVolume(), true);
                 vae = VPlexApiException.exceptions.migrationRollbackFailureContactEMC(
-                        migration.getVolume().toString(), migration.getLabel());
+                        migration.getVolume().toString(), migrationVolumeLabel, migration.getLabel());
             }
             WorkflowStepCompleter.stepFailed(stepId, vae);
         } catch (Exception e) {
@@ -5362,7 +5369,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             if (migration != null) {
                 setOrClearVolumeInternalFlag(migration.getVolume(), true);
                 e = VPlexApiException.exceptions.migrationRollbackFailureContactEMC(
-                        migration.getVolume().toString(), migration.getLabel());
+                        migration.getVolume().toString(), migrationVolumeLabel, migration.getLabel());
             }
             WorkflowStepCompleter.stepFailed(stepId, VPlexApiException.exceptions.rollbackMigrateVolume(migrationURI.toString(), e));
         }

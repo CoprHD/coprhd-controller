@@ -498,8 +498,6 @@ public class DisasterRecoveryService {
      */
     @GET
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    @CheckPermission(roles = { Role.SECURITY_ADMIN, Role.RESTRICTED_SECURITY_ADMIN,
-            Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN, Role.SYSTEM_MONITOR })
     @Path("/islocalsiteremoved")
     public SiteRemoved isLocalSiteRemoved() {
         SiteRemoved response = new SiteRemoved();
@@ -1022,6 +1020,19 @@ public class DisasterRecoveryService {
             log.error("site {} lastState was {}, retry is only supported for Pause, Resume and Failover", uuid, standby.getLastState());
             throw APIException.badRequests.operationRetryOnlyAllowedOnLastState(standby.getName(), standby.getLastState().toString());
         }
+
+        //Reuse the current action required
+        Site localSite = drUtil.getActiveSite();
+        SiteInfo siteInfo = coordinator.getTargetInfo(localSite.getUuid(),SiteInfo.class);
+        String drOperation = siteInfo.getActionRequired();
+
+        // Check that last action matches retry action
+        if (!drOperation.equals(standby.getLastState().getDRAction())) {
+            log.error("Active site last operation was {}, retry is only supported if no other operations have been performed", drOperation);
+            throw APIException.internalServerErrors.retryStandbyPrecheckFailed(standby.getName(), standby.getLastState().toString(),
+                    String.format("Another DR operation %s has been run on Active site. Only the latest operation can be retried. " +
+                            "This is an unrecoverable Error, please remove site and deploy a new one.",drOperation));
+        }
         
         InterProcessLock lock = drUtil.getDROperationLock();
         try {
@@ -1042,10 +1053,6 @@ public class DisasterRecoveryService {
             coordinator.persistServiceConfiguration(standby.toConfiguration());
             log.info("Notify all sites for reconfig");
             long vdcTargetVersion = DrUtil.newVdcConfigVersion();
-
-            //Reuse the current action required
-            SiteInfo siteInfo = coordinator.getTargetInfo(standby.getUuid(),SiteInfo.class);
-            String drOperation = siteInfo.getActionRequired();
 
             for (Site standbySite : drUtil.listSites()) {
                 drUtil.updateVdcTargetVersion(standbySite.getUuid(), drOperation, vdcTargetVersion);

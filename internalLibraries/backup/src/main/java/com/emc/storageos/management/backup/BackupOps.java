@@ -666,6 +666,13 @@ public class BackupOps {
 
     }
 
+    public boolean hasStandbySites() {
+        DrUtil drUtil = new DrUtil();
+        drUtil.setCoordinator(coordinatorClient);
+        List<Site> sites = drUtil.listSites();
+        return sites.size() > 1;
+    }
+
     private void updateBackupRestoreStatus(BackupRestoreStatus s) {
         BackupRestoreStatus.Status restoreStatus = s.getStatus();
         if ( restoreStatus == BackupRestoreStatus.Status.DOWNLOADING) {

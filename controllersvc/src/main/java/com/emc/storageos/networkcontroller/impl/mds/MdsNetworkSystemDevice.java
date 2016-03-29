@@ -361,7 +361,6 @@ public class MdsNetworkSystemDevice extends NetworkSystemDeviceImpl implements N
         if (activeZoneset == null) {
             _log.info("No active zoneset vsan: " + vsanId);
             throw NetworkDeviceControllerException.exceptions.noActiveZonesetForFabric(vsanId.toString());
-//            activeZoneset = createActiveZoneset(dialog, vsanId);
         }
 
         List<Zone> fabricZones = dialog.showFabricZones(vsanId);

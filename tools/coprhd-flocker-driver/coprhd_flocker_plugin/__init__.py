@@ -8,7 +8,6 @@ from coprhd_flocker_plugin.coprhd_blockdevice import configuration
 
 def api_factory(cluster_id, **kwargs):
     return configuration(coprhdhost=kwargs[u'coprhdhost'],port=kwargs[u'port'],
-                                  username=kwargs[u'username'],password=kwargs[u'password'],
                                   tenant=kwargs[u'tenant'],project=kwargs[u'project'],
                                   varray=kwargs[u'varray'],cookiedir=kwargs[u'cookiedir'],
                                   vpool=kwargs[u'vpool'],vpool_platinum=kwargs[u'vpool_platinum'],vpool_gold=kwargs[u'vpool_gold'],

@@ -33,6 +33,7 @@ import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.BlockMirror;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.BlockSnapshot;
+import com.emc.storageos.db.client.model.TenantOrg;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.Type;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.SynchronizationState;
@@ -91,13 +92,20 @@ public abstract class AbstractReplicaOperations implements ReplicaOperations {
             boolean isThinlyProvisioned = false;
             for (URI replicaURI : replicaList) {
                 BlockObject replica = BlockObject.fetch(_dbClient, replicaURI);
+                source = (Volume) _helper.getSource(replica);
                 // Use the existing replica group instance name for the new snaps to add.
-                labels.add(replica.getLabel());
+                TenantOrg tenant = _dbClient.queryObject(TenantOrg.class, source.getTenant().getURI());
+                int maxLength = SmisConstants.MAX_VOLUME_NAME_LENGTH;
+                if (storage.getUsingSmis80() && URIUtil.isType(replicaURI, BlockSnapshot.class)) {
+                    maxLength = SmisConstants.MAX_SMI80_SNAPSHOT_NAME_LENGTH;
+                }
+                String label = _nameGenerator.generate(tenant.getLabel(), replica.getLabel(), replicaURI.toString(),
+                        '-', maxLength);
+                labels.add(label);
                 replicaGroupName = replica.getReplicationGroupInstance();
                 if (sessionName == null) {
                     sessionName = getSnapshotSessionNameFromReplicaGroupName(replicaGroupName, storage.getId());
                 }
-                source = (Volume) _helper.getSource(replica);
                 String sourceNativeId = source.getNativeId();
                 isThinlyProvisioned = source.getThinlyProvisioned();
                 sourceIds.add(sourceNativeId);
@@ -106,7 +114,7 @@ public abstract class AbstractReplicaOperations implements ReplicaOperations {
                 if (storage.deviceIsType(Type.vnxblock)) {
                     // need to create target devices first
                     final URI poolId = source.getPool();
-                    final List<String> newDeviceIds = ReplicationUtils.createTargetDevices(storage, replicaGroupName, replica.getLabel(),
+                    final List<String> newDeviceIds = ReplicationUtils.createTargetDevices(storage, replicaGroupName, label,
                             createInactive, 1, poolId, source.getCapacity(), isThinlyProvisioned, null, taskCompleter,
                             _dbClient, _helper, _cimPath);
                     targetDeviceIds.addAll(newDeviceIds);

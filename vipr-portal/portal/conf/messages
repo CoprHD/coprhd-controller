@@ -940,7 +940,7 @@ disasterRecovery.sync.status.synced=Data is synchronized with active site
 disasterRecovery.sync.status.lastSyncTime=Last time synchronized with active site is
 disasterRecovery.networkLatencyInMs=Latency (ms)
 disasterRecovery.networkLatency.notAvailable=Not Available
-disasterRecovery.cluster.state=Cluster State
+disasterRecovery.cluster.state=Controller Status
 disasterRecovery.switchover.failed.instruction=Please contact an administrator or EMC Support
 disasterRecovery.site.creation.time=Site Creation Time
 
@@ -993,7 +993,7 @@ renderFunctions.backupupload.status.cancel=Cancelled
 renderFunctions.backupupload.error.notconf=FTP server has not been configured
 renderFunctions.backupupload.error.notexist=Can not find the target backup files on disk
 renderFunctions.backupupload.error.tobereclaimed=To be reclaimed
-renderFunctions.backupupload.error.alreadyexist=Backup already exist on external server
+renderFunctions.backupupload.error.alreadyexist=Backup already exists on external server
 renderFunctions.backupupload.error.invalid=Target backup is invalid
 renderFunctions.backupupload.error.failure=Internal failures during the upload
 renderFunction.backupupload.status.unknown=Unknown

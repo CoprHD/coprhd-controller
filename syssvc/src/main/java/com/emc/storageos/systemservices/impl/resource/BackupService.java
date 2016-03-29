@@ -500,7 +500,7 @@ public class BackupService {
         checkExternalServer();
 
         if (backupOps.hasStandbySites()) {
-            String errmsg = "Please remove all standby sites before download";
+            String errmsg = "Please remove all standby sites before downloading";
             backupOps.setRestoreStatus(backupName, false, BackupRestoreStatus.Status.DOWNLOAD_FAILED, errmsg, false, false);
         }else  if (!force && backupOps.isDownloadComplete(backupName)) {
             log.info("The backup file {} has already been downloaded", backupName);

@@ -591,7 +591,7 @@ public class VolumeService extends TaskResourceService {
         URI systemUri = vol.getStorageController();
         List<URI> volumeURIs = new ArrayList<URI>();
         volumeURIs.add(vol.getId());
-        api.deleteVolumes(systemUri, volumeURIs, "FULL", null);
+        api.deleteVolumes(systemUri, volumeURIs, "FULL", task);
 
         if (vol.getExtensions() == null) {
             vol.setExtensions(new StringMap());

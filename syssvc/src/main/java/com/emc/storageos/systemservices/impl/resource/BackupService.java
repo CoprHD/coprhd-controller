@@ -243,8 +243,8 @@ public class BackupService {
     @Path("backup/info/")
     @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR, Role.RESTRICTED_SYSTEM_ADMIN })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    public BackupInfo queryBackupInfo(@QueryParam("name") String backupName, @QueryParam("local") @DefaultValue("false") boolean isLocal) {
-        log.info("Query backup info backupFileName={} isLocal={}", backupName, isLocal);
+    public BackupInfo queryBackupInfo(@QueryParam("backupname") String backupName, @QueryParam("isLocal") @DefaultValue("false") boolean isLocal) {
+        log.info("Query backup info backupName={} isLocal={}", backupName, isLocal);
         try {
             if (isLocal) {
                 //query info of a local backup
@@ -499,13 +499,17 @@ public class BackupService {
 
         checkExternalServer();
 
-        if (!force && backupOps.isDownloadComplete(backupName)) {
+        if (backupOps.hasStandbySites()) {
+            String errmsg = "Please remove all standby sites before downloading";
+            backupOps.setRestoreStatus(backupName, false, BackupRestoreStatus.Status.DOWNLOAD_FAILED, errmsg, false, false);
+        }else  if (!force && backupOps.isDownloadComplete(backupName)) {
             log.info("The backup file {} has already been downloaded", backupName);
         }else if (backupOps.isDownloadInProgress()) {
             String curBackupName = backupOps.getCurrentBackupName();
             if (!backupName.equals(curBackupName)) {
                 String errmsg = curBackupName + " is downloading";
                 backupOps.setRestoreStatus(backupName, false, BackupRestoreStatus.Status.DOWNLOAD_FAILED, errmsg, false, false);
+                backupOps.persistCurrentBackupInfo(curBackupName, false);
             }else {
                 log.info("The backup {} is downloading, no need to trigger again", backupName);
             }
@@ -631,11 +635,6 @@ public class BackupService {
         log.info("Do restore with backup name={} isLocal={} isGeoFromScratch={}", new Object[] {backupName, isLocal, isGeoFromScratch});
         auditBackup(OperationTypeEnum.RESTORE_BACKUP, AuditLogManager.AUDITOP_BEGIN, null, backupName);
 
-        if (!backupOps.isActiveSite()) {
-            setRestoreFailed(backupName, isLocal, "The current site is not an active site", null);
-            return Response.status(ASYNC_STATUS).build();
-        }
-
         if (!backupOps.isClusterStable()) {
             setRestoreFailed(backupName, isLocal, "The cluster is not stable", null);
             return Response.status(ASYNC_STATUS).build();
@@ -708,17 +707,27 @@ public class BackupService {
     }
 
     private boolean canDoRestore(String backupName, boolean isLocal) {
+        log.info("precheck of restore: {}", backupName);
+
+        if (backupOps.hasStandbySites()) {
+            String errmsg = "Please remove all standby sites before restore";
+            setRestoreFailed(backupName, isLocal, errmsg, null);
+            return false;
+        }
+
         BackupRestoreStatus s = backupOps.queryBackupRestoreStatus(backupName, isLocal);
-        log.info("{} : {}", backupName, s);
+        log.info("Status:{}", s);
 
         BackupRestoreStatus.Status status = s.getStatus();
         if (isLocal && status == BackupRestoreStatus.Status.RESTORING) {
-            log.info("The restore from the {} is in progress");
+            String errmsg = String.format("The restore from the %s is in progress", backupName);
+            setRestoreFailed(backupName, isLocal, errmsg, null);
             return false;
         }
 
         if (!isLocal && status != BackupRestoreStatus.Status.DOWNLOAD_SUCCESS) {
-            log.info("The restore from the remote {} is in {} status so can't be restored", status);
+            String errmsg = String.format("The backup %s is not downloaded successfully", backupName);
+            setRestoreFailed(backupName, isLocal, errmsg, null);
             return false;
         }
 

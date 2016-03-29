@@ -1359,6 +1359,22 @@ public class VPlexUtil {
     }
 
     /**
+     * Check if the volume is a vplex virtual volume
+     * @param volume the volume
+     * @param dbClient
+     * @return true or false
+     */
+    public static boolean isVplexVolume(Volume volume, DbClient dbClient) {
+        URI storageURI = volume.getStorageController();
+        StorageSystem storage = dbClient.queryObject(StorageSystem.class, storageURI);
+        if (DiscoveredDataObject.Type.vplex.name().equals(storage.getSystemType())) {
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    /**
      * Determines if the passed VPLEX volume is built on top of a target
      * volume for a block snapshot.
      * 
@@ -1431,6 +1447,7 @@ public class VPlexUtil {
 
         return false;
     }
+
 
     /**
      * Checks vplex back end volumes having backend cg

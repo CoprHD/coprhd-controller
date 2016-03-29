@@ -2219,7 +2219,7 @@ public class BlockService extends TaskResourceService {
         checkForPendingTasks(Arrays.asList(requestedVolume.getTenant().getURI()), Arrays.asList(requestedVolume));
         
         // validate the volume is not part of a RP or VPlex CG that is part of an application
-        validateCGIsNotInApplication(requestedVolume);
+        validateCGIsNotInApplication(requestedVolume, snapshotType);
 
         // Set whether or not the snapshot be activated when created.
         Boolean createInactive = Boolean.FALSE;
@@ -2281,8 +2281,13 @@ public class BlockService extends TaskResourceService {
     /**
      * validates that the volume is not part of a RP or VPlex CG that is part of an application
      * @param requestedVolume
+     * @param snapshotType indicates if this is an array snapshot or RP bookmark request
      */
-    private void validateCGIsNotInApplication(Volume requestedVolume) {
+    private void validateCGIsNotInApplication(Volume requestedVolume, String snapshotType) {
+        // validation should only apply to non-RP snapshots
+        if (TechnologyType.RP.toString().equalsIgnoreCase(snapshotType)) {
+            return;
+        }
         URI cgId = requestedVolume.getConsistencyGroup();
         if (!NullColumnValueGetter.isNullURI(cgId)) {
             BlockConsistencyGroup cg = _dbClient.queryObject(BlockConsistencyGroup.class, cgId);

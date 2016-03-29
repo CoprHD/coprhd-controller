@@ -18,6 +18,7 @@ import controllers.Common;
 public class FilePolicySnapshotsDataTable extends DataTable {
 
     public static final String DATE_FORMAT = "d MMM yyyy HH:mm Z";
+    public static final String NEVER = "Never";
 
     public FilePolicySnapshotsDataTable() {
         addColumn("id").hidden();
@@ -39,7 +40,11 @@ public class FilePolicySnapshotsDataTable extends DataTable {
         public FileSnapshot(ScheduleSnapshotRestRep snap) {
             SimpleDateFormat sdf = new SimpleDateFormat(DATE_FORMAT);
             this.created = sdf.format(new Date(Long.parseLong(snap.getCreated())));
-            this.expires = sdf.format(new Date(Long.parseLong(snap.getExpires())));
+            if (snap.getExpires() != null && !snap.getExpires().equalsIgnoreCase(NEVER)) {
+                this.expires = sdf.format(new Date(Long.parseLong(snap.getExpires())));
+            } else {
+                this.expires = snap.getExpires();
+            }    
             this.id = snap.getId().toString();
             this.name = snap.getName();
 

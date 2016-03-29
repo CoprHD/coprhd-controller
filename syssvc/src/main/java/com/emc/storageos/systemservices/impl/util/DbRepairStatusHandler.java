@@ -198,7 +198,7 @@ public class DbRepairStatusHandler {
 
         log.info("Try to get repair status of {}", svcName);
         try (DbManagerOps dbManagerOps = new DbManagerOps(svcName)) {
-            DbRepairStatus repairState = dbManagerOps.getLastRepairStatus(true);
+            DbRepairStatus repairState = dbManagerOps.getLastRepairStatus(false);
 
             if (repairState != null) {
                 log.info("Current repair status of {} is: {}", svcName, repairState.toString());
@@ -212,7 +212,7 @@ public class DbRepairStatusHandler {
                 return repairState;
             }
 
-            repairState = dbManagerOps.getLastSucceededRepairStatus(true);
+            repairState = dbManagerOps.getLastSucceededRepairStatus(false);
 
             if (repairState != null) {
                 log.info("Last successful repair status of {} is: {}", svcName, repairState.toString());

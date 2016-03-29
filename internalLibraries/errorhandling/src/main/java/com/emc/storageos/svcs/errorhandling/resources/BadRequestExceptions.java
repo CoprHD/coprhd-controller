@@ -1155,6 +1155,15 @@ public interface BadRequestExceptions {
     public BadRequestException invalidReplicationRPOValue();
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
+    public BadRequestException noProtectionSettingsProvided();
+
+    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
+    public BadRequestException moreThanVpoolRpo();
+
+    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
+    public BadRequestException lessRPOThanVpoolRpo();
+
+    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException invalidReplicationRPOValueForType(String rpovalue, String units);
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
@@ -2788,6 +2797,9 @@ public interface BadRequestExceptions {
     public BadRequestException replicaOperationNotAllowedForNonCopyTypeVolumeGroup(final String volumeGroupName, final String replicaType);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException replicaOperationNotAllowedApplicationHasXtremio(final String replicaType);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException
             replicaOperationNotAllowedOnCGVolumePartOfCopyTypeVolumeGroup(final String volumeGroupName, final String replicaType);
 
@@ -2941,4 +2953,10 @@ public interface BadRequestExceptions {
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException cgReplicationNotAllowedMissingReplicationGroup(final String volumeLabel);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException cgSnapshotNotAllowedMixedDevices(final String replicationGroup);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException addRecoverPointProtectionRequiresCG();
 }

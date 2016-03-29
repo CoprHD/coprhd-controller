@@ -70,6 +70,7 @@ public class VplexVolumeIngestionContext extends VplexBackendIngestionContext im
     private Iterator<UnManagedVolume> _backendVolumeUrisToProcessIterator;
     private List<VplexMirror> _createdVplexMirrors;
     private String _haClusterId;
+    private String _virtualVolumeVplexClusterName;
 
     private List<String> _errorMessages;
 
@@ -875,7 +876,8 @@ public class VplexVolumeIngestionContext extends VplexBackendIngestionContext im
                         vplexMirror.setCapacity(mirrorVolume.getCapacity());
                         vplexMirror.setLabel(mirrorVolume.getLabel());
                         vplexMirror.setNativeId(entry.getValue());
-                        vplexMirror.setAllocatedCapacity(mirrorVolume.getAllocatedCapacity());
+                        // For Vplex virtual volumes set allocated capacity to 0 (cop-18608)
+                        vplexMirror.setAllocatedCapacity(0L);
                         vplexMirror.setProvisionedCapacity(mirrorVolume.getProvisionedCapacity());
                         vplexMirror.setSource(new NamedURI(virtualVolume.getId(), virtualVolume.getLabel()));
                         vplexMirror.setStorageController(virtualVolume.getStorageController());
@@ -1181,5 +1183,26 @@ public class VplexVolumeIngestionContext extends VplexBackendIngestionContext im
     @Override
     public <T extends DataObject> T findDataObjectByType(Class<T> clazz, URI id, boolean fallbackToDatabase) {
         return getRootIngestionRequestContext().findDataObjectByType(clazz, id, fallbackToDatabase);
+    }
+
+    /**
+     * Get the name of the VPLEX cluster on which this virtual volume resides
+     * according to the Virtual Array that is currently being ingested.
+     * 
+     * @return the virtualVolumeVplexClusterName the VPLEX cluster name for this virtual volume
+     */
+    public String getVirtualVolumeVplexClusterName() {
+        return _virtualVolumeVplexClusterName;
+    }
+
+    /**
+     * Sets the name of the VPLEX cluster on which this virtual volume resides
+     * according to the Virtual Array that is currently being ingested.
+     * 
+     * @param virtualVolumeVplexClusterName the VPLEX cluster name to set
+     */
+    public void setVirtualVolumeVplexClusterName(String virtualVolumeVplexClusterName) {
+        _logger.info("setting virtual volume VPLEX cluster name to " + virtualVolumeVplexClusterName);
+        this._virtualVolumeVplexClusterName = virtualVolumeVplexClusterName;
     }
 }

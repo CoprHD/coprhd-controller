@@ -894,8 +894,8 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                     vplexVolume.setNativeId(vvInfo.getPath());
                     vplexVolume.setNativeGuid(vvInfo.getPath());
                     vplexVolume.setDeviceLabel(vvInfo.getName());
-                    // CTRL-2534: allocatedCapacity should equal provisionedCapacity on VPLEX volumes
-                    vplexVolume.setAllocatedCapacity(vvInfo.getCapacityBytes());
+                    // For Vplex virtual volumes set allocated capacity to 0 (cop-18608)
+                    vplexVolume.setAllocatedCapacity(0L);
                     vplexVolume.setProvisionedCapacity(vvInfo.getCapacityBytes());
                     _dbClient.updateObject(vplexVolume);
 
@@ -1853,7 +1853,9 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                                 // create map of target-port to port-wwn
                                 // example: target port - P0000000046E01E80-A0-FC02 PortWWn - 0x50001442601e8002
                                 for (VPlexPortInfo cachedPortInfo : cachedPortInfos) {
-                                    targetPortToPwwnMap.put(cachedPortInfo.getTargetPort(), cachedPortInfo.getPortWwn());
+                                    if (null != cachedPortInfo.getPortWwn()) {
+                                        targetPortToPwwnMap.put(cachedPortInfo.getTargetPort(), cachedPortInfo.getPortWwn());
+                                    }
                                 }
                                 long elapsed = new Date().getTime() - start;
                                 _log.info("TIMER: assembling the target port name to wwn map took {} ms", elapsed);
@@ -6229,8 +6231,8 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 // of the VPLEX volume to the provisioned capacity of the existing volume.
                 vplexVolume.setProvisionedCapacity(existingVolume.getProvisionedCapacity());
 
-                // CTRL-2534: allocatedCapacity should equal provisionedCapacity on VPLEX volumes
-                vplexVolume.setAllocatedCapacity(existingVolume.getProvisionedCapacity());
+                // For Vplex virtual volumes set allocated capacity to 0 (cop-18608)
+                vplexVolume.setAllocatedCapacity(0L);
 
                 // For import associated with creating a VPLEX full copy, we need
                 // to add the copy to the list of copies for the source VPLEX volume.
@@ -6643,8 +6645,8 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             // Update the VPlex volume size in the database.
             vplexVolume.setCapacity(newSize);
             vplexVolume.setProvisionedCapacity(vplexVolumeInfo.getCapacityBytes());
-            // CTRL-2534: allocatedCapacity should equal provisionedCapacity on VPLEX volumes
-            vplexVolume.setAllocatedCapacity(vplexVolumeInfo.getCapacityBytes());
+            // For Vplex virtual volumes set allocated capacity to 0 (cop-18608)
+            vplexVolume.setAllocatedCapacity(0L);
             _dbClient.updateObject(vplexVolume);
             _log.info("Updated volume size");
 
@@ -9033,8 +9035,8 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             promoteVolume.setNativeId(vvInfo.getPath());
             promoteVolume.setNativeGuid(vvInfo.getPath());
             promoteVolume.setDeviceLabel(vvInfo.getName());
-            // CTRL-2534: allocatedCapacity should equal provisionedCapacity on VPLEX volumes
-            promoteVolume.setAllocatedCapacity(vplexMirror.getProvisionedCapacity());
+            // For Vplex virtual volumes set allocated capacity to 0 (cop-18608)
+            promoteVolume.setAllocatedCapacity(0L);
             promoteVolume.setCapacity(vplexMirror.getCapacity());
             promoteVolume.setProvisionedCapacity(vplexMirror.getProvisionedCapacity());
             promoteVolume.setVirtualPool(vplexMirror.getVirtualPool());
@@ -9430,7 +9432,6 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 }
                 _log.info(String.format("Creating mirror: %s (%s)", vplexMirror.getLabel(), vplexMirrorId));
                 Volume storageVolume = mirrorMap.get(vplexMirror);
-                long totalAllocated = storageVolume.getAllocatedCapacity();
                 long totalProvisioned = storageVolume.getProvisionedCapacity();
                 StorageSystem storage = storageMap.get(storageVolume.getStorageController());
                 List<String> itls = VPlexControllerUtils.getVolumeITLs(storageVolume);
@@ -9451,7 +9452,8 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                         vInfo.getPath(), sourceVplexVolume.getLabel(), sourceVplexVolume.getDeviceLabel()));
                 vplexMirror.setNativeId(vInfo.getPath());
                 vplexMirror.setDeviceLabel(vInfo.getName());
-                vplexMirror.setAllocatedCapacity(totalAllocated);
+                // For Vplex virtual volumes set allocated capacity to 0 (cop-18608)
+                vplexMirror.setAllocatedCapacity(0L);
                 vplexMirror.setProvisionedCapacity(totalProvisioned);
                 _dbClient.updateObject(vplexMirror);
 

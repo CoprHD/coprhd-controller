@@ -23,6 +23,7 @@ import com.emc.storageos.scaleio.api.restapi.response.ScaleIOSDS.IP;
 import com.emc.storageos.scaleio.api.restapi.response.ScaleIOScsiInitiator;
 import com.emc.storageos.scaleio.api.restapi.response.ScaleIOStoragePool;
 import com.emc.storageos.scaleio.api.restapi.response.ScaleIOSystem;
+import com.emc.storageos.scaleio.api.restapi.response.Slaves;
 import com.emc.storageos.util.VersionChecker;
 import com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator;
 import com.emc.storageos.volumecontroller.impl.StoragePoolAssociationHelper;
@@ -90,7 +91,20 @@ public class ScaleIOCommunicationInterface extends ExtendedCommunicationInterfac
             if (scaleIOHandle != null) {
                 Map<String, StorageSystemViewObject> storageSystemsCache = accessProfile.getCache();
                 ScaleIOSystem sioSystem = scaleIOHandle.getSystem();
-                String[] ipList = sioSystem.getSecondaryMdmActorIpList();
+
+                String[] ipList = null;
+                if(sioSystem.getVersion().startsWith("2_0")){
+                	Slaves[] slaves = sioSystem.getMdmCluster().getSlaves();
+                	if( (slaves.length>0) ) 
+                	ipList = new String[slaves.length];
+                	for(int iterInd = 0 ; iterInd < slaves.length ; iterInd++){
+                		ipList[iterInd] = slaves[iterInd].getIps()[0];	
+                	}                	
+                }	
+                else{
+                	ipList = sioSystem.getSecondaryMdmActorIpList();
+                }
+                
                 if (ipList != null && ipList.length >0) {
                     StringSet secondaryIps = new StringSet();
                     secondaryIps.add(ipList[0]);
@@ -577,11 +591,13 @@ public class ScaleIOCommunicationInterface extends ExtendedCommunicationInterfac
             List<ScaleIOSDS> allSDSs, String protectionDomainName) throws IOException {
         List<StoragePort> ports = new ArrayList<>();
         List<String> endpoints = new ArrayList<>();
+        
         for (ScaleIOSDS sds : allSDSs) {
             String sdsId = sds.getId();
             List<IP> ips = sds.getIpList();
             String sdsIP = null;
             if (ips != null && !ips.isEmpty()) {
+            	
                 sdsIP = ips.get(0).getIp();
             }
             

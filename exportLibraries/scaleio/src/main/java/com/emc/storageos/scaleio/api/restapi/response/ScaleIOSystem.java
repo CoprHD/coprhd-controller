@@ -25,8 +25,17 @@ public class ScaleIOSystem {
     private String mdmClusterState;
     private String id;
     private String installId;
+    private MdmCluster mdmCluster;
 
-    public String getMdmMode() {
+    public MdmCluster getMdmCluster() {
+		return mdmCluster;
+	}
+
+	public void setMdmCluster(MdmCluster mdmCluster) {
+		this.mdmCluster = mdmCluster;
+	}
+
+	public String getMdmMode() {
         return mdmMode;
     }
 

@@ -703,7 +703,7 @@ public class DrUtil {
             stop = System.nanoTime();
             timeToRespond = (stop - start);
         } catch (Exception e) {
-            log.error(String.format("Fail to check cross-site network latency to node {} with Exception: ",hostAddress),e);
+            log.error("Fail to check cross-site network latency to node {} with Exception: ",hostAddress,e);
             return -1;
         } finally {
             try {
@@ -711,7 +711,7 @@ public class DrUtil {
                     socket.close();
                 }
             } catch (Exception e) {
-                log.error(String.format("Fail to close connection to node {} with Exception: ",hostAddress),e);
+                log.error("Fail to close connection to node {} with Exception: ",hostAddress,e);
             }
         }
     

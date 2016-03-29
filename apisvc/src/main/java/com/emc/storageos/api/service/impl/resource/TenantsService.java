@@ -317,7 +317,9 @@ public class TenantsService extends TaggedResource {
         }
 
         if (param.getNamespace() != null && !param.getNamespace().isEmpty()) {
-            checkForDuplicateNamespace(param.getNamespace());
+            if (!param.getNamespace().equals(tenant.getNamespace())) {
+                checkForDuplicateNamespace(param.getNamespace());
+            }            
 
             if (tenant.getNamespace() != null && !tenant.getNamespace().isEmpty()) {
                 if (!tenant.getNamespace().equalsIgnoreCase(param.getNamespace())) {

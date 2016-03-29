@@ -4482,11 +4482,11 @@ public class VolumeIngestionUtil {
             String maskingViewPath = unManagedExportMask.getMaskingViewPath();
             _logger.info("cluster name is {} and masking view path is {}", clusterName, maskingViewPath);
             if (clusterName != null && maskingViewPath != null) {
-                // the start of the path would be like: /clusters/cluster-1
+                String startOfPath = VPlexApiConstants.URI_CLUSTERS_RELATIVE + clusterName;
+                // the start of the path would be like: /clusters/cluster-1 or /clusters/cluster-2
                 // the masking view path would be like: /clusters/cluster-1/virtual-volumes/dd_V000195701351-021DA_V000198700412-030CF_vol
                 // if the start of the path (as determined by getting the cluster name connected to the varray
                 // for this ingestion request) overlaps the masking view path, then we are on the right vplex cluster
-                String startOfPath = VPlexApiConstants.URI_CLUSTERS_RELATIVE + clusterName;
                 if (maskingViewPath.startsWith(startOfPath)) {
                     _logger.info("\tUnManagedExportMask {} is on VPLEX cluster {} and will be processed now", 
                             unManagedExportMask.getMaskName(), clusterName);

@@ -37,6 +37,8 @@ import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import org.apache.commons.lang.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.ws.rs.*;
 import javax.ws.rs.core.MediaType;
@@ -58,6 +60,9 @@ import java.util.Set;
 @DefaultPermissions(readRoles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN, Role.SYSTEM_MONITOR, Role.TENANT_ADMIN },
         writeRoles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN, Role.TENANT_ADMIN })
 public class TaskService extends TaggedResource {
+
+    Logger log = LoggerFactory.getLogger(TaskService.class.getName());
+
     private static final String DATE_TIME_FORMAT = "yyyy-MM-dd_HH:mm:ss";
 
     private static final URI SYSTEM_TENANT = URI.create("system");
@@ -125,8 +130,13 @@ public class TaskService extends TaggedResource {
     @Path("/stats")
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     public TaskStatsRestRep getStats(@QueryParam(TENANT_QUERY_PARAM) URI tenantId) {
+
+        log.info("enter task stat");
+
         Set<URI> tenantIds = getTenantsFromRequest(tenantId);
         verifyUserHasAccessToTenants(tenantIds);
+
+        log.info("finish tenant job");
 
         int ready = 0;
         int error = 0;
@@ -136,7 +146,9 @@ public class TaskService extends TaggedResource {
                     normalizedTenantId.toString(), "taskStatus");
             AggregationQueryResultList queryResults = new AggregationQueryResultList();
 
+            log.info("before query task stat from db");
             _dbClient.queryByConstraint(constraint, queryResults);
+            log.info("after query task stat from db");
 
             Iterator<AggregationQueryResultList.AggregatedEntry> it = queryResults.iterator();
             while (it.hasNext()) {
@@ -151,6 +163,7 @@ public class TaskService extends TaggedResource {
             }
         }
 
+        log.info("leave task stat");
         return new TaskStatsRestRep(pending, ready, error);
     }
 

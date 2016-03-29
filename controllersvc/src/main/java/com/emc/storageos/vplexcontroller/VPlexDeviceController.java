@@ -1839,7 +1839,9 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                                 // create map of target-port to port-wwn
                                 // example: target port - P0000000046E01E80-A0-FC02 PortWWn - 0x50001442601e8002
                                 for (VPlexPortInfo cachedPortInfo : cachedPortInfos) {
-                                    targetPortToPwwnMap.put(cachedPortInfo.getTargetPort(), cachedPortInfo.getPortWwn());
+                                    if (null != cachedPortInfo.getPortWwn()) {
+                                        targetPortToPwwnMap.put(cachedPortInfo.getTargetPort(), cachedPortInfo.getPortWwn());
+                                    }
                                 }
                                 long elapsed = new Date().getTime() - start;
                                 _log.info("TIMER: assembling the target port name to wwn map took {} ms", elapsed);

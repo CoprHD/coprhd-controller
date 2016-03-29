@@ -39,18 +39,18 @@ export rootTenant
 export tenant
 echo tenant $tenant 
 [ "$project" ] || {
-    project="Tom"
+    project="vplexsrdf7"
 }
 cglabel=
 
 
 # Virtual arrays
-SITE1=site1			# The source SRDF site and source 1st VPLEX site
-SITE2=site2			# The target SRDF site and possible 2nd VPLEX site
-SITE3=site3			# The 1st VPLEX HA site
+SITEr1=site1			# The source SRDF site and source 1st VPLEX site
+SITEr2=site3			# The target SRDF site and possible 2nd VPLEX site
+SITEha=site3			# The 1st VPLEX HA site
 
 # Virtual pools
-VPOOL1=vplexL-405-srdf-343_A	# The virtual pool under test
+VPOOL1=vrdfsrc		# The source virtual pool under test
 
 # Configuration file to be used  
 source $SANITY_CONFIG_FILE 
@@ -117,44 +117,87 @@ volume_create() {
     run volume create --consistencyGroup $cg $name $project $varray $vpool $BLK_SIZE
 }
 
+# Function to create a cluster. $1 is the cluster name
+cluster_create() {
+    name=$1
+    exists=$(cluster list ${tenant} | grep $name | wc -l)
+    [ $exists -ne 1 ] && {
+        echoit "creating cluster $name"
+        run cluster create $name $tenant --project $project
+    }
+}
+cluster_create vplexsrdfclus
+clusterId=$(cluster list $rootTenant | grep vplexsrdfclus | awk ' { print $4; }')
+
+# Function to create a host.
+# $1 = host name, $2 = cluster name
+# $3 = arg to pwwn for first initiator, 
+# $4 = arg to pwwn for second initiator
+# $5 = network to add first initiator to
+# $6 = network to add second initiator to
+host_create() {
+    name=$1; cluster=$2; init1=$3; init2=$4; net1=$5; net2=$6
+    exists=$(hosts list ${tenant} | grep $name | wc -l)
+    [ $exists -ne 1 ] && {
+        echoit "creating host $name"
+        run hosts create $name $tenant Other ${name}.org --port 2222 --cluster $cluster
+        run initiator create $name FC $(pwwn $init1) --node $(nwwn $init1)
+        run initiator create $name FC $(pwwn $init2) --node $(nwwn $init2)
+        run transportzone add $net1 $(pwwn $init1)
+        run transportzone add $net2 $(pwwn $init2)
+    }
+}
+
+host_create vplexsrdfhost1 $clusterId A0 A1 FABRIC_losam082-fabric FABRIC_losam082-fabric
+host_create vplexsrdfhost2 $clusterId A2 A3 FABRIC_losam082-fabric FABRIC_losam082-fabric
+
 # Control over running individual parts of the test (true/false)
-create_volume=true			# if false, specify volname1 and CGlabel
-test_protection_ops=true
-test_expand=true
-test_r1_snapvx_nocopy=true
-test_r2_snapvx_nocopy=true
-test_r1_fullcopy=true
-test_r2_fullcopy=true
+create_volume=false			# if false, specify volname1 and CGlabel
+export_volume=false
+test_protection_ops=false
+test_expand=false
+test_r1_snapvx_nocopy=false
+test_r2_snapvx_nocopy=false
+test_r1_fullcopy=false
+test_r2_fullcopy=false
 delete_volume=true
 
 vplexsrdf_test() {
 volname1=${volname1:-"vplexSrdfA$hostseed$seed2b"}
-volname1target=${volname1}-target-${SITE2}
+volname1target=${volname1}-target-${SITEr2}
+volname2=${volname1:-"vplexSrdfB$hostseed$seed2b"}
+volname2target=${volname2}-target-${SITEr2}
 
 security login root 'ChangeMe1!'
 if [ $create_volume = "true" ];
 then
+    security login root 'ChangeMe1!'
     # Create consistency group 
-    CGlabel=${CGlabel:-"Tom${seed2b}"}
+    CGlabel=${CGlabel:-"vpxrdf${seed2b}"}
     export CGlabel
     run blockconsistencygroup create $project $CGlabel
-    security login root 'ChangeMe1!'
     echoit "create volume $volname1"
-    volume_create "$volname1" $SITE1 $VPOOL1 $CGlabel
+    volume_create "$volname1" $SITEr1 $VPOOL1 $CGlabel
 else
     echoit "Using existing volume $volname1 cg $CGlabel"
 fi
-CGtarget=$CGlabel-Target-$SITE2
+CGtarget=$CGlabel-Target-$SITEr2
+
+if [ $export_volume = "true" ]; 
+then
+   echoit "Exporting volume to cluster"
+   run export_group create $project egtest1 $SITEr1 --type Cluster --clusters $clusterId --volspec $project/$volname1
+fi
 
 if [ "$test_protection_ops" = "true" ];
 then
 security login root 'ChangeMe1!'
 echoit "Testing Failover/cancel CG"
-run blockconsistencygroup failover $CGlabel --targetVarray ${SITE2} --copyType srdf
-run blockconsistencygroup failover_cancel $CGlabel --targetVarray ${SITE2} --copyType srdf
+run blockconsistencygroup failover $CGlabel --targetVarray ${SITEr2} --copyType srdf
+run blockconsistencygroup failover_cancel $CGlabel --targetVarray ${SITEr2} --copyType srdf
 echoit "Testing Swap/back CG"
-run blockconsistencygroup swap $CGlabel --targetVarray ${SITE2} --copyType srdf
-run blockconsistencygroup swap ${CGlabel}-Target-site2 --targetVarray ${SITE1} --copyType srdf
+run blockconsistencygroup swap $CGlabel --targetVarray ${SITEr2} --copyType srdf
+run blockconsistencygroup swap ${CGlabel}-Target-site2 --targetVarray ${SITEr1} --copyType srdf
 fi
 
 if [ "$test_expand" = "true" ];
@@ -208,11 +251,11 @@ echoit "Creating snapvx session $SNAP_SESSION_NAME2"
 run blockconsistencygroup create_snapshot_session $CGtarget $SNAP_SESSION_NAME2
 # Restore the snapvx session.
 echoit "Pausing the link so can restore R2"
-run volume change_link $project/$volname1 pause $project/$volname1-target-$SITE2 srdf
+run volume change_link $project/$volname1 pause $project/$volname1-target-$SITEr2 srdf
 echoit "Restoring snapvx session $SNAP_SESSION_NAME1"
 run blockconsistencygroup restore_targets $CGtarget/$SNAP_SESSION_NAME1
 echoit "Resuming the link"
-run volume change_link $project/$volname1 resume $project/$volname1-target-$SITE2 srdf
+run volume change_link $project/$volname1 resume $project/$volname1-target-$SITEr2 srdf
 # Link target to the snapvx session 1 in default nocopy mode.
 echoit "Linking target $SNAP_SESSION_TGT_NAME1 to snapvx session $SNAP_SESSION_NAME1"
 run blockconsistencygroup link_targets $CGtarget/$SNAP_SESSION_NAME1 1 $SNAP_SESSION_TGT_NAME1
@@ -260,6 +303,12 @@ echoit "Deleting full copy $r2copy1"
 run volume delete $project/$r2copy1
 echoit "Resuming synchronization on link after restore"
 run volume change_link $project/$volname1 resume $project/$volname1target srdf
+fi
+
+if [ $export_volume = "true" ];
+then
+   echoit "Deleting export group egtest1"
+   run export_group delete $project/egtest1
 fi
 
 if [ "$delete_volume" = "true" ];

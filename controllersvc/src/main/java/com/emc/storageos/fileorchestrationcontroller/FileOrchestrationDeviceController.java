@@ -7,7 +7,6 @@ package com.emc.storageos.fileorchestrationcontroller;
 import java.io.Serializable;
 import java.net.URI;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -184,9 +183,6 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
             // Call the FileReplicationDeviceController to add its delete methods if there are Mirror FileShares.
             waitFor = _fileReplicationDeviceController.addStepsForDeleteFileSystems(workflow,
                     waitFor, fileDescriptors, taskId);
-
-            s_logger.info("Waiting for 30 seconds before mirror pair detaches completely...");
-            TimeUnit.SECONDS.sleep(30);
 
             // Next, call the FileDeviceController to add its delete methods.
             waitFor = _fileDeviceController.addStepsForDeleteFileSystems(workflow, waitFor, fileDescriptors, taskId);

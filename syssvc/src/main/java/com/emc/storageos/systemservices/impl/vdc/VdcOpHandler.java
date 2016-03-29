@@ -520,7 +520,11 @@ public abstract class VdcOpHandler {
         public void execute() throws Exception {
             // on all sites, reconfig to enable firewall/ipsec
             reconfigVdc();
-            changeSiteState(SiteState.STANDBY_RESUMING, SiteState.STANDBY_SYNCING);
+            
+            if (drUtil.isActiveSite()) {
+                changeSiteState(SiteState.STANDBY_RESUMING, SiteState.STANDBY_SYNCING);
+            }
+            
             // if site is in observer restart dbsvc
             // move to the bottom so that it won't miss the data sync
             restartDbsvcOnResumingSite();

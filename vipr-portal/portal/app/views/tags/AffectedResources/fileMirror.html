@@ -44,8 +44,10 @@ getVarayAndCos();
 function getVarayAndCos(){
 	$.post('@{resources.FileSystems.getVarrayVpool(resourceId)}')
 	.done(function(result) {
-		document.getElementById("varrayIDTgt").innerHTML=result.vArray;
-		document.getElementById("vpoolIDTgt").innerHTML=result.vPool;
+		$('#varrayIDTgt').html(result.vArray);
+		$('#vpoolIDTgt').html(result.vPool);
+// 		document.getElementById("varrayIDTgt").innerHTML=result.vArray;
+// 		document.getElementById("vpoolIDTgt").innerHTML=result.vPool;
 });
 }
 </script>

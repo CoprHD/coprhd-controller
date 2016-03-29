@@ -1922,6 +1922,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
 
     @Override
     public StorageSystemConnectivityList getStorageSystemConnectivity(StorageSystem system) {
+        _log.debug("getStorageSystemConnectivity START");
         // Connectivity list to return
         StorageSystemConnectivityList connectivityList = new StorageSystemConnectivityList();
         // Set used to ensure unique values are added to the connectivity list
@@ -1933,21 +1934,34 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                         AlternateIdConstraint.Factory.getConstraint(RPSiteArray.class,
                                 "storageSystem",
                                 system.getId().toString()));
+        
+        Map<URI, ProtectionSystem> protSysMap = new HashMap<URI, ProtectionSystem>();
+        Map<String, StorageSystem> storageSystemBySerialNumber = new HashMap<String, StorageSystem>();
 
         // For each of the RPSiteArrays get the Protection System
         for (RPSiteArray rpSiteArray : rpSiteArrays) {
             if ((rpSiteArray.getRpProtectionSystem() != null)) {
-                ProtectionSystem protectionSystem = _dbClient.queryObject(ProtectionSystem.class, rpSiteArray.getRpProtectionSystem());
+                ProtectionSystem protectionSystem = protSysMap.get(rpSiteArray.getRpProtectionSystem());
+                if (protectionSystem == null) {
+                    protectionSystem = _dbClient.queryObject(ProtectionSystem.class, rpSiteArray.getRpProtectionSystem());
+                    protSysMap.put(protectionSystem.getId(), protectionSystem);
+                }
                 // Loop through the associated Storage Systems for this Protection System to build the
                 // connectivity response list. Only store unique responses.
                 for (String associatedStorageSystemStr : protectionSystem.getAssociatedStorageSystems()) {
-                    URI associatedStorageSystemURI = ConnectivityUtil.findStorageSystemBySerialNumber(
-                            ProtectionSystem.getAssociatedStorageSystemSerialNumber(associatedStorageSystemStr), _dbClient,
-                            StorageSystemType.BLOCK);
-                    StorageSystem associatedStorageSystem = _dbClient.queryObject(StorageSystem.class, associatedStorageSystemURI);
-
-                    if (associatedStorageSystem == null || associatedStorageSystem.getInactive()
-                            || ConnectivityUtil.isAVPlex(associatedStorageSystem)) {
+                    String associatedStorageSystemSerialNumber = ProtectionSystem.getAssociatedStorageSystemSerialNumber(associatedStorageSystemStr);
+                    StorageSystem associatedStorageSystem = storageSystemBySerialNumber.get(associatedStorageSystemSerialNumber);
+                    if (associatedStorageSystem == null) {
+                        URI associatedStorageSystemURI = ConnectivityUtil.findStorageSystemBySerialNumber(
+                                associatedStorageSystemSerialNumber, _dbClient,
+                                StorageSystemType.BLOCK);
+                        associatedStorageSystem = _dbClient.queryObject(StorageSystem.class, associatedStorageSystemURI);
+                        if (associatedStorageSystem == null || associatedStorageSystem.getInactive()) {
+                            continue;
+                        }
+                        storageSystemBySerialNumber.put(associatedStorageSystemSerialNumber, associatedStorageSystem);
+                    }
+                    if (ConnectivityUtil.isAVPlex(associatedStorageSystem)) {
                         continue;
                     }
 
@@ -1973,6 +1987,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
             }
         }
 
+        _log.debug("getStorageSystemConnectivity END");
         return connectivityList;
     }
 

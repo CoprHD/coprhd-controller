@@ -472,12 +472,11 @@ class VolumeGroup(object):
             return []
 
     # Creates clone(s) for the given volume group
-    def clone(self, name, clone_name, count, create_inactive, partial, volumeUris, sync):
+    def clone(self, name, clone_name, create_inactive, partial, volumeUris, sync):
         '''
         Makes REST API call to clone volume group
         Parameters:
             name: name with which clone to be created
-            count: number of clones to create
             create_inactive: with this flag, created clone will not be activated
             partial: Enable the flag to create clones for subset of VolumeGroup.
                      Please specify one volume from each Array Replication Group
@@ -495,9 +494,6 @@ class VolumeGroup(object):
             'count': 1,
             'create_inactive': create_inactive
         }
-
-        if(count and count > 1):
-            request["count"] = count
 
         # if partial request
         if (partial):
@@ -1437,21 +1433,15 @@ def clone_parser(subcommand_parsers, common_parser):
                                 help='Name of clone to create',
                                 required=True)
 
-    clone_parser.add_argument('-count', '-cu',
-                              dest='count',
-                              metavar='<count>',
-                              type=int,
-                              default=0,
-                              help='Number of clones to be created')
     clone_parser.add_argument('-inactive',
                               dest='inactive',
                               action='store_true',
                               help='If inactive is set to true, then the operation will create clone,' +
-                              'but not activate the synchronization between source and target volumes.')
+                              'but not activate it.')
     clone_parser.add_argument('-partial',
                               dest='partial',
                               action='store_true',
-                              help='To create clones for subset of VolumeGroup. ' +
+                              help='To create clone for subset of VolumeGroup. ' +
                               'Please specify one volume from each Array Replication Group')
     clone_parser.add_argument('-volumes', '-v',
                             metavar='<volume_label,...>',
@@ -1479,10 +1469,10 @@ def volume_group_clone(args):
         raise SOSError(
             SOSError.CMD_LINE_ERR,
             'error: Synchronous operation is not allowed as ' +
-            'we cannot track multiple tasks created for multiple volume groups specified')
+            'we cannot track multiple tasks created for multiple Array Replication groups specified')
     try:
         volumeUris = query_volumes_for_partial_request(args)
-        obj.clone(args.name, args.cloneName, args.count, args.inactive,
+        obj.clone(args.name, args.cloneName, args.inactive,
                   args.partial, ",".join(volumeUris), args.sync)
         return
     
@@ -1802,7 +1792,7 @@ def clone_get_parser(subcommand_parsers, common_parser):
                                 dest='name',
                                 help='Name of volume group',
                                 required=True)
-    clone_get_parser.add_argument('-setname', '-s',
+    mandatory_args.add_argument('-setname', '-s',
                               metavar='<setname>',
                               dest='setname',
                               help='Copy set name',
@@ -2148,7 +2138,7 @@ def snapshot_get_parser(subcommand_parsers, common_parser):
                                 dest='name',
                                 help='Name of volume group',
                                 required=True)
-    snapshot_get_parser.add_argument('-setname', '-s',
+    mandatory_args.add_argument('-setname', '-s',
                               metavar='<snapshot set name>',
                               dest='setname',
                               help='Snapshot set name',
@@ -2631,7 +2621,7 @@ def snapshotsession_get_parser(subcommand_parsers, common_parser):
                                 dest='name',
                                 help='Name of volume group',
                                 required=True)
-    snapshotsession_get_parser.add_argument('-setname', '-s',
+    mandatory_args.add_argument('-setname', '-s',
                               metavar='<setname>',
                               dest='setname',
                               help='Snapshot session set name',

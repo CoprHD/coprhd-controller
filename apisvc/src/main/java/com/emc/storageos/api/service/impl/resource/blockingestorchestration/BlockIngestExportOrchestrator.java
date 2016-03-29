@@ -139,6 +139,7 @@ public abstract class BlockIngestExportOrchestrator extends ResourceService {
             // then add this unmanaged volume to the mask.
             while (itr.hasNext()) {
                 UnManagedExportMask unManagedExportMask = itr.next();
+
                 if (!VolumeIngestionUtil.validateStoragePortsInVarray(_dbClient, blockObject,
                         requestContext.getVarray(unManagedVolume).getId(), unManagedExportMask.getKnownStoragePortUris(),
                         unManagedExportMask, errorMessages)) {
@@ -148,6 +149,12 @@ public abstract class BlockIngestExportOrchestrator extends ResourceService {
                 }
                 if (!VolumeIngestionUtil.validateExportMaskMatchesComputeResourceInitiators(_dbClient, exportGroup, computeInitiators,
                         unManagedExportMask, errorMessages)) {
+                    // logs already inside the above method.
+                    itr.remove();
+                    continue;
+                }
+                if (VolumeIngestionUtil.isVplexVolume(unManagedVolume) && 
+                        !VolumeIngestionUtil.validateExportMaskMatchesVplexCluster(requestContext, unManagedVolume, unManagedExportMask)) {
                     // logs already inside the above method.
                     itr.remove();
                     continue;

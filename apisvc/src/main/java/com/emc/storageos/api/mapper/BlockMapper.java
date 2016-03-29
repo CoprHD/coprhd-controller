@@ -356,6 +356,8 @@ public class BlockMapper {
         to.setReplicaState(getReplicaState(from));
         to.setReadOnly(from.getIsReadOnly());
         to.setSnapsetLabel(from.getSnapsetLabel() != null ? from.getSnapsetLabel() : "");
+        to.setProvisionedCapacity(CapacityUtils.convertBytesToGBInStr(from.getProvisionedCapacity()));
+        to.setAllocatedCapacity(CapacityUtils.convertBytesToGBInStr(from.getAllocatedCapacity()));
         return to;
     }
 

@@ -547,9 +547,17 @@ public class DrUtil {
      * @return true if the ZK mode is leader/standalone, false otherwise
      */
     public boolean isLeaderNode(String localZkMode) {
-        return ZOOKEEPER_MODE_LEADER.equals(localZkMode) || ZOOKEEPER_MODE_STANDALONE.equals(localZkMode);
+        // in 1+0 deployment, the local ZK mode might become follower since there is a second running ZK instance
+        // nevertheless it should be considered the leader node
+        return ZOOKEEPER_MODE_LEADER.equals(localZkMode) || ZOOKEEPER_MODE_STANDALONE.equals(localZkMode) ||
+                getLocalSite().getNodeCount() == 1;
     }
 
+    /**
+     * Determine if the specified ZK mode represents a ZK participant
+     * @param localZkMode local ZK mode
+     * @return true if ZK participant, false otherwise
+     */
     public boolean isParticipantNode(String localZkMode) {
         return ZOOKEEPER_MODE_LEADER.equals(localZkMode) || ZOOKEEPER_MODE_FOLLOWER.equals(localZkMode)
                 || ZOOKEEPER_MODE_STANDALONE.equals(localZkMode);

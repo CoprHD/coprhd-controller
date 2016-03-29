@@ -358,6 +358,7 @@ public class DisasterRecoveryService {
         try {
             SiteParam activeSiteParam = configParam.getActiveSite();
 
+            coordinator.startTransaction();
             ipsecConfig.setPreSharedKey(activeSiteParam.getIpsecKey());
 
             log.info("Clean up all existing site configurations");
@@ -402,10 +403,13 @@ public class DisasterRecoveryService {
                 log.info("Set ntp servers to {}", ntpServers);
             }
 
-            drUtil.updateVdcTargetVersion(coordinator.getSiteId(), SiteInfo.DR_OP_CHANGE_DATA_REVISION, configParam.getVdcConfigVersion(), dataRevision);
+            drUtil.updateVdcTargetVersion(coordinator.getSiteId(), SiteInfo.DR_OP_CHANGE_DATA_REVISION,
+                    configParam.getVdcConfigVersion(), dataRevision);
+            coordinator.commitTransaction();
             return Response.status(Response.Status.ACCEPTED).build();
         } catch (Exception e) {
             log.error("Internal error for updating coordinator on standby", e);
+            coordinator.discardTransaction();
             throw APIException.internalServerErrors.configStandbyFailed(e.getMessage());
         }
     }

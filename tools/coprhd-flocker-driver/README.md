@@ -113,41 +113,43 @@ In Vipr when storage is getting provisioned the same will get refrected in the v
 
 10. Generating & using security file
 =========================================
+pre-requisites easy_install pycrypto
+
 * use the file encrypt_password.py in util folder to generate a
   security file, which has the username and password in an encrypted form.
 
 * Usage of encrypt_password.py:
 ```
    python encrypt_password.py -user <vipruser> -password <viprpassword>
-            -securityfile <filepath where encrypted security is stored>
-               -coprhduser <User account which runs the coprhd service>
+            -securityfile <complete filepath where encrypted security is stored>
+               -flockeruser <User account which runs the root service>
 ```
 * The security file generation can be done in two ways
    1. The admin can login as root user and then run the above command to
       generate a security file at a location, which is accessible to only
-      "coprhd" user account.
+      "root" user account.
 
                         OR
 
    2. Login as the root user and then open /etc/passwd and then go to the
-      entry named coprhd.
+      entry named root.
 
       Change the last entry from /sbin/nologin to /bin/bash and you will 
-      be able to run commands through the account "coprhd"
+      be able to run commands through the account "root"
 
       Make sure that the encrypt_password.py is placed in a location, which
-      has permission for coprhd user and run the below command and run the
+      has permission for root user and run the below command and run the
       below command
 
       ```
-       su -l coprhd -c "python <appropriatefolder>/encrypt_password.py 
+       su -l root -c "python <appropriatefolder>/encrypt_password.py 
                               -user <vipruser> -password <viprpassword> 
             -securityfile <filepath_where_encrypted_security_is_stored> 
                -coprhduser <User_account_which_runs_the_coprhd_service>"
       ```
-* open /etc/coprhd/coprhd.conf and make following changes
+* open /etc/flocker/agent.yml and make following changes
    ```
-   vipr_security_file=<filepath_where_encrypted_security_is_stored>
+   coprhd_security_file=<filepath_where_encrypted_security_is_stored>
    ```
    
   If the vipr_security_file entry is not specified or is empty,

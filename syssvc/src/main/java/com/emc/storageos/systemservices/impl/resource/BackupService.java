@@ -499,7 +499,10 @@ public class BackupService {
 
         checkExternalServer();
 
-        if (!force && backupOps.isDownloadComplete(backupName)) {
+        if (backupOps.hasStandbySites()) {
+            String errmsg = "Please remove all standby sites before download";
+            backupOps.setRestoreStatus(backupName, false, BackupRestoreStatus.Status.DOWNLOAD_FAILED, errmsg, false, false);
+        }else  if (!force && backupOps.isDownloadComplete(backupName)) {
             log.info("The backup file {} has already been downloaded", backupName);
         }else if (backupOps.isDownloadInProgress()) {
             String curBackupName = backupOps.getCurrentBackupName();

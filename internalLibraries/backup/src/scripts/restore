@@ -10,6 +10,7 @@
 #
 
 DIR="$(dirname $0)"
+DIR="$(readlink -f $DIR)"
 
 . ${DIR}/restore-libs.sh
 
@@ -44,7 +45,7 @@ upload_backup() {
         return
     fi
 
-    echo -n "Uploading backup files to all nodes ... "
+    echo "Uploading backup files to all nodes ... "
     create_restore_folder
     extract_backup_files
     copy_to_other_nodes
@@ -150,10 +151,22 @@ user_confirm() {
 }
 
 check_standby() {
+    # Restore is only allowed on the active site
     local is_standby=$(/etc/systool --getvdcprops | awk '/^site_is_standby=/ {print substr($0, length("site_is_standby=") + 1)}')
     if [ "$is_standby" == "true" ]; then
         echo "Restore on standby site is not supported."
         exit 2
+    fi
+
+    # Restore is not allowed if there are standby sites
+    site_ids=$(/etc/systool --getprops | grep "site_ids=")
+    site_ids=${site_ids#*=}
+    ids=(${site_ids//,/ })
+    number_of_sites=${#ids[@]}
+    if [[ ${number_of_sites} -gt 1 ]] 
+    then
+        echo "Please remove the standby sites before restore"
+        exit 1
     fi
 }
 

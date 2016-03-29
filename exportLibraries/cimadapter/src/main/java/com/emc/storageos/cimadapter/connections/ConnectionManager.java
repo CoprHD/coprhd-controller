@@ -70,6 +70,14 @@ public class ConnectionManager {
     // A map of cache keys in _connections to the last time the connection was retrieved
     private Map<String, Long> connectionLastTouch = new HashMap<>();
 
+    // This map will be used to keep track of connections that are pinned. These are connections
+    // that should not be reaped. We will be keeping a count since you can have multiple arrays
+    // behind the same provider IP. When pinConnection is called, the count for the connection is
+    // incremented; when unpinConnection is called, the count is decremented. When the count
+    // reaches zero, it will be removed from the pinnedConnections map and it becomes eligible
+    // for reaping.
+    private Map<String, Integer> pinnedConnections = new HashMap<>();
+
     // The logger.
     private static final Logger s_logger = LoggerFactory.getLogger(ConnectionManager.class);
 
@@ -100,6 +108,69 @@ public class ConnectionManager {
     private ConnectionManager() {
     }
 
+    /**
+     * This will place the connection for the host+port into the pinned list. This
+     * will be used as a way to prevent the connection from getting reaped while
+     * it is in use for a long period of time.
+     *
+     * We're keeping count of the times that pinConnection is being called for the
+     * connection. This is because you can have multiple arrays behind a single
+     * provider IP. If discovery is run against the provider, then the same client
+     * will be used for all of its arrays. We would need to keep count, so only
+     * when the last array's discovery is complete, we can safely remove the
+     * connection from the pinned list.
+     *
+     * @param host [IN] - Host name/IP
+     * @param port [IN] - port
+     */
+    public void pinConnection(String host, Integer port) {
+        connectionLock.lock();
+        try {
+            String hostAndPort = ConnectionManager.generateConnectionCacheKey(host, port);
+            if (_connections.containsKey(hostAndPort)) {
+                Integer count = pinnedConnections.get(hostAndPort);
+                if (count == null) {
+                    // No entry yet, so initialize count
+                    count = 1;
+                } else {
+                    // Increase the count for this hostAndPort connection
+                    count++;
+                }
+                pinnedConnections.put(hostAndPort, count);
+            }
+            s_logger.info("CimConnection {} is pinned, count = {}", hostAndPort, pinnedConnections.get(hostAndPort));
+        } finally {
+            connectionLock.unlock();
+        }
+    }
+
+    /**
+     * This will remove the connection for host+port from the pinned list. It will make
+     * the connection eligible for reaping again, if the pin count has reached zero.
+     *
+     * @param host [IN] - Host name/IP
+     * @param port [IN] - port
+     */
+    public void unpinConnection(String host, Integer port) {
+        connectionLock.lock();
+        try {
+            String hostAndPort = ConnectionManager.generateConnectionCacheKey(host, port);
+            if (pinnedConnections.containsKey(hostAndPort)) {
+                // Decrement the current count for the connection
+                Integer count = pinnedConnections.get(hostAndPort) - 1;
+                if (count == 0) {
+                    s_logger.info("CimConnection {} pin count has reached zero; it will be unpinned", hostAndPort);
+                    pinnedConnections.remove(hostAndPort);
+                } else {
+                    s_logger.info("CimConnection {} pin count set to {}", hostAndPort, count);
+                    pinnedConnections.put(hostAndPort, count);
+                }
+            }
+        } finally {
+            connectionLock.unlock();
+        }
+    }
+    
     /**
      * Using the propertyInfo retrieved from the CoordinatorClient, we will configure the ConnectionManager.
      *
@@ -534,6 +605,7 @@ public class ConnectionManager {
                 connection.close();
                 _connections.remove(hostAndPort);
                 connectionLastTouch.remove(hostAndPort);
+                pinnedConnections.remove(hostAndPort);
             }
         } catch (ConnectionManagerException e) {
             throw e;
@@ -561,6 +633,13 @@ public class ConnectionManager {
                 // Copy the keys to prevent ConcurrentUpdate exception
                 Set<String> connectionKeys = new HashSet<>(connectionLastTouch.keySet());
                 for (String hostAndPort : connectionKeys) {
+                    // If the connection is in the pinned list, then it's probably being
+                    // used for a long period of time, so we will not allow it be reaped
+                    // until it is no longer in the pinned list.
+                    if (pinnedConnections.containsKey(hostAndPort)) {
+                        s_logger.info("Connection {} was pinned, it will not be reaped until it is unpinned", hostAndPort);
+                        continue;
+                    }
                     Long lastTime = connectionLastTouch.get(hostAndPort);
                     Long diff = System.currentTimeMillis() - lastTime;
                     String timeAndDate = new Date(lastTime).toString();

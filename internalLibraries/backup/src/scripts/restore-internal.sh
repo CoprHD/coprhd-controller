@@ -110,14 +110,14 @@ restore_data() {
         local command="bash -c 'ls $RESTORE_DIR/*_${viprNode}* &>/dev/null'"
         ssh_execute "$viprNode" "${command}"
         if [ $? == 0 ]; then
-            echo "To restore node ${viprNode}"
+            echo "Restoring node ${viprNode}"
             restore_node "${viprNode}"
         else
-            echo "To restore node ${viprNode} site id only"
+            echo "Restoring node ${viprNode} site id only"
             restore_node "${viprNode}" "onlysiteid"
         fi
         if [ $? != 0 ]; then
-            echo -n "failed on ${viprNode}.."
+            echo "Failed on ${viprNode}.."
             RESTORE_RESULT="failed"
         fi
     done
@@ -167,6 +167,10 @@ fi
 copy_zk_data
 copy_properties_file
 is_vdc_connected
+
+# make sure to direct to maintenance page
+sleep 5s
+
 stop_service
 restore_data
 if [[ "${RESTORE_RESULT}" == "failed" ]]; then

@@ -90,10 +90,10 @@
                                 </span>
                             </control-group>
                             <control-group v-field="filterDialog.serviceType" width="9">
-                                <input-text></input-text>
+                                <input-text onkeydown="updateFilter(event.keyCode)"></input-text>
                             </control-group>
                             <control-group v-field="filterDialog.user" width="9">
-                                <input-text></input-text>
+                                <input-text onkeydown="updateFilter(event.keyCode)"></input-text>
                             </control-group>
                             <control-group v-field="filterDialog.keyword" width="9">
                                 <input-text onkeydown="updateFilter(event.keyCode)"></input-text>

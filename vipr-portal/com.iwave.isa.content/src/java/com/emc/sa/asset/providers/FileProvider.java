@@ -138,6 +138,12 @@ public class FileProvider extends BaseAssetOptionsProvider {
         return createFilesystemOptions(api(ctx).fileSystems().findByProject(project), new UnmountedFilesytemsPredicate());
     }
     
+    @Asset("fileUnmountedFilesystemNoTarget")
+    @AssetDependencies("project")
+    public List<AssetOption> getUnmountedFilesystemsNoTarget(AssetOptionsContext ctx, URI project) {
+        return createFilesystemOptions(api(ctx).fileSystems().findByProject(project), new NoTargetFilesytemsPredicate());
+    }
+    
     @Asset("fileFilesystemAssociation")
     @AssetDependencies("project")
     public List<AssetOption> getFilesystemsForAssociation(AssetOptionsContext ctx, URI project) {
@@ -504,6 +510,21 @@ public class FileProvider extends BaseAssetOptionsProvider {
         AssetOptionsUtils.sortOptionsByLabel(options);
         return options;
     }
+    
+    
+    @Asset("fileSourceVirtualPool")
+    @AssetDependencies({"unprotectedFilesystem"})
+    public List<AssetOption> getFileSourceVirtualPool(AssetOptionsContext ctx, URI fileSystems) {
+        List<AssetOption> options = Lists.newArrayList();
+        ViPRCoreClient client = api(ctx);
+        
+        URI sourceVpoolId = client.fileSystems().get(fileSystems).getVirtualPool().getId();
+        FileVirtualPoolRestRep sourceVpool = client.fileVpools().get(sourceVpoolId);
+        options.add(new AssetOption(sourceVpool.getId(), sourceVpool.getName()));
+        
+        AssetOptionsUtils.sortOptionsByLabel(options);
+        return options;
+    }
 
     private List<SmbShareResponse> listFileShares(AssetOptionsContext ctx, URI filesystem) {
         return api(ctx).fileSystems().getShares(filesystem);
@@ -592,6 +613,20 @@ public class FileProvider extends BaseAssetOptionsProvider {
         public boolean evaluate(Object object) {
             FileShareRestRep filesystem = getFilesystem(object);
             return !MachineTagUtils.hasDatastores(filesystem);
+        }
+
+    }
+    
+    /**
+     * Predicate for filtering out mounted filesystems and target filesystems
+     */
+    private class NoTargetFilesytemsPredicate implements Predicate {
+
+        @Override
+        public boolean evaluate(Object object) {
+            FileShareRestRep filesystem = getFilesystem(object);
+            return !MachineTagUtils.hasDatastores(filesystem) && 
+            		!(filesystem.getProtection() != null && filesystem.getProtection().getParentFileSystem() != null);
         }
 
     }

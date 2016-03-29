@@ -1,0 +1,478 @@
+** ISO - adaptec-firmware - 1.35-22.17.noarch.rpm
+** ISO - atmel-firmware - 1.3-161.17.noarch.rpm
+** ISO - bash-doc - 4.2-75.2.noarch.rpm
+** ISO - branding-SLE - 12-10.41.noarch.rpm
+** ISO - bridge-utils - 1.5-17.56.x86_64.rpm
+** ISO - cdrkit-cdrtools-compat - 1.1.11-19.46.x86_64.rpm
+** ISO - checkmedia - 3.2-1.61.x86_64.rpm
+** ISO - cryptsetup - 1.6.4-2.10.x86_64.rpm
+** ISO - cyrus-sasl - 2.1.26-7.1.x86_64.rpm
+** ISO - dbus-1-glib - 0.100.2-3.58.x86_64.rpm
+** ISO - dbus-1-python - 1.2.0-4.194.x86_64.rpm
+** ISO - diffutils - 3.3-5.40.x86_64.rpm
+** ISO - dmidecode - 2.12-5.20.x86_64.rpm
+** ISO - dosfstools - 3.0.26-2.4.x86_64.rpm
+** ISO - efibootmgr - 0.6.0-2.4.x86_64.rpm
+** ISO - fillup - 1.42-270.64.x86_64.rpm
+** ISO - fipscheck - 1.2.0-9.3.x86_64.rpm
+** ISO - gawk - 4.1.0-3.663.x86_64.rpm
+** ISO - gdb - 7.7-7.32.x86_64.rpm
+** ISO - genisoimage - 1.1.11-19.46.x86_64.rpm
+** ISO - gettext-runtime - 0.19.2-1.103.x86_64.rpm
+** ISO - gio-branding-SLE - 12-6.9.noarch.rpm
+** ISO - girepository-1_0 - 1.38.0-3.17.x86_64.rpm
+** ISO - glib2-lang - 2.38.2-5.12.noarch.rpm
+** ISO - glib2-tools - 2.38.2-5.12.x86_64.rpm
+** ISO - gpm - 1.20.7-7.60.x86_64.rpm
+** ISO - grep - 2.16-1.29.x86_64.rpm
+** ISO - grub2-branding-SLE - 12-10.41.noarch.rpm
+** ISO - hwinfo - 21.6-1.50.x86_64.rpm
+** ISO - icedax - 1.1.11-19.46.x86_64.rpm
+** ISO - info - 4.13a-37.229.x86_64.rpm
+** ISO - irqbalance - 1.0.7-3.6.x86_64.rpm
+** ISO - javapackages-tools - 2.0.1-6.10.x86_64.rpm
+** ISO - lcms2 - 2.5-4.20.x86_64.rpm
+** ISO - less - 458-5.13.x86_64.rpm
+** ISO - libXau6 - 1.0.8-4.58.x86_64.rpm
+** ISO - libaio1 - 0.3.109-17.15.x86_64.rpm
+** ISO - libao-plugins4 - 1.2.0-1.13.x86_64.rpm
+** ISO - libao4 - 1.2.0-1.13.x86_64.rpm
+** ISO - libapr-util1 - 1.5.3-1.77.x86_64.rpm
+** ISO - libapr1 - 1.5.1-2.7.x86_64.rpm
+** ISO - libasound2 - 1.0.27.2-11.10.x86_64.rpm
+** ISO - libcryptsetup4-hmac - 1.6.4-2.10.x86_64.rpm
+** ISO - libdnet1 - 1.12-20.57.x86_64.rpm
+** ISO - libelf0 - 0.8.13-18.64.x86_64.rpm
+** ISO - libestr0 - 0.1.9-1.54.x86_64.rpm
+** ISO - libevent-2_0-5 - 2.0.21-4.1.x86_64.rpm
+** ISO - libfipscheck1 - 1.2.0-9.3.x86_64.rpm
+** ISO - libgio-2_0-0 - 2.38.2-5.12.x86_64.rpm
+** ISO - libgirepository-1_0-1 - 1.38.0-3.17.x86_64.rpm
+** ISO - libglib-2_0-0 - 2.38.2-5.12.x86_64.rpm
+** ISO - libgmodule-2_0-0 - 2.38.2-5.12.x86_64.rpm
+** ISO - libgobject-2_0-0 - 2.38.2-5.12.x86_64.rpm
+** ISO - libgpg-error0 - 1.13-1.79.x86_64.rpm
+** ISO - libgssglue1 - 0.4-3.83.x86_64.rpm
+** ISO - libgthread-2_0-0 - 2.38.2-5.12.x86_64.rpm
+** ISO - libidn-tools - 1.28-2.34.x86_64.rpm
+** ISO - libkate1 - 0.4.1-20.65.x86_64.rpm
+** ISO - liblcms1 - 1.19-17.31.x86_64.rpm
+** ISO - liblcms2-2 - 2.5-4.20.x86_64.rpm
+** ISO - libldapcpp1 - 0.3.1-4.75.x86_64.rpm
+** ISO - libltdl7 - 2.4.2-14.60.x86_64.rpm
+** ISO - liblzma5 - 5.0.5-4.852.x86_64.rpm
+** ISO - libmng1 - 1.0.10-113.5.x86_64.rpm
+** ISO - libncurses5 - 5.9-40.124.x86_64.rpm
+** ISO - libnet9 - 1.2~rc3-1.18.x86_64.rpm
+** ISO - libnscd1 - 2.0.2-134.13.x86_64.rpm
+** ISO - libogg0 - 1.3.0-9.61.x86_64.rpm
+** ISO - liboggkate1 - 0.4.1-20.65.x86_64.rpm
+** ISO - libpcre1 - 8.33-3.314.x86_64.rpm
+** ISO - libpulse0 - 5.0-2.7.x86_64.rpm
+** ISO - libpyglib-gi-2_0-python2-0 - 3.10.2-2.22.x86_64.rpm
+** ISO - libreadline6 - 6.2-75.2.x86_64.rpm
+** ISO - libselinux1 - 2.3-2.75.x86_64.rpm
+** ISO - libspeex1 - 1.1.999_1.2rc1-22.64.x86_64.rpm
+** ISO - libvmtools0 - 9.4.0-9.24.x86_64.rpm
+** ISO - libvorbis0 - 1.3.3-8.23.x86_64.rpm
+** ISO - libvorbisenc2 - 1.3.3-8.23.x86_64.rpm
+** ISO - libvorbisfile3 - 1.3.3-8.23.x86_64.rpm
+** ISO - libx86emu1 - 1.1-21.50.x86_64.rpm
+** ISO - libxcb1 - 1.10-1.21.x86_64.rpm
+** ISO - libz1 - 1.2.8-5.1.x86_64.rpm
+** ISO - logrotate - 3.8.7-3.21.x86_64.rpm
+** ISO - lsof - 4.84-20.65.x86_64.rpm
+** ISO - lsscsi - 0.27-4.17.x86_64.rpm
+** ISO - m4 - 1.4.16-15.74.x86_64.rpm
+** ISO - man-pages - 3.69-1.61.noarch.rpm
+** ISO - master-boot-code - 1.22-16.27.x86_64.rpm
+** ISO - mdadm - 3.3.1-5.28.x86_64.rpm
+** ISO - metamail - 2.7.19-1265.76.x86_64.rpm
+** ISO - mingetty - 1.0.8s-19.63.x86_64.rpm
+** ISO - mpt-firmware - 1.0-258.8.noarch.rpm
+** ISO - mtools - 4.0.18-4.379.x86_64.rpm
+** ISO - nfs-client - 1.3.0-6.9.x86_64.rpm
+** ISO - nfsidmap - 0.25-5.13.x86_64.rpm
+** ISO - open-vm-tools - 9.4.0-9.24.x86_64.rpm
+** ISO - openslp - 2.0.0-2.9.x86_64.rpm
+** ISO - pam-modules - 12.1-23.12.x86_64.rpm
+** ISO - pciutils - 3.2.1-2.15.x86_64.rpm
+** ISO - pciutils-ids - 2014.06.02-2.12.noarch.rpm
+** ISO - perl - 5.18.2-3.7.x86_64.rpm
+** ISO - perl-Config-IniFiles - 2.82-3.14.noarch.rpm
+** ISO - perl-JSON - 2.90-2.15.noarch.rpm
+** ISO - perl-List-MoreUtils - 0.33-7.63.x86_64.rpm
+** ISO - perl-TimeDate - 1.20-24.19.noarch.rpm
+** ISO - perl-URI - 1.60-7.19.noarch.rpm
+** ISO - perl-XML-Simple - 2.20-4.2.noarch.rpm
+** ISO - perl-base - 5.18.2-3.7.x86_64.rpm
+** ISO - perl-gettext - 1.05-163.126.x86_64.rpm
+** ISO - pkg-config - 0.28-6.98.x86_64.rpm
+** ISO - polkit-default-privs - 13.2-8.1.noarch.rpm
+** ISO - procmail - 3.22-267.12.x86_64.rpm
+** ISO - psmisc - 22.21-3.19.x86_64.rpm
+** ISO - python-argparse - 1.2.1-15.8.noarch.rpm
+** ISO - python-gobject - 3.10.2-2.22.x86_64.rpm
+** ISO - python-gobject2 - 2.28.6-24.80.x86_64.rpm
+** ISO - setserial - 2.17-740.14.x86_64.rpm
+** ISO - shared-mime-info - 1.2-1.52.x86_64.rpm
+** ISO - sharutils - 4.11.1-14.64.x86_64.rpm
+** ISO - subscription-tools - 1.1.5-1.39.noarch.rpm
+** ISO - sudo - 1.8.10p3-1.62.x86_64.rpm
+** ISO - suse-build-key - 12.0-4.1.noarch.rpm
+** ISO - sysfsutils - 2.1.0-151.65.x86_64.rpm
+** ISO - syslog-service - 2.0-778.1.noarch.rpm
+** ISO - sysstat - 10.2.1-1.11.x86_64.rpm
+** ISO - tcpd - 7.6-883.68.x86_64.rpm
+** ISO - telnet - 1.2-165.63.x86_64.rpm
+** ISO - tunctl - 1.5-24.7.x86_64.rpm
+** ISO - unixODBC - 2.3.1-4.95.x86_64.rpm
+** ISO - update-alternatives - 1.16.10-6.109.x86_64.rpm
+** ISO - vim-data - 7.4.326-2.62.noarch.rpm
+** ISO - vlan - 1.9-138.1.x86_64.rpm
+** ISO - wallpaper-branding-SLE - 12-10.41.noarch.rpm
+** ISO - which - 2.20-3.180.x86_64.rpm
+** ISO - wodim - 1.1.11-19.46.x86_64.rpm
+http://asdrepo.isus.emc.com:8081/artifactory/adg-catalog/common/generic/linux/noarch/adg-firstboot/1.2-1/adg-firstboot-1.2-1.noarch.rpm
+http://asdrepo.isus.emc.com:8081/artifactory/adg-catalog/common/generic/linux/noarch/configure-network/3.4-2/configure-network-3.4-2.noarch.rpm
+http://asdrepo.isus.emc.com:8081/artifactory/adg-catalog/common/generic/linux/noarch/jema/1.1.0.10-1/jema-1.1.0.10-1.noarch.rpm
+http://asdrepo.isus.emc.com:8081/artifactory/adg-catalog/common/generic/linux/noarch/sipcalc/1.1.6-1/sipcalc-1.1.6-1.noarch.rpm
+http://asdrepo.isus.emc.com:8081/artifactory/adg-catalog/common/generic/linux/noarch/xerces/2.9.1-2/xerces-2.9.1-2.noarch.rpm
+http://asdrepo.isus.emc.com:8081/artifactory/adg-catalog/common/generic/linux/noarch/xml-apis/1.0.b2-2/xml-apis-1.0.b2-2.noarch.rpm
+http://asdrepo.isus.emc.com:8081/artifactory/adg-catalog/common/generic/linux/x86_64/atop/2.0.2-1/atop-2.0.2-1.x86_64.rpm
+http://asdrepo.isus.emc.com:8081/artifactory/adg-catalog/common/generic/linux/x86_64/connectemc/3.1.0.1-1/connectemc-3.1.0.1-1.x86_64.rpm
+http://asdrepo.isus.emc.com:8081/artifactory/adg-catalog/common/generic/linux/x86_64/java-1.7.0-oracle/1.7.0.91-1jpp/java-1.7.0-oracle-1.7.0.91-1jpp.x86_64.rpm
+http://asdrepo.isus.emc.com:8081/artifactory/adg-catalog/common/generic/linux/x86_64/ndisc6/1.0.2-4.1/ndisc6-1.0.2-4.1.x86_64.rpm
+http://asdrepo.isus.emc.com:8081/artifactory/adg-catalog/common/sles/12/noarch/adg_minimal_version/12.0.10.0-1/adg_minimal_version-12.0.10.0-1.noarch.rpm
+http://asdrepo.isus.emc.com:8081/artifactory/adg-catalog/common/sles/12/noarch/adg_minimal_version/12.0.4.0-1/adg_minimal_version-12.0.4.0-1.noarch.rpm
+http://asdrepo.isus.emc.com:8081/artifactory/adg-catalog/common/sles/12/noarch/adg_minimal_version/12.0.5.0-1/adg_minimal_version-12.0.5.0-1.noarch.rpm
+http://asdrepo.isus.emc.com:8081/artifactory/adg-catalog/common/sles/12/noarch/adg_minimal_version/12.0.6.0-1/adg_minimal_version-12.0.6.0-1.noarch.rpm
+http://asdrepo.isus.emc.com:8081/artifactory/adg-catalog/common/sles/12/noarch/adg_minimal_version/12.0.6.1-1/adg_minimal_version-12.0.6.1-1.noarch.rpm
+http://asdrepo.isus.emc.com:8081/artifactory/adg-catalog/common/sles/12/noarch/adg_minimal_version/12.0.7.0-1/adg_minimal_version-12.0.7.0-1.noarch.rpm
+http://asdrepo.isus.emc.com:8081/artifactory/adg-catalog/common/sles/12/noarch/adg_minimal_version/12.0.8.0-1/adg_minimal_version-12.0.8.0-1.noarch.rpm
+http://asdrepo.isus.emc.com:8081/artifactory/adg-catalog/common/sles/12/noarch/adg_minimal_version/12.0.9.0-1/adg_minimal_version-12.0.9.0-1.noarch.rpm
+http://asdrepo.isus.emc.com:8081/artifactory/adg-catalog/common/sles/12/noarch/adg_platform_version/12.0.10.0-1/adg_platform_version-12.0.10.0-1.noarch.rpm
+http://asdrepo.isus.emc.com:8081/artifactory/adg-catalog/common/sles/12/noarch/adg_platform_version/12.0.4.0-1/adg_platform_version-12.0.4.0-1.noarch.rpm
+http://asdrepo.isus.emc.com:8081/artifactory/adg-catalog/common/sles/12/noarch/adg_platform_version/12.0.5.0-1/adg_platform_version-12.0.5.0-1.noarch.rpm
+http://asdrepo.isus.emc.com:8081/artifactory/adg-catalog/common/sles/12/noarch/adg_platform_version/12.0.6.0-1/adg_platform_version-12.0.6.0-1.noarch.rpm
+http://asdrepo.isus.emc.com:8081/artifactory/adg-catalog/common/sles/12/noarch/adg_platform_version/12.0.6.1-1/adg_platform_version-12.0.6.1-1.noarch.rpm
+http://asdrepo.isus.emc.com:8081/artifactory/adg-catalog/common/sles/12/noarch/adg_platform_version/12.0.7.0-1/adg_platform_version-12.0.7.0-1.noarch.rpm
+http://asdrepo.isus.emc.com:8081/artifactory/adg-catalog/common/sles/12/noarch/adg_platform_version/12.0.8.0-1/adg_platform_version-12.0.8.0-1.noarch.rpm
+http://asdrepo.isus.emc.com:8081/artifactory/adg-catalog/common/sles/12/noarch/adg_platform_version/12.0.9.0-1/adg_platform_version-12.0.9.0-1.noarch.rpm
+http://asdrepo.isus.emc.com:8081/artifactory/adg-catalog/common/sles/12/noarch/keepalived/1.2.15-12.1/keepalived-1.2.15-12.1.noarch.rpm
+http://asdrepo.isus.emc.com:8081/artifactory/adg-catalog/common/sles/12/x86_64/nginx/1.5.0-13.3/nginx-1.5.0-13.3.x86_64.rpm
+http://asdrepo.isus.emc.com:8081/artifactory/adg-catalog/common/sles/12/x86_64/python-PyYAML/3.11-27.1/python-PyYAML-3.11-27.1.x86_64.rpm
+http://asdrepo.isus.emc.com:8081/artifactory/adg-catalog/common/sles/12/x86_64/python-cjson/1.0.5-2.1/python-cjson-1.0.5-2.1.x86_64.rpm
+http://asdrepo.isus.emc.com:8081/artifactory/adg-catalog/common/sles/inclusive/noarch/adg-security/11-4/adg-security-11-4.noarch.rpm
+http://asdrepo.isus.emc.com:8081/artifactory/adg-catalog/sles/12/noarch/coreutils-lang/8.22-9.1/coreutils-lang-8.22-9.1.noarch.rpm
+http://asdrepo.isus.emc.com:8081/artifactory/adg-catalog/sles/12/noarch/cpio-lang/2.11-29.1/cpio-lang-2.11-29.1.noarch.rpm
+http://asdrepo.isus.emc.com:8081/artifactory/adg-catalog/sles/12/noarch/gpg2-lang/2.0.24-3.1/gpg2-lang-2.0.24-3.1.noarch.rpm
+http://asdrepo.isus.emc.com:8081/artifactory/adg-catalog/sles/12/noarch/python-requests/2.3.0-4.2/python-requests-2.3.0-4.2.noarch.rpm
+http://asdrepo.isus.emc.com:8081/artifactory/adg-catalog/sles/12/noarch/util-linux-lang/2.25-10.1/util-linux-lang-2.25-10.1.noarch.rpm
+http://asdrepo.isus.emc.com:8081/artifactory/adg-catalog/sles/12/x86_64/aaa_base/13.2+git20140911.61c1681-3.1/aaa_base-13.2+git20140911.61c1681-3.1.x86_64.rpm
+http://asdrepo.isus.emc.com:8081/artifactory/adg-catalog/sles/12/x86_64/apache2-prefork/2.4.10-14.10.1/apache2-prefork-2.4.10-14.10.1.x86_64.rpm
+http://asdrepo.isus.emc.com:8081/artifactory/adg-catalog/sles/12/x86_64/apache2-utils/2.4.10-14.10.1/apache2-utils-2.4.10-14.10.1.x86_64.rpm
+http://asdrepo.isus.emc.com:8081/artifactory/adg-catalog/sles/12/x86_64/apache2/2.4.10-14.10.1/apache2-2.4.10-14.10.1.x86_64.rpm
+http://asdrepo.isus.emc.com:8081/artifactory/adg-catalog/sles/12/x86_64/augeas-lenses/1.2.0-3.1/augeas-lenses-1.2.0-3.1.x86_64.rpm
+http://asdrepo.isus.emc.com:8081/artifactory/adg-catalog/sles/12/x86_64/bind-libs/9.9.6P1-28.9.1/bind-libs-9.9.6P1-28.9.1.x86_64.rpm
+http://asdrepo.isus.emc.com:8081/artifactory/adg-catalog/sles/12/x86_64/bind-utils/9.9.6P1-28.9.1/bind-utils-9.9.6P1-28.9.1.x86_64.rpm
+http://asdrepo.isus.emc.com:8081/artifactory/adg-catalog/sles/12/x86_64/binutils/2.24-7.1/binutils-2.24-7.1.x86_64.rpm
+http://asdrepo.isus.emc.com:8081/artifactory/adg-catalog/sles/12/x86_64/coreutils/8.22-9.1/coreutils-8.22-9.1.x86_64.rpm
+http://asdrepo.isus.emc.com:8081/artifactory/adg-catalog/sles/12/x86_64/cpio/2.11-29.1/cpio-2.11-29.1.x86_64.rpm
+http://asdrepo.isus.emc.com:8081/artifactory/adg-catalog/sles/12/x86_64/curl/7.37.0-15.1/curl-7.37.0-15.1.x86_64.rpm
+http://asdrepo.isus.emc.com:8081/artifactory/adg-catalog/sles/12/x86_64/dbus-1-x11/1.8.16-14.1/dbus-1-x11-1.8.16-14.1.x86_64.rpm
+http://asdrepo.isus.emc.com:8081/artifactory/adg-catalog/sles/12/x86_64/dbus-1/1.8.16-14.1/dbus-1-1.8.16-14.1.x86_64.rpm
+http://asdrepo.isus.emc.com:8081/artifactory/adg-catalog/sles/12/x86_64/dhcp-client/4.2.6-12.2/dhcp-client-4.2.6-12.2.x86_64.rpm
+http://asdrepo.isus.emc.com:8081/artifactory/adg-catalog/sles/12/x86_64/dhcp/4.2.6-12.2/dhcp-4.2.6-12.2.x86_64.rpm
+http://asdrepo.isus.emc.com:8081/artifactory/adg-catalog/sles/12/x86_64/dirmngr/1.1.1-4.1/dirmngr-1.1.1-4.1.x86_64.rpm
+http://asdrepo.isus.emc.com:8081/artifactory/adg-catalog/sles/12/x86_64/dracut-fips/037-51.17.3/dracut-fips-037-51.17.3.x86_64.rpm
+http://asdrepo.isus.emc.com:8081/artifactory/adg-catalog/sles/12/x86_64/dracut/037-51.17.3/dracut-037-51.17.3.x86_64.rpm
+http://asdrepo.isus.emc.com:8081/artifactory/adg-catalog/sles/12/x86_64/e2fsprogs/1.42.11-7.1/e2fsprogs-1.42.11-7.1.x86_64.rpm
+http://asdrepo.isus.emc.com:8081/artifactory/adg-catalog/sles/12/x86_64/elfutils/0.158-6.1/elfutils-0.158-6.1.x86_64.rpm
+http://asdrepo.isus.emc.com:8081/artifactory/adg-catalog/sles/12/x86_64/file-magic/5.19-9.1/file-magic-5.19-9.1.x86_64.rpm
+http://asdrepo.isus.emc.com:8081/artifactory/adg-catalog/sles/12/x86_64/file/5.19-9.1/file-5.19-9.1.x86_64.rpm
+http://asdrepo.isus.emc.com:8081/artifactory/adg-catalog/sles/12/x86_64/glibc-32bit/2.19-22.7.1/glibc-32bit-2.19-22.7.1.x86_64.rpm
+http://asdrepo.isus.emc.com:8081/artifactory/adg-catalog/sles/12/x86_64/glibc-locale/2.19-22.7.1/glibc-locale-2.19-22.7.1.x86_64.rpm
+http://asdrepo.isus.emc.com:8081/artifactory/adg-catalog/sles/12/x86_64/glibc/2.19-20.3/glibc-2.19-20.3.x86_64.rpm
+http://asdrepo.isus.emc.com:8081/artifactory/adg-catalog/sles/12/x86_64/glibc/2.19-22.7.1/glibc-2.19-22.7.1.x86_64.rpm
+http://asdrepo.isus.emc.com:8081/artifactory/adg-catalog/sles/12/x86_64/gpg2/2.0.24-3.1/gpg2-2.0.24-3.1.x86_64.rpm
+http://asdrepo.isus.emc.com:8081/artifactory/adg-catalog/sles/12/x86_64/grub2-i386-pc/2.02~beta2-56.9.4/grub2-i386-pc-2.02~beta2-56.9.4.x86_64.rpm
+http://asdrepo.isus.emc.com:8081/artifactory/adg-catalog/sles/12/x86_64/grub2-x86_64-efi/2.02~beta2-56.9.4/grub2-x86_64-efi-2.02~beta2-56.9.4.x86_64.rpm
+http://asdrepo.isus.emc.com:8081/artifactory/adg-catalog/sles/12/x86_64/grub2/2.02~beta2-56.9.4/grub2-2.02~beta2-56.9.4.x86_64.rpm
+http://asdrepo.isus.emc.com:8081/artifactory/adg-catalog/sles/12/x86_64/haveged/1.9.1-8.1/haveged-1.9.1-8.1.x86_64.rpm
+http://asdrepo.isus.emc.com:8081/artifactory/adg-catalog/sles/12/x86_64/kernel-default/3.12.39-47.1/kernel-default-3.12.39-47.1.x86_64.rpm
+http://asdrepo.isus.emc.com:8081/artifactory/adg-catalog/sles/12/x86_64/kernel-default/3.12.44-52.10.1/kernel-default-3.12.44-52.10.1.x86_64.rpm
+http://asdrepo.isus.emc.com:8081/artifactory/adg-catalog/sles/12/x86_64/kernel-default/3.12.44-52.18.1/kernel-default-3.12.44-52.18.1.x86_64.rpm
+http://asdrepo.isus.emc.com:8081/artifactory/adg-catalog/sles/12/x86_64/kernel-default/3.12.48-52.27.1/kernel-default-3.12.48-52.27.1.x86_64.rpm
+http://asdrepo.isus.emc.com:8081/artifactory/adg-catalog/sles/12/x86_64/kernel-default/3.12.51-52.31.1/kernel-default-3.12.51-52.31.1.x86_64.rpm
+http://asdrepo.isus.emc.com:8081/artifactory/adg-catalog/sles/12/x86_64/kernel-default/3.12.51-52.39.1/kernel-default-3.12.51-52.39.1.x86_64.rpm
+http://asdrepo.isus.emc.com:8081/artifactory/adg-catalog/sles/12/x86_64/krb5/1.12.1-16.1/krb5-1.12.1-16.1.x86_64.rpm
+http://asdrepo.isus.emc.com:8081/artifactory/adg-catalog/sles/12/x86_64/krb5/1.12.1-19.1/krb5-1.12.1-19.1.x86_64.rpm
+http://asdrepo.isus.emc.com:8081/artifactory/adg-catalog/sles/12/x86_64/krb5/1.12.1-22.5/krb5-1.12.1-22.5.x86_64.rpm
+http://asdrepo.isus.emc.com:8081/artifactory/adg-catalog/sles/12/x86_64/krb5/1.12.1-9.1/krb5-1.12.1-9.1.x86_64.rpm
+http://asdrepo.isus.emc.com:8081/artifactory/adg-catalog/sles/12/x86_64/libFLAC8/1.3.0-6.1/libFLAC8-1.3.0-6.1.x86_64.rpm
+http://asdrepo.isus.emc.com:8081/artifactory/adg-catalog/sles/12/x86_64/libasm1/0.158-6.1/libasm1-0.158-6.1.x86_64.rpm
+http://asdrepo.isus.emc.com:8081/artifactory/adg-catalog/sles/12/x86_64/libaugeas0/1.2.0-3.1/libaugeas0-1.2.0-3.1.x86_64.rpm
+http://asdrepo.isus.emc.com:8081/artifactory/adg-catalog/sles/12/x86_64/libblkid1/2.25-10.1/libblkid1-2.25-10.1.x86_64.rpm
+http://asdrepo.isus.emc.com:8081/artifactory/adg-catalog/sles/12/x86_64/libblkid1/2.25-22.1/libblkid1-2.25-22.1.x86_64.rpm
+http://asdrepo.isus.emc.com:8081/artifactory/adg-catalog/sles/12/x86_64/libcom_err2/1.42.11-7.1/libcom_err2-1.42.11-7.1.x86_64.rpm
+http://asdrepo.isus.emc.com:8081/artifactory/adg-catalog/sles/12/x86_64/libcurl4/7.37.0-15.1/libcurl4-7.37.0-15.1.x86_64.rpm
+http://asdrepo.isus.emc.com:8081/artifactory/adg-catalog/sles/12/x86_64/libcurl4/7.37.0-5.1/libcurl4-7.37.0-5.1.x86_64.rpm
+http://asdrepo.isus.emc.com:8081/artifactory/adg-catalog/sles/12/x86_64/libdbus-1-3/1.8.16-14.1/libdbus-1-3-1.8.16-14.1.x86_64.rpm
+http://asdrepo.isus.emc.com:8081/artifactory/adg-catalog/sles/12/x86_64/libdw1/0.158-6.1/libdw1-0.158-6.1.x86_64.rpm
+http://asdrepo.isus.emc.com:8081/artifactory/adg-catalog/sles/12/x86_64/libebl1/0.158-6.1/libebl1-0.158-6.1.x86_64.rpm
+http://asdrepo.isus.emc.com:8081/artifactory/adg-catalog/sles/12/x86_64/libelf1/0.158-6.1/libelf1-0.158-6.1.x86_64.rpm
+http://asdrepo.isus.emc.com:8081/artifactory/adg-catalog/sles/12/x86_64/libext2fs2/1.42.11-7.1/libext2fs2-1.42.11-7.1.x86_64.rpm
+http://asdrepo.isus.emc.com:8081/artifactory/adg-catalog/sles/12/x86_64/libffi4/5.2.1+r226025-4.1/libffi4-5.2.1+r226025-4.1.x86_64.rpm
+http://asdrepo.isus.emc.com:8081/artifactory/adg-catalog/sles/12/x86_64/libfreetype6/2.5.3-5.1/libfreetype6-2.5.3-5.1.x86_64.rpm
+http://asdrepo.isus.emc.com:8081/artifactory/adg-catalog/sles/12/x86_64/libfuse2/2.9.3-5.1/libfuse2-2.9.3-5.1.x86_64.rpm
+http://asdrepo.isus.emc.com:8081/artifactory/adg-catalog/sles/12/x86_64/libgcc_s1/5.2.1+r226025-4.1/libgcc_s1-5.2.1+r226025-4.1.x86_64.rpm
+http://asdrepo.isus.emc.com:8081/artifactory/adg-catalog/sles/12/x86_64/libgcrypt20-hmac/1.6.1-16.1/libgcrypt20-hmac-1.6.1-16.1.x86_64.rpm
+http://asdrepo.isus.emc.com:8081/artifactory/adg-catalog/sles/12/x86_64/libgcrypt20/1.6.1-13.1/libgcrypt20-1.6.1-13.1.x86_64.rpm
+http://asdrepo.isus.emc.com:8081/artifactory/adg-catalog/sles/12/x86_64/libgcrypt20/1.6.1-16.1/libgcrypt20-1.6.1-16.1.x86_64.rpm
+http://asdrepo.isus.emc.com:8081/artifactory/adg-catalog/sles/12/x86_64/libhavege1/1.9.1-8.1/libhavege1-1.9.1-8.1.x86_64.rpm
+http://asdrepo.isus.emc.com:8081/artifactory/adg-catalog/sles/12/x86_64/libicu52_1-data/52.1-7.1/libicu52_1-data-52.1-7.1.x86_64.rpm
+http://asdrepo.isus.emc.com:8081/artifactory/adg-catalog/sles/12/x86_64/libicu52_1/52.1-7.1/libicu52_1-52.1-7.1.x86_64.rpm
+http://asdrepo.isus.emc.com:8081/artifactory/adg-catalog/sles/12/x86_64/libjpeg-turbo/1.3.1-30.3/libjpeg-turbo-1.3.1-30.3.x86_64.rpm
+http://asdrepo.isus.emc.com:8081/artifactory/adg-catalog/sles/12/x86_64/libjpeg8/8.0.2-30.3/libjpeg8-8.0.2-30.3.x86_64.rpm
+http://asdrepo.isus.emc.com:8081/artifactory/adg-catalog/sles/12/x86_64/libksba8/1.3.0-12.1/libksba8-1.3.0-12.1.x86_64.rpm
+http://asdrepo.isus.emc.com:8081/artifactory/adg-catalog/sles/12/x86_64/libksba8/1.3.0-9.1/libksba8-1.3.0-9.1.x86_64.rpm
+http://asdrepo.isus.emc.com:8081/artifactory/adg-catalog/sles/12/x86_64/libldap-2_4-2/2.4.39-16.1/libldap-2_4-2-2.4.39-16.1.x86_64.rpm
+http://asdrepo.isus.emc.com:8081/artifactory/adg-catalog/sles/12/x86_64/libldap-2_4-2/2.4.41-18.13.1/libldap-2_4-2-2.4.41-18.13.1.x86_64.rpm
+http://asdrepo.isus.emc.com:8081/artifactory/adg-catalog/sles/12/x86_64/libmagic1/5.19-9.1/libmagic1-5.19-9.1.x86_64.rpm
+http://asdrepo.isus.emc.com:8081/artifactory/adg-catalog/sles/12/x86_64/libmount1/2.25-10.1/libmount1-2.25-10.1.x86_64.rpm
+http://asdrepo.isus.emc.com:8081/artifactory/adg-catalog/sles/12/x86_64/libmount1/2.25-22.1/libmount1-2.25-22.1.x86_64.rpm
+http://asdrepo.isus.emc.com:8081/artifactory/adg-catalog/sles/12/x86_64/libmysqlclient18/10.0.22-20.3.1/libmysqlclient18-10.0.22-20.3.1.x86_64.rpm
+http://asdrepo.isus.emc.com:8081/artifactory/adg-catalog/sles/12/x86_64/libopenssl1_0_0-hmac/1.0.1i-27.6.1/libopenssl1_0_0-hmac-1.0.1i-27.6.1.x86_64.rpm
+http://asdrepo.isus.emc.com:8081/artifactory/adg-catalog/sles/12/x86_64/libopenssl1_0_0/1.0.1i-20.1/libopenssl1_0_0-1.0.1i-20.1.x86_64.rpm
+http://asdrepo.isus.emc.com:8081/artifactory/adg-catalog/sles/12/x86_64/libopenssl1_0_0/1.0.1i-25.1/libopenssl1_0_0-1.0.1i-25.1.x86_64.rpm
+http://asdrepo.isus.emc.com:8081/artifactory/adg-catalog/sles/12/x86_64/libopenssl1_0_0/1.0.1i-27.3.1/libopenssl1_0_0-1.0.1i-27.3.1.x86_64.rpm
+http://asdrepo.isus.emc.com:8081/artifactory/adg-catalog/sles/12/x86_64/libopenssl1_0_0/1.0.1i-27.6.1/libopenssl1_0_0-1.0.1i-27.6.1.x86_64.rpm
+http://asdrepo.isus.emc.com:8081/artifactory/adg-catalog/sles/12/x86_64/libpng16-16/1.6.8-11.1/libpng16-16-1.6.8-11.1.x86_64.rpm
+http://asdrepo.isus.emc.com:8081/artifactory/adg-catalog/sles/12/x86_64/libpng16-16/1.6.8-5.1/libpng16-16-1.6.8-5.1.x86_64.rpm
+http://asdrepo.isus.emc.com:8081/artifactory/adg-catalog/sles/12/x86_64/libpolkit0/0.113-4.1/libpolkit0-0.113-4.1.x86_64.rpm
+http://asdrepo.isus.emc.com:8081/artifactory/adg-catalog/sles/12/x86_64/libpq5/9.3.8-8.1/libpq5-9.3.8-8.1.x86_64.rpm
+http://asdrepo.isus.emc.com:8081/artifactory/adg-catalog/sles/12/x86_64/libpython2_7-1_0/2.7.7-9.3/libpython2_7-1_0-2.7.7-9.3.x86_64.rpm
+http://asdrepo.isus.emc.com:8081/artifactory/adg-catalog/sles/12/x86_64/libpython2_7-1_0/2.7.9-14.1/libpython2_7-1_0-2.7.9-14.1.x86_64.rpm
+http://asdrepo.isus.emc.com:8081/artifactory/adg-catalog/sles/12/x86_64/libsmartcols1/2.25-10.1/libsmartcols1-2.25-10.1.x86_64.rpm
+http://asdrepo.isus.emc.com:8081/artifactory/adg-catalog/sles/12/x86_64/libsmartcols1/2.25-22.1/libsmartcols1-2.25-22.1.x86_64.rpm
+http://asdrepo.isus.emc.com:8081/artifactory/adg-catalog/sles/12/x86_64/libsndfile1/1.0.25-24.1/libsndfile1-1.0.25-24.1.x86_64.rpm
+http://asdrepo.isus.emc.com:8081/artifactory/adg-catalog/sles/12/x86_64/libsqlite3-0/3.8.3.1-2.3.1/libsqlite3-0-3.8.3.1-2.3.1.x86_64.rpm
+http://asdrepo.isus.emc.com:8081/artifactory/adg-catalog/sles/12/x86_64/libssh2-1/1.4.3-11.1/libssh2-1-1.4.3-11.1.x86_64.rpm
+http://asdrepo.isus.emc.com:8081/artifactory/adg-catalog/sles/12/x86_64/libstdc++6/5.2.1+r226025-4.1/libstdc++6-5.2.1+r226025-4.1.x86_64.rpm
+http://asdrepo.isus.emc.com:8081/artifactory/adg-catalog/sles/12/x86_64/libtasn1-6/3.7-4.1/libtasn1-6-3.7-4.1.x86_64.rpm
+http://asdrepo.isus.emc.com:8081/artifactory/adg-catalog/sles/12/x86_64/libtasn1/3.7-4.1/libtasn1-3.7-4.1.x86_64.rpm
+http://asdrepo.isus.emc.com:8081/artifactory/adg-catalog/sles/12/x86_64/libtiff5/4.0.6-19.1/libtiff5-4.0.6-19.1.x86_64.rpm
+http://asdrepo.isus.emc.com:8081/artifactory/adg-catalog/sles/12/x86_64/libtirpc1/0.2.3-8.1/libtirpc1-0.2.3-8.1.x86_64.rpm
+http://asdrepo.isus.emc.com:8081/artifactory/adg-catalog/sles/12/x86_64/libturbojpeg0/8.0.2-30.3/libturbojpeg0-8.0.2-30.3.x86_64.rpm
+http://asdrepo.isus.emc.com:8081/artifactory/adg-catalog/sles/12/x86_64/libuuid1/2.25-10.1/libuuid1-2.25-10.1.x86_64.rpm
+http://asdrepo.isus.emc.com:8081/artifactory/adg-catalog/sles/12/x86_64/libuuid1/2.25-22.1/libuuid1-2.25-22.1.x86_64.rpm
+http://asdrepo.isus.emc.com:8081/artifactory/adg-catalog/sles/12/x86_64/libxml2-2/2.9.1-10.1/libxml2-2-2.9.1-10.1.x86_64.rpm
+http://asdrepo.isus.emc.com:8081/artifactory/adg-catalog/sles/12/x86_64/libxml2-2/2.9.1-13.1/libxml2-2-2.9.1-13.1.x86_64.rpm
+http://asdrepo.isus.emc.com:8081/artifactory/adg-catalog/sles/12/x86_64/libxml2-2/2.9.1-17.1/libxml2-2-2.9.1-17.1.x86_64.rpm
+http://asdrepo.isus.emc.com:8081/artifactory/adg-catalog/sles/12/x86_64/libyaml-0-2/0.1.6-4.1/libyaml-0-2-0.1.6-4.1.x86_64.rpm
+http://asdrepo.isus.emc.com:8081/artifactory/adg-catalog/sles/12/x86_64/mariadb-client/10.0.22-20.3.1/mariadb-client-10.0.22-20.3.1.x86_64.rpm
+http://asdrepo.isus.emc.com:8081/artifactory/adg-catalog/sles/12/x86_64/mariadb-errormessages/10.0.22-20.3.1/mariadb-errormessages-10.0.22-20.3.1.x86_64.rpm
+http://asdrepo.isus.emc.com:8081/artifactory/adg-catalog/sles/12/x86_64/mariadb/10.0.22-20.3.1/mariadb-10.0.22-20.3.1.x86_64.rpm
+http://asdrepo.isus.emc.com:8081/artifactory/adg-catalog/sles/12/x86_64/mozilla-nspr/4.10.10-9.1/mozilla-nspr-4.10.10-9.1.x86_64.rpm
+http://asdrepo.isus.emc.com:8081/artifactory/adg-catalog/sles/12/x86_64/ntp/4.2.6p5-44.1/ntp-4.2.6p5-44.1.x86_64.rpm
+http://asdrepo.isus.emc.com:8081/artifactory/adg-catalog/sles/12/x86_64/open-iscsi/2.0.873-23.1/open-iscsi-2.0.873-23.1.x86_64.rpm
+http://asdrepo.isus.emc.com:8081/artifactory/adg-catalog/sles/12/x86_64/openssh-fips/6.6p1-33.1/openssh-fips-6.6p1-33.1.x86_64.rpm
+http://asdrepo.isus.emc.com:8081/artifactory/adg-catalog/sles/12/x86_64/openssh/6.6p1-14.1/openssh-6.6p1-14.1.x86_64.rpm
+http://asdrepo.isus.emc.com:8081/artifactory/adg-catalog/sles/12/x86_64/openssh/6.6p1-29.1/openssh-6.6p1-29.1.x86_64.rpm
+http://asdrepo.isus.emc.com:8081/artifactory/adg-catalog/sles/12/x86_64/openssh/6.6p1-33.1/openssh-6.6p1-33.1.x86_64.rpm
+http://asdrepo.isus.emc.com:8081/artifactory/adg-catalog/sles/12/x86_64/openssl/1.0.1i-20.1/openssl-1.0.1i-20.1.x86_64.rpm
+http://asdrepo.isus.emc.com:8081/artifactory/adg-catalog/sles/12/x86_64/openssl/1.0.1i-25.1/openssl-1.0.1i-25.1.x86_64.rpm
+http://asdrepo.isus.emc.com:8081/artifactory/adg-catalog/sles/12/x86_64/openssl/1.0.1i-27.3.1/openssl-1.0.1i-27.3.1.x86_64.rpm
+http://asdrepo.isus.emc.com:8081/artifactory/adg-catalog/sles/12/x86_64/openssl/1.0.1i-27.6.1/openssl-1.0.1i-27.6.1.x86_64.rpm
+http://asdrepo.isus.emc.com:8081/artifactory/adg-catalog/sles/12/x86_64/pam/1.1.8-14.1/pam-1.1.8-14.1.x86_64.rpm
+http://asdrepo.isus.emc.com:8081/artifactory/adg-catalog/sles/12/x86_64/patch/2.7.5-7.1/patch-2.7.5-7.1.x86_64.rpm
+http://asdrepo.isus.emc.com:8081/artifactory/adg-catalog/sles/12/x86_64/pigz/2.3-5.1/pigz-2.3-5.1.x86_64.rpm
+http://asdrepo.isus.emc.com:8081/artifactory/adg-catalog/sles/12/x86_64/polkit/0.113-4.1/polkit-0.113-4.1.x86_64.rpm
+http://asdrepo.isus.emc.com:8081/artifactory/adg-catalog/sles/12/x86_64/python-base/2.7.7-9.3/python-base-2.7.7-9.3.x86_64.rpm
+http://asdrepo.isus.emc.com:8081/artifactory/adg-catalog/sles/12/x86_64/python-base/2.7.9-14.1/python-base-2.7.9-14.1.x86_64.rpm
+http://asdrepo.isus.emc.com:8081/artifactory/adg-catalog/sles/12/x86_64/python-libxml2/2.9.1-10.1/python-libxml2-2.9.1-10.1.x86_64.rpm
+http://asdrepo.isus.emc.com:8081/artifactory/adg-catalog/sles/12/x86_64/python-libxml2/2.9.1-13.1/python-libxml2-2.9.1-13.1.x86_64.rpm
+http://asdrepo.isus.emc.com:8081/artifactory/adg-catalog/sles/12/x86_64/python-libxml2/2.9.1-17.1/python-libxml2-2.9.1-17.1.x86_64.rpm
+http://asdrepo.isus.emc.com:8081/artifactory/adg-catalog/sles/12/x86_64/python-mysql/1.2.4-1.38/python-mysql-1.2.4-1.38.x86_64.rpm
+http://asdrepo.isus.emc.com:8081/artifactory/adg-catalog/sles/12/x86_64/python-xml/2.7.9-14.1/python-xml-2.7.9-14.1.x86_64.rpm
+http://asdrepo.isus.emc.com:8081/artifactory/adg-catalog/sles/12/x86_64/python/2.7.9-14.1/python-2.7.9-14.1.x86_64.rpm
+http://asdrepo.isus.emc.com:8081/artifactory/adg-catalog/sles/12/x86_64/rpcbind/0.2.1_rc4-13.3.1/rpcbind-0.2.1_rc4-13.3.1.x86_64.rpm
+http://asdrepo.isus.emc.com:8081/artifactory/adg-catalog/sles/12/x86_64/rpm/4.11.2-10.1/rpm-4.11.2-10.1.x86_64.rpm
+http://asdrepo.isus.emc.com:8081/artifactory/adg-catalog/sles/12/x86_64/rsyslog/8.4.0-5.1/rsyslog-8.4.0-5.1.x86_64.rpm
+http://asdrepo.isus.emc.com:8081/artifactory/adg-catalog/sles/12/x86_64/sendmail/8.14.9-2.80/sendmail-8.14.9-2.80.x86_64.rpm
+http://asdrepo.isus.emc.com:8081/artifactory/adg-catalog/sles/12/x86_64/strongswan-ipsec/5.1.3-22.1/strongswan-ipsec-5.1.3-22.1.x86_64.rpm
+http://asdrepo.isus.emc.com:8081/artifactory/adg-catalog/sles/12/x86_64/strongswan-libs0/5.1.3-22.1/strongswan-libs0-5.1.3-22.1.x86_64.rpm
+http://asdrepo.isus.emc.com:8081/artifactory/adg-catalog/sles/12/x86_64/strongswan/5.1.3-22.1/strongswan-5.1.3-22.1.x86_64.rpm
+http://asdrepo.isus.emc.com:8081/artifactory/adg-catalog/sles/12/x86_64/systemd-sysvinit/210-55.2/systemd-sysvinit-210-55.2.x86_64.rpm
+http://asdrepo.isus.emc.com:8081/artifactory/adg-catalog/sles/12/x86_64/systemd/210-55.2/systemd-210-55.2.x86_64.rpm
+http://asdrepo.isus.emc.com:8081/artifactory/adg-catalog/sles/12/x86_64/tcpdump/4.5.1-7.1/tcpdump-4.5.1-7.1.x86_64.rpm
+http://asdrepo.isus.emc.com:8081/artifactory/adg-catalog/sles/12/x86_64/tcsh/6.18.01-7.4/tcsh-6.18.01-7.4.x86_64.rpm
+http://asdrepo.isus.emc.com:8081/artifactory/adg-catalog/sles/12/x86_64/unzip/6.00-32.1/unzip-6.00-32.1.x86_64.rpm
+http://asdrepo.isus.emc.com:8081/artifactory/adg-catalog/sles/12/x86_64/util-linux-systemd/2.25-10.1/util-linux-systemd-2.25-10.1.x86_64.rpm
+http://asdrepo.isus.emc.com:8081/artifactory/adg-catalog/sles/12/x86_64/util-linux/2.25-10.1/util-linux-2.25-10.1.x86_64.rpm
+http://asdrepo.isus.emc.com:8081/artifactory/adg-catalog/sles/12/x86_64/util-linux/2.25-22.1/util-linux-2.25-22.1.x86_64.rpm
+http://asdrepo.isus.emc.com:8081/artifactory/adg-catalog/sles/12/x86_64/vorbis-tools/1.4.0-26.1/vorbis-tools-1.4.0-26.1.x86_64.rpm
+http://asdrepo.isus.emc.com:8081/artifactory/adg-catalog/sles/12/x86_64/wget/1.14-7.1/wget-1.14-7.1.x86_64.rpm
+http://asdrepo.isus.emc.com:8081/artifactory/adg-common-local/common/sles/12/noarch/adg_platform_version/12.0.7.1-1/adg_platform_version-12.0.7.1-1.noarch.rpm
+http://lglaf020.lss.emc.com/ionix/ViPROpenStack/Liberty/noarch/python-oslo.config-2.4.0-1.6.noarch.rpm
+http://lglaf020.lss.emc.com/ionix/ViPROpenStack/Liberty/noarch/python-keystone-8.0.2~a0~dev33-1.3.noarch.rpm
+http://lglaf020.lss.emc.com/ionix/ViPROpenStack/Liberty/noarch/python-glanceclient-1.1.0-2.2.noarch.rpm
+http://lglaf020.lss.emc.com/ionix/ViPROpenStack/Liberty/noarch/python-keystoneauth1-1.1.0-1.5.noarch.rpm
+http://lglaf020.lss.emc.com/ionix/ViPROpenStack/Liberty/noarch/python-oslo.messaging-2.4.0-3.16.noarch.rpm
+http://lglaf020.lss.emc.com/ionix/ViPROpenStack/Liberty/noarch/openstack-cinder-scheduler-7.0.2~a0~dev11-1.3.noarch.rpm
+http://lglaf020.lss.emc.com/ionix/ViPROpenStack/Liberty/noarch/python-oslo.serialization-1.10.0-4.3.noarch.rpm
+http://lglaf020.lss.emc.com/ionix/ViPROpenStack/Liberty/noarch/python-os-brick-0.5.0-1.4.noarch.rpm
+http://lglaf020.lss.emc.com/ionix/ViPROpenStack/Liberty/noarch/python-cinderclient-1.4.0-2.2.noarch.rpm
+http://lglaf020.lss.emc.com/ionix/ViPROpenStack/Liberty/noarch/python-oslo.log-1.11.0-2.2.noarch.rpm
+http://lglaf020.lss.emc.com/ionix/ViPROpenStack/Liberty/noarch/python-oslo.utils-2.5.0-1.2.noarch.rpm
+http://lglaf020.lss.emc.com/ionix/ViPROpenStack/Liberty/noarch/python-neutronclient-3.1.1-1.2.noarch.rpm
+http://lglaf020.lss.emc.com/ionix/ViPROpenStack/Liberty/noarch/openstack-cinder-api-7.0.2~a0~dev11-1.3.noarch.rpm
+http://lglaf020.lss.emc.com/ionix/ViPROpenStack/Liberty/noarch/python-os-client-config-1.7.5-2.4.noarch.rpm
+http://lglaf020.lss.emc.com/ionix/ViPROpenStack/Liberty/noarch/python-oslo.db-2.4.1-2.3.noarch.rpm
+http://lglaf020.lss.emc.com/ionix/ViPROpenStack/Liberty/noarch/python-suds-jurko-0.6-2.4.noarch.rpm
+http://lglaf020.lss.emc.com/ionix/ViPROpenStack/Liberty/noarch/python-openstackclient-1.7.1-2.2.noarch.rpm
+http://lglaf020.lss.emc.com/ionix/ViPROpenStack/Liberty/noarch/python-oslo.rootwrap-2.0.0-2.4.noarch.rpm
+http://lglaf020.lss.emc.com/ionix/ViPROpenStack/Liberty/noarch/python-novaclient-2.30.1-6.2.noarch.rpm
+http://lglaf020.lss.emc.com/ionix/ViPROpenStack/Liberty/noarch/python-oslo.policy-0.11.0-2.2.noarch.rpm
+http://lglaf020.lss.emc.com/ionix/ViPROpenStack/Liberty/noarch/python-oslo.vmware-1.21.0-2.3.noarch.rpm
+http://lglaf020.lss.emc.com/ionix/ViPROpenStack/Liberty/noarch/python-oslo.concurrency-2.6.0-2.3.noarch.rpm
+http://lglaf020.lss.emc.com/ionix/ViPROpenStack/Liberty/noarch/python-oslo.reports-0.5.0-2.2.noarch.rpm
+http://lglaf020.lss.emc.com/ionix/ViPROpenStack/Liberty/noarch/python-keystonemiddleware-2.3.1-1.2.noarch.rpm
+http://lglaf020.lss.emc.com/ionix/ViPROpenStack/Liberty/noarch/python-oslo.service-0.9.0-2.4.noarch.rpm
+http://lglaf020.lss.emc.com/ionix/ViPROpenStack/Liberty/noarch/python-automaton-0.7.0-1.2.noarch.rpm
+http://lglaf020.lss.emc.com/ionix/ViPROpenStack/Liberty/noarch/python-oslo.i18n-2.6.0-2.3.noarch.rpm
+http://lglaf020.lss.emc.com/ionix/ViPROpenStack/Liberty/noarch/python-keystoneclient-1.7.2-6.2.noarch.rpm
+http://lglaf020.lss.emc.com/ionix/ViPROpenStack/Liberty/noarch/python-taskflow-1.20.0-1.4.noarch.rpm
+http://lglaf020.lss.emc.com/ionix/ViPROpenStack/Liberty/noarch/python-oslo.versionedobjects-0.10.0-1.3.noarch.rpm
+http://lglaf020.lss.emc.com/ionix/ViPROpenStack/Liberty/noarch/python-pycadf-1.1.0-1.3.noarch.rpm
+http://lglaf020.lss.emc.com/ionix/ViPROpenStack/Liberty/noarch/python-tempest-lib-0.11.0-5.1.noarch.rpm
+http://lglaf020.lss.emc.com/ionix/ViPROpenStack/Liberty/noarch/openstack-cinder-7.0.2~a0~dev11-1.3.noarch.rpm
+http://lglaf020.lss.emc.com/ionix/ViPROpenStack/Liberty/noarch/python-swiftclient-2.6.0-2.2.noarch.rpm
+http://lglaf020.lss.emc.com/ionix/ViPROpenStack/Liberty/noarch/openstack-keystone-8.0.2~a0~dev33-1.3.noarch.rpm
+http://lglaf020.lss.emc.com/ionix/ViPROpenStack/Liberty/noarch/python-cinder-7.0.2~a0~dev11-1.3.noarch.rpm
+http://lglaf020.lss.emc.com/ionix/ViPROpenStack/Liberty/noarch/openstack-cinder-volume-7.0.2~a0~dev11-1.3.noarch.rpm
+http://lglaf020.lss.emc.com/ionix/ViPROpenStack/Liberty/noarch/python-os-testr-0.4.2-1.4.noarch.rpm
+http://lglaf020.lss.emc.com/ionix/ViPROpenStack/Liberty/noarch/python-osprofiler-0.3.0-2.2.noarch.rpm
+http://lglaf020.lss.emc.com/ionix/ViPROpenStack/Liberty/noarch/openstack-suse-sudo-2015.2-1.1.noarch.rpm
+http://lglaf020.lss.emc.com/ionix/ViPROpenStack/Liberty/noarch/python-oslo.context-0.6.0-2.2.noarch.rpm
+http://lglaf020.lss.emc.com/ionix/ViPROpenStack/Liberty/noarch/python-barbicanclient-3.3.0-1.3.noarch.rpm
+http://lglaf020.lss.emc.com/ionix/ViPROpenStack/Liberty/noarch/python-oslo.middleware-2.8.0-2.2.noarch.rpm
+http://lglaf020.lss.emc.com/ionix/ViPROpenStack/Liberty/x86_64/libltdl7-2.4.2-14.60.x86_64.rpm
+http://lglaf020.lss.emc.com/ionix/ViPROpenStack/Liberty/x86_64/rabbitmq-server-3.5.3-1.6.x86_64.rpm
+http://lglaf020.lss.emc.com/ionix/ViPROpenStack/Liberty/x86_64/crudini-0.4-1.1.x86_64.rpm
+http://lglaf020.lss.emc.com/ionix/ViPROpenStack/Liberty/x86_64/unixODBC-2.3.1-4.95.x86_64.rpm
+http://lglaf020.lss.emc.com/ionix/ViPROpenStack/Liberty/x86_64/apache2-mod_wsgi-4.4.6-1.5.x86_64.rpm
+http://lglaf020.lss.emc.com/ionix/ViPROpenStack/Liberty/x86_64/erlang-17.5.6-1.6.x86_64.rpm
+http://lglaf020.lss.emc.com/ionix/ViPROpenStack/Liberty/x86_64/erlang-sd_notify-0.1-1.5.x86_64.rpm
+http://lglaf020.lss.emc.com/ionix/ViPROpenStack/Liberty/x86_64/erlang-epmd-17.5.6-1.6.x86_64.rpm
+http://lglaf020.lss.emc.com/ionix/ViPROpenStack/Liberty/x86_64/memcached-1.4.15-1.4.x86_64.rpm
+http://lglaf020.lss.emc.com/ionix/ViPROpenStack/python_opensuse_sle12/noarch/python-python-memcached-1.57-30.2.noarch.rpm
+http://lglaf020.lss.emc.com/ionix/ViPROpenStack/python_opensuse_sle12/noarch/python-python-mimeparse-0.1.4-8.4.noarch.rpm
+http://lglaf020.lss.emc.com/ionix/ViPROpenStack/python_opensuse_sle12/noarch/python-cachetools-1.0.3-3.2.noarch.rpm
+http://lglaf020.lss.emc.com/ionix/ViPROpenStack/python_opensuse_sle12/noarch/python-pyparsing-2.0.7-1.2.noarch.rpm
+http://lglaf020.lss.emc.com/ionix/ViPROpenStack/python_opensuse_sle12/noarch/python-cssselect-0.9.1-18.6.noarch.rpm
+http://lglaf020.lss.emc.com/ionix/ViPROpenStack/python_opensuse_sle12/noarch/python-Routes-2.2-27.2.noarch.rpm
+http://lglaf020.lss.emc.com/ionix/ViPROpenStack/python_opensuse_sle12/noarch/python-WebOb-1.5.1-44.5.noarch.rpm
+http://lglaf020.lss.emc.com/ionix/ViPROpenStack/python_opensuse_sle12/noarch/python-decorator-3.4.2-32.3.noarch.rpm
+http://lglaf020.lss.emc.com/ionix/ViPROpenStack/python_opensuse_sle12/noarch/python-dateutil-2.4.2-41.2.noarch.rpm
+http://lglaf020.lss.emc.com/ionix/ViPROpenStack/python_opensuse_sle12/noarch/python-warlock-1.1.0-24.1.noarch.rpm
+http://lglaf020.lss.emc.com/ionix/ViPROpenStack/python_opensuse_sle12/noarch/python-tablib-0.10.0-16.4.noarch.rpm
+http://lglaf020.lss.emc.com/ionix/ViPROpenStack/python_opensuse_sle12/noarch/python-PyJWT-1.4.0-16.2.noarch.rpm
+http://lglaf020.lss.emc.com/ionix/ViPROpenStack/python_opensuse_sle12/noarch/python-netaddr-0.7.18-1.2.noarch.rpm
+http://lglaf020.lss.emc.com/ionix/ViPROpenStack/python_opensuse_sle12/noarch/python-blinker-1.3-21.3.noarch.rpm
+http://lglaf020.lss.emc.com/ionix/ViPROpenStack/python_opensuse_sle12/noarch/python-fixtures-1.3.1-33.2.noarch.rpm
+http://lglaf020.lss.emc.com/ionix/ViPROpenStack/python_opensuse_sle12/noarch/python-monotonic-0.3-5.1.noarch.rpm
+http://lglaf020.lss.emc.com/ionix/ViPROpenStack/python_opensuse_sle12/noarch/python-pyasn1-modules-0.0.8-35.1.noarch.rpm
+http://lglaf020.lss.emc.com/ionix/ViPROpenStack/python_opensuse_sle12/noarch/python-networkx-1.10-18.10.noarch.rpm
+http://lglaf020.lss.emc.com/ionix/ViPROpenStack/python_opensuse_sle12/noarch/python-enum34-1.0.4-5.2.noarch.rpm
+http://lglaf020.lss.emc.com/ionix/ViPROpenStack/python_opensuse_sle12/noarch/python-requests-2.8.1-81.1.noarch.rpm
+http://lglaf020.lss.emc.com/ionix/ViPROpenStack/python_opensuse_sle12/noarch/python-pyasn1-0.1.9-49.3.noarch.rpm
+http://lglaf020.lss.emc.com/ionix/ViPROpenStack/python_opensuse_sle12/noarch/python-jsonschema-2.5.1-30.2.noarch.rpm
+http://lglaf020.lss.emc.com/ionix/ViPROpenStack/python_opensuse_sle12/noarch/python-pip-8.0.0-1.3.noarch.rpm
+http://lglaf020.lss.emc.com/ionix/ViPROpenStack/python_opensuse_sle12/noarch/python-stevedore-1.8.0-43.6.noarch.rpm
+http://lglaf020.lss.emc.com/ionix/ViPROpenStack/python_opensuse_sle12/noarch/python-urllib3-1.14-17.2.noarch.rpm
+http://lglaf020.lss.emc.com/ionix/ViPROpenStack/python_opensuse_sle12/noarch/python-Babel-2.2.0-43.2.noarch.rpm
+http://lglaf020.lss.emc.com/ionix/ViPROpenStack/python_opensuse_sle12/noarch/python-python-subunit-1.0.0-28.3.noarch.rpm
+http://lglaf020.lss.emc.com/ionix/ViPROpenStack/python_opensuse_sle12/noarch/python-python-openid-2.2.5-17.4.noarch.rpm
+http://lglaf020.lss.emc.com/ionix/ViPROpenStack/python_opensuse_sle12/noarch/python-iso8601-0.1.10-21.35.noarch.rpm
+http://lglaf020.lss.emc.com/ionix/ViPROpenStack/python_opensuse_sle12/noarch/python-passlib-1.6.2-27.3.noarch.rpm
+http://lglaf020.lss.emc.com/ionix/ViPROpenStack/python_opensuse_sle12/noarch/python-pytz-2015.7-45.2.noarch.rpm
+http://lglaf020.lss.emc.com/ionix/ViPROpenStack/python_opensuse_sle12/noarch/python-unicodecsv-0.9.4-3.1.noarch.rpm
+http://lglaf020.lss.emc.com/ionix/ViPROpenStack/python_opensuse_sle12/noarch/python-ldappool-1.0-2.2.noarch.rpm
+http://lglaf020.lss.emc.com/ionix/ViPROpenStack/python_opensuse_sle12/noarch/python-futures-3.0.2-20.4.noarch.rpm
+http://lglaf020.lss.emc.com/ionix/ViPROpenStack/python_opensuse_sle12/noarch/python-PasteDeploy-1.5.2-18.2.noarch.rpm
+http://lglaf020.lss.emc.com/ionix/ViPROpenStack/python_opensuse_sle12/noarch/python-trollius-1.0.4-4.5.noarch.rpm
+http://lglaf020.lss.emc.com/ionix/ViPROpenStack/python_opensuse_sle12/noarch/python-repoze.lru-0.6-16.2.noarch.rpm
+http://lglaf020.lss.emc.com/ionix/ViPROpenStack/python_opensuse_sle12/noarch/python-appdirs-1.4.0-3.2.noarch.rpm
+http://lglaf020.lss.emc.com/ionix/ViPROpenStack/python_opensuse_sle12/noarch/python-dogpile.cache-0.5.6-15.3.noarch.rpm
+http://lglaf020.lss.emc.com/ionix/ViPROpenStack/python_opensuse_sle12/noarch/python-jsonpatch-1.11-25.2.noarch.rpm
+http://lglaf020.lss.emc.com/ionix/ViPROpenStack/python_opensuse_sle12/noarch/python-jsonpointer-1.9-18.2.noarch.rpm
+http://lglaf020.lss.emc.com/ionix/ViPROpenStack/python_opensuse_sle12/noarch/python-httplib2-0.9.2-72.4.noarch.rpm
+http://lglaf020.lss.emc.com/ionix/ViPROpenStack/python_opensuse_sle12/noarch/python-pyOpenSSL-0.15.1-2.6.noarch.rpm
+http://lglaf020.lss.emc.com/ionix/ViPROpenStack/python_opensuse_sle12/noarch/python-PrettyTable-0.7.2-11.2.noarch.rpm
+http://lglaf020.lss.emc.com/ionix/ViPROpenStack/python_opensuse_sle12/noarch/python-aioeventlet-0.4-4.4.noarch.rpm
+http://lglaf020.lss.emc.com/ionix/ViPROpenStack/python_opensuse_sle12/noarch/python-cliff-1.15.0-54.6.noarch.rpm
+http://lglaf020.lss.emc.com/ionix/ViPROpenStack/python_opensuse_sle12/noarch/python-cliff-tablib-1.1-10.1.noarch.rpm
+http://lglaf020.lss.emc.com/ionix/ViPROpenStack/python_opensuse_sle12/noarch/python-Mako-1.0.1-45.2.noarch.rpm
+http://lglaf020.lss.emc.com/ionix/ViPROpenStack/python_opensuse_sle12/noarch/python-repoze.who-2.2-3.2.noarch.rpm
+http://lglaf020.lss.emc.com/ionix/ViPROpenStack/python_opensuse_sle12/noarch/python-flup-1.0.3.dev_20110405-21.4.noarch.rpm
+http://lglaf020.lss.emc.com/ionix/ViPROpenStack/python_opensuse_sle12/noarch/python-dogpile.core-0.4.1-7.2.noarch.rpm
+http://lglaf020.lss.emc.com/ionix/ViPROpenStack/python_opensuse_sle12/noarch/python-retrying-1.3.3-3.4.noarch.rpm
+http://lglaf020.lss.emc.com/ionix/ViPROpenStack/python_opensuse_sle12/noarch/python-alembic-0.8.2-50.2.noarch.rpm
+http://lglaf020.lss.emc.com/ionix/ViPROpenStack/python_opensuse_sle12/noarch/python-debtcollector-0.8.0-6.2.noarch.rpm
+http://lglaf020.lss.emc.com/ionix/ViPROpenStack/python_opensuse_sle12/noarch/python-kombu-3.0.33-23.3.noarch.rpm
+http://lglaf020.lss.emc.com/ionix/ViPROpenStack/python_opensuse_sle12/noarch/python-six-1.10.0-53.3.noarch.rpm
+http://lglaf020.lss.emc.com/ionix/ViPROpenStack/python_opensuse_sle12/noarch/python-testrepository-0.0.20-37.3.noarch.rpm
+http://lglaf020.lss.emc.com/ionix/ViPROpenStack/python_opensuse_sle12/noarch/python-pysaml2-2.4.0-11.3.noarch.rpm
+http://lglaf020.lss.emc.com/ionix/ViPROpenStack/python_opensuse_sle12/noarch/python-sqlalchemy-migrate-0.10.0-30.21.noarch.rpm
+http://lglaf020.lss.emc.com/ionix/ViPROpenStack/python_opensuse_sle12/noarch/python-amqp-1.4.9-45.4.noarch.rpm
+http://lglaf020.lss.emc.com/ionix/ViPROpenStack/python_opensuse_sle12/noarch/python-pycparser-2.14-13.4.noarch.rpm
+http://lglaf020.lss.emc.com/ionix/ViPROpenStack/python_opensuse_sle12/noarch/python-testscenarios-0.5.0-13.2.noarch.rpm
+http://lglaf020.lss.emc.com/ionix/ViPROpenStack/python_opensuse_sle12/noarch/python-ipaddress-1.0.14-3.2.noarch.rpm
+http://lglaf020.lss.emc.com/ionix/ViPROpenStack/python_opensuse_sle12/noarch/python-keyring-7.1.2-43.2.noarch.rpm
+http://lglaf020.lss.emc.com/ionix/ViPROpenStack/python_opensuse_sle12/noarch/python-cmd2-0.6.8-27.5.noarch.rpm
+http://lglaf020.lss.emc.com/ionix/ViPROpenStack/python_opensuse_sle12/noarch/python-unittest2-1.1.0-42.2.noarch.rpm
+http://lglaf020.lss.emc.com/ionix/ViPROpenStack/python_opensuse_sle12/noarch/python-Tempita-0.5.1-24.2.noarch.rpm
+http://lglaf020.lss.emc.com/ionix/ViPROpenStack/python_opensuse_sle12/noarch/python-Paste-2.0.1-23.7.noarch.rpm
+http://lglaf020.lss.emc.com/ionix/ViPROpenStack/python_opensuse_sle12/noarch/python-contextlib2-0.4.0-3.1.noarch.rpm
+http://lglaf020.lss.emc.com/ionix/ViPROpenStack/python_opensuse_sle12/noarch/python-fasteners-0.14.1-8.2.noarch.rpm
+http://lglaf020.lss.emc.com/ionix/ViPROpenStack/python_opensuse_sle12/noarch/python-paramiko-1.16.0-39.1.noarch.rpm
+http://lglaf020.lss.emc.com/ionix/ViPROpenStack/python_opensuse_sle12/noarch/python-iniparse-0.4-37.4.noarch.rpm
+http://lglaf020.lss.emc.com/ionix/ViPROpenStack/python_opensuse_sle12/noarch/python-rtslib-fb-2.1.51-9.3.noarch.rpm
+http://lglaf020.lss.emc.com/ionix/ViPROpenStack/python_opensuse_sle12/noarch/python-traceback2-1.4.0-5.2.noarch.rpm
+http://lglaf020.lss.emc.com/ionix/ViPROpenStack/python_opensuse_sle12/noarch/python-eventlet-0.17.4-38.7.noarch.rpm
+http://lglaf020.lss.emc.com/ionix/ViPROpenStack/python_opensuse_sle12/noarch/python-testresources-0.2.7-16.2.noarch.rpm
+http://lglaf020.lss.emc.com/ionix/ViPROpenStack/python_opensuse_sle12/noarch/python-pbr-1.8.0-44.2.noarch.rpm
+http://lglaf020.lss.emc.com/ionix/ViPROpenStack/python_opensuse_sle12/noarch/python-ecdsa-0.13-13.6.noarch.rpm
+http://lglaf020.lss.emc.com/ionix/ViPROpenStack/python_opensuse_sle12/noarch/python-oauthlib-0.7.2-26.3.noarch.rpm
+http://lglaf020.lss.emc.com/ionix/ViPROpenStack/python_opensuse_sle12/noarch/python-futurist-0.9.0-7.2.noarch.rpm
+http://lglaf020.lss.emc.com/ionix/ViPROpenStack/python_opensuse_sle12/noarch/python-anyjson-0.3.3-38.2.noarch.rpm
+http://lglaf020.lss.emc.com/ionix/ViPROpenStack/python_opensuse_sle12/noarch/python-python-editor-0.5-5.2.noarch.rpm
+http://lglaf020.lss.emc.com/ionix/ViPROpenStack/python_opensuse_sle12/noarch/python-Jinja2-2.8-69.3.noarch.rpm
+http://lglaf020.lss.emc.com/ionix/ViPROpenStack/python_opensuse_sle12/noarch/python-idna-2.0-3.2.noarch.rpm
+http://lglaf020.lss.emc.com/ionix/ViPROpenStack/python_opensuse_sle12/noarch/python-linecache2-1.0.0-4.2.noarch.rpm
+http://lglaf020.lss.emc.com/ionix/ViPROpenStack/python_opensuse_sle12/noarch/python-testtools-1.5.0-37.19.noarch.rpm
+http://lglaf020.lss.emc.com/ionix/ViPROpenStack/python_opensuse_sle12/noarch/python-functools32-3.2.3.2-3.4.noarch.rpm
+http://lglaf020.lss.emc.com/ionix/ViPROpenStack/python_opensuse_sle12/noarch/python-extras-0.0.3-23.2.noarch.rpm
+http://lglaf020.lss.emc.com/ionix/ViPROpenStack/python_opensuse_sle12/noarch/python-setuptools-19.6.2-72.4.noarch.rpm
+http://lglaf020.lss.emc.com/ionix/ViPROpenStack/python_opensuse_sle12/noarch/python-sqlparse-0.1.15-10.3.noarch.rpm
+http://lglaf020.lss.emc.com/ionix/ViPROpenStack/python_opensuse_sle12/x86_64/python-netifaces-0.10.4-22.1.x86_64.rpm
+http://lglaf020.lss.emc.com/ionix/ViPROpenStack/python_opensuse_sle12/x86_64/python-ldap-2.4.25-63.3.x86_64.rpm
+http://lglaf020.lss.emc.com/ionix/ViPROpenStack/python_opensuse_sle12/x86_64/python-cryptography-1.2.1-34.2.x86_64.rpm
+http://lglaf020.lss.emc.com/ionix/ViPROpenStack/python_opensuse_sle12/x86_64/python-msgpack-python-0.4.6-41.2.x86_64.rpm
+http://lglaf020.lss.emc.com/ionix/ViPROpenStack/python_opensuse_sle12/x86_64/python-greenlet-0.4.7-21.4.x86_64.rpm
+http://lglaf020.lss.emc.com/ionix/ViPROpenStack/python_opensuse_sle12/x86_64/python-psutil-3.4.2-61.2.x86_64.rpm
+http://lglaf020.lss.emc.com/ionix/ViPROpenStack/python_opensuse_sle12/x86_64/python-psycopg2-2.6-1.65.x86_64.rpm
+http://lglaf020.lss.emc.com/ionix/ViPROpenStack/python_opensuse_sle12/x86_64/python-zope.interface-4.1.2-37.36.x86_64.rpm
+http://lglaf020.lss.emc.com/ionix/ViPROpenStack/python_opensuse_sle12/x86_64/python-pycrypto-2.6.1-39.4.x86_64.rpm
+http://lglaf020.lss.emc.com/ionix/ViPROpenStack/python_opensuse_sle12/x86_64/python-cffi-1.4.2-28.3.x86_64.rpm
+http://lglaf020.lss.emc.com/ionix/ViPROpenStack/python_opensuse_sle12/x86_64/python-SQLAlchemy-1.0.11-88.1.x86_64.rpm
+http://lglaf020.lss.emc.com/ionix/ViPROpenStack/python_opensuse_sle12/x86_64/python-wrapt-1.9.0-5.2.x86_64.rpm
+http://lglaf020.lss.emc.com/ionix/ViPROpenStack/python_opensuse_sle12/x86_64/python-simplejson-3.6.5-54.3.x86_64.rpm
+http://lglaf020.lss.emc.com/ionix/ViPROpenStack/python_opensuse_sle12/x86_64/python-lxml-3.5.0-76.1.x86_64.rpm
+http://lglaf020.lss.emc.com/ionix/ViPROpenStack/python_opensuse_sle12/x86_64/python-MarkupSafe-0.23-36.21.x86_64.rpm
+http://lglaf020.lss.emc.com/ionix/ViPROpenStack/python_opensuse_sle12/x86_64/python-pywbem-0.7.0-25.6.x86_64.rpm
+http://lglaf020.lss.emc.com/ionix/ViPROpenStack/python_opensuse_sle12/x86_64/python-M2Crypto-0.22.5-45.3.x86_64.rpm
+http://lglaf020.lss.emc.com/ionix/ViPROpenStack/python_opensuse_sle12/x86_64/python-pymongo-3.0.3-45.3.x86_64.rpm
+http://lglob095.lss.emc.com/downloads/ViPROpenStack-cc-conf-1-1.noarch.rpm

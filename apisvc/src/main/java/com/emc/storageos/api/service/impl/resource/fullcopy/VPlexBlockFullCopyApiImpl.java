@@ -29,6 +29,7 @@ import com.emc.storageos.api.service.impl.placement.VolumeRecommendation;
 import com.emc.storageos.api.service.impl.resource.TenantsService;
 import com.emc.storageos.api.service.impl.resource.VPlexBlockServiceApiImpl;
 import com.emc.storageos.api.service.impl.resource.utils.BlockServiceUtils;
+import com.emc.storageos.blockorchestrationcontroller.BlockOrchestrationController;
 import com.emc.storageos.blockorchestrationcontroller.VolumeDescriptor;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.db.client.DbClient;
@@ -282,8 +283,18 @@ public class VPlexBlockFullCopyApiImpl extends AbstractBlockFullCopyApiImpl {
             URI fcSourceURI = fcSourceObj.getId();
             // volumes in VolumeGroup can be from different vArrays
             varray = getVarrayFromCache(vArrayCache, fcSourceObj.getVirtualArray());
-            String copyName = name + (sortedSourceObjectList.size() > 1 ? "-" + ++sourceCounter : "");
-
+            String copyName = null;
+            boolean inApplication = false;
+            if (fcSourceObj instanceof Volume && ((Volume) fcSourceObj).getApplication(_dbClient) != null) {
+                inApplication = true;
+            }
+            Volume backendVolume = VPlexUtil.getVPLEXBackendVolume((Volume)fcSourceObj, true, _dbClient);
+            if (NullColumnValueGetter.isNotNullValue(backendVolume.getReplicationGroupInstance()) && inApplication) {
+            	copyName = name + "-" + backendVolume.getReplicationGroupInstance() 
+            			+ (sortedSourceObjectList.size() > 1 ? "-" + ++sourceCounter : "");
+            }  else {
+            	copyName = name + (sortedSourceObjectList.size() > 1 ? "-" + ++sourceCounter : "");
+            }
             vplexSrcSystemId = fcSourceObj.getStorageController();
             if (fcSourceObj instanceof Volume) {
                 // DO IT ONLY FOR VOLUME CLONE - In case of snapshot new VPLEX volume needs to be created
@@ -800,8 +811,8 @@ public class VPlexBlockFullCopyApiImpl extends AbstractBlockFullCopyApiImpl {
 
         // Invoke the controller.
         try {
-            VPlexController controller = getController(VPlexController.class,
-                    DiscoveredDataObject.Type.vplex.toString());
+            BlockOrchestrationController controller = getController(BlockOrchestrationController.class,
+                    BlockOrchestrationController.BLOCK_ORCHESTRATION_DEVICE);
             controller.restoreFromFullCopy(sourceSystemURI, new ArrayList<URI>(
                     fullCopyURIs), taskId);
         } catch (InternalException ie) {

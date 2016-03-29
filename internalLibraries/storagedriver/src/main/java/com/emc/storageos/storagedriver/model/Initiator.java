@@ -4,7 +4,7 @@
  */
 package com.emc.storageos.storagedriver.model;
 
-public class Initiator {
+public class Initiator extends StorageObject {
 
 
     /**
@@ -52,16 +52,10 @@ public class Initiator {
      */
     private String clusterName;
 
-    // Label of this object. Type: input/output. If not supplied, should be set by driver.
-    private String label;
-
-    public String getLabel() {
-        return label;
-    }
-
-    public void setLabel(String label) {
-        this.label = label;
-    }
+    /**
+     * Initiator network native id. Should be set by driver.
+     */
+    private String networkId;
 
     public String getPort() {
         return port;
@@ -119,8 +113,11 @@ public class Initiator {
         this.clusterName = clusterName;
     }
 
+    public String getNetworkId() {
+        return networkId;
+    }
 
-
-
-
+    public void setNetworkId(String networkId) {
+        this.networkId = networkId;
+    }
 }

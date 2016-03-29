@@ -373,7 +373,7 @@ public class XIVSnapshotOperations extends AbstractSnapshotOperations {
             }
 
             // set inactive=true for all snapshots in the snaps set
-            List<BlockSnapshot> snaps = ControllerUtils.getBlockSnapshotsBySnapsetLabelForProject(snapshotObj, _dbClient);
+            List<BlockSnapshot> snaps = ControllerUtils.getSnapshotsPartOfReplicationGroup(snapshotObj, _dbClient);
             for (BlockSnapshot snap : snaps) {
                 snap.setInactive(true);
                 snap.setIsSyncActive(false);

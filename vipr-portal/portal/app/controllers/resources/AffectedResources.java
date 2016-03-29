@@ -5,22 +5,18 @@
 package controllers.resources;
 
 import static com.emc.vipr.client.core.util.ResourceUtils.id;
-import static com.emc.vipr.client.core.util.ResourceUtils.uri;
 import static com.emc.vipr.client.core.util.ResourceUtils.refIds;
+import static com.emc.vipr.client.core.util.ResourceUtils.uri;
 import static util.BourneUtil.getViprClient;
 
 import java.net.URI;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
-import play.Logger;
-import play.mvc.Controller;
-import play.mvc.Util;
-import play.mvc.With;
-import util.ResourceUtils;
-
 import com.emc.sa.util.ResourceType;
 import com.emc.storageos.model.NamedRelatedResourceRep;
+import com.emc.storageos.model.VirtualArrayRelatedResourceRep;
 import com.emc.storageos.model.block.BlockConsistencyGroupRestRep;
 import com.emc.storageos.model.block.BlockMirrorRestRep;
 import com.emc.storageos.model.block.BlockObjectRestRep;
@@ -30,6 +26,7 @@ import com.emc.storageos.model.block.VolumeRestRep;
 import com.emc.storageos.model.block.export.ExportGroupRestRep;
 import com.emc.storageos.model.block.export.ITLRestRep;
 import com.emc.storageos.model.file.FileShareRestRep;
+import com.emc.storageos.model.file.FileShareRestRep.FileProtectionRestRep;
 import com.emc.storageos.model.file.FileSnapshotRestRep;
 import com.emc.storageos.model.file.FileSystemExportParam;
 import com.emc.storageos.model.file.SmbShareResponse;
@@ -39,10 +36,16 @@ import com.emc.storageos.model.varray.VirtualArrayRestRep;
 import com.emc.storageos.model.vpool.BlockVirtualPoolRestRep;
 import com.emc.storageos.model.vpool.FileVirtualPoolRestRep;
 import com.emc.storageos.model.vpool.VirtualPoolCommonRestRep;
+import com.emc.vipr.client.Tasks;
 import com.emc.vipr.client.ViPRCoreClient;
 import com.google.common.collect.Lists;
 
 import controllers.Common;
+import play.Logger;
+import play.mvc.Controller;
+import play.mvc.Util;
+import play.mvc.With;
+import util.ResourceUtils;
 
 @With(Common.class)
 public class AffectedResources extends Controller {
@@ -213,6 +216,22 @@ public class AffectedResources extends Controller {
         try {
             if (id != null) {
                 return client.fileSystems().get(id);
+            }
+        } catch (Exception e) {
+            Logger.debug(e, "Failed to retrieve file system: %s", id);
+        }
+        return null;
+    }
+    
+    private static List<FileShareRestRep> getFileMirror(ViPRCoreClient client, URI id) {
+        try {
+            if (id != null) {
+                    List<FileShareRestRep> fileMirrors = new ArrayList<FileShareRestRep>();
+                    FileProtectionRestRep targetFileSystems = client.fileSystems().get(id).getProtection();
+                    for (VirtualArrayRelatedResourceRep virtualResource : targetFileSystems.getTargetFileSystems()) {
+                        fileMirrors.add(client.fileSystems().get(virtualResource.getId()));
+                    }
+                    return fileMirrors;
             }
         } catch (Exception e) {
             Logger.debug(e, "Failed to retrieve file system: %s", id);
@@ -497,6 +516,7 @@ public class AffectedResources extends Controller {
         public List<FileSystemExportParam> exports;
         public List<SmbShareResponse> smbShares;
         public Collection<String> datastores;
+        public List<FileShareRestRep> fileMirrors;
 
         public FileSystemDetails(URI resourceId) {
             super(resourceId, ResourceType.FILE_SHARE);
@@ -506,6 +526,7 @@ public class AffectedResources extends Controller {
             exports = getNfsExports(client, resourceId);
             smbShares = getCifsShares(client, resourceId);
             datastores = getDatastores(client, fileShare);
+            fileMirrors = getFileMirror(client, resourceId);
         }
 
         public List<FileSnapshotDetails> getSnapshots() {
@@ -592,6 +613,7 @@ public class AffectedResources extends Controller {
             super(resourceId, ResourceType.CONSISTENCY_GROUP);
             blockConsistencyGroup = getBlockConsistencyGroup(client, resourceId);
             volumes = getVolumes(client, blockConsistencyGroup);
+            snapshotSessionsCG = getSnapshotSessions();
         }
 
         public BlockConsistencyGroupDetails(ViPRCoreClient client, URI resourceId) {

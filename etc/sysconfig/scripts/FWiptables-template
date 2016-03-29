@@ -101,7 +101,7 @@ fw_custom_iptables() {
     for sourceNode in ${VDC_NODES_IPV6} ; do
         ip6tables -I input_ext -p tcp -i ${NIC_NAME} -s ${sourceNode} --dport ${INTERVDC_PORT} -j ACCEPT
         if [ "${back_compat_preyoda}" == "true" ]; then
-            iptables  -I input_ext -p tcp -i ${NIC_NAME} -s ${sourceNode} --dport ${INTERVDC_PORT_SSL} -j ACCEPT
+            ip6tables  -I input_ext -p tcp -i ${NIC_NAME} -s ${sourceNode} --dport ${INTERVDC_PORT_SSL} -j ACCEPT
         fi
         ip6tables -I input_ext -p udp -i ${NIC_NAME} -s ${sourceNode} -m multiport --dport ${INGRES_UDP_PORTS} -j ACCEPT
         ip6tables -I input_ext -p esp -i ${NIC_NAME} -s ${sourceNode} -j ACCEPT

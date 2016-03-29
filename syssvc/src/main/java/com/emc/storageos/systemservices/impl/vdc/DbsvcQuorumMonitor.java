@@ -10,6 +10,7 @@ import java.util.List;
 import java.util.Properties;
 
 import com.emc.storageos.coordinator.client.model.*;
+import com.emc.storageos.coordinator.client.model.DrOperationStatus.InterState;
 import com.emc.storageos.db.client.util.VdcConfigUtil;
 import org.apache.curator.framework.recipes.locks.InterProcessLock;
 import org.slf4j.Logger;
@@ -35,18 +36,20 @@ public class DbsvcQuorumMonitor implements Runnable {
     private String myNodeId;
     private CoordinatorClient coordinatorClient;
     private Properties dbCommonInfo;
+    private boolean isSingleNode;
 
     public DbsvcQuorumMonitor(String myNodeId, CoordinatorClient coordinatorClient, Properties dbCommonInfo) {
         this.drUtil = new DrUtil(coordinatorClient);
         this.myNodeId = myNodeId;
         this.coordinatorClient = coordinatorClient;
         this.dbCommonInfo = dbCommonInfo;
+        isSingleNode = drUtil.getLocalSite().getNodeCount() == 1;
     }
 
     @Override
     public void run() {
         String state = drUtil.getLocalCoordinatorMode(myNodeId);
-        if (!DrUtil.ZOOKEEPER_MODE_LEADER.equals(state)) {
+        if (!isSingleNode && !DrUtil.ZOOKEEPER_MODE_LEADER.equals(state)) {
             log.info("Current node is not ZK leader. Do nothing");
             return;
         }
@@ -62,9 +65,9 @@ public class DbsvcQuorumMonitor implements Runnable {
             if (siteState.equals(SiteState.STANDBY_SYNCED)) {
                 SiteMonitorResult monitorResult = updateSiteMonitorResult(standbySite);
                 long quorumLostTime = monitorResult.getDbQuorumLostSince();
-                if (quorumLostTime != 0 && System.currentTimeMillis() - quorumLostTime >=
-                        drUtil.getDrIntConfig(DrUtil.KEY_STANDBY_DEGRADE_THRESHOLD, STANDBY_DEGRADED_THRESHOLD)) {
-                    log.info("Db quorum lost over 15 minutes, degrading site {}", standbySite.getUuid());
+                int degradeThreshold = drUtil.getDrIntConfig(DrUtil.KEY_STANDBY_DEGRADE_THRESHOLD, STANDBY_DEGRADED_THRESHOLD);
+                if (quorumLostTime != 0 && System.currentTimeMillis() - quorumLostTime >= degradeThreshold) {
+                    log.info("Db quorum lost over {} ms, degrading site {}", degradeThreshold, standbySite.getUuid());
                     standbySite.setLastLostQuorumTime(quorumLostTime);
                     sitesToDegrade.add(standbySite);
                 }
@@ -94,6 +97,7 @@ public class DbsvcQuorumMonitor implements Runnable {
                 standbySite.setState(SiteState.STANDBY_DEGRADING);
                 coordinatorClient.persistServiceConfiguration(standbySite.toConfiguration());
                 drUtil.updateVdcTargetVersion(standbySite.getUuid(), SiteInfo.DR_OP_DEGRADE_STANDBY, vdcVersion);
+                drUtil.recordDrOperationStatus(standbySite.getUuid(), InterState.DEGRADING_STANDBY);
             }
 
             // Update all other connected sites
@@ -137,11 +141,14 @@ public class DbsvcQuorumMonitor implements Runnable {
             log.info("All the dbsvc/geodbsvc instances are back. Rejoining site {}", standbySite.getUuid());
 
             // in seconds
-            int gcGracePeriod = DbConfigConstants.DEFAULT_GC_GRACE_PERIOD;
+            int gcGracePeriodInSeconds = DbConfigConstants.DEFAULT_GC_GRACE_PERIOD;
             String strVal = dbCommonInfo.getProperty(DbClientImpl.DB_CASSANDRA_INDEX_GC_GRACE_PERIOD);
             if (strVal != null) {
-                gcGracePeriod = Integer.parseInt(strVal);
+                gcGracePeriodInSeconds = Integer.parseInt(strVal);
             }
+            long gcGracePeriodInMillis = drUtil.getDrIntConfig(DrUtil.KEY_DB_GC_GRACE_PERIOD, gcGracePeriodInSeconds * 1000);
+            log.info("Current db gc grace period is {} seconds", gcGracePeriodInMillis);
+            
             SiteMonitorResult monitorResult = coordinatorClient.getTargetInfo(siteId, SiteMonitorResult.class);
 
             InterProcessLock lock;
@@ -156,12 +163,13 @@ public class DbsvcQuorumMonitor implements Runnable {
                 long vdcVersion = DrUtil.newVdcConfigVersion();
 
                 // Update version on the target standby
-                if ((System.currentTimeMillis() - monitorResult.getDbQuorumLostSince()) / 1000 >= gcGracePeriod
+                if ((System.currentTimeMillis() - monitorResult.getDbQuorumLostSince()) >= gcGracePeriodInMillis
                         + drUtil.getDrIntConfig(DrUtil.KEY_STANDBY_DEGRADE_THRESHOLD, STANDBY_DEGRADED_THRESHOLD) / 1000) {
                     log.error("site {} has been degraded for too long, we will re-init the target standby", siteId);
                     standbySite.setState(SiteState.STANDBY_SYNCING);
                     coordinatorClient.persistServiceConfiguration(standbySite.toConfiguration());
-                    drUtil.updateVdcTargetVersion(standbySite.getUuid(), SiteInfo.DR_OP_CHANGE_DATA_REVISION, vdcVersion);
+                    long dataRevision = System.currentTimeMillis();
+                    drUtil.updateVdcTargetVersion(standbySite.getUuid(), SiteInfo.DR_OP_CHANGE_DATA_REVISION, vdcVersion, dataRevision);
                 } else {
                     drUtil.updateVdcTargetVersion(standbySite.getUuid(), SiteInfo.DR_OP_REJOIN_STANDBY, vdcVersion);
                 }

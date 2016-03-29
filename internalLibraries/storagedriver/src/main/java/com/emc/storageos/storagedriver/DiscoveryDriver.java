@@ -7,6 +7,7 @@ package com.emc.storageos.storagedriver;
 
 import java.util.List;
 
+import com.emc.storageos.storagedriver.model.StorageHostComponent;
 import org.apache.commons.lang.mutable.MutableInt;
 
 import com.emc.storageos.storagedriver.model.StoragePool;
@@ -56,6 +57,17 @@ public interface DiscoveryDriver extends StorageDriver{
      * @return
      */
     public DriverTask discoverStoragePorts(StorageSystem storageSystem, List<StoragePort> storagePorts);
+
+
+    /**
+     * Discover host components which are part of storage system
+     *
+     * @param storageSystem Type: Input.
+     * @param embeddedStorageHostComponents Type: Output.
+     * @return
+     */
+    public DriverTask discoverStorageHostComponents(StorageSystem storageSystem, List<StorageHostComponent> embeddedStorageHostComponents);
+
 
     /**
      * Discover storage volumes

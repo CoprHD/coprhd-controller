@@ -5,7 +5,7 @@
   #{breadcrumb.item active:true}${copySet}#{/breadcrumb.item}
 #{/breadcrumb.container}
 
-#{DataTable.header titleKey:'application.copy.volumes' /}
+#{DataTable.header titleKey:'applicationGroup.copy.volumes' /}
 #{DataTable.table id:'volumes',
                   dataTable:dataTable,
                   source:@getAssociatedVolumesJSON(copyLabel),
@@ -13,6 +13,10 @@
 
 <script type="text/javascript">
 function renderLink(o, val) {
-    return val;
+	var data = o.aData;
+	var url = #{jsAction @resources.BlockVolumes.volume(':id') /};
+    var href = url(data);
+    
+    return "<a href='"+href+"'>" + val + "</a>";
 }
 </script>

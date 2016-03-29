@@ -8,6 +8,7 @@ import java.net.URI;
 import java.util.List;
 
 import com.emc.storageos.Controller;
+import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.volumecontroller.ControllerException;
 
 public interface BlockOrchestrationController extends Controller {
@@ -76,4 +77,18 @@ public interface BlockOrchestrationController extends Controller {
      */
     public abstract void changeVirtualArray(List<VolumeDescriptor> volumeDescriptors,
             String taskId) throws ControllerException;
+    
+    /**
+     * Restore contents the source volumes from the full copies with the passed
+     * URIs.
+     * 
+     * @param storage The URI of the storage system.
+     * @param fullCopyURIs The URIs of the full copies to be restored.
+     * @param opId The unique operation Id.
+     * 
+     * @throws InternalException When an exception occurs restoring the full
+     *             copies.
+     */
+    public void restoreFromFullCopy(URI storage, List<URI> fullCopyURIs, String opId)
+            throws InternalException;
 }

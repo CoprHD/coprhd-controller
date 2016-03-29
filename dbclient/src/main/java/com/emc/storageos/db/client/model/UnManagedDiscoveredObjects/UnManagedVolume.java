@@ -60,6 +60,7 @@ public class UnManagedVolume extends UnManagedDiscoveredObject {
         HAS_REPLICAS("hasReplicas", "hasReplicas"),
         IS_VOLUME_ADDED_TO_CONSISTENCYGROUP("isVolumeAddedToCG", "isVolumeAddedToCG"),
         IS_INGESTABLE("IsIngestable", "IsIngestable"),
+        IS_NOT_INGESTABLE_REASON("IsNotIngestableReason", "IsNotIngestableReason"),
         REMOTE_MIRRORING("remoteMirror", "remoteMirror"),
         IS_VPLEX_VOLUME("isVplexVolume", "isVplexVolume"),
         IS_VPLEX_BACKEND_VOLUME("isVplexBackendVolume", "isVplexBackendVolume"),

@@ -99,6 +99,7 @@ fi
 /etc/genconfig.d/boot.manifest
 /etc/gentmpl
 /etc/systool
+/etc/datatool
 /etc/diagtool
 /etc/powerofftool
 /etc/ipsectool

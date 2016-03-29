@@ -98,6 +98,8 @@ public class DbServiceImpl implements DbService {
     private Boolean backCompatPreYoda = false;
     
     @Autowired
+    private DbCompactWorker compactWorker;
+    @Autowired
     private DbManager dbMgr;
 
     /**
@@ -535,10 +537,9 @@ public class DbServiceImpl implements DbService {
         //
         // Make sure add-vdc/add-standby passed when you would remove this option in the future.
         //
-        // Disable it for standby site. We don't want to be too aggressive
-        if (!_schemaUtil.isStandby()) {
-            System.setProperty("cassandra.load_ring_state", "false");
-        }
+        // We need make sure majority local nodes are added as seed nodes. Otherwise cassandra may not see other nodes if it loses
+        // connection to other sites
+        System.setProperty("cassandra.load_ring_state", "false");
         
         // Nodes in new data center should not auto-bootstrap.  
         // See https://docs.datastax.com/en/cassandra/2.0/cassandra/operations/ops_add_dc_to_cluster_t.html
@@ -820,6 +821,12 @@ public class DbServiceImpl implements DbService {
             }
         }
         startBackgroundDetectorTask();
+        startBackgroundCompactTask();
+        
+    }
+    
+    private void startBackgroundCompactTask() {
+    	this.compactWorker.start();
     }
 
     /**
@@ -889,15 +896,6 @@ public class DbServiceImpl implements DbService {
 
     @Override
     public void stop() {
-        stop(false);
-    }
-
-    @Override
-    public void stopWithDecommission() {
-        stop(true);
-    }
-
-    private void stop(Boolean decommission) {
         if (_log.isInfoEnabled()) {
             _log.info("Stopping DB service...");
         }
@@ -906,15 +904,7 @@ public class DbServiceImpl implements DbService {
             _gcExecutor.stop();
         }
 
-        if (decommission && cassandraInitialized) {
-            flushCassandra();
-        }
-
         _exe.shutdownNow();
-
-        if (cassandraInitialized) {
-            _service.stop();
-        }
 
         if (_jmxServer != null) {
             _jmxServer.stop();
@@ -923,28 +913,6 @@ public class DbServiceImpl implements DbService {
         if (_log.isInfoEnabled()) {
             _log.info("DB service stopped...");
         }
-    }
-
-    /**
-     * Shut down gossip/thrift and then drain
-     */
-    private void flushCassandra() {
-        StorageServiceMBean svc = StorageService.instance;
-
-        if (svc.isInitialized()) {
-            svc.stopGossiping();
-        }
-
-        if (svc.isRPCServerRunning()) {
-            svc.stopRPCServer();
-        }
-
-        try {
-            svc.drain();
-        } catch (Exception e) {
-            _log.error("Fail to drain:", e);
-        }
-
     }
 
     /**

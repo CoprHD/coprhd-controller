@@ -20,6 +20,7 @@
         <property name="statusChecker" ref="statusChecker"/>
         <property name="drUtil" ref="drUtil"/>
         <property name="dbCommonInfo" ref="dbcommoninfo"/>
+        <property name="backCompatPreYoda" ref="backCompatPreYoda"/>
     </bean>
     
     <import resource="classpath:dbclient-conf.xml"/>

@@ -5,7 +5,13 @@
 package com.emc.storageos.api.service.impl.resource.utils;
 
 import java.io.IOException;
-import java.util.*;
+import java.lang.reflect.Field;
+import java.lang.reflect.Method;
+import java.util.Calendar;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.Map.Entry;
 import java.util.regex.Pattern;
 
@@ -25,11 +31,13 @@ import org.codehaus.jettison.json.JSONException;
 import org.codehaus.jettison.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.w3c.dom.DOMException;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.ls.DOMImplementationLS;
 import org.w3c.dom.ls.LSSerializer;
 
+import com.emc.storageos.cinder.model.UsageAndLimits;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 
 public class CinderApiUtils {
@@ -128,8 +136,11 @@ public class CinderApiUtils {
      * @param map Hash Map
      * @param root root Element Name
      * @return XML object in String form
+     * @throws IllegalAccessException 
+     * @throws IllegalArgumentException 
+     * @throws DOMException 
      */
-    public static Object convertMapToXML(Map<String, String> map, String root) {
+    public static Object convertMapToXML(Map<String, ? extends Object> map, String root,Class<?> clazz) throws DOMException, IllegalArgumentException, IllegalAccessException {
         DocumentBuilderFactory documentBuilderFactory = DocumentBuilderFactory.newInstance();
         DocumentBuilder documentBuilder;
         Document document = null;
@@ -140,9 +151,38 @@ public class CinderApiUtils {
             Element rootElement = document.createElement(root);
             if (null != rootElement) {
                 document.appendChild(rootElement);
-                for (Entry<String, String> entry : map.entrySet()) {
+                for (Entry<String, ? extends Object> entry : map.entrySet()) {
                     Element mapElement = document.createElement(entry.getKey());
-                    mapElement.setTextContent(entry.getValue());
+                    
+                    if(entry.getValue() instanceof String){
+                    	mapElement.setTextContent(entry.getValue().toString());	
+                    }
+                    else{                    	
+                    	Method[] methods = clazz.getDeclaredMethods();
+ 	                   
+                    	String getterPrefix = "get";
+                    	
+	                	for ( Method method : methods  ) {	            
+	                		String methodName = method.getName();
+	                		if(methodName.startsWith("get")){
+		                		
+		                		String fieldName = methodName.substring(getterPrefix.length(),getterPrefix.length()+1).toLowerCase();
+		                		fieldName = fieldName + methodName.substring(getterPrefix.length()+1);
+		                		Element subElement = document.createElement(fieldName);
+		                	
+		                		try {	                												
+									subElement.setTextContent(String.valueOf(method.invoke(clazz.cast(entry.getValue()))));
+								} catch (SecurityException e) {
+									_log.info("The getter method {} for the field led to security exception {}", methodName);
+								}catch (Exception e) {
+									_log.info("The getter method {} for the field failed with exception {}", methodName, e.toString());
+								}
+		                				                			                		
+		                		mapElement.appendChild(subElement);
+	                		}
+	                	}	                			                   
+                    }
+                	                    
                     rootElement.appendChild(mapElement);
                 }
             }
@@ -157,6 +197,8 @@ public class CinderApiUtils {
 
     }
 
+      
+    
     /**
      * Create error message according to OpenStack environment in JSON
      * 
@@ -203,5 +245,4 @@ public class CinderApiUtils {
     public static String timeFormat(Calendar cal) {
         return new java.text.SimpleDateFormat("EEE, d MMM yyyy HH:mm:ss Z").format(cal.getTimeInMillis());
     }
-
 }

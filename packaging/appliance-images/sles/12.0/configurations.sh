@@ -143,6 +143,17 @@ adg_KIWIMods() {
      xsed $FileArchiveBuilder 's/--exclude=image/--exclude=\.\/image/'
     fi
 
+    FileLinuxRC="$kiwiPath/KIWILinuxRC.sh"
+    if [ -f $FileLinuxRC ]; then
+     echo "Modifying to fix for FIPS firstboot issue $FileLinuxRC"
+     linenum=`grep -n "# create grub2 configuration" $FileLinuxRC | cut -d ":" -f1`
+     let linenum=$linenum+2
+     sed -i."bak" "$linenum i \    /usr/sbin/haveged" $FileLinuxRC
+     linenum=`grep -n "# reset bind mount to standard boot dir" $FileLinuxRC | cut -d ":" -f1`
+     let linenum=$linenum+5
+     sed -i "$linenum i \    mv /\$bootdir/tmp/.vmlinuz* /\$bootdir" $FileLinuxRC
+    fi
+
     #######################################################
     # Modify zypper cache behaviour
     sed -i "s|my @cache = (\"/var/cache/kiwi\");|my \$packageCache = (dirname \$root) . \"/packages\";\n\tmy @cache = (\"/var/cache/kiwi\", \$packageCache);|" $kiwiPath/KIWIRoot.pm
@@ -883,10 +894,10 @@ fix_enable_java_sslv3() {
         xsed /usr/lib64/jvm/java-1.7.0-oracle/jre/lib/security/java.security 's/^jdk.tls.disabledAlgorithms=SSLv3/\#jdk.tls.disabledAlgorithms=SSLv3/'
         xsed /usr/lib64/jvm/java-1.7.0-oracle/jre/lib/security/java.security 's/^jdk.certpath.disabledAlgorithms=MD2, RSA keySize < 1024/jdk.certpath.disabledAlgorithms=MD2/'
     fi
-	if [ -f /usr/lib64/jvm/java-1.8.0-oracle/jre/lib/security/java.security ] ; then
+    if [ -f /usr/lib64/jvm/java-1.8.0-oracle/jre/lib/security/java.security ] ; then
         cp -p /usr/lib64/jvm/java-1.8.0-oracle/jre/lib/security/java.security /usr/lib64/jvm/java-1.8.0-oracle/jre/lib/security/java.security.orig
         xsed /usr/lib64/jvm/java-1.8.0-oracle/jre/lib/security/java.security 's/^jdk.tls.disabledAlgorithms=SSLv3/\#jdk.tls.disabledAlgorithms=SSLv3/'
-        xsed /usr/lib64/jvm/java-1.8.0-oracle/jre/lib/security/java.security 's/^jdk.certpath.disabledAlgorithms=MD2, MD5, RSA keySize < 1024/jdk.certpath.disabledAlgorithms=MD2/'
+        xsed /usr/lib64/jvm/java-1.8.0-oracle/jre/lib/security/java.security 's/^jdk.certpath.disabledAlgorithms=MD2, RSA keySize < 1024/jdk.certpath.disabledAlgorithms=MD2/'
     fi
 }
 

@@ -12,6 +12,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import com.emc.storageos.db.client.model.BlockObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -202,7 +203,7 @@ public class ExternalDeviceMaskingOrchestrator extends AbstractMaskingFirstOrche
                     // Have to add volumes to user created volumes set in the mask since
                     // generateExportMaskAddVolumesWorkflow() call below does not do this.
                     for (URI volumeUri : volumeMap.keySet()) {
-                        Volume volume = (Volume) _dbClient.queryObject(volumeUri);
+                        BlockObject volume = (BlockObject) _dbClient.queryObject(volumeUri);
                         exportMask.addToUserCreatedVolumes(volume);
                     }
                     _dbClient.updateObject(exportMask);
@@ -269,28 +270,5 @@ public class ExternalDeviceMaskingOrchestrator extends AbstractMaskingFirstOrche
                 taskCompleter.ready(_dbClient);
             }
         }
-    }
-
-    @Override
-    public void exportGroupAddInitiators(URI storageURI, URI exportGroupURI, List<URI> initiatorURIs, String token)
-            throws Exception {
-        /* Map new initiators to existing export masks in the export group based on common compute resource (each mask belongs to
-         * specific compute resource and there can be only one mask for storage array and compute resource).
-         * Add initiators to the corresponding export masks found in the mapping.
-         * For initiators which do not have corresponding export mask we will create new export mask for compute resource and
-         * each storage array in the group.
-         *
-         */
-        // Todo: tbd.
-        throw DeviceControllerException.exceptions
-                .blockDeviceOperationNotSupported();
-    }
-
-    @Override
-    public void exportGroupRemoveInitiators(URI storageURI, URI exportGroupURI,
-                                            List<URI> initiatorURIs, String token) throws Exception {
-        // Todo: tbd.
-        throw DeviceControllerException.exceptions
-                .blockDeviceOperationNotSupported();
     }
 }

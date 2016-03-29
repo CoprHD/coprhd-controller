@@ -18,6 +18,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.UUID;
 
 import javax.ws.rs.core.SecurityContext;
 import javax.ws.rs.core.UriInfo;
@@ -25,6 +26,7 @@ import javax.ws.rs.core.UriInfo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.emc.storageos.api.mapper.TaskMapper;
 import com.emc.storageos.api.service.authorization.PermissionsHelper;
 import com.emc.storageos.api.service.impl.resource.ArgValidator;
 import com.emc.storageos.db.client.DbClient;
@@ -39,22 +41,32 @@ import com.emc.storageos.db.client.model.BlockSnapshotSession;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.DataObject.Flag;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.Type;
+import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.Task;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.Volume;
+import com.emc.storageos.db.client.model.VolumeGroup;
 import com.emc.storageos.db.client.model.VplexMirror;
 import com.emc.storageos.db.client.model.util.TaskUtils;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
+import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.client.util.ResourceOnlyNameGenerator;
 import com.emc.storageos.db.client.util.StringSetUtil;
+import com.emc.storageos.model.ResourceOperationTypeEnum;
+import com.emc.storageos.model.TaskResourceRep;
 import com.emc.storageos.security.authentication.StorageOSUser;
 import com.emc.storageos.security.authorization.ACL;
 import com.emc.storageos.security.authorization.Role;
+import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
+import com.emc.storageos.util.VPlexUtil;
+import com.emc.storageos.volumecontroller.impl.ControllerUtils;
 import com.emc.storageos.volumecontroller.impl.smis.SmisConstants;
 import com.google.common.base.Joiner;
+import com.google.common.collect.HashBasedTable;
+import com.google.common.collect.Table;
 
 /**
  * Utility class to hold generic, reusable block service methods
@@ -453,6 +465,75 @@ public class BlockServiceUtils {
     }
 
     /**
+     * Creates a Task on given Volume with Error state
+     *
+     * @param opr the opr
+     * @param volume the volume
+     * @param sc the sc
+     * @return the failed task for volume
+     */
+    public static TaskResourceRep createFailedTaskOnVolume(DbClient dbClient,
+            Volume volume, ResourceOperationTypeEnum opr, ServiceCoded sc) {
+        String taskId = UUID.randomUUID().toString();
+        Operation op = new Operation();
+        op.setResourceType(opr);
+        dbClient.createTaskOpStatus(Volume.class, volume.getId(), taskId, op);
+
+        volume = dbClient.queryObject(Volume.class, volume.getId());
+        op = volume.getOpStatus().get(taskId);
+        op.error(sc);
+        volume.getOpStatus().updateTaskStatus(taskId, op);
+        dbClient.updateObject(volume);
+        return TaskMapper.toTask(volume, taskId, op);
+    }
+
+    /**
+     * Creates a Task on given CG with Error state
+     *
+     * @param opr the opr
+     * @param cg the consistency group
+     * @param sc the sc
+     * @return the failed task for cg
+     */
+    public static TaskResourceRep createFailedTaskOnCG(DbClient dbClient,
+            BlockConsistencyGroup cg, ResourceOperationTypeEnum opr, ServiceCoded sc) {
+        String taskId = UUID.randomUUID().toString();
+        Operation op = new Operation();
+        op.setResourceType(opr);
+        dbClient.createTaskOpStatus(BlockConsistencyGroup.class, cg.getId(), taskId, op);
+
+        cg = dbClient.queryObject(BlockConsistencyGroup.class, cg.getId());
+        op = cg.getOpStatus().get(taskId);
+        op.error(sc);
+        cg.getOpStatus().updateTaskStatus(taskId, op);
+        dbClient.updateObject(cg);
+        return TaskMapper.toTask(cg, taskId, op);
+    }
+
+    /**
+     * Creates a Task on given snapshot session with Error state
+     *
+     * @param opr the opr
+     * @param session the snap session
+     * @param sc the sc
+     * @return the failed task for snap session
+     */
+    public static TaskResourceRep createFailedTaskOnSnapshotSession(DbClient dbClient,
+            BlockSnapshotSession session, ResourceOperationTypeEnum opr, ServiceCoded sc) {
+        String taskId = UUID.randomUUID().toString();
+        Operation op = new Operation();
+        op.setResourceType(opr);
+        dbClient.createTaskOpStatus(BlockSnapshotSession.class, session.getId(), taskId, op);
+
+        session = dbClient.queryObject(BlockSnapshotSession.class, session.getId());
+        op = session.getOpStatus().get(taskId);
+        op.error(sc);
+        session.getOpStatus().updateTaskStatus(taskId, op);
+        dbClient.updateObject(session);
+        return TaskMapper.toTask(session, taskId, op);
+    }
+
+    /**
      * Given a Tenant and DataObject references, check if any of the DataObjects have pending
      * Tasks against them. If so, generate an error that this cannot be deleted.
      *
@@ -499,6 +580,164 @@ public class BlockServiceUtils {
                     "Attempted to execute operation against these resources while there are tasks pending against them: %s",
                     pendingListStr));
             throw APIException.badRequests.cannotExecuteOperationWhilePendingTask(pendingListStr);
+        }
+    }
+
+    /**
+     * Group volumes by storage system and replication group
+     *
+     * @param volumeUris List of volumes (part or all) in a volume group
+     * @param cgUri
+     * @param dbClient
+     * @return table with storage URI, replication group name, and volumes
+     */
+    public static Table<URI, String, List<Volume>> getReplicationGroupVolumes(List<URI> volumeUris, URI cgUri, DbClient dbClient, UriInfo uriInfo) {
+        // Group volumes by storage system and replication group
+        Table<URI, String, List<Volume>> storageRgToVolumes = HashBasedTable.create();
+        for (URI volumeUri : volumeUris) {
+            ArgValidator.checkFieldUriType(volumeUri, Volume.class, "volume");
+            Volume volume = dbClient.queryObject(Volume.class, volumeUri);
+            ArgValidator.checkEntity(volume, volumeUri, isIdEmbeddedInURL(volumeUri, uriInfo));
+            if (!volume.isInCG() || !volume.getConsistencyGroup().equals(cgUri)) {
+                throw APIException.badRequests.invalidParameterSourceVolumeNotInGivenConsistencyGroup(volumeUri, cgUri);
+            }
+
+            String label = volume.getLabel();
+            boolean isVPlex = volume.isVPlexVolume(dbClient);
+            if (isVPlex) {
+                // get backend source volume to get RG name
+                volume = VPlexUtil.getVPLEXBackendVolume(volume, true, dbClient);
+                if (volume == null || volume.getInactive()) {
+                    throw APIException.badRequests.noBackendVolume(label);
+                }
+            }
+
+            String rgName = volume.getReplicationGroupInstance();
+            if (NullColumnValueGetter.isNullValue(rgName)) {
+                throw APIException.badRequests.noRepGroupInstance(volume.getLabel());
+            }
+
+            URI storage = volume.getStorageController();
+            if (!storageRgToVolumes.contains(storage, rgName)) {
+                List<Volume> volumes = ControllerUtils.getVolumesPartOfRG(storage, rgName, dbClient);
+                if (isVPlex) {
+                    List<Volume> vplexVolumes = new ArrayList<Volume>();
+                    for (Volume backendVol : volumes) {
+                        Volume vplexVol = Volume.fetchVplexVolume(dbClient, backendVol);
+                        if (vplexVol == null || vplexVol.getInactive()) {
+                            throw APIException.badRequests.noVPLEXVolume(backendVol.getLabel());
+                        }
+                        vplexVolumes.add(vplexVol);
+                    }
+
+                    volumes = vplexVolumes;
+                }
+
+                storageRgToVolumes.put(storage,  rgName, volumes);
+            }
+        }
+
+        return storageRgToVolumes;
+    }
+
+    /**
+     * Group CG volumes by storage system and replication group
+     *
+     * @param srcVolumes List of all volumes in a CG
+     * @param dbClient
+     * @return table with storage URI, replication group name, and volumes
+     */
+    public static Table<URI, String, List<Volume>> getReplicationGroupVolumes(List<Volume> srcVolumes, DbClient dbClient) {
+        // Group volumes by storage system and replication group
+        Table<URI, String, List<Volume>> storageRgToVolumes = HashBasedTable.create();
+        for (Volume volume : srcVolumes) {
+            String rgName = null;
+            URI storage = null;
+            if (volume.isVPlexVolume(dbClient)) {
+                // get backend source volume to get RG name
+                Volume backedVol = VPlexUtil.getVPLEXBackendVolume(volume, true, dbClient);
+                if (backedVol != null) {
+                    rgName = backedVol.getReplicationGroupInstance();
+                    storage = backedVol.getStorageController();
+                }
+            } else {
+                rgName = volume.getReplicationGroupInstance();
+                storage = volume.getStorageController();
+            }
+
+            if (NullColumnValueGetter.isNullValue(rgName)) {
+                throw APIException.badRequests.noRepGroupInstance(volume.getLabel());
+            }
+
+            List<Volume> volumes = storageRgToVolumes.get(storage, rgName);
+            if (volumes == null) {
+                volumes = new ArrayList<Volume>();
+                storageRgToVolumes.put(storage, rgName, volumes);
+            }
+            volumes.add(volume);
+        }
+
+        return storageRgToVolumes;
+    }
+
+    public static BlockSnapshot querySnapshotResource(URI snapshotURI, UriInfo uriInfo, DbClient dbClient) {
+        ArgValidator.checkFieldUriType(snapshotURI, BlockSnapshot.class, "snapshots");
+        BlockSnapshot snapshot = dbClient.queryObject(BlockSnapshot.class, snapshotURI);
+        ArgValidator.checkEntity(snapshot, snapshotURI,
+                BlockServiceUtils.isIdEmbeddedInURL(snapshotURI, uriInfo), true);
+        return snapshot;
+    }
+
+    /**
+     * validate volume with no replica
+     *
+     * @param volume
+     * @param application
+     * @param dbClient
+     */
+    public static void validateVolumeNoReplica(Volume volume, VolumeGroup application, DbClient dbClient) {
+        // check if the volume has any replica
+        // no need to check backing volumes for vplex virtual volumes because for full copies
+        // there will be a virtual volume for the clone
+        boolean hasReplica = volume.getFullCopies() != null && !volume.getFullCopies().isEmpty() ||
+                    volume.getMirrors() != null && !volume.getMirrors().isEmpty();
+
+        // check for snaps only if no full copies
+        if (!hasReplica) {
+            Volume snapSource = volume;
+            if (volume.isVPlexVolume(dbClient)) {
+                snapSource = VPlexUtil.getVPLEXBackendVolume(volume, true, dbClient);
+                if (snapSource == null || snapSource.getInactive()) {
+                    return;
+                }
+            }
+
+            hasReplica = ControllerUtils.checkIfVolumeHasSnapshot(snapSource, dbClient);
+
+            // check for VMAX3 individual session and group session
+            if (!hasReplica && snapSource.isVmax3Volume(dbClient)) {
+                hasReplica = ControllerUtils.checkIfVolumeHasSnapshotSession(snapSource.getId(), dbClient);
+
+                String rgName = snapSource.getReplicationGroupInstance();
+                if (!hasReplica && NullColumnValueGetter.isNotNullValue(rgName)) {
+                    URI cgURI = snapSource.getConsistencyGroup();
+                    List<BlockSnapshotSession> sessionsList = CustomQueryUtility.queryActiveResourcesByConstraint(dbClient,
+                            BlockSnapshotSession.class,
+                            ContainmentConstraint.Factory.getBlockSnapshotSessionByConsistencyGroup(cgURI));
+
+                    for (BlockSnapshotSession session : sessionsList) {
+                        if (rgName.equals(session.getReplicationGroupInstance())) {
+                            hasReplica = true;
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+
+        if (hasReplica) {
+            throw APIException.badRequests.volumeGroupCantBeUpdated(application.getLabel(),
+                    String.format("the volume %s has replica. please remove all replicas from the volume", volume.getLabel()));
         }
     }
 }

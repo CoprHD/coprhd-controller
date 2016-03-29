@@ -27,6 +27,11 @@ public @interface RelationIndex {
 
     // type of the referenced object
     Class<? extends DataObject> type();
+    /*
+     * types of the referenced objects if has multiple dependencies, 
+     * it would be ignored if type set to concrete model class
+     */
+    Class<? extends DataObject>[] types() default {};
 
     // deactivate object when last referenced object is removed
     boolean deactivateIfEmpty() default false;

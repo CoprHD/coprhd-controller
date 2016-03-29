@@ -70,6 +70,18 @@ public interface ObjectStorageDevice {
      */
     BiosCommandResult doDeleteBucketACL(StorageSystem storageObj, Bucket bucket, ObjectDeviceInputOutput objectArgs, String taskId) throws ControllerException;
     
+
+    /**
+     * Sync bucket ACL with the Object storage
+     * @param storageObj
+     * @param bucket
+     * @param objectArgs
+     * @param taskId
+     * @return
+     * @throws ControllerException
+     */
+    BiosCommandResult doSyncBucketACL(StorageSystem storageObj, Bucket bucket, ObjectDeviceInputOutput objectArgs, String taskId) throws ControllerException;
+
     /**
      * Get user secret keys
      * @param storageObj
@@ -89,4 +101,5 @@ public interface ObjectStorageDevice {
      */
     ObjectUserSecretKey doAddUserSecretKey(StorageSystem storageObj, String userId, String secretKey) throws InternalException;
    
+
 }

@@ -4,15 +4,14 @@
 # All Rights Reserved
 #
 
+function updateOVF
+{
+  OVF=$2
 
-SCRIPT=$0
-OVF=$1
-
-cat ${OVF} | head -n -2 > ${OVF}.tmp
-
-sed -i "s|<VirtualHardwareSection>|<VirtualHardwareSection ovf:transport=\"iso,com.vmware.guestInfo\" ovf:required=\"false\">|g" ${OVF}.tmp
-sed -i "s|<vssd:VirtualSystemType>virtualbox-[0-9a-z.]\{1,\}</vssd:VirtualSystemType>|<vssd:VirtualSystemType>vmx-07</vssd:VirtualSystemType>|g" ${OVF}.tmp
-cat >> ${OVF}.tmp <<EOF
+  cat ${OVF} | head -n -2 > ${OVF}.tmp
+  sed -i "s|<VirtualHardwareSection>|<VirtualHardwareSection ovf:transport=\"iso\" ovf:required=\"false\">|g" ${OVF}.tmp
+  sed -i "s|<vssd:VirtualSystemType>virtualbox-[0-9a-z.]\{1,\}</vssd:VirtualSystemType>|<vssd:VirtualSystemType>vmx-07</vssd:VirtualSystemType>|g" ${OVF}.tmp
+  cat >> ${OVF}.tmp <<EOF
     <ProductSection ovf:class="vm" ovf:required="false">
       <Info>VM specific properties</Info>
       <Property ovf:key="vmname" ovf:type="string" ovf:value="SetupVM"/>
@@ -72,5 +71,6 @@ cat >> ${OVF} <<EOF
       </Item>
 EOF
 
-cat ${OVF}.tmp | tail -n +${TAIL} >> ${OVF}
-rm ${OVF}.tmp
+  cat ${OVF}.tmp | tail -n +${TAIL} >> ${OVF}
+  rm ${OVF}.tmp
+}

@@ -20,6 +20,7 @@ import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StorageProvider;
 import com.emc.storageos.db.client.model.StorageSystem;
+import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.xtremio.restapi.XtremIOClient;
 import com.emc.storageos.xtremio.restapi.XtremIOClientFactory;
 import com.emc.storageos.xtremio.restapi.XtremIOConstants;
@@ -39,6 +40,7 @@ public class XtremIOProvUtils {
 
     private static final String DOT_OPERATOR = "\\.";
     private static final Integer XIO_MIN_4X_VERSION = 4;
+    private static final Integer XIO_4_0_2_VERSION = 402;
 
     private static final Set<String> SUPPORTED_HOST_OS_SET = new HashSet<String>();
 
@@ -347,6 +349,11 @@ public class XtremIOProvUtils {
             // Find the # volumes in folder, if the Volume folder is empty,
             // then delete the folder too
             XtremIOTag tag = client.getTagDetails(volumeFolderName, XTREMIO_ENTITY_TYPE.Volume.name(), xioClusterName);
+            if (tag == null) {
+                _log.info("Tag {} not found on the array", volumeFolderName);
+                return;
+            }
+            _log.info("Got back tag details {}", tag.toString());
             String numOfVols = isVersion2 ? tag.getNumberOfDirectObjs() : tag.getNumberOfVolumes();
             int numberOfVolumes = Integer.parseInt(numOfVols);
             if (numberOfVolumes == 0) {
@@ -457,10 +464,26 @@ public class XtremIOProvUtils {
     }
 
     /**
+     * Check if the version is greater than or equal to 4.0.2
+     *
+     * @param version XIO storage system firmware version
+     * @return true if the version is 4.0.2 or greater
+     */
+    public static boolean isXtremIOVersion402OrGreater(String version) {
+        if (NullColumnValueGetter.isNotNullValue(version)) {
+            // the version will be in the format - 4.0.2-80_ndu.
+            String xioVersion = version.replace(".", "").substring(0, 3);
+            return (Integer.valueOf(xioVersion) >= XIO_4_0_2_VERSION);
+        }
+
+        return false;
+    }
+
+    /**
      * Returns the XtremIO supported OS based on the initiator Host OS type.
-     * 
+     *
      * From API Doc: solaris, aix, windows, esx, other, linux, hpux
-     * 
+     *
      * @param hostURI - Host URI of the Initiator.
      * @return operatingSystem type.
      */

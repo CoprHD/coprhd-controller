@@ -8,24 +8,19 @@
     },
     
     applicationSite:{
-      type:"assetType.vipr.applicationVirtualArray",
-      required:"false"
+      type:"assetType.vipr.applicationVirtualArray"
     },
     
-    name:{
+    applicationSubGroup:{
+      type:"assetType.vipr.replicationGroup",
+      select:"many"
+    },
+    
+    applicationCopySets:{
       type:"text",
       validation:{
         min:2,
         max:128
-      }
-    },
-    
-    count: {
-      type:"number",
-      initialValue:1,
-      validation:{
-        min:1,
-        max:100
       }
     }
   }

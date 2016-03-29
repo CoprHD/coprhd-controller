@@ -6,7 +6,7 @@ package com.emc.vipr.client.core;
 
 import static com.emc.vipr.client.impl.jersey.ClientUtils.addQueryParam;
 import static com.emc.vipr.client.system.impl.PathConstants.BACKUP_CREATE_URL;
-import static com.emc.vipr.client.system.impl.PathConstants.BACKUP_EXTERNAL_DETAIL_URL;
+import static com.emc.vipr.client.system.impl.PathConstants.BACKUP_INFO_URL;
 import static com.emc.vipr.client.system.impl.PathConstants.BACKUP_EXTERNAL_URL;
 import static com.emc.vipr.client.system.impl.PathConstants.BACKUP_PULL_CANCEL_URL;
 import static com.emc.vipr.client.system.impl.PathConstants.BACKUP_PULL_URL;
@@ -22,7 +22,7 @@ import com.emc.vipr.model.sys.backup.BackupRestoreStatus;
 import com.emc.vipr.model.sys.backup.BackupSets;
 import com.emc.vipr.model.sys.backup.BackupSets.BackupSet;
 import com.emc.vipr.model.sys.backup.BackupUploadStatus;
-import com.emc.vipr.model.sys.backup.ExternalBackupInfo;
+import com.emc.vipr.model.sys.backup.BackupInfo;
 import com.emc.vipr.model.sys.backup.ExternalBackups;
 
 public class Backup {
@@ -46,14 +46,20 @@ public class Backup {
         return client.get(ExternalBackups.class, BACKUP_EXTERNAL_URL);
     }
 
-    public ExternalBackupInfo getExternalBackup(String name) {
-        UriBuilder builder = client.uriBuilder(BACKUP_EXTERNAL_DETAIL_URL);
-        addQueryParam(builder, "name", name);
-        return client.getURI(ExternalBackupInfo.class, builder.build());
+    public BackupInfo getBackupInfo(String name, boolean isLocal) {
+        UriBuilder builder = client.uriBuilder(BACKUP_INFO_URL);
+        addQueryParam(builder, "backupname", name);
+        if (isLocal) {
+            addQueryParam(builder, "isLocal", isLocal);
+        }
+        return client.getURI(BackupInfo.class, builder.build());
     }
 
     public void createBackup(String name, boolean force) {
-		UriBuilder builder = client.uriBuilder(BACKUP_CREATE_URL);
+        int specialTimeout = 30 * 60 * 1000; // 30 minutes
+        client.getConfig().withReadTimeout(specialTimeout);
+        client.getConfig().withConnectionTimeout(specialTimeout);
+        UriBuilder builder = client.uriBuilder(BACKUP_CREATE_URL);
 		addQueryParam(builder, "tag", name);
 		if (force) {
 			addQueryParam(builder, "force", true);
@@ -111,7 +117,7 @@ public class Backup {
         client.postURI(String.class, builder.build());
     }
 
-    public BackupRestoreStatus restoreStatus(String name, boolean isLocal) {
+    public BackupRestoreStatus getRestoreStatus(String name, boolean isLocal) {
         BackupRestoreStatus status = null;
         UriBuilder builder = client.uriBuilder(RESTORE_STATUS_URL);
         addQueryParam(builder, "backupname", name);

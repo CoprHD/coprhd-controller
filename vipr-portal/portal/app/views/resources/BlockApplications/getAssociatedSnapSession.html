@@ -1,0 +1,22 @@
+#{extends 'main.html' /}
+#{breadcrumb.container}
+  #{breadcrumb.item @blockApplications()}&{'resources.applications'}#{/breadcrumb.item}
+  #{breadcrumb.item @blockApplicationDetails(application.id)}${application?.name}#{/breadcrumb.item}
+  #{breadcrumb.item active:true}${sessionSet}#{/breadcrumb.item}
+#{/breadcrumb.container}
+
+#{DataTable.header titleKey:'resources.applications.snapshots.session' /}
+#{DataTable.table id:'snapshots',
+                  dataTable:dataTable,
+                  source:@getAssociatedSnapSessionJSON(sessionLabel),
+                  selectable:true/}
+
+<script type="text/javascript">
+function renderLink(o, val) {
+var data = o.aData;
+var url = #{jsAction @resources.BlockSnapshotSessions.snapshotSessionDetails(':id') /};
+var href = url(data);
+
+return "<a href='"+href+"'>" + val + "</a>";return val;
+}
+</script>

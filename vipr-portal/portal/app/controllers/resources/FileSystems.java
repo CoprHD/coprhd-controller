@@ -10,26 +10,12 @@ import static com.emc.vipr.client.core.util.ResourceUtils.uris;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import models.datatable.FileSystemsDataTable;
-import models.datatable.NfsACLDataTable;
-import models.datatable.ShareACLDataTable;
-
 import org.apache.commons.lang.StringUtils;
-
-import play.data.binding.As;
-import play.data.validation.Required;
-import play.data.validation.Validation;
-import play.mvc.With;
-import util.BourneUtil;
-import util.FileUtils;
-import util.FileUtils.ExportRuleInfo;
-import util.MessagesUtils;
-import util.StringOption;
-import util.datatable.DataTablesSupport;
 
 import com.emc.sa.util.DiskSizeConversionUtils;
 import com.emc.storageos.model.NamedRelatedResourceRep;
@@ -54,6 +40,8 @@ import com.emc.storageos.model.file.NfsACLUpdateParams;
 import com.emc.storageos.model.file.QuotaDirectoryDeleteParam;
 import com.emc.storageos.model.file.QuotaDirectoryRestRep;
 import com.emc.storageos.model.file.QuotaDirectoryUpdateParam;
+import com.emc.storageos.model.file.ScheduleSnapshotList;
+import com.emc.storageos.model.file.ScheduleSnapshotRestRep;
 import com.emc.storageos.model.file.ShareACL;
 import com.emc.storageos.model.file.ShareACLs;
 import com.emc.storageos.model.file.SmbShareResponse;
@@ -75,13 +63,27 @@ import controllers.Common;
 import controllers.security.Security;
 import controllers.util.FlashException;
 import controllers.util.Models;
+import models.datatable.FilePolicySnapshotsDataTable;
+import models.datatable.FileSystemsDataTable;
+import models.datatable.NfsACLDataTable;
+import models.datatable.ShareACLDataTable;
+import play.data.binding.As;
+import play.data.validation.Required;
+import play.data.validation.Validation;
+import play.mvc.With;
+import util.BourneUtil;
+import util.FileUtils;
+import util.FileUtils.ExportRuleInfo;
+import util.MessagesUtils;
+import util.StringOption;
+import util.datatable.DataTablesSupport;
 
 @With(Common.class)
 public class FileSystems extends ResourceController {
     private static final String UNKNOWN = "resources.filesystems.unknown";
     protected static final String DELETED = "resources.filesystem.share.acl.deleted";
     protected static final String ADDED = "resources.filesystem.share.acl.added";
-    private static final String LOCAL_MIRROR="LOCAL_MIRROR";
+    private static final String LOCAL_MIRROR = "LOCAL_MIRROR";
 
     private static FileSystemsDataTable fileSystemsDataTable = new FileSystemsDataTable();
 
@@ -157,6 +159,19 @@ public class FileSystems extends ResourceController {
         renderArgs.put("permissionTypeOptions", PERMISSION_TYPES);
         render(fileSystem);
     }
+    
+    
+    public static void getVarrayVpool(String resourceId){
+        HashMap<String,String> response = new HashMap<String, String>();
+        URI fileShareId= uri(resourceId);
+        ViPRCoreClient client = BourneUtil.getViprClient();
+        FileShareRestRep fileShare = client.fileSystems().get(fileShareId);
+        URI vArray= fileShare.getVirtualArray().getId();
+        URI vPool= fileShare.getVirtualPool().getId();
+        response.put("vArray",client.varrays().get(vArray).getName());
+        response.put("vPool", client.fileVpools().get(vPool).getName());
+        renderJSON(response);
+    }
 
     public static void fileSystemExports(String fileSystemId) {
         URI id = uri(fileSystemId);
@@ -165,33 +180,32 @@ public class FileSystems extends ResourceController {
         renderArgs.put("permissionTypeOptions", Lists.newArrayList(FileShareExport.Permissions.values()));
         render(exports, exportsParam);
     }
-    
-    
+
     public static void fileSystemMirrors(String fileSystemId) {
         URI id = uri(fileSystemId);
         ViPRCoreClient client = BourneUtil.getViprClient();
         FileProtectionRestRep targetFileSystems = client.fileSystems().get(id).getProtection();
         List<FileShareRestRep> fileMirrors = new ArrayList<FileShareRestRep>();
-        for(VirtualArrayRelatedResourceRep virtualResource : targetFileSystems.getTargetFileSystems()){
+        for (VirtualArrayRelatedResourceRep virtualResource : targetFileSystems.getTargetFileSystems()) {
             fileMirrors.add(client.fileSystems().get(virtualResource.getId()));
         }
-        
-        String personality=targetFileSystems.getPersonality();
-        
+
+        String personality = targetFileSystems.getPersonality();
+
         renderArgs.put("personality", personality);
-        renderArgs.put("fileMirrors",fileMirrors);
-        renderArgs.put("fileSystemId",fileSystemId);
-        
+        renderArgs.put("fileMirrors", fileMirrors);
+        renderArgs.put("fileSystemId", fileSystemId);
+
         render();
     }
-    
-	public static void fileSystemNfsACLs(String fileSystemId) {
-		ViPRCoreClient client = BourneUtil.getViprClient();
-		List<NfsACL> nfsAcls = client.fileSystems().getAllNfsACLs(
-				uri(fileSystemId));
-		render(nfsAcls);
-	}
 
+    public static void fileSystemNfsACLs(String fileSystemId) {
+        ViPRCoreClient client = BourneUtil.getViprClient();
+        
+        List<NfsACL> nfsAcls = client.fileSystems().getAllNfsACLs(
+                uri(fileSystemId));
+        render(nfsAcls);
+    }
 
     public static void listNfsAcl(String fileSystemId, String fsMountPath,
             String subDir) {
@@ -251,6 +265,44 @@ public class FileSystems extends ResourceController {
         renderJSON(DataTablesSupport.createJSON(nfsAccessControlList, params));
     }
 
+    public static void listPolicySnapshot(String fileSystemId, String policyId, String policyName) {
+        renderArgs.put("dataTable", new FilePolicySnapshotsDataTable());
+        renderArgs.put("fileSystemId", uri(fileSystemId));
+        renderArgs.put("policyId", uri(policyId));
+        ViPRCoreClient client = BourneUtil.getViprClient();
+        FileShareRestRep restRep = client.fileSystems().get(uri(fileSystemId));
+        renderArgs.put("filePolicyName", policyName);
+        renderArgs.put("fileSystemName", restRep.getName());
+        renderArgs.put("fileSystemAndpolicyId", fileSystemId + "~~~" + policyId);
+        render();
+
+    }
+
+    public static void listPolicySnapshotJson(String fileSystemAndpolicyId) {
+        renderArgs.put("dataTable", new FilePolicySnapshotsDataTable());
+
+        String fileSystemId = null;
+        String policyId = null;
+        if (StringUtils.isNotBlank(fileSystemAndpolicyId)) {
+            String[] parts = fileSystemAndpolicyId.split("~~~");
+            if (parts.length == 2) {
+                fileSystemId = parts[0];
+                policyId = parts[1];
+
+            }
+        }
+        ViPRCoreClient client = BourneUtil.getViprClient();
+        List<FilePolicySnapshotsDataTable.FileSnapshot> snapshotList = Lists
+                .newArrayList();
+        ScheduleSnapshotList snapList = client.fileSystems().getFilePolicySnapshots(uri(fileSystemId), uri(policyId));
+
+        for (ScheduleSnapshotRestRep snap : snapList.getScheduleSnapList()) {
+            snapshotList.add(new FilePolicySnapshotsDataTable.FileSnapshot(snap));
+        }
+
+        renderJSON(DataTablesSupport.createJSON(snapshotList, params));
+    }
+
     public static void editNfsAce(@Required String id) {
         String type = NfsACLForm.extractTypeFromId(id);
         String name = NfsACLForm.extractNameFromId(id);
@@ -287,8 +339,6 @@ public class FileSystems extends ResourceController {
 
     @FlashException(referrer = { "fileSystem" })
     public static void saveNfsAce(NfsACLForm nfsACL) {
-        
-        
 
         String name = params.get("name");
         String type = params.get("type");
@@ -303,8 +353,7 @@ public class FileSystems extends ResourceController {
         if (Validation.hasErrors()) {
             Common.handleError();
         }
-        
-        
+
         for (String permission : permissions) {
             strPer = strPer + permission.toLowerCase() + ",";
         }
@@ -527,26 +576,26 @@ public class FileSystems extends ResourceController {
         Copy copy = new Copy();
         copy.setType(LOCAL_MIRROR);
         FileReplicationParam param = new FileReplicationParam();
-        List<Copy> listCopy= new ArrayList();
+        List<Copy> listCopy = new ArrayList();
         listCopy.add(copy);
         param.setCopies(listCopy);
-        
+
         URI fileSystemUri = URI.create(fileSystemId);
-        if("start".equalsIgnoreCase(mirrorOperation)){
-        client.fileSystems().startFileContinuousCopies(fileSystemUri, param);
+        if ("start".equalsIgnoreCase(mirrorOperation)) {
+            client.fileSystems().startFileContinuousCopies(fileSystemUri, param);
         }
-        if("stop".equalsIgnoreCase(mirrorOperation)){
-        client.fileSystems().stopFileContinuousCopies(fileSystemUri, param);
+        if ("stop".equalsIgnoreCase(mirrorOperation)) {
+            client.fileSystems().stopFileContinuousCopies(fileSystemUri, param);
         }
-        if("pause".equalsIgnoreCase(mirrorOperation)){
-        client.fileSystems().pauseFileContinuousCopies(fileSystemUri, param);
+        if ("pause".equalsIgnoreCase(mirrorOperation)) {
+            client.fileSystems().pauseFileContinuousCopies(fileSystemUri, param);
         }
-        if("resume".equalsIgnoreCase(mirrorOperation)){
-        client.fileSystems().resumeContinousCopies(fileSystemUri, param);
+        if ("resume".equalsIgnoreCase(mirrorOperation)) {
+            client.fileSystems().resumeContinousCopies(fileSystemUri, param);
         }
         fileSystem(fileSystemId);
     }
-    
+
     public static void getScheculePolicies() {
         String tenantId = Models.currentAdminTenant();
         ViPRCoreClient client = BourneUtil.getViprClient();

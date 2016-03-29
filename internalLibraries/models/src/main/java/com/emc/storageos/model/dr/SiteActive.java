@@ -15,6 +15,7 @@ public class SiteActive {
 
     private boolean isActiveSite;
     private String localSiteName;
+    private String localUuid;
 
     public SiteActive() {
         isActiveSite = false;
@@ -36,5 +37,14 @@ public class SiteActive {
 
     public void setLocalSiteName(String siteName) {
         this.localSiteName = siteName;
+    }
+    
+    @XmlElement(name = "uuid")
+    public String getLocalUuid() {
+        return this.localUuid;
+    }
+
+    public void setLocalUuid(String uuid) {
+        this.localUuid = uuid;
     }
 }

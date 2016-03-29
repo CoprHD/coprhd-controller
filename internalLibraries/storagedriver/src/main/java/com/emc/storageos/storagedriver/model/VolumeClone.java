@@ -43,4 +43,9 @@ public class VolumeClone extends StorageBlockObject {
     public void setReplicationState(ReplicationState replicationState) {
         this.replicationState = replicationState;
     }
+
+    @Override
+    public String toString() {
+        return "VolumeClone-"+storageSystemId+"-" + getParentId()+"-"+getNativeId();
+    }
 }

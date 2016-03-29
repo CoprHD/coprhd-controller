@@ -1,6 +1,19 @@
 /*
- * Copyright (c) 2013-2014 EMC Corporation
- * All Rights Reserved
+ * Copyright 2013-2014 EMC Corporation
+ * Copyright 2016 Intel Corporation
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
  */
 
 package com.emc.storageos.svcs.errorhandling.resources;
@@ -105,7 +118,7 @@ public enum ServiceCode {
     SECURITY_INSUFFICIENT_PERMISSIONS(3000),
     LICENSE_OPERATION_FORBIDDEN(3001),
     DR_OPERATION_FORBIDDEN(3002),
-    
+
     // API Unauthorized (4000s)
     SECURITY_UNAUTHORIZED_OPERATION(4000),
 
@@ -164,7 +177,7 @@ public enum ServiceCode {
     DBSVC_ANNOTATION_ERROR(8007),
     DBSVC_GEO_UPDATE_ERROR(8008),
     DBSVC_FIELD_LENGTH_ERROR(8009),
-    
+
     // Retryable Database Client Errors (8500 - 8999):
     DBSVC_CONNECTION_ERROR(8500),
     DBSVC_DUMMY_ERROR(8501),
@@ -288,6 +301,7 @@ public enum ServiceCode {
     VPLEX_CANT_FIND_REQUESTED_VOLUME(18006),
     VPLEX_UNMANAGED_EXPORT_MASK_EXCEPTION(18007),
     VPLEX_API_CONCURRENCY_ERROR(18008),
+    VPLEX_API_RESPONSE_TIMEOUT_ERROR(180009),
 
     // Recover Point errors (19000 - 19999):
     RECOVER_POINT_ERROR(19000),
@@ -432,10 +446,6 @@ public enum ServiceCode {
     SYS_DR_SITE_CONNECTION_BROKEN(30059),
 
     SYS_BACKUP_EXTERNAL_SERVER_ERROR(30060),
-    SYS_BACKUP_PULL_FAILED(30061),
-    SYS_BACKUP_RESTORE_FAILED(30062),
-
-    
 
     // Objsvc errors (40000 - 40999)
     OBJ_DATASTORE_CREATE_ERROR(40000),
@@ -474,7 +484,7 @@ public enum ServiceCode {
     GLANCE_OPERATION_FAILED(41200),
     GLANCE_JOB_FAILED(41201),
     GLANCE_RESPONSE_PARSE_ERROR(41202),
-    
+
     // Vnxe errors (42000 - 42999):
     VNXE_COMMAND_ERROR(42000),
     VNXE_UNEXPECTED_DATA(42001),
@@ -530,6 +540,7 @@ public enum ServiceCode {
     BACKUP_DISABLED_AS_DISK_FULL(61011),
     BACKUP_DISABLED_AS_REACH_LIMIT(61012),
     BACKUP_DISABLED_AS_ON_STANDBY(61013),
+    BACKUP_PULL_FAILED(61014),
 
     // ScaleIO errors (60000 - 60999)
     SCALEIO_UNSUPPORTED_OPERATION(60000),
@@ -549,9 +560,12 @@ public enum ServiceCode {
 
     // customConfig controller errors (62000 - 62099)
     CONTROLLER_CUSTOMCONFIG_ERROR(62000),
+
+    // Keystone errors (62100-62199)
     KEYSTONE_API_ERROR(62100),
     KEYSTONE_REQUEST_PARSE_ERRORS(62101),
     KEYSTONE_RESPONSE_PARSE_ERROR(62102),
+    KEYSTONE_CONFIGURATION_ERROR(62103),
 
     // NetApp Cluster errors (63000 - 63099):
     NETAPPC_ERROR(63000),
@@ -608,53 +622,46 @@ public enum ServiceCode {
     EXTERNALDEVICE_NO_NATIVEID_DEFINED_FOR_STORAGE_PORT_ERROR(66011),
     EXTERNALDEVICE_DELETE_VOLUME_FROM_EXPORT_MASK_ERROR(66012),
     EXTERNALDEVICE_DELETE_EXPORT_MASK_ERROR(66013),
+    EXTERNALDEVICE_RESTORE_FROM_SNAPSHOT_ERROR(66014),
+    EXTERNALDEVICE_CREATE_VOLUME_CLONE_ERROR(66015),
+    EXTERNALDEVICE_CREATE_GROUP_CLONE_ERROR(66016),
+    EXTERNALDEVICE_DETACH_CLONE_ERROR(66017),
+    EXTERNALDEVICE_RESTORE_CLONES_ERROR(66018),
+    EXTERNALDEVICE_EXPAND_VOLUME_ERROR(66019),
+    EXTERNALDEVICE_ADD_EXPORT_MASK_INITIATORS_ERROR(66020),
+    EXTERNALDEVICE_REMOVE_EXPORT_MASK_INITIATORS_ERROR(66021),
 
     // ****************************
     // Old style of Service codes
     // ****************************
 
     // API Errors:
-    @Deprecated
-    API_BAD_PARAMETERS(30, FATAL),
-    @Deprecated
-    API_UNAUTHORIZED_OPERATION(20, FATAL),
-    @Deprecated
-    API_ERROR(70, FATAL),
+    @Deprecated API_BAD_PARAMETERS(30, FATAL),
+    @Deprecated API_UNAUTHORIZED_OPERATION(20, FATAL),
+    @Deprecated API_ERROR(70, FATAL),
 
     // Controller Errors:
-    @Deprecated
-    CONTROLLER_ERROR(160, FATAL),
-    @Deprecated
-    CONTROLLER_STORAGE_ERROR(180, FATAL),
-    @Deprecated
-    CONTROLLER_OBJECT_ERROR(190, FATAL),
-    @Deprecated
-    CONTROLLER_NOT_FOUND(200, FATAL),
-    @Deprecated
-    CONTROLLER_WORKFLOW_ERROR(210, FATAL),
+    @Deprecated CONTROLLER_ERROR(160, FATAL),
+    @Deprecated CONTROLLER_STORAGE_ERROR(180, FATAL),
+    @Deprecated CONTROLLER_OBJECT_ERROR(190, FATAL),
+    @Deprecated CONTROLLER_NOT_FOUND(200, FATAL),
+    @Deprecated CONTROLLER_WORKFLOW_ERROR(210, FATAL),
 
     // Device Controller Errors (Asynchronous aspect of controllers):
-    @Deprecated
-    WORKFLOW_ERROR(240, FATAL),
-    @Deprecated
-    WORKFLOW_RESTARTED_ERROR(250, FATAL),
+    @Deprecated WORKFLOW_ERROR(240, FATAL),
+    @Deprecated WORKFLOW_RESTARTED_ERROR(250, FATAL),
 
     // Token encoding errors:
-    @Deprecated
-    AUTH_TOKEN_ENCODING_ERROR(290, FATAL),
+    @Deprecated AUTH_TOKEN_ENCODING_ERROR(290, FATAL),
 
     // General errors:
-    @Deprecated
-    IO_ERROR(320, FATAL);
+    @Deprecated IO_ERROR(320, FATAL);
 
     @Deprecated
     static enum Action {
-        @Deprecated
-        RETRY,
-        @Deprecated
-        FATAL,
-        @Deprecated
-        NON_APPLICABLE
+        @Deprecated RETRY,
+        @Deprecated FATAL,
+        @Deprecated NON_APPLICABLE
     };
 
     private final int _serviceCode;

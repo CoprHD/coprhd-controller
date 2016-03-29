@@ -11,8 +11,8 @@ import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 import com.emc.storageos.coordinator.client.model.*;
+import com.emc.storageos.coordinator.client.model.DrOperationStatus.InterState;
 import com.emc.storageos.db.client.DbClient;
-import com.emc.storageos.security.geo.GeoClientCacheManager;
 import com.emc.storageos.systemservices.impl.ipsec.IPsecManager;
 
 import org.apache.commons.lang3.StringUtils;
@@ -57,8 +57,6 @@ public class VdcManager extends AbstractManager {
     @Autowired
     private IPsecManager ipsecMgr;
     @Autowired
-    private UpgradeManager upgradeManager;
-    @Autowired
     private AuditLogManager auditMgr;
     @Autowired
     DbClient dbClient;
@@ -78,11 +76,9 @@ public class VdcManager extends AbstractManager {
     // Timeout in minutes for add/resume/data sync
     // If data synchronization takes long than this value, set site to error
     public static final int ADD_STANDBY_TIMEOUT_MILLIS = 20 * 60 * 1000; // 20 minutes
-    public static final int PAUSE_STANDBY_TIMEOUT_MILLIS = 20 * 60 * 1000; // 20 minutes
     public static final int RESUME_STANDBY_TIMEOUT_MILLIS = 20 * 60 * 1000; // 20 minutes
     public static final int REMOVE_STANDBY_TIMEOUT_MILLIS = 20 * 60 * 1000; // 20 minutes
     public static final int SWITCHOVER_TIMEOUT_MILLIS = 20 * 60 * 1000; // 20 minutes
-    private static final int BACK_UPGRADE_RETRY_MILLIS = 30 * 1000; // 30 seconds
     public static final int FAILOVER_STANDBY_SITE_TIMEOUT_MILLIS = 40 * 60 * 1000; // 40 minutes
     public static final int FAILOVER_ACTIVE_SITE_TIMEOUT_MILLIS = 40 * 60 * 1000; // 40 minutes
     
@@ -170,7 +166,7 @@ public class VdcManager extends AbstractManager {
             try {
                 hasLock = hasRebootLock(svcId);
             } catch (Exception e) {
-                log.info("Step1: Failed to verify if the current node has the reboot lock ", e);
+                log.info("Step0: Failed to verify if the current node has the reboot lock ", e);
                 retrySleep();
                 continue;
             }
@@ -193,7 +189,7 @@ public class VdcManager extends AbstractManager {
             try {
                 initializeLocalAndTargetInfo();
             } catch (Exception e) {
-                log.info("Step1b failed and will be retried:", e);
+                log.info("Step1 failed and will be retried:", e);
                 retrySleep();
                 continue;
             }
@@ -201,7 +197,7 @@ public class VdcManager extends AbstractManager {
             // Step2: power off if all nodes agree.
             log.info("Step2: Power off if poweroff state != NONE. {}", targetPowerOffState);
             try {
-                gracefulPoweroffCluster();
+                gracefulPowerOffCluster();
             } catch (Exception e) {
                 log.error("Step2: Failed to poweroff. {}", e);
             }
@@ -249,7 +245,7 @@ public class VdcManager extends AbstractManager {
                     }
                 }
             } catch (Exception ex) {
-                log.error("Step5: Failed to set back compat yoda upgrade. {}", ex);
+                log.error("Step6: Failed to set back compat yoda upgrade. {}", ex);
                 continue;
             }
 
@@ -281,6 +277,9 @@ public class VdcManager extends AbstractManager {
 
         // Initialize vdc prop info
         localVdcPropInfo = localRepository.getVdcPropertyInfo();
+        String localConfigVersion = localVdcPropInfo.getProperty(VdcConfigUtil.VDC_CONFIG_VERSION);
+        coordinator.setNodeSessionScopeInfo(new VdcConfigVersion(localConfigVersion));
+        
         // ipsec key is a vdc property as well and saved in ZK.
         // targetVdcPropInfo = loadVdcConfigFromDatabase();
         targetVdcPropInfo = loadVdcConfig();
@@ -310,7 +309,7 @@ public class VdcManager extends AbstractManager {
         if (targetPowerOffState == null) {
             // only control node can set target
             try {
-                // Set the updated propperty info in coordinator
+                // Set the updated property info in coordinator
                 coordinator.setTargetInfo(new PowerOffState(PowerOffState.State.NONE));
                 targetPowerOffState = coordinator.getTargetInfo(PowerOffState.class);
                 log.info("Step1b: Target poweroff state set to: {}", PowerOffState.State.NONE);
@@ -329,13 +328,13 @@ public class VdcManager extends AbstractManager {
      * @throws Exception
      */
     private PropertyInfoExt loadVdcConfig() throws Exception {
-        targetVdcPropInfo = new PropertyInfoExt(vdcConfigUtil.genVdcProperties());
+        PropertyInfoExt targetVdcPropInfo = new PropertyInfoExt(vdcConfigUtil.genVdcProperties());
 
         // This ipsec_status and ipsec_key properties are not normal system properties,
         // as they need be protected by double barrier to make sure they be changed and
         // synced to all nodes at the SAME time, or else the quorum of zk and db will be
         // broken. This is why we don't put them in system property.
-        targetVdcPropInfo.addProperty(Constants.IPSEC_STATUS,ipsecConfig.getIpsecStatus());
+        targetVdcPropInfo.addProperty(Constants.IPSEC_STATUS, ipsecConfig.getIpsecStatus());
         targetVdcPropInfo.addProperty(Constants.IPSEC_KEY, ipsecConfig.getPreSharedKey());
         return targetVdcPropInfo;
     }
@@ -350,7 +349,7 @@ public class VdcManager extends AbstractManager {
                 Long.parseLong(localVdcPropInfo.getProperty(VdcConfigUtil.VDC_CONFIG_VERSION));
         long targetVdcConfigVersion = targetSiteInfo.getVdcConfigVersion();
         log.info("local vdc config version: {}, target vdc config version: {}", localVdcConfigVersion, targetVdcConfigVersion);
-        return localVdcConfigVersion < targetVdcConfigVersion;
+        return localVdcConfigVersion != targetVdcConfigVersion;
     }
 
     private boolean isGeoUpgradeFromPreYoda() {
@@ -423,23 +422,23 @@ public class VdcManager extends AbstractManager {
      * CTRL-11690: the new behavior is if an agreement cannot be reached, a best-effort attempt to poweroff the
      * remaining nodes will be made, as if the force parameter is provided.
      */
-    private void gracefulPoweroffCluster() {
+    private void gracefulPowerOffCluster() {
         if (targetPowerOffState != null && targetPowerOffState.getPowerOffState() != PowerOffState.State.NONE) {
             boolean forceSet = targetPowerOffState.getPowerOffState() == PowerOffState.State.FORCESTART;
             log.info("Step2: Trying to reach agreement with timeout on cluster poweroff");
             if (checkAllNodesAgreeToPowerOff(forceSet) && initiatePoweroff(forceSet)) {
                 resetTargetPowerOffState();
-                poweroffCluster();
+                powerOffCluster();
             } else {
                 log.warn("Step2: Failed to reach agreement among all the nodes. Proceed with best-effort poweroff");
                 initiatePoweroff(true);
                 resetTargetPowerOffState();
-                poweroffCluster();
+                powerOffCluster();
             }
         }
     }
 
-    public void poweroffCluster() {
+    public void powerOffCluster() {
         log.info("powering off the cluster!");
         final String[] cmd = { POWEROFFTOOL_COMMAND };
         Exec.sudo(SHUTDOWN_TIMEOUT_MILLIS, cmd);
@@ -467,14 +466,14 @@ public class VdcManager extends AbstractManager {
             for (Configuration config : configs) {
                 DrOperationStatus operation = new DrOperationStatus(config);
                 String siteId = operation.getSiteUuid();
-                SiteState interState = operation.getSiteState();
+                InterState interState = operation.getInterState();
                 Site site = null;
                 try {
                     site = drUtil.getSiteFromLocalVdc(siteId);
                 } catch (RetryableCoordinatorException e) {
                     // It's expected that site id is not found if we're removing this site because it has been removed
                     // Under this situation, just record audit log and clear DR operation status
-                    if (interState.equals(SiteState.STANDBY_REMOVING) &&e.getServiceCode() == ServiceCode.COORDINATOR_SITE_NOT_FOUND) {
+                    if (interState.equals(InterState.REMOVING_STANDBY) &&e.getServiceCode() == ServiceCode.COORDINATOR_SITE_NOT_FOUND) {
                         this.auditMgr.recordAuditLog(null, null, EVENT_SERVICE_TYPE, getOperationType(interState), System.currentTimeMillis(),
                                 AuditLogManager.AUDITLOG_SUCCESS, AuditLogManager.AUDITOP_END, siteId);
                         coordinator.getCoordinatorClient().removeServiceConfiguration(config);
@@ -502,7 +501,7 @@ public class VdcManager extends AbstractManager {
                 log.info("DR operation status has been cleared: {}", operation);
             }
         } catch (Exception e) {
-            log.error("Auditing DR operation failed with execption", e);
+            log.error("Auditing DR operation failed with exception", e);
         } finally {
             try {
                 if (hasLock) {
@@ -514,29 +513,35 @@ public class VdcManager extends AbstractManager {
         }
     }
 
-    private OperationTypeEnum getOperationType(SiteState state) {
+    private OperationTypeEnum getOperationType(InterState state) {
         OperationTypeEnum operationType = null;
         switch(state) {
-            case STANDBY_ADDING:
+            case ADDING_STANDBY:
                 operationType = OperationTypeEnum.ADD_STANDBY;
                 break;
-            case STANDBY_REMOVING:
+            case REMOVING_STANDBY:
                 operationType = OperationTypeEnum.REMOVE_STANDBY;
                 break;
-            case STANDBY_PAUSING:
+            case PAUSING_STANDBY:
                 operationType = OperationTypeEnum.PAUSE_STANDBY;
                 break;
-            case STANDBY_RESUMING:
+            case RESUMING_STANDBY:
                 operationType = OperationTypeEnum.RESUME_STANDBY;
                 break;
-            case ACTIVE_SWITCHING_OVER:
+            case SWITCHINGOVER_ACTIVE:
                 operationType = OperationTypeEnum.ACTIVE_SWITCHOVER;
                 break;
-            case STANDBY_SWITCHING_OVER:
+            case SWITCHINGOVER_STANDBY:
                 operationType = OperationTypeEnum.STANDBY_SWITCHOVER;
                 break;
-            case STANDBY_FAILING_OVER:
+            case FAILINGOVER_STANDBY:
                 operationType = OperationTypeEnum.STANDBY_FAILOVER;
+                break;
+            case DEGRADING_STANDBY:
+                operationType = OperationTypeEnum.STANDBY_DEGRADE;
+                break;
+            case REJOINING_STANDBY:
+                operationType = OperationTypeEnum.STANDBY_REJOIN;
                 break;
         }
         return operationType;
@@ -573,23 +578,15 @@ public class VdcManager extends AbstractManager {
             case STANDBY_ADDING:
                 drOpTimeoutMillis = drUtil.getDrIntConfig(DrUtil.KEY_ADD_STANDBY_TIMEOUT, ADD_STANDBY_TIMEOUT_MILLIS);
                 if (currentTime - lastSiteUpdateTime > drOpTimeoutMillis) {
-                    log.info("Step3: Site {} set to error due to add standby timeout", site.getName());
+                    log.warn("Step3: Site {} set to error due to add standby timeout", site.getName());
                     error = new SiteError(APIException.internalServerErrors.addStandbyFailedTimeout(
-                            drOpTimeoutMillis / 60 / 1000),site.getState().name());
-                }
-                break;
-            case STANDBY_PAUSING:
-                drOpTimeoutMillis = drUtil.getDrIntConfig(DrUtil.KEY_PAUSE_STANDBY_TIMEOUT, PAUSE_STANDBY_TIMEOUT_MILLIS);
-                if (currentTime - lastSiteUpdateTime > drOpTimeoutMillis) {
-                    log.info("Step3: Site {} set to error due to pause standby timeout", site.getName());
-                    error = new SiteError(APIException.internalServerErrors.pauseStandbyFailedTimeout(
                             drOpTimeoutMillis / 60 / 1000),site.getState().name());
                 }
                 break;
             case STANDBY_RESUMING:
                 drOpTimeoutMillis = drUtil.getDrIntConfig(DrUtil.KEY_RESUME_STANDBY_TIMEOUT, RESUME_STANDBY_TIMEOUT_MILLIS);
                 if (currentTime - lastSiteUpdateTime > drOpTimeoutMillis) {
-                    log.info("Step3: Site {} set to error due to resume standby timeout", site.getName());
+                    log.warn("Step3: Site {} set to error due to resume standby timeout", site.getName());
                     error = new SiteError(APIException.internalServerErrors.resumeStandbyFailedTimeout(
                             drOpTimeoutMillis / 60 / 1000),site.getState().name());
                 }
@@ -597,7 +594,7 @@ public class VdcManager extends AbstractManager {
             case STANDBY_REMOVING:
                 drOpTimeoutMillis = drUtil.getDrIntConfig(DrUtil.KEY_REMOVE_STANDBY_TIMEOUT, REMOVE_STANDBY_TIMEOUT_MILLIS);
                 if (currentTime - lastSiteUpdateTime > drOpTimeoutMillis) {
-                    log.info("Step3: Site {} set to error due to remove standby timeout", site.getName());
+                    log.warn("Step3: Site {} set to error due to remove standby timeout", site.getName());
                     error = new SiteError(APIException.internalServerErrors.removeStandbyFailedTimeout(
                             drOpTimeoutMillis / 60 / 1000),site.getState().name());
                 }
@@ -605,7 +602,7 @@ public class VdcManager extends AbstractManager {
             case ACTIVE_SWITCHING_OVER:
                 drOpTimeoutMillis = drUtil.getDrIntConfig(DrUtil.KEY_SWITCHOVER_TIMEOUT, SWITCHOVER_TIMEOUT_MILLIS);
                 if (currentTime - lastSiteUpdateTime > drOpTimeoutMillis) {
-                    log.info("Step3: Site {} set to error due to switchover timeout", site.getName());
+                    log.warn("Step3: Site {} set to error due to switchover timeout", site.getName());
                     error = new SiteError(APIException.internalServerErrors.switchoverActiveFailedTimeout(
                             site.getName(), drOpTimeoutMillis / 60 / 1000),site.getState().name());
                 }
@@ -613,7 +610,7 @@ public class VdcManager extends AbstractManager {
             case STANDBY_SWITCHING_OVER:
                 drOpTimeoutMillis = drUtil.getDrIntConfig(DrUtil.KEY_SWITCHOVER_TIMEOUT, SWITCHOVER_TIMEOUT_MILLIS);
                 if (currentTime - lastSiteUpdateTime > drOpTimeoutMillis) {
-                    log.info("Step3: Site {} set to error due to switchover timeout", site.getName());
+                    log.warn("Step3: Site {} set to error due to switchover timeout", site.getName());
                     error = new SiteError(APIException.internalServerErrors.switchoverStandbyFailedTimeout(
                             site.getName(), drOpTimeoutMillis / 60 / 1000),site.getState().name());
                 }
@@ -621,7 +618,7 @@ public class VdcManager extends AbstractManager {
             case STANDBY_FAILING_OVER:
                 drOpTimeoutMillis = drUtil.getDrIntConfig(DrUtil.KEY_FAILOVER_STANDBY_SITE_TIMEOUT, FAILOVER_STANDBY_SITE_TIMEOUT_MILLIS);
                 if (currentTime - lastSiteUpdateTime > drOpTimeoutMillis) {
-                    log.info("Step3: Site {} set to error due to failover timeout", site.getName());
+                    log.warn("Step3: Site {} set to error due to failover timeout", site.getName());
                     error = new SiteError(APIException.internalServerErrors.failoverFailedTimeout(
                             site.getName(), drOpTimeoutMillis / 60 / 1000),site.getState().name());
                 }
@@ -629,7 +626,7 @@ public class VdcManager extends AbstractManager {
             case ACTIVE_FAILING_OVER:
                 drOpTimeoutMillis = drUtil.getDrIntConfig(DrUtil.KEY_FAILOVER_ACTIVE_SITE_TIMEOUT, FAILOVER_ACTIVE_SITE_TIMEOUT_MILLIS);
                 if (currentTime - lastSiteUpdateTime > drOpTimeoutMillis) {
-                    log.info("Step3: Site {} set to error due to failover timeout", site.getName());
+                    log.warn("Step3: Site {} set to error due to failover timeout", site.getName());
                     error = new SiteError(APIException.internalServerErrors.failoverFailedTimeout(
                             site.getName(), drOpTimeoutMillis / 60 / 1000),site.getState().name());
                 }
@@ -674,7 +671,9 @@ public class VdcManager extends AbstractManager {
                 log.info("First ipsec key found in zk. No need to regenerate it");
             }
         } finally {
-            lock.release();
+            if (lock != null) {
+                lock.release();
+            }
         }
     }
 

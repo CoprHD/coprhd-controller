@@ -54,6 +54,9 @@ arrays.CustomConfigs.list = ControllerConfigurationsPage
 arrays.ApplicationSupport.list = PhysicalApplications
 arrays.ApplicationSupport.create = PhysicalApplicationsCreateEdit
 arrays.ApplicationSupport.edit = PhysicalApplicationsCreateEdit
+arrays.MobilityGroups = VirtualMobilityGroups
+arrays.MobilityGroups.create = MobilityGroupCreate
+arrays.MobilityGroups.edit = MobilityGroupEdit
 
 # Auth
 auth.Certificates = TrustedCerts

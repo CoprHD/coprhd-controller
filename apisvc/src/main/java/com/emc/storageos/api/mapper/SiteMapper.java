@@ -5,7 +5,10 @@
 package com.emc.storageos.api.mapper;
 
 import com.emc.storageos.coordinator.client.model.Site;
+import com.emc.storageos.coordinator.client.model.SiteMonitorResult;
+import com.emc.storageos.coordinator.client.model.SiteNetworkState.NetworkHealth;
 import com.emc.storageos.coordinator.client.model.SiteState;
+import com.emc.storageos.coordinator.client.service.DrUtil;
 import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.model.dr.SiteParam;
 import com.emc.storageos.model.dr.SiteRestRep;
@@ -17,6 +20,30 @@ public class SiteMapper {
         }
         SiteRestRep to = new SiteRestRep();
         map(from, to);
+        return to;
+    }
+
+    public SiteRestRep mapWithNetwork(Site from, DrUtil drUtil) {
+        if (from == null) {
+            return null;
+        }
+        SiteRestRep to = new SiteRestRep();
+        map(from, to);
+        NetworkHealth networkHealth = drUtil.getSiteNetworkState(from.getUuid()).getNetworkHealth();
+        if ( networkHealth != null ) {
+            to.setNetworkHealth(networkHealth.toString());
+        }
+        
+        // check if syssvc are up
+        boolean runningState = drUtil.isSiteUp(from.getUuid());
+        if (runningState) {
+            // check if dbsvc are up
+            SiteMonitorResult monitorResult = drUtil.getCoordinator().getTargetInfo(from.getUuid(), SiteMonitorResult.class);
+            if (monitorResult != null && monitorResult.getDbQuorumLostSince() > 0) {
+                runningState = false;
+            }
+        }
+        to.setRunningState(runningState); 
         return to;
     }
     
@@ -32,9 +59,6 @@ public class SiteMapper {
         to.setDescription(from.getDescription());
         to.setState(from.getState().toString());
         to.setCreateTime(from.getCreationTime());
-        if (from.getNetworkHealth() != null) {
-            to.setNetworkHealth(from.getNetworkHealth().toString());
-        }
     }
 
     public void map(Site from, SiteParam to) {
@@ -52,6 +76,7 @@ public class SiteMapper {
 
     public void map(SiteParam from, Site to) {
         to.setUuid(from.getUuid());
+        to.setName(from.getName());
         to.setVip(from.getVip());
         to.setVip6(from.getVip6());
         to.getHostIPv4AddressMap().putAll(from.getHostIPv4AddressMap());

@@ -191,6 +191,9 @@ public interface InternalServerErrorExceptions {
     @DeclareServiceCode(ServiceCode.API_INTERNAL_SERVER_ERROR)
     public InternalServerErrorException noAssociatedQosForVirtualPool(final URI uri);
 
+    @DeclareServiceCode(ServiceCode.API_INTERNAL_SERVER_ERROR)
+    public InternalServerErrorException unableToRetrieveIP();
+
     @DeclareServiceCode(ServiceCode.API_INGESTION_ERROR)
     public InternalServerErrorException noVolumesIngested();
 
@@ -292,6 +295,9 @@ public interface InternalServerErrorExceptions {
 
     @DeclareServiceCode(ServiceCode.SYS_DR_OPERATION_PRECHECK_FAILED)
     InternalServerErrorException pauseStandbyPrecheckFailed(String siteName, String errMsg);
+
+    @DeclareServiceCode(ServiceCode.SYS_DR_OPERATION_PRECHECK_FAILED)
+    InternalServerErrorException retryStandbyPrecheckFailed(String siteName, String operation, String errMsg);
 
     @DeclareServiceCode(ServiceCode.SYS_DR_OPERATION_RECONFIG_FAILED)
     InternalServerErrorException pauseStandbyReconfigFailed(String errMsg);

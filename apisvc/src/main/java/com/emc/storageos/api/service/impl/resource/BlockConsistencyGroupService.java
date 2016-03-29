@@ -567,12 +567,11 @@ public class BlockConsistencyGroupService extends TaskResourceService {
             List<BlockSnapshot> snapshotList = new ArrayList<BlockSnapshot>();
             snapshotList.addAll(blockServiceApiImpl.prepareSnapshots(
                     volumeList, snapshotType, snapshotName, snapIdList, taskId));
-            TaskList response = new TaskList();
             for (BlockSnapshot snapshot : snapshotList) {
-                response.getTaskList().add(toTask(snapshot, taskId));
+                taskList.getTaskList().add(toTask(snapshot, taskId));
             }
 
-            addConsistencyGroupTask(consistencyGroup, response, taskId,
+            addConsistencyGroupTask(consistencyGroup, taskList, taskId,
                     ResourceOperationTypeEnum.CREATE_CONSISTENCY_GROUP_SNAPSHOT);
             try {
                 blockServiceApiImpl.createSnapshot(volumeList.get(0), snapIdList, snapshotType, createInactive, readOnly, taskId);
@@ -583,8 +582,6 @@ public class BlockConsistencyGroupService extends TaskResourceService {
                 _log.error("Unexpected Exception occurred when creating snapshot for replication group {}",
                         cell.getColumnKey(), ex);
             }
-
-            taskList.getTaskList().addAll(response.getTaskList());
         }
 
         return taskList;
@@ -891,6 +888,13 @@ public class BlockConsistencyGroupService extends TaskResourceService {
 
         verifySnapshotIsForConsistencyGroup(snapshot, consistencyGroup);
 
+        // We can ignore dependencies on BlockSnapshotSession. In this case
+        // the BlockSnapshot instance is a linked target for a BlockSnapshotSession
+        // and we will unlink the snapshot from the session and delete it.
+        List<Class<? extends DataObject>> excludeTypes = new ArrayList<Class<? extends DataObject>>();
+        excludeTypes.add(BlockSnapshotSession.class);
+        ArgValidator.checkReference(BlockSnapshot.class, snapshotId, checkForDelete(snapshot, excludeTypes));
+
         // Snapshot session linked targets must be unlinked instead.
         BlockSnapshotSession session = BlockSnapshotSessionUtils.getLinkedTargetSnapshotSession(snapshot, _dbClient);
         if (session != null) {
@@ -1177,7 +1181,7 @@ public class BlockConsistencyGroupService extends TaskResourceService {
         StorageOSUser user = getUserFromContext();
         if (!(_permissionsHelper.userHasGivenRole(user, project.getTenantOrg().getURI(),
                 Role.TENANT_ADMIN) || _permissionsHelper.userHasGivenACL(user, project.getId(),
-                ACL.OWN, ACL.ALL))) {
+                        ACL.OWN, ACL.ALL))) {
             throw APIException.forbidden.insufficientPermissionsForUser(user.getName());
         }
     }
@@ -1742,15 +1746,15 @@ public class BlockConsistencyGroupService extends TaskResourceService {
         validateSessionPartOfConsistencyGroup(id, sessionId);
         return unlinkTargetVolumesFromSnapshotSession(sessionId, param, OperationTypeEnum.UNLINK_SNAPSHOT_SESSION_TARGET);
     }
-    
+
     /**
-     * Unlink target volumes from an existing BlockSnapshotSession instance and optionally delete 
+     * Unlink target volumes from an existing BlockSnapshotSession instance and optionally delete
      * those target volumes.
-     * 
+     *
      * @param sessionURI The URI of the BlockSnapshotSession instance to which the targets are linked.
      * @param param he linked target information.
      * @param opType The operation type for the audit log.
-     * 
+     *
      * @return A TaskResourceRep representing the snapshot session task.
      */
     private TaskResourceRep unlinkTargetVolumesFromSnapshotSession(URI sessionURI, SnapshotSessionUnlinkTargetsParam param,
@@ -1769,7 +1773,8 @@ public class BlockConsistencyGroupService extends TaskResourceService {
     private TaskList deactivateAndUnlinkTargetVolumesForSession(BlockSnapshotSession session, BlockSnapshot snapshot) {
         SnapshotSessionUnlinkTargetParam unlink = new SnapshotSessionUnlinkTargetParam(snapshot.getId(), true);
         SnapshotSessionUnlinkTargetsParam param = new SnapshotSessionUnlinkTargetsParam(newArrayList(unlink));
-        TaskResourceRep task = unlinkTargetVolumesFromSnapshotSession(session.getId(), param, OperationTypeEnum.DELETE_CONSISTENCY_GROUP_SNAPSHOT);
+        TaskResourceRep task = unlinkTargetVolumesFromSnapshotSession(session.getId(), param,
+                OperationTypeEnum.DELETE_CONSISTENCY_GROUP_SNAPSHOT);
         return new TaskList(newArrayList(task));
     }
 

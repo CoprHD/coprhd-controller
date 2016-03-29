@@ -161,12 +161,13 @@ public class FileSystems extends ResourceController {
     }
     
     
-    public static void getVarrayVopool(String resourceId){
+    public static void getVarrayVpool(String resourceId){
         HashMap<String,String> response = new HashMap<String, String>();
         URI fileShareId= uri(resourceId);
         ViPRCoreClient client = BourneUtil.getViprClient();
-        URI vArray= client.fileSystems().get(fileShareId).getVirtualArray().getId();
-        URI vPool= client.fileSystems().get(fileShareId).getVirtualPool().getId();
+        FileShareRestRep fileShare = client.fileSystems().get(fileShareId);
+        URI vArray= fileShare.getVirtualArray().getId();
+        URI vPool= fileShare.getVirtualPool().getId();
         response.put("vArray",client.varrays().get(vArray).getName());
         response.put("vPool", client.fileVpools().get(vPool).getName());
         renderJSON(response);

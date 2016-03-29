@@ -17,7 +17,7 @@
     </dd>
     
     <dt>&{'affectedResources.fileSystem.capacity'}:</dt>
-    <dd>#{spaceForNull "${fileMirror?.capacity} GB"/}</dd>
+    <dd>#{spaceForNull "${fileMirror?.capacity}  ${models.SizeUnit.GB}"/}</dd>
 
     <dt>&{'affectedResources.fileSystem.mountPath'}:</dt>
     <dd>#{spaceForNull fileMirror?.mountPath/}</dd>
@@ -42,9 +42,8 @@
 <script>
 getVarayAndCos();
 function getVarayAndCos(){
-	$.post('@{resources.FileSystems.getVarrayVopool(resourceId)}')
+	$.post('@{resources.FileSystems.getVarrayVpool(resourceId)}')
 	.done(function(result) {
-		console.log("Value is "+result.vArray+"  vpool is "+result.vPool);
 		document.getElementById("varrayIDTgt").innerHTML=result.vArray;
 		document.getElementById("vpoolIDTgt").innerHTML=result.vPool;
 });

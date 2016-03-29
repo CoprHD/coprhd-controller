@@ -94,6 +94,9 @@ public class DbClientContext {
     private boolean isClientToNodeEncrypted;
     private ScheduledExecutorService exe = Executors.newScheduledThreadPool(1);
 
+    // whether to retry once with LOCAL_QUORUM for write failure 
+    private boolean retryFailedWriteWithLocalQuorum = false; 
+    
     public void setCipherSuite(String cipherSuite) {
         this.cipherSuite = cipherSuite;
     }
@@ -144,6 +147,14 @@ public class DbClientContext {
 
     public int getPort() {
         return keyspaceContext.getConnectionPoolConfiguration().getPort();
+    }
+
+    public boolean isRetryFailedWriteWithLocalQuorum() {
+        return retryFailedWriteWithLocalQuorum;
+    }
+
+    public void setRetryFailedWriteWithLocalQuorum(boolean retryFailedWriteWithLocalQuorum) {
+        this.retryFailedWriteWithLocalQuorum = retryFailedWriteWithLocalQuorum;
     }
 
     /**
@@ -259,6 +270,12 @@ public class DbClientContext {
 
         // Check and reset default write consistency level
         final DrUtil drUtil = new DrUtil(hostSupplier.getCoordinatorClient());
+        if (drUtil.isMultivdc()) {
+            setRetryFailedWriteWithLocalQuorum(false); // geodb in mutlivdc should be EACH_QUORUM always. Never retry for write failures
+            log.info("Retry for failed write with LOCAL_QUORUM: {}", retryFailedWriteWithLocalQuorum);
+        } else {
+            setRetryFailedWriteWithLocalQuorum(true);
+        }
         if (drUtil.isActiveSite() && !drUtil.isMultivdc()) {
             log.info("Schedule db consistency level monitor on DR active site");
             exe.scheduleWithFixedDelay(new Runnable() {
@@ -272,6 +289,7 @@ public class DbClientContext {
                 }
             }, 60, DEFAULT_CONSISTENCY_LEVEL_CHECK_SEC, TimeUnit.SECONDS);
         }
+        
         
         initDone = true;
     }
@@ -524,6 +542,13 @@ public class DbClientContext {
     }
 
     private void checkAndResetConsistencyLevel(DrUtil drUtil, String svcName) {
+        
+        if (isRetryFailedWriteWithLocalQuorum() && drUtil.isMultivdc()) {
+            log.info("Disable retry for write failure in multiple vdc configuration");
+            setRetryFailedWriteWithLocalQuorum(false);
+            return;
+        }
+        
         ConsistencyLevel currentConsistencyLevel = getKeyspace().getConfig().getDefaultWriteConsistencyLevel();
         if (currentConsistencyLevel.equals(ConsistencyLevel.CL_EACH_QUORUM)) {
             log.debug("Write consistency level is EACH_QUORUM. No need adjust");

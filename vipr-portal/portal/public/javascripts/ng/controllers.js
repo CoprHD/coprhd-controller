@@ -1357,13 +1357,30 @@ angular.module("portalApp").controller("ConfigBackupCtrl", function($scope) {
 
     function withHint($interval) {
         if ($scope.backup_startTime !== undefined) {
-            if ($scope.backup_startTime.indexOf(hint) === -1 && $interval === twicePerDay) {
-                $scope.backup_startTime += '\t' + hint;
+            var time = $scope.backup_startTime;
+            if (time.indexOf(hint) === -1 && $interval === twicePerDay) {
+                var hour = getHour(time);
+                if (hour >= 12) {
+                    var newHour = (hour - 12 < 10 ? "0" : "") + (hour - 12);
+                    $scope.backup_startTime = time.replace(hour, newHour) + '\t' + hint;
+                }
+                else {
+                    $scope.backup_startTime = time + '\t' + hint;
+                }
             }
-            else if ($scope.backup_startTime.indexOf(hint) > -1 && $interval !== twicePerDay) {
-                $scope.backup_startTime = $scope.backup_startTime.replace(hint, '').trim();
+            else if (time.indexOf(hint) > -1 && $interval !== twicePerDay) {
+                $scope.backup_startTime = time.replace(hint, '').trim();
 
             }
         }
+    }
+
+    function getHour(time) {
+        if (time) {
+            var index = time.indexOf(":");
+            var value = time.substring(0, index);
+            return !isNaN(value) ? Number(value) : 0;
+        }
+        return 0;
     }
 });

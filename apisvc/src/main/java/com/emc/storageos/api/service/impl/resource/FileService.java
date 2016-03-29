@@ -87,6 +87,7 @@ import com.emc.storageos.db.client.model.Task;
 import com.emc.storageos.db.client.model.TenantOrg;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
+import com.emc.storageos.db.client.model.VirtualPool.FileReplicationRPOType;
 import com.emc.storageos.db.client.model.util.TaskUtils;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.NameGenerator;
@@ -170,6 +171,8 @@ public class FileService extends TaskResourceService {
     private static final String EVENT_SERVICE_TYPE = "file";
     protected static final String PROTOCOL_NFS = "NFS";
     protected static final String PROTOCOL_CIFS = "CIFS";
+    private static final Long MINUTES_PER_HOUR = 60L;
+    private static final Long HOURS_PER_DAY = 24L;
 
     @Override
     public String getServiceType() {
@@ -2900,10 +2903,11 @@ public class FileService extends TaskResourceService {
         ArgValidator.checkFieldUriType(id, FileShare.class, "id");
         ArgValidator.checkEntity(fs, id, isIdEmbeddedInURL(id));
         ArgValidator.checkFieldNotNull(param.getCopies().get(0).getReplicationSettingParam(), "replication_settings");
-        ArgValidator.checkFieldValueFromEnum(param.getCopies().get(0).getReplicationSettingParam().getRpoType(), "rpo_type",
-                EnumSet.allOf(FileSystemReplicationSettings.ReplicationRPOType.class));
 
         VirtualPool vpool = _dbClient.queryObject(VirtualPool.class, fs.getVirtualPool());
+
+        validateProtectionSettings(vpool, param);
+
         StringBuffer notSuppReasonBuff = new StringBuffer();
         if (!FileSystemRepliationUtils.doBasicMirrorValidation(fs, vpool, notSuppReasonBuff)) {
             throw APIException.badRequests.unableToPerformMirrorOperation(ProtectionOp.UPDATE_RPO.toString(), fs.getId(),
@@ -3909,6 +3913,76 @@ public class FileService extends TaskResourceService {
                 _log.info(notSuppReasonBuff.toString());
                 return true;
 
+            }
+        }
+
+        return false;
+    }
+
+    private Long getMinutRpoValue(String rpoType, Long rpoValue) {
+
+        Long multiplier = 1L;
+        switch (rpoType.toUpperCase()) {
+            case "MINUTES":
+                multiplier = 1L;
+                break;
+            case "HOURS":
+                multiplier = MINUTES_PER_HOUR;
+                break;
+            case "DAYS":
+                multiplier = HOURS_PER_DAY * MINUTES_PER_HOUR;
+                break;
+        }
+        Long rpoInMinuts = rpoValue * multiplier;
+        return rpoInMinuts;
+
+    }
+
+    private boolean validateProtectionSettings(VirtualPool vpool, FileReplicationParam param) {
+
+        if (param.getCopies() != null && !param.getCopies().isEmpty()) {
+            if (param.getCopies().get(0).getReplicationSettingParam() != null) {
+
+                FileSystemReplicationSettings rpoParam = param.getCopies().get(0).getReplicationSettingParam();
+                if (rpoParam.getRpoType() == null
+                        || FileReplicationRPOType.lookup(rpoParam.getRpoType()) == null) {
+                    throw APIException.badRequests
+                            .invalidReplicationRPOType(rpoParam.getRpoType());
+                }
+
+                if (rpoParam.getRpoValue() == null || rpoParam.getRpoValue() <= 0) {
+                    throw APIException.badRequests.invalidReplicationRPOValue();
+                }
+                // Validate the RPO values!!
+                switch (rpoParam.getRpoType().toUpperCase()) {
+                    case "MINUTES":
+                        if (rpoParam.getRpoValue() > MINUTES_PER_HOUR) {
+                            throw APIException.badRequests.invalidReplicationRPOValueForType(
+                                    rpoParam.getRpoValue().toString(), rpoParam.getRpoType());
+                        }
+                        break;
+                    case "HOURS":
+                        if (rpoParam.getRpoValue() > HOURS_PER_DAY) {
+                            throw APIException.badRequests.invalidReplicationRPOValueForType(
+                                    rpoParam.getRpoValue().toString(), rpoParam.getRpoType());
+                        }
+                        break;
+                    case "DAYS":
+                        // No validation required for Days.
+                        break;
+                    default:
+                        throw APIException.badRequests.invalidReplicationRPOType(rpoParam.getRpoType());
+                }
+
+                Long rpoInMinuts = getMinutRpoValue(rpoParam.getRpoType(), rpoParam.getRpoValue());
+                Long vpoolRpoInMinuts = getMinutRpoValue(vpool.getFrRpoType(), vpool.getFrRpoValue());
+
+                if (rpoInMinuts < vpoolRpoInMinuts) {
+                    throw APIException.badRequests.lessRPOThanVpoolRpo();
+                }
+                return true;
+            } else {
+                throw APIException.badRequests.noProtectionSettingsProvided();
             }
         }
 

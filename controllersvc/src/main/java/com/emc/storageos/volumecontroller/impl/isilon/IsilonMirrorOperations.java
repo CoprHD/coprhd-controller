@@ -7,6 +7,7 @@ package com.emc.storageos.volumecontroller.impl.isilon;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -414,9 +415,14 @@ public class IsilonMirrorOperations implements FileMirrorOperations {
             }
             isi.deleteReplicationPolicy(policyName);
             _log.info("dodeleteReplicationPolicy - {} finished succesfully", policy.toString());
+            _log.info("Sleeping for 10 seconds for detach mirror to complete...");
+            TimeUnit.SECONDS.sleep(10);
             return BiosCommandResult.createSuccessfulResult();
         } catch (IsilonException e) {
             return BiosCommandResult.createErrorResult(e);
+        } catch (InterruptedException e) {
+            _log.warn("dodeleteReplicationPolicy - {} intertupted");
+            return BiosCommandResult.createSuccessfulResult();
         }
 
     }

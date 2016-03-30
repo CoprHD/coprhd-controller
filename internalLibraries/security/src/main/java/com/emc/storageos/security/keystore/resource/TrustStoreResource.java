@@ -127,11 +127,11 @@ public class TrustStoreResource {
 
         // to hold all kinds of certs in request to support add/remove in batch, and to support partial success as well
         class UpdateResult {
-            List<String> added = new ArrayList<>();
-            List<String> removed = new ArrayList<>();
-            List<String> failToParse = new ArrayList<>();
-            List<String> expired = new ArrayList<>();
-            List<String> notExisted = new ArrayList<>();
+            List<Integer> added = new ArrayList<>();
+            List<Integer> removed = new ArrayList<>();
+            List<Integer> failToParse = new ArrayList<>();
+            List<Integer> expired = new ArrayList<>();
+            List<Integer> notExisted = new ArrayList<>();
 
             public boolean hasAnyFailure() {
                 return ( failToParse.isEmpty() && expired.isEmpty() && notExisted.isEmpty() ) ? false:true;
@@ -149,65 +149,63 @@ public class TrustStoreResource {
         KeyStore keystore = getKeyStore();
         UpdateResult result = new UpdateResult();
 
-        if (changes.getAdd() != null) {
-            for (String certString : changes.getAdd()) {
+        List<String> certsToAdd = changes.getAdd();
+        if (certsToAdd != null) {
+            for (int i = 1; i <= certsToAdd.size(); i++) { // start from 1 for easier understanding for user
+                String certString = certsToAdd.get(i);
                 try {
-                    Certificate cert =
-                            KeyCertificatePairGenerator.getCertificateFromString(certString);
+                    Certificate cert = KeyCertificatePairGenerator.getCertificateFromString(certString);
                     // if we were able to parse the cert, and there wasn't more that 1
                     // cert in this certificate entry
                     if (cert != null
-                            && StringUtils.countMatches(certString,
-                                    KeyCertificatePairGenerator.PEM_BEGIN_CERT) == 1) {
+                            && StringUtils.countMatches(certString, KeyCertificatePairGenerator.PEM_BEGIN_CERT) == 1) {
                         String alias = DigestUtils.sha512Hex(cert.getEncoded());
                         if (!keystore.containsAlias(alias)) {
                             X509Certificate x509cert = (X509Certificate) cert;
                             Date now = new Date();
                             if (x509cert.getNotAfter().before(now)) {
-                                log.warn("The following certificate has expired: {}", x509cert.toString());
-                                result.expired.add(certString);
+                                log.warn("The following certificate has expired: {}", certString);
+                                result.expired.add(i);
                             } else if (now.before(x509cert.getNotBefore())) {
-                                log.warn("The following certificate is not yet valid: {} ", x509cert.toString());
-                                result.expired.add(certString);
+                                log.warn("The following certificate is not yet valid: {} ", certString);
+                                result.expired.add(i);
                             } else { // good one
                                 keystore.setCertificateEntry(alias, cert);
-                                result.added.add(certString);
+                                result.added.add(i);
                             }
                         }
                     } else {
-                        result.failToParse.add(certString);
+                        result.failToParse.add(i);
                     }
                 } catch (KeyStoreException e) {
                     throw new IllegalStateException("keystore is not initialized", e);
                 } catch (CertificateException e) {
                     log.debug(e.getMessage(), e);
-                    result.failToParse.add(certString);
+                    result.failToParse.add(i);
                 }
             }
         }
-        if (changes.getRemove() != null) {
-            for (String certString : changes.getRemove()) {
+
+        List<String> certsToRemove = changes.getRemove();
+        if (certsToRemove != null) {
+            for (int i = 1; i < certsToRemove.size(); i++) {
+                String certString = certsToRemove.get(i);
                 Certificate cert;
                 try {
-                    cert =
-                            KeyCertificatePairGenerator
-                                    .getCertificateFromString(certString);
+                    cert = KeyCertificatePairGenerator.getCertificateFromString(certString);
                     if (cert != null
-                            && StringUtils.countMatches(certString,
-                                    KeyCertificatePairGenerator.PEM_BEGIN_CERT) == 1) {
+                            && StringUtils.countMatches(certString, KeyCertificatePairGenerator.PEM_BEGIN_CERT) == 1) {
                         keystore.deleteEntry(DigestUtils.sha512Hex(cert.getEncoded()));
-                        result.removed.add(certString);
+                        result.removed.add(i);
                     } else {
-                        result.failToParse.add(certString);
+                        result.failToParse.add(i);
                     }
                 } catch (CertificateException e) {
-                    log.warn("the following certificate could not be deleted: "
-                            + certString, e);
-                    result.failToParse.add(certString);
+                    log.warn("the following certificate could not be deleted: {}", certString, e);
+                    result.notExisted.add(i);
                 } catch (KeyStoreException e) {
-                    log.warn("the following certificate could not be deleted: "
-                            + certString, e);
-                    result.notExisted.add(certString);
+                    log.warn("the following certificate could not be deleted: {}", certString, e);
+                    result.notExisted.add(i);
                 }
 
             }
@@ -223,7 +221,7 @@ public class TrustStoreResource {
 
         if (result.hasSuccess()) {
             // To update the zk and then make service get notified on change.
-            recordTrustChangeIfAny(result.added, result.removed);
+            recordTrustChangeIfAny();
             auditTruststore(OperationTypeEnum.UPDATE_TRUSTED_CERTIFICATES, changes);
         }
 
@@ -237,12 +235,8 @@ public class TrustStoreResource {
 
     /**
      * set a flag in zk if any change happened.
-     * 
-     * @param added
-     * @param removed
      */
-    private void recordTrustChangeIfAny(List<String> added, List<String> removed) {
-
+    private void recordTrustChangeIfAny() {
         try {
             coordConfigStoringHelper.createOrUpdateConfig(System.nanoTime(),
                     DistributedKeyStoreImpl.TRUSTED_CERTIFICATES_LOCK,

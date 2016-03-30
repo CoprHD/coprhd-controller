@@ -856,7 +856,7 @@ public interface BadRequestExceptions {
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException trustStoreUpdatePartialSuccess(
-            final List<String> failedParse, final List<String> expired, final List<String> notInTrustStore);
+            final List<Integer> failedParse, final List<Integer> expired, final List<Integer> notInTrustStore);
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID_URI)
     public BadRequestException invalidSeverityInURI(final String severity, final String severities);

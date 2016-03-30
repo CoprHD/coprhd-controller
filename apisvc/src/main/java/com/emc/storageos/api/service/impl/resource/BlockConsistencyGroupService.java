@@ -645,23 +645,27 @@ public class BlockConsistencyGroupService extends TaskResourceService {
             if (volume.getInactive()) {
                 continue;
             }
-
-            // If it's a VPLEX volume, check both backing volumes to make sure they have replication group instance set
-            if (volume.isVPlexVolume(dbClient)) {
-                Volume backendVolume = VPlexUtil.getVPLEXBackendVolume(volume, false, dbClient);
-                if (backendVolume != null && NullColumnValueGetter.isNullValue(backendVolume.getReplicationGroupInstance())) {
-                    throw APIException.badRequests.cgReplicationNotAllowedMissingReplicationGroup(backendVolume.getLabel());
-                }
-                backendVolume = VPlexUtil.getVPLEXBackendVolume(volume, true, dbClient);
-                if (backendVolume != null && NullColumnValueGetter.isNullValue(backendVolume.getReplicationGroupInstance())) {
-                    throw APIException.badRequests.cgReplicationNotAllowedMissingReplicationGroup(backendVolume.getLabel());
-                }
-            } else {
-                // Non-VPLEX, just check for replication group instance
-                if (NullColumnValueGetter.isNullValue(volume.getReplicationGroupInstance())) {
-                    throw APIException.badRequests.cgReplicationNotAllowedMissingReplicationGroup(volume.getLabel());
+            // Ignore RP journal volume in this validation
+            if (NullColumnValueGetter.isNullValue(volume.getPersonality())
+                    || !Volume.PersonalityTypes.METADATA.name().equalsIgnoreCase(volume.getPersonality())) {
+                // If it's a VPLEX volume, check both backing volumes to make sure they have replication group instance set
+                if (volume.isVPlexVolume(dbClient)) {
+                    Volume backendVolume = VPlexUtil.getVPLEXBackendVolume(volume, false, dbClient);
+                    if (backendVolume != null && NullColumnValueGetter.isNullValue(backendVolume.getReplicationGroupInstance())) {
+                        throw APIException.badRequests.cgReplicationNotAllowedMissingReplicationGroup(backendVolume.getLabel());
+                    }
+                    backendVolume = VPlexUtil.getVPLEXBackendVolume(volume, true, dbClient);
+                    if (backendVolume != null && NullColumnValueGetter.isNullValue(backendVolume.getReplicationGroupInstance())) {
+                        throw APIException.badRequests.cgReplicationNotAllowedMissingReplicationGroup(backendVolume.getLabel());
+                    }
+                } else {
+                    // Non-VPLEX, just check for replication group instance
+                    if (NullColumnValueGetter.isNullValue(volume.getReplicationGroupInstance())) {
+                        throw APIException.badRequests.cgReplicationNotAllowedMissingReplicationGroup(volume.getLabel());
+                    }
                 }
             }
+
         }
     }
 

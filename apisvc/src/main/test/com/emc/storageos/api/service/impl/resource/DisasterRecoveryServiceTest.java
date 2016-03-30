@@ -69,6 +69,7 @@ import com.emc.storageos.model.dr.SiteErrorResponse;
 import com.emc.storageos.model.dr.SiteList;
 import com.emc.storageos.model.dr.SiteRestRep;
 import com.emc.storageos.model.dr.SiteUpdateParam;
+import com.emc.storageos.model.property.PropertyInfo;
 import com.emc.storageos.security.authentication.InternalApiSignatureKeyGenerator;
 import com.emc.storageos.security.authentication.InternalApiSignatureKeyGenerator.SignatureKeyType;
 import com.emc.storageos.security.ipsec.IPsecConfig;
@@ -308,6 +309,8 @@ public class DisasterRecoveryServiceTest {
         sites.add(standbySite2);
         sites.add(standbySite3);
         doReturn(sites).when(drUtil).listSites();
+        
+        doReturn(new SiteInfo()).when(coordinator).getTargetInfo(any(String.class), eq(SiteInfo.class));
 
         SiteList responseList = drService.getSites();
 
@@ -362,10 +365,11 @@ public class DisasterRecoveryServiceTest {
         } catch (APIException e) {
             assertEquals(e.getServiceCode(), ServiceCode.API_PARAMETER_INVALID);
         }
-
+        
         doNothing().when(coordinator).persistServiceConfiguration(any(Configuration.class));
         doReturn(null).when(coordinator).getTargetInfo(any(String.class), eq(SiteInfo.class));
         doNothing().when(coordinator).setTargetInfo(any(String.class), any(SiteInfo.class));
+        doReturn(new PropertyInfo()).when(coordinator).getPropertyInfo();
 
         try {
             DbClientContext mockDBClientContext = mock(DbClientContext.class);

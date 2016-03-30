@@ -5,7 +5,6 @@ public class Workflow {
     private String id;
     private Context context; 
     private String completeEventString;
-    private FinishedTask[] finishedTasks;
     private String instanceId;
     private WorkflowTasks workflowTasks;
 
@@ -20,12 +19,6 @@ public class Workflow {
     }
     public void setInstanceId(String instanceId) {
         this.instanceId = instanceId;
-    }
-    public FinishedTask[] getFinishedTasks() {
-        return finishedTasks;
-    }
-    public void setFinishedTasks(FinishedTask[] finishedTasks) {
-        this.finishedTasks = finishedTasks;
     }
     public String getCompleteEventString() {
         return completeEventString;

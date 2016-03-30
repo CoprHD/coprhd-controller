@@ -97,6 +97,8 @@ public class NetappMirrorFileOperations implements FileMirrorOperations {
 
         if (cmdResult.getCommandSuccess()) {
             completer.ready(_dbClient);
+        } else if (cmdResult.getCommandPending()) {
+            completer.statusPending(_dbClient, cmdResult.getMessage());
         } else {
             completer.error(_dbClient, cmdResult.getServiceCoded());
         }
@@ -208,8 +210,8 @@ public class NetappMirrorFileOperations implements FileMirrorOperations {
                             sourceFileShare, targetFileShare, completer);
                     if (cmdResult.getCommandSuccess()) {
                         try {
-                            _log.info("Sleeping for 30 seconds for snapmirror release to complete...");
-                            TimeUnit.SECONDS.sleep(30);
+                            _log.info("Sleeping for 60 seconds for snapmirror release to complete...");
+                            TimeUnit.SECONDS.sleep(60);
                         } catch (InterruptedException e) {
                             _log.warn("Sleep interrupted after calling releaseSnapMirror.");
                         }

@@ -174,7 +174,7 @@ public class StorageProviderTypes {
 		return allproviders;
 	}
 
-	public static List<EnumOption> getStorageProviderPortMap() {
+	public static List<EnumOption> getStoragePortMap() {
 		String alltypes = "all";
 		List<EnumOption> StorageProviderPortMap = new ArrayList<EnumOption>();
 
@@ -188,6 +188,23 @@ public class StorageProviderTypes {
 		}
 
 		return StorageProviderPortMap;
+	}
+
+	public static List<StringOption> getScaleIoOption() {
+		String alltypes = "all";
+		List<StringOption> allproviders = new ArrayList<StringOption>();
+		StorageSystemTypeList storagetypelist = StorageSystemTypeUtils.getAllStorageSystemTypes(alltypes);
+		for (StorageSystemTypeRestRep storagetypeRest : storagetypelist.getStorageSystemTypes()) {
+			if (storagetypeRest.getName().equals(SCALEIO)) {
+				allproviders.add(new StringOption(storagetypeRest.getStorageTypeName(),
+						storagetypeRest.getStorageTypeDispName()));
+			}
+			if (storagetypeRest.getName().equals(SCALEIOAPI)) {
+				allproviders.add(new StringOption(storagetypeRest.getStorageTypeName(),
+						storagetypeRest.getStorageTypeDispName()));
+			}
+		}
+		return allproviders;
 	}
 
 }

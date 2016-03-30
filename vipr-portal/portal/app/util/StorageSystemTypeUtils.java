@@ -3,7 +3,6 @@ package util;
 import static util.BourneUtil.getViprClient;
 
 import java.io.File;
-import java.util.List;
 
 import javax.ws.rs.core.Response;
 

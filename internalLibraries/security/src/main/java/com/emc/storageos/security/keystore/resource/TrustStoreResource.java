@@ -223,7 +223,8 @@ public class TrustStoreResource {
         }
 
         if (result.hasAnyFailure()) {
-            throw APIException.badRequests.trustStoreUpdatePartialSuccess(result.failToParse, result.expired, result.notExisted);
+            throw APIException.badRequests.trustStoreUpdatePartialSuccess(certsToAdd.size(), result.failToParse, result.expired,
+                    certsToRemove.size(), result.notExisted);
         }
 
         // All good

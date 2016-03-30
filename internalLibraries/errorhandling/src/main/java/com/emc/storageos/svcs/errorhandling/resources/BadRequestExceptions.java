@@ -855,8 +855,8 @@ public interface BadRequestExceptions {
     public BadRequestException failedToLoadKeyFromString(final Throwable e);
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
-    public BadRequestException trustStoreUpdatePartialSuccess(
-            final List<Integer> failedParse, final List<Integer> expired, final List<Integer> notInTrustStore);
+    public BadRequestException trustStoreUpdatePartialSuccess(final int nAdd, final List<Integer> failedParse, final List<Integer> expired,
+                                                              final int nRemove, final List<Integer> notInTrustStore);
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID_URI)
     public BadRequestException invalidSeverityInURI(final String severity, final String severities);

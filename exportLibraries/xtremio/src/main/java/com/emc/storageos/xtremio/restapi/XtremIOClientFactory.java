@@ -52,15 +52,6 @@ public class XtremIOClientFactory extends RestClientFactory {
         return clientApi;
     }
 
-    @Override
-    public void removeRESTClient(URI endpoint, String username, String password) {
-        String clientKey = endpoint.toString() + ":" + username + ":" + password + ":" + model;
-        RestClientItf clientApi = _clientMap.get(clientKey);
-        if (null != clientApi) {
-            _clientMap.remove(clientKey);
-        }
-    }
-
     public RestClientItf getXtremIOV1Client(URI endpoint, String username,
             String password, boolean authFilter) {
         Client jerseyClient = super.getBaseClient(endpoint, username, password, authFilter);

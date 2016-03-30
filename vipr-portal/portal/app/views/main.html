@@ -11,7 +11,7 @@
 #{set siteActiveCheck:controllers.infra.DisasterRecovery.getSiteforActive() /}
 #{set isActiveSite:controllers.infra.DisasterRecovery.isActiveSite() /}
 #{set localSiteName:controllers.infra.DisasterRecovery.getLocalSiteName() /}
-
+#{set isLocalsiteRemoved:controllers.infra.DisasterRecovery.isLocalsiteRemoved() /}
 
 <body>
 <header>
@@ -22,7 +22,7 @@
         <span class="navbar-brand" style="background-color:#ff0000">&{'nav.disasterRecovery.obsoleteWarning'}</span>
       #{/if}
       #{elseif !siteActiveCheck.isActiveSite }
-          <span class="navbar-brand" style="background-color:#d8d9d8">Standby Site: ${localSiteName}</span>
+          <span class="navbar-brand" style="background-color:#d8d9d8">Standby Site: ${siteActiveCheck.localSiteName}</span>
       #{/elseif}
       <button class="navbar-toggle" type="button" data-toggle="collapse" data-target="#navbar-collapse-1">
         <span class="sr-only">&{'navigation.toggle'}</span><span class="icon-bar"></span>

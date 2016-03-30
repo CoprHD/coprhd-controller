@@ -55,7 +55,7 @@ public class SiteActive {
         return isActiveDegraded;
     }
 
-    public void setIsActiveDegraded(boolean ActiveSite) {
-        this.isActiveSite = isActiveDegraded;
+    public void setIsActiveDegraded(boolean isActiveDegraded) {
+        this.isActiveDegraded = isActiveDegraded;
     }
 }

@@ -652,9 +652,6 @@ public class FileReplicationDeviceController implements FileOrchestrationInterfa
             FileShare targetFileShare,
             String taskId) {
         String waitFor = null;
-
-        String policyName = gerneratePolicyName(primarysystem, targetFileShare);
-
         // secondary storagesystem
         StorageSystem secondarysystem = dbClient.queryObject(StorageSystem.class, targetFileShare.getStorageDevice());
 

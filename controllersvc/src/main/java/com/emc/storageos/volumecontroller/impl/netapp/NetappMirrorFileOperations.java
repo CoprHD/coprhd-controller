@@ -22,7 +22,10 @@ import com.emc.storageos.volumecontroller.impl.BiosCommandResult;
 import com.emc.storageos.volumecontroller.impl.ControllerServiceImpl;
 import com.emc.storageos.volumecontroller.impl.file.FileMirrorOperations;
 import com.emc.storageos.volumecontroller.impl.job.QueueJob;
+import com.emc.storageos.volumecontroller.impl.netapp.job.NetAppSnapMirrorStartJob;
 import com.emc.storageos.workflow.WorkflowStepCompleter;
+import com.iwave.ext.netapp.model.SnapMirrorState;
+import com.iwave.ext.netapp.model.SnapMirrorStatusInfo;
 
 public class NetappMirrorFileOperations implements FileMirrorOperations {
     private static final Logger _log = LoggerFactory
@@ -75,8 +78,7 @@ public class NetappMirrorFileOperations implements FileMirrorOperations {
         StorageSystem targetStorage = _dbClient.queryObject(StorageSystem.class, targetFs.getStorageDevice());
 
         String portGroup = findVfilerName(sourceFileShare);
-        BiosCommandResult cmdResult = doReleaseSnapMirror(sourceStorage, targetStorage,
-                sourceFileShare, targetFs, completer);
+        BiosCommandResult cmdResult = doPauseSnapMirror(targetStorage, targetFs, completer);
         if (cmdResult.getCommandSuccess()) {
             completer.ready(_dbClient);
         } else {
@@ -279,22 +281,31 @@ public class NetappMirrorFileOperations implements FileMirrorOperations {
 
         String destLocation = getLocation(nApiTarget, targetFs);
 
-        // make api call
-        nApiTarget.initializeSnapMirror(sourceLocation, destLocation, portGroupTarget);
+        SnapMirrorStatusInfo mirrorStatusInfo = nApiTarget.getSnapMirrorStateInfo(destLocation);
 
-        NetAppSnapMirrorStatusJob snapMirrorStatusJob = new NetAppSnapMirrorStatusJob(destLocation, targetStorage.getId(), taskCompleter,
-                destLocation);
-        try {
-            ControllerServiceImpl.enqueueJob(new QueueJob(snapMirrorStatusJob));
-            return BiosCommandResult.createPendingResult();
-        } catch (Exception e) {
-            _log.error("Snapmirror quiesce failed", e);
-            ServiceError error = DeviceControllerErrors.netapp.jobFailed("Snapmirror initialize failed:" + e.getMessage());
-            if (taskCompleter != null) {
-                taskCompleter.error(_dbClient, error);
+        if (SnapMirrorState.UNKNOWN.equals(mirrorStatusInfo.getMirrorState()) ||
+                SnapMirrorState.READY.equals(mirrorStatusInfo.getMirrorState())) {
+            // make api call
+            nApiTarget.initializeSnapMirror(sourceLocation, destLocation, portGroupTarget);
+            NetAppSnapMirrorStartJob snapMirrorStatusJob = new NetAppSnapMirrorStartJob(destLocation, targetStorage.getId(), taskCompleter,
+                    destLocation);
+            try {
+                ControllerServiceImpl.enqueueJob(new QueueJob(snapMirrorStatusJob));
+                return BiosCommandResult.createPendingResult();
+            } catch (Exception e) {
+                _log.error("Snapmirror start failed", e);
+                ServiceError error = DeviceControllerErrors.netapp.jobFailed("Snapmirror start failed:" + e.getMessage());
+                return BiosCommandResult.createErrorResult(error);
             }
+        } else if (SnapMirrorState.PAUSE.equals(mirrorStatusInfo.getMirrorState())) {
+            nApiTarget.resumeSnapMirror(destLocation, portGroupTarget);
+            return BiosCommandResult.createSuccessfulResult();
+        } else {
+            _log.error("Snapmirror start failed");
+            ServiceError error = DeviceControllerErrors.netapp.jobFailed("Snapmirror start operation failed:");
             return BiosCommandResult.createErrorResult(error);
         }
+
     }
 
     /**

@@ -27,6 +27,7 @@ import com.iwave.ext.netapp.model.CifsAccess;
 import com.iwave.ext.netapp.model.CifsAcl;
 import com.iwave.ext.netapp.model.ExportsRuleInfo;
 import com.iwave.ext.netapp.model.Qtree;
+import com.iwave.ext.netapp.model.SnapMirrorStatusInfo;
 
 @SuppressWarnings({ "findbugs:ST_WRITE_TO_STATIC_FROM_INSTANCE_METHOD", "squid:S2175", "squid:S2444" })
 /*
@@ -1277,6 +1278,18 @@ public class NetAppApi {
                     _password, _https, null);
 
             return netAppFacade.getSnapMirrorState(destinationLocation);
+
+        } catch (Exception e) {
+            throw NetAppException.exceptions.checkSnapMirrorLicenseFailed(_ipAddress, e.getMessage());
+        }
+    }
+
+    public SnapMirrorStatusInfo getSnapMirrorStateInfo(String location) throws NetAppException {
+        try {
+            netAppFacade = new NetAppFacade(_ipAddress, _portNumber, _userName,
+                    _password, _https, null);
+
+            return netAppFacade.getSnapMirrorStateInfo(location);
 
         } catch (Exception e) {
             throw NetAppException.exceptions.checkSnapMirrorLicenseFailed(_ipAddress, e.getMessage());

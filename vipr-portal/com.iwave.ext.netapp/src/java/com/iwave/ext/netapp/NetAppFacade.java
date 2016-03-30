@@ -28,6 +28,7 @@ import com.iwave.ext.netapp.model.ExportsRuleInfo;
 import com.iwave.ext.netapp.model.NetAppDevice;
 import com.iwave.ext.netapp.model.Qtree;
 import com.iwave.ext.netapp.model.Quota;
+import com.iwave.ext.netapp.model.SnapMirrorStatusInfo;
 import com.iwave.ext.netapp.utils.ExportRule;
 
 @SuppressWarnings({ "findbugs:WMI_WRONG_MAP_ITERATOR" })
@@ -1639,6 +1640,14 @@ public class NetAppFacade {
         }
         SnapMirror snapMirror = new SnapMirror(server.getNaServer(), null);
         return snapMirror.getSnapMirrorState(destLocation);
+    }
+
+    public SnapMirrorStatusInfo getSnapMirrorStateInfo(String location) {
+        if (log.isDebugEnabled()) {
+            log.debug("get snapmirror state: " + location);
+        }
+        SnapMirror snapMirror = new SnapMirror(server.getNaServer(), null);
+        return snapMirror.getSnapMirrorStatusInfo(location);
     }
 
     /**

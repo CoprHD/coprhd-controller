@@ -10,6 +10,10 @@ import netapp.manage.NaServer;
 
 import org.apache.log4j.Logger;
 
+import com.iwave.ext.netapp.model.SnapMirrorState;
+import com.iwave.ext.netapp.model.SnapMirrorStatusInfo;
+import com.iwave.ext.netapp.model.SnapMirrorTransferStatus;
+
 public class SnapMirror {
 
     private Logger log = Logger.getLogger(getClass());
@@ -420,6 +424,66 @@ public class SnapMirror {
             log.error(msg, e);
             throw new NetAppException(msg, e);
         }
+    }
+
+    public SnapMirrorStatusInfo getSnapMirrorStatusInfo(String location) {
+        NaElement elem = new NaElement("snapmirror-get-status");
+
+        if (location != null) {
+            elem.addNewChild("location", location);
+        }
+        SnapMirrorStatusInfo mirrorStatusInfo = null;
+        NaElement resultElem = null;
+        NaElement attResultElem = null;
+        try {
+            resultElem = server.invokeElem(elem);
+            if (resultElem != null) {
+                NaElement snapmirrorStatusElem = resultElem.getChildByName("snapmirror-status");
+                if (snapmirrorStatusElem != null) {
+
+                    mirrorStatusInfo = new SnapMirrorStatusInfo();
+                    NaElement snapmirrorStatusInfoElem = snapmirrorStatusElem.getChildByName("snapmirror-status-info");
+
+                    if (snapmirrorStatusInfoElem != null) {
+                        // snap mirror state
+                        String state = snapmirrorStatusInfoElem.getChildByName("state").getContent();
+                        mirrorStatusInfo.setMirrorState(SnapMirrorState.valueOf(state));
+
+                        // snap mirror transfer status
+                        String tranStatus = snapmirrorStatusInfoElem.getChildByName("status").getContent();
+                        mirrorStatusInfo.setTransferType(SnapMirrorTransferStatus.valueOf(tranStatus));
+
+                        // snap mirror current transfer status
+                        attResultElem = snapmirrorStatusInfoElem.getChildByName("current-transfer-type");
+                        if (attResultElem != null) {
+                            String currentTransferStatus = attResultElem.getContent();
+                            mirrorStatusInfo.setCurrentTransferType(SnapMirrorTransferStatus.valueOf(currentTransferStatus));
+                        }
+
+                        // get the current error info
+                        attResultElem = snapmirrorStatusInfoElem.getChildByName("current-transfer-error");
+                        if (attResultElem != null) {
+                            mirrorStatusInfo.setCurrentTransferError(attResultElem.getContent());
+                        }
+
+                        // source location
+                        String sourceLocation = snapmirrorStatusInfoElem.getChildByName("source-location").getContent();
+                        mirrorStatusInfo.setSourceLocation(sourceLocation);
+
+                        // destination location
+                        String destLocation = snapmirrorStatusInfoElem.getChildByName("destination-location").getContent();
+                        mirrorStatusInfo.setDestinationLocation(destLocation);
+                        return mirrorStatusInfo;
+                    }
+                }
+            }
+            return null;
+        } catch (Exception e) {
+            String msg = "Failed to get snapmirror status";
+            log.error(msg, e);
+            throw new NetAppException(msg, e);
+        }
+
     }
 
     /**

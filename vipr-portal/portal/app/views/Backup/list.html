@@ -1,6 +1,10 @@
 %{
-LOCAL = models.datatable.BackupDataTable.Type.LOCAL
-REMOTE = models.datatable.BackupDataTable.Type.REMOTE
+	LOCAL = models.datatable.BackupDataTable.Type.LOCAL
+	REMOTE = models.datatable.BackupDataTable.Type.REMOTE
+	isRootUser =  currentUser?.commonName == 'root';
+	isSystemAdmin = currentUser?.roles?.find{ "SYSTEM_ADMIN".equals(it.roleName)} != null
+	isRestrictedSystemAdmin = currentUser?.roles?.find{ "RESTRICTED_SYSTEM_ADMIN".equals(it.roleName)} != null
+	isSelectable = (isSystemAdmin || isRestrictedSystemAdmin) && isRootUser == true
 }%
 
 #{extends 'main.html' /}
@@ -21,7 +25,8 @@ REMOTE = models.datatable.BackupDataTable.Type.REMOTE
 
     #{if LOCAL.equals(type)}
         #{DataTable.baseCrudTable id:'backup',
-		dataTable:dataTable}
+		dataTable:dataTable,
+		disableSelectable:!isSelectable}
 			#{deadbolt.restrict roles:[['SYSTEM_ADMIN'], ['RESTRICTED_SYSTEM_ADMIN']]}
 				#{DataTable.crudButtonBar table:'backup', deleteConfirm:messages.get('backup.deleteConfirm')}
 				#{/DataTable.crudButtonBar}

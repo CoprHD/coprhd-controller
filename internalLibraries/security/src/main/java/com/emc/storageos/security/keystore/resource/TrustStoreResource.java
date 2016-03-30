@@ -150,6 +150,7 @@ public class TrustStoreResource {
         UpdateResult result = new UpdateResult();
 
         List<String> certsToAdd = changes.getAdd();
+
         if (certsToAdd != null) {
             for (int i = 0; i < certsToAdd.size(); i++) {
                 String certString = certsToAdd.get(i);
@@ -223,8 +224,12 @@ public class TrustStoreResource {
         }
 
         if (result.hasAnyFailure()) {
-            throw APIException.badRequests.trustStoreUpdatePartialSuccess(certsToAdd.size(), result.failToParse, result.expired,
-                    certsToRemove.size(), result.notExisted);
+            int nAdd = (certsToAdd == null) ? 0 : certsToAdd.size();
+            int nRemove = (certsToRemove == null) ? 0 : certsToRemove.size();
+            int nFailToAdd = result.failToParse.size() + result.expired.size();
+            int nFailToRemove = result.notExisted.size();
+            throw APIException.badRequests.trustStoreUpdatePartialSuccess(nAdd, nFailToAdd, result.failToParse, result.expired,
+                    nRemove, nFailToRemove, result.notExisted);
         }
 
         // All good

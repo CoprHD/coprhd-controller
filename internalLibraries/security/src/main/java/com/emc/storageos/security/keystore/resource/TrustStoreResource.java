@@ -151,7 +151,7 @@ public class TrustStoreResource {
 
         List<String> certsToAdd = changes.getAdd();
         if (certsToAdd != null) {
-            for (int i = 1; i <= certsToAdd.size(); i++) { // start from 1 for easier understanding for user
+            for (int i = 0; i < certsToAdd.size(); i++) {
                 String certString = certsToAdd.get(i);
                 try {
                     Certificate cert = KeyCertificatePairGenerator.getCertificateFromString(certString);
@@ -165,30 +165,30 @@ public class TrustStoreResource {
                             Date now = new Date();
                             if (x509cert.getNotAfter().before(now)) {
                                 log.warn("The following certificate has expired: {}", certString);
-                                result.expired.add(i);
+                                result.expired.add(i+1); // start from 1 for easier understanding for user
                             } else if (now.before(x509cert.getNotBefore())) {
                                 log.warn("The following certificate is not yet valid: {} ", certString);
-                                result.expired.add(i);
+                                result.expired.add(i+1);
                             } else { // good one
                                 keystore.setCertificateEntry(alias, cert);
                                 result.added.add(i);
                             }
                         }
                     } else {
-                        result.failToParse.add(i);
+                        result.failToParse.add(i+1);
                     }
                 } catch (KeyStoreException e) {
                     throw new IllegalStateException("keystore is not initialized", e);
                 } catch (CertificateException e) {
                     log.debug(e.getMessage(), e);
-                    result.failToParse.add(i);
+                    result.failToParse.add(i+1);
                 }
             }
         }
 
         List<String> certsToRemove = changes.getRemove();
         if (certsToRemove != null) {
-            for (int i = 1; i < certsToRemove.size(); i++) {
+            for (int i = 0; i < certsToRemove.size(); i++) {
                 String certString = certsToRemove.get(i);
                 Certificate cert;
                 try {
@@ -198,14 +198,11 @@ public class TrustStoreResource {
                         keystore.deleteEntry(DigestUtils.sha512Hex(cert.getEncoded()));
                         result.removed.add(i);
                     } else {
-                        result.failToParse.add(i);
+                        result.failToParse.add(i+1);
                     }
-                } catch (CertificateException e) {
+                } catch (CertificateException | KeyStoreException e) {
                     log.warn("the following certificate could not be deleted: {}", certString, e);
-                    result.notExisted.add(i);
-                } catch (KeyStoreException e) {
-                    log.warn("the following certificate could not be deleted: {}", certString, e);
-                    result.notExisted.add(i);
+                    result.notExisted.add(i+1);
                 }
 
             }

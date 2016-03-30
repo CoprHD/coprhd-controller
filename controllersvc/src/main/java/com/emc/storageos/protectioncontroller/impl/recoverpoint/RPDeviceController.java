@@ -989,7 +989,6 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
     private void addExportVolumesSteps(Workflow workflow, List<VolumeDescriptor> volumeDescriptors,
             String waitFor, ProtectionSystem rpSystem, String taskId)
             throws InternalException {
-
     	
     	// The steps for RP exportGroup creation and the actual export orchestrations are separated into 2 steps.
     	// The main reason for doing this is to aid in rollback and delete the export group artifacts created by RP after the 
@@ -1038,7 +1037,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
     }
     
     /**
-     * RP export group orchestation steps. 
+     * RP export group orchestration steps. 
      * Currently this is a dummy no-op method and all the RP export group assembly are done in the actual export orchestration method. 
      * The main reason to have this method is to make sure the roll back of RP export groups happen after the actual export rollbacks. 
      * @param stepId 

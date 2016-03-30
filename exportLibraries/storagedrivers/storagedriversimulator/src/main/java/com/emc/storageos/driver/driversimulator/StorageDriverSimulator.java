@@ -62,11 +62,21 @@ public class StorageDriverSimulator extends AbstractStorageDriver implements Blo
     @Override
     public <T extends StorageObject> T getStorageObject(String storageSystemId, String objectId, Class<T> type) {
         if (StorageVolume.class.getSimpleName().equals(type.getSimpleName())) {
-
+            StorageVolume obj = new StorageVolume();
+            obj.setAllocatedCapacity(200L);
+            return (T) obj;
+        } else if (VolumeConsistencyGroup.class.getSimpleName().equals(type.getSimpleName())) {
+            VolumeConsistencyGroup cg = new VolumeConsistencyGroup();
+            cg.setStorageSystemId(storageSystemId);
+            cg.setNativeId(objectId);
+            cg.setDeviceLabel(objectId);
+            _log.info("Return volume cg {} from array {}", objectId, storageSystemId);
+            return (T) cg;
+        } else {
+            StorageVolume obj = new StorageVolume();
+            obj.setAllocatedCapacity(200L);
+            return (T) obj;
         }
-        StorageVolume obj = new StorageVolume();
-        obj.setAllocatedCapacity(200L);
-        return (T) obj;
     }
     // DiscoveryDriver implementation
 
@@ -547,11 +557,12 @@ public class StorageDriverSimulator extends AbstractStorageDriver implements Blo
             StorageVolume driverVolume = new StorageVolume();
             driverVolume.setStorageSystemId(storageSystem.getNativeId());
             driverVolume.setStoragePoolId("pool-1234577-" + token.intValue() + storageSystem.getNativeId());
-            driverVolume.setNativeId("driverSimulatorVolume-1234567-"+token.intValue()+ "-"+vol);
+            driverVolume.setNativeId("driverSimulatorVolume-1234567-" + token.intValue() + "-" + vol);
+            driverVolume.setConsistencyGroup("driverSimulatorCG-"+token.intValue());
             driverVolume.setAccessStatus(StorageVolume.AccessStatus.READ_WRITE);
             driverVolume.setThinlyProvisioned(true);
             driverVolume.setThinVolumePreAllocationSize(3000L);
-            driverVolume.setProvisionedCapacity(100000L);
+            driverVolume.setProvisionedCapacity(3*1024*1024*1024L);
             driverVolume.setAllocatedCapacity(50000L);
             driverVolume.setDeviceLabel(driverVolume.getNativeId());
             driverVolume.setWwn(String.format("%s%s", driverVolume.getStorageSystemId(), driverVolume.getNativeId()));
@@ -601,7 +612,22 @@ public class StorageDriverSimulator extends AbstractStorageDriver implements Blo
         this.driverRegistry.setDriverAttributesForKey("StorageDriverSimulator", systemNativeId, attributes);
     }
 
-//
+    @Override
+    public DriverTask getVolumeSnapshots(StorageVolume volume, List<VolumeSnapshot> snapshots) {
+        return null;
+    }
+
+    @Override
+    public DriverTask getVolumeClones(StorageVolume volume, List<VolumeClone> clones) {
+        return null;
+    }
+
+    @Override
+    public DriverTask getVolumeMirrors(StorageVolume volume, List<VolumeMirror> mirrors) {
+        return null;
+    }
+
+    //
 //    public static void main (String[] args) {
 //        StorageDriver driver = new NewStorageDriver(RegistryImpl.getInstance(), LockManagerImpl.getInstance(null));
 //        StorageVolume volume = driver.getStorageObject("123", "234", StorageVolume.class);

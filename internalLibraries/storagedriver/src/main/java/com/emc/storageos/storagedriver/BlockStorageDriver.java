@@ -49,6 +49,30 @@ public interface BlockStorageDriver extends StorageDriver {
     public DriverTask createVolumes(List<StorageVolume> volumes, StorageCapabilities capabilities);
 
     /**
+     * Get snapshots of the specified storage volume.
+     * @param volume storage volume. Type: Input
+     * @param snapshots list of snapshots of the storage volume. Type: Output
+     * @return task
+     */
+    public  DriverTask getVolumeSnapshots(StorageVolume volume, List<VolumeSnapshot> snapshots);
+
+    /**
+     * Get clones (full copies) of the specified volume.
+     * @param volume storage volume. Type: Input
+     * @param clones list of clones of the volume. Type: Output
+     * @return task
+     */
+    public  DriverTask getVolumeClones(StorageVolume volume, List<VolumeClone> clones);
+
+    /**
+     * Get mirrors (continuous copies) of the specified volume.
+     * @param volume storage volume. Type: Input
+     * @param mirrors list of mirrors of the volume. Type: Output
+     * @return task
+     */
+    public  DriverTask getVolumeMirrors(StorageVolume volume, List<VolumeMirror> mirrors);
+
+    /**
      * Expand volume.
      * Before completion of the request, set all required data for expanded volume in "volume" parameter.
      * This includes update for capacity properties based on the new volume size:

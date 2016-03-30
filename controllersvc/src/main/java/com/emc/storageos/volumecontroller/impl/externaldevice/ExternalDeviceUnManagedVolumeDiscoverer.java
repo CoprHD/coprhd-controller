@@ -13,6 +13,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedConsistencyGroup;
+import com.emc.storageos.storagedriver.model.VolumeConsistencyGroup;
+import com.emc.storageos.xtremio.restapi.XtremIOClient;
+import com.emc.storageos.xtremio.restapi.model.response.XtremIOConsistencyGroup;
 import org.apache.commons.lang.mutable.MutableInt;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -41,15 +45,19 @@ public class ExternalDeviceUnManagedVolumeDiscoverer {
     private static final String TRUE = "true";
     private static final String FALSE = "false";
     private static final String UNMANAGED_VOLUME = "UnManagedVolume";
+    private static final String UNMANAGED_CONSISTENCY_GROUP = "UnManagedConsistencyGroup";
 
     public void discoverUnManagedObjects(DiscoveryDriver driver, com.emc.storageos.db.client.model.StorageSystem storageSystem, DbClient dbClient,
                                          PartitionManager partitionManager) {
         log.info("Started discovery of UnManagedVolumes for system {}", storageSystem.getId());
-        Set<URI> allCurrentUnManagedVolumeUris = new HashSet<URI>();
+        Set<URI> allCurrentUnManagedVolumeUris = new HashSet<>();
+        Set<URI> allCurrentUnManagedCgURIs = new HashSet<>();
         MutableInt lastPage = new MutableInt(0);
         MutableInt nextPage = new MutableInt(0);
         List<UnManagedVolume> unManagedVolumesToCreate = new ArrayList<UnManagedVolume>();
         List<UnManagedVolume> unManagedVolumesToUpdate = new ArrayList<UnManagedVolume>();
+        List<UnManagedConsistencyGroup> unManagedCGToUpdate = new ArrayList<>();
+        Map<String, UnManagedConsistencyGroup> unManagedCGToUpdateMap = new HashMap<>();
 
         // unManagedCGToUpdateMap = new HashMap<String, UnManagedConsistencyGroup>();
         // prepare storage system
@@ -94,13 +102,19 @@ public class ExternalDeviceUnManagedVolumeDiscoverer {
                             unManagedVolumesToUpdate, dbClient);
 
                     // if the volume is associated with a CG, set up the unmanaged CG
+                    if (driverVolume.getConsistencyGroup() != null) {
+                        addVolumeToUnManagedConsistencyGroup(storageSystem, driverVolume, unManagedVolume,
+                                allCurrentUnManagedCgURIs, unManagedCGToUpdateMap, driver, dbClient);
+                    } else {
+                        // Make sure the unManagedVolume object does not contain CG information from previous discovery
+                        unManagedVolume.getVolumeCharacterstics().put(
+                                UnManagedVolume.SupportedVolumeCharacterstics.IS_VOLUME_ADDED_TO_CONSISTENCYGROUP.toString(), Boolean.FALSE.toString());
+                        // set the uri of the unmanaged CG in the unmanaged volume object to empty
+                        unManagedVolume.getVolumeInformation().put(UnManagedVolume.SupportedVolumeInformation.UNMANAGED_CONSISTENCY_GROUP_URI.toString(),
+                                "");
+                    }
 
-                    // Make sure the unManagedVolume object does not contain CG information from previous discovery
-                    unManagedVolume.getVolumeCharacterstics().put(
-                            UnManagedVolume.SupportedVolumeCharacterstics.IS_VOLUME_ADDED_TO_CONSISTENCYGROUP.toString(), Boolean.FALSE.toString());
-                    // set the uri of the unmanaged CG in the unmanaged volume object to empty
-                    unManagedVolume.getVolumeInformation().put(UnManagedVolume.SupportedVolumeInformation.UNMANAGED_CONSISTENCY_GROUP_URI.toString(),
-                            "");
+
 
                     unManagedVolume.getVolumeCharacterstics().put(UnManagedVolume.SupportedVolumeCharacterstics.HAS_REPLICAS.toString(), FALSE);
                     //unManagedVolume.getVolumeInformation().get(UnManagedVolume.SupportedVolumeInformation.SNAPSHOTS.toString()).clear();
@@ -124,10 +138,22 @@ public class ExternalDeviceUnManagedVolumeDiscoverer {
             }
         } while (!nextPage.equals(lastPage));
 
+        if (!unManagedCGToUpdateMap.isEmpty()) {
+            unManagedCGToUpdate = new ArrayList<UnManagedConsistencyGroup>(unManagedCGToUpdateMap.values());
+            partitionManager.updateAndReIndexInBatches(unManagedCGToUpdate,
+                    unManagedCGToUpdate.size(), dbClient, UNMANAGED_CONSISTENCY_GROUP);
+            unManagedCGToUpdate.clear();
+        }
+
         log.info("Processed {} unmanged objects.", allCurrentUnManagedVolumeUris.size());
         // Process those active unmanaged volume objects available in database but not in newly discovered items, to mark them inactive.
         if (allCurrentUnManagedVolumeUris.size() != 0) {
             DiscoveryUtils.markInActiveUnManagedVolumes(storageSystem, allCurrentUnManagedVolumeUris, dbClient, partitionManager);
+
+        // Process those active unmanaged consistency group objects available in database but not in newly discovered items, to mark them
+        // inactive.
+        DiscoveryUtils.performUnManagedConsistencyGroupsBookKeeping(storageSystem, allCurrentUnManagedCgURIs, dbClient, partitionManager);
+
         }
         // Process those active unmanaged consistency group objects available in database but not in newly discovered items, to mark them
         // inactive.
@@ -156,7 +182,6 @@ public class ExternalDeviceUnManagedVolumeDiscoverer {
             unManagedVolume.setId(URIUtil.createId(UnManagedVolume.class));
             unManagedVolume.setNativeGuid(unManagedVolumeNatvieGuid);
             unManagedVolume.setStorageSystemUri(storageSystem.getId());
-            unManagedVolume.setLabel(driverVolume.getDisplayName());
 
             if (driverVolume.getWwn() == null) {
                 unManagedVolume.setWwn(String.format("%s%s", driverVolume.getStorageSystemId(), driverVolume.getNativeId()));
@@ -171,6 +196,7 @@ public class ExternalDeviceUnManagedVolumeDiscoverer {
             unManagedVolumeCharacteristics = unManagedVolume.getVolumeCharacterstics();
         }
 
+        unManagedVolume.setLabel(driverVolume.getDeviceLabel());
         Boolean isVolumeExported = false;
         unManagedVolumeCharacteristics.put(UnManagedVolume.SupportedVolumeCharacterstics.IS_VOLUME_EXPORTED.toString(), isVolumeExported.toString());
 
@@ -274,7 +300,7 @@ public class ExternalDeviceUnManagedVolumeDiscoverer {
      * @param dbClient
      * @return
      */
-    private com.emc.storageos.db.client.model.StoragePool getStoragePoolOfUnmanagedVolume (com.emc.storageos.db.client.model.StorageSystem storageSystem,
+    private com.emc.storageos.db.client.model.StoragePool getStoragePoolOfUnmanagedVolume(com.emc.storageos.db.client.model.StorageSystem storageSystem,
                                                                                            StorageVolume driverVolume, DbClient dbClient)
     {
         com.emc.storageos.db.client.model.StoragePool storagePool = null;
@@ -292,6 +318,83 @@ public class ExternalDeviceUnManagedVolumeDiscoverer {
         }
 
         return storagePool;
+    }
+
+    private void addVolumeToUnManagedConsistencyGroup(com.emc.storageos.db.client.model.StorageSystem storageSystem,
+                                                      StorageVolume driverVolume, UnManagedVolume unManagedVolume,
+                                                      Set<URI> allCurrentUnManagedCgURIs,
+                                                      Map<String, UnManagedConsistencyGroup> unManagedCGToUpdateMap,
+                                                      DiscoveryDriver driver, DbClient dbClient) throws Exception {
+        log.info("Unmanaged volume {} belongs to consistency group {} on the array", unManagedVolume.getLabel(),
+                driverVolume.getConsistencyGroup());
+        // determine the native guid for the unmanaged CG
+        String unManagedCGNativeGuid = NativeGUIDGenerator.generateNativeGuidForCG(storageSystem.getNativeGuid(),
+                driverVolume.getConsistencyGroup());
+        log.info("Unmanaged consistency group has nativeGuid {} ", unManagedCGNativeGuid);
+        // determine if the unmanaged CG already exists in the unManagedCGToUpdateMap or in the database
+        // if the the unmanaged CG is not in either create a new one
+        UnManagedConsistencyGroup unManagedCG = null;
+        if (unManagedCGToUpdateMap.containsKey(unManagedCGNativeGuid)) {
+            unManagedCG = unManagedCGToUpdateMap.get(unManagedCGNativeGuid);
+            log.info("Unmanaged consistency group {} was previously added to the unManagedCGToUpdateMap", unManagedCG.getNativeGuid());
+        } else {
+            unManagedCG = DiscoveryUtils.checkUnManagedCGExistsInDB(dbClient, unManagedCGNativeGuid);
+            if (null == unManagedCG) {
+                // unmanaged CG does not exist in the database, create it
+                VolumeConsistencyGroup driverCG = driver.getStorageObject(storageSystem.getNativeId(), driverVolume.getConsistencyGroup(),
+                        VolumeConsistencyGroup.class);
+                if (driverCG != null) {
+                    unManagedCG = createUnManagedCG(driverCG, storageSystem, dbClient);
+                    log.info("Created unmanaged consistency group: {} with nativeGuid {}",
+                            unManagedCG.getId().toString(), unManagedCG.getNativeGuid());
+                } else {
+                    // todo this is a failure
+                    String msg = String.format("Driver VolumeConsistencyGroup with native id %s does not exist on storage system %s",
+                            driverVolume.getConsistencyGroup(), storageSystem.getNativeId());
+                    log.error(msg);
+                    throw new Exception(msg);
+                }
+
+            } else {
+                log.info("Unmanaged consistency group {} was previously added to the database", unManagedCG.getNativeGuid());
+                // clean out the list of unmanaged volumes if this unmanaged cg was already
+                // in the database and its first time being used in this discovery operation
+                // the list should be re-populated by the current discovery operation
+                log.info("Cleaning out unmanaged volume map from unmanaged consistency group: {}", unManagedCG.getNativeGuid());
+                unManagedCG.getUnManagedVolumesMap().clear();
+            }
+        }
+        log.info("Adding unmanaged volumes {} to unmanaged consistency group {}", unManagedVolume.getLabel(), unManagedCG.getNativeGuid());
+        // Update the unManagedVolume object with CG information
+        unManagedVolume.getVolumeCharacterstics().put(UnManagedVolume.SupportedVolumeCharacterstics.IS_VOLUME_ADDED_TO_CONSISTENCYGROUP.toString(),
+                Boolean.TRUE.toString());
+        // set the uri of the unmanaged CG in the unmanaged volume object
+        unManagedVolume.getVolumeInformation().put(UnManagedVolume.SupportedVolumeInformation.UNMANAGED_CONSISTENCY_GROUP_URI.toString(),
+                unManagedCG.getId().toString());
+        // add the unmanaged volume object to the unmanaged CG
+        unManagedCG.getUnManagedVolumesMap().put(unManagedVolume.getNativeGuid(), unManagedVolume.getId().toString());
+        // add the unmanaged CG to the map of unmanaged CGs to be updated in the database once all volumes have been processed
+        unManagedCGToUpdateMap.put(unManagedCGNativeGuid, unManagedCG);
+        // add the unmanaged CG to the current set of CGs being discovered on the array. This is for book keeping later.
+        allCurrentUnManagedCgURIs.add(unManagedCG.getId());
+    }
+
+    private UnManagedConsistencyGroup createUnManagedCG(VolumeConsistencyGroup driverCG,
+                                                        com.emc.storageos.db.client.model.StorageSystem storageSystem,
+                                                        DbClient dbClient) {
+        UnManagedConsistencyGroup unManagedCG = new UnManagedConsistencyGroup();
+        unManagedCG.setId(URIUtil.createId(UnManagedConsistencyGroup.class));
+        unManagedCG.setLabel(driverCG.getDeviceLabel());
+        unManagedCG.setName(driverCG.getDeviceLabel());
+        String unManagedCGNativeGuid = NativeGUIDGenerator.generateNativeGuidForCG(storageSystem.getNativeGuid(),
+                driverCG.getNativeId());
+        unManagedCG.setNativeGuid(unManagedCGNativeGuid);
+        unManagedCG.setNativeId(driverCG.getNativeId());
+        unManagedCG.setStorageSystemUri(storageSystem.getId());
+        //unManagedCG.setNumberOfVols(consistencyGroup.getNumOfVols());
+        dbClient.createObject(unManagedCG);
+
+        return unManagedCG;
     }
 
 

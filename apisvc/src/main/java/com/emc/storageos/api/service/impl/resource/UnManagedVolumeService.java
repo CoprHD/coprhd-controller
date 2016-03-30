@@ -541,7 +541,12 @@ public class UnManagedVolumeService extends TaskResourceService {
                     throw IngestionException.exceptions.generalVolumeException(
                             processedUnManagedVolume.getLabel(), "check the logs for more details");
                 }
-                requestContext.getObjectsIngestedByExportProcessing().add(blockObject);
+
+                if (null == blockObject.getCreationTime()) {
+                    // only add objects to create if they were created this round of ingestion,
+                    // creationTime will be null unless the object has already been saved to the db
+                    requestContext.getObjectsIngestedByExportProcessing().add(blockObject);
+                }
 
                 // If the ingested object is internal, flag an error. If it's an RP volume, it's exempt from this check.
                 if (blockObject.checkInternalFlags(Flag.PARTIALLY_INGESTED) &&

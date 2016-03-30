@@ -116,6 +116,7 @@ import com.emc.storageos.volumecontroller.VPlexRecommendation;
 import com.emc.storageos.volumecontroller.impl.ControllerUtils;
 import com.emc.storageos.volumecontroller.impl.smis.SmisConstants;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
+import com.emc.storageos.volumecontroller.impl.xtremio.prov.utils.XtremIOProvUtils;
 import com.emc.storageos.vplexcontroller.VPlexController;
 import com.google.common.base.Joiner;
 import com.google.common.base.Predicate;
@@ -395,20 +396,24 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
                     // Check if it is RP target or journal volumes
                     String rpPersonality = vPoolCapabilities.getPersonality();
                     boolean isRPTargetOrJournal = false;
-                    if (rpPersonality != null && (rpPersonality.equals(PersonalityTypes.TARGET.name()) 
+                    if (rpPersonality != null && (rpPersonality.equals(PersonalityTypes.TARGET.name())
                             || rpPersonality.equals(PersonalityTypes.METADATA.name()))) {
                         s_logger.info("It is RP target or journal volume");
                         isRPTargetOrJournal = true;
                     }
+
+                    // Do not set the replicationGroupInstance if the backend volume is on XIO 3.x system which doesn't support CGs
+                    StorageSystem backendSystem = _dbClient.queryObject(StorageSystem.class, storageDeviceURI);
+                    boolean isXIO3xVersion = StorageSystem.Type.xtremio.name().equalsIgnoreCase(backendSystem.getSystemType())
+                            && !XtremIOProvUtils.is4xXtremIOModel(backendSystem.getModel());
                     // Set replicationGroupInstance if CG's arrayConsistency is true
                     if (backendCG != null && backendCG.getArrayConsistency() && !isRPTargetOrJournal) {
-                    	String repGroupInstance = consistencyGroup.getCgNameOnStorageSystem(storageDeviceURI);
-                    	if (NullColumnValueGetter.isNullValue(repGroupInstance)) {
-                    		repGroupInstance = consistencyGroup.getLabel();
-                    	}
-                    	volume.setReplicationGroupInstance(repGroupInstance);
+                        String repGroupInstance = consistencyGroup.getCgNameOnStorageSystem(storageDeviceURI);
+                        if (NullColumnValueGetter.isNotNullValue(repGroupInstance)) {
+                            volume.setReplicationGroupInstance(repGroupInstance);
+                        }
                     }
-                    
+
                     if (consistencyGroup != null) {
                         volume.setConsistencyGroup(consistencyGroup.getId());
                     }
@@ -1278,8 +1283,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
                     if (volumesInRGRequest.size() != rgVolumes.size()) {
                         throw APIException.badRequests.cantChangeVpoolNotAllCGVolumes();
                     }
-                
-                
+
                     // All volumes will be migrated in the same workflow.
                     // If there are many volumes in the CG, the workflow
                     // will have many steps. Worse, if an error occurs
@@ -1295,7 +1299,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
                                 .cgContainsTooManyVolumesForVPoolChange(cg.getLabel(),
                                         volumes.size(), _maxCgVolumesForMigration);
                     }
-    
+
                     // When migrating multiple volumes in the CG we
                     // want to be sure the target vpool ensures the
                     // migration targets will be placed on the same
@@ -1305,7 +1309,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
                         s_logger.info("Multiple volume request, verifying target storage systems");
                         verifyTargetSystemsForCGDataMigration(volumesInRGRequest, vpool, cg.getVirtualArray());
                     }
-    
+
                     // Get all volume descriptors for all volumes to be migrated.
                     URI systemURI = changeVPoolVolume.getStorageController();
                     StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, systemURI);
@@ -1314,7 +1318,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
                         descriptors.addAll(createChangeVirtualPoolDescriptors(storageSystem,
                                 volume, vpool, taskId, null, null));
                     }
-    
+
                     // Orchestrate the vpool changes of all volumes as a single request.
                     orchestrateVPoolChanges(volumesInRGRequest, descriptors, taskId);
                 }
@@ -3512,7 +3516,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
         VolumeGroup volumeGroup = _dbClient.queryObject(VolumeGroup.class, volumeGroupId);
         URI systemURI = getVolumesToAddToApplication(addVols, addVolumes, volumeGroup, taskId);
         List<URI> removeVolIds = new ArrayList<URI>();
-       
+
         URI removeSystemURI = getVolumesToRemoveFromApplication(removeVolIds, removeVolumes);
         if (systemURI == null) {
             systemURI = removeSystemURI;
@@ -3532,7 +3536,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
 
     /**
      * get backing volumes to be removed from the application
-     * 
+     *
      * @param removeVolIds output list of volume ids
      * @param removeVolumes input list of volumes
      * @return URI of the storage system the backing volumes are in (this will need to change)
@@ -3554,14 +3558,14 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
 
     /**
      * get backing volumes to be added the the application
-     * 
+     *
      * @param addVols output list of volumes to be added after validation
      * @param addVolumes input list of volumes to add
      * @param volumeGroup application to add to
      * @param taskId task id used if some volumes are already in a backend array CG
      * @return URI of the storage system the backing volumes are in (this will need to change)
      */
-    public URI getVolumesToAddToApplication(ApplicationAddVolumeList addVols, VolumeGroupVolumeList addVolumes, VolumeGroup volumeGroup, 
+    public URI getVolumesToAddToApplication(ApplicationAddVolumeList addVols, VolumeGroupVolumeList addVolumes, VolumeGroup volumeGroup,
             String taskId) {
         URI systemURI = null;
         if (addVolumes != null && addVolumes.getVolumes() != null && !addVolumes.getVolumes().isEmpty()) {
@@ -3617,7 +3621,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
 
     /*
      * (non-Javadoc)
-     * 
+     *
      * @see
      * com.emc.storageos.api.service.impl.resource.BlockServiceApi#getReplicationGroupNames(com.emc.storageos.db.client.model.VolumeGroup)
      */
@@ -3632,7 +3636,8 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
             if (backingVolumes != null) {
                 for (String backingVolId : backingVolumes) {
                     Volume backingVol = _dbClient.queryObject(Volume.class, URI.create(backingVolId));
-                    if (backingVol != null && !backingVol.getInactive() && NullColumnValueGetter.isNotNullValue(backingVol.getReplicationGroupInstance())) {
+                    if (backingVol != null && !backingVol.getInactive()
+                            && NullColumnValueGetter.isNotNullValue(backingVol.getReplicationGroupInstance())) {
                         groupNames.add(backingVol.getReplicationGroupInstance());
                     }
                 }
@@ -3750,14 +3755,14 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
             return containAll;
         }
     }
-    
+
     /**
      * Determines in any of the passed volumes is A VPLEX volume in a VPLEX
      * consistency group with corresponding consistency group(s) for the backend
      * storage.
-     * 
+     *
      * @param volumes The list of volumes to check
-     * 
+     *
      * @return A reference to the CG if any of the passed volumes is A VPLEX
      *         volume in a VPLEX consistency group with corresponding
      *         consistency group(s) for the backend storage, null otherwise.

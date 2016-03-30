@@ -487,7 +487,9 @@ public abstract class VdcOpHandler {
             if (DrUtil.ZOOKEEPER_MODE_READONLY.equals(state)) {
                 coordinator.reconfigZKToWritable();
             }
-
+            
+            localRepository.rebaseZkSnapshot();
+            
             Site localSite = drUtil.getLocalSite();
             if (localSite.getState().equals(SiteState.STANDBY_PAUSING)) {
                 localSite.setState(SiteState.STANDBY_PAUSED);

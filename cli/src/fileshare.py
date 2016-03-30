@@ -869,6 +869,27 @@ class Fileshare(object):
                         "error: task list is empty, no task response found")
         else:
             return result
+        
+    
+    # Blocks the replication operation until the task is complete/error out/timeout
+    def check_for_sync_replication(self, result, sync, synctimeout=0):
+        if(sync):
+            if 'task' in result :
+                task = result['task']
+                task_element = task[0]
+                if(len(task_element['resource']) > 0):
+                    resource = task_element['resource']
+                    return (
+                        common.block_until_complete("fileshare", resource["id"],
+                                                    task_element['id'], self.__ipAddr,
+                                                    self.__port,synctimeout)
+                    )
+                else:
+                    raise SOSError(
+                        SOSError.SOS_FAILURE_ERR,
+                        "error: task list is empty, no task response found")
+        else:
+            return result
 
 
     def list_tasks(self, project_name, fileshare_name=None, task_id=None):
@@ -963,7 +984,7 @@ class Fileshare(object):
         o = common.json_decode(s)
         
         if(sync):
-            return self.check_for_sync(o, sync)
+            return self.check_for_sync_replication(o, sync)
         else:
             return
     
@@ -986,9 +1007,11 @@ class Fileshare(object):
             "POST",
             Fileshare.URI_CONTINUOS_COPIES_PAUSE.format(fsid),
             body)
+        
+        o = common.json_decode(s)
 
         if(sync):
-            return self.check_for_sync(s, sync)
+            return self.check_for_sync_replication(o, sync)
         else:
             return
     
@@ -1011,9 +1034,11 @@ class Fileshare(object):
             "POST",
             Fileshare.URI_CONTINUOS_COPIES_RESUME.format(fsid),
             body)
+        
+        o = common.json_decode(s)
 
         if(sync):
-            return self.check_for_sync(s, sync)
+            return self.check_for_sync_replication(o, sync)
         else:
             return
     
@@ -1036,9 +1061,11 @@ class Fileshare(object):
             "POST",
             Fileshare.URI_CONTINUOS_COPIES_STOP.format(fsid),
             body)
+        
+        o = common.json_decode(s)
 
         if(sync):
-            return self.check_for_sync(s, sync)
+            return self.check_for_sync_replication(o, sync)
         else:
             return
     
@@ -1061,9 +1088,11 @@ class Fileshare(object):
             "POST",
             Fileshare.URI_CONTINUOS_COPIES_FAILOVER.format(fsid),
             body)
+        
+        o = common.json_decode(s)
 
         if(sync):
-            return self.check_for_sync(s, sync)
+            return self.check_for_sync_replication(o, sync)
         else:
             return
     
@@ -1086,9 +1115,11 @@ class Fileshare(object):
             "POST",
             Fileshare.URI_CONTINUOS_COPIES_FAILBACK.format(fsid),
             body)
+        
+        o = common.json_decode(s)
 
         if(sync):
-            return self.check_for_sync(s, sync)
+            return self.check_for_sync_replication(o, sync)
         else:
             return
     
@@ -1105,9 +1136,11 @@ class Fileshare(object):
             "POST",
             Fileshare.URI_CONTINUOS_COPIES_CREATE.format(fsid),
             body)
+        
+        o = common.json_decode(s)
 
         if(sync):
-            return self.check_for_sync(s, sync)
+            return self.check_for_sync_replication(o, sync)
         else:
             return
     
@@ -1123,9 +1156,11 @@ class Fileshare(object):
             "POST",
             Fileshare.URI_CONTINUOS_COPIES_DEACTIVATE.format(fsid),
             body)
+        
+        o = common.json_decode(s)
 
         if(sync):
-            return self.check_for_sync(s, sync)
+            return self.check_for_sync_replication(o, sync)
         else:
             return
     
@@ -1145,9 +1180,11 @@ class Fileshare(object):
             "POST",
             Fileshare.URI_CONTINUOS_COPIES_REFRESH.format(fsid),
             body)
+        
+        o = common.json_decode(s)
 
         if(sync):
-            return self.check_for_sync(s, sync)
+            return self.check_for_sync_replication(o, sync)
         else:
             return
     

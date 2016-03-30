@@ -275,12 +275,14 @@ public class BlockServiceUtils {
                     for (String associatedVolumeId : volume.getAssociatedVolumes()) {
                         Volume associatedVolume = dbClient.queryObject(Volume.class,
                                 URI.create(associatedVolumeId));
-                        StorageSystem backendSystem = dbClient.queryObject(StorageSystem.class,
-                                associatedVolume.getStorageController());
-                        if (backendSystem == null ||
-                                !(backendSystem.deviceIsType(Type.vmax) || backendSystem.deviceIsType(Type.vnxblock)
-                                || backendSystem.deviceIsType(Type.xtremio))) {
-                            return false;   // one of the backend volume does not meet the criteria
+                        if (associatedVolume != null) {
+                            StorageSystem backendSystem = dbClient.queryObject(StorageSystem.class,
+                                    associatedVolume.getStorageController());
+                            if (backendSystem == null ||
+                                    !(backendSystem.deviceIsType(Type.vmax) || backendSystem.deviceIsType(Type.vnxblock)
+                                    || backendSystem.deviceIsType(Type.xtremio))) {
+                                return false;   // one of the backend volume does not meet the criteria
+                            }
                         }
                     }
                     // all backend volumes have met the criteria

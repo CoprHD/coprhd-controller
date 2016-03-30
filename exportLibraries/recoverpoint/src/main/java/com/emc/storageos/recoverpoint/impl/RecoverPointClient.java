@@ -669,7 +669,6 @@ public class RecoverPointClient {
             throw RecoverPointException.exceptions.noRecoverPointEndpoint();
         }
 
-        List<RecoverPointVolumeProtectionInfo> replicationSetsRollback = new ArrayList<RecoverPointVolumeProtectionInfo>();
         RecoverPointCGResponse response = new RecoverPointCGResponse();
         List<ConsistencyGroupCopySettings> groupCopySettings = null;
         ConsistencyGroupUID cgUID = null;
@@ -744,20 +743,7 @@ public class RecoverPointClient {
             response.setReturnCode(RecoverPointReturnCode.SUCCESS);
             return response;
         } catch (Exception e) {
-            for (CreateRSetParams rsetParam : request.getRsets()) {
-                for (CreateVolumeParams volumeParam : rsetParam.getVolumes()) {
-                    try {
-                        RecoverPointVolumeProtectionInfo volProtectionInfo = this.getProtectionInfoForVolume(volumeParam.getWwn());
-                        replicationSetsRollback.add(volProtectionInfo);
-                    } catch (Exception e1) {
-                        // unable to find protection info for volume
-                        logger.warn(e1.getMessage(), e1);
-                        // skip the volume
-                        continue;
-                    }
-                }
-            }
-            deleteReplicationSets(replicationSetsRollback);
+            logger.info("Failed to add replication set(s) to CG");
             throw RecoverPointException.exceptions.failedToAddReplicationSetToConsistencyGroup(request.getCgName(), getCause(e));
         }
     }

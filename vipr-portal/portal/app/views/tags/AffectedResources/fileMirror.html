@@ -1,0 +1,53 @@
+%{
+  resourceId = _resource.id
+  fileMirror = _resource
+  
+}%
+#{AffectedResources.resource img: 'file.png', classes: 'fileSystem', typeKey: 'affectedResources.fileSystem'}
+#{AffectedResources.singleColumn }
+  <dt>&{'affectedResources.fileSystem'}:</dt>
+  <dd>
+    ${resourceId}</a>
+  </dd>
+  #{if fileMirror}
+    <dt>&{'affectedResources.fileSystem.name'}:</dt>
+    <dd>
+      <a href="@{resources.FileSystems.fileSystem(resourceId)}"
+      >#{spaceForNull fileMirror?.name/}#{if fileMirror.inactive} (&{'affectedResources.inactive'})#{/if}</a>
+    </dd>
+    
+    <dt>&{'affectedResources.fileSystem.capacity'}:</dt>
+    <dd>#{spaceForNull "${fileMirror?.capacity}  ${models.SizeUnit.GB}"/}</dd>
+
+    <dt>&{'affectedResources.fileSystem.mountPath'}:</dt>
+    <dd>#{spaceForNull fileMirror?.mountPath/}</dd>
+
+    <dt>&{'affectedResources.varray'}:</dt>
+    <dd id="varrayIDTgt"></dd>
+
+    <dt>&{'affectedResources.cos'}:</dt>
+    <dd id="vpoolIDTgt"></dd>
+    
+    #{if datastores}
+      <dt>&{'affectedResources.fileSystem.datastores'}:</dt>
+      <dd>#{spaceForNull datastores.join(', ')/}</dd>
+    #{/if}
+  #{/if}
+  #{else}
+    <dt></dt>
+    <dd>&{'affectedResources.notFound', messages.get('affectedResources.fileSystem')}</dd>
+  #{/else}
+#{/AffectedResources.singleColumn }
+#{/AffectedResources.resource}
+<script>
+getVarayAndCos();
+function getVarayAndCos(){
+	$.post('@{resources.FileSystems.getVarrayVpool(resourceId)}')
+	.done(function(result) {
+		$('#varrayIDTgt').html(result.vArray);
+		$('#vpoolIDTgt').html(result.vPool);
+// 		document.getElementById("varrayIDTgt").innerHTML=result.vArray;
+// 		document.getElementById("vpoolIDTgt").innerHTML=result.vPool;
+});
+}
+</script>

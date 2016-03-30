@@ -927,6 +927,12 @@ public class BlockConsistencyGroupService extends TaskResourceService {
             snapshots = ControllerUtils.getSnapshotsPartOfReplicationGroup(snapshot, _dbClient);
         }
 
+        // Get the snapshot parent volume.
+        Volume parentVolume = _permissionsHelper.getObjectById(snapshot.getParent(), Volume.class);
+
+        // Check that there are no pending tasks for these snapshots.
+        checkForPendingTasks(Arrays.asList(parentVolume.getTenant().getURI()), snapshots);
+
         for (BlockSnapshot snap : snapshots) {
             Operation snapOp = _dbClient.createTaskOpStatus(BlockSnapshot.class, snap.getId(), task,
                     ResourceOperationTypeEnum.DEACTIVATE_VOLUME_SNAPSHOT);
@@ -937,8 +943,7 @@ public class BlockConsistencyGroupService extends TaskResourceService {
                 ResourceOperationTypeEnum.DEACTIVATE_CONSISTENCY_GROUP_SNAPSHOT);
 
         try {
-            Volume volume = _permissionsHelper.getObjectById(snapshot.getParent(), Volume.class);
-            BlockServiceApi blockServiceApiImpl = BlockService.getBlockServiceImpl(volume, _dbClient);
+            BlockServiceApi blockServiceApiImpl = BlockService.getBlockServiceImpl(parentVolume, _dbClient);
             blockServiceApiImpl.deleteSnapshot(snapshot, snapshots, task, VolumeDeleteTypeEnum.FULL.name());
         } catch (APIException | InternalException e) {
             String errorMsg = String.format("Exception attempting to delete snapshot %s: %s", snapshot.getId(), e.getMessage());

@@ -548,9 +548,9 @@ public class DrUtil {
      */
     public boolean isLeaderNode(String localZkMode) {
         // in 1+0 deployment, the local ZK mode might become follower since there is a second running ZK instance
-        // nevertheless it should be considered the leader node
+        // nevertheless it should be considered the leader node even if it's a follower
         return ZOOKEEPER_MODE_LEADER.equals(localZkMode) || ZOOKEEPER_MODE_STANDALONE.equals(localZkMode) ||
-                getLocalSite().getNodeCount() == 1;
+                getLocalSite().getNodeCount() == 1 && ZOOKEEPER_MODE_FOLLOWER.equals(localZkMode);
     }
 
     /**

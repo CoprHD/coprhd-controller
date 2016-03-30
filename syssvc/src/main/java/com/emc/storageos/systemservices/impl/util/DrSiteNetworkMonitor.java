@@ -52,7 +52,7 @@ public class DrSiteNetworkMonitor implements Runnable {
     }
 
     public void run() {
-        _log.info("Start monitoring local networkMonitor status on active site");
+        _log.info("Starting DrSiteNetworkMonitor");
         while (true) {
             try {
                 if (shouldStartOnCurrentSite() && drUtil.isLeaderNode()) {
@@ -76,7 +76,7 @@ public class DrSiteNetworkMonitor implements Runnable {
      * 
      * @return true if we should start it
      */
-    public boolean shouldStartOnCurrentSite() {
+    private boolean shouldStartOnCurrentSite() {
         if (drUtil.isActiveSite()) {
             return true;
         }

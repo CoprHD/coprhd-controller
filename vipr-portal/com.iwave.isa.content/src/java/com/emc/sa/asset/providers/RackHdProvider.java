@@ -20,12 +20,8 @@ import com.emc.sa.asset.BaseAssetOptionsProvider;
 import com.emc.sa.asset.annotation.Asset;
 import com.emc.sa.asset.annotation.AssetNamespace;
 import com.emc.sa.service.vipr.rackhd.gson.AssetOptionPair;
-import com.emc.sa.service.vipr.rackhd.gson.FinishedTask;
-import com.emc.sa.service.vipr.rackhd.gson.Node;
 import com.emc.sa.service.vipr.rackhd.gson.Workflow;
 import com.emc.sa.service.vipr.rackhd.gson.WorkflowDefinition;
-import com.emc.sa.service.vipr.rackhd.gson.WorkflowTask;
-import com.emc.sa.service.vipr.rackhd.gson.WorkflowTasks;
 import com.emc.storageos.rackhd.api.restapi.RackHdRestClient;
 import com.emc.storageos.rackhd.api.restapi.RackHdRestClientFactory;
 import com.emc.vipr.model.catalog.AssetOption;
@@ -52,7 +48,6 @@ public class RackHdProvider extends BaseAssetOptionsProvider {
     private static final String RACKHDSERVERPORT = "8080";
 
     // constants
-//    private static final String RACKHD_API_NODES = "/api/1.1/nodes"; //include leading slash
     private static final String RACKHD_API_WORKFLOWS = "/api/1.1/workflows";
     private static final int RACKHD_WORKFLOW_CHECK_INTERVAL = 1; // secs
     private static final int RACKHD_WORKFLOW_CHECK_TIMEOUT = 30; // secs
@@ -108,25 +103,17 @@ public class RackHdProvider extends BaseAssetOptionsProvider {
 
         info("Getting asset options for '" + thisAssetType + "' from RackHD.");
 
-        // special case! move to new provider or refactor out of here later
+        // special case (move to new provider or refactor out of here later)
         if(thisAssetType.equalsIgnoreCase("workflow")) {
-            // returns list of available RackHD workflows as options
             String workflowJson = makeRestCall(RACKHD_API_WORKFLOW_LIBRARY);
             return getWorkflowOptions(workflowJson);
         }
 
-        // Provider needs the ID of a node in RackHD to run a WF, but it does 
-        //  not matter which node we run the WF against, since the WF  
-        //  will run locally on the RackHD server.
-// REMOVED IN LIEU OF NODE-AGNOSTIC CALL!!
-        //String nodeListResponse = makeRestCall(RACKHD_API_NODES);
-        //String nodeId = getAnyNode(nodeListResponse);
-
-        // Start the workflow to get options
+        // Start the RackHD workflow to get options
         String workflowResponse = makeRestCall(RACKHD_API_WORKFLOWS,
                 makePostBody(thisAssetType));
 
-        // Get results (wait for RackHD workflow to complete)
+        // Get results (waiting for RackHD workflow to complete)
         int intervals = 0;
         while ( !isWorkflowSuccess(workflowResponse) ) {
             sleep(RACKHD_WORKFLOW_CHECK_INTERVAL);
@@ -143,12 +130,15 @@ public class RackHdProvider extends BaseAssetOptionsProvider {
     }
 
     private List<AssetOption> getWorkflowOptions(String workflowJson) {
-        WorkflowDefinition[] wfDescrs = getRackHdWfLib(workflowJson);
-        List<WorkflowDefinition> wfList = Arrays.asList(wfDescrs);
         List<AssetOption> assetOptionList = new ArrayList<>();
-        for(WorkflowDefinition wfDef: wfList) {
-            assetOptionList.add(new AssetOption(wfDef.getInjectableName(),
-                    wfDef.getFriendlyName()));
+        WorkflowDefinition[] wfDefs = 
+                gson.fromJson(workflowJson,WorkflowDefinition[].class);    
+        if( (wfDefs != null) && (wfDefs.length > 0) ) {
+            List<WorkflowDefinition> wfDefList = Arrays.asList(wfDefs);
+            for(WorkflowDefinition wfDef: wfDefList) {
+                assetOptionList.add(new AssetOption(wfDef.getInjectableName(),
+                        wfDef.getFriendlyName()));
+            }
         }
         return assetOptionList;
     }
@@ -183,11 +173,6 @@ public class RackHdProvider extends BaseAssetOptionsProvider {
     private String makePostBody(String thisAssetType) {
         return "{\"name\": \"assetType." + ASSET_NAMESPACE_TAG + 
                 "." + thisAssetType + "\"}";
-    }
-
-    private String getAnyNode(String responseString) {
-        Node[] rackHdNodeArray = gson.fromJson(responseString,Node[].class);    
-        return getComputeNodeId(rackHdNodeArray);  
     }
 
     private List<AssetOption> jsonToOptions(List<String> ansibleResultFiles) {
@@ -247,19 +232,6 @@ public class RackHdProvider extends BaseAssetOptionsProvider {
             e.printStackTrace();
         }
         return responseString;
-    }
-
-    private static String getComputeNodeId(Node[] nodeArray) {
-        for(Node rackHdNode : nodeArray)
-            if(rackHdNode.isComputeNode())
-                return rackHdNode.getId();	
-        return null;
-    }
-
-    private WorkflowDefinition[] getRackHdWfLib(String responseString) {
-        WorkflowDefinition[] wfs = 
-                gson.fromJson(responseString,WorkflowDefinition[].class);    
-        return wfs;  
     }
 
 }

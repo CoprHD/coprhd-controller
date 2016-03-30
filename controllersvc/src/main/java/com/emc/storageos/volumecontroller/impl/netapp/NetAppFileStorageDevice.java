@@ -171,7 +171,7 @@ public class NetAppFileStorageDevice extends AbstractFileStorageDevice {
 
                 // set the target to restricted
                 FileShare fileshare = args.getFs();
-                if (fileshare.getPersonality().equals(FileShare.PersonalityTypes.TARGET.toString())) {
+                if (FileShare.PersonalityTypes.TARGET.name().equals(fileshare.getPersonality())) {
                     if (!nApi.restrictVolume(args.getFsName())) {
                         // rollback create file system
                         // ServiceError serviceError = DeviceControllerErrors.netapp.unableToCreateFileSystem();

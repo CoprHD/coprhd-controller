@@ -20,10 +20,13 @@ REMOTE = models.datatable.BackupDataTable.Type.REMOTE
         </ul>
 
     #{if LOCAL.equals(type)}
-        #{DataTable.crudTable id:'backup',
-        dataTable:dataTable,
-        deleteConfirm:messages.get('backup.deleteConfirm')}
-        #{/DataTable.crudTable}
+        #{DataTable.baseCrudTable id:'backup',
+		dataTable:dataTable}
+			#{deadbolt.restrict roles:[['SYSTEM_ADMIN'], ['RESTRICTED_SYSTEM_ADMIN']]}
+				#{DataTable.crudButtonBar table:'backup', deleteConfirm:messages.get('backup.deleteConfirm')}
+				#{/DataTable.crudButtonBar}
+			#{/deadbolt.restrict}
+        #{/DataTable.baseCrudTable}
     #{/if}
 
     #{if REMOTE.equals(type)}

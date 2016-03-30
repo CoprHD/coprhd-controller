@@ -4479,7 +4479,13 @@ public class VolumeIngestionUtil {
      */
     public static boolean validateExportMaskMatchesVplexCluster(IngestionRequestContext requestContext,
             UnManagedVolume unManagedVolume, UnManagedExportMask unManagedExportMask) {
-        VolumeIngestionContext volumeContext = requestContext.getProcessedVolumeContext(unManagedVolume.getNativeGuid());
+        VolumeIngestionContext volumeContext = 
+                requestContext.getRootIngestionRequestContext().getProcessedVolumeContext(unManagedVolume.getNativeGuid());
+
+        if (volumeContext == null) {
+            // just get the current one
+            volumeContext = requestContext.getVolumeContext();
+        }
 
         if (volumeContext != null && volumeContext instanceof RpVplexVolumeIngestionContext) {
             volumeContext = ((RpVplexVolumeIngestionContext) volumeContext).getVplexVolumeIngestionContext();

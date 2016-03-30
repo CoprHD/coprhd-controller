@@ -64,9 +64,8 @@ public class VFiler {
                 List<VFNetInfo> servers = new ArrayList<VFNetInfo>();
                 for (NaElement server : (List<NaElement>) dns.getChildByName("dns-servers").getChildren()) {
                     VFNetInfo vfNetInfo = new VFNetInfo();
-                    vfNetInfo.setIpAddress(server.getChildContent("ipaddress"));
-                    vfNetInfo.setNetInterface(server.getChildContent("interface"));
-                    vfNetInfo.setNetMask(server.getChildContent("netmask"));
+                    vfNetInfo.setIpAddress(server.getChildContent("server"));
+                    vfNetInfo.setNetInterface(server.getChildContent("server"));
                     servers.add(vfNetInfo);
                 }
                 dnsInfo.setNameServers(servers);
@@ -82,9 +81,8 @@ public class VFiler {
                 List<VFNetInfo> servers = new ArrayList<VFNetInfo>();
                 for (NaElement server : (List<NaElement>) nis.getChildByName("nis-servers").getChildren()) {
                     VFNetInfo vfNetInfo = new VFNetInfo();
-                    vfNetInfo.setIpAddress(server.getChildContent("ipaddress"));
-                    vfNetInfo.setNetInterface(server.getChildContent("interface"));
-                    vfNetInfo.setNetMask(server.getChildContent("netmask"));
+                    vfNetInfo.setIpAddress(server.getChildContent("server"));
+                    vfNetInfo.setNetInterface(server.getChildContent("server"));
                     servers.add(vfNetInfo);
                 }
                 nisInfo.setNameServers(servers);

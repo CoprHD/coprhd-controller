@@ -2459,9 +2459,9 @@ public class NetAppFileCommunicationInterface extends
 
         _logger.info("Set the authentication providers for NAS: {}", nasServer.getNasName());
         String serverName = cifsConfig.get("NetBIOS-servername");
-        String domain = cifsConfig.get("NetBIOS-domainName");
+        String domain = cifsConfig.get("DNS-domainName");
         if (domain == null || domain.isEmpty()) {
-            domain = cifsConfig.get("DNS-domainName");
+            domain = cifsConfig.get("NetBIOS-domainName");
         }
 
         CifsServerMap cifsServersMap = nasServer.getCifsServersMap();

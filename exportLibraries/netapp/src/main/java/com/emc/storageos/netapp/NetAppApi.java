@@ -476,7 +476,7 @@ public class NetAppApi {
                     _password, _https);
             return netAppFacade.listQtrees();
         } catch (Exception e) {
-            throw NetAppException.exceptions.listQtreesFailed();
+            throw NetAppException.exceptions.listQtreesFailed(_ipAddress, e.getMessage());
         }
     }
     
@@ -486,7 +486,7 @@ public class NetAppApi {
                     _password, _https);
             return netAppFacade.listQuotas();
         } catch (Exception e) {
-            throw NetAppException.exceptions.listQtreesFailed();
+            throw NetAppException.exceptions.listQuotasFailed(_ipAddress, e.getMessage());
         }
     }
 

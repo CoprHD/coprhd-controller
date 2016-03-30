@@ -875,24 +875,51 @@ public class NetAppFileCommunicationInterface extends
             return;
         }
 
-        String detailedStatusMessage = "Discovery of NetApp Unmanaged QuotaDirectoey started";
-
         NetAppApi netAppApi = new NetAppApi.Builder(
                 storageSystem.getIpAddress(), storageSystem.getPortNumber(),
                 storageSystem.getUsername(), storageSystem.getPassword())
                 .https(true).build();
 
-        Collection<String> attrs = new ArrayList<String>();
-        for (String property : ntpPropertiesList) {
-            attrs.add(SupportedNtpFileSystemInformation
-                    .getFileSystemInformation(property));
-        }
-
         try {
             // Retrieve all the qtree info.
             List<Qtree> qtrees = netAppApi.listQtrees();            
-            List<VFilerInfo> vFilers = netAppApi.listVFilers(null);
-            List<Quota> quotas = netAppApi.listQuotas();
+            List<Quota> quotas;
+            try {
+            quotas = netAppApi.listQuotas();
+            } catch(Throwable e) {
+                _logger.error("Error while fetching quotas", e);
+                return;
+            }
+            if(quotas != null) {
+                Map<String, Qtree> qTreeNameQTreeMap = new HashMap<>();
+                qtrees.forEach(qtree -> {
+                    if(qtree.getQtree() != null && !qtree.getQtree().equals("")) {
+                        qTreeNameQTreeMap.put(qtree.getVolume() + qtree.getQtree(), qtree);
+                    }
+                });
+                
+                for (Quota quota : quotas) {
+                    String fsNativeId;
+                    if (quota.getVolume().startsWith(VOL_ROOT)) {
+                        fsNativeId = quota.getVolume();
+                    } else {
+                        fsNativeId = VOL_ROOT + quota.getVolume();
+                    }
+
+                    if (fsNativeId.contains(ROOT_VOL)) {
+                        _logger.info("Ignore and not discover root filesystem on NTP array");
+                        continue;
+                    }
+                    
+                    String fsNativeGUID = NativeGUIDGenerator.generateNativeGuid(
+                            storageSystem.getSystemType(),
+                            storageSystem.getSerialNumber(), fsNativeId);
+                    URI fsURI = getFileShareURIByNativeGUID(fsNativeGUID);
+                    if(fsURI == null) {
+                        // TODO this means this quota directory is not ingested
+                    }
+                }
+            }
 
         } catch (NetAppException ve) {
             if (null != storageSystem) {
@@ -1334,6 +1361,17 @@ public class NetAppFileCommunicationInterface extends
         return unManagedFileSystem;
     }
 
+    protected URI getFileShareURIByNativeGUID(String fsNativeGUID) {
+        URIQueryResultList result = new URIQueryResultList();
+        _dbClient.queryByConstraint(AlternateIdConstraint.Factory
+                .getFileSystemNativeGUIdConstraint(fsNativeGUID), result);
+        if (result.iterator().hasNext()) {
+            return result.iterator().next();
+        }
+        
+        return null;
+    }
+    
     /**
      * check Storage fileSystem exists in DB
      * 
@@ -1346,6 +1384,24 @@ public class NetAppFileCommunicationInterface extends
         URIQueryResultList result = new URIQueryResultList();
         _dbClient.queryByConstraint(AlternateIdConstraint.Factory
                 .getFileSystemNativeGUIdConstraint(nativeGuid), result);
+        if (result.iterator().hasNext()) {
+            return true;
+        }
+        return false;
+    }
+    
+    /**
+     * check Storage quotadir exists in DB
+     * 
+     * @param nativeGuid
+     * @return
+     * @throws IOException
+     */
+    protected boolean checkStorageQuotaDirectoryExistsInDB(String nativeGuid)
+            throws IOException {
+        URIQueryResultList result = new URIQueryResultList();
+        _dbClient.queryByConstraint(AlternateIdConstraint.Factory
+                .getQuotaDirsByNativeGuid(nativeGuid), result);
         if (result.iterator().hasNext()) {
             return true;
         }
@@ -1378,6 +1434,17 @@ public class NetAppFileCommunicationInterface extends
         }
         return filesystemInfo;
 
+    }
+    
+    protected boolean checkUnManagedQuotaDirectoryExistsInDB(String nativeGuid)
+            throws IOException {
+        URIQueryResultList result = new URIQueryResultList();
+        _dbClient.queryByConstraint(AlternateIdConstraint.Factory
+                .getUnManagedFileQuotaDirectoryInfoNativeGUIdConstraint(nativeGuid), result);
+        if (result.iterator().hasNext()) {
+            return true;
+        }
+        return false;
     }
 
     public void discoverAll(AccessProfile accessProfile)

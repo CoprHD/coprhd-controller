@@ -4,6 +4,7 @@
  */
 package com.emc.storageos.db.client.model.UnManagedDiscoveredObjects;
 
+import com.emc.storageos.db.client.model.AlternateId;
 import com.emc.storageos.db.client.model.Cf;
 import com.emc.storageos.db.client.model.Name;
 import com.emc.storageos.db.client.model.StringMap;
@@ -19,6 +20,7 @@ public class UnManagedFileQuotaDirectory extends UnManagedFileObject {
      * 
      * @return
      */
+    @AlternateId("parentFsNativeGuid")
     @Name("parentFsNativeGuid")
     public String getParentFSNativeGuid() {
         return _parentFSNativeGuid;

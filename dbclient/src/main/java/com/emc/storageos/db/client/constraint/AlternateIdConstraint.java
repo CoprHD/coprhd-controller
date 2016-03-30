@@ -65,6 +65,7 @@ import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedCif
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedConsistencyGroup;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedExportMask;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedFileExportRule;
+import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedFileQuotaDirectory;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedFileSystem;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedNFSShareACL;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedProtectionSet;
@@ -156,6 +157,11 @@ public interface AlternateIdConstraint extends Constraint {
 
         public static AlternateIdConstraint getFileSystemInfoNativeGUIdConstraint(String altId) {
             DataObjectType doType = TypeMap.getDoType(UnManagedFileSystem.class);
+            return new AlternateIdConstraintImpl(doType.getColumnField(NATIVE_GUID), altId);
+        }
+        
+        public static AlternateIdConstraint getUnManagedFileQuotaDirectoryInfoNativeGUIdConstraint(String altId) {
+            DataObjectType doType = TypeMap.getDoType(UnManagedFileQuotaDirectory.class);
             return new AlternateIdConstraintImpl(doType.getColumnField(NATIVE_GUID), altId);
         }
 

@@ -2,6 +2,7 @@ package com.emc.storageos.volumecontroller.impl.netapp;
 
 import java.net.URI;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -327,6 +328,12 @@ public class NetappMirrorFileOperations implements FileMirrorOperations {
         /* The snapmirror-release API removes a SnapMirror relationship on the source endpoint */
         _log.info("Calling snapmirror release on source: {}, target: {}", sourceLocation, destLocation);
         nApiSource.releaseSnapMirror(sourceLocation, destLocation);
+        try {
+            _log.info("Sleeping for 10 seconds for snapmirror release to complete...");
+            TimeUnit.SECONDS.sleep(10);
+        } catch (InterruptedException e) {
+            _log.warn("Sleep interrupted after calling releaseSnapMirror.");
+        }
         return BiosCommandResult.createSuccessfulResult();
 
         /*

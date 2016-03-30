@@ -14,6 +14,9 @@ import java.util.Map.Entry;
 import javax.ws.rs.core.SecurityContext;
 import javax.ws.rs.core.UriInfo;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.emc.storageos.api.service.authorization.PermissionsHelper;
 import com.emc.storageos.api.service.impl.resource.fullcopy.BlockFullCopyManager;
 import com.emc.storageos.api.service.impl.resource.utils.BlockServiceUtils;
@@ -39,6 +42,8 @@ import com.emc.storageos.vplexcontroller.VPlexController;
  * Block snapshot session implementation for volumes on VPLEX systems.
  */
 public class VPlexBlockSnapshotSessionApiImpl extends DefaultBlockSnapshotSessionApiImpl {
+
+    private static final Logger s_logger = LoggerFactory.getLogger(VPlexBlockSnapshotSessionApiImpl.class);
 
     /**
      * Private default constructor should not be called outside class.
@@ -377,10 +382,22 @@ public class VPlexBlockSnapshotSessionApiImpl extends DefaultBlockSnapshotSessio
         List<BlockSnapshotSession> snapSessions;
         if (URIUtil.isType(sourceObj.getId(), Volume.class)) {
             Volume vplexVolume = (Volume) sourceObj;
-            Volume srcSideBackendVolume = VPlexUtil.getVPLEXBackendVolume(vplexVolume, true, _dbClient);
-            URI parentURI = srcSideBackendVolume.getId();
-            snapSessions = CustomQueryUtility.queryActiveResourcesByConstraint(_dbClient, BlockSnapshotSession.class,
-                    ContainmentConstraint.Factory.getParentSnapshotSessionConstraint(parentURI));
+            Volume srcSideBackendVolume = null;
+            try {
+                srcSideBackendVolume = VPlexUtil.getVPLEXBackendVolume(vplexVolume, true, _dbClient);
+            } catch (Exception e) {
+                // Just log a warning and return the empty list.
+                s_logger.warn("Cound not find source side backend volume for VPLEX volume {}", vplexVolume.getId());
+                return new ArrayList<BlockSnapshotSession>();
+            }
+            if (srcSideBackendVolume != null) {
+                URI parentURI = srcSideBackendVolume.getId();
+                snapSessions = CustomQueryUtility.queryActiveResourcesByConstraint(_dbClient, BlockSnapshotSession.class,
+                        ContainmentConstraint.Factory.getParentSnapshotSessionConstraint(parentURI));
+            } else {
+                s_logger.warn("Cound not find source side backend volume for VPLEX volume {}", vplexVolume.getId());
+                return new ArrayList<BlockSnapshotSession>();                
+            }
         } else {
             // We don't currently support snaps of BlockSnapshot instances
             // so should not be called.

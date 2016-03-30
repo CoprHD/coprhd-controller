@@ -93,7 +93,7 @@ public class ScaleIOCommunicationInterface extends ExtendedCommunicationInterfac
                 ScaleIOSystem sioSystem = scaleIOHandle.getSystem();
 
                 String[] ipList = null;
-                if(sioSystem.getVersion().startsWith("2_0")){
+                if( sioSystem.getVersion().substring(0, 1).compareTo("2") >= 0 ){
                 	Slaves[] slaves = sioSystem.getMdmCluster().getSlaves();
                 	if( (slaves.length>0) ) 
                 	ipList = new String[slaves.length];

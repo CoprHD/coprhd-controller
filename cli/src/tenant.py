@@ -1874,11 +1874,13 @@ def show_object_namespaces_parser(subcommand_parsers, common_parser):
     mandatory_args.add_argument('-nsstsystem', '-namespacestoragesystem',
                                         metavar = '<namespacestoragesystem>',
                                         help='Specify the name of the Namespace Storagesystem',
-                                        dest='nsstsystem')
+                                        dest='nsstsystem',
+                                        required=True)
     mandatory_args.add_argument('-namespace', 
                                         metavar = '<namespace>',
                                         help='Specify the name of the Namespace',
-                                        dest='namespace')
+                                        dest='namespace',
+                                        required=True)
     show_object_namespaces_parser.set_defaults(func=show_object_namespaces)
 
 

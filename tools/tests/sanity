@@ -7499,6 +7499,9 @@ dr_basic_tests()
     echo "---WAIT FOR RESYNC $standby_site---"
     dr waitforstate $standby_site STANDBY_SYNCED 30 1200
 
+    # set degrade_standby_threshold_millis to default value: 15 minutes
+    tune_dr_config ${DR_SITE_A_IP} degrade_standby_threshold_millis 900000
+
     # wait both active and standby to be stable, ready to do switchover
     echo "---WAIT BOTH ACTIVE AND STANBY TO BE STABLE, READY FOR SWITCHOVER---"
     # there's no point in updating the property on both active and standby since they are shared

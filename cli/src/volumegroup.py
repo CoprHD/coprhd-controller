@@ -1854,7 +1854,7 @@ def snapshot_parser(subcommand_parsers, common_parser):
     snapshot_parser.add_argument('-partial',
                               dest='partial',
                               action='store_true',
-                              help='To create snapshot for subset of VolumeGroup. ' +
+                              help='To create snapshot for subset of volume group. ' +
                               'Please specify one volume from each Array Replication Group')
     snapshot_parser.add_argument('-volumes', '-v',
                             metavar='<tenant/project/volume_label,...>',
@@ -2253,8 +2253,8 @@ def volume_group_snapshotsession_common_parser(cc_common_parser):
     cc_common_parser.add_argument('-partial',
                               dest='partial',
                               action='store_true',
-                              help='To operate on snapshots for subset of VolumeGroup. ' +
-                              'Please specify one snapshot from each Array Replication Group')
+                              help='To operate on snapshot sessions for subset of volume group. ' +
+                              'Please specify one snapshot session from each Array Replication Group')
 
 def volume_group_snapshotsession_operation(args, operation, uri):
     obj = VolumeGroup(args.ip, args.port)
@@ -2339,22 +2339,23 @@ def snapshotsession_link_parser(subcommand_parsers, common_parser):
         help='Link volume group snapshot session targets',
         description='ViPR Link Snapshot Session of a VolumeGroup CLI usage.')
 
-    snapshotsession_link_parser.add_argument('-snapshotsession', '-s',
+    mandatory_args = snapshotsession_link_parser.add_argument_group('mandatory arguments')
+    mandatory_args.add_argument('-snapshotsession', '-s',
                                 metavar='<snapshotsessionname>',
                                 dest='snapshotsessionname',
                                 help='Name of snapshot session',
                                 required=True)
-    snapshotsession_link_parser.add_argument('-count', '-ct',
+    mandatory_args.add_argument('-count', '-ct',
                                dest='count',
                                metavar='<count>',
                                help='Number of target volumes',
                                required=True)
-    snapshotsession_link_parser.add_argument('-targetname', '-t',
-                               help='This option specifies the target name',
+    mandatory_args.add_argument('-targetname', '-t',
+                               help='Target name',
                                dest='target_name',
                                metavar='<target_name>',
                                required=True)
-    snapshotsession_link_parser.add_argument('-copymode', '-cm',
+    mandatory_args.add_argument('-copymode', '-cm',
                                help='Whether to create in copy or nocopy mode' ,
                                dest='copymode',
                                choices=SnapshotSession.COPY_MODE,

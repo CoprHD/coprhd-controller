@@ -28,6 +28,7 @@ import com.emc.storageos.api.service.impl.resource.blockingestorchestration.Inge
 import com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext;
 import com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.VolumeIngestionContext;
 import com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.impl.RecoverPointVolumeIngestionContext;
+import com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.impl.RpVplexVolumeIngestionContext;
 import com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.impl.VplexVolumeIngestionContext;
 import com.emc.storageos.api.service.impl.resource.utils.PropertySetterUtil.VolumeObjectProperties;
 import com.emc.storageos.computesystemcontroller.impl.ComputeSystemHelper;
@@ -3642,24 +3643,27 @@ public class VolumeIngestionUtil {
 
             // Find any backing volumes associated with vplex volumes and add the CG reference to them as well.
             if (volume.isVPlexVolume(dbClient)) {
-                for (String associatedVolumeIdStr : volume.getAssociatedVolumes()) {
-                    // Find the associated volumes using the context maps or the db if they are already there
-                    Volume associatedVolume = requestContext.findDataObjectByType(
-                            Volume.class, URI.create(associatedVolumeIdStr), true);
-                    if (associatedVolume != null) {
-                        _logger.info("Setting BlockConsistencyGroup {} on VPLEX backend Volume {}",
-                                rpCG.forDisplay(), associatedVolume.forDisplay());
-                        if (NullColumnValueGetter.isNotNullValue(associatedVolume.getReplicationGroupInstance())) {
-                            _logger.info(String.format(
-                                    "Turning on array consistency on the consistency group because CG info exists on volume %s",
-                                    associatedVolume.getLabel()));
-                            rpCG.setArrayConsistency(true);
+                // volume may not have been ingested with backend volumes
+                if (volume.getAssociatedVolumes() != null) {
+                    for (String associatedVolumeIdStr : volume.getAssociatedVolumes()) {
+                        // Find the associated volumes using the context maps or the db if they are already there
+                        Volume associatedVolume = requestContext.findDataObjectByType(
+                                Volume.class, URI.create(associatedVolumeIdStr), true);
+                        if (associatedVolume != null) {
+                            _logger.info("Setting BlockConsistencyGroup {} on VPLEX backend Volume {}",
+                                    rpCG.forDisplay(), associatedVolume.forDisplay());
+                            if (NullColumnValueGetter.isNotNullValue(associatedVolume.getReplicationGroupInstance())) {
+                                _logger.info(String.format(
+                                        "Turning on array consistency on the consistency group because CG info exists on volume %s",
+                                        associatedVolume.getLabel()));
+                                rpCG.setArrayConsistency(true);
+                            }
+                            associatedVolume.setConsistencyGroup(rpCG.getId());
+                            updatedObjects.add(associatedVolume);
+                        } else {
+                            // This may not be a failure if we're not ingesting backing volumes. Put a warning to the log.
+                            _logger.warn("Could not find the volume in DB or volume contexts: " + associatedVolumeIdStr);
                         }
-                        associatedVolume.setConsistencyGroup(rpCG.getId());
-                        updatedObjects.add(associatedVolume);
-                    } else {
-                        // This may not be a failure if we're not ingesting backing volumes. Put a warning to the log.
-                        _logger.warn("Could not find the volume in DB or volume contexts: " + associatedVolumeIdStr);
                     }
                 }
             }
@@ -4114,8 +4118,8 @@ public class VolumeIngestionUtil {
         // new objects and deleting the old UnManagedProtectionSet
         if (requestContext instanceof RecoverPointVolumeIngestionContext) {
             rpContext = (RecoverPointVolumeIngestionContext) requestContext;
-        } else if (requestContext.getVolumeContext(unManagedVolume.getNativeGuid()) instanceof RecoverPointVolumeIngestionContext) {
-            rpContext = (RecoverPointVolumeIngestionContext) requestContext.getVolumeContext(unManagedVolume.getNativeGuid());
+        } else if (requestContext.getVolumeContext() instanceof RecoverPointVolumeIngestionContext) {
+            rpContext = (RecoverPointVolumeIngestionContext) requestContext.getVolumeContext();
         }
 
         if (rpContext != null) {
@@ -4475,7 +4479,17 @@ public class VolumeIngestionUtil {
      */
     public static boolean validateExportMaskMatchesVplexCluster(IngestionRequestContext requestContext,
             UnManagedVolume unManagedVolume, UnManagedExportMask unManagedExportMask) {
-        VolumeIngestionContext volumeContext = requestContext.getProcessedVolumeContext(unManagedVolume.getNativeGuid());
+        VolumeIngestionContext volumeContext = 
+                requestContext.getRootIngestionRequestContext().getProcessedVolumeContext(unManagedVolume.getNativeGuid());
+
+        if (volumeContext == null) {
+            // just get the current one
+            volumeContext = requestContext.getVolumeContext();
+        }
+
+        if (volumeContext != null && volumeContext instanceof RpVplexVolumeIngestionContext) {
+            volumeContext = ((RpVplexVolumeIngestionContext) volumeContext).getVplexVolumeIngestionContext();
+        }
 
         if (volumeContext != null && volumeContext instanceof VplexVolumeIngestionContext) {
             String clusterName = ((VplexVolumeIngestionContext) volumeContext).getVirtualVolumeVplexClusterName();
@@ -4495,6 +4509,8 @@ public class VolumeIngestionUtil {
             }
         }
 
+        _logger.warn("\tUnManagedExportMask {} is not on the right VPLEX cluster for this ingestion request", 
+                unManagedExportMask.getMaskName());
         return false;
     }
 

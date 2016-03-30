@@ -412,11 +412,11 @@ public class IsilonMirrorOperations implements FileMirrorOperations {
                 modifiedPolicy.setName(policyName);
                 modifiedPolicy.setLastJobState(JobState.canceled);
                 isi.modifyReplicationPolicy(policyName, modifiedPolicy);
-                _log.info("Sleeping for 10 seconds for detach to complete...");
-                TimeUnit.SECONDS.sleep(10);
             }
             isi.deleteReplicationPolicy(policyName);
             _log.info("dodeleteReplicationPolicy - {} finished succesfully", policy.toString());
+            _log.info("Sleeping for 10 seconds for detach mirror to complete...");
+            TimeUnit.SECONDS.sleep(10);
             return BiosCommandResult.createSuccessfulResult();
         } catch (IsilonException e) {
             return BiosCommandResult.createErrorResult(e);

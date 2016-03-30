@@ -262,6 +262,7 @@
         		<entry key="dr_failbackDegrade" value-ref="vdcDrFailbackDegradeHandler" />
                 <entry key="ip_change" value-ref="ipchangeHandler"/>
                 <entry key="geo_config_change" value-ref="geoConfigChangeHandler"/>
+                <entry key="dr_failover_fail_reboot" value-ref="vdcDrFailoverFailRebootHandler"></entry>
         	</map>
         </property>
     </bean>
@@ -570,6 +571,14 @@
         <property name="service" ref="serviceinfo" />
         <property name="drUtil" ref="drUtil" />
         <property name="postHandlerFactory" ref="drPostFailoverHandlerFactory" />
+    </bean>
+    
+    <bean id="vdcDrFailoverFailRebootHandler" class="com.emc.storageos.systemservices.impl.vdc.VdcOpHandler.DrFailoverFailRebootHandler">
+        <property name="coordinator" ref="coordinatorclientext" />
+        <property name="localRepository" ref="localRepository" />
+        <property name="dbClient" ref="dbclient"/>
+        <property name="service" ref="serviceinfo" />
+        <property name="drUtil" ref="drUtil" />
     </bean>
 
     <bean id="ipsecRotateHandler" class="com.emc.storageos.systemservices.impl.vdc.VdcOpHandler.IPSecRotateOpHandler">

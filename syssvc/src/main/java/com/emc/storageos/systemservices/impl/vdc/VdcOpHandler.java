@@ -1000,6 +1000,19 @@ public abstract class VdcOpHandler {
             syncFlushVdcConfigToLocal();
         }
     }
+    
+    public static class DrFailoverFailRebootHandler extends VdcOpHandler {
+        
+        public DrFailoverFailRebootHandler(){
+            setConcurrentRebootNeeded(true);
+        }
+        
+        @Override
+        public void execute() throws Exception {
+            syncFlushVdcConfigToLocal();
+        }
+        
+    }
 
     public CoordinatorClientExt getCoordinator() {
         return coordinator;

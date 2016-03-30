@@ -77,7 +77,6 @@ public class NetappMirrorFileOperations implements FileMirrorOperations {
         FileShare sourceFileShare = _dbClient.queryObject(FileShare.class, targetFs.getParentFileShare().getURI());
         StorageSystem targetStorage = _dbClient.queryObject(StorageSystem.class, targetFs.getStorageDevice());
 
-        String portGroup = findVfilerName(sourceFileShare);
         BiosCommandResult cmdResult = doPauseSnapMirror(targetStorage, targetFs, completer);
         if (cmdResult.getCommandSuccess()) {
             completer.ready(_dbClient);
@@ -422,8 +421,22 @@ public class NetappMirrorFileOperations implements FileMirrorOperations {
                 storage.getPassword()).https(true).build();
         // make api call
         String location = getLocation(nApi, fileShare);
-        _log.info("Calling snapmirror break on path: {}", location);
-        nApi.breakSnapMirror(location);
+
+        SnapMirrorStatusInfo mirrorStatusInfo = nApi.getSnapMirrorStateInfo(location);
+
+        if (mirrorStatusInfo != null) {
+            if (SnapMirrorState.SYNCRONIZED.equals(mirrorStatusInfo.getTransferType()) ||
+                    SnapMirrorState.PAUSE.equals(mirrorStatusInfo.getTransferType())) {
+                _log.info("Calling snapmirror break on path: {}", location);
+                nApi.breakSnapMirror(location);
+            } else {
+                ServiceError error = DeviceControllerErrors.netapp.jobFailed("Snapmirror break operation failed, because of mirror state: "
+                        + mirrorStatusInfo
+                                .getTransferType().toString());
+                return BiosCommandResult.createErrorResult(error);
+            }
+        }
+
         return BiosCommandResult.createSuccessfulResult();
 
         /*

@@ -16,9 +16,11 @@ public class SiteActive {
     private boolean isActiveSite;
     private String localSiteName;
     private String localUuid;
+    private boolean isActiveDegraded;
 
     public SiteActive() {
         isActiveSite = false;
+        isActiveDegraded = false;
     }
 
     @XmlElement(name = "is_active")
@@ -29,7 +31,7 @@ public class SiteActive {
     public void setIsActive(boolean ActiveSite) {
         this.isActiveSite = ActiveSite;
     }
-    
+
     @XmlElement(name = "local_site_name")
     public String getLocalSiteName() {
         return this.localSiteName;
@@ -38,7 +40,7 @@ public class SiteActive {
     public void setLocalSiteName(String siteName) {
         this.localSiteName = siteName;
     }
-    
+
     @XmlElement(name = "uuid")
     public String getLocalUuid() {
         return this.localUuid;
@@ -46,5 +48,14 @@ public class SiteActive {
 
     public void setLocalUuid(String uuid) {
         this.localUuid = uuid;
+    }
+
+    @XmlElement(name = "is_active_degraded")
+    public boolean getIsActiveDegraded() {
+        return isActiveDegraded;
+    }
+
+    public void setIsActiveDegraded(boolean ActiveSite) {
+        this.isActiveSite = isActiveDegraded;
     }
 }

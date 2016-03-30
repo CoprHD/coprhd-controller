@@ -8,9 +8,10 @@
 #{get 'moreScripts'/}
 #{/set}
 
+#{set siteActiveCheck:controllers.infra.DisasterRecovery.getSiteforActive() /}
 #{set isActiveSite:controllers.infra.DisasterRecovery.isActiveSite() /}
 #{set localSiteName:controllers.infra.DisasterRecovery.getLocalSiteName() /}
-#{set isLocalsiteRemoved:controllers.infra.DisasterRecovery.isLocalsiteRemoved() /}
+
 
 <body>
 <header>
@@ -20,7 +21,7 @@
       #{if isLocalsiteRemoved }
         <span class="navbar-brand" style="background-color:#ff0000">&{'nav.disasterRecovery.obsoleteWarning'}</span>
       #{/if}
-      #{elseif !isActiveSite }
+      #{elseif !siteActiveCheck.isActiveSite }
           <span class="navbar-brand" style="background-color:#d8d9d8">Standby Site: ${localSiteName}</span>
       #{/elseif}
       <button class="navbar-toggle" type="button" data-toggle="collapse" data-target="#navbar-collapse-1">
@@ -33,7 +34,7 @@
     <div class="collapse navbar-collapse" id="navbar-collapse-1">
       <ul class="nav navbar-nav navbar-right">
         #{get 'navBarRight' /}
-        #{if isActiveSite }
+        #{if siteActiveCheck.isActiveSite }
         	#{viprSystemTasks/}
 	    	#{nav.vdcMenu vdcs:vdcs, token:token/}
 	    #{/if}
@@ -51,7 +52,7 @@
         <li class="dropdown">
           <a href="#" class="dropdown-toggle" data-toggle="dropdown">#{icon 'user'/} ${currentUser?.tenantName} -  ${currentUser?.commonName} <b class="caret"></b></a>
           <ul class="dropdown-menu">
-          	#{if isActiveSite }
+          	#{if siteActiveCheck.isActiveSite }
             	#{nav.item 'preferences', href:@Preferences.update()/}
             	#{if controllers.security.Security.isLocalUser()}
                 	#{nav.item 'password', href:@security.ChangePassword.update()/}
@@ -87,7 +88,7 @@
   
   *{ PHSYICAL ASSETS }*
   #{deadbolt.restrict roles:[['SYSTEM_ADMIN'],['RESTRICTED_SYSTEM_ADMIN'], ['TENANT_ADMIN'], ['SECURITY_ADMIN']]}
-  	#{if isActiveSite}
+  	#{if siteActiveCheck.isActiveSite}
       #{nav.menu 'assets', icon:'vipricon-physicalassets'}
         #{nav.menuSection 'nav.assets'}  
           #{deadbolt.restrict roles:[['SYSTEM_ADMIN'], ['RESTRICTED_SYSTEM_ADMIN']]}
@@ -127,7 +128,7 @@
   
   *{ VIRTUAL ASSETS }*
   #{deadbolt.restrict roles:[['SYSTEM_ADMIN'], ['RESTRICTED_SYSTEM_ADMIN'], ['SECURITY_ADMIN'], ['SYSTEM_MONITOR']]}
-    #{if isActiveSite }
+    #{if siteActiveCheck.isActiveSite }
     #{nav.menu 'virtualStorage', icon:'vipricon-virtualassets'}
       #{nav.menuSection 'nav.virtualStorage'}  
         #{deadbolt.restrict roles:[['SYSTEM_ADMIN'], ['RESTRICTED_SYSTEM_ADMIN']]}
@@ -149,7 +150,7 @@
 
 
   *{ SERVICE CATALOG }*
-  #{if isActiveSite }
+  #{if siteActiveCheck.isActiveSite }
   #{nav.menu 'catalog', icon:'vipricon-catalog'}
     #{nav.menuSection 'nav.catalog'}
       #{nav.item 'recent', href: @Dashboard.recentActivity() /}
@@ -172,7 +173,7 @@
   #{/if}
   
   *{ RESOURCES }*
-  #{if isActiveSite }   
+  #{if siteActiveCheck.isActiveSite }   
   #{license.ifController}
     #{nav.menu 'storage', icon:'vipricon-resources'}
       #{nav.menuSection 'nav.storage'}
@@ -197,7 +198,7 @@
   
   *{ TENANT }*
   #{deadbolt.restrict roles:[['PROJECT_ADMIN'], ['TENANT_ADMIN'], ['SECURITY_ADMIN']]}
-    #{if isActiveSite }
+    #{if siteActiveCheck.isActiveSite }
     #{nav.menu 'tenantsettings', icon:'vipricon-settingsv3'}
       #{nav.menuSection 'nav.tenantsettings'}   
         #{deadbolt.restrict roles:[['ROOT_TENANT_ADMIN'], ['TENANT_ADMIN'], ['SECURITY_ADMIN']]}
@@ -228,7 +229,7 @@
   #{deadbolt.restrict roles:[['SECURITY_ADMIN'],['RESTRICTED_SECURITY_ADMIN'], ['TENANT_ADMIN']]}
     #{nav.menu 'security', icon:'vipricon-security'}
       #{nav.menuSection 'nav.security'}
-        #{if isActiveSite }
+        #{if siteActiveCheck.isActiveSite }
           #{deadbolt.restrict roles:[['SECURITY_ADMIN'], ['RESTRICTED_SECURITY_ADMIN']]}
           #{nav.item 'vdcRoles', href: @auth.VDCRoleAssignments.list()/}
           #{/deadbolt.restrict}
@@ -252,7 +253,7 @@
         #{nav.item 'keystores', href: @auth.Keystores.updateCertificate()/}
         #{/deadbolt.restrict}
 
-        #{if isActiveSite }
+        #{if siteActiveCheck.isActiveSite }
           #{deadbolt.restrict roles:[['SECURITY_ADMIN']]}
           #{nav.item 'certificates', href: @auth.Certificates.list() /}
           #{nav.item 'ipsec', href: @auth.IPsec.ipsec() /}
@@ -269,12 +270,12 @@
       #{nav.menuSection 'nav.settings'} 
         #{deadbolt.restrict roles:[['SECURITY_ADMIN'], ['RESTRICTED_SECURITY_ADMIN']]}
         		#{nav.item 'properties', href: @infra.ConfigProperties.properties()/}
-        	 #{if controllers.infra.ClusterInfo.isVMwareVapp() && isActiveSite && !controllers.infra.DisasterRecovery.isMultiDrSite() }
+        	 #{if controllers.infra.ClusterInfo.isVMwareVapp() && siteActiveCheck.isActiveSite && !controllers.infra.DisasterRecovery.isMultiDrSite() }
             	#{nav.item 'clusterInfo', href: @infra.ClusterInfo.clusterIpInfo()/}
             #{/if}
          #{/deadbolt.restrict}
         	 #{deadbolt.restrict roles:[['SYSTEM_ADMIN'], ['RESTRICTED_SYSTEM_ADMIN'], ['SYSTEM_MONITOR']]}
-        	 	#{if isActiveSite }
+        	 	#{if siteActiveCheck.isActiveSite }
                   #{nav.item 'backup', href: @Backup.list()/}
               	#{/if}
               #{/deadbolt.restrict}
@@ -282,18 +283,18 @@
             	#{nav.item 'disasterRecovery', href: @infra.DisasterRecovery.list()/}
               #{/deadbolt.restrict}
               #{deadbolt.restrict roles:[['SYSTEM_ADMIN'], ['RESTRICTED_SYSTEM_ADMIN'], ['SYSTEM_MONITOR'], ['SECURITY_ADMIN']]}
-              #{if isActiveSite }
+              #{if siteActiveCheck.isActiveSite }
               	#{if controllers.SystemHealth.isNodeRecoveryEnabled()}
                 	#{nav.item 'systemNodeRecovery', href: @SystemHealth.nodeRecovery()/}
               	#{/if}
               #{/if}
              #{/deadbolt.restrict}
 	       	#{deadbolt.restrict roles:[['SYSTEM_ADMIN'], ['RESTRICTED_SYSTEM_ADMIN']]}
-            	#{if isActiveSite }
+            	#{if siteActiveCheck.isActiveSite }
             		#{nav.item 'upgrade', href: @infra.Upgrade.index()/}
             	#{/if}
             	#{if !util.SetupUtils.isOssBuild()}
-            		#{if isActiveSite }
+            		#{if siteActiveCheck.isActiveSite }
                 		#{nav.item 'license', href: @infra.Licensing.index()/}
 	                	#{nav.separator/}
                			#{nav.item 'supportRequest', href: @infra.SupportRequest.createSupportRequest()/}

@@ -152,7 +152,7 @@ public class DisasterRecoveryUtils {
         SiteActive siteCheck = checkActiveSite();
         return siteCheck.getLocalSiteName();
     }
-    
+
     public static String getLocalUuid() {
         SiteActive siteCheck = checkActiveSite();
         return siteCheck.getLocalUuid();
@@ -169,16 +169,22 @@ public class DisasterRecoveryUtils {
     public static SiteDetailRestRep getSiteDetails(String uuid) {
         return getViprClient().site().getSiteDetails(uuid);
     }
-    
+
     public static SiteRestRep getLocalSite() {
         return getViprClient().site().getLocalSite();
     }
-    
+
     public static boolean isMultiDrSite() {
         int sitecount = getSiteCount();
-        if(sitecount > 1) {
+        if (sitecount > 1) {
             return true;
         }
         return false;
     }
+
+    public static SiteActive getSiteforActive() {
+        SiteActive siteCheck = checkActiveSite();
+        return siteCheck;
+    }
+
 }

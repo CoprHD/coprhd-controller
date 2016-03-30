@@ -683,9 +683,9 @@ public class ECSApi {
             if (clientResp != null && clientResp.getStatus() == 200) {
                 JSONObject jObj = clientResp.getEntity(JSONObject.class);
                 JSONArray jArray = jObj.getJSONArray("node");
-                if(jArray != null && jArray.length() > 0){
+                if (jArray != null && jArray.length() > 0) {
                     JSONObject data = jArray.getJSONObject(0);
-                    responseString =  data.getString("version");
+                    responseString = data.getString("version");
                 }
             }
             if (null == clientResp) {
@@ -706,6 +706,11 @@ public class ECSApi {
         }
     }
     
+    /**
+     * Get the ECS Serial Number.
+     * @return ECS Serial Number
+     * @throws ECSException
+     */
     public String getECSSerialNum() throws ECSException {
         _log.debug("ECSApi:getECSSerialNum");
         ClientResponse clientResp = null;
@@ -717,26 +722,26 @@ public class ECSApi {
             if (clientResp != null && clientResp.getStatus() == 200) {
                 JSONObject jObj = clientResp.getEntity(JSONObject.class);
                 JSONArray jArray = jObj.getJSONArray("license_feature");
-                for(int i=0; i<jArray.length(); i++){
+                for (int i = 0; i < jArray.length(); i++) {
                     JSONObject data = jArray.getJSONObject(i);
                     String model = data.getString("model");
-                    if("ViPR_ECS".equals(model)){
+                    if ("ViPR_ECS".equals(model)) {
                         responseString = data.getString("serial");
                         break;
                     }
                 }
-               
+
             }
             if (null == clientResp) {
-                throw ECSException.exceptions.getECSVersionFailed(URI_GET_ECS_VERSION, "no response from ECS");
+                throw ECSException.exceptions.getECSVersionFailed(URI_GET_ECS_LICENSE, "no response from ECS");
             } else if (clientResp.getStatus() != 200) {
-                throw ECSException.exceptions.getECSVersionFailed(URI_GET_ECS_VERSION, getResponseDetails(clientResp));
+                throw ECSException.exceptions.getECSVersionFailed(URI_GET_ECS_LICENSE, getResponseDetails(clientResp));
             }
 
             _log.debug("ECSApi:getECSSerialNum responseString : " + responseString);
             return responseString;
         } catch (Exception e) {
-            throw ECSException.exceptions.getECSVersionFailed(URI_GET_ECS_VERSION, e.getMessage());
+            throw ECSException.exceptions.getECSVersionFailed(URI_GET_ECS_LICENSE, e.getMessage());
         } finally {
             if (clientResp != null) {
                 clientResp.close();

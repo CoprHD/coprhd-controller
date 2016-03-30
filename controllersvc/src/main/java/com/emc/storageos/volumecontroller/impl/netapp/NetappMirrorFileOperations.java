@@ -193,42 +193,49 @@ public class NetappMirrorFileOperations implements FileMirrorOperations {
         StorageSystem targetStorage = _dbClient.queryObject(StorageSystem.class, targetFileShare.getStorageDevice());
 
         BiosCommandResult cmdResult = null;
-        _log.info("Calling snapmirror pause.");
-        cmdResult = doPauseSnapMirror(targetStorage, targetFileShare, completer);
+        _log.info("Calling snapmirror delete schedule.");
+        cmdResult = deleteSnapMirrorSchedule(targetStorage, targetFileShare, completer);
         if (cmdResult.getCommandSuccess()) {
-            // Call snapmirror break
-            _log.info("Calling snapmirror break.");
-            cmdResult = doFailoverSnapMirror(targetStorage, targetFileShare, completer);
+            _log.info("Calling snapmirror pause.");
+            cmdResult = doPauseSnapMirror(targetStorage, targetFileShare, completer);
             if (cmdResult.getCommandSuccess()) {
-                _log.info("Calling snapmirror release.");
-                cmdResult = doReleaseSnapMirror(sourceSystem, targetStorage,
-                        sourceFileShare, targetFileShare, completer);
+                // Call snapmirror break
+                _log.info("Calling snapmirror break.");
+                cmdResult = doFailoverSnapMirror(targetStorage, targetFileShare, completer);
                 if (cmdResult.getCommandSuccess()) {
-                    _log.info("Calling snapmirror delete schedule.");
-                    cmdResult = deleteSnapMirrorSchedule(targetStorage, targetFileShare, completer);
+                    _log.info("Calling snapmirror release.");
+                    cmdResult = doReleaseSnapMirror(sourceSystem, targetStorage,
+                            sourceFileShare, targetFileShare, completer);
                     if (cmdResult.getCommandSuccess()) {
+                        try {
+                            _log.info("Sleeping for 30 seconds for snapmirror release to complete...");
+                            TimeUnit.SECONDS.sleep(30);
+                        } catch (InterruptedException e) {
+                            _log.warn("Sleep interrupted after calling releaseSnapMirror.");
+                        }
                         completer.ready(_dbClient);
                         WorkflowStepCompleter.stepSucceded(completer.getOpId());
                     } else {
                         _log.error("Snapmirror delete schedule failed.");
                         completer.error(_dbClient, cmdResult.getServiceCoded());
                     }
+
                 } else if (cmdResult.getCommandPending()) {
                     completer.statusPending(_dbClient, cmdResult.getMessage());
                 } else {
-                    _log.error("Snapmirror release failed.");
+                    _log.error("Snapmirror break/failover failed.");
                     completer.error(_dbClient, cmdResult.getServiceCoded());
                 }
             } else if (cmdResult.getCommandPending()) {
                 completer.statusPending(_dbClient, cmdResult.getMessage());
             } else {
-                _log.error("Snapmirror break/failover failed.");
+                _log.error("Snapmirror quiesce failed.");
                 completer.error(_dbClient, cmdResult.getServiceCoded());
             }
         } else if (cmdResult.getCommandPending()) {
             completer.statusPending(_dbClient, cmdResult.getMessage());
         } else {
-            _log.error("Snapmirror quiesce failed.");
+            _log.error("Snapmirror delete schedule failed.");
             completer.error(_dbClient, cmdResult.getServiceCoded());
         }
 
@@ -328,12 +335,6 @@ public class NetappMirrorFileOperations implements FileMirrorOperations {
         /* The snapmirror-release API removes a SnapMirror relationship on the source endpoint */
         _log.info("Calling snapmirror release on source: {}, target: {}", sourceLocation, destLocation);
         nApiSource.releaseSnapMirror(sourceLocation, destLocation);
-        try {
-            _log.info("Sleeping for 10 seconds for snapmirror release to complete...");
-            TimeUnit.SECONDS.sleep(10);
-        } catch (InterruptedException e) {
-            _log.warn("Sleep interrupted after calling releaseSnapMirror.");
-        }
         return BiosCommandResult.createSuccessfulResult();
 
         /*

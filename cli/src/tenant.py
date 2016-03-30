@@ -903,9 +903,7 @@ def add_namespace_parser(subcommand_parsers, common_parser):
                                help='description field',
                                dest='description', metavar='<description>')
 
-    add_namespace_parser.add_argument('-namespacestoragesystem','-nsstsystem' ,
-                               help='Specify the Namespace Storagesystem ',
-                               dest='nsstsystem', metavar='<namespacestoragesystem>')
+    
     
 
     
@@ -916,7 +914,7 @@ def add_namespace_parser(subcommand_parsers, common_parser):
 def add_namespace_create(args):
     obj = Tenant(args.ip, args.port)
     try:
-        res = obj.add_namespace(args.name , args.namespace ,args.description, args.nsstsystem)
+        res = obj.add_namespace(args.name , args.namespace ,args.description)
     except SOSError as e:
         if (e.err_code in [SOSError.NOT_FOUND_ERR,
                            SOSError.ENTRY_ALREADY_EXISTS_ERR]):
@@ -1839,7 +1837,8 @@ def list_object_namespaces_parser(subcommand_parsers, common_parser):
     mandatory_args.add_argument('-nsstsystem', '-namespacestoragesystem',
                                         metavar = '<namespacestoragesystem>',
                                         help='Specify the name of the Namespace Storagesystem',
-                                        dest='nsstsystem')
+                                        dest='nsstsystem',
+                                        required = True)
     list_object_namespaces_parser.set_defaults(func=list_object_namespaces)
 
 

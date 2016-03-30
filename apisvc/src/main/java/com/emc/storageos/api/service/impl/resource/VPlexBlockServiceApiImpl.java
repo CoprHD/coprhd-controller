@@ -405,13 +405,14 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
                     // Do not set the replicationGroupInstance if the backend volume is on XIO 3.x system which doesn't support CGs
                     StorageSystem backendSystem = _dbClient.queryObject(StorageSystem.class, storageDeviceURI);
                     boolean isXIO3xVersion = StorageSystem.Type.xtremio.name().equalsIgnoreCase(backendSystem.getSystemType())
-                            && !XtremIOProvUtils.is4xXtremIOModel(backendSystem.getModel());
+                            && !XtremIOProvUtils.is4xXtremIOModel(backendSystem.getFirmwareVersion());
                     // Set replicationGroupInstance if CG's arrayConsistency is true
-                    if (backendCG != null && backendCG.getArrayConsistency() && !isRPTargetOrJournal) {
+                    if (backendCG != null && backendCG.getArrayConsistency() && !isRPTargetOrJournal && !isXIO3xVersion) {
                         String repGroupInstance = consistencyGroup.getCgNameOnStorageSystem(storageDeviceURI);
-                        if (NullColumnValueGetter.isNotNullValue(repGroupInstance)) {
-                            volume.setReplicationGroupInstance(repGroupInstance);
+                        if (NullColumnValueGetter.isNullValue(repGroupInstance)) {
+                            repGroupInstance = consistencyGroup.getLabel();
                         }
+                        volume.setReplicationGroupInstance(repGroupInstance);
                     }
 
                     if (consistencyGroup != null) {

@@ -1633,9 +1633,6 @@ public interface BadRequestExceptions {
     public BadRequestException inactiveRemoteVPoolDetected(final URI vPool);
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
-    public BadRequestException parameterVPLEXNotSupportedWithSRDF();
-
-    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException minPathsGreaterThanMaxPaths();
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
@@ -2959,4 +2956,13 @@ public interface BadRequestExceptions {
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException addRecoverPointProtectionRequiresCG();
+    
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException vplexNotSupportedWithSRDFActive();
+    
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException vplexDistributedNotSupportedOnSRDFTarget();
+    
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException srdfNotSupportedOnHighAvailabilityVpool();
 }

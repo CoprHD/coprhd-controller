@@ -4,6 +4,8 @@
  */
 package com.emc.storageos.api.service.impl.resource.utils.vpoolvalidators;
 
+import java.net.URI;
+
 import com.emc.storageos.api.service.impl.resource.ArgValidator;
 import com.emc.storageos.api.service.impl.resource.utils.VirtualPoolValidator;
 import com.emc.storageos.db.client.DbClient;
@@ -12,6 +14,7 @@ import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.model.vpool.BlockVirtualPoolParam;
 import com.emc.storageos.model.vpool.BlockVirtualPoolUpdateParam;
+import com.emc.storageos.model.vpool.VirtualPoolHighAvailabilityParam;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 
 public class HighAvailabilityValidator extends VirtualPoolValidator<BlockVirtualPoolParam, BlockVirtualPoolUpdateParam> {
@@ -26,6 +29,7 @@ public class HighAvailabilityValidator extends VirtualPoolValidator<BlockVirtual
             VirtualPool virtualPool, BlockVirtualPoolUpdateParam updateParam, DbClient dbClient) {
         validateHighAvailabilityTypeForUpdate(virtualPool, updateParam);
         validateDistributedHighAvailabilityForUpdate(virtualPool, updateParam, dbClient);
+        validateVplexHANotSRDFProtected(updateParam.getHighAvailability(), dbClient);
     }
 
     @Override
@@ -42,6 +46,8 @@ public class HighAvailabilityValidator extends VirtualPoolValidator<BlockVirtual
         // in the BlockVirtualPoolService.createBlockVirtualPool() - for create. These
         // should be moved over here. Validations for mixed protection are done in the
         // ProtectionValidator so no need to have them in this class.
+        
+        validateVplexHANotSRDFProtected(createParam.getHighAvailability(), dbClient);
     }
 
     /**
@@ -134,5 +140,21 @@ public class HighAvailabilityValidator extends VirtualPoolValidator<BlockVirtual
             return true;
         }
         return false;
+    }
+    
+    private void validateVplexHANotSRDFProtected(VirtualPoolHighAvailabilityParam haParam, DbClient dbClient) {
+        if (haParam == null) {
+            return;
+        }
+        if (haParam.getHaVirtualArrayVirtualPool() != null) {
+            // Look up the high availability virtual pool.
+            URI haVpoolURI = haParam.getHaVirtualArrayVirtualPool().getVirtualPool();
+            if (haVpoolURI != null) {
+                VirtualPool haVpool = dbClient.queryObject(VirtualPool.class, haVpoolURI);
+                if (VirtualPool.vPoolSpecifiesSRDF(haVpool)) {
+                    throw APIException.badRequests.srdfNotSupportedOnHighAvailabilityVpool();
+                }
+            }
+        }
     }
 }

@@ -17,10 +17,6 @@ import com.sun.jersey.api.client.ClientResponse;
 
 public class RackHdTask extends ViPRExecutionTask<String> {
 
-    // Note: this is a ViPR Task, which calls a RackHD workflow
-    //     (which has its own RackHD Tasks)
-    
-    private static final String RACKHD_API_NODES = "/api/1.1/nodes"; //include leading slash
     private static final String RACKHD_API_WORKFLOWS = "/api/1.1/workflows";
     private static final int RACKHD_WORKFLOW_CHECK_INTERVAL = 10; // secs
 
@@ -58,14 +54,8 @@ public class RackHdTask extends ViPRExecutionTask<String> {
 
     @Override
     public String executeTask() throws Exception {
-
-        String nodeListResponse = makeRestCall(RACKHD_API_NODES);
-        String nodeId = RackHdUtils.getAnyNode(nodeListResponse);         
-
-        ExecutionUtils.currentContext().logInfo("Selected RackHD node to run workflow against.  " +
-                "ID " + nodeId);
         
-        String apiWorkflowUri = "/api/1.1/nodes/" + nodeId + "/workflows";
+        String apiWorkflowUri = RACKHD_API_WORKFLOWS;
         String postBody = RackHdUtils.makePostBody(params,workflowName,playbookNameList);
         String workflowResponse = makeRestCall(apiWorkflowUri, postBody);
 

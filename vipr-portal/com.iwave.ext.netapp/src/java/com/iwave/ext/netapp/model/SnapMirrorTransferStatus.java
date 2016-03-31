@@ -2,16 +2,16 @@ package com.iwave.ext.netapp.model;
 
 public enum SnapMirrorTransferStatus {
 
-    idle("Idle"),
-    transferring("Transferring"),
-    pending("Pending"),
-    aborting("Aborting"),
-    migrating("Migrating"),
-    quiescing("Quiescing"),
-    resyncing("Resyncing"),
-    syncing("Syncing"),
-    insync("In-sync"),
-    paused("Paused");
+    idle("idle"),
+    transferring("transferring"),
+    pending("pending"),
+    aborting("aborting"),
+    migrating("migrating"),
+    quiescing("quiescing"),
+    resyncing("resyncing"),
+    syncing("syncing"),
+    insync("in-sync"),
+    paused("paused");
 
     private String label;
 

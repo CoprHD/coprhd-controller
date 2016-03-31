@@ -448,17 +448,17 @@ public class SnapMirror {
                         mirrorStatusInfo = new SnapMirrorStatusInfo();
                         // snap mirror state
                         String state = snapmirrorStatusInfoElem.getChildByName("state").getContent();
-                        mirrorStatusInfo.setMirrorState(SnapMirrorState.valueOf(state));
+                        mirrorStatusInfo.setMirrorState(SnapMirrorState.valueOfLabel(state));
 
                         // snap mirror transfer status
                         String tranStatus = snapmirrorStatusInfoElem.getChildByName("status").getContent();
-                        mirrorStatusInfo.setTransferType(SnapMirrorTransferStatus.valueOf(tranStatus));
+                        mirrorStatusInfo.setTransferType(SnapMirrorTransferStatus.valueOfLabel(tranStatus));
 
                         // snap mirror current transfer status
                         attResultElem = snapmirrorStatusInfoElem.getChildByName("current-transfer-type");
                         if (attResultElem != null) {
                             String currentTransferStatus = attResultElem.getContent();
-                            mirrorStatusInfo.setCurrentTransferType(SnapMirrorTransferStatus.valueOf(currentTransferStatus));
+                            mirrorStatusInfo.setCurrentTransferType(SnapMirrorTransferStatus.valueOfLabel(currentTransferStatus));
                         }
 
                         // get the current error info

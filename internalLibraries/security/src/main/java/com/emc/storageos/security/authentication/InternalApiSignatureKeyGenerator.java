@@ -4,6 +4,7 @@
  */
 package com.emc.storageos.security.authentication;
 
+import java.util.Arrays;
 import java.util.concurrent.atomic.AtomicLong;
 
 import javax.crypto.SecretKey;
@@ -175,6 +176,7 @@ public class InternalApiSignatureKeyGenerator extends SignatureKeyGenerator {
     public String sign(String buf, SignatureKeyType type) {
         reloadKeysIfNeeded();
         SecretKey key = getSignatureKey(type);
+        _log.info("====== internal key in sign is {}", Arrays.toString(key.getEncoded()));
         if (key == null) {
             _log.error("Null key while signing");
             return "";

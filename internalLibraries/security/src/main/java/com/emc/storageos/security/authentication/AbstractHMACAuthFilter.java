@@ -50,7 +50,7 @@ public abstract class AbstractHMACAuthFilter extends AbstractAuthenticationFilte
         } else {
             return false;
         }
-        _log.debug("buf: " + buf.toString());
+        _log.info("buf: " + buf.toString());
         String headerSignature = req.getHeader(INTERNODE_HMAC);
         if (!trySignature(buf.toString(), headerSignature, type)) {
             _log.info("Failed with signature key type {}. Reloading cached keys and trying again", type.toString());
@@ -70,8 +70,8 @@ public abstract class AbstractHMACAuthFilter extends AbstractAuthenticationFilte
      */
     private boolean trySignature(String buf, String headerSignature, SignatureKeyType type) {
         String signature = _keyGenerator.sign(buf.toString(), type);
-        _log.debug("signature: " + (signature != null ? signature : "null"));
-        _log.debug("headerSignature: " + (headerSignature != null ? headerSignature : "null"));
+        _log.info("signature: " + (signature != null ? signature : "null"));
+        _log.info("headerSignature: " + (headerSignature != null ? headerSignature : "null"));
         if (StringUtils.isNotBlank(headerSignature) && StringUtils.isNotBlank(signature) &&
                 headerSignature.equals(signature)) {
             return true;

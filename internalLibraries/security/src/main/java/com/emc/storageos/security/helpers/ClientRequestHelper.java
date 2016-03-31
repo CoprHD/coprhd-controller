@@ -279,6 +279,7 @@ public class ClientRequestHelper {
     private String getSignature(WebResource webResource, long timestamp, SecretKey key) {
         StringBuilder buf = new StringBuilder(webResource.getURI().toString());
         buf.append(timestamp);
+        log.info("========= source buf = {}", buf);
         String sig = (key == null) ? _keyGenerator.sign(buf.toString(), defaultSignatureType) :
                 SignatureHelper.sign2(buf.toString(), key, key.getAlgorithm());
         log.debug("getSignature(): buffer: {} signature: {}", buf.toString(), sig);

@@ -7,6 +7,7 @@ package com.emc.storageos.security;
 import java.nio.charset.Charset;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
+import java.util.Arrays;
 
 import javax.crypto.KeyGenerator;
 import javax.crypto.Mac;
@@ -17,11 +18,15 @@ import org.apache.commons.codec.binary.Base64;
 
 import com.emc.storageos.security.exceptions.SecurityException;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  *
  */
 public class SignatureHelper {
+    static Logger log = LoggerFactory.getLogger(SignatureHelper.class);
+
     public static Charset UTF_8 = Charset.forName("UTF-8");
 
     /**
@@ -59,6 +64,8 @@ public class SignatureHelper {
      * @return
      */
     public static String sign2(byte[] buf, SecretKey key, String algorithm) {
+        log.info("====== internal key in sign2 is {}", Arrays.toString(key.getEncoded()));
+
         Mac mac;
         try {
             mac = Mac.getInstance(algorithm);

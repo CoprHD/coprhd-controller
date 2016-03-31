@@ -239,7 +239,8 @@ public class NetAppFileStorageDevice extends AbstractFileStorageDevice {
                     storage.getPortNumber(), storage.getUsername(),
                     storage.getPassword()).https(true).vFiler(portGroup).build();
 
-            if (FileShare.PersonalityTypes.TARGET.toString().equals(args.getFs().getPersonality())) {
+            if (FileShare.PersonalityTypes.TARGET.toString().equals(args.getFs().getPersonality()) ||
+                    FileShare.PersonalityTypes.SOURCE.toString().equals(args.getFs().getPersonality())) {
                 boolean success = nApi.deleteQTreesAndMarkFSOffline(args.getFsName());
                 _log.info("NetAppFileStorageDevice deleteQTreesAndMarkFSOffline {} - succeeded", args.getFsName());
                 if (success) {
@@ -247,7 +248,7 @@ public class NetAppFileStorageDevice extends AbstractFileStorageDevice {
                     NetAppVolumeDeleteJob volumeDeleteJob = new NetAppVolumeDeleteJob(args.getFsName(), storage.getId(), taskCompleter,
                             "deleteFS");
                     ControllerServiceImpl.enqueueJob(new QueueJob(volumeDeleteJob));
-                    _log.info("Submitted job to delete target FS", args.getFsName());
+                    _log.info("Submitted job to delete volume: {}", args.getFsName());
                     return BiosCommandResult.createPendingResult();
                 }
             } else {

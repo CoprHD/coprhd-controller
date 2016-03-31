@@ -1371,7 +1371,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
             snapshotSessions.addAll(snapshotSessionsTmp);
             for (BlockSnapshotSessionRestRep session : snapshotSessionsTmp) {
 
-                if (replicationGroups.contains(session.getReplicationGroupInstance())) {
+                if (replicationGroups.contains(BlockStorageUtils.stripRPTargetFromReplicationGroup(session.getReplicationGroupInstance()))) {
                     for (RelatedResourceRep target : session.getLinkedTarget()) {
                         BlockSnapshotRestRep blockSnapshot = client.blockSnapshots().get(target);
                         snapshots.add(blockSnapshot);

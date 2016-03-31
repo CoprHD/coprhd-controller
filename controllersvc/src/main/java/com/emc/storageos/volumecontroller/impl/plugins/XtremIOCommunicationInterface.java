@@ -134,7 +134,7 @@ public class XtremIOCommunicationInterface extends
             discoverUnManagedVolumes(accessProfile);
         } else {
             StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, accessProfile.getSystemId());
-            xtremioRestClientFactory.setModel(XtremIOProvUtils.getXtremIOModel(_dbClient, storageSystem));
+            xtremioRestClientFactory.setModel(XtremIOProvUtils.getXtremIOVersion(_dbClient, storageSystem));
             XtremIOClient xtremIOClient = (XtremIOClient) xtremioRestClientFactory.getRESTClient(
                     URI.create(XtremIOConstants.getXIOBaseURI(accessProfile.getIpAddress(), accessProfile.getPortNumber())),
                     accessProfile.getUserName(), accessProfile.getPassword(), true);

@@ -844,12 +844,11 @@ class VolumeGroup(object):
         return o
 
     # link target
-    def volume_group_snapshotsession_link(self, name, snapsession_label, count, target_name, copymode, partial):
+    def volume_group_snapshotsession_link(self, name, snapshotsessionnames, count, target_name, copymode, partial):
         volume_group_uri = self.query_by_name(name)
-        snapshotsession_uri = self.query_snapshotsession_uri_by_name(name, snapsession_label)
 
         request = dict()
-        request["snapshot_sessions"] = [ snapshotsession_uri ]
+        request["snapshot_sessions"] = self.query_snapshotsession_uris_by_names(name, snapshotsessionnames)
 
         new_linked_targets_dict = {
             'count' : count,
@@ -895,12 +894,11 @@ class VolumeGroup(object):
         return targetEntries
 
     # relink/unlink target
-    def volume_group_snapshotsession_target_operation(self, name, snapsession_label, target_names, partial, operation, uri):
+    def volume_group_snapshotsession_target_operation(self, name, snapshotsessionnames, target_names, partial, operation, uri):
         volume_group_uri = self.query_by_name(name)
-        snapshotsession_uri = self.query_snapshotsession_uri_by_name(name, snapsession_label)
 
         request = dict()
-        request["snapshot_sessions"] = [ snapshotsession_uri ]
+        request["snapshot_sessions"] = self.query_snapshotsession_uris_by_names(name, snapshotsessionnames)
 
         if operation == "relink":
             request["ids"] = self.query_snapshot_uris_by_names(name, target_names)
@@ -2196,7 +2194,7 @@ def snapshotsession_parser(subcommand_parsers, common_parser):
     snapshotsession_parser.add_argument('-partial',
                               dest='partial',
                               action='store_true',
-                              help='To create snapshot session for subset of VolumeGroup. ' +
+                              help='To create snapshot session for subset of volume group. ' +
                               'Please specify one volume from each Array Replication Group')
     snapshotsession_parser.add_argument('-volumes', '-v',
                             metavar='<tenant/project/volume_label,...>',
@@ -2250,6 +2248,13 @@ def volume_group_snapshotsession_common_parser(cc_common_parser):
                                 dest='name',
                                 help='Name of volume group',
                                 required=True)
+    mandatory_args.add_argument('-snapshotsessions', '-s',
+                            metavar='<snapshotsessionname,...>',
+                            dest='snapshotsessions',
+                            help='A snapshot session of a volume group specifying which snapshot session set to act on. ' +
+                            'For partial operation, specify one snapshot session from each Array Replication Group',
+                            required=True)
+
     cc_common_parser.add_argument('-partial',
                               dest='partial',
                               action='store_true',
@@ -2291,13 +2296,6 @@ def snapshotsession_deactivate_parser(subcommand_parsers, common_parser):
         help='Deactivate volume group snapshot session',
         description='ViPR Deactivate Snapshot Session of a VolumeGroup CLI usage.')
 
-    snapshotsession_deactivate_parser.add_argument('-snapshotsessions', '-s',
-                            metavar='<snapshotsessionname,...>',
-                            dest='snapshotsessions',
-                            help='A snapshot session of a volume group specifying which snapshot session set to act on. ' +
-                            'For partial operation, specify one snapshot session from each Array Replication Group',
-                            required=True)
-
     # Add parameter from common snapshot session parser.
     volume_group_snapshotsession_common_parser(snapshotsession_deactivate_parser)
     snapshotsession_deactivate_parser.set_defaults(func=volume_group_snapshotsession_deactivate)
@@ -2314,13 +2312,6 @@ def snapshotsession_restore_parser(subcommand_parsers, common_parser):
         conflict_handler='resolve',
         help='Restore volume group snapshot session',
         description='ViPR Restore Snapshot Session of a VolumeGroup CLI usage.')
-
-    snapshotsession_restore_parser.add_argument('-snapshotsessions', '-s',
-                            metavar='<snapshotsessionname,...>',
-                            dest='snapshotsessions',
-                            help='A snapshot session of a volume group specifying which snapshot session set to act on. ' +
-                            'For partial operation, specify one snapshot session from each Array Replication Group',
-                            required=True)
 
     # Add parameter from common snapshot session parser.
     volume_group_snapshotsession_common_parser(snapshotsession_restore_parser)
@@ -2340,11 +2331,6 @@ def snapshotsession_link_parser(subcommand_parsers, common_parser):
         description='ViPR Link Snapshot Session of a VolumeGroup CLI usage.')
 
     mandatory_args = snapshotsession_link_parser.add_argument_group('mandatory arguments')
-    mandatory_args.add_argument('-snapshotsession', '-s',
-                                metavar='<snapshotsessionname>',
-                                dest='snapshotsessionname',
-                                help='Name of snapshot session',
-                                required=True)
     mandatory_args.add_argument('-count', '-ct',
                                dest='count',
                                metavar='<count>',
@@ -2361,7 +2347,7 @@ def snapshotsession_link_parser(subcommand_parsers, common_parser):
                                choices=SnapshotSession.COPY_MODE,
                                required=True)
 
-    # Add parameter from common snapshot session parser.
+    # Add parameter from snapshot session target common parser.
     volume_group_snapshotsession_common_parser(snapshotsession_link_parser)
     snapshotsession_link_parser.set_defaults(func=volume_group_snapshotsession_link)
 
@@ -2371,7 +2357,7 @@ def volume_group_snapshotsession_link(args):
 
     try:
         obj.volume_group_snapshotsession_link(args.name,
-            args.snapshotsessionname,
+            set(args.snapshotsessions.split(',')),
             args.count,
             args.target_name,
             args.copymode,
@@ -2393,16 +2379,6 @@ def volume_group_snapshotsession_link(args):
                 e.err_text,
                 e.err_code)
 
-# snapshotsession_target_common_parser
-def snapshotsession_target_common_parser(common_parser):
-    common_parser.add_argument('-snapshotsession', '-s',
-                                metavar='<snapshotsessionname>',
-                                dest='snapshotsessionname',
-                                help='Name of snapshot session',
-                                required=True)
-
-    volume_group_snapshotsession_common_parser(common_parser)
-
 # Snapshot Session Target Operation (relink/unlink) Function
 def volume_group_snapshotsession_target_operation(args, operation, uri):
     obj = VolumeGroup(args.ip, args.port)
@@ -2410,7 +2386,7 @@ def volume_group_snapshotsession_target_operation(args, operation, uri):
     try:
         obj.volume_group_snapshotsession_target_operation(
             args.name,
-            args.snapshotsessionname,
+            set(args.snapshotsessions.split(',')),
             set(args.target_names.split(',')),
             args.partial,
             operation,
@@ -2441,14 +2417,15 @@ def snapshotsession_relink_parser(subcommand_parsers, common_parser):
         help='Relink volume group snapshot session targets',
         description='ViPR Relink Snapshot Session of a VolumeGroup CLI usage.')
 
-    snapshotsession_relink_parser.add_argument('-targets', '-t',
+    mandatory_args = snapshotsession_relink_parser.add_argument_group('mandatory arguments')
+    mandatory_args.add_argument('-targets', '-t',
                                metavar='<target,...>',
                                dest='target_names',
                                help='List of target volumes',
                                required=True)
 
     # Add parameter from common snapshot session parser.
-    snapshotsession_target_common_parser(snapshotsession_relink_parser)
+    volume_group_snapshotsession_common_parser(snapshotsession_relink_parser)
     snapshotsession_relink_parser.set_defaults(func=volume_group_snapshotsession_relink)
 
 # Relink Snapshot Session Function
@@ -2464,14 +2441,15 @@ def snapshotsession_unlink_parser(subcommand_parsers, common_parser):
         help='Unlink volume group snapshot session targets',
         description='ViPR Unlink Snapshot Session of a VolumeGroup CLI usage.')
 
-    snapshotsession_unlink_parser.add_argument('-targets', '-t',
+    mandatory_args = snapshotsession_unlink_parser.add_argument_group('mandatory arguments')
+    mandatory_args.add_argument('-targets', '-t',
                                metavar='<target:delete,...>',
                                dest='target_names',
                                help='List of target volumes in the format <target_name>:delete, delete part is optional',
                                required=True)
 
     # Add parameter from common snapshot session parser.
-    snapshotsession_target_common_parser(snapshotsession_unlink_parser)
+    volume_group_snapshotsession_common_parser(snapshotsession_unlink_parser)
     snapshotsession_unlink_parser.set_defaults(func=volume_group_snapshotsession_unlink)
 
 # Unlink Snapshot Session Function

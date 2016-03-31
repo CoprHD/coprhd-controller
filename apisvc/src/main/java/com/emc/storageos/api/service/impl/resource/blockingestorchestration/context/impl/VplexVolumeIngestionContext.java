@@ -43,6 +43,8 @@ import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedCon
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume.SupportedVolumeInformation;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
+import com.emc.storageos.util.ConnectivityUtil;
+import com.emc.storageos.vplexcontroller.VPlexControllerUtils;
 import com.emc.storageos.vplexcontroller.VplexBackendIngestionContext;
 
 /**
@@ -70,6 +72,7 @@ public class VplexVolumeIngestionContext extends VplexBackendIngestionContext im
     private Iterator<UnManagedVolume> _backendVolumeUrisToProcessIterator;
     private List<VplexMirror> _createdVplexMirrors;
     private String _haClusterId;
+    private String _virtualVolumeVplexClusterName;
 
     private List<String> _errorMessages;
 
@@ -1182,5 +1185,35 @@ public class VplexVolumeIngestionContext extends VplexBackendIngestionContext im
     @Override
     public <T extends DataObject> T findDataObjectByType(Class<T> clazz, URI id, boolean fallbackToDatabase) {
         return getRootIngestionRequestContext().findDataObjectByType(clazz, id, fallbackToDatabase);
+    }
+
+    /**
+     * Get the name of the VPLEX cluster on which this virtual volume resides
+     * according to the Virtual Array that is currently being ingested.
+     * 
+     * @return the virtualVolumeVplexClusterName the VPLEX cluster name for this virtual volume
+     */
+    public String getVirtualVolumeVplexClusterName() {
+        if (_virtualVolumeVplexClusterName == null) {
+            // this should be set by the BlockVplexVolumeIngestOrchestrator to use the cluster
+            // name cache, but in the case of re-ingestion, it may not be set, so call from here
+            URI varrayUri = getRootIngestionRequestContext().getVarray(getUnmanagedVolume()).getId();
+            URI vplexUri = getRootIngestionRequestContext().getStorageSystem().getId();
+            String varrayClusterId = ConnectivityUtil.getVplexClusterForVarray(varrayUri, vplexUri, _dbClient);
+            _virtualVolumeVplexClusterName = VPlexControllerUtils.getClusterNameForId(varrayClusterId, vplexUri, _dbClient);
+        }
+
+        return _virtualVolumeVplexClusterName;
+    }
+
+    /**
+     * Sets the name of the VPLEX cluster on which this virtual volume resides
+     * according to the Virtual Array that is currently being ingested.
+     * 
+     * @param virtualVolumeVplexClusterName the VPLEX cluster name to set
+     */
+    public void setVirtualVolumeVplexClusterName(String virtualVolumeVplexClusterName) {
+        _logger.info("setting virtual volume VPLEX cluster name to " + virtualVolumeVplexClusterName);
+        this._virtualVolumeVplexClusterName = virtualVolumeVplexClusterName;
     }
 }

@@ -524,7 +524,7 @@ public class ECSObjectStorageDevice implements ObjectStorageDevice {
         
         try {
             UserSecretKeysAddCommandResult cmdRes = ecsApi.addUserSecretKey(userId, secretKey);
-            secretKeyRes.setSecret_key_1(cmdRes.getSecret_key()); 
+            //secretKeyRes.setSecret_key_1(cmdRes.getSecret_key()); //for security reason hiding the secrete key
             secretKeyRes.setSecret_key_1_expiry_timestamp(cmdRes.getKey_expiry_timestamp());
             return secretKeyRes;
         } catch (Exception e) {

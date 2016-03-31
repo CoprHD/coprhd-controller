@@ -666,6 +666,13 @@ public class BackupOps {
 
     }
 
+    public boolean hasStandbySites() {
+        DrUtil drUtil = new DrUtil();
+        drUtil.setCoordinator(coordinatorClient);
+        List<Site> sites = drUtil.listSites();
+        return sites.size() > 1;
+    }
+
     private void updateBackupRestoreStatus(BackupRestoreStatus s) {
         BackupRestoreStatus.Status restoreStatus = s.getStatus();
         if ( restoreStatus == BackupRestoreStatus.Status.DOWNLOADING) {
@@ -1840,11 +1847,6 @@ public class BackupOps {
         return state == ClusterInfo.ClusterState.STABLE;
     }
 
-    public boolean isActiveSite() {
-        DrUtil util = new DrUtil();
-        util.setCoordinator(coordinatorClient);
-        return util.isActiveSite();
-    }
     /**
      * Create a connection to the JMX agent
      */

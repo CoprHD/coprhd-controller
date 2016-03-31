@@ -290,8 +290,7 @@ public class XtremIOSnapshotOperations extends XtremIOOperations implements Snap
             if (cg == null) {
                 _log.error("The consistency group does not exist in the array: {}", storage.getSerialNumber());
                 taskCompleter.error(dbClient, DeviceControllerException.exceptions
-                        .consistencyGroupNotFound(cgName,
-                                group.getCgNameOnStorageSystem(storage.getId())));
+                        .consistencyGroupNotFound(cgName, group.getCgNameOnStorageSystem(storage.getId())));
                 return;
             }
 
@@ -342,8 +341,35 @@ public class XtremIOSnapshotOperations extends XtremIOOperations implements Snap
                                 group.getCgNameOnStorageSystem(storage.getId())));
                 return;
             }
+            // providing noBackup option was resulting in an error which has been fixed in XIO 4.0.2 version.
+            // So for pre 4.0.2 version, do not use noBackup option.
+            if (XtremIOProvUtils.isXtremIOVersion402OrGreater(storage.getFirmwareVersion())) {
+                client.refreshSnapshotFromCG(clusterName, cgName, snapshotObj.getReplicationGroupInstance(), true);
+            } else {
+                client.refreshSnapshotFromCG(clusterName, cgName, snapshotObj.getReplicationGroupInstance(), false);
+            }
 
-            client.refreshSnapshotFromCG(clusterName, cgName, snapshotObj.getReplicationGroupInstance());
+            String newSnapsetName = null;
+            // Now get the new snapshot set name by querying back the snapshot
+            XtremIOVolume xioSnap = client.getSnapShotDetails(snapshotObj.getDeviceLabel(), clusterName);
+            if (xioSnap.getSnapSetList() != null && !xioSnap.getSnapSetList().isEmpty()) {
+                List<Object> snapsetDetails = xioSnap.getSnapSetList().get(0);
+                // The REST response for the snapsetList will contain 3 elements.
+                // Example - {"00a07269b55e42fa91c1aabadb6ea85c","SnapshotSet.1458111462198",27}
+                // We need the 2nd element which is the snapset name.
+                newSnapsetName = snapsetDetails.get(1).toString();
+            }
+
+            // Update the new snapshot set name in all the CG snapshots
+            if (NullColumnValueGetter.isNotNullValue(newSnapsetName)) {
+                List<BlockSnapshot> snapshots = ControllerUtils.getSnapshotsPartOfReplicationGroup(snapshotObj, dbClient);
+                for (BlockSnapshot snap : snapshots) {
+                    _log.info("Updating replicationGroupInstance to {} in snapshot- {}:{}", newSnapsetName, snap.getLabel(), snap.getId());
+                    snap.setReplicationGroupInstance(newSnapsetName);
+                    dbClient.updateObject(snap);
+                }
+            }
+
             taskCompleter.ready(dbClient);
         } catch (Exception e) {
             _log.error("Snapshot resync failed", e);

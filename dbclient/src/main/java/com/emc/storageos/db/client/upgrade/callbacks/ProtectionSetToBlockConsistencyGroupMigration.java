@@ -54,8 +54,8 @@ public class ProtectionSetToBlockConsistencyGroupMigration extends BaseCustomMig
             cg.setLabel(ps.getLabel());
             cg.setDeviceName(ps.getLabel());
             cg.setType(BlockConsistencyGroup.Types.RP.toString());
-            cg.setProject(new NamedURI(project.getId(), ps.getLabel()));
-            cg.setTenant(new NamedURI(project.getTenantOrg().getURI(), ps.getLabel()));
+            cg.setProject(new NamedURI(project.getId(), project.getLabel()));
+            cg.setTenant(project.getTenantOrg());
 
             dbClient.createObject(cg);
 

@@ -853,19 +853,41 @@ class Fileshare(object):
         self.isTimeout = True
 
     # Blocks the opertaion until the task is complete/error out/timeout
-    def check_for_sync(self, result, sync,synctimeout=0):
+    def check_for_sync(self, result, sync, synctimeout=0):
         if(sync):
-            if(len(result["resource"]) > 0):
-                resource = result["resource"]
-                return (
-                    common.block_until_complete("fileshare", resource["id"],
-                                                result["id"], self.__ipAddr,
-                                                self.__port,synctimeout)
-                )
-            else:
-                raise SOSError(
-                    SOSError.SOS_FAILURE_ERR,
-                    "error: task list is empty, no task response found")
+            if 'resource' in result :
+                if(len(result["resource"]) > 0):
+                    resource = result["resource"]
+                    return (
+                        common.block_until_complete("fileshare", resource["id"],
+                                                    result["id"], self.__ipAddr,
+                                                    self.__port,synctimeout)
+                    )
+                else:
+                    raise SOSError(
+                        SOSError.SOS_FAILURE_ERR,
+                        "error: task list is empty, no task response found")
+        else:
+            return result
+        
+    
+    # Blocks the replication operation until the task is complete/error out/timeout
+    def check_for_sync_replication(self, result, sync, synctimeout=0):
+        if(sync):
+            if 'task' in result :
+                task = result['task']
+                task_element = task[0]
+                if(len(task_element['resource']) > 0):
+                    resource = task_element['resource']
+                    return (
+                        common.block_until_complete("fileshare", resource["id"],
+                                                    task_element['id'], self.__ipAddr,
+                                                    self.__port,synctimeout)
+                    )
+                else:
+                    raise SOSError(
+                        SOSError.SOS_FAILURE_ERR,
+                        "error: task list is empty, no task response found")
         else:
             return result
 
@@ -962,7 +984,7 @@ class Fileshare(object):
         o = common.json_decode(s)
         
         if(sync):
-            return self.check_for_sync(o, sync)
+            return self.check_for_sync_replication(o, sync)
         else:
             return
     
@@ -985,9 +1007,11 @@ class Fileshare(object):
             "POST",
             Fileshare.URI_CONTINUOS_COPIES_PAUSE.format(fsid),
             body)
+        
+        o = common.json_decode(s)
 
         if(sync):
-            return self.check_for_sync(s, sync)
+            return self.check_for_sync_replication(o, sync)
         else:
             return
     
@@ -1010,9 +1034,11 @@ class Fileshare(object):
             "POST",
             Fileshare.URI_CONTINUOS_COPIES_RESUME.format(fsid),
             body)
+        
+        o = common.json_decode(s)
 
         if(sync):
-            return self.check_for_sync(s, sync)
+            return self.check_for_sync_replication(o, sync)
         else:
             return
     
@@ -1035,9 +1061,11 @@ class Fileshare(object):
             "POST",
             Fileshare.URI_CONTINUOS_COPIES_STOP.format(fsid),
             body)
+        
+        o = common.json_decode(s)
 
         if(sync):
-            return self.check_for_sync(s, sync)
+            return self.check_for_sync_replication(o, sync)
         else:
             return
     
@@ -1060,9 +1088,11 @@ class Fileshare(object):
             "POST",
             Fileshare.URI_CONTINUOS_COPIES_FAILOVER.format(fsid),
             body)
+        
+        o = common.json_decode(s)
 
         if(sync):
-            return self.check_for_sync(s, sync)
+            return self.check_for_sync_replication(o, sync)
         else:
             return
     
@@ -1085,9 +1115,11 @@ class Fileshare(object):
             "POST",
             Fileshare.URI_CONTINUOS_COPIES_FAILBACK.format(fsid),
             body)
+        
+        o = common.json_decode(s)
 
         if(sync):
-            return self.check_for_sync(s, sync)
+            return self.check_for_sync_replication(o, sync)
         else:
             return
     
@@ -1104,9 +1136,11 @@ class Fileshare(object):
             "POST",
             Fileshare.URI_CONTINUOS_COPIES_CREATE.format(fsid),
             body)
+        
+        o = common.json_decode(s)
 
         if(sync):
-            return self.check_for_sync(s, sync)
+            return self.check_for_sync_replication(o, sync)
         else:
             return
     
@@ -1122,9 +1156,11 @@ class Fileshare(object):
             "POST",
             Fileshare.URI_CONTINUOS_COPIES_DEACTIVATE.format(fsid),
             body)
+        
+        o = common.json_decode(s)
 
         if(sync):
-            return self.check_for_sync(s, sync)
+            return self.check_for_sync_replication(o, sync)
         else:
             return
     
@@ -1144,9 +1180,11 @@ class Fileshare(object):
             "POST",
             Fileshare.URI_CONTINUOS_COPIES_REFRESH.format(fsid),
             body)
+        
+        o = common.json_decode(s)
 
         if(sync):
-            return self.check_for_sync(s, sync)
+            return self.check_for_sync_replication(o, sync)
         else:
             return
     
@@ -3205,7 +3243,7 @@ def schedule_snapshots_list(args):
         res = obj.schedule_snapshots_list(args.tenant + "/" + args.project + "/" + args.name,
                       args.polname,
                       args.tenant, policyid)
-        return res
+        return common.format_json_object(res)
     except SOSError as e:
         common.format_err_msg_and_raise("fileshare", "schedule snapshots",
                                         e.err_text, e.err_code)

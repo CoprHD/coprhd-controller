@@ -358,13 +358,18 @@ public class DisasterRecoveryService {
         try {
             SiteParam activeSiteParam = configParam.getActiveSite();
 
-            coordinator.startTransaction();
             ipsecConfig.setPreSharedKey(activeSiteParam.getIpsecKey());
 
-            log.info("Clean up all existing site configurations");
+            log.info("Clean up all obsolete site configurations");
+            String activeSiteId = activeSiteParam.getUuid();
+            Set<String> standbySiteIds = new HashSet<>();
+            for (SiteParam standby : configParam.getStandbySites()) {
+                standbySiteIds.add(standby.getUuid());
+            }
+
             for (Site siteToRemove : drUtil.listSites()) {
-                if (siteToRemove.getUuid().equals(coordinator.getSiteId())) {
-                    // spare the local site since VdcManager is watching the site target
+                String siteId = siteToRemove.getUuid();
+                if (siteToRemove.getUuid().equals(activeSiteId) || standbySiteIds.contains(siteId)) {
                     continue;
                 }
                 drUtil.removeSite(siteToRemove);
@@ -405,11 +410,9 @@ public class DisasterRecoveryService {
 
             drUtil.updateVdcTargetVersion(coordinator.getSiteId(), SiteInfo.DR_OP_CHANGE_DATA_REVISION,
                     configParam.getVdcConfigVersion(), dataRevision);
-            coordinator.commitTransaction();
             return Response.status(Response.Status.ACCEPTED).build();
         } catch (Exception e) {
             log.error("Internal error for updating coordinator on standby", e);
-            coordinator.discardTransaction();
             throw APIException.internalServerErrors.configStandbyFailed(e.getMessage());
         }
     }

@@ -3517,9 +3517,6 @@ public class VolumeIngestionUtil {
         if (rpContext != null) {
             pset = rpContext.findExistingProtectionSet(
                     umpset.getCgName(), rpProtectionId, umpset.getProtectionSystemUri(), umpset.getNativeGuid());
-            if (pset != null) {
-                rpContext.setManagedPsetWasCreatedByAnotherContext(true);
-            }
         }
 
         if (pset == null) {
@@ -3595,9 +3592,6 @@ public class VolumeIngestionUtil {
         }
         if (rpContext != null) {
             cg = rpContext.findExistingBlockConsistencyGroup(pset.getLabel(), projectNamedUri, project.getTenantOrg());
-            if (cg != null) {
-                rpContext.setManagedBcgWasCreatedByAnotherContext(true);
-            }
         }
 
         if (cg == null) {

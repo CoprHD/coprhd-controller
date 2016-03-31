@@ -58,9 +58,7 @@ public abstract class VdcOpHandler {
     private static final String LOCK_FAILOVER_REMOVE_OLD_ACTIVE="drFailoverRemoveOldActiveLock";
     private static final String LOCK_PAUSE_STANDBY="drPauseStandbyLock";
     private static final String LOCK_DEGRADE_STANDBY="drDegradeStandbyLock";
-    private static final String LOCK_REJOIN_STANDBY="drRejoinStandbyLock";
-
-    public static final String NTPSERVERS = "network_ntpservers";
+    private static final String NTPSERVERS = "network_ntpservers";
 
     protected CoordinatorClientExt coordinator;
     protected LocalRepository localRepository;
@@ -249,6 +247,7 @@ public abstract class VdcOpHandler {
                         // phase 2 agreement is received, we can make sure data revision change is written to local property file
                         log.info("Reach phase 2 agreement for data revision change");
                         localRepository.setDataRevision(targetDataRevision, true, vdcConfigVersion);
+                        updateSyncingState();
                         setConcurrentRebootNeeded(true);
                     } else {
                         log.info("Failed to reach phase 2 agreement. Rollback revision change");
@@ -263,6 +262,14 @@ public abstract class VdcOpHandler {
             } catch (Exception ex) {
                 log.warn("Internal error happens when negotiating data revision change", ex);
                 throw ex;
+            }
+        }
+
+        private void updateSyncingState() {
+            Site localSite = drUtil.getLocalSite();
+            if (localSite.getState() != SiteState.STANDBY_SYNCING) {
+                localSite.setState(SiteState.STANDBY_SYNCING);
+                coordinator.getCoordinatorClient().persistServiceConfiguration(localSite.toConfiguration());
             }
         }
 
@@ -605,52 +612,6 @@ public abstract class VdcOpHandler {
                 localRepository.restart(Constants.DBSVC_NAME);
                 localRepository.restart(Constants.GEODBSVC_NAME);
             }
-        }
-    }
-
-    /**
-     * Process DR config change for rejoin-standby op
-     *  - To-be-rejoined site - rebuild db/zk data from active site and apply the config
-     *  - Other sites - will not be notified
-     */
-    public static class DrRejoinStandbyHandler extends VdcOpHandler {
-        public DrRejoinStandbyHandler() {
-        }
-
-        @Override
-        public void execute() throws Exception {
-            Site localSite = drUtil.getLocalSite();
-            InterProcessLock lock = coordinator.getCoordinatorClient().getSiteLocalLock(LOCK_REJOIN_STANDBY);
-            while (localSite.getState().equals(SiteState.STANDBY_DEGRADED)) {
-                try {
-                    log.info("Acquiring lock {}", LOCK_DEGRADE_STANDBY);
-                    lock.acquire();
-                    log.info("Acquired lock {}", LOCK_DEGRADE_STANDBY);
-
-                    localSite = drUtil.getLocalSite();
-                    if (localSite.getState().equals(SiteState.STANDBY_DEGRADED)) {
-                        // nobody get the lock before me
-                        log.info("Setting local site {} to STANDBY_SYNCING", localSite.getUuid());
-                        localSite.setState(SiteState.STANDBY_SYNCING);
-                        coordinator.getCoordinatorClient().persistServiceConfiguration(localSite.toConfiguration());
-                        drUtil.recordDrOperationStatus(localSite.getUuid(), InterState.REJOINING_STANDBY);
-                    }
-                } finally {
-                    try {
-                        log.info("Releasing lock {}", LOCK_DEGRADE_STANDBY);
-                        lock.release();
-                        log.info("Released lock {}", LOCK_DEGRADE_STANDBY);
-                    } catch (Exception e) {
-                        log.error("Failed to release lock {}", LOCK_DEGRADE_STANDBY);
-                    }
-                }
-            }
-
-            // restart dbsvc/geodbsvc to start the data rebuild
-            localRepository.restart(Constants.DBSVC_NAME);
-            localRepository.restart(Constants.GEODBSVC_NAME);
-
-            flushVdcConfigToLocal();
         }
     }
 

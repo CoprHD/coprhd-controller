@@ -15,7 +15,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -60,7 +59,6 @@ import com.emc.storageos.coordinator.client.model.SoftwareVersion;
 import com.emc.storageos.coordinator.client.model.DrOperationStatus.InterState;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.coordinator.client.service.DrUtil;
-import com.emc.storageos.coordinator.client.service.impl.CoordinatorClientInetAddressMap;
 import com.emc.storageos.coordinator.client.service.impl.LeaderSelectorListenerImpl;
 import com.emc.storageos.coordinator.common.Configuration;
 import com.emc.storageos.coordinator.common.impl.ZkPath;
@@ -131,7 +129,6 @@ public class DisasterRecoveryService {
     private CoordinatorClient coordinator;
     private DbClient dbClient;
     private IPsecConfig ipsecConfig;
-    private Properties dbCommonInfo;
     private DrUtil drUtil;
 
     @Autowired
@@ -1968,11 +1965,6 @@ public class DisasterRecoveryService {
 
     public void setIpsecConfig(IPsecConfig ipsecConfig) {
         this.ipsecConfig = ipsecConfig;
-    }
-
-    // DBSVC config parameters
-    public void setDbCommonInfo(Properties dbCommonInfo) {
-        this.dbCommonInfo = dbCommonInfo;
     }
 
     private void startLeaderSelector() {

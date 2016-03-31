@@ -30,7 +30,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -108,7 +107,6 @@ public class CoordinatorClientExt {
     private CoordinatorClient _coordinator;
     private SysSvcBeaconImpl _beacon;
     private ServiceImpl _svc;
-    private Properties dbCommonInfo;
     private InterProcessLock _remoteDownloadLock = null;
     private volatile InterProcessLock _targetLock = null;
     private InterProcessLock _newVersionLock = null;
@@ -147,10 +145,6 @@ public class CoordinatorClientExt {
         _myNodeId= _svc.getNodeId();
         _myNodeName= _svc.getNodeName();
         mySvcId = _svc.getId();
-    }
-
-    public void setDbCommonInfo(Properties dbCommonInfo) {
-        this.dbCommonInfo = dbCommonInfo;
     }
 
     public void setCoordinator(CoordinatorClient coordinator) {
@@ -1491,7 +1485,7 @@ public class CoordinatorClientExt {
                     return new Thread(r, "DbsvcQuorumMonitor");
                 }
             });
-            exe.scheduleAtFixedRate(new DbsvcQuorumMonitor(_coordinator, dbCommonInfo),
+            exe.scheduleAtFixedRate(new DbsvcQuorumMonitor(_coordinator),
                     0, DB_MONITORING_INTERVAL, TimeUnit.SECONDS);
         }
 

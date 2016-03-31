@@ -43,6 +43,8 @@ import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedCon
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume.SupportedVolumeInformation;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
+import com.emc.storageos.util.ConnectivityUtil;
+import com.emc.storageos.vplexcontroller.VPlexControllerUtils;
 import com.emc.storageos.vplexcontroller.VplexBackendIngestionContext;
 
 /**
@@ -1192,6 +1194,15 @@ public class VplexVolumeIngestionContext extends VplexBackendIngestionContext im
      * @return the virtualVolumeVplexClusterName the VPLEX cluster name for this virtual volume
      */
     public String getVirtualVolumeVplexClusterName() {
+        if (_virtualVolumeVplexClusterName == null) {
+            // this should be set by the BlockVplexVolumeIngestOrchestrator to use the cluster
+            // name cache, but in the case of re-ingestion, it may not be set, so call from here
+            URI varrayUri = getRootIngestionRequestContext().getVarray(getUnmanagedVolume()).getId();
+            URI vplexUri = getRootIngestionRequestContext().getStorageSystem().getId();
+            String varrayClusterId = ConnectivityUtil.getVplexClusterForVarray(varrayUri, vplexUri, _dbClient);
+            _virtualVolumeVplexClusterName = VPlexControllerUtils.getClusterNameForId(varrayClusterId, vplexUri, _dbClient);
+        }
+
         return _virtualVolumeVplexClusterName;
     }
 

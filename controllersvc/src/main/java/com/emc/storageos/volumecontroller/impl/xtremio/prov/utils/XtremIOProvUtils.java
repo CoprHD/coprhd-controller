@@ -438,7 +438,7 @@ public class XtremIOProvUtils {
     }
 
     public static boolean is4xXtremIOModel(String model) {
-        return (null != model && Integer.valueOf(model.split(DOT_OPERATOR)[0]) >= XIO_MIN_4X_VERSION);
+        return (NullColumnValueGetter.isNotNullValue(model) && Integer.valueOf(model.split(DOT_OPERATOR)[0]) >= XIO_MIN_4X_VERSION);
     }
 
     /**

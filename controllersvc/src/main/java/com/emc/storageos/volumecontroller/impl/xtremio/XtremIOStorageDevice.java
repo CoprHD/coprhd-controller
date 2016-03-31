@@ -294,7 +294,8 @@ public class XtremIOStorageDevice extends DefaultBlockStorageDevice {
                         // If the volume is regular volume & in CG
                         // i.e. it's not RP or a backend volume for a RP+VPLEX Target or Journal
                         if (client.isVersion2() && volume.getConsistencyGroup() != null &&
-                                NullColumnValueGetter.isNotNullValue(volume.getReplicationGroupInstance()) && !RPHelper.isAssociatedToRpVplexType(volume, dbClient,
+                                NullColumnValueGetter.isNotNullValue(volume.getReplicationGroupInstance())
+                                && !RPHelper.isAssociatedToRpVplexType(volume, dbClient,
                                         PersonalityTypes.METADATA, PersonalityTypes.TARGET)) {
                             BlockConsistencyGroup consistencyGroupObj = dbClient.queryObject(BlockConsistencyGroup.class,
                                     volume.getConsistencyGroup());
@@ -492,7 +493,7 @@ public class XtremIOStorageDevice extends DefaultBlockStorageDevice {
     @Override
     public void doExportAddVolumes(StorageSystem storage, ExportMask exportMask,
             Map<URI, Integer> volumes, TaskCompleter taskCompleter)
-            throws DeviceControllerException {
+                    throws DeviceControllerException {
         _log.info("{} doExportAddVolumes START ...", storage.getSerialNumber());
 
         VolumeURIHLU[] volumeLunArray = ControllerUtils.getVolumeURIHLUArray(
@@ -527,7 +528,7 @@ public class XtremIOStorageDevice extends DefaultBlockStorageDevice {
     @Override
     public void doExportAddInitiator(StorageSystem storage, ExportMask exportMask,
             Initiator initiator, List<URI> targets, TaskCompleter taskCompleter)
-            throws DeviceControllerException {
+                    throws DeviceControllerException {
         _log.info("{} doExportAddInitiator START ...", storage.getSerialNumber());
         List<Initiator> initiatorList = new ArrayList<Initiator>();
         initiatorList.add(initiator);
@@ -539,7 +540,7 @@ public class XtremIOStorageDevice extends DefaultBlockStorageDevice {
     @Override
     public void doExportAddInitiators(StorageSystem storage, ExportMask exportMask,
             List<Initiator> initiators, List<URI> targets, TaskCompleter taskCompleter)
-            throws DeviceControllerException {
+                    throws DeviceControllerException {
         _log.info("{} doExportAddInitiators START ...", storage.getSerialNumber());
         xtremioExportOperationHelper.addInitiator(storage, exportMask.getId(), initiators, targets,
                 taskCompleter);
@@ -549,7 +550,7 @@ public class XtremIOStorageDevice extends DefaultBlockStorageDevice {
     @Override
     public void doExportRemoveInitiator(StorageSystem storage, ExportMask exportMask,
             Initiator initiator, List<URI> targets, TaskCompleter taskCompleter)
-            throws DeviceControllerException {
+                    throws DeviceControllerException {
         _log.info("{} doExportRemoveInitiator START ...", storage.getSerialNumber());
         List<Initiator> initiatorList = new ArrayList<Initiator>();
         initiatorList.add(initiator);
@@ -562,7 +563,7 @@ public class XtremIOStorageDevice extends DefaultBlockStorageDevice {
     @Override
     public void doExportRemoveInitiators(StorageSystem storage, ExportMask exportMask,
             List<Initiator> initiators, List<URI> targets, TaskCompleter taskCompleter)
-            throws DeviceControllerException {
+                    throws DeviceControllerException {
         _log.info("{} doExportRemoveInitiators START ...", storage.getSerialNumber());
         xtremioExportOperationHelper.removeInitiator(storage, exportMask.getId(), initiators,
                 targets, taskCompleter);
@@ -631,7 +632,7 @@ public class XtremIOStorageDevice extends DefaultBlockStorageDevice {
     @Override
     public void doDeleteConsistencyGroup(StorageSystem storage, final URI consistencyGroupId,
             String replicationGroupName, Boolean keepRGName, Boolean markInactive, final TaskCompleter taskCompleter)
-            throws DeviceControllerException {
+                    throws DeviceControllerException {
         _log.info("{} doDeleteConsistencyGroup START ...", storage.getSerialNumber());
 
         ServiceError serviceError = null;
@@ -730,7 +731,6 @@ public class XtremIOStorageDevice extends DefaultBlockStorageDevice {
             boolean isXioV2 = client.isVersion2();
             if (!isXioV2 && consistencyGroup.isProtectedCG()) {
                 _log.info("{} Operation createConsistencyGroup not supported for the xtremio array version");
-                consistencyGroup.addConsistencyGroupTypes(Types.LOCAL.name());
             } else {
                 String clusterName = client.getClusterDetails(storage.getSerialNumber()).getName();
                 Project cgProject = dbClient.queryObject(Project.class, consistencyGroup.getProject());
@@ -879,10 +879,10 @@ public class XtremIOStorageDevice extends DefaultBlockStorageDevice {
                             consistencyGroup.getLabel(), e.getMessage()));
         }
     }
-    
+
     @Override
     public void doDeleteConsistencyGroup(StorageSystem storage, final URI consistencyGroupId,
-            String replicationGroupName, Boolean keepRGName, Boolean markInactive, 
+            String replicationGroupName, Boolean keepRGName, Boolean markInactive,
             String sourceReplicationGroup, final TaskCompleter taskCompleter) throws DeviceControllerException {
         doDeleteConsistencyGroup(storage, consistencyGroupId, replicationGroupName, keepRGName, markInactive, taskCompleter);
     }

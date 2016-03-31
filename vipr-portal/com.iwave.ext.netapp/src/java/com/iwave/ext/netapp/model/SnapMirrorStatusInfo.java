@@ -79,4 +79,12 @@ public class SnapMirrorStatusInfo implements Serializable {
     public void setSourceLocation(String sourceLocation) {
         this.sourceLocation = sourceLocation;
     }
+
+    @Override
+    public String toString() {
+        return "SnapMirrorStatusInfo [mirrorState=" + mirrorState + ", transferType=" + transferType + ", currentTransferType="
+                + currentTransferType + ", currentTransferError=" + currentTransferError + ", destinationLocation=" + destinationLocation
+                + ", sourceLocation=" + sourceLocation + "]";
+    }
+
 }

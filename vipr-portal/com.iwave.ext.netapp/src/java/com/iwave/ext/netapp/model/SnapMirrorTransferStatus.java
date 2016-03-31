@@ -11,7 +11,8 @@ public enum SnapMirrorTransferStatus {
     resyncing("resyncing"),
     syncing("syncing"),
     insync("in-sync"),
-    paused("paused");
+    paused("paused"),
+    none("-");
 
     private String label;
 

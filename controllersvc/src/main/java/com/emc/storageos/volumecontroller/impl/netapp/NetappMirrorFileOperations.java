@@ -293,6 +293,8 @@ public class NetappMirrorFileOperations implements FileMirrorOperations {
 
         String destLocation = getLocation(nApiTarget, targetFs);
 
+        _log.info("Initializing snapmirror for destination: {}", destLocation);
+
         SnapMirrorStatusInfo mirrorStatusInfo = nApiTarget.getSnapMirrorStateInfo(destLocation);
 
         if (SnapMirrorState.UNKNOWN.equals(mirrorStatusInfo.getMirrorState()) ||

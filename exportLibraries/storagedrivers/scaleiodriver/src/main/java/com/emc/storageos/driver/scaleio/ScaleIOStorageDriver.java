@@ -349,7 +349,8 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver implements Block
                             clone.setNativeId(result.getVolumeIdList().get(0));
                             clone.setAccessStatus(StorageObject.AccessStatus.READ_WRITE);
                             clone.setReplicationState(VolumeClone.ReplicationState.CREATED);
-
+                            String wwn = client.getSystemId() + clone.getNativeId();
+                            clone.setWwn(wwn);
                             // Set Device Label
                             Map<String, String> CloneVolNameIdMap = client.getVolumes(result.getVolumeIdList());
                             clone.setDeviceLabel(CloneVolNameIdMap.get(clone.getNativeId()));
@@ -553,8 +554,8 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver implements Block
      */
     @Override
     public DriverTask exportVolumesToInitiators(List<Initiator> initiators, List<StorageVolume> volumes,
-                                                Map<String, String> volumeToHLUMap, List<StoragePort> recommendedPorts, List<StoragePort> availablePorts,
-                                                StorageCapabilities capabilities, MutableBoolean usedRecommendedPorts, List<StoragePort> selectedPorts) {
+            Map<String, String> volumeToHLUMap, List<StoragePort> recommendedPorts, List<StoragePort> availablePorts,
+            StorageCapabilities capabilities, MutableBoolean usedRecommendedPorts, List<StoragePort> selectedPorts) {
         String volId, portId;
         log.info("Request to export volumes to initiators -- start: ");
         DriverTask task = new DriverTaskImpl(ScaleIOHelper.getTaskId(ScaleIOConstants.TaskType.EXPORT));
@@ -758,7 +759,7 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver implements Block
      */
     @Override
     public DriverTask createConsistencyGroupSnapshot(VolumeConsistencyGroup consistencyGroup, List<VolumeSnapshot> snapshots,
-                                                     List<CapabilityInstance> capabilities) {
+            List<CapabilityInstance> capabilities) {
         log.info("Request to create consistency group snapshot -- Start :");
         DriverTask task = new DriverTaskImpl(ScaleIOHelper.getTaskId(ScaleIOConstants.TaskType.CG_SNAP_CREATE));
         countSucc = 0;
@@ -863,7 +864,7 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver implements Block
      */
     @Override
     public DriverTask createConsistencyGroupClone(VolumeConsistencyGroup consistencyGroup, List<VolumeClone> clones,
-                                                  List<CapabilityInstance> capabilities) {
+            List<CapabilityInstance> capabilities) {
         log.info("Request to create consistency group clone -- Start :");
         DriverTask task = new DriverTaskImpl(ScaleIOHelper.getTaskId(ScaleIOConstants.TaskType.CG_CLONE_CREATE));
         countSucc = 0;
@@ -891,6 +892,9 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver implements Block
                                     clone.setNativeId(cloneInfo.getId());
                                     clone.setAccessStatus(StorageObject.AccessStatus.READ_WRITE);
                                     clone.setDeviceLabel(cloneInfo.getName());
+                                    String wwn = client.getSystemId() + cloneInfo.getId();
+                                    clone.setWwn(wwn);
+                                    clone.setReplicationState(VolumeClone.ReplicationState.CREATED);
                                     // map real CG id with fake CG id
                                     setInfoToRegistry(clone.getStorageSystemId(), consistencyGroup.getDisplayName(),
                                             result.getSnapshotGroupId());

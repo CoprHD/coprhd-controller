@@ -379,13 +379,13 @@ public class XtremIOProvUtils {
      * Get the XtremIO client for making requests to the system based
      * on the passed profile.
      *
-     * @param accessProfile A reference to the access profile.
+     * @param dbClient the db client
+     * @param system the system
      * @param xtremioRestClientFactory xtremioclientFactory.
-     *
      * @return A reference to the xtremio client.
      */
-    public static XtremIOClient getXtremIOClient(StorageSystem system, XtremIOClientFactory xtremioRestClientFactory) {
-        xtremioRestClientFactory.setModel(system.getFirmwareVersion());
+    public static XtremIOClient getXtremIOClient(DbClient dbClient, StorageSystem system, XtremIOClientFactory xtremioRestClientFactory) {
+        xtremioRestClientFactory.setModel(getXtremIOModel(dbClient, system));
         if (null == system.getSmisProviderIP() || null == system.getSmisPortNumber()) {
             _log.error("There is no active XtremIO Provider managing the system {}.", system.getSerialNumber());
             throw XtremIOApiException.exceptions.noMgmtConnectionFound(system.getSerialNumber());
@@ -398,6 +398,23 @@ public class XtremIOProvUtils {
         return client;
     }
 
+    /**
+     * Gets the XtrmeIO model.
+     *
+     * @param dbClient the db client
+     * @param system the system
+     * @return the XtrmeIO model
+     */
+    public static String getXtremIOModel(DbClient dbClient, StorageSystem system) {
+        String version = system.getFirmwareVersion();
+        // get model info from storage provider as it will have the latest model updated after scan process
+        if (!NullColumnValueGetter.isNullURI(system.getActiveProviderURI())) {
+            StorageProvider provider = dbClient.queryObject(StorageProvider.class, system.getActiveProviderURI());
+            version = provider.getVersionString();
+        }
+        return version;
+    }
+    
     /**
      * Refresh the XIO Providers & its client connections.
      *

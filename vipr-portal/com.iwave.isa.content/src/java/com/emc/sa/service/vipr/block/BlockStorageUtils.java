@@ -1169,7 +1169,8 @@ public class BlockStorageUtils {
         Table<URI, String, BlockSnapshotSessionRestRep> results = getReplicationGroupSnapshotSessions(execute(
                 new GetBlockSnapshotSessionList(applicationId, copySet)).getSnapSessionRelatedResourceList());
         for (Cell<URI, String, BlockSnapshotSessionRestRep> cell : results.cellSet()) {
-            if (subGroups.contains(cell.getColumnKey())) {
+            String stripped = BlockStorageUtils.stripRPTargetFromReplicationGroup(cell.getColumnKey());
+            if (subGroups.contains(stripped)) {
                 snapshotSessionIds.add(cell.getValue().getId());
             }
         }

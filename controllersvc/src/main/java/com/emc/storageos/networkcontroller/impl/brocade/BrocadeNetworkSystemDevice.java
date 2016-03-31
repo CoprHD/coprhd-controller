@@ -366,25 +366,10 @@ public class BrocadeNetworkSystemDevice extends NetworkSystemDeviceImpl
             CIMInstance activeZonesetIns = _smisHelper
                     .getActiveZonesetInstance(client, fabricId, fabricWwn);
 
-            // There is no active zoneset. So we'll create one. TBD
+            // There is no active zoneset. So we'll throw an exception.
             if (activeZonesetIns == null) {
                 _log.info("No active zoneset fabrics: " + fabricId);
-                String zonesetName = getDefaultZonesetName(fabricId);
-                // find if a zoneset with the same name already exists
-                _log.info("Look for a zoneset with the same name : " + zonesetName + " fabric: " + fabricId);
-                zonesetPath = _smisHelper.getZoneSetPath(client, fabricId, fabricWwn, zonesetName);
-                // if not create one
-                if (zonesetPath == null) {
-                    _log.info("Attempting to create zoneset: " + zonesetName
-                            + " fabric: " + fabricId);
-                    zonesetPath = _smisHelper.createZoneSet(client, zoneServiceIns,
-                            zonesetName);
-                }
-                if (zonesetPath == null) {
-                    _log.info("Failed to create zoneset: " + zonesetName
-                            + " fabric: " + fabricId);
-                    throw NetworkDeviceControllerException.exceptions.addZonesStrategyFailedPath();
-                }
+                throw NetworkDeviceControllerException.exceptions.noActiveZonesetForFabric(fabricId);
             } else {
                 // For Brocade, the active zoneset is a copy of a configuration zoneset. To make a change, we
                 // need to modify the configuration zoneset and activate it. Get the configuration zoneset.

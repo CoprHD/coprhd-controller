@@ -1040,8 +1040,8 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
      * RP export group orchestration steps. 
      * Currently this is a dummy no-op method and all the RP export group assembly are done in the actual export orchestration method. 
      * The main reason to have this method is to make sure the roll back of RP export groups happen after the actual export rollbacks. 
-     * @param stepId 
-     * @return
+     * @param stepId - Operation's step ID
+     * @return - Always returns true
      */
     public boolean rpExportOrchestrationSteps(String stepId) {    	
     	WorkflowStepCompleter.stepSucceded(stepId);
@@ -1051,15 +1051,22 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
     
     /**
      * RP Export group rollback orchestration steps 
-     * @param stepId - Step ID
-     * @return
+     * @param stepId - Operation's step ID
+     * @return - True on successful rollback, false otherwise
      */
     public boolean rpExportOrchestrationRollbackSteps(String stepId) {  
     	_log.info("Executing rpExportOrchestrationRollbackSteps");
     	WorkflowStepCompleter.stepExecuting(stepId);
-    	rpExportGroupRollback();
-    	WorkflowStepCompleter.stepSucceded(stepId);
-    	_log.info("Completed rpExportOrchestrationRollbackSteps");
+    	try {
+	    	rpExportGroupRollback();
+	    	WorkflowStepCompleter.stepSucceded(stepId);
+	    	_log.info("Completed rpExportOrchestrationRollbackSteps");
+
+    	} catch (Exception e) {
+    		stepFailed(stepId, "rpExportOrchestrationRollbackSteps");
+    		_log.info("Failed rpExportOrchestrationRollbackSteps");
+
+    	}
     	return true;
     }
 
@@ -1067,7 +1074,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
      * @param volumeDescriptors - Volume descriptors
      * @param rpSystemId - RP system 
      * @param taskId - task ID
-     * @return
+     * @return - True on success, false otherwise
      * @throws InternalException
      */
     public boolean exportOrchestrationSteps(List<VolumeDescriptor> volumeDescriptors, URI rpSystemId, String taskId)

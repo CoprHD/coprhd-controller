@@ -127,8 +127,8 @@ public class TrustStoreResource {
 
         // to hold all kinds of certs in request to support add/remove in batch, and to support partial success as well
         class UpdateResult {
-            List<Integer> added = new ArrayList<>();
-            List<Integer> removed = new ArrayList<>();
+            int nAdded = 0;
+            int nRemoved = 0;
             List<Integer> failToParse = new ArrayList<>();
             List<Integer> expired = new ArrayList<>();
             List<Integer> notExisted = new ArrayList<>();
@@ -138,7 +138,7 @@ public class TrustStoreResource {
             }
 
             public boolean hasSuccess() {
-                return ( added.isEmpty() && removed.isEmpty() ) ? false:true;
+                return ( nAdded == 0 && nRemoved == 0 ) ? false:true;
             }
         }
 
@@ -172,7 +172,7 @@ public class TrustStoreResource {
                                 result.expired.add(i+1);
                             } else { // good one
                                 keystore.setCertificateEntry(alias, cert);
-                                result.added.add(i);
+                                result.nAdded ++;
                             }
                         }
                     } else {
@@ -197,7 +197,7 @@ public class TrustStoreResource {
                     if (cert != null
                             && StringUtils.countMatches(certString, KeyCertificatePairGenerator.PEM_BEGIN_CERT) == 1) {
                         keystore.deleteEntry(DigestUtils.sha512Hex(cert.getEncoded()));
-                        result.removed.add(i);
+                        result.nRemoved ++;
                     } else {
                         result.failToParse.add(i+1);
                     }
@@ -210,8 +210,7 @@ public class TrustStoreResource {
         }
 
         // set AcceptAll to No if any certificate is added.
-        if (!CollectionUtils.isEmpty(result.added)
-                && getTruststoreSettings().isAcceptAllCertificates()) {
+        if ( (result.nAdded > 0) && getTruststoreSettings().isAcceptAllCertificates()) {
             TruststoreSettingsChanges settingsChanges = new TruststoreSettingsChanges();
             settingsChanges.setAcceptAllCertificates(false);
             changeSettingInternal(settingsChanges);

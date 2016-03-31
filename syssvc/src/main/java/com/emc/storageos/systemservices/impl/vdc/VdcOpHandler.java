@@ -1175,10 +1175,6 @@ public abstract class VdcOpHandler {
         try {
             SysClientFactory.getSysClient(URI.create(baseNodeURL)).post(URI.create(URI_INTERNAL_POWEROFF), null, null);
             log.info("Powering off site {}", siteId);
-            while(drUtil.isSiteUp(siteId)) {
-                log.info("Short sleep and will check site status later");
-                retrySleep();
-            }
         } catch (Exception e) {
             log.warn("Error happened when trying to poweroff remove site {}", siteId, e);
         }

@@ -191,6 +191,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
     private static final String STEP_CREATE_BLOCK_SNAPSHOT = "rpCreateBlockSnapshot";
     private static final String STEP_UPDATE_CG_POLICY = "rpUpdateConsistencyGroupPolicy";
     private static final String STEP_EXPORT_ORCHESTRATION = "rpExportOrchestration";
+    private static final String STEP_RP_EXPORT_ORCHESTRATION = "rpExportGroupOrchestration";
 
     public static final String STEP_PRE_VOLUME_RESTORE = "rpPreVolumeRestore";
     public static final String STEP_POST_VOLUME_RESTORE = "rpPostVolumeRestore";
@@ -243,6 +244,10 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
     // Methods in the RP export workflow
     private static final String METHOD_EXPORT_ORCHESTRATE_STEP = "exportOrchestrationSteps";
     private static final String METHOD_EXPORT_ORCHESTRATE_ROLLBACK_STEP = "exportOrchestrationRollbackSteps";
+
+    // Methods in the RP export workflow
+    private static final String METHOD_RP_EXPORT_ORCHESTRATE_STEP = "rpExportOrchestrationSteps";
+    private static final String METHOD_RP_EXPORT_ORCHESTRATE_ROLLBACK_STEP = "rpExportOrchestrationRollbackSteps";
 
     private static final String EXPORT_ORCHESTRATOR_WF_NAME = "RP_EXPORT_ORCHESTRATION_WORKFLOW";
     private static final String ROLLBACK_METHOD_NULL = "rollbackMethodNull";
@@ -984,11 +989,22 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
             String waitFor, ProtectionSystem rpSystem, String taskId)
             throws InternalException {
 
+        // The steps for RP exportGroup creation and the actual export orchestrations are separated into 2 steps.
+        // The main reason for doing this is to aid in rollback and delete the export group artifacts created by RP after the
+        // actual export rollbacks have happened.
+        String stepId = workflow.createStepId();
+        Workflow.Method rpExportOrchestrationExecuteMethod = new Workflow.Method(METHOD_RP_EXPORT_ORCHESTRATE_STEP);
+        Workflow.Method rpExportOrchestrationExecuteRollbackMethod = new Workflow.Method(METHOD_RP_EXPORT_ORCHESTRATE_ROLLBACK_STEP);
+
+        workflow.createStep(STEP_RP_EXPORT_ORCHESTRATION, "Create RP Export group orchestration subtask for RP CG",
+                waitFor, rpSystem.getId(), rpSystem.getSystemType(), false, this.getClass(),
+                rpExportOrchestrationExecuteMethod, rpExportOrchestrationExecuteRollbackMethod, stepId);
+
         // This step creates a sub-workflow to do the orchestration. The rollback for this step calls a
         // workflow facility WorkflowService.rollbackChildWorkflow, which will roll back the entire
         // orchestration sub-workflow. The stepId of the orchestration create step must be passed to
         // the rollback step so that rollbackChildWorkflow can locate the correct child workflow.
-        String stepId = workflow.createStepId();
+        stepId = workflow.createStepId();
         Workflow.Method exportOrchestrationExecuteMethod = new Workflow.Method(METHOD_EXPORT_ORCHESTRATE_STEP,
                 volumeDescriptors,
                 rpSystem.getId());
@@ -997,7 +1013,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                 new Workflow.Method(METHOD_EXPORT_ORCHESTRATE_ROLLBACK_STEP, workflow.getWorkflowURI(), stepId);
 
         workflow.createStep(STEP_EXPORT_ORCHESTRATION, "Create export group orchestration subtask for RP CG",
-                waitFor, rpSystem.getId(), rpSystem.getSystemType(), false, this.getClass(),
+                STEP_RP_EXPORT_ORCHESTRATION, rpSystem.getId(), rpSystem.getSystemType(), false, this.getClass(),
                 exportOrchestrationExecuteMethod, exportOrchestrationExecutionRollbackMethod, stepId);
     }
 
@@ -1016,12 +1032,52 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
         // (successfully) completed child workflow. The child workflow is located by the parentWorkflow URI and exportOrchestrationStepId.
         _workflowService.rollbackChildWorkflow(parentWorkflow, exportOrchestrationStepId, token);
 
-        // Lastly, rollback ViPR level RP export group changes
-        rollbackRPExportGroups();
-
         return true;
     }
 
+    /**
+     * RP export group orchestration steps.
+     * Currently this is a dummy no-op method and all the RP export group assembly are done in the actual export orchestration method.
+     * The main reason to have this method is to make sure the roll back of RP export groups happen after the actual export rollbacks.
+     * 
+     * @param stepId - Operation's step ID
+     * @return - Always returns true
+     */
+    public boolean rpExportOrchestrationSteps(String stepId) {
+        WorkflowStepCompleter.stepSucceded(stepId);
+        _log.info("Completed rpExportOrchestrationSteps");
+        return true;
+    }
+
+    /**
+     * RP Export group rollback orchestration steps
+     * 
+     * @param stepId - Operation's step ID
+     * @return - True on successful rollback, false otherwise
+     */
+    public boolean rpExportOrchestrationRollbackSteps(String stepId) {
+        _log.info("Executing rpExportOrchestrationRollbackSteps");
+        WorkflowStepCompleter.stepExecuting(stepId);
+        try {
+            rpExportGroupRollback();
+            WorkflowStepCompleter.stepSucceded(stepId);
+            _log.info("Completed rpExportOrchestrationRollbackSteps");
+
+        } catch (Exception e) {
+            stepFailed(stepId, "rpExportOrchestrationRollbackSteps");
+            _log.info("Failed rpExportOrchestrationRollbackSteps");
+
+        }
+        return true;
+    }
+
+    /**
+     * @param volumeDescriptors - Volume descriptors
+     * @param rpSystemId - RP system
+     * @param taskId - task ID
+     * @return - True on success, false otherwise
+     * @throws InternalException
+     */
     public boolean exportOrchestrationSteps(List<VolumeDescriptor> volumeDescriptors, URI rpSystemId, String taskId)
             throws InternalException {
         List<URI> volUris = VolumeDescriptor.getVolumeURIs(volumeDescriptors);
@@ -1282,7 +1338,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
             _log.error("Could not create volumes: " + volUris, ex);
 
             // Rollback ViPR level RP export group changes
-            rollbackRPExportGroups();
+            rpExportGroupRollback();
 
             if (workflow != null) {
                 _workflowService.releaseAllWorkflowLocks(workflow);
@@ -1307,7 +1363,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
      * ViPR level deletion/update of any RP Export Groups that are newly created. If they are pre-existing,
      * then we simply want to remove any volume references that had been added to those Export Groups.
      */
-    private void rollbackRPExportGroups() {
+    private void rpExportGroupRollback() {
         // Rollback any newly created export groups
         if (exportGroupsCreated != null && !exportGroupsCreated.isEmpty()) {
             for (URI exportGroupURI : exportGroupsCreated) {
@@ -2521,24 +2577,24 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
     /*
      * RPDeviceController.exportGroupCreate()
-     * 
+     *
      * This method is a mini-orchestration of all of the steps necessary to create an export based on
      * a Bourne Snapshot object associated with a RecoverPoint bookmark.
-     * 
+     *
      * This controller does not service block devices for export, only RP bookmark snapshots.
-     * 
+     *
      * The method is responsible for performing the following steps:
      * - Enable the volumes to a specific bookmark.
      * - Call the block controller to export the target volume
-     * 
+     *
      * @param protectionDevice The RP System used to manage the protection
-     * 
+     *
      * @param exportgroupID The export group
-     * 
+     *
      * @param snapshots snapshot list
-     * 
+     *
      * @param initatorURIs initiators to send to the block controller
-     * 
+     *
      * @param token The task object
      */
     @Override
@@ -2722,19 +2778,19 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
     /*
      * RPDeviceController.exportGroupDelete()
-     * 
+     *
      * This method is a mini-orchestration of all of the steps necessary to delete an export group.
-     * 
+     *
      * This controller does not service block devices for export, only RP bookmark snapshots.
-     * 
+     *
      * The method is responsible for performing the following steps:
      * - Call the block controller to delete the export of the target volumes
      * - Disable the bookmarks associated with the snapshots.
-     * 
+     *
      * @param protectionDevice The RP System used to manage the protection
-     * 
+     *
      * @param exportgroupID The export group
-     * 
+     *
      * @param token The task object associated with the volume creation task that we piggy-back our events on
      */
     @Override
@@ -2847,15 +2903,15 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
     /*
      * Method that adds the steps to the workflow to disable image access (for BLOCK snapshots)
-     * 
+     *
      * @param workflow Workflow
-     * 
+     *
      * @param waitFor waitFor step id
-     * 
+     *
      * @param snapshots list of snapshot to disable
-     * 
+     *
      * @param rpSystem RP system
-     * 
+     *
      * @throws InternalException
      */
     private void addBlockSnapshotDisableImageAccessStep(Workflow workflow, String waitFor, List<URI> snapshots, ProtectionSystem rpSystem)
@@ -3023,24 +3079,24 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
     /*
      * RPDeviceController.exportAddVolume()
-     * 
+     *
      * This method is a mini-orchestration of all of the steps necessary to add a volume to an export group
      * that is based on a Bourne Snapshot object associated with a RecoverPoint bookmark.
-     * 
+     *
      * This controller does not service block devices for export, only RP bookmark snapshots.
-     * 
+     *
      * The method is responsible for performing the following steps:
      * - Enable the volumes to a specific bookmark.
      * - Call the block controller to export the target volume
-     * 
+     *
      * @param protectionDevice The RP System used to manage the protection
-     * 
+     *
      * @param exportGroupID The export group
-     * 
+     *
      * @param snapshot RP snapshot
-     * 
+     *
      * @param lun HLU
-     * 
+     *
      * @param token The task object associated with the volume creation task that we piggy-back our events on
      */
     @Override
@@ -3918,7 +3974,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
     /*
      * (non-Javadoc)
-     * 
+     *
      * @see com.emc.storageos.volumecontroller.RPController#stopProtection(java.net.URI, java.net.URI, java.lang.String)
      */
     @Override
@@ -4343,7 +4399,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
     /*
      * (non-Javadoc)
-     * 
+     *
      * @see com.emc.storageos.protectioncontroller.RPController#createSnapshot(java.net.URI, java.net.URI, java.util.List,
      * java.lang.Boolean, java.lang.Boolean, java.lang.String)
      */
@@ -6089,7 +6145,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
     /*
      * (non-Javadoc)
-     * 
+     *
      * @see com.emc.storageos.protectioncontroller.RPController#updateApplication(java.net.URI,
      * com.emc.storageos.volumecontroller.ApplicationAddVolumeList, java.util.List, java.net.URI, java.lang.String)
      */

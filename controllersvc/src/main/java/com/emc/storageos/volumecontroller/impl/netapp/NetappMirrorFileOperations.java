@@ -23,7 +23,6 @@ import com.emc.storageos.volumecontroller.impl.ControllerServiceImpl;
 import com.emc.storageos.volumecontroller.impl.file.FileMirrorOperations;
 import com.emc.storageos.volumecontroller.impl.job.QueueJob;
 import com.emc.storageos.volumecontroller.impl.netapp.job.NetAppSnapMirrorCreateJob;
-import com.emc.storageos.volumecontroller.impl.netapp.job.NetAppSnapMirrorQuiesceJob;
 import com.emc.storageos.volumecontroller.impl.netapp.job.NetAppSnapMirrorReleaseJob;
 import com.emc.storageos.volumecontroller.impl.netapp.job.NetAppSnapMirrorStartJob;
 import com.emc.storageos.workflow.WorkflowStepCompleter;
@@ -460,7 +459,9 @@ public class NetappMirrorFileOperations implements FileMirrorOperations {
                     SnapMirrorState.PAUSE.equals(mirrorStatusInfo.getMirrorState())) {
                 _log.info("Calling snapmirror break on path: {}", location);
                 nApi.breakSnapMirror(location);
+                return BiosCommandResult.createSuccessfulResult();
             } else if (SnapMirrorState.FAILOVER.equals(mirrorStatusInfo.getMirrorState())) {
+                _log.info("Snapmirror is already broken-off: {}", location);
                 return BiosCommandResult.createSuccessfulResult();
             } else {
                 ServiceError error = DeviceControllerErrors.netapp.jobFailed("Snapmirror break operation failed, because of mirror state: "
@@ -512,20 +513,23 @@ public class NetappMirrorFileOperations implements FileMirrorOperations {
         _log.info("Calling snapmirror quiesce on destination: {}", destLocation);
         if (SnapMirrorState.SYNCRONIZED.equals(mirrorStatusInfo.getMirrorState())) {
             nApi.quiesceSnapMirror(destLocation);
-            NetAppSnapMirrorQuiesceJob snapMirrorQuiesceJob = new NetAppSnapMirrorQuiesceJob(destLocation, targetStorage.getId(),
-                    taskCompleter, "quiesceSnapmirrorJob");
-            try {
-                ControllerServiceImpl.enqueueJob(new QueueJob(snapMirrorQuiesceJob));
-                _log.info("Job submitted to check the status of snapmirror quiesce on {}", destLocation);
-                return BiosCommandResult.createPendingResult();
-            } catch (Exception e) {
-                _log.error("Snapmirror quiesce failed", e);
-                ServiceError error = DeviceControllerErrors.netapp.jobFailed("Snapmirror quiesce failed:" + e.getMessage());
-                if (taskCompleter != null) {
-                    taskCompleter.error(_dbClient, error);
-                }
-                return BiosCommandResult.createErrorResult(error);
-            }
+            return BiosCommandResult.createSuccessfulResult();
+            /*
+             * NetAppSnapMirrorQuiesceJob snapMirrorQuiesceJob = new NetAppSnapMirrorQuiesceJob(destLocation, targetStorage.getId(),
+             * taskCompleter, "quiesceSnapmirrorJob");
+             * try {
+             * ControllerServiceImpl.enqueueJob(new QueueJob(snapMirrorQuiesceJob));
+             * _log.info("Job submitted to check the status of snapmirror quiesce on {}", destLocation);
+             * return BiosCommandResult.createPendingResult();
+             * } catch (Exception e) {
+             * _log.error("Snapmirror quiesce failed", e);
+             * ServiceError error = DeviceControllerErrors.netapp.jobFailed("Snapmirror quiesce failed:" + e.getMessage());
+             * if (taskCompleter != null) {
+             * taskCompleter.error(_dbClient, error);
+             * }
+             * return BiosCommandResult.createErrorResult(error);
+             * }
+             */
         } else {
             ServiceError error = DeviceControllerErrors.netapp
                     .jobFailed("Snapmirror Pause operation failed, because of mirror state should be snapMirrored: "

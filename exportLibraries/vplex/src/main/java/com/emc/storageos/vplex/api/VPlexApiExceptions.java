@@ -523,10 +523,6 @@ public interface VPlexApiExceptions {
             final Throwable cause);
 
     @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)
-    public VPlexApiException failedExpandVolumeStatusAfterRetries(final String volumeName,
-            final String retries, final String wait);
-
-    @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)
     public VPlexApiException claimVolumeFailureStatus(final String volumeWWN,
             final String status, final String cause);
 
@@ -783,4 +779,19 @@ public interface VPlexApiExceptions {
 
     @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)
     public VPlexApiException migrationRollbackFailureContactEMC(final String volumeId, final String volumeLabel, final String migration);
+
+    @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)
+    public VPlexApiException exceptionGettingVolumeExpansionStatus(final String volumeName, Throwable cause);
+
+    @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)
+    public VPlexApiException vplexVolumeExpansionFailed(final String volumeName);
+
+    @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)
+    public VPlexApiException vplexVolumeExpansionIsStillInProgress(final String volumeName);
+
+    @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)
+    public VPlexApiException vplexVolumeExpansionIsInUnknownState(final String volumeName);
+
+    @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)
+    public VPlexApiException vplexVolumeExpansionBlockCountNotUpdated(final String volumeName);
 }

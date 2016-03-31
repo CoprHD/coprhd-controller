@@ -86,7 +86,7 @@ public class StorageVolume extends StorageBlockObject {
 
     @Override
     public String toString() {
-        return "StorageVolume-"+storageSystemId+"-" + getDisplayName()+"-"+getNativeId();
+        return getNativeId();
     }
 
 }

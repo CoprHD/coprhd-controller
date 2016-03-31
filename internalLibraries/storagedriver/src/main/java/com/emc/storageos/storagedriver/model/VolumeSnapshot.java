@@ -44,6 +44,6 @@ public class VolumeSnapshot extends StorageBlockObject {
 
     @Override
     public String toString() {
-        return "VolumeSnapshot-"+storageSystemId+"-" + getParentId()+"-"+getNativeId();
+        return getNativeId();
     }
 }

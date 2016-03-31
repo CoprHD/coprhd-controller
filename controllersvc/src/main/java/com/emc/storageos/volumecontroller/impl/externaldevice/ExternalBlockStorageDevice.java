@@ -246,7 +246,7 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
                 if (!NullColumnValueGetter.isNullURI(volume.getAssociatedSourceVolume())) {
                     // this is clone
                     _log.info("Deleting volume clone on storage system {}, clone: {} .",
-                            storageSystem.getNativeId(), volume.toString());
+                            storageSystem.getNativeId(), volume.getNativeId());
                     BlockObject sourceVolume = BlockObject.fetch(dbClient, volume.getAssociatedSourceVolume());
                     VolumeClone driverClone = new VolumeClone();
                     driverClone.setStorageSystemId(storageSystem.getNativeId());
@@ -257,7 +257,7 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
                 } else {
                     // this is regular volume
                     _log.info("Deleting volume on storage system {}, volume: {} .",
-                            storageSystem.getNativeId(), volume.toString());
+                            storageSystem.getNativeId(), volume.getNativeId());
                     StorageVolume driverVolume = new StorageVolume();
                     driverVolume.setStorageSystemId(storageSystem.getNativeId());
                     driverVolume.setNativeId(volume.getNativeId());
@@ -867,6 +867,9 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
                 _log.info("Deleting consistency group: storage system {}, group {}", storageSystem.getNativeId(), groupDisplayName );
             } else {
                 _log.info("Deleting system replication group: storage system {}, group {}", storageSystem.getNativeId(), groupDisplayName );
+                _log.info("Replication groups are not supported for external devices. Do not call driver." );
+                taskCompleter.ready(dbClient);
+                return;
             }
 
             // prepare driver consistency group

@@ -46,6 +46,6 @@ public class VolumeClone extends StorageBlockObject {
 
     @Override
     public String toString() {
-        return "VolumeClone-"+storageSystemId+"-" + getParentId()+"-"+getNativeId();
+        return getNativeId();
     }
 }

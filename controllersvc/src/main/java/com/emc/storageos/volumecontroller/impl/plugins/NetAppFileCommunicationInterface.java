@@ -356,27 +356,6 @@ public class NetAppFileCommunicationInterface extends
             } else {
                 existingPortGroups.add(portGroup);
             }
-
-            PhysicalNAS existingNas = DiscoveryUtils.findPhysicalNasByNativeId(_dbClient, system, String.valueOf(DEFAULT_FILER));
-            if (existingNas != null) {
-                existingNas.setProtocols(protocols);
-                // Set the CIFS map!!
-                setCifsServerMapForNASServer(cifsConfig, existingNas);
-                // existingNas.setCifsServersMap(cifsServersMap);
-                existingNasServers.add(existingNas);
-
-            } else {
-                VFilerInfo defaultvFiler = new VFilerInfo();
-                defaultvFiler.setName(DEFAULT_FILER);
-                PhysicalNAS physicalNas = createPhysicalNas(system, defaultvFiler);
-                if (physicalNas != null) {
-                    physicalNas.setProtocols(protocols);
-                    // Set the CIFS map!!
-                    setCifsServerMapForNASServer(cifsConfig, physicalNas);
-                    newNasServers.add(physicalNas);
-                }
-            }
-
         } else {
             _logger.debug("Number vFilers fouund: {}", vFilers.size());
             virtualFilers.addAll(vFilers);
@@ -421,25 +400,46 @@ public class NetAppFileCommunicationInterface extends
                     existingPortGroups.add(portGroup);
                 }
 
-                VirtualNAS existingNas = DiscoveryUtils.findvNasByNativeId(_dbClient, system, vf.getName());
-                if (existingNas != null) {
-                    existingNas.setProtocols(protocols);
-                    // Set the CIFS map!!
-                    setCifsServerMapForNASServer(cifsConfig, existingNas);
-                    existingNas.setNasState("LOADED");
-                    existingNas.setDiscoveryStatus(DiscoveryStatus.VISIBLE.name());
-                    PhysicalNAS parentNas = DiscoveryUtils.findPhysicalNasByNativeId(_dbClient, system, DEFAULT_FILER);
-                    if (parentNas != null) {
-                        existingNas.setParentNasUri(parentNas.getId());
-                    }
-                    existingvNasServers.add(existingNas);
-                } else {
-                    VirtualNAS vNas = createVirtualNas(system, vf);
-                    if (vNas != null) {
-                        vNas.setProtocols(protocols);
+                // Consider default vfiler - vfiler0, as Physical NAS server!!!
+                if (DEFAULT_FILER.equals(vf.getName())) {
+                    PhysicalNAS existingNas = DiscoveryUtils.findPhysicalNasByNativeId(_dbClient, system, String.valueOf(DEFAULT_FILER));
+                    if (existingNas != null) {
+                        existingNas.setProtocols(protocols);
                         // Set the CIFS map!!
-                        setCifsServerMapForNASServer(cifsConfig, vNas);
-                        newvNasServers.add(vNas);
+                        setCifsServerMapForNASServer(cifsConfig, existingNas);
+                        // existingNas.setCifsServersMap(cifsServersMap);
+                        existingNasServers.add(existingNas);
+                    } else {
+                        PhysicalNAS physicalNas = createPhysicalNas(system, vf);
+                        if (physicalNas != null) {
+                            physicalNas.setProtocols(protocols);
+                            // Set the CIFS map!!
+                            setCifsServerMapForNASServer(cifsConfig, physicalNas);
+                            newNasServers.add(physicalNas);
+                        }
+                    }
+                } else {
+
+                    VirtualNAS existingNas = DiscoveryUtils.findvNasByNativeId(_dbClient, system, vf.getName());
+                    if (existingNas != null) {
+                        existingNas.setProtocols(protocols);
+                        // Set the CIFS map!!
+                        setCifsServerMapForNASServer(cifsConfig, existingNas);
+                        existingNas.setNasState("LOADED");
+                        existingNas.setDiscoveryStatus(DiscoveryStatus.VISIBLE.name());
+                        PhysicalNAS parentNas = DiscoveryUtils.findPhysicalNasByNativeId(_dbClient, system, DEFAULT_FILER);
+                        if (parentNas != null) {
+                            existingNas.setParentNasUri(parentNas.getId());
+                        }
+                        existingvNasServers.add(existingNas);
+                    } else {
+                        VirtualNAS vNas = createVirtualNas(system, vf);
+                        if (vNas != null) {
+                            vNas.setProtocols(protocols);
+                            // Set the CIFS map!!
+                            setCifsServerMapForNASServer(cifsConfig, vNas);
+                            newvNasServers.add(vNas);
+                        }
                     }
                 }
             }
@@ -460,13 +460,13 @@ public class NetAppFileCommunicationInterface extends
         // Persist the NAS servers!!!
         if (existingvNasServers != null && !existingvNasServers.isEmpty()) {
             _logger.info("discoverPortGroups - modified PhysicalNAS servers size {}", existingNasServers.size());
-            _dbClient.updateObject(existingNasServers);
+            _dbClient.updateObject(existingvNasServers);
             discoveredVNasServers.addAll(existingvNasServers);
         }
 
         if (newvNasServers != null && !newvNasServers.isEmpty()) {
             _logger.info("discoverPortGroups - new VirtualNAS servers size {}", newNasServers.size());
-            _dbClient.createObject(newNasServers);
+            _dbClient.createObject(newvNasServers);
             discoveredVNasServers.addAll(newvNasServers);
         }
 

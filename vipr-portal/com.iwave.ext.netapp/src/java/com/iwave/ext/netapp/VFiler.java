@@ -56,39 +56,41 @@ public class VFiler {
             }
             info.setInterfaces(netInfo);
 
-            // DNS servers!!
-            List<NameServerInfo> dnsServers = new ArrayList<NameServerInfo>();
-            for (NaElement dns : (List<NaElement>) filerInfo.getChildByName("dns-info").getChildren()) {
-                NameServerInfo dnsInfo = new NameServerInfo();
-                dnsInfo.setName(dns.getChildContent("dns-domain-name"));
-                List<VFNetInfo> servers = new ArrayList<VFNetInfo>();
-                for (NaElement server : (List<NaElement>) dns.getChildByName("dns-servers").getChildren()) {
-                    VFNetInfo vfNetInfo = new VFNetInfo();
-                    vfNetInfo.setIpAddress(server.getChildContent("server"));
-                    vfNetInfo.setNetInterface(server.getChildContent("server"));
-                    servers.add(vfNetInfo);
-                }
-                dnsInfo.setNameServers(servers);
-                dnsServers.add(dnsInfo);
-            }
-            info.setDnsServers(dnsServers);
-
-            // NIS servers!!
-            List<NameServerInfo> nisServers = new ArrayList<NameServerInfo>();
-            for (NaElement nis : (List<NaElement>) filerInfo.getChildByName("nis-info").getChildren()) {
-                NameServerInfo nisInfo = new NameServerInfo();
-                nisInfo.setName(nis.getChildContent("nis-domain-name"));
-                List<VFNetInfo> servers = new ArrayList<VFNetInfo>();
-                for (NaElement server : (List<NaElement>) nis.getChildByName("nis-servers").getChildren()) {
-                    VFNetInfo vfNetInfo = new VFNetInfo();
-                    vfNetInfo.setIpAddress(server.getChildContent("server"));
-                    vfNetInfo.setNetInterface(server.getChildContent("server"));
-                    servers.add(vfNetInfo);
-                }
-                nisInfo.setNameServers(servers);
-                nisServers.add(nisInfo);
-            }
-            info.setNisServers(nisServers);
+            /*
+             * // DNS servers!!
+             * List<NameServerInfo> dnsServers = new ArrayList<NameServerInfo>();
+             * for (NaElement dns : (List<NaElement>) filerInfo.getChildByName("dns-info")) {
+             * NameServerInfo dnsInfo = new NameServerInfo();
+             * dnsInfo.setName(dns.getChildContent("dns-domain-name"));
+             * List<VFNetInfo> servers = new ArrayList<VFNetInfo>();
+             * for (NaElement server : (List<NaElement>) dns.getChildByName("dns-servers").getChildren()) {
+             * VFNetInfo vfNetInfo = new VFNetInfo();
+             * vfNetInfo.setIpAddress(server.getChildContent("server"));
+             * vfNetInfo.setNetInterface(server.getChildContent("server"));
+             * servers.add(vfNetInfo);
+             * }
+             * dnsInfo.setNameServers(servers);
+             * dnsServers.add(dnsInfo);
+             * }
+             * info.setDnsServers(dnsServers);
+             * 
+             * // NIS servers!!
+             * List<NameServerInfo> nisServers = new ArrayList<NameServerInfo>();
+             * for (NaElement nis : (List<NaElement>) filerInfo.getChildByName("nis-info")) {
+             * NameServerInfo nisInfo = new NameServerInfo();
+             * nisInfo.setName(nis.getChildContent("nis-domain-name"));
+             * List<VFNetInfo> servers = new ArrayList<VFNetInfo>();
+             * for (NaElement server : (List<NaElement>) nis.getChildByName("nis-servers").getChildren()) {
+             * VFNetInfo vfNetInfo = new VFNetInfo();
+             * vfNetInfo.setIpAddress(server.getChildContent("server"));
+             * vfNetInfo.setNetInterface(server.getChildContent("server"));
+             * servers.add(vfNetInfo);
+             * }
+             * nisInfo.setNameServers(servers);
+             * nisServers.add(nisInfo);
+             * }
+             * info.setNisServers(nisServers);
+             */
 
             vFilers.add(info);
         }

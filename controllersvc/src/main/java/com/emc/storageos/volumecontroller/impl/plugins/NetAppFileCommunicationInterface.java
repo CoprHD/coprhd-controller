@@ -645,6 +645,8 @@ public class NetAppFileCommunicationInterface extends
             StoragePort storagePort = null;
             if (vFilers != null && !vFilers.isEmpty()) {
                 for (VFilerInfo filer : vFilers) {
+                    // Storage ports for Nas server!!!
+                    List<String> vNasStoragePorts = new ArrayList<String>();
                     for (VFNetInfo intf : filer.getInterfaces()) {
                         if (intf.getNetInterface().equals(MANAGEMENT_INTERFACE)) {
                             continue;
@@ -694,8 +696,24 @@ public class NetAppFileCommunicationInterface extends
                         }
                         storagePort.setDiscoveryStatus(DiscoveryStatus.VISIBLE.name());
                         storagePort.setCompatibilityStatus(DiscoveredDataObject.CompatibilityStatus.COMPATIBLE.name());
+
+                        vNasStoragePorts.add(storagePort.getId().toString());
+                    }
+                    // Set the storage ports for NAS server.
+                    NASServer nasServer = null;
+                    if (DEFAULT_FILER.equals(filer.getName())) {
+                        nasServer = DiscoveryUtils.findPhysicalNasByNativeId(_dbClient, storageSystem, filer.getName());
+                    } else {
+                        nasServer = DiscoveryUtils.findvNasByNativeId(_dbClient, storageSystem, filer.getName());
+                    }
+                    if (nasServer != null) {
+                        if (nasServer.getStoragePorts() != null && !nasServer.getStoragePorts().isEmpty()) {
+                            nasServer.getStoragePorts().clear();
+                        }
+                        nasServer.getStoragePorts().addAll(vNasStoragePorts);
                     }
                 }
+
             } else {
                 // Check if storage port was already discovered
                 URIQueryResultList results = new URIQueryResultList();
@@ -1513,6 +1531,10 @@ public class NetAppFileCommunicationInterface extends
             }
             StoragePortAssociationHelper.runUpdatePortAssociationsProcess(ports.get(NEW), allExistingPorts, _dbClient, _coordinator,
                     poolsToMatchWithVpool);
+
+            // Update the virtual nas association with virtual arrays!!!
+            // For existing virtual nas ports!!
+            StoragePortAssociationHelper.runUpdateVirtualNasAssociationsProcess(allExistingPorts, null, _dbClient);
 
             // discovery succeeds
             detailedStatusMessage = String.format(

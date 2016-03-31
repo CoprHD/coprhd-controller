@@ -37,6 +37,7 @@ import com.emc.storageos.vnxe.VNXeApiClientFactory;
 import com.emc.storageos.vnxe.VNXeException;
 import com.emc.storageos.vnxe.VNXeUtils;
 import com.emc.storageos.vnxe.models.BasicSystemInfo;
+import com.emc.storageos.vnxe.models.Disk;
 import com.emc.storageos.vnxe.models.DiskGroup;
 import com.emc.storageos.vnxe.models.PoolTier;
 import com.emc.storageos.vnxe.models.RaidGroup;
@@ -59,7 +60,7 @@ import com.emc.storageos.volumecontroller.impl.StoragePoolAssociationHelper;
 import com.emc.storageos.volumecontroller.impl.StoragePortAssociationHelper;
 import com.emc.storageos.volumecontroller.impl.utils.DiscoveryUtils;
 import com.emc.storageos.volumecontroller.impl.utils.ImplicitPoolMatcher;
-import com.emc.storageos.volumecontroller.impl.vnxe.VNXeUnManagedObjectDiscoverer;
+import com.emc.storageos.volumecontroller.impl.vnxunity.VNXUnityUnManagedObjectDiscoverer;
 
 /**
  * VNXUnityCommunicationInterface class is an implementation of
@@ -77,7 +78,7 @@ public class VNXUnityCommunicationInterface extends
     // Reference to the Vnxe client factory allows us to get a Vnxe client
     // and execute requests to the Vnxe storage system.
     private VNXeApiClientFactory _clientFactory;
-    private VNXeUnManagedObjectDiscoverer unManagedObjectDiscoverer;
+    private VNXUnityUnManagedObjectDiscoverer unManagedObjectDiscoverer;
 
     public VNXUnityCommunicationInterface() {
     };
@@ -91,7 +92,7 @@ public class VNXUnityCommunicationInterface extends
     }
 
     public void setUnManagedObjectDiscoverer(
-            VNXeUnManagedObjectDiscoverer volumeDiscoverer) {
+            VNXUnityUnManagedObjectDiscoverer volumeDiscoverer) {
         this.unManagedObjectDiscoverer = volumeDiscoverer;
     }
 
@@ -425,7 +426,7 @@ public class VNXUnityCommunicationInterface extends
             } else if (accessProfile.getnamespace().equals(
                     StorageSystem.Discovery_Namespaces.UNMANAGED_VOLUMES
                             .toString())) {
-                unManagedObjectDiscoverer.discoverUnManagedVolumes(
+			 unManagedObjectDiscoverer.discoverUnManagedVolumes(
                         accessProfile, _dbClient, _coordinator,
                         _partitionManager);
             }
@@ -532,7 +533,8 @@ public class VNXUnityCommunicationInterface extends
 
                     pool.setLabel(poolNativeGuid);
                     pool.setNativeGuid(poolNativeGuid);
-                    pool.setOperationalStatus(vnxePool.getStatus());
+//FIXME:                    pool.setOperationalStatus(vnxePool.getStatus());
+		    pool.setOperationalStatus(StoragePool.PoolOperationalStatus.READY.name());
                     pool.setPoolServiceType(PoolServiceType.block_file
                             .toString());
                     pool.setStorageDevice(system.getId());
@@ -567,7 +569,8 @@ public class VNXUnityCommunicationInterface extends
                 } else {
                     // update pool attributes
                     _logger.info("updating the pool: {}", poolNativeGuid);
-                    pool.setOperationalStatus(vnxePool.getStatus());
+//                    pool.setOperationalStatus(vnxePool.getStatus());
+		    pool.setOperationalStatus(StoragePool.PoolOperationalStatus.READY.name());
                     if (ImplicitPoolMatcher.checkPoolPropertiesChanged(pool.getProtocols(), supportedProtocols)) {
                         isModified = true;
                     }
@@ -601,6 +604,13 @@ public class VNXUnityCommunicationInterface extends
         	            }
 			    }
                 	}
+		}
+		//Get drive types from disks
+		List<Disk> disks = client.getDisksForPool(vnxePool.getId());
+		if (disks !=null){
+			for (Disk disk : disks){
+				diskTypes.add(disk.getDiskTechnologyEnum().name());
+			}
 		}
                 pool.setSupportedDriveTypes(diskTypes);
 
@@ -1132,8 +1142,7 @@ public class VNXUnityCommunicationInterface extends
                 system.getId());
 
         // Retrieve the list of iscsi ports
-       //FIXME: List<VNXeFCPort> ports = client.getAllFcPorts();
-	List<VNXeFCPort> ports = null;
+        List<VNXeFCPort> ports = client.getAllFcPorts();
         if (ports == null || ports.isEmpty()) {
             _logger.info("No FC ports found for the system: {} ",
                     system.getId());

@@ -19,10 +19,11 @@ import com.sun.jersey.core.util.MultivaluedMapImpl;
 public class FileSystemListRequest extends KHRequests<VNXeFileSystem> {
     private static final Logger _logger = LoggerFactory.getLogger(FileSystemListRequest.class);
     private static final String URL = "/api/types/filesystem/instances";
-
+    private static final String FIELDS = "name,sizeTotal,sizeAllocated,isThinEnabled,pool,nasServer";
     public FileSystemListRequest(KHClient client) {
         super(client);
-        _url = URL;
+        _url = URL ;
+	_fields = FIELDS;
     }
 
     /**
@@ -31,7 +32,7 @@ public class FileSystemListRequest extends KHRequests<VNXeFileSystem> {
      * @return List of VNXeFileSystem
      */
     public List<VNXeFileSystem> get() {
-        _queryParams = null;
+	_queryParams = null;
         return getDataForObjects(VNXeFileSystem.class);
 
     }

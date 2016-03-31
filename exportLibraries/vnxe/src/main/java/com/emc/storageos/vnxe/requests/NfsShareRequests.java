@@ -23,10 +23,11 @@ public class NfsShareRequests extends KHRequests<VNXeNfsShare> {
     private static final String URL = "/api/types/nfsShare/instances";
     private static final String URL_NFS = "/api/instances/nfsShare/";
     private static final String URL_MODIFY = "/action/modify";
-
+    private static final String FIELDS = "name,path,filesystem,readOnlyHosts,readWriteHosts,rootAccessHosts";
     public NfsShareRequests(KHClient client) {
         super(client);
         _url = URL;
+	_fields = FIELDS;
     }
 
     /**

@@ -25,6 +25,7 @@ import com.emc.storageos.vnxe.models.CifsShareCreateParam;
 import com.emc.storageos.vnxe.models.CifsShareDeleteParam;
 import com.emc.storageos.vnxe.models.CifsShareParam;
 import com.emc.storageos.vnxe.models.CreateFileSystemParam;
+import com.emc.storageos.vnxe.models.Disk;
 import com.emc.storageos.vnxe.models.DiskGroup;
 import com.emc.storageos.vnxe.models.FastVP;
 import com.emc.storageos.vnxe.models.FastVPParam;
@@ -86,6 +87,7 @@ import com.emc.storageos.vnxe.requests.BlockLunRequests;
 import com.emc.storageos.vnxe.requests.CifsServerListRequest;
 import com.emc.storageos.vnxe.requests.CifsShareRequests;
 import com.emc.storageos.vnxe.requests.DeleteStorageResourceRequest;
+import com.emc.storageos.vnxe.requests.DiskRequest;
 import com.emc.storageos.vnxe.requests.DiskGroupRequests;
 import com.emc.storageos.vnxe.requests.EthernetPortRequests;
 import com.emc.storageos.vnxe.requests.FastVPRequest;
@@ -2023,6 +2025,12 @@ public class VNXeApiClient {
         DiskGroupRequests req = new DiskGroupRequests(_khClient, diskGroupId);
         return req.get();
     }
+
+    public List<Disk> getDisksForPool(String poolId) {
+        DiskRequest req = new DiskRequest(_khClient);
+        return req.getDisksForPool(poolId);
+    }
+
 
     /**
      * Get all the CIFS shares

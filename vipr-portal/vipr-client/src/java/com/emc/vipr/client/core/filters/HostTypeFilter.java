@@ -11,6 +11,7 @@ public class HostTypeFilter extends DefaultResourceFilter<HostRestRep> {
     public static final HostTypeFilter WINDOWS = new HostTypeFilter("Windows");
     public static final HostTypeFilter LINUX = new HostTypeFilter("Linux");
     public static final HostTypeFilter AIX = new HostTypeFilter("AIX");
+    public static final HostTypeFilter HPUX = new HostTypeFilter("HPUX");
 
     private String type;
 

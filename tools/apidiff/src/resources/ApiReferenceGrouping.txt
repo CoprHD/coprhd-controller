@@ -33,6 +33,7 @@ vdc.storage-tiers=Storage Tier
 vdc.storage-systems=Storage System
 vdc.storage-ports=Storage Port
 vdc.storage-pools=Storage Pool
+vdc.object-namespaces=Object Namespace
 vdc.unmanaged=Unmanaged
 vdc.varrays=Virtual Array
 vdc.capacities=Virtual Data Center Capacity

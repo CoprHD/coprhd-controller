@@ -21,6 +21,7 @@ import com.emc.storageos.db.client.model.SMBFileShare;
 import com.emc.storageos.db.client.model.SMBShareMap;
 import com.emc.storageos.db.client.model.Snapshot;
 import com.emc.storageos.db.client.upgrade.BaseCustomMigrationCallback;
+import com.emc.storageos.svcs.errorhandling.resources.MigrationCallbackException;
 
 public class CifsShareACLMigration extends BaseCustomMigrationCallback {
 
@@ -34,7 +35,7 @@ public class CifsShareACLMigration extends BaseCustomMigrationCallback {
     private static final String PERMISSION_FULLCONTROL = "FullControl";
 
     @Override
-    public void process() {
+    public void process() throws MigrationCallbackException {
         logger.info("Migration started");
 
         DbClient dbClient = getDbClient();

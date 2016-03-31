@@ -26,6 +26,9 @@ import org.slf4j.LoggerFactory;
 import java.io.UnsupportedEncodingException;
 import java.net.URI;
 import java.net.URLEncoder;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
 
 /**
  * validates if a user/group is valid for the given domain of AD/LDAP
@@ -147,6 +150,9 @@ public class Validator {
             StringBuilder error) {
 
         String endpoint = null;
+        principalsToValidate.setUsers(deDuplicate(principalsToValidate.getUsers()));
+        principalsToValidate.setGroups(deDuplicate(principalsToValidate.getGroups()));
+        principalsToValidate.setAltTenantUsers(deDuplicate(principalsToValidate.getAltTenantUsers()));
 
         int attempts = 0;
         while (attempts < _MAX_VALIDATION_RETRIES) {
@@ -365,5 +371,24 @@ public class Validator {
         }
         throw SecurityException.retryables
                 .requiredServiceUnvailable(ServiceLocatorInfo.AUTH_SVC.getServiceName());
+    }
+
+    /**
+     * remove duplicated string from a list
+     * @param input
+     * @return
+     */
+
+    private static List<String> deDuplicate(List<String> input) {
+	if (input == null) {
+            return input;
+        }
+
+        HashSet hs = new HashSet();
+        hs.addAll(input);
+
+        List<String> result = new ArrayList<String>();
+        result.addAll(hs);
+        return result;
     }
 }

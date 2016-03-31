@@ -15,11 +15,14 @@ import java.util.ArrayList;
 import java.util.Properties;
 
 import com.emc.storageos.coordinator.client.model.RepositoryInfo;
+import com.emc.storageos.coordinator.client.model.Site;
 import com.emc.storageos.coordinator.client.model.SoftwareVersion;
+import com.emc.storageos.coordinator.client.service.DrUtil;
 import com.emc.storageos.db.client.model.Task;
 import com.emc.storageos.db.client.model.util.TaskUtils;
 import com.emc.storageos.security.geo.exceptions.FatalGeoException;
 import com.emc.storageos.security.geo.GeoServiceJob;
+import com.emc.storageos.security.ipsec.IPsecConfig;
 import com.emc.storageos.security.keystore.impl.KeystoreEngine;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -72,11 +75,13 @@ public abstract class AbstractVdcTaskOp {
     protected GeoClientCacheManager geoClientCache;
     protected VdcConfigHelper helper;
     protected VdcOperationLockHelper lockHelper;
-
+    protected DrUtil drUtil;
+    
     protected KeyStore keystore;
+    protected IPsecConfig ipsecConfig;
 
     protected String errMsg;
-
+    
     private final static String VIPR_INVALID_VERSION_PREFIX = "vipr-2.0";
 
     protected final static SoftwareVersion vdcVersionCheckMinVer = new SoftwareVersion("2.3.0.0.*");
@@ -84,7 +89,7 @@ public abstract class AbstractVdcTaskOp {
     // TODO we have so many constructor arguments here. refactor it later
     protected AbstractVdcTaskOp(InternalDbClient dbClient, GeoClientCacheManager geoClientCache,
             VdcConfigHelper helper, Service serviceInfo, VirtualDataCenter vdc,
-            String taskId, Properties vdcInfo, KeyStore keystore) {
+            String taskId, Properties vdcInfo, KeyStore keystore, IPsecConfig ipsecConfig) {
 
         this.dbClient = dbClient;
         this.geoClientCache = geoClientCache;
@@ -94,10 +99,12 @@ public abstract class AbstractVdcTaskOp {
         operatedVdcStatus = vdc.getConnectionStatus();
         failedVdcStatus = getDefaultPrecheckFailedStatus();
         this.keystore = keystore;
+        this.ipsecConfig = ipsecConfig;
         if (vdcInfo == null) {
             vdcInfo = GeoServiceHelper.getVDCInfo(operatedVdc);
         }
         this.vdcInfo = vdcInfo;
+        drUtil = new DrUtil(dbClient.getCoordinatorClient());
     }
 
     public void setLockHelper(VdcOperationLockHelper lockHelper) {
@@ -268,6 +275,9 @@ public abstract class AbstractVdcTaskOp {
      */
     protected VdcConfigSyncParam buildConfigParam(List<VirtualDataCenter> vdcList) {
         VdcConfigSyncParam syncParam = new VdcConfigSyncParam();
+
+        syncParam.setVdcConfigVersion(DrUtil.newVdcConfigVersion());
+        syncParam.setIpsecKey(ipsecConfig.getPreSharedKeyFromZK());
 
         for (VirtualDataCenter vdc : vdcList) {
             syncParam.getVirtualDataCenters().add(helper.toConfigParam(vdc));
@@ -456,8 +466,9 @@ public abstract class AbstractVdcTaskOp {
             }
 
             if (vdc.getLocal()) {
-                if (helper.areNodesReachable(vdc.getShortId(), operatedVdc.getHostIPv4AddressesMap(),
-                        operatedVdc.getHostIPv6AddressesMap(), true)) {
+                Site activeSite = drUtil.getActiveSite(operatedVdc.getShortId());
+                if (helper.areNodesReachable(vdc.getShortId(), activeSite.getHostIPv4AddressMap(),
+                        activeSite.getHostIPv6AddressMap(), true)) {
                     return true;
                 }
                 continue;

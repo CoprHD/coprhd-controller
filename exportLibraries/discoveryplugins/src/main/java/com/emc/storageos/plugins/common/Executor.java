@@ -4,6 +4,8 @@
  */
 package com.emc.storageos.plugins.common;
 
+import com.emc.storageos.db.client.model.StorageSystem.Discovery_Namespaces;
+import com.emc.storageos.plugins.AccessProfile;
 import com.emc.storageos.plugins.BaseCollectionException;
 import com.emc.storageos.plugins.common.commandgenerator.Command;
 import com.emc.storageos.plugins.common.commandgenerator.CommandGenerator;

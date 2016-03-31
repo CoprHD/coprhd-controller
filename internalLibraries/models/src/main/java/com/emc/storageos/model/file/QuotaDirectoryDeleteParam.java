@@ -13,8 +13,6 @@ import javax.xml.bind.annotation.XmlRootElement;
  * will be deleted, even if there are valid underlying
  * objects, such as exports, etc.
  * 
- * @valid true
- * @valid false
  */
 @XmlRootElement(name = "quota_directory_deactivate")
 public class QuotaDirectoryDeleteParam {

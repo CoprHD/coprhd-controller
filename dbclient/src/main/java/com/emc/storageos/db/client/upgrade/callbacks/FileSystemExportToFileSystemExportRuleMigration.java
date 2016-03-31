@@ -22,6 +22,7 @@ import com.emc.storageos.db.client.model.FileShare;
 import com.emc.storageos.db.client.model.Snapshot;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.upgrade.BaseCustomMigrationCallback;
+import com.emc.storageos.svcs.errorhandling.resources.MigrationCallbackException;
 
 /**
  * Migration of FS export map in FileShare CF to FileExportRule CF
@@ -36,7 +37,7 @@ public class FileSystemExportToFileSystemExportRuleMigration extends
             .getLogger(FileSystemExportToFileSystemExportRuleMigration.class);
 
     @Override
-    public void process() {
+    public void process() throws MigrationCallbackException {
 
         log.info("FileSystemExport to FileSystem export rule migration: start");
 

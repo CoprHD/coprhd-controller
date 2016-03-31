@@ -17,7 +17,6 @@ public class VariableParam {
     /**
      * The name of the variable
      * 
-     * @valid none
      */
     @XmlElement(name = "display_name")
     public String getName() {
@@ -31,7 +30,6 @@ public class VariableParam {
     /**
      * The sample value of the variable
      * 
-     * @valid none
      */
     @XmlElement(name = "sample_value")
     public String getSampleValue() {
@@ -46,8 +44,6 @@ public class VariableParam {
      * Whether or not this variable is recommended to be used when constructing the
      * config value
      * 
-     * @valid true
-     * @valid false
      */
     @XmlElement(name = "recommended")
     public boolean getIsRecommended() {

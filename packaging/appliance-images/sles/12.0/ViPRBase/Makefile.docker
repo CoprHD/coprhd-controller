@@ -1,0 +1,19 @@
+#
+# Copyright (c) 2015 EMC Corporation
+# All Rights Reserved
+#
+# This software contains the intellectual property of EMC Corporation
+# or is licensed to EMC Corporation from third parties.  Use of this
+# software and the intellectual property contained therein is expressly
+# limited to the terms and conditions of the License Agreement under which
+# it is provided by or on behalf of EMC.
+#
+# Devkit related for containerized build
+DEVKIT_IMAGE := nile-registry.lss.emc.com:5000/viprcontroller/viprdevkit-sles12:3.0.0.0.13
+# for building OVF in viprdevkit container
+DOCKER_RUN_OVF_BUILD := docker run --rm --net=host --privileged -v "/home/ionixauto/.subversion:/root/.subversion" -v "$(CURDIR)/../../../../../..:/workspace" -v "/opt/ADG/createAppliance/jobs:/opt/ADG/createAppliance/jobs" -v "/opt/ADG/createAppliance/log:/opt/ADG/createAppliance/log" -v "/opt/downloads/images:/opt/downloads/images" -w "/workspace/coprhd-controller/packaging/appliance-images/sles/12.0/ViPRBase" "$(DEVKIT_IMAGE)"
+
+
+# Default target which will call target in Makefile to build ViPRBase in container
+%:: 
+	$(DOCKER_RUN_OVF_BUILD) make -f Makefile.local $@ JOB=$(JOB)

@@ -25,7 +25,6 @@ public class ProtocolChanges {
     /**
      * Protocols to be added to the virtual pool
      * 
-     * @valid none
      */
     @XmlElement(name = "add")
     public ProtocolAssignments getAdd() {
@@ -39,7 +38,6 @@ public class ProtocolChanges {
     /**
      * Protocols top be removed from the virtual pool.
      * 
-     * @valid none
      */
     @XmlElement(name = "remove")
     public ProtocolAssignments getRemove() {

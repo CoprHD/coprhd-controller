@@ -43,7 +43,7 @@ public class VirtualPoolAttributeMapBuilder extends AttributeMapBuilder {
         protectionSettings = map;
         this.remoteProtectionSettings = remoteProtectionSettings;
     }
-    
+
     public VirtualPoolAttributeMapBuilder(VirtualPool vpool, Map<URI, VpoolProtectionVarraySettings> map,
             Map<String, List<String>> remoteProtectionSettings, Map<String, List<String>> fileRemoteProtectionSettings) {
         _vpool = vpool;
@@ -79,6 +79,9 @@ public class VirtualPoolAttributeMapBuilder extends AttributeMapBuilder {
             if (haCos.equals(NullColumnValueGetter.getNullURI().toString())) {
                 haCos = null;
             }
+        }
+        if (null != _vpool.getScheduleSnapshots()) {
+            putAttributeInMap(Attributes.schedule_snapshots.toString(), _vpool.getScheduleSnapshots());
         }
         putAttributeInMap(Attributes.high_availability_varray.toString(), haNh);
         putAttributeInMap(Attributes.high_availability_vpool.toString(), haCos);
@@ -118,15 +121,15 @@ public class VirtualPoolAttributeMapBuilder extends AttributeMapBuilder {
             putAttributeInMap(Attributes.remote_copy.toString(), remoteProtectionSettings);
         }
         putAttributeInMap(Attributes.long_term_retention_policy.toString(), _vpool.getLongTermRetention());
-        
+
         if (_vpool.getFileReplicationType() != null &&
-        		!FileReplicationType.NONE.name().equalsIgnoreCase(_vpool.getFileReplicationType())) {
-        	
-        	putAttributeInMap(Attributes.file_replication_type.toString(), _vpool.getFileReplicationType());
-        	if (_vpool.getFileReplicationCopyMode() != null) {
-        		putAttributeInMap(Attributes.file_replication_copy_mode.toString(), _vpool.getFileReplicationCopyMode());
-        	}
-        	if (null != fileRemoteProtectionSettings && !fileRemoteProtectionSettings.isEmpty()) {
+                !FileReplicationType.NONE.name().equalsIgnoreCase(_vpool.getFileReplicationType())) {
+
+            putAttributeInMap(Attributes.file_replication_type.toString(), _vpool.getFileReplicationType());
+            if (_vpool.getFileReplicationCopyMode() != null) {
+                putAttributeInMap(Attributes.file_replication_copy_mode.toString(), _vpool.getFileReplicationCopyMode());
+            }
+            if (null != fileRemoteProtectionSettings && !fileRemoteProtectionSettings.isEmpty()) {
                 _logger.info("File Replication Remote Settings : {}", Joiner.on("\t").join(fileRemoteProtectionSettings.keySet()));
                 putAttributeInMap(Attributes.file_replication.toString(), fileRemoteProtectionSettings);
             }

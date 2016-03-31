@@ -34,6 +34,7 @@ _usage() {
     echo "   or: $0 --reconfig-security" >&2
     echo "   or: $0 --restart service"  >&2
     echo "   or: $0 --reload ntp|ssh|connectemc" >&2
+    echo "   or: $0 --dhparam generate dhparam" >&2
     exit 2
 }
 
@@ -236,20 +237,6 @@ EOF
     _fatal     "Failed to exec /etc/genconfig --config security"
 }
 
-# 
-# Reconfigure coordinatorsvc mode. for standby only
-#
-# participant - disconnect and exit observer mode. becomes writable
-# observer - reconnect and enter observer mode. becomes read-only
-#
-_reconfig_coordinator() {
-    exec /etc/genconfig "coordinator" << EOF
-$(_get_props)
-dr_coordinator_type=${1}
-EOF
-    _fatal     "Failed to exec /etc/genconfig ${1}"
-}
-
 _restart() {
     /usr/bin/systemctl restart storageos-${1%*svc} || _fatal2 67 "Unexpected restart ${1} failure. Error code $?"
 }
@@ -266,11 +253,8 @@ _reload() {
             exec /usr/bin/systemctl restart nginx ;;
         firewall)
             exec /usr/bin/systemctl restart SuSEfirewall2 ;;
-	reset-coordinator)
-	    /etc/storageos/storageos stop
-            rm -fR /data/zk/version-2/
-            /etc/storageos/storageos drstandby
-            ;;
+        ipsec)
+            echo "skip reload ipsec in oss platform" ;;
         *)
             _fatal2 2 "Unsupported service type ${1}" ;;
     esac
@@ -540,6 +524,8 @@ case ${#} in
             --getsslprops)            _s _get_ssl_props ;;
             --initializeprops)        _x _initialize_props ;;
             --is-appliance)           echo "false" ;;
+            --dhparam)                exit 0 ;;
+
             *)                        _usage
         esac;;
     2)  case ${1} in
@@ -549,7 +535,6 @@ case ${#} in
             --setsslprops)            _x _set_ssl_props        "${2}" ;;
             --restart)                _x _restart              "${2}" ;;
             --reconfig-props)          _x _reconfig_props       "${2}" ;;
-            --reconfig-coordinator)   _x  _reconfig_coordinator "${2}" ;;
             --reload)                 _x _reload               "${2}" ;;
             *)                        _usage
         esac;;

@@ -23,7 +23,6 @@ public class StepList {
     /**
      * A list of Workflow Steps.
      * 
-     * @valid none
      */
     @XmlElement(name = "workflow_step")
     public List<WorkflowStepRestRep> getSteps() {

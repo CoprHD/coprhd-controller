@@ -24,7 +24,6 @@ public class StoragePortRequestParam {
     /**
      * Name of the storage system
      * 
-     * @valid none
      */
     @XmlElement(required = true, name = "name")
     @Length(min = 2, max = 128)
@@ -39,7 +38,6 @@ public class StoragePortRequestParam {
     /**
      * Storage port transport type.
      * 
-     * @valid example FC, IP
      */
     @XmlElement(required = true, name = "transport_type")
     public String getTransportType() {
@@ -53,7 +51,6 @@ public class StoragePortRequestParam {
     /**
      * Storage port network identifier.
      * 
-     * @valid example: FC - port WWN,
      *        IP - iSCSI Qualified Name (IQN) or Extended Unique Identifier (EUI)
      */
     @XmlElement(required = true, name = "port_network_id")

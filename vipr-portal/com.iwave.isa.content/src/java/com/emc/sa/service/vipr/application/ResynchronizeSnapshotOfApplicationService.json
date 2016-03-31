@@ -1,0 +1,19 @@
+{
+  baseKey:"ResynchronizeSnapshotOfApplication.Application",
+  serviceId:"ResynchronizeSnapshotOfApplication",
+  fields:{
+  
+    application:{
+      type:"assetType.vipr.application"
+    },
+    
+    applicationCopySets:{
+      type:"assetType.vipr.applicationSnapshotCopySets"
+    },
+    
+    applicationSubGroup:{
+      type:"assetType.vipr.replicationGroup",
+      select:"many"
+    }
+  }
+}

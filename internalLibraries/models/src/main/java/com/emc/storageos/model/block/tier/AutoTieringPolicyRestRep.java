@@ -25,8 +25,6 @@ public class AutoTieringPolicyRestRep extends DiscoveredDataObjectRestRep {
     /**
      * Determines the operational state of auto tiering policy
      * 
-     * @valid true
-     * @valid false
      * 
      */
     @XmlElement(name = "policy_enabled")
@@ -41,7 +39,6 @@ public class AutoTieringPolicyRestRep extends DiscoveredDataObjectRestRep {
     /**
      * Name of the auto tiering policy
      * 
-     * @valid none
      * 
      */
     @XmlElement(name = "policy_name")
@@ -55,10 +52,10 @@ public class AutoTieringPolicyRestRep extends DiscoveredDataObjectRestRep {
 
     /**
      * The provisioning type of the auto tiering policy
-     * 
-     * @valid Thin
-     * @valid Thick
-     * @valid All
+     * Valid value:
+     *  Thin
+     *  Thick
+     *  All
      */
     @XmlElement(name = "provisioning_type")
     public String getProvisioningType() {
@@ -71,9 +68,9 @@ public class AutoTieringPolicyRestRep extends DiscoveredDataObjectRestRep {
 
     /**
      * The type of storage system to which the auto tiering policy belongs
-     * 
-     * @valid vmax
-     * @valid vnxblock
+     * Valid value:
+     *  vmax
+     *  vnxblock
      */
     @XmlElement(name = "system_type")
     public String getSystemType() {
@@ -87,7 +84,6 @@ public class AutoTieringPolicyRestRep extends DiscoveredDataObjectRestRep {
     /**
      * The storage system on which this auto tiering policy resides.
      * 
-     * @valid none
      */
     @XmlElement(name = "storage_system")
     public RelatedResourceRep getStorageDevice() {
@@ -101,7 +97,6 @@ public class AutoTieringPolicyRestRep extends DiscoveredDataObjectRestRep {
     /**
      * Name of the default storage group.
      * 
-     * @valid none
      */
     @XmlElement(name = "storagegroup_name")
     public String getStorageGroupName() {
@@ -115,7 +110,6 @@ public class AutoTieringPolicyRestRep extends DiscoveredDataObjectRestRep {
     /**
      * The list of storage pools associated with this auto tiering policy
      * 
-     * @valid none
      * 
      */
     @XmlElement(name = "storage_pools")

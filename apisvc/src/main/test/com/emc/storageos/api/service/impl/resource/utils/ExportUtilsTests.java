@@ -13,6 +13,7 @@ import java.util.List;
 
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.slf4j.Logger;
@@ -46,6 +47,8 @@ import junit.framework.Assert;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration({ "ExportUtilsTests.xml" })
+// This test is currently failing with file IO issues with Cassandra.  COP-18538.
+@Ignore
 public class ExportUtilsTests extends DbsvcTestBase {
 
     private static final Logger _log = LoggerFactory.getLogger(ExportUtilsTests.class);

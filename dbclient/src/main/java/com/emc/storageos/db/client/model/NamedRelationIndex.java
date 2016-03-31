@@ -27,4 +27,9 @@ public @interface NamedRelationIndex {
 
     // type of the referenced object - optional, for grandparent relations
     Class<? extends DataObject> type() default DataObject.class;
+    /*
+     * types of the referenced objects if has multiple dependencies, 
+     * it would be ignored if type set to concrete model class
+     */
+    Class<? extends DataObject>[] types() default {};
 }

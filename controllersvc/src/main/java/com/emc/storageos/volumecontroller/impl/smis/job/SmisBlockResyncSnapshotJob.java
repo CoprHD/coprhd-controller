@@ -17,6 +17,6 @@ public class SmisBlockResyncSnapshotJob extends SmisJob {
     public SmisBlockResyncSnapshotJob(CIMObjectPath cimJob,
             URI storageSystem,
             TaskCompleter taskCompleter) {
-        super(cimJob, storageSystem, taskCompleter, "RestoreResyncSnapshot");
+        super(cimJob, storageSystem, taskCompleter, "ResyncBlockSnapshot");
     }
 }

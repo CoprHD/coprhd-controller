@@ -17,6 +17,7 @@ public enum ResourceType {
     FILE_SNAPSHOT("Snapshot"),
     QUOTA_DIRECTORY("QuotaDirectory"),
     BLOCK_SNAPSHOT("BlockSnapshot"),
+    BLOCK_SNAPSHOT_SESSION("BlockSnapshotSession"),
     BLOCK_CONTINUOUS_COPY("BlockMirror"),
     VPLEX_CONTINUOUS_COPY("VplexMirror"),
     PROJECT("Project"),

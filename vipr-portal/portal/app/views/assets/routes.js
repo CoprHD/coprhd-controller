@@ -67,10 +67,14 @@ var routes = {
   SystemHealth_logsJson: #{jsAction @SystemHealth.logsJson() /},
   SystemHealth_logs: #{jsAction @SystemHealth.logs() /},
   SystemHealth_download: #{jsAction @SystemHealth.download() /},
-  
+
+  AuditLog_list: #{jsAction @infra.AuditLog.list() /},
+  AuditLog_download: #{jsAction @infra.AuditLog.download() /},
+
   FileSystems_fileSystemExportsJson: #{jsAction @resources.FileSystems.fileSystemExportsJson() /},
   FileSystems_save: #{jsAction @resources.FileSystems.save() /},
   FileSystems_fileSystemQuotaJson: #{jsAction @resources.FileSystems.fileSystemQuotaJson() /},
+  FileSystems_getScheculePolicies: #{jsAction @resources.FileSystems.getScheculePolicies() /},
   
   FileSnapshots_fileSnapshotExportsJson: #{jsAction @resources.FileSnapshots.fileSnapshotExportsJson() /},
   FileSnapshots_save: #{jsAction @resources.FileSnapshots.save() /},

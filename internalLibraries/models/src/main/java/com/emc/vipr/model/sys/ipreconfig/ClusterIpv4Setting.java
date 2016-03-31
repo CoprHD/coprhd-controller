@@ -94,7 +94,6 @@ public class ClusterIpv4Setting implements Serializable {
     
 
     /* (non-Javadoc)
-	 * @see java.lang.Object#hashCode()
 	 */
 	@Override
 	public int hashCode() {

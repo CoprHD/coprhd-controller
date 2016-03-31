@@ -17,6 +17,7 @@ import com.emc.storageos.db.client.model.BlockMirror;
 import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.BlockSnapshotSession;
 import com.emc.storageos.db.client.model.CifsShareACL;
+import com.emc.storageos.db.client.model.Cluster;
 import com.emc.storageos.db.client.model.CustomConfig;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.DecommissionedResource;
@@ -25,12 +26,15 @@ import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.FCEndpoint;
 import com.emc.storageos.db.client.model.FCZoneReference;
 import com.emc.storageos.db.client.model.FileExportRule;
-import com.emc.storageos.db.client.model.NFSShareACL;
 import com.emc.storageos.db.client.model.FileShare;
+import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.IpInterface;
+import com.emc.storageos.db.client.model.NFSShareACL;
 import com.emc.storageos.db.client.model.Network;
 import com.emc.storageos.db.client.model.NetworkSystem;
+import com.emc.storageos.db.client.model.ObjectBucketACL;
+import com.emc.storageos.db.client.model.ObjectNamespace;
 import com.emc.storageos.db.client.model.PhysicalNAS;
 import com.emc.storageos.db.client.model.ProtectionSet;
 import com.emc.storageos.db.client.model.ProtectionSystem;
@@ -58,12 +62,14 @@ import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.VpoolProtectionVarraySettings;
 import com.emc.storageos.db.client.model.Workflow;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedCifsShareACL;
+import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedConsistencyGroup;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedExportMask;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedFileExportRule;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedFileSystem;
-import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedProtectionSet;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedNFSShareACL;
+import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedProtectionSet;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume;
+import com.emc.storageos.db.client.model.storagedriver.DriverRegistryRecord;
 import com.emc.storageos.db.client.util.EndpointUtility;
 
 /**
@@ -140,6 +146,11 @@ public interface AlternateIdConstraint extends Constraint {
 
         public static AlternateIdConstraint getVolumeInfoNativeIdConstraint(String altId) {
             DataObjectType doType = TypeMap.getDoType(UnManagedVolume.class);
+            return new AlternateIdConstraintImpl(doType.getColumnField(NATIVE_GUID), altId);
+        }
+
+        public static AlternateIdConstraint getCGInfoNativeIdConstraint(String altId) {
+            DataObjectType doType = TypeMap.getDoType(UnManagedConsistencyGroup.class);
             return new AlternateIdConstraintImpl(doType.getColumnField(NATIVE_GUID), altId);
         }
 
@@ -223,6 +234,11 @@ public interface AlternateIdConstraint extends Constraint {
             return new AlternateIdConstraintImpl(doType.getColumnField(NATIVE_GUID), nativeGuid);
         }
 
+        public static AlternateIdConstraint getUnManagedVolumeByNativeGuidConstraint(String nativeGuid) {
+            DataObjectType doType = TypeMap.getDoType(UnManagedVolume.class);
+            return new AlternateIdConstraintImpl(doType.getColumnField(NATIVE_GUID), nativeGuid);
+        }
+
         public static AlternateIdConstraint getSnapshotNativeGuidConstraint(String nativeGuid) {
             DataObjectType doType = TypeMap.getDoType(Snapshot.class);
             return new AlternateIdConstraintImpl(doType.getColumnField(NATIVE_GUID), nativeGuid);
@@ -283,6 +299,16 @@ public interface AlternateIdConstraint extends Constraint {
             return new AlternateIdConstraintImpl(doType.getColumnField("snapsetLabel"), label);
         }
 
+        public static AlternateIdConstraint getBlockSnapshotSessionsBySetName(String setName) {
+            DataObjectType doType = TypeMap.getDoType(BlockSnapshotSession.class);
+            return new AlternateIdConstraintImpl(doType.getColumnField("sessionSetName"), setName);
+        }
+
+        public static AlternateIdConstraint getFullCopiesBySetName(String setName) {
+            DataObjectType doType = TypeMap.getDoType(Volume.class);
+            return new AlternateIdConstraintImpl(doType.getColumnField("fullCopySetName"), setName);
+        }
+
         public static AlternateIdConstraint getVirtualArrayStoragePoolsConstraint(String varrayId) {
             DataObjectType doType = TypeMap.getDoType(StoragePool.class);
             return new AlternateIdConstraintImpl(doType.getColumnField("taggedVirtualArrays"), varrayId);
@@ -339,11 +365,6 @@ public interface AlternateIdConstraint extends Constraint {
             return new AlternateIdConstraintImpl(doType.getColumnField("pwwnKey"), altId);
         }
 
-        public static AlternateIdConstraint getFCZoneReferenceLabelConstraint(String label) {
-            DataObjectType doType = TypeMap.getDoType(FCZoneReference.class);
-            return new AlternateIdConstraintImpl(doType.getColumnField("label"), label);
-        }
-
         public static AlternateIdConstraint getFCEndpointRemotePortNameConstraint(String altId) {
             DataObjectType doType = TypeMap.getDoType(FCEndpoint.class);
             return new AlternateIdConstraintImpl(doType.getColumnField("remotePortName"), altId);
@@ -366,7 +387,7 @@ public interface AlternateIdConstraint extends Constraint {
                     providerId);
         }
 
-        public static AlternateIdConstraint getCloneReplicationGroupInstanceConstraint(
+        public static AlternateIdConstraint getVolumeReplicationGroupInstanceConstraint(
                 String replicaGroupInstance) {
             DataObjectType doType = TypeMap.getDoType(Volume.class);
             return new AlternateIdConstraintImpl(doType.getColumnField("replicationGroupInstance"),
@@ -376,6 +397,13 @@ public interface AlternateIdConstraint extends Constraint {
         public static AlternateIdConstraint getSnapshotReplicationGroupInstanceConstraint(
                 String replicaGroupInstance) {
             DataObjectType doType = TypeMap.getDoType(BlockSnapshot.class);
+            return new AlternateIdConstraintImpl(doType.getColumnField("replicationGroupInstance"),
+                    replicaGroupInstance);
+        }
+
+        public static AlternateIdConstraint getSnapshotSessionReplicationGroupInstanceConstraint(
+                String replicaGroupInstance) {
+            DataObjectType doType = TypeMap.getDoType(BlockSnapshotSession.class);
             return new AlternateIdConstraintImpl(doType.getColumnField("replicationGroupInstance"),
                     replicaGroupInstance);
         }
@@ -458,6 +486,11 @@ public interface AlternateIdConstraint extends Constraint {
         public static AlternateIdConstraint getVolumeByAssociatedVolumesConstraint(String volumeId) {
             DataObjectType doType = TypeMap.getDoType(Volume.class);
             return new AlternateIdConstraintImpl(doType.getColumnField("associatedVolumes"), volumeId);
+        }
+
+        public static AlternateIdConstraint getVolumeByReplicationGroupInstance(String groupName) {
+            DataObjectType doType = TypeMap.getDoType(Volume.class);
+            return new AlternateIdConstraintImpl(doType.getColumnField("replicationGroupInstance"), groupName);
         }
 
         public static AlternateIdConstraint getStorageSystemByAssociatedSystemConstraint(String systemId) {
@@ -595,7 +628,7 @@ public interface AlternateIdConstraint extends Constraint {
             DataObjectType doType = TypeMap.getDoType(UnManagedCifsShareACL.class);
             return new AlternateIdConstraintImpl(doType.getColumnField(NATIVE_GUID), altId);
         }
-        
+
         public static AlternateIdConstraint getFileNfsACLNativeGUIdConstraint(String altId) {
             DataObjectType doType = TypeMap.getDoType(UnManagedNFSShareACL.class);
             return new AlternateIdConstraintImpl(doType.getColumnField(NATIVE_GUID), altId);
@@ -627,6 +660,11 @@ public interface AlternateIdConstraint extends Constraint {
             return new AlternateIdConstraintImpl(doType.getColumnField("fileSystemShareACLIndex"), fileSystemShareACLIndex);
         }
 
+        public static AlternateIdConstraint getBucketACLConstraint(String bucketACLIndex) {
+            DataObjectType doType = TypeMap.getDoType(ObjectBucketACL.class);
+            return new AlternateIdConstraintImpl(doType.getColumnField("bucketACLIndex"), bucketACLIndex);
+        }
+
         public static AlternateIdConstraint getProtectionSetByNativeGuidConstraint(String nativeGuid) {
             DataObjectType doType = TypeMap.getDoType(ProtectionSet.class);
             return new AlternateIdConstraintImpl(doType.getColumnField(NATIVE_GUID), nativeGuid);
@@ -640,6 +678,11 @@ public interface AlternateIdConstraint extends Constraint {
         public static AlternateIdConstraint getUnManagedProtectionSetByUnManagedVolumeConstraint(String altId) {
             DataObjectType doType = TypeMap.getDoType(UnManagedProtectionSet.class);
             return new AlternateIdConstraintImpl(doType.getColumnField("unManagedVolumeIds"), altId);
+        }
+
+        public static AlternateIdConstraint getUnManagedProtectionSetByManagedVolumeConstraint(String altId) {
+            DataObjectType doType = TypeMap.getDoType(UnManagedProtectionSet.class);
+            return new AlternateIdConstraintImpl(doType.getColumnField("managedVolumeIds"), altId);
         }
 
         public static AlternateIdConstraint getUnManagedProtectionSetsByProtectionSystemUriConstraint(String altId) {
@@ -657,14 +700,44 @@ public interface AlternateIdConstraint extends Constraint {
             return new AlternateIdConstraintImpl(doType.getColumnField("fileSystemNfsACLIndex"), fileSystemNfsACLIndex);
         }
 
+        public static AlternateIdConstraint getVolumesByVolumeGroupId(String volumeGroupId) {
+            DataObjectType doType = TypeMap.getDoType(Volume.class);
+            return new AlternateIdConstraintImpl(doType.getColumnField("volumeGroupIds"), volumeGroupId);
+        }
+
+        public static AlternateIdConstraint getHostsByVolumeGroupId(String volumeGroupId) {
+            DataObjectType doType = TypeMap.getDoType(Host.class);
+            return new AlternateIdConstraintImpl(doType.getColumnField("volumeGroupIds"), volumeGroupId);
+        }
+
+        public static AlternateIdConstraint getClustersByVolumeGroupId(String volumeGroupId) {
+            DataObjectType doType = TypeMap.getDoType(Cluster.class);
+            return new AlternateIdConstraintImpl(doType.getColumnField("volumeGroupIds"), volumeGroupId);
+        }
+ 
+        public static AlternateIdConstraint getDriverRegistryEntriesByDriverName(String driverName) {
+            DataObjectType doType = TypeMap.getDoType(DriverRegistryRecord.class);
+            return new AlternateIdConstraintImpl(doType.getColumnField("driverName"), driverName);
+        }
+
         public static AlternateIdConstraint getBlockSnapshotBySettingsInstance(String settingsInstance) {
             DataObjectType doType = TypeMap.getDoType(BlockSnapshot.class);
             return new AlternateIdConstraintImpl(doType.getColumnField("settingsInstance"), settingsInstance);
-    }
+        }
 
         public static AlternateIdConstraint getBlockSnapshotSessionBySessionInstance(String sessionInstance) {
             DataObjectType doType = TypeMap.getDoType(BlockSnapshotSession.class);
             return new AlternateIdConstraintImpl(doType.getColumnField("sessionInstance"), sessionInstance);
+        }
+
+        public static AlternateIdConstraint getObjectNamespaceByNativeGuidConstraint(String nativeGuid) {
+            DataObjectType doType = TypeMap.getDoType(ObjectNamespace.class);
+            return new AlternateIdConstraintImpl(doType.getColumnField(NATIVE_GUID), nativeGuid);
+        }
+        
+        public static AlternateIdConstraint getFCZoneReferenceByWWNKey(String pwwnKey) {
+            DataObjectType doType = TypeMap.getDoType(FCZoneReference.class);
+            return new AlternateIdConstraintImpl(doType.getColumnField("pwwnKey"), pwwnKey);       	
         }
     }
 }

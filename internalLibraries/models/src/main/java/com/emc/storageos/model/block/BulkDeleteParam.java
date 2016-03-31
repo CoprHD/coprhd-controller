@@ -29,7 +29,6 @@ public class BulkDeleteParam {
     /**
      * The list of volume URIs to be deleted
      * 
-     * @valid URI
      */
     @XmlElement(name = "id")
     public List<URI> getIds() {

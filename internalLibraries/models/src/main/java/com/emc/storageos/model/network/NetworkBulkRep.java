@@ -19,7 +19,6 @@ public class NetworkBulkRep extends BulkRestRep {
      * List of network objects that exist in ViPR. Contains FC
      * and IP networks.
      * 
-     * @valid none
      */
     @XmlElement(name = "network")
     public List<NetworkRestRep> getNetworks() {

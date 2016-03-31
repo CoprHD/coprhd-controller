@@ -20,7 +20,6 @@ public class CustomConfigTypeRep {
     /**
      * The name of the config type
      * 
-     * @valid none
      */
     @XmlElement(name = "name")
     public String getConfigName() {
@@ -34,7 +33,6 @@ public class CustomConfigTypeRep {
     /**
      * The valid scopes of this config type
      * 
-     * @valid none
      */
     @XmlElement(name = "scopes")
     public ScopeParamList getScopes() {
@@ -48,7 +46,6 @@ public class CustomConfigTypeRep {
     /**
      * The variables of this config type could be used when creating config value
      * 
-     * @valid none
      */
     @XmlElement(name = "variables")
     public CustomConfigVariableList getVariables() {
@@ -62,7 +59,6 @@ public class CustomConfigTypeRep {
     /**
      * The data type of the config value
      * 
-     * @valid none
      */
     @XmlElement(name = "type")
     public String getType() {
@@ -76,7 +72,6 @@ public class CustomConfigTypeRep {
     /**
      * The rules applied to the config value
      * 
-     * @valid none
      */
     @XmlElement(name = "rules")
     public CustomConfigRuleList getRules() {
@@ -92,7 +87,6 @@ public class CustomConfigTypeRep {
      * 
      * Current values can be {@code CustomName} or {@code SimpleValue}.
      * 
-     * @valid none
      */
     @XmlElement(name = "config_type")
     public String getConfigType() {

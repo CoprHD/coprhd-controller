@@ -36,21 +36,22 @@ public class BackupExecutor {
         this.cli = cli;
     }
 
-    public void runOnce() throws Exception {
+    public void create() throws Exception {
         if (this.cfg.schedulerEnabled) {
             try (AutoCloseable lock = this.cfg.lock()) {
                 this.cfg.reload();
-                
-                log.info("Start to remove deleted backups");
-                removeDeletedBackups();
+
+                if (this.cfg.isClusterUpgradable()) {
+                    log.info("Start to remove deleted backups");
+                    removeDeletedBackups();
+                }else {
+                    log.info("Skip to remove deleted backups as cluster is not stable");
+                }
 
                 log.info("Start to do backup job");
                 if (shouldDoBackup()) {
                     doBackup();
                 }
-
-                log.info("Start to delete expired backups");
-                deleteExpiredBackups();
             } catch (Exception e) {
                 log.error("Fail to run schedule backup", e);
             }
@@ -90,8 +91,8 @@ public class BackupExecutor {
                 ScheduledBackupTag.toTimestamp(nowDate),
                 ScheduledBackupTag.toTimestamp(expected));
 
-        // if now is before target time && this is NOT first backup
-        if (nowDate.before(expected) && !this.cfg.retainedBackups.isEmpty()) {
+        // if now is before target time
+        if (nowDate.before(expected)) {
             return false;
         }
 
@@ -102,7 +103,9 @@ public class BackupExecutor {
                 ScheduledBackupTag.toTimestamp(lastBackupDateTime),
                 ScheduledBackupTag.toTimestamp(expected));
 
-        if (lastBackupDateTime != null && curTimeRange.contains(lastBackupDateTime)) {
+        // If current time range already has one backup which was created at or after the expected time,
+        // no need create again. This check could avoid repeated creation while also considered reconfigure scenario.
+        if (lastBackupDateTime != null && curTimeRange.contains(lastBackupDateTime) && !lastBackupDateTime.before(expected)) {
             return false;
         }
 
@@ -147,6 +150,18 @@ public class BackupExecutor {
 
         if (lastException != null) {
             this.cfg.sendBackupFailureToRoot(tag, lastException.getMessage());
+        }
+    }
+
+    public void reclaim() throws Exception {
+        if (this.cfg.schedulerEnabled) {
+            try (AutoCloseable lock = this.cfg.lock()) {
+                this.cfg.reload();
+                log.info("Start to delete expired backups");
+                deleteExpiredBackups();
+            } catch (Exception e) {
+                log.error("Fail to run schedule backup", e);
+            }
         }
     }
 

@@ -19,7 +19,6 @@ public class BlockVirtualPoolBulkRep extends BulkRestRep {
     /**
      * List of virtual pools.
      * 
-     * @valid none
      */
     @XmlElement(name = "block_vpool")
     @JsonProperty("block_vpool")

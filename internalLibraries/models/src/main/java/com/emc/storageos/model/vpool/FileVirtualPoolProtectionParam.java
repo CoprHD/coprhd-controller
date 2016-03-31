@@ -9,21 +9,21 @@ import javax.xml.bind.annotation.XmlRootElement;
 
 @XmlRootElement(name = "file_protection")
 public class FileVirtualPoolProtectionParam extends VirtualPoolProtectionParam {
-	
-	FileVirtualPoolReplicationParam replicationParam;
-	
-	public FileVirtualPoolProtectionParam() {
+
+    FileVirtualPoolReplicationParam replicationParam;
+    private Boolean scheduleSnapshots;
+
+    public FileVirtualPoolProtectionParam() {
     }
 
     public FileVirtualPoolProtectionParam(
-    		FileVirtualPoolReplicationParam replicationParam) {
+            FileVirtualPoolReplicationParam replicationParam) {
         this.replicationParam = replicationParam;
     }
-    
+
     /**
      * The replication protection settings for a virtual pool.
      * 
-     * @valid none
      */
     @XmlElement(name = "replication_params")
     public FileVirtualPoolReplicationParam getReplicationParam() {
@@ -32,5 +32,18 @@ public class FileVirtualPoolProtectionParam extends VirtualPoolProtectionParam {
 
     public void setReplicationParam(FileVirtualPoolReplicationParam replParam) {
         this.replicationParam = replParam;
+    }
+
+    /**
+     * The schedule snapshot protection settings for a virtual pool.
+     * 
+     */
+    @XmlElement(name = "schedule_snapshots")
+    public Boolean getScheduleSnapshots() {
+        return scheduleSnapshots;
+    }
+
+    public void setScheduleSnapshots(Boolean scheduleSnapshots) {
+        this.scheduleSnapshots = scheduleSnapshots;
     }
 }

@@ -8,6 +8,8 @@ package com.emc.storageos.db.client.upgrade.callbacks;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.upgrade.BaseCustomMigrationCallback;
+import com.emc.storageos.svcs.errorhandling.resources.MigrationCallbackException;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -28,7 +30,7 @@ public class VirtualPoolExpandableMigration extends BaseCustomMigrationCallback 
     private static final Logger log = LoggerFactory.getLogger(VirtualPoolExpandableMigration.class);
 
     @Override
-    public void process() {
+    public void process() throws MigrationCallbackException {
         log.info("Handle VirtualPool 'nonDisruptiveExpansion' conversion.");
         DbClient dbClient = getDbClient();
         List<URI> vpURIs = dbClient.queryByType(VirtualPool.class, true);

@@ -6,7 +6,7 @@ package com.emc.storageos.api.service.impl.resource.snapshot;
 
 import java.net.URI;
 import java.util.List;
-import java.util.Set;
+import java.util.Map;
 
 import javax.ws.rs.core.SecurityContext;
 import javax.ws.rs.core.UriInfo;
@@ -79,7 +79,7 @@ public class VNXBlockSnapshotSessionApiImpl extends DefaultBlockSnapshotSessionA
      */
     @Override
     public void validateUnlinkSnapshotSessionTargets(BlockSnapshotSession snapSession, BlockObject snapSessionSourceObj, Project project,
-            Set<URI> snapshotURIs, UriInfo uriInfo) {
+            Map<URI, Boolean> targetMap, UriInfo uriInfo) {
         throw APIException.methodNotAllowed.notSupportedForVNX();
     }
 
@@ -87,7 +87,7 @@ public class VNXBlockSnapshotSessionApiImpl extends DefaultBlockSnapshotSessionA
      * {@inheritDoc}
      */
     @Override
-    public void validateRestoreSnapshotSession(BlockObject snapSessionSourceObj, Project project) {
+    public void validateRestoreSnapshotSession(List<BlockObject> snapSessionSourceObjs, Project project) {
         throw APIException.methodNotAllowed.notSupportedForVNX();
     }
 
@@ -96,14 +96,6 @@ public class VNXBlockSnapshotSessionApiImpl extends DefaultBlockSnapshotSessionA
      */
     @Override
     public void validateDeleteSnapshotSession(BlockSnapshotSession snapSession, BlockObject snapSessionSourceObj, Project project) {
-        throw APIException.methodNotAllowed.notSupportedForVNX();
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public List<BlockSnapshotSession> getSnapshotSessionsForSource(BlockObject sourceObj) {
         throw APIException.methodNotAllowed.notSupportedForVNX();
     }
 }

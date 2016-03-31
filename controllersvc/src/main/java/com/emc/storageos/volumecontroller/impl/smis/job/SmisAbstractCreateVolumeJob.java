@@ -22,8 +22,6 @@ import javax.wbem.CloseableIterator;
 import javax.wbem.WBEMException;
 import javax.wbem.client.WBEMClient;
 
-import com.emc.storageos.volumecontroller.impl.smis.CIMObjectPathFactory;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -34,6 +32,7 @@ import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.Volume.PersonalityTypes;
+import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.exceptions.DeviceControllerErrors;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.protectioncontroller.impl.recoverpoint.RPHelper;
@@ -43,6 +42,7 @@ import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.volumecontroller.impl.ControllerServiceImpl;
 import com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator;
 import com.emc.storageos.volumecontroller.impl.smis.CIMConnectionFactory;
+import com.emc.storageos.volumecontroller.impl.smis.CIMObjectPathFactory;
 import com.emc.storageos.volumecontroller.impl.smis.CIMPropertyFactory;
 import com.emc.storageos.volumecontroller.impl.smis.SmisCommandHelper;
 import com.emc.storageos.volumecontroller.impl.smis.SmisConstants;
@@ -359,9 +359,8 @@ public abstract class SmisAbstractCreateVolumeJob extends SmisReplicaCreationJob
                 return;
             } else {
                 for (Volume volume : volumes) {
-                    String cgName =
-                            consistencyGroup.getCgNameOnStorageSystem(volume.getStorageController());
-                    if (cgName == null) {
+                    String cgName = volume.getReplicationGroupInstance();
+                    if (NullColumnValueGetter.isNullValue(cgName)) {
                         _log.info(String.format(
                                 "Skipping step addVolumesToConsistencyGroup: Volume %s (%s) does not reference an existing consistency group on array %s.",
                                 volume.getLabel(), volume.getId(), volume.getStorageController()));
@@ -379,10 +378,12 @@ public abstract class SmisAbstractCreateVolumeJob extends SmisReplicaCreationJob
             // Add all the new volumes to the consistency group except for RP+VPlex target/journal backing volumes
             List<URI> updatedVolumeIds = new ArrayList<URI>();
 
+            String rpName = null;
             for (URI volumeId : volumesIds) {
                 Volume volume = dbClient.queryObject(Volume.class, volumeId);
-
-                if (!RPHelper.isAssociatedToRpVplexType(volume, dbClient, PersonalityTypes.TARGET, PersonalityTypes.METADATA)) {
+                rpName = volume.getReplicationGroupInstance();
+                if (!RPHelper.isAssociatedToRpVplexType(volume, dbClient, PersonalityTypes.TARGET, PersonalityTypes.METADATA) &&
+                		NullColumnValueGetter.isNotNullValue(rpName)) {
                     updatedVolumeIds.add(volumeId);
                 }
             }
@@ -392,7 +393,7 @@ public abstract class SmisAbstractCreateVolumeJob extends SmisReplicaCreationJob
                 return;
             }
 
-            storageDevice.addVolumesToConsistencyGroup(storage, consistencyGroup, volumes, getTaskCompleter());
+            storageDevice.addVolumesToConsistencyGroup(storage, consistencyGroup, volumes, rpName, getTaskCompleter());
         } catch (Exception e) {
             _log.error("Problem making SMI-S call: ", e);
             ServiceError error = DeviceControllerErrors.smis.unableToCallStorageProvider(e.getMessage());

@@ -15,6 +15,7 @@ import org.apache.commons.lang3.time.StopWatch;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.junit.Assert;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import com.emc.sa.util.ResourceType;
@@ -25,6 +26,8 @@ import com.emc.storageos.model.project.ProjectRestRep;
 import com.emc.vipr.client.ViPRCoreClient;
 import com.google.common.collect.Lists;
 
+// These tests require a ViPR instance running to connect to, which will not be the case on build servers, thus ignoring by default.
+@Ignore
 public final class TestBlockStorageUtils {
 
     static final List<BlockObjectRestRep> newGetBlockResources(ViPRCoreClient client, Collection<URI> uris) {

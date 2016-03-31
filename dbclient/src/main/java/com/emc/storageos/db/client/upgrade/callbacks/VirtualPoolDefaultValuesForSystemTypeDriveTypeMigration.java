@@ -17,6 +17,7 @@ import com.emc.storageos.db.client.model.StringSetMap;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.VirtualPool.SupportedDriveTypes;
 import com.emc.storageos.db.client.upgrade.BaseCustomMigrationCallback;
+import com.emc.storageos.svcs.errorhandling.resources.MigrationCallbackException;
 
 public class VirtualPoolDefaultValuesForSystemTypeDriveTypeMigration extends
         BaseCustomMigrationCallback {
@@ -27,7 +28,7 @@ public class VirtualPoolDefaultValuesForSystemTypeDriveTypeMigration extends
     private static final String SYSTEM_TYPE_KEY = "system_type";
 
     @Override
-    public void process() {
+    public void process() throws MigrationCallbackException {
 
         logger.info("Migration started");
 

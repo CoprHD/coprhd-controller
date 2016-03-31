@@ -52,7 +52,15 @@ public class AnnotationValue implements SchemaObject {
                     this.value = vals[i].name();
                 }
                 this.runtimeType.setMigrationCallback(null);
-            } else {
+            } else if (val instanceof Class[]) {
+            	Class[] vals = (Class[]) val;
+            	StringBuffer sb = new StringBuffer();
+            	for (int i=0; i < vals.length; i++) {
+            		sb.append(vals[i].getSimpleName() + ",");
+            	}
+            	this.value = sb.toString();
+            }
+            else {
                 this.value = val.toString();
                 this.runtimeType.setMigrationCallback(null);
             }

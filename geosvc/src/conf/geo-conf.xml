@@ -75,6 +75,8 @@
         <property name="dependencyChecker" ref="dependencyChecker"/>
     </bean>
 
+    <bean id="ipsecService" class="com.emc.storageos.geo.service.impl.resource.IpsecService"/>
+
     <bean id="vdcConfService" class="com.emc.storageos.geo.service.impl.resource.VdcConfigService">
         <property name="service" ref="serviceinfo"/>
         <property name="sysUtils" ref="sysUtils" />
@@ -97,6 +99,7 @@
                 <ref bean="queryService"/>               
                 <ref bean="vdcConfService"/>
                 <ref bean="versionService"/>
+                <ref bean="ipsecService"/>
                 <bean class="com.emc.storageos.svcs.errorhandling.mappers.ServiceCodeExceptionMapper"/>
                 <bean class="com.emc.storageos.api.service.impl.resource.ContextProvider"/>
                 <bean class="com.emc.storageos.api.service.impl.resource.ValidatingJacksonJsonProvider"/>
@@ -174,6 +177,7 @@
         <property name="bypassMigrationLock" value="true"/>
         <property name="localContext" ref="dbclientcontext"/>
         <property name="geoContext" ref="geodbclientcontext"/>
+        <property name="drUtil" ref="drUtil"/>
     </bean>
 
     <bean id="vdcController" class="com.emc.storageos.geo.vdccontroller.impl.VdcControllerImpl">

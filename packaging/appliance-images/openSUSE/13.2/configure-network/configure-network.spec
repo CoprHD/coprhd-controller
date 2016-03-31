@@ -1,5 +1,3 @@
-%define svn_url https://rmsgsvn.lss.emc.com/svn/devsvcs/adg/common/main/integration/SOURCE
-
 Name: configure-network
 Version: %{product_version}
 Release: %{product_release}
@@ -11,6 +9,8 @@ Source0: configure-network.spec
 Source1: parseOvfEnv.py
 Source2: setNetwork
 Source3: getOvfEnv
+Source4: ovf.properties.example
+Source5: README.configure-network.txt
 URL: http://www.emc.com
 BuildArch: noarch
 BuildRoot: /rpm_build/%{name}
@@ -26,10 +26,12 @@ fi
 
 dest_dir="/opt/ADG"
 #  Copy files to local staging directory
-mkdir -p ${RPM_BUILD_ROOT}${dest_dir}/bin ${RPM_BUILD_ROOT}${dest_dir}/etc/init.d
+mkdir -p ${RPM_BUILD_ROOT}${dest_dir}/bin ${RPM_BUILD_ROOT}${dest_dir}/etc/init.d ${RPM_BUILD_ROOT}${dest_dir}/conf
 cp %SOURCE1 ${RPM_BUILD_ROOT}${dest_dir}/bin/parseOvfEnv.py
 cp %SOURCE2 ${RPM_BUILD_ROOT}${dest_dir}/bin/setNetwork
 cp %SOURCE3 ${RPM_BUILD_ROOT}${dest_dir}/etc/init.d/getOvfEnv
+cp %SOURCE4 ${RPM_BUILD_ROOT}${dest_dir}/conf/ovf.properties.example
+cp %SOURCE5 ${RPM_BUILD_ROOT}${dest_dir}/conf/README.configure-network.txt
 
 mkdir -p ${RPM_BUILD_ROOT}/etc/init.d
 ln -sf ${dest_dir}/etc/init.d/getOvfEnv ${RPM_BUILD_ROOT}/etc/init.d/boot.getOvfEnv
@@ -40,10 +42,10 @@ ln -sf ${dest_dir}/etc/init.d/getOvfEnv ${RPM_BUILD_ROOT}/etc/init.d/boot.getOvf
 insserv boot.getOvfEnv
 #Repopulate network related file and restart network service ONLY FOR UPGRADE
 if [ $1 -gt 1 ]; then
-for i in $(ifconfig -s | awk '{print $1}'| grep eth | sed s/eth//); do
+  for i in $(ifconfig -s | awk '{print $1}'| grep eth | sed s/eth//); do
     /bin/bash /opt/ADG/bin/setNetwork $i
-done
-/etc/init.d/network restart
+  done
+  service network restart
 fi
 
 %clean
@@ -54,10 +56,15 @@ rm -rf ${RPM_BUILD_DIR}
 %defattr(-,root,root,-)
 /opt/ADG/bin/parseOvfEnv.py
 /opt/ADG/bin/setNetwork
+/opt/ADG/conf/ovf.properties.example
+/opt/ADG/conf/README.configure-network.txt
 /opt/ADG/etc/init.d/getOvfEnv
 /etc/init.d/boot.getOvfEnv
 
 %changelog
+ * Wed Jan 6 2016 Rodrigo Oshiro <ApplianceDevelopmentGroup@emc.com> 0:3.5-1
+ - Adding ovf.properties.example for manual network configuration
+
  * Thu Dec 3 2015 Rodrigo Oshiro <ApplianceDevelopmentGroup@emc.com> 0:3.4-3
  - Reorganizing SPEC to release it open source
 

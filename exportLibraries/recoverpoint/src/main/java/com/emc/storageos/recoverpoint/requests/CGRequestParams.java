@@ -3,6 +3,7 @@
  * All Rights Reserved
  */
 package com.emc.storageos.recoverpoint.requests;
+
 import java.io.Serializable;
 import java.net.URI;
 import java.util.List;
@@ -10,7 +11,7 @@ import java.util.List;
 /**
  * Parameters necessary to create/update a consistency group, given newly created volumes.
  * Need enough information to be able to export the volumes to the RPAs and to create the CG.
- * 
+ *
  */
 @SuppressWarnings("serial")
 public class CGRequestParams implements Serializable {
@@ -24,7 +25,7 @@ public class CGRequestParams implements Serializable {
     // Tenant making request
     private URI tenant;
     // Top-level policy for the CG
-    public CGPolicyParams cgPolicy;
+    private CGPolicyParams cgPolicy;
     // List of copies
     private List<CreateCopyParams> copies;
     // List of replication sets that make up this consistency group.
@@ -90,11 +91,12 @@ public class CGRequestParams implements Serializable {
         this.rsets = rsets;
     }
 
-    // The top-level CG policy objects
-    public static class CGPolicyParams implements Serializable {
-        public String copyMode;
-        public Long rpoValue;
-        public String rpoType;
+    public CGPolicyParams getCgPolicy() {
+        return cgPolicy;
+    }
+
+    public void setCgPolicy(CGPolicyParams cgPolicy) {
+        this.cgPolicy = cgPolicy;
     }
 
     @Override

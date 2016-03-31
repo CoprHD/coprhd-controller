@@ -18,7 +18,6 @@ public class FindParentMultipathDeviceCommand extends LinuxResultsCommand<String
         sb.append("done;");
         setCommand(sb.toString());
         // Default sleep time to 5s
-        setRunAsRoot(true);
     }
 
     @Override

@@ -114,6 +114,7 @@ public class ServiceBeaconImpl implements ServiceBeacon {
     public void setSiteSpecific(boolean siteSpecific) {
         this.siteSpecific = siteSpecific;
     }
+
     /**
      * Init method.
      * Add state change listener
@@ -121,8 +122,7 @@ public class ServiceBeaconImpl implements ServiceBeacon {
      * Remove stale service registration from zk
      */
     public void init() {
-        _bInitialized = true;
-
+        
         _zkConnection.curator().getConnectionStateListenable().addListener(_connectionListener);
         _zkConnection.connect();
 
@@ -134,12 +134,14 @@ public class ServiceBeaconImpl implements ServiceBeacon {
                     ZkPath.SERVICE, _service.getName(), _service.getVersion());
         }
         _servicePath = String.format("%1$s/%2$s", _serviceParentPath, _service.getId());
-
+        
         try {
             checkStaleRegistration();
         } catch (Exception ex) {
             _log.warn("Unable to remove stale service registration", ex);
         }
+        
+        _bInitialized = true;
     }
 
     /**

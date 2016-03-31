@@ -4,6 +4,7 @@
  */
 package com.emc.storageos.systemservices.impl;
 
+import com.emc.storageos.systemservices.impl.security.SecretsInit;
 import com.emc.storageos.systemservices.impl.security.IPSecMonitor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -14,7 +15,7 @@ public class Main {
     private static final Logger _log = LoggerFactory.getLogger(Main.class);
     private static final String BUILD_TYPE = "buildType";
     private static final String SERVICE_BEAN = "syssvcserver";
-    private static final String IPSEC_MONITOR_BEAN = "ipsecMonitor";
+    private static final String IPSEC_ROTATE_BEAN = "ipsecInitialRotate";
 
     public static void main(String[] args) {
         try {
@@ -24,7 +25,8 @@ public class Main {
             ctx.load(args);
 
             // start ipsec monitor
-            IPSecMonitor ipsecMonitor = (IPSecMonitor) ctx.getBean(IPSEC_MONITOR_BEAN);
+            IPSecMonitor ipsecMonitor = new IPSecMonitor();
+            ipsecMonitor.setApplicationContext(ctx);
             ipsecMonitor.start();
 
             ctx.refresh();
@@ -32,6 +34,10 @@ public class Main {
             // start syssvc
             SysSvcImpl sysservice = (SysSvcImpl) ctx.getBean(SERVICE_BEAN);
             sysservice.start();
+
+            // start initial ipsec key rotation
+            SecretsInit initialRotate = (SecretsInit) ctx.getBean(IPSEC_ROTATE_BEAN);
+            new Thread(initialRotate).start();
         } catch (Exception e) {
             _log.error("failed to start {}:", SERVICE_BEAN, e);
             System.exit(1);

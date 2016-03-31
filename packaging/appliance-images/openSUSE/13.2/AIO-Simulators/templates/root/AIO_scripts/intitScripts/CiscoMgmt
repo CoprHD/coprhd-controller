@@ -1,0 +1,82 @@
+#!/bin/bash
+
+### BEGIN INIT INFO
+# Provides:          CiscoMgmt
+# Required-Start:    $all
+# Required-Stop:     
+# Default-Start:     2 3 4 5
+# Default-Stop:      
+# Description:       CiscoMgmt server run last
+### END INIT INFO
+
+#. /etc/rc.d/init.d/functions
+. /lib/lsb/init-functions
+. /etc/rc.status
+
+RETVAL=0
+CISCO_HOME=/data/simulators/cisco-sim/bin
+DELAY=60
+
+start() {
+        echo -n $"Starting Cisco Management:..hold on 10sec .."
+    cd ${CISCO_HOME}
+        
+  interface="$(/sbin/ifconfig -a | grep Ethernet | awk '{print $1}' | head -1)"
+
+  ip="$(/sbin/ifconfig | grep -A 1 $interface'\s' | tail -1 | cut -d ':' -f 2 | cut -d ' ' -f 1)" 
+  hostname="$(host $ip| cut -d ' ' -f 5 |cut -d '.' -f 1)"
+  hostname $hostname
+
+  java -jar ../lib/cisco-sim.jar -Dlogback.configurationFile=../config/logback.xml com.emc.vipr.qe.ciscosim.CiscoSimServer >/var/log/CiscoMgmt.log 2>&1 &
+        RETVAL=$?
+
+        while [ $DELAY -gt 0 ]; do
+   START=`pgrep -f cisco-sim.jar | wc -l`
+         if [ "${START}" != "" ] ; then
+           echo "${START}" >> /var/log/CiscoMgmt.log 2>&1  
+           echo "..OK"
+           return
+         fi
+        sleep 2
+        DELAY=$((DELAY -1))
+       done
+
+       echo "Failed to start in 60 sec..try manual start" >> /var/log/CiscoMgmt.log 2>&1
+}
+
+stop() {
+
+        echo -n $"Stopping MgmtServer: "
+        pkill -9 -f cisco-sim.jar >> /var/log/CiscoMgmt.log 2>&1
+        RETVAL=$?
+  echo  "..Done"
+}
+
+
+
+case "$1" in
+  start)
+        start
+        ;;
+  stop)
+        stop
+        ;;
+  status)
+      cnt=`pgrep -f cisco-sim.jar | wc -l`
+  if(test $cnt -eq 1) ;
+  then
+    echo "Cisco Management server already running..."
+  else
+    echo "Cisco Management server not running."
+  fi 
+    #    rc_status -v
+        ;;
+  *)
+  echo $"Usage: CiscoMgmt {start|stop|status}"
+        exit 1
+        exit 1
+esac
+
+
+exit $RETVAL
+

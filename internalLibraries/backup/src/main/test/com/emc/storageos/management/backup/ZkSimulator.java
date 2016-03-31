@@ -20,6 +20,7 @@ import java.io.IOException;
 import java.net.URI;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.Properties;
 
 /**
  * Zookeeper simulator to start Zookeeper server on localhost with specified configurations.
@@ -104,6 +105,11 @@ public class ZkSimulator {
         client.setInetAddessLookupMap(inetAddressMap);
         client.setSysSvcName("syssvc");
         client.setSysSvcVersion("1");
+
+        Properties properties = new Properties();
+        properties.setProperty(BackupConstants.BACKUP_MAX_MANUAL_COPIES, "5");
+        client.setDefaultProperties(properties);
+
         client.start();
         return client;
     }

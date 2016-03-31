@@ -27,7 +27,6 @@ public class UserMappingAttributeParam {
      * 
      * Lookup string for this key-value pair
      * 
-     * @valid none
      */
     @XmlElement(required = true, name = "key")
     @JsonProperty("key")
@@ -43,7 +42,6 @@ public class UserMappingAttributeParam {
      * 
      * Lookup result for this key-value pair
      * 
-     * @valid none
      */
     @XmlElement(required = true, name = "value")
     public List<String> getValues() {
@@ -61,7 +59,6 @@ public class UserMappingAttributeParam {
      * Removes the duplicate entries from the collection (List<T>)
      * and returns the list with unique entries.
      * 
-     * @valid none
      */
     private <T> List<T> removeDuplicate(List<T> listWithDuplicates) {
         List<T> uniqueList = new ArrayList<T>(new LinkedHashSet<T>(listWithDuplicates));
@@ -113,7 +110,6 @@ public class UserMappingAttributeParam {
      * If not this solution, the other possible solution is going to
      * be in the order of quadrant O(n^2), so trying to avoid that.
      *
-     * @valid none
      */
     public int hashCode() {
         int hash = 0;

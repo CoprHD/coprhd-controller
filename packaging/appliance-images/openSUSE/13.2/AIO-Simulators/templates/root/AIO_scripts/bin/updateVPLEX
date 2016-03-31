@@ -1,0 +1,15 @@
+#!/bin/bash
+
+systemctl stop VPLEX
+systemctl stop VPLEX2
+cd /tmp
+LATEST_URL=`curl http://lglw8129.lss.emc.com/cgi-bin/getLatestSimulator?vplex | grep -oP '"queryResult":"\K.*?jar'`
+VERSION=${LATEST_URL##*-}
+echo "Downloading $LATEST_URL"
+wget $LATEST_URL || exit 1
+cp vplex-simulators-*.jar /data/simulators/vplex-sim/
+cp vplex-simulators-*.jar /data/simulators/vplex-sim_2/vplex-simulators2-$VERSION
+
+rm vplex-simulators*.jar
+systemctl start VPLEX
+systemctl start VPLEX2

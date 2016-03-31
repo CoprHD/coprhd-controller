@@ -104,15 +104,17 @@ def workflow_tree(args):
         wfs = sorted(wfs, key=lambda wf: wf['creation_time'])
     except:
         print 'sort exception'
+    processed_wfs=set()
     for wf in wfs:
         if (args.active_only and wf['completed']):
            continue
-        _workflow_node(wf, '')    
+        if (wf['id'] not in processed_wfs):
+            _workflow_node(wf, '', processed_wfs)
 
 steps_stack = []
 
-def _workflow_node(wf, spaces):
-    if (wf):
+def _workflow_node(wf, spaces, already_processed):
+    if (wf and (wf['id'] not in already_processed)):
         print spaces + ' '
         print spaces + wf['id'], format_date(wf['creation_time'])
         print spaces + '    completed: ' + str(wf['completed'])
@@ -127,6 +129,7 @@ def _workflow_node(wf, spaces):
         print spaces + '    controller: ' + wf['orchestration_controller_name']
         print spaces + '    method: ' + wf['orchestration_method']
         wflowx = bourne.workflow_steps(wf['id'])
+        already_processed.add(wf['id'])
         if (type(wflowx) is dict):
             steps = wflowx['workflow_step']
             try: 
@@ -134,9 +137,9 @@ def _workflow_node(wf, spaces):
             except:
                 print 'sort exception'
             for step in steps:
-                _workflow_step_node(step, spaces)
+                _workflow_step_node(step, spaces, already_processed)
 
-def _workflow_step_node(step, spaces):
+def _workflow_step_node(step, spaces, already_processed):
     if (step):
         start = str(getfield(step, 'start_time'))
         end = str(getfield(step, 'end_time'))
@@ -152,7 +155,7 @@ def _workflow_step_node(step, spaces):
             for child in children:
                 print spaces + '             ' + 'child-workflow: ' + child['id']
                 childwf=bourne.workflow_get(child['id'])
-                _workflow_node(childwf, spaces + '             ')
+                _workflow_node(childwf, spaces + '             ', already_processed)
 
 #----------------------------------------------------------------------
 # command-line parsing

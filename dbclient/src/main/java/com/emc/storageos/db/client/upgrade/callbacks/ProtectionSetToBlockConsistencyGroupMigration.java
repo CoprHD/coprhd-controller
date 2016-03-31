@@ -20,6 +20,7 @@ import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.ProtectionSet;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.upgrade.BaseCustomMigrationCallback;
+import com.emc.storageos.svcs.errorhandling.resources.MigrationCallbackException;
 
 /**
  * Migration handler to initialize RecoverPoint BlockConsistencyGroups. We need to create
@@ -30,7 +31,7 @@ public class ProtectionSetToBlockConsistencyGroupMigration extends BaseCustomMig
     private static final Logger log = LoggerFactory.getLogger(ProtectionSetToBlockConsistencyGroupMigration.class);
 
     @Override
-    public void process() {
+    public void process() throws MigrationCallbackException {
         createRpBlockConsistencyGroups();
     }
 
@@ -53,8 +54,8 @@ public class ProtectionSetToBlockConsistencyGroupMigration extends BaseCustomMig
             cg.setLabel(ps.getLabel());
             cg.setDeviceName(ps.getLabel());
             cg.setType(BlockConsistencyGroup.Types.RP.toString());
-            cg.setProject(new NamedURI(project.getId(), ps.getLabel()));
-            cg.setTenant(new NamedURI(project.getTenantOrg().getURI(), ps.getLabel()));
+            cg.setProject(new NamedURI(project.getId(), project.getLabel()));
+            cg.setTenant(project.getTenantOrg());
 
             dbClient.createObject(cg);
 

@@ -1,0 +1,13 @@
+#!/bin/bash
+
+systemctl stop WIN
+cd /tmp
+
+LATEST_URL="http://lglw8129.lss.emc.com/simulators/win-simulators/win-sim.zip"
+wget $LATEST_URL
+unzip win-sim.zip
+rm -r win-sim/config/simulator.xml
+cp -r win-sim/* /data/simulators/win-sim/
+rm -r win-sim
+rm  win-sim.zip
+systemctl start WIN

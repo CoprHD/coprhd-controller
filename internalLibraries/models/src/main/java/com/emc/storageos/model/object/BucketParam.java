@@ -55,7 +55,6 @@ public class BucketParam {
     /**
      * Soft Quota of Bucket in Bytes.
      * 
-     * @valid none
      */
     @XmlElement(required = true, name = "soft_quota")
     public String getSoftQuota() {
@@ -69,7 +68,6 @@ public class BucketParam {
     /**
      * Hard Quota of Bucket in Bytes.
      * 
-     * @valid none
      */
     @XmlElement(required = true, name = "hard_quota")
     public String getHardQuota() {
@@ -83,7 +81,6 @@ public class BucketParam {
     /**
      * URI representing the virtual pool supporting the Bucket.
      * 
-     * @valid none
      */
     @XmlElement(required = true)
     public URI getVpool() {
@@ -97,7 +94,6 @@ public class BucketParam {
     /**
      * URI representing the virtual array containing the Bucket.
      * 
-     * @valid none
      */
     @XmlElement(name = "varray", required = true)
     public URI getVarray() {
@@ -111,7 +107,6 @@ public class BucketParam {
     /**
      * Retention period for a Bucket
      * 
-     * @valid none
      */
     @XmlElement(name = "retention", required = false)
     public String getRetention() {

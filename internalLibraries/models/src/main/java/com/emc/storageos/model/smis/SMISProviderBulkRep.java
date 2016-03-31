@@ -19,7 +19,6 @@ public class SMISProviderBulkRep extends BulkRestRep {
     /**
      * List of SMIS Providers.
      * 
-     * @valid none
      */
     @XmlElement(name = "smis_provider")
     public List<SMISProviderRestRep> getSmisProviders() {

@@ -67,8 +67,11 @@ import vnasserver
 import computeimageserver
 import bucket
 import warnings
+import volumegroup
 import ipsecmanager
-
+import snapshotsession
+import schedulepolicy
+import objectuser
 
 warnings.filterwarnings(
     'ignore',
@@ -89,7 +92,7 @@ common_parser.add_argument('-hostname', '-hn',
                            metavar='<hostname>',
                            default=vipr_ip,
                            dest='ip',
-                           help='Hostname (fully qualifiled domain name) ' +
+                           help='Hostname (fully qualified domain name) ' +
                            'or IPv4 address (i.e. 192.0.2.0) or IPv6 address' +
                            ' inside quotes and brackets ' +
                            '(i.e. "[2001:db8::1]") of ViPR')
@@ -129,6 +132,7 @@ def display_version():
 # register module specific parsers with the common_parser
 module_parsers = main_parser.add_subparsers(help='Use One Of Commands')
 
+volumegroup.volume_group_parser(module_parsers, common_parser)
 authentication.authenticate_parser(module_parsers, vipr_ip, vipr_port)
 authentication.logout_parser(module_parsers, vipr_ip, vipr_port)
 authentication.authentication_parser(module_parsers, common_parser)
@@ -177,6 +181,9 @@ vnasserver.vnasserver_parser(module_parsers, common_parser)
 computeimageserver.computeimageserver_parser(module_parsers, common_parser)
 bucket.bucket_parser(module_parsers, common_parser)
 ipsecmanager.ipsec_parser(module_parsers, common_parser)
+snapshotsession.snapshotsession_parser(module_parsers, common_parser)
+schedulepolicy.schedulepolicy_parser(module_parsers, common_parser)
+objectuser.objectuser_parser(module_parsers, common_parser)
 network.network_parser(module_parsers, common_parser)
 
 

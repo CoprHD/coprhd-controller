@@ -26,8 +26,6 @@ public class ProtectionSystemList {
     /**
      * The list of all Protection Systems
      * 
-     * @valid 0 or more Protection System IDs
-     * @valid example: urn:storageos:ProtectionSystem:4379693c-c2f9-4e8e-ac4f-c67789cf1934:
      */
     @XmlElement(name = "protection_system")
     public List<NamedRelatedResourceRep> getSystems() {

@@ -29,7 +29,6 @@ public class FileVirtualPoolReplicationParam {
     /**
      * The file replication protection virtual array settings for a virtual pool.
      * 
-     * @valid none
      */
     @XmlElement(name = "protection_varray_vpool", required = false)
     public Set<VirtualPoolRemoteProtectionVirtualArraySettingsParam> getCopies() {
@@ -46,7 +45,6 @@ public class FileVirtualPoolReplicationParam {
     /**
      * The file replication protection policy for a virtual pool.
      * 
-     * @valid none
      */
     @XmlElement(name = "file_replication_policy")
     public FileReplicationPolicy getSourcePolicy() {

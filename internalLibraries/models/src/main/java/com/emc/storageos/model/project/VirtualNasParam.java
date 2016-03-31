@@ -22,7 +22,6 @@ public class VirtualNasParam {
     /**
      * Returned list of Virtual NAS Servers.
      * 
-     * @valid none
      */
     private Set<String> vnasServers;
 
@@ -37,7 +36,6 @@ public class VirtualNasParam {
      * List of Virtual NAS. A Virtual NAS represents a
      * virtual NAS server of a storage device.
      * 
-     * @valid none
      */
     @XmlElement(name = "vnas_server")
     public Set<String> getVnasServers() {

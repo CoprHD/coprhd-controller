@@ -32,6 +32,7 @@ public class Control {
     private Logger log = LoggerFactory.getLogger(getClass());
 
     private static final String NODE_ID_PARAM = "node_id";
+    private static final String NODE_NAME_PARAM = "node_name";
     private static final String NAME_PARAM = "name";
     private static final String FORCE_PARAM = "force";
     private static final String FORCE_VALUE = "1";
@@ -60,6 +61,21 @@ public class Control {
     }
 
     /**
+     * Restart a service on a virtual machine by node name.
+     * <p>
+     * API Call: POST /control/service/restart
+     *
+     * @param nodeName Virtual machine name
+     * @param name Service name
+     */
+    public void restartServiceByNodeName(String nodeName, String name) {
+        UriBuilder builder = client.uriBuilder(CONTROL_RESTART_URL);
+        addQueryParam(builder, NODE_NAME_PARAM, nodeName);
+        addQueryParam(builder, NAME_PARAM, name);
+        client.postURI(String.class, builder.build());
+    }
+
+    /**
      * Reboot a virtual machine.
      * <p>
      * API Call: POST /control/node/reboot
@@ -69,6 +85,19 @@ public class Control {
     public void rebootNode(String nodeId) {
         UriBuilder builder = client.uriBuilder(CONTROL_REBOOT_NODE_URL);
         addQueryParam(builder, NODE_ID_PARAM, nodeId);
+        client.postURI(String.class, builder.build());
+    }
+
+    /**
+     * Reboot a virtual machine by node name.
+     * <p>
+     * API Call: POST /control/node/reboot
+     *
+     * @param nodeName Virtual machine name
+     */
+    public void rebootNodeByNodeName(String nodeName) {
+        UriBuilder builder = client.uriBuilder(CONTROL_REBOOT_NODE_URL);
+        addQueryParam(builder, NODE_NAME_PARAM, nodeName);
         client.postURI(String.class, builder.build());
     }
 
@@ -150,7 +179,8 @@ public class Control {
      * <p>
      * API Call: POST /cluster/ipreconfig
      * 
-     * @param ClusterIpInfo
+     * @param clusterIpInfo
+     * @param powerOff
      * @return boolean
      */
     public boolean reconfigClusterIps(ClusterIpInfo clusterIpInfo, boolean powerOff) {

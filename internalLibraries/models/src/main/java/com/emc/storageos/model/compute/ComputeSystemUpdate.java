@@ -74,7 +74,6 @@ public class ComputeSystemUpdate {
      * Specifies whether to use SSL (Secure Sockets Layer)
      * as the authentication method.
      * 
-     * @valid none
      */
     @XmlElement(name = "use_ssl")
     public Boolean getUseSSL() {

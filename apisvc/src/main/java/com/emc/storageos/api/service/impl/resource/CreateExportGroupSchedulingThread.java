@@ -74,7 +74,7 @@ class CreateExportGroupSchedulingThread implements Runnable {
             List<URI> affectedInitiators = this.exportGroupService.validateClientsAndPopulate(exportGroup,
                     project, virtualArray, storageMap.keySet(),
                     clusters, hosts, initiators,
-                    volumeMap.keySet());
+                    volumeMap.keySet(), pathParam);
             _log.info("Initiators {} will be used.", affectedInitiators);
             
             // If ExportPathParameter block is present, and volumes are present, capture those arguments.

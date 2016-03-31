@@ -38,7 +38,7 @@ public interface IngestionExceptions {
     public IngestionException unmanagedVolumeAlreadyIngested(String unManagedVolume);
 
     @DeclareServiceCode(ServiceCode.UNMANAGED_VOLUME_INGESTION_EXCEPTION)
-    public IngestionException unmanagedVolumeNotIngestable(String unManagedVolume);
+    public IngestionException unmanagedVolumeNotIngestable(String unManagedVolume, String reason);
 
     @DeclareServiceCode(ServiceCode.UNMANAGED_VOLUME_INGESTION_EXCEPTION)
     public IngestionException couldNotCreateVolume(String message);
@@ -98,7 +98,10 @@ public interface IngestionExceptions {
     public IngestionException unmanagedVolumeIsNotVisible(String unManagedVolume, String taskStatus);
 
     @DeclareServiceCode(ServiceCode.UNMANAGED_VOLUME_INGESTION_EXCEPTION)
-    public IngestionException unmanagedVolumeMasksNotIngested(String unManagedVolume, String messages);
+    public IngestionException unmanagedVolumeMasksNotIngested(String unManagedVolume);
+
+    @DeclareServiceCode(ServiceCode.UNMANAGED_VOLUME_INGESTION_EXCEPTION)
+    public IngestionException unmanagedVolumeMasksNotIngestedAdditionalInfo(String unManagedVolume, String messages);
 
     @DeclareServiceCode(ServiceCode.UNMANAGED_VOLUME_INGESTION_EXCEPTION)
     public IngestionException snapshotVpoolSpecifiesSrdf(String unManagedVolume);
@@ -214,7 +217,22 @@ public interface IngestionExceptions {
 
     @DeclareServiceCode(ServiceCode.UNMANAGED_VOLUME_INGESTION_EXCEPTION)
     public IngestionException rpUnManagedTargetVolumeInImageAccessState(String nativeGuid, String rpAccessState);
-    
+
     @DeclareServiceCode(ServiceCode.UNMANAGED_VOLUME_INGESTION_EXCEPTION)
     public IngestionException vplexVolumeCannotHaveReplicasOnBothLegs(String details);
+
+    @DeclareServiceCode(ServiceCode.UNMANAGED_VOLUME_INGESTION_EXCEPTION)
+    public IngestionException rpUnManagedVolumeCannotHaveMirrors(String volLabel, String mirrors);
+
+    @DeclareServiceCode(ServiceCode.UNMANAGED_VOLUME_INGESTION_EXCEPTION)
+    public IngestionException cannotIngestMirrorsOfRPVolumes(String mirrorLabel, String parentLabel);
+
+    @DeclareServiceCode(ServiceCode.UNMANAGED_VOLUME_INGESTION_EXCEPTION)
+    public IngestionException validationFailedRPIngestionVpoolMisalignment(String volumeName, String targetVarrayNames, String varrayName);
+
+    @DeclareServiceCode(ServiceCode.UNMANAGED_VOLUME_INGESTION_EXCEPTION)
+    public IngestionException validationFailedRPIngestionMissingTargets(String varrayNames);
+
+    @DeclareServiceCode(ServiceCode.UNMANAGED_VOLUME_INGESTION_EXCEPTION)
+    public IngestionException validationFailedRPIngestionMissingVolume(String volumeID, String cgName);
 }

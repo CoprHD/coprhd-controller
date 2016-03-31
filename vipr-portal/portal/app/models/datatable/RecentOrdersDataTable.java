@@ -59,7 +59,7 @@ public class RecentOrdersDataTable extends OrderDataTable {
         Date startTime = calculateStartTime();
         Date endTime = now();
 
-        List<OrderRestRep> orders = OrderUtils.findByTimeRange(startTime, endTime);
+        List<OrderRestRep> orders = OrderUtils.findByTimeRange(startTime, endTime, tenantId);
         if (userInfo != null) {
             filterByUserId(orders);
         }

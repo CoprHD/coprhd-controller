@@ -1,0 +1,80 @@
+#!/bin/bash
+
+### BEGIN INIT INFO
+# Provides:          WIN
+# Required-Start:    SimService ECOM80 ECOM462
+# Required-Stop:
+# Should-Stop:
+# Default-Start:     3 5
+# Default-Stop:
+# Description:       starts WIN simulator
+### END INIT INFO
+#. /etc/rc.d/init.d/functions
+. /lib/lsb/init-functions
+. /etc/rc.status
+
+RETVAL=0
+WIN_HOME=/data/simulators/win-sim
+DELAY=60
+
+start() {
+        echo -n $"Starting WIN simulator:..hold on 10sec .."
+		cd ${WIN_HOME}
+        java -jar libs/WindowsSimulator-0.1.jar $* >/var/log/WIN.log 2>&1 &
+        RETVAL=$?
+
+        while [ $DELAY -gt 0 ]; do
+        #echo "delay $DELAY"
+	if [ -f "${WIN_HOME}/logs/windowsSimulator.log" ] ; then 
+	 START=`pgrep -f WindowsSimulator-0.1.jar | wc -l`
+         if [ "${START}" != "" ] ; then
+           echo "${START}" >> /var/log/WIN.log 2>&1  
+           echo "..OK"
+           return
+         fi
+        fi
+        sleep 2
+        DELAY=$((DELAY -1))
+       done
+
+       echo "Failed to start in 60 sec..try manual start" >> /var/log/WIN.log 2>&1
+}
+
+stop() {
+
+        echo -n $"Stopping WIN: "
+	#rm -f ${WIN_HOME}/log/* >>/var/log/WIN.log 2>&1
+        pkill -9 -f WindowsSimulator-0.1.jar >> /var/log/WIN.log 2>&1
+        RETVAL=$?
+	echo  "..Done"
+}
+
+
+
+case "$1" in
+  start)
+        start
+        ;;
+  stop)
+        stop
+        ;;
+  status)
+    	cnt=`pgrep -f WindowsSimulator.*.jar | wc -l`
+	if(test $cnt -eq 1) ;
+	then
+		echo "WIN simulator already running..."
+	else
+		echo "WIN simulator not running."
+	fi 
+    #    rc_status -v
+        ;;
+  *)
+        echo $"Usage: WIN {start|stop|status}"
+        exit 1
+        exit 1
+esac
+
+
+exit $RETVAL
+
+

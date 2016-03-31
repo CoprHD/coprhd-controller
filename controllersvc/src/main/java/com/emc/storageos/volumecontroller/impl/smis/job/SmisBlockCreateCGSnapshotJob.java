@@ -116,7 +116,7 @@ public class SmisBlockCreateCGSnapshotJob extends SmisSnapShotJob {
                                 syncVolumePath.toString(), snapshot.getId().toString(),
                                 syncDeviceID, elementName, replicationGroupInstance,
                                 volumePath.toString()));
-                        dbClient.persistObject(snapshot);
+                        dbClient.updateObject(snapshot);
                         getTaskCompleter().ready(dbClient);
                     }
                 }

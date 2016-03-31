@@ -27,7 +27,6 @@ public class SanZones {
     /**
      * A list of San Zones. Each zone has a name and a list of zone members.
      * 
-     * @valid none
      */
     @XmlElement(name = "san_zone")
     public List<SanZone> getZones() {

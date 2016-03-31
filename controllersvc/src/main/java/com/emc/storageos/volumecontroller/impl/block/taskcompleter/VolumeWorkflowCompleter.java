@@ -33,6 +33,7 @@ public class VolumeWorkflowCompleter extends VolumeTaskCompleter {
 
     @Override
     protected void complete(DbClient dbClient, Operation.Status status, ServiceCoded serviceCoded) {
+        _log.info("complete is called");
         switch (status) {
             case error:
                 for (URI id : getIds()) {
@@ -43,6 +44,7 @@ public class VolumeWorkflowCompleter extends VolumeTaskCompleter {
                 }
                 break;
             case ready:
+                _log.info("ready");
                 for (URI id : getIds()) {
                     dbClient.ready(Volume.class, id, getOpId());
                 }

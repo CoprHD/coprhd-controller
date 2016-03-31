@@ -1,0 +1,20 @@
+{
+  baseKey:"FailoverFileSystem.File",
+  serviceId:"FailoverFileSystem",
+  fields:{
+
+    project:{
+      type:"assetType.vipr.project",
+      lockable: true
+    },
+    
+    fileSystem:{
+      type:"assetType.vipr.protectedRemoteFileSystem",
+      lockable: true
+    },
+    
+    failoverTargetFile:{
+      type:"assetType.vipr.failoverFileTarget"
+    }
+  }
+}

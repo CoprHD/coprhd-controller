@@ -32,7 +32,6 @@ public class InitiatorParam {
     /**
      * The host name of the initiator
      * 
-     * @valid none
      */
     @XmlElement(name = "hostname", required = true)
     public String getHostName() {
@@ -46,7 +45,6 @@ public class InitiatorParam {
     /**
      * The FC initiator WWN of the initiator node
      * 
-     * @valid none
      */
     @XmlElement(name = "initiator_node", required = false)
     public String getNode() {
@@ -60,7 +58,6 @@ public class InitiatorParam {
     /**
      * The initiator port which can be the WWN of an FC port or the IQN or EUI of an iSCSI port
      * 
-     * @valid none
      */
     @XmlElement(name = "initiator_port", required = true)
     public String getPort() {
@@ -74,7 +71,6 @@ public class InitiatorParam {
     /**
      * The protocols supported by the initiator which should be FC or iSCSI
      * 
-     * @valid none
      */
     @XmlElement(name = "protocol", required = true)
     public String getProtocol() {
@@ -88,7 +84,6 @@ public class InitiatorParam {
     /**
      * The name of the initiator's cluster
      * 
-     * @valid none
      */
     @XmlElement(name = "clustername", required = false)
     public String getClusterName() {

@@ -17,10 +17,13 @@ import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.BlockSnapshotSession;
+import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
+import com.emc.storageos.model.block.VolumeDeleteTypeEnum;
+import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.volumecontroller.BlockController;
 
@@ -124,13 +127,13 @@ public class VMAX3BlockSnapshotSessionApiImpl extends DefaultBlockSnapshotSessio
      * {@inheritDoc}
      */
     @Override
-    public void createSnapshotSession(BlockObject sourceObj, List<URI> snapSessionURIs,
-            Map<URI, List<URI>> snapSessionSnapshotMap, String copyMode, String taskId) {
+    public void createSnapshotSession(BlockObject sourceObj, URI snapSessionURI,
+            List<List<URI>> snapSessionSnapshotURIs, String copyMode, String taskId) {
         // Invoke the BlockDeviceController to create the array snapshot session and create and link
         // target volumes as necessary.
         StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, sourceObj.getStorageController());
         BlockController controller = getController(BlockController.class, storageSystem.getSystemType());
-        controller.createSnapshotSession(storageSystem.getId(), snapSessionURIs, snapSessionSnapshotMap, copyMode, taskId);
+        controller.createSnapshotSession(storageSystem.getId(), snapSessionURI, snapSessionSnapshotURIs, copyMode, taskId);
     }
 
     /**
@@ -151,7 +154,7 @@ public class VMAX3BlockSnapshotSessionApiImpl extends DefaultBlockSnapshotSessio
      */
     @Override
     public void linkNewTargetVolumesToSnapshotSession(BlockObject snapSessionSourceObj, BlockSnapshotSession snapSession,
-            List<URI> snapshotURIs, String copyMode, String taskId) {
+                                                      List<List<URI>> snapshotURIs, String copyMode, String taskId) {
         // Invoke the BlockDeviceController to create and link new target
         // volumes to the passed snapshot session.
         StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, snapSessionSourceObj.getStorageController());
@@ -177,12 +180,12 @@ public class VMAX3BlockSnapshotSessionApiImpl extends DefaultBlockSnapshotSessio
      */
     @Override
     public void unlinkTargetVolumesFromSnapshotSession(BlockObject snapSessionSourceObj, BlockSnapshotSession snapSession,
-            Map<URI, Boolean> snapshotDeletionMap, String taskId) {
+            Map<URI, Boolean> snapshotDeletionMap, OperationTypeEnum opType, String taskId) {
         // Invoke the BlockDeviceController to unlink the targets
         // from the snapshot session.
         StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, snapSessionSourceObj.getStorageController());
         BlockController controller = getController(BlockController.class, storageSystem.getSystemType());
-        controller.unlinkTargetsFromSnapshotSession(storageSystem.getId(), snapSession.getId(), snapshotDeletionMap, taskId);
+        controller.unlinkTargetsFromSnapshotSession(storageSystem.getId(), snapSession.getId(), snapshotDeletionMap, opType, taskId);
     }
 
     /**
@@ -200,10 +203,23 @@ public class VMAX3BlockSnapshotSessionApiImpl extends DefaultBlockSnapshotSessio
      * {@inheritDoc}
      */
     @Override
-    public void deleteSnapshotSession(BlockSnapshotSession snapSession, BlockObject snapSessionSourceObj, String taskId) {
-        // Invoke the BlockDeviceController to delete the snapshot session.
-        StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, snapSessionSourceObj.getStorageController());
-        BlockController controller = getController(BlockController.class, storageSystem.getSystemType());
-        controller.deleteSnapshotSession(storageSystem.getId(), snapSession.getId(), taskId);
+    public void deleteSnapshotSession(BlockSnapshotSession snapSession, BlockObject snapSessionSourceObj, String taskId, String deleteType) {
+        if (VolumeDeleteTypeEnum.VIPR_ONLY.name().equals(deleteType)) {
+            // Update the task status for the session.
+            // Note that we must get the session form the database to get the latest status map.
+            BlockSnapshotSession updatedSession = _dbClient.queryObject(BlockSnapshotSession.class, snapSession.getId());
+            Operation op = updatedSession.getOpStatus().get(taskId);
+            op.ready("Snapshot session succesfully deleted from ViPR");
+            updatedSession.getOpStatus().updateTaskStatus(taskId, op);
+            _dbClient.updateObject(updatedSession);
+
+            // Mark the snapshot session for deletion.
+            _dbClient.markForDeletion(updatedSession);
+        } else {
+            // Invoke the BlockDeviceController to delete the snapshot session.
+            StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, snapSessionSourceObj.getStorageController());
+            BlockController controller = getController(BlockController.class, storageSystem.getSystemType());
+            controller.deleteSnapshotSession(storageSystem.getId(), snapSession.getId(), taskId);
+        }
     }
 }

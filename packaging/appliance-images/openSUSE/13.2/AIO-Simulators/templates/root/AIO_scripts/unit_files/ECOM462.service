@@ -1,0 +1,14 @@
+[Unit]
+Description=The ECOM 4.6.2 simulator
+After=CISCO.service
+
+[Service]
+Type=forking
+TimeoutStartSec="3min"
+ExecStart=/etc/init.d/ECOM462 start
+ExecStop=/etc/init.d/ECOM462 stop
+
+[Install]
+WantedBy=multi-user.target
+
+

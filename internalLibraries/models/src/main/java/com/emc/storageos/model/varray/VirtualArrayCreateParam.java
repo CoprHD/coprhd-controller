@@ -27,7 +27,6 @@ public class VirtualArrayCreateParam extends VirtualArrayParam {
     /**
      * The name of the virtual array.
      * 
-     * @valid none
      */
     @XmlElement(required = true, name = "name")
     @Length(min = 2, max = 128)

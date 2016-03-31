@@ -279,7 +279,7 @@ public abstract class DefaultBlockStorageDevice implements BlockStorageDevice, R
 
     @Override
     public void doCreateConsistencyGroup(StorageSystem storage,
-            URI consistencyGroup, TaskCompleter taskCompleter)
+            URI consistencyGroup, String replicationGroupName, TaskCompleter taskCompleter)
             throws DeviceControllerException {
         throw DeviceControllerException.exceptions
                 .blockDeviceOperationNotSupported();
@@ -287,7 +287,7 @@ public abstract class DefaultBlockStorageDevice implements BlockStorageDevice, R
 
     @Override
     public void doDeleteConsistencyGroup(StorageSystem storage,
-            URI consistencyGroup, Boolean markInactive, TaskCompleter taskCompleter)
+            URI consistencyGroup, String replicationGroupName, Boolean keepRGName, Boolean markInactive, TaskCompleter taskCompleter)
             throws DeviceControllerException {
         throw DeviceControllerException.exceptions
                 .blockDeviceOperationNotSupported();
@@ -376,7 +376,7 @@ public abstract class DefaultBlockStorageDevice implements BlockStorageDevice, R
 
     @Override
     public void doAddToConsistencyGroup(StorageSystem storage,
-            URI consistencyGroupId, List<URI> blockObjects,
+            URI consistencyGroupId, String replicationGroupName, List<URI> blockObjects,
             TaskCompleter taskCompleter) throws DeviceControllerException {
         throw DeviceControllerException.exceptions
                 .blockDeviceOperationNotSupported();
@@ -526,7 +526,7 @@ public abstract class DefaultBlockStorageDevice implements BlockStorageDevice, R
     }
 
     @Override
-    public void doAddVolumePairsToCg(StorageSystem system, List<URI> sources, URI remoteDirectorGroup, boolean forceAdd,
+    public void doAddVolumePairsToCg(StorageSystem system, List<URI> sources, URI remoteDirectorGroup,
             TaskCompleter completer) {
         throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
     }
@@ -537,7 +537,8 @@ public abstract class DefaultBlockStorageDevice implements BlockStorageDevice, R
     }
 
     @Override
-    public void doCreateListReplicas(StorageSystem system, List<URI> sources, List<URI> targets, TaskCompleter completer) {
+    public void doCreateListReplicas(StorageSystem system, List<URI> sources, List<URI> targets, boolean addWaitForCopyState,
+            TaskCompleter completer) {
         throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
     }
 
@@ -563,12 +564,13 @@ public abstract class DefaultBlockStorageDevice implements BlockStorageDevice, R
     }
 
     @Override
-    public void doSuspendLink(StorageSystem system, Volume target, boolean consExempt, TaskCompleter completer) {
+    public void doSuspendLink(StorageSystem system, Volume target, boolean consExempt, boolean refreshVolumeProperties,
+            TaskCompleter completer) {
         throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
     }
 
     @Override
-    public void doResumeLink(StorageSystem system, Volume target, TaskCompleter completer) {
+    public void doResumeLink(StorageSystem system, Volume target, boolean refreshVolumeProperties, TaskCompleter completer) {
         throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
     }
 
@@ -635,6 +637,11 @@ public abstract class DefaultBlockStorageDevice implements BlockStorageDevice, R
     }
 
     @Override
+    public void refreshVolumeProperties(URI systemURI, List<URI> volumeURIs) throws Exception {
+        throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
+    }
+
+    @Override
     public void doResyncSnapshot(StorageSystem storage, URI volume,
             URI snapshot, TaskCompleter taskCompleter)
             throws DeviceControllerException {
@@ -697,10 +704,20 @@ public abstract class DefaultBlockStorageDevice implements BlockStorageDevice, R
     }
 
     @Override
+    public void doFractureListReplica(StorageSystem storage, List<URI> replicaList, Boolean sync, TaskCompleter taskCompleter) throws DeviceControllerException {
+        throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
+    }
+
+    @Override
+    public void doDeleteListReplica(StorageSystem storage, List<URI> replicaList, TaskCompleter taskCompleter) throws DeviceControllerException {
+        throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
+    }
+
+    @Override
     public Map<URI, Integer> getExportMaskHLUs(StorageSystem storage, ExportMask exportMask) {
         return Collections.EMPTY_MAP;
     }
-    
+
     @Override
     public void doUntagVolumes(StorageSystem storageSystem, String opId, List<Volume> volumes,
             TaskCompleter taskCompleter) throws DeviceControllerException {
@@ -712,7 +729,7 @@ public abstract class DefaultBlockStorageDevice implements BlockStorageDevice, R
      * {@inheritDoc}
      */
     @Override
-    public void doCreateSnapshotSession(StorageSystem system, List<URI> snapSessionURIs, TaskCompleter completer)
+    public void doCreateSnapshotSession(StorageSystem system, URI snapSessionURI, String groupName, TaskCompleter completer)
             throws DeviceControllerException {
         throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
     }
@@ -723,6 +740,12 @@ public abstract class DefaultBlockStorageDevice implements BlockStorageDevice, R
     @Override
     public void doLinkBlockSnapshotSessionTarget(StorageSystem system, URI snapSessionURI, URI snapShotURI,
             String copyMode, Boolean targetExists, TaskCompleter completer) throws DeviceControllerException {
+        throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
+    }
+
+    @Override
+    public void doLinkBlockSnapshotSessionTargetGroup(StorageSystem system, URI snapshotSessionURI, List<URI> snapSessionSnapshotURIs,
+            String copyMode, Boolean targetsExist, TaskCompleter completer) throws DeviceControllerException {
         throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
     }
 
@@ -757,8 +780,25 @@ public abstract class DefaultBlockStorageDevice implements BlockStorageDevice, R
      * {@inheritDoc}
      */
     @Override
-    public void doDeleteBlockSnapshotSession(StorageSystem system, URI snapSessionURI, TaskCompleter completer)
+    public void doDeleteBlockSnapshotSession(StorageSystem system, URI snapSessionURI, String groupName, TaskCompleter completer)
             throws DeviceControllerException {
         throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void doAddSnapshotSessionsToConsistencyGroup(StorageSystem storageSystem, URI consistencyGroup, List<URI> addVolumesList, TaskCompleter taskCompleter) {
+        throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
+    }
+    
+    @Override
+    public void doDeleteConsistencyGroup(StorageSystem storage,
+            URI consistencyGroup, String replicationGroupName, Boolean keepRGName, Boolean markInactive, 
+            String sourceReplicationGroup, TaskCompleter taskCompleter)
+            throws DeviceControllerException {
+        throw DeviceControllerException.exceptions
+                .blockDeviceOperationNotSupported();
     }
 }

@@ -16,6 +16,7 @@ import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.DiscoveryStatus;
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.upgrade.BaseCustomMigrationCallback;
+import com.emc.storageos.svcs.errorhandling.resources.MigrationCallbackException;
 
 public class StoragePoolDiscoveryStatusMigration extends
         BaseCustomMigrationCallback {
@@ -23,7 +24,7 @@ public class StoragePoolDiscoveryStatusMigration extends
     private static final Logger log = LoggerFactory.getLogger(StoragePoolDiscoveryStatusMigration.class);
 
     @Override
-    public void process() {
+    public void process() throws MigrationCallbackException {
         DbClient dbClient = getDbClient();
         List<URI> poolIds = dbClient.queryByType(StoragePool.class, true);
         Iterator<StoragePool> pools = dbClient.queryIterativeObjects(StoragePool.class, poolIds);

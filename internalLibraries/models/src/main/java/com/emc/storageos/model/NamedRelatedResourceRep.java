@@ -25,7 +25,6 @@ public class NamedRelatedResourceRep extends RelatedResourceRep {
     /**
      * The name of the resource
      * 
-     * @valid none
      */
     @XmlElement(name = "name")
     public String getName() {

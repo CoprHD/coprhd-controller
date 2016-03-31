@@ -33,7 +33,6 @@ public class VirtualArrayUpdateParam extends VirtualArrayParam {
     /**
      * The new name for the virtual array.
      * 
-     * @valid none
      */
     @XmlElement(required = false, name = "name")
     @Length(min = 2, max = 128)

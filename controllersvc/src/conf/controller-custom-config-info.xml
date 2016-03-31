@@ -57,6 +57,7 @@
                 <ref bean="vplexVmaxMaskingViewMaximumVolumes"/>
                 <ref bean="nasDynamicPerformancePlacementEnabled"/>
                 <ref bean="nasUsePhysicalNASForProvisioning"/>
+                <ref bean="nasShareVNASWithMultipleProjects"/>
             </list>
         </property>
     </bean>
@@ -822,6 +823,22 @@
             <map>
                 <entry key="global" value="default"/>
 				<entry key="systemType" value="isilon"/>
+            </map>
+        </property>
+        <property name="defaultValues">
+            <map>
+                <entry key="default" value="true"/>
+            </map>
+        </property>
+    </bean>
+    
+    <bean id="nasShareVNASWithMultipleProjects" class="com.emc.storageos.customconfigcontroller.CustomConfigType">
+    	<property name="name" value="NasShareVNASWithMultipleProjects"/>
+        <property name="configType" value="SimpleValue"/>
+        <property name="type" value="Boolean"/>
+        <property name="scope">
+            <map>
+                <entry key="global" value="default"/>
             </map>
         </property>
         <property name="defaultValues">

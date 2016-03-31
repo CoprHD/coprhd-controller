@@ -29,7 +29,6 @@ public abstract class ComputeSystemRestRep extends DiscoveredSystemObjectRestRep
     /**
      * The tenant organization of the host.
      * 
-     * @valid String
      * @return the tenant organization of the host.
      */
     @XmlElement(name = "tenant")

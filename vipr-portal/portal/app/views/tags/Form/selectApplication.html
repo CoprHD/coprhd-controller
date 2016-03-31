@@ -1,0 +1,30 @@
+%{
+  fieldName = _fieldName ?: 'application'
+  applications = _applications ?: _caller.applications
+  selectedApplication =  _selectedApplication ?: _caller.selectedApplication
+  
+}%
+<span class="application-select">
+  #{field fieldName}
+    %{
+      
+      field.options = applications
+      field.value = selectedApplication
+      field.cssClass = 'input-sm'
+     
+    }%
+    <label for="${field.id}">&{'applicationGroup.resources.title'}:</label>
+    #{Form.selectOne field:field /}
+  #{/field}
+</span>
+<style type="text/css">
+.application-select .chosen-container {
+	  min-width: 250px;
+	}
+.filter-select .chosen-container {
+	min-width: 250px;
+}
+.project-select + .application-select {
+  margin-left: 10px;
+}
+</style>

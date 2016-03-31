@@ -38,7 +38,6 @@ public class StoragePortUpdate extends VirtualArrayResourceUpdateParam {
     /**
      * The new network for a storage port update request
      * 
-     * @valid example: a valid URI.
      */
     @XmlElement(name = "network")
     public URI getNetwork() {
@@ -55,7 +54,6 @@ public class StoragePortUpdate extends VirtualArrayResourceUpdateParam {
      * This is only applicable to Cinder storage system
      * as currently there is no API to discover it from Cinder.
      * 
-     * @valid example: FC - port WWN,
      *        IP - iSCSI Qualified Name (IQN) or Extended Unique Identifier (EUI)
      */
     @XmlElement(name = "port_network_id", nillable = true)

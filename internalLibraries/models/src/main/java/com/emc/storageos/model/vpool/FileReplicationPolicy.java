@@ -27,8 +27,9 @@ public class FileReplicationPolicy {
     /**
      * The remote copy mode, sync or async
      * 
-     * @valid ASYNCHRONOUS = Replication  will be in Asynchronous mode (default)
-     * @valid SYNCHRONOUS = Replication will be in Synchronous mode
+     * Valid values:
+     *     ASYNCHRONOUS = Replication  will be in Asynchronous mode (default)
+     *     SYNCHRONOUS = Replication will be in Synchronous mode
      */
     @XmlElement(name = "copy_mode", required = false)
     public String getCopyMode() {
@@ -56,8 +57,9 @@ public class FileReplicationPolicy {
     /**
      * Type of RPO unit
      * 
-     * @valid MINUTES = Minutes (time-based RPO)
-     * @valid HOURS = Hours (time-based RPO)
+     * Valid values:
+     *     MINUTES = Minutes (time-based RPO)
+     *     HOURS = Hours (time-based RPO)
      */
     @XmlElement(name = "rpo_type", required = false)
     public String getRpoType() {
@@ -71,9 +73,10 @@ public class FileReplicationPolicy {
     /**
      * Type of file replication
      *  
-     * @valid LOCAL
-     * @valid REMOTE
-     * @valid NONE
+     * Valid values:
+     *     LOCAL
+     *     REMOTE
+     *     NONE
      */
     @XmlElement(name = "replication_type", required = false)
     public String getReplicationType() {

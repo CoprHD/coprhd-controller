@@ -32,6 +32,7 @@ import com.emc.storageos.coordinator.client.service.DrUtil;
 import com.emc.storageos.coordinator.client.service.LeaderSelectorListenerForPeriodicTask;
 import com.emc.storageos.coordinator.client.service.impl.DistributedLockQueueScheduler;
 import com.emc.storageos.coordinator.client.service.impl.LeaderSelectorListenerImpl;
+import com.emc.storageos.coordinator.client.service.DrPostFailoverHandler.QueueCleanupHandler;
 import com.emc.storageos.customconfigcontroller.impl.CustomConfigHandler;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.StorageSystem.Discovery_Namespaces;
@@ -39,6 +40,7 @@ import com.emc.storageos.db.common.DataObjectScanner;
 import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.hds.api.HDSApiFactory;
+import com.emc.storageos.isilon.restapi.IsilonApiFactory;
 import com.emc.storageos.locking.DistributedOwnerLockServiceImpl;
 import com.emc.storageos.plugins.BaseCollectionException;
 import com.emc.storageos.plugins.StorageSystemViewObject;
@@ -123,6 +125,7 @@ public class ControllerServiceImpl implements ControllerService {
     private CIMConnectionFactory _cimConnectionFactory;
     private VPlexApiFactory _vplexApiFactory;
     private HDSApiFactory hdsApiFactory;
+    private IsilonApiFactory isilonApiFactory;
     private CinderApiFactory cinderApiFactory;
     private VNXeApiClientFactory _vnxeApiClientFactory;
     private SmisCommandHelper _helper;
@@ -138,7 +141,9 @@ public class ControllerServiceImpl implements ControllerService {
     private DistributedLockQueueManager _lockQueueManager;
     private ControlRequestTaskConsumer _controlRequestTaskConsumer;
     private DrUtil _drUtil;
-
+    private ControllerWorkflowCleanupHandler _drWorkflowCleanupHandler;
+    private QueueCleanupHandler _drQueueCleanupHandler;
+    
     ManagedCapacityImpl _capacityCompute;
     LeaderSelector _capacityService;
 
@@ -437,31 +442,30 @@ public class ControllerServiceImpl implements ControllerService {
         // Watson
         Thread.sleep(30000);        // wait 30 seconds for database to connect
         _log.info("Waiting done");
+        _drQueueCleanupHandler.run();
+        
         _dispatcher.start();
 
         _jobTracker.setJobContext(new JobContext(_dbClient, _cimConnectionFactory,
-                _vplexApiFactory, hdsApiFactory, cinderApiFactory, _vnxeApiClientFactory, _helper, _xivSmisCommandHelper));
+                _vplexApiFactory, hdsApiFactory, cinderApiFactory, _vnxeApiClientFactory, _helper, _xivSmisCommandHelper, isilonApiFactory));
         _jobTracker.start();
         _jobQueue = _coordinator.getQueue(JOB_QUEUE_NAME, _jobTracker,
                 new QueueJobSerializer(), DEFAULT_MAX_THREADS);
         _workflowService.start();
         _distributedOwnerLockService.start();
-
+        
         /**
          * Lock used in making Scanning/Discovery mutually exclusive.
          */
-
         for (Lock lock : Lock.values()) {
             lock.setLock(_coordinator.getLock(lock.toString()));
         }
-
         /**
          * Discovery Queue, an instance of DistributedQueueImpl in
          * CoordinatorService,which holds Discovery Jobs. On starting
          * discoveryConsumer, a new ScheduledExecutorService is instantiated,
          * which schedules Loading Devices from DB every X minutes.
          */
-
         _discoverJobConsumer.start();
         _computeDiscoverJobConsumer.start();
         _scanJobConsumer.start();
@@ -474,12 +478,13 @@ public class ControllerServiceImpl implements ControllerService {
                 new DataCollectionJobSerializer(), Integer.parseInt(_configInfo.get(METERING_COREPOOLSIZE)), 200);
         _scanJobQueue = _coordinator.getQueue(SCAN_JOB_QUEUE_NAME, _scanJobConsumer,
                 new DataCollectionJobSerializer(), 1, 50);
+        
         /**
          * Monitoring use cases starts here
          */
         _monitoringJobQueue = _coordinator.getQueue(MONITORING_JOB_QUEUE_NAME, _monitoringJobConsumer,
                 new DataCollectionJobSerializer(), DEFAULT_MAX_THREADS);
-
+        
         /**
          * Adds listener class for zk connection state change.
          * This listener will release local CACHE while zk connection RECONNECT.
@@ -490,15 +495,16 @@ public class ControllerServiceImpl implements ControllerService {
          */
         _monitoringJobConsumer.start();
 
+        startLockQueueService();
+        
+        _drWorkflowCleanupHandler.run();
+        
         _jobScheduler.start();
 
         _svcBeacon.start();
 
-        startLockQueueService();
-
         startCapacityService();
         loadCustomConfigDefaults();
-        checkSiteStateForFailover();
     }
 
     @Override
@@ -731,21 +737,20 @@ public class ControllerServiceImpl implements ControllerService {
         _controlRequestTaskConsumer = consumer;
     }
 
-    public void setDrUtil(DrUtil drUtil) {
-        this._drUtil = drUtil;
+    public void setDrWorkflowCleanupHandler(ControllerWorkflowCleanupHandler drFailoverHandler) {
+        this._drWorkflowCleanupHandler = drFailoverHandler;
     }
     
-    private void checkSiteStateForFailover() {
-        try {
-            Site site = _drUtil.getLocalSite();
-            
-            if (site.getState().equals(SiteState.STANDBY_FAILING_OVER)) {
-                _log.info("Site state is STANDBY_FAILING_OVER, set it to PRIMARY");
-                site.setState(SiteState.ACTIVE);
-                _coordinator.persistServiceConfiguration(site.toConfiguration());
-            }
-        } catch (Exception e) {
-            _log.error("Failed to check site state for failover");
-        }
+    public void setDrQueueCleanupHandler(QueueCleanupHandler drFailoverHandler) {
+        this._drQueueCleanupHandler = drFailoverHandler;
     }
+    
+    public IsilonApiFactory getIsilonApiFactory() {
+        return isilonApiFactory;
+    }
+
+    public void setIsilonApiFactory(IsilonApiFactory isilonApiFactory) {
+        this.isilonApiFactory = isilonApiFactory;
+    }
+
 }

@@ -36,7 +36,6 @@ public class VolumeExportIngestParam {
     /**
      * VirtualPool to be associated with a list of unmanaged volumes to be ingested.
      * 
-     * @valid example: a valid URI of a vpool
      */
     @XmlElement(required = true)
     public URI getVpool() {
@@ -50,7 +49,6 @@ public class VolumeExportIngestParam {
     /**
      * VirtualArray to be associated with a list of unmanaged volumes to be ingested.
      * 
-     * @valid example: a valid URI of a varray
      */
     @XmlElement(required = true)
     public URI getVarray() {
@@ -64,7 +62,6 @@ public class VolumeExportIngestParam {
     /**
      * Project to be associated with a list of unmanaged volumes to be ingested.
      * 
-     * @valid example: a valid URI of a Project
      */
     @XmlElement(required = true)
     public URI getProject() {
@@ -78,7 +75,6 @@ public class VolumeExportIngestParam {
     /**
      * List of unmanaged volumes to be ingested.
      * 
-     * @valid none
      */
     @XmlElement(name = "unmanaged_volume_list", required = true)
     public List<URI> getUnManagedVolumes() {
@@ -113,8 +109,9 @@ public class VolumeExportIngestParam {
     /**
      * The ingestion method for VPLEX volumes.
      * Defaults to "Full" if not specificed.
-     * 
-     * @valid "Full" or "VirtualVolumesOnly"
+     * Valid values:
+     *  Full
+     *  VirtualVolumesOnly
      */
     @XmlElement(required = false)
     public String getVplexIngestionMethod() {

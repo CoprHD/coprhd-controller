@@ -48,7 +48,6 @@ public class DbConsistencyJobConsumer extends DistributedQueueConsumer<DbConsist
             status = markResult();
         } catch (CancellationException ce) {
             log.warn("cancellation:{}", ce.getMessage());
-            status = markCancel();
         } catch (ConnectionException e) {
             log.warn("ConnectionException:{}", e);
         } catch (Exception e) {
@@ -59,12 +58,6 @@ public class DbConsistencyJobConsumer extends DistributedQueueConsumer<DbConsist
             this.dbChecker.persistStatus(status);
             callback.itemProcessed();
         }
-    }
-
-    private DbConsistencyStatus markCancel() {
-        DbConsistencyStatus status = this.dbChecker.getStatusFromZk();
-        status.movePreviousBack();
-        return status;        
     }
 
     private void initSchemaIfNot() throws Exception {

@@ -79,7 +79,6 @@ public class ComputeSystemCreate {
      * Specifies whether to use SSL (Secure Sockets Layer)
      * as the authentication method.
      * 
-     * @valid none
      */
     @XmlElement(name = "use_ssl")
     public Boolean getUseSSL() {
@@ -111,8 +110,8 @@ public class ComputeSystemCreate {
 
     /**
      * Specifies the type of the compute system.
-     * 
-     * @valid ucs
+     * Valid value:
+     * ucs
      */
     @XmlElement(name = "system_type", required = true)
     @JsonProperty("system_type")

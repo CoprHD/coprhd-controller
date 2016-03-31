@@ -328,6 +328,53 @@ angular.module('fields', ['vipr']).directive({  //NOSONAR ("Suppressing Sonar vi
     },
     /**
      * @ngdoc directive
+     * @name fields.directive:dateTime
+     *
+     * @description
+     * A styled text box. Automatically binds to `field.value`.
+     *
+     * @restrict E
+     *
+     *@example
+     <example module="fields">
+     <file name="index.html">
+     <div ng-controller='FieldsCtrl' v-field='storage'>
+        <date-time></date-time>{{storage}}
+     </div>
+     </file>
+     <file name="script.js">
+     angular.module('fields').controller('FieldsCtrl', function($scope) {
+        $scope.storage = "ViPR";
+     });
+     </file>
+     </example>
+     */    
+    dateTime: function($compile) {
+        return {
+            require: "^vField",
+            restrict: "E",
+            replace: true,
+            template: '<input type="datetime-local" ng-model="field.value" class="form-control" autocomplete="on">',
+            link: function (scope, element, attrs) {
+                var content = angular.element('<input type="hidden" value="{{field.hidden}}" name="{{field.name}}" />');
+                content.attr("ng-disabled", attrs.ngDisabled);
+                content.insertAfter(element);
+                scope.disabled = scope.$eval(attrs.ngDisabled);
+                $compile(content)(scope);
+            },
+            controller: function ($scope) {
+            	$scope.$watch('field.value', function(newVal, oldVal) {
+					// Gets the value of the date/time in UTC milliseconds
+            		var utcDateTimeInMillis = moment(newVal).toDate().getTime();
+					// Keeps the date/time in millseconds and formats it
+            		$scope.field.hidden = moment.utc(utcDateTimeInMillis).format("YYYY-MM-DD_HH:mm:ss");
+                })
+            	$scope.field.value = new Date();
+            }
+        }
+    },    
+    /**
+     * @ngdoc directive
      * @name fields.directive:inputPassword
      *
      * @description
@@ -555,17 +602,20 @@ angular.module('fields', ['vipr']).directive({  //NOSONAR ("Suppressing Sonar vi
      * @restrict E
      */
     timePicker: function(tag, $timeout) {
+        const twicePerDay = '12hour'; //use 12-hour o'clock when 'format' set to this
         return tag('timePicker', {
             require: "ngModel",
             scope: {
-                model: "=ngModel"
+                model: "=ngModel",
+                format: "=ngFormat"
             },
             controller: function($scope) {
                 $scope.$watch('model', function() {
+                    timePickerMaxHour = $scope.format === twicePerDay ? 12 : 24;
                     $scope.hour = zeroPad(getHour($scope.model));
                     $scope.minute = zeroPad(getMinute($scope.model));
                 });
-                
+
                 $scope.nextHour = function() {
                     setTime(getHour($scope.model) + 1, getMinute($scope.model));
                 };
@@ -607,13 +657,14 @@ angular.module('fields', ['vipr']).directive({  //NOSONAR ("Suppressing Sonar vi
                     if (time) {
                         var index = time.indexOf(":");
                         var value = time.substring(index + 1);
+                        value = parseInt(value);
                         return !isNaN(value) ? Number(value) : 0;
                     }
                     return 0;
                 }
                 
                 function setTime(hour, minute) {
-                    hour = (hour < 0) ? (hour + 24) : (hour % 24);
+                    hour = (hour < 0) ? (hour + timePickerMaxHour) : (hour % timePickerMaxHour);
                     minute = (minute < 0) ? (minute + 60) : (minute % 60);
                     $scope.model = zeroPad(hour) + ":" + zeroPad(minute);
                 }

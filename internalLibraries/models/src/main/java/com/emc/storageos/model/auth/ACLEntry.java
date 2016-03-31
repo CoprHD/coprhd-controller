@@ -13,10 +13,11 @@ public class ACLEntry {
 
     /**
      * List of privileges that make up this entry. Some privileges will apply to different APIs.
+     * Valid values:
+     *  ALL allows all provisioning operations
+     *  BACKUP allows all snapshot related operations
+     *  USE can use a virtual array or pool
      * 
-     * @valid ALL: allows all provisioning operations, everything under a project (fs, volume, snapshots etc)
-     * @valid BACKUP: allows all snapshot related operations (create/delete/export snapshots)
-     * @valid USE: can use a virtual array or virtual pool
      */
     private List<String> aces;
 
@@ -24,8 +25,6 @@ public class ACLEntry {
      * The username to which the privilege is assigned or being assigned/revoked
      * If subject_id is specified, group may not be specified.
      * 
-     * @valid One of subject_id, group or tenant must be specified.
-     * @valid example: username@company.com
      */
     private String subjectId;
 
@@ -33,16 +32,12 @@ public class ACLEntry {
      * The group to which the privilege is assigned or being assigned/revoked.
      * If group is specified, subject_id may not be specified.
      * 
-     * @valid One of subject_id, group or tenant must be specified.
-     * @valid example: group@company.com
      */
     private String group;
 
     /**
      * Tenant id inside of which this entry applies
      * 
-     * @valid One of subject_id, group or tenant must be specified.
-     * @valid example: urn:storageos:TenantOrg:346e95bd-3d66-4980-b87a-84b997c0ab20:
      */
     private String tenant;
 

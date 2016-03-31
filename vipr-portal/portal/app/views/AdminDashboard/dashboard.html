@@ -43,9 +43,9 @@
       startUpdating('@{AdminDashboard.version()}', '#versionPanel', 3600);
       startUpdating('@{AdminDashboard.capacity()}', '#capacityPanel', 600);
       startUpdating('@{AdminDashboard.health()}', '#healthPanel', 60);
+      startUpdating('@{AdminDashboard.disasterRecovery()}', '#disasterPanel', 65);
       startUpdating('@{AdminDashboard.physicalAssets()}', '#physicalAssetsPanel', 600);
       startUpdating('@{AdminDashboard.virtualAssets()}', '#virtualAssetsPanel', 600);
-      startUpdating('@{AdminDashboard.disasterRecovery()}', '#disasterPanel', 300);
       window.setInterval(refreshLastUpdated, 5000);
     });
   </script>
@@ -75,6 +75,8 @@
     <div class="col-sm-4">
       #{include 'AdminDashboard/version.html'/}
       #{include 'AdminDashboard/health.html'/}
-      #{include 'AdminDashboard/disasterRecovery.html'/}
+      #{if isDrConfigured}
+        #{include 'AdminDashboard/disasterRecovery.html'/}
+      #{/if}
     </div>
 </div>

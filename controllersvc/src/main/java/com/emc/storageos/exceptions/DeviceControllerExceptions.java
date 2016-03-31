@@ -206,6 +206,9 @@ public interface DeviceControllerExceptions {
     @DeclareServiceCode(ServiceCode.BLOCK_CONTROLLER_ERROR)
     public DeviceControllerException snapSettingsInstanceNull(final String snapLabel, final String snapURI);
 
+    @DeclareServiceCode(ServiceCode.BLOCK_CONTROLLER_ERROR)
+    public DeviceControllerException groupSnapshotNotSupported(final String replicationGroup);
+
     @DeclareServiceCode(ServiceCode.CONTROLLER_ERROR)
     public DeviceControllerException exportAddVolumes(final Throwable cause);
 
@@ -386,6 +389,12 @@ public interface DeviceControllerExceptions {
     public DeviceControllerException srdfAsyncStepCreationfailed(String groupName);
 
     @DeclareServiceCode(ServiceCode.BLOCK_CONTROLLER_ERROR)
+    public DeviceControllerException rdfGroupInViprDBNotInSyncWithArray(String groupName);
+
+    @DeclareServiceCode(ServiceCode.BLOCK_CONTROLLER_ERROR)
+    public DeviceControllerException rdfGroupHasPairsCreatedOutsideViPR(String groupName);
+
+    @DeclareServiceCode(ServiceCode.BLOCK_CONTROLLER_ERROR)
     public DeviceControllerException srdfAsyncStepDeletionfailed(String groupName);
 
     @DeclareServiceCode(ServiceCode.CONTROLLER_ERROR)
@@ -432,6 +441,12 @@ public interface DeviceControllerExceptions {
 
     @DeclareServiceCode(ServiceCode.CONTROLLER_ERROR_ASSIGNING_STORAGE_PORTS)
     public DeviceControllerException unexpectedCondition(String message);
+    
+    @DeclareServiceCode(ServiceCode.BLOCK_CONTROLLER_ERROR)
+    public DeviceControllerException failedToUpdateVolumesFromAppication(String application, String error);
+
+    @DeclareServiceCode(ServiceCode.WORKFLOW_TERMINATED_DR_FAILOVER)
+    public DeviceControllerException terminatedForControllerFailover();
 
     @DeclareServiceCode(ServiceCode.BLOCK_CONTROLLER_ERROR)
     public DeviceControllerException createBlockSnapshotSessionFailed(final Throwable cause);

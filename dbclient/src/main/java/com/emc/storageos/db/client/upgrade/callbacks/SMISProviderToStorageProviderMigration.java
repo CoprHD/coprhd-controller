@@ -19,6 +19,7 @@ import com.emc.storageos.db.client.model.StorageProvider;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.upgrade.BaseCustomMigrationCallback;
+import com.emc.storageos.svcs.errorhandling.resources.MigrationCallbackException;
 
 /**
  * Migrated SMISProvider CF instances to StorageProvider CF
@@ -43,7 +44,7 @@ public class SMISProviderToStorageProviderMigration extends
      * StorageProvider id. In this step we need to remove the existing smis provider id add new storage provider id
      */
     @Override
-    public void process() {
+    public void process() throws MigrationCallbackException {
         DbClient dbClient = getDbClient();
 
         try {

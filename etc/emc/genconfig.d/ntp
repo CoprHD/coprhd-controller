@@ -72,28 +72,31 @@ EOF
         echo "#  the VIP of other VDC stratum higher than 7. 9 doesn't have special meaning just like 7"
         echo "#"
         local vdc_myid=${_GENCONFIG_vdc_myid}
-        for element in `IFS=,; for entry in ${vdc_ids}; do echo "$entry "; done`; do
-            [[ $vdc_myid == $element ]] && continue
-            var="_GENCONFIG_vdc_${element}_network_vip"
-            local vip=${!var}
-            var="_GENCONFIG_vdc_${element}_node_count"
+        for vdc in `IFS=,; for entry in ${vdc_ids}; do echo "$entry "; done`; do
+            [[ $vdc_myid == $vdc ]] && continue
+
+            var="_GENCONFIG_vdc_${vdc}_site1_network_vip"
+            local vip="${!var}"
+
+            var="_GENCONFIG_vdc_${vdc}_site1_node_count"
             local nodeCount=${!var}
+
             if [[ -n "$vip" ]]; then
                 echo "peer     ${vip} key 1 minpoll 4 maxpoll 10"
                 echo "fudge    ${vip} stratum 9"
                 echo "restrict ${vip}"
                 for ((i=1;i<=$nodeCount;i++)); do
-                    var="_GENCONFIG_vdc_${element}_network_${i}_ipaddr"
+                    var="_GENCONFIG_vdc_${vdc}_site1_network_${i}_ipaddr"
                     echo "restrict ${!var}"
                 done
             else
-                var="_GENCONFIG_vdc_${element}_network_vip6"
+                var="_GENCONFIG_vdc_${vdc}_site1_network_vip6"
                 vip=${!var}
                 echo "peer     ${vip} iburst key 1 minpoll 4 maxpoll 10"
                 echo "fudge    ${vip} stratum 9"
                 echo "restrict -6 ${vip}"
                 for ((i=1;i<=$nodeCount;i++)); do
-                    var="_GENCONFIG_vdc_${element}_network_${i}_ipaddr6"
+                    var="_GENCONFIG_vdc_${vdc}_site1_network_${i}_ipaddr6"
                     echo "restrict ${!var}"
                 done
             fi

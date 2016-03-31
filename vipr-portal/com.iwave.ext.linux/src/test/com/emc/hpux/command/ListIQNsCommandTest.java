@@ -17,7 +17,7 @@ import com.iwave.ext.command.CommandOutput;
 
 public class ListIQNsCommandTest {
 
-    static String output =
+    private static String output =
             "Initiator Name            : iqn.This-Is-A-Test-123456" + "\n" +
                     "Initiator Alias           : " + "\n" +
                     "\n" +
@@ -32,7 +32,7 @@ public class ListIQNsCommandTest {
                     "Data Digest               : None,CRC32C (default)" + "\n" +
                     "SLP Scope list for iSLPD  : ";
 
-    static ListIQNsCommand iqnsCommand = null;
+    private static ListIQNsCommand iqnsCommand = null;
 
     @BeforeClass
     public synchronized static void setup() {

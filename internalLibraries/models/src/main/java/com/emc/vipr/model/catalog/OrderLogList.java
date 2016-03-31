@@ -25,7 +25,6 @@ public class OrderLogList {
     /**
      * List of order logs
      * 
-     * @valid none
      */
     @XmlElement(name = "order_log")
     public List<OrderLogRestRep> getOrderLogs() {

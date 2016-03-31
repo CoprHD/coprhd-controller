@@ -28,7 +28,6 @@ public class UserMappingChanges {
     /*
      * User mapping to add in this change
      * 
-     * @valid none
      */
     @XmlElement(name = "user_mapping")
     public List<UserMappingParam> getAdd() {
@@ -45,7 +44,6 @@ public class UserMappingChanges {
     @XmlElementWrapper(name = "remove")
     /**
      * User mapping to remove in this change
-     * @valid none
      */
     @XmlElement(name = "user_mapping")
     public List<UserMappingParam> getRemove() {

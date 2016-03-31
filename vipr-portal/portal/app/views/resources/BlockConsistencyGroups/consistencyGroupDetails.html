@@ -96,6 +96,38 @@
 			#{/else}
 	    </div>
 	  </div>
+	  <div id="snapshotSessions">
+	  <div class="section-header"><h1>&{'resources.volume.snapshot.sessions'}</h1></div>
+	  <div class="content">
+	  #{if blockConsistencyGroup.snapshotSessionsCG}
+	  	<table class='table table-condensed table-striped'>
+	  		<thead>
+	  			<tr>
+	  				<th>&{'resources.consistencygroup.snapshot.name'}</th>
+	  				<th>&{'resources.consistencygroup.snapshot.createdDate'}</th>
+	  			</tr>	  			
+	  		</thead>
+	  		<tbody>
+	  		#{list items:blockConsistencyGroup.snapshotSessionsCG, as:'session'}
+	  		<tr>
+	  			<td>
+							<a href="@{resources.BlockSnapshotSessions.snapshotSessionDetails(session.blockSnapshotSession.id)}"
+							><img src="/public/img/assets/Snapshot.png" style="width: 32px;"/>${session.blockSnapshotSession.name}</a>
+				</td>
+				<td>
+						#{localDateTime session.blockSnapshotSession.creationTime.time/}&nbsp;
+				</td>
+				</tr>
+	  		#{/list}
+	  		</tbody>
+	  		
+	  	</table>
+	  #{/if}
+	  #{else}
+				&{'resources.consistencygroup.snapshot.session'}
+	  #{/else}
+	  </div>
+	  </div>
 	  #{Resources.tasks resourceId:blockConsistencyGroup.blockConsistencyGroup.id /}
 #{/if}
 #{else}

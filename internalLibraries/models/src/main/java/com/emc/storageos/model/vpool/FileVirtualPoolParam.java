@@ -26,7 +26,6 @@ public class FileVirtualPoolParam extends VirtualPoolCommonParam {
     /**
      * The protection settings for the virtual pool.
      * 
-     * @valid none
      */
     @XmlElement(name = "protection")
     public FileVirtualPoolProtectionParam getProtection() {

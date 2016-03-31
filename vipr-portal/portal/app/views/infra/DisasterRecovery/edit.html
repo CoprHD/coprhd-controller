@@ -1,7 +1,7 @@
 %{
   titleKey = 'disasterRecovery.' + (disasterRecovery?.id ? 'edit' : 'create') + '.title';
   descriptionKey = 'disasterRecovery.description';
-  image = '/public/img/assets/Cluster.png';
+  image = '/public/img/assets/AddStandbySite.png';
 }%
 #{extends 'main.html' /}
 #{set navSelected: ['nav.config', 'nav.disasterRecovery'] /}
@@ -15,7 +15,7 @@
 <div class="container" >
   <form-header title-key="${titleKey}"
                description-key="disasterRecovery.add.title"
-               image-val="/public/img/assets/Cluster.png">
+               image-val="/public/img/assets/AddStandbySite.png">
   </form-header>
 
   #{alerts/}
@@ -42,7 +42,7 @@
     #{/field}
     #{field 'disasterRecovery.description'}
       %{
-        field.required = true
+        field.required = false
       }%
       #{Form.inputTextControlGroup field:field /}
     #{/field}

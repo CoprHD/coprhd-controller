@@ -7,17 +7,25 @@ package com.emc.storageos.systemservices.impl.resource;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.net.URI;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Calendar;
+import java.util.Date;
+import java.util.List;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
+
+import javax.ws.rs.Consumes;
+import javax.ws.rs.DefaultValue;
 import javax.ws.rs.GET;
+import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
-import javax.ws.rs.Consumes;
 import javax.ws.rs.QueryParam;
-import javax.ws.rs.POST;
-import javax.ws.rs.DefaultValue;
 import javax.ws.rs.WebApplicationException;
-import javax.ws.rs.core.*;
+import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.Response;
+import javax.ws.rs.core.StreamingOutput;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -27,20 +35,21 @@ import com.emc.storageos.management.jmx.logging.LoggingOps;
 import com.emc.storageos.security.authorization.CheckPermission;
 import com.emc.storageos.security.authorization.Role;
 import com.emc.storageos.services.ServicesMetadata;
+import com.emc.storageos.services.util.TimeUtils;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.systemservices.impl.client.SysClientFactory;
 import com.emc.storageos.systemservices.impl.logsvc.LogLevelManager;
-import com.emc.storageos.systemservices.impl.logsvc.merger.LogNetworkStreamMerger;
 import com.emc.storageos.systemservices.impl.logsvc.LogNetworkWriter;
 import com.emc.storageos.systemservices.impl.logsvc.LogRequestParam;
+import com.emc.storageos.systemservices.impl.logsvc.merger.LogNetworkStreamMerger;
 import com.emc.storageos.systemservices.impl.resource.util.ClusterNodesUtil;
 import com.emc.storageos.systemservices.impl.resource.util.NodeInfo;
 import com.emc.storageos.systemservices.impl.upgrade.CoordinatorClientExt;
 import com.emc.vipr.model.sys.logging.LogLevelRequest;
 import com.emc.vipr.model.sys.logging.LogLevels;
 import com.emc.vipr.model.sys.logging.LogRequest;
-import com.emc.vipr.model.sys.logging.LogSeverity;
 import com.emc.vipr.model.sys.logging.LogScopeEnum;
+import com.emc.vipr.model.sys.logging.LogSeverity;
 import com.emc.vipr.model.sys.logging.SetLogLevelParam;
 
 /**
@@ -83,7 +92,7 @@ public class LogService extends BaseLogSvcResource {
 
     /**
      * Setter for the services not eligible for dynamic log level control.
-     * 
+     *
      * @param services A list of service names not eligible for dynamic log level
      *            control.
      */
@@ -95,19 +104,19 @@ public class LogService extends BaseLogSvcResource {
      * Get log data from the specified virtual machines that are filtered, merged,
      * and sorted based on the passed request parameters and streams the log
      * messages back to the client as JSON formatted strings.
-     * 
+     *
      * @brief Show logs from all or specified virtual machine
-     * @param nodeIds      The ids of the virtual machines for which log data is
-     *                     collected.
-     *                     Allowed values: standalone,
-     *                     control nodes: vipr1,vipr2 etc
-     *                     data services nodes: dataservice-10-111-111-222 (node-ip-address)
-     * @param nodeNames    The custom names of the vipr nodes for which log data is
-     *                     collected.
-     *                     Allowed values: Current values of node_x_name properties
-     * @param logNames     The names of the log files to process.
-     * @param severity     The minimum severity level for a logged message.
-     *                     Allowed values:0-9. Default value: 7
+     * @param nodeIds The ids of the virtual machines for which log data is
+     *            collected.
+     *            Allowed values: standalone,
+     *            control nodes: vipr1,vipr2 etc
+     *            data services nodes: dataservice-10-111-111-222 (node-ip-address)
+     * @param nodeNames The custom names of the vipr nodes for which log data is
+     *            collected.
+     *            Allowed values: Current values of node_x_name properties
+     * @param logNames The names of the log files to process.
+     * @param severity The minimum severity level for a logged message.
+     *            Allowed values:0-9. Default value: 7
      * @param startTimeStr The start datetime of the desired time window. Value is
      *            inclusive.
      *            Allowed values: "yyyy-MM-dd_HH:mm:ss" formatted date or
@@ -154,9 +163,9 @@ public class LogService extends BaseLogSvcResource {
         enforceRunningRequestLimit();
 
         final MediaType mediaType = getMediaType();
-        _log.info("Logs request media type {}",mediaType);
+        _log.info("Logs request media type {}", mediaType);
 
-        nodeIds=_coordinatorClientExt.combineNodeNamesWithNodeIds(nodeNames,nodeIds);
+        nodeIds = _coordinatorClientExt.combineNodeNamesWithNodeIds(nodeNames, nodeIds);
 
         // Validate the passed node ids.
         validateNodeIds(nodeIds);
@@ -167,8 +176,8 @@ public class LogService extends BaseLogSvcResource {
         _log.debug("Validated requested severity");
 
         // Validate the passed start and end times are valid.
-        Date startTime = getDateTimestamp(startTimeStr);
-        Date endTime = getDateTimestamp(endTimeStr);
+        Date startTime = TimeUtils.getDateTimestamp(startTimeStr);
+        Date endTime = TimeUtils.getDateTimestamp(endTimeStr);
         validateTimestamps(startTime, endTime);
         _log.debug("Validated requested time window");
 
@@ -287,7 +296,7 @@ public class LogService extends BaseLogSvcResource {
      * <p/>
      * Gets a chunk of the log data from the Bourne node to which the request is directed that is filtered, merged, and sorted based on the
      * passed request parameters. The log messages are returned as a JSON formatted string.
-     * 
+     *
      * @return A Response containing the log messages as a JSON formatted
      *         string.
      */
@@ -313,15 +322,15 @@ public class LogService extends BaseLogSvcResource {
 
     /**
      * Get current logging levels for all services and virtual machines
-     * 
+     *
      * @brief Get current log levels
-     * @param nodeIds      The ids of the virtual machines for which log data is
-     *                     collected.
-     *                     Allowed values: standalone,vipr1,vipr2 etc
-     * @param nodeNames    The custom names of the vipr nodes for which log data is
-     *                     collected.
-     *                     Allowed values: standalone,vipr1,vipr2 etc
-     * @param logNames     The names of the log files to process.
+     * @param nodeIds The ids of the virtual machines for which log data is
+     *            collected.
+     *            Allowed values: standalone,vipr1,vipr2 etc
+     * @param nodeNames The custom names of the vipr nodes for which log data is
+     *            collected.
+     *            Allowed values: standalone,vipr1,vipr2 etc
+     * @param logNames The names of the log files to process.
      * @prereq none
      * @return A list of log levels
      * @throws WebApplicationException When an invalid request is made.
@@ -341,7 +350,7 @@ public class LogService extends BaseLogSvcResource {
         MediaType mediaType = getMediaType();
         _log.debug("Get MediaType in header");
 
-        nodeIds=_coordinatorClientExt.combineNodeNamesWithNodeIds(nodeNames,nodeIds);
+        nodeIds = _coordinatorClientExt.combineNodeNamesWithNodeIds(nodeNames, nodeIds);
 
         // Validate the passed node ids.
         validateNodeIds(nodeIds);
@@ -369,7 +378,7 @@ public class LogService extends BaseLogSvcResource {
 
     /**
      * Update log levels
-     * 
+     *
      * @brief Update log levels
      * @param param The parameters required to update the log levels, including:
      *            node_id: optional, a list of node ids to be updated.
@@ -403,8 +412,8 @@ public class LogService extends BaseLogSvcResource {
         MediaType mediaType = getMediaType();
         _log.debug("Get MediaType {} in header", mediaType);
 
-        //get nodeIds for node names
-        List<String> nodeIds=_coordinatorClientExt.combineNodeNamesWithNodeIds(param.getNodeNames(),param.getNodeIds());
+        // get nodeIds for node names
+        List<String> nodeIds = _coordinatorClientExt.combineNodeNamesWithNodeIds(param.getNodeNames(), param.getNodeIds());
         param.setNodeIds(nodeIds);
 
         // Validate the passed node ids.
@@ -460,7 +469,7 @@ public class LogService extends BaseLogSvcResource {
      * Internal Use
      * <p/>
      * Gets/sets the log level of the Bourne node to which the request is directed that is filtered based on the passed request paramters.
-     * 
+     *
      * @return A Response containing the log levels for each service specified
      *         in the request.
      */
@@ -525,7 +534,7 @@ public class LogService extends BaseLogSvcResource {
      * Validates that the passed list specifies valid Bourne node Ids. Note that
      * an empty list is perfectly valid and means the service will process all
      * Bourne nodes in the cluster.
-     * 
+     *
      * @param nodeIds A list of the node ids for the Bourne nodes from which the
      *            logs are to be collected.
      * @throws APIException if the list contains an invalid node id.
@@ -552,7 +561,7 @@ public class LogService extends BaseLogSvcResource {
      * Validates that the passed list specifies valid ViPR services. Note that
      * an empty list is perfectly valid and means the service will process all
      * services on a ViPR node.
-     * 
+     *
      * @param logNames A list of the log names to be updated.
      * @throws APIException if the list contains an invalid node id.
      */
@@ -571,7 +580,7 @@ public class LogService extends BaseLogSvcResource {
 
     /**
      * Validates that the passed log scope value.
-     * 
+     *
      * @param scope the value of log scope
      * @return the corresponding scope level in enum
      * @throws APIException for an invalid scope value

@@ -35,6 +35,7 @@ import org.slf4j.LoggerFactory;
 import com.emc.storageos.coordinator.client.model.Constants;
 import com.emc.storageos.coordinator.client.model.DbVersionInfo;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
+import com.emc.storageos.coordinator.client.service.DrUtil;
 import com.emc.storageos.db.client.DbAggregatorItf;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.TimeSeriesMetadata;
@@ -132,7 +133,7 @@ public class DbClientImpl implements DbClient {
     private boolean _bypassMigrationLock;
 
     protected CoordinatorClient _coordinator;
-
+    
     protected IndexCleaner _indexCleaner;
 
     protected EncryptionProvider _encryptionProvider;
@@ -140,7 +141,8 @@ public class DbClientImpl implements DbClient {
 
     private boolean initDone = false;
     private String _geoVersion;
-
+    private DrUtil drUtil;
+    
     public String getGeoVersion() {
         if (this._geoVersion == null) {
             this._geoVersion = VdcUtil.getMinimalVdcVersion();
@@ -231,6 +233,10 @@ public class DbClientImpl implements DbClient {
     public void setBypassMigrationLock(boolean bypassMigrationLock) {
         _bypassMigrationLock = bypassMigrationLock;
     }
+    
+    public void setDrUtil(DrUtil drUtil) {
+        this.drUtil = drUtil;
+    }
 
     @Override
     public synchronized void start() {
@@ -256,6 +262,7 @@ public class DbClientImpl implements DbClient {
         setupContext();
 
         _indexCleaner = new IndexCleaner();
+        
         initDone = true;
     }
 
@@ -338,6 +345,10 @@ public class DbClientImpl implements DbClient {
      * @return
      */
     protected <T extends DataObject> Keyspace getKeyspace(Class<T> clazz) {
+        return getDbClientContext(clazz).getKeyspace();
+    }
+    
+    private <T extends DataObject> DbClientContext getDbClientContext(Class<T> clazz) {
         DbClientContext ctx = null;
         if (localContext == null && geoContext == null) {
             throw new IllegalStateException();
@@ -348,10 +359,13 @@ public class DbClientImpl implements DbClient {
         } else {
             ctx = KeyspaceUtil.isGlobal(clazz) ? geoContext : localContext;
         }
-
-        return ctx.getKeyspace();
+        return ctx;
     }
 
+    protected <T extends DataObject> boolean shouldRetryFailedWriteWithLocalQuorum(Class<T> clazz) {
+        return getDbClientContext(clazz).isRetryFailedWriteWithLocalQuorum();
+    }
+    
     @Override
     public synchronized void stop() {
         if (localContext != null) {
@@ -395,29 +409,17 @@ public class DbClientImpl implements DbClient {
         return objs.get(0);
     }
 
-    /**
-     * @deprecated use {@link DbClient#queryIterativeObjects(Class, Collection)} instead
-     */
     @Override
-    @Deprecated
     public <T extends DataObject> List<T> queryObject(Class<T> clazz, URI... id) {
         return queryObject(clazz, Arrays.asList(id));
     }
 
-    /**
-     * @deprecated use {@link DbClient#queryIterativeObjects(Class, Collection)} instead
-     */
     @Override
-    @Deprecated
     public <T extends DataObject> List<T> queryObject(Class<T> clazz, Collection<URI> ids) {
         return queryObject(clazz, ids, false);
     }
 
-    /**
-     * @deprecated use {@link DbClient#queryIterativeObjects(Class, Collection, boolean)} instead
-     */
     @Override
-    @Deprecated
     public <T extends DataObject> List<T> queryObject(Class<T> clazz, Collection<URI> ids, boolean activeOnly) {
         DataObjectType doType = TypeMap.getDoType(clazz);
 
@@ -454,7 +456,8 @@ public class DbClientImpl implements DbClient {
             }
         }
         if (!cleanList.isEmpty()) {
-            RowMutator mutator = new RowMutator(ks);
+            boolean retryFailedWriteWithLocalQuorum = shouldRetryFailedWriteWithLocalQuorum(clazz);
+            RowMutator mutator = new RowMutator(ks, retryFailedWriteWithLocalQuorum);
             SoftReference<IndexCleanupList> indexCleanUpRef = new SoftReference<IndexCleanupList>(cleanList);
             _indexCleaner.cleanIndexAsync(mutator, doType, indexCleanUpRef);
         }
@@ -967,6 +970,10 @@ public class DbClientImpl implements DbClient {
 
     @Override
     public <T> void queryByConstraint(Constraint constraint, QueryResultList<T> result) {
+    	ConstraintImpl constraintImpl = (ConstraintImpl) constraint;
+    	if (!constraintImpl.isValid()) {
+    		throw new IllegalArgumentException("invalid constraint: the key can't be null or empty"); 
+    	}
         constraint.setKeyspace(getKeyspace(constraint.getDataObjectType()));
         constraint.execute(result);
     }
@@ -974,7 +981,9 @@ public class DbClientImpl implements DbClient {
     @Override
     public <T> void queryByConstraint(Constraint constraint, QueryResultList<T> result, URI startId, int maxCount) {
         ConstraintImpl constraintImpl = (ConstraintImpl) constraint;
-
+    	if (!constraintImpl.isValid()) {
+    		throw new IllegalArgumentException("invalid constraint: the key can't be null or empty"); 
+    	}
         constraintImpl.setStartId(startId);
         constraintImpl.setPageCount(maxCount);
 
@@ -1114,9 +1123,15 @@ public class DbClientImpl implements DbClient {
     }
 
     protected <T extends DataObject> List<URI> insertNewColumns(Keyspace ks, Collection<T> dataobjects) {
-
         List<URI> objectsToCleanup = new ArrayList<URI>();
-        RowMutator mutator = new RowMutator(ks);
+        boolean retryFailedWriteWithLocalQuorum = true;
+        Iterator<T> dataObjectIterator = dataobjects.iterator();
+        if (dataObjectIterator.hasNext()) {
+            T dataObject = dataObjectIterator.next();
+            retryFailedWriteWithLocalQuorum = shouldRetryFailedWriteWithLocalQuorum(dataObject.getClass());
+        }
+        
+        RowMutator mutator = new RowMutator(ks, retryFailedWriteWithLocalQuorum);
         for (T object : dataobjects) {
             checkGeoVersionForMutation(object);
             DataObjectType doType = TypeMap.getDoType(object.getClass());
@@ -1159,7 +1174,8 @@ public class DbClientImpl implements DbClient {
             doType.deserialize(clazz, row, cleanList, new LazyLoader(this));
         }
         if (!cleanList.isEmpty()) {
-            RowMutator cleanupMutator = new RowMutator(ks);
+            boolean retryFailedWriteWithLocalQuorum = shouldRetryFailedWriteWithLocalQuorum(clazz);
+            RowMutator cleanupMutator = new RowMutator(ks, retryFailedWriteWithLocalQuorum);
             SoftReference<IndexCleanupList> indexCleanUpRef = new SoftReference<IndexCleanupList>(cleanList);
             _indexCleaner.cleanIndex(cleanupMutator, doType, indexCleanUpRef);
         }
@@ -1336,7 +1352,8 @@ public class DbClientImpl implements DbClient {
             }
         }
         if (!removedList.isEmpty()) {
-            RowMutator mutator = new RowMutator(ks);
+            boolean retryFailedWriteWithLocalQuorum = shouldRetryFailedWriteWithLocalQuorum(clazz);
+            RowMutator mutator = new RowMutator(ks, retryFailedWriteWithLocalQuorum);
             _indexCleaner.removeColumnAndIndex(mutator, doType, removedList);
         }
     }

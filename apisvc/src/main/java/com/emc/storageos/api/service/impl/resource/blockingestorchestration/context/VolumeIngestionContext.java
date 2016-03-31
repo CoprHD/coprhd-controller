@@ -5,8 +5,11 @@
 package com.emc.storageos.api.service.impl.resource.blockingestorchestration.context;
 
 import java.util.List;
+import java.util.Map;
 
+import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.BlockObject;
+import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedConsistencyGroup;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume;
 
 /**
@@ -50,5 +53,20 @@ public interface VolumeIngestionContext {
      * processing of this VolumeIngestionContext's UnManagedVolume.
      */
     public void rollback();
+
+    /**
+     * Returns a Map of BlockConsistencyGroup created during ingestion
+     * as mapped by their label for the key.
+     * 
+     * @return a Map of Label Strings to BlockConistencyGroupss
+     */
+    public Map<String, BlockConsistencyGroup> getCGObjectsToCreateMap();
+
+    /**
+     * Returns the list of UnManagedConsistencyGroup's to update.
+     * 
+     * @return a List of UnManagedConsistencyGroup.
+     */
+    public List<UnManagedConsistencyGroup> getUmCGObjectsToUpdate();
 
 }

@@ -7,10 +7,18 @@ package com.emc.storageos.cimadapter.connections;
 
 import java.io.IOException;
 import java.net.Socket;
+import java.util.Date;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -26,6 +34,7 @@ import com.emc.storageos.cimadapter.connections.cim.CimListener;
 import com.emc.storageos.cimadapter.connections.cim.CimListenerInfo;
 import com.emc.storageos.cimadapter.connections.ecom.EcomConnection;
 import com.emc.storageos.cimadapter.consumers.CimIndicationConsumerList;
+import com.emc.storageos.model.property.PropertyInfo;
 
 /**
  * The ConnectionManager manages the connections to the storage arrays whose
@@ -36,6 +45,13 @@ import com.emc.storageos.cimadapter.consumers.CimIndicationConsumerList;
  */
 public class ConnectionManager {
 
+    private static final int ONE_MINUTE = 1;
+    private static final int INITIAL_DELAY = ONE_MINUTE;
+    private static final long MS_IN_SECONDS = 1000; // # Milliseconds in a second
+    private static long maxConnectionTTL = 0;
+    private static final String CIM_CONNECTION_MAX_INACTIVE_TIME = "cim_connection_max_inactive_time";
+    private static boolean configured = false;
+
     // A reference to the connection manager configuration.
     private ConnectionManagerConfiguration _configuration;
 
@@ -44,6 +60,23 @@ public class ConnectionManager {
 
     // A map of cache keys (host/port) to their connections
     private Map<String, CimConnection> _connections = new HashMap<String, CimConnection>();
+
+    // A synchronization object to control access to shared objects
+    private Lock connectionLock = new ReentrantLock();
+
+    // A scheduled execution service that cleans up connections
+    private ScheduledExecutorService executorService = Executors.newSingleThreadScheduledExecutor();
+
+    // A map of cache keys in _connections to the last time the connection was retrieved
+    private Map<String, Long> connectionLastTouch = new HashMap<>();
+
+    // This map will be used to keep track of connections that are pinned. These are connections
+    // that should not be reaped. We will be keeping a count since you can have multiple arrays
+    // behind the same provider IP. When pinConnection is called, the count for the connection is
+    // incremented; when unpinConnection is called, the count is decremented. When the count
+    // reaches zero, it will be removed from the pinnedConnections map and it becomes eligible
+    // for reaping.
+    private Map<String, Integer> pinnedConnections = new HashMap<>();
 
     // The logger.
     private static final Logger s_logger = LoggerFactory.getLogger(ConnectionManager.class);
@@ -76,6 +109,105 @@ public class ConnectionManager {
     }
 
     /**
+     * This will place the connection for the host+port into the pinned list. This
+     * will be used as a way to prevent the connection from getting reaped while
+     * it is in use for a long period of time.
+     *
+     * We're keeping count of the times that pinConnection is being called for the
+     * connection. This is because you can have multiple arrays behind a single
+     * provider IP. If discovery is run against the provider, then the same client
+     * will be used for all of its arrays. We would need to keep count, so only
+     * when the last array's discovery is complete, we can safely remove the
+     * connection from the pinned list.
+     *
+     * @param host [IN] - Host name/IP
+     * @param port [IN] - port
+     */
+    public void pinConnection(String host, Integer port) {
+        connectionLock.lock();
+        try {
+            String hostAndPort = ConnectionManager.generateConnectionCacheKey(host, port);
+            if (_connections.containsKey(hostAndPort)) {
+                Integer count = pinnedConnections.get(hostAndPort);
+                if (count == null) {
+                    // No entry yet, so initialize count
+                    count = 1;
+                } else {
+                    // Increase the count for this hostAndPort connection
+                    count++;
+                }
+                pinnedConnections.put(hostAndPort, count);
+            }
+            s_logger.info("CimConnection {} is pinned, count = {}", hostAndPort, pinnedConnections.get(hostAndPort));
+        } finally {
+            connectionLock.unlock();
+        }
+    }
+
+    /**
+     * This will remove the connection for host+port from the pinned list. It will make
+     * the connection eligible for reaping again, if the pin count has reached zero.
+     *
+     * @param host [IN] - Host name/IP
+     * @param port [IN] - port
+     */
+    public void unpinConnection(String host, Integer port) {
+        connectionLock.lock();
+        try {
+            String hostAndPort = ConnectionManager.generateConnectionCacheKey(host, port);
+            if (pinnedConnections.containsKey(hostAndPort)) {
+                // Decrement the current count for the connection
+                Integer count = pinnedConnections.get(hostAndPort) - 1;
+                if (count == 0) {
+                    s_logger.info("CimConnection {} pin count has reached zero; it will be unpinned", hostAndPort);
+                    pinnedConnections.remove(hostAndPort);
+                } else {
+                    s_logger.info("CimConnection {} pin count set to {}", hostAndPort, count);
+                    pinnedConnections.put(hostAndPort, count);
+                }
+            }
+        } finally {
+            connectionLock.unlock();
+        }
+    }
+    
+    /**
+     * Using the propertyInfo retrieved from the CoordinatorClient, we will configure the ConnectionManager.
+     *
+     * @param propertyInfo [IN] - PropertyInfo representing configuration parameters
+     */
+    public void configure(PropertyInfo propertyInfo) {
+        connectionLock.lock();
+        try {
+            // Allow the configure() to be run only once by the first thread that calls it
+            if (configured) {
+                return;
+            }
+            s_logger.info("Configuring ConnectionManager");
+            Long maxTTLSeconds = 0L; // Default value ==> disabled
+            String maxTTLString = propertyInfo.getProperty(CIM_CONNECTION_MAX_INACTIVE_TIME);
+            // If there is a value specified for the configuration properties and it's a number ...
+            if (maxTTLString != null && maxTTLString.matches("\\d+")) {
+                maxTTLSeconds = Long.valueOf(maxTTLString);
+                // Value's unit should be N seconds
+                maxConnectionTTL = maxTTLSeconds * MS_IN_SECONDS;
+            }
+            if (maxTTLSeconds != 0) {
+                // Start up the CimConnection reaper: checks connection times every minute ...
+                executorService.scheduleAtFixedRate(new CimConnectionReaper(), INITIAL_DELAY, ONE_MINUTE, TimeUnit.MINUTES);
+                s_logger.info("ConnectionManager config: CimConnections that have been inactive for more than {} seconds will be reaped",
+                        maxTTLSeconds);
+            } else {
+                s_logger.info("ConnectionManager config: {} was set to {}, CIMConnection reaper is disabled",
+                        CIM_CONNECTION_MAX_INACTIVE_TIME, maxTTLString);
+            }
+            configured = true;
+        } finally {
+            connectionLock.unlock();
+        }
+    }
+
+    /**
      * Creates a new connection for which indications are to be monitored based
      * on the passed connection information.
      * 
@@ -85,57 +217,62 @@ public class ConnectionManager {
      * @throws ConnectionManagerException When a error occurs establishing the
      *             connection.
      */
-    public synchronized void addConnection(CimConnectionInfo connectionInfo) throws ConnectionManagerException {
-        if (connectionInfo == null) {
-            throw new ConnectionManagerException("Passed connection information is null.");
-        }
-
-        // If the listener has yet to be created, then create it now.
-        if (_listener == null) {
-            createIndicationListener(connectionInfo);
-        }
-
-        String hostAndPort = generateConnectionCacheKey(connectionInfo.getHost(), connectionInfo.getPort());
-
-        // Only add a connection if there is not already a connection to the
-        // provider specified in the passed connection information.
-        if (isConnected(hostAndPort)) {
-            s_logger.info("There is already a connection to the CIM provider on host/port {}", hostAndPort);
-            return;
-        }
-
+    public void addConnection(CimConnectionInfo connectionInfo) throws ConnectionManagerException {
+        connectionLock.lock();
         try {
-            s_logger.info("Attempting to connect to the provider on host/port {}", hostAndPort);
-
-            // Pause the listener when adding a new connection.
-            _listener.pause();
-
-            // Create a connection as specified by the passed connection
-            // information.
-            String connectionType = connectionInfo.getType();
-            if (connectionType.equals(CimConstants.CIM_CONNECTION_TYPE)) {
-                createCimConnection(connectionInfo);
-            } else if (connectionType.equals(CimConstants.ECOM_CONNECTION_TYPE)) {
-                createECOMConnection(connectionInfo);
-            } else if (connectionType.equals(CimConstants.ECOM_FILE_CONNECTION_TYPE)) {
-                createCelerraConnection(connectionInfo);
-            } else {
-                throw new ConnectionManagerException(MessageFormatter.format("Unsupported connection type {}",
-                        connectionType).getMessage());
+            if (connectionInfo == null) {
+                throw new ConnectionManagerException("Passed connection information is null.");
             }
 
-            /**
-             * Get client's public certificate and persist them into trustStore.
-             */
-            _listener.getClientCertificate(connectionInfo);
-        } catch (ConnectionManagerException e) {
-            throw e;
-        } catch (Exception e) {
-            throw new ConnectionManagerException(MessageFormatter.format(
-                    "Failed establishing a connection to the provider on host/port {}", hostAndPort).getMessage(), e);
+            // If the listener has yet to be created, then create it now.
+            if (_listener == null) {
+                createIndicationListener(connectionInfo);
+            }
+
+            String hostAndPort = generateConnectionCacheKey(connectionInfo.getHost(), connectionInfo.getPort());
+
+            // Only add a connection if there is not already a connection to the
+            // provider specified in the passed connection information.
+            if (isConnected(hostAndPort)) {
+                s_logger.info("There is already a connection to the CIM provider on host/port {}", hostAndPort);
+                return;
+            }
+
+            try {
+                s_logger.info("Attempting to connect to the provider on host/port {}", hostAndPort);
+
+                // Pause the listener when adding a new connection.
+                _listener.pause();
+
+                // Create a connection as specified by the passed connection
+                // information.
+                String connectionType = connectionInfo.getType();
+                if (connectionType.equals(CimConstants.CIM_CONNECTION_TYPE)) {
+                    createCimConnection(connectionInfo);
+                } else if (connectionType.equals(CimConstants.ECOM_CONNECTION_TYPE)) {
+                    createECOMConnection(connectionInfo);
+                } else if (connectionType.equals(CimConstants.ECOM_FILE_CONNECTION_TYPE)) {
+                    createCelerraConnection(connectionInfo);
+                } else {
+                    throw new ConnectionManagerException(MessageFormatter.format("Unsupported connection type {}",
+                            connectionType).getMessage());
+                }
+
+                /**
+                 * Get client's public certificate and persist them into trustStore.
+                 */
+                _listener.getClientCertificate(connectionInfo);
+            } catch (ConnectionManagerException e) {
+                throw e;
+            } catch (Exception e) {
+                throw new ConnectionManagerException(MessageFormatter.format(
+                        "Failed establishing a connection to the provider on host/port {}", hostAndPort).getMessage(), e);
+            } finally {
+                // Now resume the listener.
+                _listener.resume();
+            }
         } finally {
-            // Now resume the listener.
-            _listener.resume();
+            connectionLock.unlock();
         }
     }
 
@@ -198,38 +335,13 @@ public class ConnectionManager {
      * @throws ConnectionManagerException When a error occurs removing the
      *             connection.
      */
-    public synchronized void removeConnection(String host, Integer port) throws ConnectionManagerException {
-        String hostAndPort = ConnectionManager.generateConnectionCacheKey(host, port);
-        // Verify the passed host is not null or blank.
-        if ((hostAndPort == null) || (hostAndPort.length() == 0)) {
-            throw new ConnectionManagerException("Passed host/port is null or blank.");
-        }
-
+    public void removeConnection(String host, Integer port) throws ConnectionManagerException {
+        connectionLock.lock();
         try {
-            // Verify we are managing a connection to the passed host.
-            if (!isConnected(hostAndPort)) {
-                throw new ConnectionManagerException(MessageFormatter.format(
-                        "The connection manager is not managing a connection to host {}", hostAndPort).getMessage());
-            }
-
-            // Pause the listener when removing a connection.
-            _listener.pause();
-
-            // Remove the connection to the passed host.
-            CimConnection connection = _connections.get(hostAndPort);
-            if (connection != null) {
-                s_logger.info("Closing connection to the CIM provider on host/port {}", hostAndPort);
-                connection.close();
-                _connections.remove(hostAndPort);
-            }
-        } catch (ConnectionManagerException e) {
-            throw e;
-        } catch (Exception e) {
-            throw new ConnectionManagerException(MessageFormatter.format(
-                    "Failed removing the connection to the provider on host/port {}", hostAndPort).getMessage(), e);
+            String hostAndPort = ConnectionManager.generateConnectionCacheKey(host, port);
+            internalRemoveConnection(hostAndPort);
         } finally {
-            // Now resume the listener.
-            _listener.resume();
+            connectionLock.unlock();
         }
     }
 
@@ -244,18 +356,22 @@ public class ConnectionManager {
      * 
      * @throws ConnectionManagerException When the passed host is null or blank.
      */
-    public synchronized boolean isConnected(String hostAndPort) throws ConnectionManagerException {
-        // Verify the passed host/port is not null or blank.
-        if ((hostAndPort == null) || (hostAndPort.length() == 0)) {
-            throw new ConnectionManagerException("Passed host/port is null or blank.");
-        }
-
+    public boolean isConnected(String hostAndPort) throws ConnectionManagerException {
+        connectionLock.lock();
         boolean isConnected = false;
-        CimConnection connection = _connections.get(hostAndPort);
-        if (connection != null) {
-            isConnected = true;
-        }
+        try {
+            // Verify the passed host/port is not null or blank.
+            if ((hostAndPort == null) || (hostAndPort.length() == 0)) {
+                throw new ConnectionManagerException("Passed host/port is null or blank.");
+            }
 
+            CimConnection connection = _connections.get(hostAndPort);
+            if (connection != null) {
+                isConnected = true;
+            }
+        } finally {
+            connectionLock.unlock();
+        }
         return isConnected;
     }
 
@@ -280,15 +396,25 @@ public class ConnectionManager {
      * 
      * @throws ConnectionManagerException When the passed host is null or blank.
      */
-    public synchronized CimConnection getConnection(String host, Integer port)
+    public CimConnection getConnection(String host, Integer port)
             throws ConnectionManagerException {
-        String hostAndPort = generateConnectionCacheKey(host, port);
-        // Verify the passed host/port is not null or blank.
-        if ((hostAndPort == null) || (hostAndPort.length() == 0)) {
-            throw new ConnectionManagerException("Passed host/port is null or blank.");
+        connectionLock.lock();
+        CimConnection connection = null;
+        try {
+            String hostAndPort = generateConnectionCacheKey(host, port);
+            // Verify the passed host/port is not null or blank.
+            if ((hostAndPort == null) || (hostAndPort.length() == 0)) {
+                throw new ConnectionManagerException("Passed host/port is null or blank.");
+            }
+            connection = _connections.get(hostAndPort);
+            if (connection != null) {
+                // Every time the connection is returned, update the last get time
+                connectionLastTouch.put(hostAndPort, System.currentTimeMillis());
+            }
+        } finally {
+            connectionLock.unlock();
         }
-
-        return _connections.get(hostAndPort);
+        return connection;
     }
 
     /**
@@ -299,9 +425,9 @@ public class ConnectionManager {
      * @throws ConnectionManagerException When an error occurs shutting don the
      *             connection manager.
      */
-    public synchronized void shutdown() throws ConnectionManagerException {
+    public void shutdown() throws ConnectionManagerException {
         s_logger.info("Shutting down CIM adapter.");
-
+        connectionLock.lock();
         try {
             // Need to close all the connections and undo their subscriptions.
             closeAllConnections();
@@ -311,8 +437,11 @@ public class ConnectionManager {
                 _listener.stop();
                 _listener = null;
             }
+            executorService.shutdown();
         } catch (Exception e) {
             throw new ConnectionManagerException("An error occurred shutting down the connection manager", e);
+        } finally {
+            connectionLock.unlock();
         }
     }
 
@@ -335,6 +464,7 @@ public class ConnectionManager {
                     _configuration.getIndicationFilterMap());
             connection.connect(_configuration.getSubscriptionsIdentifier(), _configuration.getDeleteStaleSubscriptionsOnConnect());
             _connections.put(hostAndPort, connection);
+            connectionLastTouch.put(hostAndPort, System.currentTimeMillis());
         } catch (Exception e) {
             throw new Exception(MessageFormatter.format("Failed creating connection to CIM provider on host/port {}",
                     hostAndPort).getMessage(), e);
@@ -361,6 +491,7 @@ public class ConnectionManager {
                     _configuration.getIndicationFilterMap());
             connection.connect(_configuration.getSubscriptionsIdentifier(), _configuration.getDeleteStaleSubscriptionsOnConnect());
             _connections.put(hostAndPort, connection);
+            connectionLastTouch.put(hostAndPort, System.currentTimeMillis());
         } catch (Exception e) {
             throw new Exception(MessageFormatter.format("Failed creating connection to ECOM provider on host/port {}",
                     hostAndPort).getMessage(), e);
@@ -388,6 +519,7 @@ public class ConnectionManager {
                     _configuration.getCelerraMessageSpecs());
             connection.connect(_configuration.getSubscriptionsIdentifier(), _configuration.getDeleteStaleSubscriptionsOnConnect());
             _connections.put(hostAndPort, connection);
+            connectionLastTouch.put(hostAndPort, System.currentTimeMillis());
         } catch (Exception e) {
             throw new Exception(MessageFormatter.format(
                     "Failed creating connection to Celerra ECOM provider on host/port {}", hostAndPort).getMessage(), e);
@@ -404,6 +536,7 @@ public class ConnectionManager {
             connectionEntry.getValue().close();
         }
         _connections.clear();
+        connectionLastTouch.clear();
     }
 
     /**
@@ -440,5 +573,91 @@ public class ConnectionManager {
         s_logger.debug("Subscription Identifier for delete subscription action :{}", _configuration.getSubscriptionsIdentifier());
         cimConnection.deleteStaleSubscriptions(_configuration.getSubscriptionsIdentifier());
         s_logger.debug("Exiting {}", Thread.currentThread().getStackTrace()[1].getMethodName());
+    }
+
+    /**
+     * Looks up the 'hostAndPort' connection in the map. If it exists, the underlying
+     * connection will be closed, it will be removed from the map, and related data
+     * structures will be updated.
+     * 
+     * @param hostAndPort [IN] - Host + Port key used for looking up connection
+     */
+    private void internalRemoveConnection(String hostAndPort) {
+        // Verify the passed host is not null or blank.
+        if ((hostAndPort == null) || (hostAndPort.length() == 0)) {
+            throw new ConnectionManagerException("Passed host/port is null or blank.");
+        }
+
+        try {
+            // Verify we are managing a connection to the passed host.
+            if (!isConnected(hostAndPort)) {
+                throw new ConnectionManagerException(MessageFormatter.format(
+                        "The connection manager is not managing a connection to host {}", hostAndPort).getMessage());
+            }
+
+            // Pause the listener when removing a connection.
+            _listener.pause();
+
+            // Remove the connection to the passed host.
+            CimConnection connection = _connections.get(hostAndPort);
+            if (connection != null) {
+                s_logger.info("Closing connection to the CIM provider on host/port {}", hostAndPort);
+                connection.close();
+                _connections.remove(hostAndPort);
+                connectionLastTouch.remove(hostAndPort);
+                pinnedConnections.remove(hostAndPort);
+            }
+        } catch (ConnectionManagerException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new ConnectionManagerException(MessageFormatter.format(
+                    "Failed removing the connection to the provider on host/port {}", hostAndPort).getMessage(), e);
+        } finally {
+            // Now resume the listener.
+            _listener.resume();
+        }
+    }
+
+    /**
+     * Implementation to reap CimConnections that have not be in use for some time.
+     */
+    private class CimConnectionReaper implements Runnable {
+        @Override
+        public void run() {
+            connectionLock.lock();
+            Thread currentThread = Thread.currentThread();
+            currentThread.setName(String.format("CimConnectionReaper %d", currentThread.getId()));
+            try {
+                s_logger.debug("CimConnectionReaper start");
+                int connectionsReaped = 0;
+                // Copy the keys to prevent ConcurrentUpdate exception
+                Set<String> connectionKeys = new HashSet<>(connectionLastTouch.keySet());
+                for (String hostAndPort : connectionKeys) {
+                    // If the connection is in the pinned list, then it's probably being
+                    // used for a long period of time, so we will not allow it be reaped
+                    // until it is no longer in the pinned list.
+                    if (pinnedConnections.containsKey(hostAndPort)) {
+                        s_logger.info("Connection {} was pinned, it will not be reaped until it is unpinned", hostAndPort);
+                        continue;
+                    }
+                    Long lastTime = connectionLastTouch.get(hostAndPort);
+                    Long diff = System.currentTimeMillis() - lastTime;
+                    String timeAndDate = new Date(lastTime).toString();
+                    if (diff >= maxConnectionTTL) {
+                        s_logger.info(
+                                String.format("Reaping connection %s that was last touched %s (%s)", hostAndPort, timeAndDate, lastTime));
+                        internalRemoveConnection(hostAndPort);
+                        connectionsReaped++;
+                    } else {
+                        s_logger.debug(String.format("Connection %s was last touched %s (%s)", hostAndPort, timeAndDate, lastTime));
+                    }
+                }
+                s_logger.debug("CimConnectionReaper end - There were {} connections reaped", connectionsReaped);
+            } catch (Exception exp) {
+                s_logger.error("Exception occurred", exp);
+            } finally {
+                connectionLock.unlock();
+            }
+        }
     }
 }

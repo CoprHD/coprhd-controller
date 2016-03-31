@@ -105,10 +105,9 @@ public abstract class AbstractChangeTrackingMap<K> extends HashMap<String, K> {
      * 
      * @param add HashMap to add key, value pairs from
      */
-    public void putAll(HashMap<String, K> add) {
-        Iterator<Map.Entry<String, K>> entryIt = add.entrySet().iterator();
-        while (entryIt.hasNext()) {
-            Map.Entry<String, K> entry = entryIt.next();
+    @Override
+    public void putAll(Map<? extends String, ? extends K> add) {
+        for (Map.Entry<? extends String, ? extends K> entry : add.entrySet()) {
             put(entry.getKey(), entry.getValue());
         }
     }

@@ -24,9 +24,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 import com.emc.storageos.coordinator.client.model.Constants;
 import com.emc.storageos.coordinator.client.model.SoftwareVersion;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
+import com.emc.storageos.coordinator.client.service.DrUtil;
 import com.emc.storageos.coordinator.common.Configuration;
 import com.emc.storageos.coordinator.common.Service;
 import com.emc.storageos.coordinator.client.model.ProductName;
+import com.emc.storageos.coordinator.client.model.Site;
 import com.emc.storageos.db.client.model.VirtualDataCenter;
 import com.emc.storageos.db.client.model.VirtualDataCenter.ConnectionStatus;
 import com.emc.storageos.db.common.DbConfigConstants;
@@ -67,6 +69,9 @@ public class GeoBackgroundTasks {
 
     @Autowired
     private VdcConfigHelper helper;
+    
+    @Autowired
+    private DrUtil drUtil;
 
     // In minutes
     private int vdcStatusInterval = DEFAULT_VDC_STATUS_INTERVAL;
@@ -311,8 +316,9 @@ public class GeoBackgroundTasks {
                 for (URI vdcId : vdcIdList) {
                     VirtualDataCenter vdc = _dbClient.queryObject(VirtualDataCenter.class, vdcId);
                     long nowTime = System.currentTimeMillis();
+                    Site activeSite = drUtil.getActiveSite(vdc.getShortId());
                     if (helper.areNodesReachable(vdc.getShortId(),
-                            vdc.getHostIPv4AddressesMap(), vdc.getHostIPv6AddressesMap(), false)) {
+                            activeSite.getHostIPv4AddressMap(), activeSite.getHostIPv6AddressMap(), false)) {
                         _log.info("The vdc {} is seen at {}.", vdc.getShortId(), new Date(nowTime));
                         vdc.setLastSeenTimeInMillis(nowTime);
                         _dbClient.updateAndReindexObject(vdc);

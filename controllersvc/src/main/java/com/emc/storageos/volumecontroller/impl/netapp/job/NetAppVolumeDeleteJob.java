@@ -60,6 +60,7 @@ public class NetAppVolumeDeleteJob extends Job implements Serializable {
                     _pollResult.setJobPercentComplete(100);
                     _logger.info("Volume deleted successfully: {}", currentJob);
                 } else {
+                    _logger.info("Polling to delete Netapp volume: {}", currentJob);
                     _status = JobStatus.IN_PROGRESS;
                 }
 

@@ -607,7 +607,7 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
             driverClone.setConsistencyGroup(clone.getReplicationGroupInstance());
 
             // Call driver
-            task = driver.deleteVolumeClone(Collections.unmodifiableList(Collections.singletonList(driverClone)));
+            task = driver.detachVolumeClone(Collections.unmodifiableList(Collections.singletonList(driverClone)));
             // todo: need to implement support for async case.
             if (task.getStatus() == DriverTask.TaskStatus.READY) {
                 ReplicationUtils.removeDetachedFullCopyFromSourceFullCopiesList(clone, dbClient);

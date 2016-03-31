@@ -143,6 +143,7 @@ public class IPSecMonitor implements Runnable {
                 log.info("ipsec still has problems on : " + Arrays.toString(problemNodes));
             }
         } catch (Exception ex) {
+            ex.printStackTrace();
             log.warn("error when run ipsec monitor: ", ex);
         }
     }
@@ -188,7 +189,7 @@ public class IPSecMonitor implements Runnable {
                     continue;
                 }
 
-                if (props == null) {
+                if (props == null || StringUtils.isEmpty(props.get(VDC_CONFIG_VERSION))) {
                     log.warn("Failed to get ipsec properties from the node {}", node);
                     continue;
                 }

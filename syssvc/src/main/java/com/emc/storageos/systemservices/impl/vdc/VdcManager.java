@@ -565,7 +565,7 @@ public class VdcManager extends AbstractManager {
                 site.setState(SiteState.STANDBY_ERROR);
                 coordinatorClient.persistServiceConfiguration(site.toConfiguration());
                 
-                if (SiteState.STANDBY_FAILING_OVER.equals(site.getLastState())) {
+                if (SiteState.STANDBY_FAILING_OVER.equals(site.getLastState()) && coordinator.isVirtualIPHolder()) {
                     log.info("Failover failed, reboot all nodes to reconfig");
                     try {
                         drUtil.updateVdcTargetVersion(site.getUuid(), SiteInfo.DR_OP_FAILOVER_FAIL_REBOOT, DrUtil.newVdcConfigVersion());

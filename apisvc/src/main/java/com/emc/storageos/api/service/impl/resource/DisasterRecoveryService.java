@@ -369,7 +369,7 @@ public class DisasterRecoveryService {
 
             for (Site siteToRemove : drUtil.listSites()) {
                 String siteId = siteToRemove.getUuid();
-                if (siteToRemove.getUuid().equals(activeSiteId) || standbySiteIds.contains(siteId)) {
+                if (activeSiteId.equals(siteId) || standbySiteIds.contains(siteId)) {
                     continue;
                 }
                 drUtil.removeSite(siteToRemove);

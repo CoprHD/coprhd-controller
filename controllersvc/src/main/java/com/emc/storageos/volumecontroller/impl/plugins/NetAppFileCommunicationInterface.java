@@ -899,6 +899,7 @@ public class NetAppFileCommunicationInterface extends
                 });
                 
                 List<UnManagedFileQuotaDirectory> unManagedFileQuotaDirectories = new ArrayList<>();
+                List<UnManagedFileQuotaDirectory> existingUnManagedFileQuotaDirectories = new ArrayList<>();
                 
                 for (Quota quota : quotas) {
                     String fsNativeId;
@@ -918,7 +919,7 @@ public class NetAppFileCommunicationInterface extends
                     
                     String nativeGUID = NativeGUIDGenerator.generateNativeGuidForQuotaDir(storageSystem.getSystemType(),
                             storageSystem.getSerialNumber(), quota.getQtree(), quota.getVolume());
-                    if(checkUnManagedQuotaDirectoryExistsInDB(nativeGUID)) {
+                    if(checkStorageQuotaDirectoryExistsInDB(nativeGUID)) {
                         continue;
                     }
                     
@@ -930,13 +931,24 @@ public class NetAppFileCommunicationInterface extends
                     unManagedFileQuotaDirectory.setOpLock(Boolean.valueOf(qTreeNameQTreeMap.get(quota.getQtree()).getOplocks()));
                     unManagedFileQuotaDirectory.setSize(Long.valueOf(quota.getDiskLimit()));
                     
-                    unManagedFileQuotaDirectories.add(unManagedFileQuotaDirectory);
-                    
-                    if (!unManagedFileQuotaDirectories.isEmpty()) {
-                        _partitionManager.insertInBatches(unManagedFileQuotaDirectories,
-                                Constants.DEFAULT_PARTITION_SIZE, _dbClient,
-                                UNMANAGED_FILEQUOTADIR);
+                    if(!checkUnManagedQuotaDirectoryExistsInDB(nativeGUID)) {
+                        unManagedFileQuotaDirectories.add(unManagedFileQuotaDirectory);
+                    } else {
+                        existingUnManagedFileQuotaDirectories.add(unManagedFileQuotaDirectory);
                     }
+                    
+                }
+                
+                if (!unManagedFileQuotaDirectories.isEmpty()) {
+                    _partitionManager.insertInBatches(unManagedFileQuotaDirectories,
+                            Constants.DEFAULT_PARTITION_SIZE, _dbClient,
+                            UNMANAGED_FILEQUOTADIR);
+                }
+                
+                if (!existingUnManagedFileQuotaDirectories.isEmpty()) {
+                    _partitionManager.updateAndReIndexInBatches(existingUnManagedFileQuotaDirectories,
+                            Constants.DEFAULT_PARTITION_SIZE, _dbClient,
+                            UNMANAGED_FILEQUOTADIR);
                 }
             }
 

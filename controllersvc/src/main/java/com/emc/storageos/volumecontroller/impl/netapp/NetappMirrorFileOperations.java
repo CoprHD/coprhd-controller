@@ -22,6 +22,7 @@ import com.emc.storageos.volumecontroller.impl.BiosCommandResult;
 import com.emc.storageos.volumecontroller.impl.ControllerServiceImpl;
 import com.emc.storageos.volumecontroller.impl.file.FileMirrorOperations;
 import com.emc.storageos.volumecontroller.impl.job.QueueJob;
+import com.emc.storageos.volumecontroller.impl.netapp.job.NetAppSnapMirrorReleaseJob;
 import com.emc.storageos.volumecontroller.impl.netapp.job.NetAppSnapMirrorStartJob;
 import com.emc.storageos.workflow.WorkflowStepCompleter;
 import com.iwave.ext.netapp.model.SnapMirrorState;
@@ -211,13 +212,15 @@ public class NetappMirrorFileOperations implements FileMirrorOperations {
                             sourceFileShare, targetFileShare, completer);
                     if (cmdResult.getCommandSuccess()) {
                         try {
-                            _log.info("Sleeping for 60 seconds for snapmirror release to complete...");
-                            TimeUnit.SECONDS.sleep(60);
+                            _log.info("Sleeping for 10 seconds for snapmirror release to complete...");
+                            TimeUnit.SECONDS.sleep(10);
                         } catch (InterruptedException e) {
                             _log.warn("Sleep interrupted after calling releaseSnapMirror.");
                         }
                         completer.ready(_dbClient);
                         WorkflowStepCompleter.stepSucceded(completer.getOpId());
+                    } else if (cmdResult.getCommandPending()) {
+                        completer.statusPending(_dbClient, cmdResult.getMessage());
                     } else {
                         _log.error("Snapmirror delete schedule failed.");
                         completer.error(_dbClient, cmdResult.getServiceCoded());
@@ -347,7 +350,19 @@ public class NetappMirrorFileOperations implements FileMirrorOperations {
         /* The snapmirror-release API removes a SnapMirror relationship on the source endpoint */
         _log.info("Calling snapmirror release on source: {}, target: {}", sourceLocation, destLocation);
         nApiSource.releaseSnapMirror(sourceLocation, destLocation);
-        return BiosCommandResult.createSuccessfulResult();
+        NetAppSnapMirrorReleaseJob snapMirrorReleaseJob = new NetAppSnapMirrorReleaseJob(destLocation, targetStorage.getId(), taskCompleter);
+        try {
+            ControllerServiceImpl.enqueueJob(new QueueJob(snapMirrorReleaseJob));
+            _log.info("Submitting job to check the snapmirror release status on target: {}", destLocation);
+            return BiosCommandResult.createPendingResult();
+        } catch (Exception e) {
+            _log.error("Release Snapmirror failed", e);
+            ServiceError error = DeviceControllerErrors.netapp.jobFailed("Release Snapmirror failed:" + e.getMessage());
+            if (taskCompleter != null) {
+                taskCompleter.error(_dbClient, error);
+            }
+            return BiosCommandResult.createErrorResult(error);
+        }
 
         /*
          * NetAppSnapMirrorStatusJob snapMirrorStatusJob = new NetAppSnapMirrorStatusJob(destLocation, targetStorage.getId(), taskCompleter,

@@ -441,10 +441,11 @@ public class SnapMirror {
                 NaElement snapmirrorStatusElem = resultElem.getChildByName("snapmirror-status");
                 if (snapmirrorStatusElem != null) {
 
-                    mirrorStatusInfo = new SnapMirrorStatusInfo();
                     NaElement snapmirrorStatusInfoElem = snapmirrorStatusElem.getChildByName("snapmirror-status-info");
 
                     if (snapmirrorStatusInfoElem != null) {
+
+                        mirrorStatusInfo = new SnapMirrorStatusInfo();
                         // snap mirror state
                         String state = snapmirrorStatusInfoElem.getChildByName("state").getContent();
                         mirrorStatusInfo.setMirrorState(SnapMirrorState.valueOf(state));

@@ -1,4 +1,4 @@
-package com.emc.storageos.volumecontroller.impl.netapp;
+package com.emc.storageos.volumecontroller.impl.netapp.job;
 
 import java.io.Serializable;
 import java.net.URI;

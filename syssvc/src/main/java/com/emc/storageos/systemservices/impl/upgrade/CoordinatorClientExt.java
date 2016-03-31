@@ -54,7 +54,6 @@ import com.emc.storageos.coordinator.client.model.PropertyInfoExt;
 import com.emc.storageos.coordinator.client.model.RepositoryInfo;
 import com.emc.storageos.coordinator.client.model.Site;
 import com.emc.storageos.coordinator.client.model.SiteInfo;
-import com.emc.storageos.coordinator.client.model.SiteMonitorResult;
 import com.emc.storageos.coordinator.client.model.SiteState;
 import com.emc.storageos.coordinator.client.model.SoftwareVersion;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
@@ -1497,8 +1496,8 @@ public class CoordinatorClientExt {
                     return new Thread(r, "DbsvcQuorumMonitor");
                 }
             });
-            exe.scheduleAtFixedRate(new DbsvcQuorumMonitor(getMyNodeId(), _coordinator, dbCommonInfo)
-                    , 0, DB_MONITORING_INTERVAL, TimeUnit.SECONDS);
+            exe.scheduleAtFixedRate(new DbsvcQuorumMonitor(_coordinator, dbCommonInfo),
+                    0, DB_MONITORING_INTERVAL, TimeUnit.SECONDS);
         }
 
         Thread drNetworkMonitorThread = new Thread(drSiteNetworkMonitor);
@@ -1542,16 +1541,16 @@ public class CoordinatorClientExt {
 
         private void checkLocalZKMode() {
             try {
-                String state = drUtil.getLocalCoordinatorMode(getMyNodeId());
+                String localZkMode = drUtil.getCoordinatorMode(getMyNodeId());
                 if (initZkMode == null) {
-                    initZkMode = state;
+                    initZkMode = localZkMode;
                 }
 
-                _log.info("Local zookeeper mode: {} ",state);
+                _log.info("Local zookeeper mode: {} ",localZkMode);
 
                 if(isVirtualIPHolder()){
                     _log.info("Local node has vip, monitor other node zk states");
-                    checkLocalSiteZKModes();
+                    checkAndReconfigSiteZKModes();
                 }
 
                 /*
@@ -1559,12 +1558,8 @@ public class CoordinatorClientExt {
                  *  or it could not startup at all (state == null),
                  *  We will try to switch local ZK to observe mode if the active site is running well.
                 */
-                if (DrUtil.ZOOKEEPER_MODE_LEADER.equals(state) ||
-                        DrUtil.ZOOKEEPER_MODE_FOLLOWER.equals(state) ||
-                        DrUtil.ZOOKEEPER_MODE_STANDALONE.equals(state) ||
-                        state == null) {
-
-                    if (state != null) {
+                if (localZkMode == null || drUtil.isParticipantNode(localZkMode)) {
+                    if (localZkMode != null && drUtil.isLeaderNode(localZkMode)) {
                         // node is in participant mode, update the local site state accordingly
                         checkAndUpdateLocalSiteState();
                     }
@@ -1574,7 +1569,7 @@ public class CoordinatorClientExt {
                         _log.info("Active site is back. Reconfig coordinatorsvc to observer mode");
                         reconnectZKToActiveSite();
                     } else {
-                        _log.info("Active site is unavailable. Keep coordinatorsvc in current state {}", state);
+                        _log.info("Active site is unavailable. Keep coordinatorsvc in current state {}", localZkMode);
                     }
                 }
             }catch(Exception e){
@@ -1609,16 +1604,16 @@ public class CoordinatorClientExt {
         }
 
         /**
-         * check all local nodes are in correct zk mode
+         * make sure that all local site nodes are in correct zk mode
          */
-        private void checkLocalSiteZKModes() {
+        private void checkAndReconfigSiteZKModes() {
             List<String> readOnlyNodes = new ArrayList<>();
             List<String> observerNodes = new ArrayList<>();
             int numOnline = 0;
 
             for(String node : getAllNodeIds()){
 
-                String nodeState=drUtil.getLocalCoordinatorMode(node);
+                String nodeState=drUtil.getCoordinatorMode(node);
                 if (nodeState==null){
                     _log.debug("State for {}: null",node);
                     continue;

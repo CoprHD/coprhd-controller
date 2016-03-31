@@ -484,22 +484,23 @@ public abstract class VdcOpHandler {
                 retrySleep();
             }
 
-            String state = drUtil.getLocalCoordinatorMode(coordinator.getMyNodeId());
-            if (DrUtil.ZOOKEEPER_MODE_READONLY.equals(state)) {
+            String localZkMode = drUtil.getLocalCoordinatorMode();
+            if (DrUtil.ZOOKEEPER_MODE_READONLY.equals(localZkMode)) {
                 coordinator.reconfigZKToWritable();
             }
             
             localRepository.rebaseZkSnapshot();
             
             Site localSite = drUtil.getLocalSite();
-            if (localSite.getState().equals(SiteState.STANDBY_PAUSING)) {
+            if (localSite.getState() == SiteState.STANDBY_PAUSING && drUtil.isLeaderNode(localZkMode)) {
                 localSite.setState(SiteState.STANDBY_PAUSED);
                 log.info("Updating local site state to STANDBY_PAUSED");
                 coordinator.getCoordinatorClient().persistServiceConfiguration(localSite.toConfiguration());
+                // start checking network states of other DR sites for potential failover requests.
                 coordinator.rescheduleDrSiteNetworkMonitor();
 
                 for (Site standby : drUtil.listStandbySites()) {
-                    if (SiteState.STANDBY_PAUSING.equals(standby.getState())) {
+                    if (standby.getState() == SiteState.STANDBY_PAUSING) {
                         // standby sites that are paused at the same time also block each other
                         standby.setState(SiteState.STANDBY_PAUSED);
                         log.info("Updating state of site {} to STANDBY_PAUSED", standby.getUuid());
@@ -530,7 +531,11 @@ public abstract class VdcOpHandler {
             
             // on all sites, reconfig to enable firewall/ipsec
             reconfigVdc();
-            changeSiteState(SiteState.STANDBY_RESUMING, SiteState.STANDBY_SYNCING);
+            
+            if (drUtil.isActiveSite()) {
+                changeSiteState(SiteState.STANDBY_RESUMING, SiteState.STANDBY_SYNCING);
+            }
+            
             // if site is in observer restart dbsvc
             // move to the bottom so that it won't miss the data sync
             restartDbsvcOnResumingSite();
@@ -1206,10 +1211,6 @@ public abstract class VdcOpHandler {
         try {
             SysClientFactory.getSysClient(URI.create(baseNodeURL)).post(URI.create(URI_INTERNAL_POWEROFF), null, null);
             log.info("Powering off site {}", siteId);
-            while(drUtil.isSiteUp(siteId)) {
-                log.info("Short sleep and will check site status later");
-                retrySleep();
-            }
         } catch (Exception e) {
             log.warn("Error happened when trying to poweroff remove site {}", siteId, e);
         }

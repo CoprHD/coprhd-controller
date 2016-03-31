@@ -411,6 +411,8 @@ public abstract class VdcOpHandler {
                 refreshFirewall();
                 localRepository.restart(Constants.GEODBSVC_NAME);
                 localRepository.restart(Constants.DBSVC_NAME);
+                // manually paused site should never reconfigure to observer until resumed
+                coordinator.stopCoordinatorSvcMonitor();
             } else {
                 reconfigVdc();
                 checkAndPauseOnActive();
@@ -531,21 +533,16 @@ public abstract class VdcOpHandler {
             // on all sites, reconfig to enable firewall/ipsec
             reconfigVdc();
             
-            if (drUtil.isActiveSite()) {
-                changeSiteState(SiteState.STANDBY_RESUMING, SiteState.STANDBY_SYNCING);
-            }
-            
-            // if site is in observer restart dbsvc
-            // move to the bottom so that it won't miss the data sync
-            restartDbsvcOnResumingSite();
-        }
-
-        private void restartDbsvcOnResumingSite() throws Exception {
             Site site = drUtil.getLocalSite();
 
-            //check both state and last state so we know this is a retry
-            if (site.getState() == SiteState.STANDBY_SYNCING
-                    && site.getLastState() == SiteState.STANDBY_RESUMING) {
+            if (site.getState() == SiteState.STANDBY_RESUMING) {
+                // this site state change is persistent since the ZK is already connected
+                site.setState(SiteState.STANDBY_SYNCING);
+                coordinator.getCoordinatorClient().persistServiceConfiguration(site.toConfiguration());
+            }
+
+            // restart db/geodb to rebuild data
+            if (site.getState() == SiteState.STANDBY_SYNCING) {
                 VdcPropertyBarrier barrier = new VdcPropertyBarrier(Constants.RESUME_BARRIER_RESTART_DBSVC,
                         VDC_OP_BARRIER_TIMEOUT, site.getNodeCount(), false);
                 barrier.enter();

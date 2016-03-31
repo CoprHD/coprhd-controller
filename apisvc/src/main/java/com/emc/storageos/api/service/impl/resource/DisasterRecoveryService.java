@@ -899,39 +899,37 @@ public class DisasterRecoveryService {
 
         InterProcessLock lock = drUtil.getDROperationLock();
 
+        // this vdc target version is solely used for re-initializing the resuming site
+        // all the sites from the active POV use vdcTargetVersion + 1,
+        // so that the resuming site can update the site state to STANDBY_SYNCING
         long vdcTargetVersion = DrUtil.newVdcConfigVersion();
         try {
             coordinator.startTransaction();
             for (Site site : drUtil.listStandbySites()) {
-                long dataRevision = 0;
                 if (site.getUuid().equals(uuid)) {
                     log.error("Re-init the target standby", uuid);
 
                     // init the to-be resumed standby site
-                    dataRevision = System.currentTimeMillis();
+                    long dataRevision = System.currentTimeMillis();
                     List<Site> standbySites = drUtil.listStandbySites();
-                    SiteConfigParam configParam = prepareSiteConfigParam(standbySites, ipsecConfig.getPreSharedKey(), uuid, dataRevision, vdcTargetVersion, secretKey);
+                    SiteConfigParam configParam = prepareSiteConfigParam(standbySites, ipsecConfig.getPreSharedKey(),
+                            uuid, dataRevision, vdcTargetVersion, secretKey);
                     try (InternalSiteServiceClient internalSiteServiceClient = new InternalSiteServiceClient()) {
                         internalSiteServiceClient.setCoordinatorClient(coordinator);
                         internalSiteServiceClient.setServer(site.getVipEndPoint());
                         internalSiteServiceClient.initStandby(configParam);
                     }
-                    
-                    // update the site state AFTER checking the last state update time
+
                     site.setState(SiteState.STANDBY_RESUMING);
                     coordinator.persistServiceConfiguration(site.toConfiguration());
                     drUtil.recordDrOperationStatus(site.getUuid(), InterState.RESUMING_STANDBY);
                 }
 
-                if (dataRevision != 0) {
-                    drUtil.updateVdcTargetVersion(site.getUuid(), SiteInfo.DR_OP_CHANGE_DATA_REVISION, vdcTargetVersion, dataRevision);
-                } else {
-                    drUtil.updateVdcTargetVersion(site.getUuid(), SiteInfo.DR_OP_RESUME_STANDBY, vdcTargetVersion);
-                }
+                drUtil.updateVdcTargetVersion(site.getUuid(), SiteInfo.DR_OP_RESUME_STANDBY, vdcTargetVersion + 1);
             }
 
             // update the local(active) site last
-            drUtil.updateVdcTargetVersion(coordinator.getSiteId(), SiteInfo.DR_OP_RESUME_STANDBY, vdcTargetVersion);
+            drUtil.updateVdcTargetVersion(coordinator.getSiteId(), SiteInfo.DR_OP_RESUME_STANDBY, vdcTargetVersion + 1);
             coordinator.commitTransaction();
             auditDisasterRecoveryOps(OperationTypeEnum.RESUME_STANDBY, AuditLogManager.AUDITLOG_SUCCESS, AuditLogManager.AUDITOP_BEGIN,
                     standby.toBriefString());

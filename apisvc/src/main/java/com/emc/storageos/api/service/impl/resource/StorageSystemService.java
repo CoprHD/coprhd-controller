@@ -1334,7 +1334,7 @@ public class StorageSystemService extends TaskResourceService {
         
         ObjectController controller = getController(ObjectController.class, system.getSystemType());
         String secretKey = null;
-        if (!StringUtil.isBlank( param.getSecretkey() )){
+        if (param != null && !StringUtil.isBlank( param.getSecretkey() )){
             secretKey = param.getSecretkey();
         }
         ObjectUserSecretKey secretKeyRes = controller.addUserSecretKey(id, userId, secretKey);

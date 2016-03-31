@@ -898,6 +898,8 @@ public class NetAppFileCommunicationInterface extends
                     }
                 });
                 
+                List<UnManagedFileQuotaDirectory> unManagedFileQuotaDirectories = new ArrayList<>();
+                
                 for (Quota quota : quotas) {
                     String fsNativeId;
                     if (quota.getVolume().startsWith(VOL_ROOT)) {
@@ -911,12 +913,29 @@ public class NetAppFileCommunicationInterface extends
                         continue;
                     }
                     
-                    String fsNativeGUID = NativeGUIDGenerator.generateNativeGuid(
-                            storageSystem.getSystemType(),
+                    String fsNativeGUID = NativeGUIDGenerator.generateNativeGuid(storageSystem.getSystemType(),
                             storageSystem.getSerialNumber(), fsNativeId);
-                    URI fsURI = getFileShareURIByNativeGUID(fsNativeGUID);
-                    if(fsURI == null) {
-                        // TODO this means this quota directory is not ingested
+                    
+                    String nativeGUID = NativeGUIDGenerator.generateNativeGuidForQuotaDir(storageSystem.getSystemType(),
+                            storageSystem.getSerialNumber(), quota.getQtree(), quota.getVolume());
+                    if(checkUnManagedQuotaDirectoryExistsInDB(nativeGUID)) {
+                        continue;
+                    }
+                    
+                    UnManagedFileQuotaDirectory unManagedFileQuotaDirectory = new UnManagedFileQuotaDirectory();
+                    unManagedFileQuotaDirectory.setId(URIUtil.createId(UnManagedFileQuotaDirectory.class));
+                    unManagedFileQuotaDirectory.setLabel(quota.getQtree());
+                    unManagedFileQuotaDirectory.setNativeGuid(nativeGUID);
+                    unManagedFileQuotaDirectory.setParentFSNativeGuid(fsNativeGUID);
+                    unManagedFileQuotaDirectory.setOpLock(Boolean.valueOf(qTreeNameQTreeMap.get(quota.getQtree()).getOplocks()));
+                    unManagedFileQuotaDirectory.setSize(Long.valueOf(quota.getDiskLimit()));
+                    
+                    unManagedFileQuotaDirectories.add(unManagedFileQuotaDirectory);
+                    
+                    if (!unManagedFileQuotaDirectories.isEmpty()) {
+                        _partitionManager.insertInBatches(unManagedFileQuotaDirectories,
+                                Constants.DEFAULT_PARTITION_SIZE, _dbClient,
+                                UNMANAGED_FILEQUOTADIR);
                     }
                 }
             }
@@ -1361,17 +1380,6 @@ public class NetAppFileCommunicationInterface extends
         return unManagedFileSystem;
     }
 
-    protected URI getFileShareURIByNativeGUID(String fsNativeGUID) {
-        URIQueryResultList result = new URIQueryResultList();
-        _dbClient.queryByConstraint(AlternateIdConstraint.Factory
-                .getFileSystemNativeGUIdConstraint(fsNativeGUID), result);
-        if (result.iterator().hasNext()) {
-            return result.iterator().next();
-        }
-        
-        return null;
-    }
-    
     /**
      * check Storage fileSystem exists in DB
      * 

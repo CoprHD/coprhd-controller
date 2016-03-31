@@ -268,6 +268,7 @@ public abstract class VdcOpHandler {
         private void updateSyncingState() {
             Site localSite = drUtil.getLocalSite();
             if (localSite.getState() != SiteState.STANDBY_SYNCING) {
+                log.info("Updating local site state to STANDBY_SYNCING");
                 localSite.setState(SiteState.STANDBY_SYNCING);
                 coordinator.getCoordinatorClient().persistServiceConfiguration(localSite.toConfiguration());
             }
@@ -532,11 +533,12 @@ public abstract class VdcOpHandler {
         public void execute() throws Exception {
             // on all sites, reconfig to enable firewall/ipsec
             reconfigVdc();
-            
+
             Site site = drUtil.getLocalSite();
 
             if (site.getState() == SiteState.STANDBY_RESUMING) {
                 // this site state change is persistent since the ZK is already connected
+                log.info("Updating local site state to STANDBY_SYNCING");
                 site.setState(SiteState.STANDBY_SYNCING);
                 coordinator.getCoordinatorClient().persistServiceConfiguration(site.toConfiguration());
             }

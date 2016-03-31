@@ -385,7 +385,7 @@ public class XtremIOProvUtils {
      * @return A reference to the xtremio client.
      */
     public static XtremIOClient getXtremIOClient(DbClient dbClient, StorageSystem system, XtremIOClientFactory xtremioRestClientFactory) {
-        xtremioRestClientFactory.setModel(getXtremIOModel(dbClient, system));
+        xtremioRestClientFactory.setModel(getXtremIOVersion(dbClient, system));
         if (null == system.getSmisProviderIP() || null == system.getSmisPortNumber()) {
             _log.error("There is no active XtremIO Provider managing the system {}.", system.getSerialNumber());
             throw XtremIOApiException.exceptions.noMgmtConnectionFound(system.getSerialNumber());
@@ -405,7 +405,7 @@ public class XtremIOProvUtils {
      * @param system the system
      * @return the XtrmeIO model
      */
-    public static String getXtremIOModel(DbClient dbClient, StorageSystem system) {
+    public static String getXtremIOVersion(DbClient dbClient, StorageSystem system) {
         String version = system.getFirmwareVersion();
         // get model info from storage provider as it will have the latest model updated after scan process
         if (!NullColumnValueGetter.isNullURI(system.getActiveProviderURI())) {

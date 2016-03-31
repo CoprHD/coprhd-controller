@@ -29,7 +29,6 @@ public class InternalSiteServiceClient extends BaseServiceClient {
 
     private static final String INTERNAL_SITE_ROOT = "/site/internal";
     private static final String INTERNAL_SITE_INIT_STANDBY = INTERNAL_SITE_ROOT + "/initstandby";
-    private static final String SITE_INTERNAL_FAILOVER = INTERNAL_SITE_ROOT + "/failover?newActiveSiteUUid=%s&oldActiveSiteUUid=%s&vdcVersion=%d";
     private static final String SITE_INTERNAL_RESUMEPRECHECK = INTERNAL_SITE_ROOT + "/resumeprecheck";
     private static final String SITE_INTERNAL_SWITCHOVERPRECHECK = INTERNAL_SITE_ROOT + "/switchoverprecheck";
     private static final String SITE_INTERNAL_SWITCHOVER = INTERNAL_SITE_ROOT + "/switchover?newActiveSiteUUid=%s&vdcVersion=%d";
@@ -97,19 +96,6 @@ public class InternalSiteServiceClient extends BaseServiceClient {
             throw e;
         }
         return resp;
-    }
-    
-    public void failover(String newActiveSiteUUID, String oldActiveSiteUUID, long vdcVersion) {
-        String getVdcPath = String.format(SITE_INTERNAL_FAILOVER, newActiveSiteUUID, oldActiveSiteUUID, vdcVersion);
-        WebResource rRoot = createRequest(getVdcPath);
-        
-        try {
-            addSignature(rRoot).post(ClientResponse.class);
-        } catch (Exception e) {
-            log.error("Fail to send request to failover", e);
-            throw APIException.internalServerErrors.failoverFailed(site.getName(), e.getMessage());
-        }
-        
     }
     
     public SiteList getSiteList() {

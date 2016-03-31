@@ -23,6 +23,7 @@ import com.emc.storageos.volumecontroller.impl.ControllerServiceImpl;
 import com.emc.storageos.volumecontroller.impl.file.FileMirrorOperations;
 import com.emc.storageos.volumecontroller.impl.job.QueueJob;
 import com.emc.storageos.volumecontroller.impl.netapp.job.NetAppSnapMirrorCreateJob;
+import com.emc.storageos.volumecontroller.impl.netapp.job.NetAppSnapMirrorQuiesceJob;
 import com.emc.storageos.volumecontroller.impl.netapp.job.NetAppSnapMirrorReleaseJob;
 import com.emc.storageos.volumecontroller.impl.netapp.job.NetAppSnapMirrorStartJob;
 import com.emc.storageos.workflow.WorkflowStepCompleter;
@@ -83,12 +84,14 @@ public class NetappMirrorFileOperations implements FileMirrorOperations {
     public void stopMirrorFileShareLink(StorageSystem sourceStorage, FileShare targetFs, TaskCompleter completer)
             throws DeviceControllerException {
 
-        FileShare sourceFileShare = _dbClient.queryObject(FileShare.class, targetFs.getParentFileShare().getURI());
+        // FileShare sourceFileShare = _dbClient.queryObject(FileShare.class, targetFs.getParentFileShare().getURI());
         StorageSystem targetStorage = _dbClient.queryObject(StorageSystem.class, targetFs.getStorageDevice());
 
         BiosCommandResult cmdResult = doPauseSnapMirror(targetStorage, targetFs, completer);
         if (cmdResult.getCommandSuccess()) {
             completer.ready(_dbClient);
+        } else if (cmdResult.getCommandPending()) {
+            completer.statusPending(_dbClient, cmdResult.getMessage());
         } else {
             completer.error(_dbClient, cmdResult.getServiceCoded());
         }
@@ -130,6 +133,8 @@ public class NetappMirrorFileOperations implements FileMirrorOperations {
 
         if (cmdResult.getCommandSuccess()) {
             completer.ready(_dbClient);
+        } else if (cmdResult.getCommandPending()) {
+            completer.statusPending(_dbClient, cmdResult.getMessage());
         } else {
             completer.error(_dbClient, cmdResult.getServiceCoded());
         }
@@ -504,18 +509,29 @@ public class NetappMirrorFileOperations implements FileMirrorOperations {
         String destLocation = getLocation(targetStorage, targetFs);
         SnapMirrorStatusInfo mirrorStatusInfo = nApi.getSnapMirrorStateInfo(destLocation);
         _log.info("Calling snapmirror quiesce on destination: {}", destLocation);
-        if (SnapMirrorState.SYNCRONIZED.equals(mirrorStatusInfo.getTransferType())) {
+        if (SnapMirrorState.SYNCRONIZED.equals(mirrorStatusInfo.getMirrorState())) {
             nApi.quiesceSnapMirror(destLocation);
+            NetAppSnapMirrorQuiesceJob snapMirrorQuiesceJob = new NetAppSnapMirrorQuiesceJob(destLocation, targetStorage.getId(),
+                    taskCompleter, "quiesceSnapmirrorJob");
+            try {
+                ControllerServiceImpl.enqueueJob(new QueueJob(snapMirrorQuiesceJob));
+                _log.info("Job submitted to check the status of snapmirror quiesce on {}", destLocation);
+                return BiosCommandResult.createPendingResult();
+            } catch (Exception e) {
+                _log.error("Snapmirror quiesce failed", e);
+                ServiceError error = DeviceControllerErrors.netapp.jobFailed("Snapmirror quiesce failed:" + e.getMessage());
+                if (taskCompleter != null) {
+                    taskCompleter.error(_dbClient, error);
+                }
+                return BiosCommandResult.createErrorResult(error);
+            }
         } else {
             ServiceError error = DeviceControllerErrors.netapp
                     .jobFailed("Snapmirror Pause operation failed, because of mirror state should be snapMirrored: "
                             + mirrorStatusInfo
-                                    .getTransferType().toString());
+                                    .getMirrorState().toString());
             return BiosCommandResult.createErrorResult(error);
         }
-
-        return BiosCommandResult.createSuccessfulResult();
-
     }
 
     /**
@@ -539,13 +555,13 @@ public class NetappMirrorFileOperations implements FileMirrorOperations {
 
         SnapMirrorStatusInfo mirrorStatusInfo = nApi.getSnapMirrorStateInfo(destLocation);
         _log.info("Calling snapmirror quiesce on destination: {}", destLocation);
-        if (SnapMirrorState.PAUSE.equals(mirrorStatusInfo.getTransferType())) {
-            nApi.quiesceSnapMirror(destLocation);
+        if (SnapMirrorState.PAUSE.equals(mirrorStatusInfo.getMirrorState())) {
+            nApi.resumeSnapMirror(destLocation, null);
         } else {
             ServiceError error = DeviceControllerErrors.netapp
                     .jobFailed("Snapmirror Resume operation failed, because of mirror state should be Paused: "
                             + mirrorStatusInfo
-                                    .getTransferType().toString());
+                                    .getMirrorState().toString());
             return BiosCommandResult.createErrorResult(error);
         }
 

@@ -1229,28 +1229,12 @@ public class NetAppApi {
             netAppFacade = new NetAppFacade(_ipAddress, _portNumber, _userName,
                     _password, _https, null);
 
-            StatusInfo statusInfo = netAppFacade.getSnapMirrorState(pathLocation);
-            if ("quiesced".equals(statusInfo.getState()) &&
-                    ("idle".equals(statusInfo.getStatus()) || "pending".equals(statusInfo.getStatus()))) {
-                _logger.info("Snapmirror is already quiesced for : {}", pathLocation);
-                return true;
+            _logger.info("Calling Snapmirror quiesce for : {}", pathLocation);
+            success = netAppFacade.quiesceSnapMirror(pathLocation);
+            if (!success) {
+                throw new Exception("Unable to quiesce snapmirror on destination location.");
             }
-            if ("snapmirrored".equals(statusInfo.getState()) && "idle".equals(statusInfo.getStatus())) {
-                _logger.info("Calling Snapmirror quiesce for : {}", pathLocation);
-                success = netAppFacade.quiesceSnapMirror(pathLocation);
-                if (!success) {
-                    throw new Exception("Unable to quiesce snapmirror on destination location.");
-                }
 
-                while (true) {
-                    statusInfo = netAppFacade.getSnapMirrorState(pathLocation);
-                    if ("quiesced".equals(statusInfo.getState()) &&
-                            ("idle".equals(statusInfo.getStatus()) || "pending".equals(statusInfo.getStatus()))) {
-                        break;
-                    }
-                    TimeUnit.SECONDS.sleep(2);
-                }
-            }
             return success;
 
         } catch (Exception e) {

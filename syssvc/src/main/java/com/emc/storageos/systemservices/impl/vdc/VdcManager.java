@@ -564,14 +564,14 @@ public class VdcManager extends AbstractManager {
                 site.setLastState(site.getState());
                 site.setState(SiteState.STANDBY_ERROR);
                 coordinatorClient.persistServiceConfiguration(site.toConfiguration());
-            }
-            
-            if (SiteState.STANDBY_FAILING_OVER.equals(site.getState())) {
-                log.info("Failover failed, reboot all nodes to reconfig");
-                try {
-                    drUtil.updateVdcTargetVersion(site.getUuid(), SiteInfo.DR_OP_FAILOVER_FAIL_REBOOT, DrUtil.newVdcConfigVersion());
-                } catch (Exception e) {
-                    log.error("Failed to update vdc target version", e);
+                
+                if (SiteState.STANDBY_FAILING_OVER.equals(site.getLastState())) {
+                    log.info("Failover failed, reboot all nodes to reconfig");
+                    try {
+                        drUtil.updateVdcTargetVersion(site.getUuid(), SiteInfo.DR_OP_FAILOVER_FAIL_REBOOT, DrUtil.newVdcConfigVersion());
+                    } catch (Exception e) {
+                        log.error("Failed to update vdc target version", e);
+                    }
                 }
             }
         }

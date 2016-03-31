@@ -30,7 +30,6 @@ public class InternalSiteServiceClient extends BaseServiceClient {
     private static final String INTERNAL_SITE_ROOT = "/site/internal";
     private static final String INTERNAL_SITE_INIT_STANDBY = INTERNAL_SITE_ROOT + "/initstandby";
     private static final String SITE_INTERNAL_FAILOVER = INTERNAL_SITE_ROOT + "/failover?newActiveSiteUUid=%s&oldActiveSiteUUid=%s&vdcVersion=%d";
-    private static final String SITE_INTERNAL_FAILOVERPRECHECK = INTERNAL_SITE_ROOT + "/failoverprecheck";
     private static final String SITE_INTERNAL_RESUMEPRECHECK = INTERNAL_SITE_ROOT + "/resumeprecheck";
     private static final String SITE_INTERNAL_SWITCHOVERPRECHECK = INTERNAL_SITE_ROOT + "/switchoverprecheck";
     private static final String SITE_INTERNAL_SWITCHOVER = INTERNAL_SITE_ROOT + "/switchover?newActiveSiteUUid=%s&vdcVersion=%d";
@@ -98,24 +97,6 @@ public class InternalSiteServiceClient extends BaseServiceClient {
             throw e;
         }
         return resp;
-    }
-    
-    public void failoverPrecheck() {
-        WebResource rRoot = createRequest(SITE_INTERNAL_FAILOVERPRECHECK);
-        ClientResponse resp = null;
-        try {
-            resp = addSignature(rRoot).post(ClientResponse.class);
-        } catch (Exception e) {
-            log.error("Fail to send request to precheck failover", e);
-            //throw APIException.internalServerErrors.failoverPrecheckFailed(site.getName(), String.format("Can't connect to standby to do precheck for failover, %s", e.getMessage()));
-            return;
-        }
-        
-        FailoverPrecheckResponse response = resp.getEntity(FailoverPrecheckResponse.class);
-        
-        if (response != null && response.isErrorResponse()) {
-            throw APIException.internalServerErrors.failoverPrecheckFailed(site.getName(), response.getErrorMessage());
-        }
     }
     
     public void failover(String newActiveSiteUUID, String oldActiveSiteUUID, long vdcVersion) {

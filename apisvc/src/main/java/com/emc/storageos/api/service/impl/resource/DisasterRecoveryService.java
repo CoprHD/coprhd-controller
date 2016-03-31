@@ -1276,18 +1276,6 @@ public class DisasterRecoveryService {
 
         List<Site> allStandbySites = drUtil.listStandbySites();
 
-        for (Site site : allStandbySites) {
-            if (!site.getUuid().equals(uuid)) {
-                try (InternalSiteServiceClient client = new InternalSiteServiceClient(site)) {
-                    client.setCoordinatorClient(coordinator);
-                    client.setKeyGenerator(apiSignatureGenerator);
-                    client.failoverPrecheck();
-                } catch (Exception e){
-                    log.error("Failed to do failover precheck for site {}, ignore it for failover", site.toBriefString());
-                }
-            }
-        }
-
         try {
             coordinator.startTransaction();
             // set state

@@ -143,6 +143,30 @@ public abstract class VdcOpHandler {
     }
 
     /**
+     * Reconfigure the new redeployed nodes for node recovery in DR environment
+     */
+    public static class DrNodeRecoveryHandler extends VdcOpHandler {
+        public DrNodeRecoveryHandler() {
+        }
+
+        /**
+         * Reconfigure(refresh Firewall/IpSec/SSH/...) the new redeployed node
+         * @throws Exception
+         */
+        @Override
+        public void execute() throws Exception {
+            if (isHibernating()) {
+                reconfigVdc(false);
+            }
+        }
+
+        private boolean isHibernating() {
+            //TODO: find a proper way to check if node is in hibernate state
+            return true;
+        }
+    }
+
+    /**
      * Geo config change - add/remove vdc 
      */
     public static class GeoConfigChangeOpHandler extends VdcOpHandler {
@@ -887,7 +911,7 @@ public abstract class VdcOpHandler {
 
         public DrFailoverHandler() {
         }
-        
+
         @Override
         public void execute() throws Exception {
             Site site = drUtil.getLocalSite();

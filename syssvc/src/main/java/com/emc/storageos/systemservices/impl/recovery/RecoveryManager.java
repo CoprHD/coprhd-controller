@@ -16,6 +16,8 @@ import java.util.Iterator;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import com.emc.storageos.coordinator.client.model.SiteInfo;
+import com.emc.storageos.coordinator.client.service.DrUtil;
 import com.emc.storageos.model.property.PropertyConstants;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -304,8 +306,24 @@ public class RecoveryManager implements Runnable {
      */
     private void waitDbsvcStarted() throws Exception {
         log.info("Wait dbsvc and geodbsvc get started..");
+        informHibernateNodeToReconfigure();
         waitHibernateNodeStarted();
         validateClusterStatus();
+    }
+
+    private void informHibernateNodeToReconfigure() throws Exception{
+        DrUtil drUtil = new DrUtil(coordinator.getCoordinatorClient());
+        if (drUtil.isMultisite()) {
+            long vdcConfigVersion = DrUtil.newVdcConfigVersion();
+            try {
+                log.info("Has multi sites, informing the hibernate nodes to reconfigure..");
+                drUtil.updateVdcTargetVersion(coordinator.getCoordinatorClient().getSiteId(),
+                        SiteInfo.DR_OP_NODE_RECOVERY, vdcConfigVersion);
+            } catch (Exception e) {
+                log.error("Failed to inform the hibernate nodes to reconfigure", e);
+                throw APIException.internalServerErrors.nodeRebuildFailed();
+            }
+        }
     }
 
     /**

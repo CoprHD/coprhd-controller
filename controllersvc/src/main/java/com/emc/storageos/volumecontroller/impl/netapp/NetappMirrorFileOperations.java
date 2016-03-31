@@ -22,6 +22,7 @@ import com.emc.storageos.volumecontroller.impl.BiosCommandResult;
 import com.emc.storageos.volumecontroller.impl.ControllerServiceImpl;
 import com.emc.storageos.volumecontroller.impl.file.FileMirrorOperations;
 import com.emc.storageos.volumecontroller.impl.job.QueueJob;
+import com.emc.storageos.volumecontroller.impl.netapp.job.NetAppSnapMirrorCreateJob;
 import com.emc.storageos.volumecontroller.impl.netapp.job.NetAppSnapMirrorReleaseJob;
 import com.emc.storageos.volumecontroller.impl.netapp.job.NetAppSnapMirrorStartJob;
 import com.emc.storageos.workflow.WorkflowStepCompleter;
@@ -57,12 +58,20 @@ public class NetappMirrorFileOperations implements FileMirrorOperations {
         BiosCommandResult cmdResult = null;
         if (virtualPool != null && virtualPool.getFrRpoValue() > 0) {
             cmdResult = setScheduleSnapMirror(sourceStorageSystem, targetStorageSystem,
-                    sourceFileShare, targetFileShare);
+                    sourceFileShare, targetFileShare, completer);
+        }
+
+        if (cmdResult == null) {
+            completer.ready(_dbClient);
+            return;
         }
 
         if (cmdResult.getCommandSuccess()) {
             completer.ready(_dbClient);
-        } else {
+        } else if (cmdResult.getCommandPending()) {
+            completer.statusPending(_dbClient, cmdResult.getMessage());
+        }
+        else {
             completer.error(_dbClient, cmdResult.getServiceCoded());
         }
 
@@ -73,7 +82,6 @@ public class NetappMirrorFileOperations implements FileMirrorOperations {
     @Override
     public void stopMirrorFileShareLink(StorageSystem sourceStorage, FileShare targetFs, TaskCompleter completer)
             throws DeviceControllerException {
-        // TODO Auto-generated method stub
 
         FileShare sourceFileShare = _dbClient.queryObject(FileShare.class, targetFs.getParentFileShare().getURI());
         StorageSystem targetStorage = _dbClient.queryObject(StorageSystem.class, targetFs.getStorageDevice());
@@ -288,7 +296,7 @@ public class NetappMirrorFileOperations implements FileMirrorOperations {
         // target netapp
         String portGroupTarget = findVfilerName(targetFs);
         NetAppApi nApiTarget = new NetAppApi.Builder(targetStorage.getIpAddress(),
-                targetStorage.getPortNumber(), sourceStorage.getUsername(),
+                targetStorage.getPortNumber(), targetStorage.getUsername(),
                 targetStorage.getPassword()).https(true).vFiler(portGroupTarget).build();
 
         String destLocation = getLocation(nApiTarget, targetFs);
@@ -558,6 +566,8 @@ public class NetappMirrorFileOperations implements FileMirrorOperations {
     /**
      * set the mirror schedule policy
      * 
+     * @param completer
+     * 
      * @param storage -target file system
      * @param portGroup - vfiler name
      * @param vPool - Virtual pool
@@ -566,11 +576,10 @@ public class NetappMirrorFileOperations implements FileMirrorOperations {
      * @return
      */
     public BiosCommandResult setScheduleSnapMirror(StorageSystem sourceStorage, StorageSystem targetStorage, FileShare sourceFs,
-            FileShare targetFs) {
+            FileShare targetFs, TaskCompleter completer) {
         VirtualPool vPool = _dbClient.queryObject(VirtualPool.class, sourceFs.getVirtualPool());
         Long rpo = vPool.getFrRpoValue();
         String rpoType = "days-of-week";
-        String rpoValue = "-";
 
         switch (vPool.getFrRpoType()) {
             case "MINUTES":
@@ -594,7 +603,19 @@ public class NetappMirrorFileOperations implements FileMirrorOperations {
         String targetPath = getLocation(nApiTarget, targetFs);
         _log.info("Set snapmirror schedule: RPO every {} {} between source:{}  and target: {}", rpo, rpoType, sourcePath, targetPath);
         nApiTarget.setScheduleSnapMirror(rpoType, String.valueOf(rpo), sourcePath, targetPath);
-        return BiosCommandResult.createSuccessfulResult();
+        String destLocation = getLocation(nApiTarget, targetFs);
+        NetAppSnapMirrorCreateJob mirrorCreateJob = new NetAppSnapMirrorCreateJob(destLocation, targetStorage.getId(),
+                completer, "createSnapMirror");
+
+        try {
+            ControllerServiceImpl.enqueueJob(new QueueJob(mirrorCreateJob));
+            _log.info("Job submitted to check the snapmirror status of at target: {}", destLocation);
+            return BiosCommandResult.createPendingResult();
+        } catch (Exception e) {
+            _log.error("Snapmirror start failed", e);
+            ServiceError error = DeviceControllerErrors.netapp.jobFailed("Snapmirror create failed:" + e.getMessage());
+            return BiosCommandResult.createErrorResult(error);
+        }
     }
 
     public String getLocation(NetAppApi nApi, FileShare share) {

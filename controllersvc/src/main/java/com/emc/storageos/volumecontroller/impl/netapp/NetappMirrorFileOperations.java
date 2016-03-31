@@ -91,6 +91,7 @@ public class NetappMirrorFileOperations implements FileMirrorOperations {
             startMirrorFileShareLink(StorageSystem sourceStorage, FileShare targetFileShare, TaskCompleter completer, String policyName)
                     throws DeviceControllerException {
         _log.info("NetappMirrorFileOperations -  startMirrorFileShareLink started ");
+
         FileShare sourceFileShare = _dbClient.queryObject(FileShare.class, targetFileShare.getParentFileShare().getURI());
         StorageSystem targetStorageSystem = _dbClient.queryObject(StorageSystem.class, targetFileShare.getStorageDevice());
 
@@ -491,25 +492,19 @@ public class NetappMirrorFileOperations implements FileMirrorOperations {
                 targetStorage.getPassword()).https(true).vFiler(portGroupTarget).build();
         // make api call
         String destLocation = getLocation(targetStorage, targetFs);
+        SnapMirrorStatusInfo mirrorStatusInfo = nApi.getSnapMirrorStateInfo(destLocation);
         _log.info("Calling snapmirror quiesce on destination: {}", destLocation);
-        nApi.quiesceSnapMirror(destLocation);
-        return BiosCommandResult.createSuccessfulResult();
+        if (SnapMirrorState.SYNCRONIZED.equals(mirrorStatusInfo.getTransferType())) {
+            nApi.quiesceSnapMirror(destLocation);
+        } else {
+            ServiceError error = DeviceControllerErrors.netapp
+                    .jobFailed("Snapmirror Pause operation failed, because of mirror state should be snapMirrored: "
+                            + mirrorStatusInfo
+                                    .getTransferType().toString());
+            return BiosCommandResult.createErrorResult(error);
+        }
 
-        /*
-         * NetAppSnapMirrorStatusJob snapMirrorStatusJob = new NetAppSnapMirrorStatusJob(destLocation, targetStorage.getId(), taskCompleter,
-         * destLocation);
-         * try {
-         * ControllerServiceImpl.enqueueJob(new QueueJob(snapMirrorStatusJob));
-         * return BiosCommandResult.createPendingResult();
-         * } catch (Exception e) {
-         * _log.error("Snapmirror quiesce failed", e);
-         * ServiceError error = DeviceControllerErrors.netapp.jobFailed("Snapmirror quiesce failed:" + e.getMessage());
-         * if (taskCompleter != null) {
-         * taskCompleter.error(_dbClient, error);
-         * }
-         * return BiosCommandResult.createErrorResult(error);
-         * }
-         */
+        return BiosCommandResult.createSuccessfulResult();
 
     }
 
@@ -531,6 +526,19 @@ public class NetappMirrorFileOperations implements FileMirrorOperations {
                 targetStorage.getPassword()).https(true).vFiler(portGroupTarget).build();
         // make api call destination system
         String destLocation = getLocation(targetStorage, targetFs);
+
+        SnapMirrorStatusInfo mirrorStatusInfo = nApi.getSnapMirrorStateInfo(destLocation);
+        _log.info("Calling snapmirror quiesce on destination: {}", destLocation);
+        if (SnapMirrorState.PAUSE.equals(mirrorStatusInfo.getTransferType())) {
+            nApi.quiesceSnapMirror(destLocation);
+        } else {
+            ServiceError error = DeviceControllerErrors.netapp
+                    .jobFailed("Snapmirror Resume operation failed, because of mirror state should be Paused: "
+                            + mirrorStatusInfo
+                                    .getTransferType().toString());
+            return BiosCommandResult.createErrorResult(error);
+        }
+
         nApi.resumeSnapMirror(destLocation, portGroupTarget);
         return BiosCommandResult.createSuccessfulResult();
     }

@@ -61,6 +61,10 @@ class Volume {
         return "online".equals(getVolumeInfo(false).get("state"));
     }
 
+    boolean isOffline() {
+        return "offline".equals(getVolumeInfo(false).get("state"));
+    }
+
     /**
      * Takes a volume Restrict
      * 

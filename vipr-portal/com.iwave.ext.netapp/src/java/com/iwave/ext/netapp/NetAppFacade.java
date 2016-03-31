@@ -535,6 +535,22 @@ public class NetAppFacade {
     }
 
     /**
+     * Checks if the volume is offline or not
+     * 
+     * @param volumeName
+     * @return true if volume is offline, false otherwise
+     */
+    public boolean isVolumeOffline(String volumeName)
+    {
+        if (log.isDebugEnabled()) {
+            log.debug("Checking volume status is offline or not [name]: " +
+                    volumeName);
+        }
+        Volume vol = new Volume(server.getNaServer(), volumeName);
+        return vol.isOffline();
+    }
+
+    /**
      * Takes a volume restricted. Note this call does *not* wait for the specified
      * number of minutes. The delay occurs on the device.
      * 
@@ -1772,7 +1788,6 @@ public class NetAppFacade {
 
     public static void main(String[] args) {
         NetAppFacade facade = new NetAppFacade("10.247.96.204", 80, "root", "dangerous1", false);
-        System.out.println(facade.getSnapMirrorState(
-                "lglw6204:netappFS1Mar22targetTEST_VARRAY"));
+        System.out.println(facade.getSnapMirrorStateInfo("lglw6204:netappMar31FS3"));
     }
 }

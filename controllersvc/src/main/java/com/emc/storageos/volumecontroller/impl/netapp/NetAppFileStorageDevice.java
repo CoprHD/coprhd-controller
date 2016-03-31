@@ -42,9 +42,13 @@ import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.volumecontroller.FileDeviceInputOutput;
 import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.volumecontroller.impl.BiosCommandResult;
+import com.emc.storageos.volumecontroller.impl.ControllerServiceImpl;
 import com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator;
 import com.emc.storageos.volumecontroller.impl.file.AbstractFileStorageDevice;
 import com.emc.storageos.volumecontroller.impl.file.FileMirrorOperations;
+import com.emc.storageos.volumecontroller.impl.job.QueueJob;
+import com.emc.storageos.volumecontroller.impl.netapp.job.NetAppFileTaskCompleter;
+import com.emc.storageos.volumecontroller.impl.netapp.job.NetAppVolumeDeleteJob;
 import com.iwave.ext.netapp.model.CifsAccess;
 import com.iwave.ext.netapp.model.CifsAcl;
 
@@ -234,9 +238,24 @@ public class NetAppFileStorageDevice extends AbstractFileStorageDevice {
             NetAppApi nApi = new NetAppApi.Builder(storage.getIpAddress(),
                     storage.getPortNumber(), storage.getUsername(),
                     storage.getPassword()).https(true).vFiler(portGroup).build();
-            if (!nApi.deleteFS(args.getFsName())) {
-                failedStatus = true;
+
+            if (FileShare.PersonalityTypes.TARGET.toString().equals(args.getFs().getPersonality())) {
+                boolean success = nApi.deleteQTreesAndMarkFSOffline(args.getFsName());
+                _log.info("NetAppFileStorageDevice deleteQTreesAndMarkFSOffline {} - succeeded", args.getFsName());
+                if (success) {
+                    NetAppFileTaskCompleter taskCompleter = new NetAppFileTaskCompleter(FileShare.class, args.getFsId(), args.getOpId());
+                    NetAppVolumeDeleteJob volumeDeleteJob = new NetAppVolumeDeleteJob(args.getFsName(), storage.getId(), taskCompleter,
+                            "deleteFS");
+                    ControllerServiceImpl.enqueueJob(new QueueJob(volumeDeleteJob));
+                    _log.info("Submitted job to delete target FS", args.getFsName());
+                    return BiosCommandResult.createPendingResult();
+                }
+            } else {
+                if (!nApi.deleteFS(args.getFsName())) {
+                    failedStatus = true;
+                }
             }
+
             if (failedStatus == true) {
                 _log.error("NetAppFileStorageDevice doDeletFS {} - failed",
                         args.getFsName());

@@ -10,7 +10,6 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.TimeUnit;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -251,12 +250,61 @@ public class NetAppApi {
         }
     }
 
+    public Boolean deleteQTreesAndMarkFSOffline(String volName) throws NetAppException {
+        try {
+
+            netAppFacade = new NetAppFacade(_ipAddress, _portNumber, _userName,
+                    _password, _https);
+            List<String> volumes = netAppFacade.listVolumes();
+            if (!volumes.contains(volName)) {
+                _logger.info("Volume not found on array to delete {}", volName);
+                return true;
+            }
+
+            deleteAllQTrees(volName);
+            return offlineVol(volName);
+
+        } catch (Exception e) {
+            throw NetAppException.exceptions.deleteFSFailed(volName, _ipAddress, e.getMessage());
+        }
+    }
+
+    public Boolean destroyFS(String volName) throws NetAppException {
+        try {
+
+            netAppFacade = new NetAppFacade(_ipAddress, _portNumber, _userName,
+                    _password, _https);
+            List<String> volumes = netAppFacade.listVolumes();
+            if (!volumes.contains(volName)) {
+                _logger.info("Volume not found on array to delete {}", volName);
+                return true;
+            }
+
+            netAppFacade.destroyVolume(volName, false);
+            return true;
+
+        } catch (Exception e) {
+            throw NetAppException.exceptions.deleteFSFailed(volName, _ipAddress, e.getMessage());
+        }
+    }
+
     public Boolean offlineVol(String volName) throws NetAppException {
         try {
             netAppFacade = new NetAppFacade(_ipAddress, _portNumber, _userName,
                     _password, _https);
             netAppFacade.setVolumeOffline(volName, 0);
             return true;
+        } catch (Exception e) {
+            throw NetAppException.exceptions.deleteFSFailed(volName,
+                    _ipAddress, e.getMessage());
+        }
+    }
+
+    public Boolean isVolumeOffline(String volName) throws NetAppException {
+        try {
+            netAppFacade = new NetAppFacade(_ipAddress, _portNumber, _userName,
+                    _password, _https);
+            return netAppFacade.isVolumeOffline(volName);
         } catch (Exception e) {
             throw NetAppException.exceptions.deleteFSFailed(volName,
                     _ipAddress, e.getMessage());
@@ -1170,37 +1218,11 @@ public class NetAppApi {
         try {
             netAppFacade = new NetAppFacade(_ipAddress, _portNumber, _userName,
                     _password, _https, null);
-
-            StatusInfo statusInfo = netAppFacade.getSnapMirrorState(pathLocation);
-            if ("broken-off".equals(statusInfo.getState()) &&
-                    ("idle".equals(statusInfo.getStatus()) || "pending".equals(statusInfo.getStatus()))) {
-                _logger.info("Snapmirror relationship is already broken.");
-                return true;
-
-            } else if ("quiesced".equals(statusInfo.getState())
-                    && ("idle".equals(statusInfo.getStatus()) || "pending".equals(statusInfo.getStatus()))) {
-                _logger.info("Calling Snapmirror break on {}", pathLocation);
-                success = netAppFacade.breakSnapMirrorSchedule(pathLocation);
-            } else {
-                _logger.error("Snapmirror relationship is not quiesced.");
-                throw new Exception("Cannot break snapmirror because snapmirror relationship is not quiesced.");
-            }
-
+            success = netAppFacade.breakSnapMirrorSchedule(pathLocation);
             if (!success) {
                 throw new Exception("Cannot break snapmirror.");
             }
-
-            while (true) {
-                statusInfo = netAppFacade.getSnapMirrorState(pathLocation);
-                if ("broken-off".equals(statusInfo.getState()) &&
-                        ("idle".equals(statusInfo.getStatus()) || "pending".equals(statusInfo.getStatus()))) {
-                    break;
-                }
-                TimeUnit.SECONDS.sleep(2);
-            }
-
             return success;
-
         } catch (Exception e) {
             throw NetAppException.exceptions.breakSnapMirrorFailed(pathLocation, _ipAddress, e.getMessage());
         }

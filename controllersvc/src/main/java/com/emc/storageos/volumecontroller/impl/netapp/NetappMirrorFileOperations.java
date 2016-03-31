@@ -456,14 +456,15 @@ public class NetappMirrorFileOperations implements FileMirrorOperations {
         SnapMirrorStatusInfo mirrorStatusInfo = nApi.getSnapMirrorStateInfo(location);
 
         if (mirrorStatusInfo != null) {
-            if (SnapMirrorState.SYNCRONIZED.equals(mirrorStatusInfo.getTransferType()) ||
-                    SnapMirrorState.PAUSE.equals(mirrorStatusInfo.getTransferType())) {
+            if (SnapMirrorState.SYNCRONIZED.equals(mirrorStatusInfo.getMirrorState()) ||
+                    SnapMirrorState.PAUSE.equals(mirrorStatusInfo.getMirrorState())) {
                 _log.info("Calling snapmirror break on path: {}", location);
                 nApi.breakSnapMirror(location);
+            } else if (SnapMirrorState.FAILOVER.equals(mirrorStatusInfo.getMirrorState())) {
+                return BiosCommandResult.createSuccessfulResult();
             } else {
                 ServiceError error = DeviceControllerErrors.netapp.jobFailed("Snapmirror break operation failed, because of mirror state: "
-                        + mirrorStatusInfo
-                                .getTransferType().toString());
+                        + mirrorStatusInfo.toString());
                 return BiosCommandResult.createErrorResult(error);
             }
         }

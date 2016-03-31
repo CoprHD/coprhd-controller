@@ -1206,11 +1206,11 @@ public class RPHelper {
     /*
      * Since there are several ways to express journal size policy, this helper method will take
      * the source size and apply the policy string to come up with a resulting size.
-     * 
+     *
      * @param sourceSizeStr size of the source volume
-     * 
+     *
      * @param journalSizePolicy the policy of the journal size. ("10gb", "min", or "3.5x" formats)
-     * 
+     *
      * @return journal volume size result
      */
     public static long getJournalSizeGivenPolicy(String sourceSizeStr, String journalSizePolicy, int resourceCount) {
@@ -2028,7 +2028,7 @@ public class RPHelper {
                 Volume sourceVolume = getRPSourceVolume(dbClient, volume);
 
                 // Validate the source volume size is not greater than the target volume size
-                if (sourceVolume.getRpTargets() != null) {
+                if (sourceVolume != null && sourceVolume.getRpTargets() != null) {
                     for (String volumeID : sourceVolume.getRpTargets()) {
                         try {
                             Volume targetVolume = dbClient.queryObject(Volume.class, new URI(volumeID));

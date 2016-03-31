@@ -46,14 +46,20 @@ public class Backup {
         return client.get(ExternalBackups.class, BACKUP_EXTERNAL_URL);
     }
 
-    public BackupInfo getExternalBackup(String name) {
+    public BackupInfo getBackupInfo(String name, boolean isLocal) {
         UriBuilder builder = client.uriBuilder(BACKUP_INFO_URL);
-        addQueryParam(builder, "name", name);
+        addQueryParam(builder, "backupname", name);
+        if (isLocal) {
+            addQueryParam(builder, "isLocal", isLocal);
+        }
         return client.getURI(BackupInfo.class, builder.build());
     }
 
     public void createBackup(String name, boolean force) {
-		UriBuilder builder = client.uriBuilder(BACKUP_CREATE_URL);
+        int specialTimeout = 30 * 60 * 1000; // 30 minutes
+        client.getConfig().withReadTimeout(specialTimeout);
+        client.getConfig().withConnectionTimeout(specialTimeout);
+        UriBuilder builder = client.uriBuilder(BACKUP_CREATE_URL);
 		addQueryParam(builder, "tag", name);
 		if (force) {
 			addQueryParam(builder, "force", true);
@@ -111,7 +117,7 @@ public class Backup {
         client.postURI(String.class, builder.build());
     }
 
-    public BackupRestoreStatus restoreStatus(String name, boolean isLocal) {
+    public BackupRestoreStatus getRestoreStatus(String name, boolean isLocal) {
         BackupRestoreStatus status = null;
         UriBuilder builder = client.uriBuilder(RESTORE_STATUS_URL);
         addQueryParam(builder, "backupname", name);

@@ -95,7 +95,7 @@ public class TenantOrgRestRep extends DataObjectRestRep {
      * Namespace mapped to the Tenant
      * 
      */
-    @XmlElement(name = "object_namespace")
+    @XmlElement(name = "namespace")
     public String getNamespace() {
         return namespace;
     }

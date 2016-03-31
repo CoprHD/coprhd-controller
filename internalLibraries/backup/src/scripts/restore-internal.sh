@@ -167,6 +167,10 @@ fi
 copy_zk_data
 copy_properties_file
 is_vdc_connected
+
+# make sure to direct to maintenance page
+sleep 5s
+
 stop_service
 restore_data
 if [[ "${RESTORE_RESULT}" == "failed" ]]; then

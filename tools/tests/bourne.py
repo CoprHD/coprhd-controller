@@ -159,6 +159,7 @@ URI_BACKUP_LIST_EXTERNAL        = URI_BACKUP + '/external'
 URI_BACKUP_DOWNLOAD             = URI_BACKUP + '/download?tag={0}'
 URI_BACKUP_UPLOAD               = URI_BACKUP + '/backup/upload?tag={0}'
 URI_BACKUP_QUERY_UPLOAD         = URI_BACKUP + '/backup?tag={0}'
+URI_BACKUP_QUERY_INFO           = URI_BACKUP + '/backup/info?backupname={0}&isLocal={1}'
 URI_BACKUP_PULL                 = URI_BACKUP + '/pull?file={0}'
 URI_BACKUP_QUERY_PULL           = URI_BACKUP + '/restore/status?backupname={0}&isLocal={1}'
 URI_BACKUP_RESTORE              = URI_BACKUP + '/restore?backupname={0}&isLocal={1}&password={2}'
@@ -3538,6 +3539,9 @@ class Bourne:
     def query_upload_backup(self,name):
         return self.api('GET', URI_BACKUP_QUERY_UPLOAD.format(name))
 
+    def query_backup_info(self,name,isLocal):
+        return self.api('GET', URI_BACKUP_QUERY_INFO.format(name, isLocal))
+
     def pull_backup(self,name):
         return self.api('POST', URI_BACKUP_PULL.format(name), None, None, content_type=CONTENT_TYPE_OCTET)
 
@@ -4065,10 +4069,15 @@ class Bourne:
     # Block Consistency Groups
     #
 
-    def block_consistency_group_create(self, project, label):
+    def block_consistency_group_create(self, project, label, arrayconsistency):
+	arrayconsistencyvalue = "false"
+	if (arrayconsistency):
+	    arrayconsistencyvalue=arrayconsistency
+	    
         parms = {
             'name'  : label,
             'project' : project,
+	    'array_consistency' : arrayconsistencyvalue,
         }
 
         return self.api('POST', URI_BLOCK_CONSISTENCY_GROUP_CREATE, parms)

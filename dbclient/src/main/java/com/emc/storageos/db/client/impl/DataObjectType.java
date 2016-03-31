@@ -13,24 +13,18 @@ import java.beans.Transient;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.net.URI;
+import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
-import java.util.Map;
 import java.util.List;
-import java.util.ArrayList;
-
-import javassist.CannotCompileException;
-import javassist.ClassPool;
-import javassist.CtClass;
-import javassist.CtMethod;
-import javassist.CtNewMethod;
-import javassist.NotFoundException;
+import java.util.Map;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
 import com.emc.storageos.db.client.model.Cf;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.EncryptionProvider;
@@ -40,6 +34,13 @@ import com.netflix.astyanax.model.Column;
 import com.netflix.astyanax.model.ColumnFamily;
 import com.netflix.astyanax.model.Row;
 import com.netflix.astyanax.serializers.StringSerializer;
+
+import javassist.CannotCompileException;
+import javassist.ClassPool;
+import javassist.CtClass;
+import javassist.CtMethod;
+import javassist.CtNewMethod;
+import javassist.NotFoundException;
 
 /**
  * Encapsulates data object type information
@@ -54,7 +55,7 @@ public class DataObjectType {
     private List<ColumnField> _preprocessedFields;
 
     private Class<? extends DataObject> _instrumentedClazz;
-    // a map of mapped by field name to it's associated lazy loaded field
+    // a map of mapped by field name to its associated lazy loaded field
     // only for mapped by fields within the same class as the lazy loaded field
     private Map<String, ColumnField> _mappedByToLazyLoadedField;
     // a list of lazy loaded field for this class

@@ -27,6 +27,7 @@ import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.coordinator.client.model.Constants;
 import com.emc.storageos.coordinator.client.model.DrOperationStatus;
+import com.emc.storageos.coordinator.client.model.DrOperationStatus.InterState;
 import com.emc.storageos.coordinator.client.model.PropertyInfoExt;
 import com.emc.storageos.coordinator.client.model.Site;
 import com.emc.storageos.coordinator.client.model.SiteInfo;
@@ -65,6 +66,7 @@ public class DrUtil {
     private static final String DR_OPERATION_LOCK = "droperation";
     private static final String RECORD_AUDITLOG_LOCK = "droperationauditlog";
     private static final int LOCK_WAIT_TIME_SEC = 5; // 5 seconds
+    private static final String ZK_SERVER_STATE = "zk_server_state";
 
     public static final String KEY_ADD_STANDBY_TIMEOUT = "add_standby_timeout_millis";
     public static final String KEY_REMOVE_STANDBY_TIMEOUT = "remove_standby_timeout_millis";
@@ -75,7 +77,7 @@ public class DrUtil {
     public static final String KEY_FAILOVER_ACTIVE_SITE_TIMEOUT = "failover_active_site_timeout_millis";
     public static final String KEY_DB_GC_GRACE_PERIOD = "db_gc_grace_period_millis";
     public static final String KEY_MAX_NUMBER_OF_DR_SITES = "max_number_of_dr_sites";
-    
+
     private CoordinatorClient coordinator;
 
     public DrUtil() {
@@ -93,16 +95,7 @@ public class DrUtil {
         this.coordinator = coordinator;
     }
 
-    /**
-     * Record new DR operation
-     * 
-     * @param site
-     */
-    public void recordDrOperationStatus(Site site) {
-        recordDrOperationStatus(site.getUuid(), site.getState());
-    }
-
-    public void recordDrOperationStatus(String siteId, SiteState state) {
+    public void recordDrOperationStatus(String siteId, InterState state) {
         if (isDrOperationRecorded(siteId, state)) {
             return;
         }
@@ -110,13 +103,13 @@ public class DrUtil {
             if (isDrOperationRecorded(siteId, state)) {
                 return;
             }
-            if (siteId == null || siteId.isEmpty() || state == null || !state.isDROperationOngoing()) {
+            if (siteId == null || siteId.isEmpty() || state == null) {
                 log.error("Can't record DR operation status due to Illegal site state, siteId: {}, state: {}", siteId, state);
                 return;
             }
             DrOperationStatus operation = new DrOperationStatus();
             operation.setSiteUuid(siteId);
-            operation.setSiteState(state);
+            operation.setInterState(state);
             coordinator.persistServiceConfiguration(operation.toConfiguration());
             log.info("DR operation status has been recorded: {}", operation.toString());
         } catch (Exception e) {
@@ -124,12 +117,12 @@ public class DrUtil {
         }
     }
 
-    private boolean isDrOperationRecorded(String siteId, SiteState state) {
-        if (siteId == null || siteId.isEmpty() || state == null || !state.isDROperationOngoing()) {
+    private boolean isDrOperationRecorded(String siteId, InterState state) {
+        if (siteId == null || siteId.isEmpty() || state == null) {
             return false;
         }
         DrOperationStatus status = new DrOperationStatus(coordinator.queryConfiguration(DrOperationStatus.CONFIG_KIND, siteId));
-        if (status.getSiteState() == state) {
+        if (status.getInterState() == state) {
             log.info("DR operation status {} for site {} has been recorded by another node", siteId, state);
             return true;
         }
@@ -506,17 +499,16 @@ public class DrUtil {
             output.write("mntr".getBytes());
             sock.shutdownOutput();
             
-            BufferedReader input =
-                new BufferedReader(new InputStreamReader(sock.getInputStream()));
-            String answer;
-            while ((answer = input.readLine()) != null) {
-                if (answer.startsWith("zk_server_state")){
-                    String state = StringUtils.trim(answer.substring("zk_server_state".length()));
-                    log.info("Get current zookeeper mode {}", state);
-                    return state;
+            try (BufferedReader input = new BufferedReader(new InputStreamReader(sock.getInputStream()))) {
+                String answer;
+                while ((answer = input.readLine()) != null) {
+                    if (answer.startsWith(ZK_SERVER_STATE)) {
+                        String state = StringUtils.trim(answer.substring(ZK_SERVER_STATE.length()));
+                        log.info("Get current zookeeper mode {}", state);
+                        return state;
+                    }
                 }
             }
-            input.close();
         } catch(IOException ex) {
             log.warn("Unexpected IO errors when checking local coordinator state {}", ex.toString());
         } finally {
@@ -652,21 +644,38 @@ public class DrUtil {
      * Check if all sites of local vdc are
      */
     public boolean isAllSitesStable() {
-        boolean bStable = true;
+        try {
+            verifyIPsecOpAllowableWithinDR();
+            return true;
+        } catch (Exception e) {
+            return false;
+        }
+    }
 
-        for (Site site : listSites()) {
-            if (site.getState().isDROperationOngoing()) {
-                return false;
+    public void verifyIPsecOpAllowableWithinDR() {
+        List<Site> allSites = listSites();
+
+        for (Site site : allSites) {
+            if (site.getState().equals(SiteState.STANDBY_PAUSED)) {
+                log.info("IPsec is disallowed since site {} is paused.", site.getName());
+                throw APIException.serviceUnavailable.sitePaused(site.getName());
             }
+        }
 
-            int nodeCount = site.getNodeCount();
+        for (Site site : allSites) {
+            if (site.getState().isDROperationOngoing()) {
+                log.info("Site {} has onging job {}", site.getName(), site.getState());
+                throw APIException.serviceUnavailable.siteOnGoingJob(site.getName(), site.getState().name());
+            }
+        }
+
+        for (Site site : allSites) {
             ClusterInfo.ClusterState state = coordinator.getControlNodesState(site.getUuid());
             if (state != ClusterInfo.ClusterState.STABLE) {
                 log.info("Site {} is not stable {}", site.getUuid(), state);
-                bStable = false;
+                throw APIException.serviceUnavailable.siteClusterStateNotStable(site.getName(), state.name());
             }
         }
-        return bStable;
     }
 
     /**
@@ -694,7 +703,7 @@ public class DrUtil {
             stop = System.nanoTime();
             timeToRespond = (stop - start);
         } catch (Exception e) {
-            log.error(String.format("Fail to check cross-site network latency to node {} with Exception: ",hostAddress),e);
+            log.error("Fail to check cross-site network latency to node {} with Exception: ",hostAddress,e);
             return -1;
         } finally {
             try {
@@ -702,7 +711,7 @@ public class DrUtil {
                     socket.close();
                 }
             } catch (Exception e) {
-                log.error(String.format("Fail to close connection to node {} with Exception: ",hostAddress),e);
+                log.error("Fail to close connection to node {} with Exception: ",hostAddress,e);
             }
         }
     

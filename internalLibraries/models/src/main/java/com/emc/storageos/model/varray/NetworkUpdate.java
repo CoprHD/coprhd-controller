@@ -92,7 +92,7 @@ public class NetworkUpdate {
     }
 
     /**
-     * Add and remove lists of endpoints
+     * Add and remove lists of endpoints. Valid: valid endpoints for the network type (FC,IP or Ethernet)
      * 
      */
     @XmlElement(name = "endpoint_changes")

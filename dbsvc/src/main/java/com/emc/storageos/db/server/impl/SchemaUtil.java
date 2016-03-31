@@ -36,6 +36,8 @@ import org.apache.cassandra.config.DatabaseDescriptor;
 import org.apache.cassandra.gms.Gossiper;
 import org.apache.cassandra.locator.IEndpointSnitch;
 import org.apache.cassandra.thrift.Cassandra;
+import org.apache.cassandra.thrift.CfDef;
+import org.apache.cassandra.thrift.KsDef;
 import org.apache.commons.lang.StringUtils;
 import org.apache.curator.framework.recipes.locks.InterProcessLock;
 import org.slf4j.Logger;
@@ -92,7 +94,8 @@ public class SchemaUtil {
     private static final int DEFAULT_REPLICATION_FACTOR = 1;
     private static final int MAX_REPLICATION_FACTOR = 5;
     private static final int DBINIT_RETRY_INTERVAL = 5;
-    private static final int DBINIT_RETRY_MAX = 20;
+    // waiting 5 mins to init schema
+    private static final int DBINIT_RETRY_MAX = 60; 
 
     private String _clusterName = DbClientContext.LOCAL_CLUSTER_NAME;
     private String _keyspaceName = DbClientContext.LOCAL_KEYSPACE_NAME;
@@ -980,7 +983,8 @@ public class SchemaUtil {
         AstyanaxContext<Cluster> context = clientContext.getClusterContext();
         final KeyspaceTracerFactory ks = EmptyKeyspaceTracerFactory.getInstance();
         ConnectionPool<Cassandra.Client> pool = (ConnectionPool<Cassandra.Client>) context.getConnectionPool();
-        _log.info("Adding CF: {}", def.getName());
+        String cfname = def.getName();
+        _log.info("Adding CF: {}", cfname);
         try {
             return pool.executeWithFailover(
                     new AbstractOperationImpl<String>(
@@ -988,6 +992,19 @@ public class SchemaUtil {
                         @Override
                         public String internalExecute(Cassandra.Client client, ConnectionContext context) throws Exception {
                             client.set_keyspace(_keyspaceName);
+                            // This method can be retried several times, so server may already have received the 'creating CF' request
+                            // and created the CF, we check the existence of the CF first before issuing another 'creating CF' request
+                            // which will cause the 'CF already exists' exception
+                            KsDef kd = client.describe_keyspace(_keyspaceName);
+                            List<CfDef> cfs = kd.getCf_defs();
+                            for (CfDef cf : cfs) {
+                                if (cf.getName().equals(cfname)) {
+                                    _log.info("The CF {} has already been created", cfname);
+                                    return null;
+                                }
+                            }
+
+                            _log.info("To create CF {}", cfname);
                             return client.system_add_column_family(((ThriftColumnFamilyDefinitionImpl) def)
                                     .getThriftColumnFamilyDefinition());
                         }

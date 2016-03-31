@@ -1,0 +1,61 @@
+%{
+  projects = _caller.projects
+  applications = _caller.applications
+  tenants = _caller.tenants
+  currentTenantId = _caller.currentTenantId
+  filterOptions = _caller.filterOptions
+  filteredValue=_filteredValue
+}%
+
+#{if tenants?.size() > 1}
+  #{tenantSelector}  
+    #{ifnot projects}
+     	#{ifnot applications}
+      	<span class="text-warning">&{'resources.noprojectsapplications'}</span>
+     	#{/ifnot}
+    #{/ifnot}
+    #{if projects || applications}
+    		#{Form.selectFilter filters:filterOptions/}
+    		#{Form.selectProject projects:projects/}
+      		#{Form.selectApplication applications:applications/}
+  
+    #{/if}
+  #{/tenantSelector}
+#{/if}
+#{else}
+  #{ifnot projects}
+  	#{ifnot applications}
+    <div class="alert alert-warning">&{'resources.noprojectsapplications'}</div> 
+    #{/ifnot}
+  #{/ifnot}
+  #{if projects || applications}
+    <div class="well well-sm form-inline">
+    		#{Form.selectFilter filters:filterOptions/}
+    		#{Form.selectProject projects:projects/}
+      		#{Form.selectApplication applications:applications/}
+    </div>
+  #{/if}
+#{/else}
+<script>
+
+function loadOptions() {
+	var filteredValue = $('#filter option:selected').val();
+	if(filteredValue=="Application") {
+		$('.application-select *').attr("style", "");
+		$('.application-select select').attr("style", "display:none");
+		$('.project-select').attr("disabled","disabled");
+		$('.project-select *').attr("style", "display:none");
+	}else if(filteredValue=="Project") {
+		$('.project-select *').attr("style", "");
+		$('.project-select select').attr("style", "display:none");
+		$('.application-select *').attr("style", "display:none");
+		$('.application-select').attr("disabled","disabled");
+	}
+}
+	
+$(document).ready(function() {
+	$('.application-select *').attr("style", "display:none");
+	$('#filter').on('change',loadOptions);
+});
+</script>
+

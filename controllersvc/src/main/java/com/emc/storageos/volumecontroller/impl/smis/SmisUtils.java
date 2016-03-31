@@ -243,4 +243,27 @@ public class SmisUtils {
         }
         return null;
     }
+
+    /*
+     * Set settings instance for VMAX V3 only.
+     *
+     * @param StorageSytem      storage
+     * @param sourceElementId   String of source volume (or source group) ID
+     * @param elementName       String used as ElementName when creating ReplicationSettingData during single snapshot
+     *                          creation, or RelationshipName used in CreateGroupReplica for group snapshot.
+     *
+     * @see com.emc.storageos.volumecontroller.impl.smis.vmax.VmaxSnapshotOperations#getReplicationSettingData
+     *
+     * Note elementName should be target device's DeviceID or target group ID.
+     */
+    public static String generateVmax3SettingsInstance(StorageSystem storage, String sourceElementId, String elementName) {
+        // SYMMETRIX-+-000196700567-+-<sourceElementId>-+-<elementName>-+-0
+        StringBuilder sb = new StringBuilder("SYMMETRIX");
+        sb.append(Constants.SMIS80_DELIMITER)
+                .append(storage.getSerialNumber())
+                .append(Constants.SMIS80_DELIMITER).append(sourceElementId)
+                .append(Constants.SMIS80_DELIMITER).append(elementName)
+                .append(Constants.SMIS80_DELIMITER).append("0");
+        return sb.toString();
+    }
 }

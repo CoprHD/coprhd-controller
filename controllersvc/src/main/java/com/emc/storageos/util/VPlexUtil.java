@@ -393,7 +393,7 @@ public class VPlexUtil {
         // Read the initiators and partition them by Network
         List<Initiator> initiators = dbClient.queryObject(Initiator.class, initiatorURIs);
         Map<NetworkLite, List<Initiator>> networkToInitiators = NetworkUtil.getInitiatorsByNetwork(initiators, dbClient);
-        // Build the output map. For each varray, look at each Network to see if it's connected virtual arrays
+        // Build the output map. For each varray, look at each Network to see if its connected virtual arrays
         // contains this varray. If so, add all the Initiators in that Network to the varrayToInitiators map.
         for (URI varrayURI : varrayURIs) {
             for (NetworkLite network : networkToInitiators.keySet()) {
@@ -1358,6 +1358,22 @@ public class VPlexUtil {
     }
 
     /**
+     * Check if the volume is a vplex virtual volume
+     * @param volume the volume
+     * @param dbClient
+     * @return true or false
+     */
+    public static boolean isVplexVolume(Volume volume, DbClient dbClient) {
+        URI storageURI = volume.getStorageController();
+        StorageSystem storage = dbClient.queryObject(StorageSystem.class, storageURI);
+        if (DiscoveredDataObject.Type.vplex.name().equals(storage.getSystemType())) {
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    /**
      * Determines if the passed VPLEX volume is built on top of a target
      * volume for a block snapshot.
      * 
@@ -1430,6 +1446,7 @@ public class VPlexUtil {
 
         return false;
     }
+
 
     /**
      * Checks vplex back end volumes having backend cg

@@ -227,7 +227,7 @@ _revert_snapshot() {
     local sn=$(_get_snapshot_number $1)
     local basesn=$(_get_base_snapshot_number $1)
     if [ "${sn}" == "${basesn}" ]; then
-        _fatal "Failed to revert snapshot for $1: only single base snapshot ${basesn}"
+        return
     fi
     if [ ! -d ${basedir}/${ver}.${basesn} ]; then
         _fatal "Failed to revert snapshot for $1: base snapshot ${basesn} missing"

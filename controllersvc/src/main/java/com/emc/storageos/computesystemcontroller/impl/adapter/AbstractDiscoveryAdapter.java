@@ -28,11 +28,11 @@ import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.ModelClient;
 import com.emc.storageos.db.client.model.DataObject;
+import com.emc.storageos.db.client.model.DiscoveredDataObject.RegistrationStatus;
 import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.HostInterface;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.IpInterface;
-import com.emc.storageos.db.client.model.DiscoveredDataObject.RegistrationStatus;
 import com.emc.storageos.db.client.util.EndpointUtility;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.google.common.base.Predicate;
@@ -119,7 +119,7 @@ public abstract class AbstractDiscoveryAdapter implements ComputeSystemDiscovery
     }
 
     /**
-     * Removes discovered IP interfaces from it's host and ignores manually created IP interfaces
+     * Removes discovered IP interfaces from its host and ignores manually created IP interfaces
      * 
      * @param ipInterfaces list of IP interfaces
      */
@@ -212,7 +212,7 @@ public abstract class AbstractDiscoveryAdapter implements ComputeSystemDiscovery
     }
 
     /**
-     * Removes discovered initiators from it's host and ignores manually created initiators
+     * Removes discovered initiators from its host and ignores manually created initiators
      * 
      * @param initiators list of initiators
      */

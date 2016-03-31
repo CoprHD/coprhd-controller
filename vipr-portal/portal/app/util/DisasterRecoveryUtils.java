@@ -37,6 +37,10 @@ public class DisasterRecoveryUtils {
         return getViprClient().site().listAllSites();
     }
 
+    public static boolean isLocalSiteRemoved() {
+        return getViprClient().site().isLocalSiteRemoved();
+    }
+
     public static int getSiteCount() {
         return getViprClient().site().listAllSites().getSites().size();
     }

@@ -326,7 +326,7 @@ public interface VPlexApiExceptions {
     @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)
     public VPlexApiException addStepsForMigrateVolumesFailed(final Throwable cause);
 
-    @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)
+    @DeclareServiceCode(ServiceCode.VPLEX_API_RESPONSE_TIMEOUT_ERROR)
     public VPlexApiException timeoutWaitingForAsyncOperationToComplete(final String asyncTaskURI);
 
     @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)
@@ -593,16 +593,16 @@ public interface VPlexApiExceptions {
     @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)
     public VPlexApiException attachMirrorFailureStatus(final String status,
             final String cause);
-    
+
     @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)
     public VPlexApiException setRebuildSetTransferSpeeFailureStatus(final String status,
             final String cause);
 
     @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)
     public VPlexApiException failedAttachMirror(final Throwable cause);
-    
+
     @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)
-    public VPlexApiException failedSetTransferSize(final Throwable cause); 
+    public VPlexApiException failedSetTransferSize(final Throwable cause);
 
     @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)
     public VPlexApiException renameResourceFailureStatus(final String status,
@@ -776,7 +776,11 @@ public interface VPlexApiExceptions {
 
     @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)
     public VPlexApiException cantRenameDeviceBackToOriginalName(String originalDeviceName, String newName, final Throwable cause);
-    
+
     @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)
-    public VPlexApiException cantUseBackendExportMaskNotAllPortsInVarray(final String maskName, final String varray, final String listOfPorts);
+    public VPlexApiException cantUseBackendExportMaskNotAllPortsInVarray(final String maskName, final String varray,
+            final String listOfPorts);
+
+    @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)
+    public VPlexApiException migrationRollbackFailureContactEMC(final String volumeId, final String volumeLabel, final String migration);
 }

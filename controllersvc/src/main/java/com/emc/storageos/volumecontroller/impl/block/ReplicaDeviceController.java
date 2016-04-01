@@ -21,6 +21,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
+import com.emc.storageos.db.client.model.util.BlockConsistencyGroupUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -140,41 +141,11 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
             waitFor = createReplicaIfCGHasReplica(workflow, waitFor,
                     srdfSourceVolumeDescriptors, cgURI);
 
-            // get target CG
-            // New Target Volume Descriptors and Volume objects will not have CG URI set
-            final URIQueryResultList uriQueryResultList = new URIQueryResultList();
-            _dbClient.queryByConstraint(AlternateIdConstraint.Factory
-                    .getBlockObjectsByConsistencyGroup(cgURI.toString()),
-                    uriQueryResultList);
-            Iterator<URI> volumeItr = uriQueryResultList.iterator();
-            List<URI> newSourceVolumes = new ArrayList<URI>();
-            for (VolumeDescriptor volumeDesc : srdfSourceVolumeDescriptors) {
-                newSourceVolumes.add(volumeDesc.getVolumeURI());
+            // Create replica for R2
+            URI targetVolumeCG = getTargetVolumeCGFromSourceCG(cgURI);
+            if (targetVolumeCG != null) {
+                waitFor = createReplicaIfCGHasReplica(workflow, waitFor, srdfTargetVolumeDescriptors, targetVolumeCG);
             }
-            URI targetVolumeCGURI = null;
-            while (volumeItr.hasNext()) {
-                URI volumeURI = volumeItr.next();
-                if (!newSourceVolumes.contains(volumeURI)) {
-                    Volume existingSourceVolume = _dbClient.queryObject(Volume.class, volumeURI);
-                    Volume existingTargetVolume = null;
-                    // get target
-                    StringSet targets = existingSourceVolume.getSrdfTargets();
-                    if (targets != null) {
-                        for (String target : targets) {
-                            if (NullColumnValueGetter.isNotNullValue(target)) {
-                                existingTargetVolume = _dbClient.queryObject(Volume.class, URI.create(target));
-                                targetVolumeCGURI = existingTargetVolume.getConsistencyGroup();
-                                break;
-                            }
-                        }
-                    }
-                    break;
-                }
-            }
-
-            waitFor = createReplicaIfCGHasReplica(workflow, waitFor,
-                    srdfTargetVolumeDescriptors, targetVolumeCGURI);
-
         }
 
         return waitFor;
@@ -228,7 +199,8 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
             VolumeDescriptor firstVolumeDescriptor = volumeDescriptors.get(0);
             if (firstVolumeDescriptor != null && cgURI != null) {
                 // find member volumes in the group
-                List<Volume> existingVolumesInCG = ControllerUtils.getVolumesPartOfCG(cgURI, _dbClient);
+                BlockConsistencyGroup cg = _dbClient.queryObject(BlockConsistencyGroup.class, cgURI);
+                List<Volume> existingVolumesInCG = BlockConsistencyGroupUtils.getActiveNativeVolumesInCG(cg, _dbClient);
                 URI storage = existingVolumesInCG.get(0).getStorageController();
                 //We will not end up in more than 1 RG within a CG, hence taking System from CG is fine.
                 StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, storage);
@@ -1670,5 +1642,24 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
         }
 
         return waitFor;
+    }
+
+    private URI getTargetVolumeCGFromSourceCG(URI sourceCG) {
+        List<Volume> sourceVolumes = CustomQueryUtility.queryActiveResourcesByConstraint(_dbClient, Volume.class,
+                AlternateIdConstraint.Factory.getBlockObjectsByConsistencyGroup(sourceCG.toString()));
+
+        for (Volume sourceVolume : sourceVolumes) {
+            if (sourceVolume.getSrdfTargets() != null) {
+                for (String target : sourceVolume.getSrdfTargets()) {
+                    if (NullColumnValueGetter.isNotNullValue(target)) {
+                        Volume targetVolume = _dbClient.queryObject(Volume.class, URI.create(target));
+                        if (!NullColumnValueGetter.isNullURI(targetVolume.getConsistencyGroup())) {
+                            return targetVolume.getConsistencyGroup();
+                        }
+                    }
+                }
+            }
+        }
+        return null;
     }
 }

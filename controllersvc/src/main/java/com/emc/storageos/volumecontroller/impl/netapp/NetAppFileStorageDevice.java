@@ -245,8 +245,8 @@ public class NetAppFileStorageDevice extends AbstractFileStorageDevice {
                 _log.info("NetAppFileStorageDevice deleteQTreesAndMarkFSOffline {} - succeeded", args.getFsName());
                 if (success) {
                     NetAppFileTaskCompleter taskCompleter = new NetAppFileTaskCompleter(FileShare.class, args.getFsId(), args.getOpId());
-                    NetAppVolumeDeleteJob volumeDeleteJob = new NetAppVolumeDeleteJob(args.getFsName(), storage.getId(), taskCompleter,
-                            "deleteFS");
+                    NetAppVolumeDeleteJob volumeDeleteJob = new NetAppVolumeDeleteJob(args.getFsName(), storage.getId(),
+                            args.getForceDelete(), taskCompleter);
                     ControllerServiceImpl.enqueueJob(new QueueJob(volumeDeleteJob));
                     _log.info("Submitted job to delete volume: {}", args.getFsName());
                     return BiosCommandResult.createPendingResult();

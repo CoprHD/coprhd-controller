@@ -157,6 +157,6 @@ public interface NetAppExceptions {
     public NetAppException checkSnapMirrorLicenseFailed(final String ip, final String message);
 
     @DeclareServiceCode(ServiceCode.NETAPP_ERROR)
-    public NetAppException quiesceSnapMirrorLicenseFailed(final String ip, final String volName, final String message);
+    public NetAppException quiesceSnapMirrorFailed(final String ip, final String volName, final String message);
 
 }

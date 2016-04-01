@@ -1260,7 +1260,7 @@ public class NetAppApi {
             return success;
 
         } catch (Exception e) {
-            throw NetAppException.exceptions.quiesceSnapMirrorLicenseFailed(_ipAddress, pathLocation, e.getMessage());
+            throw NetAppException.exceptions.quiesceSnapMirrorFailed(_ipAddress, pathLocation, e.getMessage());
         }
     }
 

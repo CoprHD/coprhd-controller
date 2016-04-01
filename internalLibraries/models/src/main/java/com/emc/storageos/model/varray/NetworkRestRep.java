@@ -42,7 +42,9 @@ public class NetworkRestRep extends DiscoveredDataObjectRestRep {
 
     /**
      * Indicates whether the network was discovered by a network system or manually created.
-     * 
+     * Valid values:
+     * 	true = network was discovered by a network system
+     * 	false = network was manually created
      */
     @XmlElement(name = "discovered")
     public Boolean getDiscovered() {

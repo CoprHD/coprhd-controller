@@ -37,7 +37,7 @@ Unauthorized use, distribution or dissemination are strictly prohibited.
 	id="CimListenerInfo"
 	class="com.emc.storageos.cimadapter.connections.cim.CimListenerInfo">
 	<property name="protocol" value="http"/>
-	<property name="port" value="7012"/>
+	<property name="port" value="7000"/>
 	<property name="queueSize" value="1000"/>
 </bean>
 

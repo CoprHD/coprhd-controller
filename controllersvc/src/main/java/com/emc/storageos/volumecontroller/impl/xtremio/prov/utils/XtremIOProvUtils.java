@@ -20,6 +20,7 @@ import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StorageProvider;
 import com.emc.storageos.db.client.model.StorageSystem;
+import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.xtremio.restapi.XtremIOClient;
 import com.emc.storageos.xtremio.restapi.XtremIOClientFactory;
 import com.emc.storageos.xtremio.restapi.XtremIOConstants;
@@ -39,6 +40,7 @@ public class XtremIOProvUtils {
 
     private static final String DOT_OPERATOR = "\\.";
     private static final Integer XIO_MIN_4X_VERSION = 4;
+    private static final Integer XIO_4_0_2_VERSION = 402;
 
     private static final Set<String> SUPPORTED_HOST_OS_SET = new HashSet<String>();
 
@@ -458,7 +460,23 @@ public class XtremIOProvUtils {
     }
 
     public static boolean is4xXtremIOModel(String model) {
-        return (null != model && Integer.valueOf(model.split(DOT_OPERATOR)[0]) >= XIO_MIN_4X_VERSION);
+        return (NullColumnValueGetter.isNotNullValue(model) && Integer.valueOf(model.split(DOT_OPERATOR)[0]) >= XIO_MIN_4X_VERSION);
+    }
+
+    /**
+     * Check if the version is greater than or equal to 4.0.2
+     *
+     * @param version XIO storage system firmware version
+     * @return true if the version is 4.0.2 or greater
+     */
+    public static boolean isXtremIOVersion402OrGreater(String version) {
+        if (NullColumnValueGetter.isNotNullValue(version)) {
+            // the version will be in the format - 4.0.2-80_ndu.
+            String xioVersion = version.replace(".", "").substring(0, 3);
+            return (Integer.valueOf(xioVersion) >= XIO_4_0_2_VERSION);
+        }
+
+        return false;
     }
 
     /**

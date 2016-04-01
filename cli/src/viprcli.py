@@ -72,6 +72,8 @@ import ipsecmanager
 import snapshotsession
 import schedulepolicy
 import objectuser
+import requests
+from requests.packages.urllib3.exceptions import InsecureRequestWarning
 
 warnings.filterwarnings(
     'ignore',
@@ -186,6 +188,7 @@ schedulepolicy.schedulepolicy_parser(module_parsers, common_parser)
 objectuser.objectuser_parser(module_parsers, common_parser)
 network.network_parser(module_parsers, common_parser)
 
+requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
 
 
 # Parse Command line Arguments and execute the corresponding routines

@@ -157,6 +157,15 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
 
         Volume volume = (Volume) blockObject;
 
+        boolean unManagedVolumeExported = 
+                VolumeIngestionUtil.checkUnManagedResourceIsNonRPExported(unManagedVolume)
+                    && !unManagedVolume.getUnmanagedExportMasks().isEmpty();
+        if (isExportIngestionPending(volume, unManagedVolume.getId(), unManagedVolumeExported)) {
+            _logger.info("Volume {} has already been ingested for RecoverPoint, but is still exported via UnManagedExportMasks: {}", 
+                    volume.forDisplay(), unManagedVolume.getUnmanagedExportMasks());
+            return clazz.cast(volume);
+        }
+
         // Perform RP-specific volume ingestion
         volume = performRPVolumeIngestion(parentRequestContext, volumeContext, unManagedVolume, volume);
 
@@ -664,7 +673,7 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
      * @param volume managed volume
      * @return managed volume with export ingested
      */
-    private void performRPExportIngestion(IngestionRequestContext parentRequestContext, IngestionRequestContext volumeContext,
+    private void performRPExportIngestion(IngestionRequestContext parentRequestContext, RecoverPointVolumeIngestionContext volumeContext,
             UnManagedVolume unManagedVolume, Volume volume) {
 
         _logger.info("starting RecoverPoint export ingestion for volume {}", volume.forDisplay());
@@ -762,8 +771,9 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
             ExportGroup exportGroup = VolumeIngestionUtil.verifyExportGroupExists(
                     parentRequestContext, exportGroupGeneratedName, project.getId(),
                     em.getKnownInitiatorUris(), virtualArray.getId(), _dbClient);
+            boolean exportGroupCreated = false;
             if (null == exportGroup) {
-                volumeContext.setExportGroupCreated(true);
+                exportGroupCreated = true;
                 Integer numPaths = em.getZoningMap().size();
                 _logger.info("Creating Export Group with label {}", em.getMaskName());
 
@@ -788,6 +798,8 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
             }
 
             volumeContext.setExportGroup(exportGroup);
+            volumeContext.setExportGroupCreated(exportGroupCreated);
+            volumeContext.getRpExportGroupMap().put(exportGroup, exportGroupCreated);
 
             // set RP device initiators to be used as the "host" for export mask ingestion
             List<Initiator> initiators = new ArrayList<Initiator>();

@@ -472,7 +472,7 @@ public abstract class VirtualPoolService extends TaggedResource {
             } else if (vpool.getType().equals(VirtualPool.Type.block.name())) {
                 Set<URI> allSrdfTargetVPools = SRDFUtils.fetchSRDFTargetVirtualPools(_dbClient);
                 Set<URI> allRpTargetVpools = RPHelper.fetchRPTargetVirtualPools(_dbClient);
-                ImplicitUnManagedObjectsMatcher.matchVirtualPoolsWithUnManagedVolumes(vpool, allSrdfTargetVPools, allRpTargetVpools, _dbClient);
+                ImplicitUnManagedObjectsMatcher.matchVirtualPoolsWithUnManagedVolumes(vpool, allSrdfTargetVPools, allRpTargetVpools, _dbClient, false);
             }
 
             _dbClient.updateAndReindexObject(vpool);

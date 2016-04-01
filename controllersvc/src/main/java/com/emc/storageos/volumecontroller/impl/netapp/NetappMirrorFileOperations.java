@@ -689,4 +689,11 @@ public class NetappMirrorFileOperations implements FileMirrorOperations {
         return portGroup;
     }
 
+    @Override
+    public void doModifyReplicationRPO(StorageSystem system, Long rpoValue, String rpoType, FileShare target, TaskCompleter completer)
+            throws DeviceControllerException {
+        // TODO Auto-generated method stub
+
+    }
+
 }

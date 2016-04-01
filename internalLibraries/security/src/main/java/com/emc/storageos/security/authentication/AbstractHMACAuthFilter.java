@@ -40,7 +40,7 @@ public abstract class AbstractHMACAuthFilter extends AbstractAuthenticationFilte
      */
     protected boolean verifySignature(HttpServletRequest req, SignatureKeyType type) {
         // To Do - add more fields to signature
-        StringBuilder buf = new StringBuilder(req.getRequestURL().toString());
+        StringBuilder buf = new StringBuilder(req.getPathInfo().toString().toLowerCase());
         if (req.getQueryString() != null) {
             buf.append("?" + req.getQueryString());
         }

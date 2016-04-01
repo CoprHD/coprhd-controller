@@ -46,7 +46,7 @@ public abstract class TenantParam {
      * Namespace associated to a tenant.
      * 
      */
-    @XmlElement(required = false, name="namespace")
+    @XmlElement(name = "namespace", required = false)
     public String getNamespace() {
         return namespace;
     }

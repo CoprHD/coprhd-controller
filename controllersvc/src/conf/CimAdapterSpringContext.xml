@@ -38,7 +38,7 @@
 	<bean id="CimListenerInfo"
 		class="com.emc.storageos.cimadapter.connections.cim.CimListenerInfo">
 		<property name="protocol" value="https" />
-		<property name="port" value="7012" />
+		<property name="port" value="7000" />
 		<property name="queueSize" value="1000" />
 		<property name="defaultSMISSSLPort" value="5989"/>
 	</bean>

@@ -124,6 +124,8 @@ public class Tenants extends ViprResourceController {
             createParam.setDescription(tenant.description);
             if(tenant.enableNamespace){
             	createParam.setNamespace(tenant.namespace);
+            } else {
+                createParam.setNamespace("");
             }
             tenant.id = stringId(TenantUtils.create(createParam));
             saveTenantQuota(tenant);

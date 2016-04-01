@@ -74,6 +74,7 @@ import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.VolumeGroup;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
+import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.common.VdcUtil;
 import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.model.BulkIdParam;
@@ -122,7 +123,6 @@ import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.svcs.errorhandling.resources.BadRequestException;
 import com.emc.storageos.svcs.errorhandling.resources.ForbiddenException;
-import com.emc.storageos.volumecontroller.impl.ControllerUtils;
 import com.emc.storageos.volumecontroller.impl.monitoring.RecordableBourneEvent;
 import com.emc.storageos.volumecontroller.impl.monitoring.RecordableEventManager;
 import com.emc.storageos.volumecontroller.impl.monitoring.cim.enums.RecordType;
@@ -341,6 +341,14 @@ public class TenantsService extends TaggedResource {
                     break;
                 }
             }
+        } else if (param.getNamespace() != null && param.getNamespace().isEmpty()) {
+            if (!StringUtils.isEmpty(tenant.getNamespace())) {
+                // Though we are not deleting need to check no dependencies on this tenant
+                ArgValidator.checkReference(TenantOrg.class, id, checkForDelete(tenant));
+            } else {
+                tenant.setNamespace(NullColumnValueGetter.getNullStr());
+            }
+
         }
 
         if (!isUserMappingEmpty(param)) {

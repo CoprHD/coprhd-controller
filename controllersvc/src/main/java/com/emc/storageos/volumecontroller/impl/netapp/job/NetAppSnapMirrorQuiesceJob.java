@@ -70,6 +70,10 @@ public class NetAppSnapMirrorQuiesceJob extends Job implements Serializable {
                             _pollResult.setJobPercentComplete(100);
                             _logger.info("SnapMirror Job: {} succeeded", currentJob);
                             break;
+                        case quiescing:
+                            _status = JobStatus.IN_PROGRESS;
+                            _logger.info("SnapMirror Job: {} progress ", statusInfo.toString());
+                            break;
                         default:
                             break;
                     }

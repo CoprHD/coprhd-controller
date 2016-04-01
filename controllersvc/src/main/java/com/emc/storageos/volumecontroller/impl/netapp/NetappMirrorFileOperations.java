@@ -22,6 +22,7 @@ import com.emc.storageos.volumecontroller.impl.ControllerServiceImpl;
 import com.emc.storageos.volumecontroller.impl.file.FileMirrorOperations;
 import com.emc.storageos.volumecontroller.impl.job.QueueJob;
 import com.emc.storageos.volumecontroller.impl.netapp.job.NetAppSnapMirrorCreateJob;
+import com.emc.storageos.volumecontroller.impl.netapp.job.NetAppSnapMirrorQuiesceJob;
 import com.emc.storageos.volumecontroller.impl.netapp.job.NetAppSnapMirrorStartJob;
 import com.emc.storageos.workflow.WorkflowStepCompleter;
 import com.iwave.ext.netapp.model.SnapMirrorState;
@@ -126,9 +127,10 @@ public class NetappMirrorFileOperations implements FileMirrorOperations {
 
         StorageSystem targetStorageSystem = _dbClient.queryObject(StorageSystem.class, target.getStorageDevice());
 
-        BiosCommandResult cmdResult = doPauseSnapMirror(targetStorageSystem, target, completer);
+        BiosCommandResult cmdResult = doPauseSnapMirrorSync(targetStorageSystem, target, completer);
 
         if (cmdResult.getCommandSuccess()) {
+
             completer.ready(_dbClient);
         } else if (cmdResult.getCommandPending()) {
             completer.statusPending(_dbClient, cmdResult.getMessage());
@@ -514,22 +516,6 @@ public class NetappMirrorFileOperations implements FileMirrorOperations {
         if (SnapMirrorState.SYNCRONIZED.equals(mirrorStatusInfo.getMirrorState())) {
             nApi.quiesceSnapMirror(destLocation);
             return BiosCommandResult.createSuccessfulResult();
-            /*
-             * NetAppSnapMirrorQuiesceJob snapMirrorQuiesceJob = new NetAppSnapMirrorQuiesceJob(destLocation, targetStorage.getId(),
-             * taskCompleter, "quiesceSnapmirrorJob");
-             * try {
-             * ControllerServiceImpl.enqueueJob(new QueueJob(snapMirrorQuiesceJob));
-             * _log.info("Job submitted to check the status of snapmirror quiesce on {}", destLocation);
-             * return BiosCommandResult.createPendingResult();
-             * } catch (Exception e) {
-             * _log.error("Snapmirror quiesce failed", e);
-             * ServiceError error = DeviceControllerErrors.netapp.jobFailed("Snapmirror quiesce failed:" + e.getMessage());
-             * if (taskCompleter != null) {
-             * taskCompleter.error(_dbClient, error);
-             * }
-             * return BiosCommandResult.createErrorResult(error);
-             * }
-             */
         } else {
             ServiceError error = DeviceControllerErrors.netapp
                     .jobFailed("Snapmirror Pause operation failed, because of mirror state should be snapMirrored: "
@@ -537,6 +523,37 @@ public class NetappMirrorFileOperations implements FileMirrorOperations {
                                     .getMirrorState().toString());
             return BiosCommandResult.createErrorResult(error);
         }
+    }
+
+    /**
+     * Pause mirror relation synchronously
+     * 
+     * @param sourceStorage
+     * @param targetStorage
+     * @param sourceFs
+     * @param targetFs
+     * @param taskCompleter
+     * @return
+     */
+    public BiosCommandResult doPauseSnapMirrorSync(StorageSystem targetStorage,
+            FileShare targetFs, TaskCompleter taskCompleter) {
+        // get vfiler
+        String destLocation = getLocation(targetStorage, targetFs);
+        BiosCommandResult result = this.doPauseSnapMirror(targetStorage, targetFs, taskCompleter);
+        if (result.getCommandSuccess()) {
+            NetAppSnapMirrorQuiesceJob snapMirrorQuiesceJob = new NetAppSnapMirrorQuiesceJob(destLocation, targetStorage.getId(),
+                    taskCompleter, "quiesceSnapmirrorJob");
+            try {
+                ControllerServiceImpl.enqueueJob(new QueueJob(snapMirrorQuiesceJob));
+            } catch (Exception e) {
+                ServiceError error = DeviceControllerErrors.netapp
+                        .jobFailed(e.getMessage());
+                return BiosCommandResult.createErrorResult(error);
+            }
+            _log.info("Job submitted to check the status of snapmirror quiesce on {}", destLocation);
+            return BiosCommandResult.createPendingResult();
+        }
+        return BiosCommandResult.createErrorResult(result.getServiceCoded());
     }
 
     /**

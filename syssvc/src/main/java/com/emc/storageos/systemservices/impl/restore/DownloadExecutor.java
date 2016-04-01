@@ -201,6 +201,7 @@ public final class DownloadExecutor implements  Runnable {
             String uri = SysClientFactory.URI_NODE_PULL_BACKUP_FILE+ "?backupname=" + remoteBackupFileNameNoBlank + "&filename="+filenameNoBlank;
             final InputStream in = SysClientFactory.getSysClient(endpoint)
                                                    .get(new URI(uri), InputStream.class, MediaType.APPLICATION_OCTET_STREAM);
+
             byte[] buffer = new byte[BackupConstants.DOWNLOAD_BUFFER_SIZE];
             persistBackupFile(downloadDir, filename, new BufferedInputStream(in), buffer, true, true);
         } catch (URISyntaxException e) {

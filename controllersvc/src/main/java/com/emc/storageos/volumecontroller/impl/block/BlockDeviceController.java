@@ -616,7 +616,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                             deviceURI, getDeviceType(deviceURI),
                             this.getClass(),
                             createConsistencyGroupMethod(deviceURI, consistencyGroupURI, rgName),
-                            deleteConsistencyGroupMethod(deviceURI, consistencyGroupURI, rgName, false, false), null);
+                            deleteConsistencyGroupMethod(deviceURI, consistencyGroupURI, rgName, false, false, true), null);
                     createdCg = true;
                     _log.info(String.format("Step created for creating CG [%s] on device [%s]", consistencyGroup.getLabel(), deviceURI));
                 }
@@ -3075,26 +3075,22 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
     }
 
     public Workflow.Method deleteConsistencyGroupMethod(URI storage, URI consistencyGroup, String groupName, Boolean keepRGName,
-            Boolean markInactive) {
+            Boolean markInactive, Boolean throwErrorIfNotDeleted) {
         return new Workflow.Method("deleteReplicationGroupInConsistencyGroup", storage, consistencyGroup, groupName, keepRGName,
-                markInactive);
+                markInactive, throwErrorIfNotDeleted);
     }
 
     @Override
     public void deleteConsistencyGroup(URI storage, URI consistencyGroup, Boolean markInactive, String opId) throws ControllerException {
-        deleteReplicationGroupInConsistencyGroup(storage, consistencyGroup, null, false, markInactive, opId);
+        deleteReplicationGroupInConsistencyGroup(storage, consistencyGroup, null, false, markInactive, true, opId);
     }
 
     public void deleteReplicationGroupInConsistencyGroup(URI storage, URI consistencyGroup, String groupName, Boolean keepRGName,
-            Boolean markInactive, String opId) throws ControllerException {
+            Boolean markInactive, Boolean throwErrorIfNotDeleted, String opId) throws ControllerException {
         TaskCompleter completer = null;
         try {
             WorkflowStepCompleter.stepExecuting(opId);
-            /**
-             * FullCopy volume will not have CGURI.
-             * Added null check to avoid NPE.
-             */
-            
+            completer = new BlockConsistencyGroupDeleteCompleter(consistencyGroup, opId);
             List<String> lockKeys = new ArrayList<String>();
             if (groupName  != null && !groupName.isEmpty()) {
                 lockKeys.add(ControllerLockingUtil.getReplicationGroupStorageKey(_dbClient, groupName, storage));
@@ -3105,8 +3101,22 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
             if (!lockKeys.isEmpty()) {
                 _workflowService.acquireWorkflowStepLocks(opId, lockKeys, LockTimeoutValue.get(LockType.ARRAY_CG));
             }
+            // Check if there is any members in the replication group before delete it.
+            if (groupName != null && !groupName.isEmpty()) {
+                List<Volume> groupVolumes = ControllerUtils.getVolumesPartOfRG(storage, groupName, _dbClient);
+                if (groupVolumes != null && !groupVolumes.isEmpty()) {
+                    String msg = String.format("The replication group %s still have volumes, will not delete the replication group", groupName);
+                    _log.warn(msg);
+                    if (throwErrorIfNotDeleted) {
+                        completer.error(_dbClient, DeviceControllerException.exceptions.couldNotDeleteReplicationGroup(msg));
+                    } else {
+                        completer.ready(_dbClient);
+                    }
+                }
+            }
+            
             StorageSystem storageObj = _dbClient.queryObject(StorageSystem.class, storage);
-            completer = new BlockConsistencyGroupDeleteCompleter(consistencyGroup, opId);
+            
             getDevice(storageObj.getSystemType()).doDeleteConsistencyGroup(storageObj, consistencyGroup, groupName, keepRGName,
                     markInactive, completer);
         } catch (Exception e) {
@@ -4202,7 +4212,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                                 String.format("Deleting replication group for consistency group %s", consistencyGroup),
                                 waitFor, storage, storageSystem.getSystemType(),
                                 this.getClass(),
-                                deleteConsistencyGroupMethod(storage, consistencyGroup, groupName, false, false),
+                                deleteConsistencyGroupMethod(storage, consistencyGroup, groupName, false, false, false),
                                 rollbackMethodNullMethod(), null);
                     }
                 }
@@ -4236,12 +4246,12 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
             taskCompleter = new BlockConsistencyGroupCreateCompleter(consistencyGroup, opId);
             String groupName = ControllerUtils.generateReplicationGroupName(storageSystem, consistencyGroup, replicationGroupName,
                     _dbClient);
-
+            
             // Lock the CG for the step duration.
             List<String> lockKeys = new ArrayList<>();
             lockKeys.add(ControllerLockingUtil.getReplicationGroupStorageKey(_dbClient, groupName, storage));
             _workflowService.acquireWorkflowStepLocks(opId, lockKeys, LockTimeoutValue.get(LockType.ARRAY_CG));
-
+            
             // make sure this array consistency group was not just created by another thread that held the lock
             if (ControllerUtils.replicationGroupExists(storage, groupName, _dbClient)) {
                 taskCompleter.ready(_dbClient);
@@ -4529,7 +4539,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                         String.format("Deleting replication group  %s", rgName),
                         waitFor, storage, storageSystem.getSystemType(),
                         this.getClass(),
-                        deleteConsistencyGroupMethod(storage, cgURI, rgName, false, false),
+                        deleteConsistencyGroupMethod(storage, cgURI, rgName, false, false, false),
                         rollbackMethodNullMethod(), null);
             }
         }
@@ -5427,7 +5437,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                             String.format("Deleting replication group for consistency group %s", cg.getLabel()),
                             waitFor, storage, storageSystem.getSystemType(),
                             this.getClass(),
-                            deleteConsistencyGroupMethod(storage, cguri, groupName, true, false),
+                            deleteConsistencyGroupMethod(storage, cguri, groupName, true, false,false),
                             rollbackMethodNullMethod(), null);
                 }
             }
@@ -6283,7 +6293,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                        String.format("Deleting replication group for consistency group %s", cgUri.toString()),
                        waitFor, storage, storageSystem.getSystemType(),
                        this.getClass(),
-                       deleteConsistencyGroupMethod(storage, cgUri, groupName, false, false),
+                       deleteConsistencyGroupMethod(storage, cgUri, groupName, false, false, false),
                        createConsistencyGroupMethod(storage, cgUri, groupName), null);
            }
         }
@@ -6312,7 +6322,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                        waitFor, storage, storageSystem.getSystemType(),
                        this.getClass(),
                        createConsistencyGroupMethod(storage, cgUri, rgName),
-                       deleteConsistencyGroupMethod(storage, cgUri, rgName, false, false), null);
+                       deleteConsistencyGroupMethod(storage, cgUri, rgName, false, false, true), null);
            }
 
            waitFor = workflow.createStep(UPDATE_CONSISTENCY_GROUP_STEP_GROUP,

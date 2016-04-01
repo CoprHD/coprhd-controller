@@ -11,7 +11,7 @@ import java.util.List;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 
-@XmlRootElement(name = "copies")
+@XmlRootElement(name = "file_copies")
 public class FileReplicationParam implements Serializable {
 
     private static final long serialVersionUID = 1L;
@@ -29,7 +29,7 @@ public class FileReplicationParam implements Serializable {
      * 
      * 
      */
-    @XmlElement(name = "copy")
+    @XmlElement(name = "file_copy")
     public List<Copy> getCopies() {
         if (copies == null) {
             copies = new ArrayList<Copy>();

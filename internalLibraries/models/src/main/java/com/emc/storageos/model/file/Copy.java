@@ -10,7 +10,7 @@ import java.net.URI;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 
-@XmlRootElement(name = "copy")
+@XmlRootElement(name = "file_copy")
 public class Copy implements Serializable {
 
     private static final long serialVersionUID = -8250892549720042299L;
@@ -32,7 +32,7 @@ public class Copy implements Serializable {
 
     /**
      * Type of protection.
-     *
+     * 
      */
     @XmlElement(name = "type")
     public String getType() {

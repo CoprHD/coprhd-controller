@@ -6,6 +6,7 @@
 package com.emc.storageos.volumecontroller.impl;
 
 import java.net.URI;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Iterator;
@@ -22,6 +23,7 @@ import com.emc.storageos.coordinator.common.impl.ZkPath;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
+import com.emc.storageos.db.client.model.StorageProvider;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.Task;
 import com.emc.storageos.db.client.model.Workflow;
@@ -29,6 +31,8 @@ import com.emc.storageos.db.client.model.WorkflowStep;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.volumecontroller.AsyncTask;
 import com.emc.storageos.volumecontroller.impl.ControllerServiceImpl.Lock;
+import com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.DataCollectionScanJob;
+import com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.ScanTaskCompleter;
 import com.emc.storageos.workflow.Workflow.StepState;
 import com.emc.storageos.workflow.WorkflowException;
 import com.emc.storageos.workflow.WorkflowService;
@@ -41,6 +45,7 @@ import com.emc.storageos.workflow.WorkflowService;
  * 1) Release persistent lock
  * 2) Remove all pending tasks, workflows
  * 3) Set all in-progress workflow steps/workflow as error
+ * 4) Trigger provider rescan
  * 4) Trigger device rediscovery
  * 
  */
@@ -58,6 +63,7 @@ public class ControllerWorkflowCleanupHandler extends DrPostFailoverHandler {
         checkPersistentLocks();
         cleanupWorkflow();
         cleanupTasks();
+        rescanProviders();
         rediscoverDevices();
     }
     
@@ -127,7 +133,7 @@ public class ControllerWorkflowCleanupHandler extends DrPostFailoverHandler {
             StorageSystem storageSystem = storageSystems.next();
             URI storageSystemId = storageSystem.getId();
             try {
-                log.info("Start discovery {}", storageSystemId);
+                log.info("Start storage discovery {}", storageSystemId);
                 ControllerServiceImpl.scheduleDiscoverJobs(
                         new AsyncTask[] { new AsyncTask(StorageSystem.class, storageSystemId, taskId) },
                         Lock.DISCOVER_COLLECTION_LOCK, ControllerServiceImpl.DISCOVERY);
@@ -136,6 +142,28 @@ public class ControllerWorkflowCleanupHandler extends DrPostFailoverHandler {
             }
         }
     }
+    
+    private void rescanProviders(){
+        List<URI> providerURIList = dbClient.queryByType(StorageProvider.class, true);
+        if (providerURIList != null) {
+            ArrayList<AsyncTask> tasks = new ArrayList<AsyncTask>();
+            for (URI providerURI : providerURIList) {
+                String taskId = UUID.randomUUID().toString();
+                tasks.add(new AsyncTask(StorageProvider.class, providerURI, taskId));
+            }
+            DataCollectionScanJob job = new DataCollectionScanJob();
+            for (AsyncTask task : tasks) {
+                job.addCompleter(new ScanTaskCompleter(task));
+            }
+            try {
+                log.info("Start {} provider scan job", tasks.size());
+                ControllerServiceImpl.enqueueDataCollectionJob(job);
+            } catch (Exception ex) {
+                log.error("Failed to start provider rescan ", ex);
+            }
+        }
+    }
+    
     
     public DbClient getDbClient() {
         return dbClient;

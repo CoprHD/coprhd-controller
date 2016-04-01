@@ -262,6 +262,7 @@
         		<entry key="dr_failbackDegrade" value-ref="vdcDrFailbackDegradeHandler" />
                 <entry key="ip_change" value-ref="ipchangeHandler"/>
                 <entry key="geo_config_change" value-ref="geoConfigChangeHandler"/>
+                <entry key="dr_node_recovery" value-ref="vdcDrNodeRecoveryHandler" />
         	</map>
         </property>
     </bean>
@@ -604,6 +605,15 @@
         <property name="drUtil" ref="drUtil" />
     </bean>
 
+    <bean id="vdcDrNodeRecoveryHandler" class="com.emc.storageos.systemservices.impl.vdc.VdcOpHandler.DrNodeRecoveryHandler">
+        <property name="coordinator" ref="coordinatorclientext" />
+        <property name="localRepository" ref="localRepository" />
+        <property name="dbClient" ref="dbclient"/>
+        <property name="service" ref="serviceinfo" />
+        <property name="drUtil" ref="drUtil" />
+        <property name="dbDir" value="/data/db" />
+        <property name="geodbDir" value="/data/geodb" />
+    </bean>
 
     <bean id="dbclient" class="com.emc.storageos.db.client.impl.DbClientImpl">
         <property name="coordinatorClient" ref="coordinator"/>

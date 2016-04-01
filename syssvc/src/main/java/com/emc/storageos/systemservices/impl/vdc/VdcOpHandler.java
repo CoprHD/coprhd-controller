@@ -5,7 +5,9 @@
 
 package com.emc.storageos.systemservices.impl.vdc;
 
+import java.io.File;
 import java.net.URI;
+import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
@@ -37,6 +39,7 @@ import com.emc.storageos.svcs.errorhandling.resources.InternalServerErrorExcepti
 import com.emc.storageos.systemservices.impl.client.SysClientFactory;
 import com.emc.storageos.systemservices.impl.upgrade.CoordinatorClientExt;
 import com.emc.storageos.systemservices.impl.upgrade.LocalRepository;
+import static com.emc.storageos.services.util.FileUtils.readValueFromFile;
 
 /**
  * Operation handler for vdc config change. A vdc config change may represent 
@@ -138,6 +141,60 @@ public abstract class VdcOpHandler {
             
             syncFlushVdcConfigToLocal();
             refreshIPsec();
+        }
+    }
+
+    /**
+     * Reconfigure the new redeployed nodes for node recovery in DR environment
+     */
+    public static class DrNodeRecoveryHandler extends VdcOpHandler {
+        private String dbDir;
+        private String geodbDir;
+
+        public DrNodeRecoveryHandler() {
+        }
+
+        /**
+         * Reconfigure(refresh firewall/ipsec/ssh/...) the recovering node
+         * @throws Exception
+         */
+        @Override
+        public void execute() throws Exception {
+            if (isHibernating()) {
+                log.info("Hibernate flag detected. Reconfigure to refresh local properties..");
+                reconfigVdc(false);
+            }
+        }
+
+        public void setDbDir(String dbDir) {
+            this.dbDir = dbDir;
+        }
+
+        public void setGeodbDir(String geodbDir) {
+            this.geodbDir = geodbDir;
+        }
+
+        private boolean isHibernating() {
+            List<String> dbFolders = Arrays.asList(dbDir, geodbDir);
+            for (String dbFolder : dbFolders) {
+                String modeType = readStartupModeFromDisk(dbFolder);
+                if (modeType != null && Constants.STARTUPMODE_HIBERNATE.equalsIgnoreCase(modeType)) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        private String readStartupModeFromDisk(String folder) {
+            String modeType = null;
+            try {
+                File startupModeFile = new File(folder, Constants.STARTUPMODE);
+                modeType = readValueFromFile(startupModeFile, Constants.STARTUPMODE);
+                log.info("On disk startup mode found {}", modeType);
+            } catch (Exception e) {
+                log.error("Failed to read startup mode file under {}", folder, e);
+            }
+            return modeType;
         }
     }
 
@@ -325,6 +382,13 @@ public abstract class VdcOpHandler {
         public void execute() throws Exception {
             log.info("Processing standby removal");
             if (drUtil.isActiveSite()) {
+
+                log.info("Standby removal op - try to power off all removed sites");
+                poweroffRemovedSites();
+
+                log.info("Standby removal op - reconfig all services");
+                reconfigVdc();
+
                 log.info("Active site - start removing db nodes from gossip and strategy options");
                 removeDbNodes();
             } else {
@@ -340,6 +404,9 @@ public abstract class VdcOpHandler {
                     }
                     return;
                 } else {
+                    log.info("Standby removal op - reconfig all services");
+                    reconfigVdc();
+
                     long start = System.currentTimeMillis();
                     log.info("Waiting for completion of site removal from active site");
                     while (drUtil.hasSiteInState(SiteState.STANDBY_REMOVING) && drUtil.getLocalSite().getState() != SiteState.STANDBY_PAUSED) {
@@ -352,8 +419,6 @@ public abstract class VdcOpHandler {
                     }
                 }
             }
-            log.info("Standby removal op - reconfig all services");
-            reconfigVdc();
         }
         
         private void removeDbNodes() throws Exception {
@@ -364,10 +429,9 @@ public abstract class VdcOpHandler {
                 log.info("Acquired lock {}", LOCK_REMOVE_STANDBY); 
                 List<Site> toBeRemovedSites = drUtil.listSitesInState(SiteState.STANDBY_REMOVING);
                 try {
-                        
+
                     for (Site site : toBeRemovedSites) {
                         try {
-                            tryPoweroffRemoteSite(site);
                             removeDbNodesFromGossip(site);
                         } catch (Exception e) { 
                             populateStandbySiteErrorIfNecessary(site, APIException.internalServerErrors.removeStandbyReconfigFailed(e.getMessage()));
@@ -866,7 +930,7 @@ public abstract class VdcOpHandler {
         
         public DrFailoverHandler() {
         }
-        
+
         @Override
         public void execute() throws Exception {
             Site site = drUtil.getLocalSite();
@@ -1152,6 +1216,16 @@ public abstract class VdcOpHandler {
         ((DbClientImpl)dbClient).getLocalContext().removeDcFromStrategyOptions(dcName);
         ((DbClientImpl)dbClient).getGeoContext().removeDcFromStrategyOptions(dcName);
         log.info("Removed site {} configuration from db strategy options", site.getUuid());
+    }
+
+    /**
+     * Find sites in STANDBY_REMOVING state and attempt to power them off
+     */
+    protected void poweroffRemovedSites() {
+        List<Site> toBeRemovedSites = drUtil.listSitesInState(SiteState.STANDBY_REMOVING);
+            for (Site site : toBeRemovedSites) {
+                tryPoweroffRemoteSite(site);
+            }
     }
 
     /**

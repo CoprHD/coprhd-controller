@@ -66,6 +66,7 @@ import com.emc.storageos.coordinator.common.Service;
 import com.emc.storageos.coordinator.common.impl.ConfigurationImpl;
 import com.emc.storageos.coordinator.common.impl.ServiceImpl;
 import com.emc.storageos.coordinator.common.impl.ZkConnection;
+import com.emc.storageos.coordinator.common.impl.ZkPath;
 import com.emc.storageos.coordinator.exceptions.CoordinatorException;
 import com.emc.storageos.db.common.DbServiceStatusChecker;
 import com.emc.storageos.model.property.PropertiesMetadata;
@@ -127,6 +128,8 @@ public class CoordinatorClientExt {
 
     @Autowired
     private DrSiteNetworkMonitor drSiteNetworkMonitor;
+    
+    private DistributedDoubleBarrier switchToZkObserverBarrier;
     
     public CoordinatorClient getCoordinatorClient() {
         return _coordinator;
@@ -1474,6 +1477,8 @@ public class CoordinatorClientExt {
                     return new Thread(r, "CoordinatorsvcMonitor");
                 }
             });
+            String barrierPath = String.format("%s/%s%s", ZkPath.SITES, getCoordinatorClient().getSiteId(), DR_SWITCH_TO_ZK_OBSERVER_BARRIER);
+            switchToZkObserverBarrier = _coordinator.getDistributedDoubleBarrier(barrierPath, getNodeCount());
             // delay for a period of time to start the monitor. For DR switchover, we stop original active, then start new active. 
             // So the original active may not see the new active immediately after reboot
             exe.scheduleAtFixedRate(coordinatorSvcMonitor, 3 * COODINATOR_MONITORING_INTERVAL , COODINATOR_MONITORING_INTERVAL, TimeUnit.SECONDS);
@@ -1646,21 +1651,19 @@ public class CoordinatorClientExt {
          * Reconnect to zookeeper in active site. 
          */
         private void reconnectZKToActiveSite() {
-            DistributedDoubleBarrier barrier = null;
-            barrier = _coordinator.getDistributedDoubleBarrier(DR_SWITCH_TO_ZK_OBSERVER_BARRIER, getNodeCount());
             LocalRepository localRepository = LocalRepository.getInstance();
             try {
-                boolean allEntered = barrier.enter(DR_SWITCH_BARRIER_TIMEOUT, TimeUnit.SECONDS);
+                boolean allEntered = switchToZkObserverBarrier.enter(DR_SWITCH_BARRIER_TIMEOUT, TimeUnit.SECONDS);
                 if (allEntered) {
                     try {
                         localRepository.reconfigCoordinator("observer");
                     } finally {
-                        leaveZKDoubleBarrier(barrier,DR_SWITCH_TO_ZK_OBSERVER_BARRIER);
+                        leaveZKDoubleBarrier(switchToZkObserverBarrier, DR_SWITCH_TO_ZK_OBSERVER_BARRIER);
                     }
                     localRepository.restartCoordinator("observer");
                 } else {
                     _log.warn("All nodes unable to enter barrier {}. Try again later", DR_SWITCH_TO_ZK_OBSERVER_BARRIER);
-                    leaveZKDoubleBarrier(barrier, DR_SWITCH_TO_ZK_OBSERVER_BARRIER);
+                    leaveZKDoubleBarrier(switchToZkObserverBarrier, DR_SWITCH_TO_ZK_OBSERVER_BARRIER);
                 }
             } catch (Exception ex) {
                 _log.warn("Unexpected errors during switching back to zk observer. Try again later. {}", ex);

@@ -71,6 +71,7 @@ public abstract class VdcOpHandler {
     protected SiteInfo targetSiteInfo;
     private boolean concurrentRebootNeeded = false;
     private boolean rollingRebootNeeded = false;
+    private VdcPropertyBarrier vdcPropBarrier; 
     
     public VdcOpHandler() {
     }
@@ -526,15 +527,20 @@ public abstract class VdcOpHandler {
      *  - To-be-resumed site - rebuild db/zk data from active site and apply the config 
      */
     public static class DrResumeStandbyHandler extends VdcOpHandler {
+        private VdcPropertyBarrier restartDbsvcBarrier;
         public DrResumeStandbyHandler() {
         }
         
         @Override
         public void execute() throws Exception {
+            Site site = drUtil.getLocalSite();
+            if (restartDbsvcBarrier == null) {
+                restartDbsvcBarrier = new VdcPropertyBarrier(Constants.RESUME_BARRIER_RESTART_DBSVC,
+                        VDC_OP_BARRIER_TIMEOUT, site.getNodeCount(), false);
+            }
+            
             // on all sites, reconfig to enable firewall/ipsec
             reconfigVdc();
-
-            Site site = drUtil.getLocalSite();
 
             if (site.getState() == SiteState.STANDBY_RESUMING) {
                 // this site state change is persistent since the ZK is already connected
@@ -547,13 +553,14 @@ public abstract class VdcOpHandler {
             if (site.getState() == SiteState.STANDBY_SYNCING) {
                 VdcPropertyBarrier barrier = new VdcPropertyBarrier(Constants.RESUME_BARRIER_RESTART_DBSVC,
                         VDC_OP_BARRIER_TIMEOUT, site.getNodeCount(), false);
-                barrier.enter();
+                restartDbsvcBarrier.enter();
                 try {
                     localRepository.restart(Constants.GEODBSVC_NAME);
                     localRepository.restart(Constants.DBSVC_NAME);
                 } finally {
-                    barrier.leave();
+                    restartDbsvcBarrier.leave();
                 }
+                restartDbsvcBarrier = null;
             }
         }
     }
@@ -645,6 +652,10 @@ public abstract class VdcOpHandler {
         private static final int MAX_WAIT_TIME_IN_MIN = 5;
         private boolean isRebootNeeded = true;
         private boolean hasSingleNodeSite = false;
+        private VdcPropertyBarrier standbyRestartOldActiveBarrier; 
+        private VdcPropertyBarrier setStateToSyncedBarrier;
+        private VdcPropertyBarrier setStateToSwitchingoverBarrier;
+        private VdcPropertyBarrier setStateToActiveBarrier;
         
         public DrSwitchoverHandler() {
             isRebootNeeded = true;
@@ -661,6 +672,23 @@ public abstract class VdcOpHandler {
             SiteInfo siteInfo = coordinator.getCoordinatorClient().getTargetInfo(SiteInfo.class);
             hasSingleNodeSite = hasSingleNodeSite();
             
+            if (standbyRestartOldActiveBarrier == null) {
+                standbyRestartOldActiveBarrier = new VdcPropertyBarrier(Constants.SWITCHOVER_BARRIER_STANDBY_RESTART_OLD_ACTIVE,
+                    VDC_OP_BARRIER_TIMEOUT, site.getNodeCount(), false);
+            }
+            if (setStateToSyncedBarrier == null) {
+                setStateToSyncedBarrier = new VdcPropertyBarrier(Constants.SWITCHOVER_BARRIER_SET_STATE_TO_SYNCED, 
+                        VDC_OP_BARRIER_TIMEOUT, site.getNodeCount(), false);
+            }
+            if (setStateToSwitchingoverBarrier == null) {
+                setStateToSwitchingoverBarrier = new VdcPropertyBarrier(Constants.SWITCHOVER_BARRIER_SET_STATE_TO_STANDBY_SWITCHINGOVER, 
+                        VDC_OP_BARRIER_TIMEOUT, site.getNodeCount(), false);
+            }
+            if (setStateToActiveBarrier == null) {
+                setStateToActiveBarrier = new VdcPropertyBarrier(Constants.SWITCHOVER_BARRIER_SET_STATE_TO_ACTIVE, 
+                        VDC_OP_BARRIER_TIMEOUT, site.getNodeCount(), false);
+            }
+            
             // Update site state
             if (site.getUuid().equals(siteInfo.getSourceSiteUUID())) {
                 log.info("This is switchover active site (old active)");
@@ -671,11 +699,10 @@ public abstract class VdcOpHandler {
                 proccessSingleNodeSiteCase();
                 stopActiveSiteRelatedServices();
                 
-                updateSwitchoverSiteState(site, SiteState.STANDBY_SYNCED, Constants.SWITCHOVER_BARRIER_SET_STATE_TO_SYNCED, site.getNodeCount());
+                updateSwitchoverSiteState(site, SiteState.STANDBY_SYNCED, setStateToSyncedBarrier);
                 Site newActiveSite = drUtil.getSiteFromLocalVdc(siteInfo.getTargetSiteUUID());
                 drUtil.recordDrOperationStatus(newActiveSite.getUuid(), InterState.SWITCHINGOVER_STANDBY);
-                updateSwitchoverSiteState(newActiveSite, SiteState.STANDBY_SWITCHING_OVER,
-                        Constants.SWITCHOVER_BARRIER_SET_STATE_TO_STANDBY_SWITCHINGOVER, site.getNodeCount());
+                updateSwitchoverSiteState(newActiveSite, SiteState.STANDBY_SWITCHING_OVER, setStateToSwitchingoverBarrier);
                 waitForBarrierRemovedToRestart(site);
             } else if (site.getUuid().equals(siteInfo.getTargetSiteUUID())) {
                 log.info("This is switchover standby site (new active)");
@@ -694,7 +721,7 @@ public abstract class VdcOpHandler {
                 refreshCoordinator();
                 proccessSingleNodeSiteCase();
                 
-                updateSwitchoverSiteState(site, SiteState.ACTIVE, Constants.SWITCHOVER_BARRIER_SET_STATE_TO_ACTIVE, site.getNodeCount());
+                updateSwitchoverSiteState(site, SiteState.ACTIVE, setStateToActiveBarrier);
             } else {
                 isRebootNeeded = false;
                 flushVdcConfigToLocal();
@@ -757,10 +784,7 @@ public abstract class VdcOpHandler {
                 return;
             }
             
-            VdcPropertyBarrier barrier = new VdcPropertyBarrier(Constants.SWITCHOVER_BARRIER_STANDBY_RESTART_OLD_ACTIVE,
-                    VDC_OP_BARRIER_TIMEOUT, site.getNodeCount(), false);
-            barrier.enter();
-            
+            standbyRestartOldActiveBarrier.enter();
             try {
                 if (coordinator.isVirtualIPHolder()) {
                     log.info("This node is virtual IP holder, notify remote old active site to reboot");
@@ -769,7 +793,7 @@ public abstract class VdcOpHandler {
                     restartBarrier.removeBarrier();
                 }
             } finally {
-                barrier.leave();
+                standbyRestartOldActiveBarrier.leave();
             }
             
             log.info("reboot remote old active site and go on");
@@ -797,7 +821,7 @@ public abstract class VdcOpHandler {
             throw new IllegalStateException("Timeout reached when wait for old active site finishing operations");
         }
         
-        private void updateSwitchoverSiteState(Site site, SiteState siteState, String barrierName, int memberQty) throws Exception {
+        private void updateSwitchoverSiteState(Site site, SiteState siteState, VdcPropertyBarrier barrier) throws Exception {
             if (site.getState().equals(siteState)) {
                 log.info("Site state has been changed to {}, no actions needed.", siteState);
                 return;
@@ -805,7 +829,6 @@ public abstract class VdcOpHandler {
             
             coordinator.blockUntilZookeeperIsWritableConnected(SWITCHOVER_ZK_WRITALE_WAIT_INTERVAL);
             
-            VdcPropertyBarrier barrier = new VdcPropertyBarrier(barrierName, VDC_OP_BARRIER_TIMEOUT, memberQty, false);
             barrier.enter();
             try {
                 log.info("Set state from {} to {}", site.getState(), siteState);
@@ -845,13 +868,17 @@ public abstract class VdcOpHandler {
      */
     public static class DrFailoverHandler extends VdcOpHandler {
         private Factory postHandlerFactory;
-
+        private VdcPropertyBarrier failoverBarrier;
+        
         public DrFailoverHandler() {
         }
         
         @Override
         public void execute() throws Exception {
             Site site = drUtil.getLocalSite();
+            if (failoverBarrier == null) {
+                failoverBarrier = new VdcPropertyBarrier(Constants.FAILOVER_BARRIER, VDC_OP_BARRIER_TIMEOUT, site.getNodeCount(), true);
+            }
             
             if (isNewActiveSiteForFailover(site)) {
                 setConcurrentRebootNeeded(true);
@@ -862,6 +889,7 @@ public abstract class VdcOpHandler {
                 localRepository.rebaseZkSnapshot();
                 waitForAllNodesAndReboot(site);
             } 
+            failoverBarrier = null;
         }
         
         public void setPostHandlerFactory(Factory postHandlerFactory) {
@@ -929,9 +957,9 @@ public abstract class VdcOpHandler {
             coordinator.blockUntilZookeeperIsWritableConnected(FAILOVER_ZK_WRITALE_WAIT_INTERVAL);
             
             log.info("Wait for barrier to reboot cluster");
-            VdcPropertyBarrier barrier = new VdcPropertyBarrier(Constants.FAILOVER_BARRIER, VDC_OP_BARRIER_TIMEOUT, site.getNodeCount(), true);
-            barrier.enter();
-            if (!barrier.leave()) {
+            
+            failoverBarrier.enter();
+            if (!failoverBarrier.leave()) {
                 throw new IllegalStateException("Not all nodes leave the barrier");
             }
             log.info("Reboot this node after failover");
@@ -1046,12 +1074,15 @@ public abstract class VdcOpHandler {
      * Simulaneously flush vdc config on all nodes in current site. via barrier
      */
     protected void syncFlushVdcConfigToLocal() throws Exception {
-        VdcPropertyBarrier vdcBarrier = new VdcPropertyBarrier(targetSiteInfo, VDC_OP_BARRIER_TIMEOUT);
-        vdcBarrier.enter();
+        if (vdcPropBarrier == null) {
+            vdcPropBarrier = new VdcPropertyBarrier(targetSiteInfo, VDC_OP_BARRIER_TIMEOUT);
+        }
+        
+        vdcPropBarrier.enter();
         try {
             flushVdcConfigToLocal();
         } finally {
-            boolean allLeft = vdcBarrier.leave();
+            boolean allLeft = vdcPropBarrier.leave();
 
             // the additional sleep is for addressing COP-19315 -- hangs at barrier.leave()
             //
@@ -1067,6 +1098,9 @@ public abstract class VdcOpHandler {
                 Thread.sleep(IPSEC_RESTART_DELAY);
             }
         }
+        // discard the barrier after current op is done. Next op we may need a different barrier based on
+        // actionScopeType of targetSiteInfo
+        vdcPropBarrier = null;  
     }
     
     protected void reconfigVdc() throws Exception {

@@ -196,10 +196,11 @@ public final class DownloadExecutor implements  Runnable {
         File downloadDir = backupOps.getDownloadDirectory(remoteBackupFileName);
 
         try {
-            String uri = SysClientFactory.URI_NODE_PULL_BACKUP_FILE+ "?backupname=" + remoteBackupFileName + "&filename="+filename;
+            String remoteBackupFileNameNoBlank = remoteBackupFileName.replace(" ","%20");
+            String filenameNoBlank = filename.replace(" ","%20");
+            String uri = SysClientFactory.URI_NODE_PULL_BACKUP_FILE+ "?backupname=" + remoteBackupFileNameNoBlank + "&filename="+filenameNoBlank;
             final InputStream in = SysClientFactory.getSysClient(endpoint)
                                                    .get(new URI(uri), InputStream.class, MediaType.APPLICATION_OCTET_STREAM);
-
             byte[] buffer = new byte[BackupConstants.DOWNLOAD_BUFFER_SIZE];
             persistBackupFile(downloadDir, filename, new BufferedInputStream(in), buffer, true, true);
         } catch (URISyntaxException e) {
@@ -313,7 +314,8 @@ public final class DownloadExecutor implements  Runnable {
             for (URI uri : uris) {
                 node = uri;
                 log.info("Notify {}", node);
-                pushUri= SysClientFactory.URI_NODE_BACKUPS_PULL+ "?backupname=" + remoteBackupFileName + "&endpoint="+myURI;
+                String remoteBackupFileNameNoBlank = remoteBackupFileName.replace(" ","%20");
+                pushUri= SysClientFactory.URI_NODE_BACKUPS_PULL+ "?backupname=" + remoteBackupFileNameNoBlank + "&endpoint="+myURI;
                 SysClientFactory.SysClient sysClient = SysClientFactory.getSysClient(node);
                 sysClient.post(new URI(pushUri), null, null);
             }

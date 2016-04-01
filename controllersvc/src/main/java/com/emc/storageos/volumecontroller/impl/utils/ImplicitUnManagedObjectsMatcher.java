@@ -164,6 +164,11 @@ public class ImplicitUnManagedObjectsMatcher {
      */
     private static void matchVirtualPoolWithUnManagedVolumeVPLEX(List<UnManagedVolume> modifiedUnManagedVolumes, VirtualPool vpool,
             DbClient dbClient) {
+        // This method only applies to VPLEX vpools
+        if (!VirtualPool.vPoolSpecifiesHighAvailability(vpool)) {
+            return;
+        }
+        
         _log.info("START: matching virtual pool with unmanaged volume for VPLEX");
         // Get all UnManagedVolumes where storageDevice is a StorageSystem where type = VPLEX
         Joiner j = new Joiner(dbClient).join(StorageSystem.class, "ss").match("systemType", "vplex")

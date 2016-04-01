@@ -13,9 +13,9 @@ public class VolumeSnapshot extends StorageBlockObject {
     // storage system native id of this snapshot. Type: Input.
     private String storageSystemId;
 
-    // timestamp. Type: Input/Output.
+    // snapSetId. Type: Input/Output.
     // Should be set to the same value for all consistency group  snapshots taken at the same time.
-    private String timestamp;
+    private String snapSetId;
 
 
     public String getParentId() {
@@ -34,12 +34,12 @@ public class VolumeSnapshot extends StorageBlockObject {
         this.storageSystemId = storageSystemId;
     }
 
-    public String getTimestamp() {
-        return timestamp;
+    public String getSnapSetId() {
+        return snapSetId;
     }
 
-    public void setTimestamp(String timestamp) {
-        this.timestamp = timestamp;
+    public void setSnapSetId(String snapSetId) {
+        this.snapSetId = snapSetId;
     }
 
     @Override

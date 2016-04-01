@@ -51,26 +51,23 @@ public interface BlockStorageDriver extends StorageDriver {
     /**
      * Get snapshots of the specified storage volume.
      * @param volume storage volume. Type: Input
-     * @param snapshots list of snapshots of the storage volume. Type: Output
-     * @return task
+     * @return snapshots list of snapshots of the storage volume.
      */
-    public  DriverTask getVolumeSnapshots(StorageVolume volume, List<VolumeSnapshot> snapshots);
+    public  List<VolumeSnapshot> getVolumeSnapshots(StorageVolume volume);
 
     /**
      * Get clones (full copies) of the specified volume.
      * @param volume storage volume. Type: Input
-     * @param clones list of clones of the volume. Type: Output
-     * @return task
+     * @return clones list of clones of the volume.
      */
-    public  DriverTask getVolumeClones(StorageVolume volume, List<VolumeClone> clones);
+    public  List<VolumeClone> getVolumeClones(StorageVolume volume);
 
     /**
      * Get mirrors (continuous copies) of the specified volume.
      * @param volume storage volume. Type: Input
-     * @param mirrors list of mirrors of the volume. Type: Output
-     * @return task
+     * @return mirrors list of mirrors of the volume.
      */
-    public  DriverTask getVolumeMirrors(StorageVolume volume, List<VolumeMirror> mirrors);
+    public  List<VolumeMirror> getVolumeMirrors(StorageVolume volume);
 
     /**
      * Expand volume.

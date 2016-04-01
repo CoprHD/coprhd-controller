@@ -298,7 +298,7 @@ public class StorageDriverSimulator extends AbstractStorageDriver implements Blo
         String snapTimestamp = Long.toString(System.currentTimeMillis());
         for (VolumeSnapshot snapshot : snapshots) {
             snapshot.setNativeId("snap-" + snapshot.getParentId() + UUID.randomUUID().toString());
-            snapshot.setTimestamp(snapTimestamp);
+            snapshot.setSnapSetId(snapTimestamp);
         }
         String taskType = "create-volume-snapshot";
         String taskId = String.format("%s+%s+%s", DRIVER_NAME, taskType, UUID.randomUUID().toString());
@@ -496,7 +496,7 @@ public class StorageDriverSimulator extends AbstractStorageDriver implements Blo
         String snapTimestamp = Long.toString(System.currentTimeMillis());
         for (VolumeSnapshot snapshot : snapshots) {
             snapshot.setNativeId("snap-" + snapshot.getParentId() + consistencyGroup.getDisplayName() + UUID.randomUUID().toString());
-            snapshot.setTimestamp(snapTimestamp);
+            snapshot.setSnapSetId(snapTimestamp);
         }
         String taskType = "create-group-snapshot";
         String taskId = String.format("%s+%s+%s", DRIVER_NAME, taskType, UUID.randomUUID().toString());
@@ -613,17 +613,28 @@ public class StorageDriverSimulator extends AbstractStorageDriver implements Blo
     }
 
     @Override
-    public DriverTask getVolumeSnapshots(StorageVolume volume, List<VolumeSnapshot> snapshots) {
+    public List<VolumeSnapshot> getVolumeSnapshots(StorageVolume volume) {
+        List<VolumeSnapshot> snapshots = new ArrayList<>();
+        for (int i=0; i<3; i++) {
+            VolumeSnapshot snapshot = new VolumeSnapshot();
+            snapshot.setParentId(volume.getNativeId());
+            snapshot.setNativeId(volume.getNativeId() + "snap-" + i);
+            snapshot.setDeviceLabel(volume.getNativeId() + "snap-" + i);
+            snapshot.setStorageSystemId(volume.getStorageSystemId());
+            snapshot.setAccessStatus(StorageObject.AccessStatus.READ_ONLY);
+            snapshot.setSnapSetId(Integer.toString(i)); // three snap groups.
+            snapshots.add(snapshot);
+        }
+        return snapshots;
+    }
+
+    @Override
+    public List<VolumeClone> getVolumeClones(StorageVolume volume) {
         return null;
     }
 
     @Override
-    public DriverTask getVolumeClones(StorageVolume volume, List<VolumeClone> clones) {
-        return null;
-    }
-
-    @Override
-    public DriverTask getVolumeMirrors(StorageVolume volume, List<VolumeMirror> mirrors) {
+    public List<VolumeMirror> getVolumeMirrors(StorageVolume volume) {
         return null;
     }
 

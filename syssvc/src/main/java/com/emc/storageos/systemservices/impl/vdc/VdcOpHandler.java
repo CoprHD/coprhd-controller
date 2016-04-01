@@ -374,6 +374,13 @@ public abstract class VdcOpHandler {
         public void execute() throws Exception {
             log.info("Processing standby removal");
             if (drUtil.isActiveSite()) {
+
+                log.info("Standby removal op - try to power off all removed sites");
+                poweroffRemovedSites();
+
+                log.info("Standby removal op - reconfig all services");
+                reconfigVdc();
+
                 log.info("Active site - start removing db nodes from gossip and strategy options");
                 removeDbNodes();
             } else {
@@ -389,6 +396,9 @@ public abstract class VdcOpHandler {
                     }
                     return;
                 } else {
+                    log.info("Standby removal op - reconfig all services");
+                    reconfigVdc();
+
                     long start = System.currentTimeMillis();
                     log.info("Waiting for completion of site removal from active site");
                     while (drUtil.hasSiteInState(SiteState.STANDBY_REMOVING) && drUtil.getLocalSite().getState() != SiteState.STANDBY_PAUSED) {
@@ -401,8 +411,6 @@ public abstract class VdcOpHandler {
                     }
                 }
             }
-            log.info("Standby removal op - reconfig all services");
-            reconfigVdc();
         }
         
         private void removeDbNodes() throws Exception {
@@ -413,10 +421,9 @@ public abstract class VdcOpHandler {
                 log.info("Acquired lock {}", LOCK_REMOVE_STANDBY); 
                 List<Site> toBeRemovedSites = drUtil.listSitesInState(SiteState.STANDBY_REMOVING);
                 try {
-                        
+
                     for (Site site : toBeRemovedSites) {
                         try {
-                            tryPoweroffRemoteSite(site);
                             removeDbNodesFromGossip(site);
                         } catch (Exception e) { 
                             populateStandbySiteErrorIfNecessary(site, APIException.internalServerErrors.removeStandbyReconfigFailed(e.getMessage()));
@@ -1256,6 +1263,16 @@ public abstract class VdcOpHandler {
         ((DbClientImpl)dbClient).getLocalContext().removeDcFromStrategyOptions(dcName);
         ((DbClientImpl)dbClient).getGeoContext().removeDcFromStrategyOptions(dcName);
         log.info("Removed site {} configuration from db strategy options", site.getUuid());
+    }
+
+    /**
+     * Find sites in STANDBY_REMOVING state and attempt to power them off
+     */
+    protected void poweroffRemovedSites() {
+        List<Site> toBeRemovedSites = drUtil.listSitesInState(SiteState.STANDBY_REMOVING);
+            for (Site site : toBeRemovedSites) {
+                tryPoweroffRemoteSite(site);
+            }
     }
 
     /**

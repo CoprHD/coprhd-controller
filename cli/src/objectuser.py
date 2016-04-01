@@ -47,7 +47,6 @@ class ObjectUser(object):
         obj = StorageSystem(self.__ipAddr, self.__port)
                  
         stsystem_uri = obj.query_by_name_and_type(storagesystem, "ecs")
-        print stsystem_uri 
         request = {}
         if(secretkey):
             request = {

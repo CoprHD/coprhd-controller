@@ -637,7 +637,7 @@
           
     <bean id="isilonDevice" class="com.emc.storageos.volumecontroller.impl.isilon.IsilonFileStorageDevice">
         <property name="isilonApiFactory" ref="isilonapifactory"/>
-         <property name="mirrorOperations" ref="isilonMirrorOperations"/>
+        <property name="mirrorOperations" ref="isilonMirrorOperations"/>
         <property name="customConfigHandler" ref="customConfigHandler" />
     	<property name="configinfo">
     		<util:map map-class="java.util.HashMap" key-type="java.lang.String" value-type="java.lang.String">
@@ -840,6 +840,7 @@
         <property name="devices">
             <map>
                 <entry key="isilon" value-ref="isilonDevice"/>
+                <entry key="netapp" value-ref="netappFileDevice"/>
             </map>
         </property>
         
@@ -883,9 +884,12 @@
             <property name="exportMaskOperationsHelper" ref="vnxeExportMaskOperationsHelper"/>
             <property name="snapshotOperations" ref="vnxeSnapshotOperations"/>
     </bean>
-
+	<bean id="netappMirrorFileOperations" class="com.emc.storageos.volumecontroller.impl.netapp.NetappMirrorFileOperations">
+        <property name="dbClient" ref="dbclient"/>
+    </bean>
     <bean id="netappFileDevice" class="com.emc.storageos.volumecontroller.impl.netapp.NetAppFileStorageDevice">
         <property name="dbClient" ref="dbclient"/>
+        <property name="mirrorOperations" ref="netappMirrorFileOperations"/>
     </bean>
     
    <bean id="netappcFileDevice" class="com.emc.storageos.volumecontroller.impl.netappc.NetAppClusterModeDevice">
@@ -893,6 +897,9 @@
     </bean>
     
     <bean id="vnxeApiClientFactory" class="com.emc.storageos.vnxe.VNXeApiClientFactory"
+          init-method="init"/>
+    
+    <bean id="netAppApiFactory" class="com.emc.storageos.netapp.NetappApiFactory"
           init-method="init"/>
 
     <bean id="maskingWorkflowEntryPoints" class="com.emc.storageos.volumecontroller.impl.block.MaskingWorkflowEntryPoints">
@@ -1339,8 +1346,9 @@
 		<property name="isilonApiFactory" ref="isilonapifactory" />
         <property name="cinderApiFactory" ref="cinderapifactory"/>
 		<property name="vnxeApiClientFactory" ref="vnxeApiClientFactory"/>
+		<property name="netAppApiFactory" ref="netAppApiFactory"/>
 		<property name="workflowService" ref="workflowService" />
-                <property name="distributedOwnerLockService" ref="distributedOwnerLockService"/>
+        <property name="distributedOwnerLockService" ref="distributedOwnerLockService"/>
         <property name="smisCommandHelper" ref="vmaxSmisCommandHelper"/>
 		<property name="xivSmisCommandHelper" ref="xivSmisCommandHelper"/>
 		<property name="monitoringJobConsumer" ref="monitoringJobConsumer" />

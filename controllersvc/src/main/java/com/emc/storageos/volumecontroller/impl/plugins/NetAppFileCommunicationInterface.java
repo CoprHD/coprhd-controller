@@ -35,10 +35,12 @@ import com.emc.storageos.db.client.model.Snapshot;
 import com.emc.storageos.db.client.model.Stat;
 import com.emc.storageos.db.client.model.StorageHADomain;
 import com.emc.storageos.db.client.model.StoragePool;
+import com.emc.storageos.db.client.model.StoragePool.CopyTypes;
 import com.emc.storageos.db.client.model.StoragePool.PoolServiceType;
 import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.model.StorageProtocol;
 import com.emc.storageos.db.client.model.StorageSystem;
+import com.emc.storageos.db.client.model.StorageSystem.SupportedFileReplicationTypes;
 import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedCifsShareACL;
@@ -399,12 +401,23 @@ public class NetAppFileCommunicationInterface extends
         List<StoragePool> newPools = new ArrayList<StoragePool>();
         List<StoragePool> existingPools = new ArrayList<StoragePool>();
 
-        _logger.info("Start storage pool discovery for storage system {}",
-                system.getId());
         try {
             NetAppApi netAppApi = new NetAppApi.Builder(system.getIpAddress(),
                     system.getPortNumber(), system.getUsername(),
                     system.getPassword()).https(true).build();
+
+            boolean snapMirrorLicenseExists = netAppApi.checkSnapMirrorLicense();
+
+            // Set file replication type for NetApp storage system
+            if (snapMirrorLicenseExists) {
+                StringSet supportReplicationTypes = new StringSet();
+                supportReplicationTypes.add(SupportedFileReplicationTypes.REMOTE.name());
+                supportReplicationTypes.add(SupportedFileReplicationTypes.LOCAL.name());
+                system.setSupportedReplicationTypes(supportReplicationTypes);
+            }
+
+            _logger.info("Start storage pool discovery for storage system {}",
+                    system.getId());
 
             List<AggregateInfo> pools = netAppApi.listAggregates(null);
 
@@ -454,6 +467,21 @@ public class NetAppFileCommunicationInterface extends
                     newPools.add(pool);
                 } else {
                     existingPools.add(pool);
+                }
+
+                // Add the Copy type ASYNC & SYNC, if the Isilon is enabled with SyncIQ service!!
+                StringSet copyTypesSupported = new StringSet();
+
+                if (snapMirrorLicenseExists) {
+                    copyTypesSupported.add(CopyTypes.ASYNC.name());
+                    copyTypesSupported.add(CopyTypes.SYNC.name());
+                    pool.setSupportedCopyTypes(copyTypesSupported);
+                } else {
+                    if (pool.getSupportedCopyTypes() != null &&
+                            pool.getSupportedCopyTypes().contains(CopyTypes.ASYNC.name())) {
+                        pool.getSupportedCopyTypes().remove(CopyTypes.ASYNC.name());
+                        pool.getSupportedCopyTypes().remove(CopyTypes.SYNC.name());
+                    }
                 }
                 // Update Pool details with new discovery run
                 pool.setTotalCapacity(netAppPool.getSizeTotal()
@@ -1175,7 +1203,7 @@ public class NetAppFileCommunicationInterface extends
 
         // On netapp Systems this currently true.
         unManagedFileSystemCharacteristics.put(
-        		UnManagedFileSystem.SupportedFileSystemCharacterstics.IS_FILESYSTEM_EXPORTED
+                UnManagedFileSystem.SupportedFileSystemCharacterstics.IS_FILESYSTEM_EXPORTED
                         .toString(), FALSE);
 
         if (null != storagePort) {
@@ -1877,7 +1905,7 @@ public class NetAppFileCommunicationInterface extends
                         unManagedFs.setHasShares(true);
                         unManagedFs.putFileSystemCharacterstics(
                                 UnManagedFileSystem.SupportedFileSystemCharacterstics.IS_FILESYSTEM_EXPORTED
-                                .toString(), TRUE);
+                                        .toString(), TRUE);
                         _logger.debug("SMB Share map for NetApp UMFS {} = {}",
                                 unManagedFs.getLabel(), unManagedFs.getUnManagedSmbShareMap());
                     }
@@ -1909,7 +1937,7 @@ public class NetAppFileCommunicationInterface extends
                             unManagedCifsShareACLList.add(unManagedCifsShareACL);
                         }
                     }
-                    
+
                     // save the object
                     {
                         _dbClient.persistObject(unManagedFs);
@@ -2130,7 +2158,7 @@ public class NetAppFileCommunicationInterface extends
                             unManagedFs.setHasExports(true);
                             unManagedFs.putFileSystemCharacterstics(
                                     UnManagedFileSystem.SupportedFileSystemCharacterstics.IS_FILESYSTEM_EXPORTED
-                                    .toString(), TRUE);
+                                            .toString(), TRUE);
                             _dbClient.persistObject(unManagedFs);
                             _logger.info("File System {} has Exports and their size is {}", unManagedFs.getId(),
                                     newUnManagedExportRules.size());

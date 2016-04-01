@@ -12,7 +12,6 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.curator.framework.recipes.leader.LeaderSelector;
 import org.apache.curator.framework.recipes.locks.InterProcessLock;
-import org.eclipse.jetty.util.log.Log;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeansException;
@@ -21,18 +20,16 @@ import org.springframework.context.ApplicationContext;
 
 import com.emc.storageos.cinder.api.CinderApiFactory;
 import com.emc.storageos.coordinator.client.beacon.ServiceBeacon;
-import com.emc.storageos.coordinator.client.model.Site;
-import com.emc.storageos.coordinator.client.model.SiteState;
 import com.emc.storageos.coordinator.client.service.ConnectionStateListener;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.coordinator.client.service.DistributedAroundHook;
 import com.emc.storageos.coordinator.client.service.DistributedLockQueueManager;
 import com.emc.storageos.coordinator.client.service.DistributedQueue;
+import com.emc.storageos.coordinator.client.service.DrPostFailoverHandler.QueueCleanupHandler;
 import com.emc.storageos.coordinator.client.service.DrUtil;
 import com.emc.storageos.coordinator.client.service.LeaderSelectorListenerForPeriodicTask;
 import com.emc.storageos.coordinator.client.service.impl.DistributedLockQueueScheduler;
 import com.emc.storageos.coordinator.client.service.impl.LeaderSelectorListenerImpl;
-import com.emc.storageos.coordinator.client.service.DrPostFailoverHandler.QueueCleanupHandler;
 import com.emc.storageos.customconfigcontroller.impl.CustomConfigHandler;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.StorageSystem.Discovery_Namespaces;
@@ -42,6 +39,7 @@ import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.hds.api.HDSApiFactory;
 import com.emc.storageos.isilon.restapi.IsilonApiFactory;
 import com.emc.storageos.locking.DistributedOwnerLockServiceImpl;
+import com.emc.storageos.netapp.NetappApiFactory;
 import com.emc.storageos.plugins.BaseCollectionException;
 import com.emc.storageos.plugins.StorageSystemViewObject;
 import com.emc.storageos.plugins.common.Constants;
@@ -130,6 +128,7 @@ public class ControllerServiceImpl implements ControllerService {
     private VNXeApiClientFactory _vnxeApiClientFactory;
     private SmisCommandHelper _helper;
     private XIVSmisCommandHelper _xivSmisCommandHelper;
+    private NetappApiFactory netAppApiFactory;
     private static volatile DataCollectionJobConsumer _scanJobConsumer;
     private static volatile DataCollectionJobConsumer _discoverJobConsumer;
     private static volatile DataCollectionJobConsumer _computeDiscoverJobConsumer;
@@ -143,7 +142,7 @@ public class ControllerServiceImpl implements ControllerService {
     private DrUtil _drUtil;
     private ControllerWorkflowCleanupHandler _drWorkflowCleanupHandler;
     private QueueCleanupHandler _drQueueCleanupHandler;
-    
+
     ManagedCapacityImpl _capacityCompute;
     LeaderSelector _capacityService;
 
@@ -183,6 +182,7 @@ public class ControllerServiceImpl implements ControllerService {
             }
         }
 
+        @Override
         public String toString() {
             return _lockName;
         }
@@ -443,17 +443,19 @@ public class ControllerServiceImpl implements ControllerService {
         Thread.sleep(30000);        // wait 30 seconds for database to connect
         _log.info("Waiting done");
         _drQueueCleanupHandler.run();
-        
+
         _dispatcher.start();
 
-        _jobTracker.setJobContext(new JobContext(_dbClient, _cimConnectionFactory,
-                _vplexApiFactory, hdsApiFactory, cinderApiFactory, _vnxeApiClientFactory, _helper, _xivSmisCommandHelper, isilonApiFactory));
+        _jobTracker
+                .setJobContext(new JobContext(_dbClient, _cimConnectionFactory,
+                        _vplexApiFactory, hdsApiFactory, cinderApiFactory, _vnxeApiClientFactory, _helper, _xivSmisCommandHelper,
+                        isilonApiFactory, netAppApiFactory));
         _jobTracker.start();
         _jobQueue = _coordinator.getQueue(JOB_QUEUE_NAME, _jobTracker,
                 new QueueJobSerializer(), DEFAULT_MAX_THREADS);
         _workflowService.start();
         _distributedOwnerLockService.start();
-        
+
         /**
          * Lock used in making Scanning/Discovery mutually exclusive.
          */
@@ -478,13 +480,13 @@ public class ControllerServiceImpl implements ControllerService {
                 new DataCollectionJobSerializer(), Integer.parseInt(_configInfo.get(METERING_COREPOOLSIZE)), 200);
         _scanJobQueue = _coordinator.getQueue(SCAN_JOB_QUEUE_NAME, _scanJobConsumer,
                 new DataCollectionJobSerializer(), 1, 50);
-        
+
         /**
          * Monitoring use cases starts here
          */
         _monitoringJobQueue = _coordinator.getQueue(MONITORING_JOB_QUEUE_NAME, _monitoringJobConsumer,
                 new DataCollectionJobSerializer(), DEFAULT_MAX_THREADS);
-        
+
         /**
          * Adds listener class for zk connection state change.
          * This listener will release local CACHE while zk connection RECONNECT.
@@ -496,9 +498,9 @@ public class ControllerServiceImpl implements ControllerService {
         _monitoringJobConsumer.start();
 
         startLockQueueService();
-        
+
         _drWorkflowCleanupHandler.run();
-        
+
         _jobScheduler.start();
 
         _svcBeacon.start();
@@ -740,17 +742,25 @@ public class ControllerServiceImpl implements ControllerService {
     public void setDrWorkflowCleanupHandler(ControllerWorkflowCleanupHandler drFailoverHandler) {
         this._drWorkflowCleanupHandler = drFailoverHandler;
     }
-    
+
     public void setDrQueueCleanupHandler(QueueCleanupHandler drFailoverHandler) {
         this._drQueueCleanupHandler = drFailoverHandler;
     }
-    
+
     public IsilonApiFactory getIsilonApiFactory() {
         return isilonApiFactory;
     }
 
     public void setIsilonApiFactory(IsilonApiFactory isilonApiFactory) {
         this.isilonApiFactory = isilonApiFactory;
+    }
+
+    public NetappApiFactory getNetAppApiFactory() {
+        return netAppApiFactory;
+    }
+
+    public void setNetAppApiFactory(NetappApiFactory netAppApiFactory) {
+        this.netAppApiFactory = netAppApiFactory;
     }
 
 }

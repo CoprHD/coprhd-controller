@@ -40,13 +40,20 @@ import com.emc.storageos.svcs.errorhandling.model.ServiceError;
 import com.emc.storageos.util.FileSystemConstants;
 import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.volumecontroller.FileDeviceInputOutput;
+import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.volumecontroller.impl.BiosCommandResult;
+import com.emc.storageos.volumecontroller.impl.ControllerServiceImpl;
 import com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator;
 import com.emc.storageos.volumecontroller.impl.file.AbstractFileStorageDevice;
+import com.emc.storageos.volumecontroller.impl.file.FileMirrorOperations;
+import com.emc.storageos.volumecontroller.impl.job.QueueJob;
+import com.emc.storageos.volumecontroller.impl.netapp.job.NetAppFileTaskCompleter;
+import com.emc.storageos.volumecontroller.impl.netapp.job.NetAppVolumeDeleteJob;
 import com.iwave.ext.netapp.model.CifsAccess;
 import com.iwave.ext.netapp.model.CifsAcl;
 
 public class NetAppFileStorageDevice extends AbstractFileStorageDevice {
+
     private static final Logger _log = LoggerFactory
             .getLogger(NetAppFileStorageDevice.class);
 
@@ -65,6 +72,16 @@ public class NetAppFileStorageDevice extends AbstractFileStorageDevice {
     private static final String RW_HOSTS = "rwHosts";
     private static final int QUOTA_DIR_MAX_PATH = 100;
     private static final int QUOTA_DIR_MAX_NAME = 64;
+
+    private FileMirrorOperations mirrorOperations;
+
+    public FileMirrorOperations getMirrorOperations() {
+        return mirrorOperations;
+    }
+
+    public void setMirrorOperations(FileMirrorOperations mirrorOperations) {
+        this.mirrorOperations = mirrorOperations;
+    }
 
     public NetAppFileStorageDevice() {
     }
@@ -155,7 +172,19 @@ public class NetAppFileStorageDevice extends AbstractFileStorageDevice {
                 // Set FS path and Mount Path information
                 args.setFsPath(nativeId);
                 args.setFsMountPath(nativeId);
+
+                // set the target to restricted
+                FileShare fileshare = args.getFs();
+                if (FileShare.PersonalityTypes.TARGET.name().equals(fileshare.getPersonality())) {
+                    if (!nApi.restrictVolume(args.getFsName())) {
+                        // rollback create file system
+                        // ServiceError serviceError = DeviceControllerErrors.netapp.unableToCreateFileSystem();
+                        // result = BiosCommandResult.createErrorResult(serviceError);
+                    }
+                }
+
                 result = BiosCommandResult.createSuccessfulResult();
+
             }
         } catch (NetAppException e) {
             _log.error("NetAppFileStorageDevice::doCreateFS failed with a NetAppException", e);
@@ -209,9 +238,25 @@ public class NetAppFileStorageDevice extends AbstractFileStorageDevice {
             NetAppApi nApi = new NetAppApi.Builder(storage.getIpAddress(),
                     storage.getPortNumber(), storage.getUsername(),
                     storage.getPassword()).https(true).vFiler(portGroup).build();
-            if (!nApi.deleteFS(args.getFsName())) {
-                failedStatus = true;
+
+            if (FileShare.PersonalityTypes.TARGET.toString().equals(args.getFs().getPersonality()) ||
+                    FileShare.PersonalityTypes.SOURCE.toString().equals(args.getFs().getPersonality())) {
+                boolean success = nApi.deleteQTreesAndMarkFSOffline(args.getFsName());
+                _log.info("NetAppFileStorageDevice deleteQTreesAndMarkFSOffline {} - succeeded", args.getFsName());
+                if (success) {
+                    NetAppFileTaskCompleter taskCompleter = new NetAppFileTaskCompleter(FileShare.class, args.getFsId(), args.getOpId());
+                    NetAppVolumeDeleteJob volumeDeleteJob = new NetAppVolumeDeleteJob(args.getFsName(), storage.getId(),
+                            args.getForceDelete(), taskCompleter);
+                    ControllerServiceImpl.enqueueJob(new QueueJob(volumeDeleteJob));
+                    _log.info("Submitted job to delete volume: {}", args.getFsName());
+                    return BiosCommandResult.createPendingResult();
+                }
+            } else {
+                if (!nApi.deleteFS(args.getFsName())) {
+                    failedStatus = true;
+                }
             }
+
             if (failedStatus == true) {
                 _log.error("NetAppFileStorageDevice doDeletFS {} - failed",
                         args.getFsName());
@@ -1860,6 +1905,48 @@ public class NetAppFileStorageDevice extends AbstractFileStorageDevice {
     public BiosCommandResult listSanpshotByPolicy(StorageSystem storageObj, FileDeviceInputOutput args) {
         return BiosCommandResult.createErrorResult(
                 DeviceControllerErrors.netapp.operationNotSupported());
+    }
+
+    // snapmirror operations
+    @Override
+    public void doCreateMirrorLink(StorageSystem system, URI source, URI target, TaskCompleter completer) {
+        mirrorOperations.createMirrorFileShareLink(system, source, target, completer);
+    }
+
+    @Override
+    public void doStartMirrorLink(StorageSystem system, FileShare target, TaskCompleter completer, String policyName) {
+        mirrorOperations.startMirrorFileShareLink(system, target, completer, policyName);
+    }
+
+    @Override
+    public void doFailoverLink(StorageSystem systemTarget, FileShare target, TaskCompleter completer, String devSpecificPolicyName) {
+        mirrorOperations.failoverMirrorFileShareLink(systemTarget, target, completer, devSpecificPolicyName);
+    }
+
+    @Override
+    public void doResyncLink(StorageSystem primarySystem, StorageSystem secondarySystem, FileShare target, TaskCompleter completer,
+            String devSpecificPolicyName) {
+        mirrorOperations.resyncMirrorFileShareLink(primarySystem, secondarySystem, target, completer, devSpecificPolicyName);
+    }
+
+    @Override
+    public void doStopMirrorLink(StorageSystem system, FileShare target, TaskCompleter completer) {
+        mirrorOperations.stopMirrorFileShareLink(system, target, completer);
+    }
+
+    @Override
+    public void doDetachMirrorLink(StorageSystem system, URI source, URI target, TaskCompleter completer) {
+        mirrorOperations.deleteMirrorFileShareLink(system, source, target, completer);
+    }
+
+    @Override
+    public void doSuspendLink(StorageSystem system, FileShare target, TaskCompleter completer) {
+        mirrorOperations.pauseMirrorFileShareLink(system, target, completer);
+    }
+
+    @Override
+    public void doResumeLink(StorageSystem system, FileShare target, TaskCompleter completer) {
+        mirrorOperations.resumeMirrorFileShareLink(system, target, completer);
     }
 
 }

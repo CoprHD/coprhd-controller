@@ -21,12 +21,14 @@ import org.apache.log4j.Logger;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import com.iwave.ext.netapp.SnapMirror.StatusInfo;
 import com.iwave.ext.netapp.model.CifsAcl;
 import com.iwave.ext.netapp.model.DiskDetailInfo;
 import com.iwave.ext.netapp.model.ExportsRuleInfo;
 import com.iwave.ext.netapp.model.NetAppDevice;
 import com.iwave.ext.netapp.model.Qtree;
 import com.iwave.ext.netapp.model.Quota;
+import com.iwave.ext.netapp.model.SnapMirrorStatusInfo;
 import com.iwave.ext.netapp.utils.ExportRule;
 
 @SuppressWarnings({ "findbugs:WMI_WRONG_MAP_ITERATOR" })
@@ -530,6 +532,40 @@ public class NetAppFacade {
         }
         Volume vol = new Volume(server.getNaServer(), volumeName);
         vol.setVolumeOffline(delayInMinutes);
+    }
+
+    /**
+     * Checks if the volume is offline or not
+     * 
+     * @param volumeName
+     * @return true if volume is offline, false otherwise
+     */
+    public boolean isVolumeOffline(String volumeName)
+    {
+        if (log.isDebugEnabled()) {
+            log.debug("Checking volume status is offline or not [name]: " +
+                    volumeName);
+        }
+        Volume vol = new Volume(server.getNaServer(), volumeName);
+        return vol.isOffline();
+    }
+
+    /**
+     * Takes a volume restricted. Note this call does *not* wait for the specified
+     * number of minutes. The delay occurs on the device.
+     * 
+     * @param volumeName - name of volume to restricted
+     * @param delayInMinutes - number of minutes to wait on the device before
+     *            the volume is offline.
+     */
+    public void setVolumeRestricted(String volumeName, int delayInMinutes)
+    {
+        if (log.isDebugEnabled()) {
+            log.debug("Taking volume restricted with params[name,delayInMinutes]: " +
+                    volumeName + "," + delayInMinutes);
+        }
+        Volume vol = new Volume(server.getNaServer(), volumeName);
+        vol.setVolumeRestrict(delayInMinutes);
     }
 
     /**
@@ -1582,4 +1618,176 @@ public class NetAppFacade {
         return share.modifyNFSShare(exportPath, exportRules);
     }
 
+    /**
+     * creates snap mirror between source and destination and mirror state will be in uninitialized state
+     * 
+     * @param sourceLocation - source path of filesystem
+     * @param destLocation - destination path of filesystem
+     * @return
+     */
+    public boolean createSnapMirror(String sourceLocation, String destLocation) {
+        if (log.isDebugEnabled()) {
+            log.debug("create snap mirror");
+        }
+
+        SnapMirror snapMirror = new SnapMirror(server.getNaServer(), null);
+        return snapMirror.createSnapMirror(sourceLocation, destLocation);
+    }
+
+    public boolean getSnapMirrorStatus() {
+        if (log.isDebugEnabled()) {
+            log.debug("get snap mirror status");
+        }
+        SnapMirror snapMirror = new SnapMirror(server.getNaServer(), null);
+        return snapMirror.getSnapMirrorStatus();
+    }
+
+    public boolean setSnapMirrorOn() {
+        if (log.isDebugEnabled()) {
+            log.debug("set snap mirror on");
+        }
+        SnapMirror snapMirror = new SnapMirror(server.getNaServer(), null);
+        return snapMirror.setSnapMirrorOn();
+    }
+
+    public StatusInfo getSnapMirrorState(String destLocation) {
+        if (log.isDebugEnabled()) {
+            log.debug("get snapmirror state: " + destLocation);
+        }
+        SnapMirror snapMirror = new SnapMirror(server.getNaServer(), null);
+        return snapMirror.getSnapMirrorState(destLocation);
+    }
+
+    public SnapMirrorStatusInfo getSnapMirrorStateInfo(String location) {
+        if (log.isDebugEnabled()) {
+            log.debug("get snapmirror state: " + location);
+        }
+        SnapMirror snapMirror = new SnapMirror(server.getNaServer(), null);
+        return snapMirror.getSnapMirrorStatusInfo(location);
+    }
+
+    /**
+     * Initialize the snap mirror and state will be snap mirrored
+     * 
+     * @param sourceLocation
+     * @param destLocation
+     * @return
+     */
+    public boolean initializeSnapMirror(String sourceLocation, String destLocation) {
+        if (log.isDebugEnabled()) {
+            log.debug("initialise snap mirror");
+        }
+
+        SnapMirror snapMirror = new SnapMirror(server.getNaServer(), null);
+        return snapMirror.initializeSnapMirror(sourceLocation, destLocation);
+    }
+
+    public boolean setSnapMirrorSchedule(String type, String scheduleTime, String sourceLocation, String destLocation) {
+        if (log.isDebugEnabled()) {
+            log.debug("set schedule snap mirror");
+        }
+
+        SnapMirror snapMirror = new SnapMirror(server.getNaServer(), null);
+        return snapMirror.setSnapMirrorSchedule(type, scheduleTime, sourceLocation, destLocation);
+    }
+
+    /**
+     * Delete the schedule for a given destination.
+     * This API must be executed on the destination filer
+     * 
+     * @param destinationLocation
+     * @return
+     */
+    public boolean deleteSnapMirrorSchedule(String destinationLocation) {
+        if (log.isDebugEnabled()) {
+            log.debug("delete snapmirror schedule");
+        }
+
+        SnapMirror snapMirror = new SnapMirror(server.getNaServer(), null);
+        return snapMirror.deleteSnapMirrorSchedule(destinationLocation);
+    }
+
+    /**
+     * Disables future transfers to a SnapMirror destination
+     * 
+     * @param destinationLocation
+     * @return
+     */
+    public boolean quiesceSnapMirror(String location) {
+        if (log.isDebugEnabled()) {
+            log.debug("quiesce snap mirror");
+        }
+
+        SnapMirror snapMirror = new SnapMirror(server.getNaServer(), null);
+        return snapMirror.quiesceSnapMirror(location);
+    }
+
+    /**
+     * Enables future transfers for a SnapMirror relationship that has been Paused
+     * 
+     * @param destinationLocation
+     * @return
+     */
+    public boolean resumeSnapMirror(String location) {
+        if (log.isDebugEnabled()) {
+            log.debug("resume snap mirror");
+        }
+
+        SnapMirror snapMirror = new SnapMirror(server.getNaServer(), null);
+        return snapMirror.resumeSnapMirror(location);
+    }
+
+    public boolean breakSnapMirrorSchedule(String location) {
+        if (log.isDebugEnabled()) {
+            log.debug("break snap mirror");
+        }
+
+        SnapMirror snapMirror = new SnapMirror(server.getNaServer(), null);
+        return snapMirror.breakSnapMirror(location);
+    }
+
+    /**
+     * Re-establishes a mirroring relationship between a source volume and a destination volume
+     * 
+     * @param sourceLocation
+     * @param destLocation
+     * @return
+     */
+    public boolean resyncSnapMirror(String sourceLocation, String destLocation) {
+        if (log.isDebugEnabled()) {
+            log.debug("resync snap mirror");
+        }
+
+        SnapMirror snapMirror = new SnapMirror(server.getNaServer(), null);
+        return snapMirror.resyncSnapMirror(sourceLocation, destLocation);
+    }
+
+    public boolean releaseSnapMirror(String sourceLocation, String destLocation) {
+        if (log.isDebugEnabled()) {
+            log.debug("release snapmirror");
+        }
+
+        SnapMirror snapMirror = new SnapMirror(server.getNaServer(), null);
+        return snapMirror.releaseSnapMirror(sourceLocation, destLocation);
+    }
+
+    /**
+     * Checks whether SnapMirror license exists or not.
+     * 
+     * @return true if SnapMirror license exists; false otherwise
+     */
+    public boolean checkSnapMirrorLicense() {
+
+        if (log.isDebugEnabled()) {
+            log.debug("Checking SnapMirror license");
+        }
+
+        SnapMirror snapMirror = new SnapMirror(server.getNaServer(), null);
+        return snapMirror.checkLicense();
+    }
+
+    public static void main(String[] args) {
+        NetAppFacade facade = new NetAppFacade("10.247.96.204", 80, "root", "dangerous1", false);
+        System.out.println(facade.getSnapMirrorStateInfo("lglw6204:netappMar31FS3"));
+    }
 }

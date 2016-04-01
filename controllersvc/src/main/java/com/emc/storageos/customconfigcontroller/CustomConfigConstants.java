@@ -17,7 +17,7 @@ public interface CustomConfigConstants {
     /** The config_name for zone name */
     public String ZONE_MASK_NAME = "SanZoneName";
     /** The config_name for skipping zoning */
-    public String ZONE_ADD_VOLUME= "SanZoneAddVolumeCheckZoning";
+    public String ZONE_ADD_VOLUME = "SanZoneAddVolumeCheckZoning";
 
     public String HDS_STORAGE_PORT_NUMBER = "hdsPortNumber";
     public String AUTO_TIERING_POLICY_NAME = "auto_tiering_policy_name";
@@ -76,6 +76,6 @@ public interface CustomConfigConstants {
     public String NAS_DYNAMIC_PERFORMANCE_PLACEMENT_ENABLED = "NasDynamicPerformancePlacementEnabled";
     public String USE_PHYSICAL_NAS_FOR_PROVISIONING = "NasUsePhysicalNASForProvisioning";
     public String SHARE_VNAS_WITH_MULTIPLE_PROJECTS = "NasShareVNASWithMultipleProjects";
-    
-    
+    public String ISILON_FILE_SHARE_CUSTOM_PATH = "IsilonFileShareCustomPath";
+
 }

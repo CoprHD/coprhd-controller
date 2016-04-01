@@ -58,6 +58,7 @@
                 <ref bean="nasDynamicPerformancePlacementEnabled"/>
                 <ref bean="nasUsePhysicalNASForProvisioning"/>
                 <ref bean="nasShareVNASWithMultipleProjects"/>
+                 <ref bean="isilonFileShareCustomPath"/>
             </list>
         </property>
     </bean>
@@ -848,6 +849,27 @@
         </property>
     </bean>
     
+       <bean id="isilonFileShareCustomPath" class="com.emc.storageos.customconfigcontroller.CustomConfigType">
+    	<property name="name" value="IsilonFileShareCustomPath"/>
+       <property name="configType" value="SimpleValue"/>
+        <property name="type" value="String"/>
+        	<property name="dataSourceVariables">
+            <map>
+                <entry key-ref="customPath" value="true"/>
+            </map>
+    	</property>
+        <property name="scope">
+            <map>
+                <entry key="systemType" value="isilon"/>
+            </map>
+        </property>
+        <property name="defaultValues">
+            <map>
+                <entry key="default" value="virtual_pool/tenant/project"/>
+            </map>
+        </property>
+    </bean>
+    
     <bean id="portAllocationMetricsEnabled" class="com.emc.storageos.customconfigcontroller.CustomConfigType">
     	<property name="name" value="PortAllocationMetricsEnabled"/>
         <property name="configType" value="SimpleValue"/>
@@ -1143,6 +1165,7 @@
         <property name="propertyName" value="label"/>
         <property name="sample" value="clusterABC"/>
     </bean>  
+     
     
      <bean id="autoTieringPolicy" class="com.emc.storageos.customconfigcontroller.DataSourceVariable">
         <property name="sourceClass" value="com.emc.storageos.db.client.model.AutoTieringPolicy"/>

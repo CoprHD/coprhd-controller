@@ -560,10 +560,10 @@ public class CoordinatorClientExt {
     public void setSiteSpecificProperties(Map<String, String> props, String siteId) {
         PropertyInfoExt siteScopeInfo = new PropertyInfoExt(props);
         ConfigurationImpl siteCfg = new ConfigurationImpl();
-        siteCfg.setId(siteId);
+        siteCfg.setId(PropertyInfoExt.TARGET_PROPERTY_ID);
         siteCfg.setKind(PropertyInfoExt.TARGET_PROPERTY);
         siteCfg.setConfig(TARGET_INFO, siteScopeInfo.encodeAsString());
-        _coordinator.persistServiceConfiguration( siteCfg);
+        _coordinator.persistServiceConfiguration(siteId, siteCfg);
     }
     
     /**

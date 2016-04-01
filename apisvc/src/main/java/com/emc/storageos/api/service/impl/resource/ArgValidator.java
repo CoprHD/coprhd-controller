@@ -549,11 +549,19 @@ public class ArgValidator {
      *            the units that the value represents, used for error message presentation
      * @param fieldName
      *            the name of the field where the value originated
+     * @param humanReadableError
+     *            if true, the error will show simplified and user friendly units in the error message
      */
-    public static void checkFieldMaximumHumanReadable(final long value, final long maximum, final String units, final String fieldName) {
+    public static void checkFieldMaximum(final long value, final long maximum, final String units, final String fieldName,
+            final Boolean humanReadableError) {
         if (value > maximum) {
-            throw APIException.badRequests.invalidParameterSizeAboveMaximum(fieldName,
-                    SizeUtil.humanReadableByteCount(value - maximum, false), SizeUtil.humanReadableByteCount(maximum, false));
+            if (humanReadableError) {
+                throw APIException.badRequests.invalidParameterSizeAboveMaximum(fieldName,
+                        SizeUtil.humanReadableByteCount(SizeUtil.translateSizeToBytes(value - maximum, units)),
+                        SizeUtil.humanReadableByteCount(SizeUtil.translateSizeToBytes(maximum, units)));
+            } else {
+                checkFieldMaximum(value, maximum, units, fieldName);
+            }
         }
     }
 

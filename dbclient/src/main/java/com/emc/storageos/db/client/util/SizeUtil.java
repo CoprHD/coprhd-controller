@@ -5,6 +5,9 @@
 
 package com.emc.storageos.db.client.util;
 
+import java.text.DecimalFormat;
+import java.text.NumberFormat;
+
 /**
  * @author burckb
  * 
@@ -134,17 +137,16 @@ public class SizeUtil {
      * Gives a human readable value of the input bytes
      * 
      * @param bytes
-     *            input size
-     * @param si
-     *            whether the input is in SI units
+     *            input size in bytes
      * @return human readable value of storage size
      */
-    public static String humanReadableByteCount(long bytes, boolean si) {
-        int unit = si ? 1000 : 1024;
+    public static String humanReadableByteCount(long bytes) {
+        int unit = 1024;
         if (bytes < unit)
             return bytes + " B";
         int exp = (int) (Math.log(bytes) / Math.log(unit));
-        String pre = (si ? "kMGTPE" : "KMGTPE").charAt(exp - 1) + (si ? "" : "i");
-        return String.format("%.1f %sB", bytes / Math.pow(unit, exp), pre);
+        char pre = ("KMGTPE").charAt(exp - 1);
+        NumberFormat nf = new DecimalFormat("##.####");
+        return String.format("%.2f %cB", nf.format(bytes / Math.pow(unit, exp)), pre);
     }
 }

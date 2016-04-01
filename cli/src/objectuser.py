@@ -47,21 +47,19 @@ class ObjectUser(object):
         obj = StorageSystem(self.__ipAddr, self.__port)
                  
         stsystem_uri = obj.query_by_name_and_type(storagesystem, "ecs")
+        print stsystem_uri 
         request = {}
         if(secretkey):
             request = {
                   'secret_key' : secretkey
                   }
         
-            body = json.dumps(request)
-        else: 
-            body = None
-        
+        body = json.dumps(request)
        
         (s, h) = common.service_json_request(
                 self.__ipAddr, self.__port,
                 "POST",ObjectUser.URI_OBJECTUSER_SECRET_KEYS.format(
-                stsystem_uri, objectuser), None)
+                stsystem_uri, objectuser), body)
         o = common.json_decode(s)
         return o
 

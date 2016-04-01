@@ -5,7 +5,10 @@
 
 package com.emc.storageos.systemservices.impl.vdc;
 
+import java.io.File;
+import java.io.IOException;
 import java.net.URI;
+import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
@@ -37,6 +40,8 @@ import com.emc.storageos.svcs.errorhandling.resources.InternalServerErrorExcepti
 import com.emc.storageos.systemservices.impl.client.SysClientFactory;
 import com.emc.storageos.systemservices.impl.upgrade.CoordinatorClientExt;
 import com.emc.storageos.systemservices.impl.upgrade.LocalRepository;
+
+import static com.emc.storageos.services.util.FileUtils.readValueFromFile;
 
 /**
  * Operation handler for vdc config change. A vdc config change may represent 
@@ -146,6 +151,9 @@ public abstract class VdcOpHandler {
      * Reconfigure the new redeployed nodes for node recovery in DR environment
      */
     public static class DrNodeRecoveryHandler extends VdcOpHandler {
+        private String dbDir;
+        private String geodbDir;
+
         public DrNodeRecoveryHandler() {
         }
 
@@ -156,13 +164,40 @@ public abstract class VdcOpHandler {
         @Override
         public void execute() throws Exception {
             if (isHibernating()) {
+                log.info("Hibernate flag detected. Reconfigure to refresh local properties..");
                 reconfigVdc(false);
             }
         }
 
+        public void setDbDir(String dbDir) {
+            this.dbDir = dbDir;
+        }
+
+        public void setGeodbDir(String geodbDir) {
+            this.geodbDir = geodbDir;
+        }
+
         private boolean isHibernating() {
-            //TODO: find a proper way to check if node is in hibernate state
-            return true;
+            List<String> dbFolders = Arrays.asList(dbDir, geodbDir);
+            for (String dbFolder : dbFolders) {
+                String modeType = readStartupModeFromDisk(dbFolder);
+                if (modeType != null && Constants.STARTUPMODE_HIBERNATE.equalsIgnoreCase(modeType)) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        private String readStartupModeFromDisk(String folder) {
+            String modeType = null;
+            try {
+                File startupModeFile = new File(folder, Constants.STARTUPMODE);
+                modeType = readValueFromFile(startupModeFile, Constants.STARTUPMODE);
+                log.info("On disk startup mode found {}", modeType);
+            } catch (Exception e) {
+                log.error("Failed to read startup mode file under {}", folder, e);
+            }
+            return modeType;
         }
     }
 

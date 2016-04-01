@@ -306,7 +306,6 @@ public class RecoveryManager implements Runnable {
      */
     private void waitDbsvcStarted() throws Exception {
         log.info("Wait dbsvc and geodbsvc get started..");
-        informHibernateNodeToReconfigure();
         waitHibernateNodeStarted();
         validateClusterStatus();
     }
@@ -332,6 +331,8 @@ public class RecoveryManager implements Runnable {
     private void waitHibernateNodeStarted() throws Exception {
         long expireTime = System.currentTimeMillis() + RecoveryConstants.RECOVERY_CHECK_TIMEOUT;
         while (true) {
+            informHibernateNodeToReconfigure();
+
             List<String> hibernateNodes = getHibernateNodes();
             if (hibernateNodes.isEmpty()) {
                 log.info("Db node rebuild finished");

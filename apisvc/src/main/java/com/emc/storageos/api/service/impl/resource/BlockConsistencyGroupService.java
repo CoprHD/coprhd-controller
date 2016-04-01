@@ -522,7 +522,7 @@ public class BlockConsistencyGroupService extends TaskResourceService {
         }
 
         // Validate CG information in the request
-        validateVolumesInReplicationGroups(consistencyGroup, param, _dbClient);
+        validateVolumesInReplicationGroups(consistencyGroup, param.getVolumes(), _dbClient);
 
         // Get the block service implementation
         BlockServiceApi blockServiceApiImpl = getBlockServiceImpl(consistencyGroup);
@@ -617,20 +617,20 @@ public class BlockConsistencyGroupService extends TaskResourceService {
      * Validate the volumes we are requested to snap all contain the proper replication group instance information.
      *
      * @param consistencyGroup consistency group object
-     * @param param incoming request parameters
+     * @param volumes incoming request parameters
      * @param dbClient dbclient
      */
-    private void validateVolumesInReplicationGroups(BlockConsistencyGroup consistencyGroup, BlockConsistencyGroupSnapshotCreate param,
+    private void validateVolumesInReplicationGroups(BlockConsistencyGroup consistencyGroup, List<URI> volumes,
             DbClient dbClient) {
 
         // Get all of the volumes from the consistency group
         Iterator<Volume> volumeIterator = null;
-        if (param.getVolumes() == null || param.getVolumes().isEmpty()) {
+        if (volumes == null || volumes.isEmpty()) {
             URIQueryResultList uriQueryResultList = new URIQueryResultList();
             dbClient.queryByConstraint(getVolumesByConsistencyGroup(consistencyGroup.getId()), uriQueryResultList);
             volumeIterator = dbClient.queryIterativeObjects(Volume.class, uriQueryResultList);
         } else {
-            volumeIterator = dbClient.queryIterativeObjects(Volume.class, param.getVolumes());
+            volumeIterator = dbClient.queryIterativeObjects(Volume.class, volumes);
         }
 
         if (volumeIterator == null || !volumeIterator.hasNext()) {
@@ -1671,6 +1671,8 @@ public class BlockConsistencyGroupService extends TaskResourceService {
         // in the CG. Note that it will take into account the
         // fact that the volume is in a CG.
         BlockConsistencyGroup cg = queryObject(BlockConsistencyGroup.class, consistencyGroupId, true);
+        // Validate CG information in the request
+        validateVolumesInReplicationGroups(cg, param.getVolumes(), _dbClient);
         return getSnapshotSessionManager().createSnapshotSession(cg, param, getFullCopyManager());
     }
 

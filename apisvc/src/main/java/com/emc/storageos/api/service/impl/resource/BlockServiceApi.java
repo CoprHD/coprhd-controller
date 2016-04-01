@@ -535,4 +535,7 @@ public interface BlockServiceApi {
      */
     public Collection<? extends String> getReplicationGroupNames(VolumeGroup group);
     
+    public List<VolumeDescriptor> getDescriptorsForVolumesToBeDeleted(URI systemURI,
+            List<URI> volumeURIs, String deletionType);
+    
 }

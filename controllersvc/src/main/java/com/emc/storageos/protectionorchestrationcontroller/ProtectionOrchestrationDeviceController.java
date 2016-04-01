@@ -59,7 +59,7 @@ public class ProtectionOrchestrationDeviceController implements ProtectionOrches
 
                 // Add vplex pre-flush steps. No wait for (passing null) as this is initial steps.
                 Map<URI, String> vplexVolumeIdToDetachStep = new HashMap<URI, String>();
-                waitFor = vplexDeviceController.addPreStepsForCacheFlushes(workflow, 
+                waitFor = vplexDeviceController.addPreRestoreResyncSteps(workflow, 
                         vplexToArrayVolumesToFlush, vplexVolumeIdToDetachStep, null);
 
                 // Add a step for the SRDF operation.
@@ -74,7 +74,7 @@ public class ProtectionOrchestrationDeviceController implements ProtectionOrches
                         nullRollbackMethod, null);
 
                 // Add post-flush steps.If all are Vplex local volumes, nothing will be added.
-                vplexDeviceController.addPostStepsForCacheFlushes(workflow, 
+                vplexDeviceController.addPostRestoreResyncSteps(workflow, 
                         vplexToArrayVolumesToFlush, vplexVolumeIdToDetachStep, srdfStep);
 
                 // Execute workflow.

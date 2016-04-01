@@ -430,7 +430,7 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
      * 
      * @return The list of volume descriptors.
      */
-    abstract protected List<VolumeDescriptor> getDescriptorsForVolumesToBeDeleted(
+    abstract public List<VolumeDescriptor> getDescriptorsForVolumesToBeDeleted(
             URI systemURI, List<URI> volumeURIs, String deletionType);
 
     /**

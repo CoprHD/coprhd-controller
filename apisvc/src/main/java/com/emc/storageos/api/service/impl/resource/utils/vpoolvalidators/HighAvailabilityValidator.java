@@ -12,6 +12,7 @@ import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
+import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.model.vpool.BlockVirtualPoolParam;
 import com.emc.storageos.model.vpool.BlockVirtualPoolUpdateParam;
 import com.emc.storageos.model.vpool.VirtualPoolHighAvailabilityParam;
@@ -149,7 +150,7 @@ public class HighAvailabilityValidator extends VirtualPoolValidator<BlockVirtual
         if (haParam.getHaVirtualArrayVirtualPool() != null) {
             // Look up the high availability virtual pool.
             URI haVpoolURI = haParam.getHaVirtualArrayVirtualPool().getVirtualPool();
-            if (haVpoolURI != null) {
+            if (!NullColumnValueGetter.isNullURI(haVpoolURI)) {
                 VirtualPool haVpool = dbClient.queryObject(VirtualPool.class, haVpoolURI);
                 if (VirtualPool.vPoolSpecifiesSRDF(haVpool)) {
                     throw APIException.badRequests.srdfNotSupportedOnHighAvailabilityVpool();

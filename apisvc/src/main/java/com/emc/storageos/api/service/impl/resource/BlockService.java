@@ -1179,9 +1179,7 @@ public class BlockService extends TaskResourceService {
         // Otherwise the volume sent in is assigned to a virtual pool that tells us what block service to return
         VirtualPool vPool = dbClient.queryObject(VirtualPool.class, volume.getVirtualPool());
         // Mutually exclusive logic that selects an implementation of the block service
-        // Note we check volume is a vplex volume so that when trying to clean up orphaned associated volumes
-        // we don't inadvertently go to the VplexBlocServiceApiImpl
-        if (volume.isVPlexVolume(dbClient) && VirtualPool.vPoolSpecifiesHighAvailability(vPool)) {
+        if (VirtualPool.vPoolSpecifiesHighAvailability(vPool)) {
             return getBlockServiceImpl(DiscoveredDataObject.Type.vplex.name());
         } else if (VirtualPool.vPoolSpecifiesSRDF(vPool)) {
             return getBlockServiceImpl(DiscoveredDataObject.Type.srdf.name());

@@ -3286,11 +3286,24 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
      * {@inheritDoc}
      */
     @Override
-    protected List<VolumeDescriptor> getDescriptorsForVolumesToBeDeleted(URI systemURI,
+    public List<VolumeDescriptor> getDescriptorsForVolumesToBeDeleted(URI systemURI,
             List<URI> volumeURIs, String deletionType) {
         List<VolumeDescriptor> volumeDescriptors = new ArrayList<VolumeDescriptor>();
         for (URI volumeURI : volumeURIs) {
             Volume volume = _dbClient.queryObject(Volume.class, volumeURI);
+            if (!volume.isVPlexVolume(_dbClient)) {
+                // We can get invoked on a vplex backend volume (because of the vpool) when
+                // trying to clean up failed deletions.
+                BlockServiceApi apiImpl = volume.checkForSRDF() ? 
+                        BlockService.getBlockServiceImpl("srdf") : BlockService.getBlockServiceImpl("default");
+                List<URI> nonVplexVolumeIds = new ArrayList<URI>();
+                nonVplexVolumeIds.add(volume.getId());
+                List<VolumeDescriptor> nonVplexDescriptors = apiImpl.getDescriptorsForVolumesToBeDeleted(
+                        volume.getStorageController(), nonVplexVolumeIds, deletionType);
+                volumeDescriptors.addAll(nonVplexDescriptors);
+                continue;
+            }
+            // At this point we know we are a VPLEX volume
             VolumeDescriptor descriptor = new VolumeDescriptor(VolumeDescriptor.Type.VPLEX_VIRT_VOLUME,
                     systemURI, volumeURI, null, null);
             volumeDescriptors.add(descriptor);

@@ -62,17 +62,6 @@ public class RackHdService extends ViPRService {
             }
         }
 
-        // TODO: fix: can't detect type, so interpret Storage Sizes in GB
-        for( String paramKey : params.keySet() ){
-            String p = params.get(paramKey).toString();
-            if(p.endsWith("GB")) {
-                String pNum = p.substring(0, p.length()-2);
-                if(StringUtils.isNumeric(pNum)) {
-                    params.put(paramKey, pNum);
-                }
-            }
-        }
-        
         // possible bug:  when catalog form is filled out, params have quotes 
         // around them, but when fields are locked in catalog, the quotes are missing.
         for( String paramKey : params.keySet() ){

@@ -5,9 +5,6 @@
 
 package com.emc.storageos.db.client.util;
 
-import java.text.DecimalFormat;
-import java.text.NumberFormat;
-
 /**
  * @author burckb
  * 
@@ -146,7 +143,6 @@ public class SizeUtil {
             return bytes + " B";
         int exp = (int) (Math.log(bytes) / Math.log(unit));
         char pre = ("KMGTPE").charAt(exp - 1);
-        NumberFormat nf = new DecimalFormat("##.####");
-        return String.format("%.2f %cB", nf.format(bytes / Math.pow(unit, exp)), pre);
+        return String.format("%.2f %cB", bytes / Math.pow(unit, exp), pre);
     }
 }

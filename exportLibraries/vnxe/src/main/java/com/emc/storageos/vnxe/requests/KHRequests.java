@@ -6,38 +6,35 @@
 package com.emc.storageos.vnxe.requests;
 
 import java.io.IOException;
+import java.net.URI;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
-import java.util.ArrayList;
 import java.util.Set;
 
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.MultivaluedMap;
 import javax.ws.rs.core.NewCookie;
 
-import com.emc.storageos.vnxe.VNXeConstants;
-import com.emc.storageos.vnxe.VNXeException;
-import com.emc.storageos.vnxe.models.ParamBase;
-import com.emc.storageos.vnxe.models.VNXeCommandJob;
-import com.emc.storageos.vnxe.models.VNXeCommandResult;
-
 import org.codehaus.jackson.JsonGenerationException;
 import org.codehaus.jackson.JsonParseException;
 import org.codehaus.jackson.map.JsonMappingException;
 import org.codehaus.jackson.map.ObjectMapper;
-
 import org.codehaus.jettison.json.JSONArray;
 import org.codehaus.jettison.json.JSONException;
 import org.codehaus.jettison.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.emc.storageos.vnxe.VNXeConstants;
+import com.emc.storageos.vnxe.VNXeException;
+import com.emc.storageos.vnxe.models.ParamBase;
+import com.emc.storageos.vnxe.models.VNXeCommandJob;
+import com.emc.storageos.vnxe.models.VNXeCommandResult;
+import com.sun.jersey.api.client.ClientResponse;
 import com.sun.jersey.api.client.ClientResponse.Status;
 import com.sun.jersey.api.client.WebResource;
-import com.sun.jersey.api.client.ClientResponse;
 import com.sun.jersey.core.util.MultivaluedMapImpl;
-
-import java.net.URI;
 
 /*
  * This is the base class for request sending to KittyHawk/VNXe server
@@ -67,23 +64,23 @@ public class KHRequests<T> {
     }
 
     public void setQueryParameters(MultivaluedMap<String, String> queryParams) {
-for (String key: queryParams.keySet()){
-                List<String> values = queryParams.get(key);
-                for (String value : values){
-                        _logger.info("key:"+key+" value:"+ value);
-                }
-          }
+        for (String key : queryParams.keySet()) {
+            List<String> values = queryParams.get(key);
+            for (String value : values) {
+                _logger.info("key:" + key + " value:" + value);
+            }
+        }
 
-       if (_queryParams!=null){
-          for (String key: queryParams.keySet()){
-		List<String> values = queryParams.get(key);
-                for (String value : values){
-			_queryParams.add(key,value);
+        if (_queryParams != null) {
+            for (String key : queryParams.keySet()) {
+                List<String> values = queryParams.get(key);
+                for (String value : values) {
+                    _queryParams.add(key, value);
                 }
-	  }
-       } else{
-        _queryParams = queryParams;
-       }
+            }
+        } else {
+            _queryParams = queryParams;
+        }
     }
 
     public WebResource buildResource(WebResource resource) {
@@ -122,8 +119,8 @@ for (String key: queryParams.keySet()){
 
         builder = builder.accept(MediaType.APPLICATION_JSON_TYPE);
         builder = builder.type(MediaType.APPLICATION_JSON_TYPE);
-        
-        _logger.info("Resource:"+builder.toString());
+
+        _logger.info("Resource:" + builder.toString());
         return builder;
     }
 
@@ -132,7 +129,7 @@ for (String key: queryParams.keySet()){
             _logger.info("_queryParams is null");
             return resource; // no query parameters
         }
-_logger.info("_queryParams:"+_queryParams);
+        _logger.info("_queryParams:" + _queryParams);
         return resource.queryParams(_queryParams);
     }
 
@@ -389,13 +386,13 @@ _logger.info("_queryParams:"+_queryParams);
      */
     private ClientResponse sendGetRequest(WebResource resource) throws VNXeException {
         _logger.info("getting data: {} ", _url);
-        if (_client.isUnity() == true){
-		setFields();
-	}
+        if (_client.isUnity() == true) {
+            setFields();
+        }
         ClientResponse response = buildRequest(addQueryParameters(buildResource(resource))
                 .getRequestBuilder()).get(ClientResponse.class);
         Status statusCode = response.getClientResponseStatus();
-        _logger.info(response.getStatus()+":"+ response.toString());
+        _logger.info(response.getStatus() + ":" + response.toString());
         if (statusCode == ClientResponse.Status.OK) {
             saveClientCookies();
             return response;
@@ -577,14 +574,13 @@ _logger.info("_queryParams:"+_queryParams);
     }
 
     protected void setFields() {
-        _logger.info("Setting fields:"+_fields);
-        if (_fields != null){
-	        MultivaluedMap<String, String> queryParams = new MultivaluedMapImpl();
-        	queryParams.add(VNXeConstants.FIELDS, _fields);
-	        setQueryParameters(queryParams);
-	}
+        _logger.info("Setting fields:" + _fields);
+        if (_fields != null) {
+            MultivaluedMap<String, String> queryParams = new MultivaluedMapImpl();
+            queryParams.add(VNXeConstants.FIELDS, _fields);
+            setQueryParameters(queryParams);
+        }
     }
-
 
     private void authenticate() {
         // calling a GET operation would authenticate the client again.

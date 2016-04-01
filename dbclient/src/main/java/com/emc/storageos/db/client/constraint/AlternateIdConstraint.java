@@ -8,6 +8,8 @@ package com.emc.storageos.db.client.constraint;
 import java.net.URI;
 
 import com.emc.storageos.db.client.constraint.impl.AlternateIdConstraintImpl;
+import com.emc.storageos.db.client.constraint.impl.ContainmentLabelConstraintImpl;
+import com.emc.storageos.db.client.impl.ColumnField;
 import com.emc.storageos.db.client.impl.DataObjectType;
 import com.emc.storageos.db.client.impl.TypeMap;
 import com.emc.storageos.db.client.model.AuthnProvider;
@@ -682,5 +684,16 @@ public interface AlternateIdConstraint extends Constraint {
             DataObjectType doType = TypeMap.getDoType(BlockSnapshotSession.class);
             return new AlternateIdConstraintImpl(doType.getColumnField("sessionInstance"), sessionInstance);
         }
+        
+        
+        public static AlternateIdConstraint getFullMatchConstraint(
+                Class<? extends DataObject> type,
+                String columeField,
+                String columeValue) {
+            DataObjectType doType = TypeMap.getDoType(type);
+            ColumnField columnField = doType.getColumnField(columeField);
+            return new AlternateIdConstraintImpl(columnField, columeValue);
+        }
+
     }
 }

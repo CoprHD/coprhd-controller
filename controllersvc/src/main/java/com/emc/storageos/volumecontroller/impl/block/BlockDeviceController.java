@@ -446,9 +446,15 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                 _log.debug(String.format("Capabilities : isMeta: %s, Meta Type: %s, Member size: %s, Count: %s",
                         capabilities.getIsMetaVolume(), capabilities.getMetaVolumeType(), capabilities.getMetaVolumeMemberSize(),
                         capabilities.getMetaVolumeMemberCount()));
+                
+                boolean createAsMetaVolume = false;
 
-                boolean createAsMetaVolume = capabilities.getIsMetaVolume()
+                if(capabilities.getSize() == 0){
+                	createAsMetaVolume = false;
+                } else{
+                    createAsMetaVolume = capabilities.getIsMetaVolume()
                         || MetaVolumeUtils.createAsMetaVolume(first.getVolumeURI(), _dbClient, capabilities);
+                }
                 if (createAsMetaVolume) {
                     Volume volume = _dbClient.queryObject(Volume.class, first.getVolumeURI());
                     StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, volume.getStorageController());
@@ -924,7 +930,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
             MultiVolumeTaskCompleter completer = new MultiVolumeTaskCompleter(volumeURIs, volumeCompleters, opId);
 
             Volume volume = volumes.get(0);
-            VirtualPool vpool = _dbClient.queryObject(VirtualPool.class, volume.getVirtualPool());
+            //VirtualPool vpool = _dbClient.queryObject(VirtualPool.class, volume.getVirtualPool());
             WorkflowStepCompleter.stepExecuting(completer.getOpId());
             getDevice(storageSystem.getSystemType()).doCreateVolumes(storageSystem,
                     storagePool, opId, volumes, capabilities, completer);

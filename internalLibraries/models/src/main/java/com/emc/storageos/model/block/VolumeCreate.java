@@ -5,6 +5,7 @@
 package com.emc.storageos.model.block;
 
 import java.net.URI;
+import java.util.Map;
 
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
@@ -15,7 +16,7 @@ import com.emc.storageos.model.valid.Length;
  * Volume creation parameters
  */
 @XmlRootElement(name = "volume_create")
-public class VolumeCreate {
+public class VolumeCreate extends PassThrouhParam{
 
     private String name;
     private String size;
@@ -30,6 +31,7 @@ public class VolumeCreate {
 
     public VolumeCreate(String name, String size, Integer count, URI vpool,
             URI varray, URI project, URI consistencyGroup) {
+        super();
         this.name = name;
         this.size = size;
         this.count = count;
@@ -50,6 +52,20 @@ public class VolumeCreate {
         this.project = project;
     }
 
+    public VolumeCreate(String name, String size, Integer count, URI vpool,
+            URI varray, URI project, Map<String, String> passThrouhParams ) {
+        super(passThrouhParams);
+//    public VolumeCreate(String name, String size, Integer count, URI vpool,
+//            URI varray, URI project, String passThrouhParams ) {
+//        super(passThrouhParams);    
+        this.name = name;
+        this.size = size;
+        this.count = count;
+        this.vpool = vpool;
+        this.varray = varray;
+        this.project = project;
+    }
+    
     /**
      * This parameter will allow for the creation of a source
      * consistency group. Once the source consistency group is
@@ -152,4 +168,10 @@ public class VolumeCreate {
     public void setVpool(URI vpool) {
         this.vpool = vpool;
     }
+
+	@Override
+	void reverseMapPassThroughParams() {
+		
+		
+	}
 }

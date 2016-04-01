@@ -204,9 +204,15 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
 
             String tenantName = "";
             try {
-                TenantOrg tenant = _dbClient.queryObject(TenantOrg.class, volume.getTenant()
-                        .getURI());
-                tenantName = tenant.getLabel();
+            	if(volume.getTenant() != null){
+                    TenantOrg tenant = _dbClient.queryObject(TenantOrg.class, volume.getTenant()
+                            .getURI());
+                    tenantName = tenant.getLabel();
+            	} else {
+            		tenantName = "";
+            	}
+
+               
             } catch (DatabaseException e) {
                 _log.error("Error lookup TenantOrb object", e);
             }

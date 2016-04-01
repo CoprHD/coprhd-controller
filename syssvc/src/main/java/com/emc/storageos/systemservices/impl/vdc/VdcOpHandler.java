@@ -551,8 +551,6 @@ public abstract class VdcOpHandler {
 
             // restart db/geodb to rebuild data
             if (site.getState() == SiteState.STANDBY_SYNCING) {
-                VdcPropertyBarrier barrier = new VdcPropertyBarrier(Constants.RESUME_BARRIER_RESTART_DBSVC,
-                        VDC_OP_BARRIER_TIMEOUT, site.getNodeCount(), false);
                 restartDbsvcBarrier.enter();
                 try {
                     localRepository.restart(Constants.GEODBSVC_NAME);

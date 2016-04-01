@@ -6,13 +6,11 @@
 package com.emc.storageos.systemservices.impl.recovery;
 
 import java.net.URI;
-import java.util.Calendar;
 import java.util.List;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Map;
 import java.util.Date;
-import java.util.Iterator;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -27,19 +25,15 @@ import org.apache.curator.framework.recipes.leader.LeaderSelector;
 
 import com.emc.vipr.model.sys.ClusterInfo;
 import com.emc.vipr.model.sys.recovery.RecoveryStatus;
-import com.emc.vipr.model.sys.recovery.DbRepairStatus.Status;
-import com.emc.vipr.model.sys.recovery.DbRepairStatus;
 import com.emc.vipr.model.sys.recovery.RecoveryConstants;
 import com.emc.storageos.coordinator.client.model.Constants;
 import com.emc.storageos.coordinator.client.model.RepositoryInfo;
 import com.emc.storageos.coordinator.client.service.NodeListener;
 import com.emc.storageos.coordinator.client.service.impl.LeaderSelectorListenerImpl;
-import com.emc.storageos.coordinator.common.Service;
 import com.emc.storageos.coordinator.common.impl.ZkPath;
 import com.emc.storageos.coordinator.common.Configuration;
 import com.emc.storageos.coordinator.common.impl.ConfigurationImpl;
 import com.emc.storageos.db.client.DbClient;
-import com.emc.storageos.db.server.impl.DbRepairRunnable;
 import com.emc.storageos.systemservices.impl.upgrade.CoordinatorClientExt;
 import com.emc.storageos.systemservices.impl.upgrade.LocalRepository;
 import com.emc.storageos.systemservices.impl.client.SysClientFactory;

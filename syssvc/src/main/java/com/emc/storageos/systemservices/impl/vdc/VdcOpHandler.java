@@ -6,7 +6,6 @@
 package com.emc.storageos.systemservices.impl.vdc;
 
 import java.io.File;
-import java.io.IOException;
 import java.net.URI;
 import java.util.Arrays;
 import java.util.List;
@@ -40,7 +39,6 @@ import com.emc.storageos.svcs.errorhandling.resources.InternalServerErrorExcepti
 import com.emc.storageos.systemservices.impl.client.SysClientFactory;
 import com.emc.storageos.systemservices.impl.upgrade.CoordinatorClientExt;
 import com.emc.storageos.systemservices.impl.upgrade.LocalRepository;
-
 import static com.emc.storageos.services.util.FileUtils.readValueFromFile;
 
 /**
@@ -158,7 +156,7 @@ public abstract class VdcOpHandler {
         }
 
         /**
-         * Reconfigure(refresh Firewall/IpSec/SSH/...) the new redeployed node
+         * Reconfigure(refresh firewall/ipsec/ssh/...) the recovering node
          * @throws Exception
          */
         @Override

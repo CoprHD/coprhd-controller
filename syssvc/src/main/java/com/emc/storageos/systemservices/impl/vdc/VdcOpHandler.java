@@ -534,13 +534,15 @@ public abstract class VdcOpHandler {
         @Override
         public void execute() throws Exception {
             Site site = drUtil.getLocalSite();
-            if (restartDbsvcBarrier == null) {
-                restartDbsvcBarrier = new VdcPropertyBarrier(Constants.RESUME_BARRIER_RESTART_DBSVC,
-                        VDC_OP_BARRIER_TIMEOUT, site.getNodeCount(), false);
-            }
-            
+
             // on all sites, reconfig to enable firewall/ipsec
-            reconfigVdc();
+            if (drUtil.isActiveSite()) {
+                reconfigVdc();
+            } else {
+                // ZooKeeper leader might be lost when active site reconfigures
+                // so it might not be possible to use barrier here.
+                reconfigVdc(false);
+            }
 
             if (site.getState() == SiteState.STANDBY_RESUMING) {
                 // this site state change is persistent since the ZK is already connected
@@ -551,14 +553,8 @@ public abstract class VdcOpHandler {
 
             // restart db/geodb to rebuild data
             if (site.getState() == SiteState.STANDBY_SYNCING) {
-                restartDbsvcBarrier.enter();
-                try {
-                    localRepository.restart(Constants.GEODBSVC_NAME);
-                    localRepository.restart(Constants.DBSVC_NAME);
-                } finally {
-                    restartDbsvcBarrier.leave();
-                }
-                restartDbsvcBarrier = null;
+                localRepository.restart(Constants.GEODBSVC_NAME);
+                localRepository.restart(Constants.DBSVC_NAME);
             }
         }
     }

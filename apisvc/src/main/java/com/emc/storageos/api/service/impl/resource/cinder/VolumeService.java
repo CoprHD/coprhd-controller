@@ -335,8 +335,12 @@ public class VolumeService extends TaskResourceService {
         if (consistencygroup_id != null) {
             _log.info("Verifying for consistency group : " + consistencygroup_id);
             blockConsistencyGroup = (BlockConsistencyGroup) getCinderHelper().queryByTag(URI.create(consistencygroup_id), getUserFromContext(), BlockConsistencyGroup.class);
+            if(getCinderHelper().verifyConsistencyGroupHasSnapshot(blockConsistencyGroup)){
+                _log.error("Bad Request : Consistency Group has Snapshot ");
+                return CinderApiUtils.createErrorResponse(400, "Bad Request : Consistency Group has Snapshot ");
+            }
             blockConsistencyGroupId = blockConsistencyGroup.getId();
-            if (blockConsistencyGroup.getTag() != null) {
+            if (blockConsistencyGroup.getTag() != null && consistencygroup_id.equals(blockConsistencyGroupId.toString().split(":")[3])) {
                 for (ScopedLabel tag : blockConsistencyGroup.getTag()) {
                     if (tag.getScope().equals("volume_types")) {
                         if (tag.getLabel().equals(volume_type)) {
@@ -348,6 +352,8 @@ public class VolumeService extends TaskResourceService {
                         }
                     }
                 }
+            } else {
+            	return CinderApiUtils.createErrorResponse(404, "Invalid Consistency Group Id : No Such Consistency group exists");
             }
         }
 
@@ -424,7 +430,7 @@ public class VolumeService extends TaskResourceService {
                 checkForConsistencyGroup(vpool, blockConsistencyGroup, project, api, varray, capabilities, blkFullCpManager);
                 volumeCreate.setConsistencyGroup(blockConsistencyGroupId);
             } catch (APIException exp) {
-                CinderApiUtils.createErrorResponse(400, "Bad Request : can't create volume for the consistency group : "
+                return CinderApiUtils.createErrorResponse(400, "Bad Request : can't create volume for the consistency group : "
                         + blockConsistencyGroupId);
             }
         }
@@ -572,7 +578,9 @@ public class VolumeService extends TaskResourceService {
         _log.info("Delete volume: id = {} tenant: id ={}", volumeId, openstackTenantId);
         Volume vol = findVolume(volumeId, openstackTenantId);
         if (vol == null) {
-            return Response.status(404).build();
+            return CinderApiUtils.createErrorResponse(404, "Not Found : Invalid volume id");
+        }else if(vol.hasConsistencyGroup()){
+            return CinderApiUtils.createErrorResponse(400, "Invalid volume: Volume belongs to consistency group");
         }
         BlockServiceApi api = BlockService.getBlockServiceImpl(vol, _dbClient);
         if ((api.getSnapshots(vol) != null) && (!api.getSnapshots(vol).isEmpty())) {
@@ -582,13 +590,10 @@ public class VolumeService extends TaskResourceService {
 
         // Now delete it
         String task = UUID.randomUUID().toString();
-        Operation op = _dbClient.createTaskOpStatus(
-                Volume.class, vol.getId(), task,
-                ResourceOperationTypeEnum.DELETE_BLOCK_VOLUME);
         URI systemUri = vol.getStorageController();
         List<URI> volumeURIs = new ArrayList<URI>();
         volumeURIs.add(vol.getId());
-        api.deleteVolumes(systemUri, volumeURIs, "FULL", null);
+        api.deleteVolumes(systemUri, volumeURIs, "FULL", task);
 
         if (vol.getExtensions() == null) {
             vol.setExtensions(new StringMap());
@@ -1083,7 +1088,6 @@ public class VolumeService extends TaskResourceService {
             _log.debug("Snapshot in a consistencyGroup is not supported for full copy operation ");
             throw APIException.badRequests.fullCopyNotSupportedForConsistencyGroup();
         }
-        Volume volume = _dbClient.queryObject(Volume.class, snapshot.getParent());
 
     }
 
@@ -1488,4 +1492,6 @@ public class VolumeService extends TaskResourceService {
 
         return BlockService.getBlockServiceImpl("default");
     }
+    
+
 }

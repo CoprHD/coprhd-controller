@@ -499,7 +499,10 @@ public class BackupService {
 
         checkExternalServer();
 
-        if (!force && backupOps.isDownloadComplete(backupName)) {
+        if (backupOps.hasStandbySites()) {
+            String errmsg = "Please remove all standby sites before downloading";
+            backupOps.setRestoreStatus(backupName, false, BackupRestoreStatus.Status.DOWNLOAD_FAILED, errmsg, false, false);
+        }else  if (!force && backupOps.isDownloadComplete(backupName)) {
             log.info("The backup file {} has already been downloaded", backupName);
         }else if (backupOps.isDownloadInProgress()) {
             String curBackupName = backupOps.getCurrentBackupName();
@@ -642,10 +645,10 @@ public class BackupService {
         String myNodeId = backupOps.getCurrentNodeId();
 
         try {
-            backupOps.checkBackup(backupDir);
+            backupOps.checkBackup(backupDir, isLocal);
         }catch (Exception e) {
             if (backupOps.shouldHaveBackupData()) {
-                String errMsg = String.format("Invalid backup the node %s: %s", myNodeId, e.getMessage());
+                String errMsg = String.format("Invalid backup on %s: %s", myNodeId, e.getMessage());
                 setRestoreFailed(backupName, isLocal, errMsg, e);
                 auditBackup(OperationTypeEnum.RESTORE_BACKUP, AuditLogManager.AUDITLOG_FAILURE, null, backupName);
                 return Response.status(ASYNC_STATUS).build();

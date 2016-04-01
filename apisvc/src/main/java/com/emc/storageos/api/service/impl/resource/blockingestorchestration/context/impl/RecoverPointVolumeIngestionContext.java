@@ -76,10 +76,6 @@ public class RecoverPointVolumeIngestionContext extends BlockVolumeIngestionCont
     private List<UnManagedVolume> _unmanagedTargetVolumesToUpdate;
     private UnManagedProtectionSet _unManagedProtectionSet;
 
-    // flags to help with final ingestion
-    private boolean _managedPsetWasCreatedByAnotherContext = false;
-    private boolean _managedBcgWasCreatedByAnotherContext = false;
-
     /**
      * Constructor.
      *
@@ -209,24 +205,6 @@ public class RecoverPointVolumeIngestionContext extends BlockVolumeIngestionCont
     }
 
     /**
-     * Sets whether or not the managed ProtectionSet was created by another context already.
-     * 
-     * @param managedPsetWasCreatedByAnotherContext true if the ProtectionSet was created by another context
-     */
-    public void setManagedPsetWasCreatedByAnotherContext(boolean managedPsetWasCreatedByAnotherContext) {
-        this._managedPsetWasCreatedByAnotherContext = managedPsetWasCreatedByAnotherContext;
-    }
-
-    /**
-     * Sets whether or not the managed BlockConsistencyGroup was created by another context already.
-     * 
-     * @param managedBcgWasCreatedByAnotherContext true if the BlockConsistencyGroup was created by another context
-     */
-    public void setManagedBcgWasCreatedByAnotherContext(boolean managedBcgWasCreatedByAnotherContext) {
-        this._managedBcgWasCreatedByAnotherContext = managedBcgWasCreatedByAnotherContext;
-    }
-
-    /**
      * Adds a source Volume to the list of Volumes that should be updated
      * when this RecoverPoint ingestion process is committed.
      *
@@ -333,11 +311,9 @@ public class RecoverPointVolumeIngestionContext extends BlockVolumeIngestionCont
                 managedProtectionSet.getVolumes().add(_managedBlockObject.getId().toString());
             }
 
-            if (!_managedPsetWasCreatedByAnotherContext) {
-                _logger.info("Creating ProtectionSet {} (hash {})", 
-                        managedProtectionSet.forDisplay(), managedProtectionSet.hashCode());
-                _dbClient.createObject(managedProtectionSet);
-            }
+            _logger.info("Creating ProtectionSet {} (hash {})", 
+                    managedProtectionSet.forDisplay(), managedProtectionSet.hashCode());
+            _dbClient.createObject(managedProtectionSet);
 
             // the protection set was created, so delete the unmanaged one
             _logger.info("Deleting UnManagedProtectionSet {} (hash {})", 
@@ -347,11 +323,9 @@ public class RecoverPointVolumeIngestionContext extends BlockVolumeIngestionCont
 
         // commit the BlockConsistencyGroup, if created
         if (null != getManagedBlockConsistencyGroup()) {
-            if (!_managedBcgWasCreatedByAnotherContext) {
-                _logger.info("Creating BlockConsistencyGroup {} (hash {})" + 
-                        _managedBlockConsistencyGroup.forDisplay(), _managedBlockConsistencyGroup.hashCode());
-                _dbClient.createObject(_managedBlockConsistencyGroup);
-            }
+            _logger.info("Creating BlockConsistencyGroup {} (hash {})", 
+                    _managedBlockConsistencyGroup.forDisplay(), _managedBlockConsistencyGroup.hashCode());
+            _dbClient.createObject(_managedBlockConsistencyGroup);
         }
 
         for (Entry<ExportGroup, Boolean> entry : getRpExportGroupMap().entrySet()) {

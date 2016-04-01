@@ -18,6 +18,7 @@ import com.emc.storageos.db.client.impl.ColumnField;
 import com.emc.storageos.db.client.impl.DataObjectType;
 import com.emc.storageos.db.client.impl.DbIndex;
 import com.emc.storageos.db.client.impl.PrefixDbIndex;
+import com.emc.storageos.db.client.impl.RelationDbIndex;
 import com.emc.storageos.db.client.impl.TypeMap;
 import com.emc.storageos.db.client.model.DataObject;
 
@@ -99,6 +100,17 @@ class ClassMetaData {
     }
 
     /**
+     * Returns true if a relation index is defined.
+     * 
+     * @param fieldName
+     * @return
+     */
+    boolean isRelationIndex(String fieldName) {
+        DbIndex index = getIndex(fieldName);
+        return (index != null && index instanceof RelationDbIndex);
+    }
+
+    /**
      * Returns true if there is a usuable index
      * 
      * @param fieldName
@@ -109,6 +121,9 @@ class ClassMetaData {
             return true;
         }
         if (isPrefixIndex(fieldName)) {
+            return true;
+        }
+        if (isRelationIndex(fieldName)) {
             return true;
         }
         return false;

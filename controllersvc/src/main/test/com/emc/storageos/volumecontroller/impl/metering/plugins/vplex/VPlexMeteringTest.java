@@ -18,12 +18,13 @@ import java.util.concurrent.ExecutorService;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import com.emc.storageos.services.util.StorageDriverManager;
 import org.joda.time.DateTime;
 import org.junit.Assert;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.context.support.ClassPathXmlApplicationContext;
 
 import com.emc.storageos.customconfigcontroller.CustomConfigConstants;
 import com.emc.storageos.customconfigcontroller.CustomConfigResolver;
@@ -52,6 +53,7 @@ import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.plugins.AccessProfile;
 import com.emc.storageos.plugins.common.Constants;
 import com.emc.storageos.services.util.EnvConfig;
+import com.emc.storageos.services.util.StorageDriverManager;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 import com.emc.storageos.volumecontroller.impl.plugins.metering.smis.processor.PortMetricsProcessor;
 import com.emc.storageos.volumecontroller.impl.plugins.metering.vplex.ListVPlexPerpetualCSVFileNames;
@@ -61,11 +63,12 @@ import com.emc.storageos.volumecontroller.impl.plugins.metering.vplex.VPlexPerpe
 import com.google.common.base.Joiner;
 import com.google.common.base.Strings;
 import com.iwave.ext.linux.LinuxSystemCLI;
-import org.springframework.context.support.ClassPathXmlApplicationContext;
 
 /**
  * Tester class for VPlex metering related classes and functions
+ * This test requires a sanity.properties file to run, so therefore is not part of the master unit test suite.
  */
+@Ignore
 public class VPlexMeteringTest {
     public static final String SANITY = "sanity";
     public static final String VPLEX_HOST = "vplex.host";

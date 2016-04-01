@@ -989,12 +989,15 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
         unManagedVolumeInformation.put(SupportedVolumeInformation.SYSTEM_TYPE.toString(), systemTypes);
 
         // set volume capacity
+        // For Vplex virtual volumes set allocated capacity to 0 (cop-18608)
         StringSet provCapacity = new StringSet();
         provCapacity.add(String.valueOf(info.getCapacityBytes()));
+        StringSet allocatedCapacity = new StringSet();
+        allocatedCapacity.add(String.valueOf(0));
         unManagedVolumeInformation.put(SupportedVolumeInformation.PROVISIONED_CAPACITY.toString(),
                 provCapacity);
         unManagedVolumeInformation.put(SupportedVolumeInformation.ALLOCATED_CAPACITY.toString(),
-                provCapacity);
+                allocatedCapacity);
 
         // set vplex virtual volume properties
         unManagedVolumeCharacteristics.put(SupportedVolumeCharacterstics.IS_VPLEX_VOLUME.toString(), TRUE);
@@ -1393,7 +1396,9 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
             Map<String, String> targetPortToPwwnMap = new HashMap<String, String>();
             List<VPlexPortInfo> cachedPortInfos = client.getPortInfo(true);
             for (VPlexPortInfo cachedPortInfo : cachedPortInfos) {
-                targetPortToPwwnMap.put(cachedPortInfo.getTargetPort(), cachedPortInfo.getPortWwn());
+                if (null != cachedPortInfo.getPortWwn()) {
+                    targetPortToPwwnMap.put(cachedPortInfo.getTargetPort(), cachedPortInfo.getPortWwn());
+                }
             }
 
             Set<URI> allCurrentUnManagedExportMaskUris = new HashSet<URI>();
@@ -1866,6 +1871,12 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
             Map<String, VPlexTargetInfo> portTargetMap = client.getTargetInfoForPorts(portInfoList);
             for (VPlexPortInfo portInfo : portInfoList) {
                 s_logger.debug("VPlex port info: {}", portInfo.toString());
+
+                if (null == portInfo.getPortWwn()) {
+                    s_logger.debug("Not a FC port, skipping port {}",
+                            portInfo.getName());
+                    continue;
+                }
 
                 // VPlex director port can have a variety of roles. They can
                 // be front-end ports for exposing VPlex virtual volumes to

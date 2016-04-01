@@ -113,6 +113,9 @@ public class NetworkSystemCreate {
 
     /**
      * Type of the Network System
+     * Valid values:
+     * 	brocade
+     * 	mds
      * 
      */
     // @EnumType(NetworkSystem.Type.class)

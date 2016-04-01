@@ -33,23 +33,18 @@ public class DbsvcQuorumMonitor implements Runnable {
     private static final int STANDBY_DEGRADED_THRESHOLD = 1000 * 60 * 15; // 15 minutes, in milliseconds
 
     private DrUtil drUtil;
-    private String myNodeId;
     private CoordinatorClient coordinatorClient;
     private Properties dbCommonInfo;
-    private boolean isSingleNode;
 
-    public DbsvcQuorumMonitor(String myNodeId, CoordinatorClient coordinatorClient, Properties dbCommonInfo) {
+    public DbsvcQuorumMonitor(CoordinatorClient coordinatorClient, Properties dbCommonInfo) {
         this.drUtil = new DrUtil(coordinatorClient);
-        this.myNodeId = myNodeId;
         this.coordinatorClient = coordinatorClient;
         this.dbCommonInfo = dbCommonInfo;
-        isSingleNode = drUtil.getLocalSite().getNodeCount() == 1;
     }
 
     @Override
     public void run() {
-        String state = drUtil.getLocalCoordinatorMode(myNodeId);
-        if (!isSingleNode && !DrUtil.ZOOKEEPER_MODE_LEADER.equals(state)) {
+        if (!drUtil.isLeaderNode()) {
             log.info("Current node is not ZK leader. Do nothing");
             return;
         }

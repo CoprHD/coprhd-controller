@@ -392,6 +392,8 @@ public class BackupOps {
         }
 
         log.info("found db {} geodb {}", found_db_file, found_geodb_file);
+        log.info("isGeo:{}", isGeo);
+
         if (!found_db_file) {
             String errMsg = String.format("%s does not contain db files", backupFolder.getAbsolutePath());
             throw new RuntimeException(errMsg);
@@ -702,11 +704,19 @@ public class BackupOps {
             return true;
         }
 
-        if (s.getStatus() == BackupRestoreStatus.Status.DOWNLOAD_SUCCESS) {
+        BackupRestoreStatus.Status currentStatus = s.getStatus();
+
+        if (status == BackupRestoreStatus.Status.DOWNLOAD_FAILED
+                && currentStatus == BackupRestoreStatus.Status.DOWNLOAD_SUCCESS) {
+            //post check failed
+            return true;
+        }
+
+        if (currentStatus == BackupRestoreStatus.Status.DOWNLOAD_SUCCESS) {
             return false;
         }
 
-        if ( (status == BackupRestoreStatus.Status.DOWNLOAD_CANCELLED) && (!s.getStatus().canBeCanceled())) {
+        if ( (status == BackupRestoreStatus.Status.DOWNLOAD_CANCELLED) && (!currentStatus.canBeCanceled())) {
             log.info("current status {} can't be canceled", s);
             return false;
         }

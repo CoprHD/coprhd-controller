@@ -616,7 +616,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                             deviceURI, getDeviceType(deviceURI),
                             this.getClass(),
                             createConsistencyGroupMethod(deviceURI, consistencyGroupURI, rgName),
-                            deleteConsistencyGroupMethod(deviceURI, consistencyGroupURI, rgName, false, false, true), null);
+                            deleteConsistencyGroupMethod(deviceURI, consistencyGroupURI, rgName, false, false, false), null);
                     createdCg = true;
                     _log.info(String.format("Step created for creating CG [%s] on device [%s]", consistencyGroup.getLabel(), deviceURI));
                 }
@@ -6322,7 +6322,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                        waitFor, storage, storageSystem.getSystemType(),
                        this.getClass(),
                        createConsistencyGroupMethod(storage, cgUri, rgName),
-                       deleteConsistencyGroupMethod(storage, cgUri, rgName, false, false, true), null);
+                       deleteConsistencyGroupMethod(storage, cgUri, rgName, false, false, false), null);
            }
 
            waitFor = workflow.createStep(UPDATE_CONSISTENCY_GROUP_STEP_GROUP,

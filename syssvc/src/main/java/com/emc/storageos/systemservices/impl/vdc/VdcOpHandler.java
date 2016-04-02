@@ -240,9 +240,6 @@ public abstract class VdcOpHandler {
         @Override
         public void execute() throws Exception {
             reconfigVdc();
-            if (drUtil.isActiveSite()) {
-                changeSiteState(SiteState.STANDBY_ADDING, SiteState.STANDBY_SYNCING);
-            }
         }
     }
 
@@ -305,7 +302,7 @@ public abstract class VdcOpHandler {
                         // phase 2 agreement is received, we can make sure data revision change is written to local property file
                         log.info("Reach phase 2 agreement for data revision change");
                         localRepository.setDataRevision(targetDataRevision, true, vdcConfigVersion);
-                        updateSyncingState();
+                        //updateSyncingState();
                         setConcurrentRebootNeeded(true);
                     } else {
                         log.info("Failed to reach phase 2 agreement. Rollback revision change");
@@ -591,14 +588,11 @@ public abstract class VdcOpHandler {
      *  - To-be-resumed site - rebuild db/zk data from active site and apply the config 
      */
     public static class DrResumeStandbyHandler extends VdcOpHandler {
-        private VdcPropertyBarrier restartDbsvcBarrier;
         public DrResumeStandbyHandler() {
         }
         
         @Override
         public void execute() throws Exception {
-            Site site = drUtil.getLocalSite();
-
             // on all sites, reconfig to enable firewall/ipsec
             if (drUtil.isActiveSite()) {
                 reconfigVdc();
@@ -606,19 +600,6 @@ public abstract class VdcOpHandler {
                 // ZooKeeper leader might be lost when active site reconfigures
                 // so it might not be possible to use barrier here.
                 reconfigVdc(false);
-            }
-
-            if (site.getState() == SiteState.STANDBY_RESUMING) {
-                // this site state change is persistent since the ZK is already connected
-                log.info("Updating local site state to STANDBY_SYNCING");
-                site.setState(SiteState.STANDBY_SYNCING);
-                coordinator.getCoordinatorClient().persistServiceConfiguration(site.toConfiguration());
-            }
-
-            // restart db/geodb to rebuild data
-            if (site.getState() == SiteState.STANDBY_SYNCING) {
-                localRepository.restart(Constants.GEODBSVC_NAME);
-                localRepository.restart(Constants.DBSVC_NAME);
             }
         }
     }

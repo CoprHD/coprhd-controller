@@ -923,13 +923,14 @@ public class DisasterRecoveryService {
                     site.setState(SiteState.STANDBY_RESUMING);
                     coordinator.persistServiceConfiguration(site.toConfiguration());
                     drUtil.recordDrOperationStatus(site.getUuid(), InterState.RESUMING_STANDBY);
+                    drUtil.updateVdcTargetVersion(uuid, SiteInfo.DR_OP_RESUME_STANDBY, vdcTargetVersion, dataRevision);
+                } else {
+                    drUtil.updateVdcTargetVersion(site.getUuid(), SiteInfo.DR_OP_RESUME_STANDBY, vdcTargetVersion);
                 }
-
-                drUtil.updateVdcTargetVersion(site.getUuid(), SiteInfo.DR_OP_RESUME_STANDBY, vdcTargetVersion + 1);
             }
 
             // update the local(active) site last
-            drUtil.updateVdcTargetVersion(coordinator.getSiteId(), SiteInfo.DR_OP_RESUME_STANDBY, vdcTargetVersion + 1);
+            drUtil.updateVdcTargetVersion(coordinator.getSiteId(), SiteInfo.DR_OP_RESUME_STANDBY, vdcTargetVersion);
             coordinator.commitTransaction();
             auditDisasterRecoveryOps(OperationTypeEnum.RESUME_STANDBY, AuditLogManager.AUDITLOG_SUCCESS, AuditLogManager.AUDITOP_BEGIN,
                     standby.toBriefString());

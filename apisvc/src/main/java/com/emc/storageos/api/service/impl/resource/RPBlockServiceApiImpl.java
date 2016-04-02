@@ -1934,7 +1934,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                         AlternateIdConstraint.Factory.getConstraint(RPSiteArray.class,
                                 "storageSystem",
                                 system.getId().toString()));
-        
+
         Map<URI, ProtectionSystem> protSysMap = new HashMap<URI, ProtectionSystem>();
         Map<String, StorageSystem> storageSystemBySerialNumber = new HashMap<String, StorageSystem>();
 
@@ -1949,7 +1949,8 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                 // Loop through the associated Storage Systems for this Protection System to build the
                 // connectivity response list. Only store unique responses.
                 for (String associatedStorageSystemStr : protectionSystem.getAssociatedStorageSystems()) {
-                    String associatedStorageSystemSerialNumber = ProtectionSystem.getAssociatedStorageSystemSerialNumber(associatedStorageSystemStr);
+                    String associatedStorageSystemSerialNumber = ProtectionSystem
+                            .getAssociatedStorageSystemSerialNumber(associatedStorageSystemStr);
                     StorageSystem associatedStorageSystem = storageSystemBySerialNumber.get(associatedStorageSystemSerialNumber);
                     if (associatedStorageSystem == null) {
                         URI associatedStorageSystemURI = ConnectivityUtil.findStorageSystemBySerialNumber(
@@ -2214,6 +2215,9 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                 throw APIException.badRequests.notValidRPSourceVolume(volume.getLabel());
             }
         }
+
+        // Validate the source volume size is not greater than the target volume size
+        RPHelper.validateRSetVolumeSizes(_dbClient, Arrays.asList(volume));
     }
 
     /**
@@ -3761,7 +3765,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
 
     /*
      * (non-Javadoc)
-     *
+     * 
      * @see
      * com.emc.storageos.api.service.impl.resource.BlockServiceApi#getReplicationGroupNames(com.emc.storageos.db.client.model.VolumeGroup)
      */

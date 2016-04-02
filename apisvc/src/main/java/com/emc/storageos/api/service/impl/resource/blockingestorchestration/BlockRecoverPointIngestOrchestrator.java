@@ -157,6 +157,15 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
 
         Volume volume = (Volume) blockObject;
 
+        boolean unManagedVolumeExported = 
+                VolumeIngestionUtil.checkUnManagedResourceIsNonRPExported(unManagedVolume)
+                    && !unManagedVolume.getUnmanagedExportMasks().isEmpty();
+        if (isExportIngestionPending(volume, unManagedVolume.getId(), unManagedVolumeExported)) {
+            _logger.info("Volume {} has already been ingested for RecoverPoint, but is still exported via UnManagedExportMasks: {}", 
+                    volume.forDisplay(), unManagedVolume.getUnmanagedExportMasks());
+            return clazz.cast(volume);
+        }
+
         // Perform RP-specific volume ingestion
         volume = performRPVolumeIngestion(parentRequestContext, volumeContext, unManagedVolume, volume);
 

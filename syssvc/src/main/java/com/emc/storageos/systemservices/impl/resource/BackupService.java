@@ -645,10 +645,10 @@ public class BackupService {
         String myNodeId = backupOps.getCurrentNodeId();
 
         try {
-            backupOps.checkBackup(backupDir);
+            backupOps.checkBackup(backupDir, isLocal);
         }catch (Exception e) {
             if (backupOps.shouldHaveBackupData()) {
-                String errMsg = String.format("Invalid backup the node %s: %s", myNodeId, e.getMessage());
+                String errMsg = String.format("Invalid backup on %s: %s", myNodeId, e.getMessage());
                 setRestoreFailed(backupName, isLocal, errMsg, e);
                 auditBackup(OperationTypeEnum.RESTORE_BACKUP, AuditLogManager.AUDITLOG_FAILURE, null, backupName);
                 return Response.status(ASYNC_STATUS).build();

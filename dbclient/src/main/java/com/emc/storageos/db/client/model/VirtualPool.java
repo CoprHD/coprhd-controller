@@ -927,7 +927,7 @@ public class VirtualPool extends DataObjectWithACLs implements GeoVisibleResourc
      */
     public static boolean vPoolSpecifiesHighAvailability(final VirtualPool virtualPool) {
         String highAvailability = virtualPool.getHighAvailability();
-        return highAvailability != null
+        return NullColumnValueGetter.isNotNullValue(highAvailability)
                 && (VirtualPool.HighAvailabilityType.vplex_local.name().equals(highAvailability) || VirtualPool.HighAvailabilityType.vplex_distributed
                         .name().equals(highAvailability));
     }
@@ -941,7 +941,7 @@ public class VirtualPool extends DataObjectWithACLs implements GeoVisibleResourc
      */
     public static boolean vPoolSpecifiesHighAvailabilityDistributed(final VirtualPool virtualPool) {
         String highAvailability = virtualPool.getHighAvailability();
-        return highAvailability != null
+        return NullColumnValueGetter.isNotNullValue(highAvailability)
                 && (VirtualPool.HighAvailabilityType.vplex_distributed.name().equals(highAvailability));
     }
 
@@ -957,7 +957,7 @@ public class VirtualPool extends DataObjectWithACLs implements GeoVisibleResourc
         String highAvailability = virtualPool.getHighAvailability();
         return metroPoint != null && metroPoint
                 && vPoolSpecifiesProtection(virtualPool)
-                && highAvailability != null && VirtualPool.HighAvailabilityType.vplex_distributed.name().equals(highAvailability);
+                && NullColumnValueGetter.isNotNullValue(highAvailability) && VirtualPool.HighAvailabilityType.vplex_distributed.name().equals(highAvailability);
     }
 
     /**

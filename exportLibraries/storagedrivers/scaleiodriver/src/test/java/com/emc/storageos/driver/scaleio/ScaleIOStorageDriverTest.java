@@ -707,22 +707,22 @@ public class ScaleIOStorageDriverTest {
         Assert.assertEquals("FAILED", task.getStatus().toString());
     }
 
-    @Test
-    public void testDetachConsistencyGroupClone() throws Exception {
-        driver.setConnInfoToRegistry(SYS_NATIVE_ID_A, IP_ADDRESS_A, PORT_NUMBER, USER_NAME, PASSWORD);
-        driver.setConnInfoToRegistry(SYS_NATIVE_ID_B, IP_ADDRESS_B, PORT_NUMBER, USER_NAME, PASSWORD);
-        List<VolumeClone> clones = null;
-        VolumeConsistencyGroup cg = null;
-        DriverTask task = driver.detachConsistencyGroupClone(clones);
-        Assert.assertNotNull(task);
-        Assert.assertEquals("FAILED", task.getStatus().toString());
-
-        // Volume from same storage system
-        clones = this.createCloneListSameCG(false);
-        task = driver.detachConsistencyGroupClone(clones);
-        Assert.assertNotNull(task);
-        Assert.assertEquals("READY", task.getStatus().toString());
-    }
+//    @Test
+//    public void testDetachConsistencyGroupClone() throws Exception {
+//        driver.setConnInfoToRegistry(SYS_NATIVE_ID_A, IP_ADDRESS_A, PORT_NUMBER, USER_NAME, PASSWORD);
+//        driver.setConnInfoToRegistry(SYS_NATIVE_ID_B, IP_ADDRESS_B, PORT_NUMBER, USER_NAME, PASSWORD);
+//        List<VolumeClone> clones = null;
+//        VolumeConsistencyGroup cg = null;
+//        DriverTask task = driver.detachConsistencyGroupClone(clones);
+//        Assert.assertNotNull(task);
+//        Assert.assertEquals("FAILED", task.getStatus().toString());
+//
+//        // Volume from same storage system
+//        clones = this.createCloneListSameCG(false);
+//        task = driver.detachConsistencyGroupClone(clones);
+//        Assert.assertNotNull(task);
+//        Assert.assertEquals("READY", task.getStatus().toString());
+//    }
 
     @Test
     public void testDeleteConsistencyGroupClone() throws Exception {

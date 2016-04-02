@@ -925,38 +925,38 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver implements Block
         return task;
     }
 
-    /**
-     * Detach clone of consistency group.
-     *
-     * @param clones Input/Output
-     * @return task
-     */
-    public DriverTask detachConsistencyGroupClone(List<VolumeClone> clones) {
-        log.info("Request to detach consistency group clone -- Start :");
-        DriverTask task = new DriverTaskImpl(ScaleIOHelper.getTaskId(ScaleIOConstants.TaskType.CG_CLONE_DETACH));
-        if (ScaleIOHelper.isFromSameCGgroupClone(clones)) {
-            for (VolumeClone clone : clones) {
-                try {
-                    log.info("Detach consistency group clone - Start:");
-                    clone.setReplicationState(VolumeClone.ReplicationState.DETACHED);
-                    countSucc++;
-                    task.setStatus(DriverTask.TaskStatus.READY);
-                    log.info("Successfully detached consistency group clone - End:");
-                } catch (Exception e) {
-                    log.error("Exception while detaching consistency group clone", e);
-                    task.setStatus(DriverTask.TaskStatus.FAILED);
-                }
-                setTaskStatus(clones.size(), countSucc, task);
-            }
-        }
-        else {
-            log.error("Can't detach empty Clone list");
-            task.setStatus(DriverTask.TaskStatus.FAILED);
-        }
-        task.setEndTime(Calendar.getInstance());
-        log.info("Request to detach Clone -- End ");
-        return task;
-    }
+//    /**
+//     * Detach clone of consistency group.
+//     *
+//     * @param clones Input/Output
+//     * @return task
+//     */
+//    public DriverTask detachConsistencyGroupClone(List<VolumeClone> clones) {
+//        log.info("Request to detach consistency group clone -- Start :");
+//        DriverTask task = new DriverTaskImpl(ScaleIOHelper.getTaskId(ScaleIOConstants.TaskType.CG_CLONE_DETACH));
+//        if (ScaleIOHelper.isFromSameCGgroupClone(clones)) {
+//            for (VolumeClone clone : clones) {
+//                try {
+//                    log.info("Detach consistency group clone - Start:");
+//                    clone.setReplicationState(VolumeClone.ReplicationState.DETACHED);
+//                    countSucc++;
+//                    task.setStatus(DriverTask.TaskStatus.READY);
+//                    log.info("Successfully detached consistency group clone - End:");
+//                } catch (Exception e) {
+//                    log.error("Exception while detaching consistency group clone", e);
+//                    task.setStatus(DriverTask.TaskStatus.FAILED);
+//                }
+//                setTaskStatus(clones.size(), countSucc, task);
+//            }
+//        }
+//        else {
+//            log.error("Can't detach empty Clone list");
+//            task.setStatus(DriverTask.TaskStatus.FAILED);
+//        }
+//        task.setEndTime(Calendar.getInstance());
+//        log.info("Request to detach Clone -- End ");
+//        return task;
+//    }
 
     /**
      * Delete consistency group clone

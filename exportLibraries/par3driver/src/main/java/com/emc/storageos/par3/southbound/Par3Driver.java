@@ -1,4 +1,4 @@
-package com.emc.storageos.driver.par3driver;
+package com.emc.storageos.par3.southbound;
 
 import java.util.List;
 import java.util.Map;

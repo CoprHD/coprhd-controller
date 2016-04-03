@@ -396,6 +396,7 @@
                 <entry key="scaleiosystem" value-ref="scaleioStorageDriver"/>
                 -->
                 <entry key="driversystem" value-ref="storageDriverSimulator"/>
+                <entry key="par3" value-ref="par3Driver"/>
             </map>
         </property>
     </bean>
@@ -404,6 +405,8 @@
         </bean>
     -->
     <bean id="storageDriverSimulator" class="com.emc.storageos.driver.driversimulator.StorageDriverSimulator">
+    </bean>
+    <bean id="par3Driver" class="com.emc.storageos.driver.par3driver.Par3Driver">
     </bean>
 
     <bean id="externalDeviceExportMaskOperationsHelper" class="com.emc.storageos.volumecontroller.impl.externaldevice.ExternalDeviceExportOperations">

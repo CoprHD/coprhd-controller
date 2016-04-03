@@ -8,6 +8,7 @@
            <property name="storageSystemsMap">
               <map>
                  <entry key="Simulator" value="driversystem"/>
+                 <entry key="StorePar3Driver" value="par3"/>
                  <entry key="ScaleioDriver" value="scaleiosystem"/>
               </map>
            </property>
@@ -17,6 +18,7 @@
                <set>
                    <value>driversystem</value> <!-- simulator -->
                    <value>scaleiosystem</value>
+                   <value>par3</value> <!-- StorePar3Driver -->
                </set>
            </property>
 
@@ -40,6 +42,7 @@
                <set>
                    <value>driversystem</value> <!-- simulator -->
                    <value>scaleiosystem</value>
+                   <value>par3</value> <!-- StorePar3Driver -->
                </set>
            </property>
 

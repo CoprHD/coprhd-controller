@@ -28,9 +28,9 @@ import com.emc.storageos.storagedriver.model.VolumeSnapshot;
 import com.emc.storageos.storagedriver.storagecapabilities.CapabilityInstance;
 import com.emc.storageos.storagedriver.storagecapabilities.StorageCapabilities;
 
-public class Par3Api extends AbstractStorageDriver implements BlockStorageDriver {
+public class ParDriver extends AbstractStorageDriver implements BlockStorageDriver {
 	
-	private static final Logger _log = LoggerFactory.getLogger(Par3Api.class);
+	private static final Logger _log = LoggerFactory.getLogger(ParDriver.class);
     private static final String DRIVER_NAME = "3PARDriver";
 
 	@Override

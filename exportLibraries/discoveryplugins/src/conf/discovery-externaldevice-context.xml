@@ -9,6 +9,8 @@
      </bean> -->
      <bean id="storageDriverSimulator" class="com.emc.storageos.driver.driversimulator.StorageDriverSimulator">
      </bean>
+     <bean id="proto3par" class="com.emc.storageos.driver.proto3par.ParDriver">
+     </bean>
 
      <bean id="externaldevice" class="com.emc.storageos.volumecontroller.impl.plugins.ExternalDeviceCommunicationInterface">
          <!-- Discovery storage drivers -->

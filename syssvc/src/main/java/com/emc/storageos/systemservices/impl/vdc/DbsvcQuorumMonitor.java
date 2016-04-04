@@ -140,6 +140,7 @@ public class DbsvcQuorumMonitor implements Runnable {
             try {
                 long vdcVersion = DrUtil.newVdcConfigVersion();
 
+                standbySite.setState(SiteState.STANDBY_RESUMING);
                 coordinatorClient.persistServiceConfiguration(standbySite.toConfiguration());
                 long dataRevision = System.currentTimeMillis();
                 drUtil.updateVdcTargetVersion(standbySite.getUuid(), SiteInfo.DR_OP_CHANGE_DATA_REVISION, vdcVersion, dataRevision);

@@ -250,11 +250,18 @@ public abstract class VdcOpHandler {
      *   if data revision change fails. 
      */
     public static class DrChangeDataRevisionHandler extends VdcOpHandler {
+        private DistributedDoubleBarrier barrier;
+
         public DrChangeDataRevisionHandler() {
         }
 
         @Override
         public void execute() throws Exception {
+            if (barrier == null) {
+                String barrierPath = String.format("%s/%s/DataRevisionBarrier", ZkPath.SITES, coordinator.getCoordinatorClient().getSiteId());
+                barrier = coordinator.getCoordinatorClient().getDistributedDoubleBarrier(barrierPath, coordinator.getNodeCount());
+            }
+
             flushNtpConfigToLocal();
             checkDataRevision();
         }
@@ -302,7 +309,6 @@ public abstract class VdcOpHandler {
                         // phase 2 agreement is received, we can make sure data revision change is written to local property file
                         log.info("Reach phase 2 agreement for data revision change");
                         localRepository.setDataRevision(targetDataRevision, true, vdcConfigVersion);
-                        //updateSyncingState();
                         setConcurrentRebootNeeded(true);
                     } else {
                         log.info("Failed to reach phase 2 agreement. Rollback revision change");
@@ -317,15 +323,6 @@ public abstract class VdcOpHandler {
             } catch (Exception ex) {
                 log.warn("Internal error happens when negotiating data revision change", ex);
                 throw ex;
-            }
-        }
-
-        private void updateSyncingState() {
-            Site localSite = drUtil.getLocalSite();
-            if (localSite.getState() != SiteState.STANDBY_SYNCING) {
-                log.info("Updating local site state to STANDBY_SYNCING");
-                localSite.setState(SiteState.STANDBY_SYNCING);
-                coordinator.getCoordinatorClient().persistServiceConfiguration(localSite.toConfiguration());
             }
         }
 

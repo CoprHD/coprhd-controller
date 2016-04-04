@@ -122,7 +122,7 @@ public class FileReplicationDeviceController implements FileOrchestrationInterfa
     @Override
     public String addStepsForCreateFileSystems(Workflow workflow,
             String waitFor, List<FileDescriptor> filesystems, String taskId)
-                    throws InternalException {
+            throws InternalException {
 
         List<FileDescriptor> fileDescriptors = FileDescriptor.filterByType(filesystems,
                 new FileDescriptor.Type[] { FileDescriptor.Type.FILE_MIRROR_SOURCE,
@@ -146,7 +146,7 @@ public class FileReplicationDeviceController implements FileOrchestrationInterfa
     @Override
     public String addStepsForDeleteFileSystems(Workflow workflow,
             String waitFor, List<FileDescriptor> filesystems, String taskId)
-                    throws InternalException {
+            throws InternalException {
         List<FileDescriptor> sourceDescriptors = FileDescriptor.filterByType(
                 filesystems, FileDescriptor.Type.FILE_MIRROR_SOURCE);
         if (sourceDescriptors.isEmpty()) {
@@ -163,7 +163,7 @@ public class FileReplicationDeviceController implements FileOrchestrationInterfa
     @Override
     public String addStepsForExpandFileSystems(Workflow workflow,
             String waitFor, List<FileDescriptor> fileDescriptors, String taskId)
-                    throws InternalException {
+            throws InternalException {
         // TBD
         return null;
     }
@@ -599,14 +599,11 @@ public class FileReplicationDeviceController implements FileOrchestrationInterfa
 
         String waitFor = null;
 
-        String policyName = gerneratePolicyName(primarysystem, targetFileShare);
-        String mirrorPolicyName = policyName.concat("_mirror");
-
         // secondary storagesystem
         StorageSystem secondarysystem = dbClient.queryObject(StorageSystem.class, targetFileShare.getStorageDevice());
 
         Workflow.Method resyncMethodStep1 = resyncPrepMirrorPairMeth(primarysystem.getId(), secondarysystem.getId(),
-                targetFileShare.getId(), policyName);
+                targetFileShare.getId(), null);
 
         String descresyncPrepStep1 = String.format("Creating resyncprep between source- %s and target %s", primarysystem.getLabel(),
                 secondarysystem.getLabel());
@@ -624,7 +621,7 @@ public class FileReplicationDeviceController implements FileOrchestrationInterfa
                 START_MIRROR_FILESHARE_STEP,
                 START_MIRROR_FILESHARE_STEP_DES,
                 waitForResync, secondarysystem.getId(), secondarysystem.getSystemType(), getClass(),
-                startMirrorPairMeth(secondarysystem.getId(), targetFileShare.getId(), mirrorPolicyName),
+                startMirrorPairMeth(secondarysystem.getId(), targetFileShare.getId(), null),
                 rollbackMethodNullMethod(), null);
 
         // failover step -3
@@ -632,12 +629,12 @@ public class FileReplicationDeviceController implements FileOrchestrationInterfa
                 FAILOVER_MIRROR_FILESHARE_STEP,
                 FAILOVER_FILE_MIRRORS_STEP_DESC,
                 waitForStart, primarysystem.getId(), primarysystem.getSystemType(), getClass(),
-                faioverMirrorPairMeth(primarysystem.getId(), targetFileShare.getId(), mirrorPolicyName),
+                faioverMirrorPairMeth(primarysystem.getId(), targetFileShare.getId(), null),
                 rollbackMethodNullMethod(), null);
 
         // resync step -4
         Workflow.Method resyncMethodStep4 = resyncPrepMirrorPairMeth(secondarysystem.getId(), primarysystem.getId(),
-                targetFileShare.getId(), mirrorPolicyName);
+                targetFileShare.getId(), null);
         String descresyncPrepStep4 = String.format("Creating resyncprep between source- %s and target %s", secondarysystem.getLabel(),
                 primarysystem.getLabel());
 

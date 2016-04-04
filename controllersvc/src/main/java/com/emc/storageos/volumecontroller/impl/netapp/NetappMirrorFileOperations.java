@@ -169,7 +169,10 @@ public class NetappMirrorFileOperations implements FileMirrorOperations {
 
         if (cmdResult.getCommandSuccess()) {
             completer.ready(_dbClient);
-        } else {
+        } else if (cmdResult.getCommandPending()) {
+            completer.statusPending(_dbClient, cmdResult.getMessage());
+        }
+        else {
             completer.error(_dbClient, cmdResult.getServiceCoded());
         }
 

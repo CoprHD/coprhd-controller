@@ -155,6 +155,10 @@ tenant.Tenants.edit = admin_tenants_add
 tenant.Tenants.listRoles = roles_assignments_tenant
 tenant.Tenants.editRole = roles_create_assignment_tenant
 tenant.Tenants.createRole = roles_create_assignment_tenant
+tenant.schedulepolicies.listpolicies=TenantsSchedulePolicies
+tenant.schedulepolicies.create=TenantsCreateEditPolicy
+tenant.schedulepolicies.edit=TenantsCreateEditPolicy
+
 
 # USE
 use.CasClusters = CASCluster

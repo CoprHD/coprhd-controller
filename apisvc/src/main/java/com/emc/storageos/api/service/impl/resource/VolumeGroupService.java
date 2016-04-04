@@ -573,7 +573,7 @@ public class VolumeGroupService extends TaskResourceService {
         for (VolumeGroupUtils util : utils) {
             util.validateUpdateVolumesInVolumeGroup(_dbClient, param, volumeGroup);
         }
-        checkForApplicationPendingTasks(volumeGroup, _dbClient, true);
+
         for (VolumeGroupUtils util : utils) {
             util.updateVolumesInVolumeGroup(_dbClient, param, volumeGroup, taskId, taskList);
         }
@@ -1571,7 +1571,8 @@ public class VolumeGroupService extends TaskResourceService {
          * vmax3Volumes - block VMAX3 or backend VMAX3 for VPLEX based on copy side requested
          * volumes - except volumes filtered out for above case
          */
-        List<Volume> vmax3Volumes = getVMAX3Volumes(volumes, param.getCopyOnHighAvailabilitySide());
+        // TODO consider copyOnHaSide from user's request once the underlying implementation supports it.
+        List<Volume> vmax3Volumes = getVMAX3Volumes(volumes, false);
 
         // create snapshot
         Map<URI, List<URI>> cgToVolUris = ControllerUtils.groupVolumeURIsByCG(volumes);

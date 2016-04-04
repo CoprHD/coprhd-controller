@@ -29,7 +29,6 @@ import com.emc.storageos.ecs.api.ECSApiFactory;
 import com.emc.storageos.ecs.api.ECSBucketACL;
 import com.emc.storageos.ecs.api.ECSException;
 import com.emc.storageos.ecs.api.UserSecretKeysAddCommandResult;
-import com.emc.storageos.ecs.api.UserSecretKeysGetCommandResult;
 import com.emc.storageos.model.object.BucketACE;
 import com.emc.storageos.model.object.BucketACL;
 import com.emc.storageos.model.object.BucketACLUpdateParams;
@@ -519,30 +518,13 @@ public class ECSObjectStorageDevice implements ObjectStorageDevice {
     }
     
     @Override
-    public ObjectUserSecretKey doGetUserSecretKeys(StorageSystem storageObj, String userId) throws InternalException {
-        ECSApi ecsApi = getAPI(storageObj);
-        ObjectUserSecretKey secretKey = new ObjectUserSecretKey();
-
-        try {
-            UserSecretKeysGetCommandResult secretKeyRes = ecsApi.getUserSecretKeys(userId);
-            secretKey.setSecret_key_1(secretKeyRes.getSecret_key_1());
-            secretKey.setSecret_key_1_expiry_timestamp(secretKeyRes.getKey_expiry_timestamp_1());
-            secretKey.setSecret_key_2(secretKeyRes.getSecret_key_2());
-            secretKey.setSecret_key_2_expiry_timestamp(secretKeyRes.getKey_expiry_timestamp_2());
-        } catch (Exception e) {
-           _log.error("ECSObjectStorageDevice:doGetUserSecretKey failed.");
-        }
-        return secretKey;
-    }
-
-    @Override
     public ObjectUserSecretKey doAddUserSecretKey(StorageSystem storageObj, String userId, String secretKey) throws InternalException {
         ECSApi ecsApi = getAPI(storageObj);
         ObjectUserSecretKey secretKeyRes = new ObjectUserSecretKey();
         
         try {
             UserSecretKeysAddCommandResult cmdRes = ecsApi.addUserSecretKey(userId, secretKey);
-            secretKeyRes.setSecret_key_1(cmdRes.getSecret_key()); 
+            //secretKeyRes.setSecret_key_1(cmdRes.getSecret_key()); //for security reason hiding the secrete key
             secretKeyRes.setSecret_key_1_expiry_timestamp(cmdRes.getKey_expiry_timestamp());
             return secretKeyRes;
         } catch (Exception e) {

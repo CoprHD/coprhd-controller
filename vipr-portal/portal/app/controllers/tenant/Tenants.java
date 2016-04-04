@@ -142,8 +142,6 @@ public class Tenants extends ViprResourceController {
                 updateParam.setDescription(tenant.description);
                 if(tenant.enableNamespace){
                 	updateParam.setNamespace(tenant.namespace);
-                } else {
-                    updateParam.setNamespace("");
                 }
                 TenantUtils.update(tenant.id, updateParam);
                 // only SecurityAdmin and SystemAdmin has the permission to update Quota

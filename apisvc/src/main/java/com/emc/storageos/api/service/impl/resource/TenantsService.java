@@ -341,14 +341,13 @@ public class TenantsService extends TaggedResource {
                     break;
                 }
             }
-        } else if (param.getNamespace() != null && param.getNamespace().isEmpty()) {
+        } else {
             if (!StringUtils.isEmpty(tenant.getNamespace())) {
                 // Though we are not deleting need to check no dependencies on this tenant
                 ArgValidator.checkReference(TenantOrg.class, id, checkForDelete(tenant));
             } else {
                 tenant.setNamespace(NullColumnValueGetter.getNullStr());
             }
-
         }
 
         if (!isUserMappingEmpty(param)) {

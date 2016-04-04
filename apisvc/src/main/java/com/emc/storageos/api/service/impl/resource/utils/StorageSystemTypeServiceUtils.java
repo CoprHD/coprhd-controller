@@ -6,12 +6,16 @@ import java.net.URI;
 import java.util.HashMap;
 import java.util.List;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.StorageSystemType;
 
 public class StorageSystemTypeServiceUtils {
-
+	private static final Logger log = LoggerFactory.getLogger(StorageSystemTypeServiceUtils.class);
+	
 	private static final String ISILON = "isilon";
 	private static final String VNX_BLOCK = "vnxblock";
 	private static final String VNXe = "vnxe";

@@ -49,7 +49,7 @@ public class StorageSystemTypeRestRep extends DataObjectRestRep {
 		return storageTypeType;
 	}
 
-	public void setStorageType(String storageType) {
+	public void setStorageTypeType(String storageType) {
 		this.storageTypeType = storageType;
 	}
 

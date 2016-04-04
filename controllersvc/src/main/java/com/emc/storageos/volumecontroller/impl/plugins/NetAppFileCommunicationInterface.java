@@ -878,29 +878,29 @@ public class NetAppFileCommunicationInterface extends
         NetAppApi netAppApi = new NetAppApi.Builder(
                 storageSystem.getIpAddress(), storageSystem.getPortNumber(),
                 storageSystem.getUsername(), storageSystem.getPassword())
-                .https(true).build();
+                        .https(true).build();
 
         try {
             // Retrieve all the qtree info.
-            List<Qtree> qtrees = netAppApi.listQtrees();            
+            List<Qtree> qtrees = netAppApi.listQtrees();
             List<Quota> quotas;
             try {
-            quotas = netAppApi.listQuotas();
-            } catch(Throwable e) {
+                quotas = netAppApi.listQuotas();
+            } catch (Throwable e) {
                 _logger.error("Error while fetching quotas", e);
                 return;
             }
-            if(quotas != null) {
+            if (quotas != null) {
                 Map<String, Qtree> qTreeNameQTreeMap = new HashMap<>();
                 qtrees.forEach(qtree -> {
-                    if(qtree.getQtree() != null && !qtree.getQtree().equals("")) {
+                    if (qtree.getQtree() != null && !qtree.getQtree().equals("")) {
                         qTreeNameQTreeMap.put(qtree.getVolume() + qtree.getQtree(), qtree);
                     }
                 });
-                
+
                 List<UnManagedFileQuotaDirectory> unManagedFileQuotaDirectories = new ArrayList<>();
                 List<UnManagedFileQuotaDirectory> existingUnManagedFileQuotaDirectories = new ArrayList<>();
-                
+
                 for (Quota quota : quotas) {
                     String fsNativeId;
                     if (quota.getVolume().startsWith(VOL_ROOT)) {
@@ -913,38 +913,40 @@ public class NetAppFileCommunicationInterface extends
                         _logger.info("Ignore and not discover root filesystem on NTP array");
                         continue;
                     }
-                    
+
                     String fsNativeGUID = NativeGUIDGenerator.generateNativeGuid(storageSystem.getSystemType(),
                             storageSystem.getSerialNumber(), fsNativeId);
-                    
+
                     String nativeGUID = NativeGUIDGenerator.generateNativeGuidForQuotaDir(storageSystem.getSystemType(),
                             storageSystem.getSerialNumber(), quota.getQtree(), quota.getVolume());
-                    if(checkStorageQuotaDirectoryExistsInDB(nativeGUID)) {
+                    if (checkStorageQuotaDirectoryExistsInDB(nativeGUID)) {
                         continue;
                     }
-                    
+
                     UnManagedFileQuotaDirectory unManagedFileQuotaDirectory = new UnManagedFileQuotaDirectory();
                     unManagedFileQuotaDirectory.setId(URIUtil.createId(UnManagedFileQuotaDirectory.class));
                     unManagedFileQuotaDirectory.setLabel(quota.getQtree());
                     unManagedFileQuotaDirectory.setNativeGuid(nativeGUID);
                     unManagedFileQuotaDirectory.setParentFSNativeGuid(fsNativeGUID);
-                    unManagedFileQuotaDirectory.setOpLock(Boolean.valueOf(qTreeNameQTreeMap.get(quota.getQtree()).getOplocks()));
+                    if("enabled".equals(qTreeNameQTreeMap.get(quota.getVolume() + quota.getQtree()).getOplocks())) {
+                        unManagedFileQuotaDirectory.setOpLock(true);
+                    }
                     unManagedFileQuotaDirectory.setSize(Long.valueOf(quota.getDiskLimit()));
-                    
-                    if(!checkUnManagedQuotaDirectoryExistsInDB(nativeGUID)) {
+
+                    if (!checkUnManagedQuotaDirectoryExistsInDB(nativeGUID)) {
                         unManagedFileQuotaDirectories.add(unManagedFileQuotaDirectory);
                     } else {
                         existingUnManagedFileQuotaDirectories.add(unManagedFileQuotaDirectory);
                     }
-                    
+
                 }
-                
+
                 if (!unManagedFileQuotaDirectories.isEmpty()) {
                     _partitionManager.insertInBatches(unManagedFileQuotaDirectories,
                             Constants.DEFAULT_PARTITION_SIZE, _dbClient,
                             UNMANAGED_FILEQUOTADIR);
                 }
-                
+
                 if (!existingUnManagedFileQuotaDirectories.isEmpty()) {
                     _partitionManager.updateAndReIndexInBatches(existingUnManagedFileQuotaDirectories,
                             Constants.DEFAULT_PARTITION_SIZE, _dbClient,
@@ -966,7 +968,7 @@ public class NetAppFileCommunicationInterface extends
             _logger.error("discoverStorage failed. Storage system: "
                     + storageSystemId, e);
             throw NetAppException.exceptions.discoveryFailed(storageSystemId.toString(), e);
-        } 
+        }
     }
 
     private void validateListSizeLimitAndPersist(List<UnManagedFileSystem> newUnManagedFileSystems,

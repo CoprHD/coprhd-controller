@@ -142,6 +142,9 @@ public interface NetAppExceptions {
     public NetAppException breakSnapMirrorFailed(final String volName, final String ip, final String message);
 
     @DeclareServiceCode(ServiceCode.NETAPP_ERROR)
+    public NetAppException resumeSnapMirrorFailed(final String volName, final String ip, final String message);
+
+    @DeclareServiceCode(ServiceCode.NETAPP_ERROR)
     public NetAppException releaseSnapMirrorFailed(final String volName, final String ip, final String message);
 
     @DeclareServiceCode(ServiceCode.NETAPP_ERROR)

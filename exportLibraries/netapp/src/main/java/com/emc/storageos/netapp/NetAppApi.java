@@ -1218,7 +1218,7 @@ public class NetAppApi {
         try {
             netAppFacade = new NetAppFacade(_ipAddress, _portNumber, _userName,
                     _password, _https, null);
-            success = netAppFacade.breakSnapMirrorSchedule(pathLocation);
+            success = netAppFacade.breakSnapMirror(pathLocation);
             if (!success) {
                 throw new Exception("Cannot break snapmirror.");
             }
@@ -1228,19 +1228,19 @@ public class NetAppApi {
         }
     }
 
-    public Boolean resumeSnapMirror(String pathLocation, String vfilerName)
+    public Boolean resumeSnapMirror(String pathLocation)
             throws NetAppException {
         boolean failedStatus = false;
         try {
             netAppFacade = new NetAppFacade(_ipAddress, _portNumber, _userName,
-                    _password, _https, vfilerName);
+                    _password, _https, null);
 
             failedStatus = netAppFacade.resumeSnapMirror(pathLocation);
 
             return failedStatus;
 
         } catch (Exception e) {
-            throw NetAppException.exceptions.breakSnapMirrorFailed(pathLocation, _ipAddress, e.getMessage());
+            throw NetAppException.exceptions.resumeSnapMirrorFailed(pathLocation, _ipAddress, e.getMessage());
         }
     }
 

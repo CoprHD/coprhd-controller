@@ -20,9 +20,8 @@ import com.emc.storageos.volumecontroller.impl.JobPollResult;
 import com.iwave.ext.netapp.model.SnapMirrorState;
 import com.iwave.ext.netapp.model.SnapMirrorStatusInfo;
 
-public class NetAppSnapMirrorQuiesceJob extends Job implements Serializable {
-
-    private static final Logger _logger = LoggerFactory.getLogger(NetAppSnapMirrorStatusJob.class);
+public class NetAppSnapMirrorResumeJob extends Job implements Serializable {
+    private static final Logger _logger = LoggerFactory.getLogger(NetAppSnapMirrorResumeJob.class);
     private static final long ERROR_TRACKING_LIMIT = 60 * 1000; // tracking limit for transient errors. set for 2 hours
 
     private String _jobName;
@@ -36,17 +35,17 @@ public class NetAppSnapMirrorQuiesceJob extends Job implements Serializable {
     private JobPollResult _pollResult = new JobPollResult();
     private String _errorDescription = null;
 
-    public NetAppSnapMirrorQuiesceJob(String jobId, URI storageSystemUri, TaskCompleter taskCompleter, String jobName) {
+    public NetAppSnapMirrorResumeJob(String jobId, URI storageSystemUri, TaskCompleter taskCompleter, String jobName) {
         this._storageSystemUri = storageSystemUri;
         this._taskCompleter = taskCompleter;
         this._jobName = jobName;
         this._jobIds.add(jobId);
     }
 
-    public NetAppSnapMirrorQuiesceJob(String jobId, URI storageSystemUri, TaskCompleter taskCompleter) {
+    public NetAppSnapMirrorResumeJob(String jobId, URI storageSystemUri, TaskCompleter taskCompleter) {
         this._storageSystemUri = storageSystemUri;
         this._taskCompleter = taskCompleter;
-        this._jobName = "netAppSnapMirrorQuiesceJob";
+        this._jobName = "netAppSnapMirrorResumeJob";
         this._jobIds.add(jobId);
     }
 
@@ -61,23 +60,11 @@ public class NetAppSnapMirrorQuiesceJob extends Job implements Serializable {
             } else {
                 _pollResult.setJobName(_jobName);
                 _pollResult.setJobId(_taskCompleter.getOpId());
-
                 SnapMirrorStatusInfo statusInfo = netAppApi.getSnapMirrorStateInfo(currentJob);
-                if (SnapMirrorState.PAUSED.equals(statusInfo.getMirrorState())) {
-                    switch (statusInfo.getTransferType()) {
-                        case pending:
-                        case idle:
-                            _status = JobStatus.SUCCESS;
-                            _pollResult.setJobPercentComplete(100);
-                            _logger.info("SnapMirror Job: {} succeeded", currentJob);
-                            break;
-                        case quiescing:
-                            _status = JobStatus.IN_PROGRESS;
-                            _logger.info("SnapMirror Job: {} progress ", statusInfo.toString());
-                            break;
-                        default:
-                            break;
-                    }
+                if (SnapMirrorState.SYNCRONIZED.equals(statusInfo.getMirrorState())) {
+                    _status = JobStatus.SUCCESS;
+                    _pollResult.setJobPercentComplete(100);
+                    _logger.info("SnapMirror Job: {} succeeded", currentJob);
                 } else {
                     _status = JobStatus.IN_PROGRESS;
                     _logger.info("SnapMirror Job: {} progress ", statusInfo.toString());
@@ -160,5 +147,4 @@ public class NetAppSnapMirrorQuiesceJob extends Job implements Serializable {
                     _jobName, jobId, _status));
         }
     }
-
 }

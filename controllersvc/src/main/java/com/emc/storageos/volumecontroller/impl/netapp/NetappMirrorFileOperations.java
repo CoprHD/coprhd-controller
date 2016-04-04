@@ -24,6 +24,7 @@ import com.emc.storageos.volumecontroller.impl.job.QueueJob;
 import com.emc.storageos.volumecontroller.impl.netapp.job.NetAppSnapMirrorCreateJob;
 import com.emc.storageos.volumecontroller.impl.netapp.job.NetAppSnapMirrorFailover;
 import com.emc.storageos.volumecontroller.impl.netapp.job.NetAppSnapMirrorQuiesceJob;
+import com.emc.storageos.volumecontroller.impl.netapp.job.NetAppSnapMirrorResumeJob;
 import com.emc.storageos.volumecontroller.impl.netapp.job.NetAppSnapMirrorStartJob;
 import com.emc.storageos.workflow.WorkflowStepCompleter;
 import com.iwave.ext.netapp.model.SnapMirrorState;
@@ -148,6 +149,8 @@ public class NetappMirrorFileOperations implements FileMirrorOperations {
 
         if (cmdResult.getCommandSuccess()) {
             completer.ready(_dbClient);
+        } else if (cmdResult.getCommandPending()) {
+            completer.statusPending(_dbClient, cmdResult.getMessage());
         } else {
             completer.error(_dbClient, cmdResult.getServiceCoded());
         }
@@ -310,8 +313,8 @@ public class NetappMirrorFileOperations implements FileMirrorOperations {
                 ServiceError error = DeviceControllerErrors.netapp.jobFailed("Snapmirror start failed:" + e.getMessage());
                 return BiosCommandResult.createErrorResult(error);
             }
-        } else if (SnapMirrorState.PAUSE.equals(mirrorStatusInfo.getMirrorState())) {
-            nApiTarget.resumeSnapMirror(destLocation, portGroupTarget);
+        } else if (SnapMirrorState.PAUSED.equals(mirrorStatusInfo.getMirrorState())) {
+            nApiTarget.resumeSnapMirror(destLocation);
             return BiosCommandResult.createSuccessfulResult();
         } else {
             _log.error("Snapmirror start failed");
@@ -554,17 +557,26 @@ public class NetappMirrorFileOperations implements FileMirrorOperations {
      */
     public BiosCommandResult doResumeSnapMirror(StorageSystem targetStorage, FileShare targetFs, TaskCompleter taskCompleter) {
         // get vfiler
-        String portGroupTarget = findVfilerName(targetFs);
         NetAppApi nApi = new NetAppApi.Builder(targetStorage.getIpAddress(),
                 targetStorage.getPortNumber(), targetStorage.getUsername(),
-                targetStorage.getPassword()).https(true).vFiler(portGroupTarget).build();
+                targetStorage.getPassword()).https(true).build();
         // make api call destination system
         String destLocation = getLocation(targetStorage, targetFs);
 
         SnapMirrorStatusInfo mirrorStatusInfo = nApi.getSnapMirrorStateInfo(destLocation);
-        _log.info("Calling snapmirror quiesce on destination: {}", destLocation);
-        if (SnapMirrorState.PAUSE.equals(mirrorStatusInfo.getMirrorState())) {
-            nApi.resumeSnapMirror(destLocation, null);
+        _log.info("Calling snapmirror resume on destination: {}", destLocation);
+        if (SnapMirrorState.PAUSED.equals(mirrorStatusInfo.getMirrorState())) {
+            nApi.resumeSnapMirror(destLocation);
+            NetAppSnapMirrorResumeJob job = new NetAppSnapMirrorResumeJob(destLocation, targetStorage.getId(), taskCompleter);
+            try {
+                ControllerServiceImpl.enqueueJob(new QueueJob(job));
+                _log.error("Job submitted to check status of snapmirror resume.");
+                return BiosCommandResult.createPendingResult();
+            } catch (Exception e) {
+                _log.error("Snapmirror resume failed", e);
+                ServiceError error = DeviceControllerErrors.netapp.jobFailed("Snapmirror create failed:" + e.getMessage());
+                return BiosCommandResult.createErrorResult(error);
+            }
         } else {
             ServiceError error = DeviceControllerErrors.netapp
                     .jobFailed("Snapmirror Resume operation failed, because of mirror state should be Paused: "
@@ -572,9 +584,6 @@ public class NetappMirrorFileOperations implements FileMirrorOperations {
                                     .getMirrorState().toString());
             return BiosCommandResult.createErrorResult(error);
         }
-
-        nApi.resumeSnapMirror(destLocation, portGroupTarget);
-        return BiosCommandResult.createSuccessfulResult();
     }
 
     public BiosCommandResult doDeleteSnapMirrorSchedule(StorageSystem targetStorage, FileShare targetFs) {

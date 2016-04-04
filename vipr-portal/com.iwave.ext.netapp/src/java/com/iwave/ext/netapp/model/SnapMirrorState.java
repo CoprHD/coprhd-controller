@@ -5,7 +5,7 @@ public enum SnapMirrorState {
     READY("uninitialized"),
     SYNCRONIZED("snapmirrored"),
     FAILOVER("broken-off"),
-    PAUSE("quiesced"),
+    PAUSED("quiesced"),
     UNKNOWN("unknown"),
     SOURCE("source");
 

@@ -11,6 +11,7 @@ import com.emc.storageos.db.client.model.FileExport;
 import com.emc.storageos.db.client.model.QuotaDirectory;
 import com.emc.storageos.db.client.model.SMBFileShare;
 import com.emc.storageos.db.client.model.StorageSystem;
+import com.emc.storageos.model.vnas.VirtualNasCreateParam;
 import com.emc.storageos.volumecontroller.impl.BiosCommandResult;
 
 /**
@@ -238,4 +239,6 @@ public interface FileStorageDevice {
     public BiosCommandResult unassignFilePolicy(StorageSystem storageObj, FileDeviceInputOutput args);
 
     public BiosCommandResult listSanpshotByPolicy(StorageSystem storageObj, FileDeviceInputOutput args);
+
+    public BiosCommandResult doCreateVNAS(StorageSystem storageObj, VirtualNasCreateParam args);
 }

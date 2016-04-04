@@ -13,12 +13,11 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import netapp.manage.NaElement;
-
 import org.apache.commons.beanutils.ConvertUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.log4j.Logger;
 
+import com.emc.storageos.model.vnas.VirtualNasCreateParam;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.iwave.ext.netapp.model.CifsAcl;
@@ -29,10 +28,12 @@ import com.iwave.ext.netapp.model.Qtree;
 import com.iwave.ext.netapp.model.Quota;
 import com.iwave.ext.netapp.utils.ExportRule;
 
+import netapp.manage.NaElement;
+
 @SuppressWarnings({ "findbugs:WMI_WRONG_MAP_ITERATOR" })
 /**
  * @author sdorcas
- * All calls from iWO NetApp services must delegate to this class
+ *         All calls from iWO NetApp services must delegate to this class
  */
 public class NetAppFacade {
 
@@ -44,8 +45,7 @@ public class NetAppFacade {
         this(host, port, username, password, useHTTPS, null);
     }
 
-    public NetAppFacade(String host, int port, String username, String password, boolean useHTTPS, String vFilerName)
-    {
+    public NetAppFacade(String host, int port, String username, String password, boolean useHTTPS, String vFilerName) {
         if (log.isDebugEnabled()) {
             String vFiler = (vFilerName != null ? vFilerName : "");
             log.debug("Connecting to NetApp server: " + host + ":" + port + ":" + vFiler);
@@ -72,8 +72,7 @@ public class NetAppFacade {
      *            returned.
      * @return - list of aggregates.
      */
-    public List<AggregateInfo> listAggregates(String name)
-    {
+    public List<AggregateInfo> listAggregates(String name) {
         if (log.isDebugEnabled()) {
             log.debug("Listing Aggregates. Params [name]: " + name);
         }
@@ -96,8 +95,7 @@ public class NetAppFacade {
      * @param type - OS type of initiator group
      * @throws NetAppException
      */
-    public IGroupInfo createIGroup(String name, IGroupType type, LunOSType osType)
-    {
+    public IGroupInfo createIGroup(String name, IGroupType type, LunOSType osType) {
         if (log.isDebugEnabled()) {
             log.debug("Creating new IGroup. Params [name,type,os-type]: " + name + "," + type + "," + osType);
         }
@@ -120,8 +118,7 @@ public class NetAppFacade {
      * @param forceDelete
      * @return success =true/false
      */
-    public boolean destroyIGroup(String name, boolean forceDelete)
-    {
+    public boolean destroyIGroup(String name, boolean forceDelete) {
         if (log.isDebugEnabled()) {
             log.debug("Destroying IGroup. Params [name,force]: " + name + "," + forceDelete);
         }
@@ -137,8 +134,7 @@ public class NetAppFacade {
      * @param initiatorName - Initiator WWN or iSCSI iqn
      * @throws NetAppException
      */
-    public void addInitiatorToIGroup(String groupName, String initiator)
-    {
+    public void addInitiatorToIGroup(String groupName, String initiator) {
         if (log.isDebugEnabled()) {
             log.debug("Adding initiator to IGroup. Params [groupName,initiator]: " + groupName + "," + initiator);
         }
@@ -155,8 +151,7 @@ public class NetAppFacade {
      * @param force - force removal from groups mapped to LUNs
      * @throws NetAppException
      */
-    public void removeInitiatorFromIGroup(String groupName, String initiator, boolean force)
-    {
+    public void removeInitiatorFromIGroup(String groupName, String initiator, boolean force) {
         if (log.isDebugEnabled()) {
             log.debug(String.format("Removing initiator '%s' from group '%s' force=%s", initiator, groupName, force + ""));
         }
@@ -171,8 +166,7 @@ public class NetAppFacade {
      * @param groupName - Initiator Group name
      * @return list of IGroupInfo
      */
-    public List<IGroupInfo> listInitiatorGroups(String groupName)
-    {
+    public List<IGroupInfo> listInitiatorGroups(String groupName) {
         if (log.isDebugEnabled()) {
             log.debug("Listing initiator groups.");
         }
@@ -227,8 +221,7 @@ public class NetAppFacade {
             for (String initiator : info.getInitiators()) {
                 if (!list.remove(initiator)) {
                     list.add("fail");
-                }
-                else {
+                } else {
                     notFound.setOsType(info.getOsType());
                 }
             }
@@ -281,8 +274,7 @@ public class NetAppFacade {
      * @param forceReduce - Forcibly reduce the LUN size. Must be true to reduce the LUN size.
      * @return size of the altered LUN. Returns -1 if the operation was unsuccessful.
      */
-    public long resizeLun(String lunPath, long sizeInBytes, boolean forceReduce)
-    {
+    public long resizeLun(String lunPath, long sizeInBytes, boolean forceReduce) {
         long actualSize = -1;
 
         if (log.isDebugEnabled()) {
@@ -312,8 +304,7 @@ public class NetAppFacade {
      * @param forceOnline - force the LUN online, bypassing conflict checks
      * @return - true/false if operation was successful
      */
-    public boolean setLunOnline(String lunPath, boolean forceOnline)
-    {
+    public boolean setLunOnline(String lunPath, boolean forceOnline) {
         if (log.isDebugEnabled()) {
             log.debug("Setting LUN online. Params [lunPath,forceOnline]: " + lunPath + ", " + forceOnline);
         }
@@ -330,8 +321,7 @@ public class NetAppFacade {
      * @param lunPath - full path to the LUN
      * @return - true/false if operation was successful
      */
-    public boolean setLunOffline(String lunPath)
-    {
+    public boolean setLunOffline(String lunPath) {
         if (log.isDebugEnabled()) {
             log.debug("Setting LUN offline. Params [lunPath]: " + lunPath);
         }
@@ -360,8 +350,7 @@ public class NetAppFacade {
      * @return - The actual size of the newly created LUN. Value of -1 means it failed.
      */
     public long createLun(String lunPath, LunOSType osType, long sizeInBytes, boolean reserveSpace,
-            String description, Map<String, Integer> groupMap)
-    {
+            String description, Map<String, Integer> groupMap) {
         if (log.isDebugEnabled()) {
             StringBuilder sb = new StringBuilder("Creating new LUN. Params [lunPath, " +
                     "osType, sizeInBytes, reserveSpace,description, groupMap]: ");
@@ -391,8 +380,7 @@ public class NetAppFacade {
             int result = lun.mapLun(false, group, lunId);
             if (result != -1) {
                 groupMap.put(group, result);
-            }
-            else {
+            } else {
                 log.warn("Mapping LUN to initiator group failed. Group: " + group + " id=" + lunId);
                 log.warn("LUN will be deleted.");
                 // Rollback the newly created LUN if it could not be mapped.
@@ -433,8 +421,7 @@ public class NetAppFacade {
      * @param lunPath - full path to the LUN
      * @param force - force delete the LUN, even it it is mapped.
      */
-    public void deleteLun(String lunPath, boolean force)
-    {
+    public void deleteLun(String lunPath, boolean force) {
         if (log.isDebugEnabled()) {
             log.debug("Deleting LUN. Params [lunPath, force]: " + lunPath + ", " + force);
         }
@@ -452,8 +439,7 @@ public class NetAppFacade {
      * @param initGroupName
      * @return
      */
-    public int getLunIdFromGroupMapping(String lunPath, String initGroupName)
-    {
+    public int getLunIdFromGroupMapping(String lunPath, String initGroupName) {
         if (log.isDebugEnabled()) {
             log.debug("Getting LUN ID from group. Params [lunPath, initGroupName]: " + lunPath + "," + initGroupName);
         }
@@ -467,8 +453,7 @@ public class NetAppFacade {
      * @param lunPath
      * @return
      */
-    public Map<String, Integer> getLunMap(String lunPath)
-    {
+    public Map<String, Integer> getLunMap(String lunPath) {
         if (log.isDebugEnabled()) {
             log.debug("Getting LUN Map. Params [lunPath]: " + lunPath);
         }
@@ -483,8 +468,7 @@ public class NetAppFacade {
      * @param lunPath - Optional. If specified only the specified LUN is returned
      * @return
      */
-    public List<LunInfo> listLuns(String lunPath)
-    {
+    public List<LunInfo> listLuns(String lunPath) {
         if (log.isDebugEnabled()) {
             log.debug("List LUNs.");
         }
@@ -504,8 +488,7 @@ public class NetAppFacade {
      * @param volumeName - Name of the volume.
      * @return - Size with unit. For example, "100g, 1t, 2048m".
      */
-    public String getVolumeSize(String volumeName)
-    {
+    public String getVolumeSize(String volumeName) {
         if (log.isDebugEnabled()) {
             log.debug("Retrieving volume size. Volume: " + volumeName);
         }
@@ -522,8 +505,7 @@ public class NetAppFacade {
      * @param delayInMinutes - number of minutes to wait on the device before
      *            the volume is offline.
      */
-    public void setVolumeOffline(String volumeName, int delayInMinutes)
-    {
+    public void setVolumeOffline(String volumeName, int delayInMinutes) {
         if (log.isDebugEnabled()) {
             log.debug("Taking volume offline with params[name,delayInMinutes]: " +
                     volumeName + "," + delayInMinutes);
@@ -555,8 +537,7 @@ public class NetAppFacade {
      */
     public boolean createFlexibleVolume(String volName, String containingAggrName, boolean isSnapLock,
             String remoteLocation, String size, String snaplockType, String spaceReserve,
-            boolean enableSis, String sisSchedule)
-    {
+            boolean enableSis, String sisSchedule) {
         if (log.isDebugEnabled()) {
             StringBuilder sb = new StringBuilder("Creating new flexible volume offline with params" +
                     "[volName,aggrName,isSnapLock,remoteLocation,size,snaplockType,spaceReserve," +
@@ -594,8 +575,7 @@ public class NetAppFacade {
      * @param force
      * @return
      */
-    public boolean destroyVolume(String volumeName, boolean force)
-    {
+    public boolean destroyVolume(String volumeName, boolean force) {
         if (log.isDebugEnabled()) {
             log.debug("Deleting volume with params[name,force]: " +
                     volumeName + "," + force);
@@ -628,8 +608,7 @@ public class NetAppFacade {
      *            All snapshots for lun clones will be locked. Default is false.
      * @return - true/false if successful
      */
-    public boolean createVolumeSnapshot(String volumeName, String snapshotName, boolean isValidLunCloneSnapshot)
-    {
+    public boolean createVolumeSnapshot(String volumeName, String snapshotName, boolean isValidLunCloneSnapshot) {
         if (log.isDebugEnabled()) {
             log.debug("Creating snapshot on volume with params[volName,snapshotName,isValidLunCloneSnapshot]: " +
                     volumeName + "," + snapshotName + "," + isValidLunCloneSnapshot);
@@ -648,8 +627,7 @@ public class NetAppFacade {
      * @param snapshotName - Name of the snapshot to be deleted
      * @return - true/false if the operation was successful.
      */
-    public boolean deleteVolumeSnapshot(String volumeName, String snapshotName)
-    {
+    public boolean deleteVolumeSnapshot(String volumeName, String snapshotName) {
         if (log.isDebugEnabled()) {
             log.debug("Deleting snapshot on volume with params[volName,snapshotName]: " +
                     volumeName + "," + snapshotName);
@@ -666,8 +644,7 @@ public class NetAppFacade {
      * @param snapshotName - Snapshot to restore from
      * @return - true/false if operation was successful
      */
-    public boolean restoreVolumeFromSnapshot(String volumeName, String snapshotName)
-    {
+    public boolean restoreVolumeFromSnapshot(String volumeName, String snapshotName) {
         if (log.isDebugEnabled()) {
             log.debug("Restoring volume from snapshot with params[volName,snapshotName]: " +
                     volumeName + "," + snapshotName);
@@ -683,8 +660,7 @@ public class NetAppFacade {
      * @param volumeName - Name of volume to set options.
      * @param options - Map(name,value) of options to set.
      */
-    public void setVolumeOptions(String volumeName, Map<VolumeOptionType, String> options)
-    {
+    public void setVolumeOptions(String volumeName, Map<VolumeOptionType, String> options) {
         if (options == null) {
             return;
         }
@@ -708,8 +684,7 @@ public class NetAppFacade {
      * @param attrName - Name of the attribute whose value to return
      * @return - value of the attribute.
      */
-    public String getVolumeInfoAttribute(String volumeName, String attrName)
-    {
+    public String getVolumeInfoAttribute(String volumeName, String attrName) {
         if (log.isDebugEnabled()) {
             log.debug("Retrieving volume info attribute[volName,attrName]: " +
                     volumeName + "," + attrName);
@@ -723,8 +698,7 @@ public class NetAppFacade {
         return attrValue;
     }
 
-    public Map<String, String> getVolumeInfoAttributes(String volumeName, boolean verbose)
-    {
+    public Map<String, String> getVolumeInfoAttributes(String volumeName, boolean verbose) {
         Volume vol = new Volume(server.getNaServer(), volumeName);
         return vol.getVolumeInfo(verbose);
     }
@@ -734,8 +708,7 @@ public class NetAppFacade {
      * 
      * @return - list of volumes
      */
-    public List<String> listVolumes()
-    {
+    public List<String> listVolumes() {
         if (log.isDebugEnabled()) {
             log.debug("List all volumes");
         }
@@ -749,8 +722,7 @@ public class NetAppFacade {
      * 
      * @return - list of volumes
      */
-    public List<Map<String, String>> listVolumeInfo(String volume, Collection<String> attrs)
-    {
+    public List<Map<String, String>> listVolumeInfo(String volume, Collection<String> attrs) {
         if (log.isDebugEnabled()) {
             log.debug("List all volumes with attributes");
         }
@@ -769,8 +741,7 @@ public class NetAppFacade {
      * @param forcegroup - Optional. Name of group to which files created in share belong.
      * @return
      */
-    public boolean addCIFSShare(String mountPath, String shareName, String comment, int maxusers, String forcegroup)
-    {
+    public boolean addCIFSShare(String mountPath, String shareName, String comment, int maxusers, String forcegroup) {
         if (log.isDebugEnabled()) {
             log.debug("Add CIFS share to volume with params[volname,shareName,comment,maxusers]" +
                     mountPath + "," + shareName + "," + comment + "," + maxusers);
@@ -784,8 +755,7 @@ public class NetAppFacade {
      * 
      * @param shareName
      */
-    public void deleteCIFSShare(String shareName)
-    {
+    public void deleteCIFSShare(String shareName) {
         if (log.isDebugEnabled()) {
             log.debug("Delete CIFS share with params[shareName]" + shareName);
         }
@@ -863,8 +833,7 @@ public class NetAppFacade {
         return share.listNFSInfo(pathName);
     }
 
-    public List<ExportsRuleInfo> listNFSExportRules(String pathName)
-    {
+    public List<ExportsRuleInfo> listNFSExportRules(String pathName) {
         FileShare share = new FileShare(server.getNaServer(), null);
         return share.listNFSExportRules(pathName);
     }
@@ -887,8 +856,7 @@ public class NetAppFacade {
      */
     public List<String> addNFSShare(String mountPath, String exportPath, int anonymousUid,
             List<String> roHosts, boolean roAddAll, List<String> rwHosts, boolean rwAddAll,
-            List<String> rootHosts, boolean rootAddAll, List<NFSSecurityStyle> securityStyle)
-    {
+            List<String> rootHosts, boolean rootAddAll, List<NFSSecurityStyle> securityStyle) {
         FileShare share = new FileShare(server.getNaServer(), mountPath);
         return share.addNFSShare(exportPath, anonymousUid, roHosts, roAddAll,
                 rwHosts, rwAddAll, rootHosts, rootAddAll, securityStyle);
@@ -902,8 +870,7 @@ public class NetAppFacade {
      * @param deleteAll - If true *ALL* mounted NFS shares will be removed. Be careful!
      * @return - Returns a list of deleted paths.
      */
-    public List<String> deleteNFSShare(String mountPath, boolean deleteAll)
-    {
+    public List<String> deleteNFSShare(String mountPath, boolean deleteAll) {
         FileShare share = new FileShare(server.getNaServer(), mountPath);
         return share.deleteNFSShare(deleteAll);
     }
@@ -1112,8 +1079,7 @@ public class NetAppFacade {
                         .getChildByName("favored-address")
                         .getChildByName("address-info")
                         .getChildContent("ip-address"));
-            }
-            else if (result.getChildByName("LDAP-connection") != null) {
+            } else if (result.getChildByName("LDAP-connection") != null) {
                 properties.put("DC-Address", result.getChildByName("LDAP-connection")
                         .getChildByName("connection-info")
                         .getChildByName("favored-address")
@@ -1294,13 +1260,11 @@ public class NetAppFacade {
         }
     }
 
-    public List<Quota> listQuotas()
-    {
+    public List<Quota> listQuotas() {
         return listQuotas(null, null);
     }
 
-    public List<Quota> listQuotasByPath(String path)
-    {
+    public List<Quota> listQuotasByPath(String path) {
         return listQuotas(path, null);
     }
 
@@ -1308,8 +1272,7 @@ public class NetAppFacade {
         return listQuotas(null, volume);
     }
 
-    public List<Quota> listQuotas(String path, String volume)
-    {
+    public List<Quota> listQuotas(String path, String volume) {
         if (log.isDebugEnabled()) {
             log.debug("Retrieving quotas");
         }
@@ -1523,8 +1486,7 @@ public class NetAppFacade {
      * @param volumeName - Name of the volume containing the snapshots
      * @return - Collection containing snapshots .
      */
-    public Collection<String> listSnapshots(String volumeName)
-    {
+    public Collection<String> listSnapshots(String volumeName) {
         if (log.isDebugEnabled()) {
             log.debug("Listing snapshots on volume with params[volName]: " +
                     volumeName);
@@ -1535,8 +1497,7 @@ public class NetAppFacade {
         return vol.listSnapshots(attrs);
     }
 
-    public List<VFilerInfo> listVFilers()
-    {
+    public List<VFilerInfo> listVFilers() {
         if (log.isDebugEnabled()) {
             log.debug("Listing vFilers");
         }
@@ -1570,16 +1531,26 @@ public class NetAppFacade {
      * @param securityStyle - List of security styles this share supports.
      * @return - Returns
      */
-    public List<String> addNewNFSShare(String exportPath, List<ExportRule> exportRules)
-    {
+    public List<String> addNewNFSShare(String exportPath, List<ExportRule> exportRules) {
         FileShare share = new FileShare(server.getNaServer(), exportPath);
         return share.addNewNFSShare(exportPath, exportRules);
     }
 
-    public List<String> modifyNFSShare(String exportPath, List<ExportRule> exportRules)
-    {
+    public List<String> modifyNFSShare(String exportPath, List<ExportRule> exportRules) {
         FileShare share = new FileShare(server.getNaServer(), exportPath);
         return share.modifyNFSShare(exportPath, exportRules);
+    }
+
+    public boolean createVirtualNas(VirtualNasCreateParam args) {
+        String vFilerName = args.getvNasName();
+        List<String> ipAddresses = args.getIpAddresses();
+        List<String> storageUnits = args.getStorageUnits();
+        String ipSpace = args.getIpSpace();
+        if (log.isDebugEnabled()) {
+            log.debug("Creating vfiler with params[vFilerName]: " + vFilerName);
+        }
+        VFiler vFiler = new VFiler(server.getNaServer(), null);
+        return vFiler.createVFiler(vFilerName, ipAddresses, storageUnits, ipSpace);
     }
 
 }

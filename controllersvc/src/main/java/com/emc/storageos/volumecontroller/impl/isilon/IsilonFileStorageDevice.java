@@ -62,6 +62,7 @@ import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.model.file.ExportRule;
 import com.emc.storageos.model.file.NfsACE;
 import com.emc.storageos.model.file.ShareACL;
+import com.emc.storageos.model.vnas.VirtualNasCreateParam;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
 import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.volumecontroller.FileControllerConstants;
@@ -86,6 +87,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
 
     private static final String EXPORT_OP_NAME = "Snapshot Export";
     private static final String SHARE_OP_NAME = "Snapshot Share";
+    private static final String VNAS_OP_NAME = "VNAS Create";
     public static final long SEC_IN_MILLI = 1000L;
 
     private IsilonApiFactory _factory;
@@ -152,7 +154,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
      *            object
      * @return IsilonSshApi object
      */
-    IsilonSshApi getIsilonDeviceSsh(StorageSystem device) throws IsilonException {
+            IsilonSshApi getIsilonDeviceSsh(StorageSystem device) throws IsilonException {
         IsilonSshApi sshDmApi = new IsilonSshApi();
         sshDmApi.setConnParams(device.getIpAddress(), device.getUsername(), device.getPassword());
         return sshDmApi;
@@ -166,7 +168,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
      * @return IsilonApi object
      * @throws IsilonException
      */
-    IsilonApi getIsilonDevice(StorageSystem device) throws IsilonException {
+            IsilonApi getIsilonDevice(StorageSystem device) throws IsilonException {
         IsilonApi isilonAPI;
         URI deviceURI;
         try {
@@ -2601,5 +2603,11 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         task.setProgress(100);
         _dbClient.updateObject(task);
         return BiosCommandResult.createSuccessfulResult();
+    }
+
+    @Override
+    public BiosCommandResult doCreateVNAS(StorageSystem storageObj, VirtualNasCreateParam args) {
+        return BiosCommandResult.createErrorResult(
+                DeviceControllerErrors.isilon.unSupportedOperation(VNAS_OP_NAME));
     }
 }

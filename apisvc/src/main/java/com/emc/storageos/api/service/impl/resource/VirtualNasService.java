@@ -6,43 +6,61 @@
 package com.emc.storageos.api.service.impl.resource;
 
 import static com.emc.storageos.api.mapper.DbObjectMapper.toNamedRelatedResource;
+import static com.emc.storageos.api.mapper.TaskMapper.toTask;
 
 import java.net.URI;
 import java.util.Iterator;
 import java.util.List;
+import java.util.UUID;
 
 import javax.ws.rs.Consumes;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
+import javax.ws.rs.PUT;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.Response;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.emc.storageos.api.mapper.functions.MapVirtualNas;
 import com.emc.storageos.api.service.impl.response.BulkList;
+import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.RegistrationStatus;
+import com.emc.storageos.db.client.model.OpStatusMap;
+import com.emc.storageos.db.client.model.Operation;
+import com.emc.storageos.db.client.model.StorageSystem;
+import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.VirtualNAS;
 import com.emc.storageos.model.BulkIdParam;
+import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.model.ResourceTypeEnum;
+import com.emc.storageos.model.TaskResourceRep;
 import com.emc.storageos.model.vnas.VirtualNASBulkRep;
 import com.emc.storageos.model.vnas.VirtualNASList;
 import com.emc.storageos.model.vnas.VirtualNASRestRep;
+import com.emc.storageos.model.vnas.VirtualNasCreateParam;
 import com.emc.storageos.security.authorization.CheckPermission;
 import com.emc.storageos.security.authorization.DefaultPermissions;
 import com.emc.storageos.security.authorization.Role;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
+import com.emc.storageos.svcs.errorhandling.resources.InternalException;
+import com.emc.storageos.volumecontroller.FileController;
 import com.emc.storageos.volumecontroller.impl.monitoring.RecordableEventManager;
 
 /**
  * VirtualNasService resource implementation
  */
 @Path("/vdc/vnas-servers")
-@DefaultPermissions(readRoles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR },
-        writeRoles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
+@DefaultPermissions(readRoles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR }, writeRoles = { Role.SYSTEM_ADMIN,
+        Role.RESTRICTED_SYSTEM_ADMIN })
 public class VirtualNasService extends TaggedResource {
+
+    private static final Logger _log = LoggerFactory.getLogger(VirtualNasService.class);
 
     protected static final String EVENT_SERVICE_SOURCE = "VirtualNasService";
 
@@ -148,6 +166,66 @@ public class VirtualNasService extends TaggedResource {
     @Override
     protected ResourceTypeEnum getResourceType() {
         return ResourceTypeEnum.VIRTUAL_NAS;
+    }
+
+    /**
+     * 
+     * @param vnasParam
+     * @return
+     */
+    @POST
+    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR })
+    public TaskResourceRep createVirtualNasServer(VirtualNasCreateParam vnasParam) {
+
+        // Make VNAS name as mandatory field
+        ArgValidator.checkFieldNotNull(vnasParam.getvNasName(), "nasName");
+
+        // Check for duplicate VNAS name
+        if (vnasParam.getvNasName() != null && !vnasParam.getvNasName().isEmpty()) {
+            checkForDuplicateName(vnasParam.getvNasName(), VirtualNAS.class);
+        }
+
+        _log.info("Creating Virtual NAS server...");
+        String task = UUID.randomUUID().toString();
+
+        VirtualNAS vnas = new VirtualNAS();
+        vnas.setId(URIUtil.createId(VirtualNAS.class));
+        vnas.setLabel(vnasParam.getvNasName());
+        vnas.setNasName(vnasParam.getvNasName());
+        StringSet protocols = new StringSet(vnasParam.getProtocols());
+        vnas.setProtocols(protocols);
+
+        StorageSystem device = _dbClient.queryObject(StorageSystem.class, vnasParam.getStorageSystem());
+        FileController controller = getController(FileController.class, device.getSystemType());
+
+        vnas.setOpStatus(new OpStatusMap());
+        Operation op = new Operation();
+        op.setResourceType(ResourceOperationTypeEnum.CREATE_VIRTUAL_NAS_SERVER);
+        op.setDescription("Create Virtual Nas Server");
+        vnas.getOpStatus().createTaskStatus(task, op);
+        _dbClient.createObject(vnas);
+
+        try {
+            controller.createVirtualNas(device.getId(), vnas.getId(), vnasParam, task);
+        } catch (InternalException e) {
+            vnas.setInactive(true);
+            throw e;
+        }
+
+        return toTask(vnas, task, op);
+    }
+
+    @PUT
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR })
+    public Response updateVirtualNasServer(VirtualNasCreateParam vnasParam) {
+
+        // Make VNAS name as mandatory field
+        ArgValidator.checkFieldNotNull(vnasParam.getvNasName(), "nasName");
+
+        return Response.ok().build();
     }
 
     /**

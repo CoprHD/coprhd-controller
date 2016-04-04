@@ -5,10 +5,10 @@
 
 package com.iwave.ext.netapp;
 
-import org.apache.log4j.Logger;
-
 import java.util.ArrayList;
 import java.util.List;
+
+import org.apache.log4j.Logger;
 
 import netapp.manage.NaElement;
 import netapp.manage.NaServer;
@@ -75,6 +75,27 @@ public class VFiler {
             throw new NetAppException(msg, e);
         }
 
+        return true;
+    }
+
+    boolean createVFiler(String vFilerName, List<String> ipAddresses, List<String> storageUnits, String ipSpace) {
+
+        NaElement elem = new NaElement("vfiler-create");
+        for (String ipAddress : ipAddresses) {
+            elem.addNewChild("ip-address", ipAddress);
+        }
+        for (String storageUnit : storageUnits) {
+            elem.addNewChild("storage-unit", storageUnit);
+        }
+        elem.addNewChild("vfiler", vFilerName);
+
+        try {
+            server.invokeElem(elem);
+        } catch (Exception e) {
+            String msg = "Failed to create new vFiler: " + vFilerName;
+            log.error(msg, e);
+            throw new NetAppException(msg, e);
+        }
         return true;
     }
 }

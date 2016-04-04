@@ -64,6 +64,7 @@ import com.emc.storageos.model.file.NfsACE;
 import com.emc.storageos.model.file.NfsACLUpdateParams;
 import com.emc.storageos.model.file.ShareACL;
 import com.emc.storageos.model.file.ShareACLs;
+import com.emc.storageos.model.vnas.VirtualNasCreateParam;
 import com.emc.storageos.plugins.common.Constants;
 import com.emc.storageos.security.audit.AuditLogManager;
 import com.emc.storageos.security.audit.AuditLogManagerFactory;
@@ -178,7 +179,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
         RecordableBourneEvent event = new RecordableBourneEvent(
                 type,
                 fs.getTenant().getURI(),
-                URI.create("ViPR-User"),                                           // user ID when AAA fixed
+                URI.create("ViPR-User"),                                                    // user ID when AAA fixed
                 fs.getProject().getURI(),
                 fs.getVirtualPool(),
                 EVENT_SERVICE_TYPE,
@@ -210,7 +211,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
         RecordableBourneEvent event = new RecordableBourneEvent(
                 type,
                 fs.getTenant().getURI(),
-                URI.create("ViPR-User"),                                           // user ID when AAA fixed
+                URI.create("ViPR-User"),                                                    // user ID when AAA fixed
                 fs.getProject().getURI(),
                 fs.getVirtualPool(),
                 EVENT_SERVICE_TYPE,
@@ -581,7 +582,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
 
             if (result.getCommandPending()) {
                 return;
-            }                                                         // Set Mount path info for the exports
+            }                                                                  // Set Mount path info for the exports
             FSExportMap fsExports = fsObj.getFsExports();
 
             // Per New model get the rules and see if any rules that are already saved and available.
@@ -3453,7 +3454,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
     @Override
     public String addStepsForCreateFileSystems(Workflow workflow,
             String waitFor, List<FileDescriptor> filesystems, String taskId)
-            throws InternalException {
+                    throws InternalException {
 
         if (filesystems != null && !filesystems.isEmpty()) {
             // create source filesystems
@@ -3501,7 +3502,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
     @Override
     public String addStepsForDeleteFileSystems(Workflow workflow,
             String waitFor, List<FileDescriptor> filesystems, String taskId)
-            throws InternalException {
+                    throws InternalException {
         List<FileDescriptor> sourceDescriptors = FileDescriptor.filterByType(filesystems,
                 FileDescriptor.Type.FILE_DATA, FileDescriptor.Type.FILE_EXISTING_SOURCE,
                 FileDescriptor.Type.FILE_MIRROR_SOURCE);
@@ -3561,11 +3562,10 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
     @Override
     public String addStepsForExpandFileSystems(Workflow workflow, String waitFor,
             List<FileDescriptor> fileDescriptors, String taskId)
-            throws InternalException {
-        List<FileDescriptor> sourceDescriptors =
-                FileDescriptor.filterByType(fileDescriptors, FileDescriptor.Type.FILE_MIRROR_SOURCE,
-                        FileDescriptor.Type.FILE_EXISTING_SOURCE, FileDescriptor.Type.FILE_DATA,
-                        FileDescriptor.Type.FILE_MIRROR_TARGET);
+                    throws InternalException {
+        List<FileDescriptor> sourceDescriptors = FileDescriptor.filterByType(fileDescriptors, FileDescriptor.Type.FILE_MIRROR_SOURCE,
+                FileDescriptor.Type.FILE_EXISTING_SOURCE, FileDescriptor.Type.FILE_DATA,
+                FileDescriptor.Type.FILE_MIRROR_TARGET);
         if (sourceDescriptors == null || sourceDescriptors.isEmpty()) {
             return waitFor;
         } else {
@@ -3679,7 +3679,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
      * @param size
      * @return
      */
-    Workflow.Method expandFileSharesMethod(URI uriStorage, URI fileURI, long size) {
+            Workflow.Method expandFileSharesMethod(URI uriStorage, URI fileURI, long size) {
         return new Workflow.Method("expandFS", uriStorage, fileURI, size);
     }
 
@@ -3901,6 +3901,31 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             updateTaskStatus(opId, fs, e);
         }
 
+    }
+
+    @Override
+    public void createVirtualNas(URI storage, URI vnasUri, VirtualNasCreateParam vnasParam, String opId) throws InternalException {
+        ControllerUtils.setThreadLocalLogData(vnasUri, opId);
+        StorageSystem storageObj = null;
+        VirtualNAS vnasObj = null;
+        try {
+            storageObj = _dbClient.queryObject(StorageSystem.class, storage);
+            vnasObj = _dbClient.queryObject(VirtualNAS.class, vnasUri);
+            BiosCommandResult result = getDevice(storageObj.getSystemType()).doCreateVNAS(storageObj, vnasParam);
+            if (!result.getCommandPending()) {
+                vnasObj.getOpStatus().updateTaskStatus(opId, result.toOperation());
+            } else { // we need to add task completer
+                vnasObj.getOpStatus().updateTaskStatus(opId, result.toOperation());
+            }
+
+            if (result.isCommandSuccess()) {
+                // vnasObj.setNativeGuid(NativeGUIDGenerator.generateNativeGuid(_dbClient, vnasObj));
+            } else if (!result.getCommandPending()) {
+                vnasObj.setInactive(true);
+            }
+        } catch (Exception e) {
+            updateTaskStatus(opId, vnasObj, e);
+        }
     }
 
 }

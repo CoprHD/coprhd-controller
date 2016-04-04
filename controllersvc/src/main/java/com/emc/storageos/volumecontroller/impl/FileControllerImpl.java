@@ -22,6 +22,7 @@ import com.emc.storageos.impl.AbstractDiscoveredSystemController;
 import com.emc.storageos.model.file.CifsShareACLUpdateParams;
 import com.emc.storageos.model.file.FileExportUpdateParams;
 import com.emc.storageos.model.file.NfsACLUpdateParams;
+import com.emc.storageos.model.vnas.VirtualNasCreateParam;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.volumecontroller.AsyncTask;
 import com.emc.storageos.volumecontroller.ControllerException;
@@ -198,7 +199,7 @@ public class FileControllerImpl extends AbstractDiscoveredSystemController imple
     @Override
     public void updateShareACLs(URI storageURI, URI fsURI, String shareName,
             CifsShareACLUpdateParams param, String opId)
-            throws ControllerException {
+                    throws ControllerException {
         execFS("updateShareACLs", storageURI, fsURI, shareName, param, opId);
 
     }
@@ -243,5 +244,10 @@ public class FileControllerImpl extends AbstractDiscoveredSystemController imple
     public void listSanpshotByPolicy(URI storageURI, URI fsURI, URI policy, String opId) throws InternalException {
         execFS("listSanpshotByPolicy", storageURI, fsURI, policy, opId);
 
+    }
+
+    @Override
+    public void createVirtualNas(URI storageURI, VirtualNasCreateParam vnasParam, String opId) throws InternalException {
+        execFS("createVirtualNas", storageURI, opId);
     }
 }

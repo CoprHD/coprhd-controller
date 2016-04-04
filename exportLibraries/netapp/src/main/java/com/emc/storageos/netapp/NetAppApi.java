@@ -15,6 +15,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.model.file.ExportRule;
+import com.emc.storageos.model.vnas.VirtualNasCreateParam;
 import com.iwave.ext.netapp.AggregateInfo;
 import com.iwave.ext.netapp.NFSSecurityStyle;
 import com.iwave.ext.netapp.NetAppFacade;
@@ -84,6 +85,7 @@ public class NetAppApi {
         cifsPermissionMap.put(VIPR_CIFS_PERM_CHANGE, NTP_CIFS_PERM_CHANGE);
         cifsPermissionMap.put(VIPR_CIFS_PERM_READ, NTP_CIFS_PERM_READ);
     }
+
     private static final Logger _logger = LoggerFactory
             .getLogger(NetAppApi.class);
 
@@ -289,8 +291,7 @@ public class NetAppApi {
 
         try {
 
-            if (volName != null && !volName.isEmpty() && !volName.startsWith("/"))
-            {
+            if (volName != null && !volName.isEmpty() && !volName.startsWith("/")) {
                 exportPath = "/" + volName;
             }
 
@@ -1028,5 +1029,18 @@ public class NetAppApi {
             dest.setRootHosts((orig.getRootHosts()));
         }
 
+    }
+
+    public Boolean createVirtualNas(VirtualNasCreateParam args)
+            throws NetAppException {
+        try {
+
+            netAppFacade = new NetAppFacade(_ipAddress, _portNumber, _userName,
+                    _password, _https);
+            return netAppFacade.createVirtualNas(args);
+        } catch (Exception e) {
+            throw NetAppException.exceptions.createSnapshotFailed(args.getvNasName(),
+                    args.getIpSpace(), _ipAddress, e.getMessage());
+        }
     }
 }

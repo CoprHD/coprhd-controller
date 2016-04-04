@@ -34,6 +34,7 @@ import com.emc.storageos.exceptions.DeviceControllerErrors;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.model.file.ExportRule;
 import com.emc.storageos.model.file.ShareACL;
+import com.emc.storageos.model.vnas.VirtualNasCreateParam;
 import com.emc.storageos.netapp.NetAppApi;
 import com.emc.storageos.netapp.NetAppException;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
@@ -332,7 +333,7 @@ public class NetAppFileStorageDevice extends AbstractFileStorageDevice {
     @Override
     public BiosCommandResult doExport(StorageSystem storage,
             FileDeviceInputOutput args, List<FileExport> exportList)
-            throws ControllerException {
+                    throws ControllerException {
         _log.info("NetAppFileStorageDevice doExport - start");
         // Verify inputs.
         validateExportArgs(exportList);
@@ -533,7 +534,7 @@ public class NetAppFileStorageDevice extends AbstractFileStorageDevice {
     @Override
     public BiosCommandResult doUnexport(StorageSystem storage,
             FileDeviceInputOutput args, List<FileExport> exportList)
-            throws ControllerException {
+                    throws ControllerException {
         BiosCommandResult result = new BiosCommandResult();
         try {
             _log.info("NetAppFileStorageDevice doUnexport: {} - start", args.getFileObjId());
@@ -633,7 +634,7 @@ public class NetAppFileStorageDevice extends AbstractFileStorageDevice {
     @Override
     public BiosCommandResult doShare(StorageSystem storage,
             FileDeviceInputOutput args, SMBFileShare smbFileShare)
-            throws ControllerException {
+                    throws ControllerException {
         // To be in-sync with isilon implementation, currently forceGroup is
         // set to null which will set the group name as "everyone" by default.
         String forceGroup = null;
@@ -693,7 +694,7 @@ public class NetAppFileStorageDevice extends AbstractFileStorageDevice {
     @Override
     public BiosCommandResult doDeleteShare(StorageSystem storage,
             FileDeviceInputOutput args, SMBFileShare smbFileShare)
-            throws ControllerException {
+                    throws ControllerException {
         BiosCommandResult result = new BiosCommandResult();
         try {
             _log.info("NetAppFileStorageDevice doDeleteShare - start");
@@ -1830,6 +1831,25 @@ public class NetAppFileStorageDevice extends AbstractFileStorageDevice {
 
         return result;
 
+    }
+
+    @Override
+    public BiosCommandResult doCreateVNAS(StorageSystem storage, VirtualNasCreateParam args) {
+        BiosCommandResult result = new BiosCommandResult();
+        NetAppApi nApi = new NetAppApi.Builder(storage.getIpAddress(),
+                storage.getPortNumber(), storage.getUsername(),
+                storage.getPassword()).https(true).build();
+
+        try {
+            nApi.createVirtualNas(args);
+            result = BiosCommandResult.createSuccessfulResult();
+        } catch (Exception e) {
+            _log.error("NetAppFileStorageDevice::Create Virtual NAS server failed with an Exception", e);
+            ServiceError serviceError = DeviceControllerErrors.netapp.unableToDeleteCIFSShareAcl();
+            serviceError.setMessage(e.getLocalizedMessage());
+            result = BiosCommandResult.createErrorResult(serviceError);
+        }
+        return result;
     }
 
     @Override

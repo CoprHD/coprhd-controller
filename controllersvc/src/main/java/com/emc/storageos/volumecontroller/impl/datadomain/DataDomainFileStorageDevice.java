@@ -45,6 +45,7 @@ import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.exceptions.DeviceControllerErrors;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.model.file.ExportRule;
+import com.emc.storageos.model.vnas.VirtualNasCreateParam;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
 import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.volumecontroller.FileDeviceInputOutput;
@@ -462,7 +463,7 @@ public class DataDomainFileStorageDevice extends AbstractFileStorageDevice {
 
     private void ddCreateExports(DataDomainClient ddClient, String storagePoolId,
             FSExportMap exportMap, List<FileExport> createFileExports)
-            throws DataDomainApiException {
+                    throws DataDomainApiException {
         for (FileExport fileExport : createFileExports) {
             // Build export map for export create
             String exportName;
@@ -874,7 +875,7 @@ public class DataDomainFileStorageDevice extends AbstractFileStorageDevice {
     @Override
     public BiosCommandResult doDeleteShare(StorageSystem storage,
             FileDeviceInputOutput args, SMBFileShare smbFileShare)
-            throws ControllerException {
+                    throws ControllerException {
         try {
             _log.info("DataDomainFileStorageDevice doDeleteShare: {} - start");
             DataDomainClient ddClient = getDataDomainClient(storage);
@@ -990,7 +991,7 @@ public class DataDomainFileStorageDevice extends AbstractFileStorageDevice {
     @Override
     public BiosCommandResult doDeleteSnapshot(StorageSystem storage,
             FileDeviceInputOutput args)
-            throws ControllerException {
+                    throws ControllerException {
 
         String message = "Data Domain snapshots not supported yet, delete operation failed";
         _log.error(message);
@@ -1038,7 +1039,7 @@ public class DataDomainFileStorageDevice extends AbstractFileStorageDevice {
     @Override
     public BiosCommandResult getFSSnapshotList(StorageSystem storage,
             FileDeviceInputOutput args, List<String> snapshots)
-            throws ControllerException {
+                    throws ControllerException {
         // TODO To be implemented once Data Domain provides snapshot APIs
         String message = "Data Domain snapshots not supported yet, get list operation failed";
         _log.error(message);
@@ -1596,6 +1597,12 @@ public class DataDomainFileStorageDevice extends AbstractFileStorageDevice {
 
     @Override
     public BiosCommandResult listSanpshotByPolicy(StorageSystem storageObj, FileDeviceInputOutput args) {
+        return BiosCommandResult.createErrorResult(
+                DeviceControllerErrors.datadomain.operationNotSupported());
+    }
+
+    @Override
+    public BiosCommandResult doCreateVNAS(StorageSystem storageObj, VirtualNasCreateParam args) {
         return BiosCommandResult.createErrorResult(
                 DeviceControllerErrors.datadomain.operationNotSupported());
     }

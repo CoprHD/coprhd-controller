@@ -333,6 +333,7 @@ public class TenantsService extends TaggedResource {
                     }
                 }
             }
+            String oldNamespace = tenant.getNamespace();
             tenant.setNamespace(param.getNamespace());
             // Update tenant info in respective namespace CF
             List<URI> allNamespaceURI = _dbClient.queryByType(ObjectNamespace.class, true);
@@ -347,6 +348,17 @@ public class TenantsService extends TaggedResource {
                     break;
                 }
             }
+            //removing link between tenant and the old namespace
+            Iterator<ObjectNamespace> nsItrToUnMap = _dbClient.queryIterativeObjects(ObjectNamespace.class, allNamespaceURI);
+            while (nsItrToUnMap.hasNext()) {
+                ObjectNamespace namespaceToUpdate = nsItrToUnMap.next();
+                if (namespaceToUpdate.getNativeId().equalsIgnoreCase(oldNamespace)) {
+                    namespaceToUpdate.setMapped(false);
+                    _dbClient.updateObject(namespaceToUpdate);
+                    break;
+                }
+            }
+            
         } else if (!StringUtils.isEmpty(param.getNamespace()) && "null".equals(param.getNamespace())) {
             if (!StringUtils.isEmpty(tenant.getNamespace())) {
                 // Though we are not deleting need to check no dependencies on this tenant

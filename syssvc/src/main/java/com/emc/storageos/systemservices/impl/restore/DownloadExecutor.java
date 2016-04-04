@@ -215,7 +215,7 @@ public final class DownloadExecutor implements  Runnable {
         File backupFolder= backupOps.getDownloadDirectory(remoteBackupFileName);
 
         try {
-            backupOps.checkBackup(backupFolder);
+            backupOps.checkBackup(backupFolder, false);
             long size = backupOps.getSizeToDownload(remoteBackupFileName);
             backupOps.updateDownloadedSize(remoteBackupFileName, size, false);
             log.info("The backup {} for this node has already been downloaded", remoteBackupFileName);
@@ -271,7 +271,7 @@ public final class DownloadExecutor implements  Runnable {
             File downloadedDir = backupOps.getDownloadDirectory(remoteBackupFileName);
 
             // valid downloaded backup
-            backupOps.checkBackup(downloadedDir);
+            backupOps.checkBackup(downloadedDir, false);
 
             // persist the names of data files into the ZK
             List<String> filenames = backupOps.getBackupFileNames(downloadedDir);

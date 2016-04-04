@@ -4556,22 +4556,46 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
              * OPT#477320
              */
             if (sourceObj instanceof Volume && isNonSplitSRDFTargetVolume((Volume) sourceObj)) {
-
+                // PRIOR to Restoring R2 Device from its Full copy Clone, we need to
+                // a) SUSPEND the R1-R2 pair if the Copy Mode is ACTIVE Or
+                // b) SPLIT the R1-R2 pair if the Copy Mode is SYNC/ ASYNC
                 Volume sourceVolume = (Volume) sourceObj;
                 URI srdfSourceVolumeURI = sourceVolume.getSrdfParent().getURI();
                 Volume srdfSourceVolume = _dbClient.queryObject(Volume.class, srdfSourceVolumeURI);
                 URI srdfSourceStorageSystemURI = srdfSourceVolume.getStorageController();
-                // split all members the group
-                Workflow.Method splitMethod = srdfDeviceController.splitSRDFLinkMethod(srdfSourceStorageSystemURI,
-                        srdfSourceVolumeURI, source, false);
+                if (Mode.ACTIVE.equals(Mode.valueOf(sourceVolume.getSrdfCopyMode()))) {
+                    waitFor = suspendSRDFLinkWorkflowStep(waitFor, srdfSourceStorageSystemURI,
+                            srdfSourceVolumeURI, source, workflow);
+                } else {
+                    // split all members the group
+                    Workflow.Method splitMethod = srdfDeviceController.splitSRDFLinkMethod(srdfSourceStorageSystemURI,
+                            srdfSourceVolumeURI, source, false);
 
-                Workflow.Method splitRollbackMethod = srdfDeviceController.resumeSyncPairMethod(srdfSourceStorageSystemURI,
-                        srdfSourceVolumeURI, source);
+                    Workflow.Method splitRollbackMethod = srdfDeviceController.resumeSyncPairMethod(srdfSourceStorageSystemURI,
+                            srdfSourceVolumeURI, source);
 
-                waitFor = workflow.createStep(SRDFDeviceController.SPLIT_SRDF_MIRRORS_STEP_GROUP,
-                        SRDFDeviceController.SPLIT_SRDF_MIRRORS_STEP_DESC, waitFor, srdfSourceStorageSystemURI,
-                        getDeviceType(srdfSourceStorageSystemURI), SRDFDeviceController.class, splitMethod,
-                        splitRollbackMethod, null);
+                    waitFor = workflow.createStep(SRDFDeviceController.SPLIT_SRDF_MIRRORS_STEP_GROUP,
+                            SRDFDeviceController.SPLIT_SRDF_MIRRORS_STEP_DESC, waitFor, srdfSourceStorageSystemURI,
+                            getDeviceType(srdfSourceStorageSystemURI), SRDFDeviceController.class, splitMethod,
+                            splitRollbackMethod, null);
+                }
+            } else if (sourceObj instanceof Volume && isNonSplitSRDFSourceVolume((Volume) sourceObj)) {
+                // PRIOR to Restoring R1 Device from its Full copy Clone, we need to SUSPEND the R1-R2 pair if the Copy Mode is ACTIVE
+                Volume srdfSourceVolume = (Volume) sourceObj;
+                URI srdfSourceStorageSystemURI = srdfSourceVolume.getStorageController();
+                StringSet targets = srdfSourceVolume.getSrdfTargets();
+                if (null != targets) {
+                    for (String target : targets) {
+                        if (NullColumnValueGetter.isNotNullValue(target)) {
+                            Volume srdfTargetVolume = _dbClient.queryObject(Volume.class, URI.create(target));
+                            if (null != srdfTargetVolume && Mode.ACTIVE.equals(Mode.valueOf(srdfTargetVolume.getSrdfCopyMode()))) {
+                                waitFor = suspendSRDFLinkWorkflowStep(waitFor, srdfSourceStorageSystemURI,
+                                        srdfSourceVolume.getId(), srdfTargetVolume.getId(), workflow);
+                            }
+                            break;
+                        }
+                    }
+                }
             }
 
             StorageSystem system = _dbClient.queryObject(StorageSystem.class, storage);

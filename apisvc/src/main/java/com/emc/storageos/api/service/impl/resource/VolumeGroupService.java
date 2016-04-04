@@ -115,6 +115,7 @@ import com.emc.storageos.model.block.VolumeRestRep;
 import com.emc.storageos.model.host.HostList;
 import com.emc.storageos.model.host.cluster.ClusterList;
 import com.emc.storageos.security.audit.AuditLogManager;
+import com.emc.storageos.security.authentication.StorageOSUser;
 import com.emc.storageos.security.authorization.ACL;
 import com.emc.storageos.security.authorization.CheckPermission;
 import com.emc.storageos.security.authorization.DefaultPermissions;
@@ -322,6 +323,21 @@ public class VolumeGroupService extends TaskResourceService {
     public VolumeGroupRestRep getVolumeGroup(@PathParam("id") URI id) {
         ArgValidator.checkFieldUriType(id, VolumeGroup.class, "id");
         VolumeGroup volumeGroup = (VolumeGroup) queryResource(id);
+
+        StorageOSUser user = getUserFromContext();
+        if (!_permissionsHelper.userHasGivenRole(user, null, Role.SYSTEM_MONITOR, Role.TENANT_ADMIN, Role.SECURITY_ADMIN)) {
+            // Check if the application tenant is the same as the user tenant
+            List<Volume> volumes = ControllerUtils.getVolumeGroupVolumes(_dbClient, volumeGroup);
+            if (volumes != null && !volumes.isEmpty()) {
+                URI tenant = URI.create(user.getTenantId());
+                Volume firstVol = volumes.get(0);
+                URI volTenant = firstVol.getTenant().getURI();
+                if (!volTenant.equals(tenant)) {
+                    APIException.forbidden.insufficientPermissionsForUser(user.getName());
+                }
+            }
+        }
+        
         VolumeGroupRestRep resp = DbObjectMapper.map(volumeGroup);
         resp.setReplicationGroupNames(CopyVolumeGroupUtils.getReplicationGroupNames(volumeGroup, _dbClient));
         resp.setVirtualArrays(CopyVolumeGroupUtils.getVirtualArrays(volumeGroup, _dbClient));
@@ -337,12 +353,34 @@ public class VolumeGroupService extends TaskResourceService {
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     public VolumeGroupList getVolumeGroups() {
         VolumeGroupList volumeGroupList = new VolumeGroupList();
-
         List<URI> ids = _dbClient.queryByType(VolumeGroup.class, true);
         Iterator<VolumeGroup> iter = _dbClient.queryIterativeObjects(VolumeGroup.class, ids);
-        while (iter.hasNext()) {
-            VolumeGroup vg = iter.next();
-            volumeGroupList.getVolumeGroups().add(toNamedRelatedResource(vg));
+        StorageOSUser user = getUserFromContext();
+        
+        if (_permissionsHelper.userHasGivenRole(user, null, Role.SYSTEM_MONITOR, Role.TENANT_ADMIN, Role.SECURITY_ADMIN)) {
+            while (iter.hasNext()) {
+                VolumeGroup vg = iter.next();
+                volumeGroupList.getVolumeGroups().add(toNamedRelatedResource(vg));
+            }
+        } else {
+            log.info("checking tenant");
+            // otherwise, filter by only authorized to use
+            URI tenant = URI.create(user.getTenantId());
+            while (iter.hasNext()) {
+                VolumeGroup vg = iter.next();
+                List<Volume> volumes = ControllerUtils.getVolumeGroupVolumes(_dbClient, vg);
+                if (volumes == null || volumes.isEmpty()) {
+                    // if no volume in the application yet, the application is visible to all tenants
+                    volumeGroupList.getVolumeGroups().add(toNamedRelatedResource(vg));
+                } else {
+                    Volume firstVol = volumes.get(0);
+                    URI volTenant = firstVol.getTenant().getURI();
+                    if (volTenant.equals(tenant)) {
+                        volumeGroupList.getVolumeGroups().add(toNamedRelatedResource(vg));
+                    }
+                }
+            }    
+            
         }
         return volumeGroupList;
     }
@@ -1533,7 +1571,8 @@ public class VolumeGroupService extends TaskResourceService {
          * vmax3Volumes - block VMAX3 or backend VMAX3 for VPLEX based on copy side requested
          * volumes - except volumes filtered out for above case
          */
-        List<Volume> vmax3Volumes = getVMAX3Volumes(volumes, param.getCopyOnHighAvailabilitySide());
+        // TODO consider copyOnHaSide from user's request once the underlying implementation supports it.
+        List<Volume> vmax3Volumes = getVMAX3Volumes(volumes, false);
 
         // create snapshot
         Map<URI, List<URI>> cgToVolUris = ControllerUtils.groupVolumeURIsByCG(volumes);

@@ -546,7 +546,7 @@ public class SnapshotService extends TaskResourceService {
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{snapshot_id}")
     @CheckPermission(roles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN }, acls = { ACL.ANY })
-    public void deleteSnapshot(
+    public Response deleteSnapshot(
             @PathParam("tenant_id") String openstack_tenant_id,
             @PathParam("snapshot_id") String snapshot_id) {
 
@@ -554,7 +554,11 @@ public class SnapshotService extends TaskResourceService {
 
         BlockSnapshot snap = findSnapshot(snapshot_id, openstack_tenant_id);
         if (snap == null) {
-            throw APIException.badRequests.parameterIsNotValid(snapshot_id);
+            _log.error("Not Found : Invalid volume snapshot id");
+            return CinderApiUtils.createErrorResponse(404, "Not Found : Invalid volume snapshot id");
+        }else if(snap.hasConsistencyGroup()){
+            _log.error("Not Found : Snapshot belongs to a consistency group");
+            return CinderApiUtils.createErrorResponse(400, "Invalid snapshot: Snapshot belongs to consistency group");
         }            
 
         URI snapshotURI = snap.getId();
@@ -570,7 +574,7 @@ public class SnapshotService extends TaskResourceService {
             op.setResourceType(ResourceOperationTypeEnum.DELETE_VOLUME_SNAPSHOT);
             _dbClient.createTaskOpStatus(BlockSnapshot.class, snap.getId(), task, op);
             response.getTaskList().add(toTask(snap, task, op));
-            return;
+            return Response.status(202).build();
         }
 
         StorageSystem device = _dbClient.queryObject(StorageSystem.class, snap.getStorageController());
@@ -628,7 +632,7 @@ public class SnapshotService extends TaskResourceService {
                 AuditLogManager.AUDITOP_BEGIN, snapshot_id, snap.getLabel(),
                 snap.getParent().getName(), device.getId().toString());
 
-        return;
+        return Response.status(202).build();
     }
 
     /**

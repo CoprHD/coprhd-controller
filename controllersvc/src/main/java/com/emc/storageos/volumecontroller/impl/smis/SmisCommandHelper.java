@@ -7255,8 +7255,8 @@ public class SmisCommandHelper implements SmisConstants {
             }
         }
         if (removeEntryList.isEmpty()) {
-            _log.info(String.format("The SFS entry is not found for the source group %s",
-                    sourceReplicationGroupName));
+            _log.info(String.format("The expected SFS entry %s is not found for the source group %s",
+                    groupSynchronizedAspectLabel, sourceReplicationGroupName));
             return;
         }
         try {

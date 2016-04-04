@@ -36,7 +36,9 @@ public class VirtualPoolRemoteProtectionVirtualArraySettingsParam {
     private URI vpool;
 
     /**
-     * remote copy modes
+     * remote copy modes Valid values:
+     * 	Synchronous
+     * 	Asynchronous
      * 
      */
     private String remoteCopyMode;

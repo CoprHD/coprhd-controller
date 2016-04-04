@@ -3,6 +3,7 @@ package com.iwave.ext.netapp.model;
 public enum SnapMirrorTransferStatus {
 
     idle("idle"),
+    initialize("initialize"),
     transferring("transferring"),
     pending("pending"),
     aborting("aborting"),

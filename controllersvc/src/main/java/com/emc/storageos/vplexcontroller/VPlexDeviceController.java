@@ -6838,7 +6838,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
      */
     @Override
     public void createFullCopy(URI vplexURI, List<VolumeDescriptor> volumeDescriptors,
-            String opId) throws ControllerException {
+            Boolean createInactive, String opId) throws ControllerException {
         _log.info("Copy volumes on VPLEX", vplexURI);
 
         // When we copy a VPLEX virtual volume we natively copy the primary backend
@@ -6969,7 +6969,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 // Now create the step to do the native full copy of this
                 // primary backend volume or the snapshot to the passed import volumes.
                 waitFor = createStepForNativeCopy(workflow,
-                        primarySourceObject, importVolumeDescriptors, waitFor);
+                        primarySourceObject, importVolumeDescriptors, createInactive, waitFor);
                 _log.info("Created workflow step to create {} copies of the primary",
                         importVolumeDescriptors.size());
 
@@ -7148,6 +7148,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
      * @param srcObject A reference to a backend source volume or snapshot to be copied.
      * @param copyVolumeDescriptors The descriptors representing the backend
      *            full copy volumes.
+     * @param createInactive Create the target full copy, but do not activate it.
      * @param waitFor The step in the passed workflow for which this step should
      *            wait to complete successfully before executing.
      *
@@ -7155,7 +7156,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
      *         should wait.
      */
     private String createStepForNativeCopy(Workflow workflow, BlockObject srcObject,
-            List<VolumeDescriptor> copyVolumeDescriptors, String waitFor) {
+            List<VolumeDescriptor> copyVolumeDescriptors, Boolean createInactive, String waitFor) {
         List<URI> copyVolumeURIs = VolumeDescriptor.getVolumeURIs(copyVolumeDescriptors);
         StorageSystem srcVolumeSystem = getDataObject(StorageSystem.class,
                 srcObject.getStorageController(), _dbClient);
@@ -7164,7 +7165,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
 
         String stepId = workflow.createStepId();
         Workflow.Method executeMethod = new Workflow.Method(FULL_COPY_METHOD_NAME,
-                srcVolumeSystemURI, copyVolumeURIs, Boolean.FALSE);
+                srcVolumeSystemURI, copyVolumeURIs, createInactive);
         Workflow.Method rollbackMethod = new Workflow.Method(ROLLBACK_FULL_COPY_METHOD, srcVolumeSystemURI, copyVolumeURIs);
         workflow.createStep(COPY_VOLUME_STEP, String.format(
                 "Create full copy volumes %s on system %s", copyVolumeURIs,

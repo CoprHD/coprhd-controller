@@ -94,8 +94,8 @@ public class VPlexControllerImpl extends AbstractDiscoveredSystemController impl
 
     @Override
     public void createFullCopy(URI vplexURI, List<VolumeDescriptor> volumeDescriptors,
-            String opId) throws InternalException {
-        queueRequest("createFullCopy", vplexURI, volumeDescriptors, opId);
+            Boolean createInactive, String opId) throws InternalException {
+        queueRequest("createFullCopy", vplexURI, volumeDescriptors, createInactive, opId);
     }
 
     @Override

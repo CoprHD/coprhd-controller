@@ -132,15 +132,15 @@ public interface VPlexController extends Controller {
      * local or distributed virtual volume.
      * 
      * @param vplexURI The URI of the VPLEX storage system.
-     * @param volumeDescriptors The volumes descriptors for the required
-     *            volumes.
+     * @param volumeDescriptors The volumes descriptors for the required volumes.
+     * @param createInactive Create the target full copy, but do not activate it
      * @param opId The unique task identifier.
      * 
      * @throws InternalException When an error occurs configuring the full
      *             copy workflow.
      */
     public abstract void createFullCopy(URI vplexURI,
-            List<VolumeDescriptor> volumeDescriptors, String opId) throws InternalException;
+            List<VolumeDescriptor> volumeDescriptors, Boolean createInactive, String opId) throws InternalException;
 
     /**
      * Restore contents the source volumes for the full copies with the passed

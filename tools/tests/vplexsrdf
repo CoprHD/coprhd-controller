@@ -58,6 +58,7 @@ source $SANITY_CONFIG_FILE
 # Variables that should be inherited from sanity
 BLK_SIZE=${BLK_SIZE:-1073741824}
 BLK_SIZE2=${BLK_SIZE2:-2147483648}
+VOLUME_COUNT=${VOLUME_COUNT:-2}
 
 macaddr=`/sbin/ifconfig eth0 | /usr/bin/awk '/HWaddr/ { print $5 }'`
 echo macaddr ${macaddr}
@@ -113,8 +114,8 @@ fail() {
 # $1=name, $2=varray, $3=vpool, $4=cg
 volume_create() {
     name=$1; varray=$2; vpool=$3; cg=$4
-    echoit "Creating volume $name in $varray $vpool"
-    run volume create --consistencyGroup $cg $name $project $varray $vpool $BLK_SIZE
+    echoit "Creating volumes $name in $varray $vpool"
+    run volume create --consistencyGroup $cg $name $project $varray $vpool $BLK_SIZE --count ${VOLUME_COUNT}
 }
 
 # Function to create a cluster. $1 is the cluster name
@@ -152,14 +153,14 @@ host_create vplexsrdfhost1 $clusterId A0 A1 FABRIC_losam082-fabric FABRIC_losam0
 host_create vplexsrdfhost2 $clusterId A2 A3 FABRIC_losam082-fabric FABRIC_losam082-fabric
 
 # Control over running individual parts of the test (true/false)
-create_volume=true			# if false, specify volname1 and CGlabel
-export_volume=true
-test_protection_ops=true
-test_expand=true
-test_r1_snapvx_nocopy=true
+create_volume=false			# if false, specify volname1 and CGlabel
+export_volume=false
+test_protection_ops=false
+test_expand=false
+test_r1_snapvx_nocopy=false
 test_r2_snapvx_nocopy=true
-test_r1_fullcopy=true
-test_r2_fullcopy=true
+test_r1_fullcopy=false
+test_r2_fullcopy=false
 delete_volume=true
 
 vplexsrdf_test() {
@@ -182,6 +183,14 @@ else
     echoit "Using existing volume $volname1 cg $CGlabel"
 fi
 CGtarget=$CGlabel-Target-$SITEr2
+
+if [ $VOLUME_COUNT -gt 1 ];
+then
+    volname1=${volname1}-1
+    volname1target=${volname1target}-1
+    echo "volname1 $volname1"
+    echo "volname1target $volname1target"
+fi
 
 if [ $export_volume = "true" ]; 
 then
@@ -227,10 +236,10 @@ echoit "Linking target $SNAP_SESSION_TGT_NAME1 to snapvx session $SNAP_SESSION_N
 run blockconsistencygroup link_targets $CGlabel/$SNAP_SESSION_NAME1 1 $SNAP_SESSION_TGT_NAME1
 # Relink target to the snapvx session 2.
 echoit "Relinking target $SNAP_SESSION_TGT_NAME1 to SnapVx session 2"
-run blockconsistencygroup relink_targets $CGlabel/$SNAP_SESSION_NAME2 $CGlabel/${SNAP_SESSION_TGT_NAME1}-1
+run blockconsistencygroup relink_targets $CGlabel/$SNAP_SESSION_NAME2 $CGlabel/${SNAP_SESSION_TGT_NAME1}-1-1
 # Unlink target from the snapvx session and delete target volume.
 echoit "unlinking target from SnapVx session 2"
-run blockconsistencygroup unlink_targets $CGlabel/$SNAP_SESSION_NAME2 $CGlabel/${SNAP_SESSION_TGT_NAME1}-1 --delete_target true
+run blockconsistencygroup unlink_targets $CGlabel/$SNAP_SESSION_NAME2 $CGlabel/${SNAP_SESSION_TGT_NAME1}-1-1 --delete_target true
 # Delete the snapvx sessions.
 echoit "Deleting SnapVx sessions $SNAP_SESSION_NAME1 and $SNAP_SESSION_NAME2"
 run blockconsistencygroup delete_snapshot_session $CGlabel/$SNAP_SESSION_NAME1
@@ -251,20 +260,20 @@ echoit "Creating snapvx session $SNAP_SESSION_NAME2"
 run blockconsistencygroup create_snapshot_session $CGtarget $SNAP_SESSION_NAME2
 # Restore the snapvx session.
 echoit "Pausing the link so can restore R2"
-run volume change_link $project/$volname1 pause $project/$volname1-target-$SITEr2 srdf
+run volume change_link $project/$volname1 pause $project/$volname1target srdf
 echoit "Restoring snapvx session $SNAP_SESSION_NAME1"
 run blockconsistencygroup restore_targets $CGtarget/$SNAP_SESSION_NAME1
 echoit "Resuming the link"
-run volume change_link $project/$volname1 resume $project/$volname1-target-$SITEr2 srdf
+run volume change_link $project/$volname1 resume $project/$volname1target srdf
 # Link target to the snapvx session 1 in default nocopy mode.
 echoit "Linking target $SNAP_SESSION_TGT_NAME1 to snapvx session $SNAP_SESSION_NAME1"
 run blockconsistencygroup link_targets $CGtarget/$SNAP_SESSION_NAME1 1 $SNAP_SESSION_TGT_NAME1
 # Relink target to the snapvx session 2.
 echoit "Relinking target $SNAP_SESSION_TGT_NAME1 to SnapVx session 2"
-run blockconsistencygroup relink_targets $CGtarget/$SNAP_SESSION_NAME2 $CGtarget/${SNAP_SESSION_TGT_NAME1}-1
+run blockconsistencygroup relink_targets $CGtarget/$SNAP_SESSION_NAME2 $CGtarget/${SNAP_SESSION_TGT_NAME1}-1-1
 # Unlink target from the snapvx session and delete target volume.
 echoit "unlinking target from SnapVx session 2"
-run blockconsistencygroup unlink_targets $CGtarget/$SNAP_SESSION_NAME2 $CGtarget/${SNAP_SESSION_TGT_NAME1}-1 --delete_target true
+run blockconsistencygroup unlink_targets $CGtarget/$SNAP_SESSION_NAME2 $CGtarget/${SNAP_SESSION_TGT_NAME1}-1-1 --delete_target true
 # Delete the snapvx sessions.
 echoit "Deleting SnapVx sessions $SNAP_SESSION_NAME1 and $SNAP_SESSION_NAME2"
 run blockconsistencygroup delete_snapshot_session $CGtarget/$SNAP_SESSION_NAME1
@@ -311,11 +320,25 @@ then
    run export_group delete $project/egtest1
 fi
 
+# Remove volume suffix
+volname1=$(echo $volname1 | sed 's/-1//')
+echo volname1 $volname1
+
 if [ "$delete_volume" = "true" ];
 then
 security login root 'ChangeMe1!'
+if [ "$VOLUME_COUNT" -eq 1 ]; then
 echoit "remove volume $volname1"
 run volume delete $project/$volname1 --wait
+else
+    i=1;
+    while [ $i -le $VOLUME_COUNT ];
+    do
+        # Loop removing all volumes
+        run volume delete $project/${volname1}-$i --wait
+        i=$(($i + 1))
+    done
+fi
 echoit "Delete consistency group $CGlabel"
 run blockconsistencygroup delete $CGlabel
 fi

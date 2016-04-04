@@ -37,6 +37,19 @@ public class RackHdService extends ViPRService {
         
         params = ExecutionUtils.currentContext().getParameters();
 
+        // possible bug:  when catalog form is filled out, params have quotes
+        // around them, but when fields are locked in catalog, the quotes are missing.
+        for( String paramKey : params.keySet() ){
+            String paramValue = params.get(paramKey).toString();
+            if(paramValue != null && paramValue.length() > 2 &&
+                    paramValue.endsWith("\"") && paramValue.startsWith("\"")) {
+                String unquotedParam = paramValue.substring(1, paramValue.length()-1);
+                warn("Removing quotes from param " + paramKey + ":" + paramValue +
+                        "  (Result: " + unquotedParam + ")");
+                params.put(paramKey, unquotedParam);
+            }
+        }
+
         // TODO: check empty/blank params and make null?  (empty consistency group in
         //   XML payload was not null and threw invalid URI error
 
@@ -59,18 +72,6 @@ public class RackHdService extends ViPRService {
             //TODO: requires reading tasks for selected workflows (dependent AssetOptions providers?)   
             for(String playbook: playbookNames.split(";")){
                 playbookNameList.add(playbook);
-            }
-        }
-
-        // possible bug:  when catalog form is filled out, params have quotes 
-        // around them, but when fields are locked in catalog, the quotes are missing.
-        for( String paramKey : params.keySet() ){
-            String paramValue = params.get(paramKey).toString();
-            if(paramValue.endsWith("\"") && paramValue.startsWith("\"")) {
-                String unquotedParam = paramValue.substring(1, paramValue.length()-1);
-                warn("Removing quotes from param " + paramKey + ":" + paramValue + 
-                        "  (Result: " + unquotedParam + ")");
-                params.put(paramKey, unquotedParam);
             }
         }
     }

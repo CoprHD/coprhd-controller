@@ -955,10 +955,22 @@ public class BlockProvider extends BaseAssetOptionsProvider {
         return constructSnapshotOptions(client, project, snapshots);
     }
 
+    /**
+     * get single volume snapshot sessions for a project
+     * @param ctx
+     * @param project
+     * @return
+     */
     private List<AssetOption> getVolumeSnapshotSessionOptionsForProject(AssetOptionsContext ctx, URI project) {
         final ViPRCoreClient client = api(ctx);
         List<BlockSnapshotSessionRestRep> snapshotSessions = client.blockSnapshotSessions().findByProject(project);
-        return constructSnapshotSessionOptions(client, project, snapshotSessions);
+        List<BlockSnapshotSessionRestRep> singleVolumeSnapshotSessions = new ArrayList<BlockSnapshotSessionRestRep>();
+        for (BlockSnapshotSessionRestRep snapshotSession : snapshotSessions) {
+            if (snapshotSession.getReplicationGroupInstance() == null) {
+                singleVolumeSnapshotSessions.add(snapshotSession);
+            }
+        }
+        return constructSnapshotSessionOptions(client, project, singleVolumeSnapshotSessions);
     }
 
     @Asset("blockSnapshotOrConsistencyGroup")
@@ -1715,7 +1727,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
                 boolean localSnapSupported = isLocalSnapshotSupported(detail.vpool);
                 boolean isRPTargetVolume = isRPTargetVolume(detail.volume);
                 boolean isRPSourceVolume = isRPSourceVolume(detail.volume);
-                boolean isInConsistencyGroup = StringUtils.isEmpty(detail.volume.getReplicationGroupInstance());
+                boolean isInConsistencyGroup = !StringUtils.isEmpty(detail.volume.getReplicationGroupInstance());
                 boolean isSnapshotSessionSupported = isSnapshotSessionSupportedForVolume(detail.volume);
 
                 debug("filter[ localSnapSupported=%s, isRPTargetVolume=%s, isRPSourceVolume=%s, isInConsistencyGroup=%s, isXio3XVolume=%s ]",

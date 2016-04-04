@@ -441,7 +441,7 @@ public class NetappMirrorFileOperations implements FileMirrorOperations {
         SnapMirrorStatusInfo mirrorStatusInfo = nApi.getSnapMirrorStateInfo(location);
 
         if (mirrorStatusInfo != null) {
-            if (SnapMirrorState.SYNCRONIZED.equals(mirrorStatusInfo.getMirrorState())) {
+            if (SnapMirrorState.PAUSED.equals(mirrorStatusInfo.getMirrorState())) {
                 _log.info("Calling snapmirror break on path: {}", location);
                 nApi.breakSnapMirror(location);
             } else if (SnapMirrorState.FAILOVER.equals(mirrorStatusInfo.getMirrorState())) {

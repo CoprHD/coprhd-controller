@@ -13,7 +13,7 @@ import javax.xml.bind.annotation.XmlRootElement;
 @XmlRootElement(name = "file_copy")
 public class Copy implements Serializable {
 
-    private static final long serialVersionUID = -8250892549720042299L;
+    private static final long serialVersionUID = -825089254972004248L;
     private URI copyID;
     private String type;
     private FileSystemReplicationSettings replicationSettingParam;

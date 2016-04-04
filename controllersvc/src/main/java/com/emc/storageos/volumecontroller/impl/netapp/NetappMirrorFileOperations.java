@@ -83,17 +83,11 @@ public class NetappMirrorFileOperations implements FileMirrorOperations {
     public void stopMirrorFileShareLink(StorageSystem sourceStorage, FileShare targetFs, TaskCompleter completer)
             throws DeviceControllerException {
 
-        // FileShare sourceFileShare = _dbClient.queryObject(FileShare.class, targetFs.getParentFileShare().getURI());
-        StorageSystem targetStorage = _dbClient.queryObject(StorageSystem.class, targetFs.getStorageDevice());
+        _log.info("NetappMirrorFileOperations -  stopMirrorFileShareLink started. Calling deleteMirrorFileShareLink.");
+        this.deleteMirrorFileShareLink(sourceStorage, targetFs.getParentFileShare().getURI(), targetFs.getId(), completer);
+        WorkflowStepCompleter.stepSucceded(completer.getOpId());
 
-        BiosCommandResult cmdResult = doPauseSnapMirror(targetStorage, targetFs, completer);
-        if (cmdResult.getCommandSuccess()) {
-            completer.ready(_dbClient);
-        } else if (cmdResult.getCommandPending()) {
-            completer.statusPending(_dbClient, cmdResult.getMessage());
-        } else {
-            completer.error(_dbClient, cmdResult.getServiceCoded());
-        }
+        _log.info("NetappMirrorFileOperations -  stopMirrorFileShareLink finished.");
     }
 
     @Override
@@ -226,7 +220,7 @@ public class NetappMirrorFileOperations implements FileMirrorOperations {
                     cmdResult = deleteSnapMirrorSchedule(sourceSystem, targetStorage,
                             sourceFileShare, targetFileShare, completer);
                     if (cmdResult.getCommandSuccess()) {
-                        WorkflowStepCompleter.stepSucceded(completer.getOpId());
+                        completer.ready(_dbClient);
                     } else if (cmdResult.getCommandPending()) {
                         completer.statusPending(_dbClient, cmdResult.getMessage());
                     } else {
@@ -307,8 +301,7 @@ public class NetappMirrorFileOperations implements FileMirrorOperations {
                 SnapMirrorState.READY.equals(mirrorStatusInfo.getMirrorState())) {
             // make api call
             nApiTarget.initializeSnapMirror(sourceLocation, destLocation, portGroupTarget);
-            NetAppSnapMirrorStartJob snapMirrorStatusJob = new NetAppSnapMirrorStartJob(destLocation, targetStorage.getId(), taskCompleter,
-                    destLocation);
+            NetAppSnapMirrorStartJob snapMirrorStatusJob = new NetAppSnapMirrorStartJob(destLocation, targetStorage.getId(), taskCompleter);
             try {
                 ControllerServiceImpl.enqueueJob(new QueueJob(snapMirrorStatusJob));
                 return BiosCommandResult.createPendingResult();
@@ -387,22 +380,6 @@ public class NetappMirrorFileOperations implements FileMirrorOperations {
 
     public BiosCommandResult deleteSnapMirrorSchedule(StorageSystem sourceStorage, StorageSystem targetStorage, FileShare sourceFs,
             FileShare targetFs, TaskCompleter taskCompleter) {
-
-        NetAppApi nApiSource = new NetAppApi.Builder(sourceStorage.getIpAddress(),
-                sourceStorage.getPortNumber(), sourceStorage.getUsername(),
-                sourceStorage.getPassword()).https(true).build();
-
-        // get source system name
-        String sourceLocation = getLocation(nApiSource, sourceFs);
-
-        SnapMirrorStatusInfo statusInfo = nApiSource.getSnapMirrorStateInfo(sourceLocation);
-
-        if (statusInfo != null) {
-            _log.error("Snapmirror is not released on source: {}", sourceLocation);
-            ServiceError error = DeviceControllerErrors.netapp
-                    .jobFailed("Snapmirror delete schedule failed. Snapmirror is not released on source: " + sourceLocation);
-            return BiosCommandResult.createErrorResult(error);
-        }
 
         // target netapp
         NetAppApi nApiTarget = new NetAppApi.Builder(targetStorage.getIpAddress(),

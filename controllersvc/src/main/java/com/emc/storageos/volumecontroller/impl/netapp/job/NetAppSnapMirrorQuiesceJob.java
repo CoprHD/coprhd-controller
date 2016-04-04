@@ -46,6 +46,7 @@ public class NetAppSnapMirrorQuiesceJob extends Job implements Serializable {
     public NetAppSnapMirrorQuiesceJob(String jobId, URI storageSystemUri, TaskCompleter taskCompleter) {
         this._storageSystemUri = storageSystemUri;
         this._taskCompleter = taskCompleter;
+        this._jobName = "netAppSnapMirrorQuiesceJob";
         this._jobIds.add(jobId);
     }
 

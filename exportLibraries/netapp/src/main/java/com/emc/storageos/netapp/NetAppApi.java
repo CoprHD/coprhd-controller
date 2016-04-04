@@ -1153,7 +1153,7 @@ public class NetAppApi {
             return failedStatus;
 
         } catch (Exception e) {
-            throw NetAppException.exceptions.deleteScheduleSnapMirrorFailed(destPath, _ipAddress, e.getMessage());
+            throw NetAppException.exceptions.deleteSnapMirrorScheduleFailed(destPath, _ipAddress, e.getMessage());
         }
     }
 
@@ -1199,7 +1199,7 @@ public class NetAppApi {
             return failedStatus;
 
         } catch (Exception e) {
-            throw NetAppException.exceptions.releaseSnapMirrorFailed(destinationPath, _ipAddress, e.getMessage());
+            throw NetAppException.exceptions.deleteSnapMirrorScheduleFailed(destinationPath, _ipAddress, e.getMessage());
         }
     }
 

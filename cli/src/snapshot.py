@@ -2813,8 +2813,6 @@ def tag_parser(subcommand_parsers, common_parser):
 
 
 def snapshot_tag(args):
-    if not args.sync and args.synctimeout !=0:
-        raise SOSError(SOSError.CMD_LINE_ERR,"error: Cannot use synctimeout without Sync ")
     obj = Snapshot(args.ip, args.port)
     try:
         if(args.add is None and args.remove is None):

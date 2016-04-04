@@ -1068,7 +1068,7 @@ public class DisasterRecoveryService {
                 if (site.getLastState() == SiteState.STANDBY_RESUMING) {
                     SiteInfo siteTargetInfo = coordinator.getTargetInfo(siteUuid, SiteInfo.class);
                     drOperation = siteTargetInfo.getActionRequired();
-                    if (drOperation == SiteInfo.DR_OP_CHANGE_DATA_REVISION) {
+                    if (drOperation.equals(SiteInfo.DR_OP_CHANGE_DATA_REVISION)) {
                         long dataRevision = System.currentTimeMillis();
                         drUtil.updateVdcTargetVersion(siteUuid, drOperation, vdcTargetVersion, dataRevision);
                         continue;

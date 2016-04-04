@@ -1737,7 +1737,7 @@ public class NetAppFacade {
         return snapMirror.resumeSnapMirror(location);
     }
 
-    public boolean breakSnapMirrorSchedule(String location) {
+    public boolean breakSnapMirror(String location) {
         if (log.isDebugEnabled()) {
             log.debug("break snap mirror");
         }

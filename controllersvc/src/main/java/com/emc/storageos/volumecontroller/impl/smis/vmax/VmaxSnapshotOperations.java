@@ -512,11 +512,6 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
                         Iterator<BlockSnapshot> iter = snapshotList.iterator();
                         while (iter.hasNext()) {
                             BlockSnapshot blockSnapshot = iter.next();
-
-                            // Ingested non-exported snapshot could be associated with SGs outside of ViPR,
-                            // remove snapshot from them before deleting it.
-                            _helper.removeVolumeFromStorageGroupsIfVolumeIsNotInAnyMV(storage, blockSnapshot);
-
                             _helper.removeVolumeFromParkingSLOStorageGroup(storage, blockSnapshot.getNativeId(), false);
                             _log.info("Done invoking remove volume {} from parking SLO storage group", blockSnapshot.getNativeId());
                         }

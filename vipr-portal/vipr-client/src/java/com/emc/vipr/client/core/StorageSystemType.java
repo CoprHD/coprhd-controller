@@ -32,9 +32,9 @@ public class StorageSystemType {
 		return client.get(StorageSystemTypeRestRep.class, PathConstants.STORAGE_SYSTEM_TYPE_URL + "/" + uuid);
 	}
 
-	public StorageSystemTypeList listStorageSystemTypeTypes(String storageTypeType) {
+	public StorageSystemTypeList listStorageSystemTypeTypes(String type) {
 		return client.get(StorageSystemTypeList.class,
-				PathConstants.STORAGE_SYSTEM_TYPE_URL + "/type/" + storageTypeType);
+				PathConstants.STORAGE_SYSTEM_TYPE_URL + "/type/" + type);
 	}
 
 	public Response uploadDeviceDriver(File deviceDriverFile) {

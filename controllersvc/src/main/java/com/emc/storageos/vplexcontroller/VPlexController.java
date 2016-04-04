@@ -185,6 +185,18 @@ public interface VPlexController extends Controller {
             throws InternalException;
 
     /**
+     * Activate the full copies with the passed URIs.
+     * 
+     * @param vplexURI The URI of the VPLEX storage system.
+     * @param fullCopyURIs The URIs of the full copies to be activated.
+     * @param opId The unique operation Id.
+     * 
+     * @throws InternalException When an exception occurs activating the full copies.
+     */
+    public void activateFullCopy(URI vplexURI, List<URI> fullCopyURIs, String opId)
+            throws InternalException;
+
+    /**
      * Restores a VPLEX volume by restoring a native snapshot of the source
      * backend volume for the VPLEX volume and invalidating the read cache for
      * the VPLEX volume. Presumes that I/O for exported volumes has been

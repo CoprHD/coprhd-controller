@@ -704,9 +704,57 @@ public class VPlexBlockFullCopyApiImpl extends AbstractBlockFullCopyApiImpl {
      */
     @Override
     public TaskList activate(BlockObject fcSourceObj, Volume fullCopyVolume) {
-        // VPLEX volumes are created active, so we can just call super
-        // and take the is already activated path.
-        return super.activate(fcSourceObj, fullCopyVolume);
+        // If the state is not inactive, then it must have already been activated.
+        // Return detach action is completed successfully as done in base class. 
+        // Otherwise, send activate full copy request to controller.
+        TaskList taskList = new TaskList();
+        String taskId = UUID.randomUUID().toString();
+        if (!BlockFullCopyUtils.isFullCopyInactive(fullCopyVolume, _dbClient)) {
+            super.activate(fcSourceObj, fullCopyVolume);
+        } else {
+
+            // You cannot create a full copy of a VPLEX snapshot, so
+            // the source will be a volume.
+            Volume sourceVolume = (Volume) fcSourceObj;
+
+            // If the source is in a CG, then we will activate the corresponding
+            // full copies for all the volumes in the CG. Since we did not allow
+            // full copies for volumes or snaps in CGs prior to Jedi, there should
+            // be a full copy for all volumes in the CG.
+            Map<URI, Volume> fullCopyMap = getFullCopySetMap(sourceVolume, fullCopyVolume);
+            Set<URI> fullCopyURIs = fullCopyMap.keySet();
+
+            // Get the storage system for the source volume.
+            StorageSystem sourceSystem = _dbClient.queryObject(StorageSystem.class,
+                    sourceVolume.getStorageController());
+            URI sourceSystemURI = sourceSystem.getId();
+
+            // Create the activate task on the full copy volumes.
+            for (URI fullCopyURI : fullCopyURIs) {
+                Operation op = _dbClient.createTaskOpStatus(Volume.class, fullCopyURI,
+                        taskId, ResourceOperationTypeEnum.ACTIVATE_VOLUME_FULL_COPY);
+                fullCopyMap.get(fullCopyURI).getOpStatus().put(taskId, op);
+                TaskResourceRep fullCopyVolumeTask = TaskMapper.toTask(
+                        fullCopyMap.get(fullCopyURI), taskId, op);
+                taskList.getTaskList().add(fullCopyVolumeTask);
+            }
+
+            addConsistencyGroupTasks(Arrays.asList(sourceVolume), taskList, taskId,
+                    ResourceOperationTypeEnum.ACTIVATE_CONSISTENCY_GROUP_FULL_COPY);
+
+            // Invoke the controller.
+            try {
+                VPlexController controller = getController(VPlexController.class,
+                        DiscoveredDataObject.Type.vplex.toString());
+                controller.activateFullCopy(sourceSystemURI, new ArrayList<URI>(
+                        fullCopyURIs), taskId);
+            } catch (InternalException ie) {
+                s_logger.error("Controller error: Failed to activate volume full copy {}", fullCopyVolume.getId(), ie);
+                handleFailedRequest(taskId, taskList,
+                        new ArrayList<Volume>(fullCopyMap.values()), ie, false);
+            }
+        }
+        return taskList;
     }
 
     /**

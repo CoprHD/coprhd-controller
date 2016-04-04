@@ -117,6 +117,12 @@ public class VPlexControllerImpl extends AbstractDiscoveredSystemController impl
     }
 
     @Override
+    public void activateFullCopy(URI vplexURI, List<URI> fullCopyURIs, String opId)
+            throws InternalException {
+        queueRequest("activateFullCopy", vplexURI, fullCopyURIs, opId);
+    }
+
+    @Override
     public void restoreVolume(URI vplexURI, URI snapshotURI, String opId)
             throws InternalException {
         queueRequest("restoreVolume", vplexURI, snapshotURI, opId);

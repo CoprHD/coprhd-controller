@@ -61,9 +61,7 @@ public abstract class VdcOpHandler {
     private static final String LOCK_FAILOVER_REMOVE_OLD_ACTIVE="drFailoverRemoveOldActiveLock";
     private static final String LOCK_PAUSE_STANDBY="drPauseStandbyLock";
     private static final String LOCK_DEGRADE_STANDBY="drDegradeStandbyLock";
-    private static final String LOCK_REJOIN_STANDBY="drRejoinStandbyLock";
-
-    public static final String NTPSERVERS = "network_ntpservers";
+    private static final String NTPSERVERS = "network_ntpservers";
 
     protected CoordinatorClientExt coordinator;
     protected LocalRepository localRepository;
@@ -242,9 +240,6 @@ public abstract class VdcOpHandler {
         @Override
         public void execute() throws Exception {
             reconfigVdc();
-            if (drUtil.isActiveSite()) {
-                changeSiteState(SiteState.STANDBY_ADDING, SiteState.STANDBY_SYNCING);
-            }
         }
     }
 
@@ -255,11 +250,18 @@ public abstract class VdcOpHandler {
      *   if data revision change fails. 
      */
     public static class DrChangeDataRevisionHandler extends VdcOpHandler {
+        private DistributedDoubleBarrier barrier;
+
         public DrChangeDataRevisionHandler() {
         }
 
         @Override
         public void execute() throws Exception {
+            if (barrier == null) {
+                String barrierPath = String.format("%s/%s/DataRevisionBarrier", ZkPath.SITES, coordinator.getCoordinatorClient().getSiteId());
+                barrier = coordinator.getCoordinatorClient().getDistributedDoubleBarrier(barrierPath, coordinator.getNodeCount());
+            }
+
             flushNtpConfigToLocal();
             checkDataRevision();
         }
@@ -469,6 +471,8 @@ public abstract class VdcOpHandler {
                 refreshFirewall();
                 localRepository.restart(Constants.GEODBSVC_NAME);
                 localRepository.restart(Constants.DBSVC_NAME);
+                // manually paused site should never reconfigure to observer until resumed
+                coordinator.stopCoordinatorSvcMonitor();
             } else {
                 reconfigVdc();
                 checkAndPauseOnActive();
@@ -581,45 +585,18 @@ public abstract class VdcOpHandler {
      *  - To-be-resumed site - rebuild db/zk data from active site and apply the config 
      */
     public static class DrResumeStandbyHandler extends VdcOpHandler {
-        private VdcPropertyBarrier restartDbsvcBarrier;
         public DrResumeStandbyHandler() {
         }
         
         @Override
         public void execute() throws Exception {
-            Site site = drUtil.getLocalSite();
-            if (restartDbsvcBarrier == null) {
-                restartDbsvcBarrier = new VdcPropertyBarrier(Constants.RESUME_BARRIER_RESTART_DBSVC,
-                        VDC_OP_BARRIER_TIMEOUT, site.getNodeCount(), false);
-            }
-            
             // on all sites, reconfig to enable firewall/ipsec
-            reconfigVdc();
-            
             if (drUtil.isActiveSite()) {
-                changeSiteState(SiteState.STANDBY_RESUMING, SiteState.STANDBY_SYNCING);
-            }
-            
-            // if site is in observer restart dbsvc
-            // move to the bottom so that it won't miss the data sync
-            restartDbsvcOnResumingSite();
-            restartDbsvcBarrier = null;
-        }
-
-        private void restartDbsvcOnResumingSite() throws Exception {
-            Site site = drUtil.getLocalSite();
-
-            //check both state and last state so we know this is a retry
-            if (site.getState() == SiteState.STANDBY_SYNCING
-                    && site.getLastState() == SiteState.STANDBY_RESUMING) {
-                
-                restartDbsvcBarrier.enter();
-                try {
-                    localRepository.restart(Constants.GEODBSVC_NAME);
-                    localRepository.restart(Constants.DBSVC_NAME);
-                } finally {
-                    restartDbsvcBarrier.leave();
-                }
+                reconfigVdc();
+            } else {
+                // ZooKeeper leader might be lost when active site reconfigures
+                // so it might not be possible to use barrier here.
+                reconfigVdc(false);
             }
         }
     }
@@ -677,52 +654,6 @@ public abstract class VdcOpHandler {
                 localRepository.restart(Constants.DBSVC_NAME);
                 localRepository.restart(Constants.GEODBSVC_NAME);
             }
-        }
-    }
-
-    /**
-     * Process DR config change for rejoin-standby op
-     *  - To-be-rejoined site - rebuild db/zk data from active site and apply the config
-     *  - Other sites - will not be notified
-     */
-    public static class DrRejoinStandbyHandler extends VdcOpHandler {
-        public DrRejoinStandbyHandler() {
-        }
-
-        @Override
-        public void execute() throws Exception {
-            Site localSite = drUtil.getLocalSite();
-            InterProcessLock lock = coordinator.getCoordinatorClient().getSiteLocalLock(LOCK_REJOIN_STANDBY);
-            while (localSite.getState().equals(SiteState.STANDBY_DEGRADED)) {
-                try {
-                    log.info("Acquiring lock {}", LOCK_DEGRADE_STANDBY);
-                    lock.acquire();
-                    log.info("Acquired lock {}", LOCK_DEGRADE_STANDBY);
-
-                    localSite = drUtil.getLocalSite();
-                    if (localSite.getState().equals(SiteState.STANDBY_DEGRADED)) {
-                        // nobody get the lock before me
-                        log.info("Setting local site {} to STANDBY_SYNCING", localSite.getUuid());
-                        localSite.setState(SiteState.STANDBY_SYNCING);
-                        coordinator.getCoordinatorClient().persistServiceConfiguration(localSite.toConfiguration());
-                        drUtil.recordDrOperationStatus(localSite.getUuid(), InterState.REJOINING_STANDBY);
-                    }
-                } finally {
-                    try {
-                        log.info("Releasing lock {}", LOCK_DEGRADE_STANDBY);
-                        lock.release();
-                        log.info("Released lock {}", LOCK_DEGRADE_STANDBY);
-                    } catch (Exception e) {
-                        log.error("Failed to release lock {}", LOCK_DEGRADE_STANDBY);
-                    }
-                }
-            }
-
-            // restart dbsvc/geodbsvc to start the data rebuild
-            localRepository.restart(Constants.DBSVC_NAME);
-            localRepository.restart(Constants.GEODBSVC_NAME);
-
-            flushVdcConfigToLocal();
         }
     }
 

@@ -491,9 +491,9 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
             String snapshotGroupName = snapshotObj.getReplicationGroupInstance();
             if (snapshotGroupName.contains("+")) {
                 // quick fix for correcting 000198700406+EMC_SMI_RG1430326858108 snapshotGroupName in 803+VMAX
-                if (storage.getUsingSmis80() && !storage.checkIfVmax3()) {
+                if (storage.getUsingSmis80()) {
                     snapshotGroupName = snapshotGroupName.substring(snapshotGroupName.indexOf("+") + 1);
-                } else { // array is not managed by SMI-S 8.0 (It can't be VMAX3 because only SMI-S 8.0 managed VMAX3 arrays)
+                } else {
                     snapshotGroupName = snapshotGroupName.substring(0, snapshotGroupName.indexOf("+"));
                 }
             }

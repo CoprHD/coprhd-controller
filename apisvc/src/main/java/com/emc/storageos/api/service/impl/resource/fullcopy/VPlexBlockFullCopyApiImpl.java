@@ -633,7 +633,7 @@ public class VPlexBlockFullCopyApiImpl extends AbstractBlockFullCopyApiImpl {
         if (VPlexUtil.isOpenStackBackend(fcSourceObject, _dbClient)) {
             vplexCopyVolume.setSyncActive(Boolean.FALSE);
         } else {
-            vplexCopyVolume.setSyncActive(createInactive);
+            vplexCopyVolume.setSyncActive(!createInactive);
         }
 
         // For Application, set the user provided clone name on all the clones to identify clone set

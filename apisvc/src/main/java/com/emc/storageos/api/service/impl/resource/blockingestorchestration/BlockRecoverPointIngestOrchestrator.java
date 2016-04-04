@@ -701,7 +701,7 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
             // We need the VPLEX ingest context to get the backend volume info
             VplexVolumeIngestionContext vplexVolumeContext = ((RpVplexVolumeIngestionContext) volumeContext.getVolumeContext())
                     .getVplexVolumeIngestionContext();
-            for (String associatedVolumeIdStr : volume.getAssociatedVolumes()) {
+            for (String associatedVolumeIdStr : vplexVolumeContext.getAssociatedVolumeIds(volume)) {
                 // Find the associated volumes using the context maps or the db if they are already there
                 Volume associatedVolume = VolumeIngestionUtil.findVolume(_dbClient,
                         vplexVolumeContext.getBlockObjectsToBeCreatedMap(),

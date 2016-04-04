@@ -45,6 +45,7 @@ public class NetAppSnapMirrorFailoverJob extends Job implements Serializable {
     public NetAppSnapMirrorFailoverJob(String jobId, URI storageSystemUri, TaskCompleter taskCompleter) {
         this._storageSystemUri = storageSystemUri;
         this._taskCompleter = taskCompleter;
+        this._jobName = "netAppSnapMirrorFailoverJob";
         this._jobIds.add(jobId);
     }
 

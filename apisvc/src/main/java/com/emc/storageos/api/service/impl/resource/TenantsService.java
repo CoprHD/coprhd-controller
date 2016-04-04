@@ -299,6 +299,8 @@ public class TenantsService extends TaggedResource {
         TenantOrg tenant = getTenantById(id, true);
         ObjectNamespace namesp = null;
         boolean namespModified = false;
+        ObjectNamespace oldNamesp = null;
+        boolean oldNamespModified = false;
         if (param.getLabel() != null && !param.getLabel().isEmpty()) {
             if (!tenant.getLabel().equalsIgnoreCase(param.getLabel())) {
                 checkForDuplicateName(param.getLabel(), TenantOrg.class, tenant.getParentTenant()
@@ -351,10 +353,10 @@ public class TenantsService extends TaggedResource {
             //removing link between tenant and the old namespace
             Iterator<ObjectNamespace> nsItrToUnMap = _dbClient.queryIterativeObjects(ObjectNamespace.class, allNamespaceURI);
             while (nsItrToUnMap.hasNext()) {
-                ObjectNamespace namespaceToUpdate = nsItrToUnMap.next();
-                if (namespaceToUpdate.getNativeId().equalsIgnoreCase(oldNamespace)) {
-                    namespaceToUpdate.setMapped(false);
-                    _dbClient.updateObject(namespaceToUpdate);
+               oldNamesp = nsItrToUnMap.next();
+                if (oldNamesp.getNativeId().equalsIgnoreCase(oldNamespace)) {
+                    oldNamesp.setMapped(false);
+                    oldNamespModified = true;
                     break;
                 }
             }
@@ -448,6 +450,9 @@ public class TenantsService extends TaggedResource {
 
         if (namespModified) {
             _dbClient.updateObject(namesp);
+        }
+        if (oldNamespModified) {
+            _dbClient.updateObject(oldNamesp);
         }
         _dbClient.updateAndReindexObject(tenant);
 

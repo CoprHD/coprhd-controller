@@ -20,8 +20,8 @@ import com.emc.storageos.volumecontroller.impl.JobPollResult;
 import com.iwave.ext.netapp.model.SnapMirrorState;
 import com.iwave.ext.netapp.model.SnapMirrorStatusInfo;
 
-public class NetAppSnapMirrorFailover extends Job implements Serializable {
-    private static final Logger _logger = LoggerFactory.getLogger(NetAppSnapMirrorFailover.class);
+public class NetAppSnapMirrorFailoverJob extends Job implements Serializable {
+    private static final Logger _logger = LoggerFactory.getLogger(NetAppSnapMirrorFailoverJob.class);
     private static final long ERROR_TRACKING_LIMIT = 60 * 1000; // tracking limit for transient errors. set for 2 hours
 
     private String _jobName;
@@ -35,14 +35,14 @@ public class NetAppSnapMirrorFailover extends Job implements Serializable {
     private JobPollResult _pollResult = new JobPollResult();
     private String _errorDescription = null;
 
-    public NetAppSnapMirrorFailover(String jobId, URI storageSystemUri, TaskCompleter taskCompleter, String jobName) {
+    public NetAppSnapMirrorFailoverJob(String jobId, URI storageSystemUri, TaskCompleter taskCompleter, String jobName) {
         this._storageSystemUri = storageSystemUri;
         this._taskCompleter = taskCompleter;
         this._jobName = jobName;
         this._jobIds.add(jobId);
     }
 
-    public NetAppSnapMirrorFailover(String jobId, URI storageSystemUri, TaskCompleter taskCompleter) {
+    public NetAppSnapMirrorFailoverJob(String jobId, URI storageSystemUri, TaskCompleter taskCompleter) {
         this._storageSystemUri = storageSystemUri;
         this._taskCompleter = taskCompleter;
         this._jobIds.add(jobId);

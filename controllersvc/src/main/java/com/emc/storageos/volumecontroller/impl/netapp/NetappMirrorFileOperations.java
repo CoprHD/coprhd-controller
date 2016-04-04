@@ -22,7 +22,7 @@ import com.emc.storageos.volumecontroller.impl.ControllerServiceImpl;
 import com.emc.storageos.volumecontroller.impl.file.FileMirrorOperations;
 import com.emc.storageos.volumecontroller.impl.job.QueueJob;
 import com.emc.storageos.volumecontroller.impl.netapp.job.NetAppSnapMirrorCreateJob;
-import com.emc.storageos.volumecontroller.impl.netapp.job.NetAppSnapMirrorFailover;
+import com.emc.storageos.volumecontroller.impl.netapp.job.NetAppSnapMirrorFailoverJob;
 import com.emc.storageos.volumecontroller.impl.netapp.job.NetAppSnapMirrorQuiesceJob;
 import com.emc.storageos.volumecontroller.impl.netapp.job.NetAppSnapMirrorResumeJob;
 import com.emc.storageos.volumecontroller.impl.netapp.job.NetAppSnapMirrorStartJob;
@@ -444,7 +444,7 @@ public class NetappMirrorFileOperations implements FileMirrorOperations {
             if (SnapMirrorState.SYNCRONIZED.equals(mirrorStatusInfo.getMirrorState())) {
                 _log.info("Calling snapmirror break on path: {}", location);
                 nApi.breakSnapMirror(location);
-                NetAppSnapMirrorFailover snapMirrorStatusJob = new NetAppSnapMirrorFailover(location, storage.getId(), taskCompleter,
+                NetAppSnapMirrorFailoverJob snapMirrorStatusJob = new NetAppSnapMirrorFailoverJob(location, storage.getId(), taskCompleter,
                         location);
                 try {
                     ControllerServiceImpl.enqueueJob(new QueueJob(snapMirrorStatusJob));

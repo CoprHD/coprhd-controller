@@ -23,7 +23,6 @@ import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.protectioncontroller.impl.recoverpoint.RPHelper;
 import com.emc.storageos.services.OperationTypeEnum;
-import com.emc.storageos.svcs.errorhandling.resources.APIException;
 
 /**
  * Block snapshot session implementation for RP protected volumes.
@@ -67,7 +66,7 @@ public class RPBlockSnapshotSessionApiImpl extends DefaultBlockSnapshotSessionAp
             boolean protectionBased = RPHelper.isProtectionBasedSnapshot(sourceVolume,
                     BlockSnapshot.TechnologyType.NATIVE.name(), _dbClient);
             if (protectionBased) {
-                throw APIException.badRequests.createSnapSessionNotSupportedForRPProtected();
+//                throw APIException.badRequests.createSnapSessionNotSupportedForRPProtected();
             }
 
             // Validate using the appropriate implementation.

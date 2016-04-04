@@ -358,14 +358,14 @@ public class TenantsService extends TaggedResource {
                     }
                 }
             }
+            String oldNamespace = tenant.getNamespace();
             tenant.setNamespace(NullColumnValueGetter.getNullStr());
             // Update tenant info in respective namespace CF
             List<URI> allNamespaceURI = _dbClient.queryByType(ObjectNamespace.class, true);
             Iterator<ObjectNamespace> nsItr = _dbClient.queryIterativeObjects(ObjectNamespace.class, allNamespaceURI);
             while (nsItr.hasNext()) {
                 namesp = nsItr.next();
-                if (namesp.getNativeId().equalsIgnoreCase(tenant.getNamespace())) {
-                    namesp.setTenant(tenant.getId());
+                if (namesp.getNativeId().equalsIgnoreCase(oldNamespace)) {
                     namesp.setMapped(false);
                     // There is a chance of exceptions ahead; hence updated db at the end
                     namespModified = true;

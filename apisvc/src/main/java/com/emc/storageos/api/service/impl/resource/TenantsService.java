@@ -316,7 +316,7 @@ public class TenantsService extends TaggedResource {
             tenant.setDescription(param.getDescription());
         }
 
-        if (param.getNamespace() != null && !param.getNamespace().isEmpty()) {
+        if (!StringUtils.isEmpty(param.getNamespace()) && !"null".equals(param.getNamespace())) {
             if (!param.getNamespace().equals(tenant.getNamespace())) {
                 checkForDuplicateNamespace(param.getNamespace());
             }            
@@ -347,7 +347,7 @@ public class TenantsService extends TaggedResource {
                     break;
                 }
             }
-        } else {
+        } else if (!StringUtils.isEmpty(param.getNamespace()) && "null".equals(param.getNamespace())) {
             if (!StringUtils.isEmpty(tenant.getNamespace())) {
                 // Though we are not deleting need to check no dependencies on this tenant
                 try {
@@ -359,6 +359,19 @@ public class TenantsService extends TaggedResource {
                 }
             }
             tenant.setNamespace(NullColumnValueGetter.getNullStr());
+            // Update tenant info in respective namespace CF
+            List<URI> allNamespaceURI = _dbClient.queryByType(ObjectNamespace.class, true);
+            Iterator<ObjectNamespace> nsItr = _dbClient.queryIterativeObjects(ObjectNamespace.class, allNamespaceURI);
+            while (nsItr.hasNext()) {
+                namesp = nsItr.next();
+                if (namesp.getNativeId().equalsIgnoreCase(param.getNamespace())) {
+                    namesp.setTenant(tenant.getId());
+                    namesp.setMapped(false);
+                    // There is a chance of exceptions ahead; hence updated db at the end
+                    namespModified = true;
+                    break;
+                }
+            }
         }
 
         if (!isUserMappingEmpty(param)) {

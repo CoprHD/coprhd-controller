@@ -324,7 +324,13 @@ public class TenantsService extends TaggedResource {
             if (tenant.getNamespace() != null && !tenant.getNamespace().isEmpty()) {
                 if (!tenant.getNamespace().equalsIgnoreCase(param.getNamespace())) {
                     // Though we are not deleting need to check no dependencies on this tenant
-                    ArgValidator.checkReference(TenantOrg.class, id, checkForDelete(tenant));
+                    try {
+                        ArgValidator.checkReference(TenantOrg.class, id, checkForDelete(tenant));
+                    } catch (APIException apiex) {
+                        if (!apiex.getMessage().contains("ObjectNamespace")) {
+                            throw apiex;
+                        }
+                    }
                 }
             }
             tenant.setNamespace(param.getNamespace());
@@ -344,10 +350,15 @@ public class TenantsService extends TaggedResource {
         } else {
             if (!StringUtils.isEmpty(tenant.getNamespace())) {
                 // Though we are not deleting need to check no dependencies on this tenant
-                ArgValidator.checkReference(TenantOrg.class, id, checkForDelete(tenant));
-            } else {
-                tenant.setNamespace(NullColumnValueGetter.getNullStr());
+                try {
+                    ArgValidator.checkReference(TenantOrg.class, id, checkForDelete(tenant));
+                } catch (APIException apiex) {
+                    if (!apiex.getMessage().contains("ObjectNamespace")) {
+                        throw apiex;
+                    }
+                }
             }
+            tenant.setNamespace(NullColumnValueGetter.getNullStr());
         }
 
         if (!isUserMappingEmpty(param)) {

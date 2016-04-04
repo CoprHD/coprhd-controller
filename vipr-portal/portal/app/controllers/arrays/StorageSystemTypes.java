@@ -72,7 +72,6 @@ public class StorageSystemTypes extends ViprResourceController {
 
 	public static void listJson() {
 		List<StorageSystemTypeDataTable.StorageSystemTypeInfo> storageSystemTypes = Lists.newArrayList();
-		StorageSystemTypeUtils.getAllStorageSystemTypes("all");
 
 		for (StorageSystemTypeRestRep storageSysType : StorageSystemTypeUtils.getAllStorageSystemTypes("all")
 				.getStorageSystemTypes()) {

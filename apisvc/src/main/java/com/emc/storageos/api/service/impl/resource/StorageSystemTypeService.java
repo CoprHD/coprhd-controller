@@ -91,9 +91,9 @@ public class StorageSystemTypeService extends TaskResourceService {
 			StorageSystemTypeServiceUtils.InitializeStorageSystemTypes(_dbClient);
 		}
 		// validate query param
-		if (storageType != null) {
-			ArgValidator.checkFieldValueFromEnum(storageType, "storageType", StorageSystemType.StorageType.class);
-		}
+//		if (storageType != null) {
+//			ArgValidator.checkFieldValueFromEnum(storageType, "storageType", StorageSystemType.StorageType.class);
+//		}
 
 		List<URI> ids = _dbClient.queryByType(StorageSystemType.class, true);
 

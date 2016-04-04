@@ -151,9 +151,4 @@ public class StorageSystemType extends DataObject {
 		this.driverClassName = driverClassName;
 		setChanged("driverClassName");
 	}
-
-	public static enum StorageType {
-		block, file, object
-	}
-
 }

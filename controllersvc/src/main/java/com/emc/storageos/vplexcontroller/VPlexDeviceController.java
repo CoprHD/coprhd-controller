@@ -6838,7 +6838,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
      */
     @Override
     public void createFullCopy(URI vplexURI, List<VolumeDescriptor> volumeDescriptors,
-            String opId) throws ControllerException {
+            Boolean createInactive, String opId) throws ControllerException {
         _log.info("Copy volumes on VPLEX", vplexURI);
 
         // When we copy a VPLEX virtual volume we natively copy the primary backend
@@ -6968,21 +6968,24 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
 
                 // Now create the step to do the native full copy of this
                 // primary backend volume or the snapshot to the passed import volumes.
-                waitFor = createStepForNativeCopy(workflow,
-                        primarySourceObject, importVolumeDescriptors, waitFor);
+                waitFor = createStepForNativeCopy(workflow, primarySourceObject, createInactive,
+                        importVolumeDescriptors, waitFor);
                 _log.info("Created workflow step to create {} copies of the primary",
                         importVolumeDescriptors.size());
 
                 // Next, create a step to create and start an import volume
                 // workflow for each copy.
-                createStepsForFullCopyImport(workflow, vplexURI, primarySourceObject,
-                        vplexVolumeDescriptors, volumeDescriptorsRG, waitFor);
-                _log.info("Created workflow steps to import the primary copies");
+                if (!createInactive) {
+                    createStepsForFullCopyImport(workflow, vplexURI, primarySourceObject,
+                            vplexVolumeDescriptors, volumeDescriptorsRG, waitFor);
+                    _log.info("Created workflow steps to import the primary copies");
+                }
             }
 
             _log.info("Executing workflow plan");
-            workflow.executePlan(completer, String.format(
-                    "Copy of VPLEX volume %s completed successfully", vplexSrcVolumeURI));
+            FullCopyOperationCompleteCallback wfCompleteCB = new FullCopyOperationCompleteCallback();
+            workflow.executePlan(completer, String.format("Copy of VPLEX volume %s completed successfully",
+                    vplexSrcVolumeURI), wfCompleteCB, new Object[] { vplexCopyVolumesURIs }, null, null);
             _log.info("Workflow plan executing");
         } catch (Exception e) {
             String failMsg = String.format("Copy of VPLEX volume %s failed",
@@ -7146,6 +7149,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
      *
      * @param workflow A reference to the workflow to which the step is added.
      * @param srcObject A reference to a backend source volume or snapshot to be copied.
+     * @param createInactive true to create the full copies inactive, false otherwise.
      * @param copyVolumeDescriptors The descriptors representing the backend
      *            full copy volumes.
      * @param waitFor The step in the passed workflow for which this step should
@@ -7155,7 +7159,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
      *         should wait.
      */
     private String createStepForNativeCopy(Workflow workflow, BlockObject srcObject,
-            List<VolumeDescriptor> copyVolumeDescriptors, String waitFor) {
+            Boolean createInactive, List<VolumeDescriptor> copyVolumeDescriptors, String waitFor) {
         List<URI> copyVolumeURIs = VolumeDescriptor.getVolumeURIs(copyVolumeDescriptors);
         StorageSystem srcVolumeSystem = getDataObject(StorageSystem.class,
                 srcObject.getStorageController(), _dbClient);
@@ -7164,7 +7168,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
 
         String stepId = workflow.createStepId();
         Workflow.Method executeMethod = new Workflow.Method(FULL_COPY_METHOD_NAME,
-                srcVolumeSystemURI, copyVolumeURIs, Boolean.FALSE);
+                srcVolumeSystemURI, copyVolumeURIs, createInactive);
         Workflow.Method rollbackMethod = new Workflow.Method(ROLLBACK_FULL_COPY_METHOD, srcVolumeSystemURI, copyVolumeURIs);
         workflow.createStep(COPY_VOLUME_STEP, String.format(
                 "Create full copy volumes %s on system %s", copyVolumeURIs,

@@ -137,7 +137,7 @@ public interface BlockFullCopyApi {
      * @return VolumeRestRep
      */
     public VolumeRestRep checkProgress(URI sourceURI, Volume fullCopyVolume);
-    
+
     /**
      * Verify that the passed volume can be deleted.
      * 

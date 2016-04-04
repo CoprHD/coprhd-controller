@@ -431,9 +431,8 @@ public class VPlexBlockFullCopyApiImpl extends AbstractBlockFullCopyApiImpl {
                     vplexCopyHAVolume = vplexCopyHAVolumes.get(i);
                 }
                 Volume vplexCopyVolume = prepareFullCopyVPlexVolume(copyName, name, count, i, size,
-                        fcSourceObj, vplexSrcProject, varray, vpool,
-                        vplexSrcSystemId, vplexCopyPrimaryVolume, vplexCopyHAVolume, taskId,
-                        volumeDescriptors);
+                        fcSourceObj, vplexSrcProject, varray, vpool, vplexSrcSystemId, vplexCopyPrimaryVolume, 
+                        vplexCopyHAVolume, createInactive, taskId, volumeDescriptors);
                 vplexCopyVolumes.add(vplexCopyVolume);
 
                 // Create task for each copy.
@@ -468,7 +467,7 @@ public class VPlexBlockFullCopyApiImpl extends AbstractBlockFullCopyApiImpl {
             VPlexController controller = getController(VPlexController.class,
                     DiscoveredDataObject.Type.vplex.toString());
             // TBD controller needs to be updated to handle CGs.
-            controller.createFullCopy(vplexSrcSystemId, volumeDescriptors, taskId);
+            controller.createFullCopy(vplexSrcSystemId, volumeDescriptors, createInactive, taskId);
             s_logger.info("Successfully invoked controller.");
         } catch (InternalException e) {
             s_logger.error("Controller error", e);
@@ -483,7 +482,7 @@ public class VPlexBlockFullCopyApiImpl extends AbstractBlockFullCopyApiImpl {
                         VolumeDescriptor.PARAM_IS_COPY_SOURCE_ID) == null) {
                     Volume volume = _dbClient.queryObject(Volume.class, descriptor.getVolumeURI());
                     volume.setInactive(true);
-                    _dbClient.persistObject(volume);
+                    _dbClient.updateObject(volume);
                 }
             }
         }
@@ -558,7 +557,7 @@ public class VPlexBlockFullCopyApiImpl extends AbstractBlockFullCopyApiImpl {
                         haRecommendation.getSourceStorageSystem(), haRecommendation.getSourceStoragePool(),
                         nameBuilder.toString(), null, taskId, _dbClient);
                 volume.addInternalFlags(Flag.INTERNAL_OBJECT);
-                _dbClient.persistObject(volume);
+                _dbClient.updateObject(volume);
                 copyHAVolumes.add(volume);
 
                 // Create the volume descriptor and add it to the passed list.
@@ -587,6 +586,7 @@ public class VPlexBlockFullCopyApiImpl extends AbstractBlockFullCopyApiImpl {
      * @param srcSystemURI The VPLEX system URI.
      * @param primaryVolume The primary volume for the copy.
      * @param haVolume The HA volume for the copy, or null.
+     * @param createInactive true to create the full copies inactive, false otherwise.
      * @param taskId The task identifier.
      * @param volumeDescriptors The list of descriptors.
      * 
@@ -595,7 +595,7 @@ public class VPlexBlockFullCopyApiImpl extends AbstractBlockFullCopyApiImpl {
     private Volume prepareFullCopyVPlexVolume(String name, String fullCopySetName, int copyCount, int copyIndex,
             long size, BlockObject fcSourceObject, Project srcProject, VirtualArray srcVarray,
             VirtualPool srcVpool, URI srcSystemURI, Volume primaryVolume, Volume haVolume,
-            String taskId, List<VolumeDescriptor> volumeDescriptors) {
+            boolean createInactive, String taskId, List<VolumeDescriptor> volumeDescriptors) {
 
         // Determine the VPLEX volume copy name.
         StringBuilder nameBuilder = new StringBuilder(name);
@@ -633,7 +633,7 @@ public class VPlexBlockFullCopyApiImpl extends AbstractBlockFullCopyApiImpl {
         if (VPlexUtil.isOpenStackBackend(fcSourceObject, _dbClient)) {
             vplexCopyVolume.setSyncActive(Boolean.FALSE);
         } else {
-            vplexCopyVolume.setSyncActive(Boolean.TRUE);
+            vplexCopyVolume.setSyncActive(!createInactive);
         }
 
         // For Application, set the user provided clone name on all the clones to identify clone set
@@ -642,7 +642,7 @@ public class VPlexBlockFullCopyApiImpl extends AbstractBlockFullCopyApiImpl {
         }
 
         // Persist the copy.
-        _dbClient.persistObject(vplexCopyVolume);
+        _dbClient.updateObject(vplexCopyVolume);
 
         return vplexCopyVolume;
     }
@@ -686,7 +686,7 @@ public class VPlexBlockFullCopyApiImpl extends AbstractBlockFullCopyApiImpl {
                     nameBuilder.toString(), srcBlockObject, recommendation, copyIndex++,
                     srcCapabilities);
             volume.addInternalFlags(Flag.INTERNAL_OBJECT);
-            _dbClient.persistObject(volume);
+            _dbClient.updateObject(volume);
             copyPrimaryVolumes.add(volume);
 
             // Create the volume descriptor and add it to the passed list.
@@ -968,7 +968,7 @@ public class VPlexBlockFullCopyApiImpl extends AbstractBlockFullCopyApiImpl {
             if (op != null) {
                 op.error(ie);
                 fullCopyVolume.getOpStatus().updateTaskStatus(taskId, op);
-                _dbClient.persistObject(fullCopyVolume);
+                _dbClient.updateObject(fullCopyVolume);
                 fullCopyVolumeTask.setState(op.getStatus());
                 fullCopyVolumeTask.setMessage(op.getMessage());
             }

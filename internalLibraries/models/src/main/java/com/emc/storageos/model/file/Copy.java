@@ -10,10 +10,10 @@ import java.net.URI;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 
-@XmlRootElement(name = "file_copy")
+@XmlRootElement(name = "copy")
 public class Copy implements Serializable {
 
-    private static final long serialVersionUID = -825089254972004248L;
+    private static final long serialVersionUID = -8250892549720042299L;
     private URI copyID;
     private String type;
     private FileSystemReplicationSettings replicationSettingParam;

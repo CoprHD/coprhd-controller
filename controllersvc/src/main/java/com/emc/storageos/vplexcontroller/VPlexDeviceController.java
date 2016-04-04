@@ -6981,6 +6981,10 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             }
 
             _log.info("Executing workflow plan");
+            FullCopyOperationCompleteCallback wfCompleteCB = new FullCopyOperationCompleteCallback();
+            workflow.executePlan(completer, String.format("Copy of VPLEX volume %s completed successfully",
+                    vplexSrcVolumeURI), wfCompleteCB, new Object[] { vplexCopyVolumesURIs }, null, null);
+
             workflow.executePlan(completer, String.format(
                     "Copy of VPLEX volume %s completed successfully", vplexSrcVolumeURI));
             _log.info("Workflow plan executing");

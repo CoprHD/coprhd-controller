@@ -45,6 +45,7 @@ public class NetAppSnapMirrorReleaseJob extends Job implements Serializable {
     public NetAppSnapMirrorReleaseJob(String jobId, URI storageSystemUri, TaskCompleter taskCompleter) {
         this._storageSystemUri = storageSystemUri;
         this._taskCompleter = taskCompleter;
+        this._jobName = "netAppSnapMirrorReleaseJob";
         this._jobIds.add(jobId);
     }
 

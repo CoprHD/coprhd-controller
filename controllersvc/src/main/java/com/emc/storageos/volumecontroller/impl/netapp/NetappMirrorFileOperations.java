@@ -300,8 +300,7 @@ public class NetappMirrorFileOperations implements FileMirrorOperations {
                 SnapMirrorState.READY.equals(mirrorStatusInfo.getMirrorState())) {
             // make api call
             nApiTarget.initializeSnapMirror(sourceLocation, destLocation, portGroupTarget);
-            NetAppSnapMirrorStartJob snapMirrorStatusJob = new NetAppSnapMirrorStartJob(destLocation, targetStorage.getId(), taskCompleter,
-                    destLocation);
+            NetAppSnapMirrorStartJob snapMirrorStatusJob = new NetAppSnapMirrorStartJob(destLocation, targetStorage.getId(), taskCompleter);
             try {
                 ControllerServiceImpl.enqueueJob(new QueueJob(snapMirrorStatusJob));
                 return BiosCommandResult.createPendingResult();

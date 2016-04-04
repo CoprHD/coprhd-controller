@@ -899,9 +899,6 @@ public class DisasterRecoveryService {
 
         InterProcessLock lock = drUtil.getDROperationLock();
 
-        // this vdc target version is solely used for re-initializing the resuming site
-        // all the sites from the active POV use vdcTargetVersion + 1,
-        // so that the resuming site can update the site state to STANDBY_SYNCING
         long vdcTargetVersion = DrUtil.newVdcConfigVersion();
         try {
             coordinator.startTransaction();
@@ -923,7 +920,7 @@ public class DisasterRecoveryService {
                     site.setState(SiteState.STANDBY_RESUMING);
                     coordinator.persistServiceConfiguration(site.toConfiguration());
                     drUtil.recordDrOperationStatus(site.getUuid(), InterState.RESUMING_STANDBY);
-                    drUtil.updateVdcTargetVersion(uuid, SiteInfo.DR_OP_RESUME_STANDBY, vdcTargetVersion, dataRevision);
+                    drUtil.updateVdcTargetVersion(uuid, SiteInfo.DR_OP_CHANGE_DATA_REVISION, vdcTargetVersion, dataRevision);
                 } else {
                     drUtil.updateVdcTargetVersion(site.getUuid(), SiteInfo.DR_OP_RESUME_STANDBY, vdcTargetVersion);
                 }
@@ -1066,8 +1063,19 @@ public class DisasterRecoveryService {
             log.info("Notify all sites for reconfig");
             long vdcTargetVersion = DrUtil.newVdcConfigVersion();
 
-            for (Site standbySite : drUtil.listSites()) {
-                drUtil.updateVdcTargetVersion(standbySite.getUuid(), drOperation, vdcTargetVersion);
+            for (Site site : drUtil.listSites()) {
+                String siteUuid = site.getUuid();
+                if (site.getLastState() == SiteState.STANDBY_RESUMING) {
+                    SiteInfo siteTargetInfo = coordinator.getTargetInfo(siteUuid, SiteInfo.class);
+                    drOperation = siteTargetInfo.getActionRequired();
+                    if (drOperation == SiteInfo.DR_OP_CHANGE_DATA_REVISION) {
+                        long dataRevision = System.currentTimeMillis();
+                        drUtil.updateVdcTargetVersion(siteUuid, drOperation, vdcTargetVersion, dataRevision);
+                        continue;
+                    }
+                }
+                log.info("Set dr operation {} on site {}", drOperation, siteUuid);
+                drUtil.updateVdcTargetVersion(siteUuid, drOperation, vdcTargetVersion);
             }
 
             coordinator.commitTransaction();

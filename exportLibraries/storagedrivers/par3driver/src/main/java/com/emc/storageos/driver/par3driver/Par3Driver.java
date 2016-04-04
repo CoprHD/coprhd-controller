@@ -2,9 +2,12 @@ package com.emc.storageos.driver.par3driver;
 
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 import org.apache.commons.lang.mutable.MutableBoolean;
 import org.apache.commons.lang.mutable.MutableInt;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.storagedriver.AbstractStorageDriver;
 import com.emc.storageos.storagedriver.BlockStorageDriver;
@@ -27,6 +30,9 @@ import com.emc.storageos.storagedriver.storagecapabilities.StorageCapabilities;
 
 public class Par3Driver extends AbstractStorageDriver implements BlockStorageDriver {
 
+	private static final Logger _log = LoggerFactory.getLogger(Par3Driver.class);
+    private static final String DRIVER_NAME = "3PARDriver";
+    
 	@Override
 	public List<String> getSystemTypes() {
 		// TODO Auto-generated method stub
@@ -54,7 +60,17 @@ public class Par3Driver extends AbstractStorageDriver implements BlockStorageDri
 	@Override
 	public DriverTask discoverStorageSystem(List<StorageSystem> storageSystems) {
 		// TODO Auto-generated method stub
-		return null;
+		 _log.info("3PAR proto driver");
+		 StorageSystem storageSystem = storageSystems.get(0);
+	        _log.info("3PAR: discoverStorageSystem information for storage system {}, name {} - start",
+	                storageSystem.getIpAddress(), storageSystem.getSystemName());
+	        String taskType = "discover-3par-system";
+	        String taskId = String.format("%s+%s+%s", DRIVER_NAME, taskType, UUID.randomUUID().toString());
+	        DriverTask task = new Par3DriverTask(taskId);
+
+	        _log.info("3par: end");
+	        task.setStatus(DriverTask.TaskStatus.READY);
+	        return task;
 	}
 
 	@Override

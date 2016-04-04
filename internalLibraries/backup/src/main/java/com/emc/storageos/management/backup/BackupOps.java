@@ -353,7 +353,7 @@ public class BackupOps {
         }
     }
 
-    public void checkBackup(File backupFolder) throws Exception {
+    public void checkBackup(File backupFolder, boolean isLocal) throws Exception {
         File[] backupFiles = getBackupFiles(backupFolder);
 
         if (backupFiles == null) {
@@ -403,11 +403,30 @@ public class BackupOps {
         }
 
         if (infoPropertyFile == null) {
+            if (isLocal) {
+                return; // for local backup, not all nodes has info property file
+            }
             String errMsg = String.format("%s does not contain property file", backupFolder.getAbsolutePath());
             throw new RuntimeException(errMsg);
         }
 
-        checkBackup(infoPropertyFile, isGeo);
+
+        checkBackupPropertyInfo(infoPropertyFile, isGeo);
+    }
+
+    private void checkBackupPropertyInfo(File propertyInfoFile, boolean isGeo) throws Exception {
+        RestoreManager manager = new RestoreManager();
+        CoordinatorClientImpl client = (CoordinatorClientImpl) coordinatorClient;
+        manager.setNodeCount(client.getNodeCount());
+
+        DualInetAddress addresses = coordinatorClient.getInetAddessLookupMap().getDualInetAddress();
+        String ipaddress4 = addresses.getInet4();
+        String ipaddress6 = addresses.getInet6();
+        manager.setIpAddress4(ipaddress4);
+        manager.setIpAddress6(ipaddress6);
+        manager.setEnableChangeVersion(false);
+
+        manager.checkBackupInfo(propertyInfoFile, isGeo);
     }
 
     public List<URI> getOtherNodes() throws URISyntaxException, UnknownHostException {
@@ -479,20 +498,6 @@ public class BackupOps {
         return backupFolder.listFiles(filter);
     }
 
-    private void checkBackup(File propertyInfoFile, boolean isGeo) throws Exception {
-        RestoreManager manager = new RestoreManager();
-        CoordinatorClientImpl client = (CoordinatorClientImpl) coordinatorClient;
-        manager.setNodeCount(client.getNodeCount());
-
-        DualInetAddress addresses = coordinatorClient.getInetAddessLookupMap().getDualInetAddress();
-        String ipaddress4 = addresses.getInet4();
-        String ipaddress6 = addresses.getInet6();
-        manager.setIpAddress4(ipaddress4);
-        manager.setIpAddress6(ipaddress6);
-        manager.setEnableChangeVersion(false);
-
-        manager.checkBackupInfo(propertyInfoFile, isGeo);
-    }
 
     /* We support 3-nodes-to-5-nodes restore, so
      * there can be no data on vipr4 and vipr5, but there should
@@ -1221,7 +1226,7 @@ public class BackupOps {
         File downloadFolder = getDownloadDirectory(backupName);
 
         try {
-            checkBackup(downloadFolder);
+            checkBackup(downloadFolder, false);
         }catch (Exception e) {
             return false;
         }

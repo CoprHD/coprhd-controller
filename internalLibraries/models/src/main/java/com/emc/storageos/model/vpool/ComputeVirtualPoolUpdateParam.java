@@ -66,7 +66,11 @@ public class ComputeVirtualPoolUpdateParam {
     }
 
     /**
-     * Supported System Types
+     * Supported System Types.
+     * Valid values:
+     * 	Cisco_UCSM
+     * 	Cisco_CSeries
+     * 	Generic
      * 
      */
     @XmlElement(name = "system_type")

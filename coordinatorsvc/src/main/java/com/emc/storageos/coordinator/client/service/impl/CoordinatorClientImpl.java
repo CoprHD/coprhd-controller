@@ -1314,7 +1314,11 @@ public class CoordinatorClientImpl implements CoordinatorClient {
         cfg.setKind(kind);
         cfg.setConfig(TARGET_INFO, info.encodeAsString());
         persistServiceConfiguration(siteId, cfg);
-        log.info("Target info set: {} for site {}", info, siteId);
+        if (siteId == null) {
+            log.info("Target info set: {} for local site", info);
+        } else {
+            log.info("Target info set: {} for site {}", info, siteId);
+        }
     }
     
     

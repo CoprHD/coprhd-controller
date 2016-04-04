@@ -266,24 +266,23 @@ public class FileQuotaDirectoryService extends TaskResourceService {
             Long quotaSize = SizeUtil.translateSize(param.getSize());// converts the input string in format "<value>GB"
                                                                      // to Bytes
             if (quotaSize > 0) {
-                ArgValidator.checkFieldMaximum(quotaSize, fs.getCapacity(), SizeUtil.SIZE_B, "size");
+                ArgValidator.checkFieldMaximum(quotaSize, fs.getCapacity(), SizeUtil.SIZE_B, "size", true);
                 quotaDir.setSize(quotaSize);
             }
         }
-        
 
         ArgValidator.checkFieldMaximum(param.getSoftLimit(), 100, "softLimit");
         ArgValidator.checkFieldMaximum(param.getNotificationLimit(), 100, "notificationLimit");
-        
+
         if (param.getSoftLimit() != 0L) {
             ArgValidator.checkFieldMinimum(param.getSoftGrace(), 1L, "softGrace");
         }
-        quotaDir.setSoftLimit(param.getSoftLimit() != 0 ? param.getSoftLimit() :
-            fs.getSoftLimit() != null ? fs.getSoftLimit().intValue() : 0);
-        quotaDir.setSoftGrace(param.getSoftGrace() != 0 ? param.getSoftGrace() :
-            fs.getSoftGracePeriod() != null ? fs.getSoftGracePeriod() : 0);
+        quotaDir.setSoftLimit(
+                param.getSoftLimit() != 0 ? param.getSoftLimit() : fs.getSoftLimit() != null ? fs.getSoftLimit().intValue() : 0);
+        quotaDir.setSoftGrace(
+                param.getSoftGrace() != 0 ? param.getSoftGrace() : fs.getSoftGracePeriod() != null ? fs.getSoftGracePeriod() : 0);
         quotaDir.setNotificationLimit(param.getNotificationLimit() != 0 ? param.getNotificationLimit()
-                : fs.getNotificationLimit() != null ? fs.getNotificationLimit().intValue() : 0);        
+                : fs.getNotificationLimit() != null ? fs.getNotificationLimit().intValue() : 0);
         Operation op = new Operation();
         op.setResourceType(ResourceOperationTypeEnum.UPDATE_FILE_SYSTEM_QUOTA_DIR);
         quotaDir.getOpStatus().createTaskStatus(task, op);

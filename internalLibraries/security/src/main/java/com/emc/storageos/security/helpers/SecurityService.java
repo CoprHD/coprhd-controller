@@ -8,7 +8,7 @@ import java.security.*;
 
 public interface SecurityService {
 
-    byte[] loadPrivateKeyFromPEMString(String pemKey) throws Exception;
+    byte[] loadPrivateKeyFromPEMString(String pemKey);
 
     void clearSensitiveData(byte[] key);
 

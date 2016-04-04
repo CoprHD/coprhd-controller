@@ -364,7 +364,7 @@ public class TenantsService extends TaggedResource {
             Iterator<ObjectNamespace> nsItr = _dbClient.queryIterativeObjects(ObjectNamespace.class, allNamespaceURI);
             while (nsItr.hasNext()) {
                 namesp = nsItr.next();
-                if (namesp.getNativeId().equalsIgnoreCase(param.getNamespace())) {
+                if (namesp.getNativeId().equalsIgnoreCase(tenant.getNamespace())) {
                     namesp.setTenant(tenant.getId());
                     namesp.setMapped(false);
                     // There is a chance of exceptions ahead; hence updated db at the end

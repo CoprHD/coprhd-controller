@@ -57,8 +57,8 @@ public class StorageSystemType extends DataObject {
 		return storageTypeType;
 	}
 
-	public void setStorageTypeType(String storageType) {
-		this.storageTypeType = storageType;
+	public void setStorageTypeType(String storageTypeType) {
+		this.storageTypeType = storageTypeType;
 		setChanged("storageTypeType");
 	}
 

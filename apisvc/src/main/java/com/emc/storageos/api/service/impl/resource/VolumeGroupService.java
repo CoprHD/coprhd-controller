@@ -573,7 +573,7 @@ public class VolumeGroupService extends TaskResourceService {
         for (VolumeGroupUtils util : utils) {
             util.validateUpdateVolumesInVolumeGroup(_dbClient, param, volumeGroup);
         }
-        checkForApplicationPendingTasks(volumeGroup, _dbClient, true);
+
         for (VolumeGroupUtils util : utils) {
             util.updateVolumesInVolumeGroup(_dbClient, param, volumeGroup, taskId, taskList);
         }

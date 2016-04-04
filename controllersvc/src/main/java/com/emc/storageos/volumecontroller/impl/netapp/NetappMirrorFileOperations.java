@@ -22,6 +22,7 @@ import com.emc.storageos.volumecontroller.impl.ControllerServiceImpl;
 import com.emc.storageos.volumecontroller.impl.file.FileMirrorOperations;
 import com.emc.storageos.volumecontroller.impl.job.QueueJob;
 import com.emc.storageos.volumecontroller.impl.netapp.job.NetAppSnapMirrorCreateJob;
+import com.emc.storageos.volumecontroller.impl.netapp.job.NetAppSnapMirrorFailover;
 import com.emc.storageos.volumecontroller.impl.netapp.job.NetAppSnapMirrorQuiesceJob;
 import com.emc.storageos.volumecontroller.impl.netapp.job.NetAppSnapMirrorStartJob;
 import com.emc.storageos.workflow.WorkflowStepCompleter;
@@ -457,11 +458,19 @@ public class NetappMirrorFileOperations implements FileMirrorOperations {
         SnapMirrorStatusInfo mirrorStatusInfo = nApi.getSnapMirrorStateInfo(location);
 
         if (mirrorStatusInfo != null) {
-            if (SnapMirrorState.SYNCRONIZED.equals(mirrorStatusInfo.getMirrorState()) ||
-                    SnapMirrorState.PAUSE.equals(mirrorStatusInfo.getMirrorState())) {
+            if (SnapMirrorState.SYNCRONIZED.equals(mirrorStatusInfo.getMirrorState())) {
                 _log.info("Calling snapmirror break on path: {}", location);
                 nApi.breakSnapMirror(location);
-                return BiosCommandResult.createSuccessfulResult();
+                NetAppSnapMirrorFailover snapMirrorStatusJob = new NetAppSnapMirrorFailover(location, storage.getId(), taskCompleter,
+                        location);
+                try {
+                    ControllerServiceImpl.enqueueJob(new QueueJob(snapMirrorStatusJob));
+                    return BiosCommandResult.createPendingResult();
+                } catch (Exception e) {
+                    _log.error("Snapmirror start failed", e);
+                    ServiceError error = DeviceControllerErrors.netapp.jobFailed("Snapmirror start failed:" + e.getMessage());
+                    return BiosCommandResult.createErrorResult(error);
+                }
             } else if (SnapMirrorState.FAILOVER.equals(mirrorStatusInfo.getMirrorState())) {
                 _log.info("Snapmirror is already broken-off: {}", location);
                 return BiosCommandResult.createSuccessfulResult();

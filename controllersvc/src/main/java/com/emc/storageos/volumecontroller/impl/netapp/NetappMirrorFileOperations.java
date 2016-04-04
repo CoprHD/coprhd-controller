@@ -379,22 +379,6 @@ public class NetappMirrorFileOperations implements FileMirrorOperations {
     public BiosCommandResult deleteSnapMirrorSchedule(StorageSystem sourceStorage, StorageSystem targetStorage, FileShare sourceFs,
             FileShare targetFs, TaskCompleter taskCompleter) {
 
-        NetAppApi nApiSource = new NetAppApi.Builder(sourceStorage.getIpAddress(),
-                sourceStorage.getPortNumber(), sourceStorage.getUsername(),
-                sourceStorage.getPassword()).https(true).build();
-
-        // get source system name
-        String sourceLocation = getLocation(nApiSource, sourceFs);
-
-        SnapMirrorStatusInfo statusInfo = nApiSource.getSnapMirrorStateInfo(sourceLocation);
-
-        if (statusInfo != null) {
-            _log.error("Snapmirror is not released on source: {}", sourceLocation);
-            ServiceError error = DeviceControllerErrors.netapp
-                    .jobFailed("Snapmirror delete schedule failed. Snapmirror is not released on source: " + sourceLocation);
-            return BiosCommandResult.createErrorResult(error);
-        }
-
         // target netapp
         NetAppApi nApiTarget = new NetAppApi.Builder(targetStorage.getIpAddress(),
                 targetStorage.getPortNumber(), targetStorage.getUsername(),

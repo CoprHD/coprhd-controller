@@ -15,12 +15,12 @@ import javax.xml.bind.annotation.XmlRootElement;
 public class FileReplicationParam implements Serializable {
 
     private static final long serialVersionUID = 1L;
-    private List<Copy> copies;
+    private List<FileCopy> copies;
 
     public FileReplicationParam() {
     }
 
-    public FileReplicationParam(List<Copy> copies) {
+    public FileReplicationParam(List<FileCopy> copies) {
         this.copies = copies;
     }
 
@@ -30,14 +30,14 @@ public class FileReplicationParam implements Serializable {
      * 
      */
     @XmlElement(name = "file_copy")
-    public List<Copy> getCopies() {
+    public List<FileCopy> getCopies() {
         if (copies == null) {
-            copies = new ArrayList<Copy>();
+            copies = new ArrayList<FileCopy>();
         }
         return copies;
     }
 
-    public void setCopies(List<Copy> copies) {
+    public void setCopies(List<FileCopy> copies) {
         this.copies = copies;
     }
 

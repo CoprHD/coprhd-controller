@@ -919,6 +919,9 @@ public class NetAppFileCommunicationInterface extends
 
                     String nativeGUID = NativeGUIDGenerator.generateNativeGuidForQuotaDir(storageSystem.getSystemType(),
                             storageSystem.getSerialNumber(), quota.getQtree(), quota.getVolume());
+                    
+                    String nativeUnmanagedGUID = NativeGUIDGenerator.generateNativeGuidForUnManagedQuotaDir(storageSystem.getSystemType(),
+                            storageSystem.getSerialNumber(), quota.getQtree(), quota.getVolume());
                     if (checkStorageQuotaDirectoryExistsInDB(nativeGUID)) {
                         continue;
                     }
@@ -926,14 +929,14 @@ public class NetAppFileCommunicationInterface extends
                     UnManagedFileQuotaDirectory unManagedFileQuotaDirectory = new UnManagedFileQuotaDirectory();
                     unManagedFileQuotaDirectory.setId(URIUtil.createId(UnManagedFileQuotaDirectory.class));
                     unManagedFileQuotaDirectory.setLabel(quota.getQtree());
-                    unManagedFileQuotaDirectory.setNativeGuid(nativeGUID);
+                    unManagedFileQuotaDirectory.setNativeGuid(nativeUnmanagedGUID);
                     unManagedFileQuotaDirectory.setParentFSNativeGuid(fsNativeGUID);
                     if("enabled".equals(qTreeNameQTreeMap.get(quota.getVolume() + quota.getQtree()).getOplocks())) {
                         unManagedFileQuotaDirectory.setOpLock(true);
                     }
                     unManagedFileQuotaDirectory.setSize(Long.valueOf(quota.getDiskLimit()));
 
-                    if (!checkUnManagedQuotaDirectoryExistsInDB(nativeGUID)) {
+                    if (!checkUnManagedQuotaDirectoryExistsInDB(nativeUnmanagedGUID)) {
                         unManagedFileQuotaDirectories.add(unManagedFileQuotaDirectory);
                     } else {
                         existingUnManagedFileQuotaDirectories.add(unManagedFileQuotaDirectory);

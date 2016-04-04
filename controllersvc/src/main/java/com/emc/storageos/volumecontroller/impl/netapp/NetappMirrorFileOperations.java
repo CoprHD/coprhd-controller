@@ -82,17 +82,9 @@ public class NetappMirrorFileOperations implements FileMirrorOperations {
     public void stopMirrorFileShareLink(StorageSystem sourceStorage, FileShare targetFs, TaskCompleter completer)
             throws DeviceControllerException {
 
-        // FileShare sourceFileShare = _dbClient.queryObject(FileShare.class, targetFs.getParentFileShare().getURI());
-        StorageSystem targetStorage = _dbClient.queryObject(StorageSystem.class, targetFs.getStorageDevice());
+        _log.info("NetappMirrorFileOperations -  stopMirrorFileShareLink started. Calling deleteMirrorFileShareLink.");
+        this.deleteMirrorFileShareLink(sourceStorage, targetFs.getParentFileShare().getURI(), targetFs.getId(), completer);
 
-        BiosCommandResult cmdResult = doPauseSnapMirror(targetStorage, targetFs, completer);
-        if (cmdResult.getCommandSuccess()) {
-            completer.ready(_dbClient);
-        } else if (cmdResult.getCommandPending()) {
-            completer.statusPending(_dbClient, cmdResult.getMessage());
-        } else {
-            completer.error(_dbClient, cmdResult.getServiceCoded());
-        }
     }
 
     @Override

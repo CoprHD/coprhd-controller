@@ -185,6 +185,8 @@ public class NetAppFileCommunicationInterface extends
             _keyMap.put(Constants._TimeCollected, System.currentTimeMillis());
             Map<String, Number> metrics = new ConcurrentHashMap<String, Number>();
 
+            // Compute the load on each virtual servers!!
+
             List<URI> storageSystemIds = new ArrayList<URI>();
             storageSystemIds.add(storageSystemId);
             List<FileShare> fsObjs = _dbClient.queryObjectField(FileShare.class,
@@ -2503,4 +2505,118 @@ public class NetAppFileCommunicationInterface extends
         nasServer.setCifsServersMap(cifsServersMap);
     }
 
+    private void computeStaticLoanMetrics(StorageSystem system) {
+
+        _logger.info("computeStaticLoanMetrics started...");
+        // 1. Get vfilers
+        NetAppApi netAppApi = new NetAppApi.Builder(system.getIpAddress(),
+                system.getPortNumber(), system.getUsername(),
+                system.getPassword()).https(true).build();
+
+        List<VFilerInfo> vfilers = netAppApi.listVFilers(null);
+        for (VFilerInfo vfiler : vfilers) {
+
+            NASServer nasServer = null;
+            // Consider default vfiler - vfiler0, as Physical NAS server!!!
+            // 2. Were they in out DB.
+            if (DEFAULT_FILER.equals(vfiler.getName())) {
+                nasServer = DiscoveryUtils.findPhysicalNasByNativeId(_dbClient, system, String.valueOf(DEFAULT_FILER));
+            } else {
+                nasServer = DiscoveryUtils.findvNasByNativeId(_dbClient, system, vfiler.getName());
+            }
+            if (nasServer == null) {
+                _logger.info("vFiler {} discovered is not found in DB; Ignored for compute metrics", vfiler.getName());
+                continue;
+            }
+
+            // 3. Get the volumes of vfilers
+            int numFileSystems = 0;
+            int numSnapshots = 0;
+            Long totalFileSystemsSize = 0L;
+            Long totalSnapshotsSize = 0L;
+
+            int nfsExportsCount = 0;
+            int cifsSharesCount = 0;
+
+            List<Map<String, String>> usageStats = new ArrayList<Map<String, String>>();
+
+            List<String> volumeNames = netAppApi.listVolumes();
+            if (volumeNames != null && !volumeNames.isEmpty()) {
+
+                numFileSystems = volumeNames.size();
+                _logger.info(" {} file systems found..", volumeNames.size());
+
+                for (String volumeName : volumeNames) {
+                    usageStats = netAppApi.listVolumeInfo(volumeName, null);
+                    for (Map<String, String> map : usageStats) {
+                        if (map.get(Constants.SIZE_TOTAL) != null) {
+                            totalFileSystemsSize += Long.valueOf(map.get(Constants.SIZE_TOTAL));
+                        }
+
+                        /*
+                         * TODO: Bytes per block on NTAP is hard coded for now. If
+                         * possible, we should to get this from the array.
+                         */
+                        Long snapshotBytesReserved = 0L;
+                        if (map.get(Constants.SNAPSHOT_BLOCKS_RESERVED) != null) {
+                            snapshotBytesReserved = Long.valueOf(map.get(Constants.SNAPSHOT_BLOCKS_RESERVED))
+                                    * Constants.NETAPP_BYTES_PER_BLOCK;
+                            totalSnapshotsSize += snapshotBytesReserved;
+                        }
+
+                        if (map.get(Constants.SNAPSHOT_COUNT) != null) {
+                            numSnapshots += Long.valueOf(map.get(Constants.SNAPSHOT_COUNT));
+                        }
+                    }
+
+                }
+                _logger.info(" filesystems {}, snapshorts {} ", volumeNames.size(), numSnapshots);
+
+                // Get the list of NFS exports and Shares!!!
+
+                nfsExportsCount = netAppApi.listNFSExportRules(null).size();
+                cifsSharesCount = netAppApi.listShares(null).size();
+
+                // 4. Compute metrics!!!
+                StringMap dbMetrics = nasServer.getMetrics();
+                if (dbMetrics == null) {
+                    dbMetrics = new StringMap();
+                }
+                // set total nfs and cifs exports for give AZ
+                dbMetrics.put(MetricsKeys.totalNfsExports.name(), String.valueOf(nfsExportsCount));
+                dbMetrics.put(MetricsKeys.totalCifsShares.name(), String.valueOf(cifsSharesCount));
+
+                // File systems and its snapshot counts
+                // file system size and it snapshot sizes!!!
+                Long totalProvCap = totalFileSystemsSize + totalSnapshotsSize;
+                int totalStorageObjects = numFileSystems + numSnapshots;
+                dbMetrics.put(MetricsKeys.storageObjects.name(), String.valueOf(totalStorageObjects));
+                dbMetrics.put(MetricsKeys.usedStorageCapacity.name(), String.valueOf(totalProvCap));
+
+                Long maxExports = MetricsKeys.getLong(MetricsKeys.maxNFSExports, dbMetrics) +
+                        MetricsKeys.getLong(MetricsKeys.maxCifsShares, dbMetrics);
+                Long maxStorObjs = MetricsKeys.getLong(MetricsKeys.maxStorageObjects, dbMetrics);
+                Long maxCapacity = MetricsKeys.getLong(MetricsKeys.maxStorageCapacity, dbMetrics);
+
+                Long totalExports = Long.valueOf(nfsExportsCount + cifsSharesCount);
+                // setting overLoad factor (true or false)
+                String overLoaded = FALSE;
+                if (totalExports >= maxExports || totalProvCap >= maxCapacity || totalStorageObjects >= maxStorObjs) {
+                    overLoaded = TRUE;
+                }
+
+                double percentageLoadExports = 0.0;
+                // percentage calculator
+                if (totalExports > 0.0) {
+                    percentageLoadExports = ((double) (totalExports) / maxExports) * 100;
+                }
+                double percentageLoadStorObj = ((double) (totalProvCap) / maxCapacity) * 100;
+                double percentageLoad = (percentageLoadExports + percentageLoadStorObj) / 2;
+
+                dbMetrics.put(MetricsKeys.percentLoad.name(), String.valueOf(percentageLoad));
+                dbMetrics.put(MetricsKeys.overLoaded.name(), overLoaded);
+
+            }
+        }
+    }
 }

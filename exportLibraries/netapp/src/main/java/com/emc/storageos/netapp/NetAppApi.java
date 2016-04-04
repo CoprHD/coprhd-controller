@@ -469,6 +469,16 @@ public class NetAppApi {
         }
     }
 
+    public List<String> listVolumes() throws NetAppException {
+        try {
+            netAppFacade = new NetAppFacade(_ipAddress, _portNumber, _userName,
+                    _password, _https);
+            return netAppFacade.listVolumes();
+        } catch (Exception e) {
+            throw NetAppException.exceptions.listVolumeInfoFailed(null);
+        }
+    }
+
     public List<AggregateInfo> listAggregates(String name)
             throws NetAppException {
         try {

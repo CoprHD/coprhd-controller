@@ -12,6 +12,8 @@ import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.security.authentication.InternalApiSignatureKeyGenerator.SignatureKeyType;
 
+import java.net.URLDecoder;
+
 /**
  * Abstract authentication filter which has support for processing HMAC signatures
  */
@@ -42,7 +44,7 @@ public abstract class AbstractHMACAuthFilter extends AbstractAuthenticationFilte
         // To Do - add more fields to signature
         StringBuilder buf = new StringBuilder(req.getPathInfo().toString().toLowerCase());
         if (req.getQueryString() != null) {
-            buf.append("?" + req.getQueryString());
+            buf.append("?" + URLDecoder.decode(req.getQueryString()));
         }
         String timestamp = req.getHeader(INTERNODE_TIMESTAMP);
         if (timestamp != null && !timestamp.isEmpty()) {

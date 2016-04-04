@@ -84,7 +84,9 @@ public class NetappMirrorFileOperations implements FileMirrorOperations {
 
         _log.info("NetappMirrorFileOperations -  stopMirrorFileShareLink started. Calling deleteMirrorFileShareLink.");
         this.deleteMirrorFileShareLink(sourceStorage, targetFs.getParentFileShare().getURI(), targetFs.getId(), completer);
+        WorkflowStepCompleter.stepSucceded(completer.getOpId());
 
+        _log.info("NetappMirrorFileOperations -  stopMirrorFileShareLink finished.");
     }
 
     @Override
@@ -217,7 +219,7 @@ public class NetappMirrorFileOperations implements FileMirrorOperations {
                     cmdResult = deleteSnapMirrorSchedule(sourceSystem, targetStorage,
                             sourceFileShare, targetFileShare, completer);
                     if (cmdResult.getCommandSuccess()) {
-                        WorkflowStepCompleter.stepSucceded(completer.getOpId());
+                        completer.ready(_dbClient);
                     } else if (cmdResult.getCommandPending()) {
                         completer.statusPending(_dbClient, cmdResult.getMessage());
                     } else {

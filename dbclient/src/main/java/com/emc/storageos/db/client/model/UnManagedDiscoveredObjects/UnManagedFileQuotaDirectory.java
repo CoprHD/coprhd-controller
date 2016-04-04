@@ -44,7 +44,7 @@ public class UnManagedFileQuotaDirectory extends UnManagedFileObject {
      */
     public void setParentFSNativeGuid(String _parentFSNativeGuid) {
         this._parentFSNativeGuid = _parentFSNativeGuid;
-        setChanged("parentFsGuid");
+        setChanged("parentFsNativeGuid");
     }
 
     @Name("opLock")

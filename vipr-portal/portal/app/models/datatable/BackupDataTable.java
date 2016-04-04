@@ -43,7 +43,7 @@ public class BackupDataTable extends DataTable {
         if (type == Type.LOCAL) {
             alterColumn("creationtime").setRenderFunction("render.localDate");
             alterColumn("size").setRenderFunction("render.backupSize");
-			if (Security.isTenantAdmin() || !Security.isSystemMonitor()) {
+			if (Security.isSystemAdmin() || Security.isRestrictedSystemAdmin()) {
 				addColumn("action").setSearchable(false).setRenderFunction(
 						"render.uploadAndRestoreBtn");
 			}
@@ -52,7 +52,7 @@ public class BackupDataTable extends DataTable {
             alterColumn("sitename").setRenderFunction("render.externalLoading");
             alterColumn("version").setRenderFunction("render.externalLoading");
             alterColumn("size").setRenderFunction("render.externalLoading");
-			if (Security.isTenantAdmin() || !Security.isSystemMonitor()) {
+			if (Security.isSystemAdmin() || Security.isRestrictedSystemAdmin()) {
 				addColumn("action").setSearchable(false).setRenderFunction(
 						"render.restoreBtn");
 			}

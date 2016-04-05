@@ -3,7 +3,6 @@ package com.iwave.ext.netapp.model;
 public enum SnapMirrorTransferStatus {
 
     idle("idle"),
-    initialize("initialize"),
     transferring("transferring"),
     pending("pending"),
     aborting("aborting"),
@@ -13,8 +12,11 @@ public enum SnapMirrorTransferStatus {
     syncing("syncing"),
     insync("in-sync"),
     paused("paused"),
-    scheduled("scheduled"),
-    retry("retry"),
+    pending_with_restart_checkpoint("Pending with restart checkpoint"),
+    idle_with_restart_checkpoint("Idle with restart checkpoint"),
+    checking("checking"),
+    fixing("fixing"),
+    transferring_checking("Transferring, Checking"),
     none("-");
 
     private String label;

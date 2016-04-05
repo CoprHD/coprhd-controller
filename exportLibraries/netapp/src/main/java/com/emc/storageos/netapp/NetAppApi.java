@@ -1286,7 +1286,7 @@ public class NetAppApi {
             return netAppFacade.getSnapMirrorState(destinationLocation);
 
         } catch (Exception e) {
-            throw NetAppException.exceptions.checkSnapMirrorLicenseFailed(_ipAddress, e.getMessage());
+            throw NetAppException.exceptions.getSnapMirrorStatusFailed(_ipAddress, destinationLocation, e.getMessage());
         }
     }
 
@@ -1298,7 +1298,7 @@ public class NetAppApi {
             return netAppFacade.getSnapMirrorStateInfo(location);
 
         } catch (Exception e) {
-            throw NetAppException.exceptions.checkSnapMirrorLicenseFailed(_ipAddress, e.getMessage());
+            throw NetAppException.exceptions.getSnapMirrorStatusFailed(_ipAddress, location, e.getMessage());
         }
     }
 

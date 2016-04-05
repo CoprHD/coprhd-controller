@@ -162,4 +162,7 @@ public interface NetAppExceptions {
     @DeclareServiceCode(ServiceCode.NETAPP_ERROR)
     public NetAppException quiesceSnapMirrorFailed(final String ip, final String volName, final String message);
 
+    @DeclareServiceCode(ServiceCode.NETAPP_ERROR)
+    public NetAppException getSnapMirrorStatusFailed(final String ip, final String volName, final String message);
+
 }

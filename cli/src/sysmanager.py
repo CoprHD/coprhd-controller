@@ -979,7 +979,7 @@ class Configuration(object):
         o = common.json_decode(s)
         return o
 
-    def update_config_properties(self):
+    def disable_update_check(self):
         params = self.prepare_properties_body(['system_update_repo='])
         body = json.dumps(params)
         (s, h) = common.service_json_request(self.__ipAddr, self.__port,
@@ -1568,9 +1568,7 @@ def update_cluster_version_parser(subcommand_parsers, common_parser):
         description='ViPR: CLI usage to update the cluster',
         parents=[common_parser],
         conflict_handler='resolve',
-        help='Updates target version. Version can only be updated' +
-        ' incrementally. Ex: vipr-3.0.0.2.x can only be' +
-        ' updated to vipr-3.0.0.3.x and not to vipr-3.0.0.4.x')
+        help='Refer to specific ViPR version "release notes" for supported upgrade paths')
     update_cluster_version_parser.add_argument('-f', '-force',
                                                action='store_true',
                                                dest='force',
@@ -2440,26 +2438,26 @@ def reset_properties(args):
             e.err_code)
 
 
-def update_config_properties_parser(subcommand_parsers, common_parser):
+def disable_update_check_parser(subcommand_parsers, common_parser):
 
-    update_config_properties_parser = subcommand_parsers.add_parser(
-        'update-config-properties',
-        description='ViPR: CLI usage to update system configuration properties',
+    disable_update_check_parser = subcommand_parsers.add_parser(
+        'disable-update-check',
+        description='ViPR: CLI usage to set the upgrade repository to empty',
         parents=[common_parser],
         conflict_handler='resolve',
-        help='Update system configuration properties')
+        help='Sets the upgrade repository to empty')
 
-    update_config_properties_parser.set_defaults(func=update_config_properties)
+    disable_update_check_parser.set_defaults(func=disable_update_check)
 
 
-def update_config_properties(args):
+def disable_update_check(args):
     obj = Configuration(args.ip, Configuration.DEFAULT_SYSMGR_PORT)
     try:
-        return common.format_json_object(obj.update_config_properties())
+        return common.format_json_object(obj.disable_update_check())
     except SOSError as e:
         common.format_err_msg_and_raise(
-            "update",
-            "config properties",
+            "disable",
+            "update check",
             e.err_text,
             e.err_code)
 
@@ -3099,7 +3097,7 @@ def system_parser(parent_subparser, common_parser):
 
     get_properties_metadata_parser(subcommand_parsers, common_parser)
 
-    update_config_properties_parser(subcommand_parsers, common_parser)
+    disable_update_check_parser(subcommand_parsers, common_parser)
 
     sysmgrcontrolsvc.restart_service_parser(subcommand_parsers, common_parser)
 

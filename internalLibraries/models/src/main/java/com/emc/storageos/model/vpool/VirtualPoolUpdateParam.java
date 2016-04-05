@@ -110,11 +110,11 @@ public class VirtualPoolUpdateParam {
      * The new supported system type for the virtual pool.
      * Valid values:
      *  NONE
-     *  vnxblock
-     *  vmax
-     *  vnxfile
-     *  isilon
-     *  netapp
+     *  vnxblock (Block)
+     *  vmax (Block)
+     *  vnxfile (File)
+     *  isilon (File)
+     *  netapp (File)
      * 
      */
     @XmlElement(name = "system_type")

@@ -565,11 +565,13 @@ public class XtremIOV2Client extends XtremIOClient {
     }
 
     @Override
-    public XtremIOResponse refreshSnapshotFromCG(String clusterName, String cgName, String snapshotName) throws Exception {
+    public XtremIOResponse refreshSnapshotFromCG(String clusterName, String cgName, String snapshotName, boolean noBackup)
+            throws Exception {
         XtremIOSnapCreateAndReassign refreshParam = new XtremIOSnapCreateAndReassign();
         refreshParam.setClusterId(clusterName);
-        // If no-backup is false, then a snapshot of snapshot to refresh is created.
-        // We don't support ingestion of such snaps. So mark it as true
+        if (noBackup) {
+            refreshParam.setNoBackup(Boolean.TRUE.toString());
+        }
         refreshParam.setFromConsistencyGroupId(cgName);
         refreshParam.setToSnapshotSetId(snapshotName);
 

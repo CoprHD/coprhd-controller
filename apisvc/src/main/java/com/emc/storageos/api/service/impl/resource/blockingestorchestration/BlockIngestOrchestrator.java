@@ -743,11 +743,11 @@ public abstract class BlockIngestOrchestrator {
                         String blockObjectNativeGUID = rootUnManagedVolume.getNativeGuid().replace(VolumeIngestionUtil.UNMANAGEDVOLUME,
                                 VolumeIngestionUtil.VOLUME);
 
-                        rootBlockObject = VolumeIngestionUtil.getBlockObject(blockObjectNativeGUID, _dbClient);
-                        // If the volumeobject is not found in DB. check in locally createdObjects.
+                        rootBlockObject = requestContext.getRootIngestionRequestContext().findCreatedBlockObject(blockObjectNativeGUID);
+
+                        // If the root object is not found in locally createdObjects, check in DB.
                         if (rootBlockObject == null) {
-                            rootBlockObject = 
-                                    requestContext.getRootIngestionRequestContext().findCreatedBlockObject(blockObjectNativeGUID);
+                            rootBlockObject = VolumeIngestionUtil.getBlockObject(blockObjectNativeGUID, _dbClient);
                         }
 
                         // Get the parent unmanagedvolume for the current unmanagedvolume.
@@ -922,9 +922,16 @@ public abstract class BlockIngestOrchestrator {
                 } else if (replica instanceof Volume) {
                     if (isSRDFTargetVolume(replica, processedUnManagedVolumes)) {
                         VolumeIngestionUtil.setupSRDFParentRelations(replica, parent, _dbClient);
-                    } else if (VolumeIngestionUtil.isVplexVolume(parent, _dbClient)
-                            && VolumeIngestionUtil.isVplexBackendVolume(replica, _dbClient)) {
-                        VolumeIngestionUtil.setupVplexParentRelations(replica, parent, _dbClient);
+                    } else if (VolumeIngestionUtil.isVplexVolume(parent, _dbClient)) {
+                        if (parent instanceof Volume) {
+                            StringSet associatedVolumes = ((Volume) parent).getAssociatedVolumes();
+                            if (associatedVolumes != null && associatedVolumes.contains(replica.getId().toString())) {
+                                _logger.info("associated volume {} of {} has already been ingested", 
+                                        replica.forDisplay(), parent.forDisplay());
+                            } else if (VolumeIngestionUtil.isVplexBackendVolume(replica, _dbClient)) {
+                                VolumeIngestionUtil.setupVplexParentRelations(replica, parent, _dbClient);
+                            }
+                        }
                     } else {
                         VolumeIngestionUtil.setupCloneParentRelations(replica, parent, _dbClient);
                     }
@@ -948,6 +955,7 @@ public abstract class BlockIngestOrchestrator {
         }
         // If RP volume and fully ingested, set up the RP CG
         if (isParentRPVolume && allRPCGVolumesIngested && umpset != null) {
+            VolumeIngestionUtil.validateRPVolumesAlignWithIngestVpool(requestContext, umpset, _dbClient);
             VolumeIngestionUtil.setupRPCG(requestContext, umpset, currentUnmanagedVolume, updateObjects, _dbClient);
         }
     }

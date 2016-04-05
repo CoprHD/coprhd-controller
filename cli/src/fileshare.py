@@ -853,19 +853,41 @@ class Fileshare(object):
         self.isTimeout = True
 
     # Blocks the opertaion until the task is complete/error out/timeout
-    def check_for_sync(self, result, sync,synctimeout=0):
+    def check_for_sync(self, result, sync, synctimeout=0):
         if(sync):
-            if(len(result["resource"]) > 0):
-                resource = result["resource"]
-                return (
-                    common.block_until_complete("fileshare", resource["id"],
-                                                result["id"], self.__ipAddr,
-                                                self.__port,synctimeout)
-                )
-            else:
-                raise SOSError(
-                    SOSError.SOS_FAILURE_ERR,
-                    "error: task list is empty, no task response found")
+            if 'resource' in result :
+                if(len(result["resource"]) > 0):
+                    resource = result["resource"]
+                    return (
+                        common.block_until_complete("fileshare", resource["id"],
+                                                    result["id"], self.__ipAddr,
+                                                    self.__port,synctimeout)
+                    )
+                else:
+                    raise SOSError(
+                        SOSError.SOS_FAILURE_ERR,
+                        "error: task list is empty, no task response found")
+        else:
+            return result
+        
+    
+    # Blocks the replication operation until the task is complete/error out/timeout
+    def check_for_sync_replication(self, result, sync, synctimeout=0):
+        if(sync):
+            if 'task' in result :
+                task = result['task']
+                task_element = task[0]
+                if(len(task_element['resource']) > 0):
+                    resource = task_element['resource']
+                    return (
+                        common.block_until_complete("fileshare", resource["id"],
+                                                    task_element['id'], self.__ipAddr,
+                                                    self.__port,synctimeout)
+                    )
+                else:
+                    raise SOSError(
+                        SOSError.SOS_FAILURE_ERR,
+                        "error: task list is empty, no task response found")
         else:
             return result
 
@@ -941,7 +963,7 @@ class Fileshare(object):
         res = common.json_decode(s)
         return res['file_policy']
 
-    def continous_copies_start(self, filesharename, sync):
+    def continous_copies_start(self, filesharename, sync, synctimeout=0):
         fsname = self.show(filesharename)
         fsid = fsname['id']
         copy_dict = {
@@ -962,11 +984,11 @@ class Fileshare(object):
         o = common.json_decode(s)
         
         if(sync):
-            return self.check_for_sync(o, sync)
+            return self.check_for_sync_replication(o, sync, synctimeout)
         else:
             return
     
-    def continous_copies_pause(self, filesharename, sync):
+    def continous_copies_pause(self, filesharename, sync, synctimeout=0):
         fsname = self.show(filesharename)
         fsid = fsname['id']
         copy_dict = {
@@ -985,13 +1007,15 @@ class Fileshare(object):
             "POST",
             Fileshare.URI_CONTINUOS_COPIES_PAUSE.format(fsid),
             body)
+        
+        o = common.json_decode(s)
 
         if(sync):
-            return self.check_for_sync(s, sync)
+            return self.check_for_sync_replication(o, sync, synctimeout)
         else:
             return
     
-    def continous_copies_resume(self, filesharename, sync):
+    def continous_copies_resume(self, filesharename, sync, synctimeout=0):
         fsname = self.show(filesharename)
         fsid = fsname['id']
         copy_dict = {
@@ -1010,13 +1034,15 @@ class Fileshare(object):
             "POST",
             Fileshare.URI_CONTINUOS_COPIES_RESUME.format(fsid),
             body)
+        
+        o = common.json_decode(s)
 
         if(sync):
-            return self.check_for_sync(s, sync)
+            return self.check_for_sync_replication(o, sync, synctimeout)
         else:
             return
     
-    def continous_copies_stop(self, filesharename, sync):
+    def continous_copies_stop(self, filesharename, sync, synctimeout=0):
         fsname = self.show(filesharename)
         fsid = fsname['id']
         copy_dict = {
@@ -1035,13 +1061,15 @@ class Fileshare(object):
             "POST",
             Fileshare.URI_CONTINUOS_COPIES_STOP.format(fsid),
             body)
+        
+        o = common.json_decode(s)
 
         if(sync):
-            return self.check_for_sync(s, sync)
+            return self.check_for_sync_replication(o, sync, synctimeout)
         else:
             return
     
-    def continous_copies_failover(self, filesharename, sync):
+    def continous_copies_failover(self, filesharename, sync, synctimeout=0):
         fsname = self.show(filesharename)
         fsid = fsname['id']
         copy_dict = {
@@ -1060,13 +1088,15 @@ class Fileshare(object):
             "POST",
             Fileshare.URI_CONTINUOS_COPIES_FAILOVER.format(fsid),
             body)
+        
+        o = common.json_decode(s)
 
         if(sync):
-            return self.check_for_sync(s, sync)
+            return self.check_for_sync_replication(o, sync, synctimeout)
         else:
             return
     
-    def continous_copies_failback(self, filesharename, sync):
+    def continous_copies_failback(self, filesharename, sync, synctimeout=0):
         fsname = self.show(filesharename)
         fsid = fsname['id']
         copy_dict = {
@@ -1085,13 +1115,15 @@ class Fileshare(object):
             "POST",
             Fileshare.URI_CONTINUOS_COPIES_FAILBACK.format(fsid),
             body)
+        
+        o = common.json_decode(s)
 
         if(sync):
-            return self.check_for_sync(s, sync)
+            return self.check_for_sync_replication(o, sync, synctimeout)
         else:
             return
     
-    def continous_copies_create(self, filesharename, sync, targetname=None):
+    def continous_copies_create(self, filesharename, sync, targetname=None, synctimeout=0):
         fsname = self.show(filesharename)
         fsid = fsname['id']
         parms = {
@@ -1104,13 +1136,15 @@ class Fileshare(object):
             "POST",
             Fileshare.URI_CONTINUOS_COPIES_CREATE.format(fsid),
             body)
+        
+        o = common.json_decode(s)
 
         if(sync):
-            return self.check_for_sync(s, sync)
+            return self.check_for_sync_replication(o, sync, synctimeout)
         else:
             return
     
-    def continous_copies_deactivate(self, filesharename, sync):
+    def continous_copies_deactivate(self, filesharename, sync, synctimeout=0):
         fsname = self.show(filesharename)
         fsid = fsname['id']
         parms = {
@@ -1122,13 +1156,15 @@ class Fileshare(object):
             "POST",
             Fileshare.URI_CONTINUOS_COPIES_DEACTIVATE.format(fsid),
             body)
+        
+        o = common.json_decode(s)
 
         if(sync):
-            return self.check_for_sync(s, sync)
+            return self.check_for_sync_replication(o, sync, synctimeout)
         else:
             return
     
-    def continous_copies_refresh(self, filesharename, sync):
+    def continous_copies_refresh(self, filesharename, sync, synctimeout=0):
         fsname = self.show(filesharename)
         fsid = fsname['id']
         copy_dict = {
@@ -1144,9 +1180,11 @@ class Fileshare(object):
             "POST",
             Fileshare.URI_CONTINUOS_COPIES_REFRESH.format(fsid),
             body)
+        
+        o = common.json_decode(s)
 
         if(sync):
-            return self.check_for_sync(s, sync)
+            return self.check_for_sync_replication(o, sync, synctimeout)
         else:
             return
     
@@ -1243,7 +1281,7 @@ def create_parser(subcommand_parsers, common_parser):
                                dest='sync',
                                help='Execute in synchronous mode',
                                action='store_true')
-    
+
     create_parser.add_argument('-synctimeout','-syncto',
                                help='sync timeout in seconds ',
                                dest='synctimeout',
@@ -2773,16 +2811,23 @@ def continous_copies_start_parser(subcommand_parsers, common_parser):
                                dest='sync',
                                help='Execute in synchronous mode',
                                action='store_true')
+    continous_copies_start_parser.add_argument('-synctimeout','-syncto',
+                               help='sync timeout in seconds ',
+                               dest='synctimeout',
+                               default=0,
+                               type=int)
     
     continous_copies_start_parser.set_defaults(func=continous_copies_start)
 
 
 def continous_copies_start(args):
+    if not args.sync and args.synctimeout !=0:
+        raise SOSError(SOSError.CMD_LINE_ERR,"error: Cannot use synctimeout without Sync ")
     obj = Fileshare(args.ip, args.port)
     try:
         if(not args.tenant):
             args.tenant = ""
-        res = obj.continous_copies_start(args.tenant + "/" + args.project + "/" + args.name, args.sync)
+        res = obj.continous_copies_start(args.tenant + "/" + args.project + "/" + args.name, args.sync, args.synctimeout)
         return
     except SOSError as e:
         raise e
@@ -2814,15 +2859,22 @@ def continous_copies_pause_parser(subcommand_parsers, common_parser):
                                dest='sync',
                                help='Execute in synchronous mode',
                                action='store_true')
+    continous_copies_pause_parser.add_argument('-synctimeout','-syncto',
+                               help='sync timeout in seconds ',
+                               dest='synctimeout',
+                               default=0,
+                               type=int)
     continous_copies_pause_parser.set_defaults(func=continous_copies_pause)
 
 
 def continous_copies_pause(args):
+    if not args.sync and args.synctimeout !=0:
+        raise SOSError(SOSError.CMD_LINE_ERR,"error: Cannot use synctimeout without Sync ")
     obj = Fileshare(args.ip, args.port)
     try:
         if(not args.tenant):
             args.tenant = ""
-        res = obj.continous_copies_pause(args.tenant + "/" + args.project + "/" + args.name, args.sync)
+        res = obj.continous_copies_pause(args.tenant + "/" + args.project + "/" + args.name, args.sync, args.synctimeout)
         return
     except SOSError as e:
         raise e
@@ -2855,15 +2907,22 @@ def continous_copies_resume_parser(subcommand_parsers, common_parser):
                                dest='sync',
                                help='Execute in synchronous mode',
                                action='store_true')
+    continous_copies_resume_parser.add_argument('-synctimeout','-syncto',
+                               help='sync timeout in seconds ',
+                               dest='synctimeout',
+                               default=0,
+                               type=int)
     continous_copies_resume_parser.set_defaults(func=continous_copies_resume)
 
 
 def continous_copies_resume(args):
+    if not args.sync and args.synctimeout !=0:
+        raise SOSError(SOSError.CMD_LINE_ERR,"error: Cannot use synctimeout without Sync ")
     obj = Fileshare(args.ip, args.port)
     try:
         if(not args.tenant):
             args.tenant = ""
-        res = obj.continous_copies_resume(args.tenant + "/" + args.project + "/" + args.name, args.sync)
+        res = obj.continous_copies_resume(args.tenant + "/" + args.project + "/" + args.name, args.sync, args.synctimeout)
         return
     except SOSError as e:
         raise e
@@ -2895,15 +2954,22 @@ def continous_copies_stop_parser(subcommand_parsers, common_parser):
                                dest='sync',
                                help='Execute in synchronous mode',
                                action='store_true')
+    continous_copies_stop_parser.add_argument('-synctimeout','-syncto',
+                               help='sync timeout in seconds ',
+                               dest='synctimeout',
+                               default=0,
+                               type=int)
     continous_copies_stop_parser.set_defaults(func=continous_copies_stop)
 
 
 def continous_copies_stop(args):
+    if not args.sync and args.synctimeout !=0:
+        raise SOSError(SOSError.CMD_LINE_ERR,"error: Cannot use synctimeout without Sync ")
     obj = Fileshare(args.ip, args.port)
     try:
         if(not args.tenant):
             args.tenant = ""
-        res = obj.continous_copies_stop(args.tenant + "/" + args.project + "/" + args.name, args.sync)
+        res = obj.continous_copies_stop(args.tenant + "/" + args.project + "/" + args.name, args.sync, args.synctimeout)
         return
     except SOSError as e:
         raise e
@@ -2937,15 +3003,22 @@ def continous_copies_failover_parser(subcommand_parsers, common_parser):
                                dest='sync',
                                help='Execute in synchronous mode',
                                action='store_true')
+    continous_copies_failover_parser.add_argument('-synctimeout','-syncto',
+                               help='sync timeout in seconds ',
+                               dest='synctimeout',
+                               default=0,
+                               type=int)
     continous_copies_failover_parser.set_defaults(func=continous_copies_failover)
 
 
 def continous_copies_failover(args):
+    if not args.sync and args.synctimeout !=0:
+        raise SOSError(SOSError.CMD_LINE_ERR,"error: Cannot use synctimeout without Sync ")
     obj = Fileshare(args.ip, args.port)
     try:
         if(not args.tenant):
             args.tenant = ""
-        res = obj.continous_copies_failover(args.tenant + "/" + args.project + "/" + args.name, args.sync)
+        res = obj.continous_copies_failover(args.tenant + "/" + args.project + "/" + args.name, args.sync, args.synctimeout)
         return
     except SOSError as e:
         raise e
@@ -2977,15 +3050,22 @@ def continous_copies_failback_parser(subcommand_parsers, common_parser):
                                dest='sync',
                                help='Execute in synchronous mode',
                                action='store_true')
+    continous_copies_failback_parser.add_argument('-synctimeout','-syncto',
+                               help='sync timeout in seconds ',
+                               dest='synctimeout',
+                               default=0,
+                               type=int)
     continous_copies_failback_parser.set_defaults(func=continous_copies_failback)
 
 
 def continous_copies_failback(args):
+    if not args.sync and args.synctimeout !=0:
+        raise SOSError(SOSError.CMD_LINE_ERR,"error: Cannot use synctimeout without Sync ")
     obj = Fileshare(args.ip, args.port)
     try:
         if(not args.tenant):
             args.tenant = ""
-        res = obj.continous_copies_failback(args.tenant + "/" + args.project + "/" + args.name, args.sync)
+        res = obj.continous_copies_failback(args.tenant + "/" + args.project + "/" + args.name, args.sync, args.synctimeout)
         return
     except SOSError as e:
         raise e
@@ -3021,15 +3101,22 @@ def continous_copies_create_parser(subcommand_parsers, common_parser):
                                dest='sync',
                                help='Execute in synchronous mode',
                                action='store_true')
+    continous_copies_create_parser.add_argument('-synctimeout','-syncto',
+                               help='sync timeout in seconds ',
+                               dest='synctimeout',
+                               default=0,
+                               type=int)
     continous_copies_create_parser.set_defaults(func=continous_copies_create)
 
 
 def continous_copies_create(args):
+    if not args.sync and args.synctimeout !=0:
+        raise SOSError(SOSError.CMD_LINE_ERR,"error: Cannot use synctimeout without Sync ")
     obj = Fileshare(args.ip, args.port)
     try:
         if(not args.tenant):
             args.tenant = ""
-        res = obj.continous_copies_create(args.tenant + "/" + args.project + "/" + args.name, args.sync, args.target)
+        res = obj.continous_copies_create(args.tenant + "/" + args.project + "/" + args.name, args.sync, args.target, args.synctimeout)
         return
     except SOSError as e:
         raise e
@@ -3062,15 +3149,22 @@ def continous_copies_deactivate_parser(subcommand_parsers, common_parser):
                                dest='sync',
                                help='Execute in synchronous mode',
                                action='store_true')
+    continous_copies_deactivate_parser.add_argument('-synctimeout','-syncto',
+                               help='sync timeout in seconds ',
+                               dest='synctimeout',
+                               default=0,
+                               type=int)
     continous_copies_deactivate_parser.set_defaults(func=continous_copies_deactivate)
 
 
 def continous_copies_deactivate(args):
+    if not args.sync and args.synctimeout !=0:
+        raise SOSError(SOSError.CMD_LINE_ERR,"error: Cannot use synctimeout without Sync ")
     obj = Fileshare(args.ip, args.port)
     try:
         if(not args.tenant):
             args.tenant = ""
-        res = obj.continous_copies_deactivate(args.tenant + "/" + args.project + "/" + args.name, args.sync)
+        res = obj.continous_copies_deactivate(args.tenant + "/" + args.project + "/" + args.name, args.sync, args.synctimeout)
         return
     except SOSError as e:
         raise e
@@ -3103,15 +3197,22 @@ def continous_copies_refresh_parser(subcommand_parsers, common_parser):
                                dest='sync',
                                help='Execute in synchronous mode',
                                action='store_true')
+    continous_copies_refresh_parser.add_argument('-synctimeout','-syncto',
+                               help='sync timeout in seconds ',
+                               dest='synctimeout',
+                               default=0,
+                               type=int)
     continous_copies_refresh_parser.set_defaults(func=continous_copies_refresh)
 
 
 def continous_copies_refresh(args):
+    if not args.sync and args.synctimeout !=0:
+        raise SOSError(SOSError.CMD_LINE_ERR,"error: Cannot use synctimeout without Sync ")
     obj = Fileshare(args.ip, args.port)
     try:
         if(not args.tenant):
             args.tenant = ""
-        res = obj.continous_copies_refresh(args.tenant + "/" + args.project + "/" + args.name, args.sync)
+        res = obj.continous_copies_refresh(args.tenant + "/" + args.project + "/" + args.name, args.sync, args.synctimeout)
         return
     except SOSError as e:
         raise e
@@ -3205,7 +3306,7 @@ def schedule_snapshots_list(args):
         res = obj.schedule_snapshots_list(args.tenant + "/" + args.project + "/" + args.name,
                       args.polname,
                       args.tenant, policyid)
-        return res
+        return common.format_json_object(res)
     except SOSError as e:
         common.format_err_msg_and_raise("fileshare", "schedule snapshots",
                                         e.err_text, e.err_code)

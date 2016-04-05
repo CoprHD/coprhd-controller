@@ -74,6 +74,11 @@ def query_upload_backup(args):
     else:
         print status['upload_status']['status']
 
+def query_backup_info(args):
+    bourne.connect(args.ip)
+    info=bourne.query_backup_info(args.name, args.isLocal)
+    print info
+
 def pull_backup(args):
     bourne.connect(args.ip)
     response=bourne.pull_backup(args.name)
@@ -103,7 +108,7 @@ except:
 # backup [--ip ipaddr]
 parser = argparse.ArgumentParser(description = 'Bourne tenant cli usage.')
 parser.add_argument('cmd',
-  help = 'cmd = (create | list | list-external | delete | download | upload | query-upload | pull | query-pull | restore)')
+  help = 'cmd = (create | list | list-external | delete | download | upload | query-upload | query-info | pull | query-pull | restore)')
 
 parser.add_argument('--ip', metavar = 'ipaddr', help = 'IP address of bourne', default=bourne_ip)
 
@@ -132,9 +137,14 @@ backupdownload.add_argument('filepath', help= 'path of target file', type=str)
 backupupload = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
 backupupload.add_argument('name', help = 'name of backup file', type=str)
 
-# query_upload backup
+# query upload backup
 backupquery_upload = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
 backupquery_upload.add_argument('name', help = 'name of backup file', type=str)
+
+# query backup info
+backupquery_info = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+backupquery_info.add_argument('name', help = 'name of backup file', type=str)
+backupquery_info.add_argument('isLocal', help = 'local or remote backup', type=str)
 
 # pull backup
 backuppull = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
@@ -184,6 +194,9 @@ try:
     elif (cmd == "query-upload"):
         args = backupquery_upload.parse_args()
         query_upload_backup(args)
+    elif (cmd == "query-info"):
+        args = backupquery_info.parse_args()
+        query_backup_info(args)
     elif (cmd == "pull"):
         args = backuppull.parse_args()
         pull_backup(args)

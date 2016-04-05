@@ -143,6 +143,7 @@ public class IPSecMonitor implements Runnable {
                 log.info("ipsec still has problems on : " + Arrays.toString(problemNodes));
             }
         } catch (Exception ex) {
+            ex.printStackTrace();
             log.warn("error when run ipsec monitor: ", ex);
         }
     }
@@ -165,6 +166,9 @@ public class IPSecMonitor implements Runnable {
         Map<String, String> latest = null;
 
         if (nodes != null && nodes.length != 0) {
+            // sort remote ips, to make sure to find the node with latest properties
+            // AND with smallest ip.
+            Arrays.sort(nodes);
             for (String node : nodes) {
                 if (StringUtils.isEmpty(node) || node.trim().length() == 0) {
                     continue;
@@ -174,13 +178,18 @@ public class IPSecMonitor implements Runnable {
 
                 // if the node is in the same vdc as local node, through ssh to get its ipsec props,
                 // else through https REST API to get ipsec props.
-                if (isSameVdcAsLocalNode(node)) {
-                    props = LocalRepository.getInstance().getIpsecProperties(node);
-                } else {
-                    props = getIpsecPropsThroughHTTPS(node);
+                try {
+                    if (isSameVdcAsLocalNode(node)) {
+                        props = LocalRepository.getInstance().getIpsecProperties(node);
+                    } else {
+                        props = getIpsecPropsThroughHTTPS(node);
+                    }
+                } catch (Exception ex) {
+                    log.warn("get ipsec properties exception: " + ex.getMessage());
+                    continue;
                 }
 
-                if (props == null) {
+                if (props == null || StringUtils.isEmpty(props.get(VDC_CONFIG_VERSION))) {
                     log.warn("Failed to get ipsec properties from the node {}", node);
                     continue;
                 }
@@ -190,13 +199,15 @@ public class IPSecMonitor implements Runnable {
                         compareVdcConfigVersion(configVersion,
                                 latest.get(VDC_CONFIG_VERSION)) > 0) {
                     latest = props;
+                    latest.put(NODE_IP, node);
                 }
 
                 log.info("checking " + node + ": " + " configVersion=" + configVersion
                     + ", ipsecKey=" + maskIpsecKey(props.get(Constants.IPSEC_KEY))
                     + ", ipsecStatus=" + props.get(Constants.IPSEC_STATUS)
                     + ", latestKey=" + maskIpsecKey(latest.get(Constants.IPSEC_KEY))
-                    + ", latestStatus=" + latest.get(Constants.IPSEC_STATUS));
+                    + ", latestStatus=" + latest.get(Constants.IPSEC_STATUS)
+                    + ", nodeIp=" + latest.get(Constants.NODE_IP));
             }
         }
 
@@ -299,7 +310,7 @@ public class IPSecMonitor implements Runnable {
 
         boolean bKeyEqual = false;
         boolean bStatusEqual = false;
-        
+
         if (StringUtils.isEmpty(props.get(IPSEC_KEY))) {
             log.info("remote nodes' latest ipsec_key is empty, skip sync");
             return false;
@@ -326,8 +337,17 @@ public class IPSecMonitor implements Runnable {
         int result = compareVdcConfigVersion(
                 localIpsecProp.get(VDC_CONFIG_VERSION),
                 props.get(VDC_CONFIG_VERSION));
+
+        // local vdc_configure_version is larger, local is newer, no need to sync.
         if (result > 0) {
             return false;
+
+        // vdc_config_version is the same, further comparing ip,
+        // if local is smaller, no need to sync. otherwise, do sync.
+        } else if (result == 0 && localIP.compareTo(props.get(NODE_IP)) < 0) {
+            return false;
+
+        // local vdc_config_version is smaller, remote node is newer, need to sync
         } else {
             return true;
         }

@@ -4,14 +4,18 @@
   <script type="text/javascript">
     var route = #{jsAction @volumesJson(':id',':appId')/};
    
-    function reloadVolumes() {
+    function reloadVolumes(value) {
       var table = $('#volumes table'); 
       var xhr = table.data('previousXHR');
       if (xhr) {
           xhr.abort();
       }
-      var projectId = $('#project option:selected').val();
-      var applicationId = $('#application option:selected').val();
+      if(value=="Project") {
+      	var projectId = $('#project option:selected').val();
+      } else if(value=="Application") {
+      	var applicationId = $('#application option:selected').val();
+      }
+      
       table.dataTable().fnReloadAjax(route({id: projectId, appId:applicationId}));
     }
     
@@ -30,15 +34,21 @@
         }
     }
     
+    function reloadVolumesbyFilter() {
+    	var filterSelected = $('#filter option:selected').val();
+    	reloadVolumes(filterSelected);
+    }
     table.volumes.dataTable.setDrawCallback(disableSRDFSource);
+
     
     $(document).ready(function() {
-      $('#project').on('change', reloadVolumes);
-      $('#application').on('change' , reloadVolumes);
+    	$('#application').on('change', function() {reloadVolumes("Application");});
+     	$('#project').on('change', function() {reloadVolumes("Project");});
+     	$('#filter').on('change', reloadVolumesbyFilter)
     });
   </script>
 
-#{Resources.applicationControl projects:projects /}
+#{Resources.projectsApplicationsControl projects:projects /}
 
 <p id="srdfAlert" class="alert alert-info" style="display:none">&{'resources.volume.disabledSRDF'}</p> 
 

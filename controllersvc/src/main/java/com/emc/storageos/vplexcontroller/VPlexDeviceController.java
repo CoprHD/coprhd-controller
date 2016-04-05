@@ -880,8 +880,8 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                     vplexVolume.setNativeId(vvInfo.getPath());
                     vplexVolume.setNativeGuid(vvInfo.getPath());
                     vplexVolume.setDeviceLabel(vvInfo.getName());
-                    // CTRL-2534: allocatedCapacity should equal provisionedCapacity on VPLEX volumes
-                    vplexVolume.setAllocatedCapacity(vvInfo.getCapacityBytes());
+                    // For Vplex virtual volumes set allocated capacity to 0 (cop-18608)
+                    vplexVolume.setAllocatedCapacity(0L);
                     vplexVolume.setProvisionedCapacity(vvInfo.getCapacityBytes());
                     _dbClient.updateObject(vplexVolume);
 
@@ -1839,7 +1839,9 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                                 // create map of target-port to port-wwn
                                 // example: target port - P0000000046E01E80-A0-FC02 PortWWn - 0x50001442601e8002
                                 for (VPlexPortInfo cachedPortInfo : cachedPortInfos) {
-                                    targetPortToPwwnMap.put(cachedPortInfo.getTargetPort(), cachedPortInfo.getPortWwn());
+                                    if (null != cachedPortInfo.getPortWwn()) {
+                                        targetPortToPwwnMap.put(cachedPortInfo.getTargetPort(), cachedPortInfo.getPortWwn());
+                                    }
                                 }
                                 long elapsed = new Date().getTime() - start;
                                 _log.info("TIMER: assembling the target port name to wwn map took {} ms", elapsed);
@@ -5307,10 +5309,11 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
     public void rollbackMigrateVirtualVolume(URI vplexURI, URI migrationURI,
             String migrateStepId, String stepId) throws WorkflowException {
         Migration migration = null;
+        String migrationVolumeLabel = null;
         try {
             // Update step state to executing.
             WorkflowStepCompleter.stepExecuting(stepId);
-
+            
             // Was the migration created and started? If so, then
             // we'll try and cancel the migration and clean up.
             // Otherwise, there is nothing to do.
@@ -5323,6 +5326,12 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
 
             // Get the migration.
             migration = _dbClient.queryObject(Migration.class, migrationURI);
+
+            // Get the VPLEX volume for the migration.
+            Volume migrationVolume = _dbClient.queryObject(Volume.class, migration.getVolume());
+            if (migrationVolume != null) {
+                migrationVolumeLabel = migrationVolume.getLabel();
+            }
 
             // The migration could have failed due to an error or it may have
             // failed because it was cancelled outside the scope of the
@@ -5350,7 +5359,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             if (migration != null) {
                 setOrClearVolumeInternalFlag(migration.getVolume(), true);
                 vae = VPlexApiException.exceptions.migrationRollbackFailureContactEMC(
-                        migration.getVolume().toString(), migration.getLabel());
+                        migration.getVolume().toString(), migrationVolumeLabel, migration.getLabel());
             }
             WorkflowStepCompleter.stepFailed(stepId, vae);
         } catch (Exception e) {
@@ -5360,7 +5369,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             if (migration != null) {
                 setOrClearVolumeInternalFlag(migration.getVolume(), true);
                 e = VPlexApiException.exceptions.migrationRollbackFailureContactEMC(
-                        migration.getVolume().toString(), migration.getLabel());
+                        migration.getVolume().toString(), migrationVolumeLabel, migration.getLabel());
             }
             WorkflowStepCompleter.stepFailed(stepId, VPlexApiException.exceptions.rollbackMigrateVolume(migrationURI.toString(), e));
         }
@@ -6215,8 +6224,8 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 // of the VPLEX volume to the provisioned capacity of the existing volume.
                 vplexVolume.setProvisionedCapacity(existingVolume.getProvisionedCapacity());
 
-                // CTRL-2534: allocatedCapacity should equal provisionedCapacity on VPLEX volumes
-                vplexVolume.setAllocatedCapacity(existingVolume.getProvisionedCapacity());
+                // For Vplex virtual volumes set allocated capacity to 0 (cop-18608)
+                vplexVolume.setAllocatedCapacity(0L);
 
                 // For import associated with creating a VPLEX full copy, we need
                 // to add the copy to the list of copies for the source VPLEX volume.
@@ -6628,8 +6637,8 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             // Update the VPlex volume size in the database.
             vplexVolume.setCapacity(newSize);
             vplexVolume.setProvisionedCapacity(vplexVolumeInfo.getCapacityBytes());
-            // CTRL-2534: allocatedCapacity should equal provisionedCapacity on VPLEX volumes
-            vplexVolume.setAllocatedCapacity(vplexVolumeInfo.getCapacityBytes());
+            // For Vplex virtual volumes set allocated capacity to 0 (cop-18608)
+            vplexVolume.setAllocatedCapacity(0L);
             _dbClient.updateObject(vplexVolume);
             _log.info("Updated volume size");
 
@@ -9017,8 +9026,8 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             promoteVolume.setNativeId(vvInfo.getPath());
             promoteVolume.setNativeGuid(vvInfo.getPath());
             promoteVolume.setDeviceLabel(vvInfo.getName());
-            // CTRL-2534: allocatedCapacity should equal provisionedCapacity on VPLEX volumes
-            promoteVolume.setAllocatedCapacity(vplexMirror.getProvisionedCapacity());
+            // For Vplex virtual volumes set allocated capacity to 0 (cop-18608)
+            promoteVolume.setAllocatedCapacity(0L);
             promoteVolume.setCapacity(vplexMirror.getCapacity());
             promoteVolume.setProvisionedCapacity(vplexMirror.getProvisionedCapacity());
             promoteVolume.setVirtualPool(vplexMirror.getVirtualPool());
@@ -9414,7 +9423,6 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 }
                 _log.info(String.format("Creating mirror: %s (%s)", vplexMirror.getLabel(), vplexMirrorId));
                 Volume storageVolume = mirrorMap.get(vplexMirror);
-                long totalAllocated = storageVolume.getAllocatedCapacity();
                 long totalProvisioned = storageVolume.getProvisionedCapacity();
                 StorageSystem storage = storageMap.get(storageVolume.getStorageController());
                 List<String> itls = VPlexControllerUtils.getVolumeITLs(storageVolume);
@@ -9435,7 +9443,8 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                         vInfo.getPath(), sourceVplexVolume.getLabel(), sourceVplexVolume.getDeviceLabel()));
                 vplexMirror.setNativeId(vInfo.getPath());
                 vplexMirror.setDeviceLabel(vInfo.getName());
-                vplexMirror.setAllocatedCapacity(totalAllocated);
+                // For Vplex virtual volumes set allocated capacity to 0 (cop-18608)
+                vplexMirror.setAllocatedCapacity(0L);
                 vplexMirror.setProvisionedCapacity(totalProvisioned);
                 _dbClient.updateObject(vplexMirror);
 
@@ -11080,6 +11089,10 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
 
             // The workflow depends on if the VPLEX volume is local or distributed.
             boolean isLocal = firstVplexVolume.getAssociatedVolumes().size() == 1;
+
+            // Check for RP, there are pre/post steps that need to be executed in this case.
+            boolean isRP = firstVplexVolume.checkForRp();
+
             String waitFor = null;
             if (isLocal) {
                 for (Volume vplexVolume : vplexVolumes) {
@@ -11088,18 +11101,40 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                             vplexVolume.getId(), null, null);
                 }
 
-                // Now create a workflow step to natively restore the backend
-                // volume. We execute this after the invalidate cache. We
-                // could execute these in parallel for a little better efficiency,
-                // but what if the invalidate cache fails, but the restore succeeds,
-                // the cache now has invalid data and a cache read hit could return
-                // invalid data.
-                createWorkflowStepForRestoreNativeSnapshotSession(workflow, snapSessionSystem,
-                        snapSessionURI, waitFor, null);
-            } else {
-                // Check for RP, there are pre/post steps that need to be executed in this case.
-                boolean isRP = firstVplexVolume.checkForRp();
 
+
+                // Create the pre/post RP steps if necessary.
+                if (isRP) {
+                    ProtectionSystem rpSystem = getDataObject(ProtectionSystem.class,
+                            firstVplexVolume.getProtectionController(), _dbClient);
+
+                    // Create the pre restore step which will be the first step executed
+                    // in the workflow.
+                    waitFor = createWorkflowStepForDeleteReplicationSet(workflow, rpSystem, vplexVolumes, waitFor);
+
+                    // Now create a workflow step to natively restore the backend
+                    // volume. We execute this after the invalidate cache. We
+                    // could execute these in parallel for a little better efficiency,
+                    // but what if the invalidate cache fails, but the restore succeeds,
+                    // the cache now has invalid data and a cache read hit could return
+                    // invalid data.
+                    waitFor = createWorkflowStepForRestoreNativeSnapshotSession(workflow, snapSessionSystem,
+                            snapSessionURI, waitFor, null);
+
+                    // Create the post restore step, which will be the last step executed
+                    // in the workflow after the volume shave been rebuilt.
+                    createWorkflowStepForRecreateReplicationSet(workflow, rpSystem, vplexVolumes, waitFor);
+                } else {
+                    // Now create a workflow step to natively restore the backend
+                    // volume. We execute this after the invalidate cache. We
+                    // could execute these in parallel for a little better efficiency,
+                    // but what if the invalidate cache fails, but the restore succeeds,
+                    // the cache now has invalid data and a cache read hit could return
+                    // invalid data.
+                    waitFor = createWorkflowStepForRestoreNativeSnapshotSession(workflow, snapSessionSystem,
+                            snapSessionURI, waitFor, null);
+                }
+            } else {
                 // Create the steps that need to be executed on each VPLEX volume.
                 for (Volume vplexVolume : vplexVolumes) {
                     // For distributed volumes we take snaps of and restore the

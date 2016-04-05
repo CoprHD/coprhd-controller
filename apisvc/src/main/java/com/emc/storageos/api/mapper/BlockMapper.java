@@ -109,7 +109,12 @@ public class BlockMapper {
             to.setTenant(toRelatedResource(ResourceTypeEnum.TENANT, from.getTenant().getURI()));
         }
         to.setProvisionedCapacity(CapacityUtils.convertBytesToGBInStr(from.getProvisionedCapacity()));
-        to.setAllocatedCapacity(CapacityUtils.convertBytesToGBInStr(from.getAllocatedCapacity()));
+        // For VPLEX virtual volumes return allocated capacity as provisioned capacity (cop-18608)
+        if (dbClient != null && VPlexUtil.isVplexVolume(from, dbClient)) {
+            to.setAllocatedCapacity(CapacityUtils.convertBytesToGBInStr(from.getProvisionedCapacity()));
+        } else {
+            to.setAllocatedCapacity(CapacityUtils.convertBytesToGBInStr(from.getAllocatedCapacity()));
+        }
         to.setCapacity(CapacityUtils.convertBytesToGBInStr(from.getCapacity()));
         if (from.getThinlyProvisioned()) {
             to.setPreAllocationSize(CapacityUtils.convertBytesToGBInStr(from.getThinVolumePreAllocationSize()));
@@ -351,6 +356,8 @@ public class BlockMapper {
         to.setReplicaState(getReplicaState(from));
         to.setReadOnly(from.getIsReadOnly());
         to.setSnapsetLabel(from.getSnapsetLabel() != null ? from.getSnapsetLabel() : "");
+        to.setProvisionedCapacity(CapacityUtils.convertBytesToGBInStr(from.getProvisionedCapacity()));
+        to.setAllocatedCapacity(CapacityUtils.convertBytesToGBInStr(from.getAllocatedCapacity()));
         return to;
     }
 

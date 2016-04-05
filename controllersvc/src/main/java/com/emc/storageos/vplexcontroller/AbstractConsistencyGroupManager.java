@@ -45,6 +45,7 @@ import com.emc.storageos.workflow.Workflow;
 import com.emc.storageos.workflow.WorkflowException;
 import com.emc.storageos.workflow.WorkflowService;
 import com.emc.storageos.workflow.WorkflowStepCompleter;
+import com.google.common.base.Joiner;
 
 public abstract class AbstractConsistencyGroupManager implements ConsistencyGroupManager, Controller {
     protected static final String CREATE_CG_STEP = "createCG";
@@ -556,7 +557,7 @@ public abstract class AbstractConsistencyGroupManager implements ConsistencyGrou
             log.info("Updated workflow step state to execute for remove volumes from consistency group.");
 
             if (vplexVolumeURIs.isEmpty()) {
-                log.info("empty volume list; no volumes to remove from CG %s", cgURI.toString());
+                log.info("Empty volume list; no volumes to remove from CG %s", cgURI.toString());
                 // Update workflow step state to success.
                 WorkflowStepCompleter.stepSucceded(stepId);
                 log.info("Updated workflow step state to success for remove volumes from consistency group.");
@@ -568,31 +569,49 @@ public abstract class AbstractConsistencyGroupManager implements ConsistencyGrou
             VPlexApiClient client = getVPlexAPIClient(vplexApiFactory, vplexSystem, dbClient);
             log.info("Got VPLEX API client.");
 
-            Volume firstVPlexVolume = getDataObject(Volume.class, vplexVolumeURIs.get(0), dbClient);
-            String cgName = getVplexCgName(firstVPlexVolume, cgURI);
-
+            Map<String, List<String>> cgToVolumesMap = new HashMap<String, List<String>>();
             // Get the names of the volumes to be removed.
-            List<Volume> vplexVolumes = new ArrayList<Volume>();
-            List<String> vplexVolumeNames = new ArrayList<String>();
+            List<Volume> vplexVolumes = new ArrayList<Volume>();           
             for (URI vplexVolumeURI : vplexVolumeURIs) {
                 Volume vplexVolume = getDataObject(Volume.class, vplexVolumeURI, dbClient);
                 if (vplexVolume == null || vplexVolume.getInactive()) {
-                    log.error(String.format("skipping null or inactive vplex volume %s", vplexVolumeURI.toString()));
+                    log.error(String.format("Skipping null or inactive vplex volume %s", vplexVolumeURI.toString()));
                     continue;
                 }
+                // Remove CG reference from volume, it won't be persisted until after the operation completes.
                 vplexVolume.setConsistencyGroup(NullColumnValueGetter.getNullURI());
                 vplexVolumes.add(vplexVolume);
+                
+                // Get the CG name for this VPLEX volume, it could be a CG
+                // that is distributed, a CG on cluster-1, or a CG on cluster-2.
+                String cgName = getVplexCgName(vplexVolume, cgURI);
+                
+                // Keep a map of CG name grouped by all VPLEX volumes in that same CG. 
+                List<String> vplexVolumeNames = cgToVolumesMap.get(cgName);
+                if (vplexVolumeNames == null) {
+                    vplexVolumeNames = new ArrayList<String>();
+                    cgToVolumesMap.put(cgName, vplexVolumeNames);
+                }
                 vplexVolumeNames.add(vplexVolume.getDeviceLabel());
-                log.info(String.format("Removing VPLEX volume: %s (device label %s) from CG %s",
-                        vplexVolume.getNativeId(), vplexVolume.getDeviceLabel(), cgName));
+                
+                log.info(String.format("Adding VPLEX volume [%s](%s) with device label [%s] to be removed from VPLEX CG [%s]",
+                        vplexVolume.getLabel(), vplexVolume.getId(), vplexVolume.getDeviceLabel(), cgName));
             }
-            log.info("Got VPLEX volume names.");
-
-            // Remove the volumes from the CG.
-            client.removeVolumesFromConsistencyGroup(vplexVolumeNames, cgName, false);
+                        
+            for (Map.Entry<String, List<String>> entry : cgToVolumesMap.entrySet()) {
+                String cgName = entry.getKey();
+                List<String> vplexVolumeNames = entry.getValue();
+                
+                log.info(String.format("Removing the following VPLEX volumes from VPLEX CG [%s]: %s",
+                        cgName,  Joiner.on(", ").join(vplexVolumeNames)));
+                
+                // Remove the volumes from the CG.
+                client.removeVolumesFromConsistencyGroup(vplexVolumeNames, cgName, false);
+            }
+            
             log.info("Removed volumes from consistency group.");
 
-            dbClient.persistObject(vplexVolumes);
+            dbClient.updateObject(vplexVolumes);
 
             // Update workflow step state to success.
             WorkflowStepCompleter.stepSucceded(stepId);

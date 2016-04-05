@@ -17,7 +17,7 @@
     <div class="navbar-header">
       <a class="navbar-brand" href="@{Dashboard.index()}">#{Branding.applicationName/}</a>
       #{if !isActiveSite }
-      	<span class="navbar-brand" style="background-color:#d8d9d8">Standby Site: ${localSiteName}</span>
+          <span class="navbar-brand" style="background-color:#d8d9d8">Standby Site: ${localSiteName}</span>
       #{/if}
       <button class="navbar-toggle" type="button" data-toggle="collapse" data-target="#navbar-collapse-1">
         <span class="sr-only">&{'navigation.toggle'}</span><span class="icon-bar"></span>

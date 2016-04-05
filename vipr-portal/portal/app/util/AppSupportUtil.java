@@ -17,6 +17,7 @@ import com.emc.storageos.model.NamedRelatedResourceRep;
 import com.emc.storageos.model.TaskList;
 import com.emc.storageos.model.application.VolumeGroupCopySetParam;
 import com.emc.storageos.model.application.VolumeGroupCreateParam;
+import com.emc.storageos.model.application.VolumeGroupList;
 import com.emc.storageos.model.application.VolumeGroupRestRep;
 import com.emc.storageos.model.application.VolumeGroupUpdateParam;
 
@@ -100,4 +101,9 @@ public class AppSupportUtil {
         getSetsForCopies.setCopySetName(copySets);
         return BourneUtil.getViprClient().application().getVolumeGroupFullCopiesForSet(uri(id), getSetsForCopies).getVolumes();
     }
+
+	public static List<NamedRelatedResourceRep> getVolumeGroupByTenant(String id) {
+		return BourneUtil.getViprClient().application()
+				.getVolumeGroupsByTenant(uri(id)).getVolumeGroups();
+	}
 }

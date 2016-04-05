@@ -10,12 +10,13 @@ import java.net.URI;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 
-@XmlRootElement(name = "copy")
-public class Copy implements Serializable {
+@XmlRootElement(name = "file_copy")
+public class FileCopy implements Serializable {
 
-    private static final long serialVersionUID = -8250892549720042299L;
+    private static final long serialVersionUID = -825089254972004248L;
     private URI copyID;
     private String type;
+    private FileSystemReplicationSettings replicationSettingParam;
 
     /**
      * @return the copyID
@@ -28,13 +29,12 @@ public class Copy implements Serializable {
     public void setCopyID(URI copyID) {
         this.copyID = copyID;
     }
-    
-    
+
     /**
      * Type of protection.
-     *
+     * 
      */
-    @XmlElement(name = "type", required = true)
+    @XmlElement(name = "type")
     public String getType() {
         return type;
     }
@@ -42,4 +42,14 @@ public class Copy implements Serializable {
     public void setType(String type) {
         this.type = type;
     }
+
+    @XmlElement(name = "replication_settings")
+    public FileSystemReplicationSettings getReplicationSettingParam() {
+        return replicationSettingParam;
+    }
+
+    public void setReplicationSettingParam(FileSystemReplicationSettings replicationSettingParam) {
+        this.replicationSettingParam = replicationSettingParam;
+    }
+
 }

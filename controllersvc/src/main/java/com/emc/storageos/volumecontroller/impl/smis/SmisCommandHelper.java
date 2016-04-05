@@ -4894,8 +4894,8 @@ public class SmisCommandHelper implements SmisConstants {
         return argsList.toArray(result);
     }
 
-    public CIMArgument[] getCreateGroupReplicaForSRDFInputArguments(CIMObjectPath srcCG, CIMObjectPath tgtCG,
-            CIMObjectPath collection, int mode, Object repSettingInstance) {
+    public CIMArgument[] getCreateGroupReplicaForSRDFInputArguments(StorageSystem storage, String replicaName,
+            CIMObjectPath srcCG, CIMObjectPath tgtCG, CIMObjectPath collection, int mode, Object repSettingInstance) {
         List<CIMArgument> args = new ArrayList<CIMArgument>();
         args.add(_cimArgument.reference(CP_CONNECTIVITY_COLLECTION, collection));
         // By default CG's are consistency enabled for 8.0.3 & 4.6.2.25 provider versions. Hence commenting the below line
@@ -4904,6 +4904,11 @@ public class SmisCommandHelper implements SmisConstants {
         args.add(_cimArgument.uint16(CP_SYNC_TYPE, MIRROR_VALUE));
         args.add(_cimArgument.reference(CP_SOURCE_GROUP, srcCG));
         args.add(_cimArgument.reference(CP_TARGET_GROUP, tgtCG));
+
+        int maxRelNameLength = storage.getUsingSmis80() ? MAX_SMI80_RELATIONSHIP_NAME : MAX_VMAX_RELATIONSHIP_NAME;
+        final String relationshipName = (replicaName.length() > maxRelNameLength) ? replicaName.substring(0, maxRelNameLength)
+                : replicaName;
+        args.add(_cimArgument.string(RELATIONSHIP_NAME, relationshipName));
         // args.add(_cimArgument.object(CP_REPLICATIONSETTING_DATA, repSettingInstance));
         // WaitForCopyState only valid for Active mode.
         if (SRDFOperations.Mode.ACTIVE.getMode() == mode) {
@@ -7250,8 +7255,8 @@ public class SmisCommandHelper implements SmisConstants {
             }
         }
         if (removeEntryList.isEmpty()) {
-            _log.info(String.format("The SFS entry is not found for the source group %s",
-                    sourceReplicationGroupName));
+            _log.info(String.format("The expected SFS entry %s is not found for the source group %s",
+                    groupSynchronizedAspectLabel, sourceReplicationGroupName));
             return;
         }
         try {

@@ -9,6 +9,7 @@ import java.net.URI;
 import java.util.HashMap;
 import java.util.List;
 
+import javax.ws.rs.DELETE;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
@@ -160,7 +161,7 @@ public class TypeService extends TaskResourceService {
     }
 
     /**
-     * Get information about a specified volume type
+     * Set information about a specified volume type
      * 
      * 
      * @prereq none
@@ -168,20 +169,39 @@ public class TypeService extends TaskResourceService {
      * @param tenant_id the URN of the tenant
      * @param volume_type_id the URN of the volume type
      * 
-     * @brief Show volume type
-     * @return Volume type details
+     * @brief Set volume type
+     * @return error
      */
     @POST
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{volume_type_id}/extra_specs")
     @CheckPermission(roles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN }, acls = { ACL.ANY })
     public Response setVolumeTypeKey(@PathParam("tenant_id") URI openstacktenant_id,
-            @PathParam("volume_type_id") URI volume_type_id, @Context HttpHeaders header) {
-        _log.debug("START set volume types extra specs {}", volume_type_id);
-
-        throw new UnsupportedOperationException();
+            @PathParam("volume_type_id") URI volumeTypeId, @Context HttpHeaders header) {       
+        _log.info("VolumeType updation is not supported");
+        return CinderApiUtils.createErrorResponse(400, "Bad Request: Update volume type not supported");
     }
-
+    
+    
+    /**
+     * Delete a specific volume type
+     * NOTE: This operation is not supported on current version of enterprise cinder.
+     *
+     * @prereq none
+     * @param tenant_id the URN of the tenant
+     * @param volume_type_id the URN of the volume type
+     * @return error
+     */
+    @DELETE
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("/{volume_type_id}")
+    @CheckPermission(roles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN }, acls = { ACL.ANY })
+    public Response deleteVolumeType(@PathParam("tenant_id") String openstackTenantId,
+    		@PathParam("volume_type_id") String volumeTypeId) {
+        _log.info("VolumeType deletion is not supported");
+        return CinderApiUtils.createErrorResponse(400, "Bad Request : Delete volume type not supported");
+    }    
+   
     /**
      * Type is a zone level resource
      */

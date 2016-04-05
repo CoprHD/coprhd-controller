@@ -110,6 +110,7 @@ public class MailHandler {
         params.put("degradeTime", degradeTime);
         String title = String.format("ATTENTION - %s site has been marked as STANDBY_DEGRADED state", siteName);
         String content = MailHelper.readTemplate("StandbySiteDegraded.html");
+        content = MailHelper.parseTemplate(params, content);
         getMailHelper().sendMailMessage(to, title, content);
 
         auditLogManager.recordAuditLog(

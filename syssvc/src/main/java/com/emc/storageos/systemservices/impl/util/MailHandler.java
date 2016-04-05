@@ -49,7 +49,6 @@ public class MailHandler {
      * Sends mail alert that site network is broken.
      * 
      * @param site the site with broken network
-     * @return true if mail sends successfully
      */
     public void sendSiteNetworkBrokenMail(Site site) {
         String to = getMailAddressOfUser("root");
@@ -84,6 +83,11 @@ public class MailHandler {
                 null, site.getName());
     }
 
+    /**
+     * Send alert mail that standby site is marked as STANDBY_DEGRADED
+     * @param siteName name of site that is degraded
+     * @param degradeTimeStamp time the site is marked as degraded
+     */
     public void sendSiteDegradedMail(String siteName, long degradeTimeStamp) {
         String degradeTime = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new Date(degradeTimeStamp));
         String to = getMailAddressOfUser("root");

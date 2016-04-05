@@ -284,7 +284,6 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
                 copyRecommendations.add(srdfCopyRecommendation);
                 if (srdfCopyRecommendation instanceof VPlexRecommendation) {
                     String name = param.getName();
-                    param.setName(name + "-target-" + vArray.getLabel());
                     // Do not pass in the consistency group for vplex volumes fronting targets
                     // as we will eventually put them in the target CG.
                     srdfCopyDescriptors = createVPlexVolumeDescriptors(param, project, vArray, vPool,
@@ -365,6 +364,12 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
         s_logger.info("Request to create {} VPlex virtual volume(s)",
                 vPoolCapabilities.getResourceCount());
 
+        // Determine if we're processing an SRDF copy so we can set appropriate name.
+        boolean srdfCopy = false;
+        if (recommendations.get(0).getRecommendation() != null 
+                && recommendations.get(0).getRecommendation() instanceof SRDFCopyRecommendation) {
+            srdfCopy = true;
+        }
         // Sort the recommendations by VirtualArray. There can be up to two
         // VirtualArrays, the requested VirtualArray and the HA VirtualArray
         // either passed or determined by the placement when HA virtual volumes
@@ -444,6 +449,9 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
         for (int i = 0; i < vPoolCapabilities.getResourceCount(); i++) {
             String volumeLabelBuilt = AbstractBlockServiceApiImpl.generateDefaultVolumeLabel(volumeLabel, i,
                     vPoolCapabilities.getResourceCount());
+            if (srdfCopy) {
+                volumeLabelBuilt = volumeLabelBuilt + "-target-" + vArray.getLabel();
+            }
             s_logger.info("Volume label is {}", volumeLabelBuilt);
 
             Volume volume = StorageScheduler.getPrecreatedVolume(_dbClient, taskList, volumeLabelBuilt);
@@ -3644,7 +3652,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
             if (srdfTarget) {
                 newVolumeLabel = generateVolumeLabel(volumeLabel+"-target", varrayCount, 0, 0);
             } else if (srdfSource) {
-                newVolumeLabel = generateVolumeLabel(volumeLabel+"-source", varrayCount, 0, 0);
+                newVolumeLabel = newVolumeLabel+"-source";
             } else {
                 // nothing special about these volumes, hide them in the vplex project
                 project = vplexProject;

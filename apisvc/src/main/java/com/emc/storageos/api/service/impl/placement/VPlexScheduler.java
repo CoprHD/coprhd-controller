@@ -21,7 +21,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.emc.storageos.api.service.authorization.PermissionsHelper;
-import com.emc.storageos.api.service.impl.placement.PlacementManager.SchedulerType;
 import com.emc.storageos.api.service.impl.resource.ArgValidator;
 import com.emc.storageos.api.service.impl.resource.BlockService;
 import com.emc.storageos.db.client.DbClient;
@@ -48,6 +47,7 @@ import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValues
 public class VPlexScheduler implements Scheduler {
 
     public static final Logger _log = LoggerFactory.getLogger(VPlexScheduler.class);
+    private static final String SCHEDULER_NAME = "vplex";
     @Autowired
     protected PermissionsHelper _permissionsHelper = null;
 
@@ -418,7 +418,7 @@ public class VPlexScheduler implements Scheduler {
         
         // Call the lower level scheduler to get its baseRecommendations.
         Scheduler nextScheduler = _placementManager.getNextScheduler(
-                SchedulerType.vplex, vpool, vPoolUse);
+                SCHEDULER_NAME, vpool, vPoolUse);
         _log.info(String.format("Calling next scheduler: %s", nextScheduler.getClass().getSimpleName()));
         List<Recommendation> baseRecommendations = 
                 nextScheduler.getRecommendationsForVpool(
@@ -557,7 +557,7 @@ public class VPlexScheduler implements Scheduler {
       
       // Call the lower level scheduler to get it's recommendations.
       Scheduler nextScheduler = _placementManager.getNextScheduler(
-              SchedulerType.vplex, srcVpool, srcVpoolUse);
+              SCHEDULER_NAME, srcVpool, srcVpoolUse);
       _log.info(String.format("Calling next scheduler: %s", nextScheduler.getClass().getSimpleName()));
       List<Recommendation> baseRecommendations =
               nextScheduler.getRecommendationsForVpool(
@@ -1296,5 +1296,17 @@ public class VPlexScheduler implements Scheduler {
 
         return recommendations;
     }
+
+    @Override
+    public String getSchedulerName() {
+        return SCHEDULER_NAME;
+    }
+
+    @Override
+    public boolean handlesVpool(VirtualPool vPool, VpoolUse vPoolUse) {
+        return VirtualPool.vPoolSpecifiesHighAvailability(vPool);
+    }
+    
+    
 
 }

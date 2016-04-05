@@ -79,6 +79,7 @@ import com.emc.storageos.volumecontroller.impl.utils.attrmatchers.MaxResourcesMa
  */
 public class StorageScheduler implements Scheduler {
     public static final Logger _log = LoggerFactory.getLogger(StorageScheduler.class);
+    private static final String SCHEDULER_NAME = "block";
     private DbClient _dbClient;
 
     private CoordinatorClient _coordinator;
@@ -1410,6 +1411,17 @@ public class StorageScheduler implements Scheduler {
         List<Recommendation> recommendations = 
                 getRecommendationsForResources(vArray, project, vPool, capabilities);
         return recommendations;
+    }
+
+    @Override
+    public String getSchedulerName() {
+        return SCHEDULER_NAME;
+    }
+
+    @Override
+    public boolean handlesVpool(VirtualPool vPool, VpoolUse vPoolUse) {
+        // This is a bottom level scheduler, it handles everything.
+        return true;
     }
 
 }

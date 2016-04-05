@@ -62,6 +62,7 @@ public class FileStorageScheduler implements Scheduler {
 
     public final Logger _log = LoggerFactory
             .getLogger(FileStorageScheduler.class);
+    private static final String SCHEDULER_NAME = "filestorage";
 
     private static final String ENABLE_METERING = "enable-metering";
     private DbClient _dbClient;
@@ -1092,6 +1093,17 @@ public class FileStorageScheduler implements Scheduler {
             VirtualPoolCapabilityValuesWrapper capabilities, Map<VpoolUse, List<Recommendation>> currentRecommendations) {
         // TODO Auto-generated method stub
         return null;
+    }
+
+    @Override
+    public String getSchedulerName() {
+        return SCHEDULER_NAME;
+    }
+
+    @Override
+    public boolean handlesVpool(VirtualPool vPool, VpoolUse vPoolUse) {
+        // not implemented
+        return false;
     }
 
 }

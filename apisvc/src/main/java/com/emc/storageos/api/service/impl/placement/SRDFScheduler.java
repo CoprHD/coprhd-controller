@@ -22,7 +22,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.emc.storageos.api.service.authorization.PermissionsHelper;
-import com.emc.storageos.api.service.impl.placement.PlacementManager.SchedulerType;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
@@ -56,6 +55,7 @@ import com.emc.storageos.volumecontroller.impl.utils.attrmatchers.SRDFMetroMatch
  * desired class-of-service parameters for the provisioned storage.
  */
 public class SRDFScheduler implements Scheduler {
+    private static final String SCHEDULER_NAME = "srdf";
 
     /**
      * A valid combination of
@@ -1288,4 +1288,17 @@ public class SRDFScheduler implements Scheduler {
         }
         return recommendations;
     }
+
+    @Override
+    public String getSchedulerName() {
+        return SCHEDULER_NAME;
+    }
+
+    @Override
+    public boolean handlesVpool(VirtualPool vPool, VpoolUse vPoolUse) {
+        // TODO Auto-generated method stub
+        return (VirtualPool.vPoolSpecifiesSRDF(vPool) || vPoolUse == VpoolUse.SRDF_COPY);
+    }
+    
+    
 }

@@ -402,6 +402,14 @@
             <entry key="srdf" value-ref="srdfscheduler"/>            
         </map>
         </property>
+	<property name="schedulerStack">
+        <list>
+	    <value>rp</value>
+	    <value>vplex</value>
+	    <value>srdf</value>
+	    <value>block</value>
+	</list>
+	</property>
         <property name="dbClient" ref="dbclient"/>
     </bean>
 

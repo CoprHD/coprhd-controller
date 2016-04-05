@@ -153,14 +153,14 @@ host_create vplexsrdfhost1 $clusterId A0 A1 FABRIC_losam082-fabric FABRIC_losam0
 host_create vplexsrdfhost2 $clusterId A2 A3 FABRIC_losam082-fabric FABRIC_losam082-fabric
 
 # Control over running individual parts of the test (true/false)
-create_volume=false			# if false, specify volname1 and CGlabel
-export_volume=false
-test_protection_ops=false
-test_expand=false
-test_r1_snapvx_nocopy=false
+create_volume=true			# if false, specify volname1 and CGlabel
+export_volume=true
+test_protection_ops=true
+test_expand=true
+test_r1_snapvx_nocopy=true
 test_r2_snapvx_nocopy=true
-test_r1_fullcopy=false
-test_r2_fullcopy=false
+test_r1_fullcopy=true
+test_r2_fullcopy=true
 delete_volume=true
 
 vplexsrdf_test() {
@@ -187,7 +187,7 @@ CGtarget=$CGlabel-Target-$SITEr2
 if [ $VOLUME_COUNT -gt 1 ];
 then
     volname1=${volname1}-1
-    volname1target=${volname1target}-1
+    volname1target=${volname1}-target-${SITEr2}
     echo "volname1 $volname1"
     echo "volname1target $volname1target"
 fi

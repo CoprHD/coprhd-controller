@@ -76,6 +76,7 @@ import com.google.common.collect.Lists;
 public class RecoverPointScheduler implements Scheduler {
 
     public static final Logger _log = LoggerFactory.getLogger(RecoverPointScheduler.class);
+    private static final String SCHEDULER_NAME = "rp";
 
     @Autowired
     protected PermissionsHelper _permissionsHelper = null;
@@ -4442,4 +4443,16 @@ public class RecoverPointScheduler implements Scheduler {
         // No special implementation based on Vpool - using original implementation
         return getRecommendationsForResources(vArray, project, vPool, capabilities);
     }
+
+    @Override
+    public String getSchedulerName() {
+        return SCHEDULER_NAME;
+    }
+
+    @Override
+    public boolean handlesVpool(VirtualPool vPool, VpoolUse vPoolUse) {
+        return (VirtualPool.vPoolSpecifiesProtection(vPool));
+    }
+    
+    
 }

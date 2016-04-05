@@ -32,17 +32,11 @@ import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValues
 public class PlacementManager {
     public static final Logger _log = LoggerFactory.getLogger(PlacementManager.class);
 
-    // Enumeration specifying the valid scheduler keys.
-    public enum SchedulerType {
-        block, rp, srdf, vplex, rpvplex
-    }
-    
-    private SchedulerType[] schedulerStack = {
-      SchedulerType.rp, 
-      SchedulerType.vplex, 
-      SchedulerType.srdf, 
-      SchedulerType.block      
-    };
+    /**
+     * An ordered list of schedulers from the top of a hierarchy down.
+     * Currently RecoverPointScheduler is the top and BlockScheduler is the bottom.
+     */
+    private List<String> schedulerStack;
     
 
     private DbClient dbClient;
@@ -50,12 +44,12 @@ public class PlacementManager {
     private Map<String, Scheduler> storageSchedulers;
     
     // Determine the scheduler to be called.
-    public Scheduler getNextScheduler(SchedulerType currentScheduler, 
+    public Scheduler getNextScheduler(String currentScheduler, 
             VirtualPool virtualPool, VpoolUse use) {
         int index = 0;
         // If there is a currentScheduler, we only call down the stack
         if (currentScheduler != null) {
-            while (schedulerStack[index] != currentScheduler) {
+            while (!schedulerStack.get(index).equals(currentScheduler)) {
                 index++;
             }
             // Start with next scheduler after current
@@ -63,23 +57,12 @@ public class PlacementManager {
         }
         
         // Check the predicate for each scheduler to see if applicable.
-        while (index < schedulerStack.length) {
-            switch(schedulerStack[index]) {
-                case rp:
-                    if (virtualPool.vPoolSpecifiesProtection(virtualPool)) {
-                        return storageSchedulers.get(SchedulerType.rp.name());
-                    }
-                case vplex:
-                    if (virtualPool.vPoolSpecifiesHighAvailability(virtualPool)) {
-                        return storageSchedulers.get(SchedulerType.vplex.name());
-                    }
-                case srdf:
-                    if (virtualPool.vPoolSpecifiesSRDF(virtualPool) 
-                            || use == VpoolUse.SRDF_COPY) {
-                        return storageSchedulers.get(SchedulerType.srdf.name());
-                    }
-                case block:
-                    return storageSchedulers.get(SchedulerType.block.name());
+        while (index < schedulerStack.size()) {
+        
+            String schedulerName = schedulerStack.get(index);
+            Scheduler scheduler = storageSchedulers.get(schedulerName);
+            if (scheduler.handlesVpool(virtualPool, use)) {
+                return scheduler;
             }
             index++;
         }
@@ -262,4 +245,11 @@ public class PlacementManager {
         
     }
 
+    public List<String> getSchedulerStack() {
+        return schedulerStack;
+    }
+
+    public void setSchedulerStack(List<String> schedulerStack) {
+        this.schedulerStack = schedulerStack;
+    }
 }

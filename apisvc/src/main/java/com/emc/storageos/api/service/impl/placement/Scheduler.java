@@ -19,6 +19,21 @@ public interface Scheduler {
             VirtualPoolCapabilityValuesWrapper capabilities);
     
     /**
+     * Returns the String Name of a scheduler.
+     * @return String name
+     */
+    public String getSchedulerName();
+    
+    /**
+     * Returns true if this specific scheduler can schedule storage for the indicated
+     * vpool and vpool use.
+     * @param vPool -- Virtual Pool
+     * @param vPoolUse - VpoolUse (indicates what type of Vpool it is)
+     * @return -- true if this scheduler can schedules storage for this vpool
+     */
+    public boolean handlesVpool(VirtualPool vPool, VpoolUse vPoolUse);
+    
+    /**
      * Get sets of recommendations for a Vpool. Each set is a possible independent solution.
      * At first only one set may be supported (i.e. a scheduler may only calculate one possible
      * solution); but this interface allows for multiple possible solutions.
@@ -32,7 +47,7 @@ public interface Scheduler {
      * @return -- A scheduling solution containing a List of Recommendations.
      * The Recommendations may be any subclass of Recommendation.
      */
-    List<Recommendation> getRecommendationsForVpool(
+    public List<Recommendation> getRecommendationsForVpool(
             VirtualArray vArray, Project project, 
             VirtualPool vPool, VpoolUse vPoolUse,
             VirtualPoolCapabilityValuesWrapper capabilities, 

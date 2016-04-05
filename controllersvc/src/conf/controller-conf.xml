@@ -825,6 +825,7 @@
                 <entry key="netapp" value-ref="netappFileDevice"/>
                 <entry key="netappc" value-ref="netappcFileDevice"/>
                 <entry key="vnxe" value-ref="vnxeDevice"/>
+		<entry key="vnxunity" value-ref="vnxUnityFileDevice"/>
                 <entry key="datadomain" value-ref="datadomainDevice"/>
             </map>
         </property>
@@ -883,6 +884,13 @@
             <property name="exportMaskOperationsHelper" ref="vnxeExportMaskOperationsHelper"/>
             <property name="snapshotOperations" ref="vnxeSnapshotOperations"/>
     </bean>
+
+    <bean id="vnxUnityFileDevice" class="com.emc.storageos.volumecontroller.impl.vnxunity.VNXUnityFileStorageDevice">
+            <property name="dbClient" ref="dbclient"/>
+            <property name="vnxeApiClientFactory" ref="vnxeApiClientFactory"/>
+            <property name="nameGenerator" ref="defaultNameGenerator"/>
+    </bean>
+
 
     <bean id="netappFileDevice" class="com.emc.storageos.volumecontroller.impl.netapp.NetAppFileStorageDevice">
         <property name="dbClient" ref="dbclient"/>

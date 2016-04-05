@@ -20,10 +20,12 @@ public class CifsShareRequests extends KHRequests<VNXeCifsShare> {
 
     private static final String URL = "/api/types/cifsShare/instances";
     private static final String URL_SHARE = "/api/instances/cifsShare/";
+    private static final String FIELDS = "filesystem,name,path";
 
     public CifsShareRequests(KHClient client) {
         super(client);
         _url = URL;
+	_fields = FIELDS;
     }
 
     /**

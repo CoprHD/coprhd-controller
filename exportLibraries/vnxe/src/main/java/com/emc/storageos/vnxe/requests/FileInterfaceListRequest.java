@@ -11,11 +11,12 @@ import com.emc.storageos.vnxe.models.VNXeFileInterface;
 
 public class FileInterfaceListRequest extends KHRequests<VNXeFileInterface> {
     private static final String URL = "/api/types/fileInterface/instances";
-    private static final String FIELDS = "name,nasServer";
+    private static final String FIELDS = "name,nasServer,ipAddress";
 
     public FileInterfaceListRequest(KHClient client) {
         super(client);
         _url = URL;
+        _fields = FIELDS;
     }
 
     public List<VNXeFileInterface> get() {

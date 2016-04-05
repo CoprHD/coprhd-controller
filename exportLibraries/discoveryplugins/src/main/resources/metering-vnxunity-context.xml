@@ -7,7 +7,7 @@
 		init-method="init" >
 	</bean>
 	<bean id="unManagedObjectDiscoverer"
-        class="com.emc.storageos.volumecontroller.impl.vnxe.VNXeUnManagedObjectDiscoverer">
+        class="com.emc.storageos.volumecontroller.impl.vnxunity.VNXUnityUnManagedObjectDiscoverer">
         <property name="vnxeApiClientFactory" ref="vnxeApiClientFactory" />
     </bean>
 

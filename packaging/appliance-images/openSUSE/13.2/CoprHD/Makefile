@@ -82,6 +82,7 @@ downloadRPM:
 	zypper $(ZYPPER_PARAMS) modifyrepo --priority  1 suse-13.2-oss-update
 	zypper $(ZYPPER_PARAMS) refresh
 	zypper $(ZYPPER_PARAMS) --non-interactive download libudev1 lvm2 udev glibc glibc-devel glibc-locale
+	zypper $(ZYPPER_PARAMS) --non-interactive patch --no-recommends --download-only --cve CVE-2015-7547
 	$(call targetLog,-)
 
 downloadTGZ:

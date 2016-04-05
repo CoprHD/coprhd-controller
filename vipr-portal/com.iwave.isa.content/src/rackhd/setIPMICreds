@@ -1,0 +1,19 @@
+{
+ "name": "Default IPMI settings for Lenovo servers",
+ "discoveryGraphName": "Graph.Obm.Ipmi.CreateSettings",
+ "discoveryGraphOptions": {
+  "defaults": {
+   "user": "lenovo",
+   "password": "len0vO"
+  }
+ },
+ "rules": [
+  {
+   "path": "bmc.IP Address"
+  },
+  {
+   "path": "dmi.Base Board Information.Manufacturer",
+   "equals": "LENOVO"
+  }
+ ]
+}

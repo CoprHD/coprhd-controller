@@ -394,14 +394,16 @@ public class VPlexBlockFullCopyApiImpl extends AbstractBlockFullCopyApiImpl {
                 // is copied is the backend volume in the same virtual array as the
                 // VPLEX volume i.e, the primary backend volume. Create
                 // descriptors for these prepared volumes and add them to the list.
-                vplexCopyPrimaryVolumes = prepareFullCopyPrimaryVolumes(copyName,
-                        count, vplexSrcPrimaryVolume, capabilities, volumeDescriptors, vpool);
+                vplexCopyPrimaryVolumes = prepareFullCopyPrimaryVolumes(copyName, count,
+                        vplexSrcPrimaryVolume, capabilities, volumeDescriptors, vpool,
+                        createInactive);
             } else {
                 // Get the provisioned capacity of the snapshot
                 size = ((BlockSnapshot) fcSourceObj).getProvisionedCapacity();
                 // Place and prepare a back-end volume for each block snapshot
                 vplexCopyPrimaryVolumes = prepareFullCopyPrimaryVolumes(copyName,
-                        count, fcSourceObj, capabilities, volumeDescriptors, vpool);
+                        count, fcSourceObj, capabilities, volumeDescriptors, vpool,
+                        createInactive);
             }
 
             // If the VPLEX volume being copied is distributed, then the VPLEX
@@ -657,12 +659,13 @@ public class VPlexBlockFullCopyApiImpl extends AbstractBlockFullCopyApiImpl {
      * @param srcCapabilities The capabilities of the primary volume.
      * @param volumeDescriptors The list of descriptors.
      * @param vPool The vPool to which the source object belongs to.
+     * @param createInactive true to create the full copies inactive, false otherwise.
      * 
      * @return A list of the prepared primary volumes for the VPLEX volume copy.
      */
     private List<Volume> prepareFullCopyPrimaryVolumes(String name, int copyCount,
             BlockObject srcBlockObject, VirtualPoolCapabilityValuesWrapper srcCapabilities,
-            List<VolumeDescriptor> volumeDescriptors, VirtualPool vPool) {
+            List<VolumeDescriptor> volumeDescriptors, VirtualPool vPool, boolean createInactive) {
 
         List<Volume> copyPrimaryVolumes = new ArrayList<Volume>();
 
@@ -684,7 +687,7 @@ public class VPlexBlockFullCopyApiImpl extends AbstractBlockFullCopyApiImpl {
         for (VolumeRecommendation recommendation : recommendations) {
             Volume volume = StorageScheduler.prepareFullCopyVolume(_dbClient,
                     nameBuilder.toString(), srcBlockObject, recommendation, copyIndex++,
-                    srcCapabilities);
+                    srcCapabilities, createInactive);
             volume.addInternalFlags(Flag.INTERNAL_OBJECT);
             _dbClient.updateObject(volume);
             copyPrimaryVolumes.add(volume);

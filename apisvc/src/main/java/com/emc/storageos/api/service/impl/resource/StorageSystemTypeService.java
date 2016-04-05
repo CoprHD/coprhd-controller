@@ -82,11 +82,11 @@ public class StorageSystemTypeService extends TaskResourceService {
 	 * @return List of all compute images.
 	 */
 	@GET
-	@Path("/type/{type_name}")
+	@Path("/type/{type}")
 	@Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
 	@CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR })
-	public StorageSystemTypeList getStorageSystemTypeType(@PathParam("storageType") String storageType) {
-		log.info("GET getStorageSystemType on type: " + storageType);
+	public StorageSystemTypeList getStorageSystemTypeType(@PathParam("type") String type) {
+		log.info("GET getStorageSystemType on type: " + type);
 		if (!checkForStorageSystemType()) {
 			StorageSystemTypeServiceUtils.InitializeStorageSystemTypes(_dbClient);
 		}
@@ -105,7 +105,7 @@ public class StorageSystemTypeService extends TaskResourceService {
 			if (ssType.getStorageTypeId() == null) {
 				ssType.setStorageTypeId(ssType.getId().toString());
 			}
-			if (storageType == null || storageType.equals(ssType.getStorageTypeType())) {
+			if (type == null || type.equals(ssType.getStorageTypeType())) {
 				list.getStorageSystemTypes().add(map(ssType));
 			}
 		}

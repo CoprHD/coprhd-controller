@@ -11,6 +11,7 @@ public enum SnapMirrorCurrentTransferType {
     retrieve("retrieve"),
     resync("resync"),
     migrate("migrate"),
+    scheduled("scheduled"),
     none("-");
 
     private String label;

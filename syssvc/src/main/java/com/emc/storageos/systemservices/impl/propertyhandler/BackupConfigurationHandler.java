@@ -144,9 +144,9 @@ public class BackupConfigurationHandler extends DefaultUpdateHandler {
 
     private int getStartTimeInMins(int startTime) {
         int minute = startTime % 100;
-        startTime /= 100;
-        int hour = startTime % 100;
-        int day = startTime / 100;
+        int startTimeInHour = startTime / 100;
+        int hour = startTimeInHour % 100;
+        int day = startTimeInHour / 100;
 
         return (day * 24 + hour) * 60 + minute;
     }

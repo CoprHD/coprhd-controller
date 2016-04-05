@@ -13,6 +13,8 @@ import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
+
+import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -52,14 +54,14 @@ public class StorageSystemTypeService extends TaskResourceService {
 	private static final Logger log = LoggerFactory.getLogger(StorageSystemTypeService.class);
 	private static final String EVENT_SERVICE_TYPE = "StorageSystemTypeService";
 	private static final String UPLOAD_DEVICE_DRIVER = "/data";
+	private static final String ALL_TYPE = "all";
 
 	/**
-	 * Show compute image attribute.
+	 * Show Storage System Type detail for given URI
 	 *
-	 * @param id
-	 *            the URN of compute image
-	 * @brief Show compute image
-	 * @return Compute image details
+	 * @param id the URN of compute image
+	 * @brief Show StorageSystemType
+	 * @return Storage System Type details
 	 */
 	@GET
 	@Path("/{id}")
@@ -76,10 +78,10 @@ public class StorageSystemTypeService extends TaskResourceService {
 	}
 
 	/**
-	 * Returns a list of all compute images.
-	 *
-	 * @brief Show compute images
-	 * @return List of all compute images.
+	 * Returns a list of all Storage System Types requested for like block, file, object or all.
+	 * Valid input parameters are block, file, object and all
+	 * @brief Show list of storage system types base of type or all
+	 * @return List of all storage system types.
 	 */
 	@GET
 	@Path("/type/{type}")
@@ -90,10 +92,10 @@ public class StorageSystemTypeService extends TaskResourceService {
 		if (!checkForStorageSystemType()) {
 			StorageSystemTypeServiceUtils.InitializeStorageSystemTypes(_dbClient);
 		}
-		// validate query param
-//		if (storageType != null) {
-//			ArgValidator.checkFieldValueFromEnum(storageType, "storageType", StorageSystemType.StorageType.class);
-//		}
+
+		if (type != null) {
+			ArgValidator.checkFieldValueFromEnum(type, "storageTypeType", StorageSystemType.storageSupportedType.class);
+		}
 
 		List<URI> ids = _dbClient.queryByType(StorageSystemType.class, true);
 
@@ -105,7 +107,7 @@ public class StorageSystemTypeService extends TaskResourceService {
 			if (ssType.getStorageTypeId() == null) {
 				ssType.setStorageTypeId(ssType.getId().toString());
 			}
-			if (type == null || type.equals(ssType.getStorageTypeType())) {
+			if (StringUtils.equals(ALL_TYPE, type) || StringUtils.equals(type, ssType.getStorageTypeType())) {
 				list.getStorageSystemTypes().add(map(ssType));
 			}
 		}
@@ -113,13 +115,13 @@ public class StorageSystemTypeService extends TaskResourceService {
 	}
 
 	/**
-	 * Create compute image from image URL or existing installable image URN.
+	 * Create a new storage system type that CoprHD is not natively supported.
 	 *
 	 * @param param
-	 *            The ComputeImageCreate object contains all the parameters for
+	 *            The StorageSystemTypeAddParam object contains all the parameters for
 	 *            creation.
-	 * @brief Create compute image
-	 * @return Creation task REST representation.
+	 * @brief Create storage system type
+	 * @return StorageSystemTypeRestRep object.
 	 */
 	@POST
 	@Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })

@@ -32,6 +32,10 @@ public class StorageSystemType extends DataObject {
 	private String nonSslPort;
 	private String driverClassName;
 
+	public static enum storageSupportedType {
+		block, file, object, all
+	}
+
 	@Name("storageTypeName")
 	public String getStorageTypeName() {
 		return storageTypeName;

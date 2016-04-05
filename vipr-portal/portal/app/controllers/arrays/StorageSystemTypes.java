@@ -3,13 +3,11 @@ package controllers.arrays;
 import static controllers.Common.backToReferrer;
 
 import java.io.File;
-import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
 
 import javax.ws.rs.core.Response;
 
-import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang.StringUtils;
 
 import com.emc.storageos.model.dr.SiteIdListParam;
@@ -24,7 +22,6 @@ import controllers.util.FlashException;
 import controllers.util.ViprResourceController;
 import models.datatable.StorageSystemTypeDataTable;
 import models.datatable.StorageSystemTypeDataTable.StorageSystemTypeInfo;
-import play.Logger;
 import play.data.binding.As;
 import play.data.validation.MaxSize;
 import play.data.validation.MinSize;
@@ -186,9 +183,6 @@ public class StorageSystemTypes extends ViprResourceController {
 			if (isNew()) {
 				return create();
 			}
-			// else {
-			// return update().getId();
-			// }
 			return null;
 		}
 

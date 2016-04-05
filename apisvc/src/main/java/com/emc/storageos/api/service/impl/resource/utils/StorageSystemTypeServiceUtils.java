@@ -57,7 +57,6 @@ public class StorageSystemTypeServiceUtils {
 		dsslMap.put(VNX_FILE, true);
 		dsslMap.put(VNXe, true);
 		dsslMap.put(IBMXIV, true);
-		// return dsslMap;
 	}
 
 	private static void initializeDisplayName(HashMap<String, String> nameDisplayNameMap) {
@@ -120,6 +119,7 @@ public class StorageSystemTypeServiceUtils {
 	}
 
 	public static void InitializeStorageSystemTypes(DbClient _dbClient) {
+		log.info("Intializing storage system type Column Family for default storage drivers");
 		// Default SSL providers
 		HashMap<String, Boolean> defaultSSL = new HashMap<String, Boolean>();
 		initializeDefaultSSL(defaultSSL);
@@ -182,6 +182,7 @@ public class StorageSystemTypeServiceUtils {
 
 			_dbClient.createObject(ssType);
 		}
+		log.info("All default file type drivers added");
 
 		for (String file : storageProviderFile) {
 			StorageSystemType ssType = new StorageSystemType();
@@ -213,6 +214,7 @@ public class StorageSystemTypeServiceUtils {
 			}
 			_dbClient.createObject(ssType);
 		}
+		log.info("All default file type provider drivers added");
 
 		for (String block : storageArrayBlock) {
 			StorageSystemType ssType = new StorageSystemType();
@@ -245,6 +247,7 @@ public class StorageSystemTypeServiceUtils {
 
 			_dbClient.createObject(ssType);
 		}
+		log.info("All default block type drivers added");
 
 		for (String block : storageProviderBlock) {
 			StorageSystemType ssType = new StorageSystemType();
@@ -277,6 +280,7 @@ public class StorageSystemTypeServiceUtils {
 
 			_dbClient.createObject(ssType);
 		}
+		log.info("All default block provider type drivers added");
 
 		for (String object : storageArrayObject) {
 			StorageSystemType ssType = new StorageSystemType();
@@ -309,6 +313,8 @@ public class StorageSystemTypeServiceUtils {
 
 			_dbClient.createObject(ssType);
 		}
+		log.info("All default object type drivers added");
+		log.info("Default drivers initialization done....");
 	}
 
 }

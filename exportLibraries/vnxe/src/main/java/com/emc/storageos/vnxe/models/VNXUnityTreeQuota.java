@@ -8,7 +8,7 @@ package com.emc.storageos.vnxe.models;
 import org.codehaus.jackson.annotate.JsonIgnoreProperties;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
-public class FilesystemTreeQuota extends VNXeBase {
+public class VNXUnityTreeQuota extends VNXeBase {
     private String id;
     private VNXeBase filesystem;
     private VNXeBase quotaConfig;
@@ -91,6 +91,10 @@ public class FilesystemTreeQuota extends VNXeBase {
 
     public void setSizeUsed(Long sizeUsed) {
         this.sizeUsed = sizeUsed;
+    }
+
+    public String getQuotaConfigId() {
+        return quotaConfig.getId();
     }
 
 }

@@ -56,6 +56,8 @@ import com.emc.storageos.vnxe.models.NfsShareParam;
 import com.emc.storageos.vnxe.models.NfsShareParam.NFSShareDefaultAccessEnum;
 import com.emc.storageos.vnxe.models.StorageResource;
 import com.emc.storageos.vnxe.models.StorageResource.TieringPolicyEnum;
+import com.emc.storageos.vnxe.models.VNXUnityQuotaConfig;
+import com.emc.storageos.vnxe.models.VNXUnityTreeQuota;
 import com.emc.storageos.vnxe.models.VNXeBase;
 import com.emc.storageos.vnxe.models.VNXeCifsServer;
 import com.emc.storageos.vnxe.models.VNXeCifsShare;
@@ -98,6 +100,7 @@ import com.emc.storageos.vnxe.requests.FcPortRequests;
 import com.emc.storageos.vnxe.requests.FileInterfaceListRequest;
 import com.emc.storageos.vnxe.requests.FileSystemActionRequest;
 import com.emc.storageos.vnxe.requests.FileSystemListRequest;
+import com.emc.storageos.vnxe.requests.FileSystemQuotaConfigRequests;
 import com.emc.storageos.vnxe.requests.FileSystemQuotaRequests;
 import com.emc.storageos.vnxe.requests.FileSystemRequest;
 import com.emc.storageos.vnxe.requests.FileSystemSnapRequests;
@@ -2133,34 +2136,73 @@ public class VNXeApiClient {
         FileSystemQuotaConfigParam qcParam = new FileSystemQuotaConfigParam();
         qcParam.setGracePeriod(softGrace);
         FileSystemListRequest fsReq = new FileSystemListRequest(_khClient);
-        VNXeCommandJob returnJob = new VNXeCommandJob();
         param.setPath("/" + quotaName);
         param.setHardLimit(hardLimit);
         param.setSoftLimit(softLimit);
         param.setFilesystem(fsReq.getByFSName(fsName).getId());
         FileSystemQuotaRequests req = new FileSystemQuotaRequests(_khClient);
-        returnJob = req.createFileSystemQuotaAsync(param);
-        req.modifyFileSystemQuotaConfig(fsName, quotaName, qcParam);
-        return returnJob;
+        VNXeCommandResult res = req.createFileSystemQuotaSync(param);
+        return req.updateFileSystemQuotaConfig(res.getId(), qcParam);
     }
 
-    public VNXeCommandJob deleteQuotaDirectory(String fsName, String quotaName) throws VNXeException {
+    public VNXeCommandJob deleteQuotaDirectory(String quotaId) throws VNXeException {
         FileSystemQuotaRequests req = new FileSystemQuotaRequests(_khClient);
-        return req.deleteFileSystemQuota(fsName, quotaName);
+        return req.deleteFileSystemQuota(quotaId);
     }
 
-    public VNXeCommandJob modifyQuotaDirectory(final String fsName, final String quotaName,
-            final Long hardLimit, final Long softLimit, final long softGrace) throws VNXeException {
-        _logger.info("Creating quota directory with path: {} for fs: {}",
-                "/" + quotaName, fsName);
-
+    public VNXeCommandJob updateQuotaDirectory(String quotaId, final Long hardLimit, final Long softLimit, final long softGrace)
+            throws VNXeException {
+        _logger.info("Creating quota directory with ID: {} ", "/" + quotaId);
         FileSystemQuotaModifyParam param = new FileSystemQuotaModifyParam();
         FileSystemQuotaConfigParam qcParam = new FileSystemQuotaConfigParam();
         qcParam.setGracePeriod(softGrace);
         param.setHardLimit(hardLimit);
         param.setSoftLimit(softLimit);
         FileSystemQuotaRequests req = new FileSystemQuotaRequests(_khClient);
-        req.modifyFileSystemQuotaConfig(fsName, quotaName, qcParam);
-        return req.modifyFileSystemQuota(fsName, quotaName, param);
+        req.updateFileSystemQuotaAsync(quotaId, param);
+        return req.updateFileSystemQuotaConfig(quotaId, qcParam);
     }
+
+    /**
+     * Get quota by its name
+     * 
+     * @param name
+     *            fs name
+     * @param name
+     *            quota name
+     * @return VNXUnityTreeQuota
+     */
+    public VNXUnityTreeQuota getQuotaByName(String fsName, String name) {
+        _logger.info("Getting the quota {}: ", name);
+        FileSystemQuotaRequests req = new FileSystemQuotaRequests(_khClient);
+        FileSystemListRequest fsReq = new FileSystemListRequest(_khClient);
+        return req.getByName(fsReq.getByFSName(fsName).getId(), name);
+    }
+
+    /**
+     * Get quota by its ID
+     * 
+     * @param name
+     *            quota ID
+     * @return VNXUnityTreeQuota
+     */
+    public VNXUnityTreeQuota getQuotaById(String quotaId) {
+        _logger.info("Getting the quota {}: ", quotaId);
+        FileSystemQuotaRequests req = new FileSystemQuotaRequests(_khClient);
+        return req.getFileSystemQuota(quotaId);
+    }
+
+    /**
+     * Get quotaConfig by its ID
+     * 
+     * @param name
+     *            quotaConfig ID
+     * @return VNXUnityQuotaConfig
+     */
+    public VNXUnityQuotaConfig getQuotaConfigById(String quotaConfigId) {
+        _logger.info("Getting the quota {}: ", quotaConfigId);
+        FileSystemQuotaConfigRequests req = new FileSystemQuotaConfigRequests(_khClient);
+        return req.getFileSystemQuotaConfig(quotaConfigId);
+    }
+
 }

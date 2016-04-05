@@ -1885,7 +1885,7 @@ public class DisasterRecoveryService {
             ClusterInfo.ClusterState state = coordinator.getControlNodesState(site.getUuid());
             if (state != ClusterInfo.ClusterState.STABLE) {
                 log.info("Site {} is not stable {}", site.getUuid(), state);
-                throw APIException.internalServerErrors.addStandbyPrecheckFailed(String.format("Site %s is not stable", site.getName()));
+                throw APIException.internalServerErrors.addStandbyPrecheckFailed(String.format("Currently site %s is not stable", site.getName()));
             }
         }
     }

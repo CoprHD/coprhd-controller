@@ -11,13 +11,6 @@ import java.util.Set;
 
 public class StorageSystemTypeFilter extends DefaultResourceFilter<StorageSystemRestRep> {
 
-	// public static StorageSystemTypeFilter BLOCK = new
-	// StorageSystemTypeFilter("vnxblock", "vmax", "vplex", "hds", "xtremio",
-	// "vnxe", "ibmxiv");
-	// public static StorageSystemTypeFilter FILE = new
-	// StorageSystemTypeFilter("isilon", "vnxfile", "netapp", "datadomain",
-	// "vnxe", "netappc");
-
 	private Set<String> types;
 
 	public StorageSystemTypeFilter(Set<String> types) {

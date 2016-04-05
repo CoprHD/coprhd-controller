@@ -6,7 +6,6 @@ package com.emc.sa.asset.providers;
 
 import static com.emc.vipr.client.core.filters.CompatibilityFilter.INCOMPATIBLE;
 import static com.emc.vipr.client.core.filters.RegistrationFilter.REGISTERED;
-//import static com.emc.vipr.client.core.filters.StorageSystemTypeFilter.*;
 import static com.emc.vipr.client.core.util.UnmanagedHelper.NATIVE_ID;
 import static com.emc.vipr.client.core.util.UnmanagedHelper.PROVISIONED_CAPACITY;
 import static com.emc.vipr.client.core.util.UnmanagedHelper.getInfoField;
@@ -62,7 +61,6 @@ public class VirtualDataCenterProvider extends BaseAssetOptionsProvider {
 
 	private static StorageSystemTypeFilter BLOCK;
 	private static StorageSystemTypeFilter FILE;
-	private static StorageSystemTypeFilter OBJECT;
 
 	@Asset("blockStorageSystem")
 	public List<AssetOption> getBlockStorageSystem(AssetOptionsContext ctx) {

@@ -1030,7 +1030,6 @@ public class DisasterRecoveryService {
             throw APIException.badRequests.operationRetryOnlyAllowedOnLastState(standby.getName(), standby.getLastState().toString());
         }
 
-        try {
         //Reuse the current action required
         Site localSite = drUtil.getLocalSite();
         SiteInfo siteInfo = coordinator.getTargetInfo(localSite.getUuid(),SiteInfo.class);

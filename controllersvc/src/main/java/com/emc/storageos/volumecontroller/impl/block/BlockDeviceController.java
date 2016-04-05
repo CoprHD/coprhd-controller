@@ -4246,14 +4246,27 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
             taskCompleter = new BlockConsistencyGroupCreateCompleter(consistencyGroup, opId);
             String groupName = ControllerUtils.generateReplicationGroupName(storageSystem, consistencyGroup, replicationGroupName,
                     _dbClient);
+            String lockKey = groupName;
+            boolean isVNX = storageSystem.deviceIsType(Type.vnxblock);
+            if (isVNX && lockKey == null) {
+                lockKey = replicationGroupName;
+            }
             
             // Lock the CG for the step duration.
             List<String> lockKeys = new ArrayList<>();
-            lockKeys.add(ControllerLockingUtil.getReplicationGroupStorageKey(_dbClient, groupName, storage));
+            lockKeys.add(ControllerLockingUtil.getReplicationGroupStorageKey(_dbClient, lockKey, storage));
             _workflowService.acquireWorkflowStepLocks(opId, lockKeys, LockTimeoutValue.get(LockType.ARRAY_CG));
+
+            if (isVNX) {
+                // replication group may have been just created by another thread, in that case,
+                // group name for VNX will be array generated name (if arrayConsistency is true), or replicationGroupName if arrayConsistency is false
+                // so get the group name again here to be used in ControllerUtils.replicationGroupExists call
+                groupName = ControllerUtils.generateReplicationGroupName(storageSystem, consistencyGroup, replicationGroupName,
+                        _dbClient);
+            }
             
             // make sure this array consistency group was not just created by another thread that held the lock
-            if (ControllerUtils.replicationGroupExists(storage, groupName, _dbClient)) {
+            if (groupName != null && ControllerUtils.replicationGroupExists(storage, groupName, _dbClient)) {
                 taskCompleter.ready(_dbClient);
                 return true;
             }

@@ -2080,7 +2080,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                 "Restore volume %s from snapshot %s",
                 volume, snapshot), waitFor,
                 storage, getDeviceType(storage),
-                BlockDeviceController.class, restoreVolumeMethod, null, null);
+                BlockDeviceController.class, restoreVolumeMethod, rollbackMethodNullMethod(), null);
         _log.info(
                 "Created workflow step to restore block volume {} from snapshot {}",
                 volume, snapshot);
@@ -2433,7 +2433,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
             workflow.createStep(POST_BLOCK_VOLUME_RESTORE_GROUP, description, waitFor,
                     system.getId(), system.getSystemType(), BlockDeviceController.class,
                     terminateRestoreSessionsMethod(system.getId(), sourceVolume.getId(), blockSnapshot.getId()),
-                    null, null);
+                    rollbackMethodNullMethod(), null);
         }
     }
 
@@ -6035,7 +6035,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                     String.format("Restore snapshot session %s", snapSessionURI),
                     null, systemURI, getDeviceType(systemURI), getClass(),
                     restoreBlockSnapshotSessionMethod(systemURI, snapSessionURI),
-                    null, null);
+                    rollbackMethodNullMethod(), null);
 
             // Execute the workflow.
             workflow.executePlan(completer, "Restore block snapshot session successful");

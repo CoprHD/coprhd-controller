@@ -714,8 +714,10 @@ public class StoragePortService extends TaggedResource {
                     // Remove storage varray from vnas virtual arrays,
                     // if other ports on vnas not belongs to same varray.
                     if (!vNasVarrys.contains(vArrays)) {
-                        vNas.getAssignedVirtualArrays().removeAll(vArrays);
-                        varraysForvNasUpdated = true;
+                        if (vNas.getAssignedVirtualArrays() != null && !vNas.getAssignedVirtualArrays().isEmpty()) {
+                            vNas.getAssignedVirtualArrays().removeAll(vArrays);
+                            varraysForvNasUpdated = true;
+                        }
                     }
                 }
             }

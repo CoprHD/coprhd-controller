@@ -141,8 +141,8 @@ public class DrSiteNetworkMonitor implements Runnable {
 
             if (drUtil.isActiveSite()) {
                 SiteState state = site.getState();
-                if (SiteState.STANDBY_ADDING != state && SiteState.STANDBY_RESUMING != state) {
-                    _log.info("Skip mail alert during add-standby or resume standby for {}", site.getUuid());
+                if (SiteState.STANDBY_ADDING == state || SiteState.STANDBY_RESUMING == state) {
+                    _log.info("Skip mail alert during add-standby or resume-standby for {}", site.getUuid());
                     continue;
                 }
                 

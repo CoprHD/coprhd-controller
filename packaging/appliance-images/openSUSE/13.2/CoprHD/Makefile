@@ -37,7 +37,7 @@ BOX := $(BUILD_DIR)/$(NAME).x86_64-$(VERSION).$(JOB).box
 VHD := $(BUILD_DIR)/$(NAME).x86_64-$(VERSION).$(JOB).vhd
 VBOX := $(BUILD_DIR)/$(NAME)-$(VERSION).$(JOB).vbox
 QCOW2 := $(BUILD_DIR)/$(NAME).x86_64-$(VERSION).$(JOB).qcow2
-ZYPPER_PARAMS := --reposd-dir $(WORKSPACE)/zypper/reposd --cache-dir $(WORKSPACE)/zypper/cache --solv-cache-dir $(WORKSPACE)/zypper/solv --pkg-cache-dir $(WORKSPACE)/zypper/pkg
+ZYPPER_PARAMS := --reposd-dir $(WORKSPACE)/zypper/reposd --cache-dir $(WORKSPACE)/zypper/cache --solv-cache-dir $(WORKSPACE)/zypper/solv --pkg-cache-dir $(WORKSPACE)/zypper/pkg --non-interactive
 
 .DEFAULT: all
 .PHONY: downloadISO downloadRPM downloadTGZ createREPO ovf vmx tgz box vhd vbox qcow2 appliance clean destroy
@@ -77,12 +77,12 @@ downloadRPM:
 	zypper $(ZYPPER_PARAMS) modifyrepo --priority  4 suse-13.2-python
 	zypper $(ZYPPER_PARAMS) modifyrepo --priority  4 suse-13.2-network
 	zypper $(ZYPPER_PARAMS) refresh
-	zypper $(ZYPPER_PARAMS) --non-interactive download atop ca-certificates-cacert fbiterm fribidi GeoIP GeoIP-data java-1_8_0-openjdk-devel keepalived libGeoIP1 libserf-devel ndisc6 openssh-fips perl-Tk python-cjson python-gpgme python-iniparse python-py python-requests python-setools setools-libs sipcalc sshpass strongswan strongswan-ipsec strongswan-libs0 sysstat yum
+	zypper $(ZYPPER_PARAMS) download atop ca-certificates-cacert fbiterm fribidi GeoIP GeoIP-data java-1_8_0-openjdk-devel keepalived libGeoIP1 libserf-devel ndisc6 openssh-fips perl-Tk python-cjson python-gpgme python-iniparse python-py python-requests python-setools setools-libs sipcalc sshpass strongswan strongswan-ipsec strongswan-libs0 sysstat yum
 	zypper $(ZYPPER_PARAMS) addrepo --name suse-13.2-oss-update --no-gpgcheck http://download.opensuse.org/repositories/openSUSE:/13.2:/Update/standard suse-13.2-oss-update
 	zypper $(ZYPPER_PARAMS) modifyrepo --priority  1 suse-13.2-oss-update
 	zypper $(ZYPPER_PARAMS) refresh
-	zypper $(ZYPPER_PARAMS) --non-interactive download libudev1 lvm2 udev
-	zypper $(ZYPPER_PARAMS) --non-interactive patch --no-recommends --download-only --cve CVE-2015-7547
+	zypper $(ZYPPER_PARAMS) download libudev1 lvm2 udev
+	zypper $(ZYPPER_PARAMS) patch --download-only -g security --no-recommends
 	$(call targetLog,-)
 
 downloadTGZ:

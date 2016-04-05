@@ -70,7 +70,7 @@ function installPackages
   zypper --reposd-dir=/tmp/coprhd.d --non-interactive --no-gpg-checks refresh
   zypper --reposd-dir=/tmp/coprhd.d --non-interactive --no-gpg-checks update lvm2 udev
   # package updates from the repo above (suse-13.2-oss-update)
-  zypper --reposd-dir=/tmp/coprhd.d --non-interactive --no-gpg-checks patch --no-recommends --cve CVE-2015-7547
+  zypper --reposd-dir=/tmp/coprhd.d --non-interactive --no-gpg-checks patch -g security --no-recommends
   rm -fr /tmp/coprhd.d
 
   zypper --non-interactive clean

@@ -26,7 +26,7 @@ addProjects(
         "exportLibraries/xtremio",
 	    "exportLibraries/ecs",
 	"exportLibraries/storagedrivers/storagedriversimulator",    
-    "exportLibraries/storagedrivers/par3driver",
+    "exportLibraries/storagedrivers/pardriver",
         "geodbsvc",
         "geosvc",
         "internalLibraries/security",

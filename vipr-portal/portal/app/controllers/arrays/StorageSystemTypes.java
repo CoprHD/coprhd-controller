@@ -20,6 +20,7 @@ import controllers.deadbolt.Restrict;
 import controllers.deadbolt.Restrictions;
 import controllers.util.FlashException;
 import controllers.util.ViprResourceController;
+import models.StorageProviderTypes;
 import models.datatable.StorageSystemTypeDataTable;
 import models.datatable.StorageSystemTypeDataTable.StorageSystemTypeInfo;
 import play.data.binding.As;
@@ -43,6 +44,7 @@ public class StorageSystemTypes extends ViprResourceController {
 
 	public static void create() {
 		StorageSystemTypeForm storageSystemType = new StorageSystemTypeForm();
+		renderArgs.put("supportedTypeOptions", StorageProviderTypes.getSupportedStorageType());
 		render("@edit", storageSystemType);
 	}
 

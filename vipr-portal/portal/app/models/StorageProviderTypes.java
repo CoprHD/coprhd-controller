@@ -19,6 +19,11 @@ import com.google.common.collect.Lists;
 
 public class StorageProviderTypes {
 	private static final String OPTION_PREFIX = "storageProvider.interfaceType";
+	private static final String BLOCK_TYPE = "block";
+	private static final String FILE_TYPE = "file";
+	private static final String OBJECT_TYPE ="object";
+	private static final String ALL_TYPE = "all";
+			
 	public static final String HITACHI = "hicommand";
 	public static final String SMIS = "smis";
 	public static final String VPLEX = "vplex";
@@ -29,6 +34,7 @@ public class StorageProviderTypes {
 	public static final String IBMXIV = "ibmxiv";
 	public static final String XTREMIO = "xtremio";
 
+	
 	// public static final StringOption[] OPTIONS = {
 	// option(SMIS),
 	// option(HITACHI),
@@ -92,9 +98,8 @@ public class StorageProviderTypes {
 	}
 
 	public static List<StringOption> getProviderOption() {
-		String alltypes = "all";
 		List<StringOption> allproviders = new ArrayList<StringOption>();
-		StorageSystemTypeList storagetypelist = StorageSystemTypeUtils.getAllStorageSystemTypes(alltypes);
+		StorageSystemTypeList storagetypelist = StorageSystemTypeUtils.getAllStorageSystemTypes(ALL_TYPE);
 		for (StorageSystemTypeRestRep storagetypeRest : storagetypelist.getStorageSystemTypes()) {
 			if (storagetypeRest.getIsSmiProvider()) {
 				allproviders.add(new StringOption(storagetypeRest.getStorageTypeName(),
@@ -105,9 +110,8 @@ public class StorageProviderTypes {
 	}
 
 	public static List<StringOption> getProvidersWithSSL() {
-		String alltypes = "all";
 		List<StringOption> allproviders = new ArrayList<StringOption>();
-		StorageSystemTypeList storagetypelist = StorageSystemTypeUtils.getAllStorageSystemTypes(alltypes);
+		StorageSystemTypeList storagetypelist = StorageSystemTypeUtils.getAllStorageSystemTypes(ALL_TYPE);
 		for (StorageSystemTypeRestRep storagetypeRest : storagetypelist.getStorageSystemTypes()) {
 			if (storagetypeRest.getIsDefaultSsl()) {
 				allproviders.add(new StringOption(storagetypeRest.getStorageTypeName(),
@@ -119,9 +123,8 @@ public class StorageProviderTypes {
 	}
 
 	public static List<StringOption> getProvidersWithoutSSL() {
-		String alltypes = "all";
 		List<StringOption> allproviders = new ArrayList<StringOption>();
-		StorageSystemTypeList storagetypelist = StorageSystemTypeUtils.getAllStorageSystemTypes(alltypes);
+		StorageSystemTypeList storagetypelist = StorageSystemTypeUtils.getAllStorageSystemTypes(ALL_TYPE);
 		for (StorageSystemTypeRestRep storagetypeRest : storagetypelist.getStorageSystemTypes()) {
 			if (!storagetypeRest.getIsDefaultSsl()) {
 				allproviders.add(new StringOption(storagetypeRest.getStorageTypeName(),
@@ -133,9 +136,8 @@ public class StorageProviderTypes {
 	}
 
 	public static List<StringOption> getProvidersWithMDM() {
-		String alltypes = "all";
 		List<StringOption> allproviders = new ArrayList<StringOption>();
-		StorageSystemTypeList storagetypelist = StorageSystemTypeUtils.getAllStorageSystemTypes(alltypes);
+		StorageSystemTypeList storagetypelist = StorageSystemTypeUtils.getAllStorageSystemTypes(ALL_TYPE);
 		for (StorageSystemTypeRestRep storagetypeRest : storagetypelist.getStorageSystemTypes()) {
 			if (storagetypeRest.getIsDefaultMDM()) {
 				allproviders.add(new StringOption(storagetypeRest.getStorageTypeName(),
@@ -147,9 +149,8 @@ public class StorageProviderTypes {
 	}
 
 	public static List<StringOption> getProvidersWithOnlyMDM() {
-		String alltypes = "all";
 		List<StringOption> allproviders = new ArrayList<StringOption>();
-		StorageSystemTypeList storagetypelist = StorageSystemTypeUtils.getAllStorageSystemTypes(alltypes);
+		StorageSystemTypeList storagetypelist = StorageSystemTypeUtils.getAllStorageSystemTypes(ALL_TYPE);
 		for (StorageSystemTypeRestRep storagetypeRest : storagetypelist.getStorageSystemTypes()) {
 			if (storagetypeRest.getIsOnlyMDM()) {
 				allproviders.add(new StringOption(storagetypeRest.getStorageTypeName(),
@@ -161,9 +162,8 @@ public class StorageProviderTypes {
 	}
 
 	public static List<StringOption> getProvidersWithEMS() {
-		String alltypes = "all";
 		List<StringOption> allproviders = new ArrayList<StringOption>();
-		StorageSystemTypeList storagetypelist = StorageSystemTypeUtils.getAllStorageSystemTypes(alltypes);
+		StorageSystemTypeList storagetypelist = StorageSystemTypeUtils.getAllStorageSystemTypes(ALL_TYPE);
 		for (StorageSystemTypeRestRep storagetypeRest : storagetypelist.getStorageSystemTypes()) {
 			if (storagetypeRest.getIsElementMgr()) {
 				allproviders.add(new StringOption(storagetypeRest.getStorageTypeName(),
@@ -175,10 +175,9 @@ public class StorageProviderTypes {
 	}
 
 	public static List<EnumOption> getStoragePortMap() {
-		String alltypes = "all";
 		List<EnumOption> StorageProviderPortMap = new ArrayList<EnumOption>();
 
-		StorageSystemTypeList storagetypelist = StorageSystemTypeUtils.getAllStorageSystemTypes(alltypes);
+		StorageSystemTypeList storagetypelist = StorageSystemTypeUtils.getAllStorageSystemTypes(ALL_TYPE);
 		for (StorageSystemTypeRestRep storagetypeRest : storagetypelist.getStorageSystemTypes()) {
 			StorageProviderPortMap
 					.add(new EnumOption(storagetypeRest.getStorageTypeName(), storagetypeRest.getNonSslPort()));
@@ -189,11 +188,19 @@ public class StorageProviderTypes {
 
 		return StorageProviderPortMap;
 	}
+	
+	public static List<EnumOption> getSupportedStorageType() {
+		List<EnumOption> supportedStorageType = new ArrayList<EnumOption>();
+		supportedStorageType.add(new EnumOption(BLOCK_TYPE, BLOCK_TYPE));
+		supportedStorageType.add(new EnumOption(FILE_TYPE, FILE_TYPE));
+		supportedStorageType.add(new EnumOption(OBJECT_TYPE, OBJECT_TYPE));
+		supportedStorageType.add(new EnumOption(ALL_TYPE, ALL_TYPE));
+		return supportedStorageType;
+	}
 
 	public static List<StringOption> getScaleIoOption() {
-		String alltypes = "all";
 		List<StringOption> allproviders = new ArrayList<StringOption>();
-		StorageSystemTypeList storagetypelist = StorageSystemTypeUtils.getAllStorageSystemTypes(alltypes);
+		StorageSystemTypeList storagetypelist = StorageSystemTypeUtils.getAllStorageSystemTypes(ALL_TYPE);
 		for (StorageSystemTypeRestRep storagetypeRest : storagetypelist.getStorageSystemTypes()) {
 			if (storagetypeRest.getName().equals(SCALEIO)) {
 				allproviders.add(new StringOption(storagetypeRest.getStorageTypeName(),

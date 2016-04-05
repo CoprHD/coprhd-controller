@@ -534,7 +534,8 @@ public class FileReplicationDeviceController implements FileOrchestrationInterfa
 
     private static final String FAILOVER_MIRROR_FILESHARE_STEP = "failoverMirrorFilePairStep";
     private static final String RESYNC_MIRROR_FILESHARE_STEP = "reSyncPrepMirrorFilePairStep";
-    private static final String START_MIRROR_FILESHARE_STEP = "reSyncPrepMirrorFilePairStep";
+    private static final String START_MIRROR_FILESHARE_STEP = "startPrepMirrorFilePairStep";
+    private static final String RELEASE_MIRROR_FILESHARE_STEP = "releasePrepMirrorFilePairStep";
 
     private static final String FAILOVER_MIRROR_FILESHARE_METH = "failoverMirrorFilePair";
     private static final String RESYNC_MIRROR_FILESHARE_METH = "resyncPrepMirrorFilePair";
@@ -652,11 +653,11 @@ public class FileReplicationDeviceController implements FileOrchestrationInterfa
         Workflow.Method resyncMethodStep1 = resyncPrepMirrorPairMeth(primarysystem.getId(), secondarysystem.getId(),
                 targetFileShare.getId(), "");
 
-        String descresyncPrepStep1 = String.format("Creating resync between target- %s and source %s", primarysystem.getLabel(),
+        String descResyncPrepStep1 = String.format("Creating resync between target- %s and source %s", primarysystem.getLabel(),
                 secondarysystem.getLabel());
         String waitForResync = workflow.createStep(
                 RESYNC_MIRROR_FILESHARE_STEP,
-                descresyncPrepStep1,
+                descResyncPrepStep1,
                 waitFor, primarysystem.getId(), primarysystem.getSystemType(), getClass(),
                 resyncMethodStep1,
                 rollbackMethodNullMethod(), null);
@@ -670,17 +671,29 @@ public class FileReplicationDeviceController implements FileOrchestrationInterfa
                 faioverMirrorPairMeth(primarysystem.getId(), targetFileShare.getId(), ""),
                 rollbackMethodNullMethod(), null);
 
-        // resync source to target
-        // resync step -3
+        // release mirror - step3
+        Workflow.Method releaseMethodStep3 = resyncPrepMirrorPairMeth(primarysystem.getId(), secondarysystem.getId(),
+                targetFileShare.getId(), null);
+        String descReleasePrepStep3 = String.format("remove mirror relation ship between source- %s and target %s",
+                secondarysystem.getLabel(),
+                primarysystem.getLabel());
+        String waitForRelease = workflow.createStep(
+                RELEASE_MIRROR_FILESHARE_STEP,
+                descReleasePrepStep3,
+                waitForResync, primarysystem.getId(), primarysystem.getSystemType(), getClass(),
+                releaseMethodStep3,
+                rollbackMethodNullMethod(), null);
+
+        // resync step -4
         Workflow.Method resyncMethodStep4 = resyncPrepMirrorPairMeth(secondarysystem.getId(), primarysystem.getId(),
                 targetFileShare.getId(), "");
-        String descresyncPrepStep3 = String.format("Creating resyncprep between source- %s and target %s", secondarysystem.getLabel(),
+        String descResyncPrepStep4 = String.format("Creating resyncprep between source- %s and target %s", secondarysystem.getLabel(),
                 primarysystem.getLabel());
 
         waitFor = workflow.createStep(
                 RESYNC_MIRROR_FILESHARE_STEP,
-                descresyncPrepStep3,
-                waitForFailover, secondarysystem.getId(), secondarysystem.getSystemType(), getClass(),
+                descResyncPrepStep4,
+                waitForRelease, secondarysystem.getId(), secondarysystem.getSystemType(), getClass(),
                 resyncMethodStep4,
                 rollbackMethodNullMethod(), null);
         return waitFor;
@@ -828,7 +841,6 @@ public class FileReplicationDeviceController implements FileOrchestrationInterfa
         TaskCompleter completer = null;
         try {
             StorageSystem primarySystem = dbClient.queryObject(StorageSystem.class, primarysystemURI);
-            StorageSystem secondarySystem = dbClient.queryObject(StorageSystem.class, targetSystemURI);
 
             FileShare targetFileShare = dbClient.queryObject(FileShare.class, fileshareURI);
 
@@ -841,8 +853,7 @@ public class FileReplicationDeviceController implements FileOrchestrationInterfa
 
             WorkflowStepCompleter.stepExecuting(opId);
             completer.setNotifyWorkflow(true);
-            getRemoteMirrorDevice(primarySystem).doReleaseMirrorLink(primarySystem, targetFileShare,
-                    targetFileShare.getParentFileShare().getURI(), null, completer);
+            getRemoteMirrorDevice(primarySystem).doReleaseMirrorLink(primarysystemURI, targetSystemURI, fileshareURI, null, completer);
         } catch (Exception e) {
             ServiceError error = DeviceControllerException.errors.jobFailed(e);
             if (null != completer) {

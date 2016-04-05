@@ -1422,7 +1422,7 @@ public class NetAppFileCommunicationInterface extends
      * @return
      * @throws IOException
      */
-    protected boolean checkStorageQuotaDirectoryExistsInDB(String nativeGuid)
+    private boolean checkStorageQuotaDirectoryExistsInDB(String nativeGuid)
             throws IOException {
         URIQueryResultList result = new URIQueryResultList();
         _dbClient.queryByConstraint(AlternateIdConstraint.Factory
@@ -1461,7 +1461,7 @@ public class NetAppFileCommunicationInterface extends
 
     }
     
-    protected boolean checkUnManagedQuotaDirectoryExistsInDB(String nativeGuid)
+    private boolean checkUnManagedQuotaDirectoryExistsInDB(String nativeGuid)
             throws IOException {
         URIQueryResultList result = new URIQueryResultList();
         _dbClient.queryByConstraint(AlternateIdConstraint.Factory

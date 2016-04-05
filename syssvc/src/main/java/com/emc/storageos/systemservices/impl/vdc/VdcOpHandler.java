@@ -694,7 +694,6 @@ public abstract class VdcOpHandler {
         private VdcPropertyBarrier setStateToActiveBarrier;
         
         public DrSwitchoverHandler() {
-            isRebootNeeded = true;
         }
         
         @Override
@@ -727,6 +726,7 @@ public abstract class VdcOpHandler {
             
             // Update site state
             if (site.getUuid().equals(siteInfo.getSourceSiteUUID())) {
+                isRebootNeeded = true;
                 log.info("This is switchover active site (old active)");
 
                 coordinator.stopCoordinatorSvcMonitor();
@@ -741,6 +741,7 @@ public abstract class VdcOpHandler {
                 updateSwitchoverSiteState(newActiveSite, SiteState.STANDBY_SWITCHING_OVER, setStateToSwitchingoverBarrier);
                 waitForBarrierRemovedToRestart(site);
             } else if (site.getUuid().equals(siteInfo.getTargetSiteUUID())) {
+                isRebootNeeded = true;
                 log.info("This is switchover standby site (new active)");
                 
                 Site oldActiveSite = drUtil.getSiteFromLocalVdc(siteInfo.getSourceSiteUUID());

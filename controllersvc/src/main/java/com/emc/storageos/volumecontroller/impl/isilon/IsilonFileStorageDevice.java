@@ -867,6 +867,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
             VirtualNAS vNAS = args.getvNAS();
             String vNASPath = null;
 
+            _log.info("the custom path is  {}", getCustomPath());
             if (vNAS != null) {
                 vNASPath = vNAS.getBaseDirPath();
                 _log.info("vNAS base directory path: {}", vNASPath);
@@ -2601,5 +2602,29 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         task.setProgress(100);
         _dbClient.updateObject(task);
         return BiosCommandResult.createSuccessfulResult();
+    }
+
+    /**
+     * Gets the File System Custom path value set
+     * in the Configuration Service View
+     * 
+     * @return
+     */
+
+    private String getCustomPath() {
+
+        String fsRoot = IFS_ROOT;
+
+        try {
+            String customPath = customConfigHandler.getComputedCustomConfigValue(CustomConfigConstants.ISILON_FILE_SHARE_CUSTOM_PATH,
+                    "isilon", null);
+
+            if (customPath != null && !customPath.isEmpty()) {
+                fsRoot = customPath;
+            }
+        } catch (Exception e) {
+            _log.debug(e.getMessage());
+        }
+        return fsRoot;
     }
 }

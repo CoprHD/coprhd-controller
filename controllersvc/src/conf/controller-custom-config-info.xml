@@ -853,11 +853,6 @@
     	<property name="name" value="IsilonFileShareCustomPath"/>
        <property name="configType" value="SimpleValue"/>
         <property name="type" value="String"/>
-        	<property name="dataSourceVariables">
-            <map>
-                <entry key-ref="customPath" value="true"/>
-            </map>
-    	</property>
         <property name="scope">
             <map>
                 <entry key="systemType" value="isilon"/>

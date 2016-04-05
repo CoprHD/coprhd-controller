@@ -1030,8 +1030,9 @@ public class DisasterRecoveryService {
             throw APIException.badRequests.operationRetryOnlyAllowedOnLastState(standby.getName(), standby.getLastState().toString());
         }
 
+        try {
         //Reuse the current action required
-        Site localSite = drUtil.getActiveSite();
+        Site localSite = drUtil.getLocalSite();
         SiteInfo siteInfo = coordinator.getTargetInfo(localSite.getUuid(),SiteInfo.class);
         String drOperation = siteInfo.getActionRequired();
 
@@ -1067,10 +1068,10 @@ public class DisasterRecoveryService {
                 String siteUuid = site.getUuid();
                 if (site.getLastState() == SiteState.STANDBY_RESUMING) {
                     SiteInfo siteTargetInfo = coordinator.getTargetInfo(siteUuid, SiteInfo.class);
-                    drOperation = siteTargetInfo.getActionRequired();
+                    String resumeSiteOperation = siteTargetInfo.getActionRequired();
                     if (drOperation.equals(SiteInfo.DR_OP_CHANGE_DATA_REVISION)) {
                         long dataRevision = System.currentTimeMillis();
-                        drUtil.updateVdcTargetVersion(siteUuid, drOperation, vdcTargetVersion, dataRevision);
+                        drUtil.updateVdcTargetVersion(siteUuid, resumeSiteOperation, vdcTargetVersion, dataRevision);
                         continue;
                     }
                 }

@@ -68,7 +68,8 @@ function installPackages
   cp -f /etc/zypp/repos.d/suse-13.2-oss-update.repo /tmp/coprhd.d/
 
   zypper --reposd-dir=/tmp/coprhd.d --non-interactive --no-gpg-checks refresh
-  zypper --reposd-dir=/tmp/coprhd.d --non-interactive --no-gpg-checks update lvm2 udev
+  # package updates from the repo above (suse-13.2-oss-update)
+  zypper --reposd-dir=/tmp/coprhd.d --non-interactive --no-gpg-checks update lvm2 udev glibc glibc-devel glibc-locale
   rm -fr /tmp/coprhd.d
 
   zypper --non-interactive clean

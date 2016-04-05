@@ -133,14 +133,15 @@ public interface VPlexController extends Controller {
      * 
      * @param vplexURI The URI of the VPLEX storage system.
      * @param volumeDescriptors The volumes descriptors for the required volumes.
-     * @param createInactive true to create the full copies inactive, false otherwise.            
+     * @param createInactive true to create the full copies inactive, false otherwise. 
+     * @param createNativeCopy true to create the backend native full copy, false otherwise.           
      * @param opId The unique task identifier.
      * 
      * @throws InternalException When an error occurs configuring the full
      *             copy workflow.
      */
     public abstract void createFullCopy(URI vplexURI, List<VolumeDescriptor> volumeDescriptors,
-            Boolean createInactive, String opId) throws InternalException;
+            Boolean createInactive, Boolean createNativeCopy, String opId) throws InternalException;
 
     /**
      * Restore contents the source volumes for the full copies with the passed
@@ -183,6 +184,18 @@ public interface VPlexController extends Controller {
      */
     public void detachFullCopy(URI vplexURI, List<URI> fullCopyURIs, String opId)
             throws InternalException;
+    
+    /**
+     * Activate the full copies with the passed URIs.
+     * 
+     * @param vplexURI The URI of the VPLEX storage system.
+     * @param fullCopyURIs The URIs of the full copies to be activated.
+     * @param opId The unique operation Id.
+     * 
+     * @throws InternalException When an exception occurs activating the full copies.
+     */
+    public void activateFullCopy(URI vplexURI, List<URI> fullCopyURIs, String opId)
+            throws InternalException;    
 
     /**
      * Restores a VPLEX volume by restoring a native snapshot of the source

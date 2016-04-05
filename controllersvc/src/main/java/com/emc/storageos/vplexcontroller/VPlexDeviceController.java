@@ -123,6 +123,7 @@ import com.emc.storageos.volumecontroller.impl.block.taskcompleter.BlockSnapshot
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.CloneRestoreCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.CloneResyncCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.CloneTaskCompleter;
+import com.emc.storageos.volumecontroller.impl.block.taskcompleter.CloneWorkflowCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportAddInitiatorCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportAddVolumeCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportCreateCompleter;
@@ -212,6 +213,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
     private static final String DETACH_MIRROR_WF_NAME = "detachMirror";
     private static final String RESYNC_FULL_COPY_WF_NAME = "resyncFullCopy";
     private static final String DETACH_FULL_COPY_WF_NAME = "detachFullCopy";
+    private static final String ACTIVATE_FULL_COPY_WF_NAME = "activateFullCopy";
     private static final String EXPORT_GROUP_REMOVE_VOLUMES = "exportGroupRemoveVolumes";
     private static final String VOLUME_FULLCOPY_GROUP_RELATION_WF = "volumeFullCopyGroupRelation";
     private static final String RESYNC_SNAPSHOT_WF_NAME = "ResyncSnapshot";
@@ -245,8 +247,10 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
     private static final String PROMOTE_MIRROR_STEP = "promoteMirror";
     private static final String MARK_VIRTUAL_VOLUMES_INACTIVE = "markVolumesInactive";
     private static final String WAIT_ON_REBUILD_STEP = "waitOnRebuild";
+    private static final String ACTIVATE_FULL_COPY_STEP = "activateFullCopyStep";
     private static final String RESYNC_FULL_COPY_STEP = "resyncFullCopy";
     private static final String DETACH_FULL_COPY_STEP = "detachFullCopy";
+    private static final String ACTIVATE_NATIVE_FULL_COPY_STEP = "activateNativeFullCopy";
     private static final String REMOVE_STORAGE_PORTS_STEP = "removeStoragePortsStep";
     private static final String VOLUME_FULLCOPY_GROUP_RELATION_STEP = "volumeFullcopyRelationStep";
     private static final String RESYNC_SNAPSHOT_STEP = "ResyncSnapshotStep";
@@ -256,10 +260,6 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
     private static final String DELETE_MIGRATION_STEP = "DeleteMigrationStep";
     private static final String STEP_WAITER = "stepWaiterMethod";
     private static final String RESTORE_SNAP_SESSION_STEP = "restoreSnapshotSessionStep";
-    private static final String REMOVE_VOLUMES_FROM_CG_STEP = "removeVolumesFromReplicationGropuStep";
-    private static final String ADD_VOLUME_REPLICATION_GROUP_STEP = "addVolumesToReplicationGroupStep";
-    private static final String CREATE_REPLICATION_GROUP_STEP = "createReplicationGroupStep";
-    private static final String REMOVE_REPLICATION_GROUP_STEP = "removeReplicationGropuStep";
     private static final String RESTORE_FROM_FULLCOPY_STEP = "restoreFromFullCopy";
 
     // Workflow controller method names.
@@ -285,7 +285,6 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
     private static final String EXPAND_VOLUME_NATIVELY_METHOD_NAME = "expandVolumeNatively";
     private static final String EXPAND_VIRTUAL_VOLUME_METHOD_NAME = "expandVirtualVolume";
     private static final String EXPANSION_MIGRATION_METHOD_NAME = "migrateVolumeForExpansion";
-    private static final String SET_CG_PROPERTIES_METHOD_NAME = "setCGProperties";
     private static final String FULL_COPY_METHOD_NAME = "createFullCopy";
     private static final String IMPORT_COPY_METHOD_NAME = "importCopy";
     private static final String FORGET_VOLUMES_METHOD_NAME = "forgetVolumes";
@@ -297,12 +296,12 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
     private static final String ATTACH_MIRROR_METHOD_NAME = "attachMirror";
     private static final String RESTORE_RESYNC_RB_METHOD_NAME = "rollbackRestoreResync";
     private static final String EXPORT_MASK_DELETE_METHOD_NAME = "exportMaskDelete";
-    private static final String EXPORT_MASK_CREATE_METHOD_NAME = "exportMaskCreate";
     private static final String ZONE_REMOVE_INITIATOR_METHOD_NAME = "zoneRemoveInitiatorStep";
     private static final String WAIT_ON_REBUILD_METHOD_NAME = "waitOnRebuild";
     private static final String RESTORE_FROM_FC_METHOD_NAME = "restoreFromFullCopy";
     private static final String RESYNC_FC_METHOD_NAME = "resyncFullCopy";
     private static final String DETACH_FC_METHOD_NAME = "detachFullCopy";
+    private static final String ACTIVATE_FULLCOPY_METHOD_NAME = "activateFullCopy";
     private static final String ROLLBACK_FULL_COPY_METHOD = "rollbackFullCopyVolume";
     private static final String VOLUME_FULLCOPY_RELATION_METHOD = "establishVolumeFullCopyGroupRelation";
     private static final String RESYNC_SNAPSHOT_METHOD_NAME = "resyncSnapshot";
@@ -311,8 +310,6 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
     private static final String CANCEL_MIGRATION_METHOD_NAME = "cancelMigrationStep";
     private static final String DELETE_MIGRATION_METHOD_NAME = "deleteMigrationStep";
     private static final String RESTORE_SNAP_SESSION_METHOD_NAME = "restoreSnapshotSession";
-    private static final String REMOVE_FROM_CONSISTENCY_GROUP_METHOD_NAME = "removeFromConsistencyGroup";
-    private static final String ADD_TO_CONSISTENCY_GROUP_METHOD_NAME = "addToConsistencyGroup";
     private static final String RESTORE_FROM_FULLCOPY_METHOD_NAME = "restoreFromFullCopy";
 
     // Constants used for creating a migration name.
@@ -6836,9 +6833,8 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
     /**
      * {@inheritDoc}
      */
-    @Override
     public void createFullCopy(URI vplexURI, List<VolumeDescriptor> volumeDescriptors,
-            Boolean createInactive, String opId) throws ControllerException {
+            Boolean createInactive, Boolean createNativeCopy, String opId) throws ControllerException {
         _log.info("Copy volumes on VPLEX", vplexURI);
 
         // When we copy a VPLEX virtual volume we natively copy the primary backend
@@ -6968,10 +6964,12 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
 
                 // Now create the step to do the native full copy of this
                 // primary backend volume or the snapshot to the passed import volumes.
-                waitFor = createStepForNativeCopy(workflow, primarySourceObject, createInactive,
-                        importVolumeDescriptors, waitFor);
-                _log.info("Created workflow step to create {} copies of the primary",
-                        importVolumeDescriptors.size());
+                if (createNativeCopy) {
+                    waitFor = createStepForNativeCopy(workflow, primarySourceObject, createInactive,
+                            importVolumeDescriptors, waitFor);
+                    _log.info("Created workflow step to create {} copies of the primary",
+                            importVolumeDescriptors.size());
+                }
 
                 // Next, create a step to create and start an import volume
                 // workflow for each copy.
@@ -8227,6 +8225,162 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 nativeFullCopyURIs);
 
         return DETACH_FULL_COPY_STEP;
+    }
+    
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void activateFullCopy(URI vplexURI, List<URI> fullCopyURIs, String opId) 
+            throws InternalException {
+        TaskCompleter completer = null;
+        try {
+            // Create completer.
+            completer = new CloneWorkflowCompleter(fullCopyURIs, opId);
+            
+            // Generate the Workflow.
+            Workflow workflow = _workflowService.getNewWorkflow(this, ACTIVATE_FULL_COPY_WF_NAME, false, opId);
+            _log.info("Created activate full copy workflow with operation id {}", opId);
+
+            // Add CG to taskCompleter.
+            Volume firstFullCopy = getDataObject(Volume.class, fullCopyURIs.get(0), _dbClient);
+            BlockObject firstSource = BlockObject.fetch(_dbClient, firstFullCopy.getAssociatedSourceVolume());
+            if (!NullColumnValueGetter.isNullURI(firstSource.getConsistencyGroup())) {
+                completer.addConsistencyGroupId(firstSource.getConsistencyGroup());
+            }
+
+            // Get the VPLEX and backend full copy volumes.
+            URI nativeSystemURI = null;
+            Map<URI, Volume> vplexFullCopyMap = new HashMap<URI, Volume>();
+            Map<URI, Volume> nativeFullCopyMap = new HashMap<URI, Volume>();
+            List<VolumeDescriptor> volumeDescriptors = new ArrayList<>();
+            for (URI fullCopyURI : fullCopyURIs) {
+                Volume fullCopyVolume = getDataObject(Volume.class, fullCopyURI, _dbClient);
+                vplexFullCopyMap.put(fullCopyURI, fullCopyVolume);
+                Volume nativeFullCopyVolume = VPlexUtil.getVPLEXBackendVolume(fullCopyVolume, true, _dbClient);
+                Volume fullCopyHaVolume = VPlexUtil.getVPLEXBackendVolume(fullCopyVolume, false, _dbClient, false);
+                nativeFullCopyMap.put(nativeFullCopyVolume.getId(), nativeFullCopyVolume);
+                if (nativeSystemURI == null) {
+                    nativeSystemURI = nativeFullCopyVolume.getStorageController();
+                }
+                
+                // vp source
+                VolumeDescriptor vplexSrcVolumeDescr = new VolumeDescriptor(
+                        VolumeDescriptor.Type.VPLEX_VIRT_VOLUME, vplexURI,
+                        fullCopyVolume.getAssociatedSourceVolume(), null, null);
+                Map<String, Object> descrParams = new HashMap<String, Object>();
+                descrParams.put(VolumeDescriptor.PARAM_IS_COPY_SOURCE_ID, Boolean.TRUE);
+                vplexSrcVolumeDescr.setParameters(descrParams);
+                volumeDescriptors.add(vplexSrcVolumeDescr);
+                
+                // vp copy
+                VolumeDescriptor vplexCopyVolumeDescr = new VolumeDescriptor(
+                        VolumeDescriptor.Type.VPLEX_VIRT_VOLUME, vplexURI, fullCopyURI, null, null);
+                volumeDescriptors.add(vplexCopyVolumeDescr);
+                
+                // copy primary
+                VolumeDescriptor copyPrimaryDescriptor = new VolumeDescriptor(
+                        VolumeDescriptor.Type.VPLEX_IMPORT_VOLUME, nativeSystemURI,
+                        nativeFullCopyVolume.getId(), nativeFullCopyVolume.getPool(), null);
+                volumeDescriptors.add(copyPrimaryDescriptor);
+                
+                // copy ha
+                if (fullCopyHaVolume != null) {
+                    VolumeDescriptor volumeDescriptor = new VolumeDescriptor(
+                            VolumeDescriptor.Type.BLOCK_DATA, fullCopyHaVolume.getStorageController(),
+                            fullCopyHaVolume.getId(), fullCopyHaVolume.getPool(), null);
+                    volumeDescriptors.add(volumeDescriptor);
+                }
+            }
+
+            // We'll need a list of the native full copy URIs.
+            List<URI> nativeFullCopyURIs = new ArrayList<URI>(nativeFullCopyMap.keySet());
+
+            // Get the VPLEX system.
+            StorageSystem vplexSystem = getDataObject(StorageSystem.class, vplexURI, _dbClient);
+
+            // Get the native system.
+            StorageSystem nativeSystem = getDataObject(StorageSystem.class, nativeSystemURI, _dbClient);
+
+            // Create a workflow step to natively activate the backend
+            // full copies.
+            createWorkflowStepForActivateNativeFullCopy(workflow, nativeSystem, nativeFullCopyURIs, null, null);
+            
+            // Now that the native copy is activated we can import it to VPLEX and create
+            // the VPLEX volume on the activated native copy. VPLEXS does not recognize 
+            // backend volumes that are not R/W, and the native fully copy is not R/W until
+            // it is activated.
+            createWorkflowStepForActivateVPlexFullCopy(workflow, vplexSystem, fullCopyURIs, 
+                    volumeDescriptors, ACTIVATE_NATIVE_FULL_COPY_STEP, null);
+            _log.info("Created workflow steps to import the primary copies");
+
+            // Execute the workflow.
+            _log.info("Executing workflow plan");
+            String successMsg = String.format(
+                    "Activate full copy volumes %s completed successfully", fullCopyURIs);
+            FullCopyOperationCompleteCallback wfCompleteCB = new FullCopyOperationCompleteCallback();
+            workflow.executePlan(completer, successMsg, wfCompleteCB,
+                    new Object[] { fullCopyURIs }, null, null);
+            _log.info("Workflow plan executing");
+        } catch (Exception e) {
+            String failMsg = String.format(
+                    "Activate full copy volumes %s failed", fullCopyURIs);
+            _log.error(failMsg, e);
+            ServiceCoded sc = VPlexApiException.exceptions.activateFullCopyFailed(
+                    fullCopyURIs.toString(), e);
+            completer.error(_dbClient, sc);
+        }
+    }
+        
+    /**
+     * Create a step in the passed workflow to activate the backend
+     * full copy volumes with the passed URIs.
+     *
+     * @param workflow A reference to a workflow.
+     * @param nativeSystem A reference to the native storage system.
+     * @param nativeFullCopyURIs The URIs of the native full copies.
+     * @param waitFor The step to wait for or null.
+     * @param rollbackMethod A reference to a rollback method or null.
+     *
+     * @return ACTIVATE_NATIVE_FULL_COPY_STEP
+     */
+    private String createWorkflowStepForActivateNativeFullCopy(Workflow workflow,
+            StorageSystem nativeSystem, List<URI> nativeFullCopyURIs, String waitFor,
+            Workflow.Method rollbackMethod) {
+        URI nativeSystemURI = nativeSystem.getId();
+        Workflow.Method activateFullCopyMethod = new Workflow.Method(
+                ACTIVATE_FULLCOPY_METHOD_NAME, nativeSystemURI, nativeFullCopyURIs);
+        workflow.createStep(ACTIVATE_NATIVE_FULL_COPY_STEP,
+                String.format("Activate backend full copies: %s", nativeFullCopyURIs), waitFor,
+                nativeSystemURI, nativeSystem.getSystemType(), BlockDeviceController.class,
+                activateFullCopyMethod, rollbackMethod, null);
+        _log.info("Created workflow step to activate backend full copies {}", nativeFullCopyURIs);
+        return ACTIVATE_NATIVE_FULL_COPY_STEP;
+    }
+    
+    /**
+     * 
+     * @param workflow
+     * @param vplexSystem
+     * @param fullCopyURIs
+     * @param volumeDescriptors
+     * @param waitFor
+     * @param rollbackMethod
+     * 
+     * @return ACTIVATE_FULL_COPY_STEP
+     */
+    private String createWorkflowStepForActivateVPlexFullCopy(Workflow workflow, StorageSystem vplexSystem, 
+            List<URI> fullCopyURIs,  List<VolumeDescriptor> volumeDescriptors, String waitFor, 
+            Workflow.Method rollbackMethod) {
+        URI vplexURI = vplexSystem.getId();
+        Workflow.Method activateFullCopyMethod = new Workflow.Method(
+               FULL_COPY_METHOD_NAME, vplexURI, volumeDescriptors, Boolean.FALSE, Boolean.FALSE);
+        workflow.createStep(ACTIVATE_FULL_COPY_STEP,
+                String.format("Activate VPLEX full copies: %s", fullCopyURIs), waitFor,
+                vplexURI, vplexSystem.getSystemType(), this.getClass(),
+                activateFullCopyMethod, rollbackMethod, null);
+        _log.info("Created workflow step to activate VPLEX full copies {}", fullCopyURIs);
+        return ACTIVATE_FULL_COPY_STEP;
     }
 
     /**

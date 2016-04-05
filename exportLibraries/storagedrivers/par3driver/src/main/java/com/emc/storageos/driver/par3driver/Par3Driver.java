@@ -68,8 +68,28 @@ public class Par3Driver extends AbstractStorageDriver implements BlockStorageDri
 	        String taskId = String.format("%s+%s+%s", DRIVER_NAME, taskType, UUID.randomUUID().toString());
 	        DriverTask task = new Par3DriverTask(taskId);
 
-	        _log.info("3par: end");
-	        task.setStatus(DriverTask.TaskStatus.READY);
+	        try {
+	            storageSystem.setSerialNumber(storageSystem.getSystemName());
+	            storageSystem.setNativeId(storageSystem.getSystemName());
+	            storageSystem.setFirmwareVersion("2.4-3.12");
+	            storageSystem.setIsSupportedVersion(true);
+//	            setConnInfoToRegistry(storageSystem.getNativeId(), storageSystem.getIpAddress(), storageSystem.getPortNumber(),
+//	                    storageSystem.getUsername(), storageSystem.getPassword());
+//	            // Support both, element and group replicas.
+//	            Set<StorageSystem.SupportedReplication> supportedReplications = new HashSet<>();
+//	            supportedReplications.add(StorageSystem.SupportedReplication.elementReplica);
+//	            supportedReplications.add(StorageSystem.SupportedReplication.groupReplica);
+//	            storageSystem.setSupportedReplications(supportedReplications);
+
+
+	            task.setStatus(DriverTask.TaskStatus.READY);
+	            _log.info("StorageDriver: discoverStorageSystem information for storage system {}, nativeId {} - end",
+	                    storageSystem.getIpAddress(), storageSystem.getNativeId());
+	            return task;
+	        } catch (Exception e) {
+	            task.setStatus(DriverTask.TaskStatus.FAILED);
+	            e.printStackTrace();
+	        }
 	        return task;
 	}
 

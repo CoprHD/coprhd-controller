@@ -37,6 +37,7 @@ import javax.cim.UnsignedInteger16;
 import javax.wbem.CloseableIterator;
 import javax.wbem.WBEMException;
 
+import com.emc.storageos.volumecontroller.impl.block.taskcompleter.NullTaskCompleter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -401,14 +402,7 @@ public class SRDFOperations implements SmisConstants {
             Volume target, boolean isGrouprollback) {
         log.info("START Rolling back SRDF mirror");
         try {
-            performDetach(system, target, isGrouprollback, new TaskCompleter() {
-                @Override
-                protected void complete(DbClient dbClient,
-                        Operation.Status status, ServiceCoded coded)
-                        throws DeviceControllerException {
-                    // ignore
-                }
-            });
+            performDetach(system, target, isGrouprollback, new NullTaskCompleter());
 
             if (target.hasConsistencyGroup()) {
                 log.info("Removing Volume from device Group on roll back");
@@ -642,6 +636,8 @@ public class SRDFOperations implements SmisConstants {
         try {
             Volume source = dbClient.queryObject(Volume.class, sourceURI);
             Volume target = dbClient.queryObject(Volume.class, targetURI);
+            log.info("START removeSyncPair: {} -> {}", source.getNativeId(), target.getNativeId());
+
             StorageSystem sourceSystem = dbClient.queryObject(StorageSystem.class,
                     source.getStorageController());
             RemoteDirectorGroup group = dbClient.queryObject(RemoteDirectorGroup.class,
@@ -668,8 +664,7 @@ public class SRDFOperations implements SmisConstants {
                     group.getVolumes().remove(source.getNativeGuid());
                     group.getVolumes().remove(target.getNativeGuid());
                 }
-                dbClient.persistObject(group);
-
+                dbClient.updateObject(group);
             } else {
                 log.warn("Expected Group Synchronized not found for volume {}, probably removed already.", sourceURI);
                 // proceed with next step even if it fails.

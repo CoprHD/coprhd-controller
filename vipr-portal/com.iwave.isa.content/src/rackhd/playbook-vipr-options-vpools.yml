@@ -1,0 +1,107 @@
+---
+- hosts: vipr
+  connection: local #commands run on this server (not remotely)
+  tasks:
+
+    # user defined facts
+  - set_fact: login_user="root"
+  - set_fact: login_password="ChangeMe1!"
+  - set_fact: api_port="4443"
+  - set_fact: api_bulk_id_resource="/block/vpools/bulk" #API path to get IDs
+  - set_fact: api_bulk_obj_resource="/block/vpools/bulk" # API path to get object XML
+  - set_fact: xpath_for_ids="/bulk_block_vpools/block_vpool/id" # XPATH in XML to locate IDs
+  - set_fact: xpath_for_names="/bulk_block_vpools/block_vpool/name"  # XPATH in XML to locate element names
+
+    # extract some facts for later (get last part of xpath_for_ids & xpath_for_names)
+  - set_fact: xpath_name_tag="{{ xpath_for_names | regex_replace('.*/(\w*)$', '\\1') }}"  #" 
+  - set_fact: xpath_id_tag="{{ xpath_for_ids | regex_replace('.*/(\w*)$', '\\1') }}"  #" 
+
+  - name: Login to ViPR
+    uri:
+      url: https://{{ inventory_hostname }}:{{ api_port }}/login
+      validate_certs: no
+      user: "{{ login_user }}"
+      password: "{{ login_password }}"
+    register: loginResults   # get results of last call in this var
+  - debug: var=loginResults  # print out var in ansible log
+
+    # Note: currently using XML format when interacting with ViPR.
+    #       Using JSON might simplify this script, but submitting IDs
+    #       as JSON to call to get info would not take JSON.
+ 
+    # TODO: check that items in response are restricted to those user can use (i.e.: by tenant)
+
+  - name: Get IDs for all elements
+    uri:
+      url: https://{{ inventory_hostname }}:{{ api_port }}{{ api_bulk_id_resource }}
+      validate_certs: no  # TODO: enable for production
+      # note: ansible converts 'X-SDS-AUTH-TOKEN' to variable 'x_sds_auth_token' above
+      HEADER_X-SDS-AUTH-TOKEN: "{{loginResults.x_sds_auth_token}}" 
+      HEADER_Content-Type: "application/xml"
+      status_code: 200
+      return_content: yes
+    register: idsResult
+  - debug: var=idsResult
+
+    # strip off surrounding tags so we can submit IDs in next call
+  - set_fact: element_ids="{{ idsResult.content | regex_replace('.*(<ids>.*</ids>).*', '\\1') }}"  #"
+  - debug: var=element_ids
+
+  - name: Get ViPR Info for IDs  
+    uri:
+      url: https://{{ inventory_hostname }}:{{ api_port }}{{ api_bulk_obj_resource }}
+      validate_certs: no  # TODO: enable for production
+      # note: ansible converts 'X-SDS-AUTH-TOKEN' to variable 'x_sds_auth_token'
+      HEADER_X-SDS-AUTH-TOKEN: "{{loginResults.x_sds_auth_token}}"
+      method: "POST"
+      HEADER_Content-Type: "application/xml"
+      body: "{{ element_ids }}" 
+      status_code: 200 
+      return_content: yes
+    register: cmdResult
+  - debug: var=cmdResult 
+
+  - name: Logout of ViPR
+    uri:
+      url: https://{{ inventory_hostname }}:{{ api_port }}/logout
+      validate_certs: no
+      HEADER_X-SDS-AUTH-TOKEN: "{{loginResults.x_sds_auth_token}}"
+    register: logoutResults   # get results of last call in this var
+  - debug: var=logoutResults  # print out var in ansible log
+
+    # un-escape the returned XML string
+    # TODO: special characters in cmdResult (like @) will break regex_replace
+  - set_fact: elementsXml='{{ cmdResult.content | regex_replace("\"", "\'") }}'  #' 
+
+    # extract IDs from XML response
+  - xml: 
+      xmlstring: "{{ elementsXml }}" 
+      xpath: "{{ xpath_for_ids }}"
+      content: text
+    register: element_ids
+
+    # extract Names from XML
+  - xml:
+      xmlstring: "{{ elementsXml }}"
+      xpath: "{{ xpath_for_names }}"
+      content: text
+    register: element_names
+
+    # Log file name to write to (that was passed in)
+  - debug: var=ansibleResultFile
+
+    # touch file to create so we can truncate if present
+  - file: path={{ansibleResultFile}} state=touch mode="u=rw,g=r,o=r" 
+  - command: /usr/bin/truncate -s 0 {{ ansibleResultFile }} 
+
+    # start writing JSON format with bracket for list of name:id pairs
+  - lineinfile: dest={{ ansibleResultFile }} line="["
+    # write pairs out to file 
+  - lineinfile: dest={{ ansibleResultFile }} line="{\"value\":\"{{ item.1[xpath_name_tag] }}\",\"key\":\"{{ item.0[xpath_id_tag] }}\"}," 
+    with_together:
+      - "{{element_ids.matches}}"
+      - "{{element_names.matches}}"
+    # replace last instance of line ending with comma with line, minus the comma 
+  - lineinfile: dest={{ ansibleResultFile }} regexp="^(.*),$" line="\1" backrefs=yes
+    # end file with bracket for end of list
+  - lineinfile: dest={{ ansibleResultFile }} line="]" 

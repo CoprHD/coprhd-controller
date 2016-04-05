@@ -1,0 +1,18 @@
+{
+ "friendlyName": "Ansible ViPR Workflow",
+ "injectableName": "Ansible.ViPR.Workflow", 
+ "tasks": [
+  {
+   "label": "ViPR Task",
+   "taskName": "Task.Ansible",
+   "ignoreFailure": true 
+  },
+  {
+   "label": "Email results",
+   "taskName": "Task.Ansible",
+   "waitOn": {
+      "ViPR Task": "finished"
+    }
+  }
+ ]
+}

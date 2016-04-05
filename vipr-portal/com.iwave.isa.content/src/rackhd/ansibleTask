@@ -1,0 +1,10 @@
+{
+  "friendlyName": "Ansible Task",
+  "injectableName": "Task.Ansible",
+  "implementsTask": "Task.Base.Ansible",
+  "options": {
+    "playbook": "playbook.yml",
+    "vars": {} 
+  },
+  "properties": {}
+} 

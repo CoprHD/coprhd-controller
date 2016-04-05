@@ -1,0 +1,14 @@
+---
+- hosts: vipr
+  connection: local #commands run on this server (not remotely)
+  tasks:
+
+  - raw: /usr/bin/mail -s "Workflow Succeeded" "{{ email_address }}" < /dev/null 
+    when: noTasksFailed
+
+  - raw: /usr/bin/mail -s "Workflow Failed" "{{ email_address }}" < /dev/null
+    when: not noTasksFailed
+
+  - fail: "Workflow failed"
+    when: not noTasksFailed
+

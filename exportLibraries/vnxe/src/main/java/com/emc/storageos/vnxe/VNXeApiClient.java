@@ -30,7 +30,9 @@ import com.emc.storageos.vnxe.models.DiskGroup;
 import com.emc.storageos.vnxe.models.FastVP;
 import com.emc.storageos.vnxe.models.FastVPParam;
 import com.emc.storageos.vnxe.models.FileSystemParam;
+import com.emc.storageos.vnxe.models.FileSystemQuotaConfigParam;
 import com.emc.storageos.vnxe.models.FileSystemQuotaCreateParam;
+import com.emc.storageos.vnxe.models.FileSystemQuotaModifyParam;
 import com.emc.storageos.vnxe.models.FileSystemSnapCreateParam;
 import com.emc.storageos.vnxe.models.HostCreateParam;
 import com.emc.storageos.vnxe.models.HostInitiatorCreateParam;
@@ -88,8 +90,8 @@ import com.emc.storageos.vnxe.requests.BlockLunRequests;
 import com.emc.storageos.vnxe.requests.CifsServerListRequest;
 import com.emc.storageos.vnxe.requests.CifsShareRequests;
 import com.emc.storageos.vnxe.requests.DeleteStorageResourceRequest;
-import com.emc.storageos.vnxe.requests.DiskRequest;
 import com.emc.storageos.vnxe.requests.DiskGroupRequests;
+import com.emc.storageos.vnxe.requests.DiskRequest;
 import com.emc.storageos.vnxe.requests.EthernetPortRequests;
 import com.emc.storageos.vnxe.requests.FastVPRequest;
 import com.emc.storageos.vnxe.requests.FcPortRequests;
@@ -2097,7 +2099,6 @@ public class VNXeApiClient {
         return req.getDisksForPool(poolId);
     }
 
-
     /**
      * Get all the CIFS shares
      * 
@@ -2122,24 +2123,44 @@ public class VNXeApiClient {
      * @return VNXeCommandJob
      * @throws VNXeException
      */
-    public VNXeCommandJob createQuotaDirectory(final String fsName, final String quotaDirName,
-            final Long hardLimit, final Long softLimit) throws VNXeException {
+    public VNXeCommandJob createQuotaDirectory(final String fsName, final String quotaName,
+            final Long hardLimit, final Long softLimit, final long softGrace) throws VNXeException {
 
         _logger.info("Creating quota directory with path: {} for fs: {}",
-                "/" + quotaDirName, fsName);
+                "/" + quotaName, fsName);
 
         FileSystemQuotaCreateParam param = new FileSystemQuotaCreateParam();
-        param.setPath("/" + quotaDirName);
+        FileSystemQuotaConfigParam qcParam = new FileSystemQuotaConfigParam();
+        qcParam.setGracePeriod(softGrace);
+        FileSystemListRequest fsReq = new FileSystemListRequest(_khClient);
+        VNXeCommandJob returnJob = new VNXeCommandJob();
+        param.setPath("/" + quotaName);
+        param.setHardLimit(hardLimit);
+        param.setSoftLimit(softLimit);
+        param.setFilesystem(fsReq.getByFSName(fsName).getId());
+        FileSystemQuotaRequests req = new FileSystemQuotaRequests(_khClient);
+        returnJob = req.createFileSystemQuotaAsync(param);
+        req.modifyFileSystemQuotaConfig(fsName, quotaName, qcParam);
+        return returnJob;
+    }
+
+    public VNXeCommandJob deleteQuotaDirectory(String fsName, String quotaName) throws VNXeException {
+        FileSystemQuotaRequests req = new FileSystemQuotaRequests(_khClient);
+        return req.deleteFileSystemQuota(fsName, quotaName);
+    }
+
+    public VNXeCommandJob modifyQuotaDirectory(final String fsName, final String quotaName,
+            final Long hardLimit, final Long softLimit, final long softGrace) throws VNXeException {
+        _logger.info("Creating quota directory with path: {} for fs: {}",
+                "/" + quotaName, fsName);
+
+        FileSystemQuotaModifyParam param = new FileSystemQuotaModifyParam();
+        FileSystemQuotaConfigParam qcParam = new FileSystemQuotaConfigParam();
+        qcParam.setGracePeriod(softGrace);
         param.setHardLimit(hardLimit);
         param.setSoftLimit(softLimit);
         FileSystemQuotaRequests req = new FileSystemQuotaRequests(_khClient);
-
-        return req.createFileSystemQuota(param);
-    }
-
-    public VNXeCommandJob deleteQuotaDirectory(String quotaId) {
-
-        return null;
-
+        req.modifyFileSystemQuotaConfig(fsName, quotaName, qcParam);
+        return req.modifyFileSystemQuota(fsName, quotaName, param);
     }
 }

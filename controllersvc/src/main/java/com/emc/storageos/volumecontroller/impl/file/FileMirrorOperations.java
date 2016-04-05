@@ -140,4 +140,11 @@ public interface FileMirrorOperations {
      */
     void doModifyReplicationRPO(StorageSystem system, Long rpoValue, String rpoType, FileShare target, TaskCompleter completer)
             throws DeviceControllerException;
+
+    /**
+     * Release snap mirror
+     */
+
+    void releaseMirrorLink(URI sourceStorage, URI targetStorage, URI target, String policyName, TaskCompleter completer)
+            throws DeviceControllerException;
 }

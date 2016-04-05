@@ -383,7 +383,7 @@ public class IsilonMirrorOperations implements FileMirrorOperations {
                         policyState);
                 ServiceError error = DeviceControllerErrors.isilon
                         .jobFailed(
-                                "doCancelReplicationPolicy as : Replication Policy Job can't be Cancel because policy's last job is NOT in PAUSED state");
+                        "doCancelReplicationPolicy as : Replication Policy Job can't be Cancel because policy's last job is NOT in PAUSED state");
                 return BiosCommandResult.createErrorResult(error);
             }
         } catch (IsilonException e) {
@@ -530,7 +530,7 @@ public class IsilonMirrorOperations implements FileMirrorOperations {
      */
     public BiosCommandResult isiResyncPrep(StorageSystem primarySystem, StorageSystem secondarySystem, String policyName,
             TaskCompleter completer)
-                    throws IsilonException {
+            throws IsilonException {
 
         IsilonApi isiPrimary = getIsilonDevice(primarySystem);
         IsilonSyncJob job = new IsilonSyncJob();
@@ -702,6 +702,13 @@ public class IsilonMirrorOperations implements FileMirrorOperations {
         } else {
             completer.error(_dbClient, cmdResult.getServiceCoded());
         }
+
+    }
+
+    @Override
+    public void releaseMirrorLink(URI sourceStorage, URI targetStorage, URI target, String policyName, TaskCompleter completer)
+            throws DeviceControllerException {
+        // TODO Auto-generated method stub
 
     }
 }

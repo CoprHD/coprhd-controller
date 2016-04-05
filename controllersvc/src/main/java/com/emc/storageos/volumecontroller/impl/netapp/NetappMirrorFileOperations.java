@@ -25,6 +25,7 @@ import com.emc.storageos.volumecontroller.impl.netapp.job.NetAppSnapMirrorCreate
 import com.emc.storageos.volumecontroller.impl.netapp.job.NetAppSnapMirrorFailoverJob;
 import com.emc.storageos.volumecontroller.impl.netapp.job.NetAppSnapMirrorQuiesceJob;
 import com.emc.storageos.volumecontroller.impl.netapp.job.NetAppSnapMirrorResumeJob;
+import com.emc.storageos.volumecontroller.impl.netapp.job.NetAppSnapMirrorResyncJob;
 import com.emc.storageos.volumecontroller.impl.netapp.job.NetAppSnapMirrorStartJob;
 import com.emc.storageos.workflow.WorkflowStepCompleter;
 import com.iwave.ext.netapp.model.SnapMirrorState;
@@ -89,6 +90,32 @@ public class NetappMirrorFileOperations implements FileMirrorOperations {
         WorkflowStepCompleter.stepSucceded(completer.getOpId());
 
         _log.info("NetappMirrorFileOperations -  stopMirrorFileShareLink finished.");
+    }
+
+    /**
+     * Remove the relationship
+     */
+    @Override
+    public void releaseMirrorLink(URI sourceStorage, URI targetStorage, URI target, String policyName, TaskCompleter completer)
+            throws DeviceControllerException {
+        _log.info("NetappMirrorFileOperations -  releaseMirrorLink started ");
+
+        StorageSystem destStorage = _dbClient.queryObject(StorageSystem.class, targetStorage);
+        FileShare targetFs = _dbClient.queryObject(FileShare.class, target);
+        FileShare sourceFs = _dbClient.queryObject(FileShare.class, targetFs.getParentFileShare());
+        StorageSystem sourStorage = _dbClient.queryObject(StorageSystem.class, sourceStorage);
+
+        BiosCommandResult cmdResult = null;
+        if (cmdResult.getCommandSuccess()) {
+            completer.ready(_dbClient);
+        } else if (cmdResult.getCommandPending()) {
+            completer.statusPending(_dbClient, cmdResult.getMessage());
+        } else {
+            completer.error(_dbClient, cmdResult.getServiceCoded());
+        }
+
+        _log.info("NetappMirrorFileOperations -  releaseMirrorLink source file {} and dest file {} - complete ",
+                sourceFs.getName(), targetFs.getName());
     }
 
     @Override
@@ -179,23 +206,17 @@ public class NetappMirrorFileOperations implements FileMirrorOperations {
     }
 
     @Override
-    public void resyncMirrorFileShareLink(StorageSystem primarySystem, StorageSystem secondarySystem, FileShare fileshare,
+    public void resyncMirrorFileShareLink(StorageSystem primarySystem, StorageSystem secondarySystem, FileShare targetFileShare,
             TaskCompleter completer, String policyName) {
-        FileShare source = null;
-        FileShare target = null;
-        if (fileshare.getParentFileShare() == null) {
-            source = fileshare;
-            // we have fix this target issue
-        } else {
-            source = _dbClient.queryObject(FileShare.class, fileshare.getParentFileShare().getURI());
-            target = fileshare;
-        }
 
-        String portGroup = findVfilerName(fileshare);
-        BiosCommandResult cmdResult = doResyncSnapMirror(primarySystem, portGroup, source.getMountPath(), target.getPath(), completer);
+        FileShare sourceFileShare = _dbClient.queryObject(FileShare.class, targetFileShare.getParentFileShare().getURI());
+
+        BiosCommandResult cmdResult = doResyncSnapMirror(primarySystem, secondarySystem, sourceFileShare, targetFileShare, completer);
 
         if (cmdResult.getCommandSuccess()) {
             completer.ready(_dbClient);
+        } else if (cmdResult.getCommandPending()) {
+            completer.statusPending(_dbClient, cmdResult.getMessage());
         } else {
             completer.error(_dbClient, cmdResult.getServiceCoded());
         }
@@ -366,22 +387,7 @@ public class NetappMirrorFileOperations implements FileMirrorOperations {
         _log.info("Calling snapmirror release on source: {}, target: {}", sourceLocation, destLocation);
         nApiSource.releaseSnapMirror(sourceLocation, destLocation);
         return BiosCommandResult.createSuccessfulResult();
-        /*
-         * NetAppSnapMirrorReleaseJob snapMirrorReleaseJob = new NetAppSnapMirrorReleaseJob(sourceLocation, sourceStorage.getId(),
-         * taskCompleter);
-         * try {
-         * ControllerServiceImpl.enqueueJob(new QueueJob(snapMirrorReleaseJob));
-         * _log.info("Submitting job to check the snapmirror release status on target: {}", destLocation);
-         * return BiosCommandResult.createPendingResult();
-         * } catch (Exception e) {
-         * _log.error("Release Snapmirror failed", e);
-         * ServiceError error = DeviceControllerErrors.netapp.jobFailed("Release Snapmirror failed:" + e.getMessage());
-         * if (taskCompleter != null) {
-         * taskCompleter.error(_dbClient, error);
-         * }
-         * return BiosCommandResult.createErrorResult(error);
-         * }
-         */
+
     }
 
     public BiosCommandResult deleteSnapMirrorSchedule(StorageSystem sourceStorage, StorageSystem targetStorage, FileShare sourceFs,
@@ -407,16 +413,53 @@ public class NetappMirrorFileOperations implements FileMirrorOperations {
      * @param sourcePath
      * @param destPath
      * @param taskCompleter
-     * @return
+     * @return 205 -> 204
+     *         204->205
      */
-    public BiosCommandResult doResyncSnapMirror(StorageSystem storage, String portGroup, String sourcePath, String destPath,
+    public BiosCommandResult doResyncSnapMirror(StorageSystem sourceStorage, StorageSystem targetStorage, FileShare sourceFs,
+            FileShare targetFs,
             TaskCompleter taskCompleter) {
-        NetAppApi nApi = new NetAppApi.Builder(storage.getIpAddress(),
-                storage.getPortNumber(), storage.getUsername(),
-                storage.getPassword()).https(true).vFiler(portGroup).build();
-        // make api call
-        nApi.resyncSnapMirror(sourcePath, destPath, portGroup);
-        return BiosCommandResult.createSuccessfulResult();
+
+        String sourceLocation = null;
+        // get the source location based on source storagesystem
+        if (sourceStorage.getId().compareTo(sourceFs.getStorageDevice()) == 0) {
+            sourceLocation = getLocation(sourceStorage, sourceFs);
+        } else {
+            sourceLocation = getLocation(sourceStorage, targetFs);
+        }
+
+        String portGroupTarget = null;
+        FileShare destFileShare = null;
+        // destion location based on target storagesystem
+        if (targetStorage.getId().compareTo(sourceFs.getStorageDevice()) == 0) {
+            portGroupTarget = findVfilerName(sourceFs);
+            destFileShare = sourceFs;
+        } else {
+            portGroupTarget = findVfilerName(targetFs);
+            destFileShare = targetFs;
+        }
+
+        NetAppApi nApiTarget = new NetAppApi.Builder(targetStorage.getIpAddress(),
+                targetStorage.getPortNumber(), targetStorage.getUsername(),
+                targetStorage.getPassword()).https(true).vFiler(portGroupTarget).build();
+
+        String destLocation = getLocation(nApiTarget, destFileShare);
+
+        NetAppSnapMirrorResyncJob snapMirrorJob = new NetAppSnapMirrorResyncJob(destLocation, targetStorage.getId(),
+                taskCompleter);
+
+        nApiTarget.releaseSnapMirror(sourceLocation, destLocation);
+        NetAppSnapMirrorResyncJob job = new NetAppSnapMirrorResyncJob(destLocation, targetStorage.getId(), taskCompleter);
+        try {
+            ControllerServiceImpl.enqueueJob(new QueueJob(job));
+            _log.error("Job submitted to check status of snapmirror resync.");
+            return BiosCommandResult.createPendingResult();
+        } catch (Exception e) {
+            _log.error("Snapmirror resync failed", e);
+            ServiceError error = DeviceControllerErrors.netapp.jobFailed("Snapmirror resync failed:" + e.getMessage());
+            return BiosCommandResult.createErrorResult(error);
+        }
+
     }
 
     /**
@@ -714,7 +757,6 @@ public class NetappMirrorFileOperations implements FileMirrorOperations {
     @Override
     public void doModifyReplicationRPO(StorageSystem system, Long rpoValue, String rpoType, FileShare target, TaskCompleter completer)
             throws DeviceControllerException {
-        // TODO Auto-generated method stub
 
     }
 

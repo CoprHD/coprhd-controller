@@ -138,4 +138,14 @@ public interface RemoteFileMirrorOperation {
      */
     void doModifyReplicationRPO(StorageSystem system, Long rpoValue, String rpoType, FileShare target, TaskCompleter completer);
 
+    /**
+     * Release a source and target from their replication link.
+     *
+     * @param system
+     * @param source
+     * @param target
+     * @param completer
+     */
+    void doReleaseMirrorLink(URI sourceStorage, URI targetStorage, URI target, String policyName, TaskCompleter completer);
+
 }

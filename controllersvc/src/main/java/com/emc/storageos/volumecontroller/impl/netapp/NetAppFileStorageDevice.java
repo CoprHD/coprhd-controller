@@ -1949,4 +1949,10 @@ public class NetAppFileStorageDevice extends AbstractFileStorageDevice {
         mirrorOperations.resumeMirrorFileShareLink(system, target, completer);
     }
 
+    @Override
+    public void doReleaseMirrorLink(URI sourceStorage, URI targetStorage, URI target, String policyName, TaskCompleter completer) {
+        // TODO Auto-generated method stub
+        mirrorOperations.releaseMirrorLink(sourceStorage, targetStorage, target, policyName, completer);
+    }
+
 }

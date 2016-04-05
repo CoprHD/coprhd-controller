@@ -538,6 +538,7 @@ public class FileReplicationDeviceController implements FileOrchestrationInterfa
 
     private static final String FAILOVER_MIRROR_FILESHARE_METH = "failoverMirrorFilePair";
     private static final String RESYNC_MIRROR_FILESHARE_METH = "resyncPrepMirrorFilePair";
+    private static final String RELEASE_MIRROR_FILESHARE_METH = "releasePrepMirrorFilePair";
     private static final String START_MIRROR_FILESHARE_METH = "startPrepMirrorFilePair";
 
     private static final String FAILOVER_FILE_MIRRORS_STEP_DESC = "failover MirrorFileShare Link";
@@ -602,46 +603,40 @@ public class FileReplicationDeviceController implements FileOrchestrationInterfa
         // secondary storagesystem
         StorageSystem secondarysystem = dbClient.queryObject(StorageSystem.class, targetFileShare.getStorageDevice());
 
-        Workflow.Method resyncMethodStep1 = resyncPrepMirrorPairMeth(primarysystem.getId(), secondarysystem.getId(),
+        Workflow.Method resyncMethodStep1 = resyncPrepMirrorPairMeth(secondarysystem.getId(), primarysystem.getId(),
                 targetFileShare.getId(), null);
 
-        String descresyncPrepStep1 = String.format("Creating resyncprep between source- %s and target %s", primarysystem.getLabel(),
-                secondarysystem.getLabel());
+        String descresyncPrepStep1 = String.format("Creating resyncprep between source- %s and target %s", secondarysystem.getLabel(),
+                primarysystem.getLabel());
 
         // resync step -1
         String waitForResync = workflow.createStep(
                 RESYNC_MIRROR_FILESHARE_STEP,
                 descresyncPrepStep1,
-                waitFor, primarysystem.getId(), primarysystem.getSystemType(), getClass(),
+                waitFor, secondarysystem.getId(), secondarysystem.getSystemType(), getClass(),
                 resyncMethodStep1,
                 rollbackMethodNullMethod(), null);
 
-        // start step -2
-        String waitForStart = workflow.createStep(
-                START_MIRROR_FILESHARE_STEP,
-                START_MIRROR_FILESHARE_STEP_DES,
-                waitForResync, secondarysystem.getId(), secondarysystem.getSystemType(), getClass(),
-                startMirrorPairMeth(secondarysystem.getId(), targetFileShare.getId(), null),
-                rollbackMethodNullMethod(), null);
-
-        // failover step -3
+        // failover step -2
         String waitForFailover = workflow.createStep(
                 FAILOVER_MIRROR_FILESHARE_STEP,
                 FAILOVER_FILE_MIRRORS_STEP_DESC,
-                waitForStart, primarysystem.getId(), primarysystem.getSystemType(), getClass(),
-                faioverMirrorPairMeth(primarysystem.getId(), targetFileShare.getId(), null),
+                waitForResync, primarysystem.getId(), primarysystem.getSystemType(), getClass(),
+                faioverMirrorPairMeth(secondarysystem.getId(), primarysystem.getId(), null),
                 rollbackMethodNullMethod(), null);
 
+        // remove step -3
+
         // resync step -4
-        Workflow.Method resyncMethodStep4 = resyncPrepMirrorPairMeth(secondarysystem.getId(), primarysystem.getId(),
+        Workflow.Method resyncMethodStep4 = resyncPrepMirrorPairMeth(primarysystem.getId(), secondarysystem.getId(),
                 targetFileShare.getId(), null);
-        String descresyncPrepStep4 = String.format("Creating resyncprep between source- %s and target %s", secondarysystem.getLabel(),
-                primarysystem.getLabel());
+        String descresyncPrepStep4 = String.format("Creating resyncprep between source- %s and target %s", primarysystem.getLabel(),
+                secondarysystem.getLabel());
 
         waitFor = workflow.createStep(
                 RESYNC_MIRROR_FILESHARE_STEP,
                 descresyncPrepStep4,
-                waitForFailover, secondarysystem.getId(), secondarysystem.getSystemType(), getClass(),
+                waitForFailover, primarysystem.getId(), primarysystem.getSystemType(), getClass(),
                 resyncMethodStep4,
                 rollbackMethodNullMethod(), null);
         return waitFor;
@@ -676,15 +671,15 @@ public class FileReplicationDeviceController implements FileOrchestrationInterfa
                 rollbackMethodNullMethod(), null);
 
         // resync source to target
-        // resync step -4
+        // resync step -3
         Workflow.Method resyncMethodStep4 = resyncPrepMirrorPairMeth(secondarysystem.getId(), primarysystem.getId(),
                 targetFileShare.getId(), "");
-        String descresyncPrepStep4 = String.format("Creating resyncprep between source- %s and target %s", secondarysystem.getLabel(),
+        String descresyncPrepStep3 = String.format("Creating resyncprep between source- %s and target %s", secondarysystem.getLabel(),
                 primarysystem.getLabel());
 
         waitFor = workflow.createStep(
                 RESYNC_MIRROR_FILESHARE_STEP,
-                descresyncPrepStep4,
+                descresyncPrepStep3,
                 waitForFailover, secondarysystem.getId(), secondarysystem.getSystemType(), getClass(),
                 resyncMethodStep4,
                 rollbackMethodNullMethod(), null);
@@ -803,6 +798,51 @@ public class FileReplicationDeviceController implements FileOrchestrationInterfa
             completer = new MirrorFileFailbackTaskCompleter(FileShare.class, combined, opId);
             WorkflowStepCompleter.stepExecuting(opId);
             getRemoteMirrorDevice(system).doFailoverLink(system, fileShare, completer, policyName);
+        } catch (Exception e) {
+            ServiceError error = DeviceControllerException.errors.jobFailed(e);
+            if (null != completer) {
+                completer.error(dbClient, error);
+            }
+            WorkflowStepCompleter.stepFailed(opId, error);
+            return false;
+        }
+        return true;
+    }
+
+    // resyncPrep -step
+    public static Workflow.Method
+            releaseMirrorPairMeth(URI primarysystemURI, URI targetSystemURI, URI fileshareURI, String policyName) {
+        return new Workflow.Method(RELEASE_MIRROR_FILESHARE_METH, primarysystemURI, targetSystemURI, fileshareURI, policyName);
+    }
+
+    /**
+     * Resync mirror work flow step exec
+     * 
+     * @param primarysystemURI
+     * @param targetSystemURI
+     * @param fileshareURI
+     * @param policyName
+     * @param opId
+     */
+    public boolean releasePrepMirrorFilePair(URI primarysystemURI, URI targetSystemURI, URI fileshareURI, String policyName, String opId) {
+        TaskCompleter completer = null;
+        try {
+            StorageSystem primarySystem = dbClient.queryObject(StorageSystem.class, primarysystemURI);
+            StorageSystem secondarySystem = dbClient.queryObject(StorageSystem.class, targetSystemURI);
+
+            FileShare targetFileShare = dbClient.queryObject(FileShare.class, fileshareURI);
+
+            List<URI> combined = new ArrayList<URI>();
+            combined.add(fileshareURI);
+            if (targetFileShare.getParentFileShare() != null) {
+                combined.add(targetFileShare.getParentFileShare().getURI());
+            }
+            completer = new MirrorFileResyncTaskCompleter(FileShare.class, combined, opId);
+
+            WorkflowStepCompleter.stepExecuting(opId);
+            completer.setNotifyWorkflow(true);
+            getRemoteMirrorDevice(primarySystem).doReleaseMirrorLink(primarySystem, targetFileShare,
+                    targetFileShare.getParentFileShare().getURI(), null, completer);
         } catch (Exception e) {
             ServiceError error = DeviceControllerException.errors.jobFailed(e);
             if (null != completer) {

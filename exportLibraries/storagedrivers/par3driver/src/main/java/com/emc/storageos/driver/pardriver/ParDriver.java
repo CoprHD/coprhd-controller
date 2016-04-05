@@ -1,4 +1,4 @@
-package com.emc.storageos.driver.par3driver;
+package com.emc.storageos.driver.pardriver;
 
 import java.util.List;
 import java.util.Map;
@@ -28,9 +28,9 @@ import com.emc.storageos.storagedriver.model.VolumeSnapshot;
 import com.emc.storageos.storagedriver.storagecapabilities.CapabilityInstance;
 import com.emc.storageos.storagedriver.storagecapabilities.StorageCapabilities;
 
-public class Par3Driver extends AbstractStorageDriver implements BlockStorageDriver {
+public class ParDriver extends AbstractStorageDriver implements BlockStorageDriver {
 
-	private static final Logger _log = LoggerFactory.getLogger(Par3Driver.class);
+	private static final Logger _log = LoggerFactory.getLogger(ParDriver.class);
     private static final String DRIVER_NAME = "3PARDriver";
     
 	@Override
@@ -66,7 +66,7 @@ public class Par3Driver extends AbstractStorageDriver implements BlockStorageDri
 	                storageSystem.getIpAddress(), storageSystem.getSystemName());
 	        String taskType = "discover-3par-system";
 	        String taskId = String.format("%s+%s+%s", DRIVER_NAME, taskType, UUID.randomUUID().toString());
-	        DriverTask task = new Par3DriverTask(taskId);
+	        DriverTask task = new ParDriverTask(taskId);
 
 	        try {
 	            storageSystem.setSerialNumber(storageSystem.getSystemName());

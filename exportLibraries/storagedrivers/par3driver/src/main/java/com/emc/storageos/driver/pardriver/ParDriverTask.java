@@ -1,10 +1,10 @@
-package com.emc.storageos.driver.par3driver;
+package com.emc.storageos.driver.pardriver;
 
 import com.emc.storageos.storagedriver.DriverTask;
 
-public class Par3DriverTask extends DriverTask {
+public class ParDriverTask extends DriverTask {
 
-	public Par3DriverTask(String taskId) {
+	public ParDriverTask(String taskId) {
 		super(taskId);
 		// TODO Auto-generated constructor stub
 	}

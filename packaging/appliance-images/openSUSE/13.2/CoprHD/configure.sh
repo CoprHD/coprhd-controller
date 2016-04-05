@@ -65,7 +65,7 @@ function installPackages
 
   # distribution updates and security fixes
   mkdir -p /tmp/coprhd.d
-  cp -f /etc/zypp/repos.d/suse-13.2-oss-update.repo /tmp/coprhd.d/
+  cp -f /etc/zypp/repos.d/*.repo /tmp/coprhd.d/
 
   zypper --reposd-dir=/tmp/coprhd.d --non-interactive --no-gpg-checks refresh
   zypper --reposd-dir=/tmp/coprhd.d --non-interactive --no-gpg-checks update lvm2 udev

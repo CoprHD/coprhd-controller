@@ -18,7 +18,7 @@ public class SnapMirrorStatusInfo implements Serializable {
 
     // current-transfer-type
     // store, schedule, retry, retrieve, resync, and migrate
-    private SnapMirrorTransferStatus currentTransferType;
+    private SnapMirrorCurrentTransferType currentTransferType;
 
     // current-transfer-error
     private String currentTransferError;
@@ -48,11 +48,11 @@ public class SnapMirrorStatusInfo implements Serializable {
         this.transferType = transferType;
     }
 
-    public void setCurrentTransferType(SnapMirrorTransferStatus currentTransferType) {
+    public void setCurrentTransferType(SnapMirrorCurrentTransferType currentTransferType) {
         this.currentTransferType = currentTransferType;
     }
 
-    public SnapMirrorTransferStatus getCurrentTransferType() {
+    public SnapMirrorCurrentTransferType getCurrentTransferType() {
         return currentTransferType;
     }
 

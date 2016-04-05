@@ -10,6 +10,7 @@ import netapp.manage.NaServer;
 
 import org.apache.log4j.Logger;
 
+import com.iwave.ext.netapp.model.SnapMirrorCurrentTransferType;
 import com.iwave.ext.netapp.model.SnapMirrorState;
 import com.iwave.ext.netapp.model.SnapMirrorStatusInfo;
 import com.iwave.ext.netapp.model.SnapMirrorTransferStatus;
@@ -458,7 +459,7 @@ public class SnapMirror {
                         attResultElem = snapmirrorStatusInfoElem.getChildByName("current-transfer-type");
                         if (attResultElem != null) {
                             String currentTransferStatus = attResultElem.getContent();
-                            mirrorStatusInfo.setCurrentTransferType(SnapMirrorTransferStatus.valueOfLabel(currentTransferStatus));
+                            mirrorStatusInfo.setCurrentTransferType(SnapMirrorCurrentTransferType.valueOfLabel(currentTransferStatus));
                         }
 
                         // get the current error info

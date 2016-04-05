@@ -15,11 +15,13 @@ import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.exceptions.DeviceControllerErrors;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.netapp.NetAppApi;
+import com.emc.storageos.netapp.NetAppException;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
 import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.volumecontroller.impl.BiosCommandResult;
 import com.emc.storageos.volumecontroller.impl.ControllerServiceImpl;
 import com.emc.storageos.volumecontroller.impl.file.FileMirrorOperations;
+import com.emc.storageos.volumecontroller.impl.file.MirrorFileRefreshTaskCompleter;
 import com.emc.storageos.volumecontroller.impl.job.QueueJob;
 import com.emc.storageos.volumecontroller.impl.netapp.job.NetAppSnapMirrorCreateJob;
 import com.emc.storageos.volumecontroller.impl.netapp.job.NetAppSnapMirrorFailoverJob;
@@ -28,8 +30,10 @@ import com.emc.storageos.volumecontroller.impl.netapp.job.NetAppSnapMirrorResume
 import com.emc.storageos.volumecontroller.impl.netapp.job.NetAppSnapMirrorResyncJob;
 import com.emc.storageos.volumecontroller.impl.netapp.job.NetAppSnapMirrorStartJob;
 import com.emc.storageos.workflow.WorkflowStepCompleter;
+import com.iwave.ext.netapp.model.SnapMirrorCurrentTransferType;
 import com.iwave.ext.netapp.model.SnapMirrorState;
 import com.iwave.ext.netapp.model.SnapMirrorStatusInfo;
+import com.iwave.ext.netapp.model.SnapMirrorTransferStatus;
 
 public class NetappMirrorFileOperations implements FileMirrorOperations {
     private static final Logger _log = LoggerFactory
@@ -284,7 +288,83 @@ public class NetappMirrorFileOperations implements FileMirrorOperations {
     @Override
     public void refreshMirrorFileShareLink(StorageSystem system, FileShare source, FileShare target, TaskCompleter completer)
             throws DeviceControllerException {
-        // TODO Auto-generated method stub
+
+        StorageSystem targetStorage = _dbClient.queryObject(StorageSystem.class, target.getStorageDevice());
+
+        NetAppApi targetNetappApi = new NetAppApi.Builder(targetStorage.getIpAddress(),
+                targetStorage.getPortNumber(), targetStorage.getUsername(),
+                targetStorage.getPassword()).https(true).build();
+
+        String destinationLocation = getLocation(targetNetappApi, target);
+
+        _log.info("Calling NetappMirrorFileOperations - refreshMirrorFileShareLink on destination {} - start", destinationLocation);
+
+        MirrorFileRefreshTaskCompleter mirrorRefreshCompleter = (MirrorFileRefreshTaskCompleter) completer;
+        try {
+            SnapMirrorStatusInfo statusInfo = targetNetappApi.getSnapMirrorStateInfo(destinationLocation);
+            _log.info("Snapmirror get status on location: {} = {}", destinationLocation, statusInfo);
+            if (statusInfo == null) {
+                mirrorRefreshCompleter.setFileMirrorStatusForSuccess(FileShare.MirrorStatus.UNKNOWN);
+            } else {
+                String currentTransferError = statusInfo.getCurrentTransferError();
+                if (currentTransferError != null) {
+                    mirrorRefreshCompleter.setFileMirrorStatusForSuccess(FileShare.MirrorStatus.ERROR);
+                } else {
+                    SnapMirrorTransferStatus transferStatus = statusInfo.getTransferType();
+                    SnapMirrorState mirrorState = statusInfo.getMirrorState();
+                    SnapMirrorCurrentTransferType currentState = statusInfo.getCurrentTransferType();
+                    switch (mirrorState) {
+                        case PAUSED:
+                            mirrorRefreshCompleter.setFileMirrorStatusForSuccess(FileShare.MirrorStatus.SUSPENDED);
+                            break;
+                        case FAILOVER:
+                            mirrorRefreshCompleter.setFileMirrorStatusForSuccess(FileShare.MirrorStatus.FAILED_OVER);
+                            break;
+                        case SYNCRONIZED:
+                            mirrorRefreshCompleter.setFileMirrorStatusForSuccess(FileShare.MirrorStatus.SYNCHRONIZED);
+                            break;
+                        case UNKNOWN:
+                        default:
+                            mirrorRefreshCompleter.setFileMirrorStatusForSuccess(FileShare.MirrorStatus.UNKNOWN);
+                            break;
+                    }
+                    switch (transferStatus) {
+                        case syncing:
+                        case transferring:
+                        case resyncing:
+                        case insync:
+                        case migrating:
+                            mirrorRefreshCompleter.setFileMirrorStatusForSuccess(FileShare.MirrorStatus.IN_SYNC);
+                            break;
+                        case pending:
+                        case quiescing:
+                            mirrorRefreshCompleter.setFileMirrorStatusForSuccess(FileShare.MirrorStatus.OTHER);
+                            break;
+                        default:
+                            break;
+                    }
+
+                    if (currentState != null) {
+                        switch (currentState) {
+                            case initialize:
+                            case migrate:
+                            case resync:
+                            case retrieve:
+                            case retry:
+                            case schedule:
+                            case store:
+                                mirrorRefreshCompleter.setFileMirrorStatusForSuccess(FileShare.MirrorStatus.IN_SYNC);
+                                break;
+                            default:
+                                break;
+                        }
+                    }
+                }
+            }
+            completer.ready(_dbClient);
+        } catch (NetAppException e) {
+            completer.error(_dbClient, BiosCommandResult.createErrorResult(e).getServiceCoded());
+        }
 
     }
 

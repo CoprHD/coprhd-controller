@@ -1,23 +1,17 @@
-{
- "friendlyName": "Ansible ViPR Workflow Notify",
- "injectableName": "Ansible.ViPR.Workflow.Notify", 
- "options": {
-   "defaults": {
-     "vars": { 
-       "email_address": "steve.mendes@emc.com" 
-     }
-   }
- },
+{ 
+ "friendlyName": "Ansible ViPR Workflow",
+ "injectableName": "Ansible.ViPR.Workflow", 
  "tasks": [
   {
    "label": "ViPR Task",
-   "taskName": "Task.Ansible" 
+   "taskName": "Task.Ansible",
+   "ignoreFailure": true 
   },
   {
-   "label": "Email-results",
+   "label": "Email results",
    "taskName": "Task.Ansible",
    "waitOn": {
-      "ViPR Task": "succeeded"
+      "ViPR Task": "finished" 
     }
   }
  ]

@@ -2,9 +2,10 @@
  "friendlyName": "Ansible ViPR Workflow",
  "injectableName": "Ansible.ViPR.Workflow", 
  "tasks": [
-  {
-   "label": "Ansible ViPR Task",
-   "taskName": "Task.ViPR.Ansible"
+  { 
+   "label": "ViPR Task",
+   "taskName": "Task.Ansible",
+   "ignoreFailure": true 
   }
  ]
 }

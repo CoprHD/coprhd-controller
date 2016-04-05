@@ -2,9 +2,8 @@
   "friendlyName": "Get ViPR Virtual Arrays",
   "injectableName": "Task.ViPR.Varrays.Get",
   "implementsTask": "Task.Base.Ansible",
-  "options": {
-    "playbook": "/root/ansible-work/playbook-vipr-options-varrays.yml",
-    "limit": "localhost"
+  "options": { 
+    "playbook": "/root/ansible-work/playbook-vipr-options-varrays.yml" 
   },
   "properties": {}
 } 

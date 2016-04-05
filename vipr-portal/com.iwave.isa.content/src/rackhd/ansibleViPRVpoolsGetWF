@@ -1,0 +1,10 @@
+{
+ "friendlyName": "Get ViPR Virtual Pools",
+ "injectableName": "assetType.rackhd.vpool",
+ "tasks": [
+  {
+   "label": "Get ViPR Virtual Pools",
+   "taskName": "Task.ViPR.Vpools.Get"
+  }
+ ]
+}

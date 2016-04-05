@@ -1,0 +1,25 @@
+    # user defined facts
+  - set_fact: login_user="root"
+  - set_fact: login_password="ChangeMe1!"
+  - set_fact: api_port="4443"
+
+  - name: Login to ViPR
+    uri:
+      url: https://{{ inventory_hostname }}:{{ api_port }}/login
+      validate_certs: no
+      user: "{{ login_user }}"
+      password: "{{ login_password }}"
+      return_content: yes
+    ignore_errors: yes 
+    register: loginResults
+
+  - set_fact: loginSucceeded={{ loginResults.status|int < 300 }}
+
+  - debug: var=loginResults
+    when: not loginSucceeded
+
+  - lineinfile: dest={{ ansibleResultFile }} line="{{ loginResults.content }}" create="yes" 
+    when: not loginSucceeded
+
+  - fail: msg="Login failed"
+    when: not loginSucceeded 

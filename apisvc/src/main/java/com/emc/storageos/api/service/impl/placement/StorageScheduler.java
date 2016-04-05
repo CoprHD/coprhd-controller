@@ -1160,6 +1160,23 @@ public class StorageScheduler implements Scheduler {
         return volume;
     }
 
+   public static Volume prepareSkinyVolume(DbClient dbClient, long size, String label, int volNumber, int volumesRequested) {
+        Volume volume = new Volume();
+        volume.setId(URIUtil.createId(Volume.class));
+        String volumeLabel = AbstractBlockServiceApiImpl.generateDefaultVolumeLabel(label, volNumber, volumesRequested);
+
+        volume.setLabel(volumeLabel);
+        volume.setCapacity(size);
+
+        volume.setVirtualPool(null);
+        volume.setProject(null);
+        volume.setTenant(null);
+        volume.setVirtualArray(null);
+        volume.setOpStatus(new OpStatusMap());
+        dbClient.createObject(volume);
+        return volume;
+        }
+
     /**
      * Prepare Volume for an unprotected traditional block volume.
      *

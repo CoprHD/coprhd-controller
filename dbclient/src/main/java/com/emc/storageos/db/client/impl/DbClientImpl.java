@@ -1890,9 +1890,13 @@ public class DbClientImpl implements DbClient {
 
     private URI getTenantURI(DataObject dataObject) {
         if (dataObject instanceof ProjectResource) {
-            return ((ProjectResource) dataObject).getTenant().getURI();
+                if (((ProjectResource) dataObject).getTenant() != null){
+                        return ((ProjectResource) dataObject).getTenant().getURI();
+                } else {
+                        return null;
+                }
         }
-        else if (dataObject instanceof ProjectResourceSnapshot) {
+	else if (dataObject instanceof ProjectResourceSnapshot) {
             NamedURI projectURI = ((ProjectResourceSnapshot) dataObject).getProject();
             Project project = queryObject(Project.class, projectURI);
             return project.getTenantOrg().getURI();

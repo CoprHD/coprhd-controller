@@ -707,6 +707,31 @@ public class BlockService extends TaskResourceService {
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     public TaskList createVolume(VolumeCreate param) throws InternalException {
+	if (param.getPassThrouhParams() != null && !param.getPassThrouhParams().isEmpty()){
+
+                Map<String, String> passThruParam = param.getPassThrouhParams();
+
+                String storageSystemId=passThruParam.get ("storage-system");
+                String storagePortId=passThruParam.get ("storage-pool");
+
+                if (storageSystemId ==null  || storagePortId == null ){
+                         throw APIException.badRequests.parameterIsNullOrEmpty("passThruParam");
+                }
+
+
+
+            String task = UUID.randomUUID().toString();
+            TaskList taskList = createSkinyVolumeTaskList(param.getSize(), param.getName(), task, param.getCount());
+
+            ArrayList<String> requestedTypes = new ArrayList<String>();
+            // call thread that does the work.
+            CreateVolumeSchedulingThread.executeSkinyApiTask(this, _asyncTaskService.getExecutorService(), _dbClient, taskList, task, requestedTypes, param, getBlockServiceImpl("default"));
+
+            return taskList;
+
+
+
+        }
         ArgValidator.checkFieldNotNull(param, "volume_create");
 
         // CQECC00604134
@@ -976,6 +1001,24 @@ public class BlockService extends TaskResourceService {
         _log.info("Kicked off thread to perform placement and scheduling.  Returning " + taskList.getTaskList().size() + " tasks");
         return taskList;
     }
+    private TaskList createSkinyVolumeTaskList(String size, String label, String task, Integer volumeCount) {
+        TaskList taskList = new TaskList();
+
+        // For each volume requested, pre-create a volume object/task object
+        long lsize = SizeUtil.translateSize(size);
+        for (int i = 0; i < volumeCount; i++) {
+            Volume volume = StorageScheduler.prepareSkinyVolume(_dbClient, lsize,  label, i, volumeCount);
+            Operation op = _dbClient.createTaskOpStatus(Volume.class, volume.getId(),  task, ResourceOperationTypeEnum.CREATE_BLOCK_VOLUME);
+            volume.getOpStatus().put(task, op);
+            TaskResourceRep volumeTask = toTask(volume, task, op);
+            taskList.getTaskList().add(volumeTask);
+            _log.info(String.format("Volume and Task Pre-creation Objects [Init]--  Source Volume: %s, Task: %s, Op: %s",
+                    volume.getId(), volumeTask.getId(), task));
+        }
+
+        return taskList;
+        }
+
 
     /**
      * returns the types (RP, VPLEX, SRDF or LOCAL) that will be created based on the vpool

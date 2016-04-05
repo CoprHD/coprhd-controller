@@ -14,6 +14,7 @@ import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.VpoolProtectionVarraySettings;
+import com.emc.storageos.model.block.VolumeCreate;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
 
 public class PlacementManager {
@@ -57,6 +58,10 @@ public class PlacementManager {
 
         // Select an implementation of the right scheduler
         Scheduler scheduler;
+	if (vpool ==null){
+    		scheduler = storageSchedulers.get("block");
+    		return scheduler;
+    	}
         if (VirtualPool.vPoolSpecifiesProtection(vpool)) {
             scheduler = storageSchedulers.get("rp");
         } else if (VirtualPool.vPoolSpecifiesHighAvailability(vpool)) {

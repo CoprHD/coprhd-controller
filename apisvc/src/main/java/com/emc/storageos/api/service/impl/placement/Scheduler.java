@@ -7,6 +7,7 @@ package com.emc.storageos.api.service.impl.placement;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
+import com.emc.storageos.model.block.VolumeCreate;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
 
 import java.util.List;

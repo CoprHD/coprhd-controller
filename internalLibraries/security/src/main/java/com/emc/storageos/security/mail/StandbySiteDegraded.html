@@ -1,9 +1,11 @@
 
-<p>Your standby site ${siteName} has been marked as STANDBY_DEGRADED state by active site at ${degradeTime}. This could be caused by following reasons (including but not limited to):<br>
+<p>Your standby site ${siteName} has been degraded by active site at ${degradeTime}. This could be caused by following reasons (including but not limited to):<br>
 
     <br>1) Network connection between standby site and active site was lost;
     <br>2) Standby site dbsvc instances lost quorum number.
 
-<p>Please make sure the connection between active site and standby site are unobstructed, then try to reboot standby site to make sure all dbsvcs on all nodes of standby site running again. Note, standby site can only become STANDBY_SYNCED state when dbsvcs on all nodes of standby site are back, quorum is not enough.
+<p>Please make sure the connection between active site and standby site is unobstructed, then try to reboot standby site to make sure all dbsvcs on all nodes of standby site running again.
+
+<p>NOTE: standby site can only become STANDBY_SYNCED when dbsvcs on ALL nodes of standby site are back.
 
 <p>Thank you,<br>ViPR

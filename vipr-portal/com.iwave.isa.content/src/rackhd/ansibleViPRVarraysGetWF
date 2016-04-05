@@ -1,0 +1,10 @@
+{
+ "friendlyName": "Get ViPR Varrays",
+ "injectableName": "assetType.rackhd.varray",
+ "tasks": [
+  {
+   "label": "Get ViPR Virtual Arrays",
+   "taskName": "Task.ViPR.Varrays.Get"
+  }
+ ]
+}

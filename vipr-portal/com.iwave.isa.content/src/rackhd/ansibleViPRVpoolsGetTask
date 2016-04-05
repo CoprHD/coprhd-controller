@@ -1,0 +1,9 @@
+{
+  "friendlyName": "Get ViPR Virtual Pools",
+  "injectableName": "Task.ViPR.Vpools.Get",
+  "implementsTask": "Task.Base.Ansible",
+  "options": {
+    "playbook": "/root/ansible-work/playbook-vipr-options-vpools.yml" 
+  },
+  "properties": {}
+} 

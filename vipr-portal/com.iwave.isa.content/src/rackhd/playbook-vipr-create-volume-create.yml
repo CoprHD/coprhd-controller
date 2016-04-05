@@ -1,0 +1,39 @@
+    # TODO: check that items in response are restricted to those user can use (i.e.: by tenant)
+
+  - name: Create ViPR Volume
+    uri: 
+
+      # For XML response:
+      #url: https://{{ inventory_hostname }}:{{ api_port }}/block/volumes
+      #HEADER_Content-Type: "application/xml"
+      #body: "<volume_create><count>{{ NumberOfVolumes }}</count><name>{{ VolumeName }}</name><project>{{ Project }}</project><size>{{ Size }}</size><varray>{{ VirtualArray }}</varray><vpool>{{ VirtualPool }}</vpool></volume_create>" 
+
+      # For JSON response:
+      url: https://{{ inventory_hostname }}:{{ api_port }}/block/volumes.json
+      HEADER_Content-Type: "application/json" 
+      body_format: json 
+      body: "{\"count\": \"{{ NumberOfVolumes }}\",\"name\": \"{{ VolumeName }}\",\"project\": \"{{ Project }}\",\"size\": \"{{ Size }}\",\"varray\": \"{{ VirtualArray }}\",\"vpool\": \"{{ VirtualPool }}\" }"
+
+      # note: ansible converts 'X-SDS-AUTH-TOKEN' to variable 'x_sds_auth_token'
+      HEADER_X-SDS-AUTH-TOKEN: "{{loginResults.x_sds_auth_token}}"
+      method: "POST"
+      status_code: 202 
+      validate_certs: no  # TODO: enable for production 
+      return_content: yes
+    ignore_errors: yes  # so we can get response into result file
+    register: createResult
+
+    #NOTE: WAIT FOR TASK TO COMPLETE ON VIPR?  CUZ THIS RETURNS SUCCESS BEFORE ViPR TASK IS DONE.
+
+  - set_fact: createSucceeded={{ createResult.status|int < 300 }}
+
+  - debug: var=createResult 
+    when: not createSucceeded
+
+  - lineinfile: dest={{ ansibleResultFile }} line="{{ createResult.content }}" create="yes"
+    when: not createSucceeded
+
+  - fail: msg="Create Volume {{ VolumeName }} failed"
+    when: not createSucceeded
+
+ 

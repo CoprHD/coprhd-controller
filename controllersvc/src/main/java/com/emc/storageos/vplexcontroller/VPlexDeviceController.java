@@ -1795,8 +1795,8 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 ExportMask sharedVplexExportMask = null;
                 switch (vplexExportMasks.size()) {
                     case 0:
-                        // Check if there is export mask in CorpHD with initiators in the existing initiators list
-                        // If yes there is already storage view on VPLEX with some or all the initiators and CorpHD
+                        // Check if there is export mask in CoprHD with initiators in the existing initiators list
+                        // If yes there is already storage view on VPLEX with some or all the initiators and CoprHD
                         // will reuse export mask and storage view.
                         sharedVplexExportMask = VPlexUtil.getExportMasksWithExistingInitiators(vplexURI, _dbClient, inits,
                                 varrayUri,
@@ -1872,7 +1872,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                     if (null == sharedVplexExportMask) {
                         // If we reached here means there isn't existing storage view on VPLEX with the host
                         // thats needs to be added. In that case we will try to find if there is shared export mask
-                        // for the exortGroup in CorpHD database.
+                        // for the exportGroup in CoprHD database.
                         sharedVplexExportMask = VPlexUtil.getSharedExportMaskInDb(exportGroup, vplexURI, _dbClient,
                                 varrayUri, vplexClusterId, hostInitiatorMap);
                     }
@@ -4404,16 +4404,16 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                     }
                 }
 
-                // Pre Darth CorpHD used to create ExportMask per host in database even if multiple host share same storage
-                // view on VPLEX. This happens when there was preexsiting storageview on VPLEX and CorpHD reused it.
-                // Normally when CorpHD creates storageview on VPLEX its for a host, so when user request to remove host
+                // Pre Darth CoprHD used to create ExportMask per host in database even if multiple host share same storage
+                // view on VPLEX. This happens when there was preexsiting storageview on VPLEX and CoprHD reused it.
+                // Normally when CoprHD creates storageview on VPLEX its for a host, so when user request to remove host
                 // from the export group then we would go and delete whole storageview, if storage view was pre existing
                 // then we only remove all volumes from the storage view. Now if Storage view is preexisting and its for
                 // multiple host then we don't want to remove volume(s) from the VPLEX storageview as other host in the storage
                 // view will loose those volumes as well, so if a storage view is shared and its not the last the host in
-                // CorpHD then we will only remove those volumes from CorpHD ExportMask and its association to the export group.
-                // So now volume(s) will only be removed when last host removal request is made from CorpHD.
-                // This code to get SharedStorageView is for backward compatibility for multiple export masks created in CorpHD
+                // CoprHD then we will only remove those volumes from CoprHD ExportMask and its association to the export group.
+                // So now volume(s) will only be removed when last host removal request is made from CoprHD.
+                // This code to get SharedStorageView is for backward compatibility for multiple export masks created in CoprHD
                 // for the same storagew view on VPLEX before Darth release.
                 Map<String, Set<ExportMask>> sharedExportMask = VPlexUtil.getSharedStorageView(exportGroup, vplex.getId(), _dbClient);
                 if (sharedExportMask.containsKey(exportMask.getMaskName())) {

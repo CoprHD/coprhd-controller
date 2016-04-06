@@ -600,7 +600,7 @@ public class NetappMirrorFileOperations implements FileMirrorOperations {
 
         String destLocation = getLocation(nApiTarget, destFileShare);
 
-        nApiTarget.releaseSnapMirror(sourceLocation, destLocation);
+        nApiTarget.resyncSnapMirror(sourceLocation, destLocation, portGroupTarget);
         NetAppSnapMirrorResyncJob job = new NetAppSnapMirrorResyncJob(destLocation, targetStorage.getId(), taskCompleter);
         try {
             ControllerServiceImpl.enqueueJob(new QueueJob(job));

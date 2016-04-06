@@ -7,6 +7,8 @@ package util;
 import static util.BourneUtil.getSysClient;
 import static util.BourneUtil.getViprClient;
 
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.Date;
 import java.util.List;
 import java.util.concurrent.Callable;
@@ -15,6 +17,8 @@ import jobs.vipr.CallableHelper;
 import play.cache.Cache;
 import play.libs.F.Promise;
 
+import com.emc.storageos.model.TaskResourceRep;
+import com.emc.storageos.model.project.ProjectRestRep;
 import com.emc.vipr.client.ViPRSystemClient;
 import com.emc.vipr.client.core.BulkResources;
 import com.emc.vipr.model.sys.ClusterInfo;
@@ -23,6 +27,7 @@ import com.emc.vipr.model.sys.healthmonitor.NodeStats;
 import com.emc.vipr.model.sys.healthmonitor.StorageStats;
 import com.emc.vipr.model.sys.licensing.License;
 import com.emc.vipr.model.sys.recovery.DbRepairStatus;
+import com.google.common.collect.Collections2;
 
 public class AdminDashboardUtils {
 
@@ -85,8 +90,16 @@ public class AdminDashboardUtils {
     }
 
     public static Promise<List<NodeHealth>> nodeHealthList() {
+//    	List<NodeHealth> node = new NodeHealthList(getSysClient());
+//    	Collections.sort(node , orderedNodeComparitor);
         return new NodeHealthList(getSysClient()).asPromise();
     }
+    
+//    private static Comparator orderedNodeComparitor = new Comparator<NodeHealthList>() {
+//        public int compare(NodeHealthList o1, NodeHealthList o2) {
+//            return o1.toString().compareTo(o2.toString());       
+//        }
+//    };
 
     public static Promise<List<NodeStats>> nodeStatsList(ViPRSystemClient client) {
         return new NodeStatsList(getSysClient()).asPromise();

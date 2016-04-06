@@ -6,8 +6,14 @@ package util;
 
 import static util.BourneUtil.getSysClient;
 
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 
+import play.mvc.Util;
+
+import com.emc.storageos.model.TaskResourceRep;
+import com.emc.storageos.model.project.ProjectRestRep;
 import com.emc.vipr.client.ViPRSystemClient;
 import com.emc.vipr.client.exceptions.ServiceErrorException;
 import com.emc.vipr.model.sys.healthmonitor.NodeDiagnostics;
@@ -39,9 +45,15 @@ public class MonitorUtils {
     }
 
     public static List<NodeHealth> getNodeHealth(ViPRSystemClient client) {
-        return client.health().getHealth().getNodeHealthList();
+        List<NodeHealth> nodeList = client.health().getHealth().getNodeHealthList();
+        Collections.sort(nodeList , new Comparator<NodeHealth>() {
+        	public int compare(NodeHealth n1, NodeHealth n2) {
+        		return n1.getNodeName().compareTo(n2.getNodeName());
+        }
+        });
+        return nodeList;
     }
-
+    
     public static StorageStats getStorageStats(ViPRSystemClient client) {
         return client.health().getStorageStats();
     }

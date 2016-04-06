@@ -13,6 +13,7 @@
           #{if clusterInfo?.controlNodes}
             <dt class="text-muted">&{'adminDashboard.controlNodes'}</dt>
             <dd>
+            <script>var clusterNodes = '${clusterInfo.controlNodes.entrySet().key}'; </script>
               #{list items: clusterInfo.controlNodes.entrySet(), as:'controlNode'}
                 %{
                     node = nodeHealthList.find{it.nodeId == controlNode.key};

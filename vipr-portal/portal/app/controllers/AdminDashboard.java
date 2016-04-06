@@ -6,9 +6,15 @@ package controllers;
 
 import static util.BourneUtil.getSysClient;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
+import java.util.TreeMap;
 
 import org.joda.time.DateTime;
 
@@ -63,8 +69,20 @@ public class AdminDashboard extends Controller {
         Map<String, Promise<?>> promises = Maps.newHashMap();
         promises.put("nodeHealthList", AdminDashboardUtils.nodeHealthList());
         promises.put("clusterInfo", AdminDashboardUtils.clusterInfo());
+        
+//        Set<Entry<String,Promise<?>>>trail =  promises.entrySet();
+//        List<Entry<String,Promise<?>>> list = new ArrayList<Entry<String, Promise<?>>>(trail);
+//        Collections.sort( list, new Comparator<Map.Entry<String, Promise<?>>>()
+//                {
+//                    public int compare( Map.Entry<String, Promise<?>> o1, Map.Entry<String, Promise<?>> o2 )
+//                    {
+//                        return (o2.toString()).compareTo( o1.toString() );
+//                    }
+//                } );
+//        // Add lastUpdated render args after promises are redeemed
+//        promises.put("nodeHealthList", list.get(0).getValue());
+//        promises.put("clusterInfo", list.get(1).getValue());
         trySetRenderArgs(promises);
-        // Add lastUpdated render args after promises are redeemed
         renderArgs.put("nodeHealthListLastUpdated", AdminDashboardUtils.getNodeHealthListLastUpdated());
         render();
     }

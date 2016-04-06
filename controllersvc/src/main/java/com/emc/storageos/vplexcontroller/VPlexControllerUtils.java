@@ -621,7 +621,7 @@ public class VPlexControllerUtils {
 
             for (String portID : storagePortURIs) {
                 if (!exportMask.getStoragePorts().contains(portID)) {
-                    exportMask.getStoragePorts().add(portID);
+                    storagePortsToAdd.add(portID);
                     addStoragePorts = true;
                 }
             }

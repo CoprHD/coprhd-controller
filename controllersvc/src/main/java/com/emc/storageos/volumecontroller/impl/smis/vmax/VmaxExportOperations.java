@@ -1855,7 +1855,7 @@ public class VmaxExportOperations implements ExportMaskOperations {
 
                 for (String portID : storagePortURIs) {
                     if (!mask.getStoragePorts().contains(portID)) {
-                        mask.getStoragePorts().add(portID);
+                        storagePortsToAdd.add(portID);
                         addStoragePorts = true;
                     }
                 }

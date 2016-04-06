@@ -518,7 +518,15 @@ public class VPlexControllerUtils {
             portNameMap = targetPortToPwwnMap;
         }
 
-        if (null != exportMask && null != vplexClusterName && (null != portNameMap && !portNameMap.isEmpty())) {
+        try {
+
+            if (null == exportMask || null == vplexClusterName || null == portNameMap || portNameMap.isEmpty()) {
+                int portNameMapEntryCount = portNameMap != null ? portNameMap.size() : 0;
+                String message = String.format("export mask was %s, vplex cluster name was %s, and port name to wwn map had %d entries",
+                        exportMask, vplexClusterName, portNameMapEntryCount);
+                log.error(message);
+                throw new IllegalArgumentException("storage view refresh arguments are invalid: " + message);
+            }
 
             // fetch the current storage view info from the VPLEX API
             VPlexStorageViewInfo storageView = client.getStorageView(vplexClusterName, exportMask.getMaskName());
@@ -667,9 +675,10 @@ public class VPlexControllerUtils {
                 builder.append("ExportMask refresh: There are no changes to the mask\n");
             }
             log.info(builder.toString());
-        } else {
-            log.error("Could not refresh export mask {} for vplex cluster name {} and port name to wwn map {}", 
-                    exportMask, vplexClusterName, portNameMap);
+        } catch (Exception ex) {
+            log.error("Failed to refresh VPLEX Storage View: " + ex.getLocalizedMessage(), ex);
+            String storageViewName = exportMask != null ? exportMask.getMaskName() : "unknown";
+            throw VPlexApiException.exceptions.failedToRefreshVplexStorageView(storageViewName, ex.getLocalizedMessage());
         }
     }
 }

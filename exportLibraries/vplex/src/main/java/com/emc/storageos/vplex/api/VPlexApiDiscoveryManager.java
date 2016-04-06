@@ -1944,7 +1944,7 @@ public class VPlexApiDiscoveryManager {
         List<String> initiatorPWWNs = new ArrayList<String>();
         for (VPlexInitiatorInfo initiatorInfo : initiatorsInfoList) {
             String pwwn = initiatorInfo.getPortWwn();
-            if (pwwn.startsWith("0x")) {
+            if (pwwn.startsWith(VPlexApiConstants.WWN_PREFIX)) {
                 pwwn = pwwn.substring(2);
             }
             pwwn = pwwn.toUpperCase();
@@ -2148,6 +2148,62 @@ public class VPlexApiDiscoveryManager {
         } else {
             throw VPlexApiException.exceptions.failedGettingStorageViewInfo(String.valueOf(status));
         }
+    }
+
+    /**
+     * Gets the fully-populated VPlexStorageViewInfo object for the given storage view name
+     * on the given VPLEX cluster (by cluster name, not cluster id).
+     * 
+     * @param clusterName the cluster name for storage view scope
+     * @param storageViewName the name of the storage view to get
+     * @return a VPlexStorageViewInfo object for the storage view name and VPLEX cluster location
+     * @throws VPlexApiException
+     */
+    VPlexStorageViewInfo getStorageView(String clusterName, String storageViewName) throws VPlexApiException {
+
+        StringBuilder uriBuilder = new StringBuilder();
+        uriBuilder.append(VPlexApiConstants.URI_CLUSTERS.toString());
+        uriBuilder.append(clusterName);
+        uriBuilder.append(VPlexApiConstants.URI_STORAGE_VIEWS.toString());
+        uriBuilder.append(storageViewName);
+        URI requestURI = _vplexApiClient.getBaseURI().resolve(URI.create(uriBuilder.toString()));
+        s_logger.info("Storage view request URI is {}", requestURI.toString());
+        ClientResponse response = _vplexApiClient.get(requestURI, VPlexApiConstants.ACCEPT_JSON_FORMAT_1);
+        String responseStr = response.getEntity(String.class);
+        s_logger.info("Response is {}", responseStr);
+        int status = response.getStatus();
+        response.close();
+        if (status != VPlexApiConstants.SUCCESS_STATUS) {
+            throw VPlexApiException.exceptions.getStorageViewsFailed(String.format(
+                    "Failed getting storage view: %s", status));
+        }
+
+        try {
+            List<VPlexStorageViewInfo> storageViews = VPlexApiUtils
+                    .getResourcesFromResponseContext(uriBuilder.toString(), responseStr,
+                            VPlexStorageViewInfo.class);
+
+            if (storageViews != null && !storageViews.isEmpty()) {
+                if (storageViews.size() > 1) {
+                    s_logger.warn("More than one VPLEX storage view was returned: " + storageViews);
+                }
+
+                VPlexStorageViewInfo storageView = storageViews.get(0);
+                if (storageView != null) {
+                    storageView.refreshMaps();
+                    storageView.setClusterId(clusterName);
+                    updateStorageViewInitiatorPWWN(storageView);
+                    s_logger.info("returning VPLEX storage view: " + storageView.toString());
+                    return storageView;
+                }
+            }
+        } catch (Exception e) {
+            throw VPlexApiException.exceptions.getStorageViewsFailed(String.format(
+                    "Error processing storage view: %s", e.getMessage()));
+        }
+
+        s_logger.warn("no storage view named {} found on VPLEX cluster {}", storageViewName, clusterName); 
+        return null;
     }
 
     /**
@@ -3882,4 +3938,5 @@ public class VPlexApiDiscoveryManager {
         String customData = VPlexApiUtils.getCustomDataFromResponse(responseStr);
         return customData;
     }
+
 }

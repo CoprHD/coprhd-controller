@@ -103,8 +103,8 @@ public interface BlockStorageDriver extends StorageDriver {
      * Restore volume to snapshot state.
      * Implementation should check if the volume is part of consistency group and restore
      * all volumes in the consistency group to the same consistency group snapshot (as defined
-     * by the snapshot parameter).
-     * If the volume is not part of consistency group, restore this volume to the snapshot.
+     * in the snapshot consistency group property).
+     * If the volume is not part of consistency group, restore only this volume to the snapshot.
      *
      * @param volume Type: Input/Output.
      * @param snapshot  Type: Input.
@@ -249,7 +249,7 @@ public interface BlockStorageDriver extends StorageDriver {
     // Consistency group operations.
     /**
      * Create block consistency group.
-     * @param consistencyGroup input/output
+     * @param consistencyGroup Type: input/output
      * @return
      */
     public DriverTask createConsistencyGroup(VolumeConsistencyGroup consistencyGroup);
@@ -263,7 +263,7 @@ public interface BlockStorageDriver extends StorageDriver {
 
     /**
      * Create snapshot of consistency group.
-     * @param consistencyGroup input parameter
+     * @param consistencyGroup consistency group of parent volume. Type: Input.
      * @param snapshots   input/output parameter
      * @param capabilities Capabilities of snapshots. Type: Input.
      * @return
@@ -282,7 +282,7 @@ public interface BlockStorageDriver extends StorageDriver {
      * Create clone of consistency group.
      * It is implementation responsibility to validate consistency of this group operation.
      *
-     * @param consistencyGroup input
+     * @param consistencyGroup consistency group of parent volume. Type: Input.
      * @param clones input/output
      * @param capabilities Capabilities of clones. Type: Input.
      * @return

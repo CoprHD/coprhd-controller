@@ -13,10 +13,17 @@ public class VolumeSnapshot extends StorageBlockObject {
     // storage system native id of this snapshot. Type: Input.
     private String storageSystemId;
 
+    // use consistencyGroup for snapshot snapset.
     // snapSetId. Type: Input/Output.
     // Should be set to the same value for all consistency group  snapshots taken at the same time.
-    private String snapSetId;
+   @Deprecated
+   private String snapSetId;
 
+    // Logical size of a snap on array in bytes. Type: Output.
+    private Long provisionedCapacity = 0L;
+
+    // Total amount of storage space allocated within the StoragePool in bytes. Type: Output.
+    private Long allocatedCapacity = 0L;
 
     public String getParentId() {
         return parentId;
@@ -40,6 +47,22 @@ public class VolumeSnapshot extends StorageBlockObject {
 
     public void setSnapSetId(String snapSetId) {
         this.snapSetId = snapSetId;
+    }
+
+    public Long getProvisionedCapacity() {
+        return provisionedCapacity;
+    }
+
+    public void setProvisionedCapacity(Long provisionedCapacity) {
+        this.provisionedCapacity = provisionedCapacity;
+    }
+
+    public Long getAllocatedCapacity() {
+        return allocatedCapacity;
+    }
+
+    public void setAllocatedCapacity(Long allocatedCapacity) {
+        this.allocatedCapacity = allocatedCapacity;
     }
 
     @Override

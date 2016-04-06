@@ -114,9 +114,8 @@ public class ExternalDeviceUnManagedVolumeDiscoverer {
                         // Make sure the unManagedVolume object does not contain CG information from previous discovery
                         unManagedVolume.getVolumeCharacterstics().put(
                                 UnManagedVolume.SupportedVolumeCharacterstics.IS_VOLUME_ADDED_TO_CONSISTENCYGROUP.toString(), Boolean.FALSE.toString());
-                        // set the uri of the unmanaged CG in the unmanaged volume object to empty
-                        unManagedVolume.getVolumeInformation().put(UnManagedVolume.SupportedVolumeInformation.UNMANAGED_CONSISTENCY_GROUP_URI.toString(),
-                                "");
+                        // remove uri of the unmanaged CG in the unmanaged volume object
+                        unManagedVolume.getVolumeInformation().remove(UnManagedVolume.SupportedVolumeInformation.UNMANAGED_CONSISTENCY_GROUP_URI.toString());
                     }
 
                     allCurrentUnManagedVolumeUris.add(unManagedVolume.getId());
@@ -179,7 +178,7 @@ public class ExternalDeviceUnManagedVolumeDiscoverer {
 
         boolean newVolume = false;
         StringSetMap unManagedVolumeInformation = null;
-        Map<String, String> unManagedVolumeCharacteristics = null;
+        StringMap unManagedVolumeCharacteristics = null;
 
         String unManagedVolumeNatvieGuid = NativeGUIDGenerator.generateNativeGuidForPreExistingVolume(
                 storageSystem.getNativeGuid(), driverVolume.getNativeId());
@@ -198,7 +197,10 @@ public class ExternalDeviceUnManagedVolumeDiscoverer {
             }
             newVolume = true;
             unManagedVolumeInformation = new StringSetMap();
-            unManagedVolumeCharacteristics = new HashMap<String, String>();
+            unManagedVolumeCharacteristics = new StringMap();
+
+            unManagedVolume.setVolumeInformation(unManagedVolumeInformation);
+            unManagedVolume.setVolumeCharacterstics(unManagedVolumeCharacteristics);
         } else {
             unManagedVolumeInformation = unManagedVolume.getVolumeInformation();
             unManagedVolumeCharacteristics = unManagedVolume.getVolumeCharacterstics();
@@ -214,6 +216,7 @@ public class ExternalDeviceUnManagedVolumeDiscoverer {
 
         StringSet deviceLabel = new StringSet();
         deviceLabel.add(driverVolume.getDeviceLabel());
+        unManagedVolumeInformation.remove(UnManagedVolume.SupportedVolumeInformation.DEVICE_LABEL.toString());
         unManagedVolumeInformation.put(UnManagedVolume.SupportedVolumeInformation.DEVICE_LABEL.toString(),
                 deviceLabel);
 
@@ -221,25 +224,30 @@ public class ExternalDeviceUnManagedVolumeDiscoverer {
 
         StringSet accessState = new StringSet();
         accessState.add(driverVolume.getAccessStatus().toString());
+        unManagedVolumeInformation.remove(UnManagedVolume.SupportedVolumeInformation.ACCESS.toString());
         unManagedVolumeInformation.put(UnManagedVolume.SupportedVolumeInformation.ACCESS.toString(), accessState);
 
         StringSet provCapacity = new StringSet();
         provCapacity.add(String.valueOf(driverVolume.getProvisionedCapacity()));
+        unManagedVolumeInformation.remove(UnManagedVolume.SupportedVolumeInformation.PROVISIONED_CAPACITY.toString());
         unManagedVolumeInformation.put(UnManagedVolume.SupportedVolumeInformation.PROVISIONED_CAPACITY.toString(),
                 provCapacity);
 
         StringSet allocatedCapacity = new StringSet();
         allocatedCapacity.add(String.valueOf(driverVolume.getAllocatedCapacity()));
+        unManagedVolumeInformation.remove(UnManagedVolume.SupportedVolumeInformation.ALLOCATED_CAPACITY.toString());
         unManagedVolumeInformation.put(UnManagedVolume.SupportedVolumeInformation.ALLOCATED_CAPACITY.toString(),
                 allocatedCapacity);
 
         StringSet systemTypes = new StringSet();
         systemTypes.add(storageSystem.getSystemType());
+        unManagedVolumeInformation.remove(UnManagedVolume.SupportedVolumeInformation.SYSTEM_TYPE.toString());
         unManagedVolumeInformation.put(UnManagedVolume.SupportedVolumeInformation.SYSTEM_TYPE.toString(),
                 systemTypes);
 
         StringSet nativeId = new StringSet();
         nativeId.add(driverVolume.getNativeId());
+        unManagedVolumeInformation.remove(UnManagedVolume.SupportedVolumeInformation.NATIVE_ID.toString());
         unManagedVolumeInformation.put(UnManagedVolume.SupportedVolumeInformation.NATIVE_ID.toString(),
                 nativeId);
 
@@ -265,12 +273,12 @@ public class ExternalDeviceUnManagedVolumeDiscoverer {
         unManagedVolume.setStoragePoolUri(storagePool.getId());
         StringSet pools = new StringSet();
         pools.add(storagePool.getId().toString());
+        unManagedVolumeInformation.remove(UnManagedVolume.SupportedVolumeInformation.STORAGE_POOL.toString());
         unManagedVolumeInformation.put(UnManagedVolume.SupportedVolumeInformation.STORAGE_POOL.toString(), pools);
         StringSet driveTypes = storagePool.getSupportedDriveTypes();
         if (null != driveTypes) {
-            unManagedVolumeInformation.put(
-                    UnManagedVolume.SupportedVolumeInformation.DISK_TECHNOLOGY.toString(),
-                    driveTypes);
+            unManagedVolumeInformation.remove(UnManagedVolume.SupportedVolumeInformation.DISK_TECHNOLOGY.toString());
+            unManagedVolumeInformation.put(UnManagedVolume.SupportedVolumeInformation.DISK_TECHNOLOGY.toString(), driveTypes);
         }
         StringSet matchedVPools = DiscoveryUtils.getMatchedVirtualPoolsForPool(dbClient, storagePool.getId(),
                 unManagedVolumeCharacteristics.get(UnManagedVolume.SupportedVolumeCharacterstics.IS_THINLY_PROVISIONED.toString()));
@@ -284,12 +292,12 @@ public class ExternalDeviceUnManagedVolumeDiscoverer {
             log.info("Replaced Pools : {}", Joiner.on("\t").join(unManagedVolume.getSupportedVpoolUris()));
         }
 
-        unManagedVolume.setVolumeInformation(unManagedVolumeInformation);
-
-        if (unManagedVolume.getVolumeCharacterstics() == null) {
-            unManagedVolume.setVolumeCharacterstics(new StringMap());
-        }
-        unManagedVolume.getVolumeCharacterstics().replace(unManagedVolumeCharacteristics);
+//        unManagedVolume.setVolumeInformation(unManagedVolumeInformation);
+//
+//        if (unManagedVolume.getVolumeCharacterstics() == null) {
+//            unManagedVolume.setVolumeCharacterstics(new StringMap());
+//        }
+//        unManagedVolume.getVolumeCharacterstics().replace(unManagedVolumeCharacteristics);
 
         if (newVolume) {
             unManagedVolumesToCreate.add(unManagedVolume);
@@ -377,6 +385,7 @@ public class ExternalDeviceUnManagedVolumeDiscoverer {
         unManagedVolume.getVolumeCharacterstics().put(UnManagedVolume.SupportedVolumeCharacterstics.IS_VOLUME_ADDED_TO_CONSISTENCYGROUP.toString(),
                 Boolean.TRUE.toString());
         // set the uri of the unmanaged CG in the unmanaged volume object
+        unManagedVolume.getVolumeInformation().remove(UnManagedVolume.SupportedVolumeInformation.UNMANAGED_CONSISTENCY_GROUP_URI.toString());
         unManagedVolume.getVolumeInformation().put(UnManagedVolume.SupportedVolumeInformation.UNMANAGED_CONSISTENCY_GROUP_URI.toString(),
                 unManagedCG.getId().toString());
         // add the unmanaged volume object to the unmanaged CG
@@ -495,7 +504,7 @@ public class ExternalDeviceUnManagedVolumeDiscoverer {
         // We process unmanaged snapshot as unmanaged volume
         boolean newVolume = false;
         StringSetMap unManagedVolumeInformation = null;
-        Map<String, String> unManagedVolumeCharacteristics = null;
+        StringMap unManagedVolumeCharacteristics = null;
 
         String unManagedVolumeNatvieGuid = NativeGUIDGenerator.generateNativeGuidForPreExistingVolume(
                 storageSystem.getNativeGuid(), driverSnapshot.getNativeId());
@@ -514,7 +523,10 @@ public class ExternalDeviceUnManagedVolumeDiscoverer {
             }
             newVolume = true;
             unManagedVolumeInformation = new StringSetMap();
-            unManagedVolumeCharacteristics = new HashMap<String, String>();
+            unManagedVolumeCharacteristics = new StringMap();
+
+            unManagedVolume.setVolumeInformation(unManagedVolumeInformation);
+            unManagedVolume.setVolumeCharacterstics(unManagedVolumeCharacteristics);
         } else {
             unManagedVolumeInformation = unManagedVolume.getVolumeInformation();
             unManagedVolumeCharacteristics = unManagedVolume.getVolumeCharacterstics();
@@ -530,6 +542,7 @@ public class ExternalDeviceUnManagedVolumeDiscoverer {
 
         StringSet deviceLabel = new StringSet();
         deviceLabel.add(driverSnapshot.getDeviceLabel());
+        unManagedVolumeInformation.remove(UnManagedVolume.SupportedVolumeInformation.DEVICE_LABEL.toString());
         unManagedVolumeInformation.put(UnManagedVolume.SupportedVolumeInformation.DEVICE_LABEL.toString(),
                 deviceLabel);
 
@@ -537,31 +550,36 @@ public class ExternalDeviceUnManagedVolumeDiscoverer {
         if (driverSnapshot.getAccessStatus() != null) {
             StringSet accessState = new StringSet();
             accessState.add(driverSnapshot.getAccessStatus().toString());
+            unManagedVolumeInformation.remove(UnManagedVolume.SupportedVolumeInformation.ACCESS.toString());
             unManagedVolumeInformation.put(UnManagedVolume.SupportedVolumeInformation.ACCESS.toString(), accessState);
         }
 
         StringSet systemTypes = new StringSet();
         systemTypes.add(storageSystem.getSystemType());
+        unManagedVolumeInformation.remove(UnManagedVolume.SupportedVolumeInformation.SYSTEM_TYPE.toString());
         unManagedVolumeInformation.put(UnManagedVolume.SupportedVolumeInformation.SYSTEM_TYPE.toString(),
                 systemTypes);
 
         StringSet nativeId = new StringSet();
         nativeId.add(driverSnapshot.getNativeId());
+        unManagedVolumeInformation.remove(UnManagedVolume.SupportedVolumeInformation.NATIVE_ID.toString());
         unManagedVolumeInformation.put(UnManagedVolume.SupportedVolumeInformation.NATIVE_ID.toString(),
                 nativeId);
 
         unManagedVolumeCharacteristics.put(
                 UnManagedVolume.SupportedVolumeCharacterstics.IS_INGESTABLE.toString(), TRUE);
 
-        unManagedVolume.getVolumeCharacterstics().put(UnManagedVolume.SupportedVolumeCharacterstics.IS_SNAP_SHOT.toString(), TRUE);
+        unManagedVolumeCharacteristics.put(UnManagedVolume.SupportedVolumeCharacterstics.IS_SNAP_SHOT.toString(), TRUE);
 
         StringSet parentVol = new StringSet();
         parentVol.add(parentUnManagedVolume.getNativeGuid());
-        unManagedVolume.getVolumeInformation().put(UnManagedVolume.SupportedVolumeInformation.LOCAL_REPLICA_SOURCE_VOLUME.toString(), parentVol);
+        unManagedVolumeInformation.remove(UnManagedVolume.SupportedVolumeInformation.LOCAL_REPLICA_SOURCE_VOLUME.toString());
+        unManagedVolumeInformation.put(UnManagedVolume.SupportedVolumeInformation.LOCAL_REPLICA_SOURCE_VOLUME.toString(), parentVol);
 
         StringSet isSyncActive = new StringSet();
         isSyncActive.add(TRUE);
-        unManagedVolume.getVolumeInformation().put(UnManagedVolume.SupportedVolumeInformation.IS_SYNC_ACTIVE.toString(), isSyncActive);
+        unManagedVolumeInformation.remove(UnManagedVolume.SupportedVolumeInformation.IS_SYNC_ACTIVE.toString());
+        unManagedVolumeInformation.put(UnManagedVolume.SupportedVolumeInformation.IS_SYNC_ACTIVE.toString(), isSyncActive);
 
         StringSet isReadOnly = new StringSet();
         Boolean readOnly = Boolean.FALSE;
@@ -570,35 +588,66 @@ public class ExternalDeviceUnManagedVolumeDiscoverer {
                               Boolean.TRUE : Boolean.FALSE;
         }
         isReadOnly.add(readOnly.toString());
-        unManagedVolume.getVolumeInformation().put(UnManagedVolume.SupportedVolumeInformation.IS_READ_ONLY.toString(), isReadOnly);
+        unManagedVolumeInformation.remove(UnManagedVolume.SupportedVolumeInformation.IS_READ_ONLY.toString());
+        unManagedVolumeInformation.put(UnManagedVolume.SupportedVolumeInformation.IS_READ_ONLY.toString(), isReadOnly);
 
         StringSet techType = new StringSet();
         techType.add(BlockSnapshot.TechnologyType.NATIVE.toString());
-        unManagedVolume.getVolumeInformation().put(UnManagedVolume.SupportedVolumeInformation.TECHNOLOGY_TYPE.toString(), techType);
+        unManagedVolumeInformation.remove(UnManagedVolume.SupportedVolumeInformation.TECHNOLOGY_TYPE.toString());
+        unManagedVolumeInformation.put(UnManagedVolume.SupportedVolumeInformation.TECHNOLOGY_TYPE.toString(), techType);
 
-        if (driverSnapshot.getSnapSetId() != null && !driverSnapshot.getSnapSetId().isEmpty()) {
-            StringSet snapCgName = new StringSet();
-            snapCgName.add(driverSnapshot.getSnapSetId());
-            unManagedVolume.getVolumeInformation().put(UnManagedVolume.SupportedVolumeInformation.SNAPSHOT_CONSISTENCY_GROUP_NAME.toString(),
-                    snapCgName);
+        // set consistency group information for the snapshot
+        // Update the unManagedVolume object with CG information
+        String isParentVolumeInCG =
+                parentUnManagedVolume.getVolumeCharacterstics().get(UnManagedVolume.SupportedVolumeCharacterstics.IS_VOLUME_ADDED_TO_CONSISTENCYGROUP.toString());
+        unManagedVolume.getVolumeCharacterstics().replace(UnManagedVolume.SupportedVolumeCharacterstics.IS_VOLUME_ADDED_TO_CONSISTENCYGROUP.toString(),
+                isParentVolumeInCG);
+        if (isParentVolumeInCG.equals(Boolean.TRUE.toString())) {
+            // set the uri of the unmanaged CG in the unmanaged snapshot object to the same as in parent volume.
+            unManagedVolume.getVolumeInformation().remove(UnManagedVolume.SupportedVolumeInformation.UNMANAGED_CONSISTENCY_GROUP_URI.toString());
+            unManagedVolume.getVolumeInformation().put(UnManagedVolume.SupportedVolumeInformation.UNMANAGED_CONSISTENCY_GROUP_URI.toString(),
+                    parentUnManagedVolume.getVolumeInformation().get(UnManagedVolume.SupportedVolumeInformation.UNMANAGED_CONSISTENCY_GROUP_URI.toString()));
+            // set snapshot consistency group name
+            if (driverSnapshot.getConsistencyGroup() != null && !driverSnapshot.getConsistencyGroup().isEmpty()) {
+                StringSet snapCgName = new StringSet();
+                snapCgName.add(driverSnapshot.getConsistencyGroup());
+                unManagedVolumeInformation.put(UnManagedVolume.SupportedVolumeInformation.SNAPSHOT_CONSISTENCY_GROUP_NAME.toString(),
+                        snapCgName);
+            }
+        } else {
+            // Clean old data
+            unManagedVolume.getVolumeInformation().remove(UnManagedVolume.SupportedVolumeInformation.UNMANAGED_CONSISTENCY_GROUP_URI.toString());
+            unManagedVolume.getVolumeInformation().remove(UnManagedVolume.SupportedVolumeInformation.SNAPSHOT_CONSISTENCY_GROUP_NAME.toString());
         }
 
         unManagedVolume.setStoragePoolUri(storagePool.getId());
         StringSet pools = new StringSet();
         pools.add(storagePool.getId().toString());
+        unManagedVolumeInformation.remove(UnManagedVolume.SupportedVolumeInformation.STORAGE_POOL.toString());
         unManagedVolumeInformation.put(UnManagedVolume.SupportedVolumeInformation.STORAGE_POOL.toString(), pools);
 
         StringSet driveTypes = storagePool.getSupportedDriveTypes();
         if (null != driveTypes) {
-            unManagedVolumeInformation.put(
-                    UnManagedVolume.SupportedVolumeInformation.DISK_TECHNOLOGY.toString(),
-                    driveTypes);
+            unManagedVolumeInformation.remove(UnManagedVolume.SupportedVolumeInformation.DISK_TECHNOLOGY.toString());
+            unManagedVolumeInformation.put(UnManagedVolume.SupportedVolumeInformation.DISK_TECHNOLOGY.toString(), driveTypes);
         }
 
+        StringSet provCapacity = new StringSet();
+        provCapacity.add(String.valueOf(driverSnapshot.getProvisionedCapacity()));
+        unManagedVolumeInformation.remove(UnManagedVolume.SupportedVolumeInformation.PROVISIONED_CAPACITY.toString());
+        unManagedVolumeInformation.put(UnManagedVolume.SupportedVolumeInformation.PROVISIONED_CAPACITY.toString(),
+                provCapacity);
+
+        StringSet allocatedCapacity = new StringSet();
+        allocatedCapacity.add(String.valueOf(driverSnapshot.getAllocatedCapacity()));
+        unManagedVolumeInformation.remove(UnManagedVolume.SupportedVolumeInformation.ALLOCATED_CAPACITY.toString());
+        unManagedVolumeInformation.put(UnManagedVolume.SupportedVolumeInformation.ALLOCATED_CAPACITY.toString(),
+                allocatedCapacity);
+
         // Set matched vpools the same as parent.
-        StringSet parentMatchedVPools = unManagedVolume.getSupportedVpoolUris();
+        StringSet parentMatchedVPools = parentUnManagedVolume.getSupportedVpoolUris();
         if (null != parentMatchedVPools) {
-            log.debug("Matched Pools : {}", Joiner.on("\t").join(parentMatchedVPools));
+            log.info("Parent Matched Virtual Pools : {}", Joiner.on("\t").join(parentMatchedVPools));
         }
         if (null == parentMatchedVPools || parentMatchedVPools.isEmpty()) {
             // Clearn all vpools as no matching vpools found.
@@ -606,15 +655,15 @@ public class ExternalDeviceUnManagedVolumeDiscoverer {
         } else {
             // replace with new StringSet
             unManagedVolume.getSupportedVpoolUris().replace(parentMatchedVPools);
-            log.info("Replaced Pools :{}", Joiner.on("\t").join(unManagedVolume.getSupportedVpoolUris()));
+            log.info("Replaced Virtual Pools :{}", Joiner.on("\t").join(unManagedVolume.getSupportedVpoolUris()));
         }
 
-        unManagedVolume.setVolumeInformation(unManagedVolumeInformation);
-
-        if (unManagedVolume.getVolumeCharacterstics() == null) {
-            unManagedVolume.setVolumeCharacterstics(new StringMap());
-        }
-        unManagedVolume.getVolumeCharacterstics().replace(unManagedVolumeCharacteristics);
+//        unManagedVolume.setVolumeInformation(unManagedVolumeInformation);
+//
+//        if (unManagedVolume.getVolumeCharacterstics() == null) {
+//            unManagedVolume.setVolumeCharacterstics(new StringMap());
+//        }
+//        unManagedVolume.getVolumeCharacterstics().replace(unManagedVolumeCharacteristics);
 
         if (newVolume) {
             unManagedVolumesToCreate.add(unManagedVolume);

@@ -298,7 +298,9 @@ public class StorageDriverSimulator extends AbstractStorageDriver implements Blo
         String snapTimestamp = Long.toString(System.currentTimeMillis());
         for (VolumeSnapshot snapshot : snapshots) {
             snapshot.setNativeId("snap-" + snapshot.getParentId() + UUID.randomUUID().toString());
-            snapshot.setSnapSetId(snapTimestamp);
+            snapshot.setConsistencyGroup(snapTimestamp);
+            snapshot.setAllocatedCapacity(1000L);
+            snapshot.setProvisionedCapacity(2000L);
         }
         String taskType = "create-volume-snapshot";
         String taskId = String.format("%s+%s+%s", DRIVER_NAME, taskType, UUID.randomUUID().toString());
@@ -496,6 +498,7 @@ public class StorageDriverSimulator extends AbstractStorageDriver implements Blo
         String snapTimestamp = Long.toString(System.currentTimeMillis());
         for (VolumeSnapshot snapshot : snapshots) {
             snapshot.setNativeId("snap-" + snapshot.getParentId() + consistencyGroup.getDisplayName() + UUID.randomUUID().toString());
+            snapshot.setConsistencyGroup(snapTimestamp);
             snapshot.setSnapSetId(snapTimestamp);
         }
         String taskType = "create-group-snapshot";
@@ -516,7 +519,7 @@ public class StorageDriverSimulator extends AbstractStorageDriver implements Blo
         DriverTask task = new DriverSimulatorTask(taskId);
         task.setStatus(DriverTask.TaskStatus.READY);
         String msg = String.format("StorageDriver: deleteConsistencyGroupSnapshot for storage system %s, " +
-                        "consistencyGroup nativeId %s, group snapshots %s - end",
+                        "snapshot consistencyGroup nativeId %s, group snapshots %s - end",
                 snapshots.get(0).getStorageSystemId(), snapshots.get(0).getConsistencyGroup(), snapshots.toString());
         _log.info(msg);
         task.setMessage(msg);
@@ -553,7 +556,8 @@ public class StorageDriverSimulator extends AbstractStorageDriver implements Blo
     public DriverTask getStorageVolumes(StorageSystem storageSystem, List<StorageVolume> storageVolumes, MutableInt token) {
 
         // create set of native volumes for our storage pools
-        for (int vol = 0; vol < 3; vol ++) {
+        //for (int vol = 0; vol < 3; vol ++) {
+        for (int vol = 0; vol < 1; vol ++) {
             StorageVolume driverVolume = new StorageVolume();
             driverVolume.setStorageSystemId(storageSystem.getNativeId());
             driverVolume.setStoragePoolId("pool-1234577-" + token.intValue() + storageSystem.getNativeId());
@@ -615,14 +619,16 @@ public class StorageDriverSimulator extends AbstractStorageDriver implements Blo
     @Override
     public List<VolumeSnapshot> getVolumeSnapshots(StorageVolume volume) {
         List<VolumeSnapshot> snapshots = new ArrayList<>();
-        for (int i=0; i<3; i++) {
+        for (int i=0; i<4; i++) {
             VolumeSnapshot snapshot = new VolumeSnapshot();
             snapshot.setParentId(volume.getNativeId());
             snapshot.setNativeId(volume.getNativeId() + "snap-" + i);
             snapshot.setDeviceLabel(volume.getNativeId() + "snap-" + i);
             snapshot.setStorageSystemId(volume.getStorageSystemId());
             snapshot.setAccessStatus(StorageObject.AccessStatus.READ_ONLY);
-            snapshot.setSnapSetId(Integer.toString(i)); // three snap groups.
+            snapshot.setConsistencyGroup(Integer.toString(i%2));
+            snapshot.setAllocatedCapacity(1000L);
+            snapshot.setProvisionedCapacity(volume.getProvisionedCapacity());
             snapshots.add(snapshot);
         }
         return snapshots;

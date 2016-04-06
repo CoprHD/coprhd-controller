@@ -42,16 +42,13 @@ public class BackupConfigurationHandler extends DefaultUpdateHandler {
 
         String intervalStr = (newIntervalStr == null || newIntervalStr.isEmpty())
                 ? oldProps.getProperty(BackupConstants.SCHEDULE_INTERVAL) : newIntervalStr;
-        parseBackupInterval(intervalStr);
-
         String startTimeStr = (newStartTimeStr == null || newStartTimeStr.isEmpty())
                 ? oldProps.getProperty(BackupConstants.SCHEDULE_TIME) : newStartTimeStr;
-        parseBackupStartTime(startTimeStr);
 
         validateBackupIntervalAndStartTime(intervalStr, startTimeStr);
     }
 
-    private void parseBackupInterval(String intervalStr) {
+    private void validateBackupInterval(String intervalStr) {
         if (intervalStr == null || intervalStr.isEmpty()) {
             _log.error("Backup interval string is null or empty");
             throw BadRequestException.badRequests.backupIntervalIsInvalid(intervalStr);
@@ -80,7 +77,7 @@ public class BackupConfigurationHandler extends DefaultUpdateHandler {
         }
     }
 
-    private void parseBackupStartTime(String startTimeStr) {
+    private void validateBackupStartTime(String startTimeStr) {
         if (startTimeStr == null || startTimeStr.isEmpty()) {
             _log.error("Backup start time string is null or empty");
             throw BadRequestException.badRequests.backupStartTimeIsInvalid(startTimeStr);
@@ -97,6 +94,9 @@ public class BackupConfigurationHandler extends DefaultUpdateHandler {
     private void validateBackupIntervalAndStartTime(String intervalStr, String startTimeStr) {
         boolean unsupportedInterval = false;
         boolean unsupportedStartTime = false;
+
+        validateBackupInterval(intervalStr);
+        validateBackupStartTime(startTimeStr);
 
         switch (intervalUnit) {
             case DAY:

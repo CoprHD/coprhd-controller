@@ -1683,7 +1683,7 @@ public class DisasterRecoveryService {
         DRNatCheckResponse resp = viprCoreClient.site().checkIfBehindNat(checkParam);
         if (resp.isBehindNAT()) {
             throw APIException.internalServerErrors.addStandbyPrecheckFailed(String
-                    .format("The remote site seen this node's IP is %s, which is different from local addresses: %s or %s, it may behind a NAT",
+                    .format("The remote site sees this node's IP as %s, which is different from the local addresses: %s or %s, it may be behind a NAT.",
                             resp.getSeenIp(), ipv4, ipv6));
         }
     }

@@ -270,9 +270,6 @@ public final class DownloadExecutor implements  Runnable {
         try {
             File downloadedDir = backupOps.getDownloadDirectory(remoteBackupFileName);
 
-            // valid downloaded backup
-            backupOps.checkBackup(downloadedDir, false);
-
             // persist the names of data files into the ZK
             List<String> filenames = backupOps.getBackupFileNames(downloadedDir);
 

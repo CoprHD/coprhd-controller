@@ -511,12 +511,15 @@ public class VPlexControllerUtils {
             ExportMask exportMask, String vplexClusterName, Map<String, String> targetPortToPwwnMap ) {
 
         // load the port name to wwn map, if not provided by caller
-        if (null != client && null == targetPortToPwwnMap) {
-            targetPortToPwwnMap = getTargetPortToPwwnMap(client);
+        Map<String, String> portNameMap = null;
+        if (null == targetPortToPwwnMap && null != client) {
+            portNameMap = getTargetPortToPwwnMap(client);
+        } else {
+            portNameMap = targetPortToPwwnMap;
         }
 
         if (null != exportMask && null != vplexClusterName && null != client && null != dbClient 
-                && (null != targetPortToPwwnMap && !targetPortToPwwnMap.isEmpty())) {
+                && (null != portNameMap && !portNameMap.isEmpty())) {
 
             // fetch the current storage view info from the VPLEX API
             VPlexStorageViewInfo storageView = client.getStorageView(vplexClusterName, exportMask.getMaskName());
@@ -604,8 +607,8 @@ public class VPlexControllerUtils {
             List<String> storagePorts = storageView.getPorts();
             List<String> portWwns = new ArrayList<String>();
             for (String storagePort : storagePorts) {
-                if (targetPortToPwwnMap.keySet().contains(storagePort)) {
-                    portWwns.add(WwnUtils.convertWWN(targetPortToPwwnMap.get(storagePort), WwnUtils.FORMAT.COLON));
+                if (portNameMap.keySet().contains(storagePort)) {
+                    portWwns.add(WwnUtils.convertWWN(portNameMap.get(storagePort), WwnUtils.FORMAT.COLON));
                 }
             }
             List<String> storagePortURIs = ExportUtils.storagePortNamesToURIs(dbClient, portWwns);

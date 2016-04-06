@@ -351,8 +351,6 @@ public class NetappMirrorFileOperations implements FileMirrorOperations {
                         case resyncing:
                         case insync:
                         case migrating:
-                        case pending:
-                        case quiescing:
                             mirrorRefreshCompleter.setFileMirrorStatusForSuccess(FileShare.MirrorStatus.IN_SYNC);
                             break;
                         default:

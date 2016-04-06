@@ -1511,10 +1511,8 @@ public class DisasterRecoveryService {
 
         SiteMonitorResult monitorResult = coordinator.getTargetInfo(site.getUuid(), SiteMonitorResult.class);
         if (monitorResult != null && monitorResult.getDbQuorumLostSince() > 0) {
-            return new Date(monitorResult.getDbQuorumLostSince());
-        } else if (site.getState() == SiteState.STANDBY_DEGRADED) {
-            return new Date(site.getLastLostQuorumTime());
-        }
+            return new Date(monitorResult.getDbQuorumLastActive());
+        } 
         return null;
     }
 

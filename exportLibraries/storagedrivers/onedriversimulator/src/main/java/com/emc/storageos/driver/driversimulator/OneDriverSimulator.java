@@ -2,9 +2,12 @@ package com.emc.storageos.driver.driversimulator;
 
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 import org.apache.commons.lang.mutable.MutableBoolean;
 import org.apache.commons.lang.mutable.MutableInt;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.storagedriver.AbstractStorageDriver;
 import com.emc.storageos.storagedriver.BlockStorageDriver;
@@ -27,6 +30,9 @@ import com.emc.storageos.storagedriver.storagecapabilities.StorageCapabilities;
 
 public class OneDriverSimulator extends AbstractStorageDriver implements BlockStorageDriver {
 
+	private static final Logger _log = LoggerFactory.getLogger(OneDriverSimulator.class);
+    private static final String DRIVER_NAME = "3PARDriver";
+    
 	@Override
 	public List<String> getSystemTypes() {
 		// TODO Auto-generated method stub
@@ -54,7 +60,37 @@ public class OneDriverSimulator extends AbstractStorageDriver implements BlockSt
 	@Override
 	public DriverTask discoverStorageSystem(List<StorageSystem> storageSystems) {
 		// TODO Auto-generated method stub
-		return null;
+		 _log.info("3PAR proto driver");
+		 StorageSystem storageSystem = storageSystems.get(0);
+	        _log.info("3PAR: discoverStorageSystem information for storage system {}, name {} - start",
+	                storageSystem.getIpAddress(), storageSystem.getSystemName());
+	        String taskType = "discover-3par-system";
+	        String taskId = String.format("%s+%s+%s", DRIVER_NAME, taskType, UUID.randomUUID().toString());
+	        DriverTask task = new OneDriverTask(taskId);
+
+	        try {
+	            storageSystem.setSerialNumber(storageSystem.getSystemName());
+	            storageSystem.setNativeId(storageSystem.getSystemName());
+	            storageSystem.setFirmwareVersion("2.4-3.12");
+	            storageSystem.setIsSupportedVersion(true);
+//	            setConnInfoToRegistry(storageSystem.getNativeId(), storageSystem.getIpAddress(), storageSystem.getPortNumber(),
+//	                    storageSystem.getUsername(), storageSystem.getPassword());
+//	            // Support both, element and group replicas.
+//	            Set<StorageSystem.SupportedReplication> supportedReplications = new HashSet<>();
+//	            supportedReplications.add(StorageSystem.SupportedReplication.elementReplica);
+//	            supportedReplications.add(StorageSystem.SupportedReplication.groupReplica);
+//	            storageSystem.setSupportedReplications(supportedReplications);
+
+
+	            task.setStatus(DriverTask.TaskStatus.READY);
+	            _log.info("StorageDriver: discoverStorageSystem information for storage system {}, nativeId {} - end",
+	                    storageSystem.getIpAddress(), storageSystem.getNativeId());
+	            return task;
+	        } catch (Exception e) {
+	            task.setStatus(DriverTask.TaskStatus.FAILED);
+	            e.printStackTrace();
+	        }
+	        return task;
 	}
 
 	@Override

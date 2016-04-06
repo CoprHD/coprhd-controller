@@ -652,7 +652,7 @@ public class FileReplicationDeviceController implements FileOrchestrationInterfa
         // secondary storagesystem
         StorageSystem secondarysystem = dbClient.queryObject(StorageSystem.class, targetFileShare.getStorageDevice());
 
-        // snapmirror resync -S lglw6204:failover1targetvarray204 -w failover1
+        // lglw6205>snapmirror resync -S lglw6204:failover1targetvarray204 -w failover1
         Workflow.Method resyncMethodStep1 = resyncPrepMirrorPairMeth(secondarysystem.getId(), primarysystem.getId(),
                 targetFileShare.getId(), "");
         String descResyncPrepStep1 = String.format("Creating resync between target- %s and source %s", secondarysystem.getLabel(),
@@ -684,7 +684,7 @@ public class FileReplicationDeviceController implements FileOrchestrationInterfa
         String waitForRelease = workflow.createStep(
                 RELEASE_MIRROR_FILESHARE_STEP,
                 descReleasePrepStep3,
-                waitForResync, secondarysystem.getId(), secondarysystem.getSystemType(), getClass(),
+                waitForFailover, secondarysystem.getId(), secondarysystem.getSystemType(), getClass(),
                 releaseMethodStep3,
                 rollbackMethodNullMethod(), null);
 

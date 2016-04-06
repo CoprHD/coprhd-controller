@@ -94,14 +94,9 @@ public class DbBackupHandler extends BackupHandler {
     public String createBackup(final String backupTag) {
         // For multi vdc ViPR, need to reinit geodb during restore, so use the special backup type
         // to show the difference
-        //log.info("lby0 backupType={} vdcList size={}", backupType, backupContext.getVdcList().size());
-        log.info("lby0 backupType={} vdcList size={}", backupType, backupContext.isGeoEnv());
-        //if (backupType.equals(BackupType.geodb) && backupContext.getVdcList().size() > 1) {
         if (backupType.equals(BackupType.geodb) && backupContext.isGeoEnv()) {
             backupType = BackupType.geodbmultivdc;
         }
-        //log.info("lby1 backupType={} vdcList size={}", backupType, backupContext.getVdcList().size());
-        log.info("lby1 backupType={} vdcList size={}", backupType, backupContext.isGeoEnv());
 
         String fullBackupTag = backupTag + BackupConstants.BACKUP_NAME_DELIMITER +
                 backupType.name() + BackupConstants.BACKUP_NAME_DELIMITER +

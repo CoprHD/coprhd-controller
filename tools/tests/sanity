@@ -7943,11 +7943,16 @@ dr_multisite_tests()
     time_start switchover_standby_c
     dr switchover $standby_site_c || { echo "switchover dr standby site c failed."; exit 1; }
 
-    echo "---WAIT ACTIVE AND STANDBY TO BE STABLE AFTER SWITCHOVER---"
+    echo "---WAIT ALL 3 SITES TO BE STABLE AFTER SWITCHOVER---"
     sleep 120
     BOURNE_IPADDR=$DR_SITE_A_IP
     security login $LOCAL_LDAP_GROUPUSER_USERNAME $LOCAL_LDAP_GROUPUSER_PASSWORD 10 600
     dr waitforstable 10 800
+
+    BOURNE_IPADDR=$DR_SITE_B_IP
+    security login $LOCAL_LDAP_GROUPUSER_USERNAME $LOCAL_LDAP_GROUPUSER_PASSWORD 10 600
+    dr waitforstable 10 800
+
     BOURNE_IPADDR=$DR_SITE_C_IP
     security login $LOCAL_LDAP_GROUPUSER_USERNAME $LOCAL_LDAP_GROUPUSER_PASSWORD 10 600
     dr waitforstable 10 800

@@ -15,7 +15,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -60,7 +59,6 @@ import com.emc.storageos.coordinator.client.model.SoftwareVersion;
 import com.emc.storageos.coordinator.client.model.DrOperationStatus.InterState;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.coordinator.client.service.DrUtil;
-import com.emc.storageos.coordinator.client.service.impl.CoordinatorClientInetAddressMap;
 import com.emc.storageos.coordinator.client.service.impl.LeaderSelectorListenerImpl;
 import com.emc.storageos.coordinator.common.Configuration;
 import com.emc.storageos.coordinator.common.impl.ZkPath;
@@ -131,7 +129,6 @@ public class DisasterRecoveryService {
     private CoordinatorClient coordinator;
     private DbClient dbClient;
     private IPsecConfig ipsecConfig;
-    private Properties dbCommonInfo;
     private DrUtil drUtil;
 
     @Autowired
@@ -906,28 +903,24 @@ public class DisasterRecoveryService {
         try {
             coordinator.startTransaction();
             for (Site site : drUtil.listStandbySites()) {
-                long dataRevision = 0;
                 if (site.getUuid().equals(uuid)) {
                     log.error("Re-init the target standby", uuid);
 
                     // init the to-be resumed standby site
-                    dataRevision = System.currentTimeMillis();
+                    long dataRevision = System.currentTimeMillis();
                     List<Site> standbySites = drUtil.listStandbySites();
-                    SiteConfigParam configParam = prepareSiteConfigParam(standbySites, ipsecConfig.getPreSharedKey(), uuid, dataRevision, vdcTargetVersion, secretKey);
+                    SiteConfigParam configParam = prepareSiteConfigParam(standbySites, ipsecConfig.getPreSharedKey(),
+                            uuid, dataRevision, vdcTargetVersion, secretKey);
                     try (InternalSiteServiceClient internalSiteServiceClient = new InternalSiteServiceClient()) {
                         internalSiteServiceClient.setCoordinatorClient(coordinator);
                         internalSiteServiceClient.setServer(site.getVipEndPoint());
                         internalSiteServiceClient.initStandby(configParam);
                     }
-                    
-                    // update the site state AFTER checking the last state update time
+
                     site.setState(SiteState.STANDBY_RESUMING);
                     coordinator.persistServiceConfiguration(site.toConfiguration());
                     drUtil.recordDrOperationStatus(site.getUuid(), InterState.RESUMING_STANDBY);
-                }
-
-                if (dataRevision != 0) {
-                    drUtil.updateVdcTargetVersion(site.getUuid(), SiteInfo.DR_OP_CHANGE_DATA_REVISION, vdcTargetVersion, dataRevision);
+                    drUtil.updateVdcTargetVersion(uuid, SiteInfo.DR_OP_CHANGE_DATA_REVISION, vdcTargetVersion, dataRevision);
                 } else {
                     drUtil.updateVdcTargetVersion(site.getUuid(), SiteInfo.DR_OP_RESUME_STANDBY, vdcTargetVersion);
                 }
@@ -1070,8 +1063,19 @@ public class DisasterRecoveryService {
             log.info("Notify all sites for reconfig");
             long vdcTargetVersion = DrUtil.newVdcConfigVersion();
 
-            for (Site standbySite : drUtil.listSites()) {
-                drUtil.updateVdcTargetVersion(standbySite.getUuid(), drOperation, vdcTargetVersion);
+            for (Site site : drUtil.listSites()) {
+                String siteUuid = site.getUuid();
+                if (site.getLastState() == SiteState.STANDBY_RESUMING) {
+                    SiteInfo siteTargetInfo = coordinator.getTargetInfo(siteUuid, SiteInfo.class);
+                    drOperation = siteTargetInfo.getActionRequired();
+                    if (drOperation.equals(SiteInfo.DR_OP_CHANGE_DATA_REVISION)) {
+                        long dataRevision = System.currentTimeMillis();
+                        drUtil.updateVdcTargetVersion(siteUuid, drOperation, vdcTargetVersion, dataRevision);
+                        continue;
+                    }
+                }
+                log.info("Set dr operation {} on site {}", drOperation, siteUuid);
+                drUtil.updateVdcTargetVersion(siteUuid, drOperation, vdcTargetVersion);
             }
 
             coordinator.commitTransaction();
@@ -1501,16 +1505,10 @@ public class DisasterRecoveryService {
     }
 
     private Date getLastSyncTime(Site site) {
-        if (site.getState() == SiteState.STANDBY_PAUSED) {
-            return new Date(site.getLastStateUpdateTime());
-        } 
-
         SiteMonitorResult monitorResult = coordinator.getTargetInfo(site.getUuid(), SiteMonitorResult.class);
-        if (monitorResult != null && monitorResult.getDbQuorumLostSince() > 0) {
-            return new Date(monitorResult.getDbQuorumLostSince());
-        } else if (site.getState() == SiteState.STANDBY_DEGRADED) {
-            return new Date(site.getLastLostQuorumTime());
-        }
+        if (monitorResult != null && monitorResult.getDbQuorumLastActive() != 0) {
+            return new Date(monitorResult.getDbQuorumLastActive());
+        } 
         return null;
     }
 
@@ -1968,11 +1966,6 @@ public class DisasterRecoveryService {
 
     public void setIpsecConfig(IPsecConfig ipsecConfig) {
         this.ipsecConfig = ipsecConfig;
-    }
-
-    // DBSVC config parameters
-    public void setDbCommonInfo(Properties dbCommonInfo) {
-        this.dbCommonInfo = dbCommonInfo;
     }
 
     private void startLeaderSelector() {

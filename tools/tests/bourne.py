@@ -4741,7 +4741,7 @@ class Bourne:
     #
     # Storage providers APIs
     #
-    def storageproviderlist(self):
+    def storageprovider_list(self):
         o = self.api('GET', URI_STORAGEPROVIDERS)
         if (not o):
             return {};

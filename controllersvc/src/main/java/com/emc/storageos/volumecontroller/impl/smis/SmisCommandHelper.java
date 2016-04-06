@@ -422,7 +422,7 @@ public class SmisCommandHelper implements SmisConstants {
      * @param storageSystem the storage system
      * @param volume the volume
      */
-    public void removeVolumeFromStorageGroupsIfVolumeIsNotInAnyMV(StorageSystem storage, Volume volume) {
+    public void removeVolumeFromStorageGroupsIfVolumeIsNotInAnyMV(StorageSystem storage, BlockObject bo) {
         /**
          * If Volume is not associated with any MV, then remove the volume from its associated SGs.
          */
@@ -430,9 +430,9 @@ public class SmisCommandHelper implements SmisConstants {
         CloseableIterator<CIMInstance> sgInstancesItr = null;
         boolean isSGInAnyMV = true;
         try {
-            _log.info("Checking if Volume {} needs to be removed from Storage Groups which is not in any Masking View",
-                    volume.getNativeGuid());
-            CIMObjectPath volumePath = _cimPath.getBlockObjectPath(storage, volume);
+            _log.info("Checking if device {} needs to be removed from Storage Groups which is not in any Masking View",
+                    bo.getNativeGuid());
+            CIMObjectPath volumePath = _cimPath.getBlockObjectPath(storage, bo);
             // See if Volume is associated with MV
             mvPathItr = getAssociatorNames(storage, volumePath, null, SYMM_LUN_MASKING_VIEW,
                     null, null);
@@ -441,9 +441,9 @@ public class SmisCommandHelper implements SmisConstants {
             }
 
             if (!isSGInAnyMV) {
-                _log.info("Volume {} is not in any Masking View, hence removing it from Storage Groups if any",
-                        volume.getNativeGuid());
-                boolean forceFlag = ExportUtils.useEMCForceFlag(_dbClient, volume.getId());
+                _log.info("Device {} is not in any Masking View, hence removing it from Storage Groups if any",
+                        bo.getNativeGuid());
+                boolean forceFlag = ExportUtils.useEMCForceFlag(_dbClient, bo.getId());
                 // Get all the storage groups associated with this volume
                 sgInstancesItr = getAssociatorInstances(storage, volumePath, null,
                         SmisConstants.SE_DEVICE_MASKING_GROUP, null, null, PS_ELEMENT_NAME);
@@ -459,7 +459,7 @@ public class SmisCommandHelper implements SmisConstants {
                             removeVolumeGroupFromPolicyAndLimitsAssociation(client, storage, sgPath.getObjectPath());
                         }
 
-                        removeVolumesFromStorageGroup(storage, storageGroupName, Collections.singletonList(volume.getId()), forceFlag);
+                        removeVolumesFromStorageGroup(storage, storageGroupName, Collections.singletonList(bo.getId()), forceFlag);
 
                         // If there was only one volume in the SG, it would be empty after removing that last volume.
                         if (sgVolumeCount == 1) {
@@ -469,11 +469,11 @@ public class SmisCommandHelper implements SmisConstants {
                     }
                 }
             } else {
-                _log.info("Found that Volume {} is part of Masking View {}", volume.getNativeGuid(), mvPathItr.next());
+                _log.info("Found that Device {} is part of Masking View {}", bo.getNativeGuid(), mvPathItr.next());
             }
         } catch (Exception e) {
-            _log.warn("Exception while trying to remove volume {} from Storage Groups which is not in any Masking View",
-                    volume.getNativeGuid(), e);
+            _log.warn("Exception while trying to remove device {} from Storage Groups which is not in any Masking View",
+                    bo.getNativeGuid(), e);
         } finally {
             closeCIMIterator(mvPathItr);
             closeCIMIterator(sgInstancesItr);
@@ -7255,8 +7255,8 @@ public class SmisCommandHelper implements SmisConstants {
             }
         }
         if (removeEntryList.isEmpty()) {
-            _log.info(String.format("The SFS entry is not found for the source group %s",
-                    sourceReplicationGroupName));
+            _log.info(String.format("The expected SFS entry %s is not found for the source group %s",
+                    groupSynchronizedAspectLabel, sourceReplicationGroupName));
             return;
         }
         try {

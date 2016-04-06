@@ -66,6 +66,7 @@ public class ScaleIORestHandleFactory {
                     URI baseURI = URI.create(ScaleIOConstants.getAPIBaseURI(ipAddr, port));
                     handle = (ScaleIORestClient) scaleIORestClientFactory.getRESTClient(baseURI, username,
                             password, true);
+
                     try {
                         systemId = handle.getSystemId(); // Get the exact systemId and check the availability of handle
                         if (systemId != null) {

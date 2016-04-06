@@ -75,6 +75,8 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver implements Block
 
                         if (result != null) {
                             volume.setNativeId(result.getId());
+                            volume.setAccessStatus(StorageObject.AccessStatus.READ_WRITE);
+                            volume.setDeviceLabel(volume.getNativeId());
                             long sizeInBytes = Long.parseLong(result.getSizeInKb()) * 1024;
                             volume.setAllocatedCapacity(sizeInBytes);
                             String wwn = restClient.getSystemId() + result.getId();
@@ -729,6 +731,7 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver implements Block
         log.info("create consistency group: ");
         DriverTask task = new DriverTaskImpl(ScaleIOHelper.getTaskId(ScaleIOConstants.TaskType.CG_CREATE));
         consistencyGroup.setNativeId(consistencyGroup.getDisplayName());
+        consistencyGroup.setDeviceLabel(consistencyGroup.getDisplayName());
         task.setStatus(DriverTask.TaskStatus.READY);
         task.setMessage("Set Fake native ID");
         return task;
@@ -881,7 +884,7 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver implements Block
                             parent2snap.put(clone.getParentId(), clone.getDisplayName());
                         }
                         ScaleIOSnapshotVolumeResponse result = client.snapshotMultiVolume(parent2snap, systemId);
-                        consistencyGroup.setStorageSystemId(systemId);
+                       // consistencyGroup.setStorageSystemId(systemId);
 
                         // get parentID
                         List<String> nativeIds = result.getVolumeIdList();
@@ -891,14 +894,17 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver implements Block
                                 if (clone.getParentId().equalsIgnoreCase(cloneInfo.getAncestorVolumeId())) {
                                     clone.setNativeId(cloneInfo.getId());
                                     clone.setAccessStatus(StorageObject.AccessStatus.READ_WRITE);
-                                    clone.setDeviceLabel(cloneInfo.getName());
-                                    String wwn = client.getSystemId() + cloneInfo.getId();
+                                    //clone.setDeviceLabel(cloneInfo.getName());
+                                    clone.setDeviceLabel(clone.getNativeId());
+                                    String wwn = client.getSystemId() + clone.getNativeId();
                                     clone.setWwn(wwn);
                                     clone.setReplicationState(VolumeClone.ReplicationState.CREATED);
                                     // map real CG id with fake CG id
                                     setInfoToRegistry(clone.getStorageSystemId(), consistencyGroup.getDisplayName(),
                                             result.getSnapshotGroupId());
-                                    clone.setConsistencyGroup(consistencyGroup.getDisplayName());
+                                    //clone.setConsistencyGroup(consistencyGroup.getDisplayName());
+                                    String cloneTimestamp = Long.toString(System.currentTimeMillis());
+                                    clone.setConsistencyGroup(consistencyGroup.getNativeId()+"_clone-"+cloneTimestamp);
                                     countSucc++;
                                 }
                             }

@@ -65,7 +65,8 @@ public class VirtualNasCreateParam {
         this.storageSystem = storageSystem;
     }
 
-    @XmlElement(name = "protocols")
+    @XmlElementWrapper(name = "protocols")
+    @XmlElement(name = "protocol")
     public Set<String> getProtocols() {
         return protocols;
     }

@@ -39,7 +39,7 @@ public class MirrorFileRefreshTaskCompleter extends MirrorFileTaskCompleter {
     }
 
     @Override
-    protected FileShare.MirrorStatus getFileMirrorStatusForSuccess() {
+    public FileShare.MirrorStatus getFileMirrorStatusForSuccess() {
         return this.mirrorSyncStatus;
     }
 

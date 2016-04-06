@@ -309,44 +309,41 @@ public class NetappMirrorFileOperations implements FileMirrorOperations {
             if (statusInfo == null) {
                 mirrorRefreshCompleter.setFileMirrorStatusForSuccess(FileShare.MirrorStatus.UNKNOWN);
             } else {
-                String currentTransferError = statusInfo.getCurrentTransferError();
-                if (currentTransferError != null) {
-                    mirrorRefreshCompleter.setFileMirrorStatusForSuccess(FileShare.MirrorStatus.ERROR);
-                } else {
-                    SnapMirrorTransferStatus transferStatus = statusInfo.getTransferType();
-                    SnapMirrorState mirrorState = statusInfo.getMirrorState();
-                    SnapMirrorCurrentTransferType currentState = statusInfo.getCurrentTransferType();
-                    switch (mirrorState) {
-                        case PAUSED:
-                            mirrorRefreshCompleter.setFileMirrorStatusForSuccess(FileShare.MirrorStatus.PAUSED);
-                            break;
-                        case FAILOVER:
-                            mirrorRefreshCompleter.setFileMirrorStatusForSuccess(FileShare.MirrorStatus.FAILED_OVER);
-                            break;
-                        case SYNCRONIZED:
-                            mirrorRefreshCompleter.setFileMirrorStatusForSuccess(FileShare.MirrorStatus.SYNCHRONIZED);
-                            break;
-                        case UNKNOWN:
-                        default:
-                            mirrorRefreshCompleter.setFileMirrorStatusForSuccess(FileShare.MirrorStatus.UNKNOWN);
-                            break;
-                    }
+                SnapMirrorTransferStatus transferStatus = statusInfo.getTransferType();
+                SnapMirrorState mirrorState = statusInfo.getMirrorState();
+                SnapMirrorCurrentTransferType currentState = statusInfo.getCurrentTransferType();
+                switch (mirrorState) {
+                    case PAUSED:
+                        mirrorRefreshCompleter.setFileMirrorStatusForSuccess(FileShare.MirrorStatus.PAUSED);
+                        break;
+                    case FAILOVER:
+                        mirrorRefreshCompleter.setFileMirrorStatusForSuccess(FileShare.MirrorStatus.FAILED_OVER);
+                        break;
+                    case SYNCRONIZED:
+                        mirrorRefreshCompleter.setFileMirrorStatusForSuccess(FileShare.MirrorStatus.SYNCHRONIZED);
+                        break;
+                    case UNKNOWN:
+                        mirrorRefreshCompleter.setFileMirrorStatusForSuccess(FileShare.MirrorStatus.UNKNOWN);
+                        break;
+                    default:
+                        break;
+                }
+                if (mirrorRefreshCompleter.getFileMirrorStatusForSuccess() == null) {
                     switch (transferStatus) {
                         case syncing:
                         case transferring:
                         case resyncing:
                         case insync:
                         case migrating:
-                            mirrorRefreshCompleter.setFileMirrorStatusForSuccess(FileShare.MirrorStatus.IN_SYNC);
-                            break;
                         case pending:
                         case quiescing:
-                            mirrorRefreshCompleter.setFileMirrorStatusForSuccess(FileShare.MirrorStatus.OTHER);
+                            mirrorRefreshCompleter.setFileMirrorStatusForSuccess(FileShare.MirrorStatus.IN_SYNC);
                             break;
                         default:
                             break;
                     }
-
+                }
+                if (mirrorRefreshCompleter.getFileMirrorStatusForSuccess() == null) {
                     if (currentState != null) {
                         switch (currentState) {
                             case initialize:
@@ -361,6 +358,12 @@ public class NetappMirrorFileOperations implements FileMirrorOperations {
                             default:
                                 break;
                         }
+                    }
+                }
+                if (mirrorRefreshCompleter.getFileMirrorStatusForSuccess() == null) {
+                    String currentTransferError = statusInfo.getCurrentTransferError();
+                    if (currentTransferError != null) {
+                        mirrorRefreshCompleter.setFileMirrorStatusForSuccess(FileShare.MirrorStatus.ERROR);
                     }
                 }
             }

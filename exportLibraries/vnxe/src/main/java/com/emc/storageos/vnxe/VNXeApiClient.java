@@ -30,6 +30,9 @@ import com.emc.storageos.vnxe.models.DiskGroup;
 import com.emc.storageos.vnxe.models.FastVP;
 import com.emc.storageos.vnxe.models.FastVPParam;
 import com.emc.storageos.vnxe.models.FileSystemParam;
+import com.emc.storageos.vnxe.models.FileSystemQuotaConfigParam;
+import com.emc.storageos.vnxe.models.FileSystemQuotaCreateParam;
+import com.emc.storageos.vnxe.models.FileSystemQuotaModifyParam;
 import com.emc.storageos.vnxe.models.FileSystemSnapCreateParam;
 import com.emc.storageos.vnxe.models.HostCreateParam;
 import com.emc.storageos.vnxe.models.HostInitiatorCreateParam;
@@ -53,6 +56,8 @@ import com.emc.storageos.vnxe.models.NfsShareParam;
 import com.emc.storageos.vnxe.models.NfsShareParam.NFSShareDefaultAccessEnum;
 import com.emc.storageos.vnxe.models.StorageResource;
 import com.emc.storageos.vnxe.models.StorageResource.TieringPolicyEnum;
+import com.emc.storageos.vnxe.models.VNXUnityQuotaConfig;
+import com.emc.storageos.vnxe.models.VNXUnityTreeQuota;
 import com.emc.storageos.vnxe.models.VNXeBase;
 import com.emc.storageos.vnxe.models.VNXeCifsServer;
 import com.emc.storageos.vnxe.models.VNXeCifsShare;
@@ -87,14 +92,16 @@ import com.emc.storageos.vnxe.requests.BlockLunRequests;
 import com.emc.storageos.vnxe.requests.CifsServerListRequest;
 import com.emc.storageos.vnxe.requests.CifsShareRequests;
 import com.emc.storageos.vnxe.requests.DeleteStorageResourceRequest;
-import com.emc.storageos.vnxe.requests.DiskRequest;
 import com.emc.storageos.vnxe.requests.DiskGroupRequests;
+import com.emc.storageos.vnxe.requests.DiskRequest;
 import com.emc.storageos.vnxe.requests.EthernetPortRequests;
 import com.emc.storageos.vnxe.requests.FastVPRequest;
 import com.emc.storageos.vnxe.requests.FcPortRequests;
 import com.emc.storageos.vnxe.requests.FileInterfaceListRequest;
 import com.emc.storageos.vnxe.requests.FileSystemActionRequest;
 import com.emc.storageos.vnxe.requests.FileSystemListRequest;
+import com.emc.storageos.vnxe.requests.FileSystemQuotaConfigRequests;
+import com.emc.storageos.vnxe.requests.FileSystemQuotaRequests;
 import com.emc.storageos.vnxe.requests.FileSystemRequest;
 import com.emc.storageos.vnxe.requests.FileSystemSnapRequests;
 import com.emc.storageos.vnxe.requests.HostInitiatorRequest;
@@ -205,7 +212,8 @@ public class VNXeApiClient {
     /**
      * get job information
      * 
-     * @param id job id
+     * @param id
+     *            job id
      * @return VNXeCommandJob
      */
     public VNXeCommandJob getJob(String id) {
@@ -274,11 +282,16 @@ public class VNXeApiClient {
     /**
      * create file system
      * 
-     * @param fsName file system name.
-     * @param size size in byte.
-     * @param poolId pool id.
-     * @param nasServerId nasServer id.
-     * @param isThin is thin enabled.
+     * @param fsName
+     *            file system name.
+     * @param size
+     *            size in byte.
+     * @param poolId
+     *            pool id.
+     * @param nasServerId
+     *            nasServer id.
+     * @param isThin
+     *            is thin enabled.
      * @param supportedProtocols
      * @return VNXeCommandJob
      * @throws VNXeException
@@ -319,8 +332,10 @@ public class VNXeApiClient {
     /**
      * delete file system with async call
      * 
-     * @param fsId file system Id
-     * @param forceSnapDeletion whether to delete snapshots as well
+     * @param fsId
+     *            file system Id
+     * @param forceSnapDeletion
+     *            whether to delete snapshots as well
      * @return VNXeCommandJob
      * @throws VNXeException
      */
@@ -334,8 +349,10 @@ public class VNXeApiClient {
     /**
      * delete file system sync
      * 
-     * @param fsId file system Id
-     * @param forceSnapDeletion whether to delete snapshots as well
+     * @param fsId
+     *            file system Id
+     * @param forceSnapDeletion
+     *            whether to delete snapshots as well
      * @return VNXeCommandJob
      * @throws VNXeException
      */
@@ -349,9 +366,12 @@ public class VNXeApiClient {
     /**
      * NFS export
      * 
-     * @param fsId file system KH id
-     * @param endpoints list of host ipaddresses export to
-     * @param access access right
+     * @param fsId
+     *            file system KH id
+     * @param endpoints
+     *            list of host ipaddresses export to
+     * @param access
+     *            access right
      * @return VNXeCommandJob
      * @throws VNXeException
      */
@@ -473,8 +493,10 @@ public class VNXeApiClient {
     /**
      * Find nfsShare using file system Id and vipr exportKey
      * 
-     * @param fsId file system Id
-     * @param exportKey vipr exportKey
+     * @param fsId
+     *            file system Id
+     * @param exportKey
+     *            vipr exportKey
      * @return nfsShare Id
      */
     public VNXeNfsShare findNfsShare(String fsId, String shareName) {
@@ -488,7 +510,8 @@ public class VNXeApiClient {
     /**
      * Find nfsShare using share Id
      * 
-     * @param shareId NFS Share Id
+     * @param shareId
+     *            NFS Share Id
      * @return nfsShare
      */
     public VNXeNfsShare getNfsShareById(String shareId) {
@@ -506,8 +529,10 @@ public class VNXeApiClient {
     /**
      * Find nfsShare using snapshot Id and snapshot share name
      * 
-     * @param snapId file system snapshot Id
-     * @param shareName NFS Export/Share name
+     * @param snapId
+     *            file system snapshot Id
+     * @param shareName
+     *            NFS Export/Share name
      * @return nfsShare
      */
     public VNXeNfsShare findSnapNfsShare(String snapId, String shareName) {
@@ -520,8 +545,10 @@ public class VNXeApiClient {
     /**
      * Delete nfsShare
      * 
-     * @param nfsShareId nfsShare Id
-     * @param fsId file system Id
+     * @param nfsShareId
+     *            nfsShare Id
+     * @param fsId
+     *            file system Id
      * @return VNXeCommandJob
      */
     public VNXeCommandJob removeNfsShare(String nfsShareId, String fsId) {
@@ -558,8 +585,10 @@ public class VNXeApiClient {
     /**
      * expand file system
      * 
-     * @param fsId fileSystem Id
-     * @param newSize new capacity
+     * @param fsId
+     *            fileSystem Id
+     * @param newSize
+     *            new capacity
      * @return VNXeCommandJob
      */
     public VNXeCommandJob expandFileSystem(String fsId, long newSize) {
@@ -591,8 +620,10 @@ public class VNXeApiClient {
     /**
      * Create file system snapshot
      * 
-     * @param fsId file system id
-     * @param name snapshot name
+     * @param fsId
+     *            file system id
+     * @param name
+     *            snapshot name
      * @return VNXeCommandJob
      */
     public VNXeCommandJob createFileSystemSnap(String fsId, String name) {
@@ -613,7 +644,8 @@ public class VNXeApiClient {
     /**
      * Get snapshot by its name
      * 
-     * @param name snapshot name
+     * @param name
+     *            snapshot name
      * @return VNXeFileSystemSnap
      */
     public VNXeFileSystemSnap getSnapshotByName(String name) {
@@ -626,7 +658,8 @@ public class VNXeApiClient {
     /**
      * Delete file system snapshot
      * 
-     * @param snapId snapshot VNXe Id
+     * @param snapId
+     *            snapshot VNXe Id
      * @return VNXeCommandJob
      */
     public VNXeCommandJob deleteFileSystemSnap(String snapId) {
@@ -639,7 +672,8 @@ public class VNXeApiClient {
     /**
      * restore file system snapshot
      * 
-     * @param snapId VNXe snapshot id
+     * @param snapId
+     *            VNXe snapshot id
      * @return VNXeCommandJob
      */
     public VNXeCommandJob restoreFileSystemSnap(String snapId) {
@@ -652,7 +686,8 @@ public class VNXeApiClient {
     /**
      * get file system's snapshot list
      * 
-     * @param fsId file system id
+     * @param fsId
+     *            file system id
      * @return list of snapshots
      */
     public List<VNXeFileSystemSnap> getFileSystemSnaps(String fsId) {
@@ -718,8 +753,10 @@ public class VNXeApiClient {
     /**
      * Delete cifsShare
      * 
-     * @param cifsShareId cifsShare Id
-     * @param fsId file system Id
+     * @param cifsShareId
+     *            cifsShare Id
+     * @param fsId
+     *            file system Id
      * @return VNXeCommandJob
      */
     public VNXeCommandJob removeCifsShare(String cifsShareId, String fsId) {
@@ -751,7 +788,8 @@ public class VNXeApiClient {
     /**
      * find CIFS share by its name
      * 
-     * @param shareName CIFS share name
+     * @param shareName
+     *            CIFS share name
      * @return
      */
     public VNXeCifsShare findCifsShareByName(String shareName) {
@@ -768,9 +806,12 @@ public class VNXeApiClient {
     /**
      * Create CIFS share for snapshot
      * 
-     * @param snapId snapshot id
-     * @param shareName CIFS share name
-     * @param permission READ, CHANGE, FULL
+     * @param snapId
+     *            snapshot id
+     * @param shareName
+     *            CIFS share name
+     * @param permission
+     *            READ, CHANGE, FULL
      * @return VNXeCommandJob
      * @throws VNXeException
      */
@@ -808,9 +849,12 @@ public class VNXeApiClient {
     /**
      * Create Nfs share for snapshot
      * 
-     * @param snapId snapshot id
-     * @param endpoints hosts
-     * @param access READ, WRITE, ROOT
+     * @param snapId
+     *            snapshot id
+     * @param endpoints
+     *            hosts
+     * @param access
+     *            READ, WRITE, ROOT
      * @param path
      * @param exportKey
      * @return VNXeCommandJob
@@ -843,7 +887,7 @@ public class VNXeApiClient {
         VNXeCommandJob job = null;
         VNXeNfsShare nfsShareFound = request.findSnapNfsShare(snapId, shareName, softwareVersion);
 
-        if (nfsShareFound == null) {   // new export
+        if (nfsShareFound == null) { // new export
             nfsCreateParam.setReadOnlyHosts(roHosts);
             nfsCreateParam.setReadWriteHosts(rwHosts);
             nfsCreateParam.setRootAccessHosts(rootHosts);
@@ -918,7 +962,8 @@ public class VNXeApiClient {
     /**
      * delete nfs share created for snapshot
      * 
-     * @param shareId nfsShare Id
+     * @param shareId
+     *            nfsShare Id
      * @return VNXeCommandJob
      */
     public VNXeCommandJob deleteNfsShareForSnapshot(String shareId) throws VNXeException {
@@ -929,7 +974,8 @@ public class VNXeApiClient {
     /**
      * delete cifs share for snapshot
      * 
-     * @param shareId cifsShare Id
+     * @param shareId
+     *            cifsShare Id
      * @return VNXeCommandJob
      * @throws VNXeException
      */
@@ -1112,8 +1158,10 @@ public class VNXeApiClient {
     /**
      * delete lun with async call
      * 
-     * @param fsId file system Id
-     * @param forceSnapDeletion whether to delete snapshots as well
+     * @param fsId
+     *            file system Id
+     * @param forceSnapDeletion
+     *            whether to delete snapshots as well
      * @return VNXeCommandJob
      * @throws VNXeException
      */
@@ -1127,8 +1175,10 @@ public class VNXeApiClient {
     /**
      * delete lun sync
      * 
-     * @param lunId lun Id
-     * @param forceSnapDeletion whether to delete snapshots as well
+     * @param lunId
+     *            lun Id
+     * @param forceSnapDeletion
+     *            whether to delete snapshots as well
      * @return VNXeCommandJob
      * @throws VNXeException
      */
@@ -1169,7 +1219,8 @@ public class VNXeApiClient {
     /**
      * Create lungroup
      * 
-     * @param name lun group name
+     * @param name
+     *            lun group name
      * @return VNXeCommmandResult, with the lun group id.
      */
     public VNXeCommandResult createLunGroup(String name) {
@@ -1201,8 +1252,10 @@ public class VNXeApiClient {
     /**
      * Remove luns from the lun group
      * 
-     * @param lunGroupId lun group id
-     * @param luns list of lun IDs
+     * @param lunGroupId
+     *            lun group id
+     * @param luns
+     *            list of lun IDs
      * @return
      */
     public VNXeCommandResult removeLunsFromLunGroup(String lunGroupId, List<String> luns) {
@@ -1274,8 +1327,10 @@ public class VNXeApiClient {
     /**
      * Export a lun for a given host
      * 
-     * @param lunId lun id
-     * @param initiators host initiators info
+     * @param lunId
+     *            lun id
+     * @param initiators
+     *            host initiators info
      * @return
      * @throws VNXeException
      */
@@ -1424,8 +1479,10 @@ public class VNXeApiClient {
     /**
      * Export a snap for a given host
      * 
-     * @param snapId snap id
-     * @param initiators host initiators info
+     * @param snapId
+     *            snap id
+     * @param initiators
+     *            host initiators info
      * @return
      * @throws VNXeException
      */
@@ -1628,7 +1685,8 @@ public class VNXeApiClient {
     /**
      * get storage resource Id using file system Id
      * 
-     * @param fsId file system Id
+     * @param fsId
+     *            file system Id
      * @return storage resource Id
      */
     private String getStorageResourceId(String fsId) throws VNXeException {
@@ -1650,7 +1708,8 @@ public class VNXeApiClient {
     /**
      * get list host instances based on the endpoints
      * 
-     * @param endpoints ipAddress, hostname or subnet
+     * @param endpoints
+     *            ipAddress, hostname or subnet
      * @return List of host instances
      * @throws VNXeException
      */
@@ -1796,8 +1855,10 @@ public class VNXeApiClient {
     /**
      * Create lun snapshot
      * 
-     * @param lunID lun id
-     * @param name snapshot name
+     * @param lunID
+     *            lun id
+     * @param name
+     *            snapshot name
      * @return VNXeCommandJob
      */
     public VNXeCommandJob createLunSnap(String lunID, String name) {
@@ -1815,7 +1876,8 @@ public class VNXeApiClient {
     /**
      * Get snapshot by its name
      * 
-     * @param name snapshot name
+     * @param name
+     *            snapshot name
      * @return VNXeLunSnap
      */
     public VNXeLunSnap getLunSnapshotByName(String name) {
@@ -1828,7 +1890,8 @@ public class VNXeApiClient {
     /**
      * Get snapshot by its id
      * 
-     * @param name snapshot name
+     * @param name
+     *            snapshot name
      * @return VNXeLunSnap
      */
     public VNXeLunSnap getLunSnapshot(String id) {
@@ -1841,7 +1904,8 @@ public class VNXeApiClient {
     /**
      * Delete lun snapshot
      * 
-     * @param snapId snapshot VNXe Id
+     * @param snapId
+     *            snapshot VNXe Id
      * @return VNXeCommandJob
      */
     public VNXeCommandJob deleteLunSnap(String snapId) {
@@ -1853,7 +1917,8 @@ public class VNXeApiClient {
     /**
      * restore lun snapshot
      * 
-     * @param snapId VNXe snapshot id
+     * @param snapId
+     *            VNXe snapshot id
      * @return VNXeCommandJob
      */
     public VNXeCommandJob restoreLunSnap(String snapId) {
@@ -1884,8 +1949,10 @@ public class VNXeApiClient {
     /**
      * Create lun snapshot
      * 
-     * @param lunID lun id
-     * @param name snapshot name
+     * @param lunID
+     *            lun id
+     * @param name
+     *            snapshot name
      * @return VNXeCommandJob
      */
     public VNXeCommandJob createLunGroupSnap(String lunGroupID, String name) {
@@ -1904,7 +1971,8 @@ public class VNXeApiClient {
     /**
      * Get group snapshot by its name
      * 
-     * @param name snapshot name
+     * @param name
+     *            snapshot name
      * @return VNXeLunSnap
      */
     public VNXeLunGroupSnap getLunGroupSnapshotByName(String name) {
@@ -1917,7 +1985,8 @@ public class VNXeApiClient {
     /**
      * Get group snapshot by its id
      * 
-     * @param id group snapshot id
+     * @param id
+     *            group snapshot id
      * @return VNXeLunGroupSnap
      */
     public VNXeLunGroupSnap getLunGroupSnapshot(String id) {
@@ -1930,7 +1999,8 @@ public class VNXeApiClient {
     /**
      * Delete lun snapshot
      * 
-     * @param snapId snapshot VNXe Id
+     * @param snapId
+     *            snapshot VNXe Id
      * @return VNXeCommandJob
      */
     public VNXeCommandJob deleteLunGroupSnap(String snapId) {
@@ -1942,7 +2012,8 @@ public class VNXeApiClient {
     /**
      * restore lun snapshot
      * 
-     * @param snapId VNXe snapshot id
+     * @param snapId
+     *            VNXe snapshot id
      * @return VNXeCommandJob
      */
     public VNXeCommandJob restoreLunGroupSnap(String snapId) {
@@ -2031,7 +2102,6 @@ public class VNXeApiClient {
         return req.getDisksForPool(poolId);
     }
 
-
     /**
      * Get all the CIFS shares
      * 
@@ -2040,6 +2110,99 @@ public class VNXeApiClient {
     public List<VNXeCifsShare> getAllCifsShares() {
         CifsShareRequests req = new CifsShareRequests(_khClient);
         return req.get();
+    }
+
+    /**
+     * create tree quota
+     * 
+     * @param fsName
+     *            file system name
+     * @param quotaDirName
+     *            name of quota
+     * @param hardLimit
+     *            the provided hard limit
+     * @param softLimit
+     *            the provided soft limit
+     * @return VNXeCommandJob
+     * @throws VNXeException
+     */
+    public VNXeCommandJob createQuotaDirectory(final String fsName, final String quotaName,
+            final Long hardLimit, final Long softLimit, final long softGrace) throws VNXeException {
+
+        _logger.info("Creating quota directory with path: {} for fs: {}",
+                "/" + quotaName, fsName);
+
+        FileSystemQuotaCreateParam param = new FileSystemQuotaCreateParam();
+        FileSystemQuotaConfigParam qcParam = new FileSystemQuotaConfigParam();
+        qcParam.setGracePeriod(softGrace);
+        FileSystemListRequest fsReq = new FileSystemListRequest(_khClient);
+        param.setPath("/" + quotaName);
+        param.setHardLimit(hardLimit);
+        param.setSoftLimit(softLimit);
+        param.setFilesystem(fsReq.getByFSName(fsName).getId());
+        FileSystemQuotaRequests req = new FileSystemQuotaRequests(_khClient);
+        VNXeCommandResult res = req.createFileSystemQuotaSync(param);
+        return req.updateFileSystemQuotaConfig(res.getId(), qcParam);
+    }
+
+    public VNXeCommandJob deleteQuotaDirectory(String quotaId) throws VNXeException {
+        FileSystemQuotaRequests req = new FileSystemQuotaRequests(_khClient);
+        return req.deleteFileSystemQuota(quotaId);
+    }
+
+    public VNXeCommandJob updateQuotaDirectory(String quotaId, final Long hardLimit, final Long softLimit, final long softGrace)
+            throws VNXeException {
+        _logger.info("Creating quota directory with ID: {} ", "/" + quotaId);
+        FileSystemQuotaModifyParam param = new FileSystemQuotaModifyParam();
+        FileSystemQuotaConfigParam qcParam = new FileSystemQuotaConfigParam();
+        qcParam.setGracePeriod(softGrace);
+        param.setHardLimit(hardLimit);
+        param.setSoftLimit(softLimit);
+        FileSystemQuotaRequests req = new FileSystemQuotaRequests(_khClient);
+        req.updateFileSystemQuotaAsync(quotaId, param);
+        return req.updateFileSystemQuotaConfig(quotaId, qcParam);
+    }
+
+    /**
+     * Get quota by its name
+     * 
+     * @param name
+     *            fs name
+     * @param name
+     *            quota name
+     * @return VNXUnityTreeQuota
+     */
+    public VNXUnityTreeQuota getQuotaByName(String fsName, String name) {
+        _logger.info("Getting the quota {}: ", name);
+        FileSystemQuotaRequests req = new FileSystemQuotaRequests(_khClient);
+        FileSystemListRequest fsReq = new FileSystemListRequest(_khClient);
+        return req.getByName(fsReq.getByFSName(fsName).getId(), name);
+    }
+
+    /**
+     * Get quota by its ID
+     * 
+     * @param name
+     *            quota ID
+     * @return VNXUnityTreeQuota
+     */
+    public VNXUnityTreeQuota getQuotaById(String quotaId) {
+        _logger.info("Getting the quota {}: ", quotaId);
+        FileSystemQuotaRequests req = new FileSystemQuotaRequests(_khClient);
+        return req.getFileSystemQuota(quotaId);
+    }
+
+    /**
+     * Get quotaConfig by its ID
+     * 
+     * @param name
+     *            quotaConfig ID
+     * @return VNXUnityQuotaConfig
+     */
+    public VNXUnityQuotaConfig getQuotaConfigById(String quotaConfigId) {
+        _logger.info("Getting the quota {}: ", quotaConfigId);
+        FileSystemQuotaConfigRequests req = new FileSystemQuotaConfigRequests(_khClient);
+        return req.getFileSystemQuotaConfig(quotaConfigId);
     }
 
 }

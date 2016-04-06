@@ -8,51 +8,37 @@ package com.emc.storageos.volumecontroller.impl.vnxunity;
 import java.io.File;
 import java.net.URI;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-
 import com.emc.storageos.db.client.model.FSExportMap;
 import com.emc.storageos.db.client.model.FileExport;
 import com.emc.storageos.db.client.model.FileShare;
-import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.QuotaDirectory;
 import com.emc.storageos.db.client.model.SMBFileShare;
 import com.emc.storageos.db.client.model.Snapshot;
 import com.emc.storageos.db.client.model.StorageHADomain;
-import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.model.StorageProtocol;
 import com.emc.storageos.db.client.model.StorageSystem;
-import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.StringSet;
-import com.emc.storageos.db.client.model.TenantOrg;
-import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.util.NameGenerator;
-import com.emc.storageos.db.client.util.NullColumnValueGetter;
-import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.exceptions.DeviceControllerErrors;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.model.file.ExportRule;
-import com.emc.storageos.plugins.common.Constants;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
 import com.emc.storageos.vnxe.VNXeApiClient;
-import com.emc.storageos.vnxe.VNXeConstants;
 import com.emc.storageos.vnxe.VNXeException;
 import com.emc.storageos.vnxe.VNXeUtils;
 import com.emc.storageos.vnxe.models.AccessEnum;
 import com.emc.storageos.vnxe.models.VNXeCommandJob;
-import com.emc.storageos.vnxe.models.VNXeCommandResult;
 import com.emc.storageos.vnxe.models.VNXeFSSupportedProtocolEnum;
 import com.emc.storageos.vnxe.models.VNXeFileSystem;
 import com.emc.storageos.vnxe.models.VNXeFileSystemSnap;
@@ -61,13 +47,9 @@ import com.emc.storageos.volumecontroller.FileDeviceInputOutput;
 import com.emc.storageos.volumecontroller.FileSMBShare;
 import com.emc.storageos.volumecontroller.FileShareExport;
 import com.emc.storageos.volumecontroller.FileStorageDevice;
-import com.emc.storageos.volumecontroller.SnapshotOperations;
-import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.volumecontroller.impl.BiosCommandResult;
 import com.emc.storageos.volumecontroller.impl.ControllerServiceImpl;
-import com.emc.storageos.volumecontroller.impl.ControllerUtils;
 import com.emc.storageos.volumecontroller.impl.job.QueueJob;
-import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
 import com.emc.storageos.volumecontroller.impl.vnxe.job.VNXeCreateFileSystemJob;
 import com.emc.storageos.volumecontroller.impl.vnxe.job.VNXeCreateFileSystemSnapshotJob;
 import com.emc.storageos.volumecontroller.impl.vnxe.job.VNXeCreateShareJob;
@@ -80,6 +62,8 @@ import com.emc.storageos.volumecontroller.impl.vnxe.job.VNXeFileTaskCompleter;
 import com.emc.storageos.volumecontroller.impl.vnxe.job.VNXeModifyExportJob;
 import com.emc.storageos.volumecontroller.impl.vnxe.job.VNXeRestoreFileSystemSnapshotJob;
 import com.emc.storageos.volumecontroller.impl.vnxe.job.VNXeUnexportFileSystemJob;
+import com.emc.storageos.volumecontroller.impl.vnxunity.job.VNXUnityCreateFileSystemQuotaDirectoryJob;
+import com.emc.storageos.volumecontroller.impl.vnxunity.job.VNXUnityDeleteFileSystemQuotaDirectoryJob;
 
 public class VNXUnityFileStorageDevice extends VNXUnityOperations
         implements FileStorageDevice {
@@ -95,7 +79,6 @@ public class VNXUnityFileStorageDevice extends VNXUnityOperations
     public void setNameGenerator(NameGenerator nameGenerator) {
         this.nameGenerator = nameGenerator;
     }
-
 
     @Override
     public BiosCommandResult doCreateFS(StorageSystem storage,
@@ -140,8 +123,8 @@ public class VNXUnityFileStorageDevice extends VNXUnityOperations
             } else if (protocols.contains(StorageProtocol.File.CIFS.name())) {
                 protocolEnum = VNXeFSSupportedProtocolEnum.CIFS;
             } else {
-                _logger.error("protocol is not support: " + protocols);
-                ServiceError error = DeviceControllerErrors.vnxe.unableToCreateFileSystem("protocol is not support:" + protocols);
+                _logger.error("The protocol is not supported: " + protocols);
+                ServiceError error = DeviceControllerErrors.vnxe.unableToCreateFileSystem("The protocol is not supported:" + protocols);
                 return BiosCommandResult.createErrorResult(error);
             }
             job = apiClient.createFileSystem(fileInOut.getFsName(),
@@ -167,13 +150,13 @@ public class VNXUnityFileStorageDevice extends VNXUnityOperations
             }
 
         } catch (VNXeException e) {
-            _logger.error("Create file system got the exception", e);
+            _logger.error("Create file system got an exception", e);
             if (completer != null) {
                 completer.error(_dbClient, e);
             }
             return BiosCommandResult.createErrorResult(e);
         } catch (Exception ex) {
-            _logger.error("Create file system got the exception", ex);
+            _logger.error("Create file system got an exception", ex);
             ServiceError error = DeviceControllerErrors.vnxe.jobFailed("CreateFileSystem", ex.getMessage());
             if (completer != null) {
                 completer.error(_dbClient, error);
@@ -225,7 +208,8 @@ public class VNXUnityFileStorageDevice extends VNXUnityOperations
      * ControllerServiceImpl.enqueueJob(new QueueJob(deleteFSJob));
      * } else {
      * _logger.error("No job returned from deleteFileSystem");
-     * ServiceError error = DeviceControllerErrors.vnxe.jobFailed("DeleteFileSystem", "No Job returned from deleteFileSystem");
+     * ServiceError error = DeviceControllerErrors.vnxe.jobFailed("DeleteFileSystem",
+     * "No Job returned from deleteFileSystem");
      * return BiosCommandResult.createErrorResult(error);
      * }
      * 
@@ -283,7 +267,7 @@ public class VNXUnityFileStorageDevice extends VNXUnityOperations
     @Override
     public BiosCommandResult doExport(StorageSystem storage,
             FileDeviceInputOutput args, List<FileExport> exportList)
-            throws ControllerException {
+                    throws ControllerException {
 
         _logger.info("exporting the file system: " + args.getFsName());
         if (args.getFileObjExports() == null || args.getFileObjExports().isEmpty()) {
@@ -718,13 +702,13 @@ public class VNXUnityFileStorageDevice extends VNXUnityOperations
             }
 
         } catch (VNXeException e) {
-            _logger.error("Create file system snapshot got the exception", e);
+            _logger.error("Create file system snapshot got an exception", e);
             if (completer != null) {
                 completer.error(_dbClient, e);
             }
             return BiosCommandResult.createErrorResult(e);
         } catch (Exception ex) {
-            _logger.error("Create file system snpashot got the exception", ex);
+            _logger.error("Create file system snapshot got an exception", ex);
             ServiceError error = DeviceControllerErrors.vnxe.jobFailed("CreateFileSystemSnapshot", ex.getMessage());
             if (completer != null) {
                 completer.error(_dbClient, error);
@@ -874,8 +858,6 @@ public class VNXUnityFileStorageDevice extends VNXUnityOperations
             return BiosCommandResult.createErrorResult(e);
         }
     }
-
-   
 
     @Override
     public BiosCommandResult updateExportRules(StorageSystem storage,
@@ -1502,33 +1484,159 @@ public class VNXUnityFileStorageDevice extends VNXUnityOperations
         }
     }
 
-  
-
     @Override
     public BiosCommandResult doCreateQuotaDirectory(StorageSystem storage,
             FileDeviceInputOutput args, QuotaDirectory qd) throws ControllerException {
-        BiosCommandResult result = new BiosCommandResult();
-        ServiceError serviceError = DeviceControllerErrors.vnxe.operationNotSupported();
-        result = BiosCommandResult.createErrorResult(serviceError);
-        return result;
+
+        _logger.info("creating Quota Directory: ", args.getQuotaDirectoryName());
+        VNXeFileTaskCompleter completer = null;
+        VNXeApiClient apiClient = getVnxUnityClient(storage);
+        VNXeCommandJob job = null;
+        try {
+            Long softLimit = 0L;
+            Long softGrace = 0L;
+
+            if (qd.getSoftLimit() != null) {
+                softLimit = Long.valueOf(qd.getSoftLimit() * qd.getSize() / 100);// conversion from percentage to bytes
+                                                                                 // using hard limit
+            }
+
+            if (qd.getSoftGrace() != null) {
+                softGrace = Long.valueOf(qd.getSoftGrace() * 24 * 60 * 60); // conversion from days to seconds
+            }
+            job = apiClient.createQuotaDirectory(args.getFsName(), qd.getName(), qd.getSize(), softLimit, softGrace);
+
+            if (job != null) {
+                _logger.info("opid:" + args.getOpId());
+                completer = new VNXeFileTaskCompleter(QuotaDirectory.class, args.getQuotaDirectory().getId(), args.getOpId());
+                if (args.getQuotaDirectory() == null) {
+                    _logger.error("Could not find the quota object");
+                }
+                VNXUnityCreateFileSystemQuotaDirectoryJob createQuotaJob = new VNXUnityCreateFileSystemQuotaDirectoryJob(job.getId(),
+                        storage.getId(), completer);
+                ControllerServiceImpl.enqueueJob(new QueueJob(createQuotaJob));
+            } else {
+                _logger.error("No job returned from createQuotaDirectory");
+                ServiceError error = DeviceControllerErrors.vnxe.jobFailed("No Job returned from createQuotaDirectory");
+                return BiosCommandResult.createErrorResult(error);
+            }
+
+        } catch (VNXeException e) {
+            _logger.error("Create Quota Directory got an exception", e);
+            if (completer != null) {
+                completer.error(_dbClient, e);
+            }
+            return BiosCommandResult.createErrorResult(e);
+        } catch (Exception ex) {
+            _logger.error("Create Quota Directory got an exception", ex);
+            ServiceError error = DeviceControllerErrors.vnxe.jobFailed("CreateQuotaDirectory", ex.getMessage());
+            if (completer != null) {
+                completer.error(_dbClient, error);
+            }
+            return BiosCommandResult.createErrorResult(error);
+        }
+        StringBuilder logMsgBuilder = new StringBuilder(String.format(
+                "Create filesystem job submitted - Array:%s, fileSystem: %s", storage.getSerialNumber(), args.getFsName()));
+        _logger.info(logMsgBuilder.toString());
+        return BiosCommandResult.createPendingResult();
     }
 
     @Override
     public BiosCommandResult doDeleteQuotaDirectory(StorageSystem storage,
             FileDeviceInputOutput args) throws ControllerException {
-        BiosCommandResult result = new BiosCommandResult();
-        ServiceError serviceError = DeviceControllerErrors.vnxe.operationNotSupported();
-        result = BiosCommandResult.createErrorResult(serviceError);
-        return result;
+        _logger.info("Deleting file system {} quota directory {} ", args.getFsName(), args.getSnapshotLabel());
+        VNXeApiClient apiClient = getVnxUnityClient(storage);
+        VNXeCommandJob job = null;
+        VNXeFileTaskCompleter completer = null;
+        try {
+            job = apiClient.deleteQuotaDirectory(args.getQuotaDirectoryNativeId());
+            if (job != null) {
+                completer = new VNXeFileTaskCompleter(QuotaDirectory.class, args.getQuotaDirectoryId(), args.getOpId());
+                VNXUnityDeleteFileSystemQuotaDirectoryJob quotaJob = new VNXUnityDeleteFileSystemQuotaDirectoryJob(job.getId(),
+                        storage.getId(), completer);
+                ControllerServiceImpl.enqueueJob(new QueueJob(quotaJob));
+            } else {
+                _logger.error("No job returned from deleteQuotaDirectory");
+                ServiceError error = DeviceControllerErrors.vnxe.jobFailed(
+                        "DeleteFileSystemQuota", "No Job returned from deleteQuotaDirectory");
+                return BiosCommandResult.createErrorResult(error);
+            }
+
+        } catch (VNXeException e) {
+            _logger.error("Delete file system quota directory got an exception", e);
+            if (completer != null) {
+                completer.error(_dbClient, e);
+            }
+            return BiosCommandResult.createErrorResult(e);
+        } catch (Exception ex) {
+            _logger.error("Delete file system quota directory got an exception", ex);
+            ServiceError error = DeviceControllerErrors.vnxe.jobFailed("DeleteFileSystemQuota", ex.getMessage());
+            if (completer != null) {
+                completer.error(_dbClient, error);
+            }
+            return BiosCommandResult.createErrorResult(error);
+        }
+        StringBuilder logMsgBuilder = new StringBuilder(String.format(
+                "Delete filesystem quota job submitted - Array:%s, fileSystem: %s, quota: %s", storage.getSerialNumber(),
+                args.getFsName(), args.getQuotaDirectoryName()));
+        _logger.info(logMsgBuilder.toString());
+        return BiosCommandResult.createPendingResult();
     }
 
     @Override
     public BiosCommandResult doUpdateQuotaDirectory(StorageSystem storage,
             FileDeviceInputOutput args, QuotaDirectory qd) throws ControllerException {
-        BiosCommandResult result = new BiosCommandResult();
-        ServiceError serviceError = DeviceControllerErrors.vnxe.operationNotSupported();
-        result = BiosCommandResult.createErrorResult(serviceError);
-        return result;
+        _logger.info("updating Quota Directory: ", args.getQuotaDirectoryName());
+        VNXeFileTaskCompleter completer = null;
+        VNXeApiClient apiClient = getVnxUnityClient(storage);
+        VNXeCommandJob job = null;
+        try {
+            Long softLimit = 0L;
+            Long softGrace = 0L;
+
+            if (qd.getSoftLimit() != null) {
+                softLimit = Long.valueOf(qd.getSoftLimit() * qd.getSize() / 100);// conversion from percentage to bytes
+                                                                                 // using hard limit
+            }
+
+            if (qd.getSoftGrace() != null) {
+                softGrace = Long.valueOf(qd.getSoftGrace() * 24 * 60 * 60); // conversion from days to seconds
+            }
+            job = apiClient.updateQuotaDirectory(qd.getNativeId(), qd.getSize(), softLimit, softGrace);
+
+            if (job != null) {
+                _logger.info("opid:" + args.getOpId());
+                completer = new VNXeFileTaskCompleter(QuotaDirectory.class, args.getQuotaDirectory().getId(), args.getOpId());
+                if (args.getQuotaDirectory() == null) {
+                    _logger.error("Could not find the quota object");
+                }
+                VNXUnityCreateFileSystemQuotaDirectoryJob createQuotaJob = new VNXUnityCreateFileSystemQuotaDirectoryJob(job.getId(),
+                        storage.getId(), completer);
+                ControllerServiceImpl.enqueueJob(new QueueJob(createQuotaJob));
+            } else {
+                _logger.error("No job returned from createQuotaDirectory");
+                ServiceError error = DeviceControllerErrors.vnxe.jobFailed("No Job returned from createQuotaDirectory");
+                return BiosCommandResult.createErrorResult(error);
+            }
+
+        } catch (VNXeException e) {
+            _logger.error("Create Quota Directory got an exception", e);
+            if (completer != null) {
+                completer.error(_dbClient, e);
+            }
+            return BiosCommandResult.createErrorResult(e);
+        } catch (Exception ex) {
+            _logger.error("Create Quota Directory got an exception", ex);
+            ServiceError error = DeviceControllerErrors.vnxe.jobFailed("CreateQuotaDirectory", ex.getMessage());
+            if (completer != null) {
+                completer.error(_dbClient, error);
+            }
+            return BiosCommandResult.createErrorResult(error);
+        }
+        StringBuilder logMsgBuilder = new StringBuilder(String.format(
+                "Create filesystem job submitted - Array:%s, fileSystem: %s", storage.getSerialNumber(), args.getFsName()));
+        _logger.info(logMsgBuilder.toString());
+        return BiosCommandResult.createPendingResult();
     }
 
     @Override
@@ -1547,7 +1655,6 @@ public class VNXUnityFileStorageDevice extends VNXUnityOperations
                 DeviceControllerErrors.vnxe.operationNotSupported());
     }
 
-  
     @Override
     public BiosCommandResult assignFilePolicy(StorageSystem storageObj, FileDeviceInputOutput args) {
         return BiosCommandResult.createErrorResult(
@@ -1560,12 +1667,11 @@ public class VNXUnityFileStorageDevice extends VNXUnityOperations
                 DeviceControllerErrors.vnxe.operationNotSupported());
     }
 
-     @Override
+    @Override
     public BiosCommandResult listSanpshotByPolicy(StorageSystem storageObj, FileDeviceInputOutput args) {
         return BiosCommandResult.createErrorResult(
                 DeviceControllerErrors.vnxe.operationNotSupported());
     }
-
 
     @Override
     public BiosCommandResult updateNfsACLs(StorageSystem storage, FileDeviceInputOutput args) {

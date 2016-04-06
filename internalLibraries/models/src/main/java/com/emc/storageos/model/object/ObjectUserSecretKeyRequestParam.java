@@ -21,7 +21,7 @@ public class ObjectUserSecretKeyRequestParam {
         this.secretkey = secretkey;
     }
 
-    @XmlElement(required = true, name = "secret_key")
+    @XmlElement(required = false, name = "secret_key")
     public String getSecretkey() {
         return secretkey;
     }

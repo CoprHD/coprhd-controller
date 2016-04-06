@@ -382,7 +382,7 @@ def _install_cli():
         scripts=['viprcli/viprcli.bat']
         )         
     if usingsetuptools: 
-        setupargs.update(dict(install_requires=[ 'setuptools', 'argparse==1.2.1', 'requests==0.13.5']))
+        setupargs.update(dict(install_requires=[ 'setuptools', 'argparse==1.2.1', 'requests==2.8.1']))
         setupargs.update(zip_safe=False) 
     else: 
         setupargs.update(dict(requires=[ 'setuptools', 'argparse', 'requests']))

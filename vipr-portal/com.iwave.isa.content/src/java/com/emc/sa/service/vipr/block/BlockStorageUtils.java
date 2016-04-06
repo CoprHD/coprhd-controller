@@ -26,6 +26,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -1156,7 +1157,7 @@ public class BlockStorageUtils {
         Table<URI, String, BlockSnapshotRestRep> results = getReplicationGroupSnapshots(execute(
                 new GetBlockSnapshotSet(applicationId, copySet)).getSnapList());
         for (Cell<URI, String, BlockSnapshotRestRep> cell : results.cellSet()) {
-            if (subGroups.contains(cell.getColumnKey())) {
+            if (subGroups.contains(BlockStorageUtils.stripRPTargetFromReplicationGroup(cell.getColumnKey()))) {
                 snapshotIds.add(cell.getValue().getId());
             }
         }
@@ -1168,7 +1169,8 @@ public class BlockStorageUtils {
         Table<URI, String, BlockSnapshotSessionRestRep> results = getReplicationGroupSnapshotSessions(execute(
                 new GetBlockSnapshotSessionList(applicationId, copySet)).getSnapSessionRelatedResourceList());
         for (Cell<URI, String, BlockSnapshotSessionRestRep> cell : results.cellSet()) {
-            if (subGroups.contains(cell.getColumnKey())) {
+            String stripped = BlockStorageUtils.stripRPTargetFromReplicationGroup(cell.getColumnKey());
+            if (subGroups.contains(stripped)) {
                 snapshotSessionIds.add(cell.getValue().getId());
             }
         }
@@ -1255,13 +1257,26 @@ public class BlockStorageUtils {
         }
     }
 
-    public static List<String> stripRPTargetFromReplicationGroup(Collection<String> groups) {
-        List<String> stripped = new ArrayList<String>();
+    public static Set<String> stripRPTargetFromReplicationGroup(Collection<String> groups) {
+        Set<String> stripped = new HashSet<String>();
 
         for (String group : groups) {
             stripped.add(stripRPTargetFromReplicationGroup(group));
         }
 
         return stripped;
+    }
+    
+    public static boolean isRPVolume(VolumeRestRep volume) {
+        return (volume.getProtection() != null && volume.getProtection().getRpRep() != null);
+    }
+    
+    public static boolean isRPSourceVolume(VolumeRestRep volume) {
+        if (isRPVolume(volume)
+                && volume.getProtection().getRpRep().getPersonality() != null
+                && volume.getProtection().getRpRep().getPersonality().equalsIgnoreCase("SOURCE")) {
+            return true;
+        }
+        return false;
     }
 }

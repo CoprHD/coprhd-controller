@@ -7,19 +7,15 @@ package com.emc.storageos.systemservices.impl.vdc;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Properties;
 
 import com.emc.storageos.coordinator.client.model.*;
 import com.emc.storageos.coordinator.client.model.DrOperationStatus.InterState;
-import com.emc.storageos.db.client.util.VdcConfigUtil;
 import org.apache.curator.framework.recipes.locks.InterProcessLock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.coordinator.client.service.DrUtil;
-import com.emc.storageos.db.client.impl.DbClientImpl;
-import com.emc.storageos.db.common.DbConfigConstants;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 
 /**
@@ -34,12 +30,10 @@ public class DbsvcQuorumMonitor implements Runnable {
 
     private DrUtil drUtil;
     private CoordinatorClient coordinatorClient;
-    private Properties dbCommonInfo;
 
-    public DbsvcQuorumMonitor(CoordinatorClient coordinatorClient, Properties dbCommonInfo) {
+    public DbsvcQuorumMonitor(CoordinatorClient coordinatorClient) {
         this.drUtil = new DrUtil(coordinatorClient);
         this.coordinatorClient = coordinatorClient;
-        this.dbCommonInfo = dbCommonInfo;
     }
 
     @Override
@@ -135,17 +129,6 @@ public class DbsvcQuorumMonitor implements Runnable {
                 drUtil.getNumberOfLiveServices(siteId, Constants.GEODBSVC_NAME) == nodeCount) {
             log.info("All the dbsvc/geodbsvc instances are back. Rejoining site {}", standbySite.getUuid());
 
-            // in seconds
-            int gcGracePeriodInSeconds = DbConfigConstants.DEFAULT_GC_GRACE_PERIOD;
-            String strVal = dbCommonInfo.getProperty(DbClientImpl.DB_CASSANDRA_INDEX_GC_GRACE_PERIOD);
-            if (strVal != null) {
-                gcGracePeriodInSeconds = Integer.parseInt(strVal);
-            }
-            long gcGracePeriodInMillis = drUtil.getDrIntConfig(DrUtil.KEY_DB_GC_GRACE_PERIOD, gcGracePeriodInSeconds * 1000);
-            log.info("Current db gc grace period is {} seconds", gcGracePeriodInMillis);
-            
-            SiteMonitorResult monitorResult = coordinatorClient.getTargetInfo(siteId, SiteMonitorResult.class);
-
             InterProcessLock lock;
             try {
                 lock = drUtil.getDROperationLock();
@@ -157,17 +140,10 @@ public class DbsvcQuorumMonitor implements Runnable {
             try {
                 long vdcVersion = DrUtil.newVdcConfigVersion();
 
-                // Update version on the target standby
-                if ((System.currentTimeMillis() - monitorResult.getDbQuorumLostSince()) >= gcGracePeriodInMillis
-                        + drUtil.getDrIntConfig(DrUtil.KEY_STANDBY_DEGRADE_THRESHOLD, STANDBY_DEGRADED_THRESHOLD) / 1000) {
-                    log.error("site {} has been degraded for too long, we will re-init the target standby", siteId);
-                    standbySite.setState(SiteState.STANDBY_SYNCING);
-                    coordinatorClient.persistServiceConfiguration(standbySite.toConfiguration());
-                    long dataRevision = System.currentTimeMillis();
-                    drUtil.updateVdcTargetVersion(standbySite.getUuid(), SiteInfo.DR_OP_CHANGE_DATA_REVISION, vdcVersion, dataRevision);
-                } else {
-                    drUtil.updateVdcTargetVersion(standbySite.getUuid(), SiteInfo.DR_OP_REJOIN_STANDBY, vdcVersion);
-                }
+                standbySite.setState(SiteState.STANDBY_RESUMING);
+                coordinatorClient.persistServiceConfiguration(standbySite.toConfiguration());
+                long dataRevision = System.currentTimeMillis();
+                drUtil.updateVdcTargetVersion(standbySite.getUuid(), SiteInfo.DR_OP_CHANGE_DATA_REVISION, vdcVersion, dataRevision);
 
                 // Update version on other connected standby sites if any
                 for (Site site : drUtil.listSites()) {

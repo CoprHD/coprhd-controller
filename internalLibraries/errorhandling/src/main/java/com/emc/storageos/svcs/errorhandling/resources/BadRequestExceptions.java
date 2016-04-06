@@ -2242,7 +2242,7 @@ public interface BadRequestExceptions {
     public BadRequestException sourceNotExported(final URI sourceId);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
-    public BadRequestException cannotCreateSnapshotCgPartOfApplication(final String cgName, String applicationName);
+    public BadRequestException cannotCreateSnapshotCgPartOfApplication(String applicationName);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException invalidParameterRemovePreexistingInitiator(final String maskName, final String initiatorPort);

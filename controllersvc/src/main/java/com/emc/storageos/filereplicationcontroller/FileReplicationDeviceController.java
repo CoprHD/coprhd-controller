@@ -572,7 +572,7 @@ public class FileReplicationDeviceController implements FileOrchestrationInterfa
                     combined.add(sourceFileShare.getId());
                     combined.add(targetFileShare.getId());
                     taskCompleter = new MirrorFileFailbackTaskCompleter(FileShare.class, combined, taskId);
-                    isilonSyncIQFailback(workflow, primarysystem, sourceFileShare, targetFileShare, taskId);
+                    netappSnapMirrorFailback(workflow, primarysystem, sourceFileShare, targetFileShare, taskId);
                 } else {
                     throw DeviceControllerException.exceptions.operationNotSupported();
                 }

@@ -157,6 +157,15 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
 
         Volume volume = (Volume) blockObject;
 
+        boolean unManagedVolumeExported = 
+                VolumeIngestionUtil.checkUnManagedResourceIsNonRPExported(unManagedVolume)
+                    && !unManagedVolume.getUnmanagedExportMasks().isEmpty();
+        if (isExportIngestionPending(volume, unManagedVolume.getId(), unManagedVolumeExported)) {
+            _logger.info("Volume {} has already been ingested for RecoverPoint, but is still exported via UnManagedExportMasks: {}", 
+                    volume.forDisplay(), unManagedVolume.getUnmanagedExportMasks());
+            return clazz.cast(volume);
+        }
+
         // Perform RP-specific volume ingestion
         volume = performRPVolumeIngestion(parentRequestContext, volumeContext, unManagedVolume, volume);
 
@@ -341,7 +350,7 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
             // Match the main VPLEX virtual volume varray to one of its backing volume varrays.
             // Matching should indicate the volume is the VPLEX Source side.
             // Non-matching varrays will be the VPLEX HA side.
-            for (String associatedVolumeIdStr : volume.getAssociatedVolumes()) {
+            for (String associatedVolumeIdStr : vplexVolumeContext.getAssociatedVolumeIds(volume)) {
                 // Find the associated volumes using the context maps or the db if they are already there
                 Volume associatedVolume = VolumeIngestionUtil.findVolume(_dbClient,
                         vplexVolumeContext.getBlockObjectsToBeCreatedMap(),
@@ -625,8 +634,10 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
         List<String> rpVolumes = new ArrayList<String>();
         for (Volume volume : volumes) {
             rpVolumes.add(volume.getId().toString());
-            if (RPHelper.isVPlexVolume(volume)) {
-                StringSet associatedVolumes = volume.getAssociatedVolumes();
+            if (RPHelper.isVPlexVolume(volume) && volumeContext instanceof RpVplexVolumeIngestionContext) {
+                VplexVolumeIngestionContext vplexVolumeContext = ((RpVplexVolumeIngestionContext) volumeContext.getVolumeContext())
+                        .getVplexVolumeIngestionContext();
+                StringSet associatedVolumes = vplexVolumeContext.getAssociatedVolumeIds(volume);
                 rpVolumes.addAll(associatedVolumes);
             }
         }
@@ -692,7 +703,7 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
             // We need the VPLEX ingest context to get the backend volume info
             VplexVolumeIngestionContext vplexVolumeContext = ((RpVplexVolumeIngestionContext) volumeContext.getVolumeContext())
                     .getVplexVolumeIngestionContext();
-            for (String associatedVolumeIdStr : volume.getAssociatedVolumes()) {
+            for (String associatedVolumeIdStr : vplexVolumeContext.getAssociatedVolumeIds(volume)) {
                 // Find the associated volumes using the context maps or the db if they are already there
                 Volume associatedVolume = VolumeIngestionUtil.findVolume(_dbClient,
                         vplexVolumeContext.getBlockObjectsToBeCreatedMap(),

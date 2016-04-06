@@ -935,6 +935,7 @@ def block_until_complete(componentType, resource_uri, task_id, ipAddr, port,sync
         if synctimeout:
             t = Timer(synctimeout, timeout_handler)
         else:
+            synctimeout = 300
             t = Timer(300, timeout_handler)
         t.start()
         while(True):

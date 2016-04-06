@@ -566,17 +566,19 @@ public class LocalRepository {
 
         final String[] cmd = { _SYSTOOL_CMD, _SYSTOOL_PURGE_DATA_REVISION };
         exec(prefix, cmd);
+        _log.info(prefix + " Success");
     }
     
     /***
      * Use current zk snapshot as base for future operations
      */
     public void rebaseZkSnapshot() throws LocalRepositoryException {
-        final String prefix = "rebase zk snapshot(): ";
+        final String prefix = "rebase zk snapshot()";
         _log.debug(prefix);
 
         final String[] cmd = { _SYSTOOL_CMD, _SYSTOOL_REBASE_ZK_SNAPSHOT };
         exec(prefix, cmd);
+        _log.info(prefix + " Success");
     }
     
     /**

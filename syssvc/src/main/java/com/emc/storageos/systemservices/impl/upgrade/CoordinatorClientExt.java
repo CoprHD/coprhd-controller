@@ -30,7 +30,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -54,7 +53,6 @@ import com.emc.storageos.coordinator.client.model.PropertyInfoExt;
 import com.emc.storageos.coordinator.client.model.RepositoryInfo;
 import com.emc.storageos.coordinator.client.model.Site;
 import com.emc.storageos.coordinator.client.model.SiteInfo;
-import com.emc.storageos.coordinator.client.model.SiteMonitorResult;
 import com.emc.storageos.coordinator.client.model.SiteState;
 import com.emc.storageos.coordinator.client.model.SoftwareVersion;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
@@ -68,6 +66,7 @@ import com.emc.storageos.coordinator.common.Service;
 import com.emc.storageos.coordinator.common.impl.ConfigurationImpl;
 import com.emc.storageos.coordinator.common.impl.ServiceImpl;
 import com.emc.storageos.coordinator.common.impl.ZkConnection;
+import com.emc.storageos.coordinator.common.impl.ZkPath;
 import com.emc.storageos.coordinator.exceptions.CoordinatorException;
 import com.emc.storageos.db.common.DbServiceStatusChecker;
 import com.emc.storageos.model.property.PropertiesMetadata;
@@ -109,7 +108,6 @@ public class CoordinatorClientExt {
     private CoordinatorClient _coordinator;
     private SysSvcBeaconImpl _beacon;
     private ServiceImpl _svc;
-    private Properties dbCommonInfo;
     private InterProcessLock _remoteDownloadLock = null;
     private volatile InterProcessLock _targetLock = null;
     private InterProcessLock _newVersionLock = null;
@@ -131,6 +129,8 @@ public class CoordinatorClientExt {
     @Autowired
     private DrSiteNetworkMonitor drSiteNetworkMonitor;
     
+    private DistributedDoubleBarrier switchToZkObserverBarrier;
+    
     public CoordinatorClient getCoordinatorClient() {
         return _coordinator;
     }
@@ -148,10 +148,6 @@ public class CoordinatorClientExt {
         _myNodeId= _svc.getNodeId();
         _myNodeName= _svc.getNodeName();
         mySvcId = _svc.getId();
-    }
-
-    public void setDbCommonInfo(Properties dbCommonInfo) {
-        this.dbCommonInfo = dbCommonInfo;
     }
 
     public void setCoordinator(CoordinatorClient coordinator) {
@@ -558,10 +554,10 @@ public class CoordinatorClientExt {
     public void setSiteSpecificProperties(Map<String, String> props, String siteId) {
         PropertyInfoExt siteScopeInfo = new PropertyInfoExt(props);
         ConfigurationImpl siteCfg = new ConfigurationImpl();
-        siteCfg.setId(siteId);
+        siteCfg.setId(PropertyInfoExt.TARGET_PROPERTY_ID);
         siteCfg.setKind(PropertyInfoExt.TARGET_PROPERTY);
         siteCfg.setConfig(TARGET_INFO, siteScopeInfo.encodeAsString());
-        _coordinator.persistServiceConfiguration( siteCfg);
+        _coordinator.persistServiceConfiguration(siteId, siteCfg);
     }
     
     /**
@@ -1481,6 +1477,8 @@ public class CoordinatorClientExt {
                     return new Thread(r, "CoordinatorsvcMonitor");
                 }
             });
+            String barrierPath = String.format("%s/%s%s", ZkPath.SITES, getCoordinatorClient().getSiteId(), DR_SWITCH_TO_ZK_OBSERVER_BARRIER);
+            switchToZkObserverBarrier = _coordinator.getDistributedDoubleBarrier(barrierPath, getNodeCount());
             // delay for a period of time to start the monitor. For DR switchover, we stop original active, then start new active. 
             // So the original active may not see the new active immediately after reboot
             exe.scheduleAtFixedRate(coordinatorSvcMonitor, 3 * COODINATOR_MONITORING_INTERVAL , COODINATOR_MONITORING_INTERVAL, TimeUnit.SECONDS);
@@ -1492,8 +1490,8 @@ public class CoordinatorClientExt {
                     return new Thread(r, "DbsvcQuorumMonitor");
                 }
             });
-            exe.scheduleAtFixedRate(new DbsvcQuorumMonitor(getMyNodeId(), _coordinator, dbCommonInfo)
-                    , 0, DB_MONITORING_INTERVAL, TimeUnit.SECONDS);
+            exe.scheduleAtFixedRate(new DbsvcQuorumMonitor(_coordinator),
+                    0, DB_MONITORING_INTERVAL, TimeUnit.SECONDS);
         }
 
         Thread drNetworkMonitorThread = new Thread(drSiteNetworkMonitor);
@@ -1537,16 +1535,16 @@ public class CoordinatorClientExt {
 
         private void checkLocalZKMode() {
             try {
-                String state = drUtil.getLocalCoordinatorMode(getMyNodeId());
+                String localZkMode = drUtil.getCoordinatorMode(getMyNodeId());
                 if (initZkMode == null) {
-                    initZkMode = state;
+                    initZkMode = localZkMode;
                 }
 
-                _log.info("Local zookeeper mode: {} ",state);
+                _log.info("Local zookeeper mode: {} ",localZkMode);
 
                 if(isVirtualIPHolder()){
                     _log.info("Local node has vip, monitor other node zk states");
-                    checkLocalSiteZKModes();
+                    checkAndReconfigSiteZKModes();
                 }
 
                 /*
@@ -1554,12 +1552,8 @@ public class CoordinatorClientExt {
                  *  or it could not startup at all (state == null),
                  *  We will try to switch local ZK to observe mode if the active site is running well.
                 */
-                if (DrUtil.ZOOKEEPER_MODE_LEADER.equals(state) ||
-                        DrUtil.ZOOKEEPER_MODE_FOLLOWER.equals(state) ||
-                        DrUtil.ZOOKEEPER_MODE_STANDALONE.equals(state) ||
-                        state == null) {
-
-                    if (state != null) {
+                if (localZkMode == null || drUtil.isParticipantNode(localZkMode)) {
+                    if (localZkMode != null && drUtil.isLeaderNode(localZkMode)) {
                         // node is in participant mode, update the local site state accordingly
                         checkAndUpdateLocalSiteState();
                     }
@@ -1569,7 +1563,7 @@ public class CoordinatorClientExt {
                         _log.info("Active site is back. Reconfig coordinatorsvc to observer mode");
                         reconnectZKToActiveSite();
                     } else {
-                        _log.info("Active site is unavailable. Keep coordinatorsvc in current state {}", state);
+                        _log.info("Active site is unavailable. Keep coordinatorsvc in current state {}", localZkMode);
                     }
                 }
             }catch(Exception e){
@@ -1604,16 +1598,16 @@ public class CoordinatorClientExt {
         }
 
         /**
-         * check all local nodes are in correct zk mode
+         * make sure that all local site nodes are in correct zk mode
          */
-        private void checkLocalSiteZKModes() {
+        private void checkAndReconfigSiteZKModes() {
             List<String> readOnlyNodes = new ArrayList<>();
             List<String> observerNodes = new ArrayList<>();
             int numOnline = 0;
 
             for(String node : getAllNodeIds()){
 
-                String nodeState=drUtil.getLocalCoordinatorMode(node);
+                String nodeState=drUtil.getCoordinatorMode(node);
                 if (nodeState==null){
                     _log.debug("State for {}: null",node);
                     continue;
@@ -1657,21 +1651,19 @@ public class CoordinatorClientExt {
          * Reconnect to zookeeper in active site. 
          */
         private void reconnectZKToActiveSite() {
-            DistributedDoubleBarrier barrier = null;
-            barrier = _coordinator.getDistributedDoubleBarrier(DR_SWITCH_TO_ZK_OBSERVER_BARRIER, getNodeCount());
             LocalRepository localRepository = LocalRepository.getInstance();
             try {
-                boolean allEntered = barrier.enter(DR_SWITCH_BARRIER_TIMEOUT, TimeUnit.SECONDS);
+                boolean allEntered = switchToZkObserverBarrier.enter(DR_SWITCH_BARRIER_TIMEOUT, TimeUnit.SECONDS);
                 if (allEntered) {
                     try {
                         localRepository.reconfigCoordinator("observer");
                     } finally {
-                        leaveZKDoubleBarrier(barrier,DR_SWITCH_TO_ZK_OBSERVER_BARRIER);
+                        leaveZKDoubleBarrier(switchToZkObserverBarrier, DR_SWITCH_TO_ZK_OBSERVER_BARRIER);
                     }
                     localRepository.restartCoordinator("observer");
                 } else {
                     _log.warn("All nodes unable to enter barrier {}. Try again later", DR_SWITCH_TO_ZK_OBSERVER_BARRIER);
-                    leaveZKDoubleBarrier(barrier, DR_SWITCH_TO_ZK_OBSERVER_BARRIER);
+                    leaveZKDoubleBarrier(switchToZkObserverBarrier, DR_SWITCH_TO_ZK_OBSERVER_BARRIER);
                 }
             } catch (Exception ex) {
                 _log.warn("Unexpected errors during switching back to zk observer. Try again later. {}", ex);

@@ -237,7 +237,7 @@ public class BlockSnapshotSessionManager {
     public TaskList createSnapshotSession(URI resourceURI, SnapshotSessionCreateParam param, BlockFullCopyManager fcManager) {
         if (URIUtil.isType(resourceURI, Volume.class) || URIUtil.isType(resourceURI, BlockSnapshot.class)) {
             BlockObject blockObject = BlockSnapshotSessionUtils.querySnapshotSessionSource(resourceURI, _uriInfo, false, _dbClient);
-            if (blockObject.hasConsistencyGroup()) {
+            if (NullColumnValueGetter.isNotNullValue(blockObject.getReplicationGroupInstance())) {
                 return createSnapshotSession(blockObject.getConsistencyGroup(), param, fcManager);
             } else {
                 return createSnapshotSession(Lists.newArrayList(blockObject), param, fcManager);

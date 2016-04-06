@@ -39,16 +39,14 @@ public class XtremIOClientFactory extends RestClientFactory {
 
     @Override
     public RestClientItf getRESTClient(URI endpoint, String username, String password, boolean authFilter) {
-        RestClientItf clientApi = _clientMap.get(endpoint.toString() + ":" + username + ":" + password + ":" + model);
-        if (clientApi == null) {
-            Client jerseyClient = new ApacheHttpClient(_clientHandler);
-            if (authFilter) {
-                jerseyClient.addFilter(new HTTPBasicAuthFilter(username, password));
-            }
-            clientApi = createNewRestClient(endpoint, username, password, jerseyClient);
+        // removed caching RestClient session as it is not actually a session, just a java RestClient object
+        // RestClientItf clientApi = _clientMap.get(endpoint.toString() + ":" + username + ":" + password + ":" + model);
 
-            _clientMap.putIfAbsent(endpoint.toString() + ":" + username + ":" + password + ":" + model, clientApi);
+        Client jerseyClient = new ApacheHttpClient(_clientHandler);
+        if (authFilter) {
+            jerseyClient.addFilter(new HTTPBasicAuthFilter(username, password));
         }
+        RestClientItf clientApi = createNewRestClient(endpoint, username, password, jerseyClient);
         return clientApi;
     }
 

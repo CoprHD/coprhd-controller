@@ -23,7 +23,7 @@ public class SecurityUtil {
         log.info("{} is injected to SecurityUtil", secService.getClass().getName());
     }
 
-    public static byte[] loadPrivateKeyFromPEMString(String pemKey) throws Exception {
+    public static byte[] loadPrivateKeyFromPEMString(String pemKey) {
         return securityService.loadPrivateKeyFromPEMString(pemKey);
     }
 

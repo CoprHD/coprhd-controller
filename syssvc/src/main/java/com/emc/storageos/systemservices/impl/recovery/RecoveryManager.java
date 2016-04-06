@@ -6,16 +6,16 @@
 package com.emc.storageos.systemservices.impl.recovery;
 
 import java.net.URI;
-import java.util.Calendar;
 import java.util.List;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Map;
 import java.util.Date;
-import java.util.Iterator;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import com.emc.storageos.coordinator.client.model.SiteInfo;
+import com.emc.storageos.coordinator.client.service.DrUtil;
 import com.emc.storageos.model.property.PropertyConstants;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -25,19 +25,15 @@ import org.apache.curator.framework.recipes.leader.LeaderSelector;
 
 import com.emc.vipr.model.sys.ClusterInfo;
 import com.emc.vipr.model.sys.recovery.RecoveryStatus;
-import com.emc.vipr.model.sys.recovery.DbRepairStatus.Status;
-import com.emc.vipr.model.sys.recovery.DbRepairStatus;
 import com.emc.vipr.model.sys.recovery.RecoveryConstants;
 import com.emc.storageos.coordinator.client.model.Constants;
 import com.emc.storageos.coordinator.client.model.RepositoryInfo;
 import com.emc.storageos.coordinator.client.service.NodeListener;
 import com.emc.storageos.coordinator.client.service.impl.LeaderSelectorListenerImpl;
-import com.emc.storageos.coordinator.common.Service;
 import com.emc.storageos.coordinator.common.impl.ZkPath;
 import com.emc.storageos.coordinator.common.Configuration;
 import com.emc.storageos.coordinator.common.impl.ConfigurationImpl;
 import com.emc.storageos.db.client.DbClient;
-import com.emc.storageos.db.server.impl.DbRepairRunnable;
 import com.emc.storageos.systemservices.impl.upgrade.CoordinatorClientExt;
 import com.emc.storageos.systemservices.impl.upgrade.LocalRepository;
 import com.emc.storageos.systemservices.impl.client.SysClientFactory;
@@ -308,12 +304,29 @@ public class RecoveryManager implements Runnable {
         validateClusterStatus();
     }
 
+    private void informHibernateNodeToReconfigure() throws Exception{
+        DrUtil drUtil = new DrUtil(coordinator.getCoordinatorClient());
+        if (drUtil.isMultisite()) {
+            long vdcConfigVersion = DrUtil.newVdcConfigVersion();
+            try {
+                log.info("Has multi sites, informing the hibernate nodes to reconfigure..");
+                drUtil.updateVdcTargetVersion(coordinator.getCoordinatorClient().getSiteId(),
+                        SiteInfo.DR_OP_NODE_RECOVERY, vdcConfigVersion);
+            } catch (Exception e) {
+                log.error("Failed to inform the hibernate nodes to reconfigure", e);
+                throw APIException.internalServerErrors.nodeRebuildFailed();
+            }
+        }
+    }
+
     /**
      * Wait dbsvc and geodbsvc on the redeployed nodes get started
      */
     private void waitHibernateNodeStarted() throws Exception {
         long expireTime = System.currentTimeMillis() + RecoveryConstants.RECOVERY_CHECK_TIMEOUT;
         while (true) {
+            informHibernateNodeToReconfigure();
+
             List<String> hibernateNodes = getHibernateNodes();
             if (hibernateNodes.isEmpty()) {
                 log.info("Db node rebuild finished");

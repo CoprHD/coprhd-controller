@@ -2183,9 +2183,11 @@ public class VPlexApiDiscoveryManager {
                     .getResourcesFromResponseContext(uriBuilder.toString(), responseStr,
                             VPlexStorageViewInfo.class);
 
-            if (storageViews != null && !storageViews.isEmpty()) {
+            if (storageViews != null && storageViews.isEmpty()) {
                 if (storageViews.size() > 1) {
-                    s_logger.warn("More than one VPLEX storage view was returned: " + storageViews);
+                    String message = "More than one VPLEX storage view was returned: " + storageViews;
+                    s_logger.error(message);
+                    throw new Exception(message);
                 }
 
                 VPlexStorageViewInfo storageView = storageViews.get(0);

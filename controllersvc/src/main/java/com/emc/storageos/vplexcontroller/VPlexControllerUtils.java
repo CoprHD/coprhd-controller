@@ -523,11 +523,6 @@ public class VPlexControllerUtils {
             // fetch the current storage view info from the VPLEX API
             VPlexStorageViewInfo storageView = client.getStorageView(vplexClusterName, exportMask.getMaskName());
 
-            if (storageView.getName() == null || (storageView.getInitiators().isEmpty() && storageView.getPorts().isEmpty())) {
-                log.warn("storage view {} was not retrieved fully, returning rather than risking working on incomplete data", 
-                        exportMask.getMaskName());
-            }
-
             // Get volumes and initiators for the masking instance
             Map<String, Integer> discoveredVolumes = storageView.getWwnToHluMap();
             List<String> discoveredInitiators = storageView.getInitiatorPwwns();
@@ -551,7 +546,7 @@ public class VPlexControllerUtils {
             // Check the initiators and update the lists as necessary
             boolean addInitiators = false;
             List<String> initiatorsToAdd = new ArrayList<String>();
-            List<Initiator> initiatorIdsToAdd = new ArrayList<>();
+            List<Initiator> initiatorIdsToAdd = new ArrayList<Initiator>();
             for (String port : discoveredInitiators) {
                 String normalizedPort = Initiator.normalizePort(port);
                 if (!exportMask.hasExistingInitiator(normalizedPort) &&
@@ -567,7 +562,7 @@ public class VPlexControllerUtils {
 
             boolean removeInitiators = false;
             List<String> initiatorsToRemove = new ArrayList<String>();
-            List<URI> initiatorIdsToRemove = new ArrayList<>();
+            List<URI> initiatorIdsToRemove = new ArrayList<URI>();
             if (exportMask.getExistingInitiators() != null &&
                     !exportMask.getExistingInitiators().isEmpty()) {
                 initiatorsToRemove.addAll(exportMask.getExistingInitiators());
@@ -614,7 +609,7 @@ public class VPlexControllerUtils {
 
             // Check the storagePorts and update the lists as necessary
             boolean addStoragePorts = false;
-            List<String> storagePortsToAdd = new ArrayList<>();
+            List<String> storagePortsToAdd = new ArrayList<String>();
             if (exportMask.getStoragePorts() == null) {
                 exportMask.setStoragePorts(new ArrayList<String>());
             }
@@ -673,7 +668,8 @@ public class VPlexControllerUtils {
             }
             log.info(builder.toString());
         } else {
-            log.warn("Could not refresh export mask {}", exportMask.getMaskName());
+            log.error("Could not refresh export mask {} for vplex cluster name {} and port name to wwn map {}", 
+                    exportMask, vplexClusterName, portNameMap);
         }
     }
 }

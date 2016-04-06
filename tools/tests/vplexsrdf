@@ -158,15 +158,15 @@ host_create() {
 
 
 # Control over running individual parts of the test (true/false)
-create_volume=false			# if false, specify volname1 and CGlabel
+create_volume=true			# if false, specify volname1 and CGlabel
 export_volume=false
-test_protection_ops=false
-test_expand=false
-test_r1_snapvx_nocopy=false
+test_protection_ops=true
+test_expand=true
+test_r1_snapvx_nocopy=true
 test_r2_snapvx_nocopy=true
-test_r1_fullcopy=false
+test_r1_fullcopy=true
 test_r2_fullcopy=true
-delete_volume=false
+delete_volume=true
 
 # Setup basic varrays
 vplexsrdf_setup() {

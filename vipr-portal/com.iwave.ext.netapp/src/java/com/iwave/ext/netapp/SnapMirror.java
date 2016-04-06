@@ -248,12 +248,7 @@ public class SnapMirror {
         }
 
         try {
-            result = new HashMap<String, String>();
-            NaElement resultElem = server.invokeElem(elem);
-            for (Map.Entry entry : result.entrySet()) {
-
-            }
-
+            server.invokeElem(elem);
         } catch (Exception e) {
             String msg = "Failed to resync snapmirror of source-location=" + sourceLocation +
                     "and destLocation=" + destLocation;

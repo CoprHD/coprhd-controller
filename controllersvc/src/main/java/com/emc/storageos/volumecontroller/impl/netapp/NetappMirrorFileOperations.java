@@ -117,7 +117,7 @@ public class NetappMirrorFileOperations implements FileMirrorOperations {
         if (sourStorage.getId().compareTo(sourceFs.getStorageDevice()) == 0) {
             sourceFileShare = sourceFs;
         } else {
-            targetFileShare = targetFs;
+            sourceFileShare = targetFs;
         }
 
         // destion location based on target storagesystem

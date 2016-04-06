@@ -318,7 +318,7 @@ public class NetappMirrorFileOperations implements FileMirrorOperations {
                     SnapMirrorCurrentTransferType currentState = statusInfo.getCurrentTransferType();
                     switch (mirrorState) {
                         case PAUSED:
-                            mirrorRefreshCompleter.setFileMirrorStatusForSuccess(FileShare.MirrorStatus.SUSPENDED);
+                            mirrorRefreshCompleter.setFileMirrorStatusForSuccess(FileShare.MirrorStatus.PAUSED);
                             break;
                         case FAILOVER:
                             mirrorRefreshCompleter.setFileMirrorStatusForSuccess(FileShare.MirrorStatus.FAILED_OVER);

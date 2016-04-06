@@ -1242,6 +1242,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
         NamedVolumesList applicationVolumes = client.application().getVolumeByApplication(applicationId);
         for (NamedRelatedResourceRep volumeId : applicationVolumes.getVolumes()) {
             VolumeRestRep volume = client.blockVolumes().get(volumeId);
+            VolumeRestRep parentVolume = volume;
             if (volume.getHaVolumes() != null && !volume.getHaVolumes().isEmpty()) {
                 volume = getVPlexSourceVolume(client, volume);
             }
@@ -1251,7 +1252,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
                         subGroups.add(volume.getReplicationGroupInstance());
                     }
                 } else {
-                    if (BlockStorageUtils.isRPSourceVolume(volume)) {
+                    if (BlockStorageUtils.isRPSourceVolume(parentVolume)) {
                         subGroups.add(volume.getReplicationGroupInstance());
                     }
                 }

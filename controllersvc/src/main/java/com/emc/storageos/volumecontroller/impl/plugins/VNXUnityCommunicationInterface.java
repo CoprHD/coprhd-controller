@@ -131,10 +131,11 @@ public class VNXUnityCommunicationInterface extends
                     && (accessProfile
                             .getnamespace()
                             .equals(StorageSystem.Discovery_Namespaces.UNMANAGED_VOLUMES
-                                    .toString()) || accessProfile
-                            .getnamespace()
-                            .equals(StorageSystem.Discovery_Namespaces.UNMANAGED_FILESYSTEMS
-                                    .toString()))) {
+                                    .toString())
+                            || accessProfile
+                                    .getnamespace()
+                                    .equals(StorageSystem.Discovery_Namespaces.UNMANAGED_FILESYSTEMS
+                                            .toString()))) {
                 discoverUnmanagedObjects(accessProfile);
             } else {
                 // Get the Vnxe storage system from the database.
@@ -142,56 +143,48 @@ public class VNXUnityCommunicationInterface extends
                         storageSystemURI);
 
                 _logger.info(String.format(
-                        "Discover Vnxe storage system %s at IP:%s, PORT:%s",
+                        "Discover VnxUnity storage system %s at IP:%s, PORT:%s",
                         storageSystemURI.toString(),
                         accessProfile.getIpAddress(),
                         accessProfile.getPortNumber()));
 
-                // Get the vnxe service client for getting information about the
-                // Vnxe
-                // storage system.
+                // Get the vnxe service client for getting information about the Vnx Unity storage system.
                 VNXeApiClient client = getVnxeClient(accessProfile);
                 _logger.debug("Got handle to Vnxe service client");
 
-                // Get the serial number and the native guid and set
-                // into the storage system.
+                // Get the serial number and the native guid and set into the storage system.
                 _logger.info("Discovering storage system properties.");
 
                 VNXeStorageSystem system = client.getStorageSystem();
                 boolean isFASTVPEnabled = false;
                 if (system != null) {
                     viprStorageSystem.setSerialNumber(system.getSerialNumber());
-                    String guid = NativeGUIDGenerator
-                            .generateNativeGuid(viprStorageSystem);
-                    viprStorageSystem.setNativeGuid(guid);
-                    viprStorageSystem.setLabel(guid);
-                    viprStorageSystem
-                            .setCompatibilityStatus(DiscoveredDataObject.CompatibilityStatus.COMPATIBLE
-                                    .name());
-                    viprStorageSystem.setReachableStatus(true);
-                    isFASTVPEnabled = client.isFASTVPEnabled();
 
+                    String guid = NativeGUIDGenerator.generateNativeGuid(viprStorageSystem);
+                    viprStorageSystem.setNativeGuid(guid);
+
+                    viprStorageSystem.setLabel(guid);
+
+                    viprStorageSystem.setCompatibilityStatus(DiscoveredDataObject.CompatibilityStatus.COMPATIBLE.name());
+
+                    viprStorageSystem.setReachableStatus(true);
+
+                    isFASTVPEnabled = client.isFASTVPEnabled();
                     viprStorageSystem.setAutoTieringEnabled(isFASTVPEnabled);
 
                     StringSet supportedActions = new StringSet();
-                    supportedActions
-                            .add(StorageSystem.AsyncActions.CreateElementReplica
-                                    .name());
-                    supportedActions
-                            .add(StorageSystem.AsyncActions.CreateGroupReplica
-                                    .name());
-                    viprStorageSystem
-                            .setSupportedAsynchronousActions(supportedActions);
-                    StringSet supportedReplica = new StringSet();
-                    supportedReplica
-                            .add(StorageSystem.SupportedReplicationTypes.LOCAL
-                                    .name());
-                    viprStorageSystem
-                            .setSupportedReplicationTypes(supportedReplica);
+                    supportedActions.add(StorageSystem.AsyncActions.CreateElementReplica.name());
+                    supportedActions.add(StorageSystem.AsyncActions.CreateGroupReplica.name());
+                    viprStorageSystem.setSupportedAsynchronousActions(supportedActions);
 
-                    _dbClient.persistObject(viprStorageSystem);
-                    _completer.statusPending(_dbClient,
-                            "Completed discovery of system properties");
+                    StringSet supportedReplica = new StringSet();
+                    supportedReplica.add(StorageSystem.SupportedReplicationTypes.LOCAL.name());
+                    viprStorageSystem.setSupportedReplicationTypes(supportedReplica);
+
+                    viprStorageSystem.setSupportSoftLimit(true);
+
+                    _dbClient.updateObject(viprStorageSystem);
+                    _completer.statusPending(_dbClient, "Completed discovery of system properties");
                 } else {
                     _logger.error("Failed to retrieve VNXe system info!");
                     viprStorageSystem.setReachableStatus(false);
@@ -218,7 +211,7 @@ public class VNXUnityCommunicationInterface extends
                 }
 
                 if (!nasServers.get(EXISTING).isEmpty()) {
-                    _dbClient.persistObject(nasServers.get(EXISTING));
+                    _dbClient.updateObject(nasServers.get(EXISTING));
                 }
                 _completer.statusPending(_dbClient,
                         "Completed NAS Server discovery");
@@ -426,7 +419,7 @@ public class VNXUnityCommunicationInterface extends
             } else if (accessProfile.getnamespace().equals(
                     StorageSystem.Discovery_Namespaces.UNMANAGED_VOLUMES
                             .toString())) {
-			 unManagedObjectDiscoverer.discoverUnManagedVolumes(
+                unManagedObjectDiscoverer.discoverUnManagedVolumes(
                         accessProfile, _dbClient, _coordinator,
                         _partitionManager);
             }
@@ -533,8 +526,8 @@ public class VNXUnityCommunicationInterface extends
 
                     pool.setLabel(poolNativeGuid);
                     pool.setNativeGuid(poolNativeGuid);
-//FIXME:                    pool.setOperationalStatus(vnxePool.getStatus());
-		    pool.setOperationalStatus(StoragePool.PoolOperationalStatus.READY.name());
+                    // FIXME: pool.setOperationalStatus(vnxePool.getStatus());
+                    pool.setOperationalStatus(StoragePool.PoolOperationalStatus.READY.name());
                     pool.setPoolServiceType(PoolServiceType.block_file
                             .toString());
                     pool.setStorageDevice(system.getId());
@@ -569,8 +562,8 @@ public class VNXUnityCommunicationInterface extends
                 } else {
                     // update pool attributes
                     _logger.info("updating the pool: {}", poolNativeGuid);
-//                    pool.setOperationalStatus(vnxePool.getStatus());
-		    pool.setOperationalStatus(StoragePool.PoolOperationalStatus.READY.name());
+                    // pool.setOperationalStatus(vnxePool.getStatus());
+                    pool.setOperationalStatus(StoragePool.PoolOperationalStatus.READY.name());
                     if (ImplicitPoolMatcher.checkPoolPropertiesChanged(pool.getProtocols(), supportedProtocols)) {
                         isModified = true;
                     }
@@ -588,30 +581,30 @@ public class VNXUnityCommunicationInterface extends
 
                 List<PoolTier> poolTiers = vnxePool.getTiers();
                 StringSet diskTypes = new StringSet();
-                if (poolTiers!=null){
-			for (PoolTier poolTier : poolTiers) {
-	
-        	            List<RaidGroup> raidGroups = poolTier.getRaidGroups();
-			    if (raidGroups != null){
-                	    for (RaidGroup raidGroup : raidGroups) {
-                        	VNXeBase diskGroup = raidGroup.getDiskGroup();
-	                        if (diskGroup != null) {
-        	                    DiskGroup diskgroupObj = client
-                	                    .getDiskGroup(diskGroup.getId());
-                        	    diskTypes.add(diskgroupObj.getDiskTechnologyEnum()
-                                	    .name());
-	                        }
-        	            }
-			    }
-                	}
-		}
-		//Get drive types from disks
-		List<Disk> disks = client.getDisksForPool(vnxePool.getId());
-		if (disks !=null){
-			for (Disk disk : disks){
-				diskTypes.add(disk.getDiskTechnologyEnum().name());
-			}
-		}
+                if (poolTiers != null) {
+                    for (PoolTier poolTier : poolTiers) {
+
+                        List<RaidGroup> raidGroups = poolTier.getRaidGroups();
+                        if (raidGroups != null) {
+                            for (RaidGroup raidGroup : raidGroups) {
+                                VNXeBase diskGroup = raidGroup.getDiskGroup();
+                                if (diskGroup != null) {
+                                    DiskGroup diskgroupObj = client
+                                            .getDiskGroup(diskGroup.getId());
+                                    diskTypes.add(diskgroupObj.getDiskTechnologyEnum()
+                                            .name());
+                                }
+                            }
+                        }
+                    }
+                }
+                // Get drive types from disks
+                List<Disk> disks = client.getDisksForPool(vnxePool.getId());
+                if (disks != null) {
+                    for (Disk disk : disks) {
+                        diskTypes.add(disk.getDiskTechnologyEnum().name());
+                    }
+                }
                 pool.setSupportedDriveTypes(diskTypes);
 
                 double size = vnxePool.getSizeTotal();
@@ -680,7 +673,7 @@ public class VNXUnityCommunicationInterface extends
     private HashMap<String, List<StorageHADomain>> discoverNasServers(
             StorageSystem system, VNXeApiClient client,
             Map<String, URI> nasServerIdMap, StringSet arraySupportedProtocols)
-            throws VNXeException {
+                    throws VNXeException {
         HashMap<String, List<StorageHADomain>> allNasServers = new HashMap<String, List<StorageHADomain>>();
 
         List<StorageHADomain> newNasServers = new ArrayList<StorageHADomain>();
@@ -744,13 +737,14 @@ public class VNXUnityCommunicationInterface extends
 
             if (nfsServers != null && !nfsServers.isEmpty()) {
                 for (VNXeNfsServer nfsServer : nfsServers) {
-		    if (nfsServer.getNasServer() != null){
-                    if (nfsServer.getNasServer().getId()
-                            .equals(nasServer.getId())) {
-                        protocols.add(StorageProtocol.File.NFS.name());
-                        isNFSSupported = true;
-                        break;
-                    }}
+                    if (nfsServer.getNasServer() != null) {
+                        if (nfsServer.getNasServer().getId()
+                                .equals(nasServer.getId())) {
+                            protocols.add(StorageProtocol.File.NFS.name());
+                            isNFSSupported = true;
+                            break;
+                        }
+                    }
                 }
             }
 
@@ -914,7 +908,7 @@ public class VNXUnityCommunicationInterface extends
 
     private HashMap<String, List<StorageHADomain>> discoverStorageProcessors(
             StorageSystem system, VNXeApiClient client, Map<String, URI> spIdMap)
-            throws VNXeException {
+                    throws VNXeException {
         HashMap<String, List<StorageHADomain>> result = new HashMap<String, List<StorageHADomain>>();
 
         List<StorageHADomain> newSPs = new ArrayList<StorageHADomain>();
@@ -996,7 +990,7 @@ public class VNXUnityCommunicationInterface extends
      */
     private HashMap<String, List<StoragePort>> discoverIscsiPorts(
             StorageSystem system, VNXeApiClient client, Map<String, URI> spIdMap)
-            throws VNXeException {
+                    throws VNXeException {
 
         HashMap<String, List<StoragePort>> storagePorts = new HashMap<String, List<StoragePort>>();
 
@@ -1081,18 +1075,20 @@ public class VNXUnityCommunicationInterface extends
                 port.setPortNetworkId(node.getName());
                 port.setPortGroup(spIdStr);
                 port.setStorageHADomain(haDomainUri);
-		//FIXME:
-                /*List<Integer> opstatus = eport.getOperationalStatus();
-                Integer ok = 2;
-                if (opstatus.contains(ok)) {
-                    port.setOperationalStatus(StoragePort.OperationalStatus.OK
-                            .name());
-                } else {
-                    port.setOperationalStatus(StoragePort.OperationalStatus.NOT_OK
-                            .name());
-                }*/
-		port.setOperationalStatus(StoragePort.OperationalStatus.OK
-                            .name());
+                // FIXME:
+                /*
+                 * List<Integer> opstatus = eport.getOperationalStatus();
+                 * Integer ok = 2;
+                 * if (opstatus.contains(ok)) {
+                 * port.setOperationalStatus(StoragePort.OperationalStatus.OK
+                 * .name());
+                 * } else {
+                 * port.setOperationalStatus(StoragePort.OperationalStatus.NOT_OK
+                 * .name());
+                 * }
+                 */
+                port.setOperationalStatus(StoragePort.OperationalStatus.OK
+                        .name());
                 VNXeIscsiPortal portal = node.getIscsiPortal();
                 if (portal != null) {
                     port.setIpAddress(portal.getIpAddress());
@@ -1131,7 +1127,7 @@ public class VNXUnityCommunicationInterface extends
      */
     private HashMap<String, List<StoragePort>> discoverFcPorts(
             StorageSystem system, VNXeApiClient client, Map<String, URI> spIdMap)
-            throws VNXeException {
+                    throws VNXeException {
 
         HashMap<String, List<StoragePort>> storagePorts = new HashMap<String, List<StoragePort>>();
 
@@ -1363,13 +1359,13 @@ public class VNXUnityCommunicationInterface extends
         if (system.getAutoTieringEnabled()) {
             List<PoolTier> tiers = vnxePool.getTiers();
             int numOfTiers = 0;
-            if (tiers!=null && !tiers.isEmpty()){
-        	    for (PoolTier tier : tiers) {
-                	if (tier.getSizeTotal() > 0) {
-	                    numOfTiers++;
-        	        }
-	            }
-	    }
+            if (tiers != null && !tiers.isEmpty()) {
+                for (PoolTier tier : tiers) {
+                    if (tier.getSizeTotal() > 0) {
+                        numOfTiers++;
+                    }
+                }
+            }
             if (numOfTiers > 1) {
                 enabled = true;
             } else {

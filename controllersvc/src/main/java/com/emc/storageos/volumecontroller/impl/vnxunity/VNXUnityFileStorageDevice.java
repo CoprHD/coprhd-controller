@@ -1495,15 +1495,9 @@ public class VNXUnityFileStorageDevice extends VNXUnityOperations
         try {
             Long softLimit = 0L;
             Long softGrace = 0L;
-
-            if (qd.getSoftLimit() != null) {
-                softLimit = Long.valueOf(qd.getSoftLimit() * qd.getSize() / 100);// conversion from percentage to bytes
-                                                                                 // using hard limit
-            }
-
-            if (qd.getSoftGrace() != null) {
-                softGrace = Long.valueOf(qd.getSoftGrace() * 24 * 60 * 60); // conversion from days to seconds
-            }
+            softLimit = Long.valueOf(qd.getSoftLimit() * qd.getSize() / 100);// conversion from percentage to bytes
+                                                                             // using hard limit
+            softGrace = Long.valueOf(qd.getSoftGrace() * 24 * 60 * 60); // conversion from days to seconds
             job = apiClient.createQuotaDirectory(args.getFsName(), qd.getName(), qd.getSize(), softLimit, softGrace);
 
             if (job != null) {

@@ -2117,12 +2117,14 @@ public class VNXeApiClient {
      * 
      * @param fsName
      *            file system name
-     * @param quotaDirName
-     *            name of quota
+     * @param quotaName
+     *            name of quota to be created
      * @param hardLimit
      *            the provided hard limit
      * @param softLimit
      *            the provided soft limit
+     * @param softGrace
+     *            The provided grace period for soft limit
      * @return VNXeCommandJob
      * @throws VNXeException
      */
@@ -2134,11 +2136,17 @@ public class VNXeApiClient {
 
         FileSystemQuotaCreateParam param = new FileSystemQuotaCreateParam();
         FileSystemQuotaConfigParam qcParam = new FileSystemQuotaConfigParam();
-        qcParam.setGracePeriod(softGrace);
+        if (qcParam.getGracePeriod() > 0) {
+            qcParam.setGracePeriod(softGrace);
+        }
         FileSystemListRequest fsReq = new FileSystemListRequest(_khClient);
         param.setPath("/" + quotaName);
-        param.setHardLimit(hardLimit);
-        param.setSoftLimit(softLimit);
+        if (param.getHardLimit() > 0) {
+            param.setHardLimit(hardLimit);
+        }
+        if (param.getSoftLimit() > 0) {
+            param.setSoftLimit(softLimit);
+        }
         param.setFilesystem(fsReq.getByFSName(fsName).getId());
         FileSystemQuotaRequests req = new FileSystemQuotaRequests(_khClient);
         VNXeCommandResult res = req.createFileSystemQuotaSync(param);
@@ -2155,9 +2163,15 @@ public class VNXeApiClient {
         _logger.info("Creating quota directory with ID: {} ", "/" + quotaId);
         FileSystemQuotaModifyParam param = new FileSystemQuotaModifyParam();
         FileSystemQuotaConfigParam qcParam = new FileSystemQuotaConfigParam();
-        qcParam.setGracePeriod(softGrace);
-        param.setHardLimit(hardLimit);
-        param.setSoftLimit(softLimit);
+        if (qcParam.getGracePeriod() > 0) {
+            qcParam.setGracePeriod(softGrace);
+        }
+        if (param.getHardLimit() > 0) {
+            param.setHardLimit(hardLimit);
+        }
+        if (param.getSoftLimit() > 0) {
+            param.setSoftLimit(softLimit);
+        }
         FileSystemQuotaRequests req = new FileSystemQuotaRequests(_khClient);
         req.updateFileSystemQuotaAsync(quotaId, param);
         return req.updateFileSystemQuotaConfig(quotaId, qcParam);
@@ -2166,7 +2180,7 @@ public class VNXeApiClient {
     /**
      * Get quota by its name
      * 
-     * @param name
+     * @param fsName
      *            fs name
      * @param name
      *            quota name

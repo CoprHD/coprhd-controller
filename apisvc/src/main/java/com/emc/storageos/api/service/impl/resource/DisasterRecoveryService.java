@@ -1775,7 +1775,7 @@ public class DisasterRecoveryService {
             ClusterInfo.ClusterState state = coordinator.getControlNodesState(site.getUuid());
             if (state != ClusterInfo.ClusterState.STABLE) {
                 log.info("Site {} is not stable {}", site.getUuid(), state);
-                throw APIException.internalServerErrors.switchoverPrecheckFailed(site.getName(),
+                throw APIException.internalServerErrors.switchoverPrecheckFailed(standby.getName(),
                         String.format("Site %s is not stable", site.getName()));
             }
         }
@@ -2020,13 +2020,13 @@ public class DisasterRecoveryService {
         List<Site> existingSites = drUtil.listStandbySites();
         for (Site site : existingSites) {
             if (site.getState() != SiteState.STANDBY_SYNCED && site.getState() != SiteState.STANDBY_PAUSED) {
-                throw APIException.internalServerErrors.switchoverPrecheckFailed(site.getName(), "Standby site is not synced or paused");
+                throw APIException.internalServerErrors.switchoverPrecheckFailed(standby.getName(), String.format("Standby site %s is not synced or paused", site.getName()));
             }
             
             ClusterInfo.ClusterState state = coordinator.getControlNodesState(site.getUuid());
             if (site.getState() != SiteState.STANDBY_PAUSED && state != ClusterInfo.ClusterState.STABLE) {
                 log.info("Site {} is not stable {}", site.getUuid(), state);
-                throw APIException.internalServerErrors.switchoverPrecheckFailed(site.getName(),
+                throw APIException.internalServerErrors.switchoverPrecheckFailed(standby.getName(),
                         String.format("Site %s is not stable", site.getName()));
             }
         }
@@ -2039,7 +2039,8 @@ public class DisasterRecoveryService {
 
         Site currentSite = drUtil.getLocalSite();
         if (currentSite.getState() != SiteState.STANDBY_SYNCED && currentSite.getState() != SiteState.STANDBY_PAUSED) {
-            throw APIException.internalServerErrors.switchoverPrecheckFailed(currentSite.getName(), "Standby site is not synced or paused state");
+            throw APIException.internalServerErrors.switchoverPrecheckFailed(currentSite.getName(),
+                    String.format("Standby site %s is not synced or paused", currentSite.getName()));
         }
     }
     
@@ -2050,7 +2051,8 @@ public class DisasterRecoveryService {
         }
         
         if (drUtil.testPing(site.getVip(), SITE_CONNECTION_TEST_PORT, SITE_CONNECT_TEST_TIMEOUT) == -1) {
-            throw APIException.internalServerErrors.siteConnectionBroken(site.getName(), String.format("Can't connect to site by virtual IP: %s", site.getVip()));
+            throw APIException.internalServerErrors.siteConnectionBroken(site.getName(),
+                    String.format("Can't connect to site by virtual IP: %s", site.getVip()));
         }
     }
 

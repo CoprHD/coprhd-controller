@@ -141,8 +141,12 @@ public abstract class VdcOpHandler {
                 log.info("Geo config change detected. set concurrent reboot to true");
                 setConcurrentRebootNeeded(true);
             }
-            
-            syncFlushVdcConfigToLocal();
+            String ipsecKeyZk = targetVdcPropInfo.getProperty(Constants.IPSEC_KEY);
+            String ipsecKeyLocal = localVdcPropInfo.getProperty(Constants.IPSEC_KEY);
+            if (ipsecKeyLocal == null || !ipsecKeyLocal.equals(ipsecKeyZk)) {
+                log.info("Local ipsec key doesn't match with new key in zk. Flush to local");
+                syncFlushVdcConfigToLocal();
+            }
             refreshIPsec();
         }
     }
@@ -384,7 +388,7 @@ public abstract class VdcOpHandler {
                 poweroffRemovedSites();
 
                 log.info("Standby removal op - reconfig all services");
-                reconfigVdc();
+                reconfigVdc(false);
 
                 log.info("Active site - start removing db nodes from gossip and strategy options");
                 removeDbNodes();
@@ -402,7 +406,7 @@ public abstract class VdcOpHandler {
                     return;
                 } else {
                     log.info("Standby removal op - reconfig all services");
-                    reconfigVdc();
+                    reconfigVdc(false);
 
                     long start = System.currentTimeMillis();
                     log.info("Waiting for completion of site removal from active site");
@@ -477,7 +481,7 @@ public abstract class VdcOpHandler {
                 // manually paused site should never reconfigure to observer until resumed
                 coordinator.stopCoordinatorSvcMonitor();
             } else {
-                reconfigVdc();
+                reconfigVdc(false);
                 checkAndPauseOnActive();
             }
         }
@@ -935,7 +939,7 @@ public abstract class VdcOpHandler {
             if (isNewActiveSiteForFailover(site)) {
                 setConcurrentRebootNeeded(true);
                 coordinator.stopCoordinatorSvcMonitor();
-                reconfigVdc();
+                reconfigVdc(false);
                 coordinator.blockUntilZookeeperIsWritableConnected(FAILOVER_ZK_WRITALE_WAIT_INTERVAL);
                 processFailover();
                 localRepository.rebaseZkSnapshot();

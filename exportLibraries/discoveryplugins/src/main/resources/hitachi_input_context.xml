@@ -1156,7 +1156,7 @@
 	</operation>
 	
 	<operation name="addHostWithWorldWideNames" models="default">
-		<xmlElementSequence>HiCommandServerMessage,APIInfo,Request,HostManager,Add,Host</xmlElementSequence>
+		<xmlElementSequence>HiCommandServerMessage,APIInfo,Request,HostManager,Add,Host,WorldWideName</xmlElementSequence>
 		<xmlElementsToClose>APIInfo</xmlElementsToClose>
 		<xmlElementSequenceAttributes>
 		    <xmlElementSequenceAttribute>
@@ -1171,6 +1171,12 @@
 			<xmlElementSequenceAttribute>
 				<name>Host</name>
 				<model>com.emc.storageos.hds.model.HDSHost</model>
+			</xmlElementSequenceAttribute>
+			<xmlElementSequenceAttribute>
+				<name>WorldWideName</name>
+				<model>com.emc.storageos.hds.model.WorldWideName</model>
+				<childExists>false</childExists>
+				<type>List</type>
 			</xmlElementSequenceAttribute>
 		</xmlElementSequenceAttributes>
 	</operation>

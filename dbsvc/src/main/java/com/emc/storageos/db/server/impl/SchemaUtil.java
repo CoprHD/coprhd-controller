@@ -47,6 +47,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import com.emc.storageos.coordinator.client.model.Constants;
 import com.emc.storageos.coordinator.client.model.MigrationStatus;
 import com.emc.storageos.coordinator.client.model.Site;
+import com.emc.storageos.coordinator.client.model.SiteInfo;
 import com.emc.storageos.coordinator.client.model.SiteState;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.coordinator.client.service.DrUtil;
@@ -389,32 +390,26 @@ public class SchemaUtil {
         return dcNames.size();
     }
 
-    public void rebuildDataOnStandby() {
+    public void checkDataRevision(String localDataRevision) {
         Site currentSite = drUtil.getLocalSite();
-
-        if (currentSite.getState().equals(SiteState.STANDBY_SYNCING)) {
-            dbRebuildRunnable.run();
+        SiteState siteState = currentSite.getState();
+        if (siteState == SiteState.STANDBY_ADDING || siteState == SiteState.STANDBY_RESUMING || siteState == SiteState.STANDBY_SYNCING) {
+            SiteInfo targetSiteInfo = _coordinator.getTargetInfo(_coordinator.getSiteId(), SiteInfo.class);
+            String targetDataRevision = targetSiteInfo.getTargetDataRevision();
+            _log.info("Target data revision {}", targetDataRevision);
+            if (localDataRevision.equals(targetDataRevision)) {
+                if (siteState != SiteState.STANDBY_SYNCING) {
+                    _log.info("Change site state to SYNCING and rebuild data from active site");
+                    currentSite.setState(SiteState.STANDBY_SYNCING);
+                    _coordinator.persistServiceConfiguration(currentSite.toConfiguration());
+                }
+                dbRebuildRunnable.run();
+            } else {
+                _log.info("Incompatible data revision - local {} target {}. Skip data rebuild", localDataRevision, targetDataRevision);
+            }
         }
     }
 
-    public void checkSiteAddingOnStandby() {
-        Site currentSite = drUtil.getLocalSite();
-        int count = 0;
-        while (currentSite.getState().equals(SiteState.STANDBY_ADDING)) {
-            try {
-                _log.info("Current site state is {}. Wait for its state changed by active site", currentSite.getState());
-                Thread.sleep(DBINIT_RETRY_INTERVAL * 1000);
-            } catch (InterruptedException ex) {
-                _log.warn("Thread is interrupted during wait for retry", ex);
-            }
-            
-            if (++count > DBINIT_RETRY_MAX) {
-                throw new IllegalStateException("Unable to wait for readiness for standby initialization");
-            }
-            currentSite = drUtil.getLocalSite();
-        }
-    }
-    
     /**
      * Remove paused sites from db/geodb strategy options on the active site.
      *

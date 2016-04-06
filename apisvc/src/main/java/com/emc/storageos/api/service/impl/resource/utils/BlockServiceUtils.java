@@ -236,7 +236,10 @@ public class BlockServiceUtils {
      *
      * Fox XtremIO creating/deleting volume in/from CG with existing CG is supported.
      * 
-     * For VNX, creating/deleting volume in/from CG with existing group relationship is supported if volume is not part of an array replication group
+     * For VNX, creating/deleting volume in/from CG with existing group relationship is supported if volume is not part of an array
+     * replication group
+     * 
+     * For Application support, allow volumes to be added/removed to/from CG for VPLEX when the backend volume is VMAX/VNX/XtremIO
      *
      * @param cg BlockConsistencyGroup
      * @param volume Volume part of the CG
@@ -263,14 +266,12 @@ public class BlockServiceUtils {
                 return true;
             }
 
-            // Allow volumes to be added/removed to/from CG for VPLEX and RP
+            // Application support: Allow volumes to be added/removed to/from CG for VPLEX and RP
             // when the backend volume is VMAX/VNX/XtremIO
-            if (storage.deviceIsType(Type.vplex)) {
-                // TODO
+            if (volume.getApplication(dbClient) != null && storage.deviceIsType(Type.vplex)) {
                 // Adding new VPLEX volume to CG which is part to Application, has to be done in 2 steps.
                 // Step-1: Create volume - backend volume will not be added to RG.
                 // Step-2: Add to Application - backend volume will be added to RG and clone will be created for it.
-                // Limitation: Only backend clone will be created, VPLEX virtual clone will not be created.
                 if (volume.getAssociatedVolumes() != null && !volume.getAssociatedVolumes().isEmpty()) {
                     for (String associatedVolumeId : volume.getAssociatedVolumes()) {
                         Volume associatedVolume = dbClient.queryObject(Volume.class,

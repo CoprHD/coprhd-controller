@@ -10,6 +10,7 @@ import java.util.List;
 
 import com.emc.vipr.model.sys.backup.BackupInfo;
 import com.emc.vipr.model.sys.backup.BackupRestoreStatus;
+
 import play.Logger;
 import util.BackupUtils;
 import util.datatable.DataTable;
@@ -17,6 +18,8 @@ import util.datatable.DataTable;
 import com.emc.vipr.model.sys.backup.BackupSets.BackupSet;
 import com.emc.vipr.model.sys.backup.BackupUploadStatus.Status;
 import com.google.common.collect.Lists;
+
+import controllers.security.Security;
 
 public class BackupDataTable extends DataTable {
     private static final int MINIMUM_PROGRESS = 10;
@@ -40,15 +43,19 @@ public class BackupDataTable extends DataTable {
         if (type == Type.LOCAL) {
             alterColumn("creationtime").setRenderFunction("render.localDate");
             alterColumn("size").setRenderFunction("render.backupSize");
-            addColumn("action").setSearchable(false).setRenderFunction(
-                    "render.uploadAndRestoreBtn");
+			if (Security.isSystemAdmin() || Security.isRestrictedSystemAdmin()) {
+				addColumn("action").setSearchable(false).setRenderFunction(
+						"render.uploadAndRestoreBtn");
+			}
         } else if (type == Type.REMOTE) {
             alterColumn("creationtime").setRenderFunction("render.externalLoading");
             alterColumn("sitename").setRenderFunction("render.externalLoading");
             alterColumn("version").setRenderFunction("render.externalLoading");
             alterColumn("size").setRenderFunction("render.externalLoading");
-            addColumn("action").setSearchable(false).setRenderFunction(
-                    "render.restoreBtn");
+			if (Security.isSystemAdmin() || Security.isRestrictedSystemAdmin()) {
+				addColumn("action").setSearchable(false).setRenderFunction(
+						"render.restoreBtn");
+			}
         }
         sortAllExcept("action", "actionstatus");
         setDefaultSort("name", "asc");

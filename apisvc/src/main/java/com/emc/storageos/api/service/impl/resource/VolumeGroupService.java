@@ -128,9 +128,9 @@ import com.emc.storageos.util.VPlexUtil;
 import com.emc.storageos.volumecontroller.impl.ControllerUtils;
 import com.emc.storageos.volumecontroller.impl.smis.SmisConstants;
 import com.google.common.base.Joiner;
+import com.google.common.collect.Sets;
 import com.google.common.collect.Table;
 import com.google.common.collect.Table.Cell;
-import com.google.common.collect.Sets;
 
 /**
  * APIs to view, create, modify and remove volume groups
@@ -573,7 +573,7 @@ public class VolumeGroupService extends TaskResourceService {
         for (VolumeGroupUtils util : utils) {
             util.validateUpdateVolumesInVolumeGroup(_dbClient, param, volumeGroup);
         }
-        checkForApplicationPendingTasks(volumeGroup, _dbClient, true);
+
         for (VolumeGroupUtils util : utils) {
             util.updateVolumesInVolumeGroup(_dbClient, param, volumeGroup, taskId, taskList);
         }
@@ -2353,18 +2353,15 @@ public class VolumeGroupService extends TaskResourceService {
 
         // validate that the provided set name actually belongs to this Application
         VolumeGroupCopySetList copySetList = getVolumeGroupSnapsetSessionSets(volumeGroup);
-        if (!copySetList.getCopySets().contains(sessionsetName)) {
-            throw APIException.badRequests.
-                    setNameDoesNotBelongToVolumeGroup("Snapshot Session Set name", sessionsetName, volumeGroup.getLabel());
-        }
+        if (copySetList.getCopySets().contains(sessionsetName)) {
+            // get the snapshot sessions for the volume group
+            List<BlockSnapshotSession> volumeGroupSessions = getVolumeGroupSnapshotSessions(volumeGroup);
 
-        // get the snapshot sessions for the volume group
-        List<BlockSnapshotSession> volumeGroupSessions = getVolumeGroupSnapshotSessions(volumeGroup);
-
-        for (BlockSnapshotSession session : volumeGroupSessions) {
-            if (sessionsetName.equals(session.getSessionSetName())) {
-                snapshotSessionList.getSnapSessionRelatedResourceList().
-                        add(toNamedRelatedResource(session));
+            for (BlockSnapshotSession session : volumeGroupSessions) {
+                if (sessionsetName.equals(session.getSessionSetName())) {
+                    snapshotSessionList.getSnapSessionRelatedResourceList().
+                            add(toNamedRelatedResource(session));
+                }
             }
         }
 

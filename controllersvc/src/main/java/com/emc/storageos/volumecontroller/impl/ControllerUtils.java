@@ -1015,7 +1015,10 @@ public class ControllerUtils {
                 List<BlockSnapshot> snapshots = new ArrayList<BlockSnapshot>();
                 Iterator<BlockSnapshot> snapshotItr = dbClient.queryIterativeObjects(BlockSnapshot.class, uriQueryResultList);
                 while (snapshotItr.hasNext()) {
-                    snapshots.add(snapshotItr.next());
+                    BlockSnapshot snap = snapshotItr.next();
+                    if (snapshot.getProject() != null && snapshot.getProject().getURI().equals(snap.getProject().getURI())) {
+                        snapshots.add(snap);
+                    }
                 }
                 return snapshots;
             }

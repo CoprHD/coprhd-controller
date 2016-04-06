@@ -65,10 +65,12 @@ function installPackages
 
   # distribution updates and security fixes
   mkdir -p /tmp/coprhd.d
-  cp -f /etc/zypp/repos.d/suse-13.2-oss-update.repo /tmp/coprhd.d/
+  cp -f /etc/zypp/repos.d/*.repo /tmp/coprhd.d/
 
   zypper --reposd-dir=/tmp/coprhd.d --non-interactive --no-gpg-checks refresh
   zypper --reposd-dir=/tmp/coprhd.d --non-interactive --no-gpg-checks install --oldpackage docker=1.8.3-43.1 lvm2=2.02.98-43.24.1 udev=210.1448627060.53ee915-25.27.1 libudev1=210.1448627060.53ee915-25.27.1
+  # package updates from the repo above (suse-13.2-oss-update)
+  zypper --reposd-dir=/tmp/coprhd.d --non-interactive --no-gpg-checks patch -g security --no-recommends
   rm -fr /tmp/coprhd.d
 
   zypper --non-interactive clean

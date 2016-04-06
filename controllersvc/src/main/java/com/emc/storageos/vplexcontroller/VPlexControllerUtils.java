@@ -476,20 +476,19 @@ public class VPlexControllerUtils {
      * @return a Map of target-port to port-wwn values for a VPLEX device
      */
     public static Map<String, String>  getTargetPortToPwwnMap(VPlexApiClient client) {
-        List<VPlexPortInfo> vplexPortInfos = null;
-        Map<String, String> targetPortToPwwnMap = new HashMap<String, String>();
 
-        if (vplexPortInfos == null) {
-            long start = new Date().getTime();
-            vplexPortInfos = client.getPortInfo(true);
+        long start = new Date().getTime();
+        Map<String, String> targetPortToPwwnMap = new HashMap<String, String>();
+        List<VPlexPortInfo> vplexPortInfos = client.getPortInfo(true);
+        if (vplexPortInfos != null) {
             for (VPlexPortInfo vplexPortInfo : vplexPortInfos) {
                 if (null != vplexPortInfo.getPortWwn()) {
                     targetPortToPwwnMap.put(vplexPortInfo.getTargetPort(), vplexPortInfo.getPortWwn());
                 }
             }
-            long elapsed = new Date().getTime() - start;
-            log.info("TIMER: assembling the target port name to wwn map took {} ms", elapsed);
         }
+        long elapsed = new Date().getTime() - start;
+        log.info("TIMER: assembling the target port name to wwn map took {} ms", elapsed);
 
         return targetPortToPwwnMap;
     }

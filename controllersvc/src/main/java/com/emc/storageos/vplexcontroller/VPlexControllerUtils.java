@@ -518,8 +518,7 @@ public class VPlexControllerUtils {
             portNameMap = targetPortToPwwnMap;
         }
 
-        if (null != exportMask && null != vplexClusterName && null != client && null != dbClient 
-                && (null != portNameMap && !portNameMap.isEmpty())) {
+        if (null != exportMask && null != vplexClusterName && (null != portNameMap && !portNameMap.isEmpty())) {
 
             // fetch the current storage view info from the VPLEX API
             VPlexStorageViewInfo storageView = client.getStorageView(vplexClusterName, exportMask.getMaskName());

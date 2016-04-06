@@ -971,7 +971,7 @@ class Fileshare(object):
         copy_list = []
         copy_list.append(copy_dict)
         parms = {
-                 'copy' : copy_list}
+                 'file_copy' : copy_list}
         
         body = None
 
@@ -996,7 +996,7 @@ class Fileshare(object):
         copy_list = []
         copy_list.append(copy_dict)
         parms = {
-                 'copy' : copy_list}
+                 'file_copy' : copy_list}
         
         body = None
 
@@ -1023,7 +1023,7 @@ class Fileshare(object):
         copy_list = []
         copy_list.append(copy_dict)
         parms = {
-                 'copy' : copy_list}
+                 'file_copy' : copy_list}
         
         body = None
 
@@ -1050,7 +1050,7 @@ class Fileshare(object):
         copy_list = []
         copy_list.append(copy_dict)
         parms = {
-                 'copy' : copy_list}
+                 'file_copy' : copy_list}
         
         body = None
 
@@ -1077,7 +1077,7 @@ class Fileshare(object):
         copy_list = []
         copy_list.append(copy_dict)
         parms = {
-                 'copy' : copy_list}
+                 'file_copy' : copy_list}
         
         body = None
 
@@ -1104,7 +1104,7 @@ class Fileshare(object):
         copy_list = []
         copy_list.append(copy_dict)
         parms = {
-                 'copy' : copy_list}
+                 'file_copy' : copy_list}
         
         body = None
 
@@ -1172,7 +1172,7 @@ class Fileshare(object):
         copy_list = []
         copy_list.append(copy_dict)
         parms = {
-                 'copy' : copy_list}
+                 'file_copy' : copy_list}
 
         body = json.dumps(parms)
         (s, h) = common.service_json_request(

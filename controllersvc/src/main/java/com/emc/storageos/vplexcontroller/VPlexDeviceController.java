@@ -3389,8 +3389,20 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             }
         }
 
+        // if no vipr-managed volumes are remaining, the ExportMask object should be deleted from the database.
+        // if we don't do this, then the unmanaged storage view might be deleted out-of-band later and then we 
+        // would have inconsistent information, and any VPLEX API call to update this ExportMask would return a 404
         if (exportMask.getVolumes().isEmpty()) {
+            _log.info("marking this mask for deletion from ViPR: " + exportMask.getMaskName());
             _dbClient.markForDeletion(exportMask);
+
+            _log.info("updating ExportGroups containing this ExportMask");
+            List<ExportGroup> exportGroups = ExportMaskUtils.getExportGroups(_dbClient, exportMask);
+            for (ExportGroup exportGroup : exportGroups) {
+                _log.info("Removing mask from ExportGroup " + exportGroup.getGeneratedName());
+                exportGroup.removeExportMask(exportMask.getId());
+                _dbClient.updateObject(exportGroup);
+            }
         }
 
         _dbClient.updateObject(exportMask);

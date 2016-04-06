@@ -65,7 +65,8 @@ class StorageSystem(object):
         'netappc',	
         'vnxe',
         'ecs' ,
-        'datadomain']
+        'datadomain',
+        'ceph']
 
     BLOCK_SYSTEM_LIST = [
         'vnxblock',
@@ -75,7 +76,8 @@ class StorageSystem(object):
         'scaleio',
         'xtremio',
         'ibmxiv',
-        'vnxe']
+        'vnxe',
+        'ceph']
 
     FILE_SYSTEM_LIST = [
         'isilon',

@@ -53,6 +53,7 @@ public class KHRequests<T> {
 
     private static final String AUTH_TOKEN = "Cookie";
     private static final String CLIENT_HEADER = "X-EMC-REST-CLIENT";
+    private static final String EMC_CSRF_HEADER = "EMC-CSRF-TOKEN";
     private static final String GET_REQUEST = "GET";
     private static final String POST_REQUEST = "POST";
     private static final String DELETE_REQUEST = "DELETE";
@@ -67,13 +68,6 @@ public class KHRequests<T> {
     }
 
     public void setQueryParameters(MultivaluedMap<String, String> queryParams) {
-for (String key: queryParams.keySet()){
-                List<String> values = queryParams.get(key);
-                for (String value : values){
-                        _logger.info("key:"+key+" value:"+ value);
-                }
-          }
-
        if (_queryParams!=null){
           for (String key: queryParams.keySet()){
 		List<String> values = queryParams.get(key);
@@ -96,6 +90,10 @@ for (String key: queryParams.keySet()){
     protected WebResource.Builder buildRequest(WebResource.Builder builder) {
 
         builder = builder.header(CLIENT_HEADER, "true");
+	if (_client.getEmcCsrfToken() !=null){
+		_logger.debug("EMC-CSRF-TOKEN is:: "+ _client.getEmcCsrfToken());
+		builder.header(EMC_CSRF_HEADER, _client.getEmcCsrfToken());
+	}
         Set<NewCookie> cookies = null;
         if (!_requestCookies.isEmpty()) {
             cookies = _requestCookies;
@@ -123,16 +121,14 @@ for (String key: queryParams.keySet()){
         builder = builder.accept(MediaType.APPLICATION_JSON_TYPE);
         builder = builder.type(MediaType.APPLICATION_JSON_TYPE);
         
-        _logger.info("Resource:"+builder.toString());
         return builder;
     }
 
     protected WebResource addQueryParameters(WebResource resource) {
         if (_queryParams == null) {
-            _logger.info("_queryParams is null");
             return resource; // no query parameters
         }
-_logger.info("_queryParams:"+_queryParams);
+	_logger.debug("_queryParams:"+_queryParams);
         return resource.queryParams(_queryParams);
     }
 
@@ -152,6 +148,11 @@ _logger.info("_queryParams:"+_queryParams);
             throws VNXeException {
         _logger.info("getting data: {}", _url);
         ClientResponse response = sendGetRequest(_resource);
+	 String emcCsrfToken = response.getHeaders().getFirst(EMC_CSRF_HEADER);
+         if (emcCsrfToken !=null){
+              saveEmcCsrfToken(emcCsrfToken);
+         }
+
         saveClientCookies();
         String resString = response.getEntity(String.class);
         _logger.info("got data: " + resString);
@@ -207,6 +208,11 @@ _logger.info("_queryParams:"+_queryParams);
     public T getDataForOneObject(Class<T> valueType) throws VNXeException {
         _logger.debug("getting data: " + _url);
         ClientResponse response = sendGetRequest(_resource);
+	 String emcCsrfToken = response.getHeaders().getFirst(EMC_CSRF_HEADER);
+         if (emcCsrfToken !=null){
+              saveEmcCsrfToken(emcCsrfToken);
+         }
+
         saveClientCookies();
         String resString = response.getEntity(String.class);
         _logger.debug("got data: " + resString);
@@ -284,6 +290,7 @@ _logger.info("_queryParams:"+_queryParams);
                     .getRequestBuilder()).entity(parmString).post(ClientResponse.class);
             ;
             statusCode = response.getClientResponseStatus();
+
             if (statusCode == ClientResponse.Status.OK
                     || statusCode == ClientResponse.Status.ACCEPTED
                     || statusCode == ClientResponse.Status.NO_CONTENT) {
@@ -321,6 +328,7 @@ _logger.info("_queryParams:"+_queryParams);
     public VNXeCommandJob postRequestAsync(ParamBase param) {
         setAsyncMode();
         ClientResponse response = postRequest(param);
+
         VNXeCommandJob job;
         String resString = response.getEntity(String.class);
         ObjectMapper mapper = new ObjectMapper();
@@ -397,6 +405,11 @@ _logger.info("_queryParams:"+_queryParams);
         Status statusCode = response.getClientResponseStatus();
         _logger.info(response.getStatus()+":"+ response.toString());
         if (statusCode == ClientResponse.Status.OK) {
+	     String emcCsrfToken = response.getHeaders().getFirst(EMC_CSRF_HEADER);
+             if (emcCsrfToken !=null){
+                 saveEmcCsrfToken(emcCsrfToken);
+             }
+
             saveClientCookies();
             return response;
         } else if (response.getClientResponseStatus() == ClientResponse.Status.UNAUTHORIZED) {
@@ -434,7 +447,12 @@ _logger.info("_queryParams:"+_queryParams);
         if (cookies != null && !cookies.isEmpty()) {
             _requestCookies.addAll(cookies);
         }
-        saveClientCookies();
+	saveClientCookies();
+
+	String emcCsrfToken = response.getHeaders().getFirst(EMC_CSRF_HEADER);
+	if (emcCsrfToken !=null){
+		saveEmcCsrfToken(emcCsrfToken);
+	}
         return response;
     }
 
@@ -528,6 +546,16 @@ _logger.info("_queryParams:"+_queryParams);
     }
 
     /*
+     * save EMC_CSRF_TOKEN for next POST or PUT request
+     */
+    private void saveEmcCsrfToken(String emcCsrfToken){
+	if (emcCsrfToken!=null){
+	    _logger.debug("Saving CSRF token: "+ emcCsrfToken);
+	    _client.setEmcCsrfToken(emcCsrfToken);
+	}
+    }
+
+    /*
      * Send DELETE request to KittyHawk server in async mode
      * 
      * @param resource webResource
@@ -589,6 +617,7 @@ _logger.info("_queryParams:"+_queryParams);
     private void authenticate() {
         // calling a GET operation would authenticate the client again.
         _client.setCookie(null);
+	_client.setEmcCsrfToken(null);
         StorageSystemRequest req = new StorageSystemRequest(_client);
         req.get();
     }

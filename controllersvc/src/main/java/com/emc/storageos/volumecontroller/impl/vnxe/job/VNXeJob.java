@@ -16,6 +16,7 @@ import org.slf4j.LoggerFactory;
 import org.slf4j.Logger;
 
 import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.db.client.model.DiscoveredDataObject.Type;
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.exceptions.DeviceControllerErrors;
@@ -216,10 +217,17 @@ public class VNXeJob extends Job implements Serializable {
      * @return
      */
     public VNXeApiClient getVNXeClient(JobContext jobContext) {
+	VNXeApiClient vnxeApiClient = null;
         StorageSystem storageSystem = jobContext.getDbClient().queryObject(StorageSystem.class, _storageSystemUri);
-        VNXeApiClient vnxeApiClient = jobContext.getVNXeApiClientFactory().getClient(
-                storageSystem.getIpAddress(), storageSystem.getPortNumber(),
-                storageSystem.getUsername(), storageSystem.getPassword());
+	 if (Type.vnxunity.toString().equalsIgnoreCase(storageSystem.getSystemType())) {
+		vnxeApiClient = jobContext.getVNXeApiClientFactory().getUnityClient(
+                        storageSystem.getIpAddress(), storageSystem.getPortNumber(),
+                        storageSystem.getUsername(), storageSystem.getPassword());
+	}else{
+	        vnxeApiClient = jobContext.getVNXeApiClientFactory().getClient(
+        	        storageSystem.getIpAddress(), storageSystem.getPortNumber(),
+                	storageSystem.getUsername(), storageSystem.getPassword());
+	}
         return vnxeApiClient;
     }
 

@@ -33,6 +33,7 @@ public class KHClient {
     private WebResource _resource;
     private Set<NewCookie> _cookie;
     private boolean isUnity = false;
+    private String _emcCsrfToken = null;
 
     public KHClient(String host, int port, String username, String password) {
 
@@ -80,6 +81,13 @@ public class KHClient {
 
     public synchronized void setCookie(Set<NewCookie> _cookie) {
         this._cookie = _cookie;
+    }
+    public synchronized String getEmcCsrfToken() {
+	return _emcCsrfToken;
+    }
+
+    public synchronized void setEmcCsrfToken(String _emcCsrfToken){
+	this._emcCsrfToken = _emcCsrfToken;
     }
 
 }

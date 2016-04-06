@@ -1397,11 +1397,11 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
     private Workflow.Method
             createListReplicasMethod(URI systemURI, List<URI> sourceURIs, List<URI> targetURIs, URI vpoolChangeUri,
                     boolean addWaitForCopyState) {
-        return new Workflow.Method(CREATE_LIST_REPLICAS_METHOD, systemURI, sourceURIs, targetURIs, addWaitForCopyState);
+        return new Workflow.Method(CREATE_LIST_REPLICAS_METHOD, systemURI, sourceURIs, targetURIs, vpoolChangeUri, addWaitForCopyState);
     }
 
-    public boolean createListReplicas(URI systemURI, List<URI> sourceURIs, List<URI> targetURIs, boolean addWaitForCopyState,
-            URI vpoolChangeUri, String opId) {
+    public boolean createListReplicas(URI systemURI, List<URI> sourceURIs, List<URI> targetURIs, URI vpoolChangeUri,
+            boolean addWaitForCopyState, String opId) {
         log.info("START Creating list of replicas");
         TaskCompleter completer = null;
         try {

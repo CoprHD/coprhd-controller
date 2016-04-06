@@ -40,10 +40,12 @@ import com.emc.storageos.db.client.model.CifsShareACL;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.FileExportRule;
 import com.emc.storageos.db.client.model.FileShare;
+import com.emc.storageos.db.client.model.NASServer;
 import com.emc.storageos.db.client.model.NFSShareACL;
 import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.Operation.Status;
+import com.emc.storageos.db.client.model.PhysicalNAS;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.StorageHADomain;
 import com.emc.storageos.db.client.model.StoragePool;
@@ -436,7 +438,7 @@ public class UnManagedFilesystemService extends TaggedResource {
                 if (port != null && neighborhood != null) {
 
                     if (StorageSystem.Type.isilon.toString().equals(system.getSystemType())) {
-                        sPort = doesStoragePortExistsInVArray(port, neighborhood) ? port : null;
+                        sPort = getIsilonStoragePort(port, nasUri, neighborhood.getId());
                     } else {
                         sPort = compareAndSelectPortURIForUMFS(system, port,
                                 neighborhood);
@@ -458,7 +460,7 @@ public class UnManagedFilesystemService extends TaggedResource {
                 if (unManagedFileSystem.getHasExports()) {
 
                     filesystem.setFsExports(PropertySetterUtil.convertUnManagedExportMapToManaged(
-                            unManagedFileSystem.getFsUnManagedExportMap(), sPort.getPortName(), dataMover));
+                            unManagedFileSystem.getFsUnManagedExportMap(), sPort, dataMover));
 
                     _logger.info("Export map for {} = {}", fsName, filesystem.getFsExports());
 
@@ -1077,5 +1079,42 @@ public class UnManagedFilesystemService extends TaggedResource {
             }
         }
         return sPorts;
+    }
+
+    private StoragePort getIsilonStoragePort(StoragePort umfsStoragePort, String nasUri, URI virtualArray) {
+        StoragePort sp = null;
+        NASServer nasServer = null;
+
+        if (StringUtils.equals("VirtualNAS", URIUtil.getTypeName(nasUri))) {
+            nasServer = _dbClient.queryObject(VirtualNAS.class, URI.create(nasUri));
+        }
+        else {
+            nasServer = _dbClient.queryObject(PhysicalNAS.class, URI.create(nasUri));
+        }
+        if (nasServer != null) {
+            List<URI> virtualArrayPorts = returnAllPortsInVArray(virtualArray);
+            StringSet virtualArrayPortsSet = new StringSet();
+
+            StringSet storagePorts = nasServer.getStoragePorts();
+
+            for (URI tempVarrayPort : virtualArrayPorts) {
+                virtualArrayPortsSet.add(tempVarrayPort.toString());
+            }
+
+            StringSet commonPorts = null;
+            if (virtualArrayPorts != null && storagePorts != null) {
+                commonPorts = new StringSet(storagePorts);
+                commonPorts.retainAll(virtualArrayPortsSet);
+            }
+
+            if (commonPorts != null && !commonPorts.isEmpty()) {
+                List<String> tempList = new ArrayList<String>(commonPorts);
+                Collections.shuffle(tempList);
+                sp = _dbClient.queryObject(StoragePort.class,
+                        URI.create(tempList.get(0)));
+                return sp;
+            }
+        }
+        return null;
     }
 }

@@ -69,6 +69,7 @@ public class CreateSnapshotOfApplicationService extends ViPRService {
         NamedVolumesList volumesToUse = new NamedVolumesList();
         for (NamedRelatedResourceRep volumeId : applicationVolumes.getVolumes()) {
             VolumeRestRep volume = getClient().blockVolumes().get(volumeId);
+            VolumeRestRep parentVolume = volume;
             if (volume.getHaVolumes() != null && !volume.getHaVolumes().isEmpty()) {
                 volume = getClient().blockVolumes().get(volume.getHaVolumes().get(0).getId());
             }
@@ -77,9 +78,7 @@ public class CreateSnapshotOfApplicationService extends ViPRService {
                     volumesToUse.getVolumes().add(volumeId);
                 }
             } else {
-                if (volume.getProtection() == null || volume.getProtection().getRpRep() == null
-                        || volume.getProtection().getRpRep().getPersonality() == null
-                        || volume.getProtection().getRpRep().getPersonality().equalsIgnoreCase("SOURCE")) {
+                if (BlockStorageUtils.isRPSourceVolume(parentVolume)) {
                     volumesToUse.getVolumes().add(volumeId);
                 }
             }

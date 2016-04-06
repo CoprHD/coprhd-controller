@@ -1506,7 +1506,7 @@ public class DisasterRecoveryService {
 
     private Date getLastSyncTime(Site site) {
         SiteMonitorResult monitorResult = coordinator.getTargetInfo(site.getUuid(), SiteMonitorResult.class);
-        if (monitorResult != null && monitorResult.getDbQuorumLostSince() > 0) {
+        if (monitorResult != null && monitorResult.getDbQuorumLastActive() != 0) {
             return new Date(monitorResult.getDbQuorumLastActive());
         } 
         return null;

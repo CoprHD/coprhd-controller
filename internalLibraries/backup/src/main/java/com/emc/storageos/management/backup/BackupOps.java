@@ -656,8 +656,6 @@ public class BackupOps {
     }
 
     public boolean hasStandbySites() {
-        DrUtil drUtil = new DrUtil();
-        drUtil.setCoordinator(coordinatorClient);
         List<Site> sites = drUtil.listSites();
         return sites.size() > 1;
     }

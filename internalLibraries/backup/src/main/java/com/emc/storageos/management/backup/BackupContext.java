@@ -96,8 +96,6 @@ public class BackupContext {
 
     public boolean isGeoEnv() {
         DrUtil drUtil = new DrUtil(coordinatorClient);
-        List<String> ids = drUtil.getOtherVdcIds();
-        log.info("lbyt ids={}", ids);
-        return !ids.isEmpty();
+        return !drUtil.getOtherVdcIds().isEmpty();
     }
 }

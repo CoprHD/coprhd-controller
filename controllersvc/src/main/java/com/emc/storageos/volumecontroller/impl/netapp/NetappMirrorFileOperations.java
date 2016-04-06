@@ -111,7 +111,23 @@ public class NetappMirrorFileOperations implements FileMirrorOperations {
         FileShare targetFs = _dbClient.queryObject(FileShare.class, targetURI);
         FileShare sourceFs = _dbClient.queryObject(FileShare.class, targetFs.getParentFileShare());
 
-        cmdResult = this.doReleaseSnapMirrorSync(sourStorage, destStorage, sourceFs, targetFs, taskCompleter);
+        FileShare sourceFileShare = null;
+        FileShare targetFileShare = null;
+        // get the source location based on source storagesystem
+        if (sourStorage.getId().compareTo(sourceFs.getStorageDevice()) == 0) {
+            sourceFileShare = sourceFs;
+        } else {
+            targetFileShare = targetFs;
+        }
+
+        // destion location based on target storagesystem
+        if (destStorage.getId().compareTo(sourceFs.getStorageDevice()) == 0) {
+            targetFileShare = sourceFs;
+        } else {
+            targetFileShare = targetFs;
+        }
+
+        cmdResult = this.doReleaseSnapMirrorSync(sourStorage, destStorage, sourceFileShare, targetFileShare, taskCompleter);
 
         if (cmdResult.getCommandSuccess()) {
             taskCompleter.ready(_dbClient);
@@ -551,6 +567,8 @@ public class NetappMirrorFileOperations implements FileMirrorOperations {
      * @return 205 -> 204
      *         204->205
      */
+    // lglw6205> snapmirror resync -S lglw6204:failover1targetvarray204 -w failover1
+    // lglw6204> snapmirror resync -S lglw6205:failover1 -w failover1targetvarray204
     public BiosCommandResult doResyncSnapMirror(StorageSystem sourceStorage, StorageSystem targetStorage, FileShare sourceFs,
             FileShare targetFs,
             TaskCompleter taskCompleter) {
@@ -565,7 +583,7 @@ public class NetappMirrorFileOperations implements FileMirrorOperations {
 
         String portGroupTarget = null;
         FileShare destFileShare = null;
-        // destion location based on target storagesystem
+        // Destination location based on target storagesystem
         if (targetStorage.getId().compareTo(sourceFs.getStorageDevice()) == 0) {
             portGroupTarget = findVfilerName(sourceFs);
             destFileShare = sourceFs;

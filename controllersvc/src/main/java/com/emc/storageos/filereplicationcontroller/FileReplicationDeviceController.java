@@ -572,7 +572,7 @@ public class FileReplicationDeviceController implements FileOrchestrationInterfa
                     combined.add(sourceFileShare.getId());
                     combined.add(targetFileShare.getId());
                     taskCompleter = new MirrorFileFailbackTaskCompleter(FileShare.class, combined, taskId);
-                    isilonSyncIQFailback(workflow, primarysystem, sourceFileShare, targetFileShare, taskId);
+                    netappSnapMirrorFailback(workflow, primarysystem, sourceFileShare, targetFileShare, taskId);
                 } else {
                     throw DeviceControllerException.exceptions.operationNotSupported();
                 }
@@ -623,7 +623,7 @@ public class FileReplicationDeviceController implements FileOrchestrationInterfa
                 FAILOVER_MIRROR_FILESHARE_STEP,
                 FAILOVER_FILE_MIRRORS_STEP_DESC,
                 waitForResync, primarysystem.getId(), primarysystem.getSystemType(), getClass(),
-                faioverMirrorPairMeth(secondarysystem.getId(), primarysystem.getId(), null),
+                faioverMirrorPairMeth(secondarysystem.getId(), targetFileShare.getId(), sourceFileShare.getId(), null),
                 rollbackMethodNullMethod(), null);
 
         // remove step -3
@@ -643,6 +643,8 @@ public class FileReplicationDeviceController implements FileOrchestrationInterfa
         return waitFor;
     }
 
+    // 205->204
+
     private String netappSnapMirrorFailback(Workflow workflow, StorageSystem primarysystem, FileShare sourceFileShare,
             FileShare targetFileShare,
             String taskId) {
@@ -650,11 +652,11 @@ public class FileReplicationDeviceController implements FileOrchestrationInterfa
         // secondary storagesystem
         StorageSystem secondarysystem = dbClient.queryObject(StorageSystem.class, targetFileShare.getStorageDevice());
 
-        Workflow.Method resyncMethodStep1 = resyncPrepMirrorPairMeth(primarysystem.getId(), secondarysystem.getId(),
+        // lglw6205>snapmirror resync -S lglw6204:failover1targetvarray204 -w failover1
+        Workflow.Method resyncMethodStep1 = resyncPrepMirrorPairMeth(secondarysystem.getId(), primarysystem.getId(),
                 targetFileShare.getId(), "");
-
-        String descResyncPrepStep1 = String.format("Creating resync between target- %s and source %s", primarysystem.getLabel(),
-                secondarysystem.getLabel());
+        String descResyncPrepStep1 = String.format("Creating resync between target- %s and source %s", secondarysystem.getLabel(),
+                primarysystem.getLabel());
         String waitForResync = workflow.createStep(
                 RESYNC_MIRROR_FILESHARE_STEP,
                 descResyncPrepStep1,
@@ -664,15 +666,17 @@ public class FileReplicationDeviceController implements FileOrchestrationInterfa
 
         // then break
         // failover step -2
+        // lglw6205> snapmirror break lglw6205:failover1
         String waitForFailover = workflow.createStep(
                 FAILOVER_MIRROR_FILESHARE_STEP,
                 FAILOVER_FILE_MIRRORS_STEP_DESC,
                 waitForResync, primarysystem.getId(), primarysystem.getSystemType(), getClass(),
-                faioverMirrorPairMeth(primarysystem.getId(), targetFileShare.getId(), ""),
+                faioverMirrorPairMeth(primarysystem.getId(), targetFileShare.getId(), sourceFileShare.getId(), ""),
                 rollbackMethodNullMethod(), null);
 
         // release mirror - step3
-        Workflow.Method releaseMethodStep3 = resyncPrepMirrorPairMeth(primarysystem.getId(), secondarysystem.getId(),
+        // lglw6204> snapmirror release failover1targetvarray204 lglw6205:failover1
+        Workflow.Method releaseMethodStep3 = releaseMirrorPairMeth(secondarysystem.getId(), primarysystem.getId(),
                 targetFileShare.getId(), null);
         String descReleasePrepStep3 = String.format("remove mirror relation ship between source- %s and target %s",
                 secondarysystem.getLabel(),
@@ -680,15 +684,16 @@ public class FileReplicationDeviceController implements FileOrchestrationInterfa
         String waitForRelease = workflow.createStep(
                 RELEASE_MIRROR_FILESHARE_STEP,
                 descReleasePrepStep3,
-                waitForResync, primarysystem.getId(), primarysystem.getSystemType(), getClass(),
+                waitForFailover, secondarysystem.getId(), secondarysystem.getSystemType(), getClass(),
                 releaseMethodStep3,
                 rollbackMethodNullMethod(), null);
 
         // resync step -4
-        Workflow.Method resyncMethodStep4 = resyncPrepMirrorPairMeth(secondarysystem.getId(), primarysystem.getId(),
+        // lglw6204> snapmirror resync -S lglw6205:failover1 -w failover1targetvarray204
+        Workflow.Method resyncMethodStep4 = resyncPrepMirrorPairMeth(primarysystem.getId(), secondarysystem.getId(),
                 targetFileShare.getId(), "");
-        String descResyncPrepStep4 = String.format("Creating resyncprep between source- %s and target %s", secondarysystem.getLabel(),
-                primarysystem.getLabel());
+        String descResyncPrepStep4 = String.format("Creating resyncprep between source- %s and target %s", primarysystem.getLabel(),
+                secondarysystem.getLabel());
 
         waitFor = workflow.createStep(
                 RESYNC_MIRROR_FILESHARE_STEP,
@@ -786,8 +791,8 @@ public class FileReplicationDeviceController implements FileOrchestrationInterfa
 
     // failover Mirror -step
     public static Workflow.Method
-            faioverMirrorPairMeth(URI storage, URI fsURI, String policyName) {
-        return new Workflow.Method(FAILOVER_MIRROR_FILESHARE_METH, storage, fsURI, policyName);
+            faioverMirrorPairMeth(URI storage, URI primaryFsURI, URI secondaryFsURI, String policyName) {
+        return new Workflow.Method(FAILOVER_MIRROR_FILESHARE_METH, storage, primaryFsURI, secondaryFsURI, policyName);
     }
 
     /**
@@ -798,19 +803,19 @@ public class FileReplicationDeviceController implements FileOrchestrationInterfa
      * @param policyName
      * @param opId
      */
-    public boolean failoverMirrorFilePair(URI storage, URI fileshareURI, String policyName, String opId) {
+    public boolean failoverMirrorFilePair(URI storage, URI sourceURI, URI targetURI, String policyName, String opId) {
         TaskCompleter completer = null;
         try {
             StorageSystem system = dbClient.queryObject(StorageSystem.class, storage);
-            FileShare fileShare = dbClient.queryObject(FileShare.class, fileshareURI);
+            FileShare destFileShare = dbClient.queryObject(FileShare.class, targetURI);
+
             List<URI> combined = new ArrayList<URI>();
-            combined.add(fileshareURI);
-            if (fileShare.getParentFileShare() != null) {
-                combined.add(fileShare.getParentFileShare().getURI());
-            }
+            combined.add(targetURI);
+            combined.add(sourceURI);
+
             completer = new MirrorFileFailbackTaskCompleter(FileShare.class, combined, opId);
             WorkflowStepCompleter.stepExecuting(opId);
-            getRemoteMirrorDevice(system).doFailoverLink(system, fileShare, completer, policyName);
+            getRemoteMirrorDevice(system).doFailoverLink(system, destFileShare, completer, policyName);
         } catch (Exception e) {
             ServiceError error = DeviceControllerException.errors.jobFailed(e);
             if (null != completer) {

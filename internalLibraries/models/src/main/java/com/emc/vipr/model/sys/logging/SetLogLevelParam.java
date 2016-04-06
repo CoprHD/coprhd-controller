@@ -117,7 +117,10 @@ public class SetLogLevelParam {
    }
 
     /**
-     * Optional, log level scope
+     * Optional, log level scope.
+     * Valid values:
+     * 	SCOPE_DEFAULT
+     * 	SCOPE_DEPENDENCY
      * 
      */
     @XmlElement(name = "scope", required = false)

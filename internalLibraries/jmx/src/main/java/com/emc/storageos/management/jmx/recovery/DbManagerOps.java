@@ -144,10 +144,6 @@ public class DbManagerOps implements AutoCloseable {
         mbean.resetRepairState();
     }
     
-    public boolean adjustNumTokens() throws InterruptedException {
-        return this.mbean.adjustNumTokens();
-    }
-
     /**
      * Remove multiple nodes from cluster.
      * 

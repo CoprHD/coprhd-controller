@@ -60,6 +60,7 @@ public class UnManagedVolume extends UnManagedDiscoveredObject {
         HAS_REPLICAS("hasReplicas", "hasReplicas"),
         IS_VOLUME_ADDED_TO_CONSISTENCYGROUP("isVolumeAddedToCG", "isVolumeAddedToCG"),
         IS_INGESTABLE("IsIngestable", "IsIngestable"),
+        IS_NOT_INGESTABLE_REASON("IsNotIngestableReason", "IsNotIngestableReason"),
         REMOTE_MIRRORING("remoteMirror", "remoteMirror"),
         IS_VPLEX_VOLUME("isVplexVolume", "isVplexVolume"),
         IS_VPLEX_BACKEND_VOLUME("isVplexBackendVolume", "isVplexBackendVolume"),
@@ -166,7 +167,8 @@ public class UnManagedVolume extends UnManagedDiscoveredObject {
         RP_MANAGED_TARGET_VOLUMES("rpManagedTargetVolumes", "rpManagedTargetVolumes"),
         RP_UNMANAGED_SOURCE_VOLUME("rpUnManagedSourceVolume", "rpUnManagedSourceVolume"),
         RP_MANAGED_SOURCE_VOLUME("rpManagedSourceVolume", "rpManagedSourceVolume"),
-        RP_ACCESS_STATE("rpAccessState", "rpAccessState");
+        RP_ACCESS_STATE("rpAccessState", "rpAccessState"),
+        SNAPSHOT_CONSISTENCY_GROUP_NAME("snapshotConsistencyGroupName", "snapshotConsistencyGroupName");
 
         private final String _infoKey;
         private final String _alternateKey;

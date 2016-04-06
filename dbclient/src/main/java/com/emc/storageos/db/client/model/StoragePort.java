@@ -15,7 +15,7 @@ import com.emc.storageos.model.valid.EnumType;
  * to a storage port group of a storage device.
  */
 @Cf("StoragePort")
-public class StoragePort extends VirtualArrayTaggedResource implements Comparable<StoragePort> {
+public class StoragePort extends VirtualArrayTaggedResource implements Comparable<StoragePort>, Cloneable {
 
     // Defines the supported port types.
     public static enum PortType {
@@ -374,6 +374,16 @@ public class StoragePort extends VirtualArrayTaggedResource implements Comparabl
         setChanged("discoveryStatus");
     }
     
+    public StoragePort clone() {
+        StoragePort port = null;
+        try {
+            port = (StoragePort) super.clone();
+        } catch (Exception e) {
+            // Do Nothing
+        }
+        return port;
+    }
+
     /**
      * Returns a port name guaranteed to have the director identification.
      * 

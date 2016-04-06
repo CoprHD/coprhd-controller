@@ -44,6 +44,7 @@ import com.emc.storageos.db.client.model.FileExportRule;
 import com.emc.storageos.db.client.model.FileShare;
 import com.emc.storageos.db.client.model.ObjectBucketACL;
 import com.emc.storageos.db.client.model.Host;
+import com.emc.storageos.db.client.model.Migration;
 import com.emc.storageos.db.client.model.NFSShareACL;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.ProtectionSet;
@@ -787,6 +788,12 @@ public interface ContainmentConstraint extends Constraint {
             DataObjectType doType = TypeMap.getDoType(ObjectNamespace.class);
             ColumnField field = doType.getColumnField(STORAGE_DEVICE);
             return new ContainmentConstraintImpl(device, ObjectNamespace.class, field);
+        }
+        
+        public static ContainmentConstraint getMigrationVolumeConstraint(URI volumeURI) {
+            DataObjectType doType = TypeMap.getDoType(Migration.class);
+            ColumnField field = doType.getColumnField("volume");
+            return new ContainmentConstraintImpl(volumeURI, Migration.class, field);
         }
     }
 }

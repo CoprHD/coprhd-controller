@@ -4,19 +4,12 @@
  */
 package util;
 
-import static util.BourneUtil.getViprClient;
-
-import java.net.URI;
-import java.util.Collection;
 import java.util.List;
 
-import com.emc.storageos.model.TaskResourceRep;
-import com.emc.storageos.model.compute.ComputeImageServerRestRep;
-import com.emc.vipr.client.exceptions.ViPRHttpException;
 import com.emc.vipr.model.sys.backup.BackupRestoreStatus;
 import com.emc.vipr.model.sys.backup.BackupSets.BackupSet;
 import com.emc.vipr.model.sys.backup.BackupUploadStatus;
-import com.emc.vipr.model.sys.backup.ExternalBackupInfo;
+import com.emc.vipr.model.sys.backup.BackupInfo;
 
 /**
  * Utility for backup.
@@ -52,8 +45,8 @@ public class BackupUtils {
         return BourneUtil.getSysClient().backup().getBackup(name);
     }
 
-    public static ExternalBackupInfo getExternalBackup(String name) {
-        return BourneUtil.getSysClient().backup().getExternalBackup(name);
+    public static BackupInfo getBackupInfo(String name, boolean isLocal) {
+        return BourneUtil.getSysClient().backup().getBackupInfo(name, isLocal);
     }
 
     public static void pullBackup(String name) {
@@ -69,6 +62,6 @@ public class BackupUtils {
     }
 
     public static BackupRestoreStatus getRestoreStatus(String name, boolean isLocal) {
-        return BourneUtil.getSysClient().backup().restoreStatus(name, isLocal);
+        return BourneUtil.getSysClient().backup().getRestoreStatus(name, isLocal);
     }
 }

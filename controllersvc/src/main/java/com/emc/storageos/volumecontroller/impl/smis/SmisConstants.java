@@ -250,6 +250,9 @@ public interface SmisConstants {
     static final String EMC_SETUNSET_RECOVERPOINT = "EMCSetUnsetRecoverPoint";
     public static final String EMC_BOUND_TO_THIN_STORAGE_POOL = "EMCBoundToThinStoragePool";
     static final String EMC_STORAGE_CONFIGURATION_CAPABILITIES = "EMC_StorageConfigurationCapabilities";
+    static final String EMC_LIST_SFSENTRIES = "EMCListSFSEntries";
+    static final String SFSENTRIES = "SFSEntries";
+    static final String EMC_REMOVE_SFSENTRIES = "EMCRemoveSFSEntries";
 
     // Class and properties for SE_ReplicaPairView
     String SE_REPLICA_PAIR_VIEW = "SE_ReplicaPairView";
@@ -495,5 +498,4 @@ public interface SmisConstants {
     public static int PROVISIONING_TARGET_SAME_AS_SOURCE = 5;
     public static int SMIS810_TF_DIFFERENTIAL_CLONE_VALUE = 32770;
     public static String DEFAULT_REPLICATION_SETTING_DATA_ELEMENT_NAME = "DefaultReplicationSettingData";
-    public static final String VNX_VIRTUAL_RG = "VNXVirtualRG_";
 }

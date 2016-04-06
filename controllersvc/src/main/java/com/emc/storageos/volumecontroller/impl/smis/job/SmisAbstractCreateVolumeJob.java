@@ -22,8 +22,6 @@ import javax.wbem.CloseableIterator;
 import javax.wbem.WBEMException;
 import javax.wbem.client.WBEMClient;
 
-import com.emc.storageos.volumecontroller.impl.smis.CIMObjectPathFactory;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -44,6 +42,7 @@ import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.volumecontroller.impl.ControllerServiceImpl;
 import com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator;
 import com.emc.storageos.volumecontroller.impl.smis.CIMConnectionFactory;
+import com.emc.storageos.volumecontroller.impl.smis.CIMObjectPathFactory;
 import com.emc.storageos.volumecontroller.impl.smis.CIMPropertyFactory;
 import com.emc.storageos.volumecontroller.impl.smis.SmisCommandHelper;
 import com.emc.storageos.volumecontroller.impl.smis.SmisConstants;
@@ -360,9 +359,8 @@ public abstract class SmisAbstractCreateVolumeJob extends SmisReplicaCreationJob
                 return;
             } else {
                 for (Volume volume : volumes) {
-                    String cgName =
-                            consistencyGroup.getCgNameOnStorageSystem(volume.getStorageController());
-                    if (cgName == null) {
+                    String cgName = volume.getReplicationGroupInstance();
+                    if (NullColumnValueGetter.isNullValue(cgName)) {
                         _log.info(String.format(
                                 "Skipping step addVolumesToConsistencyGroup: Volume %s (%s) does not reference an existing consistency group on array %s.",
                                 volume.getLabel(), volume.getId(), volume.getStorageController()));

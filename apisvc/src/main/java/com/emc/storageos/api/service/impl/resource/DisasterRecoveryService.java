@@ -4,6 +4,8 @@
  */
 package com.emc.storageos.api.service.impl.resource;
 
+import com.emc.storageos.coordinator.client.model.SiteNetworkState;
+import com.emc.storageos.coordinator.client.model.SiteNetworkState.NetworkHealth;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.nio.charset.Charset;
@@ -12,7 +14,7 @@ import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Properties;
+import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -33,6 +35,7 @@ import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
 import com.emc.storageos.coordinator.client.service.impl.DualInetAddress;
+
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang.StringUtils;
 import org.apache.curator.framework.recipes.barriers.DistributedBarrier;
@@ -45,7 +48,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import com.emc.storageos.api.mapper.SiteMapper;
 import com.emc.storageos.api.service.impl.resource.utils.InternalSiteServiceClient;
 import com.emc.storageos.coordinator.client.model.Constants;
-import com.emc.storageos.coordinator.client.model.DrOperationStatus;
 import com.emc.storageos.coordinator.client.model.PropertyInfoExt;
 import com.emc.storageos.coordinator.client.model.RepositoryInfo;
 import com.emc.storageos.coordinator.client.model.Site;
@@ -54,19 +56,17 @@ import com.emc.storageos.coordinator.client.model.SiteInfo;
 import com.emc.storageos.coordinator.client.model.SiteMonitorResult;
 import com.emc.storageos.coordinator.client.model.SiteState;
 import com.emc.storageos.coordinator.client.model.SoftwareVersion;
+import com.emc.storageos.coordinator.client.model.DrOperationStatus.InterState;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.coordinator.client.service.DrUtil;
-import com.emc.storageos.coordinator.client.service.impl.CoordinatorClientInetAddressMap;
 import com.emc.storageos.coordinator.client.service.impl.LeaderSelectorListenerImpl;
 import com.emc.storageos.coordinator.common.Configuration;
 import com.emc.storageos.coordinator.common.impl.ZkPath;
 import com.emc.storageos.coordinator.exceptions.CoordinatorException;
 import com.emc.storageos.coordinator.exceptions.RetryableCoordinatorException;
 import com.emc.storageos.db.client.DbClient;
-import com.emc.storageos.db.client.impl.DbClientImpl;
 import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.uimodels.InitialSetup;
-import com.emc.storageos.db.common.DbConfigConstants;
 import com.emc.storageos.model.dr.DRNatCheckParam;
 import com.emc.storageos.model.dr.DRNatCheckResponse;
 import com.emc.storageos.model.dr.FailoverPrecheckResponse;
@@ -79,8 +79,11 @@ import com.emc.storageos.model.dr.SiteErrorResponse;
 import com.emc.storageos.model.dr.SiteIdListParam;
 import com.emc.storageos.model.dr.SiteList;
 import com.emc.storageos.model.dr.SiteParam;
+import com.emc.storageos.model.dr.SiteRemoved;
 import com.emc.storageos.model.dr.SiteRestRep;
 import com.emc.storageos.model.dr.SiteUpdateParam;
+import com.emc.storageos.model.property.PropertyConstants;
+import com.emc.storageos.model.property.PropertyInfo;
 import com.emc.storageos.security.audit.AuditLogManager;
 import com.emc.storageos.security.authentication.InternalApiSignatureKeyGenerator;
 import com.emc.storageos.security.authentication.InternalApiSignatureKeyGenerator.SignatureKeyType;
@@ -113,6 +116,12 @@ public class DisasterRecoveryService {
     private static final String EVENT_SERVICE_TYPE = "DisasterRecovery";
     private static final String NTPSERVERS = "network_ntpservers";
     private static final int SITE_NAME_LENGTH_LIMIT = 64;
+    private static final int SITE_NUMBER_UPPER_LIMIT = 3;
+
+    private static final int SITE_CONNECT_TEST_TIMEOUT = 10 * 1000;
+    private static final int SITE_CONNECTION_TEST_PORT = 443;
+    private static final String LOCAL_HOST = "localhost";
+    private static final String SYSTEM_ENABLE_FIREWALL = "system_enable_firewall";
 
     private InternalApiSignatureKeyGenerator apiSignatureGenerator;
     private SiteMapper siteMapper;
@@ -120,7 +129,6 @@ public class DisasterRecoveryService {
     private CoordinatorClient coordinator;
     private DbClient dbClient;
     private IPsecConfig ipsecConfig;
-    private Properties dbCommonInfo;
     private DrUtil drUtil;
 
     @Autowired
@@ -156,8 +164,8 @@ public class DisasterRecoveryService {
     }
 
     /**
-     * Attach one fresh install site to this acitve site as standby
-     * Or attach a acitve site for the local standby site when it's first being added.
+     * Attach one fresh install site to this active site as standby
+     * Or attach a active site for the local standby site when it's first being added.
      * 
      * @param param site detail information
      * @return site response information
@@ -169,6 +177,7 @@ public class DisasterRecoveryService {
     public SiteRestRep addStandby(SiteAddParam param) {
         log.info("Adding standby site: {}", param.getVip());
 
+        precheckForSiteNumber();
         precheckForGeo();
 
         List<Site> existingSites = drUtil.listStandbySites();
@@ -188,7 +197,7 @@ public class DisasterRecoveryService {
         }
 
         String siteId = standbyConfig.getUuid();
-        precheckForStandbyAdd(standbyConfig);
+        precheckForStandbyAdd(standbyConfig, viprCoreClient);
 
         InterProcessLock lock = drUtil.getDROperationLock();
 
@@ -198,8 +207,8 @@ public class DisasterRecoveryService {
             standbySite.setCreationTime((new Date()).getTime());
             standbySite.setName(param.getName());
             standbySite.setVdcShortId(drUtil.getLocalVdcShortId());
-            standbySite.setVip(param.getVip());
-
+            standbySite.setVip(standbyConfig.getVip());
+            standbySite.setVip6(standbyConfig.getVip6());
             standbySite.getHostIPv4AddressMap().putAll(new StringMap(standbyConfig.getHostIPv4AddressMap()));
             standbySite.getHostIPv6AddressMap().putAll(new StringMap(standbyConfig.getHostIPv6AddressMap()));
             standbySite.setNodeCount(standbyConfig.getNodeCount());
@@ -220,7 +229,7 @@ public class DisasterRecoveryService {
             log.info("Persist standby site to ZK {}", shortId);
             // coordinator.setTargetInfo(standbySite);
             coordinator.persistServiceConfiguration(standbySite.toConfiguration());
-            recordDrOperationStatus(standbySite);
+            drUtil.recordDrOperationStatus(standbySite.getUuid(), InterState.ADDING_STANDBY);
 
             // wake up syssvc to regenerate configurations
             long vdcConfigVersion = DrUtil.newVdcConfigVersion();
@@ -317,7 +326,7 @@ public class DisasterRecoveryService {
     @CheckPermission(roles = { Role.SECURITY_ADMIN, Role.RESTRICTED_SECURITY_ADMIN }, blockProxies = true)
     @ExcludeLicenseCheck
     public Response syncSites(SiteConfigParam configParam) {
-        log.info("sync sites from acitve site");
+        log.info("sync sites from active site");
 
         return initStandby(configParam);
     }
@@ -347,6 +356,21 @@ public class DisasterRecoveryService {
             SiteParam activeSiteParam = configParam.getActiveSite();
 
             ipsecConfig.setPreSharedKey(activeSiteParam.getIpsecKey());
+
+            log.info("Clean up all obsolete site configurations");
+            String activeSiteId = activeSiteParam.getUuid();
+            Set<String> standbySiteIds = new HashSet<>();
+            for (SiteParam standby : configParam.getStandbySites()) {
+                standbySiteIds.add(standby.getUuid());
+            }
+
+            for (Site siteToRemove : drUtil.listSites()) {
+                String siteId = siteToRemove.getUuid();
+                if (activeSiteId.equals(siteId) || standbySiteIds.contains(siteId)) {
+                    continue;
+                }
+                drUtil.removeSite(siteToRemove);
+            }
 
             coordinator.addSite(activeSiteParam.getUuid());
             Site activeSite = new Site();
@@ -381,7 +405,8 @@ public class DisasterRecoveryService {
                 log.info("Set ntp servers to {}", ntpServers);
             }
 
-            drUtil.updateVdcTargetVersion(coordinator.getSiteId(), SiteInfo.DR_OP_CHANGE_DATA_REVISION, configParam.getVdcConfigVersion(), dataRevision);
+            drUtil.updateVdcTargetVersion(coordinator.getSiteId(), SiteInfo.DR_OP_CHANGE_DATA_REVISION,
+                    configParam.getVdcConfigVersion(), dataRevision);
             return Response.status(Response.Status.ACCEPTED).build();
         } catch (Exception e) {
             log.error("Internal error for updating coordinator on standby", e);
@@ -390,7 +415,7 @@ public class DisasterRecoveryService {
     }
 
     /**
-     * Get all sites including standby and acitve
+     * Get all sites including standby and active
      * 
      * @return site list contains all sites with detail information
      */
@@ -403,15 +428,19 @@ public class DisasterRecoveryService {
         SiteList standbyList = new SiteList();
 
         for (Site site : drUtil.listSites()) {
-            standbyList.getSites().add(siteMapper.map(site));
+            standbyList.getSites().add(siteMapper.mapWithNetwork(site, drUtil));
         }
+        
+        SiteInfo siteInfo = coordinator.getTargetInfo(coordinator.getSiteId(), SiteInfo.class);
+        standbyList.setConfigVersion(siteInfo.getVdcConfigVersion());
+        
         return standbyList;
     }
 
     /**
-     * Check if current site is acitve site
+     * Check if current site is active site
      * 
-     * @return SiteActive true if current site is acitve else false
+     * @return SiteActive true if current site is active else false
      */
     @GET
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
@@ -421,8 +450,10 @@ public class DisasterRecoveryService {
         SiteActive isActiveSite = new SiteActive();
 
         try {
-            isActiveSite.setIsActive(drUtil.isActiveSite());
-            isActiveSite.setLocalSiteName(drUtil.getLocalSite().getName());
+            Site localSite = drUtil.getLocalSite();
+            isActiveSite.setIsActive(localSite.getState() == SiteState.ACTIVE);
+            isActiveSite.setLocalSiteName(localSite.getName());
+            isActiveSite.setLocalUuid(localSite.getUuid());
             return isActiveSite;
         } catch (Exception e) {
             log.error("Can't get site is Active or Standby");
@@ -446,11 +477,78 @@ public class DisasterRecoveryService {
 
         try {
             Site site = drUtil.getSiteFromLocalVdc(uuid);
-            return siteMapper.map(site);
+            return siteMapper.mapWithNetwork(site, drUtil);
         } catch (Exception e) {
             log.error("Can't find site with specified site ID {}", uuid);
             throw APIException.badRequests.siteIdNotFound();
         }
+    }
+    
+    /**
+     * Get local site
+     * 
+     * @return site response with detail information
+     */
+    @GET
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @CheckPermission(roles = { Role.SECURITY_ADMIN, Role.RESTRICTED_SECURITY_ADMIN,
+            Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN, Role.SYSTEM_MONITOR })
+    @Path("/local")
+    public SiteRestRep getSite() {
+        log.info("Begin to get local site");
+
+        try {
+            Site site = drUtil.getLocalSite();
+            return siteMapper.map(site);
+        } catch (Exception e) {
+            log.error("Can't find local site", e);
+            throw APIException.badRequests.siteIdNotFound();
+        }
+    }
+
+    /**
+     * @return result that indicates whether local site is removed
+     */
+    @GET
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("/islocalsiteremoved")
+    public SiteRemoved isLocalSiteRemoved() {
+        SiteRemoved response = new SiteRemoved();
+        Site localSite = drUtil.getLocalSite();
+        if (SiteState.ACTIVE == localSite.getState()) {
+            return response;
+        }
+        for (Site remoteSite : drUtil.listSites()) {
+            if (remoteSite.getUuid().equals(localSite.getUuid())) {
+                continue;
+            }
+            try (InternalSiteServiceClient client = new InternalSiteServiceClient(remoteSite, coordinator, apiSignatureGenerator)) {
+                SiteList sites = client.getSiteList();
+                if (!isActiveSite(remoteSite.getUuid(), sites)) {
+                    continue;
+                }
+                if (isSiteContainedBy(localSite.getUuid(), sites)) {
+                    return response;
+                } else {
+                    log.info("According returned result from current active site {}, local site {} has been removed", remoteSite.getUuid(), localSite.getUuid());
+                    response.setIsRemoved(true);
+                    return response;
+                }
+            } catch (Exception e) {
+                log.warn("Error happened when fetching site list from site {}", remoteSite.getUuid(), e);
+                continue;
+            }
+        }
+        return response;
+    }
+
+    private boolean isActiveSite(String siteId, SiteList sites) {
+        for (SiteRestRep site : sites.getSites()) {
+            if (siteId.equals(site.getUuid()) && SiteState.ACTIVE.toString().equals(site.getState())) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**
@@ -494,7 +592,7 @@ public class DisasterRecoveryService {
                 throw APIException.badRequests.siteIdNotFound();
             }
             if (site.getState().equals(SiteState.ACTIVE)) {
-                log.error("Unable to remove this site {}. It is acitve", siteId);
+                log.error("Unable to remove this site {}. It is active", siteId);
                 throw APIException.badRequests.operationNotAllowedOnActiveSite();
             }
             if (site.getState().isDROperationOngoing() && !site.getState().equals(SiteState.STANDBY_SYNCING)) {
@@ -518,7 +616,9 @@ public class DisasterRecoveryService {
 
         try {
             commonPrecheck(siteIdList);
-        } catch (IllegalStateException e) {
+        } catch (APIException e) {
+            throw e;
+        } catch (Exception e) {
             throw APIException.internalServerErrors.removeStandbyPrecheckFailed(SiteNamesStr, e.getMessage());
         }
 
@@ -531,7 +631,7 @@ public class DisasterRecoveryService {
             for (Site site : toBeRemovedSites) {
                 site.setState(SiteState.STANDBY_REMOVING);
                 coordinator.persistServiceConfiguration(site.toConfiguration());
-                recordDrOperationStatus(site);
+                drUtil.recordDrOperationStatus(site.getUuid(), InterState.REMOVING_STANDBY);
                 sitesString.add(site.toBriefString());
             }
             log.info("Notify all sites for reconfig");
@@ -578,6 +678,7 @@ public class DisasterRecoveryService {
         SiteConfigRestRep siteConfigRestRep = new SiteConfigRestRep();
         siteConfigRestRep.setUuid(siteId);
         siteConfigRestRep.setVip(site.getVip());
+        siteConfigRestRep.setVip6(site.getVip6());
         siteConfigRestRep.setSecretKey(new String(Base64.encodeBase64(key.getEncoded()), Charset.forName("UTF-8")));
         siteConfigRestRep.setHostIPv4AddressMap(site.getHostIPv4AddressMap());
         siteConfigRestRep.setHostIPv6AddressMap(site.getHostIPv6AddressMap());
@@ -674,7 +775,7 @@ public class DisasterRecoveryService {
             }
             SiteState state = site.getState();
             if (state.equals(SiteState.ACTIVE)) {
-                log.error("Unable to pause this site {}. It is acitve", siteId);
+                log.error("Unable to pause this site {}. It is active", siteId);
                 throw APIException.badRequests.operationNotAllowedOnActiveSite();
             }
             if (!state.equals(SiteState.STANDBY_SYNCED)) {
@@ -687,10 +788,14 @@ public class DisasterRecoveryService {
 
         // This String is only used to output human readable message to user when Exception is thrown
         String siteNameStr = StringUtils.join(siteNameList, ',');
+        precheckForPause(siteNameStr);
 
         try {
-            commonPrecheck(siteIdList);
-        } catch (IllegalStateException e) {
+            // the site(s) to be paused must be checked as well
+            commonPrecheck();
+        } catch (APIException e) {
+            throw e;
+        } catch (Exception e) {
             throw APIException.internalServerErrors.pauseStandbyPrecheckFailed(siteNameStr, e.getMessage());
         }
 
@@ -706,7 +811,7 @@ public class DisasterRecoveryService {
                 site.setState(SiteState.STANDBY_PAUSING);
                 site.setLastStateUpdateTime(System.currentTimeMillis());
                 coordinator.persistServiceConfiguration(site.toConfiguration());
-                recordDrOperationStatus(site);
+                drUtil.recordDrOperationStatus(site.getUuid(), InterState.PAUSING_STANDBY);
                 sitesString.add(site.toBriefString());
                 // notify the to-be-paused sites before others.
                 drUtil.updateVdcTargetVersion(site.getUuid(), SiteInfo.DR_OP_PAUSE_STANDBY, vdcTargetVersion);
@@ -738,6 +843,21 @@ public class DisasterRecoveryService {
         }
     }
 
+    private void precheckForPause(String siteNames) {
+        PropertyInfo targetProperty = coordinator.getPropertyInfo();
+        String firewallEnabled = targetProperty.getProperty(SYSTEM_ENABLE_FIREWALL);
+        if (firewallEnabled != null && firewallEnabled.equals("no")) {
+            throw APIException.internalServerErrors.pauseStandbyPrecheckFailed(siteNames, "firewall has been disabled." +
+                    "Please make sure to keep it enabled until every standby site has been resumed");
+        }
+
+        String ipsecEnabled = ipsecConfig.getIpsecStatus();
+        if (ipsecEnabled != null && !ipsecEnabled.equals("enabled")) {
+            throw APIException.internalServerErrors.pauseStandbyPrecheckFailed(siteNames, "ipsec has been disabled." +
+                    "Please make sure to keep it enabled until every standby site has been resumed");
+        }
+    }
+
     /**
      * Resume data replication for a paused standby site
      * 
@@ -752,14 +872,25 @@ public class DisasterRecoveryService {
     public SiteRestRep resumeStandby(@PathParam("uuid") String uuid) {
         log.info("Begin to resume data sync to standby site identified by uuid: {}", uuid);
         Site standby = validateSiteConfig(uuid);
-        if (!standby.getState().equals(SiteState.STANDBY_PAUSED)) {
-            log.error("site {} is in state {}, should be STANDBY_PAUSED", uuid, standby.getState());
+        SiteState state = standby.getState();
+        if (!state.equals(SiteState.STANDBY_PAUSED) && !state.equals(SiteState.ACTIVE_DEGRADED)) {
+            log.error("site {} is in state {}, should be STANDBY_PAUSED or ACTIVE_DEGRADED", uuid, standby.getState());
             throw APIException.badRequests.operationOnlyAllowedOnPausedSite(standby.getName(), standby.getState().toString());
         }
+        SiteNetworkState networkState = drUtil.getSiteNetworkState(uuid);
+        if (networkState.getNetworkHealth() == NetworkHealth.BROKEN) {
+            throw APIException.internalServerErrors.siteConnectionBroken(standby.getName(), "Network health state is broken.");
+        }
 
-        try {
-            commonPrecheck(uuid);
-        } catch (IllegalStateException e) {
+        try (InternalSiteServiceClient client = createInternalSiteServiceClient(standby)) {
+            commonPrecheck();
+
+            client.setCoordinatorClient(coordinator);
+            client.setKeyGenerator(apiSignatureGenerator);
+            client.resumePrecheck();
+        } catch (APIException e) {
+            throw e;
+        } catch (Exception e) {
             throw APIException.internalServerErrors.resumeStandbyPrecheckFailed(standby.getName(), e.getMessage());
         }
 
@@ -772,42 +903,30 @@ public class DisasterRecoveryService {
         try {
             coordinator.startTransaction();
             for (Site site : drUtil.listStandbySites()) {
-                long dataRevision = 0;
                 if (site.getUuid().equals(uuid)) {
-                    int gcGracePeriod = DbConfigConstants.DEFAULT_GC_GRACE_PERIOD;
-                    String strVal = dbCommonInfo.getProperty(DbClientImpl.DB_CASSANDRA_INDEX_GC_GRACE_PERIOD);
-                    if (strVal != null) {
-                        gcGracePeriod = Integer.parseInt(strVal);
-                    }
-                    // last state update should be PAUSED
-                    if ((System.currentTimeMillis() - site.getLastStateUpdateTime()) / 1000 >= gcGracePeriod) {
-                        log.error("site {} has been paused for too long, we will re-init the target standby", uuid);
+                    log.error("Re-init the target standby", uuid);
 
-                        // init the to-be resumed standby site
-                        dataRevision = System.currentTimeMillis();
-                        List<Site> standbySites = drUtil.listStandbySites();
-                        SiteConfigParam configParam = prepareSiteConfigParam(standbySites, ipsecConfig.getPreSharedKey(), uuid, dataRevision, vdcTargetVersion, secretKey);
-                        try (InternalSiteServiceClient internalSiteServiceClient = new InternalSiteServiceClient()) {
-                            internalSiteServiceClient.setCoordinatorClient(coordinator);
-                            internalSiteServiceClient.setServer(site.getVipEndPoint());
-                            internalSiteServiceClient.initStandby(configParam);
-                        }
+                    // init the to-be resumed standby site
+                    long dataRevision = System.currentTimeMillis();
+                    List<Site> standbySites = drUtil.listStandbySites();
+                    SiteConfigParam configParam = prepareSiteConfigParam(standbySites, ipsecConfig.getPreSharedKey(),
+                            uuid, dataRevision, vdcTargetVersion, secretKey);
+                    try (InternalSiteServiceClient internalSiteServiceClient = new InternalSiteServiceClient()) {
+                        internalSiteServiceClient.setCoordinatorClient(coordinator);
+                        internalSiteServiceClient.setServer(site.getVipEndPoint());
+                        internalSiteServiceClient.initStandby(configParam);
                     }
 
-                    // update the site state AFTER checking the last state update time
                     site.setState(SiteState.STANDBY_RESUMING);
                     coordinator.persistServiceConfiguration(site.toConfiguration());
-                    recordDrOperationStatus(site);
-                }
-
-                if (dataRevision != 0) {
-                    drUtil.updateVdcTargetVersion(site.getUuid(), SiteInfo.DR_OP_CHANGE_DATA_REVISION, dataRevision, vdcTargetVersion);
+                    drUtil.recordDrOperationStatus(site.getUuid(), InterState.RESUMING_STANDBY);
+                    drUtil.updateVdcTargetVersion(uuid, SiteInfo.DR_OP_CHANGE_DATA_REVISION, vdcTargetVersion, dataRevision);
                 } else {
                     drUtil.updateVdcTargetVersion(site.getUuid(), SiteInfo.DR_OP_RESUME_STANDBY, vdcTargetVersion);
                 }
             }
 
-            // update the local(acitve) site last
+            // update the local(active) site last
             drUtil.updateVdcTargetVersion(coordinator.getSiteId(), SiteInfo.DR_OP_RESUME_STANDBY, vdcTargetVersion);
             coordinator.commitTransaction();
             auditDisasterRecoveryOps(OperationTypeEnum.RESUME_STANDBY, AuditLogManager.AUDITLOG_SUCCESS, AuditLogManager.AUDITOP_BEGIN,
@@ -831,6 +950,55 @@ public class DisasterRecoveryService {
     }
 
     /**
+     * This is internal API to do precheck for resume
+     */
+    @POST
+    @Path("/internal/resumeprecheck")
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    public SiteErrorResponse resumePrecheck() {
+        log.info("Precheck for resume internally");
+
+        SiteErrorResponse response = new SiteErrorResponse();
+        try {
+            precheckForResumeLocalStandby();
+        } catch (APIException e) {
+            log.warn("Failed to precheck switchover", e);
+            response.setErrorMessage(e.getMessage());
+            response.setServiceCode(e.getServiceCode().ordinal());
+            return response;
+        } catch (Exception e) {
+            log.error("Failed to precheck switchover", e);
+            response.setErrorMessage(e.getMessage());
+            return response;
+        }
+
+        return response;
+    }
+
+
+    public void precheckForSiteNumber() {
+        int upperLimit = drUtil.getDrIntConfig(DrUtil.KEY_MAX_NUMBER_OF_DR_SITES, SITE_NUMBER_UPPER_LIMIT);
+        int siteNum = drUtil.listSites().size();
+        if (siteNum >= upperLimit) {
+            throw APIException.internalServerErrors.addStandbyPrecheckFailed(
+                    String.format("The maximum number of DR sites(%d) has been reached. Currently %d sites are configured", upperLimit, siteNum));
+        }
+    }
+
+    private void precheckForResumeLocalStandby() {
+        Site localSite = drUtil.getLocalSite();
+        if (!isClusterStable()) {
+            throw APIException.serviceUnavailable.siteClusterStateNotStable(localSite.getName(),
+                    Objects.toString(coordinator.getControlNodesState()));
+        }
+
+        if (SiteState.STANDBY_PAUSED != localSite.getState() && SiteState.ACTIVE_DEGRADED != localSite.getState()) {
+            throw APIException.internalServerErrors.resumeStandbyPrecheckFailed(localSite.getName(),
+                    "Standby site is not in paused state");
+        }
+    }
+
+    /**
      * Query the latest error message for specific standby site
      * 
      * @param uuid site UUID
@@ -839,7 +1007,7 @@ public class DisasterRecoveryService {
     @POST
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @CheckPermission(roles = { Role.SECURITY_ADMIN, Role.RESTRICTED_SECURITY_ADMIN,
-            Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN, Role.SYSTEM_MONITOR })
+            Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
     @Path("/{uuid}/retry")
     public SiteRestRep retryOperation(@PathParam("uuid") String uuid) {
         log.info("Begin to get site error by uuid {}", uuid);
@@ -861,22 +1029,53 @@ public class DisasterRecoveryService {
             log.error("site {} lastState was {}, retry is only supported for Pause, Resume and Failover", uuid, standby.getLastState());
             throw APIException.badRequests.operationRetryOnlyAllowedOnLastState(standby.getName(), standby.getLastState().toString());
         }
+
+        //Reuse the current action required
+        Site localSite = drUtil.getActiveSite();
+        SiteInfo siteInfo = coordinator.getTargetInfo(localSite.getUuid(),SiteInfo.class);
+        String drOperation = siteInfo.getActionRequired();
+
+        // Check that last action matches retry action
+        if (!drOperation.equals(standby.getLastState().getDRAction())) {
+            log.error("Active site last operation was {}, retry is only supported if no other operations have been performed", drOperation);
+            throw APIException.internalServerErrors.retryStandbyPrecheckFailed(standby.getName(), standby.getLastState().toString(),
+                    String.format("Another DR operation %s has been run on Active site. Only the latest operation can be retried. " +
+                            "This is an unrecoverable Error, please remove site and deploy a new one.",drOperation));
+        }
         
         InterProcessLock lock = drUtil.getDROperationLock();
         try {
 
             coordinator.startTransaction();
             standby.setState(standby.getLastState());
+
+            //Failover requires setting old active site to last state as well.
+            if (standby.getState() == SiteState.STANDBY_FAILING_OVER) {
+               for (Site site: drUtil.listSites()){
+                   if (site.getLastState() == SiteState.ACTIVE_FAILING_OVER){
+                       site.setState(SiteState.ACTIVE_FAILING_OVER);
+                       coordinator.persistServiceConfiguration(site.toConfiguration());
+                   }
+               }
+            }
+
             coordinator.persistServiceConfiguration(standby.toConfiguration());
             log.info("Notify all sites for reconfig");
             long vdcTargetVersion = DrUtil.newVdcConfigVersion();
 
-            //Reuse the current action required
-            SiteInfo siteInfo = coordinator.getTargetInfo(standby.getUuid(),SiteInfo.class);
-            String drOperation = siteInfo.getActionRequired();
-
-            for (Site standbySite : drUtil.listSites()) {
-                drUtil.updateVdcTargetVersion(standbySite.getUuid(), drOperation, vdcTargetVersion);
+            for (Site site : drUtil.listSites()) {
+                String siteUuid = site.getUuid();
+                if (site.getLastState() == SiteState.STANDBY_RESUMING) {
+                    SiteInfo siteTargetInfo = coordinator.getTargetInfo(siteUuid, SiteInfo.class);
+                    drOperation = siteTargetInfo.getActionRequired();
+                    if (drOperation.equals(SiteInfo.DR_OP_CHANGE_DATA_REVISION)) {
+                        long dataRevision = System.currentTimeMillis();
+                        drUtil.updateVdcTargetVersion(siteUuid, drOperation, vdcTargetVersion, dataRevision);
+                        continue;
+                    }
+                }
+                log.info("Set dr operation {} on site {}", drOperation, siteUuid);
+                drUtil.updateVdcTargetVersion(siteUuid, drOperation, vdcTargetVersion);
             }
 
             coordinator.commitTransaction();
@@ -928,10 +1127,10 @@ public class DisasterRecoveryService {
     }
 
     /**
-     * This API will do switchover to target new acitve site according passed in site UUID. After failover, old acitve site will
-     * work as normal standby site and target site will be promoted to acitve. All site will update properties to trigger reconfig.
+     * This API will do switchover to target new active site according passed in site UUID. After failover, old active site will
+     * work as normal standby site and target site will be promoted to active. All site will update properties to trigger reconfig.
      * 
-     * @param uuid target new acitve site UUID
+     * @param uuid target new active site UUID
      * @return return accepted response if operation is successful
      */
     @POST
@@ -979,7 +1178,7 @@ public class DisasterRecoveryService {
                     oldActiveSite.getUuid(), Constants.SWITCHOVER_BARRIER_RESTART));
             restartBarrier.setBarrier();
        
-            recordDrOperationStatus(oldActiveSite);
+            drUtil.recordDrOperationStatus(oldActiveSite.getUuid(), InterState.SWITCHINGOVER_ACTIVE);
 
             // trigger reconfig
             long vdcConfigVersion = System.currentTimeMillis(); // a version for all sites.
@@ -1003,7 +1202,7 @@ public class DisasterRecoveryService {
             log.error(String.format("Error happened when switchover from site %s to site %s", oldActiveUUID, uuid), e);
             coordinator.discardTransaction();
             auditDisasterRecoveryOps(OperationTypeEnum.SWITCHOVER, AuditLogManager.AUDITLOG_FAILURE, null,
-                    newActiveSite.getName(), newActiveSite.getVip());
+                    newActiveSite.getName(), newActiveSite.getVipEndPoint());
             throw APIException.internalServerErrors.switchoverFailed(oldActiveSite.getName(), newActiveSite.getName(), e.getMessage());
         } finally {
             try {
@@ -1022,10 +1221,24 @@ public class DisasterRecoveryService {
     @POST
     @Path("/internal/switchoverprecheck")
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    public void switchoverPrecheck() {
+    public SiteErrorResponse switchoverPrecheck() {
         log.info("Precheck for switchover internally");
 
-        precheckForSwitchoverForLocalStandby();
+        SiteErrorResponse response = new SiteErrorResponse();
+        try {
+            precheckForSwitchoverForLocalStandby();
+        } catch (InternalServerErrorException e) {
+            log.warn("Failed to precheck switchover", e);
+            response.setErrorMessage(e.getMessage());
+            response.setServiceCode(e.getServiceCode().ordinal());
+            return response;
+        } catch (Exception e) {
+            log.error("Failed to precheck switchover", e);
+            response.setErrorMessage(e.getMessage());
+            return response;
+        }
+
+        return response;
     }
     
     /**
@@ -1065,10 +1278,10 @@ public class DisasterRecoveryService {
     }
 
     /**
-     * This API will do failover from standby site. This operation is only allowed when acitve site is down.
-     * After failover, this standby site will be promoted to acitve site.
+     * This API will do failover from standby site. This operation is only allowed when active site is down.
+     * After failover, this standby site will be promoted to active site.
      * 
-     * @param uuid target new acitve site UUID
+     * @param uuid target new active site UUID
      * @return return accepted response if operation is successful
      */
     @POST
@@ -1082,30 +1295,17 @@ public class DisasterRecoveryService {
         precheckForFailoverLocally(uuid);
 
         List<Site> allStandbySites = drUtil.listStandbySites();
-        List<SiteRestRep> responseSiteFromRemote = new ArrayList<SiteRestRep>(allStandbySites.size());
 
         for (Site site : allStandbySites) {
             if (!site.getUuid().equals(uuid)) {
                 try (InternalSiteServiceClient client = new InternalSiteServiceClient(site)) {
                     client.setCoordinatorClient(coordinator);
                     client.setKeyGenerator(apiSignatureGenerator);
-                    FailoverPrecheckResponse precheckResponse = client.failoverPrecheck();
-                    if (precheckResponse != null) {
-                        responseSiteFromRemote.add(precheckResponse.getSite());
-                    } else {
-                        log.warn("Failed to do failover precheck for site {}, ignore it for failover", site.toBriefString());
-                    }
+                    client.failoverPrecheck();
                 } catch (Exception e){
                     log.error("Failed to do failover precheck for site {}, ignore it for failover", site.toBriefString());
                 }
             }
-        }
-
-        SiteRestRep recommendSite = findRecommendFailoverSite(responseSiteFromRemote, currentSite);
-        if (!recommendSite.getUuid().equals(currentSite.getUuid())) {
-            throw APIException.internalServerErrors.failoverPrecheckFailed(currentSite.getName(),
-                    String.format("Another site %s state is %s with latest data. Please failover to site %s",
-                            recommendSite.getName(), recommendSite.getState(), recommendSite.getName()));
         }
 
         try {
@@ -1120,23 +1320,25 @@ public class DisasterRecoveryService {
                 oldActiveSite.setState(SiteState.ACTIVE_FAILING_OVER);
                 coordinator.persistServiceConfiguration(oldActiveSite.toConfiguration());
             }
-            
 
             currentSite.setState(SiteState.STANDBY_FAILING_OVER);
             coordinator.persistServiceConfiguration(currentSite.toConfiguration());
-            recordDrOperationStatus(currentSite);
+            drUtil.recordDrOperationStatus(currentSite.getUuid(), InterState.FAILINGOVER_STANDBY);
 
             long vdcTargetVersion = DrUtil.newVdcConfigVersion();
             //reconfig other standby sites
             for (Site site : allStandbySites) {
                 if (!site.getUuid().equals(uuid)) {
-                    try (InternalSiteServiceClient client = new InternalSiteServiceClient(site)) {
-                        client.setCoordinatorClient(coordinator);
-                        client.setKeyGenerator(apiSignatureGenerator);
-                        client.failover(uuid, oldActiveSite.getUuid(), vdcTargetVersion);
-                    } catch (Exception e){
-                        log.error("Failed to do failover for site {}, ignore it for failover", site.toBriefString());
+                    if (site.getState() == SiteState.STANDBY_SYNCED) {
+                        site.setState(SiteState.STANDBY_PAUSED);
+                        coordinator.persistServiceConfiguration(site.toConfiguration());
+                    } else  if (site.getState() == SiteState.STANDBY_REMOVING) {
+                        site.setState(SiteState.STANDBY_ERROR);
+                        coordinator.persistServiceConfiguration(site.toConfiguration());
                     }
+                    // update the vdc config version on the new active site.
+                    drUtil.updateVdcTargetVersion(site.getUuid(), SiteInfo.DR_OP_FAILOVER, vdcTargetVersion,
+                            oldActiveSite.getUuid(), currentSite.getUuid());
                 }
             }
 
@@ -1146,10 +1348,10 @@ public class DisasterRecoveryService {
                     oldActiveSite.toBriefString(), currentSite.toBriefString());
             return Response.status(Response.Status.ACCEPTED).build();
         } catch (Exception e) {
-            log.error("Error happened when failover at site %s", uuid, e);
+            log.error("Error happened when failover at site {}", uuid, e);
             coordinator.discardTransaction();
             auditDisasterRecoveryOps(OperationTypeEnum.FAILOVER, AuditLogManager.AUDITLOG_FAILURE, null,
-                    currentSite.getName(), currentSite.getVip());
+                    currentSite.getName(), currentSite.getVipEndPoint());
             throw APIException.internalServerErrors.failoverFailed(currentSite.getName(), e.getMessage());
         }
     }
@@ -1220,7 +1422,7 @@ public class DisasterRecoveryService {
             return Response.status(Response.Status.ACCEPTED).build();
         } catch (Exception e) {
             log.error("Error happened when failover at site %s", uuid, e);
-            auditDisasterRecoveryOps(OperationTypeEnum.FAILOVER, AuditLogManager.AUDITLOG_FAILURE, null, uuid, currentSite.getVip(),
+            auditDisasterRecoveryOps(OperationTypeEnum.FAILOVER, AuditLogManager.AUDITLOG_FAILURE, null, uuid, currentSite.getVipEndPoint(),
                     currentSite.getName());
             throw APIException.internalServerErrors.failoverFailed(currentSite.getName(), e.getMessage());
         }
@@ -1269,12 +1471,12 @@ public class DisasterRecoveryService {
             site.setDescription(siteParam.getDescription());
             coordinator.persistServiceConfiguration(site.toConfiguration());
 
-            auditDisasterRecoveryOps(OperationTypeEnum.UPDATE_SITE, AuditLogManager.AUDITLOG_SUCCESS, null, site.getName(), site.getVip(),
+            auditDisasterRecoveryOps(OperationTypeEnum.UPDATE_SITE, AuditLogManager.AUDITLOG_SUCCESS, null, site.getName(), site.getVipEndPoint(),
                     site.getUuid());
             return Response.status(Response.Status.ACCEPTED).build();
         } catch (Exception e) {
             log.error("Error happened when update site %s", uuid, e);
-            auditDisasterRecoveryOps(OperationTypeEnum.UPDATE_SITE, AuditLogManager.AUDITLOG_FAILURE, null, site.getName(), site.getVip(),
+            auditDisasterRecoveryOps(OperationTypeEnum.UPDATE_SITE, AuditLogManager.AUDITLOG_FAILURE, null, site.getName(), site.getVipEndPoint(),
                     site.getUuid());
             throw APIException.internalServerErrors.updateSiteFailed(site.getName(), e.getMessage());
         }
@@ -1290,10 +1492,30 @@ public class DisasterRecoveryService {
     private boolean isDataSynced(Site site) {
         if (site.getState().equals(SiteState.ACTIVE)) {
             return true;
-        } else if (site.getState().equals(SiteState.STANDBY_SYNCED) && !Site.NetworkHealth.BROKEN.equals(site.getNetworkHealth())) {
+        } 
+        
+        if (site.getState().equals(SiteState.STANDBY_SYNCED)) {
+            SiteMonitorResult monitorResult = coordinator.getTargetInfo(site.getUuid(), SiteMonitorResult.class);
+            if (monitorResult != null && monitorResult.getDbQuorumLostSince() > 0) {
+                return false;
+            }
             return true;
         }
         return false;
+    }
+
+    private Date getLastSyncTime(Site site) {
+        if (site.getState() == SiteState.STANDBY_PAUSED) {
+            return new Date(site.getLastStateUpdateTime());
+        } 
+
+        SiteMonitorResult monitorResult = coordinator.getTargetInfo(site.getUuid(), SiteMonitorResult.class);
+        if (monitorResult != null && monitorResult.getDbQuorumLostSince() > 0) {
+            return new Date(monitorResult.getDbQuorumLostSince());
+        } else if (site.getState() == SiteState.STANDBY_DEGRADED) {
+            return new Date(site.getLastLostQuorumTime());
+        }
+        return null;
     }
 
     /**
@@ -1315,15 +1537,15 @@ public class DisasterRecoveryService {
             Site standby = drUtil.getSiteFromLocalVdc(uuid);
 
             standbyDetails.setCreationTime(new Date(standby.getCreationTime()));
-            standbyDetails.setNetworkLatencyInMs(standby.getNetworkLatencyInMs());
-            if (standby.getState().equals(SiteState.STANDBY_PAUSED) ||
-                    standby.getState().equals(SiteState.STANDBY_DEGRADED)) {
-                standbyDetails.setPausedTime(new Date(standby.getLastStateUpdateTime()));
+            Double latency = drUtil.getSiteNetworkState(uuid).getNetworkLatencyInMs();
+            standbyDetails.setNetworkLatencyInMs(latency);
+            Date lastSyncTime = getLastSyncTime(standby);
+            if (lastSyncTime != null) {
+                standbyDetails.setLastSyncTime(lastSyncTime);
             }
-
             standbyDetails.setDataSynced(isDataSynced(standby));
 
-            ClusterInfo.ClusterState clusterState = coordinator.getControlNodesState(standby.getUuid(), standby.getNodeCount());
+            ClusterInfo.ClusterState clusterState = coordinator.getControlNodesState(standby.getUuid());
             if(clusterState != null) {
                 standbyDetails.setClusterState(clusterState.toString());
             }
@@ -1331,6 +1553,7 @@ public class DisasterRecoveryService {
                 standbyDetails.setClusterState(ClusterInfo.ClusterState.UNKNOWN.toString());
             }
 
+            standbyDetails.setSiteState(standby.getState().toString());
         } catch (CoordinatorException e) {
             log.error("Can't find site {} from ZK", uuid);
             throw APIException.badRequests.siteIdNotFound();
@@ -1349,29 +1572,16 @@ public class DisasterRecoveryService {
     }
 
     /**
-     * Record new DR operation
-     * 
-     * @param site
-     */
-    private void recordDrOperationStatus(Site site) {
-        DrOperationStatus operation = new DrOperationStatus();
-        operation.setSiteUuid(site.getUuid());
-        operation.setSiteState(site.getState());
-        coordinator.persistServiceConfiguration(operation.toConfiguration());
-        log.info("DR operation status has been recorded: {}", operation.toString());
-    }
-
-    /**
      * Common precheck logic for DR operations.
      *
      * @param excludedSiteIds, site ids to exclude from the cluster state precheck
      */
     private void commonPrecheck(List<String> excludedSiteIds) {
         if (drUtil.isStandby()) {
-            throw new IllegalStateException("Operation is allowed on acitve site only");
+            throw APIException.badRequests.operationOnlyAllowedOnActiveSite();
         }
         if (!isClusterStable()) {
-            throw new IllegalStateException("Cluster is not stable");
+            throw APIException.serviceUnavailable.clusterStateNotStable();
         }
 
         for (Site site : drUtil.listStandbySites()) {
@@ -1379,29 +1589,26 @@ public class DisasterRecoveryService {
                 continue;
             }
             // don't check node state for paused sites.
-            if (site.getState().equals(SiteState.STANDBY_PAUSED)) {
+            if (site.getState().equals(SiteState.STANDBY_PAUSED) || site.getState().equals(SiteState.ACTIVE_DEGRADED)) {
                 continue;
             }
             int nodeCount = site.getNodeCount();
-            ClusterInfo.ClusterState state = coordinator.getControlNodesState(site.getUuid(), nodeCount);
-            if (state != ClusterInfo.ClusterState.STABLE) {
-                log.error("Site {} is not stable {}", site.getUuid(), state);
-                throw new IllegalStateException(String.format("Site %s is not stable", site.getName()));
+
+            ClusterInfo.ClusterState state = coordinator.getControlNodesState(site.getUuid());
+            // state could be null
+            if (!ClusterInfo.ClusterState.STABLE.equals(state)) {
+                log.error("Site {} is not stable {}", site.getUuid(), Objects.toString(state));
+                throw APIException.serviceUnavailable.siteClusterStateNotStable(site.getName(), Objects.toString(state));
             }
         }
     }
 
     /**
-     * Wrapper for commonPrecheck that takes a single site instead of a list
+     * Wrapper for commonPrecheck that enforce precheck on all sites
      *
-     * @param excludedSiteId, site id to be excluded from the cluster state precheck, check all if set to null.
      */
-    private void commonPrecheck(String excludedSiteId) {
-        List<String> excludedSiteIds = new ArrayList<>();
-        if (excludedSiteId != null) {
-            excludedSiteIds.add(excludedSiteId);
-        }
-        commonPrecheck(excludedSiteIds);
+    private void commonPrecheck() {
+        commonPrecheck(new ArrayList<String>());
     }
 
     private Site validateSiteConfig(String uuid) {
@@ -1429,7 +1636,7 @@ public class DisasterRecoveryService {
     /*
      * Internal method to check whether standby can be attached to current active site
      */
-    protected void precheckForStandbyAdd(SiteConfigRestRep standby) {
+    protected void precheckForStandbyAdd(SiteConfigRestRep standby, ViPRCoreClient viprCoreClient) {
         if (!isClusterStable()) {
             throw APIException.internalServerErrors.addStandbyPrecheckFailed("Current site is not stable");
         }
@@ -1459,30 +1666,56 @@ public class DisasterRecoveryService {
         }
 
         checkSupportedIPForAttachStandby(standby);
+        
+        checkNATForAttachStandby(viprCoreClient);
+    }
+
+    private void checkNATForAttachStandby(ViPRCoreClient viprCoreClient) {
+        DualInetAddress inetAddress = coordinator.getInetAddessLookupMap().getDualInetAddress();
+        String ipv4 = inetAddress.getInet4();
+        String ipv6 = inetAddress.getInet6();
+
+        log.info("Got local node's IP addresses, IPv4 = {}, IPv6 = {}", ipv4, ipv6);
+
+        DRNatCheckParam checkParam = new DRNatCheckParam();
+        checkParam.setIPv4Address(ipv4);
+        checkParam.setIPv6Address(ipv6);
+        DRNatCheckResponse resp = viprCoreClient.site().checkIfBehindNat(checkParam);
+        if (resp.isBehindNAT()) {
+            throw APIException.internalServerErrors.addStandbyPrecheckFailed(String
+                    .format("The remote site seen this node's IP is %s, which is different from local addresses: %s or %s, it may behind a NAT",
+                            resp.getSeenIp(), ipv4, ipv6));
+        }
     }
 
     protected void checkSupportedIPForAttachStandby(SiteConfigRestRep standby) {
         Site site = drUtil.getLocalSite();
 
         // active has IPv4 and standby has no IPv4
-        if (!isMapEmpty(site.getHostIPv4AddressMap()) && isMapEmpty(standby.getHostIPv4AddressMap())) {
+        if (!isHostIPAddressMapEmpty(site.getHostIPv4AddressMap()) && isHostIPAddressMapEmpty(standby.getHostIPv4AddressMap())) {
             throw APIException.internalServerErrors
                     .addStandbyPrecheckFailed("Unsupported network configuration. Active site has IPv4. Standby site should be IPv4 or dual stack ");
         }
 
-        // active has only IPv6 and standby has no IPv6
-        if (isMapEmpty(site.getHostIPv4AddressMap()) && isMapEmpty(standby.getHostIPv6AddressMap())) {
+        // active has only IPv6 and standby has IPv4
+        if (isHostIPAddressMapEmpty(site.getHostIPv4AddressMap()) && !isHostIPAddressMapEmpty(standby.getHostIPv4AddressMap())) {
             throw APIException.internalServerErrors
-                    .addStandbyPrecheckFailed("Unsupported network configuration. Active site only has IPv6, Standby site should has IPv6 address");
+                    .addStandbyPrecheckFailed("Unsupported network configuration. Active site only has IPv6, Standby site should not has IPv4 address");
         }
     }
 
-    private boolean isMapEmpty(Map<?, ?> map) {
-        if (map == null || map.isEmpty()) {
+    private boolean isHostIPAddressMapEmpty(Map<String, String> map) {
+        if (map == null) {
             return true;
         }
+        
+        for (String ip : map.values()) {
+            if (!PropertyConstants.IPV4_ADDR_DEFAULT.equals(ip) && !PropertyConstants.IPV6_ADDR_DEFAULT.equals(ip)) {
+                return false;
+            }
+        }
 
-        return false;
+        return true;
     }
 
     protected void precheckStandbyVersion(SiteAddParam standby) {
@@ -1503,19 +1736,19 @@ public class DisasterRecoveryService {
         // otherwise the standby site will automatically upgrade/downgrade to the same version with the active site
         if (!currentSoftwareVersion.equals(standbySoftwareVersion)) {
             throw APIException.internalServerErrors.addStandbyPrecheckFailed(String.format(
-                    "Standby site version %s is not equals to current version %s",
+                    "Standby site version %s does not equal to current version %s",
                     standbySoftwareVersion, currentSoftwareVersion));
         }
     }
 
     /*
-     * Internal method to check whether failover from acitve to standby is allowed
+     * Internal method to check whether failover from active to standby is allowed
      */
     protected void precheckForSwitchover(String standbyUuid) {
         Site standby = null;
 
         if (drUtil.isStandby()) {
-            throw new IllegalStateException("Operation is allowed on acitve site only");
+            throw APIException.badRequests.operationOnlyAllowedOnActiveSite();
         }
 
         try {
@@ -1539,7 +1772,7 @@ public class DisasterRecoveryService {
 
         List<Site> existingSites = drUtil.listSites();
         for (Site site : existingSites) {
-            ClusterInfo.ClusterState state = coordinator.getControlNodesState(site.getUuid(), site.getNodeCount());
+            ClusterInfo.ClusterState state = coordinator.getControlNodesState(site.getUuid());
             if (state != ClusterInfo.ClusterState.STABLE) {
                 log.info("Site {} is not stable {}", site.getUuid(), state);
                 throw APIException.internalServerErrors.switchoverPrecheckFailed(site.getName(),
@@ -1551,14 +1784,8 @@ public class DisasterRecoveryService {
     /*
      * Internal method to check whether failover to standby is allowed
      */
-    protected void precheckForFailoverLocally(String standbyUuid) {
+    private void precheckForFailoverLocally(String standbyUuid) {
         Site standby = drUtil.getLocalSite();
-
-        SiteMonitorResult siteMonitorResult = coordinator.getTargetInfo(standby.getUuid(), SiteMonitorResult.class);
-        if (siteMonitorResult == null || siteMonitorResult.isActiveSiteLeaderAlive() || siteMonitorResult.isActiveSiteStable()) {
-            throw APIException.internalServerErrors.failoverPrecheckFailed(standby.getName(),
-                    "Active site is available now, can't do failover");
-        }
 
         // API should be only send to local site
         if (!standby.getUuid().equals(standbyUuid)) {
@@ -1567,40 +1794,44 @@ public class DisasterRecoveryService {
                             standby.getUuid(), standbyUuid));
         }
         
-        // should be SYNCED or PAUSED
-        if (standby.getState() != SiteState.STANDBY_SYNCED && standby.getState() != SiteState.STANDBY_PAUSED) {
+        // should be PAUSED, either marked by itself or user
+        if (standby.getState() != SiteState.STANDBY_PAUSED) {
             throw APIException.internalServerErrors.failoverPrecheckFailed(standby.getName(),
-                    "Only paused or synced standby site can do failover");
+                    "Only paused standby site can do failover");
+        }
+
+        SiteNetworkState networkState = drUtil.getSiteNetworkState(drUtil.getActiveSite().getUuid());
+        if (networkState.getNetworkHealth() != NetworkHealth.BROKEN) {
+            throw APIException.internalServerErrors.failoverPrecheckFailed(standby.getName(),
+                    "Active site is still available");
         }
 
         precheckForFailover();
     }
 
-    protected void precheckForFailover() {
+    void precheckForFailover() {
         Site standby = drUtil.getLocalSite();
         String standbyUuid = standby.getUuid();
         String standbyName = standby.getName();
 
         // show be only standby
         if (drUtil.isActiveSite()) {
-            throw APIException.internalServerErrors.failoverPrecheckFailed(standbyName, "Failover can't be executed in acitve site");
+            throw APIException.badRequests.operationNotAllowedOnActiveSite();
         }
 
         // Current site is stable
-        ClusterInfo.ClusterState state = coordinator.getControlNodesState(standbyUuid, standby.getNodeCount());
+        ClusterInfo.ClusterState state = coordinator.getControlNodesState(standbyUuid);
         if (state != ClusterInfo.ClusterState.STABLE) {
             log.info("Site {} is not stable {}", standby.getName(), state);
             throw APIException.internalServerErrors.failoverPrecheckFailed(standby.getName(),
                     String.format("Site %s is not stable", standby.getName()));
         }
 
-        // this is standby site and NOT in ZK read-only or observer mode,
-        // it means acitve is down and local ZK has been reconfig to participant
-        CoordinatorClientInetAddressMap addrLookupMap = coordinator.getInetAddessLookupMap();
-        String myNodeId = addrLookupMap.getNodeId();
-        String coordinatorMode = drUtil.getLocalCoordinatorMode(myNodeId);
+        // Make sure that the local ZK has been reconfigured to participant
+        // This DOES NOT implies that the active site is unreachable, notably when the local site is manually paused
+        String coordinatorMode = drUtil.getLocalCoordinatorMode();
         log.info("Local coordinator mode is {}", coordinatorMode);
-        if (DrUtil.ZOOKEEPER_MODE_OBSERVER.equals(coordinatorMode) || DrUtil.ZOOKEEPER_MODE_READONLY.equals(coordinatorMode)) {
+        if (coordinatorMode == null || !drUtil.isParticipantNode(coordinatorMode)) {
             log.info("Active site is available now, can't do failover");
             throw APIException.internalServerErrors.failoverPrecheckFailed(standbyName, "Active site is available now, can't do failover");
         }
@@ -1651,7 +1882,7 @@ public class DisasterRecoveryService {
                 continue;
             }
 
-            ClusterInfo.ClusterState state = coordinator.getControlNodesState(site.getUuid(), site.getNodeCount());
+            ClusterInfo.ClusterState state = coordinator.getControlNodesState(site.getUuid());
             if (state != ClusterInfo.ClusterState.STABLE) {
                 log.info("Site {} is not stable {}", site.getUuid(), state);
                 throw APIException.internalServerErrors.addStandbyPrecheckFailed(String.format("Site %s is not stable", site.getName()));
@@ -1709,6 +1940,11 @@ public class DisasterRecoveryService {
             throw APIException.internalServerErrors.failToCreateViPRClient();
         }
     }
+    
+    // encapsulate the create InternalSiteServiceClient operation for easy UT writing because need to mock InternalSiteServiceClient
+    protected InternalSiteServiceClient createInternalSiteServiceClient(Site site) {
+        return new InternalSiteServiceClient(site);
+    }
 
     public void setApiSignatureGenerator(InternalApiSignatureKeyGenerator apiSignatureGenerator) {
         this.apiSignatureGenerator = apiSignatureGenerator;
@@ -1738,11 +1974,6 @@ public class DisasterRecoveryService {
         this.ipsecConfig = ipsecConfig;
     }
 
-    // DBSVC config parameters
-    public void setDbCommonInfo(Properties dbCommonInfo) {
-        this.dbCommonInfo = dbCommonInfo;
-    }
-
     private void startLeaderSelector() {
         LeaderSelector leaderSelector = coordinator.getLeaderSelector(coordinator.getSiteId(), Constants.FAILBACK_DETECT_LEADER,
                 new FailbackLeaderSelectorListener());
@@ -1754,7 +1985,7 @@ public class DisasterRecoveryService {
         Site standby = null;
 
         if (drUtil.isStandby()) {
-            throw new IllegalStateException("Operation is allowed on acitve site only");
+            throw APIException.badRequests.operationOnlyAllowedOnActiveSite();
         }
 
         try {
@@ -1776,9 +2007,15 @@ public class DisasterRecoveryService {
             throw APIException.internalServerErrors.switchoverPrecheckFailed(standby.getName(), "Standby site is not up");
         }
         
-        if (!isClusterStable()) {
-            throw new IllegalStateException("Cluster is not stable");
+        if (coordinator.getControlNodesState(standby.getUuid()) != ClusterInfo.ClusterState.STABLE) {
+            throw APIException.internalServerErrors.switchoverPrecheckFailed(standby.getName(), "Standby site is not stable");
         }
+        
+        if (!isClusterStable()) {
+            throw APIException.internalServerErrors.switchoverPrecheckFailed(standby.getName(), "Active site is not stable");
+        }
+        
+        checkSiteConnectivity(standby);
         
         List<Site> existingSites = drUtil.listStandbySites();
         for (Site site : existingSites) {
@@ -1786,7 +2023,7 @@ public class DisasterRecoveryService {
                 throw APIException.internalServerErrors.switchoverPrecheckFailed(site.getName(), "Standby site is not synced or paused");
             }
             
-            ClusterInfo.ClusterState state = coordinator.getControlNodesState(site.getUuid(), site.getNodeCount());
+            ClusterInfo.ClusterState state = coordinator.getControlNodesState(site.getUuid());
             if (site.getState() != SiteState.STANDBY_PAUSED && state != ClusterInfo.ClusterState.STABLE) {
                 log.info("Site {} is not stable {}", site.getUuid(), state);
                 throw APIException.internalServerErrors.switchoverPrecheckFailed(site.getName(),
@@ -1794,15 +2031,26 @@ public class DisasterRecoveryService {
             }
         }
     }
-    
+
     private void precheckForSwitchoverForLocalStandby() {
         if (!isClusterStable()) {
-            throw new IllegalStateException("Cluster is not stable");
+            throw APIException.serviceUnavailable.clusterStateNotStable();
         }
-        
+
         Site currentSite = drUtil.getLocalSite();
         if (currentSite.getState() != SiteState.STANDBY_SYNCED && currentSite.getState() != SiteState.STANDBY_PAUSED) {
             throw APIException.internalServerErrors.switchoverPrecheckFailed(currentSite.getName(), "Standby site is not synced or paused state");
+        }
+    }
+    
+    private void checkSiteConnectivity(Site site) {
+        SiteNetworkState networkState = drUtil.getSiteNetworkState(site.getUuid());
+        if (networkState.getNetworkHealth() == NetworkHealth.BROKEN) {
+            throw APIException.internalServerErrors.siteConnectionBroken(site.getName(), "Network health state is broken.");
+        }
+        
+        if (drUtil.testPing(site.getVip(), SITE_CONNECTION_TEST_PORT, SITE_CONNECT_TEST_TIMEOUT) == -1) {
+            throw APIException.internalServerErrors.siteConnectionBroken(site.getName(), String.format("Can't connect to site by virtual IP: %s", site.getVip()));
         }
     }
 
@@ -1834,44 +2082,49 @@ public class DisasterRecoveryService {
         }
     }
 
+    private boolean isSiteContainedBy(String siteId, SiteList sites) {
+        for (SiteRestRep site : sites.getSites()) {
+            if (siteId.equals(site.getUuid())) {
+                return true;
+            }
+        }
+        log.info("Site {} is removed", siteId);
+        return false;
+    }
+
     private Runnable failbackDetectMonitor = new Runnable() {
 
         @Override
         public void run() {
             try {
-                if (!needCheckFailback()) {
+                if (!needCheckFailback() || !isLocalSiteDiscarded()) {
+                    log.info("No need to check failback locally or there's no remote active site, return");
+                    return;
+                }
+
+                if(!resetActiveSite()) {
+                    log.error("Failed to reset active site status info");
                     return;
                 }
 
                 Site localSite = drUtil.getLocalSite();
-                for (Site site : drUtil.listStandbySites()) {
-                    if (drUtil.isSiteUp(site.getUuid())) {
-                        log.info("Site {} is up, ignore to check it", site.getUuid());
-                        continue;
-                    } else {
-                        if (hasActiveSiteInRemote(site, localSite.getUuid())) {
-                            localSite.setState(SiteState.ACTIVE_DEGRADED);
-                            coordinator.persistServiceConfiguration(localSite.toConfiguration());
-                            // At this moment this site is disconnected with others, so ok to have own vdc version.
-                            drUtil.updateVdcTargetVersion(coordinator.getSiteId(), SiteInfo.DR_OP_FAILBACK_DEGRADE, DrUtil.newVdcConfigVersion());
-                            return;
-                        }
-                    }
-                }
+                localSite.setState(SiteState.ACTIVE_DEGRADED);
+                coordinator.persistServiceConfiguration(localSite.toConfiguration());
+                // At this moment this site is disconnected with others, so ok to have own vdc version.
+                drUtil.updateVdcTargetVersion(coordinator.getSiteId(), SiteInfo.DR_OP_FAILBACK_DEGRADE, DrUtil.newVdcConfigVersion());
 
-                log.info("No another active site detect for failback");
             } catch (Exception e) {
-                log.error("Error occurs during failback detect monitor", e);
+                log.error("Error occured during failback detect monitor", e);
             }
         }
 
         private boolean needCheckFailback() {
-            if (drUtil.getLocalSite().getState().equals(SiteState.ACTIVE)) {
-                log.info("Current site is active site, need to detail failback");
+            Site localSite = drUtil.getLocalSite();
+            if (localSite.getState().equals(SiteState.ACTIVE)) {
+                log.info("Current site is active site, need to check failback");
                 return true;
             }
 
-            Site localSite = drUtil.getLocalSite();
             if (localSite.getState().equals(SiteState.ACTIVE_DEGRADED)) {
                 log.info("Site is already ACTIVE_FAILBACK_DEGRADED");
                 if (!coordinator.locateAllServices(localSite.getUuid(), "controllersvc", "1", null, null).isEmpty()) {
@@ -1890,39 +2143,96 @@ public class DisasterRecoveryService {
                 }
             }
 
+            log.info("Current site is not active, and there is no alive controllersvc/sasvc/vasasvc, so no need to check failback");
             return false;
         }
 
-        private boolean hasActiveSiteInRemote(Site site, String localActiveSiteUUID) {
-            
-            try (InternalSiteServiceClient client = new InternalSiteServiceClient(site)) {
-                boolean hasActiveSite = false;
-                
-                client.setCoordinatorClient(coordinator);
-                client.setKeyGenerator(apiSignatureGenerator);
-                SiteList remoteSiteList = client.getSiteList();
-
-                for (SiteRestRep siteResp : remoteSiteList.getSites()) {
-                    if (SiteState.ACTIVE.toString().equalsIgnoreCase(siteResp.getState())
-                            && !localActiveSiteUUID.equals(siteResp.getUuid())) {
-                        log.info("Remote site {} is active site, need to failback", siteResp);
-                        hasActiveSite = true;
-                    }
-                    
-                    //these codes will handle the case:
-                    //A as old active is down. B is up and C is down too.
-                    //Failover to B successfully. Power up A and C. B may query C and found there is another active site A and B failback
-                    if (localActiveSiteUUID.equals(siteResp.getUuid())) {
-                        log.info("Remote standby still reconganize me, no failback");
-                        return false;
-                    }
+        /**
+         * @return true when Local site is in ACTIVE_DEGRADED state or can't be found according returned result from other site
+         */
+        private boolean isLocalSiteDiscarded() {
+            String localSiteId = drUtil.getLocalSite().getUuid();
+            for (Site remoteSite : drUtil.listStandbySites()) {
+                if (drUtil.isSiteUp(remoteSite.getUuid()) || remoteSite.getState() == SiteState.ACTIVE_DEGRADED) {
+                    log.info("Site {} is up or in ACTIVE_DEGRADED state, skip checking it", remoteSite.getUuid());
+                    continue;
                 }
-
-                return hasActiveSite;
-            } catch (Exception e) {
-                log.warn("Failed to check remote site information during failback detect", e);
-                return false;
+                try (InternalSiteServiceClient client = new InternalSiteServiceClient(remoteSite, coordinator, apiSignatureGenerator)) {
+                    SiteList sites = client.getSiteList();
+                    if (!isSiteContainedBy(localSiteId, sites) || isSiteDegraded(localSiteId, sites)) {
+                        log.info("Local site {} is in ACTIVE_DEGRADED state or removed according data returned from site {}", localSiteId, remoteSite.getUuid());
+                        return true;
+                    }
+                } catch (Exception e) {
+                    log.warn("Failed to check remote site information during failback detect", e);
+                    continue;
+                }
             }
+            return false;
+        }
+
+        /*
+         * reset the new active site's status info in the local active_degraded site (old active site)
+         */
+        private boolean resetActiveSite() {
+            String localSiteId = drUtil.getLocalSite().getUuid();
+            for (Site remoteSite : drUtil.listStandbySites()) {
+                if (drUtil.isSiteUp(remoteSite.getUuid()) || remoteSite.getState() == SiteState.ACTIVE_DEGRADED) {
+                    log.info("Site {} is up or in ACTIVE_DEGRADED state, skip checking it", remoteSite.getUuid());
+                    continue;
+                }
+                try (InternalSiteServiceClient client = new InternalSiteServiceClient(remoteSite, coordinator, apiSignatureGenerator)) {
+                    SiteList sites = client.getSiteList();
+
+                    String remoteSite_status ="";
+                    String localSite_status = SiteState.ACTIVE_DEGRADED.toString();
+                    for (SiteRestRep site : sites.getSites()) {
+                        if (remoteSite.getUuid().equals(site.getUuid())) {
+                            remoteSite_status = site.getState();
+                        }
+                        if (localSiteId.equals(site.getUuid())) {
+                            localSite_status = site.getState();
+                        }
+                    }
+
+                    if (SiteState.ACTIVE_DEGRADED.toString().equals(localSite_status) &&
+                        SiteState.ACTIVE.toString().equals(remoteSite_status)) {
+                        log.info("Local site {} is in ACTIVE_DEGRADED state according data returned from site {}", localSiteId, remoteSite.getUuid());
+                        log.info("Remote site {} is in ACTIVE state according data returned from site {}", remoteSite.getUuid(), remoteSite.getUuid());
+
+                        log.info("Setting active site status information in the local active degraded site");
+                        Site newActiveSite = drUtil.getSiteFromLocalVdc(remoteSite.getUuid());
+                        newActiveSite.setState(SiteState.ACTIVE);
+                        coordinator.persistServiceConfiguration(newActiveSite.toConfiguration());
+
+                        return true;
+                    }
+                } catch (Exception e) {
+                    log.warn("Failed to set active site information in the local active degraded site", e);
+                    continue;
+                }
+            }
+            return false;
+        }
+
+        private boolean isSiteContainedBy(String siteId, SiteList sites) {
+            for (SiteRestRep site : sites.getSites()) {
+                if (siteId.equals(site.getUuid())) {
+                    return true;
+                }
+            }
+            log.info("Site {} is removed", siteId);
+            return false;
+        }
+
+        private boolean isSiteDegraded(String siteId, SiteList sites) {
+            for (SiteRestRep site : sites.getSites()) {
+                if (siteId.equals(site.getUuid()) && SiteState.ACTIVE_DEGRADED.toString().equals(site.getState())) {
+                    log.info("Site {} is ACTIVE_DEGRADED", siteId);
+                    return true;
+                }
+            }
+            return false;
         }
 
     };

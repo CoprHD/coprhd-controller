@@ -50,7 +50,7 @@ public class SchedulePolicy extends DiscoveredDataObject {
     private StringSet assignedResources;
 
     public static enum SchedulePolicyType {
-        snapshot
+        file_snapshot
     }
 
     public static enum ScheduleFrequency {

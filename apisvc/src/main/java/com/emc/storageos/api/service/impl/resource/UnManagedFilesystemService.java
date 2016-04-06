@@ -788,9 +788,15 @@ public class UnManagedFilesystemService extends TaggedResource {
      */
 
     private boolean doesStoragePortExistsInVArray(StoragePort umfsStoragePort, VirtualArray virtualArray) {
+<<<<<<< HEAD
 
         List<URI> virtualArrayPorts = returnAllPortsInVArray(virtualArray.getId());
 
+=======
+
+        List<URI> virtualArrayPorts = returnAllPortsInVArray(virtualArray.getId());
+
+>>>>>>> master
         if (virtualArrayPorts.contains(umfsStoragePort.getId())) {
             return true;
         }
@@ -824,8 +830,11 @@ public class UnManagedFilesystemService extends TaggedResource {
 
             URI uri = (URI) extParam[0];
             recordBourneFileSystemEvent(dbClient, evType, status, evDesc, uri);
+<<<<<<< HEAD
             
             recordFileSystemOperation(dbClient, opType, status, extParam);
+=======
+>>>>>>> master
 
         } catch (Exception e) {
             _logger.error("Failed to record filesystem operation {}, err:", opType.toString(), e);

@@ -5,7 +5,6 @@
 package com.emc.storageos.api.service.impl.resource.snapshot;
 
 import java.net.URI;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -15,24 +14,18 @@ import com.emc.storageos.api.service.authorization.PermissionsHelper;
 import com.emc.storageos.api.service.impl.resource.fullcopy.BlockFullCopyManager;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.db.client.DbClient;
-import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
-import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.BlockObject;
-import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.BlockSnapshotSession;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringSet;
-import com.emc.storageos.db.client.model.Volume;
-import com.emc.storageos.db.client.model.util.BlockConsistencyGroupUtils;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.model.block.VolumeDeleteTypeEnum;
+import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.volumecontroller.BlockController;
-
-import static com.emc.storageos.db.client.util.NullColumnValueGetter.isNullURI;
 
 /**
  * Block snapshot session implementation for volumes a VMAX3 systems.
@@ -187,12 +180,12 @@ public class VMAX3BlockSnapshotSessionApiImpl extends DefaultBlockSnapshotSessio
      */
     @Override
     public void unlinkTargetVolumesFromSnapshotSession(BlockObject snapSessionSourceObj, BlockSnapshotSession snapSession,
-            Map<URI, Boolean> snapshotDeletionMap, String taskId) {
+            Map<URI, Boolean> snapshotDeletionMap, OperationTypeEnum opType, String taskId) {
         // Invoke the BlockDeviceController to unlink the targets
         // from the snapshot session.
         StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, snapSessionSourceObj.getStorageController());
         BlockController controller = getController(BlockController.class, storageSystem.getSystemType());
-        controller.unlinkTargetsFromSnapshotSession(storageSystem.getId(), snapSession.getId(), snapshotDeletionMap, taskId);
+        controller.unlinkTargetsFromSnapshotSession(storageSystem.getId(), snapSession.getId(), snapshotDeletionMap, opType, taskId);
     }
 
     /**

@@ -159,7 +159,7 @@ public class ScaleIOSnapshotOperations extends DefaultSnapshotOperations {
 
             scaleIOHandle.removeConsistencyGroupSnapshot(blockSnapshot.getSnapsetLabel());
 
-            List<BlockSnapshot> groupSnapshots = ControllerUtils.getBlockSnapshotsBySnapsetLabelForProject(blockSnapshot, dbClient);
+            List<BlockSnapshot> groupSnapshots = ControllerUtils.getSnapshotsPartOfReplicationGroup(blockSnapshot, dbClient);
             for (BlockSnapshot groupSnapshot : groupSnapshots) {
                 Volume parent = dbClient.queryObject(Volume.class, groupSnapshot.getParent().getURI());
                 poolsToUpdate.add(parent.getPool());

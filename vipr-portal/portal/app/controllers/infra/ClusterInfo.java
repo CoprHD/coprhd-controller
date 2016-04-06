@@ -174,6 +174,25 @@ public class ClusterInfo extends Controller {
         return isEnabled;
     }
 
+    /**
+     * If it is a DR Multi-sites, then N/W re-configure should not be available.
+     * 
+     * @return Returns true if for DR Multi-sites.
+     */
+    public static boolean isDRMultisites() {
+        boolean isEnabled = false;
+        try {
+            if (PlatformUtils.hasMultipleSites()) {
+                isEnabled = true;
+            }
+        } catch (IllegalStateException ise) {
+            // Thrown if method could not determine platform.
+            Logger.warn("Could not Disaster Recovery environments.");
+        }
+
+        return isEnabled;
+    }
+
     // "Suppressing Sonar violation of Field names should comply with naming convention"
     @SuppressWarnings("squid:S00116")
     public static class ClusterIpInfoForm {

@@ -7,10 +7,10 @@ package com.emc.storageos.storagedriver.model;
 
 public class StorageVolume extends StorageBlockObject {
 
-    // storage system of this volume. Type: Input.
+    // storage system native id of this volume. Type: Input.
     private String storageSystemId;
 
-    // storage pool of this volume. Type: Input.
+    // storage pool native id of this volume. Type: Input.
     private String  storagePoolId;
 
     // Requested capacity of storage volume in bytes. Type: Input.
@@ -82,6 +82,11 @@ public class StorageVolume extends StorageBlockObject {
 
     public void setThinlyProvisioned(Boolean thinlyProvisioned) {
         this.thinlyProvisioned = thinlyProvisioned;
+    }
+
+    @Override
+    public String toString() {
+        return "StorageVolume-"+storageSystemId+"-" + getDisplayName()+"-"+getNativeId();
     }
 
 }

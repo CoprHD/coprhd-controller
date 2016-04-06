@@ -100,6 +100,9 @@ public class GeoClientCacheManager {
     }
 
     private VirtualDataCenter lookupVdc(String shortVdcId) {
+        // to refresh the cache in case it's called after a new VDC added.
+        dbClient.invalidateVdcUrnCache();
+        
         URI vdcURN = dbClient.getVdcUrn(shortVdcId);
         // TODO: convert to the appropriate ViPR exception
         if (vdcURN == null) {

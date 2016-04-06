@@ -1,0 +1,18 @@
+{
+  baseKey:"RemoveResourcesFromMobilityGroup.Migration",
+  serviceId:"RemoveResourcesFromMobilityGroup",
+  roles: [
+    "SYSTEM_ADMIN"
+  ],
+  fields:{
+  
+    mobilityGroup:{
+      type:"assetType.vipr.mobilityGroup"
+    },
+    
+    mobilityGroupResources:{
+      type:"assetType.vipr.removeMobilityGroupResource",
+      select: "many"
+    }
+  }
+}

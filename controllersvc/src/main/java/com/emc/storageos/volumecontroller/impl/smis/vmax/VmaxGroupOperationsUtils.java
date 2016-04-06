@@ -31,6 +31,7 @@ import com.emc.storageos.volumecontroller.impl.smis.SmisConstants;
 import com.emc.storageos.volumecontroller.impl.smis.SmisConstants.SYNC_TYPE;
 import com.emc.storageos.volumecontroller.impl.smis.SmisException;
 import com.emc.storageos.volumecontroller.impl.smis.SmisUtils;
+import com.emc.storageos.volumecontroller.impl.utils.ConsistencyGroupUtils;
 
 /**
  * Utils for consistency group related operations for snapshot and clone
@@ -81,6 +82,7 @@ public class VmaxGroupOperationsUtils {
             CIMObjectPath cgPath = cimPath.getReplicationGroupPath(storage, groupName);
             CIMObjectPath replicationSvc = cimPath.getControllerReplicationSvcPath(storage);
             CIMInstance replicaSettingData = null;
+            CIMObjectPath targetPoolPath = null;
             if (syncType == SYNC_TYPE.CLONE && storage.checkIfVmax3() && ControllerUtils.isVmaxUsing81SMIS(storage, dbClient)) {
                 /**
                  * VMAX3 using SMI 8.1 provider needs to send DesiredCopyMethodology=32770
@@ -104,10 +106,12 @@ public class VmaxGroupOperationsUtils {
                 replicaSettingData = ReplicationUtils.getReplicationSettingForGroupMirrors(storage, helper, cimPath);
             } else {
                 replicaSettingData = ReplicationUtils.getReplicationSettingForGroupSnapshots(storage, helper, cimPath, thinProvisioning);
+                targetPoolPath = ReplicationUtils.getTargetPoolForVPSnapCreation(storage, groupName, null, thinProvisioning, dbClient,
+                        helper, cimPath);
             }
 
             CIMArgument[] inArgs = helper.getCreateGroupReplicaInputArgumentsForVMAX(storage, cgPath, createInactive, replicaLabel,
-                    targetGroupPath,
+                    targetGroupPath, targetPoolPath,
                     replicaSettingData, syncType);
             CIMArgument[] outArgs = new CIMArgument[5];
             helper.invokeMethod(storage, replicationSvc, CREATE_GROUP_REPLICA, inArgs, outArgs);
@@ -171,7 +175,7 @@ public class VmaxGroupOperationsUtils {
             final SmisCommandHelper helper,
             final CIMObjectPathFactory cimPath) throws Exception {
         boolean isSuccess = false;
-        String groupName = helper.getSourceConsistencyGroupName(sourceVolume);
+        String groupName = ConsistencyGroupUtils.getSourceConsistencyGroupName(sourceVolume, dbClient);
         String replicaGroupName = blockObj.getReplicationGroupInstance();
         CIMObjectPath groupSynchronized = cimPath.getGroupSynchronizedPath(storage, groupName, replicaGroupName);
         CIMArgument[] inArgs = null;

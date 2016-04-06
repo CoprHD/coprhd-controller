@@ -58,6 +58,7 @@
         <entry key="Metering-vnxfile" value="metering-vnxfile-context.xml" />
         <entry key="Metering-isilon" value="metering-block-context.xml" />
         <entry key="Metering-netapp" value="metering-block-context.xml" />
+        <entry key="Metering-netappc" value="metering-block-context.xml" />
         <entry key="Metering-vplex" value="metering-block-context.xml" />
 		<entry key="Metering-hds" value="metering-hds-context.xml" />
 		<entry key="Metering-openstack" value="discovery-cinder-context.xml" />

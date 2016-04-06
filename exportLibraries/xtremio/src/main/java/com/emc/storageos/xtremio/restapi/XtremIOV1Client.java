@@ -284,10 +284,7 @@ public class XtremIOV1Client extends XtremIOClient {
         initiatorCreate.setInitiatorGroup(igId);
         initiatorCreate.setName(initiatorName);
         initiatorCreate.setPortAddress(portAddress);
-        if (null != os) {
-            initiatorCreate.setOperatingSystem(os);
-        }
-
+        // OS is not supported for V1 Client hence not setting.
         log.info("Calling Initiator Create with: {}", initiatorCreate.toString());
 
         ClientResponse response = post(XtremIOConstants.XTREMIO_INITIATORS_URI,
@@ -488,7 +485,8 @@ public class XtremIOV1Client extends XtremIOClient {
     }
 
     @Override
-    public XtremIOResponse refreshSnapshotFromCG(String clusterName, String cgName, String snapshotName) throws Exception {
+    public XtremIOResponse refreshSnapshotFromCG(String clusterName, String cgName, String snapshotName, boolean noBackup)
+            throws Exception {
         throw XtremIOApiException.exceptions.operationNotSupportedForVersion("refreshSnapshotFromCG");
     }
 

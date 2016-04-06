@@ -134,28 +134,35 @@ public class DbBackupHandler extends BackupHandler {
                 cfDirs = (cfDirs == null) ? BackupConstants.EMPTY_ARRAY : cfDirs;
                 for (File cfDir : cfDirs) {
                     File cfBackupFolder = new File(ksBackupFolder, cfDir.getName());
-
-                    // Handles empty Column Family
-                    String[] cfSubFileList = cfDir.list(new FilenameFilter() {
-                        @Override
-                        public boolean accept(File dir, String name) {
-                            return name.endsWith(DB_SSTABLE_TYPE);
-                        }
-                    });
-                    if (cfSubFileList == null || cfSubFileList.length == 0) {
-                        cfBackupFolder.mkdir();
-                        continue;
-                    }
                     File snapshotFolder = new File(cfDir,
                             DB_SNAPSHOT_SUBDIR + File.separator + fullBackupTag);
                     // Filters ignored Column Family
-                    if (ignoreCfList != null && ignoreCfList.contains(cfDir.getName())) {
-                        FileUtils.deleteQuietly(snapshotFolder);
+                    if (ignoreCfList != null) {
+                        String cfName = cfDir.getName();
+                        if (cfDir.getName().contains(BackupConstants.CASSANDRA_CF_NAME_DELIMITER)) {
+                            cfName = cfDir.getName().split(BackupConstants.CASSANDRA_CF_NAME_DELIMITER)[0];
+                        }
+                        if (ignoreCfList.contains(cfName)) {
+                            FileUtils.deleteQuietly(snapshotFolder);
+                            cfBackupFolder.mkdir();
+                            continue;
+                        }
+                    }
+                    if (!snapshotFolder.exists()) {
+                        // Handles stale Column Family
+                        String[] cfSubFileList = cfDir.list(new FilenameFilter() {
+                            @Override
+                            public boolean accept(File dir, String name) {
+                                return name.endsWith(DB_SSTABLE_TYPE);
+                            }
+                        });
+                        if (cfSubFileList == null || cfSubFileList.length == 0) {
+                            log.info("Stale empty cf foler: {}", cfDir.getName());
+                        } else {
+                            log.warn("No snapshot created for cf: {}", cfDir.getName());
+                        }
                         cfBackupFolder.mkdir();
                         continue;
-                    } else if (!snapshotFolder.exists()) {
-                        throw new FileNotFoundException(String.format(
-                                "Can't find snapshot directory: %s", snapshotFolder.getAbsolutePath()));
                     }
                     // Moves snapshot folder and renames it with Column Family name
                     Files.move(snapshotFolder.toPath(), cfBackupFolder.toPath(),

@@ -30,7 +30,7 @@ public class CloneRestoreCompleter extends VolumeTaskCompleter {
 
     @Override
     protected void complete(DbClient dbClient, Operation.Status status, ServiceCoded coded) {
-        _log.info("START FullCopyVolumeCreateCompleter complete");
+        _log.info("START CloneRestoreCompleter complete");
 
         try {
             for (URI clone : getIds()) {
@@ -43,9 +43,7 @@ public class CloneRestoreCompleter extends VolumeTaskCompleter {
                 }
 
             }
-            if (isNotifyWorkflow()) {
-                super.updateWorkflowStatus(status, coded);
-            }
+            super.complete(dbClient, status, coded);
             recordBlockVolumeOperation(dbClient, OperationTypeEnum.RESTORE_VOLUME_FULL_COPY, status,
                     coded != null ? coded.getMessage() : "");
         } catch (Exception e) {

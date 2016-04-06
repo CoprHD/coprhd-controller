@@ -1183,10 +1183,11 @@ angular.module("portalApp").controller("SystemLogsCtrl", function($scope, $http,
     }
 });
 
-angular.module("portalApp").controller("AuditLogCtrl", function($scope, $http, $sce, $cookies) {
+angular.module("portalApp").controller("AuditLogCtrl", function($scope, $http, $sce, $cookies, translate) {
     var APPLY_FILTER = routes.AuditLog_list();
     var DOWNLOAD_LOGS = routes.AuditLog_download();
     var RESULT_STATUS = {
+        '' : 'ALL STATUS',
         'S': 'SUCCESS',
         'F': 'FAILURE'
     };
@@ -1213,6 +1214,7 @@ angular.module("portalApp").controller("AuditLogCtrl", function($scope, $http, $
         $scope.filterDialog = angular.extend({orderTypes: ''}, $scope.filter);
     });
 
+    $scope.filterText = getFilterText();
     $scope.loading = false;
     $scope.error = null;
 
@@ -1226,10 +1228,10 @@ angular.module("portalApp").controller("AuditLogCtrl", function($scope, $http, $
             if (type === 'download') {
                 $scope.filterDialog.endTime = new Date().getTime();
                 $scope.filterDialog.endTime_date = getDate($scope.filterDialog.endTime);
-                $scope.filterDialog.endTime_time = getTime($scope.filterDialog.endTime);
+                $scope.filterDialog.endTime_time = getHour($scope.filterDialog.endTime);
             }
             $scope.filterDialog.startTime_date = getDate($scope.filterDialog.startTime);
-            $scope.filterDialog.startTime_time = getTime($scope.filterDialog.startTime);
+            $scope.filterDialog.startTime_time = getHour($scope.filterDialog.startTime);
         });
     });
 
@@ -1241,8 +1243,7 @@ angular.module("portalApp").controller("AuditLogCtrl", function($scope, $http, $
             resultStatus: $scope.filterDialog.resultStatus,
             serviceType: $scope.filterDialog.serviceType,
             user: $scope.filterDialog.user,
-            keyword: $scope.filterDialog.keyword,
-            triggerByFilter: "true"
+            keyword: $scope.filterDialog.keyword
         };
         var url = APPLY_FILTER + "?" + encodeArgs(args);
         window.location.href = url;
@@ -1274,8 +1275,8 @@ angular.module("portalApp").controller("AuditLogCtrl", function($scope, $http, $
         return millis ? formatDate(millis, "YYYY-MM-DD") : "";
     }
 
-    function getTime(millis) {
-        return millis ? formatDate(millis, "HH:mm") : "";
+    function getHour(millis) {
+        return millis ? formatDate(millis, "HH") : "";
     }
 
     function getDateTime(dateStr, timeStr) {
@@ -1283,6 +1284,13 @@ angular.module("portalApp").controller("AuditLogCtrl", function($scope, $http, $
             return moment(dateStr + " " + timeStr, "YYYY-MM-DD HH:mm").toDate().getTime();
         }
         return null;
+    }
+
+    // Constructs the filter text to display at the top of the page
+    function getFilterText() {
+        var status = RESULT_STATUS[$scope.filter.resultStatus];
+        var startTime = formatDate($scope.filter.startTime, 'YYYY-MM-DD HH:00');
+        return $sce.trustAsHtml(translate("auditLog.filter.filterText", status, startTime));
     }
 
     function encodeArgs(args) {
@@ -1303,14 +1311,29 @@ angular.module("portalApp").controller("AuditLogCtrl", function($scope, $http, $
 });
 
 angular.module("portalApp").controller("ConfigBackupCtrl", function($scope) {
-    angular.element("#backup-time").ready(function () {
-        $scope.$apply(function() {
-            $scope.backup_startTime = getLocalTimeFromOffset($schedulerTimeOffset);
-        });
+    var hint = 'AM and PM';
+    var twicePerDay = '12hour';
 
+    angular.element("#backup-time").ready(function () {
+        $scope.$apply(function () {
+            $scope.backup_startTime = getLocalTimeFromOffset($schedulerTimeOffset);
+            $scope.backup_format = $backup_interval.val();
+        });
     });
-    $scope.$watch('backup_startTime', function() {
+
+    angular.element("#backup-interval").change(function () {
+        var $interval = $backup_interval.val();
+        $scope.backup_format = $interval;
+        withHint($interval);
+        $scope.$apply();
+    });
+
+    $scope.$watch('backup_startTime', function (newVal, oldVal) {
+        if (newVal === undefined || newVal.indexOf(hint) > -1) return;
         setOffsetFromLocalTime($scope.backup_startTime);
+        if (typeof $backup_interval != 'undefined') {
+            withHint($backup_interval.val());
+        }
     });
 
     function getLocalTimeFromOffset(offset) {
@@ -1322,10 +1345,42 @@ angular.module("portalApp").controller("ConfigBackupCtrl", function($scope) {
     }
 
     function setOffsetFromLocalTime(localTime) {
-        var localMoment = moment(localTime, "HH:mm");
-        var utcOffset = parseInt(moment.utc(localMoment.toDate()).format("HHmm"));
-        var $backup_time = $("#backup_scheduler_time");
-        $backup_time.val(utcOffset);
-        checkForm();
+        if ($scope.backup_startTime !== undefined &&
+            $scope.backup_startTime.indexOf(hint) === -1) {
+            var localMoment = moment(localTime, "HH:mm");
+            var utcOffset = parseInt(moment.utc(localMoment.toDate()).format("HHmm"));
+            var $backup_time = $("#backup_scheduler_time");
+            $backup_time.val(utcOffset);
+            checkForm();
+        }
+    }
+
+    function withHint($interval) {
+        if ($scope.backup_startTime !== undefined) {
+            var time = $scope.backup_startTime;
+            if (time.indexOf(hint) === -1 && $interval === twicePerDay) {
+                var hour = getHour(time);
+                if (hour >= 12) {
+                    var newHour = (hour - 12 < 10 ? "0" : "") + (hour - 12);
+                    $scope.backup_startTime = time.replace(hour, newHour) + '\t' + hint;
+                }
+                else {
+                    $scope.backup_startTime = time + '\t' + hint;
+                }
+            }
+            else if (time.indexOf(hint) > -1 && $interval !== twicePerDay) {
+                $scope.backup_startTime = time.replace(hint, '').trim();
+
+            }
+        }
+    }
+
+    function getHour(time) {
+        if (time) {
+            var index = time.indexOf(":");
+            var value = time.substring(0, index);
+            return !isNaN(value) ? Number(value) : 0;
+        }
+        return 0;
     }
 });

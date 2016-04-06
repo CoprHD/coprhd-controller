@@ -392,12 +392,14 @@ def show_parser(subcommand_parsers, common_parser):
                              metavar='<project>',
                              dest='project',
                              help='name of project',
-                             default=None)
+                             default=None ,
+                             required=True)
     mandatory_args.add_argument('-tenant', '-tn',
                              metavar='<tenant>',
                              dest='tenant',
                              help='name of tenant',
-                             default=None)
+                             default=None ,
+                             required=True)
     show_parser.add_argument('-xml',
                              dest='xml',
                              action='store_true',
@@ -530,9 +532,9 @@ def put_bucket_acl_parser(subcommand_parsers, common_parser):
                                 required=True)
     put_bucket_acl_parser.add_argument('-permissions', '-perm',
                                     dest='permissions',
-                                    choices=["execute","delete","write","read","privileged_write","full_control","read_acl","write_acl","none"],
                                     metavar='<permissions>',
-                                    help='Provide permission(s) for Acl with pipe delimited. example: execute|delete|write')
+                                    help='Provide permission(s) for Acl with pipe delimited. example: execute|delete|write|read.' +
+                                    ' Available choices are read,write,execute,delete,privileged_write,full_control,read_acl,write_acl,none.')
     put_bucket_acl_parser.add_argument('-tenant', '-tn',
                                      metavar='<tenantname>',
                                      dest='tenant',

@@ -8,7 +8,9 @@ import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 import java.util.List;
 
-import com.emc.vipr.model.sys.backup.ExternalBackupInfo;
+import com.emc.vipr.model.sys.backup.BackupInfo;
+import com.emc.vipr.model.sys.backup.BackupRestoreStatus;
+
 import play.Logger;
 import util.BackupUtils;
 import util.datatable.DataTable;
@@ -16,6 +18,8 @@ import util.datatable.DataTable;
 import com.emc.vipr.model.sys.backup.BackupSets.BackupSet;
 import com.emc.vipr.model.sys.backup.BackupUploadStatus.Status;
 import com.google.common.collect.Lists;
+
+import controllers.security.Security;
 
 public class BackupDataTable extends DataTable {
     private static final int MINIMUM_PROGRESS = 10;
@@ -30,19 +34,28 @@ public class BackupDataTable extends DataTable {
 
     public BackupDataTable(Type type) {
         addColumn("name");
-        addColumn("creationtime").setCssClass("time").setRenderFunction(
-                "render.localDate");
-        if (type == Type.LOCAL) {
-            addColumn("size").setRenderFunction("render.backupSize");
-        }
+        addColumn("sitename");
+        addColumn("version");
+        addColumn("size");
+        addColumn("creationtime").setSearchable(false).setCssClass("time");
         addColumn("actionstatus").setSearchable(false).setRenderFunction(
                 "render.uploadAndRestoreProgress");
         if (type == Type.LOCAL) {
-            addColumn("action").setSearchable(false).setRenderFunction(
-                    "render.uploadAndRestoreBtn");
+            alterColumn("creationtime").setRenderFunction("render.localDate");
+            alterColumn("size").setRenderFunction("render.backupSize");
+			if (Security.isSystemAdmin() || Security.isRestrictedSystemAdmin()) {
+				addColumn("action").setSearchable(false).setRenderFunction(
+						"render.uploadAndRestoreBtn");
+			}
         } else if (type == Type.REMOTE) {
-            addColumn("action").setSearchable(false).setRenderFunction(
-                    "render.restoreBtn");
+            alterColumn("creationtime").setRenderFunction("render.externalLoading");
+            alterColumn("sitename").setRenderFunction("render.externalLoading");
+            alterColumn("version").setRenderFunction("render.externalLoading");
+            alterColumn("size").setRenderFunction("render.externalLoading");
+			if (Security.isSystemAdmin() || Security.isRestrictedSystemAdmin()) {
+				addColumn("action").setSearchable(false).setRenderFunction(
+						"render.restoreBtn");
+			}
         }
         sortAllExcept("action", "actionstatus");
         setDefaultSort("name", "asc");
@@ -52,13 +65,16 @@ public class BackupDataTable extends DataTable {
     public static List<Backup> fetch(Type type) {
         List<Backup> results = Lists.newArrayList();
         if (type == Type.LOCAL) {
-            for (BackupSet backup : BackupUtils.getBackups()) {
-                results.add(new Backup(backup));
+            for (BackupSet backupSet : BackupUtils.getBackups()) {
+                Backup backup = new Backup(backupSet);
+                BackupInfo backupInfo = BackupUtils.getBackupInfo(backupSet.getName(), true);
+                backup.alterLocalBackupInfo(backupInfo);
+                results.add(backup);
             }
         } else if (type == Type.REMOTE) {
             try {
                 for (String name : BackupUtils.getExternalBackups()) {
-                    results.add(new Backup(name));
+                    results.add(new Backup(name, true));
                 }
             } catch (Exception e) {
                 //should trim the error message, otherwise datatable.js#getErrorMessage will fail to parse the response
@@ -70,6 +86,8 @@ public class BackupDataTable extends DataTable {
 
     public static class Backup {
         public String name;
+        public String version;
+        public String sitename;
         public long creationtime;
         public long size;
         public String id;
@@ -98,21 +116,42 @@ public class BackupDataTable extends DataTable {
                 progress = 100;
             }
             if (status.equals(Status.NOT_STARTED.toString())
-                    || status.equals(Status.FAILED.toString())) {
+                    || status.equals(Status.FAILED.toString())
+                    || status.equals(Status.PENDING.toString())) {
                 action = backup.getName() + "_enable";
             } else {
                 action = backup.getName() + "_disable";
             }
         }
 
-        public Backup(String externalBackupName) {
+        public Backup(String externalBackupName, boolean isSettingLoadingStatus) {
             try {
                 id = URLEncoder.encode(externalBackupName, "UTF-8");
             } catch (UnsupportedEncodingException e) {
                 Logger.error("Could not encode backup name");
             }
             name = externalBackupName;
-            status = "LOADING"; // Async to get the detail backup info
+            // Async to get the detail backup info, so mark loading first
+            if (isSettingLoadingStatus) {
+                status = "LOADING";
+                creationtime = -1; // means Loading
+            }
+        }
+        
+        public void alterLocalBackupRestoreStatus(BackupRestoreStatus restoreStatus) {
+            if (restoreStatus.getStatus() == BackupRestoreStatus.Status.RESTORE_FAILED
+                    || restoreStatus.getStatus() == BackupRestoreStatus.Status.RESTORING) {
+                this.status = restoreStatus.getStatus().name();
+                if (restoreStatus.getStatus() == BackupRestoreStatus.Status.RESTORE_FAILED) {
+                    this.error = restoreStatus.getDetails();
+                }
+            }
+        }
+
+        public void alterLocalBackupInfo(BackupInfo backupInfo) {
+            this.version = backupInfo.getVersion();
+            this.sitename = backupInfo.getSiteName();
+            this.alterLocalBackupRestoreStatus(backupInfo.getRestoreStatus());
         }
     }
 }

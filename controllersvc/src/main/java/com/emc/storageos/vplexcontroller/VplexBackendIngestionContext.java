@@ -53,6 +53,7 @@ public class VplexBackendIngestionContext {
     public static final String DISCOVERY_MODE_DISCOVERY_ONLY = "Only During Discovery";
     public static final String DISCOVERY_MODE_INGESTION_ONLY = "Only During Ingestion";
     public static final String DISCOVERY_MODE_HYBRID = "During Discovery and Ingestion";
+    public static final String DISCOVERY_MODE_DB_ONLY = "Only Use Database";
     public static final String DISCOVERY_FILTER = "controller_vplex_volume_discovery_filter";
     public static final String DISCOVERY_KILL_SWITCH = "controller_vplex_volume_discovery_kill_switch";
     public static final String SLOT_0 = "0";
@@ -352,7 +353,7 @@ public class VplexBackendIngestionContext {
     /**
      * Gets a List of all the backend volume native GUIDs as
      * they would appear in a Volume object (not as in an
-     * UnManagedVolume object.
+     * UnManagedVolume object).
      * 
      * @return a List of all the backend volume native GUIDs
      */

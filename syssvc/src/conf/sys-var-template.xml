@@ -6,7 +6,6 @@
                    http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-3.1.xsd">
 
     <context:property-placeholder location="classpath:syssvc-info.properties" />
-    <import resource="classpath:dbcommon-var.xml"/>
  	
  	<!-- Move it the beginning of this file so that CoordinatorClientExt can be initialized before db client -->
  	<bean id="coordinatorclientext"
@@ -15,10 +14,10 @@
         <property name="serviceBeacon" ref="beacon" />
         <property name="service" ref="serviceinfo" />
         <property name="nodeCount" ref="nodeCount" />
-	<property name="vip" value="${network_vip_effective}" />
+        <property name="vip" value="${network_vip_effective}" />
         <property name="statusChecker" ref="statusChecker"/>
         <property name="drUtil" ref="drUtil"/>
-        <property name="dbCommonInfo" ref="dbcommoninfo"/>
+    	<property name="backCompatPreYoda" ref="backCompatPreYoda"/>
     </bean>
     
     <import resource="classpath:dbclient-conf.xml"/>

@@ -31,8 +31,10 @@ import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
+import com.emc.storageos.coordinator.client.model.SiteState;
 import com.emc.storageos.db.client.model.*;
 import com.emc.storageos.security.helpers.SecurityUtil;
+import com.emc.vipr.model.sys.ClusterInfo;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang.ArrayUtils;
 import org.apache.commons.lang.BooleanUtils;
@@ -259,20 +261,6 @@ public class VirtualDataCenterService extends TaskResourceService {
         if (!id.toString().equalsIgnoreCase(localVdcId)) {
             blockRoot();
         }
-        if (StringUtils.isNotEmpty(param.getApiEndpoint())) {
-            throw APIException.badRequests.parameterNotSupportedFor(
-                    "virtual ip", "update");
-        }
-
-        if (StringUtils.isNotEmpty(param.getSecretKey())) {
-            throw APIException.badRequests.parameterNotSupportedFor(
-                    "secretkey", "update");
-        }
-
-        if (param.getRotateKeyCert() != null) {
-            throw APIException.badRequests.parameterNotSupportedFor(
-                    "key and certification", "update");
-        }
 
         VirtualDataCenter vdc = queryResource(id);
 
@@ -297,16 +285,7 @@ public class VirtualDataCenterService extends TaskResourceService {
         }
 
         List<Object> params = new ArrayList<>();
-        List<Object> list = null;
-        Certificate[] certchain = null;
-        if (param.getRotateKeyCert() != null && param.getRotateKeyCert() == true) {
-            list = prepareKeyCert(param.getKeyCertChain());
-            certchain = (Certificate[]) list.get(2);
-        }
-        params.add(modifyVirtualDataCenterInfo(VdcUtil.getLocalVdc(), vdc, param, certchain));
-        if (list != null) {
-            params.addAll(list);
-        }
+        params.add(modifyVirtualDataCenterInfo(VdcUtil.getLocalVdc(), vdc, param, null));
         auditOp(OperationTypeEnum.UPDATE_VDC, true, null, id.toString());
 
         return enqueueJob(vdc, JobType.VDC_UPDATE_JOB, params);
@@ -535,6 +514,14 @@ public class VirtualDataCenterService extends TaskResourceService {
             throw SecurityException.retryables.updatingKeystoreWhileClusterIsUnstable();
         }
 
+        if (!drUtil.isActiveSite()) {
+            SiteState state = drUtil.getLocalSite().getState();
+            if (state == SiteState.STANDBY_PAUSING ||
+                    state == SiteState.STANDBY_PAUSED || state == SiteState.STANDBY_RESUMING) {
+                throw SecurityException.retryables.failToUpdateKeyStoreDueToStandbyPause();
+            }
+        }
+
         Boolean selfsigned = rotateKeyAndCertParam.getSystemSelfSigned();
 
         byte[] key = null;
@@ -601,8 +588,6 @@ public class VirtualDataCenterService extends TaskResourceService {
                 } catch (CertificateException e) {
                     throw APIException.badRequests.failedToLoadCertificateFromString(
                             newKey.getCertificateChain(), e);
-                } catch (Exception e) {
-                    throw APIException.badRequests.failedToLoadKeyFromString(e);
                 }
             }
 

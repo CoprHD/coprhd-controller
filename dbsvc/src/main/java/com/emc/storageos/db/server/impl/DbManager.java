@@ -280,49 +280,6 @@ public class DbManager implements DbManagerMBean {
                 this.schemaUtil.isGeoDbsvc());
     }
 
-    private Integer getNumTokensToSet() {
-        int nodeCount = StorageService.instance.getLiveNodes().size();
-        // no need to adjust token for single node
-        if (nodeCount == 1) {
-            return null;
-        }
-
-        // num_tokens is changed if current running value is different from what is in .yaml
-        int numTokensEffective = StorageService.instance.getTokens().size();
-        log.info("Current num_tokens running at: {}", numTokensEffective);
-
-        int numTokensExpected;
-        try {
-            Config cfg = new YamlConfigurationLoader().loadConfig();
-            numTokensExpected = cfg.num_tokens;
-        } catch (ConfigurationException e) {
-            log.error("Failed to load yaml file", e);
-            return null;
-        }
-
-        return numTokensExpected != numTokensEffective ? numTokensExpected : null;
-    }
-
-    @Override
-    public boolean adjustNumTokens() throws InterruptedException {
-        Integer numTokensExpected = getNumTokensToSet();
-        if (numTokensExpected != null) {
-            log.info("Decommissioning DB...");
-            try {
-                StorageService.instance.decommission();
-            } catch (Exception e) {
-                log.error("Failed to decommission DB", e);
-                throw e;
-            }
-
-            log.info("Successfully decommissioned db, enable auto bootstrap and set num_token override in ZK for this node");
-            DbServiceImpl.instance.setConfigValue(DbConfigConstants.AUTOBOOT, Boolean.TRUE.toString());
-            DbServiceImpl.instance.setConfigValue(DbConfigConstants.NUM_TOKENS_KEY, numTokensExpected.toString());
-        }
-
-        return numTokensExpected != null;
-    }
-
     public void start() {
         this.scheduledRepairTrigger = this.executor.scheduleWithFixedDelay(new Runnable() {
             @Override

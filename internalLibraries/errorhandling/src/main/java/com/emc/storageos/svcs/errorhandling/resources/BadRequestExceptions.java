@@ -5,21 +5,23 @@
 
 package com.emc.storageos.svcs.errorhandling.resources;
 
-import com.emc.storageos.model.block.export.VolumeParam;
-import com.emc.storageos.svcs.errorhandling.annotations.DeclareServiceCode;
-import com.emc.storageos.svcs.errorhandling.annotations.MessageBundle;
-
 import java.net.URI;
 import java.util.Collection;
 import java.util.List;
 import java.util.Set;
 
+import com.emc.storageos.model.block.export.VolumeParam;
+import com.emc.storageos.svcs.errorhandling.annotations.DeclareServiceCode;
+import com.emc.storageos.svcs.errorhandling.annotations.MessageBundle;
+
 /**
  * This interface holds all the methods used to create an error condition that will be associated
  * with an HTTP status of Bad Request (400)
  * <p/>
- * Remember to add the English message associated to the method in BadRequestExceptions.properties and use the annotation
- * {@link DeclareServiceCode} to set the service code associated to this error condition. You may need to create a new service code if there
+ * Remember to add the English message associated to the method in BadRequestExceptions.properties and use the
+ * annotation
+ * {@link DeclareServiceCode} to set the service code associated to this error condition. You may need to create a new
+ * service code if there
  * is no an existing one suitable for your error condition.
  * <p/>
  * For more information or to see an example, check the Developers Guide section in the Error Handling Wiki page:
@@ -53,7 +55,7 @@ public interface BadRequestExceptions {
     public BadRequestException snapshotsNotSupportedForRPCGs();
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
-    public BadRequestException snapshotsNotSupportedForVNXVRG();
+    public BadRequestException snapshotsNotSupportedForNonRealVNXRG();
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException notAllowedWhenVNXCGHasSnapshot();
@@ -124,7 +126,7 @@ public interface BadRequestExceptions {
             final String unsupportedFor);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
-    public BadRequestException changeToVirtualPoolNotSupported(final URI vpoolId,
+    public BadRequestException changeToVirtualPoolNotSupported(final String vpool,
             final String notSuppReasonBuff);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
@@ -397,12 +399,11 @@ public interface BadRequestExceptions {
             final String parameterValue, final Throwable cause);
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID_RANGE)
-    public BadRequestException invalidParameterAboveMaximum(String string, long size, long minimum,
+    public BadRequestException invalidParameterAboveMaximum(String string, long size, long maximum,
             String unit);
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID_RANGE)
-    public BadRequestException invalidParameterAboveMaximum(String string, double size, double minimum,
-            String unit);
+    public BadRequestException invalidParameterSizeAboveMaximum(String string, String excess, String maximum);
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException invalidParameterAssignedPoolNotInMatchedPools(String poolStr);
@@ -463,10 +464,6 @@ public interface BadRequestExceptions {
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException invalidParameterConsistencyGroupAlreadyContainsVolume(URI volumeURI);
-
-    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
-    public BadRequestException invalidParameterConsistencyGroupCannotAddProtectedVolume(
-            URI volumeURI);
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException invalidParameterConsistencyGroupNotForVplexStorageSystem(
@@ -859,8 +856,8 @@ public interface BadRequestExceptions {
     public BadRequestException failedToLoadKeyFromString(final Throwable e);
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
-    public BadRequestException trustStoreUpdatePartialSuccess(
-            final List<String> failedParse, final List<String> expired, final List<String> notInTrustStore);
+    public BadRequestException trustStoreUpdatePartialSuccess(final int nAdd, final int nFailToAdd, final List<Integer> failedParse, final List<Integer> expired,
+                                                              final int nRemove, final int nFailToRemove, final List<Integer> notInTrustStore);
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID_URI)
     public BadRequestException invalidSeverityInURI(final String severity, final String severities);
@@ -1150,6 +1147,15 @@ public interface BadRequestExceptions {
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException invalidReplicationRPOValue();
+
+    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
+    public BadRequestException noProtectionSettingsProvided();
+
+    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
+    public BadRequestException moreThanVpoolRpo();
+
+    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
+    public BadRequestException lessRPOThanVpoolRpo();
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException invalidReplicationRPOValueForType(String rpovalue, String units);
@@ -1826,6 +1832,9 @@ public interface BadRequestExceptions {
     public BadRequestException vPoolTargetVarraysNotCompatibleForCG(final String cgName);
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
+    public BadRequestException vPoolRPCopyModeNotCompatibleForCG(final String cgName);
+
+    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException cannotAddVolumesToSwappedCG(final String cgName);
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
@@ -1957,6 +1966,9 @@ public interface BadRequestExceptions {
     public BadRequestException notValidRPSourceVolume(String volname);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException invalidRPVolumeSizes(final URI sourceVolumeId);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException newCertificateMustBeSpecified();
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
@@ -1987,7 +1999,7 @@ public interface BadRequestExceptions {
     public BadRequestException objBaseUrlConflicts(final String enteredBaseUrl, final String existingBaseUrl);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
-    public BadRequestException noRepGroup();
+    public BadRequestException noRepGroupInstance(final String volumeLabel);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException noCosForRepGroup(final String repGroup, final String tenantId, final String zone);
@@ -2230,6 +2242,9 @@ public interface BadRequestExceptions {
     public BadRequestException sourceNotExported(final URI sourceId);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException cannotCreateSnapshotCgPartOfApplication(String applicationName);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException invalidParameterRemovePreexistingInitiator(final String maskName, final String initiatorPort);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
@@ -2442,6 +2457,18 @@ public interface BadRequestExceptions {
     public BadRequestException replicaOperationNotAllowedSourceNotInVolumeGroup(final String replicaType, final String replicaId);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException replicaOperationNotAllowedVolumeNotInVolumeGroup(final String replicaType, final String volumeName);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException noReplicationGroupForReplica(final String replicaLabel);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException noBackendVolume(final String volumeLabel);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException noVPLEXVolume(final String volumeLabel);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException notSupportedSnapshotWithMixedArrays(URI cgUri);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
@@ -2504,6 +2531,9 @@ public interface BadRequestExceptions {
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException operationNotAllowedOnActiveSite();
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException operationOnlyAllowedOnActiveSite();
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException invalidQuotaRequestForObjectStorage(String type);
@@ -2725,6 +2755,12 @@ public interface BadRequestExceptions {
     public BadRequestException volumeGroupWithVolumesCantBeDeleted(final String volumeGroupName);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException volumeGroupWithHostsCantBeDeleted(final String volumeGroupName);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException volumeGroupWithClustersCantBeDeleted(final String volumeGroupName);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException volumeGroupCantBeUpdated(final String volumeGroupName, final String reason);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
@@ -2734,7 +2770,16 @@ public interface BadRequestExceptions {
     public BadRequestException volumeCantBeAddedToVolumeGroup(final String volumeName, final String reason);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
-    public BadRequestException removeVolumeFromCGNotAllowed(final String volumeName, final String applicationName);
+    public BadRequestException volumeCantBeRemovedFromVolumeGroup(final String volumeName, final String reason);
+
+    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
+    public BadRequestException invalidCopySetName(String copySetName, String replicaType);
+
+    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
+    public BadRequestException duplicateCopySetName(String copySetName, String replicaType);
+
+    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
+    public BadRequestException invalidNumberOfReplicas(String replicaType);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException snapshotNotAllowedWhenBackendVolumeDoestHavingCG();
@@ -2743,11 +2788,26 @@ public interface BadRequestExceptions {
     public BadRequestException fullcopyNotAllowedWhenBackendVolumeDoestHavingCG();
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException replicaOperationNotAllowedOnEmptyVolumeGroup(final String volumeGroupName, final String replicaType);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException replicaOperationNotAllowedForNonCopyTypeVolumeGroup(final String volumeGroupName, final String replicaType);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
-    public BadRequestException
-            replicaOperationNotAllowedOnCGVolumePartOfCopyTypeVolumeGroup(final String volumeGroupName, final String replicaType);
+    public BadRequestException replicaOperationNotAllowedApplicationHasXtremio(final String replicaType);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException replicaOperationNotAllowedOnCGVolumePartOfCopyTypeVolumeGroup(final String volumeGroupName,
+            final String replicaType);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException setNameDoesNotBelongToVolumeGroup(final String setType, final String setName, final String volumeGroupName);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException multipleSetNamesProvided(final String replicaType);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException noHAVolumeFoundForVPLEX(final String volumeName);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException invalidIpsecStatus();
@@ -2784,6 +2844,9 @@ public interface BadRequestExceptions {
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException snapshotSessionDoesNotHaveAnyTargets(final String snapSessionId);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException snapshotSessionDoesNotHaveAnyTargetsInGivenList(final String snapSessionId);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException targetIsNotLinkedToSnapshotSession(final String targetId, final String snapSessionIdd);
@@ -2837,7 +2900,7 @@ public interface BadRequestExceptions {
     public BadRequestException multipleACLsWithUserOrGroupOrCustomGroupFound(String opType, String userOrGroup);
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
-    public BadRequestException bucketACLNotFoundFound(String opType, String acl);
+    public BadRequestException bucketACLNotFound(String opType, String acl);
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException bucketACLAlreadyExists(String opType, String acl);
@@ -2875,4 +2938,22 @@ public interface BadRequestExceptions {
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException unableToPerformMirrorOperation(String operation, final URI fsUri, String reason);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException mustDeleteTargetsOnUnlinkForVPlex();
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException singleVolumeReplicationNotAllowedOnCG(final String volumeLabel);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException cgReplicationNotAllowedMissingReplicationGroupNoVols(final String cgLabel);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException cgReplicationNotAllowedMissingReplicationGroup(final String volumeLabel);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException cgSnapshotNotAllowedMixedDevices(final String replicationGroup);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException addRecoverPointProtectionRequiresCG();
 }

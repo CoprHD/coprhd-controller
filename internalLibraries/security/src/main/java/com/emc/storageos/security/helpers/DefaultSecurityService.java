@@ -6,6 +6,7 @@ package com.emc.storageos.security.helpers;
 
 import com.emc.storageos.security.helpers.SecurityService;
 import com.emc.storageos.security.ssh.PEMUtil;
+import com.emc.storageos.svcs.errorhandling.resources.APIException;
 
 import java.security.*;
 
@@ -14,13 +15,17 @@ public class DefaultSecurityService implements SecurityService {
     private String[] ciphers;
 
     @Override
-    public byte[] loadPrivateKeyFromPEMString(String pemKey) throws Exception {
+    public byte[] loadPrivateKeyFromPEMString(String pemKey) {
 
         if (!PEMUtil.isPKCS8Key(pemKey)) {
-            throw new Exception("Only PKCS8 is supported");
+            throw APIException.badRequests.failedToLoadKeyFromString();
         }
 
-        return PEMUtil.decodePKCS8PrivateKey(pemKey);
+        try {
+            return PEMUtil.decodePKCS8PrivateKey(pemKey);
+        } catch (Exception e) {
+            throw APIException.badRequests.failedToLoadKeyFromString(e);
+        }
     }
 
     @Override

@@ -393,7 +393,7 @@ public class VPlexUtil {
         // Read the initiators and partition them by Network
         List<Initiator> initiators = dbClient.queryObject(Initiator.class, initiatorURIs);
         Map<NetworkLite, List<Initiator>> networkToInitiators = NetworkUtil.getInitiatorsByNetwork(initiators, dbClient);
-        // Build the output map. For each varray, look at each Network to see if it's connected virtual arrays
+        // Build the output map. For each varray, look at each Network to see if its connected virtual arrays
         // contains this varray. If so, add all the Initiators in that Network to the varrayToInitiators map.
         for (URI varrayURI : varrayURIs) {
             for (NetworkLite network : networkToInitiators.keySet()) {
@@ -1116,12 +1116,12 @@ public class VPlexUtil {
     }
 
     // constants related to supporting device structure validation
-    private static final String LOCAL_DEVICE = "local-device: ";
-    private static final String LOCAL_DEVICE_COMPONENT = "   local-device-component: ";
-    private static final String DISTRIBUTED_DEVICE = "distributed-device: ";
-    private static final String DISTRIBUTED_DEVICE_COMPONENT = "   distributed-device-component: ";
-    private static final String EXTENT = "   extent: ";
-    private static final String STORAGE_VOLUME = "   storage-volume: ";
+    private static final String LOCAL_DEVICE = "local-device:";
+    private static final String LOCAL_DEVICE_COMPONENT = "local-device-component:";
+    private static final String DISTRIBUTED_DEVICE = "distributed-device:";
+    private static final String DISTRIBUTED_DEVICE_COMPONENT = "distributed-device-component:";
+    private static final String EXTENT = "extent:";
+    private static final String STORAGE_VOLUME = "storage-volume:";
     private static final String START = "^(?s)";
     private static final String ANYTHING = "(.*)";
     private static final String END = "(.*)$";
@@ -1213,10 +1213,10 @@ public class VPlexUtil {
                     int extentCount = StringUtils.countMatches(drillDownResponse, EXTENT);
 
                     String firstLine = lines[0];
-                    if (firstLine.startsWith(LOCAL_DEVICE)) {
+                    if (firstLine.trim().startsWith(LOCAL_DEVICE)) {
                         return validateLocalDevice(
                                 drillDownResponse, localDeviceComponentCount, storageVolumeCount, extentCount);
-                    } else if (firstLine.startsWith(DISTRIBUTED_DEVICE)) {
+                    } else if (firstLine.trim().startsWith(DISTRIBUTED_DEVICE)) {
                         return validateDistributedDevice(
                                 drillDownResponse, localDeviceComponentCount, storageVolumeCount, extentCount);
                     }
@@ -1358,6 +1358,22 @@ public class VPlexUtil {
     }
 
     /**
+     * Check if the volume is a vplex virtual volume
+     * @param volume the volume
+     * @param dbClient
+     * @return true or false
+     */
+    public static boolean isVplexVolume(Volume volume, DbClient dbClient) {
+        URI storageURI = volume.getStorageController();
+        StorageSystem storage = dbClient.queryObject(StorageSystem.class, storageURI);
+        if (DiscoveredDataObject.Type.vplex.name().equals(storage.getSystemType())) {
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    /**
      * Determines if the passed VPLEX volume is built on top of a target
      * volume for a block snapshot.
      * 
@@ -1430,6 +1446,7 @@ public class VPlexUtil {
 
         return false;
     }
+
 
     /**
      * Checks vplex back end volumes having backend cg

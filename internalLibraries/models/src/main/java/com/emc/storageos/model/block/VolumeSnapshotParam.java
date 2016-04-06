@@ -88,5 +88,4 @@ public class VolumeSnapshotParam {
 	public void setReadOnly(Boolean readOnly) {
 		this.readOnly = readOnly;
 	}
-    
 }

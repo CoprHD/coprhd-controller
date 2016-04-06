@@ -40,9 +40,13 @@ public class BackupExecutor {
         if (this.cfg.schedulerEnabled) {
             try (AutoCloseable lock = this.cfg.lock()) {
                 this.cfg.reload();
-                
-                log.info("Start to remove deleted backups");
-                removeDeletedBackups();
+
+                if (this.cfg.isClusterUpgradable()) {
+                    log.info("Start to remove deleted backups");
+                    removeDeletedBackups();
+                }else {
+                    log.info("Skip to remove deleted backups as cluster is not stable");
+                }
 
                 log.info("Start to do backup job");
                 if (shouldDoBackup()) {

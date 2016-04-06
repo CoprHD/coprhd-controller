@@ -35,7 +35,7 @@
       </button>
       <ul class="dropdown-menu" role="menu">
         <li><a onclick="return $('#deleteFormFull').submit();">&{'resources.bucket.deleteLink.FULL'}</a></li>
-        <li><a onclick="return $('#deleteFormViPRonly').submit();">&{'resources.bucket.deleteLink.INTERNAL_DB_ONLY'}</a></li>
+        <li><a onclick="return $('#deleteFormViPRonly').submit();">&{'resources.bucket.deleteLink.VIPR_ONLY'}</a></li>
       </ul>
     </div>
     #{doBody/}
@@ -44,7 +44,7 @@
 #{DataTable.formAction @delete(), id:'deleteFormFull', table:'buckets', confirm:messages.get('resources.buckets.deleteConfirm.FULL')}
     <input type="hidden" name="deleteType" value="FULL">
   #{/DataTable.formAction}
-  #{DataTable.formAction @delete(), id:'deleteFormViPRonly', table:'buckets', confirm:messages.get('resources.buckets.deleteConfirm.INTERNAL_DB_ONLY')}
+  #{DataTable.formAction @delete(), id:'deleteFormViPRonly', table:'buckets', confirm:messages.get('resources.buckets.deleteConfirm.VIPR_ONLY')}
     <input type="hidden" name="deleteType" value="INTERNAL_DB_ONLY">
   #{/DataTable.formAction} 
                   

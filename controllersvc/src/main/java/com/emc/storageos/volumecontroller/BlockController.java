@@ -9,6 +9,7 @@ import java.net.URI;
 import java.util.List;
 import java.util.Map;
 
+import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
 
@@ -465,13 +466,11 @@ public interface BlockController extends BlockStorageManagementController {
      * Add/remove volumes to/from application
      * @param storage
      * @param addVolList
-     * @param removeVolumeList
      * @param application
      * @param opId
      * @throws ControllerException
      */
-    public void updateApplication(URI storage, ApplicationAddVolumeList addVolList, List<URI> removeVolumeList,
-            URI application,
+    public void updateApplication(URI storage, ApplicationAddVolumeList addVolList, URI application,
             String opId) throws ControllerException;
 
     /**
@@ -526,10 +525,11 @@ public interface BlockController extends BlockStorageManagementController {
      * @param snapSessionURI The URI of the snapshot session.
      * @param snapshotMap A map of the containing the URIs of the BlockSnapshot instances representing the targets to be unlinked and
      *            whether or not each target should be deleted.
+     * @param opType The operation type for the audit and event logs.
      * @param opId The unique task identifier.
      */
     public void unlinkTargetsFromSnapshotSession(URI systemURI, URI snapSessionURI,
-            Map<URI, Boolean> snapshotDeletionMap, String opId);
+            Map<URI, Boolean> snapshotDeletionMap, OperationTypeEnum opType, String opId);
 
     /**
      * Restores the source with the data from the array snapshot point-in-time

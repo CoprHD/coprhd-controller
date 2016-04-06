@@ -27,17 +27,19 @@ public class DisasterRecoveryDataTable extends DataTable {
         public String status;
         public String id;
         public String networkHealth;
+        public String runningState;
 
         public StandByInfo() {
         }
 
         public StandByInfo(SiteRestRep standByInfo) {
             this.name = standByInfo.getName();
-            this.VirtualIP = standByInfo.getVip();
+            this.VirtualIP = standByInfo.getVipEndpoint();
             this.status = standByInfo.getState();
             this.id = standByInfo.getUuid();
             this.description = standByInfo.getDescription();
             this.networkHealth = standByInfo.getNetworkHealth();
+            this.runningState = String.valueOf(standByInfo.getRunningState()).toUpperCase();
         }
     }
 }

@@ -159,6 +159,7 @@ URI_BACKUP_LIST_EXTERNAL        = URI_BACKUP + '/external'
 URI_BACKUP_DOWNLOAD             = URI_BACKUP + '/download?tag={0}'
 URI_BACKUP_UPLOAD               = URI_BACKUP + '/backup/upload?tag={0}'
 URI_BACKUP_QUERY_UPLOAD         = URI_BACKUP + '/backup?tag={0}'
+URI_BACKUP_QUERY_INFO           = URI_BACKUP + '/backup/info?backupname={0}&isLocal={1}'
 URI_BACKUP_PULL                 = URI_BACKUP + '/pull?file={0}'
 URI_BACKUP_QUERY_PULL           = URI_BACKUP + '/restore/status?backupname={0}&isLocal={1}'
 URI_BACKUP_RESTORE              = URI_BACKUP + '/restore?backupname={0}&isLocal={1}&password={2}'
@@ -282,6 +283,7 @@ URI_DISCOVERED_STORAGEDEVICE    = URI_DISCOVERED_STORAGEDEVICES  + '/{0}'
 URI_STORAGEDEVICES              = URI_SERVICES_BASE   + '/vdc/storage-systems'
 URI_STORAGEDEVICE               = URI_STORAGEDEVICES  + '/{0}'
 URI_STORAGEDEVICE_DISCOVERALL   = URI_STORAGEDEVICES  + '/discover'
+URI_STORAGEDEVICE_DEREGISTER    = URI_STORAGEDEVICE   + '/deregister'
 URI_STORAGESYSTEMS_BULKGET      = URI_DISCOVERED_STORAGEDEVICES + '/bulk'
 URI_DISCOVERED_STORAGEDEVICE_DISCOVER    = URI_STORAGEDEVICE + '/discover'
 URI_DISCOVERED_STORAGEDEVICE_NS = URI_DISCOVERED_STORAGEDEVICE_DISCOVER + '?namespace={1}'
@@ -3075,6 +3077,12 @@ class Bourne:
         uri_device_task = URI_STORAGEDEVICE + '/tasks/{1}'
         return self.api('GET', uri_device_task.format(device,task))
 
+    def storagedevice_delete(self, uri):
+        return self.api('POST', URI_RESOURCE_DEACTIVATE.format(URI_STORAGEDEVICE.format(uri)))
+
+    def storagedevice_deregister(self, uri):
+        return self.api('POST', URI_STORAGEDEVICE_DEREGISTER.format(uri))
+
     def register_element(self, provideruri, systemuri, resourceuri):
         return self.api('POST', resourceuri.format(provideruri, systemuri))
 
@@ -3537,6 +3545,9 @@ class Bourne:
 
     def query_upload_backup(self,name):
         return self.api('GET', URI_BACKUP_QUERY_UPLOAD.format(name))
+
+    def query_backup_info(self,name,isLocal):
+        return self.api('GET', URI_BACKUP_QUERY_INFO.format(name, isLocal))
 
     def pull_backup(self,name):
         return self.api('POST', URI_BACKUP_PULL.format(name), None, None, content_type=CONTENT_TYPE_OCTET)
@@ -4065,10 +4076,15 @@ class Bourne:
     # Block Consistency Groups
     #
 
-    def block_consistency_group_create(self, project, label):
+    def block_consistency_group_create(self, project, label, arrayconsistency):
+	arrayconsistencyvalue = "false"
+	if (arrayconsistency):
+	    arrayconsistencyvalue=arrayconsistency
+	    
         parms = {
             'name'  : label,
             'project' : project,
+	    'array_consistency' : arrayconsistencyvalue,
         }
 
         return self.api('POST', URI_BLOCK_CONSISTENCY_GROUP_CREATE, parms)
@@ -4092,12 +4108,15 @@ class Bourne:
         for consistencyGroup in resource:
              if (consistencyGroup.get('match') == name):
                  return consistencyGroup.get('id')
+	raise Exception('bad consistency group name')
 
-    def block_consistency_group_delete(self, group_uri):
-        o = self.api('POST', URI_BLOCK_CONSISTENCY_GROUP_DELETE.format(group_uri))
+    def block_consistency_group_delete(self, group_uri, vipronly):
+        posturi = URI_BLOCK_CONSISTENCY_GROUP_DELETE.format(group_uri)
+        if (vipronly):
+            posturi = posturi + '?type=VIPR_ONLY'
+	o = self.api('POST', posturi);
         self.assert_is_dict(o)
         s = self.api_sync_2(o['resource']['id'], o['op_id'], self.block_consistency_group_show_task)
-
         return (o, s)
 
     def block_consistency_group_update(self, group, add, remove):

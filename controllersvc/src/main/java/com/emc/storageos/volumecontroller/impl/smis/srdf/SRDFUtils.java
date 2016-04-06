@@ -555,49 +555,6 @@ public class SRDFUtils implements SmisConstants {
     }
 
     /**
-     * Checks if R1 or R2 has group snapshot or clone or mirror associated.
-     */
-    public boolean checkIfR1OrR2HasReplica(RemoteDirectorGroup group) {
-        // get one existing source and target volume from group
-        boolean forceAdd = false;
-        Volume existingSourceVolume = null;
-        Volume existingTargetVolume = null;
-        StringSet volumeIds = group.getVolumes();
-        for (String volumeId : volumeIds) {
-            URIQueryResultList result = new URIQueryResultList();
-            dbClient.queryByConstraint(AlternateIdConstraint.Factory
-                    .getVolumeNativeGuidConstraint(volumeId), result);
-            Iterator<URI> volumeIterator = result.iterator();
-            if (volumeIterator.hasNext()) {
-                Volume volume = dbClient.queryObject(Volume.class, volumeIterator.next());
-                if (volume != null && PersonalityTypes.SOURCE.toString().equalsIgnoreCase(volume.getPersonality())) {
-                    log.debug("Found source volume {} in ViPR DB", volume.getNativeGuid());
-                    existingSourceVolume = volume;
-                    // get target
-                    StringSet targets = volume.getSrdfTargets();
-                    for (String target : targets) {
-                        if (NullColumnValueGetter.isNotNullValue(target)) {
-                            existingTargetVolume = dbClient.queryObject(Volume.class, URI.create(target));
-                            break;
-                        }
-                    }
-                } else if (volume != null && PersonalityTypes.TARGET.toString().equalsIgnoreCase(volume.getPersonality())) {
-                    log.debug("Found target volume {} in ViPR DB", volume.getNativeGuid());
-                    existingTargetVolume = volume;
-                    // get source
-                    existingSourceVolume = dbClient.queryObject(Volume.class, volume.getSrdfParent().getURI());
-                }
-            }
-            if (existingSourceVolume != null && existingTargetVolume != null) {
-                break;
-            }
-        }
-        // detect if R1/R2 has snapshots, clones or mirrors
-        return ((existingSourceVolume != null && CheckIfVolumeHasReplica(existingSourceVolume))
-        || (existingTargetVolume != null && CheckIfVolumeHasReplica(existingTargetVolume)));
-    }
-
-    /**
      * Checks if a volume has snapshot, snapshot session, or clone or mirror associated.
      */
     private boolean CheckIfVolumeHasReplica(Volume volume) {

@@ -98,6 +98,7 @@ public class Tenants extends ViprResourceController {
         if (viprTenant != null) {
             TenantForm tenant = new TenantForm().from(viprTenant, quota);
             tenant.usermapping = UserMappingForm.loadUserMappingForms(viprTenant.getUserMappings());
+            addRenderArgs(tenant);
             //namespace entries
             List<StringOption> allNamespace = TenantUtils.getUnmappedNamespace();
             allNamespace.add(new StringOption(viprTenant.getNamespace(), viprTenant.getNamespace()));

@@ -53,6 +53,9 @@ public class StoragePort extends StorageObject {
     // port container subgroup tag
     private String portSubGroup;
 
+    // port failure domain name (high availability zone name)
+    private String portHAZone;
+
     // average bandwidth through the port
     private Long avgBandwidth;
 
@@ -136,6 +139,14 @@ public class StoragePort extends StorageObject {
         this.portSubGroup = portSubGroup;
     }
 
+    public String getPortHAZone() {
+        return portHAZone;
+    }
+
+    public void setPortHAZone(String portHAZone) {
+        this.portHAZone = portHAZone;
+    }
+
     public Long getAvgBandwidth() {
         return avgBandwidth;
     }
@@ -200,13 +211,24 @@ public class StoragePort extends StorageObject {
         this.capabilities = capabilities;
     }
 
-    public boolean equals(StoragePort port) {
-        if (port != null && storageSystemId.equals(port.getStorageSystemId()) &&
-                getNativeId().equals(port.getNativeId())) {
+    @Override
+    public boolean equals(Object port) {
+        if (port != null && (port instanceof StoragePort) && storageSystemId.equals(((StoragePort)port).getStorageSystemId()) &&
+                getNativeId().equals(((StoragePort) port).getNativeId())) {
             return true;
         } else {
             return false;
         }
+    }
+
+    @Override
+    public int hashCode() {
+        return toString().hashCode();
+    }
+
+    @Override
+    public String toString() {
+        return "StoragePort_"+storageSystemId+"-"+getNativeId();
     }
 
 }

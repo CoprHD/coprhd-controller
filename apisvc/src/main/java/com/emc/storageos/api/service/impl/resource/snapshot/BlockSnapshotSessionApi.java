@@ -7,7 +7,6 @@ package com.emc.storageos.api.service.impl.resource.snapshot;
 import java.net.URI;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import javax.ws.rs.core.UriInfo;
 
@@ -18,6 +17,7 @@ import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.BlockSnapshotSession;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.Volume;
+import com.emc.storageos.services.OperationTypeEnum;
 
 /**
  * Defines the API for platform specific implementations for block snapshot
@@ -53,11 +53,12 @@ public interface BlockSnapshotSessionApi {
      * @param newTargetsName The requested name for the new linked targets.
      * @param snapSessionSnapshots This OUT parameter gets populated with the BlockSnaphot instances created for each session, if any.
      * @param taskId The unique task identifier.
+     * @param inAppication Is the source volume in an application 
      * 
      * @return
      */
     public BlockSnapshotSession prepareSnapshotSession(List<BlockObject> sourceObjList, String snapSessionLabel, int newTargetCount,
-            String newTargetsName, List<Map<URI, BlockSnapshot>> snapSessionSnapshots, String taskId);
+            String newTargetsName, List<Map<URI, BlockSnapshot>> snapSessionSnapshots, String taskId, boolean inApplication);
 
     /**
      * Prepare a ViPR BlockSnapshotSession instance for the passed source object.
@@ -66,11 +67,12 @@ public interface BlockSnapshotSessionApi {
      * @param snapSessionLabel The snapshot session label.
      * @param instanceLabel The unique snapshot session instance label.
      * @param taskId The unique task identifier.
+     * @param inAppication Is the source volume in an application 
      * 
      * @return A ViPR BlockSnapshotSession instance for the passed source object
      */
     public BlockSnapshotSession prepareSnapshotSessionFromSource(BlockObject sourceObj, String snapSessionLabel, String instanceLabel,
-            String taskId);
+            String taskId, boolean inApplication);
 
     /**
      * Prepare ViPR BlockSnapshot instances for the new targets to be created and
@@ -80,11 +82,12 @@ public interface BlockSnapshotSessionApi {
      * @param sessionCount The snapshot session count when preparing snapshots for multiple sessions.
      * @param newTargetCount The number of new targets to be created.
      * @param newTargetsName The requested name for the new linked targets.
+     * @param inAppication Is the source volume in an application 
      *
      * @return A map containing the prepared BlockSnapshot instances, keyed by the snapshot URI.
      */
     public List<Map<URI, BlockSnapshot>> prepareSnapshotsForSession(List<BlockObject> sourceObjList, int sessionCount, int newTargetCount,
-                                                                    String newTargetsName);
+            String newTargetsName, boolean inApplication);
 
     /**
      * Prepare a ViPR BlockSnapshot instance for a new target to be created and
@@ -124,14 +127,15 @@ public interface BlockSnapshotSessionApi {
 
     /**
      * Creates a new block snapshot session.
-     *  @param snapSessionSourceObj A reference to the source object.
+     * 
+     * @param snapSessionSourceObj A reference to the source object.
      * @param snapSession A reference to the BlockSnapshotSession instance.
      * @param snapshotURIs The URIs of the BlockSnapshot instances representing the linked targets.
      * @param copyMode The copy mode for linked targets.
      * @param taskId A unique task identifier.
      */
     public void linkNewTargetVolumesToSnapshotSession(BlockObject snapSessionSourceObj, BlockSnapshotSession snapSession,
-                                                      List<List<URI>> snapshotURIs, String copyMode, String taskId);
+            List<List<URI>> snapshotURIs, String copyMode, String taskId);
 
     /**
      * Validates a re-link targets to block snapshot session request.
@@ -168,11 +172,12 @@ public interface BlockSnapshotSessionApi {
      * @param snapSession A reference to the BlockSnapshotSession instance.
      * @param snapSessionSourceObj A reference to the snapshot session source.
      * @param project A reference to the source project.
-     * @param snapshotURIs The URI of the BlockSnapshot instances representing the linked targets.
+     * @param targetMap A map of the URIs of the BlockSnapshot instances representing the linked targets
+     *            and whether or not they should be deleted.
      * @param uriInfo A reference to the URI information.
      */
     public void validateUnlinkSnapshotSessionTargets(BlockSnapshotSession snapSession, BlockObject snapSessionSourceObj, Project project,
-            Set<URI> snapshotURIs, UriInfo uriInfo);
+            Map<URI, Boolean> targetMap, UriInfo uriInfo);
 
     /**
      * Unlinks the targets represented by the BlockSnapshot instances with the passed
@@ -182,10 +187,11 @@ public interface BlockSnapshotSessionApi {
      * @param snapSession A reference to the BlockSnapshotSession instance.
      * @param snapshotMap A map of the containing the URIs of the BlockSnapshot instances representing the targets to be unlinked and
      *            whether or not each target should be deleted.
+     * @param opType The operation type for the audit and event logs.
      * @param taskId A unique task identifier.
      */
     public void unlinkTargetVolumesFromSnapshotSession(BlockObject snapSessionSourceObj, BlockSnapshotSession snapSession,
-            Map<URI, Boolean> snapshotDeletionMap, String taskId);
+            Map<URI, Boolean> snapshotDeletionMap, OperationTypeEnum opType, String taskId);
 
     /**
      * Validates a restore snapshot session request.

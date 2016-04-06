@@ -37,6 +37,7 @@ import com.emc.storageos.db.client.util.CommonTransformerFunctions;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
+import com.emc.storageos.util.ExportUtils;
 import com.emc.storageos.util.NetworkUtil;
 import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.volumecontroller.impl.ControllerUtils;
@@ -73,7 +74,7 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
     @Override
     public void deleteExportMask(StorageSystem storage, URI exportMaskURI, List<URI> volumeURIList,
             List<URI> targetURIList, List<Initiator> initiatorList, TaskCompleter taskCompleter)
-            throws DeviceControllerException {
+                    throws DeviceControllerException {
         ExportMask exportMask = dbClient.queryObject(ExportMask.class, exportMaskURI);
         if (exportMask == null || exportMask.getInactive()) {
             throw new DeviceControllerException("Invalid ExportMask URI: " + exportMaskURI);
@@ -148,7 +149,7 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
     @Override
     public void removeInitiator(StorageSystem storage, URI exportMaskURI,
             List<Initiator> initiators, List<URI> targets, TaskCompleter taskCompleter)
-            throws DeviceControllerException {
+                    throws DeviceControllerException {
         ExportMask exportMask = dbClient.queryObject(ExportMask.class, exportMaskURI);
         if (exportMask == null || exportMask.getInactive()) {
             throw new DeviceControllerException("Invalid ExportMask URI: " + exportMaskURI);
@@ -163,7 +164,7 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
         try {
             String hostName = null;
             String clusterName = null;
-            client = XtremIOProvUtils.getXtremIOClient(storage, xtremioRestClientFactory);
+            client = XtremIOProvUtils.getXtremIOClient(dbClient, storage, xtremioRestClientFactory);
             String xioClusterName = client.getClusterDetails(storage.getSerialNumber()).getName();
 
             Iterator<Initiator> iniItr = initiators.iterator();
@@ -238,7 +239,7 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
     public ExportMask refreshExportMask(StorageSystem storage, ExportMask mask) {
         try {
             _log.info("Refreshing Initiator labels in ViPR.. ");
-            XtremIOClient client = XtremIOProvUtils.getXtremIOClient(storage, xtremioRestClientFactory);
+            XtremIOClient client = XtremIOProvUtils.getXtremIOClient(dbClient, storage, xtremioRestClientFactory);
             String xioClusterName = client.getClusterDetails(storage.getSerialNumber()).getName();
             List<XtremIOInitiator> initiators = client.getXtremIOInitiatorsInfo(xioClusterName);
             List<Initiator> initiatorObjs = new ArrayList<Initiator>();
@@ -269,7 +270,7 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
 
     private void runLunMapDeletionAlgorithm(StorageSystem storage, ExportMask exportMask,
             List<URI> volumes, List<Initiator> initiators, TaskCompleter taskCompleter)
-            throws DeviceControllerException {
+                    throws DeviceControllerException {
         // find LunMap associated with Volume
         // Then find initiatorGroup associated with this lun map
 
@@ -283,7 +284,7 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
         try {
             String hostName = null;
             String clusterName = null;
-            client = XtremIOProvUtils.getXtremIOClient(storage, xtremioRestClientFactory);
+            client = XtremIOProvUtils.getXtremIOClient(dbClient, storage, xtremioRestClientFactory);
             String xioClusterName = client.getClusterDetails(storage.getSerialNumber()).getName();
 
             for (Initiator initiator : initiators) {
@@ -415,7 +416,7 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
      */
     private void runLunMapDeletionOrRemoveInitiatorAlgorithm(StorageSystem storage, ExportMask exportMask,
             List<URI> volumes, List<Initiator> initiators, TaskCompleter taskCompleter)
-            throws DeviceControllerException {
+                    throws DeviceControllerException {
         // find LunMap associated with Volume
         // Then find initiatorGroup associated with this lun map
 
@@ -430,8 +431,9 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
         try {
             String hostName = null;
             String clusterName = null;
-            client = XtremIOProvUtils.getXtremIOClient(storage, xtremioRestClientFactory);
+            client = XtremIOProvUtils.getXtremIOClient(dbClient, storage, xtremioRestClientFactory);
             String xioClusterName = client.getClusterDetails(storage.getSerialNumber()).getName();
+            boolean initiatorsOfRP = ExportUtils.checkIfInitiatorsForRP(initiators);
 
             for (Initiator initiator : initiators) {
                 String igName = null;
@@ -509,12 +511,13 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
                         List<Initiator> knownInitiatorsInIG = getKnownInitiatorsForIG(igName, xioClusterName, client);
                         /**
                          * Remove Initiator only
+                         * - if initiators are not of RP (CTRL-13622)
                          * -when IG has other initiators which are known to ViPR and
                          * -if other initiators belong to different host and
                          * -if the hosts are in same cluster
                          * (i.e) Single IG with initiators from multiple hosts of a Cluster case
                          */
-                        if (checkIfIGHasOtherHostInitiatorsOfSameCluster(knownInitiatorsInIG,
+                        if (!initiatorsOfRP && checkIfIGHasOtherHostInitiatorsOfSameCluster(knownInitiatorsInIG,
                                 groupInitiatorsByIG.get(igName), hostName, clusterName)) {
                             removeInitiator = true;
                         } else {
@@ -637,7 +640,7 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
     private void addInitiatorToInitiatorGroup(XtremIOClient client, String xioClusterName,
             String clusterName, String hostName, List<Initiator> initiatorsToBeCreated,
             Set<String> igNames, ExportMask exportMask, StorageSystem storage)
-            throws Exception {
+                    throws Exception {
         XtremIOInitiatorGroup igGroup = null;
         // create initiator group folder and initiator group
         String igFolderName = getInitiatorGroupFolderName(clusterName, hostName, storage);
@@ -678,11 +681,11 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
                     remainingInitiator.getLabel());
             String initiatorName = ((null == remainingInitiator.getLabel() || remainingInitiator
                     .getLabel().isEmpty()) ? remainingInitiator.getInitiatorPort()
-                    : remainingInitiator.getLabel());
+                            : remainingInitiator.getLabel());
             _log.info("Initiator {}  ", initiatorName);
             try {
                 String os = null;
-                if (!NullColumnValueGetter.isNullURI(remainingInitiator.getHost())) {
+                if (client.isVersion2() && !NullColumnValueGetter.isNullURI(remainingInitiator.getHost())) {
                     Host host = dbClient.queryObject(Host.class, remainingInitiator.getHost());
                     os = XtremIOProvUtils.getInitiatorHostOS(host);
                 }
@@ -720,7 +723,7 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
         try {
             String hostName = null;
             String clusterName = null;
-            client = XtremIOProvUtils.getXtremIOClient(storage, xtremioRestClientFactory);
+            client = XtremIOProvUtils.getXtremIOClient(dbClient, storage, xtremioRestClientFactory);
             String xioClusterName = client.getClusterDetails(storage.getSerialNumber()).getName();
 
             _log.info("Finding re-usable IGs available on Array {}", storage.getNativeGuid());

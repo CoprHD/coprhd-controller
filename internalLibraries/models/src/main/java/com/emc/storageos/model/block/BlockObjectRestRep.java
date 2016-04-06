@@ -28,6 +28,7 @@ public abstract class BlockObjectRestRep extends DataObjectRestRep {
     private String deviceLabel;
     private String nativeId;
     private RelatedResourceRep consistencyGroup;
+    private String replicationGroupInstance;
 
     /**
      * Label assigned to the Block object.
@@ -124,5 +125,17 @@ public abstract class BlockObjectRestRep extends DataObjectRestRep {
 
     public void setConsistencyGroup(RelatedResourceRep consistencyGroup) {
         this.consistencyGroup = consistencyGroup;
+    }
+
+    /**
+     * Name reference of replication group that the object belong to.
+     */
+    @XmlElement(name = "replication_group_instance")
+    public String getReplicationGroupInstance() {
+        return replicationGroupInstance;
+    }
+
+    public void setReplicationGroupInstance(String replicationGroupInstance) {
+        this.replicationGroupInstance = replicationGroupInstance;
     }
 }

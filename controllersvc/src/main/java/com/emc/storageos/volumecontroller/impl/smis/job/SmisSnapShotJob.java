@@ -13,17 +13,19 @@ import javax.cim.CIMProperty;
 import javax.wbem.CloseableIterator;
 import javax.wbem.client.WBEMClient;
 
-import com.emc.storageos.db.client.constraint.ContainmentConstraint;
-import com.emc.storageos.db.client.util.CustomQueryUtility;
+import com.emc.storageos.volumecontroller.impl.smis.SmisUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
+import com.emc.storageos.db.client.constraint.ContainmentConstraint;
+import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.BlockSnapshotSession;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringSet;
+import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.plugins.common.Constants;
 import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.volumecontroller.impl.smis.SmisConstants;
@@ -108,14 +110,7 @@ public class SmisSnapShotJob extends SmisJob {
     private void setSettingsInstance(StorageSystem storage, BlockSnapshot snapshot, String sourceElementId, String elementName,
             boolean createSession, DbClient dbClient) {
         if ((storage.checkIfVmax3()) && (createSession)) {
-            // SYMMETRIX-+-000196700567-+-<sourceElementId>-+-<elementName>-+-0
-            StringBuilder sb = new StringBuilder("SYMMETRIX");
-            sb.append(Constants.SMIS80_DELIMITER)
-                    .append(storage.getSerialNumber())
-                    .append(Constants.SMIS80_DELIMITER).append(sourceElementId)
-                    .append(Constants.SMIS80_DELIMITER).append(elementName)
-                    .append(Constants.SMIS80_DELIMITER).append("0");
-            snapshot.setSettingsInstance(sb.toString());
+            setSettingsInstance(storage, snapshot, sourceElementId, elementName);
 
             // If the flag so indicates create a BlockSnapshotSession instance to represent this
             // settings instance.
@@ -128,8 +123,9 @@ public class SmisSnapShotJob extends SmisJob {
                 snapSession.setSessionLabel(snapshot.getSnapsetLabel());
                 snapSession.setSessionInstance(snapshot.getSettingsInstance());
                 snapSession.setProject(snapshot.getProject());
+                snapSession.setStorageController(storage.getId());
 
-                setParentOrConsistencyGroupAssociation(snapSession, snapshot);
+                setParentOrConsistencyGroupAssociation(snapSession, snapshot, dbClient);
             }
 
             addSnapshotAsLinkedTarget(snapSession, snapshot);
@@ -138,16 +134,25 @@ public class SmisSnapShotJob extends SmisJob {
     }
 
     private BlockSnapshotSession getSnapshotSession(BlockSnapshot snapshot, DbClient dbClient) {
-
         BlockSnapshotSession result = null;
-
         if (snapshot.hasConsistencyGroup()) {
-            List<BlockSnapshotSession> sessions = CustomQueryUtility.queryActiveResourcesByConstraint(dbClient,
+            List<BlockSnapshotSession> groupSnapSessions = CustomQueryUtility.queryActiveResourcesByConstraint(dbClient,
                     BlockSnapshotSession.class,
                     ContainmentConstraint.Factory.getBlockSnapshotSessionByConsistencyGroup(snapshot.getConsistencyGroup()));
-
-            if (!sessions.isEmpty()) {
-                result = sessions.get(0);  // Only one BlockSnapshotSession instance per CG is supported.
+            if (!groupSnapSessions.isEmpty()) {
+                for (BlockSnapshotSession groupSnapSession : groupSnapSessions) {
+                    // When creating a group snapshot with multiple targets, we might
+                    // have already created the BlockSnapshotSession instance to represent
+                    // the group session. So, if we find a snapshot session for the
+                    // group that has the same session instance paths as the passed snapshot,
+                    // then we just return that session as we already created it when another
+                    // snapshot in the group was processed.
+                    String sessionInstance = groupSnapSession.getSessionInstance();
+                    if (sessionInstance.equals(snapshot.getSettingsInstance())) {
+                        result = groupSnapSession;
+                        break;
+                    }
+                }
             }
         }
 
@@ -158,9 +163,14 @@ public class SmisSnapShotJob extends SmisJob {
         return result;
     }
 
-    private void setParentOrConsistencyGroupAssociation(BlockSnapshotSession session, BlockSnapshot snapshot) {
+    private void setParentOrConsistencyGroupAssociation(BlockSnapshotSession session, BlockSnapshot snapshot, DbClient dbClient) {
         if (snapshot.hasConsistencyGroup()) {
             session.setConsistencyGroup(snapshot.getConsistencyGroup());
+            BlockObject parent = BlockObject.fetch(dbClient, snapshot.getParent().getURI());
+            if (parent != null) {
+                session.setReplicationGroupInstance(parent.getReplicationGroupInstance());
+                session.setSessionSetName(parent.getReplicationGroupInstance());
+            }
         } else {
             session.setParent(snapshot.getParent());
         }
@@ -179,5 +189,11 @@ public class SmisSnapShotJob extends SmisJob {
         } else {
             dbClient.updateObject(session);
         }
+    }
+
+    private void setSettingsInstance(StorageSystem storage,
+            BlockSnapshot snapshot, String sourceElementId, String elementName) {
+        String instance = SmisUtils.generateVmax3SettingsInstance(storage, sourceElementId, elementName);
+        snapshot.setSettingsInstance(instance);
     }
 }

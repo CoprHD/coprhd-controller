@@ -65,6 +65,13 @@ def storagedevice_delete(args):
     res = bourne.storagedevice_delete(uri)
     print res
 
+def storagedevice_deregister(args):
+    bourne.connect(args.ip)
+    uri = bourne.storagedevice_query(args.name)
+    print uri;
+    res = bourne.storagedevice_deregister(uri)
+    print res
+
 def discovered_storagedevice_register(args):
     bourne.connect(args.ip)
     provideruri = bourne.smisprovider_query(args.provider)
@@ -117,7 +124,7 @@ except:
 
 # storage <cmd> <cmd_args>  [--ip ipaddr]
 parser = argparse.ArgumentParser(description = 'Bourne CoS cli usage.')
-parser.add_argument('cmd', help = 'cmd = (create | delete | show | list | update | createpool | listpools | discover_all | discover_namespace)')
+parser.add_argument('cmd', help = 'cmd = (create | delete | deregister | show | list | update | createpool | listpools | discover_all | discover_namespace)')
 parser.add_argument('--ip',	metavar = 'ipaddr',	help = 'IP address of bourne', default=bourne_ip)
 
 # storage create label
@@ -138,6 +145,10 @@ create.add_argument('--smisssl',	help = 'SMIS provider use ssl true or false')
 # storage delete name
 delete = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
 delete.add_argument('name',	help = 'Name of storage to be deleted')
+
+# storage deregister name
+deregister = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+deregister.add_argument('name',	help = 'Name of storage to be deregistered')
 
 # storage show name
 show = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
@@ -206,6 +217,9 @@ try:
     elif (cmd == "delete"):
         args = delete.parse_args()
         storagedevice_delete(args)
+    elif (cmd == "deregister"):
+        args = deregister.parse_args()
+        storagedevice_deregister(args)
     elif (cmd == "show"):
         args = show.parse_args()
         storagedevice_show(args)

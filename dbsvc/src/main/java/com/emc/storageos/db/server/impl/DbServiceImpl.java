@@ -7,6 +7,9 @@ package com.emc.storageos.db.server.impl;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.io.FileOutputStream;
 import java.util.ArrayList;
 import java.util.Date;
@@ -40,6 +43,8 @@ import com.emc.storageos.coordinator.common.Service;
 import com.emc.storageos.coordinator.common.impl.ConfigurationImpl;
 import com.emc.storageos.coordinator.client.model.Constants;
 import com.emc.storageos.coordinator.client.model.DbOfflineEventInfo;
+import com.emc.storageos.coordinator.client.model.Site;
+import com.emc.storageos.coordinator.client.model.SiteState;
 import com.emc.storageos.db.common.DbConfigConstants;
 import com.emc.storageos.db.common.DbServiceStatusChecker;
 import com.emc.storageos.db.gc.GarbageCollectionExecutor;
@@ -55,17 +60,14 @@ import static com.emc.storageos.services.util.FileUtils.readValueFromFile;
 import static com.emc.storageos.services.util.FileUtils.getLastModified;
 
 import org.apache.curator.framework.recipes.locks.InterProcessLock;
+import org.eclipse.jetty.util.log.Log;
 
 /**
  * Default database service implementation
  */
 public class DbServiceImpl implements DbService {
     private static final Logger _log = LoggerFactory.getLogger(DbServiceImpl.class);
-
-    private static final String DB_NO_ENCRYPT_FLAG_FILE = "/data/db/no_db_encryption";
     private static final String DB_INITIALIZED_FLAG_FILE = "/var/run/storageos/dbsvc_initialized";
-    private static final Integer INIT_LOCAL_DB_NUM_TOKENS = 256;
-    private static final Integer INIT_GEO_DB_NUM_TOKENS = 16;
 
     public static DbServiceImpl instance = null;
 
@@ -101,6 +103,8 @@ public class DbServiceImpl implements DbService {
     private boolean disableScheduledDbRepair = false;
     private Boolean backCompatPreYoda = false;
     
+    @Autowired
+    private DbCompactWorker compactWorker;
     @Autowired
     private DbManager dbMgr;
 
@@ -268,18 +272,6 @@ public class DbServiceImpl implements DbService {
             cfg.setConfig(DbConfigConstants.NODE_ID, _coordinator.getInetAddessLookupMap().getNodeId());
             cfg.setConfig(DbConfigConstants.AUTOBOOT, Boolean.TRUE.toString());
 
-            // Adding "num_tokens" and "num_token_ver" for new deployment, which directly reflects the configuration in yaml, so
-            // no adjustNumTokens() will be called.
-            // If this node is upgraded from an older version, the db-# nodes already exists, which will missing those 2 values,
-            // that will lead to an adjustNumTokens() call from syssvc.
-            try {
-                Config yaml = new YamlConfigurationLoader().loadConfig();
-                cfg.setConfig(DbConfigConstants.NUM_TOKENS_KEY, Integer.toString(yaml.num_tokens));
-                _log.info("num_tokens for current node should be {} in ZK", yaml.num_tokens);
-            } catch (ConfigurationException e) {
-                _log.error("Failed to load yaml file", e);
-                cfg.setConfig(DbConfigConstants.NUM_TOKENS_KEY, DbConfigConstants.DEFUALT_NUM_TOKENS.toString());
-            }
             // check other existing db nodes
             List<Configuration> configs = _coordinator.queryAllConfiguration(_coordinator.getSiteId(), configKind);
             if (configs.isEmpty()) {
@@ -289,11 +281,7 @@ public class DbServiceImpl implements DbService {
             // persist configuration
             _coordinator.persistServiceConfiguration(_coordinator.getSiteId(), cfg);
             config = cfg;
-        } else if (config.getConfig(DbConfigConstants.DB_IP) != null) {
-            config.removeConfig(DbConfigConstants.DB_IP);
-            config.setConfig(DbConfigConstants.NODE_ID, _coordinator.getInetAddessLookupMap().getNodeId());
-            _coordinator.persistServiceConfiguration(_coordinator.getSiteId(), config);
-        }
+        } 
         return config;
     }
 
@@ -508,57 +496,6 @@ public class DbServiceImpl implements DbService {
         }
     }
 
-    private boolean isDbCurrentVersionEncrypted() {
-        String currentDbVersion = _coordinator.getCurrentDbSchemaVersion();
-
-        /*
-         * This is first boot of fresh install,CurrentDbSchemaVersion has not set yet.
-         */
-        if (currentDbVersion == null) {
-            return true;
-        }
-
-        if (currentDbVersion.startsWith("1.") || // Vipr 1.x
-                currentDbVersion.startsWith("2.0") || // Vipr 2.0.x
-                currentDbVersion.startsWith("2.1")) { // Vipr 2.1.x
-            return false;
-        }
-
-        return true;
-    }
-
-    /**
-     * We need to turn off encryption if upgrade from 1.*,2.*,2.1 to higher version for dbsvc because
-     * we enable db encryption since 2.2, otherwise first reboot node can't communicate with others .
-     */
-    private void setEncryptionOptions() {
-        InternodeEncryption encryption = null;
-        if (isGeoDbsvc()) {
-            _log.info("Geo Db, set encryption option to dc");
-            encryption = InternodeEncryption.dc;
-        } else {
-            _log.info("Migration from version which doesn't enable encryption,Disable encryption");
-            encryption = InternodeEncryption.none;
-            setDisableDbEncryptionFlag();
-        }
-        // TODO rethink db encryption after ipsec is finished. Keep all db communication as
-        // unencrypted for now
-        DatabaseDescriptor.getServerEncryptionOptions().internode_encryption = encryption;
-    }
-    
-    private boolean setDisableDbEncryptionFlag() {
-        File dbEncryptFlag = new File(DB_NO_ENCRYPT_FLAG_FILE);
-        try {
-            if (!dbEncryptFlag.exists()) {
-                new FileOutputStream(dbEncryptFlag).close();
-            }
-        } catch (Exception e) {
-            _log.error("Failed to create file {} e=", dbEncryptFlag.getName(), e);
-            return false;
-        }
-        return true;
-    }
-
     /**
      * Use a db initialized flag file to block the peripheral services from starting.
      * This gurantees CPU cyles for the core services during boot up.
@@ -606,10 +543,9 @@ public class DbServiceImpl implements DbService {
         //
         // Make sure add-vdc/add-standby passed when you would remove this option in the future.
         //
-        // Disable it for standby site. We don't want to be too aggressive
-        if (!_schemaUtil.isStandby()) {
-            System.setProperty("cassandra.load_ring_state", "false");
-        }
+        // We need make sure majority local nodes are added as seed nodes. Otherwise cassandra may not see other nodes if it loses
+        // connection to other sites
+        System.setProperty("cassandra.load_ring_state", "false");
         
         // Nodes in new data center should not auto-bootstrap.  
         // See https://docs.datastax.com/en/cassandra/2.0/cassandra/operations/ops_add_dc_to_cluster_t.html
@@ -622,11 +558,6 @@ public class DbServiceImpl implements DbService {
         StartupMode mode = null;
 
         try {
-            if (_schemaUtil.isStandby()) {
-                // wait for standby site leaves ADDING state before first initialization
-                _schemaUtil.checkSiteAddingOnStandby();
-            }
-
             // we use this lock to discourage more than one node bootstrapping / joining at the same time
             // Cassandra can handle this but it's generally not recommended to make changes to schema concurrently
             lock = getLock(getSchemaLockName());
@@ -636,8 +567,6 @@ public class DbServiceImpl implements DbService {
             checkVersionedConfiguration();
             removeStaleConfiguration();
 
-            // The num_tokens in ZK is what we previously running at, which could be different from in current .yaml
-            checkNumTokens(config);
             mode = checkStartupMode(config);
             _log.info("Current startup mode is {}", mode);
 
@@ -658,10 +587,6 @@ public class DbServiceImpl implements DbService {
                 System.setProperty("com.sun.management.jmxremote.port", Integer.toString(_jmxServer.getPort()));
             }
 
-            if (!isDbCurrentVersionEncrypted() && !_statusChecker.isMigrationDone()) {
-                setEncryptionOptions();
-            }
-            
             _service = new CassandraDaemon();
             _service.init(null);
             _service.start();
@@ -703,7 +628,10 @@ public class DbServiceImpl implements DbService {
         _dbClient.start();
 
         if (_schemaUtil.isStandby()) {
-            _schemaUtil.rebuildDataOnStandby();
+            String localDataRevision = getLocalDataRevision();
+            if (localDataRevision != null) {
+                _schemaUtil.checkDataRevision(localDataRevision);
+            } 
         }
         
         // Setup the vdc information, so that login enabled before migration
@@ -747,19 +675,6 @@ public class DbServiceImpl implements DbService {
         dupBeacon.setZkConnection(((ServiceBeaconImpl)_svcBeacon).getZkConnection());
         dupBeacon.setSiteSpecific(false);
         dupBeacon.start();
-    }
-
-    /**
-     * Check Cassandra num_tokens settting in ZK.
-     */
-    private void checkNumTokens(Configuration config) {
-        String numTokensEffective = config.getConfig(DbConfigConstants.NUM_TOKENS_KEY);
-        if (numTokensEffective == null) {
-            numTokensEffective = String.valueOf(isGeoDbsvc() ? INIT_GEO_DB_NUM_TOKENS : INIT_LOCAL_DB_NUM_TOKENS);
-        }
-
-        System.setProperty(CassandraConfigLoader.SYSPROP_NUM_TOKENS, numTokensEffective);
-        _log.info("Effective Cassandra num of tokens {}", numTokensEffective);
     }
 
     /**
@@ -910,6 +825,12 @@ public class DbServiceImpl implements DbService {
             }
         }
         startBackgroundDetectorTask();
+        startBackgroundCompactTask();
+        
+    }
+    
+    private void startBackgroundCompactTask() {
+    	this.compactWorker.start();
     }
 
     /**
@@ -979,15 +900,6 @@ public class DbServiceImpl implements DbService {
 
     @Override
     public void stop() {
-        stop(false);
-    }
-
-    @Override
-    public void stopWithDecommission() {
-        stop(true);
-    }
-
-    private void stop(Boolean decommission) {
         if (_log.isInfoEnabled()) {
             _log.info("Stopping DB service...");
         }
@@ -996,15 +908,7 @@ public class DbServiceImpl implements DbService {
             _gcExecutor.stop();
         }
 
-        if (decommission && cassandraInitialized) {
-            flushCassandra();
-        }
-
         _exe.shutdownNow();
-
-        if (cassandraInitialized) {
-            _service.stop();
-        }
 
         if (_jmxServer != null) {
             _jmxServer.stop();
@@ -1013,28 +917,6 @@ public class DbServiceImpl implements DbService {
         if (_log.isInfoEnabled()) {
             _log.info("DB service stopped...");
         }
-    }
-
-    /**
-     * Shut down gossip/thrift and then drain
-     */
-    private void flushCassandra() {
-        StorageServiceMBean svc = StorageService.instance;
-
-        if (svc.isInitialized()) {
-            svc.stopGossiping();
-        }
-
-        if (svc.isRPCServerRunning()) {
-            svc.stopRPCServer();
-        }
-
-        try {
-            svc.drain();
-        } catch (Exception e) {
-            _log.error("Fail to drain:", e);
-        }
-
     }
 
     /**
@@ -1047,5 +929,28 @@ public class DbServiceImpl implements DbService {
                     isGeoDbsvc() ? "geodbsvc" : "dbsvc",sourceIp);
             _log.error("Node recovery will fail in 30 minutes if {} not back to normal state.", sourceIp);
         }
+    }
+    
+    /**
+     * Read local data revision number. Db data directory is a symbol link to a data revision directory as the following
+     *   /data/db/1 -> /data/db/1459567039514.0  
+     *   Here data version number is 1459567039514 and 0 is incremental snapshot number. It is always 0 for db revisions
+     *                              
+     * @return
+     * @throws IOException
+     */
+    private String getLocalDataRevision() {
+        Path dbDataDir = Paths.get(dbDir, "1");
+        try {
+            if (Files.isSymbolicLink(dbDataDir)) {
+                Path symDir = Files.readSymbolicLink(dbDataDir);
+                String versionName = symDir.toFile().getName();
+                int i =  versionName.lastIndexOf(".");
+                return versionName.substring(0, i);
+            }
+        } catch (Exception ex) {
+            _log.error("Retrieve local data revision error", ex);
+        }
+        return null;
     }
 }

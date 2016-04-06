@@ -8,7 +8,9 @@ import com.emc.storageos.coordinator.client.model.Site;
 import com.emc.storageos.coordinator.client.model.SiteInfo;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.coordinator.client.service.DrUtil;
-import com.emc.storageos.db.client.util.VdcConfigUtil;
+import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.db.client.model.VirtualDataCenter;
+import com.emc.storageos.db.common.VdcUtil;
 import com.emc.storageos.model.ipsec.IPsecStatus;
 import com.emc.storageos.model.ipsec.IpsecParam;
 import com.emc.storageos.security.geo.GeoClientCacheManager;
@@ -50,6 +52,9 @@ public class IPsecManager {
     
     @Autowired
     private DrUtil drUtil;
+
+    @Autowired
+    DbClient dbClient;
 
     @Autowired
     private GeoClientCacheManager geoClientManager;
@@ -238,25 +243,33 @@ public class IPsecManager {
     /**
      * make sure cluster is in stable status
      */
-    public void verifyClusterIsStable() {
+    public void verifyIPsecOpAllowable() {
+        verifyIPsecOpAllowableOverGeo();
+        drUtil.verifyIPsecOpAllowableWithinDR();
+    }
 
-        // in GEO env, check if other vdcs are stable
-        if (drUtil.isMultivdc()) {
-            List<String> vdcIds = drUtil.getOtherVdcIds();
-            for (String peerVdcId : vdcIds) {
-                if (!geoClientManager.getGeoClient(peerVdcId).isVdcStable()) {
-                    log.error(vdcIds + " is not stable");
-                    throw APIException.serviceUnavailable.clusterStateNotStable();
-                }
+    private void verifyIPsecOpAllowableOverGeo() {
+        if (!drUtil.isMultivdc()) {
+            return;
+        }
+
+        // Other VDCs are stable
+        List<String> vdcIds = drUtil.getOtherVdcIds();
+        for (String peerVdcId : vdcIds) {
+            if (!geoClientManager.getGeoClient(peerVdcId).isVdcStable()) {
+                log.error(vdcIds + " is not stable");
+                throw APIException.serviceUnavailable.vdcNotStable(peerVdcId);
             }
         }
 
-        // check if local vdc is stable
-        if (drUtil.isAllSitesStable()) {
-            // cluster is stable for ipsec change
-            return;
-        } else {
-            throw APIException.serviceUnavailable.clusterStateNotStable();
+        // No ongoing jobs
+        VdcUtil.setDbClient(dbClient);
+        VirtualDataCenter localVdc = VdcUtil.getLocalVdc();
+        VirtualDataCenter.ConnectionStatus vdcStatus = localVdc.getConnectionStatus();
+
+        if (! vdcStatus.equals(VirtualDataCenter.ConnectionStatus.CONNECTED) &&
+                ! vdcStatus.equals(VirtualDataCenter.ConnectionStatus.ISOLATED)) {
+            throw APIException.serviceUnavailable.vdcOngingJob(localVdc.getShortId(), vdcStatus.name());
         }
     }
 

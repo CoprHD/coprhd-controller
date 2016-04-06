@@ -12,10 +12,18 @@
 
     <bean id="partitionManager" class="com.emc.storageos.plugins.common.PartitionManager"/>
 
+	<bean id="portMetricsProcessor" class="com.emc.storageos.volumecontroller.impl.plugins.metering.smis.processor.PortMetricsProcessor"/>
+
+	<bean id="vplexPerpetualCSVFileCollector"
+		  class="com.emc.storageos.volumecontroller.impl.plugins.metering.vplex.VPlexPerpetualCSVFileCollector">
+		<property name="portMetricsProcessor" ref="portMetricsProcessor"/>
+	</bean>
+
 	<bean id="vplex"
 		class="com.emc.storageos.volumecontroller.impl.plugins.VPlexCommunicationInterface">
         <property name="vPlexApiFactory" ref="vplexapifactory" />
         <property name="partitionManager" ref="partitionManager" />
+		<property name="statsCollector" ref="vplexPerpetualCSVFileCollector"/>
 	</bean>
 
 </beans>

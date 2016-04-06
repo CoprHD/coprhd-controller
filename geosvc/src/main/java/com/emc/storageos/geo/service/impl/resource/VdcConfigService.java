@@ -612,7 +612,7 @@ public class VdcConfigService {
 
         to.setName(from.getLabel());
         to.setDescription(from.getDescription());
-        to.setApiEndpoint(activeSite.getVip());
+        to.setApiEndpoint(activeSite.getVipEndPoint());
         to.setSecretKey(from.getSecretKey());
         to.setHasData(hasData);
         to.setSoftwareVersion(localSoftVer.toString());

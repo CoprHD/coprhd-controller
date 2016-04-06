@@ -4,12 +4,13 @@
  */
 package com.emc.storageos.management.backup.util;
 
+import java.net.URI;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.regex.Pattern;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -56,8 +57,6 @@ public class FtpClient {
         builder.command().add("-I");
         builder.command().add(uri + fileName);
 
-        log.info("command={}", builder.command());
-
         long length = 0;
 
         try (ProcessRunner processor = new ProcessRunner(builder.start(), false)) {
@@ -80,7 +79,7 @@ public class FtpClient {
         return length;
     }
 
-     public OutputStream upload(String fileName, long offset) throws Exception {
+    public OutputStream upload(String fileName, long offset) throws Exception {
         ProcessBuilder builder = getBuilder();
 
         // We should send a "REST offset" command, but the earliest stage we can --quote it is before PASV/EPSV
@@ -99,7 +98,6 @@ public class FtpClient {
         builder.command().add("-");
         builder.command().add(uri + fileName);
 
-         log.info("command={}", builder.command());
         return new ProcessOutputStream(builder.start());
     }
 
@@ -107,8 +105,6 @@ public class FtpClient {
         ProcessBuilder builder = getBuilder();
         builder.command().add("-l");
         builder.command().add(uri);
-
-        log.info("cmd={}", builder.command());
 
         List<String> fileList = new ArrayList<String>();
         try (ProcessRunner processor = new ProcessRunner(builder.start(), false)) {
@@ -140,13 +136,24 @@ public class FtpClient {
         return listFiles(null);
     }
 
-     public void rename(String sourceFileName, String destFileName) throws Exception {
+    public void rename(String sourceFileName, String destFileName) throws Exception {
+        if (uri == null) {
+            throw new IllegalStateException("uri is null");
+        }
+        URI serverUri = new URI(uri);
+        String endpoint = serverUri.getScheme() + "://" + serverUri.getAuthority();
+        String path = serverUri.getPath();
+        String sourceName = (new File(path, sourceFileName)).toString().substring(1);
+        String destName = (new File(path, destFileName)).toString().substring(1);
+
         ProcessBuilder builder = getBuilder();
-        builder.command().add(uri);
+        builder.command().add(endpoint);
         builder.command().add("-Q");
-        builder.command().add("RNFR " + sourceFileName);
+        builder.command().add("RNFR " + sourceName);
         builder.command().add("-Q");
-        builder.command().add("RNTO " + destFileName);
+        builder.command().add("RNTO " + destName);
+        log.info("cmd={}", hidePassword(builder.command()));
+
 
         try (ProcessRunner processor = new ProcessRunner(builder.start(), false)) {
             StringBuilder errText = new StringBuilder();
@@ -159,11 +166,17 @@ public class FtpClient {
         }
     }
 
-     public InputStream download(String backupFileName) throws IOException {
+    public InputStream download(String backupFileName) throws IOException {
         ProcessBuilder builder = getBuilder();
         String remoteBackupFile = uri + backupFileName;
         builder.command().add(remoteBackupFile);
 
         return new ProcessInputStream(builder.start());
+    }
+
+    // just show the first letter of password
+    private String hidePassword(List<String> command) {
+        String credential = command.get(3);
+        return command.toString().replace(credential, credential.substring(0, (credential.indexOf(":") + 2)) + "***");
     }
 }

@@ -7,7 +7,6 @@ package com.emc.storageos.api.service.impl.resource.snapshot;
 import java.net.URI;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import javax.ws.rs.core.SecurityContext;
 import javax.ws.rs.core.UriInfo;
@@ -20,12 +19,11 @@ import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.BlockSnapshotSession;
-import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.protectioncontroller.impl.recoverpoint.RPHelper;
+import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
-import com.emc.storageos.util.VPlexUtil;
 
 /**
  * Block snapshot session implementation for RP protected volumes.
@@ -67,7 +65,7 @@ public class RPBlockSnapshotSessionApiImpl extends DefaultBlockSnapshotSessionAp
         if (URIUtil.isType(requestedSourceURI, Volume.class)) {
             Volume sourceVolume = (Volume) requestedSourceObj;
             boolean protectionBased = RPHelper.isProtectionBasedSnapshot(sourceVolume,
-                    BlockSnapshot.TechnologyType.NATIVE.name());
+                    BlockSnapshot.TechnologyType.NATIVE.name(), _dbClient);
             if (protectionBased) {
                 throw APIException.badRequests.createSnapSessionNotSupportedForRPProtected();
             }
@@ -104,7 +102,7 @@ public class RPBlockSnapshotSessionApiImpl extends DefaultBlockSnapshotSessionAp
      */
     @Override
     public void linkNewTargetVolumesToSnapshotSession(BlockObject snapSessionSourceObj, BlockSnapshotSession snapSession,
-                                                      List<List<URI>> snapshotURIs, String copyMode, String taskId) {
+            List<List<URI>> snapshotURIs, String copyMode, String taskId) {
         BlockSnapshotSessionApi snapSessionImpl = getImplementationForBackendSystem(snapSessionSourceObj.getStorageController());
         snapSessionImpl.linkNewTargetVolumesToSnapshotSession(snapSessionSourceObj, snapSession, snapshotURIs, copyMode, taskId);
     }
@@ -134,9 +132,9 @@ public class RPBlockSnapshotSessionApiImpl extends DefaultBlockSnapshotSessionAp
      */
     @Override
     public void validateUnlinkSnapshotSessionTargets(BlockSnapshotSession snapSession, BlockObject snapSessionSourceObj, Project project,
-            Set<URI> snapshotURIs, UriInfo uriInfo) {
+            Map<URI, Boolean> targetMap, UriInfo uriInfo) {
         BlockSnapshotSessionApi snapSessionImpl = getImplementationForBackendSystem(snapSessionSourceObj.getStorageController());
-        snapSessionImpl.validateUnlinkSnapshotSessionTargets(snapSession, snapSessionSourceObj, project, snapshotURIs, uriInfo);
+        snapSessionImpl.validateUnlinkSnapshotSessionTargets(snapSession, snapSessionSourceObj, project, targetMap, uriInfo);
     }
 
     /**
@@ -144,9 +142,9 @@ public class RPBlockSnapshotSessionApiImpl extends DefaultBlockSnapshotSessionAp
      */
     @Override
     public void unlinkTargetVolumesFromSnapshotSession(BlockObject snapSessionSourceObj, BlockSnapshotSession snapSession,
-            Map<URI, Boolean> snapshotDeletionMap, String taskId) {
+            Map<URI, Boolean> snapshotDeletionMap, OperationTypeEnum opType, String taskId) {
         BlockSnapshotSessionApi snapSessionImpl = getImplementationForBackendSystem(snapSessionSourceObj.getStorageController());
-        snapSessionImpl.unlinkTargetVolumesFromSnapshotSession(snapSessionSourceObj, snapSession, snapshotDeletionMap, taskId);
+        snapSessionImpl.unlinkTargetVolumesFromSnapshotSession(snapSessionSourceObj, snapSession, snapshotDeletionMap, opType, taskId);
     }
 
     /**
@@ -180,7 +178,8 @@ public class RPBlockSnapshotSessionApiImpl extends DefaultBlockSnapshotSessionAp
      * {@inheritDoc}
      */
     @Override
-    public void deleteSnapshotSession(BlockSnapshotSession snapSession, BlockObject snapSessionSourceObj, String taskId, String deleteType) {
+    public void deleteSnapshotSession(BlockSnapshotSession snapSession, BlockObject snapSessionSourceObj, String taskId,
+            String deleteType) {
         BlockSnapshotSessionApi snapSessionImpl = getImplementationForBackendSystem(snapSessionSourceObj.getStorageController());
         snapSessionImpl.deleteSnapshotSession(snapSession, snapSessionSourceObj, taskId, deleteType);
     }
@@ -199,13 +198,13 @@ public class RPBlockSnapshotSessionApiImpl extends DefaultBlockSnapshotSessionAp
      */
     @Override
     public BlockSnapshotSession prepareSnapshotSessionFromSource(BlockObject sourceObj, String snapSessionLabel, String instanceLabel,
-            String taskId) {
+            String taskId, boolean inApplication) {
         BlockSnapshotSessionApi snapSessionImpl = getImplementationForBackendSystem(sourceObj.getStorageController());
         BlockSnapshotSession snapSession = snapSessionImpl.prepareSnapshotSessionFromSource(sourceObj, snapSessionLabel,
-                instanceLabel, taskId);
+                instanceLabel, taskId, inApplication);
         return snapSession;
     }
-    
+
     /**
      * {@inheritDoc}
      */
@@ -223,7 +222,7 @@ public class RPBlockSnapshotSessionApiImpl extends DefaultBlockSnapshotSessionAp
         // group that only exists in RecoverPoint.
         snapshot.setConsistencyGroup(null);
         _dbClient.updateObject(snapshot);
-        
+
         return snapshot;
     }
 
@@ -232,7 +231,7 @@ public class RPBlockSnapshotSessionApiImpl extends DefaultBlockSnapshotSessionAp
      */
     @Override
     public List<Map<URI, BlockSnapshot>> prepareSnapshotsForSession(List<BlockObject> sourceObjList, int sessionCount, int newTargetCount,
-                                                                    String newTargetsName) {
+            String newTargetsName, boolean inApplication) {
         // Important: that the only difference between these snapshots and snapshots created with the
         // create snapshot APIs is that the parent and project NamedURIs for those snapshots use the
         // snapshot label rather than the source label. This is an inconsistency between non-RP snaps
@@ -240,7 +239,7 @@ public class RPBlockSnapshotSessionApiImpl extends DefaultBlockSnapshotSessionAp
         BlockObject sourceObj = sourceObjList.get(0);
         BlockSnapshotSessionApi snapSessionImpl = getImplementationForBackendSystem(sourceObj.getStorageController());
         List<Map<URI, BlockSnapshot>> snapshotMap = snapSessionImpl.prepareSnapshotsForSession(sourceObjList, sessionCount, newTargetCount,
-                newTargetsName);
+                newTargetsName, inApplication);
         for (Map<URI, BlockSnapshot> map : snapshotMap) {
             for (BlockSnapshot snapshot : map.values()) {
                 // This is a native snapshot so do not set the consistency group, otherwise

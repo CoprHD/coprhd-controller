@@ -381,6 +381,20 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
                     .getNativeGuid());
         }
 
+        if (!group.getVolumes().isEmpty()) {
+            // Make sure that the Active volumes in this group are not created outside the ViPR Controller
+            // ViPR Controller should not attempt to suspend them
+            try {
+                // The below call will return an error if there is a single volume in the group that does not have an associated Volume URI
+                List<Volume> volumes = utils.getAssociatedVolumesForSRDFGroup(system, group);
+            } catch (Exception e) {
+                log.info("RDF Group {} has devices created outside ViPRController", group.getNativeGuid());
+                clearSourceAndTargetVolumes(sourceDescriptors, targetDescriptors);
+                throw DeviceControllerException.exceptions.rdfGroupHasPairsCreatedOutsideViPR(group
+                        .getNativeGuid());
+            }
+        }
+
         String createSrdfPairStep = null;
         if (volumesInRDFGroupsOnProvider.isEmpty() && SupportedCopyModes.ALL.toString().equalsIgnoreCase(group.getSupportedCopyMode())) {
             log.info("RA Group {} was empty", group.getId());
@@ -657,22 +671,20 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
 
         /**
          * If R1/R2 has group snap/clone/mirror, add pair to group is not supported unless we provide force flag.
-         * Step-1: In such a case, provide force flag.
-         * When force flag is provided, existing volume-replica group relation becomes INVALID.
-         * Step-2: Create new snap/clone/mirror for new R1/R2 volumes,
+         * Force flag is implemented by default
+         * Create new snap/clone/mirror for new R1/R2 volumes,
          * add them to DeviceMaskingGroup (DMG) which is equivalent to its ReplicationGroup (RG)
          * (adding new devices to existing RG is not supported. As a workaround, add them to DMG)
          * 
          * Note: This is supported from SMI-S 8.0.3.11 onwards.
-         * Step-2 will be called from API to create replica objects for new volumes and add them to DMG.
+         * It will be called from API to create replica objects for new volumes and add them to DMG.
          */
-        boolean forceAdd = utils.checkIfR1OrR2HasReplica(group);
 
         /*
          * 2. Invoke AddSyncpair with the created StorageSynchronized from Step 1
          */
 
-        Workflow.Method addMethod = addVolumePairsToCgMethod(system.getId(), sourceURIs, group.getId(), vpoolChangeUri, forceAdd);
+        Workflow.Method addMethod = addVolumePairsToCgMethod(system.getId(), sourceURIs, group.getId(), vpoolChangeUri);
         Workflow.Method rollbackAddMethod = rollbackAddSyncVolumePairMethod(system.getId(), sourceURIs, targetURIs, false);
         String addVolumestoCgStep = workflow.createStep(CREATE_SRDF_MIRRORS_STEP_GROUP,
                 CREATE_SRDF_MIRRORS_STEP_DESC, CREATE_SRDF_SYNC_VOLUME_PAIR_STEP_GROUP, system.getId(),
@@ -723,7 +735,7 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
                     null);
         }
         /* 2. Invoke AddSyncpair with the created StorageSynchronized from Step 1 */
-        Workflow.Method addMethod = addVolumePairsToCgMethod(system.getId(), sourceURIs, group.getId(), null, false);
+        Workflow.Method addMethod = addVolumePairsToCgMethod(system.getId(), sourceURIs, group.getId(), null);
         Workflow.Method rollbackAddMethod = rollbackAddSyncVolumePairMethod(system.getId(), sourceURIs, targetURIS, false);
         workflow.createStep(CREATE_SRDF_MIRRORS_STEP_GROUP,
                 CREATE_SRDF_MIRRORS_STEP_DESC, CREATE_SRDF_SYNC_VOLUME_PAIR_STEP_GROUP, system.getId(),
@@ -930,13 +942,18 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
                 system = dbClient.queryObject(StorageSystem.class, group.getSourceStorageSystemUri());
                 targetSystem = dbClient.queryObject(StorageSystem.class, group.getRemoteStorageSystemUri());
 
+                boolean activeMode = target.getSrdfCopyMode() != null && target.getSrdfCopyMode().equals(Mode.ACTIVE.toString());
+                boolean consExempt = true;
+                if (activeMode) {
+                    consExempt = false;
+                }
                 if (!source.hasConsistencyGroup()) {
-                    // No CG, so suspend single link (cons_exempt used in case of Asynchronous)
-                    boolean consExempt = true;
-                    boolean activeMode = target.getSrdfCopyMode() != null && target.getSrdfCopyMode().equals(Mode.ACTIVE.toString());
-                    if (activeMode) {
-                        consExempt = false;
-                    }
+                    // No CG, so suspend single link
+                    // Procedure:
+                    // For SYNC/ASYNC pairs, we need to a) suspend the pairs (cons_exempt used in case of Asynchronous)
+                    // and b)Detach the pairs.
+                    // For ACTIVE pairs, we need to a) Suspend all the pairs in the Project/ RDF Group
+                    // b) Detach the pairs and c)Resume the remaining pairs of the Project/ RDF Group .
                     Workflow.Method suspendMethod = suspendSRDFLinkMethod(system.getId(),
                             source.getId(), targetURI, consExempt);
                     String suspendStep = workflow.createStep(DELETE_SRDF_MIRRORS_STEP_GROUP,
@@ -967,30 +984,49 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
 
                 } else {
                     // Defensive steps to prevent orphaned SRDF Volumes, which cannot be deleted.
-                    // First we remove the sync pair from Async CG...
                     targetVolumeURIs.add(targetURI);
+                    // Procedure:
+                    // For SYNC/ASYNC pairs, we need to a) remove the pairs from the Group, b) suspend the pairs
+                    // and c)Detach the pairs.
+                    // For ACTIVE pairs, we need to a) Suspend all the pairs in the CG, b) Remove the pairs from the Group
+                    // c) Detach the pairs and d)Resume the remaining pairs of the Group.
+                    // Keep the methods handy
+                    Workflow.Method suspendPairMethod = suspendSRDFLinkMethod(system.getId(),
+                            source.getId(), targetURI, consExempt);
+                    Workflow.Method resumePairMethod = resumeSyncPairMethod(system.getId(),
+                            source.getId(), targetURI);
+                    if (activeMode) {
+                        // suspend the Active pair
+                        waitFor = workflow.createStep(DELETE_SRDF_MIRRORS_STEP_GROUP,
+                                SUSPEND_SRDF_MIRRORS_STEP_DESC, waitFor, system.getId(),
+                                system.getSystemType(), getClass(), suspendPairMethod, resumePairMethod, null);
+                    }
                     Workflow.Method removePairFromGroupMethod = removePairFromGroup(system.getId(),
                             source.getId(), targetURI, true);
                     String removePairFromGroupWorkflowDesc = String.format(REMOVE_SRDF_PAIR_STEP_DESC, target.getSrdfCopyMode());
-                    String detachVolumePairWorkflowDesc = String.format(DETACH_SRDF_PAIR_STEP_DESC, target.getSrdfCopyMode());
-
-                    String removePairFromGroupStep = workflow.createStep(DELETE_SRDF_MIRRORS_STEP_GROUP,
+                    waitFor = workflow.createStep(DELETE_SRDF_MIRRORS_STEP_GROUP,
                             removePairFromGroupWorkflowDesc, waitFor, system.getId(),
-                            system.getSystemType(), getClass(), removePairFromGroupMethod, null, null);
-                    // suspend the removed async pair
-                    Workflow.Method suspendPairMethod = suspendSRDFLinkMethod(system.getId(),
-                            source.getId(), targetURI, true);
-                    String suspendPairStep = workflow.createStep(DELETE_SRDF_MIRRORS_STEP_GROUP,
-                            SUSPEND_SRDF_MIRRORS_STEP_DESC, removePairFromGroupStep, system.getId(),
-                            system.getSystemType(), getClass(), suspendPairMethod, null, null);
-                    // Finally we detach the removed async pair...
+                            system.getSystemType(), getClass(), removePairFromGroupMethod, rollbackMethodNullMethod(), null);
+                    if (!activeMode) {
+                        waitFor = workflow.createStep(DELETE_SRDF_MIRRORS_STEP_GROUP,
+                                SUSPEND_SRDF_MIRRORS_STEP_DESC, waitFor, system.getId(),
+                                system.getSystemType(), getClass(), suspendPairMethod, null, null);
+                    }
+                    // We now detach the active p...
                     // don't proceed if detach fails, earlier we were allowing the delete operation
                     // to proceed even if there is a failure on detach.
+                    String detachVolumePairWorkflowDesc = String.format(DETACH_SRDF_PAIR_STEP_DESC, target.getSrdfCopyMode());
                     Workflow.Method detachPairMethod = detachVolumePairMethod(system.getId(),
                             source.getId(), targetURI);
                     waitFor = workflow.createStep(DELETE_SRDF_MIRRORS_STEP_GROUP,
-                            detachVolumePairWorkflowDesc, suspendPairStep, system.getId(),
-                            system.getSystemType(), getClass(), detachPairMethod, null, null);
+                            detachVolumePairWorkflowDesc, waitFor, system.getId(),
+                            system.getSystemType(), getClass(), detachPairMethod, rollbackMethodNullMethod(), null);
+                    if (activeMode) {
+                        // Now resume the remaining active pairs..
+                        waitFor = workflow.createStep(RESUME_SRDF_MIRRORS_STEP_GROUP,
+                                RESUME_SRDF_MIRRORS_STEP_DESC, waitFor, system.getId(),
+                                system.getSystemType(), getClass(), resumePairMethod, rollbackMethodNullMethod(), null);
+                    }
                 }
             }
         }
@@ -1611,20 +1647,19 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
         return true;
     }
 
-    private Method addVolumePairsToCgMethod(URI systemURI, List<URI> sourceURIs, URI remoteDirectorGroupURI, URI vpoolChangeUri,
-            boolean forceAdd) {
-        return new Workflow.Method(ADD_SYNC_VOLUME_PAIRS_METHOD, systemURI, sourceURIs, remoteDirectorGroupURI, vpoolChangeUri, forceAdd);
+    private Method addVolumePairsToCgMethod(URI systemURI, List<URI> sourceURIs, URI remoteDirectorGroupURI, URI vpoolChangeUri) {
+        return new Workflow.Method(ADD_SYNC_VOLUME_PAIRS_METHOD, systemURI, sourceURIs, remoteDirectorGroupURI, vpoolChangeUri);
     }
 
     public boolean addVolumePairsToCgMethodStep(URI systemURI, List<URI> sourceURIs, URI remoteDirectorGroupURI, URI vpoolChangeUri,
-            boolean forceAdd, String opId) {
+            String opId) {
         log.info("START Add VolumePair to CG");
         TaskCompleter completer = null;
         try {
             WorkflowStepCompleter.stepExecuting(opId);
             StorageSystem system = getStorageSystem(systemURI);
             completer = new SRDFAddPairToGroupCompleter(sourceURIs, vpoolChangeUri, opId);
-            getRemoteMirrorDevice().doAddVolumePairsToCg(system, sourceURIs, remoteDirectorGroupURI, forceAdd, completer);
+            getRemoteMirrorDevice().doAddVolumePairsToCg(system, sourceURIs, remoteDirectorGroupURI, completer);
         } catch (Exception e) {
             ServiceError error = DeviceControllerException.errors.jobFailed(e);
             if (null != completer) {
@@ -2040,7 +2075,7 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
                             String detachVolumePairWorkflowDesc = String.format(DETACH_SRDF_PAIR_STEP_DESC, target.getSrdfCopyMode());
 
                             Workflow.Method addSyncPairMethod = addVolumePairsToCgMethod(system.getId(),
-                                    sourceUris, group.getId(), null, false);
+                                    sourceUris, group.getId(), null);
 
                             String removeAsyncPairStep = workflow.createStep(DELETE_SRDF_MIRRORS_STEP_GROUP,
                                     removePairFromGroupWorkflowDesc, waitFor, system.getId(),

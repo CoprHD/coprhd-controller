@@ -62,9 +62,10 @@ public class HDSBlockCreateSnapshotJob extends HDSJob {
                     (HDSUtils.getHDSServerManagementServerInfo(storageSystem), storageSystem.getSmisUserName(),
                             storageSystem.getSmisPassword());
             URI snapshotId = getTaskCompleter().getId(0);
+            log.info("snapshotId :{}", snapshotId);
             if (_status == JobStatus.SUCCESS)
             {
-                LogicalUnit logicalUnit = _javaResult.getBean(LogicalUnit.class);
+                LogicalUnit logicalUnit = (LogicalUnit) _javaResult.getBean("virtualVolume");
                 BlockSnapshot snapshot = dbClient.queryObject(BlockSnapshot.class, snapshotId);
                 snapshot.setNativeId(String.valueOf(logicalUnit.getDevNum()));
                 snapshot.setNativeGuid(NativeGUIDGenerator.generateNativeGuid(storageSystem, snapshot));

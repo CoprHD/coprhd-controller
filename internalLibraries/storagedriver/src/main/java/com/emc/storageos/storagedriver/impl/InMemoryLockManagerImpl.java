@@ -38,7 +38,7 @@ public class InMemoryLockManagerImpl implements LockManager {
 
         Long waitUntil = System.currentTimeMillis() + timeoutMilliSeconds;
         while (!(locks.get(lockName) == null || locks.get(lockName).equals(threadName))) {
-            // locked
+            // locked by other thread
             Long timeRemaining;
             if (threadToTime.get(threadName) != null) {
                 // thread is already  waiting. adjust remaining wait time.

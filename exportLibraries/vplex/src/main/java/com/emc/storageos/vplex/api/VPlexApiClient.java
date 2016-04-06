@@ -288,8 +288,7 @@ public class VPlexApiClient {
         for (VPlexClusterInfo clusterInfo : clusterInfoList) {
             String clusterId = clusterInfo.getName();
             // for each cluster get the virtual volume information.
-            List<VPlexVirtualVolumeInfo> clusterVirtualVolumeInfoList = 
-                    _discoveryMgr.getVirtualVolumesForCluster(clusterId);
+            List<VPlexVirtualVolumeInfo> clusterVirtualVolumeInfoList = _discoveryMgr.getVirtualVolumesForCluster(clusterId);
             for (VPlexVirtualVolumeInfo virtualVolumeInfo : clusterVirtualVolumeInfoList) {
                 virtualVolumeInfo.addCluster(clusterId);
                 String virtualVolumeName = virtualVolumeInfo.getName();
@@ -347,7 +346,7 @@ public class VPlexApiClient {
     }
 
     /**
-     * Finds the volume with the passed name and discovers it's structure.
+     * Finds the volume with the passed name and discovers its structure.
      * 
      * @param virtualVolumeName The name of the virtual volume.
      * 
@@ -397,7 +396,7 @@ public class VPlexApiClient {
             List<VolumeInfo> nativeVolumeInfoList, boolean isDistributed,
             boolean discoveryRequired, boolean preserveData, String winningClusterId, List<VPlexClusterInfo> clusterInfoList,
             boolean findVirtualVolume)
-            throws VPlexApiException {
+                    throws VPlexApiException {
         s_logger.info("Request for virtual volume creation on VPlex at {}", _baseURI);
         return _virtualVolumeMgr.createVirtualVolume(nativeVolumeInfoList, isDistributed,
                 discoveryRequired, preserveData, winningClusterId, clusterInfoList, findVirtualVolume);
@@ -434,7 +433,7 @@ public class VPlexApiClient {
      */
     public VPlexDeviceInfo createDeviceAndAttachAsMirror(VPlexVirtualVolumeInfo virtualVolume,
             List<VolumeInfo> nativeVolumeInfoList, boolean discoveryRequired, boolean preserveData)
-            throws VPlexApiException {
+                    throws VPlexApiException {
         s_logger.info("Request for mirror creation on VPlex at {}", _baseURI);
         return _virtualVolumeMgr.createDeviceAndAttachAsMirror(virtualVolume, nativeVolumeInfoList, discoveryRequired, preserveData);
     }
@@ -521,7 +520,7 @@ public class VPlexApiClient {
     }
 
     /**
-     * Expands the virtual volume with the passed name to it's full expandable
+     * Expands the virtual volume with the passed name to its full expandable
      * capacity. This API would be invoked after natively expanding the backend
      * volume(s) of the virtual volume to provide additional capacity or say
      * migrating the backend volume(s) to volume(s) with a larger capacity.
@@ -534,7 +533,7 @@ public class VPlexApiClient {
      */
     public VPlexVirtualVolumeInfo expandVirtualVolume(String virtualVolumeName,
             int expansionStatusRetryCount, long expansionStatusSleepTime)
-            throws VPlexApiException {
+                    throws VPlexApiException {
         s_logger.info("Request for virtual volume expansion on VPlex at {}", _baseURI);
         return _virtualVolumeMgr.expandVirtualVolume(virtualVolumeName, expansionStatusRetryCount,
                 expansionStatusSleepTime);
@@ -617,6 +616,7 @@ public class VPlexApiClient {
      * Commits the completed migrations with the passed names and tears down the
      * old devices and unclaims the storage volumes.
      * 
+     * @param virtualVolumeName The name of the virtual volume prior to the commit.
      * @param migrationNames The names of the migrations.
      * @param cleanup true to automatically cleanup after the commit.
      * @param remove true to automatically remove the migration record.
@@ -630,10 +630,10 @@ public class VPlexApiClient {
      * 
      * @throws VPlexApiException When an error occurs committing the migrations.
      */
-    public List<VPlexMigrationInfo> commitMigrations(List<String> migrationNames,
+    public List<VPlexMigrationInfo> commitMigrations(String virtualVolumeName, List<String> migrationNames,
             boolean cleanup, boolean remove, boolean rename) throws VPlexApiException {
         s_logger.info("Request to commit migrations on VPlex at {}", _baseURI);
-        return _migrationMgr.commitMigrations(migrationNames, cleanup, remove, rename);
+        return _migrationMgr.commitMigrations(virtualVolumeName, migrationNames, cleanup, remove, rename);
     }
 
     /**
@@ -1202,13 +1202,10 @@ public class VPlexApiClient {
     }
 
     public VPlexVirtualVolumeInfo upgradeVirtualVolumeToDistributed(VPlexVirtualVolumeInfo virtualVolume,
-            VolumeInfo newRemoteVolume, boolean discoveryRequired, boolean rename, String clusterId) throws VPlexApiException {
+            VolumeInfo newRemoteVolume, boolean discoveryRequired, boolean rename, String clusterId,
+            String transferSize) throws VPlexApiException {
         return _virtualVolumeMgr.createDistributedVirtualVolume(
-                virtualVolume, newRemoteVolume, discoveryRequired, rename, clusterId);
-    }
-    
-    public void setTransferSize(String transferSize) throws VPlexApiException {
-    	_virtualVolumeMgr.setRebuildTransferSize(transferSize);
+                virtualVolume, newRemoteVolume, discoveryRequired, rename, clusterId, transferSize);
     }
 
     public WaitOnRebuildResult waitOnRebuildCompletion(String virtualVolume)
@@ -1421,6 +1418,20 @@ public class VPlexApiClient {
         return response;
     }
 
+    static private int maxAsyncPollingRetries = VPlexApiConstants.MAX_RETRIES;
+    static private int maxMigrationAsyncPollingRetries = VPlexApiConstants.MAX_RETRIES;
+
+    /**
+     * Polls for asynchronous completion using the default maximum retries.
+     * 
+     * @see #waitForCompletion(ClientResponse, int)
+     * @param asyncResponse
+     * @return
+     */
+    String waitForCompletion(ClientResponse asyncResponse) {
+        return waitForCompletion(asyncResponse, maxAsyncPollingRetries);
+    }
+
     /**
      * When a VPlex command is executed via a POST request, if that command
      * takes longer than 60 seconds to complete, the VPlex command will return a
@@ -1432,11 +1443,12 @@ public class VPlexApiClient {
      * 
      * @param asyncResponse A response from the VPlex indicating a command is being run
      *            asynchronously because it is taking too long.
+     * @param maxRetries -- Maximum polling attempts before timeout.
      * 
      * @throws VPlexApiException When the command completes unsuccessfully or we
      *             time out because it is taking too long.
      */
-    String waitForCompletion(ClientResponse asyncResponse) throws VPlexApiException {
+    String waitForCompletion(ClientResponse asyncResponse, int maxRetries) throws VPlexApiException {
         MultivaluedMap<String, String> headers = asyncResponse.getHeaders();
         String taskResourceStr = headers.getFirst(VPlexApiConstants.LOCATION_HEADER);
         if (taskResourceStr == null) {
@@ -1446,7 +1458,7 @@ public class VPlexApiClient {
         // Check the task for completion until we've reached the
         // maximum number of status checks.
         int retries = 0;
-        while (retries++ < VPlexApiConstants.MAX_RETRIES) {
+        while (retries++ < maxRetries) {
             ClientResponse taskResponse = get(URI.create(taskResourceStr));
             String responseStr = taskResponse.getEntity(String.class);
             s_logger.info("Wait for completion response is {}", responseStr);
@@ -1706,4 +1718,39 @@ public class VPlexApiClient {
         return _discoveryMgr.getDrillDownInfoForDevice(deviceName);
     }
 
+    /**
+     * Returns the maximum number of retries for a polling operation.
+     * 
+     * @return integer number of retries
+     */
+    static public int getMaxAsyncPollingRetries() {
+        return maxAsyncPollingRetries;
+    }
+
+    /**
+     * Sets the maximum number of retries for an async. polling operation.
+     * 
+     * @param maxRetries integer
+     */
+    static public void setMaxAsyncPollingRetries(int maxRetries) {
+        maxAsyncPollingRetries = maxRetries;
+    }
+
+    /**
+     * Returns the maximum number of async. retries for a migration commit.
+     * 
+     * @return integer number of retries
+     */
+    static public int getMaxMigrationAsyncPollingRetries() {
+        return maxMigrationAsyncPollingRetries;
+    }
+
+    /**
+     * Sets the maximum number of async. retries for a migration commit.
+     * 
+     * @param maxRetries integer
+     */
+    static public void setMaxMigrationAsyncPollingRetries(int maxRetries) {
+        maxMigrationAsyncPollingRetries = maxRetries;
+    }
 }

@@ -742,6 +742,15 @@ public class FileVirtualPoolService extends VirtualPoolService {
                 return true;
             }
         }
+
+        // Check for Snapshot schedule protection
+        if (to.getScheduleSnapshots() != from.getScheduleSnapshots()) {
+            // Any changes to schedule snapshot is not permitted on
+            // virtual pools with provisioned file systems.
+            _log.info("Schedule snapshot cannot be modified to a vpool with provisioned filessystems ",
+                    from.getId());
+            return true;
+        }
         _log.info("No protection changes");
         return false;
     }

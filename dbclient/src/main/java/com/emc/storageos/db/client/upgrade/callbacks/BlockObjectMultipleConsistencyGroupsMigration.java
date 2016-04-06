@@ -179,7 +179,7 @@ public class BlockObjectMultipleConsistencyGroupsMigration extends BaseCustomMig
                                     primaryCg.addSystemConsistencyGroup(vplexStorageSystem.getId().toString(),
                                             BlockConsistencyGroupUtils.buildClusterCgName(clusterId, vplexCg.getLabel()));
 
-                                    if (primaryCg.getStorageController() == null) {
+                                    if (NullColumnValueGetter.isNullURI(primaryCg.getStorageController())) {
                                         primaryCg.setStorageController(vplexStorageSystem.getId());
                                     }
 
@@ -279,19 +279,17 @@ public class BlockObjectMultipleConsistencyGroupsMigration extends BaseCustomMig
                         cg.addSystemConsistencyGroup(cgVolume.getStorageController().toString(),
                                 BlockConsistencyGroupUtils.buildClusterCgName(clusterId, cg.getLabel()));
                     }
-                } else {
+                } else if (!NullColumnValueGetter.isNullURI(cg.getStorageController())) {
                     // Non-RP/Non-VPLEX/Non-RP+VPLEX
                     // Add an entry for the storage system -> consistency group name
-                    if (cg.getStorageController() != null) {
-                        cg.addSystemConsistencyGroup(cg.getStorageController().toString(), cg.getDeviceName());
-                    }
+                    cg.addSystemConsistencyGroup(cg.getStorageController().toString(), cg.getDeviceName());
                 }
 
                 // Remove type and deviceName fields
                 cg.setType(NullColumnValueGetter.getNullStr());
                 cg.setDeviceName(NullColumnValueGetter.getNullStr());
 
-                dbClient.persistObject(cg);
+                dbClient.updateObject(cg);
                 log.info("Migration of BlockConsistencyGroup {} complete.", cg.getLabel());
             }
         }

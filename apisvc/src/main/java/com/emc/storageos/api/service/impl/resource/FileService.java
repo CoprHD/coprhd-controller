@@ -19,6 +19,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
@@ -43,6 +44,7 @@ import com.emc.storageos.api.service.impl.placement.VirtualPoolUtil;
 import com.emc.storageos.api.service.impl.resource.utils.CapacityUtils;
 import com.emc.storageos.api.service.impl.resource.utils.CifsShareUtility;
 import com.emc.storageos.api.service.impl.resource.utils.ExportVerificationUtility;
+import com.emc.storageos.api.service.impl.resource.utils.FileSystemRepliationUtils;
 import com.emc.storageos.api.service.impl.resource.utils.NfsACLUtility;
 import com.emc.storageos.api.service.impl.resource.utils.VirtualPoolChangeAnalyzer;
 import com.emc.storageos.api.service.impl.response.BulkList;
@@ -81,9 +83,12 @@ import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.model.StorageProtocol;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringSet;
+import com.emc.storageos.db.client.model.Task;
 import com.emc.storageos.db.client.model.TenantOrg;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
+import com.emc.storageos.db.client.model.VirtualPool.FileReplicationRPOType;
+import com.emc.storageos.db.client.model.util.TaskUtils;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.NameGenerator;
 import com.emc.storageos.db.client.util.SizeUtil;
@@ -99,10 +104,10 @@ import com.emc.storageos.model.SnapshotList;
 import com.emc.storageos.model.TaskList;
 import com.emc.storageos.model.TaskResourceRep;
 import com.emc.storageos.model.block.MirrorList;
-import com.emc.storageos.model.file.Copy;
 import com.emc.storageos.model.file.ExportRule;
 import com.emc.storageos.model.file.ExportRules;
 import com.emc.storageos.model.file.FileCifsShareACLUpdateParams;
+import com.emc.storageos.model.file.FileCopy;
 import com.emc.storageos.model.file.FileExportUpdateParam;
 import com.emc.storageos.model.file.FileNfsACLUpdateParams;
 import com.emc.storageos.model.file.FilePolicyList;
@@ -117,6 +122,7 @@ import com.emc.storageos.model.file.FileSystemExpandParam;
 import com.emc.storageos.model.file.FileSystemExportList;
 import com.emc.storageos.model.file.FileSystemExportParam;
 import com.emc.storageos.model.file.FileSystemParam;
+import com.emc.storageos.model.file.FileSystemReplicationSettings;
 import com.emc.storageos.model.file.FileSystemShareList;
 import com.emc.storageos.model.file.FileSystemShareParam;
 import com.emc.storageos.model.file.FileSystemSnapshotParam;
@@ -125,6 +131,8 @@ import com.emc.storageos.model.file.FileSystemVirtualPoolChangeParam;
 import com.emc.storageos.model.file.NfsACLs;
 import com.emc.storageos.model.file.QuotaDirectoryCreateParam;
 import com.emc.storageos.model.file.QuotaDirectoryList;
+import com.emc.storageos.model.file.ScheduleSnapshotList;
+import com.emc.storageos.model.file.ScheduleSnapshotRestRep;
 import com.emc.storageos.model.file.ShareACL;
 import com.emc.storageos.model.file.ShareACLs;
 import com.emc.storageos.model.file.SmbShareResponse;
@@ -145,6 +153,7 @@ import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
 import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.volumecontroller.FileController;
+import com.emc.storageos.volumecontroller.FileControllerConstants;
 import com.emc.storageos.volumecontroller.FileSMBShare;
 import com.emc.storageos.volumecontroller.FileShareExport;
 import com.emc.storageos.volumecontroller.FileShareExport.Permissions;
@@ -162,6 +171,8 @@ public class FileService extends TaskResourceService {
     private static final String EVENT_SERVICE_TYPE = "file";
     protected static final String PROTOCOL_NFS = "NFS";
     protected static final String PROTOCOL_CIFS = "CIFS";
+    private static final Long MINUTES_PER_HOUR = 60L;
+    private static final Long HOURS_PER_DAY = 24L;
 
     @Override
     public String getServiceType() {
@@ -229,14 +240,16 @@ public class FileService extends TaskResourceService {
 
     // Protection operations that are allowed with /file/filesystems/{id}/protection/continuous-copies/
     public static enum ProtectionOp {
-        FAILOVER("failover", ResourceOperationTypeEnum.FILE_PROTECTION_ACTION_FAILOVER),
-        FAILBACK("failback", ResourceOperationTypeEnum.FILE_PROTECTION_ACTION_FAILBACK),
-        START("start", ResourceOperationTypeEnum.FILE_PROTECTION_ACTION_START),
-        STOP("stop", ResourceOperationTypeEnum.FILE_PROTECTION_ACTION_STOP),
-        PAUSE("pause", ResourceOperationTypeEnum.FILE_PROTECTION_ACTION_PAUSE),
-        RESUME("resume", ResourceOperationTypeEnum.FILE_PROTECTION_ACTION_RESUME),
-        REFRESH("refresh", ResourceOperationTypeEnum.FILE_PROTECTION_ACTION_REFRESH),
-        UNKNOWN("unknown", ResourceOperationTypeEnum.PERFORM_PROTECTION_ACTION);
+        FAILOVER("failover", ResourceOperationTypeEnum.FILE_PROTECTION_ACTION_FAILOVER), FAILBACK("failback",
+                ResourceOperationTypeEnum.FILE_PROTECTION_ACTION_FAILBACK), START("start",
+                        ResourceOperationTypeEnum.FILE_PROTECTION_ACTION_START), STOP("stop",
+                                ResourceOperationTypeEnum.FILE_PROTECTION_ACTION_STOP), PAUSE("pause",
+                                        ResourceOperationTypeEnum.FILE_PROTECTION_ACTION_PAUSE), RESUME("resume",
+                                                ResourceOperationTypeEnum.FILE_PROTECTION_ACTION_RESUME), REFRESH("refresh",
+                                                        ResourceOperationTypeEnum.FILE_PROTECTION_ACTION_REFRESH), UNKNOWN("unknown",
+                                                                ResourceOperationTypeEnum.PERFORM_PROTECTION_ACTION), UPDATE_RPO(
+                                                                        "update-rpo",
+                                                                        ResourceOperationTypeEnum.UPDATE_FILE_SYSTEM_REPLICATION_RPO);
 
         private final String op;
         private final ResourceOperationTypeEnum resourceType;
@@ -1224,8 +1237,10 @@ public class FileService extends TaskResourceService {
      * <p>
      * NOTE: This is an asynchronous operation.
      * 
-     * @param param File system expansion parameters
-     * @param id the URN of a ViPR File system
+     * @param param
+     *            File system expansion parameters
+     * @param id
+     *            the URN of a ViPR File system
      * @brief Expand file system
      * @return Task resource representation
      * @throws InternalException
@@ -1259,13 +1274,15 @@ public class FileService extends TaskResourceService {
         ArgValidator.checkFieldMaximum(param.getSoftLimit(), 100, "soft_limit");
         ArgValidator.checkFieldMaximum(param.getNotificationLimit(), 100, "notification_limit");
 
-        if (param.getSoftLimit() != 0L) {
+        if (param.getSoftLimit() > 0L) {
             ArgValidator.checkFieldMinimum(param.getSoftGrace(), 1L, "soft_grace");
+            fs.setSoftGracePeriod(param.getSoftGrace());
+            fs.setSoftLimit(Long.valueOf(param.getSoftLimit()));
         }
 
-        fs.setSoftLimit(Long.valueOf(param.getSoftLimit()));
-        fs.setSoftGracePeriod(param.getSoftGrace());
-        fs.setNotificationLimit(Long.valueOf(param.getNotificationLimit()));
+        if (param.getNotificationLimit() > 0) {
+            fs.setNotificationLimit(Long.valueOf(param.getNotificationLimit()));
+        }
 
         _dbClient.updateObject(fs);
 
@@ -1602,10 +1619,16 @@ public class FileService extends TaskResourceService {
         if (!param.getForceDelete()) {
             ArgValidator.checkReference(FileShare.class, id, checkForDelete(fs));
             if (!fs.getFilePolicies().isEmpty()) {
-
                 throw APIException.badRequests
                         .resourceCannotBeDeleted("Please unassign the policy from file system. " + fs.getLabel());
             }
+        }
+        StringBuffer notSuppReasonBuff = new StringBuffer();
+        // Verify the file system is having any active replication targets!!
+        if (FileSystemRepliationUtils.filesystemHasActiveReplication(fs, notSuppReasonBuff, param.getDeleteType(),
+                param.getForceDelete())) {
+            throw APIException.badRequests
+                    .resourceCannotBeDeleted(notSuppReasonBuff.toString());
         }
         List<URI> fileShareURIs = new ArrayList<URI>();
         fileShareURIs.add(id);
@@ -1895,7 +1918,7 @@ public class FileService extends TaskResourceService {
         if (param.getSize() != null) {
             Long quotaSize = SizeUtil.translateSize(param.getSize()); // converts the input string in format "<value>GB"
                                                                       // to bytes
-            ArgValidator.checkFieldMaximum(quotaSize, fs.getCapacity(), SizeUtil.SIZE_B, "size");
+            ArgValidator.checkFieldMaximum(quotaSize, fs.getCapacity(), SizeUtil.SIZE_B, "size", true);
             quotaDirectory.setSize(quotaSize);
         } else {
             quotaDirectory.setSize((long) 0);
@@ -2674,7 +2697,7 @@ public class FileService extends TaskResourceService {
         StringBuffer notSuppReasonBuff = new StringBuffer();
 
         // Verify the file system and its vPool are capable of doing replication!!!
-        if (!isSupportedFileReplicationCreate(fs, currentVpool, notSuppReasonBuff)) {
+        if (!FileSystemRepliationUtils.isSupportedFileReplicationCreate(fs, currentVpool, notSuppReasonBuff)) {
             _log.error("create mirror copies is not supported for file system {} due to {}",
                     fs.getId().toString(), notSuppReasonBuff.toString());
             throw APIException.badRequests.unableToCreateMirrorCopies(
@@ -2706,6 +2729,16 @@ public class FileService extends TaskResourceService {
         capabilities.put(VirtualPoolCapabilityValuesWrapper.FILE_SYSTEM_CREATE_MIRROR_COPY, Boolean.TRUE);
         capabilities.put(VirtualPoolCapabilityValuesWrapper.EXISTING_SOURCE_FILE_SYSTEM, fs);
         capabilities.put(VirtualPoolCapabilityValuesWrapper.SOURCE_STORAGE_SYSTEM, device);
+
+        if (param.getCopyName() != null && !param.getCopyName().isEmpty()) {
+            // No need to generate any name -- Since the requirement is to use the customizing label we should use the
+            // same.
+            // Stripping out the special characters like ; /-+!@#$%^&())";:[]{}\ | but allow underscore character _
+            String convertedName = param.getCopyName().replaceAll("[^\\dA-Za-z\\_]", "");
+            _log.info("Original copy name {} and converted copy name {}", param.getCopyName(), convertedName);
+            capabilities.put(VirtualPoolCapabilityValuesWrapper.FILE_TARGET_COPY_NAME, convertedName);
+
+        }
 
         FileServiceApi fileServiceApi = getFileShareServiceImpl(fs, _dbClient);
 
@@ -2771,7 +2804,7 @@ public class FileService extends TaskResourceService {
         StringBuffer notSuppReasonBuff = new StringBuffer();
 
         // Verify the file system and its vPool are capable of doing replication!!!
-        if (!validateDeleteMirrorCopies(fs, currentVpool, notSuppReasonBuff)) {
+        if (!FileSystemRepliationUtils.validateDeleteMirrorCopies(fs, currentVpool, notSuppReasonBuff)) {
             _log.error("delete mirror copies is not supported for file system {} due to {}",
                     fs.getId().toString(), notSuppReasonBuff.toString());
             throw APIException.badRequests.unableToDeleteMirrorCopies(
@@ -2847,6 +2880,57 @@ public class FileService extends TaskResourceService {
         ArgValidator.checkFieldUriType(id, FileShare.class, "id");
 
         return performFileProtectionAction(param, id, ProtectionOp.START.getRestOp());
+    }
+
+    /**
+     * Update file system RPO.
+     * <p>
+     * NOTE: This is an asynchronous operation.
+     * 
+     * @param param
+     *            File system RPO update parameters
+     * @param id
+     *            the URN of a ViPR File system
+     * @brief update file system replication RPO
+     * @return Task resource representation
+     * @throws InternalException
+     */
+    @PUT
+    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("/{id}/protection/continuous-copies/update-rpo")
+    @CheckPermission(roles = { Role.TENANT_ADMIN }, acls = { ACL.OWN, ACL.ALL })
+    public TaskResourceRep updateFileSystemReplicationRPO(@PathParam("id") URI id, FileReplicationParam param)
+            throws InternalException {
+
+        _log.info("Update file system replication RPO request received. Filesystem: {}", id.toString());
+        FileShare fs = queryResource(id);
+
+        ArgValidator.checkFieldUriType(id, FileShare.class, "id");
+        ArgValidator.checkEntity(fs, id, isIdEmbeddedInURL(id));
+        ArgValidator.checkFieldNotNull(param.getCopies().get(0).getReplicationSettingParam(), "replication_settings");
+
+        VirtualPool vpool = _dbClient.queryObject(VirtualPool.class, fs.getVirtualPool());
+
+        validateProtectionSettings(vpool, param);
+
+        StringBuffer notSuppReasonBuff = new StringBuffer();
+        if (!FileSystemRepliationUtils.doBasicMirrorValidation(fs, vpool, notSuppReasonBuff)) {
+            throw APIException.badRequests.unableToPerformMirrorOperation(ProtectionOp.UPDATE_RPO.toString(), fs.getId(),
+                    notSuppReasonBuff.toString());
+        }
+        String task = UUID.randomUUID().toString();
+
+        StorageSystem device = _dbClient.queryObject(StorageSystem.class, fs.getStorageDevice());
+        FileReplicationController controller = getController(FileReplicationController.class, device.getSystemType());
+
+        Operation op = _dbClient.createTaskOpStatus(FileShare.class, fs.getId(),
+                task, ResourceOperationTypeEnum.UPDATE_FILE_SYSTEM_REPLICATION_RPO);
+        op.setDescription("Update filesystem replication RPO");
+
+        controller.updateFileSystemReplicationRPO(device.getId(), fs.getId(), param, task);
+
+        return toTask(fs, task, op);
     }
 
     /**
@@ -2980,7 +3064,7 @@ public class FileService extends TaskResourceService {
     @CheckPermission(roles = { Role.TENANT_ADMIN }, acls = { ACL.OWN, ACL.ALL })
     public TaskList failoverProtection(@PathParam("id") URI id, FileReplicationParam param) throws ControllerException {
         ArgValidator.checkFieldUriType(id, FileShare.class, "id");
-        Copy copy = param.getCopies().get(0);
+        FileCopy copy = param.getCopies().get(0);
         if (copy.getType().equalsIgnoreCase(FileTechnologyType.REMOTE_MIRROR.name())) {
             return performFileProtectionAction(param, id, ProtectionOp.FAILOVER.getRestOp());
         } else {
@@ -3015,7 +3099,7 @@ public class FileService extends TaskResourceService {
     public TaskList failbackProtection(@PathParam("id") URI id, FileReplicationParam param) throws ControllerException {
 
         ArgValidator.checkFieldUriType(id, FileShare.class, "id");
-        Copy copy = param.getCopies().get(0);
+        FileCopy copy = param.getCopies().get(0);
         if (copy.getType().equalsIgnoreCase(FileTechnologyType.REMOTE_MIRROR.name())) {
             return performFileProtectionAction(param, id, ProtectionOp.FAILBACK.getRestOp());
         } else {
@@ -3085,7 +3169,7 @@ public class FileService extends TaskResourceService {
         StringBuffer notSuppReasonBuff = new StringBuffer();
 
         // Verify the file system and its vPool are capable of doing replication!!!
-        if (!validateMirrorOperationSupported(sourceFileShare, currentVpool, notSuppReasonBuff, op)) {
+        if (!FileSystemRepliationUtils.validateMirrorOperationSupported(sourceFileShare, currentVpool, notSuppReasonBuff, op)) {
             _log.error("Mirror Operation {} is not supported for the file system {} as : {}", op.toUpperCase(),
                     sourceFileShare.getLabel(), notSuppReasonBuff.toString());
             throw APIException.badRequests.unableToPerformMirrorOperation(op.toUpperCase(), sourceFileShare.getId(),
@@ -3118,7 +3202,7 @@ public class FileService extends TaskResourceService {
     private TaskList performFileProtectionAction(FileReplicationParam param, URI id, String op) {
         TaskResourceRep taskResp = null;
         TaskList taskList = new TaskList();
-        Copy copy = param.getCopies().get(0);
+        FileCopy copy = param.getCopies().get(0);
         if (copy.getType().equalsIgnoreCase(FileTechnologyType.REMOTE_MIRROR.name()) ||
                 copy.getType().equalsIgnoreCase(FileTechnologyType.LOCAL_MIRROR.name())) {
             taskResp = performProtectionAction(id, op);
@@ -3200,8 +3284,10 @@ public class FileService extends TaskResourceService {
     /**
      * Returns the bean responsible for servicing the request
      * 
-     * @param fileShare fileshare
-     * @param dbClient db client
+     * @param fileShare
+     *            fileshare
+     * @param dbClient
+     *            db client
      * @return file service implementation object
      */
     public static FileServiceApi getFileShareServiceImpl(FileShare fileShare, DbClient dbClient) {
@@ -3423,6 +3509,130 @@ public class FileService extends TaskResourceService {
     }
 
     /**
+     * Get file system Snapshot created by policy
+     * 
+     * @param id
+     *            The URN of a ViPR file system
+     * @param filePolicyUri
+     *            The URN of a file policy schedule
+     * @param timeout
+     *            Time limit in seconds to get the output .Default is 30 seconds
+     * @return List of snapshots created by a file policy
+     */
+    @GET
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("/{id}/file-policies/{filePolicyUri}/snapshots")
+    @CheckPermission(roles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN }, acls = { ACL.ANY })
+    public ScheduleSnapshotList getFileSystemSchedulePolicySnapshots(@PathParam("id") URI id,
+            @PathParam("filePolicyUri") URI filePolicyUri, @QueryParam("timeout") int timeout) {
+        // valid value of timeout is 10 sec to 10 min
+        if (timeout < 10 || timeout > 600) {
+            timeout = 30;// default timeout value.
+        }
+
+        ScheduleSnapshotList list = new ScheduleSnapshotList();
+        ArgValidator.checkFieldUriType(id, FileShare.class, "id");
+        FileShare fs = queryResource(id);
+        ArgValidator.checkEntity(fs, id, isIdEmbeddedInURL(id));
+        ArgValidator.checkFieldUriType(filePolicyUri, SchedulePolicy.class, "filePolicyUri");
+        ArgValidator.checkUri(filePolicyUri);
+        SchedulePolicy sp = _permissionsHelper.getObjectById(filePolicyUri, SchedulePolicy.class);
+        ArgValidator.checkEntityNotNull(sp, filePolicyUri, isIdEmbeddedInURL(filePolicyUri));
+
+        // verify the file system tenant is same as policy tenant
+        if (!sp.getTenantOrg().getURI().toString().equalsIgnoreCase(fs.getTenant().getURI().toString())) {
+            throw APIException.badRequests.associatedPolicyTenantMismatch(filePolicyUri, id);
+        }
+        // verify the schedule policy is associated with file system or not.
+        if (!fs.getFilePolicies().contains(filePolicyUri.toString())) {
+            throw APIException.badRequests.cannotFindAssociatedPolicy(filePolicyUri);
+        }
+
+        String task = UUID.randomUUID().toString();
+        StorageSystem device = _dbClient.queryObject(StorageSystem.class, fs.getStorageDevice());
+        FileController controller = getController(FileController.class, device.getSystemType());
+        Operation op = _dbClient.createTaskOpStatus(FileShare.class, fs.getId(),
+                task, ResourceOperationTypeEnum.GET_FILE_SYSTEM_SNAPSHOT_BY_SCHEDULE);
+        op.setDescription("list snapshots created by a policy");
+
+        try {
+
+            _log.info("No Errors found. Proceeding further {}, {}, {}", new Object[] { _dbClient, fs, sp });
+
+            controller.listSanpshotByPolicy(device.getId(), fs.getId(), sp.getId(), task);
+            Task taskObject = null;
+            auditOp(OperationTypeEnum.GET_FILE_SYSTEM_SNAPSHOT_BY_SCHEDULE, true, AuditLogManager.AUDITOP_BEGIN,
+                    fs.getId().toString(), device.getId().toString(), sp.getId());
+            int timeoutCounter = 0;
+            // wait till timeout or result from controller service ,whichever is earlier
+            do {
+                TimeUnit.SECONDS.sleep(1);
+                taskObject = TaskUtils.findTaskForRequestId(_dbClient, fs.getId(), task);
+                timeoutCounter++;
+                // exit the loop if task is completed with error/success or timeout
+            } while ((taskObject != null && !(taskObject.isReady() || taskObject.isError())) && timeoutCounter < timeout);
+
+            if (taskObject == null) {
+                throw APIException.badRequests
+                        .unableToProcessRequest("Error occured while getting Filesystem policy Snapshots task information");
+
+            } else if (taskObject.isReady()) {
+                URIQueryResultList snapshotsURIs = new URIQueryResultList();
+                _dbClient.queryByConstraint(ContainmentConstraint.Factory.getFileshareSnapshotConstraint(id),
+                        snapshotsURIs);
+                List<Snapshot> snapList = _dbClient.queryObject(Snapshot.class, snapshotsURIs);
+
+                for (Snapshot snap : snapList) {
+
+                    if (!snap.getInactive() && snap.getExtensions().containsKey("schedule")) {
+                        ScheduleSnapshotRestRep snapRest = new ScheduleSnapshotRestRep();
+                        getScheduleSnapshotRestRep(snapRest, snap);
+                        list.getScheduleSnapList().add(snapRest);
+                        snap.setInactive(true);
+                        _dbClient.updateObject(snap);
+                    }
+                }
+
+            } else if (taskObject.isError()) {
+
+                throw APIException.badRequests
+                        .unableToProcessRequest("Error occured while getting Filesystem policy Snapshots due to" + taskObject.getMessage());
+
+            } else {
+
+                throw APIException.badRequests
+                        .unableToProcessRequest("Error occured while getting Filesystem policy Snapshots due to timeout");
+
+            }
+
+        } catch (BadRequestException e) {
+            op = _dbClient.error(FileShare.class, fs.getId(), task, e);
+            _log.error("Error while getting  Filesystem policy  Snapshots {}, {}", e.getMessage(), e);
+            throw APIException.badRequests.unableToProcessRequest(e.getMessage());
+        } catch (Exception e) {
+            _log.error("Error while getting  Filesystem policy  Snapshots {}, {}", e.getMessage(), e);
+            throw APIException.badRequests.unableToProcessRequest(e.getMessage());
+        }
+        return list;
+
+    }
+
+    private void getScheduleSnapshotRestRep(ScheduleSnapshotRestRep target, Snapshot source) {
+
+        if (source.getExtensions().containsKey("created")) {
+            target.setCreated(source.getExtensions().get("created"));
+
+        }
+        if (source.getExtensions().containsKey("expires")) {
+            target.setExpires(source.getExtensions().get("expires"));
+
+        }
+        target.setId(source.getId());
+        target.setMountPath(source.getMountPath());
+        target.setName(source.getName());
+    }
+
+    /**
      * Create FilePolicyRestRep object from the SchedulePolicy object
      * 
      * @param fpRest
@@ -3574,10 +3784,14 @@ public class FileService extends TaskResourceService {
     /**
      * Checks to see if the file replication operation is supported.
      * 
-     * @param fs file share object
-     * @param currentVpool source virtual pool
-     * @param notSuppReasonBuff the not supported reason string buffer
-     * @param operation mirror operation to be checked
+     * @param fs
+     *            file share object
+     * @param currentVpool
+     *            source virtual pool
+     * @param notSuppReasonBuff
+     *            the not supported reason string buffer
+     * @param operation
+     *            mirror operation to be checked
      */
     private boolean validateMirrorOperationSupported(FileShare fs, VirtualPool currentVpool, StringBuffer notSuppReasonBuff,
             String operation) {
@@ -3590,6 +3804,14 @@ public class FileService extends TaskResourceService {
         String currentMirrorStatus = fs.getMirrorStatus();
         boolean isSupported = false;
 
+        // This validation is required after stop operation
+        if (fs.getPersonality() == null || !fs.getPersonality().equals(PersonalityTypes.SOURCE.name())) {
+            notSuppReasonBuff.append(String.format("File system - %s given in request is not having any active replication.",
+                    fs.getLabel()));
+            _log.info(notSuppReasonBuff.toString());
+            return false;
+        }
+
         switch (operation) {
 
             // Refresh operation can be performed without any check.
@@ -3597,10 +3819,9 @@ public class FileService extends TaskResourceService {
                 isSupported = true;
                 break;
 
-            // START operation can be performed only if Mirror status is UNKNOWN or DETACHED
+            // START operation can be performed only if Mirror status is UNKNOWN
             case "start":
-                if (currentMirrorStatus.equalsIgnoreCase(MirrorStatus.UNKNOWN.toString())
-                        || currentMirrorStatus.equalsIgnoreCase(MirrorStatus.DETACHED.toString()))
+                if (currentMirrorStatus.equalsIgnoreCase(MirrorStatus.UNKNOWN.toString()))
                     isSupported = true;
                 break;
 
@@ -3618,9 +3839,9 @@ public class FileService extends TaskResourceService {
                     isSupported = true;
                 break;
 
-            // RESUME operation can be performed only if Mirror status is SUSPENDED.
+            // RESUME operation can be performed only if Mirror status is PAUSED.
             case "resume":
-                if (currentMirrorStatus.equalsIgnoreCase(MirrorStatus.SUSPENDED.toString()))
+                if (currentMirrorStatus.equalsIgnoreCase(MirrorStatus.PAUSED.toString()))
                     isSupported = true;
                 break;
 
@@ -3670,4 +3891,114 @@ public class FileService extends TaskResourceService {
         }
         return true;
     }
+
+    /**
+     * Checks to see if the file replication change is supported.
+     * 
+     * @param fs
+     * @param notSuppReasonBuff
+     *            the not supported reason string buffer
+     * @return
+     */
+    private boolean filesystemHasActiveReplication(FileShare fs, StringBuffer notSuppReasonBuff,
+            String deleteType, boolean forceDelete) {
+
+        // File system should not be the target file system..
+        if (fs.getPersonality() != null && fs.getPersonality().equalsIgnoreCase(PersonalityTypes.TARGET.name())) {
+            notSuppReasonBuff.append(String.format("File system - %s given in request is an active Target file system.",
+                    fs.getLabel()));
+            _log.info(notSuppReasonBuff.toString());
+            return true;
+        }
+
+        // File system should not have active replication targets!!
+        // For resource delete (forceDelete=false)
+        // For VIPR_ONLY type, till we support ingestion of replication file systems
+        // avoid deleting file systems if it has active mirrors!!
+        if (forceDelete == false || FileControllerConstants.DeleteTypeEnum.VIPR_ONLY.toString().equalsIgnoreCase(deleteType)) {
+            if (fs.getMirrorfsTargets() != null
+                    && !fs.getMirrorfsTargets().isEmpty()) {
+                notSuppReasonBuff
+                        .append(String
+                                .format("File system %s given in request has active target file systems.",
+                                        fs.getLabel()));
+                _log.info(notSuppReasonBuff.toString());
+                return true;
+
+            }
+        }
+
+        return false;
+    }
+
+    private Long getMinutRpoValue(String rpoType, Long rpoValue) {
+
+        Long multiplier = 1L;
+        switch (rpoType.toUpperCase()) {
+            case "MINUTES":
+                multiplier = 1L;
+                break;
+            case "HOURS":
+                multiplier = MINUTES_PER_HOUR;
+                break;
+            case "DAYS":
+                multiplier = HOURS_PER_DAY * MINUTES_PER_HOUR;
+                break;
+        }
+        Long rpoInMinuts = rpoValue * multiplier;
+        return rpoInMinuts;
+
+    }
+
+    private boolean validateProtectionSettings(VirtualPool vpool, FileReplicationParam param) {
+
+        if (param.getCopies() != null && !param.getCopies().isEmpty()) {
+            if (param.getCopies().get(0).getReplicationSettingParam() != null) {
+
+                FileSystemReplicationSettings rpoParam = param.getCopies().get(0).getReplicationSettingParam();
+                if (rpoParam.getRpoType() == null
+                        || FileReplicationRPOType.lookup(rpoParam.getRpoType()) == null) {
+                    throw APIException.badRequests
+                            .invalidReplicationRPOType(rpoParam.getRpoType());
+                }
+
+                if (rpoParam.getRpoValue() == null || rpoParam.getRpoValue() <= 0) {
+                    throw APIException.badRequests.invalidReplicationRPOValue();
+                }
+                // Validate the RPO values!!
+                switch (rpoParam.getRpoType().toUpperCase()) {
+                    case "MINUTES":
+                        if (rpoParam.getRpoValue() > MINUTES_PER_HOUR) {
+                            throw APIException.badRequests.invalidReplicationRPOValueForType(
+                                    rpoParam.getRpoValue().toString(), rpoParam.getRpoType());
+                        }
+                        break;
+                    case "HOURS":
+                        if (rpoParam.getRpoValue() > HOURS_PER_DAY) {
+                            throw APIException.badRequests.invalidReplicationRPOValueForType(
+                                    rpoParam.getRpoValue().toString(), rpoParam.getRpoType());
+                        }
+                        break;
+                    case "DAYS":
+                        // No validation required for Days.
+                        break;
+                    default:
+                        throw APIException.badRequests.invalidReplicationRPOType(rpoParam.getRpoType());
+                }
+
+                Long rpoInMinuts = getMinutRpoValue(rpoParam.getRpoType(), rpoParam.getRpoValue());
+                Long vpoolRpoInMinuts = getMinutRpoValue(vpool.getFrRpoType(), vpool.getFrRpoValue());
+
+                if (rpoInMinuts < vpoolRpoInMinuts) {
+                    throw APIException.badRequests.lessRPOThanVpoolRpo();
+                }
+                return true;
+            } else {
+                throw APIException.badRequests.noProtectionSettingsProvided();
+            }
+        }
+
+        return false;
+    }
+
 }

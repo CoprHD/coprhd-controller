@@ -764,7 +764,7 @@ public class XIVSmisStorageDevice extends DefaultBlockStorageDevice {
 
     @Override
     public void doDeleteConsistencyGroup(final StorageSystem storage,
-            final URI consistencyGroupId, String replicationGroupName, String newReplicationGroupName, Boolean markInactive, final TaskCompleter taskCompleter)
+            final URI consistencyGroupId, String replicationGroupName, Boolean keepRGName, Boolean markInactive, final TaskCompleter taskCompleter)
             throws DeviceControllerException {
         BlockConsistencyGroup consistencyGroup = _dbClient.queryObject(
                 BlockConsistencyGroup.class, consistencyGroupId);
@@ -802,6 +802,13 @@ public class XIVSmisStorageDevice extends DefaultBlockStorageDevice {
                     "doDeleteConsistencyGroup", e.getMessage());
             taskCompleter.error(_dbClient, error);
         }
+    }
+    
+    @Override
+    public void doDeleteConsistencyGroup(StorageSystem storage, final URI consistencyGroupId,
+            String replicationGroupName, Boolean keepRGName, Boolean markInactive, 
+            String sourceReplicationGroup, final TaskCompleter taskCompleter) throws DeviceControllerException {
+        doDeleteConsistencyGroup(storage, consistencyGroupId, replicationGroupName, keepRGName, markInactive, taskCompleter);
     }
 
     /*

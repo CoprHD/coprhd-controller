@@ -95,6 +95,9 @@ public class SizeUtil {
      * @return converted size
      */
     public static Double translateSize(Long size, String to) {
+        if (size == null || size.longValue() == 0) {
+            return 0.0;
+        }
         long multiplier = 1L;
         if (to.endsWith(SIZE_TB)) {
             multiplier = 1024 * 1024 * 1024 * 1024L;
@@ -125,5 +128,21 @@ public class SizeUtil {
             return SIZE_KB;
         else
             return SIZE_B;
+    }
+
+    /**
+     * Gives a human readable value of the input bytes
+     * 
+     * @param bytes
+     *            input size in bytes
+     * @return human readable value of storage size
+     */
+    public static String humanReadableByteCount(long bytes) {
+        int unit = 1024;
+        if (bytes < unit)
+            return bytes + " B";
+        int exp = (int) (Math.log(bytes) / Math.log(unit));
+        char pre = ("KMGTPE").charAt(exp - 1);
+        return String.format("%.2f %cB", bytes / Math.pow(unit, exp), pre);
     }
 }

@@ -34,14 +34,12 @@ public class AuditLog extends Controller {
     private static String LOG_LANG = "en_US";
     private static JAXBContext CONTEXT;
 
-    private static final String PARAM_DATE = "date";
     private static final String PARAM_START = "startTime";
     private static final String PARAM_END = "endTime";
     private static final String PARAM_RESULT = "resultStatus";
     private static final String PARAM_SERVICE = "serviceType";
     private static final String PARAM_USER = "user";
     private static final String PARAM_KEYWORD = "keyword";
-    private static final String PARAM_TRIGGER = "triggerByFilter";
 
     private static synchronized JAXBContext getContext() throws JAXBException {
         if (CONTEXT == null) {
@@ -58,18 +56,16 @@ public class AuditLog extends Controller {
         AuditLogDataTable dataTable = new AuditLogDataTable();
 
         Long startTime = params.get(PARAM_START, Long.class);
-        String resultStatus = params.get(PARAM_RESULT);
+        String resultStatus = params.get(PARAM_RESULT) == null ? "" : params.get(PARAM_RESULT);
         String serviceType = params.get(PARAM_SERVICE);
         String user = params.get(PARAM_USER);
         String keyword = params.get(PARAM_KEYWORD);
-        Boolean triggerByFilter = params.get(PARAM_TRIGGER, Boolean.class);
-        DateTime defaultStartTime = new DateTime().minusHours(5);
+        DateTime defaultStartTime = new DateTime();
         renderArgs.put(PARAM_START, (startTime == null) ? defaultStartTime.getMillis() : startTime);
         renderArgs.put(PARAM_RESULT, resultStatus);
         renderArgs.put(PARAM_SERVICE, serviceType);
         renderArgs.put(PARAM_USER, user);
         renderArgs.put(PARAM_KEYWORD, keyword);
-        renderArgs.put(PARAM_TRIGGER, triggerByFilter);
         Common.copyRenderArgsToAngular();
 
         render(dataTable);
@@ -100,23 +96,12 @@ public class AuditLog extends Controller {
     }
 
     private static InputStream getLogsStream() {
-        Long dateTime = params.get(PARAM_DATE, Long.class);
         Long startTime = params.get(PARAM_START, Long.class);
         String result = params.get(PARAM_RESULT);
         String serviceType = params.get(PARAM_SERVICE);
         String user = params.get(PARAM_USER);
         String keyword = params.get(PARAM_KEYWORD);
-        Boolean triggerParam = params.get(PARAM_TRIGGER, Boolean.class);
-        boolean triggerByFilter = triggerParam != null ? triggerParam.booleanValue() : false;
-        if (triggerByFilter) {
-            Logger.info("Fetch audit logs from filter's multiply params.");
-            return BourneUtil.getViprClient().audit().getAsStream(new Date(startTime), new Date(), serviceType, user, result, keyword,
-                    LOG_LANG);
-        }
-
-        dateTime = dateTime != null ? dateTime : new Date().getTime();
-        Logger.info("Fetch audit logs from selected or current time bucket.");
-        return BourneUtil.getViprClient().audit().getLogsForHourAsStream(new Date(dateTime), LOG_LANG);
+        return BourneUtil.getViprClient().audit().getAsStream(new Date(startTime), new Date(), serviceType, user, result, keyword, LOG_LANG);
     }
 
     public static void download(Long startTime, Long endTime, String serviceType, String user, String resultStatus, String keyword) {

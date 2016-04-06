@@ -323,4 +323,7 @@ public interface RecoverPointExceptions {
 
     @DeclareServiceCode(ServiceCode.RECOVER_POINT_ERROR)
     public RecoverPointException failedToLookupConsistencyGroups(final Throwable cause);
+    
+    @DeclareServiceCode(ServiceCode.RECOVER_POINT_ERROR)
+    public RecoverPointException failedToAddVolumeToApplication(final String volumeLabel, final String reason);
 }

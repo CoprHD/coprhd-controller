@@ -156,15 +156,11 @@ public class ObjectControllerImpl extends AbstractDiscoveredSystemController
     }
 
     @Override
-    public ObjectUserSecretKey getUserSecretKeys(URI storage, String userId) throws InternalException {
-        _log.debug("ObjectControllerImpl:getUserSecretKey start");
-        // Synchronous call than queuing
-        StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, storage);
-        Controller controller = lookupDeviceController(storageSystem);
-        ObjectController objController = (ObjectController) controller;
-        return objController.getUserSecretKeys(storage, userId);        
+    public void syncBucketACL(URI storage, URI bucketId, String opId) throws InternalException {
+        execOb("syncBucketACL", storage, bucketId, opId);
     }
-
+    
+    
     @Override
     public ObjectUserSecretKey addUserSecretKey(URI storage, String userId, String secretKey) throws InternalException {
         _log.debug("ObjectControllerImpl:addUserSecretKey start");

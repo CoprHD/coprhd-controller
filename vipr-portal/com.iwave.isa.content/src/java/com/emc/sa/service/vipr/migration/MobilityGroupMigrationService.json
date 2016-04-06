@@ -1,0 +1,39 @@
+{
+  baseKey:"MobilityGroupMigration.Migration",
+  serviceId:"MobilityGroupMigration",
+  roles: [
+    "SYSTEM_ADMIN"
+  ],
+  fields:{
+      
+    mobilityGroup:{
+      type:"assetType.vipr.mobilityGroup"
+    },
+    
+    mobilityGroupMethod:{
+      type:"assetType.vipr.mobilityGroupMethod"
+    },
+    
+    project:{
+      type:"assetType.vipr.project",
+      lockable: true,
+      required:false
+    },
+    
+    virtualArray:{
+      type:"assetType.vipr.virtualArray",
+      lockable: true,
+      required:false
+    },
+
+    virtualPool:{
+      type:"assetType.vipr.blockVirtualPool",
+      lockable: true,
+      required:false
+    },
+    
+    targetVirtualPool:{
+      type:"assetType.vipr.mobilityMigrationTargetVirtualPool"
+    }
+  }
+}

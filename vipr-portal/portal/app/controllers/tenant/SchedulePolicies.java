@@ -97,7 +97,7 @@ public class SchedulePolicies extends ViprResourceController {
     @Util
     private static void addRenderArgs() {
         List<StringOption> policyTypeOptions = Lists.newArrayList();
-        policyTypeOptions.add(new StringOption("snapshot", MessagesUtils.get("schedulePolicy.snapshot")));
+        policyTypeOptions.add(new StringOption("file_snapshot", MessagesUtils.get("schedulePolicy.snapshot")));
         renderArgs.put("policyTypeOptions", policyTypeOptions);
 
     }
@@ -213,6 +213,10 @@ public class SchedulePolicies extends ViprResourceController {
             expireParam.setExpireValue(schedulePolicy.expireValue);
             param.setSnapshotExpire(expireParam);
         }
+        if("NEVER".equals(schedulePolicy.expiration)){
+            expireParam.setExpireType("never");
+            param.setSnapshotExpire(expireParam);
+        }
 
         return param;
 
@@ -244,10 +248,10 @@ public class SchedulePolicies extends ViprResourceController {
         public String policyType;
 
         // File Policy schedule type - daily, weekly, monthly.
-        public String frequency;
+        public String frequency = "days";
 
         // Policy execution repeats on
-        public int repeat;
+        public int repeat = 1;
 
         // Time when policy run
         public String scheduleTime;
@@ -262,9 +266,9 @@ public class SchedulePolicies extends ViprResourceController {
         public String expireType;
 
         // Schedule Snapshot expire after
-        public int expireValue;
+        public int expireValue = 2;
 
-        public String expiration;
+        public String expiration = "EXPIRE_TIME";
         public String referrerUrl;
 
         public String scheduleHour;
@@ -306,8 +310,10 @@ public class SchedulePolicies extends ViprResourceController {
                 }
 
             }
-            if (this.expireType == null) {
+            if (this.expireType == null || "never".equals(this.expireType)) {
                 this.expiration = "NEVER";
+            }else{
+                this.expiration = "EXPIRE_TIME";
             }
 
             return this;

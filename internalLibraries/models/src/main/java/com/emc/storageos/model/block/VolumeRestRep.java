@@ -41,7 +41,7 @@ public class VolumeRestRep extends BlockObjectRestRep {
     private RelatedResourceRep pool;
     private List<RelatedResourceRep> volumeGroups;
     private Boolean supportsSnapshotSessions;
-    private String replicationGroupInstance;
+    private String systemType;
 
     // Fields in a Volume that are specific to RecoverPoint
     public static class RecoverPointRestRep {
@@ -188,6 +188,7 @@ public class VolumeRestRep extends BlockObjectRestRep {
         private Boolean isSyncActive;
         private Integer percentSynced;
         private String replicaState;
+        private String fullCopySetName;
 
         @XmlElement(name = "associated_source_volume")
         public RelatedResourceRep getAssociatedSourceVolume() {
@@ -237,6 +238,20 @@ public class VolumeRestRep extends BlockObjectRestRep {
         public void setReplicaState(String state) {
             replicaState = state;
         }
+
+        /**
+         * the name to identify full copies created as a Set
+         * 
+         * @return the full copy set name
+         */
+        @XmlElement(name = "full_copy_set_name")
+        public String getFullCopySetName() {
+            return fullCopySetName;
+        }
+
+        public void setFullCopySetName(String setName) {
+            fullCopySetName = setName;
+        }
     }
 
     // Fields in a volume that are specific to SRDF Copies
@@ -272,9 +287,9 @@ public class VolumeRestRep extends BlockObjectRestRep {
         /**
          * How this volume is used with respect to replication
          * Valid values:
-         *  SOURCE
-         *  TARGET
-         *  METADATA
+         *  SOURCE = A production volume
+         *  TARGET = A copy of a production volume
+         *  METADATA = A volume that stores meta-data for replication. Example = Recoverpoint journal volume
          */
         @XmlElement(name = "personality")
         public String getPersonality() {
@@ -613,18 +628,20 @@ public class VolumeRestRep extends BlockObjectRestRep {
     }
 
     /**
-     * the replication group name on the array
-     * @return the replicationGroupInstance
+     * Storage system's type
+     * 
+     * @return the systemType
      */
-    @XmlElement(name = "replication_group_instance")
-    public String getReplicationGroupInstance() {
-        return replicationGroupInstance;
+    @XmlElement(name = "system_type")
+    public String getSystemType() {
+        return systemType;
     }
 
     /**
-     * @param replicationGroupInstance the replicationGroupInstance to set
+     * @param systemType the systemType to set
      */
-    public void setReplicationGroupInstance(String replicationGroupInstance) {
-        this.replicationGroupInstance = replicationGroupInstance;
+    public void setSystemType(String systemType) {
+        this.systemType = systemType;
     }
+
 }

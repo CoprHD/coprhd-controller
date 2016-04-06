@@ -6,7 +6,7 @@ package com.emc.storageos.api.service.impl.resource.snapshot;
 
 import java.net.URI;
 import java.util.List;
-import java.util.Set;
+import java.util.Map;
 
 import javax.ws.rs.core.SecurityContext;
 import javax.ws.rs.core.UriInfo;
@@ -79,7 +79,7 @@ public class VNXEBlockSnapshotSessionApiImpl extends DefaultBlockSnapshotSession
      */
     @Override
     public void validateUnlinkSnapshotSessionTargets(BlockSnapshotSession snapSession, BlockObject snapSessionSourceObj, Project project,
-            Set<URI> snapshotURIs, UriInfo uriInfo) {
+            Map<URI, Boolean> targetMap, UriInfo uriInfo) {
         throw APIException.methodNotAllowed.notSupportedForVNXE();
     }
 

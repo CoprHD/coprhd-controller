@@ -10,6 +10,7 @@ import java.net.InetAddress;
 import java.net.URI;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
@@ -24,6 +25,8 @@ import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.coordinator.client.service.DrUtil;
 import com.emc.storageos.coordinator.client.service.impl.CoordinatorClientImpl;
 import com.emc.storageos.coordinator.client.model.Constants;
+import com.emc.storageos.coordinator.client.model.Site;
+import com.emc.storageos.coordinator.client.model.SiteState;
 import com.emc.storageos.coordinator.common.Configuration;
 import com.emc.storageos.coordinator.common.Service;
 import com.emc.storageos.coordinator.common.impl.ZkConnection;
@@ -43,7 +46,7 @@ public class GeoSeedProviderImpl implements SeedProvider {
 
     private CoordinatorClient coordinator;
     private List<String> seeds = new ArrayList<>();
-    private boolean isDrActiveSite;
+
     /**
      * 
      * @param args
@@ -111,9 +114,6 @@ public class GeoSeedProviderImpl implements SeedProvider {
         client.setInetAddessLookupMap(inetAddressMap); // HARCODE FOR NOW
         client.start();
         
-        DrUtil drUtil = new DrUtil(client);
-        isDrActiveSite = drUtil.isActiveSite();
-        
         coordinator = client;
     }
 
@@ -142,22 +142,19 @@ public class GeoSeedProviderImpl implements SeedProvider {
                 seeds.add(ip);
             }
         }
-        // On DR standby site, only use seeds from active site. On active site
-        // we use local seeds
-        if (isDrActiveSite) {
-            // add local seed(s):
-            // -For fresh install and upgraded system from 1.1,
-            // get the first started node via the AUTOBOOT flag.
-            // -For geodb restore/recovery,
-            // get the active nodes by checking geodbsvc beacon in zk,
-            // successfully booted node will register geodbsvc beacon in zk and remove the REINIT flag.
-            List<Configuration> configs = getAllConfigZNodes();
-            if (hasRecoveryReinitFlag(configs)) {
-                seeds.addAll(getAllActiveNodes(configs));
-            }
-            else {
-                seeds.add(getNonAutoBootNode(configs));
-            }
+        
+        // add local seed(s):
+        // -For fresh install and upgraded system from 1.1,
+        // get the first started node via the AUTOBOOT flag.
+        // -For geodb restore/recovery,
+        // get the active nodes by checking geodbsvc beacon in zk,
+        // successfully booted node will register geodbsvc beacon in zk and remove the REINIT flag.
+        List<Configuration> configs = getAllConfigZNodes();
+        if (hasRecoveryReinitFlag(configs)) {
+            seeds.addAll(getAllActiveNodes(configs));
+        }
+        else {
+            seeds.add(getNonAutoBootNode(configs));
         }
     }
 

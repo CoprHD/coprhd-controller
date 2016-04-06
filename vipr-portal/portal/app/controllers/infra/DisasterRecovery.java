@@ -70,10 +70,14 @@ public class DisasterRecovery extends ViprResourceController {
         }
     }
 
-    public static void list() {
+    private static void list() {
+        list(false);
+    }
+
+    public static void list(boolean showPauseButton) {
         DisasterRecoveryDataTable dataTable = createDisasterRecoveryDataTable();
-        boolean showPauseButton = false;
-        render(dataTable, showPauseButton);
+        String localSiteUuid = DisasterRecoveryUtils.getLocalUuid();
+        render(dataTable, showPauseButton, localSiteUuid);
     }
 
     @FlashException("list")
@@ -84,7 +88,7 @@ public class DisasterRecovery extends ViprResourceController {
         for (String uuid : uuids) {
             if (!DisasterRecoveryUtils.hasStandbySite(uuid)) {
                 flash.error(MessagesUtils.get(UNKNOWN, uuid));
-                pauseResume();
+                list(true);
             }
 
         }
@@ -93,28 +97,20 @@ public class DisasterRecovery extends ViprResourceController {
         param.getIds().addAll(uuids);
         DisasterRecoveryUtils.pauseStandby(param);
         flash.success(MessagesUtils.get(PAUSED_SUCCESS));
-        pauseResume();
+        list(true);
     }
 
     @FlashException("list")
     @Restrictions({ @Restrict("SECURITY_ADMIN"), @Restrict("RESTRICTED_SECURITY_ADMIN"), @Restrict("SYSTEM_ADMIN"),
             @Restrict("RESTRICTED_SYSTEM_ADMIN") })
-    public static void resume(String id, boolean showPauseButton) {
+    public static void resume(String id) {
         SiteRestRep result = DisasterRecoveryUtils.getSite(id);
         if (result != null) {
             SiteRestRep siteresume = DisasterRecoveryUtils.resumeStandby(id);
             flash.success(MessagesUtils.get(RESUMED_SUCCESS, siteresume.getName()));
         }
-        if (showPauseButton) {
-            pauseResume();
-        } else {
-            list();
-        }
-    }
 
-    public static void pauseResume() {
-        DisasterRecoveryDataTable dataTable = createDisasterRecoveryDataTable();
-        render(dataTable);
+        list();
     }
 
     @FlashException("list")
@@ -124,9 +120,31 @@ public class DisasterRecovery extends ViprResourceController {
         SiteRestRep result = DisasterRecoveryUtils.getSite(id);
         if (result != null) {
             SiteRestRep siteretry = DisasterRecoveryUtils.retryStandby(id);
-            flash.success(MessagesUtils.get(RETRY_SUCCESS, siteretry.getName()));
+            if (siteretry.getState().equals(SiteState.STANDBY_FAILING_OVER.name())){
+                String standby_name = siteretry.getName();
+                String standby_vip = siteretry.getVipEndpoint();
+                String active_name = standby_name;
+                for (SiteRestRep site: DisasterRecoveryUtils.getStandbySites()){
+                    if (site.getState().equals(SiteState.ACTIVE_FAILING_OVER.name())){
+                        active_name = site.getName();
+                        break;
+                    }
+                }
+                String targetURL = "https://" + standby_vip;
+                Boolean iamActiveSite = false;
+                String site_uuid = id;
+                String site_state = result.getState();
+                render(active_name, standby_name, standby_vip, site_uuid, site_state, iamActiveSite, targetURL);
+            }
+            else {
+                flash.success(MessagesUtils.get(RETRY_SUCCESS, siteretry.getName()));
+                list();
+            }
         }
-        list();
+        else {
+            flash.error(MessagesUtils.get(UNKNOWN, id));
+            list();
+        }
     }
 
     public static void test(String id) {
@@ -159,7 +177,7 @@ public class DisasterRecovery extends ViprResourceController {
                 iamActiveSite = false;
             }
             standby_name = result.getName();
-            standby_vip = result.getVip();
+            standby_vip = result.getVipEndpoint();
         }
         String site_uuid = id;
         result = DisasterRecoveryUtils.getSite(id);
@@ -263,6 +281,14 @@ public class DisasterRecovery extends ViprResourceController {
         return DisasterRecoveryUtils.isActiveSite();
     }
 
+    public static boolean isLocalsiteRemoved() {
+        return DisasterRecoveryUtils.isLocalSiteRemoved();
+    }
+
+    public static boolean isMultiDrSite() {
+        return DisasterRecoveryUtils.isMultiDrSite();
+    }
+
     public static boolean isRetrySite(String uuid) {
         SiteErrorResponse error = DisasterRecoveryUtils.getSiteError(uuid);
         if(!error.getOperation().equals(SiteState.STANDBY_PAUSING.name())
@@ -284,6 +310,11 @@ public class DisasterRecovery extends ViprResourceController {
 
     private static boolean isActiveSiteState(SiteState state) {
         return activeStates.contains(state);
+    }
+    
+    public static String getLocalSiteState() {
+        SiteRestRep site = DisasterRecoveryUtils.getLocalSite();
+        return site != null ? site.getState() : "";
     }
 
     public static void errorDetails(String id) {
@@ -324,9 +355,9 @@ public class DisasterRecovery extends ViprResourceController {
         Boolean isActive = isActiveSiteState(Enum.valueOf(SiteState.class, siteRest.getState()));
         renderArgs.put("isActive", isActive);
 
-        if (disasterSiteDetails.getPausedTime() != null) {
-            DateTime pausedTime = new DateTime(disasterSiteDetails.getPausedTime().getTime());
-            renderArgs.put("pausedTime", pausedTime);
+        if (disasterSiteDetails.getLastSyncTime() != null) {
+            DateTime lastSyncTime = new DateTime(disasterSiteDetails.getLastSyncTime().getTime());
+            renderArgs.put("lastSyncTime", lastSyncTime);
         }
 
         if (disasterSiteDetails.getCreationTime() != null) {
@@ -340,7 +371,9 @@ public class DisasterRecovery extends ViprResourceController {
         List<SiteRestRep> standbySites = new ArrayList<SiteRestRep>();
         for (String uuid : uuids) {
             SiteRestRep standbySite = DisasterRecoveryUtils.getSite(uuid);
-            standbySites.add(standbySite);
+            if (standbySite != null) {
+                standbySites.add(standbySite);
+            }
         }
         performItemsJson(standbySites, new JsonItemOperation());
     }
@@ -351,7 +384,7 @@ public class DisasterRecovery extends ViprResourceController {
             return new StandByInfo(provider);
         }
     }
-
+    
     // Suppressing Sonar violation of Password Hardcoded. Password is not hardcoded here.
     @SuppressWarnings("squid:S2068")
     public static class DisasterRecoveryForm {
@@ -394,7 +427,7 @@ public class DisasterRecovery extends ViprResourceController {
             this.id = siteeditParam.getUuid();
             this.name = siteeditParam.getName();
             this.description = siteeditParam.getDescription();
-            this.VirtualIP = siteeditParam.getVip();
+            this.VirtualIP = siteeditParam.getVipEndpoint();
         }
 
         public boolean isNew() {

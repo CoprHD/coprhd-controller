@@ -124,7 +124,7 @@ public interface FileStorageDevice {
      */
     public BiosCommandResult doExpandFS(StorageSystem storage, FileDeviceInputOutput fd)
             throws ControllerException;
-    
+
     /**
      * 
      * @param storage
@@ -236,4 +236,6 @@ public interface FileStorageDevice {
     public BiosCommandResult assignFilePolicy(StorageSystem storageObj, FileDeviceInputOutput args);
 
     public BiosCommandResult unassignFilePolicy(StorageSystem storageObj, FileDeviceInputOutput args);
+
+    public BiosCommandResult listSanpshotByPolicy(StorageSystem storageObj, FileDeviceInputOutput args);
 }

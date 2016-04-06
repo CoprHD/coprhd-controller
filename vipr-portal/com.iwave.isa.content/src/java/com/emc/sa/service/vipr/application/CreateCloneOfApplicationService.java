@@ -76,7 +76,7 @@ public class CreateCloneOfApplicationService extends ViPRService {
                     volumesToUse.getVolumes().add(volumeId);
                 }
             } else {
-                if (BlockStorageUtils.isRPSourceVolume(parentVolume)) {
+                if (!BlockStorageUtils.isRPVolume(parentVolume) || BlockStorageUtils.isRPSourceVolume(parentVolume)) {
                     volumesToUse.getVolumes().add(volumeId);
                 }
             }

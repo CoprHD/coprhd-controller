@@ -1252,7 +1252,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
                         subGroups.add(volume.getReplicationGroupInstance());
                     }
                 } else {
-                    if (BlockStorageUtils.isRPSourceVolume(parentVolume)) {
+                    if (!BlockStorageUtils.isRPVolume(parentVolume) || BlockStorageUtils.isRPSourceVolume(parentVolume)) {
                         subGroups.add(volume.getReplicationGroupInstance());
                     }
                 }

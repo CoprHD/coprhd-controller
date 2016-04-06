@@ -379,13 +379,13 @@ public class XtremIOProvUtils {
      * Get the XtremIO client for making requests to the system based
      * on the passed profile.
      *
-     * @param accessProfile A reference to the access profile.
+     * @param dbClient the db client
+     * @param system the system
      * @param xtremioRestClientFactory xtremioclientFactory.
-     *
      * @return A reference to the xtremio client.
      */
-    public static XtremIOClient getXtremIOClient(StorageSystem system, XtremIOClientFactory xtremioRestClientFactory) {
-        xtremioRestClientFactory.setModel(system.getFirmwareVersion());
+    public static XtremIOClient getXtremIOClient(DbClient dbClient, StorageSystem system, XtremIOClientFactory xtremioRestClientFactory) {
+        xtremioRestClientFactory.setModel(getXtremIOVersion(dbClient, system));
         if (null == system.getSmisProviderIP() || null == system.getSmisPortNumber()) {
             _log.error("There is no active XtremIO Provider managing the system {}.", system.getSerialNumber());
             throw XtremIOApiException.exceptions.noMgmtConnectionFound(system.getSerialNumber());
@@ -399,6 +399,23 @@ public class XtremIOProvUtils {
     }
 
     /**
+     * Gets the XtrmeIO model.
+     *
+     * @param dbClient the db client
+     * @param system the system
+     * @return the XtrmeIO model
+     */
+    public static String getXtremIOVersion(DbClient dbClient, StorageSystem system) {
+        String version = system.getFirmwareVersion();
+        // get model info from storage provider as it will have the latest model updated after scan process
+        if (!NullColumnValueGetter.isNullURI(system.getActiveProviderURI())) {
+            StorageProvider provider = dbClient.queryObject(StorageProvider.class, system.getActiveProviderURI());
+            version = provider.getVersionString();
+        }
+        return version;
+    }
+    
+    /**
      * Refresh the XIO Providers & its client connections.
      *
      * @param xioProviderList the XIO provider list
@@ -409,37 +426,15 @@ public class XtremIOProvUtils {
             DbClient dbClient, XtremIOClientFactory xtremioRestClientFactory) {
         List<URI> activeProviders = new ArrayList<URI>();
         for (StorageProvider provider : xioProviderList) {
-            boolean isConnectionLive = false;
-            // We can't determine the client version now, let first scan determine the version.
-            if (null == provider.getVersionString()) {
-                continue;
-            }
             try {
+                // For providers without version/model, let it try connecting V1 client to update connection status
                 xtremioRestClientFactory.setModel(provider.getVersionString());
-                XtremIOClient clientFromCache = (XtremIOClient) xtremioRestClientFactory.getRESTClient(
+                XtremIOClient xioClient = (XtremIOClient) xtremioRestClientFactory.getRESTClient(
                         URI.create(XtremIOConstants.getXIOBaseURI(provider.getIPAddress(),
                                 provider.getPortNumber())),
                         provider.getUserName(), provider.getPassword(), true);
-                if (null != clientFromCache && null != clientFromCache.getXtremIOXMSVersion()) {
-                    isConnectionLive = true;
-                } else {
-                    _log.debug("Connection from cache is not valid trying with new credentials {}", provider.getProviderID());
-                    // remove the existing client connection
-                    xtremioRestClientFactory.removeRESTClient(
-                            URI.create(XtremIOConstants.getXIOBaseURI(provider.getIPAddress(),
-                                    provider.getPortNumber())),
-                            provider.getUserName(), provider.getPassword());
-                    // Initialize with the new provider credentials.
-                    XtremIOClient newXIOClient = (XtremIOClient) xtremioRestClientFactory.getRESTClient(
-                            URI.create(XtremIOConstants.getXIOBaseURI(provider.getIPAddress(),
-                                    provider.getPortNumber())),
-                            provider.getUserName(), provider.getPassword(), true);
-                    if (null != newXIOClient.getXtremIOXMSVersion()) {
-                        isConnectionLive = true;
-                    }
-                }
-                // Now update provider status based on connection live check.
-                if (isConnectionLive) {
+                if (null != xioClient.getXtremIOXMSVersion()) {
+                    // Now update provider status based on connection live check.
                     provider.setConnectionStatus(StorageProvider.ConnectionStatus.CONNECTED
                             .toString());
                     activeProviders.add(provider.getId());
@@ -449,7 +444,7 @@ public class XtremIOProvUtils {
                             .toString());
                 }
             } catch (Exception ex) {
-                _log.error("Exception occurred while validating xio client for {}", provider.getProviderID(), ex);
+                _log.error("Exception occurred while validating XIO client for {}", provider.getProviderID(), ex);
                 provider.setConnectionStatus(StorageProvider.ConnectionStatus.NOTCONNECTED
                         .toString());
             } finally {
@@ -460,7 +455,7 @@ public class XtremIOProvUtils {
     }
 
     public static boolean is4xXtremIOModel(String model) {
-        return (null != model && Integer.valueOf(model.split(DOT_OPERATOR)[0]) >= XIO_MIN_4X_VERSION);
+        return (NullColumnValueGetter.isNotNullValue(model) && Integer.valueOf(model.split(DOT_OPERATOR)[0]) >= XIO_MIN_4X_VERSION);
     }
 
     /**

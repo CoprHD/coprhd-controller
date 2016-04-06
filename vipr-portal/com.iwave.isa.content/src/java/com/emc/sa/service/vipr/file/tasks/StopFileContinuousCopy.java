@@ -7,7 +7,7 @@ package com.emc.sa.service.vipr.file.tasks;
 import java.net.URI;
 
 import com.emc.sa.service.vipr.tasks.WaitForTasks;
-import com.emc.storageos.model.file.Copy;
+import com.emc.storageos.model.file.FileCopy;
 import com.emc.storageos.model.file.FileReplicationParam;
 import com.emc.storageos.model.file.FileShareRestRep;
 import com.emc.vipr.client.Tasks;
@@ -26,7 +26,7 @@ public class StopFileContinuousCopy extends WaitForTasks<FileShareRestRep> {
 
     @Override
     protected Tasks<FileShareRestRep> doExecute() throws Exception {
-        Copy copy = new Copy();
+        FileCopy copy = new FileCopy();
         copy.setCopyID(continuousCopyId);
         copy.setType(type);
 

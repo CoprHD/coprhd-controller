@@ -154,6 +154,7 @@ public abstract class BlockIngestExportOrchestrator extends ResourceService {
                     continue;
                 }
                 if (VolumeIngestionUtil.isVplexVolume(unManagedVolume) && 
+                        !VolumeIngestionUtil.isRpExportMask(unManagedExportMask, _dbClient) &&
                         !VolumeIngestionUtil.validateExportMaskMatchesVplexCluster(requestContext, unManagedVolume, unManagedExportMask)) {
                     // logs already inside the above method.
                     itr.remove();

@@ -2248,19 +2248,11 @@ public class BlockService extends TaskResourceService {
         if (TechnologyType.RP.toString().equalsIgnoreCase(snapshotType)) {
             return;
         }
-        URI cgId = requestedVolume.getConsistencyGroup();
-        if (!NullColumnValueGetter.isNullURI(cgId)) {
-            BlockConsistencyGroup cg = _dbClient.queryObject(BlockConsistencyGroup.class, cgId);
-            if (cg != null && !cg.getInactive()) {
-                URIQueryResultList volumesInCg = new URIQueryResultList();
-                _dbClient.queryByConstraint(getVolumesByConsistencyGroup(cgId), volumesInCg);
-                Iterator<Volume> volumeIterator = _dbClient.queryIterativeObjects(Volume.class, volumesInCg);
-                while (volumeIterator.hasNext()) {
-                    VolumeGroup application = volumeIterator.next().getApplication(_dbClient);
-                    if (application != null) {
-                        throw APIException.badRequests.cannotCreateSnapshotCgPartOfApplication(application.getLabel(), cg.getLabel());
-                    }
-                }
+        if (NullColumnValueGetter.isNotNullValue(requestedVolume.getReplicationGroupInstance())
+                && (VPlexUtil.isVplexVolume(requestedVolume, _dbClient) || NullColumnValueGetter.isNullURI(requestedVolume.getProtectionController()))) {
+            VolumeGroup application = requestedVolume.getApplication(_dbClient);
+            if (application != null) {
+                throw APIException.badRequests.cannotCreateSnapshotCgPartOfApplication(application.getLabel());
             }
         }
     }

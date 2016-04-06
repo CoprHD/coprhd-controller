@@ -37,70 +37,30 @@ class ObjectUser(object):
         self.__port = port
         
 
-    def objectuser_secretkey_list(self, systemUri, userId):
-        '''
-        Makes a REST API call to retrieve list all keys of an object user
-        '''
-        (s, h) = common.service_json_request(
-                self.__ipAddr, self.__port,
-                "GET",ObjectUser.URI_OBJECTUSER_SECRET_KEYS.format(
-                systemUri, userId),None, None)
-        o = common.json_decode(s)
-        return o
-
-    def objectuser_secretkey_create(self, systemUri, userId, secretkey):
+    def objectuser_secretkey_create(self, storagesystem, objectuser, secretkey):
         '''
         Makes a REST API call to retrieve create secret key of an object user
+        
         '''
-        request = {
+        stsystem_uri = None
+        from storagesystem import StorageSystem
+        obj = StorageSystem(self.__ipAddr, self.__port)
+                 
+        stsystem_uri = obj.query_by_name_and_type(storagesystem, "ecs")
+        request = {}
+        if(secretkey):
+            request = {
                   'secret_key' : secretkey
                   }
+        
         body = json.dumps(request)
-        print "only body " + body
-        print "Full body  "+ ObjectUser.URI_OBJECTUSER_SECRET_KEYS.format(systemUri, userId)
-
+       
         (s, h) = common.service_json_request(
                 self.__ipAddr, self.__port,
                 "POST",ObjectUser.URI_OBJECTUSER_SECRET_KEYS.format(
-                systemUri, userId), body, None)
+                stsystem_uri, objectuser), body)
         o = common.json_decode(s)
         return o
-
-
-# object user secret key list command parser
-def list_secretkey_parser(subcommand_parsers, common_parser):
-
-    list_secretkey_parser = subcommand_parsers.add_parser(
-        'list_secretkey',
-        description='ViPR Object user secret key list CLI usage.',
-        parents=[common_parser],
-        conflict_handler='resolve',
-        help='List secret keys')
-
-    mandatory_args = list_secretkey_parser.add_argument_group('mandatory arguments')
-
-    mandatory_args.add_argument('-storagesystemUri', '-st',
-                             metavar='<storagesystemUri>',
-                             dest='storagesystemUri',
-                             help='storage system URI',
-                             required=True)
-    mandatory_args.add_argument('-objectuser', '-ob',
-                             metavar='<objectuser>',
-                             dest='objectuser',
-                             help='obect user id',
-                             required=True)
-
-    list_secretkey_parser.set_defaults(func=objectuser_secretkey_list)
-
-def objectuser_secretkey_list(args):
-    obj = ObjectUser(args.ip, args.port)
-    try:
-        res = obj.objectuser_secretkey_list(args.storagesystemUri , args.objectuser)
-
-        return common.format_json_object(res)
-    except SOSError as e:
-        common.format_err_msg_and_raise("list_secretkey", "objectuser",
-                                        e.err_text, e.err_code)
 
 
 # object user secret key create command parser
@@ -115,49 +75,48 @@ def create_secretkey_parser(subcommand_parsers, common_parser):
 
     mandatory_args = create_secretkey_parser.add_argument_group('mandatory arguments')
 
-    mandatory_args.add_argument('-storagesystemUri', '-st',
-                             metavar='<storagesystemUri>',
-                             dest='storagesystemUri',
-                             help='storage system URI',
+    mandatory_args.add_argument('-storagesystem', '-st',
+                             metavar='<storagesystem>',
+                             dest='storagesystem',
+                             help='Name of the storage system',
                              required=True)
     mandatory_args.add_argument('-objectuser', '-ob',
                              metavar='<objectuser>',
                              dest='objectuser',
-                             help='obect user id',
+                             help='The object user id',
                              required=True)
-    mandatory_args.add_argument('-secretkey', '-sk',
-                             metavar='<secretkey>',
-                             dest='secretkey',
-                             help='secret key for user specified',
-                             required=True)
-
+    create_secretkey_parser.add_argument('-autogenerate', '-autogen',
+                               dest='autogenerate',
+                               help='Execute in synchronous mode',
+                               action='store_true')
+    
+    
     create_secretkey_parser.set_defaults(func=objectuser_secretkey_create)
 
 def objectuser_secretkey_create(args):
     obj = ObjectUser(args.ip, args.port)
+    secretkey = None
+    if (args.objectuser and not args.autogenerate ):
+        secretkey = common.get_password("SecretKey")
     try:
-        res = obj.objectuser_secretkey_create(args.storagesystemUri, args.objectuser, args.secretkey)
+        res = obj.objectuser_secretkey_create(args.storagesystem, args.objectuser, secretkey)
 
-        return common.format_json_object(res)
+        
     except SOSError as e:
         common.format_err_msg_and_raise("create_secretkey", "objectuser",
                                         e.err_text, e.err_code)
 
 
 def objectuser_parser(parent_subparser, common_parser):
-    # main objectuser parser
-    parser = parent_subparser.add_parser(
-        'objectuser',
-        description='ViPR object user CLI usage',
-        parents=[common_parser],
-        conflict_handler='resolve',
-        help='Operations on Object user')
-    subcommand_parsers = parser.add_subparsers(
-        help='Use one of sub commands(list_secretkey, create_secretkey)')
+    # main project parser
 
-    # list_secretkey command parser
-    list_secretkey_parser(subcommand_parsers, common_parser)
+    parser = parent_subparser.add_parser('objectuser',
+                                         description='ViPR Objectuser CLI usage',
+                                         parents=[common_parser],
+                                         conflict_handler='resolve',
+                                         help='Operations on Object User')
+    subcommand_parsers = parser.add_subparsers(help='Use one of subcommands')
 
-    # create_secretkey command parser
+    # create command parser
     create_secretkey_parser(subcommand_parsers, common_parser)
 

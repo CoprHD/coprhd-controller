@@ -34,6 +34,7 @@ public class SiteInfo implements CoordinatorSerializable {
     public static final String DR_OP_CHANGE_DATA_REVISION = "dr_change_data_revision";
     public static final String DR_OP_PURGE_DATA_REVISION = "dr_purge_data_revision";
     public static final String DR_OP_FAILOVER_FAIL_REBOOT = "dr_failover_fail_reboot";
+    public static final String DR_OP_NODE_RECOVERY = "dr_node_recovery";
     public static final String IP_OP_CHANGE = "ip_change";
     public static final String GEO_OP_CONFIG_CHANGE = "geo_config_change";
     public static final String NONE = "noop";

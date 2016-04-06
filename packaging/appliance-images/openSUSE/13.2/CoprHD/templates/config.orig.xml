@@ -7,7 +7,7 @@
     </description>
     <profiles>
         <profile name="appliance" description="VMX with default kernel" import="true"/>
-	<profile name="openstack" description="VMX with default kernel" import="false"/>
+        <profile name="openstack" description="VMX with default kernel" import="false"/>
     </profiles>
     <preferences>
         <version>__VERSION__</version>

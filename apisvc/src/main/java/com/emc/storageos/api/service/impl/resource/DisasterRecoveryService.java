@@ -1793,17 +1793,17 @@ public class DisasterRecoveryService {
                     String.format("Failover can only be executed in local site. Local site uuid %s is not matched with uuid %s",
                             standby.getUuid(), standbyUuid));
         }
-        
-        // should be PAUSED, either marked by itself or user
-        if (standby.getState() != SiteState.STANDBY_PAUSED) {
-            throw APIException.internalServerErrors.failoverPrecheckFailed(standby.getName(),
-                    "Only paused standby site can do failover");
-        }
 
         SiteNetworkState networkState = drUtil.getSiteNetworkState(drUtil.getActiveSite().getUuid());
         if (networkState.getNetworkHealth() != NetworkHealth.BROKEN) {
             throw APIException.internalServerErrors.failoverPrecheckFailed(standby.getName(),
                     "Active site is still available");
+        }
+
+        // should be PAUSED, either marked by itself or user
+        if (standby.getState() != SiteState.STANDBY_PAUSED) {
+            throw APIException.internalServerErrors.failoverPrecheckFailed(standby.getName(),
+                    "Please wait for this site to recognize the Active site is down and automatically switch to a Paused state before failing over.");
         }
 
         precheckForFailover();

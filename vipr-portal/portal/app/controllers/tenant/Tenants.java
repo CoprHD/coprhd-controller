@@ -144,7 +144,7 @@ public class Tenants extends ViprResourceController {
                 	updateParam.setNamespace(tenant.namespace);
                 } else {
                     if (currentTenant.getNamespace() != null) {
-                        updateParam.setNamespace("null");
+                        updateParam.setDetachNamespace(true);
                     }
                 }
                 TenantUtils.update(tenant.id, updateParam);

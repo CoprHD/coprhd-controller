@@ -126,6 +126,7 @@ import com.emc.storageos.svcs.errorhandling.resources.ForbiddenException;
 import com.emc.storageos.volumecontroller.impl.monitoring.RecordableBourneEvent;
 import com.emc.storageos.volumecontroller.impl.monitoring.RecordableEventManager;
 import com.emc.storageos.volumecontroller.impl.monitoring.cim.enums.RecordType;
+import com.google.common.collect.Lists;
 
 /**
  * API for creating and manipulating tenants
@@ -318,21 +319,17 @@ public class TenantsService extends TaggedResource {
             tenant.setDescription(param.getDescription());
         }
 
-        if (!StringUtils.isEmpty(param.getNamespace()) && !"null".equals(param.getNamespace())) {
+        if (!StringUtils.isEmpty(param.getNamespace())) {
             if (!param.getNamespace().equals(tenant.getNamespace())) {
                 checkForDuplicateNamespace(param.getNamespace());
-            }            
+            }
 
             if (tenant.getNamespace() != null && !tenant.getNamespace().isEmpty()) {
                 if (!tenant.getNamespace().equalsIgnoreCase(param.getNamespace())) {
+                    List<Class<? extends DataObject>> excludeTypes = Lists.newArrayList();
+                    excludeTypes.add(ObjectNamespace.class);
                     // Though we are not deleting need to check no dependencies on this tenant
-                    try {
-                        ArgValidator.checkReference(TenantOrg.class, id, checkForDelete(tenant));
-                    } catch (APIException apiex) {
-                        if (!apiex.getMessage().contains("ObjectNamespace")) {
-                            throw apiex;
-                        }
-                    }
+                    ArgValidator.checkReference(TenantOrg.class, id, checkForDelete(tenant, excludeTypes));
                 }
             }
             String oldNamespace = tenant.getNamespace();
@@ -350,28 +347,24 @@ public class TenantsService extends TaggedResource {
                     break;
                 }
             }
-            //removing link between tenant and the old namespace
+            // removing link between tenant and the old namespace
             Iterator<ObjectNamespace> nsItrToUnMap = _dbClient.queryIterativeObjects(ObjectNamespace.class, allNamespaceURI);
             while (nsItrToUnMap.hasNext()) {
-               oldNamesp = nsItrToUnMap.next();
+                oldNamesp = nsItrToUnMap.next();
                 if (oldNamesp.getNativeId().equalsIgnoreCase(oldNamespace)) {
                     oldNamesp.setMapped(false);
                     oldNamespModified = true;
                     break;
                 }
             }
-            
-        } else if (!StringUtils.isEmpty(param.getNamespace()) && "null".equals(param.getNamespace())) {
-            if (!StringUtils.isEmpty(tenant.getNamespace())) {
-                // Though we are not deleting need to check no dependencies on this tenant
-                try {
-                    ArgValidator.checkReference(TenantOrg.class, id, checkForDelete(tenant));
-                } catch (APIException apiex) {
-                    if (!apiex.getMessage().contains("ObjectNamespace")) {
-                        throw apiex;
-                    }
-                }
-            }
+
+        }
+        if (param.getDetachNamespace()) {
+
+            List<Class<? extends DataObject>> excludeTypes = Lists.newArrayList();
+            excludeTypes.add(ObjectNamespace.class);
+            // Though we are not deleting need to check no dependencies on this tenant
+            ArgValidator.checkReference(TenantOrg.class, id, checkForDelete(tenant, excludeTypes));
             String oldNamespace = tenant.getNamespace();
             tenant.setNamespace(NullColumnValueGetter.getNullStr());
             // Update tenant info in respective namespace CF

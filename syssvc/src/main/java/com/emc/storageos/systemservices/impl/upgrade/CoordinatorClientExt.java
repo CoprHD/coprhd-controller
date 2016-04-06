@@ -1469,28 +1469,28 @@ public class CoordinatorClientExt {
      * On active site, start a thread to monitor db quorum of each standby site
      */
     public void start() {
-        if (drUtil.isStandby()) {
-            _log.info("Start monitoring local coordinatorsvc status on standby site");
-            ScheduledExecutorService exe = Executors.newScheduledThreadPool(1, new ThreadFactory() {
-                @Override
-                public Thread newThread(Runnable r) {
-                    return new Thread(r, "CoordinatorsvcMonitor");
-                }
-            });
-            String barrierPath = String.format("%s/%s%s", ZkPath.SITES, getCoordinatorClient().getSiteId(), DR_SWITCH_TO_ZK_OBSERVER_BARRIER);
-            switchToZkObserverBarrier = _coordinator.getDistributedDoubleBarrier(barrierPath, getNodeCount());
-            // delay for a period of time to start the monitor. For DR switchover, we stop original active, then start new active. 
-            // So the original active may not see the new active immediately after reboot
-            exe.scheduleAtFixedRate(coordinatorSvcMonitor, 3 * COODINATOR_MONITORING_INTERVAL , COODINATOR_MONITORING_INTERVAL, TimeUnit.SECONDS);
-        } else {
+        
+        ScheduledExecutorService zkMonitorExecutor = Executors.newScheduledThreadPool(1, new ThreadFactory() {
+            @Override
+            public Thread newThread(Runnable r) {
+                return new Thread(r, "CoordinatorsvcMonitor");
+            }
+        });
+        String barrierPath = String.format("%s/%s%s", ZkPath.SITES, getCoordinatorClient().getSiteId(), DR_SWITCH_TO_ZK_OBSERVER_BARRIER);
+        switchToZkObserverBarrier = _coordinator.getDistributedDoubleBarrier(barrierPath, getNodeCount());
+        // delay for a period of time to start the monitor. For DR switchover, we stop original active, then start new active. 
+        // So the original active may not see the new active immediately after reboot
+        zkMonitorExecutor.scheduleAtFixedRate(coordinatorSvcMonitor, 3 * COODINATOR_MONITORING_INTERVAL , COODINATOR_MONITORING_INTERVAL, TimeUnit.SECONDS);
+        
+        if (drUtil.isActiveSite()) {
             _log.info("Start monitoring db quorum on all standby sites");
-            ScheduledExecutorService exe = Executors.newScheduledThreadPool(1, new ThreadFactory() {
+            ScheduledExecutorService dbQuorumMonitorExecutor = Executors.newScheduledThreadPool(1, new ThreadFactory() {
                 @Override
                 public Thread newThread(Runnable r) {
                     return new Thread(r, "DbsvcQuorumMonitor");
                 }
             });
-            exe.scheduleAtFixedRate(new DbsvcQuorumMonitor(_coordinator),
+            dbQuorumMonitorExecutor.scheduleAtFixedRate(new DbsvcQuorumMonitor(_coordinator),
                     0, DB_MONITORING_INTERVAL, TimeUnit.SECONDS);
         }
 
@@ -1521,7 +1521,7 @@ public class CoordinatorClientExt {
         private String initZkMode; // ZK mode during syssvc startup
         
         public void run() {
-            if (stopCoordinatorSvcMonitor) {
+            if (stopCoordinatorSvcMonitor || drUtil.isActiveSite()) {
                 return;
             }
 

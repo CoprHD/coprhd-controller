@@ -529,7 +529,7 @@ public class NetappMirrorFileOperations implements FileMirrorOperations {
         _log.info("Calling snapmirror release on source: {}, target: {}", sourceLocation, destLocation);
         nApiSource.releaseSnapMirror(sourceLocation, destLocation);
 
-        NetAppSnapMirrorReleaseJob job = new NetAppSnapMirrorReleaseJob(destLocation, targetStorage.getId(), taskCompleter);
+        NetAppSnapMirrorReleaseJob job = new NetAppSnapMirrorReleaseJob(sourceLocation, sourceStorage.getId(), taskCompleter);
         try {
             ControllerServiceImpl.enqueueJob(new QueueJob(job));
             _log.error("Job submitted to check status of snapmirror resync.");

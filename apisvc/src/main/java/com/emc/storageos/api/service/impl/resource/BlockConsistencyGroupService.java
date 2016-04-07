@@ -921,11 +921,7 @@ public class BlockConsistencyGroupService extends TaskResourceService {
 
         List<BlockSnapshot> snapshots = new ArrayList<BlockSnapshot>();
 
-        if (!NullColumnValueGetter.isNullURI(snapshot.getConsistencyGroup())
-                && !NullColumnValueGetter.isNullValue(snapshot.getReplicationGroupInstance())) {
-            // Collect all the BlockSnapshots if part of a CG.
-            snapshots = ControllerUtils.getSnapshotsPartOfReplicationGroup(snapshot, _dbClient);
-        }
+        snapshots = ControllerUtils.getSnapshotsPartOfReplicationGroup(snapshot, _dbClient);
 
         // Get the snapshot parent volume.
         Volume parentVolume = _permissionsHelper.getObjectById(snapshot.getParent(), Volume.class);

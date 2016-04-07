@@ -1505,16 +1505,10 @@ public class DisasterRecoveryService {
     }
 
     private Date getLastSyncTime(Site site) {
-        if (site.getState() == SiteState.STANDBY_PAUSED) {
-            return new Date(site.getLastStateUpdateTime());
-        } 
-
         SiteMonitorResult monitorResult = coordinator.getTargetInfo(site.getUuid(), SiteMonitorResult.class);
-        if (monitorResult != null && monitorResult.getDbQuorumLostSince() > 0) {
-            return new Date(monitorResult.getDbQuorumLostSince());
-        } else if (site.getState() == SiteState.STANDBY_DEGRADED) {
-            return new Date(site.getLastLostQuorumTime());
-        }
+        if (monitorResult != null && monitorResult.getDbQuorumLastActive() != 0) {
+            return new Date(monitorResult.getDbQuorumLastActive());
+        } 
         return null;
     }
 
@@ -1885,7 +1879,7 @@ public class DisasterRecoveryService {
             ClusterInfo.ClusterState state = coordinator.getControlNodesState(site.getUuid());
             if (state != ClusterInfo.ClusterState.STABLE) {
                 log.info("Site {} is not stable {}", site.getUuid(), state);
-                throw APIException.internalServerErrors.addStandbyPrecheckFailed(String.format("Site %s is not stable", site.getName()));
+                throw APIException.internalServerErrors.addStandbyPrecheckFailed(String.format("Currently site %s is not stable", site.getName()));
             }
         }
     }

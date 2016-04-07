@@ -141,6 +141,7 @@ resources.ObjectBuckets= ResourcesBuckets
 resources.ResourceController = vipr_c_user_resources
 resources.VirtualNasServers.vNasServers = ResourcesNASServers
 resources.BlockApplications = ResourcesApplications
+resources.BlockSnapshotSessions = ResourcesBlockSnapshotSessions
 
 # Security
 security.Security.logout = vipr_not_logged_in
@@ -155,6 +156,10 @@ tenant.Tenants.edit = admin_tenants_add
 tenant.Tenants.listRoles = roles_assignments_tenant
 tenant.Tenants.editRole = roles_create_assignment_tenant
 tenant.Tenants.createRole = roles_create_assignment_tenant
+tenant.SchedulePolicies.list = TenantsSchedulePolicies
+tenant.SchedulePolicies.create = TenantsCreateEditPolicy
+tenant.SchedulePolicies.edit = TenantsCreateEditPolicy
+
 
 # USE
 use.CasClusters = CASCluster

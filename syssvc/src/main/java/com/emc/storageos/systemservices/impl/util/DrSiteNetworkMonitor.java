@@ -123,13 +123,13 @@ public class DrSiteNetworkMonitor implements Runnable {
 
             if (ping > NETWORK_SLOW_THRESHOLD) {
                 siteNetworkState.setNetworkHealth(NetworkHealth.SLOW);
-                _log.warn("Network for standby {} is slow",site.getName());
+                _log.warn("Network for standby %s is slow",site.getName());
                 AlertsLogger.getAlertsLogger().warn(String.format("Network for standby %s is Broken:" +
                         "Latency was reported as %f ms",site.getName(),ping));
             }
             else if (ping < 0) {
                 siteNetworkState.setNetworkHealth(NetworkHealth.BROKEN);
-                _log.error("Network for standby {} is broken",site.getName());
+                _log.error("Network for standby %s is broken",site.getName());
                 AlertsLogger.getAlertsLogger().error(String.format("Network for standby %s is Broken:" +
                         "Latency was reported as %s ms",site.getName(),ping));
             }
@@ -140,6 +140,12 @@ public class DrSiteNetworkMonitor implements Runnable {
             coordinatorClient.setTargetInfo(site.getUuid(), siteNetworkState);
 
             if (drUtil.isActiveSite()) {
+                SiteState state = site.getState();
+                if (SiteState.STANDBY_ADDING == state || SiteState.STANDBY_RESUMING == state) {
+                    _log.info("Skip mail alert during add-standby or resume-standby for {}", site.getUuid());
+                    continue;
+                }
+                
                 if (!NetworkHealth.BROKEN.equals(previousState)
                         && NetworkHealth.BROKEN.equals(siteNetworkState.getNetworkHealth())){
                     //send email alert

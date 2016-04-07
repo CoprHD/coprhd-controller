@@ -292,6 +292,9 @@ public class ObjectVirtualPoolService extends VirtualPoolService {
             cos.setMaxRetention(param.getMaxRetention());
         }
         if (null != param.getMinDataCenters()) {
+            if (!cos.getMinDataCenters().equals(param.getMinDataCenters())) {
+                ArgValidator.checkReference(VirtualPool.class, id, checkForDelete(cos));
+            }
             cos.setMinDataCenters(param.getMinDataCenters());
         }
         

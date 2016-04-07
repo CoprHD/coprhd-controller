@@ -220,14 +220,8 @@ def service_json_request(ip_addr, port, http_method, uri, body, token=None,
                stream=True for the purpose of streaming. Stream = True
                means we can stream data'''
             if(filename):
-                if(requests.__version__ == "2.3.0"):
-                    response = requests.get(url, stream=True, headers=headers,
-                                        verify=False, cookies=cookiejar)
-                else:
-                    response = requests.get(url, prefetch=False, headers=headers,
-                                        verify=False, cookies=cookiejar)
-                    
-
+                response = requests.get(url, stream=True, headers=headers,
+                                    verify=False, cookies=cookiejar)
             else:
                 response = requests.get(url, headers=headers, verify=False,
                                         cookies=cookiejar)

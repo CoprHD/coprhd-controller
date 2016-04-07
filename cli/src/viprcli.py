@@ -62,9 +62,9 @@ import quotadirectory
 import sanfabrics
 import keystore
 import truststore
-
-
 import warnings
+import requests
+from requests.packages.urllib3.exceptions import InsecureRequestWarning
 
 
 warnings.filterwarnings(
@@ -170,6 +170,8 @@ computevpool.computevpool_parser(module_parsers, common_parser)
 keystore.keystore_parser(module_parsers, common_parser)
 truststore.truststore_parser(module_parsers, common_parser)
 network.network_parser(module_parsers, common_parser)
+
+requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
 
 
 # Parse Command line Arguments and execute the corresponding routines

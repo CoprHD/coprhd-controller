@@ -71,9 +71,9 @@ is_local_backup() {
 }
 
 is_vdc_connected() {
-    echo ${RESTORE_DIR1}
     cd "${RESTORE_DIR}"
     local geo_file=$(ls -1 *geodb*.zip |head -1)
+# get type of the zip file
     geodb_type=${geo_file#*_}
     geodb_type=${geodb_type%%_*}
 

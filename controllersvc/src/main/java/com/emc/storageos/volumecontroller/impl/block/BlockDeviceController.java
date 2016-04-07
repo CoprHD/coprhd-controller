@@ -6072,7 +6072,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                             splitRollbackMethod, null);
                 }
             } else if (sourceObj instanceof Volume && isNonSplitSRDFSourceVolume((Volume) sourceObj)) {
-                // PRIOR to Restoring R1 Device from its Full copy Clone, we need to SUSPEND the R1-R2 pair if the Copy Mode is ACTIVE
+                // PRIOR to Restoring R1 Device from its session, we need to SUSPEND the R1-R2 pair if the Copy Mode is ACTIVE
                 Volume srdfSourceVolume = (Volume) sourceObj;
                 URI srdfSourceStorageSystemURI = srdfSourceVolume.getStorageController();
                 StringSet targets = srdfSourceVolume.getSrdfTargets();

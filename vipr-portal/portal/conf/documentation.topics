@@ -141,6 +141,7 @@ resources.ObjectBuckets= ResourcesBuckets
 resources.ResourceController = vipr_c_user_resources
 resources.VirtualNasServers.vNasServers = ResourcesNASServers
 resources.BlockApplications = ResourcesApplications
+resources.BlockSnapshotSessions = ResourcesBlockSnapshotSessions
 
 # Security
 security.Security.logout = vipr_not_logged_in

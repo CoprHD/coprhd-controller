@@ -2410,8 +2410,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
             Workflow.Method cgRemovalExecuteMethod = new Workflow.Method(METHOD_DELETE_CG_STEP,
                     rpSystem.getId(),
                     volumeList,
-                    new ArrayList<URI>());  // empty journalVolumeIDs list:
-                    // we never delete journals as part of regular RP volume delete
+                    new ArrayList<URI>());  // empty journalVolumeIDs list
 
             // Make all of the steps in removing this CG (or replication sets from this CG) sequential.
             cgWaitFor = workflow.createStep(STEP_DV_REMOVE_CG,

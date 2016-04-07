@@ -30,7 +30,9 @@ public class SiteMapper {
         SiteRestRep to = new SiteRestRep();
         map(from, to);
         NetworkHealth networkHealth = drUtil.getSiteNetworkState(from.getUuid()).getNetworkHealth();
-        if ( networkHealth != null ) {
+        SiteState state = from.getState();
+        // Skip network health state amid ADDING/RESUMING
+        if ( networkHealth != null && SiteState.STANDBY_ADDING != state && SiteState.STANDBY_RESUMING != state) {
             to.setNetworkHealth(networkHealth.toString());
         }
         

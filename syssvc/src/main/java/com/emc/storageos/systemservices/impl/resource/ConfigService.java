@@ -555,11 +555,11 @@ public class ConfigService {
         StringBuilder propChanges = new StringBuilder();
 
         // get current property set
-        PropertyInfoRestRep currentProps = _coordinator.getTargetProperties();
         PropertyInfoRestRep oldProps = new PropertyInfoRestRep();
-        oldProps.addProperties(currentProps.getAllProperties());
+        oldProps.addProperties(getTargetPropsCommon().getAllProperties());
 
         boolean doSetTarget = false;
+        PropertyInfoRestRep currentProps = _coordinator.getTargetProperties();
 
         // remove properties
         if (deleteKeys != null && !deleteKeys.isEmpty()) {

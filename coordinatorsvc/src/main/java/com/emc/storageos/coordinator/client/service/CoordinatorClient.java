@@ -726,5 +726,4 @@ public interface CoordinatorClient {
      * Discard current zk transaction
      */
     public void discardTransaction();
-
 }

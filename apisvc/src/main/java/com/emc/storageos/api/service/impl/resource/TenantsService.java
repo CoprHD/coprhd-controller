@@ -333,6 +333,8 @@ public class TenantsService extends TaggedResource {
                 }
             }
             String oldNamespace = tenant.getNamespace();
+            _log.error("Suri - oldNamespace {}",
+                    oldNamespace);
             tenant.setNamespace(param.getNamespace());
             // Update tenant info in respective namespace CF
             List<URI> allNamespaceURI = _dbClient.queryByType(ObjectNamespace.class, true);
@@ -354,6 +356,8 @@ public class TenantsService extends TaggedResource {
                 if (oldNamesp.getNativeId().equalsIgnoreCase(oldNamespace)) {
                     oldNamesp.setMapped(false);
                     oldNamespModified = true;
+                    _log.error("Suri - inside 2nd while {}",
+                            oldNamespace);
                     break;
                 }
             }

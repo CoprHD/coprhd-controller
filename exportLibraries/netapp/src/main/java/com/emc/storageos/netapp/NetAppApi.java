@@ -1039,8 +1039,7 @@ public class NetAppApi {
                     _password, _https);
             return netAppFacade.createVirtualNas(args);
         } catch (Exception e) {
-            throw NetAppException.exceptions.createSnapshotFailed(args.getvNasName(),
-                    args.getIpSpace(), _ipAddress, e.getMessage());
+            throw NetAppException.exceptions.createVnasFailed(args.getvNasName(), e.getMessage());
         }
     }
 }

@@ -81,11 +81,15 @@ public class VFiler {
     boolean createVFiler(String vFilerName, List<String> ipAddresses, List<String> storageUnits, String ipSpace) {
 
         NaElement elem = new NaElement("vfiler-create");
+        NaElement ipAddsElem = new NaElement("ip-addresses");
+        NaElement storageUnitsElem = new NaElement("storage-units");
+        elem.addChildElem(ipAddsElem);
         for (String ipAddress : ipAddresses) {
-            elem.addNewChild("ip-address", ipAddress);
+            ipAddsElem.addNewChild("ip-address", ipAddress);
         }
+        elem.addChildElem(storageUnitsElem);
         for (String storageUnit : storageUnits) {
-            elem.addNewChild("storage-unit", storageUnit);
+            storageUnitsElem.addNewChild("storage-unit", storageUnit);
         }
         elem.addNewChild("vfiler", vFilerName);
 

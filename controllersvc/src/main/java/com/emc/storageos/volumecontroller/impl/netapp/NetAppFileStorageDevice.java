@@ -1842,6 +1842,7 @@ public class NetAppFileStorageDevice extends AbstractFileStorageDevice {
 
         try {
             nApi.createVirtualNas(args);
+            _log.info("Virtual nas {} created successfully", args.getvNasName());
             result = BiosCommandResult.createSuccessfulResult();
         } catch (Exception e) {
             _log.error("NetAppFileStorageDevice::Create Virtual NAS server failed with an Exception", e);

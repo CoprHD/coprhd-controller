@@ -3110,6 +3110,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                                     sp.getDiscoveryStatus())) {
                         continue;
                     }
+                    _log.info("found storage port {} for NAS server {} ", sp.getPortName(), nasServer.getNasName());
                     return sp;
                 }
             }

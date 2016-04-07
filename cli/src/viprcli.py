@@ -67,6 +67,8 @@ import vnasserver
 import computeimageserver
 import bucket
 import warnings
+import requests
+from requests.packages.urllib3.exceptions import InsecureRequestWarning
 
 
 warnings.filterwarnings(
@@ -176,6 +178,8 @@ vnasserver.vnasserver_parser(module_parsers, common_parser)
 computeimageserver.computeimageserver_parser(module_parsers, common_parser)
 bucket.bucket_parser(module_parsers, common_parser)
 network.network_parser(module_parsers, common_parser)
+
+requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
 
 
 

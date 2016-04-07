@@ -83,29 +83,29 @@
 
 <script type="text/javascript">
     var stop = false;
+    var status = "${status.status}";
+    var type = "${type}";
+    var REMOTE = "${models.datatable.BackupDataTable.Type.REMOTE}";
+    var SUCCESS = "DOWNLOAD_SUCCESS";
+    var FAILED = "DOWNLOAD_FAILED";
     $(document).ready(function () {
-        type = "${type}";
-        REMOTE = "${models.datatable.BackupDataTable.Type.REMOTE}";
-        if (type == REMOTE && "${status.status}" != "DOWNLOAD_SUCCESS") {
-            disableEnter(true);
-            $("#restoreBtn").prop("disabled", true);
+        $("#restoreBtn").prop("disabled", true);
+        $('input[type="password"]').keyup(function () {
+            if ($(this).val() != '') {
+                if (type == REMOTE && status != SUCCESS) {
+                    return;
+                }
+                $('#restoreBtn').prop('disabled', false);
+            } else {
+                $("#restoreBtn").prop("disabled", true);
+            }
+        });
+
+
+        if (type == REMOTE && status != SUCCESS) {
             checkPullStatusUpdates();
         }
     });
-
-    function disableEnter(disable) {
-        $('#restoreForm').on('keyup keypress', function (e) {
-            var code = e.keyCode || e.which;
-            if (code == 13) {
-                if (disable && $("#restoreBtn").is(":disabled")) {
-                    e.preventDefault();
-                    return false;
-                } else {
-                    this.submit();
-                }
-            }
-        });
-    }
 
     function checkPullStatusUpdates() {
         var checkUpdate = window.setInterval(function () {
@@ -136,7 +136,7 @@
                 $.each(result.percentageMap, function(hostname, percent){
                     var progressBarId = 'hostname-' + hostname;
                     updateProgressBar(progressBarId, percent);
-                    if (result.status == "DOWNLOAD_SUCCESS") {
+                    if (result.status == SUCCESS) {
                         updateProgressBar(progressBarId, 100);
                     }else if (result.status == "DOWNLOAD_FAILED") {
                         //updateProgressBar(progressBarId, 100);
@@ -145,13 +145,18 @@
                 });
 
 
-                if (result.status == "DOWNLOAD_SUCCESS") {
-                    $("#restoreBtn").prop("disabled", false);
-                    $("#checkBoxForRestoreGeo").show();
-                    disableEnter(false);
+                if (result.status == SUCCESS) {
                     stop = true;
+                    status = SUCCESS;
+                    if ($('input[type="password"]').val() != '') {
+                        $("#restoreBtn").prop("disabled", false);
+                    }
+                    if (result.isGeo === true) {
+                        $("#checkBoxForRestoreGeo").show();
+                    }
+
                 }
-                else if (result.status == "DOWNLOAD_FAILED") {
+                else if (result.status == FAILED) {
                     $("#errorInfo").text("Download failed: "+result.details);
                     stop = true;
                 }

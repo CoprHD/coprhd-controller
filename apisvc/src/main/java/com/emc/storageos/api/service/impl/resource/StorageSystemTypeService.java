@@ -67,8 +67,9 @@ public class StorageSystemTypeService extends TaskResourceService {
 	@Path("/{id}")
 	@Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
 	public StorageSystemTypeRestRep getStorageSystemType(@PathParam("id") URI id) {
+		log.info("GET getStorageSystemType on Uri: " + id);
 		if (!checkForStorageSystemType()) {
-			StorageSystemTypeServiceUtils.InitializeStorageSystemTypes(_dbClient); // addDefaultStorageSystemTypes();
+			StorageSystemTypeServiceUtils.InitializeStorageSystemTypes(_dbClient);
 		}
 		ArgValidator.checkFieldUriType(id, StorageSystemType.class, "id");
 		StorageSystemType storageType = queryResource(id);

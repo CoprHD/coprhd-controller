@@ -185,7 +185,7 @@ public class RackHdProvider extends BaseAssetOptionsProvider {
             try {
                 assetOptionArray = gson.fromJson(ansibleResultFile,AssetOptionPair[].class);  
                 for(AssetOptionPair aop: assetOptionArray) {
-                    assetOptionList.add(new AssetOption(aop.getKey(),aop.getValue()));
+                    assetOptionList.add(new AssetOption(aop.getId(),aop.getName()));
                 }  
             } catch(JsonSyntaxException e) {
                 // not all task results will always be asset options

@@ -166,6 +166,14 @@ public class CustomQueryUtility {
 
     }
 
+    /**
+     * queries records based on a constrain, loads all queried records into memory; could be OOM risk if too many records are returned
+     * 
+     * @param dbClient
+     * @param clazz
+     * @param constraint
+     * @return
+     */
     public static <T extends DataObject> List<T> queryActiveResourcesByConstraint(DbClient dbClient, Class<T> clazz, Constraint constraint) {
         URIQueryResultList list = new URIQueryResultList();
         dbClient.queryByConstraint(constraint, list);

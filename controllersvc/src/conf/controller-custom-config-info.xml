@@ -853,14 +853,14 @@
     	<property name="name" value="IsilonFileShareCustomPath"/>
        <property name="configType" value="SimpleValue"/>
         <property name="type" value="String"/>
+        <property name="constraints">
+            <list>
+                <ref bean="customPathValue"/>
+            </list>
+        </property>
         <property name="scope">
             <map>
-                <entry key="systemType" value="isilon"/>
-            </map>
-        </property>
-        <property name="defaultValues">
-            <map>
-                <entry key="default" value="virtual_pool/tenant/project"/>
+                <entry key="systemType" value="level0,level1,level2,level3,level4,level5"/>
             </map>
         </property>
     </bean>
@@ -1361,6 +1361,21 @@
         <property name="defaultValue" value="Lowest"/>
         <property name="description" value="The predefined value set"/>
     </bean>
+
+<bean id="customPathValue" class="com.emc.storageos.customconfigcontroller.PredefinedValuesConstraint">
+        <property name="predefinedValues">
+            <set>
+                <value>vpool</value>
+                <value>cluster</value>
+                <value>accessZone</value>
+                <value>pod</value>
+                <value>type</value>
+            </set>
+        </property>
+        <property name="defaultValue" value="cluster"/>
+        <property name="description" value="The custom pathvalue set"/>
+    </bean>
+
 
     <bean id="minVolumeCountForMaskingView" class="com.emc.storageos.customconfigcontroller.MinConstraint">
         <property name="minVals">

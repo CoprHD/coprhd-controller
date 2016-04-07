@@ -97,7 +97,7 @@
     # start writing JSON format with bracket for list of name:id pairs
   - lineinfile: dest={{ ansibleResultFile }} line="["
     # write pairs out to file 
-  - lineinfile: dest={{ ansibleResultFile }} line="{\"value\":\"{{ item.1[xpath_name_tag] }}\",\"key\":\"{{ item.0[xpath_id_tag] }}\"}," 
+  - lineinfile: dest={{ ansibleResultFile }} line="{\"name\":\"{{ item.1[xpath_name_tag] }}\",\"id\":\"{{ item.0[xpath_id_tag] }}\"}," 
     with_together:
       - "{{element_ids.matches}}"
       - "{{element_names.matches}}"

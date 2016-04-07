@@ -145,7 +145,8 @@ public class BackupSchedulerTest {
         Assert.assertEquals("Calculated interval aligned time is wrong.", shouldBe.getTime().getTime(),
                 ScheduleTimeRange.getExpectedMostRecentBackupDateTime(now, ScheduleTimeRange.ScheduleInterval.DAY, 1, 0).getTime());
     }
-
+    // The following test requires a secure ftp server, which public/external build machines may not have.  Therefore, ignoring by default. 
+    @Ignore
     @Test
     public void testTagCleanup() throws Exception {
         new TestProductName();
@@ -181,9 +182,9 @@ public class BackupSchedulerTest {
         // not retire backups in cluster.
         upExec.upload();
 
-        Assert.assertTrue("Missing completed tag", cfg.uploadedBackups.contains(aliveBackupsAt20141231[0]));
-        Assert.assertTrue("Missing completed tag", cfg.uploadedBackups.contains(aliveBackupsAt20141231[1]));
-        Assert.assertEquals("Tags not cleaned up", 2, cfg.uploadedBackups.size());
+        Assert.assertTrue("Missing completed tag"+cfg.uploadedBackups, cfg.uploadedBackups.contains(aliveBackupsAt20141231[0]));
+        Assert.assertTrue("Missing completed tag"+cfg.uploadedBackups, cfg.uploadedBackups.contains(aliveBackupsAt20141231[1]));
+        Assert.assertEquals("Tags not cleaned up"+cfg.uploadedBackups, 2, cfg.uploadedBackups.size());
     }
 }
 
@@ -257,6 +258,7 @@ class FakeBackupClient extends BackupScheduler {
 
     @Override
     public void createBackup(String tag) {
+System.out.print("createBackup executed****"+tag);
         localBackups.add(tag);
     }
 
@@ -288,7 +290,11 @@ class FakeBackupClient extends BackupScheduler {
     private static BackupSetInfo createFakeInfo(String tag, BackupType type) {
         BackupSetInfo info = new BackupSetInfo();
         info.setCreateTime(10000);
-        info.setName(String.format("%s_%s_vipr1.zip", tag, type));
+        if (type.equals(BackupType.info)) {
+            info.setName(String.format("%s_%s.properties",tag,type));
+        }else {
+            info.setName(String.format("%s_%s_vipr1.zip", tag, type));
+        }
         info.setSize(1024);
         return info;
     }
@@ -300,6 +306,7 @@ class FakeBackupClient extends BackupScheduler {
         files.add(new BackupFile(createFakeInfo(tag, BackupType.db), "vipr1"));
         files.add(new BackupFile(createFakeInfo(tag, BackupType.geodb), "vipr1"));
         files.add(new BackupFile(createFakeInfo(tag, BackupType.zk), "vipr1"));
+        files.add(new BackupFile(createFakeInfo(tag, BackupType.info), "vipr1"));
 
         return files;
     }
@@ -360,6 +367,11 @@ class FakeConfiguration extends SchedulerConfig {
 
     @Override
     public boolean isAllowBackup() {
+        return true;
+    }
+
+    @Override
+    public boolean isClusterUpgradable () {
         return true;
     }
 

@@ -71,6 +71,7 @@ import com.emc.storageos.model.file.NamedFileSystemList;
 import com.emc.storageos.model.file.UnManagedFileBulkRep;
 import com.emc.storageos.model.file.UnManagedFileSystemRestRep;
 import com.emc.storageos.security.audit.AuditLogManager;
+import com.emc.storageos.security.audit.AuditLogManagerFactory;
 import com.emc.storageos.security.authorization.CheckPermission;
 import com.emc.storageos.security.authorization.DefaultPermissions;
 import com.emc.storageos.security.authorization.Role;
@@ -823,6 +824,8 @@ public class UnManagedFilesystemService extends TaggedResource {
 
             URI uri = (URI) extParam[0];
             recordBourneFileSystemEvent(dbClient, evType, status, evDesc, uri);
+            
+            auditFile(dbClient, opType, opStatus, opStage, uri.toString());
 
         } catch (Exception e) {
             _logger.error("Failed to record filesystem operation {}, err:", opType.toString(), e);
@@ -1077,5 +1080,28 @@ public class UnManagedFilesystemService extends TaggedResource {
             }
         }
         return sPorts;
+    }
+    
+    
+    /**
+     * Record audit log for file service
+     * 
+     * @param auditType Type of AuditLog
+     * @param operationalStatus Status of operation
+     * @param description Description for the AuditLog
+     * @param descparams Description paramters
+     */
+    public static void auditFile(DbClient dbClient, OperationTypeEnum auditType,
+            boolean operationalStatus,
+            String description,
+            Object... descparams) {
+        AuditLogManager auditMgr = AuditLogManagerFactory.getAuditLogManager();
+        auditMgr.recordAuditLog(null, null,
+                EVENT_SERVICE_TYPE,
+                auditType,
+                System.currentTimeMillis(),
+                operationalStatus ? AuditLogManager.AUDITLOG_SUCCESS : AuditLogManager.AUDITLOG_FAILURE,
+                description,
+                descparams);
     }
 }

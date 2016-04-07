@@ -62,7 +62,7 @@ public class NetAppSnapMirrorReleaseJob extends Job implements Serializable {
                 _pollResult.setJobId(_taskCompleter.getOpId());
 
                 SnapMirrorStatusInfo statusInfo = netAppApi.getSnapMirrorStateInfo(currentJob);
-                if (statusInfo == null) {
+                if (statusInfo == null || !statusInfo.getSourceLocation().equals(currentJob)) {
                     _status = JobStatus.SUCCESS;
                     _pollResult.setJobPercentComplete(100);
                     _logger.info("SnapMirror Job: {} succeeded", currentJob);

@@ -248,6 +248,14 @@ public class PlacementTestUtils {
         schedulerMap.put("block", storageScheduler);
         schedulerMap.put("rp", rpScheduler);        
         placementManager.setStorageSchedulers(schedulerMap);
+        
+        // Set up the new schedulerStack.
+        List<String> schedulerStack = new ArrayList<String>();
+        schedulerStack.add("rp");
+        schedulerStack.add("vplex");
+        schedulerStack.add("srdf");
+        schedulerStack.add("block");
+        placementManager.setSchedulerStack(schedulerStack);
         return placementManager;
     }
 

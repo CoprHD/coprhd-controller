@@ -830,7 +830,10 @@ public class DbServiceImpl implements DbService {
     }
     
     private void startBackgroundCompactTask() {
-    	this.compactWorker.start();
+        if (this.compactWorker != null) {
+            // compactWorker is null in Junit environment
+            this.compactWorker.start();
+        }
     }
 
     /**

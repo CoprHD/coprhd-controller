@@ -1044,25 +1044,26 @@ public class SRDFBlockServiceApiImpl extends AbstractBlockServiceApiImpl<SRDFSch
             return;
         }
 
-        Volume firstVolume = volumes.get(0);
 
-        // Check if the volume is normal without CG but new vPool with CG enabled.
-        if (NullColumnValueGetter.isNullURI(firstVolume.getConsistencyGroup())
-                && (null != vpool.getMultivolumeConsistency() && vpool.getMultivolumeConsistency())) {
-            _log.info("VPool change is not permitted as volume is not part of CG but new VPool is consistency enabled.");
-            throw APIException.badRequests.changeToVirtualPoolNotSupportedForNonCGVolume(firstVolume.getId(),
-                    vpool.getLabel());
-        }
 
-        if (!NullColumnValueGetter.isNullNamedURI(firstVolume.getSrdfParent())
-                || (firstVolume.getSrdfTargets() != null && !firstVolume.getSrdfTargets().isEmpty())) {
-            throw APIException.badRequests.srdfVolumeVPoolChangeNotSupported(firstVolume.getId());
-        }
-        // TODO Needs to revisit this code flow post release.
+        // TODO Modified the code for COP-20817 Needs to revisit this code flow post release.
 
         // Run placement algorithm and collect all volume descriptors to create srdf target volumes in array.
         List<VolumeDescriptor> volumeDescriptorsList = new ArrayList<>();
         for (Volume volume : volumes) {
+
+            // Check if the volume is normal without CG but new vPool with CG enabled.
+            if (NullColumnValueGetter.isNullURI(volume.getConsistencyGroup())
+                    && (null != vpool.getMultivolumeConsistency() && vpool.getMultivolumeConsistency())) {
+                _log.info("VPool change is not permitted as volume is not part of CG but new VPool is consistency enabled.");
+                throw APIException.badRequests.changeToVirtualPoolNotSupportedForNonCGVolume(volume.getId(),
+                        vpool.getLabel());
+            }
+
+            if (!NullColumnValueGetter.isNullNamedURI(volume.getSrdfParent())
+                    || (volume.getSrdfTargets() != null && !volume.getSrdfTargets().isEmpty())) {
+                throw APIException.badRequests.srdfVolumeVPoolChangeNotSupported(volume.getId());
+            }
             // Get the storage system.
             StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, volume.getStorageController());
             String systemType = storageSystem.getSystemType();

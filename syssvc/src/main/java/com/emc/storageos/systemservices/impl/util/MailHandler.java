@@ -23,6 +23,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import java.net.URI;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.Iterator;
@@ -31,7 +32,7 @@ import java.util.Map;
 
 public class MailHandler {
 
-    private static final Logger _log = LoggerFactory.getLogger(MailHandler.class);
+    private static final Logger log = LoggerFactory.getLogger(MailHandler.class);
 
     @Autowired
     private DbClient dbClient;
@@ -48,24 +49,23 @@ public class MailHandler {
      * Sends mail alert that site network is broken.
      * 
      * @param site the site with broken network
-     * @return true if mail sends successfully
      */
     public void sendSiteNetworkBrokenMail(Site site) {
         String to = getMailAddressOfUser("root");
         if (to == null || to.isEmpty()) {
-            _log.warn("Can't send mail alert, no email address for root user");
+            log.warn("Can't send mail alert, no email address for root user");
 
-            // audit the mail sent fail
+            // audit the mail sent failure
             auditLogManager.recordAuditLog(
                     null, null, "syssvc",
                     OperationTypeEnum.SEND_STANDBY_NETWORK_BROKEN_MAIL,
-                    new Date().getTime(),
+                    System.currentTimeMillis(),
                     AuditLogManager.AUDITLOG_FAILURE,
                     null, site.getName());
             return;
         }
 
-        Map parameters = Maps.newHashMap();
+        Map<String, String> parameters = Maps.newHashMap();
         parameters.put("standbyName", site.getName());
 
         String title = String.format("ATTENTION - %s network is broken",
@@ -81,6 +81,47 @@ public class MailHandler {
                 new Date().getTime(),
                 AuditLogManager.AUDITLOG_SUCCESS,
                 null, site.getName());
+    }
+
+    /**
+     * Send alert mail that standby site is marked as STANDBY_DEGRADED
+     * @param siteName name of site that is degraded
+     * @param degradeTimeStamp time the site is marked as degraded
+     */
+    public void sendSiteDegradedMail(String siteName, long degradeTimeStamp) {
+        String degradeTime = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new Date(degradeTimeStamp));
+        String to = getMailAddressOfUser("root");
+        if (to == null || to.isEmpty()) {
+            log.warn("Can't send mail alert, no email address for root user");
+
+            auditLogManager.recordAuditLog(
+                    null, null, "syssvc",
+                    OperationTypeEnum.SEND_STANDBY_DEGRADED_MAIL,
+                    System.currentTimeMillis(),
+                    AuditLogManager.AUDITLOG_FAILURE,
+                    null,
+                    siteName,
+                    degradeTime);
+            return;
+        }
+
+        Map<String, String> params = Maps.newHashMap();
+        params.put("siteName", siteName);
+        params.put("degradeTime", degradeTime);
+        String title = String.format("ATTENTION - %s site has been marked as STANDBY_DEGRADED state", siteName);
+        String content = MailHelper.readTemplate("StandbySiteDegraded.html");
+        content = MailHelper.parseTemplate(params, content);
+        getMailHelper().sendMailMessage(to, title, content);
+
+        auditLogManager.recordAuditLog(
+                null, null, "syssvc",
+                OperationTypeEnum.SEND_STANDBY_DEGRADED_MAIL,
+                System.currentTimeMillis(),
+                AuditLogManager.AUDITLOG_SUCCESS,
+                null,
+                siteName,
+                degradeTime,
+                to);
     }
 
     private MailHelper getMailHelper() {

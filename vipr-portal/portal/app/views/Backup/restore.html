@@ -48,10 +48,10 @@
 #{form @doRestore(), id:'restoreForm',class:'form form-horizontal', autocomplete:"off"}
     <div style="width: 650px;">
         #{field 'restoreForm.password'}
-        %{
+          %{
             field.required = true
-            }%
-            #{Form.inputPasswordControlGroup field:field/}
+          }%
+          #{Form.inputPasswordControlGroup field:field/}
         #{/field}
         #{field 'restoreForm.name'}
             <input type="hidden" name="${field.name}" value="${id}">
@@ -61,13 +61,12 @@
         #{/field}
     </div>
 
-    #{if status.isGeo()}
-        <div id="checkBoxForRestoreGeo">
-            <label><input type="checkbox" name="restoreForm.isGeoFromScratch"> &{'restore.geo.checkbox.help'}</label>
 
-            <div class="alert alert-warning"> &{'restore.geo.disconnect'} </div>
-        </div>
-    #{/if}
+    <div id="checkBoxForRestoreGeo" #{if !status.isGeo()} style="display: none" #{/if}>
+        <label><input type="checkbox" name="restoreForm.isGeoFromScratch"> &{'restore.geo.checkbox.help'}</label>
+
+        <div class="alert alert-warning"> &{'restore.geo.disconnect'} </div>
+    </div>
 
     #{if status.isNotSuccess()}
         <div class="alert alert-danger">${String.format("%s:%s", status.getStatus().getMessage(), status.getDetails())}</div>
@@ -85,11 +84,10 @@
 <script type="text/javascript">
     var stop = false;
     $(document).ready(function () {
-        disableEnter(true);
-
         type = "${type}";
         REMOTE = "${models.datatable.BackupDataTable.Type.REMOTE}";
         if (type == REMOTE && "${status.status}" != "DOWNLOAD_SUCCESS") {
+            disableEnter(true);
             $("#restoreBtn").prop("disabled", true);
             checkPullStatusUpdates();
         }
@@ -142,15 +140,14 @@
                         updateProgressBar(progressBarId, 100);
                     }else if (result.status == "DOWNLOAD_FAILED") {
                         //updateProgressBar(progressBarId, 100);
-                        updateProgressBarStyle("Status", "danger");
+                        updateProgressBarStyle(progressBarId, "danger");
                     }
-
-
                 });
 
 
                 if (result.status == "DOWNLOAD_SUCCESS") {
                     $("#restoreBtn").prop("disabled", false);
+                    $("#checkBoxForRestoreGeo").show();
                     disableEnter(false);
                     stop = true;
                 }

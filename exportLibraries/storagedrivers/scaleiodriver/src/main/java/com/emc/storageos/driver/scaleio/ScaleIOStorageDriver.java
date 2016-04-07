@@ -16,15 +16,6 @@
  */
 package com.emc.storageos.driver.scaleio;
 
-import java.util.*;
-
-import org.apache.commons.lang.mutable.MutableBoolean;
-import org.apache.commons.lang.mutable.MutableInt;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.context.ApplicationContext;
-import org.springframework.context.support.ClassPathXmlApplicationContext;
-
 import com.emc.storageos.driver.scaleio.api.ScaleIOConstants;
 import com.emc.storageos.driver.scaleio.api.restapi.ScaleIORestClient;
 import com.emc.storageos.driver.scaleio.api.restapi.response.*;
@@ -35,6 +26,14 @@ import com.emc.storageos.storagedriver.RegistrationData;
 import com.emc.storageos.storagedriver.model.*;
 import com.emc.storageos.storagedriver.storagecapabilities.CapabilityInstance;
 import com.emc.storageos.storagedriver.storagecapabilities.StorageCapabilities;
+import org.apache.commons.lang.mutable.MutableBoolean;
+import org.apache.commons.lang.mutable.MutableInt;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.context.ApplicationContext;
+import org.springframework.context.support.ClassPathXmlApplicationContext;
+
+import java.util.*;
 
 public class ScaleIOStorageDriver extends AbstractStorageDriver implements BlockStorageDriver {
     private static final Logger log = LoggerFactory.getLogger(ScaleIOStorageDriver.class);
@@ -108,6 +107,21 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver implements Block
         return task;
     }
 
+    @Override
+    public List<VolumeSnapshot> getVolumeSnapshots(StorageVolume storageVolume) {
+        return null;
+    }
+
+    @Override
+    public List<VolumeClone> getVolumeClones(StorageVolume storageVolume) {
+        return null;
+    }
+
+    @Override
+    public List<VolumeMirror> getVolumeMirrors(StorageVolume storageVolume) {
+        return null;
+    }
+
     /**
      * Expand volume.
      * Before completion of the request, set all required data for expanded volume in "volume" parameter.
@@ -132,7 +146,7 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver implements Block
                     if (newCapacity == 0)
                         newCapacity = 8;
                     if (newCapacity % 8 != 0) {
-                        long tmp = Math.floorDiv(newCapacity, 8) * 8;
+                        long tmp = newCapacity / 8 * 8;
                         if (tmp < newCapacity) {
                             newCapacity = tmp + 8;
                         } else {
@@ -243,7 +257,7 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver implements Block
                         // set value to the output
                         if (result != null) {
                             snapshot.setNativeId(result.getVolumeIdList().get(0));
-                            snapshot.setTimestamp(ScaleIOHelper.getCurrentTime());
+                            // snapshot.setTimestamp(ScaleIOHelper.getCurrentTime());
                             snapshot.setAccessStatus(StorageObject.AccessStatus.READ_WRITE);
                             Map<String, String> snapNameIdMap = client.getVolumes(result.getVolumeIdList());
                             snapshot.setDeviceLabel(snapNameIdMap.get(snapshot.getNativeId()));
@@ -526,15 +540,8 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver implements Block
         return setUpNonSupportedTask(ScaleIOConstants.TaskType.MIRROR_OPERATIONS);
     }
 
-    /**
-     * Get export masks for a given set of initiators.
-     *
-     * @param storageSystem Storage system to get ITLs from. Type: Input.
-     * @param initiators Type: Input.
-     * @return list of export masks
-     */
     @Override
-    public List<ITL> getITL(StorageSystem storageSystem, List<Initiator> initiators) {
+    public List<ITL> getITL(StorageSystem storageSystem, List<Initiator> list, MutableInt mutableInt) {
         return null;
     }
 
@@ -782,18 +789,14 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver implements Block
                     // get parentID
                     List<String> nativeIds = result.getVolumeIdList();
                     Map<String, ScaleIOVolume> snapIdInfoMap = client.getVolumeNameMap(nativeIds);
-                    String currentTime = ScaleIOHelper.getCurrentTime();
                     for (VolumeSnapshot snapshot : snapshots) {
                         for (ScaleIOVolume snapInfo : snapIdInfoMap.values()) {
                             if (snapshot.getParentId().equalsIgnoreCase(snapInfo.getAncestorVolumeId())) {
                                 snapshot.setNativeId(snapInfo.getId());
-                                snapshot.setTimestamp(currentTime);
                                 snapshot.setAccessStatus(StorageObject.AccessStatus.READ_WRITE);
                                 snapshot.setDeviceLabel(snapInfo.getName());
-                                // map real CG id with fake CG id; CG will be given
-                                setInfoToRegistry(snapshot.getStorageSystemId(), consistencyGroup.getDisplayName(),
-                                        result.getSnapshotGroupId());
-                                snapshot.setConsistencyGroup(consistencyGroup.getDisplayName());
+                                snapshot.setConsistencyGroup(result.getSnapshotGroupId());
+                                snapshot.setSnapSetId(result.getSnapshotGroupId());
                                 countSucc++;
                             }
                         }
@@ -834,10 +837,7 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver implements Block
             if (client != null) {
                 try {
                     log.info("Rest Client Got! delete consistency group snapshot - Start:");
-                    List<String> cgIds = getInfoFromRegistry(systemId, snapshots.get(0).getConsistencyGroup());
-                    for (String cgId : cgIds) {
-                        client.removeConsistencyGroupSnapshot(cgId);
-                    }
+                    client.removeConsistencyGroupSnapshot(snapshots.get(0).getConsistencyGroup());
                     task.setStatus(DriverTask.TaskStatus.READY);
                     log.info("Successfully delete consistency group snapshot - End:");
                 } catch (Exception e) {
@@ -884,8 +884,6 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver implements Block
                             parent2snap.put(clone.getParentId(), clone.getDisplayName());
                         }
                         ScaleIOSnapshotVolumeResponse result = client.snapshotMultiVolume(parent2snap, systemId);
-                       // consistencyGroup.setStorageSystemId(systemId);
-
                         // get parentID
                         List<String> nativeIds = result.getVolumeIdList();
                         Map<String, ScaleIOVolume> cloneIdInfoMap = client.getVolumeNameMap(nativeIds);
@@ -894,17 +892,12 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver implements Block
                                 if (clone.getParentId().equalsIgnoreCase(cloneInfo.getAncestorVolumeId())) {
                                     clone.setNativeId(cloneInfo.getId());
                                     clone.setAccessStatus(StorageObject.AccessStatus.READ_WRITE);
-                                    //clone.setDeviceLabel(cloneInfo.getName());
+                                    // clone.setDeviceLabel(cloneInfo.getName());
                                     clone.setDeviceLabel(clone.getNativeId());
                                     String wwn = client.getSystemId() + clone.getNativeId();
                                     clone.setWwn(wwn);
                                     clone.setReplicationState(VolumeClone.ReplicationState.CREATED);
-                                    // map real CG id with fake CG id
-                                    setInfoToRegistry(clone.getStorageSystemId(), consistencyGroup.getDisplayName(),
-                                            result.getSnapshotGroupId());
-                                    //clone.setConsistencyGroup(consistencyGroup.getDisplayName());
-                                    String cloneTimestamp = Long.toString(System.currentTimeMillis());
-                                    clone.setConsistencyGroup(consistencyGroup.getNativeId()+"_clone-"+cloneTimestamp);
+                                    clone.setConsistencyGroup(result.getSnapshotGroupId());
                                     countSucc++;
                                 }
                             }
@@ -931,39 +924,6 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver implements Block
         return task;
     }
 
-//    /**
-//     * Detach clone of consistency group.
-//     *
-//     * @param clones Input/Output
-//     * @return task
-//     */
-//    public DriverTask detachConsistencyGroupClone(List<VolumeClone> clones) {
-//        log.info("Request to detach consistency group clone -- Start :");
-//        DriverTask task = new DriverTaskImpl(ScaleIOHelper.getTaskId(ScaleIOConstants.TaskType.CG_CLONE_DETACH));
-//        if (ScaleIOHelper.isFromSameCGgroupClone(clones)) {
-//            for (VolumeClone clone : clones) {
-//                try {
-//                    log.info("Detach consistency group clone - Start:");
-//                    clone.setReplicationState(VolumeClone.ReplicationState.DETACHED);
-//                    countSucc++;
-//                    task.setStatus(DriverTask.TaskStatus.READY);
-//                    log.info("Successfully detached consistency group clone - End:");
-//                } catch (Exception e) {
-//                    log.error("Exception while detaching consistency group clone", e);
-//                    task.setStatus(DriverTask.TaskStatus.FAILED);
-//                }
-//                setTaskStatus(clones.size(), countSucc, task);
-//            }
-//        }
-//        else {
-//            log.error("Can't detach empty Clone list");
-//            task.setStatus(DriverTask.TaskStatus.FAILED);
-//        }
-//        task.setEndTime(Calendar.getInstance());
-//        log.info("Request to detach Clone -- End ");
-//        return task;
-//    }
-
     /**
      * Delete consistency group clone
      *
@@ -972,37 +932,8 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver implements Block
      */
     @Override
     public DriverTask deleteConsistencyGroupClone(List<VolumeClone> clones) {
-        log.info("Request to delete consistency group clones -- Start :");
-        DriverTask task = new DriverTaskImpl(ScaleIOHelper.getTaskId(ScaleIOConstants.TaskType.CG_CLONE_DELETE));
-        if (ScaleIOHelper.isFromSameCGgroupClone(clones)) {
-            String systemId = clones.get(0).getStorageSystemId();
-            log.info("Start to get Rest client for ScaleIO storage system: {}", systemId);
-            ScaleIORestClient client = getClientBySystemId(systemId);
-            if (client != null) {
-                try {
-                    log.info("Rest Client Got! delete consistency group clones - Start:");
-                    // Since Clones are treated as Snapshot, so will call remove Consistency Group Snapshot.
-                    List<String> cgIds = getInfoFromRegistry(systemId, clones.get(0).getConsistencyGroup());
-                    for (String cgId : cgIds) {
-                        client.removeConsistencyGroupSnapshot(cgId);
-                    }
-                    task.setStatus(DriverTask.TaskStatus.READY);
-                    log.info("Successfully delete consistency group clones - End:");
-                } catch (Exception e) {
-                    log.error("Exception while deleting consistency group clones", e);
-                    task.setStatus(DriverTask.TaskStatus.FAILED);
-                }
-            } else {
-                log.error("Exception while getting client instance for storage system {}", systemId);
-                task.setStatus(DriverTask.TaskStatus.FAILED);
-            }
-        } else {
-            log.error("clones are not from same consistency group");
-            task.setStatus(DriverTask.TaskStatus.FAILED);
-        }
-        task.setEndTime(Calendar.getInstance());
-        log.info("Request to delete consistency group clones -- End");
-        return task;
+        //Delete CG Clone actually calls DetachVolumeClone and DeleteVolumes; Never call this.
+        return null;
     }
 
     /**
@@ -1264,16 +1195,6 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver implements Block
      */
     @Override
     public DriverTask getStorageVolumes(StorageSystem storageSystem, List<StorageVolume> storageVolumes, MutableInt token) {
-        return null;
-    }
-
-    /**
-     * Get list of supported storage system types. Ex. vmax, vnxblock, hitachi, etc...
-     *
-     * @return list of supported storage system types
-     */
-    @Override
-    public List<String> getSystemTypes() {
         return null;
     }
 

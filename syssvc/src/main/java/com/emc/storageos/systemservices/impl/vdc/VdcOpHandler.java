@@ -1195,8 +1195,13 @@ public abstract class VdcOpHandler {
     }
     
     protected void refreshCoordinator() {
-        localRepository.reconfigProperties("coordinator");
-        localRepository.restart("coordinatorsvc");
+        String localZkMode = drUtil.getLocalCoordinatorMode();
+        if (drUtil.isParticipantNode(localZkMode) && drUtil.isStandby()) {
+            log.info("No need to reconfig coordinator on participant standby nodes");
+        } else {
+            localRepository.reconfigProperties("coordinator");
+            localRepository.restart("coordinatorsvc");
+        }
     }
     
     /**

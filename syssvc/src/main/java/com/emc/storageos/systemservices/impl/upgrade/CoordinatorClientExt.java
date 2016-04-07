@@ -104,9 +104,6 @@ public class CoordinatorClientExt {
     
     private static final int CHECK_ACTIVE_SITE_STABLE_CONNECT_TIMEOUT_MS = 10000; // 10 seconds
     private static final int CHECK_ACTIVE_SITE_STABLE_READ_TIMEOUT_MS = 5000; //5 seconds
-
-    private static final int RETRY_QUERY_LOCALSITE_FROM_ZK_INTERVAL = 10000;
-    private static final int RETRY_QUERY_LOCALSITE_FROM_ZK_TIMES = 10;
     
     private CoordinatorClient _coordinator;
     private SysSvcBeaconImpl _beacon;
@@ -128,6 +125,7 @@ public class CoordinatorClientExt {
     
     private DbServiceStatusChecker statusChecker = null;
     private boolean backCompatPreYoda = true;
+    private boolean siteIsStandby = false;
 
     @Autowired
     private DrSiteNetworkMonitor drSiteNetworkMonitor;
@@ -169,6 +167,10 @@ public class CoordinatorClientExt {
         backCompatPreYoda = backCompat;
     }
     
+    public void setSiteIsStandby(boolean siteIsStandby) {
+        this.siteIsStandby = siteIsStandby;
+    }
+
     /**
      * Get property
      * 
@@ -1472,30 +1474,7 @@ public class CoordinatorClientExt {
      * On active site, start a thread to monitor db quorum of each standby site
      */
     public void start() {
-        
-        //in some cases, can't get local size information from ZK. Can't determine its standby or active.
-        //retry a few times here, it still failed, throw out exception to restart syssvc
-        int retrTimes = 0;
-        while (true) {
-            retrTimes++;
-            try {
-                drUtil.getSiteFromLocalVdc(this.getCoordinatorClient().getSiteId());
-                break;
-            } catch (Exception ex) {
-                if (retrTimes >= RETRY_QUERY_LOCALSITE_FROM_ZK_TIMES) {
-                    _log.error("Retry 10 times but failed to get local site infomration from ZK");
-                    throw new IllegalStateException("Retry 10 times but failed to get local site infomration from ZK");
-                }
-                _log.error("Failed to find local site by uuid {}, try again later", this.getCoordinatorClient().getSiteId(), ex);
-                try {
-                    Thread.sleep(RETRY_QUERY_LOCALSITE_FROM_ZK_INTERVAL);
-                } catch (InterruptedException e) {
-                    //IGNORE
-                }
-            }
-        }
-        
-        if (drUtil.isStandby()) {
+        if (siteIsStandby) {
             _log.info("Start monitoring local coordinatorsvc status on standby site");
             ScheduledExecutorService exe = Executors.newScheduledThreadPool(1, new ThreadFactory() {
                 @Override

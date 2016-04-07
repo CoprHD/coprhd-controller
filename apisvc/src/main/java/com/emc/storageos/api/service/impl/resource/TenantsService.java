@@ -350,9 +350,12 @@ public class TenantsService extends TaggedResource {
                 }
             }
             // removing link between tenant and the old namespace
-            Iterator<ObjectNamespace> nsItrToUnMap = _dbClient.queryIterativeObjects(ObjectNamespace.class, allNamespaceURI);
+            List<URI> namespaceURIs = _dbClient.queryByType(ObjectNamespace.class, true);
+            Iterator<ObjectNamespace> nsItrToUnMap = _dbClient.queryIterativeObjects(ObjectNamespace.class, namespaceURIs);
             while (nsItrToUnMap.hasNext()) {
                 oldNamesp = nsItrToUnMap.next();
+                _log.error("Suri - oldNamesp {}",
+                        oldNamesp.getNativeId());
                 if (oldNamesp.getNativeId().equalsIgnoreCase(oldNamespace)) {
                     oldNamesp.setMapped(false);
                     oldNamespModified = true;

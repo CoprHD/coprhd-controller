@@ -1879,11 +1879,24 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
         Map<URI, URI> dependencies = new HashMap<URI, URI>();
 
         Volume sourceVolume = (Volume) object;
-        // Get all of the volumes associated with the volume
-        for (BlockSnapshot snapshot : this.getSnapshots(sourceVolume)) {
+        // Get all of the snapshots associated with the volume
+        for (BlockSnapshot snapshot : this.getSnapshotsForVolume(sourceVolume)) {
             if (snapshot != null && !snapshot.getInactive()) {
                 dependencies.put(sourceVolume.getId(), snapshot.getId());
             }
+            
+	        // Get all the snapshots of the corresponding target volumes
+	        if (Volume.PersonalityTypes.SOURCE.name().equals(sourceVolume.getPersonality())) {
+	            StringSet rpTargets = sourceVolume.getRpTargets();
+	            for (String rpTarget : rpTargets) {
+	            	Volume rpTargetVolume = _dbClient.queryObject(Volume.class, URI.create(rpTarget));
+	            	for (BlockSnapshot targetSnapshot : this.getSnapshotsForVolume(rpTargetVolume)) {
+	                    if (targetSnapshot != null && !targetSnapshot.getInactive()) {
+	                        dependencies.put(rpTargetVolume.getId(), targetSnapshot.getId());
+	                    }            
+	            	}
+	            }
+	        }
         }
 
         if (!dependencies.isEmpty()) {
@@ -2833,8 +2846,8 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
 	            // Get all RP bookmarks for this RP Volume. Since bookmarks are not assigned to any source volumes in the CG, we need to query all the 
 	            // source volumes in the CG and fetch them.
 	            List<BlockSnapshot> allSnapshots = super.getSnapshots(rpSourceVolume);
-	            for(BlockSnapshot snapshot : allSnapshots) {
-	            	if (snapshot.getTechnologyType().equalsIgnoreCase(BlockSnapshot.TechnologyType.RP.name())) {
+	            for (BlockSnapshot snapshot : allSnapshots) {
+	            	if (BlockSnapshot.TechnologyType.RP.name().equalsIgnoreCase(snapshot.getTechnologyType())) {
 	            		snapshots.add(snapshot);
 	            	}
 	            }	            		           

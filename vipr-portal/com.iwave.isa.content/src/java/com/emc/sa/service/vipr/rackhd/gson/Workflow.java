@@ -4,7 +4,6 @@ public class Workflow {
     private String _status;
     private String id;
     private Context context; 
-    private String completeEventString;
     private String instanceId;
     private WorkflowTasks workflowTasks;
 
@@ -19,12 +18,6 @@ public class Workflow {
     }
     public void setInstanceId(String instanceId) {
         this.instanceId = instanceId;
-    }
-    public String getCompleteEventString() {
-        return completeEventString;
-    }
-    public void setCompleteEventString(String completeEventString) {
-        this.completeEventString = completeEventString;
     }
     public Context getContext() {
         return context;

@@ -1244,7 +1244,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
             VolumeRestRep volume = client.blockVolumes().get(volumeId);
             VolumeRestRep parentVolume = volume;
             if (volume.getHaVolumes() != null && !volume.getHaVolumes().isEmpty()) {
-                volume = getVPlexSourceVolume(client, volume);
+                volume = BlockStorageUtils.getVPlexSourceVolume(client, volume);
             }
             if (volume != null && volume.getReplicationGroupInstance() != null) {
                 if (isTarget) {
@@ -3142,19 +3142,6 @@ public class BlockProvider extends BaseAssetOptionsProvider {
             }
         }
         return volumes;
-    }
-
-    private static VolumeRestRep getVPlexSourceVolume(ViPRCoreClient client, VolumeRestRep vplexVolume) {
-        if (vplexVolume.getHaVolumes() != null && !vplexVolume.getHaVolumes().isEmpty()) {
-            URI vplexVolumeVarray = vplexVolume.getVirtualArray().getId();
-            for (RelatedResourceRep haVolume : vplexVolume.getHaVolumes()) {
-                VolumeRestRep volume = client.blockVolumes().get(haVolume.getId());
-                if (volume != null && volume.getVirtualArray().getId().equals(vplexVolumeVarray)) {
-                    return volume;
-                }
-            }
-        }
-        return null;
     }
 
     protected List<URI> getHostIds(ViPRCoreClient client, URI hostOrClusterId,

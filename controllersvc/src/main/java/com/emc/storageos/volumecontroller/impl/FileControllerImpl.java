@@ -248,6 +248,6 @@ public class FileControllerImpl extends AbstractDiscoveredSystemController imple
 
     @Override
     public void createVirtualNas(URI storageURI, URI vnasURI, VirtualNasCreateParam vnasParam, String opId) throws InternalException {
-        execFS("createVirtualNas", storageURI, opId);
+        execFS("createVirtualNas", storageURI, vnasURI, vnasParam, opId);
     }
 }

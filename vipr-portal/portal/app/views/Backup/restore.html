@@ -147,7 +147,9 @@
 
                 if (result.status == "DOWNLOAD_SUCCESS") {
                     $("#restoreBtn").prop("disabled", false);
-                    $("#checkBoxForRestoreGeo").show();
+                    if(result.isGeo === true) { 
+                        $("#checkBoxForRestoreGeo").show();
+                    }
                     disableEnter(false);
                     stop = true;
                 }

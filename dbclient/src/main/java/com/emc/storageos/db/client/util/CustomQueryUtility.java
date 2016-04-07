@@ -167,7 +167,7 @@ public class CustomQueryUtility {
     }
 
     /**
-     * queries records based on a constrain, loads all queried records into memory; could be OOM risk if too many records are returned
+     * queries records based on a constraint; potential Out of Memory risk if too many records in results set
      * 
      * @param dbClient
      * @param clazz

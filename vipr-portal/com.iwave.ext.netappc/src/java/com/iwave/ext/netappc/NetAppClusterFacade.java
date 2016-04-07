@@ -792,7 +792,7 @@ public class NetAppClusterFacade {
             log.debug("Getting all tree quotas");
         }
         QuotaCommands commands = new QuotaCommands(server.getNaServer());
-        return commands.quotaReport(null, null);
+        return commands.getTreeQuotas();
     }
 
     /**

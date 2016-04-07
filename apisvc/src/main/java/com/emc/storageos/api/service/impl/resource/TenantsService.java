@@ -324,7 +324,7 @@ public class TenantsService extends TaggedResource {
                 checkForDuplicateNamespace(param.getNamespace());
             }
 
-            if (tenant.getNamespace() != null && !tenant.getNamespace().isEmpty()) {
+            if (!StringUtils.isEmpty(tenant.getNamespace()) && !"null".equals(tenant.getNamespace())) {
                 if (!tenant.getNamespace().equalsIgnoreCase(param.getNamespace())) {
                     List<Class<? extends DataObject>> excludeTypes = Lists.newArrayList();
                     excludeTypes.add(ObjectNamespace.class);

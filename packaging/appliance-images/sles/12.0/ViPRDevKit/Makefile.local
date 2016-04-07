@@ -19,6 +19,9 @@ prepare: clean
 createAppliance:
 	cat ../configurations.sh > config.sh
 	cat ViPRDevKit_config.sh >> config.sh
+	cp -p /usr/share/kiwi/modules/KIWIBoot.pm /usr/share/kiwi/modules/KIWIBoot.pm.orig
+	sed -i s/"lvcreate"/"lvcreate --noudevsync"/g /usr/share/kiwi/modules/KIWIBoot.pm
+	udevd -d &
 	${CREATE_APPLIANCE_TOOL} -lc${DEBUG} ${CONF} ${JOB} -p appliance[vmx,tbz]
 	
 bless:

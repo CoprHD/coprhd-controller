@@ -307,8 +307,8 @@ if [ -f $FileKIWIBoot ] && [ ! -f $FileKIWIBoot.bak ]; then
     # on KIWI 7 the entry is $mount and KIWI 5 it is hardcoded to /mnt
     rpm -q kiwi | grep --quiet 5.06.115
     [ $? -eq 0 ] && patch="5.06.115"
-    rpm -q kiwi | grep --quiet 5.06.165
-    [ $? -eq 0 ] && patch="5.06.165"
+    rpm -q kiwi | grep --quiet 5.06.195
+    [ $? -eq 0 ] && patch="5.06.195"
     rpm -q kiwi | grep --quiet 7.02
     [ $? -eq 0 ] && patch="7.02"
     if [ $patch = "5.06.115" ]; then
@@ -335,7 +335,7 @@ if [ -f $FileKIWIBoot ] && [ ! -f $FileKIWIBoot.bak ]; then
         sed -i "$((${linenum}+28))i\                        }" $FileKIWIBoot
         sed -i "${linerem}d" $FileKIWIBoot
       fi
-    elif [ $patch = "5.06.165" ]; then
+    elif [ $patch = "5.06.195" ]; then
       echo "Modifying to fix on container builds for $FileKIWIBoot version $patch"
       linenum=$(grep -n "\$loaderTarget = readlink (\$bootdev)" $FileKIWIBoot | cut -d: -f1)
       if [ "$linenum" != "" ]; then

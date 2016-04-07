@@ -182,9 +182,9 @@ public class BackupSchedulerTest {
         // not retire backups in cluster.
         upExec.upload();
 
-        Assert.assertTrue("Missing completed tag"+cfg.uploadedBackups, cfg.uploadedBackups.contains(aliveBackupsAt20141231[0]));
-        Assert.assertTrue("Missing completed tag"+cfg.uploadedBackups, cfg.uploadedBackups.contains(aliveBackupsAt20141231[1]));
-        Assert.assertEquals("Tags not cleaned up"+cfg.uploadedBackups, 2, cfg.uploadedBackups.size());
+        Assert.assertTrue("Missing completed tag", cfg.uploadedBackups.contains(aliveBackupsAt20141231[0]));
+        Assert.assertTrue("Missing completed tag", cfg.uploadedBackups.contains(aliveBackupsAt20141231[1]));
+        Assert.assertEquals("Tags not cleaned up", 2, cfg.uploadedBackups.size());
     }
 }
 
@@ -258,7 +258,6 @@ class FakeBackupClient extends BackupScheduler {
 
     @Override
     public void createBackup(String tag) {
-System.out.print("createBackup executed****"+tag);
         localBackups.add(tag);
     }
 

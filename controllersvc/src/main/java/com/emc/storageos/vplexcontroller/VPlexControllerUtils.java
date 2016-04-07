@@ -531,7 +531,7 @@ public class VPlexControllerUtils {
             StringBuilder builder = new StringBuilder();
             String name = exportMask.getMaskName();
 
-            builder.append(String.format("%nExportMask in the ViPR database: %s Inits:{%s} Vols:{%s}%n", name,
+            builder.append(String.format("%nExportMask in the ViPR database: %s Existing Inits:{%s} Existing Vols:{%s}%n", name,
                     Joiner.on(',').join(existingInitiators),
                     Joiner.on(',').join(existingVolumes)));
 

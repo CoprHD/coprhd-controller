@@ -32,6 +32,7 @@ import com.emc.storageos.db.client.util.CommonTransformerFunctions;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.exceptions.DeviceControllerException;
+import com.emc.storageos.networkcontroller.impl.NetworkDeviceController;
 import com.emc.storageos.recoverpoint.utils.WwnUtils;
 import com.emc.storageos.util.ConnectivityUtil;
 import com.emc.storageos.util.ExportUtils;
@@ -503,11 +504,11 @@ public class VPlexControllerUtils {
      * @param storageView a reference to the VPlexStorageViewInfo for the ExportMask's mask name
      * @param exportMask the ExportMask to refresh
      * @param vplexClusterName the VPLEX cluster name on which to find the ExportMask
-     * @param targetPortToPwwnMap a Map of VPLEX target port names to WWNs, or null
-     *          if this method should load it
+     * @param targetPortToPwwnMap a Map of VPLEX target port names to WWNs
+     * @param networkDeviceController the NetworkDeviceController, used for refreshing the zoning map
      */
     public static void refreshExportMask(DbClient dbClient, VPlexStorageViewInfo storageView, 
-            ExportMask exportMask, Map<String, String> targetPortToPwwnMap ) {
+            ExportMask exportMask, Map<String, String> targetPortToPwwnMap, NetworkDeviceController networkDeviceController) {
         try {
 
             if (null == exportMask || null == storageView || null == targetPortToPwwnMap || targetPortToPwwnMap.isEmpty()) {
@@ -661,6 +662,9 @@ public class VPlexControllerUtils {
             } else {
                 builder.append("ExportMask refresh: There are no changes to the mask\n");
             }
+            networkDeviceController.refreshZoningMap(exportMask,
+                    initiatorsToRemove, Collections.emptyList(),
+                    (addInitiators || removeInitiators), true);
             log.info(builder.toString());
         } catch (Exception ex) {
             log.error("Failed to refresh VPLEX Storage View: " + ex.getLocalizedMessage(), ex);

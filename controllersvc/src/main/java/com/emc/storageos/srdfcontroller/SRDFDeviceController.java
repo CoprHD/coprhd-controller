@@ -22,6 +22,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import com.emc.storageos.db.client.model.Operation;
+import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
+import com.emc.storageos.volumecontroller.impl.block.taskcompleter.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -49,24 +52,6 @@ import com.emc.storageos.volumecontroller.BlockStorageDevice;
 import com.emc.storageos.volumecontroller.RemoteMirroring;
 import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.volumecontroller.impl.block.BlockDeviceController;
-import com.emc.storageos.volumecontroller.impl.block.taskcompleter.BlockSnapshotRestoreCompleter;
-import com.emc.storageos.volumecontroller.impl.block.taskcompleter.SRDFAddPairToGroupCompleter;
-import com.emc.storageos.volumecontroller.impl.block.taskcompleter.SRDFChangeCopyModeTaskCompleter;
-import com.emc.storageos.volumecontroller.impl.block.taskcompleter.SRDFExpandCompleter;
-import com.emc.storageos.volumecontroller.impl.block.taskcompleter.SRDFLinkFailOverCancelCompleter;
-import com.emc.storageos.volumecontroller.impl.block.taskcompleter.SRDFLinkFailOverCompleter;
-import com.emc.storageos.volumecontroller.impl.block.taskcompleter.SRDFLinkPauseCompleter;
-import com.emc.storageos.volumecontroller.impl.block.taskcompleter.SRDFLinkResumeCompleter;
-import com.emc.storageos.volumecontroller.impl.block.taskcompleter.SRDFLinkStartCompleter;
-import com.emc.storageos.volumecontroller.impl.block.taskcompleter.SRDFLinkStopCompleter;
-import com.emc.storageos.volumecontroller.impl.block.taskcompleter.SRDFLinkSuspendCompleter;
-import com.emc.storageos.volumecontroller.impl.block.taskcompleter.SRDFLinkSyncCompleter;
-import com.emc.storageos.volumecontroller.impl.block.taskcompleter.SRDFMirrorCreateCompleter;
-import com.emc.storageos.volumecontroller.impl.block.taskcompleter.SRDFMirrorRollbackCompleter;
-import com.emc.storageos.volumecontroller.impl.block.taskcompleter.SRDFRemoveDeviceGroupsCompleter;
-import com.emc.storageos.volumecontroller.impl.block.taskcompleter.SRDFSwapCompleter;
-import com.emc.storageos.volumecontroller.impl.block.taskcompleter.SRDFTaskCompleter;
-import com.emc.storageos.volumecontroller.impl.block.taskcompleter.VolumeWorkflowCompleter;
 import com.emc.storageos.volumecontroller.impl.smis.SRDFOperations.Mode;
 import com.emc.storageos.volumecontroller.impl.smis.srdf.SRDFUtils;
 import com.emc.storageos.workflow.Workflow;
@@ -1642,13 +1627,39 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
         TaskCompleter completer = new SRDFMirrorRollbackCompleter(sourceURIs,
                 opId);
         try {
-            // removePairFromGroup step not required as addPair failed
-            completer.ready(dbClient);
-            WorkflowStepCompleter.stepSucceded(opId);
+            StorageSystem system = getStorageSystem(systemURI);
+            List<Volume> sources = dbClient.queryObject(Volume.class, sourceURIs);
+            for (Volume source : sources) {
+                StringSet targets = source.getSrdfTargets();
+                for (String targetStr : targets) {
+                    URI targetURI = URI.create(targetStr);
+                    if (!targetURIs.contains(targetURI)) {
+                        continue;
+                    }
+                    Volume target = dbClient.queryObject(Volume.class, targetURI);
+                    rollbackAddSyncVolumePair(system, source, target);
+                }
+            }
         } catch (Exception e) {
             log.warn("Error during rollback for adding sync pairs", e);
+        } finally {
+            if (completer != null) {
+                completer.ready(dbClient);
+            }
+            WorkflowStepCompleter.stepSucceded(opId);
         }
         return true;
+    }
+
+    private void rollbackAddSyncVolumePair(StorageSystem system, Volume source, Volume target) {
+        try {
+            getRemoteMirrorDevice().doRemoveVolumePair(system, source.getId(), target.getId(), true,
+                    new NullTaskCompleter());
+        } catch (Exception e) {
+            String msg = String.format("Ignoring error whilst rolling back AddSyncPair for %s -> %s",
+                    source.getId(), target.getId());
+            log.warn(msg, e);
+        }
     }
 
     private Method addVolumePairsToCgMethod(URI systemURI, List<URI> sourceURIs, URI remoteDirectorGroupURI, URI vpoolChangeUri) {

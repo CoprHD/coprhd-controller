@@ -4723,7 +4723,10 @@ class Bourne:
         req['use_ssl'] = usessl
 
         o = self.api('POST', URI_SMISPROVIDERS, req)
-        s = self.api_sync_2(o['resource']['id'], o['op_id'], self.smisprovider_show_task)
+        try:
+            s = self.api_sync_2(o['resource']['id'], o['op_id'], self.smisprovider_show_task)
+        except:
+            print o
         return  s
 
     def smisprovider_delete(self, uri):

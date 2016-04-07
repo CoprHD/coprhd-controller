@@ -21,6 +21,7 @@ if [ "$1"x != "x" ]; then
    if [ -f "$1" ]; then
       SANITY_CONFIG_FILE=$1
       echo Using sanity configuration file $SANITY_CONFIG_FILE
+      source $SANITY_CONFIG_FILE
       shift
    fi
 fi
@@ -39,15 +40,21 @@ export rootTenant
 export tenant
 echo tenant $tenant 
 [ "$project" ] || {
-    project="vplexsrdf8"
+    project=$VPLEXSRDF_PROJECT
 }
-cglabel=
-
+echo project $project
+existingProjects=$(project list --tenant $tenant)
+echo "Existing projects: $existingProjects"
+$(echo $existingProjects | grep -q $project) || {
+    echo project create --tenant $tenant $project
+    project create --tenant $tenant $project
+}
 
 # Virtual arrays
 SITEr1=site1			# The source SRDF site and source 1st VPLEX site
 SITEr2=site3			# The target SRDF site and possible 2nd VPLEX site
-SITEha=site3			# The 1st VPLEX HA site
+SITEha=site2			# The 1st VPLEX HA site
+SITEdummy=dummy			# Dummy site to hold unassigned ports
 
 # Virtual pools
 VPOOL1=vrdfsrc		# The source virtual pool under test
@@ -55,7 +62,7 @@ VPOOL1=vrdfsrc		# The source virtual pool under test
 # Configuration file to be used  
 source $SANITY_CONFIG_FILE 
 
-# Variables that should be inherited from sanity
+# Variables about volumes
 BLK_SIZE=${BLK_SIZE:-1073741824}
 BLK_SIZE2=${BLK_SIZE2:-2147483648}
 VOLUME_COUNT=${VOLUME_COUNT:-2}
@@ -149,12 +156,10 @@ host_create() {
     }
 }
 
-host_create vplexsrdfhost1 $clusterId A0 A1 FABRIC_losam082-fabric FABRIC_losam082-fabric
-host_create vplexsrdfhost2 $clusterId A2 A3 FABRIC_losam082-fabric FABRIC_losam082-fabric
 
 # Control over running individual parts of the test (true/false)
 create_volume=true			# if false, specify volname1 and CGlabel
-export_volume=true
+export_volume=false
 test_protection_ops=true
 test_expand=true
 test_r1_snapvx_nocopy=true
@@ -162,6 +167,150 @@ test_r2_snapvx_nocopy=true
 test_r1_fullcopy=true
 test_r2_fullcopy=true
 delete_volume=true
+
+# Setup basic varrays
+vplexsrdf_setup() {
+     # Make virtual arrays if necessary
+     existingVAs=$(neighborhood list | awk ' { print $1; }')
+     # Ensure the virtual arrays are present
+     $(echo $existingVAs | grep -q $SITEr1 ) || {
+         neighborhood create $SITEr1
+     }
+     $(echo $existingVAs | grep -q $SITEr2 ) || {
+         neighborhood create $SITEr2
+     }
+     $(echo $existingVAs | grep -q $SITEha ) || {
+         neighborhood create $SITEha
+     }
+     $(echo $existingVAs | grep -q $SITEdummy ) || {
+         neighborhood create $SITEdummy
+     }
+     existingVAs=$(neighborhood list | awk ' { print $1; }')
+     echo "Virtual arrays: $existingVAs"
+}
+
+vplexsrdf_setup
+
+# Discover and configure all the equipment needed for VPLEXSRDF
+vplexsrdf_discover() {
+    # Discover the brocade
+    brocadeDiscovered=$(networksystem list | grep $BROCADE_NETWORK | wc -l)
+    [ $brocadeDiscovered -eq 1 ] || {
+        run networksystem create $BROCADE_NETWORK brocade --smisip $BROCADE_IP --smisport 5988 --smisuser $BROCADE_USER --smispw $BROCADE_PW --smisssl false
+    } 
+    $(networksystem list_connections $BROCADE_NETWORK | awk ' {print $1;}' | sort | uniq >/tmp/__networks)
+    networks=$(cat /tmp/__networks)
+    echoit "Discovered networks: $networks"
+    losam082=FABRIC_$(cat /tmp/__networks | grep "losam082")
+    vplex154=FABRIC_$(cat /tmp/__networks | grep "vplex154")
+    fid30=FABRIC_$(cat /tmp/__networks | grep "FID_30")
+    fid40=FABRIC_$(cat /tmp/__networks | grep "FID_40")
+    echo A $losam082 B $vplex154 C $fid30 D $fid40
+    rm /tmp/__networks
+    transportzone assign $losam082 $SITEr1
+    transportzone assign $losam082 $SITEr2
+    transportzone assign $losam082 $SITEha
+    transportzone assign $vplex154 $SITEr1
+    transportzone assign $vplex154 $SITEr2
+    transportzone assign $vplex154 $SITEha
+    transportzone assign $fid30 $SITEr2
+    transportzone assign $fid40 $SITEr2
+
+    # Discover the providers
+    existingProviders=$(storageprovider list | awk ' {print $2;}')
+    echo "Existing providers: $existingProviders"
+    newProvider=0
+    # Discover the providers
+    $(echo $existingProviders | grep -q $VPLEXSRDF_SOURCE_PROVIDER) || {
+        run smisprovider create $VPLEXSRDF_SOURCE_PROVIDER $VPLEXSRDF_SOURCE_PROVIDER 5989 $SMIS_USER $SMIS_PASSWD true
+	newProvider=1
+    }
+    $(echo $existingProviders | grep -q $VPLEXSRDF_TARGET_PROVIDER) || {
+        run smisprovider create $VPLEXSRDF_TARGET_PROVIDER $VPLEXSRDF_TARGET_PROVIDER 5989 $SMIS_USER $SMIS_PASSWD true
+	newProvider=1
+    }
+    $(echo $existingProviders | grep -q $VPLEXSRDF_HA_PROVIDER) || {
+        run smisprovider create $VPLEXSRDF_HA_PROVIDER $VPLEXSRDF_HA_PROVIDER 5989 $SMIS_USER $SMIS_PASSWD true
+	newProvider=1
+    }
+
+    # Discover the storage systems
+    existingArrays=$(storagedevice list | awk ' {print $2;}')
+    echo "Existing arrays: $existingArrays"
+    $(echo $existingArrays | grep -q $VPLEXSRDF_SOURCE_GUID) || {
+        echo "Array $VPLEXSRDF_SOURCE_GUID not discovered. Fatal error".
+	exit 2
+    }
+    $(echo $existingArrays | grep -q $VPLEXSRDF_TARGET_GUID) || {
+        echo "Array $VPLEXSRDF_TARGET_GUID not discovered. Fatal error".
+	exit 2
+    }
+    $(echo $existingArrays | grep -q $VPLEXSRDF_HA_GUID) || {
+        echo "Array $VPLEXSRDF_HA_GUID not discovered. Fatal error".
+	exit 2
+    }
+
+    # Discover the VPLEXes
+    $(echo $existingProviders | grep -q $VPLEXSRDF_VPLEX1_IP) || {
+        run storageprovider create $VPLEXSRDF_VPLEX1_IP $VPLEXSRDF_VPLEX1_IP 443 $VPLEX_USER "$VPLEX_PASSWD" vplex
+        newProvider=1
+    }
+    $(echo $existingProviders | grep -q $VPLEXSRDF_VPLEX2_IP) || {
+        run storageprovider create $VPLEXSRDF_VPLEX2_IP $VPLEXSRDF_VPLEX2_IP 443 $VPLEX_USER "$VPLEX_PASSWD" vplex
+        newProvider=1
+    }
+
+    # Assign all the storage ports.
+    [ $newProvider -eq 0 ] || {
+        echoit "Initiating discovery_all... this may take some time"
+        run storagedevice discover_all
+        storagedevice_list
+        run storageport update $VPLEXSRDF_SOURCE_GUID FC --addvarrays $SITEr1
+        run storageport update $VPLEXSRDF_HA_GUID FC --addvarrays $SITEha
+        run storageport update $VPLEXSRDF_TARGET_GUID FC --addvarrays $SITEr2
+        run storageport update $VPLEXSRDF_VPLEX1_GUID FC --group director-1-1-A --addvarrays $SITEr1
+        run storageport update $VPLEXSRDF_VPLEX1_GUID FC --group director-1-1-B --addvarrays $SITEr1
+        run storageport update $VPLEXSRDF_VPLEX1_GUID FC --group director-2-1-A --addvarrays $SITEha
+        run storageport update $VPLEXSRDF_VPLEX1_GUID FC --group director-2-1-B --addvarrays $SITEha
+        run storageport update $VPLEXSRDF_VPLEX2_GUID FC --group director-2-1-A --addvarrays $SITEr2
+        run storageport update $VPLEXSRDF_VPLEX2_GUID FC --group director-2-1-B --addvarrays $SITEr2
+        run storageport update $VPLEXSRDF_VPLEX2_GUID FC --group director-1-1-A --addvarrays $SITEdummy
+        run storageport update $VPLEXSRDF_VPLEX2_GUID FC --group director-1-1-B --addvarrays $SITEdummy
+        echo "Storage port assignment completed."
+        host_create vplexsrdfhost1 $clusterId A0 A1 $losam082 $losam082
+        host_create vplexsrdfhost2 $clusterId A2 A3 $losam082 $losam082
+    }
+}
+
+vplexsrdf_discover
+
+
+# Set up the virtual pools
+existingVpools=$(cos list block | awk ' {print $1;}')
+vrdfsrc=$(echo $existingVpools | grep -c vrdfsrc)
+vrdftgt=$(echo $existingVpools | grep -c vrdftgt)
+
+if [ $vrdftgt -eq 0 ];
+then
+cos create block vrdftgt false --description "VPlexL on VMAX" \
+	--protocols FC --numpaths 1 --highavailability vplex_local --system_type vmax \
+	--provisionType Thin --neighborhoods $SITEr2 --expandable true \
+	--max_snapshots 4 --multiVolumeConsistency 
+cos update block vrdftgt --storage $VPLEXSRDF_TARGET_GUID
+cos allow vrdftgt block $rootTenant
+fi
+
+if [ $vrdfsrc -eq 0 ];
+then
+cos create block vrdfsrc false --description "VPlexL SRDF R1 to VPlexL SRDF R2" \
+	--protocols FC --numpaths 1 --highavailability vplex_local --system_type vmax \
+	--provisionType Thin --neighborhoods $SITEr1 --expandable true \
+	--max_snapshots 4 --multiVolumeConsistency --srdf "$SITEr2:vrdftgt:ASYNCHRONOUS"
+cos update block vrdfsrc --storage $VPLEXSRDF_SOURCE_GUID
+cos allow vrdfsrc block $rootTenant
+fi
+echoit "Virtual Pools"
+cos list block
 
 vplexsrdf_test() {
 volname1=${volname1:-"vplexSrdfA$hostseed$seed2b"}
@@ -352,30 +501,6 @@ vplexsrdf_test
 
 ##################### =========== below here for possible future additions ======================= #######################
 
-# The export test uses different virtual arrays than sanity.
-# This is so we can have more explicit control--
-# VACC1 -- cross connected in cluster-1 (both network ports)
-# VACC2 -- cross connected in cluster-2 (both network ports)
-# VANC1 -- non cross connected in cluster-1 (cluster-1 network ports)
-# VANC2 -- non cross connected in cluster-2 (cluster-2 network ports)
-# setup_virtual_arrays() {
-#     existingVAs=$(neighborhood list | awk ' { print $1; }')
-#     # Ensure the virtual arrays are present
-#     $(echo $existingVAs | grep -q $VACC1 ) || {
-#         neighborhood create $VACC1
-#     }
-#     $(echo $existingVAs | grep -q $VACC2 ) || {
-#         neighborhood create $VACC2
-#     }
-#     $(echo $existingVAs | grep -q $VANC1 ) || {
-#         neighborhood create $VANC1
-#     }
-#     $(echo $existingVAs | grep -q $VANC2 ) || {
-#         neighborhood create $VANC2
-#     }
-#     existingVAs=$(neighborhood list | awk ' { print $1; }')
-#     echo "Virtual arrays: $existingVAs"
-# }
 # 
 # # Function to create a cluster. $1 is the cluster name
 # cluster_create() {

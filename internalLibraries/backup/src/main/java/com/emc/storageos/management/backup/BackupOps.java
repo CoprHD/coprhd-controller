@@ -665,17 +665,8 @@ public class BackupOps {
         if ( restoreStatus == BackupRestoreStatus.Status.DOWNLOADING) {
             long nodeNumber = getHosts().size();
             if (s.getNodeCompleted() == nodeNumber ) {
-                try {
-                    File downloadedDir = getDownloadDirectory(backupName);
-                    checkBackup(downloadedDir, false);
-
-                    s.setStatusWithDetails(BackupRestoreStatus.Status.DOWNLOAD_SUCCESS, null);
-                    restoreStatus = BackupRestoreStatus.Status.DOWNLOAD_SUCCESS;
-                }catch (Exception e) {
-                    log.error("Invalid backup e=", e);
-                    s.setStatusWithDetails(BackupRestoreStatus.Status.DOWNLOAD_FAILED, e.getMessage());
-                    restoreStatus = BackupRestoreStatus.Status.DOWNLOAD_FAILED;
-                }
+                s.setStatusWithDetails(BackupRestoreStatus.Status.DOWNLOAD_SUCCESS, null);
+                restoreStatus = BackupRestoreStatus.Status.DOWNLOAD_SUCCESS;
             }
         }
 
@@ -729,7 +720,7 @@ public class BackupOps {
 
     public synchronized  void setGeoFlag(String backupName, boolean isLocal) {
         BackupRestoreStatus state = queryBackupRestoreStatus(backupName, isLocal);
-        state.setIsGeo(true);
+        state.setGeo(true);
         log.info("Persist backup restore status {} stack=", state, new Throwable());
         Map<String, String> allItems = state.toMap();
 

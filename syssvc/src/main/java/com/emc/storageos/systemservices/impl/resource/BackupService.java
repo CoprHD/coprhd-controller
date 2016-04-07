@@ -753,7 +753,24 @@ public class BackupService {
                                                   @QueryParam("isLocal") @DefaultValue("false") boolean isLocal) {
         log.info("Query restore status backupName={} isLocal={}", backupName, isLocal);
 
-        if (!isLocal) {
+        BackupRestoreStatus status = backupOps.queryBackupRestoreStatus(backupName, isLocal);
+        status.setBackupName(backupName); // in case it is not saved in the ZK
+
+        if (isLocal) {
+            File backupDir = backupOps.getBackupDir(backupName, true);
+            String[] files = backupDir.list();
+            if (files.length == 0) {
+                throw BackupException.fatals.backupFileNotFound(backupName);
+            }
+
+            for (String f : files) {
+                if (backupOps.isGeoBackup(f)) {
+                    log.info("{} is a geo backup", backupName);
+                    status.setGeo(true);
+                    break;
+                }
+            }
+        }else {
             checkExternalServer();
 
             SchedulerConfig cfg = backupScheduler.getCfg();
@@ -765,19 +782,16 @@ public class BackupService {
 
             try {
                 backupFiles = ftpClient.listFiles(backupName);
-                log.info("The backupFiles={}", backupFiles);
+                log.info("The remote backup files={}", backupFiles);
+
+                if (backupFiles.isEmpty()) {
+                    throw BackupException.fatals.backupFileNotFound(backupName);
+                }
             }catch (Exception e) {
                 log.error("Failed to list {} from server {} e=", backupName, externalServerUrl, e);
                 throw BackupException.fatals.externalBackupServerError(backupName);
             }
-
-            if (backupFiles.isEmpty()) {
-                throw BackupException.fatals.backupFileNotFound(backupName);
-            }
         }
-
-        BackupRestoreStatus status = backupOps.queryBackupRestoreStatus(backupName, isLocal);
-        status.setBackupName(backupName); // in case it is not saved in the ZK
 
         log.info("The backup/restore status:{}", status);
         return status;

@@ -179,7 +179,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
         RecordableBourneEvent event = new RecordableBourneEvent(
                 type,
                 fs.getTenant().getURI(),
-                URI.create("ViPR-User"),                                                    // user ID when AAA fixed
+                URI.create("ViPR-User"),                                                     // user ID when AAA fixed
                 fs.getProject().getURI(),
                 fs.getVirtualPool(),
                 EVENT_SERVICE_TYPE,
@@ -211,7 +211,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
         RecordableBourneEvent event = new RecordableBourneEvent(
                 type,
                 fs.getTenant().getURI(),
-                URI.create("ViPR-User"),                                                    // user ID when AAA fixed
+                URI.create("ViPR-User"),                                                     // user ID when AAA fixed
                 fs.getProject().getURI(),
                 fs.getVirtualPool(),
                 EVENT_SERVICE_TYPE,
@@ -582,7 +582,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
 
             if (result.getCommandPending()) {
                 return;
-            }                                                                  // Set Mount path info for the exports
+            }                                                                   // Set Mount path info for the exports
             FSExportMap fsExports = fsObj.getFsExports();
 
             // Per New model get the rules and see if any rules that are already saved and available.
@@ -3911,6 +3911,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
         try {
             storageObj = _dbClient.queryObject(StorageSystem.class, storage);
             vnasObj = _dbClient.queryObject(VirtualNAS.class, vnasUri);
+            _log.info("Controller Recieved Virtual Nas  {}", vnasObj);
             BiosCommandResult result = getDevice(storageObj.getSystemType()).doCreateVNAS(storageObj, vnasParam);
             if (!result.getCommandPending()) {
                 vnasObj.getOpStatus().updateTaskStatus(opId, result.toOperation());

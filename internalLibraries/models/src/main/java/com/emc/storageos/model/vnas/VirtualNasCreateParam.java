@@ -1,5 +1,6 @@
 package com.emc.storageos.model.vnas;
 
+import java.io.Serializable;
 import java.net.URI;
 import java.util.List;
 import java.util.Set;
@@ -8,8 +9,9 @@ import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlElementWrapper;
 import javax.xml.bind.annotation.XmlRootElement;
 
+@SuppressWarnings("serial")
 @XmlRootElement(name = "vnas_create")
-public class VirtualNasCreateParam {
+public class VirtualNasCreateParam implements Serializable {
 
     private String vNasName;
     private List<String> ipAddresses;

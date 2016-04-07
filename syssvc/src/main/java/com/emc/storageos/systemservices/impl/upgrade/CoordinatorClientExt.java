@@ -90,8 +90,6 @@ import com.google.common.collect.ImmutableSet;
 import org.springframework.beans.factory.annotation.Autowired;
 
 public class CoordinatorClientExt {
-    private static final int RETRY_QUERY_LOCALSITE_FROM_ZK_TIMES = 10;
-
     private static final Logger _log = LoggerFactory.getLogger(CoordinatorClientExt.class);
 
     private static final Set<String> CONTROL_NODE_ROLES =
@@ -108,7 +106,8 @@ public class CoordinatorClientExt {
     private static final int CHECK_ACTIVE_SITE_STABLE_CONNECT_TIMEOUT_MS = 10000; // 10 seconds
     private static final int CHECK_ACTIVE_SITE_STABLE_READ_TIMEOUT_MS = 5000; //5 seconds
 
-    private static final long RETRY_QUERY_LOCALSITE_FROM_ZK_INTERVAL = 10000;
+    private static final int RETRY_QUERY_LOCALSITE_FROM_ZK_INTERVAL = 10000;
+    private static final int RETRY_QUERY_LOCALSITE_FROM_ZK_TIMES = 10;
     
     private CoordinatorClient _coordinator;
     private SysSvcBeaconImpl _beacon;

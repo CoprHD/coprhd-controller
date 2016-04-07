@@ -86,9 +86,12 @@ import com.emc.vipr.model.sys.ClusterInfo;
 import com.emc.vipr.model.sys.ClusterInfo.ClusterState;
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableSet;
+
 import org.springframework.beans.factory.annotation.Autowired;
 
 public class CoordinatorClientExt {
+    private static final int RETRY_QUERY_LOCALSITE_FROM_ZK_TIMES = 10;
+
     private static final Logger _log = LoggerFactory.getLogger(CoordinatorClientExt.class);
 
     private static final Set<String> CONTROL_NODE_ROLES =
@@ -104,6 +107,8 @@ public class CoordinatorClientExt {
     
     private static final int CHECK_ACTIVE_SITE_STABLE_CONNECT_TIMEOUT_MS = 10000; // 10 seconds
     private static final int CHECK_ACTIVE_SITE_STABLE_READ_TIMEOUT_MS = 5000; //5 seconds
+
+    private static final long RETRY_QUERY_LOCALSITE_FROM_ZK_INTERVAL = 10000;
     
     private CoordinatorClient _coordinator;
     private SysSvcBeaconImpl _beacon;
@@ -1470,27 +1475,50 @@ public class CoordinatorClientExt {
      */
     public void start() {
         
-        ScheduledExecutorService zkMonitorExecutor = Executors.newScheduledThreadPool(1, new ThreadFactory() {
-            @Override
-            public Thread newThread(Runnable r) {
-                return new Thread(r, "CoordinatorsvcMonitor");
+        //in some cases, can't get local size information from ZK. Can't determine its standby or active.
+        //retry a few times here, it still failed, throw out exception
+        int retrTimes = 0;
+        while (true) {
+            retrTimes++;
+            try {
+                drUtil.getSiteFromLocalVdc(this.getCoordinatorClient().getSiteId());
+                break;
+            } catch (Exception ex) {
+                if (retrTimes >= RETRY_QUERY_LOCALSITE_FROM_ZK_TIMES) {
+                    _log.error("Retry 10 times but failed to get local site infomration from ZK");
+                    throw new IllegalStateException("Retry 10 times but failed to get local site infomration from ZK");
+                }
+                _log.error("Failed to find local site by uuid {}, try again later", this.getCoordinatorClient().getSiteId(), ex);
+                try {
+                    Thread.sleep(RETRY_QUERY_LOCALSITE_FROM_ZK_INTERVAL);
+                } catch (InterruptedException e) {
+                    //IGNORE
+                }
             }
-        });
-        String barrierPath = String.format("%s/%s%s", ZkPath.SITES, getCoordinatorClient().getSiteId(), DR_SWITCH_TO_ZK_OBSERVER_BARRIER);
-        switchToZkObserverBarrier = _coordinator.getDistributedDoubleBarrier(barrierPath, getNodeCount());
-        // delay for a period of time to start the monitor. For DR switchover, we stop original active, then start new active. 
-        // So the original active may not see the new active immediately after reboot
-        zkMonitorExecutor.scheduleAtFixedRate(coordinatorSvcMonitor, 3 * COODINATOR_MONITORING_INTERVAL , COODINATOR_MONITORING_INTERVAL, TimeUnit.SECONDS);
+        }
         
-        if (drUtil.isActiveSite()) {
+        if (drUtil.isStandby()) {
+            _log.info("Start monitoring local coordinatorsvc status on standby site");
+            ScheduledExecutorService exe = Executors.newScheduledThreadPool(1, new ThreadFactory() {
+                @Override
+                public Thread newThread(Runnable r) {
+                    return new Thread(r, "CoordinatorsvcMonitor");
+                }
+            });
+            String barrierPath = String.format("%s/%s%s", ZkPath.SITES, getCoordinatorClient().getSiteId(), DR_SWITCH_TO_ZK_OBSERVER_BARRIER);
+            switchToZkObserverBarrier = _coordinator.getDistributedDoubleBarrier(barrierPath, getNodeCount());
+            // delay for a period of time to start the monitor. For DR switchover, we stop original active, then start new active. 
+            // So the original active may not see the new active immediately after reboot
+            exe.scheduleAtFixedRate(coordinatorSvcMonitor, 3 * COODINATOR_MONITORING_INTERVAL , COODINATOR_MONITORING_INTERVAL, TimeUnit.SECONDS);
+        } else {
             _log.info("Start monitoring db quorum on all standby sites");
-            ScheduledExecutorService dbQuorumMonitorExecutor = Executors.newScheduledThreadPool(1, new ThreadFactory() {
+            ScheduledExecutorService exe = Executors.newScheduledThreadPool(1, new ThreadFactory() {
                 @Override
                 public Thread newThread(Runnable r) {
                     return new Thread(r, "DbsvcQuorumMonitor");
                 }
             });
-            dbQuorumMonitorExecutor.scheduleAtFixedRate(new DbsvcQuorumMonitor(_coordinator),
+            exe.scheduleAtFixedRate(new DbsvcQuorumMonitor(_coordinator),
                     0, DB_MONITORING_INTERVAL, TimeUnit.SECONDS);
         }
 
@@ -1521,7 +1549,7 @@ public class CoordinatorClientExt {
         private String initZkMode; // ZK mode during syssvc startup
         
         public void run() {
-            if (stopCoordinatorSvcMonitor || drUtil.isActiveSite()) {
+            if (stopCoordinatorSvcMonitor) {
                 return;
             }
 

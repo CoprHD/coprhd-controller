@@ -655,12 +655,9 @@ public class BlockStorageUtils {
                 Collection<URI> continuousCopyIds = getActiveContinuousCopies(volumeId);
                 removeBlockResourcesFromExports(continuousCopyIds);
             }
-        }
 
-        List<URI> fullCopyIds = getActiveFullCopies(volumeId);
-        blockResourceIds.removeAll(fullCopyIds);
-        for (URI fullCopyId : fullCopyIds) {
-            removeBlockResources(Collections.singletonList(fullCopyId), type);
+            List<URI> fullCopyIds = getActiveFullCopies(volumeId);
+            removeBlockResourcesFromExports(fullCopyIds);
         }
     }
 

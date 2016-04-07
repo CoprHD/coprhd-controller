@@ -255,8 +255,8 @@ public class SnapshotService extends TaskResourceService {
             BlockSnapshot snap = _dbClient.queryObject(BlockSnapshot.class,
                     snapshotUri);
             
-            StringMap extensions = snap.getExtensions();
             if (snap != null) {
+                StringMap extensions = snap.getExtensions();
                 if (extensions == null)
                 	extensions = new StringMap();
                 extensions.put("display_description", (snapshotDescription == null) ? "" : snapshotDescription);

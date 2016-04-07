@@ -89,6 +89,7 @@ import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.client.util.ResourceAndUUIDNameGenerator;
 import com.emc.storageos.db.client.util.StringSetUtil;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
+import com.emc.storageos.protectioncontroller.impl.recoverpoint.RPHelper;
 import com.emc.storageos.recoverpoint.responses.GetCopyResponse.GetCopyAccessStateResponse;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.util.ConnectivityUtil;
@@ -4103,6 +4104,7 @@ public class VolumeIngestionUtil {
 
         VolumeIngestionUtil.decorateRPVolumesCGInfo(volumes, pset, cg, updatedObjects, dbClient, requestContext);
         clearPersistedReplicaFlags(requestContext, volumes, updatedObjects, dbClient);
+        clearReplicaFlagsInIngestionContext(requestContext, volumes);
 
         RecoverPointVolumeIngestionContext rpContext = null;
 
@@ -4191,7 +4193,8 @@ public class VolumeIngestionUtil {
                     associatedVolumes.add((Volume) bo);
                 }
             }
-            _logger.info("Clearing internal volume flag of replicas of associatedVolumes of RP volume {}", volume.getLabel());
+            _logger.info("Clearing internal volume flag of replicas of associatedVolumes {} of RP volume {}",
+                    Joiner.on(",").join(associatedVolumes), volume.getLabel());
             clearPersistedReplicaFlags(requestContext, associatedVolumes, updatedObjects, dbClient);
         }
     }
@@ -4263,11 +4266,50 @@ public class VolumeIngestionUtil {
             DbClient dbClient) {
         if (volume.getFullCopies() != null) {
             for (String volumeId : volume.getFullCopies()) {
-                BlockObject bo = requestContext.findCreatedBlockObject(URI.create(volumeId));
+                BlockObject bo = requestContext.findDataObjectByType(Volume.class, URI.create(volumeId), true);
                 if (null != bo && bo instanceof Volume) {
                     _logger.info("Clearing internal volume flag of full copy {} of RP volume {}", bo.getLabel(), volume.getLabel());
                     bo.clearInternalFlags(BlockIngestOrchestrator.INTERNAL_VOLUME_FLAGS);
                     updatedObjects.add(bo);
+                }
+            }
+        }
+    }
+
+    /**
+     * Clear the flags of replicas which have been updated during the ingestion process
+     *
+     * @param volumeContext
+     * @param volumes RP volumes
+     */
+    public static void clearReplicaFlagsInIngestionContext(IngestionRequestContext requestContext, List<Volume> volumes) {
+        // We need to look for all snapshots and snapshot session in the contexts related to the rp volumes and its backend volumes and
+        // clear their flags.
+        _logger.info("Clearing flags of replicas in the context");
+        List<String> rpVolumes = new ArrayList<String>();
+        for (Volume volume : volumes) {
+            rpVolumes.add(volume.getId().toString());
+            if (RPHelper.isVPlexVolume(volume) && volume.getAssociatedVolumes() != null && !volume.getAssociatedVolumes().isEmpty()) {
+                StringSet associatedVolumes = volume.getAssociatedVolumes();
+                rpVolumes.addAll(associatedVolumes);
+            }
+        }
+        for (VolumeIngestionContext volumeIngestionContext : requestContext.getRootIngestionRequestContext()
+                .getProcessedUnManagedVolumeMap().values()) {
+            if (volumeIngestionContext instanceof IngestionRequestContext) {
+                for (Set<DataObject> objectsToBeUpdated : ((IngestionRequestContext) volumeIngestionContext).getDataObjectsToBeUpdatedMap()
+                        .values()) {
+                    for (DataObject o : objectsToBeUpdated) {
+                        if (o instanceof BlockSnapshot && rpVolumes.contains(((BlockSnapshot) o).getParent().getURI().toString())) {
+                            _logger.info("Clearing internal volume flag of BlockSnapshot {} of RP volume ", o.getLabel());
+                            o.clearInternalFlags(BlockIngestOrchestrator.INTERNAL_VOLUME_FLAGS);
+
+                        } else if (o instanceof BlockSnapshotSession
+                                && rpVolumes.contains(((BlockSnapshotSession) o).getParent().getURI().toString())) {
+                            _logger.info("Clearing internal volume flag of BlockSnapshotSession {} of RP volume ", o.getLabel());
+                            o.clearInternalFlags(BlockIngestOrchestrator.INTERNAL_VOLUME_FLAGS);
+                        }
+                    }
                 }
             }
         }

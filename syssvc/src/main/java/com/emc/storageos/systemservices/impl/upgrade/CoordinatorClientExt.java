@@ -86,7 +86,6 @@ import com.emc.vipr.model.sys.ClusterInfo;
 import com.emc.vipr.model.sys.ClusterInfo.ClusterState;
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableSet;
-
 import org.springframework.beans.factory.annotation.Autowired;
 
 public class CoordinatorClientExt {
@@ -1475,7 +1474,7 @@ public class CoordinatorClientExt {
     public void start() {
         
         //in some cases, can't get local size information from ZK. Can't determine its standby or active.
-        //retry a few times here, it still failed, throw out exception
+        //retry a few times here, it still failed, throw out exception to restart syssvc
         int retrTimes = 0;
         while (true) {
             retrTimes++;

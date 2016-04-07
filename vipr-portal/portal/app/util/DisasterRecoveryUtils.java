@@ -112,6 +112,16 @@ public class DisasterRecoveryUtils {
         }
         return false;
     }
+    
+    public static boolean hasActiveDegradedSite() {
+        List<SiteRestRep> sites = DisasterRecoveryUtils.getSiteDetails();
+        for (SiteRestRep site : sites) {
+            if (SiteState.ACTIVE_DEGRADED.toString().equals(site.getState())) {
+                return true;
+            }
+        }
+        return false;
+    }
 
     public static ClientResponse doSwitchover(String id) {
         return getViprClient().site().doSwitchover(id);

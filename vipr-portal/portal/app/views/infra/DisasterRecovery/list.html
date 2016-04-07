@@ -174,7 +174,10 @@ function watchLoadStatus(datatable, itemsJson) {
     var triggerValues = ['STANDBY_ADDING','STANDBY_SYNCING','STANDBY_PAUSING','STANDBY_RESUMING',
     	'STANDBY_SWITCHING_OVER','STANDBY_FAILING_OVER','ACTIVE_SWITCHING_OVER','ACTIVE_FAILING_OVER',
     	'STANDBY_DEGRADING','STANDBY_REMOVING'];
+    var triggerStableValues =  ['ACTIVE','ACTIVE_DEGRADED','ACTIVE_DEGRADED','STANDBY_SYNCED','STANDBY_ERROR','STANDBY_PAUSED'];
+    
     watchDatatableField(datatable, itemsJson, fieldToWatch, triggerValues, fields);
+    watchDatatableField(datatable, itemsJson, fieldToWatch, triggerStableValues, fields, 60000);
 }
 $(document).ready(function() {
     var dataTable = table.disasterRecovery.dataTable.getDataTable();

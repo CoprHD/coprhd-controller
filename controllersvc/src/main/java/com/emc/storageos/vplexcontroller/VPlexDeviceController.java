@@ -288,6 +288,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
     private static final String FULL_COPY_METHOD_NAME = "createFullCopy";
     private static final String IMPORT_COPY_METHOD_NAME = "importCopy";
     private static final String FORGET_VOLUMES_METHOD_NAME = "forgetVolumes";
+    private static final String RB_FORGET_VOLUMES_METHOD_NAME = "rollbackForgetVolumes";
     private static final String CREATE_STORAGE_VIEW = "createStorageView";
     private static final String DELETE_STORAGE_VIEW = "deleteStorageView";
     private static final String RESTORE_VOLUME_METHOD_NAME = "restoreVolume";
@@ -1309,33 +1310,6 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
         }
         return nativeVolumeInfoList;
     }
-    
-    /**
-     * Adds a null provisioning step, but a forgetVolumes rollback step.
-     * Useful when we're exporting volumes but if some goes awry we want to forget them
-     * after unexporting them.
-     *
-     * @param workflow A reference to the workflow.
-     * @param vplexSystemURI The URI of the VPLEX storage system.
-     * @param volumeURIs The URIs of the volumes to be forgotten.
-     * @param waitFor The step in the workflow for which this step should wait
-     *            before executing.
-     * @return stepId that was created
-     */
-    private String addRollbackStepToForgetVolumes(Workflow workflow, URI vplexSystemURI,
-            List<URI> volumeURIs, String waitFor) {        
-        // Get the native volume info for the passed backend volumes.
-        List<VolumeInfo> nativeVolumeInfoList = getNativeVolumeInfo(volumeURIs);
-
-        // Add a workflow step to tell the passed VPLEX to forget about
-        // the volumes with the passed URIs.
-        String stepId = workflow.createStep(
-                VOLUME_FORGET_STEP, String.format("Null provisioning step; forget Volumes on rollback:%n%s",
-                        BlockDeviceController.getVolumesMsg(_dbClient, volumeURIs)), waitFor, vplexSystemURI,
-                DiscoveredDataObject.Type.vplex.name(), this.getClass(), rollbackMethodNullMethod(),
-                createForgetVolumesMethod(vplexSystemURI, nativeVolumeInfoList), null);
-        return stepId;
-    }
 
     /**
      * Creates the workflow execute method for forgetting storage volumes.
@@ -1349,7 +1323,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             List<VolumeInfo> volumeInfo) {
         return new Workflow.Method(FORGET_VOLUMES_METHOD_NAME, vplexSystemURI, volumeInfo);
     }
-
+    
     /**
      * Uses the VPLREX client for the VPLEX storage system with the passed URI to
      * tell the VPLERX system to forget the volumes with the passed URIs.
@@ -1378,6 +1352,55 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
         // This is a cleanup step that we don't want to impact the
         // workflow execution if it fails.
         WorkflowStepCompleter.stepSucceded(stepId);
+    }    
+    
+    /**
+     * Adds a null provisioning step, but a forgetVolumes rollback step.
+     * Useful when we're exporting volumes but if some goes awry we want to forget them
+     * after unexporting them.
+     *
+     * @param workflow A reference to the workflow.
+     * @param vplexSystemURI The URI of the VPLEX storage system.
+     * @param volumeURIs The URIs of the volumes to be forgotten.
+     * @param waitFor The step in the workflow for which this step should wait
+     *            before executing.
+     * @return stepId that was created
+     */
+    private String addRollbackStepToForgetVolumes(Workflow workflow, URI vplexSystemURI,
+            List<URI> volumeURIs, String waitFor) {        
+        // Add a workflow step to tell the passed VPLEX to forget about
+        // the volumes with the passed URIs.
+        String stepId = workflow.createStep(
+                VOLUME_FORGET_STEP, String.format("Null provisioning step; forget Volumes on rollback:%n%s",
+                        BlockDeviceController.getVolumesMsg(_dbClient, volumeURIs)), waitFor, vplexSystemURI,
+                DiscoveredDataObject.Type.vplex.name(), this.getClass(), rollbackMethodNullMethod(),
+                createRollbackForgetVolumesMethod(vplexSystemURI, volumeURIs), null);
+        return stepId;
+    }
+    
+    /**
+     * Creates the workflow execute method for forgetting storage volumes.
+     *
+     * @param vplexSystemURI The URI of the VPLEX storage system.
+     * @param volumeURIs The URIs of the volumes to be forgotten.
+     *
+     * @return A reference to the created workflow method.
+     */
+    private Workflow.Method createRollbackForgetVolumesMethod(URI vplexSystemURI,
+            List<URI> volumeURIs) {
+        return new Workflow.Method(RB_FORGET_VOLUMES_METHOD_NAME, vplexSystemURI, volumeURIs);
+    }
+
+    /**
+     * Uses the VPLEX client for the VPLEX storage system with the passed URI to
+     * tell the VPLEX system to forget the volumes with the passed URIs.
+     *
+     * @param vplexSystemURI The URI of the VPLEX storage system.
+     * @param volumeURIs The URIs of the volumes to be forgotten.
+     * @param stepId The id of the workflow step that invoked this method.
+     */
+    public void rollbackForgetVolumes(URI vplexSystemURI, List<URI> volumeURIs, String stepId) {
+        forgetVolumes(vplexSystemURI, getNativeVolumeInfo(volumeURIs), stepId);
     }
 
     private Workflow.Method deleteVirtualVolumesMethod(URI vplexURI, List<URI> volumeURIs, List<URI> doNotFullyDeleteVolumeList) {

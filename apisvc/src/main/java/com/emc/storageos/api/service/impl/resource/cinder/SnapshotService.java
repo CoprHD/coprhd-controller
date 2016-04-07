@@ -250,36 +250,34 @@ public class SnapshotService extends TaskResourceService {
                 readOnly, taskId);
 
         SnapshotCreateResponse snapCreateResp = new SnapshotCreateResponse();
-
         for (TaskResourceRep rep : response.getTaskList()) {
             URI snapshotUri = rep.getResource().getId();
             BlockSnapshot snap = _dbClient.queryObject(BlockSnapshot.class,
                     snapshotUri);
-
+            
+            StringMap extensions = snap.getExtensions();
             if (snap != null) {
-                if (snapshotDescription != null
-                        && (snapshotDescription.length() > 2)) {
-                    StringMap extensions = snap.getExtensions();
-                    if (extensions == null)
-                        extensions = new StringMap();
-                    extensions.put("display_description", snapshotDescription);
-                    extensions.put("taskid", rep.getId().toString());
-                    _log.debug("Create snapshot : stored description");
-                    snap.setExtensions(extensions);
-                }
-
+                if (extensions == null)
+                	extensions = new StringMap();
+                extensions.put("display_description", (snapshotDescription == null) ? "" : snapshotDescription);
+                extensions.put("taskid", rep.getId().toString());
+                _log.debug("Create snapshot : stored description");
+                snap.setExtensions(extensions);
+              
                 ScopedLabelSet tagSet = new ScopedLabelSet();
                 snap.setTag(tagSet);
 
                 String[] splits = snapshotUri.toString().split(":");
                 String tagName = splits[3];
                 
+
                 //this check will verify whether  retrieved data is not corrupted
                 if (tagName == null || tagName.isEmpty()
                         || tagName.length() < 2) {
                     throw APIException.badRequests
                             .parameterTooShortOrEmpty("Tag", 2);
                 }
+
                 Volume parentVol = _permissionsHelper.getObjectById(
                         snap.getParent(), Volume.class);
                 URI tenantOwner = parentVol.getTenant().getURI();
@@ -730,7 +728,6 @@ public class SnapshotService extends TaskResourceService {
             {
                 taskInProgressId = snapshot.getExtensions().get("taskid");
                 //Task acttask = TaskUtils.findTaskForRequestId(_dbClient, snapshot.getId(), taskInProgressId);
-
                 for (Task tsk : taskLst) {
                     if (tsk.getId().toString().equals(taskInProgressId)) {
                         if (tsk.getStatus().equals("ready"))

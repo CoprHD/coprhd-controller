@@ -884,8 +884,8 @@ public class NetAppFileCommunicationInterface extends
             // Retrieve all the qtree info.
             List<Qtree> qtrees = netAppApi.listQtrees();
             List<Quota> quotas;
-            try {
-                quotas = netAppApi.listQuotas();
+            try {//Currently there are no API's available to check the quota status in general
+                quotas = netAppApi.listQuotas();//TODO check weather quota is on before doing this call
             } catch (Throwable e) {
                 _logger.error("Error while fetching quotas", e);
                 return;

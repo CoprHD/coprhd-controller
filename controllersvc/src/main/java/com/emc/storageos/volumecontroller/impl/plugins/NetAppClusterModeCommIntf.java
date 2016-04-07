@@ -395,8 +395,8 @@ public class NetAppClusterModeCommIntf extends
             // Retrieve all the qtree info.
             List<Qtree> qtrees = netAppCApi.listQtrees();
             List<Quota> quotas;
-            try {
-                quotas = netAppCApi.listQuotas();
+            try {//Currently there are no API's available to check the quota status in general
+                quotas = netAppCApi.listQuotas();//TODO check weather quota is on before doing this call
             } catch (Throwable e) {
                 _logger.error("Error while fetching quotas", e);
                 return;
@@ -413,6 +413,9 @@ public class NetAppClusterModeCommIntf extends
                 List<UnManagedFileQuotaDirectory> existingUnManagedFileQuotaDirectories = new ArrayList<>();
 
                 for (Quota quota : quotas) {
+                    if(quota.getQtree() == null) {
+                        continue;
+                    }
                     String fsNativeId;
                     if (quota.getVolume().startsWith(VOL_ROOT)) {
                         fsNativeId = quota.getVolume();

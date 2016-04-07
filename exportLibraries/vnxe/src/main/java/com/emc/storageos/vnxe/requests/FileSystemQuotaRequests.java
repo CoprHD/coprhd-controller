@@ -125,14 +125,16 @@ public class FileSystemQuotaRequests extends KHRequests<VNXUnityTreeQuota> {
     /**
      * Get quota details by it's name
      * 
-     * @param Id
-     *            id
+     * @param fsId
+     *            id of associated fs
+     * @param quotaName
+     *            name of the quota
      * @return the quota object
      */
     public VNXUnityTreeQuota getByName(String fsId, String quotaName) {
         MultivaluedMap<String, String> queryParams = new MultivaluedMapImpl();
-        queryParams.add(VNXeConstants.FILTER, VNXeConstants.PATH_FILTER + "/" + "\"" + quotaName + "\"");
-        queryParams.add(VNXeConstants.FILTER, VNXeConstants.FILE_SYSTEM_FILTER_V31 + "\"" + fsId + "\"");
+        queryParams.add(VNXeConstants.FILTER, VNXeConstants.PATH_FILTER + "\"" + "/" + quotaName + "\"" + " and "
+                + VNXeConstants.FILE_SYSTEM_FILTER_V31 + "\"" + fsId + "\"");
         setQueryParameters(queryParams);
         VNXUnityTreeQuota result = null;
         _url = URL;

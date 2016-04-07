@@ -2136,19 +2136,19 @@ public class VNXeApiClient {
 
         FileSystemQuotaCreateParam param = new FileSystemQuotaCreateParam();
         FileSystemQuotaConfigParam qcParam = new FileSystemQuotaConfigParam();
-        if (qcParam.getGracePeriod() > 0) {
+        if (softGrace > 0) {
             qcParam.setGracePeriod(softGrace);
         }
         FileSystemListRequest fsReq = new FileSystemListRequest(_khClient);
         param.setPath("/" + quotaName);
-        if (param.getHardLimit() > 0) {
+        if (hardLimit > 0) {
             param.setHardLimit(hardLimit);
         }
-        if (param.getSoftLimit() > 0) {
+        FileSystemQuotaRequests req = new FileSystemQuotaRequests(_khClient);
+        param.setFilesystem(fsReq.getByFSName(fsName).getId());
+        if (softLimit > 0) {
             param.setSoftLimit(softLimit);
         }
-        param.setFilesystem(fsReq.getByFSName(fsName).getId());
-        FileSystemQuotaRequests req = new FileSystemQuotaRequests(_khClient);
         VNXeCommandResult res = req.createFileSystemQuotaSync(param);
         return req.updateFileSystemQuotaConfig(res.getId(), qcParam);
     }
@@ -2163,18 +2163,18 @@ public class VNXeApiClient {
         _logger.info("Creating quota directory with ID: {} ", "/" + quotaId);
         FileSystemQuotaModifyParam param = new FileSystemQuotaModifyParam();
         FileSystemQuotaConfigParam qcParam = new FileSystemQuotaConfigParam();
-        if (qcParam.getGracePeriod() > 0) {
+        FileSystemQuotaRequests req = new FileSystemQuotaRequests(_khClient);
+        if (softGrace > 0) {
             qcParam.setGracePeriod(softGrace);
         }
-        if (param.getHardLimit() > 0) {
+        if (hardLimit > 0) {
             param.setHardLimit(hardLimit);
         }
-        if (param.getSoftLimit() > 0) {
+        if (softLimit > 0) {
             param.setSoftLimit(softLimit);
         }
-        FileSystemQuotaRequests req = new FileSystemQuotaRequests(_khClient);
-        req.updateFileSystemQuotaAsync(quotaId, param);
-        return req.updateFileSystemQuotaConfig(quotaId, qcParam);
+        req.updateFileSystemQuotaConfig(quotaId, qcParam);
+        return req.updateFileSystemQuotaAsync(quotaId, param);
     }
 
     /**

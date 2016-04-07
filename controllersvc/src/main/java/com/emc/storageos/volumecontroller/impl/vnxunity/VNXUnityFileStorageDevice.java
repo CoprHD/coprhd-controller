@@ -64,6 +64,7 @@ import com.emc.storageos.volumecontroller.impl.vnxe.job.VNXeRestoreFileSystemSna
 import com.emc.storageos.volumecontroller.impl.vnxe.job.VNXeUnexportFileSystemJob;
 import com.emc.storageos.volumecontroller.impl.vnxunity.job.VNXUnityCreateFileSystemQuotaDirectoryJob;
 import com.emc.storageos.volumecontroller.impl.vnxunity.job.VNXUnityDeleteFileSystemQuotaDirectoryJob;
+import com.emc.storageos.volumecontroller.impl.vnxunity.job.VNXUnityQuotaDirectoryTaskCompleter;
 
 public class VNXUnityFileStorageDevice extends VNXUnityOperations
         implements FileStorageDevice {
@@ -1489,7 +1490,7 @@ public class VNXUnityFileStorageDevice extends VNXUnityOperations
             FileDeviceInputOutput args, QuotaDirectory qd) throws ControllerException {
 
         _logger.info("creating Quota Directory: ", args.getQuotaDirectoryName());
-        VNXeFileTaskCompleter completer = null;
+        VNXUnityQuotaDirectoryTaskCompleter completer = null;
         VNXeApiClient apiClient = getVnxUnityClient(storage);
         VNXeCommandJob job = null;
         try {
@@ -1502,7 +1503,7 @@ public class VNXUnityFileStorageDevice extends VNXUnityOperations
 
             if (job != null) {
                 _logger.info("opid:" + args.getOpId());
-                completer = new VNXeFileTaskCompleter(QuotaDirectory.class, args.getQuotaDirectory().getId(), args.getOpId());
+                completer = new VNXUnityQuotaDirectoryTaskCompleter(QuotaDirectory.class, args.getQuotaDirectory().getId(), args.getOpId());
                 if (args.getQuotaDirectory() == null) {
                     _logger.error("Could not find the quota object");
                 }
@@ -1538,14 +1539,14 @@ public class VNXUnityFileStorageDevice extends VNXUnityOperations
     @Override
     public BiosCommandResult doDeleteQuotaDirectory(StorageSystem storage,
             FileDeviceInputOutput args) throws ControllerException {
-        _logger.info("Deleting file system {} quota directory {} ", args.getFsName(), args.getSnapshotLabel());
+        _logger.info("Deleting file system {} quota directory {} ", args.getFsName(), args.getQuotaDirectoryName());
         VNXeApiClient apiClient = getVnxUnityClient(storage);
         VNXeCommandJob job = null;
-        VNXeFileTaskCompleter completer = null;
+        VNXUnityQuotaDirectoryTaskCompleter completer = null;
         try {
             job = apiClient.deleteQuotaDirectory(args.getQuotaDirectoryNativeId());
             if (job != null) {
-                completer = new VNXeFileTaskCompleter(QuotaDirectory.class, args.getQuotaDirectoryId(), args.getOpId());
+                completer = new VNXUnityQuotaDirectoryTaskCompleter(QuotaDirectory.class, args.getQuotaDirectoryId(), args.getOpId());
                 VNXUnityDeleteFileSystemQuotaDirectoryJob quotaJob = new VNXUnityDeleteFileSystemQuotaDirectoryJob(job.getId(),
                         storage.getId(), completer);
                 ControllerServiceImpl.enqueueJob(new QueueJob(quotaJob));
@@ -1581,7 +1582,7 @@ public class VNXUnityFileStorageDevice extends VNXUnityOperations
     public BiosCommandResult doUpdateQuotaDirectory(StorageSystem storage,
             FileDeviceInputOutput args, QuotaDirectory qd) throws ControllerException {
         _logger.info("updating Quota Directory: ", args.getQuotaDirectoryName());
-        VNXeFileTaskCompleter completer = null;
+        VNXUnityQuotaDirectoryTaskCompleter completer = null;
         VNXeApiClient apiClient = getVnxUnityClient(storage);
         VNXeCommandJob job = null;
         try {
@@ -1600,7 +1601,7 @@ public class VNXUnityFileStorageDevice extends VNXUnityOperations
 
             if (job != null) {
                 _logger.info("opid:" + args.getOpId());
-                completer = new VNXeFileTaskCompleter(QuotaDirectory.class, args.getQuotaDirectory().getId(), args.getOpId());
+                completer = new VNXUnityQuotaDirectoryTaskCompleter(QuotaDirectory.class, args.getQuotaDirectory().getId(), args.getOpId());
                 if (args.getQuotaDirectory() == null) {
                     _logger.error("Could not find the quota object");
                 }

@@ -860,7 +860,12 @@
         </property>
         <property name="scope">
             <map>
-                <entry key="systemType" value="level0,level1,level2,level3,level4,level5"/>
+                <entry key="directoryPath" value="level0,level1,level2,level3,level4,level5"/>
+            </map>
+        </property>
+        <property name="defaultValues">
+            <map>
+                <entry key="level0" value="ifs"/>
             </map>
         </property>
     </bean>
@@ -1365,14 +1370,16 @@
 <bean id="customPathValue" class="com.emc.storageos.customconfigcontroller.PredefinedValuesConstraint">
         <property name="predefinedValues">
             <set>
-                <value>vpool</value>
-                <value>cluster</value>
-                <value>accessZone</value>
-                <value>pod</value>
-                <value>type</value>
+                <value>VirtualPool</value>
+                <value>ClusterName</value>
+                <value>AccessZone</value>
+                <value>ProjectName</value>
+                <value>POD</value>
+                <value>Fixed</value>
+                <value>Usage</value>
             </set>
         </property>
-        <property name="defaultValue" value="cluster"/>
+        <property name="defaultValue" value="fixed"/>
         <property name="description" value="The custom pathvalue set"/>
     </bean>
 

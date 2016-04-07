@@ -729,6 +729,7 @@ CustomConfigs.configType.VPlexMigrationSpeed=Data Migration Speed
 CustomConfigs.configType.VPlexVMAXMaskingViewMaximumVolumes=Max Volumes In VPlex Backend MaskingView
 CustomConfigs.scopeType.global=Global
 CustomConfigs.scopeType.systemType=System Type
+CustomConfigs.scopeType.directoryPath=Directory Path
 CustomConfigs.scopeType.hostType=Host Type
 CustomConfigs.scopeValue.default=Default
 CustomConfigs.scopeValue.brocade=Brocade

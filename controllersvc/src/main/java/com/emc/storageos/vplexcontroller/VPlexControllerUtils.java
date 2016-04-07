@@ -500,36 +500,23 @@ public class VPlexControllerUtils {
      * but adjusted for VPLEX storage views and other concepts.
      * 
      * @param dbClient a reference to the database client
-     * @param client a reference to the VPlexApiClient for the VPLEX device
+     * @param storageView a reference to the VPlexStorageViewInfo for the ExportMask's mask name
      * @param exportMask the ExportMask to refresh
      * @param vplexClusterName the VPLEX cluster name on which to find the ExportMask
      * @param targetPortToPwwnMap a Map of VPLEX target port names to WWNs, or null
-     *          if this method should load it (this is optional in case the caller is
-     *          caching this port info from the VPLEX API and wants to reuse it) 
+     *          if this method should load it
      */
-    public static void refreshExportMask(DbClient dbClient, VPlexApiClient client, 
-            ExportMask exportMask, String vplexClusterName, Map<String, String> targetPortToPwwnMap ) {
-
-        // load the port name to wwn map, if not provided by caller
-        Map<String, String> portNameMap = null;
-        if (null == targetPortToPwwnMap && null != client) {
-            portNameMap = getTargetPortToPwwnMap(client);
-        } else {
-            portNameMap = targetPortToPwwnMap;
-        }
-
+    public static void refreshExportMask(DbClient dbClient, VPlexStorageViewInfo storageView, 
+            ExportMask exportMask, Map<String, String> targetPortToPwwnMap ) {
         try {
 
-            if (null == exportMask || null == vplexClusterName || null == portNameMap || portNameMap.isEmpty()) {
-                int portNameMapEntryCount = portNameMap != null ? portNameMap.size() : 0;
-                String message = String.format("export mask was %s, vplex cluster name was %s, and port name to wwn map had %d entries",
-                        exportMask, vplexClusterName, portNameMapEntryCount);
+            if (null == exportMask || null == storageView || null == targetPortToPwwnMap || targetPortToPwwnMap.isEmpty()) {
+                int portNameMapEntryCount = targetPortToPwwnMap != null ? targetPortToPwwnMap.size() : 0;
+                String message = String.format("export mask was %s, storage view was %s, and port name to wwn map had %d entries",
+                        exportMask, storageView, portNameMapEntryCount);
                 log.error(message);
-                throw new IllegalArgumentException("storage view refresh arguments are invalid: " + message);
+                throw new IllegalArgumentException("export mask refresh arguments are invalid: " + message);
             }
-
-            // fetch the current storage view info from the VPLEX API
-            VPlexStorageViewInfo storageView = client.getStorageView(vplexClusterName, exportMask.getMaskName());
 
             // Get volumes and initiators for the masking instance
             Map<String, Integer> discoveredVolumes = storageView.getWwnToHluMap();
@@ -609,8 +596,8 @@ public class VPlexControllerUtils {
             List<String> storagePorts = storageView.getPorts();
             List<String> portWwns = new ArrayList<String>();
             for (String storagePort : storagePorts) {
-                if (portNameMap.keySet().contains(storagePort)) {
-                    portWwns.add(WwnUtils.convertWWN(portNameMap.get(storagePort), WwnUtils.FORMAT.COLON));
+                if (targetPortToPwwnMap.keySet().contains(storagePort)) {
+                    portWwns.add(WwnUtils.convertWWN(targetPortToPwwnMap.get(storagePort), WwnUtils.FORMAT.COLON));
                 }
             }
             List<String> storagePortURIs = ExportUtils.storagePortNamesToURIs(dbClient, portWwns);

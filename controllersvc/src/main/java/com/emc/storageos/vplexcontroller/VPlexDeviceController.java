@@ -1810,8 +1810,8 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                                     exportMasksToUpdateOnDevice, exportMasksToUpdateOnDeviceWithInitiators,
                                     exportMasksToUpdateOnDeviceWithStoragePorts, inits, sharedVplexExportMask, opId);
 
-                            VPlexControllerUtils.refreshExportMask(_dbClient, client, 
-                                    sharedVplexExportMask, vplexClusterName, targetPortToPwwnMap);
+                            VPlexStorageViewInfo storageView = client.getStorageView(vplexClusterName, sharedVplexExportMask.getMaskName());
+                            VPlexControllerUtils.refreshExportMask(_dbClient, storageView, sharedVplexExportMask, targetPortToPwwnMap);
 
                             foundMatchingStorageView = true;
                             break;
@@ -1850,8 +1850,8 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                         _log.info("a valid ExportMask matching these initiators exists already in ViPR "
                                 + "for this VPLEX device, so ViPR will re-use it: " + viprExportMask.getMaskName());
 
-                        VPlexControllerUtils.refreshExportMask(_dbClient, client, 
-                                viprExportMask, vplexClusterName, targetPortToPwwnMap);
+                        VPlexStorageViewInfo storageView = client.getStorageView(vplexClusterName, viprExportMask.getMaskName());
+                        VPlexControllerUtils.refreshExportMask(_dbClient, storageView, viprExportMask, targetPortToPwwnMap);
 
                         reuseExistingExportMask(blockObjectMap, vplexSystem, exportGroup,
                                 varrayUri, exportMasksToUpdateOnDevice,
@@ -1884,8 +1884,8 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                                 exportGroup.getId(), inits.toString()));
                         sharedExportMasks.add(sharedVplexExportMask);
 
-                        VPlexControllerUtils.refreshExportMask(_dbClient, client, 
-                                sharedVplexExportMask, vplexClusterName, targetPortToPwwnMap);
+                        VPlexStorageViewInfo storageView = client.getStorageView(vplexClusterName, sharedVplexExportMask.getMaskName());
+                        VPlexControllerUtils.refreshExportMask(_dbClient, storageView, sharedVplexExportMask, targetPortToPwwnMap);
 
                         // If sharedExportMask is found then then new host will be added to that exportMask
                         setupExistingExportMaskWithNewHost(blockObjectMap, vplexSystem, exportGroup, varrayUri,
@@ -2677,13 +2677,13 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
 
             VPlexApiClient client = getVPlexAPIClient(_vplexApiFactory, vplex, _dbClient);
             Map<String, String> targetPortToPwwnMap = VPlexControllerUtils.getTargetPortToPwwnMap(client);
-            URI varrayUri = exportGroup.getVirtualArray();
-            String vplexClusterName = VPlexUtil.getVplexClusterName(varrayUri, vplex, client, _dbClient);
 
             for (ExportMask exportMask : exportMasks) {
                 if (exportMask.getStorageDevice().equals(vplex)) {
 
-                    VPlexControllerUtils.refreshExportMask(_dbClient, client, exportMask, vplexClusterName, targetPortToPwwnMap);
+                    String vplexClusterName = VPlexUtil.getVplexClusterName(exportMask, vplex, client, _dbClient);
+                    VPlexStorageViewInfo storageView = client.getStorageView(vplexClusterName, exportMask.getMaskName());
+                    VPlexControllerUtils.refreshExportMask(_dbClient, storageView, exportMask, targetPortToPwwnMap);
 
                     // assemble a list of other ExportGroups that reference this ExportMask
                     List<ExportGroup> otherExportGroups = getOtherExportGroups(exportGroup, exportMask);
@@ -2830,13 +2830,15 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             WorkflowStepCompleter.stepExecuting(stepId);
             VPlexApiClient client = getVPlexAPIClient(_vplexApiFactory, vplex, _dbClient);
 
-            ExportGroup methodExportGroup = _dbClient.queryObject(ExportGroup.class, exportGroupURI);
-            URI varrayUri = methodExportGroup.getVirtualArray();
-            String vplexClusterName = VPlexUtil.getVplexClusterName(varrayUri, vplexURI, client, _dbClient);
-
             if (exportMask != null) {
 
-                VPlexControllerUtils.refreshExportMask(_dbClient, client, exportMask, vplexClusterName, null);
+                String vplexClusterName = VPlexUtil.getVplexClusterName(exportMask, vplexURI, client, _dbClient);
+                VPlexStorageViewInfo storageView = client.getStorageView(vplexClusterName, exportMask.getMaskName());
+                if (storageView != null) {
+                    // we can ignore this in the case of a missing storage view on the VPLEX, it has already been deleted
+                    VPlexControllerUtils.refreshExportMask(
+                            _dbClient, storageView, exportMask, VPlexControllerUtils.getTargetPortToPwwnMap(client));
+                }
 
                 boolean existingVolumes = exportMask.getExistingVolumes() != null &&
                         !exportMask.getExistingVolumes().isEmpty();
@@ -3132,12 +3134,13 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
 
             VPlexApiClient client = getVPlexAPIClient(_vplexApiFactory, vplex, _dbClient);
             Map<String, String> targetPortToPwwnMap = VPlexControllerUtils.getTargetPortToPwwnMap(client);
-            URI varrayUri = exportGroup.getVirtualArray();
-            String vplexClusterName = VPlexUtil.getVplexClusterName(varrayUri, vplexURI, client, _dbClient);
 
             for (ExportMask exportMask : exportMasks) {
 
-                VPlexControllerUtils.refreshExportMask(_dbClient, client, exportMask, vplexClusterName, targetPortToPwwnMap);
+                String vplexClusterName = VPlexUtil.getVplexClusterName(exportMask, vplexURI, client, _dbClient);
+                VPlexStorageViewInfo storageView = client.getStorageView(vplexClusterName, exportMask.getMaskName());
+                VPlexControllerUtils.refreshExportMask(
+                        _dbClient, storageView, exportMask, targetPortToPwwnMap);
 
                 List<URI> volumeURIList = new ArrayList<URI>();
                 List<URI> remainingVolumesInMask = new ArrayList<URI>();
@@ -3549,9 +3552,10 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             }
         } else {
             VPlexApiClient client = getVPlexAPIClient(_vplexApiFactory, vplex, _dbClient);
-            URI varrayUri = exportGroup.getVirtualArray();
-            String vplexClusterName = VPlexUtil.getVplexClusterName(varrayUri, vplexURI, client, _dbClient);
-            VPlexControllerUtils.refreshExportMask(_dbClient, client, exportMask, vplexClusterName, null);
+            String vplexClusterName = VPlexUtil.getVplexClusterName(exportMask, vplexURI, client, _dbClient);
+            VPlexStorageViewInfo storageView = client.getStorageView(vplexClusterName, exportMask.getMaskName());
+            VPlexControllerUtils.refreshExportMask(
+                    _dbClient, storageView, exportMask, VPlexControllerUtils.getTargetPortToPwwnMap(client));
 
             if (exportMask.getVolumes() == null) {
                 // This can occur in Brownfield scenarios where we have not added any volumes yet to the HA side, CTRL10760
@@ -3967,12 +3971,12 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             WorkflowStepCompleter.stepExecuting(stepId);
             StorageSystem vplex = getDataObject(StorageSystem.class, vplexURI, _dbClient);
             ExportMask exportMask = _dbClient.queryObject(ExportMask.class, maskURI);
-            ExportGroup exportGroup = _dbClient.queryObject(ExportGroup.class, exportURI);
 
             VPlexApiClient client = getVPlexAPIClient(_vplexApiFactory, vplex, _dbClient);
-            URI varrayUri = exportGroup.getVirtualArray();
-            String vplexClusterName = VPlexUtil.getVplexClusterName(varrayUri, vplexURI, client, _dbClient);
-            VPlexControllerUtils.refreshExportMask(_dbClient, client, exportMask, vplexClusterName, null);
+            String vplexClusterName = VPlexUtil.getVplexClusterName(exportMask, vplexURI, client, _dbClient);
+            VPlexStorageViewInfo storageView = client.getStorageView(vplexClusterName, exportMask.getMaskName());
+            VPlexControllerUtils.refreshExportMask(
+                    _dbClient, storageView, exportMask, VPlexControllerUtils.getTargetPortToPwwnMap(client));
 
             boolean existingInitiators = exportMask.getExistingInitiators() != null &&
                     !exportMask.getExistingInitiators().isEmpty();
@@ -4052,8 +4056,6 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
 
             VPlexApiClient client = getVPlexAPIClient(_vplexApiFactory, vplex, _dbClient);
             Map<String, String> targetPortToPwwnMap = VPlexControllerUtils.getTargetPortToPwwnMap(client);
-            URI varrayUri = exportGroup.getVirtualArray();
-            String vplexClusterName = VPlexUtil.getVplexClusterName(varrayUri, vplexURI, client, _dbClient);
 
             // Loop, processing each host separately.
             for (URI hostURI : hostInitiatorsMap.keySet()) {
@@ -4078,7 +4080,9 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                     _log.info("adding remove initiators steps for "
                             + "export mask / storage view: " + exportMask.getMaskName());
 
-                    VPlexControllerUtils.refreshExportMask(_dbClient, client, exportMask, vplexClusterName, targetPortToPwwnMap);
+                    String vplexClusterName = VPlexUtil.getVplexClusterName(exportMask, vplexURI, client, _dbClient);
+                    VPlexStorageViewInfo storageView = client.getStorageView(vplexClusterName, exportMask.getMaskName());
+                    VPlexControllerUtils.refreshExportMask(_dbClient, storageView, exportMask, targetPortToPwwnMap);
 
                     // filter out any of the host's initiators that are not
                     // contained within this ExportMask (CTRL-12300)
@@ -4564,11 +4568,11 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             WorkflowStepCompleter.stepExecuting(stepId);
             StorageSystem vplex = getDataObject(StorageSystem.class, vplexURI, _dbClient);
             ExportMask exportMask = _dbClient.queryObject(ExportMask.class, exportMaskURI);
-            ExportGroup exportGroup = _dbClient.queryObject(ExportGroup.class, exportGroupURI);
             VPlexApiClient client = getVPlexAPIClient(_vplexApiFactory, vplex, _dbClient);
-            URI varrayUri = exportGroup.getVirtualArray();
-            String vplexClusterName = VPlexUtil.getVplexClusterName(varrayUri, vplexURI, client, _dbClient);
-            VPlexControllerUtils.refreshExportMask(_dbClient, client, exportMask, vplexClusterName, null);
+            String vplexClusterName = VPlexUtil.getVplexClusterName(exportMask, vplexURI, client, _dbClient);
+            VPlexStorageViewInfo storageView = client.getStorageView(vplexClusterName, exportMask.getMaskName());
+            VPlexControllerUtils.refreshExportMask(
+                    _dbClient, storageView, exportMask, VPlexControllerUtils.getTargetPortToPwwnMap(client));
 
             boolean existingInitiators = exportMask.getExistingInitiators() != null &&
                     !exportMask.getExistingInitiators().isEmpty();

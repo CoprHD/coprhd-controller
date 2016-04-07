@@ -1493,4 +1493,25 @@ public class VPlexUtil {
 
         return client.getClusterName(vplexClusterId);
     }
+
+    /**
+     * Gets the VPLEX cluster name for the VPLEX cluster with connectivity to the given ExportMask.
+     * 
+     * @param exportMask the ExportMask object to check for VPLEX cluster connectivity
+     * @param vplexUri the VPLEX URI to check for connectivity
+     * @param client a reference to the VPlexApiClient for the VPLEX device
+     * @param dbClient a reference to the database client
+     * @return the VPLEX cluster name for the VPLEX cluster with connectivity to the given Virtual Array
+     * @throws Exception if the VPLEX cluster name cannot be determined
+     */
+    public static String getVplexClusterName(ExportMask exportMask, URI vplexUri, VPlexApiClient client, DbClient dbClient) throws Exception{
+
+        String vplexClusterId = ConnectivityUtil.getVplexClusterForExportMask(exportMask, vplexUri, dbClient);
+        if (vplexClusterId.equals(ConnectivityUtil.CLUSTER_UNKNOWN)) {
+            _log.error("Unable to find VPLEX cluster for the ExportMask " + exportMask.getMaskName());
+            throw VPlexApiException.exceptions.failedToFindCluster(vplexClusterId);
+        }
+
+        return client.getClusterName(vplexClusterId);
+    }
 }

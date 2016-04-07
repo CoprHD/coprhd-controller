@@ -420,6 +420,8 @@ public abstract class VdcOpHandler {
                     }
                 }
             }
+            // refresh ssh to exclude removed nodes from ssh config files
+            refreshSsh();
         }
         
         private void removeDbNodes() throws Exception {

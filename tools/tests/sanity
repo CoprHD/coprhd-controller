@@ -3874,22 +3874,22 @@ recoverpoint_tests()
             secho 'RP ingest volumes'
 
             if [ "$RP_CDP" = "1" ] ; then
+                recoverpoint_ingest_test rp${rptypetag}_cdp
                 if [ "${RPXIO_TESTS}" = "0" ]; then
                     recoverpoint_ingest_export_test rp${rptypetag}_cdp
                 else
                     secho "XIO Export Tests Disabled; Export host registration in physical network needs work"
                 fi
-                recoverpoint_ingest_test rp${rptypetag}_cdp
             fi
 
             if [ "$RP_CRR" = "1" ] ; then
-                recoverpoint_ingest_export_test rp${rptypetag}_crr
                 recoverpoint_ingest_test rp${rptypetag}_crr
+                recoverpoint_ingest_export_test rp${rptypetag}_crr
             fi
                     
             if [ "$RP_CLR" = "1" ] ; then
-                recoverpoint_ingest_export_test rp${rptypetag}_clr
                 recoverpoint_ingest_test rp${rptypetag}_clr
+                recoverpoint_ingest_export_test rp${rptypetag}_clr
             fi
 
             secho "RP ingest tests complete"

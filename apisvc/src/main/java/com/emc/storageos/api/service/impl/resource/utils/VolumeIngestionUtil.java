@@ -4279,7 +4279,7 @@ public class VolumeIngestionUtil {
     /**
      * Clear the flags of replicas which have been updated during the ingestion process
      *
-     * @param volumeContext
+     * @param requestContext current unManagedVolume Ingestion context.
      * @param volumes RP volumes
      */
     public static void clearReplicaFlagsInIngestionContext(IngestionRequestContext requestContext, List<Volume> volumes) {

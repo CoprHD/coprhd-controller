@@ -17,7 +17,6 @@ import com.emc.sa.service.vipr.rackhd.gson.ViprTask;
 import com.emc.sa.service.vipr.rackhd.gson.WorkflowDefinition;
 import com.emc.sa.service.vipr.rackhd.tasks.RackHdGetWorkflowTasks;
 import com.emc.storageos.db.client.model.StringSet;
-import com.emc.storageos.db.client.model.uimodels.Order;
 import com.emc.storageos.model.TaskResourceRep;
 import com.emc.vipr.client.ViPRCoreClient;
 import com.google.gson.Gson;
@@ -27,8 +26,11 @@ import com.google.gson.JsonSyntaxException;
 
 public class RackHdUtils {
 
+    //TODO: externalize these values:
     private static final int RACKHD_WORKFLOW_CHECK_INTERVAL = 10; // secs
     private static final int RACKHD_WORKFLOW_CHECK_TIMEOUT = 600; // secs
+    private static final int TASK_CHECK_TIMEOUT = 3600;  // mins
+    private static final int TASK_CHECK_INTERVAL = 10; // secs
 
     // TODO: read these possible values from workflow response?
     private static final String WORKFLOW_VALID_STATE = "valid";
@@ -173,10 +175,7 @@ public class RackHdUtils {
             StringSet currentResources = ExecutionUtils.currentContext().
                     getExecutionState().getAffectedResources();
             for(ViprOperation viprOperation:viprTask.getTask()) { 
-                if(!currentResources.contains(viprOperation.getResource().getId())) {  
-                    ExecutionUtils.currentContext().logInfo("Adding " +
-                            " completed resource '" + 
-                            viprOperation.getResource().getName() + "'");
+                if(!currentResources.contains(viprOperation.getResource().getId())) {
                     currentResources.add(viprOperation.getResource().getId());
                 }
             }
@@ -229,10 +228,8 @@ public class RackHdUtils {
                 TaskResourceRep taskCandidate = client.tasks().get(taskUri);
                 if(taskCandidate.getOpId().equals(opToFind.getOp_id())) {
                     // this task should be assigned to this order
-                    ExecutionUtils.currentContext().logInfo("Found task " +
-                            " that was started by this order via RackHD '" + 
-                            taskCandidate.getName()+ "' (" + 
-                            taskCandidate.getId() + ")");
+                    ExecutionUtils.currentContext().logInfo("RackHD started " + 
+                            " task '" + taskCandidate.getName()+ "'");
                     if(taskIdToReturn != null) {
                         //TODO: remove after confirming there will be only one task
                         throw new IllegalStateException("Operation " + 
@@ -248,16 +245,36 @@ public class RackHdUtils {
         return taskIdToReturn;
     }
 
-    public static boolean linkTaskToOrder(ViprTask viprTask, ViPRCoreClient client) {
-        
-        //TODO: finish implementation!!
-        
-        // Link ViPR Task to catalog order via operation ID
+    public static void waitForTasks(List<URI> tasksStartedByRackHd, ViPRCoreClient client) {
+        if( tasksStartedByRackHd.isEmpty()) {
+            return;
+        }  
+        ExecutionUtils.currentContext().logInfo("RackHD Workflow complete.  " +
+                " Waiting for Tasks in ViPR started by RackHD workflow.");
 
-        URI taskId = locateTaskInVipr(viprTask,client);
+        long startTime = System.currentTimeMillis();
+        boolean allTasksDone = false;
 
-        Order thisOrder = ExecutionUtils.currentContext().getOrder();
-        //TODO  thisOrder.
-        return false;
+        while(!allTasksDone) {
+            allTasksDone = true;
+            for(URI taskId : tasksStartedByRackHd) {              
+                String state = client.tasks().get(taskId).getState();
+                if(state.equals("error")) {
+                    throw new IllegalStateException("One or more tasks " +
+                            " started by RackHD reported an error.");
+                }
+                if(!state.equals("ready")) {
+                    allTasksDone = false;
+                    break;
+                }
+            }
+            RackHdUtils.sleep(TASK_CHECK_INTERVAL);
+
+            if( (System.currentTimeMillis() - startTime)
+                    > TASK_CHECK_TIMEOUT*60*1000 ) {
+                throw new IllegalStateException("Task(s) started by RackHD " +
+                    "timed out.");
+            }
+        }
     }
 }

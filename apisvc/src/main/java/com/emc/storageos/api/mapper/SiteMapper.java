@@ -38,7 +38,7 @@ public class SiteMapper {
         
         // check if syssvc are up
         boolean runningState = drUtil.isSiteUp(from.getUuid());
-        if (runningState) {
+        if (runningState && !from.getState().equals(SiteState.ACTIVE)) {
             // check if dbsvc are up
             SiteMonitorResult monitorResult = drUtil.getCoordinator().getTargetInfo(from.getUuid(), SiteMonitorResult.class);
             if (monitorResult != null && monitorResult.getDbQuorumLostSince() > 0) {

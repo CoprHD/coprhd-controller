@@ -1340,11 +1340,9 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                         // get the matched vNAS Server
                         NASServer nasServer = getMatchedNASServer(nasServers, fsPathName);
                         if (nasServer != null) {
+                            // Get valid storage port from the NAS server!!!
                             _log.info("fs path {} and nas server details {}", fs.getPath(), nasServer.toString());
-                            if (nasServer.getStoragePorts() != null && !nasServer.getStoragePorts().isEmpty()) {
-                                storagePort = _dbClient.queryObject(StoragePort.class,
-                                        URI.create(nasServer.getStoragePorts().iterator().next()));
-                            }
+                            storagePort = getStoragePortFromNasServer(nasServer);
                         } else {
                             _log.info("fs path {} and vnas server not found", fs.getPath());
                             continue; // Skip further ingestion steps on this file share & move to next file share
@@ -1813,7 +1811,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
 
     private HashMap<String, HashSet<Integer>> discoverAllExports(StorageSystem storageSystem,
             final List<IsilonAccessZone> isilonAccessZones)
-                    throws IsilonCollectionException {
+            throws IsilonCollectionException {
 
         // Discover All FileSystem
         HashMap<String, HashSet<Integer>> allExports = new HashMap<String, HashSet<Integer>>();
@@ -2054,7 +2052,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
             UnManagedFileSystem unManagedFileSystem,
             String unManagedFileSystemNativeGuid, StorageSystem storageSystem,
             StoragePool pool, NASServer nasServer, FileShare fileSystem)
-                    throws IOException, IsilonCollectionException {
+            throws IOException, IsilonCollectionException {
 
         if (null == unManagedFileSystem) {
             unManagedFileSystem = new UnManagedFileSystem();
@@ -3095,5 +3093,29 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
             }
         }
         return storagePort;
+    }
+
+    private StoragePort getStoragePortFromNasServer(NASServer nasServer) {
+
+        if (nasServer.getStoragePorts() != null && !nasServer.getStoragePorts().isEmpty()) {
+            for (String strPort : nasServer.getStoragePorts()) {
+                StoragePort sp = _dbClient.queryObject(StoragePort.class, URI.create(strPort));
+                if (sp != null) {
+                    if (sp.getInactive()
+                            || !RegistrationStatus.REGISTERED.toString().equalsIgnoreCase(
+                                    sp.getRegistrationStatus())
+                            || !DiscoveredDataObject.CompatibilityStatus.COMPATIBLE.name()
+                                    .equals(sp.getCompatibilityStatus())
+                            || !DiscoveryStatus.VISIBLE.name().equals(
+                                    sp.getDiscoveryStatus())) {
+                        continue;
+                    }
+                    _log.info("found storage port {} for NAS server {} ", sp.getPortName(), nasServer.getNasName());
+                    return sp;
+                }
+            }
+
+        }
+        return null;
     }
 }

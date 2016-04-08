@@ -26,7 +26,7 @@
         <property name="backupDir" ref="backupFolder"/>
         <property name="nodeId" ref="nodeId"/>
         <property name="nodeName" ref="nodeName"/>
-        <property name="vdcList" ref="vdcList"/>
+        <property name="coordinatorClient" ref="coordinator"/>
     </bean>
 
 </beans>

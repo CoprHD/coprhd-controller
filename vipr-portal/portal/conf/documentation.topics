@@ -132,7 +132,6 @@ infra.ClusterInfo = IPNetworkConfigurationPage
 infra.DisasterRecovery.create = DR_AddStandby
 infra.DisasterRecovery.edit = DR_EditStandby
 infra.DisasterRecovery.list = SystemDisasterRecovery
-infra.DisasterRecovery.listPause = DR_PauseStandby
 
 # Resources
 resources.BlockConsistencyGroups = ResourcesConsistencyGroups

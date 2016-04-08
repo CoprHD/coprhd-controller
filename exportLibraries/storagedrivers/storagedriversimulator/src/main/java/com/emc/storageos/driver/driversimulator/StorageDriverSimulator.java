@@ -471,8 +471,10 @@ public class StorageDriverSimulator extends AbstractStorageDriver implements Blo
         DriverTask task = new DriverSimulatorTask(taskId);
         task.setStatus(DriverTask.TaskStatus.READY);
 
-        _log.info("StorageDriver: createConsistencyGroup information for storage system {}, consistencyGroup nativeId {} - end",
+        String msg = String.format("StorageDriver: createConsistencyGroup information for storage system %s, consistencyGroup nativeId %s - end",
                 consistencyGroup.getStorageSystemId(), consistencyGroup.getNativeId());
+        _log.info(msg);
+        task.setMessage(msg);
         return task;
     }
 

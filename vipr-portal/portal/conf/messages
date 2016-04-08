@@ -974,6 +974,7 @@ backup.tab.local=Local Backups
 backup.tab.remote=Remote Backups
 BackupForm.title=Add Backup
 backupForm.name=Backup Name
+backupForm.name.help=The backup name maximum length is 200 characters. Underscore (_) is not supported. Otherwise, any character supported in a Linux filename can be used.
 backupForm.force=Force Creation
 backupForm.force.help=When checked, it forces backup creation even when minortity nodes are unavailable
 backup.save.success=Saved '%s'

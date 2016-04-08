@@ -30,7 +30,8 @@
   - debug: var=createResult 
     when: not createSucceeded
 
-  - lineinfile: dest={{ ansibleResultFile }} line="{{ createResult.content }}" create="yes"
+    # write content with error msg to result file
+  - lineinfile: dest={{ ansibleResultFile }} line='{{ createResult.content }}' create='yes'
     when: not createSucceeded
 
   - fail: msg="Create Volume {{ VolumeName }} failed"

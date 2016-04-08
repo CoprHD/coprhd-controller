@@ -8140,6 +8140,8 @@ assert_ipsec_status()
         echo "trying the ${i} times to see if ipsec status change to ${expect_status}."
         ipsec_status=$(./ipsec check)
         [[ "${ipsec_status}" == *"${expect_status}"* ]] && { result=0; break; }
+        echo "status is: ${ipsec_status}."
+        echo "sleep 5 seconds"
         sleep 5
     done
 

@@ -7,10 +7,13 @@ package com.emc.sa.service.vipr.block;
 import static com.emc.sa.service.ServiceParams.CONSISTENCY_GROUP;
 import static com.emc.sa.service.ServiceParams.HLU;
 import static com.emc.sa.service.ServiceParams.HOST;
+import static com.emc.sa.service.ServiceParams.MAX_PATHS;
+import static com.emc.sa.service.ServiceParams.MIN_PATHS;
 import static com.emc.sa.service.ServiceParams.NAME;
 import static com.emc.sa.service.ServiceParams.NUMBER_OF_VOLUMES;
 import static com.emc.sa.service.ServiceParams.PROJECT;
 import static com.emc.sa.service.ServiceParams.SIZE_IN_GB;
+import static com.emc.sa.service.ServiceParams.PATHS_PER_INITIATOR;
 import static com.emc.sa.service.ServiceParams.VIRTUAL_ARRAY;
 import static com.emc.sa.service.ServiceParams.VIRTUAL_POOL;
 import static com.emc.sa.service.vipr.ViPRExecutionUtils.addAffectedResource;
@@ -1010,12 +1013,22 @@ public class BlockStorageUtils {
         public URI hostId;
         @Param(value = HLU, required = false)
         public Integer hlu;
+        
+        @Param(value = MIN_PATHS, required = false)
+        protected Integer minPaths;
+
+        @Param(value = MAX_PATHS, required = false)
+        protected Integer maxPaths;
+
+        @Param(value = PATHS_PER_INITIATOR, required = false)
+        protected Integer pathsPerInitiator;
 
         @Override
-        public String toString() {
-            String parent = super.toString();
-            return parent + ", Host Id=" + hostId + ", HLU=" + hlu;
-        }
+		public String toString() {
+			String parent = super.toString();
+			return parent + ", Host Id=" + hostId + ", HLU=" + hlu + ", MIN_PATHS=" + minPaths + ", MAX_PATHS="
+					+ maxPaths + ", PATHS_PER_INITIATOR=" + pathsPerInitiator;
+		}
 
         @Override
         public Map<String, Object> getParams() {
@@ -1023,6 +1036,9 @@ public class BlockStorageUtils {
             map.putAll(super.getParams());
             map.put(HOST, hostId);
             map.put(HLU, hlu);
+            map.put(MIN_PATHS, minPaths);
+            map.put(MAX_PATHS, maxPaths);
+            map.put(PATHS_PER_INITIATOR, pathsPerInitiator);
             return map;
         }
     }

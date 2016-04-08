@@ -125,7 +125,7 @@ public class CoordinatorClientExt {
     
     private DbServiceStatusChecker statusChecker = null;
     private boolean backCompatPreYoda = true;
-    private boolean siteIsStandby = false;
+    private boolean isStandby = false;
 
     @Autowired
     private DrSiteNetworkMonitor drSiteNetworkMonitor;
@@ -166,13 +166,13 @@ public class CoordinatorClientExt {
     public void setBackCompatPreYoda(Boolean backCompat) {
         backCompatPreYoda = backCompat;
     }
-    
-    public void setSiteIsStandby(boolean siteIsStandby) {
-        this.siteIsStandby = siteIsStandby;
+
+    public boolean isStandby() {
+        return isStandby;
     }
 
-    public boolean isSiteIsStandby() {
-        return siteIsStandby;
+    public void setStandby(boolean isStandby) {
+        this.isStandby = isStandby;
     }
 
     /**
@@ -1478,7 +1478,7 @@ public class CoordinatorClientExt {
      * On active site, start a thread to monitor db quorum of each standby site
      */
     public void start() {
-        if (siteIsStandby) {
+        if (isStandby) {
             _log.info("Start monitoring local coordinatorsvc status on standby site");
             ScheduledExecutorService exe = Executors.newScheduledThreadPool(1, new ThreadFactory() {
                 @Override

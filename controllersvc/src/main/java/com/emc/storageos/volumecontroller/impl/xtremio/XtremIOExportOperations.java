@@ -300,7 +300,7 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
                     igNames.add(igName);
                 }
             }
-            
+
             _log.info("List of reusable IGs found {} with size : {}",
                     Joiner.on(",").join(groupInitiatorsByIG.asMap().entrySet()),
                     groupInitiatorsByIG.size());

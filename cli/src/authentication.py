@@ -1045,8 +1045,8 @@ def add_other_provider(config, sectioniter, obj, mode):
     searchscope = config.get(sectioniter, 'searchscope')
     maxpagesize = config.get(sectioniter, 'maxpagesize')
 
-    groupobjectclassnames = config.get(sectioniter, 'groupobjectclassnames')
-    groupmemberattributetypenames = config.get(sectioniter, 'groupmemberattributetypenames')
+    groupobjectclasses = config.get(sectioniter, 'groupobjectclasses')
+    groupmemberattributes = config.get(sectioniter, 'groupmemberattributes')
 
     if((domains is "") or (url is "") or (managerdn is "") or
        (searchbase is "") or (searchfilter is "") or
@@ -1069,7 +1069,7 @@ def add_other_provider(config, sectioniter, obj, mode):
                                     searchbase, searchfilter, None, groupattr,
                                     name, domains, whitelist, searchscope,
                                     description, disable, None,
-                                    maxpagesize, groupobjectclassnames, groupmemberattributetypenames, None)
+                                    maxpagesize, groupobjectclasses, groupmemberattributes, None)
 
 
 

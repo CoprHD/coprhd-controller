@@ -74,6 +74,7 @@ import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.VolumeGroup;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
+import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.common.VdcUtil;
 import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.model.BulkIdParam;
@@ -122,10 +123,10 @@ import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.svcs.errorhandling.resources.BadRequestException;
 import com.emc.storageos.svcs.errorhandling.resources.ForbiddenException;
-import com.emc.storageos.volumecontroller.impl.ControllerUtils;
 import com.emc.storageos.volumecontroller.impl.monitoring.RecordableBourneEvent;
 import com.emc.storageos.volumecontroller.impl.monitoring.RecordableEventManager;
 import com.emc.storageos.volumecontroller.impl.monitoring.cim.enums.RecordType;
+import com.google.common.collect.Lists;
 
 /**
  * API for creating and manipulating tenants
@@ -299,6 +300,8 @@ public class TenantsService extends TaggedResource {
         TenantOrg tenant = getTenantById(id, true);
         ObjectNamespace namesp = null;
         boolean namespModified = false;
+        ObjectNamespace oldNamesp = null;
+        boolean oldNamespModified = false;
         if (param.getLabel() != null && !param.getLabel().isEmpty()) {
             if (!tenant.getLabel().equalsIgnoreCase(param.getLabel())) {
                 checkForDuplicateName(param.getLabel(), TenantOrg.class, tenant.getParentTenant()
@@ -316,15 +319,20 @@ public class TenantsService extends TaggedResource {
             tenant.setDescription(param.getDescription());
         }
 
-        if (param.getNamespace() != null && !param.getNamespace().isEmpty()) {
-            checkForDuplicateNamespace(param.getNamespace());
+        if (!StringUtils.isEmpty(param.getNamespace())) {
+            if (!param.getNamespace().equals(tenant.getNamespace())) {
+                checkForDuplicateNamespace(param.getNamespace());
+            }
 
-            if (tenant.getNamespace() != null && !tenant.getNamespace().isEmpty()) {
+            if (!StringUtils.isEmpty(tenant.getNamespace()) && !"null".equals(tenant.getNamespace())) {
                 if (!tenant.getNamespace().equalsIgnoreCase(param.getNamespace())) {
+                    List<Class<? extends DataObject>> excludeTypes = Lists.newArrayList();
+                    excludeTypes.add(ObjectNamespace.class);
                     // Though we are not deleting need to check no dependencies on this tenant
-                    ArgValidator.checkReference(TenantOrg.class, id, checkForDelete(tenant));
+                    ArgValidator.checkReference(TenantOrg.class, id, checkForDelete(tenant, excludeTypes));
                 }
             }
+            String oldNamespace = tenant.getNamespace();
             tenant.setNamespace(param.getNamespace());
             // Update tenant info in respective namespace CF
             List<URI> allNamespaceURI = _dbClient.queryByType(ObjectNamespace.class, true);
@@ -334,6 +342,39 @@ public class TenantsService extends TaggedResource {
                 if (namesp.getNativeId().equalsIgnoreCase(param.getNamespace())) {
                     namesp.setTenant(tenant.getId());
                     namesp.setMapped(true);
+                    // There is a chance of exceptions ahead; hence updated db at the end
+                    namespModified = true;
+                    break;
+                }
+            }
+            // removing link between tenant and the old namespace
+            List<URI> namespaceURIs = _dbClient.queryByType(ObjectNamespace.class, true);
+            Iterator<ObjectNamespace> nsItrToUnMap = _dbClient.queryIterativeObjects(ObjectNamespace.class, namespaceURIs);
+            while (nsItrToUnMap.hasNext()) {
+                oldNamesp = nsItrToUnMap.next();
+                if (oldNamesp.getNativeId().equalsIgnoreCase(oldNamespace)) {
+                    oldNamesp.setMapped(false);
+                    oldNamespModified = true;
+                    break;
+                }
+            }
+
+        }
+        if (param.getDetachNamespace()) {
+
+            List<Class<? extends DataObject>> excludeTypes = Lists.newArrayList();
+            excludeTypes.add(ObjectNamespace.class);
+            // Though we are not deleting need to check no dependencies on this tenant
+            ArgValidator.checkReference(TenantOrg.class, id, checkForDelete(tenant, excludeTypes));
+            String oldNamespace = tenant.getNamespace();
+            tenant.setNamespace(NullColumnValueGetter.getNullStr());
+            // Update tenant info in respective namespace CF
+            List<URI> allNamespaceURI = _dbClient.queryByType(ObjectNamespace.class, true);
+            Iterator<ObjectNamespace> nsItr = _dbClient.queryIterativeObjects(ObjectNamespace.class, allNamespaceURI);
+            while (nsItr.hasNext()) {
+                namesp = nsItr.next();
+                if (namesp.getNativeId().equalsIgnoreCase(oldNamespace)) {
+                    namesp.setMapped(false);
                     // There is a chance of exceptions ahead; hence updated db at the end
                     namespModified = true;
                     break;
@@ -403,6 +444,9 @@ public class TenantsService extends TaggedResource {
 
         if (namespModified) {
             _dbClient.updateObject(namesp);
+        }
+        if (oldNamespModified) {
+            _dbClient.updateObject(oldNamesp);
         }
         _dbClient.updateAndReindexObject(tenant);
 
@@ -755,10 +799,11 @@ public class TenantsService extends TaggedResource {
         // for each project, get all volumes. Collect volume group ids for all volumes
         StringSet volumeGroups = new StringSet();
         for (URI project : projects) {
-            List<Volume> volumes = CustomQueryUtility.queryActiveResourcesByConstraint(_dbClient, Volume.class,
-                    ContainmentConstraint.Factory.getProjectVolumeConstraint(project));
-            for (Volume volume : volumes) {
-                volumeGroups.addAll(volume.getVolumeGroupIds());
+            URIQueryResultList list = new URIQueryResultList();
+            _dbClient.queryByConstraint(ContainmentConstraint.Factory.getProjectVolumeConstraint(project), list);
+            Iterator<Volume> resultsIt = _dbClient.queryIterativeObjects(Volume.class, list);
+            while (resultsIt.hasNext()) {
+                volumeGroups.addAll(resultsIt.next().getVolumeGroupIds());
             }
         }
 

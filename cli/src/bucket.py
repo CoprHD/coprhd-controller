@@ -392,12 +392,14 @@ def show_parser(subcommand_parsers, common_parser):
                              metavar='<project>',
                              dest='project',
                              help='name of project',
-                             default=None)
+                             default=None ,
+                             required=True)
     mandatory_args.add_argument('-tenant', '-tn',
                              metavar='<tenant>',
                              dest='tenant',
                              help='name of tenant',
-                             default=None)
+                             default=None ,
+                             required=True)
     show_parser.add_argument('-xml',
                              dest='xml',
                              action='store_true',

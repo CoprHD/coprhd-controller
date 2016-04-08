@@ -7,6 +7,7 @@
     </description>
     <profiles>
         <profile name="appliance" description="VMX with default kernel" import="true"/>
+        <profile name="openstack" description="VMX with default kernel" import="false"/>
     </profiles>
     <preferences>
         <version>__VERSION__</version>
@@ -28,6 +29,18 @@
             <size unit="G">60</size>
             <systemdisk name="system__UUID__">
                 <volume name="Swap" size="4G"/>
+            </systemdisk>
+        </type>
+    </preferences>
+    <preferences profiles="openstack">
+        <type image="vmx" filesystem="ext3" boot="vmxboot/suse-13.2" format="vmdk" bootloader="grub2" kernelcmdline="splash">
+            <machine memory="__RAM__" guestOS="suse">
+                <vmdisk controller="lsilogic" id="0"/>
+                <vmnic interface="e1000" mode="bridged"/>
+            </machine>
+            <size unit="G">10</size>
+            <systemdisk name="system__UUID__">
+                <volume name="Swap" size="1G"/>
             </systemdisk>
         </type>
     </preferences>
@@ -149,6 +162,7 @@
         <package name="unixODBC"/>
         <package name="vim"/>
         <package name="virtualbox"/>
+        <package name="virtualbox-guest-tools"/>
         <package name="virtualbox-guest-kmp-default"/>
         <package name="virtualbox-host-kmp-default"/>
         <package name="wget"/>

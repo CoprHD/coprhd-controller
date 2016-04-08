@@ -1879,11 +1879,24 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
         Map<URI, URI> dependencies = new HashMap<URI, URI>();
 
         Volume sourceVolume = (Volume) object;
-        // Get all of the volumes associated with the volume
-        for (BlockSnapshot snapshot : this.getSnapshots(sourceVolume)) {
+        // Get all of the snapshots associated with the volume
+        for (BlockSnapshot snapshot : this.getSnapshotsForVolume(sourceVolume)) {
             if (snapshot != null && !snapshot.getInactive()) {
                 dependencies.put(sourceVolume.getId(), snapshot.getId());
             }
+            
+	        // Get all the snapshots of the corresponding target volumes
+	        if (Volume.PersonalityTypes.SOURCE.name().equals(sourceVolume.getPersonality())) {
+	            StringSet rpTargets = sourceVolume.getRpTargets();
+	            for (String rpTarget : rpTargets) {
+	            	Volume rpTargetVolume = _dbClient.queryObject(Volume.class, URI.create(rpTarget));
+	            	for (BlockSnapshot targetSnapshot : this.getSnapshotsForVolume(rpTargetVolume)) {
+	                    if (targetSnapshot != null && !targetSnapshot.getInactive()) {
+	                        dependencies.put(rpTargetVolume.getId(), targetSnapshot.getId());
+	                    }            
+	            	}
+	            }
+	        }
         }
 
         if (!dependencies.isEmpty()) {
@@ -1922,6 +1935,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
 
     @Override
     public StorageSystemConnectivityList getStorageSystemConnectivity(StorageSystem system) {
+        _log.debug("getStorageSystemConnectivity START");
         // Connectivity list to return
         StorageSystemConnectivityList connectivityList = new StorageSystemConnectivityList();
         // Set used to ensure unique values are added to the connectivity list
@@ -1934,20 +1948,34 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                                 "storageSystem",
                                 system.getId().toString()));
 
+        Map<URI, ProtectionSystem> protSysMap = new HashMap<URI, ProtectionSystem>();
+        Map<String, StorageSystem> storageSystemBySerialNumber = new HashMap<String, StorageSystem>();
+
         // For each of the RPSiteArrays get the Protection System
         for (RPSiteArray rpSiteArray : rpSiteArrays) {
             if ((rpSiteArray.getRpProtectionSystem() != null)) {
-                ProtectionSystem protectionSystem = _dbClient.queryObject(ProtectionSystem.class, rpSiteArray.getRpProtectionSystem());
+                ProtectionSystem protectionSystem = protSysMap.get(rpSiteArray.getRpProtectionSystem());
+                if (protectionSystem == null) {
+                    protectionSystem = _dbClient.queryObject(ProtectionSystem.class, rpSiteArray.getRpProtectionSystem());
+                    protSysMap.put(protectionSystem.getId(), protectionSystem);
+                }
                 // Loop through the associated Storage Systems for this Protection System to build the
                 // connectivity response list. Only store unique responses.
                 for (String associatedStorageSystemStr : protectionSystem.getAssociatedStorageSystems()) {
-                    URI associatedStorageSystemURI = ConnectivityUtil.findStorageSystemBySerialNumber(
-                            ProtectionSystem.getAssociatedStorageSystemSerialNumber(associatedStorageSystemStr), _dbClient,
-                            StorageSystemType.BLOCK);
-                    StorageSystem associatedStorageSystem = _dbClient.queryObject(StorageSystem.class, associatedStorageSystemURI);
-
-                    if (associatedStorageSystem == null || associatedStorageSystem.getInactive()
-                            || ConnectivityUtil.isAVPlex(associatedStorageSystem)) {
+                    String associatedStorageSystemSerialNumber = ProtectionSystem
+                            .getAssociatedStorageSystemSerialNumber(associatedStorageSystemStr);
+                    StorageSystem associatedStorageSystem = storageSystemBySerialNumber.get(associatedStorageSystemSerialNumber);
+                    if (associatedStorageSystem == null) {
+                        URI associatedStorageSystemURI = ConnectivityUtil.findStorageSystemBySerialNumber(
+                                associatedStorageSystemSerialNumber, _dbClient,
+                                StorageSystemType.BLOCK);
+                        associatedStorageSystem = _dbClient.queryObject(StorageSystem.class, associatedStorageSystemURI);
+                        if (associatedStorageSystem == null || associatedStorageSystem.getInactive()) {
+                            continue;
+                        }
+                        storageSystemBySerialNumber.put(associatedStorageSystemSerialNumber, associatedStorageSystem);
+                    }
+                    if (ConnectivityUtil.isAVPlex(associatedStorageSystem)) {
                         continue;
                     }
 
@@ -1973,6 +2001,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
             }
         }
 
+        _log.debug("getStorageSystemConnectivity END");
         return connectivityList;
     }
 
@@ -2199,6 +2228,9 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                 throw APIException.badRequests.notValidRPSourceVolume(volume.getLabel());
             }
         }
+
+        // Validate the source volume size is not greater than the target volume size
+        RPHelper.validateRSetVolumeSizes(_dbClient, Arrays.asList(volume));
     }
 
     /**
@@ -2792,24 +2824,34 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
      */
     @Override
     public List<BlockSnapshot> getSnapshots(Volume volume) {
-        List<BlockSnapshot> snapshots = new ArrayList<BlockSnapshot>();
+        List<BlockSnapshot> snapshots = new ArrayList<BlockSnapshot>();        
+        
+        //Get all the snapshots for this volume
+        snapshots.addAll(super.getSnapshots(volume));
+        
+        // If this is a RP+VPLEX/MetroPoint volume get any local snaps for this volume as well,
+        // we need to call out to VPLEX Api to get this information as the parent of these
+        // snaps will be the backing volume.
+        boolean vplex = RPHelper.isVPlexVolume(volume);
+        if (vplex) {
+            snapshots.addAll(vplexBlockServiceApiImpl.getSnapshots(volume));
+        }
 
-        // Get all related RP volumes
-        List<URI> rpVolumes = _rpHelper.getReplicationSetVolumes(volume);
-
-        for (URI rpVolumeURI : rpVolumes) {
-            Volume rpVolume = _dbClient.queryObject(Volume.class, rpVolumeURI);
-
-            // Get all the related local snapshots and RP bookmarks for this RP Volume
-            snapshots.addAll(super.getSnapshots(rpVolume));
-
-            // If this is a RP+VPLEX/MetroPoint volume get any local snaps for this volume as well,
-            // we need to call out to VPLEX Api to get this information as the parent of these
-            // snaps will be the backing volume.
-            boolean vplex = RPHelper.isVPlexVolume(rpVolume);
-            if (vplex) {
-                snapshots.addAll(vplexBlockServiceApiImpl.getSnapshots(rpVolume));
-            }
+        // Get all bookmarks for the source copy if the passed in volume is an RP source volume
+        if (volume.getPersonality().equalsIgnoreCase(Volume.PersonalityTypes.SOURCE.name())) {
+        	URI cgUri = volume.getConsistencyGroup();
+	        List<Volume> rpSourceVolumes = RPHelper.getCgSourceVolumes(cgUri,_dbClient);
+	
+	        for (Volume rpSourceVolume : rpSourceVolumes) {	
+	            // Get all RP bookmarks for this RP Volume. Since bookmarks are not assigned to any source volumes in the CG, we need to query all the 
+	            // source volumes in the CG and fetch them.
+	            List<BlockSnapshot> allSnapshots = super.getSnapshots(rpSourceVolume);
+	            for (BlockSnapshot snapshot : allSnapshots) {
+	            	if (BlockSnapshot.TechnologyType.RP.name().equalsIgnoreCase(snapshot.getTechnologyType())) {
+	            		snapshots.add(snapshot);
+	            	}
+	            }	            		           
+	        }
         }
 
         return snapshots;
@@ -3746,7 +3788,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
 
     /*
      * (non-Javadoc)
-     *
+     * 
      * @see
      * com.emc.storageos.api.service.impl.resource.BlockServiceApi#getReplicationGroupNames(com.emc.storageos.db.client.model.VolumeGroup)
      */

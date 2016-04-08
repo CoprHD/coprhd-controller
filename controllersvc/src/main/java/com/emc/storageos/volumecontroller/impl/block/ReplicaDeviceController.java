@@ -49,10 +49,13 @@ import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.client.util.ResourceOnlyNameGenerator;
 import com.emc.storageos.exceptions.DeviceControllerException;
+import com.emc.storageos.locking.LockTimeoutValue;
+import com.emc.storageos.locking.LockType;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.volumecontroller.TaskCompleter;
+import com.emc.storageos.volumecontroller.impl.ControllerLockingUtil;
 import com.emc.storageos.volumecontroller.impl.ControllerUtils;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.BlockConsistencyGroupUpdateCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.BlockSnapshotRestoreCompleter;
@@ -62,6 +65,7 @@ import com.emc.storageos.workflow.Workflow;
 import com.emc.storageos.workflow.WorkflowException;
 import com.emc.storageos.workflow.WorkflowStepCompleter;
 import com.google.common.base.Joiner;
+import com.emc.storageos.workflow.WorkflowService;
 
 /**
  * Specific controller implementation to support block orchestration for handling replicas of volumes in a consistency group.
@@ -615,7 +619,14 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
         snapshot.setVirtualArray(volume.getVirtualArray());
         snapshot.setProtocol(new StringSet());
         snapshot.getProtocol().addAll(volume.getProtocol());
-        snapshot.setProject(new NamedURI(volume.getProject().getURI(), volume.getProject().getName()));
+        NamedURI project = volume.getProject();
+        // if this volume is a backend volume for VPLEX virtual volume,
+        // get the project from VPLEX volume as backend volume have different project set with internal flag.
+        if (Volume.checkForVplexBackEndVolume(_dbClient, volume)) {
+            Volume vplexVolume = Volume.fetchVplexVolume(_dbClient, volume);
+            project = vplexVolume.getProject();
+        }
+        snapshot.setProject(new NamedURI(project.getURI(), project.getName()));
 
         String existingSnapSnapSetLabel = ControllerUtils.getSnapSetLabelFromExistingSnaps(repGroupName, volume.getStorageController(), _dbClient);
         if (null == existingSnapSnapSetLabel) {
@@ -801,6 +812,11 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
         WorkflowStepCompleter.stepExecuting(opId);
         TaskCompleter taskCompleter = null;
         try {
+            List<String> lockKeys = new ArrayList<String>();
+            lockKeys.add(ControllerLockingUtil.getReplicationGroupStorageKey(_dbClient, replicationGroupName, storage));
+            WorkflowService workflowService = _blockDeviceController.getWorkflowService();
+            workflowService.acquireWorkflowStepLocks(opId, lockKeys, LockTimeoutValue.get(LockType.ARRAY_CG));
+            
             StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, storage);
             taskCompleter = new BlockConsistencyGroupUpdateCompleter(consistencyGroup, opId);
             _blockDeviceController.getDevice(storageSystem.getSystemType()).doAddToReplicationGroup(
@@ -1260,6 +1276,11 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
             throws ControllerException {
         TaskCompleter taskCompleter = null;
         try {
+            List<String> lockKeys = new ArrayList<String>();
+            lockKeys.add(ControllerLockingUtil.getReplicationGroupStorageKey(_dbClient, repGroupName, storage));
+            WorkflowService workflowService = _blockDeviceController.getWorkflowService();
+            workflowService.acquireWorkflowStepLocks(opId, lockKeys, LockTimeoutValue.get(LockType.ARRAY_CG));
+
             StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, storage);
             taskCompleter = new BlockConsistencyGroupUpdateCompleter(consistencyGroup, opId);
             _blockDeviceController.getDevice(storageSystem.getSystemType()).doRemoveFromReplicationGroup(

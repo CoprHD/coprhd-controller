@@ -4,7 +4,7 @@
   varray = _resource.neighborhood
   exports = _resource.exports
   smbShares = _resource.smbShares
-
+  fileMirrors = _resource.fileMirrors
   cos = _resource.cos
 }%
 #{AffectedResources.resource img: 'file.png', classes: 'fileSystem', typeKey: 'affectedResources.fileSystem'}
@@ -58,4 +58,10 @@
   #{list items:smbShares, as:'cifsShare'}
     #{AffectedResources.cifsShare resource:cifsShare/}
   #{/list}
+#{/if}
+  
+#{if fileMirrors}
+  #{list fileMirrors, as:'fileMirror'}
+    #{AffectedResources.fileMirror resource:fileMirror/}
+  #{/list}  
 #{/if}

@@ -367,6 +367,14 @@ public class DisasterRecovery extends ViprResourceController {
         render(isError, uuid, disasterSiteDetails);
     }
 
+    public static boolean hasPausedSite() {
+        return DisasterRecoveryUtils.hasPausedSite();
+    }
+    
+    public static boolean hasActiveDegradedSite() {
+        return DisasterRecoveryUtils.hasActiveDegradedSite();
+    }
+    
     private static void itemsJson(List<String> uuids) {
         List<SiteRestRep> standbySites = new ArrayList<SiteRestRep>();
         for (String uuid : uuids) {

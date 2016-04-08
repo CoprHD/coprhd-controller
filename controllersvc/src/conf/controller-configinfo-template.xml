@@ -56,6 +56,7 @@
         <entry key="Discovery-xtremio-all" value="discovery-xtremio-context.xml"/>
         <entry key="Discovery-xtremio-unmanaged_volumes" value="discovery-xtremio-context.xml"/>
         <entry key="Scanner-xtremio" value="discovery-xtremio-context.xml"/>
+        <entry key="Metering-xtremio" value="discovery-xtremio-context.xml" />
 
         <entry key="Discovery-externaldevice-all" value="discovery-externaldevice-context.xml" />
         <entry key="Discovery-externaldevice-unmanaged_volumes" value="discovery-externaldevice-context.xml" />

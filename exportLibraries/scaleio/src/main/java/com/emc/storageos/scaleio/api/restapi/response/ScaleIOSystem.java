@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2015 EMC Corporation
+ * Copyright (c) 2016 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.scaleio.api.restapi.response;
@@ -25,8 +25,17 @@ public class ScaleIOSystem {
     private String mdmClusterState;
     private String id;
     private String installId;
+    private MdmCluster mdmCluster;
 
-    public String getMdmMode() {
+    public MdmCluster getMdmCluster() {
+		return mdmCluster;
+	}
+
+	public void setMdmCluster(MdmCluster mdmCluster) {
+		this.mdmCluster = mdmCluster;
+	}
+
+	public String getMdmMode() {
         return mdmMode;
     }
 

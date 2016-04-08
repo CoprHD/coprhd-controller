@@ -445,7 +445,7 @@ public class BackupService {
     }
 
     /**
-     * *Internal API, used only between nodes*
+     * Internal API, used only between nodes*
      * Send backup file name to a node
      *
      * @param backupName the backup filename to be downloaded
@@ -486,6 +486,8 @@ public class BackupService {
     /**
      * Download backup data from the backup FTP server
      * each node will only downloads its own backup data
+     *
+     * @brief  Download the backup file from the remote server
      *
      * @param backupName the name of the backup on the FTP server
      * @param force  true to remove the downloaded data and start from the beginning
@@ -608,6 +610,7 @@ public class BackupService {
      *  Client should use query API to check if the download operation
      *  has been canceled or not
      *
+     * @brief  Cancel the current downloading from the remote server
      * @return server response indicating if the operation succeeds.
      */
     @POST
@@ -685,10 +688,12 @@ public class BackupService {
      *   The restore will stop all storageos services first
      *   so the UI will be unaccessible for the services restart
      *
+     * @brief  Restore from the given backup
+     *
      * @param backupName the name of the backup to be restored
-     * @param password the root password
+     * @param password the root password of the current ViPR cluster
      * @param isGeoFromScratch true if this is the first vdc to be restored in a Geo environment
-     * @return server response indicating if the operation succeeds.
+     * @return server response indicating if the operation is accepted or not.
      */
     @POST
     @Path("restore/")
@@ -742,8 +747,11 @@ public class BackupService {
 
     /**
      *  Query restore status
+     *  @brief  Query the restore status of a backup
+     *
      *  @param backupName the name of the backup
-     * @return server response indicating if the operation succeeds.
+     *  @param isLocal true if the backup is a local backup
+     * @return the restore status of the given backup
      */
     @GET
     @Path("restore/status")

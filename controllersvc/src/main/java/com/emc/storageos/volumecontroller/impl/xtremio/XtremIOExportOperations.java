@@ -300,7 +300,7 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
                     igNames.add(igName);
                 }
             }
-
+            
             _log.info("List of reusable IGs found {} with size : {}",
                     Joiner.on(",").join(groupInitiatorsByIG.asMap().entrySet()),
                     groupInitiatorsByIG.size());
@@ -313,6 +313,16 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
                 if (URIUtil.isType(volumeUri, Volume.class)) {
                     xtremIOVolume = XtremIOProvUtils.isVolumeAvailableInArray(client,
                             blockObj.getLabel(), xioClusterName);
+                    
+                    // It could be that the block object is actually a snapshot on the array
+                    // because a VPLEX volume was created on top of a snapshot, and when this is
+                    // done, a dummy backend volume is created using the data from the block 
+                    // snapshot because VPLEX volumes need to be built on volumes. So, if the 
+                    // returned value is null, check the snapshots.
+                    if (xtremIOVolume == null) {
+                        xtremIOVolume = XtremIOProvUtils.isSnapAvailableInArray(client,
+                                blockObj.getDeviceLabel(), xioClusterName);
+                    }
                 } else {
                     xtremIOVolume = XtremIOProvUtils.isSnapAvailableInArray(client,
                             blockObj.getDeviceLabel(), xioClusterName);

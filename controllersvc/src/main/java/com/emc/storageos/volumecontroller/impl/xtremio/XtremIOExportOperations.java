@@ -961,7 +961,7 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
                     // check if they belong to same cluster
                     if (ini.getClusterName() != null && clusterName != null && !clusterName.isEmpty()
                             && ini.getClusterName().equalsIgnoreCase(clusterName)) {
-                        initiatorsInIG.remove(ini.getInitiatorPort());
+                        initiatorsInIG.remove(Initiator.normalizePort(ini.getInitiatorPort()));
                     }
                 }
             }
@@ -996,8 +996,8 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
             _log.info("There are other initiators present in the IG, checking if they all belong to same host");
             // check if the other initiators belong to different host
             for (Initiator ini : knownInitiatorsInIG) {
-                if (ini.getHostName() != null && !ini.getHostName().equalsIgnoreCase(hostName)) {
-                    initiatorsInIG.remove(ini.getInitiatorPort());
+                if (ini.getHostName() != null && ini.getHostName().equalsIgnoreCase(hostName)) {
+                    initiatorsInIG.remove(Initiator.normalizePort(ini.getInitiatorPort()));
                 }
             }
 

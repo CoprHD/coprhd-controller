@@ -759,7 +759,6 @@
                     <property name="apiSignatureGenerator" ref="keyGenerator"/>
                     <property name="sysUtils" ref="sysUtils" />
                     <property name="ipsecConfig" ref="ipsecConfig" />
-                    <property name="dbCommonInfo" ref="dbcommoninfo"/>
                     <property name="drUtil" ref="drUtil" />
                 </bean>
             </set>

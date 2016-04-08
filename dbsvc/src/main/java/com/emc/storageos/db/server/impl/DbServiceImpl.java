@@ -7,6 +7,9 @@ package com.emc.storageos.db.server.impl;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.io.FileOutputStream;
 import java.util.ArrayList;
 import java.util.Date;
@@ -40,6 +43,8 @@ import com.emc.storageos.coordinator.common.Service;
 import com.emc.storageos.coordinator.common.impl.ConfigurationImpl;
 import com.emc.storageos.coordinator.client.model.Constants;
 import com.emc.storageos.coordinator.client.model.DbOfflineEventInfo;
+import com.emc.storageos.coordinator.client.model.Site;
+import com.emc.storageos.coordinator.client.model.SiteState;
 import com.emc.storageos.db.common.DbConfigConstants;
 import com.emc.storageos.db.common.DbServiceStatusChecker;
 import com.emc.storageos.db.gc.GarbageCollectionExecutor;
@@ -55,6 +60,7 @@ import static com.emc.storageos.services.util.FileUtils.readValueFromFile;
 import static com.emc.storageos.services.util.FileUtils.getLastModified;
 
 import org.apache.curator.framework.recipes.locks.InterProcessLock;
+import org.eclipse.jetty.util.log.Log;
 
 /**
  * Default database service implementation
@@ -552,11 +558,6 @@ public class DbServiceImpl implements DbService {
         StartupMode mode = null;
 
         try {
-            if (_schemaUtil.isStandby()) {
-                // wait for standby site leaves ADDING state before first initialization
-                _schemaUtil.checkSiteAddingOnStandby();
-            }
-
             // we use this lock to discourage more than one node bootstrapping / joining at the same time
             // Cassandra can handle this but it's generally not recommended to make changes to schema concurrently
             lock = getLock(getSchemaLockName());
@@ -627,7 +628,10 @@ public class DbServiceImpl implements DbService {
         _dbClient.start();
 
         if (_schemaUtil.isStandby()) {
-            _schemaUtil.rebuildDataOnStandby();
+            String localDataRevision = getLocalDataRevision();
+            if (localDataRevision != null) {
+                _schemaUtil.checkDataRevision(localDataRevision);
+            } 
         }
         
         // Setup the vdc information, so that login enabled before migration
@@ -826,7 +830,10 @@ public class DbServiceImpl implements DbService {
     }
     
     private void startBackgroundCompactTask() {
-    	this.compactWorker.start();
+        if (this.compactWorker != null) {
+            // compactWorker is null in Junit environment
+            this.compactWorker.start();
+        }
     }
 
     /**
@@ -925,5 +932,28 @@ public class DbServiceImpl implements DbService {
                     isGeoDbsvc() ? "geodbsvc" : "dbsvc",sourceIp);
             _log.error("Node recovery will fail in 30 minutes if {} not back to normal state.", sourceIp);
         }
+    }
+    
+    /**
+     * Read local data revision number. Db data directory is a symbol link to a data revision directory as the following
+     *   /data/db/1 -> /data/db/1459567039514.0  
+     *   Here data version number is 1459567039514 and 0 is incremental snapshot number. It is always 0 for db revisions
+     *                              
+     * @return
+     * @throws IOException
+     */
+    private String getLocalDataRevision() {
+        Path dbDataDir = Paths.get(dbDir, "1");
+        try {
+            if (Files.isSymbolicLink(dbDataDir)) {
+                Path symDir = Files.readSymbolicLink(dbDataDir);
+                String versionName = symDir.toFile().getName();
+                int i =  versionName.lastIndexOf(".");
+                return versionName.substring(0, i);
+            }
+        } catch (Exception ex) {
+            _log.error("Retrieve local data revision error", ex);
+        }
+        return null;
     }
 }

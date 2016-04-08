@@ -18,8 +18,10 @@ import com.emc.storageos.svcs.errorhandling.annotations.MessageBundle;
  * This interface holds all the methods used to create an error condition that will be associated
  * with an HTTP status of Bad Request (400)
  * <p/>
- * Remember to add the English message associated to the method in BadRequestExceptions.properties and use the annotation
- * {@link DeclareServiceCode} to set the service code associated to this error condition. You may need to create a new service code if there
+ * Remember to add the English message associated to the method in BadRequestExceptions.properties and use the
+ * annotation
+ * {@link DeclareServiceCode} to set the service code associated to this error condition. You may need to create a new
+ * service code if there
  * is no an existing one suitable for your error condition.
  * <p/>
  * For more information or to see an example, check the Developers Guide section in the Error Handling Wiki page:
@@ -397,12 +399,11 @@ public interface BadRequestExceptions {
             final String parameterValue, final Throwable cause);
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID_RANGE)
-    public BadRequestException invalidParameterAboveMaximum(String string, long size, long minimum,
+    public BadRequestException invalidParameterAboveMaximum(String string, long size, long maximum,
             String unit);
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID_RANGE)
-    public BadRequestException invalidParameterAboveMaximum(String string, double size, double minimum,
-            String unit);
+    public BadRequestException invalidParameterSizeAboveMaximum(String string, String excess, String maximum);
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException invalidParameterAssignedPoolNotInMatchedPools(String poolStr);
@@ -855,8 +856,8 @@ public interface BadRequestExceptions {
     public BadRequestException failedToLoadKeyFromString(final Throwable e);
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
-    public BadRequestException trustStoreUpdatePartialSuccess(
-            final List<String> failedParse, final List<String> expired, final List<String> notInTrustStore);
+    public BadRequestException trustStoreUpdatePartialSuccess(final int nAdd, final int nFailToAdd, final List<Integer> failedParse, final List<Integer> expired,
+                                                              final int nRemove, final int nFailToRemove, final List<Integer> notInTrustStore);
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID_URI)
     public BadRequestException invalidSeverityInURI(final String severity, final String severities);
@@ -1969,6 +1970,9 @@ public interface BadRequestExceptions {
     public BadRequestException notValidRPSourceVolume(String volname);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException invalidRPVolumeSizes(final URI sourceVolumeId);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException newCertificateMustBeSpecified();
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
@@ -2242,7 +2246,7 @@ public interface BadRequestExceptions {
     public BadRequestException sourceNotExported(final URI sourceId);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
-    public BadRequestException cannotCreateSnapshotCgPartOfApplication(final String cgName, String applicationName);
+    public BadRequestException cannotCreateSnapshotCgPartOfApplication(String applicationName);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException invalidParameterRemovePreexistingInitiator(final String maskName, final String initiatorPort);
@@ -2797,8 +2801,8 @@ public interface BadRequestExceptions {
     public BadRequestException replicaOperationNotAllowedApplicationHasXtremio(final String replicaType);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
-    public BadRequestException
-            replicaOperationNotAllowedOnCGVolumePartOfCopyTypeVolumeGroup(final String volumeGroupName, final String replicaType);
+    public BadRequestException replicaOperationNotAllowedOnCGVolumePartOfCopyTypeVolumeGroup(final String volumeGroupName,
+            final String replicaType);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException setNameDoesNotBelongToVolumeGroup(final String setType, final String setName, final String volumeGroupName);

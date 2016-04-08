@@ -71,8 +71,8 @@ public abstract class DiscoveredSystemObjectRestRep extends DiscoveredDataObject
      *  brocade
      *  isilon
      *  netapp
-     *  mds
-     *  rp
+     *  mds = Cisco MDS series swicth
+     *  rp = Recoverpoint
      *  vmax
      *  vnxblock
      *  vnxfile

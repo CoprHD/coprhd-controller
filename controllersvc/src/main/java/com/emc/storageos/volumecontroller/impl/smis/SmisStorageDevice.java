@@ -635,9 +635,9 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
                         cleanupAnyBackupSnapshots(storageSystem, volume);
                     }
                 }
-                if (storageSystem.deviceIsType(Type.vmax) && !storageSystem.checkIfVmax3()) {
-                    // VMAX2 - remove volume from Storage Groups if volume is not in any MaskingView
-                    // COP-16705 - Ingested non-exported Volume may be associated with FAST SG outside of ViPR. Clear them during delete.
+                if (storageSystem.deviceIsType(Type.vmax)) {
+                    // VMAX2 & VMAX3 - remove volume from Storage Groups if volume is not in any MaskingView
+                    // COP-16705, COP-21770 - Ingested non-exported Volume may be associated with SG outside of ViPR.
                     _helper.removeVolumeFromStorageGroupsIfVolumeIsNotInAnyMV(storageSystem, volume);
                 }
                 StorageSystem forProvider = _helper.getStorageSystemForProvider(storageSystem,

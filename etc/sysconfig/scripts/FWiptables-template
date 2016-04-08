@@ -27,6 +27,7 @@ fw_custom_iptables() {
     #   2888 - coordinatorsvc (??? isn't it the source port)
     #   2889 - coordinatorsvc
     #   4500 - ipsec (UDP)
+    #   5000 - cim listener
     #   6443 - portalsvc (UI Portal) 
     #   7000 - dbsvc (storage non-SSL port)
     #   7001 - dbsvc (storage SSL port - dbsvc/src/conf/db-conf.yaml)
@@ -54,7 +55,7 @@ fw_custom_iptables() {
     # NOTE: iptables/ip6tables accepts up to maximun of ports is 15 in the argument list, please do not exceed the limit
     #
     INGRES_PORTS_PART1="2181,2888,2889,6443,7000,7001,7100,7101,7199,7200,7299,7300,7399,7400"
-    INGRES_PORTS_PART2="7443,8080,8443,8543,9093,9160,9260,9553,9993,10099,10199,40201"
+    INGRES_PORTS_PART2="5000,7443,8080,8443,8543,9093,9160,9260,9553,9993,10099,10199,40201"
     INGRES_UDP_PORTS="500,4500"
 
     # TODO support multiple nics

@@ -283,6 +283,7 @@ URI_DISCOVERED_STORAGEDEVICE    = URI_DISCOVERED_STORAGEDEVICES  + '/{0}'
 URI_STORAGEDEVICES              = URI_SERVICES_BASE   + '/vdc/storage-systems'
 URI_STORAGEDEVICE               = URI_STORAGEDEVICES  + '/{0}'
 URI_STORAGEDEVICE_DISCOVERALL   = URI_STORAGEDEVICES  + '/discover'
+URI_STORAGEDEVICE_DEREGISTER    = URI_STORAGEDEVICE   + '/deregister'
 URI_STORAGESYSTEMS_BULKGET      = URI_DISCOVERED_STORAGEDEVICES + '/bulk'
 URI_DISCOVERED_STORAGEDEVICE_DISCOVER    = URI_STORAGEDEVICE + '/discover'
 URI_DISCOVERED_STORAGEDEVICE_NS = URI_DISCOVERED_STORAGEDEVICE_DISCOVER + '?namespace={1}'
@@ -3075,6 +3076,12 @@ class Bourne:
     def storagedevice_show_task(self, device, task):
         uri_device_task = URI_STORAGEDEVICE + '/tasks/{1}'
         return self.api('GET', uri_device_task.format(device,task))
+
+    def storagedevice_delete(self, uri):
+        return self.api('POST', URI_RESOURCE_DEACTIVATE.format(URI_STORAGEDEVICE.format(uri)))
+
+    def storagedevice_deregister(self, uri):
+        return self.api('POST', URI_STORAGEDEVICE_DEREGISTER.format(uri))
 
     def register_element(self, provideruri, systemuri, resourceuri):
         return self.api('POST', resourceuri.format(provideruri, systemuri))

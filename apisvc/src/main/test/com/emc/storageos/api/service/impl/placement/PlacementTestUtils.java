@@ -13,6 +13,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.emc.storageos.api.service.authorization.PermissionsHelper;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.db.client.DbClient;
@@ -35,13 +38,17 @@ import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.util.SizeUtil;
 import com.emc.storageos.protectioncontroller.impl.recoverpoint.RPHelper;
+import com.emc.storageos.volumecontroller.AttributeMatcher.Attributes;
 import com.emc.storageos.volumecontroller.Recommendation;
 import com.emc.storageos.volumecontroller.impl.plugins.metering.smis.processor.PortMetricsProcessor;
 import com.emc.storageos.volumecontroller.impl.utils.AttributeMatcherFramework;
+import com.emc.storageos.volumecontroller.impl.utils.ObjectLocalCache;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
+import com.emc.storageos.volumecontroller.impl.utils.attrmatchers.VPlexHighAvailabilityMatcher;
 
 public class PlacementTestUtils {
     public static final long SIZE_GB = (1024 * 1024); // 1GB in KB. Use KB since all pool capacities are represented in KB.
+    private static final Logger _log = LoggerFactory.getLogger(PlacementTestUtils.class);
 
     public static VirtualPoolCapabilityValuesWrapper createCapabilities(String size, int count, BlockConsistencyGroup cg) {
         VirtualPoolCapabilityValuesWrapper capabilities = new VirtualPoolCapabilityValuesWrapper();
@@ -90,7 +97,8 @@ public class PlacementTestUtils {
             int maxPoolUtilizationPercentage, int maxThinPoolSubscriptionPercentage, String supportedResourceType) {
         StoragePool pool1 = new StoragePool();
         pool1.setId(URI.create(id));
-        pool1.setLabel(label);
+        pool1.setLabel(storageSystem.getLabel()+ "+" +label);
+        pool1.setNativeGuid(storageSystem.getLabel()+ "+" +label);
         pool1.setStorageDevice(storageSystem.getId());
         pool1.setFreeCapacity(freeCapacity);
         pool1.setTotalCapacity(totalCapacity);
@@ -110,6 +118,7 @@ public class PlacementTestUtils {
     public static StoragePort createStoragePort(DbClient _dbClient, DiscoveredSystemObject storageSystem, Network network,
             String portNetworkId, VirtualArray varray, String portType, String portGroup, String portName) {
         StoragePort storagePort = new StoragePort();
+        portName = storageSystem.getLabel() + ":" + portName;
         storagePort.setId(URI.create(portName));
         storagePort.setLabel(portName);
         storagePort.setStorageDevice(storageSystem.getId());
@@ -248,6 +257,14 @@ public class PlacementTestUtils {
         schedulerMap.put("block", storageScheduler);
         schedulerMap.put("rp", rpScheduler);        
         placementManager.setStorageSchedulers(schedulerMap);
+        
+        // Set up the new schedulerStack.
+        List<String> schedulerStack = new ArrayList<String>();
+        schedulerStack.add("rp");
+        schedulerStack.add("vplex");
+        schedulerStack.add("srdf");
+        schedulerStack.add("block");
+        placementManager.setSchedulerStack(schedulerStack);
         return placementManager;
     }
 
@@ -327,8 +344,8 @@ public class PlacementTestUtils {
         rdg1.setActive(true);
         rdg1.setConnectivityStatus(RemoteDirectorGroup.ConnectivityStatus.UP.name());
         rdg1.setLabel("RDG1");
-        rdg1.setId(URI.create("RDG1"));
-        rdg1.setNativeGuid("vmax1+vmax2+6");
+        rdg1.setId(URI.create("RDG1"+label1));
+        rdg1.setNativeGuid("$label1+$label2+6");
         rdg1.setRemoteGroupId("6");
         rdg1.setRemoteStorageSystemUri(storageSystem2.getId());
         rdg1.setSourceGroupId("6");
@@ -339,8 +356,8 @@ public class PlacementTestUtils {
         rdg2.setActive(true);
         rdg2.setConnectivityStatus(RemoteDirectorGroup.ConnectivityStatus.UP.name());
         rdg2.setLabel("RDG2");
-        rdg2.setId(URI.create("RDG2"));
-        rdg2.setNativeGuid("vmax2+vmax1+6");
+        rdg2.setId(URI.create("RDG2"+label1));
+        rdg2.setNativeGuid("$label2+$label1+6");
         rdg2.setRemoteGroupId("6");
         rdg2.setRemoteStorageSystemUri(storageSystem1.getId());
         rdg2.setSourceGroupId("6");
@@ -388,32 +405,34 @@ public class PlacementTestUtils {
             StorageSystem storageSystem2, VirtualArray varray2) {
         StoragePool[] storagePools = new StoragePool[7];
         // Create a storage pool for vmax1
-        storagePools[1] = PlacementTestUtils.createStoragePool(_dbClient, varray1, storageSystem1, "pool1", "Pool1",
+        String system1 = storageSystem1.getLabel();
+        String system2 = storageSystem2.getLabel();
+        storagePools[1] = PlacementTestUtils.createStoragePool(_dbClient, varray1, storageSystem1, "pool1"+system1, "Pool1"+system1,
                 Long.valueOf(SIZE_GB * 10), Long.valueOf(SIZE_GB * 10), 300, 300,
                 StoragePool.SupportedResourceTypes.THIN_ONLY.toString());
 
         // Create a storage pool for vmax1
-        storagePools[2] = PlacementTestUtils.createStoragePool(_dbClient, varray1, storageSystem1, "pool2", "Pool2",
+        storagePools[2] = PlacementTestUtils.createStoragePool(_dbClient, varray1, storageSystem1, "pool2"+system1, "Pool2"+system1,
                 Long.valueOf(SIZE_GB * 10), Long.valueOf(SIZE_GB * 10), 300, 300,
                 StoragePool.SupportedResourceTypes.THIN_ONLY.toString());
 
         // Create a storage pool for vmax1
-        storagePools[3] = PlacementTestUtils.createStoragePool(_dbClient, varray1, storageSystem1, "pool3", "Pool3",
+        storagePools[3] = PlacementTestUtils.createStoragePool(_dbClient, varray1, storageSystem1, "pool3"+system1, "Pool3"+system1,
                 Long.valueOf(SIZE_GB * 1), Long.valueOf(SIZE_GB * 1), 100, 100,
                 StoragePool.SupportedResourceTypes.THIN_ONLY.toString());
 
         // Create a storage pool for vmax2
-        storagePools[4] = PlacementTestUtils.createStoragePool(_dbClient, varray2, storageSystem2, "pool4", "Pool4",
+        storagePools[4] = PlacementTestUtils.createStoragePool(_dbClient, varray2, storageSystem2, "pool4"+system2, "Pool4"+system2,
                 Long.valueOf(SIZE_GB * 10), Long.valueOf(SIZE_GB * 10), 300, 300,
                 StoragePool.SupportedResourceTypes.THIN_ONLY.toString());
 
         // Create a storage pool for vmax2
-        storagePools[5]= PlacementTestUtils.createStoragePool(_dbClient, varray2, storageSystem2, "pool5", "Pool5",
+        storagePools[5]= PlacementTestUtils.createStoragePool(_dbClient, varray2, storageSystem2, "pool5"+system2, "Pool5"+system2,
                 Long.valueOf(SIZE_GB * 10), Long.valueOf(SIZE_GB * 10), 300, 300,
                 StoragePool.SupportedResourceTypes.THIN_ONLY.toString());
 
         // Create a storage pool for vmax2
-        storagePools[6]= PlacementTestUtils.createStoragePool(_dbClient, varray2, storageSystem2, "pool6", "Pool6",
+        storagePools[6]= PlacementTestUtils.createStoragePool(_dbClient, varray2, storageSystem2, "pool6"+system2, "Pool6"+system2,
                 Long.valueOf(SIZE_GB * 1), Long.valueOf(SIZE_GB * 1), 100, 100,
                 StoragePool.SupportedResourceTypes.THIN_ONLY.toString());
         return storagePools;
@@ -493,4 +512,38 @@ public class PlacementTestUtils {
         return vplexStorageSystem;
     }
 
+    /**
+     * Runs the VPLEX high availability matcher
+     * @param vpool
+     * @param pools
+     * @return
+     */
+    public static StringSet runVPlexHighAvailabilityMatcher(DbClientImpl dbClient, VirtualPool vpool, List<StoragePool> pools) {
+        Set<String> poolNames = new HashSet<String>();
+        for (StoragePool pool: pools) {
+            poolNames.add(pool.getLabel());
+        }
+        _log.info("Calling VPlexHighAvailabilityMatcher on pools: " + poolNames.toString());
+        VPlexHighAvailabilityMatcher matcher = new VPlexHighAvailabilityMatcher();
+        ObjectLocalCache cache = new ObjectLocalCache(dbClient);
+        matcher.setObjectCache(cache);
+        Map<String, Object> attributeMap = new HashMap<String, Object>();
+        attributeMap.put(Attributes.high_availability_type.name(), vpool.getHighAvailability());
+        attributeMap.put(Attributes.varrays.name(), vpool.getVirtualArrays());
+        attributeMap.put(Attributes.high_availability_varray.name(), null);
+        attributeMap.put(Attributes.high_availability_vpool.name(), null);
+        if (vpool.getHaVarrayVpoolMap() != null) {
+            for (Map.Entry<String, String> entry : vpool.getHaVarrayVpoolMap().entrySet()) {
+                attributeMap.put(Attributes.high_availability_varray.name(), entry.getKey());
+                attributeMap.put(Attributes.high_availability_vpool.name(), entry.getValue());
+            }
+        }
+        List<StoragePool> matchedPools =  matcher.matchStoragePoolsWithAttributeOn(pools, attributeMap);
+        StringSet result = new StringSet();
+        for (StoragePool matchedPool : matchedPools) {
+            result.add(matchedPool.getId().toString());
+        }
+        _log.info("Matched results: " + result.toString());
+        return result;
+    }
 }

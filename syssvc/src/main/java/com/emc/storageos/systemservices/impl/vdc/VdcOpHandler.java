@@ -858,7 +858,7 @@ public abstract class VdcOpHandler {
                 try {
                     SiteInfo currentSiteInfo = this.coordinator.getTargetInfo(SiteInfo.class);
                     if (!SiteInfo.DR_OP_SWITCHOVER.equals(currentSiteInfo.getActionRequired())) {
-                        log.warn("Current dr operation is not swtichover, no need to wait old active anymore");
+                        log.warn("Current dr operation is not switchover, no need to wait old active anymore");
                         break;
                     }
                     
@@ -875,9 +875,9 @@ public abstract class VdcOpHandler {
                 }
             }
             
-            log.warn("Timeout reached or current dr operation is not swtichover when wait for old active site finishing operations");
+            log.warn("Timeout reached or current dr operation is not switchover when wait for old active site finishing operations");
             throw new IllegalStateException(
-                    "Timeout reached or current dr operation is not swtichover when wait for old active site finishing operations");
+                    "Timeout reached or current dr operation is not switchover when wait for old active site finishing operations");
         }
         
         private void updateSwitchoverSiteState(Site site, SiteState siteState, VdcPropertyBarrier barrier) throws Exception {

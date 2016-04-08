@@ -254,7 +254,6 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
     private static final String RESUME_MIGRATION_STEP = "ResumeMigrationStep";
     private static final String CANCEL_MIGRATION_STEP = "CancelMigrationStep";
     private static final String DELETE_MIGRATION_STEP = "DeleteMigrationStep";
-    private static final String STEP_WAITER = "stepWaiterMethod";
     private static final String RESTORE_SNAP_SESSION_STEP = "restoreSnapshotSessionStep";
     private static final String REMOVE_VOLUMES_FROM_CG_STEP = "removeVolumesFromReplicationGropuStep";
     private static final String ADD_VOLUME_REPLICATION_GROUP_STEP = "addVolumesToReplicationGroupStep";
@@ -289,6 +288,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
     private static final String FULL_COPY_METHOD_NAME = "createFullCopy";
     private static final String IMPORT_COPY_METHOD_NAME = "importCopy";
     private static final String FORGET_VOLUMES_METHOD_NAME = "forgetVolumes";
+    private static final String RB_FORGET_VOLUMES_METHOD_NAME = "rollbackForgetVolumes";
     private static final String CREATE_STORAGE_VIEW = "createStorageView";
     private static final String DELETE_STORAGE_VIEW = "deleteStorageView";
     private static final String RESTORE_VOLUME_METHOD_NAME = "restoreVolume";
@@ -1127,46 +1127,10 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 }
             }
 
-            boolean unexportStepsAdded = vplexAddUnexportVolumeWfSteps(workflow, VPLEX_STEP,
-                    backendVolURIs, exportGroupList);
-
-            // If we unexported a volume, add a step to see if any ExportGroups now have
-            // no volumes remaining. If not, mark them inactive.
-            if (unexportStepsAdded) {
+            waitFor = VPLEX_STEP;
+            if (vplexAddUnexportVolumeWfSteps(workflow, VPLEX_STEP, backendVolURIs, exportGroupList)) {
                 waitFor = UNEXPORT_STEP;
-
-                // If the backend volumes for the deleted VPLEX volumes and mirrors are unexported,
-                // tell the VPLEX to forget these backend volumes.
-                for (URI vplexURI : vplexMap.keySet()) {
-                    List<URI> vplexVolumeURIs = VolumeDescriptor.getVolumeURIs(vplexMap
-                            .get(vplexURI));
-                    List<URI> forgetVolumeURIs = new ArrayList<URI>();
-                    for (URI vplexVolumeURI : vplexVolumeURIs) {
-                        Volume vplexVolume = getDataObject(Volume.class, vplexVolumeURI, _dbClient);
-                        for (String forgetVolumeId : vplexVolume.getAssociatedVolumes()) {
-                            forgetVolumeURIs.add(URI.create(forgetVolumeId));
-                        }
-
-                        // Adding the VPLEX mirror backend volume to forgetVolumeURIs
-                        if (vplexVolume.getMirrors() != null && !(vplexVolume.getMirrors().isEmpty())) {
-                            for (String mirrorId : vplexVolume.getMirrors()) {
-                                VplexMirror vplexMirror = _dbClient.queryObject(VplexMirror.class, URI.create(mirrorId));
-                                if (null != vplexMirror && !vplexMirror.getInactive() && null != vplexMirror.getAssociatedVolumes()) {
-                                    for (String forgetVolumeId : vplexMirror.getAssociatedVolumes()) {
-                                        forgetVolumeURIs.add(URI.create(forgetVolumeId));
-                                    }
-                                }
-                            }
-                        }
-                    }
-                    // Add a step to forget the backend volumes for the deleted
-                    // VPLEX volumes on this VPLEX system.
-                    addStepToForgetVolumes(workflow, vplexURI, forgetVolumeURIs, waitFor);
-                }
-            } else {
-                waitFor = VPLEX_STEP;
             }
-
             return waitFor;
         } catch (Exception ex) {
             throw VPlexApiException.exceptions.addStepsForDeleteVolumesFailed(ex);
@@ -1184,14 +1148,13 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
      * @return -- Returns waitFor of next step
      */
     @Override
-    public String addStepsForPostDeleteVolumes(
-            Workflow workflow, String waitFor,
-            List<VolumeDescriptor> volumes,
+    public String addStepsForPostDeleteVolumes(Workflow workflow, String waitFor, List<VolumeDescriptor> volumes,
             String taskId, VolumeWorkflowCompleter completer) {
         // Filter to get only the VPlex volumes.
         List<VolumeDescriptor> vplexVolumes = VolumeDescriptor.filterByType(volumes,
                 new VolumeDescriptor.Type[] { VolumeDescriptor.Type.VPLEX_VIRT_VOLUME },
                 new VolumeDescriptor.Type[] {});
+        
         // Check to see if there are any volumes flagged to not be fully deleted.
         // Any flagged volumes will be removed from the list of volumes to delete.
         List<VolumeDescriptor> descriptorsToRemove = VolumeDescriptor.getDoNotDeleteDescriptors(vplexVolumes);
@@ -1201,33 +1164,44 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
         if (vplexVolumes.isEmpty()) {
             return waitFor;
         }
+        
+        // Segregate by device and loop over each VPLEX system.
+        Map<URI, List<VolumeDescriptor>> vplexMap = VolumeDescriptor.getDeviceMap(vplexVolumes);
+        for (URI vplexURI : vplexMap.keySet()) {
+            List<URI> vplexVolumeURIs = VolumeDescriptor.getVolumeURIs(vplexMap.get(vplexURI));
+            List<URI> forgetVolumeURIs = new ArrayList<URI>();
+            for (URI vplexVolumeURI : vplexVolumeURIs) {
+                Volume vplexVolume = getDataObject(Volume.class, vplexVolumeURI, _dbClient);
+                for (String forgetVolumeId : vplexVolume.getAssociatedVolumes()) {
+                    forgetVolumeURIs.add(URI.create(forgetVolumeId));
+                }
 
-        URI vplexURI = vplexVolumes.get(0).getDeviceURI();
-
-        // ======================================================================================================
-        // COP-17983 - We need to wait for the previous step *and* the forgetVolumes step, if it was scheduled.
-        // The below 'waiter' steps are there to make sure that this happens because if markVirtualVolumes ran
-        // before forgetVolumes, then:
-        // 1). forgetVolumes operation is never called against the VPlex
-        // 2). The overall delete volumes task, and thus the Order, will never be marked complete
-        // ======================================================================================================
-        String name = String.format("Wait for '%s'", waitFor);
-        Workflow.Method previousStepWaiter = stepWaiter(name);
-        waitFor = workflow.createStep(null, name, waitFor, vplexURI, DiscoveredDataObject.Type.vplex.name(),
-                this.getClass(), previousStepWaiter, previousStepWaiter, null);
-
-        if (workflow.stepMethodHasBeenScheduled(this.getClass(), vplexURI, FORGET_VOLUMES_METHOD_NAME)) {
-            Workflow.Method forgetVolumesWaiter = stepWaiter(FORGET_VOLUMES_METHOD_NAME);
-            waitFor = workflow.createStep(null, "Wait for forgetVolumes step", VOLUME_FORGET_STEP, vplexURI,
-                    DiscoveredDataObject.Type.vplex.name(), this.getClass(), forgetVolumesWaiter, forgetVolumesWaiter, null);
+                // Adding the VPLEX mirror backend volume to forgetVolumeURIs
+                if (vplexVolume.getMirrors() != null && !(vplexVolume.getMirrors().isEmpty())) {
+                    for (String mirrorId : vplexVolume.getMirrors()) {
+                        VplexMirror vplexMirror = _dbClient.queryObject(VplexMirror.class, URI.create(mirrorId));
+                        if (null != vplexMirror && !vplexMirror.getInactive() && null != vplexMirror.getAssociatedVolumes()) {
+                            for (String forgetVolumeId : vplexMirror.getAssociatedVolumes()) {
+                                forgetVolumeURIs.add(URI.create(forgetVolumeId));
+                            }
+                        }
+                    }
+                }
+            }
+            
+            // Add a step to forget the backend volumes for the deleted
+            // VPLEX volumes on this VPLEX system.
+            addStepToForgetVolumes(workflow, vplexURI, forgetVolumeURIs, waitFor);
         }
 
-        // Get the VPlex Volume URIs
+        // Get the VPlex Volume URIs and any VPLEX system URI. It does not matter which
+        // system as it the step simply marks ViPR volumes in the database inactive.
         List<URI> allVplexVolumeURIs = VolumeDescriptor.getVolumeURIs(vplexVolumes);
+        URI vplexURI = vplexVolumes.get(0).getDeviceURI();
 
         // Add a step to the Workflow to mark the Virtual Volumes inactive.
         // Rollback does the same thing.
-        waitFor = workflow.createStep(null, "Mark virtual volumes inactive", waitFor,
+        waitFor = workflow.createStep(null, "Mark virtual volumes inactive", VOLUME_FORGET_STEP,
                 vplexURI, DiscoveredDataObject.Type.vplex.name(), this.getClass(),
                 markVolumesInactiveMethod(allVplexVolumeURIs),
                 markVolumesInactiveMethod(allVplexVolumeURIs), null);
@@ -1235,21 +1209,6 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
         return waitFor;
     }
 
-    private Workflow.Method stepWaiter(String waitedOn) {
-        return new Workflow.Method(STEP_WAITER, waitedOn);
-    }
-
-    /**
-     * Simple NO-OP method to use as a way to wait on a step.
-     *
-     * @param waitedOn [IN] - String name for what was being waited on
-     * @param stepId [IN] - This step waiter UUID
-     */
-    public void stepWaiterMethod(String waitedOn, String stepId) {
-        WorkflowStepCompleter.stepExecuting(stepId);
-        _log.info("Completed waiting on '{}'", waitedOn);
-        WorkflowStepCompleter.stepSucceded(stepId);
-    }
 
     public Workflow.Method markVolumesInactiveMethod(List<URI> volumes) {
         return new Workflow.Method(MARK_VIRTUAL_VOLUMES_INACTIVE, volumes);
@@ -1307,28 +1266,94 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
 
     /**
      * Adds a step in the passed workflow to tell the VPLEX system with the
-     * passed URI to forget about the storage volumes with the passed URIs.
+     * passed URI to forget about the backend storage volumes with the passed URIs.
      *
      * @param workflow A reference to the workflow.
      * @param vplexSystemURI The URI of the VPLEX storage system.
-     * @param volumeURIs The URIs of the volumes to be forgotten.
+     * @param volumeURIs The URIs of the backend volumes to be forgotten.
      * @param waitFor The step in the workflow for which this step should wait
      *            before executing.
      */
     private void addStepToForgetVolumes(Workflow workflow, URI vplexSystemURI,
             List<URI> volumeURIs, String waitFor) {
+        
+        // Get the native volume info for the passed backend volumes.
+        List<VolumeInfo> nativeVolumeInfoList = getNativeVolumeInfo(volumeURIs);
 
         // Add a workflow step to tell the passed VPLEX to forget about
         // the volumes with the passed URIs.
         workflow.createStep(
                 VOLUME_FORGET_STEP,
-                String.format("Forget Volumes:%n%s",
-                        BlockDeviceController.getVolumesMsg(_dbClient, volumeURIs)),
-                waitFor,
-                vplexSystemURI, DiscoveredDataObject.Type.vplex.name(), this.getClass(),
-                createForgetVolumesMethod(vplexSystemURI, volumeURIs), null, null);
+                String.format("Forget Volumes:%n%s", BlockDeviceController.getVolumesMsg(_dbClient, volumeURIs)),
+                waitFor, vplexSystemURI, DiscoveredDataObject.Type.vplex.name(), this.getClass(),
+                createForgetVolumesMethod(vplexSystemURI, nativeVolumeInfoList), null, null);
+    }
+    
+    /**
+     * Gets the native volume information required by the VPLEX client for
+     * the passed backend volumes.
+     * 
+     * @param volumeURIs The URIs of the VPLEX backend volumes.
+     * 
+     * @return A list of the native volume information for the passed backend volumes.
+     */
+    private List<VolumeInfo> getNativeVolumeInfo(List<URI> volumeURIs) {
+        List<VolumeInfo> nativeVolumeInfoList = new ArrayList<>();
+        for (URI volumeURI : volumeURIs) {
+            Volume volume = getDataObject(Volume.class, volumeURI, _dbClient);
+            StorageSystem volumeSystem = getDataObject(StorageSystem.class, volume.getStorageController(), _dbClient);
+            List<String> itls = VPlexControllerUtils.getVolumeITLs(volume);
+            VolumeInfo vInfo = new VolumeInfo(volumeSystem.getNativeGuid(), volumeSystem.getSystemType(),
+                    volume.getWWN().toUpperCase().replaceAll(":", ""), volume.getNativeId(),
+                    volume.getThinlyProvisioned().booleanValue(), itls);
+            nativeVolumeInfoList.add(vInfo);
+        }
+        return nativeVolumeInfoList;
     }
 
+    /**
+     * Creates the workflow execute method for forgetting storage volumes.
+     *
+     * @param vplexSystemURI The URI of the VPLEX storage system.
+     * @param volumeInfo The native volume information for the volumes to be forgotten.
+     *
+     * @return A reference to the created workflow method.
+     */
+    private Workflow.Method createForgetVolumesMethod(URI vplexSystemURI,
+            List<VolumeInfo> volumeInfo) {
+        return new Workflow.Method(FORGET_VOLUMES_METHOD_NAME, vplexSystemURI, volumeInfo);
+    }
+    
+    /**
+     * Uses the VPLREX client for the VPLEX storage system with the passed URI to
+     * tell the VPLERX system to forget the volumes with the passed URIs.
+     *
+     * @param vplexSystemURI The URI of the VPLEX storage system.
+     * @param volumeInfo The native volume information for the volumes to be forgotten.
+     * @param stepId The id of the workflow step that invoked this method.
+     */
+    public void forgetVolumes(URI vplexSystemURI, List<VolumeInfo> volumeInfo, String stepId) {
+        try {
+            // Workflow step is executing.
+            WorkflowStepCompleter.stepExecuting(stepId);
+
+            // Get the VPLEX client for this VPLEX system.
+            StorageSystem vplexSystem = _dbClient.queryObject(StorageSystem.class,
+                    vplexSystemURI);
+            VPlexApiClient client = getVPlexAPIClient(_vplexApiFactory, vplexSystem, _dbClient);
+
+            // Tell the VPLEX system to forget about these volumes.
+            client.forgetVolumes(volumeInfo);
+        } catch (Exception ex) {
+            _log.error("An exception occurred forgetting volumes on VPLEX system {}",
+                    vplexSystemURI, ex);
+        }
+
+        // This is a cleanup step that we don't want to impact the
+        // workflow execution if it fails.
+        WorkflowStepCompleter.stepSucceded(stepId);
+    }    
+    
     /**
      * Adds a null provisioning step, but a forgetVolumes rollback step.
      * Useful when we're exporting volumes but if some goes awry we want to forget them
@@ -1342,20 +1367,17 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
      * @return stepId that was created
      */
     private String addRollbackStepToForgetVolumes(Workflow workflow, URI vplexSystemURI,
-            List<URI> volumeURIs, String waitFor) {
+            List<URI> volumeURIs, String waitFor) {        
         // Add a workflow step to tell the passed VPLEX to forget about
         // the volumes with the passed URIs.
         String stepId = workflow.createStep(
-                VOLUME_FORGET_STEP,
-                String.format("Null provisioning step; forget Volumes on rollback:%n%s",
-                        BlockDeviceController.getVolumesMsg(_dbClient, volumeURIs)),
-                waitFor,
-                vplexSystemURI, DiscoveredDataObject.Type.vplex.name(), this.getClass(),
-                rollbackMethodNullMethod(),
-                createForgetVolumesMethod(vplexSystemURI, volumeURIs), null);
+                VOLUME_FORGET_STEP, String.format("Null provisioning step; forget Volumes on rollback:%n%s",
+                        BlockDeviceController.getVolumesMsg(_dbClient, volumeURIs)), waitFor, vplexSystemURI,
+                DiscoveredDataObject.Type.vplex.name(), this.getClass(), rollbackMethodNullMethod(),
+                createRollbackForgetVolumesMethod(vplexSystemURI, volumeURIs), null);
         return stepId;
     }
-
+    
     /**
      * Creates the workflow execute method for forgetting storage volumes.
      *
@@ -1364,53 +1386,21 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
      *
      * @return A reference to the created workflow method.
      */
-    private Workflow.Method createForgetVolumesMethod(URI vplexSystemURI,
+    private Workflow.Method createRollbackForgetVolumesMethod(URI vplexSystemURI,
             List<URI> volumeURIs) {
-        return new Workflow.Method(FORGET_VOLUMES_METHOD_NAME, vplexSystemURI, volumeURIs);
+        return new Workflow.Method(RB_FORGET_VOLUMES_METHOD_NAME, vplexSystemURI, volumeURIs);
     }
 
     /**
-     * Uses the VPLREX client for the VPLEX storage system with the passed URI to
-     * tell the VPLERX system to forget the volumes with the passed URIs.
+     * Uses the VPLEX client for the VPLEX storage system with the passed URI to
+     * tell the VPLEX system to forget the volumes with the passed URIs.
      *
      * @param vplexSystemURI The URI of the VPLEX storage system.
      * @param volumeURIs The URIs of the volumes to be forgotten.
      * @param stepId The id of the workflow step that invoked this method.
      */
-    public void forgetVolumes(URI vplexSystemURI, List<URI> volumeURIs, String stepId) {
-        try {
-            // Workflow step is executing.
-            WorkflowStepCompleter.stepExecuting(stepId);
-
-            // Get the VPLEX client for this VPLEX system.
-            StorageSystem vplexSystem = _dbClient.queryObject(StorageSystem.class,
-                    vplexSystemURI);
-            VPlexApiClient client = getVPlexAPIClient(_vplexApiFactory, vplexSystem, _dbClient);
-
-            // Get the native volume information for each volume
-            // to be forgotten.
-            List<VolumeInfo> nativeVolumeInfoList = new ArrayList<VolumeInfo>();
-            for (URI volumeURI : volumeURIs) {
-                Volume volume = getDataObject(Volume.class, volumeURI, _dbClient);
-                StorageSystem volumeSystem = getDataObject(StorageSystem.class,
-                        volume.getStorageController(), _dbClient);
-                List<String> itls = VPlexControllerUtils.getVolumeITLs(volume);
-                VolumeInfo vInfo = new VolumeInfo(volumeSystem.getNativeGuid(), volumeSystem.getSystemType(), volume
-                        .getWWN().toUpperCase().replaceAll(":", ""), volume.getNativeId(),
-                        volume.getThinlyProvisioned().booleanValue(), itls);
-                nativeVolumeInfoList.add(vInfo);
-            }
-
-            // Tell the VPLEX system to forget about these volumes.
-            client.forgetVolumes(nativeVolumeInfoList);
-        } catch (Exception ex) {
-            _log.error("An exception occurred forgetting volumes on VPLEX system {}",
-                    vplexSystemURI, ex);
-        }
-
-        // This is a cleanup step that we don't want to impact the
-        // workflow execution if it fails.
-        WorkflowStepCompleter.stepSucceded(stepId);
+    public void rollbackForgetVolumes(URI vplexSystemURI, List<URI> volumeURIs, String stepId) {
+        forgetVolumes(vplexSystemURI, getNativeVolumeInfo(volumeURIs), stepId);
     }
 
     private Workflow.Method deleteVirtualVolumesMethod(URI vplexURI, List<URI> volumeURIs, List<URI> doNotFullyDeleteVolumeList) {

@@ -63,15 +63,4 @@ public interface DiscoveryDriver extends StorageDriver {
      */
     public DriverTask discoverStorageHostComponents(StorageSystem storageSystem, List<StorageHostComponent> embeddedStorageHostComponents);
 
-
-    /**
-     * Discover storage volumes
-     * @param storageSystem  Type: Input.
-     * @param storageVolumes Type: Output.
-     * @param token used for paging. Input 0 indicates that the first page should be returned. Output 0 indicates
-     *              that last page was returned. Type: Input/Output.
-     * @return
-     */
-    public DriverTask getStorageVolumes(StorageSystem storageSystem, List<StorageVolume> storageVolumes, MutableInt token);
-
 }

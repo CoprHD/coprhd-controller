@@ -49,6 +49,16 @@ public interface BlockStorageDriver extends StorageDriver {
     public DriverTask createVolumes(List<StorageVolume> volumes, StorageCapabilities capabilities);
 
     /**
+     * Discover storage volumes
+     * @param storageSystem  Type: Input.
+     * @param storageVolumes Type: Output.
+     * @param token used for paging. Input 0 indicates that the first page should be returned. Output 0 indicates
+     *              that last page was returned. Type: Input/Output.
+     * @return
+     */
+    public DriverTask getStorageVolumes(StorageSystem storageSystem, List<StorageVolume> storageVolumes, MutableInt token);
+
+    /**
      * Get snapshots of the specified storage volume.
      * @param volume storage volume. Type: Input
      * @return snapshots list of snapshots of the storage volume.
@@ -101,16 +111,17 @@ public interface BlockStorageDriver extends StorageDriver {
 
     /**
      * Restore volume to snapshot state.
-     * Implementation should check if the volume is part of consistency group and restore
+     * Implementation should validate consistency of this operation for snapshots of volumes
+     * in consistency group.
+     * Implementation should check if parent volumes are part of consistency group and restore
      * all volumes in the consistency group to the same consistency group snapshot (as defined
      * in the snapshot consistency group property).
-     * If the volume is not part of consistency group, restore only this volume to the snapshot.
+     * If parent volumes are not part of consistency group, restore only snapshots provided in the method.
      *
-     * @param volume Type: Input/Output.
-     * @param snapshot  Type: Input.
+     * @param snapshots  Type: Input/Output.
      * @return task
      */
-    public DriverTask restoreSnapshot(StorageVolume volume, VolumeSnapshot snapshot);
+    public DriverTask restoreSnapshot(List<VolumeSnapshot> snapshots);
 
     /**
      * Delete snapshots.
@@ -171,12 +182,30 @@ public interface BlockStorageDriver extends StorageDriver {
     public DriverTask createVolumeMirror(List<VolumeMirror> mirrors, StorageCapabilities capabilities);
 
     /**
+     * Creates consistency group mirror.
+     * @param consistencyGroup consistency group to mirror. Type: Input.
+     * @param mirrors volume mirrors to create. Type: Input/Output.
+     * @param capabilities capabilities required for mirrors.
+     * @return task
+     */
+    public DriverTask createConsistencyGroupMirror(VolumeConsistencyGroup consistencyGroup, List<VolumeMirror> mirrors,
+                                                     List<CapabilityInstance> capabilities);
+    /**
      * Delete mirrors.
      *
      * @param mirrors mirrors to delete. Type: Input.
      * @return task
      */
     public DriverTask deleteVolumeMirror(List<VolumeMirror> mirrors);
+
+    /**
+     * Delete mirrors of entire volume consistency group.
+     * Implementation should validate consistency of this operation: all mirrors from the same consistency group
+     * mirror set have to be specified in this call.
+     * @param mirrors mirrors to delete. Type: Input/Output
+     * @return task
+     */
+    public DriverTask deleteConsistencyGroupMirror(List<VolumeMirror> mirrors);
 
     /**
      * Split mirrors
@@ -196,11 +225,10 @@ public interface BlockStorageDriver extends StorageDriver {
     /**
      * Restore volume from a mirror
      *
-     * @param volume  Type: Input/Output.
-     * @param mirror  Type: Input.
+     * @param mirrors  Type: Input/Output
      * @return task
      */
-    public DriverTask restoreVolumeMirror(StorageVolume volume, VolumeMirror mirror);
+    public DriverTask restoreVolumeMirror(List<VolumeMirror> mirrors);
 
 
 
@@ -272,8 +300,8 @@ public interface BlockStorageDriver extends StorageDriver {
                                                      List<CapabilityInstance> capabilities);
 
     /**
-     * Delete snapshot.
-     * @param snapshots  Input.
+     * Delete consistency group snapshot.
+     * @param snapshots  Input/Output.
      * @return
      */
     public DriverTask deleteConsistencyGroupSnapshot(List<VolumeSnapshot> snapshots);

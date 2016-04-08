@@ -13,15 +13,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import com.emc.storageos.db.client.model.BlockSnapshot;
-import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedConsistencyGroup;
-import com.emc.storageos.storagedriver.BlockStorageDriver;
-import com.emc.storageos.storagedriver.model.StorageObject;
-import com.emc.storageos.storagedriver.model.VolumeConsistencyGroup;
-import com.emc.storageos.storagedriver.model.VolumeSnapshot;
-import com.emc.storageos.xtremio.restapi.XtremIOClient;
-import com.emc.storageos.xtremio.restapi.XtremIOConstants;
-import com.emc.storageos.xtremio.restapi.model.response.XtremIOConsistencyGroup;
 import org.apache.commons.lang.mutable.MutableInt;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -30,16 +21,21 @@ import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
+import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.StringSetMap;
+import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedConsistencyGroup;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.plugins.common.Constants;
 import com.emc.storageos.plugins.common.PartitionManager;
-import com.emc.storageos.storagedriver.DiscoveryDriver;
+import com.emc.storageos.storagedriver.BlockStorageDriver;
+import com.emc.storageos.storagedriver.model.StorageObject;
 import com.emc.storageos.storagedriver.model.StorageSystem;
 import com.emc.storageos.storagedriver.model.StorageVolume;
+import com.emc.storageos.storagedriver.model.VolumeConsistencyGroup;
+import com.emc.storageos.storagedriver.model.VolumeSnapshot;
 import com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator;
 import com.emc.storageos.volumecontroller.impl.plugins.ExternalDeviceCommunicationInterface;
 import com.emc.storageos.volumecontroller.impl.utils.DiscoveryUtils;
@@ -52,7 +48,7 @@ public class ExternalDeviceUnManagedVolumeDiscoverer {
     private static final String UNMANAGED_VOLUME = "UnManagedVolume";
     private static final String UNMANAGED_CONSISTENCY_GROUP = "UnManagedConsistencyGroup";
 
-    public void discoverUnManagedObjects(DiscoveryDriver driver, com.emc.storageos.db.client.model.StorageSystem storageSystem, DbClient dbClient,
+    public void discoverUnManagedBlockObjects(BlockStorageDriver driver, com.emc.storageos.db.client.model.StorageSystem storageSystem, DbClient dbClient,
                                          PartitionManager partitionManager) {
         log.info("Started discovery of UnManagedVolumes for system {}", storageSystem.getId());
         Set<URI> allCurrentUnManagedVolumeUris = new HashSet<>();
@@ -124,7 +120,7 @@ public class ExternalDeviceUnManagedVolumeDiscoverer {
                             unManagedVolumesToCreate,
                             unManagedVolumesToUpdate,
                             allCurrentUnManagedCgURIs, unManagedCGToUpdateMap,
-                            (BlockStorageDriver)driver, dbClient);
+                            driver, dbClient);
 
                     allCurrentUnManagedVolumeUris.addAll(unManagedSnaphotUris);
 
@@ -174,7 +170,8 @@ public class ExternalDeviceUnManagedVolumeDiscoverer {
 
     private UnManagedVolume createUnManagedVolume(StorageVolume driverVolume, com.emc.storageos.db.client.model.StorageSystem storageSystem,
                                                   com.emc.storageos.db.client.model.StoragePool storagePool,
-                                                  List<UnManagedVolume> unManagedVolumesToCreate, List<UnManagedVolume> unManagedVolumesToUpdate, DbClient dbClient) {
+                                                  List<UnManagedVolume> unManagedVolumesToCreate, List<UnManagedVolume> unManagedVolumesToUpdate,
+                                                  DbClient dbClient) {
 
         boolean newVolume = false;
         StringSetMap unManagedVolumeInformation = null;
@@ -340,7 +337,7 @@ public class ExternalDeviceUnManagedVolumeDiscoverer {
                                                       String cgNativeId, UnManagedVolume unManagedVolume,
                                                       Set<URI> allCurrentUnManagedCgURIs,
                                                       Map<String, UnManagedConsistencyGroup> unManagedCGToUpdateMap,
-                                                      DiscoveryDriver driver, DbClient dbClient) throws Exception {
+                                                      BlockStorageDriver driver, DbClient dbClient) throws Exception {
         log.info("Unmanaged storage object {} belongs to consistency group {} on the array", unManagedVolume.getLabel(),
                 cgNativeId);
         // determine the native guid for the unmanaged CG
@@ -600,7 +597,7 @@ public class ExternalDeviceUnManagedVolumeDiscoverer {
         // Update the unManagedVolume object with CG information
         String isParentVolumeInCG =
                 parentUnManagedVolume.getVolumeCharacterstics().get(UnManagedVolume.SupportedVolumeCharacterstics.IS_VOLUME_ADDED_TO_CONSISTENCYGROUP.toString());
-        unManagedVolume.getVolumeCharacterstics().replace(UnManagedVolume.SupportedVolumeCharacterstics.IS_VOLUME_ADDED_TO_CONSISTENCYGROUP.toString(),
+        unManagedVolume.getVolumeCharacterstics().put(UnManagedVolume.SupportedVolumeCharacterstics.IS_VOLUME_ADDED_TO_CONSISTENCYGROUP.toString(),
                 isParentVolumeInCG);
         if (isParentVolumeInCG.equals(Boolean.TRUE.toString())) {
             // set the uri of the unmanaged CG in the unmanaged snapshot object to the same as in parent volume.

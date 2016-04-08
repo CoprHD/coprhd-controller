@@ -17,6 +17,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import com.emc.storageos.storagedriver.BlockStorageDriver;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -61,9 +62,10 @@ public class ExternalDeviceCommunicationInterface extends
     private Map<String, AbstractStorageDriver> drivers;
 
     private ExternalDeviceUnManagedVolumeDiscoverer unManagedVolumeDiscoverer;
+    private ExternalDeviceUnManagedVolumeDiscoverer unManagedFileSystemDiscoverer;
 
     // Initialized drivers map
-    private Map<String, DiscoveryDriver> discoveryDrivers = new HashMap<>();
+    private Map<String, AbstractStorageDriver> discoveryDrivers = new HashMap<>();
 
     public void setUnManagedVolumeDiscoverer(ExternalDeviceUnManagedVolumeDiscoverer unManagedVolumeDiscoverer) {
         this.unManagedVolumeDiscoverer = unManagedVolumeDiscoverer;
@@ -78,9 +80,9 @@ public class ExternalDeviceCommunicationInterface extends
      * @param driverType
      * @return driver
      */
-    private synchronized DiscoveryDriver getDriver(String driverType) {
+    private synchronized AbstractStorageDriver getDriver(String driverType) {
         // look up driver
-        DiscoveryDriver discoveryDriver = discoveryDrivers.get(driverType);
+        AbstractStorageDriver discoveryDriver = discoveryDrivers.get(driverType);
         if (discoveryDriver != null) {
             return discoveryDriver;
         } else {
@@ -110,9 +112,10 @@ public class ExternalDeviceCommunicationInterface extends
 
     @Override
     public void collectStatisticsInformation(AccessProfile accessProfile) throws BaseCollectionException {
-       // todo: driver interface is tbd.
-        _log.debug("Entering {}", Thread.currentThread().getStackTrace()[1].getMethodName());
-        _log.debug("Exiting {}", Thread.currentThread().getStackTrace()[1].getMethodName());
+       // todo
+        _log.info("Entering {}", Thread.currentThread().getStackTrace()[1].getMethodName());
+        _log.info("Collect statistic information for external device of type {} is not supported", accessProfile.getSystemType());
+        _log.info("Exiting {}", Thread.currentThread().getStackTrace()[1].getMethodName());
     }
 
     @Override
@@ -125,7 +128,7 @@ public class ExternalDeviceCommunicationInterface extends
 
         // Get discovery driver class based on storage device type
         String deviceType = accessProfile.getSystemType();
-        DiscoveryDriver driver = getDriver(deviceType);
+        AbstractStorageDriver driver = getDriver(deviceType);
         if (driver == null) {
             String errorMsg = String.format("No driver entry defined for device type: %s . ", deviceType);
             _log.info(errorMsg);
@@ -136,8 +139,11 @@ public class ExternalDeviceCommunicationInterface extends
         try {
             if (null != accessProfile.getnamespace()
                     && (accessProfile.getnamespace().equals(com.emc.storageos.db.client.model.StorageSystem.Discovery_Namespaces.UNMANAGED_VOLUMES.toString()))) {
-                discoverUnManagedVolumes(driver, accessProfile);
-                _completer.statusReady(_dbClient, "Completed unmanaged volume discovery");
+                discoverUnManagedBlockObjects(driver, accessProfile);
+                _completer.statusReady(_dbClient, "Completed unmanaged block object discovery");
+            } else if (null != accessProfile.getnamespace()
+                    && (accessProfile.getnamespace().equals(com.emc.storageos.db.client.model.StorageSystem.Discovery_Namespaces.UNMANAGED_FILESYSTEMS.toString()))){
+               _log.warn("Discovery of unmanaged file systems is not supported for external storage system of type {}", accessProfile.getSystemType());
             } else {
                 // discover storage system
                 discoverStorageSystem(driver, accessProfile);
@@ -190,7 +196,7 @@ public class ExternalDeviceCommunicationInterface extends
         }
     }
 
-    public void discoverUnManagedVolumes(DiscoveryDriver driver, AccessProfile accessProfile) {
+    public void discoverUnManagedBlockObjects(AbstractStorageDriver driver, AccessProfile accessProfile) {
         String detailedStatusMessage;
         com.emc.storageos.db.client.model.StorageSystem storageSystem =
                 _dbClient.queryObject(com.emc.storageos.db.client.model.StorageSystem.class, accessProfile.getSystemId());
@@ -198,28 +204,28 @@ public class ExternalDeviceCommunicationInterface extends
             return;
         }
         try {
-            _log.info("discoverUnManagedVolumes information for storage system {}, native id {} - start",
+            _log.info("discoverUnManagedBlockObjects information for storage system {}, native id {} - start",
                     accessProfile.getSystemId(), storageSystem.getNativeGuid());
             storageSystem.setDiscoveryStatus(DiscoveredDataObject.DataCollectionJobStatus.IN_PROGRESS.toString());
             _dbClient.updateObject(storageSystem);
             if (accessProfile.getnamespace().equals(com.emc.storageos.db.client.model.StorageSystem.Discovery_Namespaces.UNMANAGED_VOLUMES.toString())) {
-                unManagedVolumeDiscoverer.discoverUnManagedObjects(driver, storageSystem, _dbClient, _partitionManager);
+                unManagedVolumeDiscoverer.discoverUnManagedBlockObjects((BlockStorageDriver)driver, storageSystem, _dbClient, _partitionManager);
             }
 
             // discovery succeeds
-            detailedStatusMessage = String.format("UnManaged Volumes Discovery completed successfully for %s: %s",
+            detailedStatusMessage = String.format("discoverUnManagedBlockObjects completed successfully for %s: %s",
                     storageSystem.getNativeId(), storageSystem.getId().toString());
             _log.info(detailedStatusMessage);
 
         } catch (Exception e) {
-            String message = String.format("Discovery of unmanaged volumes failed for system %s with native id %s : %s .",
+            String message = String.format("discoverUnManagedBlockObjects failed for system %s with native id %s : %s .",
                     storageSystem.getId(), storageSystem.getNativeGuid(), e.getMessage());
             _log.error(message, e);
             storageSystem.setLastDiscoveryStatusMessage(message);
             throw e;
         } finally {
             _dbClient.updateObject(storageSystem);
-            _log.info("Discovery of unmanaged volumes for system {} of type {} - end", accessProfile.getSystemId(), accessProfile.getSystemType());
+            _log.info("discoverUnManagedBlockObjects for system {} of type {} - end", accessProfile.getSystemId(), accessProfile.getSystemType());
         }
     }
 

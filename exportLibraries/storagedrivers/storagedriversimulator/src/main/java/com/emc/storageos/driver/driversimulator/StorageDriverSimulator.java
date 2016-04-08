@@ -313,14 +313,14 @@ public class StorageDriverSimulator extends AbstractStorageDriver implements Blo
     }
 
     @Override
-    public DriverTask restoreSnapshot(StorageVolume volume, VolumeSnapshot snapshot) {
+    public DriverTask restoreSnapshot(List<VolumeSnapshot> snapshots) {
         String taskType = "restore-snapshot";
         String taskId = String.format("%s+%s+%s", DRIVER_NAME, taskType, UUID.randomUUID().toString());
         DriverTask task = new DriverSimulatorTask(taskId);
         task.setStatus(DriverTask.TaskStatus.READY);
         String msg = String.format("StorageDriver: restoreSnapshot for storage system %s, " +
-                        "snapshots nativeId %s, group %s - end",
-                snapshot.getStorageSystemId(), snapshot.toString(), snapshot.getConsistencyGroup());
+                        "snapshots nativeId %s, snap group %s - end",
+                snapshots.get(0).getStorageSystemId(), snapshots.toString(), snapshots.get(0).getConsistencyGroup());
         _log.info(msg);
         task.setMessage(msg);
         return task;
@@ -420,11 +420,6 @@ public class StorageDriverSimulator extends AbstractStorageDriver implements Blo
 
     @Override
     public DriverTask resumeVolumeMirror(List<VolumeMirror> mirrors) {
-        return null;
-    }
-
-    @Override
-    public DriverTask restoreVolumeMirror(StorageVolume volume, VolumeMirror mirror) {
         return null;
     }
 
@@ -556,8 +551,9 @@ public class StorageDriverSimulator extends AbstractStorageDriver implements Blo
     public DriverTask getStorageVolumes(StorageSystem storageSystem, List<StorageVolume> storageVolumes, MutableInt token) {
 
         // create set of native volumes for our storage pools
+        // all volumes on the same page belong to the same consistency group
         //for (int vol = 0; vol < 3; vol ++) {
-        for (int vol = 0; vol < 1; vol ++) {
+        for (int vol = 0; vol < 2; vol ++) {
             StorageVolume driverVolume = new StorageVolume();
             driverVolume.setStorageSystemId(storageSystem.getNativeId());
             driverVolume.setStoragePoolId("pool-1234577-" + token.intValue() + storageSystem.getNativeId());
@@ -619,14 +615,14 @@ public class StorageDriverSimulator extends AbstractStorageDriver implements Blo
     @Override
     public List<VolumeSnapshot> getVolumeSnapshots(StorageVolume volume) {
         List<VolumeSnapshot> snapshots = new ArrayList<>();
-        for (int i=0; i<4; i++) {
+        for (int i=0; i<2; i++) {
             VolumeSnapshot snapshot = new VolumeSnapshot();
             snapshot.setParentId(volume.getNativeId());
             snapshot.setNativeId(volume.getNativeId() + "snap-" + i);
             snapshot.setDeviceLabel(volume.getNativeId() + "snap-" + i);
             snapshot.setStorageSystemId(volume.getStorageSystemId());
             snapshot.setAccessStatus(StorageObject.AccessStatus.READ_ONLY);
-            snapshot.setConsistencyGroup(Integer.toString(i%2));
+            snapshot.setConsistencyGroup(Integer.toString(i));
             snapshot.setAllocatedCapacity(1000L);
             snapshot.setProvisionedCapacity(volume.getProvisionedCapacity());
             snapshots.add(snapshot);
@@ -641,6 +637,21 @@ public class StorageDriverSimulator extends AbstractStorageDriver implements Blo
 
     @Override
     public List<VolumeMirror> getVolumeMirrors(StorageVolume volume) {
+        return null;
+    }
+
+    @Override
+    public DriverTask createConsistencyGroupMirror(VolumeConsistencyGroup consistencyGroup, List<VolumeMirror> mirrors, List<CapabilityInstance> capabilities) {
+        return null;
+    }
+
+    @Override
+    public DriverTask deleteConsistencyGroupMirror(List<VolumeMirror> mirrors) {
+        return null;
+    }
+
+    @Override
+    public DriverTask restoreVolumeMirror(List<VolumeMirror> mirrors) {
         return null;
     }
 

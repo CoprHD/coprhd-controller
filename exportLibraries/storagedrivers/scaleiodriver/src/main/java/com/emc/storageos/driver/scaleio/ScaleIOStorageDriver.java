@@ -284,15 +284,8 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver implements Block
         return task;
     }
 
-    /**
-     * Restore volume to snapshot state.
-     *
-     * @param volume Type: Input/Output.
-     * @param snapshot Type: Input.
-     * @return task
-     */
     @Override
-    public DriverTask restoreSnapshot(StorageVolume volume, VolumeSnapshot snapshot) {
+    public DriverTask restoreSnapshot(List<VolumeSnapshot> list) {
         return setUpNonSupportedTask(ScaleIOConstants.TaskType.SNAPSHOT_RESTORE);
     }
 
@@ -495,6 +488,12 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver implements Block
         return setUpNonSupportedTask(ScaleIOConstants.TaskType.MIRROR_OPERATIONS);
     }
 
+    @Override
+    public DriverTask createConsistencyGroupMirror(VolumeConsistencyGroup volumeConsistencyGroup, List<VolumeMirror> list,
+            List<CapabilityInstance> list1) {
+        return null;
+    }
+
     /**
      * Delete mirrors.
      *
@@ -504,6 +503,11 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver implements Block
     @Override
     public DriverTask deleteVolumeMirror(List<VolumeMirror> mirrors) {
         return setUpNonSupportedTask(ScaleIOConstants.TaskType.MIRROR_OPERATIONS);
+    }
+
+    @Override
+    public DriverTask deleteConsistencyGroupMirror(List<VolumeMirror> list) {
+        return null;
     }
 
     /**
@@ -528,15 +532,8 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver implements Block
         return setUpNonSupportedTask(ScaleIOConstants.TaskType.MIRROR_OPERATIONS);
     }
 
-    /**
-     * Restore volume from a mirror
-     *
-     * @param volume Type: Input/Output.
-     * @param mirror Type: Input.
-     * @return task
-     */
     @Override
-    public DriverTask restoreVolumeMirror(StorageVolume volume, VolumeMirror mirror) {
+    public DriverTask restoreVolumeMirror(List<VolumeMirror> list) {
         return setUpNonSupportedTask(ScaleIOConstants.TaskType.MIRROR_OPERATIONS);
     }
 
@@ -932,7 +929,7 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver implements Block
      */
     @Override
     public DriverTask deleteConsistencyGroupClone(List<VolumeClone> clones) {
-        //Delete CG Clone actually calls DetachVolumeClone and DeleteVolumes; Never call this.
+        // Delete CG Clone actually calls DetachVolumeClone and DeleteVolumes; Never call this.
         return null;
     }
 

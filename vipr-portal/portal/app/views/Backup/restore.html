@@ -46,12 +46,12 @@
 #{/if}
 
 #{form @doRestore(), id:'restoreForm',class:'form form-horizontal', autocomplete:"off"}
-    <div style="width: 650px;">
+    <div style="width: 850px;">
         #{field 'restoreForm.password'}
           %{
             field.required = true
           }%
-          #{Form.inputPasswordControlGroup field:field/}
+          #{Form.inputPasswordControlGroup field:field, width:4/}
         #{/field}
         #{field 'restoreForm.name'}
             <input type="hidden" name="${field.name}" value="${id}">
@@ -108,6 +108,7 @@
     });
 
     function checkPullStatusUpdates() {
+        checkPullProgressUpdate(); //invoke once immediately
         var checkUpdate = window.setInterval(function () {
             if (stop) {
                 console.info("Stop interval");

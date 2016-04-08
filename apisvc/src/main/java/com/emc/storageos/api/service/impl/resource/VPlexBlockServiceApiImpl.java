@@ -3874,6 +3874,11 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
                         String error = String.format("the backing volume %s for the VPLEX virtual volume has been deleted", backingVolId);
                         throw APIException.badRequests.volumeCantBeAddedToVolumeGroup(addVol.getLabel(), error);
                     }
+                    
+                    if (backingVol.checkForSRDF()) {
+                    	throw APIException.badRequests.volumeCantBeAddedToVolumeGroup(addVol.getLabel(), 
+                    			"Vplex volumes with SRDF protection are not supported with applications");
+                    }
 
                     String rgName = backingVol.getReplicationGroupInstance();
                     if (NullColumnValueGetter.isNotNullValue(rgName) && rgName.equals(addVolumes.getReplicationGroupName())) {

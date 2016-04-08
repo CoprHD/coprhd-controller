@@ -11473,6 +11473,8 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                     }
                 }
             }
+            
+            completer = new VolumeGroupUpdateTaskCompleter(volumeGroup, addVols, removeVolumeList, cgs, opId);
 
             addBEVolList.setVolumes(allAddBEVolumes);
             addBEVolList.setReplicationGroupName(addVolList.getReplicationGroupName());
@@ -11482,19 +11484,20 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             waitFor = _blockDeviceController.addStepsForUpdateApplication(workflow, addBEVolList, allRemoveBEVolumes, waitFor, opId);
 
             addStepsForImportClonesOfApplicationVolumes(workflow, waitFor, addVolList.getVolumes(), opId);
-
-            completer = new VolumeGroupUpdateTaskCompleter(volumeGroup, addVols, removeVolumeList, cgs, opId);
+            
             // Finish up and execute the plan.
             _log.info("Executing workflow plan {}", UPDATE_VOLUMEGROUP_WF_NAME);
             String successMessage = String.format(
                     "Update volume group successful for %s", volumeGroup.toString());
             workflow.executePlan(completer, successMessage);
         } catch (Exception e) {
-            _log.error("Exception while updating the volume group", e);
-            if (completer != null) {
-                completer.error(_dbClient,
-                        DeviceControllerException.exceptions.failedToUpdateVolumesFromAppication(volumeGroup.toString(), e.getMessage()));
-            }
+        	_log.error("Exception while updating the volume group", e);
+        	DeviceControllerException ex = DeviceControllerException.exceptions.failedToUpdateVolumesFromAppication(volumeGroup.toString(), e.getMessage());
+        	if (completer != null) {
+        		completer.error(_dbClient, ex);
+        	} else {
+        		throw ex;
+        	}
         }
     }
 

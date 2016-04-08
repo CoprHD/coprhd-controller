@@ -3803,7 +3803,10 @@ class Bourne:
         o = self.api('POST', posturi)
         if (wait):
            self.assert_is_dict(o)
-           sync = self.api_sync_2(o['resource']['id'], o['op_id'], self.volume_show_task)
+           try:
+               sync = self.api_sync_2(o['resource']['id'], o['op_id'], self.volume_show_task)
+           except:
+               print o
            s = sync['state']
            m = sync['message']
         return (o, s, m)

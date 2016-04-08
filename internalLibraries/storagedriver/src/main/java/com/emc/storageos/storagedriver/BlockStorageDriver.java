@@ -4,21 +4,14 @@
  */
 package com.emc.storageos.storagedriver;
 
-import java.util.List;
-import java.util.Map;
-
-import com.emc.storageos.storagedriver.model.ITL;
-import com.emc.storageos.storagedriver.model.Initiator;
-import com.emc.storageos.storagedriver.model.StoragePort;
-import com.emc.storageos.storagedriver.model.StorageSystem;
-import com.emc.storageos.storagedriver.model.StorageVolume;
-import com.emc.storageos.storagedriver.model.VolumeClone;
-import com.emc.storageos.storagedriver.model.VolumeConsistencyGroup;
-import com.emc.storageos.storagedriver.model.VolumeMirror;
-import com.emc.storageos.storagedriver.model.VolumeSnapshot;
+import com.emc.storageos.storagedriver.model.*;
 import com.emc.storageos.storagedriver.storagecapabilities.CapabilityInstance;
 import com.emc.storageos.storagedriver.storagecapabilities.StorageCapabilities;
 import org.apache.commons.lang.mutable.MutableBoolean;
+import org.apache.commons.lang.mutable.MutableInt;
+
+import java.util.List;
+import java.util.Map;
 
 /**
  * BlockStorageDriver interface.
@@ -46,6 +39,37 @@ public interface BlockStorageDriver extends StorageDriver {
      * @return task
      */
     public DriverTask createVolumes(List<StorageVolume> volumes, StorageCapabilities capabilities);
+
+    /**
+     * Discover storage volumes
+     * @param storageSystem  Type: Input.
+     * @param storageVolumes Type: Output.
+     * @param token used for paging. Input 0 indicates that the first page should be returned. Output 0 indicates
+     *              that last page was returned. Type: Input/Output.
+     * @return
+     */
+    public DriverTask getStorageVolumes(StorageSystem storageSystem, List<StorageVolume> storageVolumes, MutableInt token);
+
+    /**
+     * Get snapshots of the specified storage volume.
+     * @param volume storage volume. Type: Input
+     * @return snapshots list of snapshots of the storage volume.
+     */
+    public  List<VolumeSnapshot> getVolumeSnapshots(StorageVolume volume);
+
+    /**
+     * Get clones (full copies) of the specified volume.
+     * @param volume storage volume. Type: Input
+     * @return clones list of clones of the volume.
+     */
+    public  List<VolumeClone> getVolumeClones(StorageVolume volume);
+
+    /**
+     * Get mirrors (continuous copies) of the specified volume.
+     * @param volume storage volume. Type: Input
+     * @return mirrors list of mirrors of the volume.
+     */
+    public  List<VolumeMirror> getVolumeMirrors(StorageVolume volume);
 
     /**
      * Expand volume.
@@ -79,16 +103,17 @@ public interface BlockStorageDriver extends StorageDriver {
 
     /**
      * Restore volume to snapshot state.
-     * Implementation should check if the volume is part of consistency group and restore
+     * Implementation should validate consistency of this operation for snapshots of volumes
+     * in consistency group.
+     * Implementation should check if parent volumes are part of consistency group and restore
      * all volumes in the consistency group to the same consistency group snapshot (as defined
-     * by the snapshot parameter).
-     * If the volume is not part of consistency group, restore this volume to the snapshot.
+     * in the snapshot consistency group property).
+     * If parent volumes are not part of consistency group, restore only snapshots provided in the method.
      *
-     * @param volume Type: Input/Output.
-     * @param snapshot  Type: Input.
+     * @param snapshots  Type: Input/Output.
      * @return task
      */
-    public DriverTask restoreSnapshot(StorageVolume volume, VolumeSnapshot snapshot);
+    public DriverTask restoreSnapshot(List<VolumeSnapshot> snapshots);
 
     /**
      * Delete snapshots.
@@ -149,12 +174,30 @@ public interface BlockStorageDriver extends StorageDriver {
     public DriverTask createVolumeMirror(List<VolumeMirror> mirrors, StorageCapabilities capabilities);
 
     /**
+     * Creates consistency group mirror.
+     * @param consistencyGroup consistency group to mirror. Type: Input.
+     * @param mirrors volume mirrors to create. Type: Input/Output.
+     * @param capabilities capabilities required for mirrors.
+     * @return task
+     */
+    public DriverTask createConsistencyGroupMirror(VolumeConsistencyGroup consistencyGroup, List<VolumeMirror> mirrors,
+                                                     List<CapabilityInstance> capabilities);
+    /**
      * Delete mirrors.
      *
      * @param mirrors mirrors to delete. Type: Input.
      * @return task
      */
     public DriverTask deleteVolumeMirror(List<VolumeMirror> mirrors);
+
+    /**
+     * Delete mirrors of entire volume consistency group.
+     * Implementation should validate consistency of this operation: all mirrors from the same consistency group
+     * mirror set have to be specified in this call.
+     * @param mirrors mirrors to delete. Type: Input/Output
+     * @return task
+     */
+    public DriverTask deleteConsistencyGroupMirror(List<VolumeMirror> mirrors);
 
     /**
      * Split mirrors
@@ -174,23 +217,25 @@ public interface BlockStorageDriver extends StorageDriver {
     /**
      * Restore volume from a mirror
      *
-     * @param volume  Type: Input/Output.
-     * @param mirror  Type: Input.
+     * @param mirrors  Type: Input/Output
      * @return task
      */
-    public DriverTask restoreVolumeMirror(StorageVolume volume, VolumeMirror mirror);
+    public DriverTask restoreVolumeMirror(List<VolumeMirror> mirrors);
 
 
 
     // Block Export operations
     /**
-     * Get export masks for a given set of initiators.
+     * Get export mappings defined in the specified storage system for a given set of initiators.
+     * If "initiators" parameter is null, all storage system export mappings should be returned.
      *
      * @param storageSystem Storage system to get ITLs from. Type: Input.
-     * @param initiators Type: Input.
-     * @return list of export masks
+     * @param initiators Type: Input. When null value is passed, all storage system export mappings should be returned.
+     * @param token used for paging. Input 0 indicates that the first page should be returned. Output 0 indicates
+     *              that last page was returned. Type: Input/Output.
+     * @return list of export mappings
      */
-    public List<ITL> getITL(StorageSystem storageSystem, List<Initiator> initiators);
+    public List<ITL> getITL(StorageSystem storageSystem, List<Initiator> initiators, MutableInt token);
 
     /**
      * Export volumes to initiators through a given set of ports. If ports are not provided,
@@ -224,7 +269,7 @@ public interface BlockStorageDriver extends StorageDriver {
     // Consistency group operations.
     /**
      * Create block consistency group.
-     * @param consistencyGroup input/output
+     * @param consistencyGroup Type: input/output
      * @return
      */
     public DriverTask createConsistencyGroup(VolumeConsistencyGroup consistencyGroup);
@@ -238,7 +283,7 @@ public interface BlockStorageDriver extends StorageDriver {
 
     /**
      * Create snapshot of consistency group.
-     * @param consistencyGroup input parameter
+     * @param consistencyGroup consistency group of parent volume. Type: Input.
      * @param snapshots   input/output parameter
      * @param capabilities Capabilities of snapshots. Type: Input.
      * @return
@@ -247,8 +292,8 @@ public interface BlockStorageDriver extends StorageDriver {
                                                      List<CapabilityInstance> capabilities);
 
     /**
-     * Delete snapshot.
-     * @param snapshots  Input.
+     * Delete consistency group snapshot.
+     * @param snapshots  Input/Output.
      * @return
      */
     public DriverTask deleteConsistencyGroupSnapshot(List<VolumeSnapshot> snapshots);
@@ -257,7 +302,7 @@ public interface BlockStorageDriver extends StorageDriver {
      * Create clone of consistency group.
      * It is implementation responsibility to validate consistency of this group operation.
      *
-     * @param consistencyGroup input
+     * @param consistencyGroup consistency group of parent volume. Type: Input.
      * @param clones input/output
      * @param capabilities Capabilities of clones. Type: Input.
      * @return

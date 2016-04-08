@@ -5,7 +5,7 @@
 package com.emc.storageos.storagedriver.model;
 
 
-public class VolumeClone extends StorageBlockObject {
+public class VolumeClone extends StorageVolume {
 
     // parent volume id. Type: Input.
     private String parentId;
@@ -46,6 +46,6 @@ public class VolumeClone extends StorageBlockObject {
 
     @Override
     public String toString() {
-        return "VolumeClone-"+storageSystemId+"-" + getParentId()+"-"+getNativeId();
+        return getNativeId();
     }
 }

@@ -9,20 +9,10 @@ import java.util.List;
 
 public class ITL {
 
-    // Device native ID for this export mask.
-    private String nativeId;
-
     List<Initiator> initiators;
     List<StorageVolume> volumes;
     List<StoragePort> ports;
 
-    public String getNativeId() {
-        return nativeId;
-    }
-
-    public void setNativeId(String nativeId) {
-        this.nativeId = nativeId;
-    }
 
     public List<Initiator> getInitiators() {
         return initiators;

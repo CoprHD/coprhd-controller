@@ -51,6 +51,7 @@
 
         <entry key="Discovery-ecs-all" value="discovery-ecs-context.xml" />
         <entry key="Discovery-externaldevice-all" value="discovery-externaldevice-context.xml" />
+        <entry key="Discovery-externaldevice-unmanaged_volumes" value="discovery-externaldevice-context.xml" />
 
         <entry key="Discovery-rp-all" value="discovery-recoverpoint-context.xml" />
         <entry key="Discovery-rp-unmanaged_cgs" value="discovery-recoverpoint-context.xml" />
@@ -66,6 +67,7 @@
         <entry key="Metering-scaleio" value="discovery-scaleio-context.xml"/>
         <entry key="Metering-datadomain" value="discovery-datadomain-context.xml" />
         <entry key="Metering-vnxe" value="metering-vnxe-context.xml" />
+        <entry key="Metering-externaldevice" value="discovery-externaldevice-context.xml" />
 
         <!-- in seconds -->
         <!-- how often the job should be scheduled automatically -->

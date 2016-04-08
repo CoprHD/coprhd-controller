@@ -8,18 +8,18 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
-import com.emc.storageos.storagedriver.BlockStorageDriver;
-import com.emc.storageos.storagedriver.model.StorageHostComponent;
 import org.apache.commons.lang.mutable.MutableBoolean;
 import org.apache.commons.lang.mutable.MutableInt;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.storagedriver.AbstractStorageDriver;
+import com.emc.storageos.storagedriver.BlockStorageDriver;
 import com.emc.storageos.storagedriver.DriverTask;
 import com.emc.storageos.storagedriver.RegistrationData;
 import com.emc.storageos.storagedriver.model.ITL;
 import com.emc.storageos.storagedriver.model.Initiator;
+import com.emc.storageos.storagedriver.model.StorageHostComponent;
 import com.emc.storageos.storagedriver.model.StorageObject;
 import com.emc.storageos.storagedriver.model.StoragePool;
 import com.emc.storageos.storagedriver.model.StoragePort;
@@ -49,8 +49,9 @@ public class StorageDriverSimulator extends AbstractStorageDriver implements Blo
     //StorageDriver implementation
 
     @Override
-    public List<String> getSystemTypes() {
-        return null;
+    public RegistrationData getRegistrationData() {
+        RegistrationData registrationData = new RegistrationData("driverSimulator", "driversystem", null);
+        return registrationData;
     }
 
     @Override
@@ -61,18 +62,23 @@ public class StorageDriverSimulator extends AbstractStorageDriver implements Blo
     @Override
     public <T extends StorageObject> T getStorageObject(String storageSystemId, String objectId, Class<T> type) {
         if (StorageVolume.class.getSimpleName().equals(type.getSimpleName())) {
-
+            StorageVolume obj = new StorageVolume();
+            obj.setAllocatedCapacity(200L);
+            return (T) obj;
+        } else if (VolumeConsistencyGroup.class.getSimpleName().equals(type.getSimpleName())) {
+            VolumeConsistencyGroup cg = new VolumeConsistencyGroup();
+            cg.setStorageSystemId(storageSystemId);
+            cg.setNativeId(objectId);
+            cg.setDeviceLabel(objectId);
+            _log.info("Return volume cg {} from array {}", objectId, storageSystemId);
+            return (T) cg;
+        } else {
+            StorageVolume obj = new StorageVolume();
+            obj.setAllocatedCapacity(200L);
+            return (T) obj;
         }
-        StorageVolume obj = new StorageVolume();
-        obj.setAllocatedCapacity(200L);
-        return (T) obj;
     }
     // DiscoveryDriver implementation
-
-    @Override
-    public RegistrationData getRegistrationData() {
-        return null;
-    }
 
     @Override
     public DriverTask discoverStorageSystem(List<StorageSystem> storageSystems) {
@@ -292,7 +298,9 @@ public class StorageDriverSimulator extends AbstractStorageDriver implements Blo
         String snapTimestamp = Long.toString(System.currentTimeMillis());
         for (VolumeSnapshot snapshot : snapshots) {
             snapshot.setNativeId("snap-" + snapshot.getParentId() + UUID.randomUUID().toString());
-            snapshot.setTimestamp(snapTimestamp);
+            snapshot.setConsistencyGroup(snapTimestamp);
+            snapshot.setAllocatedCapacity(1000L);
+            snapshot.setProvisionedCapacity(2000L);
         }
         String taskType = "create-volume-snapshot";
         String taskId = String.format("%s+%s+%s", DRIVER_NAME, taskType, UUID.randomUUID().toString());
@@ -305,14 +313,14 @@ public class StorageDriverSimulator extends AbstractStorageDriver implements Blo
     }
 
     @Override
-    public DriverTask restoreSnapshot(StorageVolume volume, VolumeSnapshot snapshot) {
+    public DriverTask restoreSnapshot(List<VolumeSnapshot> snapshots) {
         String taskType = "restore-snapshot";
         String taskId = String.format("%s+%s+%s", DRIVER_NAME, taskType, UUID.randomUUID().toString());
         DriverTask task = new DriverSimulatorTask(taskId);
         task.setStatus(DriverTask.TaskStatus.READY);
         String msg = String.format("StorageDriver: restoreSnapshot for storage system %s, " +
-                        "snapshots nativeId %s, group %s - end",
-                snapshot.getStorageSystemId(), snapshot.toString(), snapshot.getConsistencyGroup());
+                        "snapshots nativeId %s, snap group %s - end",
+                snapshots.get(0).getStorageSystemId(), snapshots.toString(), snapshots.get(0).getConsistencyGroup());
         _log.info(msg);
         task.setMessage(msg);
         return task;
@@ -338,6 +346,8 @@ public class StorageDriverSimulator extends AbstractStorageDriver implements Blo
             clone.setNativeId("clone-" + clone.getParentId() + clone.getDisplayName());
             clone.setWwn(String.format("%s%s", clone.getStorageSystemId(), clone.getNativeId()));
             clone.setReplicationState(VolumeClone.ReplicationState.SYNCHRONIZED);
+            clone.setProvisionedCapacity(clone.getRequestedCapacity());
+            clone.setAllocatedCapacity(clone.getRequestedCapacity());
             clone.setDeviceLabel(clone.getNativeId());
         }
         String taskType = "create-volume-clone";
@@ -416,12 +426,7 @@ public class StorageDriverSimulator extends AbstractStorageDriver implements Blo
     }
 
     @Override
-    public DriverTask restoreVolumeMirror(StorageVolume volume, VolumeMirror mirror) {
-        return null;
-    }
-
-    @Override
-    public List<ITL> getITL(StorageSystem storageSystem, List<Initiator> initiators) {
+    public List<ITL> getITL(StorageSystem storageSystem, List<Initiator> initiators, MutableInt token) {
         return null;
     }
 
@@ -490,7 +495,8 @@ public class StorageDriverSimulator extends AbstractStorageDriver implements Blo
         String snapTimestamp = Long.toString(System.currentTimeMillis());
         for (VolumeSnapshot snapshot : snapshots) {
             snapshot.setNativeId("snap-" + snapshot.getParentId() + consistencyGroup.getDisplayName() + UUID.randomUUID().toString());
-            snapshot.setTimestamp(snapTimestamp);
+            snapshot.setConsistencyGroup(snapTimestamp);
+            snapshot.setSnapSetId(snapTimestamp);
         }
         String taskType = "create-group-snapshot";
         String taskId = String.format("%s+%s+%s", DRIVER_NAME, taskType, UUID.randomUUID().toString());
@@ -510,7 +516,7 @@ public class StorageDriverSimulator extends AbstractStorageDriver implements Blo
         DriverTask task = new DriverSimulatorTask(taskId);
         task.setStatus(DriverTask.TaskStatus.READY);
         String msg = String.format("StorageDriver: deleteConsistencyGroupSnapshot for storage system %s, " +
-                        "consistencyGroup nativeId %s, group snapshots %s - end",
+                        "snapshot consistencyGroup nativeId %s, group snapshots %s - end",
                 snapshots.get(0).getStorageSystemId(), snapshots.get(0).getConsistencyGroup(), snapshots.toString());
         _log.info(msg);
         task.setMessage(msg);
@@ -525,6 +531,8 @@ public class StorageDriverSimulator extends AbstractStorageDriver implements Blo
             clone.setWwn(String.format("%s%s", clone.getStorageSystemId(), clone.getNativeId()));
             clone.setReplicationState(VolumeClone.ReplicationState.SYNCHRONIZED);
             clone.setDeviceLabel(clone.getNativeId());
+            clone.setProvisionedCapacity(clone.getRequestedCapacity());
+            clone.setAllocatedCapacity(clone.getRequestedCapacity());
             clone.setConsistencyGroup(consistencyGroup.getNativeId()+"_clone-"+cloneTimestamp);
         }
         String taskType = "create-group-clone";
@@ -545,7 +553,44 @@ public class StorageDriverSimulator extends AbstractStorageDriver implements Blo
 
     @Override
     public DriverTask getStorageVolumes(StorageSystem storageSystem, List<StorageVolume> storageVolumes, MutableInt token) {
-        return null;
+
+        // create set of native volumes for our storage pools
+        // all volumes on the same page belong to the same consistency group
+        //for (int vol = 0; vol < 3; vol ++) {
+        for (int vol = 0; vol < 2; vol ++) {
+            StorageVolume driverVolume = new StorageVolume();
+            driverVolume.setStorageSystemId(storageSystem.getNativeId());
+            driverVolume.setStoragePoolId("pool-1234577-" + token.intValue() + storageSystem.getNativeId());
+            driverVolume.setNativeId("driverSimulatorVolume-1234567-" + token.intValue() + "-" + vol);
+            driverVolume.setConsistencyGroup("driverSimulatorCG-"+token.intValue());
+            driverVolume.setAccessStatus(StorageVolume.AccessStatus.READ_WRITE);
+            driverVolume.setThinlyProvisioned(true);
+            driverVolume.setThinVolumePreAllocationSize(3000L);
+            driverVolume.setProvisionedCapacity(3*1024*1024*1024L);
+            driverVolume.setAllocatedCapacity(50000L);
+            driverVolume.setDeviceLabel(driverVolume.getNativeId());
+            driverVolume.setWwn(String.format("%s%s", driverVolume.getStorageSystemId(), driverVolume.getNativeId()));
+            storageVolumes.add(driverVolume);
+            _log.info("Unmanaged volume info: pool {}, volume {}", driverVolume.getStoragePoolId(), driverVolume);
+        }
+
+        String taskType = "create-storage-volumes";
+
+        String taskId = String.format("%s+%s+%s", DRIVER_NAME, taskType, UUID.randomUUID().toString());
+        DriverTask task = new DriverSimulatorTask(taskId);
+        task.setStatus(DriverTask.TaskStatus.READY);
+        task.setMessage("Get storage volumes: page " + token);
+
+        _log.info("StorageDriver: get storage volumes information for storage system {}, token  {} - end",
+                storageSystem.getNativeId(), token);
+        // set next value
+        if (token.intValue() < 1) { // two pages. each page has different consistency group
+            token.setValue(token.intValue() + 1);
+        //    token.setValue(0); // last page
+        } else {
+            token.setValue(0); // last page
+        }
+        return task;
     }
 
     @Override
@@ -572,7 +617,51 @@ public class StorageDriverSimulator extends AbstractStorageDriver implements Blo
         this.driverRegistry.setDriverAttributesForKey("StorageDriverSimulator", systemNativeId, attributes);
     }
 
-//
+    @Override
+    public List<VolumeSnapshot> getVolumeSnapshots(StorageVolume volume) {
+        List<VolumeSnapshot> snapshots = new ArrayList<>();
+       // for (int i=0; i<2; i++) {
+        for (int i=0; i<2; i++) {
+            VolumeSnapshot snapshot = new VolumeSnapshot();
+            snapshot.setParentId(volume.getNativeId());
+            snapshot.setNativeId(volume.getNativeId() + "snap-" + i);
+            snapshot.setDeviceLabel(volume.getNativeId() + "snap-" + i);
+            snapshot.setStorageSystemId(volume.getStorageSystemId());
+            snapshot.setAccessStatus(StorageObject.AccessStatus.READ_ONLY);
+            snapshot.setConsistencyGroup(volume.getConsistencyGroup()+"snapSet-"+i);
+            snapshot.setAllocatedCapacity(1000L);
+            snapshot.setProvisionedCapacity(volume.getProvisionedCapacity());
+            snapshots.add(snapshot);
+        }
+        return snapshots;
+    }
+
+    @Override
+    public List<VolumeClone> getVolumeClones(StorageVolume volume) {
+        return null;
+    }
+
+    @Override
+    public List<VolumeMirror> getVolumeMirrors(StorageVolume volume) {
+        return null;
+    }
+
+    @Override
+    public DriverTask createConsistencyGroupMirror(VolumeConsistencyGroup consistencyGroup, List<VolumeMirror> mirrors, List<CapabilityInstance> capabilities) {
+        return null;
+    }
+
+    @Override
+    public DriverTask deleteConsistencyGroupMirror(List<VolumeMirror> mirrors) {
+        return null;
+    }
+
+    @Override
+    public DriverTask restoreVolumeMirror(List<VolumeMirror> mirrors) {
+        return null;
+    }
+
+    //
 //    public static void main (String[] args) {
 //        StorageDriver driver = new NewStorageDriver(RegistryImpl.getInstance(), LockManagerImpl.getInstance(null));
 //        StorageVolume volume = driver.getStorageObject("123", "234", StorageVolume.class);

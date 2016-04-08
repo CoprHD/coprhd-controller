@@ -43,6 +43,16 @@ public class Initiator extends StorageObject {
     }
 
     /**
+     * Type of initiator: host initiator, vplex backend initiator, etc.
+     */
+    private Type initiatorType;
+    public static enum Type {
+        Host,
+        VPLEX,
+        RP
+    }
+
+    /**
      * The FQDN of the initiator host.
      */
     private String hostName;
@@ -79,6 +89,14 @@ public class Initiator extends StorageObject {
 
     public void setProtocol(Protocol protocol) {
         this.protocol = protocol;
+    }
+
+    public Type getInitiatorType() {
+        return initiatorType;
+    }
+
+    public void setInitiatorType(Type initiatorType) {
+        this.initiatorType = initiatorType;
     }
 
     public String getNetworkMask() {

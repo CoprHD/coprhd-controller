@@ -3827,8 +3827,16 @@ public class VolumeIngestionUtil {
             BlockConsistencyGroup cg = new BlockConsistencyGroup();
             cg.setId(URIUtil.createId(BlockConsistencyGroup.class));
             cg.setLabel(cgName);
+<<<<<<< HEAD
             cg.setProject(new NamedURI(projectUri, context.getProject().getLabel()));
             cg.setTenant(context.getProject().getTenantOrg());
+=======
+            if (NullColumnValueGetter.isNotNullValue(umcg.getNativeId())) {
+                cg.setNativeId(umcg.getNativeId());
+            }
+            cg.setProject(new NamedURI(projectUri, cgName));
+            cg.setTenant(new NamedURI(tenantUri, cgName));
+>>>>>>> feature-COP-21617-southbound-ingestion
             cg.addConsistencyGroupTypes(Types.LOCAL.name());
             cg.addSystemConsistencyGroup(storageSystem.getId().toString(), cgName);
             cg.setStorageController(storageSystem.getId());

@@ -51,10 +51,7 @@ public class DbAuditLogRetrieverTest {
         DbAuditLogRetriever dummyDbAuditLogRetriever = new DbAuditLogRetriever();
         dummyDbAuditLogRetriever.setDbClient(dbClient);
         String timeBucket = "2012-01-07T00";
-        DateTime startTime = new DateTime(timeBucket, DateTimeZone.UTC);
-        DateTime endTime =  startTime.plusMinutes(59);
-        AuditLogRequest auditLogRequest = new AuditLogRequest.Builder().timeBucket(timeBucket)
-                .start(startTime).end(endTime).lang("en_US").build();
+        AuditLogRequest auditLogRequest = getAuditLogRequest(timeBucket);
         MediaType mediaType = MediaType.APPLICATION_XML_TYPE;
 
         File of = new File(XmlTestOutputFile);
@@ -93,10 +90,7 @@ public class DbAuditLogRetrieverTest {
         DbAuditLogRetriever dummyDbAuditLogRetriever = new DbAuditLogRetriever();
         dummyDbAuditLogRetriever.setDbClient(dbClient);
         String timeBucket = "2012-01-02T00";
-        DateTime startTime = new DateTime(timeBucket, DateTimeZone.UTC);
-        DateTime endTime =  startTime.plusMinutes(59);
-        AuditLogRequest auditLogRequest = new AuditLogRequest.Builder().timeBucket(timeBucket)
-                .start(startTime).end(endTime).lang("en_US").build();
+        AuditLogRequest auditLogRequest = getAuditLogRequest(timeBucket);
         MediaType mediaType = MediaType.APPLICATION_XML_TYPE;
 
         File of = new File(XmlTestOutputFile);
@@ -122,10 +116,7 @@ public class DbAuditLogRetrieverTest {
         DbAuditLogRetriever dummyDbAuditLogRetriever = new DbAuditLogRetriever();
         dummyDbAuditLogRetriever.setDbClient(dbClient);
         String timeBucket = "2012-01-08T00";
-        DateTime startTime = new DateTime(timeBucket, DateTimeZone.UTC);
-        DateTime endTime =  startTime.plusMinutes(59);
-        AuditLogRequest auditLogRequest = new AuditLogRequest.Builder().timeBucket(timeBucket)
-                .start(startTime).end(endTime).lang("en_US").build();
+        AuditLogRequest auditLogRequest = getAuditLogRequest(timeBucket);
         MediaType mediaType = MediaType.APPLICATION_XML_TYPE;
 
         File of = new File(XmlTestOutputFile);
@@ -220,6 +211,13 @@ public class DbAuditLogRetrieverTest {
         if (f.exists()) {
             f.delete();
         }
+    }
+
+    private AuditLogRequest getAuditLogRequest(String timeBucket) {
+        DateTime startTime = new DateTime(timeBucket, DateTimeZone.UTC);
+        DateTime endTime =  startTime.plusMinutes(59);
+        return new AuditLogRequest.Builder().timeBucket(timeBucket)
+                .start(startTime).end(endTime).lang("en_US").build();
     }
 
 }

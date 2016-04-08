@@ -1202,7 +1202,7 @@ public abstract class VdcOpHandler {
     }
     
     protected void refreshCoordinator() {
-        if (drUtil.isStandby()) {
+        if (coordinator.isStandby()) {
             String localZkMode = drUtil.getLocalCoordinatorMode();
             if(drUtil.isParticipantNode(localZkMode)) {
                 log.info("No need to reconfig coordinator on participant standby nodes");

@@ -799,10 +799,11 @@ public class TenantsService extends TaggedResource {
         // for each project, get all volumes. Collect volume group ids for all volumes
         StringSet volumeGroups = new StringSet();
         for (URI project : projects) {
-            List<Volume> volumes = CustomQueryUtility.queryActiveResourcesByConstraint(_dbClient, Volume.class,
-                    ContainmentConstraint.Factory.getProjectVolumeConstraint(project));
-            for (Volume volume : volumes) {
-                volumeGroups.addAll(volume.getVolumeGroupIds());
+            URIQueryResultList list = new URIQueryResultList();
+            _dbClient.queryByConstraint(ContainmentConstraint.Factory.getProjectVolumeConstraint(project), list);
+            Iterator<Volume> resultsIt = _dbClient.queryIterativeObjects(Volume.class, list);
+            while (resultsIt.hasNext()) {
+                volumeGroups.addAll(resultsIt.next().getVolumeGroupIds());
             }
         }
 

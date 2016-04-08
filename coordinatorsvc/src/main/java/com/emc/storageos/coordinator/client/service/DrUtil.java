@@ -392,6 +392,27 @@ public class DrUtil {
     }
     
     /**
+     * Check if all syssvc is up and running for specified site
+     * @param siteId
+     * @return true if all syssvc is running 
+     */
+    public boolean isAllSyssvcUp(String siteId){
+     // Get service beacons for given site - - assume syssvc on all sites share same service name in beacon
+        try {
+            String syssvcName = ((CoordinatorClientImpl)coordinator).getSysSvcName();
+            String syssvcVersion = ((CoordinatorClientImpl)coordinator).getSysSvcVersion();
+            List<Service> svcs = coordinator.locateAllServices(siteId, syssvcName, syssvcVersion, null, null);
+            
+            Site site = this.getSiteFromLocalVdc(siteId);
+            
+            log.info("Node count is {}, running syssvc count is", site.getNodeCount(), svcs.size());
+            return svcs.size() == site.getNodeCount();
+        } catch (CoordinatorException ex) {
+            return false;
+        }
+    }
+    
+    /**
      * Update SiteInfo's action and version for specified site id 
      * @param siteId site UUID
      * @param action action to take

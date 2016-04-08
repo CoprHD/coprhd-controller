@@ -220,7 +220,7 @@ public class DbObjectMapper {
                 }
             }
         }
-        if (from.getNamespace() != null) {
+        if (from.getNamespace() != null && !"null".equals(from.getNamespace())) {
             to.setNamespace(from.getNamespace());
         }
         

@@ -157,11 +157,10 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
 
         Volume volume = (Volume) blockObject;
 
-        boolean unManagedVolumeExported = 
-                VolumeIngestionUtil.checkUnManagedResourceIsNonRPExported(unManagedVolume)
-                    && !unManagedVolume.getUnmanagedExportMasks().isEmpty();
+        boolean unManagedVolumeExported = VolumeIngestionUtil.checkUnManagedResourceIsNonRPExported(unManagedVolume)
+                && !unManagedVolume.getUnmanagedExportMasks().isEmpty();
         if (isExportIngestionPending(volume, unManagedVolume.getId(), unManagedVolumeExported)) {
-            _logger.info("Volume {} has already been ingested for RecoverPoint, but is still exported via UnManagedExportMasks: {}", 
+            _logger.info("Volume {} has already been ingested for RecoverPoint, but is still exported via UnManagedExportMasks: {}",
                     volume.forDisplay(), unManagedVolume.getUnmanagedExportMasks());
             return clazz.cast(volume);
         }
@@ -190,7 +189,7 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
                 _logger.info("Successfully ingested all volumes associated with RP consistency group");
 
                 VolumeIngestionUtil.validateRPVolumesAlignWithIngestVpool(parentRequestContext, umpset, _dbClient);
-                
+
                 createProtectionSet(volumeContext);
                 BlockConsistencyGroup bcg = createBlockConsistencyGroup(volumeContext);
                 volumeContext.getCGObjectsToCreateMap().put(bcg.getId().toString(), bcg);
@@ -895,7 +894,7 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
         }
 
         return VolumeIngestionUtil.validateAllVolumesInCGIngested(parentRequestContext.findAllUnManagedVolumesToBeDeleted(), umpset,
-                _dbClient);
+                parentRequestContext, _dbClient);
     }
 
     /**

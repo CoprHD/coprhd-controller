@@ -68,6 +68,7 @@ auth.VDCRoleAssignments.create = vipr_c_assign_role
 auth.UserGroup = SecurityUserGroups
 auth.UserGroup.create = SecurityCreateUserGroup
 auth.UserGroup.edit = SecurityEditUserGroup
+auth.IPsec.ipsec = SecurityIPsec
 
 # Catalog
 catalog.ApprovalConfiguration = vipr_c_approval_settings
@@ -128,6 +129,10 @@ infra.VirtualDataCenters.create = CreateVirtualDataCenter
 infra.VirtualDataCenters.edit = EditVirtualDataCenter
 infra.VirtualDataCenters.endpoints = InterVDCCommunicationEndpoints
 infra.ClusterInfo = IPNetworkConfigurationPage
+infra.DisasterRecovery.create = DR_AddStandby
+infra.DisasterRecovery.edit = DR_EditStandby
+infra.DisasterRecovery.list = SystemDisasterRecovery
+infra.DisasterRecovery.listPause = DR_PauseStandby
 
 # Resources
 resources.BlockConsistencyGroups = ResourcesConsistencyGroups
@@ -141,6 +146,7 @@ resources.ObjectBuckets= ResourcesBuckets
 resources.ResourceController = vipr_c_user_resources
 resources.VirtualNasServers.vNasServers = ResourcesNASServers
 resources.BlockApplications = ResourcesApplications
+resources.BlockSnapshotSessions = ResourcesBlockSnapshotSessions
 
 # Security
 security.Security.logout = vipr_not_logged_in

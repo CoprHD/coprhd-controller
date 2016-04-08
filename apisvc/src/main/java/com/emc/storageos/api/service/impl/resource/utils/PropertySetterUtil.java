@@ -13,16 +13,17 @@ import com.emc.storageos.db.client.model.FSExportMap;
 import com.emc.storageos.db.client.model.FileExport;
 import com.emc.storageos.db.client.model.FileShare;
 import com.emc.storageos.db.client.model.SMBFileShare;
+import com.emc.storageos.db.client.model.SMBShareMap;
 import com.emc.storageos.db.client.model.StorageHADomain;
 import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.StringSetMap;
 import com.emc.storageos.db.client.model.Volume;
-import com.emc.storageos.db.client.model.SMBShareMap;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedFSExport;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedFSExportMap;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedSMBFileShare;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedSMBShareMap;
+import com.emc.storageos.util.ExportUtils;
 
 public class PropertySetterUtil {
 
@@ -346,7 +347,11 @@ public class PropertySetterUtil {
             smbshare.setName(unManagedSMBFileShare.getName());
             smbshare.setNativeId(unManagedSMBFileShare.getNativeId());
             smbshare.setDescription(unManagedSMBFileShare.getDescription());
-            smbshare.setMountPoint(unManagedSMBFileShare.getMountPoint());
+            if (storagePort != null) {
+                smbshare.setMountPoint("\\\\" + storagePort.getPortNetworkId() + "\\" + unManagedSMBFileShare.getName());
+            } else {
+                smbshare.setMountPoint(unManagedSMBFileShare.getMountPoint());
+            }
             smbshare.setPath(unManagedSMBFileShare.getPath());
             // need to removed
             smbshare.setMaxUsers(unManagedSMBFileShare.getMaxUsers());
@@ -368,7 +373,7 @@ public class PropertySetterUtil {
      * @return String
      */
     public static FSExportMap convertUnManagedExportMapToManaged(
-            UnManagedFSExportMap unManagedFSExportMap, String storagePortName, StorageHADomain dataMover) {
+            UnManagedFSExportMap unManagedFSExportMap, StoragePort storagePort, StorageHADomain dataMover) {
 
         FSExportMap fsExportMap = new FSExportMap();
 
@@ -387,27 +392,30 @@ public class PropertySetterUtil {
                 fsExport.setNativeId(export.getNativeId());
             }
 
-            if (null != storagePortName) {
-                fsExport.setStoragePort(storagePortName);
-            }
-            else if (null != export.getStoragePort()) {
+            if (null != storagePort) {
+                fsExport.setStoragePort(storagePort.getPortName());
+                if ((export.getMountPath() != null) && (export.getMountPath().length() > 0)) {
+                    fsExport.setMountPoint(ExportUtils.getFileMountPoint(storagePort.getPortNetworkId(), export.getMountPath()));
+                } else {
+                    fsExport.setMountPoint(ExportUtils.getFileMountPoint(storagePort.getPortNetworkId(), export.getPath()));
+                }
+            } else if (null != export.getStoragePort()) {
                 fsExport.setStoragePort(export.getStoragePort());
+                if (null != export.getMountPoint()) {
+                    fsExport.setMountPoint(export.getMountPoint());
+                }
             }
 
             if (null != dataMover) {
                 fsExport.setStoragePortName(dataMover.getName());
-            } else if (null != storagePortName) {
-                fsExport.setStoragePortName(storagePortName);
+            } else if (null != storagePort) {
+                fsExport.setStoragePortName(storagePort.getPortName());
             } else if (null != export.getStoragePortName()) {
                 fsExport.setStoragePortName(export.getStoragePortName());
             }
 
             if (null != export.getMountPath()) {
                 fsExport.setMountPath(export.getMountPath());
-            }
-
-            if (null != export.getMountPoint()) {
-                fsExport.setMountPoint(export.getMountPoint());
             }
 
             fsExport.setPath(export.getPath());

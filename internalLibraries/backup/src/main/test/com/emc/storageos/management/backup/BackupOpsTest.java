@@ -37,7 +37,6 @@ public class BackupOpsTest extends BackupTestBase {
         backupOps.setHosts(hosts);
         backupOps.setPorts(Arrays.asList(7199));
         backupOps.setCoordinatorClient(coordinatorClient);
-        backupOps.setVdcList(Arrays.asList("vdc1"));
         ProductName name = new DummyProductName("vipr");
     }
 

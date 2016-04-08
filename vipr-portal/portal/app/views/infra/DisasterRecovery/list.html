@@ -11,12 +11,18 @@
 
 <div class="clear"></div>
 
-#{if (isActiveSite && util.DisasterRecoveryUtils.hasPausedSite()) }
+#{if (isActiveSite && controllers.infra.DisasterRecovery.hasActiveDegradedSite()) }
+<div class="alert alert-info">
+	<div style="display: inline-block;vertical-align: middle"><img class="glyphicon glyphicon-ok" src="/public/img/Warning.png"></div>
+	<div style="display: inline-block;vertical-align: middle">&{'disasterRecovery.activeDegradedWarning'}</div>
+</div>
+#{/if}
+#{elseif (isActiveSite && controllers.infra.DisasterRecovery.hasPausedSite()) }
 <div class="alert alert-info">
 	<div style="display: inline-block;vertical-align: middle"><img class="glyphicon glyphicon-ok" src="/public/img/Warning.png"></div>
 	<div style="display: inline-block;vertical-align: middle">&{'disasterRecovery.pausedSiteWarning'}</div>
 </div>
-#{/if}
+#{/elseif}
 
 #{if !isActiveSite && controllers.infra.DisasterRecovery.getLocalSiteState() == "STANDBY_PAUSED" }
 <div class="alert alert-info">

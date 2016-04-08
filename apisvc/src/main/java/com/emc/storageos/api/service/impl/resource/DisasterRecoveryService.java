@@ -1031,7 +1031,7 @@ public class DisasterRecoveryService {
         }
 
         //Reuse the current action required
-        Site localSite = drUtil.getActiveSite();
+        Site localSite = drUtil.getLocalSite();
         SiteInfo siteInfo = coordinator.getTargetInfo(localSite.getUuid(),SiteInfo.class);
         String drOperation = siteInfo.getActionRequired();
 
@@ -1067,10 +1067,10 @@ public class DisasterRecoveryService {
                 String siteUuid = site.getUuid();
                 if (site.getLastState() == SiteState.STANDBY_RESUMING) {
                     SiteInfo siteTargetInfo = coordinator.getTargetInfo(siteUuid, SiteInfo.class);
-                    drOperation = siteTargetInfo.getActionRequired();
-                    if (drOperation.equals(SiteInfo.DR_OP_CHANGE_DATA_REVISION)) {
+                    String resumeSiteOperation = siteTargetInfo.getActionRequired();
+                    if (resumeSiteOperation.equals(SiteInfo.DR_OP_CHANGE_DATA_REVISION)) {
                         long dataRevision = System.currentTimeMillis();
-                        drUtil.updateVdcTargetVersion(siteUuid, drOperation, vdcTargetVersion, dataRevision);
+                        drUtil.updateVdcTargetVersion(siteUuid, resumeSiteOperation, vdcTargetVersion, dataRevision);
                         continue;
                     }
                 }
@@ -1677,7 +1677,7 @@ public class DisasterRecoveryService {
         DRNatCheckResponse resp = viprCoreClient.site().checkIfBehindNat(checkParam);
         if (resp.isBehindNAT()) {
             throw APIException.internalServerErrors.addStandbyPrecheckFailed(String
-                    .format("The remote site seen this node's IP is %s, which is different from local addresses: %s or %s, it may behind a NAT",
+                    .format("The remote site sees this node's IP as %s, which is different from the local addresses: %s or %s, it may be behind a NAT.",
                             resp.getSeenIp(), ipv4, ipv6));
         }
     }
@@ -1769,7 +1769,7 @@ public class DisasterRecoveryService {
             ClusterInfo.ClusterState state = coordinator.getControlNodesState(site.getUuid());
             if (state != ClusterInfo.ClusterState.STABLE) {
                 log.info("Site {} is not stable {}", site.getUuid(), state);
-                throw APIException.internalServerErrors.switchoverPrecheckFailed(site.getName(),
+                throw APIException.internalServerErrors.switchoverPrecheckFailed(standby.getName(),
                         String.format("Site %s is not stable", site.getName()));
             }
         }
@@ -1787,17 +1787,20 @@ public class DisasterRecoveryService {
                     String.format("Failover can only be executed in local site. Local site uuid %s is not matched with uuid %s",
                             standby.getUuid(), standbyUuid));
         }
-        
+
+        String uuid = drUtil.getActiveSite().getUuid();
+        if (!StringUtils.isEmpty(uuid)) {
+            SiteNetworkState networkState = drUtil.getSiteNetworkState(uuid);
+            if (networkState.getNetworkHealth() != NetworkHealth.BROKEN) {
+                throw APIException.internalServerErrors.failoverPrecheckFailed(standby.getName(),
+                        "Active site is still available");
+            }
+        }
+
         // should be PAUSED, either marked by itself or user
         if (standby.getState() != SiteState.STANDBY_PAUSED) {
             throw APIException.internalServerErrors.failoverPrecheckFailed(standby.getName(),
-                    "Only paused standby site can do failover");
-        }
-
-        SiteNetworkState networkState = drUtil.getSiteNetworkState(drUtil.getActiveSite().getUuid());
-        if (networkState.getNetworkHealth() != NetworkHealth.BROKEN) {
-            throw APIException.internalServerErrors.failoverPrecheckFailed(standby.getName(),
-                    "Active site is still available");
+                    "Please wait for this site to recognize the Active site is down and automatically switch to a Paused state before failing over.");
         }
 
         precheckForFailover();
@@ -1813,12 +1816,11 @@ public class DisasterRecoveryService {
             throw APIException.badRequests.operationNotAllowedOnActiveSite();
         }
 
-        // Current site is stable
-        ClusterInfo.ClusterState state = coordinator.getControlNodesState(standbyUuid);
-        if (state != ClusterInfo.ClusterState.STABLE) {
-            log.info("Site {} is not stable {}", standby.getName(), state);
+        // all syssvc should be up
+        if (!drUtil.isAllSyssvcUp(standbyUuid)) {
+            log.info("Not all syssvc is running at site {}", standby.getName());
             throw APIException.internalServerErrors.failoverPrecheckFailed(standby.getName(),
-                    String.format("Site %s is not stable", standby.getName()));
+                    String.format("Site %s is not stable, one or more syssvc is not running", standby.getName()));
         }
 
         // Make sure that the local ZK has been reconfigured to participant
@@ -2014,13 +2016,13 @@ public class DisasterRecoveryService {
         List<Site> existingSites = drUtil.listStandbySites();
         for (Site site : existingSites) {
             if (site.getState() != SiteState.STANDBY_SYNCED && site.getState() != SiteState.STANDBY_PAUSED) {
-                throw APIException.internalServerErrors.switchoverPrecheckFailed(site.getName(), "Standby site is not synced or paused");
+                throw APIException.internalServerErrors.switchoverPrecheckFailed(standby.getName(), String.format("Standby site %s is not synced or paused", site.getName()));
             }
             
             ClusterInfo.ClusterState state = coordinator.getControlNodesState(site.getUuid());
             if (site.getState() != SiteState.STANDBY_PAUSED && state != ClusterInfo.ClusterState.STABLE) {
                 log.info("Site {} is not stable {}", site.getUuid(), state);
-                throw APIException.internalServerErrors.switchoverPrecheckFailed(site.getName(),
+                throw APIException.internalServerErrors.switchoverPrecheckFailed(standby.getName(),
                         String.format("Site %s is not stable", site.getName()));
             }
         }
@@ -2033,7 +2035,8 @@ public class DisasterRecoveryService {
 
         Site currentSite = drUtil.getLocalSite();
         if (currentSite.getState() != SiteState.STANDBY_SYNCED && currentSite.getState() != SiteState.STANDBY_PAUSED) {
-            throw APIException.internalServerErrors.switchoverPrecheckFailed(currentSite.getName(), "Standby site is not synced or paused state");
+            throw APIException.internalServerErrors.switchoverPrecheckFailed(currentSite.getName(),
+                    String.format("Standby site %s is not synced or paused", currentSite.getName()));
         }
     }
     
@@ -2044,7 +2047,8 @@ public class DisasterRecoveryService {
         }
         
         if (drUtil.testPing(site.getVip(), SITE_CONNECTION_TEST_PORT, SITE_CONNECT_TEST_TIMEOUT) == -1) {
-            throw APIException.internalServerErrors.siteConnectionBroken(site.getName(), String.format("Can't connect to site by virtual IP: %s", site.getVip()));
+            throw APIException.internalServerErrors.siteConnectionBroken(site.getName(),
+                    String.format("Can't connect to site by virtual IP: %s", site.getVip()));
         }
     }
 

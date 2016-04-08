@@ -956,15 +956,17 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
             _log.info("Host name: {}, Cluster name: {}", hostName, clusterName);
             _log.info("There are other initiators present in the IG, checking if they all belong to different host but same cluster");
             // check if the other initiators belong to different host
+            List<String> listToIgnore = new ArrayList<String>();
             for (Initiator ini : knownInitiatorsInIG) {
                 if (ini.getHostName() != null && !ini.getHostName().equalsIgnoreCase(hostName)) {
                     // check if they belong to same cluster
                     if (ini.getClusterName() != null && clusterName != null && !clusterName.isEmpty()
                             && ini.getClusterName().equalsIgnoreCase(clusterName)) {
-                        initiatorsInIG.remove(Initiator.normalizePort(ini.getInitiatorPort()));
+                        listToIgnore.add(Initiator.normalizePort(ini.getInitiatorPort()));
                     }
                 }
             }
+            initiatorsInIG.removeAll(listToIgnore);
 
             if (initiatorsInIG.isEmpty()) {
                 return true;    // all other initiators in IG belong to different host but same cluster
@@ -995,11 +997,13 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
             _log.info("Host name: {}", hostName);
             _log.info("There are other initiators present in the IG, checking if they all belong to same host");
             // check if the other initiators belong to different host
+            List<String> listToIgnore = new ArrayList<String>();
             for (Initiator ini : knownInitiatorsInIG) {
                 if (ini.getHostName() != null && ini.getHostName().equalsIgnoreCase(hostName)) {
-                    initiatorsInIG.remove(Initiator.normalizePort(ini.getInitiatorPort()));
+                    listToIgnore.add(Initiator.normalizePort(ini.getInitiatorPort()));
                 }
             }
+            initiatorsInIG.removeAll(listToIgnore);
 
             if (!initiatorsInIG.isEmpty()) {
                 // fail the operation

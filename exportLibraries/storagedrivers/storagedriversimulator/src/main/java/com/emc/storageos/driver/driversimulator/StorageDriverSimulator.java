@@ -346,6 +346,8 @@ public class StorageDriverSimulator extends AbstractStorageDriver implements Blo
             clone.setNativeId("clone-" + clone.getParentId() + clone.getDisplayName());
             clone.setWwn(String.format("%s%s", clone.getStorageSystemId(), clone.getNativeId()));
             clone.setReplicationState(VolumeClone.ReplicationState.SYNCHRONIZED);
+            clone.setProvisionedCapacity(clone.getRequestedCapacity());
+            clone.setAllocatedCapacity(clone.getRequestedCapacity());
             clone.setDeviceLabel(clone.getNativeId());
         }
         String taskType = "create-volume-clone";
@@ -529,6 +531,8 @@ public class StorageDriverSimulator extends AbstractStorageDriver implements Blo
             clone.setWwn(String.format("%s%s", clone.getStorageSystemId(), clone.getNativeId()));
             clone.setReplicationState(VolumeClone.ReplicationState.SYNCHRONIZED);
             clone.setDeviceLabel(clone.getNativeId());
+            clone.setProvisionedCapacity(clone.getRequestedCapacity());
+            clone.setAllocatedCapacity(clone.getRequestedCapacity());
             clone.setConsistencyGroup(consistencyGroup.getNativeId()+"_clone-"+cloneTimestamp);
         }
         String taskType = "create-group-clone";
@@ -580,8 +584,9 @@ public class StorageDriverSimulator extends AbstractStorageDriver implements Blo
         _log.info("StorageDriver: get storage volumes information for storage system {}, token  {} - end",
                 storageSystem.getNativeId(), token);
         // set next value
-        if (token.intValue() < 2) {
+        if (token.intValue() < 1) { // two pages. each page has different consistency group
             token.setValue(token.intValue() + 1);
+        //    token.setValue(0); // last page
         } else {
             token.setValue(0); // last page
         }
@@ -615,6 +620,7 @@ public class StorageDriverSimulator extends AbstractStorageDriver implements Blo
     @Override
     public List<VolumeSnapshot> getVolumeSnapshots(StorageVolume volume) {
         List<VolumeSnapshot> snapshots = new ArrayList<>();
+       // for (int i=0; i<2; i++) {
         for (int i=0; i<2; i++) {
             VolumeSnapshot snapshot = new VolumeSnapshot();
             snapshot.setParentId(volume.getNativeId());
@@ -622,7 +628,7 @@ public class StorageDriverSimulator extends AbstractStorageDriver implements Blo
             snapshot.setDeviceLabel(volume.getNativeId() + "snap-" + i);
             snapshot.setStorageSystemId(volume.getStorageSystemId());
             snapshot.setAccessStatus(StorageObject.AccessStatus.READ_ONLY);
-            snapshot.setConsistencyGroup(Integer.toString(i));
+            snapshot.setConsistencyGroup(volume.getConsistencyGroup()+"snapSet-"+i);
             snapshot.setAllocatedCapacity(1000L);
             snapshot.setProvisionedCapacity(volume.getProvisionedCapacity());
             snapshots.add(snapshot);

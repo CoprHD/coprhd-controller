@@ -468,6 +468,8 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
             driverClone.setParentId(sourceVolume.getNativeId());
             driverClone.setStorageSystemId(storageSystem.getNativeId());
             driverClone.setDisplayName(cloneObject.getLabel());
+            driverClone.setRequestedCapacity(cloneObject.getCapacity());
+            driverClone.setThinlyProvisioned(cloneObject.getThinlyProvisioned());
             driverClones.add(driverClone);
 
             // Call driver
@@ -482,9 +484,9 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
                 cloneObject.setDeviceLabel(driverCloneResult.getDeviceLabel());
                 cloneObject.setNativeGuid(NativeGUIDGenerator.generateNativeGuid(dbClient, cloneObject));
                 cloneObject.setReplicaState(driverCloneResult.getReplicationState().name());
-                cloneObject.setCapacity(sourceVolume.getCapacity());
-                cloneObject.setProvisionedCapacity(sourceVolume.getProvisionedCapacity());
-                cloneObject.setAllocatedCapacity(sourceVolume.getAllocatedCapacity());
+                cloneObject.setCapacity(driverCloneResult.getRequestedCapacity());
+                cloneObject.setProvisionedCapacity(driverCloneResult.getProvisionedCapacity());
+                cloneObject.setAllocatedCapacity(driverCloneResult.getAllocatedCapacity());
                 cloneObject.setInactive(false);
                 dbClient.updateObject(cloneObject);
 
@@ -550,6 +552,8 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
                 driverClone.setParentId(sourceVolume.getNativeId());
                 driverClone.setStorageSystemId(storageSystem.getNativeId());
                 driverClone.setDisplayName(clone.getLabel());
+                driverClone.setRequestedCapacity(clone.getCapacity());
+                driverClone.setThinlyProvisioned(clone.getThinlyProvisioned());
                 driverClones.add(driverClone);
                 driverCloneToCloneMap.put(driverClone, clone);
             }
@@ -567,6 +571,9 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
                     cloneObject.setNativeGuid(NativeGUIDGenerator.generateNativeGuid(dbClient, cloneObject));
                     cloneObject.setReplicaState(driverCloneResult.getReplicationState().name());
                     cloneObject.setReplicationGroupInstance(driverCloneResult.getConsistencyGroup());
+                    cloneObject.setCapacity(driverCloneResult.getRequestedCapacity());
+                    cloneObject.setProvisionedCapacity(driverCloneResult.getProvisionedCapacity());
+                    cloneObject.setAllocatedCapacity(driverCloneResult.getAllocatedCapacity());
                     cloneObject.setInactive(false);
                     cloneObjects.add(cloneObject);
                 }

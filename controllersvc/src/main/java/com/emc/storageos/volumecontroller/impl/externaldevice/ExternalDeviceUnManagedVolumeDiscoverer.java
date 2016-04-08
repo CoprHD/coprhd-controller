@@ -68,7 +68,7 @@ public class ExternalDeviceUnManagedVolumeDiscoverer {
             log.info("Processing page {} ", nextPage);
             driver.getStorageVolumes(driverStorageSystem, driverVolumes, nextPage);
             log.info("Volume count on this page {} ", driverVolumes.size());
-            ////////////////////////
+
             for (StorageVolume driverVolume : driverVolumes) {
                 UnManagedVolume unManagedVolume = null;
                 try {
@@ -82,20 +82,6 @@ public class ExternalDeviceUnManagedVolumeDiscoverer {
                     Volume viprVolume = DiscoveryUtils.checkStorageVolumeExistsInDB(dbClient, managedVolumeNativeGuid);
                     if (null != viprVolume) {
                         log.info("Skipping volume {} as it is already managed by ViPR", managedVolumeNativeGuid);
-//                // Check if the xtremIO vol is exported. If yes, we need to store it to add to unmanaged
-//                // export masks.
-//                if (isExported) {
-//                    populateKnownVolsMap(volume, viprVolume, igKnownVolumesMap);
-//                }
-//
-//                // retrieve snap info to be processed later
-//                if (hasSnaps) {
-//                    StringSet vpoolUriSet = new StringSet();
-//                    vpoolUriSet.add(viprVolume.getVirtualPool().toString());
-//                    discoverVolumeSnaps(storageSystem, volume.getSnaps(), viprVolume.getNativeGuid(), vpoolUriSet,
-//                            xtremIOClient, xioClusterName, dbClient, igUnmanagedVolumesMap, igKnownVolumesMap);
-//                }
-
                         continue;
                     }
 
@@ -168,6 +154,17 @@ public class ExternalDeviceUnManagedVolumeDiscoverer {
 
     }
 
+    /**
+     * Create unmanaged volume for a given driver volume.
+     *
+     * @param driverVolume storage system volume
+     * @param storageSystem storage system for unmanaged volume
+     * @param storagePool  storage pool for unmanaged volume
+     * @param unManagedVolumesToCreate list of new unmanaged volumes
+     * @param unManagedVolumesToUpdate list of unmanaged volumes to update
+     * @param dbClient
+     * @return
+     */
     private UnManagedVolume createUnManagedVolume(StorageVolume driverVolume, com.emc.storageos.db.client.model.StorageSystem storageSystem,
                                                   com.emc.storageos.db.client.model.StoragePool storagePool,
                                                   List<UnManagedVolume> unManagedVolumesToCreate, List<UnManagedVolume> unManagedVolumesToUpdate,
@@ -207,7 +204,7 @@ public class ExternalDeviceUnManagedVolumeDiscoverer {
         Boolean isVolumeExported = false;
         unManagedVolumeCharacteristics.put(UnManagedVolume.SupportedVolumeCharacterstics.IS_VOLUME_EXPORTED.toString(), isVolumeExported.toString());
 
-        // Set these default to false. The individual storage discovery will change them if needed.
+        // Set these default to false.
         unManagedVolumeCharacteristics.put(UnManagedVolume.SupportedVolumeCharacterstics.IS_NONRP_EXPORTED.toString(), FALSE);
         unManagedVolumeCharacteristics.put(UnManagedVolume.SupportedVolumeCharacterstics.IS_RECOVERPOINT_ENABLED.toString(), FALSE);
 
@@ -216,8 +213,6 @@ public class ExternalDeviceUnManagedVolumeDiscoverer {
         unManagedVolumeInformation.remove(UnManagedVolume.SupportedVolumeInformation.DEVICE_LABEL.toString());
         unManagedVolumeInformation.put(UnManagedVolume.SupportedVolumeInformation.DEVICE_LABEL.toString(),
                 deviceLabel);
-
-
 
         StringSet accessState = new StringSet();
         accessState.add(driverVolume.getAccessStatus().toString());
@@ -254,19 +249,6 @@ public class ExternalDeviceUnManagedVolumeDiscoverer {
         unManagedVolumeCharacteristics.put(UnManagedVolume.SupportedVolumeCharacterstics.IS_THINLY_PROVISIONED.toString(),
                 driverVolume.getThinlyProvisioned().toString());
 
-//        // Get vipr pool
-//        String driverPoolId = driverVolume.getStoragePoolId();
-//        String poolNativeGuid = NativeGUIDGenerator.generateNativeGuid(
-//                storageSystem, driverPoolId, NativeGUIDGenerator.POOL);
-//        URIQueryResultList storagePoolURIs = new URIQueryResultList();
-//        dbClient.queryByConstraint(AlternateIdConstraint.Factory
-//                .getStoragePoolByNativeGuidConstraint(poolNativeGuid), storagePoolURIs);
-//        if (!storagePoolURIs.isEmpty())
-//        {
-//            URI storagePoolUri = storagePoolURIs.get(0);
-//            com.emc.storageos.db.client.model.StoragePool storagePool =
-//                    (com.emc.storageos.db.client.model.StoragePool)dbClient.queryObject(
-//                            com.emc.storageos.db.client.model.StoragePool.class, storagePoolURIs);
         unManagedVolume.setStoragePoolUri(storagePool.getId());
         StringSet pools = new StringSet();
         pools.add(storagePool.getId().toString());
@@ -288,13 +270,6 @@ public class ExternalDeviceUnManagedVolumeDiscoverer {
             unManagedVolume.getSupportedVpoolUris().replace(matchedVPools);
             log.info("Replaced Pools : {}", Joiner.on("\t").join(unManagedVolume.getSupportedVpoolUris()));
         }
-
-//        unManagedVolume.setVolumeInformation(unManagedVolumeInformation);
-//
-//        if (unManagedVolume.getVolumeCharacterstics() == null) {
-//            unManagedVolume.setVolumeCharacterstics(new StringMap());
-//        }
-//        unManagedVolume.getVolumeCharacterstics().replace(unManagedVolumeCharacteristics);
 
         if (newVolume) {
             unManagedVolumesToCreate.add(unManagedVolume);
@@ -329,10 +304,24 @@ public class ExternalDeviceUnManagedVolumeDiscoverer {
             URI storagePoolURI = poolsItr.next();
             storagePool = dbClient.queryObject(com.emc.storageos.db.client.model.StoragePool.class, storagePoolURI);
         }
-
         return storagePool;
     }
 
+
+    /**
+     * Add storage object to unmanaged consistency group.
+     * Sets consistency group related attributes in the object and adds object to the list of unmanaged
+     * objects in the unmanaged consistency group instance.
+     *
+     * @param storageSystem storage system of the object
+     * @param cgNativeId  native id of umanaged consistency group
+     * @param unManagedVolume unmanaged object
+     * @param allCurrentUnManagedCgURIs set of unmanaged CG uris found in the current discovery
+     * @param unManagedCGToUpdateMap map of unmanaged CG GUID to unmanaged CG instance
+     * @param driver storage driver
+     * @param dbClient
+     * @throws Exception
+     */
     private void addObjectToUnManagedConsistencyGroup(com.emc.storageos.db.client.model.StorageSystem storageSystem,
                                                       String cgNativeId, UnManagedVolume unManagedVolume,
                                                       Set<URI> allCurrentUnManagedCgURIs,
@@ -361,7 +350,6 @@ public class ExternalDeviceUnManagedVolumeDiscoverer {
                     log.info("Created unmanaged consistency group: {} with nativeGuid {}",
                             unManagedCG.getId().toString(), unManagedCG.getNativeGuid());
                 } else {
-                    // todo this is a failure
                     String msg = String.format("Driver VolumeConsistencyGroup with native id %s does not exist on storage system %s",
                             cgNativeId, storageSystem.getNativeId());
                     log.error(msg);
@@ -369,7 +357,7 @@ public class ExternalDeviceUnManagedVolumeDiscoverer {
                 }
 
             } else {
-                log.info("Unmanaged consistency group {} was previously added to the database", unManagedCG.getNativeGuid());
+                log.info("Unmanaged consistency group {} was previously added to the database (by previous unmanaged discovery).", unManagedCG.getNativeGuid());
                 // clean out the list of unmanaged objects if this unmanaged cg was already
                 // in the database and its first time being used in this discovery operation
                 // the list should be re-populated by the current discovery operation
@@ -393,6 +381,14 @@ public class ExternalDeviceUnManagedVolumeDiscoverer {
         allCurrentUnManagedCgURIs.add(unManagedCG.getId());
     }
 
+    /**
+     * Create unmanaged CG for a given driver CG.
+     *
+     * @param driverCG
+     * @param storageSystem
+     * @param dbClient
+     * @return
+     */
     private UnManagedConsistencyGroup createUnManagedCG(VolumeConsistencyGroup driverCG,
                                                         com.emc.storageos.db.client.model.StorageSystem storageSystem,
                                                         DbClient dbClient) {
@@ -405,12 +401,29 @@ public class ExternalDeviceUnManagedVolumeDiscoverer {
         unManagedCG.setNativeGuid(unManagedCGNativeGuid);
         unManagedCG.setNativeId(driverCG.getNativeId());
         unManagedCG.setStorageSystemUri(storageSystem.getId());
-        //unManagedCG.setNumberOfVols(consistencyGroup.getNumOfVols());
         dbClient.createObject(unManagedCG);
 
         return unManagedCG;
     }
 
+    /**
+     * Process snapshots of unmanaged volume.
+     * Check if unmanaged snapshot should be created and create unmanaged volume indtance for a snpa in such a case.
+     * Add unmanaged snapshot to parent volume CG if needed and update the snap with parent volume CG information.
+     *
+     * @param driverVolume driver volume for snap parent volume.
+     * @param unManagedParentVolume unmanaged parent volume
+     * @param storageSystem
+     * @param storagePool
+     * @param unManagedVolumesToCreate
+     * @param unManagedVolumesToUpdate
+     * @param allCurrentUnManagedCgURIs
+     * @param unManagedCGToUpdateMap book keeping map of CG GUID to CG  instance
+     * @param driver storage driver for the storage array
+     * @param dbClient
+     * @return
+     * @throws Exception
+     */
     private Set<URI> processUnManagedSnapshots(StorageVolume driverVolume, UnManagedVolume unManagedParentVolume,
                                                com.emc.storageos.db.client.model.StorageSystem storageSystem,
                                                com.emc.storageos.db.client.model.StoragePool storagePool,
@@ -450,18 +463,19 @@ public class ExternalDeviceUnManagedVolumeDiscoverer {
                 unManagedSnaps.add(unManagedSnapNatvieGuid);
 
                 // Check if this snap is for a volume in consistency group on device.
-                // todo....
-//                if (driverSnapshot.getSnapSetId() != null && !driverSnapshot.getSnapSetId().isEmpty()) {
-//                    addObjectToUnManagedConsistencyGroup(storageSystem, driverSnapshot.getSnapSetId(), unManagedSnap,
-//                            allCurrentUnManagedCgURIs, unManagedCGToUpdateMap, (DiscoveryDriver)driver, dbClient);
-//                } else {
-//                    // Make sure the unManagedVolume object does not contain CG information from previous discovery
-//                    unManagedSnap.getVolumeCharacterstics().put(
-//                            UnManagedVolume.SupportedVolumeCharacterstics.IS_VOLUME_ADDED_TO_CONSISTENCYGROUP.toString(), Boolean.FALSE.toString());
-//                    // set the uri of the unmanaged CG in the unmanaged volume object to empty
-//                    unManagedSnap.getVolumeInformation().put(UnManagedVolume.SupportedVolumeInformation.UNMANAGED_CONSISTENCY_GROUP_URI.toString(),
-//                            "");
-//                }
+                String isParentVolumeInCG =
+                        unManagedParentVolume.getVolumeCharacterstics().get(UnManagedVolume.SupportedVolumeCharacterstics.IS_VOLUME_ADDED_TO_CONSISTENCYGROUP.toString());
+                if (isParentVolumeInCG.equals(Boolean.TRUE.toString())) {
+                    // add snapshot to parent volume unmanaged consistency group, update snapshot with parent volume CG information.
+                    addObjectToUnManagedConsistencyGroup(storageSystem, driverVolume.getConsistencyGroup(), unManagedSnap,
+                            allCurrentUnManagedCgURIs, unManagedCGToUpdateMap, driver, dbClient);
+                } else {
+                    // Make sure the unManagedVolume snapshot object does not contain parent CG information from previous discovery
+                    unManagedSnap.getVolumeCharacterstics().put(
+                            UnManagedVolume.SupportedVolumeCharacterstics.IS_VOLUME_ADDED_TO_CONSISTENCYGROUP.toString(), Boolean.FALSE.toString());
+                    // remove uri of the unmanaged CG in the unmanaged volume object
+                    unManagedSnap.getVolumeInformation().remove(UnManagedVolume.SupportedVolumeInformation.UNMANAGED_CONSISTENCY_GROUP_URI.toString());
+                }
             }
             if (!unManagedSnaps.isEmpty()) {
                 // set the HAS_REPLICAS property
@@ -492,12 +506,23 @@ public class ExternalDeviceUnManagedVolumeDiscoverer {
     }
 
 
+    /**
+     * Create new or update existing unmanaged snapshot with unmanaged snapshot discovery data.
+     *
+     * @param driverSnapshot
+     * @param parentUnManagedVolume
+     * @param storageSystem
+     * @param storagePool
+     * @param unManagedVolumesToCreate
+     * @param unManagedVolumesToUpdate
+     * @param dbClient
+     * @return
+     */
     private UnManagedVolume createUnManagedSnapshot(VolumeSnapshot driverSnapshot, UnManagedVolume parentUnManagedVolume,
                                                     com.emc.storageos.db.client.model.StorageSystem storageSystem,
                                                     com.emc.storageos.db.client.model.StoragePool storagePool,
                                                     List<UnManagedVolume> unManagedVolumesToCreate, List<UnManagedVolume> unManagedVolumesToUpdate,
                                                     DbClient dbClient) {
-
         // We process unmanaged snapshot as unmanaged volume
         boolean newVolume = false;
         StringSetMap unManagedVolumeInformation = null;
@@ -593,17 +618,10 @@ public class ExternalDeviceUnManagedVolumeDiscoverer {
         unManagedVolumeInformation.remove(UnManagedVolume.SupportedVolumeInformation.TECHNOLOGY_TYPE.toString());
         unManagedVolumeInformation.put(UnManagedVolume.SupportedVolumeInformation.TECHNOLOGY_TYPE.toString(), techType);
 
-        // set consistency group information for the snapshot
-        // Update the unManagedVolume object with CG information
+        // set snapshot consistency group information in the unmanged snapshot object
         String isParentVolumeInCG =
                 parentUnManagedVolume.getVolumeCharacterstics().get(UnManagedVolume.SupportedVolumeCharacterstics.IS_VOLUME_ADDED_TO_CONSISTENCYGROUP.toString());
-        unManagedVolume.getVolumeCharacterstics().put(UnManagedVolume.SupportedVolumeCharacterstics.IS_VOLUME_ADDED_TO_CONSISTENCYGROUP.toString(),
-                isParentVolumeInCG);
         if (isParentVolumeInCG.equals(Boolean.TRUE.toString())) {
-            // set the uri of the unmanaged CG in the unmanaged snapshot object to the same as in parent volume.
-            unManagedVolume.getVolumeInformation().remove(UnManagedVolume.SupportedVolumeInformation.UNMANAGED_CONSISTENCY_GROUP_URI.toString());
-            unManagedVolume.getVolumeInformation().put(UnManagedVolume.SupportedVolumeInformation.UNMANAGED_CONSISTENCY_GROUP_URI.toString(),
-                    parentUnManagedVolume.getVolumeInformation().get(UnManagedVolume.SupportedVolumeInformation.UNMANAGED_CONSISTENCY_GROUP_URI.toString()));
             // set snapshot consistency group name
             if (driverSnapshot.getConsistencyGroup() != null && !driverSnapshot.getConsistencyGroup().isEmpty()) {
                 StringSet snapCgName = new StringSet();
@@ -613,7 +631,6 @@ public class ExternalDeviceUnManagedVolumeDiscoverer {
             }
         } else {
             // Clean old data
-            unManagedVolume.getVolumeInformation().remove(UnManagedVolume.SupportedVolumeInformation.UNMANAGED_CONSISTENCY_GROUP_URI.toString());
             unManagedVolume.getVolumeInformation().remove(UnManagedVolume.SupportedVolumeInformation.SNAPSHOT_CONSISTENCY_GROUP_NAME.toString());
         }
 
@@ -655,13 +672,6 @@ public class ExternalDeviceUnManagedVolumeDiscoverer {
             log.info("Replaced Virtual Pools :{}", Joiner.on("\t").join(unManagedVolume.getSupportedVpoolUris()));
         }
 
-//        unManagedVolume.setVolumeInformation(unManagedVolumeInformation);
-//
-//        if (unManagedVolume.getVolumeCharacterstics() == null) {
-//            unManagedVolume.setVolumeCharacterstics(new StringMap());
-//        }
-//        unManagedVolume.getVolumeCharacterstics().replace(unManagedVolumeCharacteristics);
-
         if (newVolume) {
             unManagedVolumesToCreate.add(unManagedVolume);
         } else {
@@ -670,7 +680,6 @@ public class ExternalDeviceUnManagedVolumeDiscoverer {
 
         return unManagedVolume;
     }
-
 
 
 }

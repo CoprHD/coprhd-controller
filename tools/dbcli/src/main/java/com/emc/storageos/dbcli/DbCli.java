@@ -624,12 +624,20 @@ public class DbCli {
                 continue;
             }
 
+            Name nameAnnotation = pd.getReadMethod().getAnnotation(Name.class);
+            String objKey;
+            if (nameAnnotation == null) {
+                objKey = pd.getName();
+            } else {
+                objKey = nameAnnotation.value();
+            }
+
             objValue = pd.getReadMethod().invoke(object);
             if (objValue == null) {
                 continue;
             }
 
-            System.out.print("\t" + pd.getName() + " = ");
+            System.out.print("\t" + objKey + " = ");
 
             Encrypt encryptAnnotation = pd.getReadMethod().getAnnotation(Encrypt.class);
             if (encryptAnnotation != null) {

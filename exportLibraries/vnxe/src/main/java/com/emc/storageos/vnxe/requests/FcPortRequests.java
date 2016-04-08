@@ -11,7 +11,7 @@ import com.emc.storageos.vnxe.models.VNXeFCPort;
 
 public class FcPortRequests extends KHRequests<VNXeFCPort> {
     private static final String URL = "/api/types/fcPort/instances";
-    private static final String FIELDS = "name,wwn,slotNumber,storageProcessor,currentSpeed,requestedSpeed";
+    private static final String FIELDS = "name,wwn,slotNumber,storageProcessor,currentSpeed,requestedSpeed,health";
 
     public FcPortRequests(KHClient client) {
         super(client);

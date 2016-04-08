@@ -33,18 +33,18 @@ import com.emc.storageos.vnxe.models.VNXeStorageTier;
 public class ApiClientTest {
     private static KHClient _client;
     private static VNXeApiClient apiClient;
-    private static String host = EnvConfig.get("sanity", "vnxe.host");
-    private static String userName = EnvConfig.get("sanity", "vnxe.username");
-    private static String password = EnvConfig.get("sanity", "vnxe.password");
+    private static String host = "losav161.lss.emc.com";
+    private static String userName = "bourne";
+    private static String password = "Bourn3!!";
+    private static int port = 443;
 
     @BeforeClass
     public static void setup() throws Exception {
-        synchronized (_client) {
-            _client = new KHClient(host, userName, password);
-        }
-        synchronized (apiClient) {
-            apiClient = new VNXeApiClient(_client);
-        }
+        
+        _client = new KHClient(host, port, userName, password, true);
+        
+        apiClient = new VNXeApiClient(_client);
+        
     }
 
     // @Test
@@ -94,7 +94,7 @@ public class ApiClientTest {
         System.out.println(mask);
     }
 
-    // @Test
+    @Test
     public void getIscsiPorts() {
         List<VNXeIscsiNode> allnodes = apiClient.getAllIscsiPorts();
         for (VNXeIscsiNode node : allnodes) {
@@ -231,7 +231,7 @@ public class ApiClientTest {
         apiClient.createLunGroupSnap("res_4", "test-group-snap");
     }
 
-    // @Test
+    //@Test
     public void getFCPort() {
         List<VNXeFCPort> ports = apiClient.getAllFcPorts();
         System.out.println(ports.size());
@@ -255,7 +255,7 @@ public class ApiClientTest {
         apiClient.getNasServers();
     }
 
-    @Test
+    //@Test
     public void getStorageTier() {
         List<VNXeStorageTier> tiers = apiClient.getStorageTiers();
         for (VNXeStorageTier tier : tiers) {

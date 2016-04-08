@@ -19,6 +19,7 @@
         <property name="statusChecker" ref="statusChecker"/>
         <property name="drUtil" ref="drUtil"/>
         <property name="backCompatPreYoda" ref="backCompatPreYoda"/>
+        <property name="siteIsStandby" ref="siteIsStandby"></property>
     </bean>
     
     <import resource="classpath:dbclient-conf.xml"/>

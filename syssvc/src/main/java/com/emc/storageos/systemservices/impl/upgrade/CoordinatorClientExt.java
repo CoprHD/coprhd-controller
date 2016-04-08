@@ -171,6 +171,10 @@ public class CoordinatorClientExt {
         this.siteIsStandby = siteIsStandby;
     }
 
+    public boolean isSiteIsStandby() {
+        return siteIsStandby;
+    }
+
     /**
      * Get property
      * 

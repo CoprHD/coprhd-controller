@@ -1879,11 +1879,24 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
         Map<URI, URI> dependencies = new HashMap<URI, URI>();
 
         Volume sourceVolume = (Volume) object;
-        // Get all of the volumes associated with the volume
-        for (BlockSnapshot snapshot : this.getSnapshots(sourceVolume)) {
+        // Get all of the snapshots associated with the volume
+        for (BlockSnapshot snapshot : this.getSnapshotsForVolume(sourceVolume)) {
             if (snapshot != null && !snapshot.getInactive()) {
                 dependencies.put(sourceVolume.getId(), snapshot.getId());
             }
+            
+	        // Get all the snapshots of the corresponding target volumes
+	        if (Volume.PersonalityTypes.SOURCE.name().equals(sourceVolume.getPersonality())) {
+	            StringSet rpTargets = sourceVolume.getRpTargets();
+	            for (String rpTarget : rpTargets) {
+	            	Volume rpTargetVolume = _dbClient.queryObject(Volume.class, URI.create(rpTarget));
+	            	for (BlockSnapshot targetSnapshot : this.getSnapshotsForVolume(rpTargetVolume)) {
+	                    if (targetSnapshot != null && !targetSnapshot.getInactive()) {
+	                        dependencies.put(rpTargetVolume.getId(), targetSnapshot.getId());
+	                    }            
+	            	}
+	            }
+	        }
         }
 
         if (!dependencies.isEmpty()) {
@@ -2811,24 +2824,34 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
      */
     @Override
     public List<BlockSnapshot> getSnapshots(Volume volume) {
-        List<BlockSnapshot> snapshots = new ArrayList<BlockSnapshot>();
+        List<BlockSnapshot> snapshots = new ArrayList<BlockSnapshot>();        
+        
+        //Get all the snapshots for this volume
+        snapshots.addAll(super.getSnapshots(volume));
+        
+        // If this is a RP+VPLEX/MetroPoint volume get any local snaps for this volume as well,
+        // we need to call out to VPLEX Api to get this information as the parent of these
+        // snaps will be the backing volume.
+        boolean vplex = RPHelper.isVPlexVolume(volume);
+        if (vplex) {
+            snapshots.addAll(vplexBlockServiceApiImpl.getSnapshots(volume));
+        }
 
-        // Get all related RP volumes
-        List<URI> rpVolumes = _rpHelper.getReplicationSetVolumes(volume);
-
-        for (URI rpVolumeURI : rpVolumes) {
-            Volume rpVolume = _dbClient.queryObject(Volume.class, rpVolumeURI);
-
-            // Get all the related local snapshots and RP bookmarks for this RP Volume
-            snapshots.addAll(super.getSnapshots(rpVolume));
-
-            // If this is a RP+VPLEX/MetroPoint volume get any local snaps for this volume as well,
-            // we need to call out to VPLEX Api to get this information as the parent of these
-            // snaps will be the backing volume.
-            boolean vplex = RPHelper.isVPlexVolume(rpVolume);
-            if (vplex) {
-                snapshots.addAll(vplexBlockServiceApiImpl.getSnapshots(rpVolume));
-            }
+        // Get all bookmarks for the source copy if the passed in volume is an RP source volume
+        if (volume.getPersonality().equalsIgnoreCase(Volume.PersonalityTypes.SOURCE.name())) {
+        	URI cgUri = volume.getConsistencyGroup();
+	        List<Volume> rpSourceVolumes = RPHelper.getCgSourceVolumes(cgUri,_dbClient);
+	
+	        for (Volume rpSourceVolume : rpSourceVolumes) {	
+	            // Get all RP bookmarks for this RP Volume. Since bookmarks are not assigned to any source volumes in the CG, we need to query all the 
+	            // source volumes in the CG and fetch them.
+	            List<BlockSnapshot> allSnapshots = super.getSnapshots(rpSourceVolume);
+	            for (BlockSnapshot snapshot : allSnapshots) {
+	            	if (BlockSnapshot.TechnologyType.RP.name().equalsIgnoreCase(snapshot.getTechnologyType())) {
+	            		snapshots.add(snapshot);
+	            	}
+	            }	            		           
+	        }
         }
 
         return snapshots;

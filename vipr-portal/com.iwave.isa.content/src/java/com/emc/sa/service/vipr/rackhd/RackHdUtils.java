@@ -205,7 +205,11 @@ public class RackHdUtils {
 
     public static ViprTask parseViprTask(String taskResult) {
         try {  // try parsing result as a ViPR Task
-            return gson.fromJson(taskResult,ViprTask.class);
+            ViprTask t =  gson.fromJson(taskResult,ViprTask.class);
+            if (t.getTask() == null) {
+                return null;
+            }
+            return t;
         } catch(JsonSyntaxException e) {
             return null;
         }
@@ -273,7 +277,7 @@ public class RackHdUtils {
             if( (System.currentTimeMillis() - startTime)
                     > TASK_CHECK_TIMEOUT*60*1000 ) {
                 throw new IllegalStateException("Task(s) started by RackHD " +
-                    "timed out.");
+                        "timed out.");
             }
         }
     }

@@ -445,7 +445,7 @@ public class BackupService {
     }
 
     /**
-     * Internal API, used only between nodes*
+     * *Internal API, used only between nodes*
      * Send backup file name to a node
      *
      * @param backupName the backup filename to be downloaded

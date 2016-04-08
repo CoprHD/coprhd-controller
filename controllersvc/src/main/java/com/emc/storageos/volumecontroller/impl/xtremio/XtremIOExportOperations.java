@@ -918,7 +918,7 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
         for (XtremIOInitiator initiator : initiators) {
             String igNameInInitiator = initiator.getInitiatorGroup().get(1);
             if (igName.equals(igNameInInitiator)) {
-                allInitiatorsInIG.add(initiator.getPortAddress());
+                allInitiatorsInIG.add(Initiator.normalizePort(initiator.getPortAddress()));
                 Initiator knownInitiator = NetworkUtil.getInitiator(initiator.getPortAddress(), dbClient);
                 if (knownInitiator != null) {
                     knownInitiatorsInIG.add(knownInitiator);

@@ -1,3 +1,0 @@
-  - debug: msg='Writing ansible result to {{ ansibleResultFile }} with contents {{ createResult.content }}'
-
-  - lineinfile: dest='{{ ansibleResultFile }}' line='{{ createResult.content }}' create='yes'

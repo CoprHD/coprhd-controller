@@ -5,6 +5,8 @@
 
 package com.emc.storageos.volumecontroller.impl.xtremio;
 
+import static com.emc.storageos.db.client.util.CommonTransformerFunctions.fctnInitiatorToPortName;
+
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -430,9 +432,6 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
         // find LunMap associated with Volume
         // Then find initiatorGroup associated with this lun map
 
-        // find initiators associated with IG:
-        // -if IG has other host's initiators within the same cluster, remove the requested initiators,
-        // -else delete the lunMap.
         ArrayListMultimap<String, Initiator> groupInitiatorsByIG = ArrayListMultimap.create();
         Set<String> igNames = new HashSet<String>();
         XtremIOClient client = null;
@@ -480,8 +479,6 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
                 if (null != xtremIOVolume) {
                     // I need lun map id and igName
                     // if iGName is available in the above group:
-                    // -if IG has other host's initiators within the same cluster, remove the requested initiators,
-                    // -else delete the lunMap.
                     _log.info("Volume Details {}", xtremIOVolume.toString());
                     _log.info("Volume lunMap details {}", xtremIOVolume.getLunMaps().toString());
 
@@ -517,20 +514,34 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
                             continue;
                         }
 
-                        // check if IG has other host's initiators within the same cluster.
-                        List<Initiator> knownInitiatorsInIG = getKnownInitiatorsForIG(igName, xioClusterName, client);
                         /**
-                         * Remove Initiator only
-                         * - if initiators are not of RP (CTRL-13622)
-                         * -when IG has other initiators which are known to ViPR and
-                         * -if other initiators belong to different host and
-                         * -if the hosts are in same cluster
-                         * (i.e) Single IG with initiators from multiple hosts of a Cluster case
+                         * Get list of initiators associated with the IG.
+                         * 
+                         * a. If there are unknown initiators in IG, fail the operation
+                         * b. i) If Cluster export:
+                         * - - - If there are additional initiators other than the ones in ExportMask:
+                         * - - - check if all of them belong to different host but same cluster (Single IG with all cluster initiators)
+                         * - - -- if true, remove initiator from IG,
+                         * - - -- else fail the operation.
+                         * - - - Note: If initiators are of RP (CTRL-13622), always delete LunMap.
+                         * - ii) Host export: Check additional initiators belong to same host or different host
+                         * - - -- If same host, delete LunMap
+                         * - - -- If different host, fail the operation
+                         * 
+                         * Reason for failing: We do not want to cause DU by choosing an operation when additional initiators
+                         * are present in the IG. Better fail the operation explaining the situation instead of resulting in DU.
                          */
-                        if (!initiatorsOfRP && checkIfIGHasOtherHostInitiatorsOfSameCluster(knownInitiatorsInIG,
-                                groupInitiatorsByIG.get(igName), hostName, clusterName)) {
-                            removeInitiator = true;
+                        List<Initiator> knownInitiatorsInIG = getKnownInitiatorsForIG(igName, xioClusterName, client);
+                        if (clusterName != null) {
+                            if (!initiatorsOfRP && checkIfIGHasOtherHostInitiatorsOfSameCluster(knownInitiatorsInIG,
+                                    groupInitiatorsByIG.get(igName), hostName, clusterName)) {
+                                removeInitiator = true;
+                            } // else deleteLunMap
                         } else {
+                            validateAdditionalInitiatorsInIGBelongToSameHost(knownInitiatorsInIG, groupInitiatorsByIG.get(igName), hostName);
+                        }
+                        if (!removeInitiator) {
+                            // delete LunMap
                             @SuppressWarnings("unchecked")
                             List<Object> tgtGroupDetails = (List<Object>) lunMapEntries.get(1);
                             Double tgIdDouble = (Double) tgtGroupDetails.get(2);
@@ -542,6 +553,7 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
                             lunMaps.add(lunMapId);
                         }
                     }
+
                     // deletion of lun Maps
                     // there will be only one lun map always
                     for (String lunMap : lunMaps) {
@@ -898,6 +910,7 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
 
     /**
      * Returns a list of ViPR known initiators for the given IG name.
+     * It also alidates that there are no unknown initiators in the IG (no registered in ViRP)
      *
      * @param igName
      * @param xio ClusterName
@@ -910,24 +923,35 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
         // get all initiators and see which initiators belong to given IG name.
         // Currently this is the only way to get initiators belonging to IG
         List<Initiator> knownInitiatorsInIG = new ArrayList<Initiator>();
-        List<String> allInitiators = new ArrayList<String>();
+        List<String> allInitiatorsInIG = new ArrayList<String>();
         List<XtremIOInitiator> initiators = client.getXtremIOInitiatorsInfo(xioClusterName);
         for (XtremIOInitiator initiator : initiators) {
             String igNameInInitiator = initiator.getInitiatorGroup().get(1);
             if (igName.equals(igNameInInitiator)) {
-                allInitiators.add(initiator.getPortAddress());
+                allInitiatorsInIG.add(Initiator.normalizePort(initiator.getPortAddress()));
                 Initiator knownInitiator = NetworkUtil.getInitiator(initiator.getPortAddress(), dbClient);
                 if (knownInitiator != null) {
                     knownInitiatorsInIG.add(knownInitiator);
                 }
             }
         }
-        _log.info("Initiators present in IG: {}", allInitiators);
+        _log.info("Initiators present in IG: {}", allInitiatorsInIG);
+
+        // Fail the operation if there are unknown initiators in the IG (not registered in ViPR)
+        if (knownInitiatorsInIG.size() < allInitiatorsInIG.size()) {
+            Collection<String> knownInitiatorNames = Collections2.transform(knownInitiatorsInIG,
+                    CommonTransformerFunctions.fctnInitiatorToPortName());
+            String errMsg = String.format("there are unknown initiators present in the Initiator Group on the array. "
+                    + "Initiators on the array: %s, Initiators registered in Controller: %s",
+                    allInitiatorsInIG, knownInitiatorNames);
+            _log.error(errMsg);
+            throw DeviceControllerException.exceptions.couldNotPerformExportDelete(errMsg);
+        }
         return knownInitiatorsInIG;
     }
 
     /**
-     * Checks if the IG has other Host's Initiators which belong to same cluster.
+     * If there are additional initiators, this method validates that they belong to other Host's Initiators belonging to same cluster.
      */
     private boolean checkIfIGHasOtherHostInitiatorsOfSameCluster(List<Initiator> knownInitiatorsInIG,
             List<Initiator> requestedInitiatorsInIG, String hostName, String clusterName) {
@@ -940,18 +964,66 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
         initiatorsInIG.removeAll(requestedInitiators);
         if (!initiatorsInIG.isEmpty()) {
             _log.info("Host name: {}, Cluster name: {}", hostName, clusterName);
+            _log.info("There are other initiators present in the IG, checking if they all belong to different host but same cluster");
             // check if the other initiators belong to different host
+            List<String> listToIgnore = new ArrayList<String>();
             for (Initiator ini : knownInitiatorsInIG) {
                 if (ini.getHostName() != null && !ini.getHostName().equalsIgnoreCase(hostName)) {
                     // check if they belong to same cluster
                     if (ini.getClusterName() != null && clusterName != null && !clusterName.isEmpty()
                             && ini.getClusterName().equalsIgnoreCase(clusterName)) {
-                        return true;
+                        listToIgnore.add(Initiator.normalizePort(ini.getInitiatorPort()));
                     }
                 }
             }
+            initiatorsInIG.removeAll(listToIgnore);
+
+            if (initiatorsInIG.isEmpty()) {
+                return true;    // all other initiators in IG belong to different host but same cluster
+            } else {
+                // fail the operation
+                String errMsg = String.format("there are initiators in the Initiator Group on the array "
+                        + "which belong to different cluster: %s", initiatorsInIG);
+                _log.error(errMsg);
+                throw DeviceControllerException.exceptions.couldNotPerformExportDelete(errMsg);
+            }
         }
         return false;
+    }
+
+    /**
+     * If there are additional initiators, this method validates that they belong to the same Host.
+     */
+    private boolean validateAdditionalInitiatorsInIGBelongToSameHost(List<Initiator> knownInitiatorsInIG,
+            List<Initiator> requestedInitiatorsInIG, String hostName) {
+        Collection<String> initiatorsInIG = Collections2.transform(knownInitiatorsInIG,
+                CommonTransformerFunctions.fctnInitiatorToPortName());
+        Collection<String> requestedInitiators = Collections2.transform(requestedInitiatorsInIG,
+                CommonTransformerFunctions.fctnInitiatorToPortName());
+        _log.info("ViPR known Initiators present in IG: {}, Initiators requested to be removed: {}",
+                initiatorsInIG, requestedInitiators);
+        initiatorsInIG.removeAll(requestedInitiators);
+        if (!initiatorsInIG.isEmpty()) {
+            _log.info("Host name: {}", hostName);
+            _log.info("There are other initiators present in the IG, checking if they all belong to same host");
+            // check if the other initiators belong to different host
+            List<String> listToIgnore = new ArrayList<String>();
+            for (Initiator ini : knownInitiatorsInIG) {
+                if (ini.getHostName() != null && ini.getHostName().equalsIgnoreCase(hostName)) {
+                    listToIgnore.add(Initiator.normalizePort(ini.getInitiatorPort()));
+                }
+            }
+            initiatorsInIG.removeAll(listToIgnore);
+
+            if (!initiatorsInIG.isEmpty()) {
+                // fail the operation
+                String errMsg = String.format("there are initiators in the Initiator Group on the array "
+                        + "which belong to different host: %s", initiatorsInIG);
+                _log.error(errMsg);
+                throw DeviceControllerException.exceptions.couldNotPerformExportDelete(errMsg);
+            }
+        }
+        return true;
     }
 
     @Override

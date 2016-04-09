@@ -97,15 +97,17 @@ public class DisasterRecovery extends ViprResourceController {
 
         SiteIdListParam param = new SiteIdListParam();
         param.getIds().addAll(uuids);
-
-        ClientResponse restresponse = DisasterRecoveryUtils.pauseStandby(param);
-
-        if(restresponse == null ) {
-            flash.error(MessagesUtils.get(PAUSED_ERROR));
+        try {
+            DisasterRecoveryUtils.pauseStandby(param);
+        } catch (ServiceErrorException ex) {
+            flash.error(ex.getDetailedMessage());
+            list(true);
+        } catch (Exception ex) {
+            flash.error(ex.getMessage());
+            list(true);
         }
-        else {
-            flash.success(MessagesUtils.get(PAUSED_SUCCESS));
-        }
+
+        flash.success(MessagesUtils.get(PAUSED_SUCCESS));
         list(true);
     }
 

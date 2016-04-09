@@ -10,10 +10,7 @@ import static util.BourneUtil.getViprClient;
 import java.util.Iterator;
 import java.util.List;
 
-import plugin.StorageOsPlugin;
-
 import com.emc.storageos.coordinator.client.model.SiteState;
-import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.model.dr.SiteActive;
 import com.emc.storageos.model.dr.SiteAddParam;
 import com.emc.storageos.model.dr.SiteDetailRestRep;
@@ -23,7 +20,6 @@ import com.emc.storageos.model.dr.SiteList;
 import com.emc.storageos.model.dr.SiteRestRep;
 import com.emc.storageos.model.dr.SiteUpdateParam;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
-import com.emc.storageos.svcs.errorhandling.resources.InternalServerErrorException;
 import com.emc.vipr.client.exceptions.ServiceErrorException;
 import com.google.common.collect.Lists;
 import com.sun.jersey.api.client.ClientResponse;
@@ -64,9 +60,13 @@ public class DisasterRecoveryUtils {
         ClientResponse restresponse = null;
         try {
             restresponse = getViprClient().site().pauseSite(ids);
+        } catch (ServiceErrorException ex) {
+            throw APIException.internalServerErrors.pauseStandbyPrecheckFailed(ex.getServiceError().getCodeDescription(),
+                    ex.getServiceError().getDetailedMessage());
         } catch (Exception ex) {
-            return restresponse;
+            throw APIException.internalServerErrors.pauseStandbyPrecheckFailed(ex.getCause().toString(), ex.getMessage());
         }
+
         return restresponse;
     }
 

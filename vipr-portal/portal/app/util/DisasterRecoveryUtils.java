@@ -22,6 +22,9 @@ import com.emc.storageos.model.dr.SiteIdListParam;
 import com.emc.storageos.model.dr.SiteList;
 import com.emc.storageos.model.dr.SiteRestRep;
 import com.emc.storageos.model.dr.SiteUpdateParam;
+import com.emc.storageos.svcs.errorhandling.resources.APIException;
+import com.emc.storageos.svcs.errorhandling.resources.InternalServerErrorException;
+import com.emc.vipr.client.exceptions.ServiceErrorException;
 import com.google.common.collect.Lists;
 import com.sun.jersey.api.client.ClientResponse;
 
@@ -58,7 +61,13 @@ public class DisasterRecoveryUtils {
     }
 
     public static ClientResponse pauseStandby(SiteIdListParam ids) {
-        return getViprClient().site().pauseSite(ids);
+        ClientResponse restresponse = null;
+        try {
+            restresponse = getViprClient().site().pauseSite(ids);
+        } catch (ServiceErrorException ex) {
+            return restresponse;
+        }
+        return restresponse;
     }
 
     public static SiteRestRep resumeStandby(String uuid) {

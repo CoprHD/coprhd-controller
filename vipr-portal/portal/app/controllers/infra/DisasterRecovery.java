@@ -30,10 +30,13 @@ import com.emc.storageos.model.dr.SiteAddParam;
 import com.emc.storageos.model.dr.SiteErrorResponse;
 import com.emc.storageos.model.dr.SiteIdListParam;
 import com.emc.storageos.model.dr.SiteUpdateParam;
+import com.emc.storageos.svcs.errorhandling.resources.APIException;
+import com.emc.vipr.client.exceptions.ServiceErrorException;
 import com.emc.storageos.coordinator.client.model.SiteState;
 import com.emc.storageos.model.dr.SiteActive;
 import com.emc.storageos.model.dr.SiteRestRep;
 import com.google.common.collect.Lists;
+import com.sun.jersey.api.client.ClientResponse;
 
 import controllers.Common;
 import controllers.deadbolt.Restrict;
@@ -90,13 +93,19 @@ public class DisasterRecovery extends ViprResourceController {
                 flash.error(MessagesUtils.get(UNKNOWN, uuid));
                 list(true);
             }
-
         }
 
         SiteIdListParam param = new SiteIdListParam();
         param.getIds().addAll(uuids);
-        DisasterRecoveryUtils.pauseStandby(param);
-        flash.success(MessagesUtils.get(PAUSED_SUCCESS));
+
+        ClientResponse restresponse = DisasterRecoveryUtils.pauseStandby(param);
+
+        if(restresponse == null ) {
+            flash.error(MessagesUtils.get(PAUSED_ERROR));
+        }
+        else {
+            flash.success(MessagesUtils.get(PAUSED_SUCCESS));
+        }
         list(true);
     }
 

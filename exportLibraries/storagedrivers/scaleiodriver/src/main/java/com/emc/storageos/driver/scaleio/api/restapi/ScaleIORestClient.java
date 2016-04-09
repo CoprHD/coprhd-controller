@@ -517,4 +517,23 @@ public class ScaleIORestClient extends StandardRestClient {
         return result;
     }
 
+    /**
+     * Get the Snapshot volume info for the given snapshot Ids
+     *
+     * @param snapIds The list of snapshot IDs
+     * @return The map of the ScaleIO snapshot and parent volume ID
+     * @throws Exception
+     */
+    public Map<String, ScaleIOVolume> getSnapshotNameMap(List<String> snapIds) throws Exception {
+        Map<String, ScaleIOVolume> result = new HashMap<String, ScaleIOVolume>();
+        ScaleIOVolumeList parm = new ScaleIOVolumeList();
+        parm.setIds(snapIds);
+        ClientResponse response = post(URI.create(ScaleIOConstants.GET_VOLUMES_BYIDS_URI), getJsonForEntity(parm));
+        List<ScaleIOVolume> snapshots = getResponseObjects(ScaleIOVolume.class, response);
+        for (ScaleIOVolume snapshot : snapshots) {
+            result.put(snapshot.getAncestorVolumeId(), snapshot);
+        }
+        return result;
+    }
+
 }

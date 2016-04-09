@@ -133,29 +133,18 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver implements Block
     @Override
     public DriverTask expandVolume(StorageVolume volume, long newCapacity) {
         DriverTask task = new DriverTaskImpl(ScaleIOHelper.getTaskId(ScaleIOConstants.TaskType.VOLUME_EXPAND));
-
+        long actualCapacity;
         if (newCapacity > 0) {
             ScaleIORestClient restClient = getClientBySystemId(volume.getStorageSystemId());
 
             if (restClient != null) {
                 ScaleIOVolume result;
                 try {
-                    volume.setRequestedCapacity(newCapacity);
-                    newCapacity = newCapacity / ScaleIOConstants.GB_BYTE;
-                    // size must be a positive number in granularity of 8 GB
-                    if (newCapacity == 0)
-                        newCapacity = 8;
-                    if (newCapacity % 8 != 0) {
-                        long tmp = newCapacity / 8 * 8;
-                        if (tmp < newCapacity) {
-                            newCapacity = tmp + 8;
-                        } else {
-                            newCapacity = tmp;
-                        }
-                    }
-                    result = restClient.modifyVolumeCapacity(volume.getNativeId(), String.valueOf(newCapacity));
+                    actualCapacity = ScaleIOHelper.calculateActualCapacityInGB(newCapacity);
+                    result = restClient.modifyVolumeCapacity(volume.getNativeId(), String.valueOf(actualCapacity));
 
                     if (result != null) {
+                        volume.setRequestedCapacity(newCapacity);
                         Long sizeInBytes = Long.parseLong(result.getSizeInKb()) * 1024;
                         volume.setProvisionedCapacity(sizeInBytes);
                         volume.setAllocatedCapacity(sizeInBytes);
@@ -230,7 +219,8 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver implements Block
 
     /**
      * Create volume snapshots.
-     *
+     * snapshots can be from different storage system
+     * 
      * @param snapshots Type: Input/Output.
      * @param capabilities capabilities required from snapshots. Type: Input.
      * @return task
@@ -240,48 +230,67 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver implements Block
         log.info("Request to create Snapshots -- Start :");
         DriverTask task = new DriverTaskImpl(ScaleIOHelper.getTaskId(ScaleIOConstants.TaskType.SNAPSHOT_CREATE));
         countSucc = 0;
-        // Assume snapshots could be from different storage system
-        if (snapshots != null && snapshots.size() > 0) {
-            // Assume snapshots could be from different storage system
+        if (!isTaskFailedOnEmptySnapList(snapshots, task)) {
             for (VolumeSnapshot snapshot : snapshots) {
-                log.info("Start to get Rest client for volume {} of ScaleIO storage system: {}", snapshot.getParentId(),
-                        snapshot.getStorageSystemId());
                 client = getClientBySystemId(snapshot.getStorageSystemId());
-                // create snapshot
-                if (client != null) {
-                    ScaleIOSnapshotVolumeResponse result = null;
-                    try {
-                        log.info("Client got! Create snapshot for volume {}:{} - start", snapshot.getDisplayName(), snapshot.getParentId());
-                        result = client.snapshotVolume(snapshot.getParentId(), snapshot.getDisplayName(),
-                                snapshot.getStorageSystemId());
-                        // set value to the output
-                        if (result != null) {
-                            snapshot.setNativeId(result.getVolumeIdList().get(0));
-                            // snapshot.setTimestamp(ScaleIOHelper.getCurrentTime());
-                            snapshot.setAccessStatus(StorageObject.AccessStatus.READ_WRITE);
-                            Map<String, String> snapNameIdMap = client.getVolumes(result.getVolumeIdList());
-                            snapshot.setDeviceLabel(snapNameIdMap.get(snapshot.getNativeId()));
-                            countSucc++;
-                            log.info("Successfully create snapshot for volume {}:{} - end", snapshot.getDisplayName(),
-                                    snapshot.getParentId());
-                        } else {
-                            log.info("No snapshot returned for volume {}:{} ", snapshot.getDisplayName(), snapshot.getParentId());
-                        }
-                    } catch (Exception e) {
-                        log.error("Exception while creating snapshot for volume {}", snapshot.getParentId(), e);
-                    }
-                } else {
-                    log.error("Exception while getting client instance for volume {}:{}", snapshot.getDisplayName(), snapshot.getParentId());
+                if (createSnapshotForSingleVolume(client, snapshot)) {
+                    countSucc++;
                 }
             }
             setTaskStatus(snapshots.size(), countSucc, task);
-        } else {
-            log.error("Empty snapshot input List");
-            task.setStatus(DriverTask.TaskStatus.FAILED);
         }
         task.setEndTime(Calendar.getInstance());
         log.info("Request to create Snapshots -- End ");
         return task;
+    }
+
+    /**
+     * Check if the input snapshot is empty list
+     * 
+     * @param snapshots
+     * @param task
+     * @return
+     */
+    private boolean isTaskFailedOnEmptySnapList(List<VolumeSnapshot> snapshots, DriverTask task) {
+        if (snapshots != null && !snapshots.isEmpty()) {
+            return false;
+        } else {
+            log.error("[ERROR] Empty snapshot input List");
+            task.setStatus(DriverTask.TaskStatus.FAILED);
+            return true;
+        }
+    }
+
+    /**
+     * Create snapshot for a single volume
+     * 
+     * @param client ScaleIO Rest Client
+     * @param snapshot given snapshot object
+     * @return True for a successful creation
+     */
+    private boolean createSnapshotForSingleVolume(ScaleIORestClient client, VolumeSnapshot snapshot) {
+        ScaleIOSnapshotVolumeResponse result = null;
+        try {
+            log.info("Create snapshot for volume {}:{} - start", snapshot.getDisplayName(), snapshot.getParentId());
+            result = client.snapshotVolume(snapshot.getParentId(), snapshot.getDisplayName(),
+                    snapshot.getStorageSystemId());
+            // set value to the output
+            if (result != null) {
+                snapshot.setNativeId(result.getVolumeIdList().get(0));
+                snapshot.setAccessStatus(StorageObject.AccessStatus.READ_WRITE);
+                Map<String, String> snapNameIdMap = client.getVolumes(result.getVolumeIdList());
+                snapshot.setDeviceLabel(snapNameIdMap.get(snapshot.getNativeId()));
+                log.info("Successfully create snapshot for volume {}:{} - end", snapshot.getDisplayName(),
+                        snapshot.getParentId());
+                return true;
+            } else {
+                log.info("No snapshot returned for volume {}:{} ", snapshot.getDisplayName(), snapshot.getParentId());
+                return false;
+            }
+        } catch (Exception e) {
+            log.error("[ERROR] Exception while creating snapshot for volume {}", snapshot.getParentId(), e);
+            return false;
+        }
     }
 
     @Override
@@ -291,7 +300,8 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver implements Block
 
     /**
      * Delete snapshots.
-     *
+     * Assume snapshots could be from different storage system
+     * 
      * @param snapshots Type: Input.
      * @return task
      */
@@ -300,34 +310,37 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver implements Block
         log.info("Request to delete Snapshots -- Start :");
         DriverTask task = new DriverTaskImpl(ScaleIOHelper.getTaskId(ScaleIOConstants.TaskType.SNAPSHOT_DELETE));
         countSucc = 0;
-        // Assume snapshots could be from different storage system
-        if (snapshots != null && snapshots.size() > 0) {
+        if (!isTaskFailedOnEmptySnapList(snapshots, task)) {
             for (VolumeSnapshot snapshot : snapshots) {
-                log.info("Get Rest client for snapshot {}:{} - start", snapshot.getDisplayName(), snapshot.getNativeId());
                 client = getClientBySystemId(snapshot.getStorageSystemId());
-                // delete snapshot
-                if (client != null) {
-                    try {
-                        log.info("Rest client Got! delete snapshot {}:{} - start", snapshot.getDisplayName(), snapshot.getNativeId());
-                        client.removeVolume(snapshot.getNativeId());
-                        countSucc++;
-                        log.info("Successfully delete snapshot {}:{} - end", snapshot.getDisplayName(), snapshot.getNativeId());
-                    } catch (Exception e) {
-                        log.error("Exception while deleting snapshot {}", snapshot.getNativeId(), e);
-                    }
-                } else {
-                    log.error("Exception while getting client instance for snapshot {}:{}", snapshot.getDisplayName(),
-                            snapshot.getNativeId());
+                if (deleteSingleSnapshot(client, snapshot)) {
+                    countSucc++;
                 }
             }
             setTaskStatus(snapshots.size(), countSucc, task);
-        } else {
-            log.error("Can't delete empty snapshot list");
-            task.setStatus(DriverTask.TaskStatus.FAILED);
         }
         task.setEndTime(Calendar.getInstance());
         log.info("Request to delete Snapshots -- End ");
         return task;
+    }
+
+    /**
+     * Delete single snapshot
+     * 
+     * @param client ScaleIO rest client
+     * @param snapshot given snapshot
+     * @return true if successful, false otherwise
+     */
+    private boolean deleteSingleSnapshot(ScaleIORestClient client, VolumeSnapshot snapshot) {
+        try {
+            log.info("Delete snapshot {}:{} - start", snapshot.getDisplayName(), snapshot.getNativeId());
+            client.removeVolume(snapshot.getNativeId());
+            log.info("Successfully delete snapshot {}:{} - end", snapshot.getDisplayName(), snapshot.getNativeId());
+            return true;
+        } catch (Exception e) {
+            log.error("Exception while deleting snapshot {}", snapshot.getNativeId(), e);
+            return false;
+        }
     }
 
     /**
@@ -507,7 +520,7 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver implements Block
 
     @Override
     public DriverTask deleteConsistencyGroupMirror(List<VolumeMirror> list) {
-        return null;
+        return setUpNonSupportedTask(ScaleIOConstants.TaskType.MIRROR_OPERATIONS);
     }
 
     /**
@@ -732,12 +745,12 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver implements Block
      */
     @Override
     public DriverTask createConsistencyGroup(VolumeConsistencyGroup consistencyGroup) {
-        log.info("create consistency group: ");
+        log.info("Create consistency group {}: ", consistencyGroup.getDisplayName());
         DriverTask task = new DriverTaskImpl(ScaleIOHelper.getTaskId(ScaleIOConstants.TaskType.CG_CREATE));
         consistencyGroup.setNativeId(consistencyGroup.getDisplayName());
         consistencyGroup.setDeviceLabel(consistencyGroup.getDisplayName());
         task.setStatus(DriverTask.TaskStatus.READY);
-        task.setMessage("Set Fake native ID");
+        task.setMessage("Set Fake CG native ID");
         return task;
     }
 
@@ -749,7 +762,7 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver implements Block
      */
     @Override
     public DriverTask deleteConsistencyGroup(VolumeConsistencyGroup consistencyGroup) {
-        log.info("Delete consistency group: ");
+        log.info("Delete consistency group: {}", consistencyGroup.getNativeId());
         DriverTask task = new DriverTaskImpl(ScaleIOHelper.getTaskId(ScaleIOConstants.TaskType.CG_DELETE));
         task.setStatus(DriverTask.TaskStatus.READY);
         return task;
@@ -769,45 +782,11 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver implements Block
             List<CapabilityInstance> capabilities) {
         log.info("Request to create consistency group snapshot -- Start :");
         DriverTask task = new DriverTaskImpl(ScaleIOHelper.getTaskId(ScaleIOConstants.TaskType.CG_SNAP_CREATE));
-        countSucc = 0;
         if (ScaleIOHelper.isFromSameStorageSystem(snapshots)) {
             String systemId = snapshots.get(0).getStorageSystemId();
-            log.info("Start to get Rest client for ScaleIO storage system: {}", systemId);
             ScaleIORestClient client = getClientBySystemId(systemId);
-            if (client != null) {
-                try {
-                    log.info("Rest Client Got! Create consistency group snapshot - Start:");
-                    Map<String, String> parent2snap = new HashMap<>();
-                    for (VolumeSnapshot snapshot : snapshots) {
-                        parent2snap.put(snapshot.getParentId(), snapshot.getDisplayName());
-                    }
-                    ScaleIOSnapshotVolumeResponse result = client.snapshotMultiVolume(parent2snap, systemId);
-
-                    // get parentID
-                    List<String> nativeIds = result.getVolumeIdList();
-                    Map<String, ScaleIOVolume> snapIdInfoMap = client.getVolumeNameMap(nativeIds);
-                    for (VolumeSnapshot snapshot : snapshots) {
-                        for (ScaleIOVolume snapInfo : snapIdInfoMap.values()) {
-                            if (snapshot.getParentId().equalsIgnoreCase(snapInfo.getAncestorVolumeId())) {
-                                snapshot.setNativeId(snapInfo.getId());
-                                snapshot.setAccessStatus(StorageObject.AccessStatus.READ_WRITE);
-                                snapshot.setDeviceLabel(snapInfo.getName());
-                                snapshot.setConsistencyGroup(result.getSnapshotGroupId());
-                                snapshot.setSnapSetId(result.getSnapshotGroupId());
-                                countSucc++;
-                            }
-                        }
-                    }
-                    setTaskStatus(snapshots.size(), countSucc, task);
-                    log.info("Create consistency group snapshot with group ID:{} - End:", consistencyGroup.getNativeId());
-                } catch (Exception e) {
-                    log.error("Exception while Creating consistency group snapshots in storage system: {}", systemId, e);
-                    task.setStatus(DriverTask.TaskStatus.FAILED);
-                }
-            } else {
-                log.error("Exception while getting Rest client instance for storage system {} ", systemId);
-                task.setStatus(DriverTask.TaskStatus.FAILED);
-            }
+            DriverTask.TaskStatus taskStatus = createGroupSnapshot(client, snapshots);
+            task.setStatus(taskStatus);
         } else {
             log.error("Snapshots are not from same storage system");
             task.setStatus(DriverTask.TaskStatus.FAILED);
@@ -815,6 +794,79 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver implements Block
         task.setEndTime(Calendar.getInstance());
         log.info("Request to create consistency group snapshot -- End");
         return task;
+    }
+
+    private DriverTask.TaskStatus createGroupSnapshot(ScaleIORestClient client, List<VolumeSnapshot> snapshots) {
+        String systemId = snapshots.get(0).getStorageSystemId();
+        try {
+            log.info("Create consistency group snapshot in storage system {} - Start:", systemId);
+            Map<String, String> parent2snap = createSnapParentMap(snapshots);
+            ScaleIOSnapshotVolumeResponse result = client.snapshotMultiVolume(parent2snap, systemId);
+            List<String> SnapNativeIds = result.getVolumeIdList();
+            Map<String, ScaleIOVolume> snapIdInfoMap = client.getSnapshotNameMap(SnapNativeIds);
+            DriverTask.TaskStatus taskStatus = populateSnapshotInfo(result, snapIdInfoMap, snapshots);
+            log.info("Create consistency group snapshot in storage system {} - End:", systemId);
+            return taskStatus;
+        } catch (Exception e) {
+            log.error("Exception while Creating consistency group snapshots in storage system: {}", systemId, e);
+            return DriverTask.TaskStatus.FAILED;
+        }
+    }
+
+    /**
+     * Create a map that maps snapshot display name with its parent volume id
+     * 
+     * @param snapshots
+     * @return return the map
+     */
+    private Map<String, String> createSnapParentMap(List<VolumeSnapshot> snapshots) {
+        Map<String, String> parent2snap = new HashMap<>();
+        for (VolumeSnapshot snapshot : snapshots) {
+            parent2snap.put(snapshot.getParentId(), snapshot.getDisplayName());
+        }
+        return parent2snap;
+    }
+
+    /**
+     * Populate snapshot info based on Rest request response
+     * 
+     * @param result response for create group snapshot Rest call
+     * @param snapIdInfoMap map of snapshot parent volume id with snapshot info
+     * @param snapshots  snapshot list with only parent volume id info
+     * @return task status
+     */
+    private DriverTask.TaskStatus populateSnapshotInfo(ScaleIOSnapshotVolumeResponse result, Map<String, ScaleIOVolume> snapIdInfoMap,
+            List<VolumeSnapshot> snapshots) {
+        countSucc = 0;
+        for (VolumeSnapshot snapshot : snapshots) {
+            ScaleIOVolume snapInfo = snapIdInfoMap.get(snapshot.getParentId());
+            if (snapInfo != null) {
+                snapshot.setNativeId(snapInfo.getId());
+                snapshot.setAccessStatus(StorageObject.AccessStatus.READ_WRITE);
+                snapshot.setDeviceLabel(snapInfo.getName());
+                snapshot.setConsistencyGroup(result.getSnapshotGroupId());
+                snapshot.setSnapSetId(result.getSnapshotGroupId());
+                countSucc++;
+            }
+        }
+        return getTaskStatus(countSucc, snapshots.size());
+    }
+
+    /**
+     * Get task status based on the number of successful tasks
+     * 
+     * @param countSucc the number of successful tasks
+     * @param taskSize the number of total tasks
+     * @return Task status
+     */
+    private DriverTask.TaskStatus getTaskStatus(int countSucc, int taskSize) {
+        if (countSucc == taskSize) {
+            return DriverTask.TaskStatus.READY;
+        } else if (countSucc == 0) {
+            return DriverTask.TaskStatus.FAILED;
+        } else {
+            return DriverTask.TaskStatus.PARTIALLY_FAILED;
+        }
     }
 
     /**
@@ -829,22 +881,10 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver implements Block
         DriverTask task = new DriverTaskImpl(ScaleIOHelper.getTaskId(ScaleIOConstants.TaskType.CG_SNAP_DELETE));
         if (ScaleIOHelper.isFromSameCGgroup(snapshots)) {
             String systemId = snapshots.get(0).getStorageSystemId();
-            log.info("Start to get Rest client for ScaleIO storage system: {}", systemId);
             ScaleIORestClient client = getClientBySystemId(systemId);
-            if (client != null) {
-                try {
-                    log.info("Rest Client Got! delete consistency group snapshot - Start:");
-                    client.removeConsistencyGroupSnapshot(snapshots.get(0).getConsistencyGroup());
-                    task.setStatus(DriverTask.TaskStatus.READY);
-                    log.info("Successfully delete consistency group snapshot - End:");
-                } catch (Exception e) {
-                    log.error("Exception while deleting consistency group snapshot", e);
-                    task.setStatus(DriverTask.TaskStatus.FAILED);
-                }
-            } else {
-                log.error("Exception while getting client instance for storage system {}", systemId);
-                task.setStatus(DriverTask.TaskStatus.FAILED);
-            }
+            String consistencyGroup = snapshots.get(0).getConsistencyGroup();
+            DriverTask.TaskStatus removeTaskStatus = removeGroupSnapshot(client, consistencyGroup);
+            task.setStatus(removeTaskStatus);
         } else {
             log.error("Snapshots are not from same consistency group");
             task.setStatus(DriverTask.TaskStatus.FAILED);
@@ -852,6 +892,25 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver implements Block
         task.setEndTime(Calendar.getInstance());
         log.info("Request to delete consistency group snapshot -- End");
         return task;
+    }
+
+    /**
+     * Rest call to remove consistency group snapshot
+     * 
+     * @param client ScaleIO Rest Client
+     * @param consistencyGroup Consistency group id
+     * @return Task status
+     */
+    private DriverTask.TaskStatus removeGroupSnapshot(ScaleIORestClient client, String consistencyGroup) {
+        try {
+            log.info("Rest Client Got! delete consistency group snapshot - Start:");
+            client.removeConsistencyGroupSnapshot(consistencyGroup);
+            log.info("Successfully delete consistency group snapshot - End:");
+            return DriverTask.TaskStatus.READY;
+        } catch (Exception e) {
+            log.error("Exception while deleting consistency group snapshot", e);
+            return DriverTask.TaskStatus.FAILED;
+        }
     }
 
     /**
@@ -1329,16 +1388,18 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver implements Block
         port = getConnInfoFromRegistry(systemId, ScaleIOConstants.PORT_NUMBER);
         username = getConnInfoFromRegistry(systemId, ScaleIOConstants.USER_NAME);
         password = getConnInfoFromRegistry(systemId, ScaleIOConstants.PASSWORD);
+
+        log.info("Start to get Rest client for ScaleIO storage system: {}", systemId);
         if (ip_address != null && port != null && username != null && password != null) {
             try {
                 client = scaleIORestHandleFactory.getClientHandle(systemId, ip_address, Integer.parseInt(port), username, password);
                 return client;
             } catch (Exception e) {
-                log.error("Exception when creating rest client instance for storage system {} ", systemId, e);
+                log.error("[ERROR] Exception when creating rest client instance for storage system {} ", systemId, e);
                 return null;
             }
         } else {
-            log.info("Exception when retrieving connection information found for storage system {}.", systemId);
+            log.info("[ERROR] No connection information found for storage system {}.", systemId);
             return null;
         }
     }

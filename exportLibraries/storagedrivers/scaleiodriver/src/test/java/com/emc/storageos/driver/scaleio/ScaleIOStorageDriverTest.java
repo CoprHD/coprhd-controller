@@ -42,17 +42,17 @@ public class ScaleIOStorageDriverTest {
     String PROTECTION_DOMAIN_ID_A = "1c865e9900000000";
     String POOL_ID_A = "45306a6b00000000";
     String IP_ADDRESS_A = "10.193.17.97";
-    String VOLUME_ID_1A = "08bf09f400000003";
-    String VOLUME_ID_2A = "08bf09f500000004";
-    String SNAPSHOT_OF_1A = "08bf0a3300000011";
+    String VOLUME_ID_1A = "08bf0a6c00000030";
+    String VOLUME_ID_2A = "08bf0a7100000000";
+    String SNAPSHOT_OF_1A = "08bf0a7200000001";
 
     // ScaleIO cluster B
     String SYS_NATIVE_ID_B = "5b5b9f3a1fd8f1fd";
     String PROTECTION_DOMAIN_ID_B = "25c950f300000000";
     String POOL_ID_B = "7a001f3300000000";
     String IP_ADDRESS_B = "10.193.17.88";
-    String VOLUME_ID_1B = "562b358300000000";
-    String VOLUME_ID_2B = "562b358400000001";
+    String VOLUME_ID_1B = "562b363800000002";
+    String VOLUME_ID_2B = "562b364500000000";
 
     // ScaleIO cluster C
     String SYS_NATIVE_ID_C = "1c865e9900000000";
@@ -62,7 +62,7 @@ public class ScaleIOStorageDriverTest {
     int PORT_NUMBER = 443;
     String USER_NAME = "admin";
     String PASSWORD = "Scaleio123";
-    String INVALID_VOLUME_ID_1 = "83f177070000000";
+    String INVALID_VOLUME_ID_1 = "83f17707000000";
     Long MAX_SIZE_IN_KB = 1099511627776L;
     Long VOLUME_SIZE_5GB = 5368709120L;
 
@@ -78,7 +78,7 @@ public class ScaleIOStorageDriverTest {
 
     @Test
     public void testCreateVolumes() throws Exception {
-        driver.setConnInfoToRegistry(PROTECTION_DOMAIN_ID_B, IP_ADDRESS_B, PORT_NUMBER, USER_NAME, PASSWORD);
+        driver.setConnInfoToRegistry(PROTECTION_DOMAIN_ID_A, IP_ADDRESS_A, PORT_NUMBER, USER_NAME, PASSWORD);
 
         List<StorageVolume> storageVolumes = new ArrayList<>();
         StorageCapabilities capabilities = null;
@@ -89,7 +89,7 @@ public class ScaleIOStorageDriverTest {
 
         for (int i = 0; i < numVolumes; i++) {
             long requestedCapacity = 800000000;
-            StorageVolume newVolume = initializeVolume(PROTECTION_DOMAIN_ID_B, POOL_ID_B, requestedCapacity);
+            StorageVolume newVolume = initializeVolume(PROTECTION_DOMAIN_ID_A, POOL_ID_A, requestedCapacity);
             storageVolumes.add(newVolume);
         }
 
@@ -338,7 +338,8 @@ public class ScaleIOStorageDriverTest {
 
     @Test
     public void testCreateVolumeSnapshot() throws Exception {
-
+        boolean WITH_INVALID_VOLUME = true;
+        boolean WITHOUT_INVALID_VOLUME = false;
         driver.setConnInfoToRegistry(SYS_NATIVE_ID_A, IP_ADDRESS_A, PORT_NUMBER, USER_NAME, PASSWORD);
         driver.setConnInfoToRegistry(SYS_NATIVE_ID_B, IP_ADDRESS_B, PORT_NUMBER, USER_NAME, PASSWORD);
         // test with null input parameters
@@ -348,26 +349,26 @@ public class ScaleIOStorageDriverTest {
         Assert.assertEquals("FAILED", task.getStatus().toString());
 
         // create snapshots for volumes from same storage system
-        snapshots = this.createSnapListSameSys(false);
+        snapshots = this.createSnapListSameSys(WITHOUT_INVALID_VOLUME);
         task = driver.createVolumeSnapshot(snapshots, null);
         Assert.assertNotNull(task);
         Assert.assertEquals("READY", task.getStatus().toString());
         this.checkResultSnapList(snapshots);
 
-        snapshots = this.createSnapListSameSys(true);
+        snapshots = this.createSnapListSameSys(WITH_INVALID_VOLUME);
         task = driver.createVolumeSnapshot(snapshots, null);
         Assert.assertNotNull(task);
         Assert.assertEquals("PARTIALLY_FAILED", task.getStatus().toString());
         this.checkResultSnapList(snapshots);
 
         // create snapshots for volumes from different storage systems
-        snapshots = this.createSnapListDiffSys(false);
+        snapshots = this.createSnapListDiffSys(WITHOUT_INVALID_VOLUME);
         task = driver.createVolumeSnapshot(snapshots, null);
         Assert.assertNotNull(task);
         Assert.assertEquals("READY", task.getStatus().toString());
         this.checkResultSnapList(snapshots);
 
-        snapshots = this.createSnapListDiffSys(true);
+        snapshots = this.createSnapListDiffSys(WITH_INVALID_VOLUME);
         task = driver.createVolumeSnapshot(snapshots, null);
         Assert.assertNotNull(task);
         Assert.assertEquals("PARTIALLY_FAILED", task.getStatus().toString());

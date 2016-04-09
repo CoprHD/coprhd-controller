@@ -17,18 +17,17 @@
 
 package com.emc.storageos.driver.scaleio;
 
+import com.emc.storageos.driver.scaleio.api.ScaleIOConstants;
+import com.emc.storageos.storagedriver.model.VolumeClone;
+import com.emc.storageos.storagedriver.model.VolumeSnapshot;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
 import java.util.UUID;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import com.emc.storageos.driver.scaleio.api.ScaleIOConstants;
-import com.emc.storageos.storagedriver.model.VolumeClone;
-import com.emc.storageos.storagedriver.model.VolumeSnapshot;
 
 public class ScaleIOHelper {
     private static final Logger log = LoggerFactory.getLogger(ScaleIOHelper.class);
@@ -146,6 +145,28 @@ public class ScaleIOHelper {
             }
         }
         return isSameCG;
+    }
+
+    /**
+     * Calculate actual volume size in GB based on given request capacity: ScaleIO requires the size to be in granularity of 8 GB
+     * @param requestedCapacity Request capacity in Byte
+     * @return Actual capacity in GB
+     */
+    public static long calculateActualCapacityInGB(long requestedCapacity){
+        requestedCapacity = requestedCapacity / ScaleIOConstants.GB_BYTE;
+        long actualCapacity = requestedCapacity;
+        // size must be a positive number in granularity of 8 GB
+        if (requestedCapacity == 0)
+            actualCapacity = 8;
+        if (requestedCapacity % 8 != 0) {
+            long tmp = requestedCapacity / 8 * 8;
+            if (tmp < requestedCapacity) {
+                actualCapacity = tmp + 8;
+            } else {
+                actualCapacity = tmp;
+            }
+        }
+        return actualCapacity;
     }
 
 }

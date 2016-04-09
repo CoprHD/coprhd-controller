@@ -64,7 +64,7 @@ public class DisasterRecoveryUtils {
         ClientResponse restresponse = null;
         try {
             restresponse = getViprClient().site().pauseSite(ids);
-        } catch (ServiceErrorException ex) {
+        } catch (Exception ex) {
             return restresponse;
         }
         return restresponse;

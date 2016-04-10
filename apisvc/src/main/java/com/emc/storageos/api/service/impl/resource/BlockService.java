@@ -3502,10 +3502,11 @@ public class BlockService extends TaskResourceService {
 
         // Determine all volumes in the project that could potentially
         // be moved to the target virtual array.
-        List<Volume> projectVolumes = CustomQueryUtility
-                .queryActiveResourcesByConstraint(_dbClient, Volume.class,
-                        ContainmentConstraint.Factory.getProjectVolumeConstraint(projectURI));
-        for (Volume volume : projectVolumes) {
+        URIQueryResultList volumeIds = new URIQueryResultList();
+        _dbClient.queryByConstraint(ContainmentConstraint.Factory.getProjectVolumeConstraint(projectURI), volumeIds);
+        Iterator<Volume> volumeItr = _dbClient.queryIterativeObjects(Volume.class, volumeIds);
+        while (volumeItr.hasNext()) {
+            Volume volume = volumeItr.next();
             try {
                 // Don't operate on VPLEX backend, RP Journal volumes,
                 // or other internal volumes.

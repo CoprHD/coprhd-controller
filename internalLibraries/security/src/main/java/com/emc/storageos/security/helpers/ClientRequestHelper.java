@@ -277,10 +277,7 @@ public class ClientRequestHelper {
      * @return HMAC signature for this request
      */
     private String getSignature(WebResource webResource, long timestamp, SecretKey key) {
-        StringBuilder buf = new StringBuilder(webResource.getURI().getPath().toString().toLowerCase());
-        if (webResource.getURI().getQuery() != null) {
-            buf.append("?" + webResource.getURI().getQuery());
-        }
+        StringBuilder buf = new StringBuilder(webResource.getURI().toString().toLowerCase());
         buf.append(timestamp);
         String sig = (key == null) ? _keyGenerator.sign(buf.toString(), defaultSignatureType) :
                 SignatureHelper.sign2(buf.toString(), key, key.getAlgorithm());

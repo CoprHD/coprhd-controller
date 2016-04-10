@@ -18,6 +18,8 @@ package com.emc.storageos.management.backup;
 import java.io.File;
 import java.util.List;
 
+import com.emc.storageos.coordinator.client.service.CoordinatorClient;
+import com.emc.storageos.coordinator.client.service.DrUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -28,12 +30,12 @@ public class BackupContext {
     private File backupDir;
     private String nodeId;
     private String nodeName;
-    private List<String> vdcList;
+    private CoordinatorClient coordinatorClient;
 
     /**
      * Sets local location which stores backup files
      * 
-     * @param backupDirParam
+     * @param backupDir
      *            The new location path
      */
     public void setBackupDir(final File backupDir) {
@@ -61,7 +63,7 @@ public class BackupContext {
     /**
      * Sets id of current node
      * 
-     * @param nodeIdParam
+     * @param nodeId
      *            The id of node
      */
     public void setNodeId(String nodeId) {
@@ -84,11 +86,16 @@ public class BackupContext {
         return this.nodeName;
     }
 
-    public void setVdcList(List<String> vdcList) {
-        this.vdcList = vdcList;
+    public CoordinatorClient getCoordinatorClient() {
+        return coordinatorClient;
     }
 
-    public List<String> getVdcList() {
-        return this.vdcList;
+    public void setCoordinatorClient(CoordinatorClient coordinatorClient) {
+        this.coordinatorClient = coordinatorClient;
+    }
+
+    public boolean isGeoEnv() {
+        DrUtil drUtil = new DrUtil(coordinatorClient);
+        return !drUtil.getOtherVdcIds().isEmpty();
     }
 }

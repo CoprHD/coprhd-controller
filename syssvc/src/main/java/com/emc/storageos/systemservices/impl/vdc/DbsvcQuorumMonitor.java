@@ -178,16 +178,20 @@ public class DbsvcQuorumMonitor implements Runnable {
         int nodeCount = standbySite.getNodeCount();
         boolean quorumLost = drUtil.getNumberOfLiveServices(siteId, Constants.DBSVC_NAME) <= nodeCount / 2 ||
                 drUtil.getNumberOfLiveServices(siteId, Constants.GEODBSVC_NAME) <= nodeCount / 2;
+        long current = System.currentTimeMillis();
         if (quorumLost && monitorResult.getDbQuorumLostSince() == 0) {
             log.warn("Db quorum lost for site {}", siteId);
-            monitorResult.setDbQuorumLostSince(System.currentTimeMillis());
-            coordinatorClient.setTargetInfo(siteId, monitorResult);
+            monitorResult.setDbQuorumLostSince(current);
         } else if (!quorumLost && monitorResult.getDbQuorumLostSince() != 0) {
             // reset the timer
             log.info("Db quorum restored for site {}", siteId);
             monitorResult.setDbQuorumLostSince(0);
-            coordinatorClient.setTargetInfo(siteId, monitorResult);
         }
+        if (!quorumLost) {
+            monitorResult.setDbQuorumLastActive(current);
+        }
+        coordinatorClient.setTargetInfo(siteId, monitorResult);
+        
         return monitorResult;
     }
 }

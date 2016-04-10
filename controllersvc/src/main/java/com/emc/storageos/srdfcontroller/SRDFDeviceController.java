@@ -649,7 +649,7 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
         /*
          * 1. Invoke CreateListReplica with all source/target pairings.
          */
-        Method createListMethod = createListReplicasMethod(system.getId(), sourceURIs, targetURIs, false);
+        Method createListMethod = createListReplicasMethod(system.getId(), sourceURIs, targetURIs, vpoolChangeUri, false);
         // false here because we want to rollback individual links not the entire (pre-existing) group.
         Method rollbackMethod = rollbackSRDFLinksMethod(system.getId(), sourceURIs, targetURIs, false);
 
@@ -1384,11 +1384,13 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
     }
 
     private Workflow.Method
-            createListReplicasMethod(URI systemURI, List<URI> sourceURIs, List<URI> targetURIs, boolean addWaitForCopyState) {
-        return new Workflow.Method(CREATE_LIST_REPLICAS_METHOD, systemURI, sourceURIs, targetURIs, addWaitForCopyState);
+            createListReplicasMethod(URI systemURI, List<URI> sourceURIs, List<URI> targetURIs, URI vpoolChangeUri,
+                    boolean addWaitForCopyState) {
+        return new Workflow.Method(CREATE_LIST_REPLICAS_METHOD, systemURI, sourceURIs, targetURIs, vpoolChangeUri, addWaitForCopyState);
     }
 
-    public boolean createListReplicas(URI systemURI, List<URI> sourceURIs, List<URI> targetURIs, boolean addWaitForCopyState, String opId) {
+    public boolean createListReplicas(URI systemURI, List<URI> sourceURIs, List<URI> targetURIs, URI vpoolChangeUri,
+            boolean addWaitForCopyState, String opId) {
         log.info("START Creating list of replicas");
         TaskCompleter completer = null;
         try {
@@ -1399,7 +1401,7 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
             combined.addAll(sourceURIs);
             combined.addAll(targetURIs);
 
-            completer = new SRDFMirrorCreateCompleter(combined, null, opId);
+            completer = new SRDFMirrorCreateCompleter(combined, vpoolChangeUri, opId);
             getRemoteMirrorDevice().doCreateListReplicas(system, sourceURIs, targetURIs, addWaitForCopyState, completer);
             log.info("Sources: {}", Joiner.on(',').join(sourceURIs));
             log.info("Targets: {}", Joiner.on(',').join(targetURIs));
@@ -1514,7 +1516,7 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
         /*
          * Invoke CreateListReplica with all source/target pairings.
          */
-        Method createListMethod = createListReplicasMethod(system.getId(), sourceURIs, targetURIs, true);
+        Method createListMethod = createListReplicasMethod(system.getId(), sourceURIs, targetURIs, vpoolChangeUri, true);
         // false here because we want to rollback individual links not the entire (pre-existing) group.
         Method rollbackMethod = rollbackSRDFLinksMethod(system.getId(), sourceURIs, targetURIs, false);
 
@@ -1570,7 +1572,7 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
         /*
          * Invoke CreateListReplica with all source/target pairings.
          */
-        Method createListMethod = createListReplicasMethod(system.getId(), sourceURIs, targetURIs, false);
+        Method createListMethod = createListReplicasMethod(system.getId(), sourceURIs, targetURIs, vpoolChangeUri, false);
         // false here because we want to rollback individual links not the entire (pre-existing) group.
         Method rollbackMethod = rollbackSRDFLinksMethod(system.getId(), sourceURIs, targetURIs, false);
 

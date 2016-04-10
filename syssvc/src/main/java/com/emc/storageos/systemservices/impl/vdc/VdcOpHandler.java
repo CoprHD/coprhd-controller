@@ -5,6 +5,8 @@
 
 package com.emc.storageos.systemservices.impl.vdc;
 
+import static com.emc.storageos.services.util.FileUtils.readValueFromFile;
+
 import java.io.File;
 import java.net.URI;
 import java.util.Arrays;
@@ -16,14 +18,15 @@ import org.apache.curator.framework.recipes.barriers.DistributedBarrier;
 import org.apache.curator.framework.recipes.locks.InterProcessLock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 
 import com.emc.storageos.coordinator.client.model.Constants;
+import com.emc.storageos.coordinator.client.model.DrOperationStatus.InterState;
 import com.emc.storageos.coordinator.client.model.PropertyInfoExt;
 import com.emc.storageos.coordinator.client.model.Site;
 import com.emc.storageos.coordinator.client.model.SiteError;
 import com.emc.storageos.coordinator.client.model.SiteInfo;
 import com.emc.storageos.coordinator.client.model.SiteState;
-import com.emc.storageos.coordinator.client.model.DrOperationStatus.InterState;
 import com.emc.storageos.coordinator.client.service.DistributedDoubleBarrier;
 import com.emc.storageos.coordinator.client.service.DrPostFailoverHandler.Factory;
 import com.emc.storageos.coordinator.client.service.DrUtil;
@@ -39,7 +42,7 @@ import com.emc.storageos.svcs.errorhandling.resources.InternalServerErrorExcepti
 import com.emc.storageos.systemservices.impl.client.SysClientFactory;
 import com.emc.storageos.systemservices.impl.upgrade.CoordinatorClientExt;
 import com.emc.storageos.systemservices.impl.upgrade.LocalRepository;
-import static com.emc.storageos.services.util.FileUtils.readValueFromFile;
+import com.emc.storageos.systemservices.impl.util.MailHandler;
 
 /**
  * Operation handler for vdc config change. A vdc config change may represent 
@@ -138,8 +141,12 @@ public abstract class VdcOpHandler {
                 log.info("Geo config change detected. set concurrent reboot to true");
                 setConcurrentRebootNeeded(true);
             }
-            
-            syncFlushVdcConfigToLocal();
+            String ipsecKeyZk = targetVdcPropInfo.getProperty(Constants.IPSEC_KEY);
+            String ipsecKeyLocal = localVdcPropInfo.getProperty(Constants.IPSEC_KEY);
+            if (ipsecKeyLocal == null || !ipsecKeyLocal.equals(ipsecKeyZk)) {
+                log.info("Local ipsec key doesn't match with new key in zk. Flush to local");
+                syncFlushVdcConfigToLocal();
+            }
             refreshIPsec();
         }
     }
@@ -381,7 +388,7 @@ public abstract class VdcOpHandler {
                 poweroffRemovedSites();
 
                 log.info("Standby removal op - reconfig all services");
-                reconfigVdc();
+                reconfigVdc(false);
 
                 log.info("Active site - start removing db nodes from gossip and strategy options");
                 removeDbNodes();
@@ -399,7 +406,7 @@ public abstract class VdcOpHandler {
                     return;
                 } else {
                     log.info("Standby removal op - reconfig all services");
-                    reconfigVdc();
+                    reconfigVdc(false);
 
                     long start = System.currentTimeMillis();
                     log.info("Waiting for completion of site removal from active site");
@@ -413,6 +420,8 @@ public abstract class VdcOpHandler {
                     }
                 }
             }
+            // refresh ssh to exclude removed nodes from ssh config files
+            refreshSsh();
         }
         
         private void removeDbNodes() throws Exception {
@@ -474,7 +483,7 @@ public abstract class VdcOpHandler {
                 // manually paused site should never reconfigure to observer until resumed
                 coordinator.stopCoordinatorSvcMonitor();
             } else {
-                reconfigVdc();
+                reconfigVdc(false);
                 checkAndPauseOnActive();
             }
         }
@@ -611,6 +620,9 @@ public abstract class VdcOpHandler {
         public DrDegradeStandbyHandler() {
         }
 
+        @Autowired
+        private MailHandler mailHandler;
+
         @Override
         public void execute() throws Exception {
             if(drUtil.isActiveSite()) {
@@ -636,6 +648,7 @@ public abstract class VdcOpHandler {
                             log.info("Setting site {} to STANDBY_DEGRADED", site.getUuid());
                             site.setState(SiteState.STANDBY_DEGRADED);
                             coordinator.getCoordinatorClient().persistServiceConfiguration(site.toConfiguration());
+                            sendDegradeAlertMail(site.getName());
                         }
                     } finally {
                         try {
@@ -653,6 +666,14 @@ public abstract class VdcOpHandler {
                 // restart dbsvc/geodbsvc so that the internode authenticator takes effect.
                 localRepository.restart(Constants.DBSVC_NAME);
                 localRepository.restart(Constants.GEODBSVC_NAME);
+            }
+        }
+
+        private void sendDegradeAlertMail(String siteName) {
+            try {
+                mailHandler.sendSiteDegradedMail(siteName, System.currentTimeMillis());
+            } catch (Exception e) {
+                log.error(String.format("Failed to sending mail that site %s is degraded", siteName), e);
             }
         }
     }
@@ -694,7 +715,6 @@ public abstract class VdcOpHandler {
         private VdcPropertyBarrier setStateToActiveBarrier;
         
         public DrSwitchoverHandler() {
-            isRebootNeeded = true;
         }
         
         @Override
@@ -727,6 +747,7 @@ public abstract class VdcOpHandler {
             
             // Update site state
             if (site.getUuid().equals(siteInfo.getSourceSiteUUID())) {
+                isRebootNeeded = true;
                 log.info("This is switchover active site (old active)");
 
                 coordinator.stopCoordinatorSvcMonitor();
@@ -741,6 +762,7 @@ public abstract class VdcOpHandler {
                 updateSwitchoverSiteState(newActiveSite, SiteState.STANDBY_SWITCHING_OVER, setStateToSwitchingoverBarrier);
                 waitForBarrierRemovedToRestart(site);
             } else if (site.getUuid().equals(siteInfo.getTargetSiteUUID())) {
+                isRebootNeeded = true;
                 log.info("This is switchover standby site (new active)");
                 
                 Site oldActiveSite = drUtil.getSiteFromLocalVdc(siteInfo.getSourceSiteUUID());
@@ -840,6 +862,12 @@ public abstract class VdcOpHandler {
             long start = System.currentTimeMillis();
             while (System.currentTimeMillis() - start < MAX_WAIT_TIME_IN_MIN * 60 * 1000) {
                 try {
+                    SiteInfo currentSiteInfo = this.coordinator.getTargetInfo(SiteInfo.class);
+                    if (!SiteInfo.DR_OP_SWITCHOVER.equals(currentSiteInfo.getActionRequired())) {
+                        log.warn("Current dr operation is not switchover, no need to wait old active anymore");
+                        break;
+                    }
+                    
                     Site oldActiveSite = drUtil.getSiteFromLocalVdc(oldActiveSiteUUID);
                     if (!oldActiveSite.getState().equals(SiteState.STANDBY_SYNCED)) { 
                         log.info("Old active site {} is still doing switchover, wait for another 5 seconds", oldActiveSite);
@@ -853,8 +881,9 @@ public abstract class VdcOpHandler {
                 }
             }
             
-            log.warn("Timeout reached when wait for old active site finishing operations");
-            throw new IllegalStateException("Timeout reached when wait for old active site finishing operations");
+            log.warn("Timeout reached or current dr operation is not switchover when wait for old active site finishing operations");
+            throw new IllegalStateException(
+                    "Timeout reached or current dr operation is not switchover when wait for old active site finishing operations");
         }
         
         private void updateSwitchoverSiteState(Site site, SiteState siteState, VdcPropertyBarrier barrier) throws Exception {
@@ -919,7 +948,7 @@ public abstract class VdcOpHandler {
             if (isNewActiveSiteForFailover(site)) {
                 setConcurrentRebootNeeded(true);
                 coordinator.stopCoordinatorSvcMonitor();
-                reconfigVdc();
+                reconfigVdc(false);
                 coordinator.blockUntilZookeeperIsWritableConnected(FAILOVER_ZK_WRITALE_WAIT_INTERVAL);
                 processFailover();
                 localRepository.rebaseZkSnapshot();
@@ -1173,8 +1202,16 @@ public abstract class VdcOpHandler {
     }
     
     protected void refreshCoordinator() {
+        if (coordinator.isStandby()) {
+            String localZkMode = drUtil.getLocalCoordinatorMode();
+            if(drUtil.isParticipantNode(localZkMode)) {
+                log.info("No need to reconfig coordinator on participant standby nodes");
+                return;
+            }
+        }
         localRepository.reconfigProperties("coordinator");
         localRepository.restart("coordinatorsvc");
+
     }
     
     /**

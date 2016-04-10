@@ -2035,6 +2035,7 @@ rp_targets()
         --protocols FC \
         --numpaths 2 \
         --provisionType 'Thin' \
+        --multiVolumeConsistency \
         --neighborhoods $RECOVERPOINT_VARRAY1 $RECOVERPOINT_VARRAY2 $RECOVERPOINT_VARRAY3 $RECOVERPOINT_VARRAY4 \
         --max_snapshots 10
 }
@@ -2862,6 +2863,12 @@ recoverpoint_ingest_host_setup()
 {
     vpool=${1}
 
+    if [ "$RP_QUICK_PARAM" == "quick" ]; then
+	CLUSTER1NET_NAME=VSAN_11
+    else
+	CLUSTER1NET_NAME=FABRIC_losam082-fabric
+    fi
+
     if [ "${vpool}" = "rp${rptypetag}_cdp" ]; then
         PWWN1=10:00:00:E0:E0:E0:E0:E0
         WWNN1=20:00:00:E0:E0:E0:E0:E0
@@ -2882,16 +2889,35 @@ recoverpoint_ingest_host_setup()
         RP_HOSTNAME=${RECOVERPOINT_HOST_VARRAY1}clr
     fi
 
-    run hosts create ${RP_HOSTNAME} $TENANT Windows ${RP_HOSTNAME} --port 8111 --username user --password 'password' --osversion 1.0 
+    run hosts create ${RP_HOSTNAME}1 $TENANT Windows ${RP_HOSTNAME}1 --port 8111 --username user --password 'password' --osversion 1.0 
 
-    run initiator create ${RP_HOSTNAME} FC ${PWWN1} --node ${WWNN1}
-    run initiator create ${RP_HOSTNAME} FC ${PWWN2} --node ${WWNN2}
+    run initiator create ${RP_HOSTNAME}1 FC ${PWWN1} --node ${WWNN1}
+    run initiator create ${RP_HOSTNAME}1 FC ${PWWN2} --node ${WWNN2}
 
-    if [ "$RP_QUICK_PARAM" == "quick" ]; then
-	CLUSTER1NET_NAME=VSAN_11
-    else
-	CLUSTER1NET_NAME=FABRIC_losam082-fabric
+    run transportzone add ${RECOVERPOINT_VARRAY1}/${CLUSTER1NET_NAME} ${PWWN1}
+    run transportzone add ${RECOVERPOINT_VARRAY1}/${CLUSTER1NET_NAME} ${PWWN2}
+
+    if [ "${vpool}" = "rp${rptypetag}_cdp" ]; then
+        PWWN1=10:00:00:E0:E0:E0:E0:C0
+        WWNN1=20:00:00:E0:E0:E0:E0:C0
+        PWWN2=10:00:00:E0:E0:E0:E0:C1
+        WWNN2=20:00:00:E0:E0:E0:E0:C1
+    elif [ "${vpool}" = "rp${rptypetag}_crr" ]; then
+        PWWN1=10:00:00:E0:E0:E0:E0:B0
+        WWNN1=20:00:00:E0:E0:E0:E0:B0
+        PWWN2=10:00:00:E0:E0:E0:E0:B1
+        WWNN2=20:00:00:E0:E0:E0:E0:B1
+    elif [ "${vpool}" = "rp${rptypetag}_clr" ]; then
+        PWWN1=10:00:00:E0:E0:E0:E0:A0
+        WWNN1=20:00:00:E0:E0:E0:E0:A0
+        PWWN2=10:00:00:E0:E0:E0:E0:A1
+        WWNN2=20:00:00:E0:E0:E0:E0:A1
     fi
+
+    run hosts create ${RP_HOSTNAME}2 $TENANT Windows ${RP_HOSTNAME}2 --port 8111 --username user --password 'password' --osversion 1.0 
+
+    run initiator create ${RP_HOSTNAME}2 FC ${PWWN1} --node ${WWNN1}
+    run initiator create ${RP_HOSTNAME}2 FC ${PWWN2} --node ${WWNN2}
 
     run transportzone add ${RECOVERPOINT_VARRAY1}/${CLUSTER1NET_NAME} ${PWWN1}
     run transportzone add ${RECOVERPOINT_VARRAY1}/${CLUSTER1NET_NAME} ${PWWN2}
@@ -3128,7 +3154,11 @@ recoverpoint_ingest_test()
 	run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY1} rp${rptypetag}_crr $PROJECT --volspec "${RECOVERPOINT_INGEST_VOL1_SRC}"
 	run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY3} ${rp_target_vpool} $PROJECT --volspec "${RECOVERPOINT_INGEST_VOL1_TGT}"
 	run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY3} ${rp_target_vpool} $PROJECT --volspec "${RECOVERPOINT_INGEST_VOL1_TGT_JRNL}"
-	run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY1} ${rp_target_vpool} $PROJECT --volspec "${RECOVERPOINT_INGEST_VOL1_SRC_JRNL}"
+        if [ "${vpool}" = "rpvplex_crr" -o "${vpool}" = "rpmp_crr" ]; then
+            run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY1} rpvplex_ha $PROJECT --volspec "${RECOVERPOINT_INGEST_VOL1_SRC_JRNL}"
+        else
+            run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY1} ${rp_target_vpool} $PROJECT --volspec "${RECOVERPOINT_INGEST_VOL1_SRC_JRNL}"
+        fi
         # Verify the CG got created; fail script if this fails.
         run blockconsistencygroup show ViPR-"${RECOVERPOINT_INGEST_VOL1_CG}"
 	recoverpoint_auto_snapshot_cleanup_test "${RECOVERPOINT_INGEST_VOL1_SRC}" "${RECOVERPOINT_INGEST_VOL1_TGT}" ${RECOVERPOINT_INGEST_SNAPSHOT_VARRAY}
@@ -3175,7 +3205,7 @@ recoverpoint_ingest_export_test()
     run volume create ${RECOVERPOINT_INGEST_EXPORT_VOL1_SRC} ${PROJECT} ${RECOVERPOINT_VARRAY1} ${vpool} 1GB --consistencyGroup ${RECOVERPOINT_INGEST_EXPORT_VOL1_CG}
 
     # Export the volume to a host
-    run export_group create ${PROJECT} EG${vpool} ${RECOVERPOINT_VARRAY1} --type Host --volspec "${PROJECT}/${RECOVERPOINT_INGEST_EXPORT_VOL1_SRC}" --hosts ${RP_HOSTNAME}
+    run export_group create ${PROJECT} EG${vpool} ${RECOVERPOINT_VARRAY1} --type Host --volspec "${PROJECT}/${RECOVERPOINT_INGEST_EXPORT_VOL1_SRC}" --hosts "${RP_HOSTNAME}1,${RP_HOSTNAME}2"
 
     # Inventory-only delete the volume, export, and CG
     run volume delete ${PROJECT}/${RECOVERPOINT_INGEST_EXPORT_VOL1_SRC} --vipronly
@@ -3213,10 +3243,11 @@ recoverpoint_ingest_export_test()
 
     rpsnap=rpsnap_for_validation-${RP_MODIFIED_HOSTNAME}-${RANDOM}
     if [ "${vpool}" = "rp${rptypetag}_cdp" ]; then
-        run unmanagedvolume ingest_export ${RECOVERPOINT_VARRAY1} rp${rptypetag}_cdp $PROJECT --volspec "${RECOVERPOINT_INGEST_EXPORT_VOL1_SRC}" --host ${RP_HOSTNAME}
         run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY1} ${rp_target_vpool} $PROJECT --volspec "${RECOVERPOINT_INGEST_EXPORT_VOL1_TGT}"
         run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY1} ${rp_target_vpool} $PROJECT --volspec "${RECOVERPOINT_INGEST_EXPORT_VOL1_TGT_JRNL}"
         run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY1} ${rp_target_vpool} $PROJECT --volspec "${RECOVERPOINT_INGEST_EXPORT_VOL1_SRC_JRNL}"
+        run unmanagedvolume ingest_export ${RECOVERPOINT_VARRAY1} rp${rptypetag}_cdp $PROJECT --volspec "${RECOVERPOINT_INGEST_EXPORT_VOL1_SRC}" --host ${RP_HOSTNAME}1
+        run unmanagedvolume ingest_export ${RECOVERPOINT_VARRAY1} rp${rptypetag}_cdp $PROJECT --volspec "${RECOVERPOINT_INGEST_EXPORT_VOL1_SRC}" --host ${RP_HOSTNAME}2
         RECOVERPOINT_TGT_VARRAY=${RECOVERPOINT_VARRAY1}
     elif [ "${vpool}" = "rp${rptypetag}_crr" ]; then
         run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY3} ${rp_target_vpool} $PROJECT --volspec "${RECOVERPOINT_INGEST_EXPORT_VOL1_TGT}"
@@ -3226,7 +3257,8 @@ recoverpoint_ingest_export_test()
         else
             run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY1} ${rp_target_vpool} $PROJECT --volspec "${RECOVERPOINT_INGEST_EXPORT_VOL1_SRC_JRNL}"
         fi
-        run unmanagedvolume ingest_export ${RECOVERPOINT_VARRAY1} rp${rptypetag}_crr $PROJECT --volspec "${RECOVERPOINT_INGEST_EXPORT_VOL1_SRC}" --host ${RP_HOSTNAME}
+        run unmanagedvolume ingest_export ${RECOVERPOINT_VARRAY1} rp${rptypetag}_crr $PROJECT --volspec "${RECOVERPOINT_INGEST_EXPORT_VOL1_SRC}" --host ${RP_HOSTNAME}1
+        run unmanagedvolume ingest_export ${RECOVERPOINT_VARRAY1} rp${rptypetag}_crr $PROJECT --volspec "${RECOVERPOINT_INGEST_EXPORT_VOL1_SRC}" --host ${RP_HOSTNAME}2
         RECOVERPOINT_TGT_VARRAY=${RECOVERPOINT_VARRAY3}
     elif [ "${vpool}" = "rp${rptypetag}_clr" ]; then
         run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY1} ${rp_target_vpool} $PROJECT --volspec "${RECOVERPOINT_INGEST_EXPORT_VOL1_V1TGT}"
@@ -3234,7 +3266,8 @@ recoverpoint_ingest_export_test()
         run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY3} ${rp_target_vpool} $PROJECT --volspec "${RECOVERPOINT_INGEST_EXPORT_VOL1_V3TGT}"
         run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY3} ${rp_target_vpool} $PROJECT --volspec "${RECOVERPOINT_INGEST_EXPORT_VOL1_V3TGT_JRNL}"
         run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY1} ${rp_target_vpool} $PROJECT --volspec "${RECOVERPOINT_INGEST_EXPORT_VOL1_SRC_JRNL}"
-        run unmanagedvolume ingest_export ${RECOVERPOINT_VARRAY1} rp${rptypetag}_clr $PROJECT --volspec "${RECOVERPOINT_INGEST_EXPORT_VOL1_SRC}" --host ${RP_HOSTNAME}
+        run unmanagedvolume ingest_export ${RECOVERPOINT_VARRAY1} rp${rptypetag}_clr $PROJECT --volspec "${RECOVERPOINT_INGEST_EXPORT_VOL1_SRC}" --host ${RP_HOSTNAME}1
+        run unmanagedvolume ingest_export ${RECOVERPOINT_VARRAY1} rp${rptypetag}_clr $PROJECT --volspec "${RECOVERPOINT_INGEST_EXPORT_VOL1_SRC}" --host ${RP_HOSTNAME}2
         RECOVERPOINT_TGT_VARRAY=${RECOVERPOINT_VARRAY1}
     fi
 
@@ -3254,7 +3287,8 @@ recoverpoint_ingest_export_test()
     #run blocksnapshot delete ${PROJECT}/${RECOVERPOINT_INGEST_EXPORT_VOL1_SRC}/${blocksnap}
 
     # Real removal of volume/CG
-    run_noundo export_group delete ${PROJECT}/${RP_HOSTNAME}
+    run_noundo export_group delete ${PROJECT}/${RP_HOSTNAME}1
+    run_noundo export_group delete ${PROJECT}/${RP_HOSTNAME}2
     run_noundo volume delete ${PROJECT}/"${RECOVERPOINT_INGEST_EXPORT_VOL1_SRC}" --wait
     run_noundo blockconsistencygroup delete ViPR-${RECOVERPOINT_INGEST_EXPORT_VOL1_CG}
 }
@@ -7934,11 +7968,16 @@ dr_multisite_tests()
     time_start switchover_standby_c
     dr switchover $standby_site_c || { echo "switchover dr standby site c failed."; exit 1; }
 
-    echo "---WAIT ACTIVE AND STANDBY TO BE STABLE AFTER SWITCHOVER---"
+    echo "---WAIT ALL 3 SITES TO BE STABLE AFTER SWITCHOVER---"
     sleep 120
     BOURNE_IPADDR=$DR_SITE_A_IP
     security login $LOCAL_LDAP_GROUPUSER_USERNAME $LOCAL_LDAP_GROUPUSER_PASSWORD 10 600
     dr waitforstable 10 800
+
+    BOURNE_IPADDR=$DR_SITE_B_IP
+    security login $LOCAL_LDAP_GROUPUSER_USERNAME $LOCAL_LDAP_GROUPUSER_PASSWORD 10 600
+    dr waitforstable 10 800
+
     BOURNE_IPADDR=$DR_SITE_C_IP
     security login $LOCAL_LDAP_GROUPUSER_USERNAME $LOCAL_LDAP_GROUPUSER_PASSWORD 10 600
     dr waitforstable 10 800
@@ -8097,9 +8136,12 @@ assert_ipsec_status()
     local result=1
 
     sleep 1
-    for i in {1..10}; do
+    for i in {1..60}; do
+        echo "trying the ${i} times to see if ipsec status change to ${expect_status}."
         ipsec_status=$(./ipsec check)
         [[ "${ipsec_status}" == *"${expect_status}"* ]] && { result=0; break; }
+        echo "status is: ${ipsec_status}."
+        echo "sleep 5 seconds"
         sleep 5
     done
 

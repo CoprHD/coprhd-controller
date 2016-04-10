@@ -374,9 +374,8 @@ public class BlockConsistencyGroupUtils {
                 // We want the non-VPlex volumes, which are those volumes that do not have associated volumes.
                 if (volume.getAssociatedVolumes() == null || volume.getAssociatedVolumes().isEmpty()) {
                     String personality = volume.getPersonality();
-                    if (personality == null
-                            || PersonalityTypes.SOURCE.name().equalsIgnoreCase(personality)
-                            || PersonalityTypes.TARGET.name().equalsIgnoreCase(personality)) {
+                    if (Volume.isSRDFProtectedVolume(volume) || personality == null
+                            || PersonalityTypes.SOURCE.name().equalsIgnoreCase(personality)) {
                         volumeList.add(volume);
                     }
                 }

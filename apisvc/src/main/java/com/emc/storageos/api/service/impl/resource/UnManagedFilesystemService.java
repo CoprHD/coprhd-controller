@@ -40,10 +40,12 @@ import com.emc.storageos.db.client.model.CifsShareACL;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.FileExportRule;
 import com.emc.storageos.db.client.model.FileShare;
+import com.emc.storageos.db.client.model.NASServer;
 import com.emc.storageos.db.client.model.NFSShareACL;
 import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.Operation.Status;
+import com.emc.storageos.db.client.model.PhysicalNAS;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.StorageHADomain;
 import com.emc.storageos.db.client.model.StoragePool;
@@ -71,6 +73,7 @@ import com.emc.storageos.model.file.NamedFileSystemList;
 import com.emc.storageos.model.file.UnManagedFileBulkRep;
 import com.emc.storageos.model.file.UnManagedFileSystemRestRep;
 import com.emc.storageos.security.audit.AuditLogManager;
+import com.emc.storageos.security.audit.AuditLogManagerFactory;
 import com.emc.storageos.security.authorization.CheckPermission;
 import com.emc.storageos.security.authorization.DefaultPermissions;
 import com.emc.storageos.security.authorization.Role;
@@ -436,7 +439,7 @@ public class UnManagedFilesystemService extends TaggedResource {
                 if (port != null && neighborhood != null) {
 
                     if (StorageSystem.Type.isilon.toString().equals(system.getSystemType())) {
-                        sPort = doesStoragePortExistsInVArray(port, neighborhood) ? port : null;
+                        sPort = getIsilonStoragePort(port, nasUri, neighborhood.getId());
                     } else {
                         sPort = compareAndSelectPortURIForUMFS(system, port,
                                 neighborhood);
@@ -458,7 +461,7 @@ public class UnManagedFilesystemService extends TaggedResource {
                 if (unManagedFileSystem.getHasExports()) {
 
                     filesystem.setFsExports(PropertySetterUtil.convertUnManagedExportMapToManaged(
-                            unManagedFileSystem.getFsUnManagedExportMap(), sPort.getPortName(), dataMover));
+                            unManagedFileSystem.getFsUnManagedExportMap(), sPort, dataMover));
 
                     _logger.info("Export map for {} = {}", fsName, filesystem.getFsExports());
 
@@ -824,6 +827,8 @@ public class UnManagedFilesystemService extends TaggedResource {
             URI uri = (URI) extParam[0];
             recordBourneFileSystemEvent(dbClient, evType, status, evDesc, uri);
 
+            auditFile(dbClient, opType, opStatus, opStage, uri.toString());
+
         } catch (Exception e) {
             _logger.error("Failed to record filesystem operation {}, err:", opType.toString(), e);
         }
@@ -1077,5 +1082,73 @@ public class UnManagedFilesystemService extends TaggedResource {
             }
         }
         return sPorts;
+    }
+
+    /**
+     * This function will return one of the NAS server port which is part of given virtual array
+     * it return null, if any of the NAS server port is not part of given virtual array
+     * 
+     * 
+     * @param umfsStoragePort port which is assigned to file system while UMFS discovery
+     * @param nasUri NAS server URI
+     * @param virtualArray virtual array
+     */
+    private StoragePort getIsilonStoragePort(StoragePort umfsStoragePort, String nasUri, URI virtualArray) {
+        StoragePort sp = null;
+        NASServer nasServer = null;
+
+        if (StringUtils.equals("VirtualNAS", URIUtil.getTypeName(nasUri))) {
+            nasServer = _dbClient.queryObject(VirtualNAS.class, URI.create(nasUri));
+        }
+        else {
+            nasServer = _dbClient.queryObject(PhysicalNAS.class, URI.create(nasUri));
+        }
+        if (nasServer != null) {
+            List<URI> virtualArrayPorts = returnAllPortsInVArray(virtualArray);
+            StringSet virtualArrayPortsSet = new StringSet();
+
+            StringSet storagePorts = nasServer.getStoragePorts();
+
+            for (URI tempVarrayPort : virtualArrayPorts) {
+                virtualArrayPortsSet.add(tempVarrayPort.toString());
+            }
+
+            StringSet commonPorts = null;
+            if (virtualArrayPorts != null && storagePorts != null) {
+                commonPorts = new StringSet(storagePorts);
+                commonPorts.retainAll(virtualArrayPortsSet);
+            }
+
+            if (commonPorts != null && !commonPorts.isEmpty()) {
+                List<String> tempList = new ArrayList<String>(commonPorts);
+                Collections.shuffle(tempList);
+                sp = _dbClient.queryObject(StoragePort.class,
+                        URI.create(tempList.get(0)));
+                return sp;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Record audit log for file service
+     * 
+     * @param auditType Type of AuditLog
+     * @param operationalStatus Status of operation
+     * @param description Description for the AuditLog
+     * @param descparams Description paramters
+     */
+    public static void auditFile(DbClient dbClient, OperationTypeEnum auditType,
+            boolean operationalStatus,
+            String description,
+            Object... descparams) {
+        AuditLogManager auditMgr = AuditLogManagerFactory.getAuditLogManager();
+        auditMgr.recordAuditLog(null, null,
+                EVENT_SERVICE_TYPE,
+                auditType,
+                System.currentTimeMillis(),
+                operationalStatus ? AuditLogManager.AUDITLOG_SUCCESS : AuditLogManager.AUDITLOG_FAILURE,
+                description,
+                descparams);
     }
 }

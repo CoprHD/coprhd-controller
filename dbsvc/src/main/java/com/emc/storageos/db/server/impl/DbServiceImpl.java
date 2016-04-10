@@ -5,46 +5,43 @@
 
 package com.emc.storageos.db.server.impl;
 
+import static com.emc.storageos.services.util.FileUtils.getLastModified;
+import static com.emc.storageos.services.util.FileUtils.readValueFromFile;
+
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.io.FileOutputStream;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
-import com.emc.storageos.db.client.impl.DbClientContext;
-import com.emc.storageos.db.client.impl.DbClientImpl;
-import com.emc.storageos.db.task.TaskScrubberExecutor;
-import org.apache.cassandra.config.Config;
-import org.apache.cassandra.config.YamlConfigurationLoader;
-import org.apache.cassandra.exceptions.ConfigurationException;
+import org.apache.cassandra.config.DatabaseDescriptor;
 import org.apache.cassandra.service.CassandraDaemon;
 import org.apache.cassandra.service.StorageService;
 import org.apache.cassandra.service.StorageServiceMBean;
-import org.apache.cassandra.config.DatabaseDescriptor;
-import org.apache.cassandra.config.EncryptionOptions.ServerEncryptionOptions.InternodeEncryption;
-import org.apache.commons.lang.StringUtils;
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.lang.StringUtils;
+import org.apache.curator.framework.recipes.locks.InterProcessLock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.emc.storageos.coordinator.client.beacon.ServiceBeacon;
 import com.emc.storageos.coordinator.client.beacon.impl.ServiceBeaconImpl;
+import com.emc.storageos.coordinator.client.model.Constants;
+import com.emc.storageos.coordinator.client.model.DbOfflineEventInfo;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.coordinator.client.service.impl.CoordinatorClientInetAddressMap;
 import com.emc.storageos.coordinator.common.Configuration;
 import com.emc.storageos.coordinator.common.Service;
 import com.emc.storageos.coordinator.common.impl.ConfigurationImpl;
-import com.emc.storageos.coordinator.client.model.Constants;
-import com.emc.storageos.coordinator.client.model.DbOfflineEventInfo;
-import com.emc.storageos.coordinator.client.model.Site;
-import com.emc.storageos.coordinator.client.model.SiteState;
+import com.emc.storageos.db.client.impl.DbClientContext;
+import com.emc.storageos.db.client.impl.DbClientImpl;
 import com.emc.storageos.db.common.DbConfigConstants;
 import com.emc.storageos.db.common.DbServiceStatusChecker;
 import com.emc.storageos.db.gc.GarbageCollectionExecutor;
@@ -55,12 +52,11 @@ import com.emc.storageos.db.server.impl.StartupMode.GeodbRestoreMode;
 import com.emc.storageos.db.server.impl.StartupMode.HibernateMode;
 import com.emc.storageos.db.server.impl.StartupMode.NormalMode;
 import com.emc.storageos.db.server.impl.StartupMode.ObsoletePeersCleanupMode;
-import com.emc.storageos.services.util.*;
-import static com.emc.storageos.services.util.FileUtils.readValueFromFile;
-import static com.emc.storageos.services.util.FileUtils.getLastModified;
-
-import org.apache.curator.framework.recipes.locks.InterProcessLock;
-import org.eclipse.jetty.util.log.Log;
+import com.emc.storageos.db.task.TaskScrubberExecutor;
+import com.emc.storageos.services.util.AlertsLogger;
+import com.emc.storageos.services.util.JmxServerWrapper;
+import com.emc.storageos.services.util.NamedScheduledThreadPoolExecutor;
+import com.emc.storageos.services.util.TimeUtils;
 
 /**
  * Default database service implementation
@@ -831,7 +827,7 @@ public class DbServiceImpl implements DbService {
     
     private void startBackgroundCompactTask() {
         if (this.compactWorker != null) {
-            // compactWorker is null in Junit environment
+            // compactWorker is null in JUnit environment
             this.compactWorker.start();
         }
     }

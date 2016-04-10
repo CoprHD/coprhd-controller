@@ -3812,10 +3812,10 @@ class Bourne:
            self.assert_is_dict(o)
            try:
                sync = self.api_sync_2(o['resource']['id'], o['op_id'], self.volume_show_task)
+               s = sync['state']
+               m = sync['message']
            except:
                print o
-           s = sync['state']
-           m = sync['message']
         return (o, s, m)
 
     def volume_multi_delete(self, uris, wait, vipronly, force):

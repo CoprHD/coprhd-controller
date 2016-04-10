@@ -81,7 +81,6 @@ public class OneDriverSimulator extends AbstractStorageDriver implements BlockSt
 //	            supportedReplications.add(StorageSystem.SupportedReplication.groupReplica);
 //	            storageSystem.setSupportedReplications(supportedReplications);
 
-
 	            task.setStatus(DriverTask.TaskStatus.READY);
 	            _log.info("StorageDriver: discoverStorageSystem information for storage system {}, nativeId {} - end",
 	                    storageSystem.getIpAddress(), storageSystem.getNativeId());

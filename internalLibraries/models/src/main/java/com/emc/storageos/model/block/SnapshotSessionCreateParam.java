@@ -25,10 +25,6 @@ public class SnapshotSessionCreateParam {
     // The new linked target information.
     private SnapshotSessionNewTargetsParam newLinkedTargets;
 
-    // flag to specify if the copy needs to be taken on HA side of VPLEX Distributed volumes
-    // By default, create copy on source back end side
-    private Boolean copyOnHighAvailabilitySide = Boolean.FALSE;
-
     // field for Application API
     private List<URI> volumes;
 
@@ -104,19 +100,6 @@ public class SnapshotSessionCreateParam {
      */
     public void setNewLinkedTargets(SnapshotSessionNewTargetsParam newLinkedTargets) {
         this.newLinkedTargets = newLinkedTargets;
-    }
-
-    /**
-     * Flag to specify if the copy needs to be taken on HA side of VPLEX Distributed volumes.
-     * By default, it is considered as false which means copy is requested on source backend side.
-     */
-    @XmlElement(name = "copy_on_high_availability_side", defaultValue = "false")
-    public Boolean getCopyOnHighAvailabilitySide() {
-        return copyOnHighAvailabilitySide;
-    }
-
-    public void setCopyOnHighAvailabilitySide(Boolean copyOnHighAvailabilitySide) {
-        this.copyOnHighAvailabilitySide = copyOnHighAvailabilitySide;
     }
 
     @XmlElementWrapper(required = false, name = "volumes")

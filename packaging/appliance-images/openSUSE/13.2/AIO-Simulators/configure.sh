@@ -74,3 +74,4 @@ EOF
   cat ${OVF}.tmp | tail -n +${TAIL} >> ${OVF}
   rm ${OVF}.tmp
 }
+$1 "$@"

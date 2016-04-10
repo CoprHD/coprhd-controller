@@ -32,7 +32,6 @@ import com.emc.storageos.management.backup.util.FtpClient;
 import com.emc.storageos.management.backup.BackupOps;
 import com.emc.storageos.systemservices.impl.jobs.backupscheduler.SchedulerConfig;
 import com.emc.storageos.systemservices.impl.client.SysClientFactory;
-import com.emc.storageos.systemservices.exceptions.SysClientException;
 
 public final class DownloadExecutor implements  Runnable {
     private static final Logger log = LoggerFactory.getLogger(DownloadExecutor.class);
@@ -151,6 +150,7 @@ public final class DownloadExecutor implements  Runnable {
 
             pullBackupFilesFromRemoteServer();
             postDownload();
+            backupOps.setRestoreStatus(remoteBackupFileName, false, null, null, true, false);
         }catch (InterruptedException e) {
             log.info("The downloading thread has been interrupted");
         }catch (Exception e) {
@@ -176,6 +176,7 @@ public final class DownloadExecutor implements  Runnable {
     }
 
     private void pullFromInternalNode() throws Exception {
+        log.info("Pull from internal node");
         BackupRestoreStatus s = backupOps.queryBackupRestoreStatus(remoteBackupFileName, false);
         List<String> backupFilenames = s.getBackupFileNames();
 
@@ -213,7 +214,7 @@ public final class DownloadExecutor implements  Runnable {
         File backupFolder= backupOps.getDownloadDirectory(remoteBackupFileName);
 
         try {
-            backupOps.checkBackup(backupFolder);
+            backupOps.checkBackup(backupFolder, false);
             long size = backupOps.getSizeToDownload(remoteBackupFileName);
             backupOps.updateDownloadedSize(remoteBackupFileName, size, false);
             log.info("The backup {} for this node has already been downloaded", remoteBackupFileName);
@@ -257,8 +258,6 @@ public final class DownloadExecutor implements  Runnable {
 
         //Step3: delete the downloaded zip file
         zipFile.delete();
-
-        backupOps.setRestoreStatus(remoteBackupFileName, false, null, null, true, false);
     }
 
     private void postDownload() {
@@ -267,9 +266,7 @@ public final class DownloadExecutor implements  Runnable {
 
         try {
             File downloadedDir = backupOps.getDownloadDirectory(remoteBackupFileName);
-
-            // valid downloaded backup
-            backupOps.checkBackup(downloadedDir);
+            backupOps.checkBackup(downloadedDir, false);
 
             // persist the names of data files into the ZK
             List<String> filenames = backupOps.getBackupFileNames(downloadedDir);
@@ -352,13 +349,17 @@ public final class DownloadExecutor implements  Runnable {
 
         int length;
         try (BufferedOutputStream out = new BufferedOutputStream(new FileOutputStream(file, true))) {
-            length = in.read(buffer);
-            while (length > 0) {
+            while (true) {
+                length = in.read(buffer);
+
+                if (length <=0) {
+                    break; //reach the end
+                }
+
                 out.write(buffer, 0, length);
                 if (updateDownloadedSize) {
                     backupOps.updateDownloadedSize(remoteBackupFileName, length, doLock);
                 }
-                length = in.read(buffer);
             }
         } catch(IOException e) {
             log.error("Failed to download file {} e=", backupFileName, e);

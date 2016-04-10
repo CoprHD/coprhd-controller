@@ -14,12 +14,12 @@ import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import org.apache.commons.lang.StringUtils;
 import org.apache.http.conn.util.InetAddressUtils;
 
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.DataObject;
+import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.util.SizeUtil;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
@@ -161,12 +161,15 @@ public class ArgValidator {
     /**
      * Validates that the value supplied matches one of the expected system values' names
      *
-     * @param value the value to check
-     * @param fieldName the name of the field where the value originated
-     * @param expected the set of values to allow
+     * @param value
+     *            the value to check
+     * @param fieldName
+     *            the name of the field where the value originated
+     * @param expected
+     *            the set of values to allow
      */
-    public static  void checkFieldValueFromSystemType(final String value, final String fieldName,
-                                               final Collection<DiscoveredDataObject.Type> expected) {
+    public static void checkFieldValueFromSystemType(final String value, final String fieldName,
+            final Collection<DiscoveredDataObject.Type> expected) {
         for (DiscoveredDataObject.Type e : expected) {
             if (e.name().equals(value)) {
                 return;
@@ -539,19 +542,26 @@ public class ArgValidator {
      * Validates that a named field is of maximum or lesser value.
      * 
      * @param value
-     *            the suppled number to check
+     *            the supplied number to check
      * @param maximum
      *            the maximum acceptable value
      * @param units
      *            the units that the value represents, used for error message presentation
      * @param fieldName
      *            the name of the field where the value originated
+     * @param humanReadableError
+     *            if true, the error will show simplified and user friendly units in the error message
      */
-    public static void checkFieldMaximum(final long value, final long maximum, final String units, final String displayUnits,
-            final String fieldName) {
+    public static void checkFieldMaximum(final long value, final long maximum, final String units, final String fieldName,
+            final Boolean humanReadableError) {
         if (value > maximum) {
-            throw APIException.badRequests.invalidParameterAboveMaximum(fieldName, SizeUtil.translateSize(value, displayUnits),
-                    SizeUtil.translateSize(maximum, displayUnits), " " + displayUnits);
+            if (humanReadableError) {
+                throw APIException.badRequests.invalidParameterSizeAboveMaximum(fieldName,
+                        SizeUtil.humanReadableByteCount(SizeUtil.translateSizeToBytes(value - maximum, units)),
+                        SizeUtil.humanReadableByteCount(SizeUtil.translateSizeToBytes(maximum, units)));
+            } else {
+                checkFieldMaximum(value, maximum, units, fieldName);
+            }
         }
     }
 
@@ -649,8 +659,10 @@ public class ArgValidator {
     /**
      * Check the provided String value is a valid type of enum or not
      * 
-     * @param value String need to be checked
-     * @param enumClass the enum class for which it need to be checked.
+     * @param value
+     *            String need to be checked
+     * @param enumClass
+     *            the enum class for which it need to be checked.
      * @return true/false
      */
     public static <T extends Enum<T>> boolean isValidEnum(String value, Class<T> enumClass) {

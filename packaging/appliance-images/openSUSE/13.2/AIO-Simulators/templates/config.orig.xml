@@ -25,7 +25,7 @@
                 <vmdisk controller="lsilogic" id="0"/>
                 <vmnic interface="e1000" mode="bridged"/>
             </machine>
-            <size unit="G">10</size>
+            <size unit="G">25</size>
         </type>
     </preferences>
     <users group="root">

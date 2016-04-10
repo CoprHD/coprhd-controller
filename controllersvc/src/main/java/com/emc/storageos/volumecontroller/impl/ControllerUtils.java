@@ -1003,6 +1003,25 @@ public class ControllerUtils {
     public static List<BlockSnapshot> getSnapshotsPartOfReplicationGroup(BlockSnapshot snapshot, DbClient dbClient) {
         if (NullColumnValueGetter.isNotNullValue(snapshot.getReplicationGroupInstance())) {
             return getSnapshotsPartOfReplicationGroup(snapshot.getReplicationGroupInstance(), snapshot.getStorageController(), dbClient);
+        } else if (!NullColumnValueGetter.isNullURI(snapshot.getConsistencyGroup()) && NullColumnValueGetter.isNotNullValue(snapshot.getSnapsetLabel())) {
+            StorageSystem system = dbClient.queryObject(StorageSystem.class, snapshot.getStorageController());
+            if (!system.getSystemType().equals(Type.vmax) 
+                    && !system.getSystemType().equals(Type.vmax3)
+                    && !system.getSystemType().equals(Type.vnxblock)
+                    && !system.getSystemType().equals(Type.xtremio) ) {
+                URIQueryResultList uriQueryResultList = new URIQueryResultList();
+                dbClient.queryByConstraint(AlternateIdConstraint.Factory.getBlockSnapshotsBySnapsetLabel(snapshot.getSnapsetLabel()),
+                        uriQueryResultList);
+                List<BlockSnapshot> snapshots = new ArrayList<BlockSnapshot>();
+                Iterator<BlockSnapshot> snapshotItr = dbClient.queryIterativeObjects(BlockSnapshot.class, uriQueryResultList);
+                while (snapshotItr.hasNext()) {
+                    BlockSnapshot snap = snapshotItr.next();
+                    if (snapshot.getProject() != null && snapshot.getProject().getURI().equals(snap.getProject().getURI())) {
+                        snapshots.add(snap);
+                    }
+                }
+                return snapshots;
+            }
         }
         return new ArrayList<BlockSnapshot>(Arrays.asList(snapshot));
     }

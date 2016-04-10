@@ -108,7 +108,7 @@ public class BackupRestoreStatus {
         return isGeo;
     }
 
-    public void setIsGeo(boolean isGeo) {
+    public void setGeo(boolean isGeo) {
         this.isGeo = isGeo;
     }
 

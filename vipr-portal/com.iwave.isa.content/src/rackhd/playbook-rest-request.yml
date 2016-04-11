@@ -1,0 +1,24 @@
+
+  - set_fact: port="4443"
+
+    # for convenience, default to POST if body defined
+  - set_fact: method="POST"
+    when: (body is defined) and
+          (method is undefined)
+
+    # make REST request
+  - name: REST Request
+    uri:
+      url: https://{{ inventory_hostname }}:{{ port }}{{ path }}
+      validate_certs: no  # TODO: enable for production
+      HEADER_X-SDS-AUTH-TOKEN: "{{ loginToken|default(omit) }}"
+      HEADER_Content-Type: "application/json"
+      body_format: json
+      method: "{{ method|default('GET') }}"
+      body: "{{ body|default(omit) }}"
+      return_content: yes
+    ignore_errors: yes  # so we can get response into result file
+    register: restResult
+  - debug: var=restResult 
+
+    #TODO: make sure response only includes data this tenant should see

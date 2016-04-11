@@ -3,10 +3,10 @@
   connection: local #commands run on this server (not remotely)
   tasks:
 
-  - include: playbook-vipr-create-volume-login.yml
+  - include: playbook-vipr-login.yml
  
   - include: playbook-vipr-create-volume-create.yml
 
-  - include: playbook-vipr-create-volume-logout.yml
+  - include: playbook-vipr-logout.yml
 
   - include: playbook-vipr-create-volume-publish.yml 

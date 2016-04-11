@@ -143,6 +143,9 @@ public interface BlockStorageDriver extends StorageDriver {
 
     /**
      * Detach volume clones.
+     * This operation should transform clone(group of clones) to regular volume in regard to all following
+     * api operations.
+     *
      * It is implementation responsibility to validate consistency of this operation
      * when clones belong to consistency groups.
      *
@@ -168,7 +171,8 @@ public interface BlockStorageDriver extends StorageDriver {
      * @param clones clones to delete. Type: Input.
      * @return
      */
-    public DriverTask deleteVolumeClone(List<VolumeClone> clones);
+   // @Deprecated
+   // public DriverTask deleteVolumeClone(List<VolumeClone> clones);
 
     // Block Mirror operations
 
@@ -325,7 +329,8 @@ public interface BlockStorageDriver extends StorageDriver {
      * @param clones  input
      * @return
      */
-    public DriverTask deleteConsistencyGroupClone(List<VolumeClone> clones);
+    //@Deprecated
+    //public DriverTask deleteConsistencyGroupClone(List<VolumeClone> clones);
 
 
 }

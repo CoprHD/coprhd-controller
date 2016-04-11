@@ -149,7 +149,7 @@ public class StorageDriverSimulator extends AbstractStorageDriver implements Blo
                 pool.setSupportedResourceType(StoragePool.SupportedResourceType.THIN_AND_THICK);
 
                 pool.setSubscribedCapacity(5000000L);
-                pool.setFreeCapacity(50000000L);
+                pool.setFreeCapacity(45000000L);
                 pool.setTotalCapacity(48000000L);
                 pool.setOperationalStatus(StoragePool.PoolOperationalStatus.READY);
                 Set<StoragePool.SupportedDriveTypes> supportedDriveTypes = new HashSet<>();
@@ -391,7 +391,8 @@ public class StorageDriverSimulator extends AbstractStorageDriver implements Blo
         return task;
     }
 
-    @Override
+
+    @Deprecated
     public DriverTask deleteVolumeClone(List<VolumeClone> clones) {
         String taskType = "delete-volume-clone";
         String taskId = String.format("%s+%s+%s", DRIVER_NAME, taskType, UUID.randomUUID().toString());
@@ -548,7 +549,7 @@ public class StorageDriverSimulator extends AbstractStorageDriver implements Blo
         return task;
     }
 
-    @Override
+    @Deprecated
     public DriverTask deleteConsistencyGroupClone(List<VolumeClone> clones) {
         return null;
     }

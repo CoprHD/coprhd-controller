@@ -3775,16 +3775,22 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
         NASServer nas = null;
 
         if (moverOrVDMName != null) {
+            _logger.info("{} exists on DM/VDM {}", fs.getFsName(), moverOrVDMName);
             nas = this.findvNasByNativeId(storageSystem, moverOrVDMName);
-            StringSet spSet = nas.getStoragePorts();
-            for (Iterator<String> iterator = spSet.iterator(); iterator.hasNext();) {
-                String spId = iterator.next();
-                StoragePort sp = _dbClient.queryObject(StoragePort.class, URI.create(spId));
+            if (nas == null) {
+                nas = this.findPhysicalNasByNativeId(storageSystem, moverOrVDMName);
+            }
+            if (nas != null) {
+                StringSet spSet = nas.getStoragePorts();
+                for (Iterator<String> iterator = spSet.iterator(); iterator.hasNext();) {
+                    String spId = iterator.next();
+                    StoragePort sp = _dbClient.queryObject(StoragePort.class, URI.create(spId));
 
-                if (sp != null && !sp.getInactive() &&
-                        sp.getStorageDevice().equals(storageSystem.getId())) {
-                    sport = sp;
-                    break;
+                    if (sp != null && !sp.getInactive() &&
+                            sp.getStorageDevice().equals(storageSystem.getId())) {
+                        sport = sp;
+                        break;
+                    }
                 }
             }
         }

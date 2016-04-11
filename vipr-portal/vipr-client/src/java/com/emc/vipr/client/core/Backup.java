@@ -127,6 +127,8 @@ public class Backup {
             status = client.getURI(BackupRestoreStatus.class, builder.build());
         } catch (Exception e) {
             status = new BackupRestoreStatus();
+            status.setStatus(BackupRestoreStatus.Status.DOWNLOAD_FAILED);
+            status.setDetails(e.getMessage());
         }
 
         return status;

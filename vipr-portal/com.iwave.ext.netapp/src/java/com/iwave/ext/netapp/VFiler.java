@@ -6,6 +6,7 @@
 package com.iwave.ext.netapp;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
@@ -106,19 +107,22 @@ public class VFiler {
 
     boolean allowProtocols(String vFilerName, Set<String> protocols) {
 
+        Set<String> existingProtocols = new HashSet<String>();
         NaElement getProtocols = new NaElement("vfiler-get-allowed-protocols");
         getProtocols.addNewChild("vfiler", vFilerName);
-
-        NaElement removeProtocol = new NaElement("vfiler-disallow-protocol");
-        removeProtocol.addNewChild("vfiler", vFilerName);
-
+        NaElement result = null;
         try {
-            Set<String> existProtocols = (Set<String>) server.invokeElem(getProtocols);
-            existProtocols.removeAll(protocols);
-            for (String protocol : existProtocols) {
-                removeProtocol.addNewChild("protocol", protocol);
+            result = server.invokeElem(getProtocols).getChildByName("allowed-protocols");
+            for (NaElement protocolInfo : (List<NaElement>) result.getChildren()) {
+                existingProtocols.add(protocolInfo.getChildContent("protocol"));
             }
-            server.invokeElem(removeProtocol);
+            existingProtocols.removeAll(protocols);
+            for (String protocol : existingProtocols) {
+                NaElement disallowProtocol = new NaElement("vfiler-disallow-protocol");
+                disallowProtocol.addNewChild("vfiler", vFilerName);
+                disallowProtocol.addNewChild("protocol", protocol.toLowerCase());
+                server.invokeElem(disallowProtocol);
+            }
         } catch (Exception e) {
             String msg = "Failed to add protocols to vFiler: " + vFilerName;
             log.error(msg, e);

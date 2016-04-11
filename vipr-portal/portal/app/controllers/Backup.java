@@ -169,7 +169,7 @@ public class Backup extends Controller {
         if (ids != null && ids.length > 0) {
             boolean deleteExecuted = false;
             for (String backupName : ids) {
-                BackupUtils.deleteBackup(backupName);
+                BackupUtils.deleteBackup(backupName.replace("+"," "));
                 deleteExecuted = true;
             }
             if (deleteExecuted == true) {

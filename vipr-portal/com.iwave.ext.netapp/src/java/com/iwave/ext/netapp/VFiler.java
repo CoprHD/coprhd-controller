@@ -7,6 +7,7 @@ package com.iwave.ext.netapp;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 
 import org.apache.log4j.Logger;
 
@@ -97,6 +98,29 @@ public class VFiler {
             server.invokeElem(elem);
         } catch (Exception e) {
             String msg = "Failed to create new vFiler: " + vFilerName;
+            log.error(msg, e);
+            throw new NetAppException(msg, e);
+        }
+        return true;
+    }
+
+    boolean allowProtocols(String vFilerName, Set<String> protocols) {
+
+        NaElement getProtocols = new NaElement("vfiler-get-allowed-protocols");
+        getProtocols.addNewChild("vfiler", vFilerName);
+
+        NaElement removeProtocol = new NaElement("vfiler-disallow-protocol");
+        removeProtocol.addNewChild("vfiler", vFilerName);
+
+        try {
+            Set<String> existProtocols = (Set<String>) server.invokeElem(getProtocols);
+            existProtocols.removeAll(protocols);
+            for (String protocol : existProtocols) {
+                removeProtocol.addNewChild("protocol", protocol);
+            }
+            server.invokeElem(removeProtocol);
+        } catch (Exception e) {
+            String msg = "Failed to add protocols to vFiler: " + vFilerName;
             log.error(msg, e);
             throw new NetAppException(msg, e);
         }

@@ -12,6 +12,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.apache.commons.beanutils.ConvertUtils;
 import org.apache.commons.lang.StringUtils;
@@ -1551,6 +1552,14 @@ public class NetAppFacade {
         }
         VFiler vFiler = new VFiler(server.getNaServer(), null);
         return vFiler.createVFiler(vFilerName, ipAddresses, storageUnits, ipSpace);
+    }
+
+    public boolean allowVnasProtocols(String vFilerName, Set<String> protocols) {
+        if (log.isDebugEnabled()) {
+            log.debug("Adding protocols to vfiler: " + vFilerName);
+        }
+        VFiler vFiler = new VFiler(server.getNaServer(), null);
+        return vFiler.allowProtocols(vFilerName, protocols);
     }
 
 }

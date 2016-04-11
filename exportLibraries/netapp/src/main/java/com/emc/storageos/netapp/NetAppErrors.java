@@ -68,4 +68,7 @@ public interface NetAppErrors {
     @DeclareServiceCode(ServiceCode.NETAPP_INVALID_OPERATION)
     public ServiceError operationNotSupported();
 
+    @DeclareServiceCode(ServiceCode.NETAPP_VNAS_CREATE_ERROR)
+    public ServiceError unableToCreateVnas();
+
 }

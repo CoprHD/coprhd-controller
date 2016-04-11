@@ -1846,7 +1846,7 @@ public class NetAppFileStorageDevice extends AbstractFileStorageDevice {
             result = BiosCommandResult.createSuccessfulResult();
         } catch (Exception e) {
             _log.error("NetAppFileStorageDevice::Create Virtual NAS server failed with an Exception", e);
-            ServiceError serviceError = DeviceControllerErrors.netapp.unableToDeleteCIFSShareAcl();
+            ServiceError serviceError = DeviceControllerErrors.netapp.unableToCreateVnas();
             serviceError.setMessage(e.getLocalizedMessage());
             result = BiosCommandResult.createErrorResult(serviceError);
         }

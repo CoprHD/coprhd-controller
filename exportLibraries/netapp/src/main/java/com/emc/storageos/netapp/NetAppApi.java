@@ -1037,7 +1037,17 @@ public class NetAppApi {
 
             netAppFacade = new NetAppFacade(_ipAddress, _portNumber, _userName,
                     _password, _https);
-            return netAppFacade.createVirtualNas(args);
+            Boolean status = netAppFacade.createVirtualNas(args);
+            if (status && args.getProtocols() != null && !args.getProtocols().isEmpty()) {
+                netAppFacade = new NetAppFacade(_ipAddress, _portNumber, _userName,
+                        _password, _https);
+
+                netAppFacade.allowVnasProtocols(args.getvNasName(), args.getProtocols());
+            } else {
+                _logger.debug("VNAS {} creation failed", args.getvNasName());
+                status = false;
+            }
+            return status;
         } catch (Exception e) {
             throw NetAppException.exceptions.createVnasFailed(args.getvNasName(), e.getMessage());
         }

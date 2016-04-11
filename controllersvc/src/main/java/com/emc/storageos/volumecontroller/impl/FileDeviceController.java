@@ -179,7 +179,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
         RecordableBourneEvent event = new RecordableBourneEvent(
                 type,
                 fs.getTenant().getURI(),
-                URI.create("ViPR-User"),                                                     // user ID when AAA fixed
+                URI.create("ViPR-User"),                                                               // user ID when AAA fixed
                 fs.getProject().getURI(),
                 fs.getVirtualPool(),
                 EVENT_SERVICE_TYPE,
@@ -211,7 +211,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
         RecordableBourneEvent event = new RecordableBourneEvent(
                 type,
                 fs.getTenant().getURI(),
-                URI.create("ViPR-User"),                                                     // user ID when AAA fixed
+                URI.create("ViPR-User"),                                                               // user ID when AAA fixed
                 fs.getProject().getURI(),
                 fs.getVirtualPool(),
                 EVENT_SERVICE_TYPE,
@@ -582,7 +582,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
 
             if (result.getCommandPending()) {
                 return;
-            }                                                                   // Set Mount path info for the exports
+            }                                                                             // Set Mount path info for the exports
             FSExportMap fsExports = fsObj.getFsExports();
 
             // Per New model get the rules and see if any rules that are already saved and available.
@@ -3911,20 +3911,28 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
         try {
             storageObj = _dbClient.queryObject(StorageSystem.class, storage);
             vnasObj = _dbClient.queryObject(VirtualNAS.class, vnasUri);
-            _log.info("Controller Recieved Virtual Nas  {}", vnasObj);
+            String[] params = { storage.toString(), vnasUri.toString(), vnasParam.getvNasName() };
+            _log.info("Create Virtual NAS: {}, {}, {}", params);
+
             BiosCommandResult result = getDevice(storageObj.getSystemType()).doCreateVNAS(storageObj, vnasParam);
-            if (!result.getCommandPending()) {
+            if (result.isCommandSuccess()) {
+                vnasObj.setNativeGuid(
+                        NativeGUIDGenerator.generateNativeGuidForVirtualNAS(storageObj.getNativeGuid(), vnasParam.getvNasName()));
+                vnasObj.setInactive(false);
                 vnasObj.getOpStatus().updateTaskStatus(opId, result.toOperation());
-            } else { // we need to add task completer
+            } else if (!result.getCommandPending()) {
+                vnasObj.setInactive(true);
                 vnasObj.getOpStatus().updateTaskStatus(opId, result.toOperation());
             }
 
-            if (result.isCommandSuccess()) {
-                // vnasObj.setNativeGuid(NativeGUIDGenerator.generateNativeGuid(_dbClient, vnasObj));
-            } else if (!result.getCommandPending()) {
-                vnasObj.setInactive(true);
+            _dbClient.updateObject(vnasObj);
+            if (!result.getCommandPending()) {
+                recordFileDeviceOperation(_dbClient, OperationTypeEnum.CREATE_VIRTUAL_NAS, result.isCommandSuccess(), "", "", vnasObj);
             }
         } catch (Exception e) {
+            String[] params = { storage.toString(), vnasParam.getvNasName(),
+                    e.getMessage().toString() };
+            _log.error("Unable to create virtual Nas: storage {}, Virtual Nas {}: {}", params);
             updateTaskStatus(opId, vnasObj, e);
         }
     }

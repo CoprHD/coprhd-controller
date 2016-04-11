@@ -1361,9 +1361,8 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
         if (!activeMirrorsForParent.isEmpty()) {
             throw APIException.badRequests.snapshotParentHasActiveMirrors(parent.getLabel(), activeMirrorsForParent.size());
         }
-        StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, parent.getStorageController());
         // Snap restore to V3 SRDF(Async) Target volume is not supported
-        if (storageSystem.checkIfVmax3() && Volume.isSRDFProtectedVolume(parent) && !parent.isSRDFSource()
+        if (parent.isVmax3Volume(_dbClient) && Volume.isSRDFProtectedVolume(parent) && !parent.isSRDFSource()
                 && RemoteDirectorGroup.SupportedCopyModes.ASYNCHRONOUS.name().equalsIgnoreCase(parent.getSrdfCopyMode())) {
             throw APIException.badRequests.snapshotRestoreNotSupported();
         }

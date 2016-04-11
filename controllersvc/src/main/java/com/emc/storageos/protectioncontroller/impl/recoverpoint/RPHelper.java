@@ -2007,6 +2007,11 @@ public class RPHelper {
             if (cgVolume.getPersonality().equalsIgnoreCase(PersonalityTypes.TARGET.toString()) && !productionCopy) {
                 return cgVolume.getRpCopyName();
             }
+            
+            // The case of standby production copy; there is no source production volume for this specific varray
+            if (cgVolume.getPersonality().equalsIgnoreCase(PersonalityTypes.METADATA.toString()) && productionCopy) {
+                return cgVolume.getRpCopyName();
+            }
         }
         return null;
     }

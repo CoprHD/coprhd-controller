@@ -29,34 +29,34 @@ import com.jcraft.jsch.Session;
  */
 
 public class VNXFileSshApi {
-    
+
     /** The Constant SERVER_EXPORT_CMD. */
     public static final String SERVER_EXPORT_CMD = "/nas/bin/server_export";
-    
+
     /** The Constant SERVER_MOUNT_CMD. */
     public static final String SERVER_MOUNT_CMD = "/nas/bin/server_mount";
-    
+
     /** The Constant SERVER_UNMOUNT_CMD. */
     public static final String SERVER_UNMOUNT_CMD = "/nas/bin/server_umount";
-    
+
     /** The Constant SERVER_INFO_CMD. */
     public static final String SERVER_INFO_CMD = "/nas/bin/nas_server";
-    
+
     /** The Constant SERVER_USER_CMD. */
     public static final String SERVER_USER_CMD = "/nas/sbin/server_user";
-    
+
     /** The Constant EXPORT. */
     public static final String EXPORT = "EXPORT";
-    
+
     /** The Constant VNX_CIFS. */
     public static final String VNX_CIFS = "cifs";
-    
+
     /** The Constant NAS_FS. */
     public static final String NAS_FS = "/nas/bin/nas_fs";
-    
+
     /** The Constant SHARE. */
     public static final String SHARE = "share";
-    
+
     /** The Constant SERVER_MODEL. */
     public static final String SERVER_MODEL = "/nas/sbin/model";
 
@@ -65,10 +65,10 @@ public class VNXFileSshApi {
 
     /** The _host. */
     private String _host;
-    
+
     /** The _user name. */
     private String _userName;
-    
+
     /** The _password. */
     private String _password;
 
@@ -78,7 +78,7 @@ public class VNXFileSshApi {
 
     /** The Constant BUFFER_SIZE. */
     private static final int BUFFER_SIZE = 1024;
-    
+
     /** The Constant DEFAULT_PORT. */
     private static final int DEFAULT_PORT = 22;
 
@@ -87,15 +87,15 @@ public class VNXFileSshApi {
      */
     // TODO: change build files to be able to access FileShareExport.SecurityTypes.
     private enum SecurityTypes {
-        
+
         /** The sys. */
-        sys, 
- /** The krb5. */
- krb5, 
- /** The krb5i. */
- krb5i, 
- /** The krb5p. */
- krb5p
+        sys,
+        /** The krb5. */
+        krb5,
+        /** The krb5i. */
+        krb5i,
+        /** The krb5p. */
+        krb5p
     }
 
     /**
@@ -380,11 +380,11 @@ public class VNXFileSshApi {
             return null;
         }
 
-        String exportName= exports.get(0).getExportName();
-        if(exportName == null) {
+        String exportName = exports.get(0).getExportName();
+        if (exportName == null) {
             return null;
         }
-        
+
         StringBuilder cmd = new StringBuilder();
         cmd.append(dataMover);
         cmd.append(" -list -name ");
@@ -392,7 +392,7 @@ public class VNXFileSshApi {
 
         return cmd.toString();
     }
-    
+
     /**
      * Create the command string for deleting file system export.
      * 
@@ -1189,7 +1189,7 @@ public class VNXFileSshApi {
                         && !message.isEmpty()
                         && (message.contains("unable to acquire lock(s)") ||
                                 message.contains("NAS_DB locked object is stale") ||
-                                message.contains("Temporarily no Data Mover is available"))) {
+                        message.contains("Temporarily no Data Mover is available"))) {
                     try {
                         // Delaying execution since NAS_DB object is locked till
                         // current execution complete
@@ -1212,6 +1212,57 @@ public class VNXFileSshApi {
             _log.error(message.toString(), ex);
         }
         return reTryResult;
+    }
+
+    public String getFileSystemDMName(String fsName) {
+
+        String vdmName = null;
+        String[] fsVDMList;
+
+        try {
+            // Prepare arguments for CLI command
+            StringBuilder cmd = new StringBuilder();
+            cmd.append(" -info ");
+            cmd.append(fsName);
+
+            // Execute command
+            XMLApiResult fsInfoResult = this.executeSsh(VNXFileSshApi.NAS_FS,
+                    cmd.toString());
+
+            // Parse message to get file system size properties
+            if (fsInfoResult.isCommandSuccess()) {
+                String[] propList = fsInfoResult.getMessage().split("[\n]");
+                if (propList == null || propList.length < 1) {
+                    // no FS Size found
+                    return vdmName;
+                } else {
+                    for (String prop : propList) {
+                        if (prop.startsWith("rw_vdms")) {
+                            fsVDMList = prop.split("=");
+                            vdmName = fsVDMList[1].trim();
+                            break;
+                        }
+                    }
+                    if (vdmName == null) {
+                        for (String prop : propList) {
+                            if (prop.startsWith("rw_servers")) {
+                                fsVDMList = prop.split("=");
+                                vdmName = fsVDMList[1].trim();
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+        } catch (Exception ex) {
+            StringBuilder message = new StringBuilder();
+            message.append("VNX File getDMORVDMName failed for file system"
+                    + fsName);
+            message.append(", due to {}");
+            _log.error(message.toString(), ex);
+        }
+
+        return vdmName;
     }
 
 }

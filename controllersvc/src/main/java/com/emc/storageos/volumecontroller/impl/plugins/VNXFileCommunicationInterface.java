@@ -32,6 +32,7 @@ import com.emc.storageos.db.client.model.DiscoveredDataObject.DiscoveryStatus;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.RegistrationStatus;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.Type;
 import com.emc.storageos.db.client.model.FileShare;
+import com.emc.storageos.db.client.model.NASServer;
 import com.emc.storageos.db.client.model.NasCifsServer;
 import com.emc.storageos.db.client.model.PhysicalNAS;
 import com.emc.storageos.db.client.model.ShareACL;
@@ -1258,7 +1259,7 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
             _dbClient.createObject(newNasServers);
             discoveredVNasServers.addAll(newNasServers);
         }
-        
+
         // Verify the existing vnas servers!!!
         DiscoveryUtils.checkVirtualNasNotVisible(discoveredVNasServers, _dbClient, system.getId());
 
@@ -1519,11 +1520,8 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
                 }
             }
 
-            StoragePort storagePort = this.getStoragePortPool(storageSystem);
-
             List<VNXFileSystem> discoveredFS = discoverAllFileSystems(storageSystem);
-            
-            
+
             if (discoveredFS != null) {
                 for (VNXFileSystem fs : discoveredFS) {
                     String fsNativeGuid = NativeGUIDGenerator.generateNativeGuid(
@@ -1540,6 +1538,8 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
                         UnManagedFileSystem unManagedFs = checkUnManagedFileSystemExistsInDB(fsUnManagedFsNativeGuid);
 
                         boolean alreadyExist = unManagedFs == null ? false : true;
+                        // Get the associated storage port of VNXFS
+                        StoragePort storagePort = this.getStoragePortOfVNXFS(fs, storageSystem);
                         unManagedFs = createUnManagedFileSystem(unManagedFs, fsUnManagedFsNativeGuid, storageSystem,
                                 pool, storagePort, fs);
                         if (alreadyExist) {
@@ -1710,8 +1710,8 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
                     continue;
                 }
                 // storagePort.setStorageHADomain(mover.getId());
-                
-               // Retrieve FS-mountpath map for the Data Mover.
+
+                // Retrieve FS-mountpath map for the Data Mover.
                 _logger.info("Retrieving FS-mountpath map for Data Mover {}.",
                         mover.getAdapterName());
                 VNXFileSshApi sshDmApi = new VNXFileSshApi();
@@ -1805,7 +1805,7 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
 
                         _logger.info("UnManaged File System {} valid or invalid {}",
                                 vnxufs.getLabel(), vnxufs.getInactive());
-                                               
+
                         unManagedExportBatch.add(vnxufs);
 
                         if (unManagedExportBatch.size() >= VNXFileConstants.VNX_FILE_BATCH_SIZE) {
@@ -1950,10 +1950,10 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
                     continue;
                 }
                 // storagePort.setStorageHADomain(mover.getId());
-                
-                //get vnas uri
+
+                // get vnas uri
                 URI moverURI = getNASUri(mover, storageSystem);
-                
+
                 // Retrieve FS-mountpath map for the Data Mover.
                 _logger.info("Retrieving FS-mountpath map for Data Mover {}.",
                         mover.getAdapterName());
@@ -2019,8 +2019,8 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
                                 vnxufs.setHasShares(true);
                                 vnxufs.putFileSystemCharacterstics(
                                         UnManagedFileSystem.SupportedFileSystemCharacterstics.IS_FILESYSTEM_EXPORTED
-                                        .toString(), TRUE);
-                                
+                                                .toString(), TRUE);
+
                                 _logger.debug("Export map for VNX UMFS {} = {}",
                                         vnxufs.getLabel(), vnxufs.getUnManagedSmbShareMap());
 
@@ -2053,9 +2053,9 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
                                     }
 
                                 }
-                                
-                                //set vNAS on umfs
-                                StringSet moverSet= new StringSet();
+
+                                // set vNAS on umfs
+                                StringSet moverSet = new StringSet();
                                 moverSet.add(moverURI.toString());
                                 vnxufs.putFileSystemInfo(UnManagedFileSystem.SupportedFileSystemInformation.NAS.toString(), moverSet);
 
@@ -2142,16 +2142,17 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
         }
 
     }
-    
+
     /**
      * get the nas or vnas uri
+     * 
      * @param storageHADomain
      * @param storageSystem
      * @return
      */
     private URI getNASUri(StorageHADomain storageHADomain, StorageSystem storageSystem) {
         URI moverURI = null;
-        if ( storageHADomain.getVirtual() == true) {
+        if (storageHADomain.getVirtual() == true) {
             VirtualNAS virtualNAS = findvNasByNativeId(storageSystem, storageHADomain.getName());
             moverURI = virtualNAS.getId();
         } else {
@@ -2160,7 +2161,6 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
         }
         return moverURI;
     }
-
 
     private List<UnManagedCifsShareACL> applyCifsSecurityRules(UnManagedFileSystem vnxufs, String expPath,
             Map<String, String> fsExportInfo, StoragePort storagePort) {
@@ -2288,7 +2288,7 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
                     continue;
                 }
                 // storagePort.setStorageHADomain(mover.getId());
-                //get vnas uri
+                // get vnas uri
                 URI moverURI = getNASUri(mover, storageSystem);
                 // Retrieve FS-mountpath map for the Data Mover.
                 _logger.info("Retrieving FS-mountpath map for Data Mover {}.",
@@ -2411,8 +2411,8 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
                                             vnxufs.setHasExports(true);
                                             vnxufs.putFileSystemCharacterstics(
                                                     UnManagedFileSystem.SupportedFileSystemCharacterstics.IS_FILESYSTEM_EXPORTED
-                                                    .toString(), TRUE);
-                                            
+                                                            .toString(), TRUE);
+
                                             // Set the correct storage port
                                             if (null != storagePort) {
                                                 StringSet storagePorts = new StringSet();
@@ -2453,18 +2453,18 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
                         }
                         _logger.info("No of exports found for path {} = {} ", fsMountPath, noOfExports);
 
-                        if (noOfExports == 0 ) {
+                        if (noOfExports == 0) {
                             _logger.info("FileSystem {} does not have any exports ", vnxufs.getLabel());
                             vnxufs.setHasExports(false);
                         }
                         // Don't consider the unmanaged file systems with invalid exports!!!
                         if (inValidExports) {
-                        	_logger.info("Ignoring unmanaged file system {}, due to invalid exports", vnxufs.getLabel());
-                        	vnxufs.setInactive(true);
+                            _logger.info("Ignoring unmanaged file system {}, due to invalid exports", vnxufs.getLabel());
+                            vnxufs.setInactive(true);
                         }
-                        
-                        //set the  vNAS uri in umfs
-                        StringSet moverSet= new StringSet();
+
+                        // set the vNAS uri in umfs
+                        StringSet moverSet = new StringSet();
                         moverSet.add(moverURI.toString());
                         vnxufs.putFileSystemInfo(UnManagedFileSystem.SupportedFileSystemInformation.NAS.toString(), moverSet);
                         _logger.info("nas server id {} and fs name {}", mover.getName(), fsName);
@@ -3762,6 +3762,34 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
             _logger.error(e.getMessage());
         }
         return null;
+    }
+
+    private StoragePort getStoragePortOfVNXFS(VNXFileSystem fs, StorageSystem storageSystem) {
+        StoragePort sport = null;
+
+        VNXFileSshApi sshDmApi = new VNXFileSshApi();
+        sshDmApi.setConnParams(storageSystem.getIpAddress(), storageSystem.getUsername(),
+                storageSystem.getPassword());
+
+        String moverOrVDMName = sshDmApi.getFileSystemDMName(fs.getFsName());
+        NASServer nas = null;
+
+        if (moverOrVDMName != null) {
+            nas = this.findvNasByNativeId(storageSystem, moverOrVDMName);
+            StringSet spSet = nas.getStoragePorts();
+            for (Iterator<String> iterator = spSet.iterator(); iterator.hasNext();) {
+                String spId = iterator.next();
+                StoragePort sp = _dbClient.queryObject(StoragePort.class, URI.create(spId));
+
+                if (sp != null && !sp.getInactive() &&
+                        sp.getStorageDevice().equals(storageSystem.getId())) {
+                    sport = sp;
+                    break;
+                }
+            }
+        }
+
+        return sport;
     }
 
 }

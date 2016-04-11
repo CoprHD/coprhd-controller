@@ -438,8 +438,9 @@ public class UnManagedFilesystemService extends TaggedResource {
 
                 if (port != null && neighborhood != null) {
 
-                    if (StorageSystem.Type.isilon.toString().equals(system.getSystemType())) {
-                        sPort = getIsilonStoragePort(port, nasUri, neighborhood.getId());
+                    if (StorageSystem.Type.isilon.toString().equals(system.getSystemType()) ||
+                            StorageSystem.Type.vnxfile.toString().equals(system.getSystemType())) {
+                        sPort = getNASServerStoragePort(nasUri, neighborhood.getId());
                     } else {
                         sPort = compareAndSelectPortURIForUMFS(system, port,
                                 neighborhood);
@@ -1093,7 +1094,7 @@ public class UnManagedFilesystemService extends TaggedResource {
      * @param nasUri NAS server URI
      * @param virtualArray virtual array
      */
-    private StoragePort getIsilonStoragePort(StoragePort umfsStoragePort, String nasUri, URI virtualArray) {
+    private StoragePort getNASServerStoragePort(String nasUri, URI virtualArray) {
         StoragePort sp = null;
         NASServer nasServer = null;
 

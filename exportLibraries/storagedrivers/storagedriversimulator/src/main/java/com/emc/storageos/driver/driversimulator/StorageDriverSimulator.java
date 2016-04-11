@@ -627,9 +627,10 @@ public class StorageDriverSimulator extends AbstractStorageDriver implements Blo
             snapshot.setDeviceLabel(volume.getNativeId() + "snap-" + i);
             snapshot.setStorageSystemId(volume.getStorageSystemId());
             snapshot.setAccessStatus(StorageObject.AccessStatus.READ_ONLY);
-            snapshot.setConsistencyGroup(volume.getConsistencyGroup()+"snapSet-"+i);
+            snapshot.setConsistencyGroup(volume.getConsistencyGroup() + "snapSet-" + i);
             snapshot.setAllocatedCapacity(1000L);
             snapshot.setProvisionedCapacity(volume.getProvisionedCapacity());
+            snapshot.setWwn(String.format("%s%s", snapshot.getStorageSystemId(), snapshot.getNativeId()));
             snapshots.add(snapshot);
         }
         return snapshots;
@@ -637,7 +638,24 @@ public class StorageDriverSimulator extends AbstractStorageDriver implements Blo
 
     @Override
     public List<VolumeClone> getVolumeClones(StorageVolume volume) {
-        return null;
+        List<VolumeClone> clones = new ArrayList<>();
+        // for (int i=0; i<2; i++) {
+        for (int i=0; i<2; i++) {
+            VolumeClone clone = new VolumeClone();
+            clone.setParentId(volume.getNativeId());
+            clone.setNativeId(volume.getNativeId() + "clone-" + i);
+            clone.setDeviceLabel(volume.getNativeId() + "clone-" + i);
+            clone.setStorageSystemId(volume.getStorageSystemId());
+            clone.setStoragePoolId(volume.getStoragePoolId());
+            clone.setAccessStatus(StorageObject.AccessStatus.READ_WRITE);
+            clone.setConsistencyGroup(volume.getConsistencyGroup() + "cloneGroup-" + i);
+            clone.setAllocatedCapacity(volume.getAllocatedCapacity());
+            clone.setProvisionedCapacity(volume.getProvisionedCapacity());
+            clone.setThinlyProvisioned(true);
+            clone.setWwn(String.format("%s%s", clone.getStorageSystemId(), clone.getNativeId()));
+            clones.add(clone);
+        }
+        return clones;
     }
 
     @Override

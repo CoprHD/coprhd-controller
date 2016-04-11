@@ -11,6 +11,7 @@ import static com.emc.storageos.services.util.FileUtils.readValueFromFile;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.net.InetAddress;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -57,6 +58,8 @@ import com.emc.storageos.services.util.AlertsLogger;
 import com.emc.storageos.services.util.JmxServerWrapper;
 import com.emc.storageos.services.util.NamedScheduledThreadPoolExecutor;
 import com.emc.storageos.services.util.TimeUtils;
+
+import javax.mail.internet.InternetAddress;
 
 /**
  * Default database service implementation
@@ -298,13 +301,41 @@ public class DbServiceImpl implements DbService {
     }
 
     private void removeStaleServiceConfiguration() {
+        boolean isGeoDBSvc = isGeoDbsvc();
+        boolean removeAllConfig = false;
+
         String configKind = _coordinator.getDbConfigPath(_serviceInfo.getName());
         List<Configuration> configs = _coordinator.queryAllConfiguration(_coordinator.getSiteId(), configKind);
+
         for (Configuration config : configs) {
             if (isStaleConfiguration(config)) {
-                _coordinator.removeServiceConfiguration(_coordinator.getSiteId(), config);
-                _log.info("Remove stale config, id: {}", config.getId());
+                boolean autoboot = Boolean.parseBoolean(config.getConfig(DbConfigConstants.AUTOBOOT));
+                String configId = config.getId();
+
+                if (isGeoDBSvc && !autoboot && (configId.equals("geodb-4") || configId.equals("geodb-5"))) {
+                    // for geodbsvc, if restore with the backup of 5 nodes to 3 nodes and the backup is made
+                    // on the cluster whose the 'autoboot=false' is set on vipr4 or vipr5
+                    // we should remove all the geodb configs and relay on the geodbsvc to rebuild the 'autoboot' flag
+                    // in this case
+
+                    // TODO:This is a temporary/safest solution in Yoda, we'll provide a better soltuion
+                    // post Yoda
+                    removeAllConfig = true;
+                }
+
+                if (isStaleConfiguration(config)) {
+                    _coordinator.removeServiceConfiguration(_coordinator.getSiteId(), config);
+                    _log.info("Remove stale db config, id: {}", config.getId());
+                }
+
             }
+        }
+
+        if (removeAllConfig) {
+            _log.info("set autoboot flag to false on {}", _serviceInfo.getId());
+            Configuration config = _coordinator.queryConfiguration(_coordinator.getSiteId(), configKind, _serviceInfo.getId());
+            config.setConfig(DbConfigConstants.AUTOBOOT, Boolean.FALSE.toString());
+            _coordinator.persistServiceConfiguration(_coordinator.getSiteId(), config);
         }
     }
 

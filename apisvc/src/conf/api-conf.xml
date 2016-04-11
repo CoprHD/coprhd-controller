@@ -248,6 +248,9 @@
         <property name="coordinator" ref="coordinator"/>
         <property name="matcherFramework" ref="matcherFramework"/>
     </bean>
+    
+    <bean id="protocolEndpointService" class="com.emc.storageos.api.service.impl.resource.vasa2.ProtocolEndpointService">
+    </bean>
 
     <bean id="virtualArrayService" class="com.emc.storageos.api.service.impl.resource.VirtualArrayService">
         <property name="dbClient" ref="dbclient"/>
@@ -566,6 +569,7 @@
                 </bean>
                 <ref bean="fileVirtualPoolService"/>
                 <ref bean="objectVirtualPoolService"/>
+                <ref bean="protocolEndpointService"/>
                 <bean class="com.emc.storageos.api.service.impl.resource.BlockVirtualPoolService">
                   <property name="dbClient" ref="dbclient"/>
                   <property name="coordinator" ref="coordinator"/>

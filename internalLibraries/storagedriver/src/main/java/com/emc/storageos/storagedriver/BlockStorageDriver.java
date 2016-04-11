@@ -167,12 +167,14 @@ public interface BlockStorageDriver extends StorageDriver {
 
     /**
      * Delete volume clones.
+     * Deprecated:
+     * CoprHD uses detach clone followed delete volume requests to deleted volume clone.
      *
      * @param clones clones to delete. Type: Input.
      * @return
      */
-   // @Deprecated
-   // public DriverTask deleteVolumeClone(List<VolumeClone> clones);
+    @Deprecated
+    public DriverTask deleteVolumeClone(List<VolumeClone> clones);
 
     // Block Mirror operations
 
@@ -321,16 +323,6 @@ public interface BlockStorageDriver extends StorageDriver {
      */
     public DriverTask createConsistencyGroupClone(VolumeConsistencyGroup consistencyGroup, List<VolumeClone> clones,
                                                      List<CapabilityInstance> capabilities);
-
-    /**
-     * Delete consistency group clone
-     * It is implementation responsibility to validate consistency of this group operation.
-     *
-     * @param clones  input
-     * @return
-     */
-    //@Deprecated
-    //public DriverTask deleteConsistencyGroupClone(List<VolumeClone> clones);
 
 
 }

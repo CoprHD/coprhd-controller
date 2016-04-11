@@ -549,10 +549,6 @@ public class StorageDriverSimulator extends AbstractStorageDriver implements Blo
         return task;
     }
 
-    @Deprecated
-    public DriverTask deleteConsistencyGroupClone(List<VolumeClone> clones) {
-        return null;
-    }
 
     @Override
     public DriverTask getStorageVolumes(StorageSystem storageSystem, List<StorageVolume> storageVolumes, MutableInt token) {

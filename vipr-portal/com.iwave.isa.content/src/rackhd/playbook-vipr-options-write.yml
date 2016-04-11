@@ -1,0 +1,17 @@
+    # 'ansibleResultFile' is passed in by RackHDs ansible-job.js
+  - debug: var=ansibleResultFile    
+
+    # touch file to create so we can truncate if present
+  - file: path={{ansibleResultFile}} state=touch mode="u=rw,g=r,o=r" 
+  - command: /usr/bin/truncate -s 0 {{ ansibleResultFile }} 
+
+    # start writing JSON format with bracket for list of name:id pairs
+  - lineinfile: dest={{ ansibleResultFile }} line="["
+    # write pairs out to file 
+  - lineinfile: dest={{ ansibleResultFile }} line="{\"name\":\"{{ item.name }}\",\"id\":\"{{ item.id }}\"}," 
+    with_items:
+      - "{{optionsData}}" 
+    # replace last instance of line ending with comma with line, minus the comma 
+  - lineinfile: dest={{ ansibleResultFile }} regexp="^(.*),$" line="\1" backrefs=yes
+    # end file with bracket for end of list
+  - lineinfile: dest={{ ansibleResultFile }} line="]"

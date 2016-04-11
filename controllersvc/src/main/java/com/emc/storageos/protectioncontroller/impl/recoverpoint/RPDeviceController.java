@@ -1678,6 +1678,10 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                 throw DeviceControllerException.exceptions.failedToAcquireLock(lockKeys.toString(),
                         String.format("Create or add volumes to RP consistency group %s; id: %s", cg.getLabel(), cgId.toString()));
             }
+            
+            // Reload the CG because a previous lock could have updated it with
+            // new info if there was a multi-volume concurrent order placed.
+            cg = _dbClient.queryObject(BlockConsistencyGroup.class, cgId);
 
             RecoverPointCGResponse response = null;
             // The CG already exists if it contains volumes and is of type RP
@@ -1685,8 +1689,10 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
             if (cg.nameExistsForStorageSystem(rpSystem.getId(), cgParams.getCgName()) && rp.doesCgExist(cgParams.getCgName())) {
                 // cg exists in both the ViPR db and on the RP system
+                _log.info("CG already exists, add replication set to existing RP CG.");
                 response = rp.addReplicationSetsToCG(cgParams, metropoint, attachAsClean);
             } else {
+                _log.info("CG does not already exist, creating new RP CG.");
                 response = rp.createCG(cgParams, metropoint, attachAsClean);
 
                 // "Turn-on" the consistency group

@@ -186,6 +186,7 @@ public class NetAppFileCommunicationInterface extends
             Map<String, Number> metrics = new ConcurrentHashMap<String, Number>();
 
             // Compute the load on each virtual servers!!
+            computeStaticLoanMetrics(NetAppArray);
 
             List<URI> storageSystemIds = new ArrayList<URI>();
             storageSystemIds.add(storageSystemId);

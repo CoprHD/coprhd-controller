@@ -2160,7 +2160,7 @@ public class VNXeApiClient {
 
     public VNXeCommandJob updateQuotaDirectory(String quotaId, final Long hardLimit, final Long softLimit, final long softGrace)
             throws VNXeException {
-        _logger.info("Creating quota directory with ID: {} ", "/" + quotaId);
+        _logger.info("updating quota directory with ID: {} ", "/" + quotaId);
         FileSystemQuotaModifyParam param = new FileSystemQuotaModifyParam();
         FileSystemQuotaConfigParam qcParam = new FileSystemQuotaConfigParam();
         FileSystemQuotaRequests req = new FileSystemQuotaRequests(_khClient);
@@ -2180,17 +2180,16 @@ public class VNXeApiClient {
     /**
      * Get quota by its name
      * 
-     * @param fsName
-     *            fs name
+     * @param fsId
+     *            fs Id
      * @param name
      *            quota name
      * @return VNXUnityTreeQuota
      */
-    public VNXUnityTreeQuota getQuotaByName(String fsName, String name) {
+    public VNXUnityTreeQuota getQuotaByName(String fsId, String name) {
         _logger.info("Getting the quota {}: ", name);
         FileSystemQuotaRequests req = new FileSystemQuotaRequests(_khClient);
-        FileSystemListRequest fsReq = new FileSystemListRequest(_khClient);
-        return req.getByName(fsReq.getByFSName(fsName).getId(), name);
+        return req.getByName(fsId, name);
     }
 
     /**

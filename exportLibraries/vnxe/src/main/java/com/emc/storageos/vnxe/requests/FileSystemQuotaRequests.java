@@ -80,6 +80,7 @@ public class FileSystemQuotaRequests extends KHRequests<VNXUnityTreeQuota> {
         _logger.info("delete quota with ID: " + quotaId);
         setQueryParameters(null);
         if (getDataForOneObject(VNXUnityTreeQuota.class) != null) {
+            unsetQueryParameters();
             return deleteRequestAsync(null);
         } else {
             throw VNXeException.exceptions.vnxeCommandFailed(String.format("No filesystem quota with id: %s found",
@@ -105,8 +106,8 @@ public class FileSystemQuotaRequests extends KHRequests<VNXUnityTreeQuota> {
         _logger.info("Async update quota with ID: " + quotaId);
         MultivaluedMap<String, String> queryParams = new MultivaluedMapImpl();
         queryParams.add(VNXeConstants.TIMEOUT, "0");
-        setQueryParameters(queryParams);
         VNXUnityTreeQuota quota = getFileSystemQuota(quotaId);
+        setQueryParameters(queryParams);
         _url = URL_INSTANCE + quota.getId() + URL_MODIFY;
         return postRequestAsync(param);
 

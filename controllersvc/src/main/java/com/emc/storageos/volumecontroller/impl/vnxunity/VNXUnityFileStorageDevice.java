@@ -1615,21 +1615,22 @@ public class VNXUnityFileStorageDevice extends VNXUnityOperations
             }
 
         } catch (VNXeException e) {
-            _logger.error("Create Quota Directory got an exception", e);
+            _logger.error("update Quota Directory got an exception", e);
             if (completer != null) {
                 completer.error(_dbClient, e);
             }
             return BiosCommandResult.createErrorResult(e);
         } catch (Exception ex) {
-            _logger.error("Create Quota Directory got an exception", ex);
-            ServiceError error = DeviceControllerErrors.vnxe.jobFailed("CreateQuotaDirectory", ex.getMessage());
+            _logger.error("update Quota Directory got an exception", ex);
+            ServiceError error = DeviceControllerErrors.vnxe.jobFailed("UpdateQuotaDirectory", ex.getMessage());
             if (completer != null) {
                 completer.error(_dbClient, error);
             }
             return BiosCommandResult.createErrorResult(error);
         }
         StringBuilder logMsgBuilder = new StringBuilder(String.format(
-                "Create filesystem job submitted - Array:%s, fileSystem: %s", storage.getSerialNumber(), args.getFsName()));
+                "update quota directory job submitted - Array:%s, fileSystem: %s, Quota Directory: %s", storage.getSerialNumber(),
+                args.getFsName(), args.getQuotaDirectoryName()));
         _logger.info(logMsgBuilder.toString());
         return BiosCommandResult.createPendingResult();
     }

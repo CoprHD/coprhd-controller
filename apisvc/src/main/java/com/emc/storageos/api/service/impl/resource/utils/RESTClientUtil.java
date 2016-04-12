@@ -11,6 +11,7 @@ import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLSession;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.X509TrustManager;
+import javax.ws.rs.core.MediaType;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -120,6 +121,8 @@ public class RESTClientUtil {
 
         try {
             resource = _client.resource(_baseURL + uri);
+            resource.accept(MediaType.APPLICATION_JSON);
+            resource.type(MediaType.APPLICATION_JSON);
             return resource.post(clazz, inputRequest);
         } catch (UniformInterfaceException e) {
 

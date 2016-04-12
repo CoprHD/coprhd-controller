@@ -27,6 +27,7 @@ import com.emc.storageos.api.service.impl.resource.blockingestorchestration.Bloc
 import com.emc.storageos.api.service.impl.resource.blockingestorchestration.IngestionException;
 import com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext;
 import com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.VolumeIngestionContext;
+import com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.impl.BlockVolumeIngestionContext;
 import com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.impl.RecoverPointVolumeIngestionContext;
 import com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.impl.RpVplexVolumeIngestionContext;
 import com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.impl.VplexVolumeIngestionContext;
@@ -4124,8 +4125,15 @@ public class VolumeIngestionUtil {
             rpContext.setManagedProtectionSet(pset);
         } else {
             // In case of replica ingested last, the ingestion context will not be RecoverPointVolumeIngestionContext
-            _logger.info("Persisting BlockConsistencyGroup {} (hash {})", cg.forDisplay(), cg.hashCode());
-            dbClient.createObject(cg);
+            if (requestContext instanceof BlockVolumeIngestionContext) {
+                // In order to decorate the CG properly with all system types, we need to add the CG to the context to be persisted later.
+                _logger.info("Adding BlockConsistencyGroup {} to the BlockVolumeIngestContext (hash {})", cg.forDisplay(), cg.hashCode());
+                ((BlockVolumeIngestionContext)requestContext).getCGObjectsToCreateMap().put(cg.getId().toString(), cg);
+            } else {
+                _logger.info("Persisting BlockConsistencyGroup {} (hash {})", cg.forDisplay(), cg.hashCode());
+                dbClient.createObject(cg);
+            }
+
             _logger.info("Persisting ProtectionSet {} (hash {})", pset.forDisplay(), pset.hashCode());
             dbClient.createObject(pset);
             // the protection set was created, so delete the unmanaged one
@@ -4300,13 +4308,13 @@ public class VolumeIngestionUtil {
                 for (Set<DataObject> objectsToBeUpdated : ((IngestionRequestContext) volumeIngestionContext).getDataObjectsToBeUpdatedMap()
                         .values()) {
                     for (DataObject o : objectsToBeUpdated) {
-                        boolean rpBlockSnapshot = (o instanceof BlockSnapshot
-                                && rpVolumes.contains(((BlockSnapshot) o).getParent().getURI().toString()));
-                        boolean rpBlockSnapshotSession = (o instanceof BlockSnapshotSession
-                                && rpVolumes.contains(((BlockSnapshotSession) o).getParent().getURI().toString()));
-                        if (rpBlockSnapshot || rpBlockSnapshotSession) {
-                            _logger.info(String.format("Clearing internal volume flag of %s %s of RP volume ",
-                                    (rpBlockSnapshot ? "BlockSnapshot" : "BlockSnapshotSession"), o.getLabel()));
+                        if (o instanceof BlockSnapshot && rpVolumes.contains(((BlockSnapshot) o).getParent().getURI().toString())) {
+                            _logger.info("Clearing internal volume flag of BlockSnapshot {} of RP volume ", o.getLabel());
+                            o.clearInternalFlags(BlockIngestOrchestrator.INTERNAL_VOLUME_FLAGS);
+
+                        } else if (o instanceof BlockSnapshotSession
+                                && rpVolumes.contains(((BlockSnapshotSession) o).getParent().getURI().toString())) {
+                            _logger.info("Clearing internal volume flag of BlockSnapshotSession {} of RP volume ", o.getLabel());
                             o.clearInternalFlags(BlockIngestOrchestrator.INTERNAL_VOLUME_FLAGS);
                         }
                     }

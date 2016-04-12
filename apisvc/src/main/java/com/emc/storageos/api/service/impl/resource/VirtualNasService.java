@@ -248,11 +248,8 @@ public class VirtualNasService extends TaggedResource {
 
         StorageSystem device = _dbClient.queryObject(StorageSystem.class, vNas.getStorageDeviceURI());
         FileController controller = getController(FileController.class, device.getSystemType());
-        vNas.setOpStatus(new OpStatusMap());
-        Operation op = new Operation();
-        op.setResourceType(ResourceOperationTypeEnum.DELETE_VIRTUAL_NAS_SERVER);
-        op.setDescription("Delete Virtual Nas Server");
-        vNas.getOpStatus().createTaskStatus(task, op);
+        Operation op = _dbClient.createTaskOpStatus(VirtualNAS.class, vNas.getId(), task,
+                ResourceOperationTypeEnum.DELETE_VIRTUAL_NAS_SERVER);
         try {
             controller.deleteVirtualNas(device.getId(), vNas.getId(), task);
         } catch (InternalException e) {

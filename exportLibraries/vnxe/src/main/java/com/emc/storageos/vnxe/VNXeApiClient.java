@@ -9,6 +9,7 @@ import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -1024,8 +1025,11 @@ public class VNXeApiClient {
     public List<VNXeIscsiNode> getAllIscsiPorts() {
         IscsiNodeRequests nodeReq = new IscsiNodeRequests(_khClient);
         List<VNXeIscsiNode> nodes = nodeReq.getAllNodes();
+        
         if (nodes != null && !nodes.isEmpty()) {
-            for (VNXeIscsiNode node : nodes) {
+            Iterator<VNXeIscsiNode> it = nodes.iterator();
+            while (it.hasNext()) {
+                VNXeIscsiNode node = it.next();
                 VNXeEthernetPort eport = node.getEthernetPort();
                 if (eport != null) {
                     String id = eport.getId();
@@ -1035,9 +1039,13 @@ public class VNXeApiClient {
                     // get iscsiPortal. comment it out for now, since API does not work.
                     IscsiPortalListRequest portalReq = new IscsiPortalListRequest(_khClient);
                     VNXeIscsiPortal portal = portalReq.getByIscsiNode(node.getId());
-                    node.setIscsiPortal(portal);
+                    if (portal == null) {
+                        it.remove();
+                    } else {
+                        node.setIscsiPortal(portal);
+                    }
                 } else {
-                    nodes.remove(node);
+                    it.remove();
                 }
             }
         }
@@ -2149,12 +2157,14 @@ public class VNXeApiClient {
      * 
      * @param fsName
      *            file system name
-     * @param quotaDirName
-     *            name of quota
+     * @param quotaName
+     *            name of quota to be created
      * @param hardLimit
      *            the provided hard limit
      * @param softLimit
      *            the provided soft limit
+     * @param softGrace
+     *            The provided grace period for soft limit
      * @return VNXeCommandJob
      * @throws VNXeException
      */
@@ -2166,11 +2176,17 @@ public class VNXeApiClient {
 
         FileSystemQuotaCreateParam param = new FileSystemQuotaCreateParam();
         FileSystemQuotaConfigParam qcParam = new FileSystemQuotaConfigParam();
-        qcParam.setGracePeriod(softGrace);
+        if (qcParam.getGracePeriod() > 0) {
+            qcParam.setGracePeriod(softGrace);
+        }
         FileSystemListRequest fsReq = new FileSystemListRequest(_khClient);
         param.setPath("/" + quotaName);
-        param.setHardLimit(hardLimit);
-        param.setSoftLimit(softLimit);
+        if (param.getHardLimit() > 0) {
+            param.setHardLimit(hardLimit);
+        }
+        if (param.getSoftLimit() > 0) {
+            param.setSoftLimit(softLimit);
+        }
         param.setFilesystem(fsReq.getByFSName(fsName).getId());
         FileSystemQuotaRequests req = new FileSystemQuotaRequests(_khClient);
         VNXeCommandResult res = req.createFileSystemQuotaSync(param);
@@ -2187,9 +2203,15 @@ public class VNXeApiClient {
         _logger.info("Creating quota directory with ID: {} ", "/" + quotaId);
         FileSystemQuotaModifyParam param = new FileSystemQuotaModifyParam();
         FileSystemQuotaConfigParam qcParam = new FileSystemQuotaConfigParam();
-        qcParam.setGracePeriod(softGrace);
-        param.setHardLimit(hardLimit);
-        param.setSoftLimit(softLimit);
+        if (qcParam.getGracePeriod() > 0) {
+            qcParam.setGracePeriod(softGrace);
+        }
+        if (param.getHardLimit() > 0) {
+            param.setHardLimit(hardLimit);
+        }
+        if (param.getSoftLimit() > 0) {
+            param.setSoftLimit(softLimit);
+        }
         FileSystemQuotaRequests req = new FileSystemQuotaRequests(_khClient);
         req.updateFileSystemQuotaAsync(quotaId, param);
         return req.updateFileSystemQuotaConfig(quotaId, qcParam);
@@ -2198,7 +2220,7 @@ public class VNXeApiClient {
     /**
      * Get quota by its name
      * 
-     * @param name
+     * @param fsName
      *            fs name
      * @param name
      *            quota name

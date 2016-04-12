@@ -17,7 +17,6 @@ import com.emc.storageos.db.client.model.FileShare;
 import com.emc.storageos.db.client.model.QuotaDirectory;
 import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.vnxe.VNXeApiClient;
-import com.emc.storageos.vnxe.models.VNXUnityQuotaConfig;
 import com.emc.storageos.vnxe.models.VNXUnityTreeQuota;
 import com.emc.storageos.volumecontroller.JobContext;
 import com.emc.storageos.volumecontroller.TaskCompleter;
@@ -107,16 +106,10 @@ public class VNXUnityCreateFileSystemQuotaDirectoryJob extends VNXeJob {
         VNXUnityTreeQuota vnxUnityQuota = null;
         vnxUnityQuota = vnxeApiClient.getQuotaByName(quotaObj.getParent().getName(), quotaObj.getName());
         if (vnxUnityQuota != null) {
-            VNXUnityQuotaConfig vnxUnityQuotaConfig = vnxeApiClient.getQuotaConfigById(vnxUnityQuota.getQuotaConfigId());
             quotaObj.setInactive(false);
             quotaObj.setCreationTime(Calendar.getInstance());
             quotaObj.setNativeId(vnxUnityQuota.getId());
             String path = "/" + quotaObj.getName();
-            quotaObj.setSize(vnxUnityQuota.getHardLimit());
-            // converting softlimit back to percentage, 0.5 is for rounding off
-            quotaObj.setSoftLimit((int) (vnxUnityQuota.getSoftLimit() * 100.0 / vnxUnityQuota.getHardLimit() + 0.5));
-            // converting grace period back into days
-            quotaObj.setSoftGrace(vnxUnityQuotaConfig.getGracePeriod() / (60 * 60 * 24));
             quotaObj.setPath(path);
             try {
                 quotaObj.setNativeGuid(NativeGUIDGenerator.generateNativeGuid(dbClient, quotaObj, quotaObj.getParent().getName()));

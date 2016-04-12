@@ -64,6 +64,8 @@ import com.emc.storageos.volumecontroller.impl.vnxe.job.VNXeRestoreFileSystemSna
 import com.emc.storageos.volumecontroller.impl.vnxe.job.VNXeUnexportFileSystemJob;
 import com.emc.storageos.volumecontroller.impl.vnxunity.job.VNXUnityCreateFileSystemQuotaDirectoryJob;
 import com.emc.storageos.volumecontroller.impl.vnxunity.job.VNXUnityDeleteFileSystemQuotaDirectoryJob;
+import com.emc.storageos.volumecontroller.impl.vnxunity.job.VNXUnityQuotaDirectoryTaskCompleter;
+import com.emc.storageos.volumecontroller.impl.vnxunity.job.VNXUnityUpdateFileSystemQuotaDirectoryJob;
 
 public class VNXUnityFileStorageDevice extends VNXUnityOperations
         implements FileStorageDevice {
@@ -265,7 +267,7 @@ public class VNXUnityFileStorageDevice extends VNXUnityOperations
     }
 
     @Override
-    public BiosCommandResult doExport(StorageSystem storage,
+ public BiosCommandResult doExport(StorageSystem storage,
             FileDeviceInputOutput args, List<FileExport> exportList)
                     throws ControllerException {
 
@@ -274,7 +276,7 @@ public class VNXUnityFileStorageDevice extends VNXUnityOperations
             args.initFileObjExports();
 
         }
-
+        
         for (FileExport exp : exportList) {
             VNXeApiClient apiClient = getVnxUnityClient(storage);
             String fsId = args.getFs().getNativeId();
@@ -296,6 +298,7 @@ public class VNXUnityFileStorageDevice extends VNXUnityOperations
                 List<String> rootClients = null;
                 FileExport existingExport = null;
                 if (args.getFileOperation()) {
+
                     FSExportMap exportMap = args.getFileObjExports();
                     existingExport = exportMap.get(exportKey);
                 } else {
@@ -322,7 +325,7 @@ public class VNXUnityFileStorageDevice extends VNXUnityOperations
                     } else if (permission.equalsIgnoreCase(FileShareExport.Permissions.root.name())) {
                         access = AccessEnum.ROOT;
                         if (existingExport.getClients() != null && !existingExport.getClients().isEmpty()) {
-                            if (rootClients == null) {
+                        	if (rootClients == null) {
                                 rootClients = new ArrayList<String>();
                             }
                             rootClients.addAll(existingExport.getClients());
@@ -339,7 +342,7 @@ public class VNXUnityFileStorageDevice extends VNXUnityOperations
                         rwClients.addAll(exp.getClients());
                     }
                 } else if (permission.equalsIgnoreCase(FileShareExport.Permissions.ro.name())) {
-                    access = AccessEnum.READ;
+                	access = AccessEnum.READ;
                     if (exp.getClients() != null && !exp.getClients().isEmpty()) {
                         if (roClients == null) {
                             roClients = new ArrayList<String>();
@@ -347,7 +350,7 @@ public class VNXUnityFileStorageDevice extends VNXUnityOperations
                         roClients.addAll(exp.getClients());
                     }
                 } else if (permission.equalsIgnoreCase(FileShareExport.Permissions.root.name())) {
-                    access = AccessEnum.ROOT;
+                	access = AccessEnum.ROOT;
                     if (exp.getClients() != null && !exp.getClients().isEmpty()) {
                         if (rootClients == null) {
                             rootClients = new ArrayList<String>();
@@ -366,6 +369,7 @@ public class VNXUnityFileStorageDevice extends VNXUnityOperations
                     }
 
                     String shareName = VNXeUtils.buildNfsShareName(fsId, subdirName);
+                    
                     job = apiClient.exportFileSystem(fsId, roClients, rwClients, rootClients, access, path, shareName, null, comments);
                     if (job != null) {
                         completer = new VNXeFileTaskCompleter(FileShare.class, args.getFsId(), args.getOpId());
@@ -415,7 +419,6 @@ public class VNXUnityFileStorageDevice extends VNXUnityOperations
         return BiosCommandResult.createPendingResult();
 
     }
-
     @Override
     public BiosCommandResult doShare(StorageSystem storage,
             FileDeviceInputOutput args, SMBFileShare smbFileShare) throws ControllerException {
@@ -528,7 +531,17 @@ public class VNXUnityFileStorageDevice extends VNXUnityOperations
                 String fsId = args.getFs().getNativeId();
                 job = apiClient.removeCifsShare(shareId, fsId);
             } else {
-                job = apiClient.deleteCifsShareForSnapshot(shareId);
+//                job = apiClient.deleteCifsShareForSnapshot(shareId);
+// Changing to sync call for now because of issues with the Thunderbird api not returning a job id
+                BiosCommandResult result = null;
+                apiClient.deleteCifsShareForSnapshotSync(shareId);
+                StringBuilder logMsgBuilder = new StringBuilder(String.format(
+                     "Deleted smbShare for snapshot - Array:%s, smbShare: %s", storage.getSerialNumber(),
+                      smbFileShare.getName()));
+               _logger.info(logMsgBuilder.toString());
+               result = BiosCommandResult.createSuccessfulResult();
+               return result;
+
             }
             if (job != null) {
                 if (isFile) {
@@ -772,7 +785,7 @@ public class VNXUnityFileStorageDevice extends VNXUnityOperations
         VNXeCommandJob job = null;
         VNXeFileTaskCompleter completer = null;
         try {
-            job = apiClient.deleteFileSystemSnap(args.getSnapNativeId());
+            /*job = apiClient.deleteFileSystemSnap(args.getSnapNativeId());
             if (job != null) {
                 completer = new VNXeFileTaskCompleter(Snapshot.class, args.getSnapshotId(), args.getOpId());
                 VNXeDeleteFileSystemSnapshotJob snapJob = new VNXeDeleteFileSystemSnapshotJob(job.getId(), storage.getId(),
@@ -783,8 +796,15 @@ public class VNXUnityFileStorageDevice extends VNXUnityOperations
                 ServiceError error = DeviceControllerErrors.vnxe.jobFailed(
                         "snapshotFileSystem", "No Job returned from deleteFileSystemSnap");
                 return BiosCommandResult.createErrorResult(error);
-            }
-
+            }*/
+        BiosCommandResult result = null;
+	apiClient.deleteFileSystemSnapSync(args.getSnapNativeId());
+             StringBuilder logMsgBuilder = new StringBuilder(String.format(
+                     "Deleted filesystem snapshot - Array:%s, fileSystem: %s, snapshot: %s", storage.getSerialNumber(),
+                      args.getFsName(),  args.getSnapshotLabel()));
+             _logger.info(logMsgBuilder.toString());
+             result = BiosCommandResult.createSuccessfulResult();
+        return result;
         } catch (VNXeException e) {
             _logger.error("Delete file system snapshot got the exception", e);
             if (completer != null) {
@@ -799,11 +819,6 @@ public class VNXUnityFileStorageDevice extends VNXUnityOperations
             }
             return BiosCommandResult.createErrorResult(error);
         }
-        StringBuilder logMsgBuilder = new StringBuilder(String.format(
-                "Delete filesystem snapshot job submitted - Array:%s, fileSystem: %s, snapshot: %s", storage.getSerialNumber(),
-                args.getFsName(), args.getSnapshotName()));
-        _logger.info(logMsgBuilder.toString());
-        return BiosCommandResult.createPendingResult();
     }
 
     @Override
@@ -1489,7 +1504,7 @@ public class VNXUnityFileStorageDevice extends VNXUnityOperations
             FileDeviceInputOutput args, QuotaDirectory qd) throws ControllerException {
 
         _logger.info("creating Quota Directory: ", args.getQuotaDirectoryName());
-        VNXeFileTaskCompleter completer = null;
+        VNXUnityQuotaDirectoryTaskCompleter completer = null;
         VNXeApiClient apiClient = getVnxUnityClient(storage);
         VNXeCommandJob job = null;
         try {
@@ -1502,7 +1517,7 @@ public class VNXUnityFileStorageDevice extends VNXUnityOperations
 
             if (job != null) {
                 _logger.info("opid:" + args.getOpId());
-                completer = new VNXeFileTaskCompleter(QuotaDirectory.class, args.getQuotaDirectory().getId(), args.getOpId());
+                completer = new VNXUnityQuotaDirectoryTaskCompleter(QuotaDirectory.class, args.getQuotaDirectory().getId(), args.getOpId());
                 if (args.getQuotaDirectory() == null) {
                     _logger.error("Could not find the quota object");
                 }
@@ -1538,14 +1553,14 @@ public class VNXUnityFileStorageDevice extends VNXUnityOperations
     @Override
     public BiosCommandResult doDeleteQuotaDirectory(StorageSystem storage,
             FileDeviceInputOutput args) throws ControllerException {
-        _logger.info("Deleting file system {} quota directory {} ", args.getFsName(), args.getSnapshotLabel());
+        _logger.info("Deleting file system {} quota directory {} ", args.getFsName(), args.getQuotaDirectoryName());
         VNXeApiClient apiClient = getVnxUnityClient(storage);
         VNXeCommandJob job = null;
-        VNXeFileTaskCompleter completer = null;
+        VNXUnityQuotaDirectoryTaskCompleter completer = null;
         try {
             job = apiClient.deleteQuotaDirectory(args.getQuotaDirectoryNativeId());
             if (job != null) {
-                completer = new VNXeFileTaskCompleter(QuotaDirectory.class, args.getQuotaDirectoryId(), args.getOpId());
+                completer = new VNXUnityQuotaDirectoryTaskCompleter(QuotaDirectory.class, args.getQuotaDirectoryId(), args.getOpId());
                 VNXUnityDeleteFileSystemQuotaDirectoryJob quotaJob = new VNXUnityDeleteFileSystemQuotaDirectoryJob(job.getId(),
                         storage.getId(), completer);
                 ControllerServiceImpl.enqueueJob(new QueueJob(quotaJob));
@@ -1581,30 +1596,24 @@ public class VNXUnityFileStorageDevice extends VNXUnityOperations
     public BiosCommandResult doUpdateQuotaDirectory(StorageSystem storage,
             FileDeviceInputOutput args, QuotaDirectory qd) throws ControllerException {
         _logger.info("updating Quota Directory: ", args.getQuotaDirectoryName());
-        VNXeFileTaskCompleter completer = null;
+        VNXUnityQuotaDirectoryTaskCompleter completer = null;
         VNXeApiClient apiClient = getVnxUnityClient(storage);
         VNXeCommandJob job = null;
         try {
             Long softLimit = 0L;
             Long softGrace = 0L;
-
-            if (qd.getSoftLimit() != null) {
-                softLimit = Long.valueOf(qd.getSoftLimit() * qd.getSize() / 100);// conversion from percentage to bytes
-                                                                                 // using hard limit
-            }
-
-            if (qd.getSoftGrace() != null) {
-                softGrace = Long.valueOf(qd.getSoftGrace() * 24 * 60 * 60); // conversion from days to seconds
-            }
+            softLimit = Long.valueOf(qd.getSoftLimit() * qd.getSize() / 100);// conversion from percentage to bytes
+                                                                             // using hard limit
+            softGrace = Long.valueOf(qd.getSoftGrace() * 24 * 60 * 60); // conversion from days to seconds
             job = apiClient.updateQuotaDirectory(qd.getNativeId(), qd.getSize(), softLimit, softGrace);
 
             if (job != null) {
                 _logger.info("opid:" + args.getOpId());
-                completer = new VNXeFileTaskCompleter(QuotaDirectory.class, args.getQuotaDirectory().getId(), args.getOpId());
+                completer = new VNXUnityQuotaDirectoryTaskCompleter(QuotaDirectory.class, args.getQuotaDirectory().getId(), args.getOpId());
                 if (args.getQuotaDirectory() == null) {
                     _logger.error("Could not find the quota object");
                 }
-                VNXUnityCreateFileSystemQuotaDirectoryJob createQuotaJob = new VNXUnityCreateFileSystemQuotaDirectoryJob(job.getId(),
+                VNXUnityUpdateFileSystemQuotaDirectoryJob createQuotaJob = new VNXUnityUpdateFileSystemQuotaDirectoryJob(job.getId(),
                         storage.getId(), completer);
                 ControllerServiceImpl.enqueueJob(new QueueJob(createQuotaJob));
             } else {
@@ -1614,21 +1623,22 @@ public class VNXUnityFileStorageDevice extends VNXUnityOperations
             }
 
         } catch (VNXeException e) {
-            _logger.error("Create Quota Directory got an exception", e);
+            _logger.error("update Quota Directory got an exception", e);
             if (completer != null) {
                 completer.error(dbClient, e);
             }
             return BiosCommandResult.createErrorResult(e);
         } catch (Exception ex) {
-            _logger.error("Create Quota Directory got an exception", ex);
-            ServiceError error = DeviceControllerErrors.vnxe.jobFailed("CreateQuotaDirectory", ex.getMessage());
+            _logger.error("update Quota Directory got an exception", ex);
+            ServiceError error = DeviceControllerErrors.vnxe.jobFailed("UpdateQuotaDirectory", ex.getMessage());
             if (completer != null) {
                 completer.error(dbClient, error);
             }
             return BiosCommandResult.createErrorResult(error);
         }
         StringBuilder logMsgBuilder = new StringBuilder(String.format(
-                "Create filesystem job submitted - Array:%s, fileSystem: %s", storage.getSerialNumber(), args.getFsName()));
+                "update quota directory job submitted - Array:%s, fileSystem: %s, Quota Directory: %s", storage.getSerialNumber(),
+                args.getFsName(), args.getQuotaDirectoryName()));
         _logger.info(logMsgBuilder.toString());
         return BiosCommandResult.createPendingResult();
     }

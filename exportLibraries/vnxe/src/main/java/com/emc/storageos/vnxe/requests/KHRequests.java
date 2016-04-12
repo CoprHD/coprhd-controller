@@ -65,16 +65,20 @@ public class KHRequests<T> {
     }
 
     public void setQueryParameters(MultivaluedMap<String, String> queryParams) {
-       if (_queryParams!=null){
-          for (String key: queryParams.keySet()){
-		List<String> values = queryParams.get(key);
-                for (String value : values){
-			_queryParams.add(key,value);
+        if (_queryParams != null) {
+            for (String key : queryParams.keySet()) {
+                List<String> values = queryParams.get(key);
+                for (String value : values) {
+                    _queryParams.add(key, value);
                 }
             }
         } else {
             _queryParams = queryParams;
         }
+    }
+
+    public void unsetQueryParameters() {
+        _queryParams = null;
     }
 
     public WebResource buildResource(WebResource resource) {
@@ -87,10 +91,10 @@ public class KHRequests<T> {
     protected WebResource.Builder buildRequest(WebResource.Builder builder) {
 
         builder = builder.header(CLIENT_HEADER, "true");
-	if (_client.getEmcCsrfToken() !=null){
-		_logger.debug("EMC-CSRF-TOKEN is:: "+ _client.getEmcCsrfToken());
-		builder.header(EMC_CSRF_HEADER, _client.getEmcCsrfToken());
-	}
+        if (_client.getEmcCsrfToken() != null) {
+            _logger.debug("EMC-CSRF-TOKEN is:: " + _client.getEmcCsrfToken());
+            builder.header(EMC_CSRF_HEADER, _client.getEmcCsrfToken());
+        }
         Set<NewCookie> cookies = null;
         if (!_requestCookies.isEmpty()) {
             cookies = _requestCookies;
@@ -124,7 +128,7 @@ public class KHRequests<T> {
         if (_queryParams == null) {
             return resource; // no query parameters
         }
-	_logger.debug("_queryParams:"+_queryParams);
+        _logger.debug("_queryParams:" + _queryParams);
         return resource.queryParams(_queryParams);
     }
 
@@ -144,10 +148,10 @@ public class KHRequests<T> {
             throws VNXeException {
         _logger.info("getting data: {}", _url);
         ClientResponse response = sendGetRequest(_resource);
-	 String emcCsrfToken = response.getHeaders().getFirst(EMC_CSRF_HEADER);
-         if (emcCsrfToken !=null){
-              saveEmcCsrfToken(emcCsrfToken);
-         }
+        String emcCsrfToken = response.getHeaders().getFirst(EMC_CSRF_HEADER);
+        if (emcCsrfToken != null) {
+            saveEmcCsrfToken(emcCsrfToken);
+        }
 
         saveClientCookies();
         String resString = response.getEntity(String.class);
@@ -204,10 +208,10 @@ public class KHRequests<T> {
     public T getDataForOneObject(Class<T> valueType) throws VNXeException {
         _logger.debug("getting data: " + _url);
         ClientResponse response = sendGetRequest(_resource);
-	 String emcCsrfToken = response.getHeaders().getFirst(EMC_CSRF_HEADER);
-         if (emcCsrfToken !=null){
-              saveEmcCsrfToken(emcCsrfToken);
-         }
+        String emcCsrfToken = response.getHeaders().getFirst(EMC_CSRF_HEADER);
+        if (emcCsrfToken != null) {
+            saveEmcCsrfToken(emcCsrfToken);
+        }
 
         saveClientCookies();
         String resString = response.getEntity(String.class);
@@ -401,10 +405,10 @@ public class KHRequests<T> {
         Status statusCode = response.getClientResponseStatus();
         _logger.info(response.getStatus() + ":" + response.toString());
         if (statusCode == ClientResponse.Status.OK) {
-	     String emcCsrfToken = response.getHeaders().getFirst(EMC_CSRF_HEADER);
-             if (emcCsrfToken !=null){
-                 saveEmcCsrfToken(emcCsrfToken);
-             }
+            String emcCsrfToken = response.getHeaders().getFirst(EMC_CSRF_HEADER);
+            if (emcCsrfToken != null) {
+                saveEmcCsrfToken(emcCsrfToken);
+            }
 
             saveClientCookies();
             return response;
@@ -443,12 +447,12 @@ public class KHRequests<T> {
         if (cookies != null && !cookies.isEmpty()) {
             _requestCookies.addAll(cookies);
         }
-	saveClientCookies();
+        saveClientCookies();
 
-	String emcCsrfToken = response.getHeaders().getFirst(EMC_CSRF_HEADER);
-	if (emcCsrfToken !=null){
-		saveEmcCsrfToken(emcCsrfToken);
-	}
+        String emcCsrfToken = response.getHeaders().getFirst(EMC_CSRF_HEADER);
+        if (emcCsrfToken != null) {
+            saveEmcCsrfToken(emcCsrfToken);
+        }
         return response;
     }
 
@@ -544,11 +548,11 @@ public class KHRequests<T> {
     /*
      * save EMC_CSRF_TOKEN for next POST or PUT request
      */
-    private void saveEmcCsrfToken(String emcCsrfToken){
-	if (emcCsrfToken!=null){
-	    _logger.debug("Saving CSRF token: "+ emcCsrfToken);
-	    _client.setEmcCsrfToken(emcCsrfToken);
-	}
+    private void saveEmcCsrfToken(String emcCsrfToken) {
+        if (emcCsrfToken != null) {
+            _logger.debug("Saving CSRF token: " + emcCsrfToken);
+            _client.setEmcCsrfToken(emcCsrfToken);
+        }
     }
 
     /*
@@ -612,18 +616,19 @@ public class KHRequests<T> {
     private void authenticate() {
         // calling a GET operation would authenticate the client again.
         _client.setCookie(null);
-	_client.setEmcCsrfToken(null);
+        _client.setEmcCsrfToken(null);
         StorageSystemRequest req = new StorageSystemRequest(_client);
         req.get();
     }
 
     private ClientResponse sendDeleteRequest(Object param) {
         ClientResponse response = null;
+
         if (param != null) {
-            response = buildRequest(addQueryParameters(buildResource(_resource))
+            response = buildRequest(buildResource(_resource)
                     .getRequestBuilder()).entity(param).delete(ClientResponse.class);
         } else {
-            response = buildRequest(addQueryParameters(buildResource(_resource))
+            response = buildRequest(buildResource(_resource)
                     .getRequestBuilder()).delete(ClientResponse.class);
         }
         return response;

@@ -143,7 +143,7 @@ public class VPlexStorageViewInfo extends VPlexResourceInfo {
             String volumeName = tokenizer.nextToken();
             String vpdId = tokenizer.nextToken();
             int indexColon = vpdId.indexOf(':');
-            String volumeWWN = vpdId.substring(indexColon + 1);
+            String volumeWWN = vpdId.substring(indexColon + 1).toUpperCase();
             virtualVolumeWWNMap.put(volumeName, volumeWWN);
             virtualVolumeHLUMap.put(volumeName, volumeHLU);
         }
@@ -179,7 +179,9 @@ public class VPlexStorageViewInfo extends VPlexResourceInfo {
 
         for (Entry<String, String> entry : virtualVolumeWWNMap.entrySet()) {
             String volumeName = entry.getKey();
-            map.put(volumeName.toUpperCase(), virtualVolumeHLUMap.get(volumeName));
+            Integer volumeHlu = virtualVolumeHLUMap.get(volumeName);
+            String volumeWwn = entry.getValue();
+            map.put(volumeWwn, volumeHlu);
         }
 
         return map;
@@ -270,6 +272,7 @@ public class VPlexStorageViewInfo extends VPlexResourceInfo {
         str.append(", initiators: ").append(initiators.toString());
         str.append(", initiator PWWNs: ").append(initiatorPwwns.toString());
         str.append(", target ports: ").append(ports.toString());
+        str.append(", wwn to hlu map: ").append(getWwnToHluMap().toString());
         str.append(" )");
         return str.toString();
     }

@@ -22,6 +22,7 @@ MAC := $(shell printf "00%02X%02X%02X%02X%02X" $$[RANDOM%256] $$[RANDOM%256] $$[
 IMAGE_DIR := $(WORKSPACE)/image/$(JOB)
 OUTPUT_DIR := $(WORKSPACE)/output/$(JOB)
 BUILD_DIR := $(WORKSPACE)/build/$(NAME)-$(VERSION).$(JOB)
+OPENSTACK_DIR := $(WORKSPACE)/openstack/$(JOB)
 VMDK := $(OUTPUT_DIR)/$(NAME).x86_64-$(VERSION).$(JOB).vmdk
 OVF := $(BUILD_DIR)/$(NAME).x86_64-$(VERSION).$(JOB).ovf
 VMX := $(BUILD_DIR)/$(NAME).x86_64-$(VERSION).$(JOB).vmx
@@ -88,7 +89,7 @@ destroy:
 	@rm -fr $(WORKSPACE)/output
 	@rm -fr $(WORKSPACE)/zypper
 
-appliance: | ovf vmx box tbz
+appliance: | ovf vmx box qcow2 tbz
 
 ovf: | $(OVF)
 	$(call targetLog,+)
@@ -244,7 +245,29 @@ $(VBOX): | $(VMDK)
 	rm $(VBOX)-prev
 	$(call targetLog,-)
 
-$(QCOW2): | $(VMDK)
+$(QCOW2): | downloadISO createREPO
 	$(call targetLog,+)
-	qemu-img convert -O qcow2 $(OUTPUT_DIR)/$(NAME).x86_64-$(VERSION).$(JOB).raw $(QCOW2)
+	bash $(WORKSPACE)/patch.sh
+	mkdir -p $(WORKSPACE)/templates/root/opt/ADG/conf
+	cp -f $(WORKSPACE)/templates/config.orig.xml $(WORKSPACE)/templates/config.xml
+	cp -f $(WORKSPACE)/configure.sh $(WORKSPACE)/templates/root/opt/ADG/conf/
+	chmod u+x $(WORKSPACE)/templates/root/opt/ADG/conf/configure.sh
+	sed -i "s|__NAME__|$(NAME)|g" $(WORKSPACE)/templates/config.xml
+	sed -i "s|__ISO__|$(WORKSPACE)/iso/mount|g" $(WORKSPACE)/templates/config.xml
+	sed -i "s|__REPO__|$(WORKSPACE)/zypper/repo|g" $(WORKSPACE)/templates/config.xml
+	sed -i "s|__VERSION__|$(VERSION).$(JOB)|g" $(WORKSPACE)/templates/config.xml
+	sed -i "s|__UUID__|$$RANDOM|g" $(WORKSPACE)/templates/config.xml
+	sed -i "s|__RAM__|$(RAM)|g" $(WORKSPACE)/templates/config.xml
+	-! mountpoint -q $(OPENSTACK_DIR)/image/var/cache/kiwi || umount $(OPENSTACK_DIR)/image/var/cache/kiwi
+	-mountpoint -q $(WORKSPACE)/iso/mount || mount $(WORKSPACE)/iso/$(ISO_FILE) $(WORKSPACE)/iso/mount
+	mkdir -p $(WORKSPACE)/build/$(NAME)-$(VERSION).$(JOB)
+	mkdir -p $(OPENSTACK_DIR)/image
+	mkdir -p $(OPENSTACK_DIR)/output
+	kiwi --verbose 3 --yes --prepare $(WORKSPACE)/templates --add-profile openstack --force-new-root --root $(OPENSTACK_DIR)/image
+	touch $(OPENSTACK_DIR)/image/var/lib/docker-storage.btrfs
+	@[ -x $(OPENSTACK_DIR)/image/usr/sbin/nginx ] || ( echo "[ERROR] Failed to download/install nginx" && exit -1 )
+	kiwi --verbose 3 --yes --create $(OPENSTACK_DIR)/image --add-profile openstack --type vmx --destdir $(OPENSTACK_DIR)/output
+	-umount $(WORKSPACE)/iso/mount
+	qemu-img convert -O qcow2 $(OPENSTACK_DIR)/output/$(NAME).x86_64-$(VERSION).$(JOB).raw $(QCOW2)
+	rm -fr $(OPENSTACK_DIR)
 	$(call targetLog,-)

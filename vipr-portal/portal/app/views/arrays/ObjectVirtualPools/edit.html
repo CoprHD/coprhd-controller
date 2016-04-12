@@ -103,7 +103,8 @@ $(document).ready(function() {
      #{field 'vpool.maxRetention'}
         #{Form.inputTextControlGroup field:field, cssClass:'span1' /}
       #{/field}
-	 #{field 'vpool.minDataCenters'}
+      #{field 'vpool.minDataCenters'}
+        #{VirtualPools.locked locked:locked, field:field /}
         #{Form.inputTextControlGroup field:field, cssClass:'span1' /}
       #{/field}
   #{/collapse}

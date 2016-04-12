@@ -164,6 +164,11 @@ public interface AlternateIdConstraint extends Constraint {
             DataObjectType doType = TypeMap.getDoType(UnManagedFileQuotaDirectory.class);
             return new AlternateIdConstraintImpl(doType.getColumnField(NATIVE_GUID), altId);
         }
+        
+        public static AlternateIdConstraint getUnManagedFileQuotaDirectoryInfoParentNativeGUIdConstraint(String altId) {
+            DataObjectType doType = TypeMap.getDoType(UnManagedFileQuotaDirectory.class);
+            return new AlternateIdConstraintImpl(doType.getColumnField("parentFsNativeGuid"), altId);
+        }
 
         public static AlternateIdConstraint getVolumeWwnConstraint(String wwn) {
             DataObjectType doType = TypeMap.getDoType(Volume.class);

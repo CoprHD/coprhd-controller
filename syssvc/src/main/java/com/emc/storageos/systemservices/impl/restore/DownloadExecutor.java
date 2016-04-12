@@ -150,7 +150,7 @@ public final class DownloadExecutor implements  Runnable {
 
             pullBackupFilesFromRemoteServer();
             postDownload();
-            backupOps.setRestoreStatus(remoteBackupFileName, false, null, null, true, false);
+            backupOps.setRestoreStatus(remoteBackupFileName, false, null, null, true, true);
         }catch (InterruptedException e) {
             log.info("The downloading thread has been interrupted");
         }catch (Exception e) {
@@ -218,7 +218,6 @@ public final class DownloadExecutor implements  Runnable {
             long size = backupOps.getSizeToDownload(remoteBackupFileName);
             backupOps.updateDownloadedSize(remoteBackupFileName, size, false);
             log.info("The backup {} for this node has already been downloaded", remoteBackupFileName);
-            backupOps.setRestoreStatus(remoteBackupFileName, false, null, null, true, false);
             return; //no need to download again
         } catch (Exception e) {
             // no backup or invalid backup, so download it again

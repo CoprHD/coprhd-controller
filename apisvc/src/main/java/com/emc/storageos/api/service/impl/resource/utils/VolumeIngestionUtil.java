@@ -556,21 +556,34 @@ public class VolumeIngestionUtil {
         VolumeIngestionContext context = requestContext.getVolumeContext(umv.getNativeGuid());
         boolean isRPProtectingVplexVolumes = false;
         // We expect RP Context to validate Vplex volumes protected by RP or not.
-        if (!(context instanceof RecoverPointVolumeIngestionContext)) {
-            return isRPProtectingVplexVolumes;
-        }
-        RecoverPointVolumeIngestionContext rpContext = (RecoverPointVolumeIngestionContext) context;
-        ProtectionSet pset = rpContext.getManagedProtectionSet();
+        if (context instanceof RecoverPointVolumeIngestionContext) {
+            RecoverPointVolumeIngestionContext rpContext = (RecoverPointVolumeIngestionContext) context;
+            ProtectionSet pset = rpContext.getManagedProtectionSet();
 
-        if (pset == null) {
-            return isRPProtectingVplexVolumes;
-        }
+            if (pset == null) {
+                return isRPProtectingVplexVolumes;
+            }
 
-        // Iterate thru protection set volumes.
-        for (String volumeIdStr : pset.getVolumes()) {
-            for (Set<DataObject> dataObjList : rpContext.getDataObjectsToBeUpdatedMap().values()) {
-                for (DataObject dataObj : dataObjList) {
-                    if (URIUtil.identical(dataObj.getId(), URI.create(volumeIdStr))) {
+            // Iterate thru protection set volumes.
+            for (String volumeIdStr : pset.getVolumes()) {
+                for (Set<DataObject> dataObjList : rpContext.getDataObjectsToBeUpdatedMap().values()) {
+                    for (DataObject dataObj : dataObjList) {
+                        if (URIUtil.identical(dataObj.getId(), URI.create(volumeIdStr))) {
+                            Volume volume = (Volume) dataObj;
+                            if (volume.isVPlexVolume(dbClient)) {
+                                isRPProtectingVplexVolumes = true;
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+        } else if (context instanceof BlockVolumeIngestionContext) {
+            // In this case, the last volume ingested was a replica, so we need to fish out RP information slightly differently.
+            Set<DataObject> updatedObjects = requestContext.getDataObjectsToBeUpdatedMap().get(umv.getNativeGuid());
+            if (updatedObjects != null && !updatedObjects.isEmpty()) {
+                for (DataObject dataObj : updatedObjects) {
+                    if (dataObj instanceof Volume) {
                         Volume volume = (Volume) dataObj;
                         if (volume.isVPlexVolume(dbClient)) {
                             isRPProtectingVplexVolumes = true;
@@ -579,7 +592,11 @@ public class VolumeIngestionUtil {
                     }
                 }
             }
+            
+        } else {
+            _logger.error("Context found of type: {} invalid", context.getClass().toString());
         }
+        
         return isRPProtectingVplexVolumes;
     }
 
@@ -4125,10 +4142,10 @@ public class VolumeIngestionUtil {
             rpContext.setManagedProtectionSet(pset);
         } else {
             // In case of replica ingested last, the ingestion context will not be RecoverPointVolumeIngestionContext
-            if (requestContext instanceof BlockVolumeIngestionContext) {
+            if (requestContext.getVolumeContext() instanceof BlockVolumeIngestionContext) {
                 // In order to decorate the CG properly with all system types, we need to add the CG to the context to be persisted later.
                 _logger.info("Adding BlockConsistencyGroup {} to the BlockVolumeIngestContext (hash {})", cg.forDisplay(), cg.hashCode());
-                ((BlockVolumeIngestionContext)requestContext).getCGObjectsToCreateMap().put(cg.getId().toString(), cg);
+                ((BlockVolumeIngestionContext)requestContext.getVolumeContext()).getCGObjectsToCreateMap().put(cg.getId().toString(), cg);
             } else {
                 _logger.info("Persisting BlockConsistencyGroup {} (hash {})", cg.forDisplay(), cg.hashCode());
                 dbClient.createObject(cg);

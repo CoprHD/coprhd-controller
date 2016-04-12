@@ -393,8 +393,8 @@ public class VNXeApiClient {
         List<VNXeBase> rwHosts = getHosts(rwEndpoints);
         List<VNXeBase> rootHosts = getHosts(rootEndpoints);
         VNXeNfsShare nfsShareFound = null;
-
-        if (shareName != null) {
+       
+	 if (shareName != null) {
             nfsShareFound = findNfsShare(fsId, shareName);
         } else {
             nfsShareFound = getNfsShareById(shareId);
@@ -668,6 +668,24 @@ public class VNXeApiClient {
         FileSystemSnapRequests req = new FileSystemSnapRequests(_khClient, softwareVersion);
         return req.deleteFileSystemSnap(snapId, softwareVersion);
     }
+
+     /**
+      * delete file system snapshot sync
+      *
+      * @param snapId
+      *            snapshot VNXe Id
+      * @return VNXeCommandResult
+     */
+     public VNXeCommandResult deleteFileSystemSnapSync(String snapId)
+             throws VNXeException {
+         _logger.info("deleting file system snap: " + snapId);
+	 String softwareVersion = getBasicSystemInfo().getSoftwareVersion();
+	 FileSystemSnapRequests req = new FileSystemSnapRequests(_khClient, softwareVersion);
+         return req.deleteFileSystemSnapSync(snapId, softwareVersion);
+
+     }
+
+
 
     /**
      * restore file system snapshot
@@ -983,6 +1001,20 @@ public class VNXeApiClient {
         CifsShareRequests req = new CifsShareRequests(_khClient);
         return req.deleteShareForSnapshot(shareId);
     }
+
+    /**
+     * delete cifs share for snapshot sync
+     *
+     * @param shareId
+     *            cifsShare Id
+     * @return VNXeCommandResult
+     * @throws VNXeException
+     */
+    public VNXeCommandResult deleteCifsShareForSnapshotSync(String shareId) throws VNXeException {
+        CifsShareRequests req = new CifsShareRequests(_khClient);
+        return req.deleteShareForSnapshotSync(shareId);
+    }
+
 
     /**
      * Get all iSCSI ports

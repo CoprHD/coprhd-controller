@@ -267,7 +267,7 @@ public class VNXUnityFileStorageDevice extends VNXUnityOperations
     }
 
     @Override
-    public BiosCommandResult doExport(StorageSystem storage,
+ public BiosCommandResult doExport(StorageSystem storage,
             FileDeviceInputOutput args, List<FileExport> exportList)
                     throws ControllerException {
 
@@ -276,7 +276,7 @@ public class VNXUnityFileStorageDevice extends VNXUnityOperations
             args.initFileObjExports();
 
         }
-
+        
         for (FileExport exp : exportList) {
             VNXeApiClient apiClient = getVnxUnityClient(storage);
             String fsId = args.getFs().getNativeId();
@@ -298,6 +298,7 @@ public class VNXUnityFileStorageDevice extends VNXUnityOperations
                 List<String> rootClients = null;
                 FileExport existingExport = null;
                 if (args.getFileOperation()) {
+
                     FSExportMap exportMap = args.getFileObjExports();
                     existingExport = exportMap.get(exportKey);
                 } else {
@@ -324,7 +325,7 @@ public class VNXUnityFileStorageDevice extends VNXUnityOperations
                     } else if (permission.equalsIgnoreCase(FileShareExport.Permissions.root.name())) {
                         access = AccessEnum.ROOT;
                         if (existingExport.getClients() != null && !existingExport.getClients().isEmpty()) {
-                            if (rootClients == null) {
+                        	if (rootClients == null) {
                                 rootClients = new ArrayList<String>();
                             }
                             rootClients.addAll(existingExport.getClients());
@@ -341,7 +342,7 @@ public class VNXUnityFileStorageDevice extends VNXUnityOperations
                         rwClients.addAll(exp.getClients());
                     }
                 } else if (permission.equalsIgnoreCase(FileShareExport.Permissions.ro.name())) {
-                    access = AccessEnum.READ;
+                	access = AccessEnum.READ;
                     if (exp.getClients() != null && !exp.getClients().isEmpty()) {
                         if (roClients == null) {
                             roClients = new ArrayList<String>();
@@ -349,7 +350,7 @@ public class VNXUnityFileStorageDevice extends VNXUnityOperations
                         roClients.addAll(exp.getClients());
                     }
                 } else if (permission.equalsIgnoreCase(FileShareExport.Permissions.root.name())) {
-                    access = AccessEnum.ROOT;
+                	access = AccessEnum.ROOT;
                     if (exp.getClients() != null && !exp.getClients().isEmpty()) {
                         if (rootClients == null) {
                             rootClients = new ArrayList<String>();
@@ -368,6 +369,7 @@ public class VNXUnityFileStorageDevice extends VNXUnityOperations
                     }
 
                     String shareName = VNXeUtils.buildNfsShareName(fsId, subdirName);
+                    
                     job = apiClient.exportFileSystem(fsId, roClients, rwClients, rootClients, access, path, shareName, null, comments);
                     if (job != null) {
                         completer = new VNXeFileTaskCompleter(FileShare.class, args.getFsId(), args.getOpId());
@@ -417,7 +419,6 @@ public class VNXUnityFileStorageDevice extends VNXUnityOperations
         return BiosCommandResult.createPendingResult();
 
     }
-
     @Override
     public BiosCommandResult doShare(StorageSystem storage,
             FileDeviceInputOutput args, SMBFileShare smbFileShare) throws ControllerException {
@@ -530,7 +531,17 @@ public class VNXUnityFileStorageDevice extends VNXUnityOperations
                 String fsId = args.getFs().getNativeId();
                 job = apiClient.removeCifsShare(shareId, fsId);
             } else {
-                job = apiClient.deleteCifsShareForSnapshot(shareId);
+//                job = apiClient.deleteCifsShareForSnapshot(shareId);
+// Changing to sync call for now because of issues with the Thunderbird api not returning a job id
+                BiosCommandResult result = null;
+                apiClient.deleteCifsShareForSnapshotSync(shareId);
+                StringBuilder logMsgBuilder = new StringBuilder(String.format(
+                     "Deleted smbShare for snapshot - Array:%s, smbShare: %s", storage.getSerialNumber(),
+                      smbFileShare.getName()));
+               _logger.info(logMsgBuilder.toString());
+               result = BiosCommandResult.createSuccessfulResult();
+               return result;
+
             }
             if (job != null) {
                 if (isFile) {
@@ -774,7 +785,7 @@ public class VNXUnityFileStorageDevice extends VNXUnityOperations
         VNXeCommandJob job = null;
         VNXeFileTaskCompleter completer = null;
         try {
-            job = apiClient.deleteFileSystemSnap(args.getSnapNativeId());
+            /*job = apiClient.deleteFileSystemSnap(args.getSnapNativeId());
             if (job != null) {
                 completer = new VNXeFileTaskCompleter(Snapshot.class, args.getSnapshotId(), args.getOpId());
                 VNXeDeleteFileSystemSnapshotJob snapJob = new VNXeDeleteFileSystemSnapshotJob(job.getId(), storage.getId(),
@@ -785,8 +796,15 @@ public class VNXUnityFileStorageDevice extends VNXUnityOperations
                 ServiceError error = DeviceControllerErrors.vnxe.jobFailed(
                         "snapshotFileSystem", "No Job returned from deleteFileSystemSnap");
                 return BiosCommandResult.createErrorResult(error);
-            }
-
+            }*/
+        BiosCommandResult result = null;
+	apiClient.deleteFileSystemSnapSync(args.getSnapNativeId());
+             StringBuilder logMsgBuilder = new StringBuilder(String.format(
+                     "Deleted filesystem snapshot - Array:%s, fileSystem: %s, snapshot: %s", storage.getSerialNumber(),
+                      args.getFsName(),  args.getSnapshotLabel()));
+             _logger.info(logMsgBuilder.toString());
+             result = BiosCommandResult.createSuccessfulResult();
+        return result;
         } catch (VNXeException e) {
             _logger.error("Delete file system snapshot got the exception", e);
             if (completer != null) {
@@ -801,11 +819,6 @@ public class VNXUnityFileStorageDevice extends VNXUnityOperations
             }
             return BiosCommandResult.createErrorResult(error);
         }
-        StringBuilder logMsgBuilder = new StringBuilder(String.format(
-                "Delete filesystem snapshot job submitted - Array:%s, fileSystem: %s, snapshot: %s", storage.getSerialNumber(),
-                args.getFsName(), args.getSnapshotName()));
-        _logger.info(logMsgBuilder.toString());
-        return BiosCommandResult.createPendingResult();
     }
 
     @Override

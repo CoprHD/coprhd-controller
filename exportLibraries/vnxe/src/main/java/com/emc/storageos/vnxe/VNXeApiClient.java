@@ -671,6 +671,22 @@ public class VNXeApiClient {
     }
 
     /**
+     * delete file system snapshot sync
+     *
+     * @param snapId
+     *            snapshot VNXe Id
+     * @return VNXeCommandResult
+     */
+    public VNXeCommandResult deleteFileSystemSnapSync(String snapId)
+            throws VNXeException {
+        _logger.info("deleting file system snap: " + snapId);
+        String softwareVersion = getBasicSystemInfo().getSoftwareVersion();
+        FileSystemSnapRequests req = new FileSystemSnapRequests(_khClient, softwareVersion);
+        return req.deleteFileSystemSnapSync(snapId, softwareVersion);
+
+    }
+
+    /**
      * restore file system snapshot
      * 
      * @param snapId
@@ -986,6 +1002,19 @@ public class VNXeApiClient {
     }
 
     /**
+     * delete cifs share for snapshot sync
+     *
+     * @param shareId
+     *            cifsShare Id
+     * @return VNXeCommandResult
+     * @throws VNXeException
+     */
+    public VNXeCommandResult deleteCifsShareForSnapshotSync(String shareId) throws VNXeException {
+        CifsShareRequests req = new CifsShareRequests(_khClient);
+        return req.deleteShareForSnapshotSync(shareId);
+    }
+
+    /**
      * Get all iSCSI ports
      * 
      * @return
@@ -993,7 +1022,6 @@ public class VNXeApiClient {
     public List<VNXeIscsiNode> getAllIscsiPorts() {
         IscsiNodeRequests nodeReq = new IscsiNodeRequests(_khClient);
         List<VNXeIscsiNode> nodes = nodeReq.getAllNodes();
-
         if (nodes != null && !nodes.isEmpty()) {
             Iterator<VNXeIscsiNode> it = nodes.iterator();
             while (it.hasNext()) {

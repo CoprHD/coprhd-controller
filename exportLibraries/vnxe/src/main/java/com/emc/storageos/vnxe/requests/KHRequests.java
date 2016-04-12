@@ -623,11 +623,12 @@ public class KHRequests<T> {
 
     private ClientResponse sendDeleteRequest(Object param) {
         ClientResponse response = null;
+
         if (param != null) {
-            response = buildRequest(addQueryParameters(buildResource(_resource))
+            response = buildRequest(buildResource(_resource)
                     .getRequestBuilder()).entity(param).delete(ClientResponse.class);
         } else {
-            response = buildRequest(addQueryParameters(buildResource(_resource))
+            response = buildRequest(buildResource(_resource)
                     .getRequestBuilder()).delete(ClientResponse.class);
         }
         return response;

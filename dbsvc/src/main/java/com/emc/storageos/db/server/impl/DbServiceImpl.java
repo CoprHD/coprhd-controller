@@ -315,7 +315,7 @@ public class DbServiceImpl implements DbService {
                     // we should set the autoboot=false on the current node or no node with autoboot=false
 
                     // TODO:This is a temporary/safest solution in Yoda, we'll provide a better soltuion post Yoda
-                    autoboot = true;
+                    autoBoot = true;
                 }
 
                 if (isStaleConfiguration(config)) {

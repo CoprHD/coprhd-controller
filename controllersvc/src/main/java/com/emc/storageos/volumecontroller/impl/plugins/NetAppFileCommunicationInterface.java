@@ -91,6 +91,7 @@ public class NetAppFileCommunicationInterface extends
     private static final int BYTESCONVERTER = 1024;
     private static final String SYSTEM_SERIAL_NUM = "system-serial-number";
     private static final String CPU_FIRMWARE_REL = "cpu-firmware-release";
+    private static final String SYSTEM_MODEL = "system-model";
     private static final String SYSTEM_FIRMWARE_REL = "version";
     private static final String VOL_ROOT = "/vol/";
     private static final String VOL_ROOT_NO_SLASH = "/vol";
@@ -114,6 +115,8 @@ public class NetAppFileCommunicationInterface extends
     private static final Integer MAX_UMFS_RECORD_SIZE = 1000;
     private static final String MANAGEMENT_INTERFACE = "e0M";
     private static final String SNAPSHOT = ".snapshot";
+    private static final Long TB = 1024L * 1024L * 1024L * 1024L;
+    private static final Long QTREES_PER_VOL = 4995L;
 
     private static final Logger _logger = LoggerFactory
             .getLogger(NetAppFileCommunicationInterface.class);
@@ -615,6 +618,7 @@ public class NetAppFileCommunicationInterface extends
             system.setSerialNumber(systemInfo.get(SYSTEM_SERIAL_NUM));
             String sysNativeGuid = NativeGUIDGenerator.generateNativeGuid(system);
             system.setNativeGuid(sysNativeGuid);
+            system.setModel(systemInfo.get(SYSTEM_MODEL));
             system.setFirmwareVersion(systemVer.get(SYSTEM_FIRMWARE_REL));
             _logger.info(
                     "NetApp Filer discovery for storage system {} complete",
@@ -2412,12 +2416,20 @@ public class NetAppFileCommunicationInterface extends
             _logger.info("Physical NAS created with guid {} ", phyNas.getNativeGuid());
 
             StringMap dbMetrics = phyNas.getMetrics();
-            // Set the Limit Metric keys!!
-            Long MaxObjects = 2048L;
-            Long MaxCapacity = 200L * 1024 * 1024 * 1024;
 
-            dbMetrics.put(MetricsKeys.maxStorageCapacity.name(), String.valueOf(MaxCapacity));
-            dbMetrics.put(MetricsKeys.maxStorageObjects.name(), String.valueOf(MaxObjects));
+            // Set the Limit Metric keys!!
+            Long maxObjects = 500L;
+            if ("FAS2220".equalsIgnoreCase(system.getModel())) {
+                maxObjects = 200L;
+            }
+            // 16TB * number of flex volumes per vserver!!
+            Long maxCapacity = 16L * TB * maxObjects;
+            Long maxExports = maxObjects * QTREES_PER_VOL;
+
+            dbMetrics.put(MetricsKeys.maxStorageCapacity.name(), String.valueOf(maxCapacity));
+            dbMetrics.put(MetricsKeys.maxStorageObjects.name(), String.valueOf(maxObjects));
+            dbMetrics.put(MetricsKeys.maxCifsShares.name(), String.valueOf(maxExports));
+            dbMetrics.put(MetricsKeys.maxNFSExports.name(), String.valueOf(maxExports));
             phyNas.setMetrics(dbMetrics);
 
         }
@@ -2456,11 +2468,18 @@ public class NetAppFileCommunicationInterface extends
             _logger.info("new Virtual NAS created with guid {} ", vNas.getNativeGuid());
 
             // Set the Limit Metric keys!!
-            Long MaxObjects = 2048L;
-            Long MaxCapacity = 200L * 1024 * 1024 * 1024;
+            Long maxObjects = 500L;
+            if ("FAS2220".equalsIgnoreCase(system.getModel())) {
+                maxObjects = 200L;
+            }
+            // 16TB * number of flex volumes per vserver!!
+            Long maxCapacity = 16L * TB * maxObjects;
+            Long maxExports = maxObjects * QTREES_PER_VOL;
 
-            dbMetrics.put(MetricsKeys.maxStorageCapacity.name(), String.valueOf(MaxCapacity));
-            dbMetrics.put(MetricsKeys.maxStorageObjects.name(), String.valueOf(MaxObjects));
+            dbMetrics.put(MetricsKeys.maxStorageCapacity.name(), String.valueOf(maxCapacity));
+            dbMetrics.put(MetricsKeys.maxStorageObjects.name(), String.valueOf(maxObjects));
+            dbMetrics.put(MetricsKeys.maxCifsShares.name(), String.valueOf(maxExports));
+            dbMetrics.put(MetricsKeys.maxNFSExports.name(), String.valueOf(maxExports));
             vNas.setMetrics(dbMetrics);
 
         }
@@ -2530,6 +2549,11 @@ public class NetAppFileCommunicationInterface extends
                 continue;
             }
 
+            // Set vfiler context!!
+            netAppApi = new NetAppApi.Builder(system.getIpAddress(),
+                    system.getPortNumber(), system.getUsername(),
+                    system.getPassword()).https(true).vFiler(vfiler.getName()).build();
+
             // 3. Get the volumes of vfilers
             int numFileSystems = 0;
             int numSnapshots = 0;
@@ -2544,34 +2568,45 @@ public class NetAppFileCommunicationInterface extends
             List<String> volumeNames = netAppApi.listVolumes();
             if (volumeNames != null && !volumeNames.isEmpty()) {
 
-                numFileSystems = volumeNames.size();
                 _logger.info(" {} file systems found..", volumeNames.size());
 
+                String owningvFiler = null;
+                Long size = 0L;
+                Long snapshotBytesReserved = 0L;
+                Long snapshots = 0L;
                 for (String volumeName : volumeNames) {
                     usageStats = netAppApi.listVolumeInfo(volumeName, null);
+                    _logger.info(" Scanning for filesystem {} ", volumeName);
                     for (Map<String, String> map : usageStats) {
-                        if (map.get(Constants.SIZE_TOTAL) != null) {
-                            totalFileSystemsSize += Long.valueOf(map.get(Constants.SIZE_TOTAL));
+                        if (map.get(Constants.OWNING_VFILER) != null) {
+                            owningvFiler = map.get(Constants.OWNING_VFILER);
                         }
-
-                        /*
-                         * TODO: Bytes per block on NTAP is hard coded for now. If
-                         * possible, we should to get this from the array.
-                         */
-                        Long snapshotBytesReserved = 0L;
+                        if (map.get(Constants.SIZE_TOTAL) != null) {
+                            size = Long.valueOf(map.get(Constants.SIZE_TOTAL));
+                        }
                         if (map.get(Constants.SNAPSHOT_BLOCKS_RESERVED) != null) {
                             snapshotBytesReserved = Long.valueOf(map.get(Constants.SNAPSHOT_BLOCKS_RESERVED))
                                     * Constants.NETAPP_BYTES_PER_BLOCK;
-                            totalSnapshotsSize += snapshotBytesReserved;
                         }
-
                         if (map.get(Constants.SNAPSHOT_COUNT) != null) {
-                            numSnapshots += Long.valueOf(map.get(Constants.SNAPSHOT_COUNT));
+                            snapshots = Long.valueOf(map.get(Constants.SNAPSHOT_COUNT));
                         }
                     }
+                    // Ignore the objects of other vfilers!!
+                    if (owningvFiler != null && !owningvFiler.equalsIgnoreCase(vfiler.getName())) {
+                        _logger.info(" file system {} is not belongs to vfiler {} ", volumeName, vfiler.getName());
+                        continue;
+                    }
+
+                    _logger.info(" file system size {} and snapshots {} ", size, snapshots);
+                    // Count the objects
+                    totalFileSystemsSize += size;
+                    totalSnapshotsSize += snapshotBytesReserved;
+                    numSnapshots += snapshots;
+                    numFileSystems++;
 
                 }
-                _logger.info(" filesystems {}, snapshorts {} ", volumeNames.size(), numSnapshots);
+                _logger.info(" vfiler - filesystems {}, snapshorts {} ", numFileSystems, numSnapshots);
 
                 // Get the list of NFS exports and Shares!!!
 
@@ -2594,8 +2629,10 @@ public class NetAppFileCommunicationInterface extends
                 dbMetrics.put(MetricsKeys.storageObjects.name(), String.valueOf(totalStorageObjects));
                 dbMetrics.put(MetricsKeys.usedStorageCapacity.name(), String.valueOf(totalProvCap));
 
-                Long maxExports = MetricsKeys.getLong(MetricsKeys.maxNFSExports, dbMetrics) +
-                        MetricsKeys.getLong(MetricsKeys.maxCifsShares, dbMetrics);
+                // Maximum exports or shares should the maximum qtees!!
+                // Each share/export create a qtree.
+                Long maxExports = MetricsKeys.getLong(MetricsKeys.maxNFSExports, dbMetrics);
+
                 Long maxStorObjs = MetricsKeys.getLong(MetricsKeys.maxStorageObjects, dbMetrics);
                 Long maxCapacity = MetricsKeys.getLong(MetricsKeys.maxStorageCapacity, dbMetrics);
 

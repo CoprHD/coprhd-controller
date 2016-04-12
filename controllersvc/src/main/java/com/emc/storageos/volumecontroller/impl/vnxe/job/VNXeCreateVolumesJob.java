@@ -94,7 +94,7 @@ public class VNXeCreateVolumesJob extends VNXeJob {
                 for (URI volId : volIds) {
                     Volume volume = dbClient.queryObject(Volume.class, volId);
                     volume.setInactive(true);
-                    dbClient.persistObject(volume);
+                    dbClient.updateObject(volume);
                     if (logMsgBuilder.length() != 0) {
                         logMsgBuilder.append("\n");
                     }
@@ -145,6 +145,8 @@ public class VNXeCreateVolumesJob extends VNXeJob {
             VNXeLun vnxeLun = apiClient.getLunByLunGroup(deviceName, volume.getNativeGuid());
             if (vnxeLun != null) {
                 updateVolume(volume, vnxeLun, dbClient);
+                volume.setReplicationGroupInstance(deviceName);
+                dbClient.updateObject(volume);
 
                 if (logMsgBuilder.length() != 0) {
                     logMsgBuilder.append("\n");
@@ -165,6 +167,6 @@ public class VNXeCreateVolumesJob extends VNXeJob {
         volume.setNativeId(vnxeLun.getId());
         volume.setNativeGuid(NativeGUIDGenerator.generateNativeGuid(dbClient, volume));
         volume.setDeviceLabel(vnxeLun.getName());
-        dbClient.persistObject(volume);
+        dbClient.updateObject(volume);
     }
 }

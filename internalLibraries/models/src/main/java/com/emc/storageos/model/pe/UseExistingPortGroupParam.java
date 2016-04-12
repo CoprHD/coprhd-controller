@@ -6,9 +6,9 @@ import javax.xml.bind.annotation.XmlRootElement;
 @XmlRootElement
 public class UseExistingPortGroupParam {
 
-    @XmlElement
     private String portGroupId;
 
+    @XmlElement
     public String getPortGroupId ()
     {
         return portGroupId;

@@ -92,6 +92,7 @@ public class ProtocolEndpointService {
         
         CreateStorageGroupParam createStorageGroupParam = new CreateStorageGroupParam();
         createStorageGroupParam.setStorageGroupId("test_SG");
+        createProtocolEndpoint.setCreateStorageGroupParam(createStorageGroupParam);
         
         PortGroupSelection portGrpSelection = new PortGroupSelection();
         UseExistingPortGroupParam useExistingPortGroupParam = new UseExistingPortGroupParam();

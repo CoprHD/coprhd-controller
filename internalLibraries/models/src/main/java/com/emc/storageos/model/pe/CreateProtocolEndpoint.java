@@ -15,7 +15,6 @@ public class CreateProtocolEndpoint {
 
     private PortGroupSelection portGroupSelection;
 
-    @XmlElement
     private String maskingViewId;
 
     @XmlElement

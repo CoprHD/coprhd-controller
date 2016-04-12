@@ -6,9 +6,9 @@ import javax.xml.bind.annotation.XmlRootElement;
 @XmlRootElement
 public class UseExistingHostParam {
 
-    @XmlElement
     private String hostId;
 
+    @XmlElement
     public String getHostId ()
     {
         return hostId;

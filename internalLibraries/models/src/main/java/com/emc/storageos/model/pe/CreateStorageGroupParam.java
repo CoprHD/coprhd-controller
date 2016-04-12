@@ -9,9 +9,9 @@ import org.codehaus.jackson.map.annotate.JsonRootName;
 @JsonRootName(value="createStorageGroupParam")
 public class CreateStorageGroupParam {
 
-    @XmlElement
     private String storageGroupId;
 
+    @XmlElement
     public String getStorageGroupId ()
     {
         return storageGroupId;

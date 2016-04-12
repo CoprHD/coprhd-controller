@@ -179,11 +179,11 @@ public class BlockVirtualPoolParam extends VirtualPoolCommonParam {
     /**
      * Supported Drive Type. 
      * Valid values:
-     *  NONE
-     *  SSD
-     *  FC
-     *  SAS
-     *  SATA
+     *	NONE = No specific drive type
+     *  SSD = Solid State Drive
+     *  FC = Fibre Channel
+     *  SAS = Serial Attached SCSI
+     *  SATA = Serial Advanced Technology Attachment
      * 
      */
     @XmlElement(name = "drive_type")

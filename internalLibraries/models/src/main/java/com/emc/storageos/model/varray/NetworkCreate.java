@@ -49,7 +49,7 @@ public class NetworkCreate {
     /**
      * Transport type of the network. 
      * Valid values: 
-     *  FC
+     *  FC = Fibre Channel
      *  IP
      *  Ethernet
      * 

@@ -264,7 +264,7 @@ public class BackupCmd {
 
         System.out.println("***Important***");
         System.out.println("Please start ViPR service after all nodes have been " +
-                "restored (command: \"service storageos start\").");
+                "restored (command: \"/etc/storageos/storageos start\").");
         System.out.println("ViPR has risk of data lost before data repair finished, " +
                 "please check the db repair process by service log");
     }

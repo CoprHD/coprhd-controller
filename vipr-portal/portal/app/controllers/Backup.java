@@ -169,7 +169,7 @@ public class Backup extends Controller {
         if (ids != null && ids.length > 0) {
             boolean deleteExecuted = false;
             for (String backupName : ids) {
-                BackupUtils.deleteBackup(backupName);
+                BackupUtils.deleteBackup(backupName.replace("+"," "));
                 deleteExecuted = true;
             }
             if (deleteExecuted == true) {
@@ -311,6 +311,9 @@ public class Backup extends Controller {
             for (String hostname : sizeToDownload.keySet()) {
                 int percentage = sizeToDownload.get(hostname) == 0L ? 0
                         : (int) (downloadedSize.get(hostname) * 100 / sizeToDownload.get(hostname));
+                if (percentage > 100) {
+                    percentage = 100;
+                }
                 percentageMap.put(hostname, percentage);
             }
         }

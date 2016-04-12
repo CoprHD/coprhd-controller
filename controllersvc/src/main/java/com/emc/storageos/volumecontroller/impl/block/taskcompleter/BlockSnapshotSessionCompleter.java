@@ -21,6 +21,7 @@ import com.emc.storageos.db.client.model.BlockSnapshotSession;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.util.BlockConsistencyGroupUtils;
+import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.security.audit.AuditLogManager;
 import com.emc.storageos.services.OperationTypeEnum;
@@ -169,7 +170,7 @@ public abstract class BlockSnapshotSessionCompleter extends TaskCompleter {
      * @return              List of one or more BlockObject instances.
      */
     protected List<BlockObject> getAllSources(BlockSnapshotSession snapSession, DbClient dbClient) {
-        if (snapSession.hasConsistencyGroup()) {
+        if (NullColumnValueGetter.isNotNullValue(snapSession.getReplicationGroupInstance())) {
             BlockConsistencyGroup cg = dbClient.queryObject(BlockConsistencyGroup.class, snapSession.getConsistencyGroup());
             List<Volume> cgSources = BlockConsistencyGroupUtils.getAllCGVolumes(cg, dbClient);
             // return only those volumes belonging to session's RG

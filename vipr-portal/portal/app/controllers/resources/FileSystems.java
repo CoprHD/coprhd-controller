@@ -15,15 +15,31 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import models.datatable.FilePolicySnapshotsDataTable;
+import models.datatable.FileSystemsDataTable;
+import models.datatable.NfsACLDataTable;
+import models.datatable.ShareACLDataTable;
+
 import org.apache.commons.lang.StringUtils;
+
+import play.data.binding.As;
+import play.data.validation.Required;
+import play.data.validation.Validation;
+import play.mvc.With;
+import util.BourneUtil;
+import util.FileUtils;
+import util.FileUtils.ExportRuleInfo;
+import util.MessagesUtils;
+import util.StringOption;
+import util.datatable.DataTablesSupport;
 
 import com.emc.sa.util.DiskSizeConversionUtils;
 import com.emc.storageos.model.NamedRelatedResourceRep;
 import com.emc.storageos.model.VirtualArrayRelatedResourceRep;
-import com.emc.storageos.model.file.Copy;
 import com.emc.storageos.model.file.ExportRule;
 import com.emc.storageos.model.file.ExportRules;
 import com.emc.storageos.model.file.FileCifsShareACLUpdateParams;
+import com.emc.storageos.model.file.FileCopy;
 import com.emc.storageos.model.file.FileNfsACLUpdateParams;
 import com.emc.storageos.model.file.FilePolicyRestRep;
 import com.emc.storageos.model.file.FileReplicationParam;
@@ -63,20 +79,6 @@ import controllers.Common;
 import controllers.security.Security;
 import controllers.util.FlashException;
 import controllers.util.Models;
-import models.datatable.FilePolicySnapshotsDataTable;
-import models.datatable.FileSystemsDataTable;
-import models.datatable.NfsACLDataTable;
-import models.datatable.ShareACLDataTable;
-import play.data.binding.As;
-import play.data.validation.Required;
-import play.data.validation.Validation;
-import play.mvc.With;
-import util.BourneUtil;
-import util.FileUtils;
-import util.FileUtils.ExportRuleInfo;
-import util.MessagesUtils;
-import util.StringOption;
-import util.datatable.DataTablesSupport;
 
 @With(Common.class)
 public class FileSystems extends ResourceController {
@@ -159,16 +161,15 @@ public class FileSystems extends ResourceController {
         renderArgs.put("permissionTypeOptions", PERMISSION_TYPES);
         render(fileSystem);
     }
-    
-    
-    public static void getVarrayVpool(String resourceId){
-        HashMap<String,String> response = new HashMap<String, String>();
-        URI fileShareId= uri(resourceId);
+
+    public static void getVarrayVpool(String resourceId) {
+        HashMap<String, String> response = new HashMap<String, String>();
+        URI fileShareId = uri(resourceId);
         ViPRCoreClient client = BourneUtil.getViprClient();
         FileShareRestRep fileShare = client.fileSystems().get(fileShareId);
-        URI vArray= fileShare.getVirtualArray().getId();
-        URI vPool= fileShare.getVirtualPool().getId();
-        response.put("vArray",client.varrays().get(vArray).getName());
+        URI vArray = fileShare.getVirtualArray().getId();
+        URI vPool = fileShare.getVirtualPool().getId();
+        response.put("vArray", client.varrays().get(vArray).getName());
         response.put("vPool", client.fileVpools().get(vPool).getName());
         renderJSON(response);
     }
@@ -201,7 +202,7 @@ public class FileSystems extends ResourceController {
 
     public static void fileSystemNfsACLs(String fileSystemId) {
         ViPRCoreClient client = BourneUtil.getViprClient();
-        
+
         List<NfsACL> nfsAcls = client.fileSystems().getAllNfsACLs(
                 uri(fileSystemId));
         render(nfsAcls);
@@ -573,10 +574,10 @@ public class FileSystems extends ResourceController {
     @FlashException(referrer = { "fileSystem" })
     public static void mirrorOperationFileSystem(String fileSystemId, String mirrorOperation) {
         ViPRCoreClient client = BourneUtil.getViprClient();
-        Copy copy = new Copy();
+        FileCopy copy = new FileCopy();
         copy.setType(LOCAL_MIRROR);
         FileReplicationParam param = new FileReplicationParam();
-        List<Copy> listCopy = new ArrayList();
+        List<FileCopy> listCopy = new ArrayList();
         listCopy.add(copy);
         param.setCopies(listCopy);
 

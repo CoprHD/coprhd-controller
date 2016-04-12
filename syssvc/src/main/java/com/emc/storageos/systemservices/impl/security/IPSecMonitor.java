@@ -143,6 +143,7 @@ public class IPSecMonitor implements Runnable {
                 log.info("ipsec still has problems on : " + Arrays.toString(problemNodes));
             }
         } catch (Exception ex) {
+            ex.printStackTrace();
             log.warn("error when run ipsec monitor: ", ex);
         }
     }
@@ -177,13 +178,18 @@ public class IPSecMonitor implements Runnable {
 
                 // if the node is in the same vdc as local node, through ssh to get its ipsec props,
                 // else through https REST API to get ipsec props.
-                if (isSameVdcAsLocalNode(node)) {
-                    props = LocalRepository.getInstance().getIpsecProperties(node);
-                } else {
-                    props = getIpsecPropsThroughHTTPS(node);
+                try {
+                    if (isSameVdcAsLocalNode(node)) {
+                        props = LocalRepository.getInstance().getIpsecProperties(node);
+                    } else {
+                        props = getIpsecPropsThroughHTTPS(node);
+                    }
+                } catch (Exception ex) {
+                    log.warn("get ipsec properties exception: " + ex.getMessage());
+                    continue;
                 }
 
-                if (props == null) {
+                if (props == null || StringUtils.isEmpty(props.get(VDC_CONFIG_VERSION))) {
                     log.warn("Failed to get ipsec properties from the node {}", node);
                     continue;
                 }

@@ -37,7 +37,6 @@ public class ScaleIORestClient extends StandardRestClient {
     /**
      * Constructor
      * 
-     * @param factory A reference to the ScaleIORestClientFactory
      * @param baseURI the base URI to connect to ScaleIO Gateway
      * @param client A reference to a Jersey Apache HTTP client.
      * @param username The MDM usernam.
@@ -524,7 +523,7 @@ public class ScaleIORestClient extends StandardRestClient {
      * @return The map of the ScaleIO snapshot and parent volume ID
      * @throws Exception
      */
-    public Map<String, ScaleIOVolume> getSnapshotNameMap(List<String> snapIds) throws Exception {
+    public Map<String, ScaleIOVolume> getSnapshotParentIdMap(List<String> snapIds) throws Exception {
         Map<String, ScaleIOVolume> result = new HashMap<String, ScaleIOVolume>();
         ScaleIOVolumeList parm = new ScaleIOVolumeList();
         parm.setIds(snapIds);

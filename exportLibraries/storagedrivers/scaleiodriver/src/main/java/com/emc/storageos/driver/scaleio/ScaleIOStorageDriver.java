@@ -226,20 +226,24 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver implements Block
      */
     @Override
     public DriverTask createVolumeSnapshot(List<VolumeSnapshot> snapshots, StorageCapabilities capabilities) {
-        log.info("Request to create Snapshots -- Start :");
+        log.info("createVolumeSnapshot -- Start :");
         DriverTask task = new DriverTaskImpl(ScaleIOHelper.getTaskId(ScaleIOConstants.TaskType.SNAPSHOT_CREATE));
         int countSucc = 0;
         if (!isTaskFailedOnEmptySnapList(snapshots, task)) {
             for (VolumeSnapshot snapshot : snapshots) {
                 client = getClientBySystemId(snapshot.getStorageSystemId());
-                if (createSnapshotForSingleVolume(client, snapshot)) {
+                try {
+                    createSnapshotForSingleVolume(client, snapshot);
                     countSucc++;
+                } catch (Exception e) {
+                    log.info("createVolumeSnapshot -- Failed to create snapshot for volume {} ", snapshot.getNativeId(), e);
+                    continue;
                 }
             }
             setTaskStatus(snapshots.size(), countSucc, task);
         }
         task.setEndTime(Calendar.getInstance());
-        log.info("Request to create Snapshots -- End ");
+        log.info("createVolumeSnapshot -- End ");
         return task;
     }
 
@@ -267,24 +271,17 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver implements Block
      * @param snapshot given snapshot object
      * @return True for a successful creation
      */
-    private boolean createSnapshotForSingleVolume(ScaleIORestClient client, VolumeSnapshot snapshot) {
-        ScaleIOSnapshotVolumeResponse result = null;
-        try {
-            log.info("Create snapshot for volume {}:{} - start", snapshot.getDisplayName(), snapshot.getParentId());
-            result = client.snapshotVolume(snapshot.getParentId(), snapshot.getDisplayName(),
-                    snapshot.getStorageSystemId());
-            // set value to the output
-            snapshot.setNativeId(result.getVolumeIdList().get(0));
-            snapshot.setAccessStatus(StorageObject.AccessStatus.READ_WRITE);
-            Map<String, String> snapNameIdMap = client.getVolumes(result.getVolumeIdList());
-            snapshot.setDeviceLabel(snapNameIdMap.get(snapshot.getNativeId()));
-            log.info("Successfully create snapshot for volume {}:{} - end", snapshot.getDisplayName(),
-                    snapshot.getParentId());
-            return true;
-        } catch (Exception e) {
-            log.error("[ERROR] Exception while creating snapshot for volume {}", snapshot.getParentId(), e);
-            return false;
-        }
+    private void createSnapshotForSingleVolume(ScaleIORestClient client, VolumeSnapshot snapshot) throws Exception {
+        log.info("Create snapshot for volume {}:{} - start", snapshot.getDisplayName(), snapshot.getParentId());
+        ScaleIOSnapshotVolumeResponse result = client.snapshotVolume(snapshot.getParentId(), snapshot.getDisplayName(),
+                snapshot.getStorageSystemId());
+        // set value to the output
+        snapshot.setNativeId(result.getVolumeIdList().get(0));
+        snapshot.setAccessStatus(StorageObject.AccessStatus.READ_WRITE);
+        Map<String, String> snapNameIdMap = client.getVolumes(result.getVolumeIdList());
+        snapshot.setDeviceLabel(snapNameIdMap.get(snapshot.getNativeId()));
+        log.info("Successfully create snapshot for volume {}:{} - end", snapshot.getDisplayName(),
+                snapshot.getParentId());
     }
 
     @Override
@@ -301,20 +298,24 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver implements Block
      */
     @Override
     public DriverTask deleteVolumeSnapshot(List<VolumeSnapshot> snapshots) {
-        log.info("Request to delete Snapshots -- Start :");
+        log.info("deleteVolumeSnapshot -- Start :");
         DriverTask task = new DriverTaskImpl(ScaleIOHelper.getTaskId(ScaleIOConstants.TaskType.SNAPSHOT_DELETE));
         int countSucc = 0;
         if (!isTaskFailedOnEmptySnapList(snapshots, task)) {
             for (VolumeSnapshot snapshot : snapshots) {
                 client = getClientBySystemId(snapshot.getStorageSystemId());
-                if (deleteSingleSnapshot(client, snapshot)) {
+                try {
+                    deleteSingleSnapshot(client, snapshot);
                     countSucc++;
+                } catch (Exception e) {
+                    log.error("deleteVolumeSnapshot - Failed to delete snapshot {}", snapshot.getNativeId(), e);
+                    continue;
                 }
             }
             setTaskStatus(snapshots.size(), countSucc, task);
         }
         task.setEndTime(Calendar.getInstance());
-        log.info("Request to delete Snapshots -- End ");
+        log.info("deleteVolumeSnapshot -- End ");
         return task;
     }
 
@@ -325,16 +326,10 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver implements Block
      * @param snapshot given snapshot
      * @return true if successful, false otherwise
      */
-    private boolean deleteSingleSnapshot(ScaleIORestClient client, VolumeSnapshot snapshot) {
-        try {
-            log.info("Delete snapshot {}:{} - start", snapshot.getDisplayName(), snapshot.getNativeId());
-            client.removeVolume(snapshot.getNativeId());
-            log.info("Successfully delete snapshot {}:{} - end", snapshot.getDisplayName(), snapshot.getNativeId());
-            return true;
-        } catch (Exception e) {
-            log.error("Exception while deleting snapshot {}", snapshot.getNativeId(), e);
-            return false;
-        }
+    private void deleteSingleSnapshot(ScaleIORestClient client, VolumeSnapshot snapshot) throws Exception {
+        log.info("deleteSingleSnapshot {}:{} - start", snapshot.getDisplayName(), snapshot.getNativeId());
+        client.removeVolume(snapshot.getNativeId());
+        log.info("deleteSingleSnapshot {}:{} - end", snapshot.getDisplayName(), snapshot.getNativeId());
     }
 
     /**
@@ -748,18 +743,19 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver implements Block
 
     private DriverTask.TaskStatus createGroupSnapshot(ScaleIORestClient client, List<VolumeSnapshot> snapshots) {
         String systemId = snapshots.get(0).getStorageSystemId();
+        DriverTask.TaskStatus taskStatus = DriverTask.TaskStatus.FAILED;
+
+        log.info("Create consistency group snapshot in storage system {} - Start:", systemId);
         try {
-            log.info("Create consistency group snapshot in storage system {} - Start:", systemId);
             Map<String, String> parent2snap = createSnapParentMap(snapshots);
             ScaleIOSnapshotVolumeResponse result = client.snapshotMultiVolume(parent2snap, systemId);
-            List<String> SnapNativeIds = result.getVolumeIdList();
-            Map<String, ScaleIOVolume> snapIdInfoMap = client.getSnapshotNameMap(SnapNativeIds);
-            DriverTask.TaskStatus taskStatus = populateSnapshotInfo(result, snapIdInfoMap, snapshots);
+            taskStatus = populateSnapshotInfo(result, client, snapshots);
+        } catch (Exception e) {
+            log.error("createGroupSnapshot --  Failed to create CG snapshot for ScaleIO Storage System {}", systemId, e);
+            taskStatus = DriverTask.TaskStatus.FAILED;
+        } finally {
             log.info("Create consistency group snapshot in storage system {} - End:", systemId);
             return taskStatus;
-        } catch (Exception e) {
-            log.error("Exception while Creating consistency group snapshots in storage system: {}", systemId, e);
-            return DriverTask.TaskStatus.FAILED;
         }
     }
 
@@ -780,14 +776,17 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver implements Block
     /**
      * Populate snapshot info based on Rest request response
      * 
+     * @param client ScaleIO Rest Client
      * @param result response for create group snapshot Rest call
-     * @param snapIdInfoMap map of snapshot parent volume id with snapshot info
      * @param snapshots snapshot list with only parent volume id info
      * @return task status
      */
-    private DriverTask.TaskStatus populateSnapshotInfo(ScaleIOSnapshotVolumeResponse result, Map<String, ScaleIOVolume> snapIdInfoMap,
-            List<VolumeSnapshot> snapshots) {
+    private DriverTask.TaskStatus populateSnapshotInfo(ScaleIOSnapshotVolumeResponse result, ScaleIORestClient client,
+            List<VolumeSnapshot> snapshots) throws Exception {
         int countSucc = 0;
+        List<String> SnapNativeIds = result.getVolumeIdList();
+        Map<String, ScaleIOVolume> snapIdInfoMap = client.getSnapshotParentIdMap(SnapNativeIds);
+
         for (VolumeSnapshot snapshot : snapshots) {
             ScaleIOVolume snapInfo = snapIdInfoMap.get(snapshot.getParentId());
             if (snapInfo != null) {
@@ -892,22 +891,20 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver implements Block
                         ScaleIOSnapshotVolumeResponse result = client.snapshotMultiVolume(parent2snap, systemId);
                         // get parentID
                         List<String> nativeIds = result.getVolumeIdList();
-                        Map<String, ScaleIOVolume> cloneIdInfoMap = client.getVolumeNameMap(nativeIds);
+                        Map<String, ScaleIOVolume> cloneIdInfoMap = client.getSnapshotParentIdMap(nativeIds);
                         for (VolumeClone clone : clones) {
-                            for (ScaleIOVolume cloneInfo : cloneIdInfoMap.values()) {
-                                if (clone.getParentId().equalsIgnoreCase(cloneInfo.getAncestorVolumeId())) {
-                                    clone.setNativeId(cloneInfo.getId());
-                                    clone.setAccessStatus(StorageObject.AccessStatus.READ_WRITE);
-                                    clone.setDeviceLabel(cloneInfo.getName());
-                                    // clone.setDeviceLabel(clone.getNativeId());
-                                    String wwn = client.getSystemId() + clone.getNativeId();
-                                    clone.setWwn(wwn);
-                                    long sizeInBytes = Long.parseLong(cloneInfo.getSizeInKb()) * 1024;
-                                    clone.setProvisionedCapacity(sizeInBytes);
-                                    clone.setReplicationState(VolumeClone.ReplicationState.CREATED);
-                                    clone.setConsistencyGroup(result.getSnapshotGroupId());
-                                    countSucc++;
-                                }
+                            ScaleIOVolume cloneInfo = cloneIdInfoMap.get(clone.getParentId());
+                            if(cloneInfo!=null){
+                                clone.setNativeId(cloneInfo.getId());
+                                clone.setAccessStatus(StorageObject.AccessStatus.READ_WRITE);
+                                clone.setDeviceLabel(cloneInfo.getName());
+                                String wwn = client.getSystemId() + clone.getNativeId();
+                                clone.setWwn(wwn);
+                                long sizeInBytes = Long.parseLong(cloneInfo.getSizeInKb()) * 1024;
+                                clone.setProvisionedCapacity(sizeInBytes);
+                                clone.setReplicationState(VolumeClone.ReplicationState.CREATED);
+                                clone.setConsistencyGroup(result.getSnapshotGroupId());
+                                countSucc++;
                             }
                         }
                         setTaskStatus(clones.size(), countSucc, task);
@@ -1325,22 +1322,17 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver implements Block
     private ScaleIORestClient getClientBySystemId(String systemId) {
         String ip_address, port, username, password;
         ScaleIORestClient client;
+        log.info("get Rest client for ScaleIO storage system: {} -- Start", systemId);
         ip_address = getConnInfoFromRegistry(systemId, ScaleIOConstants.IP_ADDRESS);
-        port = getConnInfoFromRegistry(systemId, ScaleIOConstants.PORT_NUMBER);
-        username = getConnInfoFromRegistry(systemId, ScaleIOConstants.USER_NAME);
-        password = getConnInfoFromRegistry(systemId, ScaleIOConstants.PASSWORD);
-
-        log.info("Start to get Rest client for ScaleIO storage system: {}", systemId);
-        if (ip_address != null && port != null && username != null && password != null) {
-            try {
-                client = scaleIORestHandleFactory.getClientHandle(systemId, ip_address, Integer.parseInt(port), username, password);
-                return client;
-            } catch (Exception e) {
-                log.error("[ERROR] Exception when creating rest client instance for storage system {} ", systemId, e);
-                return null;
-            }
-        } else {
-            log.info("[ERROR] No connection information found for storage system {}.", systemId);
+        try {
+            port = getConnInfoFromRegistry(systemId, ScaleIOConstants.PORT_NUMBER);
+            username = getConnInfoFromRegistry(systemId, ScaleIOConstants.USER_NAME);
+            password = getConnInfoFromRegistry(systemId, ScaleIOConstants.PASSWORD);
+            client = scaleIORestHandleFactory.getClientHandle(systemId, ip_address, Integer.parseInt(port), username, password);
+            log.info("get Rest client for ScaleIO storage system: {} -- End", systemId);
+            return client;
+        } catch (Exception e) {
+            log.error("[Error] Failed to get Rest client for ScaleIO storage System: {}", systemId);
             return null;
         }
     }

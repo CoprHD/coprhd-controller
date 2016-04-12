@@ -299,7 +299,7 @@ public class DbServiceImpl implements DbService {
 
     private void removeStaleServiceConfiguration() {
         boolean isGeoDBSvc = isGeoDbsvc();
-        boolean autoBoot= false;
+        boolean resetAutoBootFlag = false;
 
         String configKind = _coordinator.getDbConfigPath(_serviceInfo.getName());
         List<Configuration> configs = _coordinator.queryAllConfiguration(_coordinator.getSiteId(), configKind);
@@ -315,7 +315,7 @@ public class DbServiceImpl implements DbService {
                     // we should set the autoboot=false on the current node or no node with autoboot=false
 
                     // TODO:This is a temporary/safest solution in Yoda, we'll provide a better soltuion post Yoda
-                    autoBoot = true;
+                    resetAutoBootFlag = true;
                 }
 
                 if (isStaleConfiguration(config)) {
@@ -326,7 +326,7 @@ public class DbServiceImpl implements DbService {
             }
         }
 
-        if (autoBoot) {
+        if (resetAutoBootFlag) {
             _log.info("set autoboot flag to false on {}", _serviceInfo.getId());
             Configuration config = _coordinator.queryConfiguration(_coordinator.getSiteId(), configKind, _serviceInfo.getId());
             config.setConfig(DbConfigConstants.AUTOBOOT, Boolean.FALSE.toString());

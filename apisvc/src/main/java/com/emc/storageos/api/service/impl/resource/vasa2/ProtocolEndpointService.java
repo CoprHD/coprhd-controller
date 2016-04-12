@@ -10,6 +10,7 @@ import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.Response;
 
 import org.codehaus.jackson.JsonGenerationException;
 import org.codehaus.jackson.map.JsonMappingException;
@@ -64,23 +65,24 @@ public class ProtocolEndpointService {
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON } )
     @Path("/protocolendpoint/symmetrix/{symmid}")
-    public ClientResponse createProtocolEndpoint(@PathParam("symmid") String symmId){
+    public Response createProtocolEndpoint(@PathParam("symmid") String symmId){
         final String PROTOCOL_ENDPOINT_URI = "/symmetrix/" + symmId + "/protocolendpoint";
 //        CreateProtocolEndpoint createProtocolEndpoint = createPayloadForCreatingPE(new CreateProtocolEndpoint());
         String json = createPayloadForCreatingPE(new CreateProtocolEndpoint());
         ClientResponse response = null;
         RESTClientUtil client = RESTClientUtil.getInstance();
+        String jsonResponse = null;
         client.set_baseURL(baseURL);
         try {
             client.setLoginCredentials("smc", "smc");
             response = client.queryObjectPostRequest(PROTOCOL_ENDPOINT_URI, CreatePEResponse.class, json);
+            jsonResponse = response.getEntity(String.class);
         } catch (NoSuchAlgorithmException e) {
             e.printStackTrace();
         } catch (UniformInterfaceException e) {
             e.printStackTrace();
         }
-        
-        return response;
+         return Response.status(response.getStatus()).entity(jsonResponse).build();
     }
     
     private String createPayloadForCreatingPE(CreateProtocolEndpoint createProtocolEndpoint){

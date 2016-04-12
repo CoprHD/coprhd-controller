@@ -5,11 +5,13 @@
 
 package com.emc.storageos.driver.scaleio.errorhandling.model;
 
+import com.emc.storageos.driver.scaleio.errorhandling.resources.ServiceCode;
+
 import java.util.Locale;
 
 public interface ServiceCoded {
 
-    com.emc.storageos.driver.scaleio.errorhandling.resources.ServiceCode getServiceCode();
+    ServiceCode getServiceCode();
 
     String getMessage();
 

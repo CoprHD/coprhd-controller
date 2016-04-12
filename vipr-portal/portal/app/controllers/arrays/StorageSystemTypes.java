@@ -1,8 +1,10 @@
 package controllers.arrays;
 
+import static com.emc.vipr.client.core.util.ResourceUtils.uris;
 import static controllers.Common.backToReferrer;
 
 import java.io.File;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
@@ -10,7 +12,6 @@ import javax.ws.rs.core.Response;
 
 import org.apache.commons.lang.StringUtils;
 
-import com.emc.storageos.model.dr.SiteIdListParam;
 import com.emc.storageos.model.storagesystem.type.StorageSystemTypeAddParam;
 import com.emc.storageos.model.storagesystem.type.StorageSystemTypeRestRep;
 import com.google.common.collect.Lists;
@@ -29,7 +30,6 @@ import play.data.validation.MinSize;
 import play.data.validation.Required;
 import play.data.validation.Validation;
 import play.mvc.With;
-import util.DisasterRecoveryUtils;
 import util.MessagesUtils;
 import util.StorageSystemTypeUtils;
 import util.datatable.DataTablesSupport;
@@ -82,18 +82,9 @@ public class StorageSystemTypes extends ViprResourceController {
 	@FlashException("list")
 	@Restrictions({ @Restrict("SECURITY_ADMIN"), @Restrict("RESTRICTED_SECURITY_ADMIN") })
 	public static void delete(@As(",") String[] ids) {
-		List<String> uuids = Arrays.asList(ids);
-		for (String uuid : uuids) {
-			if (!DisasterRecoveryUtils.hasStandbySite(uuid)) {
-				flash.error(MessagesUtils.get(UNKNOWN, uuid));
-				list();
-			}
-
+		for(String id: ids) {
+			StorageSystemTypeUtils.deleteStorageSystemType(id);
 		}
-
-		SiteIdListParam param = new SiteIdListParam();
-		param.getIds().addAll(uuids);
-		DisasterRecoveryUtils.deleteStandby(param);
 		flash.success(MessagesUtils.get(DELETED_SUCCESS));
 		list();
 	}
@@ -106,7 +97,7 @@ public class StorageSystemTypes extends ViprResourceController {
 		}
 
 		storageSystemTypes.save();
-		flash.success(MessagesUtils.get(SAVED, storageSystemTypes.storageSystemTypeName));
+		flash.success(MessagesUtils.get(SAVED, storageSystemTypes.name));
 		backToReferrer();
 		list();
 	}
@@ -118,15 +109,38 @@ public class StorageSystemTypes extends ViprResourceController {
 		}
 	}
 
+	public static void itemsJson(@As(",") String[] ids) {
+		List<String> uuids = Arrays.asList(ids);
+		itemsJson(uuids);
+	}
+	
+    private static void itemsJson(List<String> uuids) {
+        List<StorageSystemTypeRestRep> standbySites = new ArrayList<StorageSystemTypeRestRep>();
+        for (String uuid : uuids) {
+        	StorageSystemTypeRestRep standbySite = StorageSystemTypeUtils.getStorageSystemType(uuid);
+            if (standbySite != null) {
+                standbySites.add(standbySite);
+            }
+        }
+        performItemsJson(standbySites, new JsonItemOperation());
+    }
+
+    protected static class JsonItemOperation implements ResourceValueOperation<StorageSystemTypeInfo, StorageSystemTypeRestRep> {
+        @Override
+        public StorageSystemTypeInfo performOperation(StorageSystemTypeRestRep provider) throws Exception {
+            return new StorageSystemTypeInfo(provider);
+        }
+    }
+    
 	@SuppressWarnings("squid:S2068")
 	public static class StorageSystemTypeForm {
 
-		public String storageTypeId;
+		public String id;
 
 		@MaxSize(128)
 		@MinSize(2)
 		@Required
-		public String storageSystemTypeName;
+		public String name;
 
 		@MaxSize(128)
 		public String storageSystemTypeDisplayName;
@@ -160,8 +174,8 @@ public class StorageSystemTypes extends ViprResourceController {
 		}
 
 		public void readFrom(StorageSystemTypeRestRep storageSysType) {
-			this.storageTypeId = storageSysType.getStorageTypeId();
-			this.storageSystemTypeName = storageSysType.getStorageTypeName();
+			this.id = storageSysType.getStorageTypeId();
+			this.name = storageSysType.getStorageTypeName();
 			this.storageSystemTypeDisplayName = storageSysType.getStorageTypeDispName();
 			this.storageSystemTypeType = storageSysType.getStorageTypeType();
 			if (null != storageSysType.getNonSslPort()) {
@@ -189,12 +203,12 @@ public class StorageSystemTypes extends ViprResourceController {
 		}
 
 		public boolean isNew() {
-			return StringUtils.isBlank(storageTypeId);
+			return StringUtils.isBlank(id);
 		}
 
 		public StorageSystemTypeRestRep create() {
 			StorageSystemTypeAddParam addParams = new StorageSystemTypeAddParam();
-			addParams.setStorageTypeName(storageSystemTypeName);
+			addParams.setStorageTypeName(name);
 			addParams.setStorageTypeDispName(storageSystemTypeDisplayName);
 			addParams.setStorageTypeType(storageSystemTypeType);
 			addParams.setDriverClassName(driverClassName);

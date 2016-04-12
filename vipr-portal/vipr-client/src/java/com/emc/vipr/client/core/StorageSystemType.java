@@ -25,7 +25,7 @@ public class StorageSystemType {
 	}
 
 	public ClientResponse deleteStorageSystemType(String id) {
-		return client.post(ClientResponse.class, PathConstants.STORAGE_SYSTEM_TYPE_URL + id + "/deactivate");
+		return client.post(ClientResponse.class, PathConstants.STORAGE_SYSTEM_TYPE_URL + "/" + id + "/deactivate");
 	}
 
 	public StorageSystemTypeRestRep getStorageSystemTypeRestRep(String uuid) {

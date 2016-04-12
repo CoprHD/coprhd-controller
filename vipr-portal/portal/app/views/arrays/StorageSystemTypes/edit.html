@@ -20,11 +20,11 @@
                image-val="/public/img/assets/AddStandbySite.png">
   </form-header>
 
-  %{ editing = storageSystemTypes?.storageTypeId }%
+  %{ editing = storageSystemTypes?.id }%
   
   #{form @save(), class:'form form-horizontal', autocomplete:"off"}
-    #{if storageSystemTypes?.storageTypeId}
-      #{field 'storageSystemTypes.storageTypeId'}
+    #{if storageSystemTypes?.id}
+      #{field 'storageSystemTypes.id'}
          <input type="hidden" name="${field.name}" value="${field.value}">
       #{/field}
     #{/if}
@@ -33,7 +33,7 @@
     #{/field}
 
   <fieldset>
-    #{field 'storageSystemTypes.storageSystemTypeName'}
+    #{field 'storageSystemTypes.name'}
       %{
         field.cssClass = 'span6 initialFocus';
         field.required = true

@@ -3626,8 +3626,9 @@ ResourceType.EXPORT_GROUP=Export Group
 
 storageSystemTypes.list.title=Storage System Types
 storageSystemTypes.deleteConfirm=Are you sure you want to delete the selected Storage System Type?
-storageSystemTypes.storageSystemTypeName=Name
+storageSystemTypes.name=Name
 storageSystemTypes.storageTypeId=Id
+storageSystemTypes.id=Id
 storageSystemTypes.storageSystemTypeDisplayName=Display Name
 storageSystemTypes.storageSystemTypeType=Type
 storageSystemTypes.portNumber=Port Number

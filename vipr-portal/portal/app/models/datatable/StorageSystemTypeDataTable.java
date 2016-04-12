@@ -6,17 +6,19 @@ import util.datatable.DataTable;
 public class StorageSystemTypeDataTable extends DataTable {
 
 	public StorageSystemTypeDataTable() {
-		addColumn("storageSystemTypeName").setRenderFunction("renderLink");
+		addColumn("name").setRenderFunction("renderLink");
 		addColumn("storageSystemTypeDisplayName");
 		addColumn("storageSystemTypeType");
 		addColumn("isProvider");
-		addColumn("storageTypeId").hidden();
+		addColumn("portNumber");
+		addColumn("sslPortNumber");
+		addColumn("driverClassName");
 		sortAll();
 	}
 
 	public static class StorageSystemTypeInfo {
-		public String storageTypeId;
-		public String storageSystemTypeName;
+		public String id;
+		public String name;
 		public String storageSystemTypeDisplayName;
 		public String storageSystemTypeType;
 		public String portNumber;
@@ -26,14 +28,14 @@ public class StorageSystemTypeDataTable extends DataTable {
 		public Boolean isElementMgr;
 		public Boolean useMDM;
 		public Boolean isProvider;
-		public String driverClassname;
+		public String driverClassName;
 
 		public StorageSystemTypeInfo() {
 		}
 
 		public StorageSystemTypeInfo(StorageSystemTypeRestRep storageSysType) {
-			this.storageTypeId = storageSysType.getStorageTypeId();
-			this.storageSystemTypeName = storageSysType.getStorageTypeName();
+			this.id = storageSysType.getStorageTypeId();
+			this.name = storageSysType.getStorageTypeName();
 			this.storageSystemTypeDisplayName = storageSysType.getStorageTypeDispName();
 			this.storageSystemTypeType = storageSysType.getStorageTypeType();
 			this.portNumber = storageSysType.getNonSslPort();
@@ -43,7 +45,7 @@ public class StorageSystemTypeDataTable extends DataTable {
 			this.isElementMgr = storageSysType.getIsElementMgr();
 			this.useMDM = storageSysType.getIsDefaultMDM();
 			this.isProvider = storageSysType.getIsSmiProvider();
-			this.driverClassname = storageSysType.getDriverClassName();
+			this.driverClassName = storageSysType.getDriverClassName();
 		}
 	}
 }

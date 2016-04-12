@@ -9,18 +9,16 @@ import org.codehaus.jackson.map.annotate.JsonRootName;
 @XmlRootElement
 public class CreateProtocolEndpoint {
 
-    @XmlElement
     private CreateStorageGroupParam createStorageGroupParam;
 
-    @XmlElement
     private HostOrHostGroupSelection hostOrHostGroupSelection;
 
-    @XmlElement
     private PortGroupSelection portGroupSelection;
 
     @XmlElement
     private String maskingViewId;
 
+    @XmlElement
     public CreateStorageGroupParam getCreateStorageGroupParam ()
     {
         return createStorageGroupParam;
@@ -31,6 +29,7 @@ public class CreateProtocolEndpoint {
         this.createStorageGroupParam = createStorageGroupParam;
     }
 
+    @XmlElement
     public HostOrHostGroupSelection getHostOrHostGroupSelection ()
     {
         return hostOrHostGroupSelection;
@@ -41,6 +40,7 @@ public class CreateProtocolEndpoint {
         this.hostOrHostGroupSelection = hostOrHostGroupSelection;
     }
 
+    @XmlElement
     public PortGroupSelection getPortGroupSelection ()
     {
         return portGroupSelection;
@@ -51,6 +51,7 @@ public class CreateProtocolEndpoint {
         this.portGroupSelection = portGroupSelection;
     }
 
+    @XmlElement
     public String getMaskingViewId ()
     {
         return maskingViewId;

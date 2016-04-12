@@ -1,7 +1,12 @@
 package com.emc.storageos.model.pe;
 
+import javax.xml.bind.annotation.XmlElement;
+import javax.xml.bind.annotation.XmlRootElement;
+
+@XmlRootElement
 public class UseExistingPortGroupParam {
 
+    @XmlElement
     private String portGroupId;
 
     public String getPortGroupId ()

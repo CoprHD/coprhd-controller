@@ -1,5 +1,6 @@
 package com.emc.storageos.api.service.impl.resource.vasa2;
 
+import java.io.IOException;
 import java.security.NoSuchAlgorithmException;
 
 import javax.ws.rs.Consumes;
@@ -10,6 +11,10 @@ import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 
+import org.codehaus.jackson.JsonGenerationException;
+import org.codehaus.jackson.map.JsonMappingException;
+import org.codehaus.jackson.map.ObjectMapper;
+import org.codehaus.jackson.map.ObjectWriter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -93,6 +98,22 @@ public class ProtocolEndpointService {
         useExistingPortGroupParam.setPortGroupId("lgly6072_ig_PG");
         portGrpSelection.setUseExistingPortGroupParam(useExistingPortGroupParam);
         createProtocolEndpoint.setPortGroupSelection(portGrpSelection);
+        
+        ObjectWriter ow = new ObjectMapper().writer().withDefaultPrettyPrinter();
+        try {
+            String json = ow.writeValueAsString(createProtocolEndpoint);
+            _log.info("####################################################");
+            _log.info(json);
+        } catch (JsonGenerationException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        } catch (JsonMappingException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        } catch (IOException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        }
         
         return createProtocolEndpoint;
         

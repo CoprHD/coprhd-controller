@@ -9,9 +9,9 @@ import org.codehaus.jackson.map.annotate.JsonRootName;
 @XmlRootElement(name="hostOrHostGroupSelection")
 public class HostOrHostGroupSelection {
 
-    @XmlElement
     private UseExistingHostParam useExistingHostParam;
 
+    @XmlElement
     public UseExistingHostParam getUseExistingHostParam ()
     {
         return useExistingHostParam;

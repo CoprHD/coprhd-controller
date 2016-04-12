@@ -9,9 +9,9 @@ import org.codehaus.jackson.map.annotate.JsonRootName;
 @JsonRootName(value="portGroupSelection")
 public class PortGroupSelection {
 
-    @XmlElement
     private UseExistingPortGroupParam useExistingPortGroupParam;
 
+    @XmlElement
     public UseExistingPortGroupParam getUseExistingPortGroupParam ()
     {
         return useExistingPortGroupParam;

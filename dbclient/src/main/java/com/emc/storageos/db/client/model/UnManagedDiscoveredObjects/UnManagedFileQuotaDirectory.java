@@ -88,7 +88,7 @@ public class UnManagedFileQuotaDirectory extends UnManagedFileObject {
     }
     
     @Name("softGrace")
-    public Integer getSoftgrace() {
+    public Integer getSoftGrace() {
         return _softGrace;
     }
     

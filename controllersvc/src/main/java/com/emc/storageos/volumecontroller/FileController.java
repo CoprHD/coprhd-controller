@@ -193,4 +193,6 @@ public interface FileController extends StorageController {
     public void listSanpshotByPolicy(URI storage, URI fs, URI policy, String opId) throws InternalException;
 
     public void createVirtualNas(URI storage, URI vnasUri, VirtualNasCreateParam vnasParam, String opId) throws InternalException;
+
+    public void deleteVirtualNas(URI storage, URI vnasUri, String opId) throws InternalException;
 }

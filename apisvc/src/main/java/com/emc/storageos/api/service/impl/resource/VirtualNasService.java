@@ -14,6 +14,7 @@ import java.util.List;
 import java.util.UUID;
 
 import javax.ws.rs.Consumes;
+import javax.ws.rs.DELETE;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
 import javax.ws.rs.PUT;
@@ -186,6 +187,8 @@ public class VirtualNasService extends TaggedResource {
             checkForDuplicateName(vnasParam.getvNasName(), VirtualNAS.class);
         }
 
+        ArgValidator.checkFieldUriType(vnasParam.getStorageSystem(), StorageSystem.class, "_id");
+
         _log.info("Creating Virtual NAS server...");
         String task = UUID.randomUUID().toString();
 
@@ -195,6 +198,7 @@ public class VirtualNasService extends TaggedResource {
         vnas.setNasName(vnasParam.getvNasName());
         StringSet protocols = new StringSet(vnasParam.getProtocols());
         vnas.setProtocols(protocols);
+        vnas.setStorageDeviceURI(vnasParam.getStorageSystem());
 
         StorageSystem device = _dbClient.queryObject(StorageSystem.class, vnasParam.getStorageSystem());
         FileController controller = getController(FileController.class, device.getSystemType());
@@ -226,6 +230,36 @@ public class VirtualNasService extends TaggedResource {
         ArgValidator.checkFieldNotNull(vnasParam.getvNasName(), "nasName");
 
         return Response.ok().build();
+    }
+
+    @DELETE
+    @Path("/{id}")
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR })
+    public TaskResourceRep deleteVirtualNasServer(@PathParam("id") URI vnasId) {
+
+        ArgValidator.checkFieldUriType(vnasId, VirtualNAS.class, "id");
+        VirtualNAS vNas = queryResource(vnasId);
+        ArgValidator.checkReference(VirtualNAS.class, vnasId, checkForDelete(vNas));
+
+        _log.info("Deleting Virtual NAS server...");
+        String task = UUID.randomUUID().toString();
+
+        StorageSystem device = _dbClient.queryObject(StorageSystem.class, vNas.getStorageDeviceURI());
+        FileController controller = getController(FileController.class, device.getSystemType());
+        vNas.setOpStatus(new OpStatusMap());
+        Operation op = new Operation();
+        op.setResourceType(ResourceOperationTypeEnum.DELETE_VIRTUAL_NAS_SERVER);
+        op.setDescription("Delete Virtual Nas Server");
+        vNas.getOpStatus().createTaskStatus(task, op);
+        try {
+            controller.deleteVirtualNas(device.getId(), vNas.getId(), task);
+        } catch (InternalException e) {
+            vNas.setInactive(false);
+            throw e;
+        }
+        return toTask(vNas, task, op);
     }
 
     /**

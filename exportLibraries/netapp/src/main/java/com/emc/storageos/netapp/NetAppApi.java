@@ -1038,11 +1038,13 @@ public class NetAppApi {
             netAppFacade = new NetAppFacade(_ipAddress, _portNumber, _userName,
                     _password, _https);
             Boolean status = netAppFacade.createVirtualNas(args);
-            if (status && args.getProtocols() != null && !args.getProtocols().isEmpty()) {
-                netAppFacade = new NetAppFacade(_ipAddress, _portNumber, _userName,
-                        _password, _https);
+            if (status) {
+                if (args.getProtocols() != null && !args.getProtocols().isEmpty()) {
+                    netAppFacade = new NetAppFacade(_ipAddress, _portNumber, _userName,
+                            _password, _https);
 
-                netAppFacade.allowVnasProtocols(args.getvNasName(), args.getProtocols());
+                    netAppFacade.allowVnasProtocols(args.getvNasName(), args.getProtocols());
+                }
             } else {
                 _logger.debug("VNAS {} creation failed", args.getvNasName());
                 status = false;
@@ -1050,6 +1052,25 @@ public class NetAppApi {
             return status;
         } catch (Exception e) {
             throw NetAppException.exceptions.createVnasFailed(args.getvNasName(), e.getMessage());
+        }
+    }
+
+    public Boolean deleteVirtualNas(String vnasName)
+            throws NetAppException {
+        try {
+
+            netAppFacade = new NetAppFacade(_ipAddress, _portNumber, _userName,
+                    _password, _https);
+            Boolean status = netAppFacade.stopVirtualNas(vnasName);
+            if (status) {
+                netAppFacade.destroyVirtualNas(vnasName);
+            } else {
+                _logger.debug("VNAS {} deletion failed", vnasName);
+                status = false;
+            }
+            return status;
+        } catch (Exception e) {
+            throw NetAppException.exceptions.createVnasFailed(vnasName, e.getMessage());
         }
     }
 }

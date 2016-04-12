@@ -87,7 +87,8 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
 
     private static final String EXPORT_OP_NAME = "Snapshot Export";
     private static final String SHARE_OP_NAME = "Snapshot Share";
-    private static final String VNAS_OP_NAME = "VNAS Create";
+    private static final String VNAS_CREATE_OP_NAME = "VNAS Create";
+    private static final String VNAS_DELETE_OP_NAME = "VNAS Delete";
     public static final long SEC_IN_MILLI = 1000L;
 
     private IsilonApiFactory _factory;
@@ -2608,6 +2609,12 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
     @Override
     public BiosCommandResult doCreateVNAS(StorageSystem storageObj, VirtualNasCreateParam args) {
         return BiosCommandResult.createErrorResult(
-                DeviceControllerErrors.isilon.unSupportedOperation(VNAS_OP_NAME));
+                DeviceControllerErrors.isilon.unSupportedOperation(VNAS_CREATE_OP_NAME));
+    }
+
+    @Override
+    public BiosCommandResult doDeleteVNAS(StorageSystem storageObj, VirtualNAS vnasObj) {
+        return BiosCommandResult.createErrorResult(
+                DeviceControllerErrors.isilon.unSupportedOperation(VNAS_DELETE_OP_NAME));
     }
 }

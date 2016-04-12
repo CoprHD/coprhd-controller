@@ -1562,4 +1562,20 @@ public class NetAppFacade {
         return vFiler.allowProtocols(vFilerName, protocols);
     }
 
+    public boolean stopVirtualNas(String vFilerName) {
+        if (log.isDebugEnabled()) {
+            log.debug("Stopping vfiler: " + vFilerName);
+        }
+        VFiler vFiler = new VFiler(server.getNaServer(), null);
+        return vFiler.stopVFiler(vFilerName);
+    }
+
+    public boolean destroyVirtualNas(String vFilerName) {
+        if (log.isDebugEnabled()) {
+            log.debug("Destroying vfiler: " + vFilerName);
+        }
+        VFiler vFiler = new VFiler(server.getNaServer(), null);
+        return vFiler.destroyVFiler(vFilerName);
+    }
+
 }

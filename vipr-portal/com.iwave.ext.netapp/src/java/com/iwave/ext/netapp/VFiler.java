@@ -130,4 +130,32 @@ public class VFiler {
         }
         return true;
     }
+
+    boolean stopVFiler(String vFilerName) {
+
+        NaElement elem = new NaElement("vfiler-stop");
+        elem.addNewChild("vfiler", vFilerName);
+        try {
+            server.invokeElem(elem);
+        } catch (Exception e) {
+            String msg = "Failed to stop vFiler: " + vFilerName;
+            log.error(msg, e);
+            throw new NetAppException(msg, e);
+        }
+        return true;
+    }
+
+    boolean destroyVFiler(String vFilerName) {
+
+        NaElement elem = new NaElement("vfiler-destroy");
+        elem.addNewChild("vfiler", vFilerName);
+        try {
+            server.invokeElem(elem);
+        } catch (Exception e) {
+            String msg = "Failed to destroy vFiler: " + vFilerName;
+            log.error(msg, e);
+            throw new NetAppException(msg, e);
+        }
+        return true;
+    }
 }

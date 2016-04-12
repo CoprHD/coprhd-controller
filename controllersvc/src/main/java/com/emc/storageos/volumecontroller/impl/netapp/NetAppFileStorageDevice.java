@@ -30,6 +30,7 @@ import com.emc.storageos.db.client.model.Snapshot;
 import com.emc.storageos.db.client.model.StorageHADomain;
 import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.model.StorageSystem;
+import com.emc.storageos.db.client.model.VirtualNAS;
 import com.emc.storageos.exceptions.DeviceControllerErrors;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.model.file.ExportRule;
@@ -1846,6 +1847,26 @@ public class NetAppFileStorageDevice extends AbstractFileStorageDevice {
             result = BiosCommandResult.createSuccessfulResult();
         } catch (Exception e) {
             _log.error("NetAppFileStorageDevice::Create Virtual NAS server failed with an Exception", e);
+            ServiceError serviceError = DeviceControllerErrors.netapp.unableToCreateVnas();
+            serviceError.setMessage(e.getLocalizedMessage());
+            result = BiosCommandResult.createErrorResult(serviceError);
+        }
+        return result;
+    }
+
+    @Override
+    public BiosCommandResult doDeleteVNAS(StorageSystem storage, VirtualNAS vnasObj) {
+        BiosCommandResult result = new BiosCommandResult();
+        NetAppApi nApi = new NetAppApi.Builder(storage.getIpAddress(),
+                storage.getPortNumber(), storage.getUsername(),
+                storage.getPassword()).https(true).build();
+
+        try {
+            nApi.deleteVirtualNas(vnasObj.getNasName());
+            _log.info("Virtual nas {} deleted successfully", vnasObj.getNasName());
+            result = BiosCommandResult.createSuccessfulResult();
+        } catch (Exception e) {
+            _log.error("NetAppFileStorageDevice::Delete Virtual NAS server failed with an Exception", e);
             ServiceError serviceError = DeviceControllerErrors.netapp.unableToCreateVnas();
             serviceError.setMessage(e.getLocalizedMessage());
             result = BiosCommandResult.createErrorResult(serviceError);

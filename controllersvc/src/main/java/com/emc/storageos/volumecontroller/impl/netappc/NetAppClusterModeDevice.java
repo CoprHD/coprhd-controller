@@ -29,6 +29,7 @@ import com.emc.storageos.db.client.model.Snapshot;
 import com.emc.storageos.db.client.model.StorageHADomain;
 import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.model.StorageSystem;
+import com.emc.storageos.db.client.model.VirtualNAS;
 import com.emc.storageos.exceptions.DeviceControllerErrors;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.model.file.ExportRule;
@@ -1860,6 +1861,12 @@ public class NetAppClusterModeDevice extends AbstractFileStorageDevice {
 
     @Override
     public BiosCommandResult doCreateVNAS(StorageSystem storageObj, VirtualNasCreateParam args) {
+        return BiosCommandResult.createErrorResult(
+                DeviceControllerErrors.netappc.operationNotSupported());
+    }
+
+    @Override
+    public BiosCommandResult doDeleteVNAS(StorageSystem storageObj, VirtualNAS vnasObj) {
         return BiosCommandResult.createErrorResult(
                 DeviceControllerErrors.netappc.operationNotSupported());
     }

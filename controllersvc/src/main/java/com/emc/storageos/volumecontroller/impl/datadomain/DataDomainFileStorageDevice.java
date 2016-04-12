@@ -42,6 +42,7 @@ import com.emc.storageos.db.client.model.SMBShareMap;
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StorageProvider;
 import com.emc.storageos.db.client.model.StorageSystem;
+import com.emc.storageos.db.client.model.VirtualNAS;
 import com.emc.storageos.exceptions.DeviceControllerErrors;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.model.file.ExportRule;
@@ -1603,6 +1604,12 @@ public class DataDomainFileStorageDevice extends AbstractFileStorageDevice {
 
     @Override
     public BiosCommandResult doCreateVNAS(StorageSystem storageObj, VirtualNasCreateParam args) {
+        return BiosCommandResult.createErrorResult(
+                DeviceControllerErrors.datadomain.operationNotSupported());
+    }
+
+    @Override
+    public BiosCommandResult doDeleteVNAS(StorageSystem storageObj, VirtualNAS vnasObj) {
         return BiosCommandResult.createErrorResult(
                 DeviceControllerErrors.datadomain.operationNotSupported());
     }

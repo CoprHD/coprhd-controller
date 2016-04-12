@@ -392,7 +392,7 @@ public enum OperationTypeEnum {
     REBOOT_NODE("REBOOT NODE", "", "operation to reboot a node."),
     POWER_OFF_CLUSTER("POWEROFF CLUSTER", "", "operation to poweroff a cluster."),
     POWER_OFF_NODE("POWEROFF NODE", "", "operation to poweroff a node"),
-    CREATE_CAS_POOL("CREATE CAS POOL", "", "operation to create cas pool."),     // centera specific
+    CREATE_CAS_POOL("CREATE CAS POOL", "", "operation to create cas pool."),      // centera specific
     UPDATE_CAS_POOL("UPDATE CAS POOL", "", "operation to update cas pool."),
     CREATE_CAS_PROFILE("CREATE CAS PROFILE", "", "operation to create cas profile."),
     UPDATE_CAS_PROFILE("UPDATE CAS PROFILE", "", "operation to update cas profile."),
@@ -512,7 +512,8 @@ public enum OperationTypeEnum {
             "operation that marks standby has rejoined vdc rom degraded state"),
     UPDATE_SITE("UPDATE SITE", "", "operation to update site information"),
     CREATE_SCHEDULE_POLICY("SchedulePolicyCreated", "", "create schedule policy."),
-    CREATE_VIRTUAL_NAS("VirtualNASCreated", "", "create virtual nas");
+    CREATE_VIRTUAL_NAS("VirtualNASCreated", "", "create virtual nas"),
+    DELETE_VIRTUAL_NAS("VirtualNASDeleted", "", "delete virtual nas");
 
     private final String _evType;
     private final String _fail_evType;

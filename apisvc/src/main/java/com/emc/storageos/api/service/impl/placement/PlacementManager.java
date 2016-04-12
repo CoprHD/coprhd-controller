@@ -233,12 +233,30 @@ public class PlacementManager {
         }
         indentString.substring(indentString.length() - indent);
         String type = recommendation.getClass().getSimpleName();
-        VirtualArray va = dbClient.queryObject(VirtualArray.class, recommendation.getVirtualArray());
-        VirtualPool vp = recommendation.getVirtualPool();
-        StoragePool pool = dbClient.queryObject(StoragePool.class, recommendation.getSourceStoragePool());
-        StorageSystem sys = dbClient.queryObject(StorageSystem.class, recommendation.getSourceStorageSystem());
+
+	    // some RP recommendations don't set varray, vpool, pool ... must be defensive
+        String varrayLabel = "varray-unknown";
+        String vpoolLabel = "vpool-unknown";
+        String storagePoolLabel = "storagePool-unknown";
+	    String systemLabel = "systemLabel-unknown";
+        if (recommendation.getVirtualArray() != null) {
+            VirtualArray va = dbClient.queryObject(VirtualArray.class, recommendation.getVirtualArray());
+            varrayLabel = va.getLabel();
+        }
+        if (recommendation.getVirtualPool() != null) {
+            VirtualPool vp = recommendation.getVirtualPool();
+            vpoolLabel = vp.getLabel();
+        }
+        if (recommendation.getSourceStoragePool() != null) {
+            StoragePool pool = dbClient.queryObject(StoragePool.class, recommendation.getSourceStoragePool());
+            storagePoolLabel = pool.getLabel();
+        }
+	    if (recommendation.getSourceStorageSystem() != null) {
+            StorageSystem sys = dbClient.queryObject(StorageSystem.class, recommendation.getSourceStorageSystem());
+            systemLabel = sys.getLabel();
+        }
         _log.info(String.format("%s%s va %s vp %s pool %s sys %s", 
-                indentString, type, va.getLabel(), vp.getLabel(), pool.getLabel(), sys.getLabel()));
+                indentString, type, varrayLabel, vpoolLabel, storagePoolLabel, systemLabel));
         if (recommendation.getRecommendation() != null) {
             logRecommendation(recommendation.getRecommendation(), indent+1);
         }

@@ -4325,13 +4325,13 @@ public class VolumeIngestionUtil {
                 for (Set<DataObject> objectsToBeUpdated : ((IngestionRequestContext) volumeIngestionContext).getDataObjectsToBeUpdatedMap()
                         .values()) {
                     for (DataObject o : objectsToBeUpdated) {
-                        if (o instanceof BlockSnapshot && rpVolumes.contains(((BlockSnapshot) o).getParent().getURI().toString())) {
-                            _logger.info("Clearing internal volume flag of BlockSnapshot {} of RP volume ", o.getLabel());
-                            o.clearInternalFlags(BlockIngestOrchestrator.INTERNAL_VOLUME_FLAGS);
-
-                        } else if (o instanceof BlockSnapshotSession
-                                && rpVolumes.contains(((BlockSnapshotSession) o).getParent().getURI().toString())) {
-                            _logger.info("Clearing internal volume flag of BlockSnapshotSession {} of RP volume ", o.getLabel());
+                        boolean rpBlockSnapshot = (o instanceof BlockSnapshot
+                                && rpVolumes.contains(((BlockSnapshot) o).getParent().getURI().toString()));
+                        boolean rpBlockSnapshotSession = (o instanceof BlockSnapshotSession
+                                && rpVolumes.contains(((BlockSnapshotSession) o).getParent().getURI().toString()));
+                        if (rpBlockSnapshot || rpBlockSnapshotSession) {
+                            _logger.info(String.format("Clearing internal volume flag of %s %s of RP volume ",
+                                    (rpBlockSnapshot ? "BlockSnapshot" : "BlockSnapshotSession"), o.getLabel()));
                             o.clearInternalFlags(BlockIngestOrchestrator.INTERNAL_VOLUME_FLAGS);
                         }
                     }

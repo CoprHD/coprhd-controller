@@ -104,9 +104,11 @@ public class FileSystemQuotaRequests extends KHRequests<VNXUnityTreeQuota> {
     public VNXeCommandJob updateFileSystemQuotaAsync(String quotaId, FileSystemQuotaModifyParam param)
             throws VNXeException {
         _logger.info("Async update quota with ID: " + quotaId);
+        unsetQueryParameters();
         MultivaluedMap<String, String> queryParams = new MultivaluedMapImpl();
         queryParams.add(VNXeConstants.TIMEOUT, "0");
         VNXUnityTreeQuota quota = getFileSystemQuota(quotaId);
+        unsetQueryParameters();
         setQueryParameters(queryParams);
         _url = URL_INSTANCE + quota.getId() + URL_MODIFY;
         return postRequestAsync(param);
@@ -157,7 +159,6 @@ public class FileSystemQuotaRequests extends KHRequests<VNXUnityTreeQuota> {
      */
     public VNXUnityTreeQuota getFileSystemQuota(String quotaId) {
         _url = URL_INSTANCE + quotaId;
-        setQueryParameters(null);
         _logger.info("getting data for quota: " + quotaId);
         return getDataForOneObject(VNXUnityTreeQuota.class);
 

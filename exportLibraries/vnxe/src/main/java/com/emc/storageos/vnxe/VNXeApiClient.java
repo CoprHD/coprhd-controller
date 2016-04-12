@@ -9,6 +9,7 @@ import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -992,8 +993,11 @@ public class VNXeApiClient {
     public List<VNXeIscsiNode> getAllIscsiPorts() {
         IscsiNodeRequests nodeReq = new IscsiNodeRequests(_khClient);
         List<VNXeIscsiNode> nodes = nodeReq.getAllNodes();
+
         if (nodes != null && !nodes.isEmpty()) {
-            for (VNXeIscsiNode node : nodes) {
+            Iterator<VNXeIscsiNode> it = nodes.iterator();
+            while (it.hasNext()) {
+                VNXeIscsiNode node = it.next();
                 VNXeEthernetPort eport = node.getEthernetPort();
                 if (eport != null) {
                     String id = eport.getId();
@@ -1003,9 +1007,13 @@ public class VNXeApiClient {
                     // get iscsiPortal. comment it out for now, since API does not work.
                     IscsiPortalListRequest portalReq = new IscsiPortalListRequest(_khClient);
                     VNXeIscsiPortal portal = portalReq.getByIscsiNode(node.getId());
-                    node.setIscsiPortal(portal);
+                    if (portal == null) {
+                        it.remove();
+                    } else {
+                        node.setIscsiPortal(portal);
+                    }
                 } else {
-                    nodes.remove(node);
+                    it.remove();
                 }
             }
         }
@@ -2164,16 +2172,16 @@ public class VNXeApiClient {
         FileSystemQuotaModifyParam param = new FileSystemQuotaModifyParam();
         FileSystemQuotaConfigParam qcParam = new FileSystemQuotaConfigParam();
         FileSystemQuotaRequests req = new FileSystemQuotaRequests(_khClient);
-        if (softGrace > 0) {
-            qcParam.setGracePeriod(softGrace);
-        }
         if (hardLimit > 0) {
             param.setHardLimit(hardLimit);
         }
         if (softLimit > 0) {
             param.setSoftLimit(softLimit);
         }
-        req.updateFileSystemQuotaConfig(quotaId, qcParam);
+        if (softGrace > 0) {
+            qcParam.setGracePeriod(softGrace);
+            req.updateFileSystemQuotaConfig(quotaId, qcParam);
+        }
         return req.updateFileSystemQuotaAsync(quotaId, param);
     }
 

@@ -65,6 +65,7 @@ import com.emc.storageos.volumecontroller.impl.vnxe.job.VNXeUnexportFileSystemJo
 import com.emc.storageos.volumecontroller.impl.vnxunity.job.VNXUnityCreateFileSystemQuotaDirectoryJob;
 import com.emc.storageos.volumecontroller.impl.vnxunity.job.VNXUnityDeleteFileSystemQuotaDirectoryJob;
 import com.emc.storageos.volumecontroller.impl.vnxunity.job.VNXUnityQuotaDirectoryTaskCompleter;
+import com.emc.storageos.volumecontroller.impl.vnxunity.job.VNXUnityUpdateFileSystemQuotaDirectoryJob;
 
 public class VNXUnityFileStorageDevice extends VNXUnityOperations
         implements FileStorageDevice {
@@ -1588,15 +1589,9 @@ public class VNXUnityFileStorageDevice extends VNXUnityOperations
         try {
             Long softLimit = 0L;
             Long softGrace = 0L;
-
-            if (qd.getSoftLimit() != null) {
-                softLimit = Long.valueOf(qd.getSoftLimit() * qd.getSize() / 100);// conversion from percentage to bytes
-                                                                                 // using hard limit
-            }
-
-            if (qd.getSoftGrace() != null) {
-                softGrace = Long.valueOf(qd.getSoftGrace() * 24 * 60 * 60); // conversion from days to seconds
-            }
+            softLimit = Long.valueOf(qd.getSoftLimit() * qd.getSize() / 100);// conversion from percentage to bytes
+                                                                             // using hard limit
+            softGrace = Long.valueOf(qd.getSoftGrace() * 24 * 60 * 60); // conversion from days to seconds
             job = apiClient.updateQuotaDirectory(qd.getNativeId(), qd.getSize(), softLimit, softGrace);
 
             if (job != null) {
@@ -1605,7 +1600,7 @@ public class VNXUnityFileStorageDevice extends VNXUnityOperations
                 if (args.getQuotaDirectory() == null) {
                     _logger.error("Could not find the quota object");
                 }
-                VNXUnityCreateFileSystemQuotaDirectoryJob createQuotaJob = new VNXUnityCreateFileSystemQuotaDirectoryJob(job.getId(),
+                VNXUnityUpdateFileSystemQuotaDirectoryJob createQuotaJob = new VNXUnityUpdateFileSystemQuotaDirectoryJob(job.getId(),
                         storage.getId(), completer);
                 ControllerServiceImpl.enqueueJob(new QueueJob(createQuotaJob));
             } else {

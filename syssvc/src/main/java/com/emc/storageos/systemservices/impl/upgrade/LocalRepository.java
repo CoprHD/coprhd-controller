@@ -55,6 +55,7 @@ public class LocalRepository {
     }
 
     private static final long _SYSTOOL_TIMEOUT = 120000;             // 2 min
+    private static final long _SYSTOOL_LONG_TIMEOUT = 600000;             // 10 min
     private static final int _SYSTOOL_DEVKIT_ERROR = 66;
     private static final int _SYSTOOL_SUCCESS = 0;
 
@@ -89,6 +90,7 @@ public class LocalRepository {
     private static final String _SYSTOOL_RECONFIG_COORDINATOR = "--reconfig-coordinator";
     private static final String _SYSTOOL_REMOTE_SYSTOOL = "--remote-systool";
     private static final String _SYSTOOL_RESTART_COORDINATOR = "--restart-coordinator";
+    private static final String _SYSTOOL_GEN_DHPARAM = "--dhparam";
 
     private static final String _IPSECTOOL_CMD = "/etc/ipsectool";
     private static final String MASK_IPSEC_KEY_PATTERN = "ipsec_key=.*?\\n";
@@ -564,17 +566,19 @@ public class LocalRepository {
 
         final String[] cmd = { _SYSTOOL_CMD, _SYSTOOL_PURGE_DATA_REVISION };
         exec(prefix, cmd);
+        _log.info(prefix + " Success");
     }
     
     /***
      * Use current zk snapshot as base for future operations
      */
     public void rebaseZkSnapshot() throws LocalRepositoryException {
-        final String prefix = "rebase zk snapshot(): ";
+        final String prefix = "rebase zk snapshot()";
         _log.debug(prefix);
 
         final String[] cmd = { _SYSTOOL_CMD, _SYSTOOL_REBASE_ZK_SNAPSHOT };
         exec(prefix, cmd);
+        _log.info(prefix + " Success");
     }
     
     /**
@@ -587,10 +591,27 @@ public class LocalRepository {
         final String prefix = "checkIpsecConnection(): ";
         _log.debug(prefix);
 
-        final String[] cmd = { _IPSECTOOL_CMD, IPSEC_CHECK_CONNECTION };
+        final String[] cmd = { _IPSECTOOL_CMD, IPSEC_CHECK_CONNECTION};
         String[] ips = exec(prefix, cmd);
 
         _log.debug(prefix + "ips without ipsec connection: ", Strings.repr(ips));
+        return ips;
+    }
+
+    /**
+     * get all remote nodes in the cluster, includes nodes in standby sites
+     *
+     * @return
+     * @throws LocalRepositoryException
+     */
+    public String[] getAllRemoteNodesIncluster() throws LocalRepositoryException {
+        final String prefix = "getAllRemoteNodesIncluster(): ";
+        _log.debug(prefix);
+
+        final String[] cmd = { _IPSECTOOL_CMD, IPSEC_GET_ALL_REMOTE_NODES };
+        String[] ips = exec(prefix, cmd);
+
+        _log.debug(prefix + "all remote ips the cluster: ", Strings.repr(ips));
         return ips;
     }
 
@@ -751,5 +772,27 @@ public class LocalRepository {
         } catch (Exception e) {
             _log.warn("Failed to delete tmp file {}", filePath);
         }
+    }
+
+    /**
+     * check if local ipsec configurations are synced between vdc properties and ipsec configuration files.
+     * @return
+     */
+    public boolean isLocalIpsecConfigSynced() {
+        final String prefix = "isLocalIpsecConfigSynced(): ";
+        _log.debug(prefix);
+
+        final String[] cmd = { _IPSECTOOL_CMD, IPSEC_CHECK_LOCAL };
+        final Exec.Result result = Exec.sudo(_SYSTOOL_TIMEOUT, cmd);
+        _log.debug(prefix + result);
+
+        return result.getExitValue() == 0;
+    }
+
+    public void genDHParam() {
+        final String prefix = String.format("gen DHParam: ");
+        final String[] cmd = { _SYSTOOL_CMD, _SYSTOOL_GEN_DHPARAM};
+        final Exec.Result result = Exec.sudo(_SYSTOOL_LONG_TIMEOUT, cmd);
+        checkFailure(result, prefix);
     }
 }

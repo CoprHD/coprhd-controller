@@ -14,7 +14,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 
 import javax.ws.rs.*;
 import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.Response;
 
 /**
  * Web resource class for IPsec
@@ -41,7 +40,7 @@ public class IPsecService {
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @CheckPermission(roles = { Role.SECURITY_ADMIN, Role.RESTRICTED_SECURITY_ADMIN }, blockProxies = true)
     public String rotateIPsecKey() {
-        ipsecMgr.verifyClusterIsStable();
+        ipsecMgr.verifyIPsecOpAllowable();
         String version = ipsecMgr.rotateKey();
         auditMgr.recordAuditLog(null, null,
                 IPSEC_SERVICE_TYPE,
@@ -66,10 +65,10 @@ public class IPsecService {
     }
 
     /**
-     * change IPsec status to enabled/disabled for the vdc
+     * Change IPsec status to enabled/disabled within VDC and across sites.
      *
-     * recommend not turning it to disabled in product env, doing this will downgrade the
-     * security protection level.
+     * Setting status to disabled is not recommended in production environment, as it
+     * will downgrade the security protection level.
      *
      * @param status - valid values [ enabled | disabled ] (case insensitive)
      * @return the new IPsec state
@@ -79,7 +78,7 @@ public class IPsecService {
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @CheckPermission(roles = { Role.SECURITY_ADMIN, Role.RESTRICTED_SECURITY_ADMIN }, blockProxies = true)
     public String changeIpsecState(@QueryParam("status") String status) {
-        ipsecMgr.verifyClusterIsStable();
+        ipsecMgr.verifyIPsecOpAllowable();
         String result = ipsecMgr.changeIpsecStatus(status);
         auditMgr.recordAuditLog(null, null,
                 IPSEC_SERVICE_TYPE,

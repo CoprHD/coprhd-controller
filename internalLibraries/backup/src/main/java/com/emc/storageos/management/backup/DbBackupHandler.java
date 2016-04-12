@@ -5,6 +5,7 @@
 
 package com.emc.storageos.management.backup;
 
+import com.emc.storageos.coordinator.client.service.DrUtil;
 import com.emc.storageos.management.backup.exceptions.BackupException;
 import org.apache.cassandra.service.StorageService;
 import org.apache.commons.io.FileUtils;
@@ -93,9 +94,10 @@ public class DbBackupHandler extends BackupHandler {
     public String createBackup(final String backupTag) {
         // For multi vdc ViPR, need to reinit geodb during restore, so use the special backup type
         // to show the difference
-        if (backupType.equals(BackupType.geodb) && backupContext.getVdcList().size() > 1) {
+        if (backupType.equals(BackupType.geodb) && backupContext.isGeoEnv()) {
             backupType = BackupType.geodbmultivdc;
         }
+
         String fullBackupTag = backupTag + BackupConstants.BACKUP_NAME_DELIMITER +
                 backupType.name() + BackupConstants.BACKUP_NAME_DELIMITER +
                 backupContext.getNodeId() + BackupConstants.BACKUP_NAME_DELIMITER +
@@ -137,11 +139,17 @@ public class DbBackupHandler extends BackupHandler {
                     File snapshotFolder = new File(cfDir,
                             DB_SNAPSHOT_SUBDIR + File.separator + fullBackupTag);
                     // Filters ignored Column Family
-                    if (ignoreCfList != null && ignoreCfList.contains(cfDir.getName())) {
-                        FileUtils.deleteQuietly(snapshotFolder);
-                        cfBackupFolder.mkdir();
-                        continue;
-                    } 
+                    if (ignoreCfList != null) {
+                        String cfName = cfDir.getName();
+                        if (cfDir.getName().contains(BackupConstants.CASSANDRA_CF_NAME_DELIMITER)) {
+                            cfName = cfDir.getName().split(BackupConstants.CASSANDRA_CF_NAME_DELIMITER)[0];
+                        }
+                        if (ignoreCfList.contains(cfName)) {
+                            FileUtils.deleteQuietly(snapshotFolder);
+                            cfBackupFolder.mkdir();
+                            continue;
+                        }
+                    }
                     if (!snapshotFolder.exists()) {
                         // Handles stale Column Family
                         String[] cfSubFileList = cfDir.list(new FilenameFilter() {
@@ -151,12 +159,12 @@ public class DbBackupHandler extends BackupHandler {
                             }
                         });
                         if (cfSubFileList == null || cfSubFileList.length == 0) {
-                            log.warn("No snapshot directory created for cf: {}", cfDir.getName());
-                            cfBackupFolder.mkdir();
-                            continue;
+                            log.info("Stale empty cf foler: {}", cfDir.getName());
+                        } else {
+                            log.warn("No snapshot created for cf: {}", cfDir.getName());
                         }
-                        throw new FileNotFoundException(String.format(
-                                "Can't find snapshot directory: %s", snapshotFolder.getAbsolutePath()));
+                        cfBackupFolder.mkdir();
+                        continue;
                     }
                     // Moves snapshot folder and renames it with Column Family name
                     Files.move(snapshotFolder.toPath(), cfBackupFolder.toPath(),

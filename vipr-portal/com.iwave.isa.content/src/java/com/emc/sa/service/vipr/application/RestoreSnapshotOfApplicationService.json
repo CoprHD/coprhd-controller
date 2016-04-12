@@ -12,7 +12,7 @@
     },
     
     applicationCopySets:{
-      type:"assetType.vipr.applicationCopySets"
+      type:"assetType.vipr.applicationRestoreCopySets"
     },
     
     applicationSubGroup:{

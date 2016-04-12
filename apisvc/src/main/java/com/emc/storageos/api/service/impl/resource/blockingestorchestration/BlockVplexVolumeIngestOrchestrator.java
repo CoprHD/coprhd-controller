@@ -8,6 +8,7 @@ import java.net.URI;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -103,21 +104,34 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
                 || vplexIngestionMethod.isEmpty()
                 || (!vplexIngestionMethod.equals(VplexBackendIngestionContext.INGESTION_METHOD_VVOL_ONLY));
 
-        if (ingestBackend) {
+        VplexVolumeIngestionContext volumeContext = null;
 
-            VplexVolumeIngestionContext volumeContext = null;
+        boolean isRpVplexContext = requestContext.getVolumeContext() instanceof RpVplexVolumeIngestionContext;
+        if (isRpVplexContext) {
+            // if this volume is RP/VPLEX, we need to get the volume context
+            // from the RpVplexVolumeIngestionContext
+            volumeContext =
+                    ((RpVplexVolumeIngestionContext)
+                    requestContext.getVolumeContext()).getVplexVolumeIngestionContext();
+        } else {
+            // this is just a plain VPLEX volume backend ingestion
+            volumeContext = (VplexVolumeIngestionContext) requestContext.getVolumeContext();
+        }
 
-            boolean isRpVplexContext = requestContext.getVolumeContext() instanceof RpVplexVolumeIngestionContext;
-            if (isRpVplexContext) {
-                // if this volume is RP/VPLEX, we need to get the volume context
-                // from the RpVplexVolumeIngestionContext
-                volumeContext =
-                        ((RpVplexVolumeIngestionContext)
-                        requestContext.getVolumeContext()).getVplexVolumeIngestionContext();
-            } else {
-                // this is just a plain VPLEX volume backend ingestion
-                volumeContext = (VplexVolumeIngestionContext) requestContext.getVolumeContext();
-            }
+        // set the name of the cluster to which this virtual volume ingestion request's varray is connected
+        String clusterName = getClusterNameForVarray(requestContext.getVarray(unManagedVolume), requestContext.getStorageSystem());
+        volumeContext.setVirtualVolumeVplexClusterName(clusterName);
+
+        // determine if the backend has already been ingested. this could be the case if the volume is
+        // exported via multipe varrays or hosts and needs to be ingested for export multiple times
+        String volumeNativeGuid = unManagedVolume.getNativeGuid().replace(VolumeIngestionUtil.UNMANAGEDVOLUME, VolumeIngestionUtil.VOLUME);
+        Volume volume = VolumeIngestionUtil.checkIfVolumeExistsInDB(volumeNativeGuid, _dbClient);
+        boolean backendAlreadyIngested = volume != null 
+                && volume.getAssociatedVolumes() != null && !volume.getAssociatedVolumes().isEmpty();
+
+        if (backendAlreadyIngested) {
+            _logger.info("backend volumes have already been ingested for UnManagedVolume {}", unManagedVolume.forDisplay());
+        } else if (ingestBackend) {
 
             volumeContext.setIngestionInProgress(true);
 
@@ -760,7 +774,7 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
             IngestionRequestContext context, DbClient dbClient) {
         if (VolumeIngestionUtil.checkUnManagedResourceAddedToConsistencyGroup(unManagedVolume)) {
             return VolumeIngestionUtil.getVplexConsistencyGroup(unManagedVolume, blockObj, context.getVpool(unManagedVolume),
-                    context.getProject().getId(), context.getTenant().getId(), context.getVarray(unManagedVolume).getId(),
+                    context.getProject(), context.getTenant(), context.getVarray(unManagedVolume).getId(),
                     dbClient);
         }
         return null;
@@ -821,12 +835,12 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
                 SupportedVolumeInformation.VPLEX_BACKEND_VOLUMES.toString(),
                 unManagedVolume.getVolumeInformation());
         if (null != vplexBackendVolumes && !vplexBackendVolumes.isEmpty()) {
-            List<DataObject> toUpdateList = new ArrayList<DataObject>();
+            Set<DataObject> toUpdateSet = new HashSet<DataObject>();
             for (String vplexBackendUmvNativeGuid : vplexBackendVolumes) {
                 String backendVolumeNativeGuid = vplexBackendUmvNativeGuid.replace(VolumeIngestionUtil.UNMANAGEDVOLUME,
                         VolumeIngestionUtil.VOLUME);
 
-                BlockObject blockObject = requestContext.findCreatedBlockObject(backendVolumeNativeGuid);
+                BlockObject blockObject = requestContext.getRootIngestionRequestContext().findCreatedBlockObject(backendVolumeNativeGuid);
                 if (blockObject == null) {
                     // Next look in the updated objects.
                     blockObject = (BlockObject) requestContext.findInUpdatedObjects(URI.create(backendVolumeNativeGuid));
@@ -839,14 +853,14 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
                         _logger.warn("Unmanaged Volume {} is not yet ingested. Hence skipping", vplexBackendUmvNativeGuid);
                         continue;
                     }
-                    toUpdateList.add(blockObject);
+                    toUpdateSet.add(blockObject);
                 }
                 blockObject.setConsistencyGroup(vplexCG.getId());
             }
-            if (!toUpdateList.isEmpty()) {
+            if (!toUpdateSet.isEmpty()) {
                 // Since I pulled this in from the database, we need to add it to the list of objects to update.
                 ((VplexVolumeIngestionContext) requestContext.getVolumeContext()).getDataObjectsToBeUpdatedMap().put(
-                        unManagedVolume.getNativeGuid(), toUpdateList);
+                        unManagedVolume.getNativeGuid(), toUpdateSet);
             }
         }
         volume.setConsistencyGroup(vplexCG.getId());
@@ -1000,9 +1014,10 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
      */
     private void validateBackendVolumeVpool(UnManagedVolume backendVolume, VirtualPool vpool) {
         URI storagePoolUri = backendVolume.getStoragePoolUri();
-        if (!vpool.getMatchedStoragePools().contains(storagePoolUri.toString())) {
-            String reason = "vpool " + vpool.getLabel()
-                    + " does not match the backend volume's storage pool URI "
+        if (vpool.getMatchedStoragePools() == null || 
+                !vpool.getMatchedStoragePools().contains(storagePoolUri.toString())) {
+            String reason = "virtual pool " + vpool.getLabel()
+                    + " does not contain the backend volume's storage pool URI "
                     + storagePoolUri;
             _logger.error(reason);
             throw IngestionException.exceptions.validationException(reason);

@@ -25,7 +25,7 @@ public class ResynchronizeApplicationFullCopy extends WaitForTasks<TaskResourceR
 
     @Override
     protected Tasks<TaskResourceRep> doExecute() throws Exception {
-        VolumeGroupFullCopyResynchronizeParam input = new VolumeGroupFullCopyResynchronizeParam(false, volumeIds);
+        VolumeGroupFullCopyResynchronizeParam input = new VolumeGroupFullCopyResynchronizeParam(true, volumeIds);
         TaskList taskList = getClient().application().resynchronizeApplicationFullCopy(applicationId, input);
 
         return new Tasks<TaskResourceRep>(getClient().auth().getClient(), taskList.getTaskList(),

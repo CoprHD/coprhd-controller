@@ -69,7 +69,7 @@ public class CreateNfsDatastore extends ExecutionTask<Datastore> {
     private void handleCreationAttemptException(int retry, VMWareException e) {
         String errorMessage = e.getMessage();
 
-        // if this is a platform config fault we can get some more info about it's actual message
+        // if this is a platform config fault we can get some more info about its actual message
         if (isPlatformConfigFault(e)) {
             errorMessage = "Fault Message: " + getFaultMessage(e);
         }

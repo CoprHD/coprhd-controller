@@ -170,6 +170,7 @@ public class MobilityGroups extends ViprResourceController {
         @Required
         public String name;
 
+        @Required
         public String description;
 
         public String migrationType;

@@ -358,7 +358,7 @@ public class Site {
      */
     public String toBriefString() {
         StringBuilder builder = new StringBuilder();
-        builder.append("Site [name=").append(name);
+        builder.append("[name=").append(name);
         builder.append(", vip=").append(vip);
         builder.append(", uuid=").append(uuid).append("]");
         return builder.toString();

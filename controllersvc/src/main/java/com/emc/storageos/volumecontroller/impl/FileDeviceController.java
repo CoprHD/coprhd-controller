@@ -402,16 +402,13 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                             fsObj.getOpStatus().updateTaskStatus(opId, result.toOperation());
                             recordFileDeviceOperation(_dbClient, OperationTypeEnum.DELETE_FILE_SYSTEM, result.isCommandSuccess(), "", "",
                                     fsObj, storageObj);
-                            _dbClient.persistObject(fsObj);
+                            WorkflowStepCompleter.stepFailed(opId, result.getServiceCoded());
                             return;
-
-                        } else if (!fsCheck) {
-                            doDeleteSnapshotsFromDB(fsObj, true, null, args);  // Delete Snapshot and its references from DB
-                            args.addQuotaDirectory(null);
-                            doFSDeleteQuotaDirsFromDB(args);
                         }
                     }
-
+                    doDeleteSnapshotsFromDB(fsObj, true, null, args);  // Delete Snapshot and its references from DB
+                    args.addQuotaDirectory(null);
+                    doFSDeleteQuotaDirsFromDB(args);
                     deleteShareACLsFromDB(args);
                     doDeleteExportRulesFromDB(true, null, args);
                     doDeletePolicyReferenceFromDB(fsObj); // Remove FileShare Reference from Schedule Policy

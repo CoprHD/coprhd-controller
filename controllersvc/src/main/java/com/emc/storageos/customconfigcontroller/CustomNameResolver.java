@@ -121,7 +121,7 @@ public class CustomNameResolver extends CustomConfigResolver {
     private String processStringMethods(String[] tokens, String value) {
         String fieldValue = value;
         for (int i = 1; i < tokens.length; i++) {
-            String[] operationTokens = StringUtils.split(tokens[i].replaceAll("\\s+", ""), "[,()]");
+            String[] operationTokens = StringUtils.split(tokens[i].replaceAll("\\s+", ""), ",()");
             // first token is the method name, remaining tokens are the method
             // arguments
             List<String> methodArgs = new ArrayList<String>();

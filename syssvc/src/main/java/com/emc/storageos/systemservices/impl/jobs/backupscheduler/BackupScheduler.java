@@ -289,7 +289,7 @@ public class BackupScheduler extends Notifier implements Runnable, Callable<Obje
         // Remove all non alphanumeric characters
         drSiteId = drSiteId.replaceAll("^[^a-zA-Z0-9]+|[^a-zA-Z0-9]+$", "");
         
-        return ScheduledBackupTag.toZipFileName(tag, nodeIds.size(), backupNodeCount, drSiteId);
+        return UploadExecutor.toZipFileName(tag, nodeIds.size(), backupNodeCount, drSiteId);
     }
 
     public List<String> getDescParams(final String tag) {
@@ -341,6 +341,11 @@ public class BackupScheduler extends Notifier implements Runnable, Callable<Obje
         }
 
         singletonInstance = this;
+        if (drUtil.isStandby()) {
+            log.info("Current site is standby, disable BackupScheduler");
+            return;
+        }
+        
         this.cfg = new SchedulerConfig(coordinator, this.encryptionProvider, this.dbClient);
 
         LeaderSelector leaderSelector = coordinator.getCoordinatorClient().getLeaderSelector(coordinator.getCoordinatorClient().getSiteId(), BackupConstants.BACKUP_LEADER_PATH,

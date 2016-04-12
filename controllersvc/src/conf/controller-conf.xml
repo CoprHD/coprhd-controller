@@ -790,6 +790,12 @@
         <property name="workflowService" ref="workflowService" />
         <property name="blockDeviceController" ref="blockDeviceController" />
     </bean>
+    
+    <bean id="vplexXivMaskingOrchestrator" class="com.emc.storageos.volumecontroller.impl.block.VLlexXIVMaskingOrchestrator">
+        <property name="dbClient" ref="dbclient"/>
+        <property name="workflowService" ref="workflowService" />
+        <property name="blockDeviceController" ref="blockDeviceController" />
+    </bean>
 
     <bean id="srdfDeviceController" class="com.emc.storageos.srdfcontroller.SRDFDeviceController">
         <property name="dbClient" ref="dbclient" />
@@ -973,7 +979,8 @@
                 <ref bean="vplexHDSMaskingOrchestrator"/>
 		        <ref bean="vplexVmaxMaskingOrchestrator"/>
 		        <ref bean="vplexVnxMaskingOrchestrator"/>
-		        <ref bean="vplexCinderMaskingOrchestrator"/>		        
+		        <ref bean="vplexCinderMaskingOrchestrator"/>
+		        <ref bean="vplexXivMaskingOrchestrator"/>		        	        
                 <ref bean="computeSystemController"/>
                 <ref bean="computeDeviceController"/>
                 <ref bean="imageservercontroller"/>

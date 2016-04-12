@@ -1855,7 +1855,7 @@ public class VmaxExportOperations implements ExportMaskOperations {
 
                 for (String portID : storagePortURIs) {
                     if (!mask.getStoragePorts().contains(portID)) {
-                        mask.getStoragePorts().add(portID);
+                        storagePortsToAdd.add(portID);
                         addStoragePorts = true;
                     }
                 }
@@ -1896,7 +1896,8 @@ public class VmaxExportOperations implements ExportMaskOperations {
                     // affect another ExportMasks. Consider that this refreshExportMask is against that other ExportMask.
                     // We shouldn't read the initiators that we find as 'existing' (that is created outside of CoprHD),
                     // instead we should consider them userAdded for this ExportMask, as well.
-                    List<Initiator> userAddedInitiators = findIfInitiatorsAreUserAddedInAnotherMask(mask, initiatorIdsToAdd);
+                    List<Initiator> userAddedInitiators = 
+                            ExportMaskUtils.findIfInitiatorsAreUserAddedInAnotherMask(mask, initiatorIdsToAdd, _dbClient);
                     mask.addToUserCreatedInitiators(userAddedInitiators);
                     mask.addToExistingInitiatorsIfAbsent(initiatorsToAdd);
                     mask.addInitiators(initiatorIdsToAdd);
@@ -4608,46 +4609,6 @@ public class VmaxExportOperations implements ExportMaskOperations {
     @Override
     public Map<URI, Integer> getExportMaskHLUs(StorageSystem storage, ExportMask exportMask) {
         return Collections.emptyMap();
-    }
-
-    /**
-     * Given a list of Initiators, find if any are in an ExportMask's userAddedInitiators list- other than the 'exportMask' passed into
-     * the routine. If such an ExportMask is found, then the initiator will be removed from 'newInitiators' and added to the result list.
-     *
-     * @param exportMask [IN] - ExportMask that should be excluded from matches. This is the ExportMask that we're checking against.
-     * @param newInitiators [OUT] - List of Initiators that need to be added to 'exportMask'. We need to determine if they need to go into
-     *            the existingInitiators list or the userAddedInitiators list.
-     * @return List of Initiators that should added to exportMask's userAddedInitiator list. ExportMasks should be on the same array as
-     *         'exportMask'.
-     */
-    private List<Initiator> findIfInitiatorsAreUserAddedInAnotherMask(ExportMask exportMask, List<Initiator> newInitiators) {
-        List<Initiator> userAddedInitiators = new ArrayList<>();
-
-        // Iterate through the set of ExportMasks that contain 'newInitiators' and find if it has the initiator in its userAddedInitiator
-        // list. If it does, we add the initiator to the result list and remove it from 'newInitiator'.
-        for (ExportMask matchedMask : ExportMaskUtils.getExportMasksWithInitiators(_dbClient, newInitiators).values()) {
-            // Exclude 'exportMask' and ExportMasks on different arrays from the search
-            if (matchedMask.getId().equals(exportMask.getId()) ||
-                    !matchedMask.getStorageDevice().equals(exportMask.getStorageDevice())) {
-                continue;
-            }
-            // Iterate through the set of initiators and find if any exist in the ExportMask's userAddedInitiator list
-            Iterator<Initiator> iterator = newInitiators.iterator();
-            while (iterator.hasNext()) {
-                Initiator initiator = iterator.next();
-                if (matchedMask.hasUserInitiator(initiator.getId())) {
-                    // This initiator is user-added for this matchedMask
-                    userAddedInitiators.add(initiator);
-                    // Since this ExportMask has the initiator, we need to remove it from 'newInitiators'.
-                    iterator.remove();
-                }
-            }
-        }
-
-        Collection portNames = Collections2.transform(userAddedInitiators, CommonTransformerFunctions.fctnInitiatorToPortName());
-        _log.info(String.format("The following initiators were found in another ExportMask as user-added initiators: %s",
-                CommonTransformerFunctions.collectionToString(portNames)));
-        return userAddedInitiators;
     }
 
     /**

@@ -5,6 +5,8 @@
 
 package com.emc.storageos.systemservices.impl.vdc;
 
+import static com.emc.storageos.services.util.FileUtils.readValueFromFile;
+
 import java.io.File;
 import java.net.URI;
 import java.util.Arrays;
@@ -19,12 +21,12 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.emc.storageos.coordinator.client.model.Constants;
+import com.emc.storageos.coordinator.client.model.DrOperationStatus.InterState;
 import com.emc.storageos.coordinator.client.model.PropertyInfoExt;
 import com.emc.storageos.coordinator.client.model.Site;
 import com.emc.storageos.coordinator.client.model.SiteError;
 import com.emc.storageos.coordinator.client.model.SiteInfo;
 import com.emc.storageos.coordinator.client.model.SiteState;
-import com.emc.storageos.coordinator.client.model.DrOperationStatus.InterState;
 import com.emc.storageos.coordinator.client.service.DistributedDoubleBarrier;
 import com.emc.storageos.coordinator.client.service.DrPostFailoverHandler.Factory;
 import com.emc.storageos.coordinator.client.service.DrUtil;
@@ -41,8 +43,6 @@ import com.emc.storageos.systemservices.impl.client.SysClientFactory;
 import com.emc.storageos.systemservices.impl.upgrade.CoordinatorClientExt;
 import com.emc.storageos.systemservices.impl.upgrade.LocalRepository;
 import com.emc.storageos.systemservices.impl.util.MailHandler;
-
-import static com.emc.storageos.services.util.FileUtils.readValueFromFile;
 
 /**
  * Operation handler for vdc config change. A vdc config change may represent 
@@ -420,6 +420,8 @@ public abstract class VdcOpHandler {
                     }
                 }
             }
+            // refresh ssh to exclude removed nodes from ssh config files
+            refreshSsh();
         }
         
         private void removeDbNodes() throws Exception {
@@ -860,6 +862,12 @@ public abstract class VdcOpHandler {
             long start = System.currentTimeMillis();
             while (System.currentTimeMillis() - start < MAX_WAIT_TIME_IN_MIN * 60 * 1000) {
                 try {
+                    SiteInfo currentSiteInfo = this.coordinator.getTargetInfo(SiteInfo.class);
+                    if (!SiteInfo.DR_OP_SWITCHOVER.equals(currentSiteInfo.getActionRequired())) {
+                        log.warn("Current dr operation is not switchover, no need to wait old active anymore");
+                        break;
+                    }
+                    
                     Site oldActiveSite = drUtil.getSiteFromLocalVdc(oldActiveSiteUUID);
                     if (!oldActiveSite.getState().equals(SiteState.STANDBY_SYNCED)) { 
                         log.info("Old active site {} is still doing switchover, wait for another 5 seconds", oldActiveSite);
@@ -873,8 +881,9 @@ public abstract class VdcOpHandler {
                 }
             }
             
-            log.warn("Timeout reached when wait for old active site finishing operations");
-            throw new IllegalStateException("Timeout reached when wait for old active site finishing operations");
+            log.warn("Timeout reached or current dr operation is not switchover when wait for old active site finishing operations");
+            throw new IllegalStateException(
+                    "Timeout reached or current dr operation is not switchover when wait for old active site finishing operations");
         }
         
         private void updateSwitchoverSiteState(Site site, SiteState siteState, VdcPropertyBarrier barrier) throws Exception {
@@ -1193,8 +1202,16 @@ public abstract class VdcOpHandler {
     }
     
     protected void refreshCoordinator() {
+        if (coordinator.isStandby()) {
+            String localZkMode = drUtil.getLocalCoordinatorMode();
+            if(drUtil.isParticipantNode(localZkMode)) {
+                log.info("No need to reconfig coordinator on participant standby nodes");
+                return;
+            }
+        }
         localRepository.reconfigProperties("coordinator");
         localRepository.restart("coordinatorsvc");
+
     }
     
     /**

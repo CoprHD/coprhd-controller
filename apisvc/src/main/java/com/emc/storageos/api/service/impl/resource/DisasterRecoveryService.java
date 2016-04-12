@@ -1788,10 +1788,13 @@ public class DisasterRecoveryService {
                             standby.getUuid(), standbyUuid));
         }
 
-        SiteNetworkState networkState = drUtil.getSiteNetworkState(drUtil.getActiveSite().getUuid());
-        if (networkState.getNetworkHealth() != NetworkHealth.BROKEN) {
-            throw APIException.internalServerErrors.failoverPrecheckFailed(standby.getName(),
-                    "Active site is still available");
+        String uuid = drUtil.getActiveSite().getUuid();
+        if (!StringUtils.isEmpty(uuid)) {
+            SiteNetworkState networkState = drUtil.getSiteNetworkState(uuid);
+            if (networkState.getNetworkHealth() != NetworkHealth.BROKEN) {
+                throw APIException.internalServerErrors.failoverPrecheckFailed(standby.getName(),
+                        "Active site is still available");
+            }
         }
 
         // should be PAUSED, either marked by itself or user
@@ -1813,12 +1816,11 @@ public class DisasterRecoveryService {
             throw APIException.badRequests.operationNotAllowedOnActiveSite();
         }
 
-        // Current site is stable
-        ClusterInfo.ClusterState state = coordinator.getControlNodesState(standbyUuid);
-        if (state != ClusterInfo.ClusterState.STABLE) {
-            log.info("Site {} is not stable {}", standby.getName(), state);
+        // all syssvc should be up
+        if (!drUtil.isAllSyssvcUp(standbyUuid)) {
+            log.info("Not all syssvc is running at site {}", standby.getName());
             throw APIException.internalServerErrors.failoverPrecheckFailed(standby.getName(),
-                    String.format("Site %s is not stable", standby.getName()));
+                    String.format("Site %s is not stable, one or more syssvc is not running", standby.getName()));
         }
 
         // Make sure that the local ZK has been reconfigured to participant

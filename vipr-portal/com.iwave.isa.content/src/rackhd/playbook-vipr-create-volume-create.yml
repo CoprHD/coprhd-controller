@@ -9,5 +9,5 @@
   - lineinfile: dest='{{ ansibleResultFile }}' line='{{ restResult.content }}' create='yes'
 
   - fail: msg="Create Volume {{ VolumeName }} failed"
-    when: restResult.status|int < 300
+    when: restResult.status|int >299
 

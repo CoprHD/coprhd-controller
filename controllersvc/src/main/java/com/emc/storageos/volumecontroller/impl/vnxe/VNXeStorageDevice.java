@@ -41,6 +41,7 @@ import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.TenantOrg;
+import com.emc.storageos.db.client.model.VirtualNAS;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.util.NameGenerator;
@@ -2630,6 +2631,12 @@ public class VNXeStorageDevice extends VNXeOperations
 
     @Override
     public BiosCommandResult doCreateVNAS(StorageSystem storageObj, VirtualNasCreateParam args) {
+        return BiosCommandResult.createErrorResult(
+                DeviceControllerErrors.vnxe.operationNotSupported());
+    }
+
+    @Override
+    public BiosCommandResult doDeleteVNAS(StorageSystem storageObj, VirtualNAS vnasObj) {
         return BiosCommandResult.createErrorResult(
                 DeviceControllerErrors.vnxe.operationNotSupported());
     }

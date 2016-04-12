@@ -638,6 +638,29 @@ public class RPHelper {
     }
 
     /**
+     * Get all target volumes in the consistency group for specified target copy.
+     *
+     * @param dbClient the database client
+     * @param consistencyGroup the consistency group id
+     * @param virtualArray target virtual array
+     * @return Volume of the target
+     */
+    public static List<Volume> getAllRPTargetVolumesForCopy(DbClient dbClient, URI consistencyGroup, URI virtualArray) {
+        List<Volume> targetCopyVolumes = new ArrayList<Volume>();
+        List<Volume> cgTargetVolumes = getCgTargetVolumes(consistencyGroup, dbClient);
+
+        if (cgTargetVolumes != null) {
+            for (Volume target : cgTargetVolumes) {
+                if (target.getVirtualArray().equals(virtualArray)) {
+                    targetCopyVolumes.add(target);
+                }
+            }
+        }
+
+        return targetCopyVolumes;
+    }
+
+    /**
      * Given a RP target volume, this method gets the corresponding source volume.
      *
      * @param dbClient the database client.
@@ -1017,6 +1040,31 @@ public class RPHelper {
     }
 
     /**
+     * Gets all the target volumes that belong in the specified RecoverPoint
+     * consistency group.
+     *
+     * @param blockConsistencyGroupUri The CG to check
+     * @param dbClient The dbClient instance
+     * @return All Source volumes in the CG
+     */
+    public static List<Volume> getCgTargetVolumes(URI blockConsistencyGroupUri, DbClient dbClient) {
+        List<Volume> cgTargetVolumes = new ArrayList<Volume>();
+        List<Volume> cgVolumes = getAllCgVolumes(blockConsistencyGroupUri, dbClient);
+
+        // Filter only source volumes
+        if (cgVolumes != null) {
+            for (Volume cgVolume : cgVolumes) {
+                if (NullColumnValueGetter.isNotNullValue(cgVolume.getPersonality())
+                        && PersonalityTypes.TARGET.toString().equals(cgVolume.getPersonality())) {
+                    cgTargetVolumes.add(cgVolume);
+                }
+            }
+        }
+
+        return cgTargetVolumes;
+    }
+
+    /**
      * filters the list of volumes by source or target site; site is defined by a varray
      *
      * @param varrayId
@@ -1206,11 +1254,11 @@ public class RPHelper {
     /*
      * Since there are several ways to express journal size policy, this helper method will take
      * the source size and apply the policy string to come up with a resulting size.
-     *
+     * 
      * @param sourceSizeStr size of the source volume
-     *
+     * 
      * @param journalSizePolicy the policy of the journal size. ("10gb", "min", or "3.5x" formats)
-     *
+     * 
      * @return journal volume size result
      */
     public static long getJournalSizeGivenPolicy(String sourceSizeStr, String journalSizePolicy, int resourceCount) {

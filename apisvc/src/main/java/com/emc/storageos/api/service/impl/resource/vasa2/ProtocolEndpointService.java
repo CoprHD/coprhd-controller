@@ -27,6 +27,7 @@ import com.emc.storageos.model.pe.PortGroupSelection;
 import com.emc.storageos.model.pe.ProtocolEndpointList;
 import com.emc.storageos.model.pe.UseExistingHostParam;
 import com.emc.storageos.model.pe.UseExistingPortGroupParam;
+import com.sun.jersey.api.client.ClientResponse;
 import com.sun.jersey.api.client.UniformInterfaceException;
 
 @Path("/vasa/vvol")
@@ -63,11 +64,11 @@ public class ProtocolEndpointService {
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON } )
     @Path("/protocolendpoint/symmetrix/{symmid}")
-    public CreatePEResponse createProtocolEndpoint(@PathParam("symmid") String symmId){
+    public ClientResponse createProtocolEndpoint(@PathParam("symmid") String symmId){
         final String PROTOCOL_ENDPOINT_URI = "/symmetrix/" + symmId + "/protocolendpoint";
 //        CreateProtocolEndpoint createProtocolEndpoint = createPayloadForCreatingPE(new CreateProtocolEndpoint());
         String json = createPayloadForCreatingPE(new CreateProtocolEndpoint());
-        CreatePEResponse response = null;
+        ClientResponse response = null;
         RESTClientUtil client = RESTClientUtil.getInstance();
         client.set_baseURL(baseURL);
         try {

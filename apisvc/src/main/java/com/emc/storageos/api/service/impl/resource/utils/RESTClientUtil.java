@@ -104,7 +104,7 @@ public class RESTClientUtil {
         }
     }
     
-    public <T> T queryObjectPostRequest(String uri, Class<T> clazz, String inputRequest )
+    public <T> ClientResponse queryObjectPostRequest(String uri, Class<T> clazz, String inputRequest )
             throws NoSuchAlgorithmException, UniformInterfaceException {
 
         final String methodName = "queryObject(): ";
@@ -121,16 +121,19 @@ public class RESTClientUtil {
 
         try {
             resource = _client.resource(_baseURL + uri);
-            resource.accept(MediaType.APPLICATION_JSON);
-            resource.type(MediaType.APPLICATION_JSON);
-            return resource.post(clazz, inputRequest);
+            ClientResponse response  = resource.accept(MediaType.APPLICATION_JSON).type(MediaType.APPLICATION_JSON).post(ClientResponse.class, inputRequest);
+            log.info("****status**** : " + response.getStatus());
+            return response;
         } catch (UniformInterfaceException e) {
 
             if (e.getMessage().contains("401 Unauthorized")
                     || e.getMessage().contains("403 Forbidden")) {
                 this.authenticate(_client, CALL_COUNT_FOR_AUTHENTICATION);
                 resource = _client.resource(_baseURL + uri);
-                return resource.post(clazz, inputRequest);
+//                return resource.post(clazz, inputRequest);
+                ClientResponse response  = resource.accept(MediaType.APPLICATION_JSON).type(MediaType.APPLICATION_JSON).post(ClientResponse.class, inputRequest);
+                log.info("@@@@@status**** : " + response.getStatus());
+                return response;
             } else {
                 throw e;
             }

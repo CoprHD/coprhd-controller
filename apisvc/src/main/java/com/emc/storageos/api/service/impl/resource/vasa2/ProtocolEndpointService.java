@@ -65,13 +65,14 @@ public class ProtocolEndpointService {
     @Path("/protocolendpoint/symmetrix/{symmid}")
     public CreatePEResponse createProtocolEndpoint(@PathParam("symmid") String symmId){
         final String PROTOCOL_ENDPOINT_URI = "/symmetrix/" + symmId + "/protocolendpoint";
-        CreateProtocolEndpoint createProtocolEndpoint = createPayloadForCreatingPE(new CreateProtocolEndpoint());
+//        CreateProtocolEndpoint createProtocolEndpoint = createPayloadForCreatingPE(new CreateProtocolEndpoint());
+        String json = createPayloadForCreatingPE(new CreateProtocolEndpoint());
         CreatePEResponse response = null;
         RESTClientUtil client = RESTClientUtil.getInstance();
         client.set_baseURL(baseURL);
         try {
             client.setLoginCredentials("smc", "smc");
-            response = client.queryObjectPostRequest(PROTOCOL_ENDPOINT_URI, CreatePEResponse.class, createProtocolEndpoint);
+            response = client.queryObjectPostRequest(PROTOCOL_ENDPOINT_URI, CreatePEResponse.class, json);
         } catch (NoSuchAlgorithmException e) {
             e.printStackTrace();
         } catch (UniformInterfaceException e) {
@@ -81,7 +82,7 @@ public class ProtocolEndpointService {
         return response;
     }
     
-    private CreateProtocolEndpoint createPayloadForCreatingPE(CreateProtocolEndpoint createProtocolEndpoint){
+    private String createPayloadForCreatingPE(CreateProtocolEndpoint createProtocolEndpoint){
         createProtocolEndpoint.setMaskingViewId("test_MV");
         
         HostOrHostGroupSelection hostGrpSelection = new HostOrHostGroupSelection();
@@ -101,8 +102,9 @@ public class ProtocolEndpointService {
         createProtocolEndpoint.setPortGroupSelection(portGrpSelection);
         
         ObjectWriter ow = new ObjectMapper().writer().withDefaultPrettyPrinter();
+        String json = null;
         try {
-            String json = ow.writeValueAsString(createProtocolEndpoint);
+            json = ow.writeValueAsString(createProtocolEndpoint);
             _log.info("####################################################");
             _log.info(json);
         } catch (JsonGenerationException e) {
@@ -116,8 +118,8 @@ public class ProtocolEndpointService {
             e.printStackTrace();
         }
         
-        return createProtocolEndpoint;
-        
+ //       return createProtocolEndpoint;
+        return json;
     }
     
 

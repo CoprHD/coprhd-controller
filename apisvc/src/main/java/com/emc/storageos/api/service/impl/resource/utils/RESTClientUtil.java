@@ -103,7 +103,7 @@ public class RESTClientUtil {
         }
     }
     
-    public <T> T queryObjectPostRequest(String uri, Class<T> clazz, Object inputRequest )
+    public <T> T queryObjectPostRequest(String uri, Class<T> clazz, String inputRequest )
             throws NoSuchAlgorithmException, UniformInterfaceException {
 
         final String methodName = "queryObject(): ";

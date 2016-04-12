@@ -2689,6 +2689,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 }
                 _dbClient.updateObject(exportGroup);
                 completer.ready(_dbClient);
+                return;
             }
             
             // Add a steps to remove exports on the VPlex.

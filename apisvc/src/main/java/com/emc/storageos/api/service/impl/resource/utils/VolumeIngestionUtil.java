@@ -89,6 +89,7 @@ import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.client.util.ResourceAndUUIDNameGenerator;
 import com.emc.storageos.db.client.util.StringSetUtil;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
+import com.emc.storageos.protectioncontroller.impl.recoverpoint.RPHelper;
 import com.emc.storageos.recoverpoint.responses.GetCopyResponse.GetCopyAccessStateResponse;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.util.ConnectivityUtil;
@@ -3338,11 +3339,12 @@ public class VolumeIngestionUtil {
      *
      * @param ingestedUnManagedVolumes List of unmanaged volumes which have been ingested
      * @param umpset the UnManagedProtectionSet to check
+     * @param requestContext the current IngestionRequestContext
      * @param dbClient a reference to the database client
      * @return boolean if the all the volumes in the unmanaged protection set have been ingested
      */
     public static boolean validateAllVolumesInCGIngested(List<UnManagedVolume> ingestedUnManagedVolumes,
-            UnManagedProtectionSet umpset, DbClient dbClient) {
+            UnManagedProtectionSet umpset, IngestionRequestContext requestContext, DbClient dbClient) {
         if (umpset == null) {
             _logger.warn("INGEST VALIDATION: unmanaged protection set is null");
             return false;
@@ -3352,12 +3354,9 @@ public class VolumeIngestionUtil {
         // Make sure that none of the managed volumes still have a corresponding unmanaged volume. This means that there is
         // some information left to be ingested.
         if (umpset.getManagedVolumeIds() != null && !umpset.getManagedVolumeIds().isEmpty()) {
-            List<URI> managedVolumesURIList = new ArrayList<URI>(Collections2.transform(umpset.getManagedVolumeIds(),
-                    CommonTransformerFunctions.FCTN_STRING_TO_URI));
             boolean noUmvsLeft = true;
-            Iterator<Volume> managedVolumeIdsIterator = dbClient.queryIterativeObjects(Volume.class, managedVolumesURIList);
-            while (managedVolumeIdsIterator.hasNext()) {
-                Volume managedVolume = managedVolumeIdsIterator.next();
+            for (String managedVolumeId : umpset.getManagedVolumeIds()) {
+                BlockObject managedVolume = requestContext.findDataObjectByType(Volume.class, URI.create(managedVolumeId), true);
                 if (hasUnManagedVolume(managedVolume, ingestedUnManagedVolumes, dbClient)) {
                     _logger.info(String.format(
                             "INGEST VALIDATION: Managed volume %s (%s) still has a corresponding unmanaged volume left which means that there is still some info to be ingested",
@@ -4065,7 +4064,7 @@ public class VolumeIngestionUtil {
     public static void setupRPCG(IngestionRequestContext requestContext, UnManagedProtectionSet umpset, UnManagedVolume unManagedVolume,
             Set<DataObject> updatedObjects, DbClient dbClient) {
 
-        _logger.info("All volumes in UnManagedProtectionSet {} have been ingested, creating RecoverPoint Consistency Group now", 
+        _logger.info("All volumes in UnManagedProtectionSet {} have been ingested, creating RecoverPoint Consistency Group now",
                 umpset.forDisplay());
 
         ProtectionSet pset = VolumeIngestionUtil.findOrCreateProtectionSet(requestContext, unManagedVolume, umpset, dbClient);
@@ -4105,6 +4104,7 @@ public class VolumeIngestionUtil {
 
         VolumeIngestionUtil.decorateRPVolumesCGInfo(volumes, pset, cg, updatedObjects, dbClient, requestContext);
         clearPersistedReplicaFlags(requestContext, volumes, updatedObjects, dbClient);
+        clearReplicaFlagsInIngestionContext(requestContext, volumes);
 
         RecoverPointVolumeIngestionContext rpContext = null;
 
@@ -4193,7 +4193,8 @@ public class VolumeIngestionUtil {
                     associatedVolumes.add((Volume) bo);
                 }
             }
-            _logger.info("Clearing internal volume flag of replicas of associatedVolumes of RP volume {}", volume.getLabel());
+            _logger.info("Clearing internal volume flag of replicas of associatedVolumes {} of RP volume {}",
+                    Joiner.on(",").join(associatedVolumes), volume.getLabel());
             clearPersistedReplicaFlags(requestContext, associatedVolumes, updatedObjects, dbClient);
         }
     }
@@ -4265,11 +4266,50 @@ public class VolumeIngestionUtil {
             DbClient dbClient) {
         if (volume.getFullCopies() != null) {
             for (String volumeId : volume.getFullCopies()) {
-                BlockObject bo = requestContext.findCreatedBlockObject(URI.create(volumeId));
+                BlockObject bo = requestContext.findDataObjectByType(Volume.class, URI.create(volumeId), true);
                 if (null != bo && bo instanceof Volume) {
                     _logger.info("Clearing internal volume flag of full copy {} of RP volume {}", bo.getLabel(), volume.getLabel());
                     bo.clearInternalFlags(BlockIngestOrchestrator.INTERNAL_VOLUME_FLAGS);
                     updatedObjects.add(bo);
+                }
+            }
+        }
+    }
+
+    /**
+     * Clear the flags of replicas which have been updated during the ingestion process
+     *
+     * @param requestContext current unManagedVolume Ingestion context.
+     * @param volumes RP volumes
+     */
+    public static void clearReplicaFlagsInIngestionContext(IngestionRequestContext requestContext, List<Volume> volumes) {
+        // We need to look for all snapshots and snapshot session in the contexts related to the rp volumes and its backend volumes and
+        // clear their flags.
+        _logger.info("Clearing flags of replicas in the context");
+        List<String> rpVolumes = new ArrayList<String>();
+        for (Volume volume : volumes) {
+            rpVolumes.add(volume.getId().toString());
+            if (RPHelper.isVPlexVolume(volume) && volume.getAssociatedVolumes() != null && !volume.getAssociatedVolumes().isEmpty()) {
+                StringSet associatedVolumes = volume.getAssociatedVolumes();
+                rpVolumes.addAll(associatedVolumes);
+            }
+        }
+        for (VolumeIngestionContext volumeIngestionContext : requestContext.getRootIngestionRequestContext()
+                .getProcessedUnManagedVolumeMap().values()) {
+            if (volumeIngestionContext instanceof IngestionRequestContext) {
+                for (Set<DataObject> objectsToBeUpdated : ((IngestionRequestContext) volumeIngestionContext).getDataObjectsToBeUpdatedMap()
+                        .values()) {
+                    for (DataObject o : objectsToBeUpdated) {
+                        boolean rpBlockSnapshot = (o instanceof BlockSnapshot
+                                && rpVolumes.contains(((BlockSnapshot) o).getParent().getURI().toString()));
+                        boolean rpBlockSnapshotSession = (o instanceof BlockSnapshotSession
+                                && rpVolumes.contains(((BlockSnapshotSession) o).getParent().getURI().toString()));
+                        if (rpBlockSnapshot || rpBlockSnapshotSession) {
+                            _logger.info(String.format("Clearing internal volume flag of %s %s of RP volume ",
+                                    (rpBlockSnapshot ? "BlockSnapshot" : "BlockSnapshotSession"), o.getLabel()));
+                            o.clearInternalFlags(BlockIngestOrchestrator.INTERNAL_VOLUME_FLAGS);
+                        }
+                    }
                 }
             }
         }
@@ -4379,9 +4419,9 @@ public class VolumeIngestionUtil {
     /**
      * Run Ingestion validation of RP by checking the vpool configurations and verifying the ingested volumes line up.
      * This method will ensure that the customer attempts to ingest volumes against the proper target virtual arrays
-     * associated with the RP virtual pool that was selected during ingestion.  Otherwise we may allow CDP-style targets
+     * associated with the RP virtual pool that was selected during ingestion. Otherwise we may allow CDP-style targets
      * to be ingested into a CRR-style virtual pool.
-     * 
+     *
      * @param requestContext request context
      * @param umpset unmanaged protection set
      * @param _dbClient dbclient
@@ -4414,7 +4454,7 @@ public class VolumeIngestionUtil {
                     break;
                 }
             }
-            
+
             // Verify the target volumes are in those target varrays
             List<URI> varraysCovered = new ArrayList<URI>(targetVarrays);
             for (String volumeID : umpset.getManagedVolumeIds()) {
@@ -4445,7 +4485,7 @@ public class VolumeIngestionUtil {
                     }
                 }
             }
-            
+
             // Verify that all of the target volumes make up all of the target varrays
             if (!varraysCovered.isEmpty()) {
                 Set<String> targetVarrayNames = new HashSet<String>();
@@ -4461,20 +4501,20 @@ public class VolumeIngestionUtil {
 
     /**
      * Validates that the given UnManagedExportMask exists on the same VPLEX Cluster
-     * as the VirtualArray in the ingestion request.  The cluster name is actually
+     * as the VirtualArray in the ingestion request. The cluster name is actually
      * set by the BlockVplexIngestOrchestrator in order to re-use the cluster-id-to-name
      * cache, avoiding a expensive call to get cluster name info from the VPLEX API.
-     * 
+     *
      * @param requestContext the current IngestionRequestContext
      * @param unManagedVolume the current UnManagedVolume being processed for exports
      * @param unManagedExportMask the current UnManagdExportMask being processed
-     * 
+     *
      * @return true if the mask exists on the same VPLEX cluster as the ingestion request VirtualArray
      */
     public static boolean validateExportMaskMatchesVplexCluster(IngestionRequestContext requestContext,
             UnManagedVolume unManagedVolume, UnManagedExportMask unManagedExportMask) {
-        VolumeIngestionContext volumeContext = 
-                requestContext.getRootIngestionRequestContext().getProcessedVolumeContext(unManagedVolume.getNativeGuid());
+        VolumeIngestionContext volumeContext = requestContext.getRootIngestionRequestContext()
+                .getProcessedVolumeContext(unManagedVolume.getNativeGuid());
 
         if (volumeContext == null) {
             // just get the current one
@@ -4496,14 +4536,14 @@ public class VolumeIngestionUtil {
                 // if the start of the path (as determined by getting the cluster name connected to the varray
                 // for this ingestion request) overlaps the masking view path, then we are on the right vplex cluster
                 if (maskingViewPath.startsWith(startOfPath)) {
-                    _logger.info("\tUnManagedExportMask {} is on VPLEX cluster {} and will be processed now", 
+                    _logger.info("\tUnManagedExportMask {} is on VPLEX cluster {} and will be processed now",
                             unManagedExportMask.getMaskName(), clusterName);
                     return true;
                 }
             }
         }
 
-        _logger.warn("\tUnManagedExportMask {} is not on the right VPLEX cluster for this ingestion request", 
+        _logger.warn("\tUnManagedExportMask {} is not on the right VPLEX cluster for this ingestion request",
                 unManagedExportMask.getMaskName());
         return false;
     }

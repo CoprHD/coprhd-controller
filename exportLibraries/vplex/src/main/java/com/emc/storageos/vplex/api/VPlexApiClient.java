@@ -260,6 +260,21 @@ public class VPlexApiClient {
     }
 
     /**
+     * Gets the fully-populated VPlexStorageViewInfo object for the given storage view name
+     * on the given VPLEX cluster (by cluster name, not cluster id).
+     * 
+     * @param clusterName the cluster name for storage view scope
+     * @param storageViewName the name of the storage view to get
+     * @return a VPlexStorageViewInfo object for the storage view name and VPLEX cluster location
+     * @throws VPlexApiException
+     */
+    public VPlexStorageViewInfo getStorageView(String clusterName, String storageViewName)
+            throws VPlexApiException {
+        s_logger.info("Request to get storage view on VPlex at {}", _baseURI);
+        return _discoveryMgr.getStorageView(clusterName, storageViewName);
+    }
+
+    /**
      * Gets all virtual volumes on the VPLEX storage system.
      * 
      * @param shallow When true does a shallow discovery of the virtual volumes. A
@@ -1753,4 +1768,5 @@ public class VPlexApiClient {
     static public void setMaxMigrationAsyncPollingRetries(int maxRetries) {
         maxMigrationAsyncPollingRetries = maxRetries;
     }
+
 }

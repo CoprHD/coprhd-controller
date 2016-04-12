@@ -134,4 +134,7 @@ public interface NetAppExceptions {
 
     @DeclareServiceCode(ServiceCode.NETAPP_ERROR)
     public NetAppException listCIFSConfigFailed();
+
+    @DeclareServiceCode(ServiceCode.NETAPP_ERROR)
+    public NetAppException getvFilerInfoFailed(final String message);
 }

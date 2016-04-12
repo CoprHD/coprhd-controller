@@ -500,6 +500,7 @@ public class NetAppApi {
             vFilers = netAppFacade.listVFilers();
         } catch (Exception e) {
             _logger.info("No vFilers discovered.");
+            throw NetAppException.exceptions.getvFilerInfoFailed(e.getMessage());
         }
 
         return vFilers;
@@ -1056,6 +1057,23 @@ public class NetAppApi {
         }
 
         return cifsConfig;
+    }
+
+    public List<String> getAllowedProtocols(String vFilerName) throws NetAppException {
+        List<String> protocols = null;
+        try {
+            if (netAppFacade == null) {
+                _logger.warn("Invalid Facade found {} creating now...", netAppFacade);
+                netAppFacade = new NetAppFacade(_ipAddress, _portNumber, _userName, _password, _https);
+                _logger.warn("Facade created : {} ", netAppFacade);
+            }
+
+            protocols = netAppFacade.getAllowedProtocols(vFilerName);
+        } catch (Exception e) {
+            _logger.error("Error Occured {} ", e.getMessage(), e);
+            throw NetAppException.exceptions.getvFilerInfoFailed(e.getMessage());
+        }
+        return protocols;
     }
 
 }

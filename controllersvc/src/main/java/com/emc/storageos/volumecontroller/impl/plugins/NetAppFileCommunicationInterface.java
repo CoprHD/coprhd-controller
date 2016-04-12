@@ -366,10 +366,6 @@ public class NetAppFileCommunicationInterface extends
             _logger.debug("Number vFilers fouund: {}", vFilers.size());
             virtualFilers.addAll(vFilers);
 
-            StringSet protocols = new StringSet();
-            protocols.add(StorageProtocol.File.NFS.name());
-            protocols.add(StorageProtocol.File.CIFS.name());
-
             for (VFilerInfo vf : vFilers) {
                 _logger.debug("vFiler name: {}", vf.getName());
 
@@ -390,6 +386,14 @@ public class NetAppFileCommunicationInterface extends
                         _logger.debug("Found duplicate {} ", vf.getName());
                     }
                 }
+
+                StringSet protocols = new StringSet();
+                protocols.add(StorageProtocol.File.NFS.name());
+                protocols.add(StorageProtocol.File.CIFS.name());
+
+                // Verify the vfiler supports NFS and CIFS protocols!!
+                List<String> protocolsSupported = netAppApi.getAllowedProtocols(vf.getName());
+                protocols.retainAll(protocolsSupported);
 
                 if (portGroup == null) {
                     portGroup = new StorageHADomain();

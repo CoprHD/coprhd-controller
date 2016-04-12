@@ -113,4 +113,28 @@ public class VFiler {
 
         return true;
     }
+
+    List<String> getAllowedProtocols(String vFilerName) {
+        List<String> protocols = new ArrayList<String>();
+        NaElement elem = new NaElement("vfiler-get-allowed-protocols");
+        elem.addNewChild("vfiler", vFilerName);
+
+        NaElement result = null;
+        try {
+            result = server.invokeElem(elem).getChildByName("allowed-protocols");
+        } catch (Exception e) {
+            String msg = "Failed to get the protocols of vfiler " + vFilerName;
+            log.error(msg, e);
+            throw new NetAppException(msg, e);
+        }
+
+        if (result != null) {
+
+            for (NaElement protocolInfo : (List<NaElement>) result.getChildren()) {
+                protocols.add(protocolInfo.getChildContent("protocol"));
+            }
+        }
+
+        return protocols;
+    }
 }

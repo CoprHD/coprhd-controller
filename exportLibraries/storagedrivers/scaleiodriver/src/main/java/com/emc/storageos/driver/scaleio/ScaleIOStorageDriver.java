@@ -520,84 +520,7 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver implements Block
     public DriverTask exportVolumesToInitiators(List<Initiator> initiators, List<StorageVolume> volumes,
             Map<String, String> volumeToHLUMap, List<StoragePort> recommendedPorts, List<StoragePort> availablePorts,
             StorageCapabilities capabilities, MutableBoolean usedRecommendedPorts, List<StoragePort> selectedPorts) {
-        String volId, portId;
-        log.info("Request to export volumes to initiators -- start: ");
-        DriverTask task = new DriverTaskImpl(ScaleIOHelper.getTaskId(ScaleIOConstants.TaskType.EXPORT));
-        int countSucc = 0;
-        // Assume volumes are from different storage system
-        for (StorageVolume vol : volumes) {
-            client = getClientBySystemId(vol.getStorageSystemId());
-            if (client != null) {
-                for (Initiator initiator : initiators) {
-                    boolean wasMapped = false;
-                    volId = vol.getNativeId();
-                    portId = initiator.getPort();
-                    if (volId != null && portId != null) {
-                        if (initiator.getProtocol().name() == "ScaleIO") {
-                            wasMapped = mapToSDC(client, volId, portId);
-                        } else if (initiator.getProtocol().name() == "iSCSI") {
-                            wasMapped = mapToSCSI(client, volId, portId);
-                        } else {
-                            log.info("Unexpected initiator types");
-                        }
-                    } else {
-                        log.info(" Storage system {} - Volume native id or initiator port id is null", vol.getStorageSystemId());
-                    }
-                    if (!wasMapped) {
-                        log.info("failed to map the volume {} to initiator {} ", volId, portId);
-                    } else {
-                        countSucc++;
-                    }
-                }
-            }
-        }
-
-        if (recommendedPorts == null || recommendedPorts.size() <= 0) {
-            selectedPorts = availablePorts;
-            usedRecommendedPorts.setValue(false);
-        } else {
-            usedRecommendedPorts.setValue(true);
-            selectedPorts = recommendedPorts;
-        }
-        setTaskStatus(volumes.size() * initiators.size(), countSucc, task);
-        log.info("Request to export volumes to initiators -- end");
-        return task;
-    }
-
-    /**
-     * map volume to SDC
-     *
-     * @param restClient ScaleIO rest client
-     * @param volumeId volume native id
-     * @param sdcId sdc port id
-     * @return
-     */
-    private boolean mapToSDC(ScaleIORestClient restClient, String volumeId, String sdcId) {
-        try {
-            restClient.mapVolumeToSDC(volumeId, sdcId);
-        } catch (Exception e) {
-            log.info(e.getMessage());
-            return false;
-        }
-        return true;
-    }
-
-    /**
-     * map volume to iscsi initiatiors
-     *
-     * @param restClient scaleIO Rest client
-     * @param volumeId volume native id
-     * @param scsiId scsi port id
-     * @return
-     * @throws Exception
-     */
-    private boolean mapToSCSI(ScaleIORestClient restClient, String volumeId, String scsiId) {
-        try {
-            restClient.mapVolumeToSCSIInitiator(volumeId, scsiId);
-        } catch (Exception e) {
-            log.info(e.getMessage());
-        }
-        return true;
+        return null;
     }
 
     /**
@@ -609,77 +532,7 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver implements Block
      */
     @Override
     public DriverTask unexportVolumesFromInitiators(List<Initiator> initiators, List<StorageVolume> volumes) {
-        String volId, portId;
-        log.info("Request to unexport volumes from initiators -- start: ");
-        DriverTask task = new DriverTaskImpl(ScaleIOHelper.getTaskId(ScaleIOConstants.TaskType.UNEXPORT));
-        int countSucc = 0;
-        // Assume volumes are from different storage system
-        for (StorageVolume vol : volumes) {
-            client = getClientBySystemId(vol.getStorageSystemId());
-            if (client != null) {
-                for (Initiator initiator : initiators) {
-                    boolean wasUnMapped = false;
-                    volId = vol.getNativeId();
-                    portId = initiator.getPort();
-                    if (volId != null && portId != null) {
-                        if (initiator.getProtocol().name() == "ScaleIO") {
-                            wasUnMapped = unMapToSDC(client, volId, portId);
-                        } else if (initiator.getProtocol().name() == "iSCSI") {
-                            wasUnMapped = unMapToSCSI(client, volId, portId);
-                        } else {
-                            log.info("Unexpected initiator types");
-                        }
-                    } else {
-                        log.info(" Storage system {} - Volume native id or initiator port id is null", vol.getStorageSystemId());
-                    }
-                    if (!wasUnMapped) {
-                        log.info("failed to unmap the volume {} to initiator {} ", volId, portId);
-                    } else {
-                        countSucc++;
-                    }
-                }
-            }
-        }
-
-        setTaskStatus(volumes.size() * initiators.size(), countSucc, task);
-        log.info("Request to export volumes to initiators -- end");
-        return task;
-    }
-
-    /**
-     * unmap volume from SDC
-     *
-     * @param restClient ScaleIO rest client
-     * @param volumeId volume native id
-     * @param sdcId sdc port id
-     * @return
-     */
-    private boolean unMapToSDC(ScaleIORestClient restClient, String volumeId, String sdcId) {
-        try {
-            restClient.unMapVolumeToSDC(volumeId, sdcId);
-        } catch (Exception e) {
-            log.info(e.getMessage());
-            return false;
-        }
-        return true;
-    }
-
-    /**
-     * unmap volume from iscsi initiatiors
-     *
-     * @param restClient scaleIO Rest client
-     * @param volumeId volume native id
-     * @param scsiId scsi port id
-     * @return
-     * @throws Exception
-     */
-    private boolean unMapToSCSI(ScaleIORestClient restClient, String volumeId, String scsiId) {
-        try {
-            restClient.unMapVolumeFromSCSIInitiator(volumeId, scsiId);
-        } catch (Exception e) {
-            log.info(e.getMessage());
-        }
-        return true;
+        return null;
     }
 
     /**
@@ -894,7 +747,7 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver implements Block
                         Map<String, ScaleIOVolume> cloneIdInfoMap = client.getSnapshotParentIdMap(nativeIds);
                         for (VolumeClone clone : clones) {
                             ScaleIOVolume cloneInfo = cloneIdInfoMap.get(clone.getParentId());
-                            if(cloneInfo!=null){
+                            if (cloneInfo != null) {
                                 clone.setNativeId(cloneInfo.getId());
                                 clone.setAccessStatus(StorageObject.AccessStatus.READ_WRITE);
                                 clone.setDeviceLabel(cloneInfo.getName());

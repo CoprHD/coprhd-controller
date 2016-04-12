@@ -329,7 +329,7 @@ class CreateVolumeSchedulingThread implements Runnable {
                 // Set the volumes to inactive
                 Volume volume = this.blockService._dbClient.queryObject(Volume.class, taskObj.getResource().getId());
                 volume.setInactive(true);
-                this.blockService._dbClient.updateAndReindexObject(volume);
+                this.blockService._dbClient.updateObject(volume);
             }
         }
         _log.info("Ending scheduling/placement thread...");

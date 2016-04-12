@@ -103,6 +103,37 @@ public class RESTClientUtil {
         }
     }
     
+    public <T> T queryObjectPostRequest(String uri, Class<T> clazz, Object inputRequest )
+            throws NoSuchAlgorithmException, UniformInterfaceException {
+
+        final String methodName = "queryObject(): ";
+
+        log.debug(methodName + "Entry with inputs uri[" + uri + "] class["
+                + clazz.getName() + "]");
+        
+
+        _config.getClasses().add(clazz);
+        /*
+         * if (this._authorizationFlag) { this.authenticate(_client); }
+         */
+        WebResource resource = null;
+
+        try {
+            resource = _client.resource(_baseURL + uri);
+            return resource.post(clazz, inputRequest);
+        } catch (UniformInterfaceException e) {
+
+            if (e.getMessage().contains("401 Unauthorized")
+                    || e.getMessage().contains("403 Forbidden")) {
+                this.authenticate(_client, CALL_COUNT_FOR_AUTHENTICATION);
+                resource = _client.resource(_baseURL + uri);
+                return resource.post(clazz, inputRequest);
+            } else {
+                throw e;
+            }
+        }
+    }
+    
     private void authenticate(final Client c, final int authenticateCallCount)
             throws NoSuchAlgorithmException {
 

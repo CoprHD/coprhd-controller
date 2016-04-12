@@ -1,4 +1,4 @@
-package com.emc.storageos.cinder.model;
+package com.emc.storageos.model.pe;
 
 import javax.xml.bind.annotation.XmlRootElement;
 

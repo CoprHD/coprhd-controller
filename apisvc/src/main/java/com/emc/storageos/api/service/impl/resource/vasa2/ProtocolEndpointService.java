@@ -4,6 +4,7 @@ import java.security.NoSuchAlgorithmException;
 
 import javax.ws.rs.Consumes;
 import javax.ws.rs.GET;
+import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
@@ -13,7 +14,14 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.api.service.impl.resource.utils.RESTClientUtil;
-import com.emc.storageos.cinder.model.ProtocolEndpointList;
+import com.emc.storageos.model.pe.CreatePEResponse;
+import com.emc.storageos.model.pe.CreateProtocolEndpoint;
+import com.emc.storageos.model.pe.CreateStorageGroupParam;
+import com.emc.storageos.model.pe.HostOrHostGroupSelection;
+import com.emc.storageos.model.pe.PortGroupSelection;
+import com.emc.storageos.model.pe.ProtocolEndpointList;
+import com.emc.storageos.model.pe.UseExistingHostParam;
+import com.emc.storageos.model.pe.UseExistingPortGroupParam;
 import com.sun.jersey.api.client.UniformInterfaceException;
 
 @Path("/vasa/vvol")
@@ -43,6 +51,50 @@ public class ProtocolEndpointService {
         }
         
         return list;
+        
+    }
+    
+    @POST
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON } )
+    @Path("/protocolendpoint/symmetrix/{symmid}")
+    public CreatePEResponse createProtocolEndpoint(@PathParam("symmid") String symmId){
+        final String PROTOCOL_ENDPOINT_URI = "/symmetrix/" + symmId + "/protocolendpoint";
+        CreateProtocolEndpoint createProtocolEndpoint = createPayloadForCreatingPE(new CreateProtocolEndpoint());
+        CreatePEResponse response = null;
+        RESTClientUtil client = RESTClientUtil.getInstance();
+        client.set_baseURL(baseURL);
+        try {
+            client.setLoginCredentials("smc", "smc");
+            response = client.queryObjectPostRequest(PROTOCOL_ENDPOINT_URI, CreatePEResponse.class, createProtocolEndpoint);
+        } catch (NoSuchAlgorithmException e) {
+            e.printStackTrace();
+        } catch (UniformInterfaceException e) {
+            e.printStackTrace();
+        }
+        
+        return response;
+    }
+    
+    private CreateProtocolEndpoint createPayloadForCreatingPE(CreateProtocolEndpoint createProtocolEndpoint){
+        createProtocolEndpoint.setMaskingViewId("test_MV");
+        
+        HostOrHostGroupSelection hostGrpSelection = new HostOrHostGroupSelection();
+        UseExistingHostParam useExistingHostParam = new UseExistingHostParam();
+        useExistingHostParam.setHostId("lgly6072_ig");
+        hostGrpSelection.setUseExistingHostParam(useExistingHostParam);
+        createProtocolEndpoint.setHostOrHostGroupSelection(hostGrpSelection);
+        
+        CreateStorageGroupParam createStorageGroupParam = new CreateStorageGroupParam();
+        createStorageGroupParam.setStorageGroupId("test_SG");
+        
+        PortGroupSelection portGrpSelection = new PortGroupSelection();
+        UseExistingPortGroupParam useExistingPortGroupParam = new UseExistingPortGroupParam();
+        useExistingPortGroupParam.setPortGroupId("lgly6072_ig_PG");
+        portGrpSelection.setUseExistingPortGroupParam(useExistingPortGroupParam);
+        createProtocolEndpoint.setPortGroupSelection(portGrpSelection);
+        
+        return createProtocolEndpoint;
         
     }
     

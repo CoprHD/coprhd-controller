@@ -1,24 +1,24 @@
 package com.emc.storageos.model.vnas;
 
-import java.io.Serializable;
 import java.net.URI;
 import java.util.List;
-import java.util.Set;
 
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlElementWrapper;
 import javax.xml.bind.annotation.XmlRootElement;
 
-@SuppressWarnings("serial")
 @XmlRootElement(name = "vnas_create")
-public class VirtualNasCreateParam implements Serializable {
+public class VirtualNasCreateParam extends VirtualNasParam {
+
+    private static final long serialVersionUID = -1618701804694842786L;
 
     private String vNasName;
-    private List<String> ipAddresses;
-    private String ipSpace;
-    private List<String> storageUnits;
     private URI storageSystem;
-    private Set<String> protocols;
+    private String dnsDomain;
+    private List<String> dnsServers;
+    private String nisDomain;
+    private List<String> nisServers;
+    private String authPassword;
 
     @XmlElement(required = true, name = "vnas_name")
     public String getvNasName() {
@@ -27,35 +27,6 @@ public class VirtualNasCreateParam implements Serializable {
 
     public void setvNasName(String vNasName) {
         this.vNasName = vNasName;
-    }
-
-    @XmlElementWrapper(name = "ip_addresses")
-    @XmlElement(required = true, name = "ip_address")
-    public List<String> getIpAddresses() {
-        return ipAddresses;
-    }
-
-    public void setIpAddresses(List<String> ipAddresses) {
-        this.ipAddresses = ipAddresses;
-    }
-
-    @XmlElement(name = "ip_space")
-    public String getIpSpace() {
-        return ipSpace;
-    }
-
-    public void setIpSpace(String ipSpace) {
-        this.ipSpace = ipSpace;
-    }
-
-    @XmlElementWrapper(name = "storage_units")
-    @XmlElement(required = true, name = "storage_unit")
-    public List<String> getStorageUnits() {
-        return storageUnits;
-    }
-
-    public void setStorageUnits(List<String> storageUnits) {
-        this.storageUnits = storageUnits;
     }
 
     @XmlElement(required = true, name = "storage_system")
@@ -67,13 +38,50 @@ public class VirtualNasCreateParam implements Serializable {
         this.storageSystem = storageSystem;
     }
 
-    @XmlElementWrapper(name = "protocols")
-    @XmlElement(name = "protocol")
-    public Set<String> getProtocols() {
-        return protocols;
+    @XmlElement(required = true, name = "dns_domain")
+    public String getDnsDomain() {
+        return dnsDomain;
     }
 
-    public void setProtocols(Set<String> protocols) {
-        this.protocols = protocols;
+    public void setDnsDomain(String dnsDomain) {
+        this.dnsDomain = dnsDomain;
+    }
+
+    @XmlElementWrapper(name = "dns_servers")
+    @XmlElement(required = true, name = "dns_server")
+    public List<String> getDnsServers() {
+        return dnsServers;
+    }
+
+    public void setDnsServers(List<String> dnsServers) {
+        this.dnsServers = dnsServers;
+    }
+
+    @XmlElement(required = true, name = "nis_domain")
+    public String getNisDomain() {
+        return nisDomain;
+    }
+
+    public void setNisDomain(String nisDomain) {
+        this.nisDomain = nisDomain;
+    }
+
+    @XmlElementWrapper(name = "nis_servers")
+    @XmlElement(required = true, name = "nis_server")
+    public List<String> getNisServers() {
+        return nisServers;
+    }
+
+    public void setNisServers(List<String> nisServers) {
+        this.nisServers = nisServers;
+    }
+
+    @XmlElement(required = true, name = "auth_password")
+    public String getAuthPassword() {
+        return authPassword;
+    }
+
+    public void setAuthPassword(String authPassword) {
+        this.authPassword = authPassword;
     }
 }

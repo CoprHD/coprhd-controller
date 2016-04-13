@@ -345,6 +345,7 @@ public enum ResourceOperationTypeEnum {
     CREATE_FILE_SYSTEM_MIRROR_COPIES("CREATE FILE SYSTEM MIRROR COPIES", "create file system mirror copies operation"),
     DELETE_MIRROR_FILE_SYSTEMS("DELETE MIRROR FILE SYSTEMS", "delete mirror file systems operation"),
     CREATE_VIRTUAL_NAS_SERVER("CREATE VIRTUAL NAS SERVER", "create virtual nas server operation"),
+    UPDATE_VIRTUAL_NAS_SERVER("UPDATE VIRTUAL NAS SERVER", "update virtual nas server operation"),
     DELETE_VIRTUAL_NAS_SERVER("DELETE VIRTUAL NAS SERVER", "delete virtual nas server operation");
 
     private final String name;

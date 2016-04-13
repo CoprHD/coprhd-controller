@@ -22,7 +22,6 @@ import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.Response;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -45,9 +44,12 @@ import com.emc.storageos.model.vnas.VirtualNASBulkRep;
 import com.emc.storageos.model.vnas.VirtualNASList;
 import com.emc.storageos.model.vnas.VirtualNASRestRep;
 import com.emc.storageos.model.vnas.VirtualNasCreateParam;
+import com.emc.storageos.model.vnas.VirtualNasUpdateParam;
+import com.emc.storageos.security.audit.AuditLogManager;
 import com.emc.storageos.security.authorization.CheckPermission;
 import com.emc.storageos.security.authorization.DefaultPermissions;
 import com.emc.storageos.security.authorization.Role;
+import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.volumecontroller.FileController;
@@ -170,9 +172,12 @@ public class VirtualNasService extends TaggedResource {
     }
 
     /**
+     * Create Virtual NAS server
      * 
      * @param vnasParam
-     * @return
+     *            Virtual NAS create parameters
+     * @brief Create Virtual NAS server
+     * @return Task resource representation
      */
     @POST
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
@@ -196,7 +201,7 @@ public class VirtualNasService extends TaggedResource {
         vnas.setId(URIUtil.createId(VirtualNAS.class));
         vnas.setLabel(vnasParam.getvNasName());
         vnas.setNasName(vnasParam.getvNasName());
-        StringSet protocols = new StringSet(vnasParam.getProtocols());
+        StringSet protocols = new StringSet(vnasParam.getAddProtocols());
         vnas.setProtocols(protocols);
         vnas.setStorageDeviceURI(vnasParam.getStorageSystem());
 
@@ -212,6 +217,8 @@ public class VirtualNasService extends TaggedResource {
 
         try {
             controller.createVirtualNas(device.getId(), vnas.getId(), vnasParam, task);
+            auditOp(OperationTypeEnum.CREATE_VIRTUAL_NAS, true, AuditLogManager.AUDITOP_BEGIN,
+                    vnas.getLabel(), vnas.getId().toString(), device.getId().toString());
         } catch (InternalException e) {
             vnas.setInactive(true);
             throw e;
@@ -221,17 +228,43 @@ public class VirtualNasService extends TaggedResource {
     }
 
     @PUT
+    @Path("/{id}")
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR })
-    public Response updateVirtualNasServer(VirtualNasCreateParam vnasParam) {
+    public TaskResourceRep updateVirtualNasServer(@PathParam("id") URI vnasId, VirtualNasUpdateParam vnasParam) {
 
-        // Make VNAS name as mandatory field
-        ArgValidator.checkFieldNotNull(vnasParam.getvNasName(), "nasName");
+        ArgValidator.checkFieldUriType(vnasId, VirtualNAS.class, "id");
+        VirtualNAS vNas = queryResource(vnasId);
+        ArgValidator.checkReference(VirtualNAS.class, vnasId, checkForDelete(vNas));
 
-        return Response.ok().build();
+        _log.info("Updating Virtual NAS server...");
+        String task = UUID.randomUUID().toString();
+
+        StorageSystem device = _dbClient.queryObject(StorageSystem.class, vNas.getStorageDeviceURI());
+        FileController controller = getController(FileController.class, device.getSystemType());
+        Operation op = _dbClient.createTaskOpStatus(VirtualNAS.class, vNas.getId(), task,
+                ResourceOperationTypeEnum.UPDATE_VIRTUAL_NAS_SERVER);
+        try {
+            controller.deleteVirtualNas(device.getId(), vNas.getId(), task);
+            auditOp(OperationTypeEnum.UPDATE_VIRTUAL_NAS, true, AuditLogManager.AUDITOP_BEGIN,
+                    vNas.getLabel(), vNas.getId().toString(), device.getId().toString());
+        } catch (InternalException e) {
+            vNas.setInactive(false);
+            throw e;
+        }
+        return toTask(vNas, task, op);
+
     }
 
+    /**
+     * Delete Virtual NAS server
+     * 
+     * @param vnasId
+     *            the URN of a Virtual NAS server
+     * @brief Delete Virtual NAS server
+     * @return Task resource representation
+     */
     @DELETE
     @Path("/{id}")
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
@@ -252,6 +285,8 @@ public class VirtualNasService extends TaggedResource {
                 ResourceOperationTypeEnum.DELETE_VIRTUAL_NAS_SERVER);
         try {
             controller.deleteVirtualNas(device.getId(), vNas.getId(), task);
+            auditOp(OperationTypeEnum.DELETE_VIRTUAL_NAS, true, AuditLogManager.AUDITOP_BEGIN,
+                    vNas.getLabel(), vNas.getId().toString(), device.getId().toString());
         } catch (InternalException e) {
             vNas.setInactive(false);
             throw e;

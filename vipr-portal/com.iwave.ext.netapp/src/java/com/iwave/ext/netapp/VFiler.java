@@ -131,6 +131,35 @@ public class VFiler {
         return true;
     }
 
+    boolean setupVFiler(String vFilerName, String dnsDomain, List<String> dnsServers, String nisDomain, List<String> nisServers,
+            String password) {
+
+        NaElement elem = new NaElement("vfiler-setup");
+        NaElement dnsServersElem = new NaElement("dnsservers");
+        NaElement nisServersElem = new NaElement("nisservers");
+        elem.addNewChild("vfiler", vFilerName);
+        elem.addNewChild("dnsdomain", dnsDomain);
+        elem.addChildElem(dnsServersElem);
+        for (String dnsServer : dnsServers) {
+            dnsServersElem.addNewChild("ipaddress", dnsServer);
+        }
+        elem.addNewChild("nisdomain", nisDomain);
+        elem.addChildElem(nisServersElem);
+        for (String nisServer : nisServers) {
+            nisServersElem.addNewChild("ipaddress", nisServer);
+        }
+        elem.addNewChild("password", password);
+
+        try {
+            server.invokeElem(elem);
+        } catch (Exception e) {
+            String msg = "Failed to setup new vFiler: " + vFilerName;
+            log.error(msg, e);
+            throw new NetAppException(msg, e);
+        }
+        return true;
+    }
+
     boolean stopVFiler(String vFilerName) {
 
         NaElement elem = new NaElement("vfiler-stop");

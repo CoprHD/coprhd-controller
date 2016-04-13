@@ -2682,7 +2682,8 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             // If none of the export group volumes are contained in any of the
             // export groups mask, simply remove the export masks from the export
             // group. This will cause the export group to be deleted by the 
-            // completer.
+            // completer. This could happen in a rollback scenario where we are rolling
+            // back a failed export group creation.
             if (!exportGroupMasksContainExportGroupVolume(exportGroup, exportMasks)) {
                 for (ExportMask exportMask : exportMasks) {
                     exportGroup.removeExportMask(exportMask.getId());

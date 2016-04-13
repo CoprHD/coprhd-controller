@@ -4,15 +4,13 @@ Content-Type: application/json
 X-SDS-AUTH-TOKEN: <AUTH_TOKEN>
 
 {
-    host_update:{
-        name:'host11Updated',
-        user_name:'admin',
-        password:'nopass',
-        use_ssl:'true',
-        port_number:8080,
-        host_name:'halahost1.lss.emc.com',
-        type:'Other'
-    }
+	"name":"host11Updated",
+	"user_name":"admin",
+	"password":"nopass",
+	"use_ssl":"true",
+	"port_number":8080,
+	"host_name":"halahost1.lss.emc.com",
+	"type":"Other"
 }
 ==RESPONSE 
 HTTP/1.1 202 Accepted

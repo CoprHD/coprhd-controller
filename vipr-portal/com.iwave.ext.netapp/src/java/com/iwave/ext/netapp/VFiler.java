@@ -136,17 +136,21 @@ public class VFiler {
 
         NaElement elem = new NaElement("vfiler-setup");
         NaElement dnsServersElem = new NaElement("dnsservers");
+        NaElement dnsServerInfo = new NaElement("dnsserver-info");
         NaElement nisServersElem = new NaElement("nisservers");
+        NaElement nisServerInfo = new NaElement("nisserver-info");
         elem.addNewChild("vfiler", vFilerName);
         elem.addNewChild("dnsdomain", dnsDomain);
         elem.addChildElem(dnsServersElem);
+        dnsServersElem.addChildElem(dnsServerInfo);
         for (String dnsServer : dnsServers) {
-            dnsServersElem.addNewChild("ipaddress", dnsServer);
+            dnsServerInfo.addNewChild("ipaddress", dnsServer);
         }
         elem.addNewChild("nisdomain", nisDomain);
         elem.addChildElem(nisServersElem);
+        nisServersElem.addChildElem(nisServerInfo);
         for (String nisServer : nisServers) {
-            nisServersElem.addNewChild("ipaddress", nisServer);
+            nisServerInfo.addNewChild("ipaddress", nisServer);
         }
         elem.addNewChild("password", password);
 

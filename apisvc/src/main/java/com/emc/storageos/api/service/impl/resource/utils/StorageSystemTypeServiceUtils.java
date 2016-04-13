@@ -124,18 +124,13 @@ public class StorageSystemTypeServiceUtils {
 		HashMap<String, Boolean> defaultSSL = new HashMap<String, Boolean>();
 		initializeDefaultSSL(defaultSSL);
 
-		// MDM_DEFAULT_OPTIONS = StringOption.options(new String[] { SCALEIO,
-		// SCALEIOAPI });
 		HashMap<String, Boolean> defaultMDM = new HashMap<String, Boolean>();
 		defaultMDM.put(SCALEIO, true);
 		defaultMDM.put(SCALEIOAPI, true);
 
-		// MDM_ONLY_OPTIONS = StringOption.options(new String[] {SCALEIOAPI});
 		HashMap<String, Boolean> onlyMDM = new HashMap<String, Boolean>();
 		onlyMDM.put(SCALEIOAPI, true);
 
-		// ELEMENT_MANAGER_OPTIONS = StringOption.options(new String[] { SCALEIO
-		// });
 		HashMap<String, Boolean> elementManager = new HashMap<String, Boolean>();
 		elementManager.put(SCALEIO, true);
 

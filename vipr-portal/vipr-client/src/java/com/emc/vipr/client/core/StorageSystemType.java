@@ -38,7 +38,7 @@ public class StorageSystemType {
 	}
 
 	public Response uploadDeviceDriver(File deviceDriverFile) {
-		return client.post(Response.class, PathConstants.STORAGE_SYSTEM_TYPE_URL + "/upload/" + deviceDriverFile);
+		return client.post(Response.class, deviceDriverFile, PathConstants.STORAGE_SYSTEM_TYPE_URL + "/upload");
 	}
 
 }

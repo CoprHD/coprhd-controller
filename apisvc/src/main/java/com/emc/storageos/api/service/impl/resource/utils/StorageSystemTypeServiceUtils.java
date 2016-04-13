@@ -59,7 +59,7 @@ public class StorageSystemTypeServiceUtils {
 		dsslMap.put(IBMXIV, true);
 	}
 
-	private static void initializeDisplayName(HashMap<String, String> nameDisplayNameMap) {
+	public static void initializeDisplayName(HashMap<String, String> nameDisplayNameMap) {
 		nameDisplayNameMap.put(VNX_FILE, "EMC VNX File");
 		nameDisplayNameMap.put(ISILON, "EMC Isilon");
 		nameDisplayNameMap.put(NETAPP, "NetApp 7-mode");

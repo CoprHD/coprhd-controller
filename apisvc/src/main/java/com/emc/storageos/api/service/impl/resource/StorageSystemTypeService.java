@@ -2,6 +2,7 @@ package com.emc.storageos.api.service.impl.resource;
 
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 
@@ -196,15 +197,22 @@ public class StorageSystemTypeService extends TaskResourceService {
 	@CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
 	public Response deleteStorageSystemType(@PathParam("id") URI id) {
 		log.info("deleteStorageSystemType: {}", id);
-
+		// Name of Array and its Display Name mapping, cannot delete native drivers
+		HashMap<String, String> nativeDriverNameMap = new HashMap<String, String>();
+		StorageSystemTypeServiceUtils.initializeDisplayName(nativeDriverNameMap);
+		
 		StorageSystemType sstype = queryObject(StorageSystemType.class, id, true);
 		ArgValidator.checkEntity(sstype, id, isIdEmbeddedInURL(id));
+		if(nativeDriverNameMap.get(sstype.getStorageTypeName()) == null ) {
+			_dbClient.markForDeletion(sstype);
 
-		_dbClient.markForDeletion(sstype);
-
-		auditOp(OperationTypeEnum.REMOVE_STORAGE_SYSTEM_TYPE, true, AuditLogManager.AUDITOP_BEGIN,
-				sstype.getId().toString(), sstype.getStorageTypeName(), sstype.getStorageTypeType());
-		return Response.ok().build();
+			auditOp(OperationTypeEnum.REMOVE_STORAGE_SYSTEM_TYPE, true, AuditLogManager.AUDITOP_BEGIN,
+					sstype.getId().toString(), sstype.getStorageTypeName(), sstype.getStorageTypeType());
+			return Response.ok().build();
+		}
+		else {
+			return Response.serverError().build();
+		}
 
 	}
 

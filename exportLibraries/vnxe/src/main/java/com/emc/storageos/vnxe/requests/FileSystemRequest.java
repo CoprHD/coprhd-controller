@@ -26,5 +26,16 @@ public class FileSystemRequest extends KHRequests<VNXeFileSystem> {
         return getDataForOneObject(VNXeFileSystem.class);
 
     }
+    
+    /**
+     * Get the specific file system details
+     * 
+     * @return
+     */
+    public VNXeFileSystem get(String id) {
+        _url = URL + id;
+        return getDataForOneObject(VNXeFileSystem.class);
+
+    }
 
 }

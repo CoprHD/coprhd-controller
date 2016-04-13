@@ -50,6 +50,13 @@
         <property name="workflowService" ref="workflowService"/>
         <property name="networkDeviceController" ref="networkDeviceController"/>
      </bean>
+     
+     <bean id="vnxunityMaskingOrchestrator" class="com.emc.storageos.volumecontroller.impl.vnxunity.VNXUnityMaskingOrchestrator">
+        <property name="blockScheduler" ref="blockscheduler"/>
+        <property name="dbClient" ref="dbclient"/>
+        <property name="workflowService" ref="workflowService"/>
+        <property name="networkDeviceController" ref="networkDeviceController"/>
+     </bean>
 
     <bean id="xivMaskingOrchestrator" class="com.emc.storageos.volumecontroller.impl.block.XIVMaskingOrchestrator">
         <property name="blockScheduler" ref="blockscheduler"/>
@@ -162,6 +169,7 @@
                 <entry key="openstack" value-ref="cinderStorageDevice"/>
                 <entry key="scaleio" value-ref="scaleioStorageDevice"/>
                 <entry key="vnxe" value-ref="vnxeDevice"/>
+                <entry key="vnxunity" value-ref="vnxunityDevice"/>
                 <entry key="xtremio" value-ref="xtremioStorageDevice"/>
                 <entry key="externaldevice" value-ref="externalBlockStorageDevice"/>
             </map>
@@ -216,6 +224,12 @@
     </bean>
     
     <bean id="vnxeSnapshotOperations" class="com.emc.storageos.volumecontroller.impl.vnxe.VNXeSnapshotOperation">
+        <property name="dbClient" ref="dbclient"/>
+        <property name="nameGenerator" ref="defaultNameGenerator"/>
+        <property name="vnxeApiClientFactory" ref="vnxeApiClientFactory"/>
+    </bean>
+    
+    <bean id="vnxunitySnapshotOperations" class="com.emc.storageos.volumecontroller.impl.vnxunity.VNXUnitySnapshotOperations">
         <property name="dbClient" ref="dbclient"/>
         <property name="nameGenerator" ref="defaultNameGenerator"/>
         <property name="vnxeApiClientFactory" ref="vnxeApiClientFactory"/>
@@ -568,6 +582,11 @@
         <property name="dbClient" ref="dbclient"/>
         <property name="vnxeApiClientFactory" ref="vnxeApiClientFactory"/>
     </bean>
+    
+    <bean id="vnxunityExportMaskOperationsHelper" class="com.emc.storageos.volumecontroller.impl.vnxunity.VNXUnityExportOperations">
+        <property name="dbClient" ref="dbclient"/>
+        <property name="vnxeApiClientFactory" ref="vnxeApiClientFactory"/>
+    </bean>
 
     <bean id="blockcontroller" class="com.emc.storageos.volumecontroller.impl.BlockControllerImpl">
         <property name="dispatcher" ref="dispatcher"/>
@@ -825,7 +844,7 @@
                 <entry key="netapp" value-ref="netappFileDevice"/>
                 <entry key="netappc" value-ref="netappcFileDevice"/>
                 <entry key="vnxe" value-ref="vnxeDevice"/>
-		<entry key="vnxunity" value-ref="vnxUnityFileDevice"/>
+				<entry key="vnxunity" value-ref="vnxUnityFileDevice"/>
                 <entry key="datadomain" value-ref="datadomainDevice"/>
             </map>
         </property>
@@ -891,6 +910,13 @@
             <property name="nameGenerator" ref="defaultNameGenerator"/>
     </bean>
 
+	<bean id="vnxunityDevice" class="com.emc.storageos.volumecontroller.impl.vnxunity.VNXUnityBlockStorageDevice">
+            <property name="dbClient" ref="dbclient"/>
+            <property name="vnxeApiClientFactory" ref="vnxeApiClientFactory"/>
+            <property name="nameGenerator" ref="defaultNameGenerator"/>
+            <property name="exportMaskOperationsHelper" ref="vnxunityExportMaskOperationsHelper"/>
+            <property name="snapshotOperations" ref="vnxunitySnapshotOperations"/>
+    </bean>
 
     <bean id="netappFileDevice" class="com.emc.storageos.volumecontroller.impl.netapp.NetAppFileStorageDevice">
         <property name="dbClient" ref="dbclient"/>
@@ -916,6 +942,7 @@
                 <entry key="openstack" value-ref="cinderStorageDevice"/>
                 <entry key="scaleio" value-ref="scaleioStorageDevice"/>
                 <entry key="vnxe" value-ref="vnxeDevice"/>
+                <entry key="vnxunity" value-ref="vnxunityDevice"/>
                 <entry key="xtremio" value-ref="xtremioStorageDevice"/>
                 <entry key="ibmxiv" value-ref="xivSmisDevice"/>
                 <entry key="externaldevice" value-ref="externalBlockStorageDevice"/>
@@ -931,6 +958,7 @@
                 <entry key="vmax" value-ref="vmaxSmisDevice"/>
                 <entry key="vnxblock" value-ref="vnxSmisDevice"/>
                 <entry key="vnxe" value-ref="vnxeDevice"/>
+                <entry key="vnxunity" value-ref="vnxunityDevice"/>
                 <entry key="ibmxiv" value-ref="xivSmisDevice"/>
             </map>
         </property>
@@ -944,6 +972,7 @@
                 <entry key="vmax" value-ref="vmaxMaskingOrchestrator"/>
                 <entry key="vnxblock" value-ref="vnxMaskingOrchestrator"/>
                 <entry key="vnxe" value-ref="vnxeMaskingOrchestrator"/>
+                <entry key="vnxunity" value-ref="vnxunityMaskingOrchestrator"/>
                 <entry key="vplex" value-ref="vplexDeviceController"/>
                 <entry key="hds" value-ref="hdsMaskingOrchestrator"/>
                 <entry key="openstack" value-ref="cinderMaskingOrchestrator"/>

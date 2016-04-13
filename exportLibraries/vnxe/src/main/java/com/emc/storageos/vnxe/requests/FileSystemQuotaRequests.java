@@ -80,6 +80,7 @@ public class FileSystemQuotaRequests extends KHRequests<VNXUnityTreeQuota> {
         _logger.info("delete quota with ID: " + quotaId);
         setQueryParameters(null);
         if (getDataForOneObject(VNXUnityTreeQuota.class) != null) {
+            unsetQueryParameters();
             return deleteRequestAsync(null);
         } else {
             throw VNXeException.exceptions.vnxeCommandFailed(String.format("No filesystem quota with id: %s found",
@@ -103,10 +104,12 @@ public class FileSystemQuotaRequests extends KHRequests<VNXUnityTreeQuota> {
     public VNXeCommandJob updateFileSystemQuotaAsync(String quotaId, FileSystemQuotaModifyParam param)
             throws VNXeException {
         _logger.info("Async update quota with ID: " + quotaId);
+        unsetQueryParameters();
         MultivaluedMap<String, String> queryParams = new MultivaluedMapImpl();
         queryParams.add(VNXeConstants.TIMEOUT, "0");
-        setQueryParameters(queryParams);
         VNXUnityTreeQuota quota = getFileSystemQuota(quotaId);
+        unsetQueryParameters();
+        setQueryParameters(queryParams);
         _url = URL_INSTANCE + quota.getId() + URL_MODIFY;
         return postRequestAsync(param);
 
@@ -125,14 +128,16 @@ public class FileSystemQuotaRequests extends KHRequests<VNXUnityTreeQuota> {
     /**
      * Get quota details by it's name
      * 
-     * @param Id
-     *            id
+     * @param fsId
+     *            id of associated fs
+     * @param quotaName
+     *            name of the quota
      * @return the quota object
      */
     public VNXUnityTreeQuota getByName(String fsId, String quotaName) {
         MultivaluedMap<String, String> queryParams = new MultivaluedMapImpl();
-        queryParams.add(VNXeConstants.FILTER, VNXeConstants.PATH_FILTER + "/" + "\"" + quotaName + "\"");
-        queryParams.add(VNXeConstants.FILTER, VNXeConstants.FILE_SYSTEM_FILTER_V31 + "\"" + fsId + "\"");
+        queryParams.add(VNXeConstants.FILTER, VNXeConstants.PATH_FILTER + "\"" + "/" + quotaName + "\"" + " and "
+                + VNXeConstants.FILE_SYSTEM_FILTER_V31 + "\"" + fsId + "\"");
         setQueryParameters(queryParams);
         VNXUnityTreeQuota result = null;
         _url = URL;
@@ -154,7 +159,6 @@ public class FileSystemQuotaRequests extends KHRequests<VNXUnityTreeQuota> {
      */
     public VNXUnityTreeQuota getFileSystemQuota(String quotaId) {
         _url = URL_INSTANCE + quotaId;
-        setQueryParameters(null);
         _logger.info("getting data for quota: " + quotaId);
         return getDataForOneObject(VNXUnityTreeQuota.class);
 

@@ -15,6 +15,7 @@ import org.slf4j.LoggerFactory;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.FileShare;
 import com.emc.storageos.db.client.model.QuotaDirectory;
+import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.vnxe.VNXeApiClient;
 import com.emc.storageos.vnxe.models.VNXUnityTreeQuota;
@@ -104,28 +105,35 @@ public class VNXUnityCreateFileSystemQuotaDirectoryJob extends VNXeJob {
             StringBuilder logMsgBuilder, VNXeApiClient vnxeApiClient) {
 
         VNXUnityTreeQuota vnxUnityQuota = null;
-        vnxUnityQuota = vnxeApiClient.getQuotaByName(quotaObj.getParent().getName(), quotaObj.getName());
-        if (vnxUnityQuota != null) {
-            quotaObj.setInactive(false);
-            quotaObj.setCreationTime(Calendar.getInstance());
-            quotaObj.setNativeId(vnxUnityQuota.getId());
-            String path = "/" + quotaObj.getName();
-            quotaObj.setPath(path);
-            try {
-                quotaObj.setNativeGuid(NativeGUIDGenerator.generateNativeGuid(dbClient, quotaObj, quotaObj.getParent().getName()));
-            } catch (IOException e) {
+        try {
+            FileShare fs = dbClient.queryObject(FileShare.class, quotaObj.getParent().getURI());
+            vnxUnityQuota = vnxeApiClient.getQuotaByName(fs.getNativeId(), quotaObj.getName());
+            if (vnxUnityQuota != null) {
+                quotaObj.setInactive(false);
+                quotaObj.setCreationTime(Calendar.getInstance());
+                quotaObj.setNativeId(vnxUnityQuota.getId());
+                String path = "/" + quotaObj.getName();
+                quotaObj.setPath(path);
+                try {
+                    quotaObj.setNativeGuid(NativeGUIDGenerator.generateNativeGuid(dbClient, quotaObj, quotaObj.getParent().getName()));
+                } catch (IOException e) {
+                    logMsgBuilder.append("/n");
+                    logMsgBuilder.append("Exception while setting quota's nativeGuid");
+                    logMsgBuilder.append(e.getMessage());
+                }
                 logMsgBuilder.append("/n");
-                logMsgBuilder.append("Exception while setting quota's nativeGuid");
-                logMsgBuilder.append(e.getMessage());
+                logMsgBuilder.append(String.format(
+                        "Create file system quota directory successfully for NativeId: %s, URI: %s", quotaObj.getNativeId(),
+                        getTaskCompleter().getId()));
+                dbClient.updateObject(quotaObj);
+            } else {
+                logMsgBuilder.append("Could not get newly created quota directory in the VNXe, using the quota name: ");
+                logMsgBuilder.append(quotaObj.getName());
             }
+        } catch (DatabaseException e) {
             logMsgBuilder.append("/n");
-            logMsgBuilder.append(String.format(
-                    "Create file system quota directory successfully for NativeId: %s, URI: %s", quotaObj.getNativeId(),
-                    getTaskCompleter().getId()));
-            dbClient.updateObject(quotaObj);
-        } else {
-            logMsgBuilder.append("Could not get newly created quota directory in the VNXe, using the quota name: ");
-            logMsgBuilder.append(quotaObj.getName());
+            logMsgBuilder.append("Exception while querying associated fs from the db:");
+            logMsgBuilder.append(e.getMessage());
         }
     }
 

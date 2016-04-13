@@ -604,8 +604,13 @@ public class TenantsService extends TaggedResource {
             // root can not be deleted
             throw APIException.badRequests.resourceCannotBeDeleted("Root tenant");
         }
+        List<Class<? extends DataObject>> excludeTypes = null;
+        if (!StringUtils.isEmpty(tenant.getNamespace()) && "null".equals(tenant.getNamespace())) {
+            excludeTypes = Lists.newArrayList();
+            excludeTypes.add(ObjectNamespace.class);
+        }
 
-        ArgValidator.checkReference(TenantOrg.class, id, checkForDelete(tenant));
+        ArgValidator.checkReference(TenantOrg.class, id, checkForDelete(tenant, excludeTypes));
 
         _dbClient.markForDeletion(tenant);
 

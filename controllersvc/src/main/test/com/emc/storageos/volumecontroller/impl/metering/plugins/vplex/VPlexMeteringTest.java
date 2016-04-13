@@ -79,7 +79,7 @@ public class VPlexMeteringTest {
     private final static String HOST = EnvConfig.get(SANITY, VPLEX_HOST);
     private final static String USERNAME = EnvConfig.get(SANITY, VPLEX_USERNAME);
     private final static String PASSWORD = EnvConfig.get(SANITY, VPLEX_PASSWORD);
-    private final static String[] DIRECTORS = EnvConfig.get(SANITY, VPLEX_DIRECTORS).split(",");
+    private final static String DIRECTORS = EnvConfig.get(SANITY, VPLEX_DIRECTORS);
     private final static int PORT_PER_DIRECTOR = Integer.valueOf(EnvConfig.get(SANITY, VPLEX_PORTS_PER_DIRECTOR));
 
     private static boolean alreadyPrinted = false;
@@ -185,7 +185,8 @@ public class VPlexMeteringTest {
         mockDbClient.MOCK_DB.put(storageSystem.getId(), storageSystem);
 
         int directorIndex = 1;
-        for (String directorName : DIRECTORS) {
+        String directors[] = DIRECTORS.split(",");
+        for (String directorName : directors) {
             int adapterIndex = (directorIndex % 2);
             String aOrB = directorName.substring(directorName.length() - 1);
             String adapterSerial = String.format("CF23K00000%d%d", directorIndex, adapterIndex);

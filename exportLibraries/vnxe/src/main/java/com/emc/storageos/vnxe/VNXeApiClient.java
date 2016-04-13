@@ -25,6 +25,7 @@ import com.emc.storageos.vnxe.models.CifsShareCreateForSnapParam;
 import com.emc.storageos.vnxe.models.CifsShareCreateParam;
 import com.emc.storageos.vnxe.models.CifsShareDeleteParam;
 import com.emc.storageos.vnxe.models.CifsShareParam;
+import com.emc.storageos.vnxe.models.ConsistencyGroupCreateParam;
 import com.emc.storageos.vnxe.models.CreateFileSystemParam;
 import com.emc.storageos.vnxe.models.Disk;
 import com.emc.storageos.vnxe.models.DiskGroup;
@@ -55,6 +56,7 @@ import com.emc.storageos.vnxe.models.NfsShareModifyForShareParam;
 import com.emc.storageos.vnxe.models.NfsShareModifyParam;
 import com.emc.storageos.vnxe.models.NfsShareParam;
 import com.emc.storageos.vnxe.models.NfsShareParam.NFSShareDefaultAccessEnum;
+import com.emc.storageos.vnxe.models.ReplicationParam;
 import com.emc.storageos.vnxe.models.StorageResource;
 import com.emc.storageos.vnxe.models.StorageResource.TieringPolicyEnum;
 import com.emc.storageos.vnxe.models.VNXUnityQuotaConfig;
@@ -92,6 +94,7 @@ import com.emc.storageos.vnxe.requests.BasicSystemInfoRequest;
 import com.emc.storageos.vnxe.requests.BlockLunRequests;
 import com.emc.storageos.vnxe.requests.CifsServerListRequest;
 import com.emc.storageos.vnxe.requests.CifsShareRequests;
+import com.emc.storageos.vnxe.requests.ConsistencyGroupRequests;
 import com.emc.storageos.vnxe.requests.DeleteStorageResourceRequest;
 import com.emc.storageos.vnxe.requests.DiskGroupRequests;
 import com.emc.storageos.vnxe.requests.DiskRequest;
@@ -2253,5 +2256,164 @@ public class VNXeApiClient {
         FileSystemQuotaConfigRequests req = new FileSystemQuotaConfigRequests(_khClient);
         return req.getFileSystemQuotaConfig(quotaConfigId);
     }
+    
+    /**
+     * Create consistency group for VNX Unity
+     * 
+     * @param name consistency group name
+     * @return VNXeCommmandResult, with the consistency group id.
+     */
+    public VNXeCommandResult createConsistencyGroup(String name) {
+        ConsistencyGroupCreateParam param = new ConsistencyGroupCreateParam();
+        param.setName(name);
+        ReplicationParam replicaparm = new ReplicationParam();
+        replicaparm.setIsReplicationDestination(false);
+        param.setReplicationParameters(replicaparm);
+        ConsistencyGroupRequests req = new ConsistencyGroupRequests(_khClient);
+        return req.createConsistencyGroup(param);
+    }
+
+    /**
+     * Add luns to consistency group
+     * @param cgId consistency group Id
+     * @param luns luns to be added into the consistency group
+     * 
+     */
+    public VNXeCommandResult addLunsToConsistencyGroup(String cgId, List<String> luns) {
+        LunGroupModifyParam param = new LunGroupModifyParam();
+        List<LunAddParam> lunAdds = new ArrayList<LunAddParam>();
+        for (String lunId : luns) {
+            VNXeBase lun = new VNXeBase(lunId);
+            LunAddParam lunAdd = new LunAddParam();
+            lunAdd.setLun(lun);
+            lunAdds.add(lunAdd);
+        }
+        param.setLunAdd(lunAdds);
+        ConsistencyGroupRequests req = new ConsistencyGroupRequests(_khClient);
+        return req.modifyConsistencyGroupSync(cgId, param);
+
+    }
+
+    /**
+     * Remove luns from the consistency group
+     * 
+     * @param cgId lun group id
+     * @param luns list of lun IDs
+     * @return
+     */
+    public VNXeCommandResult removeLunsFromConsistencyGroup(String cgId, List<String> luns) {
+        LunGroupModifyParam param = new LunGroupModifyParam();
+        List<LunAddParam> lunRemoves = new ArrayList<LunAddParam>();
+        for (String lunId : luns) {
+            VNXeBase lun = new VNXeBase(lunId);
+            LunAddParam lunAdd = new LunAddParam();
+            lunAdd.setLun(lun);
+            lunRemoves.add(lunAdd);
+        }
+        param.setLunRemove(lunRemoves);
+        ConsistencyGroupRequests req = new ConsistencyGroupRequests(_khClient);
+        return req.modifyConsistencyGroupSync(cgId, param);
+    }
+
+    /**
+     * Delete luns from consistency group
+     * 
+     * @param cgId
+     * @param luns
+     * @return
+     */
+    public VNXeCommandResult deleteLunsFromConsistencyGroup(String cgId, List<String> luns) {
+        LunGroupModifyParam param = new LunGroupModifyParam();
+        List<LunAddParam> lunDelete = new ArrayList<LunAddParam>();
+        for (String lunId : luns) {
+            VNXeBase lun = new VNXeBase(lunId);
+            LunAddParam lunAdd = new LunAddParam();
+            lunAdd.setLun(lun);
+            lunDelete.add(lunAdd);
+        }
+        param.setLunDelete(lunDelete);
+        ConsistencyGroupRequests req = new ConsistencyGroupRequests(_khClient);
+        return req.modifyConsistencyGroupSync(cgId, param);
+    }
+
+    /**
+     * Delete Consistency group.
+     * if isForceVolumeDeletion is true, it would delete all the volumes in the Consistency group
+     * and the Consistency group.
+     * if isForceVolumeDeletion is false, it would remove all the volumes from the Consistency group,
+     * then delete the Consistency group.
+     * 
+     * @param cgId
+     * @param isForceSnapDeletion if to delete snaps
+     * @param isForceVolumeDeletion if to delete all volumes in the CG
+     * @return
+     */
+    public VNXeCommandResult deleteConsistencyGroup(String cgId,
+            boolean isForceSnapDeletion, boolean isForceVolumeDeletion) {
+        if (isForceVolumeDeletion) {
+            DeleteStorageResourceRequest deleteReq = new DeleteStorageResourceRequest(_khClient);
+            return deleteReq.deleteLunGroup(cgId, isForceSnapDeletion);
+        } else {
+            BlockLunRequests lunReq = new BlockLunRequests(_khClient);
+            List<VNXeLun> luns = lunReq.getLunsInLunGroup(cgId);
+            if (luns != null && !luns.isEmpty()) {
+                List<String> lunIds = new ArrayList<String>();
+                for (VNXeLun lun : luns) {
+                    lunIds.add(lun.getId());
+                }
+                removeLunsFromConsistencyGroup(cgId, lunIds);
+            }
+            DeleteStorageResourceRequest deleteReq = new DeleteStorageResourceRequest(_khClient);
+            return deleteReq.deleteLunGroup(cgId, isForceSnapDeletion);
+        }
+    }
+    
+    /**
+     * Create multiple volumes in a lun group
+     * 
+     * @param names
+     * @param poolId
+     * @param size
+     * @param isThin
+     * @param tieringPolicy
+     * @param cgId
+     * @return
+     */
+    public VNXeCommandJob createLunsInConsistencyGroup(List<String> names, String poolId, Long size, boolean isThin,
+            String tieringPolicy, String cgId) {
+        _logger.info("creating luns in the consistencyGroup group: {}", cgId);
+        LunGroupModifyParam param = new LunGroupModifyParam();
+        List<LunCreateParam> lunCreates = new ArrayList<LunCreateParam>();
+        boolean isPolicyOn = false;
+        FastVPParam fastVP = new FastVPParam();
+        if (tieringPolicy != null && !tieringPolicy.isEmpty()) {
+            TieringPolicyEnum tierValue = TieringPolicyEnum.valueOf(tieringPolicy);
+            if (tierValue != null) {
+                fastVP.setTieringPolicy(tierValue.getValue());
+                isPolicyOn = true;
+
+            }
+        }
+
+        for (String lunName : names) {
+            LunParam lunParam = new LunParam();
+            lunParam.setIsThinEnabled(isThin);
+            lunParam.setSize(size);
+            lunParam.setPool(new VNXeBase(poolId));
+
+            LunCreateParam createParam = new LunCreateParam();
+            createParam.setName(lunName);
+            createParam.setLunParameters(lunParam);
+            if (isPolicyOn) {
+                lunParam.setFastVPParameters(fastVP);
+            }
+            lunCreates.add(createParam);
+        }
+        param.setLunCreate(lunCreates);
+        ConsistencyGroupRequests req = new ConsistencyGroupRequests(_khClient);
+        return req.modifyConsistencyGroupAsync(cgId, param);
+
+    }
+
 
 }

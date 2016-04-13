@@ -168,7 +168,7 @@ public class VNXUnityBlockStorageDevice extends VNXUnityOperations
                 BlockConsistencyGroup cgObj = dbClient.queryObject(BlockConsistencyGroup.class, cg);
         
                 String cgId = cgObj.getCgNameOnStorageSystem(storage.getId());
-                VNXeCommandJob job = apiClient.createLunsInLunGroup(volNames, storagePool.getNativeId(), vol.getCapacity(),
+                VNXeCommandJob job = apiClient.createLunsInConsistencyGroup(volNames, storagePool.getNativeId(), vol.getCapacity(),
                         vol.getThinlyProvisioned(), autoTierPolicyName, cgId);
                 jobs.add(job.getId());
             }
@@ -244,7 +244,6 @@ public class VNXUnityBlockStorageDevice extends VNXUnityOperations
         throws DeviceControllerException {
         logger.info("deleting volumes, array: {}", storageSystem.getSerialNumber());
         VNXeApiClient apiClient = getVnxUnityClient(storageSystem);
-        List<String> jobs = new ArrayList<String>();
         Map<String, List<String>> lunGroupMap = new HashMap<String, List<String>>();
         try {
             for (Volume volume : volumes) {
@@ -257,22 +256,21 @@ public class VNXUnityBlockStorageDevice extends VNXUnityOperations
                     }
                     lunIds.add(volume.getNativeId());
                 } else {
-                    VNXeCommandJob job = apiClient.deleteLun(volume.getNativeId(), true);
-                    jobs.add(job.getId());
+                    apiClient.deleteLunSync(volume.getNativeId(), false);
                 }
             }
         
             for (String lungroup : lunGroupMap.keySet()) {
                 List<String> lunIDs = lunGroupMap.get(lungroup);
-                VNXeCommandJob job = apiClient.deleteLunsFromLunGroup(lungroup, lunIDs);
-                jobs.add(job.getId());
+                apiClient.deleteLunsFromConsistencyGroup(lungroup, lunIDs);
             }
-        
-            VNXeDeleteVolumesJob deleteVolumesJob = new VNXeDeleteVolumesJob(jobs, storageSystem.getId(),
-                    completer);
-        
-            ControllerServiceImpl.enqueueJob(new QueueJob(deleteVolumesJob));
-        
+            
+            for (Volume vol : volumes) {
+                vol.setInactive(true);
+                dbClient.updateObject(vol);
+            }
+            completer.ready(dbClient);
+            
         } catch (VNXeException e) {
             logger.error("Delete volumes got the exception", e);
             completer.error(dbClient, e);
@@ -592,7 +590,7 @@ public class VNXUnityBlockStorageDevice extends VNXUnityOperations
         String label = nameGenerator.generate(tenantName, consistencyGroupObj.getLabel(),
                 consistencyGroupObj.getId().toString(), '-', VNXeConstants.MAX_NAME_LENGTH);
         try {
-            VNXeCommandResult result = apiClient.createLunGroup(label);
+            VNXeCommandResult result = apiClient.createConsistencyGroup(label);
             if (result.getStorageResource() != null) {
                 consistencyGroupObj.addSystemConsistencyGroup(storage.getId().toString(),
                         result.getStorageResource().getId());
@@ -602,6 +600,7 @@ public class VNXUnityBlockStorageDevice extends VNXUnityOperations
                 }
                 dbClient.updateObject(consistencyGroupObj);
                 taskCompleter.ready(dbClient);
+                logger.info("Consistency group {} created", label);
             } else {
                 logger.error("No storage resource Id returned");
                 consistencyGroupObj.setInactive(true);
@@ -636,7 +635,7 @@ public class VNXUnityBlockStorageDevice extends VNXUnityOperations
         }
         VNXeApiClient apiClient = getVnxUnityClient(storage);
         try {
-            apiClient.deleteLunGroup(replicationGroupName, false, false);
+            apiClient.deleteConsistencyGroup(replicationGroupName, false, false);
             URI systemURI = storage.getId();
             consistencyGroup.removeSystemConsistencyGroup(systemURI.toString(), replicationGroupName);
             if (markInactive) {
@@ -745,7 +744,7 @@ public class VNXUnityBlockStorageDevice extends VNXUnityOperations
             for (URI volume : blockObjects) {
                 luns.add(volume.toString());
             }
-            apiClient.addLunsToLunGroup(replicationGroupName, luns);
+            apiClient.addLunsToConsistencyGroup(replicationGroupName, luns);
             for (URI blockObjectURI : blockObjects) {
                 BlockObject blockObject = BlockObject.fetch(dbClient, blockObjectURI);
                 if (blockObject != null) {
@@ -784,7 +783,7 @@ public class VNXUnityBlockStorageDevice extends VNXUnityOperations
         try {
             List<String> luns = new ArrayList<String>();
             String lunGroupId = null;
-            // All volumes belongs to the same lun group.
+            // All volumes belongs to the same array consistency group.
             for (URI volume : blockObjects) {
                 BlockObject blockObject = BlockObject.fetch(dbClient, volume);
                 if (blockObject != null && !blockObject.getInactive() && !NullColumnValueGetter.isNullValue(blockObject.getReplicationGroupInstance())) {
@@ -794,7 +793,7 @@ public class VNXUnityBlockStorageDevice extends VNXUnityOperations
                     }
                 }
             }
-            apiClient.removeLunsFromLunGroup(lunGroupId, luns);
+            apiClient.removeLunsFromConsistencyGroup(lunGroupId, luns);
             taskCompleter.ready(dbClient);
             logger.info("Remove volumes from the consistency group successfully");
         } catch (Exception e) {

@@ -1280,6 +1280,7 @@ public class BlockConsistencyGroupService extends TaskResourceService {
                 && !systemType.equals(DiscoveredDataObject.Type.vnxblock.name())
                 && !systemType.equals(DiscoveredDataObject.Type.vmax.name())
                 && !systemType.equals(DiscoveredDataObject.Type.vnxe.name())
+                && !systemType.equals(DiscoveredDataObject.Type.vnxunity.name())
                 && !systemType.equals(DiscoveredDataObject.Type.ibmxiv.name())
                 && !systemType.equals(DiscoveredDataObject.Type.scaleio.name())
                 && !systemType.equals(DiscoveredDataObject.Type.xtremio.name())) {

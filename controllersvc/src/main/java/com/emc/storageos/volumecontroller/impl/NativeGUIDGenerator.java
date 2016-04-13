@@ -621,7 +621,8 @@ public class NativeGUIDGenerator {
             policyKey = SLO_POLICY;
         } else if (Type.vmax.name().equals(systemType)
                 || Type.vnxblock.name().equals(systemType)
-                || Type.vnxe.name().equals(systemType)) {
+                || Type.vnxe.name().equals(systemType)
+                || Type.vnxunity.name().equals(systemType)) {
             policyKey = FASTPOLICY;
         } else if (Type.hds.name().equals(systemType)) {
             policyKey = AUTO_TIERING_POLICY;

@@ -119,7 +119,7 @@ public class ApiClientTest {
         }
     }
 
-     @Test
+     //@Test
     public void createLun() {
         String name = "vipr-lun1";
         VNXeCommandJob job = apiClient.createLun(name, "pool_1", 2000000000L, true, null);
@@ -262,6 +262,12 @@ public class ApiClientTest {
             System.out.println(tier.getSizeTotal());
             System.out.println(VNXeUtils.convertDoubleSizeToViPRLong(tier.getSizeTotal()));
         }
+    }
+    
+    @Test
+    public void createConsistencyGroup() {
+        VNXeCommandResult result = apiClient.createConsistencyGroup("testGroup1");
+        System.out.println(result.getStorageResource().getId());
     }
 
 }

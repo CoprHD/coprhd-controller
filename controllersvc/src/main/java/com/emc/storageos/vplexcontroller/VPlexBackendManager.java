@@ -881,7 +881,7 @@ public class VPlexBackendManager {
     }
 
     /**
-     * For storage system types = [vnxblock, vnxe, openstack]
+     * For storage system types = [vnxblock, vnxe, vnxunity, openstack]
      * Masking should be done first and zoning step
      * has to be performed after the masking.
      * 
@@ -891,6 +891,7 @@ public class VPlexBackendManager {
     private boolean isMaskingFirst(StorageSystem array) {
         return (array.getSystemType().equals(DiscoveredDataObject.Type.vnxblock.name())
                 || array.getSystemType().equals(DiscoveredDataObject.Type.vnxe.name())
+                || array.getSystemType().equals(DiscoveredDataObject.Type.vnxunity.name())
                 || array.getSystemType().equals(DiscoveredDataObject.Type.openstack.name()));
 
     }

@@ -853,19 +853,26 @@
     	<property name="name" value="IsilonFileShareCustomPath"/>
        <property name="configType" value="SimpleValue"/>
         <property name="type" value="String"/>
-        <property name="constraints">
-            <list>
-                <ref bean="customPathValue"/>
-            </list>
-        </property>
         <property name="scope">
             <map>
-                <entry key="directoryPath" value="level0,level1,level2,level3,level4,level5"/>
+                <entry key="dirLevel0" value="Fixed0"/>
+                <entry key="dirLevel1" value="AccessZone,SystemAccessZone,Fixed1"/>
+                <entry key="dirLevel2" value="AccessZone,SystemAccessZone,ClusterName,ProjectName,Fixed2,VirtualPool,Usage,POD,Other2"/>
+                <entry key="dirLevel3" value="AccessZone,SystemAccessZone,ClusterName,ProjectName,Fixed3,VirtualPool,Usage,POD,Other3"/>
+                <entry key="dirLevel4" value="AccessZone,SystemAccessZone,ClusterName,ProjectName,Fixed4,VirtualPool,Usage,POD,Other4"/>
+                <entry key="dirLevel5" value="AccessZone,SystemAccessZone,ClusterName,ProjectName,Fixed5,VirtualPool,Usage,POD,Other5"/>
+                <entry key="dirLevel6" value="AccessZone,SystemAccessZone,ClusterName,ProjectName,Fixed6,VirtualPool,Usage,POD,Other6"/>
+                <entry key="dirLevel7" value="AccessZone,SystemAccessZone,ClusterName,ProjectName,Fixed7,VirtualPool,Usage,POD,Other7"/>
+                <entry key="dirLevel8" value="AccessZone,SystemAccessZone,ClusterName,ProjectName,Fixed8,VirtualPool,Usage,POD,Other8"/>
+                <entry key="dirLevel9" value="AccessZone,SystemAccessZone,ClusterName,ProjectName,Fixed9,VirtualPool,Usage,POD,Other9"/>
+                <entry key="dirLevel10" value="AccessZone,SystemAccessZone,ClusterName,ProjectName,Fixed10,VirtualPool,Usage,POD,Other10"/>
+                <entry key="dirLevel11" value="AccessZone,SystemAccessZone,ClusterName,ProjectName,Fixed11,VirtualPool,Usage,POD,Other11"/>
+                                                                                                          
             </map>
         </property>
         <property name="defaultValues">
             <map>
-                <entry key="level0" value="ifs"/>
+                <entry key="Fixed0" value="ifs"/>
             </map>
         </property>
     </bean>
@@ -1366,23 +1373,6 @@
         <property name="defaultValue" value="Lowest"/>
         <property name="description" value="The predefined value set"/>
     </bean>
-
-<bean id="customPathValue" class="com.emc.storageos.customconfigcontroller.PredefinedValuesConstraint">
-        <property name="predefinedValues">
-            <set>
-                <value>VirtualPool</value>
-                <value>ClusterName</value>
-                <value>AccessZone</value>
-                <value>ProjectName</value>
-                <value>POD</value>
-                <value>Fixed</value>
-                <value>Usage</value>
-            </set>
-        </property>
-        <property name="defaultValue" value="fixed"/>
-        <property name="description" value="The custom pathvalue set"/>
-    </bean>
-
 
     <bean id="minVolumeCountForMaskingView" class="com.emc.storageos.customconfigcontroller.MinConstraint">
         <property name="minVals">

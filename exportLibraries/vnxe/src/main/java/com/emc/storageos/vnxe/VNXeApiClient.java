@@ -2189,11 +2189,33 @@ public class VNXeApiClient {
         return req.updateFileSystemQuotaConfig(res.getId(), qcParam);
     }
 
+    /**
+     * delete tree quota
+     * 
+     * @param quotaId
+     *            native Id of the quota to be deleted
+     * @return VNXeCommandJob
+     * @throws VNXeException
+     */
     public VNXeCommandJob deleteQuotaDirectory(String quotaId) throws VNXeException {
         FileSystemQuotaRequests req = new FileSystemQuotaRequests(_khClient);
         return req.deleteFileSystemQuota(quotaId);
     }
 
+    /**
+     * update tree quota
+     *
+     * @param quotaId
+     *            Id of quota to be updated
+     * @param hardLimit
+     *            the provided hard limit
+     * @param softLimit
+     *            the provided soft limit
+     * @param softGrace
+     *            The provided grace period for soft limit
+     * @return VNXeCommandJob
+     * @throws VNXeException
+     */
     public VNXeCommandJob updateQuotaDirectory(String quotaId, final Long hardLimit, final Long softLimit, final long softGrace)
             throws VNXeException {
         _logger.info("updating quota directory with ID: {} ", "/" + quotaId);
@@ -2252,6 +2274,16 @@ public class VNXeApiClient {
         _logger.info("Getting the quota {}: ", quotaConfigId);
         FileSystemQuotaConfigRequests req = new FileSystemQuotaConfigRequests(_khClient);
         return req.getFileSystemQuotaConfig(quotaConfigId);
+    }
+
+    /**
+     * Get all the Tree Quotas
+     * 
+     * @return List of all Tree Quotas
+     */
+    public List<VNXUnityTreeQuota> getAllTreeQuotas() {
+        FileSystemQuotaRequests req = new FileSystemQuotaRequests(_khClient);
+        return req.get();
     }
 
 }

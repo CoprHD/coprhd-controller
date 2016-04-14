@@ -1996,23 +1996,38 @@ public class RPHelper {
                 continue;
             }
 
-            if (!URIUtil.identical(cgVolume.getVirtualArray(), varrayId)) {
+            boolean isMetroPoint = RPHelper.isMetroPointVolume(dbClient, cgVolume); 
+            
+            if (!URIUtil.identical(cgVolume.getVirtualArray(), varrayId) && !isMetroPoint) {
                 continue;
             }
 
+            // If we're looking for a production RP copy name, it's easy if it's non-MP.  Just grab the source's RP copy name.
+            // But for MP we need to dig deeper in the associated volumes since each associated volume has a different varray and
+            // a different RP copy name.
             if (cgVolume.getPersonality().equalsIgnoreCase(PersonalityTypes.SOURCE.toString()) && productionCopy) {
-                return cgVolume.getRpCopyName();
+                if (!isMetroPoint) {
+                    // If we're looking for the production RP copy name, and this isn't MP, just grab it from the source volume.
+                    return cgVolume.getRpCopyName();
+                } else {
+                    // If the volume is MetroPoint, check for varrayId in the associated volumes since their RP Copy names will be different.
+                    if (cgVolume.getAssociatedVolumes() != null) {
+                        for (String assocVolumeIdStr : cgVolume.getAssociatedVolumes()) {
+                            Volume associatedVolume = dbClient.queryObject(Volume.class, URI.create(assocVolumeIdStr));
+                            if (URIUtil.identical(associatedVolume.getVirtualArray(), varrayId)) {
+                                return associatedVolume.getRpCopyName();
+                            }
+                        }
+                    }
+                }
             }
 
-            if (cgVolume.getPersonality().equalsIgnoreCase(PersonalityTypes.TARGET.toString()) && !productionCopy) {
+            if (!isMetroPoint && cgVolume.getPersonality().equalsIgnoreCase(PersonalityTypes.TARGET.toString()) && !productionCopy) {
                 return cgVolume.getRpCopyName();
             }
             
-            // The case of standby production copy; there is no source production volume for this specific varray
-            if (cgVolume.getPersonality().equalsIgnoreCase(PersonalityTypes.METADATA.toString()) && productionCopy) {
-                return cgVolume.getRpCopyName();
-            }
         }
+
         return null;
     }
 

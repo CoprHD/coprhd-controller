@@ -28,6 +28,15 @@ public class FileSystemQuotaConfigRequests extends KHRequests<VNXUnityQuotaConfi
         _url = URL;
     }
 
+    /**
+     * update the specific file system quotaConfig
+     * 
+     * @param quotaConfigId
+     *            Id of the quota config to be updated
+     * @param param
+     *            FileSystemQuotaConfigParam
+     * @return VNXeCommandJob
+     */
     public VNXeCommandJob updateFileSystemQuotaConfig(String quotaConfigId, FileSystemQuotaConfigParam param) {
         _url = URL_INSTANCE + quotaConfigId + URL_MODIFY;
         MultivaluedMap<String, String> queryParams = new MultivaluedMapImpl();
@@ -41,7 +50,9 @@ public class FileSystemQuotaConfigRequests extends KHRequests<VNXUnityQuotaConfi
     /**
      * Get the specific file system quotaConfig's details
      * 
-     * @return
+     * @param quotaConfigId
+     *            Id of the quota config to be updated
+     * @return VNXUnityQuotaConfig - quotaConfig Object
      */
     public VNXUnityQuotaConfig getFileSystemQuotaConfig(String quotaConfigId) throws VNXeException {
         _url = URL_INSTANCE + quotaConfigId;

@@ -35,10 +35,15 @@ public class FileSystemQuotaRequests extends KHRequests<VNXUnityTreeQuota> {
         _fields = FIELDS;
     }
 
+    public List<VNXUnityTreeQuota> get() {
+        _queryParams = null;
+        return getDataForObjects(VNXUnityTreeQuota.class);
+    }
+
     /**
      * create file system quota in async mode
      * 
-     * @param param:
+     * @param param
      *            FileSystemQuotaCreateParam
      * @return VNXeCommandJob
      * @throws VNXeException
@@ -55,7 +60,7 @@ public class FileSystemQuotaRequests extends KHRequests<VNXUnityTreeQuota> {
     /**
      * create file system quota in sync mode
      * 
-     * @param param:
+     * @param param
      *            FileSystemQuotaCreateParam
      * @return VNXeCommandJob
      * @throws VNXeException
@@ -89,6 +94,16 @@ public class FileSystemQuotaRequests extends KHRequests<VNXUnityTreeQuota> {
 
     }
 
+    /**
+     * update file system quota in sync mode
+     * 
+     * @param quotaId
+     *            Id of the quota
+     * @param param
+     *            FileSystemQuotaModifyParam
+     * @return VNXeCommandResult
+     * @throws VNXeException
+     */
     public VNXeCommandResult updateFileSystemQuotaSync(String quotaId, FileSystemQuotaModifyParam param)
             throws VNXeException {
         _logger.info("Sync update quota with ID: " + quotaId);
@@ -101,6 +116,16 @@ public class FileSystemQuotaRequests extends KHRequests<VNXUnityTreeQuota> {
 
     }
 
+    /**
+     * update file system quota in Async mode
+     * 
+     * @param quotaId
+     *            Id of the quota
+     * @param param
+     *            FileSystemQuotaModifyParam
+     * @return VNXeCommandResult
+     * @throws VNXeException
+     */
     public VNXeCommandJob updateFileSystemQuotaAsync(String quotaId, FileSystemQuotaModifyParam param)
             throws VNXeException {
         _logger.info("Async update quota with ID: " + quotaId);
@@ -115,6 +140,16 @@ public class FileSystemQuotaRequests extends KHRequests<VNXUnityTreeQuota> {
 
     }
 
+    /**
+     * update file system quota config
+     * 
+     * @param quotaId
+     *            Id of the quota whose quota config is to updated
+     * @param param
+     *            FileSystemQuotaConfigParam
+     * @return VNXeCommandResult
+     * @throws VNXeException
+     */
     public VNXeCommandJob updateFileSystemQuotaConfig(String quotaId, FileSystemQuotaConfigParam param) throws VNXeException {
         VNXUnityTreeQuota quotaObj = null;
         if (quotaId != null) {
@@ -132,7 +167,7 @@ public class FileSystemQuotaRequests extends KHRequests<VNXUnityTreeQuota> {
      *            id of associated fs
      * @param quotaName
      *            name of the quota
-     * @return the quota object
+     * @return VNXUnityTreeQuota - the quota object
      */
     public VNXUnityTreeQuota getByName(String fsId, String quotaName) {
         MultivaluedMap<String, String> queryParams = new MultivaluedMapImpl();
@@ -155,7 +190,9 @@ public class FileSystemQuotaRequests extends KHRequests<VNXUnityTreeQuota> {
     /**
      * Get the specific file system quota's details
      * 
-     * @return
+     * @param quotaId
+     *            Id of the quota
+     * @return VNXUnityTreeQuota - the quota object
      */
     public VNXUnityTreeQuota getFileSystemQuota(String quotaId) {
         _url = URL_INSTANCE + quotaId;

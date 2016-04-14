@@ -128,6 +128,39 @@ public class QuotaCommands {
             throw createError(elem, e);
         }
     }
+    
+    public List<Quota> getTreeQuotas() {
+        return getQuotas();
+    }
+
+    public List<Quota> getQuotas() {
+        NaElement elem = new NaElement("quota-list-entries-iter");
+        try {
+            List<Quota> quotas = Lists.newArrayList();
+            NaElement result = server.invokeElem(elem);
+            for (NaElement quotaElem : (List<NaElement>) result.getChildByName("attributes-list").getChildren()) {
+                Quota quota = new Quota();
+                quota.setVolume(quotaElem.getChildContent("volume"));
+                quota.setQuotaTarget(quotaElem.getChildContent("quota-target"));
+                quota.setQuotaType(quotaElem.getChildContent("quota-type"));
+                quota.setQtree(quotaElem.getChildContent("tree"));
+                quota.setDiskLimit(quotaElem.getChildContent("disk-limit"));
+                quota.setFileLimit(quotaElem.getChildContent("file-limit"));
+                quota.setSoftDiskLimit(quotaElem.getChildContent("soft-disk-limit"));
+                quota.setSoftFileLimit(quotaElem.getChildContent("soft-file-limit"));
+                quota.setThreshold(quotaElem.getChildContent("threshold"));
+                quotas.add(quota);
+            }
+            return quotas;
+        } catch (NaAPIFailedException e) {
+            if (e.getErrno() == NaErrno.EQUOTADOESNOTEXIST) {
+                return null;
+            }
+            throw createError(elem, e);
+        } catch (Exception e) {
+            throw createError(elem, e);
+        }
+    }
 
     public void addDiskLimitTreeQuota(String volume, String path, long diskLimitInKB,
             long thresholdInKB) {

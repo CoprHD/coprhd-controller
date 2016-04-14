@@ -40,6 +40,7 @@ import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedCif
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedFSExport;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedFSExportMap;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedFileExportRule;
+import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedFileQuotaDirectory;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedFileSystem;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedFileSystem.SupportedFileSystemCharacterstics;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedFileSystem.SupportedFileSystemInformation;
@@ -47,6 +48,8 @@ import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedSMB
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedSMBShareMap;
 import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.model.file.FileExportUpdateParams.ExportSecurityType;
+import com.emc.storageos.netapp.NetAppApi;
+import com.emc.storageos.netapp.NetAppException;
 import com.emc.storageos.netappc.NetAppCException;
 import com.emc.storageos.netappc.NetAppClusterApi;
 import com.emc.storageos.plugins.AccessProfile;
@@ -63,6 +66,8 @@ import com.google.common.base.Joiner;
 import com.iwave.ext.netapp.AggregateInfo;
 import com.iwave.ext.netapp.model.ExportsHostnameInfo;
 import com.iwave.ext.netapp.model.ExportsRuleInfo;
+import com.iwave.ext.netapp.model.Qtree;
+import com.iwave.ext.netapp.model.Quota;
 import com.iwave.ext.netapp.model.SecurityRuleInfo;
 import com.iwave.ext.netappc.SVMNetInfo;
 import com.iwave.ext.netappc.StorageVirtualMachineInfo;
@@ -80,6 +85,7 @@ public class NetAppClusterModeCommIntf extends
     private static final int BYTESCONVERTER = 1024;
     private static final String TRUE = "true";
     private static final String FALSE = "false";
+    private static final String UNMANAGED_FILEQUOTADIR = "UnManagedFileQuotaDirectory";
     private static final String UNMANAGED_EXPORT_RULE = "UnManagedExportRule";
     private static final String UNMANAGED_SHARE_ACL = "UnManagedCifsShareACL";
     private static final Integer MAX_UMFS_RECORD_SIZE = 1000;
@@ -92,6 +98,8 @@ public class NetAppClusterModeCommIntf extends
     private static final String NFS = "NFS";
     private static final String SPACE_GUARANTEE_NONE = "none";
     private static final String VOLUME_STATE_OFFLINE = "offline";
+    private static final String VOL_ROOT = "/vol/";
+    private static final String ROOT_VOL = "/vol0";
 
     List<UnManagedFileExportRule> unManagedExportRulesInsert = null;
     List<UnManagedFileExportRule> unManagedExportRulesUpdate = null;
@@ -169,6 +177,7 @@ public class NetAppClusterModeCommIntf extends
                         .equals(StorageSystem.Discovery_Namespaces.UNMANAGED_FILESYSTEMS
                                 .toString()))) {
             discoverUmanagedFileSystems(accessProfile);
+            discoverUmanagedFileQuotaDirectory(accessProfile);
             discoverUnManagedCifsShares(accessProfile);
             discoverUnManagedNewExports(accessProfile);
         } else {
@@ -367,7 +376,147 @@ public class NetAppClusterModeCommIntf extends
             }
         }
     }
+    
+    private void discoverUmanagedFileQuotaDirectory(AccessProfile profile) {
+        URI storageSystemId = profile.getSystemId();
 
+        StorageSystem storageSystem = _dbClient.queryObject(
+                StorageSystem.class, storageSystemId);
+
+        if (null == storageSystem) {
+            return;
+        }
+
+        NetAppClusterApi netAppCApi = new NetAppClusterApi.Builder(
+                storageSystem.getIpAddress(), storageSystem.getPortNumber(),
+                storageSystem.getUsername(), storageSystem.getPassword())
+                .https(true).build();
+        try {
+            // Retrieve all the qtree info.
+            List<Qtree> qtrees = netAppCApi.listQtrees();
+            List<Quota> quotas;
+            try {//Currently there are no API's available to check the quota status in general
+                quotas = netAppCApi.listQuotas();//TODO check weather quota is on before doing this call
+            } catch (Throwable e) {
+                _logger.error("Error while fetching quotas", e);
+                return;
+            }
+            if (quotas != null) {
+                Map<String, Qtree> qTreeNameQTreeMap = new HashMap<>();
+                qtrees.forEach(qtree -> {
+                    if (qtree.getQtree() != null && !qtree.getQtree().equals("")) {
+                        qTreeNameQTreeMap.put(qtree.getVolume() + qtree.getQtree(), qtree);
+                    }
+                });
+
+                List<UnManagedFileQuotaDirectory> unManagedFileQuotaDirectories = new ArrayList<>();
+                List<UnManagedFileQuotaDirectory> existingUnManagedFileQuotaDirectories = new ArrayList<>();
+
+                for (Quota quota : quotas) {
+                    if(quota.getQtree() == null) {
+                        continue;
+                    }
+                    String fsNativeId;
+                    if (quota.getVolume().startsWith(VOL_ROOT)) {
+                        fsNativeId = quota.getVolume();
+                    } else {
+                        fsNativeId = VOL_ROOT + quota.getVolume();
+                    }
+
+                    if (fsNativeId.contains(ROOT_VOL)) {
+                        _logger.info("Ignore and not discover root filesystem on NTP array");
+                        continue;
+                    }
+
+                    String fsNativeGUID = NativeGUIDGenerator.generateNativeGuid(storageSystem.getSystemType(),
+                            storageSystem.getSerialNumber(), fsNativeId);
+
+                    String nativeGUID = NativeGUIDGenerator.generateNativeGuidForQuotaDir(storageSystem.getSystemType(),
+                            storageSystem.getSerialNumber(), quota.getQtree(), quota.getVolume());
+                    
+                    String nativeUnmanagedGUID = NativeGUIDGenerator.generateNativeGuidForUnManagedQuotaDir(storageSystem.getSystemType(),
+                            storageSystem.getSerialNumber(), quota.getQtree(), quota.getVolume());
+                    if (checkStorageQuotaDirectoryExistsInDB(nativeGUID)) {
+                        continue;
+                    }
+
+                    UnManagedFileQuotaDirectory unManagedFileQuotaDirectory = new UnManagedFileQuotaDirectory();
+                    unManagedFileQuotaDirectory.setId(URIUtil.createId(UnManagedFileQuotaDirectory.class));
+                    unManagedFileQuotaDirectory.setLabel(quota.getQtree());
+                    unManagedFileQuotaDirectory.setNativeGuid(nativeUnmanagedGUID);
+                    unManagedFileQuotaDirectory.setParentFSNativeGuid(fsNativeGUID);
+                    if("enabled".equals(qTreeNameQTreeMap.get(quota.getVolume() + quota.getQtree()).getOplocks())) {
+                        unManagedFileQuotaDirectory.setOpLock(true);
+                    }
+                    unManagedFileQuotaDirectory.setSize(Long.valueOf(quota.getDiskLimit()));
+
+                    if (!checkUnManagedQuotaDirectoryExistsInDB(nativeUnmanagedGUID)) {
+                        unManagedFileQuotaDirectories.add(unManagedFileQuotaDirectory);
+                    } else {
+                        existingUnManagedFileQuotaDirectories.add(unManagedFileQuotaDirectory);
+                    }
+
+                }
+
+                if (!unManagedFileQuotaDirectories.isEmpty()) {
+                    _partitionManager.insertInBatches(unManagedFileQuotaDirectories,
+                            Constants.DEFAULT_PARTITION_SIZE, _dbClient,
+                            UNMANAGED_FILEQUOTADIR);
+                }
+
+                if (!existingUnManagedFileQuotaDirectories.isEmpty()) {
+                    _partitionManager.updateAndReIndexInBatches(existingUnManagedFileQuotaDirectories,
+                            Constants.DEFAULT_PARTITION_SIZE, _dbClient,
+                            UNMANAGED_FILEQUOTADIR);
+                }
+            }
+
+        } catch (NetAppException ve) {
+            if (null != storageSystem) {
+                cleanupDiscovery(storageSystem);
+            }
+            _logger.error("discoverStorage failed.  Storage system: "
+                    + storageSystemId);
+            throw ve;
+        } catch (Exception e) {
+            if (null != storageSystem) {
+                cleanupDiscovery(storageSystem);
+            }
+            _logger.error("discoverStorage failed. Storage system: "
+                    + storageSystemId, e);
+            throw NetAppException.exceptions.discoveryFailed(storageSystemId.toString(), e);
+        }
+    }
+
+    /**
+     * check Storage quotadir exists in DB
+     * 
+     * @param nativeGuid
+     * @return
+     * @throws IOException
+     */
+    private boolean checkStorageQuotaDirectoryExistsInDB(String nativeGuid)
+            throws IOException {
+        URIQueryResultList result = new URIQueryResultList();
+        _dbClient.queryByConstraint(AlternateIdConstraint.Factory
+                .getQuotaDirsByNativeGuid(nativeGuid), result);
+        if (result.iterator().hasNext()) {
+            return true;
+        }
+        return false;
+    }
+    
+    private boolean checkUnManagedQuotaDirectoryExistsInDB(String nativeGuid)
+            throws IOException {
+        URIQueryResultList result = new URIQueryResultList();
+        _dbClient.queryByConstraint(AlternateIdConstraint.Factory
+                .getUnManagedFileQuotaDirectoryInfoNativeGUIdConstraint(nativeGuid), result);
+        if (result.iterator().hasNext()) {
+            return true;
+        }
+        return false;
+    }
+    
     private void discoverUnManagedNewExports(AccessProfile profile) {
         URI storageSystemId = profile.getSystemId();
         StorageSystem storageSystem = _dbClient.queryObject(

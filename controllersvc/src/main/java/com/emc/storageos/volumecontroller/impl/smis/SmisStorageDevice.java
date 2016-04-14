@@ -93,7 +93,6 @@ import com.emc.storageos.volumecontroller.impl.block.taskcompleter.VolumeExpandC
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.VolumeTaskCompleter;
 import com.emc.storageos.volumecontroller.impl.job.QueueJob;
 import com.emc.storageos.volumecontroller.impl.providerfinders.FindProviderFactory;
-import com.emc.storageos.volumecontroller.impl.smis.job.SmisBlockSnapshotSessionDeleteJob;
 import com.emc.storageos.volumecontroller.impl.smis.job.SmisCleanupMetaVolumeMembersJob;
 import com.emc.storageos.volumecontroller.impl.smis.job.SmisCreateMultiVolumeJob;
 import com.emc.storageos.volumecontroller.impl.smis.job.SmisCreateVolumeJob;
@@ -611,7 +610,7 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
                     _log.info("Done invoking remove volume from storage group");
                 }
                 // For clones, 'replicationgroupinstance' property contains the Replication Group name.
-                if (volume.getReplicationGroupInstance() != null) {
+                if (NullColumnValueGetter.isNotNullValue(volume.getReplicationGroupInstance())) {
                     removeVolumeFromConsistencyGroup(storageSystem, volume);
                 }
                 if (volume.getConsistencyGroup() != null) {
@@ -1762,6 +1761,11 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
                     cleanupAnyGroupBackupSnapshots(storage, cgPath);
                 }
 
+                if (storage.checkIfVmax3()) {
+                    // if deleting snap session replication group, we need to remove the EMCSFSEntries first
+                    _helper.removeSFSEntryForReplicaReplicationGroup(storage, replicationSvc, replicationGroupName);
+                }
+
                 if (sourceReplicationGroup != null && !sourceReplicationGroup.isEmpty()) {
                     //  if deleting full copy replication group, we need to remove the EMCSFSEntries first
                     _helper.removeSFSEntryForReplicaReplicationGroup(storage, replicationSvc, replicationGroupName,
@@ -2500,7 +2504,7 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
             if (!storage.deviceIsType(Type.vnxblock)) {
                 BlockObject replica = BlockObject.fetch(_dbClient, blockObjects.get(0));
                 CIMObjectPath maskingGroupPath = _cimPath.getMaskingGroupPath(storage,
-                        _helper.extractGroupName(replica.getReplicationGroupInstance()),
+                        ControllerUtils.extractGroupName(replica.getReplicationGroupInstance()),
                         SmisConstants.MASKING_GROUP_TYPE.SE_DeviceMaskingGroup);
 
                 List<URI> replicasPartOfGroup = _helper.findVolumesInReplicationGroup(storage, maskingGroupPath, blockObjects);

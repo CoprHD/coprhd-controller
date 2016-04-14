@@ -47,7 +47,6 @@ import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.Task;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.Volume;
-import com.emc.storageos.db.client.model.Volume.PersonalityTypes;
 import com.emc.storageos.db.client.model.VplexMirror;
 import com.emc.storageos.db.client.model.util.TaskUtils;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
@@ -665,9 +664,6 @@ public class BlockServiceUtils {
                 storage = volume.getStorageController();
             }
 
-            // Don't allow snapshot sessions on single volumes that are in consistency groups, but don't have replication group instance set.
-            BlockServiceUtils.validateNotInCG(volume, dbClient, false);
-            
             if (NullColumnValueGetter.isNullValue(rgName)) {
                 throw APIException.badRequests.noRepGroupInstance(volume.getLabel());
             }
@@ -691,50 +687,4 @@ public class BlockServiceUtils {
         return snapshot;
     }
 
-    /**
-     * Ensure that we're not trying to create a snapshot on an individual volume
-     * that is keyed to only be used in CG based replications.
-     * 
-     * We want to throw an exception in the case where:
-     * 1. The volume is in a BlockConsistencyGroup and
-     * 2. The volume does not have a replicationGroupInstance
-     * 
-     * @param requestedVolume volume requested for snapshot
-     * @param dbclient db client
-     * @param requestedSnapshot backward compatibility check. Extra logic needed for snapshot requests
-     */
-    public static void validateNotInCG(BlockObject requestedVolume, DbClient dbClient, boolean requestedSnapshot) {
-        // If this volume isn't in a consistency group, it's valid
-        if (!requestedVolume.hasConsistencyGroup()) {
-            return;
-        }
-        
-        if (requestedVolume instanceof Volume) {
-            Volume volume = (Volume)requestedVolume;
-            // Backward compatibility:  We need to allow single-volume snapshotting of RP Target volumes
-            // for SRM/SRA support with previous versions of ViPR
-            if (requestedSnapshot && volume.checkPersonality(PersonalityTypes.TARGET.toString())) {
-                _log.warn("Backward compatibility mode: allowing snapshot of single volume for RP target");
-                return;
-            }
-
-            // If it's a VPLEX volume, check both backing volumes to make sure they have replication group instance set
-            if (volume.isVPlexVolume(dbClient)) {
-                Volume backendVolume = VPlexUtil.getVPLEXBackendVolume(volume, false, dbClient);
-                if (backendVolume != null && NullColumnValueGetter.isNullValue(backendVolume.getReplicationGroupInstance())) {
-                    throw APIException.badRequests.singleVolumeReplicationNotAllowedOnCG(backendVolume.getLabel());
-                }
-                backendVolume = VPlexUtil.getVPLEXBackendVolume(volume, true, dbClient);
-                if (backendVolume != null && NullColumnValueGetter.isNullValue(backendVolume.getReplicationGroupInstance())) {
-                    throw APIException.badRequests.singleVolumeReplicationNotAllowedOnCG(backendVolume.getLabel());
-                }
-                return;
-            }
-        }
-        
-        // Non-VPLEX, just check for replication group instance
-        if (NullColumnValueGetter.isNullValue(requestedVolume.getReplicationGroupInstance())) {
-            throw APIException.badRequests.singleVolumeReplicationNotAllowedOnCG(requestedVolume.getLabel());
-        }
-    }
 }

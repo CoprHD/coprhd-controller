@@ -618,7 +618,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
 
             StoragePortAssociationHelper.runUpdatePortAssociationsProcess(ports.get(NEW),
                     allExistPorts, _dbClient, _coordinator, poolsToMatchWithVpool);
-            // discover the access zone and it's network interfaces
+            // discover the access zone and its network interfaces
             discoverAccessZones(storageSystem);
 
             // Update the virtual nas association with virtual arrays!!!

@@ -8,15 +8,21 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
+import java.io.FileReader;
 import java.io.FilenameFilter;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
-import java.io.FileReader;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.Date;
+import java.util.List;
+import java.util.Properties;
 import java.util.regex.Pattern;
 
 import org.apache.commons.lang.StringUtils;
@@ -240,7 +246,7 @@ public class FileUtils {
 
     /**
      * Returns an array of abstract pathnames denoting the files in the
-     * directory denoted by this abstract pathname and it's sub directories
+     * directory denoted by this abstract pathname and its sub directories
      *
      * @param directory the directory which file resides in
      */

@@ -102,6 +102,12 @@ public interface NetAppCExceptions {
 
     @DeclareServiceCode(ServiceCode.NETAPPC_ERROR)
     public NetAppCException listFileSystems(final String ip, final String message);
+    
+    @DeclareServiceCode(ServiceCode.NETAPPC_ERROR)
+    public NetAppCException listQtreesFailed(final String ip, final String message);
+    
+    @DeclareServiceCode(ServiceCode.NETAPPC_ERROR)
+    public NetAppCException listQuotasFailed(final String ip, final String message);
 
     @DeclareServiceCode(ServiceCode.NETAPPC_ERROR)
     public NetAppCException getFileSystemInfo(final String fileSystem,

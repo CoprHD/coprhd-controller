@@ -135,6 +135,7 @@ public class UploadExecutor {
             if (errMsg == null) {
                 log.info("Upload backup {} to {} successfully", tag, uploader.cfg.uploadUrl);
                 this.cfg.uploadedBackups.add(tag);
+                this.cfg.persist();
                 succUploads.add(tag);
             } else {
                 log.error("Upload backup {} to {} failed", tag, uploader.cfg.uploadUrl);
@@ -142,8 +143,6 @@ public class UploadExecutor {
                 errMsgs.add(errMsg);
             }
         }
-
-        this.cfg.persist();
 
         if (!succUploads.isEmpty()) {
             List<String> descParams = this.cli.getDescParams(StringUtils.join(succUploads, ", "));

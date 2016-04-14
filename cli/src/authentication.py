@@ -1,13 +1,22 @@
 #!/usr/bin/python
 
-# Copyright (c) 2012 EMC Corporation
-# All Rights Reserved
-#
-# This software contains the intellectual property of EMC Corporation
-# or is licensed to EMC Corporation from third parties.  Use of this
-# software and the intellectual property contained therein is expressly
-# limited to the terms and conditions of the License Agreement under which
-# it is provided by or on behalf of EMC.
+
+'''
+ * Copyright 2012 EMC Corporation
+ * Copyright 2016 Intel Corporation
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+'''
 
 import os
 import sys
@@ -308,7 +317,7 @@ class Authentication(object):
                                     searchkey, groupattr, name, domains,
                                     whitelist, searchscope, description,
                                     disable, validatecertificate, maxpagesize,
-                                    groupobjectclasses, groupmemberattributes):
+                                    groupobjectclasses, groupmemberattributes, autoRegCoprHDNImportOSProjects):
         '''
         Makes REST API call to add authentication provider
         specified user after validation.
@@ -326,7 +335,10 @@ class Authentication(object):
                  'name': name,
                  'description': description,
                  'disable': disable}
-        
+
+        if(autoRegCoprHDNImportOSProjects is not None and autoRegCoprHDNImportOSProjects is not ""):
+            parms['autoRegCoprHDNImportOSProjects'] = autoRegCoprHDNImportOSProjects
+
         if(searchbase is not None and searchbase is not ""):
             parms['search_base'] = searchbase
 
@@ -992,6 +1004,7 @@ def add_keystone_provider(config, sectioniter, obj, mode):
     disable = config.get(sectioniter, 'disable')
     groupattr = config.get(sectioniter, 'groupattr')
     domains = config.get(sectioniter, 'domains')
+    autoReg = config.get(sectioniter, 'autoRegCoprHDNImportOSProjects')
 
     if((url is "") or (managerdn is "") or (name is "") or
                 (description is "")):
@@ -1008,7 +1021,7 @@ def add_keystone_provider(config, sectioniter, obj, mode):
                 mode, url, None, managerdn, passwd_user, None,
                 None, None, groupattr, name, domains, None,
                 None, description, disable, None,
-                None, None, None)
+                None, None, None, autoReg)
 
 
 def add_other_provider(config, sectioniter, obj, mode):
@@ -1050,7 +1063,7 @@ def add_other_provider(config, sectioniter, obj, mode):
                                     searchbase, searchfilter, None, groupattr,
                                     name, domains, whitelist, searchscope,
                                     description, disable, None,
-                                    maxpagesize, groupobjectclassnames, groupmemberattributetypenames)
+                                    maxpagesize, groupobjectclassnames, groupmemberattributetypenames, None)
 
 
 

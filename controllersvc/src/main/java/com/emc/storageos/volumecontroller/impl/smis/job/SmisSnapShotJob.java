@@ -13,6 +13,7 @@ import javax.cim.CIMProperty;
 import javax.wbem.CloseableIterator;
 import javax.wbem.client.WBEMClient;
 
+import com.emc.storageos.volumecontroller.impl.smis.SmisUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -109,14 +110,7 @@ public class SmisSnapShotJob extends SmisJob {
     private void setSettingsInstance(StorageSystem storage, BlockSnapshot snapshot, String sourceElementId, String elementName,
             boolean createSession, DbClient dbClient) {
         if ((storage.checkIfVmax3()) && (createSession)) {
-            // SYMMETRIX-+-000196700567-+-<sourceElementId>-+-<elementName>-+-0
-            StringBuilder sb = new StringBuilder("SYMMETRIX");
-            sb.append(Constants.SMIS80_DELIMITER)
-                    .append(storage.getSerialNumber())
-                    .append(Constants.SMIS80_DELIMITER).append(sourceElementId)
-                    .append(Constants.SMIS80_DELIMITER).append(elementName)
-                    .append(Constants.SMIS80_DELIMITER).append("0");
-            snapshot.setSettingsInstance(sb.toString());
+            setSettingsInstance(storage, snapshot, sourceElementId, elementName);
 
             // If the flag so indicates create a BlockSnapshotSession instance to represent this
             // settings instance.
@@ -195,5 +189,11 @@ public class SmisSnapShotJob extends SmisJob {
         } else {
             dbClient.updateObject(session);
         }
+    }
+
+    private void setSettingsInstance(StorageSystem storage,
+            BlockSnapshot snapshot, String sourceElementId, String elementName) {
+        String instance = SmisUtils.generateVmax3SettingsInstance(storage, sourceElementId, elementName);
+        snapshot.setSettingsInstance(instance);
     }
 }

@@ -388,9 +388,6 @@ public class BlockFullCopyManager {
             // Verify the source is not an internal object.
             BlockServiceUtils.validateNotAnInternalBlockObject(fcSourceObj, false);
 
-            // Don't allow full copies on single volumes that are in consistency groups, but don't have replication group instance set
-            BlockServiceUtils.validateNotInCG(fcSourceObj, _dbClient, false);
-            
             // Update virtual pool map.
             VirtualPool vpool = BlockFullCopyUtils.queryFullCopySourceVPool(fcSourceObj, _dbClient);
             URI vpoolURI = vpool.getId();
@@ -696,7 +693,7 @@ public class BlockFullCopyManager {
         Volume fullCopyVolume = (Volume) resourceMap.get(fullCopyURI);
 
         if (!sourceVolume.hasConsistencyGroup() ||
-                fullCopyVolume.getReplicationGroupInstance() == null) {
+                NullColumnValueGetter.isNullValue(fullCopyVolume.getReplicationGroupInstance())) {
             // check if this is vplex
             if (!VPlexUtil.isBackendFullCopyInReplicationGroup(fullCopyVolume, _dbClient)) {
                 throw APIException.badRequests.blockObjectHasNoConsistencyGroup();

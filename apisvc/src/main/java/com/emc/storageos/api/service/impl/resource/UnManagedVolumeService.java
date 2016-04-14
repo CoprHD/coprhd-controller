@@ -372,7 +372,7 @@ public class UnManagedVolumeService extends TaskResourceService {
                 Set<DataObject> updatedObjects = requestContext.getDataObjectsToBeUpdatedMap().get(unManagedVolumeGUID);
                 if (updatedObjects != null && !updatedObjects.isEmpty()) {
                     for (DataObject dob : updatedObjects) {
-                        _logger.info("Updating DataObject " + dob.forDisplay());
+                        _logger.info("Updating DataObject {} (hash {})", dob.forDisplay(), dob.hashCode());
                         _dbClient.updateObject(dob);
                     }
                 }
@@ -381,14 +381,20 @@ public class UnManagedVolumeService extends TaskResourceService {
                 Set<DataObject> createdObjects = requestContext.getDataObjectsToBeCreatedMap().get(unManagedVolumeGUID);
                 if (createdObjects != null && !createdObjects.isEmpty()) {
                     for (DataObject dob : createdObjects) {
-                        _logger.info("Creating DataObject " + dob.forDisplay());
+                        _logger.info("Creating DataObject {} (hash {})", dob.forDisplay(), dob.hashCode());
                         _dbClient.createObject(dob);
                     }
                 }
             }
 
-            _dbClient.createObject(requestContext.getBlockObjectsToBeCreatedMap().values());
-            _dbClient.updateObject(requestContext.getUnManagedVolumesToBeDeleted());
+            for (BlockObject bo : requestContext.getBlockObjectsToBeCreatedMap().values()) {
+                _logger.info("Creating BlockObject {} (hash {})", bo.forDisplay(), bo.hashCode());
+                _dbClient.createObject(bo);
+            }
+            for (UnManagedVolume umv : requestContext.getUnManagedVolumesToBeDeleted()) {
+                _logger.info("Deleting UnManagedVolume {} (hash {})", umv.forDisplay(), umv.hashCode());
+                _dbClient.updateObject(umv);
+            }
 
             // record the events after they have been persisted
             for (BlockObject volume : requestContext.getBlockObjectsToBeCreatedMap().values()) {
@@ -640,7 +646,7 @@ public class UnManagedVolumeService extends TaskResourceService {
 
             // First ingest the block objects
             ingestBlockObjects(requestContext, taskMap);
-            _logger.info("Ingestion of unmanaged volumes ended....");
+            _logger.info("Ingestion of unmanaged volumes ended... about to start ingesting their exports.");
 
             // find or create ExportGroup for this set of volumes being ingested
             URI exportGroupResourceUri = null;
@@ -672,10 +678,10 @@ public class UnManagedVolumeService extends TaskResourceService {
             requestContext.setExportGroup(exportGroup);
 
             // next ingest the export masks for the unmanaged volumes which have been fully ingested
-            _logger.info("Ingestion of unmanaged exportmasks started....");
+            _logger.info("Ingestion of unmanaged exports started....");
             ingestBlockExportMasks(requestContext, taskMap);
 
-            _logger.info("Ingestion of unmanaged exportmasks ended....");
+            _logger.info("Ingestion of unmanaged exports ended....");
             taskList.getTaskList().addAll(taskMap.values());
 
             for (VolumeIngestionContext volumeContext : requestContext.getProcessedUnManagedVolumeMap().values()) {
@@ -686,14 +692,25 @@ public class UnManagedVolumeService extends TaskResourceService {
                 volumeContext.commit();
             }
 
-            _dbClient.createObject(requestContext.getObjectsIngestedByExportProcessing());
-            _dbClient.updateObject(requestContext.getUnManagedVolumesToBeDeleted());
+            for (BlockObject bo : requestContext.getObjectsIngestedByExportProcessing()) {
+                _logger.info("Creating BlockObject {} (hash {})", bo.forDisplay(), bo.hashCode());
+                _dbClient.createObject(bo);
+            }
+
+            for (UnManagedVolume umv : requestContext.getUnManagedVolumesToBeDeleted()) {
+                _logger.info("Deleting UnManagedVolume {} (hash {})", umv.forDisplay(), umv.hashCode());
+                _dbClient.updateObject(umv);
+            }
 
             // Update the related objects if any after successful export mask ingestion
             for (Set<DataObject> updatedObjects : requestContext.getDataObjectsToBeUpdatedMap().values()) {
                 if (updatedObjects != null && !updatedObjects.isEmpty()) {
                     for (DataObject dob : updatedObjects) {
-                        _logger.info("Updating DataObject " + dob.forDisplay());
+                        if (dob.getInactive()) {
+                            _logger.info("Deleting DataObject {} (hash {})", dob.forDisplay(), dob.hashCode());
+                        } else {
+                            _logger.info("Updating DataObject {} (hash {})", dob.forDisplay(), dob.hashCode());
+                        }
                         _dbClient.updateObject(dob);
                     }
                 }
@@ -703,17 +720,17 @@ public class UnManagedVolumeService extends TaskResourceService {
             for (Set<DataObject> createdObjects : requestContext.getDataObjectsToBeCreatedMap().values()) {
                 if (createdObjects != null && !createdObjects.isEmpty()) {
                     for (DataObject dob : createdObjects) {
-                        _logger.info("Creating DataObject " + dob.forDisplay());
+                        _logger.info("Creating DataObject {} (hash {})", dob.forDisplay(), dob.hashCode());
                         _dbClient.createObject(dob);
                     }
                 }
             }
 
             if (requestContext.isExportGroupCreated()) {
-                _logger.info("Creating ExportGroup " + exportGroup.forDisplay());
+                _logger.info("Creating ExportGroup {} (hash {})", exportGroup.forDisplay(), exportGroup.hashCode());
                 _dbClient.createObject(exportGroup);
             } else {
-                _logger.info("Updating ExportGroup " + exportGroup.forDisplay());
+                _logger.info("Updating ExportGroup {} (hash {})", exportGroup.forDisplay(), exportGroup.hashCode());
                 _dbClient.updateObject(exportGroup);
             }
 

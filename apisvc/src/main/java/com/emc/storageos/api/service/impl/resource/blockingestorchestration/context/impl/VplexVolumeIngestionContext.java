@@ -139,20 +139,25 @@ public class VplexVolumeIngestionContext extends VplexBackendIngestionContext im
             _dbClient.createObject(bo);
         }
 
-        for (Set<DataObject> dos : getDataObjectsToBeCreatedMap().values()) {
-            for (DataObject dob : dos) {
-                _logger.info("Creating DataObject {} (hash {})", dob.forDisplay(), dob.hashCode());
-                _dbClient.createObject(dob);
+        for (Set<DataObject> createdObjects : getDataObjectsToBeCreatedMap().values()) {
+            if (createdObjects != null && !createdObjects.isEmpty()) {
+                for (DataObject dob : createdObjects) {
+                    _logger.info("Creating DataObject {} (hash {})", dob.forDisplay(), dob.hashCode());
+                    _dbClient.createObject(dob);
+                }
             }
         }
-        for (Set<DataObject> dos : getDataObjectsToBeUpdatedMap().values()) {
-            for (DataObject dob : dos) {
-                if (dob.getInactive()) {
-                    _logger.info("Deleting DataObject {} (hash {})", dob.forDisplay(), dob.hashCode());
-                } else {
-                    _logger.info("Updating DataObject {} (hash {})", dob.forDisplay(), dob.hashCode());
+
+        for (Set<DataObject> updatedObjects : getDataObjectsToBeUpdatedMap().values()) {
+            if (updatedObjects != null && !updatedObjects.isEmpty()) {
+                for (DataObject dob : updatedObjects) {
+                    if (dob.getInactive()) {
+                        _logger.info("Deleting DataObject {} (hash {})", dob.forDisplay(), dob.hashCode());
+                    } else {
+                        _logger.info("Updating DataObject {} (hash {})", dob.forDisplay(), dob.hashCode());
+                    }
+                    _dbClient.updateObject(dob);
                 }
-                _dbClient.updateObject(dob);
             }
         }
 

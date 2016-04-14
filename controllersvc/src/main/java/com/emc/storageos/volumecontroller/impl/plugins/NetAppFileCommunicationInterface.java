@@ -45,6 +45,7 @@ import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedCif
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedFSExport;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedFSExportMap;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedFileExportRule;
+import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedFileQuotaDirectory;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedFileSystem;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedFileSystem.SupportedFileSystemCharacterstics;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedFileSystem.SupportedFileSystemInformation;
@@ -77,6 +78,8 @@ import com.iwave.ext.netapp.VFilerInfo;
 import com.iwave.ext.netapp.model.CifsAcl;
 import com.iwave.ext.netapp.model.ExportsHostnameInfo;
 import com.iwave.ext.netapp.model.ExportsRuleInfo;
+import com.iwave.ext.netapp.model.Qtree;
+import com.iwave.ext.netapp.model.Quota;
 import com.iwave.ext.netapp.model.SecurityRuleInfo;
 
 public class NetAppFileCommunicationInterface extends
@@ -92,6 +95,7 @@ public class NetAppFileCommunicationInterface extends
     private static final String NEW = "new";
     private static final String EXISTING = "existing";
     private static final String UNMANAGED_FILESYSTEM = "UnManagedFileSystem";
+    private static final String UNMANAGED_FILEQUOTADIR = "UnManagedFileQuotaDirectory";
     private static final String UNMANAGED_EXPORT_RULE = "UnManagedExportRule";
     private static final String UNMANAGED_SHARE_ACL = "UnManagedCifsShareACL";
     private static final String RO = "ro";
@@ -675,6 +679,7 @@ public class NetAppFileCommunicationInterface extends
                         .equals(StorageSystem.Discovery_Namespaces.UNMANAGED_FILESYSTEMS
                                 .toString()))) {
             discoverUmanagedFileSystems(accessProfile);
+            discoverUmanagedFileQuotaDirectory(accessProfile);
             // discoverUnManagedExports(accessProfile);
             discoverUnManagedNewExports(accessProfile);
             discoverUnManagedCifsShares(accessProfile);
@@ -857,6 +862,115 @@ public class NetAppFileCommunicationInterface extends
                     _logger.error("Error while persisting object to DB", ex);
                 }
             }
+        }
+    }
+    
+    private void discoverUmanagedFileQuotaDirectory(AccessProfile profile) {
+        URI storageSystemId = profile.getSystemId();
+
+        StorageSystem storageSystem = _dbClient.queryObject(
+                StorageSystem.class, storageSystemId);
+
+        if (null == storageSystem) {
+            return;
+        }
+
+        NetAppApi netAppApi = new NetAppApi.Builder(
+                storageSystem.getIpAddress(), storageSystem.getPortNumber(),
+                storageSystem.getUsername(), storageSystem.getPassword())
+                        .https(true).build();
+
+        try {
+            // Retrieve all the qtree info.
+            List<Qtree> qtrees = netAppApi.listQtrees();
+            List<Quota> quotas;
+            try {//Currently there are no API's available to check the quota status in general
+                quotas = netAppApi.listQuotas();//TODO check weather quota is on before doing this call
+            } catch (Throwable e) {
+                _logger.error("Error while fetching quotas", e);
+                return;
+            }
+            if (quotas != null) {
+                Map<String, Qtree> qTreeNameQTreeMap = new HashMap<>();
+                qtrees.forEach(qtree -> {
+                    if (qtree.getQtree() != null && !qtree.getQtree().equals("")) {
+                        qTreeNameQTreeMap.put(qtree.getVolume() + qtree.getQtree(), qtree);
+                    }
+                });
+
+                List<UnManagedFileQuotaDirectory> unManagedFileQuotaDirectories = new ArrayList<>();
+                List<UnManagedFileQuotaDirectory> existingUnManagedFileQuotaDirectories = new ArrayList<>();
+
+                for (Quota quota : quotas) {
+                    String fsNativeId;
+                    if (quota.getVolume().startsWith(VOL_ROOT)) {
+                        fsNativeId = quota.getVolume();
+                    } else {
+                        fsNativeId = VOL_ROOT + quota.getVolume();
+                    }
+
+                    if (fsNativeId.contains(ROOT_VOL)) {
+                        _logger.info("Ignore and not discover root filesystem on NTP array");
+                        continue;
+                    }
+
+                    String fsNativeGUID = NativeGUIDGenerator.generateNativeGuid(storageSystem.getSystemType(),
+                            storageSystem.getSerialNumber(), fsNativeId);
+
+                    String nativeGUID = NativeGUIDGenerator.generateNativeGuidForQuotaDir(storageSystem.getSystemType(),
+                            storageSystem.getSerialNumber(), quota.getQtree(), quota.getVolume());
+                    
+                    String nativeUnmanagedGUID = NativeGUIDGenerator.generateNativeGuidForUnManagedQuotaDir(storageSystem.getSystemType(),
+                            storageSystem.getSerialNumber(), quota.getQtree(), quota.getVolume());
+                    if (checkStorageQuotaDirectoryExistsInDB(nativeGUID)) {
+                        continue;
+                    }
+
+                    UnManagedFileQuotaDirectory unManagedFileQuotaDirectory = new UnManagedFileQuotaDirectory();
+                    unManagedFileQuotaDirectory.setId(URIUtil.createId(UnManagedFileQuotaDirectory.class));
+                    unManagedFileQuotaDirectory.setLabel(quota.getQtree());
+                    unManagedFileQuotaDirectory.setNativeGuid(nativeUnmanagedGUID);
+                    unManagedFileQuotaDirectory.setParentFSNativeGuid(fsNativeGUID);
+                    if("enabled".equals(qTreeNameQTreeMap.get(quota.getVolume() + quota.getQtree()).getOplocks())) {
+                        unManagedFileQuotaDirectory.setOpLock(true);
+                    }
+                    unManagedFileQuotaDirectory.setSize(Long.valueOf(quota.getDiskLimit()));
+
+                    if (!checkUnManagedQuotaDirectoryExistsInDB(nativeUnmanagedGUID)) {
+                        unManagedFileQuotaDirectories.add(unManagedFileQuotaDirectory);
+                    } else {
+                        existingUnManagedFileQuotaDirectories.add(unManagedFileQuotaDirectory);
+                    }
+
+                }
+
+                if (!unManagedFileQuotaDirectories.isEmpty()) {
+                    _partitionManager.insertInBatches(unManagedFileQuotaDirectories,
+                            Constants.DEFAULT_PARTITION_SIZE, _dbClient,
+                            UNMANAGED_FILEQUOTADIR);
+                }
+
+                if (!existingUnManagedFileQuotaDirectories.isEmpty()) {
+                    _partitionManager.updateAndReIndexInBatches(existingUnManagedFileQuotaDirectories,
+                            Constants.DEFAULT_PARTITION_SIZE, _dbClient,
+                            UNMANAGED_FILEQUOTADIR);
+                }
+            }
+
+        } catch (NetAppException ve) {
+            if (null != storageSystem) {
+                cleanupDiscovery(storageSystem);
+            }
+            _logger.error("discoverStorage failed.  Storage system: "
+                    + storageSystemId);
+            throw ve;
+        } catch (Exception e) {
+            if (null != storageSystem) {
+                cleanupDiscovery(storageSystem);
+            }
+            _logger.error("discoverStorage failed. Storage system: "
+                    + storageSystemId, e);
+            throw NetAppException.exceptions.discoveryFailed(storageSystemId.toString(), e);
         }
     }
 
@@ -1175,7 +1289,7 @@ public class NetAppFileCommunicationInterface extends
 
         // On netapp Systems this currently true.
         unManagedFileSystemCharacteristics.put(
-        		UnManagedFileSystem.SupportedFileSystemCharacterstics.IS_FILESYSTEM_EXPORTED
+                UnManagedFileSystem.SupportedFileSystemCharacterstics.IS_FILESYSTEM_EXPORTED
                         .toString(), FALSE);
 
         if (null != storagePort) {
@@ -1300,6 +1414,24 @@ public class NetAppFileCommunicationInterface extends
         }
         return false;
     }
+    
+    /**
+     * check Storage quotadir exists in DB
+     * 
+     * @param nativeGuid
+     * @return
+     * @throws IOException
+     */
+    private boolean checkStorageQuotaDirectoryExistsInDB(String nativeGuid)
+            throws IOException {
+        URIQueryResultList result = new URIQueryResultList();
+        _dbClient.queryByConstraint(AlternateIdConstraint.Factory
+                .getQuotaDirsByNativeGuid(nativeGuid), result);
+        if (result.iterator().hasNext()) {
+            return true;
+        }
+        return false;
+    }
 
     /**
      * check Pre Existing Storage filesystem exists in DB
@@ -1327,6 +1459,17 @@ public class NetAppFileCommunicationInterface extends
         }
         return filesystemInfo;
 
+    }
+    
+    private boolean checkUnManagedQuotaDirectoryExistsInDB(String nativeGuid)
+            throws IOException {
+        URIQueryResultList result = new URIQueryResultList();
+        _dbClient.queryByConstraint(AlternateIdConstraint.Factory
+                .getUnManagedFileQuotaDirectoryInfoNativeGUIdConstraint(nativeGuid), result);
+        if (result.iterator().hasNext()) {
+            return true;
+        }
+        return false;
     }
 
     public void discoverAll(AccessProfile accessProfile)

@@ -10,9 +10,12 @@ import static com.emc.storageos.api.mapper.FileMapper.map;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 
 import javax.ws.rs.Consumes;
 import javax.ws.rs.GET;
@@ -35,6 +38,7 @@ import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
+import com.emc.storageos.db.client.constraint.QueryResultList;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.CifsShareACL;
 import com.emc.storageos.db.client.model.DataObject;
@@ -43,10 +47,13 @@ import com.emc.storageos.db.client.model.FileShare;
 import com.emc.storageos.db.client.model.NASServer;
 import com.emc.storageos.db.client.model.NFSShareACL;
 import com.emc.storageos.db.client.model.NamedURI;
+import com.emc.storageos.db.client.model.OpStatusMap;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.Operation.Status;
+import com.emc.storageos.db.client.model.QuotaDirectory.SecurityStyles;
 import com.emc.storageos.db.client.model.PhysicalNAS;
 import com.emc.storageos.db.client.model.Project;
+import com.emc.storageos.db.client.model.QuotaDirectory;
 import com.emc.storageos.db.client.model.StorageHADomain;
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StoragePort;
@@ -61,6 +68,7 @@ import com.emc.storageos.db.client.model.VirtualNAS;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedCifsShareACL;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedFileExportRule;
+import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedFileQuotaDirectory;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedFileSystem;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedFileSystem.SupportedFileSystemInformation;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedNFSShareACL;
@@ -262,6 +270,7 @@ public class UnManagedFilesystemService extends TaggedResource {
                     param.getUnManagedFileSystems(), cos, _dbClient);
 
             List<FileShare> filesystems = new ArrayList<FileShare>();
+            Map<URI, FileShare> unManagedFSURIToFSMap = new HashMap<>();
             List<FileExportRule> fsExportRules = new ArrayList<FileExportRule>();
 
             List<CifsShareACL> fsCifsShareAcls = new ArrayList<CifsShareACL>();
@@ -398,7 +407,7 @@ public class UnManagedFilesystemService extends TaggedResource {
                 if (nasUri != null) {
                     filesystem.setVirtualNAS(URI.create(nasUri));
                 }
-
+                unManagedFSURIToFSMap.put(unManagedFileSystemUri, filesystem);
                 URI storageSystemUri = unManagedFileSystem.getStorageSystemUri();
                 StorageSystem system = _dbClient.queryObject(StorageSystem.class, storageSystemUri);
                 if (full_systems.contains(storageSystemUri)) {
@@ -576,6 +585,11 @@ public class UnManagedFilesystemService extends TaggedResource {
                 _logger.info(" --> Fs  Storage Pool {} and Virtual Pool {}", fs.getPool(), fs.getVirtualPool());
             }
             _dbClient.createObject(filesystems);
+            
+            for (URI unManagedFSURI : param.getUnManagedFileSystems()) {
+                _logger.info("ingesting quota directories for filesystem {}", unManagedFSURIToFSMap.get(unManagedFSURI).getId());
+                ingestFileQuotaDirectories(unManagedFSURIToFSMap.get(unManagedFSURI));
+            }
 
             i = 0;
             // Test
@@ -643,6 +657,59 @@ public class UnManagedFilesystemService extends TaggedResource {
         return filesystemList;
     }
 
+    private void ingestFileQuotaDirectories(FileShare parentFS) {
+        String parentFsNativeGUID = parentFS.getNativeGuid();
+        URIQueryResultList result = new URIQueryResultList();
+        List<QuotaDirectory> quotaDirectories = new ArrayList<>();
+        
+        _dbClient.queryByConstraint(AlternateIdConstraint.Factory
+                .getUnManagedFileQuotaDirectoryInfoParentNativeGUIdConstraint(parentFsNativeGUID), result);
+        List<UnManagedFileQuotaDirectory> unManagedFileQuotaDirectories = 
+                _dbClient.queryObject(UnManagedFileQuotaDirectory.class, result);
+        _logger.info("found {} quota directories for fs {}", unManagedFileQuotaDirectories.size(), parentFS.getId());
+        for (UnManagedFileQuotaDirectory unManagedFileQuotaDirectory : unManagedFileQuotaDirectories) {
+            QuotaDirectory quotaDirectory = new QuotaDirectory();
+            quotaDirectory.setId(URIUtil.createId(QuotaDirectory.class));
+            quotaDirectory.setParent(new NamedURI(parentFS.getId(), 
+                    unManagedFileQuotaDirectory.getLabel()));
+            quotaDirectory.setLabel(unManagedFileQuotaDirectory.getLabel());
+            quotaDirectory.setOpStatus(new OpStatusMap());
+            quotaDirectory.setProject(new NamedURI(parentFS.getProject().getURI(), unManagedFileQuotaDirectory.getLabel()));
+            quotaDirectory.setTenant(new NamedURI(parentFS.getTenant().getURI(), unManagedFileQuotaDirectory.getLabel()));
+            
+            quotaDirectory.setSoftLimit(
+                    unManagedFileQuotaDirectory.getSoftLimit() != 0 ? unManagedFileQuotaDirectory.getSoftLimit()
+                            : parentFS.getSoftLimit() != null ? parentFS.getSoftLimit().intValue() : 0);
+            quotaDirectory.setSoftGrace(
+                    unManagedFileQuotaDirectory.getSoftGrace() != 0 ? unManagedFileQuotaDirectory.getSoftGrace()
+                            : parentFS.getSoftGracePeriod() != null ? parentFS.getSoftGracePeriod() : 0);
+            quotaDirectory.setNotificationLimit(unManagedFileQuotaDirectory.getNotificationLimit() != 0 ? unManagedFileQuotaDirectory.getNotificationLimit()
+                    : parentFS.getNotificationLimit() != null ? parentFS.getNotificationLimit().intValue() : 0);
+            String convertedName = unManagedFileQuotaDirectory.getLabel().replaceAll("[^\\dA-Za-z_]", "");
+            _logger.info("FileService::QuotaDirectory Original name {} and converted name {}", unManagedFileQuotaDirectory.getLabel(), convertedName);
+            quotaDirectory.setName(convertedName);
+            if (unManagedFileQuotaDirectory.getOpLock() != null) {
+                quotaDirectory.setOpLock(unManagedFileQuotaDirectory.getOpLock());
+            } else {
+                quotaDirectory.setOpLock(true);
+            }
+            quotaDirectory.setSize(unManagedFileQuotaDirectory.getSize());
+            quotaDirectory.setSecurityStyle(SecurityStyles.parent.toString());//TODO get it from feed
+            
+            quotaDirectories.add(quotaDirectory);
+        }
+        
+        if(!quotaDirectories.isEmpty()) {
+            _dbClient.persistObject(quotaDirectories);
+        }
+        
+        if(!unManagedFileQuotaDirectories.isEmpty()) {
+            unManagedFileQuotaDirectories.forEach(unManagedFileQuotaDir -> unManagedFileQuotaDir.setInactive(true));
+            _dbClient.persistObject(unManagedFileQuotaDirectories);
+        }
+        _logger.info("ingested {} quota directories for fs {}", unManagedFileQuotaDirectories.size(), parentFS.getId());
+    }
+    
     private void createRule(UnManagedFileExportRule orig, List<FileExportRule> fsExportRules) {
         FileExportRule dest = new FileExportRule();
         dest.setId(URIUtil.createId(FileExportRule.class));

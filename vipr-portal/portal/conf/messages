@@ -858,7 +858,7 @@ datetime.dayOfMonth.L=Last
 
 #DisasterRecovery
 disasterRecovery.title=System Disaster Recovery
-disasterRecovery.title.pauseResume=Pause/Resume Disaster Recovery Sites
+disasterRecovery.title.pause=Pause Disaster Recovery Sites
 disasterRecovery.name=Site Name
 disasterRecovery.VirtualIP=Site Virtual IP or FQDN
 disasterRecovery.status=Status
@@ -906,7 +906,7 @@ disasterRecovery.standby.pauseLink=Pause Synchronization
 disasterRecovery.standby.resumeLink=Resume Synchronization
 disasterRecovery.standby.stopConfirm=Are you sure you want to Pause Standby Site?
 disasterRecovery.backToUpgrade=Back To Upgrade
-disasterRecovery.pausedSiteWarning=At least one of the standby sites is in paused state and will remain in the previous version until resumed.<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Resuming the paused site will automatically update it to the same version with the active site.
+disasterRecovery.pausedSiteWarning=At least one of the standby sites is in paused state and will remain in the previous version until resumed.<br>Resuming the paused site will automatically update it to the same version with the active site.
 disasterRecovery.pausedSiteDataNotConsistentWarning=Current view of disaster recovery sites may be not up to date due to losing connection with active site.
 disasterRecovery.create.title=Add Standby
 disasterRecovery.edit.title=Edit Standby
@@ -1004,7 +1004,7 @@ restore.title=Data Restore
 restore.from.version=Restore From Data Backup
 restore.download.progress=Download Progress
 restore.download.progress.description=The system is downloading the backup file
-restoreForm.password=Root Password
+restoreForm.password=ViPR Root Password
 restore.checkbox=no
 restore.geo.checkbox.help=To restore the vdc1 in an all crashed Geo Environment
 restore.geo.disconnect=Please make sure the VDC to be restored has been disconnected from other VDCs.

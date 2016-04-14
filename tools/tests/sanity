@@ -8593,7 +8593,7 @@ backup_tests()
 
     echo "status=${status}"
     if [[ "${status}" != "DONE" ]]; then
-        echo "upload backup ${backupname} failed"
+        echo "upload backup ${backupname} failed status=${status}"
         exit 1
     fi
 

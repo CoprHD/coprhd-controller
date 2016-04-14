@@ -8966,29 +8966,12 @@ application_crud_test()
     # test and verify volume group delete
     run volumegroup delete ${newappname}
     fail volumegroup show ${newappname}
-
-    mobilityname=mobilitygroup-${RANDOM}
-    run volumegroup create ${mobilityname} description MOBILITY VPLEX VOLUMES
-    run volumegroup delete ${mobilityname}
-
-    mobilityname=mobilitygroup-${RANDOM}
-    run volumegroup create ${mobilityname} description MOBILITY VPLEX HOSTS
-    run volumegroup delete ${mobilityname}
-
-    mobilityname=mobilitygroup-${RANDOM}
-    run volumegroup create ${mobilityname} description MOBILITY VPLEX CLUSTERS
-    run volumegroup delete ${mobilityname}
- 
-    mobilityname=mobilitygroup-${RANDOM}
-    fail volumegroup create ${mobilityname} description MOBILITY VPLEX INVALIDTYPE 
-
-    mobilityname=mobilitygroup-${RANDOM}
-    fail volumegroup create ${mobilityname} description MOBILITY INVALIDTYPE VOLUMES
 }
 
 application_createvols()
 {
-    #unique=12044
+    secho "application_createvols()"
+
     unique=${RANDOM}
     basename=vgsanity-${unique}
     VG_CGNAME1=cg1${unique}
@@ -9001,8 +8984,25 @@ application_createvols()
     a=`blockconsistencygroup show ${VG_CGNAME1} | grep '"id":' | grep BlockConsistencyGroup | awk '{print $2}'`
     b=${a:1}
     VG_CGID1=${b%'"'*}
-    echo cgid1 is ${VG_CGID1}
+    secho cgid1 is ${VG_CGID1}
 
+    run volume create ${basename}-cg $PROJECT $NH $VG_VPOOL_CG $BLK_SIZE --thinVolume true --consistencyGroup ${VG_CGNAME1} --count 3
+    VG_CGVOL1="${basename}-cg-1"
+    VG_CGVOL2="${basename}-cg-2"
+    VG_CGVOL3="${basename}-cg-3"
+    VG_CGVOLID1=`volume list ${PROJECT} | grep ${VG_CGVOL1} | awk '{print $7}'`
+    VG_CGVOLID2=`volume list ${PROJECT} | grep ${VG_CGVOL2} | awk '{print $7}'`
+    VG_CGVOLID3=`volume list ${PROJECT} | grep ${VG_CGVOL3} | awk '{print $7}'`
+    secho cgvolid1 is ${VG_CGVOLID1}
+    secho cgvolid2 is ${VG_CGVOLID2}
+    secho cgvolid3 is ${VG_CGVOLID3}
+
+    run volumegroup create ${VG_COPYVG1} copy1 COPY
+}
+
+xapplication_createvols()
+{
+    secho "application_createvols()"
     run blockconsistencygroup create ${PROJECT} ${VG_CGNAME2}
     c=`blockconsistencygroup show ${VG_CGNAME2} | grep '"id":' | grep BlockConsistencyGroup | awk '{print $2}'`
     d=${c:1}
@@ -9038,6 +9038,15 @@ application_createvols()
 
 application_deleteall()
 {
+    secho "application_deletall()"
+    run volumegroup delete ${VG_COPYVG1}
+    secho "deleting volumes " $VG_CGVOL1,$VG_CGVOL2,$VG_CGVOL3
+    run volume delete $PROJECT/$VG_CGVOL1,$PROJECT/$VG_CGVOL2,$PROJECT/$VG_CGVOL3 --wait
+    run blockconsistencygroup delete ${VG_CGNAME1}
+}
+
+xapplication_deleteall()
+{
     run volume delete $PROJECT/$VG_CGVOL1 --wait
     run volume delete $PROJECT/$VG_CGVOL2 --wait
     run volume delete $PROJECT/$VG_CGVOL3 --wait
@@ -9052,7 +9061,34 @@ application_deleteall()
 }
 
 # adds and removes volumes from a COPY volume group
-application_volume_tests()
+application_add_remove_volume_tests()
+{
+    secho "application_add_remove_volume_tests()"
+
+    # add 3 volumes from same CG to application
+    run volumegroup add-volumes ${VG_COPYVG1} ${VG_CGVOLID1},${VG_CGVOLID2},${VG_CGVOLID3}
+    secho "sleeping 60 seconds to wait for add volumes" `date`
+    sleep 60
+    secho "done sleeping" `date`
+
+    # show volumes in application
+    run volumegroup verify-volume ${VG_COPYVG1} ${VG_CGVOLID1}
+    run volumegroup verify-volume ${VG_COPYVG1} ${VG_CGVOLID2}
+    run volumegroup verify-volume ${VG_COPYVG1} ${VG_CGVOLID3}
+
+    # remove
+    run volumegroup remove-volumes ${VG_COPYVG1} ${VG_CGVOLID1},${VG_CGVOLID2},${VG_CGVOLID3}
+    secho "sleeping 20 seconds to wait for remove volumes" `date`
+    sleep 20
+    secho "done sleeping" `date`
+
+    fail volumegroup verify-volume ${VG_COPYVG1} ${VG_CGVOLID1}
+    fail volumegroup verify-volume ${VG_COPYVG1} ${VG_CGVOLID2}
+    fail volumegroup verify-volume ${VG_COPYVG1} ${VG_CGVOLID3}
+}
+
+# adds and removes volumes from a COPY volume group
+xapplication_volume_tests()
 {
     # add 3 volumes from same CG to application
     run volumegroup add-volumes ${VG_COPYVG1} ${VG_CGVOLID1},${VG_CGVOLID2},${VG_CGVOLID3}
@@ -9086,7 +9122,8 @@ application_tests()
     VG_VPOOL=$COS_VMAXBLOCK_THIN
     application_crud_test
     application_createvols
-    application_volume_tests
+    application_add_remove_volume_tests
+    #application_volume_tests
     application_deleteall
 }
 

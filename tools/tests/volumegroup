@@ -9,7 +9,7 @@
 #set -x
 
 # TODO fix this hard coded path!!!
-VIPRCLI_CMD="/opt/storageos/cli/bin/viprcli -hostname ${BOURNE_IPADDR}"
+VIPRCLI_CMD="/opt/storageos/cli/bin/viprcli"
 LOCAL_LDAP_AUTHN_MANAGER_PWD=secret
 LOCAL_LDAP_AUTHN_DOMAINS=VIPRSANITY.COM
 LOCAL_LDAP_SUPERUSER_USERNAME=ldapViPRUser1@${LOCAL_LDAP_AUTHN_DOMAINS}
@@ -26,19 +26,27 @@ usage()
     echo "           update <name> <newname> <description> <parent>"
     echo "           add-volumes <name> <volume1,volume2,...> <cgid>"
     echo "           remove-volumes <name> <volume1,volume2,...>"
+    echo "           verify <name> <field> <value>"
+    echo "           verify-volumes <name> <volume-id>"
     exit 2
+}
+
+viprcli()
+{
+    $VIPRCLI_CMD $@ -hostname $BOURNE_IPADDR
+    return $?
 }
 
 viprcli_authenticate()
 {
     echo "**** authenticating viprcli user ${LOCAL_LDAP_SUPERUSER_USERNAME} on host ${BOURNE_IPADDR}"
-    echo $LOCAL_LDAP_AUTHN_MANAGER_PWD | $VIPRCLI_CMD authenticate -u $LOCAL_LDAP_SUPERUSER_USERNAME -d /tmp
+    echo $LOCAL_LDAP_AUTHN_MANAGER_PWD | $VIPRCLI_CMD authenticate -u $LOCAL_LDAP_SUPERUSER_USERNAME -d /tmp -hostname $BOURNE_IPADDR
 }
 
 viprcli_logout()
 {
-    echo "**** logging out viprcli user ${LOCAL_LDAP_SUPERUSER_USERNAME} on host ${BOURNE_IPADDR}"
-    $VIPRCLI_CMD logout
+    echo "**** logging out viprcli user ${local_ldap_superuser_username} on host ${bourne_ipaddr}"
+    viprcli logout
 }
 
 #
@@ -49,7 +57,7 @@ volume_group_list()
     echo "list all volume group"
     #viprcli_authenticate >$ dev/null
     viprcli_authenticate >$ dev/null
-    $VIPRCLI_CMD volumegroup list
+    viprcli volumegroup list
     retval=$?
     echo "list all volume group completed with return code ${retval}"
     viprcli_logout >$ dev/null
@@ -63,7 +71,7 @@ volume_group_show_volumes()
 {
     echo "show volumes for volume group ${1}"
     viprcli_authenticate >$ dev/null
-    $VIPRCLI_CMD volumegroup show-volumes -n $1
+    viprcli volumegroup show-volumes -n $1
     retval=$?
     echo "show-volumes volume group ${1} completed with return code ${retval}"
     viprcli_logout >$ dev/null
@@ -77,7 +85,7 @@ volume_group_show()
 {
     echo "show volume group ${1}"
     viprcli_authenticate >$ dev/null
-    $VIPRCLI_CMD volumegroup show -n $1
+    viprcli volumegroup show -n $1
     retval=$?
     echo "show volume group ${1} completed with return code ${retval}"
     viprcli_logout >$ dev/null
@@ -93,13 +101,13 @@ volume_group_create()
     viprcli_authenticate >$ dev/null
   
     if [[ $4 == "" ]]; then
-        $VIPRCLI_CMD volumegroup create -n $1 -d $2 -r $3
+        viprcli volumegroup create -n $1 -d $2 -r $3
     elif [[ $3 == "MOBILITY" && $6 == "" ]]; then
-        $VIPRCLI_CMD volumegroup create -n $1 -d $2 -r $3 -mt $4 -mg $5
+        viprcli volumegroup create -n $1 -d $2 -r $3 -mt $4 -mg $5
     elif [[ $3 == "MOBILITY" ]]; then
-        $VIPRCLI_CMD volumegroup create -n $1 -d $2 -r $3 -mt $4 -mg $5 -parent $6
+        viprcli volumegroup create -n $1 -d $2 -r $3 -mt $4 -mg $5 -parent $6
     else
-        $VIPRCLI_CMD volumegroup create -n $1 -d $2 -r $3 -parent $4
+        viprcli volumegroup create -n $1 -d $2 -r $3 -parent $4
     fi
     retval=$?
     echo "volume group ${1} created with return code ${retval}"
@@ -114,7 +122,7 @@ volume_group_remove_volumes()
 {
     echo "removing volumes from volume group ${1}"
     viprcli_authenticate >$ dev/null
-    $VIPRCLI_CMD volumegroup update -n $1 -r $2
+    viprcli volumegroup update -n $1 -r $2
     retval=$?
     sleep 10
     echo "volume group ${1} updated with return code ${retval}"
@@ -130,15 +138,15 @@ volume_group_add_volumes()
     echo "adding volumes to volume group ${1}"
     viprcli_authenticate >$ dev/null
     if [ -n "$4" ]; then
-        $VIPRCLI_CMD volumegroup update -n $1 -a $2 -cg $3 -rg $4
+        viprcli volumegroup update -n $1 -a $2 -cg $3 -rg $4
         retval=$?
         sleep 10
     elif [ -n "$3" ]; then    
-        $VIPRCLI_CMD volumegroup update -n $1 -a $2 -cg $3
+        viprcli volumegroup update -n $1 -a $2 -cg $3
         retval=$?
         sleep 10
     else
-        $VIPRCLI_CMD volumegroup update -n $1 -a $2
+        viprcli volumegroup update -n $1 -a $2
         retval=$?
     fi
     echo "volume group ${1} updated with return code ${retval}"
@@ -154,9 +162,9 @@ volume_group_update()
     echo "updating volume group ${1}"
     viprcli_authenticate >$ dev/null
     if [[ $4 == "" ]]; then
-        $VIPRCLI_CMD volumegroup update -n $1 -newname $2 -d $3
+        viprcli volumegroup update -n $1 -newname $2 -d $3
     else
-        $VIPRCLI_CMD volumegroup update -n $1 -newname $2 -d $3 -pa $4
+        viprcli volumegroup update -n $1 -newname $2 -d $3 -pa $4
     fi
     retval=$?
     echo "volume group ${1} updated with return code ${retval}"
@@ -171,11 +179,36 @@ volume_group_delete()
 {
     echo "deleting volume group ${1}"
     viprcli_authenticate >$ dev/null
-    $VIPRCLI_CMD volumegroup delete -n $1
+    viprcli volumegroup delete -n $1
     retval=$?
     echo "volume group ${1} delete with return code ${retval}"
     viprcli_logout >$ dev/null
     return $retval
+}
+
+volume_group_verify_volume()
+{
+    echo "verifying volume $2 is part of volume group ${1}"
+    viprcli_authenticate >$ dev/null
+    appname=$1
+    field=id
+    expected=$2
+
+    searchstr="\"${field}\": \"${expected}\""
+    show_cmd="$VIPRCLI_CMD volumegroup show-volumes -n $1 -hostname $BOURNE_IPADDR"
+    show=$( $show_cmd )
+    if [[ $show == *"${searchstr}"* ]]
+    then
+        echo "matched";
+        retval=0
+    else
+        echo "no match";
+        retval=1
+    fi
+
+    viprcli_logout >$ dev/null
+    return $retval
+
 }
 
 #
@@ -192,7 +225,8 @@ volume_group_verify()
     searchstr="\"${field}\": \"${expected}\""
 
     viprcli_authenticate >$ dev/null
-    show=$( $VIPRCLI_CMD volumegroup show -n $1 )
+    show_cmd="$VIPRCLI_CMD volumegroup show -n $1 -hostname $BOURNE_IPADDR"
+    show=$( $show_cmd )
     if [[ $show == *"${searchstr}"* ]]
     then
         echo "matched";
@@ -231,6 +265,10 @@ elif [ $1 == 'verify' ]; then
     [ $# -ge 3 ] || usage
     shift
     volume_group_verify "$@"
+elif [ $1 == 'verify-volume' ]; then
+    [ $# -ge 2 ] || usage
+    shift
+    volume_group_verify_volume "$@"
 elif [ $1 == 'add-volumes' ]; then
     [ $# -ge 3 ] || usage
     shift

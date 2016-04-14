@@ -80,6 +80,22 @@ public class VFiler {
         return true;
     }
 
+    boolean removeStorage(String storagePath, String vFilerName) {
+        NaElement elem = new NaElement("vfiler-remove-storage");
+        elem.addNewChild("storage-path", storagePath);
+        elem.addNewChild("vfiler", vFilerName);
+
+        try {
+            server.invokeElem(elem);
+        } catch (Exception e) {
+            String msg = "Failed to remove new volume: " + storagePath;
+            log.error(msg, e);
+            throw new NetAppException(msg, e);
+        }
+
+        return true;
+    }
+
     boolean createVFiler(String vFilerName, List<String> ipAddresses, List<String> storageUnits, String ipSpace) {
 
         NaElement elem = new NaElement("vfiler-create");
@@ -118,10 +134,7 @@ public class VFiler {
             }
             existingProtocols.removeAll(protocols);
             for (String protocol : existingProtocols) {
-                NaElement disallowProtocol = new NaElement("vfiler-disallow-protocol");
-                disallowProtocol.addNewChild("vfiler", vFilerName);
-                disallowProtocol.addNewChild("protocol", protocol.toLowerCase());
-                server.invokeElem(disallowProtocol);
+                removeProtocols(vFilerName, protocol);
             }
         } catch (Exception e) {
             String msg = "Failed to add protocols to vFiler: " + vFilerName;
@@ -129,6 +142,43 @@ public class VFiler {
             throw new NetAppException(msg, e);
         }
         return true;
+    }
+
+    boolean disallowProtocols(String vFilerName, Set<String> protocols) {
+
+        Set<String> existingProtocols = new HashSet<String>();
+        NaElement getProtocols = new NaElement("vfiler-get-allowed-protocols");
+        getProtocols.addNewChild("vfiler", vFilerName);
+        NaElement result = null;
+        try {
+            result = server.invokeElem(getProtocols).getChildByName("allowed-protocols");
+            for (NaElement protocolInfo : (List<NaElement>) result.getChildren()) {
+                existingProtocols.add(protocolInfo.getChildContent("protocol"));
+            }
+            for (String protocol : protocols) {
+                if (existingProtocols.contains(protocol)) {
+                    removeProtocols(vFilerName, protocol);
+                }
+            }
+        } catch (Exception e) {
+            String msg = "Failed to remove protocols from vFiler: " + vFilerName;
+            log.error(msg, e);
+            throw new NetAppException(msg, e);
+        }
+        return true;
+    }
+
+    private void removeProtocols(String vFilerName, String protocol) {
+        NaElement disallowProtocol = new NaElement("vfiler-disallow-protocol");
+        disallowProtocol.addNewChild("vfiler", vFilerName);
+        disallowProtocol.addNewChild("protocol", protocol.toLowerCase());
+        try {
+            server.invokeElem(disallowProtocol);
+        } catch (Exception e) {
+            String msg = "Failed to remove protocols from vFiler: " + vFilerName;
+            log.error(msg, e);
+            throw new NetAppException(msg, e);
+        }
     }
 
     boolean setupVFiler(String vFilerName, String adminHostIp, String adminHostName, String dnsDomain, List<String> dnsServers,
@@ -194,6 +244,38 @@ public class VFiler {
             log.error(msg, e);
             throw new NetAppException(msg, e);
         }
+        return true;
+    }
+
+    boolean addIpAddress(String ipAddress, String vFilerName) {
+        NaElement elem = new NaElement("vfiler-add-ipaddress");
+        elem.addNewChild("ipaddress", ipAddress);
+        elem.addNewChild("vfiler", vFilerName);
+
+        try {
+            server.invokeElem(elem);
+        } catch (Exception e) {
+            String msg = "Failed to add new ip address: " + ipAddress + " to VFiler: " + vFilerName;
+            log.error(msg, e);
+            throw new NetAppException(msg, e);
+        }
+
+        return true;
+    }
+
+    boolean removeIpAddress(String ipAddress, String vFilerName) {
+        NaElement elem = new NaElement("vfiler-remove-ipaddress");
+        elem.addNewChild("ipaddress", ipAddress);
+        elem.addNewChild("vfiler", vFilerName);
+
+        try {
+            server.invokeElem(elem);
+        } catch (Exception e) {
+            String msg = "Failed to remove ip address: " + ipAddress + " from VFiler: " + vFilerName;
+            log.error(msg, e);
+            throw new NetAppException(msg, e);
+        }
+
         return true;
     }
 }

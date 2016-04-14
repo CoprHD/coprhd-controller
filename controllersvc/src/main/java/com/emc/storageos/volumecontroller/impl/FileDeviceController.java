@@ -65,6 +65,7 @@ import com.emc.storageos.model.file.NfsACLUpdateParams;
 import com.emc.storageos.model.file.ShareACL;
 import com.emc.storageos.model.file.ShareACLs;
 import com.emc.storageos.model.vnas.VirtualNasCreateParam;
+import com.emc.storageos.model.vnas.VirtualNasUpdateParam;
 import com.emc.storageos.plugins.common.Constants;
 import com.emc.storageos.security.audit.AuditLogManager;
 import com.emc.storageos.security.audit.AuditLogManagerFactory;
@@ -179,7 +180,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
         RecordableBourneEvent event = new RecordableBourneEvent(
                 type,
                 fs.getTenant().getURI(),
-                URI.create("ViPR-User"),                                                                 // user ID when AAA fixed
+                URI.create("ViPR-User"),                                                                       // user ID when AAA fixed
                 fs.getProject().getURI(),
                 fs.getVirtualPool(),
                 EVENT_SERVICE_TYPE,
@@ -211,7 +212,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
         RecordableBourneEvent event = new RecordableBourneEvent(
                 type,
                 fs.getTenant().getURI(),
-                URI.create("ViPR-User"),                                                                 // user ID when AAA fixed
+                URI.create("ViPR-User"),                                                                       // user ID when AAA fixed
                 fs.getProject().getURI(),
                 fs.getVirtualPool(),
                 EVENT_SERVICE_TYPE,
@@ -582,7 +583,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
 
             if (result.getCommandPending()) {
                 return;
-            }                                                                               // Set Mount path info for the exports
+            }                                                                                     // Set Mount path info for the exports
             FSExportMap fsExports = fsObj.getFsExports();
 
             // Per New model get the rules and see if any rules that are already saved and available.
@@ -3933,6 +3934,32 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             String[] params = { storage.toString(), vnasParam.getvNasName(),
                     e.getMessage().toString() };
             _log.error("Unable to create virtual Nas: storage {}, Virtual Nas {}: {}", params);
+            updateTaskStatus(opId, vnasObj, e);
+        }
+    }
+
+    @Override
+    public void updateVirtualNas(URI storage, URI vnasUri, VirtualNasUpdateParam vnasParam, String opId) throws InternalException {
+        ControllerUtils.setThreadLocalLogData(vnasUri, opId);
+        StorageSystem storageObj = null;
+        VirtualNAS vnasObj = null;
+        try {
+            storageObj = _dbClient.queryObject(StorageSystem.class, storage);
+            vnasObj = _dbClient.queryObject(VirtualNAS.class, vnasUri);
+            String[] params = { storage.toString(), vnasUri.toString(), vnasObj.getNasName() };
+            _log.info("Update Virtual NAS: {}, {}, {}", params);
+
+            BiosCommandResult result = getDevice(storageObj.getSystemType()).doUpdateVNAS(storageObj, vnasObj, vnasParam);
+            if (result.getCommandPending()) {
+                return;
+            }
+            vnasObj.getOpStatus().updateTaskStatus(opId, result.toOperation());
+            _dbClient.updateObject(vnasObj);
+            recordFileDeviceOperation(_dbClient, OperationTypeEnum.UPDATE_VIRTUAL_NAS, result.isCommandSuccess(), "", "", vnasObj);
+        } catch (Exception e) {
+            String[] params = { storage.toString(), vnasObj.getNasName(),
+                    e.getMessage().toString() };
+            _log.error("Unable to update virtual Nas: storage {}, Virtual Nas {}: {}", params);
             updateTaskStatus(opId, vnasObj, e);
         }
     }

@@ -12,6 +12,7 @@ import com.emc.storageos.model.file.CifsShareACLUpdateParams;
 import com.emc.storageos.model.file.FileExportUpdateParams;
 import com.emc.storageos.model.file.NfsACLUpdateParams;
 import com.emc.storageos.model.vnas.VirtualNasCreateParam;
+import com.emc.storageos.model.vnas.VirtualNasUpdateParam;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 
 /**
@@ -193,6 +194,8 @@ public interface FileController extends StorageController {
     public void listSanpshotByPolicy(URI storage, URI fs, URI policy, String opId) throws InternalException;
 
     public void createVirtualNas(URI storage, URI vnasUri, VirtualNasCreateParam vnasParam, String opId) throws InternalException;
+
+    public void updateVirtualNas(URI storage, URI vnasUri, VirtualNasUpdateParam vnasParam, String opId) throws InternalException;
 
     public void deleteVirtualNas(URI storage, URI vnasUri, String opId) throws InternalException;
 }

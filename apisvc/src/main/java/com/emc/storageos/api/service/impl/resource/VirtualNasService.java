@@ -254,7 +254,7 @@ public class VirtualNasService extends TaggedResource {
         Operation op = _dbClient.createTaskOpStatus(VirtualNAS.class, vNas.getId(), task,
                 ResourceOperationTypeEnum.UPDATE_VIRTUAL_NAS_SERVER);
         try {
-            controller.deleteVirtualNas(device.getId(), vNas.getId(), task);
+            controller.updateVirtualNas(device.getId(), vNas.getId(), vnasParam, task);
             auditOp(OperationTypeEnum.UPDATE_VIRTUAL_NAS, true, AuditLogManager.AUDITOP_BEGIN,
                     vNas.getLabel(), vNas.getId().toString(), device.getId().toString());
         } catch (InternalException e) {

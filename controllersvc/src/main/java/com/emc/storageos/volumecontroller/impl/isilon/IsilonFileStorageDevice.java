@@ -63,6 +63,7 @@ import com.emc.storageos.model.file.ExportRule;
 import com.emc.storageos.model.file.NfsACE;
 import com.emc.storageos.model.file.ShareACL;
 import com.emc.storageos.model.vnas.VirtualNasCreateParam;
+import com.emc.storageos.model.vnas.VirtualNasUpdateParam;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
 import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.volumecontroller.FileControllerConstants;
@@ -88,6 +89,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
     private static final String EXPORT_OP_NAME = "Snapshot Export";
     private static final String SHARE_OP_NAME = "Snapshot Share";
     private static final String VNAS_CREATE_OP_NAME = "VNAS Create";
+    private static final String VNAS_UPDATE_OP_NAME = "VNAS Update";
     private static final String VNAS_DELETE_OP_NAME = "VNAS Delete";
     public static final long SEC_IN_MILLI = 1000L;
 
@@ -2610,6 +2612,12 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
     public BiosCommandResult doCreateVNAS(StorageSystem storageObj, VirtualNasCreateParam args) {
         return BiosCommandResult.createErrorResult(
                 DeviceControllerErrors.isilon.unSupportedOperation(VNAS_CREATE_OP_NAME));
+    }
+
+    @Override
+    public BiosCommandResult doUpdateVNAS(StorageSystem storageObj, VirtualNAS vnasObj, VirtualNasUpdateParam args) {
+        return BiosCommandResult.createErrorResult(
+                DeviceControllerErrors.isilon.unSupportedOperation(VNAS_UPDATE_OP_NAME));
     }
 
     @Override

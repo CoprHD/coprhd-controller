@@ -71,4 +71,10 @@ public interface NetAppErrors {
     @DeclareServiceCode(ServiceCode.NETAPP_VNAS_CREATE_ERROR)
     public ServiceError unableToCreateVnas();
 
+    @DeclareServiceCode(ServiceCode.NETAPP_VNAS_UPDATE_ERROR)
+    public ServiceError unableToUpdateVnas();
+
+    @DeclareServiceCode(ServiceCode.NETAPP_VNAS_DELETE_ERROR)
+    public ServiceError unableToDeleteVnas();
+
 }

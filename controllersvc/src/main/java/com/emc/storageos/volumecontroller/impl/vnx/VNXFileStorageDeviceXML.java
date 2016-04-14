@@ -37,6 +37,7 @@ import com.emc.storageos.exceptions.DeviceControllerErrors;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.model.file.ExportRule;
 import com.emc.storageos.model.vnas.VirtualNasCreateParam;
+import com.emc.storageos.model.vnas.VirtualNasUpdateParam;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
 import com.emc.storageos.util.ExportUtils;
 import com.emc.storageos.util.FileSystemConstants;
@@ -148,7 +149,7 @@ public class VNXFileStorageDeviceXML extends AbstractFileStorageDevice {
             }
             result = vnxComm.createFileSystem(storage,
                     args.getFsName(),
-                    args.getPoolName(),             // This will be used for CLI create FS
+                    args.getPoolName(),               // This will be used for CLI create FS
                     "1",
                     fsSize,
                     args.getThinProvision(),
@@ -727,12 +728,12 @@ public class VNXFileStorageDeviceXML extends AbstractFileStorageDevice {
             VNXFileExport fileExport = new VNXFileExport(clients,
                     portName,
                     path,
-                    "",                  // no security type
+                    "",                    // no security type
                     smbFileShare.getPermission(),
-                    "",                  // root user mapping n/a for CIFS
+                    "",                    // root user mapping n/a for CIFS
                     VNXFileSshApi.VNX_CIFS,
-                    "",            // Port information is never used for for CIFS or NFS exports.
-                    "",             // SUB DIR
+                    "",              // Port information is never used for for CIFS or NFS exports.
+                    "",               // SUB DIR
                     ""); // Comments -- TODO
 
             fileExport.setExportName(smbFileShare.getName());
@@ -1414,6 +1415,12 @@ public class VNXFileStorageDeviceXML extends AbstractFileStorageDevice {
 
     @Override
     public BiosCommandResult doCreateVNAS(StorageSystem storageObj, VirtualNasCreateParam args) {
+        return BiosCommandResult.createErrorResult(
+                DeviceControllerErrors.vnx.operationNotSupported());
+    }
+
+    @Override
+    public BiosCommandResult doUpdateVNAS(StorageSystem storageObj, VirtualNAS vnasObj, VirtualNasUpdateParam args) {
         return BiosCommandResult.createErrorResult(
                 DeviceControllerErrors.vnx.operationNotSupported());
     }

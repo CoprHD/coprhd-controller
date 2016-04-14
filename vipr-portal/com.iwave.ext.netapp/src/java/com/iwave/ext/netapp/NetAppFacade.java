@@ -1516,6 +1516,15 @@ public class NetAppFacade {
         return vFiler.addStorage(storagePath, vFilerName);
     }
 
+    public boolean removeStorage(String storagePath, String vFilerName) {
+        if (log.isDebugEnabled()) {
+            log.debug("Removing storage from vfiler");
+        }
+
+        VFiler vFiler = new VFiler(server.getNaServer(), null);
+        return vFiler.removeStorage(storagePath, vFilerName);
+    }
+
     /**
      * Adds a new NFS share.
      * 
@@ -1562,6 +1571,14 @@ public class NetAppFacade {
         return vFiler.allowProtocols(vFilerName, protocols);
     }
 
+    public boolean disallowVnasProtocols(String vFilerName, Set<String> protocols) {
+        if (log.isDebugEnabled()) {
+            log.debug("Removing protocols from vfiler: " + vFilerName);
+        }
+        VFiler vFiler = new VFiler(server.getNaServer(), null);
+        return vFiler.disallowProtocols(vFilerName, protocols);
+    }
+
     public boolean setupVirtualNas(VirtualNasCreateParam args) {
         String vFilerName = args.getvNasName();
         String adminHostIp = args.getAdminHostIp();
@@ -1592,6 +1609,22 @@ public class NetAppFacade {
         }
         VFiler vFiler = new VFiler(server.getNaServer(), null);
         return vFiler.destroyVFiler(vFilerName);
+    }
+
+    public boolean addIpAddress(String ipAddress, String vFilerName) {
+        if (log.isDebugEnabled()) {
+            log.debug("Add IP address to vfiler: " + vFilerName);
+        }
+        VFiler vFiler = new VFiler(server.getNaServer(), null);
+        return vFiler.addIpAddress(ipAddress, vFilerName);
+    }
+
+    public boolean removeIpAddress(String ipAddress, String vFilerName) {
+        if (log.isDebugEnabled()) {
+            log.debug("Remove IP address from vfiler: " + vFilerName);
+        }
+        VFiler vFiler = new VFiler(server.getNaServer(), null);
+        return vFiler.removeIpAddress(ipAddress, vFilerName);
     }
 
 }

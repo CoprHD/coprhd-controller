@@ -16,6 +16,7 @@ import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.model.file.ExportRule;
 import com.emc.storageos.model.vnas.VirtualNasCreateParam;
+import com.emc.storageos.model.vnas.VirtualNasUpdateParam;
 import com.iwave.ext.netapp.AggregateInfo;
 import com.iwave.ext.netapp.NFSSecurityStyle;
 import com.iwave.ext.netapp.NetAppFacade;
@@ -1039,16 +1040,10 @@ public class NetAppApi {
                     _password, _https);
             Boolean status = netAppFacade.createVirtualNas(args);
             if (status) {
+                netAppFacade.setupVirtualNas(args);
                 if (args.getAddProtocols() != null && !args.getAddProtocols().isEmpty()) {
-                    netAppFacade = new NetAppFacade(_ipAddress, _portNumber, _userName,
-                            _password, _https);
-
                     netAppFacade.allowVnasProtocols(args.getvNasName(), args.getAddProtocols());
                 }
-                netAppFacade = new NetAppFacade(_ipAddress, _portNumber, _userName,
-                        _password, _https);
-
-                netAppFacade.setupVirtualNas(args);
             } else {
                 _logger.debug("VNAS {} creation failed", args.getvNasName());
                 status = false;
@@ -1056,6 +1051,44 @@ public class NetAppApi {
             return status;
         } catch (Exception e) {
             throw NetAppException.exceptions.createVnasFailed(args.getvNasName(), e.getMessage());
+        }
+    }
+
+    public Boolean updateVirtualNas(String vnasName, VirtualNasUpdateParam args)
+            throws NetAppException {
+        try {
+
+            netAppFacade = new NetAppFacade(_ipAddress, _portNumber, _userName,
+                    _password, _https);
+            if (args.getAddProtocols() != null && !args.getAddProtocols().isEmpty()) {
+                netAppFacade.allowVnasProtocols(vnasName, args.getAddProtocols());
+            }
+            if (args.getRemoveProtocols() != null && !args.getRemoveProtocols().isEmpty()) {
+                netAppFacade.disallowVnasProtocols(vnasName, args.getRemoveProtocols());
+            }
+            if (args.getAddStorageUnits() != null && !args.getAddStorageUnits().isEmpty()) {
+                for (String storagePath : args.getAddStorageUnits()) {
+                    netAppFacade.addStorage(storagePath, vnasName);
+                }
+            }
+            if (args.getRemoveStorageUnits() != null && !args.getRemoveStorageUnits().isEmpty()) {
+                for (String storagePath : args.getRemoveStorageUnits()) {
+                    netAppFacade.removeStorage(storagePath, vnasName);
+                }
+            }
+            if (args.getAddIpAdds() != null && !args.getAddIpAdds().isEmpty()) {
+                for (String ipAddress : args.getAddIpAdds()) {
+                    netAppFacade.addIpAddress(ipAddress, vnasName);
+                }
+            }
+            if (args.getRemoveIpAdds() != null && !args.getRemoveIpAdds().isEmpty()) {
+                for (String ipAddress : args.getRemoveIpAdds()) {
+                    netAppFacade.removeIpAddress(ipAddress, vnasName);
+                }
+            }
+            return true;
+        } catch (Exception e) {
+            throw NetAppException.exceptions.createVnasFailed(vnasName, e.getMessage());
         }
     }
 

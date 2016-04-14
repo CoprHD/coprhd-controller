@@ -23,6 +23,7 @@ import com.emc.storageos.model.file.CifsShareACLUpdateParams;
 import com.emc.storageos.model.file.FileExportUpdateParams;
 import com.emc.storageos.model.file.NfsACLUpdateParams;
 import com.emc.storageos.model.vnas.VirtualNasCreateParam;
+import com.emc.storageos.model.vnas.VirtualNasUpdateParam;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.volumecontroller.AsyncTask;
 import com.emc.storageos.volumecontroller.ControllerException;
@@ -249,6 +250,11 @@ public class FileControllerImpl extends AbstractDiscoveredSystemController imple
     @Override
     public void createVirtualNas(URI storageURI, URI vnasURI, VirtualNasCreateParam vnasParam, String opId) throws InternalException {
         execFS("createVirtualNas", storageURI, vnasURI, vnasParam, opId);
+    }
+
+    @Override
+    public void updateVirtualNas(URI storageURI, URI vnasURI, VirtualNasUpdateParam vnasParam, String opId) throws InternalException {
+        execFS("updateVirtualNas", storageURI, vnasURI, vnasParam, opId);
     }
 
     @Override

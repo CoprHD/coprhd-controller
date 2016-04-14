@@ -395,60 +395,42 @@ public class VNXUnityCommunicationInterface extends
         StorageSystem storageSystem = null;
         String detailedStatusMessage = null;
         try {
-            storageSystem = _dbClient.queryObject(StorageSystem.class,
-                    accessProfile.getSystemId());
+            storageSystem = _dbClient.queryObject(StorageSystem.class, accessProfile.getSystemId());
             if (null == storageSystem) {
                 return;
             }
 
-            storageSystem
-                    .setDiscoveryStatus(DiscoveredDataObject.DataCollectionJobStatus.IN_PROGRESS
-                            .toString());
+            storageSystem.setDiscoveryStatus(DiscoveredDataObject.DataCollectionJobStatus.IN_PROGRESS.toString());
             _dbClient.updateObject(storageSystem);
-            if (accessProfile.getnamespace().equals(
-                    StorageSystem.Discovery_Namespaces.UNMANAGED_FILESYSTEMS
-                            .toString())) {
-                unityUnManagedObjectDiscoverer.discoverUnManagedFileSystems(
-                        accessProfile, _dbClient, _coordinator,
-                        _partitionManager);
-                unityUnManagedObjectDiscoverer.discoverAllExportRules(accessProfile,
-                        _dbClient, _partitionManager);
-                unityUnManagedObjectDiscoverer.discoverAllCifsShares(accessProfile,
-                        _dbClient, _partitionManager);
+            if (accessProfile.getnamespace().equals(StorageSystem.Discovery_Namespaces.UNMANAGED_FILESYSTEMS.toString())) {
+                unityUnManagedObjectDiscoverer.discoverUnManagedFileSystems(accessProfile, _dbClient, _coordinator, _partitionManager);
+                unityUnManagedObjectDiscoverer.discoverAllExportRules(accessProfile, _dbClient, _partitionManager);
+                unityUnManagedObjectDiscoverer.discoverAllCifsShares(accessProfile, _dbClient, _partitionManager);
+                unityUnManagedObjectDiscoverer.discoverAllTreeQuotas(accessProfile, _dbClient, _partitionManager);
 
             } else if (accessProfile.getnamespace().equals(
-                    StorageSystem.Discovery_Namespaces.UNMANAGED_VOLUMES
-                            .toString())) {
-                unityUnManagedObjectDiscoverer.discoverUnManagedVolumes(
-                        accessProfile, _dbClient, _coordinator,
-                        _partitionManager);
+                    StorageSystem.Discovery_Namespaces.UNMANAGED_VOLUMES.toString())) {
+                unityUnManagedObjectDiscoverer.discoverUnManagedVolumes(accessProfile, _dbClient, _coordinator, _partitionManager);
             }
 
             // discovery succeeds
-            detailedStatusMessage = String
-                    .format("UnManaged Object Discovery completed successfully for VNX Unity: %s",
-                            storageSystem.getId().toString());
+            detailedStatusMessage = String.format("UnManaged Object Discovery completed successfully for VNX Unity: %s",
+                    storageSystem.getId().toString());
             _logger.info(detailedStatusMessage);
 
         } catch (Exception e) {
-            detailedStatusMessage = String
-                    .format("Discovery of unmanaged volumes failed for system %s because %s",
-                            storageSystem.getId().toString(),
-                            e.getLocalizedMessage());
+            detailedStatusMessage = String.format("Discovery of unmanaged volumes failed for system %s because %s",
+                    storageSystem.getId().toString(), e.getLocalizedMessage());
             _logger.error(detailedStatusMessage, e);
-            throw VNXeException.exceptions.discoveryError(
-                    "Unmanaged objectobject discovery error", e);
+            throw VNXeException.exceptions.discoveryError("Unmanaged objectobject discovery error", e);
         } finally {
             if (storageSystem != null) {
                 try {
                     // set detailed message
-                    storageSystem
-                            .setLastDiscoveryStatusMessage(detailedStatusMessage);
+                    storageSystem.setLastDiscoveryStatusMessage(detailedStatusMessage);
                     _dbClient.updateObject(storageSystem);
                 } catch (Exception ex) {
-                    _logger.error(
-                            "Error while updating unmanaged object discovery status for system.",
-                            ex);
+                    _logger.error("Error while updating unmanaged object discovery status for system.", ex);
                 }
             }
         }
@@ -1075,11 +1057,11 @@ public class VNXUnityCommunicationInterface extends
                 port.setPortNetworkId(node.getName());
                 port.setPortGroup(spIdStr);
                 port.setStorageHADomain(haDomainUri);
-                
+
                 VNXeIscsiPortal portal = node.getIscsiPortal();
                 if (portal != null) {
                     port.setIpAddress(portal.getIpAddress());
-                } 
+                }
                 _logger.info(
                         "Creating new storage port using NativeGuid : {}, IQN:",
                         portNativeGuid, node.getName());
@@ -1088,7 +1070,7 @@ public class VNXUnityCommunicationInterface extends
                 existingStoragePorts.add(port);
             }
             Health health = node.getEthernetPort().getHealth();
-            if (health != null && health.getValue()== Health.HealthEnum.OK.getValue()) {
+            if (health != null && health.getValue() == Health.HealthEnum.OK.getValue()) {
                 port.setOperationalStatus(StoragePort.OperationalStatus.OK
                         .name());
             } else {
@@ -1198,7 +1180,6 @@ public class VNXUnityCommunicationInterface extends
                 port.setPortNetworkId(fcPort.getPortWwn());
                 port.setPortGroup(spIdStr);
                 port.setStorageHADomain(haDomainUri);
-                
 
                 _logger.info(
                         "Creating new storage port using NativeGuid : {}, WWN:",

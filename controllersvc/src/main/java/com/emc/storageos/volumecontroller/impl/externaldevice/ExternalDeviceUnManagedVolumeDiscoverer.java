@@ -538,13 +538,12 @@ public class ExternalDeviceUnManagedVolumeDiscoverer {
                 cloneUris.add(unManagedClone.getId());
                 unManagedClones.add(unManagedCloneNatvieGuid);
 
-                // Check if this snap is for a volume in consistency group on device.
+                // Check if this clone is for a volume in consistency group on device.
                 String isParentVolumeInCG =
                         unManagedParentVolume.getVolumeCharacterstics().get(UnManagedVolume.SupportedVolumeCharacterstics.IS_VOLUME_ADDED_TO_CONSISTENCYGROUP.toString());
                 if (isParentVolumeInCG.equals(Boolean.TRUE.toString())) {
-                    // add clone to parent volume unmanaged consistency group, update clone with parent volume CG information.
-                    addObjectToUnManagedConsistencyGroup(storageSystem, driverVolume.getConsistencyGroup(), unManagedClone,
-                            allCurrentUnManagedCgURIs, unManagedCGToUpdateMap, driver, dbClient);
+                    // We do not add clones to parent volumes CG (the same as in the green field: verified with VMAX/VNX clones)
+                    log.info("Clone {} is for volume in CG. ", managedCloneNativeGuid);
                 }
             }
             if (!unManagedClones.isEmpty()) {
@@ -708,6 +707,10 @@ public class ExternalDeviceUnManagedVolumeDiscoverer {
             }
         }
 
+        // set from parent volume (required for snaps by ingest framework)
+        unManagedVolumeCharacteristics.put(UnManagedVolume.SupportedVolumeCharacterstics.IS_THINLY_PROVISIONED.toString(),
+                parentUnManagedVolume.getVolumeCharacterstics().get(UnManagedVolume.SupportedVolumeCharacterstics.IS_THINLY_PROVISIONED.toString()));
+
         unManagedVolume.setStoragePoolUri(storagePool.getId());
         StringSet pools = new StringSet();
         pools.add(storagePool.getId().toString());
@@ -797,8 +800,7 @@ public class ExternalDeviceUnManagedVolumeDiscoverer {
             // remove uri of the unmanaged CG in the unmanaged volume object
             unManagedVolumeInformation.remove(UnManagedVolume.SupportedVolumeInformation.UNMANAGED_CONSISTENCY_GROUP_URI.toString());
             // Clean old data for replication group name
-            // todo: is this the right key for clone cg name?
-            unManagedVolumeInformation.remove(UnManagedVolume.SupportedVolumeInformation.SNAPSHOT_CONSISTENCY_GROUP_NAME.toString());
+            unManagedVolumeInformation.remove(UnManagedVolume.SupportedVolumeInformation.FULL_COPY_CONSISTENCY_GROUP_NAME.toString());
         }
 
         unManagedVolume.setLabel(driverClone.getDeviceLabel());
@@ -838,6 +840,9 @@ public class ExternalDeviceUnManagedVolumeDiscoverer {
         unManagedVolumeCharacteristics.put(
                 UnManagedVolume.SupportedVolumeCharacterstics.IS_INGESTABLE.toString(), TRUE);
 
+        unManagedVolumeCharacteristics.put(UnManagedVolume.SupportedVolumeCharacterstics.IS_THINLY_PROVISIONED.toString(),
+                driverClone.getThinlyProvisioned().toString());
+
         unManagedVolumeCharacteristics.put(UnManagedVolume.SupportedVolumeCharacterstics.IS_FULL_COPY.toString(), TRUE);
 
         StringSet parentVol = new StringSet();
@@ -873,8 +878,7 @@ public class ExternalDeviceUnManagedVolumeDiscoverer {
             if (driverClone.getConsistencyGroup() != null && !driverClone.getConsistencyGroup().isEmpty()) {
                 StringSet snapCgName = new StringSet();
                 snapCgName.add(driverClone.getConsistencyGroup());
-                // todo: is this the right key for clone cg name?
-                unManagedVolumeInformation.put(UnManagedVolume.SupportedVolumeInformation.SNAPSHOT_CONSISTENCY_GROUP_NAME.toString(),
+                unManagedVolumeInformation.put(UnManagedVolume.SupportedVolumeInformation.FULL_COPY_CONSISTENCY_GROUP_NAME.toString(),
                         snapCgName);
             }
         }

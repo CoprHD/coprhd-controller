@@ -17,10 +17,10 @@ public class StorageVolume extends StorageBlockObject {
     private Long requestedCapacity;
 
     // Logical size of a storage volume on array in bytes. Type: Output.
-    private Long provisionedCapacity;
+    private Long provisionedCapacity = 0L;
 
     // Total amount of storage space allocated within the StoragePool in bytes. Type: Output.
-    private Long allocatedCapacity;
+    private Long allocatedCapacity = 0L;
 
     // thinVolumePreAllocate size in bytes. Type: Input.
     private Long thinVolumePreAllocationSize;

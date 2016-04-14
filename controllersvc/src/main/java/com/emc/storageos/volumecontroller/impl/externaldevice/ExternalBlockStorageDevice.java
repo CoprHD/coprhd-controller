@@ -575,6 +575,7 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
                     cloneObject.setProvisionedCapacity(driverCloneResult.getProvisionedCapacity());
                     cloneObject.setAllocatedCapacity(driverCloneResult.getAllocatedCapacity());
                     cloneObject.setInactive(false);
+                    cloneObject.setConsistencyGroup(parentVolume.getConsistencyGroup());
                     cloneObjects.add(cloneObject);
                 }
                 dbClient.updateObject(cloneObjects);

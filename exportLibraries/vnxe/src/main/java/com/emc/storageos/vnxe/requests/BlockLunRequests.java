@@ -27,7 +27,8 @@ public class BlockLunRequests extends KHRequests<VNXeLun> {
     private static final String URL_LUNS = "/api/types/lun/instances";
     private static final String URL_LUN = "/api/instances/lun/";
     private static final String URL_LUN_MODIFY_ACTION = "/action/modifyLun";
-    private static final String FIELDS = "name,wwn,pool,storageResource,health,sizeTotal,sizeAllocated,isThinEnabled,snapWwn,snapsSize,hostAccess,snapCount";
+    private static final String FIELDS = "name,wwn,pool,storageResource,health,sizeTotal,sizeAllocated,isThinEnabled,snapWwn,"
+            + "snapsSize,hostAccess,snapCount,type";
 
     public BlockLunRequests(KHClient client) {
         super(client);

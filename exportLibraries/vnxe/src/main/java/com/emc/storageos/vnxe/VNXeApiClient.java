@@ -1430,8 +1430,13 @@ public class VNXeApiClient {
             list.add(exportParam);
             LunGroupModifyParam groupParam = new LunGroupModifyParam();
             groupParam.setLunModify(list);
-            LunGroupRequests lunGroupReq = new LunGroupRequests(_khClient);
-            lunGroupReq.modifyLunGroupSync(lun.getStorageResource().getId(), groupParam);
+            if (!_khClient.isUnity()) {
+                LunGroupRequests lunGroupReq = new LunGroupRequests(_khClient);
+                lunGroupReq.modifyLunGroupSync(lun.getStorageResource().getId(), groupParam);
+            } else {
+                ConsistencyGroupRequests cgReq = new ConsistencyGroupRequests(_khClient);
+                cgReq.modifyConsistencyGroupSync(lun.getStorageResource().getId(), groupParam);
+            }
         }
         // get hlu
         HostLunRequests hostLunReq = new HostLunRequests(_khClient);
@@ -1508,8 +1513,13 @@ public class VNXeApiClient {
             list.add(modifyParam);
             LunGroupModifyParam groupParam = new LunGroupModifyParam();
             groupParam.setLunModify(list);
-            LunGroupRequests lunGroupReq = new LunGroupRequests(_khClient);
-            lunGroupReq.modifyLunGroupSync(lun.getStorageResource().getId(), groupParam);
+            if (!_khClient.isUnity()) {
+                LunGroupRequests lunGroupReq = new LunGroupRequests(_khClient);
+                lunGroupReq.modifyLunGroupSync(lun.getStorageResource().getId(), groupParam);
+            } else {
+                ConsistencyGroupRequests cgReq = new ConsistencyGroupRequests(_khClient);
+                cgReq.modifyConsistencyGroupSync(lun.getStorageResource().getId(), groupParam);
+            }
         }
         _logger.info("Done unexporting lun: {}", lunId);
 
@@ -1584,14 +1594,20 @@ public class VNXeApiClient {
             BlockLunRequests lunReq = new BlockLunRequests(_khClient);
             lunReq.modifyLunSync(exportParam, parentLun.getStorageResource().getId());
         } else {
-            // lun in a lun group
+            // parent lun in a lun group
             exportParam.setLun(new VNXeBase(parentLun.getId()));
             List<LunModifyParam> list = new ArrayList<LunModifyParam>();
             list.add(exportParam);
             LunGroupModifyParam groupParam = new LunGroupModifyParam();
             groupParam.setLunModify(list);
-            LunGroupRequests lunGroupReq = new LunGroupRequests(_khClient);
-            lunGroupReq.modifyLunGroupSync(parentLun.getStorageResource().getId(), groupParam);
+            if (!_khClient.isUnity()) {
+                LunGroupRequests lunGroupReq = new LunGroupRequests(_khClient);
+                lunGroupReq.modifyLunGroupSync(parentLun.getStorageResource().getId(), groupParam);
+            } else {
+                ConsistencyGroupRequests cgReq = new ConsistencyGroupRequests(_khClient);
+                cgReq.modifyConsistencyGroupSync(parentLun.getStorageResource().getId(), groupParam);
+            }
+            
         }
         // get hlu
         HostLunRequests hostLunReq = new HostLunRequests(_khClient);
@@ -1681,8 +1697,13 @@ public class VNXeApiClient {
             list.add(modifyParam);
             LunGroupModifyParam groupParam = new LunGroupModifyParam();
             groupParam.setLunModify(list);
-            LunGroupRequests lunGroupReq = new LunGroupRequests(_khClient);
-            lunGroupReq.modifyLunGroupSync(parentLun.getStorageResource().getId(), groupParam);
+            if (!_khClient.isUnity()) {
+                LunGroupRequests lunGroupReq = new LunGroupRequests(_khClient);
+                lunGroupReq.modifyLunGroupSync(parentLun.getStorageResource().getId(), groupParam);
+            } else {
+                ConsistencyGroupRequests cgReq = new ConsistencyGroupRequests(_khClient);
+                cgReq.modifyConsistencyGroupSync(parentLun.getStorageResource().getId(), groupParam);
+            }
         }
         if (needReattach) {
             attachLunSnap(snapId);

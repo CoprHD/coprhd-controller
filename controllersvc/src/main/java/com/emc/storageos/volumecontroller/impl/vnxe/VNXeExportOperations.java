@@ -65,7 +65,7 @@ public class VNXeExportOperations extends VNXeOperations implements ExportMaskOp
                 }
 
             }
-            _dbClient.persistObject(mask);
+            _dbClient.updateObject(mask);
             taskCompleter.ready(_dbClient);
 
         } catch (Exception e) {
@@ -142,7 +142,7 @@ public class VNXeExportOperations extends VNXeOperations implements ExportMaskOp
                 exportMask.removeVolume(volUri);
             }
 
-            _dbClient.updateAndReindexObject(exportMask);
+            _dbClient.updateObject(exportMask);
 
             List<ExportGroup> exportGroups = ExportMaskUtils.getExportGroups(_dbClient, exportMask);
             if (exportGroups != null) {
@@ -152,7 +152,7 @@ public class VNXeExportOperations extends VNXeOperations implements ExportMaskOp
                     exportGroup.removeExportMask(exportMask.getId().toString());
                 }
                 // Update all of the export groups in the DB
-                _dbClient.updateAndReindexObject(exportGroups);
+                _dbClient.updateObject(exportGroups);
             }
 
             taskCompleter.ready(_dbClient);
@@ -194,7 +194,7 @@ public class VNXeExportOperations extends VNXeOperations implements ExportMaskOp
                 }
 
             }
-            _dbClient.persistObject(exportMask);
+            _dbClient.updateObject(exportMask);
             taskCompleter.ready(_dbClient);
 
         } catch (Exception e) {
@@ -234,7 +234,7 @@ public class VNXeExportOperations extends VNXeOperations implements ExportMaskOp
                 exportMask.removeVolume(volUri);
             }
 
-            _dbClient.updateAndReindexObject(exportMask);
+            _dbClient.updateObject(exportMask);
 
             taskCompleter.ready(_dbClient);
         } catch (Exception e) {
@@ -302,7 +302,7 @@ public class VNXeExportOperations extends VNXeOperations implements ExportMaskOp
             wwn = "";
         }
         blockObj.setWWN(wwn);
-        _dbClient.persistObject(blockObj);
+        _dbClient.updateObject(blockObj);
     }
 
 }

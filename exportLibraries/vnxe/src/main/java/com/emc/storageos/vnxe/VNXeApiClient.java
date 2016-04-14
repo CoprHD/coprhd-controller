@@ -25,7 +25,6 @@ import com.emc.storageos.vnxe.models.CifsShareCreateForSnapParam;
 import com.emc.storageos.vnxe.models.CifsShareCreateParam;
 import com.emc.storageos.vnxe.models.CifsShareDeleteParam;
 import com.emc.storageos.vnxe.models.CifsShareParam;
-import com.emc.storageos.vnxe.models.ConsistencyGroupCreateParam;
 import com.emc.storageos.vnxe.models.CreateFileSystemParam;
 import com.emc.storageos.vnxe.models.Disk;
 import com.emc.storageos.vnxe.models.DiskGroup;
@@ -94,7 +93,6 @@ import com.emc.storageos.vnxe.requests.BasicSystemInfoRequest;
 import com.emc.storageos.vnxe.requests.BlockLunRequests;
 import com.emc.storageos.vnxe.requests.CifsServerListRequest;
 import com.emc.storageos.vnxe.requests.CifsShareRequests;
-import com.emc.storageos.vnxe.requests.ConsistencyGroupRequests;
 import com.emc.storageos.vnxe.requests.DeleteStorageResourceRequest;
 import com.emc.storageos.vnxe.requests.DiskGroupRequests;
 import com.emc.storageos.vnxe.requests.DiskRequest;
@@ -2278,11 +2276,12 @@ public class VNXeApiClient {
         FileSystemQuotaConfigRequests req = new FileSystemQuotaConfigRequests(_khClient);
         return req.getFileSystemQuotaConfig(quotaConfigId);
     }
-    
+
     /**
      * Create consistency group for VNX Unity
      * 
-     * @param name consistency group name
+     * @param name
+     *            consistency group name
      * @return VNXeCommmandResult, with the consistency group id.
      */
     public VNXeCommandResult createConsistencyGroup(String name) {
@@ -2297,8 +2296,11 @@ public class VNXeApiClient {
 
     /**
      * Add luns to consistency group
-     * @param cgId consistency group Id
-     * @param luns luns to be added into the consistency group
+     * 
+     * @param cgId
+     *            consistency group Id
+     * @param luns
+     *            luns to be added into the consistency group
      * 
      */
     public VNXeCommandResult addLunsToConsistencyGroup(String cgId, List<String> luns) {
@@ -2319,8 +2321,10 @@ public class VNXeApiClient {
     /**
      * Remove luns from the consistency group
      * 
-     * @param cgId lun group id
-     * @param luns list of lun IDs
+     * @param cgId
+     *            lun group id
+     * @param luns
+     *            list of lun IDs
      * @return
      */
     public VNXeCommandResult removeLunsFromConsistencyGroup(String cgId, List<String> luns) {
@@ -2366,8 +2370,10 @@ public class VNXeApiClient {
      * then delete the Consistency group.
      * 
      * @param cgId
-     * @param isForceSnapDeletion if to delete snaps
-     * @param isForceVolumeDeletion if to delete all volumes in the CG
+     * @param isForceSnapDeletion
+     *            if to delete snaps
+     * @param isForceVolumeDeletion
+     *            if to delete all volumes in the CG
      * @return
      */
     public VNXeCommandResult deleteConsistencyGroup(String cgId,
@@ -2389,7 +2395,7 @@ public class VNXeApiClient {
             return deleteReq.deleteLunGroup(cgId, isForceSnapDeletion);
         }
     }
-    
+
     /**
      * Create multiple volumes in a lun group
      * 
@@ -2436,7 +2442,6 @@ public class VNXeApiClient {
         return req.modifyConsistencyGroupAsync(cgId, param);
 
     }
-
 
     /**
      * Get all the Tree Quotas

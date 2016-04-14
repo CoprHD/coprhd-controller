@@ -33,6 +33,7 @@ import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.StringSetMap;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedCifsShareACL;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedFileExportRule;
+import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedFileQuotaDirectory;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedFileSystem;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedFileSystem.SupportedFileSystemInformation;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedSMBFileShare;
@@ -46,6 +47,8 @@ import com.emc.storageos.plugins.common.Constants;
 import com.emc.storageos.plugins.common.PartitionManager;
 import com.emc.storageos.vnxe.VNXeApiClient;
 import com.emc.storageos.vnxe.VNXeApiClientFactory;
+import com.emc.storageos.vnxe.models.VNXUnityQuotaConfig;
+import com.emc.storageos.vnxe.models.VNXUnityTreeQuota;
 import com.emc.storageos.vnxe.models.VNXeBase;
 import com.emc.storageos.vnxe.models.VNXeCifsShare;
 import com.emc.storageos.vnxe.models.VNXeFileInterface;
@@ -67,6 +70,7 @@ public class VNXUnityUnManagedObjectDiscoverer {
     public static final String UNMANAGED_FILESYSTEM = "UnManagedFileSystem";
     private static final String UNMANAGED_EXPORT_RULE = "UnManagedFileExportRule";
     private static final String UNMANAGED_CIFS_SHARE_ACL = "UnManagedCifsShareACL";
+    private static final String UNMANAGED_FILEQUOTADIR = "UnManagedFileQuotaDirectory";
     private static final String ROOT_USER_ACCESS = "root";
     private static final String SECURITY_FLAVOR = "sys";
     private static final String CIFS_MAX_USERS = "2147483647";
@@ -86,6 +90,9 @@ public class VNXUnityUnManagedObjectDiscoverer {
 
     List<UnManagedCifsShareACL> unManagedCifsAclInsert = null;
     List<UnManagedCifsShareACL> unManagedCifsAclUpdate = null;
+
+    List<UnManagedFileQuotaDirectory> unManagedTreeQuotaInsert = null;
+    List<UnManagedFileQuotaDirectory> unManagedTreeQuotaUpdate = null;
 
     public void setVnxeApiClientFactory(VNXeApiClientFactory vnxeApiClientFactory) {
         this.vnxeApiClientFactory = vnxeApiClientFactory;
@@ -143,7 +150,8 @@ public class VNXUnityUnManagedObjectDiscoverer {
                         Constants.DEFAULT_PARTITION_SIZE, dbClient, UNMANAGED_VOLUME);
             }
 
-            // Process those active unmanaged volume objects available in database but not in newly discovered items, to mark them inactive.
+            // Process those active unmanaged volume objects available in database but not in newly discovered items, to
+            // mark them inactive.
             DiscoveryUtils.markInActiveUnManagedVolumes(storageSystem, unManagedVolumesReturnedFromProvider, dbClient, partitionManager);
         } else {
             log.info("There are no luns found on the system: {}", storageSystem.getId());
@@ -206,7 +214,8 @@ public class VNXUnityUnManagedObjectDiscoverer {
                         Constants.DEFAULT_PARTITION_SIZE, dbClient, UNMANAGED_FILESYSTEM);
             }
 
-            // Process those active unmanaged fs objects available in database but not in newly discovered items, to mark them inactive.
+            // Process those active unmanaged fs objects available in database but not in newly discovered items, to
+            // mark them inactive.
             performStorageUnManagedFSBookKeeping(storageSystem, dbClient, partitionManager);
 
         } else {
@@ -299,7 +308,7 @@ public class VNXUnityUnManagedObjectDiscoverer {
 
         unManagedExportRulesInsert = new ArrayList<UnManagedFileExportRule>();
         unManagedExportRulesUpdate = new ArrayList<UnManagedFileExportRule>();
-        
+
         unManagedFilesystemsUpdate = new ArrayList<UnManagedFileSystem>();
 
         List<VNXeNfsShare> nfsExports = apiClient.getAllNfsShares();
@@ -381,7 +390,8 @@ public class VNXUnityUnManagedObjectDiscoverer {
                             unManagedFs.setHasExports(true);
                             unManagedFs.putFileSystemCharacterstics(
                                     UnManagedFileSystem.SupportedFileSystemCharacterstics.IS_FILESYSTEM_EXPORTED
-                                            .toString(), Boolean.TRUE.toString());
+                                            .toString(),
+                                    Boolean.TRUE.toString());
                             unManagedFilesystemsUpdate.add(unManagedFs);
                             log.info("File System {} has Exports and their size is {}", unManagedFs.getId(), unManagedExportRules.size());
                         } else {
@@ -394,32 +404,32 @@ public class VNXUnityUnManagedObjectDiscoverer {
                     log.error("IOException occured in discoverAllExportRules()", e);
                 }
             }
-            
-            if (!unManagedExportRulesInsert.isEmpty() && 
-            		unManagedExportRulesInsert.size() >= Constants.DEFAULT_PARTITION_SIZE) {
+
+            if (!unManagedExportRulesInsert.isEmpty() &&
+                    unManagedExportRulesInsert.size() >= Constants.DEFAULT_PARTITION_SIZE) {
                 // Add UnManage export rules
                 partitionManager.insertInBatches(unManagedExportRulesInsert,
                         Constants.DEFAULT_PARTITION_SIZE, dbClient, UNMANAGED_EXPORT_RULE);
                 unManagedExportRulesInsert.clear();
             }
 
-            if (!unManagedExportRulesUpdate.isEmpty() && 
-            		unManagedExportRulesUpdate.size() >= Constants.DEFAULT_PARTITION_SIZE) {
+            if (!unManagedExportRulesUpdate.isEmpty() &&
+                    unManagedExportRulesUpdate.size() >= Constants.DEFAULT_PARTITION_SIZE) {
                 // Update UnManage export rules
                 partitionManager.updateInBatches(unManagedExportRulesUpdate,
                         Constants.DEFAULT_PARTITION_SIZE, dbClient, UNMANAGED_EXPORT_RULE);
                 unManagedExportRulesUpdate.clear();
             }
-            
-            if (!unManagedFilesystemsUpdate.isEmpty() && 
-            		unManagedFilesystemsUpdate.size() >= Constants.DEFAULT_PARTITION_SIZE) {
+
+            if (!unManagedFilesystemsUpdate.isEmpty() &&
+                    unManagedFilesystemsUpdate.size() >= Constants.DEFAULT_PARTITION_SIZE) {
                 // Update UnManagedFilesystem
                 partitionManager.updateInBatches(unManagedFilesystemsUpdate,
                         Constants.DEFAULT_PARTITION_SIZE, dbClient, UNMANAGED_FILESYSTEM);
                 unManagedFilesystemsUpdate.clear();
             }
         }
-        
+
         if (!unManagedExportRulesInsert.isEmpty()) {
             // Add UnManage export rules
             partitionManager.insertInBatches(unManagedExportRulesInsert,
@@ -433,8 +443,8 @@ public class VNXUnityUnManagedObjectDiscoverer {
                     Constants.DEFAULT_PARTITION_SIZE, dbClient, UNMANAGED_EXPORT_RULE);
             unManagedExportRulesUpdate.clear();
         }
-        
-        if (!unManagedFilesystemsUpdate.isEmpty() ) {
+
+        if (!unManagedFilesystemsUpdate.isEmpty()) {
             // Update UnManagedFilesystem
             partitionManager.updateInBatches(unManagedFilesystemsUpdate,
                     Constants.DEFAULT_PARTITION_SIZE, dbClient, UNMANAGED_FILESYSTEM);
@@ -520,7 +530,8 @@ public class VNXUnityUnManagedObjectDiscoverer {
                     unManagedFs.setHasShares(true);
                     unManagedFs.putFileSystemCharacterstics(
                             UnManagedFileSystem.SupportedFileSystemCharacterstics.IS_FILESYSTEM_EXPORTED
-                                    .toString(), Boolean.TRUE.toString());
+                                    .toString(),
+                            Boolean.TRUE.toString());
                     dbClient.persistObject(unManagedFs);
 
                 } catch (IOException e) {
@@ -837,17 +848,19 @@ public class VNXUnityUnManagedObjectDiscoverer {
         if (fileSystem.getIsThinEnabled()) {
             unManagedFileSystemCharacteristics.put(
                     UnManagedFileSystem.SupportedFileSystemCharacterstics.IS_THINLY_PROVISIONED
-                            .toString(), Boolean.TRUE.toString());
-        }
-        else {
+                            .toString(),
+                    Boolean.TRUE.toString());
+        } else {
             unManagedFileSystemCharacteristics.put(
                     UnManagedFileSystem.SupportedFileSystemCharacterstics.IS_THINLY_PROVISIONED
-                            .toString(), Boolean.FALSE.toString());
+                            .toString(),
+                    Boolean.FALSE.toString());
         }
 
         unManagedFileSystemCharacteristics.put(
                 UnManagedFileSystem.SupportedFileSystemCharacterstics.IS_FILESYSTEM_EXPORTED
-                        .toString(), Boolean.FALSE.toString());
+                        .toString(),
+                Boolean.FALSE.toString());
 
         if (null != system) {
             StringSet systemTypes = new StringSet();
@@ -889,7 +902,8 @@ public class VNXUnityUnManagedObjectDiscoverer {
 
         unManagedFileSystemCharacteristics.put(
                 UnManagedFileSystem.SupportedFileSystemCharacterstics.IS_INGESTABLE
-                        .toString(), Boolean.TRUE.toString());
+                        .toString(),
+                Boolean.TRUE.toString());
         // Set attributes of FileSystem
         StringSet fsPath = new StringSet();
         fsPath.add("/" + fileSystem.getName());
@@ -921,14 +935,16 @@ public class VNXUnityUnManagedObjectDiscoverer {
         allocatedCapacity.add(usedCapacity);
         unManagedFileSystemInformation.put(
                 UnManagedFileSystem.SupportedFileSystemInformation.ALLOCATED_CAPACITY
-                        .toString(), allocatedCapacity);
+                        .toString(),
+                allocatedCapacity);
 
         StringSet provisionedCapacity = new StringSet();
         String capacity = String.valueOf(fileSystem.getSizeTotal());
         provisionedCapacity.add(capacity);
         unManagedFileSystemInformation.put(
                 UnManagedFileSystem.SupportedFileSystemInformation.PROVISIONED_CAPACITY
-                        .toString(), provisionedCapacity);
+                        .toString(),
+                provisionedCapacity);
 
         // Add fileSystemInformation and Characteristics.
         unManagedFileSystem.addFileSystemInformation(unManagedFileSystemInformation);
@@ -965,7 +981,8 @@ public class VNXUnityUnManagedObjectDiscoverer {
      * Get the Vnx Unity service client for making requests to the Vnxe based
      * on the passed profile.
      * 
-     * @param accessProfile A reference to the access profile.
+     * @param accessProfile
+     *            A reference to the access profile.
      * 
      * @return A reference to the Vnxe service client.
      */
@@ -1065,4 +1082,81 @@ public class VNXUnityUnManagedObjectDiscoverer {
 
     }
 
+    public void discoverAllTreeQuotas(AccessProfile accessProfile, DbClient dbClient, PartitionManager partitionManager) {
+
+        StorageSystem storageSystem = dbClient.queryObject(StorageSystem.class, accessProfile.getSystemId());
+        VNXeApiClient apiClient = getVnxUnityClient(accessProfile);
+        log.info("discoverAllTreeQuotas for storage system {} - start", storageSystem.getId());
+
+        unManagedTreeQuotaInsert = new ArrayList<UnManagedFileQuotaDirectory>();
+        unManagedTreeQuotaUpdate = new ArrayList<UnManagedFileQuotaDirectory>();
+
+        List<VNXUnityTreeQuota> treeQuotas = apiClient.getAllTreeQuotas();
+
+        for (VNXUnityTreeQuota quota : treeQuotas) {
+            log.info("Discovered fS tree quota {}", quota.toString());
+
+            VNXeFileSystem fs = null;
+            if (quota.getFilesystem() != null) {
+                fs = apiClient.getFileSystemByFSId(quota.getFilesystem().getId());
+                String fsNativeGUID = NativeGUIDGenerator.generateNativeGuid(storageSystem.getSystemType(), storageSystem.getSerialNumber(),
+                        fs.getId());
+
+                try {
+                    if (checkStorageFileSystemExistsInDB(fsNativeGUID, dbClient)) {
+                        log.info("Skipping file system {} as it is already managed by ViPR", fsNativeGUID);
+                        continue;
+                    }
+                    String nativeUnmanagedGUID = NativeGUIDGenerator.generateNativeGuidForPreExistingQuotaDirectory(
+                            storageSystem.getSystemType(), storageSystem.getSerialNumber(), quota.getId());
+
+                    VNXUnityQuotaConfig qc = apiClient.getQuotaConfigById(quota.getQuotaConfigId());
+
+                    UnManagedFileQuotaDirectory unManagedFileQuotaDirectory = new UnManagedFileQuotaDirectory();
+                    unManagedFileQuotaDirectory.setId(URIUtil.createId(UnManagedFileQuotaDirectory.class));
+                    unManagedFileQuotaDirectory.setLabel(quota.getPath().substring(1));
+                    unManagedFileQuotaDirectory.setNativeGuid(nativeUnmanagedGUID);
+                    unManagedFileQuotaDirectory.setParentFSNativeGuid(fsNativeGUID);
+                    unManagedFileQuotaDirectory.setSize(quota.getHardLimit());
+                    Long softLimit = quota.getSoftLimit() * 100 / quota.getHardLimit();
+                    unManagedFileQuotaDirectory.setSoftLimit(softLimit.intValue());
+                    int softGrace = qc.getGracePeriod() / (24 * 60 * 60);
+                    unManagedFileQuotaDirectory.setSoftGrace(softGrace);
+
+                    if (!checkUnManagedQuotaDirectoryExistsInDB(dbClient, nativeUnmanagedGUID)) {
+                        unManagedTreeQuotaInsert.add(unManagedFileQuotaDirectory);
+                    } else {
+                        unManagedTreeQuotaUpdate.add(unManagedFileQuotaDirectory);
+                    }
+
+                } catch (IOException e) {
+                    log.error("IOException occured in discoverAllTreeQuotas()", e);
+                }
+            }
+        }
+        if (!unManagedTreeQuotaInsert.isEmpty()) {
+            // Add UnManagedFileSystem
+            partitionManager.insertInBatches(unManagedTreeQuotaInsert,
+                    Constants.DEFAULT_PARTITION_SIZE, dbClient, UNMANAGED_FILEQUOTADIR);
+            unManagedTreeQuotaInsert.clear();
+        }
+
+        if (!unManagedTreeQuotaUpdate.isEmpty()) {
+            // Update UnManagedFilesystem
+            partitionManager.updateInBatches(unManagedTreeQuotaUpdate,
+                    Constants.DEFAULT_PARTITION_SIZE, dbClient, UNMANAGED_FILEQUOTADIR);
+            unManagedTreeQuotaUpdate.clear();
+        }
+    }
+
+    private boolean checkUnManagedQuotaDirectoryExistsInDB(DbClient _dbClient, String nativeGuid)
+            throws IOException {
+        URIQueryResultList result = new URIQueryResultList();
+        _dbClient.queryByConstraint(AlternateIdConstraint.Factory
+                .getUnManagedFileQuotaDirectoryInfoNativeGUIdConstraint(nativeGuid), result);
+        if (result.iterator().hasNext()) {
+            return true;
+        }
+        return false;
+    }
 }

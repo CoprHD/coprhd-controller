@@ -24,7 +24,6 @@ import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.upgrade.BaseCustomMigrationCallback;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.svcs.errorhandling.resources.MigrationCallbackException;
-import com.emc.storageos.volumecontroller.impl.smis.SmisUtils;
 
 /**
  * Migration callback creates a BlockSnapshotSession instance for each VMAX BlockSnapshot and
@@ -34,6 +33,8 @@ public class BlockSnapshotSessionMigration extends BaseCustomMigrationCallback {
 
     // A reference to a logger.
     private static final Logger s_logger = LoggerFactory.getLogger(BlockSnapshotSessionMigration.class);
+
+    private static final String SMIS80_DELIMITER = "-+-";
 
     /**
      * {@inheritDoc}
@@ -125,7 +126,7 @@ public class BlockSnapshotSessionMigration extends BaseCustomMigrationCallback {
         BlockSnapshotSession snapshotSession = new BlockSnapshotSession();
         URI snapSessionURI = URIUtil.createId(BlockSnapshotSession.class);
         snapshotSession.setId(snapSessionURI);
-        snapshotSession.setSessionLabel(SmisUtils.getSessionLabelFromSettingsInstance(snapshot));
+        snapshotSession.setSessionLabel(getSessionLabelFromSettingsInstance(snapshot));
         URI cgURI = snapshot.getConsistencyGroup();
         if (NullColumnValueGetter.isNullURI(cgURI)) {
             snapshotSession.setParent(snapshot.getParent());
@@ -146,5 +147,21 @@ public class BlockSnapshotSessionMigration extends BaseCustomMigrationCallback {
         linkedTargets.add(snapshot.getId().toString());
         snapshotSession.setLinkedTargets(linkedTargets);
         return snapshotSession;
+    }
+
+    /**
+     * Gets the session label from settings instance.
+     *
+     * @param snapshot the snapshot
+     * @return the session label from settings instance
+     */
+    private String getSessionLabelFromSettingsInstance(BlockSnapshot snapshot) {
+        String sessionLabel = null;
+        String settingsInstance = snapshot.getSettingsInstance();
+        if (settingsInstance != null && !settingsInstance.isEmpty()) {
+            String[] instanceArray = settingsInstance.split(SMIS80_DELIMITER);
+            sessionLabel = instanceArray[3];
+        }
+        return sessionLabel;
     }
 }

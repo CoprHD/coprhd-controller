@@ -42,6 +42,11 @@ public class VPlexStorageSystemInfo extends VPlexResourceInfo {
         if (storageSystemNativeGuid.contains(getUniqueId().trim())) {
             return true;
         }
+        
+        if(storageSystemNativeGuid.contains("IBMXIV+IBM.2810-7812782") && getUniqueId().trim().contains("8401390"))
+        {
+        	return true;
+        }
 
         return false;
     }

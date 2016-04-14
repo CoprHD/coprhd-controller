@@ -691,14 +691,14 @@ public class XIVExportOperations implements ExportMaskOperations {
                     }
 
                     // update hosts
-                    Initiator initiator = ExportUtils.getInitiator(Initiator.toPortNetworkId(matchingInitiators.get(0)), _dbClient);
+                    /*Initiator initiator = ExportUtils.getInitiator(Initiator.toPortNetworkId(matchingInitiators.get(0)), _dbClient);
                     Host host = _dbClient.queryObject(Host.class, initiator.getHost());
                     String label = host.getLabel();
                     if (label.equals(name)) {
                         _helper.unsetTag(host, storage.getSerialNumber());
                     } else {
                         _helper.setTag(host, storage.getSerialNumber(), name);
-                    }
+                    }*/
 
                     for (String it : matchingInitiators) {
                         Set<URI> maskURIs = matchingMasks.get(it);

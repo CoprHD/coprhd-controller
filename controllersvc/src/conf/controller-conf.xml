@@ -791,7 +791,7 @@
         <property name="blockDeviceController" ref="blockDeviceController" />
     </bean>
     
-    <bean id="vplexXivMaskingOrchestrator" class="com.emc.storageos.volumecontroller.impl.block.VLlexXIVMaskingOrchestrator">
+    <bean id="vplexXivMaskingOrchestrator" class="com.emc.storageos.volumecontroller.impl.block.VPlexXIVMaskingOrchestrator">
         <property name="dbClient" ref="dbclient"/>
         <property name="workflowService" ref="workflowService" />
         <property name="blockDeviceController" ref="blockDeviceController" />

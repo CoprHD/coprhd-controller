@@ -64,8 +64,15 @@ public class VolumeInfo implements Serializable {
             List<String> itls) {
         _storageSystemNativeGuid = storageSystemNativeGuid;
         setSystemType(storageSystemType);
-        _volumeWWN = volumeWWN;
-        _volumeNativeId = volumeNativeId;
+        //_volumeWWN = volumeWWN;
+        //_volumeNativeId = volumeNativeId
+        
+        //TODO - Revert following changes after the issues gets fixed in VPLEX
+        //1- VPLEX is trimming the leading zeros in WWN
+        //2- IBM XIV volume nativeID contains "." which is not accepted during virtual volume create 
+        _volumeWWN = volumeWWN.replaceAll("^0+","");
+        _volumeNativeId = volumeNativeId.replace(VPlexApiConstants.DOT_OPERATOR,
+                                                 VPlexApiConstants.UNDERSCORE_OPERATOR);
         _isThin = isThin;
         _itls = itls;
     }

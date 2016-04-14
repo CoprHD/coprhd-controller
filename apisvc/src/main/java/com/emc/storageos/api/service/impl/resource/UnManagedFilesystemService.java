@@ -588,7 +588,7 @@ public class UnManagedFilesystemService extends TaggedResource {
             
             for (URI unManagedFSURI : param.getUnManagedFileSystems()) {
                 _logger.info("ingesting quota directories for filesystem {}", unManagedFSURIToFSMap.get(unManagedFSURI).getId());
-                ingestFileQuotaDirectories(unManagedFSURI, unManagedFSURIToFSMap.get(unManagedFSURI));
+                ingestFileQuotaDirectories(unManagedFSURIToFSMap.get(unManagedFSURI));
             }
 
             i = 0;
@@ -657,8 +657,8 @@ public class UnManagedFilesystemService extends TaggedResource {
         return filesystemList;
     }
 
-    private void ingestFileQuotaDirectories(URI unManagedFileSystemURI, FileShare parentFS) {
-        String parentFsNativeGUID = unManagedFileSystemURI.toString();
+    private void ingestFileQuotaDirectories(FileShare parentFS) {
+        String parentFsNativeGUID = parentFS.getNativeGuid();
         URIQueryResultList result = new URIQueryResultList();
         List<QuotaDirectory> quotaDirectories = new ArrayList<>();
         

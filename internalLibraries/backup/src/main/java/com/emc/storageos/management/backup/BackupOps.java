@@ -573,6 +573,9 @@ public class BackupOps {
 
     public void setRestoreStatus(String backupName, boolean isLocal, BackupRestoreStatus.Status s, String details,
                                  boolean increaseCompleteNumber, boolean doLock) {
+        if (increaseCompleteNumber) {
+            log.info("The download is finished lock={}", doLock);
+        }
         updateRestoreStatus(backupName, isLocal, s, details, null, 0, increaseCompleteNumber, null, true, doLock);
     }
 
@@ -597,10 +600,10 @@ public class BackupOps {
             if (doLock) {
                 lock = getLock(BackupConstants.RESTORE_STATUS_UPDATE_LOCK,
                         -1, TimeUnit.MILLISECONDS); // -1= no timeout
-            }
 
-            if (doLog) {
-                log.info("get lock {}", BackupConstants.RESTORE_STATUS_UPDATE_LOCK);
+                if (doLog) {
+                    log.info("get lock {}", BackupConstants.RESTORE_STATUS_UPDATE_LOCK);
+                }
             }
 
             BackupRestoreStatus s = queryBackupRestoreStatus(backupName, isLocal);
@@ -641,14 +644,15 @@ public class BackupOps {
             persistBackupRestoreStatus(s, isLocal, doLog);
 
             if (doLog) {
-                log.info("Persist backup restore status {} to zk successfully", s);
+                log.info("Persist backup restore status {} to zk successfully stack=", s, new Throwable());
             }
         }finally {
-            if (doLog) {
-                log.info("To release lock {}", BackupConstants.RESTORE_STATUS_UPDATE_LOCK);
-            }
-
             if (doLock) {
+
+                if (doLog) {
+                    log.info("To release lock {}", BackupConstants.RESTORE_STATUS_UPDATE_LOCK);
+                }
+
                 releaseLock(lock);
             }
         }

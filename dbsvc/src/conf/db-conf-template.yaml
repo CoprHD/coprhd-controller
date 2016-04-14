@@ -404,10 +404,10 @@ listen_address: ${network_ipaddr_effective}
 # Whether to start the native transport server.
 # Please note that the address on which the native transport is bound is the
 # same as the rpc_address. The port however is different and specified below.
-# start_native_transport: true
+start_native_transport: true
 # port for the CQL native transport to listen for clients on
 # For security reasons, you should not expose this port to the internet.  Firewall it if needed.
-# native_transport_port: 9042
+native_transport_port: 9042
 # The maximum threads for handling requests when the native transport is used.
 # This is similar to rpc_max_threads though the default differs slightly (and
 # there is no native_transport_min_threads, idle threads will always be stopped

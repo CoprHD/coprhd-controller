@@ -84,12 +84,16 @@ public class MigrationService extends TaskResourceService {
     // A reference to the BlockServiceApi for VPlex.
     VPlexBlockServiceApiImpl _vplexBlockServiceApi = null;
 
-    // A reference to the MigrationServiceApi
-    MigrationServiceApiImpl _migrationServiceApi = null;
+    // Migration Service Implementations
+    static volatile private Map<String, MigrationServiceApi> _migrationServiceApis;
 
     // A logger reference.
     private static final Logger s_logger = LoggerFactory
             .getLogger(MigrationService.class);
+
+    static public MigrationServiceApi getMigrationServiceImpl(String type) {
+        return _migrationServiceApis.get(type);
+    }
 
     /**
      * Setter for the VPlex BlockServiceApi called through Spring configuration.
@@ -105,8 +109,18 @@ public class MigrationService extends TaskResourceService {
      *
      * @param migrationServiceApi A reference to the MigrationServiceApi.
      */
-    public void setMigrationServiceApi(MigrationServiceApiImpl migrationServiceApi) {
-        _migrationServiceApi = migrationServiceApi;
+    public void setMigrationServiceApi(Map<String, MigrationServiceApi> serviceInterfaces) {
+        _migrationServiceApis = serviceInterfaces;
+    }
+
+    /**
+     * Returns the bean responsible for servicing the request
+     *
+     * @param volume block volume
+     * @return migration service implementation object
+     */
+    private MigrationServiceApi getMigrationServiceImpl(Volume volume) {
+        return getMigrationServiceImpl("default");
     }
 
     /**
@@ -346,14 +360,16 @@ public class MigrationService extends TaskResourceService {
             // operation against the volume
             checkForPendingTasks(Arrays.asList(volume.getTenant().getURI()), Arrays.asList(volume));
 
+            migrationServiceApi = getMigrationServiceImpl(volume);
+
             //TODO: Implement this function in the migrationServiceAPI
-            _migrationServiceApi.verifyVarrayChangeSupportedForVolumeAndVarray(volume, tgtVarray);
+            migrationServiceApi.verifyVarrayChangeSupportedForVolumeAndVarray(volume, tgtVarray);
             s_logger.info("Virtual array change is supported for requested volume and varray");
 
             // Get the migration capabilities of the storage device
             // TODO: Implement this function once support for getting capabilities
             // is added in the SB SDK.
-            boolean driverMigration = _migrationServiceApi.getMigrationCapabilities(volume.getStorageController());
+            boolean driverMigration = migrationServiceApi.getMigrationCapabilities(volume.getStorageController());
 
             // All volumes must be a CG or none of the volumes can be
             // in a CG. After processing individual volumes, if the
@@ -364,7 +380,7 @@ public class MigrationService extends TaskResourceService {
                 if (!isNullURI(cgURI)) {
                     cg = _permissionsHelper.getObjectById(cgURI, BlockConsistencyGroup.class);
                     s_logger.info("All volumes should be in CG {}:{}", cgURI, cg.getLabel());
-                    cgVolumes.addAll(_migrationServiceApi.getActiveCGVolumes(cg));
+                    cgVolumes.addAll(migrationServiceApi.getActiveCGVolumes(cg));
                 } else {
                     s_logger.info("No volumes should be in CGs");
                     foundVolumeNotInCG = true;
@@ -420,7 +436,7 @@ public class MigrationService extends TaskResourceService {
         if (cg != null) {
             try {
                 // When the volumes are part of a CG, executed as a single workflow.
-                _migrationServiceApi.migrateVolumesVirtualArray(volumes, cg, cgVolumes, tgtVarray, driverMigration, taskId);
+                migrationServiceApi.migrateVolumesVirtualArray(volumes, cg, cgVolumes, tgtVarray, driverMigration, taskId);
                 s_logger.info("Executed virtual array change for volumes");
             } catch (InternalException | APIException e) {
                 // Fail all the tasks.
@@ -447,7 +463,7 @@ public class MigrationService extends TaskResourceService {
             // When the volumes are not in a CG, then execute as individual workflows.
             for (Volume volume : volumes) {
                 try {
-                    _migrationServiceApi.migrateVolumesVirtualArray(Arrays.asList(volume), cg, cgVolumes, tgtVarray, driverMigration, taskId);
+                    migrationServiceApi.migrateVolumesVirtualArray(Arrays.asList(volume), cg, cgVolumes, tgtVarray, driverMigration, taskId);
                     s_logger.info("Executed virtual array change for volume {}", volume.getId());
                 } catch (InternalException | APIException e) {
                     String errorMsg = String.format("Volume virtual array change error: %s", e.getMessage());

@@ -148,7 +148,7 @@ public class VPlexScheduler implements Scheduler {
     }
 
     /**
-     * Gets the VPlex storage system associated with the specified consistency
+     * Gets the VPlex storage system(s) associated with the specified consistency
      * group.
      * 
      * @param vArray The virtual array specified for the new volume
@@ -172,46 +172,44 @@ public class VPlexScheduler implements Scheduler {
             consistencyGroup = _permissionsHelper.getObjectById(cgURI,
                     BlockConsistencyGroup.class);
         }
-        if ((consistencyGroup != null) && (consistencyGroup.created())) {
+        if ((consistencyGroup != null) && (consistencyGroup.created()) 
+                && consistencyGroup.getTypes().contains(BlockConsistencyGroup.Types.VPLEX.name())) {
             // Verify the storage system.
-            URI cgSystemURI = consistencyGroup.getStorageController();
-            if (!NullColumnValueGetter.isNullURI(cgSystemURI)) {
-                StorageSystem cgSystem = _permissionsHelper.getObjectById(cgSystemURI,
-                        StorageSystem.class);
-                String cgSystemType = cgSystem.getSystemType();
-    
-                if (!DiscoveredDataObject.Type.vplex.name().equals(cgSystemType)) {
-                    throw APIException.badRequests.invalidParameterConsistencyGroupNotForVplexStorageSystem(consistencyGroup.getId());
+            List<StorageSystem> vplexStorageSystems = 
+                    BlockConsistencyGroupUtils.getVPlexStorageSystems(consistencyGroup, _dbClient);
+            if (vplexStorageSystems.isEmpty()) {
+                throw APIException.badRequests.invalidParameterConsistencyGroupNotForVplexStorageSystem(consistencyGroup.getId());
+            }
+
+            // The volumes in a VPLEX consistency group must
+            // have the same high availability type.
+            List<Volume> cgVolumes = BlockConsistencyGroupUtils
+                    .getActiveVplexVolumesInCG(consistencyGroup, _dbClient, null);
+            Iterator<Volume> cgVolumesIter = cgVolumes.iterator();
+            if (cgVolumesIter.hasNext()) {
+                Volume cgVolume = cgVolumesIter.next();
+                VirtualPool cgVolumeVPool = _permissionsHelper.getObjectById(
+                        cgVolume.getVirtualPool(), VirtualPool.class);
+                if (!vPool.getHighAvailability().equals(
+                        cgVolumeVPool.getHighAvailability())) {
+                    throw APIException.badRequests
+                    .invalidParameterConsistencyGroupVolumeHasIncorrectHighAvailability(
+                            consistencyGroup.getId(), cgVolumeVPool.getHighAvailability());
                 }
-    
-                // The volumes in a VPLEX consistency group must
-                // have the same high availability type.
-                List<Volume> cgVolumes = BlockConsistencyGroupUtils
-                        .getActiveVplexVolumesInCG(consistencyGroup, _dbClient, null);
-                Iterator<Volume> cgVolumesIter = cgVolumes.iterator();
-                if (cgVolumesIter.hasNext()) {
-                    Volume cgVolume = cgVolumesIter.next();
-                    VirtualPool cgVolumeVPool = _permissionsHelper.getObjectById(
-                            cgVolume.getVirtualPool(), VirtualPool.class);
-                    if (!vPool.getHighAvailability().equals(
-                            cgVolumeVPool.getHighAvailability())) {
-                        throw APIException.badRequests
-                                .invalidParameterConsistencyGroupVolumeHasIncorrectHighAvailability(
-                                        consistencyGroup.getId(), cgVolumeVPool.getHighAvailability());
-                    }
-                }
-    
-                // Verify the virtual array.
-                URI cgVaURI = consistencyGroup.getVirtualArray();
-                if (!vArray.getId().toString().equals(cgVaURI.toString())) {
-                    throw APIException.badRequests.invalidParameterConsistencyGroupVirtualArrayMismatch(consistencyGroup.getId());
-                }
-    
-                // To satisfy the request, placement must be restricted to the
-                // storage systems connected to the VPlex system for the passed
-                // consistency group.
-                vplexSystemsForPlacement = new HashSet<URI>();
-                vplexSystemsForPlacement.add(cgSystemURI);
+            }
+
+            // Verify the virtual array.
+            URI cgVaURI = consistencyGroup.getVirtualArray();
+            if (!vArray.getId().toString().equals(cgVaURI.toString())) {
+                throw APIException.badRequests.invalidParameterConsistencyGroupVirtualArrayMismatch(consistencyGroup.getId());
+            }
+
+            // To satisfy the request, placement must be restricted to the
+            // storage systems connected to the VPlex system for the passed
+            // consistency group.
+            vplexSystemsForPlacement = new HashSet<URI>();
+            for (StorageSystem vplexSystem : vplexStorageSystems) {
+                vplexSystemsForPlacement.add(vplexSystem.getId());
             }
         }
 

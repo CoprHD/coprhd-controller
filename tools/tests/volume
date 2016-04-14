@@ -321,7 +321,8 @@ def vol_display(vol):
        elif 'srdf' in vol['protection'].keys():
           personality = vol['protection']['srdf']['personality'];
 
-    print vol_display_fmt.format(
+    try:
+        print vol_display_fmt.format(
               vol['name'],
               str(vol['requested_capacity_gb']),
               str(vol['allocated_capacity_gb']),
@@ -334,6 +335,8 @@ def vol_display(vol):
               vol['access_state'] if 'access_state' in vol.keys() else 'N/A',
               vol['link_status'] if 'link_status' in vol.keys() else 'N/A',
               vol['native_id'] if 'native_id' in vol.keys() else 'N/A')
+    except:
+        print vol
 
 exports_display_fmt = '{0:32s} {1:32s} {2:64s}'
 

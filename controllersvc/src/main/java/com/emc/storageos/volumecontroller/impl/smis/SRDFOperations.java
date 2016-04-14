@@ -463,7 +463,7 @@ public class SRDFOperations implements SmisConstants {
                     // Clear the CG types and add the LOCAL types
 
                     if (null != sourceCG.getTypes()) {
-                        sourceCG.getTypes().clear();
+                        sourceCG.getTypes().remove(Types.SRDF.name());
                     }
                     sourceCG.addConsistencyGroupTypes(Types.LOCAL.name());
 

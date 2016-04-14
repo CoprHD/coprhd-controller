@@ -1063,6 +1063,19 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             // For each VPLEX, delete the virtual volumes.
             for (URI vplexURI : vplexMap.keySet()) {
                 List<URI> vplexVolumeURIs = VolumeDescriptor.getVolumeURIs(vplexMap.get(vplexURI));
+                
+                // If there are VPlex Volumes fronting SRDF targets, handle them.
+                // They will need to be removed from the CG that represents the SRDF targets.
+                List<URI> volsForTargetCG = VPlexSrdfUtil.returnVplexSrdfTargets(_dbClient, vplexVolumeURIs);
+                if (!volsForTargetCG.isEmpty()) {
+                    URI volURI = volsForTargetCG.get(0);
+                    StorageSystem vplexSystem = VPlexControllerUtils.getDataObject(StorageSystem.class, vplexURI, _dbClient);
+                    Volume vol = VPlexControllerUtils.getDataObject(Volume.class, volURI, _dbClient);
+                    ConsistencyGroupManager consistencyGroupManager = getConsistencyGroupManager(vol);
+                    waitFor = consistencyGroupManager.addStepsForRemovingVolumesFromSRDFTargetCG(
+                            workflow, vplexSystem, volsForTargetCG, waitFor);
+                }
+                
                 workflow.createStep(VPLEX_STEP,
                         String.format("Delete VPlex Virtual Volumes:%n%s",
                                 BlockDeviceController.getVolumesMsg(_dbClient, vplexVolumeURIs)),

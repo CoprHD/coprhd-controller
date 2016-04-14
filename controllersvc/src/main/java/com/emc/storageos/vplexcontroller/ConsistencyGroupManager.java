@@ -52,7 +52,7 @@ public interface ConsistencyGroupManager {
      * @param opId The unique task identifier.
      * 
      * @throws InternalException When an error occurs configuring the
-     *             consistency group deletion workflow.
+     *             consistency group deConsistencyGroupManagerletion workflow.
      */
     public void deleteConsistencyGroup(Workflow workflow, URI vplexURI, URI cgURI, String opId)
             throws InternalException;
@@ -113,7 +113,8 @@ public interface ConsistencyGroupManager {
     public ClusterConsistencyGroupWrapper getClusterConsistencyGroup(Volume vplexVolume, BlockConsistencyGroup cg) throws Exception;
     
     /**
-     * 
+     * Add steps to add volumes to an SRDF Target CG. These CGs are special because the cone into existence
+     * when the SRDF link is created.
      * @param workflow
      * @param vplexSystem
      * @param vplexVolumeURIs
@@ -122,5 +123,18 @@ public interface ConsistencyGroupManager {
      * @throws Exception
      */
     public String addStepsForAddingVolumesToSRDFTargetCG(Workflow workflow, StorageSystem vplexSystem,
+            List<URI> vplexVolumeURIs, String waitFor) throws Exception;
+    
+    /**
+     * Adds steps to remove volumes from a SRDF Target CG, and if no more Vplex volumes exist,
+     * to delete the corresponding Vplex CG.
+     * @param workflow
+     * @param vplexSystem
+     * @param vplexVolumeURIs
+     * @param waitFor
+     * @return
+     * @throws Exception
+     */
+    public String addStepsForRemovingVolumesFromSRDFTargetCG(Workflow workflow, StorageSystem vplexSystem,
             List<URI> vplexVolumeURIs, String waitFor) throws Exception;
 }

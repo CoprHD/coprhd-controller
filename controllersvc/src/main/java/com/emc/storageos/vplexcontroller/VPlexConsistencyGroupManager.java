@@ -34,6 +34,7 @@ import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.locking.LockTimeoutValue;
 import com.emc.storageos.locking.LockType;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
+import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.util.VPlexSrdfUtil;
@@ -846,6 +847,35 @@ public class VPlexConsistencyGroupManager extends AbstractConsistencyGroupManage
     }
     
     /**
+     * Adds steps for remove volumes from the SRDF Target CG.
+     * @param workflow
+     * @param vplexSystem
+     * @param vplexVolumeURIs
+     * @param waitFor
+     * @return last step generated
+     */
+    public String addStepsForRemovingVolumesFromSRDFTargetCG(Workflow workflow, StorageSystem vplexSystem,
+            List<URI> vplexVolumeURIs, String waitFor) {
+        StringBuilder volumeList = new StringBuilder();
+        if (vplexVolumeURIs.isEmpty()) {
+            return waitFor;
+        }
+        for (URI vplexVolumeURI : vplexVolumeURIs) {
+            Volume volume = dbClient.queryObject(Volume.class, vplexVolumeURI);
+            if (volumeList.length() != 0) {
+                volumeList.append(", ");
+            }
+            volumeList.append(volume.getLabel());
+        }
+        Workflow.Method executeMethod = removeVplexVolumesFromSRDFTargetCGMethod(vplexSystem.getId(), vplexVolumeURIs);
+        Workflow.Method rollbackMethod = removeVplexVolumesFromSRDFTargetCGMethod(vplexSystem.getId(), vplexVolumeURIs);
+        waitFor = workflow.createStep(null, 
+                "Remove VplexVolumes from Target CG: " + volumeList.toString(), waitFor, vplexSystem.getId(), 
+                vplexSystem.getSystemType(), this.getClass(), executeMethod, rollbackMethod, null);
+        return waitFor;
+    }
+    
+    /**
      * Returns a workflow method for removing Vplex Volumes form the SRDF Target CG.
      * This is used for rolling back addVplexVolumesToSRDFTargetCG.
      * @param vplexURI
@@ -866,11 +896,42 @@ public class VPlexConsistencyGroupManager extends AbstractConsistencyGroupManage
      */
     public  void removeVplexVolumesFromSRDFTargetCG(URI vplexURI, List<URI> vplexVolumeURIs, String stepId)
             throws WorkflowException {
+        WorkflowStepCompleter.stepExecuting(stepId);
+        
         // Make a map of the VPlex volume to corresponding SRDF volume
         Map<Volume, Volume> vplexToSrdfVolumeMap = VPlexSrdfUtil.makeVplexToSrdfVolumeMap(dbClient, vplexVolumeURIs);
         // Make sure that the SRDF volumes have a consistency group and it is the same.
         Volume protoVolume = dbClient.queryObject(Volume.class, vplexVolumeURIs.get(0));
-        removeVolumesFromCG(vplexURI, protoVolume.getConsistencyGroup(), vplexVolumeURIs, stepId);
+        if (NullColumnValueGetter.isNullURI(protoVolume.getConsistencyGroup())) {
+            WorkflowStepCompleter.stepSucceded(stepId);
+            return;
+        }
+        BlockConsistencyGroup consistencyGroup = dbClient.queryObject(BlockConsistencyGroup.class, protoVolume.getConsistencyGroup());
+        if (consistencyGroup == null) {
+            WorkflowStepCompleter.stepSucceded(stepId);
+            return;
+        }
+        // Remove the volumes from the ConsistencyGroup. Returns a codedError if failure.
+        ServiceCoded codedError = removeVolumesFromCGInternal(vplexURI, protoVolume.getConsistencyGroup(), vplexVolumeURIs);
+        if (codedError != null) {
+            WorkflowStepCompleter.stepFailed(stepId, codedError);
+            return;
+        }
+        
+        // Determine if there are any remaining Vplex volumes in the consistency group.
+        List<Volume> vplexVolumesInCG = 
+                BlockConsistencyGroupUtils.getActiveVplexVolumesInCG(consistencyGroup, dbClient, null);
+        if (vplexVolumesInCG.isEmpty()) {
+            String clusterCgName = consistencyGroup.getCgNameOnStorageSystem(vplexURI);
+            String cgName = BlockConsistencyGroupUtils.fetchCgName(clusterCgName);
+            String clusterName = BlockConsistencyGroupUtils.fetchClusterName(clusterCgName);
+            // No vplex volumes left, clean up the Vplex part of the consistency group.
+            // deleteCG will call the step completer.
+            deleteCG(vplexURI, consistencyGroup.getId(), cgName, clusterName, false, stepId);
+        } else {
+            // Vplex volumes left... we're finished.
+            WorkflowStepCompleter.stepSucceded(stepId);
+        }
     }
     
     /**

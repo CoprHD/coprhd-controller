@@ -131,15 +131,20 @@ public class VFiler {
         return true;
     }
 
-    boolean setupVFiler(String vFilerName, String dnsDomain, List<String> dnsServers, String nisDomain, List<String> nisServers,
+    boolean setupVFiler(String vFilerName, String adminHostIp, String adminHostName, String dnsDomain, List<String> dnsServers,
+            String nisDomain, List<String> nisServers,
             String password) {
 
         NaElement elem = new NaElement("vfiler-setup");
+        NaElement adminHostElem = new NaElement("adminhost");
         NaElement dnsServersElem = new NaElement("dnsservers");
         NaElement dnsServerInfo = new NaElement("dnsserver-info");
         NaElement nisServersElem = new NaElement("nisservers");
         NaElement nisServerInfo = new NaElement("nisserver-info");
         elem.addNewChild("vfiler", vFilerName);
+        elem.addChildElem(adminHostElem);
+        adminHostElem.addNewChild("ipaddress", adminHostIp);
+        adminHostElem.addNewChild("name", adminHostName);
         elem.addNewChild("dnsdomain", dnsDomain);
         elem.addChildElem(dnsServersElem);
         dnsServersElem.addChildElem(dnsServerInfo);

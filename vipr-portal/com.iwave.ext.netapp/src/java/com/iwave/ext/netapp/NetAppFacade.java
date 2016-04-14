@@ -1564,6 +1564,8 @@ public class NetAppFacade {
 
     public boolean setupVirtualNas(VirtualNasCreateParam args) {
         String vFilerName = args.getvNasName();
+        String adminHostIp = args.getAdminHostIp();
+        String adminHostName = args.getAdminHostName() != null ? args.getAdminHostName() : "";
         String dnsDomain = args.getDnsDomain();
         List<String> dnsServers = args.getDnsServers();
         String nisDomain = args.getNisDomain();
@@ -1573,7 +1575,7 @@ public class NetAppFacade {
             log.debug("Creating vfiler with params[vFilerName]: " + vFilerName);
         }
         VFiler vFiler = new VFiler(server.getNaServer(), null);
-        return vFiler.setupVFiler(vFilerName, dnsDomain, dnsServers, nisDomain, nisServers, password);
+        return vFiler.setupVFiler(vFilerName, adminHostIp, adminHostName, dnsDomain, dnsServers, nisDomain, nisServers, password);
     }
 
     public boolean stopVirtualNas(String vFilerName) {

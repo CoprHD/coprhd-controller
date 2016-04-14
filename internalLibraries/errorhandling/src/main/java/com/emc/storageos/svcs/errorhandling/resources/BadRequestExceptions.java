@@ -2585,6 +2585,9 @@ public interface BadRequestExceptions {
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException invalidEntryForProjectVNAS();
 
+    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
+    public BadRequestException invalidAuthPasswordForVNAS(final String password);
+
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException failedToAssignVNasToProject(final String assignVnasError);
 

@@ -7,6 +7,8 @@ import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlElementWrapper;
 import javax.xml.bind.annotation.XmlRootElement;
 
+import com.emc.storageos.model.valid.Length;
+
 @XmlRootElement(name = "vnas_create")
 public class VirtualNasCreateParam extends VirtualNasParam {
 
@@ -14,6 +16,8 @@ public class VirtualNasCreateParam extends VirtualNasParam {
 
     private String vNasName;
     private URI storageSystem;
+    private String adminHostIp;
+    private String adminHostName;
     private String dnsDomain;
     private List<String> dnsServers;
     private String nisDomain;
@@ -36,6 +40,24 @@ public class VirtualNasCreateParam extends VirtualNasParam {
 
     public void setStorageSystem(URI storageSystem) {
         this.storageSystem = storageSystem;
+    }
+
+    @XmlElement(required = true, name = "admin_host_ip")
+    public String getAdminHostIp() {
+        return adminHostIp;
+    }
+
+    public void setAdminHostIp(String adminHostIp) {
+        this.adminHostIp = adminHostIp;
+    }
+
+    @XmlElement(name = "admin_host_name")
+    public String getAdminHostName() {
+        return adminHostName;
+    }
+
+    public void setAdminHostName(String adminHostName) {
+        this.adminHostName = adminHostName;
     }
 
     @XmlElement(required = true, name = "dns_domain")
@@ -77,6 +99,7 @@ public class VirtualNasCreateParam extends VirtualNasParam {
     }
 
     @XmlElement(required = true, name = "auth_password")
+    @Length(min = 8, max = 15)
     public String getAuthPassword() {
         return authPassword;
     }
@@ -84,4 +107,5 @@ public class VirtualNasCreateParam extends VirtualNasParam {
     public void setAuthPassword(String authPassword) {
         this.authPassword = authPassword;
     }
+
 }

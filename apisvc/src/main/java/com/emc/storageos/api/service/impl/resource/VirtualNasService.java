@@ -192,6 +192,14 @@ public class VirtualNasService extends TaggedResource {
             checkForDuplicateName(vnasParam.getvNasName(), VirtualNAS.class);
         }
 
+        String pattern = "[A-Za-z0-9]+";
+        if (!vnasParam.getAuthPassword().matches(pattern)) {
+            _log.error(
+                    "Invalid authentication password {}. Password should contains a minimum of eight characters including two alphabets and a number",
+                    vnasParam.getAuthPassword());
+            throw APIException.badRequests.invalidAuthPasswordForVNAS(vnasParam.getAuthPassword());
+        }
+
         ArgValidator.checkFieldUriType(vnasParam.getStorageSystem(), StorageSystem.class, "_id");
 
         _log.info("Creating Virtual NAS server...");

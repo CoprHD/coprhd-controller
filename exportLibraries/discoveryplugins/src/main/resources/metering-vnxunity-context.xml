@@ -6,7 +6,7 @@
     <bean id="vnxeApiClientFactory" class="com.emc.storageos.vnxe.VNXeApiClientFactory"
 		init-method="init" >
 	</bean>
-	<bean id="unManagedObjectDiscoverer"
+	<bean id="vnxunityUnManagedObjectDiscoverer"
         class="com.emc.storageos.volumecontroller.impl.vnxunity.VNXUnityUnManagedObjectDiscoverer">
         <property name="vnxeApiClientFactory" ref="vnxeApiClientFactory" />
     </bean>
@@ -16,7 +16,7 @@
 	<bean id="vnxunity"
 		class="com.emc.storageos.volumecontroller.impl.plugins.VNXUnityCommunicationInterface">
         <property name="vnxeApiClientFactory" ref="vnxeApiClientFactory" />
-        <property name="unManagedObjectDiscoverer" ref="unManagedObjectDiscoverer" />
+        <property name="unManagedObjectDiscoverer" ref="vnxunityUnManagedObjectDiscoverer" />
         <property name="partitionManager" ref="partitionManager"/>
 	</bean>
 	

@@ -104,9 +104,9 @@ public class VNXUnityFileStorageDevice extends VNXUnityOperations
                 ServiceError error = DeviceControllerErrors.vnxe.unableToCreateFileSystem("No storageport uri found in the fs");
                 return BiosCommandResult.createErrorResult(error);
             }
-            StoragePort portObj = _dbClient.queryObject(StoragePort.class, port);
+            StoragePort portObj = dbClient.queryObject(StoragePort.class, port);
             URI haDomainUri = portObj.getStorageHADomain();
-            StorageHADomain haDomainObj = _dbClient.queryObject(StorageHADomain.class, haDomainUri);
+            StorageHADomain haDomainObj = dbClient.queryObject(StorageHADomain.class, haDomainUri);
             StringSet protocols = fs.getProtocol();
             if (protocols.contains(StorageProtocol.File.NFS_OR_CIFS.name())) {
                 /*
@@ -154,14 +154,14 @@ public class VNXUnityFileStorageDevice extends VNXUnityOperations
         } catch (VNXeException e) {
             _logger.error("Create file system got an exception", e);
             if (completer != null) {
-                completer.error(_dbClient, e);
+                completer.error(dbClient, e);
             }
             return BiosCommandResult.createErrorResult(e);
         } catch (Exception ex) {
             _logger.error("Create file system got an exception", ex);
             ServiceError error = DeviceControllerErrors.vnxe.jobFailed("CreateFileSystem", ex.getMessage());
             if (completer != null) {
-                completer.error(_dbClient, error);
+                completer.error(dbClient, error);
             }
             return BiosCommandResult.createErrorResult(error);
         }
@@ -218,14 +218,14 @@ public class VNXUnityFileStorageDevice extends VNXUnityOperations
      * }catch (VNXeException e) {
      * _logger.error("Delete file system got the exception", e);
      * if (completer != null) {
-     * completer.error(_dbClient, e);
+     * completer.error(dbClient, e);
      * }
      * return BiosCommandResult.createErrorResult(e);
      * } catch (Exception ex) {
      * _logger.error("Delete file system got the exception", ex);
      * ServiceError error = DeviceControllerErrors.vnxe.jobFailed("DeleteFileSystem", ex.getMessage());
      * if (completer != null) {
-     * completer.error(_dbClient, error);
+     * completer.error(dbClient, error);
      * }
      * return BiosCommandResult.createErrorResult(error);
      * }
@@ -403,14 +403,14 @@ public class VNXUnityFileStorageDevice extends VNXUnityOperations
             } catch (VNXeException e) {
                 _logger.error("Export file system got the exception", e);
                 if (completer != null) {
-                    completer.error(_dbClient, e);
+                    completer.error(dbClient, e);
                 }
                 return BiosCommandResult.createErrorResult(e);
             } catch (Exception ex) {
                 _logger.error("export file system got the exception", ex);
                 ServiceError error = DeviceControllerErrors.vnxe.jobFailed("exportFileSystem", ex.getMessage());
                 if (completer != null) {
-                    completer.error(_dbClient, error);
+                    completer.error(dbClient, error);
                 }
                 return BiosCommandResult.createErrorResult(error);
             }
@@ -495,14 +495,14 @@ public class VNXUnityFileStorageDevice extends VNXUnityOperations
         } catch (VNXeException e) {
             _logger.error("Create share got the exception", e);
             if (completer != null) {
-                completer.error(_dbClient, e);
+                completer.error(dbClient, e);
             }
             return BiosCommandResult.createErrorResult(e);
         } catch (Exception ex) {
             _logger.error("create share got the exception", ex);
             ServiceError error = DeviceControllerErrors.vnxe.jobFailed("create share", ex.getMessage());
             if (completer != null) {
-                completer.error(_dbClient, error);
+                completer.error(dbClient, error);
             }
             return BiosCommandResult.createErrorResult(error);
         }
@@ -560,14 +560,14 @@ public class VNXUnityFileStorageDevice extends VNXUnityOperations
         } catch (VNXeException e) {
             _logger.error("Create share got the exception", e);
             if (completer != null) {
-                completer.error(_dbClient, e);
+                completer.error(dbClient, e);
             }
             return BiosCommandResult.createErrorResult(e);
         } catch (Exception ex) {
             _logger.error("delete share got the exception", ex);
             ServiceError error = DeviceControllerErrors.vnxe.jobFailed("create share", ex.getMessage());
             if (completer != null) {
-                completer.error(_dbClient, error);
+                completer.error(dbClient, error);
             }
             return BiosCommandResult.createErrorResult(error);
         }
@@ -622,14 +622,14 @@ public class VNXUnityFileStorageDevice extends VNXUnityOperations
             } catch (VNXeException e) {
                 _logger.error("Unexport file system got the exception", e);
                 if (completer != null) {
-                    completer.error(_dbClient, e);
+                    completer.error(dbClient, e);
                 }
                 return BiosCommandResult.createErrorResult(e);
             } catch (Exception ex) {
                 _logger.error("Delete file system got the exception", ex);
                 ServiceError error = DeviceControllerErrors.vnxe.jobFailed("DeleteFileSystem", ex.getMessage());
                 if (completer != null) {
-                    completer.error(_dbClient, error);
+                    completer.error(dbClient, error);
                 }
                 return BiosCommandResult.createErrorResult(error);
             }
@@ -675,14 +675,14 @@ public class VNXUnityFileStorageDevice extends VNXUnityOperations
         } catch (VNXeException e) {
             _logger.error("Expand file system got the exception", e);
             if (completer != null) {
-                completer.error(_dbClient, e);
+                completer.error(dbClient, e);
             }
             return BiosCommandResult.createErrorResult(e);
         } catch (Exception ex) {
             _logger.error("Expand file system got the exception", ex);
             ServiceError error = DeviceControllerErrors.vnxe.jobFailed("ExpandFileSystem", ex.getMessage());
             if (completer != null) {
-                completer.error(_dbClient, error);
+                completer.error(dbClient, error);
             }
             return BiosCommandResult.createErrorResult(error);
         }
@@ -717,14 +717,14 @@ public class VNXUnityFileStorageDevice extends VNXUnityOperations
         } catch (VNXeException e) {
             _logger.error("Create file system snapshot got an exception", e);
             if (completer != null) {
-                completer.error(_dbClient, e);
+                completer.error(dbClient, e);
             }
             return BiosCommandResult.createErrorResult(e);
         } catch (Exception ex) {
             _logger.error("Create file system snapshot got an exception", ex);
             ServiceError error = DeviceControllerErrors.vnxe.jobFailed("CreateFileSystemSnapshot", ex.getMessage());
             if (completer != null) {
-                completer.error(_dbClient, error);
+                completer.error(dbClient, error);
             }
             return BiosCommandResult.createErrorResult(error);
         }
@@ -759,14 +759,14 @@ public class VNXUnityFileStorageDevice extends VNXUnityOperations
         } catch (VNXeException e) {
             _logger.error("Restore file system snapshot got the exception", e);
             if (completer != null) {
-                completer.error(_dbClient, e);
+                completer.error(dbClient, e);
             }
             return BiosCommandResult.createErrorResult(e);
         } catch (Exception ex) {
             _logger.error("Restore file system snpashot got the exception", ex);
             ServiceError error = DeviceControllerErrors.vnxe.jobFailed("RestoreFileSystemSnapshot", ex.getMessage());
             if (completer != null) {
-                completer.error(_dbClient, error);
+                completer.error(dbClient, error);
             }
             return BiosCommandResult.createErrorResult(error);
         }
@@ -808,14 +808,14 @@ public class VNXUnityFileStorageDevice extends VNXUnityOperations
         } catch (VNXeException e) {
             _logger.error("Delete file system snapshot got the exception", e);
             if (completer != null) {
-                completer.error(_dbClient, e);
+                completer.error(dbClient, e);
             }
             return BiosCommandResult.createErrorResult(e);
         } catch (Exception ex) {
             _logger.error("Delete file system snpashot got the exception", ex);
             ServiceError error = DeviceControllerErrors.vnxe.jobFailed("DeleteFileSystemSnapshot", ex.getMessage());
             if (completer != null) {
-                completer.error(_dbClient, error);
+                completer.error(dbClient, error);
             }
             return BiosCommandResult.createErrorResult(error);
         }
@@ -1161,14 +1161,14 @@ public class VNXUnityFileStorageDevice extends VNXUnityOperations
         } catch (VNXeException e) {
             _logger.error("updateExportRules got the exception", e);
             if (completer != null) {
-                completer.error(_dbClient, e);
+                completer.error(dbClient, e);
             }
             return BiosCommandResult.createErrorResult(e);
         } catch (Exception ex) {
             _logger.error("updateExportRules got the exception", ex);
             ServiceError error = DeviceControllerErrors.vnxe.jobFailed("updateExportRules", ex.getMessage());
             if (completer != null) {
-                completer.error(_dbClient, error);
+                completer.error(dbClient, error);
             }
             return BiosCommandResult.createErrorResult(error);
         }
@@ -1472,14 +1472,14 @@ public class VNXUnityFileStorageDevice extends VNXUnityOperations
         } catch (VNXeException e) {
             _logger.error("Unexport file system got the exception", e);
             if (completer != null) {
-                completer.error(_dbClient, e);
+                completer.error(dbClient, e);
             }
             return BiosCommandResult.createErrorResult(e);
         } catch (Exception ex) {
             _logger.error("Delete file system got the exception", ex);
             ServiceError error = DeviceControllerErrors.vnxe.jobFailed("DeleteFileSystem", ex.getMessage());
             if (completer != null) {
-                completer.error(_dbClient, error);
+                completer.error(dbClient, error);
             }
             return BiosCommandResult.createErrorResult(error);
         }
@@ -1533,14 +1533,14 @@ public class VNXUnityFileStorageDevice extends VNXUnityOperations
         } catch (VNXeException e) {
             _logger.error("Create Quota Directory got an exception", e);
             if (completer != null) {
-                completer.error(_dbClient, e);
+                completer.error(dbClient, e);
             }
             return BiosCommandResult.createErrorResult(e);
         } catch (Exception ex) {
             _logger.error("Create Quota Directory got an exception", ex);
             ServiceError error = DeviceControllerErrors.vnxe.jobFailed("CreateQuotaDirectory", ex.getMessage());
             if (completer != null) {
-                completer.error(_dbClient, error);
+                completer.error(dbClient, error);
             }
             return BiosCommandResult.createErrorResult(error);
         }
@@ -1574,14 +1574,14 @@ public class VNXUnityFileStorageDevice extends VNXUnityOperations
         } catch (VNXeException e) {
             _logger.error("Delete file system quota directory got an exception", e);
             if (completer != null) {
-                completer.error(_dbClient, e);
+                completer.error(dbClient, e);
             }
             return BiosCommandResult.createErrorResult(e);
         } catch (Exception ex) {
             _logger.error("Delete file system quota directory got an exception", ex);
             ServiceError error = DeviceControllerErrors.vnxe.jobFailed("DeleteFileSystemQuota", ex.getMessage());
             if (completer != null) {
-                completer.error(_dbClient, error);
+                completer.error(dbClient, error);
             }
             return BiosCommandResult.createErrorResult(error);
         }
@@ -1625,14 +1625,14 @@ public class VNXUnityFileStorageDevice extends VNXUnityOperations
         } catch (VNXeException e) {
             _logger.error("update Quota Directory got an exception", e);
             if (completer != null) {
-                completer.error(_dbClient, e);
+                completer.error(dbClient, e);
             }
             return BiosCommandResult.createErrorResult(e);
         } catch (Exception ex) {
             _logger.error("update Quota Directory got an exception", ex);
             ServiceError error = DeviceControllerErrors.vnxe.jobFailed("UpdateQuotaDirectory", ex.getMessage());
             if (completer != null) {
-                completer.error(_dbClient, error);
+                completer.error(dbClient, error);
             }
             return BiosCommandResult.createErrorResult(error);
         }

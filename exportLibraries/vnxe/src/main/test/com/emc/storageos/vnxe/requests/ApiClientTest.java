@@ -94,7 +94,7 @@ public class ApiClientTest {
         System.out.println(mask);
     }
 
-    @Test
+    // @Test
     public void getIscsiPorts() {
         List<VNXeIscsiNode> allnodes = apiClient.getAllIscsiPorts();
         for (VNXeIscsiNode node : allnodes) {
@@ -119,9 +119,9 @@ public class ApiClientTest {
         }
     }
 
-    // @Test
+     //@Test
     public void createLun() {
-        String name = "ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc";
+        String name = "vipr-lun1";
         VNXeCommandJob job = apiClient.createLun(name, "pool_1", 2000000000L, true, null);
         System.out.println(job.getId());
     }
@@ -205,8 +205,8 @@ public class ApiClientTest {
 
     // @Test
     public void getLun() {
-        apiClient.getLun("sv_1");
-        apiClient.getLun("sv_1");
+        apiClient.getLun("sv_4");
+        apiClient.getLun("sv_5");
     }
 
     // @Test
@@ -262,6 +262,12 @@ public class ApiClientTest {
             System.out.println(tier.getSizeTotal());
             System.out.println(VNXeUtils.convertDoubleSizeToViPRLong(tier.getSizeTotal()));
         }
+    }
+    
+    @Test
+    public void createConsistencyGroup() {
+        VNXeCommandResult result = apiClient.createConsistencyGroup("testGroup1");
+        System.out.println(result.getStorageResource().getId());
     }
 
 }

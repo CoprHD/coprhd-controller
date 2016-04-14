@@ -3613,12 +3613,16 @@ public class VolumeIngestionUtil {
 
         // Find the source volume in the protection set so we can set the virtual array in the consistency group
         URI varrayId = null;
+        URI storageSystemId = null;
         if (pset.getVolumes() != null) {
             for (String volumeIdStr : pset.getVolumes()) {
                 Volume volume = dbClient.queryObject(Volume.class, URI.create(volumeIdStr));
                 if (volume != null) {
                     if (PersonalityTypes.SOURCE.name().equalsIgnoreCase(volume.getPersonality())) {
                         varrayId = volume.getVirtualArray();
+                        if (volume.isVPlexVolume(dbClient)) {
+                            storageSystemId = volume.getStorageController();
+                        }
                     }
                 }
             }
@@ -3635,6 +3639,7 @@ public class VolumeIngestionUtil {
             cg.setArrayConsistency(false);
             cg.setTenant(project.getTenantOrg());
             cg.setVirtualArray(varrayId);
+            cg.setStorageController(storageSystemId);
             _logger.info("Created new block consistency group: " + cg.getId().toString());
         }
 

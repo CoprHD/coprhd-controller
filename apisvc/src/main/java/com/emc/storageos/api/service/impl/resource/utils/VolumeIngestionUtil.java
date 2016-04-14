@@ -3611,6 +3611,19 @@ public class VolumeIngestionUtil {
             cg = rpContext.findExistingBlockConsistencyGroup(pset.getLabel(), projectNamedUri, project.getTenantOrg());
         }
 
+        // Find the source volume in the protection set so we can set the virtual array in the consistency group
+        URI varrayId = null;
+        if (pset.getVolumes() != null) {
+            for (String volumeIdStr : pset.getVolumes()) {
+                Volume volume = dbClient.queryObject(Volume.class, URI.create(volumeIdStr));
+                if (volume != null) {
+                    if (PersonalityTypes.SOURCE.name().equalsIgnoreCase(volume.getPersonality())) {
+                        varrayId = volume.getVirtualArray();
+                    }
+                }
+            }
+        }
+        
         if (cg == null) {
             cg = new BlockConsistencyGroup();
             cg.setId(URIUtil.createId(BlockConsistencyGroup.class));
@@ -3621,6 +3634,7 @@ public class VolumeIngestionUtil {
             // see any replicationGroupInstance information, we'll flip this bit to true. (See decorateRPVolumesCGInfo())
             cg.setArrayConsistency(false);
             cg.setTenant(project.getTenantOrg());
+            cg.setVirtualArray(varrayId);
             _logger.info("Created new block consistency group: " + cg.getId().toString());
         }
 

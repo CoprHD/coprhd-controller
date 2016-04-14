@@ -154,7 +154,6 @@ import com.emc.storageos.vplex.api.VPlexDeviceInfo;
 import com.emc.storageos.vplex.api.VPlexDistributedDeviceInfo;
 import com.emc.storageos.vplex.api.VPlexInitiatorInfo.Initiator_Type;
 import com.emc.storageos.vplex.api.VPlexMigrationInfo;
-import com.emc.storageos.vplex.api.VPlexPortInfo;
 import com.emc.storageos.vplex.api.VPlexStorageViewInfo;
 import com.emc.storageos.vplex.api.VPlexVirtualVolumeInfo;
 import com.emc.storageos.vplex.api.VPlexVirtualVolumeInfo.WaitOnRebuildResult;
@@ -7036,8 +7035,9 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             }
 
             _log.info("Executing workflow plan");
-            workflow.executePlan(completer, String.format(
-                    "Copy of VPLEX volume %s completed successfully", vplexSrcVolumeURI));
+            FullCopyOperationCompleteCallback wfCompleteCB = new FullCopyOperationCompleteCallback();
+            workflow.executePlan(completer, String.format("Copy of VPLEX volume %s completed successfully", vplexSrcVolumeURI),
+                    wfCompleteCB, new Object[] { vplexCopyVolumesURIs }, null, null);
             _log.info("Workflow plan executing");
         } catch (Exception e) {
             String failMsg = String.format("Copy of VPLEX volume %s failed",

@@ -644,11 +644,10 @@ public class BackupOps {
             persistBackupRestoreStatus(s, isLocal, doLog);
 
             if (doLog) {
-                log.info("Persist backup restore status {} to zk successfully stack=", s, new Throwable());
+                log.info("Persist backup restore status {} to zk successfully ", s);
             }
         }finally {
             if (doLock) {
-
                 if (doLog) {
                     log.info("To release lock {}", BackupConstants.RESTORE_STATUS_UPDATE_LOCK);
                 }

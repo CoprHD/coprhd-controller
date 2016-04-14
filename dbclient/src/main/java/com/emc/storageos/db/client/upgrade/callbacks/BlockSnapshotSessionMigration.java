@@ -34,7 +34,7 @@ public class BlockSnapshotSessionMigration extends BaseCustomMigrationCallback {
     // A reference to a logger.
     private static final Logger s_logger = LoggerFactory.getLogger(BlockSnapshotSessionMigration.class);
 
-    private static final String SMIS80_DELIMITER = "-+-";
+    private static final String SMIS80_DELIMITER_REGEX = "-\\+-";
 
     /**
      * {@inheritDoc}
@@ -159,7 +159,7 @@ public class BlockSnapshotSessionMigration extends BaseCustomMigrationCallback {
         String sessionLabel = null;
         String settingsInstance = snapshot.getSettingsInstance();
         if (settingsInstance != null && !settingsInstance.isEmpty()) {
-            String[] instanceArray = settingsInstance.split(SMIS80_DELIMITER);
+            String[] instanceArray = settingsInstance.split(SMIS80_DELIMITER_REGEX);
             sessionLabel = instanceArray[3];
         }
         return sessionLabel;

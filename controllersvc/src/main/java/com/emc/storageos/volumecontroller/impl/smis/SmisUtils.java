@@ -278,7 +278,7 @@ public class SmisUtils {
         String sessionLabel = null;
         String settingsInstance = snapshot.getSettingsInstance();
         if (settingsInstance != null && !settingsInstance.isEmpty()) {
-            String[] instanceArray = settingsInstance.split(Constants.SMIS80_DELIMITER);
+            String[] instanceArray = settingsInstance.split(Constants.SMIS80_DELIMITER_REGEX);
             sessionLabel = instanceArray[3];
         }
         return sessionLabel;

@@ -24,6 +24,7 @@ import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.upgrade.BaseCustomMigrationCallback;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.svcs.errorhandling.resources.MigrationCallbackException;
+import com.emc.storageos.volumecontroller.impl.smis.SmisUtils;
 
 /**
  * Migration callback creates a BlockSnapshotSession instance for each VMAX BlockSnapshot and
@@ -124,7 +125,7 @@ public class BlockSnapshotSessionMigration extends BaseCustomMigrationCallback {
         BlockSnapshotSession snapshotSession = new BlockSnapshotSession();
         URI snapSessionURI = URIUtil.createId(BlockSnapshotSession.class);
         snapshotSession.setId(snapSessionURI);
-        snapshotSession.setSessionLabel(snapshot.getSnapsetLabel());
+        snapshotSession.setSessionLabel(SmisUtils.getSessionLabelFromSettingsInstance(snapshot));
         URI cgURI = snapshot.getConsistencyGroup();
         if (NullColumnValueGetter.isNullURI(cgURI)) {
             snapshotSession.setParent(snapshot.getParent());

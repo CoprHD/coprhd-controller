@@ -30,13 +30,15 @@ public class SiteMapper {
         SiteRestRep to = new SiteRestRep();
         map(from, to);
         NetworkHealth networkHealth = drUtil.getSiteNetworkState(from.getUuid()).getNetworkHealth();
-        if ( networkHealth != null ) {
+        SiteState state = from.getState();
+        // Skip network health state amid ADDING/RESUMING
+        if ( networkHealth != null && SiteState.STANDBY_ADDING != state && SiteState.STANDBY_RESUMING != state) {
             to.setNetworkHealth(networkHealth.toString());
         }
         
         // check if syssvc are up
         boolean runningState = drUtil.isSiteUp(from.getUuid());
-        if (runningState) {
+        if (runningState && !from.getState().equals(SiteState.ACTIVE)) {
             // check if dbsvc are up
             SiteMonitorResult monitorResult = drUtil.getCoordinator().getTargetInfo(from.getUuid(), SiteMonitorResult.class);
             if (monitorResult != null && monitorResult.getDbQuorumLostSince() > 0) {

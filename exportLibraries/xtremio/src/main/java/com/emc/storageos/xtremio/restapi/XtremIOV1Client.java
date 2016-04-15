@@ -485,7 +485,8 @@ public class XtremIOV1Client extends XtremIOClient {
     }
 
     @Override
-    public XtremIOResponse refreshSnapshotFromCG(String clusterName, String cgName, String snapshotName) throws Exception {
+    public XtremIOResponse refreshSnapshotFromCG(String clusterName, String cgName, String snapshotName, boolean noBackup)
+            throws Exception {
         throw XtremIOApiException.exceptions.operationNotSupportedForVersion("refreshSnapshotFromCG");
     }
 

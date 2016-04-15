@@ -97,6 +97,7 @@ import com.emc.storageos.volumecontroller.impl.smis.job.SmisCreateVmaxCGTargetVo
 import com.emc.storageos.volumecontroller.impl.smis.job.SmisDeleteVmaxCGTargetVolumesJob;
 import com.emc.storageos.volumecontroller.impl.utils.ConsistencyGroupUtils;
 import com.google.common.base.Function;
+import com.google.common.base.Joiner;
 import com.google.common.base.Predicate;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -225,6 +226,10 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
             if (_helper.checkExists(storage, syncObjectPath, false, false) != null) {
                 deactivateSnapshot(storage, snap, syncObjectPath);
                 if (storage.checkIfVmax3()) {
+                    // Ingested non-exported snapshot could be associated with SGs outside of ViPR,
+                    // remove snapshot from them before deleting it.
+                    _helper.removeVolumeFromStorageGroupsIfVolumeIsNotInAnyMV(storage, snap);
+
                     _helper.removeVolumeFromParkingSLOStorageGroup(storage, snap.getNativeId(), false);
                     _log.info("Done invoking remove volume {} from parking SLO storage group", snap.getNativeId());
 
@@ -486,9 +491,9 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
             String snapshotGroupName = snapshotObj.getReplicationGroupInstance();
             if (snapshotGroupName.contains("+")) {
                 // quick fix for correcting 000198700406+EMC_SMI_RG1430326858108 snapshotGroupName in 803+VMAX
-                if (storage.getUsingSmis80() && !storage.checkIfVmax3()) {
+                if (storage.getUsingSmis80()) {
                     snapshotGroupName = snapshotGroupName.substring(snapshotGroupName.indexOf("+") + 1);
-                } else { // array is not managed by SMI-S 8.0 (It can't be VMAX3 because only SMI-S 8.0 managed VMAX3 arrays)
+                } else {
                     snapshotGroupName = snapshotGroupName.substring(0, snapshotGroupName.indexOf("+"));
                 }
             }
@@ -987,7 +992,8 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
      */
     private void deleteTargetDevices(final StorageSystem storageSystem, final String[] deviceIds, final TaskCompleter taskCompleter) {
 
-        _log.info(format("Removing target devices {0} from storage system {1}", deviceIds, storageSystem.getId()));
+        _log.info(format("Removing target devices {0} from storage system {1}",
+                Joiner.on("\t").join(deviceIds), storageSystem.getId()));
 
         try {
             if (storageSystem.checkIfVmax3()) {
@@ -1012,8 +1018,8 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
 
         } catch (Exception e) {
             _log.error(
-                    format("An error occurred when removing target devices {0} from storage system {1}", deviceIds, storageSystem.getId()),
-                    e);
+                    format("An error occurred when removing target devices {0} from storage system {1}",
+                            Joiner.on("\t").join(deviceIds), storageSystem.getId()), e);
         }
     }
 
@@ -1912,12 +1918,19 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
             }
 
             if (deleteTarget) {
-                _log.info("Delete target device {}:{}", targetDeviceId, snapshotURI);
+                _log.info("Delete target device {} :{}", targetDeviceId, snapshotURI);
                 Collection<String> nativeIds = transform(snapshots, fctnBlockObjectToNativeID());
 
                 if (snapshot.hasConsistencyGroup()) {
                     deleteTargetGroup(system, snapshot.getReplicationGroupInstance());
                 }
+
+                // Ingested non-exported snapshot could be associated with SGs outside of ViPR,
+                // remove snapshot from them before deleting it.
+                for (BlockSnapshot snap : snapshots) {
+                    _helper.removeVolumeFromStorageGroupsIfVolumeIsNotInAnyMV(system, snap);
+                }
+
                 deleteTargetDevices(system, nativeIds.toArray(new String[] {}), completer);
                 _log.info("Delete target device complete");
             } else if (!syncObjectFound) {

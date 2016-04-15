@@ -28,12 +28,12 @@
       "categories": [
       {
         "title": "backuprestore.title",
-        "image": "icon_application.png",
+        "image": "icon_application_block_protection.png",
         "description": "backuprestore.description",
         "categories": [
            {
               "title": "fullcopy.title",
-              "image": "icon_application.png",
+              "image": "icon_application_full_copy.png",
               "description": "fullcopy.description",
               "services": [
                     {
@@ -60,7 +60,7 @@
 	       },
 	       {
                "title": "snapshot.title",
-               "image": "icon_application.png",
+               "image": "icon_application_snapshot.png",
                "description": "snapshot.description",
                "services": [
                    {

@@ -782,5 +782,8 @@ public interface VPlexApiExceptions {
             final String listOfPorts);
 
     @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)
-    public VPlexApiException migrationRollbackFailureContactEMC(final String volume, final String migration);
+    public VPlexApiException migrationRollbackFailureContactEMC(final String volumeId, final String volumeLabel, final String migration);
+    
+    @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)
+    public VPlexApiException failedToRefreshVplexStorageView(final String storageViewName, final String reason);
 }

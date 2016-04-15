@@ -10,6 +10,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 
 import org.slf4j.Logger;
@@ -64,6 +65,7 @@ public class RecoverPointVolumeIngestionContext extends BlockVolumeIngestionCont
     private ExportGroup _exportGroup;
     private List<Initiator> _deviceInitiators;
     private List<BlockObject> _objectsIngestedByExportProcessing;
+    private Map<ExportGroup, Boolean> _rpExportGroupMap;
 
     // other RecoverPoint backend tracking members, used for commit and rollback
     private Volume _managedBlockObject;
@@ -73,10 +75,6 @@ public class RecoverPointVolumeIngestionContext extends BlockVolumeIngestionCont
     private List<UnManagedVolume> _unmanagedSourceVolumesToUpdate;
     private List<UnManagedVolume> _unmanagedTargetVolumesToUpdate;
     private UnManagedProtectionSet _unManagedProtectionSet;
-
-    // flags to help with final ingestion
-    private boolean _managedPsetWasCreatedByAnotherContext = false;
-    private boolean _managedBcgWasCreatedByAnotherContext = false;
 
     /**
      * Constructor.
@@ -207,24 +205,6 @@ public class RecoverPointVolumeIngestionContext extends BlockVolumeIngestionCont
     }
 
     /**
-     * Sets whether or not the managed ProtectionSet was created by another context already.
-     * 
-     * @param managedPsetWasCreatedByAnotherContext true if the ProtectionSet was created by another context
-     */
-    public void setManagedPsetWasCreatedByAnotherContext(boolean managedPsetWasCreatedByAnotherContext) {
-        this._managedPsetWasCreatedByAnotherContext = managedPsetWasCreatedByAnotherContext;
-    }
-
-    /**
-     * Sets whether or not the managed BlockConsistencyGroup was created by another context already.
-     * 
-     * @param managedBcgWasCreatedByAnotherContext true if the BlockConsistencyGroup was created by another context
-     */
-    public void setManagedBcgWasCreatedByAnotherContext(boolean managedBcgWasCreatedByAnotherContext) {
-        this._managedBcgWasCreatedByAnotherContext = managedBcgWasCreatedByAnotherContext;
-    }
-
-    /**
      * Adds a source Volume to the list of Volumes that should be updated
      * when this RecoverPoint ingestion process is committed.
      *
@@ -331,11 +311,9 @@ public class RecoverPointVolumeIngestionContext extends BlockVolumeIngestionCont
                 managedProtectionSet.getVolumes().add(_managedBlockObject.getId().toString());
             }
 
-            if (!_managedPsetWasCreatedByAnotherContext) {
-                _logger.info("Creating ProtectionSet {} (hash {})", 
-                        managedProtectionSet.forDisplay(), managedProtectionSet.hashCode());
-                _dbClient.createObject(managedProtectionSet);
-            }
+            _logger.info("Creating ProtectionSet {} (hash {})", 
+                    managedProtectionSet.forDisplay(), managedProtectionSet.hashCode());
+            _dbClient.createObject(managedProtectionSet);
 
             // the protection set was created, so delete the unmanaged one
             _logger.info("Deleting UnManagedProtectionSet {} (hash {})", 
@@ -345,20 +323,21 @@ public class RecoverPointVolumeIngestionContext extends BlockVolumeIngestionCont
 
         // commit the BlockConsistencyGroup, if created
         if (null != getManagedBlockConsistencyGroup()) {
-            if (!_managedBcgWasCreatedByAnotherContext) {
-                _logger.info("Creating BlockConsistencyGroup {} (hash {})" + 
-                        _managedBlockConsistencyGroup.forDisplay(), _managedBlockConsistencyGroup.hashCode());
-                _dbClient.createObject(_managedBlockConsistencyGroup);
-            }
+            _logger.info("Creating BlockConsistencyGroup {} (hash {})", 
+                    _managedBlockConsistencyGroup.forDisplay(), _managedBlockConsistencyGroup.hashCode());
+            _dbClient.createObject(_managedBlockConsistencyGroup);
         }
 
-        ExportGroup exportGroup = getExportGroup();
-        if (isExportGroupCreated()) {
-            _logger.info("Creating ExportGroup {} (hash {})", exportGroup.forDisplay(), exportGroup.hashCode());
-            _dbClient.createObject(exportGroup);
-        } else {
-            _logger.info("Updating ExportGroup {} (hash {})", exportGroup.forDisplay(), exportGroup.hashCode());
-            _dbClient.updateObject(exportGroup);
+        for (Entry<ExportGroup, Boolean> entry : getRpExportGroupMap().entrySet()) {
+            ExportGroup exportGroup = entry.getKey();
+            boolean exportGroupIsCreated = entry.getValue();
+            if (exportGroupIsCreated) {
+                _logger.info("Creating ExportGroup {} (hash {})", exportGroup.forDisplay(), exportGroup.hashCode());
+                _dbClient.createObject(exportGroup);
+            } else {
+                _logger.info("Updating ExportGroup {} (hash {})", exportGroup.forDisplay(), exportGroup.hashCode());
+                _dbClient.updateObject(exportGroup);
+            }
         }
 
         super.commit();
@@ -410,8 +389,11 @@ public class RecoverPointVolumeIngestionContext extends BlockVolumeIngestionCont
 
         // the ExportGroup was created by this ingestion
         // process, make sure it gets cleaned up
-        if (_exportGroupCreated) {
-            _dbClient.markForDeletion(_exportGroup);
+        for (Entry<ExportGroup, Boolean> entry : getRpExportGroupMap().entrySet()) {
+            boolean exportGroupIsCreated = entry.getValue();
+            if (exportGroupIsCreated) {
+                _dbClient.markForDeletion(entry.getKey());
+            }
         }
 
         super.rollback();
@@ -987,15 +969,16 @@ public class RecoverPointVolumeIngestionContext extends BlockVolumeIngestionCont
      */
     @Override
     public ExportGroup findExportGroup(String exportGroupLabel, URI project, URI varray, URI computeResource, String resourceType) {
-        if (exportGroupLabel != null) {
 
-            ExportGroup localExportGroup = getExportGroup();
-            if (null != localExportGroup && exportGroupLabel.equals(localExportGroup.getLabel())) {
-                if (VolumeIngestionUtil.verifyExportGroupMatches(localExportGroup,
-                        exportGroupLabel, project, varray, computeResource, resourceType)) {
-                    _logger.info("Found existing local ExportGroup {} in RP ingestion request context",
-                            localExportGroup.forDisplay());
-                    return localExportGroup;
+        if (exportGroupLabel != null) {
+            for (ExportGroup localExportGroup : getRpExportGroupMap().keySet()) {
+                if (null != localExportGroup && exportGroupLabel.equals(localExportGroup.getLabel())) {
+                    if (VolumeIngestionUtil.verifyExportGroupMatches(localExportGroup,
+                            exportGroupLabel, project, varray, computeResource, resourceType)) {
+                        _logger.info("Found existing local ExportGroup {} in RP ingestion request context",
+                                localExportGroup.forDisplay());
+                        return localExportGroup;
+                    }
                 }
             }
         }
@@ -1117,4 +1100,20 @@ public class RecoverPointVolumeIngestionContext extends BlockVolumeIngestionCont
         return null;
     }
 
+    /**
+     * A Map of ExportGroup to a Boolean flag indicating whether it
+     * was created new or already existed.  This would generally always
+     * have only one entry except in the notable case of a MetroPoint volume
+     * that may be ingested to more than one ExportGroup for the source and
+     * high availability sides.
+     * 
+     * @return a Map of ExportGroup to a Boolean "created" flag
+     */
+    public Map<ExportGroup, Boolean> getRpExportGroupMap() {
+        if (_rpExportGroupMap == null) {
+            _rpExportGroupMap = new HashMap<ExportGroup, Boolean>();
+        }
+        
+        return _rpExportGroupMap;
+    }
 }

@@ -137,7 +137,6 @@ public class FileUtils {
      * @return
      */
     public static boolean exists(String filepath) {
-        if (filepath == null ) return false;
         File f = new File(filepath);
         if (f.exists()) {
             return true;

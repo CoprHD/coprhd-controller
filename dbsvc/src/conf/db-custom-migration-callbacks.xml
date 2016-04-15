@@ -99,6 +99,7 @@
                 <bean class="com.emc.storageos.db.client.upgrade.callbacks.XtremioStorageSystemToStorageProviderMigration"/>
                 <bean class="com.emc.storageos.db.client.upgrade.callbacks.ComputeImageServerMigration"/>
                 <bean class="com.emc.storageos.db.client.upgrade.callbacks.FullCopyVolumeDetachedStateMigration"/>
+                <bean class="com.emc.storageos.db.client.upgrade.callbacks.XtremioBlockSnapshotDeviceLabelMigration"/>
             </list>
         </entry>
         <entry key="2.4">

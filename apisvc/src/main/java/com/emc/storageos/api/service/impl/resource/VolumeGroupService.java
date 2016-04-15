@@ -940,11 +940,8 @@ public class VolumeGroupService extends TaskResourceService {
         // validate replica operation for volume group
         validateCopyOperationForVolumeGroup(volumeGroup, ReplicaTypeEnum.FULL_COPY);
 
-        // validate that at least one full copy URI is provided
-        ArgValidator.checkFieldNotEmpty(param.getFullCopies(), "fullCopies");
-
         // validate the requested full copies
-        List<Volume> fullCopyVolumesInRequest = validateFullCopiesInRequest(param.getFullCopies(), volumeGroupId);
+        List<Volume> fullCopyVolumesInRequest = validateFullCopiesInRequest(param.getFullCopies(), param.getCopySetName(), volumeGroupId);
 
         /**
          * 1. VolumeGroupService Clone API accepts a Clone URI (to identify clone set and RG)
@@ -1031,11 +1028,8 @@ public class VolumeGroupService extends TaskResourceService {
         // validate replica operation for volume group
         validateCopyOperationForVolumeGroup(volumeGroup, ReplicaTypeEnum.FULL_COPY);
 
-        // validate that at least one full copy URI is provided
-        ArgValidator.checkFieldNotEmpty(param.getFullCopies(), "volumes");
-
         // validate the requested full copies
-        List<Volume> fullCopyVolumesInRequest = validateFullCopiesInRequest(param.getFullCopies(), volumeGroupId);
+        List<Volume> fullCopyVolumesInRequest = validateFullCopiesInRequest(param.getFullCopies(), param.getCopySetName(), volumeGroupId);
 
         /**
          * 1. VolumeGroupService Clone API accepts a Clone URI (to identify clone set and RG)
@@ -1123,11 +1117,8 @@ public class VolumeGroupService extends TaskResourceService {
         // validate replica operation for volume group
         validateCopyOperationForVolumeGroup(volumeGroup, ReplicaTypeEnum.FULL_COPY);
 
-        // validate that at least one full copy URI is provided
-        ArgValidator.checkFieldNotEmpty(param.getFullCopies(), "volumes");
-
         // validate the requested full copies
-        List<Volume> fullCopyVolumesInRequest = validateFullCopiesInRequest(param.getFullCopies(), volumeGroupId);
+        List<Volume> fullCopyVolumesInRequest = validateFullCopiesInRequest(param.getFullCopies(), param.getCopySetName(), volumeGroupId);
 
         /**
          * 1. VolumeGroupService Clone API accepts a Clone URI (to identify clone set and RG)
@@ -1216,11 +1207,8 @@ public class VolumeGroupService extends TaskResourceService {
         // validate replica operation for volume group
         validateCopyOperationForVolumeGroup(volumeGroup, ReplicaTypeEnum.FULL_COPY);
 
-        // validate that at least one full copy URI is provided
-        ArgValidator.checkFieldNotEmpty(param.getFullCopies(), "volumes");
-
         // validate the requested full copies
-        List<Volume> fullCopyVolumesInRequest = validateFullCopiesInRequest(param.getFullCopies(), volumeGroupId);
+        List<Volume> fullCopyVolumesInRequest = validateFullCopiesInRequest(param.getFullCopies(), param.getCopySetName(), volumeGroupId);
 
         /**
          * 1. VolumeGroupService Clone API accepts a Clone URI (to identify clone set and RG)
@@ -1286,43 +1274,78 @@ public class VolumeGroupService extends TaskResourceService {
      *            the volume group volumes
      * @return the full copy objects
      */
-    private List<Volume> validateFullCopiesInRequest(final List<URI> fullCopyURIsInRequest, URI volumeGroupUri) {
+    private List<Volume> validateFullCopiesInRequest(final List<URI> fullCopyURIsInRequest, String copySetName, URI volumeGroupUri) {
         List<String> arrayGroupNames = new ArrayList<String>();
         List<Volume> fullCopyVolumesInRequest = new ArrayList<Volume>();
         Set<String> setNames = new HashSet<String>();
-        for (URI fullCopyURI : fullCopyURIsInRequest) {
-        	String repGroupName = null;
-            ArgValidator.checkFieldUriType(fullCopyURI, Volume.class, "volume");
-            // Get the full copy.
-            Volume fullCopyVolume = (Volume) BlockFullCopyUtils.queryFullCopyResource(
-                    fullCopyURI, uriInfo, false, _dbClient);
-            
-            
-            if(fullCopyVolume.isVPlexVolume(_dbClient)){
-            	Volume backedVol = VPlexUtil.getVPLEXBackendVolume(fullCopyVolume, true, _dbClient);
-                if (backedVol != null) {
-                    repGroupName = backedVol.getReplicationGroupInstance();
-                }
-            } else{
-            	repGroupName = fullCopyVolume.getReplicationGroupInstance();
-            }
-            
-            
-            // skip repeated array groups
-            if (arrayGroupNames.contains(repGroupName)) {
-                log.info("Skipping repetitive request for Full Copy array group {}. Full Copy: {}",
-                		repGroupName, fullCopyVolume.getLabel());
-                continue;
-            }
-            arrayGroupNames.add(repGroupName);
-
-            verifyReplicaForCopyRequest(fullCopyVolume, volumeGroupUri);
-
-            fullCopyVolumesInRequest.add(fullCopyVolume);
-            setNames.add(fullCopyVolume.getFullCopySetName());
+        
+        // validate that either copySetName or a volume list was sent in
+        if (copySetName == null && (fullCopyURIsInRequest == null || fullCopyURIsInRequest.isEmpty())) {
+            throw APIException.badRequests.invalidApplicationCopyOperationInput(ReplicaTypeEnum.FULL_COPY.toString());
         }
-        if (setNames.size() > 1) {
-            throw APIException.badRequests.multipleSetNamesProvided(ReplicaTypeEnum.FULL_COPY.toString());
+        
+        // if copy set name is used, get one clone volume from each sub group
+        if (fullCopyURIsInRequest == null || fullCopyURIsInRequest.isEmpty()) {
+            
+            Map<String, Volume> copySetVolumeMap = new HashMap<String, Volume>();
+            VolumeGroup application = _dbClient.queryObject(VolumeGroup.class, volumeGroupUri);
+            List<Volume> volumesInApplication = ControllerUtils.getVolumeGroupVolumes(_dbClient, application);
+            for (Volume volume : volumesInApplication) {
+                String repGroupName = volume.getReplicationGroupInstance();
+                if(volume.isVPlexVolume(_dbClient)){
+                    Volume backedVol = VPlexUtil.getVPLEXBackendVolume(volume, true, _dbClient);
+                    if (backedVol != null) {
+                        repGroupName = backedVol.getReplicationGroupInstance();
+                    }
+                }
+                if (volume.getFullCopies() != null) {
+                    for (String fullCopyUri : volume.getFullCopies()) {
+                        Volume fullCopy = _dbClient.queryObject(Volume.class, URI.create(fullCopyUri));
+                        if (StringUtils.equals(fullCopy.getFullCopySetName(), copySetName)) {
+                            copySetVolumeMap.put(repGroupName, fullCopy);
+                        }
+                    }
+                }
+            }
+            if (copySetVolumeMap.isEmpty()) {
+                throw APIException.badRequests.invalidCopySetNamesProvided(copySetName, ReplicaTypeEnum.FULL_COPY.toString());
+            }
+            fullCopyVolumesInRequest.addAll(copySetVolumeMap.values());
+            
+        } else {
+        
+            for (URI fullCopyURI : fullCopyURIsInRequest) {
+            	String repGroupName = null;
+                ArgValidator.checkFieldUriType(fullCopyURI, Volume.class, "volume");
+                // Get the full copy.
+                Volume fullCopyVolume = (Volume) BlockFullCopyUtils.queryFullCopyResource(
+                        fullCopyURI, uriInfo, false, _dbClient);
+                
+                if(fullCopyVolume.isVPlexVolume(_dbClient)){
+                	Volume backedVol = VPlexUtil.getVPLEXBackendVolume(fullCopyVolume, true, _dbClient);
+                    if (backedVol != null) {
+                        repGroupName = backedVol.getReplicationGroupInstance();
+                    }
+                } else{
+                	repGroupName = fullCopyVolume.getReplicationGroupInstance();
+                }
+                
+                // skip repeated array groups
+                if (arrayGroupNames.contains(repGroupName)) {
+                    log.info("Skipping repetitive request for Full Copy array group {}. Full Copy: {}",
+                    		repGroupName, fullCopyVolume.getLabel());
+                    continue;
+                }
+                arrayGroupNames.add(repGroupName);
+    
+                verifyReplicaForCopyRequest(fullCopyVolume, volumeGroupUri);
+    
+                fullCopyVolumesInRequest.add(fullCopyVolume);
+                setNames.add(fullCopyVolume.getFullCopySetName());
+            }
+            if (setNames.size() > 1) {
+                throw APIException.badRequests.multipleSetNamesProvided(ReplicaTypeEnum.FULL_COPY.toString());
+            }
         }
         return fullCopyVolumesInRequest;
     }

@@ -2807,6 +2807,12 @@ public interface BadRequestExceptions {
     public BadRequestException multipleSetNamesProvided(final String replicaType);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException invalidApplicationCopyOperationInput(final String replicaType);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException invalidCopySetNamesProvided(final String copySetName, final String replicaType);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException noHAVolumeFoundForVPLEX(final String volumeName);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)

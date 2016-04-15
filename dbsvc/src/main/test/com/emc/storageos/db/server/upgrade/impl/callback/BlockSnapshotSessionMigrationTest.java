@@ -304,7 +304,7 @@ public class BlockSnapshotSessionMigrationTest extends DbSimpleMigrationTestBase
                 BlockSnapshot linkedTarget = _dbClient.queryObject(BlockSnapshot.class, URI.create(linkedTargetId));
                 Assert.assertNotNull("Linked target is null", linkedTarget);
                 Assert.assertEquals("Label is not correct", linkedTarget.getSnapsetLabel(), snapSession.getLabel());
-                Assert.assertEquals("Session label is not correct", linkedTarget.getSnapsetLabel(), snapSession.getSessionLabel());
+                Assert.assertEquals("Session label is not correct", "elementName", snapSession.getSessionLabel());
                 Assert.assertEquals("Session instance is not correct", linkedTarget.getSettingsInstance(),
                         snapSession.getSessionInstance());
                 Assert.assertEquals("Project is not correct", linkedTarget.getProject().getURI(), snapSession.getProject().getURI());

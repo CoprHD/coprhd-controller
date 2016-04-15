@@ -1563,12 +1563,12 @@ public class NetAppFacade {
         return vFiler.createVFiler(vFilerName, ipAddresses, storageUnits, ipSpace);
     }
 
-    public boolean allowVnasProtocols(String vFilerName, Set<String> protocols) {
+    public boolean allowVnasProtocols(String vFilerName, Set<String> protocols, String opType) {
         if (log.isDebugEnabled()) {
             log.debug("Adding protocols to vfiler: " + vFilerName);
         }
         VFiler vFiler = new VFiler(server.getNaServer(), null);
-        return vFiler.allowProtocols(vFilerName, protocols);
+        return vFiler.allowProtocols(vFilerName, protocols, opType);
     }
 
     public boolean disallowVnasProtocols(String vFilerName, Set<String> protocols) {

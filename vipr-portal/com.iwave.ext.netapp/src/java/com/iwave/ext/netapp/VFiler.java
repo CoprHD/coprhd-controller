@@ -20,6 +20,7 @@ public class VFiler {
 
     private String name = "";
     private NaServer server = null;
+    private String CREATE_VFILER = "Create Vfiler";
 
     public VFiler(NaServer server, String name) {
         this.name = name;
@@ -121,7 +122,7 @@ public class VFiler {
         return true;
     }
 
-    boolean allowProtocols(String vFilerName, Set<String> protocols) {
+    boolean allowProtocols(String vFilerName, Set<String> protocols, String opType) {
 
         Set<String> existingProtocols = new HashSet<String>();
         NaElement getProtocols = new NaElement("vfiler-get-allowed-protocols");
@@ -132,9 +133,16 @@ public class VFiler {
             for (NaElement protocolInfo : (List<NaElement>) result.getChildren()) {
                 existingProtocols.add(protocolInfo.getChildContent("protocol"));
             }
-            existingProtocols.removeAll(protocols);
-            for (String protocol : existingProtocols) {
-                removeProtocols(vFilerName, protocol);
+            if (CREATE_VFILER.equalsIgnoreCase(opType)) {
+                existingProtocols.removeAll(protocols);
+                for (String protocol : existingProtocols) {
+                    removeProtocols(vFilerName, protocol);
+                }
+            } else {
+                protocols.removeAll(existingProtocols);
+                for (String protocol : protocols) {
+                    addProtocols(vFilerName, protocol);
+                }
             }
         } catch (Exception e) {
             String msg = "Failed to add protocols to vFiler: " + vFilerName;
@@ -166,6 +174,19 @@ public class VFiler {
             throw new NetAppException(msg, e);
         }
         return true;
+    }
+
+    private void addProtocols(String vFilerName, String protocol) {
+        NaElement allowProtocol = new NaElement("vfiler-allow-protocol");
+        allowProtocol.addNewChild("vfiler", vFilerName);
+        allowProtocol.addNewChild("protocol", protocol.toLowerCase());
+        try {
+            server.invokeElem(allowProtocol);
+        } catch (Exception e) {
+            String msg = "Failed to update protocols to vFiler: " + vFilerName;
+            log.error(msg, e);
+            throw new NetAppException(msg, e);
+        }
     }
 
     private void removeProtocols(String vFilerName, String protocol) {

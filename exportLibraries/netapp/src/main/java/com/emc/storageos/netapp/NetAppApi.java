@@ -70,6 +70,8 @@ public class NetAppApi {
 
     private static final String ENABLE = "enable";
     private static final String DISABLE = "disable";
+    private static final String CREATE_VFILER = "Create Vfiler";
+    private static final String UPDATE_VFILER = "Update Vfiler";
     public String NetBIOSName;
 
     static {
@@ -1042,7 +1044,7 @@ public class NetAppApi {
             if (status) {
                 netAppFacade.setupVirtualNas(args);
                 if (args.getAddProtocols() != null && !args.getAddProtocols().isEmpty()) {
-                    netAppFacade.allowVnasProtocols(args.getvNasName(), args.getAddProtocols());
+                    netAppFacade.allowVnasProtocols(args.getvNasName(), args.getAddProtocols(), CREATE_VFILER);
                 }
             } else {
                 _logger.debug("VNAS {} creation failed", args.getvNasName());
@@ -1061,7 +1063,7 @@ public class NetAppApi {
             netAppFacade = new NetAppFacade(_ipAddress, _portNumber, _userName,
                     _password, _https);
             if (args.getAddProtocols() != null && !args.getAddProtocols().isEmpty()) {
-                netAppFacade.allowVnasProtocols(vnasName, args.getAddProtocols());
+                netAppFacade.allowVnasProtocols(vnasName, args.getAddProtocols(), UPDATE_VFILER);
             }
             if (args.getRemoveProtocols() != null && !args.getRemoveProtocols().isEmpty()) {
                 netAppFacade.disallowVnasProtocols(vnasName, args.getRemoveProtocols());

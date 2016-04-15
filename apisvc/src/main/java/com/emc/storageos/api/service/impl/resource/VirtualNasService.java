@@ -235,6 +235,14 @@ public class VirtualNasService extends TaggedResource {
         return toTask(vnas, task, op);
     }
 
+    /**
+     * Update Virtual NAS server
+     * 
+     * @param vnasParam
+     *            Virtual NAS update parameters
+     * @brief Update Virtual NAS server
+     * @return Task resource representation
+     */
     @PUT
     @Path("/{id}")
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })

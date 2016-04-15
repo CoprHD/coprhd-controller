@@ -180,7 +180,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
         RecordableBourneEvent event = new RecordableBourneEvent(
                 type,
                 fs.getTenant().getURI(),
-                URI.create("ViPR-User"),                                                                       // user ID when AAA fixed
+                URI.create("ViPR-User"),                                                                        // user ID when AAA fixed
                 fs.getProject().getURI(),
                 fs.getVirtualPool(),
                 EVENT_SERVICE_TYPE,
@@ -212,7 +212,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
         RecordableBourneEvent event = new RecordableBourneEvent(
                 type,
                 fs.getTenant().getURI(),
-                URI.create("ViPR-User"),                                                                       // user ID when AAA fixed
+                URI.create("ViPR-User"),                                                                        // user ID when AAA fixed
                 fs.getProject().getURI(),
                 fs.getVirtualPool(),
                 EVENT_SERVICE_TYPE,
@@ -583,7 +583,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
 
             if (result.getCommandPending()) {
                 return;
-            }                                                                                     // Set Mount path info for the exports
+            }                                                                                      // Set Mount path info for the exports
             FSExportMap fsExports = fsObj.getFsExports();
 
             // Per New model get the rules and see if any rules that are already saved and available.
@@ -3949,6 +3949,12 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             String[] params = { storage.toString(), vnasUri.toString(), vnasObj.getNasName() };
             _log.info("Update Virtual NAS: {}, {}, {}", params);
 
+            StringSet existingProtocols = vnasObj.getProtocols();
+            if (existingProtocols != null) {
+                existingProtocols.removeAll(vnasParam.getRemoveProtocols());
+                existingProtocols.addAll(vnasParam.getAddProtocols());
+                vnasObj.setProtocols(existingProtocols);
+            }
             BiosCommandResult result = getDevice(storageObj.getSystemType()).doUpdateVNAS(storageObj, vnasObj, vnasParam);
             if (result.getCommandPending()) {
                 return;

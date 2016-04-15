@@ -2492,7 +2492,7 @@ rpvplexlocal_noprotection()
         --protocols FC \
         --numpaths 2 \
         --provisionType 'Thin' \
-        --neighborhoods $RECOVERPOINT_VARRAY1 \
+        --neighborhoods $RECOVERPOINT_VARRAY1 $RECOVERPOINT_VARRAY2 $RECOVERPOINT_VARRAY3 $RECOVERPOINT_VARRAY4 \
         --max_snapshots 10 \
         --multiVolumeConsistency \
         --highavailability vplex_local
@@ -3034,6 +3034,11 @@ recoverpoint_ingest_test()
         RECOVERPOINT_INGEST_VOL1_TGT=${RECOVERPOINT_INGEST_VOL1_SRC}-target-${RECOVERPOINT_VARRAY1}
         RECOVERPOINT_INGEST_VOL1_TGT_JRNL=${RECOVERPOINT_INGEST_VOL1_SRC}-${RECOVERPOINT_VARRAY1}-journal-2
 	RECOVERPOINT_TGT_VARRAY=${RECOVERPOINT_VARRAY1}
+
+	# Also need to ingest the MP standby production journal, varray2 target and journal volumes as well.
+	RECOVERPOINT_INGEST_VOL1_STANDBY_SRC_JRNL=${RECOVERPOINT_INGEST_VOL1_SRC}-${RECOVERPOINT_VARRAY2}-journal-1
+	RECOVERPOINT_INGEST_VOL1_STANDBY_TGT=${RECOVERPOINT_INGEST_VOL1_SRC}-target-${RECOVERPOINT_VARRAY2}
+	RECOVERPOINT_INGEST_VOL1_STANDBY_TGT_JRNL=${RECOVERPOINT_INGEST_VOL1_SRC}-${RECOVERPOINT_VARRAY2}-journal-2
     elif [ "${vpool}" = "rp${rptypetag}_crr" ]; then
         RECOVERPOINT_INGEST_VOL1_TGT=${RECOVERPOINT_INGEST_VOL1_SRC}-target-${RECOVERPOINT_VARRAY3}
         RECOVERPOINT_INGEST_VOL1_TGT_JRNL=${RECOVERPOINT_INGEST_VOL1_SRC}-${RECOVERPOINT_VARRAY3}-journal-1
@@ -3091,7 +3096,13 @@ recoverpoint_ingest_test()
         # Make sure you fail to create an array snapshot because you're not fully ingested yet
         fail blocksnapshot create ${PROJECT}/${RECOVERPOINT_INGEST_VOL1_TGT} ${rpsnap}2
         if [ "${vpool}" = "rpmp_cdp" ]; then
-            run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY1} rpvplex_ha $PROJECT --volspec "${RECOVERPOINT_INGEST_VOL1_SRC_JRNL}"
+	    # MP active production journal
+            run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY1} rpvplexlocal_noprotection $PROJECT --volspec "${RECOVERPOINT_INGEST_VOL1_SRC_JRNL}"
+	    # MP standby production journal
+            run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY2} rpvplexlocal_noprotection $PROJECT --volspec "${RECOVERPOINT_INGEST_VOL1_STANDBY_SRC_JRNL}"
+	    # MP target CDP on varray2
+	    run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY2} rp_targets $PROJECT --volspec "${RECOVERPOINT_INGEST_VOL1_STANDBY_TGT}"
+	    run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY2} rp_targets $PROJECT --volspec "${RECOVERPOINT_INGEST_VOL1_STANDBY_TGT_JRNL}"
         else
 	    run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY1} ${rp_target_vpool} $PROJECT --volspec "${RECOVERPOINT_INGEST_VOL1_SRC_JRNL}"
         fi
@@ -3150,7 +3161,13 @@ recoverpoint_ingest_test()
 	run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY1} ${rp_target_vpool} $PROJECT --volspec "${RECOVERPOINT_INGEST_VOL1_TGT}"
 	run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY1} ${rp_target_vpool} $PROJECT --volspec "${RECOVERPOINT_INGEST_VOL1_TGT_JRNL}"
         if [ "${vpool}" = "rpmp_cdp" ]; then
-            run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY1} rpvplex_ha $PROJECT --volspec "${RECOVERPOINT_INGEST_VOL1_SRC_JRNL}"
+	    # MP active production journal
+            run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY1} rpvplexlocal_noprotection $PROJECT --volspec "${RECOVERPOINT_INGEST_VOL1_SRC_JRNL}"
+	    # MP standby production journal
+            run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY2} rpvplexlocal_noprotection $PROJECT --volspec "${RECOVERPOINT_INGEST_VOL1_STANDBY_SRC_JRNL}"
+	    # MP target CDP on varray2
+	    run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY2} rp_targets $PROJECT --volspec "${RECOVERPOINT_INGEST_VOL1_STANDBY_TGT}"
+	    run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY2} rp_targets $PROJECT --volspec "${RECOVERPOINT_INGEST_VOL1_STANDBY_TGT_JRNL}"
         else
 	    run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY1} ${rp_target_vpool} $PROJECT --volspec "${RECOVERPOINT_INGEST_VOL1_SRC_JRNL}"
         fi
@@ -3226,6 +3243,11 @@ recoverpoint_ingest_export_test()
     if [ "${vpool}" = "rp${rptypetag}_cdp" ]; then
         RECOVERPOINT_INGEST_EXPORT_VOL1_TGT=${RECOVERPOINT_INGEST_EXPORT_VOL1_SRC}-target-${RECOVERPOINT_VARRAY1}
         RECOVERPOINT_INGEST_EXPORT_VOL1_TGT_JRNL=${RECOVERPOINT_INGEST_EXPORT_VOL1_SRC}-${RECOVERPOINT_VARRAY1}-journal-2
+
+	# Also need to ingest the MP standby production journal, varray2 target and journal volumes as well.
+	RECOVERPOINT_INGEST_VOL1_STANDBY_SRC_JRNL=${RECOVERPOINT_INGEST_VOL1_SRC}-${RECOVERPOINT_VARRAY2}-journal-1
+	RECOVERPOINT_INGEST_VOL1_STANDBY_TGT=${RECOVERPOINT_INGEST_VOL1_SRC}-target-${RECOVERPOINT_VARRAY2}
+	RECOVERPOINT_INGEST_VOL1_STANDBY_TGT_JRNL=${RECOVERPOINT_INGEST_VOL1_SRC}-${RECOVERPOINT_VARRAY2}-journal-2
     elif [ "${vpool}" = "rp${rptypetag}_crr" ]; then
         RECOVERPOINT_INGEST_EXPORT_VOL1_TGT=${RECOVERPOINT_INGEST_EXPORT_VOL1_SRC}-target-${RECOVERPOINT_VARRAY3}
         RECOVERPOINT_INGEST_EXPORT_VOL1_TGT_JRNL=${RECOVERPOINT_INGEST_EXPORT_VOL1_SRC}-${RECOVERPOINT_VARRAY3}-journal-1
@@ -3253,7 +3275,17 @@ recoverpoint_ingest_export_test()
     if [ "${vpool}" = "rp${rptypetag}_cdp" ]; then
         run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY1} ${rp_target_vpool} $PROJECT --volspec "${RECOVERPOINT_INGEST_EXPORT_VOL1_TGT}"
         run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY1} ${rp_target_vpool} $PROJECT --volspec "${RECOVERPOINT_INGEST_EXPORT_VOL1_TGT_JRNL}"
-        run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY1} ${rp_target_vpool} $PROJECT --volspec "${RECOVERPOINT_INGEST_EXPORT_VOL1_SRC_JRNL}"
+        if [ "${vpool}" = "rpmp_cdp" ]; then
+	    # MP active production journal
+            run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY1} rpvplexlocal_noprotection $PROJECT --volspec "${RECOVERPOINT_INGEST_VOL1_SRC_JRNL}"
+	    # MP standby production journal
+            run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY2} rpvplexlocal_noprotection $PROJECT --volspec "${RECOVERPOINT_INGEST_VOL1_STANDBY_SRC_JRNL}"
+	    # MP target CDP on varray2
+	    run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY2} rp_targets $PROJECT --volspec "${RECOVERPOINT_INGEST_VOL1_STANDBY_TGT}"
+	    run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY2} rp_targets $PROJECT --volspec "${RECOVERPOINT_INGEST_VOL1_STANDBY_TGT_JRNL}"
+        else
+	    run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY1} ${rp_target_vpool} $PROJECT --volspec "${RECOVERPOINT_INGEST_VOL1_SRC_JRNL}"
+        fi
         run unmanagedvolume ingest_export ${RECOVERPOINT_VARRAY1} rp${rptypetag}_cdp $PROJECT --volspec "${RECOVERPOINT_INGEST_EXPORT_VOL1_SRC}" --host ${RP_HOSTNAME}1
         run unmanagedvolume ingest_export ${RECOVERPOINT_VARRAY1} rp${rptypetag}_cdp $PROJECT --volspec "${RECOVERPOINT_INGEST_EXPORT_VOL1_SRC}" --host ${RP_HOSTNAME}2
         RECOVERPOINT_TGT_VARRAY=${RECOVERPOINT_VARRAY1}

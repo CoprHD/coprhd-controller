@@ -638,14 +638,14 @@ public class RPHelper {
     }
 
     /**
-     * Get all target volumes in the consistency group for specified target copy.
+     * Get all the target volumes in the consistency group for specified target copy.
      *
      * @param dbClient the database client
      * @param consistencyGroup the consistency group id
      * @param virtualArray target virtual array
      * @return Volume of the target
      */
-    public static List<Volume> getAllRPTargetVolumesForCopy(DbClient dbClient, URI consistencyGroup, URI virtualArray) {
+    public static List<Volume> getTargetVolumesForCopy(DbClient dbClient, URI consistencyGroup, URI virtualArray) {
         List<Volume> targetCopyVolumes = new ArrayList<Volume>();
         List<Volume> cgTargetVolumes = getCgTargetVolumes(consistencyGroup, dbClient);
 
@@ -2055,7 +2055,7 @@ public class RPHelper {
             if (cgVolume.getPersonality().equalsIgnoreCase(PersonalityTypes.TARGET.toString()) && !productionCopy) {
                 return cgVolume.getRpCopyName();
             }
-            
+
             // The case of standby production copy; there is no source production volume for this specific varray
             if (cgVolume.getPersonality().equalsIgnoreCase(PersonalityTypes.METADATA.toString()) && productionCopy) {
                 return cgVolume.getRpCopyName();

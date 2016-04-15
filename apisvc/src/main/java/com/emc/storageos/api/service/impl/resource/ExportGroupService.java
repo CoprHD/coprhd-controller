@@ -463,15 +463,24 @@ public class ExportGroupService extends TaskResourceService {
      * @param param the export group create request param.
      */
     private void validateBlockSnapshotsForExportGroupUpdate(ExportUpdateParam param, ExportGroup exportGroup) {
-        if (param != null) {
+        if (param != null && exportGroup != null) {
             List<URI> blockObjURIs = new ArrayList<URI>();
-            // We only care about the BlockObjects we are adding
-            for (VolumeParam volParam : param.getVolumes().getAdd()) {
-                blockObjURIs.add(volParam.getId());
-            }
 
-            // validate the RP BlockSnapshots for ExportGroup create
-            validateRPBlockSnapshotsForExport(blockObjURIs);
+            List<VolumeParam> addVolumeParams = param.getVolumes().getAdd();
+
+            // We only care about the BlockObjects we are adding, not removing
+            if (addVolumeParams != null && !addVolumeParams.isEmpty()) {
+                for (VolumeParam volParam : addVolumeParams) {
+                    blockObjURIs.add(volParam.getId());
+                }
+
+                for (Map.Entry<String, String> entry : exportGroup.getVolumes().entrySet()) {
+                    blockObjURIs.add(URI.create(entry.getKey()));
+                }
+
+                // validate the RP BlockSnapshots for ExportGroup create
+                validateRPBlockSnapshotsForExport(blockObjURIs);
+            }
         }
     }
 

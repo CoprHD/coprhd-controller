@@ -362,7 +362,8 @@ public class MigrationService extends TaskResourceService {
 
             migrationServiceApi = getMigrationServiceImpl(volume);
 
-            //TODO: Implement this function in the migrationServiceAPI
+            // Verify that the virtual array change is allowed for the
+            // requested volume and virtual array
             migrationServiceApi.verifyVarrayChangeSupportedForVolumeAndVarray(volume, tgtVarray);
             s_logger.info("Virtual array change is supported for requested volume and varray");
 

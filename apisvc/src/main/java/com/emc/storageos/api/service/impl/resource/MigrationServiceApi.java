@@ -4,9 +4,13 @@
  */
 package com.emc.storageos.api.service.impl.resource;
 
+import java.util.List;
+
+import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
+import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 
 /**
  * Interface for migration service calls.
@@ -29,5 +33,22 @@ public interface MigrationServiceApi {
      */
     public void verifyVarrayChangeSupportedForVolumeAndVarray(Volume volume,
             VirtualArray newVarray) throws APIException;
+
+    /**
+     * Defines the API to change the varray for the passed volumes to the passed
+     * varray.
+     *
+     * @param volume A list of volumes.
+     * @param cg A reference to the volume's consistency group, or null.
+     * @param cgVolumes List of volumes in the CG when not null.
+     * @param tgtVarray A reference to the new varray.
+     * @param driverMigration Boolean that is true if a driver migration will take place, false otherwise.
+     * @param taskId The task identifier.
+     *
+     * @throws InternalException
+     */
+    public void migrateVolumesVirtualArray(List<Volume> volume,
+            BlockConsistencyGroup cg, List<Volume> cgVolumes, VirtualArray tgtVarray,
+            boolean driverMigration, String taskId) throws InternalException;
 
 }

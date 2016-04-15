@@ -57,6 +57,8 @@ import com.emc.storageos.vnxe.models.NfsShareModifyParam;
 import com.emc.storageos.vnxe.models.NfsShareParam;
 import com.emc.storageos.vnxe.models.NfsShareParam.NFSShareDefaultAccessEnum;
 import com.emc.storageos.vnxe.models.ReplicationParam;
+import com.emc.storageos.vnxe.models.Snap;
+import com.emc.storageos.vnxe.models.SnapCreateParam;
 import com.emc.storageos.vnxe.models.StorageResource;
 import com.emc.storageos.vnxe.models.StorageResource.TieringPolicyEnum;
 import com.emc.storageos.vnxe.models.VNXUnityQuotaConfig;
@@ -127,6 +129,7 @@ import com.emc.storageos.vnxe.requests.NfsServerListRequest;
 import com.emc.storageos.vnxe.requests.NfsShareRequests;
 import com.emc.storageos.vnxe.requests.PoolListRequest;
 import com.emc.storageos.vnxe.requests.PoolRequest;
+import com.emc.storageos.vnxe.requests.SnapRequests;
 import com.emc.storageos.vnxe.requests.StorageProcessorListRequest;
 import com.emc.storageos.vnxe.requests.StorageSystemRequest;
 import com.emc.storageos.vnxe.requests.StorageTierRequest;
@@ -2468,5 +2471,58 @@ public class VNXeApiClient {
         FileSystemQuotaRequests req = new FileSystemQuotaRequests(_khClient);
         return req.get();
     }
+    
+    /**
+     * Create snapshot for VNX Unity
+     * 
+     * @param lunID lun id
+     * @param name snapshot name
+     * @param isReadOnly
+     * @return VNXeCommandJob
+     */
+    public VNXeCommandJob createSnap(String lunID, String name, Boolean isReadOnly) {
+        _logger.info("creating lun snap:" + lunID);
+        SnapCreateParam parm = new SnapCreateParam();
+        parm.setStorageResource(new VNXeBase(lunID));
+        parm.setName(name);
+        if (isReadOnly != null) {
+            parm.setIsReadOnly(isReadOnly);
+        }
+        SnapRequests req = new SnapRequests(_khClient);
+        return req.createSnap(parm);
+    }
+    
+    /**
+     * Delete snapshot
+     * 
+     * @param snapId snapshot VNXe Id
+     * @return VNXeCommandJob
+     */
+    public VNXeCommandResult deleteSnap(String snapId) {
+        _logger.info("deleting snap:" + snapId);
+        SnapRequests req = new SnapRequests(_khClient);
+        return req.deleteSnap(snapId);
+    }
+    
+    /**
+     * Get snapshot by its id
+     * 
+     * @param name
+     *            snapshot name
+     * @return VNXeLunSnap
+     */
+    public Snap getSnapshot(String id) {
+        _logger.info("Getting the snapshot {}: ", id);
+        SnapRequests req = new SnapRequests(_khClient);
+        return req.getSnap(id);
 
+    }
+
+    /**
+     * If this is VNX Unity client.
+     * @return
+     */
+    public boolean isUnityClient() {
+        return _khClient.isUnity();
+    }
 }

@@ -264,10 +264,21 @@ public class ApiClientTest {
         }
     }
     
-    @Test
+    //@Test
     public void createConsistencyGroup() {
         VNXeCommandResult result = apiClient.createConsistencyGroup("testGroup1");
         System.out.println(result.getStorageResource().getId());
+    }
+    
+    // @Test
+    public void createSnap() {
+        VNXeCommandJob job = apiClient.createSnap("sv_125", "snap3vipr4141", false);
+        System.out.println(job.getId());
+    }
+    
+    @Test
+    public void deleteSnap() {
+        apiClient.deleteSnap("38654705946");
     }
 
 }

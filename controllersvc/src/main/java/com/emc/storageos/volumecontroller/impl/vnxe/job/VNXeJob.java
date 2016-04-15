@@ -244,7 +244,7 @@ public class VNXeJob extends Job implements Serializable {
         VNXePool pool = vnxeApiClient.getPool(poolNativeId);
         storagePool.setFreeCapacity(VNXeUtils.convertDoubleSizeToViPRLong(pool.getSizeFree()));
         storagePool.setSubscribedCapacity(VNXeUtils.convertDoubleSizeToViPRLong(pool.getSizeSubscribed()));
-        dbClient.persistObject(storagePool);
+        dbClient.updateObject(storagePool);
     }
 
 }

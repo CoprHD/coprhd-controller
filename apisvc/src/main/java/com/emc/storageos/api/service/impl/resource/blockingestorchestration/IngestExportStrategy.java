@@ -81,7 +81,7 @@ public class IngestExportStrategy {
                         // If the unmanaged volume is not marked for deletion, then it should be updated with the changes done.
                         requestContext.addDataObjectToUpdate(unManagedVolume, unManagedVolume);
                         _logger.info("all export masks of unmanaged volume {} have been ingested, "
-                                + "but the volume is still marked as partially ingested, returning block object {}", 
+                                + "but the volume is still marked as partially ingested, returning block object {}",
                                 unManagedVolume.forDisplay(), blockObject.forDisplay());
                         return blockObject;
                     }
@@ -114,7 +114,8 @@ public class IngestExportStrategy {
                                         _dbClient);
                             }
                             // If fully ingested, then setup the RP CG too.
-                            if (VolumeIngestionUtil.validateAllVolumesInCGIngested(ingestedUnManagedVolumes, umpset, _dbClient)) {
+                            if (VolumeIngestionUtil.validateAllVolumesInCGIngested(ingestedUnManagedVolumes, umpset, requestContext,
+                                    _dbClient)) {
                                 VolumeIngestionUtil.validateRPVolumesAlignWithIngestVpool(requestContext, umpset, _dbClient);
                                 VolumeIngestionUtil.setupRPCG(requestContext, umpset, unManagedVolume, updateObjects, _dbClient);
                             } else { // else mark the volume as internal. This will be marked visible when the RP CG is ingested

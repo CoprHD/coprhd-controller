@@ -7,10 +7,13 @@ package com.emc.sa.service.vipr.block;
 import static com.emc.sa.service.ServiceParams.CONSISTENCY_GROUP;
 import static com.emc.sa.service.ServiceParams.HLU;
 import static com.emc.sa.service.ServiceParams.HOST;
+import static com.emc.sa.service.ServiceParams.MAX_PATHS;
+import static com.emc.sa.service.ServiceParams.MIN_PATHS;
 import static com.emc.sa.service.ServiceParams.NAME;
 import static com.emc.sa.service.ServiceParams.NUMBER_OF_VOLUMES;
 import static com.emc.sa.service.ServiceParams.PROJECT;
 import static com.emc.sa.service.ServiceParams.SIZE_IN_GB;
+import static com.emc.sa.service.ServiceParams.PATHS_PER_INITIATOR;
 import static com.emc.sa.service.ServiceParams.VIRTUAL_ARRAY;
 import static com.emc.sa.service.ServiceParams.VIRTUAL_POOL;
 import static com.emc.sa.service.vipr.ViPRExecutionUtils.addAffectedResource;
@@ -126,6 +129,7 @@ import com.emc.storageos.model.varray.VirtualArrayRestRep;
 import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
 import com.emc.vipr.client.Task;
 import com.emc.vipr.client.Tasks;
+import com.emc.vipr.client.ViPRCoreClient;
 import com.emc.vipr.client.core.filters.ExportClusterFilter;
 import com.emc.vipr.client.core.filters.ExportHostFilter;
 import com.emc.vipr.client.core.util.ResourceUtils;
@@ -1010,12 +1014,22 @@ public class BlockStorageUtils {
         public URI hostId;
         @Param(value = HLU, required = false)
         public Integer hlu;
+        
+        @Param(value = MIN_PATHS, required = false)
+        protected Integer minPaths;
+
+        @Param(value = MAX_PATHS, required = false)
+        protected Integer maxPaths;
+
+        @Param(value = PATHS_PER_INITIATOR, required = false)
+        protected Integer pathsPerInitiator;
 
         @Override
-        public String toString() {
-            String parent = super.toString();
-            return parent + ", Host Id=" + hostId + ", HLU=" + hlu;
-        }
+		public String toString() {
+			String parent = super.toString();
+			return parent + ", Host Id=" + hostId + ", HLU=" + hlu + ", MIN_PATHS=" + minPaths + ", MAX_PATHS="
+					+ maxPaths + ", PATHS_PER_INITIATOR=" + pathsPerInitiator;
+		}
 
         @Override
         public Map<String, Object> getParams() {
@@ -1023,6 +1037,9 @@ public class BlockStorageUtils {
             map.putAll(super.getParams());
             map.put(HOST, hostId);
             map.put(HLU, hlu);
+            map.put(MIN_PATHS, minPaths);
+            map.put(MAX_PATHS, maxPaths);
+            map.put(PATHS_PER_INITIATOR, pathsPerInitiator);
             return map;
         }
     }
@@ -1276,4 +1293,56 @@ public class BlockStorageUtils {
         }
         return false;
     }
+    
+    /**
+     * gets the vplex primary/source backing volume for a vplex virtual volume
+     * 
+     * @param client
+     * @param vplexVolume
+     * @return
+     */
+    public static VolumeRestRep getVPlexSourceVolume(ViPRCoreClient client, VolumeRestRep vplexVolume) {
+        if (vplexVolume.getHaVolumes() != null && !vplexVolume.getHaVolumes().isEmpty()) {
+            URI vplexVolumeVarray = vplexVolume.getVirtualArray().getId();
+            for (RelatedResourceRep haVolume : vplexVolume.getHaVolumes()) {
+                VolumeRestRep volume = client.blockVolumes().get(haVolume.getId());
+                if (volume != null && volume.getVirtualArray().getId().equals(vplexVolumeVarray)) {
+                    return volume;
+                }
+            }
+        }
+        return null;
+    }
+    
+    public static NamedVolumesList getVolumesBySite(ViPRCoreClient client, String virtualArrayId, URI applicationId) {
+        boolean isTarget = false;
+        URI virtualArray = null;
+        if (virtualArrayId != null && StringUtils.split(virtualArrayId, ':')[0].equals("tgt")) {
+            virtualArray = URI.create(StringUtils.substringAfter(virtualArrayId, ":"));
+            isTarget = true;
+        } else {
+            isTarget = false;
+        }
+
+        NamedVolumesList applicationVolumes = client.application().getVolumeByApplication(applicationId);
+        NamedVolumesList volumesToUse = new NamedVolumesList();
+        for (NamedRelatedResourceRep volumeId : applicationVolumes.getVolumes()) {
+            VolumeRestRep volume = client.blockVolumes().get(volumeId);
+            VolumeRestRep parentVolume = volume;
+            if (volume.getHaVolumes() != null && !volume.getHaVolumes().isEmpty()) {
+                volume = BlockStorageUtils.getVPlexSourceVolume(client, volume);
+            }
+            if (isTarget) {
+                if (volume.getVirtualArray().getId().equals(virtualArray)) {
+                    volumesToUse.getVolumes().add(volumeId);
+                }
+            } else {
+                if (!BlockStorageUtils.isRPVolume(parentVolume) || BlockStorageUtils.isRPSourceVolume(parentVolume)) {
+                    volumesToUse.getVolumes().add(volumeId);
+                }
+            }
+        }
+        return volumesToUse;
+    }
+
 }

@@ -94,6 +94,7 @@ public class Backup extends Controller {
      * Only get the remote backup info
      * @param ids
      */
+    @Restrictions({ @Restrict("SYSTEM_ADMIN"), @Restrict("SYSTEM_MONITOR"), @Restrict("RESTRICTED_SYSTEM_ADMIN") })
     public static void externalItemsJson(@As(",") String[] ids) {
         List<BackupDataTable.Backup> results = Lists.newArrayList();
         if (ids != null) {
@@ -116,6 +117,7 @@ public class Backup extends Controller {
      * Only get the remote restore status
      * @param ids
      */
+    @Restrictions({ @Restrict("SYSTEM_ADMIN"), @Restrict("SYSTEM_MONITOR"), @Restrict("RESTRICTED_SYSTEM_ADMIN") })
     public static void externalStatusJson(@As(",") String[] ids) {
         List<BackupDataTable.Backup> results = Lists.newArrayList();
         for (String id : ids) {
@@ -169,7 +171,7 @@ public class Backup extends Controller {
         if (ids != null && ids.length > 0) {
             boolean deleteExecuted = false;
             for (String backupName : ids) {
-                BackupUtils.deleteBackup(backupName);
+                BackupUtils.deleteBackup(backupName.replace("+"," "));
                 deleteExecuted = true;
             }
             if (deleteExecuted == true) {

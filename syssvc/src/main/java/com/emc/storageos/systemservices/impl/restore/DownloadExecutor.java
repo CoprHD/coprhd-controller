@@ -11,10 +11,7 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.net.InetAddress;
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.net.UnknownHostException;
+import java.net.*;
 import java.util.List;
 import java.util.Map;
 import java.util.zip.ZipEntry;
@@ -153,7 +150,7 @@ public final class DownloadExecutor implements  Runnable {
 
             pullBackupFilesFromRemoteServer();
             postDownload();
-            backupOps.setRestoreStatus(remoteBackupFileName, false, null, null, true, false);
+            backupOps.setRestoreStatus(remoteBackupFileName, false, null, null, true, true);
         }catch (InterruptedException e) {
             log.info("The downloading thread has been interrupted");
         }catch (Exception e) {
@@ -197,8 +194,8 @@ public final class DownloadExecutor implements  Runnable {
         File downloadDir = backupOps.getDownloadDirectory(remoteBackupFileName);
 
         try {
-            String uri = SysClientFactory.URI_NODE_PULL_BACKUP_FILE+ "?backupname=" + remoteBackupFileName + "&filename="+filename;
-
+            String uri = SysClientFactory.URI_NODE_PULL_BACKUP_FILE+ "?backupname=" + URLEncoder.encode(remoteBackupFileName,"UTF8")
+                    + "&filename="+URLEncoder.encode(filename,"UTF8");
             final InputStream in = SysClientFactory.getSysClient(endpoint)
                                                    .get(new URI(uri), InputStream.class, MediaType.APPLICATION_OCTET_STREAM);
 
@@ -221,7 +218,6 @@ public final class DownloadExecutor implements  Runnable {
             long size = backupOps.getSizeToDownload(remoteBackupFileName);
             backupOps.updateDownloadedSize(remoteBackupFileName, size, false);
             log.info("The backup {} for this node has already been downloaded", remoteBackupFileName);
-            backupOps.setRestoreStatus(remoteBackupFileName, false, null, null, true, false);
             return; //no need to download again
         } catch (Exception e) {
             // no backup or invalid backup, so download it again
@@ -311,7 +307,7 @@ public final class DownloadExecutor implements  Runnable {
             for (URI uri : uris) {
                 node = uri;
                 log.info("Notify {}", node);
-                pushUri= SysClientFactory.URI_NODE_BACKUPS_PULL+ "?backupname=" + remoteBackupFileName + "&endpoint="+myURI;
+                pushUri= SysClientFactory.URI_NODE_BACKUPS_PULL+ "?backupname=" + URLEncoder.encode(remoteBackupFileName,"UTF8") + "&endpoint="+myURI;
                 SysClientFactory.SysClient sysClient = SysClientFactory.getSysClient(node);
                 sysClient.post(new URI(pushUri), null, null);
             }

@@ -148,7 +148,7 @@ public class DbsvcTestBase {
         Introspector.flushCaches();
 
         isDbStarted = false;
-        _dbsvc.stop();
+        _dbsvc.stopWithDecommission();
 
         Schema.instance.clear();
 

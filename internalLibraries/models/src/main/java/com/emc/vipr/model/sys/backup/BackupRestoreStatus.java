@@ -278,7 +278,7 @@ public class BackupRestoreStatus {
           .append(backupName)
           .append("\nsize to download:")
           .append(sizeToDownload)
-          .append("\ndownloaded size:")
+          .append("\ndownloaded size: ")
           .append(downloadedSize)
           .append("\nfilesDownloaded:")
           .append(backupFileNames)

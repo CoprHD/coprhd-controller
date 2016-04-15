@@ -6514,7 +6514,7 @@ security_tests()
 		done
 	fi
 
-	# verify SSL3 still enbaled
+	# verify java support ssl3 and don't have keysize restriction
 	verify_java_security_file $BOURNE_IPADDR
 }
 
@@ -6548,7 +6548,7 @@ verify_java_security_file() {
     if [[ $result != "ok" ]];
     then
         echo "***"
-        echo "*** FAILED! vipr java.security contains keySize"
+        echo "*** FAILED! vipr java.security contains keySize restriction"
         echo "***"
         exit 1
     fi

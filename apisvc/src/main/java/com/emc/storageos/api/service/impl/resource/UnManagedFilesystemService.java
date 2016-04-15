@@ -678,12 +678,15 @@ public class UnManagedFilesystemService extends TaggedResource {
             quotaDirectory.setTenant(new NamedURI(parentFS.getTenant().getURI(), unManagedFileQuotaDirectory.getLabel()));
             
             quotaDirectory.setSoftLimit(
-                    unManagedFileQuotaDirectory.getSoftLimit() != 0 ? unManagedFileQuotaDirectory.getSoftLimit()
+                    unManagedFileQuotaDirectory.getSoftLimit() != null && unManagedFileQuotaDirectory.getSoftLimit() != 0
+                    ? unManagedFileQuotaDirectory.getSoftLimit()
                             : parentFS.getSoftLimit() != null ? parentFS.getSoftLimit().intValue() : 0);
             quotaDirectory.setSoftGrace(
-                    unManagedFileQuotaDirectory.getSoftGrace() != 0 ? unManagedFileQuotaDirectory.getSoftGrace()
+                    unManagedFileQuotaDirectory.getSoftGrace() != null && unManagedFileQuotaDirectory.getSoftGrace() != 0
+                    ? unManagedFileQuotaDirectory.getSoftGrace()
                             : parentFS.getSoftGracePeriod() != null ? parentFS.getSoftGracePeriod() : 0);
-            quotaDirectory.setNotificationLimit(unManagedFileQuotaDirectory.getNotificationLimit() != 0 ? unManagedFileQuotaDirectory.getNotificationLimit()
+            quotaDirectory.setNotificationLimit(unManagedFileQuotaDirectory.getNotificationLimit() != null && unManagedFileQuotaDirectory.getNotificationLimit() != 0
+                    ? unManagedFileQuotaDirectory.getNotificationLimit()
                     : parentFS.getNotificationLimit() != null ? parentFS.getNotificationLimit().intValue() : 0);
             String convertedName = unManagedFileQuotaDirectory.getLabel().replaceAll("[^\\dA-Za-z_]", "");
             _logger.info("FileService::QuotaDirectory Original name {} and converted name {}", unManagedFileQuotaDirectory.getLabel(), convertedName);

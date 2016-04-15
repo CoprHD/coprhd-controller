@@ -197,14 +197,13 @@ public class KeyCertificatePairGenerator {
         return returnedEntry;
     }
 
-    public static PrivateKey loadPrivateKeyFromBytes(byte[] keyBytes)
-            throws SecurityException, NoSuchAlgorithmException {
+    public static PrivateKey loadPrivateKeyFromBytes(byte[] keyBytes) {
         try {
             KeyFactory keyFactory =
                     KeyFactory
                             .getInstance(KeyCertificateAlgorithmValuesHolder.DEFAULT_KEY_ALGORITHM);
             return keyFactory.generatePrivate(new PKCS8EncodedKeySpec(keyBytes));
-        } catch (InvalidKeySpecException e) {
+        } catch (Exception e) {
             throw SecurityException.fatals.failedToLoadPrivateKey(e);
         }
     }

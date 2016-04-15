@@ -208,7 +208,7 @@ public class XtremIOUnManagedVolumeDiscoverer {
         log.info("Started discovery of UnManagedVolumes for system {}", accessProfile.getSystemId());
         StorageSystem storageSystem = dbClient.queryObject(StorageSystem.class,
                 accessProfile.getSystemId());
-        XtremIOClient xtremIOClient = XtremIOProvUtils.getXtremIOClient(storageSystem, xtremioRestClientFactory);
+        XtremIOClient xtremIOClient = XtremIOProvUtils.getXtremIOClient(dbClient, storageSystem, xtremioRestClientFactory);
 
         unManagedVolumesToCreate = new ArrayList<UnManagedVolume>();
         unManagedVolumesToUpdate = new ArrayList<UnManagedVolume>();
@@ -321,11 +321,13 @@ public class XtremIOUnManagedVolumeDiscoverer {
                                 "");
                     }
 
+                    boolean hasReplicas = false;
                     if (hasSnaps) {
                         StringSet parentMatchedVPools = unManagedVolume.getSupportedVpoolUris();
                         StringSet discoveredSnaps = discoverVolumeSnaps(storageSystem, volume.getSnaps(), unManagedVolumeNatvieGuid,
                                 parentMatchedVPools, xtremIOClient, xioClusterName, dbClient, igUnmanagedVolumesMap, igKnownVolumesMap);
                         if (!discoveredSnaps.isEmpty()) {
+                            hasReplicas = true;
                             // set the HAS_REPLICAS property
                             unManagedVolume.getVolumeCharacterstics().put(SupportedVolumeCharacterstics.HAS_REPLICAS.toString(),
                                     TRUE);
@@ -347,15 +349,16 @@ public class XtremIOUnManagedVolumeDiscoverer {
                                 unManagedVolumeInformation.put(
                                         SupportedVolumeInformation.SNAPSHOTS.toString(), discoveredSnaps);
                             }
-                        } else {
-                            unManagedVolume.getVolumeCharacterstics().put(SupportedVolumeCharacterstics.HAS_REPLICAS.toString(), FALSE);
-                            unManagedVolume.getVolumeInformation().get(SupportedVolumeInformation.SNAPSHOTS.toString()).clear();
                         }
-                    } else {
-                        unManagedVolume.getVolumeCharacterstics().put(SupportedVolumeCharacterstics.HAS_REPLICAS.toString(), FALSE);
-                        unManagedVolume.getVolumeInformation().get(SupportedVolumeInformation.SNAPSHOTS.toString()).clear();
                     }
 
+                    if (!hasReplicas) {
+                        unManagedVolume.getVolumeCharacterstics().put(SupportedVolumeCharacterstics.HAS_REPLICAS.toString(), FALSE);
+                        StringSet snapshots = unManagedVolume.getVolumeInformation().get(SupportedVolumeInformation.SNAPSHOTS.toString());
+                        if (snapshots != null && !snapshots.isEmpty()) {
+                            unManagedVolume.getVolumeInformation().get(SupportedVolumeInformation.SNAPSHOTS.toString()).clear();
+                        }
+                    }
                     allCurrentUnManagedVolumeUris.add(unManagedVolume.getId());
 
                 } catch (Exception ex) {

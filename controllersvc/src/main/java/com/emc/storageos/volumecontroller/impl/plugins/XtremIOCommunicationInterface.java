@@ -37,6 +37,7 @@ import com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator;
 import com.emc.storageos.volumecontroller.impl.StoragePortAssociationHelper;
 import com.emc.storageos.volumecontroller.impl.utils.DiscoveryUtils;
 import com.emc.storageos.volumecontroller.impl.xtremio.XtremIOUnManagedVolumeDiscoverer;
+import com.emc.storageos.volumecontroller.impl.xtremio.prov.utils.XtremIOProvUtils;
 import com.emc.storageos.xtremio.restapi.XtremIOClient;
 import com.emc.storageos.xtremio.restapi.XtremIOClientFactory;
 import com.emc.storageos.xtremio.restapi.XtremIOConstants;
@@ -69,7 +70,9 @@ public class XtremIOCommunicationInterface extends
     @Override
     public void collectStatisticsInformation(AccessProfile accessProfile)
             throws BaseCollectionException {
-
+        _logger.info("Start collecting statistics for ip address {}", accessProfile.getIpAddress());
+        _logger.info("Collect statistics for XtremIO not supported.");
+        _logger.info("End collecting statistics for ip address {}", accessProfile.getIpAddress());
     }
 
     @Override
@@ -132,7 +135,7 @@ public class XtremIOCommunicationInterface extends
             discoverUnManagedVolumes(accessProfile);
         } else {
             StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, accessProfile.getSystemId());
-            xtremioRestClientFactory.setModel(storageSystem.getFirmwareVersion());
+            xtremioRestClientFactory.setModel(XtremIOProvUtils.getXtremIOVersion(_dbClient, storageSystem));
             XtremIOClient xtremIOClient = (XtremIOClient) xtremioRestClientFactory.getRESTClient(
                     URI.create(XtremIOConstants.getXIOBaseURI(accessProfile.getIpAddress(), accessProfile.getPortNumber())),
                     accessProfile.getUserName(), accessProfile.getPassword(), true);

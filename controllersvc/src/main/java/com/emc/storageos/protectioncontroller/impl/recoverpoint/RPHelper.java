@@ -66,6 +66,7 @@ import com.emc.storageos.recoverpoint.exceptions.RecoverPointException;
 import com.emc.storageos.recoverpoint.impl.RecoverPointClient;
 import com.emc.storageos.recoverpoint.utils.RecoverPointClientFactory;
 import com.emc.storageos.recoverpoint.utils.RecoverPointUtils;
+import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.util.ConnectivityUtil;
 import com.emc.storageos.util.ExportUtils;
@@ -1115,7 +1116,7 @@ public class RPHelper {
 
         // Filter journals based on internal site name or copy name matching the passed in value.
         if (cgJournalVolumes != null && !cgJournalVolumes.isEmpty()) {
-            for (Volume cgJournalVolume : cgJournalVolumes) {               
+            for (Volume cgJournalVolume : cgJournalVolumes) {
                 boolean copyNamesMatch = (NullColumnValueGetter.isNotNullValue(cgJournalVolume.getRpCopyName())
                         && cgJournalVolume.getRpCopyName().equals(rpCopyName));
                 if (copyNamesMatch) {
@@ -1141,8 +1142,8 @@ public class RPHelper {
      * @param copyName The RP copy name
      * @return true if an additional journal is required, false otherwise.
      */
-    public boolean isAdditionalJournalRequiredForRPCopy(String journalPolicy, BlockConsistencyGroup cg, 
-    						String size, Integer volumeCount,String copyName) {
+    public boolean isAdditionalJournalRequiredForRPCopy(String journalPolicy, BlockConsistencyGroup cg,
+            String size, Integer volumeCount, String copyName) {
         boolean additionalJournalRequired = false;
 
         if (journalPolicy != null && (journalPolicy.endsWith("x") || journalPolicy.endsWith("X"))) {
@@ -1165,7 +1166,7 @@ public class RPHelper {
             Long cgVolumeSizeInBytes = 0L;
             for (Volume cgVolume : cgVolumes) {
                 if (!cgVolume.checkPersonality(Volume.PersonalityTypes.METADATA.name())
-                        && copyName.equalsIgnoreCase(cgVolume.getRpCopyName()) 
+                        && copyName.equalsIgnoreCase(cgVolume.getRpCopyName())
                         && !cgVolume.checkInternalFlags(Flag.INTERNAL_OBJECT)) {
                     cgVolumeSize += cgVolume.getProvisionedCapacity();
                 }
@@ -1954,14 +1955,14 @@ public class RPHelper {
     /**
      * Generates a RecoverPoint ExportGroup name based on the standard
      * ViPR RecoverPoint ExportGroup label pattern.
-     * 
+     *
      * @param protectionSystem the ProtectionSystem for the ExportGroup
      * @param storageSystem the StorageSystem for the ExportGroup
      * @param internalSiteName the RecoverPoint internal site name
      * @param virtualArray the VirtualArray for the ExportGroup
      * @return a RecoverPoint ExportGroup name String
      */
-    public static String generateExportGroupName(ProtectionSystem protectionSystem, 
+    public static String generateExportGroupName(ProtectionSystem protectionSystem,
             StorageSystem storageSystem, String internalSiteName, VirtualArray virtualArray) {
         // This name generation needs to match ingestion code found in RPDeviceController until
         // we come up with better export group matching criteria.
@@ -1994,6 +1995,18 @@ public class RPHelper {
             if (cgVolume.getPersonality() == null) {
                 continue;
             }
+            
+            if (RPHelper.isMetroPointVolume(dbClient, cgVolume) && cgVolume.getPersonality().equalsIgnoreCase(PersonalityTypes.SOURCE.toString()) && productionCopy) {
+                // If the volume is MetroPoint, check for varrayId in the associated volumes since their RP Copy names will be different.
+                if (cgVolume.getAssociatedVolumes() != null) {
+                    for (String assocVolumeIdStr : cgVolume.getAssociatedVolumes()) {
+                        Volume associatedVolume = dbClient.queryObject(Volume.class, URI.create(assocVolumeIdStr));
+                        if (URIUtil.identical(associatedVolume.getVirtualArray(), varrayId)) {
+                            return associatedVolume.getRpCopyName();
+                        }
+                    }
+                }
+            }           
 
             if (!URIUtil.identical(cgVolume.getVirtualArray(), varrayId)) {
                 continue;
@@ -2008,6 +2021,40 @@ public class RPHelper {
             }
         }
         return null;
+    }
+
+    /**
+     * Validate the replication set for each volume to ensure the source volume size is not greater
+     * than the target volume size. This validation is required for both restore and expand because
+     * we delete and re-create the replication set. The re-create step will fail if the source volume is
+     * larger in size than the target. This situation would likely only arise if a swap was performed.
+     *
+     * @param dbClient the database client
+     * @param volumes the list of volumes to validate
+     */
+    public static void validateRSetVolumeSizes(DbClient dbClient, List<Volume> volumes) {
+        if (volumes != null) {
+            for (Volume volume : volumes) {
+                // We aren't sure if the volume is a source or target. We need to get a handle
+                // on the source volume in order to proceed.
+                Volume sourceVolume = getRPSourceVolume(dbClient, volume);
+
+                // Validate the source volume size is not greater than the target volume size
+                if (sourceVolume != null && sourceVolume.getRpTargets() != null) {
+                    for (String volumeID : sourceVolume.getRpTargets()) {
+                        try {
+                            Volume targetVolume = dbClient.queryObject(Volume.class, new URI(volumeID));
+
+                            if (sourceVolume.getProvisionedCapacity() > targetVolume.getProvisionedCapacity()) {
+                                throw APIException.badRequests.invalidRPVolumeSizes(sourceVolume.getId());
+                            }
+                        } catch (URISyntaxException e) {
+                            throw APIException.badRequests.invalidURI(volumeID, e);
+                        }
+                    }
+                }
+            }
+        }
     }
 
 }

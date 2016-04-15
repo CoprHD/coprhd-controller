@@ -295,11 +295,13 @@ public class Task extends DataObject {
     }
 
     public boolean isError() {
-        return getStatus().equals(Status.error.name());
+        String status = getStatus();
+        return status != null && status.equals(Status.error.name());
     }
 
     public boolean isReady() {
-        return getStatus().equals(Status.ready.name());
+        String status = getStatus();
+        return status != null && status.equals(Status.ready.name());
     }
 
     /**

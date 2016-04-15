@@ -588,8 +588,6 @@ public class VirtualDataCenterService extends TaskResourceService {
                 } catch (CertificateException e) {
                     throw APIException.badRequests.failedToLoadCertificateFromString(
                             newKey.getCertificateChain(), e);
-                } catch (Exception e) {
-                    throw APIException.badRequests.failedToLoadKeyFromString(e);
                 }
             }
 

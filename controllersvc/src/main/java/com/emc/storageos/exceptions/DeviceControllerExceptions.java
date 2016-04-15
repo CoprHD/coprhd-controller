@@ -471,4 +471,10 @@ public interface DeviceControllerExceptions {
 
     @DeclareServiceCode(ServiceCode.BLOCK_CONTROLLER_ERROR)
     public DeviceControllerException couldNotFindSyncObjectToUnlinkTarget(final String deviceId);
+    
+    @DeclareServiceCode(ServiceCode.BLOCK_CONTROLLER_ERROR)
+    public DeviceControllerException couldNotDeleteReplicationGroup(final String reason);
+
+    @DeclareServiceCode(ServiceCode.BLOCK_CONTROLLER_ERROR)
+    public DeviceControllerException couldNotPerformExportDelete(final String reason);
 }

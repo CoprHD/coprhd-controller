@@ -357,17 +357,7 @@ public abstract class SmisAbstractCreateVolumeJob extends SmisReplicaCreationJob
                 _log.info(String.format("Skipping step addVolumesToConsistencyGroup: volumes %s do not reference a consistency group.",
                         volumesIds.toString()));
                 return;
-            } else {
-                for (Volume volume : volumes) {
-                    String cgName = volume.getReplicationGroupInstance();
-                    if (NullColumnValueGetter.isNullValue(cgName)) {
-                        _log.info(String.format(
-                                "Skipping step addVolumesToConsistencyGroup: Volume %s (%s) does not reference an existing consistency group on array %s.",
-                                volume.getLabel(), volume.getId(), volume.getStorageController()));
-                        return;
-                    }
-                }
-            }
+            } 
 
             final StorageSystem storage = dbClient.queryObject(StorageSystem.class,
                     getStorageSystemURI());
@@ -375,25 +365,32 @@ public abstract class SmisAbstractCreateVolumeJob extends SmisReplicaCreationJob
             final SmisStorageDevice storageDevice = (SmisStorageDevice) ControllerServiceImpl.
                     getBean(SmisCommandHelper.getSmisStorageDeviceName(storage));
 
-            // Add all the new volumes to the consistency group except for RP+VPlex target/journal backing volumes
-            List<URI> updatedVolumeIds = new ArrayList<URI>();
+            // Add the new volumes to the consistency group unless: 
+            // 1. The volume is a RP+VPlex target/journal backing volume
+            // 2. The volume does not have a ReplicationGroupInstance field
+            List<Volume> volumesToAddToCG = new ArrayList<Volume>();
 
-            String rpName = null;
+            String rgName = null;
             for (URI volumeId : volumesIds) {
                 Volume volume = dbClient.queryObject(Volume.class, volumeId);
-                rpName = volume.getReplicationGroupInstance();
+               
                 if (!RPHelper.isAssociatedToRpVplexType(volume, dbClient, PersonalityTypes.TARGET, PersonalityTypes.METADATA) &&
-                		NullColumnValueGetter.isNotNullValue(rpName)) {
-                    updatedVolumeIds.add(volumeId);
+                		NullColumnValueGetter.isNotNullValue(volume.getReplicationGroupInstance())) {
+                    rgName = volume.getReplicationGroupInstance();
+                    volumesToAddToCG.add(volume);
+                } else {
+                    _log.info(String.format(
+                            "Skipping step addVolumesToConsistencyGroup: Volume %s (%s) does not reference an existing consistency group on array %s.",
+                            volume.getLabel(), volume.getId(), volume.getStorageController()));
                 }
             }
 
-            if (updatedVolumeIds.isEmpty()) {
+            if (volumesToAddToCG.isEmpty()) {
                 _log.info("Skipping step addVolumesToConsistencyGroup: Volumes are not part of a consistency group");
                 return;
             }
 
-            storageDevice.addVolumesToConsistencyGroup(storage, consistencyGroup, volumes, rpName, getTaskCompleter());
+            storageDevice.addVolumesToConsistencyGroup(storage, consistencyGroup, volumesToAddToCG, rgName, getTaskCompleter());
         } catch (Exception e) {
             _log.error("Problem making SMI-S call: ", e);
             ServiceError error = DeviceControllerErrors.smis.unableToCallStorageProvider(e.getMessage());

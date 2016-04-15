@@ -745,8 +745,8 @@ public class AuthnConfigurationService extends TaggedResource {
             checkForUserGroupsUsingDomains(provider.getDomains());
             verifyDomainsIsNotInUse(provider.getDomains());
         } else {
-            // Delete Keystone enpoints.
-            _keystoneUtils.deleteKeystoneEndpoints(provider.getManagerDN(), provider.getServerUrls(), provider.getManagerPassword());
+            // Delete Cinder endpoints.
+            _keystoneUtils.deleteCinderEndpoints(provider.getManagerDN(), provider.getServerUrls(), provider.getManagerPassword());
         }
         _dbClient.removeObject(provider);
         notifyChange();

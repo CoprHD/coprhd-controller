@@ -364,7 +364,11 @@ public class KeystoneUtils {
      * Populate or Modify the keystone token
      * in authentication provider.
      *
-     * @param serverUrls aaa
+     * @param managerDN of an Authentication Provider.
+     * @param serverUrls of an Authentication Provider
+     * @param password of an Authentication Provider
+     *
+     * @return StringMap containing keystone authentication keys.
      */
     public StringMap populateKeystoneToken(StringSet serverUrls, String managerDN, String password) {
 
@@ -381,13 +385,13 @@ public class KeystoneUtils {
     }
 
     /**
-     * Delete endpoints for the service with given ID.
+     * Delete endpoints for cinder service.
      *
      * @param managerDN of an Authentication Provider.
      * @param serverUrls of an Authentication Provider
      * @param managerPassword of an Authentication Provider
      */
-    public void deleteKeystoneEndpoints(String managerDN, StringSet serverUrls, String managerPassword){
+    public void deleteCinderEndpoints(String managerDN, StringSet serverUrls, String managerPassword){
         // Create a new KeystoneAPI.
         KeystoneApiClient keystoneApi = getKeystoneApi(managerDN, serverUrls, managerPassword);
         // Get a cinderv2 service id.

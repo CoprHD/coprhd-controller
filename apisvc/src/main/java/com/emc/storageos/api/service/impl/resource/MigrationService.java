@@ -64,7 +64,6 @@ import com.emc.storageos.security.authorization.Role;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.util.ConnectivityUtil;
-import com.emc.storageos.util.VPlexUtil;
 import com.emc.storageos.volumecontroller.Recommendation;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
 import com.emc.storageos.vplex.api.VPlexApiConstants;
@@ -407,6 +406,7 @@ public class MigrationService extends TaskResourceService {
             if (!NullColumnValueGetter.isNullURI(storageId)) {
                 StorageSystem storage = _dbClient.queryObject(StorageSystem.class, storageId);
                 if (DiscoveredDataObject.Type.vplex.name().equals(storage.getSystemType())) {
+                    //TODO: Make this not vplex specific
                     // For VPlex, the volumes should include all volumes, which are in the same backend storage system, in the CG.
                     if (!VPlexUtil.verifyVolumesInCG(volumes, cgVolumes, _dbClient)) {
                         throw APIException.badRequests.cantChangeVarrayNotAllCGVolumes();

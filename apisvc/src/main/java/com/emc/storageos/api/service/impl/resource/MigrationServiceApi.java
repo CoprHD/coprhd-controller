@@ -22,6 +22,15 @@ public interface MigrationServiceApi {
     public static final String DEFAULT = "default";
 
     /**
+     * Get the snapshots for the passed volume.
+     *
+     * @param volume A reference to a volume.
+     *
+     * @return The snapshots for the passed volume.
+     */
+    public List<BlockSnapshot> getSnapshots(Volume volume);
+
+    /**
      * Determines whether or not the virtual array for the passed volume can be
      * changed to the passed virtual array. Throws a APIException when the
      * varray change is not supported.

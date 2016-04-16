@@ -31,6 +31,10 @@ public class Migration extends DataObject {
     // The percentage done.
     private String _percentDone;
 
+    // Boolean representing whether the migration will be done by a southbound driver, or by the
+    // CoprHD controller through an external Linux host.
+    private boolean _driverMigration;
+
     /**
      * Getter for the URI of the volume being migrated.
      * 
@@ -150,5 +154,25 @@ public class Migration extends DataObject {
     public void setPercentDone(String percentDone) {
         _percentDone = percentDone;
         setChanged("percentDone");
+    }
+
+    /**
+     * Getter for the driver migration boolean.
+     *
+     * @return The boolean describing the type of migration to be performed.
+     */
+    @Name("driverMigration")
+    public String getDriverMigration() {
+        return _driverMigration;
+    }
+
+    /**
+     * Setter for the driver migration boolean.
+     *
+     * @param driverMigration The boolean describing the type of migration to be performed.
+     */
+    public void setDriverMigration(boolean driverMigration) {
+        _driverMigration = driverMigration;
+        setChanged("driverMigration");
     }
 }

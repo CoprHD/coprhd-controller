@@ -7,27 +7,42 @@ package com.emc.storageos.api.service.impl.resource;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.api.service.impl.placement.StorageScheduler;
+import com.emc.storageos.api.service.impl.placement.VirtualPoolUtil;
+import com.emc.storageos.api.service.impl.placement.VolumeRecommendation;
 import com.emc.storageos.api.service.impl.resource.fullcopy.BlockFullCopyUtils;
 import com.emc.storageos.api.service.impl.resource.snapshot.BlockSnapshotSessionUtils;
+import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup.Types;
 import com.emc.storageos.db.client.model.BlockMirror;
+import com.emc.storageos.db.client.model.Migration;
+import com.emc.storageos.db.client.model.NamedURI;
+import com.emc.storageos.db.client.model.OpStatusMap;
+import com.emc.storageos.db.client.model.Operation;
+import com.emc.storageos.db.client.model.Project;
+import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
+import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.client.util.StringSetUtil;
 import com.emc.storageos.migrationorchestrationcontroller.MigrationOrchestrationController;
 import com.emc.storageos.migrationorchestrationcontroller.VolumeDescriptor;
+import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
+import com.emc.storageos.volumecontroller.Recommendation;
+import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
 
 /*
  * Default implementation of the Migration Service Api.
@@ -153,7 +168,7 @@ public class DefaultMigrationServiceApiImpl extends AbstractMigrationServiceApiI
     @Override
     public void migrateVolumesVirtualArray(List<Volume> volumes,
             BlockConsistencyGroup cg, List<Volume> cgVolumes, VirtualArray tgtVarray,
-            boolean driverMigration, String taskId) throws InternalException {
+            String taskId) throws InternalException {
 
         // Since the backend volume would change and snapshots are just
         // snapshots of the backend volume, the user would lose all snapshots
@@ -250,13 +265,12 @@ public class DefaultMigrationServiceApiImpl extends AbstractMigrationServiceApiI
      *
      * @param volumes The volumes being moved.
      * @param tgtVarray The target virtual array.
-     * @param driverMigration Boolean describing whether or not this will be a driver assisted migration.
      * @param taskId The task identifier.
      *
      * @return A list of volume descriptors
      */
     private List<VolumeDescriptor> createVolumeDescriptorsForVarrayChange(List<Volume> volumes,
-            VirtualArray tgtVarray, boolean driverMigration, String taskId) {
+            VirtualArray tgtVarray, String taskId) {
 
         // The list of descriptors for the virtual array change.
         List<VolumeDescriptor> descriptors = new ArrayList<VolumeDescriptor>();
@@ -285,7 +299,7 @@ public class DefaultMigrationServiceApiImpl extends AbstractMigrationServiceApiI
                     assocVolume.getVirtualPool());
             descriptors.addAll(createBackendVolumeMigrationDescriptors(storageSystem,
                     volume, assocVolume, tgtVarray, assocVolumeVPool,
-                    getVolumeCapacity(assocVolume), driverMigration,
+                    getVolumeCapacity(assocVolume),
                     taskId, null, null));
         }
 
@@ -302,7 +316,6 @@ public class DefaultMigrationServiceApiImpl extends AbstractMigrationServiceApiI
      * @param varray A reference to the varray for the backend volume.
      * @param vpool A reference to the VirtualPool for the new volume.
      * @param capacity The capacity for the migration target.
-     * @param driverMigration Boolean describing whether or not this will be a driver assisted migration.
      * @param taskId The task identifier.
      * @param newVolumes An OUT parameter to which the new volume is added.
      * @param migrationMap A OUT parameter to which the new migration is added.
@@ -369,8 +382,8 @@ public class DefaultMigrationServiceApiImpl extends AbstractMigrationServiceApiI
         boolean premadeRecs = false;
 
         if (recommendations == null || recommendations.isEmpty()) {
-            recommendations = getBlockScheduler().scheduleStorage(
-                    varray, requestedStorageSystems, null, vpool, false, null, null, capabilities);
+            recommendations = getBlockScheduler().getRecommendationsForResources(
+                    varray, targetProject, vpool, capabilities);
             if (recommendations.isEmpty()) {
                 throw APIException.badRequests.noStorageFoundForVolumeMigration(vpool.getLabel(), varray.getLabel(), sourceVolumeURI);
             }
@@ -379,18 +392,17 @@ public class DefaultMigrationServiceApiImpl extends AbstractMigrationServiceApiI
             premadeRecs = true;
         }
 
-        // If we have premade recommendations passed in and this is trying to create descriptors for HA
-        // then the HA rec will be at index 1 instead of index 0. Default case is index 0.
-        int recIndex = (premadeRecs && isHA) ? 1 : 0;
-
         // Create a volume for the new backend volume to which
         // data will be migrated.
-        URI targetStorageSystem = recommendations.get(recIndex).getSourceStorageSystem();
-        URI targetStoragePool = recommendations.get(recIndex).getSourceStoragePool();
+        URI targetStorageSystem = recommendations.get(0).getSourceStorageSystem();
+        URI targetStoragePool = recommendations.get(0).getSourceStoragePool();
         Volume targetVolume = prepareVolumeForRequest(capacity,
                 targetProject, varray, vpool, targetStorageSystem, targetStoragePool,
                 targetLabel, ResourceOperationTypeEnum.CREATE_BLOCK_VOLUME,
                 taskId, _dbClient);
+
+        // TODO: Implement this method when capabilities support has been added to the SB SDK
+        boolean driverMigration = getMigrationCapabilities(sourceVolume.getStorageController(), targetVolume.getStorageController());
 
         // If the cgURI is null, try and get it from the source volume.
         if (cgURI == null) {
@@ -428,7 +440,7 @@ public class DefaultMigrationServiceApiImpl extends AbstractMigrationServiceApiI
         // passed virtual volume and add the migration to the passed
         // migrations list.
         Migration migration = prepareMigration(virtualVolume.getId(),
-                sourceVolumeURI, targetVolumeURI, taskId);
+                sourceVolumeURI, targetVolumeURI, driverMigration, taskId);
 
         descriptors.add(new VolumeDescriptor(VolumeDescriptor.Type.MIGRATE_VOLUME,
                 targetStorageSystem,
@@ -443,4 +455,105 @@ public class DefaultMigrationServiceApiImpl extends AbstractMigrationServiceApiI
         return descriptors;
     }
 
+    /**
+     * Get the migration capabilities of the passed storage system's driver.
+     *
+     * @param sourceStorageSystemURI The source storage system for the migration.
+     * @param targetStorageSystemURI The target storage system for the migration.
+     *
+     * @return A boolean that is true if the passed storage systems support a driver assisted migration.
+     */
+    private boolean getMigrationCapabilities(URI sourceStorageSystemURI, URI targetStorageSystemURI) {
+        // This is not yet implemented.
+        return False;
+    }
+
+    /**
+     * Prepare a new Bourne volume.
+     *
+     * @param size The volume size.
+     * @param project A reference to the volume's Project.
+     * @param neighborhood A reference to the volume's varray.
+     * @param vpool A reference to the volume's VirtualPool.
+     * @param storageSystemURI The URI of the volume's storage system.
+     * @param storagePoolURI The URI of the volume's storage pool.
+     * @param label The volume label.
+     * @param token The task id for volume creation.
+     * @param dbClient A reference to a database client.
+     *
+     * @return A reference to the new volume.
+     */
+    public static Volume prepareVolumeForRequest(Long size, Project project,
+            VirtualArray neighborhood, VirtualPool vpool, URI storageSystemURI,
+            URI storagePoolURI, String label, ResourceOperationTypeEnum opType,
+            String token, DbClient dbClient) {
+        Volume volume = new Volume();
+        volume.setId(URIUtil.createId(Volume.class));
+        volume.setLabel(label);
+        volume.setCapacity(size);
+        volume.setThinlyProvisioned(VirtualPool.ProvisioningType.Thin.toString()
+                .equalsIgnoreCase(vpool.getSupportedProvisioningType()));
+        volume.setVirtualPool(vpool.getId());
+        volume.setProject(new NamedURI(project.getId(), volume.getLabel()));
+        volume.setTenant(new NamedURI(project.getTenantOrg().getURI(), volume.getLabel()));
+        volume.setVirtualArray(neighborhood.getId());
+        StoragePool storagePool = null;
+        storagePool = dbClient.queryObject(StoragePool.class, storagePoolURI);
+        volume.setProtocol(new StringSet());
+        volume.getProtocol().addAll(
+                VirtualPoolUtil.getMatchingProtocols(vpool.getProtocols(), storagePool.getProtocols()));
+        volume.setStorageController(storageSystemURI);
+        volume.setPool(storagePoolURI);
+        volume.setOpStatus(new OpStatusMap());
+
+        // Set the auto tiering policy.
+        if (null != vpool.getAutoTierPolicyName()) {
+            URI autoTierPolicyUri = StorageScheduler.getAutoTierPolicy(storagePoolURI,
+                    vpool.getAutoTierPolicyName(), dbClient);
+            if (null != autoTierPolicyUri) {
+                volume.setAutoTieringPolicyUri(autoTierPolicyUri);
+            }
+        }
+
+        if (opType != null) {
+            Operation op = new Operation();
+            op.setResourceType(opType);
+            volume.getOpStatus().createTaskStatus(token, op);
+        }
+
+        dbClient.createObject(volume);
+
+        return volume;
+    }
+
+    /**
+     * Prepares a migration for the passed volume specifying the source
+     * and target volumes for the migration, as well as if the migration
+     * will be driver assisted or not.
+     *
+     * @param virtualVolumeURI The URI of the virtual volume.
+     * @param sourceURI The URI of the source volume for the migration.
+     * @param targetURI The URI of the target volume for the migration.
+     * @param driverMigration Boolean describing whether or not this will be a driver assisted migration.
+     * @param token The task identifier.
+     *
+     * @return A reference to a newly created Migration.
+     */
+    public Migration prepareMigration(URI virtualVolumeURI, URI sourceURI, URI targetURI,
+            boolean driverMigration, String token) {
+        Migration migration = new Migration();
+        migration.setId(URIUtil.createId(Migration.class));
+        migration.setVolume(virtualVolumeURI);
+        migration.setSource(sourceURI);
+        migration.setTarget(targetURI);
+        migration.setDriverMigration(driverMigration);
+        _dbClient.createObject(migration);
+        migration.setOpStatus(new OpStatusMap());
+        Operation op = _dbClient.createTaskOpStatus(Migration.class, migration.getId(),
+                token, ResourceOperationTypeEnum.MIGRATE_BLOCK_VOLUME);
+        migration.getOpStatus().put(token, op);
+        _dbClient.updateObject(migration);
+
+        return migration;
+    }
 }

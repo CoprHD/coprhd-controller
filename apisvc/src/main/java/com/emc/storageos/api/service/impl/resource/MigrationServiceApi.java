@@ -42,13 +42,10 @@ public interface MigrationServiceApi {
      * @param cg A reference to the volume's consistency group, or null.
      * @param cgVolumes List of volumes in the CG when not null.
      * @param tgtVarray A reference to the new varray.
-     * @param driverMigration Boolean that is true if a driver migration will take place, false otherwise.
-     * @param taskId The task identifier.
      *
      * @throws InternalException
      */
     public void migrateVolumesVirtualArray(List<Volume> volume,
-            BlockConsistencyGroup cg, List<Volume> cgVolumes, VirtualArray tgtVarray,
-            boolean driverMigration, String taskId) throws InternalException;
+            BlockConsistencyGroup cg, List<Volume> cgVolumes, VirtualArray tgtVarray, String taskId) throws InternalException;
 
 }

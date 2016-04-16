@@ -76,7 +76,7 @@ public abstract class AbstractMigrationServiceApiImpl<T> implements
     @Override
     public void migrateVolumesVirtualArray(List<Volume> volumes,
             BlockConsistencyGroup cg, List<Volume> cgVolumes, VirtualArray tgtVarray,
-            boolean driverMigration, String taskId) throws InternalException {
+            String taskId) throws InternalException {
         throw APIException.methodNotAllowed.notSupported();
     }
 

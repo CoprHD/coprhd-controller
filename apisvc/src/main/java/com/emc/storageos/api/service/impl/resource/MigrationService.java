@@ -367,11 +367,6 @@ public class MigrationService extends TaskResourceService {
             migrationServiceApi.verifyVarrayChangeSupportedForVolumeAndVarray(volume, tgtVarray);
             s_logger.info("Virtual array change is supported for requested volume and varray");
 
-            // Get the migration capabilities of the storage device
-            // TODO: Implement this function once support for getting capabilities
-            // is added in the SB SDK.
-            boolean driverMigration = migrationServiceApi.getMigrationCapabilities(volume.getStorageController());
-
             // All volumes must be a CG or none of the volumes can be
             // in a CG. After processing individual volumes, if the
             // volumes are in a CG, then we make sure all volumes in the
@@ -437,7 +432,7 @@ public class MigrationService extends TaskResourceService {
         if (cg != null) {
             try {
                 // When the volumes are part of a CG, executed as a single workflow.
-                migrationServiceApi.migrateVolumesVirtualArray(volumes, cg, cgVolumes, tgtVarray, driverMigration, taskId);
+                migrationServiceApi.migrateVolumesVirtualArray(volumes, cg, cgVolumes, tgtVarray, taskId);
                 s_logger.info("Executed virtual array change for volumes");
             } catch (InternalException | APIException e) {
                 // Fail all the tasks.
@@ -464,7 +459,7 @@ public class MigrationService extends TaskResourceService {
             // When the volumes are not in a CG, then execute as individual workflows.
             for (Volume volume : volumes) {
                 try {
-                    migrationServiceApi.migrateVolumesVirtualArray(Arrays.asList(volume), cg, cgVolumes, tgtVarray, driverMigration, taskId);
+                    migrationServiceApi.migrateVolumesVirtualArray(Arrays.asList(volume), cg, cgVolumes, tgtVarray, taskId);
                     s_logger.info("Executed virtual array change for volume {}", volume.getId());
                 } catch (InternalException | APIException e) {
                     String errorMsg = String.format("Volume virtual array change error: %s", e.getMessage());

@@ -28,6 +28,11 @@ usage()
     echo "           remove-volumes <name> <volume1,volume2,...>"
     echo "           verify <name> <field> <value>"
     echo "           verify-volumes <name> <volume-id>"
+    echo "           create-full-copy <name> <project> <clone_name> [<volume1,volume2,...>]"
+    echo "           list-full-copy-sets <name>"
+    echo "           verify-full-copy-set <name> <clone_name>"
+    echo "           list_full_copy_volumes <name> <clone_name>"
+    echo "           detach_full_copy <name> <clone_name> <volume1,volume2,...>"
     exit 2
 }
 
@@ -124,7 +129,8 @@ volume_group_remove_volumes()
     viprcli_authenticate >$ dev/null
     viprcli volumegroup update -n $1 -r $2
     retval=$?
-    sleep 10
+    # TODO figure out how to check the task for done instead of sleeping
+    sleep 30
     echo "volume group ${1} updated with return code ${retval}"
     viprcli_logout >$ dev/null
     return $retval
@@ -140,15 +146,15 @@ volume_group_add_volumes()
     if [ -n "$4" ]; then
         viprcli volumegroup update -n $1 -a $2 -cg $3 -rg $4
         retval=$?
-        sleep 10
     elif [ -n "$3" ]; then    
         viprcli volumegroup update -n $1 -a $2 -cg $3
         retval=$?
-        sleep 10
     else
         viprcli volumegroup update -n $1 -a $2
         retval=$?
     fi
+    # TODO figure out how to check the task for done instead of sleeping
+    sleep 60
     echo "volume group ${1} updated with return code ${retval}"
     viprcli_logout >$ dev/null
     return $retval
@@ -168,6 +174,219 @@ volume_group_update()
     fi
     retval=$?
     echo "volume group ${1} updated with return code ${retval}"
+    viprcli_logout >$ dev/null
+    return $retval
+}
+
+#
+# create a full copy of part an applicaiton using the deprecated volume id input
+#
+volume_group_create_full_copy_partial()
+{
+    application=$1
+    copy_set_name=$2
+    volumes=$3
+    echo "creating a full copy ${copy_set_name} of a subset of application ${application}"
+    viprcli_authenticate >$ dev/null
+    viprcli volumegroup clone -name $application -copysetname $copy_set_name -volumes $volumes
+    retval=$?
+    echo "application ${application} create clone ${copy_set_name} completed with return code ${retval}"
+    viprcli_logout >$ dev/null
+    return $retval
+}
+
+#
+# create a full copy of an applicaiton
+#
+volume_group_create_full_copy()
+{
+    application=$1
+    copy_set_name=$2
+    inactive_flag=$3
+    subgroups=$4
+    echo "creating a full copy ${copy_set_name} of application ${application}"
+    if [[ $inactive_flag == "inactive" ]]; then
+        inactive=true
+    else
+        inactive=false
+    fi
+
+    viprcli_authenticate >$ dev/null
+    if [[ $subgroups == "" ]]; then
+        viprcli volumegroup clone -name $application -copysetname $copy_set_name -inactive $inactive
+    else
+        viprcli volumegroup clone -name $application -copysetname $copy_set_name -subgroups $subgroups -inactive $inactive
+    fi
+    retval=$?
+    echo "application ${application} create clone ${copy_set_name} completed with return code ${retval}"
+    viprcli_logout >$ dev/null
+    return $retval
+}
+
+#
+# activate a full copy of an applicaiton
+#
+volume_group_activate_full_copy()
+{
+    application=$1
+    copy_set_name=$2
+    subgroups=$3
+    echo "activate full copy ${copy_set_name} of application ${application}"
+    viprcli_authenticate >$ dev/null
+    if [[ $subgroups == "" ]]; then
+        viprcli volumegroup clone-activate -name $application -copysetname $copy_set_name
+    else
+        # for partial support
+        viprcli volumegroup clone-activate -name $application -copysetname $copy_set_name -subgroups $subgroups
+    fi
+    retval=$?
+    echo "volume group ${application} activate clone ${copy_set_name} completed with return code ${retval}"
+    viprcli_logout >$ dev/null
+    return $retval
+}
+
+#
+# resynchronize a full copy of an applicaiton
+#
+volume_group_resync_full_copy()
+{
+    application=$1
+    copy_set_name=$2
+    echo "resync full copy ${copy_set_name} of application ${application}"
+    viprcli_authenticate >$ dev/null
+    if [[ $subgroups == "" ]]; then
+        viprcli volumegroup clone-resync -name $application -copysetname $copy_set_name
+    else
+        # for partial support
+        viprcli volumegroup clone-resync -name $application -copysetname $copy_set_name -subgroups $subgroups
+    fi
+    retval=$?
+    echo "volume group ${application} resync clone ${copy_set_name} completed with return code ${retval}"
+    viprcli_logout >$ dev/null
+    return $retval
+}
+
+
+#
+# restore from a full copy of an applicaiton
+#
+volume_group_restore_full_copy()
+{
+    application=$1
+    copy_set_name=$2
+    echo "restoring full copy ${copy_set_name} of application ${application}"
+    viprcli_authenticate >$ dev/null
+    if [[ $subgroups == "" ]]; then
+        viprcli volumegroup clone-restore -name $application -copysetname $copy_set_name
+    else
+        # for partial support
+        viprcli volumegroup clone-restore -name $application -copysetname $copy_set_name -subgroups $subgroups
+    fi
+    retval=$?
+    echo "volume group ${application} restore clone ${copy_set_name} completed with return code ${retval}"
+    viprcli_logout >$ dev/null
+    return $retval
+}
+
+#
+# detach a full copy of an applicaiton
+#
+volume_group_detach_full_copy()
+{
+    application=$1
+    copy_set_name=$2
+    echo "detaching full copy ${copy_set_name} of application ${application}"
+    viprcli_authenticate >$ dev/null
+    if [[ $subgroups == "" ]]; then
+        viprcli volumegroup clone-detach -name $application -copysetname $copy_set_name
+    else
+        # for partial support
+        viprcli volumegroup clone-detach -name $application -copysetname $copy_set_name -subgroups $subgroups
+    fi
+    retval=$?
+    echo "volume group ${application} detach clone ${copy_set_name} completed with return code ${retval}"
+    viprcli_logout >$ dev/null
+    return $retval
+}
+
+
+#
+# list clone sets for an applicaiton
+#
+volume_group_list_full_copy_sets()
+{
+    application=$1
+    viprcli_authenticate >$ dev/null
+    cmd="${VIPRCLI_CMD} volumegroup clone-get-sets -name ${application} -hostname ${BOURNE_IPADDR}"
+    raw_output=$( $cmd )
+    retval=`echo $raw_output | paste -s | awk -F[ '{print $2}' | awk -F] '{print $1}'`
+    retval="${retval//\"}"
+    retval="${retval// }"
+    echo $retval
+    viprcli_logout >$ dev/null
+}
+
+#
+# list clone volumes for a copyset of an applicaiton 
+#
+volume_group_list_full_copy_volumes()
+{
+    application=$1
+    project="${2}/"
+    viprcli_authenticate >$ dev/null
+    cmd="${VIPRCLI_CMD} volumegroup clone-list -name ${application} -hostname ${BOURNE_IPADDR}"
+    raw_output=$( $cmd )
+    viprcli_logout >$ dev/null
+    output=`echo $raw_output | paste -s | awk -F[ '{print $2}' | awk -F] '{print $1}'`
+    output="${output//\"}"
+    output="${output// }"
+    output="${output//\}}"
+    output="${output//\{}"
+
+    retval=1
+    for i in ${output//,/ }
+    do
+        name=`echo $i | awk -F: '{if ($1=="name") print $2}'`
+        if [[ $name != "" ]]; then 
+            if [[ $all != "" ]]; then
+                all="${all},"
+            fi
+            all="${all}${project}${name}"
+        fi
+    done
+    echo $all
+
+    return $retval
+}
+
+
+#
+# list clone sets for an applicaiton
+#
+volume_group_verify_full_copy_set()
+{
+    application=$1
+    copy_set_name=$2
+    echo "verifying full copy set ${copy_set_name} exists for application ${application}"
+    viprcli_authenticate >$ dev/null
+    cmd="${VIPRCLI_CMD} volumegroup clone-get-sets -name ${application} -hostname ${BOURNE_IPADDR}"
+    raw_output=$( $cmd )
+    output=`echo $raw_output | paste -s | awk -F[ '{print $2}' | awk -F] '{print $1}'`
+    output="${output//\"}"
+    output="${output// }"
+
+    retval=1
+    for i in ${output//,/ }
+    do
+        if [[ $i == $copy_set_name ]]; then
+           echo "found";
+           retval=0
+        fi
+    done
+    if [[ $retval == "1" ]]; then
+        echo "not found"
+    fi
+
     viprcli_logout >$ dev/null
     return $retval
 }
@@ -281,6 +500,30 @@ elif [ $1 == 'show-volumes' ]; then
     [ $# -ge 2 ] || usage
     shift
     volume_group_show_volumes "$@"
+elif [ $1 == 'create-full-copy' ]; then
+    [ $# -ge 5 ] || usage
+    shift
+    volume_group_create_full_copy "$@"
+elif [ $1 == 'list-full-copy-sets' ]; then
+    [ $# -ge 2 ] || usage
+    shift
+    volume_group_list_full_copy_sets "$@"
+elif [ $1 == 'list-full-copy-volumes' ]; then
+    [ $# -ge 2 ] || usage
+    shift
+    volume_group_list_full_copy_volumes "$@"
+elif [ $1 == 'verify-full-copy-set' ]; then
+    [ $# -ge 2 ] || usage
+    shift
+    volume_group_verify_full_copy_set "$@"
+elif [ $1 == 'list_full_copy_volumes' ]; then
+    [ $# -ge 2 ] || usage
+    shift
+    volume_group_list_full_copy_volumes "$@"
+elif [ $1 == 'detach_full_copy' ]; then
+    [ $# -ge 5 ] || usage
+    shift
+    volume_group_detach_full_copy "$@"
 else
    usage
 fi

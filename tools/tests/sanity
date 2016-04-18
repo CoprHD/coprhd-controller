@@ -8935,12 +8935,54 @@ output_conf(){
     echo "bucket=${WS_SETUP_BUCKETS# }" >> "$file"
 }
 
+application_vpool_setup()
+{
+    # Create CoS for VNX
+    APP_VPOOL_SIMPLE_VNX=app_vpool_simple_vnx
+    run cos create block $APP_VPOOL_SIMPLE_VNX                       \
+        --description 'Consistency-Group-Block-VNX-CoS' true   \
+                            --protocols FC iSCSI       \
+                            --numpaths 1               \
+                            --max_snapshots 10         \
+                            --provisionType 'Thin'     \
+                            --neighborhoods $NH        \
+                            --multiVolumeConsistency
+
+    run cos update block $APP_VPOOL_SIMPLE_VNX --storage $VNXB_NATIVEGUID
+    run cos allow $APP_VPOOL_SIMPLE_VNX block $TENANT
+
+    # Create CoS for VMAX
+    APP_VPOOL_SIMPLE_VMAX=app_vpool_simple_vmax
+    run cos create block $APP_VPOOL_SIMPLE_VMAX               \
+        --description 'Consistency-Group-Block-VMAX-CoS' true   \
+                            --protocols FC iSCSI       \
+                            --numpaths 1               \
+                            --max_snapshots 10         \
+                            --provisionType 'Thin'     \
+                            --neighborhoods $NH                \
+                            --multiVolumeConsistency
+
+    run cos update block $APP_VPOOL_SIMPLE_VMAX --storage $VMAX_NATIVEGUID
+    run cos allow $APP_VPOOL_SIMPLE_VMAX block $TENANT
+
+}
+
 application_setup()
 {
-    secho "Executing volume group setup"
+    secho "Executing volume group setup " `date`
+
     vmaxblock_setup
     vnxblock_setup
-    consistencygroup_block_cos_setup
+    application_vpool_setup
+
+    RP_TESTS=1
+    RPVPLEX_TESTS=1
+    RPMP_TESTS=1
+    RPXIO_TESTS=1
+    RP_CDP=1
+    RP_CRR=1
+
+    #recoverpoint_setup
 }
 
 application_crud_test()
@@ -8968,7 +9010,7 @@ application_crud_test()
     fail volumegroup show ${newappname}
 }
 
-application_createvols()
+application_createvols_simple()
 {
     secho "application_createvols()"
 
@@ -8978,86 +9020,62 @@ application_createvols()
     VG_CGNAME2=cg2${unique}
     VG_COPYVG1=${basename}-copyvg1
     VG_COPYVG2=${basename}-copyvg2
-    VG_MOBIVG1=${basename}-mobivg1
+ 
+    #VG_VPOOL_CG=rp_noprotection
 
+    # create volumes in cg1
     run blockconsistencygroup create ${PROJECT} ${VG_CGNAME1}
     a=`blockconsistencygroup show ${VG_CGNAME1} | grep '"id":' | grep BlockConsistencyGroup | awk '{print $2}'`
     b=${a:1}
     VG_CGID1=${b%'"'*}
     secho cgid1 is ${VG_CGID1}
 
-    run volume create ${basename}-cg $PROJECT $NH $VG_VPOOL_CG $BLK_SIZE --thinVolume true --consistencyGroup ${VG_CGNAME1} --count 3
-    VG_CGVOL1="${basename}-cg-1"
-    VG_CGVOL2="${basename}-cg-2"
-    VG_CGVOL3="${basename}-cg-3"
-    VG_CGVOLID1=`volume list ${PROJECT} | grep ${VG_CGVOL1} | awk '{print $7}'`
-    VG_CGVOLID2=`volume list ${PROJECT} | grep ${VG_CGVOL2} | awk '{print $7}'`
-    VG_CGVOLID3=`volume list ${PROJECT} | grep ${VG_CGVOL3} | awk '{print $7}'`
-    secho cgvolid1 is ${VG_CGVOLID1}
-    secho cgvolid2 is ${VG_CGVOLID2}
-    secho cgvolid3 is ${VG_CGVOLID3}
+    VG_VOLUME1=${basename}-cg1
+    run volume create $VG_VOLUME1 $PROJECT $NH $VG_VPOOL_CG $BLK_SIZE --thinVolume true --consistencyGroup ${VG_CGNAME1} --count 3
+    VG_CG1VOL1="${VG_VOLUME1}-1"
+    VG_CG1VOL2="${VG_VOLUME1}-2"
+    VG_CG1VOL3="${VG_VOLUME1}-3"
+    VG_CG1VOLID1=`volume list ${PROJECT} | grep ${VG_CG1VOL1} | awk '{print $7}'`
+    VG_CG1VOLID2=`volume list ${PROJECT} | grep ${VG_CG1VOL2} | awk '{print $7}'`
+    VG_CG1VOLID3=`volume list ${PROJECT} | grep ${VG_CG1VOL3} | awk '{print $7}'`
+    secho cg1volid1 is ${VG_CG1VOLID1}
+    secho cg1volid2 is ${VG_CG1VOLID2}
+    secho cg1volid3 is ${VG_CG1VOLID3}
 
-    run volumegroup create ${VG_COPYVG1} copy1 COPY
-}
-
-xapplication_createvols()
-{
-    secho "application_createvols()"
+    # create volumes in cg2
     run blockconsistencygroup create ${PROJECT} ${VG_CGNAME2}
-    c=`blockconsistencygroup show ${VG_CGNAME2} | grep '"id":' | grep BlockConsistencyGroup | awk '{print $2}'`
-    d=${c:1}
-    VG_CGID2=${d%'"'*}
-    echo cgid2 is ${VG_CGID2}
+    a=`blockconsistencygroup show ${VG_CGNAME2} | grep '"id":' | grep BlockConsistencyGroup | awk '{print $2}'`
+    b=${a:1}
+    VG_CGID2=${b%'"'*}
+    secho cgid2 is ${VG_CGID2}
 
-    run volume create ${basename}-cg $PROJECT $NH $VG_VPOOL_CG $BLK_SIZE --thinVolume true --consistencyGroup ${VG_CGNAME1} --count 3
-    VG_CGVOL1="${basename}-cg-1"
-    VG_CGVOL2="${basename}-cg-2"
-    VG_CGVOL3="${basename}-cg-3"
-    VG_CGVOLID1=`volume list ${PROJECT} | grep ${VG_CGVOL1} | awk '{print $7}'`
-    VG_CGVOLID2=`volume list ${PROJECT} | grep ${VG_CGVOL2} | awk '{print $7}'`
-    VG_CGVOLID3=`volume list ${PROJECT} | grep ${VG_CGVOL3} | awk '{print $7}'`
-    echo cgvolid1 is ${VG_CGVOLID1}
-    echo cgvolid2 is ${VG_CGVOLID2}
-    echo cgvolid3 is ${VG_CGVOLID3}
-
-    run volume create ${basename} $PROJECT $NH $VG_VPOOL $BLK_SIZE --thinVolume true --count 3
-    VG_VOL1="${basename}-1"
-    VG_VOL2="${basename}-2"
-    VG_VOL3="${basename}-3"
-    VG_VOLID1=`volume list ${PROJECT} | grep ${VG_VOL1} | awk '{print $7}'`
-    VG_VOLID2=`volume list ${PROJECT} | grep ${VG_VOL2} | awk '{print $7}'`
-    VG_VOLID3=`volume list ${PROJECT} | grep ${VG_VOL3} | awk '{print $7}'`
-    echo volid1 is ${VG_VOLID1}
-    echo volid2 is ${VG_VOLID2}
-    echo volid3 is ${VG_VOLID3}
+    VG_VOLUME2=${basename}-cg2
+    run volume create $VG_VOLUME2 $PROJECT $NH $VG_VPOOL_CG $BLK_SIZE --thinVolume true --consistencyGroup ${VG_CGNAME2} --count 3
+    VG_CG2VOL1="${VG_VOLUME2}-1"
+    VG_CG2VOL2="${VG_VOLUME2}-2"
+    VG_CG2VOL3="${VG_VOLUME2}-3"
+    VG_CG2VOLID1=`volume list ${PROJECT} | grep ${VG_CG2VOL1} | awk '{print $7}'`
+    VG_CG2VOLID2=`volume list ${PROJECT} | grep ${VG_CG2VOL2} | awk '{print $7}'`
+    VG_CG2VOLID3=`volume list ${PROJECT} | grep ${VG_CG2VOL3} | awk '{print $7}'`
+    secho cg2volid1 is ${VG_CG2VOLID1}
+    secho cg2volid2 is ${VG_CG2VOLID2}
+    secho cg2volid3 is ${VG_CG2VOLID3}
 
     run volumegroup create ${VG_COPYVG1} copy1 COPY
-    run volumegroup create ${VG_COPYVG2} copy2 COPY
-    run volumegroup create ${VG_MOBIVG1} mobility MOBILITY
 }
 
+# deletes volumes and CG used in application tests
 application_deleteall()
 {
-    secho "application_deletall()"
-    run volumegroup delete ${VG_COPYVG1}
-    secho "deleting volumes " $VG_CGVOL1,$VG_CGVOL2,$VG_CGVOL3
-    run volume delete $PROJECT/$VG_CGVOL1,$PROJECT/$VG_CGVOL2,$PROJECT/$VG_CGVOL3 --wait
-    run blockconsistencygroup delete ${VG_CGNAME1}
-}
-
-xapplication_deleteall()
-{
-    run volume delete $PROJECT/$VG_CGVOL1 --wait
-    run volume delete $PROJECT/$VG_CGVOL2 --wait
-    run volume delete $PROJECT/$VG_CGVOL3 --wait
-    run volume delete $PROJECT/$VG_VOL1 --wait
-    run volume delete $PROJECT/$VG_VOL2 --wait
-    run volume delete $PROJECT/$VG_VOL3 --wait
+    run volume delete $PROJECT/$VG_CG1VOL1 --wait
+    run volume delete $PROJECT/$VG_CG1VOL2 --wait
+    run volume delete $PROJECT/$VG_CG1VOL3 --wait
+    run volume delete $PROJECT/$VG_CG2VOL1 --wait
+    run volume delete $PROJECT/$VG_CG2VOL2 --wait
+    run volume delete $PROJECT/$VG_CG2VOL3 --wait
     run blockconsistencygroup delete ${VG_CGNAME1}
     run blockconsistencygroup delete ${VG_CGNAME2}
     run volumegroup delete ${VG_COPYVG1}
-    run volumegroup delete ${VG_COPYVG2}
-    run volumegroup delete ${VG_MOBIVG1}
 }
 
 # adds and removes volumes from a COPY volume group
@@ -9066,65 +9084,96 @@ application_add_remove_volume_tests()
     secho "application_add_remove_volume_tests()"
 
     # add 3 volumes from same CG to application
-    run volumegroup add-volumes ${VG_COPYVG1} ${VG_CGVOLID1},${VG_CGVOLID2},${VG_CGVOLID3}
-    secho "sleeping 60 seconds to wait for add volumes" `date`
-    sleep 60
-    secho "done sleeping" `date`
+    run volumegroup add-volumes ${VG_COPYVG1} ${VG_CG1VOLID1},${VG_CG1VOLID2},${VG_CG1VOLID3}
 
     # show volumes in application
-    run volumegroup verify-volume ${VG_COPYVG1} ${VG_CGVOLID1}
-    run volumegroup verify-volume ${VG_COPYVG1} ${VG_CGVOLID2}
-    run volumegroup verify-volume ${VG_COPYVG1} ${VG_CGVOLID3}
+    run volumegroup verify-volume ${VG_COPYVG1} ${VG_CG1VOLID1}
+    run volumegroup verify-volume ${VG_COPYVG1} ${VG_CG1VOLID2}
+    run volumegroup verify-volume ${VG_COPYVG1} ${VG_CG1VOLID3}
 
     # remove
-    run volumegroup remove-volumes ${VG_COPYVG1} ${VG_CGVOLID1},${VG_CGVOLID2},${VG_CGVOLID3}
-    secho "sleeping 20 seconds to wait for remove volumes" `date`
-    sleep 20
-    secho "done sleeping" `date`
+    run volumegroup remove-volumes ${VG_COPYVG1} ${VG_CG1VOLID1},${VG_CG1VOLID2},${VG_CG1VOLID3}
 
-    fail volumegroup verify-volume ${VG_COPYVG1} ${VG_CGVOLID1}
-    fail volumegroup verify-volume ${VG_COPYVG1} ${VG_CGVOLID2}
-    fail volumegroup verify-volume ${VG_COPYVG1} ${VG_CGVOLID3}
+    fail volumegroup verify-volume ${VG_COPYVG1} ${VG_CG1VOLID1}
+    fail volumegroup verify-volume ${VG_COPYVG1} ${VG_CG1VOLID2}
+    fail volumegroup verify-volume ${VG_COPYVG1} ${VG_CG1VOLID3}
+
+    # add back same 3 volumes from same CG plus 3 new volumes from a second C to application
+    run volumegroup add-volumes ${VG_COPYVG1} ${VG_CG1VOLID1},${VG_CG1VOLID2},${VG_CG1VOLID3}
+    run volumegroup add-volumes ${VG_COPYVG1} ${VG_CG2VOLID1},${VG_CG2VOLID2},${VG_CG2VOLID3}
+
+    # show volumes in application
+    run volumegroup verify-volume ${VG_COPYVG1} ${VG_CG1VOLID1}
+    run volumegroup verify-volume ${VG_COPYVG1} ${VG_CG1VOLID2}
+    run volumegroup verify-volume ${VG_COPYVG1} ${VG_CG1VOLID3}
+    run volumegroup verify-volume ${VG_COPYVG1} ${VG_CG2VOLID1}
+    run volumegroup verify-volume ${VG_COPYVG1} ${VG_CG2VOLID2}
+    run volumegroup verify-volume ${VG_COPYVG1} ${VG_CG2VOLID3}
+
+    # provision a new volume to CG1; volume should automatically be added to the applicaiton
+    VG_CG1VOL4=$VG_VOLUME1-4
+    run volume create $VG_CG1VOL4 $PROJECT $NH $VG_VPOOL_CG $BLK_SIZE --thinVolume true --consistencyGroup ${VG_CGNAME1}
+    VG_CG1VOLID4=`volume list ${PROJECT} | grep ${VG_CG1VOL4} | awk '{print $7}'`
+    run volumegroup verify-volume ${VG_COPYVG1} ${VG_CG1VOLID4}
+
 }
 
-# adds and removes volumes from a COPY volume group
-xapplication_volume_tests()
+application_full_copy_tests()
 {
-    # add 3 volumes from same CG to application
-    run volumegroup add-volumes ${VG_COPYVG1} ${VG_CGVOLID1},${VG_CGVOLID2},${VG_CGVOLID3}
+   VG_FCNAME=${VG_COPYVG1}-fc
+   VG_FCNAME2=${VG_COPYVG1}-fc2
 
-    # add one volume not in a CG to the same CG
-    run volumegroup add-volumes ${VG_COPYVG1} ${VG_VOLID1} ${VG_CGID1}
+   # create the full copy for the entire application
+   run volumegroup create-full-copy $VG_COPYVG1 $VG_FCNAME active
 
-    # add 1 volume not in a CG to a different CG
-    run volumegroup add-volumes ${VG_COPYVG1} ${VG_VOLID2} ${VG_CGID2}
+   # get the full copy volumes so they can be deleted after detach
+   VG_FCVOLUMES=`volumegroup list-full-copy-volumes ${VG_COPYVG1} ${PROJECT}`
+   echo " ---- fullcopy volumes are " $VG_FCVOLUMES
 
-    # add the saem volume to a mobility group
-    run volumegroup add-volumes ${VG_MOBIVG1} ${VG_VOLID2}
+   # verify the full copy exists
+   run volumegroup verify-full-copy-set $VG_COPYVG1 $VG_FCNAME
 
-    # remove
-    run volumegroup remove-volumes ${VG_COPYVG1} ${VG_VOLID2}
-    run volumegroup remove-volumes ${VG_MOBIVG1} ${VG_VOLID2}
+   # resync (no way to verify)
+   run volumegroup clone-resync $VG_COPYVG1 $VG_FCNAME
 
-    # add 1 volume not in a CG to a different copy vg
-    run volumegroup add-volumes ${VG_COPYVG2} ${VG_VOLID2} ${VG_CGID2}
+   # run restore (no way to verify)
+   run volumegroup clone-restore $VG_COPYVG1 $VG_FCNAME
 
-    #remove from one copy group then add to another
-    run volumegroup remove-volumes ${VG_COPYVG1} ${VG_CGVOLID1}
-    run volumegroup add-volumes ${VG_COPYVG2} ${VG_CGVOLID1} ${VG_CGID2}
-    
+   # detach the clones
+   run volumegroup clone-detach $VG_COPYVG1 $VG_FCNAME
+   fail volumegroup verify-full-copy-set $VG_COPYVG1 $VG_FCNAME
+
+   # delete the full copy volumes
+   run volume delete $VG_FCVOLUMES --wait
+
+   # activate clone (exclude vplex COP-21804)
+   run volumegroup create-full-copy $VG_COPYVG1 $VG_FCNAME2 inactive
+   run volumegroup verify-full-copy-set $VG_COPYVG1 $VG_FCNAME2
+   run volumegroup clone-activate $VG_COPYVG1 $VG_FCNAME2
+
+   # get the full copy volumes so they can be deleted after detach
+   VG_FCVOLUMES=`volumegroup list-full-copy-volumes ${VG_COPYVG1} ${PROJECT}`
+   echo " ---- fullcopy volumes are " $VG_FCVOLUMES
+
+   # detach the clones
+   run volumegroup clone-detach $VG_COPYVG1 $VG_FCNAME2
+   fail volumegroup verify-full-copy-set $VG_COPYVG1 $VG_FCNAME2
+
+   # delete the full copy volumes
+   run volume delete $VG_FCVOLUMES --wait
+
 }
 
 application_tests()
 {
-    secho "Executing volume group tests"
-    VG_VPOOL_CG=$VMAX_COS_GROUP
-    VG_VPOOL=$COS_VMAXBLOCK_THIN
+    secho "Executing volume group tests " `date`
+    VG_VPOOL_CG=$APP_VPOOL_SIMPLE_VNX
     application_crud_test
-    application_createvols
+    application_createvols_simple
     application_add_remove_volume_tests
-    #application_volume_tests
+    application_full_copy_tests
     application_deleteall
+    secho "Completed application sanity tests " `date`
 }
 
 vplexsnap_setup()
@@ -9403,7 +9452,10 @@ snapvx_single_tests()
     volume delete $PROJECT/$VOLUME_NAME --wait
 }
 
-${SS}_setup
+DO_TESTS_ONLY=${DO_TESTS_ONLY:-0}
+if [ $DO_TESTS_ONLY -eq 0 ]; then
+    ${SS}_setup
+fi
 if [ $DO_SETUP_ONLY -eq 0 ]; then
     ${SS}_tests
 fi

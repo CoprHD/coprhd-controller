@@ -228,7 +228,7 @@ public class StorageSystemTypeService extends TaskResourceService {
 	@POST
 	@Path("/upload")
 	@CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
-	@Consumes(MediaType.MULTIPART_FORM_DATA)
+	@Consumes({MediaType.APPLICATION_OCTET_STREAM, MediaType.MULTIPART_FORM_DATA})
 	@Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
 	public Response uploadFile(@FormDataParam("file") InputStream fileInputStream,
 			@FormDataParam("file") FormDataContentDisposition contentDispositionHeader) {

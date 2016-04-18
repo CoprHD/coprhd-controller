@@ -454,7 +454,8 @@ public class BlockConsistencyGroupService extends TaskResourceService {
     /**
      * Check to see if the consistency group is active and not created. In
      * this case we can delete the consistency group. Otherwise we should
-     * not delete the consistency group.
+     * not delete the consistency group. Note if VPLEX CG has been created,
+     * we should call the VPlexConsistencyGroupManager to remove it.
      *
      * @param consistencyGroup
      *            A reference to the CG.
@@ -465,7 +466,8 @@ public class BlockConsistencyGroupService extends TaskResourceService {
             final BlockConsistencyGroup consistencyGroup) {
         // If the consistency group is active and not created we can delete it,
         // otherwise we cannot.
-        return (!consistencyGroup.getInactive() && !consistencyGroup.created());
+        return (!consistencyGroup.getInactive() && !consistencyGroup.created() 
+                && !consistencyGroup.getTypes().contains(BlockConsistencyGroup.Types.VPLEX.name()));
     }
 
     /**

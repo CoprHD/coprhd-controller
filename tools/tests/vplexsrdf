@@ -162,15 +162,16 @@ host_create() {
 
 
 # Control over running individual parts of the test (true/false)
-create_volume=true			# if false, specify volname1 and CGlabel
+create_volume=false			# if false, specify volname1 and CGlabel
 export_volume=false
 test_protection_ops=false
 test_expand=false
 test_r1_snapvx_nocopy=false
 test_r2_snapvx_nocopy=false
-test_r1_fullcopy=true
-test_r2_fullcopy=true
-delete_volume=true
+test_r1_fullcopy=false
+test_r2_fullcopy=false
+delete_volume=false
+create_delete_loop=true			# specify $volname1 and $CGlabel
 
 # Setup basic varrays
 vplexsrdf_setup() {
@@ -504,6 +505,29 @@ else
 fi
 echoit "Delete consistency group $CGlabel"
 run blockconsistencygroup delete $CGlabel
+fi
+
+# Create/delete volume(s) in the same CG over and over
+if [ "$create_delete_loop" = "true" ];
+then
+    for i in a b c d e f g h i j ;
+    do
+    security login root 'ChangeMe1!'
+    echoit "create volume $volname1"
+    volume_create "$volname1$i" $SITEr1 $VPOOL1 $CGlabel
+    if [ "$VOLUME_COUNT" -eq 1 ]; then
+        echoit "remove volume $volname1"
+        run volume delete $project/$volname1$i --wait
+    else
+        j=1;
+        while [ $j -le $VOLUME_COUNT ];
+        do
+            # Loop removing all volumes
+            run volume delete $project/${volname1}${i}-$j --wait
+            j=$(($j + 1))
+        done
+    fi
+    done
 fi
 
 echoit "passed"

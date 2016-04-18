@@ -972,7 +972,9 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
                     volumeList.add(volume);
                 }
             }
-
+            if (volumeList.isEmpty()) {
+                continue;
+            }
             Volume firstVol = volumeList.get(0);
             String rpName = firstVol.getReplicationGroupInstance();
             URI storage = firstVol.getStorageController();

@@ -282,7 +282,7 @@ class VolumeGroup(object):
         return o
 
 
-    def volume_group_clone_activate(self, name, cloneUris, copysetname, partial, sync):
+    def volume_group_clone_activate(self, name, cloneUris, copysetname, subGroups, partial, sync):
         '''
         Makes REST API call to activate volume group clone
         Parameters:
@@ -300,6 +300,8 @@ class VolumeGroup(object):
             request["volumes"] = cloneUris.split()
         if (copysetname):
             request["copysetname"] = copysetname
+        if (subGroups):
+            request["subgroups"] = subGroups.split(',')
         
         # if partial request
         if (partial):
@@ -319,7 +321,7 @@ class VolumeGroup(object):
         else:
             return o 
 
-    def volume_group_clone_detach(self, name, cloneUris, copysetname, partial, sync):
+    def volume_group_clone_detach(self, name, cloneUris, copysetname, subGroups, partial, sync):
         '''
         Makes REST API call to detach volume group clone
         Parameters:
@@ -337,6 +339,8 @@ class VolumeGroup(object):
             request["volumes"] = cloneUris.split()
         if (copysetname):
             request["copysetname"] = copysetname
+        if (subGroups):
+            request["subgroups"] = subGroups.split(',')
         
         # if partial request
         if (partial):
@@ -356,7 +360,7 @@ class VolumeGroup(object):
         else:
             return o
 
-    def volume_group_clone_restore(self, name, cloneUris, copysetname, partial, sync):
+    def volume_group_clone_restore(self, name, cloneUris, copysetname, subGroups, partial, sync):
         '''
         Makes REST API call to restore volume group clone
         Parameters:
@@ -374,6 +378,8 @@ class VolumeGroup(object):
             request["volumes"] = cloneUris.split()
         if (copysetname):
             request["copysetname"] = copysetname
+        if (subGroups):
+            request["subgroups"] = subGroups.split(',')
         
         # if partial request
         if (partial):
@@ -393,7 +399,7 @@ class VolumeGroup(object):
         else:
             return o
         
-    def volume_group_clone_resync(self, name, cloneUris, copysetname, partial, sync):
+    def volume_group_clone_resync(self, name, cloneUris, copysetname, subGroups, partial, sync):
         '''
         Makes REST API call to resynchronize volume group clone
         Parameters:
@@ -411,6 +417,8 @@ class VolumeGroup(object):
             request["volumes"] = cloneUris.split()
         if (copysetname):
             request["copysetname"] = copysetname
+        if (subGroups):
+            request["subgroups"] = subGroups.split(',')
         
         # if partial request
         if (partial):
@@ -484,7 +492,7 @@ class VolumeGroup(object):
             return []
 
     # Creates clone(s) for the given volume group
-    def clone(self, name, clone_name, create_inactive, partial, volumeUris, sync):
+    def clone(self, name, clone_name, subGroups, create_inactive, partial, volumeUris, sync):
         '''
         Makes REST API call to clone volume group
         Parameters:
@@ -506,6 +514,9 @@ class VolumeGroup(object):
             'count': 1,
             'create_inactive': create_inactive
         }
+        
+        if (subGroups):
+            request["subgroups"] = subGroups.split(',')
 
         # if partial request
         if (partial):
@@ -1375,6 +1386,10 @@ def volume_group_clone_common_parser(cc_common_parser):
                                 metavar='<projectname>',
                                 dest='project',
                                 help='Name of project (Deprecated)')
+    cc_common_parser.add_argument('-subgroups', '-sg',
+                                metavar='<subgroups>',
+                                dest='subGroups',
+                                help='List of sub groups for partial request')
     cc_common_parser.add_argument('-partial',
                               dest='partial',
                               action='store_true',
@@ -1383,7 +1398,7 @@ def volume_group_clone_common_parser(cc_common_parser):
     cc_common_parser.add_argument('-tenant', '-tn',
                              metavar='<tenantname>',
                              dest='tenant',
-                             help='Name of tenant')  
+                             help='Name of tenant (Deprecated)')  
     cc_common_parser.add_argument('-synchronous', '-sync',
                                   dest='sync',
                                   action='store_true',
@@ -1446,6 +1461,10 @@ def clone_parser(subcommand_parsers, common_parser):
                                 metavar='<clonename>',
                                 dest='cloneName',
                                 help='Name of clone to create (Deprecated)')
+    clone_parser.add_argument('-subgroups', '-sg',
+                                metavar='<subgroups>',
+                                dest='subGroups',
+                                help='List of sub groups for partial request')
     
     clone_parser.add_argument('-project', '-pr',
                                 metavar='<projectname>',
@@ -1460,16 +1479,16 @@ def clone_parser(subcommand_parsers, common_parser):
                               dest='partial',
                               action='store_true',
                               help='To create clone for subset of VolumeGroup. ' +
-                              'Please specify one volume from each Array Replication Group')
+                              'Please specify one volume from each Array Replication Group (Deprecated)')
     clone_parser.add_argument('-volumes', '-v',
                             metavar='<volume_label,...>',
                             dest='volumes',
                             help='A list of volumes specifying their Array Replication Groups to be cloned.' +
-                            ' This field is valid only when partial flag is provided')
+                            ' This field is valid only when partial flag is provided (Deprecated)')
     clone_parser.add_argument('-tenant', '-tn',
                              metavar='<tenantname>',
                              dest='tenant',
-                             help='Name of tenant')
+                             help='Name of tenant (Deprecated)')
     clone_parser.add_argument('-synchronous', '-sync',
                        dest='sync',
                        action='store_true',
@@ -1495,7 +1514,7 @@ def volume_group_clone(args):
             clone_name = args.cloneName
             
         volumeUris = query_volumes_for_partial_request(args)
-        obj.clone(args.name, clone_name, args.inactive,
+        obj.clone(args.name, clone_name, args.subGroups, args.inactive,
                   args.partial, ",".join(volumeUris), args.sync)
         return
     
@@ -1532,6 +1551,7 @@ def volume_group_clone_activate(args):
             args.name,
             ",".join(cloneUris),
             args.copySetName,
+            args.subGroups,
             args.partial,
             args.sync)
         return
@@ -1577,6 +1597,7 @@ def volume_group_clone_detach(args):
             args.name,
             ",".join(cloneUris),
             args.copySetName,
+            args.subGroups,
             args.partial,
             args.sync)
         return
@@ -1622,6 +1643,7 @@ def volume_group_clone_restore(args):
             args.name,
             ",".join(cloneUris),
             args.copySetName,
+            args.subGroups,
             args.partial,
             args.sync)
         return
@@ -1667,6 +1689,7 @@ def volume_group_clone_resync(args):
             args.name,
             ",".join(cloneUris),
             args.copySetName,
+            args.subGroups,
             args.partial,
             args.sync)
         return

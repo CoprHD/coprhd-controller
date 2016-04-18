@@ -17,7 +17,10 @@ public class VolumeGroupFullCopyOperationParam {
     /** By default, consider clone operation for all array replication groups in Application */
     private Boolean partial = Boolean.FALSE;
     private List<URI> fullCopies;
+    // alternative to passing a list of full copy volumes
     private String copySetName;
+    // alternative to passing partial flag and list of full copy volumes
+    private List<String> subGroups;
 
     public VolumeGroupFullCopyOperationParam() {
     }
@@ -79,5 +82,21 @@ public class VolumeGroupFullCopyOperationParam {
      */
     public void setCopySetName(String copySetName) {
         this.copySetName = copySetName;
+    }
+
+    /**
+     * @return the subGroups
+     */
+    @XmlElementWrapper(required = true, name = "subgroups")
+    @XmlElement(required = false, name = "subgroup")
+    public List<String> getSubGroups() {
+        return subGroups;
+    }
+
+    /**
+     * @param subGroups the subGroups to set
+     */
+    public void setSubGroups(List<String> subGroups) {
+        this.subGroups = subGroups;
     }
 }

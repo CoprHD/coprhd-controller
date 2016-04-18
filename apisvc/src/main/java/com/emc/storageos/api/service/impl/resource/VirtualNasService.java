@@ -204,12 +204,16 @@ public class VirtualNasService extends TaggedResource {
 
         _log.info("Creating Virtual NAS server...");
         String task = UUID.randomUUID().toString();
+        StringSet protocols = new StringSet();
 
         VirtualNAS vnas = new VirtualNAS();
         vnas.setId(URIUtil.createId(VirtualNAS.class));
         vnas.setLabel(vnasParam.getvNasName());
         vnas.setNasName(vnasParam.getvNasName());
-        StringSet protocols = new StringSet(vnasParam.getAddProtocols());
+        for (String protocol : vnasParam.getAddProtocols()) {
+            protocols.add(protocol.toLowerCase());
+        }
+        vnasParam.setAddProtocols(protocols);
         vnas.setProtocols(protocols);
         vnas.setStorageDeviceURI(vnasParam.getStorageSystem());
 

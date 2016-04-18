@@ -9,6 +9,7 @@ import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import com.emc.storageos.coordinator.client.service.DistributedDoubleBarrier;
+import com.emc.storageos.coordinator.client.service.impl.CoordinatorClientImpl;
 
 import java.util.concurrent.*;
 
@@ -57,7 +58,8 @@ public class DistributedDoubleBarrierTest extends CoordinatorTestBase {
         public Boolean call() throws Exception {
             Thread.currentThread().setName(name);
             try {
-                DistributedDoubleBarrier barrier = connectClient().getDistributedDoubleBarrier(barrierPath, 2);
+                CoordinatorClientImpl client = (CoordinatorClientImpl)connectClient();
+                DistributedDoubleBarrier barrier = new DistributedDoubleBarrier(client.getZkConnection().curator(), barrierPath, 2, "b");
                 log.info("{} entering", name);
                 boolean allEntered = barrier.enter(3, TimeUnit.SECONDS);
                 log.info("{} entered with {}", name, allEntered);
@@ -90,7 +92,8 @@ public class DistributedDoubleBarrierTest extends CoordinatorTestBase {
             Thread.currentThread().setName(name);
 
             try {
-                DistributedDoubleBarrier barrier = connectClient().getDistributedDoubleBarrier(barrierPath, 2);
+                CoordinatorClientImpl client = (CoordinatorClientImpl)connectClient();
+                DistributedDoubleBarrier barrier = new DistributedDoubleBarrier(client.getZkConnection().curator(), barrierPath, 2, "a");
                 log.info("{} entering", name);
                 boolean allEntered = barrier.enter(3, TimeUnit.SECONDS);
                 log.info("{} entered with {}", name, allEntered);

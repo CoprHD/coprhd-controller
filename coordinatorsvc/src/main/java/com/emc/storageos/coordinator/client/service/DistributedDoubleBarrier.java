@@ -97,6 +97,17 @@ public class DistributedDoubleBarrier
         ourPath = ZKPaths.makePath(barrierPath, UUID.randomUUID().toString());
         readyPath = ZKPaths.makePath(barrierPath, READY_NODE);
     }
+    
+    public DistributedDoubleBarrier(CuratorFramework client, String barrierPath, int memberQty, String prefix)
+    {
+        Preconditions.checkState(memberQty > 0, "memberQty cannot be 0");
+
+        this.client = client;
+        this.barrierPath = PathUtils.validatePath(barrierPath);
+        this.memberQty = memberQty;
+        ourPath = ZKPaths.makePath(barrierPath, prefix + UUID.randomUUID().toString());
+        readyPath = ZKPaths.makePath(barrierPath, READY_NODE);
+    }
 
     /**
      * Enter the barrier and block until all members have entered
@@ -257,6 +268,7 @@ public class DistributedDoubleBarrier
             }
             else
             {
+                // BUG is here, worker1 leaving process entered this branch, it should not
                 watchPath = ZKPaths.makePath(barrierPath, children.get(0));
                 checkDeleteOurPath(ourNodeShouldExist);
                 ourNodeShouldExist = false;

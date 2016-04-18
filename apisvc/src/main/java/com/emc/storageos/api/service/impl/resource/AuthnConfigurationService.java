@@ -233,6 +233,7 @@ public class AuthnConfigurationService extends TaggedResource {
             // If the checkbox is checked, then register CoprHD.
             if(provider.getAutoRegCoprHDNImportOSProjects()){
                 registerCoprhdInKeystone(provider);
+                _keystoneUtils.startSynchronizationTask();
             }
         } else {
             // Now validate the authn provider to make sure
@@ -935,6 +936,8 @@ public class AuthnConfigurationService extends TaggedResource {
             checkForUserGroupsUsingDomains(provider.getDomains());
             verifyDomainsIsNotInUse(provider.getDomains());
         }else{
+            // Stops synchronization task.
+            _keystoneUtils.stopSynchronizationTask();
             // Create a new KeystoneAPI.
             KeystoneApiClient keystoneApi = getKeystoneApi(provider);
             // Get a cinderv2 service id.

@@ -17,6 +17,7 @@
 
 package com.emc.storageos.keystone.restapi.utils;
 
+import com.emc.storageos.keystone.OpenStackSynchronizationJob;
 import com.emc.storageos.keystone.restapi.KeystoneApiClient;
 import com.emc.storageos.keystone.restapi.KeystoneRestClientFactory;
 import com.emc.storageos.keystone.restapi.model.response.*;
@@ -39,9 +40,14 @@ public class KeystoneUtils {
     public static final String OPENSTACK_DEFAULT_REGION = "RegionOne";
 
     private KeystoneRestClientFactory _keystoneApiFactory;
+    private OpenStackSynchronizationJob _openStackSynchronizationJob;
 
     public void setKeystoneFactory(KeystoneRestClientFactory factory) {
         this._keystoneApiFactory = factory;
+    }
+
+    public void setOpenStackSynchronizationJob(OpenStackSynchronizationJob openStackSynchronizationJob) {
+        this._openStackSynchronizationJob = openStackSynchronizationJob;
     }
 
     /**
@@ -186,5 +192,29 @@ public class KeystoneUtils {
         keystoneApi.setTenantName(tenantName);
 
         return keystoneApi;
+    }
+
+    /**
+     * Start synchronization between CoprHD and OpenStack Tenants.
+     *
+     */
+    public void startSynchronizationTask(){
+        try {
+            _openStackSynchronizationJob.start();
+        } catch (Exception e) {
+            _log.error("Exception when trying to start synchronization task: {}", e.getMessage());
+        }
+    }
+
+    /**
+     * Stop synchronization between CoprHD and OpenStack Tenants.
+     *
+     */
+    public void stopSynchronizationTask(){
+        try {
+            _openStackSynchronizationJob.stop();
+        } catch (Exception e) {
+            _log.error("Exception when trying to stop synchronization task: {}", e.getMessage());
+        }
     }
 }

@@ -1,20 +1,29 @@
 package controllers.arrays;
 
-import static com.emc.vipr.client.core.util.ResourceUtils.uris;
 import static controllers.Common.backToReferrer;
 
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
 import javax.ws.rs.core.Response;
+import javax.ws.rs.ext.Providers;
 
 import org.apache.commons.lang.StringUtils;
 
 import com.emc.storageos.model.storagesystem.type.StorageSystemTypeAddParam;
 import com.emc.storageos.model.storagesystem.type.StorageSystemTypeRestRep;
 import com.google.common.collect.Lists;
+import com.sun.jersey.multipart.FormDataBodyPart;
+import com.sun.jersey.multipart.FormDataMultiPart;
+import com.sun.jersey.multipart.MultiPart;
+import com.sun.jersey.multipart.file.FileDataBodyPart;
+import com.sun.jersey.multipart.file.StreamDataBodyPart;
+import javax.ws.rs.core.MediaType;
 
 import controllers.Common;
 import controllers.deadbolt.Restrict;
@@ -103,9 +112,24 @@ public class StorageSystemTypes extends ViprResourceController {
 	}
 
 	public static void uploadDriver(File deviceDriverFile) {
+		
 		if (deviceDriverFile != null) {
-			Response restResponse = StorageSystemTypeUtils.uploadDriver(deviceDriverFile);
-			flash.success("Response from server: " + restResponse.getStatus());
+			Response restResponse;
+			try {
+				FileInputStream fs = new FileInputStream(deviceDriverFile);
+				
+				FileDataBodyPart fdp = new FileDataBodyPart ("devicedriver", deviceDriverFile, MediaType.APPLICATION_OCTET_STREAM_TYPE);
+
+				@SuppressWarnings("resource")
+				MultiPart entity = new FormDataMultiPart().bodyPart(fdp);
+	            
+	            restResponse = StorageSystemTypeUtils.uploadDriver(entity);
+	            
+				flash.success("Response from server: " + restResponse.getStatus());
+			} catch (FileNotFoundException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
 		}
 	}
 

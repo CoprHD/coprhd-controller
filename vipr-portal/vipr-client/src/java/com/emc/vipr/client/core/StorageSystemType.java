@@ -1,9 +1,11 @@
 package com.emc.vipr.client.core;
 
 import java.io.File;
-import java.util.List;
+import java.io.InputStream;
 
 import javax.ws.rs.core.Response;
+import com.sun.jersey.multipart.MultiPart;
+import com.sun.jersey.multipart.file.StreamDataBodyPart;
 
 import com.emc.storageos.model.storagesystem.type.StorageSystemTypeAddParam;
 import com.emc.storageos.model.storagesystem.type.StorageSystemTypeList;
@@ -37,8 +39,7 @@ public class StorageSystemType {
 				PathConstants.STORAGE_SYSTEM_TYPE_URL + "/type/" + type);
 	}
 
-	public Response uploadDeviceDriver(File deviceDriverFile) {
-		return client.post(Response.class, deviceDriverFile, PathConstants.STORAGE_SYSTEM_TYPE_URL + "/upload");
+	public Response uploadDeviceDriver(MultiPart fileInputStream) {
+		return client.postMultiPart(Response.class, fileInputStream, PathConstants.STORAGE_SYSTEM_TYPE_URL + "/upload");
 	}
-
 }

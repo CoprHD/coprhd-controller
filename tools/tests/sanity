@@ -3349,7 +3349,7 @@ recoverpoint_ingest_export_test()
         RECOVERPOINT_INGEST_EXPORT_VOL1_TGT_JRNL=${RECOVERPOINT_INGEST_EXPORT_VOL1_SRC}-${RECOVERPOINT_VARRAY3}-journal-1
         RECOVERPOINT_INGEST_SNAPSHOT_VARRAY=${RECOVERPOINT_VARRAY3}
         if [ "${vpool}" = "rpmp_crr" ]; then
-                # Also need to ingest the MP standby production journal, varray2 target and journal volumes as well.
+            # Also need to ingest the MP standby production journal, varray2 target and journal volumes as well.
             RECOVERPOINT_INGEST_EXPORT_VOL1_STANDBY_SRC_JRNL=${RECOVERPOINT_INGEST_EXPORT_VOL1_SRC}-${RECOVERPOINT_VARRAY2}-journal-1
         fi
     elif [ "${vpool}" = "rp${rptypetag}_clr" ]; then

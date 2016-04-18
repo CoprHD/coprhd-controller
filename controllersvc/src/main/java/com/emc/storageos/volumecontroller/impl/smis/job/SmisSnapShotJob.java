@@ -120,7 +120,7 @@ public class SmisSnapShotJob extends SmisJob {
             if (snapSession.getId() == null) {
                 snapSession.setId(URIUtil.createId(BlockSnapshotSession.class));
                 snapSession.setLabel(snapshot.getLabel());
-                snapSession.setSessionLabel(snapshot.getSnapsetLabel());
+                snapSession.setSessionLabel(SmisUtils.getSessionLabelFromSettingsInstance(snapshot));
                 snapSession.setSessionInstance(snapshot.getSettingsInstance());
                 snapSession.setProject(snapshot.getProject());
                 snapSession.setStorageController(storage.getId());

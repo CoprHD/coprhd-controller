@@ -27,6 +27,7 @@ import com.emc.storageos.api.service.impl.resource.blockingestorchestration.Bloc
 import com.emc.storageos.api.service.impl.resource.blockingestorchestration.IngestionException;
 import com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext;
 import com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.VolumeIngestionContext;
+import com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.impl.BlockVolumeIngestionContext;
 import com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.impl.RecoverPointVolumeIngestionContext;
 import com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.impl.RpVplexVolumeIngestionContext;
 import com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.impl.VplexVolumeIngestionContext;
@@ -555,21 +556,34 @@ public class VolumeIngestionUtil {
         VolumeIngestionContext context = requestContext.getVolumeContext(umv.getNativeGuid());
         boolean isRPProtectingVplexVolumes = false;
         // We expect RP Context to validate Vplex volumes protected by RP or not.
-        if (!(context instanceof RecoverPointVolumeIngestionContext)) {
-            return isRPProtectingVplexVolumes;
-        }
-        RecoverPointVolumeIngestionContext rpContext = (RecoverPointVolumeIngestionContext) context;
-        ProtectionSet pset = rpContext.getManagedProtectionSet();
+        if (context instanceof RecoverPointVolumeIngestionContext) {
+            RecoverPointVolumeIngestionContext rpContext = (RecoverPointVolumeIngestionContext) context;
+            ProtectionSet pset = rpContext.getManagedProtectionSet();
 
-        if (pset == null) {
-            return isRPProtectingVplexVolumes;
-        }
+            if (pset == null) {
+                return isRPProtectingVplexVolumes;
+            }
 
-        // Iterate thru protection set volumes.
-        for (String volumeIdStr : pset.getVolumes()) {
-            for (Set<DataObject> dataObjList : rpContext.getDataObjectsToBeUpdatedMap().values()) {
-                for (DataObject dataObj : dataObjList) {
-                    if (URIUtil.identical(dataObj.getId(), URI.create(volumeIdStr))) {
+            // Iterate thru protection set volumes.
+            for (String volumeIdStr : pset.getVolumes()) {
+                for (Set<DataObject> dataObjList : rpContext.getDataObjectsToBeUpdatedMap().values()) {
+                    for (DataObject dataObj : dataObjList) {
+                        if (URIUtil.identical(dataObj.getId(), URI.create(volumeIdStr))) {
+                            Volume volume = (Volume) dataObj;
+                            if (volume.isVPlexVolume(dbClient)) {
+                                isRPProtectingVplexVolumes = true;
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+        } else if (context instanceof BlockVolumeIngestionContext) {
+            // In this case, the last volume ingested was a replica, so we need to fish out RP information slightly differently.
+            Set<DataObject> updatedObjects = requestContext.getDataObjectsToBeUpdatedMap().get(umv.getNativeGuid());
+            if (updatedObjects != null && !updatedObjects.isEmpty()) {
+                for (DataObject dataObj : updatedObjects) {
+                    if (dataObj instanceof Volume) {
                         Volume volume = (Volume) dataObj;
                         if (volume.isVPlexVolume(dbClient)) {
                             isRPProtectingVplexVolumes = true;
@@ -578,7 +592,11 @@ public class VolumeIngestionUtil {
                     }
                 }
             }
+            
+        } else {
+            _logger.error("Context found of type: {} invalid", context.getClass().toString());
         }
+        
         return isRPProtectingVplexVolumes;
     }
 
@@ -3593,6 +3611,23 @@ public class VolumeIngestionUtil {
             cg = rpContext.findExistingBlockConsistencyGroup(pset.getLabel(), projectNamedUri, project.getTenantOrg());
         }
 
+        // Find the source volume in the protection set so we can set the virtual array in the consistency group
+        URI varrayId = null;
+        URI storageSystemId = null;
+        if (pset.getVolumes() != null) {
+            for (String volumeIdStr : pset.getVolumes()) {
+                Volume volume = requestContext.findDataObjectByType(Volume.class, URI.create(volumeIdStr), true);
+                if (volume != null) {
+                    if (PersonalityTypes.SOURCE.name().equalsIgnoreCase(volume.getPersonality())) {
+                        varrayId = volume.getVirtualArray();
+                        if (volume.isVPlexVolume(dbClient)) {
+                            storageSystemId = volume.getStorageController();
+                        }
+                    }
+                }
+            }
+        }
+        
         if (cg == null) {
             cg = new BlockConsistencyGroup();
             cg.setId(URIUtil.createId(BlockConsistencyGroup.class));
@@ -3603,6 +3638,8 @@ public class VolumeIngestionUtil {
             // see any replicationGroupInstance information, we'll flip this bit to true. (See decorateRPVolumesCGInfo())
             cg.setArrayConsistency(false);
             cg.setTenant(project.getTenantOrg());
+            cg.setVirtualArray(varrayId);
+            cg.setStorageController(storageSystemId);
             _logger.info("Created new block consistency group: " + cg.getId().toString());
         }
 
@@ -4124,8 +4161,15 @@ public class VolumeIngestionUtil {
             rpContext.setManagedProtectionSet(pset);
         } else {
             // In case of replica ingested last, the ingestion context will not be RecoverPointVolumeIngestionContext
-            _logger.info("Persisting BlockConsistencyGroup {} (hash {})", cg.forDisplay(), cg.hashCode());
-            dbClient.createObject(cg);
+            if (requestContext.getVolumeContext() instanceof BlockVolumeIngestionContext) {
+                // In order to decorate the CG properly with all system types, we need to add the CG to the context to be persisted later.
+                _logger.info("Adding BlockConsistencyGroup {} to the BlockVolumeIngestContext (hash {})", cg.forDisplay(), cg.hashCode());
+                ((BlockVolumeIngestionContext)requestContext.getVolumeContext()).getCGObjectsToCreateMap().put(cg.getId().toString(), cg);
+            } else {
+                _logger.info("Persisting BlockConsistencyGroup {} (hash {})", cg.forDisplay(), cg.hashCode());
+                dbClient.createObject(cg);
+            }
+
             _logger.info("Persisting ProtectionSet {} (hash {})", pset.forDisplay(), pset.hashCode());
             dbClient.createObject(pset);
             // the protection set was created, so delete the unmanaged one

@@ -191,18 +191,20 @@ public class DistributedDoubleBarrier
 
     private boolean internalLeave(long startMs, boolean hasMaxWait, long maxWaitMs) throws Exception
     {
-        logger.trace(">>> internalLeave {}", ourPath);
+        logger.info(">>> internalLeave {}", ourPath);
 
         String          ourPathName = ZKPaths.getNodeFromPath(ourPath);
         boolean         ourNodeShouldExist = true;
         boolean         result = true;
 
+        logger.info("set hasBeenNotifiedLeave to false");
         hasBeenNotifiedLeave.set(false);
 
         for ( ;; )
         {
             if ( connectionLost.get() )
             {
+                logger.info(">>> lost connection");
                 throw new KeeperException.ConnectionLossException();
             }
 
@@ -213,11 +215,13 @@ public class DistributedDoubleBarrier
             }
             catch ( KeeperException.NoNodeException dummy )
             {
+                logger.info("Found not child under" + barrierPath);
                 children = Lists.newArrayList();
             }
             children = filterAndSortChildren(children);
             if ( (children == null) || (children.size() == 0) )
             {
+                logger.info(">>> No children found, break");
                 break;
             }
 
@@ -226,6 +230,7 @@ public class DistributedDoubleBarrier
             {
                 if ( connectionLost.get() )
                 {
+                    logger.info("connection was lost but we've reconnected. However, our ephemeral node is gone");
                     break;  // connection was lost but we've reconnected. However, our ephemeral node is gone
                 }
                 else
@@ -234,7 +239,7 @@ public class DistributedDoubleBarrier
                 }
             }
 
-            logger.trace("children:{}", children);
+            logger.info(">>> children:{}", children);
             if ( children.size() == 1 )
             {
                 if ( ourNodeShouldExist && !children.get(0).equals(ourPathName) )
@@ -292,6 +297,7 @@ public class DistributedDoubleBarrier
     {
         if ( shouldExist )
         {
+            logger.info("deleting " +ourPath);
             client.delete().forPath(ourPath);
         }
     }

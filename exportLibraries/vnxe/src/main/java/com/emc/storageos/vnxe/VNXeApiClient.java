@@ -2475,15 +2475,15 @@ public class VNXeApiClient {
     /**
      * Create snapshot for VNX Unity
      * 
-     * @param lunID lun id
+     * @param resourceID lun or consistency group id
      * @param name snapshot name
      * @param isReadOnly
      * @return VNXeCommandJob
      */
-    public VNXeCommandJob createSnap(String lunID, String name, Boolean isReadOnly) {
-        _logger.info("creating lun snap:" + lunID);
+    public VNXeCommandJob createSnap(String resourceID, String name, Boolean isReadOnly) {
+        _logger.info("creating snap for :" + resourceID);
         SnapCreateParam parm = new SnapCreateParam();
-        parm.setStorageResource(new VNXeBase(lunID));
+        parm.setStorageResource(new VNXeBase(resourceID));
         parm.setName(name);
         if (isReadOnly != null) {
             parm.setIsReadOnly(isReadOnly);

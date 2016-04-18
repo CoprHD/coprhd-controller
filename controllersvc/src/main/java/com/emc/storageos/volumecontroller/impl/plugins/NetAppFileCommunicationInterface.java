@@ -474,13 +474,11 @@ public class NetAppFileCommunicationInterface extends
 
                 if (snapMirrorLicenseExists) {
                     copyTypesSupported.add(CopyTypes.ASYNC.name());
-                    copyTypesSupported.add(CopyTypes.SYNC.name());
                     pool.setSupportedCopyTypes(copyTypesSupported);
                 } else {
                     if (pool.getSupportedCopyTypes() != null &&
                             pool.getSupportedCopyTypes().contains(CopyTypes.ASYNC.name())) {
                         pool.getSupportedCopyTypes().remove(CopyTypes.ASYNC.name());
-                        pool.getSupportedCopyTypes().remove(CopyTypes.SYNC.name());
                     }
                 }
                 // Update Pool details with new discovery run

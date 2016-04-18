@@ -201,7 +201,7 @@ public class RestClient {
     }
     
 	public WebResource.Builder resourceMultiPart(URI uri) {
-		return getClient().resource(uri).accept(MediaType.APPLICATION_OCTET_STREAM_TYPE).type(MediaType.MULTIPART_FORM_DATA_TYPE);
+		return getClient().resource(uri).accept(MediaType.APPLICATION_XML_TYPE).type(MediaType.MULTIPART_FORM_DATA_TYPE);
 	}
 
     // Method takes path + args for replacement

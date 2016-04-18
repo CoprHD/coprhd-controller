@@ -8,6 +8,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
+import com.emc.storageos.storagedriver.model.VolumeToHostExportInfo;
 import org.apache.commons.lang.mutable.MutableBoolean;
 import org.apache.commons.lang.mutable.MutableInt;
 import org.slf4j.Logger;
@@ -427,7 +428,7 @@ public class StorageDriverSimulator extends AbstractStorageDriver implements Blo
     }
 
     @Override
-    public List<ITL> getITL(StorageSystem storageSystem, List<Initiator> initiators, MutableInt token) {
+    public Map<String, VolumeToHostExportInfo> getVolumeToHostExportInfoForHosts(StorageVolume volume) {
         return null;
     }
 

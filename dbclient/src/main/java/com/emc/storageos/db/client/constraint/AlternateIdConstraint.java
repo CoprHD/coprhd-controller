@@ -463,6 +463,11 @@ public interface AlternateIdConstraint extends Constraint {
                     EndpointUtility.changeCase(initiatorPort));
         }
 
+        public static AlternateIdConstraint getInitiatorHostnameInitiatorConstraint(String hostname) {
+            DataObjectType doType = TypeMap.getDoType(Initiator.class);
+            return new AlternateIdConstraintImpl(doType.getColumnField("hostname"), hostname);
+        }
+
         public static AlternateIdConstraint getIpInterfaceIpAddressConstraint(String ipAddress) {
             DataObjectType doType = TypeMap.getDoType(IpInterface.class);
             return new AlternateIdConstraintImpl(doType.getColumnField("ipAddress"), EndpointUtility.changeCase(ipAddress));

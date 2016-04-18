@@ -7,13 +7,13 @@ package com.emc.storageos.storagedriver;
 import java.util.List;
 import java.util.Map;
 
-import com.emc.storageos.storagedriver.model.ITL;
 import com.emc.storageos.storagedriver.model.Initiator;
 import com.emc.storageos.storagedriver.model.StoragePort;
 import com.emc.storageos.storagedriver.model.StorageSystem;
 import com.emc.storageos.storagedriver.model.StorageVolume;
 import com.emc.storageos.storagedriver.model.VolumeClone;
 import com.emc.storageos.storagedriver.model.VolumeConsistencyGroup;
+import com.emc.storageos.storagedriver.model.VolumeToHostExportInfo;
 import com.emc.storageos.storagedriver.model.VolumeMirror;
 import com.emc.storageos.storagedriver.model.VolumeSnapshot;
 import com.emc.storageos.storagedriver.storagecapabilities.CapabilityInstance;
@@ -239,17 +239,20 @@ public interface BlockStorageDriver extends StorageDriver {
 
 
     // Block Export operations
+
     /**
-     * Get export mappings defined in the specified storage system for a given set of initiators.
-     * If "initiators" parameter is null, all storage system export mappings should be returned.
+     * This method returns a map of Initiator-Target access information for a given volume.
+     * Key in the returned map is host FQDN, value: instance of VolumeITMappingInfo.
+     * Each entry in the map represents access information from a host (key) to a given storage volume.
+     * The entry value contains volume native id, list of host initiators with list of storage array ports which are
+     * mapped and masked for this volume access on array.
      *
-     * @param storageSystem Storage system to get ITLs from. Type: Input.
-     * @param initiators Type: Input. When null value is passed, all storage system export mappings should be returned.
-     * @param token used for paging. Input 0 indicates that the first page should be returned. Output 0 indicates
-     *              that last page was returned. Type: Input/Output.
-     * @return list of export mappings
+     * @param volume Storage volume. Type: Input.
+     * @return Map of a host FQDN to initiator-target mapping info for the host (key) and the volume. Type: Output.
      */
-    public List<ITL> getITL(StorageSystem storageSystem, List<Initiator> initiators, MutableInt token);
+
+    public Map<String, VolumeToHostExportInfo> getVolumeToHostExportInfoForHosts(StorageVolume volume);
+
 
     /**
      * Export volumes to initiators through a given set of ports. If ports are not provided,

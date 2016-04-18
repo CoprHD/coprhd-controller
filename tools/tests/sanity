@@ -413,8 +413,10 @@ COS_VMAX3BLOCK_FC=COS_VMAX3BLOCK_FC
 
 XTREMIO=xtremio4
 XTREMIOVOL=volXtremIO
-XTREMIO_NATIVEGUID=XTREMIO+$XTREMIO_SN
-XTREMIO_COS_FC=xtremioTest3
+XTREMIO_3X_NATIVEGUID=XTREMIO+$XTREMIO_3X_SN
+XTREMIO_4X_NATIVEGUID=XTREMIO+$XTREMIO_4X_SN
+XTREMIO_3X_COS_FC=xtremioTest3
+XTREMIO_4X_COS_FC=xtremioTest4
 XTREMIO_INGEST_HOST=ingesthost.lss.emc.com
 XTREMIO_INGEST_HOST_LABEL=ingesthost
 
@@ -1072,41 +1074,71 @@ vnxblock_cos_setup()
 
 xtremio_cos_setup()
 {
-    run cos create block $XTREMIO_COS_FC                          \
-	--description 'Virtual-Pool-for-XtremIO-block-FC' true      \
+    run cos create block $XTREMIO_3X_COS_FC                          \
+	--description 'Virtual-Pool-for-XtremIO-block-FC' false      \
                          --protocols FC                         \
                          --numpaths 1 \
                          --max_snapshots 10 \
                          --system_type xtremio \
                          --provisionType 'Thin' \
                          --neighborhoods $NH
-    run cos allow $XTREMIO_COS_FC block $TENANT  
+    run cos allow $XTREMIO_3X_COS_FC block $TENANT
+    run cos update block $XTREMIO_3X_COS_FC --storage $XTREMIO_3X_NATIVEGUID
+
+    run cos create block $XTREMIO_4X_COS_FC                          \
+	--description 'Virtual-Pool-for-XtremIO-block-FC' false      \
+                         --protocols FC                         \
+                         --numpaths 1 \
+                         --max_snapshots 10 \
+                         --system_type xtremio \
+                         --provisionType 'Thin' \
+                         --neighborhoods $NH   \
+                         --multiVolumeConsistency
+    run cos allow $XTREMIO_4X_COS_FC block $TENANT
+    run cos update block $XTREMIO_4X_COS_FC --storage $XTREMIO_4X_NATIVEGUID  
+}
+
+xtremio_port_setup()
+{
+    secho “XtremIO port setup”
+    run storageport update $XTREMIO_3X_NATIVEGUID FC --addvarrays $NH
+    run storageport update $XTREMIO_4X_NATIVEGUID FC --addvarrays $NH
+}
+
+xtremio_storage_setup() {
+    secho "Starting XtremIO 3.x storageprovider create"
+    storageprovider create xtremio3x $XTREMIO_3X_IP 443 $XTREMIO_3X_USER $XTREMIO_3X_PASSWD xtremio 
+
+    secho "Starting XtremIO 4.x storageprovider create"
+    storageprovider create xtremio4x $XTREMIO_4X_IP 443 $XTREMIO_4X_USER $XTREMIO_4X_PASSWD xtremio
+
+    secho 'XtremIO discover storage systems'
+    storagedevice discover_all
+    storagedevice list
+}
+
+xtremio_network_setup()
+{
+    secho “XtremIO network setup”
+    networksystem show $BROCADE_NETWORK &> /dev/null && return $?
+    networksystem create $BROCADE_NETWORK brocade --smisip $BROCADE_IP --smisport 5988 --smisuser $BROCADE_USER --smispw $BROCADE_PW --smisssl false
+}
+
+xtremio_varray_setup()
+{
+    secho 'XtremIO varray setup for $TENANT'
+    run neighborhood allow $NH $TENANT
+    run transportzone assign ${SRDF_VMAXA_VSAN} $NH
 }
 
 xtremio_setup()
 {
-    networksystem show $BROCADE_NETWORK &> /dev/null && return $?
-    networksystem create $BROCADE_NETWORK brocade --smisip $BROCADE_IP --smisport 5988 --smisuser $BROCADE_USER --smispw $BROCADE_PW --smisssl false
-    storageprovider show $XTREMIO  &> /dev/null && return $?
-    secho "Starting storageprovider create"
-    storageprovider create $XTREMIO $XTREMIO_IP 443 $XTREMIO_USER $XTREMIO_PASSWD xtremio 
-    storagedevice discover_all
-    storagedevice list
-
+    xtremio_network_setup
+    xtremio_storage_setup
     project_setup
+    xtremio_varray_setup
+    xtremio_port_setup
 
-    secho "Setup ACLs on neighborhood for $TENANT"
-    run neighborhood allow $NH $TENANT
-    run neighborhood allow $NH $TENANT
-    run transportzone assign ${SRDF_VMAXA_VSAN} $NH
-    for storageport in ${XTREMIO_INI}
-    do
-      run transportzone add $NH/${SRDF_VMAXA_VSAN} ${storageport}
-    done
-    for porta in ${XTREMIO_STORAGE_PORTS}
-           do
-              run storageport update $XTREMIO_NATIVEGUID FC --addvarrays $NH
-           done
     #Add the host ports to the network which contians the storage ports
     for i in A1 A2 A3 A4 A5 A6 A7 A8 C1 C2 C3 C4 C5 C6 C7 C8
     do
@@ -1129,24 +1161,65 @@ xtremio_setup()
 xtremio_tests()
 {
    echo 'xtremio tests invoked'
-   export_xtremio_tests
-
+   xtremio_block_tests
+   xtremio_blockconsistency_tests
 }
 
-export_xtremio_tests()
+xtremio_blockconsistency_tests()
 {
-  storagedevice discover_all
-  xtremio_block_tests  $XTREMIOEXPORT_GROUP $XTREMIOEXPORT_GROUP_HOST $XTREMIOVOL $XTREMIO_COS_FC $XTREMIOVOL $XTREMIO_COS_FC
+    # Create Consistency Group
+    blockconsistencygroup_create_test
+    blockconsistencygroup_show_test
+    xtremio_blockconsistencygroup_add_volume_test
+    xtremio_blockconsistencygroup_snapshot_tests xio-$CONSISTENCY_GROUP $XTREMIO_4X_COS_FC xio-$CONSISTENCY_GROUP_SNAPSHOT
+    blockconsistencygroup_bulk_test
+    blockconsistencygroup_cleanup
+}
+
+xtremio_blockconsistencygroup_add_volume_test()
+{
+    ### Create Volume
+    echo "Adding volume to consistency group"
+    run volume create  volume-${CONSISTENCY_GROUP} $PROJECT $NH $XTREMIO_4X_COS_FC 1280000000 --consistencyGroup $CONSISTENCY_GROUP
+
+    ### Check that volume is inside the group
+    echo "Checking volume is part of consistency group"
+    run blockconsistencygroup check_volume  $PROJECT volume-${CONSISTENCY_GROUP} $CONSISTENCY_GROUP --expected
+
+    ### Check that consistencygroup cannot be deleted at this point
+    echo "Checking consistency group cannot be deleted with active volumes"
+    run blockconsistencygroup delete_with_volumes $CONSISTENCY_GROUP
+}
+
+xtremio_blockconsistencygroup_snapshot_tests()
+{    
+    cg_name=$1
+    cg_cos=$2
+    cg_snapshot=$3
+    
+    echo "Running Consistency Group Snapshot tests"
+    echo "Consistency Group: $cg_name"
+    echo "CoS: $cg_cos"
+    echo "CG Snapshot: $cg_snapshot" 
+    
+    blockconsistencygroup_setup_snapshot $cg_name $cg_cos
+    blockconsistencygroup_create_snapshot $cg_name $cg_snapshot
+    blockconsistencygroup_restore_snapshot $cg_name $cg_snapshot
+    blockconsistencygroup_show_snapshot $cg_name $cg_snapshot
+    blockconsistencygroup_list_snapshot $cg_name $cg_snapshot
+    blockconsistencygroup_deactivate_snapshot $cg_name $cg_snapshot
+    echo "Deleting snapshot consistency group"
+    run blockconsistencygroup delete $cg_name   
 }
 
 xtremio_block_tests()
 {
-    export_name=$1
-    export_host=$2
-    v1=${3}1
-    cos1=$4
-    v2=${5}2
-    cos2=$6
+    export_name=$XTREMIOEXPORT_GROUP
+    export_host=$XTREMIOEXPORT_GROUP_HOST
+    v1=${XTREMIOVOL}1
+    cos1=$XTREMIO_3X_COS_FC
+    v2=${XTREMIOVOL}2
+    cos2=$XTREMIO_4X_COS_FC
 
     run volume create ${v1} $PROJECT $NH $cos1 $BLK_SIZE --thinVolume true
 
@@ -1164,9 +1237,11 @@ xtremio_block_tests()
 xtremio_export_test()
 {
     snap1_label=snap1-${HOSTNAME}-${RANDOM}
+    snap2_label=snap2-${HOSTNAME}-${RANDOM}
     vol1=$PROJECT/$2
     vol2=$PROJECT/$3
     snap1=${vol1}/${snap1_label}
+    snap2=${vol2}/${snap2_label}
     proj=$PROJECT
     tenant=$TENANT
     c=1
@@ -1184,18 +1259,19 @@ xtremio_export_test()
     pwwn4=`pwwn D$k`
 
     run blocksnapshot create $vol1 ${snap1_label}
+    run blocksnapshot create $vol2 ${snap2_label}
 
     if [ "$BOURNE_SECURITY_DISABLED" != '1' ] ; then
         run bulkapi blocksnapshots $LOCAL_LDAP_SUPERUSER_USERNAME $LOCAL_LDAP_SUPERUSER_PASSWORD $LOCAL_LDAP_USER_PASSWORD_1
     fi
 
-    run export_group create $proj $expname $NH --volspec "$vol1+1,$snap1+2" --inits "$hostname/$pwwn1"
+    run export_group create $proj $expname $NH --volspec "$vol1+1,$snap1+2,$snap2+3" --inits "$hostname/$pwwn1"
     run export_group show $exp
-    run export_group update $exp --addVolspec "$vol2+3" --remVols $vol1
+    run export_group update $exp --addVolspec "$vol2+4" --remVols $vol1
     run export_group show $exp
     run export_group update $exp --remInits "$hostname/$pwwn1"
     run export_group show $exp
-    run export_group update $exp --remVols $vol2,$snap1
+    run export_group update $exp --remVols $vol2,$snap1,$snap2
     run export_group show $exp
 
     if [ "$BOURNE_SECURITY_DISABLED" != '1' ] ; then
@@ -1203,7 +1279,9 @@ xtremio_export_test()
     fi
 
     run export_group delete $exp
+    run blocksnapshot restore $snap2
     run blocksnapshot delete $snap1
+    run blocksnapshot delete $snap2
 }
 
 

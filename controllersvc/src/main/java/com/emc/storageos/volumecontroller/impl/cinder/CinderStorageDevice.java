@@ -872,4 +872,19 @@ public class CinderStorageDevice extends DefaultBlockStorageDevice {
         log.info("{} doRemoveFromConsistencyGroup END ...", storage.getSerialNumber());
     }
 
+    @Override    
+    public boolean updateStorageProviderConfig(String ipAddress,
+            Integer portNumber, String userName, String password, String interfaceType)throws DeviceControllerException {
+    	
+    	return true;    	
+    }
+    
+    
+    @Override    
+    public String getStorageProviderConfig(String ipAddress,
+            Integer portNumber, String userName, String password, String interfaceType)throws DeviceControllerException {
+    	
+    	return "";    	
+    }
+
 }

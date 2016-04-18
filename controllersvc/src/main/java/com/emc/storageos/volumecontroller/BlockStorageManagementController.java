@@ -9,6 +9,7 @@ import java.net.URI;
 
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 
+import com.emc.storageos.exceptions.DeviceControllerException;
 /**
  * The main API for managing block storage management controllers.
  * 
@@ -35,4 +36,13 @@ public interface BlockStorageManagementController extends StorageController {
      * @return true, if successful
      */
     public boolean validateStorageProviderConnection(String ipAddress, Integer portNumber, String interfaceType);
+
+        
+    public boolean updateStorageProviderConfig(String ipAddress,
+            Integer portNumber, String userName, String password, String interfaceType) throws DeviceControllerException;        	
+
+    
+    public String getStorageProviderConfig(String ipAddress,
+            Integer portNumber, String userName, String password, String interfaceType) throws DeviceControllerException;
+    
 }

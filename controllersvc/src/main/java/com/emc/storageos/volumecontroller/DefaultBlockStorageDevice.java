@@ -801,4 +801,18 @@ public abstract class DefaultBlockStorageDevice implements BlockStorageDevice, R
         throw DeviceControllerException.exceptions
                 .blockDeviceOperationNotSupported();
     }
+
+    @Override
+    public boolean updateStorageProviderConfig(String ipAddress,
+            Integer portNumber, String userName, String password, String interfaceType)throws DeviceControllerException {
+        throw DeviceControllerException.exceptions
+        .blockDeviceOperationNotSupported();    	
+    }
+    
+    @Override
+    public String getStorageProviderConfig(String ipAddress,
+            Integer portNumber, String userName, String password, String interfaceType)throws DeviceControllerException {
+        throw DeviceControllerException.exceptions
+        .blockDeviceOperationNotSupported();    	
+    }
 }

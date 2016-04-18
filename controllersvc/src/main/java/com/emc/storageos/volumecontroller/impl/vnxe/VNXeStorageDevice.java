@@ -2623,4 +2623,18 @@ public class VNXeStorageDevice extends VNXeOperations
         return BiosCommandResult.createErrorResult(
                 DeviceControllerErrors.vnxe.operationNotSupported());
     }
+
+
+    @Override
+    public String getStorageProviderConfig(String ipAddress, Integer portNumber, String userName, String password,
+    		String interfaceType) throws DeviceControllerException {
+    	throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
+    }
+    
+    @Override
+    public boolean updateStorageProviderConfig(String ipAddress, Integer portNumber, String userName, String password,
+			String interfaceType) throws DeviceControllerException {
+	throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
+    }
+
 }

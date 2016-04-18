@@ -516,4 +516,26 @@ public class BlockControllerImpl extends AbstractDiscoveredSystemController impl
     public void deleteSnapshotSession(URI systemURI, URI snapSessionURI, String opId) {
         blockRMI("deleteSnapshotSession", systemURI, snapSessionURI, opId);
     }
+
+
+    @Override
+    public boolean updateStorageProviderConfig(String ipAddress,
+            Integer portNumber, String userName, String password, String interfaceType) {
+        // Making a direct call to get connection status.
+        Controller controller = lookupDeviceController();
+        BlockController blkcontroller = (BlockController) controller;
+        return blkcontroller.updateStorageProviderConfig(ipAddress,
+                portNumber, userName, password, interfaceType);
+    }
+    
+    @Override
+    public String getStorageProviderConfig(String ipAddress,
+            Integer portNumber, String userName, String password, String interfaceType) {
+        // Making a direct call to get connection status.
+        Controller controller = lookupDeviceController();
+        BlockController blkcontroller = (BlockController) controller;
+        return blkcontroller.getStorageProviderConfig(ipAddress,
+                portNumber, userName, password, interfaceType);
+    }
+    
 }

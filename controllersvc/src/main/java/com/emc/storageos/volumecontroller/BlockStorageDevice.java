@@ -1048,4 +1048,12 @@ public interface BlockStorageDevice {
             String replicationGroupName, Boolean keepRGName, Boolean markInactive, 
             String sourceReplicationGroup, TaskCompleter taskCompleter) throws DeviceControllerException;
     
+        
+    public boolean updateStorageProviderConfig(String ipAddress,
+            Integer portNumber, String userName, String password, String interfaceType) throws DeviceControllerException;        	
+
+    
+    public String getStorageProviderConfig(String ipAddress,
+            Integer portNumber, String userName, String password, String interfaceType) throws DeviceControllerException;
+    
 }

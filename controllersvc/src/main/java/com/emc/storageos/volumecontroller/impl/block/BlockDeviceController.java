@@ -6528,4 +6528,25 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
 
         return waitFor;
     }
+
+
+    public boolean updateStorageProviderConfig(String ipAddress,
+            Integer portNumber, String userName, String password, String interfaceType){
+    	List<String> systemType = InterfaceType
+                .getSystemTypesForInterfaceType(InterfaceType
+                        .valueOf(interfaceType));
+        return getDevice(systemType.get(0)).updateStorageProviderConfig(
+                ipAddress, portNumber, userName , password, interfaceType);
+    	
+    }
+    
+    public String getStorageProviderConfig(String ipAddress,
+            Integer portNumber, String userName, String password, String interfaceType) {
+    	List<String> systemType = InterfaceType
+                .getSystemTypesForInterfaceType(InterfaceType
+                        .valueOf(interfaceType));
+        return getDevice(systemType.get(0)).getStorageProviderConfig(
+                ipAddress, portNumber, userName , password, interfaceType);
+    	
+    }
 }

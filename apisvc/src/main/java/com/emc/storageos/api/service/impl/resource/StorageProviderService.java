@@ -646,4 +646,72 @@ public class StorageProviderService extends TaskResourceService {
         throw APIException.notFound.unableToFindEntityInURL(id);
     }
 
+    /**
+     * Allows the user to get the id, name, and self link for all storage
+     * systems visible to the provider with the passed id.
+     * 
+     * @param id the URN of a ViPR Storage provider
+     * 
+     * @brief return the storage configuration that is in cinder.conf.
+     * @return cinder.conf configuration details
+     * 
+     */
+    @GET
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("/{id}/cinder-config")
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR })
+    public StorageSystemList getCinderStorageProviderConfig(@PathParam("id") URI id) {
+
+        // Validate the provider
+        ArgValidator.checkFieldUriType(id, StorageProvider.class, "id");
+        StorageProvider provider = _dbClient.queryObject(StorageProvider.class, id);
+        ArgValidator.checkEntityNotNull(provider, id, isIdEmbeddedInURL(id));
+
+        if( StorageProvider.InterfaceType.cinder.name().equalsIgnoreCase(provider.getInterfaceType())){
+        	
+        }
+        else
+        {
+        	
+        }
+        
+        return null;
+    }
+    
+
+    
+    /**
+     * Allows the user to get the id, name, and self link for all storage
+     * systems visible to the provider with the passed id.
+     * 
+     * @param id the URN of a ViPR Storage provider
+     * 
+     * @brief return the storage configuration that is in cinder.conf.
+     * @return cinder.conf configuration details
+     * 
+     */
+    @PUT
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("/{id}/cinder-config")
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR })
+    public StorageSystemList updateCinderStorageProviderConfig(@PathParam("id") URI id) {
+
+        // Validate the provider
+        ArgValidator.checkFieldUriType(id, StorageProvider.class, "id");
+        StorageProvider provider = _dbClient.queryObject(StorageProvider.class, id);
+        ArgValidator.checkEntityNotNull(provider, id, isIdEmbeddedInURL(id));
+
+        if( StorageProvider.InterfaceType.cinder.name().equalsIgnoreCase(provider.getInterfaceType())){
+        	
+        }
+        else
+        {
+        	
+        }   
+        
+        return null;
+    }
+        
+
 }

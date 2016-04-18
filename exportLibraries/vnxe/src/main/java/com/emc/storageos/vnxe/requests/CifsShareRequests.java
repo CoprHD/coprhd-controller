@@ -72,6 +72,7 @@ public class CifsShareRequests extends KHRequests<VNXeCifsShare> {
     public VNXeCommandJob deleteShareForSnapshot(String shareId) {
         _url = URL_SHARE + shareId;
         if (getShare(shareId) != null) {
+	    unsetQueryParameters();
             return deleteRequestAsync(null);
         } else {
             throw VNXeException.exceptions.vnxeCommandFailed("The shareId is not found: " + shareId);
@@ -88,6 +89,7 @@ public class CifsShareRequests extends KHRequests<VNXeCifsShare> {
          VNXeCommandResult result = new VNXeCommandResult();
          _url = URL_SHARE + shareId;
          if (getShare(shareId) != null) {
+             unsetQueryParameters();
              deleteRequest(null);
              result.setSuccess(true);
              return result;

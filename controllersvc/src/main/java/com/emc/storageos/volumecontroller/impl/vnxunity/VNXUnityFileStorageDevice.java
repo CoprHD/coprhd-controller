@@ -531,17 +531,7 @@ public class VNXUnityFileStorageDevice extends VNXUnityOperations
                 String fsId = args.getFs().getNativeId();
                 job = apiClient.removeCifsShare(shareId, fsId);
             } else {
-//                job = apiClient.deleteCifsShareForSnapshot(shareId);
-// Changing to sync call for now because of issues with the Thunderbird api not returning a job id
-                BiosCommandResult result = null;
-                apiClient.deleteCifsShareForSnapshotSync(shareId);
-                StringBuilder logMsgBuilder = new StringBuilder(String.format(
-                     "Deleted smbShare for snapshot - Array:%s, smbShare: %s", storage.getSerialNumber(),
-                      smbFileShare.getName()));
-               _logger.info(logMsgBuilder.toString());
-               result = BiosCommandResult.createSuccessfulResult();
-               return result;
-
+                job = apiClient.deleteCifsShareForSnapshot(shareId);
             }
             if (job != null) {
                 if (isFile) {
@@ -785,7 +775,7 @@ public class VNXUnityFileStorageDevice extends VNXUnityOperations
         VNXeCommandJob job = null;
         VNXeFileTaskCompleter completer = null;
         try {
-            /*job = apiClient.deleteFileSystemSnap(args.getSnapNativeId());
+            job = apiClient.deleteFileSystemSnap(args.getSnapNativeId());
             if (job != null) {
                 completer = new VNXeFileTaskCompleter(Snapshot.class, args.getSnapshotId(), args.getOpId());
                 VNXeDeleteFileSystemSnapshotJob snapJob = new VNXeDeleteFileSystemSnapshotJob(job.getId(), storage.getId(),
@@ -796,15 +786,7 @@ public class VNXUnityFileStorageDevice extends VNXUnityOperations
                 ServiceError error = DeviceControllerErrors.vnxe.jobFailed(
                         "snapshotFileSystem", "No Job returned from deleteFileSystemSnap");
                 return BiosCommandResult.createErrorResult(error);
-            }*/
-        BiosCommandResult result = null;
-	apiClient.deleteFileSystemSnapSync(args.getSnapNativeId());
-             StringBuilder logMsgBuilder = new StringBuilder(String.format(
-                     "Deleted filesystem snapshot - Array:%s, fileSystem: %s, snapshot: %s", storage.getSerialNumber(),
-                      args.getFsName(),  args.getSnapshotLabel()));
-             _logger.info(logMsgBuilder.toString());
-             result = BiosCommandResult.createSuccessfulResult();
-        return result;
+            }
         } catch (VNXeException e) {
             _logger.error("Delete file system snapshot got the exception", e);
             if (completer != null) {
@@ -819,6 +801,11 @@ public class VNXUnityFileStorageDevice extends VNXUnityOperations
             }
             return BiosCommandResult.createErrorResult(error);
         }
+	StringBuilder logMsgBuilder = new StringBuilder(String.format(
+                "Delete filesystem snapshot job submitted - Array:%s, fileSystem: %s, snapshot: %s", storage.getSerialNumber(),
+                args.getFsName(), args.getSnapshotName()));
+        _logger.info(logMsgBuilder.toString());
+        return BiosCommandResult.createPendingResult();
     }
 
     @Override

@@ -96,6 +96,7 @@ public class FileSystemSnapRequests extends KHRequests<VNXeFileSystemSnap> {
         }
         setQueryParameters(null);
         if (getDataForOneObject(VNXeFileSystemSnap.class) != null) {
+	    unsetQueryParameters();
             return deleteRequestAsync(null);
         } else {
             throw VNXeException.exceptions.vnxeCommandFailed(String.format("No filesystem snap %s found",
@@ -114,6 +115,7 @@ public class FileSystemSnapRequests extends KHRequests<VNXeFileSystemSnap> {
          VNXeCommandResult result = new VNXeCommandResult();
          setQueryParameters(null);
          if (getDataForOneObject(VNXeFileSystemSnap.class) != null) {
+             unsetQueryParameters();
              deleteRequest(null);
              result.setSuccess(true);
 	     return result;

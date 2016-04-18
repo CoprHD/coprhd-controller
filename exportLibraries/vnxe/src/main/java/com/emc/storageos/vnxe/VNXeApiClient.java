@@ -919,6 +919,7 @@ public class VNXeApiClient {
             if (comments != null) {
                 nfsCreateParam.setDescription(comments);
             }
+            request.unsetQueryParameters();
             job = request.createShareForSnapshot(nfsCreateParam);
         } else {
             String nfsShareId = nfsShareFound.getId();
@@ -977,6 +978,7 @@ public class VNXeApiClient {
                     nfsModifyParam.setRootAccessHosts(null);
                 }
             }
+            request.unsetQueryParameters();
             job = request.modifyShareForSnapshot(nfsShareId, nfsModifyParam);
         }
         return job;

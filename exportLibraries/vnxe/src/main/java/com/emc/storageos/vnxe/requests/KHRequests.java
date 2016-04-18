@@ -625,10 +625,10 @@ public class KHRequests<T> {
         ClientResponse response = null;
 
         if (param != null) {
-            response = buildRequest(buildResource(_resource)
+            response = buildRequest(addQueryParameters(buildResource(_resource))
                     .getRequestBuilder()).entity(param).delete(ClientResponse.class);
         } else {
-            response = buildRequest(buildResource(_resource)
+            response = buildRequest(addQueryParameters(buildResource(_resource))
                     .getRequestBuilder()).delete(ClientResponse.class);
         }
         return response;

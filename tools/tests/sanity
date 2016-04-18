@@ -2650,6 +2650,7 @@ rp_vplex_setup()
             storageprovider create $RECOVERPOINT_VPLEX_B $RECOVERPOINT_VPLEX_B_IP $RECOVERPOINT_VPLEX_B_PORT $RECOVERPOINT_VPLEX_B_USER $RECOVERPOINT_VPLEX_B_PASSWORD vplex
         fi
     fi
+    sleep 15
 }
 
 rp_port_setup()
@@ -2755,9 +2756,9 @@ rp_isolate_rpa_clusters()
             run protectionsystem update --ip ${remote_ip} --name $RECOVERPOINT --cluster $RECOVERPOINT_RPA_CLUSTER1 --addvarrays $RECOVERPOINT_VARRAY1
             run protectionsystem update --ip ${remote_ip} --name $RECOVERPOINT --cluster $RECOVERPOINT_RPA_CLUSTER3 --addvarrays $RECOVERPOINT_VARRAY2
             run protectionsystem update --ip ${remote_ip} --name $RECOVERPOINT --cluster $RECOVERPOINT_RPA_CLUSTER4 --addvarrays $RECOVERPOINT_VARRAY3
-	else
+        else
             run protectionsystem update --ip ${remote_ip} --name $RECOVERPOINT --cluster $RECOVERPOINT_XIORPA_CLUSTER1 --addvarrays $RECOVERPOINT_VARRAY1
-	fi
+        fi
     fi
 }
 
@@ -2849,7 +2850,7 @@ recoverpoint_auto_snapshot_cleanup_test()
         run volume change_link ${PROJECT}/${src_volume} stop ${PROJECT}/${tgt2_volume} rp
         sleep 15
         run volume change_link ${PROJECT}/${src_volume} start ${PROJECT}/${tgt2_volume} rp
-    fi	
+    fi
 
     secho 'Re-run discovery, RP bookmark should be cleaned up automatically'
     sleep 10
@@ -2865,29 +2866,40 @@ recoverpoint_ingest_host_setup()
     vpool=${1}
 
     if [ "$RP_QUICK_PARAM" == "quick" ]; then
-	CLUSTER1NET_NAME=VSAN_11
+        CLUSTER1NET_NAME=VSAN_11
     else
-	CLUSTER1NET_NAME=FABRIC_losam082-fabric
+        CLUSTER1NET_NAME=FABRIC_losam082-fabric
     fi
 
+    # Make different initiators for different hosts
+    if [ "${rptypetag}" = "" ]; then
+        DD="AA";
+    elif [ "${rptypetag}" = "vplex" ]; then
+        DD="BB";
+    elif [ "${rptypetag}" = "mp" ]; then
+        DD="CC";
+    elif [ "${rptypetag}" = "xio" ]; then
+        DD="DD";
+    fi
+    
     if [ "${vpool}" = "rp${rptypetag}_cdp" ]; then
-        PWWN1=10:00:00:E0:E0:E0:E0:E0
-        WWNN1=20:00:00:E0:E0:E0:E0:E0
-        PWWN2=10:00:00:E0:E0:E0:E0:E1
-        WWNN2=20:00:00:E0:E0:E0:E0:E1
-        RP_HOSTNAME=${RECOVERPOINT_HOST_VARRAY1}cdp
+        PWWN1=10:00:00:E0:E0:E0:${DD}:E0
+        WWNN1=20:00:00:E0:E0:E0:${DD}:E0
+        PWWN2=10:00:00:E0:E0:E0:${DD}:E1
+        WWNN2=20:00:00:E0:E0:E0:${DD}:E1
+        RP_HOSTNAME=${RECOVERPOINT_HOST_VARRAY1}${rptypetag}cdp
     elif [ "${vpool}" = "rp${rptypetag}_crr" ]; then
-        PWWN1=10:00:00:E0:E0:E0:E0:F0
-        WWNN1=20:00:00:E0:E0:E0:E0:F0
-        PWWN2=10:00:00:E0:E0:E0:E0:F1
-        WWNN2=20:00:00:E0:E0:E0:E0:F1
-        RP_HOSTNAME=${RECOVERPOINT_HOST_VARRAY1}crr
+        PWWN1=10:00:00:E0:E0:E0:${DD}:F0
+        WWNN1=20:00:00:E0:E0:E0:${DD}:F0
+        PWWN2=10:00:00:E0:E0:E0:${DD}:F1
+        WWNN2=20:00:00:E0:E0:E0:${DD}:F1
+        RP_HOSTNAME=${RECOVERPOINT_HOST_VARRAY1}${rptypetag}crr
     elif [ "${vpool}" = "rp${rptypetag}_clr" ]; then
-        PWWN1=10:00:00:E0:E0:E0:E0:D0
-        WWNN1=20:00:00:E0:E0:E0:E0:D0
-        PWWN2=10:00:00:E0:E0:E0:E0:D1
-        WWNN2=20:00:00:E0:E0:E0:E0:D1
-        RP_HOSTNAME=${RECOVERPOINT_HOST_VARRAY1}clr
+        PWWN1=10:00:00:E0:E0:E0:${DD}:D0
+        WWNN1=20:00:00:E0:E0:E0:${DD}:D0
+        PWWN2=10:00:00:E0:E0:E0:${DD}:D1
+        WWNN2=20:00:00:E0:E0:E0:${DD}:D1
+        RP_HOSTNAME=${RECOVERPOINT_HOST_VARRAY1}${rptypetag}clr
     fi
 
     run hosts create ${RP_HOSTNAME}1 $TENANT Windows ${RP_HOSTNAME}1 --port 8111 --username user --password 'password' --osversion 1.0 
@@ -2899,20 +2911,20 @@ recoverpoint_ingest_host_setup()
     run transportzone add ${RECOVERPOINT_VARRAY1}/${CLUSTER1NET_NAME} ${PWWN2}
 
     if [ "${vpool}" = "rp${rptypetag}_cdp" ]; then
-        PWWN1=10:00:00:E0:E0:E0:E0:C0
-        WWNN1=20:00:00:E0:E0:E0:E0:C0
-        PWWN2=10:00:00:E0:E0:E0:E0:C1
-        WWNN2=20:00:00:E0:E0:E0:E0:C1
+        PWWN1=10:00:00:E0:E0:E0:${DD}:C0
+        WWNN1=20:00:00:E0:E0:E0:${DD}:C0
+        PWWN2=10:00:00:E0:E0:E0:${DD}:C1
+        WWNN2=20:00:00:E0:E0:E0:${DD}:C1
     elif [ "${vpool}" = "rp${rptypetag}_crr" ]; then
-        PWWN1=10:00:00:E0:E0:E0:E0:B0
-        WWNN1=20:00:00:E0:E0:E0:E0:B0
-        PWWN2=10:00:00:E0:E0:E0:E0:B1
-        WWNN2=20:00:00:E0:E0:E0:E0:B1
+        PWWN1=10:00:00:E0:E0:E0:${DD}:B0
+        WWNN1=20:00:00:E0:E0:E0:${DD}:B0
+        PWWN2=10:00:00:E0:E0:E0:${DD}:B1
+        WWNN2=20:00:00:E0:E0:E0:${DD}:B1
     elif [ "${vpool}" = "rp${rptypetag}_clr" ]; then
-        PWWN1=10:00:00:E0:E0:E0:E0:A0
-        WWNN1=20:00:00:E0:E0:E0:E0:A0
-        PWWN2=10:00:00:E0:E0:E0:E0:A1
-        WWNN2=20:00:00:E0:E0:E0:E0:A1
+        PWWN1=10:00:00:E0:E0:E0:${DD}:A0
+        WWNN1=20:00:00:E0:E0:E0:${DD}:A0
+        PWWN2=10:00:00:E0:E0:E0:${DD}:A1
+        WWNN2=20:00:00:E0:E0:E0:${DD}:A1
     fi
 
     run hosts create ${RP_HOSTNAME}2 $TENANT Windows ${RP_HOSTNAME}2 --port 8111 --username user --password 'password' --osversion 1.0 
@@ -2930,12 +2942,12 @@ recoverpoint_ingest_discovery()
     RP_NATIVEGUID=$RECOVERPOINT_RP_SIM_NATIVEGUID
 
     if [ "$RP_QUICK_PARAM" != "quick" ]; then
-	if [ "${RPXIO_TESTS}" = "1" ]; then
-	    INGEST_NATIVEGUID=$RECOVERPOINT_XTREMIO_GUID
-	else
-	    INGEST_NATIVEGUID=$RECOVERPOINT_STORAGE_ARRAY_A_GUID
-	fi
-	RP_NATIVEGUID=$RECOVERPOINT_RP_NATIVEGUID
+        if [ "${RPXIO_TESTS}" = "1" ]; then
+            INGEST_NATIVEGUID=$RECOVERPOINT_XTREMIO_GUID
+        else
+            INGEST_NATIVEGUID=$RECOVERPOINT_STORAGE_ARRAY_A_GUID
+        fi
+        RP_NATIVEGUID=$RECOVERPOINT_RP_NATIVEGUID
     fi
 
     if [ ${RP_CRR} = "1" -o ${RP_CLR} = "1" -o "${RPMP_TESTS}" = "1" ]; then
@@ -2945,7 +2957,7 @@ recoverpoint_ingest_discovery()
             INGEST_NATIVEGUID2=$VMAX2_SIMULATOR_NATIVEGUID
             INGEST_NATIVEGUID3=$VMAX3_SIMULATOR_NATIVEGUID
         fi
-    fi	
+    fi
 
     secho 'RP ingest discovery'
 
@@ -2958,7 +2970,7 @@ recoverpoint_ingest_discovery()
 
     if [ ${RP_CRR} = "1" -o ${RP_CLR} = "1" ]; then
         run storagedevice discover_namespace $INGEST_NATIVEGUID3 'UNMANAGED_VOLUMES'
-    fi	
+    fi
 
     if [ ${RPVPLEX_TESTS} = "1" -o "${RPMP_TESTS}" = "1" ]; then
         run storagedevice discover_namespace $RECOVERPOINT_VPLEX_A_GUID 'UNMANAGED_VOLUMES'
@@ -3006,7 +3018,7 @@ recoverpoint_snapshot_test()
 
     # RP Simulator can't handle restore operation at this time.
     if [ "$RP_QUICK_PARAM" != "quick" ]; then
-	run_noundo blocksnapshot restore ${PROJECT}/${srcvolume}/${blocksnapname}
+        run_noundo blocksnapshot restore ${PROJECT}/${srcvolume}/${blocksnapname}
     fi
 
     run_noundo blocksnapshot delete ${PROJECT}/${srcvolume}/${blocksnapname}
@@ -3038,34 +3050,46 @@ recoverpoint_ingest_test()
     if [ "${vpool}" = "rp${rptypetag}_cdp" ]; then
         RECOVERPOINT_INGEST_VOL1_TGT=${RECOVERPOINT_INGEST_VOL1_SRC}-target-${RECOVERPOINT_VARRAY1}
         RECOVERPOINT_INGEST_VOL1_TGT_JRNL=${RECOVERPOINT_INGEST_VOL1_SRC}-${RECOVERPOINT_VARRAY1}-journal-2
-	RECOVERPOINT_TGT_VARRAY=${RECOVERPOINT_VARRAY1}
+        RECOVERPOINT_TGT_VARRAY=${RECOVERPOINT_VARRAY1}
 
         if [ "${vpool}" = "rpmp_cdp" ]; then
-	    # Also need to ingest the MP standby production journal, varray2 target and journal volumes as well.
-	    RECOVERPOINT_INGEST_VOL1_STANDBY_SRC_JRNL=${RECOVERPOINT_INGEST_VOL1_SRC}-${RECOVERPOINT_VARRAY2}-journal-1
-	    RECOVERPOINT_INGEST_VOL1_STANDBY_TGT=${RECOVERPOINT_INGEST_VOL1_SRC}-target-${RECOVERPOINT_VARRAY2}
-	    RECOVERPOINT_INGEST_VOL1_STANDBY_TGT_JRNL=${RECOVERPOINT_INGEST_VOL1_SRC}-${RECOVERPOINT_VARRAY2}-journal-2
-	fi
+            # Also need to ingest the MP standby production journal, varray2 target and journal volumes as well.
+            RECOVERPOINT_INGEST_VOL1_STANDBY_SRC_JRNL=${RECOVERPOINT_INGEST_VOL1_SRC}-${RECOVERPOINT_VARRAY2}-journal-1
+            RECOVERPOINT_INGEST_VOL1_STANDBY_TGT=${RECOVERPOINT_INGEST_VOL1_SRC}-target-${RECOVERPOINT_VARRAY2}
+            RECOVERPOINT_INGEST_VOL1_STANDBY_TGT_JRNL=${RECOVERPOINT_INGEST_VOL1_SRC}-${RECOVERPOINT_VARRAY2}-journal-2
+        fi
     elif [ "${vpool}" = "rp${rptypetag}_crr" ]; then
         RECOVERPOINT_INGEST_VOL1_TGT=${RECOVERPOINT_INGEST_VOL1_SRC}-target-${RECOVERPOINT_VARRAY3}
         RECOVERPOINT_INGEST_VOL1_TGT_JRNL=${RECOVERPOINT_INGEST_VOL1_SRC}-${RECOVERPOINT_VARRAY3}-journal-1
         RECOVERPOINT_INGEST_SNAPSHOT_VARRAY=${RECOVERPOINT_VARRAY3}
-	RECOVERPOINT_TGT_VARRAY=${RECOVERPOINT_VARRAY3}
+        RECOVERPOINT_TGT_VARRAY=${RECOVERPOINT_VARRAY3}
+
+        if [ "${vpool}" = "rpmp_crr" ]; then
+            # Also need to ingest the MP standby production journal, varray2 target and journal volumes as well.
+            RECOVERPOINT_INGEST_VOL1_STANDBY_SRC_JRNL=${RECOVERPOINT_INGEST_VOL1_SRC}-${RECOVERPOINT_VARRAY2}-journal-1
+        fi
     elif [ "${vpool}" = "rp${rptypetag}_clr" ]; then
         RECOVERPOINT_INGEST_VOL1_V1TGT=${RECOVERPOINT_INGEST_VOL1_SRC}-target-${RECOVERPOINT_VARRAY1}
         RECOVERPOINT_INGEST_VOL1_V1TGT_JRNL=${RECOVERPOINT_INGEST_VOL1_SRC}-${RECOVERPOINT_VARRAY1}-journal-2
         RECOVERPOINT_INGEST_VOL1_V3TGT=${RECOVERPOINT_INGEST_VOL1_SRC}-target-${RECOVERPOINT_VARRAY3}
         RECOVERPOINT_INGEST_VOL1_V3TGT_JRNL=${RECOVERPOINT_INGEST_VOL1_SRC}-${RECOVERPOINT_VARRAY3}-journal-1
 
+        if [ "${vpool}" = "rpmp_clr" ]; then
+            # Also need to ingest the MP standby production journal, varray2 target and journal volumes as well.
+            RECOVERPOINT_INGEST_VOL1_STANDBY_SRC_JRNL=${RECOVERPOINT_INGEST_VOL1_SRC}-${RECOVERPOINT_VARRAY2}-journal-1
+            RECOVERPOINT_INGEST_VOL1_STANDBY_TGT=${RECOVERPOINT_INGEST_VOL1_SRC}-target-${RECOVERPOINT_VARRAY2}
+            RECOVERPOINT_INGEST_VOL1_STANDBY_TGT_JRNL=${RECOVERPOINT_INGEST_VOL1_SRC}-${RECOVERPOINT_VARRAY2}-journal-2
+        fi
+
         # For post-ingest operations
         RECOVERPOINT_INGEST_VOL1_TGT=${RECOVERPOINT_INGEST_VOL1_V1TGT}
         RECOVERPOINT_INGEST_SNAPSHOT_VARRAY=${RECOVERPOINT_VARRAY3}
-	RECOVERPOINT_TGT_VARRAY=${RECOVERPOINT_VARRAY1}
+        RECOVERPOINT_TGT_VARRAY=${RECOVERPOINT_VARRAY1}
     fi
 
     rp_target_vpool=rp_targets
     if [ "${RPXIO_TESTS}" = "1" ]; then
-	rp_target_vpool=rpxio_targets
+        rp_target_vpool=rpxio_targets
     fi
 
     # Create the consistency group + volume
@@ -3074,7 +3098,7 @@ recoverpoint_ingest_test()
 
     if [ "${shorttest}" -eq "0" ]; then
         # Run snapshot tests
-	recoverpoint_snapshot_test ${RECOVERPOINT_INGEST_VOL1_SRC} ${RECOVERPOINT_TGT_VARRAY} rpsnap1-${RP_MODIFIED_HOSTNAME}-${RANDOM} blocksnap1-${RP_MODIFIED_HOSTNAME}-${RANDOM}
+        recoverpoint_snapshot_test ${RECOVERPOINT_INGEST_VOL1_SRC} ${RECOVERPOINT_TGT_VARRAY} rpsnap1-${RP_MODIFIED_HOSTNAME}-${RANDOM} blocksnap1-${RP_MODIFIED_HOSTNAME}-${RANDOM}
     fi
 
     # Delete the volume and CG
@@ -3086,48 +3110,52 @@ recoverpoint_ingest_test()
 
     rpsnap=rpsnap_for_validation-${RP_MODIFIED_HOSTNAME}-${RANDOM}
     if [ "${vpool}" = "rp${rptypetag}_cdp" ]; then
-	if [ "${shorttest}" -eq "0" ]; then
+        if [ "${shorttest}" -eq "0" ]; then
             # Make sure it fails against a different sync policy than what's on the RPA
-	    fail unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY1} rp${rptypetag}_cdp-sync $PROJECT --volspec "${RECOVERPOINT_INGEST_VOL1_SRC}"
-	    
+            fail unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY1} rp${rptypetag}_cdp-sync $PROJECT --volspec "${RECOVERPOINT_INGEST_VOL1_SRC}"
+            
             # Ingest the volume, but then immediately inventory-only delete it, rediscover, and ingest it again.
-	    run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY1} rp${rptypetag}_cdp $PROJECT --volspec "${RECOVERPOINT_INGEST_VOL1_SRC}"
-	    run_noundo volume delete ${PROJECT}/"${RECOVERPOINT_INGEST_VOL1_SRC}" --vipronly --force
+            run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY1} rp${rptypetag}_cdp $PROJECT --volspec "${RECOVERPOINT_INGEST_VOL1_SRC}"
+            run_noundo volume delete ${PROJECT}/"${RECOVERPOINT_INGEST_VOL1_SRC}" --vipronly --force
             # Recreate unmanaged volumes/protection sets
  
             # Run discovery
-	    recoverpoint_ingest_discovery
-	fi
+            recoverpoint_ingest_discovery
+        fi
 
         run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY1} ${rp_target_vpool} $PROJECT --volspec "${RECOVERPOINT_INGEST_VOL1_TGT}"
         run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY1} ${rp_target_vpool} $PROJECT --volspec "${RECOVERPOINT_INGEST_VOL1_TGT_JRNL}"
 
-	if [ "${shorttest}" -eq "0" ]; then
+        if [ "${shorttest}" -eq "0" ]; then
             # Make sure you fail to create an RP bookmark because you're not fully ingested yet
-	    fail blocksnapshot create ${PROJECT}/${RECOVERPOINT_INGEST_VOL1_SRC} ${rpsnap}1 --type rp
+            fail blocksnapshot create ${PROJECT}/${RECOVERPOINT_INGEST_VOL1_SRC} ${rpsnap}1 --type rp
             # Make sure you fail to create an array snapshot because you're not fully ingested yet
             fail blocksnapshot create ${PROJECT}/${RECOVERPOINT_INGEST_VOL1_TGT} ${rpsnap}2
-	fi
+        fi
 
         if [ "${vpool}" = "rpmp_cdp" ]; then
-	    # MP active production journal
+            # MP active production journal
             run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY1} rpvplexlocal_noprotection $PROJECT --volspec "${RECOVERPOINT_INGEST_VOL1_SRC_JRNL}"
-	    # MP standby production journal
+            # MP standby production journal
             run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY2} rpvplexlocal_noprotection $PROJECT --volspec "${RECOVERPOINT_INGEST_VOL1_STANDBY_SRC_JRNL}"
-	    # MP target CDP on varray2
-	    run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY2} rp_targets $PROJECT --volspec "${RECOVERPOINT_INGEST_VOL1_STANDBY_TGT}"
-	    run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY2} rp_targets $PROJECT --volspec "${RECOVERPOINT_INGEST_VOL1_STANDBY_TGT_JRNL}"
+            # MP target CDP on varray2
+            run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY2} rp_targets $PROJECT --volspec "${RECOVERPOINT_INGEST_VOL1_STANDBY_TGT}"
+            run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY2} rp_targets $PROJECT --volspec "${RECOVERPOINT_INGEST_VOL1_STANDBY_TGT_JRNL}"
         else
-	    run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY1} ${rp_target_vpool} $PROJECT --volspec "${RECOVERPOINT_INGEST_VOL1_SRC_JRNL}"
+            run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY1} ${rp_target_vpool} $PROJECT --volspec "${RECOVERPOINT_INGEST_VOL1_SRC_JRNL}"
         fi
         run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY1} rp${rptypetag}_cdp $PROJECT --volspec "${RECOVERPOINT_INGEST_VOL1_SRC}"
     elif [ "${vpool}" = "rp${rptypetag}_crr" ]; then
         run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY3} ${rp_target_vpool} $PROJECT --volspec "${RECOVERPOINT_INGEST_VOL1_TGT}"
         run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY3} ${rp_target_vpool} $PROJECT --volspec "${RECOVERPOINT_INGEST_VOL1_TGT_JRNL}"
         if [ "${vpool}" = "rpvplex_crr" -o "${vpool}" = "rpmp_crr" ]; then
-            run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY1} rpvplex_ha $PROJECT --volspec "${RECOVERPOINT_INGEST_VOL1_SRC_JRNL}"
+            run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY1} rpvplexlocal_noprotection $PROJECT --volspec "${RECOVERPOINT_INGEST_VOL1_SRC_JRNL}"
         else
             run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY1} ${rp_target_vpool} $PROJECT --volspec "${RECOVERPOINT_INGEST_VOL1_SRC_JRNL}"
+        fi
+        if [ "${vpool}" = "rpmp_crr" ]; then
+            # MP standby production journal
+            run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY2} rpvplexlocal_noprotection $PROJECT --volspec "${RECOVERPOINT_INGEST_VOL1_STANDBY_SRC_JRNL}"
         fi
         run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY1} rp${rptypetag}_crr $PROJECT --volspec "${RECOVERPOINT_INGEST_VOL1_SRC}"
     elif [ "${vpool}" = "rp${rptypetag}_clr" ]; then
@@ -3135,7 +3163,19 @@ recoverpoint_ingest_test()
         run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY1} ${rp_target_vpool} $PROJECT --volspec "${RECOVERPOINT_INGEST_VOL1_V1TGT_JRNL}"
         run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY3} ${rp_target_vpool} $PROJECT --volspec "${RECOVERPOINT_INGEST_VOL1_V3TGT}"
         run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY3} ${rp_target_vpool} $PROJECT --volspec "${RECOVERPOINT_INGEST_VOL1_V3TGT_JRNL}"
-        run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY1} ${rp_target_vpool} $PROJECT --volspec "${RECOVERPOINT_INGEST_VOL1_SRC_JRNL}"
+
+        if [ "${vpool}" = "rpmp_clr" ]; then
+            # MP active production journal
+            run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY1} rpvplexlocal_noprotection $PROJECT --volspec "${RECOVERPOINT_INGEST_VOL1_SRC_JRNL}"
+            # MP standby production journal
+            run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY2} rpvplexlocal_noprotection $PROJECT --volspec "${RECOVERPOINT_INGEST_VOL1_STANDBY_SRC_JRNL}"
+            # MP target CDP on varray2
+            run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY2} rp_targets $PROJECT --volspec "${RECOVERPOINT_INGEST_VOL1_STANDBY_TGT}"
+            run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY2} rp_targets $PROJECT --volspec "${RECOVERPOINT_INGEST_VOL1_STANDBY_TGT_JRNL}"
+        else
+            run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY1} ${rp_target_vpool} $PROJECT --volspec "${RECOVERPOINT_INGEST_VOL1_SRC_JRNL}"
+        fi
+
         run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY1} rp${rptypetag}_clr $PROJECT --volspec "${RECOVERPOINT_INGEST_VOL1_SRC}"
     fi
 
@@ -3144,10 +3184,10 @@ recoverpoint_ingest_test()
 
     # Run snapshot tests
     if [ "${shorttest}" -eq "0" ]; then
-	recoverpoint_snapshot_test ${RECOVERPOINT_INGEST_VOL1_SRC} ${RECOVERPOINT_TGT_VARRAY} rpsnap2-${RP_MODIFIED_HOSTNAME}-${RANDOM} blocksnap2-${RP_MODIFIED_HOSTNAME}-${RANDOM}
+        recoverpoint_snapshot_test ${RECOVERPOINT_INGEST_VOL1_SRC} ${RECOVERPOINT_TGT_VARRAY} rpsnap2-${RP_MODIFIED_HOSTNAME}-${RANDOM} blocksnap2-${RP_MODIFIED_HOSTNAME}-${RANDOM}
 
         # now perform failover tests
-	recoverpoint_failover_test "${RECOVERPOINT_INGEST_VOL1_SRC}" "${RECOVERPOINT_INGEST_VOL1_TGT}"
+        recoverpoint_failover_test "${RECOVERPOINT_INGEST_VOL1_SRC}" "${RECOVERPOINT_INGEST_VOL1_TGT}"
     fi
 
     # Add a volume to the protection
@@ -3155,7 +3195,7 @@ recoverpoint_ingest_test()
 
     if [ "${shorttest}" -eq "0" ]; then
         # Run snapshot tests
-	recoverpoint_snapshot_test ${RECOVERPOINT_INGEST_VOL1_SRC} ${RECOVERPOINT_TGT_VARRAY} rpsnap3-${RP_MODIFIED_HOSTNAME}-${RANDOM} blocksnap3-${RP_MODIFIED_HOSTNAME}-${RANDOM}
+        recoverpoint_snapshot_test ${RECOVERPOINT_INGEST_VOL1_SRC} ${RECOVERPOINT_TGT_VARRAY} rpsnap3-${RP_MODIFIED_HOSTNAME}-${RANDOM} blocksnap3-${RP_MODIFIED_HOSTNAME}-${RANDOM}
     fi
 
     # Remove a volume from the protection
@@ -3172,67 +3212,85 @@ recoverpoint_ingest_test()
 
     # Re-ingest
     if [ "${vpool}" = "rp${rptypetag}_cdp" ]; then
-	if [ "${shorttest}" -eq "0" ]; then
+        if [ "${shorttest}" -eq "0" ]; then
             # Ingest the volume, but then immediately inventory-only delete it, rediscover, and ingest it again.
-	    run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY1} ${rp_target_vpool} $PROJECT --volspec "${RECOVERPOINT_INGEST_VOL1_TGT}"
-	    run_noundo volume delete ${PROJECT}/"${RECOVERPOINT_INGEST_VOL1_TGT}" --vipronly --force
+            run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY1} ${rp_target_vpool} $PROJECT --volspec "${RECOVERPOINT_INGEST_VOL1_TGT}"
+            run_noundo volume delete ${PROJECT}/"${RECOVERPOINT_INGEST_VOL1_TGT}" --vipronly --force
             # Recreate unmanaged volumes/protection sets
 
             # Run discovery
-	    recoverpoint_ingest_discovery
-	fi
-
-	run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY1} ${rp_target_vpool} $PROJECT --volspec "${RECOVERPOINT_INGEST_VOL1_TGT}"
-	run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY1} ${rp_target_vpool} $PROJECT --volspec "${RECOVERPOINT_INGEST_VOL1_TGT_JRNL}"
-        if [ "${vpool}" = "rpmp_cdp" ]; then
-	    # MP active production journal
-            run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY1} rpvplexlocal_noprotection $PROJECT --volspec "${RECOVERPOINT_INGEST_VOL1_SRC_JRNL}"
-	    # MP standby production journal
-            run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY2} rpvplexlocal_noprotection $PROJECT --volspec "${RECOVERPOINT_INGEST_VOL1_STANDBY_SRC_JRNL}"
-	    # MP target CDP on varray2
-	    run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY2} rp_targets $PROJECT --volspec "${RECOVERPOINT_INGEST_VOL1_STANDBY_TGT}"
-	    run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY2} rp_targets $PROJECT --volspec "${RECOVERPOINT_INGEST_VOL1_STANDBY_TGT_JRNL}"
-        else
-	    run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY1} ${rp_target_vpool} $PROJECT --volspec "${RECOVERPOINT_INGEST_VOL1_SRC_JRNL}"
+            recoverpoint_ingest_discovery
         fi
-	run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY1} rp${rptypetag}_cdp $PROJECT --volspec "${RECOVERPOINT_INGEST_VOL1_SRC}"
-        # Verify the CG got created; fail script if this fails.
-        run blockconsistencygroup show ViPR-"${RECOVERPOINT_INGEST_VOL1_CG}"
-	if [ "${shorttest}" -eq "0" ]; then
-	    recoverpoint_auto_snapshot_cleanup_test "${RECOVERPOINT_INGEST_VOL1_SRC}" "${RECOVERPOINT_INGEST_VOL1_TGT}" ${RECOVERPOINT_INGEST_SNAPSHOT_VARRAY} ${RECOVERPOINT_INGEST_VOL1_STANDBY_TGT}
-	fi
-    elif [ "${vpool}" = "rp${rptypetag}_crr" ]; then
-	run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY1} rp${rptypetag}_crr $PROJECT --volspec "${RECOVERPOINT_INGEST_VOL1_SRC}"
-	run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY3} ${rp_target_vpool} $PROJECT --volspec "${RECOVERPOINT_INGEST_VOL1_TGT}"
-	run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY3} ${rp_target_vpool} $PROJECT --volspec "${RECOVERPOINT_INGEST_VOL1_TGT_JRNL}"
-        if [ "${vpool}" = "rpvplex_crr" -o "${vpool}" = "rpmp_crr" ]; then
-            run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY1} rpvplex_ha $PROJECT --volspec "${RECOVERPOINT_INGEST_VOL1_SRC_JRNL}"
+
+        run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY1} ${rp_target_vpool} $PROJECT --volspec "${RECOVERPOINT_INGEST_VOL1_TGT}"
+        run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY1} ${rp_target_vpool} $PROJECT --volspec "${RECOVERPOINT_INGEST_VOL1_TGT_JRNL}"
+        if [ "${vpool}" = "rpmp_cdp" ]; then
+            # MP active production journal
+            run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY1} rpvplexlocal_noprotection $PROJECT --volspec "${RECOVERPOINT_INGEST_VOL1_SRC_JRNL}"
+            # MP standby production journal
+            run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY2} rpvplexlocal_noprotection $PROJECT --volspec "${RECOVERPOINT_INGEST_VOL1_STANDBY_SRC_JRNL}"
+            # MP target CDP on varray2
+            run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY2} rp_targets $PROJECT --volspec "${RECOVERPOINT_INGEST_VOL1_STANDBY_TGT}"
+            run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY2} rp_targets $PROJECT --volspec "${RECOVERPOINT_INGEST_VOL1_STANDBY_TGT_JRNL}"
         else
             run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY1} ${rp_target_vpool} $PROJECT --volspec "${RECOVERPOINT_INGEST_VOL1_SRC_JRNL}"
         fi
+        run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY1} rp${rptypetag}_cdp $PROJECT --volspec "${RECOVERPOINT_INGEST_VOL1_SRC}"
         # Verify the CG got created; fail script if this fails.
         run blockconsistencygroup show ViPR-"${RECOVERPOINT_INGEST_VOL1_CG}"
-	if [ "${shorttest}" -eq "0" ]; then
-	    recoverpoint_auto_snapshot_cleanup_test "${RECOVERPOINT_INGEST_VOL1_SRC}" "${RECOVERPOINT_INGEST_VOL1_TGT}" ${RECOVERPOINT_INGEST_SNAPSHOT_VARRAY}
-	fi
-    elif [ "${vpool}" = "rp${rptypetag}_clr" ]; then
-	run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY1} rp${rptypetag}_clr $PROJECT --volspec "${RECOVERPOINT_INGEST_VOL1_SRC}"
-	run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY1} ${rp_target_vpool} $PROJECT --volspec "${RECOVERPOINT_INGEST_VOL1_V1TGT}"
-	run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY1} ${rp_target_vpool} $PROJECT --volspec "${RECOVERPOINT_INGEST_VOL1_V1TGT_JRNL}"
-	run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY3} ${rp_target_vpool} $PROJECT --volspec "${RECOVERPOINT_INGEST_VOL1_V3TGT}"
-	run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY3} ${rp_target_vpool} $PROJECT --volspec "${RECOVERPOINT_INGEST_VOL1_V3TGT_JRNL}"
-	run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY1} ${rp_target_vpool} $PROJECT --volspec "${RECOVERPOINT_INGEST_VOL1_SRC_JRNL}"
-        # Verify the CG got created; fail script if this fails.
-        run blockconsistencygroup show ViPR-"${RECOVERPOINT_INGEST_VOL1_CG}"
-	if [ "${shorttest}" -eq "0" ]; then
-	    recoverpoint_auto_snapshot_cleanup_test "${RECOVERPOINT_INGEST_VOL1_SRC}" "${RECOVERPOINT_INGEST_VOL1_TGT}" ${RECOVERPOINT_INGEST_SNAPSHOT_VARRAY} "${RECOVERPOINT_INGEST_VOL1_V3TGT}"
-	fi
-    fi
+        if [ "${shorttest}" -eq "0" ]; then
+            recoverpoint_auto_snapshot_cleanup_test "${RECOVERPOINT_INGEST_VOL1_SRC}" "${RECOVERPOINT_INGEST_VOL1_TGT}" ${RECOVERPOINT_INGEST_SNAPSHOT_VARRAY} ${RECOVERPOINT_INGEST_VOL1_STANDBY_TGT}
+        fi
+    elif [ "${vpool}" = "rp${rptypetag}_crr" ]; then
+        run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY1} rp${rptypetag}_crr $PROJECT --volspec "${RECOVERPOINT_INGEST_VOL1_SRC}"
+        run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY3} ${rp_target_vpool} $PROJECT --volspec "${RECOVERPOINT_INGEST_VOL1_TGT}"
+        run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY3} ${rp_target_vpool} $PROJECT --volspec "${RECOVERPOINT_INGEST_VOL1_TGT_JRNL}"
 
+        if [ "${vpool}" = "rpmp_crr" ]; then
+            # MP standby production journal
+            run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY2} rpvplexlocal_noprotection $PROJECT --volspec "${RECOVERPOINT_INGEST_VOL1_STANDBY_SRC_JRNL}"
+        fi
+
+        if [ "${vpool}" = "rpvplex_crr" -o "${vpool}" = "rpmp_crr" ]; then
+            run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY1} rpvplexlocal_noprotection $PROJECT --volspec "${RECOVERPOINT_INGEST_VOL1_SRC_JRNL}"
+        else
+            run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY1} ${rp_target_vpool} $PROJECT --volspec "${RECOVERPOINT_INGEST_VOL1_SRC_JRNL}"
+        fi
+
+        # Verify the CG got created; fail script if this fails.
+        run blockconsistencygroup show ViPR-"${RECOVERPOINT_INGEST_VOL1_CG}"
+        if [ "${shorttest}" -eq "0" ]; then
+            recoverpoint_auto_snapshot_cleanup_test "${RECOVERPOINT_INGEST_VOL1_SRC}" "${RECOVERPOINT_INGEST_VOL1_TGT}" ${RECOVERPOINT_INGEST_SNAPSHOT_VARRAY}
+        fi
+    elif [ "${vpool}" = "rp${rptypetag}_clr" ]; then
+        run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY1} rp${rptypetag}_clr $PROJECT --volspec "${RECOVERPOINT_INGEST_VOL1_SRC}"
+        run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY1} ${rp_target_vpool} $PROJECT --volspec "${RECOVERPOINT_INGEST_VOL1_V1TGT}"
+        run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY1} ${rp_target_vpool} $PROJECT --volspec "${RECOVERPOINT_INGEST_VOL1_V1TGT_JRNL}"
+        run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY3} ${rp_target_vpool} $PROJECT --volspec "${RECOVERPOINT_INGEST_VOL1_V3TGT}"
+        run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY3} ${rp_target_vpool} $PROJECT --volspec "${RECOVERPOINT_INGEST_VOL1_V3TGT_JRNL}"
+
+        if [ "${vpool}" = "rpmp_clr" ]; then
+            # MP active production journal
+            run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY1} rpvplexlocal_noprotection $PROJECT --volspec "${RECOVERPOINT_INGEST_VOL1_SRC_JRNL}"
+            # MP standby production journal
+            run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY2} rpvplexlocal_noprotection $PROJECT --volspec "${RECOVERPOINT_INGEST_VOL1_STANDBY_SRC_JRNL}"
+            # MP target CDP on varray2
+            run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY2} rp_targets $PROJECT --volspec "${RECOVERPOINT_INGEST_VOL1_STANDBY_TGT}"
+            run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY2} rp_targets $PROJECT --volspec "${RECOVERPOINT_INGEST_VOL1_STANDBY_TGT_JRNL}"
+        else
+            run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY1} ${rp_target_vpool} $PROJECT --volspec "${RECOVERPOINT_INGEST_VOL1_SRC_JRNL}"
+        fi
+
+        # Verify the CG got created; fail script if this fails.
+        run blockconsistencygroup show ViPR-"${RECOVERPOINT_INGEST_VOL1_CG}"
+        if [ "${shorttest}" -eq "0" ]; then
+            recoverpoint_auto_snapshot_cleanup_test "${RECOVERPOINT_INGEST_VOL1_SRC}" "${RECOVERPOINT_INGEST_VOL1_TGT}" ${RECOVERPOINT_INGEST_SNAPSHOT_VARRAY} "${RECOVERPOINT_INGEST_VOL1_V3TGT}"
+        fi
+    fi
 
     if [ "${shorttest}" -eq "0" ]; then
         # Run snapshot tests
-	recoverpoint_snapshot_test ${RECOVERPOINT_INGEST_VOL1_SRC} ${RECOVERPOINT_TGT_VARRAY} rpsnap4-${RP_MODIFIED_HOSTNAME}-${RANDOM} blocksnap4-${RP_MODIFIED_HOSTNAME}-${RANDOM}
+        recoverpoint_snapshot_test ${RECOVERPOINT_INGEST_VOL1_SRC} ${RECOVERPOINT_TGT_VARRAY} rpsnap4-${RP_MODIFIED_HOSTNAME}-${RANDOM} blocksnap4-${RP_MODIFIED_HOSTNAME}-${RANDOM}
     fi
 
     # Real removal of volume/CG
@@ -3281,20 +3339,31 @@ recoverpoint_ingest_export_test()
         RECOVERPOINT_INGEST_EXPORT_VOL1_TGT_JRNL=${RECOVERPOINT_INGEST_EXPORT_VOL1_SRC}-${RECOVERPOINT_VARRAY1}-journal-2
 
         if [ "${vpool}" = "rpmp_cdp" ]; then
-    	    # Also need to ingest the MP standby production journal, varray2 target and journal volumes as well.
-	    RECOVERPOINT_INGEST_EXPORT_VOL1_STANDBY_SRC_JRNL=${RECOVERPOINT_INGEST_EXPORT_VOL1_SRC}-${RECOVERPOINT_VARRAY2}-journal-1
-	    RECOVERPOINT_INGEST_EXPORT_VOL1_STANDBY_TGT=${RECOVERPOINT_INGEST_EXPORT_VOL1_SRC}-target-${RECOVERPOINT_VARRAY2}
-	    RECOVERPOINT_INGEST_EXPORT_VOL1_STANDBY_TGT_JRNL=${RECOVERPOINT_INGEST_EXPORT_VOL1_SRC}-${RECOVERPOINT_VARRAY2}-journal-2
-	fi
+                # Also need to ingest the MP standby production journal, varray2 target and journal volumes as well.
+            RECOVERPOINT_INGEST_EXPORT_VOL1_STANDBY_SRC_JRNL=${RECOVERPOINT_INGEST_EXPORT_VOL1_SRC}-${RECOVERPOINT_VARRAY2}-journal-1
+            RECOVERPOINT_INGEST_EXPORT_VOL1_STANDBY_TGT=${RECOVERPOINT_INGEST_EXPORT_VOL1_SRC}-target-${RECOVERPOINT_VARRAY2}
+            RECOVERPOINT_INGEST_EXPORT_VOL1_STANDBY_TGT_JRNL=${RECOVERPOINT_INGEST_EXPORT_VOL1_SRC}-${RECOVERPOINT_VARRAY2}-journal-2
+        fi
     elif [ "${vpool}" = "rp${rptypetag}_crr" ]; then
         RECOVERPOINT_INGEST_EXPORT_VOL1_TGT=${RECOVERPOINT_INGEST_EXPORT_VOL1_SRC}-target-${RECOVERPOINT_VARRAY3}
         RECOVERPOINT_INGEST_EXPORT_VOL1_TGT_JRNL=${RECOVERPOINT_INGEST_EXPORT_VOL1_SRC}-${RECOVERPOINT_VARRAY3}-journal-1
         RECOVERPOINT_INGEST_SNAPSHOT_VARRAY=${RECOVERPOINT_VARRAY3}
+        if [ "${vpool}" = "rpmp_crr" ]; then
+                # Also need to ingest the MP standby production journal, varray2 target and journal volumes as well.
+            RECOVERPOINT_INGEST_EXPORT_VOL1_STANDBY_SRC_JRNL=${RECOVERPOINT_INGEST_EXPORT_VOL1_SRC}-${RECOVERPOINT_VARRAY2}-journal-1
+        fi
     elif [ "${vpool}" = "rp${rptypetag}_clr" ]; then
         RECOVERPOINT_INGEST_EXPORT_VOL1_V1TGT=${RECOVERPOINT_INGEST_EXPORT_VOL1_SRC}-target-${RECOVERPOINT_VARRAY1}
         RECOVERPOINT_INGEST_EXPORT_VOL1_V1TGT_JRNL=${RECOVERPOINT_INGEST_EXPORT_VOL1_SRC}-${RECOVERPOINT_VARRAY1}-journal-2
         RECOVERPOINT_INGEST_EXPORT_VOL1_V3TGT=${RECOVERPOINT_INGEST_EXPORT_VOL1_SRC}-target-${RECOVERPOINT_VARRAY3}
         RECOVERPOINT_INGEST_EXPORT_VOL1_V3TGT_JRNL=${RECOVERPOINT_INGEST_EXPORT_VOL1_SRC}-${RECOVERPOINT_VARRAY3}-journal-1
+
+        if [ "${vpool}" = "rpmp_clr" ]; then
+            # Also need to ingest the MP standby production journal, varray2 target and journal volumes as well.
+            RECOVERPOINT_INGEST_EXPORT_VOL1_STANDBY_SRC_JRNL=${RECOVERPOINT_INGEST_EXPORT_VOL1_SRC}-${RECOVERPOINT_VARRAY2}-journal-1
+            RECOVERPOINT_INGEST_EXPORT_VOL1_STANDBY_TGT=${RECOVERPOINT_INGEST_EXPORT_VOL1_SRC}-target-${RECOVERPOINT_VARRAY2}
+            RECOVERPOINT_INGEST_EXPORT_VOL1_STANDBY_TGT_JRNL=${RECOVERPOINT_INGEST_EXPORT_VOL1_SRC}-${RECOVERPOINT_VARRAY2}-journal-2
+        fi
 
         # For post-ingest operations
         RECOVERPOINT_INGEST_EXPORT_VOL1_TGT=${RECOVERPOINT_INGEST_EXPORT_VOL1_V1TGT}
@@ -3314,15 +3383,15 @@ recoverpoint_ingest_export_test()
         run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY1} ${rp_target_vpool} $PROJECT --volspec "${RECOVERPOINT_INGEST_EXPORT_VOL1_TGT}"
         run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY1} ${rp_target_vpool} $PROJECT --volspec "${RECOVERPOINT_INGEST_EXPORT_VOL1_TGT_JRNL}"
         if [ "${vpool}" = "rpmp_cdp" ]; then
-	    # MP active production journal
+            # MP active production journal
             run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY1} rpvplexlocal_noprotection $PROJECT --volspec "${RECOVERPOINT_INGEST_EXPORT_VOL1_SRC_JRNL}"
-	    # MP standby production journal
+            # MP standby production journal
             run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY2} rpvplexlocal_noprotection $PROJECT --volspec "${RECOVERPOINT_INGEST_EXPORT_VOL1_STANDBY_SRC_JRNL}"
-	    # MP target CDP on varray2
-	    run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY2} rp_targets $PROJECT --volspec "${RECOVERPOINT_INGEST_EXPORT_VOL1_STANDBY_TGT}"
-	    run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY2} rp_targets $PROJECT --volspec "${RECOVERPOINT_INGEST_EXPORT_VOL1_STANDBY_TGT_JRNL}"
+            # MP target CDP on varray2
+            run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY2} rp_targets $PROJECT --volspec "${RECOVERPOINT_INGEST_EXPORT_VOL1_STANDBY_TGT}"
+            run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY2} rp_targets $PROJECT --volspec "${RECOVERPOINT_INGEST_EXPORT_VOL1_STANDBY_TGT_JRNL}"
         else
-	    run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY1} ${rp_target_vpool} $PROJECT --volspec "${RECOVERPOINT_INGEST_EXPORT_VOL1_SRC_JRNL}"
+            run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY1} ${rp_target_vpool} $PROJECT --volspec "${RECOVERPOINT_INGEST_EXPORT_VOL1_SRC_JRNL}"
         fi
         run unmanagedvolume ingest_export ${RECOVERPOINT_VARRAY1} rp${rptypetag}_cdp $PROJECT --volspec "${RECOVERPOINT_INGEST_EXPORT_VOL1_SRC}" --host ${RP_HOSTNAME}1
         run unmanagedvolume ingest_export ${RECOVERPOINT_VARRAY1} rp${rptypetag}_cdp $PROJECT --volspec "${RECOVERPOINT_INGEST_EXPORT_VOL1_SRC}" --host ${RP_HOSTNAME}2
@@ -3330,8 +3399,12 @@ recoverpoint_ingest_export_test()
     elif [ "${vpool}" = "rp${rptypetag}_crr" ]; then
         run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY3} ${rp_target_vpool} $PROJECT --volspec "${RECOVERPOINT_INGEST_EXPORT_VOL1_TGT}"
         run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY3} ${rp_target_vpool} $PROJECT --volspec "${RECOVERPOINT_INGEST_EXPORT_VOL1_TGT_JRNL}"
+        if [ "${vpool}" = "rpmp_crr" ]; then
+            # MP standby production journal
+            run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY2} rpvplexlocal_noprotection $PROJECT --volspec "${RECOVERPOINT_INGEST_EXPORT_VOL1_STANDBY_SRC_JRNL}"
+        fi
         if [ "${vpool}" = "rpvplex_crr" -o "${vpool}" = "rpmp_crr" ]; then
-            run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY1} rpvplex_ha $PROJECT --volspec "${RECOVERPOINT_INGEST_EXPORT_VOL1_SRC_JRNL}"
+            run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY1} rpvplexlocal_noprotection $PROJECT --volspec "${RECOVERPOINT_INGEST_EXPORT_VOL1_SRC_JRNL}"
         else
             run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY1} ${rp_target_vpool} $PROJECT --volspec "${RECOVERPOINT_INGEST_EXPORT_VOL1_SRC_JRNL}"
         fi
@@ -3343,7 +3416,19 @@ recoverpoint_ingest_export_test()
         run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY1} ${rp_target_vpool} $PROJECT --volspec "${RECOVERPOINT_INGEST_EXPORT_VOL1_V1TGT_JRNL}"
         run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY3} ${rp_target_vpool} $PROJECT --volspec "${RECOVERPOINT_INGEST_EXPORT_VOL1_V3TGT}"
         run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY3} ${rp_target_vpool} $PROJECT --volspec "${RECOVERPOINT_INGEST_EXPORT_VOL1_V3TGT_JRNL}"
-        run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY1} ${rp_target_vpool} $PROJECT --volspec "${RECOVERPOINT_INGEST_EXPORT_VOL1_SRC_JRNL}"
+
+        if [ "${vpool}" = "rpmp_clr" ]; then
+            # MP active production journal
+            run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY1} rpvplexlocal_noprotection $PROJECT --volspec "${RECOVERPOINT_INGEST_EXPORT_VOL1_SRC_JRNL}"
+            # MP standby production journal
+            run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY2} rpvplexlocal_noprotection $PROJECT --volspec "${RECOVERPOINT_INGEST_EXPORT_VOL1_STANDBY_SRC_JRNL}"
+            # MP target CDP on varray2
+            run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY2} rp_targets $PROJECT --volspec "${RECOVERPOINT_INGEST_EXPORT_VOL1_STANDBY_TGT}"
+            run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY2} rp_targets $PROJECT --volspec "${RECOVERPOINT_INGEST_EXPORT_VOL1_STANDBY_TGT_JRNL}"
+        else
+            run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY1} ${rp_target_vpool} $PROJECT --volspec "${RECOVERPOINT_INGEST_EXPORT_VOL1_SRC_JRNL}"
+        fi
+
         run unmanagedvolume ingest_export ${RECOVERPOINT_VARRAY1} rp${rptypetag}_clr $PROJECT --volspec "${RECOVERPOINT_INGEST_EXPORT_VOL1_SRC}" --host ${RP_HOSTNAME}1
         run unmanagedvolume ingest_export ${RECOVERPOINT_VARRAY1} rp${rptypetag}_clr $PROJECT --volspec "${RECOVERPOINT_INGEST_EXPORT_VOL1_SRC}" --host ${RP_HOSTNAME}2
         RECOVERPOINT_TGT_VARRAY=${RECOVERPOINT_VARRAY1}
@@ -3356,7 +3441,7 @@ recoverpoint_ingest_export_test()
 
     if [ "${shorttest}" -eq "0" ]; then
         # Run snapshot tests
-	recoverpoint_snapshot_test ${RECOVERPOINT_INGEST_EXPORT_VOL1_SRC} ${RECOVERPOINT_TGT_VARRAY} rpsnap5-${RP_MODIFIED_HOSTNAME}-${RANDOM} blocksnap5-${RP_MODIFIED_HOSTNAME}-${RANDOM}
+        recoverpoint_snapshot_test ${RECOVERPOINT_INGEST_EXPORT_VOL1_SRC} ${RECOVERPOINT_TGT_VARRAY} rpsnap5-${RP_MODIFIED_HOSTNAME}-${RANDOM} blocksnap5-${RP_MODIFIED_HOSTNAME}-${RANDOM}
     fi
 
     # TBD: Add volume group snapshot creation, snap, delete support here.
@@ -3371,6 +3456,39 @@ recoverpoint_ingest_export_test()
     run_noundo export_group delete ${PROJECT}/${RP_HOSTNAME}2
     run_noundo volume delete ${PROJECT}/"${RECOVERPOINT_INGEST_EXPORT_VOL1_SRC}" --wait
     run_noundo blockconsistencygroup delete ViPR-${RECOVERPOINT_INGEST_EXPORT_VOL1_CG}
+}
+
+recoverpoint_ingest()
+{
+    rptypetag=${1}
+
+    # Ingest specific tests
+    secho "RP ingest ${rptypetag} volumes"
+
+    if [ "$RP_CDP" = "1" ] ; then
+        recoverpoint_ingest_test rp${rptypetag}_cdp
+        if [ "${RPXIO_TESTS}" = "0" ]; then
+            recoverpoint_ingest_export_test rp${rptypetag}_cdp
+        else
+            secho "XIO Export Tests Disabled; Export host registration in physical network needs work"
+        fi
+    fi
+
+    if [ "$RP_CRR" = "1" ] ; then
+        recoverpoint_ingest_test rp${rptypetag}_crr
+        recoverpoint_ingest_export_test rp${rptypetag}_crr
+    fi
+    
+    if [ "$RP_CLR" = "1" ] ; then
+        if [ "$RPMP_CLR" = "1" ] ; then
+            secho "RP MetroPoint CLR Test is currently not working due to a placement error.  Bypassing."
+            return;
+        fi
+        recoverpoint_ingest_test rp${rptypetag}_clr
+        recoverpoint_ingest_export_test rp${rptypetag}_clr
+    fi
+
+    secho "RP ingest ${rptypetag} tests complete"
 }
 
 recoverpoint_failover_test()
@@ -3671,8 +3789,8 @@ recoverpoint_simulator_setup()
     run syssvc $CONFIG_FILE $BOURNE_IPADDR set_prop controller_discovery_refresh_interval 5
 
     # Simulators being used
-    run smisprovider create $PROVIDER_SIMULATOR $RP_PROVIDER_SIMULATOR_IP $RP_VMAX_SMIS_SIM_PORT $SMIS_USER "$SMIS_PASSWD" false
     run networksystem create $FABRIC_SIMULATOR  mds --devip $SIMULATOR_CISCO_MDS_IP --devport 22 --username $RP_FABRIC_SIM_USER --password $RP_FABRIC_SIM_PW
+    run smisprovider create $PROVIDER_SIMULATOR $RP_PROVIDER_SIMULATOR_IP $RP_VMAX_SMIS_SIM_PORT $SMIS_USER "$SMIS_PASSWD" false
     
     if [ "${RPVPLEX_TESTS}" = "1" -o "${RPMP_TESTS}" = "1" ]; then
         storageprovider show ${RECOVERPOINT_VPLEX_A} &> /dev/null && return $?
@@ -3783,7 +3901,7 @@ recoverpoint_setup()
             secho 'RecoverPoint Simulator setup'
             recoverpoint_simulator_setup
         else
-	    # This is intentionally a local-only execution for now.  Regular sanity for RP should always have RP_RUN_SETUP turned on.
+            # This is intentionally a local-only execution for now.  Regular sanity for RP should always have RP_RUN_SETUP turned on.
             RP_SANITY_RANDOM=`/opt/storageos/bin/dbutils list UnManagedVolume | grep label | awk '{print $3}' | cut -c10-12 | head -1`
             secho "Determine existing volume label uses random value: ${RP_SANITY_RANDOM}"
         fi
@@ -3940,39 +4058,25 @@ recoverpoint_tests()
         rpxiovolume=${RP_METROPOINT_VOLUME}
         rpxiovolumetarget=${xiovolume}'-target-'${rpxio_active_tgt_varray}
 
-
-        if [ "$RPVPLEX_TESTS" = "1" ]; then
-            rptypetag="vplex"
-        elif [ "${RPMP_TESTS}" = "1" ]; then
-            rptypetag="mp"
-        elif [ "${RPXIO_TESTS}" = "1" ]; then
-            rptypetag="xio"
-        fi
-
-        # Ingest specific tests
+        # Ingestion Tests
         if [ "$RP_INGESTTESTS" = "1" ]; then
-            secho 'RP ingest volumes'
-
-            if [ "$RP_CDP" = "1" ] ; then
-                recoverpoint_ingest_test rp${rptypetag}_cdp
-                if [ "${RPXIO_TESTS}" = "0" ]; then
-                    recoverpoint_ingest_export_test rp${rptypetag}_cdp
-                else
-                    secho "XIO Export Tests Disabled; Export host registration in physical network needs work"
-                fi
+            if [ "$RP_TESTS" = "1" ]; then
+                recoverpoint_ingest ""
             fi
 
-            if [ "$RP_CRR" = "1" ] ; then
-                recoverpoint_ingest_test rp${rptypetag}_crr
-                recoverpoint_ingest_export_test rp${rptypetag}_crr
+            if [ "$RPVPLEX_TESTS" = "1" ]; then
+                recoverpoint_ingest "vplex"
             fi
-                    
-            if [ "$RP_CLR" = "1" ] ; then
-                recoverpoint_ingest_test rp${rptypetag}_clr
-                recoverpoint_ingest_export_test rp${rptypetag}_clr
+            
+            if [ "${RPMP_TESTS}" = "1" ]; then
+                recoverpoint_ingest "mp"
             fi
 
-            secho "RP ingest tests complete"
+            if [ "${RPXIO_TESTS}" = "1" ]; then
+                recoverpoint_ingest "xio"
+            fi
+            
+            # For now, if ingestion is turned on, complete the tests.  Once everything is stable, ingestion should just be part of normal RP testing.
             return
         fi
 
@@ -3996,7 +4100,6 @@ recoverpoint_tests()
             secho 'XIO volume create...'
             run volume create ${rpxiovolume} $PROJECT ${rpxio_src_varray} ${rpxio_src_vpool} $RP_VOLUME_SIZE --consistencyGroup $RP_XIO_CONSISTENCY_GROUP --count=$RP_VOLUME_COUNT
         fi
-
 
         # Have to account for "-1" being added to volume name if
         # volume count is greater than 1.
@@ -4045,7 +4148,7 @@ recoverpoint_tests()
         do
           rp_tgt_volumes=("${rp_tgt_volumes[@]}" "${rpvolume}-target-${tgt}${volume_name_modifier}")
         done
-	
+        
         # Compile a list of target volume names that have been created for RP+VPlex
         rp_vplex_tgt_volumes=()
         for tgt in ${rpvplex_tgt_varrays}
@@ -4053,7 +4156,7 @@ recoverpoint_tests()
           rp_vplex_tgt_volumes=("${rp_vplex_tgt_volumes[@]}" "${rpvplexvolume}-target-${tgt}${volume_name_modifier}")
         done
         
-        # Compile a list of target volume names that have been created for MetroPoint		
+        # Compile a list of target volume names that have been created for MetroPoint
         rpmp_tgt_volumes=()
         for tgt in ${rpmp_tgt_varrays}
         do
@@ -4101,7 +4204,7 @@ recoverpoint_tests()
 
                 # Failover Test
                 recoverpoint_failover_test ${rpvplexvolume}${volume_name_modifier} ${rpvplexvolumetarget}${volume_name_modifier}
-				
+
                 # CG Failover/Swap Test
                 recoverpoint_cg_failover_test ${RP_VPLEX_CONSISTENCY_GROUP} ${rpvplexvolume}${volume_name_modifier} ${rpvplex_src_varray} ${rp_vplex_tgt_volumes} ${rp_tgt_varrays}
 
@@ -4122,7 +4225,7 @@ recoverpoint_tests()
 
                 # Failover Test
                 recoverpoint_failover_test ${rpmpvolume}${volume_name_modifier} ${rpmpvolumetarget}${volume_name_modifier}
-				
+
                 # CG Failover/Swap Test
                 recoverpoint_cg_failover_test ${RP_METROPOINT_CONSISTENCY_GROUP} ${rpmpvolume}${volume_name_modifier} ${rpmp_src_varray} ${rpmp_tgt_volumes} ${rpmp_tgt_varrays}
 
@@ -4167,7 +4270,7 @@ recoverpoint_tests()
 hds_cos_setup()
 {
     run cos create block $COS_HDS               \
-	--description 'Virtual-Pool-for-HDS' true  \
+                      --description 'Virtual-Pool-for-HDS' true  \
                       --protocols FC \
                       --numpaths 1              \
                       --provisionType 'Thin'        \
@@ -4416,8 +4519,8 @@ vnxe_setup_once()
 
     vnxe_discovery
 
-	vnxe_cos_setup
-	
+    vnxe_cos_setup
+
     storagepool update $VNXE_NATIVEGUID --type file
 
     storageport update $VNXE_NATIVEGUID IP --tzone nh/iptz

@@ -285,6 +285,7 @@ public abstract class AbstractSecuredWebServer {
         if (_app != null) {
             ResourceConfig config = new DefaultResourceConfig();
             config.add(_app);
+ 
             Map<String, MediaType> type = config.getMediaTypeMappings();
             type.put("json", MediaType.APPLICATION_JSON_TYPE);
             type.put("xml", MediaType.APPLICATION_XML_TYPE);

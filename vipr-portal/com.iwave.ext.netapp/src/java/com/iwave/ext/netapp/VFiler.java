@@ -131,7 +131,7 @@ public class VFiler {
         if (result != null) {
 
             for (NaElement protocolInfo : (List<NaElement>) result.getChildren()) {
-                protocols.add(protocolInfo.getChildContent("protocol"));
+                protocols.add(protocolInfo.getChildContent("protocol").toUpperCase());
             }
         }
 

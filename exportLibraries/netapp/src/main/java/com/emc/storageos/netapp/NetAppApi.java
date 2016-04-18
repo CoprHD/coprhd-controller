@@ -433,7 +433,7 @@ public class NetAppApi {
             throws NetAppException {
         try {
             netAppFacade = new NetAppFacade(_ipAddress, _portNumber, _userName,
-                    _password, _https);
+                    _password, _https, _vFilerName);
             return netAppFacade.listNFSExportRules(pathName);
         } catch (Exception e) {
             throw NetAppException.exceptions.listNFSExportRulesFailed(pathName);
@@ -462,7 +462,7 @@ public class NetAppApi {
             Collection<String> attrs) throws NetAppException {
         try {
             netAppFacade = new NetAppFacade(_ipAddress, _portNumber, _userName,
-                    _password, _https);
+                    _password, _https, _vFilerName);
             return netAppFacade.listVolumeInfo(volume, attrs);
         } catch (Exception e) {
             throw NetAppException.exceptions.listVolumeInfoFailed(volume);
@@ -472,7 +472,7 @@ public class NetAppApi {
     public List<String> listVolumes() throws NetAppException {
         try {
             netAppFacade = new NetAppFacade(_ipAddress, _portNumber, _userName,
-                    _password, _https);
+                    _password, _https, _vFilerName);
             return netAppFacade.listVolumes();
         } catch (Exception e) {
             throw NetAppException.exceptions.listVolumeInfoFailed(null);
@@ -705,7 +705,7 @@ public class NetAppApi {
     public List<Map<String, String>> listShares(String shareName) throws NetAppException {
         try {
             netAppFacade = new NetAppFacade(_ipAddress, _portNumber, _userName,
-                    _password, _https);
+                    _password, _https, _vFilerName);
             return netAppFacade.listCIFSShares(shareName);
         } catch (Exception e) {
             throw NetAppException.exceptions.listSharesFailed(shareName,

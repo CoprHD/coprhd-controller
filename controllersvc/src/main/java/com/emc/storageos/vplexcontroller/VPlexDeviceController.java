@@ -1323,11 +1323,15 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
      * @param volumeURIs The URIs of the VPLEX backend volumes.
      * 
      * @return A list of the native volume information for the passed backend volumes.
+     * If any volumes are missing or inactive, they are ignored and not returned.
      */
     private List<VolumeInfo> getNativeVolumeInfo(List<URI> volumeURIs) {
         List<VolumeInfo> nativeVolumeInfoList = new ArrayList<>();
         for (URI volumeURI : volumeURIs) {
-            Volume volume = getDataObject(Volume.class, volumeURI, _dbClient);
+            Volume volume = _dbClient.queryObject(Volume.class, volumeURI);
+            if (volume == null || volume.getInactive()) {
+                continue;
+            }
             StorageSystem volumeSystem = getDataObject(StorageSystem.class, volume.getStorageController(), _dbClient);
             List<String> itls = VPlexControllerUtils.getVolumeITLs(volume);
             VolumeInfo vInfo = new VolumeInfo(volumeSystem.getNativeGuid(), volumeSystem.getSystemType(),

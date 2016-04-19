@@ -954,7 +954,9 @@ public class BackupOps {
                         && !backupTag.contains(BackupConstants.BACKUP_NAME_DELIMITER),
                 "Invalid backup name: %s", backupTag);
 
-        String pattern="(vipr[1-5])([^1-5]|$)";
+        // The backupname should not contain 'vipr1,vipr2,...,vipr5'
+        // or we will not be able to separate backup files for each node.
+        String pattern="(vipr[1-5].*)";
         Pattern hostnameReg=Pattern.compile(pattern);
         Matcher m = hostnameReg.matcher(backupTag);
         boolean match = false;
@@ -965,7 +967,7 @@ public class BackupOps {
             }
 
             match = true;
-            builder.append(m.group(1));
+            builder.append(m.group(0));
         }
 
         if (match) {

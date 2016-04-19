@@ -272,6 +272,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             args.setVPool(vPool);
             args.setNativeDeviceFsId(nativeId);
             args.setOpId(opId);
+            args.setStorageSystem(storageObj);
 
             Project proj = _dbClient.queryObject(Project.class, fsObj.getProject());
             TenantOrg tenant = _dbClient.queryObject(TenantOrg.class, fsObj.getTenant());

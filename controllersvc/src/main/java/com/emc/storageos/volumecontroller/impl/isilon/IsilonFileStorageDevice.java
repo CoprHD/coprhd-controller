@@ -25,6 +25,7 @@ import com.emc.storageos.customconfigcontroller.impl.CustomConfigHandler;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
+import com.emc.storageos.db.client.model.CustomConfig;
 import com.emc.storageos.db.client.model.FSExportMap;
 import com.emc.storageos.db.client.model.FileExport;
 import com.emc.storageos.db.client.model.FileShare;
@@ -80,6 +81,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
     private static final Logger _log = LoggerFactory.getLogger(IsilonFileStorageDevice.class);
 
     private static final String IFS_ROOT = "/ifs";
+    private static final String FW_SLASH = "/";
     private static final String VIPR_DIR = "vipr";
 
     private static final String QUOTA = "quota";
@@ -866,8 +868,9 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
             String tenantOrg = null;
             VirtualNAS vNAS = args.getvNAS();
             String vNASPath = null;
-
-            _log.info("the custom path is  {}", getCustomPath());
+            _log.info("the custom path is  {}", getCustomPath(args));
+            String customPath = "";
+            customPath = getCustomPath(args);
             if (vNAS != null) {
                 vNASPath = vNAS.getBaseDirPath();
                 _log.info("vNAS base directory path: {}", vNASPath);
@@ -912,6 +915,11 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
 
             _log.info("Mount path to mount the Isilon File System {}", mountPath);
             args.setFsMountPath(mountPath);
+            if (!customPath.isEmpty()) {
+
+                args.setFsMountPath(customPath + FW_SLASH + args.getFsName());
+
+            }
 
             args.setFsNativeGuid(args.getFsMountPath());
             args.setFsNativeId(args.getFsMountPath());
@@ -2611,20 +2619,99 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
      * @return
      */
 
-    private String getCustomPath() {
+    private String getCustomPath(FileDeviceInputOutput args) {
 
-        String fsRoot = IFS_ROOT;
+        String path = "";
 
         try {
-            String customPath = customConfigHandler.getComputedCustomConfigValue(CustomConfigConstants.ISILON_FILE_SHARE_CUSTOM_PATH,
-                    "isilon", null);
 
-            if (customPath != null && !customPath.isEmpty()) {
-                fsRoot = customPath;
+            CustomConfig level0 = customConfigHandler.getUserDefinedCustomConfig("dirLevel0");
+            if (level0 != null) {
+                String level0Type = level0.getScope().get("dirLevel0");
+                String level0Value = level0.getValue();
+                path = path + FW_SLASH + getStringValue(level0Type, level0Value, args);
+            } else {
+
+                return path;
             }
+
+            CustomConfig level1 = customConfigHandler.getUserDefinedCustomConfig("dirLevel1");
+            if (level1 != null) {
+                String level1Type = level1.getScope().get("dirLevel1");
+                String level1Value = level1.getValue();
+                path = path + FW_SLASH + getStringValue(level1Type, level1Value, args);
+            } else {
+
+                return path;
+            }
+
+            CustomConfig level2 = customConfigHandler.getUserDefinedCustomConfig("dirLevel2");
+            if (level2 != null) {
+                String level2Type = level2.getScope().get("dirLevel2");
+                String level2Value = level2.getValue();
+                path = path + FW_SLASH + getStringValue(level2Type, level2Value, args);
+            } else {
+
+                return path;
+            }
+
+            CustomConfig level3 = customConfigHandler.getUserDefinedCustomConfig("dirLevel3");
+            if (level3 != null) {
+                String level3Type = level3.getScope().get("dirLevel3");
+                String level3Value = level3.getValue();
+                path = path + FW_SLASH + getStringValue(level3Type, level3Value, args);
+            } else {
+
+                return path;
+            }
+            CustomConfig level4 = customConfigHandler.getUserDefinedCustomConfig("dirLevel4");
+            if (level4 != null) {
+
+                String level4Type = level4.getScope().get("dirLevel4");
+                String level4Value = level4.getValue();
+                path = path + FW_SLASH + getStringValue(level4Type, level4Value, args);
+            }
+            else {
+
+                return path;
+            }
+
+            CustomConfig level5 = customConfigHandler.getUserDefinedCustomConfig("dirLevel5");
+            if (level5 != null) {
+
+                String level5Type = level5.getScope().get("dirLevel5");
+                String level5Value = level5.getValue();
+                path = path + FW_SLASH + getStringValue(level5Type, level5Value, args);
+            }
+            else {
+
+                return path;
+            }
+
         } catch (Exception e) {
             _log.debug(e.getMessage());
         }
-        return fsRoot;
+        return path;
+    }
+
+    private String getStringValue(String levelType, String levelValue, FileDeviceInputOutput args) {
+
+        if (levelType.equalsIgnoreCase("ClusterName")) {
+            IsilonApi isi = getIsilonDevice(args.getStorageSystem());
+            return isi.getClusterConfig().getName();
+        }
+        if (levelType.equalsIgnoreCase("VirtualPool")) {
+
+            return args.getVPoolNameWithNoSpecialCharacters();
+        }
+        if (levelType.equalsIgnoreCase("ProjectName")) {
+
+            return args.getProjectNameWithNoSpecialCharacters();
+        }
+        if (levelType.equalsIgnoreCase("TenantName")) {
+
+            return args.getTenantNameWithNoSpecialCharacters();
+        }
+        return levelValue;
     }
 }

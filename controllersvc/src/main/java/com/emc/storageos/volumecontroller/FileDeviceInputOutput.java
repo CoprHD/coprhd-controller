@@ -18,6 +18,7 @@ import com.emc.storageos.db.client.model.SMBShareMap;
 import com.emc.storageos.db.client.model.SchedulePolicy;
 import com.emc.storageos.db.client.model.Snapshot;
 import com.emc.storageos.db.client.model.StoragePool;
+import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.TenantOrg;
 import com.emc.storageos.db.client.model.VirtualNAS;
@@ -75,6 +76,8 @@ public class FileDeviceInputOutput {
     private List<ShareACL> shareAclsToModify = new ArrayList<>();
     private List<ShareACL> shareAclsToDelete = new ArrayList<>();
     private List<ShareACL> existingShareAcls = new ArrayList<>();
+
+    private StorageSystem storageSystem;
 
     // New additions for vNAS
     private VirtualNAS vNAS;
@@ -996,6 +999,14 @@ public class FileDeviceInputOutput {
 
     public void setvNAS(VirtualNAS vNAS) {
         this.vNAS = vNAS;
+    }
+
+    public StorageSystem getStorageSystem() {
+        return storageSystem;
+    }
+
+    public void setStorageSystem(StorageSystem storageSystem) {
+        this.storageSystem = storageSystem;
     }
 
 }

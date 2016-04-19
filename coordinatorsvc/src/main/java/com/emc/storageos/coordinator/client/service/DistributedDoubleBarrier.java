@@ -209,7 +209,7 @@ public class DistributedDoubleBarrier
 
     private boolean internalLeave(long startMs, boolean hasMaxWait, long maxWaitMs) throws Exception
     {
-        logger.trace(">>> internalLeave {}", ourPath);
+        logger.info(">>> internalLeave {}", ourPath);
 
         String          ourPathName = ZKPaths.getNodeFromPath(ourPath);
         boolean         ourNodeShouldExist = true;
@@ -252,7 +252,7 @@ public class DistributedDoubleBarrier
                 }
             }
 
-            logger.trace("children:{}", children);
+            logger.info("children:{}", children);
             if ( children.size() == 1 )
             {
                 if ( ourNodeShouldExist && !children.get(0).equals(ourPathName) )
@@ -311,6 +311,7 @@ public class DistributedDoubleBarrier
     {
         if ( shouldExist )
         {
+            logger.info(">>> deleting " + ourPath);
             client.delete().forPath(ourPath);
         }
     }

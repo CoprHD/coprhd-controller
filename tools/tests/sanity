@@ -735,6 +735,8 @@ zone_setup()
         wwn=`pwwn $i`
         run transportzone add $FCTZ_B $wwn
     done
+
+    trap '_failure $LINENO' ERR
 }
 
 brocade_setup_once() 
@@ -9077,12 +9079,12 @@ fail(){
         echo $cmd succeeded, which should not have happened
 	cat ${CMD_OUTPUT}
         echo '**********************************************************************'
-        trap _failure ERR
+        trap '_failure $LINENO' ERR
         set_undo $cmd
         exit 1
     fi
     secho "$cmd failed, which is the expected ouput"
-    trap _failure ERR
+    trap '_failure $LINENO' ERR
 }
 
 trap '_failure $LINENO' ERR INT

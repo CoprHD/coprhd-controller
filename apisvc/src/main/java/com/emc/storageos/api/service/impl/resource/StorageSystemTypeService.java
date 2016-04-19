@@ -230,8 +230,9 @@ public class StorageSystemTypeService extends TaskResourceService {
 	@CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
 	@Consumes({ MediaType.APPLICATION_OCTET_STREAM, MediaType.MULTIPART_FORM_DATA })
 	@Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-	public Response uploadFile(@FormDataParam("file") InputStream fileInputStream,
-			@FormDataParam("file") FormDataContentDisposition contentDispositionHeader) {
+	public Response uploadFile(
+			@FormDataParam("deviceDriver") InputStream fileInputStream,
+			@FormDataParam("deviceDriver") FormDataContentDisposition contentDispositionHeader) {
 		log.info("Upload of device driver file started, time: " + System.currentTimeMillis());
 
 		String filePath = UPLOAD_DEVICE_DRIVER; // + contentDispositionHeader.getFileName();
@@ -239,7 +240,7 @@ public class StorageSystemTypeService extends TaskResourceService {
 		saveFile(fileInputStream, filePath);
 		//String output = "File saved to server location : " + filePath;
 		log.info("Device driver file uploaded at " + filePath);
-		return Response.ok().build(); //.status(200).build();
+		return Response.ok().build();
 	}
 
 	@Override

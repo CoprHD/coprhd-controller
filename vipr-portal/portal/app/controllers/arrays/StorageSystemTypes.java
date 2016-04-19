@@ -117,9 +117,9 @@ public class StorageSystemTypes extends ViprResourceController {
 			Response restResponse;
 			try {
 				FileInputStream fs = new FileInputStream(deviceDriverFile);
+				deviceDriverFile.getName();
 
-				FileDataBodyPart fdp = new FileDataBodyPart("file", deviceDriverFile,
-						MediaType.APPLICATION_OCTET_STREAM_TYPE);
+				FileDataBodyPart fdp = new FileDataBodyPart("deviceDriver", deviceDriverFile, MediaType.APPLICATION_OCTET_STREAM_TYPE);
 
 				@SuppressWarnings("resource")
 				MultiPart mdf = new FormDataMultiPart().bodyPart(fdp);

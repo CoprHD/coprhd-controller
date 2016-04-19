@@ -55,7 +55,7 @@ public class StorageSystemTypeService extends TaskResourceService {
 
 	private static final Logger log = LoggerFactory.getLogger(StorageSystemTypeService.class);
 	private static final String EVENT_SERVICE_TYPE = "StorageSystemTypeService";
-	private static final String UPLOAD_DEVICE_DRIVER = "/data";
+	private static final String UPLOAD_DEVICE_DRIVER = "/tmp/drivers/";
 	private static final String ALL_TYPE = "all";
 
 	/**
@@ -234,12 +234,12 @@ public class StorageSystemTypeService extends TaskResourceService {
 			@FormDataParam("file") FormDataContentDisposition contentDispositionHeader) {
 		log.info("Upload of device driver file started, time: " + System.currentTimeMillis());
 
-		String filePath = UPLOAD_DEVICE_DRIVER + contentDispositionHeader.getFileName();
+		String filePath = UPLOAD_DEVICE_DRIVER; // + contentDispositionHeader.getFileName();
 		// save the file to the server
 		saveFile(fileInputStream, filePath);
-		String output = "File saved to server location : " + filePath;
-		log.info("Device driver file uploaded.");
-		return Response.status(200).entity(output).build();
+		//String output = "File saved to server location : " + filePath;
+		log.info("Device driver file uploaded at " + filePath);
+		return Response.ok().build(); //.status(200).build();
 	}
 
 	@Override
@@ -288,7 +288,7 @@ public class StorageSystemTypeService extends TaskResourceService {
 			OutputStream outpuStream = new FileOutputStream(new File(serverLocation));
 			int read = 0;
 			byte[] bytes = new byte[1024];
-			outpuStream = new FileOutputStream(new File(serverLocation));
+			//outpuStream = new FileOutputStream(new File(serverLocation));
 			while ((read = uploadedInputStream.read(bytes)) != -1) {
 				outpuStream.write(bytes, 0, read);
 			}

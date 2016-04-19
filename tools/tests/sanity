@@ -682,6 +682,7 @@ balance()
 #
 zone_setup()
 {
+    echo "Running zone setup..."
     # do this only once
     neighborhood show $NH  &> /dev/null && return $?
 
@@ -1697,8 +1698,8 @@ consistencygroup_block_cos_setup()
 
 vplex_cos_setup()
 {
-    run cos create block cosvplexlocal                            \
-	--description 'Local-CoS-for-VPlex' false \
+    run cos create block cosvplexlocal true                           \
+	--description 'Local-CoS-for-VPlex' \
                      --protocols FC                           \
                      --numpaths 2                             \
                      --provisionType 'Thin'                   \
@@ -1721,8 +1722,8 @@ vplex_cos_setup()
 	run cos update block cosvplexlocal --storage $VPLEX_VMAX_NATIVEGUID
     fi
 
-    run cos create block cosvplexdist                                   \
-	--description 'Distributed-CoS-for-VPlex' false \
+    run cos create block cosvplexdist true                                  \
+	--description 'Distributed-CoS-for-VPlex' \
                      --protocols FC                                 \
                      --numpaths 2                                   \
                      --provisionType 'Thin'                         \
@@ -1752,6 +1753,7 @@ vplex_setup()
 
 vplex_setup_once()
 {
+    common_setup
     if [ "$AUTH" == 'ipv6' ] ; then
 	echo "Setting up VPLEX environment for IPv6"
 	# Discover the storage systems 
@@ -1778,13 +1780,13 @@ vplex_setup_once()
 	echo "Configuring MDS/Cisco Simulator using SSH on: $VPLEX_SIM_MDS_IP"
 	run networksystem create $FABRIC_SIMULATOR  mds --devip $VPLEX_SIM_MDS_IP --devport 22 --username $VPLEX_SIM_MDS_USER --password $VPLEX_SIM_MDS_PW
 	transportzone listall
-	run transportzone assign ${SIMULATOR_VSAN_11} ${NH}
-        run transportzone assign ${SIMULATOR_VSAN_12} ${NH2}
+	#run transportzone assign ${SIMULATOR_VSAN_11} ${NH}
+        #run transportzone assign ${SIMULATOR_VSAN_12} ${NH2}
 
 	# Discover the storage systems 
 	echo "Discovering back-end storage arrays using ECOM/SMIS simulator on: $VPLEX_SIM_SMIS_IP..."
 	smisprovider show $VPLEX_SIM_SMIS_DEV_NAME &> /dev/null && return $?
-	run smisprovider create $VPLEX_SIM_SMIS_DEV_NAME $VPLEX_SIM_SMIS_IP 5988 $VPLEX_SIM_SMIS_USER "$VPLEX_SIM_SMIS_PASSWD" false
+	run smisprovider create $VPLEX_SIM_SMIS_DEV_NAME $VPLEX_SIM_SMIS_IP $VPLEX_VMAX_SMIS_SIM_PORT $VPLEX_SIM_SMIS_USER "$VPLEX_SIM_SMIS_PASSWD" false
 
 	echo "Discovering VPLEX using simulator on: ${VPLEX_SIM_IP}..."
 	storageprovider show $VPLEX_SIM_DEV_NAME &> /dev/null && return $?
@@ -1813,9 +1815,9 @@ vplex_setup_once()
 	# Discover the storage systems 
 	echo "Discovering Storage Assets"
 	smisprovider show $VPLEX_VMAX_SMIS_DEV_NAME &> /dev/null && return $?
-	run smisprovider create $VPLEX_VMAX_SMIS_DEV_NAME $VPLEX_VMAX_SMIS_IP 5988 $VPLEX_SMIS_USER "$VPLEX_SMIS_PASSWD" false
-	run smisprovider create $VPLEX_VNX1_SMIS_DEV_NAME $VPLEX_VNX1_SMIS_IP 5988 $VPLEX_SMIS_USER "$VPLEX_SMIS_PASSWD" false
-	run smisprovider create $VPLEX_VNX2_SMIS_DEV_NAME $VPLEX_VNX2_SMIS_IP 5988 $VPLEX_SMIS_USER "$VPLEX_SMIS_PASSWD" false
+	run smisprovider create $VPLEX_VMAX_SMIS_DEV_NAME $VPLEX_VMAX_SMIS_IP 5989 $VPLEX_SMIS_USER "$VPLEX_SMIS_PASSWD" true
+	run smisprovider create $VPLEX_VNX1_SMIS_DEV_NAME $VPLEX_VNX1_SMIS_IP 5989 $VPLEX_SMIS_USER "$VPLEX_SMIS_PASSWD" true
+	run smisprovider create $VPLEX_VNX2_SMIS_DEV_NAME $VPLEX_VNX2_SMIS_IP 5989 $VPLEX_SMIS_USER "$VPLEX_SMIS_PASSWD" true
 	storageprovider show $VPLEX_DEV_NAME &> /dev/null && return $?
 	run storageprovider create $VPLEX_DEV_NAME $VPLEX_IP 443 $VPLEX_USER "$VPLEX_PASSWD" vplex
 	run storagedevice discover_all
@@ -1890,6 +1892,8 @@ vplex_tests()
 	run volume create $distVolume1 $PROJECT $NH cosvplexdist $BLK_SIZE
 	run volume create $distVolume2 $PROJECT $NH cosvplexdist $BLK_SIZE
 
+        run volume list $PROJECT
+
 	echo "**** Creating local mirrors for the Distributed volumes on the source side"
 	run blockmirror attach  $PROJECT/$distVolume1 $distSrcLocalMirror1 1
 	run blockmirror attach  $PROJECT/$distVolume2 $distSrcLocalMirror2 1
@@ -1898,33 +1902,33 @@ vplex_tests()
 	run blockmirror deactivate  $PROJECT/$distVolume2 $distSrcLocalMirror2$sourceSideSuffix
 	
 	echo "**** Creating host"
-	hosts create $hostLbl $TENANT Windows $host --port 8111 --username user --password 'password' --osversion 1.0
+	run hosts create $hostLbl $TENANT Windows $host --port 8111 --username user --password 'password' --osversion 1.0
 	
 	echo "**** Creating initiators"
-	initiator create $hostLbl FC $PWWN1 --node $WWNN1
-	initiator create $hostLbl FC $PWWN2 --node $WWNN2
+	run initiator create $hostLbl FC $PWWN1 --node $WWNN1
+	run initiator create $hostLbl FC $PWWN2 --node $WWNN2
 	
 	echo "**** Adding WWNs to Network"
 	run transportzone add ${NH}/${CLUSTER1NET_NAME} $PWWN1
 	run transportzone add ${NH}/${CLUSTER1NET_NAME} $PWWN2
 	
 	echo "**** Exporting VPLEX volumes to host in varray " $NH
-	run export_group create $PROJECT $hname-1$host $NH --volspec "$PROJECT/$distVolume1+1" --inits "$hostLbl/$PWWN1","$hostLbl/$PWWN2"
-	run export_group update $PROJECT/$hname-1$host --addVolspec $PROJECT/$distVolume2+2
-	run export_group update $PROJECT/$hname-1$host --addVolspec $PROJECT/$localVolume1+3
-	run export_group update $PROJECT/$hname-1$host --addVolspec $PROJECT/$localVolume2-1+4
+	run export_group create $PROJECT $hname-1$host $NH --volspec "$PROJECT/$distVolume1" --inits "$hostLbl/$PWWN1","$hostLbl/$PWWN2"
+	run export_group update $PROJECT/$hname-1$host --addVolspec $PROJECT/$distVolume2
+	run export_group update $PROJECT/$hname-1$host --addVolspec $PROJECT/$localVolume1
+	run export_group update $PROJECT/$hname-1$host --addVolspec $PROJECT/$localVolume2-1
 	
-	echo "**** Exporting VPLEX volumes to host in varray " $NH2
+	# echo "**** Exporting VPLEX volumes to host in varray " $NH2
         # run export_group create $PROJECT $hname-2$host $NH2 --volspec "$PROJECT/$distVolume1+1" --inits "$hostLbl/$PWWN2"
 	echo "Exports for $distVolume1"
-	volume exports "$PROJECT/$distVolume1" --v
+	volume exports $PROJECT/$distVolume1 --v
 	echo "Exports for $distVolume2"
-	volume exports "$PROJECT/$distVolume2" --v
+	volume exports $PROJECT/$distVolume2 --v
 	echo "Exports for $localVolume1"
-	volume exports "$PROJECT/$localVolume1" --v
+	volume exports $PROJECT/$localVolume1 --v
 	echo "Exports for $localVolume2-1"
-	volume exports "$PROJECT/$localVolume1" --v
-
+	volume exports $PROJECT/$localVolume1 --v
+	
 	echo "**** Creating VPLEX volume snapshots"
 	run blocksnapshot create $PROJECT/$localVolume1 $localSnapshot
 	blocksnapshot list $PROJECT/$localVolume1
@@ -4897,6 +4901,7 @@ login_nd_configure_smtp_nd_add_licenses()
 #
 common_setup()
 {
+    echo "Running common setup..."
     sec_start_ldap_server
     login_nd_configure_smtp_nd_add_licenses
 

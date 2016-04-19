@@ -564,12 +564,11 @@ public class FileReplicationDeviceController implements FileOrchestrationInterfa
                 List<URI> combined = new ArrayList<URI>();
                 combined.add(sourceFileShare.getId());
                 combined.add(targetFileShare.getId());
+                taskCompleter = new MirrorFileFailbackTaskCompleter(FileShare.class, combined, taskId);
                 // call device specific action
                 if (StorageSystem.Type.isilon.name().equals(primaryStorage.name())) {
-                    taskCompleter = new MirrorFileFailbackTaskCompleter(FileShare.class, combined, taskId);
                     isilonSyncIQFailback(workflow, primarysystem, sourceFileShare, targetFileShare, taskId);
                 } else if (StorageSystem.Type.netapp.name().equals(primaryStorage.name())) {
-                    taskCompleter = new MirrorFileFailbackTaskCompleter(FileShare.class, combined, taskId);
                     netappSnapMirrorFailback(workflow, primarysystem, sourceFileShare, targetFileShare, taskId);
                 } else {
                     throw DeviceControllerException.exceptions.operationNotSupported();

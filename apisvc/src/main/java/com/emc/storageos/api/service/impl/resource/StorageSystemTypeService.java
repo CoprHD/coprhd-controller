@@ -235,7 +235,7 @@ public class StorageSystemTypeService extends TaskResourceService {
 			@FormDataParam("deviceDriver") FormDataContentDisposition contentDispositionHeader) {
 		log.info("Upload of device driver file started, time: " + System.currentTimeMillis());
 
-		String filePath = UPLOAD_DEVICE_DRIVER; // + contentDispositionHeader.getFileName();
+		String filePath = UPLOAD_DEVICE_DRIVER + contentDispositionHeader.getFileName();
 		// save the file to the server
 		saveFile(fileInputStream, filePath);
 		//String output = "File saved to server location : " + filePath;

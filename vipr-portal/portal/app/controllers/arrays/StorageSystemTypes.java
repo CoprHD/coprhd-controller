@@ -91,7 +91,7 @@ public class StorageSystemTypes extends ViprResourceController {
 	@FlashException("list")
 	@Restrictions({ @Restrict("SECURITY_ADMIN"), @Restrict("RESTRICTED_SECURITY_ADMIN") })
 	public static void delete(@As(",") String[] ids) {
-		for(String id: ids) {
+		for (String id : ids) {
 			StorageSystemTypeUtils.deleteStorageSystemType(id);
 		}
 		flash.success(MessagesUtils.get(DELETED_SUCCESS));
@@ -112,19 +112,20 @@ public class StorageSystemTypes extends ViprResourceController {
 	}
 
 	public static void uploadDriver(File deviceDriverFile) {
-		
+
 		if (deviceDriverFile != null) {
 			Response restResponse;
 			try {
 				FileInputStream fs = new FileInputStream(deviceDriverFile);
-				
-				FileDataBodyPart fdp = new FileDataBodyPart ("devicedriver", deviceDriverFile, MediaType.APPLICATION_OCTET_STREAM_TYPE);
+
+				FileDataBodyPart fdp = new FileDataBodyPart("file", deviceDriverFile,
+						MediaType.APPLICATION_OCTET_STREAM_TYPE);
 
 				@SuppressWarnings("resource")
-				MultiPart entity = new FormDataMultiPart().bodyPart(fdp);
-	            
-	            restResponse = StorageSystemTypeUtils.uploadDriver(entity);
-	            
+				MultiPart mdf = new FormDataMultiPart().bodyPart(fdp);
+
+				restResponse = StorageSystemTypeUtils.uploadDriver(mdf);
+
 				flash.success("Response from server: " + restResponse.getStatus());
 			} catch (FileNotFoundException e) {
 				// TODO Auto-generated catch block
@@ -137,25 +138,26 @@ public class StorageSystemTypes extends ViprResourceController {
 		List<String> uuids = Arrays.asList(ids);
 		itemsJson(uuids);
 	}
-	
-    private static void itemsJson(List<String> uuids) {
-        List<StorageSystemTypeRestRep> standbySites = new ArrayList<StorageSystemTypeRestRep>();
-        for (String uuid : uuids) {
-        	StorageSystemTypeRestRep standbySite = StorageSystemTypeUtils.getStorageSystemType(uuid);
-            if (standbySite != null) {
-                standbySites.add(standbySite);
-            }
-        }
-        performItemsJson(standbySites, new JsonItemOperation());
-    }
 
-    protected static class JsonItemOperation implements ResourceValueOperation<StorageSystemTypeInfo, StorageSystemTypeRestRep> {
-        @Override
-        public StorageSystemTypeInfo performOperation(StorageSystemTypeRestRep provider) throws Exception {
-            return new StorageSystemTypeInfo(provider);
-        }
-    }
-    
+	private static void itemsJson(List<String> uuids) {
+		List<StorageSystemTypeRestRep> standbySites = new ArrayList<StorageSystemTypeRestRep>();
+		for (String uuid : uuids) {
+			StorageSystemTypeRestRep standbySite = StorageSystemTypeUtils.getStorageSystemType(uuid);
+			if (standbySite != null) {
+				standbySites.add(standbySite);
+			}
+		}
+		performItemsJson(standbySites, new JsonItemOperation());
+	}
+
+	protected static class JsonItemOperation
+			implements ResourceValueOperation<StorageSystemTypeInfo, StorageSystemTypeRestRep> {
+		@Override
+		public StorageSystemTypeInfo performOperation(StorageSystemTypeRestRep provider) throws Exception {
+			return new StorageSystemTypeInfo(provider);
+		}
+	}
+
 	@SuppressWarnings("squid:S2068")
 	public static class StorageSystemTypeForm {
 

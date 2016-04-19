@@ -647,8 +647,9 @@ run_noundo()
 {
     cmd=$*
     echo ""
-    date
+    echo ===
     echo === $cmd
+    echo "=== started: " date
     echo ""
     rm -f ${CMD_OUTPUT}
     if [ "${HIDE_OUTPUT}" = "" -o "${HIDE_OUTPUT}" = "1" ]; then
@@ -1885,14 +1886,13 @@ vplex_tests()
 	run blockmirror attach  $PROJECT/$localVolume1 $localMirror1 1
 	run blockmirror attach  $PROJECT/$localVolume2-1 $localMirror2 1
 
-	echo "**** Deleting VPLEX local mirror"
+	echo "**** Deleting VPLEX local mirror, waiting 20 seconds first..."
+	sleep 20
 	run blockmirror deactivate  $PROJECT/$localVolume2-1 $localMirror2$sourceSideSuffix
 
 	echo "**** Creating VPLEX distributed volumes"
 	run volume create $distVolume1 $PROJECT $NH cosvplexdist $BLK_SIZE
 	run volume create $distVolume2 $PROJECT $NH cosvplexdist $BLK_SIZE
-
-        run volume list $PROJECT
 
 	echo "**** Creating local mirrors for the Distributed volumes on the source side"
 	run blockmirror attach  $PROJECT/$distVolume1 $distSrcLocalMirror1 1
@@ -1901,7 +1901,10 @@ vplex_tests()
 	echo "**** Deleting local mirror for the VPLEX Distributed volume, waiting 20 seconds first..."
 	sleep 20
 	run blockmirror deactivate  $PROJECT/$distVolume2 $distSrcLocalMirror2$sourceSideSuffix
-		
+	
+        echo "**** Volumes created so far, before export testing starts:"
+        run volume list $PROJECT
+	
 	echo "**** Creating host"
 	run hosts create $hostLbl $TENANT Windows $host --port 8111 --username user --password 'password' --osversion 1.0
 	

@@ -24,6 +24,7 @@ import java.util.*;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
@@ -952,6 +953,26 @@ public class BackupOps {
         Preconditions.checkArgument(isValidLinuxFileName(backupTag)
                         && !backupTag.contains(BackupConstants.BACKUP_NAME_DELIMITER),
                 "Invalid backup name: %s", backupTag);
+
+        String pattern="(vipr[1-5])([^1-5]|$)";
+        Pattern hostnameReg=Pattern.compile(pattern);
+        Matcher m = hostnameReg.matcher(backupTag);
+        boolean match = false;
+        StringBuilder builder = new StringBuilder();
+        while (m.find()) {
+            if (match) {
+                builder.append(",");
+            }
+
+            match = true;
+            builder.append(m.group(1));
+        }
+
+        if (match) {
+            String errMsg = String.format("The backup name should not contains %s", builder.toString());
+            log.error(errMsg);
+            throw BackupException.fatals.invalidParameters(errMsg);
+        }
     }
 
     private boolean isValidLinuxFileName(String fileName) {

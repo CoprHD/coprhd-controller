@@ -646,7 +646,10 @@ secho()
 run_noundo()
 {
     cmd=$*
+    echo ""
+    echo ""
     echo === $cmd
+    echo ""
     rm -f ${CMD_OUTPUT}
     if [ "${HIDE_OUTPUT}" = "" -o "${HIDE_OUTPUT}" = "1" ]; then
 	$cmd &> ${CMD_OUTPUT}
@@ -1898,9 +1901,10 @@ vplex_tests()
 	run blockmirror attach  $PROJECT/$distVolume1 $distSrcLocalMirror1 1
 	run blockmirror attach  $PROJECT/$distVolume2 $distSrcLocalMirror2 1
 	
-	echo "**** Deleting local mirror for the VPLEX Distributed volume"
+	echo "**** Deleting local mirror for the VPLEX Distributed volume, waiting 20 seconds first..."
+	sleep 20
 	run blockmirror deactivate  $PROJECT/$distVolume2 $distSrcLocalMirror2$sourceSideSuffix
-	
+		
 	echo "**** Creating host"
 	run hosts create $hostLbl $TENANT Windows $host --port 8111 --username user --password 'password' --osversion 1.0
 	

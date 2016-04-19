@@ -1044,7 +1044,10 @@ public class NetAppApi {
             if (status) {
                 netAppFacade.setupVirtualNas(args);
                 if (args.getAddProtocols() != null && !args.getAddProtocols().isEmpty()) {
-                    netAppFacade.allowVnasProtocols(args.getvNasName(), args.getAddProtocols(), CREATE_VFILER);
+                    Boolean protocolStatus = netAppFacade.allowVnasProtocols(args.getvNasName(), args.getAddProtocols(), CREATE_VFILER);
+                    if (protocolStatus && args.getAddProtocols().contains("cifs")) {
+                        netAppFacade.startCifsService(args.getvNasName());
+                    }
                 }
             } else {
                 _logger.debug("VNAS {} creation failed", args.getvNasName());

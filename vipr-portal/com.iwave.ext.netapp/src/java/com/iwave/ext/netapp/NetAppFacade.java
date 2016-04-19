@@ -1627,4 +1627,12 @@ public class NetAppFacade {
         return vFiler.removeIpAddress(ipAddress, vFilerName);
     }
 
+    public boolean startCifsService(String vFilerName) {
+        if (log.isDebugEnabled()) {
+            log.debug("Starting CIFS service on vfiler: " + vFilerName);
+        }
+        VFiler vFiler = new VFiler(server.getNaServer(), null);
+        return vFiler.startCifsService(vFilerName);
+    }
+
 }

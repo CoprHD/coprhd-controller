@@ -300,4 +300,18 @@ public class VFiler {
 
         return true;
     }
+
+    boolean startCifsService(String vFilerName) {
+        NaElement elem = new NaElement("cifs-start");
+
+        try {
+            server.invokeElem(elem);
+        } catch (Exception e) {
+            String msg = "Failed to start cifs service on VFiler: " + vFilerName;
+            log.error(msg, e);
+            throw new NetAppException(msg, e);
+        }
+
+        return true;
+    }
 }

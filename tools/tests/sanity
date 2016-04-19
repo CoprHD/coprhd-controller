@@ -685,7 +685,6 @@ balance()
 #
 zone_setup()
 {
-    echo "Running zone setup..."
     # do this only once
     neighborhood show $NH  &> /dev/null && return $?
 
@@ -1783,8 +1782,6 @@ vplex_setup_once()
 	echo "Configuring MDS/Cisco Simulator using SSH on: $VPLEX_SIM_MDS_IP"
 	run networksystem create $FABRIC_SIMULATOR  mds --devip $VPLEX_SIM_MDS_IP --devport 22 --username $VPLEX_SIM_MDS_USER --password $VPLEX_SIM_MDS_PW
 	transportzone listall
-	#run transportzone assign ${SIMULATOR_VSAN_11} ${NH}
-        #run transportzone assign ${SIMULATOR_VSAN_12} ${NH2}
 
 	# Discover the storage systems 
 	echo "Discovering back-end storage arrays using ECOM/SMIS simulator on: $VPLEX_SIM_SMIS_IP..."

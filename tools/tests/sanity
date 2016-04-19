@@ -649,8 +649,8 @@ run_noundo()
     echo ""
     echo ===
     echo === $cmd
-    echo "=== started: " date
-    echo ""
+    date=`date`
+    echo "=== started: $date" 
     rm -f ${CMD_OUTPUT}
     if [ "${HIDE_OUTPUT}" = "" -o "${HIDE_OUTPUT}" = "1" ]; then
 	$cmd &> ${CMD_OUTPUT}
@@ -9074,8 +9074,8 @@ fail(){
     echo ""
     echo ===
     echo === $cmd
-    echo "=== started: " date
-    echo ""
+    date=`date`
+    echo "=== started: $date"
     trap - ERR
     if [ "${HIDE_OUTPUT}" = "" -o "${HIDE_OUTPUT}" = "1" ]; then
 	$cmd &> ${CMD_OUTPUT}

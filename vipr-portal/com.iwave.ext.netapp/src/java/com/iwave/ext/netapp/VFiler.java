@@ -209,24 +209,25 @@ public class VFiler {
         NaElement elem = new NaElement("vfiler-setup");
         NaElement adminHostElem = new NaElement("adminhost");
         NaElement dnsServersElem = new NaElement("dnsservers");
-        NaElement dnsServerInfo = new NaElement("dnsserver-info");
         NaElement nisServersElem = new NaElement("nisservers");
-        NaElement nisServerInfo = new NaElement("nisserver-info");
+
         elem.addNewChild("vfiler", vFilerName);
         elem.addChildElem(adminHostElem);
         adminHostElem.addNewChild("ipaddress", adminHostIp);
         adminHostElem.addNewChild("name", adminHostName);
         elem.addNewChild("dnsdomain", dnsDomain);
         elem.addChildElem(dnsServersElem);
-        dnsServersElem.addChildElem(dnsServerInfo);
         for (String dnsServer : dnsServers) {
+            NaElement dnsServerInfo = new NaElement("dnsserver-info");
             dnsServerInfo.addNewChild("ipaddress", dnsServer);
+            dnsServersElem.addChildElem(dnsServerInfo);
         }
         elem.addNewChild("nisdomain", nisDomain);
         elem.addChildElem(nisServersElem);
-        nisServersElem.addChildElem(nisServerInfo);
         for (String nisServer : nisServers) {
+            NaElement nisServerInfo = new NaElement("nisserver-info");
             nisServerInfo.addNewChild("ipaddress", nisServer);
+            nisServersElem.addChildElem(nisServerInfo);
         }
         elem.addNewChild("password", password);
 

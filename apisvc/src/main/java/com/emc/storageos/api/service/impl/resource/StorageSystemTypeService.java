@@ -230,7 +230,7 @@ public class StorageSystemTypeService extends TaskResourceService {
 	@CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
 	@Consumes({ MediaType.APPLICATION_OCTET_STREAM, MediaType.MULTIPART_FORM_DATA })
 	@Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-	public Response uploadFile(
+	public Response uploadFile (
 			@FormDataParam("deviceDriver") InputStream fileInputStream,
 			@FormDataParam("deviceDriver") FormDataContentDisposition contentDispositionHeader) {
 		log.info("Upload of device driver file started, time: " + System.currentTimeMillis());

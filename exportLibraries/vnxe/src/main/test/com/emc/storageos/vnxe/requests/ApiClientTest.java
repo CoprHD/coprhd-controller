@@ -16,6 +16,7 @@ import com.emc.storageos.services.util.EnvConfig;
 import com.emc.storageos.vnxe.VNXeApiClient;
 import com.emc.storageos.vnxe.VNXeUtils;
 import com.emc.storageos.vnxe.models.BasicSystemInfo;
+import com.emc.storageos.vnxe.models.Snap;
 import com.emc.storageos.vnxe.models.VNXeBase;
 import com.emc.storageos.vnxe.models.VNXeCifsShare;
 import com.emc.storageos.vnxe.models.VNXeCommandJob;
@@ -272,13 +273,27 @@ public class ApiClientTest {
     
     // @Test
     public void createSnap() {
-        VNXeCommandJob job = apiClient.createSnap("sv_125", "snap3vipr4141", false);
+        VNXeCommandJob job = apiClient.createSnap("res_47", "snap1vipr41812", false);
         System.out.println(job.getId());
     }
     
     @Test
     public void deleteSnap() {
-        apiClient.deleteSnap("38654705946");
+        apiClient.deleteSnap("38654705983");
+    }
+    
+    //@Test
+    public void getSnapsBygroupId() {
+        List<Snap> snaps = apiClient.getSnapshotsBySnapGroup("85899345949");
+        for (Snap snap : snaps) {
+            System.out.println(snap.getId());
+        }
+        
     }
 
+   //@Test
+    public void restoreSnap() {
+        VNXeCommandJob job = apiClient.restoreSnap("38654705982");
+        System.out.println(job.getId());
+    }
 }

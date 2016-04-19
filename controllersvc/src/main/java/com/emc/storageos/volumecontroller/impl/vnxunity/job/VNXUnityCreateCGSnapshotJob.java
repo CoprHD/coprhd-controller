@@ -1,3 +1,7 @@
+/*
+ * Copyright (c) 2016 EMC Corporation
+ * All Rights Reserved
+ */
 package com.emc.storageos.volumecontroller.impl.vnxunity.job;
 
 import java.net.URI;
@@ -17,24 +21,24 @@ import com.emc.storageos.vnxe.VNXeApiClient;
 import com.emc.storageos.vnxe.models.ParametersOut;
 import com.emc.storageos.vnxe.models.Snap;
 import com.emc.storageos.vnxe.models.VNXeCommandJob;
-import com.emc.storageos.vnxe.models.VNXeLun;
-import com.emc.storageos.vnxe.models.VNXeLunGroupSnap;
 import com.emc.storageos.volumecontroller.JobContext;
 import com.emc.storageos.volumecontroller.TaskCompleter;
-import com.emc.storageos.volumecontroller.Job.JobStatus;
 import com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.BlockSnapshotCreateCompleter;
-import com.emc.storageos.volumecontroller.impl.vnxe.job.VNXeBlockCreateCGSnapshotJob;
 import com.emc.storageos.volumecontroller.impl.vnxe.job.VNXeJob;
 
 public class VNXUnityCreateCGSnapshotJob extends VNXeJob{
 
+    private static final long serialVersionUID = -5563400198981214053L;
+
     private static final Logger _logger = LoggerFactory.getLogger(VNXUnityCreateCGSnapshotJob.class);
 
+    private Boolean readOnly;
+    
     public VNXUnityCreateCGSnapshotJob(String jobId,
-            URI storageSystemUri, Boolean createInactive, TaskCompleter taskCompleter) {
+            URI storageSystemUri, Boolean readOnly, TaskCompleter taskCompleter) {
         super(jobId, storageSystemUri, taskCompleter, "createCGSnapshot");
-
+        this.readOnly = readOnly;
     }
     
     public void updateStatus(JobContext jobContext) throws Exception {
@@ -50,37 +54,41 @@ public class VNXUnityCreateCGSnapshotJob extends VNXeJob{
                 VNXeApiClient vnxeApiClient = getVNXeClient(jobContext);
                 VNXeCommandJob vnxeJob = vnxeApiClient.getJob(getJobIds().get(0));
                 ParametersOut output = vnxeJob.getParametersOut();
-                // get the luns belonging to the lun group
-                String snapId = output.getId();
-                Snap snap = vnxeApiClient.getSnapshot(snapId);
-                String snapGroupId = snap.getSnapGroup().getId();
-                Snap snapGroup = vnxeApiClient.getSnapshot(snapGroupId);
-                List<VNXeLun> groupLuns = vnxeApiClient.getLunByStorageResourceId(snapGroup.getStorageResource().getId());
+                String snapGroupId = output.getId();
+                List<Snap> snaps = vnxeApiClient.getSnapshotsBySnapGroup(snapGroupId);
+                
                 // Create mapping of volume.nativeDeviceId to BlockSnapshot object
                 Map<String, BlockSnapshot> volumeToSnapMap = new HashMap<String, BlockSnapshot>();
+                
                 for (BlockSnapshot snapshot : snapshots) {
                     Volume volume = dbClient.queryObject(Volume.class, snapshot.getParent());
                     volumeToSnapMap.put(volume.getNativeId(), snapshot);
                 }
 
-                for (VNXeLun groupLun : groupLuns) {
-                    BlockSnapshot snapshot = volumeToSnapMap.get(groupLun.getId());
-                    if (snapshot == null) {
-                        _logger.info("No snapshot found for the vnxe lun - ", groupLun.getId());
-                        continue;
-                    }
-                    snapshot.setNativeId(output.getId());
+                Map<String, Snap> lunToSnapMap = new HashMap<String, Snap>();
+                for (Snap snap : snaps) {
+                    String lunId = snap.getLun().getId();
+                    lunToSnapMap.put(lunId, snap);
+                }
+                for (Map.Entry<String, BlockSnapshot> entry : volumeToSnapMap.entrySet()) {
+                    String lunId = entry.getKey();
+                    BlockSnapshot snapshot = entry.getValue();
+                    Snap snap = lunToSnapMap.get(lunId);
+                    snapshot.setNativeId(snap.getId());
                     snapshot.setNativeGuid(NativeGUIDGenerator.generateNativeGuid(storage, snapshot));
-                    snapshot.setDeviceLabel(groupLun.getName());
+                    snapshot.setDeviceLabel(snap.getName());
                     snapshot.setReplicationGroupInstance(snapGroupId);
                     snapshot.setIsSyncActive(true);
                     snapshot.setInactive(false);
                     snapshot.setCreationTime(Calendar.getInstance());
-                    snapshot.setWWN(groupLun.getSnapWwn());
+                    snapshot.setWWN(snap.getAttachedWWN());
                     snapshot.setAllocatedCapacity(snap.getSize());
                     snapshot.setProvisionedCapacity(snap.getSize());
-                    _logger.info(String.format("Going to set blocksnapshot %1$s nativeId to %2$s (%3$s). Associated lun is %4$s (%5$s)",
-                            snapshot.getId().toString(), output.getId(), snapshot.getLabel(), groupLun.getId(), groupLun.getName()));
+                    if (readOnly) {
+                        snapshot.setIsReadOnly(readOnly);
+                    }
+                    _logger.info(String.format("Going to set blocksnapshot %1$s nativeId to %2$s (%3$s). Associated lun is %4$s",
+                            snapshot.getId().toString(), snap.getId(), snapshot.getLabel(), lunId));
                     dbClient.updateObject(snapshot);
                 }
 

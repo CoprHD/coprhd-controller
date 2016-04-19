@@ -2519,7 +2519,27 @@ public class VNXeApiClient {
         return req.getSnap(id);
 
     }
+    
+    /**
+     * Get all snapshots related to a snap group Id
+     * @param snapGroupId
+     * @return The list of snapshots belonging to the same snap group Id
+     */
+    public List<Snap> getSnapshotsBySnapGroup(String snapGroupId) {
+        SnapRequests req = new SnapRequests(_khClient);
+        return req.getSnapsBySnapGroupId(snapGroupId);
+    }
 
+    /**
+     * Restore a snapshot
+     * @param snapId
+     * @return
+     */
+    public VNXeCommandJob restoreSnap(String snapId) {
+        SnapRequests req = new SnapRequests(_khClient);
+        return req.restoreSnap(snapId, null);
+    }
+    
     /**
      * If this is VNX Unity client.
      * @return

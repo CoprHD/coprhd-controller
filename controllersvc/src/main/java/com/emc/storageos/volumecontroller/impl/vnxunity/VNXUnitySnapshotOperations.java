@@ -5,7 +5,6 @@
 package com.emc.storageos.volumecontroller.impl.vnxunity;
 
 import java.net.URI;
-import java.util.Arrays;
 import java.util.List;
 
 import org.slf4j.Logger;
@@ -20,21 +19,17 @@ import com.emc.storageos.exceptions.DeviceControllerErrors;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
 import com.emc.storageos.vnxe.VNXeApiClient;
-import com.emc.storageos.vnxe.VNXeException;
 import com.emc.storageos.vnxe.models.Snap;
 import com.emc.storageos.vnxe.models.VNXeCommandJob;
-import com.emc.storageos.vnxe.models.VNXeLunGroupSnap;
-import com.emc.storageos.vnxe.models.VNXeLunSnap;
 import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.volumecontroller.impl.ControllerServiceImpl;
+import com.emc.storageos.volumecontroller.impl.ControllerUtils;
 import com.emc.storageos.volumecontroller.impl.job.QueueJob;
 import com.emc.storageos.volumecontroller.impl.smis.SmisConstants;
 import com.emc.storageos.volumecontroller.impl.vnxe.VNXeSnapshotOperation;
-import com.emc.storageos.volumecontroller.impl.vnxe.job.VNXeBlockCreateCGSnapshotJob;
-import com.emc.storageos.volumecontroller.impl.vnxe.job.VNXeBlockDeleteSnapshotJob;
-import com.emc.storageos.volumecontroller.impl.vnxe.job.VNXeBlockRestoreSnapshotJob;
 import com.emc.storageos.volumecontroller.impl.vnxe.job.VNXeBlockSnapshotCreateJob;
 import com.emc.storageos.volumecontroller.impl.vnxunity.job.VNXUnityCreateCGSnapshotJob;
+import com.emc.storageos.volumecontroller.impl.vnxunity.job.VNXUnityRestoreSnapshotJob;
 
 public class VNXUnitySnapshotOperations extends VNXeSnapshotOperation {
     private static final Logger log = LoggerFactory.getLogger(VNXUnitySnapshotOperations.class);
@@ -55,7 +50,10 @@ public class VNXUnitySnapshotOperations extends VNXeSnapshotOperation {
 
         try {
             BlockSnapshot snapshotObj = _dbClient.queryObject(BlockSnapshot.class, snapshot);
-
+            if (readOnly) {
+                snapshotObj.setIsReadOnly(readOnly);
+                _dbClient.updateObject(snapshotObj);
+            }
             Volume volume = _dbClient.queryObject(Volume.class, snapshotObj.getParent());
             TenantOrg tenant = _dbClient.queryObject(TenantOrg.class, volume.getTenant().getURI());
             String tenantName = tenant.getLabel();
@@ -116,7 +114,7 @@ public class VNXUnitySnapshotOperations extends VNXeSnapshotOperation {
             TenantOrg tenant = _dbClient.queryObject(TenantOrg.class, volume.getTenant().getURI());
             String tenantName = tenant.getLabel();
             String snapLabelToUse =
-                    _nameGenerator.generate(tenantName, snapshotObj.getLabel(),
+                    _nameGenerator.generate(tenantName, snapshotObj.getSnapsetLabel(),
                             snapshot.toString(), '-', SmisConstants.MAX_SNAPSHOT_NAME_LENGTH);
             String groupName = volume.getReplicationGroupInstance();
             if (NullColumnValueGetter.isNotNullValue(groupName)) {
@@ -125,7 +123,7 @@ public class VNXUnitySnapshotOperations extends VNXeSnapshotOperation {
                 if (job != null) {
                     ControllerServiceImpl.enqueueJob(
                             new QueueJob(new VNXUnityCreateCGSnapshotJob(job.getId(),
-                                    storage.getId(), !createInactive, taskCompleter)));
+                                    storage.getId(), readOnly, taskCompleter)));
                 }
             } else {
                 String errorMsg = "Unable to find consistency group id when creating snapshot";
@@ -147,19 +145,23 @@ public class VNXUnitySnapshotOperations extends VNXeSnapshotOperation {
     public void deleteGroupSnapshots(StorageSystem storage, URI snapshot,
             TaskCompleter taskCompleter) throws DeviceControllerException {
         try {
-            List<BlockSnapshot> snapshots = _dbClient.queryObject(BlockSnapshot.class, Arrays.asList(snapshot));
-            BlockSnapshot snapshotObj = snapshots.get(0);
+            BlockSnapshot snapshotObj = _dbClient.queryObject(BlockSnapshot.class, snapshot);
 
             VNXeApiClient apiClient = getVnxeClient(storage);
-            VNXeLunGroupSnap lunGroupSnap = apiClient.getLunGroupSnapshot(snapshotObj.getReplicationGroupInstance());
-            if (lunGroupSnap != null) {
-                VNXeCommandJob job = apiClient.deleteLunGroupSnap(lunGroupSnap.getId());
-                if (job != null) {
-                    ControllerServiceImpl.enqueueJob(
-                            new QueueJob(new VNXeBlockDeleteSnapshotJob(job.getId(),
-                                    storage.getId(), taskCompleter)));
+            String groupId = snapshotObj.getReplicationGroupInstance();
+            Snap snapGroup = apiClient.getSnapshot(groupId);
+            if (snapGroup != null) {
+                apiClient.deleteSnap(groupId);
+            }
+            List<BlockSnapshot> snaps = ControllerUtils.getSnapshotsPartOfReplicationGroup(snapshotObj, _dbClient);
+            if (snaps != null) {
+                for (BlockSnapshot snap : snaps) {
+                    snap.setInactive(true);
+                    snap.setIsSyncActive(false);
+                    _dbClient.updateObject(snap);
                 }
             }
+            taskCompleter.ready(_dbClient);
 
         } catch (Exception ex) {
             log.error("Delete group snapshot got the exception", ex);
@@ -179,18 +181,18 @@ public class VNXUnitySnapshotOperations extends VNXeSnapshotOperation {
             BlockSnapshot snapshotObj = _dbClient.queryObject(BlockSnapshot.class, snapshot);
 
             VNXeApiClient apiClient = getVnxeClient(storage);
-            VNXeLunSnap lunSnap = apiClient.getLunSnapshot(snapshotObj.getNativeId());
+            Snap snap = apiClient.getSnapshot(snapshotObj.getNativeId());
             // Error out if the snapshot is attached
-            if (lunSnap.getIsAttached()) {
+            /*if (snap.getIsAttached()) {
                 log.error("Snapshot {})is attached and cannot be used for restore", snapshotObj.getLabel());
                 ServiceError error = DeviceControllerErrors.vnxe.cannotRestoreAttachedSnapshot(snapshot.toString());
                 taskCompleter.error(_dbClient, error);
-            }
+            }*/
 
-            VNXeCommandJob job = apiClient.restoreLunSnap(lunSnap.getId());
+            VNXeCommandJob job = apiClient.restoreSnap(snap.getId());
             if (job != null) {
                 ControllerServiceImpl.enqueueJob(
-                        new QueueJob(new VNXeBlockRestoreSnapshotJob(job.getId(),
+                        new QueueJob(new VNXUnityRestoreSnapshotJob(job.getId(),
                                 storage.getId(), taskCompleter)));
             }
         } catch (Exception ex) {
@@ -211,17 +213,17 @@ public class VNXUnitySnapshotOperations extends VNXeSnapshotOperation {
             BlockSnapshot snapshotObj = _dbClient.queryObject(BlockSnapshot.class, snapshot);
 
             VNXeApiClient apiClient = getVnxeClient(storage);
-            VNXeLunGroupSnap lunGroupSnap = apiClient.getLunGroupSnapshot(snapshotObj.getReplicationGroupInstance());
+            Snap groupSnap = apiClient.getSnapshot(snapshotObj.getReplicationGroupInstance());
             // Error out if the snapshot is attached
-            if (lunGroupSnap.getIsAttached()) {
+            if (groupSnap.isAttached()) {
                 log.error("Snapshot {})is attached and cannot be used for restore", snapshotObj.getLabel());
                 ServiceError error = DeviceControllerErrors.vnxe.cannotRestoreAttachedSnapshot(snapshot.toString());
                 taskCompleter.error(_dbClient, error);
             }
-            VNXeCommandJob job = apiClient.restoreLunGroupSnap(lunGroupSnap.getId());
+            VNXeCommandJob job = apiClient.restoreSnap(groupSnap.getId());
             if (job != null) {
                 ControllerServiceImpl.enqueueJob(
-                        new QueueJob(new VNXeBlockRestoreSnapshotJob(job.getId(),
+                        new QueueJob(new VNXUnityRestoreSnapshotJob(job.getId(),
                                 storage.getId(), taskCompleter)));
             }
 

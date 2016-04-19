@@ -1902,8 +1902,8 @@ vplex_tests()
 	sleep 20
 	run blockmirror deactivate  $PROJECT/$distVolume2 $distSrcLocalMirror2$sourceSideSuffix
 	
-        echo "**** Volumes created so far, before export testing starts:"
-        run volume list $PROJECT
+	echo "**** Volumes created so far, before export testing starts:"
+	run volume list $PROJECT
 	
 	echo "**** Creating host"
 	run hosts create $hostLbl $TENANT Windows $host --port 8111 --username user --password 'password' --osversion 1.0

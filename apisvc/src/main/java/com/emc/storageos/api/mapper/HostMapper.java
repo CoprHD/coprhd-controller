@@ -10,8 +10,10 @@ import static com.emc.storageos.api.mapper.DbObjectMapper.mapTenantResource;
 import static com.emc.storageos.api.mapper.DbObjectMapper.toRelatedResource;
 
 import java.net.URI;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+
 import com.emc.storageos.db.client.model.Cluster;
 import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.ExportPathParams;
@@ -21,6 +23,7 @@ import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.IpInterface;
 import com.emc.storageos.db.client.model.Vcenter;
 import com.emc.storageos.db.client.model.VcenterDataCenter;
+import com.emc.storageos.model.RelatedResourceRep;
 import com.emc.storageos.model.ResourceTypeEnum;
 import com.emc.storageos.model.block.export.ExportBlockParam;
 import com.emc.storageos.model.block.export.ExportGroupRestRep;
@@ -144,6 +147,13 @@ public class HostMapper {
         to.setProject(toRelatedResource(ResourceTypeEnum.PROJECT, from.getProject()));
         to.setComputeElement(toRelatedResource(ResourceTypeEnum.COMPUTE_ELEMENT, from.getComputeElement()));
         to.setvCenterDataCenter(toRelatedResource(ResourceTypeEnum.VCENTERDATACENTER, from.getVcenterDataCenter()));
+        if ((from.getVolumeGroupIds() != null) && (!from.getVolumeGroupIds().isEmpty())) {
+            List<RelatedResourceRep> volumeGroups = new ArrayList<RelatedResourceRep>();
+            for (String volumeGroup : from.getVolumeGroupIds()) {
+                volumeGroups.add(toRelatedResource(ResourceTypeEnum.VOLUME_GROUP, URI.create(volumeGroup)));
+            }
+            to.setVolumeGroups(volumeGroups);
+        }
         to.setTenant(toRelatedResource(ResourceTypeEnum.TENANT, from.getTenant()));
         to.setDiscoverable(from.getDiscoverable());
         to.setBootVolume(toRelatedResource(ResourceTypeEnum.VOLUME, from.getBootVolumeId()));
@@ -162,6 +172,13 @@ public class HostMapper {
         to.setProject(toRelatedResource(ResourceTypeEnum.PROJECT, from.getProject()));
         to.setVcenterDataCenter(toRelatedResource(ResourceTypeEnum.VCENTERDATACENTER, from.getVcenterDataCenter()));
         to.setAutoExportEnabled(from.getAutoExportEnabled());
+        if ((from.getVolumeGroupIds() != null) && (!from.getVolumeGroupIds().isEmpty())) {
+            List<RelatedResourceRep> volumeGroups = new ArrayList<RelatedResourceRep>();
+            for (String volumeGroup : from.getVolumeGroupIds()) {
+                volumeGroups.add(toRelatedResource(ResourceTypeEnum.VOLUME_GROUP, URI.create(volumeGroup)));
+            }
+            to.setVolumeGroups(volumeGroups);
+        }
         return to;
     }
 

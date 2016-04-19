@@ -1,0 +1,21 @@
+{
+  baseKey:"ExpandBlockVolume.Block.Hpux",
+  serviceId:"Hpux-ExpandBlockVolume",
+  fields:{
+    host:{
+      type:"assetType.vipr.hpuxHost"
+    },
+
+    volume: {
+      type:"assetType.vipr.mountedBlockVolume",   
+      select:"one" 
+    },
+    
+    size:{
+      type:"storageSize",
+      validation:{
+        min:1
+      }
+    }
+  }
+}

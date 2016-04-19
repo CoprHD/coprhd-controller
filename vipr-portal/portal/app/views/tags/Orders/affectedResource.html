@@ -19,6 +19,9 @@
 #{elseif resource?.type == com.emc.sa.util.ResourceType.BLOCK_SNAPSHOT}
   #{AffectedResources.blockSnapshot resource:resource, otherResources:otherResources/}
 #{/elseif}
+#{elseif resource?.type == com.emc.sa.util.ResourceType.BLOCK_SNAPSHOT_SESSION}
+  #{AffectedResources.blockSnapshotSession resource:resource, otherResources:otherResources/}
+#{/elseif}
 #{elseif resource?.type == com.emc.sa.util.ResourceType.BLOCK_CONTINUOUS_COPY}
   #{AffectedResources.blockContinuousCopy resource:resource, otherResources:otherResources/}
 #{/elseif}

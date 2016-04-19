@@ -11,6 +11,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+import com.emc.storageos.plugins.common.Constants;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -68,7 +69,16 @@ public class MaskingWorkflowEntryPoints implements Controller {
     }
 
     private BlockStorageDevice getDevice(StorageSystem storage) {
-        return _devices.get(storage.getSystemType());
+        String deviceType = storage.getSystemType();
+        BlockStorageDevice storageDevice = _devices.get(deviceType);
+        if (storageDevice == null) {
+            // we will use external device
+            storageDevice = _devices.get(Constants.EXTERNALDEVICE);
+            if (storageDevice == null) {
+                throw DeviceControllerException.exceptions.invalidSystemType(deviceType);
+            }
+        }
+        return storageDevice;
     }
 
     public void setDbClient(DbClient dbc) {
@@ -159,8 +169,13 @@ public class MaskingWorkflowEntryPoints implements Controller {
                 new RollbackExportGroupCreateCompleter(exportGroupURI, exportMaskURI, token);
         // Take the context of the step in flight and feed it into our current step
         // in order to only perform rollback of operations we successfully performed.
-        ExportOperationContext context = (ExportOperationContext) WorkflowService.getInstance().loadStepData(contextKey);
-        WorkflowService.getInstance().storeStepData(token, context);
+        ExportOperationContext context = null;
+        try {
+            context = (ExportOperationContext) WorkflowService.getInstance().loadStepData(contextKey);
+            WorkflowService.getInstance().storeStepData(token, context);
+        } catch (ClassCastException e) {
+            _log.info("Step {} has stored step data other than ExportOperationContext. Exception: {}", token, e);
+        }
         _log.info("Rolling back operations: " + context);
         doExportGroupDelete(storageURI, exportGroupURI, exportMaskURI, taskCompleter, token);
     }
@@ -268,8 +283,12 @@ public class MaskingWorkflowEntryPoints implements Controller {
                         list, token);
         // Take the context of the step in flight and feed it into our current step
         // in order to only perform rollback of operations we successfully performed.
-        ExportOperationContext context = (ExportOperationContext) WorkflowService.getInstance().loadStepData(contextKey);
-        WorkflowService.getInstance().storeStepData(token, context);
+        try {
+            ExportOperationContext context = (ExportOperationContext) WorkflowService.getInstance().loadStepData(contextKey);
+            WorkflowService.getInstance().storeStepData(token, context);
+        } catch (ClassCastException e) {
+            _log.info("Step {} has stored step data other than ExportOperationContext. Exception: {}", token, e);
+        }
         doExportGroupRemoveVolumes(storageURI, exportGroupURI, exportMaskURI, list,
                 taskCompleter, token);
     }
@@ -468,8 +487,13 @@ public class MaskingWorkflowEntryPoints implements Controller {
                         initiatorURIs, token);
         // Take the context of the step in flight and feed it into our current step
         // in order to only perform rollback of operations we successfully performed.
-        ExportOperationContext context = (ExportOperationContext) WorkflowService.getInstance().loadStepData(contextKey);
-        WorkflowService.getInstance().storeStepData(token, context);
+
+        try {
+            ExportOperationContext context = (ExportOperationContext) WorkflowService.getInstance().loadStepData(contextKey);
+            WorkflowService.getInstance().storeStepData(token, context);
+        } catch (ClassCastException e) {
+            _log.info("Step {} has stored step data other than ExportOperationContext. Exception: {}", token, e);
+        }
         doExportGroupRemoveInitiators(storageURI, exportGroupURI, exportMaskURI,
                 initiatorURIs, true, taskCompleter, token);
     }

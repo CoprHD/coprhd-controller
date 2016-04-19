@@ -13,6 +13,7 @@ import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.coordinator.common.Configuration;
 import com.emc.storageos.db.client.upgrade.BaseCustomMigrationCallback;
+import com.emc.storageos.svcs.errorhandling.resources.MigrationCallbackException;
 
 /**
  * Cleans up the obsolete LOCAL_TO_GEO_DONE flag from ZooKeeper.
@@ -25,7 +26,7 @@ public class LocalToGeoMigrationDoneCleanup extends BaseCustomMigrationCallback 
             LocalToGeoMigrationDoneCleanup.class);
 
     @Override
-    public void process() {
+    public void process() throws MigrationCallbackException {
         processZKFlagCleanup();
     }
 

@@ -18,14 +18,14 @@ import com.iwave.ext.linux.model.HBAInfo;
 
 public class ListHBAInfoCommandTest {
 
-    static String output = "host: /dev/fclp0" + "\n" +
+    private static String output = "host: /dev/fclp0" + "\n" +
             "             N_Port Node World Wide Name = 0x2000000000000001" + "\n" +
             "             N_Port Port World Wide Name = 0x1000000000000001" + "\n" +
             "host: /dev/fclp1" + "\n" +
             "             N_Port Node World Wide Name = 0x2000000000000002" + "\n" +
             "             N_Port Port World Wide Name = 0x1000000000000002";
 
-    static ListHBAInfoCommand hbaCommand = null;
+    private static ListHBAInfoCommand hbaCommand = null;
 
     @BeforeClass
     public synchronized static void setup() {

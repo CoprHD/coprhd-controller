@@ -53,6 +53,7 @@ import com.emc.storageos.cinder.model.SnapshotCreateRequestGen;
 import com.emc.storageos.cinder.model.SnapshotCreateResponse;
 import com.emc.storageos.cinder.model.SnapshotUpdateRequestGen;
 import com.emc.storageos.cinder.model.UsageStats;
+import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.PrefixConstraint;
@@ -79,6 +80,7 @@ import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.model.ResourceTypeEnum;
 import com.emc.storageos.model.TaskList;
 import com.emc.storageos.model.TaskResourceRep;
+import com.emc.storageos.model.block.VolumeDeleteTypeEnum;
 import com.emc.storageos.security.audit.AuditLogManager;
 import com.emc.storageos.security.authentication.StorageOSUser;
 import com.emc.storageos.security.authorization.ACL;
@@ -126,6 +128,10 @@ public class SnapshotService extends TaskResourceService {
         return CinderHelpers.getInstance(_dbClient, _permissionsHelper);
     }
 
+    private QuotaHelper getQuotaHelper() {
+        return QuotaHelper.getInstance(_dbClient, _permissionsHelper);
+    }
+    
     /**
      * The snapshot of a volume in Block Store is a point in time copy of the
      * volume. This API allows the user to create snapshot of a volume
@@ -215,7 +221,7 @@ public class SnapshotService extends TaskResourceService {
         String snapshotType = TechnologyType.NATIVE.toString();
         Boolean createInactive = Boolean.FALSE;
 
-        BlockServiceApi api = BlockService.getBlockServiceImpl("default");
+        BlockServiceApi api = getBlockServiceImpl(pool, _dbClient);
 
         List<Volume> volumesToSnap = new ArrayList<Volume>();
         volumesToSnap.addAll(api.getVolumesToSnap(volume, snapshotType));
@@ -244,36 +250,34 @@ public class SnapshotService extends TaskResourceService {
                 readOnly, taskId);
 
         SnapshotCreateResponse snapCreateResp = new SnapshotCreateResponse();
-
         for (TaskResourceRep rep : response.getTaskList()) {
             URI snapshotUri = rep.getResource().getId();
             BlockSnapshot snap = _dbClient.queryObject(BlockSnapshot.class,
                     snapshotUri);
-
+            
             if (snap != null) {
-                if (snapshotDescription != null
-                        && (snapshotDescription.length() > 2)) {
-                    StringMap extensions = snap.getExtensions();
-                    if (extensions == null)
-                        extensions = new StringMap();
-                    extensions.put("display_description", snapshotDescription);
-                    extensions.put("taskid", rep.getId().toString());
-                    _log.debug("Create snapshot : stored description");
-                    snap.setExtensions(extensions);
-                }
-
+                StringMap extensions = snap.getExtensions();
+                if (extensions == null)
+                	extensions = new StringMap();
+                extensions.put("display_description", (snapshotDescription == null) ? "" : snapshotDescription);
+                extensions.put("taskid", rep.getId().toString());
+                _log.debug("Create snapshot : stored description");
+                snap.setExtensions(extensions);
+              
                 ScopedLabelSet tagSet = new ScopedLabelSet();
                 snap.setTag(tagSet);
 
                 String[] splits = snapshotUri.toString().split(":");
                 String tagName = splits[3];
                 
+
                 //this check will verify whether  retrieved data is not corrupted
                 if (tagName == null || tagName.isEmpty()
                         || tagName.length() < 2) {
                     throw APIException.badRequests
                             .parameterTooShortOrEmpty("Tag", 2);
                 }
+
                 Volume parentVol = _permissionsHelper.getObjectById(
                         snap.getParent(), Volume.class);
                 URI tenantOwner = parentVol.getTenant().getURI();
@@ -367,7 +371,15 @@ public class SnapshotService extends TaskResourceService {
             //ToDo if the backend system is vplex, rp  
             //we cannot use the default blockservice implemenation
             //we need to use other APIs(for vplex adn RP), that need to be implemented
-            BlockServiceApi api = BlockService.getBlockServiceImpl("default");
+
+            VirtualPool pool = _dbClient.queryObject(VirtualPool.class, volume.getVirtualPool());
+            if (pool == null) {
+                _log.info("Virtual Pool corresponding to the volume does not exist.");
+                throw APIException.badRequests.parameterIsNotValid(volume
+                        .getVirtualPool().toString());
+            }
+
+            BlockServiceApi api = getBlockServiceImpl(pool, _dbClient);
 
             List<Volume> volumesToSnap = new ArrayList<Volume>();
             volumesToSnap.addAll(api.getVolumesToSnap(volume, snapshotType));
@@ -532,7 +544,7 @@ public class SnapshotService extends TaskResourceService {
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{snapshot_id}")
     @CheckPermission(roles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN }, acls = { ACL.ANY })
-    public void deleteSnapshot(
+    public Response deleteSnapshot(
             @PathParam("tenant_id") String openstack_tenant_id,
             @PathParam("snapshot_id") String snapshot_id) {
 
@@ -540,7 +552,11 @@ public class SnapshotService extends TaskResourceService {
 
         BlockSnapshot snap = findSnapshot(snapshot_id, openstack_tenant_id);
         if (snap == null) {
-            throw APIException.badRequests.parameterIsNotValid(snapshot_id);
+            _log.error("Not Found : Invalid volume snapshot id");
+            return CinderApiUtils.createErrorResponse(404, "Not Found : Invalid volume snapshot id");
+        }else if(snap.hasConsistencyGroup()){
+            _log.error("Not Found : Snapshot belongs to a consistency group");
+            return CinderApiUtils.createErrorResponse(400, "Invalid snapshot: Snapshot belongs to consistency group");
         }            
 
         URI snapshotURI = snap.getId();
@@ -556,7 +572,7 @@ public class SnapshotService extends TaskResourceService {
             op.setResourceType(ResourceOperationTypeEnum.DELETE_VOLUME_SNAPSHOT);
             _dbClient.createTaskOpStatus(BlockSnapshot.class, snap.getId(), task, op);
             response.getTaskList().add(toTask(snap, task, op));
-            return;
+            return Response.status(202).build();
         }
 
         StorageSystem device = _dbClient.queryObject(StorageSystem.class, snap.getStorageController());
@@ -595,7 +611,7 @@ public class SnapshotService extends TaskResourceService {
         // should be returned.
         Volume volume = _permissionsHelper.getObjectById(snap.getParent(), Volume.class);
         BlockServiceApi blockServiceApiImpl = BlockService.getBlockServiceImpl(volume, _dbClient);
-        blockServiceApiImpl.deleteSnapshot(snap, task);
+        blockServiceApiImpl.deleteSnapshot(snap, snapshots, task, VolumeDeleteTypeEnum.FULL.name());
 
         StringMap extensions = snap.getExtensions();
         if (extensions == null) {
@@ -614,7 +630,7 @@ public class SnapshotService extends TaskResourceService {
                 AuditLogManager.AUDITOP_BEGIN, snapshot_id, snap.getLabel(),
                 snap.getParent().getName(), device.getId().toString());
 
-        return;
+        return Response.status(202).build();
     }
 
     /**
@@ -712,7 +728,6 @@ public class SnapshotService extends TaskResourceService {
             {
                 taskInProgressId = snapshot.getExtensions().get("taskid");
                 //Task acttask = TaskUtils.findTaskForRequestId(_dbClient, snapshot.getId(), taskInProgressId);
-
                 for (Task tsk : taskLst) {
                     if (tsk.getId().toString().equals(taskInProgressId)) {
                         if (tsk.getStatus().equals("ready"))
@@ -814,9 +829,9 @@ public class SnapshotService extends TaskResourceService {
         QuotaOfCinder objQuota = null;
 
         if (pool == null) {
-            objQuota = getCinderHelper().getProjectQuota(openstack_tenant_id, getUserFromContext());
+            objQuota = getQuotaHelper().getProjectQuota(openstack_tenant_id, getUserFromContext());
         } else {
-            objQuota = getCinderHelper().getVPoolQuota(openstack_tenant_id, pool, getUserFromContext());
+            objQuota = getQuotaHelper().getVPoolQuota(openstack_tenant_id, pool, getUserFromContext());
         }
 
         Project proj = getCinderHelper().getProject(openstack_tenant_id, getUserFromContext());
@@ -829,9 +844,9 @@ public class SnapshotService extends TaskResourceService {
         
         UsageStats stats = null;
         if (pool != null) {
-            stats = getCinderHelper().getStorageStats(pool.getId(), proj.getId());
+            stats = getQuotaHelper().getStorageStats(pool.getId(), proj.getId());
         } else {
-            stats = getCinderHelper().getStorageStats(null, proj.getId());
+            stats = getQuotaHelper().getStorageStats(null, proj.getId());
         }            
 
         totalSnapshotsUsed = stats.snapshots;
@@ -856,8 +871,8 @@ public class SnapshotService extends TaskResourceService {
 
     protected BlockSnapshot findSnapshot(String snapshot_id,
             String openstack_tenant_id) {
-        BlockSnapshot snapshot = getCinderHelper().querySnapshotByTag(
-                URI.create(snapshot_id), getUserFromContext());
+        BlockSnapshot snapshot = (BlockSnapshot) getCinderHelper().queryByTag(
+                URI.create(snapshot_id), getUserFromContext(),BlockSnapshot.class);
         if (snapshot != null) {
             Project project = getCinderHelper().getProject(openstack_tenant_id, getUserFromContext());
             if ((project != null)
@@ -904,7 +919,7 @@ public class SnapshotService extends TaskResourceService {
 
     protected Volume queryVolumeResource(URI id, String openstack_tenant_id) {
 
-        Volume vol = getCinderHelper().queryVolumeByTag(id, getUserFromContext());
+        Volume vol = (Volume) getCinderHelper().queryByTag(id, getUserFromContext(), Volume.class);
 
         if (vol != null) {
             Project project = getCinderHelper().getProject(openstack_tenant_id, getUserFromContext());
@@ -992,6 +1007,25 @@ public class SnapshotService extends TaskResourceService {
     @Override
     protected DataObject queryResource(URI id) {
         return _dbClient.queryObject(BlockSnapshot.class, id);
+    }
+
+    /**
+     * Returns the storagetype for block service Implementation
+     * 
+     * @param vpool Virtual Pool
+     * @return block service implementation object
+     */
+    private static BlockServiceApi getBlockServiceImpl(VirtualPool vpool, DbClient dbClient) {
+        // Mutually exclusive logic that selects an implementation of the block service
+        if (VirtualPool.vPoolSpecifiesProtection(vpool)) {
+            return BlockService.getBlockServiceImpl(DiscoveredDataObject.Type.rp.name());
+        } else if (VirtualPool.vPoolSpecifiesHighAvailability(vpool)) {
+            return BlockService.getBlockServiceImpl(DiscoveredDataObject.Type.vplex.name());
+        } else if (VirtualPool.vPoolSpecifiesSRDF(vpool)) {
+            return BlockService.getBlockServiceImpl(DiscoveredDataObject.Type.srdf.name());
+        } 
+
+        return BlockService.getBlockServiceImpl("default");
     }
 
 }

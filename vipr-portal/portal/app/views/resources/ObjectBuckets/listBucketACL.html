@@ -1,0 +1,101 @@
+#{extends 'main.html' /}
+#{set navSelected: ['nav.storage', 'nav.object.buckets'] /}
+
+#{breadcrumb.container}
+  #{breadcrumb.item @buckets()}&{'resources.buckets'}#{/breadcrumb.item}
+  #{breadcrumb.item @resources.ObjectBuckets.bucket(bucketId)}${bucketName}#{/breadcrumb.item}
+  #{breadcrumb.item active:true}&{'resources.buckets.acl'}#{/breadcrumb.item}
+#{/breadcrumb.container}
+
+#{if flash.warningMessage}
+  <div class="clear"></div>
+  <p class="alert alert-warning">${flash.warningMessage}</p>
+#{/if}
+
+#{DataTable.header titleKey:'acl.crud.title'/}
+
+#{DataTable.table id:'accessControlList',
+                  dataTable: dataTable,
+                  selectable: true,
+                  source: @listBucketACLJson(bucketId)}
+
+  #{DataTable.buttonBar}
+    #{Form.button name:'button.add', class:'success', icon:'plus', action:'showDialogClick()'/}
+    #{Form.button name:'button.delete', class:'danger', icon:'trash', submit:'removeForm', data:['enabled':'selected']/}
+  #{/DataTable.buttonBar}
+   
+#{/DataTable.table}
+
+%{ formFields = ['bucketId': bucketId] }%
+#{DataTable.formAction @deleteAcl(), id:'removeForm', table:'accessControlList', fields:formFields,
+                       confirm:messages.get('resources.filesystem.share.acl.deleteConfirm', name)/}
+                       
+
+#{Modal.dialog id:'addBucketAclDialog', cssClass:'extra-wide'}
+  #{Modal.header}
+    <h4 class="modal-title">&{'resources.buckets.acl.add'}</h4>
+  #{/Modal.header}
+  #{Modal.body}
+    <div ng-controller="BucketAclCtrl" id="acl">
+       <div class="container-fluid">
+           <div class="row" style="padding-top:20px; padding-bottom:0px;">
+                <div class="pull-left col-md-2" style="text-align:center;"><strong>&{'bucketACL.type'}</strong></div>
+                <div class="pull-left col-md-2" style="text-align:center;"><strong>&{'bucketACL.name'}</strong></div>
+                <div class="pull-left col-md-2" style="text-align:center;"><strong>&{'bucketACL.domain'}</strong></div>
+                <div class="pull-left col-md-4" style="text-align:center;"><strong>&{'bucketACL.permissions'}</strong></div>
+                <div class="pull-left col-md-1"></div>
+           </div>
+           <hr style="margin:5px;"/>
+           <div class="row"  ng-repeat="info in acl.accesscontrols" style="margin-bottom:5px;">
+               <div class="pull-left col-md-2" v-field="info.type" style="padding-right:0px;"><select-one options="typeOpt"></select-one></div>
+               <div class="pull-left col-md-2" v-field="info.name"><input-text></input-text><label style="position: absolute; color:#a94442; font-size: 18px; right: -0px; top: 8px;">*</label></div>
+               <div class="pull-left col-md-2" v-field="info.domain"><input-text></input-text></div>
+               <div class="pull-left col-md-4" v-field="info.permission" style="padding-right:0px;"></<input><select-many options="permOpt"></select-many></div>
+               <div class="pull-left col-md-1" style="padding-left:0px; margin-top:5px;"><button type="button" ng-click="deleteACE($index)" class="close">&times;</button></div>
+           </div>
+           <div class="row">
+               <div class="pull-left col-sm-11"><button type="button" ng-click="addACE()" class="btn btn-sm btn-success"><i v-icon=plus></i> &{'button.add'}</button></div>
+           </div>
+           #{form @addBucketAcl(), id:'bucketACLForm', class:'form form-horizontal', autocomplete:"off"}
+             <input type="hidden" name="formAccessControlList" ng-value="formAccessControlList"/>
+             <input type="hidden" name="bucketId" value="${bucketId}">
+             
+             <div class="row">
+               #{Modal.buttonBar}
+                 <button type="submit" style="margin-left:45px;" class="btn btn-primary"><i v-icon=ok-sign></i> &{'button.save'}</button>
+               #{/Modal.buttonBar}
+             </div>
+           #{/form}
+       </div>
+    </div>
+  #{/Modal.body}
+#{/Modal.dialog}
+                     
+<script>
+ 
+  function showDialogClick() {
+	showDialog();
+  }
+
+  function hideDialog() {
+    $('.modal').modal('hide');
+  }
+  
+  function showDialog() {
+	    var scope = angular.element($('#acl')).scope();
+		scope.populateModal();
+		$('#addBucketAclDialog').modal('show');
+  }
+</script>
+                       
+
+<script type="text/javascript">
+function renderLink(o, val) {
+	
+	var data = o.aData;
+    var url = #{jsAction @editBucketAce(':id')/};
+    var href = url(data);
+	
+    return "<a href='"+href+"'>" + val + "</a>";
+}
+</script>                       

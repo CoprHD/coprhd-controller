@@ -14,8 +14,11 @@
         <property name="serviceBeacon" ref="beacon" />
         <property name="service" ref="serviceinfo" />
         <property name="nodeCount" ref="nodeCount" />
+        <property name="vip" value="${network_vip_effective}" />
         <property name="statusChecker" ref="statusChecker"/>
         <property name="drUtil" ref="drUtil"/>
+    	<property name="backCompatPreYoda" ref="backCompatPreYoda"/>
+    	<property name="standby" ref="siteIsStandby"></property>
     </bean>
     
     <import resource="classpath:dbclient-conf.xml"/>
@@ -46,5 +49,9 @@
     
     <bean id="backCompatPreYoda" class="java.lang.Boolean">
         <constructor-arg type="java.lang.String" value="${back_compat_preyoda}" />
+    </bean>
+
+    <bean id="siteIsStandby" class="java.lang.Boolean">
+        <constructor-arg type="java.lang.String" value="${site_is_standby}" />
     </bean>
 </beans>

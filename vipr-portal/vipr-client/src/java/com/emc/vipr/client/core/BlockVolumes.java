@@ -43,8 +43,8 @@ import com.emc.storageos.model.block.export.ITLRestRepList;
 import com.emc.storageos.model.protection.ProtectionSetRestRep;
 import com.emc.storageos.model.vpool.VirtualPoolChangeList;
 import com.emc.storageos.model.vpool.VirtualPoolChangeRep;
-import com.emc.vipr.client.Tasks;
 import com.emc.vipr.client.Task;
+import com.emc.vipr.client.Tasks;
 import com.emc.vipr.client.ViPRCoreClient;
 import com.emc.vipr.client.core.filters.ResourceFilter;
 import com.emc.vipr.client.core.impl.PathConstants;
@@ -451,10 +451,31 @@ public class BlockVolumes extends BulkExportResources<VolumeRestRep> implements 
      *            the ID of the block volume.
      * @param input
      *            the copy configurations.
+     * 
      * @return tasks for monitoring the progress of the operation.
      */
     public Tasks<VolumeRestRep> deactivateContinuousCopies(URI id, CopiesParam input) {
-        return postTasks(input, getContinuousCopiesUrl() + "/deactivate", id);
+        return deactivateContinuousCopies(id, input, VolumeDeleteTypeEnum.FULL);
+    }
+
+    /**
+     * Begins deactivating a number of continuous copies for the given block volume.
+     * <p>
+     * API Call: <tt>POST /block/volumes/{id}/protection/continuous-copies/deactivate</tt>
+     * 
+     * @param id
+     *            the ID of the block volume.
+     * @param input
+     *            the copy configurations.
+     * @param type
+     *            {@code FULL} or {@code VIPR_ONLY}
+     * 
+     * @return tasks for monitoring the progress of the operation.
+     */
+    public Tasks<VolumeRestRep> deactivateContinuousCopies(URI id, CopiesParam input, VolumeDeleteTypeEnum type) {
+        URI uri = client.uriBuilder(getContinuousCopiesUrl() + "/deactivate").queryParam("type", type).build(id);
+        TaskList tasks = client.postURI(TaskList.class, input, uri);
+        return new Tasks<>(client, tasks.getTaskList(), resourceClass);
     }
 
     /**
@@ -688,7 +709,9 @@ public class BlockVolumes extends BulkExportResources<VolumeRestRep> implements 
      * @param input
      *            the migration configuration.
      * @return a task for monitoring the operation progress.
+     * @deprecated Use the Change Virtual Pool API instead
      */
+    @Deprecated
     public Task<VolumeRestRep> migrate(MigrationParam input) {
         return postTask(input, PathConstants.MIGRATION_URL);
     }

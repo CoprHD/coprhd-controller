@@ -9,6 +9,7 @@ import java.net.URI;
 import java.util.List;
 
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
+import com.emc.storageos.volumecontroller.ApplicationAddVolumeList;
 
 /**
  * RecoverPoint Controller
@@ -20,12 +21,16 @@ public interface RPController extends ProtectionController {
      * @param protectionDevice RP protection system URI
      * @param id volume or consistency group ID
      * @param copyID id of protection volume
+     * @param pointInTime any point in time in UTC.
+     *            Allowed values: "yyyy-MM-dd_HH:mm:ss" formatted date or datetime in milliseconds.
      * @param op operation to perform
      * @param task task object
      *
      * @throws InternalException
      */
-    public void performProtectionOperation(URI protectionDevice, URI id, URI copyID, String op, String task) throws InternalException;
+    public void performProtectionOperation(URI protectionDevice, URI id, URI copyID, String pointInTime, String op,
+            String task)
+            throws InternalException;
 
     /**
      * Update consistency group policy.
@@ -65,5 +70,16 @@ public interface RPController extends ProtectionController {
      * @param task task ID
      */
     public void deleteSnapshot(URI protectionDevice, URI snapshot, String task) throws InternalException;
+
+    /**
+     * adds and removes RecoverPoint protected volumes to and from applications
+     * @param systemURI
+     * @param addVolumesNotInCG
+     * @param removeVolumesURI
+     * @param applicationId
+     * @param taskId
+     */
+    public void updateApplication(URI systemURI, ApplicationAddVolumeList addVolumesNotInCG, List<URI> removeVolumesURI, URI applicationId,
+            String taskId);
 
 }

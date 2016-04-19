@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans
+       http://www.springframework.org/schema/beans/spring-beans.xsd">
+
+       <bean id="storageDriverManager" class="com.emc.storageos.services.util.StorageDriverManager">
+           <property name="storageSystemsMap">
+              <map>
+                 <entry key="Simulator" value="driversystem"/>
+                 <entry key="ScaleioDriver" value="scaleiosystem"/>
+              </map>
+           </property>
+
+           <!-- Set of block storage systems managed by drivers -->
+           <property name="blockSystems">
+               <set>
+                   <value>driversystem</value> <!-- simulator -->
+                   <value>scaleiosystem</value>
+               </set>
+           </property>
+
+           <!-- Set of file storage systems managed by drivers -->
+           <property name="fileSystems">
+               <set>
+
+               </set>
+           </property>
+
+           <!-- Set of storage systems managed through providers (proxy management model) -->
+           <property name="providerManaged">
+               <set>
+         <!--          <value>scaleiosystem</value>  -->
+
+               </set>
+           </property>
+
+           <!-- Set of storage systems managed through direct connection from client -->
+           <property name="directlyManaged">
+               <set>
+                   <value>driversystem</value> <!-- simulator -->
+                   <value>scaleiosystem</value>
+               </set>
+           </property>
+
+       </bean>
+
+</beans>

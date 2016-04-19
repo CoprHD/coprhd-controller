@@ -34,8 +34,10 @@ public class CGPolicyParams implements Serializable {
         return rpoValue;
     }
 
-    public void setRpoValue(long rpoValue) {
-        this.rpoValue = rpoValue;
+    public void setRpoValue(Long rpoValue) {
+    	if (null != rpoValue) {
+    		this.rpoValue = rpoValue;
+    	}
     }
 
     public String getRpoType() {

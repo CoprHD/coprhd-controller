@@ -49,7 +49,6 @@ public class VcenterRestRep extends ComputeSystemRestRep {
     /**
      * The login account name
      * 
-     * @valid none
      * @return the login account name
      */
     @XmlElement(name = "user_name")
@@ -64,7 +63,6 @@ public class VcenterRestRep extends ComputeSystemRestRep {
     /**
      * The vCenter server management IP address
      * 
-     * @valid none
      * @return the vCenter server management IP address
      */
     @XmlElement(name = "ip_address")
@@ -79,7 +77,6 @@ public class VcenterRestRep extends ComputeSystemRestRep {
     /**
      * The vCenter server management port
      * 
-     * @valid none
      * @return the the vCenter server management port
      */
     @XmlElement(name = "port_number")
@@ -94,8 +91,6 @@ public class VcenterRestRep extends ComputeSystemRestRep {
     /**
      * A flag which indicates whether SSL should be used when communicating with the vCenter
      * 
-     * @valid true = use SSL
-     * @valid false = do not use SSL
      * @return true if SSL should be used when communicating with the vCenter
      */
     @XmlElement(name = "use_ssl")
@@ -110,7 +105,6 @@ public class VcenterRestRep extends ComputeSystemRestRep {
     /**
      * The operating system version of the vcenter.
      * 
-     * @valid none
      */
     @XmlElement(name = "os_version")
     public String getOsVersion() {
@@ -125,10 +119,9 @@ public class VcenterRestRep extends ComputeSystemRestRep {
      * A flag indicating whether to cascade the vCenter tenancy to all its
      * datacenters and its clusters and hosts or not. If cascaded vCenter
      * can belong to only one tenant.
-     *
-     * @valid true = cascades the vCenter tenancy to the datacenters
-     *                  and its hosts and clusters.
-     * @valid false = does not cascade.
+     * Valid values:
+     * 	true = cascades the vCenter tenancy to the datacenters and its hosts and clusters.
+     * 	false = does not cascase
      */
     @XmlElement(name = "cascade_tenancy")
     public Boolean getCascadeTenancy() {

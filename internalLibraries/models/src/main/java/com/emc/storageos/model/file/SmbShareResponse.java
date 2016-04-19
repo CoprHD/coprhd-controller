@@ -28,7 +28,6 @@ public class SmbShareResponse extends FileSystemShareBase {
     /**
      * The SMB mount point of the file system.
      * 
-     * @valid String path
      */
     @XmlElement(name = "mount_point")
     public String getMountPoint() {
@@ -42,7 +41,6 @@ public class SmbShareResponse extends FileSystemShareBase {
     /**
      * The SMB path of the file system or subdirectory
      * 
-     * @valid String path
      */
     @XmlElement(name = "path")
     public String getPath() {

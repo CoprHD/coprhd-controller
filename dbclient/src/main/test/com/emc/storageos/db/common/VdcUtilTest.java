@@ -6,13 +6,14 @@ package com.emc.storageos.db.common;
 
 import java.net.URI;
 import java.util.ArrayList;
-
 import java.util.List;
 
 import org.easymock.EasyMock;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
@@ -29,9 +30,11 @@ public class VdcUtilTest {
     private static final String VERSION_2_2 = "2.2";
     private static final String VERSION_2_5 = "2.5";
     private static final String VERSION_2_6 = "2.6";
+    private static final Logger log = LoggerFactory.getLogger(VdcUtilTest.class);
 
     @Before
     public void setup() {
+    	log.error("{} 1 {} 2 {}",new Object[] {"1","2","3"}, new RuntimeException());
         VDC1_GEO_VERSION.setVdcId(VDC1_ID);
         VDC1_GEO_VERSION.setVersion(VERSION_2_2);
         VDC2_GEO_VERSION.setVdcId(VDC2_ID);

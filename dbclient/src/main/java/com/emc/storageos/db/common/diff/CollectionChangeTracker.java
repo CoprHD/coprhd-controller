@@ -16,6 +16,7 @@ import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlElements;
 import javax.xml.bind.annotation.XmlTransient;
 
+import com.emc.storageos.model.valid.EnumType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -201,6 +202,9 @@ public class CollectionChangeTracker<T extends SchemaObject, S extends Diff> ext
                     // type associated with it. Do string comparison instead.
                     if (CustomMigrationCallback.class.getCanonicalName().equals(at.getType())) {
                         log.info("CustomMigrationCallback {} has been removed", at.describe());
+                        continue;
+                    } else if (EnumType.class.getCanonicalName().equals(at.getType())) {
+                        log.info("EnumType {} has been removed", at.describe());
                         continue;
                     }
                 }

@@ -531,7 +531,7 @@ class VirtualPool(object):
                      ha, minpaths,
                      maxpaths, pathsperinitiator, srdf, fastexpansion,
                      thinpreallocper, frontendbandwidth, iospersec,autoCrossConnectExport,
-                     fr_policy, fr_copies, mindatacenters):
+                     fr_policy, fr_copies, mindatacenters, snapshotsched):
 
         '''
         This is the function will create the VPOOL with given name and type.
@@ -605,13 +605,15 @@ class VirtualPool(object):
                 vpool_protection_snapshots_param[
                     'max_native_snapshots'] = max_snapshots
                 file_vpool_protection_param[
-                    'snapshots'] = vpool_protection_snapshots_param  
+                    'snapshots'] = vpool_protection_snapshots_param
+            if(snapshotsched is not None):
+                file_vpool_protection_param['schedule_snapshots'] = snapshotsched
             if(fr_policy is not None):
                 file_vpool_protection_param[
                     'replication_params'] = self.get_file_replication_params(
                                             fr_policy, fr_copies)    
             if(max_snapshots is not None or
-               fr_policy is not None):
+               fr_policy is not None or snapshotsched is not None):
                 # file vpool params
                 parms['protection'] = file_vpool_protection_param
                     
@@ -770,7 +772,7 @@ class VirtualPool(object):
             maxpaths, pathsperinitiator, srdfadd, srdfremove, rp_policy,
             add_rp, remove_rp, quota_enable, quota_capacity, fastexpansion,
             thinpreallocper, frontendbandwidth, iospersec,autoCrossConnectExport,
-            fr_policy, fr_addcopies, fr_removecopies, mindatacenters):
+            fr_policy, fr_addcopies, fr_removecopies, mindatacenters, snapshotsched):
 
         '''
         This is the function will update the VPOOL.
@@ -867,7 +869,7 @@ class VirtualPool(object):
 
         if(max_mirrors or max_snapshots or srdfadd or srdfremove or
            rp_policy or add_rp or remove_rp or 
-           fr_policy or fr_addcopies or fr_removecopies):
+           fr_policy or fr_addcopies or fr_removecopies or snapshotsched):
             vpool_protection_param = dict()
             if (max_snapshots):
                 # base class attribute
@@ -877,6 +879,9 @@ class VirtualPool(object):
                 vpool_protection_param['snapshots'] = \
                     vpool_protection_snapshot_params
 
+            if (snapshotsched is not None):
+                vpool_protection_param['schedule_snapshots'] = \
+                    snapshotsched
             if(max_mirrors):
                 vpool_protection_mirror_params = dict()
                 vpool_protection_mirror_params[
@@ -1233,6 +1238,11 @@ def create_parser(subcommand_parsers, common_parser):
                                metavar='<PathsPerInitiator>',
                                dest='pathsperinitiator',
                                type=int)
+    create_parser.add_argument(
+        '-snapshotschedule', '-snapsched',
+        help='Whether or not to support snapshot schedule',
+        dest='snapshotsched',
+        choices=VirtualPool.BOOL_TYPE_LIST)
     create_parser.add_argument('-srdf',
                                help='VMAX SRDF protection parameters, ' +
                                'eg:varray:vpool:policy',
@@ -1287,7 +1297,8 @@ def vpool_create(args):
                                args.autoCrossConnectExport,
                                args.fr_policy,
                                args.fr_copies,
-                               args.mindatacenters)
+                               args.mindatacenters,
+                               args.snapshotsched)
     except SOSError as e:
         if (e.err_code == SOSError.VALUE_ERR):
             raise SOSError(SOSError.VALUE_ERR, "VPool " + args.name +
@@ -1497,6 +1508,11 @@ def update_parser(subcommand_parsers, common_parser):
                                dest='fr_addcopies',
                                metavar='<fr_addcopies>',
                                nargs='+')
+    update_parser.add_argument(
+        '-snapshotschedule', '-snapsched',
+        help='Whether or not to support snapshot schedule',
+        dest='snapshotsched',
+        choices=VirtualPool.BOOL_TYPE_LIST)
     update_parser.add_argument('-fr_removecopies',
                                help='File Replication remote copies, ' +
                                'eg:varray1:vpool1 varray2:vpool2',
@@ -1574,7 +1590,8 @@ def vpool_update(args):
                              args.autoCrossConnectExport,
                              args.fr_policy, args.fr_addcopies,
                              args.fr_removecopies,
-                             args.mindatacenters)
+                             args.mindatacenters,
+                             args.snapshotsched)
         else:
             raise SOSError(SOSError.CMD_LINE_ERR,
                            "Please provide atleast one of parameters")
@@ -1954,10 +1971,9 @@ def list_parser(subcommand_parsers, common_parser):
         conflict_handler='resolve',
         help='List Classes of Service')
     list_parser.add_argument('-type', '-t',
-                             help='Type of VPool',
+                             help='Type of VPool, default type is file',
                              dest='type',
-                             metavar='<vpooltype>',
-                             choices=['file', 'block' , 'object'])
+                             metavar='<vpooltype>')
     list_parser.add_argument('-v', '-verbose',
                              dest='verbose',
                              help='List VPool with details',
@@ -1982,106 +1998,106 @@ def vpool_list(args):
 
     try:
         if(args.type):
-            types = [args.type]
+            type = args.type
         else:
-            types = ['block', 'file' , 'object']
+            type = 'file'
 
         output = []
-        for type in types:
-            uris = obj.vpool_list(type, args.vdcname)
-            if(len(uris) > 0):
-                for item in obj.vpool_list_by_hrefs(uris):
+        uris = obj.vpool_list(type, args.vdcname)
+        if(len(uris) > 0):
+            for item in obj.vpool_list_by_hrefs(uris):
 
+                if (type is 'block' or type is 'file'):
                     # append quota attributes
                     quota_obj.append_quota_attributes(type + "_vpool",
-                                                      item['id'], item)
-                    if(args.vdcname == None):
-                        tenanturis = obj.vpool_get_tenant(type, item['id'])
-                        if(tenanturis):
-                            tenantlist = []
-                            for turi in tenanturis:
-                                tenantname = obj.vpool_get_tenant_name(turi)
-                                tenantlist.append(tenantname)
-                            item['tenants_allowed'] = tenantlist
+                                                  item['id'], item)
+                if(args.vdcname == None):
+                    tenanturis = obj.vpool_get_tenant(type, item['id'])
+                    if(tenanturis):
+                        tenantlist = []
+                        for turi in tenanturis:
+                            tenantname = obj.vpool_get_tenant_name(turi)
+                            tenantlist.append(tenantname)
+                        item['tenants_allowed'] = tenantlist
 
-                    # format protection parameters
-                    if(args.long is True and "high_availability" in item):
-                        ha = ""
-                        hatags = item['high_availability']
-                        if('type' in hatags):
-                            ha = ha + hatags['type']
-                        if('ha_varray_vpool' in hatags):
-                            hatags = hatags['ha_varray_vpool']
-                            if('varray' in hatags):
+                # format protection parameters
+                if(args.long is True and "high_availability" in item):
+                    ha = ""
+                    hatags = item['high_availability']
+                    if('type' in hatags):
+                        ha = ha + hatags['type']
+                    if('ha_varray_vpool' in hatags):
+                        hatags = hatags['ha_varray_vpool']
+                        if('varray' in hatags):
+                            from virtualarray import VirtualArray
+                            ha = ha + ':' + VirtualArray(
+                                    args.ip,
+                                    args.port).varray_show(
+                                    hatags['varray'])['name']
+                        if('vpool' in hatags):
+                            ha = ha + ':' + obj.vpool_show_uri(
+                                    'block', hatags['vpool'])['name']
+                        if('useAsRecoverPointSource' in hatags):
+                            ha = ha + ':' + \
+                                 str(hatags['useAsRecoverPointSource'])
+                    item['ha'] = ha
+                if(args.long is True and "protection" in item):
+                    protection_param = item['protection']
+                    if('continuous_copies' in protection_param and
+                       'max_native_continuous_copies' in protection_param[
+                           'continuous_copies']):
+                        item['continuous_copies'] = protection_param[
+                            'continuous_copies'][
+                            'max_native_continuous_copies']
+                    if('snapshots' in protection_param and
+                       'max_native_snapshots' in
+                       protection_param['snapshots']):
+                        item['snapshots'] = protection_param[
+                            'snapshots']['max_native_snapshots']
+                    if('recoverpoint' in protection_param and
+                       'copies' in protection_param['recoverpoint']):
+                        rp_settings = \
+                            protection_param['recoverpoint']['copies']
+                        rp = ""
+                        for copy in rp_settings:
+                            if(len(rp) > 0):
+                                rp = rp + ','
+                            if('varray' in copy):
                                 from virtualarray import VirtualArray
-                                ha = ha + ':' + VirtualArray(
-                                        args.ip,
-                                        args.port).varray_show(
-                                        hatags['varray'])['name']
-                            if('vpool' in hatags):
-                                ha = ha + ':' + obj.vpool_show_uri(
-                                        'block', hatags['vpool'])['name']
-                            if('useAsRecoverPointSource' in hatags):
-                                ha = ha + ':' + \
-                                     str(hatags['useAsRecoverPointSource'])
-                        item['ha'] = ha
-                    if(args.long is True and "protection" in item):
-                        protection_param = item['protection']
-                        if('continuous_copies' in protection_param and
-                           'max_native_continuous_copies' in protection_param[
-                               'continuous_copies']):
-                            item['continuous_copies'] = protection_param[
-                                'continuous_copies'][
-                                'max_native_continuous_copies']
-                        if('snapshots' in protection_param and
-                           'max_native_snapshots' in
-                           protection_param['snapshots']):
-                            item['snapshots'] = protection_param[
-                                'snapshots']['max_native_snapshots']
-                        if('recoverpoint' in protection_param and
-                           'copies' in protection_param['recoverpoint']):
-                            rp_settings = \
-                                protection_param['recoverpoint']['copies']
-                            rp = ""
-                            for copy in rp_settings:
-                                if(len(rp) > 0):
-                                    rp = rp + ','
-                                if('varray' in copy):
-                                    from virtualarray import VirtualArray
-                                    rp = rp + VirtualArray(
-                                        args.ip,
-                                        args.port).varray_show(
-                                        copy['varray'])['name']
-                                if('vpool' in copy):
-                                    rp = rp + ':' + obj.vpool_show_uri(
-                                        'block', copy['vpool'])['name']
-                                if('policy' in copy and
-                                   'journal_size' in copy['policy']):
-                                    rp = rp + ':' + \
-                                        copy['policy']['journal_size']
-                            item['recoverpoint'] = rp
-                        if('remote_copies' in protection_param and
-                           'remote_copy_settings' in
-                           protection_param['remote_copies']):
-                            remote_copy_settings = protection_param[
-                                'remote_copies']['remote_copy_settings']
-                            srdf = ""
-                            for copy in remote_copy_settings:
-                                if(len(srdf) > 0):
-                                    srdf = srdf + ','
-                                if('varray' in copy):
-                                    from virtualarray import VirtualArray
-                                    srdf = srdf + VirtualArray(
-                                        args.ip, args.port).varray_show(
-                                        copy['varray'])['name']
-                                if('vpool' in copy):
-                                    srdf = srdf + ':' + obj.vpool_show_uri(
-                                        'block', copy['vpool'])['name']
-                                if('remote_copy_mode' in copy):
-                                    srdf = srdf + ':' + \
-                                        copy['remote_copy_mode']
-                            item['srdf'] = srdf
-                    output.append(item)
+                                rp = rp + VirtualArray(
+                                    args.ip,
+                                    args.port).varray_show(
+                                    copy['varray'])['name']
+                            if('vpool' in copy):
+                                rp = rp + ':' + obj.vpool_show_uri(
+                                    'block', copy['vpool'])['name']
+                            if('policy' in copy and
+                               'journal_size' in copy['policy']):
+                                rp = rp + ':' + \
+                                    copy['policy']['journal_size']
+                        item['recoverpoint'] = rp
+                    if('remote_copies' in protection_param and
+                       'remote_copy_settings' in
+                       protection_param['remote_copies']):
+                        remote_copy_settings = protection_param[
+                            'remote_copies']['remote_copy_settings']
+                        srdf = ""
+                        for copy in remote_copy_settings:
+                            if(len(srdf) > 0):
+                                srdf = srdf + ','
+                            if('varray' in copy):
+                                from virtualarray import VirtualArray
+                                srdf = srdf + VirtualArray(
+                                    args.ip, args.port).varray_show(
+                                    copy['varray'])['name']
+                            if('vpool' in copy):
+                                srdf = srdf + ':' + obj.vpool_show_uri(
+                                    'block', copy['vpool'])['name']
+                            if('remote_copy_mode' in copy):
+                                srdf = srdf + ':' + \
+                                    copy['remote_copy_mode']
+                        item['srdf'] = srdf
+                output.append(item)
         if(len(output) > 0):
             if(args.verbose is True):
                 return common.format_json_object(output)

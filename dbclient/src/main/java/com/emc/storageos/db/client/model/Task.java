@@ -59,7 +59,8 @@ public class Task extends DataObject {
     public Task() {
     }
 
-    @NamedRelationIndex(cf = "TaskResource")
+    @NamedRelationIndex(cf = "TaskResource", types={Volume.class, BlockSnapshot.class, VolumeGroup.class, 
+    		BlockConsistencyGroup.class, Host.class, ExportGroup.class, FileShare.class, Snapshot.class})
     @Name("resource")
     public NamedURI getResource() {
         return resource;
@@ -294,11 +295,13 @@ public class Task extends DataObject {
     }
 
     public boolean isError() {
-        return getStatus().equals(Status.error.name());
+        String status = getStatus();
+        return status != null && status.equals(Status.error.name());
     }
 
     public boolean isReady() {
-        return getStatus().equals(Status.ready.name());
+        String status = getStatus();
+        return status != null && status.equals(Status.ready.name());
     }
 
     /**

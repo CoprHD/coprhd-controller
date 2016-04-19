@@ -28,7 +28,6 @@ public class SortedIndexRestRep extends DataObjectRestRep {
     /**
      * Sorted index. Used to determine the display order
      * 
-     * @valid none
      */
     @XmlElement(name = "sorted_index")
     public Integer getSortedIndex() {

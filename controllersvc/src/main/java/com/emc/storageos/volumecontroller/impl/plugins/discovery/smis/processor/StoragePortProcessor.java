@@ -285,6 +285,11 @@ public class StoragePortProcessor extends StorageProcessor {
                     break;
                 }
             }
+            // VMAX GIGE ports do not report EMC_PORT_ATTRIBUTE_ACLX_FLAG
+            // If there is Virtual ProtocolEndpoint associated to this physical port, consider masking is enabled...
+            if ("2".equalsIgnoreCase(getCIMPropertyValue(portInstance, LINKTECHNOLOGY))) {
+                foundACLXFlag = true;
+            }
             String compatibilityStatus = (foundACLXFlag) ? DiscoveredDataObject.CompatibilityStatus.COMPATIBLE.name() :
                     DiscoveredDataObject.CompatibilityStatus.INCOMPATIBLE.name();
             _logger.info(String.format("setCompatibilityByACLXFlag(%s) = %s",

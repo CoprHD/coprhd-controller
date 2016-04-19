@@ -14,6 +14,7 @@ import static com.emc.storageos.api.mapper.TaskMapper.toTask;
 
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -62,6 +63,7 @@ import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.model.TaskList;
 import com.emc.storageos.model.TaskResourceRep;
+import com.emc.storageos.model.block.VolumeDeleteTypeEnum;
 import com.emc.storageos.security.audit.AuditLogManager;
 import com.emc.storageos.security.authorization.ACL;
 import com.emc.storageos.security.authorization.CheckPermission;
@@ -125,7 +127,19 @@ public class ConsistencyGroupSnapshotService extends AbstractConsistencyGroupSer
         // Query Consistency Group
         final String consistencyGroupId = param.cgsnapshot.consistencygroup_id;
         final BlockConsistencyGroup consistencyGroup = findConsistencyGroup(consistencyGroupId, openstackTenantId);
+        
+        if (consistencyGroup == null) {
+            _log.error("Not Found : No Such Consistency Group Found {}", consistencyGroupId);
+            return CinderApiUtils.createErrorResponse(404, "Not Found : No Such Consistency Group Found");
+        } else if (!consistencyGroupId.equals(CinderApiUtils.splitString(consistencyGroup.getId().toString(), ":", 3))) {
+            _log.error("Bad Request : Invalid Snapshot Id {} : Please enter valid or full Id", consistencyGroupId);
+            return CinderApiUtils.createErrorResponse(400, "Bad Request : No such consistency id exist, Please enter valid or full Id");
+        }
 
+        if (!isSnapshotCreationpermissible(consistencyGroup)) {
+            _log.error("Bad Request : vpool not being configured for the snapshots creation");
+            return CinderApiUtils.createErrorResponse(400, "Bad Request : vpool not being configured for the snapshots creation");
+        }
         // Ensure that the Consistency Group has been created on all of its defined
         // system types.
         if (!consistencyGroup.created()) {
@@ -258,11 +272,25 @@ public class ConsistencyGroupSnapshotService extends AbstractConsistencyGroupSer
     public Response getConsistencyGroupSnapshotDetail(@PathParam("tenant_id") String openstackTenantId,
             @PathParam("consistencyGroupSnapshot_id") String consistencyGroupSnapshotId, @HeaderParam("X-Cinder-V1-Call") String isV1Call,
             @Context HttpHeaders header) {
+        Project project = getCinderHelper().getProject(openstackTenantId, getUserFromContext());
+        if (project == null) {
+            String message = "Bad Request: Project with the OpenStack Tenant Id : " + openstackTenantId + " does not exist";
+            _log.error(message);
+            return CinderApiUtils.createErrorResponse(400, message);
+        }
         final BlockSnapshot snapshot = findSnapshot(consistencyGroupSnapshotId, openstackTenantId);
+        if (null == snapshot) {
+            _log.error("Bad Request : Invalid Snapshot Id {}", consistencyGroupSnapshotId);
+            return CinderApiUtils.createErrorResponse(400, "Bad Request: No such snapshot id exist");
+        } else if (!consistencyGroupSnapshotId.equals(CinderApiUtils.splitString(snapshot.getId().toString(), ":", 3))) {
+            _log.error("Bad Request : Invalid Snapshot Id {} : Please enter valid or full Id", consistencyGroupSnapshotId);
+            return CinderApiUtils.createErrorResponse(400, "Bad Request: No such snapshot id exist, Please enter valid or full Id");
+        }
         ConsistencyGroupSnapshotDetail cgSnapshotDetail = new ConsistencyGroupSnapshotDetail();
         cgSnapshotDetail.id = consistencyGroupSnapshotId;
         cgSnapshotDetail.name = snapshot.getLabel();
         cgSnapshotDetail.created_at = CinderApiUtils.timeFormat(snapshot.getCreationTime());
+        cgSnapshotDetail.consistencygroup_id = CinderApiUtils.splitString(snapshot.getConsistencyGroup().toString(), ":", 3);
         StringMap extensions = snapshot.getExtensions();
         String description = null;
 
@@ -289,7 +317,6 @@ public class ConsistencyGroupSnapshotService extends AbstractConsistencyGroupSer
                             cgSnapshotDetail.status = ComponentStatus.AVAILABLE.getStatus().toLowerCase();
                             snapshot.getExtensions().put("status", ComponentStatus.AVAILABLE.getStatus().toLowerCase());
                             snapshot.getExtensions().remove("taskid");
-                            _dbClient.updateObject(snapshot);
                         }
                         else if (tsk.getStatus().equals("pending")) {
                             if (tsk.getDescription().equals(ResourceOperationTypeEnum.CREATE_VOLUME_SNAPSHOT.getDescription()))
@@ -305,8 +332,8 @@ public class ConsistencyGroupSnapshotService extends AbstractConsistencyGroupSer
                             cgSnapshotDetail.status = ComponentStatus.ERROR.getStatus().toLowerCase();
                             snapshot.getExtensions().put("status", ComponentStatus.ERROR.getStatus().toLowerCase());
                             snapshot.getExtensions().remove("taskid");
-                            _dbClient.updateObject(snapshot);
                         }
+                        _dbClient.updateObject(snapshot);
                         break;
                     }
                 }
@@ -318,7 +345,7 @@ public class ConsistencyGroupSnapshotService extends AbstractConsistencyGroupSer
             else
             {
                 // status is available
-                cgSnapshotDetail.status = ComponentStatus.AVAILABLE.getStatus().toLowerCase(); 
+                cgSnapshotDetail.status = ComponentStatus.AVAILABLE.getStatus().toLowerCase();
             }
         }
         cgSnapshotDetail.description = (description == null) ? "" : description;
@@ -424,7 +451,7 @@ public class ConsistencyGroupSnapshotService extends AbstractConsistencyGroupSer
             Volume volume = _permissionsHelper.getObjectById(snapshot.getParent(), Volume.class);
             BlockServiceApi blockServiceApiImpl = BlockService.getBlockServiceImpl(volume, _dbClient);
 
-            blockServiceApiImpl.deleteSnapshot(snapshot, task);
+            blockServiceApiImpl.deleteSnapshot(snapshot, Arrays.asList(snapshot), task, VolumeDeleteTypeEnum.FULL.name());
 
             auditBlockConsistencyGroup(OperationTypeEnum.DELETE_CONSISTENCY_GROUP_SNAPSHOT,
                     AuditLogManager.AUDITLOG_SUCCESS, AuditLogManager.AUDITOP_BEGIN, snapshot.getId()
@@ -432,9 +459,8 @@ public class ConsistencyGroupSnapshotService extends AbstractConsistencyGroupSer
 
             return Response.status(202).build();
         } else {
-            CinderApiUtils.createErrorResponse(400, "Snapshot not attached to any active consistencygroup");
+            return CinderApiUtils.createErrorResponse(400, "Snapshot not attached to any active consistencygroup");
         }
-        return null;
 
     }
 
@@ -500,21 +526,10 @@ public class ConsistencyGroupSnapshotService extends AbstractConsistencyGroupSer
      */
     private BlockSnapshot findSnapshot(String snapshotId,
             String openstackTenantId) {
-        BlockSnapshot snapshot = getCinderHelper().querySnapshotByTag(
-                URI.create(snapshotId), getUserFromContext());
-        if (snapshot != null) {
-            Project project = getCinderHelper().getProject(openstackTenantId, getUserFromContext());
-            if ((project != null)
-                    && (snapshot.getProject().getURI().toString()
-                            .equalsIgnoreCase(project.getId().toString()))) {
-                // snapshot is part of the project
-                return snapshot;
-            }
-            else {
-                CinderApiUtils.createErrorResponse(400, "Bad Request: Project not exist for the request");
-            }
-        }
-        return null;
+        BlockSnapshot snapshot = (BlockSnapshot) getCinderHelper().queryByTag(
+                URI.create(snapshotId), getUserFromContext(),BlockSnapshot.class );
+        
+        return snapshot;
     }
 
     // internal function
@@ -526,7 +541,7 @@ public class ConsistencyGroupSnapshotService extends AbstractConsistencyGroupSer
             response.name = blockSnapshot.getLabel();
             response.created_at = CinderApiUtils.timeFormat(blockSnapshot.getCreationTime());
             response.status = blockSnapshot.getExtensions().get("status");
-            response.consistencygroup_id = blockSnapshot.getConsistencyGroup().toString();
+            response.consistencygroup_id = CinderApiUtils.splitString(blockSnapshot.getConsistencyGroup().toString(), ":", 3);
         }
         return response;
     }

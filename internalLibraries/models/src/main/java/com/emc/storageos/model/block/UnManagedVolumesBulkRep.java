@@ -25,7 +25,6 @@ public class UnManagedVolumesBulkRep extends BulkRestRep {
      * an ingest capability that enables users to bring the unmanaged
      * volumes under ViPR management.
      * 
-     * @valid none
      */
     @XmlElement(name = "unmanaged_volume")
     public List<UnManagedVolumeRestRep> getUnManagedVolumes() {

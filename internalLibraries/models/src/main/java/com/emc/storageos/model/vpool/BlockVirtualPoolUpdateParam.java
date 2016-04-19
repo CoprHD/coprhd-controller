@@ -42,7 +42,6 @@ public class BlockVirtualPoolUpdateParam extends VirtualPoolUpdateParam {
      * The new maximum number of paths to a given storage system for the virtual
      * pool.
      * 
-     * @valid none
      */
     @XmlElement(name = "max_paths")
     @Range(min = 1, max = 65535)
@@ -66,19 +65,18 @@ public class BlockVirtualPoolUpdateParam extends VirtualPoolUpdateParam {
 
     /**
      * @deprecated use getMaxPaths instead of getNumPaths
-     * @See getMaxPaths()
+     * @see BlockVirtualPoolRestRep#getMaxPaths()
      *      TODO: Remove deprecated API calls in next major release
      */
     @Deprecated
     @XmlElement(name = "num_paths")
-    @Range(min = 1, max = 65535)
     public Integer getNumPaths() {
         return maxPaths;
     }
 
     /**
      * @deprecated use setMaxPaths instead of setNumPaths
-     * @See setMaxPaths()
+     * @see BlockVirtualPoolRestRep#setMaxPaths(Integer)
      *      TODO: Remove deprecated API calls in next major release
      */
     @Deprecated
@@ -102,7 +100,6 @@ public class BlockVirtualPoolUpdateParam extends VirtualPoolUpdateParam {
     /**
      * The changes to the supported RAID levels for the virtual pool.
      * 
-     * @valid none
      */
     @XmlElement(name = "raid_level_changes")
     public RaidLevelChanges getRaidLevelChanges() {
@@ -116,7 +113,6 @@ public class BlockVirtualPoolUpdateParam extends VirtualPoolUpdateParam {
     /**
      * The new auto tier policy name for the virtual pool.
      * 
-     * @valid none
      */
     @XmlElement(name = "auto_tiering_policy_name", nillable = true)
     public String getAutoTieringPolicyName() {
@@ -130,7 +126,6 @@ public class BlockVirtualPoolUpdateParam extends VirtualPoolUpdateParam {
     /**
      * The new preallocation size for VMAX thin volumes for the virtual pool.
      * 
-     * @valid none
      */
     @XmlElement(name = "thin_volume_preallocation_percentage")
     public Integer getThinVolumePreAllocationPercentage() {
@@ -143,13 +138,13 @@ public class BlockVirtualPoolUpdateParam extends VirtualPoolUpdateParam {
     }
 
     /**
-     * The new drive type supported by the virtual pool.
-     * 
-     * @valid NONE = No specific drive type
-     * @valid SSD = Solid State Drive
-     * @valid FC = Fibre Channel
-     * @valid SAS = Serial Attached SCSI
-     * @valid SATA = Serial Advanced Technology Attachment
+     * The new drive type supported by the virtual pool. 
+     * Valid values:
+     *  NONE = No specific drive type
+     *  SSD = Solid State Drive
+     *  FC = Fibre Channel
+     *  SAS = Serial Attached SCSI
+     *  SATA = Serial Advanced Technology Attachment
      */
     @XmlElement(name = "drive_type")
     public String getDriveType() {
@@ -164,8 +159,6 @@ public class BlockVirtualPoolUpdateParam extends VirtualPoolUpdateParam {
      * Specifies whether or not the virtual pool supports multi-volume
      * consistency.
      * 
-     * @valid true
-     * @valid false
      */
     @XmlElement(name = "multi_volume_consistency")
     public Boolean getMultiVolumeConsistency() {
@@ -180,8 +173,6 @@ public class BlockVirtualPoolUpdateParam extends VirtualPoolUpdateParam {
      * Specifies whether or not the virtual pool supports volume
      * expansion.
      * 
-     * @valid true
-     * @valid false
      */
     @XmlElement(name = "expandable", required = false)
     public Boolean getExpandable() {
@@ -196,8 +187,6 @@ public class BlockVirtualPoolUpdateParam extends VirtualPoolUpdateParam {
      * Indicates that virtual pool volumes should use concatenated meta volumes,
      * not striped.
      * 
-     * @valid true
-     * @valid false
      */
     @XmlElement(name = "fast_expansion")
     public Boolean getFastExpansion() {
@@ -211,7 +200,6 @@ public class BlockVirtualPoolUpdateParam extends VirtualPoolUpdateParam {
     /**
      * The new protection settings for the virtual pool.
      * 
-     * @valid none
      */
     @XmlElement(name = "protection")
     public BlockVirtualPoolProtectionUpdateParam getProtection() {
@@ -225,7 +213,6 @@ public class BlockVirtualPoolUpdateParam extends VirtualPoolUpdateParam {
     /**
      * The new high availability settings for the virtual pool.
      * 
-     * @valid none
      */
     @XmlElement(name = "high_availability")
     public VirtualPoolHighAvailabilityParam getHighAvailability() {
@@ -240,8 +227,6 @@ public class BlockVirtualPoolUpdateParam extends VirtualPoolUpdateParam {
     /**
      * Specifies whether or not the virtual pool requires unique auto tier policy names.
      * 
-     * @valid true
-     * @valid false
      */
     @XmlElement(name = "unique_auto_tier_policy_names", required = false)
     public Boolean getUniquePolicyNames() {

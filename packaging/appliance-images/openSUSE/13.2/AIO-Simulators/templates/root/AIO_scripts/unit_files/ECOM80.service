@@ -1,0 +1,12 @@
+[Unit]
+Description=The ECOM 8.0.3 simulator
+After=ECOM462.service
+
+[Service]
+Type=forking
+TimeoutStartSec="3min"
+ExecStart=/etc/init.d/ECOM80 start
+ExecStop=/etc/init.d/ECOM80 stop
+
+[Install]
+WantedBy=multi-user.target

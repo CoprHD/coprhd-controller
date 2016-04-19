@@ -40,6 +40,9 @@ public class VPlexApiFactory {
     // The default socket time in milliseconds.
     private static final int DEFAULT_SOCKET_TIMEOUT = 1000 * 60 * 60;
 
+    // The default connection mgr timeout.
+    private static final int DEFAULT_CONN_MGR_TIMEOUT = 1000 * 60 * 60;
+
     // The maximum number of outstanding connections.
     private int _maxConn = DEFAULT_MAX_CONN;
 
@@ -51,6 +54,12 @@ public class VPlexApiFactory {
 
     // The connection timeout in milliseconds.
     private int _socketTimeoutMs = DEFAULT_SOCKET_TIMEOUT;
+
+    // Timeout to retrieve the connection from ConnectionManager.
+    private int connManagerTimeout = DEFAULT_CONN_MGR_TIMEOUT;
+
+    // Socket connection timeout in milliseconds.
+    private int socketConnectionTimeoutMs = DEFAULT_CONN_TIMEOUT;
 
     // A map of client connections to VPlex Management Stations keyed
     // by the URI of the Management Station.
@@ -115,6 +124,20 @@ public class VPlexApiFactory {
     }
 
     /**
+     * @param connManagerTimeout the connManagerTimeout to set
+     */
+    public void setConnManagerTimeout(int connManagerTimeout) {
+        this.connManagerTimeout = connManagerTimeout;
+    }
+
+    /**
+     * @param socketConnectionTimeoutMs the socket connection timeout ms to set
+     */
+    public void setSocketConnectionTimeoutMs(int socketConnectionTimeoutMs) {
+        this.socketConnectionTimeoutMs = socketConnectionTimeoutMs;
+    }
+    
+    /**
      * Initialize HTTP client
      */
     private void init() {
@@ -141,6 +164,7 @@ public class VPlexApiFactory {
         // HttpMethod should be retried after a recoverable exception during
         // execution.
         HttpClient client = new HttpClient(mgr);
+        client.getParams().setConnectionManagerTimeout(connManagerTimeout);
         client.getParams().setParameter(HttpMethodParams.RETRY_HANDLER,
                 new HttpMethodRetryHandler() {
                     @Override

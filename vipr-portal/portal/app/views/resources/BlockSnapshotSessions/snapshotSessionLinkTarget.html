@@ -1,0 +1,35 @@
+
+#{if snapshots}
+<table class='table table-condensed table-striped'>
+  <thead>
+    <tr>
+      <th>&{'resources.snapshot.name'}</th>
+      <th>&{'resources.actions'}</th>
+    </tr>
+  </thead>
+  <tbody>
+  #{list items:snapshots, as:'snapshot'}
+  
+  <tr>
+        <td>
+          <a href="@{resources.BlockSnapshots.snapshotDetails(snapshot.id)}"
+          ><img src="/public/img/assets/Snapshot.png" style="width: 32px;"/> ${snapshot.name}</a>
+        </td>
+       <td>
+       <a class="btn btn-xs btn-success" href="@{relinkTarget(snapshot.id,snapshotSessionId)}">&{'resources.snapshot.session.relink'}</a>
+       <div class="btn-group">
+       <button type="button" class="btn btn-xs btn-danger" data-toggle="dropdown">&{'resources.snapshot.session.unlink'}<span class="caret"></span></button>
+       <ul class="dropdown-menu" role="menu">
+            <li><a href="@{unlinkTarget(snapshot.id,snapshotSessionId,'true')}">&{'resources.snapshot.session.unlinkDelete'}</a></li>
+            <li><a href="@{unlinkTarget(snapshot.id,snapshotSessionId,'false')}">&{'resources.snapshot.session.unlinkNoDelete'}</a></li>
+          </ul>
+          </div>
+       </td>
+   </tr>
+   #{/list}
+  </tbody>
+  </table>
+#{/if}
+#{else}
+  &{'resources.snapshot.session.targets.none'}
+#{/else}

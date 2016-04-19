@@ -1,0 +1,28 @@
+{
+  baseKey:"ChangeFileVirtualPool.File",
+  serviceId:"ChangeFileVirtualPool",
+  fields:{
+  project:{
+      type:"assetType.vipr.project",
+      lockable: true
+    },
+
+    fileSystems:{
+      type:"assetType.vipr.unprotectedFilesystem"
+    },
+    
+    sourceVirtualPool:{
+      type:"assetType.vipr.fileSourceVirtualPool"
+    },
+    
+    virtualPoolChangeOperation:{
+      type:"assetType.vipr.fileVirtualPoolChangeOperation",
+      lockable: true
+    },
+    
+    targetVirtualPool:{
+      type:"assetType.vipr.fileTargetVirtualPool",
+      lockable: true
+    }
+  }
+}

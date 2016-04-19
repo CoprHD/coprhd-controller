@@ -42,9 +42,9 @@ public class NetworkRestRep extends DiscoveredDataObjectRestRep {
 
     /**
      * Indicates whether the network was discovered by a network system or manually created.
-     * 
-     * @valid true = network was discovered by a network system
-     * @valid false = network was manually created
+     * Valid values:
+     * 	true = network was discovered by a network system
+     * 	false = network was manually created
      */
     @XmlElement(name = "discovered")
     public Boolean getDiscovered() {
@@ -58,7 +58,6 @@ public class NetworkRestRep extends DiscoveredDataObjectRestRep {
     /**
      * List of endpoints associated with the network.
      * 
-     * @valid none
      */
     @XmlElementWrapper(name = "endpoints")
     @XmlElement(name = "endpoint")
@@ -78,7 +77,6 @@ public class NetworkRestRep extends DiscoveredDataObjectRestRep {
      * to "true" indicating it was discovered or "false" indicating it was
      * manually added into the network.
      * 
-     * @valid none
      */
     @XmlElementWrapper(name = "endpoints_discovered")
     @XmlElement(name = "endpoint_discovered")
@@ -97,7 +95,6 @@ public class NetworkRestRep extends DiscoveredDataObjectRestRep {
      * Fabric name or VSAN (Virtual Storage Area Network) ID for the
      * network if discovered by a network system.
      * 
-     * @valid none
      */
     @XmlElement(name = "fabric_id")
     public String getFabricId() {
@@ -111,11 +108,10 @@ public class NetworkRestRep extends DiscoveredDataObjectRestRep {
     /**
      * Virtual array associated with the network.
      * <p>
-     * This field is maintained for backward compatibility. It was replaced by {@link #getVirtualArrays()}. This field returns the network
+     * This field is maintained for backward compatibility. It was replaced by link getVirtualArrays(). This field returns the network
      * varray when the network is associated with a single varray. It returns null otherwise.
-     * 
-     * @see NetworkRestRep#getVirtualArrays()
-     * @valid none
+     * @see #getVirtualArray()
+     * Please refer NetworkRestRep#getVirtualArray()
      */
     @XmlElement(name = "varray")
     @JsonProperty("varray")
@@ -132,7 +128,6 @@ public class NetworkRestRep extends DiscoveredDataObjectRestRep {
      * systems where the network was discovered.
      * Empty list for manually created network.
      * 
-     * @valid none
      */
     @XmlElementWrapper(name = "network_systems")
     @XmlElement(name = "network_system")
@@ -147,7 +142,6 @@ public class NetworkRestRep extends DiscoveredDataObjectRestRep {
     /**
      * List of virtual arrays to which the network is assigned.
      * 
-     * @valid none
      */
     @XmlElementWrapper(name = "assigned_varrays")
     @XmlElement(name = "assigned_varray")
@@ -164,7 +158,6 @@ public class NetworkRestRep extends DiscoveredDataObjectRestRep {
      * connected because a storage port in the network has been
      * assigned to the virtual array.
      * 
-     * @valid none
      */
     @XmlElementWrapper(name = "connected_varrays")
     @XmlElement(name = "connected_varray")
@@ -178,10 +171,12 @@ public class NetworkRestRep extends DiscoveredDataObjectRestRep {
 
     /**
      * Indicates whether the network and its endpoints can be used for provisioning
-     * operation. Only registered networks can be used for provisioning operations.
+     * operation. Only registered networks can be used for provisioning operations. 
+     * Valid values: 
+     *  UNREGISTERED
+     *  REGISTERED
+     *  UNKNOWN
      * 
-     * @valid UNREGISTERED
-     * @valid REGISTERED
      */
     @XmlElement(name = "registration_status")
     public String getRegistrationStatus() {
@@ -193,11 +188,12 @@ public class NetworkRestRep extends DiscoveredDataObjectRestRep {
     }
 
     /**
-     * Transport type for the network. Valid values are IP, FC, and Ethernet.
+     * Transport type for the network. 
+     * Valid values:
+     *   IP
+     *   FC
+     *   Ethernet.
      * 
-     * @valid IP for IP and iSCSI endpoints
-     * @valid FC = Fibre Channel
-     * @valid Ethernet
      */
     @XmlElement(name = "transport_type")
     public String getTransportType() {
@@ -210,8 +206,8 @@ public class NetworkRestRep extends DiscoveredDataObjectRestRep {
 
     /**
      * A list of networks that are routed to this network
-     * 
-     * @valid FC = None
+     * Valid value:
+     *  FC
      * @return A list of networks that are routed to this network
      */
     @XmlElementWrapper(name = "routed_networks")

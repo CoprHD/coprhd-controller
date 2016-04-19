@@ -31,7 +31,6 @@ public class UnManagedCGList {
      * The list of unmanaged cgs which are available in a protection system.
      * Used primarily to ingest cgs into ViPR.
      * 
-     * @valid none
      */
     @XmlElement(name = "unmanaged_cg")
     public List<RelatedResourceRep> getUnManagedCGs() {
@@ -49,7 +48,6 @@ public class UnManagedCGList {
      * The list of unmanaged cgs with name which are available in a protection system.
      * Used primarily to ingest cgs into ViPR.
      * 
-     * @valid none
      */
     @XmlElement(name = "named_unmanaged_cg")
     public List<NamedRelatedResourceRep> getNamedUnManagedCGs() {

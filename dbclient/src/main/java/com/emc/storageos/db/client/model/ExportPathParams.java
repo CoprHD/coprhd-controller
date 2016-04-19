@@ -6,35 +6,34 @@
 package com.emc.storageos.db.client.model;
 
 import java.beans.Transient;
-import java.net.URI;
-import java.util.ArrayList;
-import java.util.List;
 
 import com.emc.storageos.db.client.model.ExportGroup.ExportGroupType;
 
 @Cf("ExportPathParams")
 public class ExportPathParams extends DataObject {
-    Integer maxPaths;
-    Integer minPaths;
-    Integer pathsPerInitiator;
+    private Integer maxPaths;
+    private Integer minPaths;
+    private Integer pathsPerInitiator;
+    private Integer maxInitiatorsPerPort;
     // storage ports to be used for port allocation if supplied
-    StringSet storagePorts;
+    private StringSet storagePorts;
     // Default exportGroupType is Host. Expressed in ExportGroup.ExportGroupType
-    String exportGroupType;
+    private String exportGroupType;
     // If explicitly created is true, a user specifically create an ExportPathParam record.
     // If explicitly created is false, the entry was created as a side effect of an export operation.
-    Boolean explicitlyCreated;
+    private Boolean explicitlyCreated;
     
     /*
      * If allowFewerPorts is true, may allocate fewer than the calculated port requirement
      * for a Network. This is used for RP situations where we're zoning all Initiators to all Ports.
      */
-    Boolean allowFewerPorts = false;
+    private Boolean allowFewerPorts = false;
     
     // Return the default params if asked.
     // MaxPaths will be set to 4.
     // Minpaths will be set to 0 which is ignored.
     // PathsPerInitiator is set to 0 which means determine by array type.
+    // MaxInitiatorsPerPort will be set to 1 which means ports are not shared by Initiators.
     static public final ExportPathParams defaultParams = new ExportPathParams(4, 0, 0);
 
     static public ExportPathParams getDefaultParams() {
@@ -54,11 +53,12 @@ public class ExportPathParams extends DataObject {
         this.minPaths = minPaths;
         this.pathsPerInitiator = pathsPerInitiator;
         this.exportGroupType = type.toString();
+        this.maxInitiatorsPerPort = 1;
     }
     
     public String toString() {
-        return String.format("type %s maxPaths %d minPaths %d pathsPerInitiator %d",
-                returnExportGroupType().name(), getMaxPaths(), getMinPaths(), getPathsPerInitiator());
+        return String.format("type %s maxPaths %d minPaths %d pathsPerInitiator %d maxInitiatorsPerPort %d",
+                returnExportGroupType().name(), getMaxPaths(), getMinPaths(), getPathsPerInitiator(), getMaxInitiatorsPerPort());
     }
     
     @Name("maxPaths")
@@ -139,7 +139,20 @@ public class ExportPathParams extends DataObject {
     }
 
     public void setAllowFewerPorts(Boolean allowFewerPorts) {
-                this.allowFewerPorts = allowFewerPorts;
+        this.allowFewerPorts = allowFewerPorts;
+    }
+
+    @Transient
+    public Integer getMaxInitiatorsPerPort() {
+        if (maxInitiatorsPerPort == null) {
+            // 1 is the default because we normally want only one initiator to use each storage port
+            return 1;
+        }
+        return maxInitiatorsPerPort;
+    }
+
+    public void setMaxInitiatorsPerPort(Integer maxInitiatorsPerPort) {
+        this.maxInitiatorsPerPort = maxInitiatorsPerPort;
     }
 
 }

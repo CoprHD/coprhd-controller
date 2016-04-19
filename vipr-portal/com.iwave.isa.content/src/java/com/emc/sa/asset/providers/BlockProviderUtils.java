@@ -19,6 +19,8 @@ import com.emc.sa.service.vipr.block.BlockStorageUtils;
 import com.emc.sa.util.ResourceType;
 import com.emc.storageos.db.client.model.Volume.PersonalityTypes;
 import com.emc.storageos.model.DiscoveredSystemObjectRestRep;
+import com.emc.storageos.model.application.VolumeGroupRestRep;
+import com.emc.storageos.model.block.BlockConsistencyGroupRestRep;
 import com.emc.storageos.model.block.BlockObjectRestRep;
 import com.emc.storageos.model.block.VolumeRestRep;
 import com.emc.storageos.model.block.VolumeRestRep.RecoverPointRestRep;
@@ -159,7 +161,7 @@ public class BlockProviderUtils {
         }
     }
 
-    protected static Set<URI> getExportedResourceIds(Collection<ExportGroupRestRep> exports, ResourceType type) {
+    public static Set<URI> getExportedResourceIds(Collection<ExportGroupRestRep> exports, ResourceType type) {
         Set<URI> ids = new HashSet<>();
         for (ExportGroupRestRep export : exports) {
             // export volumes can be volumes or snapshots
@@ -240,7 +242,11 @@ public class BlockProviderUtils {
     public static boolean isSnapshotSessionSupportedForVolume(VolumeRestRep volume) {        
         return ((volume.getSupportsSnapshotSessions() != null) && volume.getSupportsSnapshotSessions());
     }
-
+        
+    public static boolean isSnapshotSessionSupportedForCG(BlockConsistencyGroupRestRep cg) {        
+        return ((cg.getSupportsSnapshotSessions() != null) && cg.getSupportsSnapshotSessions());
+    }
+    
     public static RecoverPointRestRep getVolumeRPRep(VolumeRestRep volume) {
         if (volume.getProtection() != null &&
                 volume.getProtection().getRpRep() != null) {
@@ -335,4 +341,64 @@ public class BlockProviderUtils {
         return uri.toString().startsWith("urn:storageos:" + name);
     }
 
+    /**
+     * returns the list of application sub groups for an application
+     * 
+     * @param viprClient
+     * @param applicationId
+     * @return
+     */
+    public static Set<String> getApplicationReplicationGroupNames(ViPRCoreClient viprClient, URI applicationId) {
+        VolumeGroupRestRep application = viprClient.application().getApplication(applicationId);
+        Set<String> visibleGroups = new HashSet<String>();
+        Set<String> groupNames = application.getReplicationGroupNames();
+        for (String grp : groupNames) {
+            if (!isRPTargetReplicationGroup(grp)) {
+                visibleGroups.add(grp);
+            }
+        }
+        return visibleGroups;
+    }
+
+    /**
+     * returns true if the replication group is a RP Target replication group
+     * 
+     * @param group
+     * @return
+     */
+    public static boolean isRPTargetReplicationGroup(String group) {
+        if (group != null) {
+            String[] parts = StringUtils.split(group, '-');
+            if (parts.length > 1 && parts[parts.length - 1].equals("RPTARGET")) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * returns true if the volume is a RP source or target volume
+     * 
+     * @param vol
+     * @return
+     */
+    public static boolean isVolumeRP(VolumeRestRep vol) {
+        if (vol.getProtection() != null && vol.getProtection().getRpRep() != null) {
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * return true if the volume is a vplex volume
+     * 
+     * @param vol
+     * @return
+     */
+    public static boolean isVolumeVPLEX(VolumeRestRep vol) {
+        if (vol.getHaVolumes() != null && !vol.getHaVolumes().isEmpty()) {
+            return true;
+        }
+        return false;
+    }
 }

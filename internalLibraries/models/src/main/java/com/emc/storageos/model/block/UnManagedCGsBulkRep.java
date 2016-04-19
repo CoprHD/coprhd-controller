@@ -26,7 +26,6 @@ public class UnManagedCGsBulkRep extends BulkRestRep {
      * an ingest capability that enables users to bring the unmanaged
      * CGs under ViPR management.
      * 
-     * @valid none
      */
     @XmlElement(name = "unmanaged_cg")
     public List<UnManagedCGRestRep> getUnManagedCGs() {

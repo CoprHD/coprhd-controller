@@ -1,0 +1,89 @@
+#!/bin/bash
+
+### BEGIN INIT INFO
+# Provides:          CISCO
+# Required-Start:    SimService
+# Required-Stop:
+# Should-Stop:
+# Default-Start:     3 5
+# Default-Stop:
+# Description:       starts CISCO simulator
+### END INIT INFO
+#. /etc/rc.d/init.d/functions
+. /lib/lsb/init-functions
+. /etc/rc.status
+
+RETVAL=0
+CISCO_HOME=/data/simulators/cisco-sim
+DELAY=60
+
+start() {
+        echo -n $"Starting CISCO:..hold on 10sec .."	
+
+	source ${CISCO_HOME}/bashrc 2>&1 
+        RETVAL=$?
+
+        while [ $DELAY -gt 0 ]; do
+        #echo "delay $DELAY"
+	       START=`which cisco.sh | grep "/cisco-sim/bin"`
+         if [ "${START}" != "" ] ; then
+           echo "${START}" >> /var/log/CISCO.log 2>&1  
+           echo "..OK"
+           return
+         fi
+        # sleep 2
+        echo 'did not work'
+        rm /cisco-sim
+        ln -s /data/simulators/cisco-sim/ /cisco-sim
+        DELAY=$((DELAY -1))
+       done
+
+       echo "Failed to start in 60 sec..try manual start" >> /var/log/CISCO.log 2>&1
+       return 1
+
+}
+
+stop() {
+
+        echo -n $"Stopping CISCO: "
+	#rm -f ${VPLEX_HOME}/log/* >>/var/log/VPLEX.log 2>&1
+        #killproc -TERM vplexRestSimulator.jar >> /var/log/VPLEX.log 2>&1
+	shopt -s expand_aliases
+        source ${CISCO_HOME}/bashrc 2>&1
+
+	unalias $(grep -oP "alias \K\w+(?==)" ${CISCO_HOME}/bashrc)
+	
+	echo  "..Done"
+}
+
+
+
+case "$1" in
+  start)
+        start
+        ;;
+  stop)
+        stop
+        ;;
+  status)
+    which cisco.sh | grep "/cisco-sim/bin" 2>&1
+	cnt=$?:
+	if(test "$cnt" != "") ;
+	then
+		echo "CISCO simulator already running..."
+	else
+		echo "CISCO simulator not running."
+	fi 
+    #    rc_status -v
+
+        ;;
+  *)
+        echo $"Usage: CISCO {start|stop|status}"
+        exit 1
+        exit 1
+esac
+
+
+exit $RETVAL
+
+

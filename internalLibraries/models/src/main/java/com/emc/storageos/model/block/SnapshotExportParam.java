@@ -34,9 +34,9 @@ public class SnapshotExportParam {
 
     /**
      * Protocol
-     * 
-     * @valid FC = Fibre Channel
-     * @valid iSCSI
+     * Valid values:
+     * FC
+     * iSCSI
      */
     @XmlElement(required = true)
     public String getProtocol() {
@@ -50,7 +50,6 @@ public class SnapshotExportParam {
     /**
      * Initiator port address (WWPN)
      * 
-     * @valid none
      */
     @XmlElement(required = true, name = "initiator_port")
     public String getInitiatorPort() {
@@ -64,7 +63,6 @@ public class SnapshotExportParam {
     /**
      * Initiator node address (WWNN)
      * 
-     * @valid none
      */
     @XmlElement(name = "initiator_node")
     public String getInitiatorNode() {
@@ -78,7 +76,6 @@ public class SnapshotExportParam {
     /**
      * LUN identifier
      * 
-     * @valid none
      */
     @XmlElement(required = true)
     public int getLun() {
@@ -92,7 +89,6 @@ public class SnapshotExportParam {
     /**
      * IP address or Fully Qualified Domain Name of host
      * 
-     * @valid none
      */
     @XmlElement(name = "host_id")
     public String getHostid() {

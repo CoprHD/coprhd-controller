@@ -166,7 +166,7 @@ class ConsistencyGroup(object):
                 "consistency groupwith name: " + name + " already exists",
                 SOSError.ENTRY_ALREADY_EXISTS_ERR)
 
-    def update(self, name, project, tenant, add_volumes, remove_volumes, sync):
+    def update(self, name, project, tenant, add_volumes, remove_volumes, sync,synctimeout=0):
         '''
         This function is used to add or remove volumes from consistency group
         It will update the consistency  group with given volumes.
@@ -214,11 +214,11 @@ class ConsistencyGroup(object):
 
         o = common.json_decode(s)
         if(sync):
-            return self.check_for_sync(o, sync)
+            return self.check_for_sync(o, sync,synctimeout)
         else:
             return o
 
-    def delete(self, name, project, tenant):
+    def delete(self, name, project, tenant, vipronly=False):
         '''
         This function will take consistency group name and project name
         as input and marks the particular consistency group as delete.
@@ -229,11 +229,14 @@ class ConsistencyGroup(object):
             return with status of the delete operation.
             false incase it fails to do delete.
         '''
+	params = ''
+        if (vipronly == True):
+            params += "?type=" + 'VIPR_ONLY'
         uri = self.consistencygroup_query(name, project, tenant)
         (s, h) = common.service_json_request(
             self.__ipAddr, self.__port,
             "POST",
-            self.URI_CONSISTENCY_GROUPS_DEACTIVATE.format(uri),
+            self.URI_CONSISTENCY_GROUPS_DEACTIVATE.format(uri) + params,
             None, None)
         return
 
@@ -259,13 +262,13 @@ class ConsistencyGroup(object):
                        "Consistency Group " + name + ": not found")
 
     # Blocks the opertaion until the task is complete/error out/timeout
-    def check_for_sync(self, result, sync):
+    def check_for_sync(self, result, sync,synctimeout=0):
         if(len(result["resource"]) > 0):
             resource = result["resource"]
             return (
                 common.block_until_complete("consistencygroup", resource["id"],
                                             result["id"], self.__ipAddr,
-                                            self.__port)
+                                            self.__port,synctimeout)
             )
         else:
             raise SOSError(
@@ -433,19 +436,20 @@ class ConsistencyGroup(object):
         return o       
         
     def consitencygroup_protection_failover_ops(self, name, project, tenant, copyvarray,
-                                    type="native", op="failover"):
+                                    pit, type="native", op="failover"):
         '''
         Failover the consistency group protection
         Parameters:
             name        : name of the consistency group
             project     : name of the project
             copyvarray  : name of the copy target virtual array
+            pit         : any UTC point-in-time formatted as "yyyy-MM-dd_HH:mm:ss" or datetime in milliseconds
             type        : type of protection
         Returns:
             result of the action.
         '''
         group_uri = self.consistencygroup_query(name, project, tenant)
-        body = self.protection_copyparam(copyvarray, type)
+        body = self.protection_copyparam(copyvarray, pit, type)
 
         uri = self.URI_BLOCK_CONSISTENCY_GROUP_FAILOVER.format(group_uri)
         if op == 'failover_cancel':
@@ -462,12 +466,15 @@ class ConsistencyGroup(object):
         return common.json_decode(s)   
         
     def protection_copyparam(
-            self, copyvarray, type="native", sync='false'):
+            self, copyvarray, pit, type="native", sync='false'):
         copies_param = dict()
         copy = dict()
         copy_entries = []
 
         copy['type'] = type
+        
+        if(pit != ""):
+            copy['pointInTime'] = pit
         #true=split
         if(sync == 'true'):
             copy['sync'] = "true"
@@ -559,14 +566,22 @@ def update_parser(subcommand_parsers, common_parser):
                                help='Execute in synchronous mode',
                                action='store_true')
 
+    update_parser.add_argument('-synctimeout',
+                               dest='synctimeout',
+                               help='Synchronous timeout in Seconds',
+                               default=0, type=int)
+    
+
     update_parser.set_defaults(func=consistencygroup_update)
 
 
 def consistencygroup_update(args):
+    if not args.sync and args.synctimeout !=0:
+        raise SOSError(SOSError.CMD_LINE_ERR,"error: Cannot use synctimeout without Sync ")
     try:
         obj = ConsistencyGroup(args.ip, args.port)
         res = obj.update(args.name, args.project, args.tenant,
-                         args.add_volumes, args.remove_volumes, args.sync)
+                         args.add_volumes, args.remove_volumes, args.sync,args.synctimeout)
     except SOSError as e:
         raise SOSError(SOSError.SOS_FAILURE_ERR, "Consistency Group " +
                        args.name + ": Update failed:\n" + e.err_text)
@@ -596,13 +611,18 @@ def delete_parser(subcommand_parsers, common_parser):
                                metavar='<tenantname>',
                                dest='tenant',
                                help='container tenant name')
+    delete_parser.add_argument('-vipronly', '-vo',
+                            dest='vipronly',
+                            help='Delete only from ViPR',
+                            action='store_true')
+
     delete_parser.set_defaults(func=consistencygroup_delete)
 
 
 def consistencygroup_delete(args):
     obj = ConsistencyGroup(args.ip, args.port)
     try:
-        res = obj.delete(args.name, args.project, args.tenant)
+        res = obj.delete(args.name, args.project, args.tenant, args.vipronly)
         return res
     except SOSError as e:
         raise SOSError(SOSError.SOS_FAILURE_ERR, "Consistency Group " +
@@ -749,7 +769,7 @@ def snapshot_parser(subcommand_parsers, common_parser):
     sscreate_parser.add_argument('-createinactive', '-ci',
                                  dest='createinactive',
                                  action='store_true',
-                                 help='Create snaphsot with inactive state')
+                                 help='Create snapshot with inactive state')
 
     #snapshot list
     sslist_parser = subcommand_parsers.add_parser(
@@ -985,10 +1005,14 @@ def failover_parser(subcommand_parsers, common_parser):
                                dest='copyvarray',
                                help='copy virtual array name',
                                required=True)
+    failover_parser.add_argument('-pit', '-p',
+                               metavar='<pit>',
+                               dest='pit',
+                               help='any UTC point-in-time formatted as "yyyy-MM-dd_HH:mm:ss" or datetime in milliseconds')
     failover_parser.add_argument('-type', '-t',
                                metavar='<type>',
                                dest='type',
-                               help='type of protection - native, rp, srdf')  
+                               help='type of protection - native, rp, srdf')
                                
     failover_parser.set_defaults(func=failover)
                          
@@ -1068,7 +1092,7 @@ def failover(args):
         if(not args.tenant):
             args.tenant = ""
         res = obj.consitencygroup_protection_failover_ops(args.name, args.project, args.tenant,
-                                   args.copyvarray, args.type, "failover")
+                                   args.copyvarray, args.pit, args.type, "failover")
     except SOSError as e:
         raise e
         
@@ -1078,7 +1102,7 @@ def failover_cancel(args):
         if(not args.tenant):
             args.tenant = ""
         res = obj.consitencygroup_protection_failover_ops(args.name, args.project, args.tenant,
-                                   args.copyvarray, args.type, "failover_cancel")
+                                   args.copyvarray, "", args.type, "failover_cancel")
     except SOSError as e:
         raise e   
         
@@ -1088,7 +1112,7 @@ def swap(args):
         if(not args.tenant):
             args.tenant = ""
         res = obj.consitencygroup_protection_failover_ops(args.name, args.project, args.tenant,
-                                   args.copyvarray, args.type, "swap")
+                                   args.copyvarray, "", args.type, "swap")
     except SOSError as e:
         raise e                    
 

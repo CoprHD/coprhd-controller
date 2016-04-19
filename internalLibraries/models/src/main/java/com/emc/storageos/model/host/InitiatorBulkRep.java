@@ -19,7 +19,6 @@ public class InitiatorBulkRep extends BulkRestRep {
     /**
      * List of initiator objects that exists in ViPR.
      * 
-     * @valid none
      */
     @XmlElement(name = "initiators")
     public List<InitiatorRestRep> getInitiators() {

@@ -19,6 +19,7 @@
         <property name="backupType" ref="backupType"/>
         <property name="backupContext" ref="backupContext"/>
         <property name="zkDir" ref="zkBackupFolder" />
+        <property name="siteIdFile" ref="siteIdPath" />
         <property name="fileTypeList">
             <list value-type="java.lang.String">
                 <value>log.</value>
@@ -37,5 +38,8 @@
         <constructor-arg value="/data/zk/version-2"/>
     </bean>
 
+    <bean id="siteIdPath" class="java.io.File">
+        <constructor-arg value="/data/zk/siteid" />
+    </bean>
 </beans>
 

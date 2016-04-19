@@ -10,7 +10,7 @@ import static com.emc.storageos.api.mapper.TaskMapper.toTask;
 
 import java.net.URI;
 import java.util.ArrayList;
-import java.util.EnumSet;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -677,8 +677,10 @@ public class ComputeSystemService extends TaskResourceService {
     @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
     public TaskResourceRep createComputeSystem(ComputeSystemCreate param)
             throws DatabaseException {
-        ArgValidator.checkFieldValueFromEnum(param.getSystemType(), "system_type",
-                EnumSet.of(ComputeSystem.Type.ucs));
+        // check device type
+        ArgValidator.checkFieldValueFromSystemType(param.getSystemType(), "system_type",
+                Arrays.asList(ComputeSystem.Type.ucs));
+
         ComputeSystem.Type deviceType = ComputeSystem.Type.valueOf(param.getSystemType());
 
         ArgValidator.checkFieldNotNull(param.getName(), "name");

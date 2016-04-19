@@ -201,7 +201,7 @@ public class BlockFullCopyUtils {
      * @return The SRDF copy mode of the passed volume.
      */
     public static String getSRDFCopyMode(Volume volume, DbClient dbClient) {
-        if (Volume.isSRDFProtectedTargetVolume(volume)) {
+        if (Volume.isSRDFProtectedVolume(volume)) {
             if (PersonalityTypes.SOURCE.toString().equalsIgnoreCase(volume.getPersonality())) {
                 StringSet targetIds = volume.getSrdfTargets();
                 if ((null != targetIds) && !targetIds.isEmpty()) {

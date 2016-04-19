@@ -21,8 +21,10 @@ import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.db.exceptions.RetryableDatabaseException;
 import com.emc.storageos.exceptions.ClientControllerException;
 import com.emc.storageos.impl.AbstractDiscoveredSystemController;
+import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
+import com.emc.storageos.volumecontroller.ApplicationAddVolumeList;
 import com.emc.storageos.volumecontroller.AsyncTask;
 import com.emc.storageos.volumecontroller.BlockController;
 import com.emc.storageos.volumecontroller.ControllerException;
@@ -205,7 +207,7 @@ public class BlockControllerImpl extends AbstractDiscoveredSystemController impl
     }
 
     @Override
-    public void restoreVolume(URI storage, URI pool, URI volume, URI snapshot, Boolean updateOpStatus, String opId)
+    public void restoreVolume(URI storage, URI pool, URI volume, URI snapshot, Boolean updateOpStatus, String syncDirection, String opId)
             throws InternalException {
         blockRMI("restoreVolume", storage, pool, volume, snapshot, updateOpStatus, opId);
     }
@@ -296,7 +298,8 @@ public class BlockControllerImpl extends AbstractDiscoveredSystemController impl
     }
 
     @Override
-    public void deactivateMirror(URI storage, List<URI> mirrorList, List<URI> promotees, Boolean isCG, String opId) throws InternalException {
+    public void deactivateMirror(URI storage, List<URI> mirrorList, List<URI> promotees, Boolean isCG, String opId)
+            throws InternalException {
         blockRMI("deactivateMirror", storage, mirrorList, promotees, isCG, opId);
     }
 
@@ -454,23 +457,29 @@ public class BlockControllerImpl extends AbstractDiscoveredSystemController impl
         blockRMI("restoreFromFullCopy", storage, clones, updateOpStatus, opId);
 
     }
-
-    /**
-     * {@inheritDoc}
-     */
+    
     @Override
-    public void createSnapshotSession(URI systemURI, List<URI> snapSessionURIs, Map<URI,
-            List<URI>> sessionSnapshotURIMap, String copyMode, String opId)
-            throws InternalException {
-        blockRMI("createSnapshotSession", systemURI, snapSessionURIs, sessionSnapshotURIMap, copyMode, opId);
+    public void updateApplication(URI storage, ApplicationAddVolumeList addVolList, URI application,
+            String opId) throws ControllerException {
+        blockRMI("updateApplication", storage, addVolList, application, opId);
     }
 
     /**
      * {@inheritDoc}
      */
     @Override
-    public void linkNewTargetVolumesToSnapshotSession(URI systemURI, URI snapSessionURI, List<URI> snapshotURIs,
-            String copyMode, String opId) {
+    public void createSnapshotSession(URI systemURI, URI snapSessionURI, List<List<URI>> sessionSnapshotURIs,
+                                      String copyMode, String opId)
+            throws InternalException {
+        blockRMI("createSnapshotSession", systemURI, snapSessionURI, sessionSnapshotURIs, copyMode, opId);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void linkNewTargetVolumesToSnapshotSession(URI systemURI, URI snapSessionURI, List<List<URI>> snapshotURIs,
+                                                      String copyMode, String opId) {
         blockRMI("linkNewTargetVolumesToSnapshotSession", systemURI, snapSessionURI, snapshotURIs, copyMode, opId);
     }
 
@@ -488,8 +497,8 @@ public class BlockControllerImpl extends AbstractDiscoveredSystemController impl
      */
     @Override
     public void unlinkTargetsFromSnapshotSession(URI systemURI, URI snapSessionURI,
-            Map<URI, Boolean> snapshotDeletionMap, String opId) {
-        blockRMI("unlinkTargetsFromSnapshotSession", systemURI, snapSessionURI, snapshotDeletionMap, opId);
+            Map<URI, Boolean> snapshotDeletionMap, OperationTypeEnum opType, String opId) {
+        blockRMI("unlinkTargetsFromSnapshotSession", systemURI, snapSessionURI, snapshotDeletionMap, opType, opId);
     }
 
     /**

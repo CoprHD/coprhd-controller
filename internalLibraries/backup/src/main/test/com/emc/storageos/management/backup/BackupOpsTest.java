@@ -14,6 +14,7 @@ import com.emc.storageos.coordinator.client.model.ProductName;
 import com.emc.storageos.management.backup.exceptions.FatalBackupException;
 import org.junit.Assert;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -33,7 +34,8 @@ public class BackupOpsTest extends BackupTestBase {
         backupOps.setHosts(hosts);
         backupOps.setPorts(Arrays.asList(7199));
         backupOps.setCoordinatorClient(coordinatorClient);
-        backupOps.setVdcList(Arrays.asList("vdc1"));
+        FakeDrUtil fakeDrUtil = new FakeDrUtil();
+        backupOps.setDrUtil(fakeDrUtil);
         ProductName name = new DummyProductName("vipr");
     }
 

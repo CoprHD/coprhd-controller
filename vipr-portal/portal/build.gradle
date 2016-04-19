@@ -41,7 +41,6 @@ done
 configurations {
     webjar
     documentation
-    license
     scaleio120
     all*.exclude group:"org.slf4j", module:"slf4j-log4j12"
     all*.exclude group:"org.slf4j", module:"slf4j-simple"
@@ -65,7 +64,6 @@ dependencies {
            "org.webjars:bootstrap:3.1.1-2"
 
     documentation "com.emc.vipr:vipr-docs:${docsVersion}.+@zip"
-    license "com.emc.vipr:vipr-licenses:${licenseVersion}.+@zip"
 }
 
 // Customizations for portal-only mode launcher
@@ -113,9 +111,6 @@ play {
             exclude "modules/${it}/eclipse"
         }
         exclude "conf/dev-assets.json"
-        into ("public") {
-            from zipTree(configurations.license.singleFile)
-        }
         into("public") {
             includeEmptyDirs = false
             String[] base = 'public/docs/en_US'.split("\\/")

@@ -35,7 +35,6 @@ public class MigrationParam {
     /**
      * The id of the VPlex virtual volume to be migrated.
      * 
-     * @valid none
      */
     @XmlElement(required = true, name = "volume")
     public URI getVolume() {
@@ -51,7 +50,6 @@ public class MigrationParam {
      * This identifies the storage system of the backend volume to be
      * migrated.
      * 
-     * @valid none
      */
     @XmlElement(required = true, name = "source_storage_system")
     public URI getSrcStorageSystem() {
@@ -67,7 +65,6 @@ public class MigrationParam {
      * This identifies the storage system on which to create the new
      * backend volume to which the source will be migrated.
      * 
-     * @valid none
      */
     @XmlElement(required = true, name = "target_storage_system")
     public URI getTgtStorageSystem() {
@@ -81,7 +78,6 @@ public class MigrationParam {
     /**
      * The virtual pool for the volume on the target storage system.
      * 
-     * @valid none
      */
     @XmlElement(name = "vpool")
     @JsonProperty("vpool")

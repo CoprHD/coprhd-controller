@@ -25,11 +25,12 @@ public class NamedRelatedVirtualPoolRep extends NamedRelatedResourceRep {
     }
 
     /**
-     * The virtual pool type.
+     * The virtual pool type. 
+     * Valid values:
+     *  block = Volume
+     *  file = File System
+     *  object = Object Store
      * 
-     * @valid block = Volume
-     * @valid file = File System
-     * @valid object = Object Store
      * 
      * @return The virtual pool type.
      */

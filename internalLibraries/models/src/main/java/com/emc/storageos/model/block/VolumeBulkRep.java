@@ -19,7 +19,6 @@ public class VolumeBulkRep extends BulkRestRep {
      * such as allocated capacity, provisioned capacity, disk
      * technology, and whether or not the volume is thinly provisioned.
      * 
-     * @valid none
      */
     @XmlElement(name = "volume")
     public List<VolumeRestRep> getVolumes() {

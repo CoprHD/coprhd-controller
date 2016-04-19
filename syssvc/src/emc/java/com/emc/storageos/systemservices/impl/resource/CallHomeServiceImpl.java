@@ -5,6 +5,9 @@
 
 package com.emc.storageos.systemservices.impl.resource;
 
+import static com.emc.storageos.svcs.errorhandling.resources.ServiceCode.toServiceCode;
+import static com.emc.storageos.svcs.errorhandling.resources.ServiceErrorFactory.toServiceErrorRestRep;
+
 import java.net.URI;
 import java.util.List;
 import java.util.UUID;
@@ -13,12 +16,7 @@ import java.util.concurrent.Executors;
 
 import javax.ws.rs.core.Response;
 
-import com.emc.storageos.db.client.model.*;
-import com.emc.storageos.db.client.model.util.*;
-import com.emc.storageos.model.*;
-import static com.emc.storageos.svcs.errorhandling.resources.ServiceCode.toServiceCode;
-import static com.emc.storageos.svcs.errorhandling.resources.ServiceErrorFactory.toServiceErrorRestRep;
-import org.apache.commons.lang.*;
+import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -27,10 +25,21 @@ import com.emc.storageos.coordinator.client.service.CoordinatorClient.LicenseTyp
 import com.emc.storageos.coordinator.common.impl.ServiceImpl;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
+import com.emc.storageos.db.client.model.DataObject;
+import com.emc.storageos.db.client.model.NamedURI;
+import com.emc.storageos.db.client.model.Operation;
+import com.emc.storageos.db.client.model.SysEvent;
+import com.emc.storageos.db.client.model.Task;
+import com.emc.storageos.db.client.model.util.TaskUtils;
+import com.emc.storageos.model.NamedRelatedResourceRep;
+import com.emc.storageos.model.ResourceOperationTypeEnum;
+import com.emc.storageos.model.RestLinkRep;
+import com.emc.storageos.model.TaskResourceRep;
 import com.emc.storageos.model.event.EventParameters;
 import com.emc.storageos.security.audit.AuditLogManager;
 import com.emc.storageos.security.authorization.BasePermissionsHelper;
 import com.emc.storageos.services.OperationTypeEnum;
+import com.emc.storageos.services.util.TimeUtils;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.svcs.errorhandling.resources.ForbiddenException;
 import com.emc.storageos.systemservices.impl.eventhandler.connectemc.BuildEsrsDevice;
@@ -137,9 +146,9 @@ public class CallHomeServiceImpl extends BaseLogSvcResource implements CallHomeS
         }
 
         // invoke get-logs api for the dry run
-        List<String> logNamesToUse = getLogNamesFromAlias(logNames);        
-        try {            
-            logService.getLogs(nodeIds, nodeNames, logNamesToUse, severity, start, 
+        List<String> logNamesToUse = getLogNamesFromAlias(logNames);
+        try {
+            logService.getLogs(nodeIds, nodeNames, logNamesToUse, severity, start,
                     end, msgRegex, maxCount, true);
         } catch (Exception e) {
             _log.error("Failed to dry run get-logs, exception: {}", e);
@@ -155,8 +164,8 @@ public class CallHomeServiceImpl extends BaseLogSvcResource implements CallHomeS
         sendAlertEvent.setNodeIds(nodeIds);
         sendAlertEvent.setLogNames(logNamesToUse);
         sendAlertEvent.setSeverity(severity);
-        sendAlertEvent.setStart(getDateTimestamp(start));
-        sendAlertEvent.setEnd(getDateTimestamp(end));
+        sendAlertEvent.setStart(TimeUtils.getDateTimestamp(start));
+        sendAlertEvent.setEnd(TimeUtils.getDateTimestamp(end));
         validateMsgRegex(msgRegex);
         sendAlertEvent.setMsgRegex(msgRegex);
         sendAlertEvent.setEventParameters(eventParameters);
@@ -165,8 +174,8 @@ public class CallHomeServiceImpl extends BaseLogSvcResource implements CallHomeS
 
         // Persisting this operation
         Operation op = new Operation();
-        op.setName("SEND ALERT "+eventId);
-        op.setDescription("SEND ALERT EVENT code:"+eventId+", severity:"+severity);
+        op.setName("SEND ALERT " + eventId);
+        op.setDescription("SEND ALERT EVENT code:" + eventId + ", severity:" + severity);
         op.setResourceType(ResourceOperationTypeEnum.SYS_EVENT);
         SysEvent sysEvent = createSysEventRecord(sysEventId, opID, op, force);
 
@@ -205,7 +214,7 @@ public class CallHomeServiceImpl extends BaseLogSvcResource implements CallHomeS
         taskResourceRep.setId(task.getId());
         NamedURI resource = task.getResource();
         NamedRelatedResourceRep namedRelatedResourceRep = new NamedRelatedResourceRep(resource.getURI(),
-                new RestLinkRep("self",URI.create("/"+resource.getURI())),resource.getName());
+                new RestLinkRep("self", URI.create("/" + resource.getURI())), resource.getName());
         taskResourceRep.setResource(namedRelatedResourceRep);
 
         if (!StringUtils.isBlank(task.getRequestId())) {
@@ -243,7 +252,7 @@ public class CallHomeServiceImpl extends BaseLogSvcResource implements CallHomeS
             }
         }
 
-        _log.info("Event id is {} and operation id is {}",sysEventId,opID);
+        _log.info("Event id is {} and operation id is {}", sysEventId, opID);
 
         SysEvent sysEvent = new SysEvent();
         sysEvent.setId(sysEventId);
@@ -347,7 +356,7 @@ public class CallHomeServiceImpl extends BaseLogSvcResource implements CallHomeS
 
     /**
      * Record audit log for callhome service
-     * 
+     *
      * @param auditType Type of AuditLog
      * @param operationalStatus Status of operation
      * @param description Description for the AuditLog

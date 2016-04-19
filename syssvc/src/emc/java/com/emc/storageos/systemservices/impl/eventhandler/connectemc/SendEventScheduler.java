@@ -127,11 +127,13 @@ public class SendEventScheduler implements Runnable {
                             continue;
                         }
 
+                        /* TODO: enable compliance check after Yoda
                         if (licenseInfo.hasStorageCapacity() &&
                                 _licenseManager.isCapacityExceeded(licenseInfo) &&
                                 _callHomeEventManager.doSendCapicityExceeded(licenseInfo)) {
                             sendCapacityExceeded(licenseInfo);
                         }
+                        */
                     }
                 } catch (Exception e) {
                     _log.error("SendEventScheduler::performSendEvents(): Exception: {}", e.getMessage());

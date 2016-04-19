@@ -1,0 +1,67 @@
+%{
+  titleKey = 'acl.edit.title';
+  image = '/public/img/icon_roles.png';
+}%
+#{extends 'main.html' /}
+#{set navSelected: ['nav.storage', 'nav.object.buckets'] /}
+
+#{breadcrumb.container}
+  #{breadcrumb.item @buckets()}&{'resources.buckets'}#{/breadcrumb.item}
+   #{breadcrumb.item @resources.ObjectBuckets.bucket(bucketId)}${bucketName}#{/breadcrumb.item}
+   #{breadcrumb.item @resources.ObjectBuckets.listBucketACL(bucketId)}&{'resources.buckets.acl'}#{/breadcrumb.item}
+  #{breadcrumb.item active:true}${bucketACL.name} : ${TYPE}#{/breadcrumb.item}
+#{/breadcrumb.container}
+
+<div class="container">
+
+#{Form.header titleKey:titleKey, image: image/}
+
+#{alerts/}
+#{form @saveBucketAce(), id:'nfsACL', class:'form form-horizontal', autocomplete:"off"}
+   #{field 'fileSystemId'}
+      <input type="hidden" name="bucketId" value="${bucketId}"/>
+    #{/field}
+    #{field 'type'}
+      <input type="hidden" name="type" value="${bucketACL.type}"/>
+    #{/field}
+    #{field 'name'}
+      <input type="hidden" name="name" value="${bucketACL.name}"/>
+    #{/field}
+    #{field 'domain'}
+      <input type="hidden" name="domain" value="${bucketACL.domain}"/>
+    #{/field}
+   
+    #{field 'bucketACL.type'}
+    %{
+        field.disabled = true
+        field.fieldKey = 'bucketACL.type'
+     }%
+        #{Form.inputTextControlGroup field:field /}
+    #{/field}
+
+    #{field 'bucketACL.name'}
+    %{
+        field.disabled = true
+        field.fieldKey = 'bucketACL.name'
+     }%
+        #{Form.inputTextControlGroup field:field /}
+    #{/field}
+
+    #{field 'bucketACL.domain'}
+    %{
+        field.disabled = true
+        field.fieldKey = 'bucketACL.domain'
+        }%
+        #{Form.inputTextControlGroup field:field /}
+    #{/field}
+   #{field 'bucketACL.permissions'}
+    #{Form.selectManyControlGroup field:field, options:permissionOptions, select:bucketACL.permissions, cssClass:'span3' /}
+  #{/field}
+    
+
+ #{Form.saveCancelButtonBar size:'large', cancelHref:@listBucketACL(bucketId)/}
+
+    
+#{/form}
+
+</div>

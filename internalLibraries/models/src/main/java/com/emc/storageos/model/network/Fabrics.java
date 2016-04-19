@@ -27,7 +27,6 @@ public class Fabrics {
     /**
      * A list of fabric names discovered by the NetworkSystem.
      * 
-     * @valid none
      */
     @XmlElement(name = "fabric")
     public List<String> getFabricIds() {

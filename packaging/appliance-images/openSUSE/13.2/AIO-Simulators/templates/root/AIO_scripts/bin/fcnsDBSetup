@@ -1,0 +1,9 @@
+#!/bin/bash
+DBFOLDER=/data/simulators/cisco-sim/db
+DBFILE=$DBFOLDER/fcns.db
+for i in $( ls $DBFOLDER/fcns.db.* ); do
+	if cmp -s $DBFILE $i ; then
+		echo $i;
+		break;
+	fi 
+done

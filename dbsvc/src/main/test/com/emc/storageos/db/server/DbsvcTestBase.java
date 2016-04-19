@@ -31,6 +31,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.support.ClassPathXmlApplicationContext;
 
+import org.apache.cassandra.service.StorageService;
+import org.apache.cassandra.service.StorageServiceMBean;
+
 import com.emc.storageos.coordinator.client.model.Constants;
 import com.emc.storageos.coordinator.client.model.DbVersionInfo;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
@@ -61,6 +64,7 @@ import com.emc.storageos.security.password.PasswordUtils;
 import com.emc.storageos.services.util.JmxServerWrapper;
 import com.emc.storageos.services.util.LoggingUtils;
 
+
 /**
  * Dbsvc unit test base
  */
@@ -87,7 +91,6 @@ public class DbsvcTestBase {
     protected static GeoDependencyChecker _geoDependencyChecker;
     protected static SchemaUtil schemaUtil;
     protected  static final String dataDir="./dbtest";
-    private static InternalApiSignatureKeyGenerator apiSignatureGeneratorMock;
 
     // This controls whether the JMX server is started with DBSVC or not. JMX server is used to snapshot Cassandra
     // DB files and dump SSTables to JSON files. However, current JmxServerWrapper.start() implementation blindly
@@ -150,6 +153,15 @@ public class DbsvcTestBase {
 
         isDbStarted = false;
         _dbsvc.stop();
+        StorageServiceMBean svc = StorageService.instance;
+
+        if (svc.isInitialized()) {
+            svc.stopGossiping();
+        }
+
+        if (svc.isRPCServerRunning()) {
+            svc.stopRPCServer();
+        }
 
         Schema.instance.clear();
 
@@ -217,8 +229,6 @@ public class DbsvcTestBase {
         statusChecker.setDbVersionInfo(sourceVersion);
         statusChecker.setServiceName(service.getName());
         
-        apiSignatureGeneratorMock = mock(InternalApiSignatureKeyGenerator.class);
-        
         SecretKey key = null;
         try {
             KeyGenerator keyGenerator = null;
@@ -228,8 +238,6 @@ public class DbsvcTestBase {
             fail("generate key fail");
         }
         
-        doReturn(key).when(apiSignatureGeneratorMock).getSignatureKey(SignatureKeyType.INTERVDC_API);
-
         schemaUtil  = new MockSchemaUtil();
         schemaUtil.setKeyspaceName("Test");
         schemaUtil.setClusterName("Test");
@@ -239,7 +247,6 @@ public class DbsvcTestBase {
         schemaUtil.setCoordinator(_coordinator);
         schemaUtil.setVdcShortId("datacenter1");
         schemaUtil.setDrUtil(new DrUtil(_coordinator));
-        schemaUtil.setApiSignatureGenerator(apiSignatureGeneratorMock);
 
         DbClientContext dbctx = new MockDbClientContext();
         dbctx.setClusterName("Test");
@@ -337,7 +344,7 @@ public class DbsvcTestBase {
         localCtx.setClusterName("Test");
         localCtx.setKeyspaceName("Test");
         dbClient.setLocalContext(localCtx);
-
+        dbClient.setDrUtil(new DrUtil(_coordinator));
         VdcUtil.setDbClient(dbClient);
 
         return dbClient;

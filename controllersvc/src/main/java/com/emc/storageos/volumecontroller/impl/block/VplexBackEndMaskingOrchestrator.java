@@ -89,7 +89,7 @@ public interface VplexBackEndMaskingOrchestrator extends MaskingOrchestrator {
             Map<URI, NetworkLite> networkMap, URI varrayURI, int nInitiatorGroups);
 
     /**
-     * Configure the zoning for an ExportMask given it's PortGroup and InitiatorGroup.
+     * Configure the zoning for an ExportMask given its PortGroup and InitiatorGroup.
      * 
      * @param portGroup -- Map of Network URI to List of StoragePort objects.
      * @param initiatorGroup -- Map of VPlex director name to Map of Network URI to Set of Initiator objects.

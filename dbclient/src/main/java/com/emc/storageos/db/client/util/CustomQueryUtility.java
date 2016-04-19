@@ -115,6 +115,12 @@ public class CustomQueryUtility {
                 AlternateIdConstraint.Factory.getUnManagedProtectionSetByManagedVolumeConstraint(managedVolumeId));
     }
 
+    public static List<UnManagedProtectionSet> getUnManagedProtectionSetByProtectionSystem(DbClient dbClient, String protectionSystemUri) {
+        return queryActiveResourcesByConstraint(dbClient,
+                UnManagedProtectionSet.class,
+                AlternateIdConstraint.Factory.getUnManagedProtectionSetsByProtectionSystemUriConstraint(protectionSystemUri));
+    }
+
     public static List<StorageHADomain> getActiveStorageHADomainByNativeGuid(DbClient dbClient, String nativeGuid) {
         return queryActiveResourcesByConstraint(dbClient,
                 StorageHADomain.class,
@@ -160,6 +166,14 @@ public class CustomQueryUtility {
 
     }
 
+    /**
+     * queries records based on a constraint; potential Out of Memory risk if too many records in results set
+     * 
+     * @param dbClient
+     * @param clazz
+     * @param constraint
+     * @return
+     */
     public static <T extends DataObject> List<T> queryActiveResourcesByConstraint(DbClient dbClient, Class<T> clazz, Constraint constraint) {
         URIQueryResultList list = new URIQueryResultList();
         dbClient.queryByConstraint(constraint, list);

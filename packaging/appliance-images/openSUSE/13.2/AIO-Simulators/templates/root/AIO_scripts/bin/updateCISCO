@@ -1,0 +1,13 @@
+#!/bin/bash
+
+systemctl stop CiscoMgmt
+cd /tmp
+LATEST_URL="http://lglw8129.lss.emc.com/simulators/cisco-simulators/cisco-sim.zip"
+wget $LATEST_URL
+unzip cisco-sim.zip
+rm -r cisco-sim/db
+chmod -R 777 cisco-sim
+cp -r cisco-sim/* /data/simulators/cisco-sim/
+rm -r cisco-sim
+rm  cisco-sim.zip
+systemctl start CiscoMgmt

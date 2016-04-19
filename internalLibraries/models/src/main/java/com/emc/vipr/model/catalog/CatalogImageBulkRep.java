@@ -24,7 +24,6 @@ public class CatalogImageBulkRep extends BulkRestRep {
     /**
      * List of catalog images
      * 
-     * @valid none
      * @return
      */
     @XmlElement(name = "catalog_image")

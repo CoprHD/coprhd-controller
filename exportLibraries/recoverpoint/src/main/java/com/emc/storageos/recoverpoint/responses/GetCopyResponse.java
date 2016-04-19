@@ -16,6 +16,8 @@ public class GetCopyResponse implements Serializable {
     private String accessState; // LOGGED_ACCESS, NO_ACCESS, etc
     private boolean enabled;
     private String accessedImage;
+    private boolean active;
+    private GetCopyRole role;
 
     // Every copy has three identifiers, and you need all three to be unique across all CG's copies
     private long cgId;       // The ID of the CG it belongs to
@@ -38,6 +40,14 @@ public class GetCopyResponse implements Serializable {
         NO_ACCESS_JOURNAL_PRESERVED,
         NO_ACCESS_BFS_GROUP,
         VIRTUAL_ACCESS_CANNOT_ROLL_IMAGE,
+        UNKNOWN;
+    }
+    
+    // Role of RP Copy
+    public static enum GetCopyRole implements Serializable {
+        ACTIVE_PRODUCTION,
+        STANDBY_PRODUCTION,
+        TARGET,
         UNKNOWN;
     }
 
@@ -115,12 +125,32 @@ public class GetCopyResponse implements Serializable {
     public void setAccessedImage(String accessedImage) {
         this.accessedImage = accessedImage;
     }
+    
+    public GetCopyRole getRole() {
+        if (this.role == null) {
+            this.role = GetCopyRole.UNKNOWN;
+        }
+        return role;
+    }
+
+    public void setRole(GetCopyRole role) {
+        this.role = role;
+    }
+    
+    public boolean isActive() {
+        return active;
+    }
+
+    public void setActive(boolean active) {
+        this.active = active;
+    }
 
     @Override
     public String toString() {
         StringBuffer sb = new StringBuffer();
         sb.append("\nCopy: " + name);
         sb.append("\nProduction: " + production);
+        sb.append("\nRole: " + this.getRole().toString());
         sb.append("\nEnabled: " + enabled);
         sb.append("\nAccess State: " + accessState);
         if (accessedImage != null) {
@@ -135,5 +165,4 @@ public class GetCopyResponse implements Serializable {
         }
         return sb.toString();
     }
-
 }

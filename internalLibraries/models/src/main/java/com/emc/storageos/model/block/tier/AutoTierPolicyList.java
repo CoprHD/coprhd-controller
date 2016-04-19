@@ -25,7 +25,6 @@ public class AutoTierPolicyList {
     /**
      * The list of auto tiering policies
      * 
-     * @valid none
      */
     @XmlElement(name = "auto_tier_policy")
     public List<NamedRelatedResourceRep> getAutoTierPolicies() {

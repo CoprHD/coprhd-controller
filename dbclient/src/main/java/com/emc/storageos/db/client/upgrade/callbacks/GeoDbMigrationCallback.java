@@ -12,12 +12,13 @@ import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.DbKeyspace;
 import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.db.client.upgrade.BaseDefaultMigrationCallback;
+import com.emc.storageos.svcs.errorhandling.resources.MigrationCallbackException;
 
 public class GeoDbMigrationCallback extends BaseDefaultMigrationCallback {
     private static final Logger log = LoggerFactory.getLogger(GeoDbMigrationCallback.class);
 
     @Override
-    public void process() {
+    public void process() throws MigrationCallbackException {
 
         if (cfClass == null || annotation == null) {
             // this callback has not been set up; skip it.

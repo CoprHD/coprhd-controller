@@ -24,7 +24,6 @@ public class ScopeParam {
     /**
      * The scope type
      * 
-     * @valid none
      */
     @XmlElement(name = "type")
     public String getType() {
@@ -38,7 +37,6 @@ public class ScopeParam {
     /**
      * The scope value
      * 
-     * @valid none
      */
     @XmlElement
     public String getValue() {

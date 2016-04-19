@@ -32,7 +32,6 @@ public class BlockSnapshotsDataTable extends DataTable {
         sortAll();
         setDefaultSort("name", "asc");
         setRowCallback("createRowLink");
-
     }
 
     public static List<BlockSnapshot> fetch(URI projectId) {

@@ -20,6 +20,7 @@ import org.slf4j.LoggerFactory;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.upgrade.BaseCustomMigrationCallback;
+import com.emc.storageos.svcs.errorhandling.resources.MigrationCallbackException;
 
 /**
  * In ViPR 2.1, UI passes the VNX AutoTierPolicyName as "CLARiiON+APM00140844986+FASTPOLICY+DEFAULT_HIGHEST_AVAILABLE" to APISvc
@@ -39,7 +40,7 @@ public class VirtualPoolVNXAutoTierPolicyIdMigration extends
      * Process the BlockVirtualPools and update their AutoTieringPolicyId from .
      */
     @Override
-    public void process() {
+    public void process() throws MigrationCallbackException {
         DbClient dbClient = getDbClient();
 
         try {

@@ -214,7 +214,6 @@ public class AutoTieringPolicy extends DiscoveredDataObject {
         return _storageGroupName;
     }
 
-    @EnumType(Type.class)
     @Name("systemType")
     public String getSystemType() {
         return _systemType;

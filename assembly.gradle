@@ -98,7 +98,7 @@ task assembleScripts(type: Copy) {
     eachExternalProject { project->
         // FIXME: hardcode to openjdk for now, need to find a way for customer to override it.
         if (buildType == 'oss')
-            project.jdkHome = '/usr/lib64/jvm/java-1.7.0-openjdk'
+            project.jdkHome = '/usr/lib64/jvm/java-1.8.0-openjdk'
 
         from "${project.buildDir}/bin"
         dependsOn project.tasks.getByName('assemble')

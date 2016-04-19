@@ -27,10 +27,6 @@ import javax.wbem.CloseableIterator;
 import javax.wbem.WBEMException;
 import javax.wbem.client.WBEMClient;
 
-import com.emc.storageos.db.client.util.StringSetUtil;
-import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportMaskCreateCompleter;
-import com.emc.storageos.volumecontroller.impl.utils.ExportMaskUtils;
-import com.google.common.collect.HashMultimap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -41,7 +37,6 @@ import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.AutoTieringPolicy.VnxFastPolicy;
-import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.StoragePort;
@@ -50,6 +45,7 @@ import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.util.CommonTransformerFunctions;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
+import com.emc.storageos.db.client.util.StringSetUtil;
 import com.emc.storageos.db.client.util.WWNUtility;
 import com.emc.storageos.exceptions.DeviceControllerErrors;
 import com.emc.storageos.exceptions.DeviceControllerException;
@@ -62,6 +58,7 @@ import com.emc.storageos.util.ExportUtils;
 import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.volumecontroller.impl.ControllerUtils;
 import com.emc.storageos.volumecontroller.impl.VolumeURIHLU;
+import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportMaskCreateCompleter;
 import com.emc.storageos.volumecontroller.impl.smis.CIMObjectPathFactory;
 import com.emc.storageos.volumecontroller.impl.smis.CIMPropertyFactory;
 import com.emc.storageos.volumecontroller.impl.smis.ExportMaskOperations;
@@ -69,9 +66,11 @@ import com.emc.storageos.volumecontroller.impl.smis.ExportMaskOperationsHelper;
 import com.emc.storageos.volumecontroller.impl.smis.SmisCommandHelper;
 import com.emc.storageos.volumecontroller.impl.smis.SmisConstants;
 import com.emc.storageos.volumecontroller.impl.smis.SmisException;
+import com.emc.storageos.volumecontroller.impl.utils.ExportMaskUtils;
 import com.google.common.base.Joiner;
 import com.google.common.base.Strings;
 import com.google.common.collect.Collections2;
+import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.TreeMultimap;
 
@@ -106,6 +105,19 @@ public class VnxExportOperations implements ExportMaskOperations {
             TaskCompleter taskCompleter) throws DeviceControllerException {
         _log.info("{} createExportMask START...", storage.getSerialNumber());
         try {
+            // https://coprhd.atlassian.net/browse/COP-19019: Validation routine indicates that there
+            // is some mask- other than the one that we are trying to create -containing the initiators.
+            // This is an error because initiators can only belong to one VNX StorageGroup. If ViPR performs
+            // the create, it will succeeded, but just end up moving all the initiators from the existing
+            // StorageGroup into the new one. This would cause the initiators to lose access to the
+            // volumes in the original StorageGroup, which is a DU situation. We need to prevent this by
+            // performing this validation as a precaution.
+            if (anyInitiatorsAreInAStorageGroup(storage, initiatorList)) {
+                ServiceError error = SmisException.errors.anExistingSGAlreadyHasTheInitiators(exportMaskURI.toString(),
+                        Joiner.on(',').join(initiatorList));
+                taskCompleter.error(_dbClient, error);
+                return;
+            }
             CIMObjectPath[] protocolControllers = createOrGrowStorageGroup(storage,
                     exportMaskURI, volumeURIHLUs, null, null, taskCompleter);
             if (protocolControllers != null) {
@@ -320,22 +332,9 @@ public class VnxExportOperations implements ExportMaskOperations {
                         Joiner.on(',').join(volumeWWNs.keySet())));
                 if (!matchingInitiators.isEmpty()) {
                     // Look up ExportMask by deviceId/name and storage URI
-                    boolean foundMaskInDb = false;
-                    ExportMask exportMask = null;
-                    URIQueryResultList uriQueryList = new URIQueryResultList();
-                    _dbClient.queryByConstraint(AlternateIdConstraint.Factory
-                            .getExportMaskByNameConstraint(name), uriQueryList);
-                    while (uriQueryList.iterator().hasNext()) {
-                        URI uri = uriQueryList.iterator().next();
-                        exportMask = _dbClient.queryObject(ExportMask.class, uri);
-                        if (exportMask != null && !exportMask.getInactive() &&
-                                exportMask.getStorageDevice().equals(storage.getId())) {
-                            foundMaskInDb = true;
-                            // We're expecting there to be only one export mask of a
-                            // given name for any storage array.
-                            break;
-                        }
-                    }
+                    ExportMask exportMask = ExportMaskUtils.getExportMaskByName(_dbClient, storage.getId(), name);
+                    boolean foundMaskInDb = (exportMask != null);
+
                     // If there was no export mask found in the database,
                     // then create a new one
                     if (!foundMaskInDb) {
@@ -490,16 +489,8 @@ public class VnxExportOperations implements ExportMaskOperations {
                 }
 
                 // Check the volumes and update the lists as necessary
-                boolean addVolumes = false;
-                Map<String, Integer> volumesToAdd = new HashMap<String, Integer>();
-                for (Map.Entry<String, Integer> entry : discoveredVolumes.entrySet()) {
-                    String normalizedWWN = BlockObject.normalizeWWN(entry.getKey());
-                    if (!mask.hasExistingVolume(normalizedWWN) &&
-                            !mask.hasUserCreatedVolume(normalizedWWN)) {
-                        volumesToAdd.put(normalizedWWN, entry.getValue());
-                        addVolumes = true;
-                    }
-                }
+                Map<String, Integer> volumesToAdd = ExportMaskUtils.diffAndFindNewVolumes(mask, discoveredVolumes);
+                boolean addVolumes = !volumesToAdd.isEmpty();
 
                 boolean removeVolumes = false;
                 List<String> volumesToRemove = new ArrayList<String>();
@@ -1316,5 +1307,18 @@ public class VnxExportOperations implements ExportMaskOperations {
         _log.info("getInitiatorForWWN called with {} and result {}", WWN + ":" + formatedWWN, init);
         return init;
     }
-    
+
+    /**
+     * Returns true if one or all of the 'initiators' are associated to an active VNX StorageGroup on 'storage'.
+     *
+     * @param storage [IN] - StorageSystem representing the VNX array to check
+     * @param initiators [IN] - Initiators to check for association to existing ExportMask(s)
+     * @return true iff any of the initiators were found to be associated with some ExportMask on the array.
+     */
+    private boolean anyInitiatorsAreInAStorageGroup(StorageSystem storage, List<Initiator> initiators) {
+        List<String> portNames = new ArrayList<>(Collections2.transform(initiators, CommonTransformerFunctions.fctnInitiatorToPortName()));
+        Map<String, Set<URI>> foundMasks = findExportMasks(storage, portNames, false);
+        // Return true when there was a match found (i.e., when foundMasks is not empty)
+        return !foundMasks.isEmpty();
+    }
 }

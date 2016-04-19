@@ -27,7 +27,6 @@ public class ExecutionWindowList {
     /**
      * List of execution windows
      * 
-     * @valid none
      */
     @XmlElement(name = "execution_windows")
     public List<NamedRelatedResourceRep> getExecutionWindows() {

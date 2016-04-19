@@ -30,7 +30,6 @@ public class VolumeSnapshotParam {
     /**
      * Snapshot name.
      * 
-     * @valid none
      */
     @XmlElement
     public String getName() {
@@ -53,8 +52,6 @@ public class VolumeSnapshotParam {
      * That is, the operation will create and activate
      * the synchronization for the snapshot.
      * 
-     * @valid true
-     * @valid false
      */
     @XmlElement(name = "create_inactive", required = false, defaultValue = "false")
     public Boolean getCreateInactive() {
@@ -69,7 +66,6 @@ public class VolumeSnapshotParam {
      * Type of replication. Unspecified implies an
      * array-based snapshot.
      * 
-     * @valid none
      */
     @XmlElement(name = "type")
     public String getType() {
@@ -83,8 +79,6 @@ public class VolumeSnapshotParam {
     /**
      * If read_only is set to true, then the snapshot will be created
      * as read only, i.e., it will not be possible to write into the snapshot
-     * @valid true
-     * @valid false
      */
     @XmlElement(name = "read_only", required = false, defaultValue = "false")
 	public Boolean getReadOnly() {
@@ -94,5 +88,4 @@ public class VolumeSnapshotParam {
 	public void setReadOnly(Boolean readOnly) {
 		this.readOnly = readOnly;
 	}
-    
 }

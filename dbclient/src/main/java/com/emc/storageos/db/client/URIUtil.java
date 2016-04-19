@@ -277,4 +277,21 @@ public class URIUtil {
         return (id == null) || NULL_URI.equals(id);
     }
 
+    /**
+     * Returns uris for list of data objects.
+     *
+     * @param dataObjects
+     * @return list of uris
+     */
+    public static List<URI> toUris(List<? extends DataObject> dataObjects) {
+        List<URI> uris = new ArrayList<>();
+        if (dataObjects != null) {
+            for (DataObject dataObject : dataObjects) {
+                uris.add(dataObject.getId());
+            }
+        }
+        return uris;
+    }
+
+
 }

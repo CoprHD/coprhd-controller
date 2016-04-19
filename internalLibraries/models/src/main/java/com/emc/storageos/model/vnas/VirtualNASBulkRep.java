@@ -35,7 +35,6 @@ public class VirtualNASBulkRep extends BulkRestRep {
      * List of Virtual NAS Servers. A VNAS Server represents a
      * virtual NAS server of a storage device.
      * 
-     * @valid none
      */
     @XmlElement(name = "vnas_server")
     public List<VirtualNASRestRep> getVnasServers() {

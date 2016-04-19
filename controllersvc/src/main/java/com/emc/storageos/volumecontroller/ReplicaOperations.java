@@ -38,4 +38,29 @@ public interface ReplicaOperations {
      */
     public void detachListReplica(StorageSystem storageSystem, List<URI> replicaList, TaskCompleter taskCompleter)
             throws DeviceControllerException;
+
+    /**
+     * Fracture list replica.
+     *
+     * @param replicaList the replicas
+     * @param sync
+     * @param taskCompleter the task completer
+     * @param storage the storage system
+     *
+     * @throws DeviceControllerException
+     */
+    public void fractureListReplica(StorageSystem storageSystem, List<URI> replicaList, Boolean sync, TaskCompleter taskCompleter)
+            throws DeviceControllerException;
+
+    /**
+     * Delete list replica.
+     *
+     * @param replicaList the replicas
+     * @param taskCompleter the task completer
+     * @param storage the storage system
+     *
+     * @throws DeviceControllerException
+     */
+    public void deleteListReplica(StorageSystem storage, List<URI> replicaList, TaskCompleter taskCompleter)
+            throws DeviceControllerException;
 }

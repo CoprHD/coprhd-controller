@@ -40,7 +40,7 @@ public class ServiceConfigCmdHandler {
         MigrationStatus nowStatus = coordinator.getMigrationStatus();
         if (nowStatus != null && nowStatus.equals(status)) {
             log.info("Reset Migration status from {}.", nowStatus);
-            coordinator.removeServiceConfiguration(getMigrationConfiguration());
+            coordinator.removeServiceConfiguration(coordinator.getSiteId(), getMigrationConfiguration());
             nowStatus = coordinator.getMigrationStatus();
             log.info("After reseting, the status is {}.", nowStatus);
             if (nowStatus == null) {

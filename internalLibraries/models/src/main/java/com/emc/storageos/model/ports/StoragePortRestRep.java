@@ -62,7 +62,6 @@ public class StoragePortRestRep extends VirtualArrayResourceRestRep {
     /**
      * The average bandwidth through the port (Gbps)
      * 
-     * @valid none
      */
     @XmlElement(name = "avg_band_width")
     public Long getAvgBandwidth() {
@@ -76,7 +75,6 @@ public class StoragePortRestRep extends VirtualArrayResourceRestRep {
     /**
      * The port's IP address (for IP-based transport)
      * 
-     * @valid none
      */
     @XmlElement(name = "ip_address")
     public String getIpAddress() {
@@ -90,7 +88,6 @@ public class StoragePortRestRep extends VirtualArrayResourceRestRep {
     /**
      * ID of the endpoint with which this port is associated.
      * 
-     * @valid none
      */
     @XmlElement(name = "port_endpoint_id")
     public String getPortEndPointId() {
@@ -109,7 +106,6 @@ public class StoragePortRestRep extends VirtualArrayResourceRestRep {
      * uses to identify the port group.
      * mapped known by Vipr to this port
      * 
-     * @valid none
      */
     @XmlElement(name = "port_group")
     public String getPortGroup() {
@@ -126,7 +122,6 @@ public class StoragePortRestRep extends VirtualArrayResourceRestRep {
      * convention that is in common use for that make and model of storage
      * system.
      * 
-     * @valid none
      */
     @XmlElement(name = "port_name")
     public String getPortName() {
@@ -140,7 +135,6 @@ public class StoragePortRestRep extends VirtualArrayResourceRestRep {
     /**
      * The alias represents port's wwn id
      * 
-     * @valid none
      */
     @XmlElement(name = "port_alias")
     public String getPortAlias() {
@@ -157,7 +151,6 @@ public class StoragePortRestRep extends VirtualArrayResourceRestRep {
      * If the port is using an IP-based protocol, this is an IP address,
      * or name of the port that a storage system uses to identify the port.
      * 
-     * @valid none
      */
     @XmlElement(name = "port_network_id")
     public String getPortNetworkId() {
@@ -171,7 +164,6 @@ public class StoragePortRestRep extends VirtualArrayResourceRestRep {
     /**
      * The port's clock speed (Gbps)
      * 
-     * @valid none
      */
     @XmlElement(name = "port_speed_gbps")
     public Long getPortSpeed() {
@@ -184,9 +176,9 @@ public class StoragePortRestRep extends VirtualArrayResourceRestRep {
 
     /**
      * How the port connects its storage controller to its network
-     * 
-     * @valid backend = connects a VPLEX storage controller to another array
-     * @valid frontend = connects the storage controller to the hosts
+     * Valid values:
+     *  backend = connects a VPLEX storage controller to another array
+     *  frontend = connects the storage controller to the hosts
      */
     @XmlElement(name = "port_type")
     public String getPortType() {
@@ -200,7 +192,6 @@ public class StoragePortRestRep extends VirtualArrayResourceRestRep {
     /**
      * The number of exports on the storage port
      * 
-     * @valid none
      */
     @XmlElement(name = "static_load")
     public Long getStaticLoad() {
@@ -214,7 +205,6 @@ public class StoragePortRestRep extends VirtualArrayResourceRestRep {
     /**
      * The storage system that hosts this port
      * 
-     * @valid none
      */
     @XmlElement(name = "storage_system")
     public RelatedResourceRep getStorageDevice() {
@@ -228,7 +218,6 @@ public class StoragePortRestRep extends VirtualArrayResourceRestRep {
     /**
      * The port's TCP port number (for IP-based transport)
      * 
-     * @valid 1-65535
      */
     @XmlElement(name = "tcp_port_number")
     public Long getTcpPortNumber() {
@@ -242,9 +231,9 @@ public class StoragePortRestRep extends VirtualArrayResourceRestRep {
     /**
      * The protocol that this port uses to transport disk commands
      * and responses across its network
-     * 
-     * @valid FC = Fibre-Channel
-     * @valid IP
+     * Valid values:
+     *  FC
+     *  IP
      * 
      */
     @XmlElement(name = "transport_type")
@@ -259,7 +248,6 @@ public class StoragePortRestRep extends VirtualArrayResourceRestRep {
     /**
      * The ViPR network that connects to this port
      * 
-     * @valid none
      */
     @XmlElement(name = "network")
     public RelatedResourceRep getNetwork() {
@@ -273,10 +261,10 @@ public class StoragePortRestRep extends VirtualArrayResourceRestRep {
     /**
      * Whether or not this port is registered with ViPR. A
      * port must be registered before it can be managed by
-     * ViPR.
+     * ViPR. Valid values:
+     * 	REGISTERED
+     * 	UNREGISTERED
      * 
-     * @valid REGISTERED
-     * @valid UNREGISTERED
      */
     @XmlElement(name = "registration_status")
     public String getRegistrationStatus() {
@@ -289,10 +277,10 @@ public class StoragePortRestRep extends VirtualArrayResourceRestRep {
 
     /**
      * The operational status of the port
-     * 
-     * @valid OK
-     * @valid NOT_OK
-     * @valid UNKNOWN
+     * Valid values:
+     *  OK
+     *  NOT_OK
+     *  UNKNOWN
      */
     @XmlElement(name = "operational_status")
     public String getOperationalStatus() {
@@ -305,10 +293,10 @@ public class StoragePortRestRep extends VirtualArrayResourceRestRep {
 
     /**
      * Whether or not this storage port is compatible with ViPR
-     * 
-     * @valid COMPATIBLE
-     * @valid INCOMPATIBLE
-     * @valid UNKNOWN
+     * Valid values:
+     *  COMPATIBLE
+     *  INCOMPATIBLE
+     *  UNKNOWN
      */
     @XmlElement(name = "compatibility_status")
     public String getCompatibilityStatus() {
@@ -398,9 +386,9 @@ public class StoragePortRestRep extends VirtualArrayResourceRestRep {
 
     /**
      * Whether or not this storage pool is visible in discovery
-     * 
-     * @valid VISIBLE
-     * @valid NOTVISIBLE
+     * Valid values:
+     *  VISIBLE
+     *  NOTVISIBLE
      */
     @XmlElement(name = "discovery_status")
     public String getDiscoveryStatus() {

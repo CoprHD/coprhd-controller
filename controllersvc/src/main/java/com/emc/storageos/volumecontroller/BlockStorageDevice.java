@@ -561,9 +561,10 @@ public interface BlockStorageDevice {
      * 
      * @param storage
      * @param consistencyGroup
+     * @param replicationGroupName
      * @param taskCompleter
      */
-    public void doCreateConsistencyGroup(StorageSystem storage, URI consistencyGroup,
+    public void doCreateConsistencyGroup(StorageSystem storage, URI consistencyGroup, String replicationGroupName,
             TaskCompleter taskCompleter) throws DeviceControllerException;
 
     /**
@@ -571,11 +572,13 @@ public interface BlockStorageDevice {
      * 
      * @param storage
      * @param consistencyGroup
+     * @param replicationGroupName name of the replication group to be deleted
+     * @param keepRGName Boolean if true, ViPR will keep group name for CG
      * @param markInactive
      * @param taskCompleter
      */
     public void doDeleteConsistencyGroup(StorageSystem storage, URI consistencyGroup,
-            Boolean markInactive, TaskCompleter taskCompleter) throws DeviceControllerException;
+            String replicationGroupName, Boolean keepRGName, Boolean markInactive, TaskCompleter taskCompleter) throws DeviceControllerException;
 
     /**
      * Connect the device - called when a new device is added
@@ -719,7 +722,7 @@ public interface BlockStorageDevice {
     public void doWaitForGroupSynchronized(StorageSystem storageObj,
             List<URI> target, TaskCompleter completer);
 
-    public void doAddToConsistencyGroup(StorageSystem storage, URI consistencyGroupId,
+    public void doAddToConsistencyGroup(StorageSystem storage, URI consistencyGroupId, String replicationGroupName,
             List<URI> blockObjects, TaskCompleter taskCompleter) throws DeviceControllerException;
 
     public void doRemoveFromConsistencyGroup(StorageSystem storage, URI consistencyGroupId,
@@ -875,6 +878,27 @@ public interface BlockStorageDevice {
      */
     public void doDetachListReplica(StorageSystem storage, List<URI> replicaList, TaskCompleter taskCompleter) throws Exception;
 
+    /**
+     * Fracture list replica.
+     *
+     * @param storage the storage system
+     * @param replicaList the replicas
+     * @param sync
+     * @param taskCompleter the task completer
+     * @throws Exception
+     */
+    public void doFractureListReplica(StorageSystem storage, List<URI> replicaList, Boolean sync, TaskCompleter taskCompleter) throws Exception;
+
+    /**
+     * Delete list replica.
+     *
+     * @param storage the storage system
+     * @param replicaList the replicas
+     * @param taskCompleter the task completer
+     * @throws Exception
+     */
+    public void doDeleteListReplica(StorageSystem storage, List<URI> replicaList, TaskCompleter taskCompleter) throws Exception;
+
     /*
      * For the given ExportMask, go to the StorageArray and get a mapping of volumes to their HLUs
      * 
@@ -885,7 +909,7 @@ public interface BlockStorageDevice {
      * @return The BlockObject URI to HLU mapping for the ExportMask
      */
     public Map<URI, Integer> getExportMaskHLUs(StorageSystem storage, ExportMask exportMask);
-    
+
     /**
      * Untags one or more volumes on the same storage system.
      * 
@@ -906,13 +930,14 @@ public interface BlockStorageDevice {
      * Creates new array snapshots on the passed storage system.
      * 
      * @param system A reference to the storage system.
-     * @param snapSessionURIs The URIs of the BlockSnapshotSession instances in ViPR
+     * @param snapSessionURI The URIs of the BlockSnapshotSession instances in ViPR
      *            that will represent these array snapshots.
+     * @param groupName The group name when creating a group session.
      * @param completer A reference to the task completer.
      * 
      * @throws DeviceControllerException
      */
-    public void doCreateSnapshotSession(StorageSystem system, List<URI> snapSessionURIs, TaskCompleter completer)
+    public void doCreateSnapshotSession(StorageSystem system, URI snapSessionURI, String groupName, TaskCompleter completer)
             throws DeviceControllerException;
 
     /**
@@ -931,6 +956,22 @@ public interface BlockStorageDevice {
      */
     public void doLinkBlockSnapshotSessionTarget(StorageSystem system, URI snapSessionURI, URI snapshotURI,
             String copyMode, Boolean targetExists, TaskCompleter completer) throws DeviceControllerException;
+
+    /**
+     * Creates a new target volume group and links it to an array snapshot on the passed storage system.
+     * 
+     * @param system A reference to the storage system.
+     * @param snapshotSessionURI
+     * @param snapSessionSnapshotURIs Map of BlockSnapshotSession URI's to their BlockSnapshot instance URI,
+     *            representing the linked target.
+     * @param copyMode The copy mode in which the target is linked to the snapshot.
+     * @param targetsExist true if the target exists, false if a new one needs to be created.
+     * @param completer A reference to the task completer.
+     * @throws DeviceControllerException
+     */
+    public void doLinkBlockSnapshotSessionTargetGroup(StorageSystem system, URI snapshotSessionURI, List<URI> snapSessionSnapshotURIs,
+            String copyMode, Boolean targetsExist, TaskCompleter completer)
+            throws DeviceControllerException;
 
     /**
      * Re-links a target volume to an array snapshot on the passed storage system.
@@ -982,10 +1023,29 @@ public interface BlockStorageDevice {
      * @param system A reference to the storage system.
      * @param snapSessionURI The URI of the BlockSnapshotSession instance in ViPR
      *            that represents the array snapshot.
+     * @param groupName The name of the group when deleting a group snapshot session.
      * @param completer A reference to the task completer.
      * 
      * @throws DeviceControllerException
      */
-    public void doDeleteBlockSnapshotSession(StorageSystem system, URI snapSessionURI, TaskCompleter completer)
+    public void doDeleteBlockSnapshotSession(StorageSystem system, URI snapSessionURI, String groupName, TaskCompleter completer)
             throws DeviceControllerException;
+
+    void doAddSnapshotSessionsToConsistencyGroup(StorageSystem storageSystem, URI consistencyGroup, List<URI> addVolumesList, TaskCompleter taskCompleter);
+
+    /**
+     * Delete a replica replication group in the given StorageSystem
+     * 
+     * @param storage
+     * @param consistencyGroup
+     * @param replicationGroupName name of the replication group to be deleted
+     * @param keepRGName Boolean if true, ViPR will keep group name for CG
+     * @param markInactive
+     * @param sourceReplicationGroup name of the source replication group
+     * @param taskCompleter
+     */
+    public void doDeleteConsistencyGroup(StorageSystem storage, URI consistencyGroup,
+            String replicationGroupName, Boolean keepRGName, Boolean markInactive, 
+            String sourceReplicationGroup, TaskCompleter taskCompleter) throws DeviceControllerException;
+    
 }

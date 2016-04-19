@@ -11,14 +11,18 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import javax.cim.CIMInstance;
+import javax.cim.CIMObjectPath;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.model.StorageSystem;
+import com.emc.storageos.db.client.model.StoragePort.OperationalStatus;
 import com.emc.storageos.plugins.AccessProfile;
 import com.emc.storageos.plugins.BaseCollectionException;
 import com.emc.storageos.plugins.common.Constants;
@@ -30,9 +34,11 @@ import com.google.common.base.Joiner;
 public class StorageProtocolEndPointProcessor extends StorageEndPointProcessor {
     private Logger _logger = LoggerFactory
             .getLogger(StorageProtocolEndPointProcessor.class);
+    private List<Object> args;
     private DbClient _dbClient;
     private static final String NAME = "Name";
     private static final String SYSTEMNAME = "SystemName";
+    private static final String DEVICEID = "DeviceID";
     private static final String COMMA_STR = ",";
 
     @Override
@@ -56,6 +62,16 @@ public class StorageProtocolEndPointProcessor extends StorageEndPointProcessor {
                     endPointInstance = it.next();
                     String portInstanceID = endPointInstance.getObjectPath()
                             .getKey(SYSTEMNAME).getValue().toString();
+                    if (device.checkIfVmax3()) {
+                        CIMObjectPath logicalPortPath = getObjectPathfromCIMArgument(args);
+                        // We need the portInstanceID to not constitute the Virtual information.
+                        // i.e Instead of SYMMETRIX-+-<<SERIAL>>-+-115-+-0 it should be SYMMETRIX-+-<<SERIAL>>-+-SE-1G-+-0
+                        StringBuffer newPortInstanceID = new StringBuffer(logicalPortPath.getKey(SYSTEMNAME).getValue().toString());
+                        newPortInstanceID.append(Constants._plusDelimiter)
+                                .append(logicalPortPath.getKey(DEVICEID).getValue().toString());
+                        portInstanceID = (newPortInstanceID.toString()).replaceAll(Constants.SMIS_PLUS_REGEX,
+                                Constants.SMIS80_DELIMITER_REGEX);
+                    }
                     String iScsiPortName = getCIMPropertyValue(endPointInstance, NAME);
                     // Skip the iSCSI ports without name or without a valid name.
                     if (null == iScsiPortName || iScsiPortName.split(COMMA_STR)[0].length() <= 0) {
@@ -118,26 +134,52 @@ public class StorageProtocolEndPointProcessor extends StorageEndPointProcessor {
             String portInstanceID, CoordinatorClient coordinator, List<StoragePort> newPorts,
             List<StoragePort> existingPorts) throws IOException {
         StoragePort portinMemory = (StoragePort) keyMap.get(portInstanceID);
+        String endPointInstanceId = endPointInstance.getObjectPath().getKey(NAME)
+                .getValue().toString().split(COMMA_STR)[0].toLowerCase();
         if (null == port) {
-            // Name Property's value --> iqn.23.....,t,0x0001
-            portinMemory.setPortNetworkId(endPointInstance.getObjectPath().getKey(NAME)
-                    .getValue().toString().split(",")[0].toLowerCase());
-            portinMemory.setPortEndPointID(endPointInstance.getObjectPath().getKey(NAME)
-                    .getValue().toString());
-            String portNativeGuid = NativeGUIDGenerator.generateNativeGuid(_dbClient, portinMemory);
-            portinMemory.setNativeGuid(portNativeGuid);
-            portinMemory.setLabel(portNativeGuid);
-            _logger.info("Creating port - {}:{}", portinMemory.getLabel(), portinMemory.getNativeGuid());
-            _dbClient.createObject(portinMemory);
-            newPorts.add(portinMemory);
+            if ((portinMemory != null) && (portinMemory.getPortNetworkId() != null) &&
+                    !(portinMemory.getPortNetworkId().equals(endPointInstanceId))) {
+                // Since this is a new protocol endpoint and for V3, a single physical port can have multiple
+                // virtualiSCSIProtocolEndpoints, we will need to create new port object
+                StoragePort newPortinMemory = portinMemory.clone();
+                newPortinMemory.setId(URIUtil.createId(StoragePort.class));
+                newPortinMemory.setPortNetworkId(endPointInstanceId);
+                newPortinMemory.setPortEndPointID(endPointInstance.getObjectPath().getKey(NAME)
+                        .getValue().toString());
+                String portNativeGuid = NativeGUIDGenerator.generateNativeGuid(_dbClient, newPortinMemory);
+                newPortinMemory.setNativeGuid(portNativeGuid);
+                newPortinMemory.setLabel(portNativeGuid);
+                _logger.info("Creating port - {}:{}", newPortinMemory.getLabel(), newPortinMemory.getNativeGuid());
+                _dbClient.createObject(newPortinMemory);
+                newPorts.add(newPortinMemory);
+            } else {
+                // Name Property's value --> iqn.23.....,t,0x0001
+                portinMemory.setPortNetworkId(endPointInstanceId);
+                portinMemory.setPortEndPointID(endPointInstance.getObjectPath().getKey(NAME)
+                        .getValue().toString());
+                String portNativeGuid = NativeGUIDGenerator.generateNativeGuid(_dbClient, portinMemory);
+                portinMemory.setNativeGuid(portNativeGuid);
+                portinMemory.setLabel(portNativeGuid);
+                _logger.info("Creating port - {}:{}", portinMemory.getLabel(), portinMemory.getNativeGuid());
+                _dbClient.createObject(portinMemory);
+                newPorts.add(portinMemory);
+            }
         } else {
-            port.setPortName(portinMemory.getPortName());
+            String currentPortName = port.getPortName();
+            if (!currentPortName.contains(portinMemory.getPortName())) {
+                // A single VirtualiSCSIProtocolEndpoint is associated to multiple physical GIGE ports
+                StringBuffer appendedPortName = new StringBuffer(currentPortName);
+                appendedPortName.append(COMMA_STR).append(portinMemory.getPortName());
+                port.setPortName(appendedPortName.toString());
+            }
             port.setPortSpeed(portinMemory.getPortSpeed());
             port.setPortEndPointID(endPointInstance.getObjectPath().getKey(NAME)
                     .getValue().toString());
             port.setCompatibilityStatus(portinMemory.getCompatibilityStatus());
             port.setDiscoveryStatus(portinMemory.getDiscoveryStatus());
-            port.setOperationalStatus(portinMemory.getOperationalStatus());
+            if (!OperationalStatus.OK.name().equals(port.getOperationalStatus())) {
+                port.setOperationalStatus(portinMemory.getOperationalStatus());
+            }
             _logger.info("Updating port - {} : {}", port.getLabel(), port.getNativeGuid());
             _dbClient.persistObject(port);
             existingPorts.add(port);
@@ -147,6 +189,6 @@ public class StorageProtocolEndPointProcessor extends StorageEndPointProcessor {
     @Override
     protected void setPrerequisiteObjects(List<Object> inputArgs)
             throws BaseCollectionException {
-        // TODO Auto-generated method stub
+        args = inputArgs;
     }
 }

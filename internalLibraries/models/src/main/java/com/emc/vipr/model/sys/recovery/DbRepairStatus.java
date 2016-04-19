@@ -50,11 +50,12 @@ public class DbRepairStatus implements Serializable {
     }
 
     /**
-     * The status of db repair
-     * @valid NOT_STARTED = db repair has not started yet
-     * @valid IN_PROGRESS = db repair is in progress
-     * @valid SUCCESS = db repair succeed
-     * @valid FAILED = db repair failed
+     * The status of db repair.
+     * Valid values:
+     *  NOT_STARTED = db repair has not yet started
+     *  IN_PROGRESS = db repair is in progress
+     *  SUCCESS = db repair success
+     *  FAILED = db repair failed
      */
     @XmlElement(name = "status")
     public Status getStatus() {
@@ -67,7 +68,6 @@ public class DbRepairStatus implements Serializable {
 
     /**
      * The completion time of lastest successful db repair
-     * @valid none
      */
     @XmlElement(name = "last_completion_time")
     public Date getLastCompletionTime() {
@@ -80,7 +80,6 @@ public class DbRepairStatus implements Serializable {
 
     /**
      * The start time of current db repair
-     * @valid none
      */
     @XmlElement(name = "start_time")
     public Date getStartTime() {
@@ -92,8 +91,7 @@ public class DbRepairStatus implements Serializable {
     }
 
     /**
-     * The progress of current db repair
-     * @valid 0-100, this value just for reference
+     * The progress of current db repair. Valid value 0-100
      */
     @XmlElement(name = "progress")
     public int getProgress() {

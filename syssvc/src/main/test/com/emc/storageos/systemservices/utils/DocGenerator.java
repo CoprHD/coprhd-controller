@@ -5,11 +5,8 @@
 
 package com.emc.storageos.systemservices.utils;
 
-import org.codehaus.enunciate.config.EnunciateConfiguration;
-import org.codehaus.enunciate.main.Enunciate;
-import org.codehaus.enunciate.modules.DeploymentModule;
-import org.codehaus.enunciate.modules.docs.DocumentationDeploymentModule;
-import org.codehaus.enunciate.modules.xml.XMLDeploymentModule;
+import com.webcohesion.enunciate.EnunciateConfiguration;
+import com.webcohesion.enunciate.Enunciate;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -54,19 +51,11 @@ public class DocGenerator {
             collectFiles(new File(packages[i]), files);
         }
 
-        DocumentationDeploymentModule module = new DocumentationDeploymentModule();
-        module.setDisableRestMountpoint(true);
-        module.setIncludeExampleJson(false);
-        module.setIncludeExampleXml(true);
-        module.setTitle("Bourne System Management API");
+        EnunciateConfiguration config = new EnunciateConfiguration();
+        config.setDefaultTitle("Bourne API");
 
-        XMLDeploymentModule xmlModule = new XMLDeploymentModule();
-        EnunciateConfiguration config = new EnunciateConfiguration(
-                Arrays.asList(new DeploymentModule[] { module, xmlModule }));
-
-        Enunciate e = new Enunciate(files.toArray(new String[] {}), config);
-
-        File buildDir = new File(args[0], "syssvc");
+        Enunciate e = new Enunciate();
+        File buildDir = new File(args[0]);
         if (!buildDir.exists()) {
             buildDir.mkdir();
         }
@@ -74,11 +63,9 @@ public class DocGenerator {
         if (!intermediateDir.exists()) {
             intermediateDir.mkdir();
         }
-        e.setTarget(Enunciate.Target.PACKAGE);
-        e.getConfig().setAllowEmptyNamespace(true);
-        e.setBuildDir(buildDir);
-        e.setGenerateDir(intermediateDir);
-        e.execute();
+        e.addSourceDir(buildDir);
+        e.getApiRegistry();
+        e.run();
 
     }
 }

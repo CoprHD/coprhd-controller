@@ -27,7 +27,6 @@ public class TypedRelatedResourceRep extends NamedRelatedResourceRep {
     /**
      * The type of the resource
      * 
-     * @valid none
      */
     @XmlTransient
     public ResourceTypeEnum getType() {

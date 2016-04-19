@@ -10,16 +10,21 @@ import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 
 @XmlRootElement(name = "site_add")
-@XmlAccessorType(XmlAccessType.PROPERTY)
+@XmlAccessorType(XmlAccessType.FIELD)
 public class SiteAddParam {
+    @XmlElement(name = "name")
     private String name;
+    @XmlElement(name = "description", required = false)
     private String description;
+    @XmlElement(name = "vip")
     private String vip;
+    @XmlElement(name = "username")
     private String username;
+    @XmlElement(name = "password")
     private String password;
+    @XmlElement(name = "uuid")
     private String id;
 
-    @XmlElement(name = "uuid")
     public String getId() {
         return id;
     }
@@ -28,7 +33,6 @@ public class SiteAddParam {
         this.id = id;
     }
 
-    @XmlElement(name = "name")
     public String getName() {
         return name;
     }
@@ -37,7 +41,6 @@ public class SiteAddParam {
         this.name = name;
     }
 
-    @XmlElement(name = "vip")
     public String getVip() {
         return vip;
     }
@@ -46,7 +49,6 @@ public class SiteAddParam {
         this.vip = vip;
     }
 
-    @XmlElement(name = "description")
     public String getDescription() {
         return description;
     }
@@ -55,7 +57,6 @@ public class SiteAddParam {
         this.description = description;
     }
 
-    @XmlElement(name = "username")
     public String getUsername() {
         return username;
     }
@@ -64,7 +65,6 @@ public class SiteAddParam {
         this.username = username;
     }
 
-    @XmlElement(name = "password")
     public String getPassword() {
         return password;
     }

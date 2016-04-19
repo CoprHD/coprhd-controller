@@ -4,8 +4,6 @@
  */
 package com.emc.storageos.systemservices.impl.jobs.backupscheduler;
 
-import com.emc.storageos.coordinator.client.model.ProductName;
-
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -18,6 +16,7 @@ import java.util.regex.Pattern;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.emc.storageos.coordinator.client.model.ProductName;
 import com.emc.storageos.management.backup.BackupConstants;
 
 /**
@@ -27,8 +26,6 @@ public class ScheduledBackupTag {
 
     private static final Logger log = LoggerFactory.getLogger(ScheduledBackupTag.class);
 
-    private static final String BACKUP_TAG_TEMPLATE = "%s-%d-%s";
-    private static final String UPLOAD_ZIP_FILENAME_FORMAT = "%s-%s-%s-%s%s";
     private static final ThreadLocal<SimpleDateFormat> dateFormat = new ThreadLocal<SimpleDateFormat>() {
         @Override
         protected SimpleDateFormat initialValue() {
@@ -36,9 +33,7 @@ public class ScheduledBackupTag {
         }
     };
     private static final Date MIN_DATE = new Date(0);
-    protected static final String ZIP_FILE_SURFIX = ".zip";
-    protected static final String BACKUP_TAG_SEPERATOR = "-";
-    private static final String INVALID_ZIP_FILE_SURFIX = "-invalid.zip";
+
 
     public static Date parseTimestamp(String timestampStr) throws ParseException {
         return dateFormat.get().parse(timestampStr);
@@ -50,7 +45,7 @@ public class ScheduledBackupTag {
 
     public static String toBackupTag(Date dt, String ver, int nodeCount) {
         String timestamp = toTimestamp(dt);
-        return String.format(BACKUP_TAG_TEMPLATE, ver, nodeCount, timestamp);
+        return String.format(BackupConstants.SCHEDULED_BACKUP_TAG_TEMPLATE, ver, nodeCount, timestamp);
     }
 
     public static Date parseBackupTag(String tag) throws ParseException {
@@ -104,13 +99,5 @@ public class ScheduledBackupTag {
             int ret = d1.compareTo(d2);
             return ret != 0 ? ret : o1.compareTo(o2);
         }
-    }
-
-    public static String toZipFileName(String tag, int totalNodes, int backupNodes, String siteName) {
-        return String.format(UPLOAD_ZIP_FILENAME_FORMAT, tag, totalNodes, backupNodes, siteName, ZIP_FILE_SURFIX);
-    }
-
-    public static String toInvalidFileName(String fileName) {
-        return fileName.replaceFirst(ZIP_FILE_SURFIX + "$", INVALID_ZIP_FILE_SURFIX);
     }
 }

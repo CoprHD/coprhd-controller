@@ -9,6 +9,7 @@ import java.net.URI;
 import java.util.List;
 import java.util.Map;
 
+import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
 
@@ -165,10 +166,11 @@ public interface BlockController extends BlockStorageManagementController {
      * @param pool URI of pool where the volume belongs.
      * @param volume URI of volume to be restored.
      * @param snapshot URI of snapshot used for restoration.
+     * @param synDirection specifies the direction to sync for R1 and R2
      * @param opId Operation ID
      * @throws InternalException When an exception occurs restoring the volume
      */
-    public void restoreVolume(URI storage, URI pool, URI volume, URI snapshot, Boolean updateOpStatus, String opId)
+    public void restoreVolume(URI storage, URI pool, URI volume, URI snapshot, Boolean updateOpStatus, String syncDirection, String opId)
             throws InternalException;
 
     /**
@@ -314,7 +316,8 @@ public interface BlockController extends BlockStorageManagementController {
      * @param opId Operation ID
      * @throws InternalException When an exception occurs deactivating the mirror
      */
-    public void deactivateMirror(URI storage, List<URI> mirrorList, List<URI> promotees, Boolean isCG, String opId) throws InternalException;
+    public void deactivateMirror(URI storage, List<URI> mirrorList, List<URI> promotees, Boolean isCG, String opId)
+            throws InternalException;
 
     /**
      * Orchestrates the creation of full copy volumes
@@ -458,21 +461,32 @@ public interface BlockController extends BlockStorageManagementController {
             URI poolURI,
             List<URI> volumeURIs,
             String opId) throws ControllerException;
+    
+    /**
+     * Add/remove volumes to/from application
+     * @param storage
+     * @param addVolList
+     * @param application
+     * @param opId
+     * @throws ControllerException
+     */
+    public void updateApplication(URI storage, ApplicationAddVolumeList addVolList, URI application,
+            String opId) throws ControllerException;
 
     /**
      * Creates new array snapshot point in time copies on the array with the passed URI
      * and optionally links 1 or more targets volumes to each snapshots.
-     * 
+     *
      * @param systemURI The URI of the storage system.
-     * @param snapSessionURIs The URIs of the BlockSnapshotSession instances.
-     * @param sessionSnapshotURIMap Map of the BlockSnapshot instances for each session.
+     * @param snapSessionURI The URIs of the BlockSnapshotSession instances.
+     * @param sessionSnapshotURIs Map of the BlockSnapshot instances for each session.
      * @param copyMode The copy mode for linked targets.
      * @param opId The unique task identifier.
-     * 
+     *
      * @throws InternalException
      */
-    public void createSnapshotSession(URI systemURI, List<URI> snapSessionURIs,
-            Map<URI, List<URI>> sessionSnapshotURIMap, String copyMode, String opId)
+    public void createSnapshotSession(URI systemURI, URI snapSessionURI,
+            List<List<URI>> sessionSnapshotURIs, String copyMode, String opId)
             throws InternalException;
 
     /**
@@ -483,11 +497,11 @@ public interface BlockController extends BlockStorageManagementController {
      * @param snapshotURIs The URIs of the snapshots representing the linked targets
      * @param copyMode The copy mode for the linked targets.
      * @param opId The unique task identifier.
-     * 
+     *
      * @throws InternalException
      */
-    public void linkNewTargetVolumesToSnapshotSession(URI systemURI, URI snapSessionURI, List<URI> snapshotURIs,
-            String copyMode, String opId) throws InternalException;
+    public void linkNewTargetVolumesToSnapshotSession(URI systemURI, URI snapSessionURI, List<List<URI>> snapshotURIs,
+                                                      String copyMode, String opId) throws InternalException;
 
     /**
      * Re-link the linked targets represented the BlockSnapshot instances with the
@@ -511,10 +525,11 @@ public interface BlockController extends BlockStorageManagementController {
      * @param snapSessionURI The URI of the snapshot session.
      * @param snapshotMap A map of the containing the URIs of the BlockSnapshot instances representing the targets to be unlinked and
      *            whether or not each target should be deleted.
+     * @param opType The operation type for the audit and event logs.
      * @param opId The unique task identifier.
      */
     public void unlinkTargetsFromSnapshotSession(URI systemURI, URI snapSessionURI,
-            Map<URI, Boolean> snapshotDeletionMap, String opId);
+            Map<URI, Boolean> snapshotDeletionMap, OperationTypeEnum opType, String opId);
 
     /**
      * Restores the source with the data from the array snapshot point-in-time

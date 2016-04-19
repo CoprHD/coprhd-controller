@@ -1,0 +1,17 @@
+#!/bin/bash
+
+systemctl stop ECOM80
+systemctl stop ECOM462
+cd /tmp
+wget http://lglw8129.lss.emc.com/simulators/smis-simulators/smis-simulator.zip
+unzip smis-simulator.zip
+rm ecom/conf/Port_settings.xml
+rm ecom/providers/OSLSProvider.conf
+rm ecom/providers/multiarray.xml
+rm -r ecom/local/
+cp -r ecom/* /data/simulators/ecom80/
+cp -r ecom/* /data/simulators/ecom462/
+rm -r ecom
+rm smis-simulator.zip
+systemctl start ECOM80
+systemctl start ECOM462

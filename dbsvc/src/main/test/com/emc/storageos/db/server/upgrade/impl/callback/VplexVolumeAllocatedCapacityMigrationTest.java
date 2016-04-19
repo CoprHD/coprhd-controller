@@ -26,10 +26,10 @@ import java.util.List;
 import org.junit.Assert;
 
 /**
- * Tester for the migration of aVPLEX volumes' allocatedCapacity
- * value to equal its provisionedCapacity value.
+ * Tester for the migration of a VPLEX volumes' allocatedCapacity
+ * value to be equal to 0
  * 
- * @since 2.0
+ * @since 3.0
  * @author nbeach
  */
 public class VplexVolumeAllocatedCapacityMigrationTest extends DbSimpleMigrationTestBase {
@@ -100,9 +100,9 @@ public class VplexVolumeAllocatedCapacityMigrationTest extends DbSimpleMigration
                 Long allocatedCapacity = volume.getAllocatedCapacity();
                 Long provisionedCapacity = volume.getProvisionedCapacity();
 
-                Assert.assertEquals("Allocated capacity and provisioned capacity "
-                        + "should be equal on VPLEX volumes.",
-                        allocatedCapacity, provisionedCapacity);
+                Assert.assertEquals("Allocated capacity "
+                        + "should be equal to 0 for VPLEX virtual volumes.",
+                        allocatedCapacity, new Long(0L));
                 log.info("okay, everything looks good: allocatedCapacity is {} and provisionedCapacity is {}",
                         allocatedCapacity, provisionedCapacity);
             }

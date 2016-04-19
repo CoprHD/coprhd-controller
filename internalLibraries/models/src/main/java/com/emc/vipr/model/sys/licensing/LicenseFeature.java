@@ -6,6 +6,8 @@
 package com.emc.vipr.model.sys.licensing;
 
 import java.io.Serializable;
+import java.util.ArrayList;
+import java.util.List;
 import javax.xml.bind.annotation.XmlAccessType;
 import javax.xml.bind.annotation.XmlAccessorType;
 import javax.xml.bind.annotation.XmlElement;
@@ -16,12 +18,19 @@ import javax.xml.bind.annotation.XmlRootElement;
 public class LicenseFeature implements Serializable {
 
     private static final long serialVersionUID = -5873033105809411374L;
+    public static final String MODELID_DELIMETER = ":";
+    public static final String OLD_LICENSE_SUBMODEL = "LEGACY";   // For original managed capacity license
+    public static final String TRIAL_LICENSE_SUBMODEL = "TRIAL";   // For trial license
+
 
     private String serial;
     private String version;
     private String dateIssued;
     private String dateExpires;
+
+    // Format: ViPR_Controller:<LicenseType>  LicenseType could be TIER1/2/3 or any array type (VMAX3 etc.)
     private String modelId;
+
     private String productId;
     private String siteId = "UNKNOWN";
     private String issuer;
@@ -264,7 +273,7 @@ public class LicenseFeature implements Serializable {
     }
 
     public void setStorageCapacityUnit(String storageCapacityUnit) {
-        this.storageCapacity = storageCapacityUnit;
+        this.storageCapacityUnit = storageCapacityUnit;
     }
 
     @XmlElement(name = "storage_capacity")
@@ -283,5 +292,18 @@ public class LicenseFeature implements Serializable {
 
     public void setTrialLicense(boolean trialLicense) {
         this.trialLicense = trialLicense;
+    }
+
+    // e.g.: VIPR_CONTROLLER
+    public String getLicenseFeature() {
+        return getModelId().split(MODELID_DELIMETER)[0];
+    }
+
+    // e.g.: TIER1/TIER2/TIER3/ARRAY
+    public String getLicenseType() {
+        if (isTrialLicense()) {
+            return TRIAL_LICENSE_SUBMODEL;
+        }
+        return getModelId().contains(MODELID_DELIMETER) ? getModelId().split(MODELID_DELIMETER)[1] : OLD_LICENSE_SUBMODEL;
     }
 }

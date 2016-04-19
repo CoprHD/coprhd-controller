@@ -19,6 +19,7 @@ import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.upgrade.BaseCustomMigrationCallback;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
+import com.emc.storageos.svcs.errorhandling.resources.MigrationCallbackException;
 
 /**
  * Migration handler to update the internal flags of Export Group
@@ -28,7 +29,7 @@ public class RpExportGroupInternalFlagMigration extends BaseCustomMigrationCallb
     private static final Logger log = LoggerFactory.getLogger(RpExportGroupInternalFlagMigration.class);
 
     @Override
-    public void process() {
+    public void process() throws MigrationCallbackException {
         updateFlagsForInitiators();
         updateFlagsForExportGroups();
     }

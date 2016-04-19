@@ -14,6 +14,7 @@ import com.emc.storageos.db.client.impl.EncryptionProviderImpl;
 import com.emc.storageos.db.client.model.ComputeImage;
 import com.emc.storageos.db.client.model.EncryptionProvider;
 import com.emc.storageos.db.client.upgrade.BaseCustomMigrationCallback;
+import com.emc.storageos.svcs.errorhandling.resources.MigrationCallbackException;
 
 public class ComputeImageMigration extends BaseCustomMigrationCallback {
     private static final Logger log = LoggerFactory
@@ -24,7 +25,7 @@ public class ComputeImageMigration extends BaseCustomMigrationCallback {
     private static final String IMAGEURL_HOST_REGEX = "^*(?<=@)([^/@]++)/.*+$";
 
     @Override
-    public void process() {
+    public void process() throws MigrationCallbackException {
         log.info("Starting Compute Image Migration");
         if (null == encryptionProvider) {
             EncryptionProviderImpl encryptionProviderImpl = new EncryptionProviderImpl();

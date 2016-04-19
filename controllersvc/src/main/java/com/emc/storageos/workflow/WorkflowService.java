@@ -340,14 +340,32 @@ public class WorkflowService {
     }
 
     /**
+     * See {@link #updateStepStatus(String, StepState, ServiceCode, String, boolean)} . Do automatic rollback in case of workflow error
+     * 
+     * @param stepId
+     * @param state
+     * @param code
+     * @param message
+     * @throws WorkflowException
+     */
+    private void updateStepStatus(String stepId, StepState state, ServiceCode code, String message) throws WorkflowException {
+        updateStepStatus(stepId, state, code, message, true);
+    }
+
+    /**
      * Given a ZK path to a Callback node, get the data which is a StatusUpdateMessage
      * and update the appropriate step status.
      * 
      * @param stepId -- The Step Id of the step.
-     * @param path - Zookeeper path to a /workflow/callbacks node containing StatusUpdateMessage
+     * @param state
+     * @param code
+     * @param message
+     * @param automaticRollback whether to rollback in case of error at the end of workflow
      * @throws WorkflowException
+     * 
      */
-    private void updateStepStatus(String stepId, StepState state, ServiceCode code, String message) throws WorkflowException {
+    private void updateStepStatus(String stepId, StepState state, ServiceCode code, String message, boolean automaticRollback)
+            throws WorkflowException {
         // String path = getZKCallbackPath(stepId);
         String workflowPath = getZKStep2WorkflowPath(stepId);
         Workflow workflow = null;
@@ -363,7 +381,7 @@ public class WorkflowService {
             // Load the Workflow state from ZK
             workflow = (Workflow) _dataManager.getData(workflowPath, false);
             if (workflow == null) {
-                throw new WorkflowException("Could not load workflow for step: " + stepId);
+                throw WorkflowException.exceptions.workflowNotFound(workflowPath);
             }
             // Lock the Workflow
             lock = lockWorkflow(workflow);
@@ -393,7 +411,7 @@ public class WorkflowService {
                 }
                 // Check to see if the workflow might be finished, or need a rollback.
                 if (workflow.allStatesTerminal()) {
-                    workflowDeleted = doWorkflowEndProcessing(workflow);
+                    workflowDeleted = doWorkflowEndProcessing(workflow, automaticRollback);
                 }
             }
         } catch (Exception ex) {
@@ -413,10 +431,11 @@ public class WorkflowService {
      * Initiates rollback if necessary, does final task completer.
      * 
      * @param workflow
+     * @param automaticRollback
      * @return deleted
      * @throws DeviceControllerException
      */
-    private boolean doWorkflowEndProcessing(Workflow workflow) throws DeviceControllerException {
+    private boolean doWorkflowEndProcessing(Workflow workflow, boolean automaticRollback) throws DeviceControllerException {
         Map<String, StepStatus> statusMap = workflow.getStepStatusMap();
 
         // Print out the status of each step into the log.
@@ -453,7 +472,7 @@ public class WorkflowService {
         }
 
         // Initiate rollback if needed.
-        if (workflow.isRollbackState() == false && state == StepState.ERROR) {
+        if (automaticRollback && workflow.isRollbackState() == false && state == StepState.ERROR) {
             if (workflow._rollbackHandler != null) {
                 workflow._rollbackHandler.initiatingRollback(workflow,
                         workflow._rollbackHandlerArgs);
@@ -942,7 +961,7 @@ public class WorkflowService {
             case CANCELLED:
                 throw new CancelledException();
             case ERROR:
-                if ((workflow._rollbackContOnError) && (workflow.isRollbackState())) {
+                if ((workflow.getRollbackContOnError()) && (workflow.isRollbackState())) {
                     _log.info("Allowing rollback to continue despite failure in previous rollback step.");
                     return false;
                 }
@@ -1135,8 +1154,7 @@ public class WorkflowService {
             }
             if (created) {
                 _dbClient.createObject(logWorkflow);
-            }
-            else {
+            } else {
                 _dbClient.persistObject(logWorkflow);
             }
 
@@ -1196,8 +1214,7 @@ public class WorkflowService {
             logStep.setWaitFor(step.waitFor);
             if (created) {
                 _dbClient.createObject(logStep);
-            }
-            else {
+            } else {
                 _dbClient.persistObject(logStep);
             }
         } catch (DatabaseException ex) {
@@ -1719,6 +1736,53 @@ public class WorkflowService {
         return timeInSeconds;
     }
 
+    /**
+     * Sets the workflow's rollback continue on error flag given a stepId in the workflow.
+     * The normal use for this method is to be called from a step in the workflow when it
+     * is decided we no longer want to continue rollback due to rollback errors.
+     * To use this you should:
+     * 1.Call the setWorkflowRollbackContOnError flag setting value to false.
+     * 2.Terminate the step with an ERROR condition.
+     * After this if any rollback step reports an error (including the current step
+     * if it is a rollback step), this will cause cancellation of any further rollback steps.
+     * 
+     * @param stepId
+     * @param value
+     */
+    public void setWorkflowRollbackContOnError(String stepId, boolean value) {
+        Workflow workflow = loadWorkflowFromStepId(stepId);
+        workflow.setRollbackContOnError(value);
+        _log.info("Setting rollback continue on error to {} for workflow {}", value, workflow.getWorkflowURI());
+        persistWorkflow(workflow);
+    }
+
+    /**
+     * Given a step id in a workflow, will return the Workflow.
+     * 
+     * @param stepId -- A step id of the workflow to be located
+     * @return Workflow object, or throws workflowNotFound exception
+     */
+    private Workflow loadWorkflowFromStepId(String stepId) {
+        String workflowPath = getZKStep2WorkflowPath(stepId);
+        Workflow workflow = null;
+        try {
+            // Get the workflow path from ZK
+            workflowPath = (String) _dataManager.getData(workflowPath, false);
+            // It is not an error to try and update using a non-existent stepId
+            if (workflowPath == null) {
+                throw WorkflowException.exceptions.workflowNotFound(stepId);
+            }
+            // Load the Workflow state from ZK
+            workflow = (Workflow) _dataManager.getData(workflowPath, false);
+            if (workflow == null) {
+                throw WorkflowException.exceptions.workflowNotFound(workflowPath);
+            }
+            return workflow;
+        } catch (Exception ex) {
+            throw WorkflowException.exceptions.workflowNotFound(stepId);
+        }
+    }
+
     public static void completerStepSucceded(String stepId)
             throws WorkflowException {
         _instance.updateStepStatus(stepId, StepState.SUCCESS, null, "Step completed successfully");
@@ -1727,6 +1791,11 @@ public class WorkflowService {
     public static void completerStepError(String stepId, ServiceCoded coded)
             throws WorkflowException {
         _instance.updateStepStatus(stepId, StepState.ERROR, coded.getServiceCode(), coded.getMessage());
+    }
+
+    public static void completerStepErrorWithoutRollback(String stepId, ServiceCoded coded)
+            throws WorkflowException {
+        _instance.updateStepStatus(stepId, StepState.ERROR, coded.getServiceCode(), coded.getMessage(), false);
     }
 
     public static void completerStepCancelled(String stepId, ServiceCoded coded)

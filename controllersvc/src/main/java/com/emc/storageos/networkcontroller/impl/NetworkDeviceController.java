@@ -34,7 +34,6 @@ import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
-import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.ExportMask;
@@ -363,7 +362,7 @@ public class NetworkDeviceController implements NetworkController {
         String taskId = UUID.randomUUID().toString();
         List<Zone> zones = new ArrayList<Zone>();
         // Make the zone operations. Don't make the same zone more than once,
-        // as determined by it's key. The same zone shows up multiple times because it
+        // as determined by its key. The same zone shows up multiple times because it
         // must be recorded for each volume in the FCZoneReference table.
         HashSet<String> keySet = new HashSet<String>();
         for (NetworkFCZoneInfo fabricInfo : fabricInfos) {
@@ -940,10 +939,10 @@ public class NetworkDeviceController implements NetworkController {
     public boolean zoneExportMasksCreate(URI exportGroupURI,
             List<URI> exportMaskURIs, Collection<URI> volumeURIs, String token) {
         ExportGroup exportGroup = null;
-        try {
-            exportGroup = _dbClient
-                    .queryObject(ExportGroup.class, exportGroupURI);
-            _log.info(String.format("Entering zoneExportMasksCreate for ExportGroup: %s (%s)",
+        try {    	
+        	exportGroup = _dbClient
+                    .queryObject(ExportGroup.class, exportGroupURI);   	            
+        	_log.info(String.format("Entering zoneExportMasksCreate for ExportGroup: %s (%s)",
                     exportGroup.getLabel(), exportGroup.getId()));
             if (exportMaskURIs == null && exportGroup.getExportMasks() != null) {
                 // If the ExportMasks aren't specified, do all in the ExportGroup.

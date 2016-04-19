@@ -12,8 +12,8 @@ import com.emc.storageos.model.RelatedResourceRep;
 /**
  * Super class of host interfaces.
  * 
- * @see IpInterfaceRestRep
- * @see com.emc.storageos.model.host.InitiatorRestRep
+ * Please refer IpInterfaceRestRep
+ * Please refer com.emc.storageos.model.host.InitiatorRestRep
  * @author elalih
  * 
  */
@@ -33,7 +33,6 @@ public abstract class HostInterfaceRestRep extends DataObjectRestRep {
     /**
      * The host where the interface belongs.
      * 
-     * @valid none
      */
     @XmlElement(name = "host")
     public RelatedResourceRep getHost() {
@@ -47,7 +46,6 @@ public abstract class HostInterfaceRestRep extends DataObjectRestRep {
     /**
      * The host interface protocol.
      * 
-     * @valid none
      */
     @XmlElement(name = "protocol")
     public String getProtocol() {
@@ -61,9 +59,9 @@ public abstract class HostInterfaceRestRep extends DataObjectRestRep {
     /**
      * The host interface registration status.
      * Only registered hosts can be used for provisioning operations.
-     * 
-     * @valid UNREGISTERED
-     * @valid REGISTERED
+     * Valid values:
+     *   UNREGISTERED
+     *   REGISTERED
      */
     @XmlElement(name = "registration_status")
     public String getRegistrationStatus() {

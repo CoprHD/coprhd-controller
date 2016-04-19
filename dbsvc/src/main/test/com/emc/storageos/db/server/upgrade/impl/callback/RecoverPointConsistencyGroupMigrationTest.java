@@ -109,7 +109,6 @@ public class RecoverPointConsistencyGroupMigrationTest extends DbSimpleMigration
     protected void verifyResults() throws Exception {
         verifyBlockConsistencyGroupResults();
         verifyBlockSnapshotResults();
-        verifyRpVolumeResults();
     }
 
     /**
@@ -198,7 +197,7 @@ public class RecoverPointConsistencyGroupMigrationTest extends DbSimpleMigration
         sourceVolumeJournal.setId(sourceVolumeJournalURI);
         sourceVolumeJournal.setLabel(volumeName + RP_SRC_JOURNAL_APPEND);
         sourceVolumeJournal.setPersonality(Volume.PersonalityTypes.METADATA.toString());
-        sourceVolumeJournal.setProtectionSet(new NamedURI(protectionSet.getId(), sourceVolumeJournal.getLabel()));
+        sourceVolumeJournal.setProtectionSet(new NamedURI(protectionSet.getId(), protectionSet.getLabel()));
         _dbClient.createObject(sourceVolumeJournal);
 
         for (int i = 1; i <= numTargets; i++) {
@@ -210,7 +209,7 @@ public class RecoverPointConsistencyGroupMigrationTest extends DbSimpleMigration
             sourceVolumeTarget.setLabel(volumeName + RP_TGT_APPEND + "vArray" + i);
             sourceVolumeTarget.setPersonality(Volume.PersonalityTypes.TARGET.toString());
             sourceVolumeTarget.setRSetName(rsetName);
-            sourceVolumeTarget.setProtectionSet(new NamedURI(protectionSet.getId(), sourceVolumeTarget.getLabel()));
+            sourceVolumeTarget.setProtectionSet(new NamedURI(protectionSet.getId(), protectionSet.getLabel()));
             _dbClient.createObject(sourceVolumeTarget);
 
             Volume sourceVolumeTargetJournal = new Volume();
@@ -220,7 +219,7 @@ public class RecoverPointConsistencyGroupMigrationTest extends DbSimpleMigration
             sourceVolumeTargetJournal.setId(sourceVolumeTargetJournalURI);
             sourceVolumeTargetJournal.setLabel(volumeName + RP_TGT_JOURNAL_APPEND + "vArray" + i);
             sourceVolumeTargetJournal.setPersonality(Volume.PersonalityTypes.METADATA.toString());
-            sourceVolumeTargetJournal.setProtectionSet(new NamedURI(protectionSet.getId(), sourceVolumeTargetJournal.getLabel()));
+            sourceVolumeTargetJournal.setProtectionSet(new NamedURI(protectionSet.getId(), protectionSet.getLabel()));
             _dbClient.createObject(sourceVolumeTargetJournal);
         }
 
@@ -358,28 +357,6 @@ public class RecoverPointConsistencyGroupMigrationTest extends DbSimpleMigration
             URI rpCgUri = parentVolume.fetchConsistencyGroupUriByType(_dbClient, Types.RP);
             Assert.assertTrue("The block snapshot consistency group MUST match the parent volume's consistency group.",
                     snapshot.fetchConsistencyGroup().equals(rpCgUri));
-        }
-    }
-
-    /**
-     * Verifies the migration results for RP source/target volume journal references.
-     * 
-     * @throws Exception When an error occurs verifying the BlockSnapshot
-     *             migration results.
-     */
-    private void verifyRpVolumeResults() throws Exception {
-        log.info("Verifying updated RecoverPoint source/target Volume results for RecoverPointConsistencyGroupMigration.");
-        for (URI rpVolumeURI : rpTestVolumeURIs) {
-            Volume rpVolume = _dbClient.queryObject(Volume.class, rpVolumeURI);
-
-            // Ensure that the source and target volumes have been assigned journal volume reference
-            if (rpVolume.getPersonality().equalsIgnoreCase(Volume.PersonalityTypes.SOURCE.toString()) ||
-                    rpVolume.getPersonality().equalsIgnoreCase(Volume.PersonalityTypes.TARGET.toString())) {
-                Assert.assertNotNull("RecoverPoint source/target volumes MUST have a journal volume reference.",
-                        rpVolume.getRpJournalVolume());
-            } else {
-                Assert.assertNull("RecoverPoint journal volumes should NOT have a journal volume reference.", rpVolume.getRpJournalVolume());
-            }
         }
     }
 }

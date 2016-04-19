@@ -5,8 +5,10 @@
 
 package com.emc.storageos.model.tenant;
 
+import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
+
 import javax.xml.bind.annotation.XmlAccessType;
 import javax.xml.bind.annotation.XmlAccessorType;
 import javax.xml.bind.annotation.XmlElement;
@@ -24,6 +26,7 @@ public class TenantOrgRestRep extends DataObjectRestRep {
     private String description;
     private List<UserMappingParam> userMappings;
     private String namespace;
+    private URI namespaceStorage;
 
     public TenantOrgRestRep() {
     }
@@ -39,7 +42,6 @@ public class TenantOrgRestRep extends DataObjectRestRep {
      * 
      * Optional Detailed Description of the Tenant
      * 
-     * @valid none
      */
     @XmlElement
     public String getDescription() {
@@ -54,7 +56,6 @@ public class TenantOrgRestRep extends DataObjectRestRep {
      * 
      * Id and hyperlink of the parent tenant
      * 
-     * @valid none
      */
     @XmlElement(name = "parent_tenant")
     public RelatedResourceRep getParentTenant() {
@@ -71,12 +72,10 @@ public class TenantOrgRestRep extends DataObjectRestRep {
      * mapped to a tenant using parameters such as domains, LDAP attributes,
      * and AD group membership.
      * 
-     * @valid none
      */
     @XmlElementWrapper(name = "user_mappings")
     /**
      * One individual mapping
-     * @valid none 
      * @return 
      */
     @XmlElement(name = "user_mapping")
@@ -95,15 +94,28 @@ public class TenantOrgRestRep extends DataObjectRestRep {
      * 
      * Namespace mapped to the Tenant
      * 
-     * @valid none
      */
-    @XmlElement
+    @XmlElement(name = "namespace")
     public String getNamespace() {
         return namespace;
     }
 
     public void setNamespace(String namespace) {
         this.namespace = namespace;
+    }
+
+    /**
+     * 
+     * Namespace associated with storage mapped to the Tenant
+     * 
+     */
+    @XmlElement(name = "namespace_storage_system")
+    public URI getNamespaceStorage() {
+        return namespaceStorage;
+    }
+
+    public void setNamespaceStorage(URI namespaceStorage) {
+        this.namespaceStorage = namespaceStorage;
     }
 
 }

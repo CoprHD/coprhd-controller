@@ -404,7 +404,10 @@ _repository_wget() {
         local language=EN_US
         local environment=PRODUCTION
         local content="<SOAP-ENV:Envelope xmlns:SOAP-ENV=\"http://schemas.xmlsoap.org/soap/envelope/\" xmlns:SOAP-ENC=\"http://schemas.xmlsoap.org/soap/encoding/\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" xmlns:xsd=\"http://www.w3.org/2001/XMLSchema\" xmlns:tns=\"${1}/ClariionWSL.DownloadCatalog.svc\" ><SOAP-ENV:Body><tns:downloadUpdates xmlns:tns=\"${1}/ClariionWSL.DownloadCatalog.svc\"><downloadUpdatesIN ><productModel xsi:type=\"xsd:string\" >${key}</productModel ><category xsi:type=\"xsd:string\" >${category}</category ><majorRevision xsi:type=\"xsd:string\" ></majorRevision ><minorRevision xsi:type=\"xsd:string\" ></minorRevision ><language xsi:type=\"xsd:string\" >${language}</language ><build xsi:type=\"xsd:string\" ></build > <environment xsi:type=\"xsd:string\" >${environment}</environment > </downloadUpdatesIN > </tns:downloadUpdates > </SOAP-ENV:Body> </SOAP-ENV:Envelope>"
-        echo "$(wget --timeout 30 --tries=2 --no-check-certificate --post-data="${content}" --spider -S $1 -O-  2>&1)"
+        if [ -n "$2" ] ; then
+            proxy_param="-e https_proxy=$2"
+        fi
+        echo "$(wget --timeout 30 --tries=2 "${proxy_param}" --no-check-certificate --post-data="${content}" --spider -S $1 -O-  2>&1)"
         # --tries option specifies wget to retry only twice, --spider option specifies the wget command to not download the pages just check that pages are there.
         # -S option prints the headers sent by HTTP servers and responses sent by FTP servers. -O- sets the output to be written to standard output
         # This query is used to test the ACG catalog repository used for ViPR upgrade
@@ -705,12 +708,14 @@ _test_vdc_synchronization() {
 }
 _test_repository() {
     local system_update_repo_key="system_update_repo"
+    local system_update_proxy_key="system_update_proxy"
     local system_update_repo=$(_get_prop ${system_update_repo_key})
+    local system_update_proxy=$(_get_prop ${system_update_proxy_key})
     local system_update_repo_status="[UNCONFIGURED]"
     local system_update_repo_wget="";
     local system_update_repo_catalog_error="";
     if [ -n "${system_update_repo}" ] ; then
-        system_update_repo_wget=$(_repository_wget ${system_update_repo})
+        system_update_repo_wget=$(_repository_wget ${system_update_repo} ${system_update_proxy})
         system_update_repo_status=$(_repository_validate "${system_update_repo_wget}")
     fi
     _print_status "EMC upgrade repository" ${system_update_repo_status}
@@ -1173,53 +1178,56 @@ _test_vdc() {
     local -a verboseStr
     local ipv4VIP
     local ipv6VIP
+    # we don't support DR in mutlivdc setup. so the site id should be always 
+    # "site1"
+    local siteId="site1"
     
     for vdcEntry in `IFS=,; for entry in ${vdcList}; do echo "$entry "; done`; do
-        nodeCount=$(_get_prop "vdc_${vdcEntry}_node_count")
+        nodeCount=$(_get_prop "vdc_${vdcEntry}_${siteId}_node_count")
         vdcStatus=1
         degraded=1
         for (( n=1; n<=${nodeCount}; n++ )) ; do
-            ipv4Addr=$(_get_prop_ip "vdc_${vdcEntry}_network_${n}_ipaddr")
+            ipv4Addr=$(_get_prop_ip "vdc_${vdcEntry}_${siteId}_network_${n}_ipaddr")
             if [ ! -z "${ipv4Addr}" ] ; then
                 if  _ping_test ${ipv4Addr}  ; then
                     vdcStatus=0
-                    verboseStr+=("vdc_${vdcEntry}_network_${n}_ipaddr=${ipv4Addr},REACHABLE")
+                    verboseStr+=("vdc_${vdcEntry}_${siteId}_network_${n}_ipaddr=${ipv4Addr},REACHABLE")
                 else
                     degraded=0
-                    verboseStr+=("vdc_${vdcEntry}_network_${n}_ipaddr=${ipv4Addr},UNREACHABLE")
+                    verboseStr+=("vdc_${vdcEntry}_${siteId}_network_${n}_ipaddr=${ipv4Addr},UNREACHABLE")
                 fi        
             fi
-            ipv6Addr=$(_get_prop_ip "vdc_${vdcEntry}_network_${n}_ipaddr6")
+            ipv6Addr=$(_get_prop_ip "vdc_${vdcEntry}_${siteId}_network_${n}_ipaddr6")
             if [ ! -z  "${ipv6Addr}" ] ; then
                 if _ping6_test ${ipv6Addr} ; then
                     vdcStatus=0
-                    verboseStr+=("vdc_${vdcEntry}_network_${n}_ipaddr6=${ipv6Addr},REACHABLE")
+                    verboseStr+=("vdc_${vdcEntry}_${siteId}_network_${n}_ipaddr6=${ipv6Addr},REACHABLE")
                 else
                     degraded=0
-                    verboseStr+=("vdc_${vdcEntry}_network_${n}_ipaddr6=${ipv4Addr},UNREACHABLE")
+                    verboseStr+=("vdc_${vdcEntry}_${siteId}_network_${n}_ipaddr6=${ipv4Addr},UNREACHABLE")
                 fi
             fi
         done
-        ipv4VIP=$(_get_prop_ip "vdc_${vdcEntry}_network_vip")
-        ipv6VIP=$(_get_prop_ip "vdc_${vdcEntry}_network_vip6")
+        ipv4VIP=$(_get_prop_ip "vdc_${vdcEntry}_${siteId}_network_vip")
+        ipv6VIP=$(_get_prop_ip "vdc_${vdcEntry}_${siteId}_network_vip6")
         [[ ${ipv6VIP} =~ [^\[*:*\]] ]] && ipv6VIP=${ipv6VIP:1:${#ipv6VIP}-2}
  
         if [ ! -z "${ipv6VIP}" ] ; then
              if _ping6_test ${ipv6VIP} ; then
                     vdcStatus=0
-                    verboseStr+=("vdc_${vdcEntry}_network_vip6=${ipv6VIP},REACHABLE")
+                    verboseStr+=("vdc_${vdcEntry}_${siteId}_network_vip6=${ipv6VIP},REACHABLE")
                 else
                     degraded=0
-                    verboseStr+=("vdc_${vdcEntry}_network_vip6=${ipv6VIP},UNREACHABLE")
+                    verboseStr+=("vdc_${vdcEntry}_${siteId}_network_vip6=${ipv6VIP},UNREACHABLE")
                 fi                 
         fi
         if [ ! -z "${ipv4VIP}" ] ; then
              if _ping_test ${ipv4VIP} ; then
                     vdcStatus=0
-                    verboseStr+=("vdc_${vdcEntry}_network_vip=${ipv4VIP},REACHABLE")
+                    verboseStr+=("vdc_${vdcEntry}_${siteId}_network_vip=${ipv4VIP},REACHABLE")
                 else
                     degraded=0
-                    verboseStr+=("vdc_${vdcEntry}_network_vip=${ipv4VIP},UNREACHABLE")
+                    verboseStr+=("vdc_${vdcEntry}_${siteId}_network_vip=${ipv4VIP},UNREACHABLE")
                 fi
         fi
 

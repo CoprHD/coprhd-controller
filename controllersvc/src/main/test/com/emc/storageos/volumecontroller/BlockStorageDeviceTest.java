@@ -52,6 +52,7 @@ import com.emc.storageos.volumecontroller.impl.block.taskcompleter.BlockConsiste
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.BlockSnapshotCreateCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.BlockSnapshotDeleteCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.BlockSnapshotRestoreCompleter;
+import com.emc.storageos.volumecontroller.impl.block.taskcompleter.CloneCreateCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportAddInitiatorCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportAddVolumeCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportDeleteCompleter;
@@ -59,7 +60,6 @@ import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportMaskCre
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportRemoveInitiatorCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportRemoveVolumeCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportTaskCompleter;
-import com.emc.storageos.volumecontroller.impl.block.taskcompleter.CloneCreateCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.MultiVolumeTaskCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.VolumeCreateCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.VolumeExpandCompleter;
@@ -453,7 +453,7 @@ public class BlockStorageDeviceTest {
         BlockConsistencyGroupCreateCompleter taskCompleter = new BlockConsistencyGroupCreateCompleter(
                 consistencyGroup, token);
         _deviceController.doCreateConsistencyGroup(_storageSystem,
-                consistencyGroup, taskCompleter);
+                consistencyGroup, null, taskCompleter);
     }
 
     @Test
@@ -470,7 +470,8 @@ public class BlockStorageDeviceTest {
         BlockConsistencyGroupUpdateCompleter taskCompleter = new BlockConsistencyGroupUpdateCompleter(
                 consistencyGroupId, token);
         _deviceController.doAddToConsistencyGroup(_storageSystem,
-                consistencyGroupId, blockObjects, taskCompleter);
+ consistencyGroupId, getConsistencyGroup().getLabel(), blockObjects,
+                taskCompleter);
     }
 
     @Test
@@ -498,7 +499,7 @@ public class BlockStorageDeviceTest {
         BlockConsistencyGroupDeleteCompleter taskCompleter = new BlockConsistencyGroupDeleteCompleter(
                 consistencyGroup, token);
         _deviceController.doDeleteConsistencyGroup(_storageSystem,
-                consistencyGroup, true, taskCompleter);
+                consistencyGroup, null, null, true, taskCompleter);
     }
 
     @Test(expected = com.emc.storageos.exceptions.DeviceControllerException.class)
@@ -837,9 +838,8 @@ public class BlockStorageDeviceTest {
         cg.setId(URIUtil.createId(BlockConsistencyGroup.class));
         cg.setType(BlockConsistencyGroup.Types.LOCAL.name());
         cg.setLabel("ViPRTest");
-        cg.setProject(new NamedURI(_project.getId(), cg.getLabel()));
-        cg.setTenant(new NamedURI(_project.getTenantOrg().getURI(), cg
-                .getLabel()));
+        cg.setProject(new NamedURI(_project.getId(), _project.getLabel()));
+        cg.setTenant(_project.getTenantOrg());
         cg.setInactive(false);
         _dbClient.createObject(cg);
 

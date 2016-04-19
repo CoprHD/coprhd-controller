@@ -25,8 +25,6 @@ public class QuotaUpdateParam {
     /**
      * Enable setting quotas for this resource.
      * 
-     * @valid true
-     * @valid false
      */
     @XmlElement(name = "quota_enabled", required = true)
     public Boolean getEnable() {
@@ -40,7 +38,6 @@ public class QuotaUpdateParam {
     /**
      * Set this quota (in Gb) for this resource.
      * 
-     * @valid none
      */
     @XmlElement(name = "quota_gb")
     public Long getQuotaInGb() {

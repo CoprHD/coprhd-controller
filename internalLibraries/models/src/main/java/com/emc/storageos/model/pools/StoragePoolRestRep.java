@@ -47,6 +47,7 @@ public class StoragePoolRestRep extends VirtualArrayResourceRestRep {
     private Boolean autoTieringSupported;
     private String compatibilityStatus;
     private String discoveryStatus;
+    private Integer dataCenters;
 
     public StoragePoolRestRep() {
     }
@@ -55,7 +56,6 @@ public class StoragePoolRestRep extends VirtualArrayResourceRestRep {
     /**
      * The list of optional parameters
      * 
-     * @valid none
      */
     @XmlElement(name = "controller_param")
     public List<StringHashMapEntry> getControllerParams() {
@@ -72,16 +72,16 @@ public class StoragePoolRestRep extends VirtualArrayResourceRestRep {
     /**
      * The supported local replication types for this pool
      * 
-     * @valid none
      */
     @XmlElementWrapper(name = "copy_types")
     /**
-     * The type of replication
+     * The type of replication. 
+     * Valid values: 
+     * ASYNC            = A copy can be maintained asynchronously
+     * SYNC             = A copy can be maintained synchronously
+     * UNSYNC_UNASSOC   = A full copy can be made, but there is no association between the source and target after making the copy
+     * UNSYNC_ASSOC     = A full copy can be made, and there is an association between the source and target after making the copy
      *
-     * @valid ASYNC          = A copy can be maintained asynchronously
-     * @valid SYNC           = A copy can be maintained synchronously
-     * @valid UNSYNC_UNASSOC = A full copy can be made, but there is no association between the source and target after making the copy
-     * @valid UNSYNC_ASSOC   = A full copy can be made, and there is an association between the source and target after making the copy
      */
     @XmlElement(name = "copy_type")
     public Set<String> getCopyTypes() {
@@ -98,15 +98,14 @@ public class StoragePoolRestRep extends VirtualArrayResourceRestRep {
     /**
      * The disk drives types in the pool
      * 
-     * @valid none
      */
     @XmlElementWrapper(name = "drive_types")
     /**
      * The disk drive type
-     *
-     * @valid FC   = Fibre-Channel
-     * @valid SAS  = Serial Attached SCSI
-     * @valid SATA = Serial ATA
+     * Valid values:
+     *    FC   = Fibre-Channel
+     *    SAS  = Serial Attached SCSI
+     *    SATA = Serial ATA 
      */
     @XmlElement(name = "drive_type")
     public Set<String> getDriveTypes() {
@@ -123,7 +122,6 @@ public class StoragePoolRestRep extends VirtualArrayResourceRestRep {
     /**
      * The amount of free space in the pool (GB)
      * 
-     * @valid none
      */
     @XmlElement(name = "free_gb")
     public Long getFreeCapacity() {
@@ -138,7 +136,6 @@ public class StoragePoolRestRep extends VirtualArrayResourceRestRep {
      * The maximum number of ViPR storage resources that
      * can exist in this pool
      * 
-     * @valid none
      */
     @XmlElement(name = "max_resources")
     public Integer getMaxResources() {
@@ -153,7 +150,6 @@ public class StoragePoolRestRep extends VirtualArrayResourceRestRep {
      * The number of ViPR storage resources that exist
      * in this pool
      * 
-     * @valid none
      */
     @XmlElement(name = "num_resources")
     public Integer getNumResources() {
@@ -166,9 +162,9 @@ public class StoragePoolRestRep extends VirtualArrayResourceRestRep {
 
     /**
      * The operational status of the pool
-     * 
-     * @valid NOT_READY
-     * @valid READY
+     * Valid values:
+     *   NOT_READY
+     *   READY
      * 
      */
     @XmlElement(name = "operational_status")
@@ -183,9 +179,9 @@ public class StoragePoolRestRep extends VirtualArrayResourceRestRep {
     /**
      * Whether or not this pool is registered with ViPR. A pool must be
      * registered before it can be managed by ViPR.
-     * 
-     * @valid REGISTERED
-     * @valid UNREGISTERED
+     * Valid values:
+     *   REGISTERED
+     *   UNREGISTERED
      */
     @XmlElement(name = "registration_status")
     public String getRegistrationStatus() {
@@ -201,7 +197,6 @@ public class StoragePoolRestRep extends VirtualArrayResourceRestRep {
      * in the pool and visible to attached hosts. This includes primary
      * and snapshot space. (GB)
      * 
-     * @valid none
      */
     @XmlElement(name = "percent_subscribed")
     public Long getPercentSubscribed() {
@@ -215,7 +210,6 @@ public class StoragePoolRestRep extends VirtualArrayResourceRestRep {
     /**
      * The percentage of consumed usable space in the pool (GB)
      * 
-     * @valid none
      */
     @XmlElement(name = "percent_used")
     public Long getPercentUsed() {
@@ -229,7 +223,6 @@ public class StoragePoolRestRep extends VirtualArrayResourceRestRep {
     /**
      * The maximum size for thin volumes in this pool (GB)
      * 
-     * @valid none
      */
     @XmlElement(name = "maximum_thin_volume_size_gb")
     public Long getMaximumThinVolumeSize() {
@@ -243,7 +236,6 @@ public class StoragePoolRestRep extends VirtualArrayResourceRestRep {
     /**
      * The minimum size for thin volumes in this pool (GB)
      * 
-     * @valid none
      */
     @XmlElement(name = "minimum_thin_volume_size_gb")
     public Long getMinimumThinVolumeSize() {
@@ -257,7 +249,6 @@ public class StoragePoolRestRep extends VirtualArrayResourceRestRep {
     /**
      * The maximum size for thick volumes in this pool (GB)
      * 
-     * @valid none
      */
     @XmlElement(name = "maximum_thick_volume_size_gb")
     public Long getMaximumThickVolumeSize() {
@@ -271,7 +262,6 @@ public class StoragePoolRestRep extends VirtualArrayResourceRestRep {
     /**
      * The minimum size for thick volumes in this pool (GB)
      * 
-     * @valid none
      */
     @XmlElement(name = "minimum_thick_volume_size_gb")
     public Long getMinimumThickVolumeSize() {
@@ -286,7 +276,6 @@ public class StoragePoolRestRep extends VirtualArrayResourceRestRep {
      * The native name of the pool. This name is what the hosting storage
      * system uses to identify the pool.
      * 
-     * @valid none
      */
     @XmlElement(name = "pool_name")
     public String getPoolName() {
@@ -299,10 +288,10 @@ public class StoragePoolRestRep extends VirtualArrayResourceRestRep {
 
     /**
      * The ViPR storage resource type that can be provisioned in this pool
-     * 
-     * @valid block = Volume
-     * @valid file = File System
-     * @valid object = Object Store
+     * Valid values:
+     *  block  = Volume
+     *  file   = File System
+     *  object = Object Store
      */
     @XmlElement(name = "pool_service_type")
     public String getPoolServiceType() {
@@ -315,10 +304,10 @@ public class StoragePoolRestRep extends VirtualArrayResourceRestRep {
 
     /**
      * The Long term retention policy is available on this pool
-     * 
-     * @valid block = Volume
-     * @valid file = File System
-     * @valid object = Object Store
+     * Valid values:
+     *  block  = Volume
+     *  file   = File System
+     *  object = Object Store
      */
     @XmlElement(name = "long_term_retention")
     public Boolean getLongTermRetention() {
@@ -333,12 +322,12 @@ public class StoragePoolRestRep extends VirtualArrayResourceRestRep {
      * The protocols this pool uses to transport disk commands and
      * responses across its attached networks.
      * 
-     * @valid none
      */
     @XmlElementWrapper(name = "protocols")
     /**
-     * @valid FC = Fibre-Channel
-     * @valid IP
+     * Valid values:
+     * 	FC = Fibre Channel
+     * 	IP
      */
     @XmlElement(name = "protocol")
     public Set<String> getProtocols() {
@@ -354,18 +343,17 @@ public class StoragePoolRestRep extends VirtualArrayResourceRestRep {
 
     /**
      * The supported RAID levels for this pool
-     * 
-     * @valid none
+     * Valid values:
+     *  RAID1
+     *  RAID2
+     *  RAID3
+     *  RAID4
+     *  RAID5
+     *  RAID6
+     *  RAID10 = RAID 1/0
      */
     @XmlElementWrapper(name = "raid_levels")
     /**
-     * @valid RAID1
-     * @valid RAID2
-     * @valid RAID3
-     * @valid RAID4
-     * @valid RAID5
-     * @valid RAID6
-     * @valid RAID10 = RAID 1/0
      */
     @XmlElement(name = "raid_level")
     public Set<String> getRaidLevels() {
@@ -382,7 +370,6 @@ public class StoragePoolRestRep extends VirtualArrayResourceRestRep {
     /**
      * The hosting storage system for this pool
      * 
-     * @valid none
      */
     @XmlElement(name = "storage_system")
     public RelatedResourceRep getStorageSystem() {
@@ -397,7 +384,6 @@ public class StoragePoolRestRep extends VirtualArrayResourceRestRep {
      * The total amount of usable space that is configured in the pool
      * and is associated with resources provisioned in the pool. (GB)
      * 
-     * @valid none
      */
     @XmlElement(name = "subscribed_gb")
     public Long getSubscribedCapacity() {
@@ -413,10 +399,10 @@ public class StoragePoolRestRep extends VirtualArrayResourceRestRep {
      * allocates a portion of its assigned capacity when it is created
      * and grows as needed. A thick volume allocates all of its
      * assigned capacity when created.
-     * 
-     * @valid THICK_ONLY
-     * @valid THIN_ONLY
-     * @valid THIN_AND_THICK
+     * Valid values:
+     *  THICK_ONLY
+     *  THIN_ONLY
+     *  THIN_AND_THICK
      */
     @XmlElement(name = "supported_resource_types")
     public String getSupportedResourceTypes() {
@@ -431,7 +417,6 @@ public class StoragePoolRestRep extends VirtualArrayResourceRestRep {
     /**
      * The utilization percentages of each storage tier
      * 
-     * @valid none
      */
     @XmlElement(name = "tier_utilization_percentage")
     public List<StringHashMapEntry> getTierUtilizationPercentage() {
@@ -448,7 +433,6 @@ public class StoragePoolRestRep extends VirtualArrayResourceRestRep {
     /**
      * The amount of usable space in the pool (GB)
      * 
-     * @valid none
      */
     @XmlElement(name = "usable_gb")
     public Long getTotalCapacity() {
@@ -462,7 +446,6 @@ public class StoragePoolRestRep extends VirtualArrayResourceRestRep {
     /**
      * The amount of consumed usable space in the pool (GB)
      * 
-     * @valid none
      */
     @XmlElement(name = "used_gb")
     public Long getUsedCapacity() {
@@ -476,7 +459,6 @@ public class StoragePoolRestRep extends VirtualArrayResourceRestRep {
     /**
      * The user-defined limit for this pool's utilization
      * 
-     * @valid none
      */
     @XmlElement(name = "max_pool_utilization_percentage")
     public Integer getMaxPoolUtilizationPercentage() {
@@ -490,7 +472,6 @@ public class StoragePoolRestRep extends VirtualArrayResourceRestRep {
     /**
      * The maximum percentage of usable space that can be assigned to thin volumes
      * 
-     * @valid none
      */
     @XmlElement(name = "max_thin_pool_subscription_percentage")
     public Integer getMaxThinPoolSubscriptionPercentage() {
@@ -504,8 +485,6 @@ public class StoragePoolRestRep extends VirtualArrayResourceRestRep {
     /**
      * Determines whether pre-allocation of thin volume is supported on this storage pool
      * 
-     * @valid true
-     * @valid false
      * 
      */
     @XmlElement(name = "thin_volume_preallocation_supported")
@@ -520,8 +499,6 @@ public class StoragePoolRestRep extends VirtualArrayResourceRestRep {
     /**
      * Determines whether auto-tiering is supported on this storage pool
      * 
-     * @valid true
-     * @valid false
      */
     @XmlElement(name = "auto_tiering_supported")
     public Boolean getAutoTieringSupported() {
@@ -529,7 +506,8 @@ public class StoragePoolRestRep extends VirtualArrayResourceRestRep {
     }
 
     /**
-     * @param autoTieringEnabled the autoTieringEnabled to set
+     * @param autoTieringSupported 
+     *           the autoTieringEnabled to set
      */
     public void setAutoTieringSupported(Boolean autoTieringSupported) {
         this.autoTieringSupported = autoTieringSupported;
@@ -537,10 +515,10 @@ public class StoragePoolRestRep extends VirtualArrayResourceRestRep {
 
     /**
      * Whether or not this storage pool is compatible with ViPR
-     * 
-     * @valid COMPATIBLE
-     * @valid INCOMPATIBLE
-     * @valid UNKNOWN
+     * Valid values
+     *  COMPATIBLE
+     *  INCOMPATIBLE
+     *  UNKNOWN
      */
     @XmlElement(name = "compatibility_status")
     public String getCompatibilityStatus() {
@@ -553,9 +531,9 @@ public class StoragePoolRestRep extends VirtualArrayResourceRestRep {
 
     /**
      * Whether or not this storage pool is visible in discovery
-     * 
-     * @valid VISIBLE
-     * @valid NOTVISIBLE
+     * Valid values:
+     *  VISIBLE
+     *  NOTINVISIBLE
      */
     @XmlElement(name = "discovery_status")
     public String getDiscoveryStatus() {
@@ -565,5 +543,19 @@ public class StoragePoolRestRep extends VirtualArrayResourceRestRep {
     public void setDiscoveryStatus(String discoveryStatus) {
         this.discoveryStatus = discoveryStatus;
     }
+    
+    /**
+     * Number of data centers for storage pool
+     * 
+     * Valid value: Intergers
+     */
+    @XmlElement(name = "dataCenters")
+    public Integer getDataCenters() {
+        return dataCenters;
+    }
 
+    public void setDataCenters(Integer dataCenters) {
+        this.dataCenters = dataCenters;
+    }
+    
 }

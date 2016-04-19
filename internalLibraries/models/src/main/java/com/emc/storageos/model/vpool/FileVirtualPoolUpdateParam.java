@@ -27,7 +27,6 @@ public class FileVirtualPoolUpdateParam extends VirtualPoolUpdateParam {
     /**
      * The new protection settings for the virtual pool.
      * 
-     * @valid none
      */
     @XmlElement(name = "protection")
     public FileVirtualPoolProtectionUpdateParam getProtection() {

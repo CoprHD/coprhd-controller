@@ -36,7 +36,6 @@ public class ProjectRestRep extends DataObjectRestRep {
      * explicitly assigned as owner to the project, is allowed
      * full access to the project and all its resources"
      * 
-     * @valid none
      * 
      */
     @XmlElement(name = "owner")
@@ -52,7 +51,6 @@ public class ProjectRestRep extends DataObjectRestRep {
      * 
      * The tenant that this project is associated with.
      * 
-     * @valid none
      */
     @XmlElement(name = "tenant")
     public RelatedResourceRep getTenant() {
@@ -67,14 +65,12 @@ public class ProjectRestRep extends DataObjectRestRep {
      * Keywords and labels that can be added by a user to a resource
      * to make it easy to find when doing a search.
      * 
-     * @valid none
      */
     @XmlElementWrapper(name = "assigned_vnas_servers")
     /**
      * 
      * List of VNAS Servers associated with this project.
      * 
-     * @valid none
      */
     @XmlElement(name = "assigned_vnas_server")
     public Set<String> getAssignedVNasServers() {

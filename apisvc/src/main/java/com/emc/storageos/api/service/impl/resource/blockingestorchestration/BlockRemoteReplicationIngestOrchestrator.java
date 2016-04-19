@@ -74,8 +74,8 @@ public class BlockRemoteReplicationIngestOrchestrator extends BlockVolumeIngestO
         BlockObject blockObject = VolumeIngestionUtil.checkIfVolumeExistsInDB(volumeNativeGuid, _dbClient);
 
         // validate srdf blockObjects.
-        validateUnManagedVolumeProperties(unManagedVolume, requestContext.getVarray(), 
-                requestContext.getVpool(), requestContext.getProject());
+        validateUnManagedVolumeProperties(unManagedVolume, requestContext.getVarray(unManagedVolume), 
+                requestContext.getVpool(unManagedVolume), requestContext.getProject());
         // Check if ingested volume has exportmasks pending for ingestion.
         if (isExportIngestionPending(blockObject, unManagedVolume.getId(), 
                 requestContext.getVolumeContext().isVolumeExported())) {
@@ -87,7 +87,7 @@ public class BlockRemoteReplicationIngestOrchestrator extends BlockVolumeIngestO
 
             if (null == blockObject) {
                 _logger.warn("SRDF Volume ingestion failed for unmanagedVolume {}", unManagedVolume.getNativeGuid());
-                throw IngestionException.exceptions.unmanagedVolumeMasksNotIngested(unManagedVolume.getNativeGuid(), "none.");
+                throw IngestionException.exceptions.unmanagedVolumeMasksNotIngested(unManagedVolume.getNativeGuid());
             }
         } else {
             // blockObject already ingested, now just update internalflags &

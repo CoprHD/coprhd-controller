@@ -36,6 +36,7 @@ public class Migration extends DataObject {
      * 
      * @return The URI of the volume being migrated.
      */
+    @RelationIndex(cf = "RelationIndex", type = Volume.class)
     @Name("volume")
     public URI getVolume() {
         return _volume;

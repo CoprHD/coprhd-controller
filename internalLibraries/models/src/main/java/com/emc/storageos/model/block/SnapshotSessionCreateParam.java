@@ -4,7 +4,12 @@
  */
 package com.emc.storageos.model.block;
 
+import java.net.URI;
+import java.util.ArrayList;
+import java.util.List;
+
 import javax.xml.bind.annotation.XmlElement;
+import javax.xml.bind.annotation.XmlElementWrapper;
 import javax.xml.bind.annotation.XmlRootElement;
 
 /**
@@ -19,6 +24,9 @@ public class SnapshotSessionCreateParam {
 
     // The new linked target information.
     private SnapshotSessionNewTargetsParam newLinkedTargets;
+
+    // field for Application API
+    private List<URI> volumes;
 
     /**
      * Default constructor.
@@ -38,9 +46,19 @@ public class SnapshotSessionCreateParam {
     }
 
     /**
-     * Get the snapshot session name.
+     * Constructor.
      * 
-     * @valid none
+     * @param name The name for the snapshot session.
+     * @param newLinkedTargets A reference to the linked target information.
+     */
+    public SnapshotSessionCreateParam(String name, SnapshotSessionNewTargetsParam newLinkedTargets,
+            List<URI> volumes) {
+        this(name, newLinkedTargets);
+        this.volumes = volumes;
+    }
+
+    /**
+     * Get the snapshot session name.
      * 
      * @return The snapshot session name.
      */
@@ -64,8 +82,6 @@ public class SnapshotSessionCreateParam {
      * When not specified, no targets volumes will be created and linked to the
      * newly created snapshot session.
      * 
-     * @valid none
-     * 
      * @return The new targets parameter specifying info about new target volumes
      *         to be created and linked to the newly created block snapshot session.
      */
@@ -84,5 +100,26 @@ public class SnapshotSessionCreateParam {
      */
     public void setNewLinkedTargets(SnapshotSessionNewTargetsParam newLinkedTargets) {
         this.newLinkedTargets = newLinkedTargets;
+    }
+
+    @XmlElementWrapper(required = false, name = "volumes")
+    /**
+     * List of Volume IDs.
+     * This field is applicable only if volume is part of an application.
+     * Snapshot sessions of the replication groups (could be subset or full set of replication groups of an application)
+     *  that the volumes belong to, will be created.
+     *
+     * Example: list of valid URIs
+     */
+    @XmlElement(required = false, name = "volume")
+    public List<URI> getVolumes() {
+        if (volumes == null) {
+            volumes = new ArrayList<URI>();
+        }
+        return volumes;
+    }
+
+    public void setVolumes(List<URI> volumes) {
+        this.volumes = volumes;
     }
 }

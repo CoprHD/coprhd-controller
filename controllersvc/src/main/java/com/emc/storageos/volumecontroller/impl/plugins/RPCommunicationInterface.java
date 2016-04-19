@@ -64,6 +64,7 @@ import com.emc.storageos.recoverpoint.responses.RecoverPointVolumeProtectionInfo
 import com.emc.storageos.recoverpoint.utils.WwnUtils;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.util.ConnectivityUtil;
+import com.emc.storageos.util.ExportUtils;
 import com.emc.storageos.util.ConnectivityUtil.StorageSystemType;
 import com.emc.storageos.util.VersionChecker;
 import com.emc.storageos.volumecontroller.ControllerException;
@@ -657,9 +658,35 @@ public class RPCommunicationInterface extends ExtendedCommunicationInterfaceImpl
                 // we can look for the arrays in that Network that are potential candidates for connectivity.
                 for (String rpaId : rpaWWNs.keySet()) {
 
+                    boolean foundNetworkForRPCluster = false;
+                    
                     for(Map.Entry<String, String> rpaWWN : rpaWWNs.get(rpaId).entrySet()) {
 
                         String wwn = rpaWWN.getKey();
+
+                        Initiator initiator = new Initiator();
+                        initiator.addInternalFlags(Flag.RECOVERPOINT);
+                        // Remove all non alpha-numeric characters, excluding "_", from the hostname
+                        String rpClusterName = site.getSiteName().replaceAll(NON_ALPHA_NUMERICS, "");
+                        _log.info(String.format("Setting RP initiator cluster name : %s", rpClusterName));
+                        initiator.setClusterName(rpClusterName);
+                        initiator.setProtocol("FC");
+                        initiator.setIsManualCreation(false);
+
+                        // Group RP initiators by their RPA. This will ensure that separate IGs are created for each RPA
+                        // A child RP IG will be created containing all the RPA IGs
+                        String hostName = rpClusterName + RPA + rpaId;
+                        hostName = hostName.replaceAll(NON_ALPHA_NUMERICS, "");
+                        _log.info(String.format("Setting RP initiator host name : %s", hostName));
+                        initiator.setHostName(hostName);
+
+                        _log.info(String.format("Setting Initiator port WWN : %s, nodeWWN : %s", rpaWWN.getKey(), rpaWWN.getValue()));
+                        initiator.setInitiatorPort(rpaWWN.getKey());
+                        initiator.setInitiatorNode(rpaWWN.getValue());
+
+                        // Either get the existing initiator or create a new if needed
+                        initiator = getOrCreateNewInitiator(initiator);
+
                         _log.info("Examining RP WWN: " + wwn.toUpperCase());
                         // Find the network associated with this wwn
                         for (URI networkURI : networks) {
@@ -669,32 +696,9 @@ public class RPCommunicationInterface extends ExtendedCommunicationInterfaceImpl
 
                             if (discoveredEndpoints.containsKey(rpaWWN.getKey().toUpperCase())) {
                                 _log.info("WWN " + rpaWWN.getKey() + " is in Network : " + network.getLabel());
-
-                                Initiator initiator = new Initiator();
-                                initiator.addInternalFlags(Flag.RECOVERPOINT);
-                                // Remove all non alpha-numeric characters, excluding "_", from the hostname
-                                String rpClusterName = site.getSiteName().replaceAll(NON_ALPHA_NUMERICS, "");
-                                _log.info(String.format("Setting RP initiator cluster name : %s", rpClusterName));
-                                initiator.setClusterName(rpClusterName);
-                                initiator.setProtocol("FC");
-                                initiator.setIsManualCreation(false);
-
-                                // Group RP initiators by their RPA. This will ensure that separate IGs are created for each RPA
-                                // A child RP IG will be created containing all the RPA IGs
-                                String hostName = rpClusterName + RPA + rpaId;
-                                hostName = hostName.replaceAll(NON_ALPHA_NUMERICS, "");
-                                _log.info(String.format("Setting RP initiator host name : %s", hostName));
-                                initiator.setHostName(hostName);
-
-                                _log.info(String.format("Setting Initiator port WWN : %s, nodeWWN : %s", rpaWWN.getKey(), rpaWWN.getValue()));
-                                initiator.setInitiatorPort(rpaWWN.getKey());
-                                initiator.setInitiatorNode(rpaWWN.getValue());
-
-                                // Either get the existing initiator or create a new if needed
-                                initiator = getOrCreateNewInitiator(initiator);
-                                
-                                isNetworkSystemConfigured = true; // Set this to true as we found the RP initiators in a Network on the Network
-                                // System
+                                // Set this to true as we found the RP initiators in a Network on the Network system
+                                isNetworkSystemConfigured = true;
+                                foundNetworkForRPCluster = true;
                                 for (String discoveredEndpoint : discoveredEndpoints.keySet()) {
                                     // Ignore the RP endpoints - RP WWNs have a unique prefix. We want to only return back non RP initiators in
                                     // that NetworkVSAN.
@@ -708,6 +712,13 @@ public class RPCommunicationInterface extends ExtendedCommunicationInterfaceImpl
                             }
                         }
                     }
+                    
+                    if (!foundNetworkForRPCluster) {
+                        // This is not an error to the end-user. When they add a network system, everything will rediscover correctly.
+                        _log.warn(String.format("Network systems are required when configuring RecoverPoint.  RP Cluster %s initiators are not seen in any configured network.", 
+                                rpaId));
+                    }
+                    
                 }
                 // add to the list
                 rpSiteArrays.add(siteArrays);
@@ -762,7 +773,7 @@ public class RPCommunicationInterface extends ExtendedCommunicationInterfaceImpl
             if (NullColumnValueGetter.isNotNullValue(initiator.getHostName())
                     && !initiator.getHostName().equals(initiatorParam.getHostName())) {
                 initiator.setHostName(initiatorParam.getHostName());
-                _dbClient.persistObject(initiator);
+                _dbClient.updateObject(initiator);
             }
         } else {
             initiatorParam.setId(URIUtil.createId(Initiator.class));
@@ -1122,22 +1133,91 @@ public class RPCommunicationInterface extends ExtendedCommunicationInterfaceImpl
                     String firstHalf = splitSerialNumber[0];
                     String secondHalf = splitSerialNumber[1];
 
-                    // Add first half
-                    protectionSystem.getAssociatedStorageSystems()
-                            .add(ProtectionSystem.generateAssociatedStorageSystem(siteArray.getRpInternalSiteName(),
-                                    String.valueOf(firstHalf)));
-
+                    // Check the network connectivity between the RP site and the storage array
+                    if (isNetworkConnected(firstHalf, siteArray)) {
+                        // Add first half
+                        protectionSystem.getAssociatedStorageSystems()
+                                .add(ProtectionSystem.generateAssociatedStorageSystem(siteArray.getRpInternalSiteName(),
+                                        String.valueOf(firstHalf)));
+                    }
+                        
                     // Second half to be added next
                     serialNumber = secondHalf;
                 }
 
-                protectionSystem.getAssociatedStorageSystems()
-                        .add(ProtectionSystem.generateAssociatedStorageSystem(siteArray.getRpInternalSiteName(),
-                                String.valueOf(serialNumber)));
+                // Check the network connectivity between the RP site and the storage array
+                if (isNetworkConnected(serialNumber, siteArray)) {
+                    protectionSystem.getAssociatedStorageSystems()
+                    .add(ProtectionSystem.generateAssociatedStorageSystem(siteArray.getRpInternalSiteName(),
+                            String.valueOf(serialNumber)));
+                }
             }
         }
 
-        _dbClient.updateAndReindexObject(protectionSystem);
+        _dbClient.updateObject(protectionSystem);
+    }
+
+    /**
+     * Check the connectivity of a storage system to the RP cluster
+     * 
+     * @param serialNumber serial number of the storage system
+     * @param siteArray RPSiteArray object
+     * @return true if the storage array has network connectivity to the RP cluster
+     */
+    private boolean isNetworkConnected(String serialNumber, RPSiteArray siteArray) {
+        // Get the storage system object associated with the serial number sent in.
+        URI foundStorageSystemURI = ConnectivityUtil.findStorageSystemBySerialNumber(serialNumber,
+                _dbClient, StorageSystemType.BLOCK);
+        if (foundStorageSystemURI == null) {
+            _log.info(String.format("Could not find a registered storage system associated with serial number %s", serialNumber));
+            _log.info(String.format("No registered network connectivity found between storage system %s and RP site %s", serialNumber, siteArray.getRpInternalSiteName()));
+            return false;
+        }
+        
+        // Find all of the initiators associated with the RP Cluster in the site array object
+        ProtectionSystem rpSystem = _dbClient.queryObject(ProtectionSystem.class, siteArray.getRpProtectionSystem());
+        if (rpSystem == null) {
+            _log.error(String.format("Could not find a registered protection system associated with URI %s", siteArray.getRpProtectionSystem()));
+            _log.info(String.format("No registered network connectivity found between storage system %s and RP site %s", serialNumber, siteArray.getRpInternalSiteName()));
+            return false;
+        }
+        
+        // Make sure initiators are loaded for the entire protection system
+        if (rpSystem.getSiteInitiators() == null) {
+            _log.error(String.format("Could not find initiators associated with protection system %s", rpSystem.getLabel()));
+            _log.info(String.format("No registered network connectivity found between storage system %s and RP site %s", serialNumber, siteArray.getRpInternalSiteName()));
+            return false;
+        }
+        
+        // Make sure initiators are loaded for the RP cluster
+        if (rpSystem.getSiteInitiators().get(siteArray.getRpInternalSiteName()) == null) {
+            _log.error(String.format("Could not find initiators associated with protection system %s on RP cluster %s", rpSystem.getLabel(), siteArray.getRpInternalSiteName()));
+            _log.info(String.format("No registered network connectivity found between storage system %s and RP site %s", serialNumber, siteArray.getRpInternalSiteName()));
+            return false;
+        }
+        
+        // For each initiator associated with the RP cluster in this RPSiteArray, see if we can find a route to the storage system
+        for (String portWwn : rpSystem.getSiteInitiators().get(siteArray.getRpInternalSiteName())) {
+            Initiator initiator = ExportUtils.getInitiator(portWwn, _dbClient);                    
+            if (initiator == null) {
+                // This is a database inconsistency issue.  Report an error and continue.
+                _log.error(String.format("Could not find initiator %s in the database, even though ProtectionSystem %s references it.", portWwn, rpSystem.getLabel()));
+            }
+            
+            StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, foundStorageSystemURI);
+            if (storageSystem == null) {
+                // This is a database inconsistency issue.  Report an error and continue.
+                _log.error(String.format("Could not find storage system %s in the database, even though ProtectionSystem %s references it.", foundStorageSystemURI, rpSystem.getLabel()));
+            }
+
+            // If we can at least find one initiator that is connected to the storage system, we can return true.
+            if (ConnectivityUtil.isInitiatorConnectedToStorageSystem(initiator, storageSystem, null, _dbClient)) {
+                _log.info(String.format("Found initiator %s can be connected to storage system %s", initiator.getInitiatorPort(), serialNumber));
+                return true;
+            }
+        }
+        
+        return false;
     }
 
     /**

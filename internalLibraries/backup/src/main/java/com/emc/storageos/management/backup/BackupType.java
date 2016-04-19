@@ -10,5 +10,6 @@ public enum BackupType {
     geodb,
     zk,
     // Add special backup type for geodb under multi vdc
-    geodbmultivdc
+    geodbmultivdc,
+    info
 }

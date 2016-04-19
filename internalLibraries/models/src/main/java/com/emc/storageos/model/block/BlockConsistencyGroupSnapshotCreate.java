@@ -4,7 +4,12 @@
  */
 package com.emc.storageos.model.block;
 
+import java.net.URI;
+import java.util.ArrayList;
+import java.util.List;
+
 import javax.xml.bind.annotation.XmlElement;
+import javax.xml.bind.annotation.XmlElementWrapper;
 import javax.xml.bind.annotation.XmlRootElement;
 
 /**
@@ -14,6 +19,8 @@ import javax.xml.bind.annotation.XmlRootElement;
 public class BlockConsistencyGroupSnapshotCreate {
 
     private String name;
+    // field for Application API
+    private List<URI> volumes;
     private Boolean createInactive;
     private Boolean readOnly;
 
@@ -27,10 +34,15 @@ public class BlockConsistencyGroupSnapshotCreate {
         this.readOnly = readOnly;
     }
 
+    public BlockConsistencyGroupSnapshotCreate(String name, List<URI> volumes,
+            Boolean createInactive, Boolean readOnly) {
+        this(name, createInactive, readOnly);
+        this.volumes = volumes;
+    }
+
     /**
      * Snapshot name
      * 
-     * @valid none
      */
     @XmlElement
     public String getName() {
@@ -39,6 +51,26 @@ public class BlockConsistencyGroupSnapshotCreate {
 
     public void setName(String name) {
         this.name = name;
+    }
+
+    @XmlElementWrapper(required = false, name = "volumes")
+    /**
+     * List of Volume IDs.
+     * This field is applicable only if volume is part of an application.
+     * Snapshots of the replication groups (could be subset or full set of replication groups of an application) that the volumes belong to will be created.
+     *
+     * Example: list of valid URIs
+     */
+    @XmlElement(required = false, name = "volume")
+    public List<URI> getVolumes() {
+        if (volumes == null) {
+            volumes = new ArrayList<URI>();
+        }
+        return volumes;
+    }
+
+    public void setVolumes(List<URI> volumes) {
+        this.volumes = volumes;
     }
 
     /**
@@ -53,8 +85,6 @@ public class BlockConsistencyGroupSnapshotCreate {
      * That is, the operation will create and activate
      * the synchronization for the snapshot.
      * 
-     * @valid true
-     * @valid false
      */
     @XmlElement(name = "create_inactive", required = false, defaultValue = "false")
     public Boolean getCreateInactive() {
@@ -71,8 +101,6 @@ public class BlockConsistencyGroupSnapshotCreate {
      * 
      * The default value is false. That is, the snapshot will be created as writable.
      * 
-     * @valid true
-     * @valid false
      */
     @XmlElement(name = "read_only", required = false, defaultValue = "false")
 	public Boolean getReadOnly() {

@@ -270,7 +270,7 @@ seed_provider:
       parameters:
           - coordinators: "coordinator://127.0.0.1:2181"
             seeds: ""
-            siteid: "a6cbcc20-99a8-4461-a3f6-0a8aa4433646"
+            site_id_file: "/data/zk/siteid"
 
 # For workloads with more data than can fit in memory, Cassandra's
 # bottleneck will be reads that need to fetch data from

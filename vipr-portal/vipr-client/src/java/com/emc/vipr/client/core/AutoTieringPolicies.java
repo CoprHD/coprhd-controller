@@ -92,7 +92,7 @@ public class AutoTieringPolicies extends AbstractCoreBulkResources<AutoTieringPo
     /**
      * Lists the auto tier policies, with the ability to limit by provisioning type or unique policy name.
      * <p>
-     * API Call: <tt>GET /vdc/auto-tier-policies?provisioning_type={provisioningType}&unique_auto_tier_policy_names={uniqueNames}</tt>
+     * API Call: <tt>GET /vdc/auto-tier-policies?provisioning_type={provisioningType} unique_auto_tier_policy_names={uniqueNames}</tt>
      * 
      * @param provisioningType
      *            the provisioning type, if null matches any provisioning type.
@@ -193,7 +193,7 @@ public class AutoTieringPolicies extends AbstractCoreBulkResources<AutoTieringPo
      * Lists all auto tier policies for a given virtual array.
      * <p>
      * API Call:
-     * <tt>GET /vdc/varrays/{virtualArrayId}/auto-tier-policies?provisioning_type={provisioningType}&unique_auto_tier_policy_names={uniqueNames}</tt>
+     * <tt>GET /vdc/varrays/{virtualArrayId}/auto-tier-policies?provisioning_type={provisioningType} unique_auto_tier_policy_names={uniqueNames}</tt>
      * 
      * @param virtualArrayId
      *            the ID of the virtual array.
@@ -244,7 +244,7 @@ public class AutoTieringPolicies extends AbstractCoreBulkResources<AutoTieringPo
     /**
      * Gets all auto tier policies for all virtual arrays.
      * 
-     * @param virtualArrayId
+     * @param virtualArrayIds
      *            the ID of the virtual array.
      * @param provisioningType
      *            the provisioning type, if null matches any provisioning type.

@@ -433,7 +433,7 @@ public class NetAppApi {
             throws NetAppException {
         try {
             netAppFacade = new NetAppFacade(_ipAddress, _portNumber, _userName,
-                    _password, _https);
+                    _password, _https, _vFilerName);
             return netAppFacade.listNFSExportRules(pathName);
         } catch (Exception e) {
             throw NetAppException.exceptions.listNFSExportRulesFailed(pathName);
@@ -462,7 +462,7 @@ public class NetAppApi {
             Collection<String> attrs) throws NetAppException {
         try {
             netAppFacade = new NetAppFacade(_ipAddress, _portNumber, _userName,
-                    _password, _https);
+                    _password, _https, _vFilerName);
             return netAppFacade.listVolumeInfo(volume, attrs);
         } catch (Exception e) {
             throw NetAppException.exceptions.listVolumeInfoFailed(volume);
@@ -472,7 +472,7 @@ public class NetAppApi {
     public List<String> listVolumes() throws NetAppException {
         try {
             netAppFacade = new NetAppFacade(_ipAddress, _portNumber, _userName,
-                    _password, _https);
+                    _password, _https, _vFilerName);
             return netAppFacade.listVolumes();
         } catch (Exception e) {
             throw NetAppException.exceptions.listVolumeInfoFailed(null);
@@ -500,6 +500,7 @@ public class NetAppApi {
             vFilers = netAppFacade.listVFilers();
         } catch (Exception e) {
             _logger.info("No vFilers discovered.");
+            throw NetAppException.exceptions.getvFilerInfoFailed(e.getMessage());
         }
 
         return vFilers;
@@ -704,7 +705,7 @@ public class NetAppApi {
     public List<Map<String, String>> listShares(String shareName) throws NetAppException {
         try {
             netAppFacade = new NetAppFacade(_ipAddress, _portNumber, _userName,
-                    _password, _https);
+                    _password, _https, _vFilerName);
             return netAppFacade.listCIFSShares(shareName);
         } catch (Exception e) {
             throw NetAppException.exceptions.listSharesFailed(shareName,
@@ -1056,6 +1057,23 @@ public class NetAppApi {
         }
 
         return cifsConfig;
+    }
+
+    public List<String> getAllowedProtocols(String vFilerName) throws NetAppException {
+        List<String> protocols = null;
+        try {
+            if (netAppFacade == null) {
+                _logger.warn("Invalid Facade found {} creating now...", netAppFacade);
+                netAppFacade = new NetAppFacade(_ipAddress, _portNumber, _userName, _password, _https);
+                _logger.warn("Facade created : {} ", netAppFacade);
+            }
+
+            protocols = netAppFacade.getAllowedProtocols(vFilerName);
+        } catch (Exception e) {
+            _logger.error("Error Occured {} ", e.getMessage(), e);
+            throw NetAppException.exceptions.getvFilerInfoFailed(e.getMessage());
+        }
+        return protocols;
     }
 
 }

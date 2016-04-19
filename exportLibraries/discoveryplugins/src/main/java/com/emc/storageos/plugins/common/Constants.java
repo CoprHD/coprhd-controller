@@ -226,6 +226,7 @@ public class Constants {
     /* TODO: Block size should be read from the array, if possible. */
     public static final int NETAPP_BYTES_PER_BLOCK = 1024;
     public static final String SIZE_TOTAL = "size-total";
+    public static final String OWNING_VFILER = "owning-vfiler";
     public static final String STORAGE_GROUPS = "storageGroups";
     public static final String AUTO_TIER_VOLUMES = "autoTierVolumes";
     public static final String SIZE_USED = "size-used";

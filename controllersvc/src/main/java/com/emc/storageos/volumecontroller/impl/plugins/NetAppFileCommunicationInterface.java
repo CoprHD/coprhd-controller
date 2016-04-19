@@ -91,6 +91,7 @@ public class NetAppFileCommunicationInterface extends
     private static final int BYTESCONVERTER = 1024;
     private static final String SYSTEM_SERIAL_NUM = "system-serial-number";
     private static final String CPU_FIRMWARE_REL = "cpu-firmware-release";
+    private static final String SYSTEM_MODEL = "system-model";
     private static final String SYSTEM_FIRMWARE_REL = "version";
     private static final String VOL_ROOT = "/vol/";
     private static final String VOL_ROOT_NO_SLASH = "/vol";
@@ -114,6 +115,8 @@ public class NetAppFileCommunicationInterface extends
     private static final Integer MAX_UMFS_RECORD_SIZE = 1000;
     private static final String MANAGEMENT_INTERFACE = "e0M";
     private static final String SNAPSHOT = ".snapshot";
+    private static final Long TB = 1024L * 1024L * 1024L * 1024L;
+    private static final Long QTREES_PER_VOL = 4995L;
 
     private static final Logger _logger = LoggerFactory
             .getLogger(NetAppFileCommunicationInterface.class);
@@ -363,10 +366,6 @@ public class NetAppFileCommunicationInterface extends
             _logger.debug("Number vFilers fouund: {}", vFilers.size());
             virtualFilers.addAll(vFilers);
 
-            StringSet protocols = new StringSet();
-            protocols.add(StorageProtocol.File.NFS.name());
-            protocols.add(StorageProtocol.File.CIFS.name());
-
             for (VFilerInfo vf : vFilers) {
                 _logger.debug("vFiler name: {}", vf.getName());
 
@@ -388,6 +387,14 @@ public class NetAppFileCommunicationInterface extends
                     }
                 }
 
+                StringSet protocols = new StringSet();
+                protocols.add(StorageProtocol.File.NFS.name());
+                protocols.add(StorageProtocol.File.CIFS.name());
+
+                // Verify the vfiler supports NFS and CIFS protocols!!
+                List<String> protocolsSupported = netAppApi.getAllowedProtocols(vf.getName());
+                protocols.retainAll(protocolsSupported);
+
                 if (portGroup == null) {
                     portGroup = new StorageHADomain();
                     portGroup.setId(URIUtil.createId(StorageHADomain.class));
@@ -407,7 +414,13 @@ public class NetAppFileCommunicationInterface extends
                 if (DEFAULT_FILER.equals(vf.getName())) {
                     PhysicalNAS existingNas = DiscoveryUtils.findPhysicalNasByNativeId(_dbClient, system, String.valueOf(DEFAULT_FILER));
                     if (existingNas != null) {
-                        existingNas.setProtocols(protocols);
+                        StringSet existingProtocols = existingNas.getProtocols();
+                        if (existingProtocols == null) {
+                            existingProtocols = new StringSet();
+                        }
+                        // clear existing protocols and add new protocols.
+                        existingProtocols.clear();
+                        existingProtocols.addAll(protocols);
                         // Set the CIFS map!!
                         setCifsServerMapForNASServer(cifsConfig, existingNas);
                         // existingNas.setCifsServersMap(cifsServersMap);
@@ -425,7 +438,13 @@ public class NetAppFileCommunicationInterface extends
 
                     VirtualNAS existingNas = DiscoveryUtils.findvNasByNativeId(_dbClient, system, vf.getName());
                     if (existingNas != null) {
-                        existingNas.setProtocols(protocols);
+                        StringSet existingProtocols = existingNas.getProtocols();
+                        if (existingProtocols == null) {
+                            existingProtocols = new StringSet();
+                        }
+                        // clear existing protocols and add new protocols.
+                        existingProtocols.clear();
+                        existingProtocols.addAll(protocols);
                         // Set the CIFS map!!
                         setCifsServerMapForNASServer(cifsConfig, existingNas);
                         existingNas.setNasState("LOADED");
@@ -615,6 +634,7 @@ public class NetAppFileCommunicationInterface extends
             system.setSerialNumber(systemInfo.get(SYSTEM_SERIAL_NUM));
             String sysNativeGuid = NativeGUIDGenerator.generateNativeGuid(system);
             system.setNativeGuid(sysNativeGuid);
+            system.setModel(systemInfo.get(SYSTEM_MODEL));
             system.setFirmwareVersion(systemVer.get(SYSTEM_FIRMWARE_REL));
             _logger.info(
                     "NetApp Filer discovery for storage system {} complete",
@@ -646,6 +666,8 @@ public class NetAppFileCommunicationInterface extends
                     storageSystemId);
 
             StoragePort storagePort = null;
+            List<PhysicalNAS> pNasServers = new ArrayList<PhysicalNAS>();
+            List<VirtualNAS> vNasServers = new ArrayList<VirtualNAS>();
             if (vFilers != null && !vFilers.isEmpty()) {
                 for (VFilerInfo filer : vFilers) {
                     // Storage ports for Nas server!!!
@@ -710,10 +732,12 @@ public class NetAppFileCommunicationInterface extends
                         nasServer = DiscoveryUtils.findvNasByNativeId(_dbClient, storageSystem, filer.getName());
                     }
                     if (nasServer != null) {
-                        if (nasServer.getStoragePorts() != null && !nasServer.getStoragePorts().isEmpty()) {
-                            nasServer.getStoragePorts().clear();
+                        StringSet existingPorts = nasServer.getStoragePorts();
+                        if (existingPorts != null && !existingPorts.isEmpty()) {
+                            existingPorts.clear();
                         }
-                        nasServer.getStoragePorts().addAll(vNasStoragePorts);
+                        existingPorts.addAll(vNasStoragePorts);
+                        _dbClient.updateObject(nasServer);
                     }
                 }
 
@@ -2412,12 +2436,20 @@ public class NetAppFileCommunicationInterface extends
             _logger.info("Physical NAS created with guid {} ", phyNas.getNativeGuid());
 
             StringMap dbMetrics = phyNas.getMetrics();
-            // Set the Limit Metric keys!!
-            Long MaxObjects = 2048L;
-            Long MaxCapacity = 200L * 1024 * 1024 * 1024;
 
-            dbMetrics.put(MetricsKeys.maxStorageCapacity.name(), String.valueOf(MaxCapacity));
-            dbMetrics.put(MetricsKeys.maxStorageObjects.name(), String.valueOf(MaxObjects));
+            // Set the Limit Metric keys!!
+            Long maxObjects = 500L;
+            if ("FAS2220".equalsIgnoreCase(system.getModel())) {
+                maxObjects = 200L;
+            }
+            // 16TB * number of flex volumes per vserver!!
+            Long maxCapacity = 16L * TB * maxObjects;
+            Long maxExports = maxObjects * QTREES_PER_VOL;
+
+            dbMetrics.put(MetricsKeys.maxStorageCapacity.name(), String.valueOf(maxCapacity));
+            dbMetrics.put(MetricsKeys.maxStorageObjects.name(), String.valueOf(maxObjects));
+            dbMetrics.put(MetricsKeys.maxCifsShares.name(), String.valueOf(maxExports));
+            dbMetrics.put(MetricsKeys.maxNFSExports.name(), String.valueOf(maxExports));
             phyNas.setMetrics(dbMetrics);
 
         }
@@ -2456,11 +2488,18 @@ public class NetAppFileCommunicationInterface extends
             _logger.info("new Virtual NAS created with guid {} ", vNas.getNativeGuid());
 
             // Set the Limit Metric keys!!
-            Long MaxObjects = 2048L;
-            Long MaxCapacity = 200L * 1024 * 1024 * 1024;
+            Long maxObjects = 500L;
+            if ("FAS2220".equalsIgnoreCase(system.getModel())) {
+                maxObjects = 200L;
+            }
+            // 16TB * number of flex volumes per vserver!!
+            Long maxCapacity = 16L * TB * maxObjects;
+            Long maxExports = maxObjects * QTREES_PER_VOL;
 
-            dbMetrics.put(MetricsKeys.maxStorageCapacity.name(), String.valueOf(MaxCapacity));
-            dbMetrics.put(MetricsKeys.maxStorageObjects.name(), String.valueOf(MaxObjects));
+            dbMetrics.put(MetricsKeys.maxStorageCapacity.name(), String.valueOf(maxCapacity));
+            dbMetrics.put(MetricsKeys.maxStorageObjects.name(), String.valueOf(maxObjects));
+            dbMetrics.put(MetricsKeys.maxCifsShares.name(), String.valueOf(maxExports));
+            dbMetrics.put(MetricsKeys.maxNFSExports.name(), String.valueOf(maxExports));
             vNas.setMetrics(dbMetrics);
 
         }
@@ -2530,6 +2569,13 @@ public class NetAppFileCommunicationInterface extends
                 continue;
             }
 
+            // Set vfiler context!!
+            netAppApi = new NetAppApi.Builder(system.getIpAddress(),
+                    system.getPortNumber(), system.getUsername(),
+                    system.getPassword()).https(true).vFiler(vfiler.getName()).build();
+
+            _logger.info(" vFiler {} ", vfiler.getName());
+
             // 3. Get the volumes of vfilers
             int numFileSystems = 0;
             int numSnapshots = 0;
@@ -2544,39 +2590,56 @@ public class NetAppFileCommunicationInterface extends
             List<String> volumeNames = netAppApi.listVolumes();
             if (volumeNames != null && !volumeNames.isEmpty()) {
 
-                numFileSystems = volumeNames.size();
-                _logger.info(" {} file systems found..", volumeNames.size());
+                _logger.debug(" {} file systems found..", volumeNames.size());
 
+                String owningvFiler = null;
+                Long size = 0L;
+                Long snapshotBytesReserved = 0L;
+                Long snapshots = 0L;
                 for (String volumeName : volumeNames) {
                     usageStats = netAppApi.listVolumeInfo(volumeName, null);
+                    _logger.info(" Scanning for filesystem {} ", volumeName);
                     for (Map<String, String> map : usageStats) {
+                        if (map.get(Constants.OWNING_VFILER) != null) {
+                            owningvFiler = map.get(Constants.OWNING_VFILER);
+                        }
                         if (map.get(Constants.SIZE_TOTAL) != null) {
-                            totalFileSystemsSize += Long.valueOf(map.get(Constants.SIZE_TOTAL));
+                            size = Long.valueOf(map.get(Constants.SIZE_TOTAL));
+                        }
+                        if (map.get(Constants.SNAPSHOT_COUNT) != null) {
+                            snapshots = Long.valueOf(map.get(Constants.SNAPSHOT_COUNT));
                         }
 
-                        /*
-                         * TODO: Bytes per block on NTAP is hard coded for now. If
-                         * possible, we should to get this from the array.
-                         */
-                        Long snapshotBytesReserved = 0L;
-                        if (map.get(Constants.SNAPSHOT_BLOCKS_RESERVED) != null) {
+                        if (snapshots > 0 && map.get(Constants.SNAPSHOT_BLOCKS_RESERVED) != null) {
                             snapshotBytesReserved = Long.valueOf(map.get(Constants.SNAPSHOT_BLOCKS_RESERVED))
                                     * Constants.NETAPP_BYTES_PER_BLOCK;
-                            totalSnapshotsSize += snapshotBytesReserved;
-                        }
-
-                        if (map.get(Constants.SNAPSHOT_COUNT) != null) {
-                            numSnapshots += Long.valueOf(map.get(Constants.SNAPSHOT_COUNT));
                         }
                     }
+                    // Ignore the objects of other vfilers!!
+                    if (owningvFiler != null && !owningvFiler.equalsIgnoreCase(vfiler.getName())) {
+                        _logger.info(" file system {} is not belongs to vfiler {} ", volumeName, vfiler.getName());
+                        continue;
+                    }
 
+                    _logger.debug(" file system size {} and snapshots {} ", size, snapshots);
+                    // Count the objects
+                    totalFileSystemsSize += size;
+                    totalSnapshotsSize += snapshotBytesReserved;
+                    numSnapshots += snapshots;
+                    numFileSystems++;
                 }
-                _logger.info(" filesystems {}, snapshorts {} ", volumeNames.size(), numSnapshots);
+
+                _logger.info(" vfiler - number of filesystems {}, snapshorts {} ", numFileSystems, numSnapshots);
 
                 // Get the list of NFS exports and Shares!!!
+                try {
+                    nfsExportsCount = netAppApi.listNFSExportRules(null).size();
+                    cifsSharesCount = netAppApi.listShares(null).size();
+                } catch (Exception ex) {
+                    _logger.error(" Error getting NFS and CIFS shares  {}", ex.getMessage());
+                }
 
-                nfsExportsCount = netAppApi.listNFSExportRules(null).size();
-                cifsSharesCount = netAppApi.listShares(null).size();
+                _logger.info(" vfiler - number of nfsExportsCount {}, cifsSharesCount {} ", nfsExportsCount, cifsSharesCount);
 
                 // 4. Compute metrics!!!
                 StringMap dbMetrics = nasServer.getMetrics();
@@ -2594,8 +2657,10 @@ public class NetAppFileCommunicationInterface extends
                 dbMetrics.put(MetricsKeys.storageObjects.name(), String.valueOf(totalStorageObjects));
                 dbMetrics.put(MetricsKeys.usedStorageCapacity.name(), String.valueOf(totalProvCap));
 
-                Long maxExports = MetricsKeys.getLong(MetricsKeys.maxNFSExports, dbMetrics) +
-                        MetricsKeys.getLong(MetricsKeys.maxCifsShares, dbMetrics);
+                // Maximum exports or shares should the maximum qtees!!
+                // Each share/export create a qtree.
+                Long maxExports = MetricsKeys.getLong(MetricsKeys.maxNFSExports, dbMetrics);
+
                 Long maxStorObjs = MetricsKeys.getLong(MetricsKeys.maxStorageObjects, dbMetrics);
                 Long maxCapacity = MetricsKeys.getLong(MetricsKeys.maxStorageCapacity, dbMetrics);
 

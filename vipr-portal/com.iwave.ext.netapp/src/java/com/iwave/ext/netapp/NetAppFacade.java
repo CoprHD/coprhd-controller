@@ -1582,4 +1582,12 @@ public class NetAppFacade {
         return share.modifyNFSShare(exportPath, exportRules);
     }
 
+    public List<String> getAllowedProtocols(String vFilerName) {
+        if (log.isDebugEnabled()) {
+            log.debug("Getting supported protocols of vfiler");
+        }
+
+        VFiler vFiler = new VFiler(server.getNaServer(), null);
+        return vFiler.getAllowedProtocols(vFilerName);
+    }
 }

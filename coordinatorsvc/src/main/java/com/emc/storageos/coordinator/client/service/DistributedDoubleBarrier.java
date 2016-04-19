@@ -98,6 +98,17 @@ public class DistributedDoubleBarrier
         readyPath = ZKPaths.makePath(barrierPath, READY_NODE);
     }
 
+    public DistributedDoubleBarrier(CuratorFramework client, String barrierPath, int memberQty, String prefix)
+    {
+        Preconditions.checkState(memberQty > 0, "memberQty cannot be 0");
+
+        this.client = client;
+        this.barrierPath = PathUtils.validatePath(barrierPath);
+        this.memberQty = memberQty;
+        ourPath = ZKPaths.makePath(barrierPath, prefix + UUID.randomUUID().toString());
+        readyPath = ZKPaths.makePath(barrierPath, READY_NODE);
+    }
+
     /**
      * Enter the barrier and block until all members have entered
      *
@@ -119,6 +130,7 @@ public class DistributedDoubleBarrier
      */
     public boolean     enter(long maxWait, TimeUnit unit) throws Exception
     {
+        logger.info("Entering barrier ...");
         long            startMs = System.currentTimeMillis();
         boolean         hasMaxWait = (unit != null);
         long            maxWaitMs = hasMaxWait ? TimeUnit.MILLISECONDS.convert(maxWait, unit) : Long.MAX_VALUE;
@@ -156,10 +168,16 @@ public class DistributedDoubleBarrier
      */
     public synchronized boolean     leave(long maxWait, TimeUnit unit) throws Exception
     {
+        logger.info("Leaving barrier ...");
         long            startMs = System.currentTimeMillis();
         boolean         hasMaxWait = (unit != null);
         long            maxWaitMs = hasMaxWait ? TimeUnit.MILLISECONDS.convert(maxWait, unit) : Long.MAX_VALUE;
 
+        // if local uuid is started with b, which means is vipr1, leave with timeout ,leave right now
+        if (ourPath.startsWith("b")) {
+            logger.info("This node is vipr1, set max wait to 0, will leave with timeout immediately");
+            return internalLeave(startMs, hasMaxWait, 0);
+        }
         return internalLeave(startMs, hasMaxWait, maxWaitMs);
     }
 
@@ -285,6 +303,7 @@ public class DistributedDoubleBarrier
             // ignore
         }
 
+        logger.info("distributed double barrier leave returned " + result);
         return result;
     }
 

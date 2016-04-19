@@ -1959,9 +1959,20 @@ public class CoordinatorClientImpl implements CoordinatorClient {
 		return _zkConnection.getSiteId();
 	}
 	
+    private boolean isVipr1() {
+        CoordinatorClientInetAddressMap map = getInetAddessLookupMap();
+        return "vipr1".equals(map.getNodeId());
+    }
 	@Override
 	public DistributedDoubleBarrier getDistributedDoubleBarrier(String barrierPath, int memberQty) {
-	    return new DistributedDoubleBarrier(_zkConnection.curator(), barrierPath, memberQty);
+	    log.info("return a barrier from CoordinatorClientImpl instance");
+	    // make sure vipr1's UUID is not lowest
+	    if (isVipr1()) {
+	        log.info("local node is vipr1, return b prefix barrier");
+	        return new DistributedDoubleBarrier(_zkConnection.curator(), barrierPath, memberQty, "b");
+	    }
+	    log.info("local node is not vipr1, return a prefix barrier");
+	    return new DistributedDoubleBarrier(_zkConnection.curator(), barrierPath, memberQty, "a");
 	}
 
 	/**

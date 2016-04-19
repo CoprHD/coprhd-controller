@@ -65,6 +65,7 @@ public class DistributedDoubleBarrier
     private final AtomicBoolean hasBeenNotifiedEnter = new AtomicBoolean(false);
     private final AtomicBoolean hasBeenNotifiedLeave = new AtomicBoolean(false);
     private final AtomicBoolean connectionLost = new AtomicBoolean(false);
+    private boolean isVipr1 = false;
     private final Watcher watcher = new Watcher()
     {
         @Override
@@ -102,6 +103,10 @@ public class DistributedDoubleBarrier
     {
         Preconditions.checkState(memberQty > 0, "memberQty cannot be 0");
 
+        if (prefix.equals("b")) {
+            logger.info("This node is vipr1, because it uses b as prefix");
+            isVipr1 = true;
+        }
         this.client = client;
         this.barrierPath = PathUtils.validatePath(barrierPath);
         this.memberQty = memberQty;
@@ -174,7 +179,7 @@ public class DistributedDoubleBarrier
         long            maxWaitMs = hasMaxWait ? TimeUnit.MILLISECONDS.convert(maxWait, unit) : Long.MAX_VALUE;
 
         // if local uuid is started with b, which means is vipr1, leave with timeout ,leave right now
-        if (ourPath.startsWith("b")) {
+        if (isVipr1) {
             logger.info("This node is vipr1, set max wait to 0, will leave with timeout immediately");
             return internalLeave(startMs, hasMaxWait, 0);
         }

@@ -555,22 +555,20 @@ public class FileReplicationDeviceController implements FileOrchestrationInterfa
             // Generate the Workflow.
             Workflow workflow = workflowService.getNewWorkflow(this,
                     FAILBACK_MIRROR_FILESHARE_WF_NAME, false, taskId);
-            String waitFor = null;
+            StorageSystem.Type primaryStorage = StorageSystem.Type.valueOf(primarysystem.getSystemType());
 
             for (String target : targetfileUris) {
                 // target share
                 FileShare targetFileShare = dbClient.queryObject(FileShare.class, URI.create(target));
 
                 List<URI> combined = new ArrayList<URI>();
+                combined.add(sourceFileShare.getId());
+                combined.add(targetFileShare.getId());
                 // call device specific action
-                if (primarysystem.getSystemType().equalsIgnoreCase("isilon")) {
-                    combined.add(sourceFileShare.getId());
-                    combined.add(targetFileShare.getId());
+                if (StorageSystem.Type.isilon.name().equals(primaryStorage.name())) {
                     taskCompleter = new MirrorFileFailbackTaskCompleter(FileShare.class, combined, taskId);
                     isilonSyncIQFailback(workflow, primarysystem, sourceFileShare, targetFileShare, taskId);
-                } else if (primarysystem.getSystemType().equalsIgnoreCase("netapp")) {
-                    combined.add(sourceFileShare.getId());
-                    combined.add(targetFileShare.getId());
+                } else if (StorageSystem.Type.netapp.name().equals(primaryStorage.name())) {
                     taskCompleter = new MirrorFileFailbackTaskCompleter(FileShare.class, combined, taskId);
                     netappSnapMirrorFailback(workflow, primarysystem, sourceFileShare, targetFileShare, taskId);
                 } else {

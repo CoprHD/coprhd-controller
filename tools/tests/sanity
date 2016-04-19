@@ -5088,7 +5088,6 @@ login_nd_configure_smtp_nd_add_licenses()
 #
 common_setup()
 {
-    echo "Running common setup..."
     sec_start_ldap_server
     login_nd_configure_smtp_nd_add_licenses
 
@@ -9073,8 +9072,9 @@ _success() {
 fail(){
     cmd=$*
     echo ""
-    date
+    echo ===
     echo === $cmd
+    echo "=== started: " date
     echo ""
     trap - ERR
     if [ "${HIDE_OUTPUT}" = "" -o "${HIDE_OUTPUT}" = "1" ]; then

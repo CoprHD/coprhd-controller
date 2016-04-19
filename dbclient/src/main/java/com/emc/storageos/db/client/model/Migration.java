@@ -162,7 +162,7 @@ public class Migration extends DataObject {
      * @return The boolean describing the type of migration to be performed.
      */
     @Name("driverMigration")
-    public String getDriverMigration() {
+    public boolean getDriverMigration() {
         return _driverMigration;
     }
 

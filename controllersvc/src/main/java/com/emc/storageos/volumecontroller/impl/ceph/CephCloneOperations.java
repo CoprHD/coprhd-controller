@@ -49,24 +49,26 @@ public class CephCloneOperations implements CloneOperations {
     }
 
     @Override
-    public void createSingleClone(StorageSystem storageSystem, URI source, URI clone, Boolean createInactive,
+    public void createSingleClone(StorageSystem storageSystem, URI source, URI cloneVolume, Boolean createInactive,
             TaskCompleter taskCompleter) {
         _log.info("START createSingleClone operation");
         try {
-        	Volume cloneVolume = _dbClient.queryObject(Volume.class, clone);
-        	String cloneVolumeLabel = CephUtils.createNativeId(cloneVolume);
+        	Volume cloneObject = _dbClient.queryObject(Volume.class, cloneVolume);
+        	String cloneVolumeLabel = CephUtils.createNativeId(cloneObject);
 
         	BlockObject sourceObject = BlockObject.fetch(_dbClient, source);
         	BlockSnapshot sourceSnapshot = null;
         	Volume parentVolume = null;
             if (sourceObject instanceof BlockSnapshot) {
-            	sourceSnapshot = (BlockSnapshot)sourceObject;
-            	parentVolume = _dbClient.queryObject(Volume.class, sourceSnapshot.getParent());
+            	// Use source snapshot as clone source
+                sourceSnapshot = (BlockSnapshot)sourceObject;
+                parentVolume = _dbClient.queryObject(Volume.class, sourceSnapshot.getParent());
             } else if (sourceObject instanceof Volume) {
-            	parentVolume = (Volume)sourceObject;
+                // Use interim snapshot as clone source, since Ceph can clone snapshots only
+                parentVolume = (Volume)sourceObject;
             	sourceSnapshot = prepareInternalSnapshotForVolume(parentVolume);
             } else {
-            	String msg = String.format("Unsupported block object type URI %", parentVolume);
+                String msg = String.format("Unsupported block object type URI %s", sourceObject.getId());
                 ServiceCoded code = DeviceControllerErrors.ceph.operationFailed("createSingleClone", msg);
                 taskCompleter.error(_dbClient, code);
                 return;
@@ -78,7 +80,7 @@ public class CephCloneOperations implements CloneOperations {
             String snapshotId = sourceSnapshot.getNativeId();
             CephClient cephClient = getClient(storageSystem);
 
-            // Create snapshot if do volume cloning
+            // Create Ceph snapshot of volume requested to clone
             if (snapshotId == null || snapshotId.isEmpty()) {
             	snapshotId = CephUtils.createNativeId(sourceSnapshot);
             	cephClient.createSnap(poolId, parentVolumeId, snapshotId);
@@ -89,7 +91,7 @@ public class CephCloneOperations implements CloneOperations {
                 _dbClient.updateObject(sourceSnapshot);
             }
 
-            // Protect snap if needed
+            // Ceph requires cloning snapshot to be protected (from deleting)
             if (!cephClient.snapIsProtected(poolId, parentVolumeId, snapshotId)) {
             	cephClient.protectSnap(poolId, parentVolumeId, snapshotId);
             }
@@ -98,23 +100,23 @@ public class CephCloneOperations implements CloneOperations {
             cephClient.cloneSnap(poolId, parentVolumeId, snapshotId, cloneVolumeLabel);
 
             // Update objects
-            cloneVolume.setDeviceLabel(cloneVolumeLabel);
-            cloneVolume.setNativeId(cloneVolumeLabel);
-            cloneVolume.setNativeGuid(NativeGUIDGenerator.generateNativeGuid(_dbClient, cloneVolume));
-            if (cloneVolume.getCapacity() == null || cloneVolume.getCapacity() == 0) {
+            cloneObject.setDeviceLabel(cloneVolumeLabel);
+            cloneObject.setNativeId(cloneVolumeLabel);
+            cloneObject.setNativeGuid(NativeGUIDGenerator.generateNativeGuid(_dbClient, cloneObject));
+            if (cloneObject.getCapacity() == null || cloneObject.getCapacity() == 0) {
             	// Set capacity equal to parent volume, in case of snapshot copying it's empty
-            	cloneVolume.setCapacity(parentVolume.getCapacity());
+            	cloneObject.setCapacity(parentVolume.getCapacity());
             }
-            cloneVolume.setProvisionedCapacity(cloneVolume.getCapacity());
-            cloneVolume.setAllocatedCapacity(cloneVolume.getCapacity());
-            cloneVolume.setInactive(createInactive);
-            cloneVolume.setAssociatedSourceVolume(sourceSnapshot.getId());
-            _dbClient.updateObject(cloneVolume);
+            cloneObject.setProvisionedCapacity(cloneObject.getCapacity());
+            cloneObject.setAllocatedCapacity(cloneObject.getCapacity());
+            cloneObject.setInactive(createInactive);
+            cloneObject.setAssociatedSourceVolume(sourceSnapshot.getId());
+            _dbClient.updateObject(cloneObject);
 
             // Finish task
             taskCompleter.ready(_dbClient);
         } catch (Exception e) {
-        	BlockObject obj = BlockObject.fetch(_dbClient, clone);
+        	BlockObject obj = BlockObject.fetch(_dbClient, cloneVolume);
             if (obj != null) {
             	obj.setInactive(true);
                 _dbClient.updateObject(obj);
@@ -131,11 +133,11 @@ public class CephCloneOperations implements CloneOperations {
     	String opMsg = String.format("detachSingleClone %s", cloneVolume);
     	_log.info("START %s", opMsg);
         try {
-            Volume clone = _dbClient.queryObject(Volume.class, cloneVolume);
-            String cloneId = clone.getNativeId();
-            StoragePool pool = _dbClient.queryObject(StoragePool.class, clone.getPool());
+            Volume cloneObject = _dbClient.queryObject(Volume.class, cloneVolume);
+            String cloneId = cloneObject.getNativeId();
+            StoragePool pool = _dbClient.queryObject(StoragePool.class, cloneObject.getPool());
             String poolId = pool.getPoolName();
-            BlockSnapshot parentSnapshot = _dbClient.queryObject(BlockSnapshot.class, clone.getAssociatedSourceVolume());
+            BlockSnapshot parentSnapshot = _dbClient.queryObject(BlockSnapshot.class, cloneObject.getAssociatedSourceVolume());
             String snapshotId = parentSnapshot.getNativeId();
             Volume sourceVolume = _dbClient.queryObject(Volume.class, parentSnapshot.getParent());
             String sourceVolumeId = sourceVolume.getNativeId();
@@ -147,15 +149,15 @@ public class CephCloneOperations implements CloneOperations {
 
             // Detach links
         	_log.info("%s: detach links", opMsg);
-            ReplicationUtils.removeDetachedFullCopyFromSourceFullCopiesList(clone, _dbClient);
-            clone.setAssociatedSourceVolume(NullColumnValueGetter.getNullURI());
-            clone.setReplicaState(ReplicationState.DETACHED.name());
-            _dbClient.updateObject(clone);
+            ReplicationUtils.removeDetachedFullCopyFromSourceFullCopiesList(cloneObject, _dbClient);
+            cloneObject.setAssociatedSourceVolume(NullColumnValueGetter.getNullURI());
+            cloneObject.setReplicaState(ReplicationState.DETACHED.name());
+            _dbClient.updateObject(cloneObject);
 
-            // Un-protect snap if it was last child and delete internal interim snapshot
+            // Un-protect snapshot if it was last child and delete internal interim snapshot
             List<String> children = cephClient.getChildren(poolId, sourceVolumeId, snapshotId);
             if (children.isEmpty()) {
-            	_log.info(String.format("%s: no childrent for snapshot %s@%s", opMsg, sourceVolumeId, snapshotId));
+            	_log.info(String.format("%s: no children for snapshot %s@%s", opMsg, sourceVolumeId, snapshotId));
             	// Unprotect if protected
             	if (cephClient.snapIsProtected(poolId, sourceVolumeId, snapshotId)) {
                 	_log.info(String.format("%s: unprotect snapshot %s@%s", opMsg, sourceVolumeId, snapshotId));
@@ -165,7 +167,7 @@ public class CephCloneOperations implements CloneOperations {
                 // Remove snapshot if it's internal object
                 if (parentSnapshot.checkInternalFlags(Flag.INTERNAL_OBJECT)) {
                 	_log.info(String.format("%s: interim snapshot %s@%s is to be deleted", opMsg, sourceVolumeId, snapshotId));
-                	// Interim snapshot is created to 'clone volume from volume'
+                	// Interim snapshot is created to 'clone volume from volume' only
                 	// and should be deleted at the step of detaching during full copy creation workflow
                 	String reference = parentSnapshot.canBeDeleted();
                 	if (reference == null) {

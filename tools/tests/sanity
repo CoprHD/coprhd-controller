@@ -3481,7 +3481,11 @@ recoverpoint_ingest()
 
     if [ "$RP_CRR" = "1" ] ; then
         recoverpoint_ingest_test rp${rptypetag}_crr
-        recoverpoint_ingest_export_test rp${rptypetag}_crr
+        if [ "${RPXIO_TESTS}" = "0" ]; then
+            recoverpoint_ingest_export_test rp${rptypetag}_crr
+        else
+            secho "XIO Export Tests Disabled; Export host registration in physical network needs work"
+        fi
     fi
     
     if [ "$RP_CLR" = "1" ] ; then
@@ -3490,7 +3494,11 @@ recoverpoint_ingest()
             return;
         fi
         recoverpoint_ingest_test rp${rptypetag}_clr
-        recoverpoint_ingest_export_test rp${rptypetag}_clr
+        if [ "${RPXIO_TESTS}" = "0" ]; then
+            recoverpoint_ingest_export_test rp${rptypetag}_clr
+        else
+            secho "XIO Export Tests Disabled; Export host registration in physical network needs work"
+        fi
     fi
 
     secho "RP ingest ${rptypetag} tests complete"

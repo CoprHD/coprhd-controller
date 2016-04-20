@@ -74,7 +74,7 @@ public class CallHome {
      * @return The system service task
      */
     public TaskResourceRep sendAlert(String start, String end, EventParameters eventParameters) {
-        return sendAlert(null,null,null,null,null,start,end,null,null,false,eventParameters);
+        return sendAlert(null,null,null,null,null,null,start,end,null,null,false,eventParameters);
     }
 
     /**

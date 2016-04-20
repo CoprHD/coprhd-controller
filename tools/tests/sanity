@@ -2847,12 +2847,20 @@ recoverpoint_export_bookmark_tests()
     for i in ${RP_VOLUME_COUNT}
     do
         #Create/show the snapshot/bookmark that was created for each target virtual array
-        run blocksnapshot create ${PROJECT}/${rpvolume}-${i} ${rpsnap} --type rp
+        
+        #If we only have a single volume we do not want to append anything to volume name.  Otherwise we want to
+        #append a volume count identifier.
+        volume_identifier=''
+        if [ "$RP_VOLUME_COUNT" -gt "1" ]; then
+            volume_identifier='-'${i}
+        fi    
+        
+        run blocksnapshot create ${PROJECT}/${rpvolume}${volume_identifier} ${rpsnap} --type rp
 	for tgt_varray in ${rp_tgt_varrays}
 	do
             #NOTE: RP bookmarks get created with for each target copy (virtual array)
-            all_bookmarks=("${all_bookmarks[@]}" "${PROJECT}/${rpvolume}-${i}/${rpsnap}-${tgt_varray}")
-            blocksnapshot show ${PROJECT}/${rpvolume}-${i}/${rpsnap}-${tgt_varray}
+            all_bookmarks=("${all_bookmarks[@]}" "${PROJECT}/${rpvolume}${volume_identifier}/${rpsnap}-${tgt_varray}")
+            blocksnapshot show ${PROJECT}/${rpvolume}${volume_identifier}/${rpsnap}-${tgt_varray}
 	done
     done
 

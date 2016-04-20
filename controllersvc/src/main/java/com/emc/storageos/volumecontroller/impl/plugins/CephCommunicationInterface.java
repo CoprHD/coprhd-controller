@@ -169,24 +169,24 @@ public class CephCommunicationInterface extends ExtendedCommunicationInterfaceIm
                     system, "-", NativeGUIDGenerator.ADAPTER); // ???
             List<StorageHADomain> storageAdapters = CustomQueryUtility.queryActiveResourcesByAltId
                     (_dbClient, StorageHADomain.class, "nativeGuid", adapterNativeGUID);
-            StorageHADomain storageAdapter = null;
+            StorageHADomain storageHADomain = null;
             if (storageAdapters.isEmpty()) {
-                storageAdapter = new StorageHADomain();
-                storageAdapter.setId(URIUtil.createId(StorageHADomain.class));
-                storageAdapter.setStorageDeviceURI(system.getId());
-                storageAdapter.setNativeGuid(adapterNativeGUID);
+                storageHADomain = new StorageHADomain();
+                storageHADomain.setId(URIUtil.createId(StorageHADomain.class));
+                storageHADomain.setStorageDeviceURI(system.getId());
+                storageHADomain.setNativeGuid(adapterNativeGUID);
                 String monitorHost = accessProfile.getIpAddress();
-                storageAdapter.setAdapterName(monitorHost);
-                storageAdapter.setName(monitorHost);
-                storageAdapter.setLabel(monitorHost);
+                storageHADomain.setAdapterName(monitorHost);
+                storageHADomain.setName(monitorHost);
+                storageHADomain.setLabel(monitorHost);
 
-                storageAdapter.setNumberofPorts("1");
-                storageAdapter.setAdapterType(HADomainType.FRONTEND.name());
-                storageAdapter.setProtocol(Block.RBD.name());
-                storageAdapter.setInactive(false);
-                _dbClient.createObject(storageAdapter);
+                storageHADomain.setNumberofPorts("1");
+                storageHADomain.setAdapterType(HADomainType.FRONTEND.name());
+                storageHADomain.setProtocol(Block.RBD.name());
+                storageHADomain.setInactive(false);
+                _dbClient.createObject(storageHADomain);
             } else {
-                storageAdapter = storageAdapters.get(0);
+                storageHADomain = storageAdapters.get(0);
                 if (storageAdapters.size() != 1) {
                     _log.warn(String.format("There are %d StorageHADomains with nativeGuid = %s", storageAdapters.size(),
                             adapterNativeGUID));
@@ -206,7 +206,7 @@ public class CephCommunicationInterface extends ExtendedCommunicationInterfaceIm
                 storagePort.setPortGroup(PORT_GROUP);
 
                 storagePort.setStorageDevice(system.getId());
-                storagePort.setStorageHADomain(storageAdapter.getId());
+                storagePort.setStorageHADomain(storageHADomain.getId());
                 storagePort.setPortType(PortType.frontend.name());
                 storagePort.setTransportType(Transport.IP.name());
 

@@ -487,9 +487,6 @@ RP_XIO_CONSISTENCY_GROUP=rpxioSanity-${RP_MODIFIED_HOSTNAME}-${RP_SANITY_RANDOM}
 RP_EXPORT_GROUP=rpSanity-${RP_MODIFIED_HOSTNAME}-${RP_SANITY_RANDOM}
 RP_EXPORT_GROUP_HOST=host${hostseed}.sanity.com
 
-RP_BOOKMARK_EXPORT_GROUP=rpSanity-${RP_MODIFIED_HOSTNAME}-${RP_SANITY_RANDOM}-bookmark-eg
-RP_BOOKMARK_EXPORT_GROUP_HOST=host${hostseed}.sanity.com-bookmark-host
-
 #
 # Configuration for Simulator
 #
@@ -2834,7 +2831,7 @@ recoverpoint_export_bookmark_tests()
 
     rpsnap=rpsnap-${RP_MODIFIED_HOSTNAME}-${RANDOM}
     blocksnap=blocksnap-${RP_MODIFIED_HOSTNAME}-${RANDOM}
-    rpexport=$PROJECT/$RP_BOOKMARK_EXPORT_GROUP
+    rpexport=$PROJECT/$RP_EXPORT_GROUP
 
     # Have to account for "-1" being added to volume name if
     # volume count is greater than 1.
@@ -2877,7 +2874,7 @@ recoverpoint_export_bookmark_tests()
         secho 'Adding multiple bookmarks for the same target - expected failure'
         #join the list of all the bookmarks created with commas
         volspec="$(printf "%s,"  ${all_bookmarks[@]} | cut -d "," -f 1-${#all_bookmarks[@]})"
-        fail export_group create $PROJECT ${RP_BOOKMARK_EXPORT_GROUP} ${rp_src_varray} --type Host --volspec ${volspec} --hosts "${RP_HOSTNAME}"
+        fail export_group create $PROJECT ${RP_EXPORT_GROUP} ${rp_src_varray} --type Host --volspec ${volspec} --hosts "${RP_HOSTNAME}"
     fi
 	
     for failtest in 1 2
@@ -2892,7 +2889,7 @@ recoverpoint_export_bookmark_tests()
     done
 
     secho 'Export RP bookmark'
-    run export_group create $PROJECT ${RP_BOOKMARK_EXPORT_GROUP} ${rp_src_varray} --type Host --volspec ${PROJECT}/${rpvolume}/${rpsnap}-failtest1-${tgt_varray[0]} --hosts "${RP_HOSTNAME}"
+    run export_group create $PROJECT ${RP_EXPORT_GROUP} ${rp_src_varray} --type Host --volspec ${PROJECT}/${rpvolume}/${rpsnap}-failtest1-${tgt_varray[0]} --hosts "${RP_HOSTNAME}"
     run export_group show ${rpexport}
     secho 'Exporting RP bookmark for the same target copy as a bookmark already exported - expected failure'
     fail export_group update ${rpexport} --addVolspec ${PROJECT}/${rpvolume}/${rpsnap}-failtest2-${tgt_varray[0]}
@@ -2902,7 +2899,7 @@ recoverpoint_export_bookmark_tests()
     for tgt_varray in ${rp_tgt_varrays}
     do
         secho 'Running RP bookmarks export tests for each target copy'
-        run export_group create $PROJECT ${RP_BOOKMARK_EXPORT_GROUP} ${rp_src_varray} --type Host --volspec ${PROJECT}/${rpvolume}/${rpsnap}${volume_name_modifier}-${tgt_varray} --hosts "${RP_HOSTNAME}"
+        run export_group create $PROJECT ${RP_EXPORT_GROUP} ${rp_src_varray} --type Host --volspec ${PROJECT}/${rpvolume}/${rpsnap}${volume_name_modifier}-${tgt_varray} --hosts "${RP_HOSTNAME}"
         run export_group show ${rpexport}
         run export_group update ${rpexport} --remVol ${PROJECT}/${rpvolume}/${rpsnap}${volume_name_modifier}-${tgt_varray}
 	run export_group update ${rpexport} --addVolspec ${PROJECT}/${rpvolume}/${rpsnap}${volume_name_modifier}-${tgt_varray}
@@ -2940,15 +2937,15 @@ recoverpoint_export_bookmark_host_setup()
     if [ "${vpool}" = "rp${rptypetag}_cdp" ]; then
         PWWN1=10:00:00:E0:E0:E0:E0:E0
         WWNN1=20:00:00:E0:E0:E0:E0:E0
-        RP_HOSTNAME=${RP_BOOKMARK_EXPORT_GROUP_HOST}-cdp
+        RP_HOSTNAME=${RP_EXPORT_GROUP_HOST}-cdp
     elif [ "${vpool}" = "rp${rptypetag}_crr" ]; then
         PWWN1=10:00:00:E0:E0:E0:E0:F0
         WWNN1=20:00:00:E0:E0:E0:E0:F0
-        RP_HOSTNAME=${RP_BOOKMARK_EXPORT_GROUP_HOST}-crr
+        RP_HOSTNAME=${RP_EXPORT_GROUP_HOST}-crr
     elif [ "${vpool}" = "rp${rptypetag}_clr" ]; then
         PWWN1=10:00:00:E0:E0:E0:E0:D0
         WWNN1=20:00:00:E0:E0:E0:E0:D0
-        RP_HOSTNAME=${RP_BOOKMARK_EXPORT_GROUP_HOST}-clr
+        RP_HOSTNAME=${RP_EXPORT_GROUP_HOST}-clr
     fi
 
     run hosts create ${RP_HOSTNAME} $TENANT Windows ${RP_HOSTNAME} --port 8111 --username user --password 'password' --osversion 1.0

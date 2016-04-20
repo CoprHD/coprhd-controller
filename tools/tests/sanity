@@ -2868,15 +2868,7 @@ recoverpoint_export_bookmark_tests()
     NWWN1=`pwwn 7F`;
     run hosts create ${RP_EXPORT_GROUP_HOST} $TENANT Windows ${RP_EXPORT_GROUP_HOST} --port 8111 --username $RP_HOST_USER --password '$RP_HOST_PW' --osversion 1.0
     run initiator create ${RP_EXPORT_GROUP_HOST} FC $PWWN1 --node $NWWN1
-
-    if [ "$PARAM" = "vmaxblock" ]; then
-        run transportzone add ${rp_src_varray}/${RP_VMAXB_VSAN} $PWWN1
-    elif [ "$PARAM" = "vnxblock" ]; then
-        run transportzone add ${rp_src_varray}/${RP_VNXB_VSAN} $PWWN1
-    else
-        # simulators being used
-        run transportzone add ${rp_src_varray}/${SIMULATOR_VSAN_11} $PWWN1
-    fi
+    run transportzone add ${RECOVERPOINT_VARRAY1}/${CLUSTER1NET_NAME} ${PWWN1}
 
     sleep 20
 	

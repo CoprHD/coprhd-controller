@@ -58,7 +58,7 @@
                 <ref bean="nasDynamicPerformancePlacementEnabled"/>
                 <ref bean="nasUsePhysicalNASForProvisioning"/>
                 <ref bean="nasShareVNASWithMultipleProjects"/>
-                 <ref bean="isilonFileShareCustomPath"/>
+                 <ref bean="nasSharePathCustomization"/>
             </list>
         </property>
     </bean>
@@ -849,8 +849,8 @@
         </property>
     </bean>
     
-       <bean id="isilonFileShareCustomPath" class="com.emc.storageos.customconfigcontroller.CustomConfigType">
-    	<property name="name" value="IsilonFileShareCustomPath"/>
+       <bean id="nasSharePathCustomization" class="com.emc.storageos.customconfigcontroller.CustomConfigType">
+    	<property name="name" value="NasSharePathCustomization"/>
        <property name="configType" value="SimpleValue"/>
         <property name="type" value="String"/>
         <property name="scope">

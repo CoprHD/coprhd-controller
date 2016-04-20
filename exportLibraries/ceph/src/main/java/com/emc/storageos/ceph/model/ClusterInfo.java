@@ -6,8 +6,14 @@ package com.emc.storageos.ceph.model;
 
 public class ClusterInfo {
 
+    // Unique Ceph cluster identifier (guid)
+    // the established name came from obsolete meaning File System ID
     private String fsid;
+
+    // Total cluster capacity in kb
     private long kb;
+
+    // Free cluster capacity in kb
     private long kbAvail;
 
     public String getFsid() {

@@ -6,7 +6,10 @@ package com.emc.storageos.ceph.model;
 
 public class PoolInfo {
 
+    // Pool identifier
     private long id;
+
+    // Pool name
     private String name;
 
     public long getId() {

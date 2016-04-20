@@ -6,7 +6,10 @@ package com.emc.storageos.ceph.model;
 
 public class SnapInfo {
 
+    // Snapshot identifier
     private long id;
+
+    // Snapshot name
     private String name;
 
     public long getId() {

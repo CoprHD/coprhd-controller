@@ -166,6 +166,7 @@ public class StorageSystem extends DiscoveredSystemObject {
         private static final SupportedFileReplicationTypes[] copyOfValues = values();
     }
 
+    // All pools share the same storage capacity
     private Boolean sharedStorageCapacity = false;
 
     public static enum SupportedProvisioningTypes {

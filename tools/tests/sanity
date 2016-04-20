@@ -735,6 +735,7 @@ zone_setup()
         wwn=`pwwn $i`
         run transportzone add $FCTZ_B $wwn
     done
+    trap '_failure $LINENO' ERR
 }
 
 brocade_setup_once() 
@@ -8894,12 +8895,12 @@ fail(){
         echo $cmd succeeded, which should not have happened
 	cat ${CMD_OUTPUT}
         echo '**********************************************************************'
-        trap _failure ERR
+        trap '_failure $LINENO' ERR
         set_undo $cmd
         exit 1
     fi
     secho "$cmd failed, which is the expected ouput"
-    trap _failure ERR
+    trap '_failure $LINENO' ERR
 }
 
 trap '_failure $LINENO' ERR INT
@@ -8938,7 +8939,6 @@ output_conf(){
 application_vpool_setup()
 {
     # Create CoS for VNX
-    APP_VPOOL_SIMPLE_VNX=app_vpool_simple_vnx
     run cos create block $APP_VPOOL_SIMPLE_VNX                       \
         --description 'Consistency-Group-Block-VNX-CoS' true   \
                             --protocols FC iSCSI       \
@@ -8952,7 +8952,6 @@ application_vpool_setup()
     run cos allow $APP_VPOOL_SIMPLE_VNX block $TENANT
 
     # Create CoS for VMAX
-    APP_VPOOL_SIMPLE_VMAX=app_vpool_simple_vmax
     run cos create block $APP_VPOOL_SIMPLE_VMAX               \
         --description 'Consistency-Group-Block-VMAX-CoS' true   \
                             --protocols FC iSCSI       \
@@ -8966,6 +8965,9 @@ application_vpool_setup()
     run cos allow $APP_VPOOL_SIMPLE_VMAX block $TENANT
 
 }
+
+APP_VPOOL_SIMPLE_VNX=app_vpool_simple_vnx
+APP_VPOOL_SIMPLE_VMAX=app_vpool_simple_vmax
 
 application_setup()
 {
@@ -9035,6 +9037,7 @@ application_createvols_simple()
     VG_CG1VOL1="${VG_VOLUME1}-1"
     VG_CG1VOL2="${VG_VOLUME1}-2"
     VG_CG1VOL3="${VG_VOLUME1}-3"
+    VG_CG1VOL_GRP="${PROJECT}/${VG_CG1VOL1},${PROJECT}/${VG_CG1VOL2},${PROJECT}/${VG_CG1VOL3}"
     VG_CG1VOLID1=`volume list ${PROJECT} | grep ${VG_CG1VOL1} | awk '{print $7}'`
     VG_CG1VOLID2=`volume list ${PROJECT} | grep ${VG_CG1VOL2} | awk '{print $7}'`
     VG_CG1VOLID3=`volume list ${PROJECT} | grep ${VG_CG1VOL3} | awk '{print $7}'`
@@ -9054,6 +9057,7 @@ application_createvols_simple()
     VG_CG2VOL1="${VG_VOLUME2}-1"
     VG_CG2VOL2="${VG_VOLUME2}-2"
     VG_CG2VOL3="${VG_VOLUME2}-3"
+    VG_CG2VOL_GRP="${PROJECT}/${VG_CG2VOL1},${PROJECT}/${VG_CG2VOL2},${PROJECT}/${VG_CG2VOL3}"
     VG_CG2VOLID1=`volume list ${PROJECT} | grep ${VG_CG2VOL1} | awk '{print $7}'`
     VG_CG2VOLID2=`volume list ${PROJECT} | grep ${VG_CG2VOL2} | awk '{print $7}'`
     VG_CG2VOLID3=`volume list ${PROJECT} | grep ${VG_CG2VOL3} | awk '{print $7}'`
@@ -9067,12 +9071,8 @@ application_createvols_simple()
 # deletes volumes and CG used in application tests
 application_deleteall()
 {
-    run volume delete $PROJECT/$VG_CG1VOL1 --wait
-    run volume delete $PROJECT/$VG_CG1VOL2 --wait
-    run volume delete $PROJECT/$VG_CG1VOL3 --wait
-    run volume delete $PROJECT/$VG_CG2VOL1 --wait
-    run volume delete $PROJECT/$VG_CG2VOL2 --wait
-    run volume delete $PROJECT/$VG_CG2VOL3 --wait
+    run volume delete $VG_CG1VOL_GRP --wait
+    run volume delete $VG_CG2VOL_GRP --wait
     run blockconsistencygroup delete ${VG_CGNAME1}
     run blockconsistencygroup delete ${VG_CGNAME2}
     run volumegroup delete ${VG_COPYVG1}
@@ -9116,52 +9116,58 @@ application_add_remove_volume_tests()
     VG_CG1VOLID4=`volume list ${PROJECT} | grep ${VG_CG1VOL4} | awk '{print $7}'`
     run volumegroup verify-volume ${VG_COPYVG1} ${VG_CG1VOLID4}
 
+    run volumegroup remove-volumes ${VG_COPYVG1} ${VG_CG1VOLID1},${VG_CG1VOLID2},${VG_CG1VOLID3},${VG_CG1VOLID4}
+    run volumegroup remove-volumes ${VG_COPYVG1} ${VG_CG2VOLID1},${VG_CG2VOLID2},${VG_CG2VOLID3}
+
+    run volume delete $PROJECT/$VG_CG1VOL4 --wait
 }
 
 application_full_copy_tests()
 {
-   VG_FCNAME=${VG_COPYVG1}-fc
-   VG_FCNAME2=${VG_COPYVG1}-fc2
+    secho "application_full_copy_tests()"
 
-   # create the full copy for the entire application
-   run volumegroup create-full-copy $VG_COPYVG1 $VG_FCNAME active
+    run volumegroup add-volumes ${VG_COPYVG1} ${VG_CG1VOLID1},${VG_CG1VOLID2},${VG_CG1VOLID3}
+    run volumegroup add-volumes ${VG_COPYVG1} ${VG_CG2VOLID1},${VG_CG2VOLID2},${VG_CG2VOLID3}
 
-   # get the full copy volumes so they can be deleted after detach
-   VG_FCVOLUMES=`volumegroup list-full-copy-volumes ${VG_COPYVG1} ${PROJECT}`
-   echo " ---- fullcopy volumes are " $VG_FCVOLUMES
+    VG_FCNAME=${VG_COPYVG1}-fc
+    VG_FCNAME2=${VG_COPYVG1}-fc2
 
-   # verify the full copy exists
-   run volumegroup verify-full-copy-set $VG_COPYVG1 $VG_FCNAME
+    # create the full copy for the entire application
+    run volumegroup create-full-copy $VG_COPYVG1 $VG_FCNAME
 
-   # resync (no way to verify)
-   run volumegroup clone-resync $VG_COPYVG1 $VG_FCNAME
+    # get the full copy volumes so they can be deleted after detach
+    VG_FCVOLUMES=`volumegroup list-full-copy-volumes $VG_COPYVG1`
 
-   # run restore (no way to verify)
-   run volumegroup clone-restore $VG_COPYVG1 $VG_FCNAME
+    # verify the full copy exists
+    run volumegroup verify-full-copy-set $VG_COPYVG1 $VG_FCNAME
 
-   # detach the clones
-   run volumegroup clone-detach $VG_COPYVG1 $VG_FCNAME
-   fail volumegroup verify-full-copy-set $VG_COPYVG1 $VG_FCNAME
+    # resync (no way to verify)
+    run volumegroup resync-full-copy $VG_COPYVG1 $VG_FCNAME
 
-   # delete the full copy volumes
-   run volume delete $VG_FCVOLUMES --wait
+    # run restore (no way to verify)
+    run volumegroup restore-full-copy $VG_COPYVG1 $VG_FCNAME
 
-   # activate clone (exclude vplex COP-21804)
-   run volumegroup create-full-copy $VG_COPYVG1 $VG_FCNAME2 inactive
-   run volumegroup verify-full-copy-set $VG_COPYVG1 $VG_FCNAME2
-   run volumegroup clone-activate $VG_COPYVG1 $VG_FCNAME2
+    # detach the clones
+    run volumegroup detach-full-copy $VG_COPYVG1 $VG_FCNAME
+    fail volumegroup verify-full-copy-set $VG_COPYVG1 $VG_FCNAME
 
-   # get the full copy volumes so they can be deleted after detach
-   VG_FCVOLUMES=`volumegroup list-full-copy-volumes ${VG_COPYVG1} ${PROJECT}`
-   echo " ---- fullcopy volumes are " $VG_FCVOLUMES
+    # delete the full copy volumes
+    run volume delete $VG_FCVOLUMES --wait
 
-   # detach the clones
-   run volumegroup clone-detach $VG_COPYVG1 $VG_FCNAME2
-   fail volumegroup verify-full-copy-set $VG_COPYVG1 $VG_FCNAME2
+    # activate clone (exclude vplex COP-21804)
+    run volumegroup create-full-copy-inactive $VG_COPYVG1 $VG_FCNAME2
+    run volumegroup verify-full-copy-set $VG_COPYVG1 $VG_FCNAME2
+    run volumegroup activate-full-copy $VG_COPYVG1 $VG_FCNAME2
 
-   # delete the full copy volumes
-   run volume delete $VG_FCVOLUMES --wait
+    # get the full copy volumes so they can be deleted after detach
+    VG_FCVOLUMES=`volumegroup list-full-copy-volumes $VG_COPYVG1`
 
+    # detach the clones
+    run volumegroup detach-full-copy $VG_COPYVG1 $VG_FCNAME2
+    fail volumegroup verify-full-copy-set $VG_COPYVG1 $VG_FCNAME2
+
+    # delete the full copy volumes
+    run volume delete $VG_FCVOLUMES --wait
 }
 
 application_tests()

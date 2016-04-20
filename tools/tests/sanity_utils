@@ -131,9 +131,14 @@ set_undo()
                     index=1;
                     while [ "$index" -le "$cnt" ];
                     do
-                        put_on_undo_stack $first delete $fourth/${third}-${index} --wait
+                        if [[ $all != "" ]]; then
+                            all="${all},"
+                        fi
+                        all="${all}${fourth}/${third}-${index}"
                         index=`expr $index + 1`
                     done
+                    put_on_undo_stack $first delete $all --wait
+                    all=""
                 fi
             elif [ "$second" = full_copy ]; then
                 project=`echo $fourth | cut -d '/' -f1`
@@ -141,7 +146,7 @@ set_undo()
             elif [ "$second" = delete ]; then
                 for i in ${third//,/ }
                 do
-                    remove_from_undo_stack $first $second $i
+                    echo "remove_from_undo_stack ${first} ${second} ${i}"
                 done
             fi
             ;;

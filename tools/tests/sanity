@@ -2826,6 +2826,8 @@ recoverpoint_export_bookmark_tests()
     rp_src_varray=${2}
     # The target virtual arrays
     rp_tgt_varrays=${3}
+    # The virtual pool
+    vpool=${4}
 
     rpsnap=rpsnap-${RP_MODIFIED_HOSTNAME}-${RANDOM}
     blocksnap=blocksnap-${RP_MODIFIED_HOSTNAME}-${RANDOM}
@@ -2864,11 +2866,7 @@ recoverpoint_export_bookmark_tests()
 	done
     done
 
-    PWWN1=`pwwn 6F`;
-    NWWN1=`pwwn 7F`;
-    run hosts create ${RP_EXPORT_GROUP_HOST} $TENANT Windows ${RP_EXPORT_GROUP_HOST} --port 8111 --username $RP_HOST_USER --password '$RP_HOST_PW' --osversion 1.0
-    run initiator create ${RP_EXPORT_GROUP_HOST} FC $PWWN1 --node $NWWN1
-    run transportzone add ${RECOVERPOINT_VARRAY1}/${CLUSTER1NET_NAME} ${PWWN1}
+    recoverpoint_export_bookmark_host_setup ${vpool}
 
     sleep 20
 	
@@ -2890,8 +2888,9 @@ recoverpoint_export_bookmark_tests()
         done
     done
 
+    run transportzone add ${RECOVERPOINT_VARRAY1}/${CLUSTER1NET_NAME} ${PWWN1}
     secho 'Export RP bookmark'
-    run export_group create $PROJECT ${RP_EXPORT_GROUP} ${rp_src_varray} --volspec ${PROJECT}/${rpvolume}/${rpsnap}-failtest1-${tgt_varray[0]} --inits "${RP_EXPORT_GROUP_HOST}/$PWWN1"
+    run export_group create $PROJECT ${RP_EXPORT_GROUP} ${rp_src_varray} --type Host --volspec ${PROJECT}/${rpvolume}/${rpsnap}-failtest1-${tgt_varray[0]} --hosts "${RP_HOSTNAME}"
     run export_group show ${rpexport}
     secho 'Exporting RP bookmark for the same target copy as a bookmark already exported - expected failure'
     fail export_group update ${rpexport} --addVolspec ${PROJECT}/${rpvolume}/${rpsnap}-failtest2${tgt_varray[0]}
@@ -2901,7 +2900,7 @@ recoverpoint_export_bookmark_tests()
     for tgt_varray in ${rp_tgt_varrays}
     do
         secho 'Running RP bookmarks export tests for each target copy'
-        run export_group create $PROJECT ${RP_EXPORT_GROUP} ${rp_src_varray} --volspec ${PROJECT}/${rpvolume}/${rpsnap}-${volume_name_modifier}-${tgt_varray} --inits "${RP_EXPORT_GROUP_HOST}/$PWWN1"
+        run export_group create $PROJECT ${RP_EXPORT_GROUP} ${rp_src_varray} --type Host--volspec ${PROJECT}/${rpvolume}/${rpsnap}-${volume_name_modifier}-${tgt_varray} --hosts "${RP_HOSTNAME}"
         run export_group show ${rpexport}
         run export_group update ${rpexport} --remVol ${PROJECT}/${rpvolume}/${rpsnap}-${volume_name_modifier}-${tgt_varray}
 	run export_group update ${rpexport} --addVolspec ${PROJECT}/${rpvolume}/${rpsnap}-${volume_name_modifier}-${tgt_varray}
@@ -2920,6 +2919,37 @@ recoverpoint_export_bookmark_tests()
 		
     run hosts delete ${RP_EXPORT_GROUP_HOST}
     secho 'Done with RecoverPoint bookmark export cleanup'
+}
+
+recoverpoint_export_bookmark_host_setup()
+{
+    vpool=${1}
+
+    if [ "$RP_QUICK_PARAM" == "quick" ]; then
+        CLUSTER1NET_NAME=VSAN_11
+    else
+        CLUSTER1NET_NAME=FABRIC_losam082-fabric
+    fi
+
+    if [ "${vpool}" = "rp${rptypetag}_cdp" ]; then
+        PWWN1=10:00:00:E0:E0:E0:E0:E0
+        WWNN1=20:00:00:E0:E0:E0:E0:E0
+        RP_HOSTNAME=${RECOVERPOINT_HOST_VARRAY1}cdp
+    elif [ "${vpool}" = "rp${rptypetag}_crr" ]; then
+        PWWN1=10:00:00:E0:E0:E0:E0:F0
+        WWNN1=20:00:00:E0:E0:E0:E0:F0
+        RP_HOSTNAME=${RECOVERPOINT_HOST_VARRAY1}crr
+    elif [ "${vpool}" = "rp${rptypetag}_clr" ]; then
+        PWWN1=10:00:00:E0:E0:E0:E0:D0
+        WWNN1=20:00:00:E0:E0:E0:E0:D0
+        RP_HOSTNAME=${RECOVERPOINT_HOST_VARRAY1}clr
+    fi
+
+    run hosts create ${RP_HOSTNAME} $TENANT Windows ${RP_HOSTNAME}1 --port 8111 --username user --password 'password' --osversion 1.0
+
+    run initiator create ${RP_HOSTNAME} FC ${PWWN1} --node ${WWNN1}
+
+    run transportzone add ${RECOVERPOINT_VARRAY1}/${CLUSTER1NET_NAME} ${PWWN1}
 }
 
 recoverpoint_auto_snapshot_cleanup_test()
@@ -4090,15 +4120,15 @@ recoverpoint_tests()
             secho 'RP bookmark export tests'
 
             if [ "$RP_TESTS" = "1" ]; then
-                recoverpoint_export_bookmark_tests ${rpvolume} $RECOVERPOINT_VARRAY1 ${rp_tgt_varrays}
+                recoverpoint_export_bookmark_tests ${rpvolume} $RECOVERPOINT_VARRAY1 ${rp_tgt_varrays} ${rp_src_vpool}
             fi
 
             if [ "$RPVPLEX_TESTS" = "1" ]; then
-                recoverpoint_export_bookmark_tests ${rpvplexvolume} $RECOVERPOINT_VARRAY1 ${rp_tgt_varrays}
+                recoverpoint_export_bookmark_tests ${rpvplexvolume} $RECOVERPOINT_VARRAY1 ${rp_tgt_varrays} ${rpvplex_src_vpool}
             fi
 
             if [ "$RPMP_TESTS" = "1" ]; then
-                recoverpoint_export_bookmark_tests ${rpmpvolume} $RECOVERPOINT_VARRAY1 ${rp_tgt_varrays}
+                recoverpoint_export_bookmark_tests ${rpmpvolume} $RECOVERPOINT_VARRAY1 ${rp_tgt_varrays} ${rpmp_src_vpool}
             fi
 
             secho "RP bookmark exporty tests complete"

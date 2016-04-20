@@ -634,6 +634,9 @@ public enum ServiceCode {
     EXTERNALDEVICE_ADD_EXPORT_MASK_INITIATORS_ERROR(66020),
     EXTERNALDEVICE_REMOVE_EXPORT_MASK_INITIATORS_ERROR(66021),
 
+    // migration error (67000-67999)
+    MIGRATION_ERROR(67001),
+
     // ****************************
     // Old style of Service codes
     // ****************************

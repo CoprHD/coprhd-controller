@@ -189,4 +189,11 @@ public class Snap extends VNXeBase {
         this.state = state;
     }
 
+    public boolean isAttached() {
+        if (attachedWWN != null && !attachedWWN.isEmpty()) {
+            return true;
+        } else {
+            return false;
+        }
+    }
 }

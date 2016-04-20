@@ -145,7 +145,7 @@ public class SnapRequests extends KHRequests<Snap> {
      * @return list of VNXeLunSnap
      */
     public List<Snap> getLunSnaps(String resourceId) {
-        setFilter(VNXeConstants.LUN_FILTER + resourceId);
+        setFilter(VNXeConstants.LUN_FILTER + "\"" + resourceId + "\"");
         return getDataForObjects(Snap.class);
     }
 
@@ -179,5 +179,11 @@ public class SnapRequests extends KHRequests<Snap> {
     public Snap getSnap(String snapId) {
         _url = URL_INSTANCE + snapId;
         return getDataForOneObject(Snap.class);
+    }
+    
+    public List<Snap> getSnapsBySnapGroupId(String snapGroupId) {
+        String filter = VNXeConstants.SNAP_GROUP_FILTER + "\"" + snapGroupId + "\"";
+        setFilter(filter);
+        return getDataForObjects(Snap.class);
     }
 }

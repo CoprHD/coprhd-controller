@@ -2477,15 +2477,15 @@ public class VNXeApiClient {
     /**
      * Create snapshot for VNX Unity
      * 
-     * @param lunID lun id
+     * @param resourceID lun or consistency group id
      * @param name snapshot name
      * @param isReadOnly
      * @return VNXeCommandJob
      */
-    public VNXeCommandJob createSnap(String lunID, String name, Boolean isReadOnly) {
-        _logger.info("creating lun snap:" + lunID);
+    public VNXeCommandJob createSnap(String resourceID, String name, Boolean isReadOnly) {
+        _logger.info("creating snap for :" + resourceID);
         SnapCreateParam parm = new SnapCreateParam();
-        parm.setStorageResource(new VNXeBase(lunID));
+        parm.setStorageResource(new VNXeBase(resourceID));
         parm.setName(name);
         if (isReadOnly != null) {
             parm.setIsReadOnly(isReadOnly);
@@ -2519,7 +2519,27 @@ public class VNXeApiClient {
         return req.getSnap(id);
 
     }
+    
+    /**
+     * Get all snapshots related to a snap group Id
+     * @param snapGroupId
+     * @return The list of snapshots belonging to the same snap group Id
+     */
+    public List<Snap> getSnapshotsBySnapGroup(String snapGroupId) {
+        SnapRequests req = new SnapRequests(_khClient);
+        return req.getSnapsBySnapGroupId(snapGroupId);
+    }
 
+    /**
+     * Restore a snapshot
+     * @param snapId
+     * @return
+     */
+    public VNXeCommandJob restoreSnap(String snapId) {
+        SnapRequests req = new SnapRequests(_khClient);
+        return req.restoreSnap(snapId, null);
+    }
+    
     /**
      * If this is VNX Unity client.
      * @return

@@ -29,5 +29,6 @@ public class VNXeConstants {
     public static final String FIELDS = "fields";
     public static final String POOL_FILTER = "pool.id eq ";
     public static final String PATH_FILTER = "path eq";
+    public static final String SNAP_GROUP_FILTER = "snapGroup.id eq ";
 
 }

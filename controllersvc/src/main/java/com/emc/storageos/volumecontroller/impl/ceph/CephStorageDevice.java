@@ -170,7 +170,7 @@ public class CephStorageDevice extends DefaultBlockStorageDevice {
             	    }
                 	cephClient.deleteImage(poolName, volume.getNativeId());
             	} else {
-                    _log.info("Volume {} was not created completely, so skip real deletion and just delete it from DB", volume.getLabel());            		
+                    _log.info("Volume {} was not created completely, so skipping deletion from ceph array and just deleting from the controller's inventory", volume.getLabel());
             	}
                 volume.setInactive(true);
                 _dbClient.updateObject(volume);

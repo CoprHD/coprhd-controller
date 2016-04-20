@@ -166,6 +166,8 @@ public class CapacityUtils {
             return capacityMetrics;
         }
 
+        // Cache of sharedStorageCapacity flags of storage systems
+        // The flag means if all storage pools share the same capacity
         Map<String, Boolean> storageSharedFlags = new HashMap<String, Boolean>();
 
         for (StoragePool storagePool : storagePools) {
@@ -180,8 +182,11 @@ public class CapacityUtils {
                 StorageSystem system = dbClient.queryObject(StorageSystem.class, storagePool.getStorageDevice());
                 storageSharedFlags.put(storageDeviceId, system.getSharedStorageCapacity());
             }
-            else if (storageSharedFlags.get(storageDeviceId).booleanValue())
+            else if (storageSharedFlags.get(storageDeviceId).booleanValue()) {
+                // Another pool of storage with shared capacity feature has been processed
+                // Skip current pool
                 continue;
+            }
 
             totalCapacity = totalCapacity.add(BigInteger.valueOf(storagePool.getTotalCapacity()));
             freeCapacity = freeCapacity.add(BigInteger.valueOf(storagePool.getFreeCapacity()));

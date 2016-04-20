@@ -35,7 +35,6 @@ public class CephMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
 
     @Override
     public BlockStorageDevice getDevice() {
-        // TODO Auto-generated method stub
         return null;
     }
 

@@ -2851,8 +2851,8 @@ recoverpoint_export_bookmark_tests()
 	for tgt_varray in ${rp_tgt_varrays}
 	do
             #NOTE: RP bookmarks get created with for each target copy (virtual array)
-            all_bookmarks=("${all_bookmarks[@]}" "${PROJECT}/${rpvolume}-{i}/${rpsnap}-${tgt_varray}")
-            blocksnapshot show ${PROJECT}/${rpvolume}-{i}/${rpsnap}-${tgt_varray}
+            all_bookmarks=("${all_bookmarks[@]}" "${PROJECT}/${rpvolume}-${i}/${rpsnap}-${tgt_varray}")
+            blocksnapshot show ${PROJECT}/${rpvolume}-${i}/${rpsnap}-${tgt_varray}
 	done
     done
 

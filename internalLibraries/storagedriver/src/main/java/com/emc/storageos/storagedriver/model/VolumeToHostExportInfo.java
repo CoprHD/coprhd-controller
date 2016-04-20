@@ -17,6 +17,13 @@ public class VolumeToHostExportInfo {
     List<Initiator> initiators; // List of host initiators
     List<StoragePort> targets;    // List of storage ports
 
+    public VolumeToHostExportInfo(String hostName, List<String> volumeNativeIds, List<Initiator> initiators, List<StoragePort> targets) {
+        this.hostName = hostName;
+        this.volumeNativeIds = volumeNativeIds;
+        this.initiators = initiators;
+        this.targets = targets;
+    }
+
     public String getHostName() {
         return hostName;
     }

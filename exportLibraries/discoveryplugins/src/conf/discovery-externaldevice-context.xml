@@ -9,10 +9,14 @@
      </bean> -->
      <bean id="storageDriverSimulator" class="com.emc.storageos.driver.driversimulator.StorageDriverSimulator">
      </bean>
+
     <bean id="unManagedVolumeDiscoverer" class="com.emc.storageos.volumecontroller.impl.externaldevice.ExternalDeviceUnManagedVolumeDiscoverer">
+        <property name="networkDeviceController" ref="networkDeviceController"/>
     </bean>
+
     <bean id="partitionManager" class="com.emc.storageos.plugins.common.PartitionManager" />
-     <bean id="externaldevice" class="com.emc.storageos.volumecontroller.impl.plugins.ExternalDeviceCommunicationInterface">
+
+    <bean id="externaldevice" class="com.emc.storageos.volumecontroller.impl.plugins.ExternalDeviceCommunicationInterface">
          <property name="unManagedVolumeDiscoverer" ref="unManagedVolumeDiscoverer" />
          <property name="partitionManager" ref="partitionManager" />
          <!-- Discovery storage drivers -->
@@ -23,6 +27,5 @@
             </map>
         </property>
     </bean>
-
 
 </beans>

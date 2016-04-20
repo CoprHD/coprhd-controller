@@ -646,11 +646,7 @@ secho()
 run_noundo()
 {
     cmd=$*
-    echo ""
-    echo ===
     echo === $cmd
-    date=`date`
-    echo "=== started: $date" 
     rm -f ${CMD_OUTPUT}
     if [ "${HIDE_OUTPUT}" = "" -o "${HIDE_OUTPUT}" = "1" ]; then
 	$cmd &> ${CMD_OUTPUT}
@@ -9071,11 +9067,7 @@ _success() {
 #executes a command that is expected to fail
 fail(){
     cmd=$*
-    echo ""
-    echo ===
     echo === $cmd
-    date=`date`
-    echo "=== started: $date"
     trap - ERR
     if [ "${HIDE_OUTPUT}" = "" -o "${HIDE_OUTPUT}" = "1" ]; then
 	$cmd &> ${CMD_OUTPUT}

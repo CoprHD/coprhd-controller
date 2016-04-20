@@ -3616,7 +3616,7 @@ public class VolumeIngestionUtil {
         URI storageSystemId = null;
         if (pset.getVolumes() != null) {
             for (String volumeIdStr : pset.getVolumes()) {
-                Volume volume = dbClient.queryObject(Volume.class, URI.create(volumeIdStr));
+                Volume volume = requestContext.findDataObjectByType(Volume.class, URI.create(volumeIdStr), true);
                 if (volume != null) {
                     if (PersonalityTypes.SOURCE.name().equalsIgnoreCase(volume.getPersonality())) {
                         varrayId = volume.getVirtualArray();

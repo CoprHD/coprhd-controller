@@ -94,6 +94,10 @@ elif [ ${SS} = "recoverpoint" ]; then
     RP_QUICK_PARAM=${4:-'quick'}
     AUTH=${5:-ldap}
     EXTRA_PARAM=${6}
+elif [ ${SS} = "xtremio" ]; then
+    XIO_QUICK_PARAM=${4:-'quick'}
+    AUTH=${5:-ldap}
+    EXTRA_PARAM=${6}
 elif [ ${SS} = "vdc" ]; then
     VDC_DEFAULT_ENDPOINT=vdc_dummy_endpoint
     VDC_ENDPOINT_B=${4:-$VDC_DEFAULT_ENDPOINT}
@@ -1083,7 +1087,6 @@ xtremio_cos_setup()
                          --provisionType 'Thin' \
                          --neighborhoods $NH
     run cos allow $XTREMIO_3X_COS_FC block $TENANT
-    run cos update block $XTREMIO_3X_COS_FC --storage $XTREMIO_3X_NATIVEGUID
 
     run cos create block $XTREMIO_4X_COS_FC                          \
 	--description 'Virtual-Pool-for-XtremIO-block-FC' false      \
@@ -1094,13 +1097,12 @@ xtremio_cos_setup()
                          --provisionType 'Thin' \
                          --neighborhoods $NH   \
                          --multiVolumeConsistency
-    run cos allow $XTREMIO_4X_COS_FC block $TENANT
-    run cos update block $XTREMIO_4X_COS_FC --storage $XTREMIO_4X_NATIVEGUID  
+    run cos allow $XTREMIO_4X_COS_FC block $TENANT  
 }
 
 xtremio_port_setup()
 {
-    secho “XtremIO port setup”
+    secho "XtremIO port setup"
     run storageport update $XTREMIO_3X_NATIVEGUID FC --addvarrays $NH
     run storageport update $XTREMIO_4X_NATIVEGUID FC --addvarrays $NH
 }
@@ -1119,26 +1121,179 @@ xtremio_storage_setup() {
 
 xtremio_network_setup()
 {
-    secho “XtremIO network setup”
+    secho "XtremIO network setup"
     networksystem show $BROCADE_NETWORK &> /dev/null && return $?
     networksystem create $BROCADE_NETWORK brocade --smisip $BROCADE_IP --smisport 5988 --smisuser $BROCADE_USER --smispw $BROCADE_PW --smisssl false
+    run transportzone assign ${SRDF_VMAXA_VSAN} $NH
 }
 
 xtremio_varray_setup()
 {
     secho 'XtremIO varray setup for $TENANT'
     run neighborhood allow $NH $TENANT
-    run transportzone assign ${SRDF_VMAXA_VSAN} $NH
 }
 
-xtremio_setup()
+xtremio_ingest_test()
 {
-    xtremio_network_setup
-    xtremio_storage_setup
+    secho "XtremIO ingest tests"
+    INGEST_3X_NATIVEGUID=$XIO_3X_SIM_NATIVEGUID
+    INGEST_4X_NATIVEGUID=$XIO_4X_SIM_NATIVEGUID
+
+    if [ "$XIO_QUICK_PARAM" != "quick" ]; then
+        INGEST_3X_NATIVEGUID=$XTREMIO_3X_NATIVEGUID
+        INGEST_4X_NATIVEGUID=$XTREMIO_4X_NATIVEGUID
+    fi
+
+    # Labels
+    XIO_INGEST_VOL1_CG=${XIO_INGEST_VOL1_CGBASE}${RANDOM}
+    XIO_INGEST_VOL1=${XIO_INGEST_VOL1BASE}1${RANDOM}
+    XIO_INGEST_VOL2=${XIO_INGEST_VOL1BASE}2${RANDOM}
+
+    # Create the consistency group + volume
+    run blockconsistencygroup create ${PROJECT} ${XIO_INGEST_VOL1_CG}
+    run volume create ${XIO_INGEST_VOL1} ${PROJECT} ${NH} ${XTREMIO_4X_COS_FC} 1GB --consistencyGroup ${XIO_INGEST_VOL1_CG}
+
+    run volume create ${XIO_INGEST_VOL2} ${PROJECT} ${NH} ${XTREMIO_3X_COS_FC} 1GB
+
+
+    # Create XIO snapshots
+    secho "Create snapshots"
+    run_noundo blocksnapshot create ${PROJECT}/${XIO_INGEST_VOL1} xioingestsnap1
+    run_noundo blocksnapshot delete ${PROJECT}/${XIO_INGEST_VOL1}/xioingestsnap1 --vipronly
+
+    run_noundo blocksnapshot create ${PROJECT}/${XIO_INGEST_VOL1} xioingestsnap2
+    run_noundo blocksnapshot delete ${PROJECT}/${XIO_INGEST_VOL1}/xioingestsnap2 --vipronly
+
+    # Delete the volume and CG
+    run volume delete ${PROJECT}/${XIO_INGEST_VOL1} --vipronly
+    run blockconsistencygroup delete ${XIO_INGEST_VOL1_CG} --vipronly
+
+    run volume delete ${PROJECT}/${XIO_INGEST_VOL2} --vipronly
+
+    secho "XIO ingest discovery"
+
+    # Discover unmanaged volumes on the array
+    run storagedevice discover_namespace $INGEST_3X_NATIVEGUID 'UNMANAGED_VOLUMES'
+    run storagedevice discover_namespace $INGEST_4X_NATIVEGUID 'UNMANAGED_VOLUMES'
+
+    ##Make sure we fail when we ingest the volumes because snaps are not ingested yet
+    fail unmanagedvolume ingest_unexport ${NH} XTREMIO_4X_COS_FC $PROJECT --volspec "${XIO_INGEST_VOL1}"
+    fail unmanagedvolume ingest_unexport ${NH} XTREMIO_3X_COS_FC $PROJECT --volspec "${XIO_INGEST_VOL2}"
+
+    run unmanagedvolume ingest_unexport ${NH} XTREMIO_4X_COS_FC $PROJECT --volspec "xioingestsnap1"
+    run unmanagedvolume ingest_unexport ${NH} XTREMIO_3X_COS_FC $PROJECT --volspec "xioingestsnap2"
+
+    # Verify the volumes, CG and snaps got created; fail script if this fails.
+    run volume show "${XIO_INGEST_VOL1}"
+    run blockconsistencygroup show "${XIO_INGEST_VOL1_CG}"
+    run blocksnapshot show "xioingestsnap1"
+
+    run volume show "${XIO_INGEST_VOL2}"
+    run blocksnapshot show "xioingestsnap2"
+
+    ## Run block tests for the volumes and snaps
+    xtremio_export_test ${export_name}1 ${v1} ${v2} ${xioingestsnap1} ${xioingestsnap2}
+    blockconsistencygroup_restore_snapshot $XIO_INGEST_VOL1_CG $xioingestsnap1
+
+    # Delete the volumes, snaps and CG again
+    run_noundo blocksnapshot delete ${PROJECT}/${XIO_INGEST_VOL1}/xioingestsnap1 —-vipronly
+    run_noundo blocksnapshot delete ${PROJECT}/${XIO_INGEST_VOL1}/xioingestsnap2 —-vipronly
+
+    run volume delete ${PROJECT}/${XIO_INGEST_VOL1} --vipronly
+    run blockconsistencygroup delete ${XIO_INGEST_VOL1_CG} --vipronly
+
+    run volume delete ${PROJECT}/${XIO_INGEST_VOL2} --vipronly
+
+    # Discover unmanaged volumes on the array again
+    run storagedevice discover_namespace $INGEST_3X_NATIVEGUID 'UNMANAGED_VOLUMES'
+    run storagedevice discover_namespace $INGEST_4X_NATIVEGUID 'UNMANAGED_VOLUMES'
+    
+    ##Re-ingest
+    ##Make sure we fail when we ingest the snaps because volumes are not ingested yet
+
+    fail unmanagedvolume ingest_unexport ${NH} XTREMIO_4X_COS_FC $PROJECT --volspec "xioingestsnap1"
+    fail unmanagedvolume ingest_unexport ${NH} XTREMIO_3X_COS_FC $PROJECT --volspec "xioingestsnap2"
+
+    run unmanagedvolume ingest_unexport ${NH} XTREMIO_4X_COS_FC $PROJECT --volspec "${XIO_INGEST_VOL1}"
+    run unmanagedvolume ingest_unexport ${NH} XTREMIO_3X_COS_FC $PROJECT --volspec "${XIO_INGEST_VOL2}"
+
+    # Verify the volumes, CG and snaps got created; fail script if this fails.
+    run volume show "${XIO_INGEST_VOL1}"
+    run blockconsistencygroup show "${XIO_INGEST_VOL1_CG}"
+    run blocksnapshot show "xioingestsnap1"
+
+    run volume show "${XIO_INGEST_VOL2}"
+    run blocksnapshot show "xioingestsnap2"
+
+    ## Run block tests for the volumes and snaps
+    xtremio_export_test ${export_name}1 ${v1} ${v2} ${xioingestsnap1} ${xioingestsnap2}
+    blockconsistencygroup_restore_snapshot $XIO_INGEST_VOL1_CG $xioingestsnap1
+
+    # Real removal of volume/CG
+    run_noundo blocksnapshot delete ${PROJECT}/${XIO_INGEST_VOL1}/${xioingestsnap1}
+    run_noundo volume delete ${PROJECT}/"${XIO_INGEST_VOL1}" --wait
+    run_noundo blockconsistencygroup delete ViPR-${RECOVERPOINT_INGEST_VOL1_CG}
+
+    run_noundo blocksnapshot delete ${PROJECT}/${XIO_INGEST_VOL2}/${xioingestsnap2}
+    run_noundo volume delete ${PROJECT}/"${XIO_INGEST_VOL2}" --wait
+
+}
+
+xtremio_simulator_setup()
+{
+    project_setup
+    xtremio_varray_setup   
+    
+    run syssvc $CONFIG_FILE $BOURNE_IPADDR set_prop controller_discovery_refresh_interval 5
+ 
+    storageprovider create xtremio3x $XIO_SIMULATOR_IP 4430 root root xtremio 
+    storageprovider create xtremio4x $XIO_SIMULATOR_IP 4431 root root xtremio
+    run networksystem create $FABRIC_SIMULATOR  mds --devip $SIMULATOR_CISCO_MDS_IP --devport 22 --username $RP_FABRIC_SIM_USER --password $RP_FABRIC_SIM_PW
+    
+    storagedevice discover_all
+    storagedevice list    
+    run transportzone assign VSAN_11 ${NH}
+
+    # Make sure all of the pools are updated and matched
+    run storagedevice discover_all
+
+    run storagepool update $XIO_3X_SIM_NATIVEGUID --nhadd $NH --type block
+    run storagepool update $XIO_4X_SIM_NATIVEGUID --nhadd $NH --type block
+
+    
+    run storageport update $XIO_3X_SIM_NATIVEGUID FC --addvarrays $NH
+    run storageport update $XIO_4X_SIM_NATIVEGUID FC --addvarrays $NH
+
+    #Add the host ports to the network which contians the storage ports
+    for i in A1 A2 A3 A4 A5 A6 A7 A8 C1 C2 C3 C4 C5 C6 C7 C8
+    do
+        wwn=`pwwn $i`
+    
+        secho "Adding $wwn to zone VSAN_11..."
+	run transportzone add VSAN_11 $wwn
+    done
+
+
+    for i in B1 B2 B3 B4 B5 B6 B7 B8 D1 D2 D3 D4 D5 D6 D7 D8
+    do
+        wwn=`pwwn $i`
+        secho "Adding $wwn to zone VSAN_11..."
+        run transportzone add VSAN_11 $wwn
+    done
+    xtremio_cos_setup
+    run cos update block $XTREMIO_3X_COS_FC --storage $XIO_3X_SIM_NATIVEGUID
+    run cos update block $XTREMIO_4X_COS_FC --storage $XIO_4X_SIM_NATIVEGUID
+}
+
+xtremio_common_setup()
+{
     project_setup
     xtremio_varray_setup
+    xtremio_network_setup
+    xtremio_storage_setup
     xtremio_port_setup
-
+    
+    
     #Add the host ports to the network which contians the storage ports
     for i in A1 A2 A3 A4 A5 A6 A7 A8 C1 C2 C3 C4 C5 C6 C7 C8
     do
@@ -1156,13 +1311,35 @@ xtremio_setup()
         run transportzone add $SRDF_VMAXA_VSAN $wwn
     done
     xtremio_cos_setup
+    run cos update block $XTREMIO_3X_COS_FC --storage $XTREMIO_3X_NATIVEGUID
+    run cos update block $XTREMIO_4X_COS_FC --storage $XTREMIO_4X_NATIVEGUID
+}
+
+xtremio_setup()
+{
+    if [ "$XIO_QUICK_PARAM" = "quick" ]; then
+        secho "XtremIO Simulator setup"
+        xtremio_simulator_setup
+    else
+        secho "XtremIO setup"
+        xtremio_common_setup
+    fi
+    
 }
 
 xtremio_tests()
 {
    echo 'xtremio tests invoked'
    xtremio_block_tests
-   xtremio_blockconsistency_tests
+   if [ "$XIO_QUICK_PARAM" != "quick" ]; then
+       xtremio_blockconsistency_tests
+   fi
+   # Ingest specific tests
+   if [ "$XIO_INGESTTESTS" = "1" ]; then
+        secho "XIO ingest volumes"
+        xio_ingest_test
+        secho "XIO ingest tests complete"
+   fi
 }
 
 xtremio_blockconsistency_tests()
@@ -1170,7 +1347,7 @@ xtremio_blockconsistency_tests()
     # Create Consistency Group
     blockconsistencygroup_create_test
     blockconsistencygroup_show_test
-    xtremio_blockconsistencygroup_add_volume_test
+    xtremio_blockconsistencygroup_add_volume_test $CONSISTENCY_GROUP
     xtremio_blockconsistencygroup_snapshot_tests xio-$CONSISTENCY_GROUP $XTREMIO_4X_COS_FC xio-$CONSISTENCY_GROUP_SNAPSHOT
     blockconsistencygroup_bulk_test
     blockconsistencygroup_cleanup
@@ -1178,17 +1355,19 @@ xtremio_blockconsistency_tests()
 
 xtremio_blockconsistencygroup_add_volume_test()
 {
+    cg_name=$1
+
     ### Create Volume
     echo "Adding volume to consistency group"
-    run volume create  volume-${CONSISTENCY_GROUP} $PROJECT $NH $XTREMIO_4X_COS_FC 1280000000 --consistencyGroup $CONSISTENCY_GROUP
+    run volume create  volume-${cg_name} $PROJECT $NH $XTREMIO_4X_COS_FC 1280000000 --consistencyGroup $cg_name
 
     ### Check that volume is inside the group
     echo "Checking volume is part of consistency group"
-    run blockconsistencygroup check_volume  $PROJECT volume-${CONSISTENCY_GROUP} $CONSISTENCY_GROUP --expected
+    run blockconsistencygroup check_volume  $PROJECT volume-${cg_name} $cg_name --expected
 
     ### Check that consistencygroup cannot be deleted at this point
     echo "Checking consistency group cannot be deleted with active volumes"
-    run blockconsistencygroup delete_with_volumes $CONSISTENCY_GROUP
+    run blockconsistencygroup delete_with_volumes $cg_name
 }
 
 xtremio_blockconsistencygroup_snapshot_tests()
@@ -1220,15 +1399,22 @@ xtremio_block_tests()
     cos1=$XTREMIO_3X_COS_FC
     v2=${XTREMIOVOL}2
     cos2=$XTREMIO_4X_COS_FC
+    snap1_label=snap1-${HOSTNAME}-${RANDOM}
+    snap2_label=snap2-${HOSTNAME}-${RANDOM}
 
     run volume create ${v1} $PROJECT $NH $cos1 $BLK_SIZE --thinVolume true
-
     run volume create ${v2} $PROJECT $NH $cos2 $BLK_SIZE --thinVolume true
+    run blocksnapshot create $PROJECT/$vol1 ${snap1_label}
+    run blocksnapshot create $PROJECT/$vol2 ${snap2_label}
 
-    xtremio_export_test ${export_name}1 ${v1} ${v2}
 
+    xtremio_export_test ${export_name}1 ${v1} ${v2} ${snap1_label} ${snap2_label}
+
+    run blocksnapshot restore $snap2
     run volume bulkget
 
+    run blocksnapshot delete $PROJECT/${v1}/${snap1_label}
+    run blocksnapshot delete $PROJECT/${v2}/${snap2_label}
     run volume delete $PROJECT/${v1} --wait
     run volume delete $PROJECT/${v2} --wait
 }
@@ -1236,12 +1422,10 @@ xtremio_block_tests()
 
 xtremio_export_test()
 {
-    snap1_label=snap1-${HOSTNAME}-${RANDOM}
-    snap2_label=snap2-${HOSTNAME}-${RANDOM}
     vol1=$PROJECT/$2
     vol2=$PROJECT/$3
-    snap1=${vol1}/${snap1_label}
-    snap2=${vol2}/${snap2_label}
+    snap1=${vol1}/$4
+    snap2=${vol2}/$5
     proj=$PROJECT
     tenant=$TENANT
     c=1
@@ -1279,9 +1463,6 @@ xtremio_export_test()
     fi
 
     run export_group delete $exp
-    run blocksnapshot restore $snap2
-    run blocksnapshot delete $snap1
-    run blocksnapshot delete $snap2
 }
 
 
@@ -3652,16 +3833,14 @@ recoverpoint_simulator_varsetup() {
         RECOVERPOINT_STORAGE_ARRAY_C_GUID=${VMAX3_SIMULATOR_NATIVEGUID}
         RECOVERPOINT_STORAGE_ARRAY_D_GUID=${VMAX4_SIMULATOR_NATIVEGUID}
     fi
+    if [ "${RPXIO_TESTS}" = "1" ]; then
+        RECOVERPOINT_XTREMIO_GUID=${XIO_4X_SIM_NATIVEGUID}
+    fi
 }
 
 # Simulator setup
 recoverpoint_simulator_setup()
 {
-    if [ "${RPXIO_TESTS}" = "1" ]; then
-        echo "FAILURE: XIO in simulator mode not supported yet"
-        exit
-    fi
-
     secho 'RecoverPoint Simulator running'
     project_setup
     rp_varray_setup
@@ -3679,6 +3858,9 @@ recoverpoint_simulator_setup()
             run storageprovider create ${RECOVERPOINT_VPLEX_B} $VPLEX_IP ${VPLEX2_SIMULATOR_PORT} $VPLEX_USER "$VPLEX_PASSWD" vplex
         fi
         rp_port_setup
+    fi
+    if [ "${RPXIO_TESTS}" = "1" ]; then
+        run storageprovider create xtremeio1 $XIO_SIMULATOR_IP ${XIO_4X_SIMULATOR_PORT} root root xtremio
     fi
 
     run storagedevice discover_all
@@ -3700,6 +3882,9 @@ recoverpoint_simulator_setup()
     run storagepool update $VMAX1_SIMULATOR_NATIVEGUID --nhadd $RECOVERPOINT_VARRAY1 --type block
     run storagepool update $VMAX2_SIMULATOR_NATIVEGUID --nhadd $RECOVERPOINT_VARRAY2 --type block
     run storagepool update $VMAX3_SIMULATOR_NATIVEGUID --nhadd $RECOVERPOINT_VARRAY3 --type block
+    if [ "${RPXIO_TESTS}" = "1" ]; then
+        run storagepool update $XIO_4X_SIM_NATIVEGUID --nhadd $RECOVERPOINT_VARRAY1 --type block
+    fi
 
     # Simulator adjustments to cos (shouldn't be needed but RP simulator only sees a subset of what's on the network)
     rp_vpool_setup
@@ -3756,6 +3941,11 @@ recoverpoint_simulator_setup()
             run cos update block rpmp_clr --storage $VMAX2_SIMULATOR_NATIVEGUID
             run cos update block rpmp_clr --storage $VMAX3_SIMULATOR_NATIVEGUID
         fi
+    fi
+    if [ "${RPXIO_TESTS}" = "1" ]; then
+        run cos update block rpxio_cdp --storage $XIO_4X_SIM_NATIVEGUID
+        run cos update block rpxio_targets --storage $XIO_4X_SIM_NATIVEGUID
+
     fi
 }
 
@@ -3953,11 +4143,7 @@ recoverpoint_tests()
 
             if [ "$RP_CDP" = "1" ] ; then
                 recoverpoint_ingest_test rp${rptypetag}_cdp
-                if [ "${RPXIO_TESTS}" = "0" ]; then
-                    recoverpoint_ingest_export_test rp${rptypetag}_cdp
-                else
-                    secho "XIO Export Tests Disabled; Export host registration in physical network needs work"
-                fi
+                recoverpoint_ingest_export_test rp${rptypetag}_cdp
             fi
 
             if [ "$RP_CRR" = "1" ] ; then

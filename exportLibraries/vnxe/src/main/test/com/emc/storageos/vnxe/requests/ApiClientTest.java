@@ -277,7 +277,7 @@ public class ApiClientTest {
         System.out.println(job.getId());
     }
     
-    @Test
+    //@Test
     public void deleteSnap() {
         apiClient.deleteSnap("38654705983");
     }
@@ -291,9 +291,16 @@ public class ApiClientTest {
         
     }
 
-   //@Test
+    @Test
     public void restoreSnap() {
-        VNXeCommandJob job = apiClient.restoreSnap("38654705982");
+        VNXeCommandJob job = apiClient.restoreSnap("38654706051");
         System.out.println(job.getId());
+    }
+    
+    //@Test
+    public void getSnap() {
+        Snap snap = apiClient.getSnapshot("38654706039");
+        System.out.print(snap.getAttachedWWN());
+        System.out.print(snap.isAttached());
     }
 }

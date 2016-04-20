@@ -26,10 +26,12 @@ import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
+import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.exceptions.DeviceControllerErrors;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
 import com.emc.storageos.vnxe.VNXeApiClient;
+import com.emc.storageos.vnxe.models.Snap;
 import com.emc.storageos.vnxe.models.VNXeExportResult;
 import com.emc.storageos.vnxe.models.VNXeHostInitiator;
 import com.emc.storageos.vnxe.models.VNXeLunSnap;
@@ -295,11 +297,17 @@ public class VNXeExportOperations extends VNXeOperations implements ExportMaskOp
      * @param snapId
      */
     private void setSnapWWN(VNXeApiClient apiClient, BlockObject blockObj, String snapId) {
+        String wwn = null;
+        if (!apiClient.isUnityClient()) {
+            VNXeLunSnap snap = apiClient.getLunSnapshot(snapId);
+            wwn = snap.getPromotedWWN();;
+        } else {
+            Snap snap = apiClient.getSnapshot(snapId);
+            wwn = snap.getAttachedWWN();
+        }
 
-        VNXeLunSnap snap = apiClient.getLunSnapshot(snapId);
-        String wwn = snap.getPromotedWWN();
         if (wwn == null) {
-            wwn = "";
+            wwn = NullColumnValueGetter.getNullStr();
         }
         blockObj.setWWN(wwn);
         _dbClient.updateObject(blockObj);

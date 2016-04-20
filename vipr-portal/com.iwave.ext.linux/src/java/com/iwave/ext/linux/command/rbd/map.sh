@@ -1,3 +1,8 @@
+#
+# Copyright (c) 2016 EMC Corporation
+# All Rights Reserved
+#
+
 monitors="%s";
 user="%s";
 key="%s";

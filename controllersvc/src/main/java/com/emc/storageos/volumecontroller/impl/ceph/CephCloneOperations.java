@@ -1,8 +1,7 @@
 /*
- * Copyright (c) 2014 EMC Corporation
+ * Copyright (c) 2016 EMC Corporation
  * All Rights Reserved
  */
-
 package com.emc.storageos.volumecontroller.impl.ceph;
 
 import java.net.URI;

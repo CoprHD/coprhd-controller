@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2015 EMC Software LLC
+ * Copyright (c) 2016 EMC Corporation
  * All Rights Reserved
  */
 package com.iwave.ext.linux.command.rbd;

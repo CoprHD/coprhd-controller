@@ -1697,8 +1697,8 @@ consistencygroup_block_cos_setup()
 
 vplex_cos_setup()
 {
-    run cos create block cosvplexlocal true                           \
-	--description 'Local-CoS-for-VPlex' \
+    run cos create block cosvplexlocal true                   \
+                     --description 'Local-CoS-for-VPlex'      \
                      --protocols FC                           \
                      --numpaths 2                             \
                      --provisionType 'Thin'                   \
@@ -1721,8 +1721,8 @@ vplex_cos_setup()
 	run cos update block cosvplexlocal --storage $VPLEX_VMAX_NATIVEGUID
     fi
 
-    run cos create block cosvplexdist true                                  \
-	--description 'Distributed-CoS-for-VPlex' \
+    run cos create block cosvplexdist true                          \
+                     --description 'Distributed-CoS-for-VPlex'      \
                      --protocols FC                                 \
                      --numpaths 2                                   \
                      --provisionType 'Thin'                         \

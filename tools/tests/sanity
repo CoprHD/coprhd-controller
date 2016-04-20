@@ -1754,7 +1754,6 @@ vplex_setup()
 
 vplex_setup_once()
 {
-    common_setup
     if [ "$AUTH" == 'ipv6' ] ; then
 	echo "Setting up VPLEX environment for IPv6"
 	# Discover the storage systems 

@@ -37,6 +37,8 @@ import com.emc.storageos.api.service.impl.resource.utils.VirtualPoolChangeAnalyz
 import com.emc.storageos.api.service.impl.resource.utils.VolumeIngestionUtil;
 import com.emc.storageos.api.service.impl.response.BulkList;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
+import com.emc.storageos.db.client.model.BlockSnapshot;
+import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.Migration;
 import com.emc.storageos.db.client.model.Operation;
@@ -51,11 +53,14 @@ import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.model.BulkIdParam;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.model.ResourceTypeEnum;
+import com.emc.storageos.model.TaskList;
 import com.emc.storageos.model.TaskResourceRep;
 import com.emc.storageos.model.block.BlockMigrationBulkRep;
 import com.emc.storageos.model.block.MigrationList;
 import com.emc.storageos.model.block.MigrationParam;
 import com.emc.storageos.model.block.MigrationRestRep;
+import com.emc.storageos.model.block.VolumeVirtualArrayChangeParam;
+import com.emc.storageos.model.block.VolumeVirtualPoolChangeParam;
 import com.emc.storageos.security.authentication.StorageOSUser;
 import com.emc.storageos.security.authorization.ACL;
 import com.emc.storageos.security.authorization.CheckPermission;
@@ -63,6 +68,7 @@ import com.emc.storageos.security.authorization.DefaultPermissions;
 import com.emc.storageos.security.authorization.Role;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
+import com.emc.storageos.svcs.errorhandling.resources.InternalServerErrorException;
 import com.emc.storageos.util.ConnectivityUtil;
 import com.emc.storageos.volumecontroller.Recommendation;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
@@ -305,7 +311,7 @@ public class MigrationService extends TaskResourceService {
         s_logger.info("Request to change varray for volumes {}", param.getVolumes());
 
         List<URI> volumeURIs = param.getVolumes();
-        List<URI> tgtVarrayURI = param.getVirtualArray();
+        URI tgtVarrayURI = param.getVirtualArray();
 
         // Create the result.
         TaskList taskList = new TaskList();
@@ -316,6 +322,7 @@ public class MigrationService extends TaskResourceService {
         // Validate that each of the volumes passed in is eligible for the varray change
         VirtualArray tgtVarray = null;
         BlockConsistencyGroup cg = null;
+        MigrationServiceApi migrationServiceApi = null;
         List<Volume> volumes = new ArrayList<Volume>();
         List<Volume> cgVolumes = new ArrayList<Volume>();
         boolean foundVolumeNotInCG = false;
@@ -493,6 +500,35 @@ public class MigrationService extends TaskResourceService {
         return taskList;
     }
 
+    /**
+     * Verifies that the passed volumes correspond to the passed volumes from
+     * a consistency group.
+     *
+     * @param volumes The volumes to verify
+     * @param cgVolumes The list of active volumes in a CG.
+     */
+    private void verifyVolumesInCG(List<Volume> volumes, List<Volume> cgVolumes) {
+        // The volumes counts must match. If the number of volumes
+        // is less, then not all volumes in the CG were passed.
+        if (volumes.size() < cgVolumes.size()) {
+            throw APIException.badRequests.cantChangeVarrayNotAllCGVolumes();
+        }
+
+        // Make sure only the CG volumes are selected.
+        for (Volume volume : volumes) {
+            boolean found = false;
+            for (Volume cgVolume : cgVolumes) {
+                if (volume.getId().equals(cgVolume.getId())) {
+                    found = true;
+                    break;
+                }
+            }
+            if (!found) {
+                _log.error("Volume {}:{} not found in CG", volume.getId(), volume.getLabel());
+                throw APIException.badRequests.cantChangeVarrayVolumeIsNotInCG();
+            }
+        }
+    }
 
     /**
      * Returns a list of the migrations the user is permitted to see or an empty
@@ -785,6 +821,21 @@ public class MigrationService extends TaskResourceService {
     @Override
     protected URI getTenantOwner(URI id) {
         return null;
+    }
+
+    private Volume queryVolumeResource(URI id) {
+        ArgValidator.checkUri(id);
+        Class<? extends DataObject> blockClazz = Volume.class;
+
+        if (URIUtil.isType(id, BlockMirror.class)) {
+            blockClazz = BlockMirror.class;
+        }
+        if (URIUtil.isType(id, VplexMirror.class)) {
+            blockClazz = VplexMirror.class;
+        }
+        DataObject dataObject = _permissionsHelper.getObjectById(id, blockClazz);
+        ArgValidator.checkEntityNotNull(dataObject, id, isIdEmbeddedInURL(id));
+        return (Volume) dataObject;
     }
 
     /**

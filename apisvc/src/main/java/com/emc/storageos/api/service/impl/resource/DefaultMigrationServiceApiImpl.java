@@ -20,10 +20,15 @@ import com.emc.storageos.api.service.impl.placement.VirtualPoolUtil;
 import com.emc.storageos.api.service.impl.placement.VolumeRecommendation;
 import com.emc.storageos.api.service.impl.resource.fullcopy.BlockFullCopyUtils;
 import com.emc.storageos.api.service.impl.resource.snapshot.BlockSnapshotSessionUtils;
+import com.emc.storageos.api.service.impl.resource.utils.VirtualPoolChangeAnalyzer;
+import com.emc.storageos.blockorchestrationcontroller.VolumeDescriptor;
+import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup.Types;
 import com.emc.storageos.db.client.model.BlockMirror;
+import com.emc.storageos.db.client.model.BlockSnapshot;
+import com.emc.storageos.db.client.model.DataObject.Flag;
 import com.emc.storageos.db.client.model.Migration;
 import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.model.OpStatusMap;
@@ -38,9 +43,9 @@ import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.client.util.StringSetUtil;
 import com.emc.storageos.migrationorchestrationcontroller.MigrationOrchestrationController;
-import com.emc.storageos.migrationorchestrationcontroller.VolumeDescriptor;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
+import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.volumecontroller.Recommendation;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
 
@@ -49,7 +54,7 @@ import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValues
  */
 public class DefaultMigrationServiceApiImpl extends AbstractMigrationServiceApiImpl<StorageScheduler> {
     private static final Logger s_logger = LoggerFactory
-            .getLogger(MigrationBlockServiceApiImpl.class);
+            .getLogger(DefaultMigrationServiceApiImpl.class);
 
     // The max number of volumes allowed in a CG for varray and vpool
     // changes resulting in backend data migrations. Set in the API
@@ -114,7 +119,6 @@ public class DefaultMigrationServiceApiImpl extends AbstractMigrationServiceApiI
         // varray must specify the same system so that all volumes are
         // placed on the same array.
         URI tgtSystemURI = null;
-        URI tgtHASystemURI = null;
         for (Volume volume : volumes) {
             VirtualPool currentVPool = _dbClient.queryObject(VirtualPool.class, volume.getVirtualPool());
             if ((newVPool == null) || (VirtualPoolChangeAnalyzer.vpoolChangeRequiresMigration(currentVPool, newVPool))) {
@@ -131,31 +135,6 @@ public class DefaultMigrationServiceApiImpl extends AbstractMigrationServiceApiI
                         tgtSystemURI = pool.getStorageDevice();
                     } else if (!tgtSystemURI.equals(pool.getStorageDevice())) {
                         throw APIException.badRequests.targetVPoolDoesNotSpecifyUniqueSystem();
-                    }
-                }
-            }
-
-            // The same restriction applies to the target HA virtual pool
-            // when the HA side is being migrated.
-            URI haVArrayURI = VirtualPoolChangeAnalyzer.getHaVarrayURI(currentVPool, _dbClient);
-            if (!NullColumnValueGetter.isNullURI(haVArrayURI)) {
-                // The HA varray is not null so must be distributed.
-                VirtualPool currentHAVpool = VirtualPoolChangeAnalyzer.getHaVpool(currentVPool, _dbClient);
-                VirtualPool newHAVpool = VirtualPoolChangeAnalyzer.getNewHaVpool(currentVPool, newVPool, _dbClient);
-                if (VirtualPoolChangeAnalyzer.vpoolChangeRequiresMigration(currentHAVpool, newHAVpool)) {
-                    List<StoragePool> haPools = VirtualPool.getValidStoragePools(newHAVpool, _dbClient, true);
-                    for (StoragePool haPool : haPools) {
-                        // We only need to check the storage pools in the target HA vpool
-                        // tagged to the HA virtual array for the volumes being migrated.
-                        if (!haPool.getTaggedVirtualArrays().contains(haVArrayURI.toString())) {
-                            continue;
-                        }
-
-                        if (tgtHASystemURI == null) {
-                            tgtHASystemURI = haPool.getStorageDevice();
-                        } else if (!tgtHASystemURI.equals(haPool.getStorageDevice())) {
-                            throw APIException.badRequests.targetHAVPoolDoesNotSpecifyUniqueSystem();
-                        }
                     }
                 }
             }
@@ -324,7 +303,7 @@ public class DefaultMigrationServiceApiImpl extends AbstractMigrationServiceApiI
      */
     private List<VolumeDescriptor> createBackendVolumeMigrationDescriptors(StorageSystem storageSystem,
             Volume virtualVolume, Volume sourceVolume, VirtualArray varray, VirtualPool vpool,
-            Long capacity, String taskId, List<Recommendation> recommendations,
+            Long capacity, String taskId, List<VolumeRecommendation> recommendations,
             VirtualPoolCapabilityValuesWrapper capabilities) {
 
         URI sourceVolumeURI = null;
@@ -465,7 +444,7 @@ public class DefaultMigrationServiceApiImpl extends AbstractMigrationServiceApiI
      */
     private boolean getMigrationCapabilities(URI sourceStorageSystemURI, URI targetStorageSystemURI) {
         // This is not yet implemented.
-        return False;
+        return false;
     }
 
     /**

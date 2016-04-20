@@ -117,7 +117,7 @@ public class HealthMonitor {
      * @return The health response
      */
     public HealthRestRep getHealth() {
-        return getHealth(null,null);
+        return getHealth(null, null);
     }
 
     /**

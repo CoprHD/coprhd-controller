@@ -60,7 +60,7 @@ public class Logs {
      * @see #getLogLevels(Collection, Collection, Collection)
      */
     public List<LogLevel> getLogLevels() {
-        return getLogLevels(null, null,null);
+        return getLogLevels(null, null, null);
     }
 
     /**

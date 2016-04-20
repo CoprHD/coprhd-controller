@@ -813,40 +813,25 @@ public class NetappMirrorFileOperations implements FileMirrorOperations {
      */
     public BiosCommandResult setScheduleSnapMirror(StorageSystem sourceStorage, StorageSystem targetStorage, FileShare sourceFs,
             FileShare targetFs, TaskCompleter completer) {
+
         VirtualPool vPool = _dbClient.queryObject(VirtualPool.class, sourceFs.getVirtualPool());
         Long rpo = vPool.getFrRpoValue();
-        String rpoType = "days-of-week";
-
-        switch (vPool.getFrRpoType()) {
-            case "MINUTES":
-                rpoType = "minutes";
-                break;
-            case "HOURS":
-                rpoType = "hours";
-                break;
-            case "DAYS":
-                rpoType = "days-of-month";
-                break;
-        }
+        String rpoType = vPool.getFrRpoType();
 
         String sourcePath = getLocation(sourceStorage, sourceFs);
-
-        String portGroupTarget = findVfilerName(targetFs);
-        NetAppApi nApiTarget = new NetAppApi.Builder(targetStorage.getIpAddress(),
-                targetStorage.getPortNumber(), targetStorage.getUsername(),
-                targetStorage.getPassword()).https(true).vFiler(portGroupTarget).build();
-
-        String targetPath = getLocation(nApiTarget, targetFs);
+        String targetPath = getLocation(targetStorage, targetFs);
         _log.info("Set snapmirror schedule: RPO every {} {} between source:{}  and target: {}", rpo, rpoType, sourcePath, targetPath);
-        nApiTarget.setScheduleSnapMirror(rpoType, String.valueOf(rpo), sourcePath, targetPath);
-        String destLocation = getLocation(nApiTarget, targetFs);
-        NetAppSnapMirrorCreateJob mirrorCreateJob = new NetAppSnapMirrorCreateJob(destLocation, targetStorage.getId(),
-                completer, "createSnapMirror");
-
         try {
-            ControllerServiceImpl.enqueueJob(new QueueJob(mirrorCreateJob));
-            _log.info("Job submitted to check the snapmirror status of at target: {}", destLocation);
-            return BiosCommandResult.createPendingResult();
+            BiosCommandResult cmdResult = doSetSnapMirrorSchedule(sourceStorage, targetStorage, sourceFs, targetFs, rpo, rpoType);
+            if (cmdResult.getCommandSuccess()) {
+                NetAppSnapMirrorCreateJob mirrorCreateJob = new NetAppSnapMirrorCreateJob(targetPath, targetStorage.getId(),
+                        completer, "createSnapMirror");
+                ControllerServiceImpl.enqueueJob(new QueueJob(mirrorCreateJob));
+                _log.info("Job submitted to check the snapmirror status of at target: {}", targetPath);
+                return BiosCommandResult.createPendingResult();
+            } else {
+                return cmdResult;
+            }
         } catch (Exception e) {
             _log.error("Snapmirror start failed", e);
             ServiceError error = DeviceControllerErrors.netapp.jobFailed("Snapmirror create failed:" + e.getMessage());
@@ -905,9 +890,60 @@ public class NetappMirrorFileOperations implements FileMirrorOperations {
     }
 
     @Override
-    public void doModifyReplicationRPO(StorageSystem system, Long rpoValue, String rpoType, FileShare target, TaskCompleter completer)
-            throws DeviceControllerException {
+    public void
+            doModifyReplicationRPO(StorageSystem sourceStorage, Long rpoValue, String rpoType, FileShare targetFs, TaskCompleter completer)
+                    throws DeviceControllerException {
+
+        _log.info("NetappMirrorFileOperations -  doModifyReplicationRPO started");
+
+        FileShare sourceFs = _dbClient.queryObject(FileShare.class, targetFs.getParentFileShare());
+        StorageSystem targetStorage = _dbClient.queryObject(StorageSystem.class, targetFs.getStorageDevice());
+
+        BiosCommandResult cmdResult = doSetSnapMirrorSchedule(sourceStorage, targetStorage, sourceFs, targetFs, rpoValue, rpoType);
+
+        if (cmdResult.getCommandSuccess()) {
+            completer.ready(_dbClient);
+        } else if (cmdResult.getCommandPending()) {
+            completer.statusPending(_dbClient, cmdResult.getMessage());
+        } else {
+            completer.error(_dbClient, cmdResult.getServiceCoded());
+        }
+        _log.info("NetappMirrorFileOperations -  doModifyReplicationRPO finished");
 
     }
 
+    public BiosCommandResult doSetSnapMirrorSchedule(StorageSystem sourceSystem, StorageSystem targetSystem,
+            FileShare sourceFs, FileShare targetFs, Long rpoValue, String rpoType) {
+
+        String schedulteType = null;
+        switch (rpoType) {
+            case "MINUTES":
+                schedulteType = "minutes";
+                break;
+            case "HOURS":
+                schedulteType = "hours";
+                break;
+            case "DAYS":
+                schedulteType = "days-of-month";
+                break;
+        }
+
+        try {
+            String sourcePath = getLocation(sourceSystem, sourceFs);
+            String portGroupTarget = findVfilerName(targetFs);
+            NetAppApi nApiTarget = new NetAppApi.Builder(targetSystem.getIpAddress(),
+                    targetSystem.getPortNumber(), targetSystem.getUsername(),
+                    targetSystem.getPassword()).https(true).vFiler(portGroupTarget).build();
+
+            String targetPath = getLocation(nApiTarget, targetFs);
+            _log.info("Set snapmirror schedule: RPO every {} {} between source:{}  and target:{}", rpoValue, rpoType, sourcePath,
+                    targetPath);
+            nApiTarget.setScheduleSnapMirror(rpoType, String.valueOf(schedulteType), sourcePath, targetPath);
+            return BiosCommandResult.createSuccessfulResult();
+        } catch (Exception e) {
+            _log.error("Snapmirror setSchedule failed", e);
+            ServiceError error = DeviceControllerErrors.netapp.jobFailed("Snapmirror setSchedule failed:" + e.getMessage());
+            return BiosCommandResult.createErrorResult(error);
+        }
+    }
 }

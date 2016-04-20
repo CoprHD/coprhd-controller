@@ -429,7 +429,7 @@ public class CephStorageDevice extends DefaultBlockStorageDevice {
         Iterator<Initiator> initiatorIterator = initiators.iterator();
         while (initiatorIterator.hasNext()) {
             Initiator initiator = initiatorIterator.next();
-            if (!initiator.getProtocol().equals(Initiator.Protocol.RBD.name())) {
+            if (!initiator.getProtocol().equalsIgnoreCase(Initiator.Protocol.RBD.name())) {
                 initiatorIterator.remove();
             }
         }
@@ -458,7 +458,7 @@ public class CephStorageDevice extends DefaultBlockStorageDevice {
 	            RBDMappingOptions rbdOptions = new RBDMappingOptions(object);
 	            for (Initiator initiator : initiators) {
 	            	Host host = _dbClient.queryObject(Host.class, initiator.getHost());
-	                if (initiator.getProtocol().equals(HostInterface.Protocol.RBD.name())) {
+	                if (initiator.getProtocol().equalsIgnoreCase(HostInterface.Protocol.RBD.name())) {
 	                	_log.info(String.format("mapVolume: host %s pool %s volume %s", host.getHostName(), rbdOptions.poolName, rbdOptions.volumeName));    	
 	                	LinuxSystemCLI linuxClient = getLinuxClient(host);
 	                	String id = linuxClient.mapRBD(monitorAddress, monitorUser, monitorKey, rbdOptions.poolName, rbdOptions.volumeName, rbdOptions.snapshotName);
@@ -504,7 +504,7 @@ public class CephStorageDevice extends DefaultBlockStorageDevice {
 	            for (Initiator initiator : initiators) {
 	            	Host host = _dbClient.queryObject(Host.class, initiator.getHost());
 	                String port = initiator.getInitiatorPort();
-	                if (initiator.getProtocol().equals(HostInterface.Protocol.RBD.name())) {
+	                if (initiator.getProtocol().equalsIgnoreCase(HostInterface.Protocol.RBD.name())) {
 	            		LinuxSystemCLI linuxClient = getLinuxClient(host);
 	            		linuxClient.unmapRBD(rbdOptions.poolName, rbdOptions.volumeName, rbdOptions.snapshotName);
 	            		exportMask.removeVolume(uri);

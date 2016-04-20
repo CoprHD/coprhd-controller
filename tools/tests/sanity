@@ -3805,6 +3805,7 @@ recoverpoint_simulator_setup()
 
     run storagedevice discover_all
     run transportzone assign VSAN_11 ${RECOVERPOINT_VARRAY1}
+    run transportzone assign VSAN_12 ${RECOVERPOINT_VARRAY2}
     run transportzone assign VSAN_13 ${RECOVERPOINT_VARRAY3}
 
     POOLS_AUTO_MATCH=false

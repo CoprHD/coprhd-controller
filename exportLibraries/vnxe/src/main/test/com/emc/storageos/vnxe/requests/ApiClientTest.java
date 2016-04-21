@@ -291,7 +291,7 @@ public class ApiClientTest {
         
     }
 
-    @Test
+    //@Test
     public void restoreSnap() {
         VNXeCommandJob job = apiClient.restoreSnap("38654706051");
         System.out.println(job.getId());
@@ -302,5 +302,12 @@ public class ApiClientTest {
         Snap snap = apiClient.getSnapshot("38654706039");
         System.out.print(snap.getAttachedWWN());
         System.out.print(snap.isAttached());
+    }
+    
+    @Test
+    public void getJob() {
+        JobRequest req = new JobRequest(_client, "N-612");
+        VNXeCommandJob job = req.get();
+        System.out.println(job.getMessageOut().getMessage());
     }
 }

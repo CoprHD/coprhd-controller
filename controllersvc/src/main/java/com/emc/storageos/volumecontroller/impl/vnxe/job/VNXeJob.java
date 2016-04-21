@@ -23,6 +23,7 @@ import com.emc.storageos.exceptions.DeviceControllerErrors;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
 import com.emc.storageos.vnxe.VNXeApiClient;
 import com.emc.storageos.vnxe.VNXeUtils;
+import com.emc.storageos.vnxe.models.MessageOut;
 import com.emc.storageos.vnxe.models.VNXeCommandJob;
 import com.emc.storageos.vnxe.models.VNXePool;
 import com.emc.storageos.volumecontroller.Job;
@@ -81,6 +82,7 @@ public class VNXeJob extends Job implements Serializable {
                 for (String jobId : _jobIds) {
                     currentJob = jobId;
                     VNXeCommandJob jobResult = vnxeApiClient.getJob(jobId);
+                    MessageOut msgOut = jobResult.getMessageOut();
                     int progressPct = jobResult.getProgressPct();
                     int state = jobResult.getState();
                     if (state == VNXeCommandJob.JobStatusEnum.FAILED.getValue()) {
@@ -88,6 +90,9 @@ public class VNXeJob extends Job implements Serializable {
                         isSuccess = false;
                         msg.append("Async task failed for jobID ");
                         msg.append(jobId);
+                        if (msgOut != null) {
+                            msg.append(" " + msgOut.getMessage());
+                        }
                         continue;
                     }
                     if (progressPct == 100 && state != VNXeCommandJob.JobStatusEnum.RUNNING.getValue()) {
@@ -95,6 +100,9 @@ public class VNXeJob extends Job implements Serializable {
                         if (state != VNXeCommandJob.JobStatusEnum.COMPLETED.getValue()) {
                             msg.append("Async task failed for jobID ");
                             msg.append(jobId);
+                            if (msgOut != null) {
+                                msg.append(" " + msgOut.getMessage());
+                            }
                         }
                     }
                 }

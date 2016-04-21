@@ -1544,6 +1544,7 @@ public class VNXeApiClient {
         _logger.info("Exporting lun snap: {}", snapId);
 
         String parentLunId = null;
+        VNXeLun parentLun = null;
         if (!_khClient.isUnity()) { 
             VNXeLunSnap lunSnap = getLunSnapshot(snapId);
             if (lunSnap == null) {
@@ -1562,17 +1563,24 @@ public class VNXeApiClient {
                 _logger.info("Could not find snap in the vxn unity: {}", snapId);
                 throw VNXeException.exceptions.vnxeCommandFailed("Could not find lun snap: " + snapId);
             }
-            if (!snap.isAttached() ) {
+            VNXeBase snapGroup = snap.getSnapGroup();
+            parentLunId = snap.getLun().getId();
+
+            if (snapGroup == null && (!snap.isAttached())) {
                 _logger.info("Attaching the snap: {}", snapId);
                 attachSnap(snapId);
+            } else if (snapGroup != null && (!snap.isAttached())){
+                String groupId = snapGroup.getId();
+                attachSnap(groupId);
             }
-            parentLunId = snap.getLun().getId();
         }
         
         VNXeBase host = prepareHostsForExport(initiators);
 
         // Get host access info of the parent lun
-        VNXeLun parentLun = getLun(parentLunId);
+
+        parentLun = getLun(parentLunId);
+        
         List<BlockHostAccess> hostAccesses = parentLun.getHostAccess();
         boolean snapHostAccessExists = false;
 
@@ -1647,6 +1655,7 @@ public class VNXeApiClient {
             _logger.info("removing host: {} ", initiator.getName());
         }
         String parentLunId = null;
+        String groupId = null;
         if (!_khClient.isUnity()) { 
             VNXeLunSnap lunSnap = getLunSnapshot(snapId);
             if (lunSnap == null) {
@@ -1664,15 +1673,20 @@ public class VNXeApiClient {
                 _logger.info("Could not find snap in the vxn unity: {}", snapId);
                 throw VNXeException.exceptions.vnxeCommandFailed("Could not find lun snap: " + snapId);
             }
-            if (snap.isAttached() ) {
+            VNXeBase snapGroup = snap.getSnapGroup();
+            parentLunId = snap.getLun().getId();
+
+            if (snapGroup == null && (snap.isAttached())) {
                 _logger.info("Detaching the snap: {}", snapId);
                 detachSnap(snapId);
+            } else if (snapGroup != null && snap.isAttached()){
+                _logger.info("Detaching the snap: {}", snapId);
+                groupId = snapGroup.getId();
+                detachSnap(groupId);
             }
-            parentLunId = snap.getLun().getId();
         }
 
         VNXeLun parentLun = getLun(parentLunId);
-        ;
 
         Set<String> removingHosts = findHostsByInitiators(initiators);
         if (removingHosts.isEmpty()) {
@@ -1740,7 +1754,15 @@ public class VNXeApiClient {
             }
         }
         if (needReattach) {
-            attachLunSnap(snapId);
+            if (!_khClient.isUnity()) {
+                attachLunSnap(snapId);
+            } else {
+                if (groupId == null) {
+                    attachSnap(snapId);
+                } else {
+                    attachSnap(groupId);
+                }
+            }
         }
         _logger.info("Done unexporting lun: {}", snapId);
 

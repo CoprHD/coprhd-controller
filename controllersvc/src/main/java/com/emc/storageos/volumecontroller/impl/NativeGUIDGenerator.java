@@ -16,7 +16,6 @@ import java.util.Set;
 import javax.cim.CIMInstance;
 import javax.cim.CIMObjectPath;
 
-import com.emc.storageos.services.util.StorageDriverManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -39,6 +38,7 @@ import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.UCSServiceProfileTemplate;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.plugins.common.Constants;
+import com.emc.storageos.services.util.StorageDriverManager;
 import com.emc.storageos.volumecontroller.impl.monitoring.cim.utility.CIMConstants;
 
 public class NativeGUIDGenerator {
@@ -60,7 +60,7 @@ public class NativeGUIDGenerator {
     public static final String FILESYSTEM = "FILESYSTEM";
 
     public static final String VOLUME = "VOLUME";
-    
+
     public static final String CONSISTENCY_GROUP = "CONSISTENCYGROUP";
 
     public static final String SNAPSHOT = "SNAPSHOT";
@@ -85,6 +85,8 @@ public class NativeGUIDGenerator {
 
     public static final String UN_MANAGED_FILESYSTEM = "UNMANAGEDFILESYSTEM";
 
+    public static final String UN_MANAGED_QUOTADIRECTORY = "UNMANAGEDQUOTADIRECTORY";
+
     public static final String UN_MANAGED_FILE_EXPORT_RULE = "UNMANAGEDFILEEXPORTRULE";
 
     private static final String NAME = "NAME";
@@ -96,7 +98,7 @@ public class NativeGUIDGenerator {
     public static final String PHYSICAL_NAS = "PHYSICALNAS";
 
     public static final String VIRTUAL_NAS = "VIRTUALNAS";
-    
+
     public static final String NAMESPACE = "NAMESPACE";
 
     static {
@@ -109,8 +111,8 @@ public class NativeGUIDGenerator {
 
     // Cannot get this bean from ControllerServiceImpl context,
     // since ControllerServiceImpl is not loaded by spring in apisvc (it is passed in ZK). The context is null.
-    private static StorageDriverManager storageDriverManager = (StorageDriverManager)StorageDriverManager.
-           getApplicationContext().getBean("storageDriverManager");
+    private static StorageDriverManager storageDriverManager = (StorageDriverManager) StorageDriverManager.getApplicationContext()
+            .getBean("storageDriverManager");
 
     /**
      * static block maps the names existed as part of indications with the corresponding devices
@@ -223,9 +225,12 @@ public class NativeGUIDGenerator {
      * TransportType is FC, DeviceType is mds or brocade and FabricWWN is
      * the unique WWN assigned to the fabric.
      * 
-     * @param transportType - FC
-     * @param deviceType - mds or brocade
-     * @param fabricId - the fabric WWN
+     * @param transportType
+     *            - FC
+     * @param deviceType
+     *            - mds or brocade
+     * @param fabricId
+     *            - the fabric WWN
      * @return String nativeGuid
      */
     public static String generateTransportZoneNativeGuid(String transportType, String deviceType, String fabricId) {
@@ -235,8 +240,10 @@ public class NativeGUIDGenerator {
     /**
      * The format of this native guid using the given deviceType & SerialNumber.
      * 
-     * @param deviceType : DeviceType.
-     * @param serialNumber : serialNumber.
+     * @param deviceType
+     *            : DeviceType.
+     * @param serialNumber
+     *            : serialNumber.
      * @return nativeGuid of the system.
      */
     public static String generateNativeGuid(String deviceType, String serialNumber) {
@@ -276,11 +283,15 @@ public class NativeGUIDGenerator {
     }
 
     /**
-     * Generates the native guid format as StorageSystem+SerialNumber+<<TYPE>>+UNIQUE_ID for port, adapter & pool Objects.
+     * Generates the native guid format as StorageSystem+SerialNumber+<<TYPE>>+UNIQUE_ID for port, adapter & pool
+     * Objects.
      * 
-     * @param device : storage system.
-     * @param uniqueId : unique name.
-     * @param type : type of the object to generated nativeGuid.
+     * @param device
+     *            : storage system.
+     * @param uniqueId
+     *            : unique name.
+     * @param type
+     *            : type of the object to generated nativeGuid.
      * @return nativeGuid.
      * @throws IOException
      */
@@ -293,11 +304,15 @@ public class NativeGUIDGenerator {
     }
 
     /**
-     * Generates the native guid format as ProtectionSystem+InstallationId+<<TYPE>>+UNIQUE_ID for port, adapter & pool Objects.
+     * Generates the native guid format as ProtectionSystem+InstallationId+<<TYPE>>+UNIQUE_ID for port, adapter & pool
+     * Objects.
      * 
-     * @param device : storage system.
-     * @param uniqueId : unique name.
-     * @param type : type of the object to generated nativeGuid.
+     * @param device
+     *            : storage system.
+     * @param uniqueId
+     *            : unique name.
+     * @param type
+     *            : type of the object to generated nativeGuid.
      * @return nativeGuid.
      * @throws IOException
      */
@@ -360,7 +375,8 @@ public class NativeGUIDGenerator {
     }
 
     /**
-     * Generates the native guid for provider triggered indications of type VNX and VMAX StoragePool and VolumeView Indications
+     * Generates the native guid for provider triggered indications of type VNX and VMAX StoragePool and VolumeView
+     * Indications
      * Example Values for reference :
      * SourceInstanceModelPathInstanceID : SYMMETRIX+000195900704+TP+GopiTest
      * SourceInstanceModelPathCompositeID : SYMMETRIX+000195900704+TP+GopiTest
@@ -460,8 +476,7 @@ public class NativeGUIDGenerator {
                 device.getSerialNumber(), snapshot.getNativeId());
     }
 
-    public static String getNativeGuidforSnapshot(StorageSystem deviceType, String serialNumber, String nativeId)
-    {
+    public static String getNativeGuidforSnapshot(StorageSystem deviceType, String serialNumber, String nativeId) {
         _logger.info("Device Type : {} Serial No : {} nativeId : {}", new Object[] { _deviceTypeMap.get(deviceType.getSystemType()),
                 serialNumber, nativeId });
         return String.format("%s+%s+SNAPSHOT+%s", _deviceTypeMap.get(deviceType.getSystemType()), serialNumber, nativeId);
@@ -490,6 +505,18 @@ public class NativeGUIDGenerator {
                 device.getSerialNumber(), fs.getName(), quotaDirName);
     }
 
+    public static String generateNativeGuidForQuotaDir(String deviceType, String serialNumber, String quotaDirName, String fsName)
+            throws IOException {
+        return String.format("%s+%s+%s+" + QUOTADIRECTORY + "+%s", _deviceTypeMap.get(deviceType),
+                serialNumber, fsName, quotaDirName);
+    }
+
+    public static String generateNativeGuidForUnManagedQuotaDir(String deviceType, String serialNumber, String quotaDirName, String fsName)
+            throws IOException {
+        return String.format("%s+%s+%s+" + UN_MANAGED_QUOTADIRECTORY + "+%s", _deviceTypeMap.get(deviceType),
+                serialNumber, fsName, quotaDirName);
+    }
+
     /**
      * Generates the format StorageSystem+SerialNumber+FILESYSTEM+NativeId native guid for FileShare Objects
      * 
@@ -502,8 +529,7 @@ public class NativeGUIDGenerator {
         return String.format("%s+%s+" + FILESYSTEM + "+%s", _deviceTypeMap.get(deviceType), serialNumber, fileShareNativeId);
     }
 
-    private static String getNativeGuidforPool(String deviceType, String serialNumber, String poolNativeId)
-    {
+    private static String getNativeGuidforPool(String deviceType, String serialNumber, String poolNativeId) {
         return String.format("%s+%s+POOL+%s", deviceType, serialNumber, poolNativeId);
     }
 
@@ -518,7 +544,8 @@ public class NativeGUIDGenerator {
     public static String generateNativeGuid(DbClient dbClient, StoragePool pool) throws IOException {
         StorageSystem device = dbClient.queryObject(StorageSystem.class, pool.getStorageDevice());
         return getNativeGuidforPool(_deviceTypeMap.get(device.getSystemType()), device.getSerialNumber(), pool.getNativeId());
-        // String.format("%s+%s+"+POOL+"+%s", _deviceTypeMap.get(device.getDeviceType()), device.getSerialNumber(), pool.getNativeId());
+        // String.format("%s+%s+"+POOL+"+%s", _deviceTypeMap.get(device.getDeviceType()), device.getSerialNumber(),
+        // pool.getNativeId());
     }
 
     /**
@@ -610,7 +637,8 @@ public class NativeGUIDGenerator {
      * Returns the tiering policy key string used for AutoTieringPolicy
      * NativeGuid generation for the given system type.
      * 
-     * @param system storage system
+     * @param system
+     *            storage system
      * @return tiering policy key
      */
     public static String getTieringPolicyKeyForSystem(StorageSystem system) {
@@ -657,6 +685,13 @@ public class NativeGUIDGenerator {
 
     }
 
+    public static String generateNativeGuidForPreExistingQuotaDirectory(String deviceType, String serialNumber,
+            String quotaDirectoryNativeId) {
+        return String.format("%s+%s+" + UN_MANAGED_QUOTADIRECTORY + "+%s", _deviceTypeMap.get(deviceType), serialNumber,
+                quotaDirectoryNativeId);
+
+    }
+
     public static String generateNativeGuidForVolumeOrBlockSnapShot(String systemNativeGuid, String snapShotId) {
         return String.format("%s+" + VOLUME + "+%s", systemNativeGuid, snapShotId);
 
@@ -666,7 +701,7 @@ public class NativeGUIDGenerator {
         return String.format("%s+" + CONSISTENCY_GROUP + "+%s", systemNativeGuid, cgGuid);
 
     }
-    
+
     public static String generateNativeGuidForExportMask(String systemNativeGuid, String maskName) {
         return String.format("%s+" + MASKINGVIEW + "+%s", systemNativeGuid, maskName);
 
@@ -685,8 +720,10 @@ public class NativeGUIDGenerator {
     /**
      * Generates the NativeGuid format as SystemNativeGuid+VirtualNasName for Virtual NAS.
      * 
-     * @param System NativeGuid.
-     * @param vNasName : virtual NAS name.
+     * @param System
+     *            NativeGuid.
+     * @param vNasName
+     *            : virtual NAS name.
      * @return nativeGuid.
      */
     public static String generateNativeGuidForVirtualNAS(String systemNativeGuid, String vNasName) {
@@ -696,8 +733,10 @@ public class NativeGUIDGenerator {
     /**
      * Generates the NativeGuid format as SystemNativeGuid+PhysicalNasName for Physical NAS.
      * 
-     * @param System NativeGuid.
-     * @param pNasName : physical NAS name.
+     * @param System
+     *            NativeGuid.
+     * @param pNasName
+     *            : physical NAS name.
      * @return nativeGuid.
      */
     public static String generateNativeGuidForPhysicalNAS(String systemNativeGuid, String pNasName) {
@@ -777,7 +816,7 @@ public class NativeGUIDGenerator {
         return String.format("%s+%s+" + UN_MANAGED_FILE_SHARE + "+%s", _deviceTypeMap.get(storageSystem.getSystemType()), storageSystem
                 .getSerialNumber().toUpperCase(), fileShareNativeId);
     }
-    
+
     public static String generateNativeGuidForNamespace(StorageSystem device, String uniqueId, String type) {
         return String.format("%s+%s+%s+%s", _deviceTypeMap.get(device.getSystemType()), device.getSerialNumber(), type, uniqueId);
     }

@@ -22,10 +22,12 @@ public class FileSystemQuotaConfigRequests extends KHRequests<VNXUnityQuotaConfi
     private static final String URL = "/api/types/quotaConfig/instances";
     private static final String URL_INSTANCE = "/api/instances/quotaConfig/";
     private static final String URL_MODIFY = "/action/modify";
+    private static final String FIELDS = "filesystem,treeQuota,defaultHardLimit,defaultSoftLimit,gracePeriod";
 
     public FileSystemQuotaConfigRequests(KHClient client) {
         super(client);
         _url = URL;
+        _fields = FIELDS;
     }
 
     /**

@@ -53,6 +53,11 @@ public class PrefixDbIndex extends DbIndex {
             String className, RowMutator mutator,
             Map<String, List<Column<CompositeColumnName>>> fieldColumnMap) {
         String text = column.getStringValue();
+        if (text.isEmpty() || text.length() < minPrefixChars) {
+            _log.warn("String too short in prefix index field: {}, value: {}", fieldName, text);
+            return false;
+        }
+        
         String indexRowKey = getRowKey(column);
 
         ColumnListMutation<IndexColumnName> indexColList = mutator.getIndexColumnList(indexCF, indexRowKey);
@@ -69,9 +74,9 @@ public class PrefixDbIndex extends DbIndex {
 
     public String getRowKey(String value) {
         if (value.length() < minPrefixChars) {
-            throw new IllegalArgumentException();
+            _log.warn("Value is too short for prefix index : {}", value);
+            return value;
         }
-
         return value.toLowerCase().substring(0, minPrefixChars);
     }
 

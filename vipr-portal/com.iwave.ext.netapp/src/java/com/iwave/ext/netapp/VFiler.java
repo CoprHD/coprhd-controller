@@ -302,7 +302,14 @@ public class VFiler {
     }
 
     boolean startCifsService(String vFilerName) {
-        NaElement elem = new NaElement("cifs-start");
+        NaElement elem = new NaElement("cifs-setup");
+        elem.addNewChild("auth-type", "ad");
+        elem.addNewChild("domain-name", "provisioning.bourne.local");
+        elem.addNewChild("login-password", "Dangerous2");
+        elem.addNewChild("login-user", "Administrator");
+        elem.addNewChild("security-style", "ntfs");
+        elem.addNewChild("server-name", "test");
+        elem.addNewChild("site-name", "default-first-site-name");
 
         try {
             server.invokeElem(elem);

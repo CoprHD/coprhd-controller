@@ -1046,6 +1046,8 @@ public class NetAppApi {
                 if (args.getAddProtocols() != null && !args.getAddProtocols().isEmpty()) {
                     Boolean protocolStatus = netAppFacade.allowVnasProtocols(args.getvNasName(), args.getAddProtocols(), CREATE_VFILER);
                     if (protocolStatus && args.getAddProtocols().contains("cifs")) {
+                        netAppFacade = new NetAppFacade(_ipAddress, _portNumber, _userName,
+                                _password, _https, args.getvNasName());
                         netAppFacade.startCifsService(args.getvNasName());
                     }
                 }

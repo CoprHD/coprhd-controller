@@ -2778,6 +2778,7 @@
 				<entry key="controller_ns_discovery_refresh_interval" value-ref="controller_ns_discovery_refresh_interval" />
 				<entry key="controller_compute_discovery_refresh_interval" value-ref="controller_compute_discovery_refresh_interval" />
 				<entry key="controller_cs_discovery_refresh_interval" value-ref="controller_cs_discovery_refresh_interval" />
+				<entry key="controller_enable_auto_discovery_metering_scan_single_node_deployments" value-ref="controller_enable_auto_discovery_metering_scan_single_node_deployments" />
 				<entry key="controller_enable_metering" value-ref="controller_enable_metering" />
 				<entry key="controller_enable_autodiscovery" value-ref="controller_enable_autodiscovery" />
 				<entry key="controller_enable_autoscan" value-ref="controller_enable_autoscan" />

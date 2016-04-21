@@ -11,8 +11,10 @@ import java.net.URI;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 
 import javax.ws.rs.Consumes;
 import javax.ws.rs.GET;
@@ -40,13 +42,14 @@ import com.emc.storageos.db.client.model.CifsShareACL;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.FileExportRule;
 import com.emc.storageos.db.client.model.FileShare;
-import com.emc.storageos.db.client.model.NASServer;
 import com.emc.storageos.db.client.model.NFSShareACL;
 import com.emc.storageos.db.client.model.NamedURI;
+import com.emc.storageos.db.client.model.OpStatusMap;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.Operation.Status;
-import com.emc.storageos.db.client.model.PhysicalNAS;
 import com.emc.storageos.db.client.model.Project;
+import com.emc.storageos.db.client.model.QuotaDirectory;
+import com.emc.storageos.db.client.model.QuotaDirectory.SecurityStyles;
 import com.emc.storageos.db.client.model.StorageHADomain;
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StoragePort;
@@ -61,6 +64,7 @@ import com.emc.storageos.db.client.model.VirtualNAS;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedCifsShareACL;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedFileExportRule;
+import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedFileQuotaDirectory;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedFileSystem;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedFileSystem.SupportedFileSystemInformation;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedNFSShareACL;
@@ -86,8 +90,8 @@ import com.emc.storageos.volumecontroller.impl.monitoring.RecordableEventManager
 import com.emc.storageos.volumecontroller.impl.monitoring.cim.enums.RecordType;
 
 @Path("/vdc/unmanaged/filesystems")
-@DefaultPermissions(readRoles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR },
-        writeRoles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
+@DefaultPermissions(readRoles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR }, writeRoles = { Role.SYSTEM_ADMIN,
+        Role.RESTRICTED_SYSTEM_ADMIN })
 public class UnManagedFilesystemService extends TaggedResource {
     private static final String EVENT_SERVICE_TYPE = "file";
     private static final String EVENT_SERVICE_SOURCE = "UnManagedFilesystemService";
@@ -116,7 +120,8 @@ public class UnManagedFilesystemService extends TaggedResource {
      * 
      * Show the details of an unmanaged file system.
      * 
-     * @param id the URN of a ViPR unmanaged file system
+     * @param id
+     *            the URN of a ViPR unmanaged file system
      * @prereq none
      * @brief Show unmanaged file system
      * @return UnManagedFileSystemRestRep
@@ -142,12 +147,14 @@ public class UnManagedFilesystemService extends TaggedResource {
     /**
      * List data of specified unmanaged file systems.
      * 
-     * @param param POST data containing the id list.
+     * @param param
+     *            POST data containing the id list.
      * @prereq none
      * @brief List data of unmanaged file systems.
      * @return list of representations.
      * 
-     * @throws DatabaseException When an error occurs querying the database.
+     * @throws DatabaseException
+     *             When an error occurs querying the database.
      */
     @POST
     @Path("/bulk")
@@ -187,7 +194,8 @@ public class UnManagedFilesystemService extends TaggedResource {
      * Size of unmanaged file systems which can be ingested via a single API Call
      * is limited to 4000.
      * 
-     * @param param parameters required for unmanaged filesystem ingestion
+     * @param param
+     *            parameters required for unmanaged filesystem ingestion
      * 
      * @prereq none
      * @brief Ingest unmanaged file systems
@@ -262,6 +270,7 @@ public class UnManagedFilesystemService extends TaggedResource {
                     param.getUnManagedFileSystems(), cos, _dbClient);
 
             List<FileShare> filesystems = new ArrayList<FileShare>();
+            Map<URI, FileShare> unManagedFSURIToFSMap = new HashMap<>();
             List<FileExportRule> fsExportRules = new ArrayList<FileExportRule>();
 
             List<CifsShareACL> fsCifsShareAcls = new ArrayList<CifsShareACL>();
@@ -398,7 +407,7 @@ public class UnManagedFilesystemService extends TaggedResource {
                 if (nasUri != null) {
                     filesystem.setVirtualNAS(URI.create(nasUri));
                 }
-
+                unManagedFSURIToFSMap.put(unManagedFileSystemUri, filesystem);
                 URI storageSystemUri = unManagedFileSystem.getStorageSystemUri();
                 StorageSystem system = _dbClient.queryObject(StorageSystem.class, storageSystemUri);
                 if (full_systems.contains(storageSystemUri)) {
@@ -467,7 +476,8 @@ public class UnManagedFilesystemService extends TaggedResource {
                             for (UnManagedFileExportRule rule : exports) {
                                 // Step 2 : Convert them to File Export Rule
                                 // Step 3 : Keep them as a list to store in db, down the line at a shot
-                                rule.setFileSystemId(filesystem.getId()); // Important to relate the exports to a FileSystem.
+                                rule.setFileSystemId(filesystem.getId()); // Important to relate the exports to a
+                                                                          // FileSystem.
                                 createRule(rule, fsExportRules);
                                 // Step 4: Update the UnManaged Exports : Set Inactive as true
                                 rule.setInactive(true);
@@ -505,7 +515,8 @@ public class UnManagedFilesystemService extends TaggedResource {
                             for (UnManagedCifsShareACL umCifsAcl : cifsACLs) {
                                 // Step 2 : Convert them to Cifs Share ACL
                                 // Step 3 : Keep them as a list to store in db, down the line at a shot
-                                umCifsAcl.setFileSystemId(filesystem.getId()); // Important to relate the shares to a FileSystem.
+                                umCifsAcl.setFileSystemId(filesystem.getId()); // Important to relate the shares to a
+                                                                               // FileSystem.
                                 createACL(umCifsAcl, fsCifsShareAcls, filesystem);
                                 // Step 4: Update the UnManaged Share ACL : Set Inactive as true
                                 umCifsAcl.setInactive(true);
@@ -523,8 +534,9 @@ public class UnManagedFilesystemService extends TaggedResource {
                         for (UnManagedNFSShareACL umNfsAcl : nfsACLs) {
                             // Step 2 : Convert them to nfs Share ACL
                             // Step 3 : Keep them as a list to store in db, down the line at a shot
-                            umNfsAcl.setFileSystemId(filesystem.getId()); // Important to relate the shares to a FileSystem.
-                            if(umNfsAcl.getPermissions().isEmpty()){
+                            umNfsAcl.setFileSystemId(filesystem.getId()); // Important to relate the shares to a
+                                                                          // FileSystem.
+                            if (umNfsAcl.getPermissions().isEmpty()) {
                                 continue;
                             }
                             createNFSACL(umNfsAcl, fsNfsShareAcls, filesystem);
@@ -576,6 +588,11 @@ public class UnManagedFilesystemService extends TaggedResource {
                 _logger.info(" --> Fs  Storage Pool {} and Virtual Pool {}", fs.getPool(), fs.getVirtualPool());
             }
             _dbClient.createObject(filesystems);
+
+            for (URI unManagedFSURI : param.getUnManagedFileSystems()) {
+                _logger.info("ingesting quota directories for filesystem {}", unManagedFSURIToFSMap.get(unManagedFSURI).getId());
+                ingestFileQuotaDirectories(unManagedFSURIToFSMap.get(unManagedFSURI));
+            }
 
             i = 0;
             // Test
@@ -643,6 +660,60 @@ public class UnManagedFilesystemService extends TaggedResource {
         return filesystemList;
     }
 
+    private void ingestFileQuotaDirectories(FileShare parentFS) {
+        String parentFsNativeGUID = parentFS.getNativeGuid();
+        URIQueryResultList result = new URIQueryResultList();
+        List<QuotaDirectory> quotaDirectories = new ArrayList<>();
+
+        _dbClient.queryByConstraint(AlternateIdConstraint.Factory
+                .getUnManagedFileQuotaDirectoryInfoParentNativeGUIdConstraint(parentFsNativeGUID), result);
+        List<UnManagedFileQuotaDirectory> unManagedFileQuotaDirectories = _dbClient.queryObject(UnManagedFileQuotaDirectory.class, result);
+        _logger.info("found {} quota directories for fs {}", unManagedFileQuotaDirectories.size(), parentFS.getId());
+        for (UnManagedFileQuotaDirectory unManagedFileQuotaDirectory : unManagedFileQuotaDirectories) {
+            QuotaDirectory quotaDirectory = new QuotaDirectory();
+            quotaDirectory.setId(URIUtil.createId(QuotaDirectory.class));
+            quotaDirectory.setParent(new NamedURI(parentFS.getId(),
+                    unManagedFileQuotaDirectory.getLabel()));
+            quotaDirectory.setLabel(unManagedFileQuotaDirectory.getLabel());
+            quotaDirectory.setOpStatus(new OpStatusMap());
+            quotaDirectory.setProject(new NamedURI(parentFS.getProject().getURI(), unManagedFileQuotaDirectory.getLabel()));
+            quotaDirectory.setTenant(new NamedURI(parentFS.getTenant().getURI(), unManagedFileQuotaDirectory.getLabel()));
+
+            quotaDirectory.setSoftLimit(
+                    unManagedFileQuotaDirectory.getSoftLimit() != 0 ? unManagedFileQuotaDirectory.getSoftLimit()
+                            : parentFS.getSoftLimit() != null ? parentFS.getSoftLimit().intValue() : 0);
+            quotaDirectory.setSoftGrace(
+                    unManagedFileQuotaDirectory.getSoftGrace() != 0 ? unManagedFileQuotaDirectory.getSoftGrace()
+                            : parentFS.getSoftGracePeriod() != null ? parentFS.getSoftGracePeriod() : 0);
+            quotaDirectory.setNotificationLimit(
+                    unManagedFileQuotaDirectory.getNotificationLimit() != 0 ? unManagedFileQuotaDirectory.getNotificationLimit()
+                            : parentFS.getNotificationLimit() != null ? parentFS.getNotificationLimit().intValue() : 0);
+            String convertedName = unManagedFileQuotaDirectory.getLabel().replaceAll("[^\\dA-Za-z_]", "");
+            _logger.info("FileService::QuotaDirectory Original name {} and converted name {}", unManagedFileQuotaDirectory.getLabel(),
+                    convertedName);
+            quotaDirectory.setName(convertedName);
+            if (unManagedFileQuotaDirectory.getOpLock() != null) {
+                quotaDirectory.setOpLock(unManagedFileQuotaDirectory.getOpLock());
+            } else {
+                quotaDirectory.setOpLock(true);
+            }
+            quotaDirectory.setSize(unManagedFileQuotaDirectory.getSize());
+            quotaDirectory.setSecurityStyle(SecurityStyles.parent.toString());// TODO get it from feed
+
+            quotaDirectories.add(quotaDirectory);
+        }
+
+        if (!quotaDirectories.isEmpty()) {
+            _dbClient.persistObject(quotaDirectories);
+        }
+
+        if (!unManagedFileQuotaDirectories.isEmpty()) {
+            unManagedFileQuotaDirectories.forEach(unManagedFileQuotaDir -> unManagedFileQuotaDir.setInactive(true));
+            _dbClient.persistObject(unManagedFileQuotaDirectories);
+        }
+        _logger.info("ingested {} quota directories for fs {}", unManagedFileQuotaDirectories.size(), parentFS.getId());
+    }
+
     private void createRule(UnManagedFileExportRule orig, List<FileExportRule> fsExportRules) {
         FileExportRule dest = new FileExportRule();
         dest.setId(URIUtil.createId(FileExportRule.class));
@@ -669,8 +740,7 @@ public class UnManagedFilesystemService extends TaggedResource {
         fsExportRules.add(dest);
     }
 
-    private List<UnManagedFileExportRule> queryDBFSExports(UnManagedFileSystem fs)
-    {
+    private List<UnManagedFileExportRule> queryDBFSExports(UnManagedFileSystem fs) {
         _logger.info("Querying all ExportRules Using FsId {}", fs.getId());
         try {
             ContainmentConstraint containmentConstraint = ContainmentConstraint.Factory.getUnManagedFileExportRulesConstraint(fs.getId());
@@ -685,8 +755,7 @@ public class UnManagedFilesystemService extends TaggedResource {
         return new ArrayList<UnManagedFileExportRule>();
     }
 
-    private List<UnManagedCifsShareACL> queryDBCifsShares(UnManagedFileSystem fs)
-    {
+    private List<UnManagedCifsShareACL> queryDBCifsShares(UnManagedFileSystem fs) {
         _logger.info("Querying All Cifs Share ACLs Using FsId {}", fs.getId());
         try {
             ContainmentConstraint containmentConstraint = ContainmentConstraint.Factory.getUnManagedCifsShareAclsConstraint(fs.getId());
@@ -706,8 +775,7 @@ public class UnManagedFilesystemService extends TaggedResource {
      * @param fs
      * @return List<UnManagedNFSShareACLs
      */
-    private List<UnManagedNFSShareACL> queryDBNfsShares(UnManagedFileSystem fs)
-    {
+    private List<UnManagedNFSShareACL> queryDBNfsShares(UnManagedFileSystem fs) {
         _logger.info("Querying All Nfs Share ACLs Using FsId {}", fs.getId());
         try {
             ContainmentConstraint containmentConstraint = ContainmentConstraint.Factory.getUnManagedNfsShareAclsConstraint(fs.getId());
@@ -729,8 +797,7 @@ public class UnManagedFilesystemService extends TaggedResource {
      * @param fileshare
      */
 
-    private void copyACLs(List<UnManagedCifsShareACL> origACLList, List<CifsShareACL> shareACLList, FileShare fileshare)
-    {
+    private void copyACLs(List<UnManagedCifsShareACL> origACLList, List<CifsShareACL> shareACLList, FileShare fileshare) {
         CifsShareACL shareACL = null;
         for (UnManagedCifsShareACL origACL : origACLList) {
 
@@ -810,8 +877,8 @@ public class UnManagedFilesystemService extends TaggedResource {
     private StoragePort getIsilonStoragePort(StoragePort umfsStoragePort, URI virtualArray) {
 
         List<URI> virtualArrayPorts = returnAllPortsInVArray(virtualArray);
-        
-        if(virtualArrayPorts.contains(umfsStoragePort.getId())){
+
+        if (virtualArrayPorts.contains(umfsStoragePort.getId())) {
             return umfsStoragePort;
         }
         return null;
@@ -825,11 +892,16 @@ public class UnManagedFilesystemService extends TaggedResource {
     /**
      * Record filesystem related event and audit
      * 
-     * @param dbClient db client
-     * @param opType operation type
-     * @param status operation status
-     * @param evDesc event description
-     * @param extParam parameters array from which we could generate detail
+     * @param dbClient
+     *            db client
+     * @param opType
+     *            operation type
+     * @param status
+     *            operation status
+     * @param evDesc
+     *            event description
+     * @param extParam
+     *            parameters array from which we could generate detail
      *            audit message
      */
     public void recordFileSystemOperation(DbClient dbClient, OperationTypeEnum opType,
@@ -972,7 +1044,7 @@ public class UnManagedFilesystemService extends TaggedResource {
      */
     public void recordBourneFileSystemEvent(DbClient dbClient,
             String evtType, Operation.Status status, String desc, URI id)
-            throws Exception {
+                    throws Exception {
 
         RecordableEventManager eventManager = new RecordableEventManager();
         eventManager.setDbClient(dbClient);
@@ -996,11 +1068,14 @@ public class UnManagedFilesystemService extends TaggedResource {
     }
 
     /**
-     * Check to see if StoragePort has a StorageHADomain associated (for example in vnxfile case), if does check all the ports that belong
+     * Check to see if StoragePort has a StorageHADomain associated (for example in vnxfile case), if does check all the
+     * ports that belong
      * to the
-     * StorageDomain and verify to see if any of the ports belong to Neighborhood. If there is a match, associate that port to Filesystem's
+     * StorageDomain and verify to see if any of the ports belong to Neighborhood. If there is a match, associate that
+     * port to Filesystem's
      * StoragePort feild.
-     * If StorageHADomain doesn't exists for port (in case of netapp and isilon). Get all the ports for storagesystem and select a random
+     * If StorageHADomain doesn't exists for port (in case of netapp and isilon). Get all the ports for storagesystem
+     * and select a random
      * storageport to be
      * able to associate one of the FileSystem's StoragePort.
      * 

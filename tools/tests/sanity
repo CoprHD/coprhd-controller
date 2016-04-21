@@ -2876,35 +2876,47 @@ recoverpoint_export_bookmark_tests()
         volspec="$(printf "%s,"  ${all_bookmarks[@]} | cut -d "," -f 1-${#all_bookmarks[@]})"
         fail export_group create $PROJECT ${RP_EXPORT_GROUP} ${rp_src_varray} --type Host --volspec ${volspec} --hosts "${RP_HOSTNAME}"
     fi
-	
+
+    secho 'Creating 2 RP bookmarks for the same volume.'
+
     for failtest in 1 2
     do
-        secho 'Creating 2 RP bookmarks for the same volume.'
         run blocksnapshot create ${PROJECT}/${rpvolume}${volume_name_modifier} ${rpsnap}-failtest${failtest} --type rp
-	for tgt_varray in ${rp_tgt_varrays}
-	do
-            # Show the bookmark that was created for each target virtual copy (virtual array)
-            blocksnapshot show ${PROJECT}/${rpvolume}${volume_name_modifier}/${rpsnap}-failtest${failtest}-${tgt_varray}
+        for tgt_varray in ${rp_tgt_varrays}
+        do
+            # A BlockSnapshot gets created for each target copy (varray)
+            blocksnapshot show ${PROJECT}/${rpvolume}${volume_identifier}/${rpsnap}-failtest${failtest}-${tgt_varray}
         done
     done
 
     secho 'Export RP bookmark'
-    run export_group create $PROJECT ${RP_EXPORT_GROUP} ${rp_src_varray} --type Host --volspec ${PROJECT}/${rpvolume}/${rpsnap}-failtest1-${tgt_varray[0]} --hosts "${RP_HOSTNAME}"
-    run export_group show ${rpexport}
+    run export_group create $PROJECT ${RP_EXPORT_GROUP} ${rp_src_varray} --type Host --volspec ${PROJECT}/${rpvolume}/${rpsnap}-failtest1-${rp_tgt_varrays[0]} --hosts "${RP_HOSTNAME}"
+    export_group show ${rpexport}
     secho 'Exporting RP bookmark for the same target copy as a bookmark already exported - expected failure'
-    fail export_group update ${rpexport} --addVolspec ${PROJECT}/${rpvolume}/${rpsnap}-failtest2-${tgt_varray[0]}
+    fail export_group update ${rpexport} --addVolspec ${PROJECT}/${rpvolume}/${rpsnap}-failtest2-${rp_tgt_varrays[0]}
     secho 'Removing export'
     run export_group delete ${rpexport}
-		
+
+    sleep 20
+
+    for failtest in 1 2
+    do
+        secho 'Deleting RP bookmarks created for export failure tests'
+        for tgt_varray in ${rp_tgt_varrays}
+        do
+            blocksnapshot delete ${PROJECT}/${rpvolume}${volume_name_modifier}/${rpsnap}-failtest${failtest}-${tgt_varray}
+        done
+    done
+
     for tgt_varray in ${rp_tgt_varrays}
     do
         secho 'Running RP bookmarks export tests for each target copy'
-        run export_group create $PROJECT ${RP_EXPORT_GROUP} ${rp_src_varray} --type Host --volspec ${PROJECT}/${rpvolume}/${rpsnap}${volume_name_modifier}-${tgt_varray} --hosts "${RP_HOSTNAME}"
-        run export_group show ${rpexport}
-        run export_group update ${rpexport} --remVol ${PROJECT}/${rpvolume}/${rpsnap}${volume_name_modifier}-${tgt_varray}
-	run export_group update ${rpexport} --addVolspec ${PROJECT}/${rpvolume}/${rpsnap}${volume_name_modifier}-${tgt_varray}
-	run export_group show ${rpexport}
-	run export_group delete ${rpexport}
+        run export_group create $PROJECT ${RP_EXPORT_GROUP}2 ${rp_src_varray} --type Host --volspec ${PROJECT}/${rpvolume}/${rpsnap}${volume_name_modifier}-${tgt_varray} --hosts "${RP_HOSTNAME}"
+        export_group show ${rpexport}2
+        run export_group update ${rpexport}2 --remVol ${PROJECT}/${rpvolume}/${rpsnap}${volume_name_modifier}-${tgt_varray}
+	run export_group update ${rpexport}2 --addVolspec ${PROJECT}/${rpvolume}/${rpsnap}${volume_name_modifier}-${tgt_varray}
+	export_group show ${rpexport}2
+	run export_group delete ${rpexport}2
     done
 
     secho 'Done with RecoverPoint bookmark export, cleaning up'
@@ -2915,7 +2927,7 @@ recoverpoint_export_bookmark_tests()
             volume_identifier=''
             if [ "$RP_VOLUME_COUNT" -gt "1" ]; then
                 volume_identifier='-'${i}
-            fi 
+            fi
 	    run blocksnapshot delete ${PROJECT}/${rpvolume}/${rpsnap}${volume_identifier}-${tgt_varray}
         done
     done

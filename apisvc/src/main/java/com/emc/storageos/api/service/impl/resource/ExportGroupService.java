@@ -474,8 +474,10 @@ public class ExportGroupService extends TaskResourceService {
                     blockObjURIs.add(volParam.getId());
                 }
 
-                for (Map.Entry<String, String> entry : exportGroup.getVolumes().entrySet()) {
-                    blockObjURIs.add(URI.create(entry.getKey()));
+                if (exportGroup.getVolumes() != null) {
+                    for (Map.Entry<String, String> entry : exportGroup.getVolumes().entrySet()) {
+                        blockObjURIs.add(URI.create(entry.getKey()));
+                    }
                 }
 
                 // validate the RP BlockSnapshots for ExportGroup create

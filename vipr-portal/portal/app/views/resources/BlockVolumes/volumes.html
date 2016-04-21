@@ -52,12 +52,26 @@
 
 <p id="srdfAlert" class="alert alert-info" style="display:none">&{'resources.volume.disabledSRDF'}</p> 
 
+
+%{
+      options = [
+            'sDom': '"lfrti"',
+            'sPaginationType': '"full_numbers"',
+            'bPaginate':'false',
+    		'sPaging': 'false',
+            'bScrollInfinite': 'true',
+            'bScrollCollapse': 'true',
+            'sScrollY': '"220px"',
+      ]
+     
+}%
+    
 #{DataTable.header titleKey:'nav.block.volumes' /}  
 #{DataTable.table id:'volumes',
 				  expandable:true,
                   dataTable:dataTable,
                   source:@volumesJson(session.activeProjectId), 
-                  cssClass:'editableRows',
+                  cssClass:'editableRows',options:options,
                   selectable:true}
   #{DataTable.buttonBar}
     <div class="btn-group">

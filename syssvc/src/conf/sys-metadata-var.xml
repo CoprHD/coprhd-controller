@@ -1169,6 +1169,20 @@
 		<property name="value" value="60" />
 		<property name="controlNodeOnly" value="true" />
 	</bean>
+	<bean id="controller_enable_auto_discovery_metering_scan_single_node_deployments" class="com.emc.storageos.model.property.PropertyMetadata">
+		<property name="label" value="Enable Metering" />
+		<property name="description" value="Indicates whether automatic discovery/metering/scanning is overridden as disabled on single node deployments." />
+		<property name="type" value="string" />
+		<property name="allowedValues" value="true,false" />
+		<property name="tag" value="Controller" />
+		<property name="advanced" value="true" />
+		<property name="userMutable" value="true" />
+		<property name="userConfigurable" value="false" />
+		<property name="reconfigRequired" value="false" />
+		<property name="rebootRequired" value="true" />
+		<property name="value" value="true" />
+		<property name="controlNodeOnly" value="true" />
+	</bean>
 	<bean id="controller_enable_metering" class="com.emc.storageos.model.property.PropertyMetadata">
 		<property name="label" value="Enable Metering" />
 		<property name="description" value="Indicates whether metering is enabled." />

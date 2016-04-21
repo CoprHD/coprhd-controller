@@ -1170,7 +1170,7 @@
 		<property name="controlNodeOnly" value="true" />
 	</bean>
 	<bean id="controller_enable_auto_discovery_metering_scan_single_node_deployments" class="com.emc.storageos.model.property.PropertyMetadata">
-		<property name="label" value="Enable Metering" />
+		<property name="label" value="Enable Auto Discovery Single Node" />
 		<property name="description" value="Indicates whether automatic discovery/metering/scanning is overridden as disabled on single node deployments." />
 		<property name="type" value="string" />
 		<property name="allowedValues" value="true,false" />

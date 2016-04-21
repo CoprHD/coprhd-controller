@@ -426,31 +426,38 @@ public class NetappMirrorFileOperations implements FileMirrorOperations {
         String destLocation = getLocation(nApiTarget, targetFs);
 
         _log.info("Initializing snapmirror for destination: {}", destLocation);
+        try {
+            SnapMirrorStatusInfo mirrorStatusInfo = nApiTarget.getSnapMirrorStateInfo(destLocation);
 
-        SnapMirrorStatusInfo mirrorStatusInfo = nApiTarget.getSnapMirrorStateInfo(destLocation);
+            if (SnapMirrorState.UNKNOWN.equals(mirrorStatusInfo.getMirrorState()) ||
+                    SnapMirrorState.READY.equals(mirrorStatusInfo.getMirrorState())) {
 
-        if (SnapMirrorState.UNKNOWN.equals(mirrorStatusInfo.getMirrorState()) ||
-                SnapMirrorState.READY.equals(mirrorStatusInfo.getMirrorState())) {
-            // make api call
-            nApiTarget.initializeSnapMirror(sourceLocation, destLocation, portGroupTarget);
-            NetAppSnapMirrorStartJob snapMirrorStatusJob = new NetAppSnapMirrorStartJob(destLocation, targetStorage.getId(), taskCompleter);
-            try {
+                if (!nApiTarget.restrictVolume(targetFs.getName())) {
+                    _log.error("Unable to restrict volume before snapmirror initialize: {}", targetFs.getName());
+                    ServiceError serviceError = DeviceControllerErrors.netapp.unableToRescrictFileSystem();
+                    return BiosCommandResult.createErrorResult(serviceError);
+                }
+                // make api call
+                nApiTarget.initializeSnapMirror(sourceLocation, destLocation, portGroupTarget);
+                NetAppSnapMirrorStartJob snapMirrorStatusJob = new NetAppSnapMirrorStartJob(destLocation, targetStorage.getId(),
+                        taskCompleter);
+
                 ControllerServiceImpl.enqueueJob(new QueueJob(snapMirrorStatusJob));
                 return BiosCommandResult.createPendingResult();
-            } catch (Exception e) {
-                _log.error("Snapmirror start failed", e);
-                ServiceError error = DeviceControllerErrors.netapp.jobFailed("Snapmirror start failed:" + e.getMessage());
+
+            } else if (SnapMirrorState.PAUSED.equals(mirrorStatusInfo.getMirrorState())) {
+                nApiTarget.resumeSnapMirror(destLocation);
+                return BiosCommandResult.createSuccessfulResult();
+            } else {
+                _log.error("Snapmirror start failed");
+                ServiceError error = DeviceControllerErrors.netapp.jobFailed("Snapmirror start operation failed:");
                 return BiosCommandResult.createErrorResult(error);
             }
-        } else if (SnapMirrorState.PAUSED.equals(mirrorStatusInfo.getMirrorState())) {
-            nApiTarget.resumeSnapMirror(destLocation);
-            return BiosCommandResult.createSuccessfulResult();
-        } else {
-            _log.error("Snapmirror start failed");
-            ServiceError error = DeviceControllerErrors.netapp.jobFailed("Snapmirror start operation failed:");
+        } catch (Exception e) {
+            _log.error("Snapmirror start failed", e);
+            ServiceError error = DeviceControllerErrors.netapp.jobFailed("Snapmirror start failed:" + e.getMessage());
             return BiosCommandResult.createErrorResult(error);
         }
-
     }
 
     /**

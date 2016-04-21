@@ -71,4 +71,7 @@ public interface NetAppErrors {
     @DeclareServiceCode(ServiceCode.NETAPP_ERROR)
     public ServiceError jobFailed(final String operationName);
 
+    @DeclareServiceCode(ServiceCode.NETAPP_FS_RESTRICT_ERROR)
+    public ServiceError unableToRescrictFileSystem();
+
 }

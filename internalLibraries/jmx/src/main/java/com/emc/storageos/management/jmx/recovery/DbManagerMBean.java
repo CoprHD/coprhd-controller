@@ -70,4 +70,12 @@ public interface DbManagerMBean {
      */
     @ManagedOperation(description = "Remove all ndoes in a data center")
     void removeDataCenter(String dcName);
+    
+    /**
+     * Check if we have pending hinted handoff logs for given dc
+     *
+     * @param dcName
+     */
+    @ManagedOperation(description = "Check if we have pending hinted handoff logs")
+    public boolean isDataCenterSynced(String dcName);
 }

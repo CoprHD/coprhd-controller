@@ -5,8 +5,18 @@
 
 package com.emc.storageos.systemservices.impl.vdc;
 
+import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+
+import javax.management.MBeanServerConnection;
+import javax.management.MalformedObjectNameException;
+import javax.management.remote.JMXConnector;
+import javax.management.remote.JMXConnectorFactory;
+import javax.management.remote.JMXServiceURL;
 
 import com.emc.storageos.coordinator.client.model.*;
 import com.emc.storageos.coordinator.client.model.DrOperationStatus.InterState;
@@ -16,6 +26,7 @@ import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.coordinator.client.service.DrUtil;
+import com.emc.storageos.management.jmx.recovery.DbManagerOps;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 
 /**
@@ -28,6 +39,10 @@ public class DbsvcQuorumMonitor implements Runnable {
 
     private static final int STANDBY_DEGRADED_THRESHOLD = 1000 * 60 * 15; // 15 minutes, in milliseconds
 
+    private static final String FMTURL = "service:jmx:rmi://%s:7300/jndi/rmi://%s:%d/jmxrmi";
+    private static final int DEFAULTPORT = 7199;
+    private static final int DEFAULTGEOPORT = 7299;
+    
     private DrUtil drUtil;
     private CoordinatorClient coordinatorClient;
 
@@ -51,6 +66,10 @@ public class DbsvcQuorumMonitor implements Runnable {
                 checkAndRejoinSite(standbySite);
             }
 
+            if (siteState.equals(SiteState.STANDBY_INCR_SYNCING)) {
+                checkIncrementalSyncingSite(standbySite);
+            }
+            
             if (siteState.equals(SiteState.STANDBY_SYNCED)) {
                 SiteMonitorResult monitorResult = updateSiteMonitorResult(standbySite);
                 long quorumLostTime = monitorResult.getDbQuorumLostSince();
@@ -167,7 +186,77 @@ public class DbsvcQuorumMonitor implements Runnable {
             }
         }
     }
+    
+    private void checkIncrementalSyncingSite(Site standbySite) {
+        String siteId = standbySite.getUuid();
+        int nodeCount = standbySite.getNodeCount();
+        // We must wait until all the dbsvc/geodbsvc instances are back
+        // or the data sync will fail anyways
+        int liveDbsvcNodeCount = drUtil.getNumberOfLiveServices(siteId, Constants.DBSVC_NAME);
+        int liveGeodbsvcNodeCount = drUtil.getNumberOfLiveServices(siteId, Constants.GEODBSVC_NAME);
+        if ( liveDbsvcNodeCount != nodeCount ||  liveGeodbsvcNodeCount != nodeCount) {
+            log.info("Skip STANDBY_INCR_SYNCING site check. Not all the dbsvc/geodbsvc instances are back. dbsvc active nodes {}, geodbsvc live nodes {}", 
+                    liveDbsvcNodeCount, liveGeodbsvcNodeCount);
+            return;
+        }
+        log.info("All the dbsvc/geodbsvc instances are back. {}. Check if we need reset STANDBY_INCR_SYNCING state", standbySite.getUuid());
 
+        InterProcessLock lock;
+        try {
+            lock = drUtil.getDROperationLock();
+        } catch (APIException e) {
+            log.warn("There are ongoing DR operations. Try again later.");
+            return;
+        }
+
+        try {
+            String dcName = drUtil.getCassandraDcId(standbySite);
+            Collection<String> ipAddrs = drUtil.getLocalSite().getHostIPv4AddressMap().values();
+            if (ipAddrs.isEmpty()) {
+                ipAddrs = drUtil.getLocalSite().getHostIPv6AddressMap().values();
+            }
+            for (String host : ipAddrs) {
+                boolean isLocaldbsvcSynced = isDataCenterSynced(host, DEFAULTPORT, dcName);
+                if (!isLocaldbsvcSynced){
+                    return;
+                }
+                boolean isGeodbsvcSynced = isDataCenterSynced(host, DEFAULTGEOPORT, dcName);
+                if (!isGeodbsvcSynced){
+                    return;
+                }
+            }
+            log.info("Data synced for dbsvc/geodbsvc of standby site {}", standbySite.getUuid());
+            standbySite.setState(SiteState.STANDBY_SYNCED);
+            drUtil.getCoordinator().persistServiceConfiguration(standbySite.toConfiguration());
+            updateSiteMonitorResult(standbySite);
+        } catch (Exception e) {
+            log.error("Failed to initiate reset STATNDBY_INCR_SYNCING standby operation. Try again later", e);
+        } finally {
+            try {
+                lock.release();
+            } catch (Exception e) {
+                log.error("Failed to release the dr operation lock", e);
+            }
+        }
+
+    }
+    
+    private boolean isDataCenterSynced(String host, int port, String dcName) throws MalformedObjectNameException, IOException {
+        JMXServiceURL jmxUrl = new JMXServiceURL(String.format(FMTURL, host, host, DEFAULTPORT));
+        Map<String, Object> env = new HashMap<String, Object>();
+        JMXConnector jmxc = JMXConnectorFactory.connect(jmxUrl, env);
+        MBeanServerConnection mbeanServerConn = jmxc.getMBeanServerConnection();
+    
+        try (DbManagerOps dbOps = new DbManagerOps(mbeanServerConn)) {
+            boolean isDbsvcSynced = dbOps.isDataCenterSynced(dcName);
+            if (!isDbsvcSynced) {
+                log.info("Data is not synced to standby site on {}. JMX port {}", host, port);
+                return false;
+            }
+        }
+        return true;
+    }
+    
     private SiteMonitorResult updateSiteMonitorResult(Site standbySite) {
         String siteId = standbySite.getUuid();
         SiteMonitorResult monitorResult = coordinatorClient.getTargetInfo(siteId, SiteMonitorResult.class);

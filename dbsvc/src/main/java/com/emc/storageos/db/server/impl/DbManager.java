@@ -5,22 +5,30 @@
 
 package com.emc.storageos.db.server.impl;
 
+import com.emc.storageos.coordinator.client.model.Site;
+import com.emc.storageos.coordinator.client.model.SiteState;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
+import com.emc.storageos.coordinator.client.service.DrUtil;
 import com.emc.storageos.coordinator.client.service.impl.DualInetAddress;
-import com.emc.storageos.db.common.DbConfigConstants;
 import com.emc.storageos.management.jmx.recovery.DbManagerMBean;
 import com.emc.storageos.management.jmx.recovery.DbManagerOps;
 import com.emc.storageos.services.util.JmxServerWrapper;
 import com.emc.vipr.model.sys.recovery.DbRepairStatus;
 import com.emc.storageos.services.util.NamedScheduledThreadPoolExecutor;
 
-import org.apache.cassandra.config.Config;
 import org.apache.cassandra.config.DatabaseDescriptor;
-import org.apache.cassandra.config.YamlConfigurationLoader;
-import org.apache.cassandra.exceptions.ConfigurationException;
+import org.apache.cassandra.db.DecoratedKey;
+import org.apache.cassandra.db.HintedHandOffManager;
+import org.apache.cassandra.db.SystemKeyspace;
+import org.apache.cassandra.dht.Token;
+import org.apache.cassandra.gms.ApplicationState;
+import org.apache.cassandra.gms.EndpointState;
 import org.apache.cassandra.gms.Gossiper;
+import org.apache.cassandra.gms.IEndpointStateChangeSubscriber;
+import org.apache.cassandra.gms.VersionedValue;
 import org.apache.cassandra.locator.IEndpointSnitch;
 import org.apache.cassandra.service.StorageService;
+import org.apache.cassandra.utils.UUIDGen;
 import org.apache.curator.framework.recipes.locks.InterProcessLock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -28,6 +36,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jmx.export.annotation.ManagedResource;
 
 import java.net.InetAddress;
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashSet;
@@ -36,6 +45,7 @@ import java.util.Map;
 import java.util.HashMap;
 import java.util.Set;
 import java.util.TreeMap;
+import java.util.UUID;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -62,17 +72,18 @@ public class DbManager implements DbManagerMBean {
 
     private CoordinatorClient coordinator;
     private SchemaUtil schemaUtil;
-
+    private DrUtil drUtil;
+    private ScheduledExecutorService dbNodeStateCallbackExecutor;
+    
     @Autowired
     private JmxServerWrapper jmxServer;
-
 
     ScheduledFuture<?> scheduledRepairTrigger;
 
     // Max retry times after a db repair failure
     private int repairRetryTimes = 5;
     private ScheduledExecutorService executor = new NamedScheduledThreadPoolExecutor("DbRepairPool", 2);
-
+    
     public void setCoordinator(CoordinatorClient coordinator) {
         this.coordinator = coordinator;
     }
@@ -81,6 +92,10 @@ public class DbManager implements DbManagerMBean {
         this.schemaUtil = schemaUtil;
     }
 
+    public void setDrUtil(DrUtil drUtil) {
+        this.drUtil = drUtil;
+    }
+    
     /**
      * Regular repair frequency in minutes
      * 
@@ -343,4 +358,151 @@ public class DbManager implements DbManagerMBean {
             exe.shutdownNow();
         }
     }
+    
+    /**
+     * Check if data is synced with remote data center specified by dcName.  It checks hinted handoff logs
+     * 
+     * @return true - synced. otherwise false
+     */
+    @Override
+    public boolean isDataCenterSynced(String dcName) {
+        log.info("Check if data synced with Cassandra data center {}", dcName);
+        
+        // Compact HINTS column family and eliminate deleted hints before checking hinted handoff logs
+        try {
+            StorageService.instance.forceKeyspaceCompaction("system", SystemKeyspace.HINTS_CF);
+        } catch (Exception ex) {
+            log.warn("Fail to compact system HINTS_CF", ex);
+        }
+        
+        List<InetAddress> allNodes = new ArrayList<>();
+        Set<InetAddress> liveNodes = Gossiper.instance.getLiveMembers();
+        allNodes.addAll(liveNodes);
+        Set<InetAddress> unreachableNodes = Gossiper.instance.getUnreachableMembers();
+        allNodes.addAll(unreachableNodes);
+        for (InetAddress nodeIp : allNodes) {
+            IEndpointSnitch snitch = DatabaseDescriptor.getEndpointSnitch();
+            String dc = snitch.getDatacenter(nodeIp);
+            if (dc.equals(dcName)) {
+                log.info("Checking hinted handoff logs for node {} in data center {} ", nodeIp, dc);
+                if (hasPendingHintedHandoff(nodeIp)) {
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
+ 
+    /**
+     * Check if there is pending hinted handoff logs for given node
+     * 
+     * @param endpoint
+     * @return true - pending hinted handoff logs exists. Otherwise, false
+     */
+    private boolean hasPendingHintedHandoff(InetAddress endpoint) {
+        List<String> endpointsWithPendingHints = HintedHandOffManager.instance.listEndpointsPendingHints();
+        if (endpointsWithPendingHints.isEmpty()) {
+            log.info("Skip data sync status check. No pending hinted handoff logs");
+            return false;
+        }
+        log.info("Pending hinted hand off logs found at {}", endpointsWithPendingHints);
+        UUID hostId = Gossiper.instance.getHostId(endpoint);
+        final ByteBuffer hostIdBytes = ByteBuffer.wrap(UUIDGen.decompose(hostId));
+        DecoratedKey epkey =  StorageService.getPartitioner().decorateKey(hostIdBytes);
+        Token.TokenFactory tokenFactory = StorageService.getPartitioner().getTokenFactory();
+        String token = tokenFactory.toString(epkey.getToken());
+        for (String unsyncedEndpoint : endpointsWithPendingHints) {
+            if (token.equals(unsyncedEndpoint)) {
+                log.info("Unsynced data found for : {}", endpoint);
+                return true;
+            }
+        } 
+        return false;
+    }
+
+    public void init() {
+        if (drUtil.isActiveSite()) {
+            log.info("Register Cassandra node state listener on DR active site");
+            dbNodeStateCallbackExecutor = Executors.newScheduledThreadPool(1);
+            Gossiper.instance.register(endpointStateChangeSubscripter);
+        }
+    }
+    
+    // Cassandra node state listener
+    private IEndpointStateChangeSubscriber endpointStateChangeSubscripter =  new IEndpointStateChangeSubscriber() {
+        @Override
+        public void onJoin(InetAddress endpoint, EndpointState epState) {
+        }
+
+        @Override
+        public void beforeChange(InetAddress endpoint, EndpointState currentState, ApplicationState newStateKey,
+                VersionedValue newValue) {
+        }
+
+        @Override
+        public void onChange(InetAddress endpoint, ApplicationState state, VersionedValue value) {
+        }
+
+        @Override
+        public void onAlive(InetAddress endpoint, EndpointState state) {
+            if (drUtil.isStandby()) {
+                log.info("Skip node state change of {} on standby site", endpoint);
+                return;
+            }
+            HandoffLogDetector detector = new HandoffLogDetector(endpoint);
+            dbNodeStateCallbackExecutor.schedule(detector, 0, TimeUnit.SECONDS);
+        }
+        
+        /**
+         * Detect pending handoff logs
+         */
+        class HandoffLogDetector implements Runnable {
+            InetAddress endpoint;
+            HandoffLogDetector(InetAddress endpoint) {
+                this.endpoint = endpoint;
+            }
+            public void run() {
+                Site site = getSite(endpoint);
+                if (site == null) {
+                    log.info("Unknown site for {}. Skip HandoffLogDetector", endpoint);
+                    return;
+                }
+                
+                log.info("Node {} in site {} comes online", endpoint, site.getUuid());
+                if (site.getState() == SiteState.STANDBY_SYNCED) {
+                    if (hasPendingHintedHandoff(endpoint)) { 
+                        log.info("Hinted handoff logs detected. Change site {} state to STANDBY_INCR_SYNCING", site.getUuid());
+                        site.setState(SiteState.STANDBY_INCR_SYNCING); 
+                        drUtil.getCoordinator().persistServiceConfiguration(site.toConfiguration());
+                    }
+                } else {
+                    log.info("Skip hinted handoff logs detector for {} due to site state is {}. ", endpoint, site.getState());
+                }
+            }
+            
+            private Site getSite(InetAddress endpoint) {
+                IEndpointSnitch snitch = DatabaseDescriptor.getEndpointSnitch();
+                String dcName = snitch.getDatacenter(endpoint);
+                for (Site site : drUtil.listSites()) {
+                    String cassandraDcId = drUtil.getCassandraDcId(site);
+                    if (cassandraDcId.equals(dcName)) {
+                        return site;
+                    }
+                }
+                return null;
+            }
+        };
+        
+        @Override
+        public void onDead(InetAddress endpoint, EndpointState state) {
+        }
+
+        @Override
+        public void onRemove(InetAddress endpoint) {
+        }
+
+        @Override
+        public void onRestart(InetAddress endpoint, EndpointState state) {
+        }
+    };
 }

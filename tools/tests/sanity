@@ -2914,7 +2914,8 @@ recoverpoint_export_bookmark_tests()
         run export_group create $PROJECT ${RP_EXPORT_GROUP}2 ${rp_src_varray} --type Host --volspec ${PROJECT}/${rpvolume}/${rpsnap}${volume_name_modifier}-${tgt_varray} --hosts "${RP_HOSTNAME}"
         export_group show ${rpexport}2
         run export_group update ${rpexport}2 --remVol ${PROJECT}/${rpvolume}/${rpsnap}${volume_name_modifier}-${tgt_varray}
-	run export_group update ${rpexport}2 --addVolspec ${PROJECT}/${rpvolume}/${rpsnap}${volume_name_modifier}-${tgt_varray}
+	export_group show ${rpexport}2
+        run export_group update ${rpexport}2 --addVolspec ${PROJECT}/${rpvolume}/${rpsnap}${volume_name_modifier}-${tgt_varray}
 	export_group show ${rpexport}2
 	run export_group delete ${rpexport}2
     done

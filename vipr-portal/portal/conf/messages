@@ -3874,6 +3874,8 @@ button.mirroring.stop=Stop
 button.mirroring.pause=Pause
 button.mirroring.resume=Resume
 
+button.driverupload=Upload Driver
+
 common.yes=Yes
 common.no=No
 common.security.title=Security

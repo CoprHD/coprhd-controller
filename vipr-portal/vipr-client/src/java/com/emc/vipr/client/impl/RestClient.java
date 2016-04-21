@@ -62,7 +62,6 @@ public class RestClient {
     public Client getClient() {
         if (client == null) {
             com.sun.jersey.api.client.config.ClientConfig jerseyConfig = new DefaultClientConfig();
-            // The ViPR API services use the Jackson JAXB JSON provider.
             
             jerseyConfig.getClasses().add(com.sun.jersey.core.impl.provider.entity.FormProvider.class);
             jerseyConfig.getClasses().add(com.sun.jersey.core.impl.provider.entity.MimeMultipartProvider.class);
@@ -73,14 +72,10 @@ public class RestClient {
             jerseyConfig.getClasses().add(com.sun.jersey.core.impl.provider.entity.DataSourceProvider.class);
             jerseyConfig.getClasses().add(com.sun.jersey.core.impl.provider.entity.ReaderProvider.class);
             jerseyConfig.getClasses().add(com.sun.jersey.core.impl.provider.entity.DocumentProvider.class);
-            jerseyConfig.getClasses().add(com.sun.jersey.core.impl.provider.entity.EntityHolderReader.class);
-//            jerseyConfig.getClasses().add(com.sun.jersey.core.impl.provider.entity.FormDataMultiPart.class);
-//            jerseyConfig.getClasses().add(com.sun.jersey.core.impl.provider.entity.MultiPartWriter.class);
-//            jerseyConfig.getClasses().add(com.sun.jersey.core.impl.provider.entity.MultiPartReaderServerSide.class);
-//            jerseyConfig.getClasses().add(com.sun.jersey.core.impl.provider.entity.MultiPartReaderClientSide.class);
             jerseyConfig.getClasses().add(com.sun.jersey.core.impl.provider.entity.MimeMultipartProvider.class);
             jerseyConfig.getClasses().add(com.sun.jersey.core.impl.provider.entity.InputStreamProvider.class);
             jerseyConfig.getClasses().add(com.sun.jersey.core.impl.provider.entity.StringProvider.class);
+            // The ViPR API services use the Jackson JAXB JSON provider.
             jerseyConfig.getClasses().add(JacksonJaxbJsonProvider.class);
             Client c = Client.create(jerseyConfig);
 

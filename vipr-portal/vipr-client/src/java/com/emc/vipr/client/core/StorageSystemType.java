@@ -39,7 +39,7 @@ public class StorageSystemType {
 				PathConstants.STORAGE_SYSTEM_TYPE_URL + "/type/" + type);
 	}
 
-	public Response uploadDeviceDriver(MultiPart fileInputStream) {
-		return client.postMultiPart(Response.class, fileInputStream, PathConstants.STORAGE_SYSTEM_TYPE_URL + "/upload");
+	public ClientResponse uploadDeviceDriver(MultiPart fileInputStream) {
+		return client.postMultiPart(ClientResponse.class, fileInputStream, PathConstants.STORAGE_SYSTEM_TYPE_URL + "/upload");
 	}
 }

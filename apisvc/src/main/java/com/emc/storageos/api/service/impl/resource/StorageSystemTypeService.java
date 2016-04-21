@@ -241,7 +241,7 @@ public class StorageSystemTypeService extends TaskResourceService {
 		//String output = "File saved to server location : " + filePath;
 		log.info("Device driver file uploaded at " + filePath);
 		Response myhttpresponse = Response.status(Response.Status.OK).build();
-		return myhttpresponse; //Response.status(Response.Status.OK).build();
+		return myhttpresponse;
 	}
 
 	@Override

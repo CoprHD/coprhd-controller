@@ -1,5 +1,6 @@
 package controllers.arrays;
 
+import static com.emc.vipr.client.core.util.ResourceUtils.uris;
 import static controllers.Common.backToReferrer;
 
 import java.io.File;
@@ -18,6 +19,7 @@ import org.apache.commons.lang.StringUtils;
 import com.emc.storageos.model.storagesystem.type.StorageSystemTypeAddParam;
 import com.emc.storageos.model.storagesystem.type.StorageSystemTypeRestRep;
 import com.google.common.collect.Lists;
+import com.sun.jersey.api.client.ClientResponse;
 import com.sun.jersey.multipart.FormDataBodyPart;
 import com.sun.jersey.multipart.FormDataMultiPart;
 import com.sun.jersey.multipart.MultiPart;
@@ -114,7 +116,7 @@ public class StorageSystemTypes extends ViprResourceController {
 	public static void uploadDriver(File deviceDriverFile) {
 
 		if (deviceDriverFile != null) {
-			Response restResponse;
+			ClientResponse restResponse;
 			try {
 				FileInputStream fs = new FileInputStream(deviceDriverFile);
 				deviceDriverFile.getName();
@@ -126,7 +128,8 @@ public class StorageSystemTypes extends ViprResourceController {
 
 				restResponse = StorageSystemTypeUtils.uploadDriver(mdf);
 
-				flash.success("Response from server: " + restResponse.getStatus());
+				flash.success("Device driver jar file uploaded");
+				list();
 			} catch (FileNotFoundException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
@@ -139,6 +142,10 @@ public class StorageSystemTypes extends ViprResourceController {
 		itemsJson(uuids);
 	}
 
+    public static void upload(String ids) {
+    	render(ids);
+    }
+    
 	private static void itemsJson(List<String> uuids) {
 		List<StorageSystemTypeRestRep> standbySites = new ArrayList<StorageSystemTypeRestRep>();
 		for (String uuid : uuids) {

@@ -1175,24 +1175,17 @@
         <property name="propertyName" value="label"/>
         <property name="sample" value="clusterABC"/>
     </bean> 
-    
-        <bean id="projectName" class="com.emc.storageos.customconfigcontroller.DataSourceVariable">
-        <property name="sourceClass" value="com.emc.storageos.db.client.model.Project"/>
-        <property name="displayName" value="project_name"/>
-        <property name="propertyName" value="label"/>
-        <property name="sample" value="projectABC"/>
-    </bean> 
         <bean id="tenantName" class="com.emc.storageos.customconfigcontroller.DataSourceVariable">
         <property name="sourceClass" value="com.emc.storageos.db.client.model.TenantOrg"/>
         <property name="displayName" value="tenant_name"/>
         <property name="propertyName" value="label"/>
         <property name="sample" value="tenantABC"/>
     </bean> 
-        <bean id="vpool_Name" class="com.emc.storageos.customconfigcontroller.DataSourceVariable">
+        <bean id="vpoolName" class="com.emc.storageos.customconfigcontroller.DataSourceVariable">
         <property name="sourceClass" value="com.emc.storageos.db.client.model.VirtualPool"/>
         <property name="displayName" value="vpool_name"/>
         <property name="propertyName" value="label"/>
-        <property name="sample" value="fileVpoolABC"/>
+        <property name="sample" value="vpoolABC"/>
     </bean> 
      
     

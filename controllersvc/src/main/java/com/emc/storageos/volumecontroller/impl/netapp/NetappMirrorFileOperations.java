@@ -254,48 +254,53 @@ public class NetappMirrorFileOperations implements FileMirrorOperations {
         StorageSystem targetStorage = _dbClient.queryObject(StorageSystem.class, targetFileShare.getStorageDevice());
 
         BiosCommandResult cmdResult = null;
+        String portGroupTarget = findVfilerName(targetFileShare);
+        NetAppApi nApi = new NetAppApi.Builder(targetStorage.getIpAddress(),
+                targetStorage.getPortNumber(), targetStorage.getUsername(),
+                targetStorage.getPassword()).https(true).vFiler(portGroupTarget).build();
+        // make api call
+        String destLocation = getLocation(targetStorage, targetFileShare);
+        SnapMirrorStatusInfo mirrorStatusInfo = nApi.getSnapMirrorStateInfo(destLocation);
 
-        _log.info("Calling snapmirror pause.");
-        cmdResult = doPauseSnapMirror(targetStorage, targetFileShare, completer);
-        if (cmdResult.getCommandSuccess()) {
-            // Call snapmirror break
-            _log.info("Calling snapmirror break.");
-            cmdResult = doFailoverSnapMirror(targetStorage, targetFileShare, completer);
-            if (cmdResult.getCommandSuccess()) {
-                _log.info("Calling snapmirror release.");
+        switch (mirrorStatusInfo.getMirrorState()) {
+            case SYNCRONIZED:
+                cmdResult = doPauseSnapMirror(targetStorage, targetFileShare, completer);
+                if (!cmdResult.getCommandSuccess()) {
+                    _log.error("Snapmirror quiesce failed.");
+                    break;
+                }
+            case PAUSED:
+                cmdResult = doFailoverSnapMirror(targetStorage, targetFileShare, completer);
+                if (!cmdResult.getCommandSuccess()) {
+                    _log.error("Snapmirror break failed.");
+                    break;
+                }
+            case FAILOVER:
                 cmdResult = doReleaseSnapMirror(sourceSystem, targetStorage,
                         sourceFileShare, targetFileShare, completer);
-                if (cmdResult.getCommandSuccess()) {
-                    _log.info("Calling snapmirror delete schedule.");
-                    cmdResult = deleteSnapMirrorSchedule(sourceSystem, targetStorage,
-                            sourceFileShare, targetFileShare, completer);
-                    if (cmdResult.getCommandSuccess()) {
-                        completer.ready(_dbClient);
-                    } else if (cmdResult.getCommandPending()) {
-                        completer.statusPending(_dbClient, cmdResult.getMessage());
-                    } else {
-                        _log.error("Snapmirror delete schedule failed.");
-                        completer.error(_dbClient, cmdResult.getServiceCoded());
-                    }
-                } else if (cmdResult.getCommandPending()) {
-                    completer.statusPending(_dbClient, cmdResult.getMessage());
-                } else {
-                    _log.error("Snapmirror break/failover failed.");
-                    completer.error(_dbClient, cmdResult.getServiceCoded());
+                if (!cmdResult.getCommandSuccess()) {
+                    _log.error("Snapmirror release failed.");
+                    break;
                 }
+            case UNKNOWN:
+                cmdResult = deleteSnapMirrorSchedule(sourceSystem, targetStorage,
+                        sourceFileShare, targetFileShare, completer);
+                if (!cmdResult.getCommandSuccess()) {
+                    _log.error("Snapmirror deleteSchedule failed.");
+                    break;
+                }
+            default:
+                break;
+        }
+        if (cmdResult != null) {
+            if (cmdResult.getCommandSuccess()) {
+                completer.ready(_dbClient);
             } else if (cmdResult.getCommandPending()) {
                 completer.statusPending(_dbClient, cmdResult.getMessage());
             } else {
-                _log.error("Snapmirror quiesce failed.");
                 completer.error(_dbClient, cmdResult.getServiceCoded());
             }
-        } else if (cmdResult.getCommandPending()) {
-            completer.statusPending(_dbClient, cmdResult.getMessage());
-        } else {
-            _log.error("Snapmirror delete schedule failed.");
-            completer.error(_dbClient, cmdResult.getServiceCoded());
         }
-
     }
 
     @Override
@@ -946,4 +951,5 @@ public class NetappMirrorFileOperations implements FileMirrorOperations {
             return BiosCommandResult.createErrorResult(error);
         }
     }
+
 }

@@ -76,6 +76,6 @@ public interface CustomConfigConstants {
     public String NAS_DYNAMIC_PERFORMANCE_PLACEMENT_ENABLED = "NasDynamicPerformancePlacementEnabled";
     public String USE_PHYSICAL_NAS_FOR_PROVISIONING = "NasUsePhysicalNASForProvisioning";
     public String SHARE_VNAS_WITH_MULTIPLE_PROJECTS = "NasShareVNASWithMultipleProjects";
-    public String FILE_SHARE_PATH_CUSTOMIZATION = "nasSharePathCustomization";
+    public String ISILON_PATH_CUSTOMIZATION = "IsilonPathCustomization";
 
 }

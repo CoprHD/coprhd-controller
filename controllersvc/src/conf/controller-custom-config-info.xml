@@ -58,7 +58,7 @@
                 <ref bean="nasDynamicPerformancePlacementEnabled"/>
                 <ref bean="nasUsePhysicalNASForProvisioning"/>
                 <ref bean="nasShareVNASWithMultipleProjects"/>
-                 <ref bean="nasSharePathCustomization"/>
+                 <ref bean="isilonPathCustomization"/>
             </list>
         </property>
     </bean>
@@ -849,38 +849,26 @@
         </property>
     </bean>
     
-       <bean id="nasSharePathCustomization" class="com.emc.storageos.customconfigcontroller.CustomConfigType">
-    	<property name="name" value="NasSharePathCustomization"/>
-       <property name="configType" value="SimpleValue"/>
+       <bean id="isilonPathCustomization" class="com.emc.storageos.customconfigcontroller.CustomConfigType">
+    	<property name="name" value="IsilonPathCustomization"/>
+       <property name="configType" value="CustomName"/>
         <property name="type" value="String"/>
-        <property name="scope">
+        <property name="dataSourceVariables">
             <map>
-                <entry key="dirLevel0" value="Fixed0"/>
-                <entry key="dirLevel1" value="AccessZone,SystemAccessZone,Fixed1"/>
-                <entry key="dirLevel2" value="AccessZone,SystemAccessZone,ClusterName,ProjectName,TenantName,Fixed2,VirtualPool,Usage,POD,Other2"/>
-                <entry key="dirLevel3" value="AccessZone,SystemAccessZone,ClusterName,ProjectName,TenantName,Fixed3,VirtualPool,Usage,POD,Other3"/>
-                <entry key="dirLevel4" value="AccessZone,SystemAccessZone,ClusterName,ProjectName,TenantName,Fixed4,VirtualPool,Usage,POD,Other4"/>
-                <entry key="dirLevel5" value="AccessZone,SystemAccessZone,ClusterName,ProjectName,TenantName,Fixed5,VirtualPool,Usage,POD,Other5"/>
-                <entry key="dirLevel6" value="AccessZone,SystemAccessZone,ClusterName,ProjectName,TenantName,Fixed6,VirtualPool,Usage,POD,Other6"/>
-                <entry key="dirLevel7" value="AccessZone,SystemAccessZone,ClusterName,ProjectName,TenantName,Fixed7,VirtualPool,Usage,POD,Other7"/>
-                <entry key="dirLevel8" value="AccessZone,SystemAccessZone,ClusterName,ProjectName,TenantName,Fixed8,VirtualPool,Usage,POD,Other8"/>
-                <entry key="dirLevel9" value="AccessZone,SystemAccessZone,ClusterName,ProjectName,TenantName,Fixed9,VirtualPool,Usage,POD,Other9"/>
-                <entry key="dirLevel10" value="AccessZone,SystemAccessZone,ClusterName,ProjectName,TenantName,Fixed10,VirtualPool,Usage,POD,Other10"/>
-                                                                                                          
+                <entry key-ref="isilonClusterName" value="false"/>
+                <entry key-ref="projectName" value="true"/>
+                <entry key-ref="tenantName" value="true"/>
+                <entry key-ref="vpoolName" value="true"/>
+            </map>
+    	</property>
+ 		<property name="scope">
+            <map>
+         <entry key="isilon" value="default"/>
             </map>
         </property>
         <property name="defaultValues">
             <map>
-                <entry key="Fixed0" value="ifs"/>
-                <entry key="AccessZone" value="Auto"/>
-                <entry key="SystemAccessZone" value="vipr"/>
-                <entry key="ProjectName" value="Auto"/>
-                <entry key="VirtualPool" value="Auto"/>
-                <entry key="Usage" value="Home"/>
-                <entry key="ClusterName" value="Auto"/>
-                <entry key="POD" value="Admin"/>
-                <entry key="TenantName" value="Auto"/>
-                    
+                <entry key="default" value="{vpool_name}/{tenant_name}/{project_name}"/>                    
             </map>
         </property>
     </bean>
@@ -1179,7 +1167,33 @@
         <property name="displayName" value="cluster_name"/>
         <property name="propertyName" value="label"/>
         <property name="sample" value="clusterABC"/>
-    </bean>  
+    </bean> 
+    
+    <bean id="isilonClusterName" class="com.emc.storageos.customconfigcontroller.DataSourceVariable">
+        <property name="sourceClass" value="com.emc.storageos.db.client.model.Cluster"/>
+        <property name="displayName" value="isilon_cluster_name"/>
+        <property name="propertyName" value="label"/>
+        <property name="sample" value="clusterABC"/>
+    </bean> 
+    
+        <bean id="projectName" class="com.emc.storageos.customconfigcontroller.DataSourceVariable">
+        <property name="sourceClass" value="com.emc.storageos.db.client.model.Project"/>
+        <property name="displayName" value="project_name"/>
+        <property name="propertyName" value="label"/>
+        <property name="sample" value="projectABC"/>
+    </bean> 
+        <bean id="tenantName" class="com.emc.storageos.customconfigcontroller.DataSourceVariable">
+        <property name="sourceClass" value="com.emc.storageos.db.client.model.TenantOrg"/>
+        <property name="displayName" value="tenant_name"/>
+        <property name="propertyName" value="label"/>
+        <property name="sample" value="tenantABC"/>
+    </bean> 
+        <bean id="vpool_Name" class="com.emc.storageos.customconfigcontroller.DataSourceVariable">
+        <property name="sourceClass" value="com.emc.storageos.db.client.model.VirtualPool"/>
+        <property name="displayName" value="vpool_name"/>
+        <property name="propertyName" value="label"/>
+        <property name="sample" value="fileVpoolABC"/>
+    </bean> 
      
     
      <bean id="autoTieringPolicy" class="com.emc.storageos.customconfigcontroller.DataSourceVariable">

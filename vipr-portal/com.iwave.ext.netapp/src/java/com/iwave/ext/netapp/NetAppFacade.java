@@ -656,6 +656,17 @@ public class NetAppFacade {
     }
 
     /**
+     * Checks if the the volume is readonly or not
+     * 
+     * @param volumeName
+     * @return true if volume is readonly; false otherwise
+     */
+    public boolean isReadOnly(String volumeName) {
+        Volume vol = new Volume(server.getNaServer(), volumeName);
+        return vol.isReadOnly();
+    }
+
+    /**
      * Takes a snapshot of the volume. This operation waits for the snapshot to complete on the device.
      * 
      * @param volumeName - Name of the volume

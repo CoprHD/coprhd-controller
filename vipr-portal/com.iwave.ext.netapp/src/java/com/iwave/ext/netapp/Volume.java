@@ -330,6 +330,29 @@ class Volume {
         return size;
     }
 
+    boolean isReadOnly()
+    {
+        boolean readonly = false;
+        String readonlyString = "false";
+
+        NaElement elem = new NaElement("volume-size");
+        elem.addNewChild("volume", name);
+
+        NaElement result = null;
+        try {
+            result = server.invokeElem(elem);
+            readonlyString = result.getChildContent("is-readonly-flex-volume");
+            if (readonlyString != null) {
+                readonly = Boolean.valueOf(readonlyString);
+            }
+        } catch (Exception e) {
+            String msg = "Failed to get status of volume: " + name;
+            log.error(msg, e);
+            throw new NetAppException(msg, e);
+        }
+        return readonly;
+    }
+
     List<String> listVolumes()
     {
         Map<String, String> result = null;

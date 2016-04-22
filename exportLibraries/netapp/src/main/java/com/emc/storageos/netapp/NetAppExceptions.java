@@ -59,6 +59,9 @@ public interface NetAppExceptions {
     public NetAppException setVolumeSizeFailed(final String volume, final String size);
 
     @DeclareServiceCode(ServiceCode.NETAPP_ERROR)
+    public NetAppException checkVolumeReadOnlyFailed(final String volume);
+
+    @DeclareServiceCode(ServiceCode.NETAPP_ERROR)
     public NetAppException setVolumeQtreeModeFailed(final String volumePath, final String mode);
 
     @DeclareServiceCode(ServiceCode.NETAPP_ERROR)

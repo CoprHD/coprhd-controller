@@ -482,7 +482,11 @@ public class NetAppFileStorageDevice extends AbstractFileStorageDevice {
                 }
                 result = BiosCommandResult.createSuccessfulResult();
                 if ((args.getFileOperation() == true) && (isSubDir == false)) {
-                    nApi.setQtreemode(exportPath, UNIX_QTREE_SETTING);
+                    // Call setQtreemode if volume not readonly
+                    if (!nApi.isVolumeReadOnly(fileshare.getName())) {
+                        _log.info("FS is not readonly. Setting QTree Mode as {}.", UNIX_QTREE_SETTING);
+                        nApi.setQtreemode(exportPath, UNIX_QTREE_SETTING);
+                    }
                 }
             }
         } catch (NetAppException e) {
@@ -1119,7 +1123,10 @@ public class NetAppFileStorageDevice extends AbstractFileStorageDevice {
             nApi.deleteCIFSShareAcl(smbFileShare.getName(), existingAcls);
             smbFileShare.setNativeId(shareId);
             if (null != args.getFileObj()) {
-                nApi.setQtreemode(args.getFsPath(), NTFS_QTREE_SETTING);
+                if (args.getFileOperation() && !nApi.isVolumeReadOnly(args.getFsName())) {
+                    _log.info("FS is not readonly. Setting QTree Mode as {}.", UNIX_QTREE_SETTING);
+                    nApi.setQtreemode(args.getFsPath(), NTFS_QTREE_SETTING);
+                }
             }
             smbFileShare.setNetBIOSName(nApi.getNetBiosName());
             _log.info("NetAppFileStorageDevice doShare for {} with id {} - complete",

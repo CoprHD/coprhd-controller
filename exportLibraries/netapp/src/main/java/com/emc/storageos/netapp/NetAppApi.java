@@ -521,6 +521,19 @@ public class NetAppApi {
         }
     }
 
+    public Boolean isVolumeReadOnly(String volume)
+            throws NetAppException {
+
+        try {
+            netAppFacade = new NetAppFacade(_ipAddress, _portNumber, _userName,
+                    _password, _https);
+            return netAppFacade.isReadOnly(volume);
+
+        } catch (Exception e) {
+            throw NetAppException.exceptions.checkVolumeReadOnlyFailed(volume);
+        }
+    }
+
     public List<Map<String, String>> listVolumeInfo(String volume,
             Collection<String> attrs) throws NetAppException {
         try {

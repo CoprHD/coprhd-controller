@@ -863,12 +863,12 @@
     	</property>
  		<property name="scope">
             <map>
-         <entry key="isilon" value="default"/>
+         <entry key="systemType" value="isilon"/>
             </map>
         </property>
         <property name="defaultValues">
             <map>
-                <entry key="default" value="{vpool_name}/{tenant_name}/{project_name}"/>                    
+                <entry key="isilon" value="{vpool_name}/{tenant_name}/{project_name}"/>                    
             </map>
         </property>
     </bean>

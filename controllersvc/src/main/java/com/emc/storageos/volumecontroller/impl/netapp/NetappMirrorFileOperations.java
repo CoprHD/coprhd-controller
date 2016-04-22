@@ -287,6 +287,7 @@ public class NetappMirrorFileOperations implements FileMirrorOperations {
                         break;
                     }
                 case UNKNOWN:
+                case READY:
                     cmdResult = deleteSnapMirrorSchedule(sourceSystem, targetStorage,
                             sourceFileShare, targetFileShare, completer);
                     if (!cmdResult.getCommandSuccess()) {

@@ -191,8 +191,8 @@ public class NativeMigrationDeviceController extends MigrationControllerImp impl
         return null;
     }
 
-    public void migrateGeneralVolume(URI vplexURI, URI virtualVolumeURI,
-            URI targetVolumeURI, URI migrationURI, URI newNhURI, String stepId) throws WorkflowException {
+    public void migrateGeneralVolume(URI vplexURI, URI generalVolumeURI,
+            URI targetVolumeURI, URI migrationURI, URI newVarrayURI, String stepId) throws WorkflowException {
 
     }
 

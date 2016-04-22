@@ -466,6 +466,15 @@ public class StorageScheduler implements Scheduler {
                 provMapBuilder.putAttributeInMap(AttributeMatcher.Attributes.multi_volume_consistency.name(), true);
             }
         }
+        
+        // If Storage System specified in capabilities, set that value (which may override CG) in the attributes.
+        // This is used by the VPLEX to control consistency groups.
+        if (capabilities.getSourceStorageDevice() != null) {
+            StorageSystem sourceStorageSystem = capabilities.getSourceStorageDevice();
+            Set<String> storageSystemSet = new HashSet<String>();
+            storageSystemSet.add(sourceStorageSystem.getId().toString());
+            provMapBuilder.putAttributeInMap(AttributeMatcher.Attributes.storage_system.name(), storageSystemSet);
+        }
 
         // populate DriveType,and Raid level and Policy Name for FAST Initial Placement Selection
         provMapBuilder.putAttributeInMap(Attributes.auto_tiering_policy_name.toString(), vpool.getAutoTierPolicyName());

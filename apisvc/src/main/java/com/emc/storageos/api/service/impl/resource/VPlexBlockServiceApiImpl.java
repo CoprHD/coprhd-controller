@@ -80,6 +80,7 @@ import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.Volume.PersonalityTypes;
 import com.emc.storageos.db.client.model.VolumeGroup;
 import com.emc.storageos.db.client.model.VplexMirror;
+import com.emc.storageos.db.client.model.VpoolRemoteCopyProtectionSettings;
 import com.emc.storageos.db.client.model.util.BlockConsistencyGroupUtils;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
@@ -891,6 +892,10 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
                 importVolume.getVirtualArray());
         Project project = _dbClient.queryObject(Project.class, importVolume.getProject());
         URI nullPoolURI = NullColumnValueGetter.getNullURI();
+        BlockConsistencyGroup consistencyGroup = null;
+        if (importVolume.getConsistencyGroup() != null) {
+            consistencyGroup = _dbClient.queryObject(BlockConsistencyGroup.class, importVolume.getConsistencyGroup());
+        }
 
         // Determine the VPLEX(s) that could be used.
         Set<URI> vplexes = ConnectivityUtil.getVPlexSystemsAssociatedWithArray(_dbClient, arrayURI);
@@ -985,6 +990,13 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
         vplexVolume.getAssociatedVolumes().add(importVolume.getId().toString());
         if (createVolume != null) {
             vplexVolume.getAssociatedVolumes().add(createVolume.getId().toString());
+        }
+        if (consistencyGroup != null) {
+            // If the volume being converted to a virtual volume has a CG, make the virtual
+            // volume a member of the CG.
+            vplexVolume.setConsistencyGroup(consistencyGroup.getId());
+            consistencyGroup.addRequestedTypes(Arrays.asList(BlockConsistencyGroup.Types.VPLEX.name()));
+            _dbClient.updateObject(consistencyGroup);
         }
         vplexVolume.setVirtualPool(vpool.getId());
         _dbClient.updateObject(vplexVolume);
@@ -1193,8 +1205,27 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
         String systemType = storageSystem.getSystemType();
         if (!DiscoveredDataObject.Type.vplex.name().equals(systemType)) {
             // If it is not a VPLEX volume, then this must be an import to VPLEX.
-            s_logger.info("High availability VirtualPool change for vmax or vnx volume.");
+            s_logger.info("High availability VirtualPool change for array volume, importing volume VPLEX: " + volume.getLabel());
             importVirtualVolume(systemURI, volume, vpool, taskId);
+            // Check to see if the imported volume is an SRDF source volume.
+            if (volume.getSrdfTargets() != null) {
+                StringSet srdfTargets = volume.getSrdfTargets();
+                for (String target : srdfTargets) {
+                    Volume targetVolume = _dbClient.queryObject(Volume.class, URI.create(target));
+                    URI targetVarray = targetVolume.getVirtualArray();
+                    // Get the target virtual pool.
+                    Map<URI, VpoolRemoteCopyProtectionSettings> protectionSettingsMap = VirtualPool.getRemoteProtectionSettings(vpool, _dbClient);
+                    VpoolRemoteCopyProtectionSettings settings = protectionSettingsMap.get(targetVarray);
+                    if (settings != null) {
+                        VirtualPool targetVpool = _dbClient.queryObject(VirtualPool.class, settings.getVirtualPool());
+                        if (NullColumnValueGetter.isNotNullValue(targetVpool.getHighAvailability()) 
+                                && targetVpool.getHighAvailability().equals(VirtualPool.HighAvailabilityType.vplex_local.name())) {
+                            s_logger.info("Importing SRDF target to VPLEX " + targetVolume.getLabel());
+                            importVirtualVolume(targetVolume.getStorageController(), targetVolume, targetVpool, taskId);
+                        }
+                    }
+                }
+            }
         } else {
             if (VirtualPoolChangeAnalyzer.isVPlexConvertToDistributed(volumeVirtualPool, vpool,
                     new StringBuffer())) {

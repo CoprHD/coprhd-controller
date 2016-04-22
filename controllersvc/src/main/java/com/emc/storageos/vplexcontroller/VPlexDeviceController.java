@@ -6039,6 +6039,14 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 createWorkflowStepForWaitOnRebuild(workflow, vplexSystem,
                         vplexVolumeURI, VPLEX_STEP);
             }
+            
+            if (importedVolume != null && importedVolume.getConsistencyGroup() != null) {
+                // Add virtual volume to a Vplex consistency group.
+                ConsistencyGroupManager consistencyGroupManager = getConsistencyGroupManager(vplexVolume);
+                List<URI> volsForCG = Arrays.asList(vplexVolumeURI);
+                consistencyGroupManager.addStepsForCreateConsistencyGroup(workflow, VPLEX_STEP,
+                            vplexSystem, volsForCG, false);
+            }
 
             // Finish up and execute the plan.
             // The Workflow will handle the TaskCompleter

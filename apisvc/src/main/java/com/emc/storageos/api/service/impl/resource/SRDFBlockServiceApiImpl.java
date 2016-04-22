@@ -50,6 +50,7 @@ import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StorageSystem.SupportedReplicationTypes;
+import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.Task;
 import com.emc.storageos.db.client.model.VirtualArray;
@@ -1353,6 +1354,55 @@ public class SRDFBlockServiceApiImpl extends AbstractBlockServiceApiImpl<SRDFSch
                 VirtualPoolChangeAnalyzer.isSupportedSRDFVolumeVirtualPoolChange(volume, volumeVirtualPool,
                         newVirtualPool, _dbClient, notSuppReasonBuff)) {
             allowedOperations.add(VirtualPoolChangeOperationEnum.SRDF_PROTECED);
+        }
+        
+        // check if import into VPLEX is allowed.
+        StringBuffer vplexImportChangeReasonBuff = new StringBuffer();
+        if (VirtualPoolChangeAnalyzer.isVPlexImport(volume, volumeVirtualPool, newVirtualPool, 
+                vplexImportChangeReasonBuff)) {
+            // Analyze the remote copy protection settings of each to see if they are compatible
+            
+            Map<URI, VpoolRemoteCopyProtectionSettings> volumeRemoteCopySettings = VirtualPool.getRemoteProtectionSettings(volumeVirtualPool, _dbClient);
+            Map<URI, VpoolRemoteCopyProtectionSettings> newRemoteCopySettings = VirtualPool.getRemoteProtectionSettings(newVirtualPool, _dbClient);
+            if (!volumeRemoteCopySettings.isEmpty() || !newRemoteCopySettings.isEmpty() && volumeRemoteCopySettings.size() == newRemoteCopySettings.size()) {
+                boolean compatible = true;
+                StringBuffer targetReasonBuff = new StringBuffer();
+                // For each existing remote copy protection settings
+                for (Map.Entry<URI, VpoolRemoteCopyProtectionSettings> entry: volumeRemoteCopySettings.entrySet()) {
+                    // Fetch the equivalent one in new vpool, and check to see if it matches
+                    VpoolRemoteCopyProtectionSettings newSettings = newRemoteCopySettings.get(entry.getKey());
+                    if (newSettings == null 
+                            || !entry.getValue().getVirtualArray().equals(newSettings.getVirtualArray()) ) {
+                        compatible = false;
+                        break;
+                    }
+                    if (entry.getValue().getVirtualPool().equals(newSettings.getVirtualPool())) {
+                        // same virtual pool is compatible
+                        continue;
+                    }
+                    // Check to see if virtual pools are such that target can be upgraded to vplex local
+                    VirtualPool volumeCopyVpool = _dbClient.queryObject(VirtualPool.class, entry.getValue().getVirtualPool());
+                    VirtualPool newCopyVpool = _dbClient.queryObject(VirtualPool.class, newSettings.getVirtualPool());
+                    if (newCopyVpool.getHighAvailability() != null && newCopyVpool.getHighAvailability().equals(VirtualPool.HighAvailabilityType.vplex_local.name())) {
+                        StringSet targetVolumes = volume.getSrdfTargets();
+                        for (String targetVolumeId : targetVolumes) {
+                            Volume targetVolume = _dbClient.queryObject(Volume.class, URI.create(targetVolumeId));
+                            if (targetVolume.getVirtualArray().equals(entry.getKey())) {
+                                // The new target Vpool can be import-able from the old if high availability is set
+                                if (!VirtualPoolChangeAnalyzer.isVPlexImport(targetVolume, volumeCopyVpool, newCopyVpool, targetReasonBuff)) {
+                                    compatible = false;
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                }
+                if (compatible) {
+                    allowedOperations.add(VirtualPoolChangeOperationEnum.NON_VPLEX_TO_VPLEX);
+                } else {
+                    notSuppReasonBuff.append("Incompatible VpoolRemoteCopyProtectionSettings: " + targetReasonBuff);
+                }
+            } 
         }
 
         return allowedOperations;

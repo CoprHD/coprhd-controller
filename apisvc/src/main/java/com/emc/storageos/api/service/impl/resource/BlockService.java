@@ -4178,8 +4178,6 @@ public class BlockService extends TaskResourceService {
                 }
                 if (volume.isVolumeExported(_dbClient)) {
                     throw APIException.badRequests.cannotImportExportedVolumeToVplex(volume.getId());
-                } else if (!isNullURI(volume.getConsistencyGroup())) {
-                    throw APIException.badRequests.cannotImportConsistencyGroupVolumeToVplex(volume.getId());
                 } else if (BlockFullCopyUtils.volumeHasFullCopySession(volume, _dbClient)) {
                     // The backend would have a full copy, but the VPLEX volume would not.
                     throw APIException.badRequests.volumeForVpoolChangeHasFullCopies(volume.getLabel());

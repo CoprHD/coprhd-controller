@@ -2886,52 +2886,37 @@ recoverpoint_export_bookmark_tests()
     fi
 
     secho 'Creating 2 RP bookmarks for the same volume.'
-
-    for failtest in 1 2
-    do
-        run blocksnapshot create ${PROJECT}/${rpvolume}${volume_name_modifier} ${rpsnap}-failtest${failtest} --type rp
-        for tgt_varray in ${rp_tgt_varrays}
-        do
-            # A BlockSnapshot gets created for each target copy (varray)
-            blocksnapshot show ${PROJECT}/${rpvolume}${volume_identifier}/${rpsnap}-failtest${failtest}-${tgt_varray}
-        done
-    done
-
+    run blocksnapshot create ${PROJECT}/${rpvolume}${volume_name_modifier} ${rpsnap}-failtest1 --type rp
+    blocksnapshot show ${PROJECT}/${rpvolume}${volume_identifier}/${rpsnap}-failtest1-${rp_tgt_varrays[0]}
+    run blocksnapshot create ${PROJECT}/${rpvolume}${volume_name_modifier} ${rpsnap}-failtest2 --type rp
+    blocksnapshot show ${PROJECT}/${rpvolume}${volume_identifier}/${rpsnap}-failtest2-${rp_tgt_varrays[0]}
+    
     run export_group create $PROJECT ${RP_EXPORT_GROUP} ${rp_src_varray} --type Host --volspec ${PROJECT}/${rpvolume}/${rpsnap}-failtest1-${rp_tgt_varrays[0]} --hosts "${RP_HOSTNAME}"
     export_group show ${rpexport}
     secho 'Exporting RP bookmark for the same target copy as a bookmark already exported - expected failure'
     fail export_group update ${rpexport} --addVolspec ${PROJECT}/${rpvolume}/${rpsnap}-failtest2-${rp_tgt_varrays[0]}
-
-    secho 'Deleting RP bookmarks created for export failure tests'
-
-    for failtest in 1 2
-    do
-        for tgt_varray in ${rp_tgt_varrays}
-        do
-            blocksnapshot delete ${PROJECT}/${rpvolume}${volume_name_modifier}/${rpsnap}-failtest${failtest}-${tgt_varray}
-        done
-    done
-
-    #secho 'Removing export'
+    export_group show ${rpexport}
     run export_group delete ${rpexport}
-
+    
     secho 'Finished running export RP bookmark failure tests'
 
-    secho 'Running RP bookmark export tests'
-
+    secho 'Running export RP bookmark tests'
     for tgt_varray in ${rp_tgt_varrays}
     do
-        secho 'Running RP bookmarks export tests for each target copy'
+        secho 'Running RP bookmark export tests for target copy '${tgt_varray}
         run export_group create $PROJECT ${RP_EXPORT_GROUP}-${tgt_varray} ${rp_src_varray} --type Host --volspec ${PROJECT}/${rpvolume}/${rpsnap}${volume_name_modifier}-${tgt_varray} --hosts "${RP_HOSTNAME}"
         export_group show ${rpexport}-${tgt_varray}
         run export_group update ${rpexport}-${tgt_varray} --remVol ${PROJECT}/${rpvolume}/${rpsnap}${volume_name_modifier}-${tgt_varray}
-	export_group show ${rpexport}2
         run export_group update ${rpexport}-${tgt_varray} --addVolspec ${PROJECT}/${rpvolume}/${rpsnap}${volume_name_modifier}-${tgt_varray}
-	export_group show ${rpexport}-${tgt_varray}
-	run export_group delete ${rpexport}-${tgt_varray}
+        export_group show ${rpexport}-${tgt_varray}
+        run export_group delete ${rpexport}-${tgt_varray}
     done
 
-    secho 'Done with RecoverPoint bookmark export, cleaning up'
+    secho 'Finished with export RP bookmark tests, cleaning up'
+
+    blocksnapshot delete ${PROJECT}/${rpvolume}${volume_name_modifier}/${rpsnap}-failtest1-${rp_tgt_varrays[0]}
+    blocksnapshot delete ${PROJECT}/${rpvolume}${volume_name_modifier}/${rpsnap}-failtest2-${rp_tgt_varrays[0]}
+
     for i in ${RP_VOLUME_COUNT}
     do
         for tgt_varray in ${rp_tgt_varrays}
@@ -2940,15 +2925,15 @@ recoverpoint_export_bookmark_tests()
             if [ "$RP_VOLUME_COUNT" -gt "1" ]; then
                 volume_identifier='-'${i}
             fi
-	    run blocksnapshot delete ${PROJECT}/${rpvolume}/${rpsnap}${volume_identifier}-${tgt_varray}
+            blocksnapshot delete ${PROJECT}/${rpvolume}/${rpsnap}${volume_identifier}-${tgt_varray}
         done
     done
-		
+
     run hosts delete ${RP_HOSTNAME}
     secho 'Done with RecoverPoint bookmark export cleanup'
 }
 
-recoverpoint_export_bookmark_ost_setup()
+recoverpoint_export_bookmark_host_setup()
 {
     vpool=${1}
 
@@ -4349,7 +4334,7 @@ recoverpoint_tests()
                 recoverpoint_export_bookmark_tests ${rpmpvolume} $RECOVERPOINT_VARRAY1 ${rp_tgt_varrays} ${rpmp_src_vpool}
             fi
 
-            secho "RP bookmark exporty tests complete"
+            secho "RP bookmark export tests complete"
             return
         fi
 

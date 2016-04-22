@@ -1124,7 +1124,7 @@ public class NetAppFileStorageDevice extends AbstractFileStorageDevice {
             smbFileShare.setNativeId(shareId);
             if (null != args.getFileObj()) {
                 if (args.getFileOperation() && !nApi.isVolumeReadOnly(args.getFsName())) {
-                    _log.info("FS is not readonly. Setting QTree Mode as {}.", UNIX_QTREE_SETTING);
+                    _log.info("FS is not readonly. Setting QTree Mode as {}.", NTFS_QTREE_SETTING);
                     nApi.setQtreemode(args.getFsPath(), NTFS_QTREE_SETTING);
                 }
             }

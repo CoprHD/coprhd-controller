@@ -2158,7 +2158,11 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
                 } else {
                     CIMObjectPath replicationSvc = _cimPath.getControllerReplicationSvcPath(storage);
                     String[] blockObjectNames = _helper.getBlockObjectAlternateNames(volumes);
+
                     // Smis call to add volumes that are already available in Group, will result in error.
+                    // Refresh first for confidence and avoid false positives.
+                    forProvider = findProviderFactory.withGroup(storage, groupName).find();
+                    ReplicationUtils.callEMCRefresh(_helper, forProvider, true);
                     Set<String> blockObjectsToAdd = _helper.filterVolumesAlreadyPartOfReplicationGroup(
                             forProvider, cgPath, blockObjectNames);
                     if (!blockObjectsToAdd.isEmpty()) {

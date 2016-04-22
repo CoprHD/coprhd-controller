@@ -89,6 +89,15 @@ public abstract class AbstractMigrationServiceApiImpl<T> implements
      * {@inheritDoc}
      */
     @Override
+    public void verifyDriverCapabilities(URI sourceStorageSystemURI, URI targetStorageSystemURI)
+            throws InternalException {
+        throw APIException.methodNotAllowed.notSupported();
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
     public void verifyVarrayChangeSupportedForVolumeAndVarray(Volume volume,
             VirtualArray newVarray) throws APIException {
         throw APIException.badRequests.changesNotSupportedFor("VirtualArray",

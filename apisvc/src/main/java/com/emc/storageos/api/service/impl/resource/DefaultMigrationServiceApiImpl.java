@@ -379,10 +379,15 @@ public class DefaultMigrationServiceApiImpl extends AbstractMigrationServiceApiI
             premadeRecs = true;
         }
 
-        // Create a volume for the new backend volume to which
-        // data will be migrated.
+        // Get target storage system and pool
         URI targetStorageSystem = recommendations.get(0).getSourceStorageSystem();
         URI targetStoragePool = recommendations.get(0).getSourceStoragePool();
+
+        // If a driver assisted migration was requested, verify that the driver can handle
+        // the migration.
+        verifyDriverCapabilities(sourceVolume.getStorageController(), targetStorageSystem);
+        // Create a volume for the new backend volume to which
+        // data will be migrated.
         Volume targetVolume = prepareVolumeForRequest(capacity,
                 targetProject, varray, vpool, targetStorageSystem, targetStoragePool,
                 targetLabel, ResourceOperationTypeEnum.CREATE_BLOCK_VOLUME,
@@ -441,16 +446,12 @@ public class DefaultMigrationServiceApiImpl extends AbstractMigrationServiceApiI
     }
 
     /**
-     * Get the migration capabilities of the passed storage system's driver.
-     *
-     * @param sourceStorageSystemURI The source storage system for the migration.
-     * @param targetStorageSystemURI The target storage system for the migration.
-     *
-     * @return A boolean that is true if the passed storage systems support a driver assisted migration.
+     * {@inheritDoc}
      */
-    private boolean getMigrationCapabilities(URI sourceStorageSystemURI, URI targetStorageSystemURI) {
-        // This is not yet implemented.
-        return false;
+    @Override
+    public void verifyDriverCapabilities(URI sourceStorageSystemURI, URI targetStorageSystemURI)
+            throws InternalException {
+        // Not yet implemented
     }
 
     /**

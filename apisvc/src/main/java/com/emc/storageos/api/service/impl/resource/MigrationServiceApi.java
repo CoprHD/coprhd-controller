@@ -56,6 +56,17 @@ public interface MigrationServiceApi {
             VirtualArray newVarray) throws APIException;
 
     /**
+     * Get the migration capabilities of the passed storage system's driver.
+     *
+     * @param sourceStorageSystemURI The source storage system for the migration.
+     * @param targetStorageSystemURI The target storage system for the migration.
+     *
+     * @return A boolean that is true if the passed storage systems support a driver assisted migration.
+     */
+    public void verifyDriverCapabilities(URI sourceStorageSystemURI, URI targetStorageSystemURI)
+            throws InternalException;
+
+    /**
      * Defines the API to change the varray for the passed volumes to the passed
      * varray.
      *

@@ -1277,10 +1277,13 @@ public class NetAppFacade {
      * @param type either ntfs, unix, mixed
      */
     public void setQTreeSecurityStyle(String path, String type) {
+
+        log.info("set QTree security style [" + type + "] on path:" + path);
         String output = invokeCliCommand(new String[] { "qtree", "security", path, type });
 
         // Either blank, or a Quota warning message, means we're successful
         if (!StringUtils.isBlank(output) && !output.startsWith("qtree: Changing the security style")) {
+            log.error("Error occured while setting seturity style: " + output);
             throw new NetAppException(output);
         }
     }

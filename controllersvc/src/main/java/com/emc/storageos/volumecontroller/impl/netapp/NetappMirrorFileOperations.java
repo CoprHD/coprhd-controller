@@ -260,37 +260,45 @@ public class NetappMirrorFileOperations implements FileMirrorOperations {
                 targetStorage.getPassword()).https(true).vFiler(portGroupTarget).build();
         // make api call
         String destLocation = getLocation(targetStorage, targetFileShare);
+        _log.info("Inside deleteMirrorFileShareLink. Getting snapmirror status on destination: {}", destLocation);
         SnapMirrorStatusInfo mirrorStatusInfo = nApi.getSnapMirrorStateInfo(destLocation);
 
-        switch (mirrorStatusInfo.getMirrorState()) {
-            case SYNCRONIZED:
-                cmdResult = doPauseSnapMirror(targetStorage, targetFileShare, completer);
-                if (!cmdResult.getCommandSuccess()) {
-                    _log.error("Snapmirror quiesce failed.");
+        if (mirrorStatusInfo != null) {
+            _log.info("Current snapmirror state: {}", mirrorStatusInfo.getMirrorState());
+
+            switch (mirrorStatusInfo.getMirrorState()) {
+                case SYNCRONIZED:
+                    cmdResult = doPauseSnapMirror(targetStorage, targetFileShare, completer);
+                    if (!cmdResult.getCommandSuccess()) {
+                        _log.error("Snapmirror quiesce failed.");
+                        break;
+                    }
+                case PAUSED:
+                    cmdResult = doFailoverSnapMirror(targetStorage, targetFileShare, completer);
+                    if (!cmdResult.getCommandSuccess()) {
+                        _log.error("Snapmirror break failed.");
+                        break;
+                    }
+                case FAILOVER:
+                    cmdResult = doReleaseSnapMirror(sourceSystem, targetStorage,
+                            sourceFileShare, targetFileShare, completer);
+                    if (!cmdResult.getCommandSuccess()) {
+                        _log.error("Snapmirror release failed.");
+                        break;
+                    }
+                case UNKNOWN:
+                    cmdResult = deleteSnapMirrorSchedule(sourceSystem, targetStorage,
+                            sourceFileShare, targetFileShare, completer);
+                    if (!cmdResult.getCommandSuccess()) {
+                        _log.error("Snapmirror deleteSchedule failed.");
+                        break;
+                    }
+                default:
                     break;
-                }
-            case PAUSED:
-                cmdResult = doFailoverSnapMirror(targetStorage, targetFileShare, completer);
-                if (!cmdResult.getCommandSuccess()) {
-                    _log.error("Snapmirror break failed.");
-                    break;
-                }
-            case FAILOVER:
-                cmdResult = doReleaseSnapMirror(sourceSystem, targetStorage,
-                        sourceFileShare, targetFileShare, completer);
-                if (!cmdResult.getCommandSuccess()) {
-                    _log.error("Snapmirror release failed.");
-                    break;
-                }
-            case UNKNOWN:
-                cmdResult = deleteSnapMirrorSchedule(sourceSystem, targetStorage,
-                        sourceFileShare, targetFileShare, completer);
-                if (!cmdResult.getCommandSuccess()) {
-                    _log.error("Snapmirror deleteSchedule failed.");
-                    break;
-                }
-            default:
-                break;
+            }
+        } else {
+            _log.info("Snapmirror status does not exist.");
+            cmdResult = BiosCommandResult.createSuccessfulResult();
         }
         if (cmdResult != null) {
             if (cmdResult.getCommandSuccess()) {
@@ -300,6 +308,8 @@ public class NetappMirrorFileOperations implements FileMirrorOperations {
             } else {
                 completer.error(_dbClient, cmdResult.getServiceCoded());
             }
+        } else {
+
         }
     }
 

@@ -5,8 +5,10 @@
 package com.emc.storageos.api.service.impl.resource;
 
 import static com.emc.storageos.api.mapper.BlockMapper.map;
+import static com.emc.storageos.api.mapper.DbObjectMapper.map;
 import static com.emc.storageos.api.mapper.DbObjectMapper.toNamedRelatedResource;
 import static com.emc.storageos.api.mapper.TaskMapper.toTask;
+import static com.emc.storageos.db.client.util.NullColumnValueGetter.isNullURI;
 
 import java.net.URI;
 import java.util.ArrayList;
@@ -27,6 +29,7 @@ import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 
+import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -36,20 +39,29 @@ import com.emc.storageos.api.service.impl.resource.utils.BlockServiceUtils;
 import com.emc.storageos.api.service.impl.resource.utils.VirtualPoolChangeAnalyzer;
 import com.emc.storageos.api.service.impl.resource.utils.VolumeIngestionUtil;
 import com.emc.storageos.api.service.impl.response.BulkList;
+import com.emc.storageos.db.client.URIUtil;
+import com.emc.storageos.db.client.constraint.NamedElementQueryResultList;
+import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
+import com.emc.storageos.db.client.model.BlockMirror;
 import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
+import com.emc.storageos.db.client.model.Host;
+import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.Migration;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.StringSet;
+import com.emc.storageos.db.client.model.TenantOrg;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
+import com.emc.storageos.db.client.model.VplexMirror;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
+import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.model.BulkIdParam;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.model.ResourceTypeEnum;
@@ -59,8 +71,10 @@ import com.emc.storageos.model.block.BlockMigrationBulkRep;
 import com.emc.storageos.model.block.MigrationList;
 import com.emc.storageos.model.block.MigrationParam;
 import com.emc.storageos.model.block.MigrationRestRep;
-import com.emc.storageos.model.block.VolumeVirtualArrayChangeParam;
-import com.emc.storageos.model.block.VolumeVirtualPoolChangeParam;
+import com.emc.storageos.model.block.NamedVolumesList;
+import com.emc.storageos.model.block.MigrateVolumeVirtualArrayParam;
+import com.emc.storageos.model.host.HostList;
+import com.emc.storageos.model.host.InitiatorList;
 import com.emc.storageos.security.authentication.StorageOSUser;
 import com.emc.storageos.security.authorization.ACL;
 import com.emc.storageos.security.authorization.CheckPermission;
@@ -286,6 +300,108 @@ public class MigrationService extends TaskResourceService {
         return task;
     }
 
+    /**
+     *
+     * @param projectURI
+     * @param varrayURI
+     * @return Get Volume for Virtual Array Change
+     */
+    @GET
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("/varray-change")
+    @CheckPermission(roles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN }, acls = { ACL.OWN, ACL.ALL })
+    public NamedVolumesList getVolumesForVirtualArrayChange(
+            @QueryParam("project") URI projectURI, @QueryParam("targetVarray") URI varrayURI) {
+        NamedVolumesList volumeList = new NamedVolumesList();
+
+        // Get the project.
+        ArgValidator.checkFieldUriType(projectURI, Project.class, "project");
+        Project project = _permissionsHelper.getObjectById(projectURI, Project.class);
+        ArgValidator.checkEntity(project, projectURI, false);
+        s_logger.info("Found project {}:{}", projectURI);
+
+        // Verify the user is authorized for the project.
+        BlockServiceUtils.verifyUserIsAuthorizedForRequest(project, getUserFromContext(), _permissionsHelper);
+        s_logger.info("User is authorized for project");
+
+        // Get the target virtual array.
+        ArgValidator.checkFieldUriType(varrayURI, VirtualArray.class, "targetVarray");
+        VirtualArray tgtVarray = _permissionsHelper.getObjectById(varrayURI, VirtualArray.class);
+        ArgValidator.checkEntity(tgtVarray, varrayURI, false);
+        s_logger.info("Found target virtual array {}:{}", tgtVarray.getLabel(), varrayURI);
+
+        // Determine all volumes in the project that could potentially
+        // be moved to the target virtual array.
+        URIQueryResultList volumeIds = new URIQueryResultList();
+        _dbClient.queryByConstraint(ContainmentConstraint.Factory.getProjectVolumeConstraint(projectURI), volumeIds);
+        Iterator<Volume> volumeItr = _dbClient.queryIterativeObjects(Volume.class, volumeIds);
+        while (volumeItr.hasNext()) {
+            Volume volume = volumeItr.next();
+            try {
+                // Don't operate on VPLEX backend, RP Journal volumes,
+                // or other internal volumes.
+                BlockServiceUtils.validateNotAnInternalBlockObject(volume, false);
+
+                // Don't operate on ingested volumes.
+                VolumeIngestionUtil.checkOperationSupportedOnIngestedVolume(volume,
+                        ResourceOperationTypeEnum.CHANGE_BLOCK_VOLUME_VARRAY, _dbClient);
+
+                // Can't change to the same varray.
+                if (volume.getVirtualArray().equals(varrayURI)) {
+                    s_logger.info("Virtual array change not supported for volume {} already in the target varray",
+                                volume.getId());
+                    continue;
+                }
+
+                // Get the appropriate migration service implementation.
+                MigrationServiceApi migrationServiceAPI = getMigrationServiceImpl(volume);
+
+                // Verify that the virtual array change is allowed for the
+                // volume and target virtual array.
+                migrationServiceAPI.verifyVarrayChangeSupportedForVolumeAndVarray(volume, tgtVarray);
+
+                // If so, add it to the list.
+                volumeList.getVolumes().add(toNamedRelatedResource(volume));
+            } catch (Exception e) {
+                s_logger.info("Virtual array change not supported for volume {}:{}",
+                            volume.getId(), e.getMessage());
+            }
+        }
+
+        return volumeList;
+    }
+
+
+    /**
+     * Lists the id and name for all the hosts that belong to the given tenant organization.
+     *
+     * @param tid the URI of a CoprHD tenant organization
+     * @prereq none
+     * @brief List hosts
+     * @return a list of hosts that belong to the tenant organization.
+     * @throws DatabaseException when a DB error occurs
+     */
+    @GET
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    public HostList getMigrationHosts(@QueryParam("tenant") final URI tid) throws DatabaseException {
+        URI tenantId;
+        StorageOSUser user = getUserFromContext();
+        if (tid == null || StringUtils.isBlank(tid.toString())) {
+            tenantId = URI.create(user.getTenantId());
+        } else {
+            tenantId = tid;
+        }
+        // this call validates the tenant id
+        TenantOrg tenant = _permissionsHelper.getObjectById(tenantId, TenantOrg.class);
+        ArgValidator.checkEntity(tenant, tenantId, isIdEmbeddedInURL(tenantId), true);
+
+        // check the user permissions for this tenant org
+        verifyAuthorizedInTenantOrg(tenantId, user);
+        // get all host children
+        HostList migrationHostList = new HostList();
+        migrationHostList.setHosts(map(ResourceTypeEnum.HOST, listChildren(tenantId, Host.class, "label", "tenant")));
+        return migrationHostList;
+    }
 
     /**
      * Allows the caller to change the virtual array for the given volumes.
@@ -306,12 +422,14 @@ public class MigrationService extends TaskResourceService {
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @CheckPermission(roles = { Role.TENANT_ADMIN }, acls = { ACL.OWN, ACL.ALL })
-    public TaskList migrateVolumesVirtualArray(VolumeVirtualArrayChangeParam param)
-            throws InternalException, APIException {
+    public TaskList migrateVolumesVirtualArray(MigrateVolumeVirtualArrayParam param)
+            throws InternalException, APIException, DatabaseException {
         s_logger.info("Request to change varray for volumes {}", param.getVolumes());
 
         List<URI> volumeURIs = param.getVolumes();
         URI tgtVarrayURI = param.getVirtualArray();
+        URI migrationHostURI = param.getMigrationHost();
+        boolean isHostMigration = param.getIsHostMigration();
 
         // Create the result.
         TaskList taskList = new TaskList();
@@ -322,6 +440,8 @@ public class MigrationService extends TaskResourceService {
         // Validate that each of the volumes passed in is eligible for the varray change
         VirtualArray tgtVarray = null;
         BlockConsistencyGroup cg = null;
+        Host migrationHost = null;
+        InitiatorList initiatorList = null;
         MigrationServiceApi migrationServiceApi = null;
         List<Volume> volumes = new ArrayList<Volume>();
         List<Volume> cgVolumes = new ArrayList<Volume>();
@@ -411,16 +531,7 @@ public class MigrationService extends TaskResourceService {
             s_logger.info("Verify all volumes in CG {}:{}", cg.getId(), cg.getLabel());
             URI storageId = cg.getStorageController();
             if (!NullColumnValueGetter.isNullURI(storageId)) {
-                StorageSystem storage = _dbClient.queryObject(StorageSystem.class, storageId);
-                if (DiscoveredDataObject.Type.vplex.name().equals(storage.getSystemType())) {
-                    //TODO: Make this not vplex specific
-                    // For VPlex, the volumes should include all volumes, which are in the same backend storage system, in the CG.
-                    if (!VPlexUtil.verifyVolumesInCG(volumes, cgVolumes, _dbClient)) {
-                        throw APIException.badRequests.cantChangeVarrayNotAllCGVolumes();
-                    }
-                } else {
-                    verifyVolumesInCG(volumes, cgVolumes);
-                }
+                verifyVolumesInCG(volumes, cgVolumes);
             } else {
                 verifyVolumesInCG(volumes, cgVolumes);
             }
@@ -435,11 +546,16 @@ public class MigrationService extends TaskResourceService {
             taskList.addTask(resourceTask);
         }
 
+        if (isHostMigration) {
+            initiatorList = getInitiators(migrationHostURI);
+        }
+
         // Now execute the varray change for the volumes.
         if (cg != null) {
             try {
                 // When the volumes are part of a CG, executed as a single workflow.
-                migrationServiceApi.migrateVolumesVirtualArray(volumes, cg, cgVolumes, tgtVarray, taskId);
+                migrationServiceApi.migrateVolumesVirtualArray(volumes, cg, cgVolumes, tgtVarray,
+                            isHostMigration, initiatorList, taskId);
                 s_logger.info("Executed virtual array change for volumes");
             } catch (InternalException | APIException e) {
                 // Fail all the tasks.
@@ -466,7 +582,8 @@ public class MigrationService extends TaskResourceService {
             // When the volumes are not in a CG, then execute as individual workflows.
             for (Volume volume : volumes) {
                 try {
-                    migrationServiceApi.migrateVolumesVirtualArray(Arrays.asList(volume), cg, cgVolumes, tgtVarray, taskId);
+                    migrationServiceApi.migrateVolumesVirtualArray(Arrays.asList(volume), cg, cgVolumes, tgtVarray,
+                                isHostMigration, initiatorList, taskId);
                     s_logger.info("Executed virtual array change for volume {}", volume.getId());
                 } catch (InternalException | APIException e) {
                     String errorMsg = String.format("Volume virtual array change error: %s", e.getMessage());
@@ -501,10 +618,31 @@ public class MigrationService extends TaskResourceService {
     }
 
     /**
+     * Gets the id and name for all the host initiators of a host.
+     *
+     * @param id The URI of the host.
+     * @return List of Host Initiators.
+     * @throws DatabaseException when a DB error occurs.
+     */
+    private InitiatorList getInitiators(URI id) throws DatabaseException {
+        Host host = queryObject(Host.class, id, false);
+        // check the user permissions
+        verifyAuthorizedInTenantOrg(host.getTenant(), getUserFromContext());
+        // get the initiators
+        InitiatorList initiatorList = new InitiatorList();
+        List<NamedElementQueryResultList.NamedElement> dataObjects = listChildren(id, Initiator.class, "iniport", "host");
+        for (NamedElementQueryResultList.NamedElement dataObject : dataObjects) {
+            initiatorList.getInitiators().add(toNamedRelatedResource(ResourceTypeEnum.INITIATOR,
+                        dataObject.getId(), dataObject.getName()));
+        }
+        return initiatorList;
+    }
+
+    /**
      * Verifies that the passed volumes correspond to the passed volumes from
      * a consistency group.
      *
-     * @param volumes The volumes to verify
+     * @param volumes The volumes to verify.
      * @param cgVolumes The list of active volumes in a CG.
      */
     private void verifyVolumesInCG(List<Volume> volumes, List<Volume> cgVolumes) {
@@ -524,7 +662,7 @@ public class MigrationService extends TaskResourceService {
                 }
             }
             if (!found) {
-                _log.error("Volume {}:{} not found in CG", volume.getId(), volume.getLabel());
+                s_logger.error("Volume {}:{} not found in CG", volume.getId(), volume.getLabel());
                 throw APIException.badRequests.cantChangeVarrayVolumeIsNotInCG();
             }
         }

@@ -4,11 +4,14 @@
  */
 package com.emc.storageos.api.service.impl.resource;
 
+import java.net.URI;
 import java.util.List;
 
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
+import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.Volume;
+import com.emc.storageos.model.host.InitiatorList;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 
@@ -29,6 +32,15 @@ public interface MigrationServiceApi {
      * @return The snapshots for the passed volume.
      */
     public List<BlockSnapshot> getSnapshots(Volume volume);
+
+    /**
+     * Gets the active volumes for the consistency group.
+     *
+     * @param cg The consistency group.
+     *
+     * @return A list of all the active volumes for the passed consistency group.
+     */
+    public List<Volume> getActiveCGVolumes(BlockConsistencyGroup cg);
 
     /**
      * Determines whether or not the virtual array for the passed volume can be
@@ -55,6 +67,7 @@ public interface MigrationServiceApi {
      * @throws InternalException
      */
     public void migrateVolumesVirtualArray(List<Volume> volume,
-            BlockConsistencyGroup cg, List<Volume> cgVolumes, VirtualArray tgtVarray, String taskId) throws InternalException;
+            BlockConsistencyGroup cg, List<Volume> cgVolumes, VirtualArray tgtVarray,
+            boolean isHostMigration, InitiatorList initiatorList, String taskId) throws InternalException;
 
 }

@@ -4,6 +4,8 @@
  */
 package com.emc.storageos.api.service.impl.resource;
 
+import static com.emc.storageos.api.mapper.DbObjectMapper.toNamedRelatedResource;
+
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -24,10 +26,13 @@ import com.emc.storageos.api.service.impl.resource.utils.VirtualPoolChangeAnalyz
 import com.emc.storageos.blockorchestrationcontroller.VolumeDescriptor;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
+import com.emc.storageos.db.client.constraint.NamedElementQueryResultList;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup.Types;
 import com.emc.storageos.db.client.model.BlockMirror;
 import com.emc.storageos.db.client.model.BlockSnapshot;
+import com.emc.storageos.db.client.model.Host;
+import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.DataObject.Flag;
 import com.emc.storageos.db.client.model.Migration;
 import com.emc.storageos.db.client.model.NamedURI;
@@ -42,8 +47,11 @@ import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.client.util.StringSetUtil;
+import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.migrationorchestrationcontroller.MigrationOrchestrationController;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
+import com.emc.storageos.model.ResourceTypeEnum;
+import com.emc.storageos.model.host.InitiatorList;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.volumecontroller.Recommendation;
@@ -147,7 +155,7 @@ public class DefaultMigrationServiceApiImpl extends AbstractMigrationServiceApiI
     @Override
     public void migrateVolumesVirtualArray(List<Volume> volumes,
             BlockConsistencyGroup cg, List<Volume> cgVolumes, VirtualArray tgtVarray,
-            String taskId) throws InternalException {
+            boolean isHostMigration, InitiatorList initiatorList, String taskId) throws InternalException {
 
         // Since the backend volume would change and snapshots are just
         // snapshots of the backend volume, the user would lose all snapshots
@@ -214,7 +222,7 @@ public class DefaultMigrationServiceApiImpl extends AbstractMigrationServiceApiI
 
         // Create the volume descriptors for the virtual array change.
         List<VolumeDescriptor> descriptors = createVolumeDescriptorsForVarrayChange(
-                volumes, tgtVarray, taskId);
+                volumes, tgtVarray, isHostMigration, initiatorList, taskId);
 
         try {
             // Orchestrate the virtual array change.
@@ -249,7 +257,7 @@ public class DefaultMigrationServiceApiImpl extends AbstractMigrationServiceApiI
      * @return A list of volume descriptors
      */
     private List<VolumeDescriptor> createVolumeDescriptorsForVarrayChange(List<Volume> volumes,
-            VirtualArray tgtVarray, String taskId) {
+            VirtualArray tgtVarray, boolean isHostMigration, InitiatorList initiatorList, String taskId) {
 
         // The list of descriptors for the virtual array change.
         List<VolumeDescriptor> descriptors = new ArrayList<VolumeDescriptor>();
@@ -264,7 +272,7 @@ public class DefaultMigrationServiceApiImpl extends AbstractMigrationServiceApiI
                     VolumeDescriptor.Type.BLOCK_DATA, volume.getStorageController(),
                     volume.getId(), null, null);
             Map<String, Object> descrParams = new HashMap<String, Object>();
-            descrParams.put(VolumeDescriptor.PARAM_VARRAY_CHANGE_NEW_VAARAY_ID, newVarray.getId());
+            descrParams.put(VolumeDescriptor.PARAM_VARRAY_CHANGE_NEW_VAARAY_ID, tgtVarray.getId());
             descriptor.setParameters(descrParams);
             descriptors.add(descriptor);
 
@@ -278,7 +286,7 @@ public class DefaultMigrationServiceApiImpl extends AbstractMigrationServiceApiI
                     assocVolume.getVirtualPool());
             descriptors.addAll(createBackendVolumeMigrationDescriptors(storageSystem,
                     volume, assocVolume, tgtVarray, assocVolumeVPool,
-                    getVolumeCapacity(assocVolume),
+                    getVolumeCapacity(assocVolume), isHostMigration, initiatorList,
                     taskId, null, null));
         }
 
@@ -303,8 +311,8 @@ public class DefaultMigrationServiceApiImpl extends AbstractMigrationServiceApiI
      */
     private List<VolumeDescriptor> createBackendVolumeMigrationDescriptors(StorageSystem storageSystem,
             Volume virtualVolume, Volume sourceVolume, VirtualArray varray, VirtualPool vpool,
-            Long capacity, String taskId, List<VolumeRecommendation> recommendations,
-            VirtualPoolCapabilityValuesWrapper capabilities) {
+            Long capacity, boolean isHostMigration, InitiatorList initiatorList, String taskId,
+            List<VolumeRecommendation> recommendations, VirtualPoolCapabilityValuesWrapper capabilities) {
 
         URI sourceVolumeURI = null;
         Project targetProject = null;
@@ -380,9 +388,6 @@ public class DefaultMigrationServiceApiImpl extends AbstractMigrationServiceApiI
                 targetLabel, ResourceOperationTypeEnum.CREATE_BLOCK_VOLUME,
                 taskId, _dbClient);
 
-        // TODO: Implement this method when capabilities support has been added to the SB SDK
-        boolean driverMigration = getMigrationCapabilities(sourceVolume.getStorageController(), targetVolume.getStorageController());
-
         // If the cgURI is null, try and get it from the source volume.
         if (cgURI == null) {
             if ((sourceVolume != null) && (!NullColumnValueGetter.isNullURI(sourceVolume.getConsistencyGroup()))) {
@@ -419,7 +424,8 @@ public class DefaultMigrationServiceApiImpl extends AbstractMigrationServiceApiI
         // passed virtual volume and add the migration to the passed
         // migrations list.
         Migration migration = prepareMigration(virtualVolume.getId(),
-                sourceVolumeURI, targetVolumeURI, driverMigration, taskId);
+                sourceVolumeURI, targetVolumeURI, isHostMigration,
+                initiatorList, taskId);
 
         descriptors.add(new VolumeDescriptor(VolumeDescriptor.Type.MIGRATE_VOLUME,
                 targetStorageSystem,
@@ -452,7 +458,7 @@ public class DefaultMigrationServiceApiImpl extends AbstractMigrationServiceApiI
      *
      * @param size The volume size.
      * @param project A reference to the volume's Project.
-     * @param neighborhood A reference to the volume's varray.
+     * @param varray A reference to the volume's varray.
      * @param vpool A reference to the volume's VirtualPool.
      * @param storageSystemURI The URI of the volume's storage system.
      * @param storagePoolURI The URI of the volume's storage pool.
@@ -463,7 +469,7 @@ public class DefaultMigrationServiceApiImpl extends AbstractMigrationServiceApiI
      * @return A reference to the new volume.
      */
     public static Volume prepareVolumeForRequest(Long size, Project project,
-            VirtualArray neighborhood, VirtualPool vpool, URI storageSystemURI,
+            VirtualArray varray, VirtualPool vpool, URI storageSystemURI,
             URI storagePoolURI, String label, ResourceOperationTypeEnum opType,
             String token, DbClient dbClient) {
         Volume volume = new Volume();
@@ -475,7 +481,7 @@ public class DefaultMigrationServiceApiImpl extends AbstractMigrationServiceApiI
         volume.setVirtualPool(vpool.getId());
         volume.setProject(new NamedURI(project.getId(), volume.getLabel()));
         volume.setTenant(new NamedURI(project.getTenantOrg().getURI(), volume.getLabel()));
-        volume.setVirtualArray(neighborhood.getId());
+        volume.setVirtualArray(varray.getId());
         StoragePool storagePool = null;
         storagePool = dbClient.queryObject(StoragePool.class, storagePoolURI);
         volume.setProtocol(new StringSet());
@@ -506,6 +512,21 @@ public class DefaultMigrationServiceApiImpl extends AbstractMigrationServiceApiI
     }
 
     /**
+     * Gets the target volume's capacity.
+     *
+     * @param volume The volume to get the capacity of.
+     */
+    public Long getVolumeCapacity(Volume volume) {
+        Long userRequestedCapacity = volume.getCapacity();
+        Long provisionedCapacity = volume.getProvisionedCapacity();
+        if (provisionedCapacity > userRequestedCapacity) {
+            return provisionedCapacity;
+        }
+
+        return userRequestedCapacity;
+    }
+
+    /**
      * Prepares a migration for the passed volume specifying the source
      * and target volumes for the migration, as well as if the migration
      * will be driver assisted or not.
@@ -519,13 +540,14 @@ public class DefaultMigrationServiceApiImpl extends AbstractMigrationServiceApiI
      * @return A reference to a newly created Migration.
      */
     public Migration prepareMigration(URI virtualVolumeURI, URI sourceURI, URI targetURI,
-            boolean driverMigration, String token) {
+            boolean isHostMigration, InitiatorList initiatorList, String token) {
         Migration migration = new Migration();
         migration.setId(URIUtil.createId(Migration.class));
         migration.setVolume(virtualVolumeURI);
         migration.setSource(sourceURI);
         migration.setTarget(targetURI);
-        migration.setDriverMigration(driverMigration);
+        migration.setIsHostMigration(isHostMigration);
+        migration.setInitiatorList(initiatorList);
         _dbClient.createObject(migration);
         migration.setOpStatus(new OpStatusMap());
         Operation op = _dbClient.createTaskOpStatus(Migration.class, migration.getId(),

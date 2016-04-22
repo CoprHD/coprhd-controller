@@ -6,6 +6,8 @@ package com.emc.storageos.db.client.model;
 
 import java.net.URI;
 
+import com.emc.storageos.model.host.InitiatorList;
+
 /**
  * Represents a volume migration operation.
  */
@@ -33,7 +35,10 @@ public class Migration extends DataObject {
 
     // Boolean representing whether the migration will be done by a southbound driver, or by the
     // CoprHD controller through an external Linux host.
-    private boolean _driverMigration;
+    private boolean _isHostMigration;
+
+    // Host initiators to be used in the case of a host based migration
+    private InitiatorList _initiatorList;
 
     /**
      * Getter for the URI of the volume being migrated.
@@ -157,22 +162,42 @@ public class Migration extends DataObject {
     }
 
     /**
-     * Getter for the driver migration boolean.
+     * Getter for the host migration boolean.
      *
      * @return The boolean describing the type of migration to be performed.
      */
-    @Name("driverMigration")
-    public boolean getDriverMigration() {
-        return _driverMigration;
+    @Name("isHostMigration")
+    public boolean getIsHostMigration() {
+        return _isHostMigration;
     }
 
     /**
-     * Setter for the driver migration boolean.
+     * Setter for the host migration boolean.
      *
-     * @param driverMigration The boolean describing the type of migration to be performed.
+     * @param isHostMigration The boolean describing the type of migration to be performed.
      */
-    public void setDriverMigration(boolean driverMigration) {
-        _driverMigration = driverMigration;
-        setChanged("driverMigration");
+    public void setIsHostMigration(boolean isHostMigration) {
+        _isHostMigration = isHostMigration;
+        setChanged("isHostMigration");
+    }
+
+    /**
+     * Getter for the initiator list.
+     *
+     * @return The list of initiators for the migration host.
+     */
+    @Name("initiatorList")
+    public InitiatorList getInitiatorList() {
+        return _initiatorList;
+    }
+
+    /**
+     * Setter for the initiator list.
+     *
+     * @param initiatorList The list of initiators for the migration host.
+     */
+    public void setInitiatorList(InitiatorList initiatorList) {
+        _initiatorList = initiatorList;
+        setChanged("initiatorList");
     }
 }

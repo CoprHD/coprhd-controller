@@ -1254,11 +1254,11 @@ public class RPHelper {
     /*
      * Since there are several ways to express journal size policy, this helper method will take
      * the source size and apply the policy string to come up with a resulting size.
-     * 
+     *
      * @param sourceSizeStr size of the source volume
-     * 
+     *
      * @param journalSizePolicy the policy of the journal size. ("10gb", "min", or "3.5x" formats)
-     * 
+     *
      * @return journal volume size result
      */
     public static long getJournalSizeGivenPolicy(String sourceSizeStr, String journalSizePolicy, int resourceCount) {
@@ -2044,6 +2044,19 @@ public class RPHelper {
                 continue;
             }
 
+            if (RPHelper.isMetroPointVolume(dbClient, cgVolume)
+                    && cgVolume.getPersonality().equalsIgnoreCase(PersonalityTypes.SOURCE.toString()) && productionCopy) {
+                // If the volume is MetroPoint, check for varrayId in the associated volumes since their RP Copy names will be different.
+                if (cgVolume.getAssociatedVolumes() != null) {
+                    for (String assocVolumeIdStr : cgVolume.getAssociatedVolumes()) {
+                        Volume associatedVolume = dbClient.queryObject(Volume.class, URI.create(assocVolumeIdStr));
+                        if (URIUtil.identical(associatedVolume.getVirtualArray(), varrayId)) {
+                            return associatedVolume.getRpCopyName();
+                        }
+                    }
+                }
+            }
+
             if (!URIUtil.identical(cgVolume.getVirtualArray(), varrayId)) {
                 continue;
             }
@@ -2053,11 +2066,6 @@ public class RPHelper {
             }
 
             if (cgVolume.getPersonality().equalsIgnoreCase(PersonalityTypes.TARGET.toString()) && !productionCopy) {
-                return cgVolume.getRpCopyName();
-            }
-
-            // The case of standby production copy; there is no source production volume for this specific varray
-            if (cgVolume.getPersonality().equalsIgnoreCase(PersonalityTypes.METADATA.toString()) && productionCopy) {
                 return cgVolume.getRpCopyName();
             }
         }

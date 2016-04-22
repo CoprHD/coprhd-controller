@@ -2972,4 +2972,7 @@ public interface BadRequestExceptions {
     
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException srdfNotSupportedOnHighAvailabilityVpool();
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException snapshotRestoreNotSupported();
 }

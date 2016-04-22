@@ -63,7 +63,7 @@ finish_message() {
 # 1. The backup created locally
 # 2. The downloaded backup
 is_local_backup() {
-    if [[ "${RESTORE_DIR}" =~ ^\/data\/backup ]]; then
+    if [[ "${RESTORE_ORIGIN}" =~ ^\/data\/backup ]]; then
         echo "true"
     else
         echo "false"
@@ -71,10 +71,10 @@ is_local_backup() {
 }
 
 is_vdc_connected() {
-    cd ${RESTORE_DIR}
-    local geo_files=($(ls -f *geodb*.zip))
-    geodb_type=${geo_files[0]}
-    geodb_type=${geodb_type#*_}
+    cd "${RESTORE_DIR}"
+    local geo_file=$(ls -1 *geodb*.zip |head -1)
+# get type of the zip file
+    geodb_type=${geo_file#*_}
     geodb_type=${geodb_type%%_*}
 
     if [ "$geodb_type" == "geodb" ]; then
@@ -92,7 +92,7 @@ clean_up() {
     local command
 
     if [[ "${is_local_backup}" == "false" ]]; then
-        command="rm -rf $RESTORE_DIR"
+        command="rm -rf $RESTORE_DIR1"
         loop_execute "${command}" "true" "${NODE_COUNT}" "${LOCAL_NODE}" "${ROOT_PASSWORD}"
     else
        command="rm -f ${RESTORE_DIR}/*_zk.*" 
@@ -107,4 +107,7 @@ clean_up() {
             ssh_execute "${node}" "${command}" "${ROOT_PASSWORD}"
        done
     fi
+
+    command="rm -rf ${TEMP_DIR}"
+    loop_execute "${command}" "true"
 }

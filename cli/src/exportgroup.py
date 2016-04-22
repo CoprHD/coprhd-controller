@@ -308,6 +308,8 @@ class ExportGroup(object):
             if(resType == "snapshots"):
                 copy['id'] = snapshotObject.snapshot_query(
                     'block', blockTypeName, baseResUri, copyParam[0])
+            if(resType == "blockmirror"):
+                copy['id'] = volumeObject.mirror_volume_query(baseResUri,copyParam[0])
             if(len(copyParam) > 1):
                 copy['lun'] = copyParam[1]
             copyEntries.append(copy)
@@ -346,21 +348,23 @@ class ExportGroup(object):
         # incase of snapshots from volume, this will hold the source volume
         # URI.
         volume_snapshots = []
-        mirror_param = {}
+        
         if(volumenames):
             volume_snapshots = self._get_resource_lun_tuple(
                 volumenames, "volumes", None, tenantname,
                 projectname, None)
         
-        #if block mirror needs to be exported
-        if(blockmirror is not None):
-            from volume import Volume
-            vol = Volume(self.__ipAddr, self.__port)
-            fullpathvol = tenantname + "/" + projectname + "/" + volumenames[0]
-            block_mirror_uri = vol.mirror_protection_show(fullpathvol, blockmirror[0])
-            mirror_param = {}
-            mirror_param['id'] = block_mirror_uri['id']
-            volume_snapshots = [mirror_param]
+        #Block mirror function
+        if(blockmirror and len(blockmirror) > 0):
+            resuri = None
+            
+            blockTypeName = 'volumes'
+            if(len(volume_snapshots) > 0):
+                resuri = volume_snapshots[0]['id']
+
+            volume_snapshots = self._get_resource_lun_tuple(
+                blockmirror, "blockmirror", resuri, tenantname,
+                projectname, blockTypeName) 
 
         # if snapshot given then snapshot added to exportgroup
         if(snapshots and len(snapshots) > 0):

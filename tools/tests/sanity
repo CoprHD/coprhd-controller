@@ -4141,9 +4141,8 @@ recoverpoint_simulator_setup()
         fi
     fi
     if [ "${RPXIO_TESTS}" = "1" ]; then
-        run cos update block rpxio_cdp --storage $XIO_4X_SIM_NATIVEGUID
         run cos update block rpxio_targets --storage $XIO_4X_SIM_NATIVEGUID
-
+        run cos update block rpxio_cdp --storage $XIO_4X_SIM_NATIVEGUID
     fi
 }
 

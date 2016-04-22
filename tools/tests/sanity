@@ -1389,6 +1389,9 @@ xtremio_blockconsistencygroup_snapshot_tests()
     blockconsistencygroup_show_snapshot $cg_name $cg_snapshot
     blockconsistencygroup_list_snapshot $cg_name $cg_snapshot
     blockconsistencygroup_deactivate_snapshot $cg_name $cg_snapshot
+    echo "Deleting volume in snapshot consistency group"
+    run volume delete $PROJECT/volume-${cg_name} --wait
+
     echo "Deleting snapshot consistency group"
     run blockconsistencygroup delete $cg_name   
 }
@@ -1406,8 +1409,8 @@ xtremio_block_tests()
 
     run volume create ${v1} $PROJECT $NH $cos1 $BLK_SIZE --thinVolume true
     run volume create ${v2} $PROJECT $NH $cos2 $BLK_SIZE --thinVolume true
-    run blocksnapshot create $PROJECT/$vol1 ${snap1_label}
-    run blocksnapshot create $PROJECT/$vol2 ${snap2_label}
+    run blocksnapshot create $PROJECT/${v1} ${snap1_label}
+    run blocksnapshot create $PROJECT/${v2} ${snap2_label}
 
 
     xtremio_export_test ${export_name}1 ${v1} ${v2} ${snap1_label} ${snap2_label}
@@ -1444,16 +1447,13 @@ xtremio_export_test()
     pwwn3=`pwwn C$k`
     pwwn4=`pwwn D$k`
 
-    run blocksnapshot create $vol1 ${snap1_label}
-    run blocksnapshot create $vol2 ${snap2_label}
-
     if [ "$BOURNE_SECURITY_DISABLED" != '1' ] ; then
         run bulkapi blocksnapshots $LOCAL_LDAP_SUPERUSER_USERNAME $LOCAL_LDAP_SUPERUSER_PASSWORD $LOCAL_LDAP_USER_PASSWORD_1
     fi
 
-    run export_group create $proj $expname $NH --volspec "$vol1+1,$snap1+2,$snap2+3" --inits "$hostname/$pwwn1"
+    run export_group create $proj $expname $NH --volspec "$vol1,$snap1,$snap2" --inits "$hostname/$pwwn1"
     run export_group show $exp
-    run export_group update $exp --addVolspec "$vol2+4" --remVols $vol1
+    run export_group update $exp --addVolspec "$vol2" --remVols $vol1
     run export_group show $exp
     run export_group update $exp --remInits "$hostname/$pwwn1"
     run export_group show $exp
@@ -3209,6 +3209,8 @@ recoverpoint_ingest_discovery()
             INGEST_NATIVEGUID=$RECOVERPOINT_STORAGE_ARRAY_A_GUID
         fi
         RP_NATIVEGUID=$RECOVERPOINT_RP_NATIVEGUID
+    elif [ "${RPXIO_TESTS}" = "1" ]; then
+        INGEST_NATIVEGUID=$XIO_4X_SIM_NATIVEGUID
     fi
 
     if [ ${RP_CRR} = "1" -o ${RP_CLR} = "1" -o "${RPMP_TESTS}" = "1" ]; then
@@ -3728,11 +3730,7 @@ recoverpoint_ingest()
 
     if [ "$RP_CDP" = "1" ] ; then
         recoverpoint_ingest_test rp${rptypetag}_cdp
-        if [ "${RPXIO_TESTS}" = "0" ]; then
-            recoverpoint_ingest_export_test rp${rptypetag}_cdp
-        else
-            secho "XIO Export Tests Disabled; Export host registration in physical network needs work"
-        fi
+        recoverpoint_ingest_export_test rp${rptypetag}_cdp
     fi
 
     if [ "$RP_CRR" = "1" ] ; then

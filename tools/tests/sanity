@@ -634,7 +634,7 @@ CMD_OUTPUT=/tmp/output.txt
 # General echo output
 secho()
 {
-    echo "*** $*"
+    echo "*** " `date` " $*"
 }
 
 #
@@ -2609,11 +2609,17 @@ rp_storage_setup()
            provider_ip='RECOVERPOINT_SMIS_PROVIDER_'$var'_IP'
            provider_ip=${!provider_ip}
 
+           provider_port='RECOVERPOINT_SMIS_PROVIDER_'$var'_PORT'
+           provider_port=${!provider_port}
+
+           provider_use_ssl='RECOVERPOINT_SMIS_PROVIDER_'$var'_USE_SSL'
+           provider_use_ssl=${!provider_use_ssl}
+
            array_guid='RECOVERPOINT_STORAGE_ARRAY_'$var'_GUID'
            array_guid=${!array_guid}
            
            if [ "$array_guid" != "NONE" ]; then
-               smisprovider create $provider $provider_ip $SMIS_PORT $SMIS_USER $SMIS_PASSWORD false
+               run smisprovider create $provider $provider_ip $provider_port $SMIS_USER $SMIS_PASSWORD $provider_use_ssl
            fi
         done
     fi
@@ -9121,59 +9127,97 @@ output_conf(){
 
 application_vpool_setup()
 {
+    secho "application_vpool_setup()"
+
     # Create CoS for VNX
-    run cos create block $APP_VPOOL_SIMPLE_VNX                       \
-        --description 'Consistency-Group-Block-VNX-CoS' true   \
-                            --protocols FC iSCSI       \
+    run cos create block $APP_VPOOL_VNX_BLOCK                       \
+        --description 'Consistency-Group-Block-VNX-CoS' false   \
+                            --protocols FC        \
                             --numpaths 1               \
                             --max_snapshots 10         \
                             --provisionType 'Thin'     \
-                            --neighborhoods $NH        \
+                            --neighborhoods $APP_VARRAY1        \
                             --multiVolumeConsistency
 
-    run cos update block $APP_VPOOL_SIMPLE_VNX --storage $VNXB_NATIVEGUID
-    run cos allow $APP_VPOOL_SIMPLE_VNX block $TENANT
+    run cos update block $APP_VPOOL_VNX_BLOCK --storage $APPLICATION_VNX1_NATIVEGUID
+    run cos allow $APP_VPOOL_VNX_BLOCK block $TENANT
+
+    # Create CoS for VNX + VPLEX local
+    run cos create block $APP_VPOOL_VNX_VPLEX_LOCAL                       \
+        --description 'Consistency-Group-VPLEX-local-VNX-CoS' false   \
+                            --protocols FC        \
+                            --numpaths 2               \
+                            --max_snapshots 10         \
+                            --provisionType 'Thin'     \
+                            --neighborhoods $APP_VARRAY1        \
+                            --highavailability vplex_local           \
+                            --multiVolumeConsistency
+
+    run cos update block $APP_VPOOL_VNX_VPLEX_LOCAL --storage $APPLICATION_VNX1_NATIVEGUID
+    run cos allow $APP_VPOOL_VNX_VPLEX_LOCAL block $TENANT
 
     # Create CoS for VMAX
-    run cos create block $APP_VPOOL_SIMPLE_VMAX               \
-        --description 'Consistency-Group-Block-VMAX-CoS' true   \
-                            --protocols FC iSCSI       \
+    run cos create block $APP_VPOOL_VMAX_BLOCK               \
+        --description 'Consistency-Group-Block-VMAX-CoS' false   \
+                            --protocols FC        \
                             --numpaths 1               \
                             --max_snapshots 10         \
                             --provisionType 'Thin'     \
-                            --neighborhoods $NH                \
+                            --neighborhoods $APP_VARRAY2        \
                             --multiVolumeConsistency
 
-    run cos update block $APP_VPOOL_SIMPLE_VMAX --storage $VMAX_NATIVEGUID
-    run cos allow $APP_VPOOL_SIMPLE_VMAX block $TENANT
+    run cos update block $APP_VPOOL_VMAX_BLOCK --storage $APPLICATION_VMAX1_NATIVEGUID
+    run cos allow $APP_VPOOL_VMAX_BLOCK block $TENANT
+
+    # Create CoS for VMAX + vplex local
+    run cos create block $APP_VPOOL_VMAX_VPLEX_LOCAL \
+        --description 'Consistency-Group-Block-VMAX-VPLEX-local-CoS' false   \
+                            --protocols FC        \
+                            --numpaths 2               \
+                            --max_snapshots 10         \
+                            --provisionType 'Thin'     \
+                            --neighborhoods $APP_VARRAY2        \
+                            --highavailability vplex_local           \
+                            --multiVolumeConsistency
+
+    run cos update block $APP_VPOOL_VMAX_VPLEX_LOCAL --storage $APPLICATION_VMAX1_NATIVEGUID
+    run cos allow $APP_VPOOL_VMAX_VPLEX_LOCAL block $TENANT
 
 }
 
-APP_VPOOL_SIMPLE_VNX=app_vpool_simple_vnx
-APP_VPOOL_SIMPLE_VMAX=app_vpool_simple_vmax
-
 application_setup()
 {
-    secho "Executing volume group setup " `date`
+    secho "application_setup()"
 
-    vmaxblock_setup
-    vnxblock_setup
-    application_vpool_setup
+    #vmaxblock_setup
+    #vnxblock_setup
+
+    #vplex_setup
 
     RP_TESTS=1
     RPVPLEX_TESTS=1
     RPMP_TESTS=1
-    RPXIO_TESTS=1
+    RPXIO_TESTS=0
     RP_CDP=1
     RP_CRR=1
 
-    #recoverpoint_setup
+    # all rp setup except vpools
+    project_setup
+    rp_varray_setup
+    rp_network_setup
+    rp_storage_setup
+    rp_port_setup
+    rp_protection_system_setup
+    rp_isolate_rpa_clusters
+
+    application_vpool_setup
 }
 
 application_crud_test()
 {
-    secho "Executing volume group crud test"
-    appname=sanityapp-${RANDOM}
+    secho "application_crud_test()"
+
+    appname=sanityapp-crun_test-${RANDOM}
 
     # test and verify create volume group
     run volumegroup create ${appname} descrip COPY
@@ -9195,18 +9239,9 @@ application_crud_test()
     fail volumegroup show ${newappname}
 }
 
-application_createvols_simple()
+application_createvols()
 {
     secho "application_createvols()"
-
-    unique=${RANDOM}
-    basename=vgsanity-${unique}
-    VG_CGNAME1=cg1${unique}
-    VG_CGNAME2=cg2${unique}
-    VG_COPYVG1=${basename}-copyvg1
-    VG_COPYVG2=${basename}-copyvg2
- 
-    #VG_VPOOL_CG=rp_noprotection
 
     # create volumes in cg1
     run blockconsistencygroup create ${PROJECT} ${VG_CGNAME1}
@@ -9216,7 +9251,7 @@ application_createvols_simple()
     secho cgid1 is ${VG_CGID1}
 
     VG_VOLUME1=${basename}-cg1
-    run volume create $VG_VOLUME1 $PROJECT $NH $VG_VPOOL_CG $BLK_SIZE --thinVolume true --consistencyGroup ${VG_CGNAME1} --count 3
+    run volume create $VG_VOLUME1 $PROJECT $VG_VARRAY_CG $VG_VPOOL_CG $BLK_SIZE --thinVolume true --consistencyGroup ${VG_CGNAME1} --count 3
     VG_CG1VOL1="${VG_VOLUME1}-1"
     VG_CG1VOL2="${VG_VOLUME1}-2"
     VG_CG1VOL3="${VG_VOLUME1}-3"
@@ -9236,7 +9271,7 @@ application_createvols_simple()
     secho cgid2 is ${VG_CGID2}
 
     VG_VOLUME2=${basename}-cg2
-    run volume create $VG_VOLUME2 $PROJECT $NH $VG_VPOOL_CG $BLK_SIZE --thinVolume true --consistencyGroup ${VG_CGNAME2} --count 3
+    run volume create $VG_VOLUME2 $PROJECT $VG_VARRAY_CG $VG_VPOOL_CG $BLK_SIZE --thinVolume true --consistencyGroup ${VG_CGNAME2} --count 3
     VG_CG2VOL1="${VG_VOLUME2}-1"
     VG_CG2VOL2="${VG_VOLUME2}-2"
     VG_CG2VOL3="${VG_VOLUME2}-3"
@@ -9254,6 +9289,7 @@ application_createvols_simple()
 # deletes volumes and CG used in application tests
 application_deleteall()
 {
+    secho "application_deleteall()"
     run volume delete $VG_CG1VOL_GRP --wait
     run volume delete $VG_CG2VOL_GRP --wait
     run blockconsistencygroup delete ${VG_CGNAME1}
@@ -9264,10 +9300,10 @@ application_deleteall()
 # adds and removes volumes from a COPY volume group
 application_add_remove_volume_tests()
 {
-    secho "application_add_remove_volume_tests()"
+    secho "application_add_remove_volume_tests()" 
 
     # add 3 volumes from same CG to application
-    run volumegroup add-volumes ${VG_COPYVG1} ${VG_CG1VOLID1},${VG_CG1VOLID2},${VG_CG1VOLID3}
+    run volumegroup add-volumes ${VG_COPYVG1} ${VG_CG1VOLID1},${VG_CG1VOLID2},${VG_CG1VOLID3} $app_test_cg1 $app_test_subgroup1a
 
     # show volumes in application
     run volumegroup verify-volume ${VG_COPYVG1} ${VG_CG1VOLID1}
@@ -9282,8 +9318,8 @@ application_add_remove_volume_tests()
     fail volumegroup verify-volume ${VG_COPYVG1} ${VG_CG1VOLID3}
 
     # add back same 3 volumes from same CG plus 3 new volumes from a second C to application
-    run volumegroup add-volumes ${VG_COPYVG1} ${VG_CG1VOLID1},${VG_CG1VOLID2},${VG_CG1VOLID3}
-    run volumegroup add-volumes ${VG_COPYVG1} ${VG_CG2VOLID1},${VG_CG2VOLID2},${VG_CG2VOLID3}
+    run volumegroup add-volumes ${VG_COPYVG1} ${VG_CG1VOLID1},${VG_CG1VOLID2},${VG_CG1VOLID3} $app_test_cg1 $app_test_subgroup1a
+    run volumegroup add-volumes ${VG_COPYVG1} ${VG_CG2VOLID1},${VG_CG2VOLID2},${VG_CG2VOLID3} $app_test_cg2 $app_test_subgroup2a
 
     # show volumes in application
     run volumegroup verify-volume ${VG_COPYVG1} ${VG_CG1VOLID1}
@@ -9295,22 +9331,85 @@ application_add_remove_volume_tests()
 
     # provision a new volume to CG1; volume should automatically be added to the applicaiton
     VG_CG1VOL4=$VG_VOLUME1-4
-    run volume create $VG_CG1VOL4 $PROJECT $NH $VG_VPOOL_CG $BLK_SIZE --thinVolume true --consistencyGroup ${VG_CGNAME1}
+    run volume create $VG_CG1VOL4 $PROJECT $VG_VARRAY_CG $VG_VPOOL_CG $BLK_SIZE --thinVolume true --consistencyGroup ${VG_CGNAME1}
     VG_CG1VOLID4=`volume list ${PROJECT} | grep ${VG_CG1VOL4} | awk '{print $7}'`
-    run volumegroup verify-volume ${VG_COPYVG1} ${VG_CG1VOLID4}
+    VG_CG1VOL_GRP="${VG_CG1VOL_GRP},${PROJECT}/${VG_CG1VOL4}"
+    secho cg1volid4 is ${VG_CG1VOLID4}
+    # block (non0RP, non-vplex) volumes are automatically added to the application, RP and vplex volumes are not
+    if [ $APP_RUNNING_BLOCK_TEST -eq 1 ]; then
+        run volumegroup verify-volume ${VG_COPYVG1} ${VG_CG1VOLID4}
+    else
+        fail volumegroup verify-volume ${VG_COPYVG1} ${VG_CG1VOLID4}
+        run volumegroup add-volumes ${VG_COPYVG1} ${VG_CG1VOLID4} $app_test_cg1 $app_test_subgroup1a
+        run volumegroup verify-volume ${VG_COPYVG1} ${VG_CG1VOLID4}
+    fi
 
     run volumegroup remove-volumes ${VG_COPYVG1} ${VG_CG1VOLID1},${VG_CG1VOLID2},${VG_CG1VOLID3},${VG_CG1VOLID4}
     run volumegroup remove-volumes ${VG_COPYVG1} ${VG_CG2VOLID1},${VG_CG2VOLID2},${VG_CG2VOLID3}
 
-    run volume delete $PROJECT/$VG_CG1VOL4 --wait
 }
+
+application_copy_tests()
+{
+    secho "application_copy_tests()"
+
+    run volumegroup add-volumes ${VG_COPYVG1} ${VG_CG1VOLID1},${VG_CG1VOLID2},${VG_CG1VOLID3},${VG_CG1VOLID4} $app_test_cg1 $app_test_subgroup1a
+    run volumegroup verify-volume ${VG_COPYVG1} ${VG_CG1VOLID1}
+    run volumegroup verify-volume ${VG_COPYVG1} ${VG_CG1VOLID2}
+    run volumegroup verify-volume ${VG_COPYVG1} ${VG_CG1VOLID3}
+    run volumegroup verify-volume ${VG_COPYVG1} ${VG_CG1VOLID4}
+
+    run volumegroup add-volumes ${VG_COPYVG1} ${VG_CG2VOLID1},${VG_CG2VOLID2},${VG_CG2VOLID3} $app_test_cg2 $app_test_subgroup2a
+    run volumegroup verify-volume ${VG_COPYVG1} ${VG_CG2VOLID1}
+    run volumegroup verify-volume ${VG_COPYVG1} ${VG_CG2VOLID2}
+    run volumegroup verify-volume ${VG_COPYVG1} ${VG_CG2VOLID3}
+
+    application_full_copy_tests
+
+    # TODO add snapshot and snapshto session tests
+
+    run volumegroup remove-volumes ${VG_COPYVG1} ${VG_CG1VOLID1},${VG_CG1VOLID2},${VG_CG1VOLID3},${VG_CG1VOLID4}
+    fail volumegroup verify-volume ${VG_COPYVG1} ${VG_CG1VOLID1}
+    fail volumegroup verify-volume ${VG_COPYVG1} ${VG_CG1VOLID2}
+    fail volumegroup verify-volume ${VG_COPYVG1} ${VG_CG1VOLID3}
+    fail volumegroup verify-volume ${VG_COPYVG1} ${VG_CG1VOLID4}
+
+    run volumegroup remove-volumes ${VG_COPYVG1} ${VG_CG2VOLID1},${VG_CG2VOLID2},${VG_CG2VOLID3}
+    fail volumegroup verify-volume ${VG_COPYVG1} ${VG_CG2VOLID1}
+    fail volumegroup verify-volume ${VG_COPYVG1} ${VG_CG2VOLID2}
+    fail volumegroup verify-volume ${VG_COPYVG1} ${VG_CG2VOLID3}
+
+}
+
+application_multi_sub_group_copy_tests()
+{
+    secho "application_multi_sub_group_copy_tests()"
+
+    run volumegroup add-volumes ${VG_COPYVG1} ${VG_CG1VOLID1},${VG_CG1VOLID2} $app_test_cg1 $app_test_subgroup1a
+    run volumegroup verify-volume ${VG_COPYVG1} ${VG_CG1VOLID1}
+    run volumegroup verify-volume ${VG_COPYVG1} ${VG_CG1VOLID2}
+
+    run volumegroup add-volumes ${VG_COPYVG1} ${VG_CG1VOLID3},${VG_CG1VOLID4} $app_test_cg1 $app_test_subgroup1b
+    run volumegroup verify-volume ${VG_COPYVG1} ${VG_CG1VOLID3}
+    run volumegroup verify-volume ${VG_COPYVG1} ${VG_CG1VOLID4}
+
+    application_full_copy_tests
+
+    # TODO add snapshot and snapshto session tests
+
+    run volumegroup remove-volumes ${VG_COPYVG1} ${VG_CG1VOLID1},${VG_CG1VOLID2}
+    fail volumegroup verify-volume ${VG_COPYVG1} ${VG_CG1VOLID1}
+    fail volumegroup verify-volume ${VG_COPYVG1} ${VG_CG1VOLID2}
+
+    run volumegroup remove-volumes ${VG_COPYVG1} ${VG_CG1VOLID3},${VG_CG1VOLID4}
+    fail volumegroup verify-volume ${VG_COPYVG1} ${VG_CG1VOLID3}
+    fail volumegroup verify-volume ${VG_COPYVG1} ${VG_CG1VOLID4}
+}
+
 
 application_full_copy_tests()
 {
     secho "application_full_copy_tests()"
-
-    run volumegroup add-volumes ${VG_COPYVG1} ${VG_CG1VOLID1},${VG_CG1VOLID2},${VG_CG1VOLID3}
-    run volumegroup add-volumes ${VG_COPYVG1} ${VG_CG2VOLID1},${VG_CG2VOLID2},${VG_CG2VOLID3}
 
     VG_FCNAME=${VG_COPYVG1}-fc
     VG_FCNAME2=${VG_COPYVG1}-fc2
@@ -9353,15 +9452,148 @@ application_full_copy_tests()
     run volume delete $VG_FCVOLUMES --wait
 }
 
+# TODO this has to move to sanity conf file
+APPLICATION_VMAX3_SMIS_PROVIDER=VMAX_405_SMIS
+APPLICATION_VMAX3_SMIS_PROVIDER_IP=lglw0004.lss.emc.com
+APPLICATION_VMAX3_STORAGE_ARRAY_GUID='SYMMETRIX+000196701405'
+
+# override the rp vmax
+RECOVERPOINT_SMIS_PROVIDER_B=$APPLICATION_VMAX3_SMIS_PROVIDER
+RECOVERPOINT_SMIS_PROVIDER_B_IP=$APPLICATION_VMAX3_SMIS_PROVIDER_IP
+RECOVERPOINT_STORAGE_ARRAY_B_GUID=$APPLICATION_VMAX3_STORAGE_ARRAY_GUID
+
+#TODO stellneeded: a working vmax2 provider
+
+APPLICATION_VNX1_NATIVEGUID=$RECOVERPOINT_STORAGE_ARRAY_A_GUID
+APPLICATION_VNX2_NATIVEGUID=$RECOVERPOINT_STORAGE_ARRAY_C_GUID
+APPLICATION_VMAX1_NATIVEGUID=$RECOVERPOINT_STORAGE_ARRAY_B_GUID
+
+APP_VPOOL_VNX_BLOCK=app_vpool_simple_vnx
+APP_VPOOL_VMAX_BLOCK=app_vpool_simple_vmax
+APP_VPOOL_VNX_VPLEX_LOCAL=app_vpool_vplex_local_vnx
+APP_VPOOL_VMAX_VPLEX_LOCAL=app_vpool_vplex_local_vmax
+
+APP_VARRAY1=$RECOVERPOINT_VARRAY1
+APP_VARRAY2=$RECOVERPOINT_VARRAY2
+APP_VARRAY3=$RECOVERPOINT_VARRAY4
+
+# application plstforms
+APPLICATION_VNX=${APPLICATION_VNX:=1}
+APPLICATION_VMAX2=${APPLICATION_VMAX2:=0}
+APPLICATION_VMAX3=${APPLICATION_VMAX3:=0}
+APPLICATION_XIO=${APPLICATION_XIO:=0}
+
+# applicaiton tests
+APPLICATION_CRUD=${APPLICATION_CRUD:=1}
+APPLICATION_BLOCK=${APPLICATION_BLOCK:=1}
+APPLICATION_VPLEX_LOCAL=${APPLICATION_VPLEX_LOCAL:=1}
+APPLICATION_VPLEX_DIST=${APPLICATION_VPLEX_DIST:=0}
+APPLICATION_RP_BLOCK=${APPLICATION_RP_BLOCK:=0}
+APPLICATION_RP_VPLEX_LOCAL=${APPLICATION_RP_VPLEX_LOCAL:=0}
+APPLICATION_RP_METROPOINT=${APPLICATION_RP_METROPOINT:=0}
+
 application_tests()
 {
-    secho "Executing volume group tests " `date`
-    VG_VPOOL_CG=$APP_VPOOL_SIMPLE_VNX
-    application_crud_test
-    application_createvols_simple
-    application_add_remove_volume_tests
-    application_full_copy_tests
-    application_deleteall
+
+    # TODO add more add/remove volume tests fo rRP and vplex that split u CGs into multiple sub groups
+    # TODO add teste for all partial operations
+    # TODO add RP tests
+    secho "Executing application sanity tests " `date`
+
+    unique=${RANDOM}
+    basename=appsanity${unique}
+    VG_CGNAME1=${basename}cg1
+    VG_CGNAME2=${basename}cg2
+    VG_COPYVG1=${basename}-app1
+    VG_COPYVG2=${basename}-app2
+
+    VG_VOLUME1=${VG_CGNAME1}-vol
+    VG_CG1VOL1="${VG_VOLUME1}-1"
+    VG_CG1VOL2="${VG_VOLUME1}-2"
+    VG_CG1VOL3="${VG_VOLUME1}-3"
+    VG_CG1VOL4="${VG_VOLUME1}-4"
+
+    VG_VOLUME2=${VG_CGNAME2}-vol
+    VG_CG2VOL1="${VG_VOLUME2}-1"
+    VG_CG2VOL2="${VG_VOLUME2}-2"
+    VG_CG2VOL3="${VG_VOLUME2}-3"
+
+    if [ $APPLICATION_CRUD -eq 1 ]; then
+        application_crud_test
+    fi
+    if [ $APPLICATION_VNX -eq 1 ]; then
+        if [ $APPLICATION_BLOCK -eq 1 ]; then
+            VG_VPOOL_CG=$APP_VPOOL_VNX_BLOCK
+            VG_VARRAY_CG=$APP_VARRAY1
+            APP_RUNNING_BLOCK_TEST=1
+
+            app_test_cg1=""
+            app_test_cg2=""
+            app_test_subgroup1a=""
+            app_test_subgroup1b=""
+            app_test_subgroup2a=""
+            app_test_subgroup2b=""
+
+            application_createvols
+            application_add_remove_volume_tests
+            application_copy_tests
+            application_deleteall
+        fi
+        if [ $APPLICATION_VPLEX_LOCAL -eq 1 ]; then
+            VG_VPOOL_CG=$APP_VPOOL_VNX_VPLEX_LOCAL
+            VG_VARRAY_CG=$APP_VARRAY1
+            APP_RUNNING_BLOCK_TEST=0
+
+            app_test_cg1=$VG_CGNAME1
+            app_test_cg2=$VG_CGNAME2
+            app_test_subgroup1a="${VG_CGNAME1}a"
+            app_test_subgroup1b="${VG_CGNAME1}b"
+            app_test_subgroup2a="${VG_CGNAME2}a"
+            app_test_subgroup2b="${VG_CGNAME2}b"
+
+            application_createvols
+            application_add_remove_volume_tests
+            application_copy_tests
+            application_deleteall
+        fi
+    fi
+    if [ $APPLICATION_VMAX -eq 1 ]; then
+        if [ $APPLICATION_BLOCK -eq 1 ]; then
+            VG_VPOOL_CG=$APP_VPOOL_VMAX_BLOCK
+            VG_VARRAY_CG=$APP_VARRAY2
+            APP_RUNNING_BLOCK_TEST=1
+
+            app_test_cg1=""
+            app_test_cg2=""
+            app_test_subgroup1a=""
+            app_test_subgroup1b=""
+            app_test_subgroup2a=""
+            app_test_subgroup2b=""
+
+            application_createvols
+            application_add_remove_volume_tests
+            application_full_copy_tests
+            application_deleteall
+        fi
+        if [ $APPLICATION_VPLEX_LOCAL -eq 1 ]; then
+            VG_VPOOL_CG=$APP_VPOOL_VMAX_VPLEX_LOCAL
+            VG_VARRAY_CG=$APP_VARRAY2
+            APP_RUNNING_BLOCK_TEST=0
+
+            app_test_cg1=$VG_CGNAME1
+            app_test_cg2=$VG_CGNAME2
+            app_test_subgroup1a="${VG_CGNAME1}a"
+            app_test_subgroup1b="${VG_CGNAME1}b"
+            app_test_subgroup2a="${VG_CGNAME2}a"
+            app_test_subgroup2b="${VG_CGNAME2}b"
+
+            application_createvols
+            application_add_remove_volume_tests
+            application_full_copy_tests
+            application_deleteall
+        fi
+    fi
+
     secho "Completed application sanity tests " `date`
 }
 

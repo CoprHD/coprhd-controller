@@ -454,6 +454,7 @@ public class VPlexScheduler implements Scheduler {
                 _log.info(String.format("Generating local recommendations for VPLEX %s", entry.getKey()));
                 recommendations.addAll(createVPlexRecommendations(baseRecommendations,
                         entry.getKey(), varray, vpool));
+                break;
             }
         }
         
@@ -567,7 +568,6 @@ public class VPlexScheduler implements Scheduler {
         // Get the list of potential VPlex storage systems for the source
         // virtual array.
         Set<String> vplexStorageSystemIds = vplexPoolMapForSrcVarray.keySet();
-        vplexStorageSystemIds = vplexPoolMapForSrcVarray.keySet();
         _log.info("{} VPlex storage systems have matching pools",
                 vplexStorageSystemIds.size());
 
@@ -669,6 +669,7 @@ public class VPlexScheduler implements Scheduler {
                     vplexStorageSystemId, haVarray, haVpool, recommendationsForHaVarray));
 
             _log.info("Done trying to place resources for VPlex.");
+            break;
         }
         _placementManager.logRecommendations("VPLEX Distributed", recommendations);
 

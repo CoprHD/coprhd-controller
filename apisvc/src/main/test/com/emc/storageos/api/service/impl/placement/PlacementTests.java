@@ -5302,7 +5302,7 @@ public class PlacementTests extends DbsvcTestBase {
      * RP VPLEX connectivity with only the vplex is visible to the rpsites
      */
 
-    //@Test
+    @Test
     public void testRpVplexConnectivtyAndPlacement() {
         // Create Tenant
         TenantOrg tenant = new TenantOrg();

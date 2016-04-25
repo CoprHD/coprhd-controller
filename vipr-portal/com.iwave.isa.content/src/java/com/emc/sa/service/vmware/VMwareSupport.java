@@ -733,15 +733,15 @@ public class VMwareSupport {
     /**
      * Unmount the datastore from the host or hosts in the cluster
      * 
-     * @param host host to unmount the datastore from. if null, use cluster's hosts
-     * @param cluster cluster to unmount the datastore from
+     * @param host host to unmount the datastore from.
+     * @param cluster cluster to unmount the datastore from. if not null, use cluster's hosts
      * @param datastore the datastore to unmount
      */
     public void unmountVmfsDatastore(HostSystem host, ClusterComputeResource cluster,
             final Datastore datastore) {
         enterMaintenanceMode(datastore);
         setStorageIOControl(datastore, false);
-        List<HostSystem> hosts = host != null ? Lists.newArrayList(host) : Lists.newArrayList(cluster.getHosts());
+        List<HostSystem> hosts = cluster == null ? Lists.newArrayList(host) : Lists.newArrayList(cluster.getHosts());
 
         executeOnHosts(hosts, new HostSystemCallback() {
             @Override
@@ -752,21 +752,32 @@ public class VMwareSupport {
     }
 
     /**
-     * Detach the volume from the host or hosts in the cluster
+     * Detach the volume from the host or hosts in the cluster. Detach needs to be called on every host
+     * that is part of a cluster. Passing in a cluster value signifies that we're dealing with a shared
+     * export, so iterate through all the host that is part of the cluster and explicitly detach the lun
+     * on every host.
      * 
-     * @param host host to detach the volume. if null, use cluster's hosts
-     * @param cluster cluster to detach the volume
+     * @param host host to detach the volume.
+     * @param cluster cluster to detach the volume. if not null, use the cluster's hosts
      * @param volume the volume to detach
      */
     public void detachLuns(HostSystem host, ClusterComputeResource cluster, BlockObjectRestRep volume) {
-        final HostScsiDisk disk = findScsiDisk(host, cluster, volume);
-        List<HostSystem> hosts = host != null ? Lists.newArrayList(host) : Lists.newArrayList(cluster.getHosts());
-
-        executeOnHosts(hosts, new HostSystemCallback() {
-            @Override
-            public void exec(HostSystem host) {
-                detachLuns(host, Collections.singletonList(disk));
-            }
-        });
+        // cluster is only set during shared exports.
+        List<HostSystem> hosts = cluster == null ? Lists.newArrayList(host) : Lists.newArrayList(cluster.getHosts());
+        
+        for (HostSystem hs : hosts) {
+            // Get disk for every host before detaching to have them in sync.
+            // Pass in null cluster since we only want to find the specific disk to each host
+            // as they are processed. Passing in a cluster value forces find disk on all host
+            // that are part of the cluster. Once a host has detach the storage, find disk fails
+            // so we can't find disk on all host as we iterate through all the host.
+            final HostScsiDisk disk = findScsiDisk(hs, null, volume);
+            executeOnHosts(Lists.newArrayList(hs), new HostSystemCallback() {
+                @Override
+                public void exec(HostSystem host) {
+                    detachLuns(host, Collections.singletonList(disk));
+                }
+            });
+        }
     }
 }

@@ -407,7 +407,7 @@ _repository_wget() {
         if [ -n "$2" ] ; then
             proxy_param="-e https_proxy=$2"
         fi
-        echo "$(wget --timeout 30 --tries=2 "${proxy_param}" --no-check-certificate --post-data="${content}" --spider -S $1 -O-  2>test)"
+        echo "$(wget --timeout 30 --tries=2 "${proxy_param}" --no-check-certificate --post-data="${content}" --spider -S $1 -O-  2>&1)"
         # --tries option specifies wget to retry only twice, --spider option specifies the wget command to not download the pages just check that pages are there.
         # -S option prints the headers sent by HTTP servers and responses sent by FTP servers. -O- sets the output to be written to standard output
         # This query is used to test the ACG catalog repository used for ViPR upgrade

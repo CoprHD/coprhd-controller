@@ -8,6 +8,7 @@ import static com.emc.storageos.db.client.constraint.ContainmentConstraint.Facto
 import static com.emc.storageos.db.client.util.CommonTransformerFunctions.fctnBlockObjectToNativeID;
 import static com.emc.storageos.db.client.util.CustomQueryUtility.queryActiveResourcesByConstraint;
 import static com.emc.storageos.volumecontroller.impl.smis.ReplicationUtils.callEMCRefreshIfRequired;
+import static com.emc.storageos.volumecontroller.impl.smis.ReplicationUtils.checkReplicationGroupAccessibleOrFail;
 import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.COPY_STATE_MIXED_INT_VALUE;
 import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.COPY_STATE_RESTORED_INT_VALUE;
 import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.CP_EMC_UNIQUE_ID;
@@ -1922,7 +1923,12 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
                 Collection<String> nativeIds = transform(snapshots, fctnBlockObjectToNativeID());
 
                 if (snapshot.hasConsistencyGroup()) {
-                    deleteTargetGroup(system, snapshot.getReplicationGroupInstance());
+                    try {
+                        checkReplicationGroupAccessibleOrFail(system, snapshot, _dbClient, _helper, _cimPath);
+                        deleteTargetGroup(system, snapshot.getReplicationGroupInstance());
+                    } catch (DeviceControllerException dce) {
+                        _log.info("Failed to delete the target group.  It may have already been deleted.");
+                    }
                 }
 
                 // Ingested non-exported snapshot could be associated with SGs outside of ViPR,

@@ -1,0 +1,9 @@
+{
+  "friendlyName": "Get RackHd Interfaces",
+  "injectableName": "Task.RackHd.Interfaces.Get",
+  "implementsTask": "Task.Base.Ansible",
+  "options": {
+    "playbook": "/root/ansible-work/playbook-get-interfaces.yml" 
+  },
+  "properties": {}
+} 

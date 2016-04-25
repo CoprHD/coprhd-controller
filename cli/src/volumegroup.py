@@ -1222,7 +1222,11 @@ def update_parser(subcommand_parsers, common_parser):
     update_parser.add_argument('-rg', '-replication_group',
                                        metavar='<replication_group>',
                                        dest='replication_group',
-                                       help='A replication group name on the array where volumes will be added to')
+                                       help='Application sub group. Maps to the storage group on the array where volumes will be added to')
+    update_parser.add_argument('-sg', '-sub-group',
+                                       metavar='<sub_group>',
+                                       dest='sub_group',
+                                       help='Application sub group. Maps to the storage group on the array where volumes will be added to')
     update_parser.add_argument('-pa', '-parent',
                                        metavar='<parent>',
                                        dest='parent',
@@ -1279,11 +1283,16 @@ def update(args):
                     rem_vols.append(volid)
                 except:
                     continue
-                    
+    
+    if (args.sub_group and len(args.sub_group) > 0):
+        sub_group = args.sub_group
+    else:
+        sub_group = args.replication_group
+                        
     obj = VolumeGroup(args.ip, args.port)
     try:
         obj.update(args.name, args.newname,
-                    args.description, ",".join(add_vols), args.consistency_group, args.replication_group, ",".join(rem_vols), args.parent, args.add_hosts, args.add_clusters, args.remove_hosts, args.remove_clusters)
+                    args.description, ",".join(add_vols), args.consistency_group, sub_group, ",".join(rem_vols), args.parent, args.add_hosts, args.add_clusters, args.remove_hosts, args.remove_clusters)
     except SOSError as e:
         raise e
 

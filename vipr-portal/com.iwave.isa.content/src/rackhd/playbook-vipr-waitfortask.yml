@@ -1,0 +1,12 @@
+    #wait for vipr task to complete
+
+  - set_fact: path="/vdc/tasks/{{  restResult.json.task.id }}"  #"
+
+  - include: playbook-rest-request.yml
+    with_items: {{ restResult.json.task }}
+    until:  restResult.json.task.state != 'pending'
+    retries: 60
+    delay: 10
+
+  - fail: msg="Task failed {{ path }}" #"
+    when: restResult.json.task.state == 'error'

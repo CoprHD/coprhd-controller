@@ -1931,7 +1931,8 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
             for (CreateVolumeParams rsetVolume : createVolumeParams) {
                 // MetroPoint RSets will have the Source volume listed twice (this is expected):
                 // Once for the Active Production Copy and once for the Standby Production Copy.
-                // We only need to a single reference to the Source volume for export purposes, 
+                //
+                // We only need a single reference to the Source volume for export purposes
                 // so if we've already processed this Source volume, we can skip it.
                 if (processedRsetVolumes.contains(rsetVolume.getVolumeURI())) {
                     continue;

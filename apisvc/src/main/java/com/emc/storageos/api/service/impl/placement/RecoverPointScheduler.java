@@ -291,10 +291,11 @@ public class RecoverPointScheduler implements Scheduler {
             throw APIException.badRequests.noMatchingStoragePoolsForVpoolAndVarray(vpool.getLabel(), varray.getLabel());
         }
         
-        // TODO BBB add logging
         Volume changeVpoolVolume = null;
-        if (capabilities.getChangeVpoolVolume() != null) {
+        if (capabilities.getChangeVpoolVolume() != null) {            
             changeVpoolVolume = dbClient.queryObject(Volume.class, URI.create(capabilities.getChangeVpoolVolume()));
+            _log.info(String.format("Existing volume [%s](%s) will be used as RP Source volume in recommendations.", 
+                    changeVpoolVolume.getLabel(), changeVpoolVolume.getId()));
         }
 
         this.initResources();
@@ -352,23 +353,6 @@ public class RecoverPointScheduler implements Scheduler {
         String candidateSourceInternalSiteName = "";
         RPProtectionRecommendation rpProtectionRecommendation = new RPProtectionRecommendation();
         placementStatus = new PlacementStatus();
-
-        // TODO clean up
-//        // If this is a change vpool, first check to see if we can build recommendations from the existing RP CG.
-//        // If this is the first volume in a new CG proceed as normal.
-//        if (vpoolChangeVolume != null) {
-//            recommendations = buildCgRecommendations(capabilities, vpool, protectionVarrays, vpoolChangeVolume);
-//            if (!recommendations.isEmpty()) {
-//                _log.info(String.format("Produced %s recommendations for placement.", recommendations.size()));
-//                return recommendations;
-//            }
-//
-//            rpProtectionRecommendation.setVpoolChangeVolume(vpoolChangeVolume.getId());
-//            rpProtectionRecommendation.setVpoolChangeVpool(
-//                    (vpoolChangeVolume.getVirtualPool() != null) ? vpoolChangeVolume.getVirtualPool() : null);
-//            rpProtectionRecommendation.setVpoolChangeProtectionAlreadyExists(
-//                    (vpoolChangeVolume.checkForRp()) ? vpoolChangeVolume.checkForRp() : false);
-//        }
 
         // Attempt to use these pools for selection based on protection
         StringBuffer sb = new StringBuffer("Determining if protection is possible from " + varray.getId() + " to: ");
@@ -1501,82 +1485,6 @@ public class RecoverPointScheduler implements Scheduler {
         throw APIException.badRequests.cannotFindSolutionForRP(buildMetroProintPlacementStatusString());
     }
 
-// TODO BBB remove    
-//    /**
-//     * Scheduler for a Vpool change from an unprotected VPLEX Virtual volume to a RP+VPLEX protected Virtual volume.
-//     *
-//     * @param changeVpoolVolume volume that is being changed to a protected vpool
-//     * @param newVpool vpool requested to change to (must be protected)
-//     * @param protectionVarrays Varrays to protect this volume to.
-//     * @return list of Recommendation objects to satisfy the request
-//     */
-//    public List<Recommendation> scheduleStorageForVpoolChangeUnprotected(Volume changeVpoolVolume, VirtualPool newVpool,
-//            List<VirtualArray> protectionVarrays, VirtualPoolCapabilityValuesWrapper capabilities) {
-//        _log.info(String.format("Schedule storage for vpool change to vpool %s for volume %s.",
-//                newVpool.getLabel() + "[" + String.valueOf(newVpool.getId()) + "]",
-//                changeVpoolVolume.getLabel() + "[" + String.valueOf(changeVpoolVolume.getId()) + "]"));
-//        this.initResources();
-//
-//        VirtualArray varray = dbClient.queryObject(VirtualArray.class, changeVpoolVolume.getVirtualArray());
-//
-//        // Swap src and ha if the flag has been set on the vpool
-//        SwapContainer container = this.swapSrcAndHAIfNeeded(varray, newVpool);
-//
-//        CapacityMatcher capacityMatcher = new CapacityMatcher();
-//        capacityMatcher.setCoordinatorClient(coordinator);
-//
-//        Project project = dbClient.queryObject(Project.class, changeVpoolVolume.getProject());
-//
-//        List<StoragePool> allMatchingPools = getCandidatePools(varray, newVpool, null, null, capabilities, RPHelper.SOURCE);
-//
-//        List<StoragePool> sourcePools = new ArrayList<StoragePool>();
-//
-//        // Find out how much space we'll need to fit the Journals for the source
-//        long journalSize = RPHelper.getJournalSizeGivenPolicy(String.valueOf(changeVpoolVolume.getCapacity()),
-//                container.getSrcVpool().getJournalSize(), capabilities.getResourceCount());
-//
-//        // Make sure our pool is in this list; this is a check to ensure the pool is in our existing varray and new Vpool
-//        // and can fit the new sizes needed. If it can not, send down pools that can.
-//        Iterator<StoragePool> iter = allMatchingPools.iterator();
-//        while (iter.hasNext()) {
-//            StoragePool pool = iter.next();
-//            if (pool.getId().equals(changeVpoolVolume.getPool())) {
-//                // Make sure there's enough space for this journal volume in the current pool; it's preferred to use it.
-//                if (capacityMatcher.poolMatchesCapacity(pool, journalSize, journalSize, false, false, null)) {
-//                    sourcePools.add(pool);
-//                    break;
-//                } else {
-//                    _log.warn(String.format("Not enough capacity found to place RecoverPoint journal volume on pool: %s, "
-//                            + "searching for other less preferable pools.", pool.getNativeGuid()));
-//                    break;
-//                }
-//            }
-//        }
-//
-//        if (sourcePools.isEmpty()) {
-//            // Fall-back: if the existing source pool couldn't be used, let's find a different pool.
-//            sourcePools.addAll(allMatchingPools);
-//
-//            if (sourcePools.isEmpty()) {
-//                // We could not verify the source pool exists in the CoS, return appropriate error
-//                _log.error(String.format("No matching storage pools found for the source varray: %s. There are no storage pools that " +
-//                        "match the passed vpool parameters and protocols and/or there are no pools that have enough capacity to " +
-//                        "hold at least one resource of the requested size.", container.getSrcVarray().getLabel()));
-//                throw APIException.badRequests.noMatchingStoragePoolsForVpoolAndVarray(container.getSrcVpool().getLabel(),
-//                        container.getSrcVarray().getLabel());
-//            }
-//        }
-//
-//        // Schedule storage based on the determined storage pools.
-//        List<Recommendation> recommendations = scheduleStorageSourcePoolConstraint(container.getSrcVarray(),
-//                protectionVarrays, container.getSrcVpool(),
-//                capabilities, sourcePools, project, changeVpoolVolume, null);
-//
-//        // There is only one entry of type RPProtectionRecommendation ever in the returned recommendation list.
-//        _log.info(String.format("%s %n", ((RPProtectionRecommendation) recommendations.get(0)).toString(dbClient)));
-//        return recommendations;
-//    }
-
     /**
      * Gather matching pools for a collection of protection varrays. Collects
      * a list of vplex connected storage pools if the protection virtual pool
@@ -2021,9 +1929,11 @@ public class RecoverPointScheduler implements Scheduler {
 
     /**
      * Builds a recommendation from existing CG.
+     * 
      * This method is called when adding more volumes into an existing CG or change vpool scenario.
-     * We dont need to find new recommendations if adding to an existing CG and if we accomodate the request with the
-     * recommendations for existing CG.
+     * 
+     * When adding to an existing CG we can accommodate the request with the recommendations from
+     * resources that have already been placed in the existing CG.
      *
      * @param capabilities - Virtual Pool capabilities
      * @param vpool - Virtual Pool
@@ -2096,7 +2006,7 @@ public class RecoverPointScheduler implements Scheduler {
         recommendation.setVpoolChangeProtectionAlreadyExists(vpoolChangeVolume != null ? vpoolChangeVolume.checkForRp() : false);
         recommendation.setResourceCount(capabilities.getResourceCount());
 
-        // Build source journal
+        // ACTIVE SOURCE JOURNAL Recommendation
         List<Volume> sourceJournals = RPHelper.findExistingJournalsForCopy(dbClient, sourceVolume.getConsistencyGroup(), sourceVolume.getRpCopyName());
         Volume sourceJournal = sourceJournals.get(0);
         if (sourceJournal == null) {
@@ -2111,42 +2021,11 @@ public class RecoverPointScheduler implements Scheduler {
         Long sourceJournalSize = getJournalCapabilities(vpool.getJournalSize(), capabilities, 1).getSize();
         
         RPRecommendation sourceJournalRecommendation = 
-                buildRpRecommendationFromExistingVolume(sourceJournal, sourceJournalVpool, capabilities, sourceJournalSize);
-        
-//        sourceJournalRecommendation.setSourceStorageSystem(sourceJournal.getStorageController());
-//        sourceJournalRecommendation.setSourceStoragePool(sourceJournal.getPool());
-//        sourceJournalRecommendation.setVirtualArray(sourceJournal.getVirtualArray());
-//        sourceJournalRecommendation.setVirtualPool(sourceJournalVpool);
-//        sourceJournalRecommendation.setInternalSiteName(sourceJournal.getInternalSiteName());
-//        sourceJournalRecommendation.setRpCopyName(sourceJournal.getRpCopyName());        
-//        sourceJournalRecommendation.setSize(sourceJournalSize);
-//        sourceJournalRecommendation.setResourceCount(1);
-//
-//        if (VirtualPool.vPoolSpecifiesHighAvailability(sourceJournalVpool)) {
-//            // Journal is VPLEX, we only support VPLEX local in this case
-//            if (sourceJournal.getAssociatedVolumes() != null) {
-//                Volume backingVolume = dbClient.queryObject(Volume.class, 
-//                        URI.create(sourceJournal.getAssociatedVolumes().iterator().next()));
-//                sourceJournalRecommendation.setSourceStoragePool(backingVolume.getPool());
-//            
-//                VPlexRecommendation vplexRec = new VPlexRecommendation();
-//                VirtualPool backingVpool = dbClient.queryObject(VirtualPool.class, backingVolume.getVirtualPool());
-//                vplexRec.setVirtualPool(backingVpool);
-//                vplexRec.setVirtualArray(backingVolume.getVirtualArray());
-//                vplexRec.setSourceStoragePool(backingVolume.getPool());
-//                vplexRec.setSourceStorageSystem(backingVolume.getStorageController());                    
-//                vplexRec.setVPlexStorageSystem(sourceVolume.getStorageController());
-//                // Always force count to 1 for a VPLEX rec for RP. VPLEX uses
-//                // these recs and they are invoked one at a time even
-//                // in a multi-volume request.
-//                vplexRec.setResourceCount(1);
-//                sourceJournalRecommendation.setVirtualVolumeRecommendation(vplexRec);
-//            }
-//        }
+                buildRpRecommendationFromExistingVolume(sourceJournal, sourceJournalVpool, capabilities, sourceJournalSize);        
         recommendation.setSourceJournalRecommendation(sourceJournalRecommendation);
 
-        String standbyCopyName = RPHelper.getStandbyProductionCopyName(dbClient, sourceVolume);                
-        // Build standby journal
+        // STANDBY SOURCE JOURNAL Recommendation
+        String standbyCopyName = RPHelper.getStandbyProductionCopyName(dbClient, sourceVolume);                        
         if (standbyCopyName != null) {            
             List<Volume> existingStandbyJournals = RPHelper.findExistingJournalsForCopy(dbClient, sourceVolume.getConsistencyGroup(), standbyCopyName);                        
             Volume standbyJournal = existingStandbyJournals.get(0);
@@ -2161,111 +2040,17 @@ public class RecoverPointScheduler implements Scheduler {
                     VirtualPool.class, URI.create(vpool.getStandbyJournalVpool())) : haVpool;
                             
             RPRecommendation standbyJournalRecommendation = 
-                    buildRpRecommendationFromExistingVolume(standbyJournal, standbyJournalVpool, capabilities, sourceJournalSize);        
-//            standbyJournalRecommendation.setSourceStorageSystem(standbyJournal.getStorageController());
-//            standbyJournalRecommendation.setSourceStoragePool(standbyJournal.getPool());
-//            standbyJournalRecommendation.setVirtualArray(standbyJournal.getVirtualArray());
-//            standbyJournalRecommendation.setVirtualPool(standbyJournalVpool);
-//            standbyJournalRecommendation.setInternalSiteName(standbyJournal.getInternalSiteName());
-//            standbyJournalRecommendation.setRpCopyName(standbyJournal.getRpCopyName());
-//            // Journal Sizes on the active source/standby source are the same. OK to set this value here.
-//            standbyJournalRecommendation.setSize(sourceJournalSize);
-//            standbyJournalRecommendation.setResourceCount(1);
-//
-//            if (VirtualPool.vPoolSpecifiesHighAvailability(standbyJournalVpool)) {
-//                // Journal is VPLEX, we only support VPLEX local in this case
-//                if (standbyJournal.getAssociatedVolumes() != null) {
-//                    Volume backingVolume = dbClient.queryObject(Volume.class, 
-//                            URI.create(standbyJournal.getAssociatedVolumes().iterator().next()));
-//                    standbyJournalRecommendation.setSourceStoragePool(backingVolume.getPool());
-//                
-//                    VPlexRecommendation vplexRec = new VPlexRecommendation();
-//                    VirtualPool backingVpool = dbClient.queryObject(VirtualPool.class, backingVolume.getVirtualPool());
-//                    vplexRec.setVirtualPool(backingVpool);
-//                    vplexRec.setVirtualArray(backingVolume.getVirtualArray());
-//                    vplexRec.setSourceStoragePool(backingVolume.getPool());
-//                    vplexRec.setSourceStorageSystem(backingVolume.getStorageController());                    
-//                    vplexRec.setVPlexStorageSystem(standbyJournal.getStorageController());                                
-//                    // Always force count to 1 for a VPLEX rec for RP. VPLEX uses
-//                    // these recs and they are invoked one at a time even
-//                    // in a multi-volume request.
-//                    vplexRec.setResourceCount(1);
-//                    standbyJournalRecommendation.setVirtualVolumeRecommendation(vplexRec);
-//                }
-//            }
+                    buildRpRecommendationFromExistingVolume(standbyJournal, standbyJournalVpool, capabilities, sourceJournalSize);
             recommendation.setStandbyJournalRecommendation(standbyJournalRecommendation);
         }
 
-        // Build the source recommendation
+        // SOURCE Recommendation
         RPRecommendation sourceRecommendation = 
                 buildRpRecommendationFromExistingVolume(sourceVolume, vpool, capabilities, null);
-//        sourceRecommendation.setSourceStoragePool(sourceVolume.getPool());
-//        sourceRecommendation.setSourceStorageSystem(sourceVolume.getStorageController());
-//        sourceRecommendation.setInternalSiteName(sourceVolume.getInternalSiteName());
-//        sourceRecommendation.setRpCopyName(sourceVolume.getRpCopyName());
-//        sourceRecommendation.setVirtualArray(sourceVolume.getVirtualArray());
-//        sourceRecommendation.setVirtualPool(vpool);
-//        sourceRecommendation.setSize(capabilities.getSize());
-//        sourceRecommendation.setResourceCount(capabilities.getResourceCount());
-//
-//        // Build vplex recommendation of the source if specified
-//        if (VirtualPool.vPoolSpecifiesHighAvailability(vpool)) {
-//            VPlexRecommendation virtualVolumeRecommendation = new VPlexRecommendation();
-//            virtualVolumeRecommendation.setVPlexStorageSystem(sourceVolume.getStorageController());
-//            virtualVolumeRecommendation.setVirtualArray(sourceVolume.getVirtualArray());
-//            virtualVolumeRecommendation.setVirtualPool(vpool);
-//            // Always force count to 1 for a VPLEX rec for RP. VPLEX uses
-//            // these recs and they are invoked one at a time even
-//            // in a multi-volume request.
-//            virtualVolumeRecommendation.setResourceCount(1);
-//            for (String associatedVolume : sourceVolume.getAssociatedVolumes()) {
-//                Volume backingVolume = dbClient.queryObject(Volume.class, URI.create(associatedVolume));
-//                if (backingVolume.getVirtualArray().equals(sourceVolume.getVirtualArray())) {
-//                    sourceRecommendation.setSourceStoragePool(backingVolume.getPool());
-//                    sourceRecommendation.setSourceStorageSystem(backingVolume.getStorageController());
-//                    virtualVolumeRecommendation.setSourceStoragePool(backingVolume.getPool());
-//                    virtualVolumeRecommendation.setSourceStorageSystem(backingVolume.getStorageController());
-//                }
-//            }
-//            sourceRecommendation.setVirtualVolumeRecommendation(virtualVolumeRecommendation);
-//        }
-//
-//        // Build HA recommendation if specified
-//        if (VirtualPool.vPoolSpecifiesMetroPoint(vpool)
-//                || VirtualPool.vPoolSpecifiesHighAvailabilityDistributed(vpool)) {
-//            RPRecommendation haRec = new RPRecommendation();
-//            for (String associatedVolume : sourceVolume.getAssociatedVolumes()) {
-//                Volume haVolume = dbClient.queryObject(Volume.class, URI.create(associatedVolume));                
-//                if (!haVolume.getVirtualArray().equals(sourceVolume.getVirtualArray())) {                                       
-//                    VirtualPool haVpool = dbClient.queryObject(VirtualPool.class, haVolume.getVirtualPool());
-//                    haRec.setVirtualPool(haVpool);
-//                    haRec.setVirtualArray(haVolume.getVirtualArray());                                        
-//                    haRec.setSourceStoragePool(haVolume.getPool());
-//                    haRec.setSourceStorageSystem(haVolume.getStorageController());                    
-//                    haRec.setResourceCount(capabilities.getResourceCount());
-//                    haRec.setSize(capabilities.getSize());
-//                    haRec.setInternalSiteName(haVolume.getInternalSiteName());                    
-//                    haRec.setRpCopyName(haVolume.getRpCopyName());
-//                    
-//                    VPlexRecommendation haVPlexRecommendation = new VPlexRecommendation();
-//                    haVPlexRecommendation.setVirtualPool(haRec.getVirtualPool());
-//                    haVPlexRecommendation.setVirtualArray(haRec.getVirtualArray());
-//                    haVPlexRecommendation.setSourceStoragePool(haRec.getSourceStoragePool());
-//                    haVPlexRecommendation.setSourceStorageSystem(haRec.getSourceStorageSystem());                    
-//                    haVPlexRecommendation.setVPlexStorageSystem(sourceVolume.getStorageController());
-//                    // Always force count to 1 for a VPLEX rec for RP. VPLEX uses
-//                    // these recs and they are invoked one at a time even
-//                    // in a multi-volume request.
-//                    haVPlexRecommendation.setResourceCount(1);
-//                    haRec.setVirtualVolumeRecommendation(haVPlexRecommendation);
-//                }
-//            }
-//            sourceRecommendation.setHaRecommendation(haRec);
-//        }
-
+        recommendation.getSourceRecommendations().add(sourceRecommendation);
+        
+        // TARGET Recommendation(s)
         Map<URI, VpoolProtectionVarraySettings> protectionSettings = VirtualPool.getProtectionSettings(vpool, dbClient);
-
-        // Build recommendations for targets
         for (VirtualArray protectionVarray : protectionVarrays) {
             
             Volume targetVolume = getTargetVolumeForProtectionVirtualArray(sourceVolume, protectionVarray);
@@ -2274,75 +2059,12 @@ public class RecoverPointScheduler implements Scheduler {
             
             RPRecommendation targetRecommendation = 
                     buildRpRecommendationFromExistingVolume(targetVolume, targetVpool, capabilities, null);
-//            targetRecommendation.setInternalSiteName(targetVolume.getInternalSiteName());
-//            targetRecommendation.setRpCopyName(targetVolume.getRpCopyName());
-//            targetRecommendation.setVirtualArray(targetVolume.getVirtualArray());
-//            targetRecommendation.setVirtualPool(targetVpool);            
-//            targetRecommendation.setSourceStoragePool(targetVolume.getPool());
-//            targetRecommendation.setSourceStorageSystem(targetVolume.getStorageController());
-//            targetRecommendation.setSize(capabilities.getSize());
-//            targetRecommendation.setResourceCount(capabilities.getResourceCount());
-//
-//            // Build vplex recommendation of the target if specified
-//            if (VirtualPool.vPoolSpecifiesHighAvailability(targetVpool)) {
-//                VPlexRecommendation virtualVolumeRecommendation = new VPlexRecommendation();
-//                virtualVolumeRecommendation.setVPlexStorageSystem(targetVolume.getStorageController());
-//                virtualVolumeRecommendation.setVirtualArray(targetVolume.getVirtualArray());
-//                virtualVolumeRecommendation.setVirtualPool(targetVpool);
-//                // Always force count to 1 for a VPLEX rec for RP. VPLEX uses
-//                // these recs and they are invoked one at a time even
-//                // in a multi-volume request.
-//                virtualVolumeRecommendation.setResourceCount(1);
-//                for (String associatedVolume : targetVolume.getAssociatedVolumes()) {
-//                    Volume backingVolume = dbClient.queryObject(Volume.class, URI.create(associatedVolume));
-//                    if (backingVolume.getVirtualArray().equals(targetVolume.getVirtualArray())) {
-//                        targetRecommendation.setSourceStoragePool(backingVolume.getPool());
-//                        targetRecommendation.setSourceStorageSystem(backingVolume.getStorageController());
-//                        virtualVolumeRecommendation.setSourceStoragePool(backingVolume.getPool());
-//                        virtualVolumeRecommendation.setSourceStorageSystem(backingVolume.getStorageController());
-//                    }
-//                }
-//                targetRecommendation.setVirtualVolumeRecommendation(virtualVolumeRecommendation);
-//            }
-//
-//            // Build HA recommendation if specified
-//            if (VirtualPool.vPoolSpecifiesHighAvailabilityDistributed(targetVpool)) {
-//                RPRecommendation haRec = new RPRecommendation();
-//                for (String associatedVolume : targetVolume.getAssociatedVolumes()) {
-//                    Volume haVolume = dbClient.queryObject(Volume.class, URI.create(associatedVolume));                
-//                    if (!haVolume.getVirtualArray().equals(targetVolume.getVirtualArray())) {
-//                        VirtualPool haVpool = dbClient.queryObject(VirtualPool.class, haVolume.getVirtualPool());
-//                        haRec.setVirtualPool(haVpool);
-//                        haRec.setVirtualArray(haVolume.getVirtualArray());                                        
-//                        haRec.setSourceStoragePool(haVolume.getPool());
-//                        haRec.setSourceStorageSystem(haVolume.getStorageController());                    
-//                        haRec.setResourceCount(capabilities.getResourceCount());
-//                        haRec.setSize(capabilities.getSize());
-//                        haRec.setInternalSiteName(haVolume.getInternalSiteName());                    
-//                        haRec.setRpCopyName(haVolume.getRpCopyName());
-//                        
-//                        VPlexRecommendation haVPlexRecommendation = new VPlexRecommendation();
-//                        haVPlexRecommendation.setVirtualPool(haRec.getVirtualPool());
-//                        haVPlexRecommendation.setVirtualArray(haRec.getVirtualArray());
-//                        haVPlexRecommendation.setSourceStoragePool(haRec.getSourceStoragePool());
-//                        haVPlexRecommendation.setSourceStorageSystem(haRec.getSourceStorageSystem());                    
-//                        haVPlexRecommendation.setVPlexStorageSystem(targetVolume.getStorageController());
-//                        // Always force count to 1 for a VPLEX rec for RP. VPLEX uses
-//                        // these recs and they are invoked one at a time even
-//                        // in a multi-volume request.
-//                        haVPlexRecommendation.setResourceCount(1);
-//                        haRec.setVirtualVolumeRecommendation(haVPlexRecommendation);
-//                    }
-//                }
-//                targetRecommendation.setHaRecommendation(haRec);
-//            }
-
             if (sourceRecommendation.getTargetRecommendations() == null) {
                 sourceRecommendation.setTargetRecommendations(new ArrayList<RPRecommendation>());
             }
             sourceRecommendation.getTargetRecommendations().add(targetRecommendation);
 
-            // Build target journal recommendation
+            // TARGET JOURNAL Recommendation
             List<Volume> targetJournals = RPHelper.findExistingJournalsForCopy(dbClient, targetVolume.getConsistencyGroup(), targetVolume.getRpCopyName());
             Volume targetJournal = targetJournals.get(0);         
             if (targetJournal == null) {
@@ -2357,51 +2079,15 @@ public class RecoverPointScheduler implements Scheduler {
                           capabilities, 1).getSize(); 
             RPRecommendation targetJournalRecommendation = 
                      buildRpRecommendationFromExistingVolume(targetJournal, targetJournalVpool, capabilities, targetJournalSize);
-             
-//            targetJournalRecommendation.setSourceStoragePool(targetJournal.getPool());
-//            targetJournalRecommendation.setSourceStorageSystem(targetJournal.getStorageController());
-//            targetJournalRecommendation.setVirtualPool(targetJournalVpool);
-//            targetJournalRecommendation.setVirtualArray(targetJournal.getVirtualArray());
-//            Long targetJournalSize = getJournalCapabilities(protectionSettings.get(protectionVarray.getId()).getJournalSize(),
-//                    capabilities, 1).getSize();
-//            targetJournalRecommendation.setSize(targetJournalSize);
-//            targetJournalRecommendation.setResourceCount(1);
-//            targetJournalRecommendation.setInternalSiteName(targetJournal.getInternalSiteName());
-//            targetJournalRecommendation.setRpCopyName(targetJournal.getRpCopyName());
-//
-//            // Build vplex recommendation of the target journal if specified
-//            if (VirtualPool.vPoolSpecifiesHighAvailability(targetJournalVpool)) {
-//                // Journal is VPLEX, we only support VPLEX local in this case
-//                if (targetJournal.getAssociatedVolumes() != null) {
-//                    Volume backingVolume = dbClient.queryObject(Volume.class, 
-//                            URI.create(targetJournal.getAssociatedVolumes().iterator().next()));
-//                    targetJournalRecommendation.setSourceStoragePool(backingVolume.getPool());
-//                
-//                    VPlexRecommendation vplexRec = new VPlexRecommendation();
-//                    VirtualPool backingVpool = dbClient.queryObject(VirtualPool.class, backingVolume.getVirtualPool());
-//                    vplexRec.setVirtualPool(backingVpool);
-//                    vplexRec.setVirtualArray(backingVolume.getVirtualArray());
-//                    vplexRec.setSourceStoragePool(backingVolume.getPool());
-//                    vplexRec.setSourceStorageSystem(backingVolume.getStorageController());                    
-//                    vplexRec.setVPlexStorageSystem(targetJournal.getStorageController());                                
-//                    // Always force count to 1 for a VPLEX rec for RP. VPLEX uses
-//                    // these recs and they are invoked one at a time even
-//                    // in a multi-volume request.
-//                    vplexRec.setResourceCount(1);
-//                    targetJournalRecommendation.setVirtualVolumeRecommendation(vplexRec);
-//                }
-//            }
-
             if (recommendation.getTargetJournalRecommendations() == null) {
                 recommendation.setTargetJournalRecommendations(new ArrayList<RPRecommendation>());
             }
             recommendation.getTargetJournalRecommendations().add(targetJournalRecommendation);
         }
-
-        recommendation.getSourceRecommendations().add(sourceRecommendation);
-        _log.info(String.format("Produced recommendation based on existing source volume %s from " +
-                "RecoverPoint consistency group %s: %n %s", sourceVolume.getLabel(), cg.getLabel(),
-                recommendation.toString(dbClient)));
+        
+        _log.info(String.format("Produced recommendations based on existing source volume [%s](%s) from " +
+                "RecoverPoint consistency group %s: %n %s", sourceVolume.getLabel(), sourceVolume.getId(), 
+                cg.getLabel(), recommendation.toString(dbClient)));
 
         recommendations.add(recommendation);
         return recommendations;
@@ -2414,7 +2100,7 @@ public class RecoverPointScheduler implements Scheduler {
      * @param vpool The current vpool for the volume
      * @param capabilities The capabilities map
      * @param journalSize Size of the journal (only needed for journals, null otherwise)
-     * @return Fully formed RP Recommendation for the existing CG
+     * @return Fully formed RP Recommendation formed from resources of the existing CG
      */
     private RPRecommendation buildRpRecommendationFromExistingVolume(Volume volume, VirtualPool vpool, 
             VirtualPoolCapabilityValuesWrapper capabilities, Long journalSize) {

@@ -205,15 +205,10 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                     RecoverPointScheduler.getProtectionVirtualArraysForVirtualPool(project, newVpool,
                             _dbClient, super.getPermissionsHelper()));
         } else {
-            // TODO BBB clean up
-//            recommendations = getBlockScheduler().scheduleStorageForVpoolChangeUnprotected(volume, newVpool,
-//                    RecoverPointScheduler.getProtectionVirtualArraysForVirtualPool(project, newVpool,
-//                            _dbClient, super.getPermissionsHelper()), capabilities);
             VirtualArray varray = _dbClient.queryObject(VirtualArray.class, changeVpoolVolume.getVirtualArray());            
             recommendations = getBlockScheduler().getRecommendationsForResources(varray, project, newVpool, capabilities);
         }
 
-        // Protection volume placement is requested.
         return recommendations;
     }
 
@@ -957,35 +952,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
             if (rpRec.getHaRecommendation() != null) {
                 vplexRecs.add(1, rpRec.getHaRecommendation().getVirtualVolumeRecommendation());
             }
-              
-            // TODO The stickiness of add protection + migrate is definitely my fault. I should have limited the scope
-            // from the start. COP-20661 will rectify this and keep add protection and migration as 2 separate/explicit
-            // operations.
             
-//            // If we are using the HA as the RP source, swap the Source and HA recs for the VPlexBlockServiceApiImpl.
-//            // This is because the VPlexBlockServiceApiImpl will be creating the migration descriptors for the backend
-//            // volumes and it doesn't really care that we are swapping the Source and HA it just needs the correct
-//            // recommendations.
-//            int srcRecIndex = (!(isChangeVpool && isSrcAndHaSwapped)) ? 0 : 1;
-//            int haRecIndex = (isChangeVpool && isSrcAndHaSwapped) ? 0 : 1;
-//            // Add Source Rec
-//            vplexRecs.add(srcRecIndex, rpRec.getVirtualVolumeRecommendation());
-//            // Add HA Rec, if it exists
-//            if (rpRec.getHaRecommendation() != null) {
-//                vplexRecs.add(haRecIndex, rpRec.getHaRecommendation().getVirtualVolumeRecommendation());
-//            }
-
-//            VirtualPool vplexVpool = vpool;
-//            if (isChangeVpool && isSrcAndHaSwapped) {
-//                // If we had to swap, that's means we had to use the HA vpool as the Source vpool
-//                // and Source Vpool as HA vpool for placement to happen correctly. This can lead to weird
-//                // instances when calling code that doesn't understand the swap.
-//                // VPLEX doesn't really care about swap so let's make sure
-//                // we use the originalVpool here to correctly to get the change vpool
-//                // artifacts we need.
-//                vplexVpool = rpRec.getHaRecommendation().getVirtualPool();
-//            }
-
             // Prepare VPLEX specific volume info
             rpVolume = prepareVPlexVolume(vplexRecs, project, varray, vpool,
                     storagePoolUri, storageSystemUri,
@@ -1062,16 +1029,8 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
             TaskList taskList, String task, Volume.PersonalityTypes personality, 
             boolean isChangeVpool, Volume changeVpoolVolume) {
 
-        // TODO deprecating the code to auto-migrate volumes during Add Protection vpool change.
-        // Customer can either pre-migrate volume before adding protection or post-migrate once 
-        // COP-20661 is engineered which will allow change vpool VPLEX migrations on RP+VPLEX and MP volumes.  
-//        if (isChangeVpool) {
-//            StorageSystem vplexStorageSystem = _dbClient.queryObject(StorageSystem.class, changeVpoolVolume.getStorageController());
-//            descriptors.addAll(vplexBlockServiceApiImpl
-//                    .createChangeVirtualPoolDescriptors(vplexStorageSystem, changeVpoolVolume, vpool, task,
-//                            vplexRecommendations, capabilities));
-//        } else {
         Volume vplexVirtualVolume = null;
+        
         if (!isChangeVpool) {
             List<URI> volumes = new ArrayList<URI>();
             

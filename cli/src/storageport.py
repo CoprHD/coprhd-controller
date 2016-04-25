@@ -892,7 +892,7 @@ def delete_parser(subcommand_parsers, common_parser):
                                                   ' CLI usage',
                                                   parents=[common_parser],
                                                   conflict_handler='resolve',
-                                                  help='Remove a registered' +
+                                                  help='Remove a deregistered' +
                                                   ' storage port, so that it' +
                                                   ' is no longer present in' +
                                                   ' the system')

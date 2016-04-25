@@ -9303,7 +9303,7 @@ application_add_remove_volume_tests()
     secho "application_add_remove_volume_tests()" 
 
     # add 3 volumes from same CG to application
-    run volumegroup add-volumes ${VG_COPYVG1} ${VG_CG1VOLID1},${VG_CG1VOLID2},${VG_CG1VOLID3} $app_test_cg1 $app_test_subgroup1a
+    run volumegroup add-volumes ${VG_COPYVG1} ${VG_CG1VOLID1},${VG_CG1VOLID2},${VG_CG1VOLID3} $app_test_subgroup1a
 
     # show volumes in application
     run volumegroup verify-volume ${VG_COPYVG1} ${VG_CG1VOLID1}
@@ -9318,8 +9318,8 @@ application_add_remove_volume_tests()
     fail volumegroup verify-volume ${VG_COPYVG1} ${VG_CG1VOLID3}
 
     # add back same 3 volumes from same CG plus 3 new volumes from a second C to application
-    run volumegroup add-volumes ${VG_COPYVG1} ${VG_CG1VOLID1},${VG_CG1VOLID2},${VG_CG1VOLID3} $app_test_cg1 $app_test_subgroup1a
-    run volumegroup add-volumes ${VG_COPYVG1} ${VG_CG2VOLID1},${VG_CG2VOLID2},${VG_CG2VOLID3} $app_test_cg2 $app_test_subgroup2a
+    run volumegroup add-volumes ${VG_COPYVG1} ${VG_CG1VOLID1},${VG_CG1VOLID2},${VG_CG1VOLID3} $app_test_subgroup1a
+    run volumegroup add-volumes ${VG_COPYVG1} ${VG_CG2VOLID1},${VG_CG2VOLID2},${VG_CG2VOLID3} $app_test_subgroup2a
 
     # show volumes in application
     run volumegroup verify-volume ${VG_COPYVG1} ${VG_CG1VOLID1}
@@ -9340,7 +9340,7 @@ application_add_remove_volume_tests()
         run volumegroup verify-volume ${VG_COPYVG1} ${VG_CG1VOLID4}
     else
         fail volumegroup verify-volume ${VG_COPYVG1} ${VG_CG1VOLID4}
-        run volumegroup add-volumes ${VG_COPYVG1} ${VG_CG1VOLID4} $app_test_cg1 $app_test_subgroup1a
+        run volumegroup add-volumes ${VG_COPYVG1} ${VG_CG1VOLID4} $app_test_subgroup1a
         run volumegroup verify-volume ${VG_COPYVG1} ${VG_CG1VOLID4}
     fi
 
@@ -9353,13 +9353,13 @@ application_copy_tests()
 {
     secho "application_copy_tests()"
 
-    run volumegroup add-volumes ${VG_COPYVG1} ${VG_CG1VOLID1},${VG_CG1VOLID2},${VG_CG1VOLID3},${VG_CG1VOLID4} $app_test_cg1 $app_test_subgroup1a
+    run volumegroup add-volumes ${VG_COPYVG1} ${VG_CG1VOLID1},${VG_CG1VOLID2},${VG_CG1VOLID3},${VG_CG1VOLID4} $app_test_subgroup1a
     run volumegroup verify-volume ${VG_COPYVG1} ${VG_CG1VOLID1}
     run volumegroup verify-volume ${VG_COPYVG1} ${VG_CG1VOLID2}
     run volumegroup verify-volume ${VG_COPYVG1} ${VG_CG1VOLID3}
     run volumegroup verify-volume ${VG_COPYVG1} ${VG_CG1VOLID4}
 
-    run volumegroup add-volumes ${VG_COPYVG1} ${VG_CG2VOLID1},${VG_CG2VOLID2},${VG_CG2VOLID3} $app_test_cg2 $app_test_subgroup2a
+    run volumegroup add-volumes ${VG_COPYVG1} ${VG_CG2VOLID1},${VG_CG2VOLID2},${VG_CG2VOLID3} $app_test_subgroup2a
     run volumegroup verify-volume ${VG_COPYVG1} ${VG_CG2VOLID1}
     run volumegroup verify-volume ${VG_COPYVG1} ${VG_CG2VOLID2}
     run volumegroup verify-volume ${VG_COPYVG1} ${VG_CG2VOLID3}
@@ -9385,11 +9385,11 @@ application_multi_sub_group_copy_tests()
 {
     secho "application_multi_sub_group_copy_tests()"
 
-    run volumegroup add-volumes ${VG_COPYVG1} ${VG_CG1VOLID1},${VG_CG1VOLID2} $app_test_cg1 $app_test_subgroup1a
+    run volumegroup add-volumes ${VG_COPYVG1} ${VG_CG1VOLID1},${VG_CG1VOLID2} $app_test_subgroup1a
     run volumegroup verify-volume ${VG_COPYVG1} ${VG_CG1VOLID1}
     run volumegroup verify-volume ${VG_COPYVG1} ${VG_CG1VOLID2}
 
-    run volumegroup add-volumes ${VG_COPYVG1} ${VG_CG1VOLID3},${VG_CG1VOLID4} $app_test_cg1 $app_test_subgroup1b
+    run volumegroup add-volumes ${VG_COPYVG1} ${VG_CG1VOLID3},${VG_CG1VOLID4} $app_test_subgroup1b
     run volumegroup verify-volume ${VG_COPYVG1} ${VG_CG1VOLID3}
     run volumegroup verify-volume ${VG_COPYVG1} ${VG_CG1VOLID4}
 
@@ -9497,6 +9497,7 @@ application_tests()
 
     # TODO add more add/remove volume tests fo rRP and vplex that split u CGs into multiple sub groups
     # TODO add teste for all partial operations
+    # TODO create clone inactive
     # TODO add RP tests
     secho "Executing application sanity tests " `date`
 
@@ -9527,8 +9528,6 @@ application_tests()
             VG_VARRAY_CG=$APP_VARRAY1
             APP_RUNNING_BLOCK_TEST=1
 
-            app_test_cg1=""
-            app_test_cg2=""
             app_test_subgroup1a=""
             app_test_subgroup1b=""
             app_test_subgroup2a=""
@@ -9544,8 +9543,6 @@ application_tests()
             VG_VARRAY_CG=$APP_VARRAY1
             APP_RUNNING_BLOCK_TEST=0
 
-            app_test_cg1=$VG_CGNAME1
-            app_test_cg2=$VG_CGNAME2
             app_test_subgroup1a="${VG_CGNAME1}a"
             app_test_subgroup1b="${VG_CGNAME1}b"
             app_test_subgroup2a="${VG_CGNAME2}a"
@@ -9563,8 +9560,6 @@ application_tests()
             VG_VARRAY_CG=$APP_VARRAY2
             APP_RUNNING_BLOCK_TEST=1
 
-            app_test_cg1=""
-            app_test_cg2=""
             app_test_subgroup1a=""
             app_test_subgroup1b=""
             app_test_subgroup2a=""
@@ -9580,8 +9575,6 @@ application_tests()
             VG_VARRAY_CG=$APP_VARRAY2
             APP_RUNNING_BLOCK_TEST=0
 
-            app_test_cg1=$VG_CGNAME1
-            app_test_cg2=$VG_CGNAME2
             app_test_subgroup1a="${VG_CGNAME1}a"
             app_test_subgroup1b="${VG_CGNAME1}b"
             app_test_subgroup2a="${VG_CGNAME2}a"

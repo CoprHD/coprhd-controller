@@ -161,24 +161,24 @@ volume_group_remove_volumes()
 #
 volume_group_add_volumes()
 {
-    echo "adding volumes to volume group ${1}"
+    application=$1
+    volumes=$2
+    subgroup=$3
+    echo "adding volumes to volume group ${application}"
     viprcli_authenticate >$ dev/null
-    if [ -n "$4" ]; then
-        echo "viprcli volumegroup update -n ${1} -a ${2} -cg ${3} -rg ${4}"
-        viprcli volumegroup update -n $1 -a $2 -cg $3 -rg $4
-    elif [ -n "$3" ]; then    
-        echo "viprcli volumegroup update -n ${1} -a ${2} -cg ${3}"
-        viprcli volumegroup update -n $1 -a $2 -cg $3
+    if [ -n "$subgroup" ]; then
+        echo "viprcli volumegroup update -n ${application} -a ${volumes} -sg ${subgroup}"
+        viprcli volumegroup update -n $application -a $volumes -sg $subgroup
     else
-        echo "viprcli volumegroup update -n ${1} -a ${2}"
-        viprcli volumegroup update -n $1 -a $2
+        echo "viprcli volumegroup update -n ${application} -a ${volumes}"
+        viprcli volumegroup update -n $application -a $volumes
     fi
     retval=$?
     viprcli_logout >$ dev/null
     if [ $retval -eq 0 ]; then
-        volume_group_wait_for_tasks $2
+        volume_group_wait_for_tasks $volumes
     fi
-    echo "volume group ${1} updated with return code ${retval}"
+    echo "volume group ${application} updated with return code ${retval}"
     return $retval
 }
 

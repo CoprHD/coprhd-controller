@@ -98,6 +98,7 @@ ext {
         "com.addthis.metrics:reporter-config:2.1.0",
         "com.thinkaurelius.thrift:thrift-server:0.3.7",
         "io.airlift:airline:0.6",
+		"com.datastax.cassandra:cassandra-driver-core:3.0.0",
     ]
 
     zookeeper = [
@@ -166,7 +167,7 @@ ext {
 
     ]
     guava = [
-        "com.google.guava:guava:15.0",
+        "com.google.guava:guava:17.0",
 
     ]
     jersey = [

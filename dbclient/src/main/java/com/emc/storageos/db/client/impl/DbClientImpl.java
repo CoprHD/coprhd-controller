@@ -32,6 +32,7 @@ import org.joda.time.DateTimeZone;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.datastax.driver.core.ResultSet;
 import com.emc.storageos.coordinator.client.model.Constants;
 import com.emc.storageos.coordinator.client.model.DbVersionInfo;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
@@ -46,6 +47,8 @@ import com.emc.storageos.db.client.constraint.DecommissionedConstraint;
 import com.emc.storageos.db.client.constraint.QueryResultList;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.constraint.impl.ConstraintImpl;
+import com.emc.storageos.db.client.javadriver.CassandraRow;
+import com.emc.storageos.db.client.javadriver.CassandraRows;
 import com.emc.storageos.db.client.model.AllowedGeoVersion;
 import com.emc.storageos.db.client.model.CustomConfig;
 import com.emc.storageos.db.client.model.DataObject;
@@ -433,14 +436,14 @@ public class DbClientImpl implements DbClient {
         }
 
         Keyspace ks = getKeyspace(clazz);
-        Rows<String, CompositeColumnName> rows = queryRowsWithAllColumns(ks, ids, doType.getCF());
-        List<T> objects = new ArrayList<T>(rows.size());
+        List<CassandraRows> result = queryRowsWithAllColumns(ids, doType.getCF().getName());
+        List<T> objects = new ArrayList<T>(result.size());
         IndexCleanupList cleanList = new IndexCleanupList();
 
-        Iterator<Row<String, CompositeColumnName>> it = rows.iterator();
+        Iterator<CassandraRows> it = result.iterator();
         while (it.hasNext()) {
-            Row<String, CompositeColumnName> row = it.next();
-            if (row == null || row.getColumns().size() == 0) {
+            CassandraRows row = it.next();
+            if (row == null || row.getRows().size() == 0) {
                 continue;
             }
 
@@ -1509,6 +1512,34 @@ public class DbClientImpl implements DbClient {
             throw DatabaseException.retryables.connectionFailed(e);
         }
     }
+    
+    public List<CassandraRows> queryRowsWithAllColumns(Collection<URI> ids, String tableName) {
+        ResultSet resultSet = this.localContext.getCassandraSession()
+            .execute(String.format("Select * from \"%s\" where key in %s", tableName, uriList2String(ids)));
+        
+        List<CassandraRows> result = new ArrayList<CassandraRows>();
+        CassandraRows rows = new CassandraRows();
+        for (com.datastax.driver.core.Row row : resultSet) {
+            String currentKey = row.getString(0);
+                
+            CassandraRow lastCassandraRow = new CassandraRow();
+            rows.getRows().add(lastCassandraRow);
+            rows.setKey(currentKey);
+                
+            lastCassandraRow.setKey(currentKey);
+            lastCassandraRow.setRow(row);
+            lastCassandraRow.setCompositeColumnName(
+                    new CompositeColumnName(
+                            row.getString(1),
+                            row.getString(2),
+                            row.getString(3),
+                            row.getUUID(4)));
+        }
+        
+        result.add(rows);
+        
+        return result;
+    }
 
     /**
      * Convenience helper that queries for multiple rows for collection of row
@@ -1953,5 +1984,19 @@ public class DbClientImpl implements DbClient {
         String clazzVersion = clazz.getAnnotation(AllowedGeoVersion.class).version();
         String fieldVersion = property.getReadMethod().getAnnotation(AllowedGeoVersion.class).version();
         return VdcUtil.VdcVersionComparator.compare(fieldVersion, clazzVersion) > 0 ? fieldVersion : clazzVersion;
+    }
+    
+    private String uriList2String(Collection<URI> ids) {
+        StringBuilder buffer = new StringBuilder();
+        buffer.append("(");
+        for (URI uri : ids) {
+            if (buffer.length() > 1) {
+                buffer.append(", ");
+            }
+            
+            buffer.append("'").append(uri.toString()).append("'");
+        }
+        buffer.append(")");
+        return buffer.toString();
     }
 }

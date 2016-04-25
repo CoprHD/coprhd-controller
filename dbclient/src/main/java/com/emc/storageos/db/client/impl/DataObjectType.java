@@ -22,9 +22,18 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
+import javassist.CannotCompileException;
+import javassist.ClassPool;
+import javassist.CtClass;
+import javassist.CtMethod;
+import javassist.CtNewMethod;
+import javassist.NotFoundException;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.emc.storageos.db.client.javadriver.CassandraRow;
+import com.emc.storageos.db.client.javadriver.CassandraRows;
 import com.emc.storageos.db.client.model.Cf;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.EncryptionProvider;
@@ -34,13 +43,6 @@ import com.netflix.astyanax.model.Column;
 import com.netflix.astyanax.model.ColumnFamily;
 import com.netflix.astyanax.model.Row;
 import com.netflix.astyanax.serializers.StringSerializer;
-
-import javassist.CannotCompileException;
-import javassist.ClassPool;
-import javassist.CtClass;
-import javassist.CtMethod;
-import javassist.CtNewMethod;
-import javassist.NotFoundException;
 
 /**
  * Encapsulates data object type information
@@ -249,6 +251,41 @@ public class DataObjectType {
                 ColumnField columnField = _columnFieldMap.get(column.getName().getOne());
                 if (columnField != null) {
                     columnField.deserialize(column, obj);
+                } else {
+                    _log.debug("an unexpected column in db, it might because geo system has multiple vdc but in different version");
+                }
+            }
+            cleanupList.addObject(key, obj);
+            obj.trackChanges();
+
+            setLazyLoaders(obj, lazyLoader);
+
+            return clazz.cast(obj);
+        } catch (final InstantiationException e) {
+            throw DatabaseException.fatals.deserializationFailed(clazz, e);
+        } catch (final IllegalAccessException e) {
+            throw DatabaseException.fatals.deserializationFailed(clazz, e);
+        }
+    }
+    
+    public <T extends DataObject> T deserialize(Class<T> clazz, CassandraRows row, IndexCleanupList cleanupList,
+            LazyLoader lazyLoader) {
+        if (!_clazz.isAssignableFrom(clazz)) {
+            throw new IllegalArgumentException();
+        }
+        try {
+            String key = row.getKey();
+            Class<? extends DataObject> type = (_instrumentedClazz == null) ? clazz : _instrumentedClazz;
+            DataObject obj = DataObject.createInstance(type, URI.create(row.getKey()));
+            Iterator<CassandraRow> it = row.getRows().iterator();
+            while (it.hasNext()) {
+                CassandraRow internalRow = it.next();
+                // TODO DATASTAX java driver: clean up list
+                //cleanupList.add(key, column);
+                
+                ColumnField columnField = _columnFieldMap.get(internalRow.getCompositeColumnName().getOne());
+                if (columnField != null) {
+                    columnField.deserialize(internalRow, obj);
                 } else {
                     _log.debug("an unexpected column in db, it might because geo system has multiple vdc but in different version");
                 }

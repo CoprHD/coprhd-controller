@@ -9,23 +9,24 @@ import java.lang.annotation.Annotation;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.net.URI;
+import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collection;
 import java.util.Date;
 import java.util.Iterator;
-import java.util.Set;
 import java.util.List;
-import java.util.ArrayList;
 import java.util.Map;
+import java.util.Set;
 
-import com.emc.storageos.db.client.model.NoInactiveIndex;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.emc.storageos.db.client.javadriver.CassandraRow;
 import com.emc.storageos.db.client.model.AbstractChangeTrackingMap;
 import com.emc.storageos.db.client.model.AbstractChangeTrackingSet;
 import com.emc.storageos.db.client.model.AbstractChangeTrackingSetMap;
 import com.emc.storageos.db.client.model.AbstractSerializableNestedObject;
+import com.emc.storageos.db.client.model.AggregatedIndex;
 import com.emc.storageos.db.client.model.AlternateId;
 import com.emc.storageos.db.client.model.ClockIndependent;
 import com.emc.storageos.db.client.model.ClockIndependentValue;
@@ -38,6 +39,7 @@ import com.emc.storageos.db.client.model.IndexByKey;
 import com.emc.storageos.db.client.model.Name;
 import com.emc.storageos.db.client.model.NamedRelationIndex;
 import com.emc.storageos.db.client.model.NamedURI;
+import com.emc.storageos.db.client.model.NoInactiveIndex;
 import com.emc.storageos.db.client.model.PermissionsIndex;
 import com.emc.storageos.db.client.model.PrefixIndex;
 import com.emc.storageos.db.client.model.Relation;
@@ -46,7 +48,6 @@ import com.emc.storageos.db.client.model.ScopedLabel;
 import com.emc.storageos.db.client.model.ScopedLabelIndex;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.Ttl;
-import com.emc.storageos.db.client.model.AggregatedIndex;
 import com.emc.storageos.db.exceptions.DatabaseException;
 import com.netflix.astyanax.ColumnListMutation;
 import com.netflix.astyanax.model.ByteBufferRange;
@@ -306,6 +307,14 @@ public class ColumnField {
             ColumnValue.setField(column, _property, obj);
         }
     }
+    
+    public void deserialize(CassandraRow cassandraRow, Object obj) {
+        if (_encrypt && _parentType.getEncryptionProvider() != null) {
+            deserializeEncryptedColumn(cassandraRow, obj, _parentType.getEncryptionProvider());
+        } else {
+            ColumnValue.setField(cassandraRow, _property, obj);
+        }
+    }
 
     /**
      * Deserializes an encrypted column into object field
@@ -325,6 +334,18 @@ public class ColumnField {
             throw new IllegalArgumentException("null encryption provider");
         }
         ColumnValue.setEncryptedStringField(column, _property, obj, encryptionProvider);
+    }
+    
+    public void deserializeEncryptedColumn(CassandraRow cassandraRow, Object obj,
+            EncryptionProvider encryptionProvider) {
+        if (!_encrypt) {
+            throw new IllegalArgumentException("column is not encrypted");
+        }
+
+        if (encryptionProvider == null) {
+            throw new IllegalArgumentException("null encryption provider");
+        }
+        ColumnValue.setEncryptedStringField(cassandraRow, _property, obj, encryptionProvider);
     }
 
     /**

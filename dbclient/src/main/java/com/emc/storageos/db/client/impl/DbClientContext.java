@@ -14,6 +14,17 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.cassandra.service.StorageProxy;
+import org.apache.cassandra.thrift.Cassandra;
+import org.apache.cassandra.thrift.KsDef;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.datastax.driver.core.Session;
+import com.emc.storageos.coordinator.client.model.Site;
+import com.emc.storageos.coordinator.client.model.SiteState;
+import com.emc.storageos.coordinator.client.service.DrUtil;
+import com.emc.storageos.db.exceptions.DatabaseException;
 import com.netflix.astyanax.AstyanaxContext;
 import com.netflix.astyanax.CassandraOperationType;
 import com.netflix.astyanax.Cluster;
@@ -21,12 +32,12 @@ import com.netflix.astyanax.Keyspace;
 import com.netflix.astyanax.KeyspaceTracerFactory;
 import com.netflix.astyanax.connectionpool.ConnectionContext;
 import com.netflix.astyanax.connectionpool.ConnectionPool;
-import com.netflix.astyanax.ddl.KeyspaceDefinition;
+import com.netflix.astyanax.connectionpool.Host;
 import com.netflix.astyanax.connectionpool.SSLConnectionContext;
 import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
-import com.netflix.astyanax.connectionpool.Host;
 import com.netflix.astyanax.connectionpool.impl.ConnectionPoolConfigurationImpl;
 import com.netflix.astyanax.connectionpool.impl.ConnectionPoolType;
+import com.netflix.astyanax.ddl.KeyspaceDefinition;
 import com.netflix.astyanax.impl.AstyanaxConfigurationImpl;
 import com.netflix.astyanax.model.ConsistencyLevel;
 import com.netflix.astyanax.partitioner.Murmur3Partitioner;
@@ -36,16 +47,6 @@ import com.netflix.astyanax.shallows.EmptyKeyspaceTracerFactory;
 import com.netflix.astyanax.thrift.AbstractOperationImpl;
 import com.netflix.astyanax.thrift.ThriftFamilyFactory;
 import com.netflix.astyanax.thrift.ddl.ThriftKeyspaceDefinitionImpl;
-import org.apache.cassandra.service.StorageProxy;
-import org.apache.cassandra.thrift.Cassandra;
-import org.apache.cassandra.thrift.KsDef;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import com.emc.storageos.coordinator.client.model.Site;
-import com.emc.storageos.coordinator.client.model.SiteState;
-import com.emc.storageos.coordinator.client.service.DrUtil;
-import com.emc.storageos.db.exceptions.DatabaseException;
 
 public class DbClientContext {
 
@@ -93,6 +94,9 @@ public class DbClientContext {
     private String trustStorePassword;
     private boolean isClientToNodeEncrypted;
     private ScheduledExecutorService exe = Executors.newScheduledThreadPool(1);
+    
+    private com.datastax.driver.core.Cluster cassandraCluster;
+    private Session cassandraSession;
 
     // whether to retry once with LOCAL_QUORUM for write failure 
     private boolean retryFailedWriteWithLocalQuorum = false; 
@@ -222,6 +226,7 @@ public class DbClientContext {
     public void setTrustStorePassword(String trustStorePassword) {
         this.trustStorePassword = trustStorePassword;
     }
+    
 
     public void init(final HostSupplierImpl hostSupplier) {
         String svcName = hostSupplier.getDbSvcName();
@@ -290,6 +295,15 @@ public class DbClientContext {
             }, 60, DEFAULT_CONSISTENCY_LEVEL_CHECK_SEC, TimeUnit.SECONDS);
         }
         
+        // init java driver
+        String[] contactPoints = new String[hosts.size()];
+        for (int i = 0; i < hosts.size(); i++) {
+            contactPoints[i] = hosts.get(i).getHostName();
+        }
+        cassandraCluster = com.datastax.driver.core.Cluster
+                .builder()
+                .addContactPoints(contactPoints).build();
+        cassandraSession = cassandraCluster.connect("\"" + keyspaceName + "\"");
         
         initDone = true;
     }
@@ -354,6 +368,14 @@ public class DbClientContext {
         if (clusterContext != null) {
             clusterContext.shutdown();
             clusterContext = null;
+        }
+        
+        if (cassandraSession != null) {
+            cassandraSession.close();
+        }
+
+        if (cassandraCluster != null) {
+            cassandraCluster.close();
         }
 
         exe.shutdownNow();
@@ -571,6 +593,10 @@ public class DbClientContext {
         log.info("Service {} of quorum nodes on all standby sites are up. Reset default write consistency level back to EACH_QUORUM", svcName);
         AstyanaxConfigurationImpl config = (AstyanaxConfigurationImpl)keyspaceContext.getAstyanaxConfiguration();
         config.setDefaultWriteConsistencyLevel(ConsistencyLevel.CL_EACH_QUORUM);
+    }
+
+    public Session getCassandraSession() {
+        return cassandraSession;
     }
     
 }

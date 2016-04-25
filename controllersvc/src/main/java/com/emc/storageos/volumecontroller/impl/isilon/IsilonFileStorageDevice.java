@@ -21,6 +21,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.customconfigcontroller.CustomConfigConstants;
+import com.emc.storageos.customconfigcontroller.DataSource;
+import com.emc.storageos.customconfigcontroller.DataSourceFactory;
 import com.emc.storageos.customconfigcontroller.impl.CustomConfigHandler;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
@@ -95,6 +97,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
     private DbClient _dbClient;
 
     private CustomConfigHandler customConfigHandler;
+    protected DataSourceFactory dataSourceFactory;
 
     private FileMirrorOperations mirrorOperations;
 
@@ -867,9 +870,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
             String tenantOrg = null;
             VirtualNAS vNAS = args.getvNAS();
             String vNASPath = null;
-            _log.info("the custom path is  {}", getCustomPath(args));
             String customPath = "";
-            customPath = getCustomPath(args);
             if (vNAS != null) {
                 vNASPath = vNAS.getBaseDirPath();
                 _log.info("vNAS base directory path: {}", vNASPath);
@@ -885,7 +886,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
             String usePhysicalNASForProvisioning = customConfigHandler.getComputedCustomConfigValue(
                     CustomConfigConstants.USE_PHYSICAL_NAS_FOR_PROVISIONING, "isilon", null);
             _log.info("Use System access zone to provision filesystem? {}", usePhysicalNASForProvisioning);
-
+            customPath = getCustomPath(args);
             String mountPath = null;
             // Update the mount path as required
             if (vNASPath != null && !vNASPath.trim().isEmpty()) {
@@ -916,7 +917,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
             args.setFsMountPath(mountPath);
             if (!customPath.isEmpty()) {
 
-                args.setFsMountPath(customPath + FW_SLASH + args.getFsName());
+                args.setFsMountPath(customPath);
 
             }
 
@@ -2621,17 +2622,15 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
     private String getCustomPath(FileDeviceInputOutput args) {
 
         String path = "";
-
-        try {
-
-            String configPath = customConfigHandler.getComputedCustomConfigValue(CustomConfigConstants.ISILON_PATH_CUSTOMIZATION, "isilon",
-                    null);
-            _log.info("the isilon user defined custom path is  {}", configPath);
+        DataSource dataSource = dataSourceFactory.createIsilonFileSystemPathDataSource(args.getProject(), args.getVPool(),
+                args.getTenantOrg(), args.getStorageSystem());
+        String configPath = customConfigHandler.getComputedCustomConfigValue(CustomConfigConstants.ISILON_PATH_CUSTOMIZATION, "isilon",
+                dataSource);
+        _log.info("The isilon user defined custom path is  {}", configPath);
+        if (configPath != null && !configPath.isEmpty()) {
             path = IFS_ROOT + VIPR_DIR + FW_SLASH + configPath + args.getFsName();
-        } catch (Exception e) {
-            _log.debug(e.getMessage());
         }
+        // call the method to remove special charecter
         return path;
     }
-
 }

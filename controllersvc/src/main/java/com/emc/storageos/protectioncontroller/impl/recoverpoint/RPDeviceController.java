@@ -1929,11 +1929,19 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
             createVolumeParams.addAll(rset.getVolumes()); 
             List<URI> processedRsetVolumes = new ArrayList<URI>();
             for (CreateVolumeParams rsetVolume : createVolumeParams) {
-                // MetroPoint RSets will have the Source volume listed twice (this is expected):
-                // Once for the Active Production Copy and once for the Standby Production Copy.
+                // MetroPoint RSets will have the Source volume listed twice:
+                //
+                // 1. Once for the Active Production Copy 
+                // 2. Once for the Standby Production Copy
+                //
+                // This is the same volume WWN but it is for two distinct RP Copies.
                 //
                 // We only need a single reference to the Source volume for export purposes
-                // so if we've already processed this Source volume, we can skip it.
+                // as we already make allowances in the below code for exporting this volume to 
+                // multiple VPLEX export groups (aka Storage Views). 
+                //
+                // So if we have already created exports for this Source volume, we can skip 
+                // the second reference and continue processing.
                 if (processedRsetVolumes.contains(rsetVolume.getVolumeURI())) {
                     continue;
                 }                

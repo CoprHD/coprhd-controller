@@ -1461,9 +1461,9 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
                 volume.getPool(), null);
 
         Map<String, Object> volumeParams = new HashMap<String, Object>();
-        volumeParams.put(VolumeDescriptor.PARAM_VPOOL_CHANGE_VOLUME_ID, volume.getId());
-        volumeParams.put(VolumeDescriptor.PARAM_VPOOL_CHANGE_VPOOL_ID, newVpool.getId());
-        volumeParams.put(VolumeDescriptor.PARAM_VPOOL_OLD_VPOOL_ID, volume.getVirtualPool());
+        volumeParams.put(VolumeDescriptor.PARAM_VPOOL_CHANGE_EXISTING_VOLUME_ID, volume.getId());
+        volumeParams.put(VolumeDescriptor.PARAM_VPOOL_CHANGE_NEW_VPOOL_ID, newVpool.getId());
+        volumeParams.put(VolumeDescriptor.PARAM_VPOOL_CHANGE_OLD_VPOOL_ID, volume.getVirtualPool());
         vplexVirtualVolumeDesc.setParameters(volumeParams);
         descriptors.add(vplexVirtualVolumeDesc);
 

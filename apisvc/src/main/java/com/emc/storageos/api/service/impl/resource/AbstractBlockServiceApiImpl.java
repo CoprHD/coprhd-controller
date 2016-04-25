@@ -483,22 +483,24 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
         Collection<VirtualPool> allVpools = getVPoolsForVolumeBasedOnSystemConnectivity(volume);
 
         Iterator<VirtualPool> vpoolIter = allVpools.iterator();
+        StringBuffer logMsg = new StringBuffer();
+        logMsg.append("Analyzing vpools for change vpool operations:\n");
         while (vpoolIter.hasNext()) {
             StringBuffer notAllowedReason = new StringBuffer();
             VirtualPool targetVpool = vpoolIter.next();
             List<VirtualPoolChangeOperationEnum> allowedOperations = getVirtualPoolChangeAllowedOperationsForVolume(
                     volume, currentVpool, targetVpool, notAllowedReason);
-
-            StringBuffer logMsg = new StringBuffer();
-            logMsg.append("Vpool [" + targetVpool.getLabel() + "]");
+            
+            logMsg.append("\tVpool [" + targetVpool.getLabel() + "]");
             logMsg.append((notAllowedReason.length() > 0) ? " not allowed: " + notAllowedReason.toString() : " allowed but only for: ");
             logMsg.append((allowedOperations != null && !allowedOperations.isEmpty()) ? Joiner.on("\t").join(allowedOperations) : "");
-            s_logger.info(logMsg.toString());
+            logMsg.append("\n");
 
             vpoolChangeList.getVirtualPools().add(
                     toVirtualPoolChangeRep(targetVpool, allowedOperations,
                             notAllowedReason.toString()));
-        }
+        }        
+        s_logger.info(logMsg.toString());
 
         return vpoolChangeList;
     }

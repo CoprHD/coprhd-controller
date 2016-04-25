@@ -542,10 +542,10 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
 
             // If there are no VPlex volumes, just return
             if (vplexVolumes.isEmpty()) {
-                _log.info("No VPLEX steps required");
+                _log.info("No VPLEX create volume steps required.");
                 return waitFor;
             }
-            _log.info("Adding VPLEX steps for create volumes");
+            _log.info("Adding VPLEX create volume steps...");
 
             // Segregate the volumes by Device.
             Map<URI, List<VolumeDescriptor>> vplexDescMap = VolumeDescriptor
@@ -10205,14 +10205,22 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             for (VolumeDescriptor vplexVirtualVolume : vplexVirtualVolumes) {
                 if (vplexVirtualVolume.getParameters() != null
                         && !vplexVirtualVolume.getParameters().isEmpty()) {
-                    if (newVpoolURI == null) {
-                        newVpoolURI = (URI) vplexVirtualVolume.getParameters().get(
-                                VolumeDescriptor.PARAM_VPOOL_CHANGE_VPOOL_ID);
+                    // Let's check to see if the PARAM_VPOOL_CHANGE_EXISTING_VOLUME_ID was populated 
+                    // in the descriptor params map. This would indicate that the descriptor
+                    // has information about the existing volume for the change vpool operation.
+                    Object existingVolumeId = vplexVirtualVolume.getParameters().get(
+                            VolumeDescriptor.PARAM_VPOOL_CHANGE_EXISTING_VOLUME_ID);                    
+                    if (existingVolumeId != null) {                        
+                        URI virtualVolumeURI = (URI) existingVolumeId;                        
+                        _log.info(String.format("Adding steps for change vpool for vplex volume %s", virtualVolumeURI.toString()));
+                    
+                        if (newVpoolURI == null) {
+                            newVpoolURI = (URI) vplexVirtualVolume.getParameters().get(
+                                    VolumeDescriptor.PARAM_VPOOL_CHANGE_NEW_VPOOL_ID);
+                        }
+                        
+                        changeVpoolVirtualVolumeURIs.add(virtualVolumeURI);
                     }
-                    URI virtualVolumeURI = (URI) vplexVirtualVolume.getParameters().get(
-                            VolumeDescriptor.PARAM_VPOOL_CHANGE_VOLUME_ID);
-                    _log.info("Adding steps for change vpool for vplex volume {}", virtualVolumeURI);
-                    changeVpoolVirtualVolumeURIs.add(virtualVolumeURI);
                 }
             }
 

@@ -42,6 +42,7 @@ public class VirtualPoolCapabilityValuesWrapper implements Serializable {
     public static final String SUPPORT_SOFT_LIMIT = "soft_limit";
     public static final String SUPPORT_NOTIFICATION_LIMIT = "notification_limit";
     public static final String QUOTA = "quota";
+    public static final String CHANGE_VPOOL_VOLUME = "changeVpoolVolume";
 
     public static final String FILE_RP_RPO_VALUE = "fileRpRpoValue";
     public static final String FILE_RP_RPO_TYPE = "fileRpRpoType";
@@ -190,7 +191,10 @@ public class VirtualPoolCapabilityValuesWrapper implements Serializable {
         if (capabilities.contains(FILE_RP_COPY_MODE)) {
             _vpoolCapabilities.put(FILE_RP_COPY_MODE, capabilities.getRpCopyMode());
         }
-
+        
+        if (capabilities.contains(CHANGE_VPOOL_VOLUME)) {
+            _vpoolCapabilities.put(CHANGE_VPOOL_VOLUME, capabilities.getChangeVpoolVolume());
+        }
     }
 
     public String getVirtualArrays() {
@@ -365,5 +369,9 @@ public class VirtualPoolCapabilityValuesWrapper implements Serializable {
         Object value = _vpoolCapabilities.get(FILE_TARGET_COPY_NAME);
         return value != null ? (String) value : null;
     }
-
+    
+    public String getChangeVpoolVolume() {
+        Object value = _vpoolCapabilities.get(CHANGE_VPOOL_VOLUME);
+        return value != null ? (String) value : null;
+    }    
 }

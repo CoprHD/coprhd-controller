@@ -23,7 +23,6 @@
                 <entry key="vnxfile-prov-file" value-ref="vnxfilenamespace" />
                 <entry key="vnxfile-prov-del-file" value-ref="vnxfiledelnamespace" />
                 <entry key="vnxfile-prov-force-del-file" value-ref="vnxfileforcedelnamespace" />
-                <entry key="vnxfile-list-all-quota-dirs" value-ref="vnxallquotasnamespace" />
                 <entry key="vnxfile-prov-cr-snap" value-ref="vnxsnapcrnamespace" />
                 <entry key="vnxfile-prov-file-export" value-ref="vnxexportnamespace" />
                 <entry key="vnxfile-prov-file-export-mount" value-ref="vnxexportmountnamespace" />
@@ -114,17 +113,6 @@
             </list>
         </property>
     </bean>
-    
-    <bean id="vnxallquotasnamespace"
-          class="com.emc.storageos.plugins.common.domainmodel.Namespace">
-        <property name="operations">
-            <list>
-                <ref bean="loginoperation" /> 
-                <ref bean="vnxqueryallquotadirs"/>
-            </list>
-        </property>
-    </bean>
-
     
     <bean id="vnxsnapshotdeletenamespace"
           class="com.emc.storageos.plugins.common.domainmodel.Namespace">
@@ -760,21 +748,6 @@
     <bean id="vnxqueryfsquotadirs"
         class="com.emc.storageos.plugins.common.domainmodel.Operation">
         <property name="processor" ref="vnxfsquotadirsprocessor" />
-        <property name="instance" ref="retriever" />
-        <property name="method" value="execute" />
-        <property name="arguments">
-            <list>
-                <ref bean="uri" />
-                <ref bean="cookie" />
-                <ref bean="session" />
-                <ref bean="vnxquotadirsquery" />
-            </list>
-        </property>
-    </bean>
-    
-    <bean id="vnxqueryallquotadirs"
-        class="com.emc.storageos.plugins.common.domainmodel.Operation">
-        <property name="processor" ref="vnxallquotadirsprocessor" />
         <property name="instance" ref="retriever" />
         <property name="method" value="execute" />
         <property name="arguments">

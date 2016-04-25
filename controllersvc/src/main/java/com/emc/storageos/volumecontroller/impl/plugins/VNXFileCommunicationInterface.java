@@ -52,10 +52,13 @@ import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedCif
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedFSExport;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedFSExportMap;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedFileExportRule;
+import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedFileQuotaDirectory;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedFileSystem;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedSMBFileShare;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedSMBShareMap;
 import com.emc.storageos.db.exceptions.DatabaseException;
+import com.emc.storageos.netapp.NetAppApi;
+import com.emc.storageos.netapp.NetAppException;
 import com.emc.storageos.plugins.AccessProfile;
 import com.emc.storageos.plugins.BaseCollectionException;
 import com.emc.storageos.plugins.common.Constants;
@@ -71,6 +74,7 @@ import com.emc.storageos.vnx.xmlapi.VNXDataMoverIntf;
 import com.emc.storageos.vnx.xmlapi.VNXException;
 import com.emc.storageos.vnx.xmlapi.VNXFileSshApi;
 import com.emc.storageos.vnx.xmlapi.VNXFileSystem;
+import com.emc.storageos.vnx.xmlapi.VNXQuotaTree;
 import com.emc.storageos.vnx.xmlapi.VNXStoragePool;
 import com.emc.storageos.vnx.xmlapi.VNXVdm;
 import com.emc.storageos.volumecontroller.FileControllerConstants;
@@ -85,6 +89,8 @@ import com.emc.storageos.volumecontroller.impl.utils.ImplicitPoolMatcher;
 import com.emc.storageos.volumecontroller.impl.utils.UnManagedExportVerificationUtility;
 import com.google.common.base.Joiner;
 import com.google.common.collect.Sets;
+import com.iwave.ext.netapp.model.Qtree;
+import com.iwave.ext.netapp.model.Quota;
 
 /**
  * VNXFileCommunicationInterface class is an implementation of
@@ -1599,6 +1605,89 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
             }
         }
     }
+    
+    private void discoverUmanagedFileQuotaDirectory(AccessProfile profile) {
+        URI storageSystemId = profile.getSystemId();
+
+        StorageSystem storageSystem = _dbClient.queryObject(
+                StorageSystem.class, storageSystemId);
+
+        if (null == storageSystem) {
+            return;
+        }
+
+        try {
+            // Retrieve all the qtree info.
+            List<VNXQuotaTree> qtrees = getAllQuotaTrees(storageSystem);
+            List<VNXFileSystem> vnxFileSystems = getAllFileSystem(storageSystem);
+                List<UnManagedFileQuotaDirectory> unManagedFileQuotaDirectories = new ArrayList<>();
+                List<UnManagedFileQuotaDirectory> existingUnManagedFileQuotaDirectories = new ArrayList<>();
+
+               /* for (Quota quota : quotas) {
+                    String fsNativeId;
+                    if (quota.getVolume().startsWith(VOL_ROOT)) {
+                        fsNativeId = quota.getVolume();
+                    } else {
+                        fsNativeId = VOL_ROOT + quota.getVolume();
+                    }
+
+                    if (fsNativeId.contains(ROOT_VOL)) {
+                        _logger.info("Ignore and not discover root filesystem on NTP array");
+                        continue;
+                    }
+
+                    String fsNativeGUID = NativeGUIDGenerator.generateNativeGuid(storageSystem.getSystemType(),
+                            storageSystem.getSerialNumber(), fsNativeId);
+
+                    String nativeGUID = NativeGUIDGenerator.generateNativeGuidForQuotaDir(storageSystem.getSystemType(),
+                            storageSystem.getSerialNumber(), quota.getQtree(), quota.getVolume());
+                    
+                    String nativeUnmanagedGUID = NativeGUIDGenerator.generateNativeGuidForUnManagedQuotaDir(storageSystem.getSystemType(),
+                            storageSystem.getSerialNumber(), quota.getQtree(), quota.getVolume());
+                    if (checkStorageQuotaDirectoryExistsInDB(nativeGUID)) {
+                        continue;
+                    }
+
+                    UnManagedFileQuotaDirectory unManagedFileQuotaDirectory = new UnManagedFileQuotaDirectory();
+                    unManagedFileQuotaDirectory.setId(URIUtil.createId(UnManagedFileQuotaDirectory.class));
+                    unManagedFileQuotaDirectory.setLabel(quota.getQtree());
+                    unManagedFileQuotaDirectory.setNativeGuid(nativeUnmanagedGUID);
+                    unManagedFileQuotaDirectory.setParentFSNativeGuid(fsNativeGUID);
+                    if("enabled".equals(qTreeNameQTreeMap.get(quota.getVolume() + quota.getQtree()).getOplocks())) {
+                        unManagedFileQuotaDirectory.setOpLock(true);
+                    }
+                    unManagedFileQuotaDirectory.setSize(Long.valueOf(quota.getDiskLimit()));
+
+                    if (!checkUnManagedQuotaDirectoryExistsInDB(nativeUnmanagedGUID)) {
+                        unManagedFileQuotaDirectories.add(unManagedFileQuotaDirectory);
+                    } else {
+                        existingUnManagedFileQuotaDirectories.add(unManagedFileQuotaDirectory);
+                    }
+
+                }
+
+                if (!unManagedFileQuotaDirectories.isEmpty()) {
+                    _partitionManager.insertInBatches(unManagedFileQuotaDirectories,
+                            Constants.DEFAULT_PARTITION_SIZE, _dbClient,
+                            UNMANAGED_FILEQUOTADIR);
+                }
+
+                if (!existingUnManagedFileQuotaDirectories.isEmpty()) {
+                    _partitionManager.updateAndReIndexInBatches(existingUnManagedFileQuotaDirectories,
+                            Constants.DEFAULT_PARTITION_SIZE, _dbClient,
+                            UNMANAGED_FILEQUOTADIR);
+                }
+            }*/
+
+        } catch (Exception e) {
+            if (null != storageSystem) {
+                cleanupDiscovery(storageSystem);
+            }
+            _logger.error("discoverStorage failed.  Storage system: "
+                    + storageSystemId);
+            throw e;
+        } 
+    }
 
     private void validateListSizeLimitAndPersist(List<UnManagedFileSystem> newUnManagedFileSystems,
             List<UnManagedFileSystem> existingUnManagedFileSystems, int limit) {
@@ -2963,6 +3052,27 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
                     .get(VNXFileConstants.FILESYSTEMS);
         } catch (BaseCollectionException e) {
             throw new VNXException("Get FileSystems op failed", e);
+        }
+
+        return fileSystems;
+    }
+    
+    
+    private List<VNXQuotaTree> getAllQuotaTrees(final StorageSystem system)
+            throws VNXException {
+
+        List<VNXQuotaTree> fileSystems = null;
+
+        try {
+            Map<String, Object> reqAttributeMap = getRequestParamsMap(system);
+            _discExecutor.setKeyMap(reqAttributeMap);
+            _discExecutor.execute((Namespace) _discNamespaces.getNsList().get(
+                    "vnxallquotas"));
+
+            fileSystems = (ArrayList<VNXQuotaTree>) _discExecutor.getKeyMap()
+                    .get(VNXFileConstants.QUOTA_DIR_LIST);
+        } catch (BaseCollectionException e) {
+            throw new VNXException("Get QuotaTrees op failed", e);
         }
 
         return fileSystems;

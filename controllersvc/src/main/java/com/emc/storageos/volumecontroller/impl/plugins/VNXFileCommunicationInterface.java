@@ -22,7 +22,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.emc.nas.vnxfile.xmlapi.TreeQuota;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
@@ -57,8 +56,6 @@ import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedFil
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedSMBFileShare;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedSMBShareMap;
 import com.emc.storageos.db.exceptions.DatabaseException;
-import com.emc.storageos.netapp.NetAppApi;
-import com.emc.storageos.netapp.NetAppException;
 import com.emc.storageos.plugins.AccessProfile;
 import com.emc.storageos.plugins.BaseCollectionException;
 import com.emc.storageos.plugins.common.Constants;
@@ -89,8 +86,6 @@ import com.emc.storageos.volumecontroller.impl.utils.ImplicitPoolMatcher;
 import com.emc.storageos.volumecontroller.impl.utils.UnManagedExportVerificationUtility;
 import com.google.common.base.Joiner;
 import com.google.common.collect.Sets;
-import com.iwave.ext.netapp.model.Qtree;
-import com.iwave.ext.netapp.model.Quota;
 
 /**
  * VNXFileCommunicationInterface class is an implementation of
@@ -113,6 +108,7 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
     private static final String PHYSICAL = "PHYSICAL";
     private static final Integer MAX_UMFS_RECORD_SIZE = 1000;
     private static final String UNMANAGED_EXPORT_RULE = "UnManagedExportRule";
+    private static final String UNMANAGED_FILEQUOTADIR = "UnManagedFileQuotaDirectory";
     private static final Long TBsINKB = 1073741824L;
 
     private static int BYTESCONV = 1024;  // VNX defaults to M and apparently Bourne wants K.
@@ -1585,6 +1581,9 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
             // discovery succeeds
             detailedStatusMessage = String.format("Discovery completed successfully for VNXFile: %s",
                     storageSystemId.toString());
+            // Discovering unmanaged quota directories
+            discoverUmanagedFileQuotaDirectory(profile);
+            
         } catch (Exception e) {
             if (storageSystem != null) {
                 cleanupDiscovery(storageSystem);
@@ -1606,7 +1605,7 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
         }
     }
     
-    private void discoverUmanagedFileQuotaDirectory(AccessProfile profile) {
+    private void discoverUmanagedFileQuotaDirectory(AccessProfile profile) throws Exception {
         URI storageSystemId = profile.getSystemId();
 
         StorageSystem storageSystem = _dbClient.queryObject(
@@ -1619,44 +1618,33 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
         try {
             // Retrieve all the qtree info.
             List<VNXQuotaTree> qtrees = getAllQuotaTrees(storageSystem);
-            List<VNXFileSystem> vnxFileSystems = getAllFileSystem(storageSystem);
+            //List<VNXFileSystem> vnxFileSystems = getAllFileSystem(storageSystem);
                 List<UnManagedFileQuotaDirectory> unManagedFileQuotaDirectories = new ArrayList<>();
                 List<UnManagedFileQuotaDirectory> existingUnManagedFileQuotaDirectories = new ArrayList<>();
 
-               /* for (Quota quota : quotas) {
+                for (VNXQuotaTree quotaTree : qtrees) {
                     String fsNativeId;
-                    if (quota.getVolume().startsWith(VOL_ROOT)) {
-                        fsNativeId = quota.getVolume();
-                    } else {
-                        fsNativeId = VOL_ROOT + quota.getVolume();
-                    }
 
-                    if (fsNativeId.contains(ROOT_VOL)) {
-                        _logger.info("Ignore and not discover root filesystem on NTP array");
-                        continue;
-                    }
-
-                    String fsNativeGUID = NativeGUIDGenerator.generateNativeGuid(storageSystem.getSystemType(),
-                            storageSystem.getSerialNumber(), fsNativeId);
+                    String fsUnManagedFsNativeGuid =
+                            NativeGUIDGenerator.generateNativeGuidForPreExistingFileSystem(storageSystem.getSystemType(),
+                                    storageSystem.getSerialNumber().toUpperCase(), quotaTree.getFsId() + "");
 
                     String nativeGUID = NativeGUIDGenerator.generateNativeGuidForQuotaDir(storageSystem.getSystemType(),
-                            storageSystem.getSerialNumber(), quota.getQtree(), quota.getVolume());
+                            storageSystem.getSerialNumber(), quotaTree.getName(), quotaTree.getFsId() + "");
                     
                     String nativeUnmanagedGUID = NativeGUIDGenerator.generateNativeGuidForUnManagedQuotaDir(storageSystem.getSystemType(),
-                            storageSystem.getSerialNumber(), quota.getQtree(), quota.getVolume());
+                            storageSystem.getSerialNumber(), quotaTree.getName(), quotaTree.getFsId() + "");
                     if (checkStorageQuotaDirectoryExistsInDB(nativeGUID)) {
                         continue;
                     }
 
                     UnManagedFileQuotaDirectory unManagedFileQuotaDirectory = new UnManagedFileQuotaDirectory();
                     unManagedFileQuotaDirectory.setId(URIUtil.createId(UnManagedFileQuotaDirectory.class));
-                    unManagedFileQuotaDirectory.setLabel(quota.getQtree());
+                    unManagedFileQuotaDirectory.setLabel(quotaTree.getName());
                     unManagedFileQuotaDirectory.setNativeGuid(nativeUnmanagedGUID);
-                    unManagedFileQuotaDirectory.setParentFSNativeGuid(fsNativeGUID);
-                    if("enabled".equals(qTreeNameQTreeMap.get(quota.getVolume() + quota.getQtree()).getOplocks())) {
-                        unManagedFileQuotaDirectory.setOpLock(true);
-                    }
-                    unManagedFileQuotaDirectory.setSize(Long.valueOf(quota.getDiskLimit()));
+                    unManagedFileQuotaDirectory.setParentFSNativeGuid(fsUnManagedFsNativeGuid);
+                    unManagedFileQuotaDirectory.setOpLock(false);
+                    unManagedFileQuotaDirectory.setSize(Long.valueOf(quotaTree.getSize()));
 
                     if (!checkUnManagedQuotaDirectoryExistsInDB(nativeUnmanagedGUID)) {
                         unManagedFileQuotaDirectories.add(unManagedFileQuotaDirectory);
@@ -1677,7 +1665,7 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
                             Constants.DEFAULT_PARTITION_SIZE, _dbClient,
                             UNMANAGED_FILEQUOTADIR);
                 }
-            }*/
+            
 
         } catch (Exception e) {
             if (null != storageSystem) {
@@ -1687,6 +1675,35 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
                     + storageSystemId);
             throw e;
         } 
+    }
+
+    private boolean checkUnManagedQuotaDirectoryExistsInDB(String nativeGuid)
+            throws IOException {
+        URIQueryResultList result = new URIQueryResultList();
+        _dbClient.queryByConstraint(AlternateIdConstraint.Factory
+                .getUnManagedFileQuotaDirectoryInfoNativeGUIdConstraint(nativeGuid), result);
+        if (result.iterator().hasNext()) {
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * check Storage quotadir exists in DB
+     * 
+     * @param nativeGuid
+     * @return
+     * @throws IOException
+     */
+    private boolean checkStorageQuotaDirectoryExistsInDB(String nativeGuid)
+            throws IOException {
+        URIQueryResultList result = new URIQueryResultList();
+        _dbClient.queryByConstraint(AlternateIdConstraint.Factory
+                .getQuotaDirsByNativeGuid(nativeGuid), result);
+        if (result.iterator().hasNext()) {
+            return true;
+        }
+        return false;
     }
 
     private void validateListSizeLimitAndPersist(List<UnManagedFileSystem> newUnManagedFileSystems,

@@ -39,6 +39,11 @@
         </property>
     </bean>
     
+    <bean id="vnxallquotadirsprocessor"
+          class="com.emc.storageos.volumecontroller.impl.plugins.metering.vnxfile.processor.VNXAllQuotaDirsProcessor">
+        <property name="unmarshaller" ref="unmarshaller"/>
+    </bean>
+    
     <bean id="vnxquotadirsquery"
         class="com.emc.storageos.plugins.common.domainmodel.Argument">
         <property name="creator" ref="argscreator" />

@@ -1103,13 +1103,21 @@ public class ExternalDeviceUnManagedVolumeDiscoverer {
                 invalidExportHosts.add(hostName);
                 continue;
             }
-            // check existing UnManaged export mask for host/array
+            // check existing UnManaged export mask for host/array: the mask could be discovered for volumes on previous
+            // pages (all unmanaged masks from previous discovery have been deactivated at the begging).
             UnManagedExportMask unManagedMask = getUnManagedExportMask(hostName, dbClient, storageSystem.getId());
             boolean isValid = true;
             if (unManagedMask != null) {
                 // check that existing host/array unManaged export mask has the same set of initiators and the same
                 // set of ports as new discovered hostExportInfo
-                isValid = verifyHostExports(unManagedMask.getKnownInitiatorUris(), unManagedMask.getKnownStoragePortUris(), hostExportInfo);
+                StringSet storagePortsUris = unManagedMask.getKnownStoragePortUris();
+                Set<String> storagePortsNativeIds = new HashSet<>();
+                for (String portUriString : storagePortsUris) {
+                    URI portUri = URI.create(portUriString);
+                    com.emc.storageos.db.client.model.StoragePort port = dbClient.queryObject(com.emc.storageos.db.client.model.StoragePort.class, portUri);
+                    storagePortsNativeIds.add(port.getNativeId());
+                }
+                isValid = verifyHostExports(unManagedMask.getKnownInitiatorNetworkIds(), storagePortsNativeIds, hostExportInfo);
                 if (!isValid) {
                     // invalid, we deactivate existing unmanaged mask --- make sure we do not discover invalid export
                     // masks.
@@ -1117,10 +1125,17 @@ public class ExternalDeviceUnManagedVolumeDiscoverer {
                     dbClient.updateObject(unManagedMask);
                 }
             } else {
+                // todo: why we should do this? If mask is already managed, should we simply skip it?
+                // todo: what will happen with unmanaged volumes in managed masks if we do not rediscover their masks?
+                // todo: need to test this.
+                // todo: we should not do anything for this case: discover unmanged mask as if there is no managed mask
+                // and let ingest to deal with this. Test this.
+
                 // check if managed export mask exist for host/array and verify that it has
                 // the same set of initiators and the same
                 // set of ports as new discovered hostExportInfo
                 // todo: get managed mask and if exist call verifyHostExports for its initiators/ports.
+
                 // isValid = verifyHostExports(managedMask.getKnownInitiatorUris(), managedMask.getKnownStoragePortUris(), hostExportInfo);
             }
             if (!isValid) {
@@ -1280,27 +1295,14 @@ public class ExternalDeviceUnManagedVolumeDiscoverer {
         }
 
         for (VolumeToHostExportInfo hostExportInfo : hostExportInfoList) {
-            Set<String> initiatorNetworkIdsSet = new HashSet<>();
-            Set<String> targetNativeIdsSet = new HashSet<>();
-            List<Initiator> initiatorsList = exportInfo.getInitiators();
-            List<StoragePort> targetsList = exportInfo.getTargets();
-
-            for (Initiator initiator : initiatorsList) {
-                initiatorNetworkIdsSet.add(initiator.getPort());
-            }
-            for (StoragePort port : targetsList) {
-                targetNativeIdsSet.add(port.getNativeId());
-            }
-
-            // compare with benchmark initiator and target set
-            if (!masterInitiatorNetworkIds.equals(initiatorNetworkIdsSet) || !masterTargetNativeIds.equals(targetNativeIdsSet) ) {
+            boolean isValid = verifyHostExports(masterInitiatorNetworkIds, masterTargetNativeIds, hostExportInfo);
+            if (!isValid) {
                 return null;
             }
 
             // Aggregate all volumes in one set.
             volumeNativeIds.addAll(hostExportInfo.getVolumeNativeIds());
         }
-
 
         // Create result export info
         VolumeToHostExportInfo hostExportInfo = new VolumeToHostExportInfo(hostName, new ArrayList<>(volumeNativeIds),
@@ -1312,13 +1314,33 @@ public class ExternalDeviceUnManagedVolumeDiscoverer {
     /**
      * Validates that hostExportInfo has the same set of initiators and storage ports as provided input arguments.
      * @param initiatorNetworkIds
-     * @param storagePortUris
+     * @param storagePortNativeIds
      * @param hostExportInfo
      * @return
      */
-    boolean verifyHostExports(StringSet initiatorNetworkIds, StringSet storagePortUris, VolumeToHostExportInfo hostExportInfo) {
-        // todo:
-        return true;
+    boolean verifyHostExports(Set<String> initiatorNetworkIds, Set<String> storagePortNativeIds, VolumeToHostExportInfo hostExportInfo) {
+        if (initiatorNetworkIds == null || storagePortNativeIds == null) {
+            return false;
+        }
+        boolean isValid = true;
+        Set<String> initiatorNetworkIdsSet = new HashSet<>();
+        Set<String> targetNativeIdsSet = new HashSet<>();
+        List<Initiator> initiatorsList = hostExportInfo.getInitiators();
+        List<StoragePort> targetsList = hostExportInfo.getTargets();
+
+        for (Initiator initiator : initiatorsList) {
+            initiatorNetworkIdsSet.add(initiator.getPort());
+        }
+        for (StoragePort port : targetsList) {
+            targetNativeIdsSet.add(port.getNativeId());
+        }
+
+        // compare with benchmark initiator and target set
+        if (!initiatorNetworkIds.equals(initiatorNetworkIdsSet) || !storagePortNativeIds.equals(targetNativeIdsSet) ) {
+            isValid = false;
+        }
+
+        return isValid;
     }
 
     /**

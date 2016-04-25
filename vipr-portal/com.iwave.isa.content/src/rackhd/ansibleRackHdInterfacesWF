@@ -1,0 +1,10 @@
+{
+ "friendlyName": "Get RackHd Interfaces",
+ "injectableName": "assetType.rackhd.interface",
+ "tasks": [
+  {
+   "label": "Get RackHd Interfaces",
+   "taskName": "Task.RackHd.Interfaces.Get"
+  }
+ ]
+}

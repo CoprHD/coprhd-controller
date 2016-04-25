@@ -688,7 +688,7 @@ public class BlockMirrorServiceApiImpl extends AbstractBlockServiceApiImpl<Stora
     }
 
     @Override
-    public void changeVolumeVirtualPool(URI systemURI, Volume volume, VirtualPool virtualPool,
+    public TaskList changeVolumeVirtualPool(URI systemURI, Volume volume, VirtualPool virtualPool,
             VirtualPoolChangeParam cosChangeParam,
             String taskId) throws ControllerException {
         StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, systemURI);
@@ -697,7 +697,7 @@ public class BlockMirrorServiceApiImpl extends AbstractBlockServiceApiImpl<Stora
         List<Volume> volumes = new ArrayList<Volume>();
         volumes.add(volume);
         if (checkCommonVpoolUpdates(volumes, virtualPool, taskId)) {
-            return;
+            return null;
         }
 
         if (DiscoveredDataObject.Type.vnxblock.name().equals(systemType) ||
@@ -714,20 +714,22 @@ public class BlockMirrorServiceApiImpl extends AbstractBlockServiceApiImpl<Stora
         } else {
             throw APIException.badRequests.unsupportedSystemType(systemType);
         }
+        return null;
     }
 
     @Override
-    public void changeVolumeVirtualPool(List<Volume> volumes, VirtualPool vpool,
+    public TaskList changeVolumeVirtualPool(List<Volume> volumes, VirtualPool vpool,
             VirtualPoolChangeParam vpoolChangeParam, String taskId) throws InternalException {
 
         // Check for common Vpool updates handled by generic code. It returns true if handled.
         if (checkCommonVpoolUpdates(volumes, vpool, taskId)) {
-            return;
+            return null;
         }
 
         for (Volume volume : volumes) {
             changeVolumeVirtualPool(volume.getStorageController(), volume, vpool, vpoolChangeParam, taskId);
         }
+        return null;
     }
 
     private Predicate<URI> isMirrorInactivePredicate() {

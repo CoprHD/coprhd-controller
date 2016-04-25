@@ -1050,7 +1050,7 @@ public class SRDFBlockServiceApiImpl extends AbstractBlockServiceApiImpl<SRDFSch
      * @throws InternalException
      */
     @Override
-    public void changeVolumeVirtualPool(final URI systemURI, final Volume volume,
+    public TaskList changeVolumeVirtualPool(final URI systemURI, final Volume volume,
             final VirtualPool vpool, final VirtualPoolChangeParam vpoolChangeParam, final String taskId)
             throws InternalException {
         _log.debug("Volume {} VirtualPool change.", volume.getId());
@@ -1059,7 +1059,7 @@ public class SRDFBlockServiceApiImpl extends AbstractBlockServiceApiImpl<SRDFSch
         List<Volume> volumes = new ArrayList<Volume>();
         volumes.add(volume);
         if (checkCommonVpoolUpdates(volumes, vpool, taskId)) {
-            return;
+            return null;
         }
 
         // Check if the volume is normal without CG but new vPool with CG enabled.
@@ -1085,15 +1085,16 @@ public class SRDFBlockServiceApiImpl extends AbstractBlockServiceApiImpl<SRDFSch
             // not vmax volume
             throw APIException.badRequests.srdfVolumeVPoolChangeNotSupported(volume.getId());
         }
+        return null;
     }
 
     @Override
-    public void changeVolumeVirtualPool(List<Volume> volumes, VirtualPool vpool,
+    public TaskList changeVolumeVirtualPool(List<Volume> volumes, VirtualPool vpool,
             VirtualPoolChangeParam vpoolChangeParam, String taskId) throws InternalException {
 
         // Check for common Vpool updates handled by generic code. It returns true if handled.
         if (checkCommonVpoolUpdates(volumes, vpool, taskId)) {
-            return;
+            return null;
         }
 
 
@@ -1134,6 +1135,7 @@ public class SRDFBlockServiceApiImpl extends AbstractBlockServiceApiImpl<SRDFSch
                 BlockOrchestrationController.BLOCK_ORCHESTRATION_DEVICE);
         controller.createVolumes(volumeDescriptorsList, taskId);
         _log.info("Change virutal pool steps has been successfully inititated");
+        return null;
     }
 
     /**

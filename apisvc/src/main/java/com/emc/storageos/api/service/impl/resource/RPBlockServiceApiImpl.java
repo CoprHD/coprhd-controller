@@ -2132,7 +2132,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
      * @throws InternalException
      */
     @Override
-    public void changeVolumeVirtualPool(URI systemURI, Volume volume, VirtualPool newVpool,
+    public TaskList changeVolumeVirtualPool(URI systemURI, Volume volume, VirtualPool newVpool,
             VirtualPoolChangeParam vpoolChangeParam, String taskId) throws InternalException {
         _log.info("Volume {} VirtualPool change.", volume.getId());
 
@@ -2141,7 +2141,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
 
         // Check for common Vpool updates handled by generic code. It returns true if handled.
         if (checkCommonVpoolUpdates(volumes, newVpool, taskId)) {
-            return;
+            return null;
         }
 
         // Get the storage system. This vmax, or vnxblock storage system.
@@ -2171,10 +2171,11 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                 upgradeToProtectedVolume(volume, newVpool, vpoolChangeParam, taskId);
             }
         }
+        return null;
     }
 
     @Override
-    public void changeVolumeVirtualPool(List<Volume> volumes, VirtualPool vpool,
+    public TaskList changeVolumeVirtualPool(List<Volume> volumes, VirtualPool vpool,
             VirtualPoolChangeParam vpoolChangeParam, String taskId) throws InternalException {
         // We support multi-volume removal of protection, but still not
         // multi-volume add protection. Check the first volume in the
@@ -2193,6 +2194,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                                 + "Please select one volume at a time.");
             }
         }
+        return null;
     }
 
     /**

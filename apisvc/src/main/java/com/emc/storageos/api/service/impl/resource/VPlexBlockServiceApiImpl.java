@@ -25,6 +25,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 import java.util.regex.Pattern;
 
 import org.eclipse.jetty.util.log.Log;
@@ -1186,23 +1187,25 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
      * @throws InternalException
      */
     @Override
-    public void changeVolumeVirtualPool(URI systemURI, Volume volume, VirtualPool vpool,
+    public TaskList changeVolumeVirtualPool(URI systemURI, Volume volume, VirtualPool vpool,
             VirtualPoolChangeParam vpoolChangeParam, String taskId) throws InternalException {
         VirtualPool volumeVirtualPool = _dbClient.queryObject(VirtualPool.class, volume.getVirtualPool());
         s_logger.info("Volume {} VirtualPool change.", volume.getId());
+        TaskList taskList = new TaskList();
 
         String transferSpeed = null;
         ArrayList<Volume> volumes = new ArrayList<Volume>();
         volumes.add(volume);
 
         if (checkCommonVpoolUpdates(volumes, vpool, taskId)) {
-            return;
+            return taskList;
         }
 
         // Get the storage system. This could be a vplex, vmax, or
         // vnxblock, or other block storage system.
         StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, systemURI);
         String systemType = storageSystem.getSystemType();
+       
         if (!DiscoveredDataObject.Type.vplex.name().equals(systemType)) {
             // If it is not a VPLEX volume, then this must be an import to VPLEX.
             s_logger.info("High availability VirtualPool change for array volume, importing volume VPLEX: " + volume.getLabel());
@@ -1220,8 +1223,14 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
                         VirtualPool targetVpool = _dbClient.queryObject(VirtualPool.class, settings.getVirtualPool());
                         if (NullColumnValueGetter.isNotNullValue(targetVpool.getHighAvailability()) 
                                 && targetVpool.getHighAvailability().equals(VirtualPool.HighAvailabilityType.vplex_local.name())) {
+                            String subTaskId = UUID.randomUUID().toString();
                             s_logger.info("Importing SRDF target to VPLEX " + targetVolume.getLabel());
-                            importVirtualVolume(targetVolume.getStorageController(), targetVolume, targetVpool, taskId);
+                            Operation op = new Operation();
+                            op.setResourceType(ResourceOperationTypeEnum.CHANGE_BLOCK_VOLUME_VPOOL);
+                            op.setDescription("Change vpool operation");
+                            op = _dbClient.createTaskOpStatus(Volume.class, targetVolume.getId(), subTaskId, op);
+                            taskList.addTask(toTask(targetVolume, subTaskId, op));
+                            importVirtualVolume(targetVolume.getStorageController(), targetVolume, targetVpool, subTaskId);
                         }
                     }
                 }
@@ -1261,18 +1270,20 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
                 orchestrateVPoolChanges(Arrays.asList(volume), descriptors, taskId);
             }
         }
+        return taskList;
     }
 
     /**
      * {@inheritDoc}
      */
     @Override
-    public void changeVolumeVirtualPool(List<Volume> volumes, VirtualPool vpool,
+    public TaskList changeVolumeVirtualPool(List<Volume> volumes, VirtualPool vpool,
             VirtualPoolChangeParam vpoolChangeParam, String taskId) throws InternalException {
+        TaskList taskList = new TaskList();
 
         // Check for common Vpool updates handled by generic code. It returns true if handled.
         if (checkCommonVpoolUpdates(volumes, vpool, taskId)) {
-            return;
+            return null;
         }
 
         // Check if any of the volumes passed is a VPLEX volume
@@ -1359,20 +1370,29 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
                 }
                 if (!volumesNotInRG.isEmpty()) {
                     for (Volume volume : volumesNotInRG) {
-                        changeVolumeVirtualPool(volume.getStorageController(), volume, vpool,
-                                vpoolChangeParam, taskId);
+                        TaskList taskList2 = changeVolumeVirtualPool(volume.getStorageController(), 
+                                volume, vpool, vpoolChangeParam, taskId);
+                        if (taskList2 != null && taskList2.getTaskList().isEmpty()) {
+                            taskList.getTaskList().addAll(taskList2.getTaskList());
+                            
+                        }
                     }
                 }
-                return;
+                return taskList;
             }
         }
 
         // Otherwise proceed as we normally would performing
         // individual vpool changes for each volume.
         for (Volume volume : volumes) {
-            changeVolumeVirtualPool(volume.getStorageController(), volume, vpool,
-                    vpoolChangeParam, taskId);
+            TaskList taskList2 = changeVolumeVirtualPool(volume.getStorageController(), 
+                    volume, vpool, vpoolChangeParam, taskId);
+            if (taskList2 != null && !taskList2.getTaskList().isEmpty()) {
+                taskList.getTaskList().addAll(taskList2.getTaskList());
+                
+            }
         }
+        return taskList;
     }
 
     /**

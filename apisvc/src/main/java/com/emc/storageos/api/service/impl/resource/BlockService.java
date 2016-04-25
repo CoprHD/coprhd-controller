@@ -3356,8 +3356,11 @@ public class BlockService extends TaskResourceService {
                     volumes.get(0), vPool);
             _log.info("Got block service implementation for VirtualPool change request");
             VirtualPoolChangeParam oldParam = convertNewVirtualPoolChangeParamToOldParam(param);
-            blockServiceAPI.changeVolumeVirtualPool(volumes, vPool,
+            TaskList taskList2 = blockServiceAPI.changeVolumeVirtualPool(volumes, vPool,
                     oldParam, taskId);
+            if (taskList2 != null && !taskList2.getTaskList().isEmpty()) {
+                taskList.getTaskList().addAll(taskList2.getTaskList());
+            }
             _log.info("Executed VirtualPool change for given volumes.");
         } catch (Exception e) {
             String errorMsg = String.format(

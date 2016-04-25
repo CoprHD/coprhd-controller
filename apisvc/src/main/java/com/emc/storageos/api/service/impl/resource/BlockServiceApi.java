@@ -243,10 +243,11 @@ public interface BlockServiceApi {
      * @param targetVpool A reference to the new vpool.
      * @param vpoolChangeParam vpool change request
      * @param taskId The task identifier.
+     * @return TaskList Optional list of additional generated tasks for UI (can be null if not used)
      * 
      * @throws InternalException
      */
-    public void changeVolumeVirtualPool(URI systemURI, Volume volume,
+    public TaskList changeVolumeVirtualPool(URI systemURI, Volume volume,
             VirtualPool targetVpool, VirtualPoolChangeParam vpoolChangeParam, String taskId)
             throws InternalException;
 
@@ -258,9 +259,10 @@ public interface BlockServiceApi {
      * @param targetVpool A reference to the new vpool.
      * @param vpoolChangeParam vpool change request
      * @param taskId The task identifier.
+     * @return TaskList Optional list of additional generated tasks for UI (can be null if not used)
      * @throws InternalException the internal exception
      */
-    public void changeVolumeVirtualPool(List<Volume> volumes,
+    public TaskList changeVolumeVirtualPool(List<Volume> volumes,
             VirtualPool targetVpool, VirtualPoolChangeParam vpoolChangeParam, String taskId)
             throws InternalException;
 

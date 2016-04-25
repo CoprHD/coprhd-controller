@@ -676,12 +676,12 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
      * @throws InternalException
      */
     @Override
-    public void changeVolumeVirtualPool(URI systemURI, Volume volume, VirtualPool vpool,
+    public TaskList changeVolumeVirtualPool(URI systemURI, Volume volume, VirtualPool vpool,
             VirtualPoolChangeParam vpoolChangeParam, String taskId) throws InternalException {
         List<Volume> volumes = new ArrayList<Volume>();
         volumes.add(volume);
         if (checkCommonVpoolUpdates(volumes, vpool, taskId)) {
-            return;
+            return null;
         }
         throw APIException.methodNotAllowed.notSupported();
     }
@@ -692,14 +692,14 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
      * @throws InternalException
      */
     @Override
-    public void changeVolumeVirtualPool(List<Volume> volumes, VirtualPool vpool,
+    public TaskList changeVolumeVirtualPool(List<Volume> volumes, VirtualPool vpool,
             VirtualPoolChangeParam vpoolChangeParam, String taskId) throws InternalException {
         /**
          * 'Auto-tiering policy change' operation supports multiple volume processing.
          * At present, other operations only support single volume processing.
          */
         if (checkCommonVpoolUpdates(volumes, vpool, taskId)) {
-            return;
+            return null;
         }
         throw APIException.methodNotAllowed.notSupported();
     }

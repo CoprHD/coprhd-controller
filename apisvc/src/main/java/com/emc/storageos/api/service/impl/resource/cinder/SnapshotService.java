@@ -250,36 +250,34 @@ public class SnapshotService extends TaskResourceService {
                 readOnly, taskId);
 
         SnapshotCreateResponse snapCreateResp = new SnapshotCreateResponse();
-
         for (TaskResourceRep rep : response.getTaskList()) {
             URI snapshotUri = rep.getResource().getId();
             BlockSnapshot snap = _dbClient.queryObject(BlockSnapshot.class,
                     snapshotUri);
-
+            
             if (snap != null) {
-                if (snapshotDescription != null
-                        && (snapshotDescription.length() > 2)) {
-                    StringMap extensions = snap.getExtensions();
-                    if (extensions == null)
-                        extensions = new StringMap();
-                    extensions.put("display_description", snapshotDescription);
-                    extensions.put("taskid", rep.getId().toString());
-                    _log.debug("Create snapshot : stored description");
-                    snap.setExtensions(extensions);
-                }
-
+                StringMap extensions = snap.getExtensions();
+                if (extensions == null)
+                	extensions = new StringMap();
+                extensions.put("display_description", (snapshotDescription == null) ? "" : snapshotDescription);
+                extensions.put("taskid", rep.getId().toString());
+                _log.debug("Create snapshot : stored description");
+                snap.setExtensions(extensions);
+              
                 ScopedLabelSet tagSet = new ScopedLabelSet();
                 snap.setTag(tagSet);
 
                 String[] splits = snapshotUri.toString().split(":");
                 String tagName = splits[3];
                 
+
                 //this check will verify whether  retrieved data is not corrupted
                 if (tagName == null || tagName.isEmpty()
                         || tagName.length() < 2) {
                     throw APIException.badRequests
                             .parameterTooShortOrEmpty("Tag", 2);
                 }
+
                 Volume parentVol = _permissionsHelper.getObjectById(
                         snap.getParent(), Volume.class);
                 URI tenantOwner = parentVol.getTenant().getURI();
@@ -546,7 +544,7 @@ public class SnapshotService extends TaskResourceService {
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{snapshot_id}")
     @CheckPermission(roles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN }, acls = { ACL.ANY })
-    public void deleteSnapshot(
+    public Response deleteSnapshot(
             @PathParam("tenant_id") String openstack_tenant_id,
             @PathParam("snapshot_id") String snapshot_id) {
 
@@ -554,7 +552,11 @@ public class SnapshotService extends TaskResourceService {
 
         BlockSnapshot snap = findSnapshot(snapshot_id, openstack_tenant_id);
         if (snap == null) {
-            throw APIException.badRequests.parameterIsNotValid(snapshot_id);
+            _log.error("Not Found : Invalid volume snapshot id");
+            return CinderApiUtils.createErrorResponse(404, "Not Found : Invalid volume snapshot id");
+        }else if(snap.hasConsistencyGroup()){
+            _log.error("Not Found : Snapshot belongs to a consistency group");
+            return CinderApiUtils.createErrorResponse(400, "Invalid snapshot: Snapshot belongs to consistency group");
         }            
 
         URI snapshotURI = snap.getId();
@@ -570,7 +572,7 @@ public class SnapshotService extends TaskResourceService {
             op.setResourceType(ResourceOperationTypeEnum.DELETE_VOLUME_SNAPSHOT);
             _dbClient.createTaskOpStatus(BlockSnapshot.class, snap.getId(), task, op);
             response.getTaskList().add(toTask(snap, task, op));
-            return;
+            return Response.status(202).build();
         }
 
         StorageSystem device = _dbClient.queryObject(StorageSystem.class, snap.getStorageController());
@@ -628,7 +630,7 @@ public class SnapshotService extends TaskResourceService {
                 AuditLogManager.AUDITOP_BEGIN, snapshot_id, snap.getLabel(),
                 snap.getParent().getName(), device.getId().toString());
 
-        return;
+        return Response.status(202).build();
     }
 
     /**
@@ -726,7 +728,6 @@ public class SnapshotService extends TaskResourceService {
             {
                 taskInProgressId = snapshot.getExtensions().get("taskid");
                 //Task acttask = TaskUtils.findTaskForRequestId(_dbClient, snapshot.getId(), taskInProgressId);
-
                 for (Task tsk : taskLst) {
                     if (tsk.getId().toString().equals(taskInProgressId)) {
                         if (tsk.getStatus().equals("ready"))

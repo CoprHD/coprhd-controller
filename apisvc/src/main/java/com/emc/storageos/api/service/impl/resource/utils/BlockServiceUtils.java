@@ -47,6 +47,7 @@ import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.Task;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.Volume;
+import com.emc.storageos.db.client.model.VolumeGroup;
 import com.emc.storageos.db.client.model.VplexMirror;
 import com.emc.storageos.db.client.model.util.TaskUtils;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
@@ -235,7 +236,10 @@ public class BlockServiceUtils {
      *
      * Fox XtremIO creating/deleting volume in/from CG with existing CG is supported.
      * 
-     * For VNX, creating/deleting volume in/from CG with existing group relationship is supported if volume is not part of an array replication group
+     * For VNX, creating/deleting volume in/from CG with existing group relationship is supported if volume is not part of an array
+     * replication group
+     * 
+     * For Application support, allow volumes to be added/removed to/from CG for VPLEX when the backend volume is VMAX/VNX/XtremIO
      *
      * @param cg BlockConsistencyGroup
      * @param volume Volume part of the CG
@@ -262,24 +266,24 @@ public class BlockServiceUtils {
                 return true;
             }
 
-            // Allow volumes to be added/removed to/from CG for VPLEX and RP
+            // Application support: Allow volumes to be added/removed to/from CG for VPLEX and RP
             // when the backend volume is VMAX/VNX/XtremIO
-            if (storage.deviceIsType(Type.vplex)) {
-                // TODO
+            if (volume.getApplication(dbClient) != null && storage.deviceIsType(Type.vplex)) {
                 // Adding new VPLEX volume to CG which is part to Application, has to be done in 2 steps.
                 // Step-1: Create volume - backend volume will not be added to RG.
                 // Step-2: Add to Application - backend volume will be added to RG and clone will be created for it.
-                // Limitation: Only backend clone will be created, VPLEX virtual clone will not be created.
                 if (volume.getAssociatedVolumes() != null && !volume.getAssociatedVolumes().isEmpty()) {
                     for (String associatedVolumeId : volume.getAssociatedVolumes()) {
                         Volume associatedVolume = dbClient.queryObject(Volume.class,
                                 URI.create(associatedVolumeId));
-                        StorageSystem backendSystem = dbClient.queryObject(StorageSystem.class,
-                                associatedVolume.getStorageController());
-                        if (backendSystem == null ||
-                                !(backendSystem.deviceIsType(Type.vmax) || backendSystem.deviceIsType(Type.vnxblock)
-                                || backendSystem.deviceIsType(Type.xtremio))) {
-                            return false;   // one of the backend volume does not meet the criteria
+                        if (associatedVolume != null) {
+                            StorageSystem backendSystem = dbClient.queryObject(StorageSystem.class,
+                                    associatedVolume.getStorageController());
+                            if (backendSystem == null ||
+                                    !(backendSystem.deviceIsType(Type.vmax) || backendSystem.deviceIsType(Type.vnxblock)
+                                    || backendSystem.deviceIsType(Type.xtremio))) {
+                                return false;   // one of the backend volume does not meet the criteria
+                            }
                         }
                     }
                     // all backend volumes have met the criteria
@@ -687,4 +691,56 @@ public class BlockServiceUtils {
         return snapshot;
     }
 
+    /**
+     * validate volume with no replica
+     *
+     * @param volume
+     * @param application
+     * @param dbClient
+     */
+    public static void validateVolumeNoReplica(Volume volume, VolumeGroup application, DbClient dbClient) {
+        // check if the volume has any replica
+        // no need to check backing volumes for vplex virtual volumes because for full copies
+        // there will be a virtual volume for the clone
+        boolean hasReplica = volume.getFullCopies() != null && !volume.getFullCopies().isEmpty() ||
+                    volume.getMirrors() != null && !volume.getMirrors().isEmpty();
+
+        // check for snaps only if no full copies
+        if (!hasReplica) {
+            Volume snapSource = volume;
+            if (volume.isVPlexVolume(dbClient)) {
+                snapSource = VPlexUtil.getVPLEXBackendVolume(volume, true, dbClient);
+                if (snapSource == null || snapSource.getInactive()) {
+                    return;
+                }
+            }
+
+            hasReplica = ControllerUtils.checkIfVolumeHasSnapshot(snapSource, dbClient);
+
+            // check for VMAX3 individual session and group session
+            if (!hasReplica && snapSource.isVmax3Volume(dbClient)) {
+                hasReplica = ControllerUtils.checkIfVolumeHasSnapshotSession(snapSource.getId(), dbClient);
+
+                String rgName = snapSource.getReplicationGroupInstance();
+                if (!hasReplica && NullColumnValueGetter.isNotNullValue(rgName)) {
+                    URI cgURI = snapSource.getConsistencyGroup();
+                    List<BlockSnapshotSession> sessionsList = CustomQueryUtility.queryActiveResourcesByConstraint(dbClient,
+                            BlockSnapshotSession.class,
+                            ContainmentConstraint.Factory.getBlockSnapshotSessionByConsistencyGroup(cgURI));
+
+                    for (BlockSnapshotSession session : sessionsList) {
+                        if (rgName.equals(session.getReplicationGroupInstance())) {
+                            hasReplica = true;
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+
+        if (hasReplica) {
+            throw APIException.badRequests.volumeGroupCantBeUpdated(application.getLabel(),
+                    String.format("the volume %s has replica. please remove all replicas from the volume", volume.getLabel()));
+        }
+    }
 }

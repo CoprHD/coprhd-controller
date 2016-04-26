@@ -4,6 +4,7 @@
  */
 package com.emc.storageos.api.service.impl.resource.blockingestorchestration.cg;
 
+import java.net.URI;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
@@ -107,10 +108,22 @@ public class BlockVplexCGIngestDecorator extends BlockCGIngestDecorator {
             // the virtual volume's replicationGroupInstance reference.  This does not impact the backing volumes.
             if (blockObj instanceof Volume) {
                 Volume volume = (Volume) blockObj;
-                if (volume.getAssociatedVolumes() != null) {                             
-                    logger.info(String.format("Removing replication group instance information from volume %s", volume.getLabel()));
-                    volume.setReplicationGroupInstance(NullColumnValueGetter.getNullStr());
-                    requestContext.addDataObjectToUpdate(volume, unManagedVolume);
+                logger.info(String.format("Removing replication group instance information from volume %s", volume.getLabel()));
+                volume.setReplicationGroupInstance(NullColumnValueGetter.getNullStr());
+                requestContext.addDataObjectToUpdate(volume, unManagedVolume);
+
+                if (volume.getAssociatedVolumes() != null) {
+                    // setting BlockConsistencyGroup on the backend volumes
+                    for (String volumeUriStr : volume.getAssociatedVolumes()) {
+                        BlockObject backendVolume = requestContext.findDataObjectByType(Volume.class, URI.create(volumeUriStr), true);
+                        if (backendVolume != null) {
+                            logger.info("Setting BlockConsistencyGroup {} on VPLEX backend Volume {}",
+                                    cg.forDisplay(), backendVolume.forDisplay());
+                            backendVolume.setConsistencyGroup(cg.getId());
+                            // this volume is already set for creation by its parent volume context
+                            // so there's no need to add it into an updated objects collection at this point
+                        }
+                    }
                 }
             }
             

@@ -261,7 +261,9 @@ public class StoragePortRestRep extends VirtualArrayResourceRestRep {
     /**
      * Whether or not this port is registered with ViPR. A
      * port must be registered before it can be managed by
-     * ViPR.
+     * ViPR. Valid values:
+     * 	REGISTERED
+     * 	UNREGISTERED
      * 
      */
     @XmlElement(name = "registration_status")

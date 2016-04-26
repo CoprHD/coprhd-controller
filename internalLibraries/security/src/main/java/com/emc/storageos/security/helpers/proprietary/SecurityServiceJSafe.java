@@ -8,6 +8,7 @@ import com.emc.storageos.security.helpers.SecurityService;
 import com.emc.storageos.security.keystore.impl.KeyCertificateAlgorithmValuesHolder;
 import com.emc.storageos.security.keystore.impl.KeyCertificatePairGenerator;
 import com.emc.storageos.security.ssh.PEMUtil;
+import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.rsa.jsafe.JSAFE_PrivateKey;
 import com.rsa.jsafe.provider.JsafeJCE;
 import com.rsa.jsafe.provider.SensitiveData;
@@ -29,13 +30,17 @@ public class SecurityServiceJSafe implements SecurityService {
      * @throws Exception
      */
     @Override
-    public byte[] loadPrivateKeyFromPEMString(String pemKey) throws Exception {
+    public byte[] loadPrivateKeyFromPEMString(String pemKey) {
+        
+        try {
+            if (PEMUtil.isPKCS8Key(pemKey)) {
+                return PEMUtil.decodePKCS8PrivateKey(pemKey);
+            }
 
-        if (PEMUtil.isPKCS8Key(pemKey)) {
-            return PEMUtil.decodePKCS8PrivateKey(pemKey);
+            return decodePKCS1PrivateKey(pemKey);
+        } catch (Exception e) {
+            throw APIException.badRequests.failedToLoadKeyFromString(e);
         }
-
-        return decodePKCS1PrivateKey(pemKey);
     }
 
     private byte[] decodePKCS1PrivateKey(String pemKey) throws Exception {

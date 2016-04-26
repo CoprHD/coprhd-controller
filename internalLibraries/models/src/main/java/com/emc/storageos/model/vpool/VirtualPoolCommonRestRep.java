@@ -33,9 +33,9 @@ public class VirtualPoolCommonRestRep extends DataObjectRestRep {
     /**
      * Virtual pool storage resource type.
      * Valid values:
-     *  block
-     *  file
-     *  object
+     *  block = Volume
+     *  file = File System
+     *  object = Object Store
      * 
      */
     @XmlElement
@@ -102,11 +102,11 @@ public class VirtualPoolCommonRestRep extends DataObjectRestRep {
      * The supported system type for the virtual pool. 
      * Valid values:
      *  NONE
-     *  vnxblock
-     *  vmax
-     *  vnxfile
-     *  isilon
-     *  netapp
+     *  vnxblock (Block)
+     *  vmax (Block)
+     *  vnxfile (File)
+     *  isilon (File)
+     *  netapp (File)
      */
     @XmlElement(name = "system_type")
     public String getSystemType() {
@@ -119,6 +119,7 @@ public class VirtualPoolCommonRestRep extends DataObjectRestRep {
 
     /**
      * @deprecated use getMaxPaths from BlockVirtualPoolRestRep instead of getNumPaths
+     * @see BlockVirtualPoolRestRep#getMaxPaths()
      *      TODO: Remove deprecated API calls in next major release
      */
     @Deprecated
@@ -129,6 +130,7 @@ public class VirtualPoolCommonRestRep extends DataObjectRestRep {
 
     /**
      * @deprecated use setMaxPaths from BlockVirtualPoolRestRep instead of setNumPaths
+     * @see BlockVirtualPoolRestRep#setMaxPaths(Integer)
      *      TODO: Remove deprecated API calls in next major release
      */
     @Deprecated

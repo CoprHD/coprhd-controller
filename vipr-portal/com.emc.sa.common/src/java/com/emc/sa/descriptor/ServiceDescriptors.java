@@ -8,7 +8,7 @@ import java.util.Collection;
 import java.util.Locale;
 
 /**
- * Parses a ServiceDescriptor descriptor into it's Java representation
+ * Parses a ServiceDescriptor descriptor into its Java representation
  */
 public interface ServiceDescriptors {
     /**

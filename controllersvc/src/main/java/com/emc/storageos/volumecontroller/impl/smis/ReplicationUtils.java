@@ -4,6 +4,7 @@
  */
 package com.emc.storageos.volumecontroller.impl.smis;
 
+import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.CP_INSTANCE_ID;
 import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.CP_REPLICATION_GROUP;
 import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.CREATE_GROUP;
 import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.CREATE_NEW_TARGET_VALUE;
@@ -15,6 +16,7 @@ import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.GET_DEF
 import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.MIRROR_REPLICATION_TYPE;
 import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.RETURN_ELEMENTS_TO_STORAGE_POOL;
 import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.SNAPSHOT_REPLICATION_TYPE;
+import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.SYMM_VIRTUAL_PROVISIONING_POOL;
 import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.TARGET_ELEMENT_SUPPLIER;
 import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.VP_SNAP_VALUE;
 import static java.text.MessageFormat.format;
@@ -23,6 +25,7 @@ import static javax.cim.CIMDataType.UINT16_T;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 
@@ -32,6 +35,7 @@ import javax.cim.CIMInstance;
 import javax.cim.CIMObjectPath;
 import javax.cim.CIMProperty;
 import javax.cim.UnsignedInteger16;
+import javax.wbem.CloseableIterator;
 import javax.wbem.WBEMException;
 
 import org.slf4j.Logger;
@@ -42,14 +46,18 @@ import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.BlockMirror;
 import com.emc.storageos.db.client.model.BlockObject;
+import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.Type;
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.Volume;
+import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.volumecontroller.TaskCompleter;
+import com.emc.storageos.volumecontroller.impl.ControllerUtils;
+import com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator;
 import com.emc.storageos.volumecontroller.impl.smis.SmisConstants.SYNC_TYPE;
 import com.emc.storageos.volumecontroller.impl.smis.job.SmisCreateVmaxCGTargetVolumesJob;
 import com.emc.storageos.volumecontroller.impl.smis.job.SmisDeleteVmaxCGTargetVolumesJob;
@@ -311,6 +319,114 @@ public class ReplicationUtils {
     }
 
     /**
+     * Gets the target storage pool for VPSnap creation.
+     * 
+     * All VPSnap targets created for a volume should belong to a single pool.
+     * Hence, specify a target pool during snap creation. This is applicable for VMAX2 Thin volumes.
+     * 
+     * Target pool id to be specified in following cases:
+     * 1. first time snapshot creation for a volume or to a group of volumes.
+     * 2. while scaling CG by adding new volume,
+     * 3. subsequent snapshot creations.
+     *
+     * @param storage the storage
+     * @param sourceGroupName the source group name
+     * @param targetGroupName the target group name
+     * @param dbClient the db client
+     * @param helper the helper
+     * @param cimPath the cim path
+     * @return the target pool for vp snap creation
+     */
+    public static CIMObjectPath getTargetPoolForVPSnapCreation(StorageSystem storage, String sourceGroupName, String targetGroupName,
+            boolean thinProvisioning, DbClient dbClient, SmisCommandHelper helper, CIMObjectPathFactory cimPath) {
+        _log.info("Get target storage pool for VPSnap creation. Source group name {}, target group name {}",
+                sourceGroupName, targetGroupName);
+        /**
+         * If existing snapshot group is provided, query the SMI-S Provider to get the snapshot's storage pool information (case-2).
+         * Else if source group is provided:
+         * -if snapshot exists, get storage pool of snapshot (case-3).
+         * -else take the storage pool of one of the source volume (case-1).
+         */
+        BlockSnapshot existingTarget = null;
+        Volume existingVolume = null;
+        CIMObjectPath targetpoolPath = null;
+        CloseableIterator<CIMObjectPath> poolPathItr = null;
+        try {
+            if (Type.vmax.toString().equals(storage.getSystemType()) && !storage.checkIfVmax3() && thinProvisioning) {
+                if (targetGroupName != null) {
+                    existingTarget = getExistingTargetForTargetReplicationGroup(storage, targetGroupName, dbClient);
+                } else if (sourceGroupName != null) {
+                    List<Volume> rgVolumes = ControllerUtils.getVolumesPartOfRG(storage.getId(), sourceGroupName, dbClient);
+                    Set<String> targetGroupNames = ControllerUtils.getSnapshotReplicationGroupNames(rgVolumes, dbClient);
+                    if (!targetGroupNames.isEmpty()) {
+                        targetGroupName = targetGroupNames.iterator().next();
+                        _log.info("Taking target pool from one of existing snapshot group {}", targetGroupName);
+                        existingTarget = getExistingTargetForTargetReplicationGroup(storage, targetGroupName, dbClient);
+                    } else if (!rgVolumes.isEmpty()) {
+                        existingVolume = rgVolumes.get(0);
+                    }
+                }
+
+                if (existingTarget != null) {
+                    CIMObjectPath targetDevicePath = cimPath.getBlockObjectPath(storage, existingTarget);
+                    poolPathItr = helper.getAssociatorNames(storage, targetDevicePath, null,
+                            SYMM_VIRTUAL_PROVISIONING_POOL, null, null);
+
+                    // verify that a storage pool exists in DB for this snapshot's pool
+                    if (poolPathItr != null && poolPathItr.hasNext()) {
+                        CIMObjectPath poolPath = poolPathItr.next();
+                        _log.debug("storage pool path {}", poolPath);
+                        String nativeGuid = NativeGUIDGenerator.generateNativeGuidForPool(poolPath);
+                        List<StoragePool> poolInDB = CustomQueryUtility.getActiveStoragePoolByNativeGuid(dbClient, nativeGuid);
+                        if (poolInDB != null && !poolInDB.isEmpty()) {
+                            StoragePool storagePool = poolInDB.get(0);
+                            _log.info("Storage Pool for the snapshot's pool exists in database. Snapshot: {}, storage pool: {}",
+                                    existingTarget.getNativeGuid(), storagePool.getNativeGuid());
+                            targetpoolPath = helper.getPoolPath(storage, storagePool);
+                        }
+                    }
+                } else if (existingVolume != null) {
+                    StoragePool storagePool = dbClient.queryObject(StoragePool.class, existingVolume.getPool());
+                    targetpoolPath = helper.getPoolPath(storage, storagePool);
+                } else {
+                    _log.warn("Neither existing snapshot nor volume found to get target storage pool");
+                }
+            }
+        } catch (Exception ex) {
+            _log.error("Exception while trying to get target storage pool path for VPSnap creation", ex);
+        } finally {
+            if (poolPathItr != null) {
+                poolPathItr.close();
+            }
+        }
+        return targetpoolPath;
+    }
+
+    /**
+     * Gets the existing target for target replication group.
+     *
+     * @param storage the storage
+     * @param targetGroupName the target group name
+     * @param dbClient the db client
+     * @return the existing target for target replication group
+     */
+    private static BlockSnapshot getExistingTargetForTargetReplicationGroup(StorageSystem storage, String targetGroupName,
+            DbClient dbClient) {
+        List<BlockSnapshot> existingSnapshots = ControllerUtils.
+                getSnapshotsPartOfReplicationGroup(targetGroupName, storage.getId(), dbClient);
+        Iterator<BlockSnapshot> itr = existingSnapshots.iterator();
+        while (itr.hasNext()) {
+            BlockSnapshot snapshot = itr.next();
+            // skip the new snapshot to be created
+            if (snapshot != null && snapshot.getNativeId() != null) {
+                _log.info("considering snapshot {}", snapshot.getLabel());
+                return snapshot;
+            }
+        }
+        return null;
+    }
+
+    /**
      * Checks that the replication group is accessible from this storage system, using its currently active
      * storage provider.
      * 
@@ -357,7 +473,8 @@ public class ReplicationUtils {
     public static void deleteTargetDeviceGroup(final StorageSystem storage, final CIMObjectPath targetGroupPath,
             final DbClient dbClient, final SmisCommandHelper helper, final CIMObjectPathFactory cimPath) {
 
-        _log.info(format("Removing target device group {0} from storage system {1}", targetGroupPath, storage.getId()));
+        _log.info(format("Removing target device group {0} from storage system {1}",
+                targetGroupPath.toString(), storage.getId()));
 
         try {
             CIMObjectPath replicationSvc = cimPath.getControllerReplicationSvcPath(storage);
@@ -513,7 +630,8 @@ public class ReplicationUtils {
     public static void deleteTargetDevices(final StorageSystem storageSystem, final String[] deviceIds, final TaskCompleter taskCompleter,
             final DbClient dbClient, final SmisCommandHelper helper, final CIMObjectPathFactory cimPath) {
 
-        _log.info(format("Removing target devices {0} from storage system {1}", deviceIds, storageSystem.getId()));
+        _log.info(format("Removing target devices {0} from storage system {1}",
+                Joiner.on(',').join(deviceIds), storageSystem.getId()));
 
         try {
             if (storageSystem.checkIfVmax3()) {

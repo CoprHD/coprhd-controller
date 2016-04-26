@@ -1,0 +1,13 @@
+
+<p>Your Standby site ${siteName} has been degraded by Active site at ${degradeTime}. This could be caused by following reasons (including but not limited to):<br>
+
+    <br>1) Network connection between Standby site and Active site was lost;
+    <br>2) Majority of nodes in Standby site are down.
+    <br>3) Active or Standby site has experienced an outage or majority of nodes and not all nodes came back online (its controller status is "Degraded").
+    
+<p>Please verify network connectivity between Active site and Standby Site(s), make sure Active and Standby Site's controller status is "STABLE".
+
+<p>NOTE: If Active site or Standby site temporarily experienced an outage of majority of nodes, the Standby site can only return to synchronized state with Active when 
+ALL nodes of Active and Standby site(s) are back and their controller status is "STABLE".
+
+<p>Thank you,<br>ViPR

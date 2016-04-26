@@ -30,10 +30,13 @@ import com.emc.storageos.model.dr.SiteAddParam;
 import com.emc.storageos.model.dr.SiteErrorResponse;
 import com.emc.storageos.model.dr.SiteIdListParam;
 import com.emc.storageos.model.dr.SiteUpdateParam;
+import com.emc.storageos.svcs.errorhandling.resources.APIException;
+import com.emc.vipr.client.exceptions.ServiceErrorException;
 import com.emc.storageos.coordinator.client.model.SiteState;
 import com.emc.storageos.model.dr.SiteActive;
 import com.emc.storageos.model.dr.SiteRestRep;
 import com.google.common.collect.Lists;
+import com.sun.jersey.api.client.ClientResponse;
 
 import controllers.Common;
 import controllers.deadbolt.Restrict;
@@ -90,12 +93,20 @@ public class DisasterRecovery extends ViprResourceController {
                 flash.error(MessagesUtils.get(UNKNOWN, uuid));
                 list(true);
             }
-
         }
 
         SiteIdListParam param = new SiteIdListParam();
         param.getIds().addAll(uuids);
-        DisasterRecoveryUtils.pauseStandby(param);
+        try {
+            DisasterRecoveryUtils.pauseStandby(param);
+        } catch (ServiceErrorException ex) {
+            flash.error(ex.getDetailedMessage());
+            list(true);
+        } catch (Exception ex) {
+            flash.error(ex.getMessage());
+            list(true);
+        }
+
         flash.success(MessagesUtils.get(PAUSED_SUCCESS));
         list(true);
     }
@@ -280,7 +291,11 @@ public class DisasterRecovery extends ViprResourceController {
     public static boolean isActiveSite() {
         return DisasterRecoveryUtils.isActiveSite();
     }
-    
+
+    public static boolean isLocalsiteRemoved() {
+        return DisasterRecoveryUtils.isLocalSiteRemoved();
+    }
+
     public static boolean isMultiDrSite() {
         return DisasterRecoveryUtils.isMultiDrSite();
     }
@@ -363,11 +378,21 @@ public class DisasterRecovery extends ViprResourceController {
         render(isError, uuid, disasterSiteDetails);
     }
 
+    public static boolean hasPausedSite() {
+        return DisasterRecoveryUtils.hasPausedSite();
+    }
+    
+    public static boolean hasActiveDegradedSite() {
+        return DisasterRecoveryUtils.hasActiveDegradedSite();
+    }
+    
     private static void itemsJson(List<String> uuids) {
         List<SiteRestRep> standbySites = new ArrayList<SiteRestRep>();
         for (String uuid : uuids) {
             SiteRestRep standbySite = DisasterRecoveryUtils.getSite(uuid);
-            standbySites.add(standbySite);
+            if (standbySite != null) {
+                standbySites.add(standbySite);
+            }
         }
         performItemsJson(standbySites, new JsonItemOperation());
     }

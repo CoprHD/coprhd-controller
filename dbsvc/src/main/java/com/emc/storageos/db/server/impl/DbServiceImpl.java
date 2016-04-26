@@ -5,41 +5,43 @@
 
 package com.emc.storageos.db.server.impl;
 
+import static com.emc.storageos.services.util.FileUtils.getLastModified;
+import static com.emc.storageos.services.util.FileUtils.readValueFromFile;
+
 import java.io.File;
-import java.io.IOException;
 import java.io.FileOutputStream;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
-import com.emc.storageos.db.client.impl.DbClientContext;
-import com.emc.storageos.db.client.impl.DbClientImpl;
-import com.emc.storageos.db.task.TaskScrubberExecutor;
-import org.apache.cassandra.config.Config;
-import org.apache.cassandra.config.YamlConfigurationLoader;
-import org.apache.cassandra.exceptions.ConfigurationException;
+import org.apache.cassandra.config.DatabaseDescriptor;
 import org.apache.cassandra.service.CassandraDaemon;
 import org.apache.cassandra.service.StorageService;
 import org.apache.cassandra.service.StorageServiceMBean;
-import org.apache.cassandra.config.DatabaseDescriptor;
-import org.apache.cassandra.config.EncryptionOptions.ServerEncryptionOptions.InternodeEncryption;
-import org.apache.commons.lang.StringUtils;
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.lang.StringUtils;
+import org.apache.curator.framework.recipes.locks.InterProcessLock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.emc.storageos.coordinator.client.beacon.ServiceBeacon;
 import com.emc.storageos.coordinator.client.beacon.impl.ServiceBeaconImpl;
+import com.emc.storageos.coordinator.client.model.Constants;
+import com.emc.storageos.coordinator.client.model.DbOfflineEventInfo;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.coordinator.client.service.impl.CoordinatorClientInetAddressMap;
 import com.emc.storageos.coordinator.common.Configuration;
 import com.emc.storageos.coordinator.common.Service;
 import com.emc.storageos.coordinator.common.impl.ConfigurationImpl;
-import com.emc.storageos.coordinator.client.model.Constants;
-import com.emc.storageos.coordinator.client.model.DbOfflineEventInfo;
+import com.emc.storageos.db.client.impl.DbClientContext;
+import com.emc.storageos.db.client.impl.DbClientImpl;
 import com.emc.storageos.db.common.DbConfigConstants;
 import com.emc.storageos.db.common.DbServiceStatusChecker;
 import com.emc.storageos.db.gc.GarbageCollectionExecutor;
@@ -50,11 +52,11 @@ import com.emc.storageos.db.server.impl.StartupMode.GeodbRestoreMode;
 import com.emc.storageos.db.server.impl.StartupMode.HibernateMode;
 import com.emc.storageos.db.server.impl.StartupMode.NormalMode;
 import com.emc.storageos.db.server.impl.StartupMode.ObsoletePeersCleanupMode;
-import com.emc.storageos.services.util.*;
-import static com.emc.storageos.services.util.FileUtils.readValueFromFile;
-import static com.emc.storageos.services.util.FileUtils.getLastModified;
-
-import org.apache.curator.framework.recipes.locks.InterProcessLock;
+import com.emc.storageos.db.task.TaskScrubberExecutor;
+import com.emc.storageos.services.util.AlertsLogger;
+import com.emc.storageos.services.util.JmxServerWrapper;
+import com.emc.storageos.services.util.NamedScheduledThreadPoolExecutor;
+import com.emc.storageos.services.util.TimeUtils;
 
 /**
  * Default database service implementation
@@ -97,6 +99,8 @@ public class DbServiceImpl implements DbService {
     private boolean disableScheduledDbRepair = false;
     private Boolean backCompatPreYoda = false;
     
+    @Autowired
+    private DbCompactWorker compactWorker;
     @Autowired
     private DbManager dbMgr;
 
@@ -294,13 +298,39 @@ public class DbServiceImpl implements DbService {
     }
 
     private void removeStaleServiceConfiguration() {
+        boolean isGeoDBSvc = isGeoDbsvc();
+        boolean resetAutoBootFlag = false;
+
         String configKind = _coordinator.getDbConfigPath(_serviceInfo.getName());
         List<Configuration> configs = _coordinator.queryAllConfiguration(_coordinator.getSiteId(), configKind);
+
         for (Configuration config : configs) {
             if (isStaleConfiguration(config)) {
-                _coordinator.removeServiceConfiguration(_coordinator.getSiteId(), config);
-                _log.info("Remove stale config, id: {}", config.getId());
+                boolean autoboot = Boolean.parseBoolean(config.getConfig(DbConfigConstants.AUTOBOOT));
+                String configId = config.getId();
+
+                if (isGeoDBSvc && !autoboot && (configId.equals("geodb-4") || configId.equals("geodb-5"))) {
+                    // for geodbsvc, if restore with the backup of 5 nodes to 3 nodes and the backup is made
+                    // on the cluster that the 'autoboot=false' is set on vipr4 or vipr5
+                    // we should set the autoboot=false on the current node or no node with autoboot=false
+
+                    // TODO:This is a temporary/safest solution in Yoda, we'll provide a better soltuion post Yoda
+                    resetAutoBootFlag = true;
+                }
+
+                if (isStaleConfiguration(config)) {
+                    _coordinator.removeServiceConfiguration(_coordinator.getSiteId(), config);
+                    _log.info("Remove stale db config, id: {}", config.getId());
+                }
+
             }
+        }
+
+        if (resetAutoBootFlag) {
+            _log.info("set autoboot flag to false on {}", _serviceInfo.getId());
+            Configuration config = _coordinator.queryConfiguration(_coordinator.getSiteId(), configKind, _serviceInfo.getId());
+            config.setConfig(DbConfigConstants.AUTOBOOT, Boolean.FALSE.toString());
+            _coordinator.persistServiceConfiguration(_coordinator.getSiteId(), config);
         }
     }
 
@@ -550,11 +580,6 @@ public class DbServiceImpl implements DbService {
         StartupMode mode = null;
 
         try {
-            if (_schemaUtil.isStandby()) {
-                // wait for standby site leaves ADDING state before first initialization
-                _schemaUtil.checkSiteAddingOnStandby();
-            }
-
             // we use this lock to discourage more than one node bootstrapping / joining at the same time
             // Cassandra can handle this but it's generally not recommended to make changes to schema concurrently
             lock = getLock(getSchemaLockName());
@@ -625,7 +650,10 @@ public class DbServiceImpl implements DbService {
         _dbClient.start();
 
         if (_schemaUtil.isStandby()) {
-            _schemaUtil.rebuildDataOnStandby();
+            String localDataRevision = getLocalDataRevision();
+            if (localDataRevision != null) {
+                _schemaUtil.checkDataRevision(localDataRevision);
+            } 
         }
         
         // Setup the vdc information, so that login enabled before migration
@@ -819,6 +847,15 @@ public class DbServiceImpl implements DbService {
             }
         }
         startBackgroundDetectorTask();
+        startBackgroundCompactTask();
+        
+    }
+    
+    private void startBackgroundCompactTask() {
+        if (this.compactWorker != null) {
+            // compactWorker is null in JUnit environment
+            this.compactWorker.start();
+        }
     }
 
     /**
@@ -888,15 +925,6 @@ public class DbServiceImpl implements DbService {
 
     @Override
     public void stop() {
-        stop(false);
-    }
-
-    @Override
-    public void stopWithDecommission() {
-        stop(true);
-    }
-
-    private void stop(Boolean decommission) {
         if (_log.isInfoEnabled()) {
             _log.info("Stopping DB service...");
         }
@@ -905,15 +933,7 @@ public class DbServiceImpl implements DbService {
             _gcExecutor.stop();
         }
 
-        if (decommission && cassandraInitialized) {
-            flushCassandra();
-        }
-
         _exe.shutdownNow();
-
-        if (cassandraInitialized) {
-            _service.stop();
-        }
 
         if (_jmxServer != null) {
             _jmxServer.stop();
@@ -922,28 +942,6 @@ public class DbServiceImpl implements DbService {
         if (_log.isInfoEnabled()) {
             _log.info("DB service stopped...");
         }
-    }
-
-    /**
-     * Shut down gossip/thrift and then drain
-     */
-    private void flushCassandra() {
-        StorageServiceMBean svc = StorageService.instance;
-
-        if (svc.isInitialized()) {
-            svc.stopGossiping();
-        }
-
-        if (svc.isRPCServerRunning()) {
-            svc.stopRPCServer();
-        }
-
-        try {
-            svc.drain();
-        } catch (Exception e) {
-            _log.error("Fail to drain:", e);
-        }
-
     }
 
     /**
@@ -956,5 +954,28 @@ public class DbServiceImpl implements DbService {
                     isGeoDbsvc() ? "geodbsvc" : "dbsvc",sourceIp);
             _log.error("Node recovery will fail in 30 minutes if {} not back to normal state.", sourceIp);
         }
+    }
+    
+    /**
+     * Read local data revision number. Db data directory is a symbol link to a data revision directory as the following
+     *   /data/db/1 -> /data/db/1459567039514.0  
+     *   Here data version number is 1459567039514 and 0 is incremental snapshot number. It is always 0 for db revisions
+     *                              
+     * @return
+     * @throws IOException
+     */
+    private String getLocalDataRevision() {
+        Path dbDataDir = Paths.get(dbDir, "1");
+        try {
+            if (Files.isSymbolicLink(dbDataDir)) {
+                Path symDir = Files.readSymbolicLink(dbDataDir);
+                String versionName = symDir.toFile().getName();
+                int i =  versionName.lastIndexOf(".");
+                return versionName.substring(0, i);
+            }
+        } catch (Exception ex) {
+            _log.error("Retrieve local data revision error", ex);
+        }
+        return null;
     }
 }

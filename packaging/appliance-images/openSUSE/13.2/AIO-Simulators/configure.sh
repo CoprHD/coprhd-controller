@@ -7,10 +7,13 @@
 function updateOVF
 {
   OVF=$2
+  VMDK=$3
+  vmdkSize=$(ls -l $VMDK | cut -d ' ' -f5)
 
   cat ${OVF} | head -n -2 > ${OVF}.tmp
   sed -i "s|<VirtualHardwareSection>|<VirtualHardwareSection ovf:transport=\"iso\" ovf:required=\"false\">|g" ${OVF}.tmp
   sed -i "s|<vssd:VirtualSystemType>virtualbox-[0-9a-z.]\{1,\}</vssd:VirtualSystemType>|<vssd:VirtualSystemType>vmx-07</vssd:VirtualSystemType>|g" ${OVF}.tmp
+  sed -i "s/\(\.* ovf:id=\"file1\"\)/\1 ovf:size=\"$vmdkSize\"/" ${OVF}.tmp
   cat >> ${OVF}.tmp <<EOF
     <ProductSection ovf:class="vm" ovf:required="false">
       <Info>VM specific properties</Info>

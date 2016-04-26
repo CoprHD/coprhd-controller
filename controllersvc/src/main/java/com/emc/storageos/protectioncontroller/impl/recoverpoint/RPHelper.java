@@ -1995,6 +1995,18 @@ public class RPHelper {
             if (cgVolume.getPersonality() == null) {
                 continue;
             }
+            
+            if (RPHelper.isMetroPointVolume(dbClient, cgVolume) && cgVolume.getPersonality().equalsIgnoreCase(PersonalityTypes.SOURCE.toString()) && productionCopy) {
+                // If the volume is MetroPoint, check for varrayId in the associated volumes since their RP Copy names will be different.
+                if (cgVolume.getAssociatedVolumes() != null) {
+                    for (String assocVolumeIdStr : cgVolume.getAssociatedVolumes()) {
+                        Volume associatedVolume = dbClient.queryObject(Volume.class, URI.create(assocVolumeIdStr));
+                        if (URIUtil.identical(associatedVolume.getVirtualArray(), varrayId)) {
+                            return associatedVolume.getRpCopyName();
+                        }
+                    }
+                }
+            }           
 
             if (!URIUtil.identical(cgVolume.getVirtualArray(), varrayId)) {
                 continue;

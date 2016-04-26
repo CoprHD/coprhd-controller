@@ -27,7 +27,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
-import javax.cim.CIMObjectPath;
 import javax.xml.bind.DataBindingException;
 
 import org.apache.commons.lang.StringUtils;
@@ -4223,7 +4222,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
             // For SRDF, we need to create target consistency group and
             // add target volumes to that target consistency group.
             if (srdfCG) {
-                createTargetConsistencyGroup(cg, addVolumesList, workflow, waitFor);
+                createTargetConsistencyGroup(cg, addVolumesList, workflow, waitFor, task);
             }
             // Finish up and execute the plan.
             _log.info("Executing workflow plan {}", UPDATE_CONSISTENCY_GROUP_STEP_GROUP);
@@ -4391,7 +4390,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
      *            the wait for
      */
     private void createTargetConsistencyGroup(BlockConsistencyGroup sourceCG,
-            List<URI> addVolumesList, Workflow workflow, String waitFor) {
+            List<URI> addVolumesList, Workflow workflow, String waitFor, String task) {
         Volume sourceVolume = _dbClient.queryObject(Volume.class, addVolumesList.get(0));
         VirtualPool vPool = _dbClient.queryObject(VirtualPool.class, sourceVolume.getVirtualPool());
         VirtualArray protectionVirtualArray = null;
@@ -4431,12 +4430,13 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
 
         // Get SRDF Target volume list for the source volume list
         List<URI> addTargetVolumesList = getSRDFTargetVolumes(addVolumesList);
+
         if (!addTargetVolumesList.isEmpty()) {
             Volume targetVolume = _dbClient.queryObject(Volume.class, addTargetVolumesList.get(0));
             StorageSystem targetSystem = _dbClient.queryObject(StorageSystem.class, targetVolume.getStorageController());
+            String groupName = ControllerUtils.generateReplicationGroupName(targetSystem, targetCG, null, _dbClient);
             if (createGroup || !targetCG.created()) {
                 _log.info("Creating target Consistency group on Array.");
-                String groupName = ControllerUtils.generateReplicationGroupName(targetSystem, targetCG, null, _dbClient);
                 waitFor = workflow.createStep(UPDATE_CONSISTENCY_GROUP_STEP_GROUP,
                         String.format("Creating consistency group %s", targetCG.getId()),
                         waitFor, targetSystem.getId(), targetSystem.getSystemType(),
@@ -4446,12 +4446,17 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
             }
 
             _log.info("Adding target volumes to target Consistency group.");
-            workflow.createStep(UPDATE_CONSISTENCY_GROUP_STEP_GROUP,
+            waitFor = workflow.createStep(UPDATE_CONSISTENCY_GROUP_STEP_GROUP,
                     String.format("Updating consistency group %s", targetCG.getId()),
                     waitFor, targetSystem.getId(), targetSystem.getSystemType(),
                     this.getClass(),
                     addToConsistencyGroupMethod(targetSystem.getId(), targetCG.getId(), null, addTargetVolumesList),
                     rollbackMethodNullMethod(), null);
+
+            // call ReplicaDeviceController
+            waitFor = _replicaDeviceController.addStepsForAddingSessionsToCG(workflow, waitFor, targetCG.getId(), addTargetVolumesList,
+                    groupName, task);
+
         }
     }
 

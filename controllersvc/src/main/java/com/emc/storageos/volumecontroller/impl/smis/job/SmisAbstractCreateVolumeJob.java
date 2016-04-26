@@ -373,9 +373,10 @@ public abstract class SmisAbstractCreateVolumeJob extends SmisReplicaCreationJob
             String rgName = null;
             for (URI volumeId : volumesIds) {
                 Volume volume = dbClient.queryObject(Volume.class, volumeId);
-                rgName = volume.getReplicationGroupInstance();
+               
                 if (!RPHelper.isAssociatedToRpVplexType(volume, dbClient, PersonalityTypes.TARGET, PersonalityTypes.METADATA) &&
-                		NullColumnValueGetter.isNotNullValue(rgName)) {
+                		NullColumnValueGetter.isNotNullValue(volume.getReplicationGroupInstance())) {
+                    rgName = volume.getReplicationGroupInstance();
                     volumesToAddToCG.add(volume);
                 } else {
                     _log.info(String.format(

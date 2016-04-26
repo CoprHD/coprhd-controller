@@ -31,6 +31,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.support.ClassPathXmlApplicationContext;
 
+import org.apache.cassandra.service.StorageService;
+import org.apache.cassandra.service.StorageServiceMBean;
+
 import com.emc.storageos.coordinator.client.model.Constants;
 import com.emc.storageos.coordinator.client.model.DbVersionInfo;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
@@ -60,6 +63,7 @@ import com.emc.storageos.security.geo.GeoDependencyChecker;
 import com.emc.storageos.security.password.PasswordUtils;
 import com.emc.storageos.services.util.JmxServerWrapper;
 import com.emc.storageos.services.util.LoggingUtils;
+
 
 /**
  * Dbsvc unit test base
@@ -149,6 +153,15 @@ public class DbsvcTestBase {
 
         isDbStarted = false;
         _dbsvc.stop();
+        StorageServiceMBean svc = StorageService.instance;
+
+        if (svc.isInitialized()) {
+            svc.stopGossiping();
+        }
+
+        if (svc.isRPCServerRunning()) {
+            svc.stopRPCServer();
+        }
 
         Schema.instance.clear();
 

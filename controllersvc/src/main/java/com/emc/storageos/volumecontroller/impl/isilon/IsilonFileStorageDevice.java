@@ -872,57 +872,27 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
             String tenantOrg = null;
             VirtualNAS vNAS = args.getvNAS();
             String vNASPath = null;
-            String customPath = "";
+            String customPath = getCustomPath(args);
+            String viprSystemNameSpaceDir = getSystemAccessZoneNamespace();
+            String mountPath = null;
             if (vNAS != null) {
                 vNASPath = vNAS.getBaseDirPath();
                 _log.info("vNAS base directory path: {}", vNASPath);
             }
 
-            if (args.getProject() != null) {
-                projName = args.getProjectNameWithNoSpecialCharacters();
-            }
-            if (args.getTenantOrg() != null) {
-                tenantOrg = args.getTenantNameWithNoSpecialCharacters();
-            }
-
             String usePhysicalNASForProvisioning = customConfigHandler.getComputedCustomConfigValue(
                     CustomConfigConstants.USE_PHYSICAL_NAS_FOR_PROVISIONING, "isilon", null);
             _log.info("Use System access zone to provision filesystem? {}", usePhysicalNASForProvisioning);
-            customPath = getCustomPath(args);
-            String mountPath = null;
-            // Update the mount path as required
-            if (vNASPath != null && !vNASPath.trim().isEmpty()) {
-                if (projName != null && tenantOrg != null) {
-                    mountPath = String.format("%1$s/%2$s/%3$s/%4$s/%5$s", vNASPath,
-                            args.getVPoolNameWithNoSpecialCharacters(), args.getTenantNameWithNoSpecialCharacters(),
-                            args.getProjectNameWithNoSpecialCharacters(), args.getFsName());
-                } else {
-                    mountPath = String.format("%1$s/%2$s/%3$s", vNASPath, args.getVPoolNameWithNoSpecialCharacters(),
-                            args.getFsName());
-                }
-            } else if (Boolean.valueOf(usePhysicalNASForProvisioning)) {
-                if (projName != null && tenantOrg != null) {
-                    mountPath = String.format("%1$s/%2$s/%3$s/%4$s/%5$s/%6$s", IFS_ROOT, VIPR_DIR,
-                            args.getVPoolNameWithNoSpecialCharacters(), args.getTenantNameWithNoSpecialCharacters(),
-                            args.getProjectNameWithNoSpecialCharacters(), args.getFsName());
-                } else {
-                    mountPath = String.format("%1$s/%2$s/%3$s/%4$s", IFS_ROOT, VIPR_DIR,
-                            args.getVPoolNameWithNoSpecialCharacters(), args.getFsName());
-                }
+            if (Boolean.valueOf(usePhysicalNASForProvisioning)) {
+
+                mountPath = IFS_ROOT + FW_SLASH + viprSystemNameSpaceDir + FW_SLASH + customPath + FW_SLASH + args.getFsName();
             } else {
-                _log.error(
-                        "No suitable access zone found for provisioning. Provisioning on System access zone is disabled");
-                throw DeviceControllerException.exceptions.createFileSystemOnPhysicalNASDisabled();
+
+                mountPath = IFS_ROOT + FW_SLASH + vNASPath + FW_SLASH + customPath + FW_SLASH + args.getFsName();
             }
 
             _log.info("Mount path to mount the Isilon File System {}", mountPath);
             args.setFsMountPath(mountPath);
-            if (!customPath.isEmpty()) {
-
-                args.setFsMountPath(customPath);
-
-            }
-
             args.setFsNativeGuid(args.getFsMountPath());
             args.setFsNativeId(args.getFsMountPath());
             args.setFsPath(args.getFsMountPath());
@@ -2624,15 +2594,36 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
     private String getCustomPath(FileDeviceInputOutput args) {
 
         String path = "";
+
+        IsilonApi isi = getIsilonDevice(args.getStorageSystem());
+        String clusterName = isi.getClusterConfig().getName();
         DataSource dataSource = dataSourceFactory.createIsilonFileSystemPathDataSource(args.getProject(), args.getVPool(),
                 args.getTenantOrg(), args.getStorageSystem());
+        dataSource.addProperty(CustomConfigConstants.ISILON_CLUSTER_NAME, clusterName);
         String configPath = customConfigHandler.getComputedCustomConfigValue(CustomConfigConstants.ISILON_PATH_CUSTOMIZATION, "isilon",
                 dataSource);
         _log.info("The isilon user defined custom path is  {}", configPath);
         if (configPath != null && !configPath.isEmpty()) {
-            path = IFS_ROOT + FW_SLASH + VIPR_DIR + FW_SLASH + configPath + FW_SLASH + args.getFsName();
+            path = args.getPathWithoutSpecialCharacters(configPath);
         }
         // call the method to remove special charecter
-        return args.getPathWithoutSpecialCharacters(path);
+        return path;
+    }
+
+    /**
+     * Gets the File System Custom path value set
+     * in the Configuration Service View
+     * 
+     * @return
+     */
+
+    private String getSystemAccessZoneNamespace() {
+
+        String namespace = "";
+
+        namespace = customConfigHandler.getComputedCustomConfigValue(CustomConfigConstants.ISILON_SYSTEM_ACCESS_ZONE_NAMESPACE, "isilon",
+                null);
+
+        return namespace;
     }
 }

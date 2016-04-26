@@ -919,8 +919,6 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
             String clusterReleaseVersion = clusterConfig.getOnefs_version_info().getReleaseVersionNumber();
             storageSystem.setFirmwareVersion(clusterReleaseVersion);
 
-            String clusterName = clusterConfig.getName();
-            storageSystem.setSystemName(clusterName);
             String minimumSupportedVersion = VersionChecker.getMinimumSupportedVersion(Type.valueOf(storageSystem.getSystemType()));
             _log.info("Verifying version details : Minimum Supported Version {} - Discovered Cluster Version {}", minimumSupportedVersion,
                     clusterReleaseVersion);

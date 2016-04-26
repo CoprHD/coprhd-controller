@@ -57,6 +57,8 @@ public interface CustomConfigConstants {
 
     public String VPLEX_STORAGE_VIEW_NAME = "VPlexStorageViewName";
 
+    public String ISILON_CLUSTER_NAME = "cluster_name";
+
     public String HDS_HOST_STORAGE_DOMAIN_NAME_MASK_NAME = "HDSHostStorageDomainName";
     public String HDS_HOST_STORAGE_DOMAIN_NICKNAME_MASK_NAME = "HDSHostStorageDomainNickName";
     public String HDS_HOST_STORAGE_HOST_MODE_OPTION = "HDSHostModeOption";
@@ -77,5 +79,6 @@ public interface CustomConfigConstants {
     public String USE_PHYSICAL_NAS_FOR_PROVISIONING = "NasUsePhysicalNASForProvisioning";
     public String SHARE_VNAS_WITH_MULTIPLE_PROJECTS = "NasShareVNASWithMultipleProjects";
     public String ISILON_PATH_CUSTOMIZATION = "IsilonPathCustomization";
+    public String ISILON_SYSTEM_ACCESS_ZONE_NAMESPACE = "IsilonSystemAccessZoneNameSpace";
 
 }

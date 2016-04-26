@@ -74,8 +74,6 @@
 
         <entry key="Scanner-ceph" value="discovery-ceph-context.xml" />
         <entry key="Discovery-ceph-all" value="discovery-ceph-context.xml" />
-        <entry key="Discovery-ceph-unmanaged_volumes" value="discovery-ceph-context.xml" />
-        <entry key="Metering-ceph" value="discovery-ceph-context.xml" />
 
         <!-- in seconds -->
         <!-- how often the job should be scheduled automatically -->

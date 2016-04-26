@@ -19,6 +19,7 @@ import java.util.concurrent.TimeUnit;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 
 import com.emc.storageos.customconfigcontroller.CustomConfigConstants;
 import com.emc.storageos.customconfigcontroller.DataSource;
@@ -95,8 +96,9 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
     private HashMap<String, String> configinfo;
 
     private DbClient _dbClient;
-
+    @Autowired
     private CustomConfigHandler customConfigHandler;
+    @Autowired
     protected DataSourceFactory dataSourceFactory;
 
     private FileMirrorOperations mirrorOperations;
@@ -2628,9 +2630,9 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                 dataSource);
         _log.info("The isilon user defined custom path is  {}", configPath);
         if (configPath != null && !configPath.isEmpty()) {
-            path = IFS_ROOT + VIPR_DIR + FW_SLASH + configPath + args.getFsName();
+            path = IFS_ROOT + FW_SLASH + VIPR_DIR + FW_SLASH + configPath + FW_SLASH + args.getFsName();
         }
         // call the method to remove special charecter
-        return path;
+        return args.getPathWithoutSpecialCharacters(path);
     }
 }

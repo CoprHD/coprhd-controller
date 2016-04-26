@@ -41,6 +41,8 @@ public class DiscoveredSystemObject extends DiscoveredDataObject {
     private Long _nextMeteringRunTime = 0L;
 
     private Long _successMeteringTime = 0L;
+    //  Name of the array or cluster
+    private String _systemName = "";
 
     /**
      * Bourne supports Registered and UnRegistered Elements.
@@ -60,6 +62,16 @@ public class DiscoveredSystemObject extends DiscoveredDataObject {
     public void setSystemType(String systemType) {
         _systemType = systemType;
         setChanged("systemType");
+    }
+
+    @Name("systemName")
+    public String getSystemName() {
+        return _systemName;
+    }
+
+    public void setSystemName(String systemName) {
+        _systemName = systemName;
+        setChanged("systemName");
     }
 
     @EnumType(CompatibilityStatus.class)

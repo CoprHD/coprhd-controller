@@ -919,6 +919,8 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
             String clusterReleaseVersion = clusterConfig.getOnefs_version_info().getReleaseVersionNumber();
             storageSystem.setFirmwareVersion(clusterReleaseVersion);
 
+            String clusterName = clusterConfig.getName();
+            storageSystem.setSystemName(clusterName);
             String minimumSupportedVersion = VersionChecker.getMinimumSupportedVersion(Type.valueOf(storageSystem.getSystemType()));
             _log.info("Verifying version details : Minimum Supported Version {} - Discovered Cluster Version {}", minimumSupportedVersion,
                     clusterReleaseVersion);
@@ -1813,7 +1815,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
 
     private HashMap<String, HashSet<Integer>> discoverAllExports(StorageSystem storageSystem,
             final List<IsilonAccessZone> isilonAccessZones)
-                    throws IsilonCollectionException {
+            throws IsilonCollectionException {
 
         // Discover All FileSystem
         HashMap<String, HashSet<Integer>> allExports = new HashMap<String, HashSet<Integer>>();
@@ -2054,7 +2056,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
             UnManagedFileSystem unManagedFileSystem,
             String unManagedFileSystemNativeGuid, StorageSystem storageSystem,
             StoragePool pool, NASServer nasServer, FileShare fileSystem)
-                    throws IOException, IsilonCollectionException {
+            throws IOException, IsilonCollectionException {
 
         if (null == unManagedFileSystem) {
             unManagedFileSystem = new UnManagedFileSystem();

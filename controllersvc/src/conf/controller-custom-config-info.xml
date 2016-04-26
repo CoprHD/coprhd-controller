@@ -868,7 +868,7 @@
         </property>
         <property name="defaultValues">
             <map>
-                <entry key="isilon" value="{project_name}"/>                    
+                <entry key="isilon" value="{vpool_name}/{tenant_name}/{project_name}"/>                    
             </map>
         </property>
     </bean>
@@ -1168,11 +1168,11 @@
         <property name="propertyName" value="label"/>
         <property name="sample" value="clusterABC"/>
     </bean> 
-    
+     
     <bean id="isilonClusterName" class="com.emc.storageos.customconfigcontroller.DataSourceVariable">
-        <property name="sourceClass" value="com.emc.storageos.db.client.model.Cluster"/>
+        <property name="sourceClass" value="com.emc.storageos.db.client.model.StorageSystem"/>
         <property name="displayName" value="isilon_cluster_name"/>
-        <property name="propertyName" value="label"/>
+        <property name="propertyName" value="systemName"/>
         <property name="sample" value="clusterABC"/>
     </bean> 
         <bean id="tenantName" class="com.emc.storageos.customconfigcontroller.DataSourceVariable">

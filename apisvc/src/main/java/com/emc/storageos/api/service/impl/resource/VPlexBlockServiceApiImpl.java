@@ -449,10 +449,14 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
         URI nullPoolURI = NullColumnValueGetter.getNullURI();
         vPoolCapabilities.put(VirtualPoolCapabilityValuesWrapper.AUTO_TIER__POLICY_NAME, null);
         for (int i = 0; i < vPoolCapabilities.getResourceCount(); i++) {
-            String volumeLabelBuilt = AbstractBlockServiceApiImpl.generateDefaultVolumeLabel(volumeLabel, i,
+            // Compute the volume label based on the label of the underlying volume
+            String volumeLabelBuilt = null;
+            Volume associatedVolume = _dbClient.queryObject(Volume.class, varrayVolumeURIs[0][i]);
+            if (associatedVolume != null) {
+                volumeLabelBuilt = generateLabelFromAssociatedVolume(volumeLabel, associatedVolume);
+            } else {
+                volumeLabelBuilt = AbstractBlockServiceApiImpl.generateDefaultVolumeLabel(volumeLabel, i,
                     vPoolCapabilities.getResourceCount());
-            if (srdfCopy) {
-                volumeLabelBuilt = volumeLabelBuilt + "-target-" + vArray.getLabel();
             }
             s_logger.info("Volume label is {}", volumeLabelBuilt);
 
@@ -3709,11 +3713,12 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
             boolean srdfTarget = (childRecommendation instanceof SRDFCopyRecommendation);
             boolean srdfSource = (childRecommendation instanceof SRDFRecommendation);
             if (srdfTarget) {
-                newVolumeLabel = generateVolumeLabel(volumeLabel+"-target", varrayCount, 0, 0);
+                newVolumeLabel = newVolumeLabel+"-target";
             } else if (srdfSource) {
-                newVolumeLabel = newVolumeLabel+"-source";
             } else {
                 // nothing special about these volumes, hide them in the vplex project
+                // We can't use the vplexProject for SRDF volumes as they determine their RDF group
+                // grom the project.
                 project = vplexProject;
             }
             
@@ -4129,5 +4134,24 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
         }
 
         return cg;
+    }
+    
+    /**
+     * The underlying layers may generate volume names in a different ordering than we do so 
+     * make sure that the volume names match the underlying volume names.
+     * @param assocVolume
+     * @return
+     */
+    private String generateLabelFromAssociatedVolume(String baseName, Volume assocVolume) {
+        final int baseNameLen = baseName.length();
+        // The associated volume will have -0 or -1 after the basename which should be skipped
+        String suffix = assocVolume.getLabel().substring(baseNameLen + 2);
+        StringBuilder builder = new StringBuilder();
+        builder.append(baseName);
+        // Add on appropriate suffix
+        suffix = suffix.replaceAll("-source", "");
+        builder.append(suffix);
+        s_logger.info("generateLabelFromAssociatedVolume: " + builder.toString());
+        return builder.toString();
     }
 }

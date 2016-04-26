@@ -1,6 +1,8 @@
 package com.emc.storageos.driver.driversimulator;
 
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -42,6 +44,29 @@ public class StorageDriverSimulator extends AbstractStorageDriver implements Blo
     private static Integer portIndex = 0;
     private static Map<String, Integer> systemNameToPortIndexName = new HashMap<>();
 
+    // map for array to host to volume export info data;
+    // key: array native id
+    // value: map where key is host name and value is volume export info for this host
+    private static Map<String, Map<String, VolumeToHostExportInfo>> arrayToHostToVolumeExportInfoMap = new HashMap<>();
+    // defines which volume page is exported to which host
+    private static Map<Integer, String> pageToHostMap;
+    static
+    {
+        pageToHostMap = new HashMap<Integer, String>();
+        pageToHostMap.put(0, "10.20.30.40");
+        pageToHostMap.put(1, "10.20.30.50");
+        pageToHostMap.put(2, "10.20.30.60");
+    }
+
+    private static Map<String, List<String>> hostToInitiatorPortIdMap;
+    static
+    {
+        // each host with two initiators
+        hostToInitiatorPortIdMap = new HashMap<String, List<String>>();
+        hostToInitiatorPortIdMap.put(pageToHostMap.get(0), new ArrayList<String>(Arrays.asList("50:06:01:61:36:68:08:81", "50:06:01:61:36:68:08:82")));
+        hostToInitiatorPortIdMap.put(pageToHostMap.get(1), new ArrayList<String>(Arrays.asList("50:06:01:61:36:68:09:81", "50:06:01:61:36:68:09:82")));
+        hostToInitiatorPortIdMap.put(pageToHostMap.get(2), new ArrayList<String>(Arrays.asList("50:06:01:61:36:68:10:81", "50:06:01:61:36:68:10:82")));
+    }
 
 //    public StorageDriverSimulator(Registry driverRegistry, LockManager lockManager) {
 //        super(driverRegistry, lockManager);
@@ -180,16 +205,42 @@ public class StorageDriverSimulator extends AbstractStorageDriver implements Blo
     public DriverTask discoverStoragePorts(StorageSystem storageSystem, List<StoragePort> storagePorts) {
         _log.info("Discovery of storage ports for storage system {} .", storageSystem.getNativeId());
 
-        // get port index
-      //  Map<String, List<String>> portIndexes = driverRegistry.getDriverAttributesForKey("simulatordriver","portIndexes");
-        // get index
-      //  List<String> indexList = portIndexes.get(storageSystem.getNativeId());
-
-        Integer index = systemNameToPortIndexName.get(storageSystem.getNativeId());
-        if(index == null) {
-            index = ++portIndex;
-            systemNameToPortIndexName.put(storageSystem.getNativeId(), index);
+        int index = 0;
+        // Get "portIndexes" attribute map
+        Map<String, List<String>> portIndexes = driverRegistry.getDriverAttributesForKey("simulatordriver", "portIndexes");
+        if (portIndexes != null) {
+            List<String>  indexes = portIndexes.get(storageSystem.getNativeId());
+            if (indexes != null) {
+                index = Integer.parseInt(indexes.get(0));
+                _log.info("Storage ports index for storage system {} is {} .", storageSystem.getNativeId(), index);
+            }
         }
+
+        if (index == 0) {
+            // no index for this system in the registry
+            // get the last used index and increment by 1 to generate an index
+            if (portIndexes != null) {
+                List<String> indexes = portIndexes.get("lastIndex");
+                index = Integer.parseInt(indexes.get(0)) +1;
+            } else {
+                index ++;
+            }
+            // set this index for the system in registry
+            driverRegistry.addDriverAttributeForKey("simulatordriver", "portIndexes", storageSystem.getNativeId(),
+                    Collections.singletonList(String.valueOf(index)));
+            driverRegistry.addDriverAttributeForKey("simulatordriver", "portIndexes", "lastIndex",
+                    Collections.singletonList(String.valueOf(index)));
+            _log.info("Storage ports index for storage system {} is {} .", storageSystem.getNativeId(), index);
+        }
+
+//        Integer index = systemNameToPortIndexName.get(storageSystem.getNativeId());
+//        if(index == null) {
+//            // Get "portIndexes" attribute map
+//            //Map<String, List<String>> portIndexes = driverRegistry.getDriverAttributesForKey("simulatordriver", "portIndexes");
+//
+//            index = ++portIndex;
+//            systemNameToPortIndexName.put(storageSystem.getNativeId(), index);
+//        }
 
         // Create ports with network
         for (int i =0; i <= 2; i++ ) {
@@ -556,6 +607,9 @@ public class StorageDriverSimulator extends AbstractStorageDriver implements Blo
 
         // create set of native volumes for our storage pools
         // all volumes on the same page belong to the same consistency group
+        if (token.intValue() == 0) {
+            arrayToHostToVolumeExportInfoMap.clear();
+        }
         //for (int vol = 0; vol < 3; vol ++) {
         for (int vol = 0; vol < 2; vol ++) {
             StorageVolume driverVolume = new StorageVolume();
@@ -572,6 +626,37 @@ public class StorageDriverSimulator extends AbstractStorageDriver implements Blo
             driverVolume.setWwn(String.format("%s%s", driverVolume.getStorageSystemId(), driverVolume.getNativeId()));
             storageVolumes.add(driverVolume);
             _log.info("Unmanaged volume info: pool {}, volume {}", driverVolume.getStoragePoolId(), driverVolume);
+
+            // add entry to arrayToHostToVolumeExportInfoMap for this volume
+            // get host for this page
+            String hostName = pageToHostMap.get(token);
+            Map<String, VolumeToHostExportInfo> hostToExportInfoMap = arrayToHostToVolumeExportInfoMap.get(driverVolume.getStorageSystemId());
+            if (hostToExportInfoMap == null) {
+                hostToExportInfoMap = new HashMap<>();
+                arrayToHostToVolumeExportInfoMap.put(driverVolume.getStorageSystemId(), hostToExportInfoMap);
+            }
+            VolumeToHostExportInfo volumeToHostExportInfo = hostToExportInfoMap.get(hostName);
+            if (volumeToHostExportInfo != null) {
+                // add new volume to the volume list
+                volumeToHostExportInfo.getVolumeNativeIds().add(driverVolume.getNativeId());
+            } else {
+                // add entry for the host to the map
+                List<StoragePort> ports = new ArrayList<StoragePort>();
+                discoverStoragePorts(storageSystem, ports);
+
+                // for initiators we only know port network id and host name
+                List<String> hostInitiatorIds = hostToInitiatorPortIdMap.get(hostName);
+                List<Initiator> initiators = new ArrayList<>();
+                for (String initiatorId : hostInitiatorIds) {
+                    Initiator initiator = new Initiator();
+                    initiator.setHostName(hostName);
+                    initiator.setPort(initiatorId);
+                    initiators.add(initiator);
+                }
+                VolumeToHostExportInfo exportInfo = new VolumeToHostExportInfo(hostName, Collections.singletonList(driverVolume.getNativeId()),
+                        initiators, ports);
+                hostToExportInfoMap.put(hostName, exportInfo);
+            }
         }
 
         String taskType = "create-storage-volumes";
@@ -586,7 +671,7 @@ public class StorageDriverSimulator extends AbstractStorageDriver implements Blo
         // set next value
         if (token.intValue() < 1) { // two pages. each page has different consistency group
             token.setValue(token.intValue() + 1);
-        //    token.setValue(0); // last page
+            //    token.setValue(0); // last page
         } else {
             token.setValue(0); // last page
         }

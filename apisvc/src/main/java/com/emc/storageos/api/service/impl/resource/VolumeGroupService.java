@@ -731,19 +731,47 @@ public class VolumeGroupService extends TaskResourceService {
      */
     private boolean getPartialVolumeRequestList(VolumeGroupFullCopyCreateParam param, final VolumeGroup application,
             List<URI> partialVolumeList) {
+        return getPartialVolumeRequestList(param.getPartial(), param.getVolumes(), param.getSubGroups(), application, partialVolumeList);
+    }
+
+    /**
+     * gets the partial list of volumes for full copy operations
+     * 
+     * @param param
+     * @param application
+     * @param partialVolumeList output partial list of volumes
+     * @return true if partial
+     */
+    private boolean getPartialVolumeRequestList(VolumeGroupSnapshotCreateParam param, final VolumeGroup application,
+            List<URI> partialVolumeList) {
+        return getPartialVolumeRequestList(param.getPartial(), param.getVolumes(), param.getSubGroups(), application, partialVolumeList);
+    }
+
+    /**
+     * gets the partial list of volumes for full copy operations
+     * 
+     * @param partialRequest requet from REST params object
+     * @param volumes volume URI's from REST params object
+     * @param subGroups subgroups from REST params object
+     * @param application
+     * @param partialVolumeList output partial list of volumes
+     * @return true if partial
+     */
+    private boolean getPartialVolumeRequestList(boolean partialRequest, List<URI> volumes, List<String> subGroups, final VolumeGroup application,
+            List<URI> partialVolumeList) {
         boolean partial = false;
-        if (param.getPartial()) {
+        if (partialRequest) {
             partial = true;
-            if (partial && param.getVolumes() != null && !param.getVolumes().isEmpty()) {
-                partialVolumeList.addAll(param.getVolumes());
+            if (partial && volumes != null && !volumes.isEmpty()) {
+                partialVolumeList.addAll(volumes);
             }
-        } else if (param.getSubGroups() != null && !param.getSubGroups().isEmpty()) {
-            partial = validateSubGroupsParam(param.getSubGroups(), application);
+        } else if (subGroups != null && !subGroups.isEmpty()) {
+            partial = validateSubGroupsParam(subGroups, application);
             // get one volume per sub group
             // TODO rename method that works for both source volumes and full copies
             Map<String, Volume> groupToVolume = groupFullCopiesByReplicationGroup(ControllerUtils.getVolumeGroupVolumes(_dbClient, application));
             for (Entry<String, Volume> entry : groupToVolume.entrySet()) {
-                if (param.getSubGroups().contains(entry.getKey())) {
+                if (subGroups.contains(entry.getKey())) {
                     partialVolumeList.add(entry.getValue().getId());
                 }
             }
@@ -1616,16 +1644,18 @@ public class VolumeGroupService extends TaskResourceService {
 
         // volumes to be processed
         List<Volume> volumes = null;
+        List<URI> partialVolumeList = new ArrayList<URI>();
+        boolean partial = getPartialVolumeRequestList(param, volumeGroup, partialVolumeList);
 
-        if (param.getPartial()) {
+        if (partial) {
             log.info("Snapshot requested for subset of array groups in Application.");
 
             // validate that at least one volume URI is provided
-            ArgValidator.checkFieldNotEmpty(param.getVolumes(), VOLUMES_FIELD);
+            ArgValidator.checkFieldNotEmpty(partialVolumeList, VOLUMES_FIELD);
 
             volumes = new ArrayList<Volume>();
             // validate that provided volumes
-            for (URI volumeURI : param.getVolumes()) {
+            for (URI volumeURI : partialVolumeList) {
                 ArgValidator.checkFieldUriType(volumeURI, Volume.class, VOLUME_FIELD);
                 // Get the volume
                 Volume volume = _dbClient.queryObject(Volume.class, volumeURI);
@@ -1910,17 +1940,55 @@ public class VolumeGroupService extends TaskResourceService {
 
         // validate replica operation for volume group
         validateCopyOperationForVolumeGroup(volumeGroup, ReplicaTypeEnum.SNAPSHOT);
-
-        // validate that at least one snapshot URI is provided
-        ArgValidator.checkFieldNotEmpty(param.getSnapshots(), SNAPSHOTS_FIELD);
-
-        // validate only one snapshot URI is provided for full request
-        if (!param.getPartial() && param.getSnapshots().size() > 1) {
-            throw APIException.badRequests.invalidNumberOfReplicas(ReplicaTypeEnum.SNAPSHOT.toString());
+        
+        List<URI> snapshotsInRequest = new ArrayList<URI>();
+        boolean partialRequest = false;
+        if (param.getSnapshots() != null && !param.getSnapshots().isEmpty()) {
+    
+            // validate only one snapshot URI is provided for full request
+            if (!param.getPartial() && param.getSnapshots().size() > 1) {
+                throw APIException.badRequests.invalidNumberOfReplicas(ReplicaTypeEnum.SNAPSHOT.toString());
+            }
+            snapshotsInRequest.addAll(param.getSnapshots());
+            partialRequest = param.getPartial();
+            
+        } else {
+            
+            ArgValidator.checkFieldNotEmpty(param.getCopySetName(), COPY_SET_NAME_FIELD);
+            
+            if (param.getSubGroups() != null && !param.getSubGroups().isEmpty()) {
+                partialRequest = validateSubGroupsParam(param.getSubGroups(), volumeGroup);
+            }
+            
+            URIQueryResultList snapshotIds = new URIQueryResultList();
+            _dbClient.queryByConstraint(AlternateIdConstraint.Factory.getBlockSnapshotsBySnapsetLabel(param.getCopySetName()), snapshotIds);
+            Iterator<BlockSnapshot> iter = _dbClient.queryIterativeObjects(BlockSnapshot.class, snapshotIds);
+            
+            if (partialRequest) {
+                // get one snapshot per sub group requested
+                List<Volume> volumesInApplication = ControllerUtils.getVolumeGroupVolumes(_dbClient, volumeGroup);
+                Map<URI, Volume> volumesMap = new HashMap<URI, Volume>();
+                for (Volume volume : volumesInApplication) {
+                    volumesMap.put(volume.getId(), volume);
+                }
+                    
+                while (iter.hasNext()) {
+                    BlockSnapshot snapshot = iter.next();
+                    Volume parent = volumesMap.get(snapshot.getParent().getURI());
+                    if (parent != null &&  param.getSubGroups().contains(parent.getReplicationGroupInstance())) {
+                        snapshotsInRequest.add(iter.next().getId());
+                    }
+                }
+            } else {
+                // for non-partial, we only need one snapshot in the snapshot set
+                if (iter.hasNext()) {
+                    snapshotsInRequest.add(iter.next().getId());
+                }
+            }
         }
 
         Map<String, List<BlockSnapshot>> snapsetToSnapshots = new HashMap<String, List<BlockSnapshot>>();
-        for (URI snapshotURI : param.getSnapshots()) {
+        for (URI snapshotURI : snapshotsInRequest) {
             ArgValidator.checkFieldUriType(snapshotURI, BlockSnapshot.class, SNAPSHOT_FIELD);
 
             // Get the snapshot
@@ -1938,7 +2006,7 @@ public class VolumeGroupService extends TaskResourceService {
             String snapsetLabel = snapshot.getSnapsetLabel();
             List<BlockSnapshot> snapshots = snapsetToSnapshots.get(snapsetLabel);
             if (snapshots == null) {
-                if (param.getPartial()) {
+                if (partialRequest) {
                     snapshots = new ArrayList<BlockSnapshot>();
                     snapshots.add(snapshot);
                 } else {
@@ -1946,7 +2014,7 @@ public class VolumeGroupService extends TaskResourceService {
                 }
 
                 snapsetToSnapshots.put(snapsetLabel, snapshots);
-            } else if (param.getPartial()) {
+            } else if (partialRequest) {
                 snapshots.add(snapshot);
             }
         }

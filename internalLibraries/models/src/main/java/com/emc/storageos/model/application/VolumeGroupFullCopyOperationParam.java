@@ -72,8 +72,8 @@ public class VolumeGroupFullCopyOperationParam {
     /**
      * @return the copySetName
      */
-    @XmlElement(name = "copysetname", required = false)
-   public String getCopySetName() {
+    @XmlElement(name = "copy_set_name", required = false)
+    public String getCopySetName() {
         return copySetName;
     }
 

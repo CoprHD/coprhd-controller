@@ -281,6 +281,21 @@ class VolumeGroup(object):
         
         return o
 
+    def get_clone_operation_request(self, name, cloneUris, copysetname, subGroups, partial):
+        request = dict()
+        if (cloneUris):
+            request["volumes"] = cloneUris.split()
+        if (copysetname):
+            request["copy-set-name"] = copysetname
+        if (subGroups):
+            request["subgroups"] = subGroups.split(',')
+        
+        # if partial request
+        if (partial):
+            request["partial"] = partial
+            
+        return request
+        
 
     def volume_group_clone_activate(self, name, cloneUris, copysetname, subGroups, partial, sync):
         '''
@@ -295,17 +310,7 @@ class VolumeGroup(object):
         '''
         volume_group_uri = self.query_by_name(name)
         
-        request = dict()
-        if (cloneUris):
-            request["volumes"] = cloneUris.split()
-        if (copysetname):
-            request["copysetname"] = copysetname
-        if (subGroups):
-            request["subgroups"] = subGroups.split(',')
-        
-        # if partial request
-        if (partial):
-            request["partial"] = partial
+        request = self.get_clone_operation_request(name, cloneUris, copysetname, subGroups, partial)
 
         body = json.dumps(request)
 
@@ -334,17 +339,7 @@ class VolumeGroup(object):
         '''
         volume_group_uri = self.query_by_name(name)
         
-        request = dict()
-        if (cloneUris):
-            request["volumes"] = cloneUris.split()
-        if (copysetname):
-            request["copysetname"] = copysetname
-        if (subGroups):
-            request["subgroups"] = subGroups.split(',')
-        
-        # if partial request
-        if (partial):
-            request["partial"] = partial
+        request = self.get_clone_operation_request(name, cloneUris, copysetname, subGroups, partial)
 
         body = json.dumps(request)
         
@@ -373,17 +368,7 @@ class VolumeGroup(object):
         '''
         volume_group_uri = self.query_by_name(name)
         
-        request = dict()
-        if (cloneUris):
-            request["volumes"] = cloneUris.split()
-        if (copysetname):
-            request["copysetname"] = copysetname
-        if (subGroups):
-            request["subgroups"] = subGroups.split(',')
-        
-        # if partial request
-        if (partial):
-            request["partial"] = partial
+        request = self.get_clone_operation_request(name, cloneUris, copysetname, subGroups, partial)
 
         body = json.dumps(request)
 
@@ -412,17 +397,7 @@ class VolumeGroup(object):
         '''
         volume_group_uri = self.query_by_name(name)
         
-        request = dict()
-        if (cloneUris):
-            request["volumes"] = cloneUris.split()
-        if (copysetname):
-            request["copysetname"] = copysetname
-        if (subGroups):
-            request["subgroups"] = subGroups.split(',')
-        
-        # if partial request
-        if (partial):
-            request["partial"] = partial
+        request = self.get_clone_operation_request(name, cloneUris, copysetname, subGroups, partial)
 
         body = json.dumps(request)
         
@@ -537,7 +512,7 @@ class VolumeGroup(object):
             return o   
 
     # Creates snapshot for the given volume group
-    def snapshot(self, name, snapshot_name, create_inactive, readonly, partial, volumeUris):
+    def snapshot(self, name, snapshot_name, subGroups, create_inactive, readonly, partial, volumeUris):
         '''
         Makes REST API call to create volume group snapshot
         Parameters:
@@ -559,6 +534,9 @@ class VolumeGroup(object):
             'create_inactive': create_inactive,
             'read_only': readonly
         }
+        
+        if (subGroups):
+            request["subgroups"] = subGroups.split(',')
 
         # if partial request
         if (partial):
@@ -667,7 +645,7 @@ class VolumeGroup(object):
         else:
             return []
 
-    def volume_group_snapshot_operation(self, name, snapshots, partial, uri):
+    def volume_group_snapshot_operation(self, name, copysetname, subGroups, snapshots, partial, uri):
         '''
         Makes REST API call to acitvate/deactivate/restore/resync volume group snapshot
         Parameters:
@@ -681,8 +659,16 @@ class VolumeGroup(object):
 
         volumeGroupUri = self.query_by_name(name)
         request = dict()
-        request["snapshots"] = self.query_snapshot_uris_by_names(name, snapshots)
-
+        
+        if (snapshots):
+            request["snapshots"] = self.query_snapshot_uris_by_names(name, snapshots)
+            
+        if (copysetname):
+            request["copy-set-name"] = copysetname
+            
+        if (subGroups):
+            request["subgroups"] = subGroups.split(',')
+        
         # if partial request
         if (partial):
             request["partial"] = partial
@@ -1897,29 +1883,48 @@ def snapshot_parser(subcommand_parsers, common_parser):
                                 dest='name',
                                 help='Name of volume group',
                                 required=True)
-    mandatory_args.add_argument('-snapshotsetname', '-s',
+    
+    copy_set_name = snapshot_parser.add_mutually_exclusive_group(required=True)
+    copy_set_name.add_argument('-copysetname',
+                                metavar='<copysetname>',
+                                dest='copySetName',
+                                help='Name of snapshot to create')
+    copy_set_name.add_argument('-snapshotsetname', '-s',
                                 metavar='<snapshotsetname>',
                                 dest='snapshotname',
-                                help='Name of snapshot set',
-                                required=True)
-    snapshot_parser.add_argument('-createinactive', '-ci',
+                                help='Name of snapshot set (Deprecated)')
+    
+    sub_groups = snapshot_parser.add_mutually_exclusive_group(required=False)
+    sub_groups.add_argument('-subgroups', '-sg',
+                                metavar='<subgroups>',
+                                dest='subGroups',
+                                help='List of sub groups for partial request')
+    sub_groups.add_argument('-volumes', '-v',
+                            metavar='<tenant/project/volume_label,...>',
+                            dest='volumes',
+                            help='A list of volumes specifying their Array Replication Groups.' +
+                            'This field is valid only when partial flag is provided (Deprecated)')
+    
+    inactive_flag = snapshot_parser.add_mutually_exclusive_group(required=False)
+    inactive_flag.add_argument('-createinactive', '-ci',
                               dest='createinactive',
                               action='store_true',
+                              help='Create snapshot with inactive state (Deprecated)')
+    inactive_flag.add_argument('-inactive',
+                              dest='inactive',
+                              action='store_true',
                               help='Create snapshot with inactive state')
+    
     snapshot_parser.add_argument('-readonly', '-ro',
                               dest='readonly',
                               action='store_true',
                               help='Create read only snapshot')
+    
     snapshot_parser.add_argument('-partial',
                               dest='partial',
                               action='store_true',
                               help='To create snapshot for subset of volume group. ' +
-                              'Please specify one volume from each Array Replication Group')
-    snapshot_parser.add_argument('-volumes', '-v',
-                            metavar='<tenant/project/volume_label,...>',
-                            dest='volumes',
-                            help='A list of volumes specifying their Array Replication Groups.' +
-                            'This field is valid only when partial flag is provided')
+                              'Please specify one volume from each Array Replication Group (Deprecated)')
 
     snapshot_parser.set_defaults(func=volume_group_snapshot)
 
@@ -1927,8 +1932,19 @@ def volume_group_snapshot(args):
     obj = VolumeGroup(args.ip, args.port)
 
     try:
+        
+        if (args.copySetName):
+            copy_name = args.copySetName
+        else:
+            copy_name = args.snapshotname
+            
+        if (args.inactive):
+            inactive_flag = args.inactive
+        else:
+            inactive_flag = args.createinactive
+            
         volumeUris = query_volumes_for_partial_request(args)
-        obj.snapshot(args.name, args.snapshotname, args.createinactive, args.readonly, args.partial, ",".join(volumeUris))
+        obj.snapshot(args.name, copy_name, args.subGroups, inactive_flag, args.readonly, args.partial, ",".join(volumeUris))
         return
 
     except SOSError as e:
@@ -1946,17 +1962,28 @@ def volume_group_snapshot_common_parser(cc_common_parser):
                                 dest='name',
                                 help='Name of volume group',
                                 required=True)
+    
+    group = cc_common_parser.add_mutually_exclusive_group(required=True)
+    group.add_argument('-copysetname', '-cs',
+                       metavar='<copysetname>',
+                       dest='copySetName',
+                       help='Name of a copy set')
+    group.add_argument('-snapshots', '-s',
+                            metavar='<snapshotname,...>',
+                            dest='snapshots',
+                            help='A snapshot of a volume group specifying which snapshot set to act on. ' +
+                            'For partial operation, specify one snapshot from each Array Replication Group (Deprecated)')
+    
+    cc_common_parser.add_argument('-subgroups', '-sg',
+                                metavar='<subgroups>',
+                                dest='subGroups',
+                                help='List of sub groups for partial request')
+    
     cc_common_parser.add_argument('-partial',
                               dest='partial',
                               action='store_true',
                               help='To operate on snapshots for subset of VolumeGroup. ' +
-                              'Please specify one snapshot from each Array Replication Group')
-    mandatory_args.add_argument('-snapshots', '-s',
-                            metavar='<snapshotname,...>',
-                            dest='snapshots',
-                            help='A snapshot of a volume group specifying which snapshot set to act on. ' +
-                            'For partial operation, specify one snapshot from each Array Replication Group',
-                            required=True)
+                              'Please specify one snapshot from each Array Replication Group (Deprecated)')
 
 def volume_group_snapshot_operation(args, operation, uri):
     obj = VolumeGroup(args.ip, args.port)
@@ -1964,6 +1991,8 @@ def volume_group_snapshot_operation(args, operation, uri):
     try:
         obj.volume_group_snapshot_operation(
             args.name,
+            args.copysetname,
+            args.subgroup,
             set(args.snapshots.split(',')),
             args.partial,
             uri)

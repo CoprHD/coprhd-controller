@@ -2901,7 +2901,7 @@ recoverpoint_export_bookmark_tests()
         run blocksnapshot create ${PROJECT}/${rpvolume}${volume_name_modifier} ${rpsnap}-failtest2 --type rp
         blocksnapshot show ${PROJECT}/${rpvolume}${volume_identifier}/${rpsnap}-failtest2-${rp_tgt_varrays[0]}
     
-        run export_group create $PROJECT ${RP_EXPORT_GROUP} ${rp_src_varray} --type Host --volspec ${PROJECT}/${rpvolume}/${rpsnap}-failtest1-${rp_tgt_varrays[0]} --hosts "${RP_HOSTNAME}"
+        run export_group create $PROJECT ${RP_EXPORT_GROUP} ${rp_src_varray} --type Host --volspec ${PROJECT}/${rpvolume}${volume_name_modifier}/${rpsnap}-failtest1-${rp_tgt_varrays[0]} --hosts "${RP_HOSTNAME}"
         export_group show ${rpexport}
         secho 'Exporting RP bookmark for the same target copy as a bookmark already exported - expected failure'
         fail export_group update ${rpexport} --addVolspec ${PROJECT}/${rpvolume}/${rpsnap}-failtest2-${rp_tgt_varrays[0]}

@@ -2615,9 +2615,11 @@ rp_storage_setup()
 
            array_guid='RECOVERPOINT_STORAGE_ARRAY_'$var'_GUID'
            array_guid=${!array_guid}
-           
+
+           smis_port='RECOVERPOINT_STORAGE_ARRAY_'$var'_SMIS_PORT'          
+ 
            if [ "$array_guid" != "NONE" ]; then
-               smisprovider create $provider $provider_ip $SMIS_PORT $SMIS_USER $SMIS_PASSWORD false
+               smisprovider create $provider $provider_ip $smis_port $SMIS_USER $SMIS_PASSWORD false
            fi
         done
     fi

@@ -3078,21 +3078,19 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
     private List<VNXQuotaTree> getAllQuotaTrees(final StorageSystem system)
             throws VNXException {
 
-        List<VNXQuotaTree> fileSystems = null;
+        List<VNXQuotaTree> quotaTrees = null;
 
         try {
-            Map<String, Object> reqAttributeMap = getRequestParamsMap(system);
-            _discExecutor.setKeyMap(reqAttributeMap);
             _discExecutor.execute((Namespace) _discNamespaces.getNsList().get(
                     "vnxallquotas"));
 
-            fileSystems = (ArrayList<VNXQuotaTree>) _discExecutor.getKeyMap()
+            quotaTrees = (ArrayList<VNXQuotaTree>) _discExecutor.getKeyMap()
                     .get(VNXFileConstants.QUOTA_DIR_LIST);
         } catch (BaseCollectionException e) {
             throw new VNXException("Get QuotaTrees op failed", e);
         }
 
-        return fileSystems;
+        return quotaTrees;
     }
 
     private void associateExportWithFS(UnManagedFileSystem vnxufs,

@@ -43,6 +43,7 @@ import com.emc.storageos.volumecontroller.FileDeviceInputOutput;
 import com.emc.storageos.volumecontroller.impl.BiosCommandResult;
 import com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator;
 import com.emc.storageos.volumecontroller.impl.file.AbstractFileStorageDevice;
+import com.emc.storageos.volumecontroller.impl.file.FileMirrorOperations;
 import com.iwave.ext.netappc.model.CifsAccess;
 import com.iwave.ext.netappc.model.CifsAcl;
 
@@ -71,6 +72,16 @@ public class NetAppClusterModeDevice extends AbstractFileStorageDevice {
     private enum AclOperation {
         ADD, MODIFY, DELETE, FORCE_ADD, FORCE_DELETE
     };
+
+    private FileMirrorOperations mirrorOperations;
+
+    public FileMirrorOperations getMirrorOperations() {
+        return mirrorOperations;
+    }
+
+    public void setMirrorOperations(FileMirrorOperations mirrorOperations) {
+        this.mirrorOperations = mirrorOperations;
+    }
 
     public NetAppClusterModeDevice() {
     }

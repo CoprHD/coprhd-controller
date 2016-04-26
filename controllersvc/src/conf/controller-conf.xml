@@ -888,8 +888,13 @@
         <property name="dbClient" ref="dbclient"/>
     </bean>
     
-   <bean id="netappcFileDevice" class="com.emc.storageos.volumecontroller.impl.netappc.NetAppClusterModeDevice">
+     <bean id="netAppCMirrorOperations" class="com.emc.storageos.volumecontroller.impl.netappc.NetAppCMirrorOperations">
         <property name="dbClient" ref="dbclient"/>
+     </bean>
+    
+    <bean id="netappcFileDevice" class="com.emc.storageos.volumecontroller.impl.netappc.NetAppClusterModeDevice">
+        <property name="dbClient" ref="dbclient"/>
+        <property name="mirrorOperations" ref="netAppCMirrorOperations"/>
     </bean>
     
     <bean id="vnxeApiClientFactory" class="com.emc.storageos.vnxe.VNXeApiClientFactory"

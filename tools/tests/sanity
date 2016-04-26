@@ -2833,6 +2833,8 @@ recoverpoint_exports_tests()
 recoverpoint_export_bookmark_tests()
 {
     if [ "$RP_EXPORT_BOOKMARK_TESTS" = "1" ]; then
+        secho 'Running RecoverPoint Export Bookmark Tests'
+
         # The source source volume - an arbitrary source volume from the CG
         rpvolume=${1}
         # The virtual array corresonding to the source volume (src_volume)
@@ -2978,7 +2980,7 @@ recoverpoint_export_bookmark_host_setup()
 recoverpoint_auto_snapshot_cleanup_test()
 {
     if [ "$RP_AUTO_SNAP_CLEANUP_TESTS" = "1" ]; then    
-        secho 'RP snapshot tests'
+        secho 'Running RecoverPoint Auto Snapshot Cleanup Tests'
         rpsnap=rpsnap_for_cleanup-${RP_MODIFIED_HOSTNAME}-${RANDOM}
         blocksnap=blocksnap-${RP_MODIFIED_HOSTNAME}-${RANDOM}
 
@@ -3662,7 +3664,7 @@ recoverpoint_ingest()
 recoverpoint_failover_test()
 {
     if [ "$RP_FAILOVER_TESTS" = "1" ]; then
-        secho 'RP failover tests'
+        secho 'Running RecoverPoint Failover Tests'
 
         src_volume=${1}
         tgt_volume=${2}
@@ -3751,6 +3753,8 @@ recoverpoint_failover_test()
 recoverpoint_cg_failover_test()
 {
     if [ "$RP_CG_FAILOVER_TESTS" = "1" ]; then
+        secho 'Running RecoverPoint Failover CG Tests'
+
         # The name of the consistency group to swap
         cg_name=${1}
         # The source source volume - an arbitrary source volume from the CG
@@ -3901,6 +3905,8 @@ recoverpoint_vpool_change_test()
     #  3. Upgrade to MP (only in the case of MP CRR tests - for now)
 
     if [ "$RP_CHANGE_VPOOL" = "1" ]; then
+        secho 'Running RecoverPoint Change Virtual Pool Tests'
+
         base_volume=${1}
         noprotection_vpool=${2}
         rp_vpool=${3}
@@ -3927,6 +3933,8 @@ recoverpoint_vpool_change_test()
 recoverpoint_vpool_change_replication_mode_test()
 {
     if [ "$RP_CHANGE_REPLICATION_MODE_TESTS" = "1" ]; then
+        secho 'Running RecoverPoint Change Replication Mode Tests'
+
         base_volume=${1}
         target_vpool=${2}
 
@@ -3940,6 +3948,8 @@ recoverpoint_vpool_change_replication_mode_test()
 recoverpoint_add_journal_volume()
 {
     if [ "$RP_ADD_JOURNAL_TESTS" = "1" ]; then    
+        secho 'Running RecoverPoint Add Journal Volume Tests'
+
         copy_name=${1}
         journ_varray=${2} 
         journ_vpool=${3}     
@@ -4352,7 +4362,6 @@ recoverpoint_tests()
                 recoverpoint_cg_failover_test ${RP_CONSISTENCY_GROUP} ${rpvolume}${volume_name_modifier} ${rp_src_varray} ${rp_tgt_volumes} ${rp_tgt_varrays}
 
                 # Change Replication Mode Test
-                secho 'RP change vpool - replication mode'
                 recoverpoint_vpool_change_replication_mode_test ${rpvolume}${volume_name_modifier} ${rp_src_vpool_sync}
                 recoverpoint_vpool_change_replication_mode_test ${rpvolume}${volume_name_modifier} ${rp_src_vpool}
 

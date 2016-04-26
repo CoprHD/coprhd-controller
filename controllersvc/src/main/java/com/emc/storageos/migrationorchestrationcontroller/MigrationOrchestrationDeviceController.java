@@ -143,4 +143,8 @@ public class MigrationOrchestrationDeviceController implements MigrationOrchestr
         }
     }
 
+    public static BlockDeviceController getBlockDeviceController() {
+        return _blockDeviceController;
+    }
+
 }

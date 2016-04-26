@@ -39,6 +39,7 @@ import com.emc.storageos.workflow.WorkflowStepCompleter;
 public class HostMigrationDeviceController extends MigrationControllerImp implements MigrationOrchestrationInterface {
     private static final Logger _log = LoggerFactory.getLogger(HostMigrationDeviceController.class);
     private DbClient _dbClient;
+    private URI _hostURI;
     // private final List<Initiator> _initiators = new ArrayList<Initiator>();
     // private List<URI> migrateInitiatorsURIs = new ArrayList<URI>();
 
@@ -294,7 +295,7 @@ public class HostMigrationDeviceController extends MigrationControllerImp implem
 
             List<MigrationInfo> migrationInfoList = hostMigrateGeneralVolume(
                     migrationName, Arrays.asList(srcVolumeInfo), Arrays.asList(tgtVolumeInfo));
-            _log.info("Started VPlex migration");
+            _log.info("Started host migration");
 
             // We store step data indicating that the migration was successfully
             // create and started. We will use this to determine the behavior

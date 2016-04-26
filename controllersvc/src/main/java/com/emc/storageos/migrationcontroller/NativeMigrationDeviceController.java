@@ -3,7 +3,10 @@ package com.emc.storageos.migrationcontroller;
 import static com.emc.storageos.migrationcontroller.MigrationControllerUtils.getDataObject;
 
 import java.net.URI;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -14,19 +17,36 @@ import org.slf4j.LoggerFactory;
 import com.emc.storageos.blockorchestrationcontroller.VolumeDescriptor;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.Migration;
+import com.emc.storageos.db.client.model.StoragePool;
+import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
+import com.emc.storageos.migrationorchestrationcontroller.MigrationOrchestrationDeviceController;
 import com.emc.storageos.migrationorchestrationcontroller.MigrationOrchestrationInterface;
+import com.emc.storageos.model.ResourceOperationTypeEnum;
+import com.emc.storageos.svcs.errorhandling.model.ServiceError;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.volumecontroller.ControllerException;
+import com.emc.storageos.volumecontroller.impl.ControllerServiceImpl;
+import com.emc.storageos.volumecontroller.impl.block.BlockDeviceController;
+import com.emc.storageos.volumecontroller.impl.job.QueueJob;
+import com.emc.storageos.vplexcontroller.completers.MigrationTaskCompleter;
 import com.emc.storageos.workflow.Workflow;
 import com.emc.storageos.workflow.WorkflowException;
+import com.emc.storageos.workflow.WorkflowService;
+import com.emc.storageos.workflow.WorkflowStepCompleter;
 
 public class NativeMigrationDeviceController extends MigrationControllerImp implements MigrationOrchestrationInterface {
     private static final Logger _log = LoggerFactory.getLogger(NativeMigrationDeviceController.class);
     private DbClient _dbClient;
 
     private static volatile NativeMigrationDeviceController _instance;
+    private WorkflowService _workflowService;
+
+    private static final String MIGRATION_NAME_PREFIX = "M_";
+    private static final String MIGRATION_NAME_DATE_FORMAT = "yyMMdd-HHmmss-SSS";
+
+    private final BlockDeviceController _blockDeviceController = MigrationOrchestrationDeviceController.getBlockDeviceController();
 
     public NativeMigrationDeviceController() {
         _instance = this;
@@ -191,8 +211,100 @@ public class NativeMigrationDeviceController extends MigrationControllerImp impl
         return null;
     }
 
-    public void migrateGeneralVolume(URI vplexURI, URI generalVolumeURI,
+    public void migrateGeneralVolume(URI storageURI, URI generalVolumeURI,
             URI targetVolumeURI, URI migrationURI, URI newVarrayURI, String stepId) throws WorkflowException {
+        _log.info("Migration {} using target {}", migrationURI, targetVolumeURI);
+
+        try {
+            // Update step state to executing.
+            WorkflowStepCompleter.stepExecuting(stepId);
+
+            // Initialize the step data. The step data indicates if we
+            // successfully started the migration and is used in
+            // rollback.
+            _workflowService.storeStepData(stepId, Boolean.FALSE);
+
+            // Get the general volume.
+            Volume generalVolume = getDataObject(Volume.class, generalVolumeURI, _dbClient);
+            StorageSystem srcStorageSystem = getDataObject(StorageSystem.class,
+                    generalVolume.getStorageController(), _dbClient);
+            _log.info("Storage system for migration source is {}",
+                    generalVolume.getStorageController());
+            StoragePool srcStoragePool = _dbClient.queryObject(StoragePool.class, generalVolume.getPool());
+
+            // Setup the native volume info for the migration target.
+            Volume migrationTarget = getDataObject(Volume.class, targetVolumeURI, _dbClient);
+            StorageSystem targetStorageSystem = getDataObject(StorageSystem.class,
+                    migrationTarget.getStorageController(), _dbClient);
+            _log.info("Storage system for migration target is {}",
+                    migrationTarget.getStorageController());
+            StoragePool tgtStoragePool = _dbClient.queryObject(StoragePool.class, migrationTarget.getPool());
+
+            // Get the migration associated with the target.
+            Migration migration = getDataObject(Migration.class, migrationURI, _dbClient);
+
+            // Determine the unique name for the migration. We identifying
+            // the migration source and target, using array serial number
+            // and volume native id, in the migration name. This was fine
+            // for VPlex extent migration, which has a max length of 63
+            // for the migration name. However, for remote migrations,
+            // which require VPlex device migration, the max length is much
+            // more restrictive, like 20 characters. So, we switched over
+            // timestamps.
+            StringBuilder migrationNameBuilder = new StringBuilder(MIGRATION_NAME_PREFIX);
+            DateFormat dateFormatter = new SimpleDateFormat(MIGRATION_NAME_DATE_FORMAT);
+            migrationNameBuilder.append(dateFormatter.format(new Date()));
+            String migrationName = migrationNameBuilder.toString();
+            migration.setLabel(migrationName);
+            _dbClient.updateObject(migration);
+            _log.info("Migration name is {}", migrationName);
+
+            // Make a call to the VPlex API client to migrate the virtual
+            // volume. Note that we need to do a remote migration when a
+            // local virtual volume is being migrated to the other VPlex
+            // cluster. If the passed new varray is not null, then
+            // this is the case.
+            // Boolean isRemoteMigration = newVarrayURI != null;
+
+            List<MigrationInfo> migrationInfoList = _blockDeviceController.getDevice(
+                    srcStorageSystem.getSystemType()).doMigrateVolumes(srcStorageSystem,
+                    srcStoragePool, generalVolume, targetStorageSystem, tgtStoragePool, migrationTarget);
+            _log.info("Started host migration");
+
+            // We store step data indicating that the migration was successfully
+            // create and started. We will use this to determine the behavior
+            // on rollback. If we never got to the point that the migration
+            // was created and started, then there is no rollback to attempt
+            // on the VLPEX as the migrate API already tried to clean everything
+            // up on the VLPEX.
+            _workflowService.storeStepData(stepId, Boolean.TRUE);
+
+            // Initialize the migration info in the database.
+            MigrationInfo migrationInfo = migrationInfoList.get(0);
+            migration.setMigrationStatus(MigrationInfo.MigrationStatus.READY
+                    .getStatusValue());
+            migration.setPercentDone("0");
+            migration.setStartTime(migrationInfo.getStartTime());
+            _dbClient.updateObject(migration);
+            _log.info("Update migration info");
+
+            // Create a migration task completer and queue a job to monitor
+            // the migration progress. The completer will be invoked by the
+            // job when the migration completes.
+            MigrationTaskCompleter migrationCompleter = new MigrationTaskCompleter(
+                    migrationURI, stepId);
+            MigrationJob migrationJob = new MigrationJob(migrationCompleter);
+            ControllerServiceImpl.enqueueJob(new QueueJob(migrationJob));
+            _log.info("Queued job to monitor migration progress.");
+        } catch (MigrationControllerException vae) {
+            _log.error("Exception migrating general volume: " + vae.getMessage(), vae);
+            WorkflowStepCompleter.stepFailed(stepId, vae);
+        } catch (Exception ex) {
+            _log.error("Exception migrating general volume: " + ex.getMessage(), ex);
+            String opName = ResourceOperationTypeEnum.HOST_MIGRATE_VOLUME.getName();
+            ServiceError serviceError = MigrationControllerException.errors.migrateVirtualVolume(opName, ex);
+            WorkflowStepCompleter.stepFailed(stepId, serviceError);
+        }
 
     }
 

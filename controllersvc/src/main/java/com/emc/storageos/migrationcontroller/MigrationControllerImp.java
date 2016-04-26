@@ -20,8 +20,11 @@ import com.emc.storageos.db.client.model.Migration;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.util.BlockConsistencyGroupUtils;
+import com.emc.storageos.networkcontroller.impl.NetworkDeviceController;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.volumecontroller.impl.block.BlockDeviceController;
+import com.emc.storageos.volumecontroller.impl.block.ExportMaskPlacementDescriptor;
+import com.emc.storageos.volumecontroller.placement.BlockStorageScheduler;
 import com.emc.storageos.workflow.Workflow;
 
 public class MigrationControllerImp implements MigrationController {
@@ -40,11 +43,15 @@ public class MigrationControllerImp implements MigrationController {
     private static final String MIGRATION_COMMIT_STEP = "commit";
     private static final String MIGRATION_VOLUME_EXPORT_STEP = "exportVolume";
 
+    private BlockDeviceController _blockDeviceController;
+    private BlockStorageScheduler _blockScheduler;
+    private NetworkDeviceController _networkDeviceController;
     @Override
     public String createWorkflowStepsForBlockVolumeExport(Workflow workflow, URI storageURI,
             List<URI> targetVolumeURIs, String waitFor)
             throws InternalException {
         try {
+            String lastStep = waitFor;
             StorageSystem storageSystem = getDataObject(StorageSystem.class, storageURI, _dbClient);
             _log.info("Got storage system");
 
@@ -58,6 +65,11 @@ public class MigrationControllerImp implements MigrationController {
             }
 
             // to do .........
+            // Set the project and tenant.
+            Volume firstVolume = volumeMap.values().iterator().next();
+            URI projectURI = firstVolume.getProject().getURI();
+            URI tenantURI = firstVolume.getTenant().getURI();
+            _log.info("Project is {}, Tenant is {}", projectURI, tenantURI);
 
             // Main processing containers. ExportGroup --> StorageSystem --> Volumes
             // Populate the container for the export workflow step generation
@@ -79,6 +91,12 @@ public class MigrationControllerImp implements MigrationController {
                 // todo: return the storage ports on the host machine that should be used
                 // for a particular storage array. this is down by finding ports in host machine
                 // and array that have common network. (verify network connection between host port and array)
+
+                HostExportManager hostExportMgr = new HostExportManager(_dbClient, this, _blockDeviceController,
+                        _blockScheduler, _networkDeviceController, projectURI, tenantURI);
+
+                ExportMaskPlacementDescriptor descriptor = hostExportMgr.chooseBackendExportMask(storageSystem,
+                        tgtstorageSystem, varray, volumeMap, lastStep);
 
                 // todo: If there are no networks that can be zoned, error.
                 String stepId = workflow.createStepId();

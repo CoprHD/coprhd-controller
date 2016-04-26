@@ -40,6 +40,7 @@ import com.emc.storageos.svcs.errorhandling.model.ServiceError;
 import com.emc.storageos.util.FileSystemConstants;
 import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.volumecontroller.FileDeviceInputOutput;
+import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.volumecontroller.impl.BiosCommandResult;
 import com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator;
 import com.emc.storageos.volumecontroller.impl.file.AbstractFileStorageDevice;
@@ -48,6 +49,7 @@ import com.iwave.ext.netappc.model.CifsAccess;
 import com.iwave.ext.netappc.model.CifsAcl;
 
 public class NetAppClusterModeDevice extends AbstractFileStorageDevice {
+
     private static final Logger _log = LoggerFactory
             .getLogger(NetAppClusterModeDevice.class);
 
@@ -1867,4 +1869,24 @@ public class NetAppClusterModeDevice extends AbstractFileStorageDevice {
         return BiosCommandResult.createErrorResult(
                 DeviceControllerErrors.netappc.operationNotSupported());
     }
+
+    // snapmirror operations
+    @Override
+    public void doCreateMirrorLink(StorageSystem system, URI source, URI target, TaskCompleter completer) {
+        // TODO Auto-generated method stub
+        super.doCreateMirrorLink(system, source, target, completer);
+    }
+
+    @Override
+    public void doStartMirrorLink(StorageSystem system, FileShare target, TaskCompleter completer, String policyName) {
+        // TODO Auto-generated method stub
+        super.doStartMirrorLink(system, target, completer, policyName);
+    }
+
+    @Override
+    public void doStopMirrorLink(StorageSystem system, FileShare target, TaskCompleter completer) {
+        // TODO Auto-generated method stub
+        super.doStopMirrorLink(system, target, completer);
+    }
+
 }

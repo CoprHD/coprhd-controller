@@ -833,7 +833,7 @@ public class NetAppClusterApi {
 
     public Boolean modifyNFSShare(String fsName, String qtreeName, String exportPath,
             ExportRule oldRule, ExportRule newRule)
-                    throws NetAppCException {
+            throws NetAppCException {
         try {
             netAppClusterFacade = new NetAppClusterFacade(_ipAddress, _portNumber, _userName, _password, _https, true, _svmName);
             _logger.info("NetApp Inputs for modifyNFSShare exportPath: {} ", exportPath);
@@ -947,4 +947,6 @@ public class NetAppClusterApi {
         return true;
 
     }
+
+    // snap mirror operations
 }

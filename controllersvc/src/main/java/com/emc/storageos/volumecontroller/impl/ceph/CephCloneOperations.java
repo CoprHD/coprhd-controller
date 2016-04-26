@@ -34,6 +34,10 @@ import com.emc.storageos.volumecontroller.impl.smis.ReplicationUtils;
 import com.emc.storageos.volumecontroller.impl.smis.SmisConstants;
 
 
+/**
+ * Clone related operation for Ceph cluster
+ *
+ */
 public class CephCloneOperations implements CloneOperations {
 
     private static Logger _log = LoggerFactory.getLogger(CephCloneOperations.class);
@@ -253,10 +257,22 @@ public class CephCloneOperations implements CloneOperations {
         // no support
     }
 
+    /**
+     * Get a client object to communicate with Ceph cluster referenced by given Storage System
+     *
+     * @param storage [in] - Storage System object
+     * @return CephClient object
+     */
     private CephClient getClient(StorageSystem storage) {
         return CephUtils.connectToCeph(_cephClientFactory, storage);
     }
 
+    /**
+     * Generate BlockSnapshot object to store info about interim snapshot used to clone given volume
+     *
+     * @param volume [in] Volume object
+     * @return generated BlockSnapshot object
+     */
     private BlockSnapshot prepareInternalSnapshotForVolume(Volume volume) {
         BlockSnapshot snapshot = new BlockSnapshot();
         snapshot.setId(URIUtil.createId(BlockSnapshot.class));

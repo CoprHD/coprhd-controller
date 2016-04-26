@@ -22,6 +22,10 @@ import com.emc.storageos.svcs.errorhandling.model.ServiceError;
 import com.emc.storageos.volumecontroller.DefaultSnapshotOperations;
 import com.emc.storageos.volumecontroller.TaskCompleter;
 
+/**
+ * Snapshot related operation for Ceph cluster
+ *
+ */
 public class CephSnapshotOperations extends DefaultSnapshotOperations {
 
     private static Logger _log = LoggerFactory.getLogger(CephSnapshotOperations.class);

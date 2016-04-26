@@ -19,6 +19,10 @@ import com.emc.storageos.db.client.model.StorageProvider;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StorageProvider.ConnectionStatus;
 
+/**
+ * Utils for Ceph related operations
+ *
+ */
 public class CephUtils {
 
     private static final Logger _log = LoggerFactory.getLogger(CephUtils.class);

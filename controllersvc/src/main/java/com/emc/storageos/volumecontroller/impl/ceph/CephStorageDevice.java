@@ -48,6 +48,11 @@ import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValues
 import com.iwave.ext.linux.LinuxSystemCLI;
 
 
+/**
+ * Ceph specific provisioning implementation class.
+ * This class is responsible to do all provisioning operations by interacting with Ceph cluster.
+ *
+ */
 public class CephStorageDevice extends DefaultBlockStorageDevice {
 
     private static final Logger _log = LoggerFactory.getLogger(CephStorageDevice.class);
@@ -411,10 +416,22 @@ public class CephStorageDevice extends DefaultBlockStorageDevice {
         completer.error(_dbClient, code);
     }
 
+    /**
+     * Get a client object to communicate with Ceph cluster referenced by given Storage System
+     *
+     * @param storage [in] - Storage System object
+     * @return CephClient object
+     */
     private CephClient getClient(StorageSystem storage) {
         return CephUtils.connectToCeph(_cephClientFactory, storage);
     }
 
+    /**
+     * Initialize Linux host CLI for given host
+     *
+     * @param host [in] - Host object
+     * @return Linux host CLI
+     */
     private LinuxSystemCLI getLinuxClient(Host host) {
         LinuxSystemCLI cli = new LinuxSystemCLI();
         cli.setHost(host.getHostName());
@@ -425,6 +442,12 @@ public class CephStorageDevice extends DefaultBlockStorageDevice {
         return cli;
     }
 
+    /**
+     * Given a collection of Initiators, go through and filter out any initiators
+     * that are not RBD types. The passed in Collection will be modified.
+     *
+     * @param initiators [in/out] - Collection of Initiator objects
+     */
     private void filterInitiators(Collection<Initiator> initiators) {
         Iterator<Initiator> initiatorIterator = initiators.iterator();
         while (initiatorIterator.hasNext()) {
@@ -435,6 +458,12 @@ public class CephStorageDevice extends DefaultBlockStorageDevice {
         }
     }
 
+    /**
+     * Using the ExportMask object, create a volume URI to HLU map. For Ceph HLU is not applicable
+     *
+     * @param exportMask [in] - ExportMask object
+     * @return Volume URI to HLU integer value (allows ExportGroup.LUN_UNASSIGNED)
+     */
     private Map<URI, Integer> createVolumeMapForExportMask(ExportMask exportMask) {
         Map<URI, Integer> map = new HashMap<>();
         for (URI uri : ExportMaskUtils.getVolumeURIs(exportMask)) {
@@ -443,6 +472,15 @@ public class CephStorageDevice extends DefaultBlockStorageDevice {
         return map;
     }
 
+    /**
+     * Map volumes to hosts on the hosts themselves.
+     * 
+     * @param storage [in] - Storage System object
+     * @param exportMask [in/out] - Export Mask object
+     * @param volumeMap [in] - Volume URI to Integer LUN map
+     * @param initiators [in] - Collection of Initiator objects
+     * @param completer [in] - TaskCompleter
+     */
     private void mapVolumes(StorageSystem storage, ExportMask exportMask, Map<URI, Integer> volumeMap, Collection<Initiator> initiators,
     		TaskCompleter completer) {
         _log.info("mapVolumes: exportMask id: {}", exportMask.getId());
@@ -481,6 +519,15 @@ public class CephStorageDevice extends DefaultBlockStorageDevice {
         }
     }
 
+    /**
+     * Unmap volumes from hosts on the hosts themselves.
+     * 
+     * @param storage [in] - StorageSystem object
+     * @param exportMask [in/out] - Export Mask object
+     * @param volumeURIs [in] - Collection of Volume URIs
+     * @param initiators [in] - Collection of Initiator objects
+     * @param completer [in] - TaskCompleter
+     */
     private void unmapVolumes(StorageSystem storage, ExportMask exportMask, List<URI> volumeURIs, Collection<Initiator> initiators,
             TaskCompleter completer) {
         _log.info("unmapVolumes: volumeURIs: {}", volumeURIs);

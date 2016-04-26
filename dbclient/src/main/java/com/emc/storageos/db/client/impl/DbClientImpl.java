@@ -33,6 +33,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.datastax.driver.core.ResultSet;
+import com.datastax.driver.core.Session;
 import com.emc.storageos.coordinator.client.model.Constants;
 import com.emc.storageos.coordinator.client.model.DbVersionInfo;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
@@ -339,6 +340,11 @@ public class DbClientImpl implements DbClient {
         Class<? extends DataObject> clazz = dataObj.getClass();
         return getKeyspace(clazz);
     }
+    
+    protected Session getSession(DataObject dataObj) {
+        Class<? extends DataObject> clazz = dataObj.getClass();
+        return getSession(clazz);
+    }
 
     /**
      * returns either local or geo keyspace depending on class annotation of clazz,
@@ -349,6 +355,10 @@ public class DbClientImpl implements DbClient {
      */
     protected <T extends DataObject> Keyspace getKeyspace(Class<T> clazz) {
         return getDbClientContext(clazz).getKeyspace();
+    }
+    
+    protected <T extends DataObject> Session getSession(Class<T> clazz) {
+        return getDbClientContext(clazz).getCassandraSession();
     }
     
     private <T extends DataObject> DbClientContext getDbClientContext(Class<T> clazz) {
@@ -436,7 +446,8 @@ public class DbClientImpl implements DbClient {
         }
 
         Keyspace ks = getKeyspace(clazz);
-        List<CassandraRows> result = queryRowsWithAllColumns(ids, doType.getCF().getName());
+        Session cassandraSession = getSession(clazz);
+        List<CassandraRows> result = queryRowsWithAllColumns(cassandraSession, ids, doType.getCF().getName());
         List<T> objects = new ArrayList<T>(result.size());
         IndexCleanupList cleanList = new IndexCleanupList();
 
@@ -1513,8 +1524,8 @@ public class DbClientImpl implements DbClient {
         }
     }
     
-    public List<CassandraRows> queryRowsWithAllColumns(Collection<URI> ids, String tableName) {
-        ResultSet resultSet = this.localContext.getCassandraSession()
+    public List<CassandraRows> queryRowsWithAllColumns(Session cassandraSession, Collection<URI> ids, String tableName) {
+        ResultSet resultSet = cassandraSession
             .execute(String.format("Select * from \"%s\" where key in %s", tableName, uriList2String(ids)));
         
         List<CassandraRows> result = new ArrayList<CassandraRows>();

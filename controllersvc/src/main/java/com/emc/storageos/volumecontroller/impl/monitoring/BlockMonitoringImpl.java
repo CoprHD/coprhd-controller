@@ -29,7 +29,6 @@ import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.volumecontroller.impl.smis.CIMConnectionFactory;
 import com.google.common.collect.Sets;
-import com.netflix.astyanax.connectionpool.ConnectionFactory;
 
 /**
  * Takes care monitoring for vmax and vnxblock storage devices.

@@ -94,6 +94,9 @@ public class DbClientContext {
     private String trustStorePassword;
     private boolean isClientToNodeEncrypted;
     private ScheduledExecutorService exe = Executors.newScheduledThreadPool(1);
+
+    private static final int DB_NATIVE_TRANSPORT_PORT = 9042;
+    private static final int GEODB_NATIVE_TRANSPORT_PORT = 9043;
     
     private com.datastax.driver.core.Cluster cassandraCluster;
     private Session cassandraSession;
@@ -302,7 +305,7 @@ public class DbClientContext {
         }
         cassandraCluster = com.datastax.driver.core.Cluster
                 .builder()
-                .addContactPoints(contactPoints).build();
+                .addContactPoints(contactPoints).withPort(getNativeTransportPort()).build();
         cassandraSession = cassandraCluster.connect("\"" + keyspaceName + "\"");
         
         initDone = true;
@@ -347,6 +350,11 @@ public class DbClientContext {
 
     protected int getThriftPort() {
         int port = isGeoDbsvc() ? GEODB_THRIFT_PORT : DB_THRIFT_PORT;
+        return port;
+    }
+    
+    protected int getNativeTransportPort() {
+        int port = isGeoDbsvc() ? GEODB_NATIVE_TRANSPORT_PORT : DB_NATIVE_TRANSPORT_PORT;
         return port;
     }
 

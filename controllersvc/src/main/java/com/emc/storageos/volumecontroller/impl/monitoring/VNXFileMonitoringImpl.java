@@ -26,7 +26,6 @@ import com.emc.storageos.db.client.model.StorageProvider.ConnectionStatus;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.volumecontroller.impl.smis.CIMConnectionFactory;
-import com.netflix.astyanax.connectionpool.ConnectionFactory;
 
 /**
  * Handles monitoring for vnxFile device indications

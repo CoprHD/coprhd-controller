@@ -71,6 +71,8 @@ _resize_data_partition_if_needed() {
 }
 
 dataPartitionName=$(blkid -U ${DATA_UUID})
+echo "Set data partition owner to storageos"
+chown storageos:storageos /data
 echo "Resize data partition if needed"
 _resize_data_partition_if_needed "${dataPartitionName}"
 echo "Resize file system on data partition if needed"

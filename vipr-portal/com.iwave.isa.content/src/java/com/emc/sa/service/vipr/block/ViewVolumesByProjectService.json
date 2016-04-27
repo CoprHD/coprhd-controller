@@ -1,14 +1,12 @@
 {
   baseKey:"ViewVolumesByProject.Block.title",
   serviceId:"ViewVolumesByProject",
-  destructive: true,
   fields:{
     project:{
       type:"assetType.vipr.project"
     },
     volumes: {
-      type:"assetType.vipr.unmountedBlockResource",
-      select:"many"
+      type:"assetType.vipr.snapshotBlockVolume",
     }
   }
 }

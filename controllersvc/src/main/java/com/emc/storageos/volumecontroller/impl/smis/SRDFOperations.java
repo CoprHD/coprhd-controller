@@ -1993,7 +1993,16 @@ public class SRDFOperations implements SmisConstants {
                 invalidTgt.setSrdfParent(new NamedURI(trustedSrc.getId(), trustedSrc.getLabel()));
                 trustedSrc.getSrdfTargets().add(invalidTgt.getId().toString());
                 invalidSrc.getSrdfTargets().remove(invalidTgt.getId().toString());
-
+                
+                // Update the label of the invalid target to match it's new source.
+                VirtualArray invalidTgtVA = dbClient.queryObject(VirtualArray.class, invalidTgt.getVirtualArray());
+                StringBuilder newLabel = new StringBuilder();
+                newLabel.append(trustedSrc.getLabel());
+                newLabel.append("-target-");
+                newLabel.append(invalidTgtVA.getLabel());
+                log.info("Revised name for target: " + newLabel.toString());
+                invalidTgt.setLabel(newLabel.toString());
+                
                 dbClient.updateAndReindexObject(asList(invalidTgt, trustedSrc, invalidSrc));
             }
         }

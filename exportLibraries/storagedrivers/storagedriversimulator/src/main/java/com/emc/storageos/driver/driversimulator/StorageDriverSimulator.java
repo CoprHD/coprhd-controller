@@ -40,19 +40,19 @@ public class StorageDriverSimulator extends AbstractStorageDriver implements Blo
 
     private static final Logger _log = LoggerFactory.getLogger(StorageDriverSimulator.class);
     private static final String DRIVER_NAME = "SimulatorDriver";
-    private static final String STORAGE_DEVICE_ID = "PureStorage-x123";
+    private static final int NUMBER_OF_VOLUME_PAGES = 2;
     private static Integer portIndex = 0;
     private static Map<String, Integer> systemNameToPortIndexName = new HashMap<>();
 
-    // map for array to host to volume export info data;
+    // map for storage system to host to volume export info data;
     // key: array native id
-    // value: map where key is host name and value is volume export info for this host
-    private static Map<String, Map<String, VolumeToHostExportInfo>> arrayToHostToVolumeExportInfoMap = new HashMap<>();
+    // value: map where key is volume native id and value is list of volume export info object for this volume for different hosts (one entry for each host)
+    private static Map<String, Map<String, List<VolumeToHostExportInfo>>> arrayToVolumeToVolumeExportInfoMap = new HashMap<>();
     // defines which volume page is exported to which host
     private static Map<Integer, String> pageToHostMap;
     static
     {
-        pageToHostMap = new HashMap<Integer, String>();
+        pageToHostMap = new HashMap<>();
         pageToHostMap.put(0, "10.20.30.40");
         pageToHostMap.put(1, "10.20.30.50");
         pageToHostMap.put(2, "10.20.30.60");
@@ -62,10 +62,10 @@ public class StorageDriverSimulator extends AbstractStorageDriver implements Blo
     static
     {
         // each host with two initiators
-        hostToInitiatorPortIdMap = new HashMap<String, List<String>>();
-        hostToInitiatorPortIdMap.put(pageToHostMap.get(0), new ArrayList<String>(Arrays.asList("50:06:01:61:36:68:08:81", "50:06:01:61:36:68:08:82")));
-        hostToInitiatorPortIdMap.put(pageToHostMap.get(1), new ArrayList<String>(Arrays.asList("50:06:01:61:36:68:09:81", "50:06:01:61:36:68:09:82")));
-        hostToInitiatorPortIdMap.put(pageToHostMap.get(2), new ArrayList<String>(Arrays.asList("50:06:01:61:36:68:10:81", "50:06:01:61:36:68:10:82")));
+        hostToInitiatorPortIdMap = new HashMap<>();
+        hostToInitiatorPortIdMap.put(pageToHostMap.get(0), new ArrayList<>(Arrays.asList("50:06:01:61:36:68:08:81", "50:06:01:61:36:68:08:82")));
+        hostToInitiatorPortIdMap.put(pageToHostMap.get(1), new ArrayList<>(Arrays.asList("50:06:01:61:36:68:09:81", "50:06:01:61:36:68:09:82")));
+        hostToInitiatorPortIdMap.put(pageToHostMap.get(2), new ArrayList<>(Arrays.asList("50:06:01:61:36:68:10:81", "50:06:01:61:36:68:10:82")));
     }
 
 //    public StorageDriverSimulator(Registry driverRegistry, LockManager lockManager) {
@@ -221,7 +221,11 @@ public class StorageDriverSimulator extends AbstractStorageDriver implements Blo
             // get the last used index and increment by 1 to generate an index
             if (portIndexes != null) {
                 List<String> indexes = portIndexes.get("lastIndex");
-                index = Integer.parseInt(indexes.get(0)) +1;
+                if (indexes != null) {
+                    index = Integer.parseInt(indexes.get(0)) + 1;
+                } else {
+                    index ++;
+                }
             } else {
                 index ++;
             }
@@ -480,7 +484,21 @@ public class StorageDriverSimulator extends AbstractStorageDriver implements Blo
 
     @Override
     public Map<String, VolumeToHostExportInfo> getVolumeToHostExportInfoForHosts(StorageVolume volume) {
-        return null;
+
+        _log.info("Processing export info for volume: {}", volume);
+        String systemId = volume.getStorageSystemId();
+        Map<String,List<VolumeToHostExportInfo>> volumeToHostExportInfoMap = arrayToVolumeToVolumeExportInfoMap.get(systemId);
+        // get volume export data
+        List<VolumeToHostExportInfo> volumeExportInfo = volumeToHostExportInfoMap.get(volume.getNativeId());
+
+        Map<String, VolumeToHostExportInfo> resultMap = new HashMap<>();
+        for (VolumeToHostExportInfo exportInfo : volumeExportInfo) {
+            resultMap.put(exportInfo.getHostName(), exportInfo);
+        }
+
+        _log.info("Export info data for volume {}: {} .", volume, resultMap);
+
+        return resultMap;
     }
 
     @Override
@@ -608,8 +626,12 @@ public class StorageDriverSimulator extends AbstractStorageDriver implements Blo
         // create set of native volumes for our storage pools
         // all volumes on the same page belong to the same consistency group
         if (token.intValue() == 0) {
-            arrayToHostToVolumeExportInfoMap.clear();
+            arrayToVolumeToVolumeExportInfoMap.clear();
         }
+
+        List<StoragePort> ports = new ArrayList<>();
+        discoverStoragePorts(storageSystem, ports);
+
         //for (int vol = 0; vol < 3; vol ++) {
         for (int vol = 0; vol < 2; vol ++) {
             StorageVolume driverVolume = new StorageVolume();
@@ -627,36 +649,48 @@ public class StorageDriverSimulator extends AbstractStorageDriver implements Blo
             storageVolumes.add(driverVolume);
             _log.info("Unmanaged volume info: pool {}, volume {}", driverVolume.getStoragePoolId(), driverVolume);
 
-            // add entry to arrayToHostToVolumeExportInfoMap for this volume
+            // add entry to arrayToVolumeToVolumeExportInfoMap for this volume
             // get host for this page
-            String hostName = pageToHostMap.get(token);
-            Map<String, VolumeToHostExportInfo> hostToExportInfoMap = arrayToHostToVolumeExportInfoMap.get(driverVolume.getStorageSystemId());
-            if (hostToExportInfoMap == null) {
-                hostToExportInfoMap = new HashMap<>();
-                arrayToHostToVolumeExportInfoMap.put(driverVolume.getStorageSystemId(), hostToExportInfoMap);
+            String hostName = pageToHostMap.get(token.intValue());
+            _log.info("Process host {}", hostName);
+            Map<String, List<VolumeToHostExportInfo>> volumeToExportInfoMap = arrayToVolumeToVolumeExportInfoMap.get(driverVolume.getStorageSystemId());
+            if (volumeToExportInfoMap == null) {
+                volumeToExportInfoMap = new HashMap<>();
+                arrayToVolumeToVolumeExportInfoMap.put(driverVolume.getStorageSystemId(), volumeToExportInfoMap);
             }
-            VolumeToHostExportInfo volumeToHostExportInfo = hostToExportInfoMap.get(hostName);
-            if (volumeToHostExportInfo != null) {
-                // add new volume to the volume list
-                volumeToHostExportInfo.getVolumeNativeIds().add(driverVolume.getNativeId());
-            } else {
-                // add entry for the host to the map
-                List<StoragePort> ports = new ArrayList<StoragePort>();
-                discoverStoragePorts(storageSystem, ports);
 
-                // for initiators we only know port network id and host name
-                List<String> hostInitiatorIds = hostToInitiatorPortIdMap.get(hostName);
-                List<Initiator> initiators = new ArrayList<>();
-                for (String initiatorId : hostInitiatorIds) {
-                    Initiator initiator = new Initiator();
-                    initiator.setHostName(hostName);
-                    initiator.setPort(initiatorId);
-                    initiators.add(initiator);
-                }
-                VolumeToHostExportInfo exportInfo = new VolumeToHostExportInfo(hostName, Collections.singletonList(driverVolume.getNativeId()),
-                        initiators, ports);
-                hostToExportInfoMap.put(hostName, exportInfo);
+            List<VolumeToHostExportInfo> volumeToHostExportInfoList = volumeToExportInfoMap.get(driverVolume.getNativeId());
+            if (volumeToHostExportInfoList == null) {
+                volumeToHostExportInfoList = new ArrayList<>();
+                volumeToExportInfoMap.put(driverVolume.getNativeId(), volumeToHostExportInfoList);
             }
+
+            // build volume export info
+            VolumeToHostExportInfo exportInfo;
+            // get volume info
+            List<String> volumeIds = new ArrayList<>();
+            volumeIds.add(driverVolume.getNativeId());
+            // for initiators we only know port network id and host name
+            List<String> hostInitiatorIds = hostToInitiatorPortIdMap.get(hostName);
+            List<Initiator> initiators = new ArrayList<>();
+            for (String initiatorId : hostInitiatorIds) {
+                Initiator initiator = new Initiator();
+                initiator.setHostName(hostName);
+                initiator.setPort(initiatorId);
+                initiators.add(initiator);
+            }
+            // decide about ports.
+            if (token.intValue()%2 == 1) {
+                // for odd pages we generate invalid masks for volumes (to test negative scenarios)
+                int portIndex = vol < ports.size()? vol : ports.size()-1;
+                List<StoragePort> exportPorts = Collections.singletonList(ports.get(portIndex));
+                exportInfo = new VolumeToHostExportInfo(hostName, volumeIds, initiators, exportPorts);
+            } else {
+                exportInfo = new VolumeToHostExportInfo(hostName, volumeIds, initiators, ports);
+            }
+
+            volumeToHostExportInfoList.add(exportInfo);
+            _log.info("VolumeToHostExportInfo: " + volumeToHostExportInfoList);
         }
 
         String taskType = "create-storage-volumes";
@@ -669,7 +703,7 @@ public class StorageDriverSimulator extends AbstractStorageDriver implements Blo
         _log.info("StorageDriver: get storage volumes information for storage system {}, token  {} - end",
                 storageSystem.getNativeId(), token);
         // set next value
-        if (token.intValue() < 1) { // two pages. each page has different consistency group
+        if (token.intValue() < NUMBER_OF_VOLUME_PAGES) { // each page has different consistency group
             token.setValue(token.intValue() + 1);
             //    token.setValue(0); // last page
         } else {

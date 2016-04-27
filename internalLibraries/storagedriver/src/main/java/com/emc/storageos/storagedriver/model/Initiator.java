@@ -138,4 +138,9 @@ public class Initiator extends StorageObject {
     public void setNetworkId(String networkId) {
         this.networkId = networkId;
     }
+
+    @Override
+    public String toString() {
+        return "Initiator port: "+ port+"; native id:"+getNativeId();
+    }
 }

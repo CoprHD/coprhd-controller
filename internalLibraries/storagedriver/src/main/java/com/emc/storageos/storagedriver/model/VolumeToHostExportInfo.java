@@ -56,4 +56,10 @@ public class VolumeToHostExportInfo {
         this.initiators = initiators;
     }
 
+    @Override
+    public String toString() {
+        return "\n\tHost name: "+hostName+"; \n\tvolumes: "+volumeNativeIds+"; \n\tinitiators: "+
+                initiators+"; \n\ttargets: "+targets+"\n";
+    }
+
 }

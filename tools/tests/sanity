@@ -2959,15 +2959,15 @@ recoverpoint_export_bookmark_host_setup()
     if [ "${vpool}" = "rp${rptypetag}_cdp" ]; then
         PWWN1=10:00:00:E0:E0:E0:E0:E0
         WWNN1=20:00:00:E0:E0:E0:E0:E0
-        RP_HOSTNAME=${RP_EXPORT_GROUP_HOST}-cdp
+        RP_HOSTNAME=${RP_EXPORT_GROUP_HOST}-${RANDOM}-cdp
     elif [ "${vpool}" = "rp${rptypetag}_crr" ]; then
         PWWN1=10:00:00:E0:E0:E0:E0:F0
         WWNN1=20:00:00:E0:E0:E0:E0:F0
-        RP_HOSTNAME=${RP_EXPORT_GROUP_HOST}-crr
+        RP_HOSTNAME=${RP_EXPORT_GROUP_HOST}-${RANDOM}-crr
     elif [ "${vpool}" = "rp${rptypetag}_clr" ]; then
         PWWN1=10:00:00:E0:E0:E0:E0:D0
         WWNN1=20:00:00:E0:E0:E0:E0:D0
-        RP_HOSTNAME=${RP_EXPORT_GROUP_HOST}-clr
+        RP_HOSTNAME=${RP_EXPORT_GROUP_HOST}-${RANDOM}-clr
     fi
 
     run hosts create ${RP_HOSTNAME} $TENANT Windows ${RP_HOSTNAME} --port 8111 --username user --password 'password' --osversion 1.0

@@ -154,7 +154,6 @@ import com.emc.storageos.vplex.api.VPlexDeviceInfo;
 import com.emc.storageos.vplex.api.VPlexDistributedDeviceInfo;
 import com.emc.storageos.vplex.api.VPlexInitiatorInfo.Initiator_Type;
 import com.emc.storageos.vplex.api.VPlexMigrationInfo;
-import com.emc.storageos.vplex.api.VPlexPortInfo;
 import com.emc.storageos.vplex.api.VPlexStorageViewInfo;
 import com.emc.storageos.vplex.api.VPlexVirtualVolumeInfo;
 import com.emc.storageos.vplex.api.VPlexVirtualVolumeInfo.WaitOnRebuildResult;
@@ -1643,7 +1642,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             if (srcVolumes != null && varrayToInitiators.get(srcVarray) != null) {
                 srcExportStepId = assembleExportMasksWorkflow(vplex, export, srcVarray,
                         varrayToInitiators.get(srcVarray),
-                        ExportMaskUtils.filterVolumeMap(volumeMap, srcVolumes), workflow, null, opId);
+                        ExportMaskUtils.filterVolumeMap(volumeMap, srcVolumes), workflow, true, null, opId);
             }
 
             // If possible, do the HA side export. To do this we must have both
@@ -1654,7 +1653,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 assembleExportMasksWorkflow(vplex, export, haVarray,
                         varrayToInitiators.get(haVarray),
                         ExportMaskUtils.filterVolumeMap(volumeMap, varrayToVolumes.get(haVarray)),
-                        workflow, null, opId);
+                        workflow, false, null, opId);
             }
 
             // Initiate the workflow.
@@ -1712,6 +1711,27 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
      */
     private String assembleExportMasksWorkflow(URI vplexURI, URI export, URI varrayUri, List<URI> initiators,
             Map<URI, Integer> blockObjectMap, Workflow workflow, String waitFor, String opId) throws Exception {
+        return assembleExportMasksWorkflow(vplexURI, export, varrayUri, initiators, blockObjectMap, workflow, true, waitFor, opId);
+    }
+
+    /**
+     * Method to assemble the find or create VPLEX storage views (export masks) workflow for the given
+     * ExportGroup, Initiators, and the block object Map.
+     *
+     * @param vplexURI the URI of the VPLEX StorageSystem object
+     * @param export the ExportGroup in question
+     * @param varrayUri -- NOTE! The varrayURI may NOT be the same as the exportGroup varray!.
+     * @param initiators if initiators is null, the method will use all initiators from the ExportGroup
+     * @param blockObjectMap the key (URI) of this map can reference either the volume itself or a snapshot.
+     * @param rename Add rename step.
+     * @param workflow the controller workflow
+     * @param waitFor -- If non-null, will wait on previous workflow step
+     * @param opId the workflow step id
+     * @return the last Workflow Step id
+     * @throws Exception
+     */
+    private String assembleExportMasksWorkflow(URI vplexURI, URI export, URI varrayUri, List<URI> initiators,
+            Map<URI, Integer> blockObjectMap, Workflow workflow, boolean rename, String waitFor, String opId) throws Exception {
 
         long startAssembly = new Date().getTime();
 
@@ -1929,29 +1949,35 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                     storageViewStepId, exportMask, shared);
 
         }
-        
-        for (URI volURI : filteredBlockObjectMap.keySet()) {
-            BlockObject bo = Volume.fetchExportMaskBlockObject(_dbClient, volURI);
-            if (bo.getStorageController().equals(vplexURI)) {
-                // Added a workflow step to rename a VPLEX virtual volume using the resolved value from Custom Config template
-                for(String associatedVolume : ((Volume)bo).getAssociatedVolumes()) {
-                    Volume storageVolume = getDataObject(Volume.class, new URI(associatedVolume), _dbClient);
-                    StorageSystem storage = _dbClient.queryObject(StorageSystem.class, storageVolume.getStorageController());
-                    String configName = null;
-                    if(!exportGroup.getType().equals(ExportGroup.ExportGroupType.Cluster.name())) {
-                        configName = CustomConfigConstants.VPLEX_HOST_LOCAL_VIRTUAL_VOLUME_NAME;
-                    } else {
-                        configName = CustomConfigConstants.VPLEX_CLUSTER_LOCAL_VIRTUAL_VOLUME_NAME;
+        if (rename) {
+            for (URI volURI : filteredBlockObjectMap.keySet()) {
+                BlockObject bo = Volume.fetchExportMaskBlockObject(_dbClient, volURI);
+                if (bo.getStorageController().equals(vplexURI)) {
+                    // Added a workflow step to rename a VPLEX virtual volume using the resolved value from Custom Config template
+                    StringSet associatedVolumes = ((Volume)bo).getAssociatedVolumes();
+                    if ((associatedVolumes != null) && (!associatedVolumes.isEmpty())) {
+                        String configName = null;
+                        if (associatedVolumes.size() > 1) {
+                            configName = CustomConfigConstants.VPLEX_CLUSTER_DIST_VIRTUAL_VOLUME_NAME;
+                        } else if(!exportGroup.getType().equals(ExportGroup.ExportGroupType.Cluster.name())) {
+                            configName = CustomConfigConstants.VPLEX_HOST_LOCAL_VIRTUAL_VOLUME_NAME;
+                        } else {
+                            configName = CustomConfigConstants.VPLEX_CLUSTER_LOCAL_VIRTUAL_VOLUME_NAME;
+                        }
+                        
+                        String associatedVolume = associatedVolumes.iterator().next();
+                        Volume storageVolume = getDataObject(Volume.class, new URI(associatedVolume), _dbClient);
+                        StorageSystem storage = _dbClient.queryObject(StorageSystem.class, storageVolume.getStorageController());
+                        DataSource dataSource = dataSourceFactory.createVirtualVolumeNameDataSource(storage, storageVolume.getNativeId(), exportGroup.getType(), exportGroup.getLabel());
+                        String newVirtualVolName = customConfigHandler.getComputedCustomConfigValue(
+                                configName, vplexSystem.getSystemType(), dataSource);
+                        String oldVirtualVolumeName = bo.getDeviceLabel();
+                        _log.info(String.format("Custom config name for VPLEX Virtual Name is resolved to %s", newVirtualVolName));
+            			_log.info(String.format("Old VPLEX Virtual Name is %s", oldVirtualVolumeName));
+                        _log.info("Renaming VPLEX virtual volume");
+                        client = getVPlexAPIClient(_vplexApiFactory, vplexURI, _dbClient);
+                        handleVirtualVolumeRenaming(vplexURI, vplexSystem.getSystemType(), bo.getId(), newVirtualVolName, oldVirtualVolumeName, "storageView", workflow);
                     }
-                    DataSource dataSource = dataSourceFactory.createVirtualVolumeNameDataSource(storage, storageVolume.getNativeId(), exportGroup.getType(), exportGroup.getLabel());
-                    String newVirtualVolName = customConfigHandler.getComputedCustomConfigValue(
-                            configName, vplexSystem.getSystemType(), dataSource);
-                    String oldVirtualVolumeName = bo.getDeviceLabel();
-                    _log.info(String.format("Custom config name for VPLEX Virtual Name is resolved to %s", newVirtualVolName));
-        			_log.info(String.format("Old VPLEX Virtual Name is %s", oldVirtualVolumeName));
-                    _log.info("Renaming VPLEX virtual volume");
-                    client = getVPlexAPIClient(_vplexApiFactory, vplexURI, _dbClient);
-                    storageViewStepId = handleVirtualVolumeRenaming(vplexURI, vplexSystem.getSystemType(), bo.getId(), newVirtualVolName, oldVirtualVolumeName, storageViewStepId, workflow);
                 }
             }
         }

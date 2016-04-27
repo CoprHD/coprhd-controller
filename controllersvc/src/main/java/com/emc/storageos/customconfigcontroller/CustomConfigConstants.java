@@ -56,10 +56,14 @@ public interface CustomConfigConstants {
     public String XTREMIO_CLUSTER_INITIATOR_GROUP_FOLDER_NAME = "XtremIOClusterInitiatorGroupFolderName";
 
     public String VPLEX_STORAGE_VIEW_NAME = "VPlexStorageViewName";
-    /** The config_name for virtual volume name in a local environment when exported to host*/
-    public String VPLEX_HOST_LOCAL_VIRTUAL_VOLUME_NAME = "VPlexHostLocalVirtualVolumeName";
-    /** The config_name for virtual volume name in a local environment when exported to cluster*/
-    public String VPLEX_CLUSTER_LOCAL_VIRTUAL_VOLUME_NAME = "VPlexClusterLocalVirtualVolumeName";
+    public String VPLEX_LOCAL_VOLUME_NAME = "VPlexLocalVolumeName";
+    public String VPLEX_HOST_EXPORT_LOCAL_VOLUME_NAME = "VPlexHostExportLocalVolumeName";
+    public String VPLEX_CLUSTER_EXPORT_LOCAL_VOLUME_NAME = "VPlexClusterExportLocalVolumeName";
+    public String VPLEX_DISTRIBUTED_VOLUME_NAME = "VPlexDistributedVolumeName";
+    public String VPLEX_HOST_EXPORT_DISTRIBUTED_VOLUME_NAME = "VPlexHostExportDistributedVolumeName";
+    public String VPLEX_CLUSTER_EXPORT_DISTRIBUTED_VOLUME_NAME = "VPlexClusterExportDistributedVolumeName";
+    public String HA_SERIAL_NUMBER = "haSerialNumber";
+    public String HA_NATIVE_ID = "haNativeId";
 
     public String HDS_HOST_STORAGE_DOMAIN_NAME_MASK_NAME = "HDSHostStorageDomainName";
     public String HDS_HOST_STORAGE_DOMAIN_NICKNAME_MASK_NAME = "HDSHostStorageDomainNickName";

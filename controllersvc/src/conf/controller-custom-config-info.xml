@@ -55,12 +55,15 @@
                 <ref bean="vplexStorageViewName"/>
                 <ref bean="vplexMigrationSpeed"/>
                 <ref bean="vplexVmaxMaskingViewMaximumVolumes"/>
-                <ref bean="vplexHostLocalVirtualVolumeName"/>
-                <ref bean="vplexClusterLocalVirtualVolumeName"/>
-                <ref bean="vplexDistributedVirtualVolumeName"/>
+                <ref bean="vplexLocalVolumeName"/>
+                <ref bean="vplexHostExportLocalVolumeName"/>
+                <ref bean="vplexClusterExportLocalVolumeName"/>
+                <ref bean="vplexDistributedVolumeName"/>
+                <ref bean="vplexHostExportDistributedVolumeName"/>
+                <ref bean="vplexClusterExportDistributedVolumeName"/>
                 <ref bean="nasDynamicPerformancePlacementEnabled"/>
                 <ref bean="nasUsePhysicalNASForProvisioning"/>
-                <ref bean="nasShareVNASWithMultipleProjects"/>
+                <ref bean="nasShareVNASWithMultipleProjects"/>          
             </list>
         </property>
     </bean>
@@ -664,26 +667,89 @@
         </property>
     </bean>
 
-    <bean id="vplexHostLocalVirtualVolumeName" class="com.emc.storageos.customconfigcontroller.CustomConfigType">
-        <property name="name" value="VPlexHostLocalVirtualVolumeName"/>
+    <bean id="vplexLocalVolumeName" class="com.emc.storageos.customconfigcontroller.CustomConfigType">
+        <property name="name" value="VPlexLocalVolumeName"/>
         <property name="configType" value="CustomName"/>
         <property name="type" value="String"/>
         <property name="dataSourceVariables">
             <map>
-                <entry key-ref="hostName" value="true"/>
-                <entry key-ref="storageSystemSerialNumber" value="true"/>
-                <entry key-ref="volumeNativeId" value="true"/>
+                <entry key-ref="volumeLabel" value="true"/>
+                <entry key-ref="projectName" value="false"/>
+                <entry key-ref="storageSystemSerialNumber" value="false"/>
+                <entry key-ref="volumeNativeId" value="false"/>
             </map>
         </property>
         <property name="scope">
             <map>
-                <entry key="global" value="default"/>
                 <entry key="systemType" value="vplex"/>
             </map>
         </property>
         <property name="defaultValues">
             <map>
-                <entry key="default" value="(device_V{array_serial_number}-{vol_nativeid}).REPLACE(&quot;__&quot;, &quot;_&quot;)_vol"/>
+                <entry key="vplex" value="(volumeLabel)"/>
+            </map>
+        </property>
+        <property name="constraints">
+            <list>
+                <ref bean="illegalCharsConstraint"/>
+                <ref bean="virtualVolNameMaxLengthConstraint"/>
+            </list>
+        </property>
+    </bean>
+    
+    <bean id="vplexHostExportLocalVolumeName" class="com.emc.storageos.customconfigcontroller.CustomConfigType">
+        <property name="name" value="VPlexHostExportLocalVolumeName"/>
+        <property name="configType" value="CustomName"/>
+        <property name="type" value="String"/>
+        <property name="dataSourceVariables">
+            <map>
+                <entry key-ref="volumeLabel" value="true"/>
+                <entry key-ref="projectName" value="false"/>
+                <entry key-ref="storageSystemSerialNumber" value="false"/>
+                <entry key-ref="volumeNativeId" value="false"/>
+                <entry key-ref="hostLabel" value="true"/>
+                <entry key-ref="hostName" value="true"/>
+            </map>
+        </property>
+        <property name="scope">
+            <map>
+                <entry key="systemType" value="vplex"/>
+            </map>
+        </property>
+        <property name="defaultValues">
+            <map>
+                <entry key="vplex" value="(volumeLabel)"/>
+            </map>
+        </property>
+        <property name="constraints">
+            <list>
+                <ref bean="illegalCharsConstraint"/>
+                <ref bean="virtualVolNameMaxLengthConstraint"/>
+            </list>
+        </property>
+    </bean>
+    
+    <bean id="vplexClusterExportLocalVolumeName" class="com.emc.storageos.customconfigcontroller.CustomConfigType">
+        <property name="name" value="VPlexClusterExportLocalVolumeName"/>
+        <property name="configType" value="CustomName"/>
+        <property name="type" value="String"/>
+        <property name="dataSourceVariables">
+            <map>
+                <entry key-ref="volumeLabel" value="true"/>
+                <entry key-ref="projectName" value="false"/>
+                <entry key-ref="storageSystemSerialNumber" value="false"/>
+                <entry key-ref="volumeNativeId" value="false"/>
+                <entry key-ref="clusterName" value="true"/>
+            </map>
+        </property>
+        <property name="scope">
+            <map>
+                <entry key="systemType" value="vplex"/>
+            </map>
+        </property>
+        <property name="defaultValues">
+            <map>
+                <entry key="vplex" value="(volumeLabel)"/>
             </map>
         </property>
         <property name="constraints">
@@ -694,26 +760,62 @@
         </property>
     </bean>
 
-    <bean id="vplexClusterLocalVirtualVolumeName" class="com.emc.storageos.customconfigcontroller.CustomConfigType">
-        <property name="name" value="VPlexClusterLocalVirtualVolumeName"/>
+    <bean id="vplexDistributedVolumeName" class="com.emc.storageos.customconfigcontroller.CustomConfigType">
+        <property name="name" value="VPlexDistributedVolumeName"/>
         <property name="configType" value="CustomName"/>
         <property name="type" value="String"/>
         <property name="dataSourceVariables">
             <map>
-                <entry key-ref="clusterName" value="true"/>
-                <entry key-ref="storageSystemSerialNumber" value="true"/>
-                <entry key-ref="volumeNativeId" value="true"/>
+                <entry key-ref="volumeLabel" value="true"/>
+                <entry key-ref="projectName" value="false"/>
+                <entry key-ref="storageSystemSerialNumber" value="false"/>
+                <entry key-ref="volumeNativeId" value="false"/>
+                <entry key-ref="haStorageSystemSerialNumber" value="false"/>
+                <entry key-ref="haVolumeNativeId" value="false"/>
             </map>
         </property>
         <property name="scope">
             <map>
-                <entry key="global" value="default"/>
                 <entry key="systemType" value="vplex"/>
             </map>
         </property>
         <property name="defaultValues">
             <map>
-                <entry key="default" value="(device_V{array_serial_number}-{vol_nativeid}).REPLACE(&quot;__&quot;, &quot;_&quot;)_vol"/>
+                <entry key="vplex" value="(volumeLabel)"/>
+            </map>
+        </property>
+        <property name="constraints">
+            <list>
+                <ref bean="illegalCharsConstraint"/>
+                <ref bean="virtualVolNameMaxLengthConstraint"/>
+            </list>
+        </property>
+    </bean>
+    
+    <bean id="vplexHostExportDistributedVolumeName" class="com.emc.storageos.customconfigcontroller.CustomConfigType">
+        <property name="name" value="VPlexHostExportDistributedVolumeName"/>
+        <property name="configType" value="CustomName"/>
+        <property name="type" value="String"/>
+        <property name="dataSourceVariables">
+            <map>
+                <entry key-ref="volumeLabel" value="true"/>
+                <entry key-ref="projectName" value="false"/>
+                <entry key-ref="storageSystemSerialNumber" value="false"/>
+                <entry key-ref="volumeNativeId" value="false"/>
+                <entry key-ref="haStorageSystemSerialNumber" value="false"/>
+                <entry key-ref="haVolumeNativeId" value="false"/>
+                <entry key-ref="hostLabel" value="true"/>
+                <entry key-ref="hostName" value="true"/>
+            </map>
+        </property>
+        <property name="scope">
+            <map>
+                <entry key="systemType" value="vplex"/>
+            </map>
+        </property>
+        <property name="defaultValues">
+            <map>
+                <entry key="vplex" value="(volumeLabel)"/>
             </map>
         </property>
         <property name="constraints">
@@ -724,27 +826,29 @@
         </property>
     </bean>
 
-    <bean id="vplexDistributedVirtualVolumeName" class="com.emc.storageos.customconfigcontroller.CustomConfigType">
-        <property name="name" value="VPlexDistributedVirtualVolumeName"/>
+    <bean id="vplexClusterExportDistributedVolumeName" class="com.emc.storageos.customconfigcontroller.CustomConfigType">
+        <property name="name" value="VPlexClusterExportDistributedVolumeName"/>
         <property name="configType" value="CustomName"/>
         <property name="type" value="String"/>
         <property name="dataSourceVariables">
             <map>
-                <entry key-ref="hostName" value="true"/>
+                <entry key-ref="volumeLabel" value="true"/>
+                <entry key-ref="projectName" value="false"/>
+                <entry key-ref="storageSystemSerialNumber" value="false"/>
+                <entry key-ref="volumeNativeId" value="false"/>
+                <entry key-ref="haStorageSystemSerialNumber" value="false"/>
+                <entry key-ref="haVolumeNativeId" value="false"/>
                 <entry key-ref="clusterName" value="true"/>
-                <entry key-ref="storageSystemSerialNumber" value="true"/>
-                <entry key-ref="volumeNativeId" value="true"/>
             </map>
         </property>
         <property name="scope">
             <map>
-                <entry key="global" value="default"/>
                 <entry key="systemType" value="vplex"/>
             </map>
         </property>
         <property name="defaultValues">
             <map>
-                <entry key="default" value="(dd_V{array_serial_number}-{vol_nativeid}).REPLACE(&quot;__&quot;, &quot;_&quot;)_vol"/>
+                <entry key="vplex" value="(volumeLabel)"/>
             </map>
         </property>
         <property name="constraints">
@@ -1265,6 +1369,27 @@
         <property name="propertyName" value="nativeId"/>
         <property name="sample" value="01370"/>
     </bean>
+    
+    <bean id="volumeLabel" class="com.emc.storageos.customconfigcontroller.DataSourceVariable">
+        <property name="sourceClass" value="com.emc.storageos.db.client.model.Volume"/>
+        <property name="displayName" value="volume_label"/>
+        <property name="propertyName" value="label"/>
+        <property name="sample" value="volumeABC"/>
+    </bean>
+
+    <bean id="haStorageSystemSerialNumber" class="com.emc.storageos.customconfigcontroller.ComputedDataSourceVariable">
+        <property name="sourceClass" value="com.emc.storageos.db.client.model.StorageSystem"/>
+        <property name="displayName" value="ha_array_serial_number"/>
+        <property name="computedPropertyName" value="haSerialNumber"/>
+        <property name="sample" value="000123456789"/>
+    </bean>
+    
+    <bean id="haVolumeNativeId" class="com.emc.storageos.customconfigcontroller.ComputedDataSourceVariable">
+        <property name="sourceClass" value="com.emc.storageos.db.client.model.Volume"/>
+        <property name="displayName" value="ha_vol_nativeid"/>
+        <property name="computedPropertyName" value="haNativeId"/>
+        <property name="sample" value="01370"/>
+    </bean>    
 
 	<bean id="projectName" class="com.emc.storageos.customconfigcontroller.DataSourceVariable">
         <property name="sourceClass" value="com.emc.storageos.db.client.model.Project"/>

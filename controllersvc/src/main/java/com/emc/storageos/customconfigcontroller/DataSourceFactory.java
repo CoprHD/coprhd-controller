@@ -185,7 +185,7 @@ public class DataSourceFactory {
      * @return a data source populated with the properties needed to resolve
      *         VPLEX virtual volume name
      */
-    public DataSource createVirtualVolumeNameDataSource(StorageSystem storageSystem, String nativeId, String exportType, String hostName) {
+/*    public DataSource createVirtualVolumeNameDataSource(StorageSystem storageSystem, String nativeId, String exportType, String hostName) {
         Volume volume = new Volume();
         volume.setNativeId(nativeId);
         DataSource source = null;
@@ -199,7 +199,45 @@ public class DataSourceFactory {
                     new DataObject[] { getHostByName(hostName), storageSystem, volume });
         }
         return source;
+    }*/
+    
+    public DataSource createVPlexVolumeNameDataSource(Project project, String label, StorageSystem storageSystem, String nativeId,
+            StorageSystem haStorageSystem, String haNativeId, String exportType, String hostName) {
+        DataSource source = null;
+        String configName = null;
+        Volume volume = new Volume();
+        volume.setNativeId(nativeId);
+        volume.setLabel(label);
+        if ((haStorageSystem != null) && (haNativeId != null)) {
+            Map<String, String> computedValueMap = new HashMap<String, String>();
+            computedValueMap.put(CustomConfigConstants.HA_SERIAL_NUMBER, haStorageSystem.getSerialNumber());
+            computedValueMap.put(CustomConfigConstants.HA_NATIVE_ID, haNativeId);
+            configName = CustomConfigConstants.VPLEX_DISTRIBUTED_VOLUME_NAME;
+            if ((exportType != null) && (ExportGroup.ExportGroupType.Cluster.name().equals(exportType))) {
+                configName = CustomConfigConstants.VPLEX_CLUSTER_EXPORT_DISTRIBUTED_VOLUME_NAME;
+                Cluster cluster = new Cluster();
+                cluster.setLabel(hostName);
+                source = createDataSource(configName, new DataObject[] { cluster, storageSystem, volume, project }, computedValueMap);
+            } else if ((exportType != null) && (ExportGroup.ExportGroupType.Host.name().equals(exportType))) {
+                configName = CustomConfigConstants.VPLEX_HOST_EXPORT_DISTRIBUTED_VOLUME_NAME;
+                source = createDataSource(configName, new DataObject[] { getHostByName(hostName), storageSystem, volume, project }, computedValueMap);
+            }
+        } else {
+            configName = CustomConfigConstants.VPLEX_LOCAL_VOLUME_NAME;
+            if ((exportType != null) && (ExportGroup.ExportGroupType.Cluster.name().equals(exportType))) {
+                configName = CustomConfigConstants.VPLEX_CLUSTER_EXPORT_LOCAL_VOLUME_NAME;
+                Cluster cluster = new Cluster();
+                cluster.setLabel(hostName);
+                source = createDataSource(configName, new DataObject[] { cluster, storageSystem, volume, project });
+            } else if ((exportType != null) && (ExportGroup.ExportGroupType.Host.name().equals(exportType))) {
+                configName = CustomConfigConstants.VPLEX_HOST_EXPORT_LOCAL_VOLUME_NAME;
+                source = createDataSource(configName, new DataObject[] { getHostByName(hostName), storageSystem, volume, project });
+            }
+        }
+        
+        return source;
     }
+
 
     /**
      * Creates a datasource used for export operations

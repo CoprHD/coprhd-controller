@@ -2935,7 +2935,7 @@ recoverpoint_export_bookmark_tests()
                 if [ "$RP_VOLUME_COUNT" -gt "1" ]; then
                     volume_identifier='-'${i}
                 fi
-                blocksnapshot delete ${PROJECT}/${rpvolume}/${rpsnap}${volume_identifier}-${tgt_varray}
+                blocksnapshot delete ${PROJECT}/${rpvolume}${volume_identifier}/${rpsnap}-${tgt_varray}
             done
         done
 

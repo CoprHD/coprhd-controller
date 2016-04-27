@@ -238,7 +238,7 @@ public class CephStorageDevice extends DefaultBlockStorageDevice {
             TaskCompleter taskCompleter) throws DeviceControllerException {
         _log.info("{} Ceph doExportGroupCreate START ...", storage.getSerialNumber());
 		filterInitiators(initiators);
-		mapVolumes(storage, exportMask, volumeMap, initiators, taskCompleter);
+		mapVolumes(storage, volumeMap, initiators, taskCompleter);
         _log.info("{} doExportGroupCreate END...", storage.getSerialNumber());
     }
 
@@ -249,7 +249,7 @@ public class CephStorageDevice extends DefaultBlockStorageDevice {
     	List<URI> volumeURIs = ExportMaskUtils.getVolumeURIs(exportMask);
         Set<Initiator> initiators = ExportMaskUtils.getInitiatorsForExportMask(_dbClient, exportMask, null);
         filterInitiators(initiators);
-        unmapVolumes(storage, exportMask, volumeURIs, initiators, taskCompleter);
+        unmapVolumes(storage, volumeURIs, initiators, taskCompleter);
         _log.info("{} Ceph: doExportGroupDelete END...", storage.getSerialNumber());
     }
 
@@ -259,7 +259,7 @@ public class CephStorageDevice extends DefaultBlockStorageDevice {
         _log.info("{} Ceph: doExportAddVolumes START ...", storage.getSerialNumber());
         Set<Initiator> initiators = ExportMaskUtils.getInitiatorsForExportMask(_dbClient, exportMask, null);
         filterInitiators(initiators);
-		mapVolumes(storage, exportMask, volumeMap, initiators, taskCompleter);
+		mapVolumes(storage, volumeMap, initiators, taskCompleter);
         _log.info("{}  Ceph: doExportAddVolumes END...", storage.getSerialNumber());
 
     }
@@ -270,7 +270,7 @@ public class CephStorageDevice extends DefaultBlockStorageDevice {
         _log.info("{} Ceph doExportRemoveVolumes START ...", storage.getSerialNumber());
         Set<Initiator> initiators = ExportMaskUtils.getInitiatorsForExportMask(_dbClient, exportMask, null);
         filterInitiators(initiators);
-        unmapVolumes(storage, exportMask, volumeURIs, initiators, taskCompleter);
+        unmapVolumes(storage, volumeURIs, initiators, taskCompleter);
         _log.info("{} Ceph: doExportRemoveVolumes END...", storage.getSerialNumber());
     }
 
@@ -293,7 +293,7 @@ public class CephStorageDevice extends DefaultBlockStorageDevice {
             TaskCompleter taskCompleter) throws DeviceControllerException {
         _log.info("{} Ceph doExportAddInitiators START ...", storage.getSerialNumber());
         Map<URI, Integer> volumes = createVolumeMapForExportMask(exportMask);
-        mapVolumes(storage, exportMask, volumes, initiators, taskCompleter);
+        mapVolumes(storage, volumes, initiators, taskCompleter);
         _log.info("{} Ceph: doExportAddInitiators END...", storage.getSerialNumber());
     }
 
@@ -302,7 +302,7 @@ public class CephStorageDevice extends DefaultBlockStorageDevice {
             TaskCompleter taskCompleter) throws DeviceControllerException {
         _log.info("{} Ceph doExportRemoveInitiators START ...", storage.getSerialNumber());
         List<URI> volumeURIs = ExportMaskUtils.getVolumeURIs(exportMask);
-        unmapVolumes(storage, exportMask, volumeURIs, initiators, taskCompleter);
+        unmapVolumes(storage, volumeURIs, initiators, taskCompleter);
         _log.info("{} Ceph: doExportRemoveInitiators END...", storage.getSerialNumber());
     }
 
@@ -476,14 +476,12 @@ public class CephStorageDevice extends DefaultBlockStorageDevice {
      * Map volumes to hosts on the hosts themselves.
      * 
      * @param storage [in] - Storage System object
-     * @param exportMask [in/out] - Export Mask object
      * @param volumeMap [in] - Volume URI to Integer LUN map
      * @param initiators [in] - Collection of Initiator objects
      * @param completer [in] - TaskCompleter
      */
-    private void mapVolumes(StorageSystem storage, ExportMask exportMask, Map<URI, Integer> volumeMap, Collection<Initiator> initiators,
+    private void mapVolumes(StorageSystem storage, Map<URI, Integer> volumeMap, Collection<Initiator> initiators,
     		TaskCompleter completer) {
-        _log.info("mapVolumes: exportMask id: {}", exportMask.getId());
         _log.info("mapVolumes: volumeMap: {}", volumeMap);
         _log.info("mapVolumes: initiators: {}", initiators);
     	try {
@@ -499,9 +497,7 @@ public class CephStorageDevice extends DefaultBlockStorageDevice {
 	                if (initiator.getProtocol().equalsIgnoreCase(HostInterface.Protocol.RBD.name())) {
 	                	_log.info(String.format("mapVolume: host %s pool %s volume %s", host.getHostName(), rbdOptions.poolName, rbdOptions.volumeName));    	
 	                	LinuxSystemCLI linuxClient = getLinuxClient(host);
-	                	String id = linuxClient.mapRBD(monitorAddress, monitorUser, monitorKey, rbdOptions.poolName, rbdOptions.volumeName, rbdOptions.snapshotName);
-	                	exportMask.addVolume(object.getId(), Integer.valueOf(id));
-	                	_dbClient.updateObject(exportMask);
+	                	linuxClient.mapRBD(monitorAddress, monitorUser, monitorKey, rbdOptions.poolName, rbdOptions.volumeName, rbdOptions.snapshotName);
 	                } else {
 	                	String msg = String.format("Unexpected initiator protocol %s, port %s, pool %s, volume %s",
 	                			initiator.getProtocol(), initiator.getInitiatorPort(), rbdOptions.poolName, rbdOptions.volumeName);
@@ -523,21 +519,16 @@ public class CephStorageDevice extends DefaultBlockStorageDevice {
      * Unmap volumes from hosts on the hosts themselves.
      * 
      * @param storage [in] - StorageSystem object
-     * @param exportMask [in/out] - Export Mask object
      * @param volumeURIs [in] - Collection of Volume URIs
      * @param initiators [in] - Collection of Initiator objects
      * @param completer [in] - TaskCompleter
      */
-    private void unmapVolumes(StorageSystem storage, ExportMask exportMask, List<URI> volumeURIs, Collection<Initiator> initiators,
+    private void unmapVolumes(StorageSystem storage, List<URI> volumeURIs, Collection<Initiator> initiators,
             TaskCompleter completer) {
         _log.info("unmapVolumes: volumeURIs: {}", volumeURIs);
         _log.info("unmapVolumes: initiators: {}", initiators);
     	try {
 	    	for (URI uri : volumeURIs) {
-	    		if (exportMask.checkIfVolumeHLUSet(uri)) {
-	            	_log.warn("Attempted to unmap BlockObject {}, which has not HLU set", uri);
-	            	continue;
-	    		}
 	    		BlockObject object = BlockObject.fetch(_dbClient, uri);
 	            if (object == null) {
 	            	_log.warn("Attempted to unmap BlockObject {}, which is empty", uri);
@@ -554,8 +545,6 @@ public class CephStorageDevice extends DefaultBlockStorageDevice {
 	                if (initiator.getProtocol().equalsIgnoreCase(HostInterface.Protocol.RBD.name())) {
 	            		LinuxSystemCLI linuxClient = getLinuxClient(host);
 	            		linuxClient.unmapRBD(rbdOptions.poolName, rbdOptions.volumeName, rbdOptions.snapshotName);
-	            		exportMask.removeVolume(uri);
-	                	_dbClient.updateObject(exportMask);
 	                } else {
 	                	String msgPattern = "Unexpected initiator protocol %s for port %s and uri %s";
 	                	String msg = String.format(msgPattern, initiator.getProtocol(), port, uri);

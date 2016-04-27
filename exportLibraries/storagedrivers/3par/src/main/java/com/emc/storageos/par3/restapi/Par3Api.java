@@ -5,6 +5,8 @@ import java.util.Map;
 
 import org.apache.commons.lang.mutable.MutableBoolean;
 import org.apache.commons.lang.mutable.MutableInt;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.storagedriver.AbstractStorageDriver;
 import com.emc.storageos.storagedriver.BlockStorageDriver;
@@ -27,6 +29,8 @@ import com.emc.storageos.storagedriver.storagecapabilities.StorageCapabilities;
 
 public class Par3Api extends AbstractStorageDriver implements BlockStorageDriver {
 
+	private static final Logger _log = LoggerFactory.getLogger(Par3Api.class);
+	
 	@Override
 	public List<String> getSystemTypes() {
 		// TODO Auto-generated method stub
@@ -54,6 +58,7 @@ public class Par3Api extends AbstractStorageDriver implements BlockStorageDriver
 	@Override
 	public DriverTask discoverStorageSystem(List<StorageSystem> storageSystems) {
 		// TODO Auto-generated method stub
+		 _log.info("3PAR discovery successsful"); 
 		return null;
 	}
 

@@ -68,7 +68,7 @@ ext {
         "org.apache.cassandra:cassandra-all:2.1.11",
         "org.apache.commons:commons-lang3:3.1",
         "org.apache.commons:commons-math3:3.2",
-        "com.google.guava:guava:16.0",
+        "com.google.guava:guava:16.0.1",
         "com.ning:compress-lzf:0.8.4",
         "com.boundary:high-scale-lib:1.0.6",
         "org.codehaus.jackson:jackson-mapper-asl:1.9.2", 
@@ -78,7 +78,8 @@ ext {
         "jline:jline:1.0",
         "com.googlecode.json-simple:json-simple:1.1", 
         "net.jpountz.lz4:lz4:1.2.0",
-        "com.yammer.metrics:metrics-core:2.2.0",
+        "com.yammer.metrics:metrics-core:2.2.0", //cassandra 2.1 depends on it, will remove when upgrade to 2.2
+        "io.dropwizard.metrics:metrics-core:3.1.2",
         "javax.servlet:servlet-api:2.5",
         "org.yaml:snakeyaml:1.11",
         "edu.stanford.ppl:snaptree:0.1",
@@ -98,6 +99,7 @@ ext {
         "com.addthis.metrics:reporter-config:2.1.0",
         "com.thinkaurelius.thrift:thrift-server:0.3.7",
         "io.airlift:airline:0.6",
+        "io.netty:netty-handler:4.0.33.Final",
 		"com.datastax.cassandra:cassandra-driver-core:3.0.0",
     ]
 
@@ -167,7 +169,7 @@ ext {
 
     ]
     guava = [
-        "com.google.guava:guava:17.0",
+        "com.google.guava:guava:16.0.1",
 
     ]
     jersey = [

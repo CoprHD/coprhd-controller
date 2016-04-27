@@ -51,13 +51,14 @@ $(echo $existingProjects | grep -q $project) || {
 }
 
 # Virtual arrays
-SITEr1=site1			# The source SRDF site and source 1st VPLEX site
-SITEr2=site3			# The target SRDF site and possible 2nd VPLEX site
-SITEha=site2			# The 1st VPLEX HA site
-SITEdummy=dummy			# Dummy site to hold unassigned ports
+SITEr1=site220cl1			# The source SRDF site and source 1st VPLEX site
+SITEr2=site154cl2			# The target SRDF site and possible 2nd VPLEX site
+SITEha=site220cl2			# The 1st VPLEX HA site
+SITEr2ha=site154cl1			# The 2nd VPLEX HA site
 
 # Virtual pools
-VPOOL1=vrdfsrc		# The source virtual pool under test
+VPOOL1=${VPOOL1:-vrdfsrc}		# The source virtual pool under test
+
 
 # Configuration file to be used  
 source $SANITY_CONFIG_FILE 
@@ -162,7 +163,7 @@ host_create() {
 
 
 # Control over running individual parts of the test (true/false)
-create_volume=false			# if false, specify volname1 and CGlabel
+create_volume=true			# if false, specify volname1 and CGlabel
 export_volume=false
 test_protection_ops=false
 test_expand=false
@@ -171,7 +172,7 @@ test_r2_snapvx_nocopy=false
 test_r1_fullcopy=false
 test_r2_fullcopy=false
 delete_volume=false
-create_delete_loop=true			# specify $volname1 and $CGlabel
+create_delete_loop=false			# specify $volname1 and $CGlabel
 
 # Setup basic varrays
 vplexsrdf_setup() {
@@ -187,8 +188,8 @@ vplexsrdf_setup() {
      $(echo $existingVAs | grep -q $SITEha ) || {
          neighborhood create $SITEha
      }
-     $(echo $existingVAs | grep -q $SITEdummy ) || {
-         neighborhood create $SITEdummy
+     $(echo $existingVAs | grep -q $SITEr2ha ) || {
+         neighborhood create $SITEr2ha
      }
      existingVAs=$(neighborhood list | awk ' { print $1; }')
      echo "Virtual arrays: $existingVAs"
@@ -212,14 +213,13 @@ vplexsrdf_discover() {
     fid40=FABRIC_$(cat /tmp/__networks | grep "FID_40")
     echo A $losam082 B $vplex154 C $fid30 D $fid40
     rm /tmp/__networks
-    transportzone assign $losam082 $SITEr1
+
+    transportzone assign $fid30 $SITEr1
+    transportzone assign $fid40 $SITEha
     transportzone assign $losam082 $SITEr2
-    transportzone assign $losam082 $SITEha
-    transportzone assign $vplex154 $SITEr1
     transportzone assign $vplex154 $SITEr2
-    transportzone assign $vplex154 $SITEha
-    transportzone assign $fid30 $SITEr2
-    transportzone assign $fid40 $SITEr2
+    transportzone assign $losam082 $SITEr2ha
+    transportzone assign $vplex154 $SITEr2ha
 
     # Discover the providers
     existingProviders=$(storageprovider list | awk ' {print $2;}')
@@ -238,8 +238,22 @@ vplexsrdf_discover() {
         run smisprovider create $VPLEXSRDF_HA_PROVIDER $VPLEXSRDF_HA_PROVIDER 5989 $SMIS_USER $SMIS_PASSWD true
 	newProvider=1
     }
+    # Discover the VPLEXes
+    $(echo $existingProviders | grep -q $VPLEXSRDF_VPLEX1_IP) || {
+        run storageprovider create $VPLEXSRDF_VPLEX1_IP $VPLEXSRDF_VPLEX1_IP 443 $VPLEX_USER "$VPLEX_PASSWD" vplex
+        newProvider=1
+    }
+    $(echo $existingProviders | grep -q $VPLEXSRDF_VPLEX2_IP) || {
+        run storageprovider create $VPLEXSRDF_VPLEX2_IP $VPLEXSRDF_VPLEX2_IP 443 $VPLEX_USER "$VPLEX_PASSWD" vplex
+        newProvider=1
+    }
 
-    # Discover the storage systems
+    if [ $newProvider -eq 1 ]; then 
+        echoit "Initiating discovery_all... this may take some time"
+        run storagedevice discover_all
+    fi
+
+    # Check discovery of the storage systems
     existingArrays=$(storagedevice list | awk ' {print $2;}')
     echo "Existing arrays: $existingArrays"
     $(echo $existingArrays | grep -q $VPLEXSRDF_SOURCE_GUID) || {
@@ -255,32 +269,20 @@ vplexsrdf_discover() {
 	exit 2
     }
 
-    # Discover the VPLEXes
-    $(echo $existingProviders | grep -q $VPLEXSRDF_VPLEX1_IP) || {
-        run storageprovider create $VPLEXSRDF_VPLEX1_IP $VPLEXSRDF_VPLEX1_IP 443 $VPLEX_USER "$VPLEX_PASSWD" vplex
-        newProvider=1
-    }
-    $(echo $existingProviders | grep -q $VPLEXSRDF_VPLEX2_IP) || {
-        run storageprovider create $VPLEXSRDF_VPLEX2_IP $VPLEXSRDF_VPLEX2_IP 443 $VPLEX_USER "$VPLEX_PASSWD" vplex
-        newProvider=1
-    }
-
     # Assign all the storage ports.
     [ $newProvider -eq 0 ] || {
-        echoit "Initiating discovery_all... this may take some time"
-        run storagedevice discover_all
         storagedevice_list
         run storageport update $VPLEXSRDF_SOURCE_GUID FC --addvarrays $SITEr1
         run storageport update $VPLEXSRDF_HA_GUID FC --addvarrays $SITEha
         run storageport update $VPLEXSRDF_TARGET_GUID FC --addvarrays $SITEr2
-        run storageport update $VPLEXSRDF_VPLEX1_GUID FC --group director-1-1-A --addvarrays $SITEr1
-        run storageport update $VPLEXSRDF_VPLEX1_GUID FC --group director-1-1-B --addvarrays $SITEr1
-        run storageport update $VPLEXSRDF_VPLEX1_GUID FC --group director-2-1-A --addvarrays $SITEha
-        run storageport update $VPLEXSRDF_VPLEX1_GUID FC --group director-2-1-B --addvarrays $SITEha
-        run storageport update $VPLEXSRDF_VPLEX2_GUID FC --group director-2-1-A --addvarrays $SITEr2
-        run storageport update $VPLEXSRDF_VPLEX2_GUID FC --group director-2-1-B --addvarrays $SITEr2
-        run storageport update $VPLEXSRDF_VPLEX2_GUID FC --group director-1-1-A --addvarrays $SITEdummy
-        run storageport update $VPLEXSRDF_VPLEX2_GUID FC --group director-1-1-B --addvarrays $SITEdummy
+        run storageport update $VPLEXSRDF_VPLEX2_GUID FC --group director-1-1-A --addvarrays $SITEr1
+        run storageport update $VPLEXSRDF_VPLEX2_GUID FC --group director-1-1-B --addvarrays $SITEr1
+        run storageport update $VPLEXSRDF_VPLEX2_GUID FC --group director-2-1-A --addvarrays $SITEha
+        run storageport update $VPLEXSRDF_VPLEX2_GUID FC --group director-2-1-B --addvarrays $SITEha
+        run storageport update $VPLEXSRDF_VPLEX1_GUID FC --group director-2-1-A --addvarrays $SITEr2
+        run storageport update $VPLEXSRDF_VPLEX1_GUID FC --group director-2-1-B --addvarrays $SITEr2
+        run storageport update $VPLEXSRDF_VPLEX1_GUID FC --group director-1-1-A --addvarrays $SITEr2ha
+        run storageport update $VPLEXSRDF_VPLEX1_GUID FC --group director-1-1-B --addvarrays $SITEr2ha
         echo "Storage port assignment completed."
         host_create vplexsrdfhost1 $clusterId A0 A1 $losam082 $losam082
         host_create vplexsrdfhost2 $clusterId A2 A3 $losam082 $losam082
@@ -289,15 +291,17 @@ vplexsrdf_discover() {
 
 vplexsrdf_discover
 
-
 # Set up the virtual pools
 existingVpools=$(cos list block | awk ' {print $1;}')
 vrdfsrc=$(echo $existingVpools | grep -c vrdfsrc)
+vrdfha=$(echo $existingVpools | grep -c vrdfha)
 vrdftgt=$(echo $existingVpools | grep -c vrdftgt)
+vrdfsrcLocalR1=$(echo $existingVpools | grep -c vrdfsrcLocalR1)
+echo "existing pools: " $existingPools
 
 if [ $vrdftgt -eq 0 ];
 then
-cos create block vrdftgt false --description "VPlexL on VMAX" \
+run cos create block vrdftgt false --description R2_VPlexL_on_VMAX \
 	--protocols FC --numpaths 1 --highavailability vplex_local --system_type vmax \
 	--provisionType Thin --neighborhoods $SITEr2 --expandable true \
 	--max_snapshots 4 --multiVolumeConsistency 
@@ -305,16 +309,36 @@ cos update block vrdftgt --storage $VPLEXSRDF_TARGET_GUID
 cos allow vrdftgt block $rootTenant
 fi
 
+if [ $vrdfha -eq 0 ];
+then
+run cos create block vrdfha false --description VMAX_HA \
+	--protocols FC --numpaths 1 --system_type vmax \
+	--provisionType Thin --neighborhoods $SITEha --expandable true \
+	--max_snapshots 4 --multiVolumeConsistency 
+cos update block vrdfha --storage $VPLEXSRDF_HA_GUID
+cos allow vrdfha block $rootTenant
+fi
+
 if [ $vrdfsrc -eq 0 ];
 then
-cos create block vrdfsrc false --description "VPlexL SRDF R1 to VPlexL SRDF R2" \
-	--protocols FC --numpaths 1 --highavailability vplex_local --system_type vmax \
-	--provisionType Thin --neighborhoods $SITEr1 --expandable true \
+run cos create block vrdfsrc false --description VPlexD_SRDF_R1_to_VPlexL_SRDF_R2 \
+	--protocols FC --numpaths 1 --highavailability vplex_distributed --haNeighborhood $SITEha --haCos vrdfha \
+        --system_type vmax --provisionType Thin --neighborhoods $SITEr1 --expandable true \
 	--max_snapshots 4 --multiVolumeConsistency --srdf "$SITEr2:vrdftgt:ASYNCHRONOUS"
 cos update block vrdfsrc --storage $VPLEXSRDF_SOURCE_GUID
 cos allow vrdfsrc block $rootTenant
 fi
 echoit "Virtual Pools"
+
+if [ $vrdfsrcLocalR1 -eq 0 ];
+then
+run cos create block vrdfsrcLocalR1 false --description VPlexL_SRDF_R1_to_VPlexL_SRDF_R2 \
+	--protocols FC --numpaths 1 --highavailability vplex_local \
+        --system_type vmax --provisionType Thin --neighborhoods $SITEr1 --expandable true \
+	--max_snapshots 4 --multiVolumeConsistency --srdf "$SITEr2:vrdftgt:ASYNCHRONOUS"
+cos update block vrdfsrcLocalR1 --storage $VPLEXSRDF_SOURCE_GUID
+cos allow vrdfsrcLocalR1 block $rootTenant
+fi
 cos list block
 
 vplexsrdf_test() {

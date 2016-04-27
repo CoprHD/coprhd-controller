@@ -383,8 +383,11 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
                 sortRecommendationsByVarray(recommendations, vplexSystemURIOut);
         vplexStorageSystemURI = vplexSystemURIOut[0];
 
-        // check for potential duplicate volume labels before creating them
-        validateVolumeLabels(param.getName(), project, vPoolCapabilities, varrayRecommendationsMap);
+        // check for potential duplicate volume labels before creating them, but not
+        // for the srdf copies, since they are already pre-created.
+        if (!srdfCopy) {
+            validateVolumeLabels(param.getName(), project, vPoolCapabilities, varrayRecommendationsMap);
+        }
 
         // Determine the project to be used for the VPlex's artifacts
         StorageSystem vplexStorageSystem = _dbClient.queryObject(StorageSystem.class,

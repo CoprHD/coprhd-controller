@@ -4,6 +4,7 @@
  */
 package com.emc.storageos.volumecontroller.impl.block;
 
+import static com.emc.storageos.db.client.constraint.AlternateIdConstraint.Factory.getSnapshotSessionReplicationGroupInstanceConstraint;
 import static com.emc.storageos.db.client.constraint.AlternateIdConstraint.Factory.getVolumesByAssociatedId;
 import static com.emc.storageos.db.client.util.CommonTransformerFunctions.fctnDataObjectToID;
 import static com.emc.storageos.db.client.util.CommonTransformerFunctions.FCTN_URI_TO_STRING;
@@ -45,7 +46,6 @@ import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.SynchronizationState;
 import com.emc.storageos.db.client.model.Volume;
-import com.emc.storageos.db.client.util.CommonTransformerFunctions;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.client.util.ResourceOnlyNameGenerator;
@@ -997,6 +997,50 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
                 // delete snapshots for the to be deleted volumes
                 waitFor = deleteSnapshotSteps(workflow, waitFor, volumeURIs, volumeList, isRemoveAllFromRG);
             }
+
+            if (checkIfCGHasSnapshotSessions(volumeList)) {
+                log.info("Adding snapshot session steps for deleting volumes");
+                waitFor = deleteSnapshotSessionSteps(workflow, waitFor, volumeList, isRemoveAllFromRG);
+            }
+        }
+
+        return waitFor;
+    }
+
+    /**
+     * Remove all snapshot sessions from the volumes to be deleted.
+     *
+     * @param workflow
+     * @param waitFor
+     * @param volumes
+     * @param isRemoveAllFromRG
+     * @return
+     */
+    private String deleteSnapshotSessionSteps(Workflow workflow, String waitFor, List<Volume> volumes, boolean isRemoveAllFromRG) {
+        log.info("START delete snapshot session steps");
+        if (!isRemoveAllFromRG) {
+            log.info("Nothing to do");
+            return waitFor;
+        }
+
+        URI storage = volumes.get(0).getStorageController();
+        StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, storage);
+
+        Set<String> replicationGroupInstances = new HashSet<>();
+        for (Volume volume : volumes) {
+            replicationGroupInstances.add(volume.getReplicationGroupInstance());
+        }
+
+        for (String replicationGroupInstance : replicationGroupInstances) {
+            List<BlockSnapshotSession> sessions = CustomQueryUtility.queryActiveResourcesByConstraint(_dbClient,
+                    BlockSnapshotSession.class,
+                    getSnapshotSessionReplicationGroupInstanceConstraint(replicationGroupInstance));
+
+            for (BlockSnapshotSession session : sessions) {
+                Workflow.Method deleteMethod = BlockDeviceController.deleteBlockSnapshotSessionMethod(storage, session.getId(), replicationGroupInstance, true);
+                waitFor = workflow.createStep("RemoveSnapshotSessions", "Remove Snapshot Session", waitFor, storage,
+                        storageSystem.getSystemType(), BlockDeviceController.class, deleteMethod, null, null);
+            }
         }
 
         return waitFor;
@@ -1445,7 +1489,7 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
         for (BlockObject volume : volumes) {
             List<BlockSnapshotSession> sessions = CustomQueryUtility.queryActiveResourcesByConstraint(_dbClient,
                     BlockSnapshotSession.class,
-                    ContainmentConstraint.Factory.getParentSnapshotSessionConstraint(volume.getId()));
+                    ContainmentConstraint.Factory.getBlockSnapshotSessionByConsistencyGroup(volume.getConsistencyGroup()));
             if (!sessions.isEmpty()) {
                 return true;
             }

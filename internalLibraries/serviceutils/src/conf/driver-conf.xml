@@ -9,6 +9,7 @@
               <map>
                  <entry key="Simulator" value="driversystem"/>
                  <entry key="ScaleioDriver" value="scaleiosystem"/>
+                 <entry key="3ParDriver" value="3par"/>
               </map>
            </property>
 
@@ -17,6 +18,7 @@
                <set>
                    <value>driversystem</value> <!-- simulator -->
                    <value>scaleiosystem</value>
+                   <value>3par</value> <!-- 3Par Driver-->
                </set>
            </property>
 
@@ -40,6 +42,7 @@
                <set>
                    <value>driversystem</value> <!-- simulator -->
                    <value>scaleiosystem</value>
+                   <value>3par</value> <!-- 3Par Driver-->
                </set>
            </property>
 

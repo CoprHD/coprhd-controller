@@ -9,13 +9,15 @@
      </bean> -->
      <bean id="storageDriverSimulator" class="com.emc.storageos.driver.driversimulator.StorageDriverSimulator">
      </bean>
+     <bean id="3PAR" class="com.emc.storageos.par3.restapi.Par3Api">
+     </bean>
 
      <bean id="externaldevice" class="com.emc.storageos.volumecontroller.impl.plugins.ExternalDeviceCommunicationInterface">
          <!-- Discovery storage drivers -->
          <property name="drivers">
              <map>
                 <!-- <entry key="scaleiosystem" value-ref="scaleioDriver"/> -->
-                <entry key="driversystem" value-ref="storageDriverSimulator"/>
+                <entry key="3par" value-ref="3PAR"/>
             </map>
         </property>
     </bean>

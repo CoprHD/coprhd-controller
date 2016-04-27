@@ -165,6 +165,10 @@
         {
           "image": "icon_consistency_group_add_volumes.png",
           "baseService": "AddVolumesToConsistencyGroup"
+        },
+        {
+        	"image":"icon_db_create.png",
+        	"baseService":"ViewVolumesByProject"
         }
       ]
     },

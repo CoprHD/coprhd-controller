@@ -252,6 +252,7 @@ public class SmisJob extends Job implements Serializable
                 }
             } catch (Exception e) {
                 setFatalErrorStatus(e.getMessage());
+                setPostProcessingFailedStatus(e.getMessage());
                 _logger.error("Problem while trying to update status", e);
             } finally {
                 if (isJobInTerminalFailedState()) {

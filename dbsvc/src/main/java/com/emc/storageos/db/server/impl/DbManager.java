@@ -314,9 +314,14 @@ public class DbManager implements DbManagerMBean {
     private void removeCassandraNode(InetAddress nodeIp) {
         Map<String, String> hostIdMap = StorageService.instance.getHostIdMap();
         String guid = hostIdMap.get(nodeIp.getHostAddress());
-        log.info("Removing Cassandra node {} on vipr node {}", guid, nodeIp);
-        Gossiper.instance.convict(nodeIp, 0);
-        ensureRemoveNode(guid);
+        // Skip the node removal if this node doesn't exist in host id map 
+        if (guid != null) {
+            log.info("Removing Cassandra node {} on vipr node {}", guid, nodeIp);
+            Gossiper.instance.convict(nodeIp, 0);
+            ensureRemoveNode(guid);
+        } else {
+            log.info("Skip removal of Cassandra node {} due to no host id found", nodeIp);
+        }
     }
 
     /**

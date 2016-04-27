@@ -63,9 +63,9 @@ public class CephStorageDevice extends DefaultBlockStorageDevice {
     private CloneOperations _cloneOperations;
 
     private class RBDMappingOptions {
-    	public String poolName = null;
-    	public String volumeName = null;
-    	public String snapshotName = null;
+    	private String poolName = null;
+    	private String volumeName = null;
+    	private String snapshotName = null;
 
     	public RBDMappingOptions(BlockObject object) {
         	URI uri = object.getId();

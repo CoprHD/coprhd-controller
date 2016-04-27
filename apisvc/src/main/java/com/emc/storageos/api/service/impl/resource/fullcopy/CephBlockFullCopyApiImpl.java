@@ -28,6 +28,7 @@ public class CephBlockFullCopyApiImpl extends DefaultBlockFullCopyApiImpl {
      * @param dbClient A reference to a database client.
      * @param coordinator A reference to the coordinator client.
      * @param scheduler A reference to a scheduler.
+     * @param fullCopyMgr A reference to the full copy manager.
      */
     public CephBlockFullCopyApiImpl(DbClient dbClient, CoordinatorClient coordinator, Scheduler scheduler,
             BlockFullCopyManager fullCopyMgr) {

@@ -286,7 +286,7 @@ class VolumeGroup(object):
         if (cloneUris):
             request["volumes"] = cloneUris.split()
         if (copysetname):
-            request["copy-set-name"] = copysetname
+            request["copy_set_name"] = copysetname
         if (subGroups):
             request["subgroups"] = subGroups.split(',')
         
@@ -664,7 +664,7 @@ class VolumeGroup(object):
             request["snapshots"] = self.query_snapshot_uris_by_names(name, snapshots)
             
         if (copysetname):
-            request["copy-set-name"] = copysetname
+            request["copy_set_name"] = copysetname
             
         if (subGroups):
             request["subgroups"] = subGroups.split(',')
@@ -1989,11 +1989,16 @@ def volume_group_snapshot_operation(args, operation, uri):
     obj = VolumeGroup(args.ip, args.port)
 
     try:
+        if (args.snapshots):
+            snapshots = set(args.snapshots.split(','))
+        else:
+            snapshots = ""
+            
         obj.volume_group_snapshot_operation(
             args.name,
-            args.copysetname,
-            args.subgroup,
-            set(args.snapshots.split(',')),
+            args.copySetName,
+            args.subGroups,
+            snapshots,
             args.partial,
             uri)
         return

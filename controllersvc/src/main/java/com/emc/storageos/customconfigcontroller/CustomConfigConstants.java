@@ -57,7 +57,7 @@ public interface CustomConfigConstants {
 
     public String VPLEX_STORAGE_VIEW_NAME = "VPlexStorageViewName";
 
-    public String ISILON_CLUSTER_NAME = "cluster_name";
+    public String ISILON_CLUSTER_NAME = "isilon_cluster_name";
 
     public String HDS_HOST_STORAGE_DOMAIN_NAME_MASK_NAME = "HDSHostStorageDomainName";
     public String HDS_HOST_STORAGE_DOMAIN_NICKNAME_MASK_NAME = "HDSHostStorageDomainNickName";

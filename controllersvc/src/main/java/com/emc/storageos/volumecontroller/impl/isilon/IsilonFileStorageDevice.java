@@ -891,6 +891,8 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                 mountPath = IFS_ROOT + FW_SLASH + vNASPath + FW_SLASH + customPath + FW_SLASH + args.getFsName();
             }
 
+            // replace extra forward slash with single one
+            mountPath = mountPath.replaceAll("/+", "/");
             _log.info("Mount path to mount the Isilon File System {}", mountPath);
             args.setFsMountPath(mountPath);
             args.setFsNativeGuid(args.getFsMountPath());

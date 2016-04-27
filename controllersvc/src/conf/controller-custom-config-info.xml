@@ -873,6 +873,12 @@
                 <entry key="isilon" value="{vpool_name}/{tenant_name}/{project_name}"/>                    
             </map>
         </property>
+        <property name="constraints">
+            <list>
+                <ref bean="isilonPathIllegalCharsConstraint"/>
+            </list>
+        </property>
+        
     </bean>
     
            <bean id="isilonSystemAccessZoneNameSpace" class="com.emc.storageos.customconfigcontroller.CustomConfigType">
@@ -1291,6 +1297,21 @@
             </map>
         </property>
         <property name="description" value="Valid characters are letters, numbers and _"/>
+        <property name="replacementMap">
+            <map>
+                <entry key="default" value=""/>
+            </map>
+        </property>   
+        <property name="name" value="IllegalCharsConstraint"/> 
+    </bean>
+    
+       <bean id="isilonPathIllegalCharsConstraint" class="com.emc.storageos.customconfigcontroller.IllegalCharsConstraint">
+        <property name="illegalCharsRegexMap">
+            <map>
+                <entry key="default" value="[^A-Za-z0-9_/]"/>
+            </map>
+        </property>
+        <property name="description" value="Valid characters are letters, numbers , forward slash and _"/>
         <property name="replacementMap">
             <map>
                 <entry key="default" value=""/>

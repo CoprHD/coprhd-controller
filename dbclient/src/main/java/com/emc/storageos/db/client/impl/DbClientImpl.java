@@ -618,18 +618,19 @@ public class DbClientImpl implements DbClient {
             columnFields.add(columnField);
         }
 
-        Keyspace ks = getKeyspace(clazz);
+        Session cassandraSession = getSession(clazz);
         Map<URI, T> objectMap = new HashMap<URI, T>();
         for (ColumnField columnField : columnFields) {
-            Rows<String, CompositeColumnName> rows = queryRowsWithAColumn(ks, ids, doType.getCF(),
-                    columnField);
-            Iterator<Row<String, CompositeColumnName>> it = rows.iterator();
+            List<CassandraRows> result = queryRowsWithAColumn(cassandraSession, ids, doType.getCF().getName(), columnField);
+            
+            Iterator<CassandraRows> it = result.iterator();
+            
             while (it.hasNext()) {
-                Row<String, CompositeColumnName> row = it.next();
+                CassandraRows row = it.next();
                 try {
                     // Since the order of columns returned is not guaranteed to be the same as keys
                     // we have to create an object to track both id and label, for now, lets use the same type
-                    if (row.getColumns().size() == 0) {
+                    if (row.getRows().size() == 0) {
                         continue;
                     }
 
@@ -642,12 +643,12 @@ public class DbClientImpl implements DbClient {
                         objectMap.put(key, obj);
                     }
 
-                    Iterator<Column<CompositeColumnName>> columnIterator = row.getColumns().iterator();
-
-                    while (columnIterator.hasNext()) {
-                        Column<CompositeColumnName> column = columnIterator.next();
-                        columnField.deserialize(column, obj);
+                    Iterator<CassandraRow> rowIterator = row.getRows().iterator();
+                    while (rowIterator.hasNext()) {
+                        CassandraRow internalRow = rowIterator.next();
+                        columnField.deserialize(internalRow, obj);
                     }
+
                 } catch (final InstantiationException e) {
                     throw DatabaseException.fatals.queryFailed(e);
                 } catch (final IllegalAccessException e) {
@@ -1562,7 +1563,34 @@ public class DbClientImpl implements DbClient {
      * @return matching rows
      * @throws DatabaseException
      */
-
+    protected List<CassandraRows> queryRowsWithAColumn(Session cassandraSession, Collection<URI> ids, String tableName, ColumnField column) {
+        ResultSet resultSet = cassandraSession
+                .execute(String.format("Select * from \"%s\" where column1='%s' and key in %s ALLOW FILTERING", tableName, column.getName(), uriList2String(ids)));
+            
+            List<CassandraRows> result = new ArrayList<CassandraRows>();
+            CassandraRows rows = new CassandraRows();
+            for (com.datastax.driver.core.Row row : resultSet) {
+                String currentKey = row.getString(0);
+                    
+                CassandraRow lastCassandraRow = new CassandraRow();
+                rows.getRows().add(lastCassandraRow);
+                rows.setKey(currentKey);
+                    
+                lastCassandraRow.setKey(currentKey);
+                lastCassandraRow.setRow(row);
+                lastCassandraRow.setCompositeColumnName(
+                        new CompositeColumnName(
+                                row.getString(1),
+                                row.getString(2),
+                                row.getString(3),
+                                row.getUUID(4)));
+            }
+            
+            result.add(rows);
+            
+            return result;
+    }
+    
     protected Rows<String, CompositeColumnName> queryRowsWithAColumn(Keyspace keyspace,
             Collection<URI> ids, ColumnFamily<String, CompositeColumnName> cf, ColumnField column) {
         try {

@@ -3742,13 +3742,13 @@ recoverpoint_vpool_change_test()
     if [ a${upgrade_to_mp} != a ] ; then
         secho 'Change Virtual Pool - Upgrade To MetroPoint'
         run volume change_cos ${PROJECT}/${base_volume} ${upgrade_to_mp}
-    else
-        secho 'Change Virtual Pool - Remove RecoverPoint Protection'
-        run volume change_cos ${PROJECT}/${base_volume} ${noprotection_vpool}
-
-        secho 'Change Virtual Pool - Add RecoverPoint Protection'
-        run volume change_cos ${PROJECT}/${base_volume} ${rp_vpool} --consistencyGroup ${rp_cg}
     fi
+
+    secho 'Change Virtual Pool - Remove RecoverPoint Protection'
+    run volume change_cos ${PROJECT}/${base_volume} ${noprotection_vpool}
+
+    secho 'Change Virtual Pool - Add RecoverPoint Protection'
+    run volume change_cos ${PROJECT}/${base_volume} ${rp_vpool} --consistencyGroup ${rp_cg}
 }
 
 recoverpoint_vpool_change_replication_mode_test()

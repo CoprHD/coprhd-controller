@@ -254,7 +254,7 @@ public class StorageProviders extends ViprResourceController {
             this.secondaryUsername = storageProvider.getSecondaryUsername();
             this.secondaryPassword = ""; // the platform will never return the real password
             this.elementManagerURL = storageProvider.getElementManagerURL();
-            this.secretKey = ""; // the platform will never return the real key;
+            this.secretKey = ""; // the platform will never return the real key
             if(isScaleIOApi()) {
             	this.secondaryUsername = this.userName;
             	this.secondaryPassword = this.password;

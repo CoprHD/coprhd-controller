@@ -27,6 +27,9 @@ public class CephUtils {
 
     private static final Logger _log = LoggerFactory.getLogger(CephUtils.class);
 
+    private CephUtils() {
+    }
+
     public static CephClient connectToCeph(CephClientFactory factory, StorageSystem storage) {
         return factory.getClient(storage.getSmisProviderIP(), storage.getSmisUserName(), storage.getSmisPassword());
     }

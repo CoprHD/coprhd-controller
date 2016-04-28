@@ -86,7 +86,7 @@ public class BlockFullCopyManager {
     private static final int SCALEIO_MAX_FULLCOPY_COUNT = 31;
     private static final int XIV_MAX_FULLCOPY_COUNT = Integer.MAX_VALUE; // No known limit
     private static final int OPENSTACK_MAX_FULLCOPY_COUNT = Integer.MAX_VALUE; // No known limit
-    private static final int CEPH_MAX_FULLCOPY_COUNT = Integer.MAX_VALUE; // No known limit;
+    private static final int CEPH_MAX_FULLCOPY_COUNT = Integer.MAX_VALUE; // No known limit
 
     // Map of the values for maximum active full copy sessions for each block storage platform.
     public static Map<String, Integer> s_maxFullCopyMap = new HashMap<String, Integer>();

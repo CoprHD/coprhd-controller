@@ -113,23 +113,12 @@ public class CephStorageDevice extends DefaultBlockStorageDevice {
 
     @Override
     public void doConnect(StorageSystem storage) {
-        _log.info("doConnect {} (nothing to do for ceph)", storage.getId().toString());
+        // Nothing to do for Ceph, because ceph package is designed to do not keep connection permanently
     }
 
     @Override
     public void doDisconnect(StorageSystem storage) {
-        _log.info("doDisconnect {} (nothing to do for ceph)", storage.getId().toString());
-    }
-
-    @Override
-    public String doAddStorageSystem(StorageSystem storage) throws DeviceControllerException {
-        _log.info("doAddStorageSystem {} (nothing to do for ceph, just return null)", storage.getId().toString());
-        return null;
-    }
-
-    @Override
-    public void doRemoveStorageSystem(StorageSystem storage) throws DeviceControllerException {
-        _log.info("doRemoveStorageSystem {} (nothing to do for ceph)", storage.getId().toString());
+        // Nothing to do for Ceph, because ceph package is designed to do not keep connection permanently
     }
 
     @Override

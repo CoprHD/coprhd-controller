@@ -1,4 +1,4 @@
-package com.emc.sa.service.vipr.block;
+package com.emc.sa.service.vipr.block.tasks;
 
 import java.net.URI;
 

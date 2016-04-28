@@ -107,13 +107,8 @@ public class CephCloneOperations implements CloneOperations {
             cloneObject.setDeviceLabel(cloneVolumeLabel);
             cloneObject.setNativeId(cloneVolumeLabel);
             cloneObject.setNativeGuid(NativeGUIDGenerator.generateNativeGuid(_dbClient, cloneObject));
-            if (cloneObject.getCapacity() == null || cloneObject.getCapacity() == 0) {
-            	// Set capacity equal to parent volume, in case of snapshot copying it's empty
-            	cloneObject.setCapacity(parentVolume.getCapacity());
-            }
-            cloneObject.setProvisionedCapacity(cloneObject.getCapacity());
-            cloneObject.setAllocatedCapacity(cloneObject.getCapacity());
-            cloneObject.setInactive(createInactive);
+            cloneObject.setProvisionedCapacity(parentVolume.getProvisionedCapacity());
+            cloneObject.setAllocatedCapacity(parentVolume.getAllocatedCapacity());
             cloneObject.setAssociatedSourceVolume(sourceSnapshot.getId());
             _dbClient.updateObject(cloneObject);
 

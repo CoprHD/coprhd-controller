@@ -146,7 +146,6 @@ public class CephStorageDevice extends DefaultBlockStorageDevice {
                 volume.setDeviceLabel(volume.getLabel());
                 volume.setProvisionedCapacity(volume.getCapacity());
                 volume.setAllocatedCapacity(volume.getCapacity());
-                volume.setInactive(false);
             }
             _dbClient.updateObject(volumes);
             taskCompleter.ready(_dbClient);

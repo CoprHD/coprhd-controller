@@ -33,16 +33,6 @@ public class ClusterIpInfo implements Serializable {
     public void setSiteIpInfoMap(Map<String, SiteIpInfo> siteIpInfoMap) {
         this.siteIpInfoMap = siteIpInfoMap;
     }
-/*
-    TODO: move to siteipinfo
-    public int getNodeCount() {
-        int nodeCount = ipv4_setting.getNetworkAddrs().size();
-        if (nodeCount == 0) {
-            nodeCount = ipv6_setting.getNetworkAddrs().size();
-        }
-        return nodeCount;
-    }
-*/
 
     public byte[] serialize() throws IOException {
         ByteArrayOutputStream bos = new ByteArrayOutputStream();
@@ -118,8 +108,8 @@ public class ClusterIpInfo implements Serializable {
      */
     public void loadFromPropertyMap(Map<String, String> globalPropMap)
     {
-        /* TODO: change vdc site property prefix to vdc_<vdcshortId>_<siteShortId>
-        e.g. vdc_vdc1_site2_network_1_ipaddr */
+        /* vdc site property prefix is vdc_<vdcshortId>_<siteShortId>
+        property example: vdc_vdc1_site2_network_1_ipaddr */
 
         // group global properties in site level - "<vdcsiteId> -> <vdcsiteInternalProperties>"
         Map<String, Map<String, String>> vdcsitePropMap = new HashMap<String, Map<String, String>>();
@@ -151,54 +141,16 @@ public class ClusterIpInfo implements Serializable {
         }
     }
 
-    public String validate(int nodecount) {
+    public String validate(ClusterIpInfo currentIpInfo) {
         String errmsg = "";
-        /* TODO:
-        if (ipv4_setting.isDefault() && ipv6_setting.isDefault()) {
-            errmsg = "Both IPv4 and IPv6 networks are not configured.";
-            return errmsg;
-        }
 
-        if (!ipv4_setting.isValid()) {
-            errmsg = "IPv4 adresses are not valid.";
-            return errmsg;
+        for (Map.Entry<String, SiteIpInfo> me: getSiteIpInfoMap().entrySet()) {
+            int nodecount = currentIpInfo.getSiteIpInfoMap().get(me.getKey()).getNodeCount();
+            errmsg = me.getValue().validate(nodecount);
+            if (!errmsg.isEmpty()) {
+                return errmsg;
+            }
         }
-
-        if (!ipv6_setting.isValid()) {
-            errmsg = "IPv6 adresses are not valid.";
-            return errmsg;
-        }
-
-        if (ipv4_setting.isDuplicated()) {
-            errmsg = "IPv4 adresses are duplicated.";
-            return errmsg;
-        }
-
-        if (ipv6_setting.isDuplicated()) {
-            errmsg = "IPv6 adresses are duplicated.";
-            return errmsg;
-        }
-
-        if (!ipv4_setting.isOnSameNetworkIPv4()) {
-            errmsg = "IPv4 adresses are not in same network.";
-            return errmsg;
-        }
-
-        if (!ipv6_setting.isOnSameNetworkIPv6()) {
-            errmsg = "IPv6 adresses are not in same network.";
-            return errmsg;
-        }
-
-        if (ipv4_setting.getNetworkAddrs().size() != ipv6_setting.getNetworkAddrs().size()) {
-            errmsg = "Nodes number does not match between IPv4 and IPv6.";
-            return errmsg;
-        }
-
-        if (ipv4_setting.getNetworkAddrs().size() != nodecount) {
-            errmsg = "Nodes number does not match with the cluster.";
-            return errmsg;
-        }
-        */
         return errmsg;
     }
 

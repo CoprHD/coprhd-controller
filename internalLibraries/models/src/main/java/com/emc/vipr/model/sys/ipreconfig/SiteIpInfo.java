@@ -177,4 +177,12 @@ public class SiteIpInfo implements Serializable {
 
         return errmsg;
     }
+
+    public int getNodeCount() {
+        int nodeCount = ipv4_setting.getNetworkAddrs().size();
+        if (nodeCount == 0) {
+            nodeCount = ipv6_setting.getNetworkAddrs().size();
+        }
+        return nodeCount;
+    }
 }

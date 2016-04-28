@@ -45,6 +45,8 @@ public class PropertyConstants {
     public static final String IPV6_ADDR_DEFAULT = "::0";
     public static final String IPV6_PREFIX_LEN_DEFAULT = "64";
 
+    public static final String IPPROP_PREFIX = "vdc_vdc1_site%s";
+
     // deployment related property keys and value sets.
     public static final String CONFIG_KEY_SCENARIO = "scenario";
     public static final String INIT_MODE = "init";

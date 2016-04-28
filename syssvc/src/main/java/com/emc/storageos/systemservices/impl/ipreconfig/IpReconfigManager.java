@@ -43,19 +43,18 @@ import java.util.concurrent.ThreadPoolExecutor;
 public class IpReconfigManager implements Runnable {
     private static final Logger log = LoggerFactory.getLogger(IpReconfigManager.class);
     private static Charset UTF_8 = Charset.forName("UTF-8");
-    private static final long IPRECONFIG_TIMEOUT = 24 * 60 * 60 * 1000; // 24 hours timeout for the procedure
+    private static final long IPRECONFIG_TIMEOUT = 24 * 60 * 60 * 1000; // 24 hours timeout for the procedure. TODO: suitable for DR?
     private static final long POLL_INTERVAL = 10 * 1000; // 10 second polling interval
     private static final String UPDATE_ZKIP_LOCK = "update_zkip";
 
     // ipreconfig entry in ZK
     Configuration config = null;
 
-    private ClusterIpInfo currentIpinfo = null;   // local/current ip info
-    private ClusterIpInfo newIpinfo = null;     // new ip info
-    private Integer vdcnodeId;                // local node id (1~5)
+    private ClusterIpInfo currentIpinfo = null;   // current ip info of the cluster
+    private ClusterIpInfo newIpinfo = null;     // new ip info of the cluster
+    private Integer vdcnodeId;                // identical node id within local VDC (multiple DR sites)
     private Integer nodeCount;
     private long expiration_time = 0L;         // ipreconfig would fail if not finished at this time
-
 
     @Autowired
     private CoordinatorClientExt _coordinator;
@@ -73,7 +72,6 @@ public class IpReconfigManager implements Runnable {
     }
 
     private Properties ovfProperties;    // local ovfenv properties
-
     public void setOvfProperties(Properties ovfProps) {
         ovfProperties = ovfProps;
     }
@@ -127,12 +125,6 @@ public class IpReconfigManager implements Runnable {
     private void loadLocalOvfProps() {
         log.info("Loading local ovfenv properties");
         Map<String, String> ovfprops = getOvfProps();
-
-        //TODO: change to multiple site format
-
-        currentIpinfo = new ClusterIpInfo();
-        currentIpinfo.loadFromPropertyMap(ovfprops);
-
         String node_id = ovfprops.get(PropertyConstants.NODE_ID_KEY);
         if (node_id == null || node_id.equals(Constants.STANDALONE_ID)) {
             vdcnodeId = 1;
@@ -140,6 +132,18 @@ public class IpReconfigManager implements Runnable {
             vdcnodeId = Integer.valueOf(node_id.split("vipr")[1]);
         }
         nodeCount = Integer.valueOf(ovfprops.get(PropertyConstants.NODE_COUNT_KEY));
+
+        // change to multiple site format
+        Map<String, String> ipprops = new HashMap<String, String>();
+        for (Map.Entry<String, String> me: ovfprops.entrySet()) {
+            String propkey = me.getKey();
+            if (propkey.startsWith("network")||propkey.startsWith("node")) {
+                String ippropkey = String.format(PropertyConstants.IPPROP_PREFIX, 1) + "_" + propkey;
+                ipprops.put(ippropkey, me.getValue());
+            }
+        }
+        currentIpinfo = new ClusterIpInfo();
+        currentIpinfo.loadFromPropertyMap(ipprops);
     }
 
     private void loadClusterIpProps() {
@@ -203,12 +207,10 @@ public class IpReconfigManager implements Runnable {
         config = _coordinator.getCoordinatorClient().queryConfiguration(IpReconfigConstants.CONFIG_KIND, IpReconfigConstants.CONFIG_ID);
         if (config == null) {
             log.info("no ipreconfig request coming in yet.");
-            assureIPConsistent();
             return;
         }
 
         if (isRollback()) {
-            assureIPConsistent();
             return;
         }
 
@@ -685,7 +687,7 @@ public class IpReconfigManager implements Runnable {
             errmsg = "post operation is invalid.";
         }
 
-        errmsg = clusterIpInfo.validate(nodeCount);
+        errmsg = clusterIpInfo.validate(currentIpinfo);
         if (!errmsg.isEmpty()) {
             bValid = false;
         }
@@ -735,17 +737,20 @@ public class IpReconfigManager implements Runnable {
      * @throws Exception
      */
     private void initIpReconfig(ClusterIpInfo clusterIpInfo, String postOperation) throws Exception {
-        ClusterIpInfo ipinfo = new ClusterIpInfo(clusterIpInfo.getIpv4Setting(), clusterIpInfo.getIpv6Setting());
-        log.info("Initiating ip reconfiguraton procedure {}", ipinfo.toString());
+        log.info("Initiating ip reconfiguraton procedure {}", clusterIpInfo.toString());
 
         ConfigurationImpl cfg = new ConfigurationImpl();
         cfg.setKind(IpReconfigConstants.CONFIG_KIND);
         cfg.setId(IpReconfigConstants.CONFIG_ID);
-        cfg.setConfig(IpReconfigConstants.CONFIG_IPINFO_KEY, new String(Base64.encodeBase64(ipinfo.serialize()), UTF_8));
+        cfg.setConfig(IpReconfigConstants.CONFIG_IPINFO_KEY, new String(Base64.encodeBase64(clusterIpInfo.serialize()), UTF_8));
         cfg.setConfig(IpReconfigConstants.CONFIG_STATUS_KEY, ClusterNetworkReconfigStatus.Status.STARTED.toString());
-        for (int i = 1; i <= ipinfo.getIpv4Setting().getNetworkAddrs().size(); i++) {
-            String nodestatus_key = String.format(IpReconfigConstants.CONFIG_NODESTATUS_KEY, i);
-            cfg.setConfig(nodestatus_key, IpReconfigConstants.NodeStatus.None.toString());
+
+        int i = 1;
+        for (Map.Entry<String, SiteIpInfo> me: clusterIpInfo.getSiteIpInfoMap().entrySet()) {
+            for (; i< me.getValue().getNodeCount(); i++) {
+                String nodestatus_key = String.format(IpReconfigConstants.CONFIG_NODESTATUS_KEY, i);
+                cfg.setConfig(nodestatus_key, IpReconfigConstants.NodeStatus.None.toString());
+            }
         }
 
         // Set ip reconfiguration timeout to 1 day
@@ -797,55 +802,54 @@ public class IpReconfigManager implements Runnable {
     }
 
     /**
-     * Assure local site IP info is consistent with that in ZK.
-     * (DR/GEO procedures store IP info in ZK even for single site since Yoda.)
+     * Copy cluster IP info from disk to ZK.
      */
     void assureIPConsistent() {
         InterProcessLock lock = null;
         try {
-            log.info("Assuring local site IPs are consistent with ZK ...");
+            log.info("Updating local site IPs to ZK ...");
             lock = _coordinator.getCoordinatorClient().getLock(UPDATE_ZKIP_LOCK);
             lock.acquire();
             log.info("Got lock for updating local site IPs into ZK ...");
 
-            Site site = drUtil.getLocalSite();
-            if (localIpinfo.weakEqual(site.getVip(), site.getVip6(), site.getHostIPv4AddressMap(), site.getHostIPv6AddressMap())) {
-                log.info("local site IPs are consistent with ZK, no need to update.");
-                return;
-            } else {
-                log.info("local site IPs are not consistent with ZK, updating.");
-                log.info("    local ipinfo:{}", localIpinfo.toString());
-                log.info("    zk ipinfo: vip={}", site.getVip());
-                log.info("    zk ipinfo: vip6={}", site.getVip6());
-                SortedSet<String> nodeIds = new TreeSet<String>(site.getHostIPv4AddressMap().keySet());
-                for (String nodeId : nodeIds) {
-                    log.info("    {}: ipv4={}", nodeId, site.getHostIPv4AddressMap().get(nodeId));
-                    log.info("    {}: ipv6={}", nodeId, site.getHostIPv6AddressMap().get(nodeId));
+            for(Site site : drUtil.listSites()) {
+                int site_index = Integer.valueOf(site.getSiteShortId().split("site")[1]);
+                String ipprop_prefix = String.format(PropertyConstants.IPPROP_PREFIX, site_index);
+                if (newIpinfo.getSiteIpInfoMap().containsKey(ipprop_prefix)) {
+                    SiteIpInfo siteIpInfo = newIpinfo.getSiteIpInfoMap().get(ipprop_prefix);
+                    log.info("Going to persist site {} IPs into ZK ...", ipprop_prefix);
+                    log.info("    local ipinfo:{}", siteIpInfo.toString());
+                    log.info("    zk ipinfo: vip={}", site.getVip());
+                    log.info("    zk ipinfo: vip6={}", site.getVip6());
+                    SortedSet<String> nodeIds = new TreeSet<String>(site.getHostIPv4AddressMap().keySet());
+                    for (String nodeId : nodeIds) {
+                        log.info("    {}: ipv4={}", nodeId, site.getHostIPv4AddressMap().get(nodeId));
+                        log.info("    {}: ipv6={}", nodeId, site.getHostIPv6AddressMap().get(nodeId));
+                    }
+
+                    Map<String, String> ipv4Addresses = new HashMap<>();
+                    Map<String, String> ipv6Addresses = new HashMap<>();
+                    int nodeIndex = 1;
+                    for (String nodeip : siteIpInfo.getIpv4Setting().getNetworkAddrs()) {
+                        String nodeId;
+                        nodeId = IpReconfigConstants.VDC_NODE_PREFIX + nodeIndex++;
+                        ipv4Addresses.put(nodeId, nodeip);
+                    }
+                    nodeIndex = 1;
+                    for (String nodeip : siteIpInfo.getIpv6Setting().getNetworkAddrs()) {
+                        String nodeId;
+                        nodeId = IpReconfigConstants.VDC_NODE_PREFIX + nodeIndex++;
+                        ipv6Addresses.put(nodeId, nodeip);
+                    }
+                    site.setHostIPv4AddressMap(ipv4Addresses);
+                    site.setHostIPv6AddressMap(ipv6Addresses);
+                    site.setVip6(siteIpInfo.getIpv6Setting().getNetworkVip6());
+                    site.setVip(siteIpInfo.getIpv4Setting().getNetworkVip());
+                    site.setNodeCount(siteIpInfo.getNodeCount());
+
+                    _coordinator.getCoordinatorClient().persistServiceConfiguration(site.toConfiguration());
                 }
             }
-            
-            site.setVip6(localIpinfo.getIpv6Setting().getNetworkVip6());
-            site.setVip(localIpinfo.getIpv4Setting().getNetworkVip());
-            
-            Map<String, String> ipv4Addresses = new HashMap<>();
-            Map<String, String> ipv6Addresses = new HashMap<>();
-            int nodeIndex = 1;
-            for (String nodeip : localIpinfo.getIpv4Setting().getNetworkAddrs()) {
-                String nodeId;
-                nodeId = IpReconfigConstants.VDC_NODE_PREFIX + nodeIndex++;
-                ipv4Addresses.put(nodeId, nodeip);
-            }
-            nodeIndex = 1;
-            for (String nodeip : localIpinfo.getIpv6Setting().getNetworkAddrs()) {
-                String nodeId;
-                nodeId = IpReconfigConstants.VDC_NODE_PREFIX + nodeIndex++;
-                ipv6Addresses.put(nodeId, nodeip);
-            }
-            site.setHostIPv4AddressMap(ipv4Addresses);
-            site.setHostIPv6AddressMap(ipv6Addresses);
-            site.setNodeCount(localIpinfo.getNodeCount());
-
-            _coordinator.getCoordinatorClient().persistServiceConfiguration(site.toConfiguration());
 
             // wake up syssvc to regenerate configurations
             drUtil.updateVdcTargetVersion(_coordinator.getCoordinatorClient().getSiteId(), SiteInfo.IP_OP_CHANGE, System.currentTimeMillis());

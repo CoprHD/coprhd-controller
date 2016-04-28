@@ -208,8 +208,14 @@ public class DbsvcQuorumMonitor implements Runnable {
             log.warn("There are ongoing DR operations. Try again later.");
             return;
         }
-
+        
         try {
+            standbySite = drUtil.getSiteFromLocalVdc(standbySite.getUuid());
+            if (standbySite.getState() != SiteState.STANDBY_INCR_SYNCING) {
+                log.info("Skip incremental syncing state check. Site {} current state is {}", standbySite.getUuid(), standbySite.getState());
+                return;
+            }
+            
             String dcName = drUtil.getCassandraDcId(standbySite);
             Collection<String> ipAddrs = drUtil.getLocalSite().getHostIPv4AddressMap().values();
             if (ipAddrs.isEmpty()) {
@@ -242,14 +248,14 @@ public class DbsvcQuorumMonitor implements Runnable {
     }
     
     private boolean isDataCenterSynced(String host, int port, String dcName) throws MalformedObjectNameException, IOException {
-        JMXServiceURL jmxUrl = new JMXServiceURL(String.format(FMTURL, host, host, DEFAULTPORT));
+        JMXServiceURL jmxUrl = new JMXServiceURL(String.format(FMTURL, host, host, port));
         Map<String, Object> env = new HashMap<String, Object>();
         JMXConnector jmxc = JMXConnectorFactory.connect(jmxUrl, env);
         MBeanServerConnection mbeanServerConn = jmxc.getMBeanServerConnection();
     
         try (DbManagerOps dbOps = new DbManagerOps(mbeanServerConn)) {
-            boolean isDbsvcSynced = dbOps.isDataCenterSynced(dcName);
-            if (!isDbsvcSynced) {
+            boolean isDbSynced = dbOps.isDataCenterSynced(dcName);
+            if (!isDbSynced) {
                 log.info("Data is not synced to standby site on {}. JMX port {}", host, port);
                 return false;
             }

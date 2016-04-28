@@ -72,10 +72,10 @@ public interface DbManagerMBean {
     void removeDataCenter(String dcName);
     
     /**
-     * Check if we have pending hinted handoff logs for given dc
+     * Check if data is synced with remote data center by checking pending Cassandra hinted handoff logs
      *
      * @param dcName
      */
-    @ManagedOperation(description = "Check if we have pending hinted handoff logs")
+    @ManagedOperation(description = "Check if data is synced with remote data center")
     public boolean isDataCenterSynced(String dcName);
 }

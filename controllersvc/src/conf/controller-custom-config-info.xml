@@ -60,6 +60,7 @@
                 <ref bean="nasShareVNASWithMultipleProjects"/>
                 <ref bean="isilonPathCustomization"/>
                 <ref bean="isilonSystemAccessZoneNameSpace"/>
+                <ref bean="isilonUnManageFileSystemLocations"/>
                  
             </list>
         </property>
@@ -902,6 +903,27 @@
         </property>
     </bean>
     
+     <bean id="isilonUnManageFileSystemLocations" class="com.emc.storageos.customconfigcontroller.CustomConfigType">
+    	<property name="name" value="IsilonUnManageFileSystemLocations"/>
+              <property name="configType" value="SimpleValue"/>
+        <property name="type" value="String"/>
+ 		<property name="scope">
+            <map>
+         <entry key="systemType" value="isilon"/>
+            </map>
+        </property>
+        <property name="defaultValues">
+            <map>
+                <entry key="isilon" value="vipr,sos"/>                    
+            </map>
+        </property>
+                <property name="constraints">
+            <list>
+                <ref bean="isilonDirLocationsIllegalCharsConstraint"/>
+            </list>
+        </property>
+    </bean>
+    
     <bean id="portAllocationMetricsEnabled" class="com.emc.storageos.customconfigcontroller.CustomConfigType">
     	<property name="name" value="PortAllocationMetricsEnabled"/>
         <property name="configType" value="SimpleValue"/>
@@ -1312,6 +1334,21 @@
             </map>
         </property>
         <property name="description" value="Valid characters are letters, numbers , forward slash and _"/>
+        <property name="replacementMap">
+            <map>
+                <entry key="default" value=""/>
+            </map>
+        </property>   
+        <property name="name" value="IllegalCharsConstraint"/> 
+    </bean>
+    
+     <bean id="isilonDirLocationsIllegalCharsConstraint" class="com.emc.storageos.customconfigcontroller.IllegalCharsConstraint">
+        <property name="illegalCharsRegexMap">
+            <map>
+                <entry key="default" value="[^A-Za-z0-9_,]"/>
+            </map>
+        </property>
+        <property name="description" value="Valid characters are letters, numbers , comma,  and _"/>
         <property name="replacementMap">
             <map>
                 <entry key="default" value=""/>

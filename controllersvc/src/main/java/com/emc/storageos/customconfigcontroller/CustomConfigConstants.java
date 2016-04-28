@@ -80,5 +80,6 @@ public interface CustomConfigConstants {
     public String SHARE_VNAS_WITH_MULTIPLE_PROJECTS = "NasShareVNASWithMultipleProjects";
     public String ISILON_PATH_CUSTOMIZATION = "IsilonPathCustomization";
     public String ISILON_SYSTEM_ACCESS_ZONE_NAMESPACE = "IsilonSystemAccessZoneNameSpace";
+    public String ISILON_UNMANAGE_FILE_SYSTEM_LOCATIONS = "IsilonUnManageFileSystemLocations";
 
 }

@@ -726,6 +726,7 @@ CustomConfigs.configType.NasUsePhysicalNASForProvisioning=Use Physical NAS For P
 CustomConfigs.configType.NasShareVNASWithMultipleProjects=Enable Association of Virtual NAS to Multiple Projects
 CustomConfigs.configType.IsilonPathCustomization=File System Directory Path
 CustomConfigs.configType.IsilonSystemAccessZoneNameSpace=System Access Zone Directory
+CustomConfigs.configType.IsilonUnManageFileSystemLocations=UnManage File System Locations
 CustomConfigs.configType.VPlexMigrationSpeed=Data Migration Speed
 CustomConfigs.configType.VPlexVMAXMaskingViewMaximumVolumes=Max Volumes In VPlex Backend MaskingView
 CustomConfigs.scopeType.global=Global

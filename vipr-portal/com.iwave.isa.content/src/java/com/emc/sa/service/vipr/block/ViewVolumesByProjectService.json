@@ -1,12 +1,9 @@
 {
-  baseKey:"ViewVolumesByProject.Block.title",
+  baseKey:"ViewVolumesByProject.Block",
   serviceId:"ViewVolumesByProject",
   fields:{
-    project:{
-      type:"assetType.vipr.project"
-    },
-    volumes: {
-      type:"assetType.vipr.snapshotBlockVolume",
+    name:{
+      type:"text"
     }
   }
 }

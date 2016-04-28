@@ -9,7 +9,7 @@
      </bean> -->
      <bean id="storageDriverSimulator" class="com.emc.storageos.driver.driversimulator.StorageDriverSimulator">
      </bean>
-     <bean id="3PAR" class="com.emc.storageos.par3.restapi.Par3Api">
+     <bean id="3PAR" class="com.emc.storageos.hp3par.impl.HP3PARDriver">
      </bean>
 
      <bean id="externaldevice" class="com.emc.storageos.volumecontroller.impl.plugins.ExternalDeviceCommunicationInterface">

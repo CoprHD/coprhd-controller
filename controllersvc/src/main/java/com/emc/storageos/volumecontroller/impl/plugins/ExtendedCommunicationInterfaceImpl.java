@@ -15,7 +15,9 @@ import java.util.concurrent.ConcurrentHashMap;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedCifsShareACL;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedFileExportRule;
+import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedNFSShareACL;
 import com.emc.storageos.volumecontroller.ControllerLockingService;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -242,6 +244,29 @@ public abstract class ExtendedCommunicationInterfaceImpl implements ExtendedComm
             return unManagedCifsAcl;
         }
         return unManagedCifsAcl;
+    }
+    
+    /**
+     * check Pre Existing Storage NFS ACLs exists in DB
+     * 
+     * @param dbClient
+     * @param nfsNativeGuid
+     * @return UnManagedNFSShareACL
+     * @throws java.io.IOException
+     */
+    protected UnManagedNFSShareACL checkUnManagedFsNfssACLExistsInDB(DbClient dbClient,
+            String nfsACLNativeGuid) {
+        UnManagedNFSShareACL unManagedNfsAcl = null;
+        URIQueryResultList result = new URIQueryResultList();
+        dbClient.queryByConstraint(AlternateIdConstraint.Factory
+                .getFileNfsACLNativeGUIdConstraint(nfsACLNativeGuid), result);
+        Iterator<URI> iter = result.iterator();
+        while (iter.hasNext()) {
+            URI cifsAclURI = iter.next();
+            unManagedNfsAcl = dbClient.queryObject(UnManagedNFSShareACL.class, cifsAclURI);
+            return unManagedNfsAcl;
+        }
+        return unManagedNfsAcl;
     }
 
     @Override

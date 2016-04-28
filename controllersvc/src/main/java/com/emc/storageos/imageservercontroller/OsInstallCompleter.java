@@ -23,6 +23,7 @@ import com.emc.storageos.db.client.model.IpInterface;
 import com.emc.storageos.db.client.model.Operation.Status;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.security.audit.AuditLogManager;
+import com.emc.storageos.security.audit.AuditLogManagerFactory;
 import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 import com.emc.storageos.volumecontroller.TaskCompleter;
@@ -48,8 +49,7 @@ public class OsInstallCompleter extends TaskCompleter {
         Host host = dbClient.queryObject(Host.class, getId());
         ComputeImageJob job = dbClient.queryObject(ComputeImageJob.class, jobId);
 
-        AuditLogManager auditMgr = new AuditLogManager();
-        auditMgr.setDbClient(dbClient);
+        AuditLogManager auditMgr = AuditLogManagerFactory.getAuditLogManager();
         if (status == Status.ready && job.getJobStatus().equals(JobStatus.SUCCESS.name())) {
             // set host type based on image type
             ComputeImage image = dbClient.queryObject(ComputeImage.class, job.getComputeImageId());

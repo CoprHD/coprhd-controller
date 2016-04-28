@@ -50,7 +50,7 @@ public class VNXeBlockDeleteSnapshotJob extends VNXeJob {
             if (_status == JobStatus.SUCCESS && snapshotObj != null) {
                 if (snapshotObj.getConsistencyGroup() != null) {
                     // Set inactive=true for all snapshots in the lun group
-                    List<BlockSnapshot> snapshots = ControllerUtils.getBlockSnapshotsBySnapsetLabelForProject(snapshotObj, dbClient);
+                    List<BlockSnapshot> snapshots = ControllerUtils.getSnapshotsPartOfReplicationGroup(snapshotObj, dbClient);
                     for (BlockSnapshot snapshot : snapshots) {
                         processSnapshot(snapshot, dbClient);
                     }

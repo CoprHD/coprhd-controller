@@ -25,7 +25,6 @@ public class CustomConfigUpdateParam {
     /**
      * The config value to be changed
      * 
-     * @valid none
      */
     @XmlElement
     public String getValue() {

@@ -19,7 +19,6 @@ public class QuotaDirectoryBulkRep extends BulkRestRep {
      * The list of Quota Directories, returned as response to bulk
      * queries.
      * 
-     * @valid none
      */
     @XmlElement(name = "quotadirectory")
     public List<QuotaDirectoryRestRep> getQuotaDirectories() {

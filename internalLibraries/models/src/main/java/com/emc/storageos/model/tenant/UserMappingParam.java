@@ -33,7 +33,6 @@ public class UserMappingParam {
      * 
      * A single-valued attribute indicating the user's IDP domain
      * 
-     * @valid Examples: "emc.com" or "netapp.com"
      */
     @XmlElement(required = true, name = "domain")
     @JsonProperty("domain")
@@ -50,7 +49,6 @@ public class UserMappingParam {
      * The user's LDAP attributes that can be used to further scope tenancy as
      * a set of key-value pairs.
      * 
-     * @valid none
      */
     @XmlElement(name = "attribute")
     public List<UserMappingAttributeParam> getAttributes() {
@@ -67,7 +65,6 @@ public class UserMappingParam {
     @XmlElementWrapper(name = "groups")
     /**
      * AD Users group memberships to be used for mapping to this tenant
-     * @valid Example: "admins" or "lab-managers"
      */
     @XmlElement(name = "group")
     public List<String> getGroups() {
@@ -85,7 +82,6 @@ public class UserMappingParam {
      * Removes the duplicate entries from the collection (List<T>)
      * and returns the list with unique entries.
      * 
-     * @valid none
      */
     private <T> List<T> removeDuplicate(List<T> listWithDuplicates) {
         List<T> uniqueList = new ArrayList<T>(new LinkedHashSet<T>(listWithDuplicates));

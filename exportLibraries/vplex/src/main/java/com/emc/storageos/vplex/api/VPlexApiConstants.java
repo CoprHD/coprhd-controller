@@ -102,6 +102,7 @@ public class VPlexApiConstants {
     public static final URI URI_DISTRIBUTED_DEVICE_COMP = URI.create("/distributed-device-components/");
     public static final URI URI_COMPONENTS = URI.create("/components/");
     public static final URI URI_DEVICE_ATTACH_MIRROR = URI.create("/vplex/device+attach-mirror");
+    public static final URI URI_REBUILD_SET_TRANSFER_SIZE = URI.create("/vplex/rebuild+set-transfer-size");
     public static final URI URI_EXPAND_VIRTUAL_VOLUME = URI.create("/vplex/virtual-volume+expand");
     public static final URI URI_CREATE_CG = URI.create("/vplex/consistency-group+create");
     public static final URI URI_ADD_VOLUMES_TO_CG = URI.create("/vplex/consistency-group+add-virtual-volumes");
@@ -170,6 +171,7 @@ public class VPlexApiConstants {
     public static final String ARG_APPC = "--appc";
     public static final String ARG_THIN_REBUILD = "--thin-rebuild";
     public static final String ARG_TRANSFER_SIZE = "--transfer-size";
+    public static final String ARG_DEVICES = "--devices";
 
     // Constants related to claimed storage volumes.
     public static final String VOLUME_NAME_PREFIX = "V";
@@ -183,8 +185,9 @@ public class VPlexApiConstants {
     // Virtual Volume Locality
     public static final String LOCAL_VIRTUAL_VOLUME = "local";
     public static final String DISTRIBUTED_VIRTUAL_VOLUME = "distributed";
-
     public static final String LOCAL_DEVICE = "local";
+    public static final int LOCAL_BACKEND_VOLUME_COUNT = 1;
+    public static final int DISTRIBUTED_BACKEND_VOLUME_COUNT = 2;
 
     // Virtual Volume VPD-ID
     public static final String VOLUME_WWN_PREFIX = "VPD83T3:";
@@ -229,13 +232,13 @@ public class VPlexApiConstants {
 
     // Number of milliseconds to wait before checking the status of
     // a VPlex command that is running asynchronously.
-    public static final int TASK_PENDING_WAIT_TIME = 10000;
+    public static final int TASK_PENDING_WAIT_TIME = 30000;
 
     // Maximum number of retries while checking the status of an
     // asynchronous command. This value times the wait time
     // determines how long we'll wait for the asynchronous
     // command to complete.
-    public static final int MAX_RETRIES = 60;
+    public static final int MAX_RETRIES = 240;
 
     // VPlex API null attribute value
     public static final String NULL_ATT_VAL = "null";

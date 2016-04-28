@@ -8,6 +8,7 @@ package com.emc.vipr.model.sys.recovery;
 import java.util.Date;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
+import javax.xml.bind.annotation.XmlType;
 
 /**
  * Recovery status is a class used by REST API to represent the recovery status of cluster
@@ -17,6 +18,7 @@ public class RecoveryStatus {
     /**
      * The status of Node recovery
      */
+    @XmlType(name = "nodeRecoveryStatus_Status")
     public enum Status {
         NOT_STARTED,  // have not started yet
         INIT,         // triggering recovery
@@ -31,6 +33,7 @@ public class RecoveryStatus {
     /**
      * The error code of recovery failure
      */
+    @XmlType(name = "nodeRecoveryStatus_ErrorCode")
     public enum ErrorCode {
         REPAIR_FAILED, // Db repair failed
         SYNC_FAILED,   // Db rebuild failed

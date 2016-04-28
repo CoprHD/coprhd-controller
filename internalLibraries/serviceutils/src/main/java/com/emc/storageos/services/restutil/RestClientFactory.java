@@ -34,21 +34,22 @@ import com.sun.jersey.client.apache.ApacheHttpClientHandler;
 import com.sun.jersey.client.urlconnection.HTTPSProperties;
 
 abstract public class RestClientFactory {
-    private Logger _log = LoggerFactory.getLogger(RestClientFactory.class);
+    private final Logger _log = LoggerFactory.getLogger(RestClientFactory.class);
 
     private int _maxConn;
     private int _maxConnPerHost;
     private int _connTimeout;
+    private int connManagerTimeout;
     private int _socketConnTimeout;
     private boolean _needCertificateManager;
 
-    private ApacheHttpClientHandler _clientHandler;
-    private ConcurrentMap<String, RestClientItf> _clientMap;
+    protected ApacheHttpClientHandler _clientHandler;
+    protected ConcurrentMap<String, RestClientItf> _clientMap;
     private MultiThreadedHttpConnectionManager _connectionManager;
 
     /**
      * Maximum number of outstanding connections
-     * 
+     *
      * @param maxConn
      */
     public void setMaxConnections(int maxConn) {
@@ -61,7 +62,7 @@ abstract public class RestClientFactory {
 
     /**
      * Maximum number of outstanding connections per host
-     * 
+     *
      * @param maxConnPerHost
      */
     public void setMaxConnectionsPerHost(int maxConnPerHost) {
@@ -74,7 +75,7 @@ abstract public class RestClientFactory {
 
     /**
      * Connection timeout
-     * 
+     *
      * @param connectionTimeoutMs
      */
     public void setConnectionTimeoutMs(int connectionTimeoutMs) {
@@ -86,8 +87,22 @@ abstract public class RestClientFactory {
     }
 
     /**
+     * @return the connManagerTimeout
+     */
+    public int getConnManagerTimeout() {
+        return connManagerTimeout;
+    }
+
+    /**
+     * @param connManagerTimeout the connManagerTimeout to set
+     */
+    public void setConnManagerTimeout(int connManagerTimeout) {
+        this.connManagerTimeout = connManagerTimeout;
+    }
+
+    /**
      * Socket connection timeout
-     * 
+     *
      * @param connectionTimeoutMs
      */
     public void setSocketConnectionTimeoutMs(int connectionTimeoutMs) {
@@ -100,7 +115,7 @@ abstract public class RestClientFactory {
 
     /**
      * If Factory should create a ApacheHTTPClient client with Cetificate Manager
-     * 
+     *
      * @param need
      */
     public void setNeedCertificateManager(boolean need) {
@@ -131,6 +146,7 @@ abstract public class RestClientFactory {
         _connectionManager.closeIdleConnections(0);  // close idle connections immediately
 
         HttpClient client = new HttpClient(_connectionManager);
+        client.getParams().setConnectionManagerTimeout(connManagerTimeout);
         client.getParams().setParameter(HttpMethodParams.RETRY_HANDLER, new HttpMethodRetryHandler() {
             @Override
             public boolean retryMethod(HttpMethod httpMethod, IOException e, int i) {
@@ -174,8 +190,7 @@ abstract public class RestClientFactory {
                 throw new RuntimeException("Failed to obtain ApacheHTTPClient Config");
             }
             _clientHandler = new ApacheHttpClientHandler(client, clientConfig);
-        }
-        else {
+        } else {
             _clientHandler = new ApacheHttpClientHandler(client);
         }
 
@@ -206,7 +221,7 @@ abstract public class RestClientFactory {
 
     /**
      * Remove the connection from the cache.
-     * 
+     *
      * @param endpoint
      * @param username
      * @param password

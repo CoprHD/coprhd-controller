@@ -45,7 +45,6 @@ public class FileSystemIngest {
     /**
      * URI representing the virtual pool supporting the unmanaged file systems
      * 
-     * @valid none
      */
     @XmlElement(required = true)
     public URI getVpool() {
@@ -59,7 +58,6 @@ public class FileSystemIngest {
     /**
      * URI representing the virtual array supporting the unmanaged file systems
      * 
-     * @valid none
      */
     @XmlElement(required = true)
     public URI getVarray() {
@@ -73,7 +71,6 @@ public class FileSystemIngest {
     /**
      * URI representing the project
      * 
-     * @valid none
      */
     @XmlElement(required = true)
     public URI getProject() {
@@ -89,7 +86,6 @@ public class FileSystemIngest {
      * Use GET /vdc/storage-systems/{id}/unmanaged/filesystems for the list of unmanaged FileSystem ids on a Storage System basis.
      * Use GET /vdc/unmanaged/filesystems/bulk for the list of all unManaged FileSystem ids.
      * 
-     * @valid none
      */
     @XmlElement(name = "unmanaged_filesystem_list", required = true)
     public List<URI> getUnManagedFileSystems() {

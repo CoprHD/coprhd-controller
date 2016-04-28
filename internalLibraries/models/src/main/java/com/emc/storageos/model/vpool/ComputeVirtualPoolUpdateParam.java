@@ -41,7 +41,6 @@ public class ComputeVirtualPoolUpdateParam {
     /**
      * The name for the virtual pool.
      * 
-     * @valid none
      */
     @XmlElement(required = false)
     @Length(min = 2, max = 128)
@@ -56,7 +55,6 @@ public class ComputeVirtualPoolUpdateParam {
     /**
      * The description for the virtual pool.
      * 
-     * @valid none
      */
     @XmlElement(name = "description")
     public String getDescription() {
@@ -68,11 +66,12 @@ public class ComputeVirtualPoolUpdateParam {
     }
 
     /**
-     * Supported System Types
+     * Supported System Types.
+     * Valid values:
+     * 	Cisco_UCSM
+     * 	Cisco_CSeries
+     * 	Generic
      * 
-     * @valid Cisco_UCSM
-     * @valid Cisco_CSeries
-     * @valid Generic
      */
     @XmlElement(name = "system_type")
     public String getSystemType() {
@@ -227,8 +226,6 @@ public class ComputeVirtualPoolUpdateParam {
      * Determines if matched or valid assigned compute elements are returned from
      * command to retrieve the list of compute elements.
      * 
-     * @valid true
-     * @valid false
      */
     @XmlElement(name = "use_matched_elements")
     public Boolean getUseMatchedElements() {
@@ -242,7 +239,6 @@ public class ComputeVirtualPoolUpdateParam {
     /**
      * The virtual array assignment changes for the virtual pool.
      * 
-     * @valid none
      */
     @XmlElement(name = "varray_changes")
     public VirtualArrayAssignmentChanges getVarrayChanges() {
@@ -256,7 +252,6 @@ public class ComputeVirtualPoolUpdateParam {
     /**
      * The viService Profile Template assignment changes for the virtual pool.
      * 
-     * @valid none
      */
     @XmlElement(name = "service_profile_template_changes")
     public ServiceProfileTemplateAssignmentChanges getSptChanges() {

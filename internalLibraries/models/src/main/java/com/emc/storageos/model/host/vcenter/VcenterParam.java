@@ -46,7 +46,6 @@ public abstract class VcenterParam {
     /**
      * The user label for this vCenter
      * 
-     * @valid none
      */
     @XmlElement()
     public String getName() {
@@ -60,7 +59,7 @@ public abstract class VcenterParam {
     /**
      * The integer port number of the vCenter management interface.
      * 
-     * @Range (min=1, max= 65535)
+     * min=1, max= 65535
      */
     @XmlElement(name = "port_number")
     @Range(min = 1, max = 65535)
@@ -76,7 +75,6 @@ public abstract class VcenterParam {
     /**
      * The user credential used to login to the vCenter.
      * 
-     * @valid none
      */
     @XmlElement(name = "user_name")
     @JsonProperty("user_name")
@@ -91,7 +89,6 @@ public abstract class VcenterParam {
     /**
      * The password credential used to login to the vCenter.
      * 
-     * @valid none
      */
     @XmlElement()
     public String getPassword() {
@@ -105,8 +102,6 @@ public abstract class VcenterParam {
     /**
      * A flag indicating whether SSL should be used to communicate with the vCenter.
      * 
-     * @valid true = use SSL
-     * @valid false = do not use SSL
      */
     @XmlElement(name = "use_ssl")
     @JsonProperty("use_ssl")
@@ -121,7 +116,6 @@ public abstract class VcenterParam {
     /**
      * The operating system version of the vCenter.
      * 
-     * @valid none
      */
     @XmlElement(name = "os_version")
     @JsonProperty("os_version")
@@ -140,10 +134,9 @@ public abstract class VcenterParam {
      * A flag indicating whether to cascade the vCenter tenancy to all its
      * datacenters and its clusters and hosts or not. If cascaded vCenter
      * can belong to only one tenant.
-     *
-     * @valid true = cascades the vCenter tenancy to the datacenters
-     *                  and its hosts and clusters.
-     * @valid false = does not cascade.
+     * Valid values:
+     * 	true = cascades the vCenter tenancy to the datacenters and its hosts and clusters.
+     * 	false = does not cascase
      */
     @XmlElement(name = "cascade_tenancy")
     @JsonProperty("cascade_tenancy")

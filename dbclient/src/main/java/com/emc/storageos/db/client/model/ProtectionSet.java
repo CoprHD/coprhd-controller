@@ -38,6 +38,9 @@ public class ProtectionSet extends DataObject {
     // Subtasks of this protection, used by Workflow
     private StringMap _subtaskMap;
 
+    // unique ID to be indexed - this field is not exposed to client
+    private String _nativeGuid;
+
     public static enum ProtectionStatus {
         ENABLED,
         DISABLED,
@@ -110,6 +113,18 @@ public class ProtectionSet extends DataObject {
         setChanged("subtaskMap");
     }
 
+    @AlternateId("AltIdIndex")
+    @Name("nativeGuid")
+    public String getNativeGuid() {
+        return _nativeGuid;
+    }
+
+    public void setNativeGuid(String nativeGuid) {
+        _nativeGuid = nativeGuid;
+        setChanged("nativeGuid");
+    }
+
+    @Override
     public String toString() {
         return _protectionSystem.toString() + ":" + _protectionId + ":" + _protectionStatus + ":" + _volumes.toString();
     }

@@ -10,7 +10,10 @@ import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.Volume;
+import com.emc.storageos.exceptions.DeviceControllerErrors;
+import com.emc.storageos.svcs.errorhandling.model.ServiceError;
 import com.emc.storageos.volumecontroller.JobContext;
+import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.MetaVolumeTaskCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.VolumeExpandCompleter;
 import com.emc.storageos.volumecontroller.impl.smis.CIMConnectionFactory;
@@ -143,12 +146,13 @@ public class SmisVolumeExpandJob extends SmisJob {
 
                 StorageSystem storageSystem = dbClient.queryObject(StorageSystem.class, volume.getStorageController());
                 // set the RP tag on the volume if the volume is RP protected
-                if (volume.checkForRp() && storageSystem.getSystemType() != null
-                        && storageSystem.getSystemType().equalsIgnoreCase(DiscoveredDataObject.Type.vmax.toString())) {
-                    SmisCommandHelper helper = jobContext.getSmisCommandHelper();
-                    List<CIMObjectPath> volumePathList = new ArrayList<CIMObjectPath>();
-                    volumePathList.add(helper.getVolumeMember(storageSystem, volume));
-                    helper.setRecoverPointTag(storageSystem, volumePathList, true);
+                if (volume.checkForRp()) {
+                    SmisCommandHelper helper = jobContext.getSmisCommandHelper();                                        
+                    boolean tagSet = helper.doApplyRecoverPointTag(storageSystem, volume, true);
+                	if (!tagSet) {
+                		_log.error("Encountered an error while trying to enable the RecoverPoint tag.");
+                        jobStatus = JobStatus.FAILED;
+                	}                                        
                 }
 
                 dbClient.persistObject(volume);

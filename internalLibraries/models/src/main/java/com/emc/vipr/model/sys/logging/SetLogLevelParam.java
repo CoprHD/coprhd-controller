@@ -82,18 +82,18 @@ public class SetLogLevelParam {
 
     /**
      * Required, An int indicating the new log level.
-     * Following values are valid:
-     * 
-     * @valid 0 (FATAL)
-     * @valid 1 (EMERG)
-     * @valid 2 (ALERT)
-     * @valid 3 (CRIT)
-     * @valid 4 (ERROR)
-     * @valid 5 (WARN)
-     * @valid 6 (NOTICE)
-     * @valid 7 (INFO)
-     * @valid 8 (DEBUG)
-     * @valid 9 (TRACE)
+     * Valid values:
+     *  FATAL (0)
+     *  EMERG(1)
+     *  ALERT(2)
+     *  CRIT(3)
+     *  ERROR(4)
+     *  WARN(5)
+     *  NOTICE(6)
+     *  INFO(7)
+     *  DEBUG(8)
+     *  TRACE(9)
+     *
      */
     @XmlElement(required = true)
     public Integer getSeverity() {
@@ -114,13 +114,14 @@ public class SetLogLevelParam {
 
     public void setExpirInMin(Integer expirInMin) {
         this.expirInMin = expirInMin;
-    }
+   }
 
     /**
-     * Optional, log level scope
+     * Optional, log level scope.
+     * Valid values:
+     * 	SCOPE_DEFAULT
+     * 	SCOPE_DEPENDENCY
      * 
-     * @valid SCOPE_DEFAULT
-     * @valid SCOPE_DEPENDENCY
      */
     @XmlElement(name = "scope", required = false)
     public String getScope() {

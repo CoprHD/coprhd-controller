@@ -22,7 +22,6 @@ public class AuthnUpdateParam extends AuthnProviderBaseParam {
      * can be added, and removed. Up to one add element and one remove element may be specified.
      * Multiple urls can be specified in the add and remove blocks.
      * 
-     * @valid Example: see ServerUrlChanges
      */
     private ServerUrlChanges serverUrlChanges;
     private DomainChanges domainChanges;
@@ -101,13 +100,10 @@ public class AuthnUpdateParam extends AuthnProviderBaseParam {
         /**
          * List of Server URLs to add. You cannot mix ldap and ldaps URLs
          * 
-         * @valid none
          */
         @XmlElementWrapper(name = "add")
         /**
          * Server URL to add.
-         * @valid Example: ldap://10.10.10.145
-         * @valid Example: ldaps://10.10.10.145
          */
         @XmlElement(name = "server_url")
         public Set<String> getAdd() {
@@ -124,13 +120,10 @@ public class AuthnUpdateParam extends AuthnProviderBaseParam {
         /**
          * List of Server URLs to remove.
          * 
-         * @valid none
          */
         @XmlElementWrapper(name = "remove")
         /**
          * Server URL to remove.
-         * @valid Example: ldap://10.10.10.145
-         * @valid Example: ldaps://10.10.10.145
          */
         @XmlElement(name = "server_url")
         public Set<String> getRemove() {
@@ -153,14 +146,12 @@ public class AuthnUpdateParam extends AuthnProviderBaseParam {
         /**
          * List of domains to add.
          * 
-         * @valid none
          */
         @XmlElementWrapper(name = "add")
         /**
          * Active Directory domain names associated with this
          * provider.  For non Active Directory servers, domain represents a logical
          * abstraction for this server which may not correspond to a network name.
-         * @valid Example: domain.com
          */
         @XmlElement(name = "domain")
         public Set<String> getAdd() {
@@ -177,12 +168,10 @@ public class AuthnUpdateParam extends AuthnProviderBaseParam {
         /**
          * List of domains to remove.
          * 
-         * @valid none
          */
         @XmlElementWrapper(name = "remove")
         /**
          * domain to remove
-         * @valid Example: domain.com
          */
         @XmlElement(name = "domain")
         public Set<String> getRemove() {
@@ -204,15 +193,13 @@ public class AuthnUpdateParam extends AuthnProviderBaseParam {
         /**
          * List of white list values to add.
          * 
-         * @valid none
          */
         @XmlElementWrapper(name = "add")
         /**
          * Names of the groups to be included when querying Active Directory
          * for group membership information about a user or group.  
-         * @valid The value accepts regular expressions.
-         * @valid When empty, all groups are included implicitly
-         * @valid Example: *Users*.
+         * Valid values:
+         *  regular expressions
          */
         @XmlElement(name = "group_whitelist_value")
         public Set<String> getAdd() {
@@ -229,12 +216,10 @@ public class AuthnUpdateParam extends AuthnProviderBaseParam {
         /**
          * List of white list values to remove.
          * 
-         * @valid none
          */
         @XmlElementWrapper(name = "remove")
         /**
          * White list value to remove.
-         * @valid Example: *Users*.
          */
         @XmlElement(name = "group_whitelist_value")
         public Set<String> getRemove() {
@@ -256,15 +241,13 @@ public class AuthnUpdateParam extends AuthnProviderBaseParam {
         /**
          * List of group object classes to add.
          * 
-         * @valid none
          */
         @XmlElementWrapper(name = "add")
         /**
          * Group object classes to be included when querying LDAP
          * for searching the group.
-         * @valid Valid LDAP schema objectClasses.
-         * @valid When empty, search for groups in LDAP will fail.
-         * @valid Example: groupOfNames.
+         * Valid values:
+         *  LDAP schema objectClasses
          */
         @XmlElement(name = "group_object_class")
         public Set<String> getAdd() {
@@ -281,12 +264,10 @@ public class AuthnUpdateParam extends AuthnProviderBaseParam {
         /**
          * List of group object classes to remove.
          * 
-         * @valid none
          */
         @XmlElementWrapper(name = "remove")
         /**
          * group object classes to remove.
-         * @valid Example: groupOfNames.
          */
         @XmlElement(name = "group_object_class")
         public Set<String> getRemove() {
@@ -308,15 +289,14 @@ public class AuthnUpdateParam extends AuthnProviderBaseParam {
         /**
          * List of group member attributes to add.
          * 
-         * @valid none
          */
         @XmlElementWrapper(name = "add")
         /**
          * Group member attributes to be included when querying LDAP
          * for searching the user and group membership.
-         * @valid Valid LDAP schema attributes.
-         * @valid When empty, search for user's membership in LDAP will fail.
-         * @valid Example: member.
+         * Valid value:
+         *  Valid LDAP schema attributes
+         *  When empty, search for user's membership in LDAP will fail
          */
         @XmlElement(name = "group_member_attribute")
         public Set<String> getAdd() {
@@ -333,12 +313,10 @@ public class AuthnUpdateParam extends AuthnProviderBaseParam {
         /**
          * List of group member attribute type names to remove.
          * 
-         * @valid none
          */
         @XmlElementWrapper(name = "remove")
         /**
          * List of group member attributes to remove.
-         * @valid Example: member.
          */
         @XmlElement(name = "group_member_attribute")
         public Set<String> getRemove() {

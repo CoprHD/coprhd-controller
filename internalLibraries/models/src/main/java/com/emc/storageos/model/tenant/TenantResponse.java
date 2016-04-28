@@ -27,7 +27,6 @@ public class TenantResponse {
     /**
      * Tenant URI
      * 
-     * @valid none
      */
     @XmlElement(name = "id")
     public URI getTenant() {
@@ -41,7 +40,6 @@ public class TenantResponse {
     /**
      * Tenant name
      * 
-     * @valid none
      */
     @XmlElement(name = "name")
     public String getName() {
@@ -55,7 +53,6 @@ public class TenantResponse {
     /**
      * Link to itself (tenant)
      * 
-     * @valid none
      */
     @XmlElement(name = "link")
     public RestLinkRep getSelfLink() {

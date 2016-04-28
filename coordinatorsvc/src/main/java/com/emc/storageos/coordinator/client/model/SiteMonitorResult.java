@@ -4,50 +4,47 @@
  */
 package com.emc.storageos.coordinator.client.model;
 
-import com.emc.storageos.coordinator.exceptions.CoordinatorException;
 import com.emc.storageos.coordinator.exceptions.FatalCoordinatorException;
 
 public class SiteMonitorResult implements CoordinatorSerializable {
-    
+    private static final String ENCODING_SEPARATOR = "\0";
+
     public static final String CONFIG_KIND = "siteMonitorState";
     public static final String CONFIG_ID = "global";
-    
-    private static final String ENCODING_SEPARATOR = "\0";
-    
-    private boolean isActiveSiteLeaderAlive;
-    private boolean isActiveSiteStable;
+
+    private long dbQuorumLostSince;
+    private long dbQuorumLastActive;
     
     public SiteMonitorResult() {
         
     }
     
-    public SiteMonitorResult(boolean isActiveSiteLeaderAlive, boolean isActiveSiteStable) {
-        this.isActiveSiteLeaderAlive = isActiveSiteLeaderAlive;
-        this.isActiveSiteStable = isActiveSiteStable;
+    private SiteMonitorResult(long dbQuorumLostSince) {
+        this.dbQuorumLostSince = dbQuorumLostSince;
     }
 
-    public boolean isActiveSiteLeaderAlive() {
-        return isActiveSiteLeaderAlive;
+    public long getDbQuorumLostSince() {
+        return dbQuorumLostSince;
     }
 
-    public void setActiveSiteLeaderAlive(boolean isActiveSiteLeaderAlive) {
-        this.isActiveSiteLeaderAlive = isActiveSiteLeaderAlive;
+    public void setDbQuorumLostSince(long dbQuorumLostSince) {
+        this.dbQuorumLostSince = dbQuorumLostSince;
     }
 
-    public boolean isActiveSiteStable() {
-        return isActiveSiteStable;
+    public long getDbQuorumLastActive() {
+        return dbQuorumLastActive;
     }
 
-    public void setActiveSiteStable(boolean isActiveSiteStable) {
-        this.isActiveSiteStable = isActiveSiteStable;
+    public void setDbQuorumLastActive(long dbQuorumLastActive) {
+        this.dbQuorumLastActive = dbQuorumLastActive;
     }
 
     @Override
     public String encodeAsString() {
         StringBuilder sb = new StringBuilder();
-        sb.append(isActiveSiteLeaderAlive);
+        sb.append(dbQuorumLostSince);
         sb.append(ENCODING_SEPARATOR);
-        sb.append(isActiveSiteStable);
+        sb.append(dbQuorumLastActive);
         return sb.toString();
     }
 
@@ -57,12 +54,22 @@ public class SiteMonitorResult implements CoordinatorSerializable {
             return null;
         }
 
-        final String[] strings = infoStr.split(ENCODING_SEPARATOR);
-        if (strings.length != 2) {
-            throw CoordinatorException.fatals.decodingError("invalid site monitor state info");
+        try {
+            final String[] strings = infoStr.split(ENCODING_SEPARATOR);
+            SiteMonitorResult result = new SiteMonitorResult();
+            if (strings.length >= 1) {
+                long lostSince = Long.valueOf(strings[0]);
+                result.setDbQuorumLostSince(lostSince);
+            } 
+            if (strings.length > 1) {
+                long lastActive = Long.valueOf(strings[1]);
+                result.setDbQuorumLastActive(lastActive);
+            } 
+            return result;
+        } catch (NumberFormatException e) {
+            return new SiteMonitorResult();
         }
-        
-        return new SiteMonitorResult(Boolean.parseBoolean(strings[0]), Boolean.parseBoolean(strings[1]));
+
     }
 
     @Override

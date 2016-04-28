@@ -30,7 +30,6 @@ import com.emc.storageos.volumecontroller.placement.BlockStorageScheduler;
 import com.emc.storageos.volumecontroller.placement.StoragePortsAllocator;
 import com.emc.storageos.volumecontroller.placement.StoragePortsAssigner;
 import com.emc.storageos.vplex.api.VPlexApiException;
-import com.emc.storageos.vplex.api.VPlexApiExceptions;
 
 public class VPlexBackEndOrchestratorUtil {
     private static final Logger _log = LoggerFactory.getLogger(VPlexBackEndOrchestratorUtil.class);
@@ -124,6 +123,8 @@ public class VPlexBackEndOrchestratorUtil {
                     portsInDirector++;
                 } else if (mask.hasUserInitiator(initiatorPortWwn)) {
                     portsInDirector++;
+                } else if (mask.hasInitiator(initiatorId)) {
+                    portsInDirector++;
                 }
             }
             if (portsInDirector < 2) {
@@ -195,16 +196,18 @@ public class VPlexBackEndOrchestratorUtil {
         
         // Rule 5. Every port in the ExportMask must have the varray in its tagged varray set.
         StringBuilder portsNotInVarray = new StringBuilder();
-        for (String portId : mask.getStoragePorts()) {
-            StoragePort port = dbClient.queryObject(StoragePort.class, URI.create(portId));
-            if (port == null || port.getInactive()) {
-                continue;
-            }
-            // Validate port is tagged for Varray
-            StringSet taggedVarrays = port.getTaggedVirtualArrays();
-            if (taggedVarrays == null || taggedVarrays.isEmpty() 
-                    || !taggedVarrays.contains(varrayURI.toString())) {
-                portsNotInVarray.append(port.getPortName() + " ");
+        if (mask.getStoragePorts() != null) {
+            for (String portId : mask.getStoragePorts()) {
+                StoragePort port = dbClient.queryObject(StoragePort.class, URI.create(portId));
+                if (port == null || port.getInactive()) {
+                    continue;
+                }
+                // Validate port is tagged for Varray
+                StringSet taggedVarrays = port.getTaggedVirtualArrays();
+                if (taggedVarrays == null || taggedVarrays.isEmpty()
+                        || !taggedVarrays.contains(varrayURI.toString())) {
+                    portsNotInVarray.append(port.getPortName() + " ");
+                }
             }
         }
         if (portsNotInVarray.length() > 0) {

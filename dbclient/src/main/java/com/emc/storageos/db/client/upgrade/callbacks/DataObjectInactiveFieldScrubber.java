@@ -7,6 +7,7 @@ package com.emc.storageos.db.client.upgrade.callbacks;
 
 import java.net.URI;
 import java.util.List;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -15,6 +16,7 @@ import com.emc.storageos.db.client.model.*;
 import com.emc.storageos.db.client.upgrade.InternalDbClient;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.upgrade.BaseCustomMigrationCallback;
+import com.emc.storageos.svcs.errorhandling.resources.MigrationCallbackException;
 
 /**
  * Migration handler to update the missed settting of DataObject.inactive field
@@ -45,7 +47,7 @@ public class DataObjectInactiveFieldScrubber extends BaseCustomMigrationCallback
     }
 
     @Override
-    public void process() {
+    public void process() throws MigrationCallbackException {
         InactiveCheckScanner scanner = new InactiveCheckScanner(packages);
         scanner.scan(Cf.class);
     }

@@ -1,0 +1,18 @@
+{
+  baseKey:"AddResourcesToMobilityGroup.Migration",
+  serviceId:"AddResourcesToMobilityGroup",
+  roles: [
+    "SYSTEM_ADMIN"
+  ],
+  fields:{
+  
+    mobilityGroup:{
+      type:"assetType.vipr.mobilityGroup"
+    },
+    
+    mobilityGroupResources:{
+      type:"assetType.vipr.addMobilityGroupResource",
+      select: "many"
+    }
+  }
+}

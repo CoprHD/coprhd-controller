@@ -36,13 +36,14 @@ public class VirtualPoolAttributesParam {
     @XmlElementWrapper(name = "protocols")
     /**
      * The protocols for a virtual pool.
+     * Valid values:
+     *  FC = Fibre Channel (block)
+     *  ISCSI = Internet Small Computer System Interface (block)
+     *  FCoE = Fibre Channel over Ethernet (block)
+     *  NFS = Network File System (file)
+     *  NFSV4 = Network File System Version 4 (file)
+     *  CIFS = Common Internet File System (file)
      * 
-     * @valid FC = Fibre Channel (block)
-     * @valid ISCSI =  Internet Small Computer System Interface (block)
-     * @valid FCoE = Fibre Channel over Ethernet (block)
-     * @valid NFS = Network File System (file)
-     * @valid NFSv4 = Network File System Version 4 (file)
-     * @valid CIFS = Common Internet File System (file)
      */
     @XmlElement(name = "protocol")
     public Set<String> getProtocols() {
@@ -59,7 +60,6 @@ public class VirtualPoolAttributesParam {
     /**
      * The maximum number of paths to a given storage system.
      * 
-     * @valid none
      */
     @XmlElement(name = "max_paths")
     public Integer getMaxPaths() {
@@ -73,7 +73,6 @@ public class VirtualPoolAttributesParam {
     /**
      * The mininm number of paths to a given storage system for export.
      * 
-     * @valid none
      */
     @XmlElement(name = "min_paths")
     public Integer getMinPaths() {
@@ -117,7 +116,6 @@ public class VirtualPoolAttributesParam {
     /**
      * The virtual arrays for the virtual pool.
      * 
-     * @valid none
      */
     @XmlElement(name = "varray")
     @JsonProperty("varrays")
@@ -135,7 +133,6 @@ public class VirtualPoolAttributesParam {
     /**
      * The protection settings for the virtual pool.
      * 
-     * @valid none
      */
     @XmlElement(name = "protection")
     public VirtualPoolProtectionParam getProtection() {
@@ -147,11 +144,12 @@ public class VirtualPoolAttributesParam {
     }
 
     /**
-     * The provisioning type for the virtual pool.
+     * The provisioning type for the virtual pool. 
+     * Valid values:
+     *  NONE
+     *  Thin
+     *  Thick
      * 
-     * @valid NONE
-     * @valid Thin
-     * @valid Thick
      */
     @XmlElement(name = "provisioning_type", required = false)
     public String getProvisionType() {
@@ -165,7 +163,6 @@ public class VirtualPoolAttributesParam {
     /**
      * The high availability settings for the virtual pool.
      * 
-     * @valid none
      */
     @XmlElement(name = "high_availability")
     public VirtualPoolHighAvailabilityParam getHighAvailability() {
@@ -179,13 +176,13 @@ public class VirtualPoolAttributesParam {
 
     /**
      * The system type for the virtual pool.
+     * Valid values:
+     *  vnxblock
+     *  vmax
+     *  vnxfile
+     *  isilon
+     *  netapp
      * 
-     * @valid NONE
-     * @valid vnxblock (Block)
-     * @valid vmax (Block)
-     * @valid vnxfile (File)
-     * @valid isilon (File)
-     * @valid netapp (File)
      */
     @XmlElement(name = "system_type")
     public String getSystemType() {
@@ -215,15 +212,15 @@ public class VirtualPoolAttributesParam {
      * RAID 6 extends RAID 5 by adding an additional parity block; 
      * thus it uses block level striping with two parity blocks.
      * RAID 10 is a stripe of mirrors, i.e. a RAID 0 combination of RAID 1 drives.
-     * 
-     * @valid RAID0
-     * @valid RAID1
-     * @valid RAID2
-     * @valid RAID3
-     * @valid RAID4
-     * @valid RAID5
-     * @valid RAID6
-     * @valid RAID10
+     * Valid values:
+     *  RAID0
+     *  RAID1
+     *  RAID2
+     *  RAID3
+     *  RAID4
+     *  RAID5
+     *  RAID6
+     *  RAID10
      */
     @XmlElement(name = "raid_level")
     public Set<String> getRaidLevels() {
@@ -243,7 +240,6 @@ public class VirtualPoolAttributesParam {
      * algorithm is applied to get matching pools. On VMAX, only pools
      * associated with VMAX Auto Tier Policies are matched.
      * 
-     * @valid none
      */
     @XmlElement(name = "auto_tiering_policy_name")
     public String getAutoTieringPolicyName() {
@@ -257,12 +253,14 @@ public class VirtualPoolAttributesParam {
     /**
      * The supported drive type. When specified, only storage pools that are
      * comprised of the specified drive type are matched.
+     * Valid values:
+     *  FC
+     *  ISCSI
+     *  FCoE
+     *  NFS
+     *  NFSV4
+     *  CIFS
      * 
-     * @valid NONE = No specific drive type
-     * @valid SSD = Solid State Drive
-     * @valid FC = Fibre Channel
-     * @valid SAS = Serial Attached SCSI
-     * @valid SATA = Serial Advanced Technology Attachment
      */
     @XmlElement(name = "drive_type")
     public String getDriveType() {
@@ -278,8 +276,6 @@ public class VirtualPoolAttributesParam {
      * consistency. When specified for a virtual pool, volumes created using the
      * virtual pool can be created in consistency groups.
      * 
-     * @valid true
-     * @valid false
      */
     @XmlElement(name = "multi_volume_consistency")
     public Boolean getMultiVolumeConsistency() {

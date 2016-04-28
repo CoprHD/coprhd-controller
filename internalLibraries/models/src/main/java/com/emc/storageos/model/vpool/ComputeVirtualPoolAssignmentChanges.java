@@ -27,7 +27,6 @@ public class ComputeVirtualPoolAssignmentChanges {
     /**
      * The list of compute elements to be added to the compute virtual pool
      * 
-     * @valid none
      */
     @XmlElement(name = "add")
     public ComputeVirtualPoolAssignments getAdd() {
@@ -41,7 +40,6 @@ public class ComputeVirtualPoolAssignmentChanges {
     /**
      * The list of compute elements to be removed from the compute virtual pool
      * 
-     * @valid none
      */
     @XmlElement(name = "remove")
     public ComputeVirtualPoolAssignments getRemove() {

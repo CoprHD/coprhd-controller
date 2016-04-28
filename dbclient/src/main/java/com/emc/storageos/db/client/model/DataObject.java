@@ -9,6 +9,7 @@ import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.Serializable;
+import java.lang.reflect.Method;
 import java.net.URI;
 import java.util.Calendar;
 import java.util.Collection;
@@ -23,6 +24,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.db.client.util.KeyspaceUtil;
+import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.model.valid.Length;
 
 /**
@@ -31,6 +33,8 @@ import com.emc.storageos.model.valid.Length;
 public abstract class DataObject implements Serializable {
     static final long serialVersionUID = -5278839624050514418L;
     public static final String INACTIVE_FIELD_NAME = "inactive";
+    private static final int DEFAULT_MIN_LABEL_LENGTH = 2;
+    private static final String READ_LABEL_METHOD_NAME = "getLabel";
 
     private static final Logger _log = LoggerFactory.getLogger(DataObject.class);
 
@@ -93,7 +97,7 @@ public abstract class DataObject implements Serializable {
 
     /**
      * get identifier
-     * 
+     *
      * @return
      */
     @XmlElement
@@ -104,7 +108,7 @@ public abstract class DataObject implements Serializable {
 
     /**
      * set identifier
-     * 
+     *
      * @param id
      */
     public void setId(URI id) {
@@ -114,7 +118,7 @@ public abstract class DataObject implements Serializable {
 
     /**
      * get label
-     * 
+     *
      * @return
      */
     @XmlElement(name = "name")
@@ -127,17 +131,40 @@ public abstract class DataObject implements Serializable {
 
     /**
      * set label
-     * 
+     *
      * @param label
      */
     public void setLabel(String label) {
+        // COP-18886 revert this fix for Darth SP1 to unblock unmanaged volume ingestion
+        // it didn't really help us much if we don't fix existing records anyways.
+        // validateLabel(label);
         _label = label;
         setChanged("label");
     }
 
+    private void validateLabel(String label) {
+        int minLength = getPrefixIndexMinLength();
+        if (label != null && label.length() < minLength) {
+            String clazzName = this.getClass().getSimpleName();
+            throw DatabaseException.fatals.fieldLengthTooShort(clazzName, this.getId(), READ_LABEL_METHOD_NAME, label.length(), minLength);
+        }
+    }
+
+    private int getPrefixIndexMinLength() {
+        int length = DEFAULT_MIN_LABEL_LENGTH;
+        try {
+            Method method = DataObject.class.getDeclaredMethod(READ_LABEL_METHOD_NAME, null);
+            PrefixIndex annotation = method.getAnnotation(PrefixIndex.class);
+            length = annotation.minChars();
+        } catch (Exception e) {
+            _log.error("get declared method error:", e);
+        }
+        return length;
+    }
+
     /**
      * get inactive
-     * 
+     *
      * @return
      */
     @DecommissionedIndex("Decommissioned")
@@ -149,7 +176,7 @@ public abstract class DataObject implements Serializable {
 
     /**
      * set inactive
-     * 
+     *
      * @param inactive
      */
     public void setInactive(Boolean inactive) {
@@ -159,7 +186,7 @@ public abstract class DataObject implements Serializable {
 
     /**
      * Get status
-     * 
+     *
      * @return
      */
     @XmlElementWrapper(name = "operationStatus")
@@ -175,7 +202,7 @@ public abstract class DataObject implements Serializable {
 
     /**
      * Set status map - overwrites the existing map
-     * 
+     *
      * @param map StringMap to set
      */
     public void setOpStatus(OpStatusMap map) {
@@ -191,7 +218,7 @@ public abstract class DataObject implements Serializable {
 
     /**
      * Tag settter
-     * 
+     *
      * @param tags
      */
     public void setTag(ScopedLabelSet tags) {
@@ -238,7 +265,7 @@ public abstract class DataObject implements Serializable {
 
     /**
      * Returns true if the provided flag is set
-     * 
+     *
      * @param flag the flag to test
      * @return true if set
      */
@@ -282,7 +309,7 @@ public abstract class DataObject implements Serializable {
 
     /**
      * Mark a field as modified
-     * 
+     *
      * @param field name of the field modified
      */
     protected void setChanged(String field) {
@@ -294,7 +321,7 @@ public abstract class DataObject implements Serializable {
 
     /**
      * Checks if the field with the given name is marked as changed
-     * 
+     *
      * @param field name of the field to check
      * @return true if modified, false otherwise
      */
@@ -304,7 +331,7 @@ public abstract class DataObject implements Serializable {
 
     /**
      * clears changed flag for the given name
-     * 
+     *
      * @param field name of the field to check
      */
     public void clearChangedValue(String field) {
@@ -315,7 +342,7 @@ public abstract class DataObject implements Serializable {
 
     /**
      * mark changed flag for the given name
-     * 
+     *
      * @param field name of the field to check
      */
     public void markChangedValue(String field) {
@@ -324,7 +351,7 @@ public abstract class DataObject implements Serializable {
 
     /**
      * Checks if the field the given name was instanciated from the DB
-     * 
+     *
      * @param field name of the field to check
      * @return true if modified, false otherwise
      */
@@ -343,7 +370,7 @@ public abstract class DataObject implements Serializable {
      * This method will be called to check if this object is safe for deletion
      * overload this method in the derived class if there is anything specific to
      * check for on the object before deletion
-     * 
+     *
      * @return null if no active references, otherwise, detail type of the depedency returned
      */
     public String canBeDeleted() {
@@ -357,7 +384,7 @@ public abstract class DataObject implements Serializable {
     /**
      * Static method to create an instance of an object with the specified id
      * used from db deserialize to instantiate objects
-     * 
+     *
      * @param clazz DataObject class to create
      * @param id URI of the object
      * @param <T> DataObject type
@@ -381,25 +408,33 @@ public abstract class DataObject implements Serializable {
     /**
      * Bit flags that can be set on the data object to control or restrict
      * behavior relative to the data object.
-     * 
+     *
      * We don't yet have the ability to serialize something like an EnumSet into
      * the database, so we'll make do with defining the bits as Enum's and then
      * providing some typesafe setters/getters.
      */
     public static enum Flag {
-        INTERNAL_OBJECT(0),
-        NO_METERING(1),
-        NO_PUBLIC_ACCESS(2),
-        SUPPORTS_FORCE(3),
-        RECOVERPOINT(4),
-        DELETION_IN_PROGRESS(5);
+        INTERNAL_OBJECT(0),         // 0x01
+        NO_METERING(1),             // 0x02
+        NO_PUBLIC_ACCESS(2),        // 0x04
+        SUPPORTS_FORCE(3),          // 0x08
+        RECOVERPOINT(4),            // 0x10
+        DELETION_IN_PROGRESS(5),    // 0x20
+        RECOVERPOINT_JOURNAL(6),    // 0x40
+        PARTIALLY_INGESTED(7), // 0x80
+        // We need to know if the user given request is for entire Application or set of Array replication groups.
+        // This Flag is temporarily used for replica operation on Volume Group.
+        // As an alternate, we can change the BlockFullCopyManager method signatures
+        // to accept multiple URIs but doing it will result in changes in too many Impl classes
+        // and the real meaning of those methods may not indicate the same.
+        VOLUME_GROUP_PARTIAL_REQUEST(8); // 0x40
 
         private final long mask;
 
         /**
          * Construct an enum, using an explicit bit position rather than just using the ordinal to protect
          * against future add/remove of flags
-         * 
+         *
          * @param bitPosition the bit position to represent this instance
          */
         private Flag(int bitPosition) {
@@ -440,7 +475,7 @@ public abstract class DataObject implements Serializable {
     }
 
     public String forDisplay() {
-        if (_label != null) {
+        if (_label != null && !_label.isEmpty()) {
             return String.format("%s (%s)", _label, _id);
         } else {
             return _id.toString();

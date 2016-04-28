@@ -5,17 +5,15 @@
 
 package com.emc.storageos.security.authentication;
 
-import com.emc.storageos.coordinator.client.model.PropertyInfoExt;
-import com.emc.storageos.coordinator.client.service.CoordinatorClient;
-import com.emc.storageos.coordinator.client.service.NodeListener;
-import com.emc.storageos.coordinator.common.impl.ZkPath;
-import com.emc.storageos.model.property.PropertyInfo;
-import com.emc.storageos.security.exceptions.*;
-import com.emc.storageos.security.password.Constants;
-import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import org.apache.commons.lang.math.NumberUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.emc.storageos.coordinator.client.model.PropertyInfoExt;
+import com.emc.storageos.coordinator.client.service.CoordinatorClient;
+import com.emc.storageos.coordinator.client.service.NodeListener;
+import com.emc.storageos.security.password.Constants;
+import com.emc.storageos.svcs.errorhandling.resources.APIException;
 
 /**
  * Holds the token max life and related values, for other beans
@@ -92,9 +90,9 @@ public class TokenMaxLifeValuesHolder {
         _overrideKeyRotationIntervalInMsecs = i;
     }
 
-
     private class SystemPropertyChangeListener implements NodeListener {
         private String SYSTEM_PROPERTY_PATH = "/config/upgradetargetpropertyoverride/global";
+
         public String getPath() {
             return SYSTEM_PROPERTY_PATH;
         }
@@ -140,7 +138,7 @@ public class TokenMaxLifeValuesHolder {
      */
     public void loadParameterFromZK() {
         try {
-	    _log.info("load token life time and idle time from zk");
+            _log.info("load token life time and idle time from zk");
             PropertyInfoExt params = _coordinator.getTargetInfo(PropertyInfoExt.class);
             _maxTokenLifeTimeInMins = NumberUtils.toInt(params.getProperty(Constants.TOKEN_LIFE_TIME),
                     Constants.DEFAULT_TOKEN_LIFE_TIME);

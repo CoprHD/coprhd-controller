@@ -1,0 +1,377 @@
+#{set 'moreScripts'}
+#{get 'moreScripts'/}
+<script type="text/javascript">
+var replication = function() {
+    var dialog;
+    var form;
+    var varraySelect;
+    var vpoolSelect;
+    var editCopy;
+
+    var editVersion = -1;
+    var copies = ${flash["vpool.replicationCopiesJson"] != null ? flash["vpool.replicationCopiesJson"].raw() : vpool.replicationCopiesJson.raw()}
+
+    function getCopyTableRow(event) {
+        return $(event.target).parentsUntil('table', 'tr');
+    }
+    
+    function showDialog() {
+        util.clearValidationErrors(dialog);
+        clearDialogValues();
+        
+        loadVirtualArrayOptions();
+        // Collect Arrays
+        dialog.modal('show');
+    }
+    
+    function hideDialog() {
+        dialog.modal('hide');
+    }
+    
+    var saveTimeout;
+    function startSave() {
+        var button = $('.btn-primary', form);
+        button.prop('disabled', true);
+        
+        // Only change the button icon if the save takes longer than 500ms
+        saveTimeout = window.setTimeout(function() {
+            var icon = $('span', button);
+            var iconClass = icon.attr('class');
+            icon.data('icon', iconClass);
+            icon.removeClass();
+            icon.addClass('rotate glyphicon glyphicon-refresh');
+            saveTimeout = null;
+        }, 250);
+    }
+    
+    function endSave() {
+        if (saveTimeout != null) {
+            window.clearTimeout(saveTimeout);
+        }
+        var button = $('.btn-primary', form);
+        button.prop('disabled', false);
+        var icon = $('span', button);
+        var iconClass = icon.data('icon');
+        if (iconClass) {
+            icon.removeClass();
+            icon.addClass(iconClass);
+            icon.removeData('icon');
+        }
+    }
+    
+    function doSaveCopy() {
+        var arrayId = $('[name="replicationCopy.virtualArray"]', dialog).val();
+        var poolId = $('[name="replicationCopy.virtualPool"]', dialog).val();
+        var virtualArrayName = $('#replicationCopy_virtualArray option:selected').text();
+        var virtualPoolName = $('#replicationCopy_virtualPool option:selected').text();
+
+        if (editVersion == -1) {
+            var newCopy = {
+                "virtualArray":arrayId,
+                "virtualArrayName":virtualArrayName,
+                "virtualPool":poolId,
+                "virtualPoolName":virtualPoolName
+            }
+            copies.push(newCopy);
+
+            addCopyRow(newCopy);
+        }
+        else {
+            copies[editVersion].virtualArray = arrayId;
+            copies[editVersion].virtualArrayName = virtualArrayName;
+            copies[editVersion].virtualPool = poolId;
+            copies[editVersion].virtualPoolName = virtualPoolName;
+
+            updateCopyRow(editVersion, copies[editVersion]);
+        }
+
+        editVersion = -1;
+        hideDialog();
+    }
+
+    function clearDialogValues() {
+        varraySelect.empty();
+        vpoolSelect.empty();
+        triggerSelectUpdated(varraySelect);
+        triggerSelectUpdated(vpoolSelect);
+    }
+
+    function triggerSelectUpdated(select) {
+        select.trigger('chosen:updated');
+        select.trigger("change");
+    }
+
+    function addNoneOption(select, selected) {
+        var option ="<option value=''"
+
+        if (selected) {
+            option += "selected";
+        }
+
+        option += ">None</option>";
+
+        select.append(option);
+    }
+    
+    function addValidationResult(result) {
+        var control = $("[name='"+result.key+"']", form);
+        var controlGroup = control.parentsUntil(form, '.form-group');
+        var error = $('.help-inline', controlGroup);
+        
+        controlGroup.addClass('has-error');
+        error.text(result.message);
+    }
+    
+    function showValidationResult(result) {
+        util.clearValidationErrors(dialog);
+        if ($.isArray(result)) {
+            for (var i = 0; i < result.length; i++) {
+                if (result[i] && !result[i].success) {
+                    addValidationResult(result[i]);
+                }
+            }
+        }
+        else {
+            addValidationResult(result);
+        }
+    }
+    
+    function isValidationSuccess(result) {
+        if ($.isArray(result)) {
+            for (var i = 0; i < result.length; i++) {
+                if (!(result[i] && result[i].success)) {
+                    return false;
+                }
+            }
+            return true;
+        }
+        else {
+            return result && result.success;
+        }
+    }
+
+    function addCopyRow(copy) {
+        var virtualPoolName = copy.virtualPoolName == null ? "" : copy.virtualPoolName;
+#{if locked}
+        var copyRow = $("#replicationCopies").find("tbody").append("<tr>" +
+                                                               "<td class='virtualArray'>"+copy.virtualArrayName+"</td>" +
+                                                               "<td class='virtualPool'>"+virtualPoolName+"</td>" +
+                                                               "<td class='actions'>&nbsp;</td>" +
+                                                            "</tr>");
+#{/if}
+#{else}
+        var copyRow = $("#replicationCopies").find("tbody").append("<tr>" +
+                                                              "<td class='virtualArray'>" +
+                                                                "<a href='#' onclick='replication.editCopy(event); return false;'>"+copy.virtualArrayName+"</a>" +
+                                                              "</td>" +
+                                                              "<td class='virtualPool'>"+virtualPoolName+"</td>" +
+                                                              "<td class='actions'><a href='#' onclick='replication.deleteCopy(event); return false'><span class='glyphicon glyphicon-remove'></span></a></td>" +
+                                                            "</tr>");
+
+        serializeCopies();
+#{/else}
+    }
+
+    function updateCopyRow(index, copy) {
+        var tableRow = $('#replicationCopies tbody tr:eq('+index+')');
+
+        var vArray = $(tableRow).find(".virtualArray a");
+        var vPool = $(tableRow).find(".virtualPool");
+
+        vArray.text(copy.virtualArrayName);
+        vPool.text(copy.virtualPoolName);
+
+        serializeCopies();
+    }
+
+    function loadVirtualArrayOptions() {
+        var vpool = $('form').serialize();
+        var handler = function(data, textStatus, jqXHR) {
+            varraySelect.empty();
+            addNoneOption(varraySelect, editVersion != -1);
+
+            if (editVersion != -1) {
+                var editCopy = copies[editVersion];
+                varraySelect.append('<option value="'+editCopy.virtualArray+'" selected>'+editCopy.virtualArrayName+'</option>');
+            }
+
+            for (var i = 0; i < data.length; i++) {
+                varraySelect.append('<option value="'+data[i].id+'">'+data[i].name+'</option>');
+            }
+            triggerSelectUpdated(varraySelect);
+        };
+
+        var url = '@{arrays.FileVirtualPools.listReplicationVirtualArraysJson()}';
+        $.post(url, vpool, handler, 'json');
+    }
+
+    function loadVirtualPoolOptions() {
+        var varrayId = varraySelect.val();
+
+        var handler = function(data, textStatus, jqXHR) {
+            vpoolSelect.empty();
+            addNoneOption(vpoolSelect, editVersion != -1);
+            for (var i = 0; i < data.length; i++) {
+                var option ='<option value="'+data[i].id+'"';
+
+                if (editVersion != -1 && copies[editVersion].virtualPool == data[i].id) {
+                    option += "selected";
+                }
+
+                option += '>'+data[i].name+'</option>';
+
+                vpoolSelect.append(option);
+            }
+            triggerSelectUpdated(vpoolSelect);
+        };
+        var url = '@{arrays.FileVirtualPools.listReplicationVirtualPoolsJson()}';
+        $.get(url, "virtualArray="+varrayId, handler, 'json');
+    }
+
+    var my = {};
+    my.init = function() {
+        dialog = $('#replicationCopyDialog');
+        form = $('#replicationCopyForm');
+        varraySelect = $('[name="replicationCopy.virtualArray"]')
+        vpoolSelect = $('[name="replicationCopy.virtualPool"]')
+
+        varraySelect.on('change',loadVirtualPoolOptions);
+
+        dialog.on('hide', endSave);
+
+        // Initialise the copies table
+        $.each(copies, function(index, value) {
+           addCopyRow(value);
+        });
+    }
+
+    function serializeCopies() {
+        $('[name="vpool.replicationCopiesJson"]').val(JSON.stringify(copies));
+        $('[name="vpool.replicationCopiesJson"]').trigger("change");
+        updateFooter();
+    }
+
+    function updateFooter() {
+        var replicationCopies = $('#replicationCopies')
+        var copies = replicationCopies.find('tbody > tr').length;
+        if (copies > 0) {
+            replicationCopies.find('tfoot > tr').hide();
+        }
+        else {
+            replicationCopies.find('tfoot > tr').show();
+        }
+    }
+
+    my.addCopy = function() {
+        editVersion = -1;
+        showDialog();
+    }
+
+    my.editCopy = function(event) {
+        var copyRow = getCopyTableRow(event);
+        editVersion = copyRow[0].rowIndex-1;
+
+        showDialog();
+    }
+
+    my.saveCopy = function(event) {
+        var validationUrl = #{jsAction @validateReplicationCopy() /}();
+        var data = form.serialize();
+        var postSuccess = function(data, textStatus, jqXHR) {
+            if (isValidationSuccess(data)) {
+                doSaveCopy();
+            }
+            else {
+                showValidationResult(data);
+            }
+        };
+        var postFailed = function(jqXHR, textStatus, errorThrown) {
+            // Show general error
+        };
+        startSave();
+        $.post(validationUrl, data, postSuccess).fail(postFailed).always(endSave);
+    }
+
+    my.deleteCopy = function(event) {
+        event.stopPropagation();
+
+        var copyRow = getCopyTableRow(event);
+        var copyIndex = copyRow[0].rowIndex-1;
+
+        copyRow.remove();
+        copies.splice(copyIndex, 1);
+
+        serializeCopies();
+    }
+    return my;
+}();
+
+$(document).ready(function() {
+    replication.init();
+});
+</script>
+#{/set}
+
+#{set 'moreStyles'}
+#{get 'moreStyles'/}
+<style type="text/css">
+#replicationCopyDialog .modal-body {
+    max-height: none;
+    overflow-y: visible;
+}
+.table.replicationCopy {
+    /*width: 540px;*/
+    float:left;
+    margin-bottom: 0;
+}
+.table.replicationCopy .edit {
+    cursor: pointer;
+}
+.table.replicationCopy .virtualArray {
+    width: 160px;
+}
+.table.replicationCopy td.virtualArray,
+.table.replicationCopy td.virtualPool,
+.table.replicationCopy th.virtualArray,
+.table.replicationCopy th.virtualPool,
+.table.replicationCopy .actions {
+    width: 20px;
+    text-align: center;
+}
+.table.replicationCopy .disabled {
+    opacity: 0.5;
+}
+</style>
+#{/set}
+
+
+#{field 'vpool.replicationCopies'}
+  %{ field.required = true }%
+  #{Form.controlGroup field:field}
+    <input type="hidden" name="vpool.replicationCopiesJson" id="vpool_replicationCopiesJson" value="${flash["vpool.replicationCopiesJson"] != null ? flash["vpool.replicationCopiesJson"] : vpool.replicationCopiesJson}"/>
+    <table id="replicationCopies" class="table table-hover replicationCopy">
+    <thead>
+    <tr>
+      <th class="virtualArray">&{'replicationCopy.virtualArray'}</th>
+      <th class="virtualPool">&{'replicationCopy.virtualPool'}</th>
+      <th class="actions"></th>
+    </tr>
+    </thead>
+ #{if !locked} 
+    <tfoot>
+    <tr>
+        <th>&nbsp;</th>
+        <th  class="virtualPool"><a href="#" onclick="replication.addCopy(); return false;">Add Copy</a></th>
+        <th></th>
+    </tr>
+    </tfoot>
+  #{/if} 
+    <tbody>
+
+    </tbody>
+    </table>
+  #{/Form.controlGroup}
+#{/field}
+
+
+

@@ -10,6 +10,7 @@ import com.emc.storageos.db.client.model.*;
 import com.emc.storageos.isilon.restapi.IsilonApi;
 import com.emc.storageos.isilon.restapi.IsilonApiFactory;
 import com.emc.storageos.isilon.restapi.IsilonClusterConfig;
+import com.emc.storageos.isilon.restapi.IsilonPool;
 import com.emc.storageos.isilon.restapi.IsilonStoragePort;
 import com.emc.storageos.isilon.restapi.IsilonStoragePool;
 import com.emc.storageos.isilon.restapi.IsilonException;
@@ -21,6 +22,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -88,7 +90,7 @@ public class IsilonFileStorageDeviceTest {
     public void testDiscoverIsilonStoragePools() {
         try {
             IsilonApi isilonApi = _isi.getIsilonDevice(_device);
-            List<IsilonStoragePool> isilonStoragePools = isilonApi.getStoragePools();
+            List<? extends IsilonPool> isilonStoragePools = isilonApi.getStoragePools();
             Assert.assertTrue("Isilon Storage Pool discovery failed " + isilonStoragePools.size(), false);
 
         } catch (IsilonException iex) {

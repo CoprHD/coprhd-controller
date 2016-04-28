@@ -26,7 +26,6 @@ public class ResourceList {
     /**
      * The list of resources associated with this project
      * 
-     * @valid none
      */
     @XmlElement(name = "project_resource")
     public List<TypedRelatedResourceRep> getResources() {

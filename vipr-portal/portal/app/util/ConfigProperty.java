@@ -43,4 +43,13 @@ public class ConfigProperty {
     public static final String IMAGE_SERVER_USERNAME = "image_server_username";
     public static final String IMAGE_SERVER_PASSWORD = "image_server_encpassword";
     public static final String IMAGE_SERVER_TFTPBOOT = "image_server_tftpboot_directory";
+
+    public static final String BACKUP_EXTERNAL_URL = "backup_external_location_url";
+    public static final String BACKUP_EXTERNAL_USERNAME = "backup_external_location_username";
+    public static final String BACKUP_EXTERNAL_PWD = "backup_external_location_password";
+    public static final String BACKUP_SCHEDULER_ENABLE = "backup_scheduler_enable";
+    public static final String BACKUP_SCHEDULER_TIME = "backup_scheduler_time";
+    public static final String BACKUP_SCHEDULER_INTERVAL = "backup_scheduler_interval";
+    public static final String BACKUP_SCHEDULER_COPIES = "backup_scheduler_copies_to_keep";
+    public static final String BACKUP_MAX_MANUAL_COPIES = "backup_max_manual_copies";
 }

@@ -31,7 +31,6 @@ public class VirtualPoolCommonParam {
     /**
      * The name for the virtual pool.
      * 
-     * @valid none
      */
     @XmlElement(required = false)
     @Length(min = 2, max = 128)
@@ -46,7 +45,6 @@ public class VirtualPoolCommonParam {
     /**
      * The description for the virtual pool.
      * 
-     * @valid none
      */
     @XmlElement(name = "description")
     public String getDescription() {
@@ -59,14 +57,15 @@ public class VirtualPoolCommonParam {
 
     @XmlElementWrapper(name = "protocols", required = true)
     /**
-     * The set of supported protocols for the virtual pool.
+     * The set of supported protocols for the virtual pool. 
+     * Valid values:
+     *  FC = Fibre Channel (block)
+     *  ISCSI = Internet Small Computer System Interface (block)
+     *  FCoE = Fibre Channel over Ethernet (block)
+     *  NFS = Network File System( file)
+     *  NFSV4 = Network File System Version 4(file)
+     *  CIFS = Common Internet File Systemm (file)
      * 
-     * @valid FC = Fibre Channel (block)
-     * @valid ISCSI =  Internet Small Computer System Interface (block)
-     * @valid FCoE = Fibre Channel over Ethernet (block)
-     * @valid NFS = Network File System (file)
-     * @valid NFSv4 = Network File System Version 4 (file)
-     * @valid CIFS = Common Internet File System (file)
      */
     @XmlElement(name = "protocol", required = true)
     public Set<String> getProtocols() {
@@ -81,7 +80,6 @@ public class VirtualPoolCommonParam {
     /**
      * The virtual arrays for the virtual pool
      * 
-     * @valid none
      */
     @XmlElement(name = "varray")
     @JsonProperty("varrays")
@@ -101,8 +99,6 @@ public class VirtualPoolCommonParam {
      * Determines if matched or valid assigned pools are returned from
      * command to retrieve the list of storage pools.
      * 
-     * @valid true
-     * @valid false
      */
     @XmlElement(name = "use_matched_pools")
     public Boolean getUseMatchedPools() {
@@ -115,10 +111,10 @@ public class VirtualPoolCommonParam {
 
     /**
      * The provisioning type for the virtual pool.
-     * 
-     * @valid NONE
-     * @valid Thin
-     * @valid Thick
+     * Valid values:
+     *  NONE
+     *  Thin
+     *  Thick
      */
     @XmlElement(name = "provisioning_type", required = true)
     public String getProvisionType() {
@@ -131,14 +127,14 @@ public class VirtualPoolCommonParam {
 
     /**
      * The supported system type for the virtual pool.
-     * 
-     * @valid NONE
-     * @valid vnxblock (Block)
-     * @valid vmax (Block)
-     * @valid openstack (Block)
-     * @valid vnxfile (File)
-     * @valid isilon (File)
-     * @valid netapp (File)
+     * Valid values:
+     *  NONE
+     *  vnxblock (block)
+     *  vmax (block)
+     *  openstack (block)
+     *  vnxfile (file)
+     *  isilon (file)
+     *  netapp (file)
      */
     @XmlElement(name = "system_type")
     public String getSystemType() {

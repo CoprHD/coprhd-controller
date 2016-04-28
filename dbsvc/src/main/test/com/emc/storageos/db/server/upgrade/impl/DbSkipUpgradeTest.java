@@ -18,11 +18,11 @@ public class DbSkipUpgradeTest extends DbStepSkipUpgradeTestBase {
 
         // actual test run
         stopAll();
-        setupDB(initalVersion, "com.emc.storageos.db.server.upgrade.util.models.old");
+        setupDB(initalVersion, initalVersion, "com.emc.storageos.db.server.upgrade.util.models.old");
         prepareData1();
         prepareData2();
         stopAll();
-        setupDB(secondUpgradeVersion, "com.emc.storageos.db.server.upgrade.util.models.updated2");
+        setupDB(initalVersion, secondUpgradeVersion, "com.emc.storageos.db.server.upgrade.util.models.updated2");
         verifyAll();
         stop();
     }

@@ -61,6 +61,7 @@ import com.emc.storageos.security.authorization.Role;
 import com.emc.storageos.security.geo.GeoServiceClient;
 import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
+import com.emc.storageos.volumecontroller.AttributeMatcher;
 import com.emc.storageos.volumecontroller.impl.utils.ImplicitPoolMatcher;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
 import com.google.common.base.Function;
@@ -132,6 +133,9 @@ public class ObjectVirtualPoolService extends VirtualPoolService {
         if (null != vpool.getMaxRetention()) {
             restRep.setMaxRetention(vpool.getMaxRetention());
         }
+        if (null != vpool.getMinDataCenters()) {
+            restRep.setMinDataCenters(vpool.getMinDataCenters());
+        }
         return restRep;
     }
 
@@ -175,8 +179,9 @@ public class ObjectVirtualPoolService extends VirtualPoolService {
                 allPools,
                 null,
                 null,
+                null,
                 _dbClient,
-                _coordinator);
+                _coordinator, AttributeMatcher.VPOOL_MATCHERS);
         for (StoragePool pool : matchedPools) {
             poolList.getPools().add(toNamedRelatedResource(pool, pool.getNativeGuid()));
         }
@@ -286,9 +291,15 @@ public class ObjectVirtualPoolService extends VirtualPoolService {
         if (null != param.getMaxRetention()) {
             cos.setMaxRetention(param.getMaxRetention());
         }
+        if (null != param.getMinDataCenters()) {
+            if (!cos.getMinDataCenters().equals(param.getMinDataCenters())) {
+                ArgValidator.checkReference(VirtualPool.class, id, checkForDelete(cos));
+            }
+            cos.setMinDataCenters(param.getMinDataCenters());
+        }
         
         if (null != param.getSystemType()) {
-            if (cos.getArrayInfo().containsKey(VirtualPoolCapabilityValuesWrapper.SYSTEM_TYPE)) {
+            if (cos.getArrayInfo() != null && cos.getArrayInfo().containsKey(VirtualPoolCapabilityValuesWrapper.SYSTEM_TYPE)) {
                 for (String systemType : cos.getArrayInfo().get(
                         VirtualPoolCapabilityValuesWrapper.SYSTEM_TYPE)) {
                     cos.getArrayInfo().remove(VirtualPoolCapabilityValuesWrapper.SYSTEM_TYPE,
@@ -297,11 +308,13 @@ public class ObjectVirtualPoolService extends VirtualPoolService {
             }
 
             if (!(VirtualPool.SystemType.NONE.name().equalsIgnoreCase(param.getSystemType())
-            || VirtualPool.SystemType.isObjectTypeSystem(param.getSystemType()))) {
+                    || VirtualPool.SystemType.isObjectTypeSystem(param.getSystemType()))) {
                 throw APIException.badRequests.invalidSystemType("Object");
             }
-            cos.getArrayInfo()
-                    .put(VirtualPoolCapabilityValuesWrapper.SYSTEM_TYPE, param.getSystemType());
+            if (cos.getArrayInfo() == null) {
+                cos.setArrayInfo(new StringSetMap());
+            }
+            cos.getArrayInfo().put(VirtualPoolCapabilityValuesWrapper.SYSTEM_TYPE, param.getSystemType());
         }
 
         // invokes implicit pool matching algorithm.
@@ -504,6 +517,10 @@ public class ObjectVirtualPoolService extends VirtualPoolService {
         }
         if (null != param.getMaxRetention()) {
             vPool.setMaxRetention(param.getMaxRetention());
+        }
+        
+        if (null != param.getMinDataCenters()) {
+            vPool.setMinDataCenters(param.getMinDataCenters());
         }
 
         return vPool;

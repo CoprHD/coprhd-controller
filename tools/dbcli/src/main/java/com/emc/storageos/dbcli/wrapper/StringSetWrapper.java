@@ -4,21 +4,25 @@
  */
 package com.emc.storageos.dbcli.wrapper;
 
+import javax.xml.bind.annotation.XmlAccessType;
+import javax.xml.bind.annotation.XmlAccessorType;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlElement;
+
 import com.emc.storageos.db.client.model.StringSet;
 
 @XmlRootElement(name = "wrapper")
+@XmlAccessorType(XmlAccessType.FIELD)
 public class StringSetWrapper extends Wrapper<StringSet> {
 
-    private StringSet stringSet = new StringSet();
-
     @XmlElement(name = "stringSet")
+    private StringSet value = new StringSet();
+
     public StringSet getValue() {
-        return stringSet;
+        return value;
     }
 
     public void setValue(StringSet stringSet) {
-        this.stringSet = stringSet;
+        value = stringSet;
     }
 }

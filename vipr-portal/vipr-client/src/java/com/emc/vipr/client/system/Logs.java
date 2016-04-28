@@ -38,6 +38,7 @@ public class Logs {
     public static final int LOG_LEVEL_TRACE = 9;
 
     private static final String NODE_ID = "node_id";
+    private static final String NODE_NAME = "node_name";
     private static final String LOG_NAME = "log_name";
     private static final String SEVERITY = "severity";
     private static final String START_TIME = "start";
@@ -56,10 +57,10 @@ public class Logs {
      * 
      * @return the list of log levels.
      * 
-     * @see #getLogLevels(Collection, Collection)
+     * @see #getLogLevels(Collection, Collection, Collection)
      */
     public List<LogLevel> getLogLevels() {
-        return getLogLevels(null, null);
+        return getLogLevels(null, null, null);
     }
 
     /**
@@ -70,6 +71,8 @@ public class Logs {
      * @param logNames
      *            the name of the logs. If null or empty, all logs' levels are returned.
      * @return the list of log levels.
+     * @deprecated Replaced by
+     * @see #getLogLevels(Collection, Collection, Collection)
      */
     public List<LogLevel> getLogLevels(Collection<String> nodeIds, Collection<String> logNames) {
         UriBuilder builder = client.uriBuilder(PathConstants.LOG_LEVELS_URL);
@@ -84,15 +87,41 @@ public class Logs {
     }
 
     /**
+     * Gets the log levels for the given nodes and logs.
+     *
+     * @param nodeIds
+     *            the IDs of the nodes. If null or empty, all node log levels are retrieved
+     * @param nodeNames
+     *            the names of the nodes. If null or empty, all node log levels are retrieved
+     * @param logNames
+     *            the name of the logs. If null or empty, all logs' levels are returned.
+     * @return the list of log levels.
+     */
+    public List<LogLevel> getLogLevels(Collection<String> nodeIds, Collection<String> nodeNames, Collection<String> logNames) {
+        UriBuilder builder = client.uriBuilder(PathConstants.LOG_LEVELS_URL);
+        if ((nodeIds != null) && (!nodeIds.isEmpty())) {
+            builder.queryParam(NODE_ID, nodeIds.toArray());
+        }
+        if ((nodeNames != null) && (!nodeNames.isEmpty())) {
+            builder.queryParam(NODE_NAME, nodeNames.toArray());
+        }
+        if ((logNames != null) && (!logNames.isEmpty())) {
+            builder.queryParam(LOG_NAME, logNames.toArray());
+        }
+        LogLevels response = client.getURI(LogLevels.class, builder.build());
+        return response.getLogLevels();
+    }
+
+    /**
      * Sets the log level for all nodes and logs. This is a convenience method for <tt>setLogLevels(severity, null, null)</tt>
      * 
      * @param severity
      *            the log severity.
      * 
-     * @see #setLogLevels(int, Collection, Collection)
+     * @see #setLogLevels(int, Collection, Collection, Collection)
      */
     public void setLogLevels(int severity) {
-        setLogLevels(severity, null, null);
+        setLogLevels(severity, null, null, null);
     }
 
     /**
@@ -107,12 +136,45 @@ public class Logs {
      *            the IDs of the nodes. If null all nodes are changed.
      * @param logNames
      *            the names of the logs. If null all logs are changed.
+     * @deprecated Replaced by
+     * @see #setLogLevels(int, Collection, Collection, Collection)
      */
+    @Deprecated
     public void setLogLevels(int severity, Collection<String> nodeIds, Collection<String> logNames) {
         SetLogLevelParam param = new SetLogLevelParam();
         param.setSeverity(severity);
         if ((nodeIds != null) && (!nodeIds.isEmpty())) {
             param.setNodeIds(new ArrayList<String>(nodeIds));
+        }
+        if ((logNames != null) && (!logNames.isEmpty())) {
+            param.setLogNames(new ArrayList<String>(logNames));
+        }
+        setLogLevels(param);
+    }
+
+    /**
+     * Sets the log level for the given nodes and logs. This constructs a {@link SetLogLevelParam} and calls
+     * {@link #setLogLevels(SetLogLevelParam)}.
+     * <p>
+     * API Call: <tt>POST /logs/log-levels</tt>
+     *
+     * @param severity
+     *            the log severity.
+     * @param nodeIds
+     *            the IDs of the nodes. If null all nodes are changed.
+     * @param nodeNames
+     *            the names of the nodes. If null all nodes are changed.
+     * @param logNames
+     *            the names of the logs. If null all logs are changed.
+     */
+    public void setLogLevels(int severity, Collection<String> nodeIds, Collection<String> nodeNames, Collection<String> logNames) {
+        SetLogLevelParam param = new SetLogLevelParam();
+        param.setSeverity(severity);
+        if ((nodeIds != null) && (!nodeIds.isEmpty())) {
+            param.setNodeIds(new ArrayList<String>(nodeIds));
+        }
+        if ((nodeNames != null) && (!nodeNames.isEmpty())) {
+            param.setNodeNames(new ArrayList<String>(nodeNames));
         }
         if ((logNames != null) && (!logNames.isEmpty())) {
             param.setLogNames(new ArrayList<String>(logNames));
@@ -132,11 +194,21 @@ public class Logs {
         client.post(String.class, param, PathConstants.LOG_LEVELS_URL);
     }
 
+    /**
+     * @deprecated Replaced by
+     * @see #get(Collection, Collection, Collection, Integer, Date, Date, String, Integer)
+     */
+    @Deprecated
     public List<LogMessage> get(Collection<String> nodeIds, Collection<String> logNames, Integer severity, Date start,
             Date end, String regex, Integer maxCount) {
         return get(nodeIds, logNames, severity, formatDate(start), formatDate(end), regex, maxCount);
     }
 
+    /**
+     * @deprecated Replaced by
+     * @see #get(Collection, Collection, Collection, Integer, String, String, String, Integer)
+     */
+    @Deprecated
     public List<LogMessage> get(Collection<String> nodeIds, Collection<String> logNames, Integer severity,
             String start, String end, String regex, Integer maxCount) {
         final List<LogMessage> results = new ArrayList<LogMessage>();
@@ -150,15 +222,65 @@ public class Logs {
         return results;
     }
 
+    /**
+     * @deprecated Replaced by
+     * @see #getAsItems(ItemProcessor, Collection, Collection, Collection, Integer, Date, Date, String, Integer)
+     */
+    @Deprecated
     public void getAsItems(ItemProcessor<LogMessage> processor, Collection<String> nodeIds,
             Collection<String> logNames, Integer severity, Date start, Date end, String regex, Integer maxCount) {
         getAsItems(processor, nodeIds, logNames, severity, formatDate(start), formatDate(end), regex, maxCount);
     }
 
+    /**
+     * @deprecated Replaced by
+     * @see #getAsItems(ItemProcessor, Collection, Collection, Collection, Integer, String, String, String, Integer)
+     */
+    @Deprecated
     public void getAsItems(ItemProcessor<LogMessage> processor, Collection<String> nodeIds,
             Collection<String> logNames, Integer severity, String start, String end, String regex, Integer maxCount) {
         ListProcessor<LogMessage> listProcessor = new ListProcessor<LogMessage>(LogMessage.class, processor);
         InputStream in = getAsStream(nodeIds, logNames, severity, start, end, regex, maxCount);
+        try {
+            listProcessor.process(in);
+        } catch (Exception e) {
+            throw new ViPRException(e);
+        } finally {
+            try {
+                in.close();
+            } catch (IOException e) {
+                // Silently ignore
+            }
+        }
+    }
+
+    public List<LogMessage> get(Collection<String> nodeIds, Collection<String> nodeNames, Collection<String> logNames, Integer severity, Date start,
+                                Date end, String regex, Integer maxCount) {
+        return get(nodeIds, nodeNames, logNames, severity, formatDate(start), formatDate(end), regex, maxCount);
+    }
+
+    public List<LogMessage> get(Collection<String> nodeIds, Collection<String> nodeNames, Collection<String> logNames, Integer severity,
+                                String start, String end, String regex, Integer maxCount) {
+        final List<LogMessage> results = new ArrayList<LogMessage>();
+        AbstractItemProcessor<LogMessage> processor = new AbstractItemProcessor<LogMessage>() {
+            @Override
+            public void processItem(LogMessage item) throws Exception {
+                results.add(item);
+            }
+        };
+        getAsItems(processor, nodeIds, nodeNames, logNames, severity, start, end, regex, maxCount);
+        return results;
+    }
+
+    public void getAsItems(ItemProcessor<LogMessage> processor, Collection<String> nodeIds, Collection<String> nodeNames,
+                           Collection<String> logNames, Integer severity, Date start, Date end, String regex, Integer maxCount) {
+        getAsItems(processor, nodeIds, nodeNames, logNames, severity, formatDate(start), formatDate(end), regex, maxCount);
+    }
+
+    public void getAsItems(ItemProcessor<LogMessage> processor, Collection<String> nodeIds, Collection<String> nodeNames,
+                           Collection<String> logNames, Integer severity, String start, String end, String regex, Integer maxCount) {
+        ListProcessor<LogMessage> listProcessor = new ListProcessor<LogMessage>(LogMessage.class, processor);
+        InputStream in = getAsStream(nodeIds, nodeNames, logNames, severity, start, end, regex, maxCount);
         try {
             listProcessor.process(in);
         } catch (Exception e) {
@@ -193,7 +315,10 @@ public class Logs {
      *            the maximum number of log messages to return, may be null. More may be returned if there are multiple logs
      *            at the same instant when max count is reached.
      * @return a stream containing the logs as XML.
+     * @deprecated Replaced by
+     * @see #getAsStream(Collection, Collection, Collection, Integer, Date, Date, String, Integer)
      */
+    @Deprecated
     public InputStream getAsStream(Collection<String> nodeIds, Collection<String> logNames, Integer severity,
             Date start, Date end, String regex, Integer maxCount) {
         return getAsStream(nodeIds, logNames, severity, formatDate(start), formatDate(end), regex, maxCount);
@@ -220,10 +345,73 @@ public class Logs {
      *            the maximum number of log messages to return, may be null. More may be returned if there are multiple logs
      *            at the same instant when max count is reached.
      * @return a stream containing the logs as XML.
+     * @deprecated Replaced by
+     * @see #getAsStream(Collection, Collection, Collection, Integer, String, String, String, Integer)
      */
+    @Deprecated
     public InputStream getAsStream(Collection<String> nodeIds, Collection<String> logNames, Integer severity,
             String start, String end, String regex, Integer maxCount) {
-        URI uri = getURI(nodeIds, logNames, severity, start, end, regex, maxCount);
+        URI uri = getURI(nodeIds, null, logNames, severity, start, end, regex, maxCount);
+        ClientResponse response = client.getClient().resource(uri).accept(MediaType.APPLICATION_XML).get(ClientResponse.class);
+        return response.getEntityInputStream();
+    }
+
+    /**
+     * Gets the system logs as a stream.
+     * <p>
+     * API Call: <tt>GET /logs</tt>
+     *
+     * @param nodeIds
+     *            the IDs of the nodes on which logs are retrieved, if null or empty logs are retrieved on all nodes.
+     * @param nodeNames
+     *            the names of the nodes on which logs are retrieved, if null or empty logs are retrieved on all nodes.
+     * @param logNames
+     *            the names of the logs to retrieve, if null or empty all logs are retrieved.
+     * @param severity
+     *            the severity level, may be null
+     * @param start
+     *            the start time, may be null. If specified, this will be formatted in the UTC timezone as <tt>yyyy-MM-dd_HH:mm:ss</tt>.
+     * @param end
+     *            the end time, may be null. If specified, this will be formatted in the UTC timezone as <tt>yyyy-MM-dd_HH:mm:ss</tt>
+     * @param regex
+     *            the regular expression that logs must match, may be null or empty.
+     * @param maxCount
+     *            the maximum number of log messages to return, may be null. More may be returned if there are multiple logs
+     *            at the same instant when max count is reached.
+     * @return a stream containing the logs as XML.
+     */
+    public InputStream getAsStream(Collection<String> nodeIds, Collection<String> nodeNames, Collection<String> logNames, Integer severity,
+                                   Date start, Date end, String regex, Integer maxCount) {
+        return getAsStream(nodeIds, nodeNames, logNames, severity, formatDate(start), formatDate(end), regex, maxCount);
+    }
+
+    /**
+     * Gets the system logs as an XML stream.
+     * <p>
+     * API Call: <tt>GET /logs</tt>
+     *
+     * @param nodeIds
+     *            the IDs of the nodes on which logs are retrieved, if null or empty logs are retrieved on all nodes.
+     * @param nodeNames
+     *            the names of the nodes on which logs are retrieved, if null or empty logs are retrieved on all nodes.
+     * @param logNames
+     *            the names of the logs to retrieve, if null or empty all logs are retrieved.
+     * @param severity
+     *            the severity level, may be null
+     * @param start
+     *            the start time (<tt>yyyy-MM-dd_HH:mm:ss</tt>), may be null.
+     * @param end
+     *            the end time (<tt>yyyy-MM-dd_HH:mm:ss</tt>), may be null.
+     * @param regex
+     *            the regular expression that logs must match, may be null or empty.
+     * @param maxCount
+     *            the maximum number of log messages to return, may be null. More may be returned if there are multiple logs
+     *            at the same instant when max count is reached.
+     * @return a stream containing the logs as XML.
+     */
+    public InputStream getAsStream(Collection<String> nodeIds, Collection<String> nodeNames, Collection<String> logNames, Integer severity,
+                                   String start, String end, String regex, Integer maxCount) {
+        URI uri = getURI(nodeIds, nodeNames, logNames, severity, start, end, regex, maxCount);
         ClientResponse response = client.getClient().resource(uri).accept(MediaType.APPLICATION_XML).get(ClientResponse.class);
         return response.getEntityInputStream();
     }
@@ -249,10 +437,42 @@ public class Logs {
      *            the maximum number of log messages to return, may be null. More may be returned if there are multiple logs
      *            at the same instant when max count is reached.
      * @return a stream containing the logs as text.
+     * @deprecated Replaced by
+     * @see #getAsText(Collection, Collection, Collection, Integer, String, String, String, Integer)
      */
+    @Deprecated
     public InputStream getAsText(Collection<String> nodeIds, Collection<String> logNames, Integer severity, Date start,
             Date end, String regex, Integer maxCount) {
         return getAsText(nodeIds, logNames, severity, formatDate(start), formatDate(end), regex, maxCount);
+    }
+
+    /**
+     * Gets the system logs as a text stream.
+     * <p>
+     * API Call: <tt>GET /logs</tt>
+     *
+     * @param nodeIds
+     *            the IDs of the nodes on which logs are retrieved, if null or empty logs are retrieved on all nodes.
+     * @param nodeNames
+     *            the names of the nodes on which logs are retrieved, if null or empty logs are retrieved on all nodes.
+     * @param logNames
+     *            the names of the logs to retrieve, if null or empty all logs are retrieved.
+     * @param severity
+     *            the severity level, may be null
+     * @param start
+     *            the start time (<tt>yyyy-MM-dd_HH:mm:ss</tt>), may be null.
+     * @param end
+     *            the end time (<tt>yyyy-MM-dd_HH:mm:ss</tt>), may be null.
+     * @param regex
+     *            the regular expression that logs must match, may be null or empty.
+     * @param maxCount
+     *            the maximum number of log messages to return, may be null. More may be returned if there are multiple logs
+     *            at the same instant when max count is reached.
+     * @return a stream containing the logs as text.
+     */
+    public InputStream getAsText(Collection<String> nodeIds, Collection<String> nodeNames, Collection<String> logNames, Integer severity, Date start,
+                                 Date end, String regex, Integer maxCount) {
+        return getAsText(nodeIds, nodeNames, logNames, severity, formatDate(start), formatDate(end), regex, maxCount);
     }
 
     /**
@@ -276,19 +496,56 @@ public class Logs {
      *            the maximum number of log messages to return, may be null. More may be returned if there are multiple logs
      *            at the same instant when max count is reached.
      * @return a stream containing the logs as text.
+     * @deprecated Replaced by
+     * @see #getAsText(Collection, Collection, Collection, Integer, String, String, String, Integer)
      */
+    @Deprecated
     public InputStream getAsText(Collection<String> nodeIds, Collection<String> logNames, Integer severity,
             String start, String end, String regex, Integer maxCount) {
-        URI uri = getURI(nodeIds, logNames, severity, start, end, regex, maxCount);
+        URI uri = getURI(nodeIds, null, logNames, severity, start, end, regex, maxCount);
         ClientResponse response = client.getClient().resource(uri).accept(MediaType.TEXT_PLAIN).get(ClientResponse.class);
         return response.getEntityInputStream();
     }
 
-    private URI getURI(Collection<String> nodeIds, Collection<String> logNames, Integer severity, String startTime,
+    /**
+     * Gets the system logs as a text stream by node.
+     * <p>
+     * API Call: <tt>GET /logs</tt>
+     *
+     * @param nodeIds
+     *            the IDs of the nodes on which logs are retrieved, if null or empty logs are retrieved on all nodes.
+     * @param nodeNames
+     *            the names of the nodes on which logs are retrieved, if null or empty logs are retrieved on all nodes.
+     * @param logNames
+     *            the names of the logs to retrieve, if null or empty all logs are retrieved.
+     * @param severity
+     *            the severity level, may be null
+     * @param start
+     *            the start time (<tt>yyyy-MM-dd_HH:mm:ss</tt>), may be null.
+     * @param end
+     *            the end time (<tt>yyyy-MM-dd_HH:mm:ss</tt>), may be null.
+     * @param regex
+     *            the regular expression that logs must match, may be null or empty.
+     * @param maxCount
+     *            the maximum number of log messages to return, may be null. More may be returned if there are multiple logs
+     *            at the same instant when max count is reached.
+     * @return a stream containing the logs as text.
+     */
+    public InputStream getAsText(Collection<String> nodeIds, Collection<String> nodeNames, Collection<String> logNames, Integer severity,
+                                 String start, String end, String regex, Integer maxCount) {
+        URI uri = getURI(nodeIds, nodeNames, logNames, severity, start, end, regex, maxCount);
+        ClientResponse response = client.getClient().resource(uri).accept(MediaType.TEXT_PLAIN).get(ClientResponse.class);
+        return response.getEntityInputStream();
+    }
+
+    private URI getURI(Collection<String> nodeIds, Collection<String> nodeNames, Collection<String> logNames, Integer severity, String startTime,
             String endTime, String regex, Integer maxCount) {
         UriBuilder builder = client.uriBuilder(PathConstants.LOGS_URL);
         if ((nodeIds != null) && (!nodeIds.isEmpty())) {
             builder.queryParam(NODE_ID, nodeIds.toArray());
+        }
+        if ((nodeNames != null) && (!nodeNames.isEmpty())) {
+            builder.queryParam(NODE_NAME, nodeNames.toArray());
         }
         if ((logNames != null) && (!logNames.isEmpty())) {
             builder.queryParam(LOG_NAME, logNames.toArray());

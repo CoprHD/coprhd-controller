@@ -259,7 +259,7 @@ public class ComputeUtils {
         return Arrays.asList(volumeIds);
     }
 
-    private static <T> List<Task<T>> getSuccessfulTasks(List<Task<T>> tasks) {
+    public static <T> List<Task<T>> getSuccessfulTasks(List<Task<T>> tasks) {
         List<Task<T>> successfulTasks = new ArrayList<>();
         for (Task<T> task : tasks) {
             if (task.isComplete() && !task.isError()) {
@@ -269,7 +269,7 @@ public class ComputeUtils {
         return successfulTasks;
     }
 
-    private static <T> List<Task<T>> getFailedTasks(List<Task<T>> tasks) {
+    public static <T> List<Task<T>> getFailedTasks(List<Task<T>> tasks) {
         List<Task<T>> failedTasks = new ArrayList<>();
         for (Task<T> task : tasks) {
             if (task.isComplete() && task.isError()) {

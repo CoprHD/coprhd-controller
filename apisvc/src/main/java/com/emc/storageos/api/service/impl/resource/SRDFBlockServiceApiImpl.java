@@ -39,6 +39,7 @@ import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.BlockSnapshot;
+import com.emc.storageos.db.client.model.BlockSnapshotSession;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.NamedURI;
@@ -49,12 +50,15 @@ import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StorageSystem.SupportedReplicationTypes;
 import com.emc.storageos.db.client.model.StringSet;
+import com.emc.storageos.db.client.model.Task;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.Volume.PersonalityTypes;
 import com.emc.storageos.db.client.model.Volume.VolumeAccessState;
+import com.emc.storageos.db.client.model.VolumeGroup;
 import com.emc.storageos.db.client.model.VpoolRemoteCopyProtectionSettings;
+import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.client.util.SizeUtil;
 import com.emc.storageos.db.common.DependencyChecker;
@@ -76,6 +80,8 @@ import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
 import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.volumecontroller.Recommendation;
 import com.emc.storageos.volumecontroller.SRDFRecommendation;
+import com.emc.storageos.volumecontroller.impl.smis.MetaVolumeRecommendation;
+import com.emc.storageos.volumecontroller.impl.utils.MetaVolumeUtils;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
@@ -95,6 +101,7 @@ public class SRDFBlockServiceApiImpl extends AbstractBlockServiceApiImpl<SRDFSch
     protected final static String CONTROLLER_SVC = "controllersvc";
     protected final static String CONTROLLER_SVC_VER = "1";
     protected final static Long V3CYLINDERSIZE = 1966080L;
+    protected final static Long V2CYLINDERSIZE = 983040L;
     private final static String LABEL_SUFFIX_FOR_46X = "T";
 
     @Autowired
@@ -261,7 +268,7 @@ public class SRDFBlockServiceApiImpl extends AbstractBlockServiceApiImpl<SRDFSch
      */
     private List<VolumeDescriptor> createVolumeDescriptors(final SRDFRecommendation recommendation,
             final List<URI> volumeURIs, final VirtualPoolCapabilityValuesWrapper capabilities)
-                    throws ControllerException {
+            throws ControllerException {
 
         List<Volume> preparedVolumes = _dbClient.queryObject(Volume.class, volumeURIs);
 
@@ -405,6 +412,7 @@ public class SRDFBlockServiceApiImpl extends AbstractBlockServiceApiImpl<SRDFSch
             volume.setPool(((SRDFRecommendation) placement).getVirtualArrayTargetMap()
                     .get(varray.getId()).getTargetStoragePool());
         }
+
         volume.setOpStatus(new OpStatusMap());
         Operation op = new Operation();
         op.setResourceType(ResourceOperationTypeEnum.CREATE_BLOCK_VOLUME);
@@ -412,6 +420,7 @@ public class SRDFBlockServiceApiImpl extends AbstractBlockServiceApiImpl<SRDFSch
         volume.getOpStatus().put(token, op);
         if (consistencyGroup != null) {
             volume.setConsistencyGroup(consistencyGroup.getId());
+            volume.setReplicationGroupInstance(consistencyGroup.getLabel());
         }
 
         if (null != vpool.getAutoTierPolicyName()) {
@@ -435,7 +444,7 @@ public class SRDFBlockServiceApiImpl extends AbstractBlockServiceApiImpl<SRDFSch
             _dbClient.persistObject(srcVolume);
 
             volume.setSrdfParent(new NamedURI(srcVolume.getId(), srcVolume.getLabel()));
-            computeCapacityforSRDFV3ToV2(volume);
+            computeCapacityforSRDFV3ToV2(volume, vpool);
         }
 
         if (newVolume) {
@@ -513,22 +522,84 @@ public class SRDFBlockServiceApiImpl extends AbstractBlockServiceApiImpl<SRDFSch
      * As a workaround, calculate the VMAX2 volume size based on the VMAX3 cylinder size.
      * 
      * @param targetVolume
+     * @param vpool
      */
-    private void computeCapacityforSRDFV3ToV2(Volume targetVolume) {
+    private void computeCapacityforSRDFV3ToV2(Volume targetVolume, final VirtualPool vpool) {
         if (targetVolume == null) {
             return;
         }
         StorageSystem targetSystem = _dbClient.queryObject(StorageSystem.class, targetVolume.getStorageController());
+        StoragePool targetPool = _dbClient.queryObject(StoragePool.class, targetVolume.getPool());
 
         Volume sourceVolume = _dbClient.queryObject(Volume.class, targetVolume.getSrdfParent());
         StorageSystem sourceSystem = _dbClient.queryObject(StorageSystem.class, sourceVolume.getStorageController());
+        StoragePool sourcePool = _dbClient.queryObject(StoragePool.class, sourceVolume.getPool());
 
-        // Source : VMAX3 & Target : VMAX2 case
-        if (sourceSystem != null && targetSystem != null && sourceSystem.checkIfVmax3() && !targetSystem.checkIfVmax3()) {
-            Long cylinderCount = (long) Math.ceil((double) targetVolume.getCapacity() / V3CYLINDERSIZE);
-            targetVolume.setCapacity(cylinderCount * V3CYLINDERSIZE);
-            _log.info("Cylinder Count : {}, VMAX2 volume Capacity : {}", cylinderCount, targetVolume.getCapacity());
+        if (sourceSystem != null && targetSystem != null) {
+            boolean isCapacityReset = false;
+            if (sourcePool != null && targetPool != null) {
+                // Meta Versus Non Meta
+                MetaVolumeRecommendation sourceVolumeRecommendation = MetaVolumeUtils.getCreateRecommendation(sourceSystem, sourcePool,
+                        sourceVolume.getCapacity(), sourceVolume.getThinlyProvisioned(),
+                        vpool.getFastExpansion(), null);
+                MetaVolumeRecommendation targetVolumeRecommendation = MetaVolumeUtils.getCreateRecommendation(targetSystem, targetPool,
+                        targetVolume.getCapacity(), targetVolume.getThinlyProvisioned(),
+                        vpool.getFastExpansion(), null);
+                isCapacityReset = computeCapacityforSRDFV3ToV2Meta(sourcePool, targetPool, sourceVolume, targetVolume,
+                        sourceVolumeRecommendation, targetVolumeRecommendation);
+            }
+            // Source : VMAX3 & Target : VMAX2 case
+            if (sourceSystem.checkIfVmax3() && !targetSystem.checkIfVmax3() && !isCapacityReset) {
+                Long cylinderCount = (long) Math.ceil((double) targetVolume.getCapacity() / V3CYLINDERSIZE);
+                targetVolume.setCapacity(cylinderCount * V3CYLINDERSIZE);
+                _log.info("Cylinder Count : {}, VMAX2 volume Capacity : {}", cylinderCount, targetVolume.getCapacity());
+            }
         }
+
+    }
+
+    /**
+     * SRDF and its Operations between VMAX3 to VMAX2 Meta will sometimes fail due to Configuration mismatch
+     * As a workaround, calculate the volume size based on the VMAX2 cylinder size and number of Meta members.
+     * 
+     * @param sourceVolumeRecommendation
+     * @param targetVolumeRecommendation
+     * @param sourcePool
+     * @param targetPool
+     * @param sourceVolume
+     * @param targetVolume
+     * @return true/false
+     */
+    private boolean computeCapacityforSRDFV3ToV2Meta(final StoragePool sourcePool, final StoragePool targetPool,
+            Volume sourceVolume, Volume targetVolume,
+            final MetaVolumeRecommendation sourceVolumeRecommendation, final MetaVolumeRecommendation targetVolumeRecommendation) {
+        if (!sourceVolumeRecommendation.equals(targetVolumeRecommendation)) {
+            if (sourceVolumeRecommendation.isCreateMetaVolumes() &&
+                    targetPool.getPoolClassName().equalsIgnoreCase(StoragePool.PoolClassNames.Symm_SRPStoragePool.toString())) {
+                // R1 is Meta and R2 is non meta
+                Long cylinderCount = (long) Math
+                        .ceil((double) sourceVolume.getCapacity()
+                                / (V2CYLINDERSIZE * sourceVolumeRecommendation.getMetaMemberCount()));
+                sourceVolume.setCapacity(cylinderCount * V2CYLINDERSIZE * sourceVolumeRecommendation.getMetaMemberCount());
+                targetVolume.setCapacity(cylinderCount * V2CYLINDERSIZE * sourceVolumeRecommendation.getMetaMemberCount());
+                _dbClient.updateObject(sourceVolume);
+                _log.info("VMAX2 Cylinder Count : {}, VMAX2 volume Capacity : {}", cylinderCount, targetVolume.getCapacity());
+                return true;
+            }
+            if (targetVolumeRecommendation.isCreateMetaVolumes() &&
+                    sourcePool.getPoolClassName().equalsIgnoreCase(StoragePool.PoolClassNames.Symm_SRPStoragePool.toString())) {
+                // R1 is non Meta and R2 is meta
+                Long cylinderCount = (long) Math
+                        .ceil((double) targetVolume.getCapacity()
+                                / (V2CYLINDERSIZE * targetVolumeRecommendation.getMetaMemberCount()));
+                targetVolume.setCapacity(cylinderCount * V2CYLINDERSIZE * targetVolumeRecommendation.getMetaMemberCount());
+                sourceVolume.setCapacity(cylinderCount * V2CYLINDERSIZE * targetVolumeRecommendation.getMetaMemberCount());
+                _dbClient.updateObject(sourceVolume);
+                _log.info("VMAX2 Cylinder Count : {}, VMAX2 volume Capacity : {}", cylinderCount, targetVolume.getCapacity());
+                return true;
+            }
+        }
+        return false;
     }
 
     @Override
@@ -628,7 +699,8 @@ public class SRDFBlockServiceApiImpl extends AbstractBlockServiceApiImpl<SRDFSch
      * @throws InternalException
      */
     @Override
-    public <T extends DataObject> String checkForDelete(final T object) throws InternalException {
+    public <T extends DataObject> String checkForDelete(final T object, List<Class<? extends DataObject>> excludeTypes)
+            throws InternalException {
         // The standard dependency checker really doesn't fly with SRDF because we need to determine
         // if we can do
         // a tear-down of the volume, and that tear-down involved cleaning up dependent
@@ -662,6 +734,13 @@ public class SRDFBlockServiceApiImpl extends AbstractBlockServiceApiImpl<SRDFSch
                 }
             }
 
+            // Also check for snapshot sessions.
+            List<BlockSnapshotSession> snapSessions = CustomQueryUtility.queryActiveResourcesByConstraint(_dbClient,
+                    BlockSnapshotSession.class, ContainmentConstraint.Factory.getParentSnapshotSessionConstraint(volumeID));
+            for (BlockSnapshotSession snapSession : snapSessions) {
+                dependencies.put(volumeID, snapSession.getId());
+            }
+
             if (!dependencies.isEmpty()) {
                 throw APIException.badRequests.cannotDeleteVolumeBlockSnapShotExists(String
                         .valueOf(dependencies));
@@ -672,8 +751,13 @@ public class SRDFBlockServiceApiImpl extends AbstractBlockServiceApiImpl<SRDFSch
             // fetchSRDFVolumes() call,
             // Because that can only have happened if the RDF relationship was already torn down.
             if (volumeIDs.size() == 1) {
+                List<Class<? extends DataObject>> excludes = new ArrayList<Class<? extends DataObject>>();
+                if (excludeTypes != null) {
+                    excludes.addAll(excludeTypes);
+                }
+                excludes.add(Task.class);
                 String depMsg = _dependencyChecker.checkDependencies(object.getId(),
-                        object.getClass(), true);
+                        object.getClass(), true, excludes);
                 if (depMsg != null) {
                     return depMsg;
                 }
@@ -686,7 +770,7 @@ public class SRDFBlockServiceApiImpl extends AbstractBlockServiceApiImpl<SRDFSch
 
     @Override
     public TaskList deactivateMirror(final StorageSystem device, final URI mirrorURI,
-            final String task) {
+            final String task, String deleteType) {
         // FIXME Should use relevant ServiceCodeException here
         throw new UnsupportedOperationException();
     }
@@ -757,7 +841,7 @@ public class SRDFBlockServiceApiImpl extends AbstractBlockServiceApiImpl<SRDFSch
      */
     private void upgradeToTargetVolume(final Volume volume, final VirtualPool vpool,
             final VirtualPoolChangeParam cosChangeParam, final String taskId)
-                    throws InternalException {
+            throws InternalException {
         VirtualPoolCapabilityValuesWrapper capabilities = new VirtualPoolCapabilityValuesWrapper();
         capabilities.put(VirtualPoolCapabilityValuesWrapper.BLOCK_CONSISTENCY_GROUP, volume.getConsistencyGroup());
         List<Recommendation> recommendations = getRecommendationsForVirtualPoolChangeRequest(
@@ -792,6 +876,120 @@ public class SRDFBlockServiceApiImpl extends AbstractBlockServiceApiImpl<SRDFSch
         }
 
         createVolumes(param, project, varray, vpool, recommendations, null, taskId, capabilities);
+
+    }
+
+    /**
+     * Upgrade a local block volume to a protected SRDF volume
+     * 
+     * @param volume
+     *            -- srdf source volume (existing).
+     * @param vpool
+     *            -- Requested vpool.
+     * @param taskId
+     * @throws InternalException
+     */
+    private List<VolumeDescriptor> upgradeToSRDFTargetVolume(final Volume volume, final VirtualPool vpool,
+            final VirtualPoolChangeParam cosChangeParam, final String taskId)
+            throws InternalException {
+        VirtualPoolCapabilityValuesWrapper capabilities = new VirtualPoolCapabilityValuesWrapper();
+        capabilities.put(VirtualPoolCapabilityValuesWrapper.BLOCK_CONSISTENCY_GROUP, volume.getConsistencyGroup());
+        List<Recommendation> recommendations = getRecommendationsForVirtualPoolChangeRequest(
+                volume, vpool, cosChangeParam);
+
+        if (recommendations.isEmpty()) {
+            throw APIException.badRequests.noStorageFoundForVolume();
+        }
+
+        // Call out to the respective block service implementation to prepare and create the
+        // volumes based on the recommendations.
+        Project project = _dbClient.queryObject(Project.class, volume.getProject());
+        VirtualArray varray = _dbClient.queryObject(VirtualArray.class, volume.getVirtualArray());
+
+        // Generate a VolumeCreate object that contains the information that createVolumes likes to
+        // consume.
+        VolumeCreate param = new VolumeCreate(volume.getLabel(), String.valueOf(volume
+                .getCapacity()), 1, vpool.getId(), volume.getVirtualArray(), volume.getProject()
+                .getURI());
+
+        capabilities.put(VirtualPoolCapabilityValuesWrapper.RESOURCE_COUNT, new Integer(1));
+
+        if (volume.getIsComposite()) {
+            // add meta volume properties to the capabilities instance
+            capabilities.put(VirtualPoolCapabilityValuesWrapper.IS_META_VOLUME, volume.getIsComposite());
+            capabilities.put(VirtualPoolCapabilityValuesWrapper.META_VOLUME_TYPE, volume.getCompositionType());
+            capabilities.put(VirtualPoolCapabilityValuesWrapper.META_VOLUME_MEMBER_COUNT, volume.getMetaMemberCount());
+            capabilities.put(VirtualPoolCapabilityValuesWrapper.META_VOLUME_MEMBER_SIZE, volume.getMetaMemberSize());
+            _log.debug(String.format("Capabilities : isMeta: %s, Meta Type: %s, Member size: %s, Count: %s",
+                    capabilities.getIsMetaVolume(), capabilities.getMetaVolumeType(), capabilities.getMetaVolumeMemberSize(),
+                    capabilities.getMetaVolumeMemberCount()));
+        }
+
+        TaskList taskList = new TaskList();
+
+        // Prepare the Bourne Volumes to be created and associated
+        // with the actual storage system volumes created. Also create
+        // a BlockTaskList containing the list of task resources to be
+        // returned for the purpose of monitoring the volume creation
+        // operation for each volume to be created.
+        int volumeCounter = 1;
+        String volumeLabel = param.getName();
+
+        final BlockConsistencyGroup consistencyGroup = capabilities.getBlockConsistencyGroup() == null ? null
+                : _dbClient.queryObject(BlockConsistencyGroup.class,
+                        capabilities.getBlockConsistencyGroup());
+
+        // prepare the volumes
+        List<URI> volumeURIs = prepareRecommendedVolumes(param, taskId, taskList, project, varray,
+                vpool, capabilities.getResourceCount(), recommendations, consistencyGroup,
+                volumeCounter, volumeLabel);
+        List<VolumeDescriptor> resultListVolumeDescriptors = new ArrayList<>();
+        // Execute the volume creations requests for each recommendation.
+        Iterator<Recommendation> recommendationsIter = recommendations.iterator();
+        while (recommendationsIter.hasNext()) {
+            Recommendation recommendation = recommendationsIter.next();
+            try {
+                List<VolumeDescriptor> volumeDescriptors = createVolumeDescriptors(
+                        (SRDFRecommendation) recommendation, volumeURIs, capabilities);
+                // Log volume descriptor information
+                logVolumeDescriptorPrecreateInfo(volumeDescriptors, taskId);
+                resultListVolumeDescriptors.addAll(volumeDescriptors);
+            } catch (InternalException e) {
+                if (_log.isErrorEnabled()) {
+                    _log.error("Controller error", e);
+                }
+
+                String errorMsg = String.format("Controller error: %s", e.getMessage());
+                if (volumeURIs != null) {
+                    for (URI volumeURI : volumeURIs) {
+                        Volume volume1 = _dbClient.queryObject(Volume.class, volumeURI);
+                        if (volume1 != null) {
+                            Operation op = new Operation();
+                            ServiceCoded coded = ServiceError.buildServiceError(
+                                    ServiceCode.API_RP_VOLUME_CREATE_ERROR, errorMsg.toString());
+                            op.setMessage(errorMsg);
+                            op.error(coded);
+                            _dbClient.createTaskOpStatus(Volume.class, volumeURI, taskId, op);
+                            TaskResourceRep volumeTask = toTask(volume1, taskId, op);
+                            if (volume1.getPersonality() != null
+                                    && volume1.getPersonality().equals(
+                                            Volume.PersonalityTypes.SOURCE.toString())) {
+                                taskList.getTaskList().add(volumeTask);
+                            }
+                        }
+                    }
+                }
+
+                // If there was a controller error creating the volumes,
+                // throw an internal server error and include the task
+                // information in the response body, which will inform
+                // the user what succeeded and what failed.
+                throw APIException.badRequests.cannotCreateSRDFVolumes(e);
+            }
+        }
+
+        return resultListVolumeDescriptors;
+
     }
 
     /**
@@ -802,7 +1000,7 @@ public class SRDFBlockServiceApiImpl extends AbstractBlockServiceApiImpl<SRDFSch
     @Override
     public void changeVolumeVirtualPool(final URI systemURI, final Volume volume,
             final VirtualPool vpool, final VirtualPoolChangeParam vpoolChangeParam, final String taskId)
-                    throws InternalException {
+            throws InternalException {
         _log.debug("Volume {} VirtualPool change.", volume.getId());
 
         // Check for common Vpool updates handled by generic code. It returns true if handled.
@@ -846,9 +1044,44 @@ public class SRDFBlockServiceApiImpl extends AbstractBlockServiceApiImpl<SRDFSch
             return;
         }
 
+
+
+        // TODO Modified the code for COP-20817 Needs to revisit this code flow post release.
+
+        // Run placement algorithm and collect all volume descriptors to create srdf target volumes in array.
+        List<VolumeDescriptor> volumeDescriptorsList = new ArrayList<>();
         for (Volume volume : volumes) {
-            changeVolumeVirtualPool(volume.getStorageController(), volume, vpool, vpoolChangeParam, taskId);
+
+            // Check if the volume is normal without CG but new vPool with CG enabled.
+            if (NullColumnValueGetter.isNullURI(volume.getConsistencyGroup())
+                    && (null != vpool.getMultivolumeConsistency() && vpool.getMultivolumeConsistency())) {
+                _log.info("VPool change is not permitted as volume is not part of CG but new VPool is consistency enabled.");
+                throw APIException.badRequests.changeToVirtualPoolNotSupportedForNonCGVolume(volume.getId(),
+                        vpool.getLabel());
+            }
+
+            if (!NullColumnValueGetter.isNullNamedURI(volume.getSrdfParent())
+                    || (volume.getSrdfTargets() != null && !volume.getSrdfTargets().isEmpty())) {
+                throw APIException.badRequests.srdfVolumeVPoolChangeNotSupported(volume.getId());
+            }
+            // Get the storage system.
+            StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, volume.getStorageController());
+            String systemType = storageSystem.getSystemType();
+            if (DiscoveredDataObject.Type.vmax.name().equals(systemType)) {
+                _log.debug("SRDF Protection VirtualPool change for vmax volume.");
+                volumeDescriptorsList.addAll(upgradeToSRDFTargetVolume(volume, vpool, vpoolChangeParam, taskId));
+            } else {
+                // not vmax volume
+                throw APIException.badRequests.srdfVolumeVPoolChangeNotSupported(volume.getId());
+            }
         }
+
+        // CG Volume(srdf target) creation should execute as a single operation.
+        // Otherwise, CreateGroupReplica method to create srdf pair between source and target group will have count mismatch problem.
+        BlockOrchestrationController controller = getController(BlockOrchestrationController.class,
+                BlockOrchestrationController.BLOCK_ORCHESTRATION_DEVICE);
+        controller.createVolumes(volumeDescriptorsList, taskId);
+        _log.info("Change virutal pool steps has been successfully inititated");
     }
 
     /**
@@ -1052,6 +1285,24 @@ public class SRDFBlockServiceApiImpl extends AbstractBlockServiceApiImpl<SRDFSch
         }
 
         return allowedOperations;
+    }
+
+    /* (non-Javadoc)
+     * @see com.emc.storageos.api.service.impl.resource.BlockServiceApi#getReplicationGroupNames(com.emc.storageos.db.client.model.VolumeGroup)
+     */
+    @Override
+    public Collection<? extends String> getReplicationGroupNames(VolumeGroup group) {
+        List<String> groupNames = new ArrayList<String>();
+        final List<Volume> volumes = CustomQueryUtility
+                .queryActiveResourcesByConstraint(_dbClient, Volume.class,
+                        AlternateIdConstraint.Factory.getVolumesByVolumeGroupId(group.getId().toString()));
+        for (Volume volume : volumes) {
+            if (NullColumnValueGetter.isNotNullValue(volume.getReplicationGroupInstance())) {
+                groupNames.add(volume.getReplicationGroupInstance());
+            }
+        }
+        // TODO : add target volume volume groups if necessary
+        return groupNames;
     }
 
 }

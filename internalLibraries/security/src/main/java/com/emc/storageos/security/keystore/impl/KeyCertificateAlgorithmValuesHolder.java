@@ -219,21 +219,6 @@ public class KeyCertificateAlgorithmValuesHolder {
     }
 
     /**
-     * @return the securedRandomAlgorithm
-     */
-    public String getSecuredRandomAlgorithm() {
-        return securedRandomAlgorithm;
-    }
-
-    /**
-     * @param algo the securedRandomAlgorithm to set
-     */
-    public static synchronized void setSecuredRandomAlgorithm(String algo) {
-        securedRandomAlgorithm = algo;
-        log.info("SecuredRandom's Algorithm is {}", algo);
-    }
-
-    /**
      * @return the keySize
      */
     public int getKeySize() {

@@ -197,7 +197,7 @@ public class CinderApi {
         Gson gson = new Gson();
 
         VolumeCreateRequest volumeCreate = new VolumeCreateRequest();
-        volumeCreate.volume.display_name = volumeName;
+    	volumeCreate.volume.name = volumeName;
         volumeCreate.volume.size = capacity;
         // Volume type wont be available in cinder if volumeTypeId starts with "DEFAULT"
         // In that case, no need to pass volume type id in create volume request.

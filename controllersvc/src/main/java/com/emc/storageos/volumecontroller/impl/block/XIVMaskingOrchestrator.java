@@ -139,7 +139,7 @@ public class XIVMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                             // already taken by a pre-existing volume.
                             Integer requestedHLU = volumeMap.get(boURI);
                             StringMap existingVolumesInMask = exportMask.getExistingVolumes();
-                            if (existingVolumesInMask != null &&
+                            if (existingVolumesInMask != null && requestedHLU.intValue() != ExportGroup.LUN_UNASSIGNED &&
                                     !ExportGroup.LUN_UNASSIGNED_DECIMAL_STR.equals(requestedHLU.toString()) &&
                                     existingVolumesInMask.containsValue(requestedHLU.toString())) {
                                 ExportOrchestrationTask completer = new ExportOrchestrationTask(
@@ -763,7 +763,7 @@ public class XIVMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                             // already taken by a pre-existing volume.
                             Integer requestedHLU = volumeMap.get(boURI);
                             StringMap existingVolumesInMask = mask.getExistingVolumes();
-                            if (existingVolumesInMask != null &&
+                            if (existingVolumesInMask != null && requestedHLU.intValue() != ExportGroup.LUN_UNASSIGNED &&
                                     !ExportGroup.LUN_UNASSIGNED_DECIMAL_STR.equals(requestedHLU.toString()) &&
                                     existingVolumesInMask.containsValue(requestedHLU.toString())) {
                                 ExportOrchestrationTask completer = new ExportOrchestrationTask(
@@ -978,9 +978,11 @@ public class XIVMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
      * with this implementation and the superclass' is that here the creates will be run sequentially.
      */
     @Override
-    protected String createNewExportMaskWorkflowForInitiators(List<URI> initiatorURIs,
+    protected List<String> createNewExportMaskWorkflowForInitiators(List<URI> initiatorURIs,
             ExportGroup exportGroup, Workflow workflow, Map<URI, Integer> volumeMap,
             StorageSystem storage, String token, String previousStep) throws Exception {
+
+        List<String> newSteps = new ArrayList<>();
         if (!initiatorURIs.isEmpty()) {
             Map<String, List<URI>> computeResourceToInitiators = mapInitiatorsToComputeResource(
                     exportGroup, initiatorURIs);
@@ -997,6 +999,7 @@ public class XIVMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                 previousStep = result.getStepId();
             }
         }
-        return previousStep;
+        newSteps.add(previousStep);
+        return newSteps;
     }
 }

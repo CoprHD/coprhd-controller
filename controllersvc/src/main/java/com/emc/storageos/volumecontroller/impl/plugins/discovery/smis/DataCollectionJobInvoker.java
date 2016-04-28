@@ -21,6 +21,7 @@ import com.emc.storageos.networkcontroller.impl.NetworkDeviceController;
 import com.emc.storageos.plugins.AccessProfile;
 import com.emc.storageos.plugins.BaseCollectionException;
 import com.emc.storageos.plugins.common.Constants;
+import com.emc.storageos.storagedriver.Registry;
 import com.emc.storageos.volumecontroller.ControllerLockingService;
 import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.volumecontroller.impl.ControllerServiceImpl;
@@ -35,14 +36,15 @@ class DataCollectionJobInvoker {
     private static final Logger _logger = LoggerFactory.getLogger(DataCollectionJobInvoker.class);
     private static final String DISCOVERY = "Discovery";
     private DbClient _dbClient;
-    private CoordinatorClient _coordinator;
-    private NetworkDeviceController _networkDeviceController;
-    private ControllerLockingService _locker;
-    private AccessProfile _accessProfile;
-    private TaskCompleter _completer;
+    private final CoordinatorClient _coordinator;
+    private final NetworkDeviceController _networkDeviceController;
+    private final ControllerLockingService _locker;
+    private final AccessProfile _accessProfile;
+    private final TaskCompleter _completer;
     private ExtendedCommunicationInterface _commInterface;
-    private Map<String, String> _configInfo;
-    private String _namespace;
+    private final Map<String, String> _configInfo;
+    private final String _namespace;
+    private Registry _registry;
 
     public DataCollectionJobInvoker(final AccessProfile accessProfile, final Map<String, String> configInfo,
             final DbClient dbClient, final CoordinatorClient coordinator, NetworkDeviceController networkDeviceController,
@@ -91,6 +93,18 @@ class DataCollectionJobInvoker {
                 // CTRL-10441 fix
                 String contextFile = getContextFile(contextkey);
                 if (null == contextFile) {
+                    // No entry for context key in configinfo map, default to external device context key
+                    String externalDeviceContextKey = _accessProfile.getProfileName() + "-" + Constants.EXTERNALDEVICE + "-"
+                            + _namespace.toLowerCase();
+                    _logger.info("No entry defined for context key: {} . Default to external device context key: {}",
+                            contextkey, externalDeviceContextKey);
+                    contextkey = externalDeviceContextKey;
+                    contextDeviceType = Constants.EXTERNALDEVICE;
+                    contextFile = getContextFile(contextkey);
+                }
+
+                if (contextFile == null) {
+                    _logger.info("No entry defined for context key: {} ", contextkey);
                     return;
                 }
                 context = new ClassPathXmlApplicationContext(new String[] { getContextFile(contextkey) },
@@ -122,7 +136,7 @@ class DataCollectionJobInvoker {
 
     /**
      * Returns the context key based on its devicetype.
-     * 
+     *
      * @param deviceType
      * @return
      */
@@ -140,7 +154,7 @@ class DataCollectionJobInvoker {
 
     /**
      * Invoke Scan or Discover based on the profile.
-     * 
+     *
      * @param commInterface
      * @throws BaseCollectionException
      */
@@ -166,7 +180,7 @@ class DataCollectionJobInvoker {
      * Inject correct dbUtil instance based on deviceType. It could have been
      * put up as a bean in plugin-context.xml, but it would end up in having a
      * DButil dependency onto export Libraries. Hence, instantiating locally.
-     * 
+     *
      * @throws BaseCollectionException
      */
     private void invokeMetering() throws BaseCollectionException {
@@ -175,7 +189,7 @@ class DataCollectionJobInvoker {
 
     /**
      * get Context File based on Context-key (Scanner-block)
-     * 
+     *
      * @param contextKey
      * @return
      */
@@ -184,7 +198,7 @@ class DataCollectionJobInvoker {
         if (null != _configInfo.get(contextKey)) {
             contextFile = _configInfo.get(contextKey);
         } else {
-            _logger.warn("Profile Name Not supported:" + contextKey);
+            _logger.warn("Profile name not defined:" + contextKey);
         }
         return contextFile;
     }

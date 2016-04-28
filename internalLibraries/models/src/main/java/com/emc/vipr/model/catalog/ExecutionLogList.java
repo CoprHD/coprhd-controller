@@ -25,7 +25,6 @@ public class ExecutionLogList {
     /**
      * List of execution logs
      * 
-     * @valid none
      */
     @XmlElement(name = "execution_log")
     public List<ExecutionLogRestRep> getExecutionLogs() {

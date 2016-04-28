@@ -1,0 +1,11 @@
+#!/bin/bash
+
+systemctl stop LDAP
+cd /tmp
+LATEST_URL="http://lglw8129.lss.emc.com/simulators/ldap-simulators/ldap-sim.zip"
+wget $LATEST_URL
+unzip ldap-sim.zip
+cp -r ldapsvc-*/* /data/simulators/ldap-sim/
+rm -r ldapsvc-*
+rm ldap-sim.zip
+systemctl start LDAP

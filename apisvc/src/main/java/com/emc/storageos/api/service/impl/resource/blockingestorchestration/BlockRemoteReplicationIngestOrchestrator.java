@@ -12,17 +12,15 @@ import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext;
 import com.emc.storageos.api.service.impl.resource.utils.PropertySetterUtil;
 import com.emc.storageos.api.service.impl.resource.utils.VolumeIngestionUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.model.BlockObject;
-import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.RemoteDirectorGroup;
-import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.StringSetMap;
-import com.emc.storageos.db.client.model.TenantOrg;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
@@ -66,42 +64,39 @@ public class BlockRemoteReplicationIngestOrchestrator extends BlockVolumeIngestO
     }
 
     @Override
-    public <T extends BlockObject> T ingestBlockObjects(List<URI> systemCache, List<URI> poolCache, StorageSystem system,
-            UnManagedVolume unManagedVolume,
-            VirtualPool vPool, VirtualArray virtualArray, Project project, TenantOrg tenant,
-            List<UnManagedVolume> unManagedVolumesSuccessfullyProcessed,
-            Map<String, BlockObject> createdObjectMap, Map<String, List<DataObject>> updatedObjectMap, boolean unManagedVolumeExported,
-            Class<T> clazz,
-            Map<String, StringBuffer> taskStatusMap, String vplexIngestionMethod) throws IngestionException {
+    public <T extends BlockObject> T ingestBlockObjects(IngestionRequestContext requestContext, Class<T> clazz)
+            throws IngestionException {
+        
+        UnManagedVolume unManagedVolume = requestContext.getCurrentUnmanagedVolume();
+        
         String volumeNativeGuid = unManagedVolume.getNativeGuid().replace(VolumeIngestionUtil.UNMANAGEDVOLUME,
                 VolumeIngestionUtil.VOLUME);
         BlockObject blockObject = VolumeIngestionUtil.checkIfVolumeExistsInDB(volumeNativeGuid, _dbClient);
 
         // validate srdf blockObjects.
-        validateUnManagedVolumeProperties(unManagedVolume, virtualArray, vPool, project);
+        validateUnManagedVolumeProperties(unManagedVolume, requestContext.getVarray(unManagedVolume), 
+                requestContext.getVpool(unManagedVolume), requestContext.getProject());
         // Check if ingested volume has exportmasks pending for ingestion.
-        if (isExportIngestionPending(blockObject, unManagedVolume.getId(), unManagedVolumeExported)) {
+        if (isExportIngestionPending(blockObject, unManagedVolume.getId(), 
+                requestContext.getVolumeContext().isVolumeExported())) {
             return clazz.cast(blockObject);
         }
 
         if (null == blockObject) {
-            blockObject = super.ingestBlockObjects(systemCache, poolCache, system, unManagedVolume, vPool, virtualArray, project, tenant,
-                    unManagedVolumesSuccessfullyProcessed, createdObjectMap, updatedObjectMap, unManagedVolumeExported, clazz,
-                    taskStatusMap, vplexIngestionMethod);
+            blockObject = super.ingestBlockObjects(requestContext, clazz);
 
             if (null == blockObject) {
                 _logger.warn("SRDF Volume ingestion failed for unmanagedVolume {}", unManagedVolume.getNativeGuid());
-                throw IngestionException.exceptions.unmanagedVolumeMasksNotIngested(unManagedVolume.getNativeGuid(), "none.");
+                throw IngestionException.exceptions.unmanagedVolumeMasksNotIngested(unManagedVolume.getNativeGuid());
             }
         } else {
             // blockObject already ingested, now just update internalflags &
             // srdf relationships. Run this logic always when volume NO_PUBLIC_ACCESS
-            if (markUnManagedVolumeInactive(unManagedVolume, blockObject, unManagedVolumesSuccessfullyProcessed,
-                    createdObjectMap, updatedObjectMap, taskStatusMap, vplexIngestionMethod)) {
+            if (markUnManagedVolumeInactive(requestContext, blockObject)) {
                 _logger.info("All the related replicas and parent of unManagedVolume {} has been ingested ",
                         unManagedVolume.getNativeGuid());
                 unManagedVolume.setInactive(true);
-                unManagedVolumesSuccessfullyProcessed.add(unManagedVolume);
+                requestContext.getUnManagedVolumesToBeDeleted().add(unManagedVolume);
             } else {
                 _logger.info(
                         "Not all the parent/replicas of unManagedVolume {} have been ingested , hence marking as internal",

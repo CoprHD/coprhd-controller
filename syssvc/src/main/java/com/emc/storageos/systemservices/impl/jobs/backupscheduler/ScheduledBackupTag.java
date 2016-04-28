@@ -4,8 +4,6 @@
  */
 package com.emc.storageos.systemservices.impl.jobs.backupscheduler;
 
-import com.emc.storageos.coordinator.client.model.ProductName;
-
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -18,6 +16,9 @@ import java.util.regex.Pattern;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.emc.storageos.coordinator.client.model.ProductName;
+import com.emc.storageos.management.backup.BackupConstants;
+
 /**
  * Class to manage backup file names (tags) using by Backup Scheduler
  */
@@ -25,20 +26,14 @@ public class ScheduledBackupTag {
 
     private static final Logger log = LoggerFactory.getLogger(ScheduledBackupTag.class);
 
-    private static final String DATE_PATTERN = "yyyyMMddHHmmss";
-    private static final String BACKUP_TAG_TEMPLATE = "%s-%d-%s";
-    private static final String UPLOAD_ZIP_FILENAME_FORMAT = "%s-%s-%s-%s%s";
-    private static final String SCHEDULED_BACKUP_TAG_REGEX_PATTERN = "^%s-(\\w+|\\.)*\\d+-\\d+-\\d{%d}$";
     private static final ThreadLocal<SimpleDateFormat> dateFormat = new ThreadLocal<SimpleDateFormat>() {
         @Override
         protected SimpleDateFormat initialValue() {
-            return new SimpleDateFormat(DATE_PATTERN);
+            return new SimpleDateFormat(BackupConstants.SCHEDULED_BACKUP_DATE_PATTERN);
         }
     };
     private static final Date MIN_DATE = new Date(0);
-    protected static final String ZIP_FILE_SURFIX = ".zip";
-    protected static final String BACKUP_TAG_SEPERATOR = "-";
-    private static final String INVALID_ZIP_FILE_SURFIX = "-invalid.zip";
+
 
     public static Date parseTimestamp(String timestampStr) throws ParseException {
         return dateFormat.get().parse(timestampStr);
@@ -50,7 +45,7 @@ public class ScheduledBackupTag {
 
     public static String toBackupTag(Date dt, String ver, int nodeCount) {
         String timestamp = toTimestamp(dt);
-        return String.format(BACKUP_TAG_TEMPLATE, ver, nodeCount, timestamp);
+        return String.format(BackupConstants.SCHEDULED_BACKUP_TAG_TEMPLATE, ver, nodeCount, timestamp);
     }
 
     public static Date parseBackupTag(String tag) throws ParseException {
@@ -58,7 +53,7 @@ public class ScheduledBackupTag {
             throw new ParseException("Can't parse backup date because tag is null", -1);
         }
 
-        int beginIndex = tag.length() - DATE_PATTERN.length();
+        int beginIndex = tag.length() - BackupConstants.SCHEDULED_BACKUP_DATE_PATTERN.length();
         if (beginIndex < 0) {
             throw new ParseException("Can't parse backup date from wrong begin index for tag: " + tag, beginIndex);
         }
@@ -70,15 +65,15 @@ public class ScheduledBackupTag {
         ArrayList<String> scheduledTags = new ArrayList<>();
         // Typically, this pattern String could match all tags produced by toBackupTag method
         // also in consideration of extension, version part could be longer and node count could bigger
-        String regex = String.format(SCHEDULED_BACKUP_TAG_REGEX_PATTERN, ProductName.getName(),
-                DATE_PATTERN.length());
+        String regex = String.format(BackupConstants.SCHEDULED_BACKUP_TAG_REGEX_PATTERN, ProductName.getName(),
+                BackupConstants.SCHEDULED_BACKUP_DATE_PATTERN.length());
         Pattern backupNamePattern = Pattern.compile(regex);
         for (String tag : tags) {
             if (backupNamePattern.matcher(tag).find()) {
                 scheduledTags.add(tag);
             }
         }
-
+        log.info("Scheduled backup tags: {}", scheduledTags);
         return scheduledTags;
     }
 
@@ -104,13 +99,5 @@ public class ScheduledBackupTag {
             int ret = d1.compareTo(d2);
             return ret != 0 ? ret : o1.compareTo(o2);
         }
-    }
-
-    public static String toZipFileName(String tag, int totalNodes, int backupNodes, String siteName) {
-        return String.format(UPLOAD_ZIP_FILENAME_FORMAT, tag, totalNodes, backupNodes, siteName, ZIP_FILE_SURFIX);
-    }
-
-    public static String toInvalidFileName(String fileName) {
-        return fileName.replaceFirst(ZIP_FILE_SURFIX + "$", INVALID_ZIP_FILE_SURFIX);
     }
 }

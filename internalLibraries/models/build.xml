@@ -3,13 +3,14 @@
      These scripts are used exclusively by certain team members to rapidly (a few seconds) build and deploy jar files to their devkit.
      It is not meant to replace the gradle scripts, and is not expressedly supported by the release engineers.
      
-     @author Bill Elliott
+     @author Bill Elliott IV
 -->
 <project name="models" default="CreateJar">
     
   <property name="jarfile" value="models" />
     
-  <target name="CreateJar" description="Creates Jar file" depends="DetermineOS, SetProperties,StopServices,CreateJarFile,StartServices" />  
+  <!-- <target name="CreateJar" description="Creates Jar file" depends="DetermineOS, SetProperties,StopServices,CreateJarFile,StartServices" />  -->
+  <target name="CreateJar" description="Creates Jar file" depends="DetermineOS, SetProperties, ChangePermissionJar, CreateJarFile, StopServices, StartServices" />  
     
   <target name="DetermineOS" description="Determines the OS.">
     <condition property="isMac">
@@ -39,19 +40,23 @@
     <jar jarfile="dist/storageos-${jarfile}.jar">
         <fileset dir="bin"/>
     </jar>
-    <scp file="dist/storageos-${jarfile}.jar" trust="true" todir="root:ChangeMe@${storageos.ip}:/opt/storageos/lib"/>
+    <scp file="dist/storageos-${jarfile}.jar" trust="true" todir="root:${storageos.passwd}@${storageos.ip}:/opt/storageos/lib"/>
     <delete dir="dist" />
   </target>
     
   <target name="StopServices" description="Stop the StorageOS services.">
     <!--  Stop the services -->
-    <sshexec host="${storageos.ip}" username="root" password="ChangeMe" command="service storageos stop" trust="true"/>
-    <sshexec host="${storageos.ip}" username="root" password="ChangeMe" command="chmod 777 /opt/storageos/lib/storageos-${jarfile}.jar" trust="true"/>
+    <sshexec host="${storageos.ip}" username="root" password="${storageos.passwd}" command="/etc/storageos/storageos stop" trust="true"/>
   </target>
-    
+
+  <target name="ChangePermissionJar" description="Change the permission of the jar">
+    <sshexec host="${storageos.ip}" username="root" password="${storageos.passwd}" command="chmod 777 /opt/storageos/lib/storageos-${jarfile}.jar" trust="true"/>
+  </target>
+
   <target name="StartServices" description="Start the StorageOS services.">
     <!--  Start the services -->
-    <sshexec host="${storageos.ip}" username="root" password="ChangeMe" command="service storageos start" trust="true"/>
+    <sshexec host="${storageos.ip}" username="root" password="${storageos.passwd}" command="/etc/storageos/storageos start" trust="true"/>
   </target> 
-  
+
 </project>
+

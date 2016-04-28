@@ -15,10 +15,10 @@ public interface FileControllerConstants {
 
     String NFS_EXPORT_USER_NOBODY = "nobody";
 
-    String NFS_FILE_PERMISSION_READ = "Read";
+    String NFS_FILE_PERMISSION_READ = "read";
     String NFS_FILE_PERMISSION_WRITE = "write";
     String NFS_FILE_PERMISSION_EXECUTE = "execute";
-    String NFS_FILE_PERMISSION_FULLCONTROL = "FullControl";
+    String NFS_FILE_PERMISSION_FULLCONTROL = "fullControl";
     String NFS_FILE_USER_EVERYONE = "Everyone";
     String NFS_FILE_PERMISSION_TYPE_ALLOW = "allow";
     String NFS_FILE_PERMISSION_TYPE_DENY = "deny";

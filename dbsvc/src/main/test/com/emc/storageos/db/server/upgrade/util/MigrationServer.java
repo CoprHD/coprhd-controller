@@ -33,13 +33,13 @@ public class MigrationServer extends DbStepSkipUpgradeTestBase {
             setup();
 
             stopAll();
-            startDb(initalVersion, "com.emc.storageos.db.server.upgrade.util.models.old");
+            startDb(initalVersion, initalVersion, "com.emc.storageos.db.server.upgrade.util.models.old");
             prepareData1();
             prepareData2();
 
             stopAll();
             insertCodes(className, methodName, injectMode);
-            startDb(secondUpgradeVersion, "com.emc.storageos.db.server.upgrade.util.models.updated2");
+            startDb(initalVersion, secondUpgradeVersion, "com.emc.storageos.db.server.upgrade.util.models.updated2");
             log.info("passed the migration, begin to check result");
 
             verifyAll();
@@ -56,7 +56,7 @@ public class MigrationServer extends DbStepSkipUpgradeTestBase {
             setup();
 
             stopAll();
-            startDb(secondUpgradeVersion, "com.emc.storageos.db.server.upgrade.util.models.updated2");
+            startDb(initalVersion, secondUpgradeVersion, "com.emc.storageos.db.server.upgrade.util.models.updated2");
             log.info("passed the migration, begin to check result");
 
             verifyAll();

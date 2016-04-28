@@ -126,7 +126,7 @@ public class VirtualDataCenters extends ViprResourceController {
     }
 
     @FlashException(value = "list", keep = true)
-    @Restrictions({ @Restrict("SECURITY_ADMIN") })
+    @Restrictions({ @Restrict("SYSTEM_ADMIN"), @Restrict("SECURITY_ADMIN") })
     public static void create() {
         VirtualDataCenterForm vdc = new VirtualDataCenterForm();
         addRenderArgs();
@@ -145,7 +145,7 @@ public class VirtualDataCenters extends ViprResourceController {
     }
 
     @FlashException(value = "list", keep = true)
-    @Restrictions({ @Restrict("SECURITY_ADMIN"), @Restrict("RESTRICTED_SECURITY_ADMIN") })
+    @Restrictions({ @Restrict("SYSTEM_ADMIN"), @Restrict("SECURITY_ADMIN"), @Restrict("RESTRICTED_SECURITY_ADMIN") })
     public static void edit(String id) {
         VirtualDataCenterRestRep viprVDC = VirtualDataCenterUtils.get(id);
 
@@ -161,7 +161,7 @@ public class VirtualDataCenters extends ViprResourceController {
     }
 
     @FlashException(keep = true, referrer = { "create", "edit" })
-    @Restrictions({ @Restrict("SECURITY_ADMIN"), @Restrict("RESTRICTED_SECURITY_ADMIN") })
+    @Restrictions({ @Restrict("SYSTEM_ADMIN"), @Restrict("SECURITY_ADMIN"), @Restrict("RESTRICTED_SECURITY_ADMIN") })
     public static void save(VirtualDataCenterForm vdc) {
         vdc.validate("vdc");
         if (Validation.hasErrors()) {
@@ -192,11 +192,6 @@ public class VirtualDataCenters extends ViprResourceController {
                 VirtualDataCenterModifyParam vdcToUpdate = new VirtualDataCenterModifyParam();
                 vdcToUpdate.setName(vdc.name);
                 vdcToUpdate.setDescription(vdc.description);
-                // TODO: update this when supported.
-                vdcToUpdate.setRotateKeyCert(null);
-                // TODO: update this once API is updated to accept these
-                // vdcToUpdate.setApiEndpoint(vdc.apiEndpoint);
-                // vdcToUpdate.setSecretKey(vdc.secretKey);
 
                 Task<VirtualDataCenterRestRep> task =
                         VirtualDataCenterUtils.update(uri(vdc.id), vdcToUpdate);
@@ -215,7 +210,7 @@ public class VirtualDataCenters extends ViprResourceController {
     }
 
     @FlashException("list")
-    @Restrictions({ @Restrict("SECURITY_ADMIN") })
+    @Restrictions({ @Restrict("SYSTEM_ADMIN"), @Restrict("SECURITY_ADMIN") })
     public static void delete(@As(",") String[] ids) {
         delete(uris(ids));
         list();
@@ -232,6 +227,7 @@ public class VirtualDataCenters extends ViprResourceController {
     }
 
     @FlashException("list")
+    @Restrictions({ @Restrict("SYSTEM_ADMIN"), @Restrict("SECURITY_ADMIN") })
     public static void disconnect(@As(",") String[] ids) {
         disconnect(uris(ids));
         list();
@@ -247,6 +243,7 @@ public class VirtualDataCenters extends ViprResourceController {
     }
 
     @FlashException("list")
+    @Restrictions({ @Restrict("SYSTEM_ADMIN"), @Restrict("SECURITY_ADMIN") })
     public static void reconnect(@As(",") String[] ids) {
         reconnect(uris(ids));
         list();

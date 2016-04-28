@@ -27,6 +27,11 @@ public enum SiteState {
         public boolean isDROperationOngoing() {
             return true;
         }
+
+        @Override
+        public String getDRAction() {
+            return SiteInfo.DR_OP_SWITCHOVER;
+        }
     },
 
     /**
@@ -37,6 +42,21 @@ public enum SiteState {
         public boolean isDROperationOngoing() {
             return true;
         }
+
+        @Override
+        public String getDRAction() {
+            return SiteInfo.DR_OP_FAILOVER;
+        }
+    },
+    
+    /**
+     * Active site is back after failover, site has been down graded.
+     */
+    ACTIVE_DEGRADED {
+        @Override
+        public boolean isDROperationOngoing() {
+            return false;
+        }
     },
 
     /**
@@ -46,6 +66,11 @@ public enum SiteState {
         @Override
         public boolean isDROperationOngoing() {
             return true;
+        }
+
+        @Override
+        public String getDRAction() {
+            return SiteInfo.DR_OP_ADD_STANDBY;
         }
     },
 
@@ -77,12 +102,42 @@ public enum SiteState {
         public boolean isDROperationOngoing() {
             return true;
         }
+
+        @Override
+        public String getDRAction() {
+            return SiteInfo.DR_OP_PAUSE_STANDBY;
+        }
     },
 
     /**
      *  Standby site. Replication is paused
      */
     STANDBY_PAUSED {
+        @Override
+        public boolean isDROperationOngoing() {
+            return false;
+        }
+    },
+
+    /**
+     *  Standby site. Db is being excluded from strategy options
+     */
+    STANDBY_DEGRADING {
+        @Override
+        public boolean isDROperationOngoing() {
+            return true;
+        }
+
+        @Override
+        public String getDRAction() {
+            return SiteInfo.DR_OP_DEGRADE_STANDBY;
+        }
+    },
+
+    /**
+     *  Standby site. Db is excluded from strategy options
+     */
+    STANDBY_DEGRADED {
         @Override
         public boolean isDROperationOngoing() {
             return false;
@@ -107,6 +162,11 @@ public enum SiteState {
         public boolean isDROperationOngoing() {
             return true;
         }
+
+        @Override
+        public String getDRAction() {
+            return SiteInfo.DR_OP_SWITCHOVER;
+        }
     },
 
     /**
@@ -116,6 +176,11 @@ public enum SiteState {
         @Override
         public boolean isDROperationOngoing() {
             return true;
+        }
+
+        @Override
+        public String getDRAction() {
+            return SiteInfo.DR_OP_FAILOVER;
         }
     },
 
@@ -127,6 +192,11 @@ public enum SiteState {
         public boolean isDROperationOngoing() {
             return true;
         }
+
+        @Override
+        public String getDRAction() {
+            return SiteInfo.DR_OP_REMOVE_STANDBY;
+        }
     },
 
     /**
@@ -137,12 +207,27 @@ public enum SiteState {
         public boolean isDROperationOngoing() {
             return true;
         }
+
+        @Override
+        public String getDRAction() {
+            return SiteInfo.DR_OP_RESUME_STANDBY;
+        }
     },
 
     /**
      *  Unrecoverable error for this standby site
      */
     STANDBY_ERROR {
+        @Override
+        public boolean isDROperationOngoing() {
+            return false;
+        }
+    },
+    
+    /**
+     *  None state for dummy active site
+     */
+    NONE {
         @Override
         public boolean isDROperationOngoing() {
             return false;
@@ -155,4 +240,8 @@ public enum SiteState {
      * @return True if there is a DR Operation ongoing, false otherwise
      */
     public abstract boolean isDROperationOngoing();
+
+    public String getDRAction() {
+        return SiteInfo.NONE;
+    }
 }

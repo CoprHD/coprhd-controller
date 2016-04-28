@@ -36,8 +36,6 @@ public class QuotaInfo {
      * Indicates whether setting quotas is enabled for this
      * resource.
      * 
-     * @valid true
-     * @valid false
      */
     @XmlElement
     public boolean getEnabled() {
@@ -52,7 +50,6 @@ public class QuotaInfo {
      * The quota set (in Gb) for this
      * resource.
      * 
-     * @valid none
      */
     @XmlElement(name = "quota_gb")
     public long getQuotaInGb() {
@@ -67,7 +64,6 @@ public class QuotaInfo {
      * The provisioned quota (in Gb)
      * allocated for this resource.
      * 
-     * @valid none
      */
     @XmlElement(name = "current_capacity")
     public long getCurrentCapacityInGb() {
@@ -81,7 +77,6 @@ public class QuotaInfo {
     /**
      * The resource information associated with this quota.
      * 
-     * @valid none
      */
     @XmlElement(name = "limited_resource")
     public NamedRelatedResourceRep getLimitedResource() {

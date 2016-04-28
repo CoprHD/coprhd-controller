@@ -15,6 +15,7 @@ import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
 
+import com.emc.storageos.security.ipsec.IPsecConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -52,8 +53,8 @@ public class RemoveVdcTaskOp extends AbstractVdcTaskOp {
 
     public RemoveVdcTaskOp(InternalDbClient dbClient, GeoClientCacheManager geoClientCache,
             VdcConfigHelper helper, Service serviceInfo, VirtualDataCenter vdc,
-            String taskId, KeyStore keystore) {
-        super(dbClient, geoClientCache, helper, serviceInfo, vdc, taskId, null, keystore);
+            String taskId, KeyStore keystore, IPsecConfig ipsecConfig) {
+        super(dbClient, geoClientCache, helper, serviceInfo, vdc, taskId, null, keystore, ipsecConfig);
 
         if (operatedVdc.getConnectionStatus() == ConnectionStatus.DISCONNECTED) {
             isOperatedVdcDisconnected = true;
@@ -119,7 +120,6 @@ public class RemoveVdcTaskOp extends AbstractVdcTaskOp {
                 dbClient.waitVdcRemoveDone(operatedVdc.getShortId());
             }
             dbClient.waitAllSitesDbStable();
-            dbClient.removeVdcNodesFromBlacklist(operatedVdc);
             removeVdcVersion(operatedVdc);
         } catch (Exception e) {
             log.error("wait for all sites db stable failed");
@@ -163,9 +163,9 @@ public class RemoveVdcTaskOp extends AbstractVdcTaskOp {
                 log.error("Unexpected Vdc list size in sync config param");
             }
         }
-        // update my local site with new config
 
-        helper.syncVdcConfig(syncParam.getVirtualDataCenters(), null);
+        // update my local site with new config
+        helper.syncVdcConfig(syncParam.getVirtualDataCenters(), null, syncParam.getVdcConfigVersion(), syncParam.getIpsecKey());
     }
 
     /**

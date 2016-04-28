@@ -9,6 +9,8 @@ import java.io.IOException;
 import java.io.InputStream;
 
 import org.apache.commons.lang.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.iwave.ext.command.Command;
 import com.iwave.ext.command.CommandException;
@@ -18,15 +20,14 @@ import com.jcraft.jsch.ChannelExec;
 import com.jcraft.jsch.JSch;
 import com.jcraft.jsch.JSchException;
 import com.jcraft.jsch.Session;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class SSHCommandExecutor implements CommandExecutor {
     static final Logger log = LoggerFactory.getLogger(SSHCommandExecutor.class);
-    public static final String SUDO_COMMAND = "sudo -S -p '' sh -c ";
-
+    private static final String DEFAULT_SUDO_COMMAND = "sudo -S -p '' sh -c ";
     private static final long MILLIS_PER_SECOND = 1000;
     private static final long SLEEP_TIME = 100;
+
+    private String sudoCommand = DEFAULT_SUDO_COMMAND;
     private SSHConnection connection;
     private Session session;
     private int connectTimeout;
@@ -44,6 +45,10 @@ public class SSHCommandExecutor implements CommandExecutor {
 
     public SSHCommandExecutor(String host, int port, String username, String password) {
         this.connection = new SSHConnection(host, port, username, password);
+    }
+
+    public void setSudoPrefix(String sudoPrefix) {
+        this.sudoCommand = sudoPrefix;
     }
 
     public SSHConnection getConnection() {
@@ -154,7 +159,7 @@ public class SSHCommandExecutor implements CommandExecutor {
 
         InputStream stdin = null;
         if (command.isRunAsRoot() && !isRootUser) {
-            commandLine = SUDO_COMMAND + "\"" + escapeCommandLine(commandLine) + "\"";
+            commandLine = sudoCommand + "\"" + escapeCommandLine(commandLine) + "\"";
             stdin = new ByteArrayInputStream((connection.getPassword() + "\n").getBytes("US-ASCII"));
         }
 

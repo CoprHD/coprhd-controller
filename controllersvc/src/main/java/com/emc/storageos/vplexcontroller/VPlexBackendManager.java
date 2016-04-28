@@ -66,6 +66,8 @@ import com.emc.storageos.volumecontroller.placement.StoragePortsAssignerFactory;
 import com.emc.storageos.vplex.api.VPlexApiException;
 import com.emc.storageos.workflow.Workflow;
 
+import static com.emc.storageos.volumecontroller.impl.block.ExportMaskPlacementDescriptorHelper.putUnplacedVolumesIntoAlternativeMask;
+
 public class VPlexBackendManager {
     private DbClient _dbClient;
     private BlockDeviceController _blockDeviceController;
@@ -276,6 +278,10 @@ public class VPlexBackendManager {
             // Apply the filters that will remove any ExportMasks that do not fit the expected VPlex masking paradigm
             Set<URI> invalidMasks = filterExportMasksByVPlexRequirements(vplex, array, varrayURI, placementDescriptor);
 
+            // If there were any invalid masks found, we can redo the volume placement into
+            // an alternative ExportMask (if there are any listed by the descriptor)
+            putUnplacedVolumesIntoAlternativeMask(placementDescriptor);
+            
             // Check to see if there are any available ExportMasks that can be used.
             // If not, we will attempt to generate some.
             if (!placementDescriptor.hasMasks()) {

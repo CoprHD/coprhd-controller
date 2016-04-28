@@ -30,7 +30,6 @@ public class ComputeVirtualPoolAssignments {
     /**
      * The list of compute elements to be added to or removed from the compute virtual pool
      * 
-     * @valid none
      */
     @XmlElement(name = "compute_element")
     @JsonProperty("compute_element")

@@ -16,10 +16,12 @@ import org.apache.zookeeper.server.ZooKeeperServerMain;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.net.URI;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.Properties;
 
 /**
  * Zookeeper simulator to start Zookeeper server on localhost with specified configurations.
@@ -29,6 +31,7 @@ public class ZkSimulator {
 
     private SpringQuorumPeerConfig config;
     private CoordinatorClient coordinatorClient;
+    private final String ovfPropsLocation = "/etc/ovfenv.properties";
 
     public ZkSimulator() {
     }
@@ -91,6 +94,7 @@ public class ZkSimulator {
                 String.format("coordinator://localhost:%s", config.getClientPortAddress().getPort()));
         conn.setServer(Arrays.asList(zkUri));
         conn.setTimeoutMs(10 * 1000);
+        conn.setSiteIdFile("build/data/zk/siteIdFile");
         log.info("Connecting with coordinator service...");
         conn.build();
         log.info("Connecting with coordinator service.");
@@ -104,6 +108,18 @@ public class ZkSimulator {
         client.setInetAddessLookupMap(inetAddressMap);
         client.setSysSvcName("syssvc");
         client.setSysSvcVersion("1");
+
+        client.setVdcShortId("vdc1");
+        Properties properties = new Properties();
+        properties.setProperty(BackupConstants.BACKUP_MAX_MANUAL_COPIES, "5");
+        client.setDefaultProperties(properties);
+
+        FileInputStream is = new FileInputStream(ovfPropsLocation);
+        Properties ovfProps = new Properties();
+        ovfProps.load(is);
+        is.close();
+        client.setOvfProperties(ovfProps);
+
         client.start();
         return client;
     }

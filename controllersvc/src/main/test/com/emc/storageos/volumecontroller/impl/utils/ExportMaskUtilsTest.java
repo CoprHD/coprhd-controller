@@ -8,9 +8,15 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.TreeSet;
 
+import com.emc.storageos.db.client.URIUtil;
+import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.StringSet;
 import com.google.common.base.Joiner;
+import com.google.common.collect.HashMultimap;
+import com.google.common.collect.Multimap;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -239,5 +245,94 @@ public class ExportMaskUtilsTest {
         Assert.assertEquals(sortedMasks.get(2).getLabel(), "e3");
         Assert.assertEquals(sortedMasks.get(3).getLabel(), "e1");
         Assert.assertEquals(sortedMasks.get(4).getLabel(), "e5");
+    }
+
+    @Test
+    public void testInitiatorOrdering() {
+        String HOST1 = "host1";
+        String HOST2 = "host2";
+        String HOST3 = "host3";
+
+        Initiator i1 = new Initiator("FC", "200000000001", HOST1, "cluster1", true);
+        i1.setId(URIUtil.createId(Initiator.class));
+
+        Initiator i2 = new Initiator("FC", "200000000002", HOST1, "cluster1", true);
+        i2.setId(URIUtil.createId(Initiator.class));
+
+        Initiator i3 = new Initiator("FC", "200000000003", HOST2, "cluster1", true);
+        i3.setId(URIUtil.createId(Initiator.class));
+
+        Initiator i4 = new Initiator("FC", "200000000004", HOST2, "cluster1", true);
+        i4.setId(URIUtil.createId(Initiator.class));
+
+        Initiator i5 = new Initiator("FC", "200000000005", HOST3, "cluster1", true);
+        i5.setId(URIUtil.createId(Initiator.class));
+
+        Multimap<String, Initiator> testMap = HashMultimap.create();
+
+        testMap.put(HOST1, i1);
+        testMap.put(HOST1, i2);
+        Assert.assertEquals("HOST1 doesn't have expected number of initiators", 2, testMap.get(HOST1).size());
+        System.out.println(Joiner.on(',').join(testMap.get(HOST1)));
+
+        testMap.put(HOST2, i3);
+        testMap.put(HOST2, i4);
+        testMap.put(HOST2, i4);
+        testMap.put(HOST2, i4);
+        Assert.assertEquals("HOST2 doesn't have expected number of initiators", 2, testMap.get(HOST2).size());
+        System.out.println(Joiner.on(',').join(testMap.get(HOST2)));
+
+        testMap.put(HOST3, i5);
+        Assert.assertEquals("HOST3 doesn't have expected number of initiators", 1, testMap.get(HOST3).size());
+        System.out.println(Joiner.on(',').join(testMap.get(HOST3)));
+
+        Set<Initiator> initiatorSet = new TreeSet<>();
+        initiatorSet.add(i1);
+        initiatorSet.add(i2);
+        initiatorSet.add(i3);
+        initiatorSet.add(i4);
+        initiatorSet.add(i4);
+        initiatorSet.add(i4);
+        initiatorSet.add(i4);
+        initiatorSet.add(i5);
+        initiatorSet.add(i5);
+        Assert.assertEquals("Size of initiatorHashSet is unexpected", 5, initiatorSet.size());
+
+        // Test Initiator.hashCode
+        System.out.println("################# Testing Initiator.hashCode #################");
+        // Make same as i5
+        Initiator i6 = new Initiator("FC", "200000000005", HOST3, "cluster1", true);
+        i6.setId(i5.getId());
+        Assert.assertEquals("i5 and i6 should be equal", i5, i6);
+        Assert.assertEquals("Hash codes are different", i5.hashCode(), i6.hashCode());
+        System.out.println(String.format("i5.hashCode = %d i6.hashCode = %d", i5.hashCode(), i6.hashCode()));
+
+        // Strange case 1: Same port WWN, but different ID
+        Initiator i7 = new Initiator("FC", "200000000005", HOST3, "cluster1", true);
+        i7.setId(URIUtil.createId(Initiator.class));
+        Assert.assertNotEquals("i5 and i7 should not be equal", i5, i7);
+        Assert.assertNotEquals("Hash codes are the same", i5.hashCode(), i7.hashCode());
+        System.out.println(String.format("i5.hashCode = %d i7.hashCode = %d", i5.hashCode(), i7.hashCode()));
+
+        // Strange case 2: Different port WWN, but same ID
+        Initiator i8 = new Initiator("FC", "200000000008", HOST3, "cluster1", true);
+        i8.setId(i5.getId());
+        Assert.assertNotEquals("i5 and i8 should not be equal", i5, i8);
+        Assert.assertNotEquals("Hash codes are the same", i5.hashCode(), i8.hashCode());
+        System.out.println(String.format("i5.hashCode = %d i8.hashCode = %d", i5.hashCode(), i8.hashCode()));
+
+        Map<Initiator, String> map = new HashMap<>();
+        map.put(i1, "Initiator 1");
+        map.put(i2, "Initiator 2");
+        map.put(i3, "Initiator 3");
+        map.put(i4, "Initiator 4");
+        map.put(i5, "Initiator 5");
+        map.put(i6, "Initiator 6");
+        map.put(i7, "Initiator 7");
+        map.put(i8, "Initiator 8");
+        // map.size() should be 7 because i5 and i6 are equivalent based on hashCode
+        Assert.assertEquals("Unexpected map size", 7, map.size());
+        System.out.println(String.format("map.keys = %s", Joiner.on(',').join(map.keySet())));
+        System.out.println(String.format("map.entries = %s", Joiner.on(',').join(map.entrySet())));
     }
 }

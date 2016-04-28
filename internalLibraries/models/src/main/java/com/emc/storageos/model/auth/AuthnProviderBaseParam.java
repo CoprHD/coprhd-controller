@@ -1,7 +1,21 @@
 /*
- * Copyright (c) 2015 EMC Corporation
- * All Rights Reserved
+ * Copyright 2015 EMC Corporation
+ * Copyright 2016 Intel Corporation
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
  */
+
 package com.emc.storageos.model.auth;
 
 import com.emc.storageos.model.valid.Length;
@@ -16,24 +30,23 @@ public abstract class AuthnProviderBaseParam {
 
     /**
      * The kind of provider. Active Directory(ad) or generic LDAPv3 (ldap)
-     * 
-     * @valid ad
-     * @valid ldap
+     * Valid values
+     * ad
+     * ldap
      */
     private String mode;
 
     /**
-     * Name of the provider
-     * 
-     * @valid any string.
-     * @valid provider names must be unique within a virtual data center
+     * Name of the provider.
+     * Valid value:
+     *  provider names unique within a virtual data center
+     *
      */
     private String label;
 
     /**
      * Description of the provider
-     * 
-     * @valid any string
+     *
      */
     private String description;
 
@@ -46,75 +59,68 @@ public abstract class AuthnProviderBaseParam {
      * syntactically correct.
      * During the operation of the system, a disabled provider will exist but
      * not be considered when authenticating principals.
-     * 
-     * @valid true to disable
-     * @valid false to enable
+     *
      */
     private Boolean disable;
 
     /**
+     * Specifies if there is OpenStack registration.
+     */
+    private Boolean autoRegCoprHDNImportOSProjects;
+
+    /**
      * Distinguished Name for the bind user.
-     * 
-     * @valid Example: CN=Administrator,CN=Users,DC=domain,DC=com
-     * @valid Example: domain\Administrator
+     *
      */
     private String managerDn;
 
     /**
      * Password for the manager DN "bind" user.
-     * 
-     * @valid none
+     *
      */
     private String managerPassword;
 
     /**
      * Search base from which the LDAP search will start when authenticating
      * users. See also: search_scope
-     * 
-     * @valid Example: CN=Users,DC=domain,DC=com
+     *
      */
     private String searchBase;
 
     /**
      * Key value pair representing the search filter criteria.
-     * 
-     * @valid %u or %U needs to be present on the right side of the equal sign (Example: filterKey=%u).
-     * @valid %u stands for the whole username string as typed in by the user.
-     * @valid %U stands for the username portion only of the string containing the domain
-     * @valid Example: in user@company.com, %U is user. %u is user@company.com
+     * Valid value:
+     *  %u whole username string
+     *  %U username portion only of the string containing the domain
+     *
      */
     private String searchFilter;
 
     /**
      * In conjunction with the search_base, the search_scope indicates how many
      * levels below the base the search can continue.
-     * 
-     * @valid ONELEVEL = The search will start at the search_base location and continue up to one level deep
-     * @valid SUBTREE = The search will start at the search_base location and continue through the entire tree
+     * Valid values:
+     * ONELEVEL
+     * SUBTREE
      */
     private String searchScope;
 
     /**
      * Attribute for group search. This is the attribute name that will be used to represent group membership.
      * Once set during creation of the provider, the value for this parameter cannot be changed.
-     * 
-     * @valid Example: "CN"
+     *
      */
     private String groupAttribute;
 
     /**
      * Maximum number of results that the LDAP server will return on a single page.
-     * 
-     * @valid If provided, the value must be greater than 0
-     * @valid The value cannot be higher than the max page size configured on the LDAP server.
+     *
      */
     private Integer maxPageSize;
 
     /**
      * Whether or not to validate certificates when ldaps is used.
-     * 
-     * @valid true
-     * @valid false
+     *
      */
     private Boolean validateCertificates;
 
@@ -122,7 +128,7 @@ public abstract class AuthnProviderBaseParam {
     }
 
     public AuthnProviderBaseParam(String mode, String label,
-            String description, Boolean disable, String serverCert,
+            String description, Boolean disable, Boolean autoRegCoprHDNImportOSProjects, String serverCert,
             String managerDn, String managerPassword, String searchBase,
             String searchFilter, String searchScope, String searchAttributeKey,
             String groupAttribute, Integer maxPageSize,
@@ -131,6 +137,7 @@ public abstract class AuthnProviderBaseParam {
         this.label = label;
         this.description = description;
         this.disable = disable;
+        this.autoRegCoprHDNImportOSProjects = autoRegCoprHDNImportOSProjects;
         this.managerDn = managerDn;
         this.managerPassword = managerPassword;
         this.searchBase = searchBase;
@@ -178,6 +185,15 @@ public abstract class AuthnProviderBaseParam {
         this.disable = disable;
     }
 
+    @XmlElement(name = "autoreg_coprhd_import_osprojects", required = false, defaultValue = "false")
+    public Boolean getAutoRegCoprHDNImportOSProjects() {
+        return autoRegCoprHDNImportOSProjects;
+    }
+
+    public void setAutoRegCoprHDNImportOSProjects(Boolean autoRegCoprHDNImportOSProjects) {
+        this.autoRegCoprHDNImportOSProjects = autoRegCoprHDNImportOSProjects;
+    }
+
     @XmlElement(name = "manager_dn")
     @JsonProperty("manager_dn")
     public String getManagerDn() {
@@ -198,7 +214,7 @@ public abstract class AuthnProviderBaseParam {
         this.managerPassword = managerPassword;
     }
 
-    @XmlElement(name = "search_base")
+    @XmlElement(name = "search_base", required = false, nillable = true)
     @JsonProperty("search_base")
     public String getSearchBase() {
         return searchBase;
@@ -208,7 +224,7 @@ public abstract class AuthnProviderBaseParam {
         this.searchBase = searchBase;
     }
 
-    @XmlElement(name = "search_filter")
+    @XmlElement(name = "search_filter", required = false, nillable = true)
     @JsonProperty("search_filter")
     public String getSearchFilter() {
         return searchFilter;
@@ -269,6 +285,8 @@ public abstract class AuthnProviderBaseParam {
         sb.append(description);
         sb.append(", disable=");
         sb.append(disable);
+        sb.append(", autoreg_coprhd_import_osprojects=");
+        sb.append(autoRegCoprHDNImportOSProjects);
         sb.append(", manager_dn=");
         sb.append(managerDn);
         sb.append(", manager_password=");

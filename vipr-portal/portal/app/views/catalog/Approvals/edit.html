@@ -43,10 +43,12 @@
           #{/field}
 
           #{Form.buttonBar}
-              <button type="submit" name="approval.submit" class="btn btn-success" value="approve">
-                  #{icon 'ok'/}
-          &{'approval.approve'}
-              </button>
+            #{if order.submittedBy != currentUser?.commonName}
+	              <button type="submit" name="approval.submit" class="btn btn-success" value="approve">
+	                  #{icon 'ok'/}
+	          &{'approval.approve'}
+	              </button>
+            #{/if}
               <button type="submit" name="approval.submit" class="btn btn-danger" value="reject">
                   #{icon 'remove'/}
           &{'approval.reject'}

@@ -12,7 +12,7 @@
     },
 
     size:{
-      type:"storageSize",
+      type:"expandSize",
       validation:{
         min:1
       }

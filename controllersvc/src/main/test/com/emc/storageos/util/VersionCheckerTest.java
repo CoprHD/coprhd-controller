@@ -10,15 +10,14 @@ import static org.easymock.EasyMock.createMock;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.junit.Assert;
-
 import org.easymock.EasyMock;
+import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
-import com.emc.storageos.model.property.PropertyInfo;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
+import com.emc.storageos.model.property.PropertyInfo;
 import com.emc.storageos.volumecontroller.impl.ControllerUtils;
 
 public class VersionCheckerTest {
@@ -40,6 +39,7 @@ public class VersionCheckerTest {
         properties.put("compute_windows_version", "6.0.6002");
         properties.put("compute_suse_linux_version", "11");
         properties.put("compute_redhat_linux_version", "5.9");
+        properties.put("compute_hpux_version", "11.31");
         PropertyInfo propertyInfo = new PropertyInfo(properties);
         EasyMock.expect(coordinator.getPropertyInfo()).andReturn(propertyInfo).anyTimes();
         EasyMock.replay(coordinator);
@@ -228,5 +228,13 @@ public class VersionCheckerTest {
         noExceptionHelper("compute_redhat_linux_version", "6");
         exceptionHelper("compute_redhat_linux_version", "5");
         exceptionHelper("compute_redhat_linux_version", "4.9");
+    }
+
+    @Test
+    public void testHpuxHost() throws Exception {
+        noExceptionHelper("compute_hpux_version", "11.31");
+        exceptionHelper("compute_hpux_version", "11.30");
+        exceptionHelper("compute_hpux_version", "10");
+        exceptionHelper("compute_hpux_version", "10.31");
     }
 }

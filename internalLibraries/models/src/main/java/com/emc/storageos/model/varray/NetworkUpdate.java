@@ -37,8 +37,6 @@ public class NetworkUpdate {
     /**
      * Name of the network; must be unique.
      * 
-     * @valid Must be unique within all existing networks.
-     * @valid example: network1
      */
     @XmlElement(required = false)
     @Length(min = 2, max = 128)
@@ -58,8 +56,6 @@ public class NetworkUpdate {
      * override the existing virtual arrays of a
      * network.
      * 
-     * @valid example: [ urn:storageos:VirtualArray:0de17e53-f657-4354-a547-0a47049013cb: ]
-     * @valid example: [ ]
      * @deprecated use {@link #getVarrayChanges()}
      */
     @XmlElementWrapper(name = "varrays", required = false)
@@ -85,7 +81,6 @@ public class NetworkUpdate {
     /**
      * Add and remove lists of virtual arrays.
      * 
-     * @valid lists of valid URIs for active virtual arrays
      */
     @XmlElement(name = "varray_assignment_changes")
     public VirtualArrayAssignmentChanges getVarrayChanges() {
@@ -97,9 +92,8 @@ public class NetworkUpdate {
     }
 
     /**
-     * Add and remove lists of endpoints
+     * Add and remove lists of endpoints. Valid: valid endpoints for the network type (FC,IP or Ethernet)
      * 
-     * @valid valid endpoints for the network type (FC, IP or Ethernet)
      */
     @XmlElement(name = "endpoint_changes")
     public EndpointChanges getEndpointChanges() {

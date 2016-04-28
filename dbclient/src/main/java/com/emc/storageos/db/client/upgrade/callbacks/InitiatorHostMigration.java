@@ -24,6 +24,7 @@ import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.upgrade.BaseCustomMigrationCallback;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.client.util.StringSetUtil;
+import com.emc.storageos.svcs.errorhandling.resources.MigrationCallbackException;
 
 public class InitiatorHostMigration extends BaseCustomMigrationCallback {
     public static final Long FLAG_DEFAULT = 2L;
@@ -33,7 +34,7 @@ public class InitiatorHostMigration extends BaseCustomMigrationCallback {
     private Map<String, Initiator> portToUri = new HashMap<String, Initiator>();
 
     @Override
-    public void process() {
+    public void process() throws MigrationCallbackException {
         processInitiatorCleanup();
     }
 

@@ -42,7 +42,6 @@ public class FCEndpointRestRep extends DataObjectRestRep {
     /**
      * The VSAN (Virtual Storage Area Network) ID.
      * 
-     * @valid none
      */
     @XmlElement(name = "fabric_id")
     public String getFabricId() {
@@ -56,7 +55,6 @@ public class FCEndpointRestRep extends DataObjectRestRep {
     /**
      * The WWN (World Wide Name) of the VSAN (Virtual Storage Area Network).
      * 
-     * @valid none
      */
     @XmlElement(name = "fabric_wwn")
     public String getFabricWwn() {
@@ -70,7 +68,6 @@ public class FCEndpointRestRep extends DataObjectRestRep {
     /**
      * The FC (Fibre Channel) ID.
      * 
-     * @valid none
      */
     @XmlElement(name = "fcid")
     public String getFcid() {
@@ -84,7 +81,6 @@ public class FCEndpointRestRep extends DataObjectRestRep {
     /**
      * The parent FC (Fibre Channel) switch where the port was discovered.
      * 
-     * @valid none
      */
     @XmlElement
     public RelatedResourceRep getNetworkDevice() {
@@ -98,7 +94,6 @@ public class FCEndpointRestRep extends DataObjectRestRep {
     /**
      * The name of the remote node of the connection (WWNN).
      * 
-     * @valid none
      */
     @XmlElement(name = "remote_node_name")
     public String getRemoteNodeName() {
@@ -112,7 +107,6 @@ public class FCEndpointRestRep extends DataObjectRestRep {
     /**
      * The name of the remote port of the connection (WWPN).
      * 
-     * @valid none
      */
     @XmlElement(name = "remote_port_name")
     public String getRemotePortName() {
@@ -126,7 +120,6 @@ public class FCEndpointRestRep extends DataObjectRestRep {
     /**
      * The alias of the remote port of the connection
      * 
-     * @valid none
      */
     @XmlElement(name = "remote_port_alias")
     public String getRemotePortAlias() {
@@ -140,7 +133,6 @@ public class FCEndpointRestRep extends DataObjectRestRep {
     /**
      * The name of the switch (local) interface of the port.
      * 
-     * @valid none
      */
     @XmlElement(name = "switch_interface")
     public String getSwitchInterface() {
@@ -154,7 +146,6 @@ public class FCEndpointRestRep extends DataObjectRestRep {
     /**
      * The hostname of the switch the port is in.
      * 
-     * @valid none
      */
     @XmlElement(name = "switch_name")
     public String getSwitchName() {
@@ -168,7 +159,6 @@ public class FCEndpointRestRep extends DataObjectRestRep {
     /**
      * The name of the local port.
      * 
-     * @valid none
      */
     @XmlElement(name = "switch_port_name")
     public String getSwitchPortName() {

@@ -9,6 +9,7 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
+import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.util.ArrayList;
@@ -16,21 +17,33 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.lang.StringUtils;
+import org.apache.curator.framework.recipes.locks.InterProcessLock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.coordinator.client.model.Constants;
+import com.emc.storageos.coordinator.client.model.DrOperationStatus;
+import com.emc.storageos.coordinator.client.model.DrOperationStatus.InterState;
+import com.emc.storageos.coordinator.client.model.PropertyInfoExt;
 import com.emc.storageos.coordinator.client.model.Site;
 import com.emc.storageos.coordinator.client.model.SiteInfo;
+import com.emc.storageos.coordinator.client.model.SiteInfo.ActionScope;
+import com.emc.storageos.coordinator.client.model.SiteNetworkState;
 import com.emc.storageos.coordinator.client.model.SiteState;
 import com.emc.storageos.coordinator.client.service.impl.CoordinatorClientImpl;
 import com.emc.storageos.coordinator.common.Configuration;
 import com.emc.storageos.coordinator.common.Service;
+import com.emc.storageos.coordinator.common.impl.ConfigurationImpl;
+import com.emc.storageos.coordinator.common.impl.ZkPath;
 import com.emc.storageos.coordinator.exceptions.CoordinatorException;
 import com.emc.storageos.coordinator.exceptions.RetryableCoordinatorException;
+import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
+import com.emc.vipr.model.sys.ClusterInfo;
 
 /**
  * Common utility functions for Disaster Recovery
@@ -44,16 +57,26 @@ public class DrUtil {
     private static final int CONNECTION_TIMEOUT = 30*1000;
     public static final String ZOOKEEPER_MODE_OBSERVER = "observer";
     public static final String ZOOKEEPER_MODE_READONLY = "read-only";
+    public static final String ZOOKEEPER_MODE_LEADER = "leader";
+    public static final String ZOOKEEPER_MODE_FOLLOWER = "follower";
+    public static final String ZOOKEEPER_MODE_STANDALONE = "standalone";
 
     private static final String DR_CONFIG_KIND = "disasterRecoveryConfig";
     private static final String DR_CONFIG_ID = "global";
+    private static final String DR_OPERATION_LOCK = "droperation";
+    private static final String RECORD_AUDITLOG_LOCK = "droperationauditlog";
+    private static final int LOCK_WAIT_TIME_SEC = 5; // 5 seconds
+    private static final String ZK_SERVER_STATE = "zk_server_state";
 
     public static final String KEY_ADD_STANDBY_TIMEOUT = "add_standby_timeout_millis";
     public static final String KEY_REMOVE_STANDBY_TIMEOUT = "remove_standby_timeout_millis";
-    public static final String KEY_PAUSE_STANDBY_TIMEOUT = "pause_standby_timout_millis";
     public static final String KEY_RESUME_STANDBY_TIMEOUT = "resume_standby_timeout_millis";
-    public static final String KEY_DATA_SYNC_TIMEOUT = "data_sync_timeout_millis";
     public static final String KEY_SWITCHOVER_TIMEOUT = "switchover_timeout_millis";
+    public static final String KEY_STANDBY_DEGRADE_THRESHOLD = "degrade_standby_threshold_millis";
+    public static final String KEY_FAILOVER_STANDBY_SITE_TIMEOUT = "failover_standby_site_timeout_millis";
+    public static final String KEY_FAILOVER_ACTIVE_SITE_TIMEOUT = "failover_active_site_timeout_millis";
+    public static final String KEY_DB_GC_GRACE_PERIOD = "db_gc_grace_period_millis";
+    public static final String KEY_MAX_NUMBER_OF_DR_SITES = "max_number_of_dr_sites";
 
     private CoordinatorClient coordinator;
 
@@ -70,6 +93,40 @@ public class DrUtil {
 
     public void setCoordinator(CoordinatorClient coordinator) {
         this.coordinator = coordinator;
+    }
+
+    public void recordDrOperationStatus(String siteId, InterState state) {
+        if (isDrOperationRecorded(siteId, state)) {
+            return;
+        }
+        try (InterProcessLockHolder lock = new InterProcessLockHolder(coordinator, RECORD_AUDITLOG_LOCK, log)) {
+            if (isDrOperationRecorded(siteId, state)) {
+                return;
+            }
+            if (siteId == null || siteId.isEmpty() || state == null) {
+                log.error("Can't record DR operation status due to Illegal site state, siteId: {}, state: {}", siteId, state);
+                return;
+            }
+            DrOperationStatus operation = new DrOperationStatus();
+            operation.setSiteUuid(siteId);
+            operation.setInterState(state);
+            coordinator.persistServiceConfiguration(operation.toConfiguration());
+            log.info("DR operation status has been recorded: {}", operation.toString());
+        } catch (Exception e) {
+            log.error(String.format("Error happened when recording auditlog for DR operation for site %s, state: %s", siteId, state.name()), e);
+        }
+    }
+
+    private boolean isDrOperationRecorded(String siteId, InterState state) {
+        if (siteId == null || siteId.isEmpty() || state == null) {
+            return false;
+        }
+        DrOperationStatus status = new DrOperationStatus(coordinator.queryConfiguration(DrOperationStatus.CONFIG_KIND, siteId));
+        if (status.getInterState() == state) {
+            log.info("DR operation status {} for site {} has been recorded by another node", siteId, state);
+            return true;
+        }
+        return false;
     }
 
     /**
@@ -119,32 +176,27 @@ public class DrUtil {
         return !isActiveSite();
     }
     
-    /**
-     * Get active site in current vdc
-     * 
-     * @return
-     */
-    public String getActiveSiteId() {
-        return getActiveSiteId(getLocalVdcShortId());
+    public Site getActiveSite() {
+        return getActiveSite(getLocalVdcShortId());
     }
-    
+
     /**
-     * Get active site in a specific vdc
-     *
-     * @param vdcShortId short id of the vdc
-     * @return uuid of the active site
+     * Get active site object for specific VDC. 
+     * 
+     * @param vdcShortId
+     * @return site object.
      */
-    public String getActiveSiteId(String vdcShortId) {
+    public Site getActiveSite(String vdcShortId) {
         String siteKind = String.format("%s/%s", Site.CONFIG_KIND, vdcShortId);
         for (Configuration siteConfig : coordinator.queryAllConfiguration(siteKind)) {
             Site site = new Site(siteConfig);
             if (ACTIVE_SITE_STATES.contains(site.getState())) {
-                return site.getUuid();
+                return site;
             }
         }
-        return null;
+        
+        return Site.DUMMY_ACTIVE_SITE;
     }
-
     /**
      * Get local site configuration
      *
@@ -156,7 +208,7 @@ public class DrUtil {
 
     /**
      * Load site information from local vdc
-     * 
+     *
      * @param siteId
      * @return
      */
@@ -168,6 +220,22 @@ public class DrUtil {
         }
         throw CoordinatorException.retryables.cannotFindSite(siteId);
     }
+
+
+    /**
+     * Load site network latency information from zk
+     *
+     * @param siteId
+     * @return
+     */
+    public SiteNetworkState getSiteNetworkState(String siteId) {
+        SiteNetworkState siteNetworkState = coordinator.getTargetInfo(siteId, SiteNetworkState.class);
+        if (siteNetworkState != null) {
+            return siteNetworkState;
+        } else {
+            return new SiteNetworkState();
+        }
+    }
     
     
     /**
@@ -176,10 +244,10 @@ public class DrUtil {
      * @return list of standby sites
      */
     public List<Site> listStandbySites() {
-        String activeSiteId = getActiveSiteId();
+        Site activeSite = getActiveSite();
         List<Site> result = new ArrayList<>();
         for(Site site : listSites()) {
-            if (!site.getUuid().equals(activeSiteId)) {
+            if (!site.getUuid().equals(activeSite.getUuid())) {
                 result.add(site);
             }
         }
@@ -200,7 +268,9 @@ public class DrUtil {
             for (Configuration siteConfig : coordinator.queryAllConfiguration(siteKind)) {
                 sites.add(new Site(siteConfig));
             }
-            vdcSiteMap.put(vdcConfig.getId(), sites);
+            if (sites.size() > 0) {
+                vdcSiteMap.put(vdcConfig.getId(), sites);
+            }
         }
         return vdcSiteMap;
     }
@@ -281,9 +351,9 @@ public class DrUtil {
      * 
      * @return number to indicate servers 
      */
-    public int getNumberOfLiveServices(String siteUuid, String svcName, String svcVersion) {
+    public int getNumberOfLiveServices(String siteUuid, String svcName) {
         try {
-            List<Service> svcs = coordinator.locateAllServices(siteUuid, svcName, svcVersion, null, null);
+            List<Service> svcs = coordinator.locateAllSvcsAllVers(siteUuid, svcName);
             return svcs.size();
         } catch (RetryableCoordinatorException ex) {
             if (ex.getServiceCode() == ServiceCode.COORDINATOR_SVC_NOT_FOUND) {
@@ -322,24 +392,60 @@ public class DrUtil {
     }
     
     /**
+     * Check if all syssvc is up and running for specified site
+     * @param siteId
+     * @return true if all syssvc is running 
+     */
+    public boolean isAllSyssvcUp(String siteId){
+     // Get service beacons for given site - - assume syssvc on all sites share same service name in beacon
+        try {
+            String syssvcName = ((CoordinatorClientImpl)coordinator).getSysSvcName();
+            String syssvcVersion = ((CoordinatorClientImpl)coordinator).getSysSvcVersion();
+            List<Service> svcs = coordinator.locateAllServices(siteId, syssvcName, syssvcVersion, null, null);
+            
+            Site site = this.getSiteFromLocalVdc(siteId);
+            
+            log.info("Node count is {}, running syssvc count is", site.getNodeCount(), svcs.size());
+            return svcs.size() == site.getNodeCount();
+        } catch (CoordinatorException ex) {
+            return false;
+        }
+    }
+    
+    /**
      * Update SiteInfo's action and version for specified site id 
      * @param siteId site UUID
      * @param action action to take
      */
-    public void updateVdcTargetVersion(String siteId, String action) throws Exception {
+    public void updateVdcTargetVersion(String siteId, String action, long vdcTargetVersion) throws Exception {
+        updateVdcTargetVersion(siteId, action, vdcTargetVersion, null, null);
+    }
+    
+    /**
+     * Update SiteInfo's action and version for specified site id 
+     * @param siteId site UUID
+     * @param action action to take
+     * @param sourceSiteUUID source site UUID
+     * @param targetSiteUUID target site UUID
+     */
+    public void updateVdcTargetVersion(String siteId, String action, long vdcTargetVersion, String sourceSiteUUID, String targetSiteUUID) throws Exception {
         SiteInfo siteInfo;
         SiteInfo currentSiteInfo = coordinator.getTargetInfo(siteId, SiteInfo.class);
+        String targetDataRevision = null;
+        
         if (currentSiteInfo != null) {
-            siteInfo = new SiteInfo(System.currentTimeMillis(), action, currentSiteInfo.getTargetDataRevision());
+            targetDataRevision = currentSiteInfo.getTargetDataRevision();
         } else {
-            siteInfo = new SiteInfo(System.currentTimeMillis(), action);
+            targetDataRevision = SiteInfo.DEFAULT_TARGET_VERSION;
         }
+        
+        siteInfo = new SiteInfo(vdcTargetVersion, action, targetDataRevision, ActionScope.SITE, sourceSiteUUID, targetSiteUUID);
         coordinator.setTargetInfo(siteId, siteInfo);
-        log.info("VDC target version updated to {} for site {}", siteInfo.getVdcConfigVersion(), siteId);
+        log.info("VDC target version updated to {} for site {}", siteInfo, siteId);
     }
 
-    public void updateVdcTargetVersion(String siteId, String action, long dataRevision) throws Exception {
-        SiteInfo siteInfo = new SiteInfo(System.currentTimeMillis(), action, String.valueOf(dataRevision));
+    public void updateVdcTargetVersion(String siteId, String action, long vdcConfigVersion, long dataRevision) throws Exception {
+        SiteInfo siteInfo = new SiteInfo(vdcConfigVersion, action, String.valueOf(dataRevision));
         coordinator.setTargetInfo(siteId, siteInfo);
         log.info("VDC target version updated to {} for site {}", siteInfo.getVdcConfigVersion(), siteId);
     }
@@ -386,12 +492,26 @@ public class DrUtil {
     }
     
     /**
-     * Use Zookeeper 4 letter command to check status of local coordinatorsvc. The return value could 
-     * be one of the following - follower, leader, observer, read-only
+     * Update current vdc short id to zk
      * 
+     * @param vdcShortId
+     */
+    public void setLocalVdcShortId(String vdcShortId) {
+        ConfigurationImpl localVdc = new ConfigurationImpl();
+        localVdc.setKind(Constants.CONFIG_GEO_LOCAL_VDC_KIND);
+        localVdc.setId(Constants.CONFIG_GEO_LOCAL_VDC_ID);
+        localVdc.setConfig(Constants.CONFIG_GEO_LOCAL_VDC_SHORT_ID, vdcShortId);
+        coordinator.persistServiceConfiguration(localVdc);
+    }
+    
+    /**
+     * Use Zookeeper 4 letter command to check status of coordinatorsvc on the node specified by nodeId.
+     * The return value could be one of the following - follower, leader, observer, read-only
+     *
+     * @param nodeId target node id
      * @return zookeeper mode
      */
-    public String getLocalCoordinatorMode(String nodeId) {
+    public String getCoordinatorMode(String nodeId) {
         Socket sock = null;
         try {
             log.info("get local coordinator mode from {}:{}", nodeId, COORDINATOR_PORT);
@@ -401,17 +521,16 @@ public class DrUtil {
             output.write("mntr".getBytes());
             sock.shutdownOutput();
             
-            BufferedReader input =
-                new BufferedReader(new InputStreamReader(sock.getInputStream()));
-            String answer;
-            while ((answer = input.readLine()) != null) {
-                if (answer.startsWith("zk_server_state")){
-                    String state = StringUtils.trim(answer.substring("zk_server_state".length()));
-                    log.info("Get current zookeeper mode {}", state);
-                    return state;
+            try (BufferedReader input = new BufferedReader(new InputStreamReader(sock.getInputStream()))) {
+                String answer;
+                while ((answer = input.readLine()) != null) {
+                    if (answer.startsWith(ZK_SERVER_STATE)) {
+                        String state = StringUtils.trim(answer.substring(ZK_SERVER_STATE.length()));
+                        log.info("Get current zookeeper mode {}", state);
+                        return state;
+                    }
                 }
             }
-            input.close();
         } catch(IOException ex) {
             log.warn("Unexpected IO errors when checking local coordinator state {}", ex.toString());
         } finally {
@@ -421,9 +540,247 @@ public class DrUtil {
         }
         return null;
     }
-    
-    public void removeSiteConfiguration(Site site) {
+
+    /**
+     * Use Zookeeper 4 letter command to check status of coordinatorsvc on the local node.
+     * The return value could be one of the following - follower, leader, observer, read-only
+     *
+     * @return zookeeper mode
+     */
+    public String getLocalCoordinatorMode() {
+        String myNodeId = coordinator.getInetAddessLookupMap().getNodeId();
+        return getCoordinatorMode(myNodeId);
+    }
+
+    /**
+     * Determine if the current node is a ZK leader/standalone
+     * @return true if ZK leader/standalone, false otherwise
+     */
+    public boolean isLeaderNode() {
+        String myNodeId = coordinator.getInetAddessLookupMap().getNodeId();
+        String localZkMode = getCoordinatorMode(myNodeId);
+        return isLeaderNode(localZkMode);
+    }
+
+    /**
+     * Determine if the specified ZK mode represents a leader/standalone
+     * @param localZkMode local ZK mode
+     * @return true if the ZK mode is leader/standalone, false otherwise
+     */
+    public boolean isLeaderNode(String localZkMode) {
+        // in 1+0 deployment, the local ZK mode might become follower since there is a second running ZK instance
+        // nevertheless it should be considered the leader node even if it's a follower
+        return ZOOKEEPER_MODE_LEADER.equals(localZkMode) || ZOOKEEPER_MODE_STANDALONE.equals(localZkMode) ||
+                getLocalSite().getNodeCount() == 1 && ZOOKEEPER_MODE_FOLLOWER.equals(localZkMode);
+    }
+
+    /**
+     * Determine if the specified ZK mode represents a ZK participant
+     * @param localZkMode local ZK mode
+     * @return true if ZK participant, false otherwise
+     */
+    public boolean isParticipantNode(String localZkMode) {
+        return ZOOKEEPER_MODE_LEADER.equals(localZkMode) || ZOOKEEPER_MODE_FOLLOWER.equals(localZkMode)
+                || ZOOKEEPER_MODE_STANDALONE.equals(localZkMode);
+    }
+
+    private String getSitePath(String siteId) {
+        StringBuilder builder = new StringBuilder(ZkPath.SITES.toString());
+        builder.append("/");
+        builder.append(siteId);
+        return builder.toString();
+    }
+
+    /**
+     * Will remove 3 ZNodes:
+     *     1. /config/disasterRecoverySites/${vdc_shortid}/${uuid} node
+     *     2. /sites/${uuid} node
+     *     3. /config/upgradetargetpropertyoverride/${uuid} node
+     * @param site
+     */
+    public void removeSite(Site site) {
         coordinator.removeServiceConfiguration(site.toConfiguration());
+
+        coordinator.deletePath(getSitePath(site.getUuid()));
+
+        ConfigurationImpl sitePropsCfg = new ConfigurationImpl();
+        sitePropsCfg.setId(site.getUuid());
+        sitePropsCfg.setKind(PropertyInfoExt.TARGET_PROPERTY);
+        coordinator.removeServiceConfiguration(sitePropsCfg);
+
         log.info("Removed site {} configuration from ZK", site.getUuid());
+    }
+
+    public static long newVdcConfigVersion() {
+        return System.currentTimeMillis();
+    }
+
+    /**
+     * @return DR operation lock only when successfully acquired lock and there's no ongoing DR operation on any site, throw Exception otherwise
+     */
+    public InterProcessLock getDROperationLock() {
+        return getDROperationLock(true);
+    }
+
+    /**
+     * @param checkAllSitesOperations
+     * @return DR operation lock only when successfully acquired lock and there's no ongoing DR operation, throw Exception otherwise
+     */
+    public InterProcessLock getDROperationLock(boolean checkAllSitesOperations) {
+        // Try to acquire lock, succeed or throw Exception
+        InterProcessLock lock = coordinator.getLock(DR_OPERATION_LOCK);
+        boolean acquired;
+        try {
+            acquired = lock.acquire(LOCK_WAIT_TIME_SEC, TimeUnit.SECONDS);
+        } catch (Exception e) {
+            try {
+                lock.release();
+            } catch (Exception ex) {
+                log.error("Fail to release DR operation lock", ex);
+            }
+            throw APIException.internalServerErrors.failToAcquireDROperationLock();
+        }
+        if (!acquired) {
+            throw APIException.internalServerErrors.failToAcquireDROperationLock();
+        }
+
+        // Has successfully acquired lock
+        if (!checkAllSitesOperations) {
+            return lock;
+        }
+
+        // Check if there's ongoing DR operation on any site, if there is, release lock and throw exception
+        Site ongoingSite = null;
+        List<Site> sites = listSites();
+        for (Site site : sites) {
+            if (site.getState().isDROperationOngoing()) {
+                ongoingSite = site;
+                break;
+            }
+        }
+
+        if (ongoingSite != null) {
+            try {
+                lock.release();
+            } catch (Exception e) {
+                log.error("Fail to release DR operation lock", e);
+            }
+            throw APIException.internalServerErrors.concurrentDROperationNotAllowed(ongoingSite.getName(), ongoingSite.getState()
+                    .toString());
+        }
+
+        return lock;
+
+    }
+    
+    /**
+     * Check if it is a multi-vdc configuration 
+     * 
+     * @return true if there are more than 1 vdc
+     */
+    public boolean isMultivdc() {
+        return getVdcSiteMap().keySet().size() > 1;
+    }
+
+    /**
+     * Check if it is a multi-site DR configuration 
+     * 
+     * @return true if there are more than 1 site
+     */
+    public boolean isMultisite() {
+        return listSites().size() > 1;
+    }
+    
+    /**
+     * Get all vdc ids except local vdc
+     * 
+     * @return list of vdc ids
+     */
+    public List<String> getOtherVdcIds() {
+        Set<String> vdcIdSet = getVdcSiteMap().keySet();
+        String localVdcId = this.getLocalVdcShortId();
+        vdcIdSet.remove(localVdcId);
+        List<String> vdcIds = new ArrayList<>();
+        vdcIds.addAll(vdcIdSet);
+        return vdcIds;
+    }
+
+    /**
+     * Check if all sites of local vdc are
+     */
+    public boolean isAllSitesStable() {
+        try {
+            verifyIPsecOpAllowableWithinDR();
+            return true;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    public void verifyIPsecOpAllowableWithinDR() {
+        List<Site> allSites = listSites();
+
+        for (Site site : allSites) {
+            if (site.getState().equals(SiteState.STANDBY_PAUSED)) {
+                log.info("IPsec is disallowed since site {} is paused.", site.getName());
+                throw APIException.serviceUnavailable.sitePaused(site.getName());
+            }
+        }
+
+        for (Site site : allSites) {
+            if (site.getState().isDROperationOngoing()) {
+                log.info("Site {} has onging job {}", site.getName(), site.getState());
+                throw APIException.serviceUnavailable.siteOnGoingJob(site.getName(), site.getState().name());
+            }
+        }
+
+        for (Site site : allSites) {
+            ClusterInfo.ClusterState state = coordinator.getControlNodesState(site.getUuid());
+            if (state != ClusterInfo.ClusterState.STABLE) {
+                log.info("Site {} is not stable {}", site.getUuid(), state);
+                throw APIException.serviceUnavailable.siteClusterStateNotStable(site.getName(), state.name());
+            }
+        }
+    }
+
+    /**
+     * ping target host with port to check connectivity
+     *
+     * @param hostAddress host address 
+     * @param port port number
+     * @param timeout timeout value as ms
+     * @return delay in ms if the specified host responded, -1 if failed
+     */
+    public double testPing(String hostAddress, int port, int timeout) {
+        InetAddress inetAddress = null;
+        InetSocketAddress socketAddress = null;
+        Socket socket = new Socket();
+        long timeToRespond = -1;
+        long start, stop;
+    
+        try {
+            inetAddress = InetAddress.getByName(hostAddress);
+    
+            socketAddress = new InetSocketAddress(inetAddress, port);
+    
+            start = System.nanoTime();
+            socket.connect(socketAddress, timeout);
+            stop = System.nanoTime();
+            timeToRespond = (stop - start);
+        } catch (Exception e) {
+            log.error("Fail to check cross-site network latency to node {} with Exception: ",hostAddress,e);
+            return -1;
+        } finally {
+            try {
+                if (socket.isConnected()) {
+                    socket.close();
+                }
+            } catch (Exception e) {
+                log.error("Fail to close connection to node {} with Exception: ",hostAddress,e);
+            }
+        }
+    
+        //the ping suceeded, convert from ns to ms
+        return timeToRespond/1000000.0;
     }
 }

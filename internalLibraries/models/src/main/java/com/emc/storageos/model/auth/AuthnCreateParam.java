@@ -22,8 +22,6 @@ public class AuthnCreateParam extends AuthnProviderBaseParam {
     /**
      * Valid ldap or ldaps url strings.
      * 
-     * @valid Example: ldap://10.10.10.145
-     * @valid Example: ldaps://10.10.10.145
      */
     private Set<String> serverUrls;
 
@@ -35,7 +33,6 @@ public class AuthnCreateParam extends AuthnProviderBaseParam {
      * For non Active Directory servers, domain represents a logical
      * abstraction for this server which may not correspond to a network name.
      * 
-     * @valid Example: domain.com
      */
     private Set<String> domains;
 
@@ -46,9 +43,6 @@ public class AuthnCreateParam extends AuthnProviderBaseParam {
      * about the groups matched by the value. If the White List is empty, all group
      * membership information will be retrieved. (blank == "*").
      * 
-     * @valid The value accepts regular expressions.
-     * @valid When empty, all groups are included implicitly
-     * @valid Example: *Users*.
      */
     private Set<String> groupWhitelistValues;
 
@@ -56,7 +50,6 @@ public class AuthnCreateParam extends AuthnProviderBaseParam {
      * Attribute for group search. This is the group's objectClass attribute that will be used to represent group.
      * Once set during creation of the provider, the value for this parameter cannot be changed.
      * 
-     * @valid Example: "group, groupOfNames, groupOfUniqueNames, posixGroup, organizationalRole"
      */
     private Set<String> groupObjectClasses;
 
@@ -66,7 +59,6 @@ public class AuthnCreateParam extends AuthnProviderBaseParam {
      * This applies only for the LDAP, for AD, usually user has the group information where as
      * in LDAP, group has the member information.
      * 
-     * @valid Example: "member, memberUid, uniqueMember, roleOccupant".
      */
     private Set<String> groupMemberAttributes;
 

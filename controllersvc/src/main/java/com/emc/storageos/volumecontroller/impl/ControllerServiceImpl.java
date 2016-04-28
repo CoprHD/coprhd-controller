@@ -40,6 +40,7 @@ import com.emc.storageos.db.common.DataObjectScanner;
 import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.hds.api.HDSApiFactory;
+import com.emc.storageos.isilon.restapi.IsilonApiFactory;
 import com.emc.storageos.locking.DistributedOwnerLockServiceImpl;
 import com.emc.storageos.plugins.BaseCollectionException;
 import com.emc.storageos.plugins.StorageSystemViewObject;
@@ -124,6 +125,7 @@ public class ControllerServiceImpl implements ControllerService {
     private CIMConnectionFactory _cimConnectionFactory;
     private VPlexApiFactory _vplexApiFactory;
     private HDSApiFactory hdsApiFactory;
+    private IsilonApiFactory isilonApiFactory;
     private CinderApiFactory cinderApiFactory;
     private VNXeApiClientFactory _vnxeApiClientFactory;
     private SmisCommandHelper _helper;
@@ -445,7 +447,7 @@ public class ControllerServiceImpl implements ControllerService {
         _dispatcher.start();
 
         _jobTracker.setJobContext(new JobContext(_dbClient, _cimConnectionFactory,
-                _vplexApiFactory, hdsApiFactory, cinderApiFactory, _vnxeApiClientFactory, _helper, _xivSmisCommandHelper));
+                _vplexApiFactory, hdsApiFactory, cinderApiFactory, _vnxeApiClientFactory, _helper, _xivSmisCommandHelper, isilonApiFactory));
         _jobTracker.start();
         _jobQueue = _coordinator.getQueue(JOB_QUEUE_NAME, _jobTracker,
                 new QueueJobSerializer(), DEFAULT_MAX_THREADS);
@@ -741,6 +743,14 @@ public class ControllerServiceImpl implements ControllerService {
     
     public void setDrQueueCleanupHandler(QueueCleanupHandler drFailoverHandler) {
         this._drQueueCleanupHandler = drFailoverHandler;
+    }
+    
+    public IsilonApiFactory getIsilonApiFactory() {
+        return isilonApiFactory;
+    }
+
+    public void setIsilonApiFactory(IsilonApiFactory isilonApiFactory) {
+        this.isilonApiFactory = isilonApiFactory;
     }
 
 }

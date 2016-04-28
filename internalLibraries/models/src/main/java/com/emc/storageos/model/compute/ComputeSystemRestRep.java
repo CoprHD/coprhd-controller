@@ -64,8 +64,6 @@ public class ComputeSystemRestRep extends DiscoveredSystemObjectRestRep {
     /**
      * Whether or not secure SSL connection is used.
      * 
-     * @valid true
-     * @valid false
      */
     @XmlElement(name = "use_ssl")
     public Boolean getUseSSL() {

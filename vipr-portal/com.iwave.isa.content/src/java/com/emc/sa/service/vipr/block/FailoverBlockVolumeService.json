@@ -20,6 +20,20 @@
 
     failoverTarget:{
       type: "assetType.vipr.failoverTarget"
+    },
+    
+    imageToAccess:{
+      type: "assetType.vipr.imageToAccess",
+      required: "false",
+      initialValue: "latest",
+      lockable: true
+    }, 
+    
+    pointInTime:{
+      type: "dateTime",
+      required: "false",
+      lockable: true
     }
+
   }
 }

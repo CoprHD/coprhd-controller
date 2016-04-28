@@ -42,7 +42,6 @@ public class VirtualPoolUpdateParam {
     /**
      * The virtual array assignment changes for the virtual pool.
      * 
-     * @valid none
      */
     @XmlElement(name = "varray_changes")
     public VirtualArrayAssignmentChanges getVarrayChanges() {
@@ -56,7 +55,6 @@ public class VirtualPoolUpdateParam {
     /**
      * The new virtual pool name.
      * 
-     * @valid none
      */
     @XmlElement(name = "name")
     @Length(min = 2, max = 128)
@@ -71,7 +69,6 @@ public class VirtualPoolUpdateParam {
     /**
      * The new virtual pool description.
      * 
-     * @valid none
      */
     @XmlElement(name = "description")
     public String getDescription() {
@@ -85,7 +82,6 @@ public class VirtualPoolUpdateParam {
     /**
      * The protocol changes for the virtual pool.
      * 
-     * @valid none
      */
     @XmlElement(name = "protocol_changes")
     public ProtocolChanges getProtocolChanges() {
@@ -100,8 +96,6 @@ public class VirtualPoolUpdateParam {
      * Determines if matched or valid assigned pools are returned from
      * command to retrieve the list of storage pools.
      * 
-     * @valid true
-     * @valid false
      */
     @XmlElement(name = "use_matched_pools")
     public Boolean getUseMatchedPools() {
@@ -114,13 +108,14 @@ public class VirtualPoolUpdateParam {
 
     /**
      * The new supported system type for the virtual pool.
+     * Valid values:
+     *  NONE
+     *  vnxblock (Block)
+     *  vmax (Block)
+     *  vnxfile (File)
+     *  isilon (File)
+     *  netapp (File)
      * 
-     * @valid NONE
-     * @valid vnxblock (Block)
-     * @valid vmax (Block)
-     * @valid vnxfile (File)
-     * @valid isilon (File)
-     * @valid netapp (File)
      */
     @XmlElement(name = "system_type")
     public String getSystemType() {
@@ -133,10 +128,10 @@ public class VirtualPoolUpdateParam {
 
     /**
      * The new provisioning type for the virtual pool,
-     * 
-     * @valid NONE
-     * @valid Thin
-     * @valid Thick
+     * Valid values:
+     *  NONCE
+     *  Thin
+     *  Thick
      */
     @XmlElement(name = "provisioning_type", required = false)
     public String getProvisionType() {

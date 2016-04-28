@@ -4,21 +4,25 @@
  */
 package com.emc.storageos.systemservices.impl.resource;
 
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+import java.util.regex.Pattern;
+import java.util.regex.PatternSyntaxException;
+
+import javax.ws.rs.core.Context;
+import javax.ws.rs.core.HttpHeaders;
+import javax.ws.rs.core.MediaType;
+
+import org.springframework.beans.factory.annotation.Autowired;
+
 import com.emc.storageos.services.ServicesMetadata;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.systemservices.impl.logsvc.LogSvcConstants;
 import com.emc.storageos.systemservices.impl.logsvc.LogSvcPropertiesLoader;
 import com.emc.vipr.model.sys.logging.LogSeverity;
-
-import org.springframework.beans.factory.annotation.Autowired;
-
-import javax.ws.rs.core.*;
-
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
-import java.util.*;
-import java.util.regex.Pattern;
-import java.util.regex.PatternSyntaxException;
 
 /**
  * Base class for all resources
@@ -68,48 +72,10 @@ public abstract class BaseLogSvcResource {
     }
 
     /**
-     * Converts the passed timestamp to a Date reference, thereby validating the
-     * request timestamp is a valid formatted date/time string.
-     * 
-     * @param timestampStr The request timestamp as a string.
-     * @return The passed timestamp as a Date reference. A null is returned if
-     *         the passed timestamp string is null or blank.
-     */
-    protected Date getDateTimestamp(String timestampStr) {
-        Date timestamp = null;
-
-        // This is OK. Just means no timestamp was passed in the request.
-        if ((timestampStr == null) || (timestampStr.length() == 0)) {
-            return timestamp;
-        }
-
-        try {
-            // Ensure the passed timestamp can be parsed.
-            SimpleDateFormat dateFormat = new SimpleDateFormat(DATE_TIME_FORMAT);
-            timestamp = dateFormat.parse(timestampStr);
-        } catch (ParseException pe) {
-            timestamp = getDateFromLong(timestampStr);
-        }
-        return timestamp;
-    }
-
-    private Date getDateFromLong(String timestampStr) {
-        Date timestamp = null;
-
-        try {
-            long timeInMs = Long.parseLong(timestampStr);
-            timestamp = new Date(timeInMs);
-        } catch (NumberFormatException n) {
-            throw APIException.badRequests.invalidDate(timestampStr);
-        }
-        return timestamp;
-    }
-
-    /**
      * Validates that the specified end time comes after the specified start
      * time. Note that it is OK for the start/end times to be null. It just
      * means they were not specified in the request.
-     * 
+     *
      * @param startTime The requested start time or null.
      * @param endTime The requested end time or null.
      * @throws APIException When the passed end time comes before the
@@ -126,7 +92,7 @@ public abstract class BaseLogSvcResource {
     /**
      * Verifies a valid severity level is passed in the request and returns the
      * appropriate LogSeverity enumeration.
-     * 
+     *
      * @param severity The severity passed in the request.
      * @return The corresponding LogSeverity.
      * @throws APIException for an invalid severity.

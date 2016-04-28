@@ -248,8 +248,8 @@ public class NetworkSystemService extends TaskResourceService {
             throws Exception {
 
         // check device type
-        ArgValidator.checkFieldValueFromEnum(param.getSystemType(), "system_type",
-                EnumSet.of(NetworkSystem.Type.brocade, NetworkSystem.Type.mds));
+        ArgValidator.checkFieldValueFromSystemType(param.getSystemType(), "system_type",
+                Arrays.asList(NetworkSystem.Type.brocade, NetworkSystem.Type.mds));
         NetworkSystem.Type deviceType = NetworkSystem.Type.valueOf(param.getSystemType());
 
         if (NetworkSystem.Type.valueOf(param.getSystemType()) == NetworkSystem.Type.brocade) { // Validate fields required for brocade

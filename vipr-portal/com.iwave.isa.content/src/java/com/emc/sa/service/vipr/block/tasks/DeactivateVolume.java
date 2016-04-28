@@ -23,7 +23,7 @@ public class DeactivateVolume extends WaitForTask<VolumeRestRep> {
         super();
         this.volumeId = volumeId;
         this.type = type;
-        provideDetailArgs(volumeId);
+        provideDetailArgs(volumeId, type);
     }
 
     @Override

@@ -1,5 +1,11 @@
 apply plugin: 'scripts'
 
+compileTestJava {
+    options.compilerArgs << '-XDignore.symbol.file'
+    options.fork = true
+    options.forkOptions.executable = 'javac'
+}
+
 scripts {
     geosvc {
         mainClass = "com.emc.storageos.geo.service.impl.Main"

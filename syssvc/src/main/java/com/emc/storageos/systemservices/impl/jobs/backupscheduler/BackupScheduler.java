@@ -84,6 +84,7 @@ public class BackupScheduler extends Notifier implements Runnable, Callable<Obje
     @Autowired
     private DrUtil drUtil;
 
+
     private SchedulerConfig cfg;
     private BackupExecutor backupExec;
     private UploadExecutor uploadExec;
@@ -92,6 +93,19 @@ public class BackupScheduler extends Notifier implements Runnable, Callable<Obje
     private ScheduledFuture<?> scheduledTask;
 
     public BackupScheduler() {
+    }
+
+    public SchedulerConfig getCfg() {
+        if (cfg.uploadUrl == null) {
+            try {
+                cfg.reload();
+            }catch(Exception e) {
+                log.error("Failed to reload cfg e=", e);
+                throw new RuntimeException(e);
+            }
+        }
+
+        return cfg;
     }
 
     public static BackupScheduler getSingletonInstance() {
@@ -118,6 +132,10 @@ public class BackupScheduler extends Notifier implements Runnable, Callable<Obje
     @Override
     public Object call() throws Exception {
         log.info("Starting to configure scheduler");
+        if (drUtil.isStandby()) {
+            log.info("Current site is standby, disable BackupScheduler");
+            return null;
+        }
 
         if (this.scheduledTask != null) {
             cancelScheduledTask();
@@ -167,8 +185,9 @@ public class BackupScheduler extends Notifier implements Runnable, Callable<Obje
             this.cfg.reload();
 
             // If we made any new backup, notify uploader thread to perform upload
-            this.backupExec.runOnce();
-            this.uploadExec.runOnce();
+            this.backupExec.create();
+            this.uploadExec.upload();
+            this.backupExec.reclaim();
 
         } catch (Exception e) {
             log.error("Exception occurred in scheduler", e);
@@ -208,11 +227,11 @@ public class BackupScheduler extends Notifier implements Runnable, Callable<Obje
     }
 
     public void createBackup(String tag) {
-        this.backupOps.createBackup(tag, true);
+        this.backupService.createBackup(tag, true);
     }
 
     public void deleteBackup(String tag) {
-        this.backupOps.deleteBackup(tag);
+        this.backupService.deleteBackup(tag);
     }
 
     /**
@@ -265,11 +284,12 @@ public class BackupScheduler extends Notifier implements Runnable, Callable<Obje
             }
         }
 
-        String drSiteName = drUtil.getLocalSite().getName();
+        String drSiteId = drUtil.getLocalSite().getUuid();
+
         // Remove all non alphanumeric characters
-        drSiteName = drSiteName.replaceAll("^[^a-zA-Z0-9]+|[^a-zA-Z0-9]+$", "");
+        drSiteId = drSiteId.replaceAll("^[^a-zA-Z0-9]+|[^a-zA-Z0-9]+$", "");
         
-        return ScheduledBackupTag.toZipFileName(tag, nodeIds.size(), backupNodeCount, drSiteName);
+        return UploadExecutor.toZipFileName(tag, nodeIds.size(), backupNodeCount, drSiteId);
     }
 
     public List<String> getDescParams(final String tag) {
@@ -278,6 +298,7 @@ public class BackupScheduler extends Notifier implements Runnable, Callable<Obje
             {
                 add(tag);
                 add(nodeId);
+                add(drUtil.getLocalSite().getName());
             }
         };
     }
@@ -320,6 +341,11 @@ public class BackupScheduler extends Notifier implements Runnable, Callable<Obje
         }
 
         singletonInstance = this;
+        if (drUtil.isStandby()) {
+            log.info("Current site is standby, disable BackupScheduler");
+            return;
+        }
+        
         this.cfg = new SchedulerConfig(coordinator, this.encryptionProvider, this.dbClient);
 
         LeaderSelector leaderSelector = coordinator.getCoordinatorClient().getLeaderSelector(coordinator.getCoordinatorClient().getSiteId(), BackupConstants.BACKUP_LEADER_PATH,
@@ -347,17 +373,9 @@ public class BackupScheduler extends Notifier implements Runnable, Callable<Obje
 
             isLeader = false;
 
-            // Stop scheduler thread
+            // Stop scheduler thread.
             service.shutdown();
-            try {
-                while (!service.awaitTermination(30, TimeUnit.SECONDS)) {
-                    log.info("Waiting scheduler thread pool to shutdown for another 30s");
-                }
-            } catch (InterruptedException e) {
-                log.error("Interrupted while waiting to shutdown scheduler thread pool.", e);
-                Thread.currentThread().interrupt();
-                return;
-            }
+            // Never block here. It may block all other node listeners 
         }
     }
 }

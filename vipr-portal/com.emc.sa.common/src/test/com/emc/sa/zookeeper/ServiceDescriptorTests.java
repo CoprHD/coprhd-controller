@@ -15,6 +15,9 @@ import org.junit.*;
 import java.util.List;
 import java.util.Locale;
 
+// Suite requires coordinator be running on localhost, which will not be the case on build servers running the "test" rule.
+// Changes could be made to run a self-contained coordinator.  See DbServiceTestBase for examples
+@Ignore
 public class ServiceDescriptorTests {
     private TestCoordinatorService coordinatorService;
 

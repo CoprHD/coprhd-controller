@@ -40,15 +40,15 @@ public class RaidLevelAssignments {
      * RAID 6 extends RAID 5 by adding an additional parity block;
      * thus it uses block level striping with two parity blocks.
      * RAID 10 is a stripe of mirrors, i.e. a RAID 0 combination of RAID 1 drives.
-     * 
-     * @valid RAID0
-     * @valid RAID1
-     * @valid RAID2
-     * @valid RAID3
-     * @valid RAID4
-     * @valid RAID5
-     * @valid RAID6
-     * @valid RAID10
+     * Valid values:
+     *  RAID0
+     *  RAID1
+     *  RAID2
+     *  RAID3
+     *  RAID4
+     *  RAID5
+     *  RAID6
+     *  RAID10
      */
     @XmlElement(name = "raid_levels")
     @JsonProperty("raid_level")

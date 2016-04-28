@@ -5,9 +5,14 @@
 
 package com.emc.storageos.services.util;
 
-import org.apache.log4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.IOException;
 
+import javax.management.ListenerNotFoundException;
+import javax.management.NotificationFilter;
+import javax.management.NotificationListener;
+import javax.management.remote.JMXConnector;
 import javax.management.remote.JMXServiceURL;
 import javax.management.remote.JMXConnectorServer;
 import javax.management.remote.JMXConnectorServerFactory;
@@ -16,7 +21,7 @@ import java.lang.management.ManagementFactory;
 import java.rmi.registry.LocateRegistry;
 
 public class JmxServerWrapper {
-    private static Logger _log = Logger.getLogger(JmxServerWrapper.class);
+    private static final org.slf4j.Logger log = LoggerFactory.getLogger(JmxServerWrapper.class);
     private int _jmxRemotePort;
     private int _jmxRemoteExportPort;
     private String _jmxHost;
@@ -24,6 +29,7 @@ public class JmxServerWrapper {
     private boolean _jmxEnabled;
     private JmxServerWrapper _jmxServer;
     private JMXConnectorServer _jmxRemoteServer;
+    private JMXConnector jmxc;
 
     public JmxServerWrapper() {
     }
@@ -84,20 +90,21 @@ public class JmxServerWrapper {
     }
 
     public void start() throws Exception {
-        _log.debug("JMX server wrapper: jmx enabled = " + _jmxEnabled);
+        log.debug("JMX server wrapper: jmx enabled ={} ", _jmxEnabled);
         if (_jmxEnabled) {
 
             try {
 
                 LocateRegistry.createRegistry(_jmxRemotePort);
-                _log.info("start bind JMX to " + _jmxHost + ":" + _jmxRemotePort + " serviceurl: " + _jmxFmtUrl);
+                log.info("start bind JMX to {}:{}  serviceurl: {}", new Object[] { _jmxHost, _jmxRemotePort, _jmxFmtUrl});
 
                 JMXServiceURL jmxUrl = new JMXServiceURL(String.format(_jmxFmtUrl, _jmxRemoteExportPort, _jmxHost, _jmxRemotePort));
                 MBeanServer mbs = ManagementFactory.getPlatformMBeanServer();
                 _jmxRemoteServer = JMXConnectorServerFactory.newJMXConnectorServer(jmxUrl, null, mbs);
                 _jmxRemoteServer.start();
+                jmxc = _jmxRemoteServer.toJMXConnector(null);
             } catch (Exception e) {
-                _log.error("JMX server startup failed", e);
+                log.error("JMX server startup failed", e);
                 throw e;
             }
         }
@@ -108,8 +115,18 @@ public class JmxServerWrapper {
             try {
                 _jmxRemoteServer.stop();
             } catch (IOException e) {
-                _log.error("Exception happens when stop JMX server", e);
+                log.error("Exception happens when stop JMX server", e);
             }
         }
+    }
+
+    public void addConnectionNotificiationListener(NotificationListener listener,
+                                                   NotificationFilter filter, Object handback) throws IOException {
+        jmxc.addConnectionNotificationListener(listener, filter, handback);
+    }
+
+    public void removeConnectionNotificationListener(NotificationListener listener)
+            throws ListenerNotFoundException, IOException {
+        jmxc.removeConnectionNotificationListener(listener);
     }
 }

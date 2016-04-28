@@ -1,0 +1,32 @@
+#{if snapshotSessions}
+  <table class='table table-condensed table-striped'>
+  <thead>
+    <tr>
+      <th>&{'resources.snapshot.session.name'}</th>
+      <th>&{'resources.actions'}</th>
+    </tr>
+  </thead>
+  <tbody>  
+    #{list snapshotSessions, as:'snapshot'}
+      <tr>
+        <td>
+          <a href="@{resources.BlockSnapshotSessions.snapshotSessionDetails(snapshot.id)}"
+          ><img src="/public/img/assets/Snapshot.png" style="width: 32px;"/>${snapshot.name}</a>
+        </td>
+        <td>
+        <div class="btn-group">
+       <button type="button" class="btn btn-xs btn-danger" data-toggle="dropdown">&{'resources.snapshot.session.unlink'}<span class="caret"></span></button>
+       <ul class="dropdown-menu" role="menu">
+            <li><a href="@{unlinkTargetSnapshot(snapshot.id, volumeId,'true')}">&{'resources.snapshot.session.unlinkDelete'}</a></li>
+            <li><a href="@{unlinkTargetSnapshot(snapshot.id, volumeId, 'false')}">&{'resources.snapshot.session.unlinkNoDelete'}</a></li>
+          </ul>
+          </div>
+          </td>
+      </tr>
+    #{/list}
+  </tbody>
+  </table>
+#{/if}
+#{else}
+  &{'resources.snapshots.none'}
+#{/else}

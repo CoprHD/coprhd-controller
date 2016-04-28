@@ -55,6 +55,9 @@ public class StoragePool extends VirtualArrayTaggedResource {
     private String _startHighThenAutoTierId;
     // Max Retention days
     private Integer maxRetention;
+    // Number of Data Centers on which this pool is spread
+    //This is required only for object storage pools
+    private Integer dataCenters;
 
     // Storage Tier Information for each Pool
     // VNX Pools have multiple tiers and VMAX has single Tier always
@@ -361,6 +364,16 @@ public class StoragePool extends VirtualArrayTaggedResource {
     public void setMaxRetention(Integer maxRetention) {
         this.maxRetention = (maxRetention > 0) ? maxRetention : 0;
         setChanged("maxRetention");
+    }
+
+    @Name("dataCenters")
+    public Integer getDataCenters() {
+        return (null != dataCenters) ? dataCenters : 0;
+    }
+
+    public void setDataCenters(Integer dataCenters) {
+        this.dataCenters = (dataCenters > 0) ? dataCenters : 0;
+        setChanged("dataCenters");
     }
 
     public boolean supportsProtocols(Set<String> protocols) {

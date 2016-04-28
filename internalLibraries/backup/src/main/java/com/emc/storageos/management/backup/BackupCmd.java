@@ -19,9 +19,7 @@ import org.springframework.context.support.ClassPathXmlApplicationContext;
 
 import java.text.Format;
 import java.text.SimpleDateFormat;
-import java.util.Arrays;
-import java.util.Date;
-import java.util.List;
+import java.util.*;
 
 //Suppress Sonar violation of Lazy initialization of static fields should be synchronized
 //This is a CLI application and main method will not be called by multiple threads
@@ -32,6 +30,8 @@ public class BackupCmd {
 
     private static final Options options = new Options();
     private static final String TOOL_NAME = "bkutils";
+    private static final String ONLY_RESTORE_SITE_ID = "osi";
+
     private static BackupOps backupOps;
     private static CommandLine cli;
     private static RestoreManager restoreManager;
@@ -41,7 +41,8 @@ public class BackupCmd {
         list("List all backups"),
         delete("Delete specific backup"),
         restore("Purge ViPR data and restore specific backup\n" +
-                "with args: <backup dir> <name>"),
+                "with args: <backup dir> <name> osi(optional)\n" +
+                "If \"osi\" is used, only site id will be retored\n"),
         quota("Get backup quota info, unit:GB\n"),
         force("Execute operation on quorum nodes"),
         purge("Purge the existing ViPR data with arg\n" +
@@ -134,6 +135,7 @@ public class BackupCmd {
     }
 
     private static void init(String[] args) {
+
         initCommandLine(args);
         initRestoreManager();
 
@@ -235,7 +237,7 @@ public class BackupCmd {
             return;
         }
         String[] restoreArgs = cli.getOptionValues(CommandType.restore.name());
-        if (restoreArgs.length != 2) {
+        if (restoreArgs.length < 2 || restoreArgs.length > 3) {
             System.out.println("Invalid number of restore args.");
             new HelpFormatter().printHelp(TOOL_NAME, options);
             System.exit(-1);
@@ -243,6 +245,15 @@ public class BackupCmd {
 
         String restoreSrcDir = restoreArgs[0];
         String snapshotName = restoreArgs[1];
+        if (restoreArgs.length == 3) {
+            if (ONLY_RESTORE_SITE_ID.equals(restoreArgs[2])) {
+                restoreManager.setOnlyRestoreSiteId(true);
+            } else {
+                System.out.println("If third parameter is specified for restore option, it can only be \"osi\"");
+                new HelpFormatter().printHelp(TOOL_NAME, options);
+                System.exit(-1);
+            }
+        }
 
         boolean geoRestoreFromScratch = false;
         if (cli.hasOption(CommandType.force.name())) {
@@ -253,7 +264,7 @@ public class BackupCmd {
 
         System.out.println("***Important***");
         System.out.println("Please start ViPR service after all nodes have been " +
-                "restored (command: \"service storageos start\").");
+                "restored (command: \"/etc/storageos/storageos start\").");
         System.out.println("ViPR has risk of data lost before data repair finished, " +
                 "please check the db repair process by service log");
     }

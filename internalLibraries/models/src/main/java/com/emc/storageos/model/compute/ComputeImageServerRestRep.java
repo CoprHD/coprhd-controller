@@ -29,6 +29,8 @@ public class ComputeImageServerRestRep extends DataObjectRestRep {
     private Integer osInstallTimeout;
     private String imageServerUser;
     private List<NamedRelatedResourceRep> failedImages = new ArrayList<NamedRelatedResourceRep>();
+    private Integer sshTimeout;
+    private Integer imageImportTimeout;
 
     public ComputeImageServerRestRep() {
     }
@@ -165,5 +167,37 @@ public class ComputeImageServerRestRep extends DataObjectRestRep {
      */
     public void setFailedImages(List<NamedRelatedResourceRep> failedImages) {
         this.failedImages = failedImages;
+    }
+
+    /**
+     * @return the sshTimeout
+     */
+    @XmlElement(name = "ssh_timeout")
+    @JsonProperty("ssh_timeout")
+    public Integer getSshTimeout() {
+        return sshTimeout;
+    }
+
+    /**
+     * @param sshTimeout the sshTimeout to set
+     */
+    public void setSshTimeout(Integer sshTimeout) {
+        this.sshTimeout = sshTimeout;
+    }
+
+    /**
+     * @return the imageImportTimeout
+     */
+    @XmlElement(name = "imageimport_timeout")
+    @JsonProperty("imageimport_timeout")
+    public Integer getImageImportTimeout() {
+        return imageImportTimeout;
+    }
+
+    /**
+     * @param imageImportTimeout the imageImportTimeout to set
+     */
+    public void setImageImportTimeout(Integer imageImportTimeout) {
+        this.imageImportTimeout = imageImportTimeout;
     }
 }

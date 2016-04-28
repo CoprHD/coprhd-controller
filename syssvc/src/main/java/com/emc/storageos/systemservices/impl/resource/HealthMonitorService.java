@@ -123,7 +123,7 @@ public class HealthMonitorService extends BaseLogSvcResource {
      */
     @GET
     @Path("/stats")
-    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR })
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR, Role.SECURITY_ADMIN })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     public StatsRestRep getStats(@QueryParam("node_id") List<String> nodeIds,
                                  @QueryParam("interval") int interval,
@@ -182,7 +182,7 @@ public class HealthMonitorService extends BaseLogSvcResource {
      */
     @GET
     @Path("/health")
-    @CheckPermission(roles = {Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR})
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR, Role.SECURITY_ADMIN })
     @Produces({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
     public HealthRestRep getHealth(@QueryParam("node_id") List<String> nodeIds, @QueryParam("node_name") List<String> nodeNames) {
         HealthRestRep healthRestRep = new HealthRestRep();

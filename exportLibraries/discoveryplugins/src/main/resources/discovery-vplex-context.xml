@@ -4,14 +4,26 @@
 	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
 
     <bean id="vplexapifactory" class="com.emc.storageos.vplex.api.VPlexApiFactory"
-		factory-method="getInstance" />
+		factory-method="getInstance">
+		<property name="connectionTimeoutMs" value="30000"/>
+		<property name="connManagerTimeout" value="60000"/>
+        <property name="socketConnectionTimeoutMs" value="7200000" />
+    </bean>
 
     <bean id="partitionManager" class="com.emc.storageos.plugins.common.PartitionManager"/>
+
+	<bean id="portMetricsProcessor" class="com.emc.storageos.volumecontroller.impl.plugins.metering.smis.processor.PortMetricsProcessor"/>
+
+	<bean id="vplexPerpetualCSVFileCollector"
+		  class="com.emc.storageos.volumecontroller.impl.plugins.metering.vplex.VPlexPerpetualCSVFileCollector">
+		<property name="portMetricsProcessor" ref="portMetricsProcessor"/>
+	</bean>
 
 	<bean id="vplex"
 		class="com.emc.storageos.volumecontroller.impl.plugins.VPlexCommunicationInterface">
         <property name="vPlexApiFactory" ref="vplexapifactory" />
         <property name="partitionManager" ref="partitionManager" />
+		<property name="statsCollector" ref="vplexPerpetualCSVFileCollector"/>
 	</bean>
 
 </beans>

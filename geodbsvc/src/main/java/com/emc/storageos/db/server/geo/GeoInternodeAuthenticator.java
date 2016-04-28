@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014 EMC Corporation
+ * Copyright (c) 2014-2015 EMC Corporation
  * All Rights Reserved
  */
 
@@ -25,6 +25,7 @@ import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.db.common.DbConfigConstants;
 import com.emc.storageos.db.server.impl.DbServiceImpl;
+import com.emc.storageos.db.server.impl.DrInternodeAuthenticator;
 
 /**
  * InternnodeAuthenticator for geodb. It maintains a blacklist to refuse gossip connection
@@ -34,7 +35,7 @@ import com.emc.storageos.db.server.impl.DbServiceImpl;
  * The blacklist is stored in ZK under /config/geodbconfig. The blacklist is reloaded
  * each time during dbservice startup.
  */
-public class GeoInternodeAuthenticator implements IInternodeAuthenticator, GeoInternodeAuthenticatorMBean {
+public class GeoInternodeAuthenticator extends DrInternodeAuthenticator implements GeoInternodeAuthenticatorMBean {
     private static final Logger log = LoggerFactory.getLogger(GeoInternodeAuthenticator.class);
     private static final String SEPARATOR = ",";
     private Set<InetAddress> blacklist;
@@ -49,6 +50,10 @@ public class GeoInternodeAuthenticator implements IInternodeAuthenticator, GeoIn
     @Override
     public boolean authenticate(InetAddress remoteAddress, int remotePort)
     {
+        if (!super.authenticate(remoteAddress, remotePort)) {
+            return false;
+        }
+
         if (blacklist.contains(remoteAddress)) {
             log.debug("Refuse internode communication for {}", remoteAddress);
             return false;
@@ -63,6 +68,7 @@ public class GeoInternodeAuthenticator implements IInternodeAuthenticator, GeoIn
     @Override
     public void validateConfiguration() throws ConfigurationException
     {
+        super.validateConfiguration();
         log.info("Initialize GeoInternodeAuthenticator");
         reloadBlacklist();
 
@@ -72,7 +78,7 @@ public class GeoInternodeAuthenticator implements IInternodeAuthenticator, GeoIn
             mbs.registerMBean(this, name);
         } catch (Exception ex) {
             log.error("Register MBean error ", ex);
-            throw new ConfigurationException("Initialze GeoInternodeAuthenticator error", ex);
+            throw new ConfigurationException("Initialize GeoInternodeAuthenticator error", ex);
         }
     }
 

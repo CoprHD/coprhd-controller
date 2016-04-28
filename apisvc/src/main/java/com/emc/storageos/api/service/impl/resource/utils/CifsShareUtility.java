@@ -708,19 +708,15 @@ public class CifsShareUtility {
     }
 
     public static void checkForUpdateShareACLOperationOnStorage(
-            String storageSystemType, String operation) {
+            String storageType, String operation) {
 
-        StorageSystem.Type storageSystemEnum = Enum.valueOf(
-                StorageSystem.Type.class, storageSystemType);
+        StorageSystem.Type storageSystemType = StorageSystem.Type.valueOf(storageType);
 
-        switch (storageSystemEnum) {
-            case vnxe:
-            case vnxfile:
-            case datadomain:
+        if (storageSystemType.equals(StorageSystem.Type.vnxe) || storageSystemType.equals(StorageSystem.Type.vnxfile)
+                || storageSystemType.equals(StorageSystem.Type.datadomain)) {
                 throw APIException.badRequests.operationNotSupportedForSystemType(
-                        operation, storageSystemType);
+                        operation, storageType);
         }
-
     }
 
     /**

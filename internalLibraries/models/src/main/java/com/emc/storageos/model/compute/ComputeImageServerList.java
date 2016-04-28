@@ -30,7 +30,6 @@ public class ComputeImageServerList {
     /**
      * List of compute image server URLs with name
      *
-     * @valid none
      */
     @XmlElement(name = "compute_imageserver")
     @JsonProperty("compute_imageserver")

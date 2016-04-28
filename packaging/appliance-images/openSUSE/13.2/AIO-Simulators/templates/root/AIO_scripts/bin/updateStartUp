@@ -1,0 +1,17 @@
+#!/bin/bash
+
+chmod 777 /etc/init.d/ECOM462 
+chmod 777 /etc/init.d/ECOM80
+chmod 777 /etc/init.d/VPLEX
+chmod 777 /etc/init.d/VPLEX2
+chmod 777 /etc/init.d/RP
+chmod 777 /etc/init.d/XIO
+chmod 777 /etc/init.d/XIO2
+chmod 777 /etc/init.d/HDS
+chmod 777 /etc/init.d/WIN
+chmod 777 /etc/init.d/CiscoMgmt
+chmod 777 /etc/init.d/CISCO
+chmod 777 /etc/init.d/LDAP
+chmod 777 /etc/init.d/fcnsDB
+chmod 777 /etc/init.d/SimService
+chmod 777 /etc/init.d/boot.ovfenv

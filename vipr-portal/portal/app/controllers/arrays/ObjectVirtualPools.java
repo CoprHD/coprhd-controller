@@ -153,6 +153,8 @@ public class ObjectVirtualPools extends ViprResourceController {
         StoragePoolDataTable dataTable = new StoragePoolDataTable();
         dataTable.alterColumn("registrationStatus").hidden();
         dataTable.alterColumn("driveTypes").hidden();
+        dataTable.alterColumn("volumeTypes").hidden();
+        dataTable.alterColumn("numOfDataCenters").setVisible(true);
         return dataTable;
     }
 

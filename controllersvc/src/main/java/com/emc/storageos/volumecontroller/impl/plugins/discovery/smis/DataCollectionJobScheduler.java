@@ -80,8 +80,8 @@ public class DataCollectionJobScheduler {
     private DbClient _dbClient;
     private CoordinatorClient _coordinator;
     private CIMConnectionFactory _connectionFactory;
-    private String leaderSelectorPath = "discoveryleader";
-    private String leaderSelectorComputePortMetricsPath = "computeportmetricsleader";
+    private final String leaderSelectorPath = "discoveryleader";
+    private final String leaderSelectorComputePortMetricsPath = "computeportmetricsleader";
     private LeaderSelector discoverySchedulingSelector;
     private HDSApiFactory hdsApiFactory;
     private DataDomainClientFactory ddClientFactory;
@@ -377,7 +377,7 @@ public class DataCollectionJobScheduler {
                         continue;
                     }
                     // check devices managed by SMIS/hicommand/vplex device mgr has ActiveProviderURI or not.
-                    if (systemObj.storageSystemHasProvider()) {
+                    if (systemObj.isStorageSystemManagedByProvider()) {
                         if (systemObj.getActiveProviderURI() == null
                                 || NullColumnValueGetter.getNullURI().equals(systemObj.getActiveProviderURI())) {
                             _logger.info("Skipping {} Job : StorageSystem {} does not have an active provider",
@@ -581,10 +581,12 @@ public class DataCollectionJobScheduler {
 
         // CTRL-8227 if an unmanaged volume discovery is requested by the user,
         // just run it regardless of last discovery time
+        // COP-20052 if an unmanaged CG discovery is requested, just run it
         if (!scheduler &&
                 (Discovery_Namespaces.UNMANAGED_VOLUMES.name().equalsIgnoreCase(namespace) ||
                         Discovery_Namespaces.BLOCK_SNAPSHOTS.name().equalsIgnoreCase(namespace) ||
-                Discovery_Namespaces.UNMANAGED_FILESYSTEMS.name().equalsIgnoreCase(namespace))) {
+                        Discovery_Namespaces.UNMANAGED_FILESYSTEMS.name().equalsIgnoreCase(namespace) ||
+                Discovery_Namespaces.UNMANAGED_CGS.name().equalsIgnoreCase(namespace))) {
             _logger.info(namespace + " discovery has been requested by the user, scheduling now...");
             return true;
         }

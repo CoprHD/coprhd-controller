@@ -15,9 +15,13 @@ import javax.ws.rs.core.MultivaluedMap;
 import org.codehaus.jettison.json.JSONArray;
 import org.codehaus.jettison.json.JSONException;
 import org.codehaus.jettison.json.JSONObject;
+import org.jsoup.helper.StringUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.emc.storageos.db.client.model.ObjectNamespace;
+import com.emc.storageos.services.util.SecurityUtils;
+import com.google.gson.Gson;
 import com.sun.jersey.api.client.ClientResponse;
 
 /**
@@ -41,6 +45,13 @@ public class ECSApi {
     private static final String URI_UPDATE_BUCKET_OWNER = "/object/bucket/{0}/owner.json";
     private static final String URI_DEACTIVATE_BUCKET = "/object/bucket/{0}/deactivate.json?namespace={1}";
     private static final String URI_BUCKET_INFO = "/object/bucket/{0}/info.json?namespace={1}";
+    private static final String URI_UPDATE_BUCKET_ACL = "/object/bucket/{0}/acl.json";    
+    private static final String URI_GET_NAMESPACES = "/object/namespaces.json";
+    private static final String URI_GET_NAMESPACE_DETAILS = "/object/namespaces/namespace/{0}.json";
+    private static final String URI_USER_SECRET_KEYS = "/object/user-secret-keys/{0}.json"; 
+    private static final String URI_GET_BUCKET_ACL = "/object/bucket/{0}/acl.json?namespace={1}";
+    private static final String URI_GET_ECS_VERSION = "/vdc/nodes.json";
+    private static final String URI_GET_ECS_LICENSE = "/license.json";
     private static final long DAY_TO_SECONDS = 24 * 60 * 60;
     private static final long BYTES_TO_GB = 1024 * 1024 * 1024;
 
@@ -155,7 +166,7 @@ public class ECSApi {
                 objRG = arrayRepGroup.getJSONObject(i);
 
                 JSONObject objVarray = null;
-                String vArrayId = null;
+                String vArrayId = null, storagePoolVDC=null;
                 URI uriEcsVarray = null;
                 JSONObject objVarrayCap = null;
                 String ecsVarray = null;
@@ -163,6 +174,8 @@ public class ECSApi {
                 // Get ECS vArray ID(=ECS StoragePool/cluster) and its capacity
                 aryVarray = objRG.getJSONArray("varrayMappings");
                 for (int j = 0; j < aryVarray.length(); j++) {
+                	//Reset capacity variables to 0
+                	storagepoolTotalCapacity = 0L; storagepoolFreeCapacity = 0L;
                     objVarray = aryVarray.getJSONObject(j);
                     vArrayId = objVarray.getString("value");
 
@@ -186,12 +199,17 @@ public class ECSApi {
                     objVarrayCap = clientRespVarray.getEntity(JSONObject.class);
                     storagepoolTotalCapacity += Integer.parseInt(objVarrayCap.getString("totalProvisioned_gb"));
                     storagepoolFreeCapacity += Integer.parseInt(objVarrayCap.getString("totalFree_gb"));
+                    
+                    //get storage pool VDC
+                    storagePoolVDC = objVarray.getString("name");
+                    pool.setStoragePoolVDC(storagePoolVDC);
                 }// for each ECS varray
 
                 pool.setName(objRG.getString("name"));
                 pool.setId(objRG.getString("id"));
                 pool.setTotalCapacity(storagepoolTotalCapacity);
                 pool.setFreeCapacity(storagepoolFreeCapacity);
+                pool.setTotalDataCenters();
                 ecsPools.add(pool);
 
                 if (clientRespVarray != null) {
@@ -364,6 +382,37 @@ public class ECSApi {
 
         }
     }
+    
+    /**
+     * Updates the bucket ACL
+     * 
+     * @param bucketName
+     * @param payload
+     * @throws ECSException
+     */
+    public void updateBucketACL(String bucketName, String payload) throws ECSException {
+
+        _log.debug("ECSApi:updateBucketACL Update bucket ACL initiated for : {}", bucketName);
+        ClientResponse clientResp = null;
+        final String path = MessageFormat.format(URI_UPDATE_BUCKET_ACL, bucketName);
+        try {
+            clientResp = put(path, payload);
+            if (null == clientResp) {
+                throw ECSException.exceptions.bucketACLUpdateFailed(bucketName, "no response from ECS");
+            } else if (clientResp.getStatus() != 200) {
+                throw ECSException.exceptions.bucketACLUpdateFailed(bucketName, getResponseDetails(clientResp));
+            }
+        } catch (Exception e) {
+            _log.error("Error occured while ACL update for bucket : {}", bucketName, e);
+            throw ECSException.exceptions.bucketACLUpdateFailed(bucketName, e.getMessage());
+        } finally {
+            if (clientResp != null) {
+                closeResponse(clientResp);
+            }
+
+        }
+
+    }
 
     /**
      * Deletes a bucket on ECS Storage
@@ -425,6 +474,250 @@ public class ECSApi {
     	}
     }
     
+    /**
+     * Get the list of ECS namespace IDs
+     * 
+     * @return List of namespace strings
+     * @throws ECSException
+     */
+    public List<String> getNamespaces() throws ECSException {
+        _log.debug("ECSApi:getNamespace enter");
+        ClientResponse clientResp = null;
+        List<String> namespaceIdList = new ArrayList<String>();
+        try {
+            String responseString = null;
+            clientResp = get(URI_GET_NAMESPACES);
+            if (null == clientResp) {
+                throw ECSException.exceptions.getNamespacesFailedAry("no response from ECS");
+            } else if (clientResp.getStatus() != 200) {
+                throw ECSException.exceptions.getNamespacesFailedAry(getResponseDetails(clientResp));
+            }
+
+            responseString = clientResp.getEntity(String.class);
+            _log.info("ECSApi:getNamespace ECS response is {}", responseString);
+            NamespaceCommandResult ecsNsResult = new Gson().fromJson(SecurityUtils.sanitizeJsonString(responseString),
+                    NamespaceCommandResult.class);
+            for (int index = 0; index < ecsNsResult.getNamespace().size(); index++) {
+                namespaceIdList.add(ecsNsResult.getNamespace().get(index).getId());
+            }
+            return namespaceIdList;
+        } catch (Exception e) {
+            throw ECSException.exceptions.getNamespacesFailedExc(e);
+        } finally {
+            if (clientResp != null) {
+                clientResp.close();
+            }
+            _log.debug("ECSApi:getNamespace exit");
+        }
+    }
+    
+    /**
+     * Get the Bucket ACL
+     * 
+     * @return String response 
+     * @throws ECSException
+     */
+    public String getBucketAclFromECS(String bucketName, String namespace) throws ECSException {
+        _log.debug("ECSApi:getBucketAclFromECS");
+        ClientResponse clientResp = null;
+       
+        try {
+            String responseString = null;
+            final String path = MessageFormat.format(URI_GET_BUCKET_ACL, bucketName, namespace);
+            getAuthToken();
+            clientResp = get(path);
+            if (null == clientResp) {
+                throw ECSException.exceptions.getBucketACLFailed(bucketName, "no response from ECS");
+            } else if (clientResp.getStatus() != 200) {
+                throw ECSException.exceptions.getBucketACLFailed(bucketName, getResponseDetails(clientResp));
+            }
+
+            responseString = clientResp.getEntity(String.class);
+            _log.info("ECSApi:getBucketAclFromECS response is {}", responseString);
+           
+            return responseString;
+        } catch (Exception e) {
+            throw ECSException.exceptions.getBucketACLFailed(bucketName, e.getMessage());
+        } finally {
+            if (clientResp != null) {
+                clientResp.close();
+            }
+            _log.debug("ECSApi:getBucketAclFromECS exit");
+        }
+    }
+    
+    /**
+     * 
+     * @param Id of the namespace for which allowed/disallowed pools are required
+     * @param replicaiton group type
+     * @return List of allowed or disallowd rep groups or none
+     * @throws ECSException
+     */
+    public ECSNamespaceRepGroup getNamespaceDetails(String namespaceId) throws ECSException {
+        _log.debug("ECSApi:getNamespaceDetails enter");
+        ClientResponse clientResp = null;
+        ECSNamespaceRepGroup nsRepGroup = new ECSNamespaceRepGroup();
+        try {
+            String responseString = null;
+            final String path = MessageFormat.format(URI_GET_NAMESPACE_DETAILS, namespaceId);
+            clientResp = get(path);
+            if (null == clientResp) {
+                throw ECSException.exceptions.getNamespaceDetailsFailedAry("no response from ECS");
+            } else if (clientResp.getStatus() != 200) {
+                throw ECSException.exceptions.getNamespaceDetailsFailedAry(getResponseDetails(clientResp));
+            }
+
+            responseString = clientResp.getEntity(String.class);
+            _log.info("ECSApi:getNamespaceDetails for {} ECS response is {}", namespaceId, responseString);
+            NamespaceDetailsCommandResult ecsNsResult = new Gson().fromJson(SecurityUtils.sanitizeJsonString(responseString),
+                    NamespaceDetailsCommandResult.class);
+            nsRepGroup.setNamespaceName(ecsNsResult.getId());
+            nsRepGroup.setRgType(ObjectNamespace.OBJ_StoragePool_Type.NONE);
+
+            if (!ecsNsResult.getAllowed_vpools_list().isEmpty()) {
+                for (int index = 0; index < ecsNsResult.getAllowed_vpools_list().size(); index++) {
+                    //Its possible to have replication group list blank
+                    if (ecsNsResult.getAllowed_vpools_list().get(index) != null &&
+                            !ecsNsResult.getAllowed_vpools_list().get(index).isEmpty())
+                        nsRepGroup.addReplicationGroups(ecsNsResult.getAllowed_vpools_list().get(index));
+                }
+                nsRepGroup.setRgType(ObjectNamespace.OBJ_StoragePool_Type.ALLOWED);
+            } else if (!ecsNsResult.getDisallowed_vpools_list().isEmpty()) {
+                for (int index = 0; index < ecsNsResult.getDisallowed_vpools_list().size(); index++) {
+                    //Its possible to have replication group list blank
+                    if (ecsNsResult.getDisallowed_vpools_list().get(index) != null &&
+                            !ecsNsResult.getDisallowed_vpools_list().get(index).isEmpty())
+                        nsRepGroup.addReplicationGroups(ecsNsResult.getDisallowed_vpools_list().get(index));
+                }
+                nsRepGroup.setRgType(ObjectNamespace.OBJ_StoragePool_Type.DISALLOWED);
+            }
+            return nsRepGroup;
+        } catch (Exception e) {
+            throw ECSException.exceptions.getNamespaceDetailsFailedExc(namespaceId, e);
+        } finally {
+            if (clientResp != null) {
+                clientResp.close();
+            }
+            _log.debug("ECSApi:getNamespaceDetails exit");
+        }
+    }
+
+    public UserSecretKeysAddCommandResult addUserSecretKey(String user, String key) throws ECSException {
+        _log.debug("ECSApi:addUserSecretKey enter");
+        ClientResponse clientResp = null;
+        String body = " {}";
+        if (!StringUtil.isBlank(key)) {
+            body = " { \"secretkey\": \"" + key + "\" }";
+        }
+
+        try {
+            String responseString = null;
+            final String path = MessageFormat.format(URI_USER_SECRET_KEYS, user);
+            getAuthToken();
+            clientResp = post(path, body);
+            if (null == clientResp) {
+                throw ECSException.exceptions.addUserSecretKeysFailedAry("no response from ECS");
+            } else if (clientResp.getStatus() != 200) {
+                throw ECSException.exceptions.addUserSecretKeysFailedAry(getResponseDetails(clientResp));
+            }
+            responseString = clientResp.getEntity(String.class);
+            _log.info("ECSApi:getUserSecretKey ECS response is {}", responseString);
+            UserSecretKeysAddCommandResult ecsSecretKeyResult = new Gson().fromJson(SecurityUtils.sanitizeJsonString(responseString),
+                    UserSecretKeysAddCommandResult.class);
+            return ecsSecretKeyResult;
+        } catch (Exception e) {
+            throw ECSException.exceptions.addUserSecretKeysFailedExc(user, e);
+        } finally {
+            if (clientResp != null) {
+                clientResp.close();
+            }
+            _log.debug("ECSApi:addUserSecretKey exit");
+        }
+    }
+    
+    /**
+     * Get the ECS node version.
+     * @return ECS version
+     * @throws ECSException
+     */
+    public String getECSVersion() throws ECSException {
+        _log.debug("ECSApi:getECSVersion");
+        ClientResponse clientResp = null;
+
+        try {
+            String responseString = "";
+            getAuthToken();
+            clientResp = get(URI_GET_ECS_VERSION);
+            if (clientResp != null && clientResp.getStatus() == 200) {
+                JSONObject jObj = clientResp.getEntity(JSONObject.class);
+                JSONArray jArray = jObj.getJSONArray("node");
+                if (jArray != null && jArray.length() > 0) {
+                    JSONObject data = jArray.getJSONObject(0);
+                    responseString = data.getString("version");
+                }
+            }
+            if (null == clientResp) {
+                throw ECSException.exceptions.getECSVersionFailed(URI_GET_ECS_VERSION, "no response from ECS");
+            } else if (clientResp.getStatus() != 200) {
+                throw ECSException.exceptions.getECSVersionFailed(URI_GET_ECS_VERSION, getResponseDetails(clientResp));
+            }
+
+            _log.debug("ECSApi:getECSVersion responseString : " + responseString);
+            return responseString;
+        } catch (Exception e) {
+            throw ECSException.exceptions.getECSVersionFailed(URI_GET_ECS_VERSION, e.getMessage());
+        } finally {
+            if (clientResp != null) {
+                clientResp.close();
+            }
+            _log.debug("ECSApi:getECSVersion exit");
+        }
+    }
+    
+    /**
+     * Get the ECS Serial Number.
+     * @return ECS Serial Number
+     * @throws ECSException
+     */
+    public String getECSSerialNum() throws ECSException {
+        _log.debug("ECSApi:getECSSerialNum");
+        ClientResponse clientResp = null;
+
+        try {
+            String responseString = "";
+            getAuthToken();
+            clientResp = get(URI_GET_ECS_LICENSE);
+            if (clientResp != null && clientResp.getStatus() == 200) {
+                JSONObject jObj = clientResp.getEntity(JSONObject.class);
+                JSONArray jArray = jObj.getJSONArray("license_feature");
+                for (int i = 0; i < jArray.length(); i++) {
+                    JSONObject data = jArray.getJSONObject(i);
+                    String model = data.getString("model");
+                    if ("ViPR_ECS".equals(model)) {
+                        responseString = data.getString("serial");
+                        break;
+                    }
+                }
+
+            }
+            if (null == clientResp) {
+                throw ECSException.exceptions.getECSVersionFailed(URI_GET_ECS_LICENSE, "no response from ECS");
+            } else if (clientResp.getStatus() != 200) {
+                throw ECSException.exceptions.getECSVersionFailed(URI_GET_ECS_LICENSE, getResponseDetails(clientResp));
+            }
+
+            _log.debug("ECSApi:getECSSerialNum responseString : " + responseString);
+            return responseString;
+        } catch (Exception e) {
+            throw ECSException.exceptions.getECSVersionFailed(URI_GET_ECS_LICENSE, e.getMessage());
+        } finally {
+            if (clientResp != null) {
+                clientResp.close();
+            }
+            _log.debug("ECSApi:getECSSerialNum exit");
+        }
+    }
+    
     private ClientResponse get(final String uri) {
         ClientResponse clientResp = _client.get_json(_baseUrl.resolve(uri), authToken);
         if (clientResp != null && clientResp.getStatus() == 401) {
@@ -462,7 +755,7 @@ public class ECSApi {
         String detailedResponse = null;
         try {
             JSONObject jObj = clientResp.getEntity(JSONObject.class);
-            detailedResponse = String.format("Description:%s, Details:%s",
+            detailedResponse = String.format("ECS Description:%s, Details:%s",
                     jObj.getString("description"), jObj.getString("details"));
             _log.error(String.format("HTTP error code: %d, Complete ECS error response: %s", clientResp.getStatus(),
                     jObj.toString()));

@@ -2,16 +2,21 @@
 #{set navSelected: ['nav.storage', 'nav.block.volumes'] /}
 
   <script type="text/javascript">
-    var route = #{jsAction @volumesJson(':id')/};
+    var route = #{jsAction @volumesJson(':id',':appId')/};
    
-    function reloadVolumes() {
+    function reloadVolumes(value) {
       var table = $('#volumes table'); 
       var xhr = table.data('previousXHR');
       if (xhr) {
           xhr.abort();
       }
-      var projectId = $('#project option:selected').val();
-      table.dataTable().fnReloadAjax(route({id: projectId}));
+      if(value=="Project") {
+      	var projectId = $('#project option:selected').val();
+      } else if(value=="Application") {
+      	var applicationId = $('#application option:selected').val();
+      }
+      
+      table.dataTable().fnReloadAjax(route({id: projectId, appId:applicationId}));
     }
     
     function disableSRDFSource() {
@@ -29,19 +34,27 @@
         }
     }
     
+    function reloadVolumesbyFilter() {
+    	var filterSelected = $('#filter option:selected').val();
+    	reloadVolumes(filterSelected);
+    }
     table.volumes.dataTable.setDrawCallback(disableSRDFSource);
+
     
     $(document).ready(function() {
-      $('#project').on('change', reloadVolumes);
+    	$('#application').on('change', function() {reloadVolumes("Application");});
+     	$('#project').on('change', function() {reloadVolumes("Project");});
+     	$('#filter').on('change', reloadVolumesbyFilter)
     });
   </script>
 
-#{Resources.projectsControl projects:projects /}
+#{Resources.projectsApplicationsControl projects:projects /}
 
 <p id="srdfAlert" class="alert alert-info" style="display:none">&{'resources.volume.disabledSRDF'}</p> 
 
 #{DataTable.header titleKey:'nav.block.volumes' /}  
 #{DataTable.table id:'volumes',
+				  expandable:true,
                   dataTable:dataTable,
                   source:@volumesJson(session.activeProjectId), 
                   cssClass:'editableRows',
@@ -66,3 +79,16 @@
     <input type="hidden" name="type" value="VIPR_ONLY">
   #{/DataTable.formAction}
 #{/DataTable.table}
+#{DataTable.expandHtml @volumeDetails(':id'), table:'volumes' /}
+#{set 'moreScripts'}
+#{get 'moreScripts'/}
+<script type="text/javascript">
+function renderLink(o, val) {
+    var data = o.aData;
+    var url = #{jsAction @resources.BlockVolumes.volume(':id') /};
+    var href = url(data);
+    
+    return "<a href='"+href+"'>" + val + "</a>";
+}
+</script>
+#{/set}

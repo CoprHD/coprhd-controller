@@ -4,12 +4,27 @@
  */
 package com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.processor.SRDF;
 
+import java.io.IOException;
+import java.net.URI;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
+import javax.cim.CIMInstance;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.model.RemoteDirectorGroup;
 import com.emc.storageos.db.client.model.RemoteDirectorGroup.ConnectivityStatus;
+import com.emc.storageos.db.client.model.StorageProvider;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StorageSystem.SupportedReplicationTypes;
 import com.emc.storageos.db.client.model.StringSet;
@@ -20,18 +35,6 @@ import com.emc.storageos.plugins.common.Constants;
 import com.emc.storageos.plugins.common.domainmodel.Operation;
 import com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator;
 import com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.processor.StorageProcessor;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import javax.cim.CIMInstance;
-import java.io.IOException;
-import java.net.URI;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
 
 //Processor used in finding out active SRDF RA Groups
 public class RemoteConnectivityCollectionProcessor extends StorageProcessor {
@@ -100,7 +103,27 @@ public class RemoteConnectivityCollectionProcessor extends StorageProcessor {
             StringSet replicationModes = new StringSet();
             replicationModes.add(SupportedReplicationTypes.SRDF.toString());
             replicationModes.add(SupportedReplicationTypes.LOCAL.toString());
+            if (checkSupportedSRDFActiveModeProvider(device)) {
+                replicationModes.add(SupportedReplicationTypes.SRDFMetro.toString());
+            }
             device.setSupportedReplicationTypes(replicationModes);
+        }
+    }
+
+    private boolean checkSupportedSRDFActiveModeProvider(StorageSystem storageSystem) {
+        if (storageSystem.checkIfVmax3() && storageSystem.getUsingSmis80()) {
+            try {
+                StorageProvider storageProvider = _dbClient.queryObject(StorageProvider.class, storageSystem.getActiveProviderURI());
+                String providerVersion = storageProvider.getVersionString();
+                String versionSubstring = providerVersion.split("\\.")[1];
+                return (Integer.parseInt(versionSubstring) >= 2);
+            } catch (Exception e) {
+                _log.error("Exception get provider version for the storage system {} {}.", storageSystem.getLabel(),
+                        storageSystem.getId());
+                return false;
+            }
+        } else {
+            return false;
         }
     }
 

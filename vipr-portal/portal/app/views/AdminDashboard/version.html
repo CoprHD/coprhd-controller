@@ -1,3 +1,5 @@
+#{set isActiveSite:controllers.infra.DisasterRecovery.isActiveSite() /}
+
 <div id="versionPanel">
   <div class="panel panel-default">
     <div class="panel-heading"><h3 class="panel-title">&{'adminDashboard.version'}</h3></div>
@@ -6,9 +8,14 @@
         <dl>
           #{if clusterInfo?.targetState?.current}
             <dt class="text-muted">&{'adminDashboard.currentVersion'}</dt>
+            #{if isActiveSite }
             <dd style="font-size: 1.25em;">
               #{deadbolt.restrict roles:[['SYSTEM_ADMIN'], ['RESTRICTED_SYSTEM_ADMIN']]}<a href="@{infra.Upgrade.index()}">#{/deadbolt.restrict}${clusterInfo.targetState?.current}#{deadbolt.restrict roles:[['SYSTEM_ADMIN'], ['RESTRICTED_SYSTEM_ADMIN']]}</a>#{/deadbolt.restrict}
-            </dd>   
+            </dd>
+            #{/if}
+            #{else}
+            	<span>${clusterInfo.targetState?.current}</span>
+            #{/else}  
           #{/if}
           #{if fabricHealth}
             <dt class="text-muted">&{'adminDashboard.fabricVersion'}</dt>
@@ -22,22 +29,29 @@
               #{list items:license.licenseFeatures, as:'lf'}
                 <div class="row">
                   #{deadbolt.restrict roles:[['SYSTEM_ADMIN'], ['RESTRICTED_SYSTEM_ADMIN']]}
-                    <span class="col-sm-6"><a href="@{infra.Licensing.index()}">${util.LicenseUtils.getLabel(lf)}</a></span>
+                  #{if isActiveSite }
+                    <span class="col-sm-6"><a href="@{infra.Licensing.index()}">${util.LicenseUtils.getLabel(lf)} : ${util.LicenseUtils.getType(lf)}</a></span>
+                  #{/if}
+                  #{else}
+                  	<span class="col-sm-6">${util.LicenseUtils.getLabel(lf)} : ${util.LicenseUtils.getType(lf)}</span>
+                  #{/else}
                     <span class="col-sm-6">#{licensedStatus licenseFeature: lf, storageStatsWrapper: storageStatsWrapper /}</span >
                   #{/deadbolt.restrict}
                   #{deadbolt.restrict roles:[['!SYSTEM_ADMIN', '!RESTRICTED_SYSTEM_ADMIN']]}
-                    <span class="col-sm-6">${util.LicenseUtils.getLabel(lf)}</span>
+                    <span class="col-sm-6">${util.LicenseUtils.getLabel(lf)} : ${util.LicenseUtils.getType(lf)}</span>
                     <span class="col-sm-6">#{licensedStatus licenseFeature: lf, storageStatsWrapper: storageStatsWrapper /}</span >
                   #{/deadbolt.restrict}
                 </div>
               #{/list}  
             </dd>
           #{/if}              
-        </dl>  
-        #{if clusterInfo?.newVersions?.size > 0}
-          <div class="alert alert-info" #{deadbolt.restrict roles:[['SYSTEM_ADMIN'], ['RESTRICTED_SYSTEM_ADMIN']]}onclick="window.location.href = '@{infra.Upgrade.index()}';" style="cursor: pointer;"#{/deadbolt.restrict}>
-              &{'upgrade.newVersionAvailable',clusterInfo.newVersions.getAt(0)}
-          </div>
+        </dl>
+        #{if isActiveSite}  
+        	#{if !util.SetupUtils.isOssBuild() && clusterInfo?.newVersions?.size > 0}
+          		<div class="alert alert-info" #{deadbolt.restrict roles:[['SYSTEM_ADMIN'], ['RESTRICTED_SYSTEM_ADMIN']]}onclick="window.location.href = '@{infra.Upgrade.index()}';" style="cursor: pointer;"#{/deadbolt.restrict}>
+              		&{'upgrade.newVersionAvailable',clusterInfo.newVersions.getAt(0)}
+          		</div>
+        	#{/if}
         #{/if}                
       #{/if}      
       #{else}

@@ -9,6 +9,7 @@ import java.security.KeyStore;
 import java.util.List;
 import java.util.Properties;
 
+import com.emc.storageos.security.ipsec.IPsecConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -77,6 +78,9 @@ public class VdcControllerImpl implements VdcController {
 
     private KeyStore _keyStore;
 
+    @Autowired
+    private IPsecConfig ipsecConfig;
+
     @Override
     public void setKeystore(KeyStore keystore) {
         _keyStore = keystore;
@@ -95,7 +99,7 @@ public class VdcControllerImpl implements VdcController {
         // during connect vdc process, the whole system will rolling reboot to apply
         // the new system properity, we shall not redo the finished steps
         ConnectVdcTaskOp vdcOp = new ConnectVdcTaskOp(dbClient, geoClientCache, helper,
-                serviceInfo, localVdc, task, (Properties) taskParams.get(0), apiSignatureGenerator, _keyStore);
+                serviceInfo, localVdc, task, (Properties) taskParams.get(0), apiSignatureGenerator, _keyStore, ipsecConfig);
         log.info("Initialize ConnectVdcTaskOp done. ");
         vdcOp.setLockHelper(vdcLockHelper);
         vdcOp.setBasePermissionHelper(permissionsHelper);
@@ -108,7 +112,7 @@ public class VdcControllerImpl implements VdcController {
                 vdc.getShortId(), task);
 
         RemoveVdcTaskOp vdcOp = new RemoveVdcTaskOp(dbClient, geoClientCache, helper,
-                serviceInfo, vdc, task, _keyStore);
+                serviceInfo, vdc, task, _keyStore, ipsecConfig);
         log.info("Initialize RemoveVdcTaskOp done. ");
         vdcOp.setLockHelper(vdcLockHelper);
         vdcOp.handle();
@@ -119,7 +123,7 @@ public class VdcControllerImpl implements VdcController {
 
         // TODO: during update, vip change needs reboot?
         UpdateVdcTaskOp vdcOp = new UpdateVdcTaskOp(dbClient, geoClientCache, helper,
-                serviceInfo, vdcToBeUpdated, task, params, apiSignatureGenerator, _keyStore);
+                serviceInfo, vdcToBeUpdated, task, params, apiSignatureGenerator, _keyStore, ipsecConfig);
         log.info("Initialize UpdateVdcTaskOp done. ");
         vdcOp.setLockHelper(vdcLockHelper);
         vdcOp.handle();
@@ -130,7 +134,7 @@ public class VdcControllerImpl implements VdcController {
         log.info("Starting to disconnect vdc {} info in the system, task id {}", vdcToBeDisconnected.getShortId(), task);
 
         DisconnectVdcTaskOp vdcOp = new DisconnectVdcTaskOp(dbClient, geoClientCache, helper, serviceInfo, vdcToBeDisconnected, task,
-                _keyStore);
+                _keyStore, ipsecConfig);
         log.info("Initialize DisconnectVdcTaskOp done. ");
         vdcOp.setLockHelper(vdcLockHelper);
         vdcOp.handle();
@@ -141,7 +145,7 @@ public class VdcControllerImpl implements VdcController {
         log.info("Starting to reconnect vdc {} info in the system, task id {}", vdcToBeReconnected.getShortId(), task);
 
         ReconnectVdcTaskOp vdcOp = new ReconnectVdcTaskOp(dbClient, geoClientCache, helper,
-                serviceInfo, vdcToBeReconnected, task, _keyStore);
+                serviceInfo, vdcToBeReconnected, task, _keyStore, ipsecConfig);
         log.info("Initialize ReconnectVdcTaskOp done. ");
         vdcOp.setLockHelper(vdcLockHelper);
         vdcOp.handle();

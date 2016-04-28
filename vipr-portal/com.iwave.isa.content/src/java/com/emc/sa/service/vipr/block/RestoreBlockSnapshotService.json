@@ -12,6 +12,12 @@
       type:"assetType.vipr.blockVolumeOrConsistencyType",
       lockable:true
     },
+    
+    type:{
+      type: "assetType.vipr.blockSnapshotType",
+      required: "false",
+      lockable: true
+    },
 
     consistencyGroup:{
       type:"assetType.vipr.consistencyGroupByProjectAndType"

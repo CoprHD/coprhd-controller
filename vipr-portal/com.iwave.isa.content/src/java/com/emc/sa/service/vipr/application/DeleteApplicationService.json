@@ -1,0 +1,11 @@
+{
+  baseKey:"DeleteApplication.Application",
+  serviceId:"DeleteApplication",
+  fields:{
+ 
+    application:{
+      type:"assetType.vipr.application"
+    }
+
+  }
+}

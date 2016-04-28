@@ -8,6 +8,7 @@ import java.util.Date;
 
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
+import javax.xml.bind.annotation.XmlType;
 
 /**
  * This class is used by REST API to represent the db consistency status
@@ -47,11 +48,13 @@ public class DbConsistencyStatusRestRep{
     }
 
     /**
-     * The status of db consistency check
-     * @valid NOT_STARTED = db consistency check has not started yet
-     * @valid IN_PROGRESS = db consistency check is in progress
-     * @valid SUCCESS = db consistency check succeed
-     * @valid FAILED = db consistency check failed
+     * The status of db consistency check. 
+     * Valid values 
+     *  NOT_STARTED = db consistency check has not started yet
+     *  IN_PROGRESS = db consistency check is in progress
+     *  SUCCESS = db consistency check succeed
+     *  FAILED = db consistency check failed
+     * 
      */
     @XmlElement(name = "status")
     public Status getStatus() {
@@ -63,8 +66,8 @@ public class DbConsistencyStatusRestRep{
     }
 
     /**
-     * The progress of db consistency check
-     * @valid 0-100
+     * The progress of db consistency check. Valid between 0 to 100
+     * 
      */
     @XmlElement(name = "progress")
     public int getProgress() {
@@ -104,6 +107,7 @@ public class DbConsistencyStatusRestRep{
         return sb.toString();
     }
 
+    @XmlType(name = "dbConsistencyStatus_Status")
     public enum Status {
         NOT_STARTED,
         IN_PROGRESS,

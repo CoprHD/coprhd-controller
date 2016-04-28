@@ -1,3 +1,6 @@
+#{set isActiveSite:controllers.infra.DisasterRecovery.isActiveSite() /}
+
+#{if isActiveSite }
 #{ConfigProperties.property property:page.firewallEnabled, disabled:unstable/}
 #{ConfigProperties.property property:page.sslCertificate, disabled:unstable/}
 #{ConfigProperties.property property:page.authLoginAttempts, disabled:unstable/}
@@ -10,7 +13,7 @@
   #{ConfigProperties.property property:page.rootSshKeys, disabled:unstable/}
   #{ConfigProperties.property property:page.svcuserSshKeys, disabled:unstable/}
 #{/ConfigProperties.propertySet}
-
+#{/if}
 #{if page.properties}
   #{ConfigProperties.propertySet}
     #{ConfigProperties.propertyList properties:page.properties, disabled:unstable/}

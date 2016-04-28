@@ -18,7 +18,12 @@
     <bean id="backupHandler" class="com.emc.storageos.management.backup.DbBackupHandler" >
         <property name="backupType" ref="backupType"/>
         <property name="backupContext" ref="backupContext"/>
-        <property name="viprKeyspace" value="StorageOS"/>
+        <property name="keyspaceList">
+            <list value-type="java.lang.String">
+                <value>StorageOS</value>
+                <value>system</value>
+            </list>
+        </property>
         <property name="ignoreCfList">
             <list value-type="java.lang.String">
                 <value>Stats</value>

@@ -28,7 +28,6 @@ public class MigrationRestRep extends DataObjectRestRep {
     /**
      * The percentage of the migration which has been completed.
      * 
-     * @valid 0-100
      * 
      * @return The percent done for the migration.
      */
@@ -45,7 +44,6 @@ public class MigrationRestRep extends DataObjectRestRep {
      * The source volume for the migration. This volume holds the data
      * to be migrated.
      * 
-     * @valid none
      * 
      * @return The related resource representation for the migration source.
      */
@@ -61,7 +59,6 @@ public class MigrationRestRep extends DataObjectRestRep {
     /**
      * The start time of the migration.
      * 
-     * @valid <i>EEE</i> <i>MMM</i> <i>dd</i> <i>hh</i>:<i>mm</i>:<i>ss</i> <i>z</i> <i>yyyy</i>
      * 
      * @return The migration start time.
      */
@@ -76,18 +73,17 @@ public class MigrationRestRep extends DataObjectRestRep {
 
     /**
      * The status of the migration.
-     * 
-     * @valid in-progress = The migration is in progress.
-     * @valid complete = The migration has completed.
-     * @valid paused = The migration has been paused.
-     * @valid cancelled = The migration has been canceled.
-     * @valid committed = The migration has been committed.
-     * @valid ready = The initial state for a migration after it has been created.
-     * @valid error = The migration failed.
-     * @valid partially-committed = The migration is in the process of being committed.
-     * @valid partially-cancelled = The migration is in the process of being canceled.
-     * @valid queued = The migration is queued and awaiting execution.
-     * 
+     * Valid values:
+     * in_progress = The migration is in progress
+     * complete = The migration has completed
+     * paused = The migration has been paused
+     * cancelled = The migration has been canceled
+     * committed = The migration has been committed
+     * ready = The initial state for a migration after it has been created
+     * error = The migration failed
+     * partially-committed = The migration is in the process of being committed
+     * partially-cancelled = The migration is in the process of being canceled
+     * queued = The migration is queued and awaiting execution
      * @return The migration status.
      */
     @XmlElement(name = "status")
@@ -103,8 +99,6 @@ public class MigrationRestRep extends DataObjectRestRep {
      * The target volume for the migration. This is the volume to which
      * the data on the source volume is migrated.
      * 
-     * @valid none
-     * 
      * @return The related resource representation for the migration target.
      */
     @XmlElement(name = "target")
@@ -119,7 +113,6 @@ public class MigrationRestRep extends DataObjectRestRep {
     /**
      * The volume being migrated.
      * 
-     * @valid none
      * 
      * @return The related resource representation for the volume being migrated.
      */

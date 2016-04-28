@@ -6,7 +6,15 @@ package com.emc.vipr.client;
 
 import com.emc.vipr.client.core.Backup;
 import com.emc.vipr.client.impl.RestClient;
-import com.emc.vipr.client.system.*;
+import com.emc.vipr.client.system.CallHome;
+import com.emc.vipr.client.system.Config;
+import com.emc.vipr.client.system.Control;
+import com.emc.vipr.client.system.HealthMonitor;
+import com.emc.vipr.client.system.IPsec;
+import com.emc.vipr.client.system.Licensing;
+import com.emc.vipr.client.system.Logs;
+import com.emc.vipr.client.system.Password;
+import com.emc.vipr.client.system.Upgrade;
 
 public class ViPRSystemClient {
     protected RestClient client;
@@ -112,5 +120,6 @@ public class ViPRSystemClient {
 
     public IPsec ipsec(){
         return new IPsec(client);
+
     }
 }

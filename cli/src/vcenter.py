@@ -38,6 +38,7 @@ class VCenter(object):
     URI_VCENTER_ACL = URI_VCENTERS + '/{0}/acl'
     URI_VCENTERS_WITH_TENANT_PARAM = URI_VCENTERS + '?tenant={0}'
     URI_VCENTERS_WITH_DISCOVER_PARAM = URI_VCENTERS + '?discover_vcenter={0}'
+    URI_VCENTER_WITH_DISCOVER_PARAM = URI_VCENTER + '?discover_vcenter={1}'
     URI_WHO_AM_I = "/user/whoami";
     VCENTERS_FROM_ALL_TENANTS = "No-Filter";
     VCENTERS_WITH_NO_TENANTS = "Not-Assigned";
@@ -394,6 +395,55 @@ class VCenter(object):
         o = common.json_decode(s)
 
         return o
+    
+    def vcenter_update(self, label, tenant, vcenter_ip, vcenter_port, osversion, usessl, username, password, cascade_tenancy):
+        '''
+        updates a vcenter
+        parameters:
+            label:  label of the vcenter
+        Returns:
+            JSON payload response
+        '''
+        
+        uri = self.vcenter_query(label, tenant)
+        (s, h) = common.service_json_request(
+            self.__ipAddr, self.__port, "GET", VCenter.URI_WHO_AM_I, None)
+        
+        user_info = common.json_decode(s)
+
+        sys_admin = False
+        vdc_roles = []
+
+        if user_info['vdc_roles']:
+            vdc_roles = user_info['vdc_roles']
+
+        if VCenter.USER_ROLE_SYSTEM_ADMIN in vdc_roles:
+            sys_admin = True
+        
+        params = dict()
+        params = {'name': label,
+                  'ip_address': vcenter_ip,
+                  'os_version': osversion,
+                  'port_number': vcenter_port,
+                  'user_name': username,
+                  'password': password,
+                  'use_ssl': usessl
+                  }
+        discover = 'false';
+        if tenant is None:
+            discover = 'true';
+        if sys_admin:
+            params['cascade_tenancy'] = cascade_tenancy;
+            body = json.dumps(params)
+            (s, h) = common.service_json_request(
+                self.__ipAddr, self.__port, "PUT", VCenter.URI_VCENTER_WITH_DISCOVER_PARAM.format(uri, discover), body)
+        else:
+            body = json.dumps(params)
+            (s, h) = common.service_json_request(
+                self.__ipAddr, self.__port, "PUT", VCenter.URI_VCENTER_WITH_DISCOVER_PARAM.format(uri, discover), body)
+        o = common.json_decode(s)
+        return o
+
 
 
 # Create routines
@@ -450,9 +500,8 @@ def create_parser(subcommand_parsers, common_parser):
 
     create_parser.add_argument('-cascade_tenancy', '-cascade',
                                dest='cascade_tenancy',
-                               metavar='<cascade_tenancy>',
                                choices=['true', 'false'],
-                               help='Whether to cascade the vCenter tenancy to its datacenters, clusters and hosts or not')
+                               help='Specify true, to cascade the vCenter tenancy to all its Datacenters, Clusters and Hosts. Specify false otherwise')
 
     create_parser.set_defaults(func=vcenter_create)
 
@@ -465,6 +514,7 @@ def vcenter_create(args):
     obj = VCenter(args.ip, args.port)
 
     try:
+        validate_tenant = obj.get_tenant_uri_from_name(args.tenant)
         res = obj.vcenter_create(args.name, args.tenant, args.vcenter_ip,
                                  args.vcenter_port, args.user, passwd,
                                  args.osversion, args.usessl, args.cascade_tenancy)
@@ -1019,6 +1069,78 @@ def get_vcenter_acls(args):
             return common.format_json_object(res)
     except SOSError as e:
         raise e
+    
+
+def update_parser(subcommand_parsers, common_parser):
+    # update command parser
+    update_parser = subcommand_parsers.add_parser(
+        'update',
+        description='ViPR vcenter Update CLI usage.',
+        parents=[common_parser],
+        conflict_handler='resolve',
+        help='update a vcenter')
+
+    mandatory_args = update_parser.add_argument_group('mandatory arguments')
+    mandatory_args.add_argument('-name', '-n',
+                                help='Name of vcenter',
+                                metavar='<vcentername>',
+                                dest='name',
+                                required=True)
+
+    update_parser.add_argument('-tenant', '-tn',
+                               help='Name of Tenant',
+                               metavar='<tenant>',
+                               dest='tenant',
+                               default=None)
+
+    update_parser.add_argument('-vcenter_ip', '-vcip',
+                                help='IP of Vcenter',
+                                metavar='<vcenter_ip>',
+                                dest='vcenter_ip')
+
+    update_parser.add_argument('-vcenter_port', '-vcpo',
+                                help='Port of Vcenter',
+                                metavar='<vcenter_port>',
+                                dest='vcenter_port')
+
+    update_parser.add_argument('-osversion', '-ov',
+                               help='osversion',
+                               dest='osversion',
+                               metavar='<osversion>',
+                               default=None)
+
+    update_parser.add_argument('-ssl', '-usessl',
+                               dest='usessl',
+                               action='store_true',
+                               help='Use SSL or not')
+
+    mandatory_args.add_argument('-user', '-u',
+                                help='Name of user',
+                                metavar='<user>',
+                                dest='user',
+                                required=True)
+
+    update_parser.add_argument('-cascade_tenancy', '-cascade',
+                               dest='cascade_tenancy',
+                               help='Specify true, to cascade the vCenter tenancy to all its Datacenters, Clusters and Hosts. Specify false otherwise',
+                               choices=['true', 'false'],
+                               default=None)
+
+    update_parser.set_defaults(func=vcenter_update)
+
+
+def vcenter_update(args):    
+    passwd = None
+    if (args.user and len(args.user) > 0):
+        passwd = common.get_password("vcenter")
+
+    obj = VCenter(args.ip, args.port)
+    try:
+        res = obj.vcenter_update(args.name, args.tenant, args.vcenter_ip, args.vcenter_port, args.osversion, args.usessl, args.user, passwd,
+                                  args.cascade_tenancy)
+    except SOSError as e:
+        common.format_err_msg_and_raise("update", "vcenter", e.err_text,
+                                        e.err_code)
 
 
 #
@@ -1066,3 +1188,6 @@ def vcenter_parser(parent_subparser, common_parser):
 
     #get vCenter acls parser
     get_acls_parser(subcommand_parsers, common_parser)
+    
+    # update command parser
+    update_parser(subcommand_parsers, common_parser)

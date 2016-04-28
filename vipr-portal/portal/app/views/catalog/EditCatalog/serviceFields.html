@@ -81,7 +81,7 @@
                   #{Form.selectMany field:field/}
                 #{/elseif}
               #{/elseif}
-              #{elseif (['text', 'number', 'storageSize'] as java.util.Set).contains(serviceField.type)}
+              #{elseif (['text', 'number', 'storageSize', 'expandSize'] as java.util.Set).contains(serviceField.type)}
                 %{
                   field.atts = [ maxlength: Math.min(serviceField?.max ?: 1024, 1024) ]
                 }%

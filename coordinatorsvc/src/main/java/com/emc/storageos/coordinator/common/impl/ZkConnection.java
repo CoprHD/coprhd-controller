@@ -128,6 +128,7 @@ public class ZkConnection {
             });
             if (FileUtils.exists(siteIdFile)) {
                 siteId = new String(FileUtils.readDataFromFile(siteIdFile));
+                siteId = siteId.trim();
                 _logger.info("Current site id is {}", siteId);
             }
         } catch (Exception e) {
@@ -177,15 +178,19 @@ public class ZkConnection {
      */
     private void generateSiteId() {
         try {
+            // get creation time of znode /sites
             EnsurePath siteZkPath = new EnsurePath(ZkPath.SITES.toString());
             siteZkPath.ensure(curator().getZookeeperClient());
             Stat stat = curator().checkExists().forPath(ZkPath.SITES.toString());
             long ctime = stat.getCtime();
             
-            int iphash = _connectString.hashCode();
-            long leastSigBits = (iphash << 32) | iphash;
+            // calculate hash code for node ip list
+            int len = _connectString.length();
+            int ipHashHigh = _connectString.substring(0, len / 2).hashCode();
+            int ipHashLow = _connectString.substring(len / 2).hashCode();
+            long ipHash = (((long)ipHashHigh) << 32) | (((long)ipHashLow) & 0x00000000FFFFFFFFL);
             
-            siteId = createTimeUUID(ctime, leastSigBits);
+            siteId = createTimeUUID(ctime, ipHash);
             _logger.info("Site UUID is {}", siteId);
             
             if (!FileUtils.exists(siteIdFile)) {

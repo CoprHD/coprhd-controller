@@ -34,7 +34,6 @@ import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
-import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.ExportMask;
@@ -363,7 +362,7 @@ public class NetworkDeviceController implements NetworkController {
         String taskId = UUID.randomUUID().toString();
         List<Zone> zones = new ArrayList<Zone>();
         // Make the zone operations. Don't make the same zone more than once,
-        // as determined by it's key. The same zone shows up multiple times because it
+        // as determined by its key. The same zone shows up multiple times because it
         // must be recorded for each volume in the FCZoneReference table.
         HashSet<String> keySet = new HashSet<String>();
         for (NetworkFCZoneInfo fabricInfo : fabricInfos) {
@@ -940,10 +939,10 @@ public class NetworkDeviceController implements NetworkController {
     public boolean zoneExportMasksCreate(URI exportGroupURI,
             List<URI> exportMaskURIs, Collection<URI> volumeURIs, String token) {
         ExportGroup exportGroup = null;
-        try {
-            exportGroup = _dbClient
-                    .queryObject(ExportGroup.class, exportGroupURI);
-            _log.info(String.format("Entering zoneExportMasksCreate for ExportGroup: %s (%s)",
+        try {    	
+        	exportGroup = _dbClient
+                    .queryObject(ExportGroup.class, exportGroupURI);   	            
+        	_log.info(String.format("Entering zoneExportMasksCreate for ExportGroup: %s (%s)",
                     exportGroup.getLabel(), exportGroup.getId()));
             if (exportMaskURIs == null && exportGroup.getExportMasks() != null) {
                 // If the ExportMasks aren't specified, do all in the ExportGroup.
@@ -1662,7 +1661,7 @@ public class NetworkDeviceController implements NetworkController {
             ref.setZoneName(zoneName);
             ref.setId(URIUtil.createId(FCZoneReference.class));
             ref.setInactive(false);
-            ref.setLabel(ref.getPwwnKey());
+            ref.setLabel(FCZoneReference.makeLabel(ref.getPwwnKey(), volumeURI.toString()));
             ref.setExistingZone(existingZone);
             _dbClient.createObject(ref);
             newOrExisting[0] = "New";
@@ -2545,16 +2544,16 @@ public class NetworkDeviceController implements NetworkController {
      * @return an instance of FCZoneReference
      */
     private static FCZoneReference createFCZoneReference(ZoneInfo info,
-            URI volumeURi, ExportGroup exportGroup) {
+            URI volumeURI, ExportGroup exportGroup) {
         FCZoneReference ref = new FCZoneReference();
         ref.setPwwnKey(info.getZoneReferenceKey());
         ref.setFabricId(info.getFabricId());
         ref.setNetworkSystemUri(URI.create(info.getNetworkSystemId()));
-        ref.setVolumeUri(volumeURi);
+        ref.setVolumeUri(volumeURI);
         ref.setGroupUri(exportGroup.getId());
         ref.setZoneName(info.getZoneName());
         ref.setId(URIUtil.createId(FCZoneReference.class));
-        ref.setLabel(ref.getPwwnKey());
+        ref.setLabel(FCZoneReference.makeLabel(ref.getPwwnKey(), volumeURI.toString()));
         ref.setExistingZone(true);
         return ref;
     }

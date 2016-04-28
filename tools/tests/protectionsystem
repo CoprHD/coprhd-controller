@@ -33,7 +33,7 @@ def protectionsystem_list(args):
     bourne.connect(args.ip)
     systems = bourne.protectionsystem_list()
     protectionsystem_display_hdr()
-    for system in systems['protection_system']:
+    for system in systems:
         protectionsystem = bourne.protectionsystem_show(system['id'])
         protectionsystem_display(protectionsystem)
 
@@ -70,6 +70,10 @@ def protectionsystem_discover(args):
     bourne.connect(args.ip)
     uri = bourne.protectionsystem_query(args.name)
     print bourne.protectionsystem_discover(uri, args.ignore_error)
+
+def protectionsystem_discover_namespace(args):
+    bourne.connect(args.ip)
+    s = bourne.protectionsystem_discover_namespace(args.name, args.namespace, args.ignore_error)
 
 def protectionsystem_show(args):
     bourne.connect(args.ip)
@@ -121,7 +125,7 @@ except:
 
 # protectionsystem <cmd> <cmd_args>  [--ip ipaddr]
 parser = argparse.ArgumentParser(description = 'Bourne protection system cli usage.')
-parser.add_argument('cmd', help = 'cmd = (create | delete | show | list | expand)')
+parser.add_argument('cmd', help = 'cmd = (create | delete | show | list | expand | discover | discover_namespace)')
 parser.add_argument('--ip',	metavar = 'ipaddr',	help = 'IP address of bourne', default=bourne_ip)
 
 # protectionsystem create name system_type ip_address user_name password registration_mode
@@ -141,6 +145,12 @@ list = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
 discover = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
 discover.add_argument('--ignore_error', action='store_true', help='If specified, will ignore failure')
 discover.add_argument('name', help='name of the protectionsystem')
+
+# protectionsystem discover_namespace
+discover_namespace = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+discover_namespace.add_argument('name',      help = 'Name of protection system')
+discover_namespace.add_argument('namespace',      help = 'Namespace name to discover')
+discover_namespace.add_argument('--ignore_error', action='store_true', help='If specified, will ignore failure')
 
 # protectionsystem show 
 show = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
@@ -202,6 +212,9 @@ try:
     elif (cmd == "discover"):
         args = discover.parse_args()
         protectionsystem_discover(args)
+    elif (cmd == "discover_namespace"):
+        args = discover_namespace.parse_args()
+        protectionsystem_discover_namespace(args)
     elif (cmd == "query"):
         args = query.parse_args()
         protectionsystem_query(args)

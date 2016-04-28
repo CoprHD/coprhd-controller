@@ -403,7 +403,7 @@ public class VirtualArrayService extends TaggedResource {
     public VirtualArrayRestRep createVirtualArray(VirtualArrayCreateParam param) {
 
         // check for active nh with same name
-        checkDuplicateLabel(VirtualArray.class, param.getLabel(), "VirtualArray");
+        checkDuplicateLabel(VirtualArray.class, param.getLabel());
 
         VirtualArray varray = new VirtualArray();
         varray.setId(URIUtil.createId(VirtualArray.class));
@@ -443,7 +443,7 @@ public class VirtualArrayService extends TaggedResource {
         if (param.getLabel() != null && !param.getLabel().isEmpty()) {
             if (!varray.getLabel().equalsIgnoreCase(param.getLabel())) {
                 // check for active VirtualArray with same name
-                checkDuplicateLabel(VirtualArray.class, param.getLabel(), "VirtualArray");
+                checkDuplicateLabel(VirtualArray.class, param.getLabel());
             }
             varray.setLabel(param.getLabel());
         }

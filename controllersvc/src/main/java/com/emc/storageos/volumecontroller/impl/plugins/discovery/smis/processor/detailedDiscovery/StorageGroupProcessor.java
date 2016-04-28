@@ -15,6 +15,7 @@ import javax.cim.CIMObjectPath;
 import javax.wbem.CloseableIterator;
 import javax.wbem.client.WBEMClient;
 
+import com.emc.storageos.volumecontroller.impl.plugins.SMICommunicationInterface;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -48,12 +49,20 @@ public class StorageGroupProcessor extends StorageProcessor {
             throws BaseCollectionException {
         @SuppressWarnings("unchecked")
         final Iterator<CIMObjectPath> it = (Iterator<CIMObjectPath>) resultObj;
-        WBEMClient client = (WBEMClient) keyMap.get(Constants._cimClient);
-        Map<String, String> volumesWithSLO = new HashMap<String, String>();
+        WBEMClient client = SMICommunicationInterface.getCIMClient(keyMap);
+        Map<String, String> volumesWithSLO = null;
         dbClient = (DbClient) keyMap.get(Constants.dbClient);
         AccessProfile profile = (AccessProfile) keyMap.get(Constants.ACCESSPROFILE);
         URI systemId = profile.getSystemId();
-        List<CIMObjectPath> processedSGs = new ArrayList<CIMObjectPath>();
+        List<CIMObjectPath> processedSGs = new ArrayList<>();
+
+        if (!keyMap.containsKey(Constants.VOLUMES_WITH_SLOS)) {
+            volumesWithSLO = new HashMap<>();
+            keyMap.put(Constants.VOLUMES_WITH_SLOS, volumesWithSLO);
+        } else {
+            volumesWithSLO = (Map<String, String>) keyMap.get(Constants.VOLUMES_WITH_SLOS);
+        }
+
         try {
             StorageSystem device = dbClient.queryObject(StorageSystem.class, systemId);
             // Process these only for VMAX3 Systems.
@@ -68,16 +77,7 @@ public class StorageGroupProcessor extends StorageProcessor {
                         logger.info("Skipping the already processed SG. {}", path);
                         continue;
                     }
-                    findVolumesSLOFromSGInstace(client, path, volumesWithSLO);
-
-                    if (!keyMap.containsKey(Constants.VOLUMES_WITH_SLOS)) {
-                        keyMap.put(Constants.VOLUMES_WITH_SLOS, volumesWithSLO);
-                    } else {
-                        @SuppressWarnings("unchecked")
-                        Map<String, String> alreadyExportedVolumes = (Map<String, String>) keyMap
-                                .get(Constants.VOLUMES_WITH_SLOS);
-                        alreadyExportedVolumes.putAll(volumesWithSLO);
-                    }
+                    findVolumesSLOFromSGInstance(client, path, volumesWithSLO);
                 }
             }
         } catch (Exception e) {
@@ -99,7 +99,7 @@ public class StorageGroupProcessor extends StorageProcessor {
      * @param volumesWithSLO
      *            - Volumes with SLO Names.
      */
-    private void findVolumesSLOFromSGInstace(WBEMClient client, CIMObjectPath path, Map<String, String> volumesWithSLO) {
+    private void findVolumesSLOFromSGInstance(WBEMClient client, CIMObjectPath path, Map<String, String> volumesWithSLO) {
         try {
             CIMInstance instance = client.getInstance(path, false, true, SmisConstants.PS_HOST_IO);
             String fastSetting = SmisUtils.getSLOPolicyName(instance);
@@ -107,8 +107,11 @@ public class StorageGroupProcessor extends StorageProcessor {
             while (volPaths.hasNext()) {
                 CIMObjectPath volPath = volPaths.next();
                 String volumeNativeGuid = getVolumeNativeGuid(volPath);
-                logger.debug("Volume key: {} fastSetting: {}", volumeNativeGuid, fastSetting);
-                volumesWithSLO.put(volumeNativeGuid, fastSetting);
+                // Allow overwriting a previous entry if fast setting is non-null.
+                if (!volumesWithSLO.containsKey(volumeNativeGuid) || fastSetting != null) {
+                    logger.debug("Volume key: {} fastSetting: {}", volumeNativeGuid, fastSetting);
+                    volumesWithSLO.put(volumeNativeGuid, fastSetting);
+                }
             }
         } catch (Exception e) {
             logger.warn("Finding unexported volume SLOName failed during unmanaged volume discovery", e);

@@ -11,6 +11,7 @@ import com.emc.storageos.db.client.model.ComputeImageServer.ComputeImageServerSt
 import com.emc.storageos.db.client.model.Operation.Status;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.security.audit.AuditLogManager;
+import com.emc.storageos.security.audit.AuditLogManagerFactory;
 import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 import com.emc.storageos.volumecontroller.TaskCompleter;
@@ -45,8 +46,7 @@ public class ComputeImageServerCompleter extends TaskCompleter{
 
         log.info("ComputeImageServerCompleter.complete {}", status.name());
         ComputeImageServer imageServer = dbClient.queryObject(ComputeImageServer.class, getId());
-        AuditLogManager auditMgr = new AuditLogManager();
-        auditMgr.setDbClient(dbClient);
+        AuditLogManager auditMgr = AuditLogManagerFactory.getAuditLogManager();
         if (status == Status.error) {
             dbClient.error(ComputeImageServer.class, getId(), getOpId(), coded);
             auditMgr.recordAuditLog(null, null, serviceType,

@@ -13,7 +13,6 @@ import javax.xml.bind.annotation.XmlRootElement;
 @XmlAccessorType(XmlAccessType.PROPERTY)
 public class FailoverPrecheckResponse extends SiteErrorResponse {
     
-    private static FailoverPrecheckResponse noError = new FailoverPrecheckResponse();
     private SiteRestRep site;
 
     @XmlElement(name = "site")
@@ -40,9 +39,5 @@ public class FailoverPrecheckResponse extends SiteErrorResponse {
         builder.append(site);
         builder.append("]");
         return builder.toString();
-    }
-    
-    public static FailoverPrecheckResponse noError() {
-        return noError;
     }
 }

@@ -23,6 +23,6 @@ public class DbVersionTest extends DbsvcTestBase {
 
     @Test
     public void matchVersion() throws Exception {
-        Assert.assertEquals(_dbVersionInfo.getSchemaVersion(), service.getVersion());
+        Assert.assertEquals(sourceVersion.getSchemaVersion(), service.getVersion());
     }
 }

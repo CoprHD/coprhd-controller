@@ -51,6 +51,7 @@ import com.emc.storageos.auth.TokenManager;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.BlockMirror;
 import com.emc.storageos.db.client.model.BlockSnapshot;
+import com.emc.storageos.db.client.model.BlockSnapshotSession;
 import com.emc.storageos.db.client.model.Cluster;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.ExportGroup;
@@ -206,6 +207,7 @@ public class OrderManagerImpl implements OrderManager {
             case FILE_SHARE:
             case FILE_SNAPSHOT:
             case BLOCK_SNAPSHOT:
+            case BLOCK_SNAPSHOT_SESSION:
             case VCENTER:
             case VCENTER_DATA_CENTER:
             case SMIS_PROVIDER:
@@ -266,7 +268,7 @@ public class OrderManagerImpl implements OrderManager {
                     dataObject = client.findById(QuotaDirectory.class, id);
                     break;
                 case VIRTUAL_ARRAY:
-                    dataObject = client.findById(VirtualArray.class, id);
+                    dataObject = client.findById(VirtualArray.class, getTargetVirtualArray(id));
                     break;
                 case VIRTUAL_POOL:
                     dataObject = client.findById(VirtualPool.class, id);
@@ -288,6 +290,9 @@ public class OrderManagerImpl implements OrderManager {
                     break;
                 case BLOCK_SNAPSHOT:
                     dataObject = client.findById(BlockSnapshot.class, id);
+                    break;
+                case BLOCK_SNAPSHOT_SESSION:
+                    dataObject = client.findById(BlockSnapshotSession.class, id);
                     break;
                 case VCENTER:
                     dataObject = client.findById(Vcenter.class, id);
@@ -331,6 +336,14 @@ public class OrderManagerImpl implements OrderManager {
             return augmentDataObjectName(dataObject);
         } else {
             return resourceId;
+        }
+    }
+
+    private URI getTargetVirtualArray(URI id) {
+        if (id.toString().startsWith("tgt:")) {
+            return URI.create(StringUtils.substringAfter(id.toString(), ":"));
+        } else {
+            return id;
         }
     }
 

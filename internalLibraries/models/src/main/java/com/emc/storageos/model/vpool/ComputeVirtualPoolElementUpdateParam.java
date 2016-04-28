@@ -26,7 +26,6 @@ public class ComputeVirtualPoolElementUpdateParam {
     /**
      * Changes to the assigned elements for a compute virtual pool.
      * 
-     * @valid none
      */
     @XmlElement(name = "assigned_element_changes")
     public ComputeVirtualPoolAssignmentChanges getComputeVirtualPoolAssignmentChanges() {

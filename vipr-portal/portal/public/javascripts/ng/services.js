@@ -13,7 +13,7 @@ angular.module("services", []).directive({
     	
     	function addBlankOptionIfRequired(item) {
     		// item is not required and has options
-            if (item && !item.required && item.options && item.options.length > 0) {
+            if (item && !item.required && item.options && item.options.length > 0 && !item.omitNone) {
             	item.options.unshift({
         			"key": "",
         			"value": translate("common.none")
@@ -56,6 +56,15 @@ angular.module("services", []).directive({
 
                     if (params) {
                         item.loading = true;
+                        // disable all field that we depend on 
+                        angular.forEach(fieldDescriptor.fieldsWeDependOn, function(dependencyName) {
+                        	$scope[dependencyName].disabled = true;
+                        	if ($scope[dependencyName].disableCount === undefined) {
+                        		// keep track of how many dependencies to avoid enabling while fields are still being populated
+                        		$scope[dependencyName].disableCount = 0; 
+                        	}
+                        	$scope[dependencyName].disableCount += 1;
+                        });
                         $http.get("/api/options/" + fieldDescriptor.assetType, {params: params }).success(function(data) {
                             item.disabled = false;
                             if (item.select == 'field') {
@@ -72,6 +81,14 @@ angular.module("services", []).directive({
                                 item.label, details);
                         }).finally(function() {
                             item.loading = false;
+                            // enable all dependency field
+                            angular.forEach(fieldDescriptor.fieldsWeDependOn, function(dependencyName) {
+                            	$scope[dependencyName].disableCount -= 1;
+                            	// only enable if no more fields are populating and dependency isn't loading (will enable itself once done)
+                            	if (!$scope[dependencyName].disableCount > 0 && !$scope[dependencyName].loading) {
+                            		$scope[dependencyName].disabled = false;
+                            	}
+                            });
                         });
                     } else {
                     	item.options = "";
@@ -95,7 +112,7 @@ angular.module("services", []).directive({
                         tagAttrs["match-with"] = item.matchWith;
                         tagAttrs["match-error"] = item.matchError;
                     }
-                } else if (item.type.match(/^(number|storageSize)$/)) {
+                } else if (item.type.match(/^(number|storageSize|expandSize)$/)) {
                     type = '<input-text>';
                     tagAttrs = {'maxlength': validation.max || 18}; //anything bigger can overflow a long
                 } else if (item.type == "boolean") {
@@ -133,6 +150,8 @@ angular.module("services", []).directive({
 	                    	addBlankOptionIfRequired(item);
 	                    }
                 	}
+                } else if (item.type == 'dateTime') {
+                    type = '<date-time>';
                 } else {
                     item.error = " ";
                     type = "<p class='help-inline'>" + translate('serviceField.unsupportedType',item.type) + "</p>";

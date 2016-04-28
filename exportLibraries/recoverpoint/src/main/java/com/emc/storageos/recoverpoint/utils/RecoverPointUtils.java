@@ -21,9 +21,12 @@ import com.emc.fapiclient.ws.ClusterSANVolumes;
 import com.emc.fapiclient.ws.ClusterSplittersSettings;
 import com.emc.fapiclient.ws.ClusterUID;
 import com.emc.fapiclient.ws.ConnectionOutThroughput;
+import com.emc.fapiclient.ws.ConsistencyGroupCopyRole;
 import com.emc.fapiclient.ws.ConsistencyGroupCopySettings;
+import com.emc.fapiclient.ws.ConsistencyGroupCopyState;
 import com.emc.fapiclient.ws.ConsistencyGroupCopyUID;
 import com.emc.fapiclient.ws.ConsistencyGroupSettings;
+import com.emc.fapiclient.ws.ConsistencyGroupState;
 import com.emc.fapiclient.ws.ConsistencyGroupUID;
 import com.emc.fapiclient.ws.DeviceUID;
 import com.emc.fapiclient.ws.FullRecoverPointSettings;
@@ -35,7 +38,6 @@ import com.emc.fapiclient.ws.GlobalCopyUID;
 import com.emc.fapiclient.ws.InOutThroughputStatistics;
 import com.emc.fapiclient.ws.LicenseState;
 import com.emc.fapiclient.ws.LicenseStatus;
-import com.emc.fapiclient.ws.PipeState;
 import com.emc.fapiclient.ws.ReplicationSetSettings;
 import com.emc.fapiclient.ws.RpaStatistics;
 import com.emc.fapiclient.ws.RpaUID;
@@ -138,14 +140,14 @@ public class RecoverPointUtils {
         }
         impl.enableConsistencyGroup(cgUID, true);
         // Make sure the CG is ready
-        RecoverPointImageManagementUtils imageManager = new RecoverPointImageManagementUtils();        
+        RecoverPointImageManagementUtils imageManager = new RecoverPointImageManagementUtils();
         imageManager.waitForCGLinkState(impl, cgUID, RecoverPointImageManagementUtils.getPipeActiveState(impl, cgUID));
         logger.info("End enableNewConsistencyGroup.");
     }
 
     /**
      * Validates that the production and/or local/remote copies are not null
-     * 
+     *
      * @param prodCopy
      * @param localCopy
      * @param remoteCopies
@@ -165,7 +167,7 @@ public class RecoverPointUtils {
 
     /**
      * Removes a consistency group
-     * 
+     *
      * @param impl - RP handle to use for RP operations
      * @param cgUID - UID of the consistency group which needs to be removed.
      * @throws RecoverPointException
@@ -205,7 +207,7 @@ public class RecoverPointUtils {
 
     /**
      * verify that the volumes in a consistency group are connected to a splitter
-     * 
+     *
      * @param impl - handle for FAPI
      * @param groupUID - consistency group to examine volumes on
      * @throws - RecoverPointException
@@ -253,7 +255,7 @@ public class RecoverPointUtils {
 
     /**
      * Get all of the arrays associated with a cluster
-     * 
+     *
      * @param impl endpoint interface
      * @param clusterUID cluster ID
      * @return set of storage systems
@@ -309,7 +311,7 @@ public class RecoverPointUtils {
 
     /**
      * Finds the splitter(s) to attach a volume to (if any need to be attached).
-     * 
+     *
      * @param impl - handle for FAPI
      * @param ClusterUID - site for the volume
      * @param volume - volume ID we are looking for
@@ -344,7 +346,7 @@ public class RecoverPointUtils {
 
     /**
      * Validates if the two CG's copies passed in are the same, but w/o the CG itself specified.
-     * 
+     *
      * @param globalCopyUID
      * @param globalCopyUID2
      * @return - boolean
@@ -359,7 +361,7 @@ public class RecoverPointUtils {
 
     /**
      * Validates if the two CG's passed in are the same.
-     * 
+     *
      * @param globalCopyUID
      * @param globalCopyUID2
      * @return - boolean
@@ -377,7 +379,7 @@ public class RecoverPointUtils {
      * Determine if the CG passed in is a production copy. In the case of metropoint, there are more than one production copy, active and
      * stand-by,
      * and they have different CG Copy UID.
-     * 
+     *
      * @param copyUID
      * @param productionCopiesUIDs
      * @return
@@ -392,6 +394,60 @@ public class RecoverPointUtils {
             }
         }
         return false;
+    }
+
+    /**
+     * Determines if a consistency group copy is the standby production copy.
+     *
+     * @param copyUID the consistency group copy to check.
+     * @param state the consistency group state.
+     * @param productionCopiesUIDs the list of production copies in the consistency group.
+     * @return true if the copy is a standby production copy, false otherwise.
+     */
+    public static boolean isStandbyProductionCopy(ConsistencyGroupCopyUID copyUID, ConsistencyGroupState state,
+            List<ConsistencyGroupCopyUID> productionCopiesUIDs) {
+        if (RecoverPointUtils.isProductionCopy(copyUID, productionCopiesUIDs)) {
+            for (ConsistencyGroupCopyState copyState : state.getGroupCopiesStates()) {
+                // If the state of this production copy is not active, it is the standby production copy
+                if (RecoverPointUtils.cgCopyEqual(copyUID, copyState.getCopyUID())
+                        && !copyState.isActive()) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Gets the standby production copy if one exists. This will only be the case in MetroPoint
+     * configurations.
+     *
+     * @param cgSettings the consistency group settings.
+     * @param state the consistency group state.
+     * @return the standby copy if one exists, null otherwise.
+     */
+    public static ConsistencyGroupCopyUID getStandbyProductionCopy(ConsistencyGroupSettings cgSettings, ConsistencyGroupState state) {
+        if (cgSettings != null && cgSettings.getGroupCopiesSettings() != null) {
+            List<ConsistencyGroupCopyUID> productionCopies = cgSettings.getProductionCopiesUIDs();
+
+            // If there are 2 production copies, we are dealing with a MetroPoint configuration. There will
+            // be an active and a standby production copy.
+            if (productionCopies != null && productionCopies.size() == 2) {
+                for (ConsistencyGroupCopySettings copySetting : cgSettings.getGroupCopiesSettings()) {
+                    if (RecoverPointUtils.isProductionCopy(copySetting.getCopyUID(), cgSettings.getProductionCopiesUIDs())
+                            && ConsistencyGroupCopyRole.ACTIVE.equals(copySetting.getRoleInfo().getRole())) {
+                        for (ConsistencyGroupCopyState copyState : state.getGroupCopiesStates()) {
+                            if (RecoverPointUtils.cgCopyEqual(copySetting.getCopyUID(), copyState.getCopyUID())
+                                    && !copyState.isActive()) {
+                                return copySetting.getCopyUID();
+                            }
+                        }
+                    }
+                }
+
+            }
+        }
+        return null;
     }
 
     /**
@@ -424,6 +480,8 @@ public class RecoverPointUtils {
                 for (VolumeInformation volume : siteSANVolumes.getVolumesInformations()) {
                     String siteVolUID = RecoverPointUtils.getGuidBufferAsString(volume.getRawUids(), false);
                     if (siteVolUID.equalsIgnoreCase(wwnString)) {
+                        logger.info("Found volume " + wwnString + " on site " + rpSite.getInternalSiteName() + " as volume ID: "
+                                + volume.getVolumeID().getId());
                         return volume.getVolumeID();
                     }
                 }
@@ -435,7 +493,7 @@ public class RecoverPointUtils {
     /**
      * Find the transient site ID, given the permanent/unchanging unique internal site name.
      * Needed for some internal operations, like creating cgs.
-     * 
+     *
      * @param impl the established connection to an appliance
      * @param internalSiteName internal site name, never changes
      * @return ClusterUID corresponding to the site that has that internal site name.
@@ -449,6 +507,27 @@ public class RecoverPointUtils {
                 .getClustersConfigurations()) {
             if (siteSettings.getInternalClusterName().equals(internalSiteName)) {
                 return siteSettings.getCluster();
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Find the internal site name, given the cluster UID
+     *
+     * @param impl the established connection to an appliance
+     * @param ClusterUID corresponding to the site that has that internal site name.
+     * @return string internal site name
+     * @throws FunctionalAPIActionFailedException_Exception
+     * @throws FunctionalAPIInternalError_Exception
+     */
+    public static String getInternalSiteName(FunctionalAPIImpl impl, ClusterUID clusterID)
+            throws FunctionalAPIActionFailedException_Exception, FunctionalAPIInternalError_Exception {
+        FullRecoverPointSettings fullRecoverPointSettings = impl.getFullRecoverPointSettings();
+        for (ClusterConfiguration siteSettings : fullRecoverPointSettings.getSystemSettings().getGlobalSystemConfiguration()
+                .getClustersConfigurations()) {
+            if (siteSettings.getCluster().getId() == clusterID.getId()) {
+                return siteSettings.getInternalClusterName();
             }
         }
         return null;
@@ -473,7 +552,7 @@ public class RecoverPointUtils {
 
     /**
      * Returns true if the specified RecoverPoint site is licensed.
-     * 
+     *
      * @param impl
      * @return boolean
      * @throws Exception
@@ -510,13 +589,13 @@ public class RecoverPointUtils {
      * consistency group. The preferred RPA is determined by examining the
      * current throughput for all of the passed in cluster's RPAs and selecting
      * the RPA that is currently handling the least amount of throughput.
-     * 
+     *
      * @param impl - the established connection to an appliance
      * @param clusterUID - corresponding to the site that we are trying to determine the preferred RPA for.
      * @return RpaUID - object with the preferred RPA number
      * @throws FunctionalAPIActionFailedException_Exception
      * @throws FunctionalAPIInternalError_Exception
-     * 
+     *
      */
     public static RpaUID getPreferredRPAForNewCG(FunctionalAPIImpl impl, ClusterUID clusterUID)
             throws FunctionalAPIActionFailedException_Exception,
@@ -566,28 +645,28 @@ public class RecoverPointUtils {
                 + " for the new consistency group");
         return preferredRPA;
     }
-    
+
     /**
      * Determine the NAA identifier of the xtremio volume in the format RP requires
-     * 
+     *
      * @param nativeGuid string
      * @return the NAA identifier for the xtremio volume
      */
-    public static String getXioNativeGuid(String nativeGuid) {    	
-    	// nativeGuid coming in XTREMIO+APM00142114518+VOLUME+ea85e053e92a4076bc7c6b76935e14a2
-    	// we want the final value after the third + sign
-    	return nativeGuid.split("\\+")[3];
+    public static String getXioNativeGuid(String nativeGuid) {
+        // nativeGuid coming in XTREMIO+APM00142114518+VOLUME+ea85e053e92a4076bc7c6b76935e14a2
+        // we want the final value after the third + sign
+        return nativeGuid.split("\\+")[3];
     }
-    
+
     /**
      * Determines if the volume is an xtremio volume
-     * 
+     *
      * @param nativeGuid string
      * @return boolean indicating if this is an xtremio volume
      */
-    public static boolean isXioVolume(String nativeGuid) {    	
-    	// nativeGuid coming in XTREMIO+APM00142114518+VOLUME+ea85e053e92a4076bc7c6b76935e14a2
-    	return nativeGuid.contains("XTREMIO");
+    public static boolean isXioVolume(String nativeGuid) {
+        // nativeGuid coming in XTREMIO+APM00142114518+VOLUME+ea85e053e92a4076bc7c6b76935e14a2
+        return nativeGuid.contains("XTREMIO");
     }
-    
+
 }

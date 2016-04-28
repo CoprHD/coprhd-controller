@@ -25,6 +25,7 @@ import com.emc.storageos.api.service.authorization.PermissionsHelper;
 import com.emc.storageos.api.service.impl.resource.utils.AsynchJobExecutorService;
 import com.emc.storageos.api.service.impl.resource.utils.BlockServiceUtils;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
+import com.emc.storageos.coordinator.exceptions.RetryableCoordinatorException;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.constraint.Constraint;
@@ -39,6 +40,7 @@ import com.emc.storageos.db.client.model.AbstractTenantResource;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.DiscoveredComputeSystemWithAcls;
 import com.emc.storageos.db.client.model.Project;
+import com.emc.storageos.db.client.model.Task;
 import com.emc.storageos.db.client.model.TenantOrg;
 import com.emc.storageos.db.client.model.Vcenter;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
@@ -49,6 +51,7 @@ import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.model.NamedRelatedResourceRep;
 import com.emc.storageos.model.RestLinkRep;
 import com.emc.storageos.model.tenant.TenantOrgList;
+import com.emc.storageos.plugins.common.Constants;
 import com.emc.storageos.security.audit.AuditLogManager;
 import com.emc.storageos.security.authentication.InterNodeHMACAuthFilter;
 import com.emc.storageos.security.authentication.StorageOSUser;
@@ -116,14 +119,38 @@ public abstract class ResourceService {
     /**
      * Check if a resource can be inactivated safely
      * 
-     * @return detail type of the depedency if exist, null otherwise
+     * @param object Reference to object to verify.
+     * 
+     * @return detail type of the dependency if exist, null otherwise
+     * 
      * @throws DatabaseException for db errors
      */
     protected <T extends DataObject> String checkForDelete(T object) {
+        return checkForDelete(object, null);
+    }
+
+    /**
+     * Check if a resource can be inactivated safely
+     * 
+     * @param object Reference to object to verify.
+     * @param excludeTypes optional list of classes that can be excluded as dependency
+     * 
+     * @return detail type of the dependency if exist, null otherwise
+     * 
+     * @throws DatabaseException for db errors
+     */
+    protected <T extends DataObject> String checkForDelete(T object, List<Class<? extends DataObject>> excludeTypes) {
         Class<? extends DataObject> clazz = object.getClass();
         URI id = object.getId();
 
-        String depMsg = geoDependencyChecker.checkDependencies(id, clazz, true);
+        // COP-21194: Task references should be ignored always for delete operations of resource
+        List<Class<? extends DataObject>> excludes = new ArrayList<Class<? extends DataObject>>();
+        if (excludeTypes != null) {
+            excludes.addAll(excludeTypes);
+        }
+        excludes.add(Task.class);
+        
+        String depMsg = geoDependencyChecker.checkDependencies(id, clazz, true, excludes);
         if (depMsg != null) {
             return depMsg;
         }
@@ -205,16 +232,25 @@ public abstract class ResourceService {
     }
 
     /**
-     * Looks up controller dependency for given hardware
-     * 
+     * Looks up controller dependency for given hardware type.
+     * If cannot locate controller for defined hardware type, lookup controller for
+     * EXTERNALDEVICE.
+     *
      * @param clazz controller interface
      * @param hw hardware name
      * @param <T>
      * @return
      */
     protected <T extends Controller> T getController(Class<T> clazz, String hw) {
-        return _coordinator.locateService(
-                clazz, CONTROLLER_SVC, CONTROLLER_SVC_VER, hw, clazz.getSimpleName());
+        T controller;
+        try {
+            controller = _coordinator.locateService(
+                   clazz, CONTROLLER_SVC, CONTROLLER_SVC_VER, hw, clazz.getSimpleName());
+        } catch (RetryableCoordinatorException rex) {
+            controller = _coordinator.locateService(
+                    clazz, CONTROLLER_SVC, CONTROLLER_SVC_VER, Constants.EXTERNALDEVICE, clazz.getSimpleName());
+        }
+        return controller;
     }
 
     /**
@@ -255,7 +291,7 @@ public abstract class ResourceService {
         }
         if ((_permissionsHelper.userHasGivenRole(user, project.getTenantOrg().getURI(),
                 Role.SYSTEM_MONITOR, Role.TENANT_ADMIN) || _permissionsHelper.userHasGivenACL(user,
-                        projectUri, ACL.ANY))) {
+                projectUri, ACL.ANY))) {
             return true;
         } else {
             return false;
@@ -375,14 +411,13 @@ public abstract class ResourceService {
      * 
      * @param type The class of object being validated
      * @param value the value of label being checked
-     * @param entityName the name of the entity to be used in the error message
      */
     protected <T extends DataObject> void checkDuplicateLabel(Class<T> type,
-            String value, String entityName) {
+            String value) {
         List<T> objectList = CustomQueryUtility.queryActiveResourcesByConstraint(_dbClient, type,
                 PrefixConstraint.Factory.getFullMatchConstraint(type, DATAOBJECT_NAME_FIELD, value));
         if (!objectList.isEmpty()) {
-            throw APIException.badRequests.duplicateLabel(entityName);
+            throw APIException.badRequests.duplicateLabel(value);
         }
     }
 
@@ -506,7 +541,7 @@ public abstract class ResourceService {
 
     /**
      * This function is to retrieve the name and id list of a class of objects.
-     *
+     * 
      * @param clazz the class objects to retrieved.
      * @param nameField the name of the field of the class that will be displayed as
      *            name in {@link NamedRelatedResourceRep}. Note this field should be a required
@@ -526,7 +561,7 @@ public abstract class ResourceService {
 
     /**
      * This function is to get the name and id list of a class from the list of given objects.
-     *
+     * 
      * @param clazz the class objects to retrieved.
      * @param nameField the name of the field of the class that will be displayed as
      *            name in {@link NamedRelatedResourceRep}. Note this field should be a required
@@ -552,7 +587,7 @@ public abstract class ResourceService {
     /**
      * Filters the data objects with no configured acls from the given list of objects.
      * From the filtered list, creates the name and id pair elements.
-     *
+     * 
      * @param clazz class objects to be filtered.
      * @param nameField name field of the objects.
      * @param dataObjects list of data objects to be filtered with no acls.
@@ -576,7 +611,7 @@ public abstract class ResourceService {
 
     /**
      * Get the data object of a type.
-     *
+     * 
      * @param clazz of objects to be retrieved.
      * @return list of all the objects of type clazz.
      */
@@ -593,7 +628,7 @@ public abstract class ResourceService {
     /**
      * Retrieves the list of NamedElements of the data objects with acls
      * and the list is filtered based on the tenant information.
-     *
+     * 
      * @param tenantId the URN of parent
      * @param clzz the child class
      * @param nameField the name of the field of the child class that will be displayed as
@@ -618,7 +653,7 @@ public abstract class ResourceService {
 
     /**
      * Retrieves the list of objects with acls based on the tenant information.
-     *
+     * 
      * @param tenantId to used to filter the objects.
      * @param clzz class of objects.
      * @return the filtered list of objects with acls.
@@ -645,7 +680,7 @@ public abstract class ResourceService {
     /**
      * Filters the named element list of abstract tenant resources
      * like vCenterDataCenter and Cluster by its tenant.
-     *
+     * 
      * @param tenantId will be filtered based on this tenantId.
      * @param elements List of named elements of all the active abstract tenant
      *            resources to be filtered based on the tenant.
@@ -659,13 +694,13 @@ public abstract class ResourceService {
         }
 
         URI localTenantId = tenantId;
-        //The the requested tenant is null or "No-Filter", return all the vCenters.
+        // The the requested tenant is null or "No-Filter", return all the vCenters.
         if (NullColumnValueGetter.isNullURI(localTenantId) ||
                 AbstractTenantResource.NO_TENANT_SELECTOR.equalsIgnoreCase(localTenantId.toString())) {
             return elements;
         }
 
-        //If the filter tenantId is "Not-Assigned" modify the search tenantId to null.
+        // If the filter tenantId is "Not-Assigned" modify the search tenantId to null.
         if (AbstractDiscoveredTenantResource.TENANT_SELECTOR_FOR_UNASSIGNED.equalsIgnoreCase(localTenantId.toString())) {
             localTenantId = NullColumnValueGetter.getNullURI();
         }
@@ -695,7 +730,7 @@ public abstract class ResourceService {
     /**
      * Filters the named element list of abstract discovered tenant resources
      * like vCenter and Host by its tenant.
-     *
+     * 
      * @param tenantId will be filtered based on this tenantId.
      * @param elements List of named elements of all the active abstract discovered,
      *            tenant resources to be filtered based on the tenant.
@@ -745,7 +780,7 @@ public abstract class ResourceService {
     /**
      * Filters the named element list of abstract discovered tenant resources
      * like vCenter and Host by its tenant.
-     *
+     * 
      * @param tenantId will be filtered based on this tenantId.
      * @param clazz class of the resource to be filtered.
      * @param nameField label field of the resource.

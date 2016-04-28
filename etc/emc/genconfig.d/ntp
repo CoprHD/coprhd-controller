@@ -74,32 +74,32 @@ EOF
         local vdc_myid=${_GENCONFIG_vdc_myid}
         for vdc in `IFS=,; for entry in ${vdc_ids}; do echo "$entry "; done`; do
             [[ $vdc_myid == $vdc ]] && continue
-            local site_ids=${_GENCONFIG_site_ids}
-	    for site in ${site_ids}; do
-                var="_GENCONFIG_vdc_${vdc}_${site}_network_vip"
-                local vip=${!var}
-                var="_GENCONFIG_vdc_${vdc}_${site}_node_count"
-                local nodeCount=${!var}
-                if [[ -n "$vip" ]]; then
-                    echo "peer     ${vip} key 1 minpoll 4 maxpoll 10"
-                    echo "fudge    ${vip} stratum 9"
-                    echo "restrict ${vip}"
-                    for ((i=1;i<=$nodeCount;i++)); do
-                        var="_GENCONFIG_vdc_${vdc}_${site}_network_${i}_ipaddr"
-                        echo "restrict ${!var}"
-                    done
-                else
-                    var="_GENCONFIG_vdc_${vdc}_${site}_network_vip6"
-                    vip=${!var}
-                    echo "peer     ${vip} iburst key 1 minpoll 4 maxpoll 10"
-                    echo "fudge    ${vip} stratum 9"
-                    echo "restrict -6 ${vip}"
-                    for ((i=1;i<=$nodeCount;i++)); do
-                        var="_GENCONFIG_vdc_${vdc}_${site}_network_${i}_ipaddr6"
-                        echo "restrict ${!var}"
-                    done
-                fi
-            done
+
+            var="_GENCONFIG_vdc_${vdc}_site1_network_vip"
+            local vip="${!var}"
+
+            var="_GENCONFIG_vdc_${vdc}_site1_node_count"
+            local nodeCount=${!var}
+
+            if [[ -n "$vip" ]]; then
+                echo "peer     ${vip} key 1 minpoll 4 maxpoll 10"
+                echo "fudge    ${vip} stratum 9"
+                echo "restrict ${vip}"
+                for ((i=1;i<=$nodeCount;i++)); do
+                    var="_GENCONFIG_vdc_${vdc}_site1_network_${i}_ipaddr"
+                    echo "restrict ${!var}"
+                done
+            else
+                var="_GENCONFIG_vdc_${vdc}_site1_network_vip6"
+                vip=${!var}
+                echo "peer     ${vip} iburst key 1 minpoll 4 maxpoll 10"
+                echo "fudge    ${vip} stratum 9"
+                echo "restrict -6 ${vip}"
+                for ((i=1;i<=$nodeCount;i++)); do
+                    var="_GENCONFIG_vdc_${vdc}_site1_network_${i}_ipaddr6"
+                    echo "restrict ${!var}"
+                done
+            fi
         done
     fi
     local servers=${_GENCONFIG_network_ntpservers}

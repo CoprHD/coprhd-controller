@@ -56,7 +56,7 @@ public interface MethodNotAllowedExceptions {
     public MethodNotAllowedException notSupportedForVNXE();
 
     @DeclareServiceCode(ServiceCode.API_METHOD_NOT_SUPPORTED)
-    public MethodNotAllowedException notSupportedForExtremeIO();
+    public MethodNotAllowedException notSupportedForXtremIO();
 
     @DeclareServiceCode(ServiceCode.API_METHOD_NOT_SUPPORTED)
     public MethodNotAllowedException notSupportedForScaleIO();
@@ -66,4 +66,13 @@ public interface MethodNotAllowedExceptions {
 
     @DeclareServiceCode(ServiceCode.API_METHOD_NOT_SUPPORTED)
     public MethodNotAllowedException notSupportedForOpenstack();
+
+    @DeclareServiceCode(ServiceCode.API_METHOD_NOT_SUPPORTED)
+    public MethodNotAllowedException notSupportedForVMAX();
+
+    @DeclareServiceCode(ServiceCode.API_METHOD_NOT_SUPPORTED)
+    public MethodNotAllowedException notSupportedForVNX();
+
+    @DeclareServiceCode(ServiceCode.API_METHOD_NOT_SUPPORTED)
+    public MethodNotAllowedException notSupportedForHDS();
 }

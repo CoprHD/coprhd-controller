@@ -17,6 +17,7 @@ import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlTransient;
 
+import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -52,6 +53,9 @@ public abstract class TaskCompleter implements Serializable {
 
     @XmlElement
     private final Set<URI> _consistencyGroupIds = new HashSet<>();
+
+    @XmlElement
+    private final Set<URI> _volumeGroupIds = new HashSet<>();
 
     // Whether to notify workflow when task is complete
     @XmlTransient
@@ -127,6 +131,17 @@ public abstract class TaskCompleter implements Serializable {
     public boolean addConsistencyGroupId(URI consistencyGroupId) {
         if (consistencyGroupId != null) {
             return _consistencyGroupIds.add(consistencyGroupId);
+        }
+        return false;
+    }
+
+    public Set<URI> getVolumeGroupIds() {
+        return _volumeGroupIds;
+    }
+
+    public boolean addVolumeGroupId(URI volumeGroupId) {
+        if (volumeGroupId != null) {
+            return _volumeGroupIds.add(volumeGroupId);
         }
         return false;
     }
@@ -347,6 +362,20 @@ public abstract class TaskCompleter implements Serializable {
     protected void setReadyOnDataObject(DbClient dbClient, Class<? extends DataObject> clazz, DataObject dObject) {
         if (dObject != null) {
             dbClient.ready(clazz, dObject.getId(), getOpId());
+        }
+    }
+
+    protected void updateConsistencyGroupTasks(DbClient dbClient, Operation.Status status, ServiceCoded coded) {
+        for (URI consistencyGroupId : getConsistencyGroupIds()) {
+            _logger.info("Updating consistency group task: {}", consistencyGroupId);
+            switch (status) {
+                case error:
+                    setErrorOnDataObject(dbClient, BlockConsistencyGroup.class, consistencyGroupId, coded);
+                    break;
+                case ready:
+                    setReadyOnDataObject(dbClient, BlockConsistencyGroup.class, consistencyGroupId);
+                    break;
+            }
         }
     }
 }

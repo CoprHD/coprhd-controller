@@ -30,7 +30,6 @@ public class VolumeParam {
      * This volume or snapshot must belong to the same virtual array as
      * the block export.
      * 
-     * @valid example: URI of the volume or snapshot to be added to the block export.
      */
     @XmlElement(required = true)
     public URI getId() {
@@ -47,7 +46,6 @@ public class VolumeParam {
      * Set this only if the volume is to be visible to all initiators in a cluster
      * with the same LUN number.
      * 
-     * @valid none
      */
     @XmlElement(required = false)
     public Integer getLun() {

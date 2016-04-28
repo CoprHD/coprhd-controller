@@ -13,6 +13,14 @@
 
 include ../Makefile.common
 
+# This branding switch is intended only for the nginx error files at the moment
+# but we should investigate switching the branding throughout the build
+ifeq ($(BUILD_TYPE),emc)
+PRODUCT_BRAND_FULL = EMC ${PRODUCT_BRAND}
+else
+PRODUCT_BRAND_FULL = CoprHD
+endif
+
 CONNECTEMC_DIR = $(BUILD_BASE)/connectemc
 
 all:: install_etc
@@ -43,6 +51,7 @@ ETCFILES_COMMON = \
     $(ETCDIR)/genconfig.d/ipsec \
     $(ETCDIR)/genconfig.d/test \
     $(ETCDIR)/gentmpl \
+    $(ETCDIR)/datatool \
     $(ETCDIR)/diagtool \
     $(ETCDIR)/powerofftool \
     $(ETCDIR)/ipsectool \
@@ -197,6 +206,7 @@ endif
 
 SED_SCRIPT = $(SED) \
     -e 's,@product_brand@,$(PRODUCT_BRAND),g' \
+    -e 's,@product_brand_full@,$(PRODUCT_BRAND_FULL),g' \
     -e 's,@product_name@,$(PRODUCT_NAME),g' \
     -e 's,@product_caps@,$(PRODUCT_CAPS),g' \
     -e 's,@product_prefix@,$(PRODUCT_PREFIX),g' \

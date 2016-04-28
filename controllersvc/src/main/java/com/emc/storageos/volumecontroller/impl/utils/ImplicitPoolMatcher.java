@@ -196,7 +196,29 @@ public class ImplicitPoolMatcher {
         List<VirtualPool> vPoolsToUpdate = new ArrayList<VirtualPool>();
         while (vpoolListItr.hasNext()) {
             VirtualPool vpool = vpoolListItr.next();
-            matchvPoolWithStoragePools(vpool, updatedPoolList, dbClient, coordinator);
+            matchvPoolWithStoragePools(vpool, updatedPoolList, dbClient, coordinator, null);
+            vPoolsToUpdate.add(vpool);
+        }
+        if (!vPoolsToUpdate.isEmpty()) {
+            persistUpdatedVpoolList(vPoolsToUpdate, dbClient);
+        }
+    }
+
+    /**
+     * Matches given set of virtual pools with list of storage pools.
+     * @param updatedPoolList list of storage pools
+     * @param vpoolURIs list of virtual pools
+     * @param dbClient
+     * @param coordinator
+     * @param matcherGroupName group name of attribute matchers
+     */
+    public static void matchModifiedStoragePoolsWithVirtualPools(List<StoragePool> updatedPoolList, List<URI> vpoolURIs,
+                                                                 DbClient dbClient, CoordinatorClient coordinator, String matcherGroupName) {
+        Iterator<VirtualPool> vpoolListItr = dbClient.queryIterativeObjects(VirtualPool.class, vpoolURIs);
+        List<VirtualPool> vPoolsToUpdate = new ArrayList<VirtualPool>();
+        while (vpoolListItr.hasNext()) {
+            VirtualPool vpool = vpoolListItr.next();
+            matchvPoolWithStoragePools(vpool, updatedPoolList, dbClient, coordinator, matcherGroupName);
             vPoolsToUpdate.add(vpool);
         }
         if (!vPoolsToUpdate.isEmpty()) {
@@ -213,12 +235,14 @@ public class ImplicitPoolMatcher {
      * @param pools
      *            : pools to match.
      * @param dbClient
+     * @param matcherGroupName group name of attribute matchers to run
      */
     public static void matchvPoolWithStoragePools(VirtualPool vpool, List<StoragePool> pools, DbClient dbClient,
-            CoordinatorClient coordinator) {
+            CoordinatorClient coordinator, String matcherGroupName) {
         List<StoragePool> filterPools = getMatchedPoolWithStoragePools(vpool, pools,
                 VirtualPool.getProtectionSettings(vpool, dbClient),
-                VirtualPool.getRemoteProtectionSettings(vpool, dbClient), dbClient, coordinator);
+                VirtualPool.getRemoteProtectionSettings(vpool, dbClient),
+                VirtualPool.getFileRemoteProtectionSettings(vpool, dbClient), dbClient, coordinator, matcherGroupName);
         updateInvalidAndMatchedPoolsForVpool(vpool, filterPools, pools, dbClient);
     }
 
@@ -231,15 +255,21 @@ public class ImplicitPoolMatcher {
             List<StoragePool> pools,
             Map<URI, VpoolProtectionVarraySettings> protectionVarraySettings,
             Map<URI, VpoolRemoteCopyProtectionSettings> remoteSettingsMap,
+            Map<URI, VpoolRemoteCopyProtectionSettings> fileRemoteSettingsMap,
             DbClient dbClient,
-            CoordinatorClient coordinator) {
-        _logger.info("Started matching {} pools with {} vpool", pools.size(), vpool.getId());
+            CoordinatorClient coordinator, String matcherGroupName) {
+        // By default use all vpool matchers.
+        if (matcherGroupName == null) {
+            matcherGroupName = AttributeMatcher.VPOOL_MATCHERS;
+        }
+        _logger.info("Started matching pools with {} vpool, matcher group {}", vpool.getId(), matcherGroupName);
         AttributeMapBuilder vpoolMapBuilder = new VirtualPoolAttributeMapBuilder(vpool, protectionVarraySettings,
-                VirtualPool.groupRemoteCopyModesByVPool(vpool.getId(), remoteSettingsMap));
+                VirtualPool.groupRemoteCopyModesByVPool(vpool.getId(), remoteSettingsMap),
+                VirtualPool.groupRemoteCopyModesByVPool(vpool.getId(), fileRemoteSettingsMap));
         Map<String, Object> attributeMap = vpoolMapBuilder.buildMap();
         _logger.info("Implict Pool matching populated attribute map: {}", attributeMap);
         List<StoragePool> filterPools = _matcherFramework.matchAttributes(pools, attributeMap, dbClient, coordinator,
-                AttributeMatcher.VPOOL_MATCHERS);
+                matcherGroupName);
         _logger.info("Ended matching pools with vpool attributes. Found {} matching pools", filterPools.size());
         return filterPools;
     }
@@ -354,7 +384,7 @@ public class ImplicitPoolMatcher {
             allPoolsToProcess.add(storagePoolList.next());
         }
         if (!allPoolsToProcess.isEmpty()) {
-            matchvPoolWithStoragePools(vpool, allPoolsToProcess, dbClient, coordinator);
+            matchvPoolWithStoragePools(vpool, allPoolsToProcess, dbClient, coordinator, null);
         }
     }
 

@@ -1,7 +1,7 @@
 %{
   titleKey = 'disasterRecovery.' + (disasterRecovery?.id ? 'edit' : 'create') + '.title';
   descriptionKey = 'disasterRecovery.description';
-  image = '/public/img/assets/Cluster.png';
+  image = '/public/img/assets/AddStandbySite.png';
 }%
 #{extends 'main.html' /}
 #{set navSelected: ['nav.config', 'nav.disasterRecovery'] /}
@@ -13,14 +13,22 @@
 #{/breadcrumb.container}
 
 <div class="container" >
-  <form-header title-key="${titleKey}"
-               description-key="disasterRecovery.add.title"
-               image-val="/public/img/assets/Cluster.png">
-  </form-header>
+	%{ editing = disasterRecovery?.id }%
 
+	#{if !editing }	
+  	   <form-header title-key="${titleKey}"
+           description-key="disasterRecovery.add.title"
+           image-val="/public/img/assets/AddStandbySite.png">
+       </form-header>
+	#{/if}
+	#{else}
+	   <form-header title-key="${titleKey}"
+           description-key="disasterRecovery.edit.title.description"
+           image-val="/public/img/assets/AddStandbySite.png">
+  	   </form-header>
+	#{/else}
+	
   #{alerts/}
-  
-  %{ editing = disasterRecovery?.id }%
   
   #{form @save(), class:'form form-horizontal', autocomplete:"off"}
     #{if disasterRecovery?.id}

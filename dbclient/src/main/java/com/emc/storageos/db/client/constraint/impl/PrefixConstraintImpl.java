@@ -81,4 +81,10 @@ public class PrefixConstraintImpl extends ConstraintImpl implements PrefixConstr
     public Class<? extends DataObject> getDataObjectType() {
         return _field.getDataObjectType();
     }
+    
+	@Override
+	public boolean isValid() {
+		String key = _field.getPrefixIndexRowKey(_label);
+        return key!=null && !key.isEmpty();
+	}
 }

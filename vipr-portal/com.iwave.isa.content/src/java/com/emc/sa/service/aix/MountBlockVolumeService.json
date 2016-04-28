@@ -29,7 +29,7 @@
     
     doFormat:{
       type: "boolean",
-      initialValue: "true",
+      initialValue: "false",
       required: "false",
       lockable: true
     },

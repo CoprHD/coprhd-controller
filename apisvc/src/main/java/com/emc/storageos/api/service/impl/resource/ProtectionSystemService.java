@@ -25,6 +25,7 @@ import javax.ws.rs.PUT;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
+import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
@@ -46,6 +47,7 @@ import com.emc.storageos.db.client.model.ProtectionSet;
 import com.emc.storageos.db.client.model.ProtectionSystem;
 import com.emc.storageos.db.client.model.RPSiteArray;
 import com.emc.storageos.db.client.model.StorageSystem;
+import com.emc.storageos.db.client.model.StorageSystem.Discovery_Namespaces;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.exceptions.DatabaseException;
@@ -54,6 +56,7 @@ import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.model.ResourceTypeEnum;
 import com.emc.storageos.model.TaskList;
 import com.emc.storageos.model.TaskResourceRep;
+import com.emc.storageos.model.block.UnManagedCGList;
 import com.emc.storageos.model.pools.VirtualArrayAssignments;
 import com.emc.storageos.model.protection.ProtectionSystemBulkRep;
 import com.emc.storageos.model.protection.ProtectionSystemConnectivityRestRep;
@@ -357,10 +360,37 @@ public class ProtectionSystemService extends TaskResourceService {
     }
 
     /**
+     * Checks for valid Name space for discovery
+     * Valid Name space for ALL & UNMANAGED_CGS
+     *   
+     * @param nameSpace namespace argument
+     * @return true if valid namespace
+     */
+    private boolean validateNameSpace(String nameSpace) {
+        boolean validNameSpace = false;
+
+        if (nameSpace.equalsIgnoreCase(Discovery_Namespaces.UNMANAGED_CGS.toString()) ||
+                    nameSpace.equalsIgnoreCase(Discovery_Namespaces.ALL.toString())) {
+                    validNameSpace = true;
+        }
+        return validNameSpace;
+    }
+
+    /**
      * Allows the user to manually discover the registered protection system with
      * the passed id.
      * 
      * @param id the URN of a ViPR protection system.
+     * @QueryParam namespace
+     *             ProtectionSystem Auto Discovery is grouped into multiple namespaces.
+     *             Namespace is used to discover specific parts of Storage System.
+     * 
+     *             Possible Values :
+     *             UNMANAGED_CGS
+     *             ALL
+     * 
+     *             UNMANAGED_CGS will discover all the consistency groups which are present in the
+     *             Protection System (RPA).
      * 
      * @brief Discover protection system
      * @throws ControllerException When an error occurs discovering the protection
@@ -371,17 +401,26 @@ public class ProtectionSystemService extends TaskResourceService {
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
     @Path("/{id}/discover")
-    public TaskResourceRep discoverProtectionSystem(@PathParam("id") URI id) {
+    public TaskResourceRep discoverProtectionSystem(@PathParam("id") URI id,
+            @QueryParam("namespace") String namespace) {
 
         ProtectionSystem protectionSystem = _dbClient.queryObject(ProtectionSystem.class, id);
         ArgValidator.checkEntity(protectionSystem, id, isIdEmbeddedInURL(id), true);
+        // If Namespace is empty or null set it to ALL as default
+        if (namespace == null || namespace.trim().length() < 1) {
+            namespace = Discovery_Namespaces.ALL.toString();
+        }
+
+        if (!validateNameSpace(namespace)) {
+            throw APIException.badRequests.invalidParameterProtectionSystemNamespace(namespace);
+        }
 
         String deviceType = protectionSystem.getSystemType();
         ProtectionController controller = getController(RPController.class, deviceType);
         DiscoveredObjectTaskScheduler scheduler = new DiscoveredObjectTaskScheduler(_dbClient, new DiscoverJobExec(controller));
         ArrayList<AsyncTask> tasks = new ArrayList<AsyncTask>(1);
         String taskId = UUID.randomUUID().toString();
-        tasks.add(new AsyncTask(ProtectionSystem.class, protectionSystem.getId(), taskId));
+        tasks.add(new AsyncTask(ProtectionSystem.class, protectionSystem.getId(), taskId, namespace));
         TaskList taskList = scheduler.scheduleAsyncTasks(tasks);
 
         return taskList.getTaskList().listIterator().next();
@@ -548,6 +587,36 @@ public class ProtectionSystemService extends TaskResourceService {
     @Override
     public ProtectionSystemBulkRep getBulkResources(BulkIdParam param) {
         return (ProtectionSystemBulkRep) super.getBulkResources(param);
+    }
+
+    /**
+     * 
+     * List all unmanaged cgs that are available for a protection system.  
+     * Unmanaged cgs refers to cgs which are available within
+     * underlying protection systems , but still not managed in ViPR.
+     * As these cgs are not managed in ViPR, there will not be any ViPR specific
+     * details associated such as, virtual array, virtual pool, or project.
+     * 
+     * @param id the URI of a ViPR protection system
+     * @prereq none
+     * @brief List of all unmanaged cgs available for a protection system
+     * @return UnManagedCGList
+     */
+    @GET
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR })
+    @Path("/{id}/unmanaged/cgs")
+    public UnManagedCGList getUnManagedCGs(@PathParam("id") URI id) {
+        ArgValidator.checkFieldUriType(id, ProtectionSystem.class, "id");
+        UnManagedCGList unManagedCGList = new UnManagedCGList();
+        URIQueryResultList result = new URIQueryResultList();
+        _dbClient.queryByConstraint(ContainmentConstraint.Factory.getStorageDeviceUnManagedCGConstraint(id), result);
+        while (result.iterator().hasNext()) {
+            URI unManagedCGUri = result.iterator().next();
+            unManagedCGList.getUnManagedCGs()
+                    .add(toRelatedResource(ResourceTypeEnum.UNMANAGED_CGS, unManagedCGUri));
+        }
+        return unManagedCGList;
     }
 
     /**

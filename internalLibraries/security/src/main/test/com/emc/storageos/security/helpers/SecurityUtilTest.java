@@ -5,14 +5,16 @@
 package com.emc.storageos.security.helpers;
 
 import com.emc.storageos.security.ApplicationContextUtil;
+import org.apache.commons.lang.StringUtils;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
-public class SecurityUtilTest {
+// This test is currently failing and is being @Ignored and tracked with Jira COP-19799
 
+public class SecurityUtilTest {
     String buildType;
 
     @Rule
@@ -20,7 +22,11 @@ public class SecurityUtilTest {
 
     @Before
     public void setup() throws Exception {
-        ApplicationContextUtil.initContext(System.getProperty("buildType"), ApplicationContextUtil.SECURITY_CONTEXTS);
+        buildType = System.getProperty("buildType");
+        if (StringUtils.isEmpty(buildType)) {
+            buildType = "emc";
+        }
+        ApplicationContextUtil.initContext(buildType, ApplicationContextUtil.SECURITY_CONTEXTS);
     }
 
     @Test

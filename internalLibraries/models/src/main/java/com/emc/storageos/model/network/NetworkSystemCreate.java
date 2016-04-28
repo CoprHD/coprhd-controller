@@ -36,7 +36,6 @@ public class NetworkSystemCreate {
     /**
      * Name of the Network System
      * 
-     * @valid none
      */
     @Length(min = 2, max = 128)
     @XmlElement(required = true)
@@ -53,8 +52,6 @@ public class NetworkSystemCreate {
      * This field is required for network systems of type 'mds'.
      * It is ignored for 'brocade' type network systems and can be null.
      * 
-     * @valid example: 10.247.12.99
-     * @valid example: my.host.name
      */
     @XmlElement(name = "ip_address")
     @JsonProperty("ip_address")
@@ -88,7 +85,6 @@ public class NetworkSystemCreate {
      * This field is required for network systems of type 'mds'.
      * It is ignored for 'brocade' type network systems and can be null.
      * 
-     * @valid example: user1
      */
     @XmlElement(name = "user_name")
     @JsonProperty("user_name")
@@ -105,7 +101,6 @@ public class NetworkSystemCreate {
      * This field is required for network systems of type 'mds'.
      * It is ignored for 'brocade' type network systems and can be null.
      * 
-     * @valid example: abc1
      */
     @XmlElement()
     public String getPassword() {
@@ -118,9 +113,10 @@ public class NetworkSystemCreate {
 
     /**
      * Type of the Network System
+     * Valid values:
+     * 	brocade
+     * 	mds
      * 
-     * @valid brocade
-     * @valid mds
      */
     // @EnumType(NetworkSystem.Type.class)
     @XmlElement(name = "system_type", required = true)
@@ -138,8 +134,6 @@ public class NetworkSystemCreate {
      * This field is required for network systems of type 'brocade'.
      * It is ignored for 'mds' type network systems and can be null.
      * 
-     * @valid example: 10.247.12.100
-     * @valid example: my.host.name
      */
     @XmlElement(name = "smis_provider_ip")
     @JsonProperty("smis_provider_ip")
@@ -172,7 +166,6 @@ public class NetworkSystemCreate {
      * This field is required for network systems of type 'brocade'.
      * It is ignored for 'mds' type network systems and can be null.
      * 
-     * @valid example: smisuser1
      */
     @XmlElement(name = "smis_user_name")
     @JsonProperty("smis_user_name")
@@ -189,7 +182,6 @@ public class NetworkSystemCreate {
      * This field is required for network systems of type 'brocade'.
      * It is ignored for 'mds' type network systems and can be null.
      * 
-     * @valid example: smispassword1
      */
     @XmlElement(name = "smis_password")
     @JsonProperty("smis_password")
@@ -207,8 +199,6 @@ public class NetworkSystemCreate {
      * This field is required for network systems of type 'brocade'.
      * It is ignored for 'mds' type network systems and can be null.
      * 
-     * @valid true
-     * @valid false
      */
     @XmlElement(name = "smis_use_ssl")
     @JsonProperty("smis_use_ssl")

@@ -23,5 +23,4 @@ public class GetBlockSnapshots extends ViPRExecutionTask<List<BlockSnapshotRestR
     public List<BlockSnapshotRestRep> executeTask() throws Exception {
         return getClient().blockSnapshots().getByIds(resourceIds);
     }
-
 }

@@ -1,0 +1,12 @@
+[Unit]
+Description=The CISCO management server
+After=CISCO.service
+
+[Service]
+Type=forking
+ExecStart=/etc/init.d/CiscoMgmt start
+ExecStop=/etc/init.d/CiscoMgmt stop
+
+[Install]
+WantedBy=multi-user.target
+

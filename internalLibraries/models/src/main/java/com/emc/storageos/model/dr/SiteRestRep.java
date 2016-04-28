@@ -18,9 +18,21 @@ public class SiteRestRep extends DataObjectRestRep {
     private String vdcShortId;
     private String sitename;
     private String description;
-    private String vip;
+    private String vipEndpoint;
     private String state;
-    
+    private String networkHealth;
+    private long createTime;
+    private Boolean runningState;
+
+    @XmlElement(name = "create_time")
+    public long getCreateTime() {
+        return createTime;
+    }
+
+    public void setCreateTime(long createTime) {
+        this.createTime = createTime;
+    }
+
     @XmlElement(name = "uuid")
     public String getUuid() {
         return uuid;
@@ -48,13 +60,13 @@ public class SiteRestRep extends DataObjectRestRep {
         this.sitename = name;
     }
 
-    @XmlElement(name = "vip")
-    public String getVip() {
-        return vip;
+    @XmlElement(name = "vip_endpoint")
+    public String getVipEndpoint() {
+        return vipEndpoint;
     }
 
-    public void setVip(String vip) {
-        this.vip = vip;
+    public void setVipEndpoint(String vipEndpoint) {
+        this.vipEndpoint = vipEndpoint;
     }
 
     @XmlElement(name = "state")
@@ -75,6 +87,24 @@ public class SiteRestRep extends DataObjectRestRep {
         this.description = description;
     }
 
+    @XmlElement(name = "network_health")
+    public String getNetworkHealth() {
+        return networkHealth;
+    }
+
+    public void setNetworkHealth(String networkHealth) {
+        this.networkHealth = networkHealth;
+    }
+    
+    @XmlElement(name = "running_state")
+    public Boolean getRunningState() {
+        return runningState;
+    }
+
+    public void setRunningState(Boolean runningState) {
+        this.runningState = runningState;
+    }
+
     @Override
     public String toString() {
         StringBuilder builder = new StringBuilder();
@@ -87,9 +117,13 @@ public class SiteRestRep extends DataObjectRestRep {
         builder.append(", description=");
         builder.append(description);
         builder.append(", vip=");
-        builder.append(vip);
+        builder.append(vipEndpoint);
         builder.append(", state=");
         builder.append(state);
+        builder.append(", networkHealth=");
+        builder.append(networkHealth);
+        builder.append(", runningState=");
+        builder.append(runningState);
         builder.append("]");
         return builder.toString();
     }

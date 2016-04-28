@@ -44,6 +44,7 @@ public class VirtualPoolPreCreateParamAttributeMapBuilder extends AttributeMapBu
     private Map<String, List<String>> remoteProtectionSettings;
     private Boolean _long_term_retention;
     private boolean uniquePolicyNames;
+    private Integer _minDataCenters;
 
     public VirtualPoolPreCreateParamAttributeMapBuilder(String autoTieringPolicyName,
             String driveType, String haType, String haVarray, String haVpool,
@@ -57,7 +58,8 @@ public class VirtualPoolPreCreateParamAttributeMapBuilder extends AttributeMapBu
             Integer pathsPerInitiator,
             Map<String, List<String>> remoteProtectionSettings,
             Boolean long_term_retention,
-            boolean uniquePolicyNames) {
+            boolean uniquePolicyNames,
+            Integer minDataCenters) {
         this(varrays, protocols, provisionType, systemType, type, (long_term_retention == null ? Boolean.FALSE : long_term_retention));
         _autoTieringPolicyName = autoTieringPolicyName;
         _driveType = driveType;
@@ -76,6 +78,7 @@ public class VirtualPoolPreCreateParamAttributeMapBuilder extends AttributeMapBu
         _pathsPerInitiator = pathsPerInitiator;
         this.remoteProtectionSettings = remoteProtectionSettings;
         this.uniquePolicyNames = uniquePolicyNames;
+        _minDataCenters = minDataCenters;
     }
 
     public VirtualPoolPreCreateParamAttributeMapBuilder(Set<String> varrays, Set<String> protocols,
@@ -131,6 +134,7 @@ public class VirtualPoolPreCreateParamAttributeMapBuilder extends AttributeMapBu
             putAttributeInMap(Attributes.thin_volume_preallocation_percentage.toString(), _thinVolumePreAllocation);
         }
         putAttributeInMap(Attributes.long_term_retention_policy.toString(), _long_term_retention);
+        putAttributeInMap(Attributes.min_datacenters.toString(), _minDataCenters);
         return _attributeMap;
     }
 

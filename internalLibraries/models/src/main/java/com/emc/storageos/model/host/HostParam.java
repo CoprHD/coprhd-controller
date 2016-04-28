@@ -40,12 +40,14 @@ public abstract class HostParam {
 
     /**
      * The host type.
+     * Valid values:
+     *   Windows
+     *   HPUX
+     *   Linux
+     *   Esx
+     *   SUNVCS
+     *   Other
      * 
-     * @valid Windows
-     * @valid HPUX
-     * @valid Linux
-     * @valid Esx
-     * @valid Other
      */
     // @EnumType(Host.HostType.class)
     @XmlElement(required = false)
@@ -60,9 +62,6 @@ public abstract class HostParam {
     /**
      * The short or fully qualified host name or IP address of the host management interface.
      * 
-     * @valid example: hostname
-     * @valid example: fqdn.hostname.com
-     * @valid example: 10.12.100.200
      */
     @XmlElement(name = "host_name", required = false)
     @Endpoint(type = Endpoint.EndpointType.HOST)
@@ -78,7 +77,6 @@ public abstract class HostParam {
     /**
      * The operating system version of the host.
      * 
-     * @valid example: 8.1
      */
     @XmlElement(name = "os_version", required = false)
     @JsonProperty("os_version")
@@ -93,7 +91,6 @@ public abstract class HostParam {
     /**
      * The user label for this host.
      * 
-     * @valid example: host1
      */
     @Length(min = 2, max = 128)
     @XmlElement()
@@ -121,7 +118,6 @@ public abstract class HostParam {
     /**
      * The user name used to log in to the host.
      * 
-     * @valid example: user1
      */
     @XmlElement(name = "user_name")
     public String getUserName() {
@@ -135,7 +131,6 @@ public abstract class HostParam {
     /**
      * The password credential used to login to the host.
      * 
-     * @valid example: abc1
      */
     @XmlElement(name = "password")
     public String getPassword() {
@@ -149,8 +144,6 @@ public abstract class HostParam {
     /**
      * The boolean flag that indicates if SSL should be used when communicating with the host.
      * 
-     * @valid true = use SSL
-     * @valid false = do not use SSL
      */
     @XmlElement(name = "use_ssl")
     public Boolean getUseSsl() {
@@ -164,7 +157,6 @@ public abstract class HostParam {
     /**
      * The URI of the cluster if the host is in a cluster.
      * 
-     * @valid example: urn:storageos:Cluster:6cfe6999-1095-48f0-af1a-31827fe6ea7d:
      */
     @XmlElement()
     public URI getCluster() {
@@ -178,7 +170,6 @@ public abstract class HostParam {
     /**
      * The URI of a vCenter data center if the host is an ESX host in a data center.
      * 
-     * @valid example: urn:storageos:VcenterDataCenter:32cf44c5-7147-48db-b28a-1a321dfeab59:
      */
     @XmlElement(name = "vcenter_data_center")
     public URI getVcenterDataCenter() {
@@ -192,7 +183,6 @@ public abstract class HostParam {
     /**
      * This field is currently not used. Any values passed into it will be ignored.
      * 
-     * @valid example: urn:storageos:Project:dd672a52-0591-4f48-b1bc-3c0fba4a26ff:
      */
     @XmlElement()
     public URI getProject() {
@@ -208,9 +198,7 @@ public abstract class HostParam {
      * performed against this host. Defaults to true.
      * 
      * @return true if automatic discovery is enabled, false if automatic discovery is disabled.
-     * @valid true = discovery is enabled
-     * @valid false = discovery is disabled
-     * @default true
+     * default value is true
      */
     @XmlElement(name = "discoverable")
     public Boolean getDiscoverable() {
@@ -224,7 +212,6 @@ public abstract class HostParam {
     /**
      * The URI of the tenant owning the host.
      * 
-     * @valid example: urn:storageos:TenantOrg:45baad25-ff81-4c67-9db5-91df44cb1312:global
      */
     @XmlElement(name = "tenant")
     public URI getTenant() {

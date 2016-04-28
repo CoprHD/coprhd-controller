@@ -29,6 +29,7 @@ import models.ProvisioningTypes;
 import models.RaidLevel;
 import models.RemoteCopyMode;
 import models.RpoType;
+import models.SRDFCopyMode;
 import models.SizeUnit;
 import models.StorageSystemTypes;
 import models.datatable.StoragePoolDataTable;
@@ -431,7 +432,7 @@ public class BlockVirtualPools extends ViprResourceController {
     private static void error(BlockVirtualPoolForm vpool) {
         // Only flash vpool parameters to reduce amount stored in flash scope
         for (String param : params.all().keySet()) {
-            if (param.startsWith("vpool.")) {
+            if (param.startsWith("vpool.") && !StringUtils.equalsIgnoreCase(param, "vpool.rpCopiesJson")) {
                 params.flash(param);
             }
         }
@@ -510,7 +511,7 @@ public class BlockVirtualPools extends ViprResourceController {
                 ));
         renderArgs.put("rpRemoteCopyModeOptions", RemoteCopyMode.OPTIONS);
         renderArgs.put("rpRpoTypeOptions", RpoType.OPTIONS);
-        renderArgs.put("srdfCopyModeOptions", RemoteCopyMode.OPTIONS);
+        renderArgs.put("srdfCopyModeOptions", SRDFCopyMode.OPTIONS);
         renderArgs.put(
                 "numPathsOptions",
                 StringOption.options(new String[] { "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16",

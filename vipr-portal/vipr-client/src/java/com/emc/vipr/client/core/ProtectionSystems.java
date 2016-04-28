@@ -9,6 +9,8 @@ import static com.emc.vipr.client.core.util.ResourceUtils.defaultList;
 import java.net.URI;
 import java.util.List;
 
+import javax.ws.rs.core.UriBuilder;
+
 import com.emc.storageos.model.BulkIdParam;
 import com.emc.storageos.model.NamedRelatedResourceRep;
 import com.emc.storageos.model.protection.ProtectionSystemBulkRep;
@@ -17,8 +19,8 @@ import com.emc.storageos.model.protection.ProtectionSystemList;
 import com.emc.storageos.model.protection.ProtectionSystemRequestParam;
 import com.emc.storageos.model.protection.ProtectionSystemRestRep;
 import com.emc.storageos.model.protection.ProtectionSystemUpdateRequestParam;
-import com.emc.vipr.client.Tasks;
 import com.emc.vipr.client.Task;
+import com.emc.vipr.client.Tasks;
 import com.emc.vipr.client.ViPRCoreClient;
 import com.emc.vipr.client.core.filters.ResourceFilter;
 import com.emc.vipr.client.core.impl.PathConstants;
@@ -161,6 +163,25 @@ public class ProtectionSystems extends AbstractCoreBulkResources<ProtectionSyste
         return postTask(getIdUrl() + "/discover", id);
     }
 
+    /**
+     * Begins discovery on the given protection system
+     * <p>
+     * API Call: <tt>POST /vdc/protection-systems/{id}/discover</tt>
+     * 
+     * @param id
+     *            the ID of the protection system.
+     * @param type
+     *            the type of discovery to perform.
+     * @return a task for monitoring the progress of the operation.
+     */
+    public Task<ProtectionSystemRestRep> discover(URI id, String type) {
+        UriBuilder builder = client.uriBuilder(getIdUrl() + "/discover");
+        if (type != null && !type.equals("")) {
+            builder = builder.queryParam("namespace", type);
+        }
+        return postTaskURI(builder.build(id));
+    }
+    
     /**
      * Gets the protection system connectivity for the given protection system.
      * <p>

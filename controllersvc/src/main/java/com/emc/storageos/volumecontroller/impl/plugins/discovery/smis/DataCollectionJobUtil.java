@@ -109,7 +109,7 @@ public class DataCollectionJobUtil {
         } else if (clazz == StorageSystem.class) {
             populateAccessProfile(profile, (StorageSystem) taskObject, nameSpace);
         } else if (clazz == ProtectionSystem.class) {
-            populateAccessProfile(profile, (ProtectionSystem) taskObject);
+            populateAccessProfile(profile, (ProtectionSystem) taskObject, nameSpace);
         } else if (clazz == ComputeSystem.class) {
             populateAccessProfile(profile, (ComputeSystem) taskObject);
         }
@@ -184,7 +184,7 @@ public class DataCollectionJobUtil {
         profile.setPassword(vcenter.getPassword());
     }
 
-    private void populateAccessProfile(AccessProfile profile, ProtectionSystem system) {
+    private void populateAccessProfile(AccessProfile profile, ProtectionSystem system, String nameSpace) {
         profile.setSystemId(system.getId());
         profile.setSystemClazz(system.getClass());
         profile.setSystemType(system.getSystemType());
@@ -195,6 +195,9 @@ public class DataCollectionJobUtil {
             profile.setPortNumber(system.getPortNumber());
             profile.setSslEnable(Boolean.TRUE.toString());
             profile.setserialID(system.getInstallationId());
+        }
+        if (!NullColumnValueGetter.isNullValue(nameSpace)) {
+            profile.setnamespace(nameSpace);
         }
     }
 
@@ -427,6 +430,9 @@ public class DataCollectionJobUtil {
                 || Type.ibmxiv.name().equals(
                         storageDevice.getSystemType())) {
             injectDiscoveryProfile(accessProfile, storageDevice);
+            if (null != nameSpace) {
+                accessProfile.setnamespace(nameSpace);
+            }
         } else if (Type.vnxfile.toString().equalsIgnoreCase(storageDevice.getSystemType())) {
             accessProfile.setIpAddress(storageDevice.getIpAddress());
             accessProfile.setUserName(storageDevice.getUsername());
@@ -485,6 +491,9 @@ public class DataCollectionJobUtil {
             accessProfile.setPassword(storageDevice.getPassword());
             accessProfile.setPortNumber(storageDevice.getPortNumber());
             accessProfile.setLastSampleTime(0L);
+            if (null != nameSpace) {
+                accessProfile.setnamespace(nameSpace);
+            }
         } else if (storageDevice.getSystemType().equals(Type.datadomain.toString())) {
             injectDiscoveryProfile(accessProfile, storageDevice);
             accessProfile.setPortNumber(storageDevice.getSmisPortNumber());
@@ -533,6 +542,14 @@ public class DataCollectionJobUtil {
             }
         } else if (storageDevice.getSystemType().equals(Type.hds.toString())) {
             populateHDSAccessProfile(accessProfile, storageDevice, nameSpace);
+        } else if (StorageSystem.Type.isDriverManagedStorageSystem(storageDevice.getSystemType())) {
+            accessProfile.setSystemType(storageDevice.getSystemType());
+            accessProfile.setIpAddress(storageDevice.getIpAddress());
+            accessProfile.setUserName(storageDevice.getUsername());
+            accessProfile.setserialID(storageDevice.getSerialNumber());
+            accessProfile.setPassword(storageDevice.getPassword());
+            accessProfile.setPortNumber(storageDevice.getPortNumber());
+            accessProfile.setLastSampleTime(0L);
         } else {
             throw new RuntimeException("populateAccessProfile: Device type unknown : "
                     + storageDevice.getSystemType());
@@ -652,7 +669,7 @@ public class DataCollectionJobUtil {
 
         for (String scannedSystemNativeGuid : scannedSystemNativeGuidKeySet) {
             try {
-                _logger.info("scannedSystemNativeGuid:" + scannedSystemNativeGuid);
+                _logger.info("Found during scan : scannedSystemNativeGuid {}", scannedSystemNativeGuid);
                 List<StorageSystem> systems =
                         CustomQueryUtility.getActiveStorageSystemByNativeGuid(_dbClient, scannedSystemNativeGuid);
                 if (DecommissionedResource.checkDecommissioned(_dbClient, scannedSystemNativeGuid,
@@ -668,7 +685,8 @@ public class DataCollectionJobUtil {
                             scannedSystemNativeGuid, providersToUpdate);
                     if (storageSystem != null) {
                         systemsToCreate.add(storageSystem);
-                        _logger.info("Added new storage system to be created to the create list with Native Guid:" + storageSystem.getNativeGuid());
+                        _logger.info("Added new storage system to be created to the create list with Native Guid: {}",
+                                storageSystem.getNativeGuid());
                     }
                 }
             } catch (Exception e) {
@@ -829,6 +847,7 @@ public class DataCollectionJobUtil {
     private void setActiveProviderDetailsInSystem(StorageProvider provider,
             StorageSystem system, Map<URI, List<String>> providersToUpdate) {
         _logger.debug("Entering {}", Thread.currentThread().getStackTrace()[1].getMethodName());
+        _logger.info("Updated active provider {} information for storage system {}", provider.getId(), system.getId());
         // set the active provider details in the StorageSystem.
         system.setReachableStatus(true);
         system.setActiveProviderURI(provider.getId());
@@ -884,7 +903,8 @@ public class DataCollectionJobUtil {
             try {
                 storageSystemInDb = _dbClient.queryObject(StorageSystem.class,
                         dbSystemUri);
-                if (null == storageSystemInDb || !storageSystemInDb.storageSystemHasProvider()) {
+                if (null == storageSystemInDb || !storageSystemInDb.isStorageSystemManagedByProvider()) {
+                    _logger.info("Either storageSystem object is null or system not managed by provider : {}", dbSystemUri);
                     continue;
                 }
                 // By this time, DB has true reflection of physical Environment
@@ -894,11 +914,13 @@ public class DataCollectionJobUtil {
                 String dbSystemNativeGuid = storageSystemInDb.getNativeGuid();
                 if (scannedSystemsNativeGuidsMap
                         .containsKey(dbSystemNativeGuid)) {
+                    _logger.info("Detected a existing storage system {} via scan process again.", dbSystemNativeGuid);
                     StorageSystemViewObject systemDetails = scannedSystemsNativeGuidsMap
                             .get(dbSystemNativeGuid);
                     updateActiveProviders(systemDetails, storageSystemInDb,
                             providersToUpdate);
                 } else {
+                    _logger.info("Existing discovered storage system {} is not part of available new scan list.", dbSystemNativeGuid);
                     if (initialScanList.contains(storageSystemInDb
                             .getActiveProviderURI())) {
                         // Case 3: registered but not managed by provider mark
@@ -937,10 +959,13 @@ public class DataCollectionJobUtil {
         Set<String> allProviders = scannedStorageSystemViewObj.getProviders();
         // 1. If activeProviders are null then set the active to null and blank set to providers.
         if (allProviders == null || allProviders.isEmpty()) {
+            _logger.info("Scanned system {} does not have any storage provider", scannedStorageSystemViewObj.SERIAL_NUMBER);
             injectReachableStatusInSystem(storageSystemInDb, null, NullColumnValueGetter.getNullURI(), false);
             return;
             // 2. If Current ActiveProvider is not in ActiveList.
         } else if (!allProviders.contains(storageSystemInDb.getActiveProviderURI().toString())) {
+            _logger.info("Existing active provider{} of StorageSystem {} is not active now", storageSystemInDb.getActiveProviderURI(),
+                    storageSystemInDb.getNativeGuid());
             Iterator<String> iterator = allProviders.iterator();
             if (iterator.hasNext()) {
                 String newProviderURI = iterator.next();
@@ -957,12 +982,15 @@ public class DataCollectionJobUtil {
         } else {
             // If the current provider is already active, then set its passive providers.
             StringSet dbSystemAllProviders = storageSystemInDb.getProviders();
+
             if (null != dbSystemAllProviders && !dbSystemAllProviders.isEmpty()) {
                 storageSystemInDb.getProviders().addAll(allProviders);
             } else {
                 StringSet scannedProviders = new StringSet(allProviders);
                 storageSystemInDb.setProviders(scannedProviders);
             }
+            _logger.info("Added passive provider information in StorageSyetem instance {}",
+                    storageSystemInDb.getId());
             // Even if the current provider is active, we should update the storage systems in SMISProvider.
             for (String providerStr : allProviders) {
                 StorageProvider provider = _dbClient.queryObject(StorageProvider.class, URI.create(providerStr));

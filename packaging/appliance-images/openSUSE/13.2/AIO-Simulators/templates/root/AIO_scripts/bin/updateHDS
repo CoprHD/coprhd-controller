@@ -1,0 +1,14 @@
+#!/bin/bash
+
+systemctl stop HDS
+cd /tmp
+LATEST_URL="http://lglw8129.lss.emc.com/simulators/hds-simulators/hds-sim.zip"
+wget $LATEST_URL
+unzip hds-sim.zip -d hds-sim
+rm hds-sim/conf/serverConfig.groovy
+rm hds-sim/data/original/StorageArray.ARRAY.*.json
+cp -r hds-sim/* /data/simulators/hds-sim/
+rm -r hds-sim
+rm hds-sim.zip
+systemctl start HDS
+

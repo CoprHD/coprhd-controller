@@ -36,6 +36,7 @@ public class ProtectionMapper {
         }
         to.setProtectionStatus(from.getProtectionStatus());
         to.setProject(toRelatedResource(ResourceTypeEnum.PROJECT, from.getProject()));
+        to.setNativeGuid(from.getNativeGuid());
 
         return to;
     }
@@ -53,6 +54,7 @@ public class ProtectionMapper {
         to.setPortNumber(from.getPortNumber());
         to.setReachableStatus(from.getReachableStatus());
         to.setUsername(from.getUsername());
+        to.setNativeGuid(from.getNativeGuid());
         if (from.getRpSiteNames() != null) {
             List<ProtectionSystemRPClusterRestRep> clusterReps = new ArrayList<>();
             for (Map.Entry<String, String> clusterEntry : from.getRpSiteNames().entrySet()) {

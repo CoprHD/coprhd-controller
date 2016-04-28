@@ -4,6 +4,8 @@
  */
 package com.emc.storageos.recoverpoint;
 
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.fail;
 
 import java.net.URI;
@@ -34,6 +36,10 @@ import com.emc.storageos.recoverpoint.requests.MultiCopyDisableImageRequestParam
 import com.emc.storageos.recoverpoint.requests.MultiCopyEnableImageRequestParams;
 import com.emc.storageos.recoverpoint.requests.MultiCopyRestoreImageRequestParams;
 import com.emc.storageos.recoverpoint.requests.RPCopyRequestParams;
+import com.emc.storageos.recoverpoint.responses.GetCGsResponse;
+import com.emc.storageos.recoverpoint.responses.GetCopyResponse;
+import com.emc.storageos.recoverpoint.responses.GetRSetResponse;
+import com.emc.storageos.recoverpoint.responses.GetVolumeResponse;
 import com.emc.storageos.recoverpoint.responses.RecoverPointVolumeProtectionInfo;
 import com.emc.storageos.recoverpoint.utils.RecoverPointClientFactory;
 import com.emc.storageos.recoverpoint.utils.WwnUtils;
@@ -46,9 +52,15 @@ import com.emc.storageos.recoverpoint.utils.WwnUtils;
 // Required LUNS (masked to lrms023/lrms024):
 //
 import com.emc.storageos.services.util.EnvConfig;
+import com.emc.storageos.services.util.LoggingUtils;
 
 public class RecoverPointClientIntegrationTest {
-
+    static {
+        LoggingUtils.configureIfNecessary("recoverpoint-log4j.properties");
+    }
+    private static final Logger logger = LoggerFactory.getLogger(RecoverPointClientIntegrationTest.class);
+    
+    // Put sanity.properties in c:\Users\<you>\ on Windows
     private static final String UNIT_TEST_CONFIG_FILE = "sanity";
 
     private boolean isSymmDevices = false;
@@ -86,10 +98,9 @@ public class RecoverPointClientIntegrationTest {
     private static final String RPSiteToUse = EnvConfig.get(UNIT_TEST_CONFIG_FILE, "recoverpoint.RPSiteToUse");
     private static final String RPSystemName = EnvConfig.get(UNIT_TEST_CONFIG_FILE, "recoverpoint.RPSystemName");
     private static final String SITE_MGMT_IPV4 = EnvConfig.get(UNIT_TEST_CONFIG_FILE, "recoverpoint.SITE_MGMT_IPV4");
-
+    
     private static final String FAKE_WWN = "6006016018C12D00";
     private static volatile RecoverPointClient rpClient;
-    private static volatile Logger logger;
 
     private static final String preURI = "https://";
     private static final String postURI = ":7225/fapi/version4_1" + "?wsdl";
@@ -116,7 +127,6 @@ public class RecoverPointClientIntegrationTest {
             logger.error(e.getMessage(), e);
         }
 
-        logger = LoggerFactory.getLogger(RecoverPointClientTest.class);
         logger.error("Hello error");
         logger.debug("Hello debug");
         logger.info("Hello info");
@@ -147,7 +157,6 @@ public class RecoverPointClientIntegrationTest {
 
     @Test
     public void testRecoverPointServiceTopology() {
-        boolean foundError = false;
         logger.info("Testing RecoverPoint Service topology");
         Set<String> topologies;
         try {
@@ -156,12 +165,62 @@ public class RecoverPointClientIntegrationTest {
                 logger.info("Topology: " + topology);
             }
         } catch (RecoverPointException e) {
-            foundError = true;
             fail(e.getMessage());
         }
 
     }
 
+    @Test
+    public void testGetAllCGs() {
+        logger.info("Testing RecoverPoint CG Retrieval");
+        Set<GetCGsResponse> cgs;
+        try {
+            cgs = rpClient.getAllCGs();
+            Set<String> wwns = new HashSet<String>();
+            for (GetCGsResponse cg : cgs) {
+                logger.info("CG: " + cg);
+     
+                assertNotNull(cg.getCgName());
+                assertNotNull(cg.getCgId());
+                
+                // Make sure certain fields are filled-in
+                if (cg.getCopies() != null) {
+                    for (GetCopyResponse copy : cg.getCopies()) {
+                        assertNotNull(copy.getJournals());
+                        assertNotNull(copy.getName());
+                        for (GetVolumeResponse volume : copy.getJournals()) {
+                            assertNotNull(volume.getInternalSiteName());
+                            assertNotNull(volume.getRpCopyName());
+                            assertNotNull(volume.getWwn());
+                            // Make sure the same volume isn't in more than one place in the list.
+                            assertFalse(wwns.contains(volume.getWwn()));
+                            wwns.add(volume.getWwn());
+                        }
+                    }
+                }
+
+                if (cg.getRsets() != null) {
+                    for (GetRSetResponse rset : cg.getRsets()) {
+                        assertNotNull(rset.getName());
+                        assertNotNull(rset.getVolumes());
+                        for (GetVolumeResponse volume : rset.getVolumes()) {
+                            assertNotNull(volume.getInternalSiteName());
+                            assertNotNull(volume.getRpCopyName());
+                            assertNotNull(volume.getWwn());
+                            // Make sure the same volume isn't in more than one place in the list.
+                            assertFalse(wwns.contains(volume.getWwn()));
+                            wwns.add(volume.getWwn());
+                        }
+                    }
+                }
+                
+                // Make sure you have journals, sources, and targets
+            }
+        } catch (RecoverPointException e) {
+            fail(e.getMessage());
+        }         
+    }
+    
     @Test
     public void testGetAllSites() {
         RPSystem rpSystem = new RPSystem();

@@ -110,6 +110,7 @@ public class NASServer extends VirtualArrayTaggedResource implements Comparable<
 
     public void setCifsServersMap(CifsServerMap cifsServersMap) {
         this.cifsServersMap = cifsServersMap;
+        setChanged("cifsServers");
     }
 
     @Name("storagePorts")

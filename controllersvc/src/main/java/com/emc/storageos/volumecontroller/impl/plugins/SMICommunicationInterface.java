@@ -128,6 +128,24 @@ public class SMICommunicationInterface extends ExtendedCommunicationInterfaceImp
     }
 
     /**
+     * Return a WBEMClient instance based on the access profile found in the discovery context.
+     *
+     * NOTE: https://coprhd.atlassian.net/browse/COP-20454
+     * The reason this method is added and used is because it calls the ConnectionManager
+     * to retrieve the client. When this is done, client connection will be refreshed so
+     * that the Connection reaper (if it enabled/running) will not close the connection while
+     * it's being used in a discovery Processor.
+     *
+     * @param discoveryContext [IN] - Discovery context map containing parameters and discovery results
+     * @return WBEMClient based on the AccessProfile found in the discovery context.
+     */
+    public static WBEMClient getCIMClient(Map<String, Object> discoveryContext) {
+        AccessProfile accessProfile = (AccessProfile) discoveryContext.get(Constants.ACCESSPROFILE);
+        assert (accessProfile != null);
+        return getCIMClient(accessProfile);
+    }
+ 
+    /**
      * Creates a new WEBClient for a given IP, based on AccessProfile
      * 
      * @param accessProfile
@@ -137,7 +155,7 @@ public class SMICommunicationInterface extends ExtendedCommunicationInterfaceImp
      * @throws SMIPluginException
      * @return WBEMClient : initialized instance of WBEMClientCIMXML
      */
-    private WBEMClient getCIMClient(AccessProfile accessProfile)
+    private static WBEMClient getCIMClient(AccessProfile accessProfile)
             throws SMIPluginException {
         WBEMClient cimClient = null;
         try {
@@ -461,7 +479,7 @@ public class SMICommunicationInterface extends ExtendedCommunicationInterfaceImp
         Map<String, LocalReplicaObject> unManagedVolToLocalReplicaMap = new HashMap<String, LocalReplicaObject>();
         _keyMap.put(Constants.UN_VOLUME_LOCAL_REPLICA_MAP, unManagedVolToLocalReplicaMap);
 
-        Map<String, String> snapshotToSynchronizationAspectMap = new HashMap<String, String>();
+        Map<String, Map<String, String>> snapshotToSynchronizationAspectMap = new HashMap<String, Map<String, String>>();
         _keyMap.put(Constants.SNAPSHOT_NAMES_SYNCHRONIZATION_ASPECT_MAP, snapshotToSynchronizationAspectMap);
     }
 

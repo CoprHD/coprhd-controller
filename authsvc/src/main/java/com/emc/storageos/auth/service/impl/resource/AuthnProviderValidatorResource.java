@@ -5,20 +5,21 @@
 
 package com.emc.storageos.auth.service.impl.resource;
 
-import com.emc.storageos.auth.SystemPropertyUtil;
-import com.emc.storageos.auth.impl.ImmutableAuthenticationProviders;
-import com.emc.storageos.coordinator.client.service.CoordinatorClient;
-import com.emc.storageos.db.client.DbClient;
-import com.emc.storageos.model.auth.AuthnProviderParamsToValidate;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.emc.storageos.auth.impl.ImmutableAuthenticationProviders;
+import com.emc.storageos.coordinator.client.service.CoordinatorClient;
+import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.keystone.restapi.KeystoneRestClientFactory;
+import com.emc.storageos.model.auth.AuthnProviderParamsToValidate;
 
 /**
  * resource to validate a Authentication provider by connecting
@@ -29,6 +30,7 @@ import javax.ws.rs.core.Response.Status;
 public class AuthnProviderValidatorResource {
 
     private CoordinatorClient coordinator;
+    private KeystoneRestClientFactory keystoneApiFactory = null;
     private DbClient dbClient;
 
     private static final Logger _log = LoggerFactory.
@@ -36,6 +38,10 @@ public class AuthnProviderValidatorResource {
 
     public void setCoordinator(CoordinatorClient coordinator) {
         this.coordinator = coordinator;
+    }
+
+    public void setKeystoneFactory(KeystoneRestClientFactory factory) {
+        this.keystoneApiFactory = factory;
     }
 
     public void setDbClient(DbClient dbClient) {
@@ -55,7 +61,7 @@ public class AuthnProviderValidatorResource {
     public Response validateAuthenticationProvider(AuthnProviderParamsToValidate param) {
         StringBuilder errorString = new StringBuilder();
         if (!ImmutableAuthenticationProviders.checkProviderStatus(coordinator, param,
-                errorString, dbClient)) {
+                keystoneApiFactory, errorString, dbClient)) {
             return Response.status(Status.BAD_REQUEST).entity(errorString.toString()).build();
         }
         return Response.status(Status.OK).build();

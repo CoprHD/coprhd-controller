@@ -8,6 +8,7 @@ package com.emc.storageos.model.vpool;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 
+
 /**
  * Virtual pool of File System type.
  * 
@@ -17,6 +18,7 @@ public class FileVirtualPoolRestRep extends VirtualPoolCommonRestRep {
 
     private FileVirtualPoolProtectionParam protection;
     private Boolean longTermRetention;
+    private String fileReplicationType;
 
     public FileVirtualPoolRestRep() {
     }
@@ -29,7 +31,6 @@ public class FileVirtualPoolRestRep extends VirtualPoolCommonRestRep {
     /**
      * Not currently used
      * 
-     * @valid none
      */
     @XmlElement(name = "protection")
     public FileVirtualPoolProtectionParam getProtection() {
@@ -43,7 +44,6 @@ public class FileVirtualPoolRestRep extends VirtualPoolCommonRestRep {
     /**
      * Not currently used
      * 
-     * @valid none
      */
     @XmlElement(name = "long_term_retention")
     public Boolean getLongTermRetention() {
@@ -52,6 +52,15 @@ public class FileVirtualPoolRestRep extends VirtualPoolCommonRestRep {
 
     public void setLongTermRetention(Boolean longTermRetention) {
         this.longTermRetention = longTermRetention;
+    }
+    
+    @XmlElement(name = "file_replication_type")
+    public String getFileReplicationType() {
+        return fileReplicationType;
+    }
+
+    public void setFileReplicationType(String fileReplicationType) {
+        this.fileReplicationType = fileReplicationType;
     }
 
 }

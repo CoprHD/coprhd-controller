@@ -11,9 +11,13 @@ import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 import com.emc.storageos.coordinator.client.model.*;
+import com.emc.storageos.coordinator.client.model.DrOperationStatus.InterState;
+import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.systemservices.impl.ipsec.IPsecManager;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.curator.framework.recipes.locks.InterProcessLock;
+import org.jsoup.helper.StringUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -21,12 +25,14 @@ import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.coordinator.client.service.DrUtil;
 import com.emc.storageos.coordinator.client.service.NodeListener;
 import com.emc.storageos.coordinator.common.Configuration;
+import com.emc.storageos.coordinator.exceptions.RetryableCoordinatorException;
 import com.emc.storageos.db.client.util.VdcConfigUtil;
 import com.emc.storageos.security.audit.AuditLogManager;
 import com.emc.storageos.security.ipsec.IPsecConfig;
 import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.services.util.Exec;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
+import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
 import com.emc.storageos.systemservices.exceptions.CoordinatorClientException;
 import com.emc.storageos.systemservices.exceptions.InvalidLockOwnerException;
 import com.emc.storageos.systemservices.impl.client.SysClientFactory;
@@ -51,9 +57,9 @@ public class VdcManager extends AbstractManager {
     @Autowired
     private IPsecManager ipsecMgr;
     @Autowired
-    private UpgradeManager upgradeManager;
-    @Autowired
     private AuditLogManager auditMgr;
+    @Autowired
+    DbClient dbClient;
 
     // local and target info properties
     private PropertyInfoExt localVdcPropInfo;
@@ -70,15 +76,13 @@ public class VdcManager extends AbstractManager {
     // Timeout in minutes for add/resume/data sync
     // If data synchronization takes long than this value, set site to error
     public static final int ADD_STANDBY_TIMEOUT_MILLIS = 20 * 60 * 1000; // 20 minutes
-    public static final int PAUSE_STANDBY_TIMEOUT_MILLIS = 20 * 60 * 1000; // 20 minutes
     public static final int RESUME_STANDBY_TIMEOUT_MILLIS = 20 * 60 * 1000; // 20 minutes
-    public static final int DATA_SYNC_TIMEOUT_MILLIS = 20 * 60 * 1000; // 20 minutes
     public static final int REMOVE_STANDBY_TIMEOUT_MILLIS = 20 * 60 * 1000; // 20 minutes
     public static final int SWITCHOVER_TIMEOUT_MILLIS = 20 * 60 * 1000; // 20 minutes
-    private static final int BACK_UPGRADE_RETRY_MILLIS = 30 * 1000; // 30 seconds
+    public static final int FAILOVER_STANDBY_SITE_TIMEOUT_MILLIS = 40 * 60 * 1000; // 40 minutes
+    public static final int FAILOVER_ACTIVE_SITE_TIMEOUT_MILLIS = 40 * 60 * 1000; // 40 minutes
     
     private SiteInfo targetSiteInfo;
-    private String currentSiteId;
     private VdcConfigUtil vdcConfigUtil;
     private Map<String, VdcOpHandler> vdcOpHandlerMap;
     private Boolean backCompatPreYoda = false;
@@ -94,7 +98,7 @@ public class VdcManager extends AbstractManager {
     public void setBackCompatPreYoda(Boolean backCompat) {
         backCompatPreYoda = backCompat;
     }
-    
+
     @Override
     protected URI getWakeUpUrl() {
         return SysClientFactory.URI_WAKEUP_VDC_MANAGER;
@@ -149,7 +153,6 @@ public class VdcManager extends AbstractManager {
         // need to distinguish persistent locks acquired from UpgradeManager/VdcManager/PropertyManager
         // otherwise they might release locks acquired by others when they start
         final String svcId = String.format("%s,vdc", coordinator.getMySvcId());
-        currentSiteId = coordinator.getCoordinatorClient().getSiteId();
         vdcConfigUtil = new VdcConfigUtil(coordinator.getCoordinatorClient());
         vdcConfigUtil.setBackCompatPreYoda(backCompatPreYoda);
         
@@ -163,7 +166,7 @@ public class VdcManager extends AbstractManager {
             try {
                 hasLock = hasRebootLock(svcId);
             } catch (Exception e) {
-                log.info("Step1: Failed to verify if the current node has the reboot lock ", e);
+                log.info("Step0: Failed to verify if the current node has the reboot lock ", e);
                 retrySleep();
                 continue;
             }
@@ -186,7 +189,7 @@ public class VdcManager extends AbstractManager {
             try {
                 initializeLocalAndTargetInfo();
             } catch (Exception e) {
-                log.info("Step1b failed and will be retried:", e);
+                log.info("Step1 failed and will be retried:", e);
                 retrySleep();
                 continue;
             }
@@ -194,57 +197,58 @@ public class VdcManager extends AbstractManager {
             // Step2: power off if all nodes agree.
             log.info("Step2: Power off if poweroff state != NONE. {}", targetPowerOffState);
             try {
-                gracefulPoweroffCluster();
+                gracefulPowerOffCluster();
             } catch (Exception e) {
                 log.error("Step2: Failed to poweroff. {}", e);
             }
+            
+            // Step3: set site error state if on active
+            try {
+                updateSiteErrors();
+            } catch (Exception e) {
+                log.error("Step3: Failed to set site errors. {}", e);
+            }
+            
+            // Step4: record DR operation audit log if on active
+            try {
+                auditCompletedDrOperation();
+            } catch (RuntimeException e) {
+                log.error("Step4: Failed to record DR operation audit log. {}", e);
+            }
 
-            // Step3: update vdc configuration if changed
-            log.info("Step3: If VDC configuration is changed update");
+            // Step5: update vdc configuration if changed
+            log.info("Step5: If VDC configuration is changed update");
             if (vdcPropertiesChanged()) {
-                log.info("Step3: Current vdc properties are not same as target vdc properties. Updating.");
+                log.info("Step5: Current vdc properties are not same as target vdc properties. Updating.");
                 log.debug("Current local vdc properties: " + localVdcPropInfo);
                 log.debug("Target vdc properties: " + targetVdcPropInfo);
 
                 try {
                     updateVdcProperties(svcId);
-                    //updateSwitchoverSiteState();
-                    //updateFailoverSiteState();
                 } catch (Exception e) {
-                    log.info("Step3: VDC properties update failed and will be retried:", e);
+                    log.info("Step5: VDC properties update failed and will be retried:", e);
                     // Restart the loop immediately so that we release the upgrade lock.
                     continue;
                 }
                 continue;
             }
             
-            // Step4: set site error state if on active
-            try {
-                updateSiteErrors();
-            } catch (Exception e) {
-                log.error("Step4: Failed to set site errors. {}", e);
-                continue;
-            }
-            // Step5: record DR operation audit log if on active
-            try {
-                auditCompletedDrOperation();
-            } catch (RuntimeException e) {
-                log.error("Step5: Failed to record DR operation audit log. {}", e);
-                continue;
-            }
-            
-            // Step 6 : check backward compatibile upgrade flag
+            // Step 6 : check backward compatible upgrade flag
             try {
                 if (backCompatPreYoda) {
-                    log.info("Check if pre-yoda upgrade is done");
-                    checkPreYodaUpgrade();
-                    continue;
+                    if (isGeoConfig() && !isLeadVdcForGeoUpgrade()) {
+                        log.info("Skip pre-yoda upgrade handling for non lead vdc");
+                    } else {
+                        log.info("Check if pre-yoda upgrade is done");
+                        checkPreYodaUpgrade();
+                        continue;
+                    }
                 }
             } catch (Exception ex) {
-                log.error("Step5: Failed to set back compat yoda upgrade. {}", ex);
+                log.error("Step6: Failed to set back compat yoda upgrade. {}", ex);
                 continue;
             }
-            
+
             // Step7: sleep
             log.info("Step7: sleep");
             longSleep();
@@ -273,21 +277,31 @@ public class VdcManager extends AbstractManager {
 
         // Initialize vdc prop info
         localVdcPropInfo = localRepository.getVdcPropertyInfo();
+        String localConfigVersion = localVdcPropInfo.getProperty(VdcConfigUtil.VDC_CONFIG_VERSION);
+        coordinator.setNodeSessionScopeInfo(new VdcConfigVersion(localConfigVersion));
+        
         // ipsec key is a vdc property as well and saved in ZK.
         // targetVdcPropInfo = loadVdcConfigFromDatabase();
         targetVdcPropInfo = loadVdcConfig();
 
-        if (localVdcPropInfo.getProperty(VdcConfigUtil.VDC_CONFIG_VERSION) == null) {
-            localVdcPropInfo = new PropertyInfoExt(targetVdcPropInfo.getAllProperties());
+        if (isGeoUpgradeFromPreYoda()) {
+            log.info("Detect vdc properties from preyoda. Keep local vdc config properties unchanged until all vdc configs are migrated to zk");
             localVdcPropInfo.addProperty(VdcConfigUtil.VDC_CONFIG_VERSION,
                     String.valueOf(targetSiteInfo.getVdcConfigVersion()));
             localRepository.setVdcPropertyInfo(localVdcPropInfo);
-
-            String vdc_ids = targetVdcPropInfo.getProperty(VdcConfigUtil.VDC_IDS);
-            String[] vdcIds = vdc_ids.split(",");
-            if (vdcIds.length > 1) {
-                log.info("More than one Vdc, rebooting");
-                reboot();
+        } else {
+            if (localVdcPropInfo.getProperty(VdcConfigUtil.VDC_CONFIG_VERSION) == null) {
+                localVdcPropInfo = new PropertyInfoExt(targetVdcPropInfo.getAllProperties());
+                localVdcPropInfo.addProperty(VdcConfigUtil.VDC_CONFIG_VERSION,
+                         String.valueOf(targetSiteInfo.getVdcConfigVersion()));
+                localRepository.setVdcPropertyInfo(localVdcPropInfo);
+                
+                String vdc_ids = targetVdcPropInfo.getProperty(VdcConfigUtil.VDC_IDS);
+                String[] vdcIds = vdc_ids.split(",");
+                if (vdcIds.length > 1) {
+                    log.info("More than one Vdc, rebooting");
+                    reboot();
+                }
             }
         }
         
@@ -295,7 +309,7 @@ public class VdcManager extends AbstractManager {
         if (targetPowerOffState == null) {
             // only control node can set target
             try {
-                // Set the updated propperty info in coordinator
+                // Set the updated property info in coordinator
                 coordinator.setTargetInfo(new PowerOffState(PowerOffState.State.NONE));
                 targetPowerOffState = coordinator.getTargetInfo(PowerOffState.class);
                 log.info("Step1b: Target poweroff state set to: {}", PowerOffState.State.NONE);
@@ -314,13 +328,13 @@ public class VdcManager extends AbstractManager {
      * @throws Exception
      */
     private PropertyInfoExt loadVdcConfig() throws Exception {
-        targetVdcPropInfo = new PropertyInfoExt(vdcConfigUtil.genVdcProperties());
+        PropertyInfoExt targetVdcPropInfo = new PropertyInfoExt(vdcConfigUtil.genVdcProperties());
 
         // This ipsec_status and ipsec_key properties are not normal system properties,
         // as they need be protected by double barrier to make sure they be changed and
         // synced to all nodes at the SAME time, or else the quorum of zk and db will be
         // broken. This is why we don't put them in system property.
-        targetVdcPropInfo.addProperty(Constants.IPSEC_STATUS,ipsecConfig.getIpsecStatus());
+        targetVdcPropInfo.addProperty(Constants.IPSEC_STATUS, ipsecConfig.getIpsecStatus());
         targetVdcPropInfo.addProperty(Constants.IPSEC_KEY, ipsecConfig.getPreSharedKey());
         return targetVdcPropInfo;
     }
@@ -334,10 +348,20 @@ public class VdcManager extends AbstractManager {
         long localVdcConfigVersion = localVdcPropInfo.getProperty(VdcConfigUtil.VDC_CONFIG_VERSION) == null ? 0 :
                 Long.parseLong(localVdcPropInfo.getProperty(VdcConfigUtil.VDC_CONFIG_VERSION));
         long targetVdcConfigVersion = targetSiteInfo.getVdcConfigVersion();
-
+        log.info("local vdc config version: {}, target vdc config version: {}", localVdcConfigVersion, targetVdcConfigVersion);
         return localVdcConfigVersion != targetVdcConfigVersion;
     }
 
+    private boolean isGeoUpgradeFromPreYoda() {
+        String vdcIds = localVdcPropInfo.getProperty(VdcConfigUtil.VDC_IDS);
+        return !StringUtils.isEmpty(vdcIds) && vdcIds.contains(",") && StringUtils.isEmpty(localVdcPropInfo.getProperty(VdcConfigUtil.VDC_CONFIG_VERSION));
+    }
+    
+    private boolean isGeoConfig() {
+        return targetVdcPropInfo.getProperty(VdcConfigUtil.VDC_IDS).contains(",")
+                || localVdcPropInfo.getProperty(VdcConfigUtil.VDC_IDS).contains(",");
+    }
+    
     /**
      * Update vdc properties and reboot the node if
      *
@@ -345,42 +369,32 @@ public class VdcManager extends AbstractManager {
      * @throws Exception
      */
     private void updateVdcProperties(String svcId) throws Exception {
-        // If the change is being done to create a multi VDC configuration or to reduce to a
-        // multi VDC configuration a reboot is needed. If only operating on a single VDC
-        // do not reboot the nodes.
         String action = targetSiteInfo.getActionRequired();
-        if (targetVdcPropInfo.getProperty(VdcConfigUtil.VDC_IDS).contains(",")
-                || localVdcPropInfo.getProperty(VdcConfigUtil.VDC_IDS).contains(",")) {
-            log.info("Step3: Acquiring reboot lock for vdc properties change.");
-            if (!getRebootLock(svcId)) {
-                retrySleep();
-            } else if (!isQuorumMaintained()) {
-                releaseRebootLock(svcId);
-                retrySleep();
-            } else {
-                log.info("Step3: Setting vdc properties and reboot");
-                localRepository.setVdcPropertyInfo(targetVdcPropInfo);
-                reboot();
-            }
-            return;
-        }
-
-        log.info("Step3: Setting vdc properties not rebooting for single VDC change, action = {}", action);
+        
+        log.info("Step5: Process vdc op handlers, action = {}", action);
         VdcOpHandler opHandler = getOpHandler(action);
         opHandler.setTargetSiteInfo(targetSiteInfo);
         opHandler.setTargetVdcPropInfo(targetVdcPropInfo);
         opHandler.setLocalVdcPropInfo(localVdcPropInfo);
         opHandler.execute();
         
-        //Flush vdc properties includes VDC_CONFIG_VERSION to disk
+        if (opHandler.isRollingRebootNeeded()) {
+            log.info("Step5: Rolling reboot detected for vdc operation {}", action);
+            rollingReboot(svcId); // keep same behaviour as previous releases. always do rolling reboot
+        } else if (opHandler.isConcurrentRebootNeeded()) {
+            log.info("Step5: Concurent reboot for operation handler {}", action);
+            commitVdcConfigVersionToLocal();
+            reboot();
+        } else {
+            commitVdcConfigVersionToLocal();
+        }
+    }
+    
+    private void commitVdcConfigVersionToLocal() {
+        // Flush vdc properties includes VDC_CONFIG_VERSION to disk
         PropertyInfoExt vdcProperty = new PropertyInfoExt(targetVdcPropInfo.getAllProperties());
         vdcProperty.addProperty(VdcConfigUtil.VDC_CONFIG_VERSION, String.valueOf(targetSiteInfo.getVdcConfigVersion()));
         localRepository.setVdcPropertyInfo(vdcProperty);
-        
-        if (opHandler.isRebootNeeded()) {
-            log.info("Reboot machine for operation handler {}", opHandler.getClass().getName());
-            localRepository.reboot();
-        }
     }
     
     /**
@@ -408,23 +422,23 @@ public class VdcManager extends AbstractManager {
      * CTRL-11690: the new behavior is if an agreement cannot be reached, a best-effort attempt to poweroff the
      * remaining nodes will be made, as if the force parameter is provided.
      */
-    private void gracefulPoweroffCluster() {
+    private void gracefulPowerOffCluster() {
         if (targetPowerOffState != null && targetPowerOffState.getPowerOffState() != PowerOffState.State.NONE) {
             boolean forceSet = targetPowerOffState.getPowerOffState() == PowerOffState.State.FORCESTART;
             log.info("Step2: Trying to reach agreement with timeout on cluster poweroff");
             if (checkAllNodesAgreeToPowerOff(forceSet) && initiatePoweroff(forceSet)) {
                 resetTargetPowerOffState();
-                poweroffCluster();
+                powerOffCluster();
             } else {
                 log.warn("Step2: Failed to reach agreement among all the nodes. Proceed with best-effort poweroff");
                 initiatePoweroff(true);
                 resetTargetPowerOffState();
-                poweroffCluster();
+                powerOffCluster();
             }
         }
     }
 
-    public void poweroffCluster() {
+    public void powerOffCluster() {
         log.info("powering off the cluster!");
         final String[] cmd = { POWEROFFTOOL_COMMAND };
         Exec.sudo(SHUTDOWN_TIMEOUT_MILLIS, cmd);
@@ -452,8 +466,22 @@ public class VdcManager extends AbstractManager {
             for (Configuration config : configs) {
                 DrOperationStatus operation = new DrOperationStatus(config);
                 String siteId = operation.getSiteUuid();
-                SiteState interState = operation.getSiteState();
-                Site site = drUtil.getSiteFromLocalVdc(operation.getSiteUuid());
+                InterState interState = operation.getInterState();
+                Site site = null;
+                try {
+                    site = drUtil.getSiteFromLocalVdc(siteId);
+                } catch (RetryableCoordinatorException e) {
+                    // It's expected that site id is not found if we're removing this site because it has been removed
+                    // Under this situation, just record audit log and clear DR operation status
+                    if (interState.equals(InterState.REMOVING_STANDBY) &&e.getServiceCode() == ServiceCode.COORDINATOR_SITE_NOT_FOUND) {
+                        this.auditMgr.recordAuditLog(null, null, EVENT_SERVICE_TYPE, getOperationType(interState), System.currentTimeMillis(),
+                                AuditLogManager.AUDITLOG_SUCCESS, AuditLogManager.AUDITOP_END, siteId);
+                        coordinator.getCoordinatorClient().removeServiceConfiguration(config);
+                        log.info("DR operation status has been cleared: {}", operation);
+                        continue;
+                    }
+                    throw e;
+                }
                 SiteState currentState = site.getState();
                 if (currentState.equals(SiteState.STANDBY_ERROR)) {
                     // Failed
@@ -473,7 +501,7 @@ public class VdcManager extends AbstractManager {
                 log.info("DR operation status has been cleared: {}", operation);
             }
         } catch (Exception e) {
-            log.error("Auditing DR operation failed with execption", e);
+            log.error("Auditing DR operation failed with exception", e);
         } finally {
             try {
                 if (hasLock) {
@@ -485,29 +513,35 @@ public class VdcManager extends AbstractManager {
         }
     }
 
-    private OperationTypeEnum getOperationType(SiteState state) {
+    private OperationTypeEnum getOperationType(InterState state) {
         OperationTypeEnum operationType = null;
         switch(state) {
-            case STANDBY_ADDING:
+            case ADDING_STANDBY:
                 operationType = OperationTypeEnum.ADD_STANDBY;
                 break;
-            case STANDBY_REMOVING:
+            case REMOVING_STANDBY:
                 operationType = OperationTypeEnum.REMOVE_STANDBY;
                 break;
-            case STANDBY_PAUSING:
+            case PAUSING_STANDBY:
                 operationType = OperationTypeEnum.PAUSE_STANDBY;
                 break;
-            case STANDBY_RESUMING:
+            case RESUMING_STANDBY:
                 operationType = OperationTypeEnum.RESUME_STANDBY;
                 break;
-            case ACTIVE_SWITCHING_OVER:
+            case SWITCHINGOVER_ACTIVE:
                 operationType = OperationTypeEnum.ACTIVE_SWITCHOVER;
                 break;
-            case STANDBY_SWITCHING_OVER:
+            case SWITCHINGOVER_STANDBY:
                 operationType = OperationTypeEnum.STANDBY_SWITCHOVER;
                 break;
-            case STANDBY_FAILING_OVER:
+            case FAILINGOVER_STANDBY:
                 operationType = OperationTypeEnum.STANDBY_FAILOVER;
+                break;
+            case DEGRADING_STANDBY:
+                operationType = OperationTypeEnum.STANDBY_DEGRADE;
+                break;
+            case REJOINING_STANDBY:
+                operationType = OperationTypeEnum.STANDBY_REJOIN;
                 break;
         }
         return operationType;
@@ -518,15 +552,16 @@ public class VdcManager extends AbstractManager {
         CoordinatorClient coordinatorClient = coordinator.getCoordinatorClient();
 
         if (!drUtil.isActiveSite()) {
-            log.info("Step5: current site is a standby, nothing to do");
+            log.info("Step3: current site is a standby, nothing to do");
             return;
         }
 
         for(Site site : drUtil.listSites()) {
             SiteError error = getSiteError(site);
             if (error != null) {
+                log.info("set site {} state to STANDBY_ERROR, set lastState to {}",site.getName(),site.getState());
                 coordinatorClient.setTargetInfo(site.getUuid(), error);
-
+                site.setLastState(site.getState());
                 site.setState(SiteState.STANDBY_ERROR);
                 coordinatorClient.persistServiceConfiguration(site.toConfiguration());
             }
@@ -543,57 +578,57 @@ public class VdcManager extends AbstractManager {
             case STANDBY_ADDING:
                 drOpTimeoutMillis = drUtil.getDrIntConfig(DrUtil.KEY_ADD_STANDBY_TIMEOUT, ADD_STANDBY_TIMEOUT_MILLIS);
                 if (currentTime - lastSiteUpdateTime > drOpTimeoutMillis) {
-                    log.info("Step5: Site {} set to error due to add standby timeout", site.getName());
+                    log.warn("Step3: Site {} set to error due to add standby timeout", site.getName());
                     error = new SiteError(APIException.internalServerErrors.addStandbyFailedTimeout(
-                            drOpTimeoutMillis / 60 / 1000));
-                }
-                break;
-            case STANDBY_PAUSING:
-                drOpTimeoutMillis = drUtil.getDrIntConfig(DrUtil.KEY_PAUSE_STANDBY_TIMEOUT, PAUSE_STANDBY_TIMEOUT_MILLIS);
-                if (currentTime - lastSiteUpdateTime > drOpTimeoutMillis) {
-                    log.info("Step5: Site {} set to error due to pause standby timeout", site.getName());
-                    error = new SiteError(APIException.internalServerErrors.pauseStandbyFailedTimeout(
-                            drOpTimeoutMillis / 60 / 1000));
+                            drOpTimeoutMillis / 60 / 1000),site.getState().name());
                 }
                 break;
             case STANDBY_RESUMING:
                 drOpTimeoutMillis = drUtil.getDrIntConfig(DrUtil.KEY_RESUME_STANDBY_TIMEOUT, RESUME_STANDBY_TIMEOUT_MILLIS);
                 if (currentTime - lastSiteUpdateTime > drOpTimeoutMillis) {
-                    log.info("Step5: Site {} set to error due to resume standby timeout", site.getName());
+                    log.warn("Step3: Site {} set to error due to resume standby timeout", site.getName());
                     error = new SiteError(APIException.internalServerErrors.resumeStandbyFailedTimeout(
-                            drOpTimeoutMillis / 60 / 1000));
-                }
-                break;
-            case STANDBY_SYNCING:
-                drOpTimeoutMillis = drUtil.getDrIntConfig(DrUtil.KEY_DATA_SYNC_TIMEOUT, DATA_SYNC_TIMEOUT_MILLIS);
-                if (currentTime - lastSiteUpdateTime > drOpTimeoutMillis) {
-                    log.info("Step5: Site {} set to error due to data sync timeout", site.getName());
-                    error = new SiteError(APIException.internalServerErrors.dataSyncFailedTimeout(
-                            drOpTimeoutMillis / 60 / 1000));
+                            drOpTimeoutMillis / 60 / 1000),site.getState().name());
                 }
                 break;
             case STANDBY_REMOVING:
                 drOpTimeoutMillis = drUtil.getDrIntConfig(DrUtil.KEY_REMOVE_STANDBY_TIMEOUT, REMOVE_STANDBY_TIMEOUT_MILLIS);
                 if (currentTime - lastSiteUpdateTime > drOpTimeoutMillis) {
-                    log.info("Step5: Site {} set to error due to remove standby timeout", site.getName());
+                    log.warn("Step3: Site {} set to error due to remove standby timeout", site.getName());
                     error = new SiteError(APIException.internalServerErrors.removeStandbyFailedTimeout(
-                            drOpTimeoutMillis / 60 / 1000));
+                            drOpTimeoutMillis / 60 / 1000),site.getState().name());
                 }
                 break;
             case ACTIVE_SWITCHING_OVER:
                 drOpTimeoutMillis = drUtil.getDrIntConfig(DrUtil.KEY_SWITCHOVER_TIMEOUT, SWITCHOVER_TIMEOUT_MILLIS);
                 if (currentTime - lastSiteUpdateTime > drOpTimeoutMillis) {
-                    log.info("Step5: site {} set to error due to switchover timeout", site.getName());
+                    log.warn("Step3: Site {} set to error due to switchover timeout", site.getName());
                     error = new SiteError(APIException.internalServerErrors.switchoverActiveFailedTimeout(
-                            site.getName(), drOpTimeoutMillis / 60 / 1000));
+                            site.getName(), drOpTimeoutMillis / 60 / 1000),site.getState().name());
                 }
                 break;
             case STANDBY_SWITCHING_OVER:
                 drOpTimeoutMillis = drUtil.getDrIntConfig(DrUtil.KEY_SWITCHOVER_TIMEOUT, SWITCHOVER_TIMEOUT_MILLIS);
                 if (currentTime - lastSiteUpdateTime > drOpTimeoutMillis) {
-                    log.info("Step5: site {} set to error due to switchover timeout", site.getName());
+                    log.warn("Step3: Site {} set to error due to switchover timeout", site.getName());
                     error = new SiteError(APIException.internalServerErrors.switchoverStandbyFailedTimeout(
-                            site.getName(), drOpTimeoutMillis / 60 / 1000));
+                            site.getName(), drOpTimeoutMillis / 60 / 1000),site.getState().name());
+                }
+                break;
+            case STANDBY_FAILING_OVER:
+                drOpTimeoutMillis = drUtil.getDrIntConfig(DrUtil.KEY_FAILOVER_STANDBY_SITE_TIMEOUT, FAILOVER_STANDBY_SITE_TIMEOUT_MILLIS);
+                if (currentTime - lastSiteUpdateTime > drOpTimeoutMillis) {
+                    log.warn("Step3: Site {} set to error due to failover timeout", site.getName());
+                    error = new SiteError(APIException.internalServerErrors.failoverFailedTimeout(
+                            site.getName(), drOpTimeoutMillis / 60 / 1000),site.getState().name());
+                }
+                break;
+            case ACTIVE_FAILING_OVER:
+                drOpTimeoutMillis = drUtil.getDrIntConfig(DrUtil.KEY_FAILOVER_ACTIVE_SITE_TIMEOUT, FAILOVER_ACTIVE_SITE_TIMEOUT_MILLIS);
+                if (currentTime - lastSiteUpdateTime > drOpTimeoutMillis) {
+                    log.warn("Step3: Site {} set to error due to failover timeout", site.getName());
+                    error = new SiteError(APIException.internalServerErrors.failoverFailedTimeout(
+                            site.getName(), drOpTimeoutMillis / 60 / 1000),site.getState().name());
                 }
                 break;
         }
@@ -601,57 +636,94 @@ public class VdcManager extends AbstractManager {
     }
     
     private void checkPreYodaUpgrade() throws Exception {
-        String currentDbSchemaVersion = coordinator.getCurrentDbSchemaVersion();
-        String targetDbSchemaVersion = coordinator.getCoordinatorClient().getTargetDbSchemaVersion();
-        log.info("Current schema version {}", currentDbSchemaVersion);
-        if (!targetDbSchemaVersion.equals(currentDbSchemaVersion) || !coordinator.isDBMigrationDone()) {
+        if (!dbMigrationDone()) {
             log.info("Migration to yoda is not completed. Sleep and retry later. isMigrationDone flag = {}", coordinator.isDBMigrationDone());
-            sleep(BACK_UPGRADE_RETRY_MILLIS);
+            retrySleep();
             return;
         }
+        if (!drUtil.isAllSitesStable()) {
+            log.info("Current cluster is not stable. Skip and retry later");
+            retrySleep();
+            return;
+        }
+        if (isGeoConfig() && !allVdcGetUpgradedToYoda()) {
+            log.info("Sleep and wait for all vdc upgraded to yoda.");
+            retrySleep();
+            return;
+        }
+        
         log.info("Db migration is done. Switch to IPSec mode");
-        targetVdcPropInfo = loadVdcConfig(); // refresh local vdc config
+        enableIpsec();
+    }
 
-        // To trigger ipsec key rotation
-        VdcOpHandler opHandler = getOpHandler(SiteInfo.IPSEC_OP_ENABLE);
-        opHandler.setTargetVdcPropInfo(targetVdcPropInfo);
-        opHandler.setTargetSiteInfo(targetSiteInfo);
-        opHandler.execute();
-        targetSiteInfo = coordinator.getTargetInfo(SiteInfo.class);
-
-        // Then do rolling reboot if ready
-        if (ipsecMgr.isKeyRotationDone()) {
-            log.info("IPsec key rotation for upgrade is done. Starting rolling reboot.");
-            final String svcId = coordinator.getMySvcId();
-            if (!getRebootLock(svcId)) {
-                retrySleep();
-                return;
+    private void enableIpsec() throws Exception{
+        InterProcessLock lock = null;
+        try {
+            lock = coordinator.getCoordinatorClient().getSiteLocalLock("ipseclock");
+            lock.acquire();
+            log.info("Acquired the lock {}", "ipseclock");
+            
+            String preSharedKey = ipsecConfig.getPreSharedKeyFromZK();
+            if (StringUtil.isBlank(preSharedKey)) {
+                log.info("No pre shared key in zk, generate a new key");
+                ipsecMgr.rotateKey(true);
+            } else {
+                log.info("First ipsec key found in zk. No need to regenerate it");
             }
-            if (!isQuorumMaintained()) {
-                releaseRebootLock(svcId);
-                retrySleep();
-                return;
-            }
-
-            try {
-                // update backCompatPreYoda to false everywhere
-                vdcConfigUtil.setBackCompatPreYoda(false);
-                upgradeManager.setBackCompatPreYoda(false);
-                backCompatPreYoda = false;
-                targetVdcPropInfo.addProperty(VdcConfigUtil.BACK_COMPAT_PREYODA, String.valueOf(false));
-                localRepository.setVdcPropertyInfo(targetVdcPropInfo);
-
-                log.info("Rolling restart the db and geodb");
-                restartdb();
-            } finally {
-                releaseRebootLock(svcId);
+        } finally {
+            if (lock != null) {
+                lock.release();
             }
         }
     }
 
-    private void restartdb() {
-        localRepository.reconfig();
-        localRepository.restart("db");
-        localRepository.restart("geodb");
+    /**
+     * We pick only one vdc assumes the role to rotate ipsec key in post yoda. As default the vdc with 
+     * least vdc short id is the lead
+     * 
+     * @return true if current vdc is the lead 
+     */
+    private boolean isLeadVdcForGeoUpgrade() {
+        String localId = drUtil.getLocalVdcShortId();
+        String strVdcIds = targetVdcPropInfo.getProperty(VdcConfigUtil.VDC_IDS);
+        String[] vdcIds = strVdcIds.split(",");
+
+        for (String id : vdcIds) {
+            if (localId.compareToIgnoreCase(id) > 0 ) {
+                log.info("Current VDC {} is greater than {}.", localId, id);
+                return false;
+            }
+        }
+
+        log.info("Current VDC {} is the lead in current geo {}", localId, strVdcIds);
+        return true;
+    }
+
+    private boolean dbMigrationDone() {
+        String currentDbSchemaVersion = coordinator.getCurrentDbSchemaVersion();
+        String targetDbSchemaVersion = coordinator.getCoordinatorClient().getTargetDbSchemaVersion();
+        log.info("Current schema version {}", currentDbSchemaVersion);
+        return targetDbSchemaVersion.equals(currentDbSchemaVersion) && coordinator.isDBMigrationDone();
+    }
+
+    private boolean allVdcGetUpgradedToYoda() {
+        boolean toYOda = dbClient.checkGeoCompatible("2.5");
+        log.info("If Geo DB is upgraded to Yoda: {}", toYOda);
+        return toYOda;
+    }
+    
+    private void rollingReboot(String svcId) {
+        while (doRun) {
+            log.info("Acquiring reboot lock for geo config change.");
+            if (!getRebootLock(svcId)) {
+                retrySleep();
+            } else if (!isQuorumMaintained()) {
+                releaseRebootLock(svcId);
+                retrySleep();
+            } else {
+                commitVdcConfigVersionToLocal();
+                reboot();
+            }
+        }
     }
 }

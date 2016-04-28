@@ -1,0 +1,33 @@
+#!/bin/bash
+
+CONFIG=/data/simulators/ecom80/providers/OSLSProvider.conf
+
+usage(){
+	echo "Usage: SYMECOMVersion {show|set <80|462>}"
+}
+case "$1" in
+  show)
+        grep $CONFIG -e "^VERSION="
+	grep $CONFIG -e "^ADD_V2_SYMM="
+        ;;
+  set)
+        case "$2" in
+	  80)
+		service ECOM80 stop
+		sed -i 's/^VERSION=.*$/VERSION=80/' $CONFIG
+		service ECOM80 start
+		;;
+	  462)
+		service ECOM80 stop
+		sed -i 's/^VERSION=.*$/VERSION=462/' $CONFIG
+		service ECOM80 start
+		;;
+	  *)
+		 usage
+	esac
+        ;;
+
+  *)
+	usage
+esac
+

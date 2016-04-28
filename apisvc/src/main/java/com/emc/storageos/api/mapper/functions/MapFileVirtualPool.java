@@ -21,6 +21,6 @@ public class MapFileVirtualPool implements Function<VirtualPool, FileVirtualPool
 
     @Override
     public FileVirtualPoolRestRep apply(VirtualPool vpool) {
-        return VirtualPoolMapper.toFileVirtualPool(vpool);
+        return VirtualPoolMapper.toFileVirtualPool(vpool, null);
     }
 }

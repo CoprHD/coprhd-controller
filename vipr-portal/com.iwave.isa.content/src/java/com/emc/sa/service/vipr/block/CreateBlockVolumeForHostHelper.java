@@ -37,6 +37,19 @@ public class CreateBlockVolumeForHostHelper extends CreateBlockVolumeHelper {
     
     private Host host;
     private Cluster cluster;
+    
+    public URI getComputeResource() {
+    	URI computeResource = null;
+    	if (BlockStorageUtils.isHost(hostId)) {
+            host = BlockStorageUtils.getHost(hostId);
+            computeResource = host.getId();
+        }
+        else {
+            cluster = BlockStorageUtils.getCluster(hostId);
+            computeResource = cluster.getId();
+        }
+    	return computeResource;
+    }
 
     public void precheck() {
 

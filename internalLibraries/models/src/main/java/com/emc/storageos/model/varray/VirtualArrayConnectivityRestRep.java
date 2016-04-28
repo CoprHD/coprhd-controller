@@ -33,7 +33,6 @@ public class VirtualArrayConnectivityRestRep {
     /**
      * The virtual array.
      * 
-     * @valid none
      * 
      * @return The virtual array.
      */
@@ -49,9 +48,9 @@ public class VirtualArrayConnectivityRestRep {
 
     /**
      * The connection type.
-     * 
-     * @valid vplex
-     * @valid rp
+     * Valid values:
+     *  vplex
+     *  rp
      * 
      * @return The connection type
      */

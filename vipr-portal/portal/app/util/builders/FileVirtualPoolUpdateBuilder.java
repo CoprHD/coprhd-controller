@@ -7,6 +7,9 @@ package util.builders;
 import org.apache.commons.lang.ObjectUtils;
 
 import com.emc.storageos.model.vpool.FileVirtualPoolProtectionParam;
+import com.emc.storageos.model.vpool.FileVirtualPoolProtectionUpdateParam;
+import com.emc.storageos.model.vpool.FileVirtualPoolReplicationParam;
+import com.emc.storageos.model.vpool.FileVirtualPoolReplicationUpdateParam;
 import com.emc.storageos.model.vpool.FileVirtualPoolRestRep;
 import com.emc.storageos.model.vpool.FileVirtualPoolUpdateParam;
 import com.emc.storageos.model.vpool.VirtualPoolProtectionSnapshotsParam;
@@ -35,9 +38,9 @@ public class FileVirtualPoolUpdateBuilder extends VirtualPoolUpdateBuilder {
         return virtualPool;
     }
 
-    protected FileVirtualPoolProtectionParam getProtection() {
+    protected FileVirtualPoolProtectionUpdateParam getProtection() {
         if (virtualPool.getProtection() == null) {
-            virtualPool.setProtection(new FileVirtualPoolProtectionParam());
+            virtualPool.setProtection(new FileVirtualPoolProtectionUpdateParam());
         }
         return virtualPool.getProtection();
     }
@@ -45,6 +48,12 @@ public class FileVirtualPoolUpdateBuilder extends VirtualPoolUpdateBuilder {
     private Integer getOldMaxSnapshots() {
         if ((oldVirtualPool.getProtection() != null) && (oldVirtualPool.getProtection().getSnapshots() != null)) {
             return oldVirtualPool.getProtection().getSnapshots().getMaxSnapshots();
+        }
+        return null;
+    }
+    private Boolean getOldScheduleSnapshots() {
+        if ((oldVirtualPool.getProtection() != null) && (oldVirtualPool.getProtection().getScheduleSnapshots() != null)) {
+            return oldVirtualPool.getProtection().getScheduleSnapshots();
         }
         return null;
     }
@@ -73,6 +82,46 @@ public class FileVirtualPoolUpdateBuilder extends VirtualPoolUpdateBuilder {
             getVirtualPoolUpdate().setLongTermRetention(longTermRetention);
         }
         return this;
+    }
+    
+    protected FileVirtualPoolReplicationUpdateParam getReplicationParam() {
+        if (getProtection().getReplicationParam() == null) {
+            getProtection().setReplicationParam(new FileVirtualPoolReplicationUpdateParam());
+
+        }
+        return virtualPool.getProtection().getReplicationParam();
+    }
+    
+    public FileVirtualPoolReplicationParam getOldReplicationParam() {
+        if (getProtection().getReplicationParam() == null) {
+            getProtection().setReplicationParam(new FileVirtualPoolReplicationUpdateParam());
+
+        }
+        return oldVirtualPool.getProtection().getReplicationParam();
+    }
+
+    public static FileVirtualPoolReplicationParam getReplicationParam(FileVirtualPoolRestRep virtualPool) {
+        return virtualPool != null ? virtualPool.getProtection().getReplicationParam() : null;
+    }
+
+    public FileVirtualPoolUpdateBuilder setReplicationParam(FileVirtualPoolReplicationUpdateParam replicationParam) {
+        getProtection().setReplicationParam(replicationParam);
+        return this;
+    }
+    
+    public FileVirtualPoolUpdateBuilder setScheduleSnapshots(Boolean scheduleSnapshots) {
+        if (!ObjectUtils.equals(scheduleSnapshots, getOldScheduleSnapshots())) {
+            getProtection().setScheduleSnapshots(scheduleSnapshots);
+        }
+        return this;
+    }
+    
+    public static Boolean getScheduleSnapshots(FileVirtualPoolRestRep virtualPool) {
+        return getScheduleSnapshots(getProtection(virtualPool));
+    }
+
+    public static Boolean getScheduleSnapshots(FileVirtualPoolProtectionParam protection) {
+        return protection != null ? protection.getScheduleSnapshots() : null;
     }
 
 }

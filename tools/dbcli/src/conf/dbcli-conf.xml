@@ -21,6 +21,7 @@
         <property name="geoEncryptionProvider" ref="geoEncryptionProvider"/>
         <property name="localContext" ref="dbclientcontext"/>
         <property name="geoContext" ref="geodbclientcontext"/>
+        <property name="drUtil" ref="drUtil"/>
     </bean>
 
     <bean id="dbcli" class="com.emc.storageos.dbcli.DbCli">

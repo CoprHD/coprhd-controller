@@ -23,10 +23,12 @@ import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.AbstractChangeTrackingSet;
 import com.emc.storageos.db.client.model.BlockSnapshot;
+import com.emc.storageos.db.client.model.DataObject.Flag;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.DataCollectionJobStatus;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.RegistrationStatus;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.Type;
+import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.Network;
 import com.emc.storageos.db.client.model.NetworkSystem;
 import com.emc.storageos.db.client.model.Operation;
@@ -62,23 +64,34 @@ import com.emc.storageos.recoverpoint.responses.RecoverPointVolumeProtectionInfo
 import com.emc.storageos.recoverpoint.utils.WwnUtils;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.util.ConnectivityUtil;
-import com.emc.storageos.util.VersionChecker;
+import com.emc.storageos.util.ExportUtils;
 import com.emc.storageos.util.ConnectivityUtil.StorageSystemType;
+import com.emc.storageos.util.VersionChecker;
 import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.volumecontroller.impl.BiosCommandResult;
 import com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator;
+import com.emc.storageos.volumecontroller.impl.recoverpoint.RPUnManagedObjectDiscoverer;
 import com.emc.storageos.volumecontroller.impl.utils.ImplicitPoolMatcher;
 
 /**
  * Class for RecoverPoint discovery and collecting stats from RecoverPoint storage device
  */
 public class RPCommunicationInterface extends ExtendedCommunicationInterfaceImpl {
+    private static final String NON_ALPHA_NUMERICS = "[^A-Za-z0-9_]";
+    private static final String RPA = "-rpa-";
     private static final String RP_INITIATOR_PREFIX = "50:01:24";
 
     private Logger _log = LoggerFactory.getLogger(RPCommunicationInterface.class);
 
     private NamespaceList namespaces;
     private Executor executor;
+
+    private RPUnManagedObjectDiscoverer unManagedCGDiscoverer;
+
+    public void setUnManagedObjectDiscoverer(
+            RPUnManagedObjectDiscoverer cgDiscoverer) {
+        this.unManagedCGDiscoverer = cgDiscoverer;
+    }
 
     private RPStatisticsHelper _rpStatsHelper;
 
@@ -138,94 +151,114 @@ public class RPCommunicationInterface extends ExtendedCommunicationInterfaceImpl
             if (protectionSystem.getDiscoveryStatus().equals(DiscoveredDataObject.DataCollectionJobStatus.CREATED.toString())) {
                 isNewlyCreated = true;
             }
-            try {
-                discoverCluster(protectionSystem);
-            } catch (RecoverPointException rpe) {
-                discoverySuccess = false;
-                String msg = "Discover RecoverPoint cluster failed. Protection system: " + storageSystemId;
-                buildErrMsg(errMsgBuilder, rpe, msg);
-            }
 
-            // get RP array mappings
-            try {
-                if (discoverySuccess) {
-                    discoverRPSiteArrays(protectionSystem);
-                    _dbClient.persistObject(protectionSystem);
+            if (StorageSystem.Discovery_Namespaces.UNMANAGED_CGS.toString().equalsIgnoreCase(accessProfile.getnamespace())) {
+                try {
+                    unManagedCGDiscoverer.discoverUnManagedObjects(accessProfile, _dbClient, _partitionManager);
+                } catch (RecoverPointException rpe) {
+                    discoverySuccess = false;
+                    String msg = "Discover RecoverPoint Unmanaged CGs failed. Protection system: " + storageSystemId;
+                    buildErrMsg(errMsgBuilder, rpe, msg);
                 }
-            } catch (Exception rpe) {
-                discoverySuccess = false;
-                String msg = "Discover RecoverPoint site/cluster failed. Protection system: " + storageSystemId;
-                buildErrMsg(errMsgBuilder, rpe, msg);
-            }
+            } else {
 
-            try {
-                if (discoverySuccess) {
-                    discoverConnectivity(protectionSystem);
+                try {
+                    discoverCluster(protectionSystem);
+                } catch (RecoverPointException rpe) {
+                    discoverySuccess = false;
+                    String msg = "Discover RecoverPoint cluster failed. Protection system: " + storageSystemId;
+                    buildErrMsg(errMsgBuilder, rpe, msg);
                 }
-            } catch (Exception rpe) {
-                discoverySuccess = false;
-                String msg = "Discover RecoverPoint connectivity failed. Protection system: " + storageSystemId;
-                buildErrMsg(errMsgBuilder, rpe, msg);
-            }
 
-            // Perform maintenance on the RP bookmarks; some may no longer be valid
-            try {
-                if (discoverySuccess) {
-                    cleanupSnapshots(protectionSystem);
+                // get RP array mappings
+                try {
+                    if (discoverySuccess) {
+                        discoverRPSiteArrays(protectionSystem);
+                        _dbClient.persistObject(protectionSystem);
+                    }
+                } catch (Exception rpe) {
+                    discoverySuccess = false;
+                    String msg = "Discover RecoverPoint site/cluster failed. Protection system: " + storageSystemId;
+                    buildErrMsg(errMsgBuilder, rpe, msg);
                 }
-            } catch (Exception rpe) {
-                discoverySuccess = false;
-                String msg = "Snapshot maintenance failed. Protection system: " + storageSystemId;
-                buildErrMsg(errMsgBuilder, rpe, msg);
-            }
 
-            // Rematch storage pools for RP virtual pools
-            try {
-                if (discoverySuccess && isNewlyCreated) {
-                    matchVPools(protectionSystem.getId());
+                try {
+                    if (discoverySuccess) {
+                        discoverConnectivity(protectionSystem);
+                    }
+                } catch (Exception rpe) {
+                    discoverySuccess = false;
+                    String msg = "Discover RecoverPoint connectivity failed. Protection system: " + storageSystemId;
+                    buildErrMsg(errMsgBuilder, rpe, msg);
                 }
-            } catch (Exception rpe) {
-                discoverySuccess = false;
-                String msg = "Virtual Pool matching failed. Protection system: " + storageSystemId;
-                buildErrMsg(errMsgBuilder, rpe, msg);
-            }
 
-            // Discover the Connected-via-RP-itself Storage Systems
-            try {
-                if (discoverySuccess) {
-                    discoverVisibleStorageSystems(protectionSystem);
+                // Perform maintenance on the RP bookmarks; some may no longer be valid
+                try {
+                    if (discoverySuccess) {
+                        cleanupSnapshots(protectionSystem);
+                    }
+                } catch (Exception rpe) {
+                    discoverySuccess = false;
+                    String msg = "Snapshot maintenance failed. Protection system: " + storageSystemId;
+                    buildErrMsg(errMsgBuilder, rpe, msg);
                 }
-            } catch (Exception rpe) {
-                discoverySuccess = false;
-                String msg = "RP-visible storage system discovery failed. Protection system: " + storageSystemId;
-                buildErrMsg(errMsgBuilder, rpe, msg);
-            }
 
-            // Discover the Connected-via-NetworkStorage Systems
-            try {
-                if (discoverySuccess) {
-                    discoverAssociatedStorageSystems(protectionSystem);
+                // Rematch storage pools for RP virtual pools
+                try {
+                    if (discoverySuccess && isNewlyCreated) {
+                        matchVPools(protectionSystem.getId());
+                    }
+                } catch (Exception rpe) {
+                    discoverySuccess = false;
+                    String msg = "Virtual Pool matching failed. Protection system: " + storageSystemId;
+                    buildErrMsg(errMsgBuilder, rpe, msg);
                 }
-            } catch (Exception rpe) {
-                discoverySuccess = false;
-                String msg = "Storage system discovery failed. Protection system: " + storageSystemId;
-                buildErrMsg(errMsgBuilder, rpe, msg);
-            }
 
-            // Discover the protection sets
-            discoverProtectionSets(protectionSystem);
-
-            // Discover the protection system cluster connectivity topology information
-            try {
-                if (discoverySuccess) {
-                    discoverTopology(protectionSystem);
+                // Discover the Connected-via-RP-itself Storage Systems
+                try {
+                    if (discoverySuccess) {
+                        discoverVisibleStorageSystems(protectionSystem);
+                    }
+                } catch (Exception rpe) {
+                    discoverySuccess = false;
+                    String msg = "RP-visible storage system discovery failed. Protection system: " + storageSystemId;
+                    buildErrMsg(errMsgBuilder, rpe, msg);
                 }
-            } catch (Exception rpe) {
-                discoverySuccess = false;
-                String msg = "Discovery of topology failed. Protection system: " + storageSystemId;
-                buildErrMsg(errMsgBuilder, rpe, msg);
-            }
 
+                // Discover the Connected-via-NetworkStorage Systems
+                try {
+                    if (discoverySuccess) {
+                        discoverAssociatedStorageSystems(protectionSystem);
+                    }
+                } catch (Exception rpe) {
+                    discoverySuccess = false;
+                    String msg = "Storage system discovery failed. Protection system: " + storageSystemId;
+                    buildErrMsg(errMsgBuilder, rpe, msg);
+                }
+
+                // Discover the protection sets
+                try {
+                    if (discoverySuccess) {
+                        discoverProtectionSets(protectionSystem);
+                    }
+                } catch (Exception rpe) {
+                    discoverySuccess = false;
+                    String msg = "Discovery of protection sets failed. Protection system: " + storageSystemId;
+                    buildErrMsg(errMsgBuilder, rpe, msg);
+                }
+
+                // Discover the protection system cluster connectivity topology information
+                try {
+                    if (discoverySuccess) {
+                        discoverTopology(protectionSystem);
+                    }
+                } catch (Exception rpe) {
+                    discoverySuccess = false;
+                    String msg = "Discovery of topology failed. Protection system: " + storageSystemId;
+                    buildErrMsg(errMsgBuilder, rpe, msg);
+                }
+            }
+            
             if (!discoverySuccess) {
                 throw DeviceControllerExceptions.recoverpoint.discoveryFailure(errMsgBuilder.toString());
             }
@@ -366,7 +399,7 @@ public class RPCommunicationInterface extends ExtendedCommunicationInterfaceImpl
 
             if (protectionVolume.getRpVolumeCurrentProtectionStatus() == RecoverPointVolumeProtectionInfo.volumeProtectionStatus.PROTECTED_SOURCE) {
                 switch (rp.getCGState(protectionVolume)) {
-                    case GONE:
+                    case DELETED:
                         protectionSet.setProtectionStatus(ProtectionStatus.DELETED.toString());
                         break;
                     case STOPPED:
@@ -599,11 +632,11 @@ public class RPCommunicationInterface extends ExtendedCommunicationInterfaceImpl
         List<URI> networkSystemList = _dbClient.queryByType(NetworkSystem.class, true);
         boolean isNetworkSystemConfigured = false;
         if (networkSystemList.iterator().hasNext()) {
-            List<URI> allNetwroks = _dbClient.queryByType(Network.class, true);
+            List<URI> allNetworks = _dbClient.queryByType(Network.class, true);
 
             // Transfer to a reset-able list
             List<URI> networks = new ArrayList<>();
-            for (URI networkURI : allNetwroks) {
+            for (URI networkURI : allNetworks) {
                 networks.add(networkURI);
             }
 
@@ -617,35 +650,75 @@ public class RPCommunicationInterface extends ExtendedCommunicationInterfaceImpl
                 // Add an RP site -> initiators entry to the protection system
                 StringSet siteInitiators = new StringSet();
                 for(String rpaId : rpaWWNs.keySet()) {
-                	siteInitiators.addAll(rpaWWNs.get(rpaId).keySet());                	
+                    siteInitiators.addAll(rpaWWNs.get(rpaId).keySet());                	
                 }
                 system.putSiteIntitiatorsEntry(site.getInternalSiteName(), siteInitiators);
 
                 // Check to see if the RP initiator is in any Network - Based on which Network the RP initiator is in,
                 // we can look for the arrays in that Network that are potential candidates for connectivity.
                 for (String rpaId : rpaWWNs.keySet()) {
-                	for(Map.Entry<String, String> rpaWWN : rpaWWNs.get(rpaId).entrySet()) {
-                		for (URI networkURI : networks) {
-                			Network network = _dbClient.queryObject(Network.class, networkURI);
-                			StringMap discoveredEndpoints = network.getEndpointsMap();
-                			
-                			if (discoveredEndpoints.containsKey(rpaWWN.getKey().toUpperCase())) {
-	                            _log.info("WWN " + rpaWWN.getKey() + " is in Network : " + network.getLabel());
-	                            isNetworkSystemConfigured = true; // Set this to true as we found the RP initiators in a Network on the Network
-                                                              // System
-	                            for (String discoveredEndpoint : discoveredEndpoints.keySet()) {
-	                            	// Ignore the RP endpoints - RP WWNs have a unique prefix. We want to only return back non RP initiators in
-	                            	// that NetworkVSAN.
-	                            	if (discoveredEndpoint.startsWith(RP_INITIATOR_PREFIX)) {
-	                            		continue;
-	                            	}
 
-                                // Add the found endpoints to the list
-                                siteArrays.getArrays().add(discoveredEndpoint);
-	                            }
-                			}
-                		}            		
-                	}                
+                    boolean foundNetworkForRPCluster = false;
+                    
+                    for(Map.Entry<String, String> rpaWWN : rpaWWNs.get(rpaId).entrySet()) {
+
+                        String wwn = rpaWWN.getKey();
+
+                        Initiator initiator = new Initiator();
+                        initiator.addInternalFlags(Flag.RECOVERPOINT);
+                        // Remove all non alpha-numeric characters, excluding "_", from the hostname
+                        String rpClusterName = site.getSiteName().replaceAll(NON_ALPHA_NUMERICS, "");
+                        _log.info(String.format("Setting RP initiator cluster name : %s", rpClusterName));
+                        initiator.setClusterName(rpClusterName);
+                        initiator.setProtocol("FC");
+                        initiator.setIsManualCreation(false);
+
+                        // Group RP initiators by their RPA. This will ensure that separate IGs are created for each RPA
+                        // A child RP IG will be created containing all the RPA IGs
+                        String hostName = rpClusterName + RPA + rpaId;
+                        hostName = hostName.replaceAll(NON_ALPHA_NUMERICS, "");
+                        _log.info(String.format("Setting RP initiator host name : %s", hostName));
+                        initiator.setHostName(hostName);
+
+                        _log.info(String.format("Setting Initiator port WWN : %s, nodeWWN : %s", rpaWWN.getKey(), rpaWWN.getValue()));
+                        initiator.setInitiatorPort(rpaWWN.getKey());
+                        initiator.setInitiatorNode(rpaWWN.getValue());
+
+                        // Either get the existing initiator or create a new if needed
+                        initiator = getOrCreateNewInitiator(initiator);
+
+                        _log.info("Examining RP WWN: " + wwn.toUpperCase());
+                        // Find the network associated with this wwn
+                        for (URI networkURI : networks) {
+                            Network network = _dbClient.queryObject(Network.class, networkURI);
+                            _log.info("Examining Network: " + network.getLabel());
+                            StringMap discoveredEndpoints = network.getEndpointsMap();
+
+                            if (discoveredEndpoints.containsKey(rpaWWN.getKey().toUpperCase())) {
+                                _log.info("WWN " + rpaWWN.getKey() + " is in Network : " + network.getLabel());
+                                // Set this to true as we found the RP initiators in a Network on the Network system
+                                isNetworkSystemConfigured = true;
+                                foundNetworkForRPCluster = true;
+                                for (String discoveredEndpoint : discoveredEndpoints.keySet()) {
+                                    // Ignore the RP endpoints - RP WWNs have a unique prefix. We want to only return back non RP initiators in
+                                    // that NetworkVSAN.
+                                    if (discoveredEndpoint.startsWith(RP_INITIATOR_PREFIX)) {
+                                        continue;
+                                    }
+
+                                    // Add the found endpoints to the list
+                                    siteArrays.getArrays().add(discoveredEndpoint);
+                                }
+                            }
+                        }
+                    }
+                    
+                    if (!foundNetworkForRPCluster) {
+                        // This is not an error to the end-user. When they add a network system, everything will rediscover correctly.
+                        _log.warn(String.format("Network systems are required when configuring RecoverPoint.  RP Cluster %s initiators are not seen in any configured network.", 
+                                rpaId));
+                    }
+                    
                 }
                 // add to the list
                 rpSiteArrays.add(siteArrays);
@@ -673,6 +746,42 @@ public class RPCommunicationInterface extends ExtendedCommunicationInterfaceImpl
         returnList.add(rpSiteArrays);
         result.setObjectList(returnList);
         return result;
+    }
+
+    /**
+     * Get an initiator as specified by the passed initiator data. First checks
+     * if an initiator with the specified port already exists in the database,
+     * and simply returns that initiator, otherwise creates a new initiator.
+     *
+     * @param initiatorParam The data for the initiator.
+     *
+     * @return A reference to an initiator.
+     *
+     * @throws InternalException When an error occurs querying the database.
+     */
+    private Initiator getOrCreateNewInitiator(Initiator initiatorParam)
+            throws InternalException {
+        Initiator initiator = null;
+        URIQueryResultList resultsList = new URIQueryResultList();
+        _dbClient.queryByConstraint(AlternateIdConstraint.Factory.getInitiatorPortInitiatorConstraint(
+                initiatorParam.getInitiatorPort()), resultsList);
+        Iterator<URI> resultsIter = resultsList.iterator();
+        if (resultsIter.hasNext()) {
+            initiator = _dbClient.queryObject(Initiator.class, resultsIter.next());
+            // If the hostname has been changed then we need to update the
+            // Initiator object to reflect that change.
+            if (NullColumnValueGetter.isNotNullValue(initiator.getHostName())
+                    && !initiator.getHostName().equals(initiatorParam.getHostName())) {
+                initiator.setHostName(initiatorParam.getHostName());
+                _dbClient.updateObject(initiator);
+            }
+        } else {
+            initiatorParam.setId(URIUtil.createId(Initiator.class));
+            _dbClient.createObject(initiatorParam);
+            initiator = initiatorParam;
+        }
+
+        return initiator;
     }
 
     /**
@@ -850,6 +959,22 @@ public class RPCommunicationInterface extends ExtendedCommunicationInterfaceImpl
     }
 
     /**
+     * Check to see if this storageport already exists
+     * 
+     * @param nativeGuid native guid of the storage port
+     * @return StoragePort object
+     */
+    protected StoragePort checkPortExistsInDB(String nativeGuid) {
+        StoragePort port = null;
+        // use NativeGuid to lookup Pools in DB
+        List<StoragePort> portInDB = CustomQueryUtility.getActiveStoragePortByNativeGuid(_dbClient, nativeGuid);
+        if (portInDB != null && !portInDB.isEmpty()) {
+            port = portInDB.get(0);
+        }
+        return port;
+    }
+
+    /**
      * Wait for any RP-supported storage system discovery to complete.
      * This helps us maintain good connectivity data and makes pool matching
      * work better.
@@ -1008,22 +1133,91 @@ public class RPCommunicationInterface extends ExtendedCommunicationInterfaceImpl
                     String firstHalf = splitSerialNumber[0];
                     String secondHalf = splitSerialNumber[1];
 
-                    // Add first half
-                    protectionSystem.getAssociatedStorageSystems()
-                            .add(ProtectionSystem.generateAssociatedStorageSystem(siteArray.getRpInternalSiteName(),
-                                    String.valueOf(firstHalf)));
-
+                    // Check the network connectivity between the RP site and the storage array
+                    if (isNetworkConnected(firstHalf, siteArray)) {
+                        // Add first half
+                        protectionSystem.getAssociatedStorageSystems()
+                                .add(ProtectionSystem.generateAssociatedStorageSystem(siteArray.getRpInternalSiteName(),
+                                        String.valueOf(firstHalf)));
+                    }
+                        
                     // Second half to be added next
                     serialNumber = secondHalf;
                 }
 
-                protectionSystem.getAssociatedStorageSystems()
-                        .add(ProtectionSystem.generateAssociatedStorageSystem(siteArray.getRpInternalSiteName(),
-                                String.valueOf(serialNumber)));
+                // Check the network connectivity between the RP site and the storage array
+                if (isNetworkConnected(serialNumber, siteArray)) {
+                    protectionSystem.getAssociatedStorageSystems()
+                    .add(ProtectionSystem.generateAssociatedStorageSystem(siteArray.getRpInternalSiteName(),
+                            String.valueOf(serialNumber)));
+                }
             }
         }
 
-        _dbClient.updateAndReindexObject(protectionSystem);
+        _dbClient.updateObject(protectionSystem);
+    }
+
+    /**
+     * Check the connectivity of a storage system to the RP cluster
+     * 
+     * @param serialNumber serial number of the storage system
+     * @param siteArray RPSiteArray object
+     * @return true if the storage array has network connectivity to the RP cluster
+     */
+    private boolean isNetworkConnected(String serialNumber, RPSiteArray siteArray) {
+        // Get the storage system object associated with the serial number sent in.
+        URI foundStorageSystemURI = ConnectivityUtil.findStorageSystemBySerialNumber(serialNumber,
+                _dbClient, StorageSystemType.BLOCK);
+        if (foundStorageSystemURI == null) {
+            _log.info(String.format("Could not find a registered storage system associated with serial number %s", serialNumber));
+            _log.info(String.format("No registered network connectivity found between storage system %s and RP site %s", serialNumber, siteArray.getRpInternalSiteName()));
+            return false;
+        }
+        
+        // Find all of the initiators associated with the RP Cluster in the site array object
+        ProtectionSystem rpSystem = _dbClient.queryObject(ProtectionSystem.class, siteArray.getRpProtectionSystem());
+        if (rpSystem == null) {
+            _log.error(String.format("Could not find a registered protection system associated with URI %s", siteArray.getRpProtectionSystem()));
+            _log.info(String.format("No registered network connectivity found between storage system %s and RP site %s", serialNumber, siteArray.getRpInternalSiteName()));
+            return false;
+        }
+        
+        // Make sure initiators are loaded for the entire protection system
+        if (rpSystem.getSiteInitiators() == null) {
+            _log.error(String.format("Could not find initiators associated with protection system %s", rpSystem.getLabel()));
+            _log.info(String.format("No registered network connectivity found between storage system %s and RP site %s", serialNumber, siteArray.getRpInternalSiteName()));
+            return false;
+        }
+        
+        // Make sure initiators are loaded for the RP cluster
+        if (rpSystem.getSiteInitiators().get(siteArray.getRpInternalSiteName()) == null) {
+            _log.error(String.format("Could not find initiators associated with protection system %s on RP cluster %s", rpSystem.getLabel(), siteArray.getRpInternalSiteName()));
+            _log.info(String.format("No registered network connectivity found between storage system %s and RP site %s", serialNumber, siteArray.getRpInternalSiteName()));
+            return false;
+        }
+        
+        // For each initiator associated with the RP cluster in this RPSiteArray, see if we can find a route to the storage system
+        for (String portWwn : rpSystem.getSiteInitiators().get(siteArray.getRpInternalSiteName())) {
+            Initiator initiator = ExportUtils.getInitiator(portWwn, _dbClient);                    
+            if (initiator == null) {
+                // This is a database inconsistency issue.  Report an error and continue.
+                _log.error(String.format("Could not find initiator %s in the database, even though ProtectionSystem %s references it.", portWwn, rpSystem.getLabel()));
+            }
+            
+            StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, foundStorageSystemURI);
+            if (storageSystem == null) {
+                // This is a database inconsistency issue.  Report an error and continue.
+                _log.error(String.format("Could not find storage system %s in the database, even though ProtectionSystem %s references it.", foundStorageSystemURI, rpSystem.getLabel()));
+            }
+
+            // If we can at least find one initiator that is connected to the storage system, we can return true.
+            if (ConnectivityUtil.isInitiatorConnectedToStorageSystem(initiator, storageSystem, null, _dbClient)) {
+                _log.info(String.format("Found initiator %s can be connected to storage system %s", initiator.getInitiatorPort(), serialNumber));
+                return true;
+            }
+        }
+        
+        return false;
     }
 
     /**

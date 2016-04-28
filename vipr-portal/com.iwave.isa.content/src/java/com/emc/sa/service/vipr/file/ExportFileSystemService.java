@@ -22,7 +22,7 @@ public class ExportFileSystemService extends ViPRService {
     protected URI fileSystems;
     @Param(COMMENT)
     protected String comment;
-    @Param(SUBDIRECTORY)
+    @Param(value = SUBDIRECTORY, required = false)
     protected String subDirectory;
 
     @Bindable(itemType = FileStorageUtils.FileExportRule.class)

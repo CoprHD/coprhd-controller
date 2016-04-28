@@ -17,6 +17,7 @@ import javax.ws.rs.core.MediaType;
 
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.geomodel.*;
+import com.emc.storageos.model.ipsec.IpsecParam;
 import com.emc.storageos.security.geo.exceptions.*;
 
 import org.apache.commons.lang.StringUtils;
@@ -70,8 +71,14 @@ public class GeoServiceClient extends BaseServiceClient {
     public static final String VDCCONFIG_STABLE_CHECK = VDCCONFIG_URI + "/stablecheck";
     public static final String VERSION_URI = INTERVDC_URI + "/version";
     public static final String VDCCONFIG_RESET_BLACKLIST = VDCCONFIG_URI + "/resetblacklist";
+    public static final String INTERVDC_IPSEC_SERVICE = INTERVDC_URI + "/ipsec";
+    public static final String INTERVDC_IPSEC_KEY_ROTATION_URI = INTERVDC_IPSEC_SERVICE + "/key";
+    public static final String INTERVDC_IPSEC_PROPERTIES_URI = INTERVDC_IPSEC_SERVICE + "/properties";
 
-    public static final int MAX_RETRIES = 12;
+    private static int MAX_RETRIES = 12;
+    public static void setMaxRetries(int maxRetries) {
+        MAX_RETRIES = maxRetries;
+    }
 
     public final static String VDCOP_LOCK_NAME = "vdcOpLock";
     // An add VDC operation can easily take up to 15 minutes. Use 30 minutes as timeout
@@ -629,5 +636,52 @@ public class GeoServiceClient extends BaseServiceClient {
             throw GeoException.fatals.unableConnect(endPoint, e);
         }
 
+    }
+
+    public void changeIpsecStatus(String peerVdcId, String status, String vdcConfigVersion) {
+        WebResource rRoot = createRequest(INTERVDC_IPSEC_SERVICE)
+                .queryParam("status",status)
+                .queryParam("vdc_config_version", vdcConfigVersion);
+        rRoot.accept(MediaType.APPLICATION_XML);
+        try {
+            addSignature(rRoot).post();
+        } catch (UnauthorizedException e) {
+            throw GeoException.fatals.remoteVdcAuthorizationFailed(peerVdcId, e);
+        } catch (GeoException e) {
+            throw e;
+        } catch (Exception e) {
+            throw GeoException.fatals.failedToSedPostCheckRequest(peerVdcId, e);
+        }
+
+    }
+
+    public void rotateIpsecKey(String peerVdcId, IpsecParam ipsecParam) {
+        WebResource rRoot = createRequest(INTERVDC_IPSEC_KEY_ROTATION_URI);
+        rRoot.accept(MediaType.APPLICATION_XML);
+        try {
+            addSignature(rRoot).post(ipsecParam);
+        } catch (UnauthorizedException e) {
+            throw GeoException.fatals.remoteVdcAuthorizationFailed(peerVdcId, e);
+        } catch (GeoException e) {
+            throw e;
+        } catch (Exception e) {
+            throw GeoException.fatals.failedToSedPostCheckRequest(peerVdcId, e);
+        }
+    }
+
+    /**
+     * retrieve ipsec related properties from remote vdc.
+     */
+    public VdcIpsecPropertiesResponse getIpsecProperties() {
+        WebResource rRoot = createRequest(INTERVDC_IPSEC_PROPERTIES_URI);
+        try {
+            return addSignature(rRoot).accept(MediaType.APPLICATION_XML).get(VdcIpsecPropertiesResponse.class);
+        } catch (UnauthorizedException e) {
+            throw GeoException.fatals.unableConnect(endPoint, e);
+        } catch (GeoException e) {
+            throw e;
+        } catch (Exception e) {
+            throw GeoException.fatals.unableConnect(endPoint, e);
+        }
     }
 }

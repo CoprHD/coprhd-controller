@@ -69,10 +69,11 @@ public class CephCloneOperations implements CloneOperations {
                 parentVolume = _dbClient.queryObject(Volume.class, sourceSnapshot.getParent());
             } else if (sourceObject instanceof Volume) {
                 // Use interim snapshot as clone source, since Ceph can clone snapshots only
+                // http://docs.ceph.com/docs/master/rbd/rbd-snapshot/#getting-started-with-layering
                 parentVolume = (Volume)sourceObject;
             	sourceSnapshot = prepareInternalSnapshotForVolume(parentVolume);
             } else {
-                String msg = String.format("Unsupported block object type URI %s", sourceObject.getId());
+                String msg = String.format("Unsupported block object type URI %s", source);
                 ServiceCoded code = DeviceControllerErrors.ceph.operationFailed("createSingleClone", msg);
                 taskCompleter.error(_dbClient, code);
                 return;
@@ -93,6 +94,7 @@ public class CephCloneOperations implements CloneOperations {
             	sourceSnapshot.setIsSyncActive(true);
             	sourceSnapshot.setParent(new NamedURI(parentVolume.getId(), parentVolume.getLabel()));
                 _dbClient.updateObject(sourceSnapshot);
+                _log.info("Interim shapshot {} created for clone {}", sourceSnapshot.getId(), cloneObject.getId());
             }
 
             // Ceph requires cloning snapshot to be protected (from deleting)
@@ -103,7 +105,7 @@ public class CephCloneOperations implements CloneOperations {
             // Do cloning
             cephClient.cloneSnap(poolId, parentVolumeId, snapshotId, cloneVolumeLabel);
 
-            // Update objects
+            // Update clone object
             cloneObject.setDeviceLabel(cloneVolumeLabel);
             cloneObject.setNativeId(cloneVolumeLabel);
             cloneObject.setNativeGuid(NativeGUIDGenerator.generateNativeGuid(_dbClient, cloneObject));
@@ -124,13 +126,11 @@ public class CephCloneOperations implements CloneOperations {
             ServiceCoded code = DeviceControllerErrors.ceph.operationFailed("createSingleClone", e.getMessage());
             taskCompleter.error(_dbClient, code);
         }
-        _log.info("END createSingleClone operation");
     }
 
     @Override
     public void detachSingleClone(StorageSystem storageSystem, URI cloneVolume, TaskCompleter taskCompleter) {
-    	String opMsg = String.format("detachSingleClone %s", cloneVolume);
-    	_log.info("START %s", opMsg);
+        _log.info("START detachSingleClone operation");
         try {
             Volume cloneObject = _dbClient.queryObject(Volume.class, cloneVolume);
             String cloneId = cloneObject.getNativeId();
@@ -143,38 +143,34 @@ public class CephCloneOperations implements CloneOperations {
             CephClient cephClient = getClient(storageSystem);
 
             // Flatten image
-        	_log.info(String.format("%s: flatten image %s/%s", opMsg, poolId, cloneId));
             cephClient.flattenImage(poolId, cloneId);
 
             // Detach links
-        	_log.info("%s: detach links", opMsg);
             ReplicationUtils.removeDetachedFullCopyFromSourceFullCopiesList(cloneObject, _dbClient);
             cloneObject.setAssociatedSourceVolume(NullColumnValueGetter.getNullURI());
             cloneObject.setReplicaState(ReplicationState.DETACHED.name());
             _dbClient.updateObject(cloneObject);
 
-            // Un-protect snapshot if it was last child and delete internal interim snapshot
+            // Un-protect snapshot if it was the last child and delete internal interim snapshot
             List<String> children = cephClient.getChildren(poolId, sourceVolumeId, snapshotId);
             if (children.isEmpty()) {
-            	_log.info(String.format("%s: no children for snapshot %s@%s", opMsg, sourceVolumeId, snapshotId));
-            	// Unprotect if protected
+            	// Unprotect snapshot to enable deleting
             	if (cephClient.snapIsProtected(poolId, sourceVolumeId, snapshotId)) {
-                	_log.info(String.format("%s: unprotect snapshot %s@%s", opMsg, sourceVolumeId, snapshotId));
             		cephClient.unprotectSnap(poolId, sourceVolumeId, snapshotId);
             	}
 
-                // Remove snapshot if it's internal object
-                if (parentSnapshot.checkInternalFlags(Flag.INTERNAL_OBJECT)) {
-                	_log.info(String.format("%s: interim snapshot %s@%s is to be deleted", opMsg, sourceVolumeId, snapshotId));
-                	// Interim snapshot is created to 'clone volume from volume' only
-                	// and should be deleted at the step of detaching during full copy creation workflow
-                	String reference = parentSnapshot.canBeDeleted();
-                	if (reference == null) {
-                    	_log.info(String.format("%s: delete snapshot %s@%s", opMsg, sourceVolumeId, snapshotId));
-                		cephClient.deleteSnap(poolId, sourceVolumeId, snapshotId);
-                		_dbClient.markForDeletion(parentSnapshot);
-                	}
+                // Interim snapshot is created to 'clone volume from volume' only
+                // and should be deleted at the step of detaching during full copy creation workflow
+                if (parentSnapshot.checkInternalFlags(Flag.INTERNAL_OBJECT) &&
+                        parentSnapshot.canBeDeleted() == null) {
+            		cephClient.deleteSnap(poolId, sourceVolumeId, snapshotId);
+            		_dbClient.markForDeletion(parentSnapshot);
                 }
+            } else if (parentSnapshot.checkInternalFlags(Flag.INTERNAL_OBJECT)) {
+                // If the snapshot (not interim) still has children, it may be used for another cloning right now
+                // So that log the warning for interim snapshot only
+                _log.warn("Could not delete interim snapshot {} because its Ceph snapshot {}@{} unexpectedly had another child",
+                        parentSnapshot.getId(), sourceVolumeId, snapshotId);
             }
 
             taskCompleter.ready(_dbClient);
@@ -188,7 +184,6 @@ public class CephCloneOperations implements CloneOperations {
 	        ServiceCoded code = DeviceControllerErrors.ceph.operationFailed("detachSingleClone", e.getMessage());
 	        taskCompleter.error(_dbClient, code);
 	    }
-        _log.info("END %s", opMsg);
     }
 
     @Override

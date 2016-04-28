@@ -10,7 +10,10 @@ import com.emc.storageos.ceph.model.ClusterInfo;
 import com.emc.storageos.ceph.model.PoolInfo;
 import com.emc.storageos.ceph.model.SnapInfo;
 
-public interface CephClient {
+public interface CephClient extends AutoCloseable {
+
+    @Override
+    public default void close() throws Exception {};
 
     public ClusterInfo getClusterInfo() throws CephException;
     public List<PoolInfo> getPools() throws CephException;

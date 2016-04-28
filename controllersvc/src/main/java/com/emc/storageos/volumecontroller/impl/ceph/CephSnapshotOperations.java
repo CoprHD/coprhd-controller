@@ -48,8 +48,7 @@ public class CephSnapshotOperations extends DefaultSnapshotOperations {
     @Override
     public void createSingleVolumeSnapshot(StorageSystem storage, URI snapshot, Boolean createInactive, Boolean readOnly,
             TaskCompleter taskCompleter) throws DeviceControllerException {
-        try {
-            CephClient cephClient = getClient(storage);
+        try (CephClient cephClient = getClient(storage)) {
             BlockSnapshot blockSnapshot = _dbClient.queryObject(BlockSnapshot.class, snapshot);
             Volume volume = _dbClient.queryObject(Volume.class, blockSnapshot.getParent().getURI());
             StoragePool pool = _dbClient.queryObject(StoragePool.class, volume.getPool());
@@ -72,8 +71,7 @@ public class CephSnapshotOperations extends DefaultSnapshotOperations {
     @Override
     public void deleteSingleVolumeSnapshot(StorageSystem storage, URI snapshot, TaskCompleter taskCompleter)
             throws DeviceControllerException {
-        try {
-            CephClient cephClient = getClient(storage);
+        try (CephClient cephClient = getClient(storage)) {
             BlockSnapshot blockSnapshot = _dbClient.queryObject(BlockSnapshot.class, snapshot);
             Volume volume = _dbClient.queryObject(Volume.class, blockSnapshot.getParent().getURI());
             StoragePool pool = _dbClient.queryObject(StoragePool.class, volume.getPool());

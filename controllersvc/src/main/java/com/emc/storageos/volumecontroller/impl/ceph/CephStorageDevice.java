@@ -135,8 +135,7 @@ public class CephStorageDevice extends DefaultBlockStorageDevice {
     @Override
     public void doCreateVolumes(StorageSystem storage, StoragePool storagePool, String opId, List<Volume> volumes,
             VirtualPoolCapabilityValuesWrapper capabilities, TaskCompleter taskCompleter) throws DeviceControllerException {
-        try {
-            CephClient cephClient = getClient(storage);
+        try (CephClient cephClient = getClient(storage)) {
             for (Volume volume : volumes) {
                 String id = CephUtils.createNativeId(volume);
                 cephClient.createImage(storagePool.getPoolName(), id, volume.getCapacity());
@@ -161,8 +160,7 @@ public class CephStorageDevice extends DefaultBlockStorageDevice {
     public void doDeleteVolumes(StorageSystem storage, String opId, List<Volume> volumes, TaskCompleter taskCompleter)
             throws DeviceControllerException {
         HashMap<URI, String> pools = new HashMap<URI, String>();
-        try {
-            CephClient cephClient = getClient(storage);
+        try (CephClient cephClient = getClient(storage)) {
             for (Volume volume : volumes) {
             	if (volume.getNativeId() != null && !volume.getNativeId().isEmpty()) {
             	    URI poolUri = volume.getPool();
@@ -190,8 +188,7 @@ public class CephStorageDevice extends DefaultBlockStorageDevice {
     @Override
     public void doExpandVolume(StorageSystem storage, StoragePool pool, Volume volume, Long size, TaskCompleter taskCompleter)
             throws DeviceControllerException {
-        try {
-            CephClient cephClient = getClient(storage);
+        try (CephClient cephClient = getClient(storage)) {
             cephClient.resizeImage(pool.getPoolName(), volume.getNativeId(), size);
             volume.setProvisionedCapacity(size);
             volume.setAllocatedCapacity(size);

@@ -79,8 +79,7 @@ public class CephCommunicationInterface extends ExtendedCommunicationInterfaceIm
         StorageProvider.ConnectionStatus status = StorageProvider.ConnectionStatus.NOTCONNECTED;
         Map<String, StorageSystemViewObject> storageSystemsCache = accessProfile.getCache();
         String cephType = StorageSystem.Type.ceph.name();
-        try {
-            CephClient cephClient = CephUtils.connectToCeph(_cephClientFactory, provider);
+        try (CephClient cephClient = CephUtils.connectToCeph(_cephClientFactory, provider)) {
             ClusterInfo clusterInfo = cephClient.getClusterInfo();
             String systemNativeGUID = NativeGUIDGenerator.generateNativeGuid(cephType, clusterInfo.getFsid());
             StorageSystemViewObject viewObject = storageSystemsCache.get(systemNativeGUID);
@@ -112,8 +111,7 @@ public class CephCommunicationInterface extends ExtendedCommunicationInterfaceIm
         List<StoragePool> updatePools = new ArrayList<StoragePool>();
         List<StoragePool> allPools = new ArrayList<StoragePool>();
         String statusMsg = null;
-        try {
-            CephClient cephClient = CephUtils.connectToCeph(_cephClientFactory, system);
+        try (CephClient cephClient = CephUtils.connectToCeph(_cephClientFactory, system)) {
             system.setReachableStatus(true);
             system.setSharedStorageCapacity(true);
             ClusterInfo clusterInfo = cephClient.getClusterInfo();

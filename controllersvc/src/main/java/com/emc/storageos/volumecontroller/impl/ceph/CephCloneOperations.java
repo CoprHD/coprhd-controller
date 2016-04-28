@@ -56,7 +56,7 @@ public class CephCloneOperations implements CloneOperations {
     public void createSingleClone(StorageSystem storageSystem, URI source, URI cloneVolume, Boolean createInactive,
             TaskCompleter taskCompleter) {
         _log.info("START createSingleClone operation");
-        try {
+        try (CephClient cephClient = getClient(storageSystem)) {
         	Volume cloneObject = _dbClient.queryObject(Volume.class, cloneVolume);
         	String cloneVolumeLabel = CephUtils.createNativeId(cloneObject);
 
@@ -83,7 +83,6 @@ public class CephCloneOperations implements CloneOperations {
         	String poolId = pool.getPoolName();
             String parentVolumeId = parentVolume.getNativeId();
             String snapshotId = sourceSnapshot.getNativeId();
-            CephClient cephClient = getClient(storageSystem);
 
             // Create Ceph snapshot of volume requested to clone
             if (snapshotId == null || snapshotId.isEmpty()) {
@@ -131,7 +130,7 @@ public class CephCloneOperations implements CloneOperations {
     @Override
     public void detachSingleClone(StorageSystem storageSystem, URI cloneVolume, TaskCompleter taskCompleter) {
         _log.info("START detachSingleClone operation");
-        try {
+        try (CephClient cephClient = getClient(storageSystem)) {
             Volume cloneObject = _dbClient.queryObject(Volume.class, cloneVolume);
             String cloneId = cloneObject.getNativeId();
             StoragePool pool = _dbClient.queryObject(StoragePool.class, cloneObject.getPool());
@@ -140,7 +139,6 @@ public class CephCloneOperations implements CloneOperations {
             String snapshotId = parentSnapshot.getNativeId();
             Volume sourceVolume = _dbClient.queryObject(Volume.class, parentSnapshot.getParent());
             String sourceVolumeId = sourceVolume.getNativeId();
-            CephClient cephClient = getClient(storageSystem);
 
             // Flatten image
             cephClient.flattenImage(poolId, cloneId);

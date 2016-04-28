@@ -29,15 +29,20 @@ public class CephNativeClient implements CephClient {
     private Rados rados;
 
     public CephNativeClient(final String monitorHost, final String userName, final String userKey) {
+        Rados rados_tmp = new Rados(userName);
         try {
-            rados = new Rados(userName);
-            rados.confSet("mon_host", monitorHost);
-            rados.confSet("key", userKey);
-            rados.connect();
+            rados_tmp.confSet("mon_host", monitorHost);
+            rados_tmp.confSet("key", userKey);
+            rados_tmp.connect();
+            rados = rados_tmp;
         } catch (RadosPermissionException | RadosInvalidArgumentException e) {
             throw CephException.exceptions.invalidCredentialsError(e);
         } catch (RadosException e) {
             throw CephException.exceptions.connectionError(e);
+        } finally {
+            if (rados == null) {
+                rados_tmp.shutDown();
+            }
         }
     }
 
@@ -241,5 +246,12 @@ public class CephNativeClient implements CephClient {
     public List<String> getChildren(String pool, String parentImage, final String snapName) {
         return doCall(pool, parentImage, (RbdImage image) -> image.listChildren(snapName),
                 "Failed to list children for Ceph snapshot %s/%s@%s", pool, parentImage, snapName);
+    }
+
+    @Override
+    public void close() throws Exception {
+        if (rados != null) {
+            rados.shutDown();
+        }
     }
 }

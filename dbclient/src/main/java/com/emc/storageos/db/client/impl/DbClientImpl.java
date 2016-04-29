@@ -34,6 +34,8 @@ import org.slf4j.LoggerFactory;
 
 import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.Session;
+import com.datastax.driver.core.SimpleStatement;
+import com.datastax.driver.core.Statement;
 import com.emc.storageos.coordinator.client.model.Constants;
 import com.emc.storageos.coordinator.client.model.DbVersionInfo;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
@@ -1526,8 +1528,10 @@ public class DbClientImpl implements DbClient {
     }
     
     public List<CassandraRows> queryRowsWithAllColumns(Session cassandraSession, Collection<URI> ids, String tableName) {
-        ResultSet resultSet = cassandraSession
-            .execute(String.format("Select * from \"%s\" where key in %s", tableName, uriList2String(ids)));
+        
+        Statement statement = new SimpleStatement(String.format("Select * from \"%s\" where key in %s", tableName, uriList2String(ids)));
+        
+        ResultSet resultSet = cassandraSession.execute(statement);
         
         List<CassandraRows> result = new ArrayList<CassandraRows>();
         CassandraRows rows = new CassandraRows();
@@ -1564,31 +1568,34 @@ public class DbClientImpl implements DbClient {
      * @throws DatabaseException
      */
     protected List<CassandraRows> queryRowsWithAColumn(Session cassandraSession, Collection<URI> ids, String tableName, ColumnField column) {
-        ResultSet resultSet = cassandraSession
-                .execute(String.format("Select * from \"%s\" where column1='%s' and key in %s ALLOW FILTERING", tableName, column.getName(), uriList2String(ids)));
-            
-            List<CassandraRows> result = new ArrayList<CassandraRows>();
-            CassandraRows rows = new CassandraRows();
-            for (com.datastax.driver.core.Row row : resultSet) {
-                String currentKey = row.getString(0);
-                    
-                CassandraRow lastCassandraRow = new CassandraRow();
-                rows.getRows().add(lastCassandraRow);
-                rows.setKey(currentKey);
-                    
-                lastCassandraRow.setKey(currentKey);
-                lastCassandraRow.setRow(row);
-                lastCassandraRow.setCompositeColumnName(
-                        new CompositeColumnName(
-                                row.getString(1),
-                                row.getString(2),
-                                row.getString(3),
-                                row.getUUID(4)));
-            }
-            
-            result.add(rows);
-            
-            return result;
+        Statement statement = new SimpleStatement(String.format("Select * from \"%s\" where column1='%s' and key in %s ALLOW FILTERING",
+                tableName,
+                column.getName(), uriList2String(ids)));
+
+        ResultSet resultSet = cassandraSession.execute(statement);
+
+        List<CassandraRows> result = new ArrayList<CassandraRows>();
+        CassandraRows rows = new CassandraRows();
+        for (com.datastax.driver.core.Row row : resultSet) {
+            String currentKey = row.getString(0);
+
+            CassandraRow lastCassandraRow = new CassandraRow();
+            rows.getRows().add(lastCassandraRow);
+            rows.setKey(currentKey);
+
+            lastCassandraRow.setKey(currentKey);
+            lastCassandraRow.setRow(row);
+            lastCassandraRow.setCompositeColumnName(
+                    new CompositeColumnName(
+                            row.getString(1),
+                            row.getString(2),
+                            row.getString(3),
+                            row.getUUID(4)));
+        }
+
+        result.add(rows);
+
+        return result;
     }
     
     protected Rows<String, CompositeColumnName> queryRowsWithAColumn(Keyspace keyspace,

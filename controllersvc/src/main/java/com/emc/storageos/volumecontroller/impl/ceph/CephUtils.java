@@ -38,9 +38,11 @@ public class CephUtils {
         return factory.getClient(provider.getIPAddress(), provider.getUserName(), provider.getPassword());
     }
 
-    private static void ensureConnectToCeph(StorageProvider storageProvider) {
+    private static void ensureConnectToCeph(StorageProvider storageProvider) throws Exception {
         CephClientFactory factory = new CephClientFactory();
-        factory.getClient(storageProvider.getIPAddress(), storageProvider.getUserName(), storageProvider.getPassword());
+        CephClient cephClient = factory.getClient(storageProvider.getIPAddress(),
+                storageProvider.getUserName(), storageProvider.getPassword());
+        cephClient.close();
     }
 
     public static String createNativeId(DataObject object) {

@@ -6,6 +6,7 @@
 package com.emc.storageos.db.server.impl;
 
 import com.emc.storageos.coordinator.client.model.Site;
+import com.emc.storageos.coordinator.client.model.SiteMonitorResult;
 import com.emc.storageos.coordinator.client.model.SiteState;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.coordinator.client.service.DrUtil;
@@ -470,6 +471,11 @@ public class DbManager implements DbManagerMBean {
                 
                 log.info("Node {} in site {} comes online", endpoint, site.getUuid());
                 if (site.getState() == SiteState.STANDBY_SYNCED) {
+                    SiteMonitorResult monitorResult = drUtil.getCoordinator().getTargetInfo(site.getUuid(), SiteMonitorResult.class);
+                    if (monitorResult == null || monitorResult.getDbQuorumLostSince() == 0) {
+                        log.info("No db quorum lost on standby site. Skip this node up event on {} ", endpoint);
+                        return;
+                    }
                     if (hasPendingHintedHandoff(endpoint)) { 
                         log.info("Hinted handoff logs detected. Change site {} state to STANDBY_INCR_SYNCING", site.getUuid());
                         site.setState(SiteState.STANDBY_INCR_SYNCING); 

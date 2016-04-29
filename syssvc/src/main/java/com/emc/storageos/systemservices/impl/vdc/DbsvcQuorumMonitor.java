@@ -67,18 +67,12 @@ public class DbsvcQuorumMonitor implements Runnable {
             }
 
             if (siteState.equals(SiteState.STANDBY_INCR_SYNCING)) {
-                checkIncrementalSyncingSite(standbySite);
+                checkIncrementalSyncingSite(standbySite, sitesToDegrade);
             }
             
             if (siteState.equals(SiteState.STANDBY_SYNCED)) {
                 SiteMonitorResult monitorResult = updateSiteMonitorResult(standbySite);
-                long quorumLostTime = monitorResult.getDbQuorumLostSince();
-                int degradeThreshold = drUtil.getDrIntConfig(DrUtil.KEY_STANDBY_DEGRADE_THRESHOLD, STANDBY_DEGRADED_THRESHOLD);
-                if (quorumLostTime != 0 && System.currentTimeMillis() - quorumLostTime >= degradeThreshold) {
-                    log.info("Db quorum lost over {} ms, degrading site {}", degradeThreshold, standbySite.getUuid());
-                    standbySite.setLastLostQuorumTime(quorumLostTime);
-                    sitesToDegrade.add(standbySite);
-                }
+                checkEligibleForDegrade(monitorResult, standbySite, sitesToDegrade);
             }
         }
 
@@ -87,7 +81,17 @@ public class DbsvcQuorumMonitor implements Runnable {
             degradeSites(sitesToDegrade);
         }
     }
-
+    
+    private void checkEligibleForDegrade(SiteMonitorResult monitorResult, Site standbySite, List<Site> sitesToDegrade) {
+        long quorumLostTime = monitorResult.getDbQuorumLostSince();
+        int degradeThreshold = drUtil.getDrIntConfig(DrUtil.KEY_STANDBY_DEGRADE_THRESHOLD, STANDBY_DEGRADED_THRESHOLD);
+        if (quorumLostTime != 0 && System.currentTimeMillis() - quorumLostTime >= degradeThreshold) {
+            log.info("Db quorum lost over {} ms, degrading site {}", degradeThreshold, standbySite.getUuid());
+            standbySite.setLastLostQuorumTime(quorumLostTime);
+            sitesToDegrade.add(standbySite);
+        }
+    }
+    
     private void degradeSites(List<Site> sitesToDegrade) {
         InterProcessLock lock;
         try {
@@ -187,7 +191,7 @@ public class DbsvcQuorumMonitor implements Runnable {
         }
     }
     
-    private void checkIncrementalSyncingSite(Site standbySite) {
+    private void checkIncrementalSyncingSite(Site standbySite, List<Site> sitesToDegrade) {
         String siteId = standbySite.getUuid();
         int nodeCount = standbySite.getNodeCount();
         // We must wait until all the dbsvc/geodbsvc instances are back
@@ -195,10 +199,17 @@ public class DbsvcQuorumMonitor implements Runnable {
         int liveDbsvcNodeCount = drUtil.getNumberOfLiveServices(siteId, Constants.DBSVC_NAME);
         int liveGeodbsvcNodeCount = drUtil.getNumberOfLiveServices(siteId, Constants.GEODBSVC_NAME);
         if ( liveDbsvcNodeCount != nodeCount ||  liveGeodbsvcNodeCount != nodeCount) {
-            log.info("Skip STANDBY_INCR_SYNCING site check. Not all the dbsvc/geodbsvc instances are back. dbsvc active nodes {}, geodbsvc live nodes {}", 
+            log.info("Not all the dbsvc/geodbsvc instances are back. dbsvc active nodes {}, geodbsvc live nodes {}", 
                     liveDbsvcNodeCount, liveGeodbsvcNodeCount);
+            
+            boolean quorumLost = (liveDbsvcNodeCount <= nodeCount / 2) || (liveGeodbsvcNodeCount <= nodeCount / 2);
+            if (quorumLost) {
+                SiteMonitorResult monitorResult = coordinatorClient.getTargetInfo(siteId, SiteMonitorResult.class);
+                checkEligibleForDegrade(monitorResult, standbySite, sitesToDegrade);
+            }
             return;
         }
+        
         log.info("All the dbsvc/geodbsvc instances are back. {}. Check if we need reset STANDBY_INCR_SYNCING state", standbySite.getUuid());
 
         InterProcessLock lock;

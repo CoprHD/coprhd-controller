@@ -51,10 +51,10 @@ $(echo $existingProjects | grep -q $project) || {
 }
 
 # Virtual arrays
-SITEr1=site220cl1			# The source SRDF site and source 1st VPLEX site
-SITEr2=site154cl2			# The target SRDF site and possible 2nd VPLEX site
-SITEha=site220cl2			# The 1st VPLEX HA site
-SITEr2ha=site154cl1			# The 2nd VPLEX HA site
+SITEr1=220cl1			# The source SRDF site and source 1st VPLEX site
+SITEr2=154cl2			# The target SRDF site and possible 2nd VPLEX site
+SITEha=220cl2			# The 1st VPLEX HA site
+SITEr2ha=154cl1			# The 2nd VPLEX HA site
 
 # Virtual pools
 VPOOL1=${VPOOL1:-vrdfsrc}		# The source virtual pool under test

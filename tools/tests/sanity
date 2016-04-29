@@ -9207,9 +9207,9 @@ application_vpool_setup()
     run cos update block $APP_VPOOL_VNX_VPLEX_LOCAL --storage $APPLICATION_VNX1_NATIVEGUID
     run cos allow $APP_VPOOL_VNX_VPLEX_LOCAL block $TENANT
 
-    # Create CoS for VMAX
-    run cos create block $APP_VPOOL_VMAX_BLOCK               \
-        --description 'Consistency-Group-Block-VMAX-CoS' false   \
+    # Create CoS for VMAX2
+    run cos create block $APP_VPOOL_VMAX2_BLOCK               \
+        --description 'Consistency-Group-Block-VMAX2-CoS' false   \
                             --protocols FC        \
                             --numpaths 1               \
                             --max_snapshots 10         \
@@ -9217,12 +9217,12 @@ application_vpool_setup()
                             --neighborhoods $APP_VARRAY2        \
                             --multiVolumeConsistency
 
-    run cos update block $APP_VPOOL_VMAX_BLOCK --storage $APPLICATION_VMAX1_NATIVEGUID
-    run cos allow $APP_VPOOL_VMAX_BLOCK block $TENANT
+    run cos update block $APP_VPOOL_VMAX2_BLOCK --storage $APPLICATION_VMAX2_NATIVEGUID
+    run cos allow $APP_VPOOL_VMAX2_BLOCK block $TENANT
 
-    # Create CoS for VMAX + vplex local
-    run cos create block $APP_VPOOL_VMAX_VPLEX_LOCAL \
-        --description 'Consistency-Group-Block-VMAX-VPLEX-local-CoS' false   \
+    # Create CoS for VMAX2 + vplex local
+    run cos create block $APP_VPOOL_VMAX2_VPLEX_LOCAL \
+        --description 'Consistency-Group-Block-VMAX2-VPLEX-local-CoS' false   \
                             --protocols FC        \
                             --numpaths 2               \
                             --max_snapshots 10         \
@@ -9231,8 +9231,64 @@ application_vpool_setup()
                             --highavailability vplex_local           \
                             --multiVolumeConsistency
 
-    run cos update block $APP_VPOOL_VMAX_VPLEX_LOCAL --storage $APPLICATION_VMAX1_NATIVEGUID
-    run cos allow $APP_VPOOL_VMAX_VPLEX_LOCAL block $TENANT
+    run cos update block $APP_VPOOL_VMAX2_VPLEX_LOCAL --storage $APPLICATION_VMAX2_NATIVEGUID
+    run cos allow $APP_VPOOL_VMAX2_VPLEX_LOCAL block $TENANT
+
+    # Create CoS for VMAX3
+    run cos create block $APP_VPOOL_VMAX3_BLOCK               \
+        --description 'Consistency-Group-Block-VMAX3-CoS' false   \
+                            --protocols FC        \
+                            --numpaths 1               \
+                            --max_snapshots 10         \
+                            --provisionType 'Thin'     \
+                            --neighborhoods $APP_VARRAY3        \
+                            --multiVolumeConsistency
+
+    run cos update block $APP_VPOOL_VMAX3_BLOCK --storage $APPLICATION_VMAX3_NATIVEGUID
+    run cos allow $APP_VPOOL_VMAX3_BLOCK block $TENANT
+
+    # Create CoS for VMAX3 + vplex local
+    run cos create block $APP_VPOOL_VMAX3_VPLEX_LOCAL \
+        --description 'Consistency-Group-Block-VMAX3-VPLEX-local-CoS' false   \
+                            --protocols FC        \
+                            --numpaths 2               \
+                            --max_snapshots 10         \
+                            --provisionType 'Thin'     \
+                            --neighborhoods $APP_VARRAY3        \
+                            --highavailability vplex_local           \
+                            --multiVolumeConsistency
+
+    run cos update block $APP_VPOOL_VMAX3_VPLEX_LOCAL --storage $APPLICATION_VMAX3_NATIVEGUID
+    run cos allow $APP_VPOOL_VMAX3_VPLEX_LOCAL block $TENANT
+
+    # Create CoS for ha side of vplex distributed
+    run cos create block $APP_VPOOL_VNX_HA               \
+        --description 'Consistency-Group-HA-VNX-CoS' false   \
+                            --protocols FC        \
+                            --numpaths 1               \
+                            --max_snapshots 10         \
+                            --provisionType 'Thin'     \
+                            --neighborhoods $APP_VARRAY1 
+
+    run cos update block $APP_VPOOL_VNX_HA --storage $APPLICATION_VNX1_NATIVEGUID
+    run cos allow $APP_VPOOL_VNX_HA block $TENANT
+
+    # Create CoS for VMAX2/VNX + vplex distributed
+    run cos create block $APP_VPOOL_VMAX2_VPLEX_DIST \
+        --description 'Consistency-Group-Block-VMAX2-VPLEX-dist-CoS' false   \
+                            --protocols FC        \
+                            --numpaths 2               \
+                            --max_snapshots 10         \
+                            --provisionType 'Thin'     \
+                            --neighborhoods $APP_VARRAY2        \
+                            --highavailability vplex_local           \
+                            --highavailability vplex_distributed \
+                            --haNeighborhood $APP_VARRAY1 \
+                            --haCos $APP_VPOOL_VNX_HA \
+                            --multiVolumeConsistency
+
+    run cos update block $APP_VPOOL_VMAX2_VPLEX_DIST --storage $APPLICATION_VMAX2_NATIVEGUID
+    run cos allow $APP_VPOOL_VMAX2_VPLEX_DIST block $TENANT
 
 }
 
@@ -9341,8 +9397,7 @@ application_createvols()
 application_deleteall()
 {
     secho "application_deleteall()"
-    run volume delete $VG_CG1VOL_GRP --wait
-    run volume delete $VG_CG2VOL_GRP --wait
+    run volume delete $VG_CG1VOL_GRP,$VG_CG2VOL_GRP --wait
     run blockconsistencygroup delete ${VG_CGNAME1}
     run blockconsistencygroup delete ${VG_CGNAME2}
     run volumegroup delete ${VG_COPYVG1}
@@ -9415,9 +9470,21 @@ application_copy_tests()
     run volumegroup verify-volume ${VG_COPYVG1} ${VG_CG2VOLID2}
     run volumegroup verify-volume ${VG_COPYVG1} ${VG_CG2VOLID3}
 
-    application_full_copy_tests
+    if {[ $APPLICATION_RUN_CLONE_TESTS -eq 1 }]; then
+        APPLICATION_RESYNC_COPY_SUPPORTED=1
+        APPLICATION_DETACH_COPY_SUPPORTED=1
+        APPLICATION_LINK_COPY_SUPPORTED=0
+        application_full_copy_tests clone
+    fi
 
-    # TODO add snapshot and snapshto session tests
+    if {[ $APPLICATION_RUN_SNAPSHOT_TESTS -eq 1 }]; then
+        APPLICATION_RESYNC_COPY_SUPPORTED=$APPLICATION_RESYNC_SNAP_SUPPORTED
+        APPLICATION_DETACH_COPY_SUPPORTED=0
+        APPLICATION_LINK_COPY_SUPPORTED=$APPLICATION_LINK_SNAP_SUPPORTED
+        application_full_copy_tests snapshot
+    fi
+
+    # TODO add snapshot session tests
 
     run volumegroup remove-volumes ${VG_COPYVG1} ${VG_CG1VOLID1},${VG_CG1VOLID2},${VG_CG1VOLID3},${VG_CG1VOLID4}
     fail volumegroup verify-volume ${VG_COPYVG1} ${VG_CG1VOLID1}
@@ -9462,86 +9529,148 @@ application_full_copy_tests()
 {
     secho "application_full_copy_tests()"
 
-    VG_FCNAME=${VG_COPYVG1}-fc
-    VG_FCNAME2=${VG_COPYVG1}-fc2
+    copy_type=${1}
+
+    VG_FCNAME="app1${copy_type}"
+    VG_FCNAME2="app2${copy_type}"
+    VG_FCNAME3="app3${copy_type}"
 
     # create the full copy for the entire application
-    run volumegroup create-full-copy $VG_COPYVG1 $VG_FCNAME
+    run volumegroup create-copy $copy_type $VG_COPYVG1 $VG_FCNAME
 
-    # get the full copy volumes so they can be deleted after detach
-    VG_FCVOLUMES=`volumegroup list-full-copy-volumes $VG_COPYVG1`
 
     # verify the full copy exists
-    run volumegroup verify-full-copy-set $VG_COPYVG1 $VG_FCNAME
+    run volumegroup verify-copy-set $copy_type $VG_COPYVG1 $VG_FCNAME
 
     # resync (no way to verify)
-    run volumegroup resync-full-copy $VG_COPYVG1 $VG_FCNAME
+    if [[ $APPLICATION_RESYNC_COPY_SUPPORTED -eq 1 ]]; then
+       run volumegroup resync-copy $copy_type $VG_COPYVG1 $VG_FCNAME
+    fi
 
     # run restore (no way to verify)
-    run volumegroup restore-full-copy $VG_COPYVG1 $VG_FCNAME
+    run volumegroup restore-copy $copy_type $VG_COPYVG1 $VG_FCNAME
 
-    # detach the clones
-    run volumegroup detach-full-copy $VG_COPYVG1 $VG_FCNAME
-    fail volumegroup verify-full-copy-set $VG_COPYVG1 $VG_FCNAME
+    # detach the copies
+    if [[ $APPLICATION_DETACH_COPY_SUPPORTED -eq 1 ]]; then
 
-    # delete the full copy volumes
-    run volume delete $VG_FCVOLUMES --wait
+        # get the full copy volumes so they can be deleted after detach
+        VG_FCVOLUMES=`volumegroup list-copy-volumes $copy_type $VG_COPYVG1`
 
-    # activate clone (exclude vplex COP-21804)
-    run volumegroup create-full-copy-inactive $VG_COPYVG1 $VG_FCNAME2
-    run volumegroup verify-full-copy-set $VG_COPYVG1 $VG_FCNAME2
-    run volumegroup activate-full-copy $VG_COPYVG1 $VG_FCNAME2
+        # detach source from copy
+        run volumegroup detach-copy $copy_type $VG_COPYVG1 $VG_FCNAME
+        fail volumegroup verify-copy-set $copy_type $VG_COPYVG1 $VG_FCNAME
 
-    # get the full copy volumes so they can be deleted after detach
-    VG_FCVOLUMES=`volumegroup list-full-copy-volumes $VG_COPYVG1`
+        # delete the full copy volumes
+        run volume delete $VG_FCVOLUMES --wait
+    else
+        run volumegroup delete-$copy_type $VG_COPYVG1 $VG_FCNAME
+        fail volumegroup verify-copy-set $copy_type $VG_COPYVG1 $VG_FCNAME
+    fi
 
-    # detach the clones
-    run volumegroup detach-full-copy $VG_COPYVG1 $VG_FCNAME2
-    fail volumegroup verify-full-copy-set $VG_COPYVG1 $VG_FCNAME2
+    if [[ $APPLICATION_LINK_COPY_SUPPORTED -eq 1 ]]; then
+        run volumegroup link-copy $copy_type $VG_COPYVG1 $VG_FCNAME
+        run volumegroup unlink-copy $copy_type $VG_COPYVG1 $VG_FCNAME
 
-    # delete the full copy volumes
-    run volume delete $VG_FCVOLUMES --wait
+        # run use cases with snapshot linked
+        run volumegroup create-copy $copy_type $VG_COPYVG1 $VG_FCNAME3
+        run volumegroup link-copy $copy_type $VG_COPYVG1 $VG_FCNAME3
+        run volumegroup restore-copy $copy_type $VG_COPYVG1 $VG_FCNAME3
+        run volumegroup delete-$copy_type $VG_COPYVG1 $VG_FCNAME3
+        fail volumegroup verify-copy-set $copy_type $VG_COPYVG1 $VG_FCNAME3
+    fi
+
+
+    # activate copies (exclude vplex COP-21804)
+    run volumegroup create-copy-inactive $copy_type $VG_COPYVG1 $VG_FCNAME2
+    run volumegroup verify-copy-set $copy_type $VG_COPYVG1 $VG_FCNAME2
+    run volumegroup activate-copy $copy_type $VG_COPYVG1 $VG_FCNAME2
+
+
+    if [ $APPLICATION_DETACH_COPY_SUPPORTED -eq 1 ]; then
+
+        # get the full copy volumes so they can be deleted after detach
+        VG_FCVOLUMES=`volumegroup list-copy-volumes $copy_type $VG_COPYVG1`
+
+        # detach the copies
+        run volumegroup detach-copy $copy_type $VG_COPYVG1 $VG_FCNAME2
+        fail volumegroup verify-copy-set $copy_type $VG_COPYVG1 $VG_FCNAME2
+
+        # delete the full copy volumes
+        run volume delete $VG_FCVOLUMES --wait
+    else
+        run volumegroup delete-snapshot $VG_COPYVG1 $VG_FCNAME2
+        fail volumegroup verify-copy-set $copy_type $VG_COPYVG1 $VG_FCNAME2
+    fi
 }
 
 # TODO this has to move to sanity conf file
-APPLICATION_VMAX3_SMIS_PROVIDER=VMAX_405_SMIS
-APPLICATION_VMAX3_SMIS_PROVIDER_IP=lglw0004.lss.emc.com
-APPLICATION_VMAX3_STORAGE_ARRAY_GUID='SYMMETRIX+000196701405'
+#APPLICATION_VMAX3_SMIS_PROVIDER=VMAX_405_SMIS
+#APPLICATION_VMAX3_SMIS_PROVIDER_IP=lglw0004.lss.emc.com
+#APPLICATION_VMAX3_STORAGE_ARRAY_GUID='SYMMETRIX+000196701405'
+APPLICATION_VMAX3_SMIS_PROVIDER=VMAX_794_SMIS
+APPLICATION_VMAX3_SMIS_PROVIDER_IP=lglw9075.lss.emc.com
+APPLICATION_VMAX3_STORAGE_ARRAY_GUID='SYMMETRIX+000196800794'
+#APPLICATION_VMAX3_SMIS_PROVIDER=VMAX_572_SMIS
+#APPLICATION_VMAX3_SMIS_PROVIDER_IP=lglw9071.lss.emc.com
+#APPLICATION_VMAX3_STORAGE_ARRAY_GUID='SYMMETRIX+000195701573'
+
+APPLICATION_VMAX2_SMIS_PROVIDER=VMAX_573_SMIS
+APPLICATION_VMAX2_SMIS_PROVIDER_IP=lglw9071.lss.emc.com
+APPLICATION_VMAX2_STORAGE_ARRAY_GUID='SYMMETRIX+000195701573'
+#APPLICATION_VMAX2_SMIS_PROVIDER=VMAX_505_SMIS
+#APPLICATION_VMAX2_SMIS_PROVIDER_IP=lglw9072.lss.emc.com
+#APPLICATION_VMAX2_STORAGE_ARRAY_GUID='SYMMETRIX+000195701505'
 
 # override the rp vmax
-RECOVERPOINT_SMIS_PROVIDER_B=$APPLICATION_VMAX3_SMIS_PROVIDER
-RECOVERPOINT_SMIS_PROVIDER_B_IP=$APPLICATION_VMAX3_SMIS_PROVIDER_IP
-RECOVERPOINT_STORAGE_ARRAY_B_GUID=$APPLICATION_VMAX3_STORAGE_ARRAY_GUID
+RECOVERPOINT_SMIS_PROVIDER_B=$APPLICATION_VMAX2_SMIS_PROVIDER
+RECOVERPOINT_SMIS_PROVIDER_B_IP=$APPLICATION_VMAX2_SMIS_PROVIDER_IP
+RECOVERPOINT_SMIS_PROVIDER_B_PORT=$SMIS_SSL_PORT
+RECOVERPOINT_STORAGE_ARRAY_B_GUID=$APPLICATION_VMAX2_STORAGE_ARRAY_GUID
 
-#TODO stellneeded: a working vmax2 provider
+RECOVERPOINT_SMIS_PROVIDER_C=$APPLICATION_VMAX3_SMIS_PROVIDER
+RECOVERPOINT_SMIS_PROVIDER_C_IP=$APPLICATION_VMAX3_SMIS_PROVIDER_IP
+RECOVERPOINT_SMIS_PROVIDER_C_PORT=$SMIS_SSL_PORT
+RECOVERPOINT_STORAGE_ARRAY_C_GUID=$APPLICATION_VMAX3_STORAGE_ARRAY_GUID
+RECOVERPOINT_SMIS_PROVIDER_C_USE_SSL='true'
 
 APPLICATION_VNX1_NATIVEGUID=$RECOVERPOINT_STORAGE_ARRAY_A_GUID
-APPLICATION_VNX2_NATIVEGUID=$RECOVERPOINT_STORAGE_ARRAY_C_GUID
-APPLICATION_VMAX1_NATIVEGUID=$RECOVERPOINT_STORAGE_ARRAY_B_GUID
+APPLICATION_VMAX2_NATIVEGUID=$RECOVERPOINT_STORAGE_ARRAY_B_GUID
+APPLICATION_VMAX3_NATIVEGUID=$RECOVERPOINT_STORAGE_ARRAY_C_GUID
 
 APP_VPOOL_VNX_BLOCK=app_vpool_simple_vnx
-APP_VPOOL_VMAX_BLOCK=app_vpool_simple_vmax
 APP_VPOOL_VNX_VPLEX_LOCAL=app_vpool_vplex_local_vnx
-APP_VPOOL_VMAX_VPLEX_LOCAL=app_vpool_vplex_local_vmax
+APP_VPOOL_VMAX2_BLOCK=app_vpool_simple_vmax2_505
+APP_VPOOL_VMAX2_VPLEX_LOCAL=app_vpool_vplex_local_vmax2_505
+APP_VPOOL_VMAX3_BLOCK=app_vpool_simple_vmax3
+APP_VPOOL_VMAX3_VPLEX_LOCAL=app_vpool_vplex_local_vmax3
+
+APP_VPOOL_VNX_HA=app_vpool_ha_vnx
+APP_VPOOL_VMAX2_VPLEX_DIST=app_vpool_vplex_dist_vmax2
 
 APP_VARRAY1=$RECOVERPOINT_VARRAY1
 APP_VARRAY2=$RECOVERPOINT_VARRAY2
-APP_VARRAY3=$RECOVERPOINT_VARRAY4
+APP_VARRAY3=$RECOVERPOINT_VARRAY3
 
 # application plstforms
-APPLICATION_VNX=${APPLICATION_VNX:=1}
-APPLICATION_VMAX2=${APPLICATION_VMAX2:=0}
-APPLICATION_VMAX3=${APPLICATION_VMAX3:=0}
-APPLICATION_XIO=${APPLICATION_XIO:=0}
+APPLICATION_TEST_VNX=${APPLICATION_TEST_VNX:=0}
+APPLICATION_TEST_VMAX2=${APPLICATION_TEST_VMAX2:=0}
+# TODO need to implement applicaion test for xio and vmax3
+APPLICATION_TEST_VMAX3=${APPLICATION_VMAX3:=0}
+APPLICATION_TEST_XIO=${APPLICATION_TEST_XIO:=0}
 
 # applicaiton tests
-APPLICATION_CRUD=${APPLICATION_CRUD:=1}
-APPLICATION_BLOCK=${APPLICATION_BLOCK:=1}
-APPLICATION_VPLEX_LOCAL=${APPLICATION_VPLEX_LOCAL:=1}
-APPLICATION_VPLEX_DIST=${APPLICATION_VPLEX_DIST:=0}
-APPLICATION_RP_BLOCK=${APPLICATION_RP_BLOCK:=0}
-APPLICATION_RP_VPLEX_LOCAL=${APPLICATION_RP_VPLEX_LOCAL:=0}
-APPLICATION_RP_METROPOINT=${APPLICATION_RP_METROPOINT:=0}
+APPLICATION_TEST_CRUD=${APPLICATION_TEST_CRUD:=0}
+APPLICATION_TEST_BLOCK=${APPLICATION_TEST_BLOCK:=0}
+APPLICATION_TEST_VPLEX_LOCAL=${APPLICATION_TEST_VPLEX_LOCAL:=0}
+APPLICATION_TEST_VPLEX_DIST=${APPLICATION_TEST_VPLEX_DIST:=1}
+# TODO not implemented:
+APPLICATION_TEST_RP_BLOCK=${APPLICATION_TEST_RP_BLOCK:=0}
+APPLICATION_TEST_RP_VPLEX_LOCAL=${APPLICATION_TEST_RP_VPLEX_LOCAL:=0}
+APPLICATION_TEST_RP_METROPOINT=${APPLICATION_TEST_RP_METROPOINT:=0}
+
+# copy thpes
+APPLICATION_TEST_CLONES=${APPLICATION_TEST_CLONES:=0}
+APPLICATION_TEST_SNAPSHOTS=${APPLICATION_TEST_SNAPSHOTS:=1}
 
 application_tests()
 {
@@ -9554,27 +9683,32 @@ application_tests()
 
     unique=${RANDOM}
     basename=appsanity${unique}
-    VG_CGNAME1=${basename}cg1
-    VG_CGNAME2=${basename}cg2
-    VG_COPYVG1=${basename}-app1
-    VG_COPYVG2=${basename}-app2
+    VG_CGNAME1="cg1${basename}"
+    VG_CGNAME2="cg2${basename}"
+    VG_COPYVG1="app1-${basename}"
+    VG_COPYVG2="app2-${basename}"
 
-    VG_VOLUME1=${VG_CGNAME1}-vol
+    VG_VOLUME1="${VG_CGNAME1}-vol"
     VG_CG1VOL1="${VG_VOLUME1}-1"
     VG_CG1VOL2="${VG_VOLUME1}-2"
     VG_CG1VOL3="${VG_VOLUME1}-3"
     VG_CG1VOL4="${VG_VOLUME1}-4"
 
-    VG_VOLUME2=${VG_CGNAME2}-vol
+    VG_VOLUME2="${VG_CGNAME2}-vol"
     VG_CG2VOL1="${VG_VOLUME2}-1"
     VG_CG2VOL2="${VG_VOLUME2}-2"
     VG_CG2VOL3="${VG_VOLUME2}-3"
 
-    if [ $APPLICATION_CRUD -eq 1 ]; then
+    APP_RUNNING_XIO_TEST=0
+
+    if [ $APPLICATION_TEST_CRUD -eq 1 ]; then
         application_crud_test
     fi
-    if [ $APPLICATION_VNX -eq 1 ]; then
-        if [ $APPLICATION_BLOCK -eq 1 ]; then
+    if [ $APPLICATION_TEST_VNX -eq 1 ]; then
+        APPLICATION_CLONE_SUPPORTED=1
+        APPLICATION_SNAPSHOT_SUPPORTED=0
+        if [ $APPLICATION_TEST_BLOCK -eq 1 ]; then
+            secho "running block vnx tests"
             VG_VPOOL_CG=$APP_VPOOL_VNX_BLOCK
             VG_VARRAY_CG=$APP_VARRAY1
             APP_RUNNING_BLOCK_TEST=1
@@ -9588,10 +9722,52 @@ application_tests()
             application_add_remove_volume_tests
             application_copy_tests
             application_deleteall
+            secho "completed running block vnx tests"
         fi
-        if [ $APPLICATION_VPLEX_LOCAL -eq 1 ]; then
+        if [ $APPLICATION_TEST_VPLEX_LOCAL -eq 1 ]; then
+            secho "running block vplex+vnx tests"
             VG_VPOOL_CG=$APP_VPOOL_VNX_VPLEX_LOCAL
             VG_VARRAY_CG=$APP_VARRAY1
+            APP_RUNNING_BLOCK_TEST=0
+
+            app_test_subgroup1a="grpa${VG_CGNAME1}"
+            app_test_subgroup1b="grpb${VG_CGNAME1}"
+            app_test_subgroup2a="grpa${VG_CGNAME2}"
+            app_test_subgroup2b="grpb${VG_CGNAME2}"
+
+            application_createvols
+            application_add_remove_volume_tests
+            application_copy_tests
+            application_deleteall
+            secho "completed running block vplex+vnx tests"
+        fi
+    fi
+    if [ $APPLICATION_TEST_VMAX2 -eq 1 ]; then
+        APPLICATION_CLONE_SUPPORTED=1
+        APPLICATION_SNAPSHOT_SUPPORTED=1
+        APPLICATION_RESYNC_SNAP_SUPPORTED=1
+        APPLICATION_LINK_SNAP_SUPPORTED=0
+        if [ $APPLICATION_TEST_BLOCK -eq 1 ]; then
+            secho "running block vmax2 tests"
+            VG_VPOOL_CG=$APP_VPOOL_VMAX2_BLOCK
+            VG_VARRAY_CG=$APP_VARRAY2
+            APP_RUNNING_BLOCK_TEST=1
+
+            app_test_subgroup1a=""
+            app_test_subgroup1b=""
+            app_test_subgroup2a=""
+            app_test_subgroup2b=""
+
+            application_createvols
+            application_add_remove_volume_tests
+            application_copy_tests
+            application_deleteall
+            secho "completed running block vmax2 tests"
+        fi
+        if [ $APPLICATION_TEST_VPLEX_LOCAL -eq 1 ]; then
+            secho "running block vplex+vmax2 tests"
+            VG_VPOOL_CG=$APP_VPOOL_VMAX2_VPLEX_LOCAL
+            VG_VARRAY_CG=$APP_VARRAY2
             APP_RUNNING_BLOCK_TEST=0
 
             app_test_subgroup1a="${VG_CGNAME1}a"
@@ -9603,12 +9779,18 @@ application_tests()
             application_add_remove_volume_tests
             application_copy_tests
             application_deleteall
+            secho "completed running block vplex+vmax2 tests"
         fi
     fi
-    if [ $APPLICATION_VMAX -eq 1 ]; then
-        if [ $APPLICATION_BLOCK -eq 1 ]; then
-            VG_VPOOL_CG=$APP_VPOOL_VMAX_BLOCK
-            VG_VARRAY_CG=$APP_VARRAY2
+    if [ $APPLICATION_TEST_VMAX3 -eq 1 ]; then
+        APPLICATION_CLONE_SUPPORTED=1
+        APPLICATION_SNAPSHOT_SUPPORTED=1
+        APPLICATION_RESYNC_SNAP_SUPPORTED=0
+        APPLICATION_LINK_SNAP_SUPPORTED=1
+        if [ $APPLICATION_TEST_BLOCK -eq 1 ]; then
+            secho "running block vmax3 tests"
+            VG_VPOOL_CG=$APP_VPOOL_VMAX3_BLOCK
+            VG_VARRAY_CG=$APP_VARRAY3
             APP_RUNNING_BLOCK_TEST=1
 
             app_test_subgroup1a=""
@@ -9618,12 +9800,14 @@ application_tests()
 
             application_createvols
             application_add_remove_volume_tests
-            application_full_copy_tests
+            application_copy_tests
             application_deleteall
+            secho "completed running block vmax3 tests"
         fi
-        if [ $APPLICATION_VPLEX_LOCAL -eq 1 ]; then
-            VG_VPOOL_CG=$APP_VPOOL_VMAX_VPLEX_LOCAL
-            VG_VARRAY_CG=$APP_VARRAY2
+        if [ $APPLICATION_TEST_VPLEX_LOCAL -eq 1 ]; then
+            secho "running block vplex+vmax3 tests"
+            VG_VPOOL_CG=$APP_VPOOL_VMAX3_VPLEX_LOCAL
+            VG_VARRAY_CG=$APP_VARRAY3
             APP_RUNNING_BLOCK_TEST=0
 
             app_test_subgroup1a="${VG_CGNAME1}a"
@@ -9633,8 +9817,66 @@ application_tests()
 
             application_createvols
             application_add_remove_volume_tests
-            application_full_copy_tests
+            application_copy_tests
             application_deleteall
+            secho "completed running block vplex+vmax3 tests"
+        fi
+    fi
+
+    if [ $APPLICATION_TEST_VPLEX_DIST -eq 1 ]; then
+        secho "running block vplex dist tests"
+        VG_VPOOL_CG=$APP_VPOOL_VMAX2_VPLEX_DIST
+        VG_VARRAY_CG=$APP_VARRAY2
+        APP_RUNNING_BLOCK_TEST=0
+
+        app_test_subgroup1a="${VG_CGNAME1}a"
+        app_test_subgroup1b="${VG_CGNAME1}b"
+        app_test_subgroup2a="${VG_CGNAME2}a"
+        app_test_subgroup2b="${VG_CGNAME2}b"
+
+        application_createvols
+        application_add_remove_volume_tests
+        application_copy_tests
+        application_deleteall
+        secho "completed running block vplex dist tests"
+    fi
+
+    if [ $APPLICATION_TEST_XIO -eq 1 ]; then
+        APPLICATION_CLONE_SUPPORTED=0
+        APPLICATION_SNAPSHOT_SUPPORTED=1
+        if [ $APPLICATION_TEST_BLOCK -eq 1 ]; then
+            secho "running block xio tests"
+            VG_VPOOL_CG=$APP_VPOOL_XIO_BLOCK
+            VG_VARRAY_CG=$APP_VARRAY4
+            APP_RUNNING_BLOCK_TEST=1
+
+            app_test_subgroup1a=""
+            app_test_subgroup1b=""
+            app_test_subgroup2a=""
+            app_test_subgroup2b=""
+
+            application_createvols
+            application_add_remove_volume_tests
+            application_copy_tests
+            application_deleteall
+            secho "completed running block xio tests"
+        fi
+        if [ $APPLICATION_TEST_VPLEX_LOCAL -eq 1 ]; then
+            secho "running block vplex+xio tests"
+            VG_VPOOL_CG=$APP_VPOOL_XIO_VPLEX_LOCAL
+            VG_VARRAY_CG=$APP_VARRAY4
+            APP_RUNNING_BLOCK_TEST=0
+
+            app_test_subgroup1a="${VG_CGNAME1}a"
+            app_test_subgroup1b="${VG_CGNAME1}b"
+            app_test_subgroup2a="${VG_CGNAME2}a"
+            app_test_subgroup2b="${VG_CGNAME2}b"
+
+            application_createvols
+            application_add_remove_volume_tests
+            application_copy_tests
+            application_deleteall
+            secho "completed running block vplex+xio tests"
         fi
     fi
 

@@ -65,6 +65,7 @@ import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.plugins.common.Constants;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
+import com.emc.storageos.util.VPlexSrdfUtil;
 import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.volumecontroller.impl.ControllerUtils;
 import com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator;
@@ -2002,8 +2003,24 @@ public class SRDFOperations implements SmisConstants {
                 newLabel.append(invalidTgtVA.getLabel());
                 log.info("Revised name for target: " + newLabel.toString());
                 invalidTgt.setLabel(newLabel.toString());
+                dbClient.updateObject(asList(invalidTgt, trustedSrc, invalidSrc));
                 
-                dbClient.updateAndReindexObject(asList(invalidTgt, trustedSrc, invalidSrc));
+                // See if there is a corresponding Vplex volume. If so update it's label as well.
+                Volume vplexVolume = VPlexSrdfUtil.getVplexVolumeFromSrdfVolume(dbClient, invalidTgt);
+                if (vplexVolume != null) {
+                    newLabel.setLength(0);
+                    int baseNameLen = trustedSrc.getLabel().length();
+                    if (baseNameLen > 2) {
+                        // remove vplex associated volume -0 or -1 suffix
+                        baseNameLen -= 2;
+                    }
+                    newLabel.append(trustedSrc.getLabel().substring(0, baseNameLen));
+                    newLabel.append("-target-");
+                    newLabel.append(invalidTgtVA.getLabel());
+                    log.info("Revised name for VPlex target: " + newLabel.toString());
+                    vplexVolume.setLabel(newLabel.toString());
+                    dbClient.updateObject(vplexVolume);
+                }
             }
         }
     }

@@ -17,6 +17,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.sun.jersey.api.client.WebResource;
+import com.sun.jersey.api.client.filter.LoggingFilter;
 import com.sun.jersey.client.apache.ApacheHttpClient;
 import com.sun.jersey.client.apache.config.ApacheHttpClientConfig;
 import com.sun.jersey.client.apache.config.DefaultApacheHttpClientConfig;
@@ -33,6 +34,7 @@ public class KHClient {
     private WebResource _resource;
     private Set<NewCookie> _cookie;
     private boolean isUnity = false;
+    private String _emcCsrfToken = null;
 
     public KHClient(String host, int port, String username, String password) {
 
@@ -41,7 +43,7 @@ public class KHClient {
         config.getProperties().put(ApacheHttpClientConfig.PROPERTY_HANDLE_COOKIES, Boolean.TRUE);
         config.getState().setCredentials(null, host, port, username, password);
         _client = ApacheHttpClient.create(config);
-        // _client.addFilter(new LoggingFilter(System.out));
+        //_client.addFilter(new LoggingFilter(System.out));
         Protocol.registerProtocol("https", new Protocol("https", new NonValidatingSocketFactory(), port));
 
         try {
@@ -63,7 +65,7 @@ public class KHClient {
         this.isUnity = isUnity;
     }
     public boolean isUnity(){
-	return this.isUnity;
+        return this.isUnity;
     }
 
     public WebResource getResource() {
@@ -80,6 +82,13 @@ public class KHClient {
 
     public synchronized void setCookie(Set<NewCookie> _cookie) {
         this._cookie = _cookie;
+    }
+    public synchronized String getEmcCsrfToken() {
+	return _emcCsrfToken;
+    }
+
+    public synchronized void setEmcCsrfToken(String _emcCsrfToken){
+	this._emcCsrfToken = _emcCsrfToken;
     }
 
 }

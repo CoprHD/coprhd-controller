@@ -26,10 +26,12 @@ import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
+import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.exceptions.DeviceControllerErrors;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
 import com.emc.storageos.vnxe.VNXeApiClient;
+import com.emc.storageos.vnxe.models.Snap;
 import com.emc.storageos.vnxe.models.VNXeExportResult;
 import com.emc.storageos.vnxe.models.VNXeHostInitiator;
 import com.emc.storageos.vnxe.models.VNXeLunSnap;
@@ -65,7 +67,7 @@ public class VNXeExportOperations extends VNXeOperations implements ExportMaskOp
                 }
 
             }
-            _dbClient.persistObject(mask);
+            _dbClient.updateObject(mask);
             taskCompleter.ready(_dbClient);
 
         } catch (Exception e) {
@@ -142,7 +144,7 @@ public class VNXeExportOperations extends VNXeOperations implements ExportMaskOp
                 exportMask.removeVolume(volUri);
             }
 
-            _dbClient.updateAndReindexObject(exportMask);
+            _dbClient.updateObject(exportMask);
 
             List<ExportGroup> exportGroups = ExportMaskUtils.getExportGroups(_dbClient, exportMask);
             if (exportGroups != null) {
@@ -152,7 +154,7 @@ public class VNXeExportOperations extends VNXeOperations implements ExportMaskOp
                     exportGroup.removeExportMask(exportMask.getId().toString());
                 }
                 // Update all of the export groups in the DB
-                _dbClient.updateAndReindexObject(exportGroups);
+                _dbClient.updateObject(exportGroups);
             }
 
             taskCompleter.ready(_dbClient);
@@ -194,7 +196,7 @@ public class VNXeExportOperations extends VNXeOperations implements ExportMaskOp
                 }
 
             }
-            _dbClient.persistObject(exportMask);
+            _dbClient.updateObject(exportMask);
             taskCompleter.ready(_dbClient);
 
         } catch (Exception e) {
@@ -234,7 +236,7 @@ public class VNXeExportOperations extends VNXeOperations implements ExportMaskOp
                 exportMask.removeVolume(volUri);
             }
 
-            _dbClient.updateAndReindexObject(exportMask);
+            _dbClient.updateObject(exportMask);
 
             taskCompleter.ready(_dbClient);
         } catch (Exception e) {
@@ -295,14 +297,20 @@ public class VNXeExportOperations extends VNXeOperations implements ExportMaskOp
      * @param snapId
      */
     private void setSnapWWN(VNXeApiClient apiClient, BlockObject blockObj, String snapId) {
+        String wwn = null;
+        if (!apiClient.isUnityClient()) {
+            VNXeLunSnap snap = apiClient.getLunSnapshot(snapId);
+            wwn = snap.getPromotedWWN();;
+        } else {
+            Snap snap = apiClient.getSnapshot(snapId);
+            wwn = snap.getAttachedWWN();
+        }
 
-        VNXeLunSnap snap = apiClient.getLunSnapshot(snapId);
-        String wwn = snap.getPromotedWWN();
         if (wwn == null) {
-            wwn = "";
+            wwn = NullColumnValueGetter.getNullStr();
         }
         blockObj.setWWN(wwn);
-        _dbClient.persistObject(blockObj);
+        _dbClient.updateObject(blockObj);
     }
 
 }

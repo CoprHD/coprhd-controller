@@ -14,6 +14,7 @@ import com.emc.storageos.vnxe.VNXeException;
 import com.emc.storageos.vnxe.models.CifsShareCreateForSnapParam;
 import com.emc.storageos.vnxe.models.VNXeCifsShare;
 import com.emc.storageos.vnxe.models.VNXeCommandJob;
+import com.emc.storageos.vnxe.models.VNXeCommandResult;
 import com.sun.jersey.core.util.MultivaluedMapImpl;
 
 public class CifsShareRequests extends KHRequests<VNXeCifsShare> {
@@ -71,11 +72,32 @@ public class CifsShareRequests extends KHRequests<VNXeCifsShare> {
     public VNXeCommandJob deleteShareForSnapshot(String shareId) {
         _url = URL_SHARE + shareId;
         if (getShare(shareId) != null) {
+	    unsetQueryParameters();
             return deleteRequestAsync(null);
         } else {
             throw VNXeException.exceptions.vnxeCommandFailed("The shareId is not found: " + shareId);
         }
     }
+
+      /**
+      * Delete CIFS share sync
+      *
+      * @param shareId cifsShare id
+      * @return VNXeCommandResult
+      */
+     public VNXeCommandResult deleteShareForSnapshotSync(String shareId) {
+         VNXeCommandResult result = new VNXeCommandResult();
+         _url = URL_SHARE + shareId;
+         if (getShare(shareId) != null) {
+             unsetQueryParameters();
+             deleteRequest(null);
+             result.setSuccess(true);
+             return result;
+         } else {
+             throw VNXeException.exceptions.vnxeCommandFailed("The shareId is not found: " + shareId);
+         }
+     }
+
 
     /**
      * Get the specific CIFS share

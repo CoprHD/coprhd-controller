@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014 EMC Corporation
+ * Copyright (c) 2016 EMC Corporation
  * All Rights Reserved
  */
 
@@ -12,23 +12,23 @@ import com.emc.storageos.vnxe.VNXeApiClientFactory;
 
 public class VNXUnityOperations {
 
-    protected VNXeApiClientFactory _clientFactory;
-    protected DbClient _dbClient;
+    protected VNXeApiClientFactory clientFactory;
+    protected DbClient dbClient;
 
     public VNXeApiClientFactory getVnxeApiClientFactory() {
-        return _clientFactory;
+        return clientFactory;
     }
 
     public void setVnxeApiClientFactory(VNXeApiClientFactory clientFactory) {
-        this._clientFactory = clientFactory;
+        this.clientFactory = clientFactory;
     }
 
     public DbClient getDbClient() {
-        return _dbClient;
+        return dbClient;
     }
 
     public void setDbClient(DbClient dbClient) {
-        this._dbClient = dbClient;
+        this.dbClient = dbClient;
     }
 
     /**
@@ -40,7 +40,7 @@ public class VNXUnityOperations {
      * @return A reference to the Vnxe service client.
      */
     protected VNXeApiClient getVnxUnityClient(StorageSystem storage) {
-        VNXeApiClient client = _clientFactory.getUnityClient(storage.getIpAddress(),
+        VNXeApiClient client = clientFactory.getUnityClient(storage.getIpAddress(),
                 storage.getPortNumber(), storage.getUsername(),
                 storage.getPassword());
 

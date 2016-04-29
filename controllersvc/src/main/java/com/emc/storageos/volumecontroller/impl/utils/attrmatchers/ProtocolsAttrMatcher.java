@@ -246,8 +246,9 @@ public class ProtocolsAttrMatcher extends AttributeMatcher {
                 continue;
             }
             String systemType = storageSystem.getSystemType();
-            if (systemType != null && systemType.equalsIgnoreCase(SystemType.vnxe.name())) {
-                // only check on VNXe pools
+            if (systemType != null && (systemType.equalsIgnoreCase(SystemType.vnxe.name())
+                    ||systemType.equalsIgnoreCase(SystemType.vnxunity.name()))) {
+                // only check on VNXe and VNXUnity pools
                 Set<StoragePool> arrayPools = arrayPoolMap.get(arrayId);
                 if (arrayPools != null) {
                     arrayPools.add(pool);

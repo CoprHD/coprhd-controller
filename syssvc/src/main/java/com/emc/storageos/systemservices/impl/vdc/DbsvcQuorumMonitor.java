@@ -221,13 +221,13 @@ public class DbsvcQuorumMonitor implements Runnable {
         }
         
         try {
-            standbySite = drUtil.getSiteFromLocalVdc(standbySite.getUuid());
-            if (standbySite.getState() != SiteState.STANDBY_INCR_SYNCING) {
-                log.info("Skip incremental syncing state check. Site {} current state is {}", standbySite.getUuid(), standbySite.getState());
+            Site site = drUtil.getSiteFromLocalVdc(standbySite.getUuid()); // reload site from zookeeper
+            if (site.getState() != SiteState.STANDBY_INCR_SYNCING) {
+                log.info("Skip incremental syncing state check. Site {} current state is {}", site.getUuid(), site.getState());
                 return;
             }
             
-            String dcName = drUtil.getCassandraDcId(standbySite);
+            String dcName = drUtil.getCassandraDcId(site);
             Collection<String> ipAddrs = drUtil.getLocalSite().getHostIPv4AddressMap().values();
             if (ipAddrs.isEmpty()) {
                 ipAddrs = drUtil.getLocalSite().getHostIPv6AddressMap().values();
@@ -242,9 +242,9 @@ public class DbsvcQuorumMonitor implements Runnable {
                     return;
                 }
             }
-            log.info("Data synced for dbsvc/geodbsvc of standby site {}", standbySite.getUuid());
-            standbySite.setState(SiteState.STANDBY_SYNCED);
-            drUtil.getCoordinator().persistServiceConfiguration(standbySite.toConfiguration());
+            log.info("Data synced for dbsvc/geodbsvc of standby site {}", site.getUuid());
+            site.setState(SiteState.STANDBY_SYNCED);
+            drUtil.getCoordinator().persistServiceConfiguration(site.toConfiguration());
             updateSiteMonitorResult(standbySite);
         } catch (Exception e) {
             log.error("Failed to initiate reset STATNDBY_INCR_SYNCING standby operation. Try again later", e);

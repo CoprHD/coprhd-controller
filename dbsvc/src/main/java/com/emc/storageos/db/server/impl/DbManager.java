@@ -429,6 +429,42 @@ public class DbManager implements DbManagerMBean {
         }
     }
     
+    private Site getSite(InetAddress endpoint) {
+        IEndpointSnitch snitch = DatabaseDescriptor.getEndpointSnitch();
+        String dcName = snitch.getDatacenter(endpoint);
+        for (Site site : drUtil.listSites()) {
+            String cassandraDcId = drUtil.getCassandraDcId(site);
+            if (cassandraDcId.equals(dcName)) {
+                return site;
+            }
+        }
+        return null;
+    }
+    
+    private void checkAndSetIncrementalSyncing(InetAddress endpoint) {
+        Site site = getSite(endpoint);
+        if (site == null) {
+            log.info("Unknown site for {}. Skip HandoffLogDetector", endpoint);
+            return;
+        }
+        
+        log.info("Node {} in site {} comes online", endpoint, site.getUuid());
+        if (site.getState() == SiteState.STANDBY_SYNCED) {
+            SiteMonitorResult monitorResult = drUtil.getCoordinator().getTargetInfo(site.getUuid(), SiteMonitorResult.class);
+            if (monitorResult == null || monitorResult.getDbQuorumLostSince() == 0) {
+                log.info("No db quorum lost on standby site. Skip this node up event on {} ", endpoint);
+                return;
+            }
+            if (hasPendingHintedHandoff(endpoint)) { 
+                log.info("Hinted handoff logs detected. Change site {} state to STANDBY_INCR_SYNCING", site.getUuid());
+                site.setState(SiteState.STANDBY_INCR_SYNCING); 
+                drUtil.getCoordinator().persistServiceConfiguration(site.toConfiguration());
+            }
+        } else {
+            log.info("Skip hinted handoff logs detector for {} due to site state is {}. ", endpoint, site.getState());
+        }
+    }
+    
     // Cassandra node state listener
     private IEndpointStateChangeSubscriber endpointStateChangeSubscripter =  new IEndpointStateChangeSubscriber() {
         @Override
@@ -455,47 +491,15 @@ public class DbManager implements DbManagerMBean {
         }
         
         /**
-         * Detect pending handoff logs
+         * Detect pending handoff logs and set STANDBY_INCR_SYNCING state if necessary
          */
         class HandoffLogDetector implements Runnable {
-            InetAddress endpoint;
-            HandoffLogDetector(InetAddress endpoint) {
+            private InetAddress endpoint;
+            private HandoffLogDetector(InetAddress endpoint) {
                 this.endpoint = endpoint;
             }
             public void run() {
-                Site site = getSite(endpoint);
-                if (site == null) {
-                    log.info("Unknown site for {}. Skip HandoffLogDetector", endpoint);
-                    return;
-                }
-                
-                log.info("Node {} in site {} comes online", endpoint, site.getUuid());
-                if (site.getState() == SiteState.STANDBY_SYNCED) {
-                    SiteMonitorResult monitorResult = drUtil.getCoordinator().getTargetInfo(site.getUuid(), SiteMonitorResult.class);
-                    if (monitorResult == null || monitorResult.getDbQuorumLostSince() == 0) {
-                        log.info("No db quorum lost on standby site. Skip this node up event on {} ", endpoint);
-                        return;
-                    }
-                    if (hasPendingHintedHandoff(endpoint)) { 
-                        log.info("Hinted handoff logs detected. Change site {} state to STANDBY_INCR_SYNCING", site.getUuid());
-                        site.setState(SiteState.STANDBY_INCR_SYNCING); 
-                        drUtil.getCoordinator().persistServiceConfiguration(site.toConfiguration());
-                    }
-                } else {
-                    log.info("Skip hinted handoff logs detector for {} due to site state is {}. ", endpoint, site.getState());
-                }
-            }
-            
-            private Site getSite(InetAddress endpoint) {
-                IEndpointSnitch snitch = DatabaseDescriptor.getEndpointSnitch();
-                String dcName = snitch.getDatacenter(endpoint);
-                for (Site site : drUtil.listSites()) {
-                    String cassandraDcId = drUtil.getCassandraDcId(site);
-                    if (cassandraDcId.equals(dcName)) {
-                        return site;
-                    }
-                }
-                return null;
+                checkAndSetIncrementalSyncing(endpoint);
             }
         };
         

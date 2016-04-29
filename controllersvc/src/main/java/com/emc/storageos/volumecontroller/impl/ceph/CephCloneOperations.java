@@ -186,7 +186,7 @@ public class CephCloneOperations implements CloneOperations {
 
     @Override
     public void activateSingleClone(StorageSystem storageSystem, URI fullCopy, TaskCompleter taskCompleter) {
-        // no support
+        throw new UnsupportedOperationException("Not yet implemented");
     }
 
     @Override
@@ -202,7 +202,7 @@ public class CephCloneOperations implements CloneOperations {
 
     @Override
     public void resyncSingleClone(StorageSystem storageSystem, URI clone, TaskCompleter completer) {
-        // no support
+        throw new UnsupportedOperationException("Not yet implemented");
     }
 
     @Override
@@ -242,7 +242,7 @@ public class CephCloneOperations implements CloneOperations {
 
     @Override
     public void establishVolumeCloneGroupRelation(StorageSystem storage, URI sourceVolume, URI clone, TaskCompleter completer) {
-        // no support
+        throw new UnsupportedOperationException("Not yet implemented");
     }
 
     /**

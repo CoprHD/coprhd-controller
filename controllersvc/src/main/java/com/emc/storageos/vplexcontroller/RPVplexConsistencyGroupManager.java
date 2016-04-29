@@ -366,6 +366,11 @@ public class RPVplexConsistencyGroupManager extends AbstractConsistencyGroupMana
 
         String vplexCgName = null;
 
+        // Associated volume for the consistency group cannot be null, indicates backend volumes are not ingested.
+	if (assocVolumes == null) {
+	    log.warn(String.format("Associated volumes is empty: %s (device label %s) to CG %s on cluster %s",
+	               vplexVolume.getNativeId(), vplexVolume.getDeviceLabel(), cgName, clusterName));
+	}
         // For RP+VPlex, a single BlockConsistencyGroup can map to local cluster and distributed cluster
         // VPlex CGs. So, for uniqueness, we must append '-dist' for distributed CGs and '-clusterName'
         // to non-distributed consistency groups.

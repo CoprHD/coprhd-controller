@@ -313,10 +313,10 @@ public class ClusterInfo extends Controller {
                 network_addrs6.add(ipv6_network_addrs5.trim());
             }
             ipv6_setting.setNetworkAddrs(network_addrs6);
-
+/*TODO:
             clusterIpInfo.setIpv4Setting(ipv4_setting);
             clusterIpInfo.setIpv6Setting(ipv6_setting);
-
+*/
             return clusterIpInfo;
         }
 
@@ -326,6 +326,7 @@ public class ClusterInfo extends Controller {
          * @param getClusterIpInfo
          */
         public void load(ClusterIpInfo getClusterIpInfo) {
+            /* TODO:
             if (getClusterIpInfo != null) {
                 if (getClusterIpInfo.getIpv4Setting() != null) {
                     network_vip = getClusterIpInfo.getIpv4Setting().getNetworkVip();
@@ -397,6 +398,7 @@ public class ClusterInfo extends Controller {
                     loadIpv6SettingsDefaults();
                 }
             }
+            */
         }
 
         public void loadIpv4SettingsDefaults() {
@@ -438,6 +440,7 @@ public class ClusterInfo extends Controller {
             }
 
             ClusterIpInfo ipInfo = this.getClusterIpInfo();
+            /*TODO:
             if (ipInfo != null && ipInfo.getIpv4Setting() != null && ipInfo.getIpv6Setting() != null) {
                 if (ipInfo.getIpv4Setting().isDefault() && ipInfo.getIpv6Setting().isDefault()) {
                     Validation.addError(null, "validation.noConfiguration");
@@ -456,6 +459,7 @@ public class ClusterInfo extends Controller {
                     }
                 }
             }
+            */
 
             Set<String> dupValidationSet = new HashSet<String>();
             if (network_vip != DEFAULT_IPV4_ADDR) {

@@ -158,6 +158,7 @@ public class Main {
      * @throws Exception
      */
     private static void handlePossibleJump(ClusterIpInfo newIpinfo, String node_id, int node_count) throws Exception {
+/* TODO:
         Integer node_id_number = Integer.valueOf(node_id.split("vipr")[1]);
         boolean bIpv4 = true;
         if (newIpinfo.getIpv4Setting().getNetworkNetmask().equals(PropertyConstants.IPV4_ADDR_DEFAULT)) {
@@ -187,6 +188,7 @@ public class Main {
             Thread.sleep(5 * 1000);
         }
         log.info("New IPs seems have NOT been commited in quorum nodes of the cluster, so still using current IPs.");
+        */
         return;
     }
 

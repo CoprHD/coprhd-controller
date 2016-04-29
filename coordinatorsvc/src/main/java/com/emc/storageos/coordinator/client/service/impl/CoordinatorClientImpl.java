@@ -211,6 +211,7 @@ public class CoordinatorClientImpl implements CoordinatorClient {
     }
     public int getVdcnodeId() {
         return _vdc_nodeid;
+    }
 
     // Suppress Sonar violation of Lazy initialization of static fields should be synchronized
     // This method is only called in tests and when Spring initialization, safe to suppress

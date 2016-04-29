@@ -265,8 +265,15 @@ public class RecoverPointScheduler implements Scheduler {
     public List<Recommendation> getRecommendationsForResources(VirtualArray varray, Project project, VirtualPool vpool,
             VirtualPoolCapabilityValuesWrapper capabilities) {
 
-        _log.info(String.format("Schedule storage for [%s] resource(s) of size [%s].",
-                capabilities.getResourceCount(), capabilities.getSize()));
+        Volume changeVpoolVolume = null;
+        if (capabilities.getChangeVpoolVolume() != null) {            
+            changeVpoolVolume = dbClient.queryObject(Volume.class, URI.create(capabilities.getChangeVpoolVolume()));
+            _log.info(String.format("Existing volume [%s](%s) will be used as RP Source volume in recommendations.", 
+                    changeVpoolVolume.getLabel(), changeVpoolVolume.getId()));
+        } else {
+            _log.info(String.format("Schedule new storage for [%s] resource(s) of size [%s].",
+                    capabilities.getResourceCount(), capabilities.getSize()));
+        }
 
         List<VirtualArray> protectionVarrays = getProtectionVirtualArraysForVirtualPool(project, vpool, dbClient, _permissionsHelper);
 
@@ -290,14 +297,7 @@ public class RecoverPointScheduler implements Scheduler {
                     "hold at least one resource of the requested size.", varray.getLabel()));
             throw APIException.badRequests.noMatchingStoragePoolsForVpoolAndVarray(vpool.getLabel(), varray.getLabel());
         }
-        
-        Volume changeVpoolVolume = null;
-        if (capabilities.getChangeVpoolVolume() != null) {            
-            changeVpoolVolume = dbClient.queryObject(Volume.class, URI.create(capabilities.getChangeVpoolVolume()));
-            _log.info(String.format("Existing volume [%s](%s) will be used as RP Source volume in recommendations.", 
-                    changeVpoolVolume.getLabel(), changeVpoolVolume.getId()));
-        }
-
+                
         this.initResources();
         List<Recommendation> recommendations = buildCgRecommendations(capabilities, vpool, protectionVarrays, changeVpoolVolume);
 
@@ -351,7 +351,6 @@ public class RecoverPointScheduler implements Scheduler {
         // Initialize a list of recommendations to be returned.
         List<Recommendation> recommendations = new ArrayList<Recommendation>();
         String candidateSourceInternalSiteName = "";
-        RPProtectionRecommendation rpProtectionRecommendation = new RPProtectionRecommendation();
         placementStatus = new PlacementStatus();
 
         // Attempt to use these pools for selection based on protection
@@ -408,18 +407,55 @@ public class RecoverPointScheduler implements Scheduler {
         int requestedCount = totalRequestedCount;
         int satisfiedCount = 0;
 
-        // Recommendation analysis:
-        // Each recommendation returned will indicate the number of resources of specified size that it can accommodate in ascending order.
-        // Go through each recommendation, map to storage system from the recommendation to find connectivity
-        // If we get through the process and couldn't achieve full protection, we should try with the next pool in the list until
-        // we either find a successful solution or failure.
-        List<Recommendation> sourcePoolRecommendations = getRecommendedPools(rpProtectionRecommendation, varray,
-                vpool, null, null, capabilities, RPHelper.SOURCE, null);
-        if (sourcePoolRecommendations == null || sourcePoolRecommendations.isEmpty()) {
-            _log.error(String.format("RP Placement : No matching storage pools found for the source varray: [%s]. "
-                    + "There are no storage pools that " + "match the passed vpool parameters and protocols and/or there are "
-                    + "no pools that have enough capacity to hold at least one resource of the requested size.", varray.getLabel()));
-            throw APIException.badRequests.noMatchingStoragePoolsForVpoolAndVarray(vpool.getLabel(), varray.getLabel());
+        boolean isChangeVpool = (vpoolChangeVolume != null);
+
+        RPProtectionRecommendation rpProtectionRecommendation = new RPProtectionRecommendation();
+        rpProtectionRecommendation.setVpoolChangeVolume(vpoolChangeVolume != null ? vpoolChangeVolume.getId() : null);
+        rpProtectionRecommendation.setVpoolChangeNewVpool(vpoolChangeVolume != null ? vpool.getId() : null);
+        rpProtectionRecommendation
+                .setVpoolChangeProtectionAlreadyExists(vpoolChangeVolume != null ? vpoolChangeVolume.checkForRp() : false);
+        
+        List<Recommendation> sourcePoolRecommendations = new ArrayList<Recommendation>();
+        if (isChangeVpool) {
+            Recommendation changeVpoolSourceRecommendation = new Recommendation();
+            URI existingStoragePoolId = null;
+            // If this is a change vpool operation, the source has already been placed and there is only 1
+            // valid source pool, the existing one. Get that pool and add it to the list.
+            if (RPHelper.isVPlexVolume(vpoolChangeVolume)) {
+                for (String associatedVolume : vpoolChangeVolume.getAssociatedVolumes()) {
+                    Volume assocVol = dbClient.queryObject(Volume.class, URI.create(associatedVolume));
+                    if (assocVol.getVirtualArray().equals(varray.getId())) {
+                        existingStoragePoolId = assocVol.getPool();
+                        break;
+                    } 
+                }
+            } else {
+                existingStoragePoolId = vpoolChangeVolume.getPool();
+            }
+            
+            // This is the existing active source backing volume
+            changeVpoolSourceRecommendation.setSourceStoragePool(existingStoragePoolId);
+            StoragePool pool = dbClient.queryObject(StoragePool.class, existingStoragePoolId);
+            changeVpoolSourceRecommendation.setSourceStorageSystem(pool.getStorageDevice());
+            changeVpoolSourceRecommendation.setResourceCount(1);
+            sourcePoolRecommendations.add(changeVpoolSourceRecommendation);
+            _log.info(String.format(
+                    "RP Placement : Change Virtual Pool - Active source pool already exists, reuse pool: [%s] [%s].", pool
+                            .getLabel().toString(), pool.getId().toString()));            
+        } else {            
+            // Recommendation analysis:
+            // Each recommendation returned will indicate the number of resources of specified size that it can accommodate in ascending order.
+            // Go through each recommendation, map to storage system from the recommendation to find connectivity
+            // If we get through the process and couldn't achieve full protection, we should try with the next pool in the list until
+            // we either find a successful solution or failure.
+            sourcePoolRecommendations = getRecommendedPools(rpProtectionRecommendation, varray,
+                    vpool, null, null, capabilities, RPHelper.SOURCE, null);
+            if (sourcePoolRecommendations == null || sourcePoolRecommendations.isEmpty()) {
+                _log.error(String.format("RP Placement : No matching storage pools found for the source varray: [%s]. "
+                        + "There are no storage pools that " + "match the passed vpool parameters and protocols and/or there are "
+                        + "no pools that have enough capacity to hold at least one resource of the requested size.", varray.getLabel()));
+                throw APIException.badRequests.noMatchingStoragePoolsForVpoolAndVarray(vpool.getLabel(), varray.getLabel());
+            }
         }
 
         for (Recommendation sourcePoolRecommendation : sourcePoolRecommendations) {

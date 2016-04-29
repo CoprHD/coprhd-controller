@@ -202,12 +202,12 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
     private void validateVolumeLabels(String baseVolumeLabel, Project project,
             VirtualPoolCapabilityValuesWrapper vPoolCapabilities, Map<String, List<VPlexRecommendation>> varrayRecomendationsMap) {
         int varrayCount = 0;
-        Iterator<String> nhIter = varrayRecomendationsMap.keySet().iterator();
-        while (nhIter.hasNext()) {
-            String nhId = nhIter.next();
-            s_logger.info("Processing recommendations for NH {}", nhId);
+        Iterator<String> varrayIter = varrayRecomendationsMap.keySet().iterator();
+        while (varrayIter.hasNext()) {
+            String varrayId = varrayIter.next();
+            s_logger.info("Processing recommendations for virtual array {}", varrayId);
             int volumeCounter = 0;
-            Iterator<VPlexRecommendation> recommendationsIter = varrayRecomendationsMap.get(nhId).iterator();
+            Iterator<VPlexRecommendation> recommendationsIter = varrayRecomendationsMap.get(varrayId).iterator();
             while (recommendationsIter.hasNext()) {
                 VPlexRecommendation recommendation = recommendationsIter.next();
                 URI storagePoolURI = recommendation.getSourceStoragePool();

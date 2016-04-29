@@ -751,7 +751,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
         // the lock fails.
         lockCG(completer);
 
-        return STEP_DV_CLEANUP;
+        return waitFor;
     }
 
     @Override

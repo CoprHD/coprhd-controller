@@ -955,13 +955,13 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
         }
 
         // Get the consistency group. If no consistency group for source
-        // volumes,
-        // just return. Get CG from any descriptor.
+        // volumes, just return. Get CG from any descriptor.
         final VolumeDescriptor firstVolumeDescriptor = volumeDescriptors.get(0);
         if (firstVolumeDescriptor != null) {
             Volume volume = _dbClient.queryObject(Volume.class, firstVolumeDescriptor.getVolumeURI());
             if (!(volume != null && volume.isInCG() &&
-                    (ControllerUtils.isVmaxVolumeUsing803SMIS(volume, _dbClient) || ControllerUtils.isNotInRealVNXRG(volume, _dbClient)))) {
+                    (ControllerUtils.isVmaxVolumeUsing803SMIS(volume, _dbClient) 
+                            || ControllerUtils.isNotInRealVNXRG(volume, _dbClient)))) {
                 return waitFor;
             }
         }

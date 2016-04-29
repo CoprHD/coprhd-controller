@@ -6,6 +6,7 @@ package com.emc.storageos.volumecontroller.impl.externaldevice;
 
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -851,8 +852,7 @@ public class ExternalDeviceUnManagedVolumeDiscoverer {
         }
 
         unManagedVolume.setLabel(driverClone.getDeviceLabel());
-        Boolean isVolumeExported = false;
-        unManagedVolumeCharacteristics.put(UnManagedVolume.SupportedVolumeCharacterstics.IS_VOLUME_EXPORTED.toString(), isVolumeExported.toString());
+        unManagedVolumeCharacteristics.put(UnManagedVolume.SupportedVolumeCharacterstics.IS_VOLUME_EXPORTED.toString(), FALSE);
 
         // Set these default to false. The individual storage discovery will change them if needed.
         unManagedVolumeCharacteristics.put(UnManagedVolume.SupportedVolumeCharacterstics.IS_NONRP_EXPORTED.toString(), FALSE);
@@ -1561,10 +1561,80 @@ public class ExternalDeviceUnManagedVolumeDiscoverer {
         mask.setZoningMap(zoningMap);
     }
 
+    /**
+     * Update unmanaged volume with export data.
+     *
+     * @param unManagedVolumeNativeIdToUriMap
+     * @param unManagedExportMasksToCreate
+     * @param unManagedExportMasksToUpdate
+     * @param dbClient
+     * @param partitionManager
+     */
     private void updateUnManagedVolumesWithExportData(Map<String, URI> unManagedVolumeNativeIdToUriMap, List<UnManagedExportMask> unManagedExportMasksToCreate,
                                                       List<UnManagedExportMask> unManagedExportMasksToUpdate,
                                                       DbClient dbClient, PartitionManager partitionManager) {
         // update unmanaged volumes with export data
+        Map<String, List<UnManagedExportMask>> volumeToMasksMap = new HashMap<>(); // helper map:
+                                                            // key --- volume uri, value: unmanaged masks for this volume.
+        List<UnManagedVolume> unManagedVolumesToUpdate = new ArrayList<UnManagedVolume>();
+
+        // build volume to mask map
+        for (UnManagedExportMask mask : unManagedExportMasksToUpdate) {
+            StringSet volumes = mask.getUnmanagedVolumeUris();
+            for (String volumeUri : volumes) {
+                List<UnManagedExportMask> volumeMasks = volumeToMasksMap.get(volumeUri);
+                if (volumeMasks == null) {
+                    volumeMasks = new ArrayList<>();
+                    volumeToMasksMap.put(volumeUri, volumeMasks);
+                }
+                volumeMasks.add(mask);
+            }
+        }
+        for (UnManagedExportMask mask : unManagedExportMasksToCreate) {
+            StringSet volumes = mask.getUnmanagedVolumeUris();
+            for (String volumeUri : volumes) {
+                List<UnManagedExportMask> volumeMasks = volumeToMasksMap.get(volumeUri);
+                if (volumeMasks == null) {
+                    volumeMasks = new ArrayList<>();
+                    volumeToMasksMap.put(volumeUri, volumeMasks);
+                }
+                volumeMasks.add(mask);
+            }
+        }
+
+        for (URI volumeUri : unManagedVolumeNativeIdToUriMap.values()) {
+            UnManagedVolume volume = dbClient.queryObject(UnManagedVolume.class, volumeUri);
+            // Clean old export data
+            volume.getInitiatorNetworkIds().clear();
+            volume.getInitiatorUris().clear();
+            volume.getUnmanagedExportMasks().clear();
+            volume.getVolumeCharacterstics().put(UnManagedVolume.SupportedVolumeCharacterstics.IS_VOLUME_EXPORTED.toString(), FALSE);
+            volume.getVolumeCharacterstics().put(UnManagedVolume.SupportedVolumeCharacterstics.IS_NONRP_EXPORTED.toString(), FALSE);
+            List<UnManagedExportMask> volumeMasks = volumeToMasksMap.get(volumeUri.toString());
+            if (volumeMasks != null && !volumeMasks.isEmpty()) {
+                // update unmanaged volume with export data
+                log.info("Updating volume {} with export data: {} .", volume.getNativeGuid(), volumeMasks);
+                // set to  new data
+                for (UnManagedExportMask mask : volumeMasks) {
+                    volume.getInitiatorNetworkIds().addAll(mask.getKnownInitiatorNetworkIds());
+                    volume.getInitiatorUris().addAll(mask.getKnownInitiatorUris());
+                    volume.getUnmanagedExportMasks().add(mask.getId().toString());
+                }
+                volume.getVolumeCharacterstics().put(UnManagedVolume.SupportedVolumeCharacterstics.IS_VOLUME_EXPORTED.toString(), TRUE);
+                volume.getVolumeCharacterstics().put(UnManagedVolume.SupportedVolumeCharacterstics.IS_NONRP_EXPORTED.toString(), TRUE);
+                // todo set other export related properties.
+
+                unManagedVolumesToUpdate.add(volume);
+            } else {
+                log.info("Volume {} does not have export masks.", volume.getNativeGuid());
+            }
+        }
+
+        if (!unManagedVolumesToUpdate.isEmpty()) {
+            partitionManager.updateAndReIndexInBatches(unManagedVolumesToUpdate,
+                    Constants.DEFAULT_PARTITION_SIZE, dbClient, UNMANAGED_VOLUME);
+            unManagedVolumesToUpdate.clear();
+        }
 
     }
 

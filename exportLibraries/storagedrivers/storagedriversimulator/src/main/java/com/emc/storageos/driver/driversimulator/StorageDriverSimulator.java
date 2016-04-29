@@ -703,7 +703,7 @@ public class StorageDriverSimulator extends AbstractStorageDriver implements Blo
         _log.info("StorageDriver: get storage volumes information for storage system {}, token  {} - end",
                 storageSystem.getNativeId(), token);
         // set next value
-        if (token.intValue() < NUMBER_OF_VOLUME_PAGES) { // each page has different consistency group
+        if (token.intValue() < NUMBER_OF_VOLUME_PAGES-1) { // each page has different consistency group
             token.setValue(token.intValue() + 1);
             //    token.setValue(0); // last page
         } else {

@@ -154,7 +154,6 @@ import com.emc.storageos.vplex.api.VPlexDeviceInfo;
 import com.emc.storageos.vplex.api.VPlexDistributedDeviceInfo;
 import com.emc.storageos.vplex.api.VPlexInitiatorInfo.Initiator_Type;
 import com.emc.storageos.vplex.api.VPlexMigrationInfo;
-import com.emc.storageos.vplex.api.VPlexPortInfo;
 import com.emc.storageos.vplex.api.VPlexStorageViewInfo;
 import com.emc.storageos.vplex.api.VPlexVirtualVolumeInfo;
 import com.emc.storageos.vplex.api.VPlexVirtualVolumeInfo.WaitOnRebuildResult;
@@ -11657,5 +11656,102 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
         int maxMigrationAsyncPollingRetries = Integer.valueOf(ControllerUtils.getPropertyValueFromCoordinator(coordinator,
                 "controller_vplex_migration_max_async_polls"));
         VPlexApiClient.setMaxMigrationAsyncPollingRetries(maxMigrationAsyncPollingRetries);
+    }
+    
+    private static final String METHOD_CREATE_FULL_COPY_STEP = "createFullCopyStep";
+    private static final String STEP_CREATE_FULL_COPY = "createFullCopy";
+
+    /* (non-Javadoc)
+     * @see com.emc.storageos.blockorchestrationcontroller.BlockOrchestrationInterface#addStepsForCreateFullCopy(com.emc.storageos.workflow.Workflow, java.lang.String, java.util.List, java.lang.String)
+     */
+    @Override
+    public String addStepsForCreateFullCopy(Workflow workflow, String waitFor, List<VolumeDescriptor> volumeDescriptors, String taskId)
+            throws InternalException {
+        
+        
+        List<VolumeDescriptor> blockVolmeDescriptors = VolumeDescriptor.filterByType(volumeDescriptors,
+                new VolumeDescriptor.Type[] { VolumeDescriptor.Type.VPLEX_VIRT_VOLUME },
+                new VolumeDescriptor.Type[] {});
+        
+        // If no volumes to create, just return
+        if (blockVolmeDescriptors.isEmpty()) {
+            return waitFor;
+        }
+        
+        URI vplexUri = null;
+
+        List<URI> fullCopyList = new ArrayList<URI>();
+        for (VolumeDescriptor descriptor : blockVolmeDescriptors) {
+            Volume volume = _dbClient.queryObject(Volume.class, descriptor.getVolumeURI());
+            if (volume != null && !volume.getInactive()) {
+               vplexUri = volume.getStorageController();
+               break;
+            }
+        }
+        
+        if (!fullCopyList.isEmpty()) {
+            waitFor = addCreateFullCopyStep(workflow, vplexUri, volumeDescriptors, waitFor);
+        }
+        
+        return null;
+    }
+    
+    /**
+     * Add WF step for creating full copies
+     *
+     * @param workflow
+     * @param storageURI
+     * @param fullCopyList
+     * @param createInactive
+     * @param waitFor
+     * @return
+     * @throws InternalException
+     */
+    private String addCreateFullCopyStep(Workflow workflow, URI vplexUri, List<VolumeDescriptor> volumeDescriptors,
+            String waitFor) throws InternalException {
+
+        String stepId = workflow.createStepId();
+        // Now add the steps to create the block snapshot on the storage system
+        StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, vplexUri);
+        Workflow.Method createFullCopyMethod = new Workflow.Method(METHOD_CREATE_FULL_COPY_STEP, vplexUri, volumeDescriptors);
+        Workflow.Method nullRollbackMethod = new Workflow.Method(ROLLBACK_METHOD_NULL);
+
+        workflow.createStep(STEP_CREATE_FULL_COPY, "Create Block Full Copy subtask for RecoverPoint", waitFor, storageSystem.getId(),
+                storageSystem.getSystemType(), this.getClass(), createFullCopyMethod, nullRollbackMethod, stepId);
+        _log.info(String.format("Added %s step [%s] in workflow", STEP_CREATE_FULL_COPY, stepId));
+
+        return STEP_CREATE_FULL_COPY;
+    }
+
+    /**
+     * Invokes the method to perform the full copy operation
+     *
+     * @param storageURI
+     * @param fullCopyVolumes
+     * @param createInactive
+     * @param stepId
+     * @return
+     */
+    public boolean createFullCopyStep(URI vplexUri, List<VolumeDescriptor> volumeDescriptors, String stepId) {
+        WorkflowStepCompleter.stepExecuting(stepId);
+        try {
+            createFullCopy(vplexUri, volumeDescriptors, stepId);
+            // Update the workflow state.
+            WorkflowStepCompleter.stepSucceded(stepId);
+        } catch (Exception e) {
+            WorkflowStepCompleter.stepFailed(stepId, DeviceControllerException.errors.jobFailed(e));
+            return false;
+        }
+        return true;
+    }
+
+    /* (non-Javadoc)
+     * @see com.emc.storageos.blockorchestrationcontroller.BlockOrchestrationInterface#addStepsForPostCreateReplica(com.emc.storageos.workflow.Workflow, java.lang.String, java.util.List, java.lang.String)
+     */
+    @Override
+    public String addStepsForPostCreateReplica(Workflow workflow, String waitFor, List<VolumeDescriptor> volumeDescriptors, String taskId)
+            throws InternalException {
+        // nothing to do after create clone
+        return waitFor;
     }
 }

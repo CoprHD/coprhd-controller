@@ -82,4 +82,17 @@ public interface RPController extends ProtectionController {
     public void updateApplication(URI systemURI, ApplicationAddVolumeList addVolumesNotInCG, List<URI> removeVolumesURI, URI applicationId,
             String taskId);
 
+    /**
+     * Create a full copy of a RP Target
+     * 
+     * @param protectionDevice
+     * @param storageURI
+     * @param fullCopyList
+     * @param createInactive
+     * @param opId
+     * @throws InternalException
+     */
+    public void createFullCopy(URI protectionDevice, URI storageURI, List<URI> fullCopyList, Boolean createInactive, String opId)
+            throws InternalException;
+
 }

@@ -21,6 +21,7 @@ import com.emc.storageos.api.service.impl.placement.Scheduler;
 import com.emc.storageos.api.service.impl.placement.StorageScheduler;
 import com.emc.storageos.api.service.impl.placement.VolumeRecommendation;
 import com.emc.storageos.blockorchestrationcontroller.BlockOrchestrationController;
+import com.emc.storageos.blockorchestrationcontroller.VolumeDescriptor;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.BlockObject;
@@ -35,7 +36,6 @@ import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.model.TaskList;
 import com.emc.storageos.model.TaskResourceRep;
 import com.emc.storageos.model.block.VolumeRestRep;
-import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.volumecontroller.BlockController;
@@ -130,9 +130,35 @@ public class DefaultBlockFullCopyApiImpl extends AbstractBlockFullCopyApiImpl {
             volumesList.addAll(prepareClonesForEachRecommendation(copyName, name,
                     fcSourceObj, capabilities, createInactive, placementRecommendations));
         }
+        
+        // get volume descriptors
+        List<VolumeDescriptor> volumeDescriptors = prepareVolumeDescriptorsForFullCopy(volumesList, createInactive);
+        
+        // get all tasks
+        TaskList tasks = getTasksForCreateFullCopy(aFCSource, volumesList, taskId);
+        
+        BlockOrchestrationController controller = getController(BlockOrchestrationController.class,
+                BlockOrchestrationController.BLOCK_ORCHESTRATION_DEVICE);
+        controller.createFullCopy(volumeDescriptors, taskId);
 
-        // Invoke the controller.
-        return invokeFullCopyCreate(aFCSource, volumesList, createInactive, taskId);
+        return tasks;
+
+    }
+        
+    private List<VolumeDescriptor> prepareVolumeDescriptorsForFullCopy(List<Volume> volumes, boolean createInactive) {
+
+        // Build up a list of VolumeDescriptors based on the volumes
+        final List<VolumeDescriptor> volumeDescriptors = new ArrayList<VolumeDescriptor>();
+        VirtualPoolCapabilityValuesWrapper cosCapabilities = new VirtualPoolCapabilityValuesWrapper();
+        cosCapabilities.put(VirtualPoolCapabilityValuesWrapper.REPLICA_CREATE_INACTIVE, new Boolean(createInactive));
+        for (Volume volume : volumes) {
+            VolumeDescriptor desc = new VolumeDescriptor(VolumeDescriptor.Type.BLOCK_DATA,
+                    volume.getStorageController(), volume.getId(),
+                    volume.getPool(), volume.getConsistencyGroup(), cosCapabilities);
+            volumeDescriptors.add(desc);
+        }
+
+        return volumeDescriptors;
     }
 
     /**

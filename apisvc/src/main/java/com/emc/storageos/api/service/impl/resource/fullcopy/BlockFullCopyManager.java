@@ -27,6 +27,7 @@ import com.emc.storageos.api.mapper.TaskMapper;
 import com.emc.storageos.api.service.authorization.PermissionsHelper;
 import com.emc.storageos.api.service.impl.placement.PlacementManager;
 import com.emc.storageos.api.service.impl.placement.PlacementManager.SchedulerType;
+import com.emc.storageos.api.service.impl.placement.StorageScheduler;
 import com.emc.storageos.api.service.impl.resource.ArgValidator;
 import com.emc.storageos.api.service.impl.resource.BlockService;
 import com.emc.storageos.api.service.impl.resource.ResourceService;
@@ -190,6 +191,9 @@ public class BlockFullCopyManager {
                 _placementManager.getStorageScheduler(SchedulerType.rp.name()), this));
     }
 
+    public StorageScheduler getBlockScheduler() {
+        return (StorageScheduler) _placementManager.getStorageScheduler(SchedulerType.block.name());
+    }
     /**
      * Determines and returns the platform specific full copy implementation
      * for the passed system.

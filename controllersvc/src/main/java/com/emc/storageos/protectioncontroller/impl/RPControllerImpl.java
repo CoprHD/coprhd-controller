@@ -118,4 +118,16 @@ public class RPControllerImpl extends AbstractDiscoveredSystemController impleme
         execFS("updateApplication", systemURI, addVolumesNotInCG, removeVolumesURI, applicationId, taskId);
         
     }
+
+    /*
+     * (non-Javadoc)
+     * 
+     * @see com.emc.storageos.protectioncontroller.RPController#createFullCopy(java.net.URI, java.net.URI, java.util.List,
+     * java.lang.Boolean, java.lang.String)
+     */
+    @Override
+    public void createFullCopy(URI protectionDevice, URI storageURI, List<URI> fullCopyList, Boolean createInactive, String opId)
+            throws InternalException {
+        execFS("createFullCopy", protectionDevice, storageURI, fullCopyList, createInactive, opId);
+    }
 }

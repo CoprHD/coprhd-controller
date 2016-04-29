@@ -60,6 +60,7 @@ public class BlockOrchestrationDeviceController implements BlockOrchestrationCon
     static final String CHANGE_VPOOL_WF_NAME = "CHANGE_VPOOL_WORKFLOW";
     static final String CHANGE_VARRAY_WF_NAME = "CHANGE_VARRAY_WORKFLOW";
     static final String RESTORE_FROM_FULLCOPY_WF_NAME = "RESTORE_FROM_FULLCOPY_WORKFLOW";
+    static final String CREATE_FULL_COPIES_WF_NAME = "CREATE_FULL_COPIES_WORKFLOW";
 
     /*
      * (non-Javadoc)
@@ -632,6 +633,55 @@ public class BlockOrchestrationDeviceController implements BlockOrchestrationCon
         } catch (Exception ex) {
             s_logger.error("Could not restore volume: ", ex);
             ServiceError serviceError = DeviceControllerException.errors.jobFailed(ex);
+            completer.error(s_dbClient, _locker, serviceError);
+        }
+    }
+
+    /* (non-Javadoc)
+     * @see com.emc.storageos.blockorchestrationcontroller.BlockOrchestrationController#createFullCopy(java.util.List, java.lang.String)
+     */
+    @Override
+    public void createFullCopy(List<VolumeDescriptor> volumeDescriptors, String taskId) throws InternalException {
+        List<URI> volUris = VolumeDescriptor.getVolumeURIs(volumeDescriptors);
+        VolumeCreateWorkflowCompleter completer = new VolumeCreateWorkflowCompleter(volUris, taskId, volumeDescriptors);
+        Workflow workflow = null;
+        try {
+            // Generate the Workflow.
+            workflow = _workflowService.getNewWorkflow(this,
+                    CREATE_FULL_COPIES_WF_NAME, false, taskId);
+            String waitFor = null;    // the wait for key returned by previous call
+
+            s_logger.info("Adding steps for RecoverPoint create full copy");
+            // Call the RPDeviceController to add its methods if there are RP protections
+            waitFor = _rpDeviceController.addStepsForCreateFullCopy(
+                    workflow, waitFor, volumeDescriptors, taskId);
+
+            s_logger.info("Adding steps for storage array create full copies");
+            // First, call the BlockDeviceController to add its methods.
+            waitFor = _blockDeviceController.addStepsForCreateFullCopy(
+                    workflow, waitFor, volumeDescriptors, taskId);
+
+            s_logger.info("Checking for VPLEX steps");
+            // Call the VPlexDeviceController to add its methods if there are VPLEX volumes.
+            waitFor = _vplexDeviceController.addStepsForCreateFullCopy(
+                    workflow, waitFor, volumeDescriptors, taskId);
+            
+            s_logger.info("Adding steps for RecoverPoint post create full copy");
+            // Call the RPDeviceController to add its methods if there are RP protections
+            waitFor = _rpDeviceController.addStepsForPostCreateReplica(
+                    workflow, waitFor, volumeDescriptors, taskId);
+
+            // Finish up and execute the plan.
+            // The Workflow will handle the TaskCompleter
+            String successMessage = "Create volumes successful for: " + volUris.toString();
+            Object[] callbackArgs = new Object[] { volUris };
+            workflow.executePlan(completer, successMessage, new WorkflowCallback(), callbackArgs, null, null);
+        } catch (Exception ex) {
+            s_logger.error("Could not create volumes: " + volUris, ex);
+            releaseWorkflowLocks(workflow);
+            String opName = ResourceOperationTypeEnum.CREATE_BLOCK_VOLUME.getName();
+            ServiceError serviceError = DeviceControllerException.errors.createVolumesFailed(
+                    volUris.toString(), opName, ex);
             completer.error(s_dbClient, _locker, serviceError);
         }
     }

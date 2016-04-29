@@ -178,10 +178,6 @@ public class DiscoveredDataObject extends DataObject {
             return (type.equals(ecs));
         }
 
-        static public boolean isCeph(Type type) {
-            return (type == ceph);
-        }
-
     }
 
 

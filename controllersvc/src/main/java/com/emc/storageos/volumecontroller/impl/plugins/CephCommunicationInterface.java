@@ -42,6 +42,7 @@ import com.emc.storageos.db.client.model.StoragePort.PortType;
 import com.emc.storageos.plugins.AccessProfile;
 import com.emc.storageos.plugins.BaseCollectionException;
 import com.emc.storageos.plugins.StorageSystemViewObject;
+import com.emc.storageos.volumecontroller.impl.ControllerUtils;
 import com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator;
 import com.emc.storageos.volumecontroller.impl.StoragePoolAssociationHelper;
 import com.emc.storageos.volumecontroller.impl.StoragePortAssociationHelper;
@@ -54,6 +55,8 @@ public class CephCommunicationInterface extends ExtendedCommunicationInterfaceIm
     private static final StringSet COPY_TYPES = new StringSet();
     private static final String PORT_NAME = "Ceph Port";
     private static final String PORT_GROUP = "Ceph Port Group";
+    private static final long MINIMUM_VOLUME_SIZE = ControllerUtils.convertBytesToKBytes("1073741824"); // 1 MB
+    private static final long MAXIMUM_VOLUME_SIZE = ControllerUtils.convertBytesToKBytes("10995116277760"); // 10 TB
 
     static {
     	 // UNSYNC_ASSOC -> snapshot, UNSYNC_UNASSOC -> clone
@@ -141,16 +144,16 @@ public class CephCommunicationInterface extends ExtendedCommunicationInterfaceIm
                     storagePool.setOperationalStatus(PoolOperationalStatus.READY.name());
                     storagePool.setDiscoveryStatus(DiscoveryStatus.VISIBLE.name());
                     storagePool.setRegistrationStatus(RegistrationStatus.REGISTERED.toString());
-                    storagePool.setMinimumThinVolumeSize(1024L); // ???
-                    storagePool.setMaximumThinVolumeSize(10737418240L); // ???
-                    storagePool.setInactive(false);
+                    storagePool.setMinimumThinVolumeSize(MINIMUM_VOLUME_SIZE);
+                    // Ceph does not limit maximum volume size, but a limitation is required by CoprHD
+                    // to allow volume creating
+                    storagePool.setMaximumThinVolumeSize(MAXIMUM_VOLUME_SIZE);
                     newPools.add(storagePool);
                 } else if (storagePools.size() == 1) {
                     storagePool = storagePools.get(0);
                     updatePools.add(storagePool);
                 } else {
-                    _log.warn(String.format("There are %d StoragePools with nativeGuid = %s", storagePools.size(),
-                            poolNativeGUID));
+                    _log.warn("There are {} StoragePools with nativeGuid = {}", storagePools.size(), poolNativeGUID);
                     continue;
                 }
                 storagePool.setFreeCapacity(clusterInfo.getKbAvail());
@@ -163,8 +166,7 @@ public class CephCommunicationInterface extends ExtendedCommunicationInterfaceIm
             _dbClient.createObject(newPools);
             _dbClient.updateObject(updatePools);
 
-            String adapterNativeGUID = NativeGUIDGenerator.generateNativeGuid(
-                    system, "-", NativeGUIDGenerator.ADAPTER); // ???
+            String adapterNativeGUID = NativeGUIDGenerator.generateNativeGuid(system, "-", NativeGUIDGenerator.ADAPTER);
             List<StorageHADomain> storageAdapters = CustomQueryUtility.queryActiveResourcesByAltId
                     (_dbClient, StorageHADomain.class, "nativeGuid", adapterNativeGUID);
             StorageHADomain storageHADomain = null;
@@ -181,17 +183,15 @@ public class CephCommunicationInterface extends ExtendedCommunicationInterfaceIm
                 storageHADomain.setNumberofPorts("1");
                 storageHADomain.setAdapterType(HADomainType.FRONTEND.name());
                 storageHADomain.setProtocol(Block.RBD.name());
-                storageHADomain.setInactive(false);
                 _dbClient.createObject(storageHADomain);
             } else {
                 storageHADomain = storageAdapters.get(0);
                 if (storageAdapters.size() != 1) {
-                    _log.warn(String.format("There are %d StorageHADomains with nativeGuid = %s", storageAdapters.size(),
-                            adapterNativeGUID));
+                    _log.warn("There are {} StorageHADomains with nativeGuid = {}", storageAdapters.size(), adapterNativeGUID);
                 }
             }
 
-            String portNativeGUID = NativeGUIDGenerator.generateNativeGuid(system, "-", NativeGUIDGenerator.PORT); // ???
+            String portNativeGUID = NativeGUIDGenerator.generateNativeGuid(system, "-", NativeGUIDGenerator.PORT);
             List<StoragePort> storagePorts = CustomQueryUtility.queryActiveResourcesByAltId(
                     _dbClient, StoragePort.class, "nativeGuid", portNativeGUID);
             StoragePort storagePort = null;
@@ -212,14 +212,12 @@ public class CephCommunicationInterface extends ExtendedCommunicationInterfaceIm
                 storagePort.setCompatibilityStatus(CompatibilityStatus.COMPATIBLE.name());
                 storagePort.setDiscoveryStatus(DiscoveryStatus.VISIBLE.name());
                 storagePort.setRegistrationStatus(RegistrationStatus.REGISTERED.toString());
-                storagePort.setInactive(false);
 
                 _dbClient.createObject(storagePort);
             } else {
                 storagePort = storagePorts.get(0);
                 if (storagePorts.size() != 1) {
-                    _log.warn(String.format("There are %d StoragePorts with nativeGuid = %s", storagePorts.size(),
-                            portNativeGUID));
+                    _log.warn("There are {} StoragePorts with nativeGuid = {}", storagePorts.size(), portNativeGUID);
                 }
             }
 

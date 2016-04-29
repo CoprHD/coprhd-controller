@@ -2950,12 +2950,6 @@ recoverpoint_export_bookmark_host_setup()
 {
     vpool=${1}
 
-    if [ "$RP_QUICK_PARAM" == "quick" ]; then
-        CLUSTER1NET_NAME=VSAN_11
-    else
-        CLUSTER1NET_NAME=FABRIC_losam082-fabric
-    fi
-
     if [ "${vpool}" = "rp${rptypetag}_cdp" ]; then
         PWWN1=10:00:00:E0:E0:E0:E0:E0
         WWNN1=20:00:00:E0:E0:E0:E0:E0
@@ -2973,8 +2967,14 @@ recoverpoint_export_bookmark_host_setup()
     run hosts create ${RP_HOSTNAME} $TENANT Windows ${RP_HOSTNAME} --port 8111 --username user --password 'password' --osversion 1.0
 
     run initiator create ${RP_HOSTNAME} FC ${PWWN1} --node ${WWNN1}
-
-    run transportzone add ${RECOVERPOINT_VARRAY1}/${CLUSTER1NET_NAME} ${PWWN1}
+    
+    if [ "$RP_QUICK_PARAM" == "quick" ]; then
+        run transportzone add ${RECOVERPOINT_VARRAY1}/"VSAN_11" ${PWWN1}
+        run transportzone add ${RECOVERPOINT_VARRAY2}/"VSAN_12" ${PWWN1}
+        run transportzone add ${RECOVERPOINT_VARRAY3}/"VSAN_13" ${PWWN1}
+    else
+        run transportzone add ${RECOVERPOINT_VARRAY1}/"FABRIC_losam082-fabric" ${PWWN1}
+    fi   
 }
 
 recoverpoint_auto_snapshot_cleanup_test()

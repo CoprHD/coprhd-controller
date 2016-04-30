@@ -82,18 +82,35 @@ public class PlacementManager {
         return storageSchedulers.get(type);
     }
 
+    /**
+     * Gets a list of recommentdations for a Volume Create Request.
+     * Maintained for compatibility with RP and other existing callers. 
+     * @param vArray - Virtual Array object
+     * @param project - Project object
+     * @param vPool - Virtual Pool object
+     * @param capabilities - VirtualPoolCapabilityValuesWrapper contains parameters
+     * @return List of Recommendation
+     */
     public List getRecommendationsForVolumeCreateRequest(VirtualArray vArray,
             Project project, VirtualPool vPool, VirtualPoolCapabilityValuesWrapper capabilities) {
 
         // Get the volume placement based on passed parameters.
         Map<VpoolUse, List<Recommendation>> currentRecommendations = new HashMap<VpoolUse, List<Recommendation>>();
         Scheduler scheduler = getBlockServiceImpl(vPool);
-        // return scheduler.getRecommendationsForResources(virtualArray, project, vPool, capabilities);
         List<Recommendation> recommendations = scheduler.getRecommendationsForVpool(
                 vArray, project, vPool, VpoolUse.ROOT, capabilities, currentRecommendations);
         return recommendations;
     }
     
+    /**
+     * New call that can return multiple placement results, one for the ROOT level Vpool, but also others
+     * for example for SRDF_COPY. 
+     * @param virtualArray - Virtual Array object
+     * @param project - Project object
+     * @param virtualPool- Virtual Pool object
+     * @param capabilities - VirtualPoolCapabilityValuesWrapper contains parameters
+     * @return Map of VpoolUse to List of Recommendations for that use.
+     */
     public Map<VpoolUse, List<Recommendation>> getRecommendationsForVirtualPool(VirtualArray virtualArray,
             Project project, VirtualPool virtualPool, 
             VirtualPoolCapabilityValuesWrapper capabilities) {
@@ -210,6 +227,10 @@ public class PlacementManager {
         return storagePools;
     }
     
+    /**
+     * Logs the recommendations for all VpoolUses.
+     * @param recommendationMap - Map of VpoolUse to List<Recommendation>
+     */
     public void logRecommendations(Map<VpoolUse, List<Recommendation>> recommendationMap) {
         for (Map.Entry<VpoolUse, List<Recommendation>> entry : recommendationMap.entrySet()) {
             logRecommendations(entry.getKey().name(), entry.getValue());

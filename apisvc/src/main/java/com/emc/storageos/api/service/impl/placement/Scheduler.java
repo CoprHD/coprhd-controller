@@ -34,16 +34,17 @@ public interface Scheduler {
     public boolean handlesVpool(VirtualPool vPool, VpoolUse vPoolUse);
     
     /**
-     * Get sets of recommendations for a Vpool. Each set is a possible independent solution.
-     * At first only one set may be supported (i.e. a scheduler may only calculate one possible
-     * solution); but this interface allows for multiple possible solutions.
+     * Gets a List of Recommendations for a given VirtualPool and capabilities in specified varray.
+     * The VpoolUse must be specified (ROOT Vpool or alternate like SRDF_COPY or VPLEX_HA).
      * @param vArray -- Virtual Array
      * @param project -- Project
      * @param vPool -- Virtual Pool
      * @param vPoolUse -- Use of Virtual Pool (i.e. whether this Virtual Pool is nested inside
      *    the ROOT virtual pool, e.g. a VPLEX_HA or SRDF_COPY virtual pool within the outer ROOT.)
      * @param capabilities -- the capabilites needed
-     * @param currentRecommendations -- any existing recommendations in the current solution set
+     * @param currentRecommendations -- any existing recommendations in the current solution set.
+     * This is used to let recommendations be based on previously generated recommendations, e.g.
+     * SRDF_COPY recommendations are generated from the SRDF source recommendation.
      * @return -- A scheduling solution containing a List of Recommendations.
      * The Recommendations may be any subclass of Recommendation.
      */

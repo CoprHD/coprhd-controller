@@ -1,3 +1,7 @@
+/*
+ * Copyright (c) 2016 EMC Corporation
+ * All Rights Reserved
+ */
 package com.emc.storageos.protectionorchestrationcontroller;
 
 import static com.emc.storageos.db.client.util.CommonTransformerFunctions.FCTN_STRING_TO_URI;
@@ -57,7 +61,7 @@ public class ProtectionOrchestrationDeviceController implements ProtectionOrches
                 Workflow workflow = workflowService.getNewWorkflow(this,
                         "performSRDFProtectionOperation", true, task);
 
-                // Add vplex pre-flush steps. No wait for (passing null) as this is initial steps.
+                // Add vplex pre flush steps. Passing null for wait for as this is initial steps.
                 Map<URI, String> vplexVolumeIdToDetachStep = new HashMap<URI, String>();
                 waitFor = vplexDeviceController.addPreRestoreResyncSteps(workflow, 
                         vplexToArrayVolumesToFlush, vplexVolumeIdToDetachStep, null);
@@ -88,7 +92,7 @@ public class ProtectionOrchestrationDeviceController implements ProtectionOrches
         }
     }
     
-    String[] srdfFlushableOps = { "failover", "failover-cancel", "swap", "resume" };
+    private final String[] srdfFlushableOps = { "failover", "failover-cancel", "swap", "resume" };
     /**
      * Returns true if the SRDF operation requires a cache flush on the Vplex.
      * @param op

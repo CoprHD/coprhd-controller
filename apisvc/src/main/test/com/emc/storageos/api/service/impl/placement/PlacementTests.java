@@ -9,6 +9,7 @@ import static org.junit.Assert.assertTrue;
 
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
@@ -345,15 +346,15 @@ public class PlacementTests extends DbsvcTestBase {
         StringSet connVA = new StringSet();
         connVA.add(srcVarray.getId().toString());
         Network network1 = PlacementTestUtils.createNetwork(_dbClient, vmax1FE, "VSANSite1", "FC+BROCADE+FE", connVA);
-//        network1.addEndpoints(Arrays.asList(vplex1FE), true);
-//        network1.addEndpoints(Arrays.asList(vplex1BE), true);
+        network1.addEndpoints(Arrays.asList(vplex1FE), true);
+        network1.addEndpoints(Arrays.asList(vplex1BE), true);
         
 
         connVA = new StringSet();
         connVA.add(tgtVarray.getId().toString());
         Network network2 = PlacementTestUtils.createNetwork(_dbClient, vmax2FE, "VSANSite2", "FC+CISCO+FE", connVA);
-//        network2.addEndpoints(Arrays.asList(vplex2FE), true);
-//        network2.addEndpoints(Arrays.asList(vplex2BE), true);
+        network2.addEndpoints(Arrays.asList(vplex2FE), true);
+        network2.addEndpoints(Arrays.asList(vplex2BE), true);
         
         // Create 2 storage systems
         StorageSystem[] storageSystems = PlacementTestUtils.createSRDFStorageSystems(_dbClient, 
@@ -632,7 +633,7 @@ public class PlacementTests extends DbsvcTestBase {
         String[] vplex3FE = { "FE:FE:FE:FE:FE:FE:FE:04", "FE:FE:FE:FE:FE:FE:FE:05" };
         String[] vplex3BE = { "BE:BE:BE:BE:BE:BE:BE:04", "BE:BE:BE:BE:BE:BE:BE:05" };
         
-        // Create 2 Virtual Arrays
+        // Create 3 Virtual Arrays
         VirtualArray srcVarray = PlacementTestUtils.createVirtualArray(_dbClient, "srcVarray");
         VirtualArray tgtVarray = PlacementTestUtils.createVirtualArray(_dbClient, "tgtVarray");
         VirtualArray haVarray = PlacementTestUtils.createVirtualArray(_dbClient, "haVarray");
@@ -641,7 +642,7 @@ public class PlacementTests extends DbsvcTestBase {
         StringSet connVA = new StringSet();
         connVA.add(srcVarray.getId().toString());
         Network network1 = PlacementTestUtils.createNetwork(_dbClient, vmax1FE, "VSANSite1", "FC+BROCADE+FE", connVA);
-//      //network1.addEndpoints(Arrays.asList(vplex1BE), true);
+        network1.addEndpoints(Arrays.asList(vplex1BE), true);
         
 
         connVA = new StringSet();

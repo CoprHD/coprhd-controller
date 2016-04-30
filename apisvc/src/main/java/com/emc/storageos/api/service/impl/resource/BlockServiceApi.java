@@ -537,6 +537,13 @@ public interface BlockServiceApi {
      */
     public Collection<? extends String> getReplicationGroupNames(VolumeGroup group);
     
+    /**
+     * Returns the volume descriptors which need to be deleted.
+     * @param systemURI - Storage System URI
+     * @param volumeURIs - List of Volume URIs
+     * @param deletionType - Deletion type, VIPR_ONLY or FULL
+     * @return list of VolumeDescriptors to be deleted suitable for BlockOrchestrationDeviceController
+     */
     public List<VolumeDescriptor> getDescriptorsForVolumesToBeDeleted(URI systemURI,
             List<URI> volumeURIs, String deletionType);
     

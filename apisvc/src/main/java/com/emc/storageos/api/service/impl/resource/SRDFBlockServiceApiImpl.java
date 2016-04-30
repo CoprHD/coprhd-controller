@@ -1170,7 +1170,6 @@ public class SRDFBlockServiceApiImpl extends AbstractBlockServiceApiImpl<SRDFSch
             throw APIException.badRequests.expandSupportedOnlyOnSource(volume.getId());
         }
         List<VolumeDescriptor> descriptors = getVolumeDescriptorsForExpandVolume(volume, newSize);
-        // SRDFController controller = getController(SRDFController.class, "vmax");
         BlockOrchestrationController controller = getController(
                 BlockOrchestrationController.class,
                 BlockOrchestrationController.BLOCK_ORCHESTRATION_DEVICE);

@@ -1254,6 +1254,18 @@ public class SRDFScheduler implements Scheduler {
        return recommendations;
     }
     
+    /**
+     * This routine retrieves recommendations for the SRDF_COPY from previously generated SRDF Source
+     * recommendations. The SRDF scheduler generates them together, but upper layers of code need
+     * them separately so they can be encapsulated in higher level recommendations such as Vplex.
+     * @param vArray - Virtual Array object
+     * @param project - Project object
+     * @param vPool - Virtual Pool object
+     * @param capabilities - VirtualPoolCapabilitiesWrapper contains parameters
+     * @param currentRecommendations - Contains the current recommendations that would include SRDFRecommendations.
+     * The SrdfCopyRecommendations are generated from them
+     * @return - List of Recommendations, specifically, SRDFCopyRecommendations
+     */
     private List<Recommendation> getRecommendationsForCopy(VirtualArray vArray, Project project, 
             VirtualPool vPool, VirtualPoolCapabilityValuesWrapper capabilities, 
             List<Recommendation> currentRecommendations) {

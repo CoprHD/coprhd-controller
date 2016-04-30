@@ -1,24 +1,29 @@
+/*
+ * Copyright (c) 2016 EMC Corporation
+ * All Rights Reserved
+ */
 package com.emc.storageos.util;
 
 import static com.emc.storageos.db.client.constraint.AlternateIdConstraint.Factory.getVolumesByAssociatedId;
 
 import java.net.URI;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 import com.emc.storageos.db.client.DbClient;
-import com.emc.storageos.db.client.model.BlockConsistencyGroup;
-import com.emc.storageos.db.client.model.BlockConsistencyGroup.Types;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
-import com.emc.storageos.db.client.util.NullColumnValueGetter;
-import com.emc.storageos.workflow.Workflow;
 
+/**
+ * Performs conversions from Vplex Volumes to corresponding SRDF Volumes and vice-versa.
+ */
 public class VPlexSrdfUtil {
+    private VPlexSrdfUtil() { 
+        // All methods are static, no need to make an instance.
+    }
     
     /**
      * Returns the srdf underlying volume if there is one, otherwise null.

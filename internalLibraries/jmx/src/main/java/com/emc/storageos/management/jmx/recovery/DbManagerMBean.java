@@ -70,4 +70,12 @@ public interface DbManagerMBean {
      */
     @ManagedOperation(description = "Remove all ndoes in a data center")
     void removeDataCenter(String dcName);
+    
+    /**
+     * Check if data is synced with remote data center by checking pending Cassandra hinted handoff logs
+     *
+     * @param dcName
+     */
+    @ManagedOperation(description = "Check if data is synced with remote data center")
+    public boolean isDataCenterSynced(String dcName);
 }

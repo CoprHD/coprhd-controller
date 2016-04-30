@@ -212,7 +212,7 @@ public class ExternalDeviceMaskingOrchestrator extends AbstractMaskingFirstOrche
                     volumeURIs.addAll(volumeMap.keySet());
 
                     String maskingStep = generateExportMaskAddVolumesWorkflow(workflow,
-                            null, storage, exportGroup, exportMask, volumeMap);
+                            null, storage, exportGroup, exportMask, volumeMap, null);
 
                     // We do not need zoning step, since storage ports should not change.
                     // Have to store export group id to be available at device level.

@@ -196,7 +196,7 @@ public class XtremIOMaskingOrchestrator extends AbstractBasicMaskingOrchestrator
                         null, exportGroup, masks, volumeURIs);
                 for (ExportMask mask : masks) {
                     generateExportMaskAddVolumesWorkflow(workflow, zoningStep,
-                            storage, exportGroup, mask, volumeMap);
+                            storage, exportGroup, mask, volumeMap, null);
                 }
 
                 String successMessage = String.format(
@@ -300,7 +300,7 @@ public class XtremIOMaskingOrchestrator extends AbstractBasicMaskingOrchestrator
                             exportGroup, exportMaskstoRemoveVolume, volumes);
                     for (ExportMask exportMask : exportMaskstoRemoveVolume) {
                         generateExportMaskRemoveVolumesWorkflow(workflow, previousStep, storage,
-                                exportGroup, exportMask, volumes, null);
+                                exportGroup, exportMask, volumes, null, null);
                     }
                 }
                 if (!exportMaskstoDelete.isEmpty()) {
@@ -308,12 +308,12 @@ public class XtremIOMaskingOrchestrator extends AbstractBasicMaskingOrchestrator
                             exportGroup, exportMaskstoDelete);
                     for (ExportMask exportMask : exportMaskstoDelete) {
                     	previousStep = generateExportMaskDeleteWorkflow(workflow, previousStep, storage,
-                                exportGroup, exportMask, null);
+                                exportGroup, exportMask, null, null, null);
                     }
                 }
                 // volumes
                 generateExportGroupRemoveVolumesCleanup(workflow, EXPORT_GROUP_MASKING_TASK, storage,
-                        exportGroup, volumes);
+                        exportGroup, volumes, null);
 
                 String successMessage = String.format(
                         "Volumes successfully unexported from StorageArray %s", storage.getLabel());
@@ -575,7 +575,7 @@ public class XtremIOMaskingOrchestrator extends AbstractBasicMaskingOrchestrator
                 	String previousStep = zoningStep;
                     for (ExportMask exportMask : exportMaskDelete) {
                     	previousStep = generateExportMaskDeleteWorkflow(workflow, previousStep, storage,
-                                exportGroup, exportMask, null);
+                                exportGroup, exportMask, null, null, null);
                     }
                 }
                 String successMessage = String.format(
@@ -668,7 +668,7 @@ public class XtremIOMaskingOrchestrator extends AbstractBasicMaskingOrchestrator
              */
             for (ExportMask exportMask : exportMasks) {
                 previousStep = generateExportMaskDeleteWorkflow(workflow, previousStep, storage, exportGroup,
-                        exportMask, null);
+                        exportMask, null, null, null);
             }
 
             String successMessage = String.format(

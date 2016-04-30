@@ -97,6 +97,13 @@ public class VnxExportOperations implements ExportMaskOperations {
         _dbClient = dbClient;
     }
 
+    /* (non-Javadoc)
+     * @see com.emc.storageos.volumecontroller.impl.smis.ExportMaskOperations#createExportMask(com.emc.storageos.db.client.model.StorageSystem, java.net.URI, com.emc.storageos.volumecontroller.impl.VolumeURIHLU[], java.util.List, java.util.List, com.emc.storageos.volumecontroller.TaskCompleter)
+     * 
+     * TODO DUPP:
+     * 1. Verify none of the initiators are in another Storage Group.  (this seems to already be done below). Standardize error message/service error.
+     * 2. Additional verifications?
+     */
     public void createExportMask(StorageSystem storage,
             URI exportMaskURI,
             VolumeURIHLU[] volumeURIHLUs,
@@ -105,6 +112,11 @@ public class VnxExportOperations implements ExportMaskOperations {
             TaskCompleter taskCompleter) throws DeviceControllerException {
         _log.info("{} createExportMask START...", storage.getSerialNumber());
         try {
+            _log.info("createExportMask: Export mask id: {}", exportMaskURI);
+            _log.info("createExportMask: volume-HLU pairs: {}", Joiner.on(',').join(volumeURIHLUs));
+            _log.info("createExportMask: initiators: {}", Joiner.on(',').join(initiatorList));
+            _log.info("createExportMask: assignments: {}", Joiner.on(',').join(targetURIList));
+            
             // https://coprhd.atlassian.net/browse/COP-19019: Validation routine indicates that there
             // is some mask- other than the one that we are trying to create -containing the initiators.
             // This is an error because initiators can only belong to one VNX StorageGroup. If ViPR performs
@@ -119,14 +131,14 @@ public class VnxExportOperations implements ExportMaskOperations {
                 return;
             }
             CIMObjectPath[] protocolControllers = createOrGrowStorageGroup(storage,
-                    exportMaskURI, volumeURIHLUs, null, null, taskCompleter);
+                    exportMaskURI, volumeURIHLUs, initiatorList, targetURIList, taskCompleter);
             if (protocolControllers != null) {
                 _log.debug("createExportMask succeeded.");
                 for (CIMObjectPath protocolController : protocolControllers) {
                     _helper.setProtocolControllerNativeId(exportMaskURI, protocolController);
                 }
                 CimConnection cimConnection = _helper.getConnection(storage);
-                createOrGrowStorageGroup(storage, exportMaskURI, null, initiatorList, targetURIList, taskCompleter);
+                createOrGrowStorageGroup(storage, exportMaskURI, volumeURIHLUs, initiatorList, targetURIList, taskCompleter);
                 // Call populateDeviceNumberFromProtocolControllers only after initiators
                 // have been added. HLU's will not be reported till the Device is Host
                 // visible
@@ -147,6 +159,15 @@ public class VnxExportOperations implements ExportMaskOperations {
         _log.info("{} createExportMask END...", storage.getSerialNumber());
     }
 
+    /* (non-Javadoc)
+     * @see com.emc.storageos.volumecontroller.impl.smis.ExportMaskOperations#deleteExportMask(com.emc.storageos.db.client.model.StorageSystem, java.net.URI, java.util.List, java.util.List, java.util.List, com.emc.storageos.volumecontroller.TaskCompleter)
+     * 
+     * TODO DUPP:
+     * 1. Verify volumes are the only volumes in the Storage Group.  It's OK if any of our volumes are missing.
+     * 2. Verify Storage Group contains all of the initiators.  Fail if you have any additional initiators.  
+     * 3. If there are any initiators missing in the Storage Group, you don't need to fail, but don't delete those HW IDs
+     * Note: No need to verify storage ports.
+     */
     public void deleteExportMask(StorageSystem storage,
             URI exportMaskURI,
             List<URI> volumeURIList,
@@ -155,6 +176,20 @@ public class VnxExportOperations implements ExportMaskOperations {
             TaskCompleter taskCompleter) throws DeviceControllerException {
         _log.info("{} deleteExportMask START...", storage.getSerialNumber());
         try {
+            _log.info("Export mask id: {}", exportMaskURI);
+            // TODO DUPP:
+            // 1. Get the volume, targets, and initiators from the caller
+            // 2. Ensure (if possible) that those are the only volumes/initiators impacted by delete mask
+            if (volumeURIList != null) {
+                _log.info("deleteExportMask: volumes:  {}", Joiner.on(',').join(volumeURIList));
+            }
+            if (targetURIList != null) {
+                _log.info("deleteExportMask: assignments: {}", Joiner.on(',').join(targetURIList));
+            }
+            if (initiatorList != null) {
+                _log.info("deleteExportMask: initiators: {}", Joiner.on(',').join(initiatorList));
+            }
+            
             ExportMask exportMask = _dbClient.queryObject(ExportMask.class, exportMaskURI);
             String nativeId = exportMask.getNativeId();
 
@@ -201,79 +236,142 @@ public class VnxExportOperations implements ExportMaskOperations {
         _log.info("{} deleteExportMask END...", storage.getSerialNumber());
     }
 
-    public void addVolume(StorageSystem storage,
+    /* (non-Javadoc)
+     * @see com.emc.storageos.volumecontroller.impl.smis.ExportMaskOperations#addVolume(com.emc.storageos.db.client.model.StorageSystem, java.net.URI, com.emc.storageos.volumecontroller.impl.VolumeURIHLU[], com.emc.storageos.volumecontroller.TaskCompleter)
+     */
+    public void addVolumes(StorageSystem storage,
             URI exportMaskURI,
             VolumeURIHLU[] volumeURIHLUs,
-            TaskCompleter taskCompleter) throws DeviceControllerException {
-        _log.info("{} addVolume START...", storage.getSerialNumber());
+            List<Initiator> initiatorList, TaskCompleter taskCompleter) throws DeviceControllerException {
+        _log.info("{} addVolumes START...", storage.getSerialNumber());
         try {
+            _log.info("addVolumes: Export mask id: {}", exportMaskURI);
+            _log.info("addVolumes: volume-HLU pairs: {}", Joiner.on(',').join(volumeURIHLUs));
+            // TODO DUPP:
+            // 1. Get initiator list from the caller above for completeness
+            // 2. If possible, log if these volumes are going to be exported to additional initiators than what the request asked for
+            if (initiatorList != null) {
+                _log.info("addVolumes: initiators impacted: {}", Joiner.on(',').join(initiatorList));
+            }
+            
             CIMObjectPath[] protocolControllers = createOrGrowStorageGroup(storage, exportMaskURI, volumeURIHLUs, null, null, taskCompleter);
             CimConnection cimConnection = _helper.getConnection(storage);
             ExportMaskOperationsHelper.populateDeviceNumberFromProtocolControllers(_dbClient, cimConnection, exportMaskURI,
                     volumeURIHLUs, protocolControllers, taskCompleter);
             taskCompleter.ready(_dbClient);
         } catch (Exception e) {
-            _log.error("Unexpected error: addVolume failed.", e);
-            ServiceError error = DeviceControllerErrors.smis.methodFailed("addVolume", e.getMessage());
+            _log.error("Unexpected error: addVolumes failed.", e);
+            ServiceError error = DeviceControllerErrors.smis.methodFailed("addVolumes", e.getMessage());
             taskCompleter.error(_dbClient, error);
         }
-        _log.info("{} addVolume END...", storage.getSerialNumber());
+        _log.info("{} addVolumes END...", storage.getSerialNumber());
     }
 
-    public void removeVolume(StorageSystem storage,
+    /* (non-Javadoc)
+     * @see com.emc.storageos.volumecontroller.impl.smis.ExportMaskOperations#removeVolume(com.emc.storageos.db.client.model.StorageSystem, java.net.URI, java.util.List, com.emc.storageos.volumecontroller.TaskCompleter)
+     * 
+     * TODO DUPP:
+     * 1. Add initiator list to the removeVolume() call
+     * 2. Validate that the volume being removed only impacts the initiators sent down.  (Does removing these volumes take the volumes away from OTHER initiators?)
+     */
+    public void removeVolumes(StorageSystem storage,
             URI exportMaskURI,
             List<URI> volumeURIList,
+            List<Initiator> initiatorList, 
             TaskCompleter taskCompleter) throws DeviceControllerException {
-        _log.info("{} removeVolume START...", storage.getSerialNumber());
+        _log.info("{} removeVolumes START...", storage.getSerialNumber());
         try {
-        	if (null == volumeURIList || volumeURIList.isEmpty()) {
+            _log.info("removeVolumes: Export mask id: {}", exportMaskURI);
+            _log.info("removeVolumes: volumes: {}", Joiner.on(',').join(volumeURIList));
+            // TODO DUPP:
+            // 1. Get initiator list from the caller
+            // 2. Verify that the initiators are the ONLY ones impacted by this remove volumes, otherwise fail.
+            if (initiatorList != null) {
+                _log.info("removeVolumes: impacted initiators: {}", Joiner.on(",").join(initiatorList));
+            }
+            
+            if (null == volumeURIList || volumeURIList.isEmpty()) {
 				taskCompleter.ready(_dbClient);
-				_log.warn("{} removeVolume invoked with zero volumes, resulting in no-op....",
+				_log.warn("{} removeVolumes invoked with zero volumes, resulting in no-op....",
 						storage.getSerialNumber());
 				return;
 			}
             deleteOrShrinkStorageGroup(storage, exportMaskURI, volumeURIList, null);
             taskCompleter.ready(_dbClient);
         } catch (Exception e) {
-            _log.error("Unexpected error: removeVolume failed.", e);
-            ServiceError error = DeviceControllerErrors.smis.methodFailed("removeVolume", e.getMessage());
+            _log.error("Unexpected error: removeVolumes failed.", e);
+            ServiceError error = DeviceControllerErrors.smis.methodFailed("removeVolumes", e.getMessage());
             taskCompleter.error(_dbClient, error);
         }
-        _log.info("{} removeVolume END...", storage.getSerialNumber());
+        _log.info("{} removeVolumes END...", storage.getSerialNumber());
     }
 
-    public void addInitiator(StorageSystem storage,
+    /* (non-Javadoc)
+     * @see com.emc.storageos.volumecontroller.impl.smis.ExportMaskOperations#addInitiator(com.emc.storageos.db.client.model.StorageSystem, java.net.URI, java.util.List, java.util.List, com.emc.storageos.volumecontroller.TaskCompleter)
+     * 
+     * TODO DUPP:
+     * 1. Verify these initiators are not already in a storage group (like createExportMask)
+     */
+    public void addInitiators(StorageSystem storage,
             URI exportMaskURI,
+            List<URI> volumeURIs,
             List<Initiator> initiatorList,
-            List<URI> targets,
-            TaskCompleter taskCompleter) throws DeviceControllerException {
-        _log.info("{} addInitiator START...", storage.getSerialNumber());
+            List<URI> targets, TaskCompleter taskCompleter) throws DeviceControllerException {
+        _log.info("{} addInitiators START...", storage.getSerialNumber());
         try {
+            _log.info("addInitiators: Export mask id: {}", exportMaskURI);
+            // TODO DUPP:
+            // 1. Get the impacted volumes from the caller
+            // 2. Log any other volumes that are being exposed to the initiator
+            // 3. Make sure these initiators aren't in other storage groups!
+            if (volumeURIs != null) {
+                _log.info("addInitiators: volumes : {}", Joiner.on(',').join(volumeURIs));
+            }
+            _log.info("addInitiators: initiators : {}", Joiner.on(',').join(initiatorList));
+            _log.info("addInitiators: targets : {}", Joiner.on(",").join(targets));
+            
             createOrGrowStorageGroup(storage, exportMaskURI, null, initiatorList, targets, taskCompleter);
             taskCompleter.ready(_dbClient);
         } catch (Exception e) {
-            _log.error("Unexpected error: addInitiator failed.", e);
-            ServiceError error = DeviceControllerErrors.smis.methodFailed("addInitiator", e.getMessage());
+            _log.error("Unexpected error: addInitiators failed.", e);
+            ServiceError error = DeviceControllerErrors.smis.methodFailed("addInitiators", e.getMessage());
             taskCompleter.error(_dbClient, error);
         }
-        _log.info("{} addInitiator END...", storage.getSerialNumber());
+        _log.info("{} addInitiators END...", storage.getSerialNumber());
     }
 
-    public void removeInitiator(StorageSystem storage,
+    /* (non-Javadoc)
+     * @see com.emc.storageos.volumecontroller.impl.smis.ExportMaskOperations#removeInitiator(com.emc.storageos.db.client.model.StorageSystem, java.net.URI, java.util.List, java.util.List, com.emc.storageos.volumecontroller.TaskCompleter)
+     * 
+     * TODO DUPP:
+     * 1. Add volumes list to this removeInitiator call
+     * 2. Verify removing this initiator impacts only the volumes sent down, otherwise other initiators may lose access to those volumes
+     */
+    public void removeInitiators(StorageSystem storage,
             URI exportMaskURI,
+            List<URI> volumeURIList,
             List<Initiator> initiatorList,
-            List<URI> targets,
-            TaskCompleter taskCompleter) throws DeviceControllerException {
-        _log.info("{} removeInitiator START...", storage.getSerialNumber());
+            List<URI> targets, TaskCompleter taskCompleter) throws DeviceControllerException {
+        _log.info("{} removeInitiators START...", storage.getSerialNumber());
         try {
+            _log.info("removeInitiators: Export mask id: {}", exportMaskURI);
+            // TODO DUPP:
+            // 1. Get the impacted volumes from the caller
+            // 2. If any other volumes are impacted by removing this initiator, fail the operation
+            if (volumeURIList != null) {
+                _log.info("removeInitiators: volumes : {}", Joiner.on(',').join(volumeURIList));
+            }
+            _log.info("removeInitiators: initiators : {}", Joiner.on(',').join(initiatorList));
+            _log.info("removeInitiators: targets : {}", Joiner.on(',').join(targets));
+            
             deleteStorageHWIDs(storage, initiatorList);
             taskCompleter.ready(_dbClient);
         } catch (Exception e) {
-            _log.error("Unexpected error: removeInitiator failed.", e);
-            ServiceError error = DeviceControllerErrors.smis.methodFailed("removeInitiator", e.getMessage());
+            _log.error("Unexpected error: removeInitiators failed.", e);
+            ServiceError error = DeviceControllerErrors.smis.methodFailed("removeInitiators", e.getMessage());
             taskCompleter.error(_dbClient, error);
         }
-        _log.info("{} removeInitiator END...", storage.getSerialNumber());
+        _log.info("{} removeInitiators END...", storage.getSerialNumber());
     }
 
     /**
@@ -408,7 +506,7 @@ public class VnxExportOperations implements ExportMaskOperations {
                                     join(exportMask.getExistingVolumes().keySet())));
                     if (foundMaskInDb) {
                         ExportMaskUtils.sanitizeExportMaskContainers(_dbClient, exportMask);
-                        _dbClient.updateAndReindexObject(exportMask);
+                        _dbClient.updateObject(exportMask);
                     } else {
                         _dbClient.createObject(exportMask);
                     }
@@ -503,7 +601,6 @@ public class VnxExportOperations implements ExportMaskOperations {
 
                 // NOTE/TODO: We are not modifying the storage ports upon refresh like we do for VMAX.
                 // Refer to CTRL-6982.
-
                 builder.append(
                         String.format("XM refresh: %s initiators; add:{%s} remove:{%s}%n",
                                 name, Joiner.on(',').join(initiatorsToAdd),
@@ -551,12 +648,12 @@ public class VnxExportOperations implements ExportMaskOperations {
                         }
                     }
                     ExportMaskUtils.sanitizeExportMaskContainers(_dbClient, mask);
-                    _dbClient.updateAndReindexObject(mask);
+                    _dbClient.updateObject(mask);
                 } else {
                     builder.append("XM refresh: There are no changes to the mask\n");
                 }
                 _networkDeviceController.refreshZoningMap(mask,
-                        initiatorsToRemove, Collections.EMPTY_LIST,
+                        initiatorsToRemove, Collections.emptyList(),
                         (addInitiators || removeInitiators), true);
                 _log.info(builder.toString());
             }
@@ -810,7 +907,7 @@ public class VnxExportOperations implements ExportMaskOperations {
             List<Initiator> initiatorList,
             List<URI> targetURIList, TaskCompleter completer) throws Exception {
         // TODO - Refactor createOrGrowStorageGroup by moving code for creating an empty storage group
-        // to it's own createStorageGroup method which calls exposePaths with null for initiators
+        // to its own createStorageGroup method which calls exposePaths with null for initiators
         // and targets
         _log.info("{} createOrGrowStorageGroup START...", storage.getSerialNumber());
         try {
@@ -924,7 +1021,7 @@ public class VnxExportOperations implements ExportMaskOperations {
                                 removedInitiators.add(maskInitiator);
                             }
                         }
-                        _dbClient.updateAndReindexObject(mask);
+                        _dbClient.updateObject(mask);
                         if (!removedInitiators.isEmpty()) {
                             _log.info(String.format("The following initiators will not be mapped, hence they will be " +
                                     "removed from the initiator list of ExportMask %s (%s): %s",
@@ -1276,7 +1373,6 @@ public class VnxExportOperations implements ExportMaskOperations {
         }
         return hlus;
     }
-
 
     /**
      * Gets the Storage Port(s) associated with the GUID passed

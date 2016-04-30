@@ -317,7 +317,7 @@ public class VnxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                             // the first time. Need to update zoning map
                             updateZoningMap(exportGroup, exportMask, true);
                             generateExportMaskAddVolumesWorkflow(workflow, EXPORT_GROUP_ZONING_TASK, storage,
-                                    exportGroup, exportMask, volumesToAdd);
+                                    exportGroup, exportMask, volumesToAdd, null);
                             anyVolumesAdded = true;
                             // Need to check if the mask is not already associated with
                             // ExportGroup. This is case when we are adding volume to
@@ -714,7 +714,7 @@ public class VnxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                 _log.info(String.format("adding these volumes %s to mask %s",
                         Joiner.on(",").join(volumesToAdd.keySet()), mask.getMaskName()));
                 previousStep = generateExportMaskAddVolumesWorkflow(workflow, previousStep, storage, exportGroup, mask,
-                        volumesToAdd);
+                        volumesToAdd, null);
                 flowCreated = true;
             }
 
@@ -862,7 +862,7 @@ public class VnxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
         // new initiators don't have connectivity to the volumes. Thus it is done
         // this way to ensure newly zoned initiators have connectivity to volumes.
         String removeInitiatorStep = generateExportMaskRemoveInitiatorsWorkflow(workflow, null,
-                storageSystem, exportGroup, exportMask, newInitiators, true, completer);
+                storageSystem, exportGroup, exportMask, null, newInitiators, true, completer);
         String zoningStep = generateZoningAddInitiatorsWorkflow(workflow, removeInitiatorStep,
                 exportGroup, zoneMasksToInitiatorsURIs);
         generateExportMaskAddInitiatorsWorkflow(workflow, zoningStep, storageSystem, exportGroup, exportMask,

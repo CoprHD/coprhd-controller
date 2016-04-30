@@ -23,7 +23,6 @@ import javax.cim.CIMProperty;
 import javax.wbem.CloseableIterator;
 import javax.wbem.WBEMException;
 
-import com.emc.storageos.volumecontroller.impl.utils.ExportMaskUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -61,6 +60,7 @@ import com.emc.storageos.volumecontroller.impl.smis.SmisConstants;
 import com.emc.storageos.volumecontroller.impl.smis.SmisException;
 import com.emc.storageos.volumecontroller.impl.smis.ibm.IBMCIMObjectPathFactory;
 import com.emc.storageos.volumecontroller.impl.smis.ibm.IBMSmisConstants;
+import com.emc.storageos.volumecontroller.impl.utils.ExportMaskUtils;
 import com.google.common.base.Joiner;
 import com.google.common.base.Strings;
 
@@ -118,12 +118,13 @@ public class XIVExportOperations implements ExportMaskOperations {
             List<Initiator> initiatorList, TaskCompleter taskCompleter)
             throws DeviceControllerException {
         _log.info("{} createExportMask START...", storage.getLabel());
-        _log.info("createExportMask: mask id: {}", exportMaskURI);
-        _log.info("createExportMask: volume-HLU pairs: {}", volumeURIHLUs);
-        _log.info("createExportMask: tartets: {}", targetURIList);
-        _log.info("createExportMask: initiators: {}", initiatorList);
 
         try {
+            _log.info("createExportMask: Export mask id: {}", exportMaskURI);
+            _log.info("createExportMask: volume-HLU pairs: {}", Joiner.on(',').join(volumeURIHLUs));
+            _log.info("createExportMask: initiators: {}", Joiner.on(',').join(initiatorList));
+            _log.info("createExportMask: assignments: {}", Joiner.on(',').join(targetURIList));
+            
             CIMInstance controllerInst = null;
             boolean createdBySystem = true;
             Map<String, Initiator> initiatorMap = _helper.getInitiatorMap(initiatorList);
@@ -335,6 +336,20 @@ public class XIVExportOperations implements ExportMaskOperations {
             throws DeviceControllerException {
         _log.info("{} deleteExportMask START...", storage.getLabel());
         try {
+            _log.info("Export mask id: {}", exportMaskURI);
+            // TODO DUPP:
+            // 1. Get the volume, targets, and initiators from the caller
+            // 2. Ensure (if possible) that those are the only volumes/initiators impacted by delete mask
+            if (volumeURIList != null) {
+                _log.info("deleteExportMask: volumes:  {}", Joiner.on(',').join(volumeURIList));
+            }
+            if (targetURIList != null) {
+                _log.info("deleteExportMask: assignments: {}", Joiner.on(',').join(targetURIList));
+            }
+            if (initiatorList != null) {
+                _log.info("deleteExportMask: initiators: {}", Joiner.on(',').join(initiatorList));
+            }
+            
             ExportMask exportMask = _dbClient.queryObject(ExportMask.class,
                     exportMaskURI);
             StringSet initiators = exportMask.getInitiators();
@@ -421,7 +436,7 @@ public class XIVExportOperations implements ExportMaskOperations {
             exportMask.setNativeId(NullColumnValueGetter.getNullURI().toString());
             exportMask.setResource(NullColumnValueGetter.getNullURI().toString());
 
-            _dbClient.updateAndReindexObject(exportMask);
+            _dbClient.updateObject(exportMask);
             taskCompleter.ready(_dbClient);
         } catch (Exception e) {
             _log.error("Unexpected error: deleteExportMask failed.", e);
@@ -434,11 +449,20 @@ public class XIVExportOperations implements ExportMaskOperations {
     }
 
     @Override
-    public void addVolume(StorageSystem storage, URI exportMaskURI,
-            VolumeURIHLU[] volumeURIHLUs, TaskCompleter taskCompleter)
+    public void addVolumes(StorageSystem storage, URI exportMaskURI,
+            VolumeURIHLU[] volumeURIHLUs, List<Initiator> initiatorList, TaskCompleter taskCompleter)
             throws DeviceControllerException {
-        _log.info("{} addVolume START...", storage.getLabel());
+        _log.info("{} addVolumes START...", storage.getLabel());
         try {
+            _log.info("addVolumes: Export mask id: {}", exportMaskURI);
+            _log.info("addVolumes: volume-HLU pairs: {}", Joiner.on(',').join(volumeURIHLUs));
+            // TODO DUPP:
+            // 1. Get initiator list from the caller above for completeness
+            // 2. If possible, log if these volumes are going to be exported to additional initiators than what the request asked for
+            if (initiatorList != null) {
+                _log.info("addVolumes: initiators impacted: {}", Joiner.on(',').join(initiatorList));
+            }
+            
             CIMArgument[] inArgs = _helper.getExposePathsInputArguments(
                     storage, exportMaskURI, volumeURIHLUs, null);
             CIMArgument[] outArgs = new CIMArgument[5];
@@ -455,21 +479,30 @@ public class XIVExportOperations implements ExportMaskOperations {
                             protocolControllers, taskCompleter);
             taskCompleter.ready(_dbClient);
         } catch (Exception e) {
-            _log.error("Unexpected error: addVolume failed.", e);
+            _log.error("Unexpected error: addVolumes failed.", e);
             ServiceError error = DeviceControllerErrors.smis.methodFailed(
-                    "addVolume", e.getMessage());
+                    "addVolumes", e.getMessage());
             taskCompleter.error(_dbClient, error);
         }
 
-        _log.info("{} addVolume END...", storage.getLabel());
+        _log.info("{} addVolumes END...", storage.getLabel());
     }
 
     @Override
-    public void removeVolume(StorageSystem storage, URI exportMaskURI,
-            List<URI> volumeURIList, TaskCompleter taskCompleter)
+    public void removeVolumes(StorageSystem storage, URI exportMaskURI,
+            List<URI> volumeURIList, List<Initiator> initiatorList, TaskCompleter taskCompleter)
             throws DeviceControllerException {
-        _log.info("{} removeVolume START...", storage.getLabel());
+        _log.info("{} removeVolumes START...", storage.getLabel());
         try {
+            _log.info("removeVolumes: Export mask id: {}", exportMaskURI);
+            _log.info("removeVolumes: volumes: {}", Joiner.on(',').join(volumeURIList));
+            // TODO DUPP:
+            // 1. Get initiator list from the caller
+            // 2. Verify that the initiators are the ONLY ones impacted by this remove volumes, otherwise fail.
+            if (initiatorList != null) {
+                _log.info("removeVolumes: impacted initiators: {}", Joiner.on(",").join(initiatorList));
+            }
+            
             CIMArgument[] inArgs = _helper.getHidePathsInputArguments(storage,
                     exportMaskURI, volumeURIList, null);
             _helper.invokeMethod(storage,
@@ -477,21 +510,31 @@ public class XIVExportOperations implements ExportMaskOperations {
                     inArgs);
             taskCompleter.ready(_dbClient);
         } catch (Exception e) {
-            _log.error("Unexpected error: removeVolume failed.", e);
+            _log.error("Unexpected error: removeVolumes failed.", e);
             ServiceError error = DeviceControllerErrors.smis.methodFailed(
-                    "removeVolume", e.getMessage());
+                    "removeVolumes", e.getMessage());
             taskCompleter.error(_dbClient, error);
         }
 
-        _log.info("{} removeVolume END...", storage.getLabel());
+        _log.info("{} removeVolumes END...", storage.getLabel());
     }
 
     @Override
-    public void addInitiator(StorageSystem storage, URI exportMaskURI,
-            List<Initiator> initiatorList, List<URI> targets,
-            TaskCompleter taskCompleter) throws DeviceControllerException {
-        _log.info("{} addInitiator START...", storage.getLabel());
+    public void addInitiators(StorageSystem storage, URI exportMaskURI,
+            List<URI> volumeURIs, List<Initiator> initiatorList,
+            List<URI> targets, TaskCompleter taskCompleter) throws DeviceControllerException {
+        _log.info("{} addInitiators START...", storage.getLabel());
         try {
+            _log.info("addInitiators: Export mask id: {}", exportMaskURI);
+            // TODO DUPP:
+            // 1. Get the impacted volumes from the caller
+            // 2. Log any other volumes that are being exposed to the initiator
+            if (volumeURIs != null) {
+                _log.info("addInitiators: volumes : {}", Joiner.on(',').join(volumeURIs));
+            }
+            _log.info("addInitiators: initiators : {}", Joiner.on(',').join(initiatorList));
+            _log.info("addInitiators: targets : {}", Joiner.on(",").join(targets));
+            
             CIMArgument[] inArgs = _helper.getExposePathsInputArguments(
                     storage, exportMaskURI, null, initiatorList);
             _helper.invokeMethod(storage,
@@ -499,24 +542,34 @@ public class XIVExportOperations implements ExportMaskOperations {
                     IBMSmisConstants.EXPOSE_PATHS, inArgs);
             taskCompleter.ready(_dbClient);
         } catch (Exception e) {
-            _log.error("Unexpected error: addInitiator failed.", e);
+            _log.error("Unexpected error: addInitiators failed.", e);
             ServiceError error = DeviceControllerErrors.smis.methodFailed(
-                    "addInitiator", e.getMessage());
+                    "addInitiators", e.getMessage());
             taskCompleter.error(_dbClient, error);
         }
 
-        _log.info("{} addInitiator END...", storage.getLabel());
+        _log.info("{} addInitiators END...", storage.getLabel());
     }
 
     @Override
     // TOD -test
-            public
-            void removeInitiator(StorageSystem storage, URI exportMaskURI,
-                    List<Initiator> initiatorList, List<URI> targets,
-                    TaskCompleter taskCompleter) throws DeviceControllerException {
-        _log.info("{} removeInitiator START...", storage.getLabel());
+    public
+    void removeInitiators(StorageSystem storage, URI exportMaskURI,
+            List<URI> volumeURIList, List<Initiator> initiatorList,
+            List<URI> targets, TaskCompleter taskCompleter) throws DeviceControllerException {
+        _log.info("{} removeInitiators START...", storage.getLabel());
 
         try {
+            _log.info("removeInitiators: Export mask id: {}", exportMaskURI);
+            // TODO DUPP:
+            // 1. Get the impacted volumes from the caller
+            // 2. If any other volumes are impacted by removing this initiator, fail the operation
+            if (volumeURIList != null) {
+                _log.info("removeInitiators: volumes : {}", Joiner.on(',').join(volumeURIList));
+            }
+            _log.info("removeInitiators: initiators : {}", Joiner.on(',').join(initiatorList));
+            _log.info("removeInitiators: targets : {}", Joiner.on(',').join(targets));
+            
             if (initiatorList != null && !initiatorList.isEmpty()) {
                 ExportMask exportMask = _dbClient.queryObject(ExportMask.class,
                         exportMaskURI);
@@ -565,13 +618,13 @@ public class XIVExportOperations implements ExportMaskOperations {
             }
             taskCompleter.ready(_dbClient);
         } catch (Exception e) {
-            _log.error("Unexpected error: removeInitiator failed.", e);
+            _log.error("Unexpected error: removeInitiators failed.", e);
             ServiceError error = DeviceControllerErrors.smis.methodFailed(
-                    "removeInitiator", e.getMessage());
+                    "removeInitiators", e.getMessage());
             taskCompleter.error(_dbClient, error);
         }
 
-        _log.info("{} removeInitiator END...", storage.getLabel());
+        _log.info("{} removeInitiators END...", storage.getLabel());
     }
 
     /**

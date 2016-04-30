@@ -537,10 +537,10 @@ public class VplexXtremIOMaskingOrchestrator extends XtremIOMaskingOrchestrator 
                     }
                 }
                 _dbClient.persistObject(exportMask);
-                device.doExportGroupCreate(array, exportMask, volumeMap, initiators, targets,
+                device.doExportCreate(array, exportMask, volumeMap, initiators, targets,
                         completer);
             } else {
-                device.doExportAddVolumes(array, exportMask, volumeMap, completer);
+                device.doExportAddVolumes(array, exportMask, null, volumeMap, completer);
             }
 
         } catch (Exception ex) {
@@ -555,14 +555,14 @@ public class VplexXtremIOMaskingOrchestrator extends XtremIOMaskingOrchestrator 
     @Override
     public Method deleteOrRemoveVolumesFromExportMaskMethod(URI arrayURI,
             URI exportGroupURI, URI exportMaskURI,
-            List<URI> volumes, TaskCompleter completer) {
+            List<URI> volumes, List<URI> initiatorURIs, TaskCompleter completer) {
         return new Workflow.Method("deleteOrRemoveVolumesFromExportMask", arrayURI,
                 exportGroupURI, exportMaskURI, volumes, completer);
     }
 
     @Override
     public void deleteOrRemoveVolumesFromExportMask(URI arrayURI, URI exportGroupURI, URI exportMaskURI,
-            List<URI> volumes, TaskCompleter completer, String stepId) {
+            List<URI> volumes, List<URI> initiatorURIs, TaskCompleter completer, String stepId) {
         try {
             WorkflowStepCompleter.stepExecuting(stepId);
             StorageSystem array = _dbClient.queryObject(StorageSystem.class, arrayURI);
@@ -600,9 +600,10 @@ public class VplexXtremIOMaskingOrchestrator extends XtremIOMaskingOrchestrator 
             if (remainingVolumes.isEmpty()
                     && (exportMask.getExistingVolumes() == null || exportMask.getExistingVolumes()
                             .isEmpty())) {
-                device.doExportGroupDelete(array, exportMask, completer);
+                device.doExportDelete(array, exportMask, null, null, completer);
             } else {
-                device.doExportRemoveVolumes(array, exportMask, volumes, completer);
+                List<Initiator> initiators = _dbClient.queryObject(Initiator.class, initiatorURIs);
+                device.doExportRemoveVolumes(array, exportMask, volumes, initiators, completer);
             }
         } catch (Exception ex) {
             _log.error("Failed to delete or remove volumes to export mask for vmax: ", ex);

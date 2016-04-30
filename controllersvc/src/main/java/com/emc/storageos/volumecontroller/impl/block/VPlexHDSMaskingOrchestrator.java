@@ -314,10 +314,10 @@ public class VPlexHDSMaskingOrchestrator extends HDSMaskingOrchestrator
                         exportMask.addVolume(volume, volumeMap.get(volume));
                     }
                 }
-                device.doExportGroupCreate(array, exportMask, volumeMap,
+                device.doExportCreate(array, exportMask, volumeMap,
                         initiators, targets, completer);
             } else {
-                device.doExportAddVolumes(array, exportMask, volumeMap, completer);
+                device.doExportAddVolumes(array, exportMask, null, volumeMap, completer);
             }
         } catch (Exception ex) {
             _log.error("Failed to create or add volumes to export mask for hds: ", ex);
@@ -329,7 +329,7 @@ public class VPlexHDSMaskingOrchestrator extends HDSMaskingOrchestrator
     @Override
     public Workflow.Method deleteOrRemoveVolumesFromExportMaskMethod(URI arrayURI,
             URI exportGroupURI, URI exportMaskURI,
-            List<URI> volumes, TaskCompleter completer) {
+            List<URI> volumes, List<URI> initiatorURIs, TaskCompleter completer) {
         return new Workflow.Method("deleteOrRemoveVolumesFromExportMask", arrayURI,
                 exportGroupURI, exportMaskURI, volumes, completer);
     }
@@ -337,7 +337,7 @@ public class VPlexHDSMaskingOrchestrator extends HDSMaskingOrchestrator
     @Override
     public void deleteOrRemoveVolumesFromExportMask(URI arrayURI,
             URI exportGroupURI, URI exportMaskURI,
-            List<URI> volumes, TaskCompleter completer, String stepId) {
+            List<URI> volumes, List<URI> initiatorURIs, TaskCompleter completer, String stepId) {
         try {
             WorkflowStepCompleter.stepExecuting(stepId);
             StorageSystem array = _dbClient.queryObject(StorageSystem.class, arrayURI);
@@ -376,9 +376,10 @@ public class VPlexHDSMaskingOrchestrator extends HDSMaskingOrchestrator
             // If so, delete the ExportMask.
             if (remainingVolumes.isEmpty()
                     && (exportMask.getExistingVolumes() == null || exportMask.getExistingVolumes().isEmpty())) {
-                device.doExportGroupDelete(array, exportMask, completer);
+                device.doExportDelete(array, exportMask, null, null, completer);
             } else {
-                device.doExportRemoveVolumes(array, exportMask, volumes, completer);
+                List<Initiator> initiators = _dbClient.queryObject(Initiator.class, initiatorURIs);
+                device.doExportRemoveVolumes(array, exportMask, volumes, initiators, completer);
             }
         } catch (Exception ex) {
             _log.error("Failed to delete or remove volumes to export mask for hds: ", ex);

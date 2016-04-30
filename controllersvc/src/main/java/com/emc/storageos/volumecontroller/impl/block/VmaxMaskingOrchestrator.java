@@ -404,7 +404,7 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                 previousStep = generateZoningAddVolumesWorkflow(workflow, previousStep,
                         exportGroup, masks, volumeURIs);
                 previousStep = generateExportMaskAddVolumesWorkflow(workflow, previousStep, storage, exportGroup,
-                        mask, volumesToAdd);
+                        mask, volumesToAdd, null);
                 anyOperationsToDo = true;
             }
 
@@ -721,7 +721,7 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                     previousStep = generateZoningDeleteWorkflow(workflow, previousStep, exportGroup,
                             exportMasks);
                     previousStep = generateExportMaskDeleteWorkflow(workflow, previousStep, storage, exportGroup,
-                            mask, null);
+                            mask, null, null, null);
                     exportGroup.removeExportMask(mask.getId());
                     _dbClient.updateObject(exportGroup);
                     anyOperationsToDo = true;
@@ -737,7 +737,7 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                     ExportMaskRemoveInitiatorCompleter exportTaskCompleter = new ExportMaskRemoveInitiatorCompleter(exportGroupURI,
                             mask.getId(), initiatorsToRemove, null);
                     previousStep = generateExportMaskRemoveInitiatorsWorkflow(workflow, previousStep, storage,
-                            exportGroup, mask, initiatorsToRemoveOnStorage, true, exportTaskCompleter);
+                            exportGroup, mask, null, initiatorsToRemoveOnStorage, true, exportTaskCompleter);
                     anyOperationsToDo = true;
                 }
 
@@ -806,7 +806,7 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                     // Order matters! Above this would be any remove initiators that would impact other masking views.
                     // Be sure to always remove anything inside the mask before removing the mask itself.
                     previousStep = generateZoningDeleteWorkflow(workflow, previousStep, exportGroup, Arrays.asList(mask));
-                    previousStep = generateExportMaskDeleteWorkflow(workflow, previousStep, storage, exportGroup, mask, null);
+                    previousStep = generateExportMaskDeleteWorkflow(workflow, previousStep, storage, exportGroup, mask, null, null, null);
                     anyOperationsToDo = true;
                 } else {
                     ExportTaskCompleter completer = new ExportRemoveVolumesOnAdoptedMaskCompleter(
@@ -819,7 +819,7 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                             exportGroup, masks, volumesToRemove);
 
                     previousStep = generateExportMaskRemoveVolumesWorkflow(workflow, previousStep, storage, exportGroup,
-                            mask, volumesToRemove, completer);
+                            mask, volumesToRemove, null, completer);
                     anyOperationsToDo = true;
 
                     // Determine if there are any more initiators from our export group in this mask. If not, remove the
@@ -1158,7 +1158,7 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                 previousStep = generateZoningAddVolumesWorkflow(workflow, previousStep,
                         exportGroup, Arrays.asList(mask), new ArrayList<URI>(volumesToAdd.keySet()));
                 previousStep = generateExportMaskAddVolumesWorkflow
-                        (workflow, previousStep, storage, exportGroup, mask, volumesToAdd);
+                        (workflow, previousStep, storage, exportGroup, mask, volumesToAdd, null);
                 flowCreated = true;
                 exportGroup.addExportMask(mask.getId());
                 _dbClient.updateObject(exportGroup);

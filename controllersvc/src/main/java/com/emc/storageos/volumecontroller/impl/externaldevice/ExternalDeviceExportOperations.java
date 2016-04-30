@@ -14,30 +14,24 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import com.emc.storageos.db.client.URIUtil;
-import com.emc.storageos.db.client.model.AbstractChangeTrackingSet;
-import com.emc.storageos.db.client.model.BlockConsistencyGroup;
-import com.emc.storageos.db.client.model.BlockObject;
-import com.emc.storageos.db.client.model.DataObject;
-import com.emc.storageos.db.client.model.StringMap;
-import com.emc.storageos.db.client.model.StringSet;
-import com.emc.storageos.db.client.model.StringSetMap;
-import com.emc.storageos.db.client.util.NullColumnValueGetter;
-import com.emc.storageos.storagedriver.storagecapabilities.CommonStorageCapabilities;
-import com.emc.storageos.storagedriver.storagecapabilities.ExportPathsServiceOption;
-import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportMaskAddInitiatorCompleter;
-import com.emc.storageos.volumecontroller.impl.utils.ExportMaskUtils;
 import org.apache.commons.lang.mutable.MutableBoolean;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.db.client.URIUtil;
+import com.emc.storageos.db.client.model.AbstractChangeTrackingSet;
+import com.emc.storageos.db.client.model.BlockConsistencyGroup;
+import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.ExportPathParams;
 import com.emc.storageos.db.client.model.StorageSystem;
+import com.emc.storageos.db.client.model.StringMap;
+import com.emc.storageos.db.client.model.StringSet;
+import com.emc.storageos.db.client.model.StringSetMap;
 import com.emc.storageos.db.client.model.VirtualPool;
-import com.emc.storageos.db.client.model.Volume;
+import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.client.util.StringSetUtil;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.storagedriver.BlockStorageDriver;
@@ -45,15 +39,19 @@ import com.emc.storageos.storagedriver.DriverTask;
 import com.emc.storageos.storagedriver.model.Initiator;
 import com.emc.storageos.storagedriver.model.StoragePort;
 import com.emc.storageos.storagedriver.model.StorageVolume;
+import com.emc.storageos.storagedriver.storagecapabilities.CommonStorageCapabilities;
+import com.emc.storageos.storagedriver.storagecapabilities.ExportPathsServiceOption;
 import com.emc.storageos.storagedriver.storagecapabilities.StorageCapabilities;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
 import com.emc.storageos.util.ConnectivityUtil;
 import com.emc.storageos.util.ExportUtils;
 import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.volumecontroller.impl.VolumeURIHLU;
+import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportMaskAddInitiatorCompleter;
 import com.emc.storageos.volumecontroller.impl.smis.ExportMaskOperations;
+import com.emc.storageos.volumecontroller.impl.utils.ExportMaskUtils;
 import com.emc.storageos.volumecontroller.placement.BlockStorageScheduler;
-import com.emc.storageos.workflow.WorkflowService;
+import com.google.common.base.Joiner;
 
 /**
  * Export operations for storage systems managed by drivers
@@ -81,12 +79,13 @@ public class ExternalDeviceExportOperations implements ExportMaskOperations {
     public void createExportMask(StorageSystem storage, URI exportMaskUri, VolumeURIHLU[] volumeURIHLUs, List<URI> targetURIList,
                                  List<com.emc.storageos.db.client.model.Initiator> initiatorList, TaskCompleter taskCompleter) throws DeviceControllerException {
         log.info("{} createExportMask START...", storage.getSerialNumber());
-        log.info("Export mask id: {}", exportMaskUri);
-        log.info("createExportMask: assignments: {}", targetURIList);
-        log.info("createExportMask: initiators: {}", initiatorList);
-        log.info("createExportMask: volume-HLU pairs: {}", volumeURIHLUs);
 
         try {
+            log.info("createExportMask: Export mask id: {}", exportMaskUri);
+            log.info("createExportMask: volume-HLU pairs: {}", Joiner.on(',').join(volumeURIHLUs));
+            log.info("createExportMask: initiators: {}", Joiner.on(',').join(initiatorList));
+            log.info("createExportMask: assignments: {}", Joiner.on(',').join(targetURIList));
+
             BlockStorageDriver driver = externalDevice.getDriver(storage.getSystemType());
             ExportMask exportMask = (ExportMask)dbClient.queryObject(exportMaskUri);
 
@@ -197,8 +196,21 @@ public class ExternalDeviceExportOperations implements ExportMaskOperations {
 
         // Unexport export mask volumes from export mask initiators.
         log.info("{} deleteExportMask START...", storage.getSerialNumber());
-        log.info("Export mask id: {}", exportMaskUri);
         try {
+            log.info("deleteExportMask: Export mask id: {}", exportMaskUri);
+            // TODO DUPP:
+            // 1. Get the volume, targets, and initiators from the caller
+            // 2. Ensure (if possible) that those are the only volumes/initiators impacted by delete mask
+            if (volumeUris != null) {
+                log.info("deleteExportMask: volumes:  {}", Joiner.on(',').join(volumeUris));
+            }
+            if (targetUris != null) {
+                log.info("deleteExportMask: assignments: {}", Joiner.on(',').join(targetUris));
+            }
+            if (initiators != null) {
+                log.info("deleteExportMask: initiators: {}", Joiner.on(',').join(initiators));
+            }
+
             BlockStorageDriver driver = externalDevice.getDriver(storage.getSystemType());
             ExportMask exportMask = (ExportMask)dbClient.queryObject(exportMaskUri);
 
@@ -207,17 +219,15 @@ public class ExternalDeviceExportOperations implements ExportMaskOperations {
             for (String initiatorUri : maskInitiatorUris) {
                 initiatorUris.add(initiatorUri);
             }
-            log.info("Export mask existing initiators: {} ", initiatorUris);
+            log.info("Export mask existing initiators: {} ", Joiner.on(',').join(initiatorUris));
 
             StringMap volumes = exportMask.getVolumes();
-            log.info("Export mask existing volumes: {} ", volumes != null ? volumes.keySet() : null);
+            log.info("Export mask existing volumes: {} ", volumes != null ? Joiner.on(',').join(volumes.keySet()) : null);
 
             // Prepare volumes.
             List<StorageVolume> driverVolumes = new ArrayList<>();
             prepareVolumes(storage, volumeUris, driverVolumes);
             // Prepare initiators
-            Set<com.emc.storageos.db.client.model.Initiator>  maskInitiators =
-                    ExportMaskUtils.getInitiatorsForExportMask(dbClient, exportMask, null);
             List<Initiator> driverInitiators = new ArrayList<>();
             prepareInitiators(initiators, driverInitiators);
 
@@ -245,15 +255,22 @@ public class ExternalDeviceExportOperations implements ExportMaskOperations {
     }
 
     @Override
-    public void addInitiator(StorageSystem storage, URI exportMaskUri, List<com.emc.storageos.db.client.model.Initiator> initiatorList, List<URI> targetURIList, TaskCompleter taskCompleter)
+    public void addInitiators(StorageSystem storage, URI exportMaskUri, List<URI> volumeURIs, List<com.emc.storageos.db.client.model.Initiator> initiatorList, List<URI> targetURIList, TaskCompleter taskCompleter)
             throws DeviceControllerException {
 
-        log.info("{} addInitiator START...", storage.getSerialNumber());
-        log.info("Export mask id: {}", exportMaskUri);
-        log.info("addInitiator: port assignments: {}", targetURIList);
-        log.info("addInitiator: new initiators: {}", initiatorList);
+        log.info("{} addInitiators START...", storage.getSerialNumber());
 
         try {
+            log.info("addInitiators: Export mask id: {}", exportMaskUri);
+            // TODO DUPP:
+            // 1. Get the impacted volumes from the caller
+            // 2. Log any other volumes that are being exposed to the initiator
+            if (volumeURIs != null) {
+                log.info("addInitiators: volumes : {}", Joiner.on(',').join(volumeURIs));
+            }
+            log.info("addInitiators: initiators : {}", Joiner.on(',').join(initiatorList));
+            log.info("addInitiators: targets : {}", Joiner.on(",").join(targetURIList));
+
             BlockStorageDriver driver = externalDevice.getDriver(storage.getSystemType());
             ExportMask exportMask = (ExportMask)dbClient.queryObject(exportMaskUri);
 
@@ -298,7 +315,7 @@ public class ExternalDeviceExportOperations implements ExportMaskOperations {
                 // Otherwise, if driver did not use recommended ports, we have to get ports selected by driver
                 // and use them in export mask and zones.
                 // We will verify driver selected ports against available ports list.
-                String msg = String.format("addInitiator -- Added initiators: %s . Used recommended ports: %s .",
+                String msg = String.format("addInitiators -- Added initiators: %s . Used recommended ports: %s .",
                         task.getMessage(), usedRecommendedPorts);
                 log.info(msg);
                 if (usedRecommendedPorts.isFalse()) {
@@ -316,9 +333,9 @@ public class ExternalDeviceExportOperations implements ExportMaskOperations {
                         taskCompleter.ready(dbClient);
                     } else {
                         //  selected ports are not valid. failure
-                        String errorMsg = "addInitiator -- Ports selected by driver failed validation.";
-                        log.error("addInitiator -- Ports selected by driver failed validation.");
-                        ServiceError serviceError = ExternalDeviceException.errors.addInitiatorsToExportMaskFailed("addInitiator", errorMsg);
+                        String errorMsg = "addInitiators -- Ports selected by driver failed validation.";
+                        log.error("addInitiators -- Ports selected by driver failed validation.");
+                        ServiceError serviceError = ExternalDeviceException.errors.addInitiatorsToExportMaskFailed("addInitiators", errorMsg);
                         taskCompleter.error(dbClient, serviceError);
                     }
                 } else {
@@ -326,29 +343,37 @@ public class ExternalDeviceExportOperations implements ExportMaskOperations {
                     taskCompleter.ready(dbClient);
                 }
             } else {
-                String errorMsg = String.format("addInitiator -- Failed to add initiators to export mask: %s .", task.getMessage());
+                String errorMsg = String.format("addInitiators -- Failed to add initiators to export mask: %s .", task.getMessage());
                 log.error(errorMsg);
-                ServiceError serviceError = ExternalDeviceException.errors.addInitiatorsToExportMaskFailed("addInitiator", errorMsg);
+                ServiceError serviceError = ExternalDeviceException.errors.addInitiatorsToExportMaskFailed("addInitiators", errorMsg);
                 taskCompleter.error(dbClient, serviceError);
             }
         }  catch (Exception ex) {
-            log.error("addInitiator -- Failed to add initiators to export mask. ", ex);
-            ServiceError serviceError = ExternalDeviceException.errors.addInitiatorsToExportMaskFailed("addInitiator", ex.getMessage());
+            log.error("addInitiators -- Failed to add initiators to export mask. ", ex);
+            ServiceError serviceError = ExternalDeviceException.errors.addInitiatorsToExportMaskFailed("addInitiators", ex.getMessage());
             taskCompleter.error(dbClient, serviceError);
         }
 
-        log.info("{} addInitiator END...", storage.getSerialNumber() );
+        log.info("{} addInitiators END...", storage.getSerialNumber() );
     }
 
     @Override
-    public void removeInitiator(StorageSystem storage, URI exportMaskUri, List<com.emc.storageos.db.client.model.Initiator> initiatorList,
-                                List<URI> targetURIList, TaskCompleter taskCompleter) throws DeviceControllerException {
-        log.info("{} removeInitiator START...", storage.getSerialNumber());
-        log.info("Export mask id: {}", exportMaskUri);
-        log.info("removeInitiator: port assignments: {}", targetURIList);
-        log.info("removeInitiator: initiators to remove : {}", initiatorList);
+    public void removeInitiators(StorageSystem storage, URI exportMaskUri, List<URI> volumeURIList,
+                                List<com.emc.storageos.db.client.model.Initiator> initiatorList, List<URI> targetURIList, TaskCompleter taskCompleter) throws DeviceControllerException {
+
+        log.info("{} removeInitiators START...", storage.getSerialNumber());
 
         try {
+            log.info("removeInitiators: Export mask id: {}", exportMaskUri);
+            // TODO DUPP:
+            // 1. Get the impacted volumes from the caller
+            // 2. If any other volumes are impacted by removing this initiator, fail the operation
+            if (volumeURIList != null) {
+                log.info("removeInitiators: volumes : {}", Joiner.on(',').join(volumeURIList));
+            }
+            log.info("removeInitiators: initiators : {}", Joiner.on(',').join(initiatorList));
+            log.info("removeInitiators: targets : {}", Joiner.on(',').join(targetURIList));
+
             BlockStorageDriver driver = externalDevice.getDriver(storage.getSystemType());
             ExportMask exportMask = (ExportMask)dbClient.queryObject(exportMaskUri);
 
@@ -373,44 +398,50 @@ public class ExternalDeviceExportOperations implements ExportMaskOperations {
             } else {
                 String errorMsg = String.format("Failed to remove initiators from export mask: %s .", task.getMessage());
                 log.error(errorMsg);
-                ServiceError serviceError = ExternalDeviceException.errors.removeInitiatorsFromExportMaskFailed("removeInitiator", errorMsg);
+                ServiceError serviceError = ExternalDeviceException.errors.removeInitiatorsFromExportMaskFailed("removeInitiators", errorMsg);
                 taskCompleter.error(dbClient, serviceError);
             }
         } catch (Exception ex) {
-            log.error("Problem in removeInitiator: ", ex);
+            log.error("Problem in removeInitiators: ", ex);
             String errorMsg = String.format("Failed to remove initiators from export mask: %s .", ex.getMessage());
             log.error(errorMsg);
-            ServiceError serviceError = ExternalDeviceException.errors.removeInitiatorsFromExportMaskFailed("removeInitiator", errorMsg);
+            ServiceError serviceError = ExternalDeviceException.errors.removeInitiatorsFromExportMaskFailed("removeInitiators", errorMsg);
             taskCompleter.error(dbClient, serviceError);
         }
-        log.info("{} removeInitiator END...", storage.getSerialNumber());
+        log.info("{} removeInitiators END...", storage.getSerialNumber());
     }
 
 
     @Override
-    public void addVolume(StorageSystem storage, URI exportMaskUri, VolumeURIHLU[] volumeURIHLUs, TaskCompleter taskCompleter)
+    public void addVolumes(StorageSystem storage, URI exportMaskUri, VolumeURIHLU[] volumeURIHLUs, List<com.emc.storageos.db.client.model.Initiator> initiatorList, TaskCompleter taskCompleter)
             throws DeviceControllerException {
-        log.info("{} addVolume START...", storage.getSerialNumber());
-        log.info("Export mask id: {}", exportMaskUri);
-        log.info("New volumes to add: volume-HLU pairs: {}", volumeURIHLUs);
+        log.info("{} addVolumes START...", storage.getSerialNumber());
 
         try {
+            log.info("addVolumes: Export mask id: {}", exportMaskUri);
+            log.info("addVolumes: New volumes to add: volume-HLU pairs: {}", Joiner.on(',').join(volumeURIHLUs));
+            // TODO DUPP:
+            // 1. This code is deriving the initiators directly from the ExportMask.  It should be getting the list from the orchestrator.
+            if (initiatorList != null) {
+                log.info("addVolumes: initiators: {}", Joiner.on(',').join(initiatorList));
+            }
+            
             BlockStorageDriver driver = externalDevice.getDriver(storage.getSystemType());
             ExportMask exportMask = (ExportMask)dbClient.queryObject(exportMaskUri);
 
             StringSet maskInitiators = exportMask.getInitiators();
-            List<String> initiatorList = new ArrayList<>();
+            List<String> maskInitiatorList = new ArrayList<>();
             for (String initiatorUri : maskInitiators) {
-                initiatorList.add(initiatorUri);
+                maskInitiatorList.add(initiatorUri);
             }
-            log.info("Export mask existing initiators: {} ", initiatorList);
+            log.info("Export mask existing initiators: {} ", Joiner.on(',').join(maskInitiatorList));
 
             StringSet storagePorts = exportMask.getStoragePorts();
             List<URI> portList = new ArrayList<>();
             for (String portUri : storagePorts) {
                 portList.add(URI.create(portUri));
             }
-            log.info("Export mask existing storage ports: {} ", portList);
+            log.info("Export mask existing storage ports: {} ", Joiner.on(',').join(portList));
 
             // Get export group uri from task completer
             URI exportGroupUri = taskCompleter.getId();
@@ -470,7 +501,7 @@ public class ExternalDeviceExportOperations implements ExportMaskOperations {
                     String errorMsg = String.format("Change of storage ports in the mask for addVolume() call is not supported: %s .",
                             task.getMessage());
                     log.error(errorMsg);
-                    ServiceError serviceError = ExternalDeviceException.errors.addVolumesToExportMaskFailed("addVolume", errorMsg);
+                    ServiceError serviceError = ExternalDeviceException.errors.addVolumesToExportMaskFailed("addVolumes", errorMsg);
                     taskCompleter.error(dbClient, serviceError);
                 } else {
                     // Driver used recommended ports for a new volume.
@@ -487,38 +518,49 @@ public class ExternalDeviceExportOperations implements ExportMaskOperations {
             } else {
                 String errorMsg = String.format("Failed to add volumes to export mask: %s .", task.getMessage());
                 log.error(errorMsg);
-                ServiceError serviceError = ExternalDeviceException.errors.addVolumesToExportMaskFailed("addVolume", errorMsg);
+                ServiceError serviceError = ExternalDeviceException.errors.addVolumesToExportMaskFailed("addVolumes", errorMsg);
                 taskCompleter.error(dbClient, serviceError);
             }
         } catch (Exception ex) {
-            log.error("Problem in addVolume: ", ex);
+            log.error("Problem in addVolumes: ", ex);
             String errorMsg = String.format("Failed to add volumes to export mask: %s .", ex.getMessage());
             log.error(errorMsg);
-            ServiceError serviceError = ExternalDeviceException.errors.addVolumesToExportMaskFailed("addVolume", errorMsg);
+            ServiceError serviceError = ExternalDeviceException.errors.addVolumesToExportMaskFailed("addVolumes", errorMsg);
             taskCompleter.error(dbClient, serviceError);
         }
-        log.info("{} addVolume END...", storage.getSerialNumber());
+        log.info("{} addVolumes END...", storage.getSerialNumber());
     }
 
     @Override
-    public void removeVolume(StorageSystem storage, URI exportMaskUri, List<URI> volumeUris, TaskCompleter taskCompleter)
+    public void removeVolumes(StorageSystem storage, URI exportMaskUri, List<URI> volumeUris, List<com.emc.storageos.db.client.model.Initiator> initiatorList, TaskCompleter taskCompleter)
             throws DeviceControllerException {
-
-        // Unexport volumes from all initiators in export mask.
-        log.info("{} removeVolume START...", storage.getSerialNumber());
-        log.info("Export mask id: {}", exportMaskUri);
-        log.info("Volumes to remove: {}", volumeUris);
+        log.info("{} removeVolumes START...", storage.getSerialNumber());
 
         try {
+            log.info("removeVolumes: Export mask id: {}", exportMaskUri);
+            log.info("removeVolumes: volumes: {}", Joiner.on(',').join(volumeUris));
+            // TODO DUPP:
+            // 1. This implementation is pulling the initiators directly out of the export mask because the caller to detach 
+            //    the volumes needs this information.  This might be OK to do separately than verifying the initiators that are
+            //    impacted from the orchestrator, although it is likely they will be the same list.
+            // 2. The goal of sending down the initiators is for the storage controller to verify when we remove volumes that
+            //    it ONLY impacts the initiators we expect/require/request, otherwise fail.
+            if (initiatorList != null) {
+                log.info("removeVolumes: impacted initiators: {}", Joiner.on(",").join(initiatorList));
+            }
+
             BlockStorageDriver driver = externalDevice.getDriver(storage.getSystemType());
             ExportMask exportMask = (ExportMask)dbClient.queryObject(exportMaskUri);
 
+            // TODO DUPP Evgeny: Is there no concept of user added initiators with SB?
+            //                   If you did this with VMAX/VNX, you'd get initiators that ViPR didn't add.
             StringSet maskInitiators = exportMask.getInitiators();
-            List<String> initiatorList = new ArrayList<>();
+            
+            List<String> maskInitiatorList = new ArrayList<>();
             for (String initiatorUri : maskInitiators) {
-                initiatorList.add(initiatorUri);
+                maskInitiatorList.add(initiatorUri);
             }
-            log.info("Export mask existing initiators: {} ", initiatorList);
+            log.info("Export mask existing initiators: {} ", Joiner.on(",").join(maskInitiatorList));
 
             // Prepare volumes. We send to driver only new volumes for the export mask.
             List<StorageVolume> driverVolumes = new ArrayList<>();
@@ -540,17 +582,17 @@ public class ExternalDeviceExportOperations implements ExportMaskOperations {
             } else {
                 String errorMsg = String.format("Failed to remove volumes from export mask: %s .", task.getMessage());
                 log.error(errorMsg);
-                ServiceError serviceError = ExternalDeviceException.errors.deleteVolumesFromExportMaskFailed("removeVolume", errorMsg);
+                ServiceError serviceError = ExternalDeviceException.errors.deleteVolumesFromExportMaskFailed("removeVolumes", errorMsg);
                 taskCompleter.error(dbClient, serviceError);
             }
         } catch (Exception ex) {
-            log.error("Problem in removeVolume: ", ex);
+            log.error("Problem in removeVolumes: ", ex);
             String errorMsg = String.format("Failed to remove volumes from export mask: %s .", ex.getMessage());
             log.error(errorMsg);
-            ServiceError serviceError = ExternalDeviceException.errors.deleteVolumesFromExportMaskFailed("removeVolume", errorMsg);
+            ServiceError serviceError = ExternalDeviceException.errors.deleteVolumesFromExportMaskFailed("removeVolumes", errorMsg);
             taskCompleter.error(dbClient, serviceError);
         }
-        log.info("{} removeVolume END...", storage.getSerialNumber());
+        log.info("{} removeVolumes END...", storage.getSerialNumber());
     }
 
 

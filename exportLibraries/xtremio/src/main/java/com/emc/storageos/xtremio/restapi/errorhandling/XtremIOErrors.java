@@ -5,7 +5,6 @@
 package com.emc.storageos.xtremio.restapi.errorhandling;
 
 import com.emc.storageos.svcs.errorhandling.annotations.DeclareServiceCode;
-
 import com.emc.storageos.svcs.errorhandling.annotations.MessageBundle;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
 import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
@@ -23,4 +22,7 @@ public interface XtremIOErrors {
 
     @DeclareServiceCode(ServiceCode.XTREMIO_API_ERROR)
     public ServiceError createSnapshotFailure(final Throwable cause);
+
+    @DeclareServiceCode(ServiceCode.XTREMIO_API_ERROR)
+    public ServiceError operationFailed(final String string, final String message);
 }

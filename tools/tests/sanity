@@ -808,24 +808,19 @@ host_setup()
         do
             host=$hostbase$tenant$i$j
             k=`wwnIdx $i $j`
-            nwwn=`nwwn $i$j`
+            nwwn1=`nwwn A$k`
+            nwwn2=`nwwn B$k`
+            nwwn3=`nwwn C$k`
+            nwwn4=`nwwn D$k`
             pwwn1=`pwwn A$k`
             pwwn2=`pwwn B$k`
             pwwn3=`pwwn C$k`
             pwwn4=`pwwn D$k`
             run hosts create $host $tenant Windows ${host}.lss.emc.com --port 8111 --username user --password 'password' --osversion 1.0 --cluster ${tenant}/${cluster}
-            run initiator create $host FC ${pwwn1} --node ${nwwn}
-            run initiator create $host FC ${pwwn2} --node ${nwwn}
-            run initiator create $host FC ${pwwn3} --node ${nwwn}
-            run initiator create $host FC ${pwwn4} --node ${nwwn}
-
-	    #
-	    # create host initiator for quick sanity
-	    #
-	    if [ $QUICK -eq 1 ]; then
-        	run initiator create $host FC 51:00:50:56:9F:01:3B:A$k  --node 50:00:50:56:9F:01:3B:$i$j
-            fi
-
+            run initiator create $host FC ${pwwn1} --node ${nwwn1}
+            run initiator create $host FC ${pwwn2} --node ${nwwn2}
+            run initiator create $host FC ${pwwn3} --node ${nwwn3}
+            run initiator create $host FC ${pwwn4} --node ${nwwn4}
             j=$(( $j + 1 ))
         done
     done
@@ -1178,7 +1173,6 @@ xtremio_export_test()
     echo $vol1 $vol2 $proj $tenant $hostname $expname
 
     exp=$proj/$expname
-    nwwn=`nwwn $i$j`
     k=`wwnIdx $c $h`
     pwwn1=`pwwn A$k`
     pwwn2=`pwwn B$k`
@@ -6171,8 +6165,8 @@ block_tests()
 #    export_test_2 ${export_name}2 ${export_host}2 ${v1} ${v2}
 #    export_test_3 ${export_name}3 ${export_host}3 ${v1} ${v2}
 #    export_test_4 ${export_name}4 ${export_host}4 ${v1} ${v2}
-    export_initiator ${export_name}1 ${v1} ${v2}
-#    export_host ${export_name}2 ${v1} ${v2}
+     export_initiator ${export_name}1 ${v1} ${v2}
+     export_host ${export_name}2 ${v1} ${v2}
 #    export_cluster ${export_name}3 ${v1} ${v2}
 
     run volume bulkget
@@ -6217,6 +6211,7 @@ quick_block_tests()
 
     run volume create $v $PROJECT $NH $cos1 $BLK_SIZE --thinVolume true --count=2
     export_initiator_quick ${export_name}Q ${v1} ${v2}
+    export_host ${export_name}H ${v1} ${v2}
     run volume delete $PROJECT --project --wait
 }
 
@@ -6389,9 +6384,8 @@ export_host()
     
     c=1
     h=1
-    hostname=$hostbase$tenant$c$h
-    nwwn1=`nwwn $i$j`
-    k=`k $c $h`
+    hostname1=$hostbase$tenant$c$h
+    k=`wwnIdx $c $h`
     pwwn11=`pwwn A$k`
     pwwn12=`pwwn B$k`
     pwwn13=`pwwn C$k`
@@ -6399,8 +6393,7 @@ export_host()
     
     h=2
     hostname2=$hostbase$tenant$c$h
-    nwwn2=`nwwn $i$j`
-    k=`k $c $h`
+    k=`wwnIdx $c $h`
     pwwn21=`pwwn A$k`
     pwwn22=`pwwn B$k`
     pwwn23=`pwwn C$k`
@@ -6408,11 +6401,11 @@ export_host()
 
     run export_group create --type Host $proj $expname $NH --volspec "$vol1+1" --hosts "$hostname1"
     run export_group show $exp
-    run export_group update $exp --addVolspec "$vol2+1" --remVols $vol1
+    run export_group update $exp --addVolspec "$vol2+2" --remVols $vol1
     run export_group show $exp
     run export_group update $exp --addHosts "$hostname2" --remHosts "$hostname1"
     run export_group show $exp
-    run export_group update $exp --remInits "$hostname2/pwwn21,$hostname2/pwwn23"
+    run export_group update $exp --remInits "$hostname2/$pwwn21,$hostname2/$pwwn23"
     run export_group show $exp
     run export_group update $exp --remVols $vol2
     run export_group show $exp
@@ -6422,7 +6415,6 @@ export_host()
     fi
 
     run export_group delete $exp
-    run export_group show $exp
 }
 
 # =======================================================================================
@@ -6443,7 +6435,6 @@ export_cluster()
     c=1
     h=1
     hostname=$hostbase$tenant$c$h
-    nwwn1=`nwwn $i$j`
     k=`k $c $h`
     pwwn11=`pwwn A$k`
     pwwn12=`pwwn B$k`
@@ -6453,7 +6444,6 @@ export_cluster()
     c=2
     h=2
     hostname2=$hostbase$tenant$c$h
-    nwwn2=`nwwn $i$j`
     k=`k $c $h`
     pwwn21=`pwwn A$k`
     pwwn22=`pwwn B$k`
@@ -6470,7 +6460,7 @@ export_cluster()
     run export_group show $exp
     run export_group update $exp --addHosts "$hostname2"
     run export_group show $exp
-    run export_group update $exp --remInits "$hostname2/pwwn21,$hostname2/pwwn23"
+    run export_group update $exp --remInits "$hostname2/$pwwn21,$hostname2/$pwwn23"
     run export_group show $exp
     run export_group update $exp --remVols $vol2
     run export_group show $exp
@@ -7533,8 +7523,8 @@ quick_tests()
 #    quick_file_tests $COS_NETAPP default
 #    quick_file_tests $COS_VNXFILE default
     # TODO Add isilon simulator WJEIV
-    quick_block_tests $VMAXEXPORT_GROUP $VMAXEXPORT_GROUP_HOST $VMAX_VOLUME $COS_VMAXBLOCK
     quick_block_tests $VNXEXPORT_GROUP $VNXEXPORT_GROUP_HOST $VNX_VOLUME $COS_VNXBLOCK
+    quick_block_tests $VMAXEXPORT_GROUP $VMAXEXPORT_GROUP_HOST $VMAX_VOLUME $COS_VMAXBLOCK
     #quick_file_tests $COS_DDFILE default
     errorhandling_tests
 }

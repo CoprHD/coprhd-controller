@@ -1,11 +1,9 @@
 package com.emc.storageos.migrationcontroller;
 
 import static com.emc.storageos.migrationcontroller.MigrationControllerUtils.getDataObject;
-import static com.emc.storageos.migrationcontroller.MigrationControllerUtils.getVolumesVarray;
 
 import java.net.URI;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -16,109 +14,48 @@ import org.slf4j.LoggerFactory;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup.Types;
+import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.Migration;
 import com.emc.storageos.db.client.model.StorageSystem;
-import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.util.BlockConsistencyGroupUtils;
-import com.emc.storageos.networkcontroller.impl.NetworkDeviceController;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.volumecontroller.impl.block.BlockDeviceController;
-import com.emc.storageos.volumecontroller.impl.block.ExportMaskPlacementDescriptor;
-import com.emc.storageos.volumecontroller.placement.BlockStorageScheduler;
 import com.emc.storageos.workflow.Workflow;
 
 public class MigrationControllerImp implements MigrationController {
-    private static final Logger _log = LoggerFactory.getLogger(HostMigrationDeviceController.class);
+    private static final Logger _log = LoggerFactory.getLogger(MigrationControllerImp.class);
     private DbClient _dbClient;
     private static final String MIGRATE_GENERAL_VOLUME_METHOD_NAME = "migrateGeneralVolume";
     private static final String RB_MIGRATE_GENERAL_VOLUME_METHOD_NAME = "rollbackMigrateGeneralVolume";
     private static final String COMMIT_MIGRATION_METHOD_NAME = "commitMigration";
     private static final String RB_COMMIT_MIGRATION_METHOD_NAME = "rollbackCommitMigration";
     private static final String DELETE_MIGRATION_SOURCES_METHOD = "deleteMigrationSources";
-    private static final String MIGRATE_VOLUME_EXPORT_METHOD_NAME = "migrateVolumeExport";
-    private static final String RB_MIGRATE_VOLUME_EXPORT_METHOD_NAME = "rollbackMigrateVolumeExport";
+    private static final String MIGRATION_VOLUME_EXPORT_METHOD_NAME = "migrateVolumeExport";
+    private static final String RB_MIGRATION_VOLUME_EXPORT_METHOD_NAME = "rollbackMigrateVolumeExport";
 
     private static final String DELETE_MIGRATION_SOURCES_STEP = "deleteSources";
     private static final String MIGRATION_CREATE_STEP = "migrate";
     private static final String MIGRATION_COMMIT_STEP = "commit";
     private static final String MIGRATION_VOLUME_EXPORT_STEP = "exportVolume";
 
-    private BlockDeviceController _blockDeviceController;
-    private BlockStorageScheduler _blockScheduler;
-    private NetworkDeviceController _networkDeviceController;
+
     @Override
-    public String createWorkflowStepsForBlockVolumeExport(Workflow workflow, URI storageURI,
-            List<URI> targetVolumeURIs, String waitFor)
+    public String createWorkflowStepsForBlockVolumeExport(Workflow workflow,
+            List<URI> volumeURIs, URI hostURI, String waitFor)
             throws InternalException {
-        try {
-            String lastStep = waitFor;
-            StorageSystem storageSystem = getDataObject(StorageSystem.class, storageURI, _dbClient);
-            _log.info("Got storage system");
+        Host host = getDataObject(Host.class, hostURI, _dbClient);
+        String stepId = workflow.createStepId();
+        Workflow.Method exportOrchestrationExecuteMethod = new Workflow.Method(MIGRATION_VOLUME_EXPORT_METHOD_NAME,
+                volumeURIs, hostURI);
 
-            Map<URI, Volume> volumeMap = new HashMap<URI, Volume>();
-            Map<URI, StorageSystem> storageSystemMap = new HashMap<URI, StorageSystem>();
-            for (URI tgtvolumeURI : targetVolumeURIs) {
-                Volume tgtvolume = getDataObject(Volume.class, tgtvolumeURI, _dbClient);
-                volumeMap.put(tgtvolumeURI, tgtvolume);
-                StorageSystem targetStorageSystem = getDataObject(StorageSystem.class, tgtvolume.getStorageController(), _dbClient);
-                storageSystemMap.put(tgtvolume.getStorageController(), targetStorageSystem);
-            }
+        Workflow.Method exportOrchestrationExecutionRollbackMethod =
+                new Workflow.Method(RB_MIGRATION_VOLUME_EXPORT_METHOD_NAME, volumeURIs, hostURI, stepId);
 
-            // to do .........
-            // Set the project and tenant.
-            Volume firstVolume = volumeMap.values().iterator().next();
-            URI projectURI = firstVolume.getProject().getURI();
-            URI tenantURI = firstVolume.getTenant().getURI();
-            _log.info("Project is {}, Tenant is {}", projectURI, tenantURI);
+        waitFor = workflow.createStep(MIGRATION_VOLUME_EXPORT_STEP, "Create export group orchestration subtask for host",
+                waitFor, hostURI, host.getSystemType(), false, this.getClass(),
+                exportOrchestrationExecuteMethod, exportOrchestrationExecutionRollbackMethod, stepId);
 
-            // Main processing containers. ExportGroup --> StorageSystem --> Volumes
-            // Populate the container for the export workflow step generation
-            for (Map.Entry<URI, StorageSystem> storageEntry : storageSystemMap.entrySet()) {
-                URI tgtstorageSystemURI = storageEntry.getKey();
-                StorageSystem tgtstorageSystem = storageEntry.getValue();
-                URI varray = getVolumesVarray(tgtstorageSystem, volumeMap.values());
-                _log.info(String.format("Creating ExportGroup for storage system %s (%s) in Virtual Aarray[(%s)]",
-                        tgtstorageSystem.getLabel(), tgtstorageSystemURI, varray));
-
-                if (varray == null) {
-                    // For whatever reason, there were no Volumes for this Storage System found, so we
-                    // definitely do not want to create anything. Log a warning and continue.
-                    _log.warn(String.format("No Volumes for storage system %s (%s), no need to create an ExportGroup.",
-                            tgtstorageSystem.getLabel(), tgtstorageSystemURI));
-                    continue;
-                }
-
-                // todo: return the storage ports on the host machine that should be used
-                // for a particular storage array. this is down by finding ports in host machine
-                // and array that have common network. (verify network connection between host port and array)
-
-                HostExportManager hostExportMgr = new HostExportManager(_dbClient, this, _blockDeviceController,
-                        _blockScheduler, _networkDeviceController, projectURI, tenantURI);
-
-                ExportMaskPlacementDescriptor descriptor = hostExportMgr.chooseBackendExportMask(storageSystem,
-                        tgtstorageSystem, varray, volumeMap, lastStep);
-
-                // todo: If there are no networks that can be zoned, error.
-                String stepId = workflow.createStepId();
-                _log.info("export opId is {}", stepId);
-                Workflow.Method exportMigrationExecuteMethod = new Workflow.Method(
-                        MIGRATE_VOLUME_EXPORT_METHOD_NAME, storageSystem,
-                        tgtstorageSystem, varray);
-                Workflow.Method exportMigrationRollbackMethod = new Workflow.Method(
-                        RB_MIGRATE_VOLUME_EXPORT_METHOD_NAME, storageSystem, tgtstorageSystem, stepId);
-                _log.info("Creating workflow export step");
-                workflow.createStep(MIGRATION_VOLUME_EXPORT_STEP, String.format(
-                        "storagesystem %s migrating volume", storageSystem.getId().toString()),
-                        waitFor, storageSystem.getId(), storageSystem.getSystemType(),
-                        getClass(), exportMigrationExecuteMethod, exportMigrationRollbackMethod, stepId);
-                _log.info("Created workflow migration step");
-
-            }
-
-            return MIGRATION_VOLUME_EXPORT_STEP;
-        } catch (Exception e) {
-            throw MigrationControllerException.exceptions.addStepsForChangeVirtualPoolFailed(e);
-        }
+        return waitFor;
 
     }
 

@@ -1,5 +1,6 @@
 package com.emc.storageos.migrationcontroller;
 
+import com.emc.storageos.recoverpoint.exceptions.RecoverPointException;
 import com.emc.storageos.svcs.errorhandling.annotations.DeclareServiceCode;
 import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
 import com.emc.storageos.vplex.api.VPlexApiException;
@@ -17,4 +18,7 @@ public interface MigrationControllerExceptions {
 
     @DeclareServiceCode(ServiceCode.MIGRATION_ERROR)
     public VPlexApiException addStepsForChangeVirtualPoolFailed(final Throwable cause);
+
+    @DeclareServiceCode(ServiceCode.MIGRATION_ERROR)
+    public RecoverPointException getInitiatorPortsForArrayFailed(String rpSystem, String targetStorage);
 }

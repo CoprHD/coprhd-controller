@@ -16,7 +16,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.blockorchestrationcontroller.VolumeDescriptor;
+import com.emc.storageos.computesystemcontroller.impl.ComputeSystemHelper;
 import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.Migration;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.Volume;
@@ -93,13 +95,25 @@ public class HostMigrationDeviceController extends MigrationControllerImp implem
             }
 
             String lastStep = waitFor;
-            String waitForStep = waitFor;
+
             URI cgURI = null;
             List<URI> localSystemsToRemoveCG = new ArrayList<URI>();
+
             List<VolumeDescriptor> hostMigrateVolumes = VolumeDescriptor.filterByType(
                     volumes,
                     new VolumeDescriptor.Type[] { VolumeDescriptor.Type.HOST_MIGRATE_VOLUME },
                     new VolumeDescriptor.Type[] {});
+
+            List<Initiator> hostInitiators = ComputeSystemHelper.queryInitiators(_dbClient, _hostURI);
+
+            // export source volumes
+            if (hostMigrateVolumes != null && !hostMigrateVolumes.isEmpty()) {
+                lastStep = createWorkflowStepsForBlockVolumeExport(workflow, changeVpoolGeneralVolumeURIs,
+                        _hostURI, lastStep);
+                _log.info("Created workflow steps for volume export.");
+            }
+
+            String waitForStep = lastStep;
             if (hostMigrateVolumes != null && !hostMigrateVolumes.isEmpty()) {
                 for (URI generalVolumeURI : changeVpoolGeneralVolumeURIs) {
                     _log.info("Adding migration steps for general volume {}", generalVolumeURI);
@@ -112,13 +126,6 @@ public class HostMigrationDeviceController extends MigrationControllerImp implem
                     // A Map containing a migration for each new volume
                     Map<URI, URI> migrationMap = new HashMap<URI, URI>();
 
-                    // A map that specifies the storage pool in which
-                    // each new volume should be created.
-                    Map<URI, URI> poolVolumeMap = new HashMap<URI, URI>();
-
-                    // The URI of the host system
-                    URI storageURI = null;
-
                     for (VolumeDescriptor desc : hostMigrateVolumes) {
                         // Skip migration targets that are not for the General
                         // volume being processed.
@@ -127,19 +134,9 @@ public class HostMigrationDeviceController extends MigrationControllerImp implem
                             continue;
                         }
 
-                        // We need the storage system and consistency group,
-                        // which should be the same for all volumes being
-                        // migrated when multiple volumes are passed.
-                        if (storageURI == null) {
-                            Volume generalVolume = getDataObject(Volume.class, generalVolumeURI, _dbClient);
-                            storageURI = generalVolume.getStorageController();
-                            cgURI = generalVolume.getConsistencyGroup();
-                        }
-
                         // Set data required to add the migration steps.
                         newVolumes.add(desc.getVolumeURI());
                         migrationMap.put(desc.getVolumeURI(), desc.getMigrationId());
-                        poolVolumeMap.put(desc.getVolumeURI(), desc.getPoolURI());
 
                         // If the migration is to a different storage system
                         // we may need to remove the backend CG on the source
@@ -166,22 +163,22 @@ public class HostMigrationDeviceController extends MigrationControllerImp implem
                     // that waits on this, will occur after the migrations have
                     // completed, been committed, and the migration sources deleted.
                     try {
-                        _log.info("migration controller migrate volume {} on storage system{}",
-                                generalVolumeURI, storageURI);
+                        _log.info("migration controller migrate volume {} by storage system{}",
+                                generalVolumeURI, _hostURI);
 
-                        waitForStep = createWorkflowStepsForBlockVolumeExport(workflow, storageURI,
-                                newVolumes, waitFor);
+                        waitForStep = createWorkflowStepsForBlockVolumeExport(workflow,
+                                newVolumes, _hostURI, waitFor);
                         _log.info("Created workflow steps for volume export.");
 
-                        waitForStep = createWorkflowStepsForMigrateGeneralVolumes(workflow, storageURI,
+                        waitForStep = createWorkflowStepsForMigrateGeneralVolumes(workflow, _hostURI,
                                 generalVolumeURI, newVolumes, newVpoolURI, null, migrationMap, waitForStep);
                         _log.info("Created workflow steps for volume migration.");
 
-                        waitForStep = createWorkflowStepsForCommitMigration(workflow, storageURI,
+                        waitForStep = createWorkflowStepsForCommitMigration(workflow, _hostURI,
                                 generalVolumeURI, migrationMap, waitForStep);
                         _log.info("Created workflow steps for commit migration.");
 
-                        lastStep = createWorkflowStepsForDeleteMigrationSource(workflow, storageURI,
+                        lastStep = createWorkflowStepsForDeleteMigrationSource(workflow, _hostURI,
                                 generalVolumeURI, newVpoolURI, null, migrationMap, waitForStep);
                         _log.info("Created workflow steps for commit migration.");
                     } catch (Exception e) {
@@ -193,6 +190,7 @@ public class HostMigrationDeviceController extends MigrationControllerImp implem
                 // Add step to delete backend CG if necessary. Note that these
                 // are done sequentially, else you can have issues updating the
                 // systemConsistencyGroup specified for the group.
+                cgURI = getDataObject(Volume.class, changeVpoolGeneralVolumeURIs.get(0), _dbClient).getConsistencyGroup();
                 if (!NullColumnValueGetter.isNullURI(cgURI)) {
                     _log.info("Vpool change volumes are in CG {}", cgURI);
                     lastStep = createWorkflowStepsForDeleteConsistencyGroup(workflow, cgURI, localSystemsToRemoveCG, lastStep);
@@ -220,9 +218,10 @@ public class HostMigrationDeviceController extends MigrationControllerImp implem
         return null;
     }
 
-    public void migrateVolumeExport(StorageSystem srcStorageSystem, StorageSystem tgtStorageSystem,
-            URI varray) throws WorkflowException {
+    public void migrateVolumeExport(URI hostURI, List<URI> volumeURIs, String stepId) throws WorkflowException {
 
+        HostExportManager hostExportMgr = new HostExportManager();
+        hostExportMgr.exportOrchestrationSteps(this, volumeURIs, hostURI, stepId);
     }
 
     public void migrateGeneralVolume(URI storageURI, URI generalVolumeURI,
@@ -365,3 +364,10 @@ public class HostMigrationDeviceController extends MigrationControllerImp implem
 
 
 }
+    
+
+        
+
+
+
+

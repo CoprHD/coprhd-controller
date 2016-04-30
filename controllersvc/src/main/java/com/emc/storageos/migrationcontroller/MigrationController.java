@@ -10,8 +10,8 @@ import com.emc.storageos.workflow.Workflow;
 
 public interface MigrationController extends Controller {
 
-    public String createWorkflowStepsForBlockVolumeExport(Workflow workflow, URI storageURI,
-            List<URI> targetVolumeURIs, String waitFor)
+    public String createWorkflowStepsForBlockVolumeExport(Workflow workFlow,
+            List<URI> volumeURIs, URI hostURI, String waitFor)
             throws InternalException;
 
     public String createWorkflowStepsForMigrateGeneralVolumes(Workflow workflow, URI storageURI,

@@ -1,5 +1,5 @@
 # Copyright Hybrid Logic Ltd.
-# Copyright 2015 EMC Corporation
+# Copyright 2015-2016 EMC Corporation
 # See LICENSE file for details..
 
 from uuid import UUID, uuid4
@@ -133,7 +133,7 @@ class CoprHDCLIDriver(object):
 
         self.create_host(name=self.host,label=self.host,hosttype="Other") 
 
-        self.add_initiators(True, hostlabel=self.host, protocol='iSCSI', initiatorwwn=None, portwwn=None, initname=None)
+        self.add_initiators(True, hostlabel=self.host, protocol='iSCSI', portwwn=None, initname=None)
 
         self.create_network(name=self.networkname,nwtype='IP')
 
@@ -436,7 +436,7 @@ class CoprHDCLIDriver(object):
         except utils.SOSError as e:
             Message.new(Debug="Host Creation Failed").write(_logger)
 
-    def add_initiators(self,sync, hostlabel, protocol, initiatorwwn, portwwn,initname):
+    def add_initiators(self,sync, hostlabel, protocol, portwwn,initname):
         self.authenticate_user()
         portwwn = None
         try:
@@ -449,10 +449,10 @@ class CoprHDCLIDriver(object):
                    portwwn = portwwn.split('\n')[0]
                 break
            initname = portwwn
+           initiatorwwn = None
            self.hostinitiator_obj.create(sync,hostlabel,protocol,initiatorwwn,portwwn,initname)
         except utils.SOSError as e:
-             print e
-             Message.new(Debug="Add Initiator Failed").write(_logger)
+             Message.new(Debug="Exception during add_initiators").write(_logger)
     
     def create_network(self,name,nwtype):
         self.authenticate_user()
@@ -462,30 +462,7 @@ class CoprHDCLIDriver(object):
              Message.new(Debug="Network Already Exists").write(_logger)
             else: 
              self.network_obj.create(name,nwtype)
-            varray_uri = self.varray_obj.varray_list()
-            storage_ports = self.varray_obj.list_storageports(self.varray)
-            storagesystem_name = []
-            storagesystem_list = []
-            port_list = []
-            for st in storage_ports:
-                if st['storage_system'] not in storagesystem_name:
-                   storagesystem_name.append(st['storage_system'])
-                   storagesystem_list.append(self.storagesystem_obj.show_by_name(st['storage_system']))
-            for st in storagesystem_list:
-                storage_port=self.storageport_obj.storageport_list(
-                   storagedeviceName=st['name'],
-                   serialNumber=st['serial_number'],
-                   storagedeviceType=st['system_type'])
-                for ps in storage_port:
-            	    port = ps['name'].split('+')[3]
-                    #to find all ports starting with 'i'.as IP port start with iqn
-                    if port[0]=='i':
-                       try:
-                          port_list.append(port)
-                          self.network_obj.add_endpoint(name,endpoint=port)
-                       except utils.SOSError as e:
-                          if e.err_code==utils.SOSError.ENTRY_ALREADY_EXISTS_ERR:
-                             continue
+            
             "Adding Host Ports to Network"
             f = open ('/etc/iscsi/initiatorname.iscsi','r')
             for line in f:
@@ -494,12 +471,14 @@ class CoprHDCLIDriver(object):
                   host_port = current_line[1]
                   if "\n" in host_port[1]:
                     host_port = host_port.split('\n')[0]
-                  self.network_obj.add_endpoint(name,endpoint=host_port)
+                  tz = self.network_obj.show(name)
+                  if ("endpoints" in tz):
+                   endpoints = tz['endpoints']
+                   if(endpoint not in endpoints):
+                    self.network_obj.add_endpoint(name,endpoint=host_port)
                   break
         except utils.SOSError as e:
-           print e
-           if(e.err_code == utils.SOSError.ENTRY_ALREADY_EXISTS_ERR):
-                Message.new(Debug="Network with same name already exists").write(_logger)
+           Message.new(Debug="Exception during create_network").write(_logger)
 
 @implementer(IProfiledBlockDeviceAPI)
 @implementer(IBlockDeviceAPI)
@@ -531,7 +510,7 @@ class CoprHDBlockDeviceAPI(object):
     def create_volume(self, dataset_id, size):
         """
         Create a volume of specified size on the COPRHD.
-        The size shall be rounded off to 1BM, as COPRHD
+        The size shall be rounded off to 1GB, as COPRHD
         volumes of these sizes.
 
         See ``IBlockDeviceAPI.create_volume`` for parameter and return type
@@ -548,7 +527,7 @@ class CoprHDBlockDeviceAPI(object):
     def create_volume_with_profile(self,dataset_id, size, profile_name):
         """
         Create a volume of specified size and profile on the COPRHD.
-        The size shall be rounded off to 1BM, as COPRHD
+        The size shall be rounded off to 1GB, as COPRHD
         volumes of these sizes.
         
         profile can either 'PLATINUM' or 'GOLD' or 'SILVER' or 'BRONZE'
@@ -617,8 +596,6 @@ class CoprHDBlockDeviceAPI(object):
             - Possibly creation of new volumes
         :return:none
         """
-        #check_output([b"iscsiadm", "-m", "node", "--logout"])
-        #check_output([b"iscsiadm", "-m", "node", "--login"])
         check_output([b"rescan-scsi-bus", "-r", "-c"])
 
     def get_device_path(self, blockdevice_id):

@@ -1,3 +1,7 @@
+# Copyright Hybrid Logic Ltd.
+# Copyright 2015-2016 EMC Corporation
+# See LICENSE file for details..
+
 import functools
 import traceback
 from uuid import uuid4,UUID
@@ -80,11 +84,10 @@ class EMCCoprHDBlockDeviceAPIImplementationTests(SynchronousTestCase):
           sync = False
           hostlabel = 'test-host'
           protocol = 'iSCSI'
-          initiatorwwn = None
           portwwn = None
           initname = 'test-host'       
           try:
-             create_initiator = cli_obj.add_initiators(sync, hostlabel, protocol, initiatorwwn, portwwn,initname)
+             create_initiator = cli_obj.add_initiators(sync, hostlabel, protocol, portwwn,initname)
 
           except Exception as e:
              traceback.print_exc()

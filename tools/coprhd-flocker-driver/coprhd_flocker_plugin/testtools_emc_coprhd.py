@@ -1,3 +1,7 @@
+# Copyright Hybrid Logic Ltd.
+# Copyright 2015-2016 EMC Corporation
+# See LICENSE file for details..
+
 #from coprhd_blockdevice import configuration
 import os
 import yaml

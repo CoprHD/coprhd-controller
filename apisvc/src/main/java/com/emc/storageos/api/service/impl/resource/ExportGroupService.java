@@ -471,10 +471,15 @@ public class ExportGroupService extends TaskResourceService {
 
             // We only care about the BlockObjects we are adding, not removing
             if (addVolumeParams != null && !addVolumeParams.isEmpty()) {
+                // Collect the block objects being added from the request param
                 for (VolumeParam volParam : addVolumeParams) {
                     blockObjURIs.add(volParam.getId());
                 }
 
+                // Collect the existing block objects from the export group. We are combining
+                // the block objects being added with the existing export block objects so that
+                // BlockSnapshots for the same target copy (virtual array) are identified more
+                // easily through validation.
                 if (exportGroup.getVolumes() != null) {
                     for (Map.Entry<String, String> entry : exportGroup.getVolumes().entrySet()) {
                         blockObjURIs.add(URI.create(entry.getKey()));

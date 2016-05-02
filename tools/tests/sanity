@@ -230,9 +230,22 @@ if [ "$macaddr" = "" ] ; then
     macaddr=`/sbin/ifconfig en0 | /usr/bin/awk '/ether/ { print $2 }'`
 fi
 
+# Generate a wwn segment for initiators that is unique to this run.
+#
+# 00:50:56:9F
+hostwwnseg1=`echo ${macaddr} | cut -c1-11`
+
+# 00:50:56:9F:34
+hostwwnseg2=`echo ${RANDOM} | cut -c1-2`
+
+# 00:50:56:9F:34:81
+hostwwnseg3=`echo ${RANDOM} | cut -c1-2`
+
+wwnsegment="${hostwwnseg1}:${hostwwnseg2}:${hostwwnseg3}"
+
 seed=`date "+%H%M%S%N"`
 seed2b=`printf "%02X" $$ | cut -b1-2`
-hostseed=`echo ${macaddr} | awk -F: '{print $5$6}'`
+hostseed="${hostwwnseg2}${hostwwnseg3}"
 hostbase=host${hostseed}
 export BOURNE_API_SYNC_TIMEOUT=700
 
@@ -573,13 +586,13 @@ fi
 pwwn()
 {
     idx=$1
-    echo 50:${macaddr}:${idx}
+    echo 50:${wwnsegment}:${idx}
 }
 
 nwwn()
 {
     idx=$1
-    echo 51:${macaddr}:${idx}
+    echo 51:${wwnsegment}:${idx}
 }
 
 wwnIdx() {
@@ -630,6 +643,7 @@ SEARCH_PREFIX=$(echo $TAG|head -c 2)
 
 # Place to put command output in case of failure
 CMD_OUTPUT=/tmp/output.txt
+rm -f ${CMD_OUTPUT}
 
 # General echo output
 secho()

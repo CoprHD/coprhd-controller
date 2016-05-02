@@ -3336,7 +3336,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
         exportBlockObjects.add(snapshot);
 
         List<Volume> targetVolumesForCopy =
-                RPHelper.getTargetVolumesForCopy(_dbClient, snapshot.getConsistencyGroup(), snapshot.getVirtualArray());
+                RPHelper.getTargetVolumesForVarray(_dbClient, snapshot.getConsistencyGroup(), snapshot.getVirtualArray());
 
         for (Volume targetCopyVolume : targetVolumesForCopy) {
             // Do not add the target volume that is already referenced by the BlockSnapshot

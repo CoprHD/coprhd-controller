@@ -1219,7 +1219,9 @@ xtremio_ingest_test()
 
     ## Run block tests for the volumes and snaps
     xtremio_export_test ${export_name}1 ${XIO_INGEST_VOL1} ${XIO_INGEST_VOL2} ${XIO_INGEST_SNAP1_ARRAY_LABEL} ${XIO_INGEST_SNAP2_ARRAY_LABEL}
-    blockconsistencygroup_restore_snapshot $XIO_INGEST_VOL1_CG $XIO_INGEST_SNAP1_ARRAY_LABEL
+    if [ "$XIO_QUICK_PARAM" != "quick" ]; then
+        blockconsistencygroup_restore_snapshot $XIO_INGEST_VOL1_CG $XIO_INGEST_SNAP1_ARRAY_LABEL
+    fi
 
     # Delete the volumes, snaps and CG again
     run_noundo blocksnapshot delete ${PROJECT}/${XIO_INGEST_VOL1}/${XIO_INGEST_SNAP1_ARRAY_LABEL} --vipronly
@@ -1253,7 +1255,9 @@ xtremio_ingest_test()
 
     ## Run block tests for the volumes and snaps
     xtremio_export_test ${export_name}1 ${XIO_INGEST_VOL1} ${XIO_INGEST_VOL2} ${XIO_INGEST_SNAP1_ARRAY_LABEL} ${XIO_INGEST_SNAP2_ARRAY_LABEL}
-    blockconsistencygroup_restore_snapshot $XIO_INGEST_VOL1_CG $XIO_INGEST_SNAP1_ARRAY_LABEL
+    if [ "$XIO_QUICK_PARAM" != "quick" ]; then
+        blockconsistencygroup_restore_snapshot $XIO_INGEST_VOL1_CG $XIO_INGEST_SNAP1_ARRAY_LABEL
+    fi
 
     # Real removal of volume/CG
     run_noundo blocksnapshot delete ${PROJECT}/${XIO_INGEST_VOL1}/${XIO_INGEST_SNAP1_ARRAY_LABEL}
@@ -1268,6 +1272,15 @@ xtremio_ingest_test()
 xtremio_ingest_export_test()
 {
     secho "XtremIO ingest export tests"
+
+    INGEST_3X_NATIVEGUID=$XIO_3X_SIM_NATIVEGUID
+    INGEST_4X_NATIVEGUID=$XIO_4X_SIM_NATIVEGUID
+
+    if [ "$XIO_QUICK_PARAM" != "quick" ]; then
+        INGEST_3X_NATIVEGUID=$XTREMIO_3X_NATIVEGUID
+        INGEST_4X_NATIVEGUID=$XTREMIO_4X_NATIVEGUID
+    fi
+
     # Labels
     XIO_INGEST_VOL1_CG=${XIO_INGEST_VOL1_CGBASE}${RANDOM}exp
     XIO_INGEST_VOL1=${XIO_INGEST_VOL1BASE}1${RANDOM}exp
@@ -1292,7 +1305,7 @@ xtremio_ingest_export_test()
     run_noundo blocksnapshot create ${PROJECT}/${XIO_INGEST_VOL1} ${XIO_INGEST_SNAP1}
     # Capture the deviceLabel of the snapshot which will be the label after unmanaged volume discovery
     XIO_INGEST_SNAP1_ARRAY_LABEL=`/opt/storageos/bin/dbutils list BlockSnapshot | grep deviceLabel | awk '{print $3}'`
-    run export_group update EG-xio-ingest --addVolspec "${PROJECT}/${XIO_INGEST_VOL1}/xioingestsnap1"
+    run export_group update ${PROJECT}/EG-xio-ingest --addVolspec "${PROJECT}/${XIO_INGEST_VOL1}/xioingestsnap1"
     run_noundo blocksnapshot delete ${PROJECT}/${XIO_INGEST_VOL1}/${XIO_INGEST_SNAP1} --vipronly
 
     run_noundo blocksnapshot create ${PROJECT}/${XIO_INGEST_VOL2} ${XIO_INGEST_SNAP2}
@@ -1332,7 +1345,9 @@ xtremio_ingest_export_test()
 
     ## Run block tests for the volumes and snaps
     xtremio_export_test ${export_name}1 ${XIO_INGEST_VOL1} ${XIO_INGEST_VOL2} ${XIO_INGEST_SNAP1_ARRAY_LABEL} ${XIO_INGEST_SNAP2_ARRAY_LABEL}
-    blockconsistencygroup_restore_snapshot $XIO_INGEST_VOL1_CG $XIO_INGEST_SNAP1_ARRAY_LABEL
+    if [ "$XIO_QUICK_PARAM" != "quick" ]; then
+        blockconsistencygroup_restore_snapshot $XIO_INGEST_VOL1_CG $XIO_INGEST_SNAP1_ARRAY_LABEL
+    fi
 
     # Delete the volumes, snaps and CG again
     run_noundo blocksnapshot delete ${PROJECT}/${XIO_INGEST_VOL1}/${XIO_INGEST_SNAP1_ARRAY_LABEL} --vipronly
@@ -1370,7 +1385,10 @@ xtremio_ingest_export_test()
 
     ## Run block tests for the volumes and snaps
     xtremio_export_test ${export_name}1 ${XIO_INGEST_VOL1} ${XIO_INGEST_VOL2} ${XIO_INGEST_SNAP1_ARRAY_LABEL} ${XIO_INGEST_SNAP2_ARRAY_LABEL}
-    blockconsistencygroup_restore_snapshot $XIO_INGEST_VOL1_CG $XIO_INGEST_SNAP1_ARRAY_LABEL
+    
+    if [ "$XIO_QUICK_PARAM" != "quick" ]; then
+        blockconsistencygroup_restore_snapshot $XIO_INGEST_VOL1_CG $XIO_INGEST_SNAP1_ARRAY_LABEL
+    fi
 
     # Real removal of volume/CG
     run_noundo blocksnapshot delete ${PROJECT}/${XIO_INGEST_VOL1}/${XIO_INGEST_SNAP1_ARRAY_LABEL}
@@ -1531,7 +1549,9 @@ xtremio_blockconsistencygroup_snapshot_tests()
     
     blockconsistencygroup_setup_snapshot $cg_name $cg_cos
     blockconsistencygroup_create_snapshot $cg_name $cg_snapshot
-    blockconsistencygroup_restore_snapshot $cg_name $cg_snapshot
+    if [ "$XIO_QUICK_PARAM" != "quick" ]; then
+        blockconsistencygroup_restore_snapshot $cg_name $cg_snapshot
+    fi
     blockconsistencygroup_show_snapshot $cg_name $cg_snapshot
     blockconsistencygroup_list_snapshot $cg_name $cg_snapshot
     blockconsistencygroup_deactivate_snapshot $cg_name $cg_snapshot

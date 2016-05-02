@@ -786,4 +786,7 @@ public interface VPlexApiExceptions {
     
     @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)
     public VPlexApiException failedToRefreshVplexStorageView(final String storageViewName, final String reason);
+    
+    @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)
+    public VPlexApiException emptyAssociatedVolumes(final String vplexCluster,  String reason);
 }

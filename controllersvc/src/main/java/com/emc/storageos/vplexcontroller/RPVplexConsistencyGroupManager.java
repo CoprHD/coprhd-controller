@@ -386,15 +386,18 @@ public class RPVplexConsistencyGroupManager extends AbstractConsistencyGroupMana
         // Determine if the volume is distributed
         boolean distributed = false;
         StringSet assocVolumes = vplexVolume.getAssociatedVolumes();
-
-        // Associated volume for the consistency group cannot be null, indicates backend volumes are not ingested.
-        if (assocVolumes == null) {
-            log.warn(String.format("Associated volumes is empty: %s (device label %s) on cluster %s",
-                vplexVolume.getNativeId(), vplexVolume.getDeviceLabel(), vplexCluster));
+        	
+        // Associated volume for the consistency group cannot be null, indicates back-end volumes are not ingested.
+        if (vplexVolume.getAssociatedVolumes() != null && !vplexVolume.getAssociatedVolumes().isEmpty()) {                
+            if (assocVolumes.size() > 1) {
+                    distributed = true;
+            }
+        } else {
+           // VPlexApiException vex;
+            String reason = "Associated volume for the virtual volume is empty";
+            throw VPlexApiException.exceptions.emptyAssociatedVolumes(vplexCluster, reason);
         }
-        if (assocVolumes.size() > 1) {
-            distributed = true;
-        }
+        
         // Keep a reference to the VPLEX
         URI vplexURI = vplexVolume.getStorageController();
 

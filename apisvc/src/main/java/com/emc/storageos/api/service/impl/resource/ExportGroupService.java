@@ -2648,7 +2648,6 @@ public class ExportGroupService extends TaskResourceService {
         } else {
             // Defaults to one path if not suppiled
             param.setMinPaths(1);
-            ;
         }
         if (param.getPathsPerInitiator() != null) {
             ArgValidator.checkFieldMinimum(param.getPathsPerInitiator(), 1, "paths_per_initiator");

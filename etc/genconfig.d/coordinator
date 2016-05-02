@@ -150,6 +150,68 @@ _get_coordinator_var_participant() {
     echo "--foreach:iter_standby:"
 }
 
+# Generate coordinator_node_index var for coordinatorclients running in normal mode (not seperated participant mode)
+_get_coordinatorclient_var_normal() {
+    local cursite_begin_index="0"
+
+    # get active site node count
+    local var="_GENCONFIG_vdc_${_GENCONFIG_vdc_myid}_${_GENCONFIG_site_active_id}_node_count"
+    local primary_cnt="${!var}"
+    if [ -z "${primary_cnt}" ]; then
+       var="_GENCONFIG_vdc_${_GENCONFIG_vdc_myid}_node_count"
+       primary_cnt="${!var}"
+    fi
+
+    # iterate standby sites to get begin index for each standby site
+    OLD_IFS="${IFS}"
+    IFS=","
+    if [ -n "${_GENCONFIG_site_ids}" ] ; then
+        local begin="${primary_cnt}" # begin index in all node list
+        for site in ${_GENCONFIG_site_ids} ; do
+            [ "${site}" == "${_GENCONFIG_site_active_id}" ] && continue
+            if [ "${_GENCONFIG_site_myid}" == "${site}" ] ; then
+                cursite_begin_index="$((${begin}))"
+            fi
+            var="_GENCONFIG_vdc_${_GENCONFIG_vdc_myid}_${site}_node_count"
+            local standby_cnt="${!var}"
+            begin="$((${begin} + ${standby_cnt}))"
+        done
+    fi
+    IFS="${OLD_IFS}"
+
+    echo "coordinator_node_index=$((${_GENCONFIG_node_index} + ${cursite_begin_index}))"
+}
+
+# Generate coordinator_node_index var for coordinatorclients running in isolated participant mode
+# It is for DR standby site only which would switch to isolated participant mode for read/write 
+# transactions on standby site when primary site is down
+_get_coordinatorclient_var_participant() {
+    # get active site node count
+    local cursite_begin_index="0"
+    local var="_GENCONFIG_vdc_${_GENCONFIG_vdc_myid}_${_GENCONFIG_site_active_id}_node_count"
+    local primary_cnt="${!var}"
+
+    OLD_IFS="${IFS}"
+    IFS=","
+    if [ -n "${_GENCONFIG_site_ids}" ] ; then
+        local begin="${primary_cnt}" # begin index in all node list
+
+        for site in ${_GENCONFIG_site_ids} ; do
+            var="_GENCONFIG_vdc_${_GENCONFIG_vdc_myid}_${site}_node_count"
+            local standby_cnt="${!var}"
+
+            if [ "${_GENCONFIG_site_myid}" == "${site}" ] ; then
+                cursite_begin_index="$((${begin}))"
+            fi
+
+            begin="$((${begin} + ${standby_cnt}))"
+        done
+    fi
+    IFS="${OLD_IFS}"
+
+    echo "coordinator_node_index=$((${_GENCONFIG_node_index} + ${cursite_begin_index}))"
+}
+
 _get_coordinator_jmx_props() {
     echo "network_ipaddr_service=${_GENCONFIG_network_ipaddr_service}"
 }
@@ -165,6 +227,13 @@ _get_addrmap_props() {
 }
 
 _get_coordinatorclient_var() {
+    local drmode="${_GENCONFIG_dr_coordinator_type}"
+    if [ "${drmode}" == "participant" ]; then
+        _get_coordinatorclient_var_participant
+    else
+        _get_coordinatorclient_var_normal
+    fi
+
     for i in ${_GENCONFIG_node_indexes} ; do
         local var="_GENCONFIG_network_${i}_ipaddr_service"
         echo "network_${i}_ipaddr_service=${!var}"

@@ -21,19 +21,17 @@ import org.apache.log4j.Logger;
 
 import com.google.common.collect.Maps;
 import com.iwave.ext.netapp.AggregateInfo;
-import com.iwave.ext.netappc.NFSSecurityStyle;
 import com.iwave.ext.netapp.QuotaCommands;
-import com.iwave.ext.netappc.NetAppCException;
-import com.iwave.ext.netappc.model.CifsAcl;
 import com.iwave.ext.netapp.Server;
 import com.iwave.ext.netapp.model.ExportsRuleInfo;
 import com.iwave.ext.netapp.model.NetAppDevice;
 import com.iwave.ext.netapp.model.Qtree;
 import com.iwave.ext.netapp.model.Quota;
 import com.iwave.ext.netapp.utils.ExportRule;
-import com.iwave.ext.netappc.FlexVolume;
-import com.iwave.ext.netappc.StorageVirtualMachine;
-import com.iwave.ext.netappc.StorageVirtualMachineInfo;
+import com.iwave.ext.netappc.model.CifsAcl;
+import com.iwave.ext.netappc.model.SnapmirrorInfo;
+import com.iwave.ext.netappc.model.SnapmirrorInfoResp;
+import com.iwave.ext.netappc.model.SnapmirrorResp;
 
 public class NetAppClusterFacade {
 
@@ -472,7 +470,7 @@ public class NetAppClusterFacade {
          */
 
         try {
-            List outputElements = (List) server.getNaServer().invokeElem(elem).getChildByName("attributes-list").getChildren();
+            List outputElements = server.getNaServer().invokeElem(elem).getChildByName("attributes-list").getChildren();
             Iterator iter = outputElements.iterator();
             while (iter.hasNext()) {
                 attributesList = (NaElement) iter.next();
@@ -796,5 +794,43 @@ public class NetAppClusterFacade {
     {
         FlexFileShare share = new FlexFileShare(server.getNaServer(), exportPath);
         share.changeNFSShare(fsName, qtreeName, oldRule, newRule, exportPath);
+    }
+
+    // snap mirror relation operation
+
+    public SnapmirrorInfoResp createSnapmirror(SnapmirrorInfo snapMirrorInfo) {
+        SnapMirror snapMirror = new SnapMirror(server.getNaServer(), null);
+        return snapMirror.createSnapMirror(snapMirrorInfo);
+    }
+
+    public SnapmirrorResp initialiseSnapMirror(SnapmirrorInfo snapMirrorInfo) {
+        SnapMirror snapMirror = new SnapMirror(server.getNaServer(), null);
+        return snapMirror.initialiseSnapMirror(snapMirrorInfo);
+    }
+
+    public SnapmirrorResp breakSnapMirrorAsync(SnapmirrorInfo snapMirrorInfo) {
+        SnapMirror snapMirror = new SnapMirror(server.getNaServer(), null);
+        return snapMirror.breakAsyncSnapMirror(snapMirrorInfo);
+    }
+
+    public SnapmirrorResp deleteSnapMirrorAsync(SnapmirrorInfo snapMirrorInfo) {
+        SnapMirror snapMirror = new SnapMirror(server.getNaServer(), null);
+        return snapMirror.destroyAsyncSnapMirror(snapMirrorInfo);
+    }
+
+    public SnapmirrorResp resyncSnapMirror(SnapmirrorInfo snapMirrorInfo) {
+        SnapMirror snapMirror = new SnapMirror(server.getNaServer(), null);
+        return snapMirror.resyncSnapMirror(snapMirrorInfo);
+
+    }
+
+    public boolean quienceSnapMirror(SnapmirrorInfo snapMirrorInfo) {
+        SnapMirror snapMirror = new SnapMirror(server.getNaServer(), null);
+        return snapMirror.quiesceSnapMirror(snapMirrorInfo);
+    }
+
+    public boolean resumeSnapMirror(SnapmirrorInfo snapMirrorInfo) {
+        SnapMirror snapMirror = new SnapMirror(server.getNaServer(), null);
+        return snapMirror.resumesnapMirror(snapMirrorInfo);
     }
 }

@@ -24,6 +24,9 @@ import com.iwave.ext.netappc.NetAppClusterFacade;
 import com.iwave.ext.netappc.StorageVirtualMachineInfo;
 import com.iwave.ext.netappc.model.CifsAccess;
 import com.iwave.ext.netappc.model.CifsAcl;
+import com.iwave.ext.netappc.model.SnapmirrorInfo;
+import com.iwave.ext.netappc.model.SnapmirrorInfoResp;
+import com.iwave.ext.netappc.model.SnapmirrorResp;
 
 /*
  * Following Jiras raised for tracking. The fix will be made in the future release.
@@ -949,4 +952,75 @@ public class NetAppClusterApi {
     }
 
     // snap mirror operations
+
+    public SnapmirrorInfoResp createSnapMirror(SnapmirrorInfo snapMirrorInfo)
+            throws NetAppCException {
+        try {
+            netAppClusterFacade = new NetAppClusterFacade(_ipAddress, _portNumber, _userName,
+                    _password, _https);
+            return netAppClusterFacade.createSnapmirror(snapMirrorInfo);
+        } catch (Exception e) {
+            throw NetAppCException.exceptions.createSnapMirrorFailed(snapMirrorInfo.getSourceVolume(), _ipAddress, e.getMessage());
+        }
+    }
+
+    public SnapmirrorResp initialiseSnapMirror(SnapmirrorInfo snapMirrorInfo) {
+        try {
+            netAppClusterFacade = new NetAppClusterFacade(_ipAddress, _portNumber, _userName,
+                    _password, _https);
+            return netAppClusterFacade.initialiseSnapMirror(snapMirrorInfo);
+        } catch (Exception e) {
+            throw NetAppCException.exceptions.initializeSnapMirrorFailed(snapMirrorInfo.getSourceVolume(), _ipAddress, e.getMessage());
+        }
+    }
+
+    public SnapmirrorResp breakSnapMirrorAsync(SnapmirrorInfo snapMirrorInfo) {
+        try {
+            netAppClusterFacade = new NetAppClusterFacade(_ipAddress, _portNumber, _userName,
+                    _password, _https);
+            return netAppClusterFacade.breakSnapMirrorAsync(snapMirrorInfo);
+        } catch (Exception e) {
+            throw NetAppCException.exceptions.breakAsyncSnapMirrorFailed(snapMirrorInfo.getSourceVolume(), _ipAddress, e.getMessage());
+        }
+    }
+
+    public SnapmirrorResp deleteSnapMirrorAsync(SnapmirrorInfo snapMirrorInfo) {
+        try {
+            netAppClusterFacade = new NetAppClusterFacade(_ipAddress, _portNumber, _userName,
+                    _password, _https);
+            return netAppClusterFacade.deleteSnapMirrorAsync(snapMirrorInfo);
+        } catch (Exception e) {
+            throw NetAppCException.exceptions.deleteAsyncSnapMirrorFailed(snapMirrorInfo.getSourceVolume(), _ipAddress, e.getMessage());
+        }
+    }
+
+    public SnapmirrorResp resyncSnapMirror(SnapmirrorInfo snapMirrorInfo) {
+        try {
+            netAppClusterFacade = new NetAppClusterFacade(_ipAddress, _portNumber, _userName,
+                    _password, _https);
+            return netAppClusterFacade.resyncSnapMirror(snapMirrorInfo);
+        } catch (Exception e) {
+            throw NetAppCException.exceptions.resyncAsyncSnapMirrorFailed(snapMirrorInfo.getSourceVolume(), _ipAddress, e.getMessage());
+        }
+    }
+
+    public boolean quienceSnapMirror(SnapmirrorInfo snapMirrorInfo) {
+        try {
+            netAppClusterFacade = new NetAppClusterFacade(_ipAddress, _portNumber, _userName,
+                    _password, _https);
+            return netAppClusterFacade.quienceSnapMirror(snapMirrorInfo);
+        } catch (Exception e) {
+            throw NetAppCException.exceptions.quiesceSnapMirrorFailed(snapMirrorInfo.getSourceVolume(), _ipAddress, e.getMessage());
+        }
+    }
+
+    public boolean resumeSnapMirror(SnapmirrorInfo snapMirrorInfo) {
+        try {
+            netAppClusterFacade = new NetAppClusterFacade(_ipAddress, _portNumber, _userName,
+                    _password, _https);
+            return netAppClusterFacade.resumeSnapMirror(snapMirrorInfo);
+        } catch (Exception e) {
+            throw NetAppCException.exceptions.resumeSnapMirrorFailed(snapMirrorInfo.getSourceVolume(), _ipAddress, e.getMessage());
+        }
+    }
 }

@@ -135,4 +135,38 @@ public interface NetAppCExceptions {
     @DeclareServiceCode(ServiceCode.NETAPPC_ERROR)
     public NetAppCException deleteCIFSShareAclFailed(final String shareName, final String message);
 
+    // snap mirror
+    @DeclareServiceCode(ServiceCode.NETAPPC_ERROR)
+    public NetAppCException createSnapMirrorFailed(final String volName, final String ip, final String message);
+
+    @DeclareServiceCode(ServiceCode.NETAPPC_ERROR)
+    public NetAppCException initializeSnapMirrorFailed(final String volName, final String ip, final String message);
+
+    @DeclareServiceCode(ServiceCode.NETAPPC_ERROR)
+    public NetAppCException breakAsyncSnapMirrorFailed(final String volName, final String ip, final String message);
+
+    @DeclareServiceCode(ServiceCode.NETAPPC_ERROR)
+    public NetAppCException resumeSnapMirrorFailed(final String volName, final String ip, final String message);
+
+    @DeclareServiceCode(ServiceCode.NETAPPC_ERROR)
+    public NetAppCException quiesceSnapMirrorFailed(final String volName, final String ip, final String message);
+
+    @DeclareServiceCode(ServiceCode.NETAPPC_ERROR)
+    public NetAppCException releaseSnapMirrorFailed(final String volName, final String ip, final String message);
+
+    @DeclareServiceCode(ServiceCode.NETAPPC_ERROR)
+    public NetAppCException setScheduleSnapMirrorFailed(final String volName, final String ip, final String message);
+
+    @DeclareServiceCode(ServiceCode.NETAPPC_ERROR)
+    public NetAppCException deleteAsyncSnapMirrorFailed(final String volName, final String ip, final String message);
+
+    @DeclareServiceCode(ServiceCode.NETAPPC_ERROR)
+    public NetAppCException resyncAsyncSnapMirrorFailed(final String sourceLocation, final String destLocation, final String message);
+
+    @DeclareServiceCode(ServiceCode.NETAPPC_ERROR)
+    public NetAppCException checkSnapMirrorLicenseFailed(final String ip, final String message);
+
+    @DeclareServiceCode(ServiceCode.NETAPPC_ERROR)
+    public NetAppCException getSnapMirrorStatusFailed(final String volName, final String ip, final String message);
+
 }

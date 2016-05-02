@@ -2669,8 +2669,9 @@ public class ExportGroupService extends TaskResourceService {
         Set<URI> storageArrays = new HashSet<URI>();
         for (URI blockObjectURI : blockObjectURIs) {
             BlockObject blockObject = BlockObject.fetch(_dbClient, blockObjectURI);
-            if (blockObject == null)
+            if (blockObject == null) {
                 continue;
+            }
             storageArrays.add(blockObject.getStorageController());
         }
 

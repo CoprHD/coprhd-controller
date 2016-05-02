@@ -145,7 +145,8 @@ public class BackupSchedulerTest {
         Assert.assertEquals("Calculated interval aligned time is wrong.", shouldBe.getTime().getTime(),
                 ScheduleTimeRange.getExpectedMostRecentBackupDateTime(now, ScheduleTimeRange.ScheduleInterval.DAY, 1, 0).getTime());
     }
-
+    // The following test requires a secure ftp server, which public/external build machines may not have.  Therefore, ignoring by default. 
+    @Ignore
     @Test
     public void testTagCleanup() throws Exception {
         new TestProductName();
@@ -288,7 +289,11 @@ class FakeBackupClient extends BackupScheduler {
     private static BackupSetInfo createFakeInfo(String tag, BackupType type) {
         BackupSetInfo info = new BackupSetInfo();
         info.setCreateTime(10000);
-        info.setName(String.format("%s_%s_vipr1.zip", tag, type));
+        if (type.equals(BackupType.info)) {
+            info.setName(String.format("%s_%s.properties",tag,type));
+        }else {
+            info.setName(String.format("%s_%s_vipr1.zip", tag, type));
+        }
         info.setSize(1024);
         return info;
     }
@@ -300,6 +305,7 @@ class FakeBackupClient extends BackupScheduler {
         files.add(new BackupFile(createFakeInfo(tag, BackupType.db), "vipr1"));
         files.add(new BackupFile(createFakeInfo(tag, BackupType.geodb), "vipr1"));
         files.add(new BackupFile(createFakeInfo(tag, BackupType.zk), "vipr1"));
+        files.add(new BackupFile(createFakeInfo(tag, BackupType.info), "vipr1"));
 
         return files;
     }
@@ -307,7 +313,7 @@ class FakeBackupClient extends BackupScheduler {
     @Override
     public String generateZipFileName(String tag, BackupFileSet files) {
         Set<String> availableNodes = files.uniqueNodes();
-        return ScheduledBackupTag.toZipFileName(tag, 1, availableNodes.size(), "");
+        return UploadExecutor.toZipFileName(tag, 1, availableNodes.size(), "site");
     }
 
     @Override
@@ -360,6 +366,11 @@ class FakeConfiguration extends SchedulerConfig {
 
     @Override
     public boolean isAllowBackup() {
+        return true;
+    }
+
+    @Override
+    public boolean isClusterUpgradable () {
         return true;
     }
 

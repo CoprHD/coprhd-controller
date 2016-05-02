@@ -33,18 +33,23 @@ import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVol
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume.SupportedVolumeCharacterstics;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume.SupportedVolumeInformation;
 import com.emc.storageos.db.exceptions.DatabaseException;
+import com.emc.storageos.db.joiner.Joiner;
 import com.emc.storageos.protectioncontroller.impl.recoverpoint.RPHelper;
+import com.emc.storageos.util.ConnectivityUtil;
 import com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator;
 import com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.processor.detailedDiscovery.RemoteMirrorObject;
 import com.emc.storageos.volumecontroller.impl.smis.srdf.SRDFUtils;
 
 public class ImplicitUnManagedObjectsMatcher {
+    private static final String LOCAL = "LOCAL";
+    private static final String CLUSTER_PREFIX = "cluster-";
     private static final Logger _log = LoggerFactory
             .getLogger(ImplicitUnManagedObjectsMatcher.class);
     private static final String INVALID = "Invalid";
     private static final String MATCHED = "Matched";
     private static final int VOLUME_BATCH_SIZE = 200;
     private static final int FILESHARE_BATCH_SIZE = 200;
+    private static final String TRUE = "TRUE";
 
     /**
      * run implicit unmanaged matcher during rediscovery
@@ -57,12 +62,12 @@ public class ImplicitUnManagedObjectsMatcher {
         Set<URI> srdfEnabledTargetVPools = SRDFUtils.fetchSRDFTargetVirtualPools(dbClient);
         Set<URI> rpEnabledTargetVPools = RPHelper.fetchRPTargetVirtualPools(dbClient);
         for (VirtualPool vpool : vpoolList) {
-            matchVirtualPoolsWithUnManagedVolumes(vpool, srdfEnabledTargetVPools, rpEnabledTargetVPools, dbClient);
+            matchVirtualPoolsWithUnManagedVolumes(vpool, srdfEnabledTargetVPools, rpEnabledTargetVPools, dbClient, false);
         }
     }
 
     public static void matchVirtualPoolsWithUnManagedVolumes(VirtualPool virtualPool, Set<URI> srdfEnabledTargetVPools,
-            Set<URI> rpEnabledTargetVPools, DbClient dbClient) {
+            Set<URI> rpEnabledTargetVPools, DbClient dbClient, boolean recalcVplexVolumes) {
         List<UnManagedVolume> modifiedUnManagedVolumes = new ArrayList<UnManagedVolume>();
         Map<String, StringSet> poolMapping = new HashMap<String, StringSet>();
 
@@ -138,7 +143,128 @@ public class ImplicitUnManagedObjectsMatcher {
                 }
             }
         }
+        
+        if (recalcVplexVolumes) {
+            // VPLEX unmanaged volumes need to be matched by different rules.
+            matchVirtualPoolWithUnManagedVolumeVPLEX(modifiedUnManagedVolumes, virtualPool, dbClient);
+        }
+        
         insertInBatches(modifiedUnManagedVolumes, dbClient, "UnManagedVolumes");
+    }
+
+    /**
+     * Match virtual pool with unmanaged VPLEX volumes.  Uses a different criteria than straight block matchers.
+     * Currently this method will only add virtual pools to an unmanaged volume.  It will not remove them.
+     * This code is loosely based on VPlexCommunicationInterface.updateUnmanagedVolume() content, but is changed
+     * to suit this specific case where a single virtual pool is getting added/updated.
+     * 
+     * @param modifiedUnManagedVolumes list of volumes to add to
+     * @param vpool virtual pool (new or updated)
+     * @param dbClient dbclient
+     */
+    private static void matchVirtualPoolWithUnManagedVolumeVPLEX(List<UnManagedVolume> modifiedUnManagedVolumes, VirtualPool vpool,
+            DbClient dbClient) {
+        // This method only applies to VPLEX vpools
+        if (!VirtualPool.vPoolSpecifiesHighAvailability(vpool)) {
+            return;
+        }
+        
+        _log.info("START: matching virtual pool with unmanaged volume for VPLEX");
+        // Get all UnManagedVolumes where storageDevice is a StorageSystem where type = VPLEX
+        Joiner j = new Joiner(dbClient).join(StorageSystem.class, "ss").match("systemType", "vplex")
+                .join("ss", UnManagedVolume.class, "umv", "storageDevice").go();
+
+        // From the joiner, get the StorageSystems (which is a small amount of objects) and the UMVs (which is large, so get URIs and use iter)
+        Map<StorageSystem, List<URI>> ssToUmvMap = j.pushList("ss").pushUris("umv").map();
+        for (Entry<StorageSystem, List<URI>> ssToUmvEntry : ssToUmvMap.entrySet()) {
+            StorageSystem vplex = ssToUmvEntry.getKey();
+
+            // Formulate a cluster ID (1 or 2) to name map (cluster-1, cluster-2) so we can map the StorageSystem's knowledge of clusters
+            // to the UnManagedVolume's knowledge of which cluster is being used in order to make intelligent virtual pool inclusion.
+            Map<String, String> clusterIdToNameMap = new HashMap<String, String>();
+            if (vplex.getVplexAssemblyIdtoClusterId() != null) {
+                for (Map.Entry<String, String> assemblyIdToClusterId : vplex.getVplexAssemblyIdtoClusterId().entrySet()) {
+                    // Create "1" -> "cluster-1" or "2" -> "cluster-2"
+                    clusterIdToNameMap.put(assemblyIdToClusterId.getValue(), CLUSTER_PREFIX + assemblyIdToClusterId.getValue());
+                }
+            }
+
+            // Create a map of virtual arrays to their respective VPLEX cluster (a varray is not allowed to have both VPLEX clusters)
+            Map<String, String> varrayToClusterIdMap = new HashMap<String, String>();
+
+            // Since there may be a lot of unmanaged volumes to process, we use the iterative query
+            Iterator<UnManagedVolume> volumeIter = dbClient.queryIterativeObjects(UnManagedVolume.class, ssToUmvEntry.getValue());
+            while (volumeIter.hasNext()) {
+                UnManagedVolume volume = volumeIter.next();
+
+                String highAvailability = null;
+                if (volume.getVolumeInformation().get(SupportedVolumeInformation.VPLEX_LOCALITY.toString()) != null) {
+                    String haFound = volume.getVolumeInformation().get(SupportedVolumeInformation.VPLEX_LOCALITY.toString()).iterator().next();
+                    if (haFound.equalsIgnoreCase(LOCAL)) {
+                        highAvailability = VirtualPool.HighAvailabilityType.vplex_local.name();
+                    } else {
+                        highAvailability = VirtualPool.HighAvailabilityType.vplex_distributed.name();
+                    }
+                }
+                _log.debug("finding valid virtual pools for UnManagedVolume {}", volume.getLabel());
+
+                // Check to see if:
+                // - The vpool's HA type doesn't match the volume's, unless...
+                // - The vpool is RPVPLEX and this is a VPLEX local volume (likely a journal)
+                if (!vpool.getHighAvailability().equals(highAvailability) &&  
+                        !(VirtualPool.vPoolSpecifiesRPVPlex(vpool) && highAvailability.equals(VirtualPool.HighAvailabilityType.vplex_local.name()))) {
+                    _log.info(String.format("   virtual pool %s is not valid because "
+                            + "its high availability setting does not match the unmanaged volume %s",
+                            vpool.getLabel(), volume.forDisplay()));
+                    continue;
+                }
+
+                // If the volume is in a CG, the vpool must specify multi-volume consistency.
+                Boolean mvConsistency = vpool.getMultivolumeConsistency();
+                if ((TRUE.equals(volume.getVolumeCharacterstics().get(
+                        SupportedVolumeCharacterstics.IS_VOLUME_ADDED_TO_CONSISTENCYGROUP.toString()))) &&
+                        ((mvConsistency == null) || (mvConsistency == Boolean.FALSE))) {
+                    _log.info(String.format("   virtual pool %s is not valid because it does not have the "
+                            + "multi-volume consistency flag set, and the unmanaged volume %s is in a consistency group",
+                            vpool.getLabel(), volume.forDisplay()));
+                    continue;
+                }
+
+                StringSet volumeClusters = new StringSet();
+                if (volume.getVolumeInformation().get(SupportedVolumeInformation.VPLEX_CLUSTER_IDS.toString()) != null) {
+                    volumeClusters.addAll(volume.getVolumeInformation().get(SupportedVolumeInformation.VPLEX_CLUSTER_IDS.toString()));
+                }
+
+                // VPool must be assigned to a varray corresponding to volume's clusters.
+                StringSet varraysForVpool = vpool.getVirtualArrays();
+                for (String varrayId : varraysForVpool) {
+                    String varrayClusterId = varrayToClusterIdMap.get(varrayId);
+                    if (null == varrayClusterId) {
+                        varrayClusterId = ConnectivityUtil.getVplexClusterForVarray(URI.create(varrayId), vplex.getId(), dbClient);
+                        varrayToClusterIdMap.put(varrayId, varrayClusterId);
+                    }
+
+                    if (!ConnectivityUtil.CLUSTER_UNKNOWN.equals(varrayClusterId)) {
+                        String varrayClusterName = clusterIdToNameMap.get(varrayClusterId);
+                        if (volumeClusters.contains(varrayClusterName)) {
+                            if (volume.getSupportedVpoolUris() == null) {
+                                volume.setSupportedVpoolUris(new StringSet());
+                            }
+                            volume.getSupportedVpoolUris().add(vpool.getId().toString());
+                            modifiedUnManagedVolumes.add(volume);
+                            break;
+                        }
+                    }
+                }
+
+                if (!modifiedUnManagedVolumes.contains(volume)) {
+                    _log.info(String.format("   virtual pool %s is not valid because "
+                            + "volume %s resides on a cluster that does not match the varray(s) associated with the vpool",
+                            vpool.getLabel(), volume.forDisplay()));
+                }
+            } 
+        }
+        _log.info("END: matching virtual pool with unmanaged volume for VPLEX");
     }
 
     /**

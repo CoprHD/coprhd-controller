@@ -1130,7 +1130,7 @@ public class CoordinatorClientImpl implements CoordinatorClient {
         }
 
         // add site specific properties
-        PropertyInfoExt siteScopePropInfo = getTargetInfo(PropertyInfoExt.class, getSiteId(), PropertyInfoExt.TARGET_PROPERTY);
+        PropertyInfoExt siteScopePropInfo = getTargetInfo(getSiteId(), PropertyInfoExt.class);
         if (siteScopePropInfo != null) {
             info.getProperties().putAll(siteScopePropInfo.getProperties());
         }
@@ -1265,12 +1265,6 @@ public class CoordinatorClientImpl implements CoordinatorClient {
 
         return getTargetInfo(siteId, clazz, id, kind);
     }
-    
-    public <T extends CoordinatorSerializable> T getTargetInfo(final Class<T> clazz, String id,
-            String kind) throws CoordinatorException {
-        
-        return getTargetInfo(null, clazz, id, kind);
-    }
 
     private <T extends CoordinatorSerializable> T getTargetInfo(String siteId, final Class<T> clazz, String id,
             String kind) throws CoordinatorException {
@@ -1320,7 +1314,11 @@ public class CoordinatorClientImpl implements CoordinatorClient {
         cfg.setKind(kind);
         cfg.setConfig(TARGET_INFO, info.encodeAsString());
         persistServiceConfiguration(siteId, cfg);
-        log.info("Target info set: {} for site {}", info, siteId);
+        if (siteId == null) {
+            log.info("Target info set: {} for local site", info);
+        } else {
+            log.info("Target info set: {} for site {}", info, siteId);
+        }
     }
     
     
@@ -2025,12 +2023,16 @@ public class CoordinatorClientImpl implements CoordinatorClient {
 
     public void createEphemeralNode(String path, byte[] data) throws Exception {
         log.info("create ephemeral node path={} data={}", path, data);
-        _zkConnection.curator().create().withMode(CreateMode.EPHEMERAL).
+        _zkConnection.curator().create().creatingParentContainersIfNeeded().withMode(CreateMode.EPHEMERAL).
                 forPath(path, data);
     }
 
     public void deleteNode(String path) throws Exception {
         log.info("delete ephemeral node path={}", path);
         _zkConnection.curator().delete().forPath(path);
+    }
+
+    public List<String> getChildren(String path) throws Exception {
+        return _zkConnection.curator().getChildren().forPath(path);
     }
 }

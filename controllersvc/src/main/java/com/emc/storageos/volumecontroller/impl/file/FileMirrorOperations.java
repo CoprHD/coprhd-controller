@@ -30,7 +30,8 @@ public interface FileMirrorOperations {
             throws DeviceControllerException;
 
     /**
-     * Stop Mirror link
+     * Stop Mirror link, this operation will dismantle the replication session and delete the policy.
+     * After this operation both File System will be independent and read-write enabled.
      * 
      * @param system
      * @param target
@@ -51,17 +52,19 @@ public interface FileMirrorOperations {
             throws DeviceControllerException;
 
     /**
-     * Pause Mirror link
+     * Pause Mirror session between between source and target.
+     * This operation will cancel any running/paused job and then disable the policy
      * 
-     * @param system
-     * @param target
-     * @param completer
+     * @param StorageSystem system
+     * @param FileShare target
+     * @param TaskCompleter completer
      * @throws DeviceControllerException
+     * 
      */
     void pauseMirrorFileShareLink(StorageSystem system, FileShare target, TaskCompleter completer) throws DeviceControllerException;
 
     /**
-     * Resume Mirror link
+     * Resume Mirror link , this operation will enable the policy and start the replication job.
      * 
      * @param system
      * @param target
@@ -125,4 +128,16 @@ public interface FileMirrorOperations {
     void refreshMirrorFileShareLink(StorageSystem system, FileShare source, FileShare target, TaskCompleter completer)
             throws DeviceControllerException;
 
+    /**
+     * Update Replication Policy of a filesystem
+     * 
+     * @param storage
+     * @param rpoValue
+     * @param rpoType
+     * @param target
+     * @param taskCompleter
+     * @throws DeviceControllerException
+     */
+    void doModifyReplicationRPO(StorageSystem system, Long rpoValue, String rpoType, FileShare target, TaskCompleter completer)
+            throws DeviceControllerException;
 }

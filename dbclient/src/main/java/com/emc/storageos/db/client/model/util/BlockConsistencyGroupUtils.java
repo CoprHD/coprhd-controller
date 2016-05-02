@@ -259,21 +259,25 @@ public class BlockConsistencyGroupUtils {
         URIQueryResultList uriQueryResultList = new URIQueryResultList();
         dbClient.queryByConstraint(getVolumesByConsistencyGroup(cg.getId()),
                 uriQueryResultList);
-        Iterator<Volume> volumeIterator = dbClient.queryIterativeObjects(Volume.class,
-                uriQueryResultList);
-        while (volumeIterator.hasNext()) {
-            Volume volume = volumeIterator.next();
-            if (!volume.getInactive()) {
-                // When determining the volumes to snap, we want the VPLEX volumes
-                // referencing the consistency group. The backend volumes for the
-                // VPLEX volume will also now reference the consistency group.
-                // At this point we just want the VPLEX volumes.
-                if (!Volume.checkForVplexBackEndVolume(dbClient, volume)) {
-                    // If the personalityType is specified, we want to ensure we only consider
-                    // volumes with that personality type.
-                    if (personalityType == null ||
-                            (volume.getPersonality() != null && volume.getPersonality().equals(personalityType.name()))) {
-                        volumeList.add(volume);
+        if (uriQueryResultList != null) {
+            Iterator<Volume> volumeIterator = dbClient.queryIterativeObjects(Volume.class,
+                    uriQueryResultList);
+            if (volumeIterator != null) {
+                while (volumeIterator.hasNext()) {
+                    Volume volume = volumeIterator.next();
+                    if (!volume.getInactive()) {
+                        // When determining the volumes to snap, we want the VPLEX volumes
+                        // referencing the consistency group. The backend volumes for the
+                        // VPLEX volume will also now reference the consistency group.
+                        // At this point we just want the VPLEX volumes.
+                        if (!Volume.checkForVplexBackEndVolume(dbClient, volume)) {
+                            // If the personalityType is specified, we want to ensure we only consider
+                            // volumes with that personality type.
+                            if (personalityType == null ||
+                                    (volume.getPersonality() != null && volume.getPersonality().equals(personalityType.name()))) {
+                                volumeList.add(volume);
+                            }
+                        }
                     }
                 }
             }
@@ -337,7 +341,8 @@ public class BlockConsistencyGroupUtils {
                 // We want the non-VPlex volumes, which are those volumes that do not have associated volumes.
                 if (volume.getAssociatedVolumes() == null || volume.getAssociatedVolumes().isEmpty()) {
                     String personality = volume.getPersonality();
-                    if (personality == null || PersonalityTypes.SOURCE.name().equalsIgnoreCase(personality)) {
+                    if (Volume.isSRDFProtectedVolume(volume) || personality == null
+                            || PersonalityTypes.SOURCE.name().equalsIgnoreCase(personality)) {
                         volumeList.add(volume);
                     }
                 }

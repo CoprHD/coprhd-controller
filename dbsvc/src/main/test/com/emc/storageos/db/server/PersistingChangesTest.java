@@ -31,7 +31,7 @@ import com.emc.storageos.db.server.DbClientTest;
 
 public class PersistingChangesTest extends DbsvcTestBase {
     private static final Logger _log = LoggerFactory.getLogger(PersistingChangesTest.class);
-    private String _stringValue = new String("test");
+    private String _stringValue = new String("isilon");
     private URI _uriValue = URIUtil.createId(DataObject.class);
     private NamedURI _namedURIValue = new NamedURI(_uriValue, _stringValue);
     private Number _numValue = 0xffff;

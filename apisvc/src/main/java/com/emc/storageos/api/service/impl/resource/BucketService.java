@@ -9,6 +9,7 @@ import static com.emc.storageos.api.mapper.BucketMapper.map;
 import static com.emc.storageos.api.mapper.TaskMapper.toTask;
 
 import java.net.URI;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
@@ -360,7 +361,7 @@ public class BucketService extends TaskResourceService {
         bucket.setHardQuota(SizeUtil.translateSize(param.getHardQuota()));
         bucket.setSoftQuota(SizeUtil.translateSize(param.getSoftQuota()));
         bucket.setRetention(Integer.valueOf(param.getRetention()));
-        bucket.setOwner(getOwner(param.getOwner()));
+        bucket.setOwner(param.getOwner());
         bucket.setNamespace(tenantOrg.getNamespace());
         bucket.setVirtualPool(param.getVpool());
         if (project != null) {
@@ -612,15 +613,6 @@ public class BucketService extends TaskResourceService {
         return resRepList;
     }
 
-    private String getOwner(String orgOwner) {
-        String owner = orgOwner;
-        if (null == orgOwner || orgOwner.isEmpty()) {
-            StorageOSUser user = getUserFromContext();
-            owner = user.getName();
-        }
-        return owner;
-    }
-
     /**
      * Get object specific permissions filter
      * 
@@ -646,6 +638,10 @@ public class BucketService extends TaskResourceService {
     }
     
     private void syncBucketACL(Bucket bucket) throws InternalException {
+        
+        // Make sure that we don't have some pending
+        // operation against the bucket
+        checkForPendingTasks(Arrays.asList(bucket.getTenant().getURI()), Arrays.asList(bucket));
 
         StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, bucket.getStorageDevice());
         ObjectController controller = getController(ObjectController.class, storageSystem.getSystemType());

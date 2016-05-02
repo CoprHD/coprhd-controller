@@ -459,7 +459,7 @@ public class ExternalDeviceCommunicationInterface extends
                 storagePorts.put(EXISTING, existingStoragePorts);
 
                 // Create storage ha domains for ports
-                processStorageHADomains(storageSystem, driverPortsToDBPorts);
+                processStorageHADomains(storageSystem, Collections.unmodifiableMap(driverPortsToDBPorts));
             } else {
                 String errorMsg = String.format("Failed to discover storage ports for system %s of type %s",
                         accessProfile.getSystemId(), accessProfile.getSystemType());

@@ -284,11 +284,14 @@ public class VPlexBlockFullCopyApiImpl extends AbstractBlockFullCopyApiImpl {
             // volumes in VolumeGroup can be from different vArrays
             varray = getVarrayFromCache(vArrayCache, fcSourceObj.getVirtualArray());
             String copyName = null;
-            Volume backendVolume = VPlexUtil.getVPLEXBackendVolume((Volume)fcSourceObj, true, _dbClient);
-            if (NullColumnValueGetter.isNotNullValue(backendVolume.getReplicationGroupInstance())) {
-            	copyName = name + "-" + backendVolume.getReplicationGroupInstance() 
-            			+ (sortedSourceObjectList.size() > 1 ? "-" + ++sourceCounter : "");
-            }  else {
+            if (fcSourceObj instanceof Volume && ((Volume) fcSourceObj).getApplication(_dbClient) != null) {
+                Volume backendVolume = VPlexUtil.getVPLEXBackendVolume((Volume) fcSourceObj, true, _dbClient);
+                if (NullColumnValueGetter.isNotNullValue(backendVolume.getReplicationGroupInstance())) {
+                    copyName = name + "-" + backendVolume.getReplicationGroupInstance()
+                            + (sortedSourceObjectList.size() > 1 ? "-" + ++sourceCounter : "");
+                }
+            }
+            if (copyName == null) {
             	copyName = name + (sortedSourceObjectList.size() > 1 ? "-" + ++sourceCounter : "");
             }
             vplexSrcSystemId = fcSourceObj.getStorageController();

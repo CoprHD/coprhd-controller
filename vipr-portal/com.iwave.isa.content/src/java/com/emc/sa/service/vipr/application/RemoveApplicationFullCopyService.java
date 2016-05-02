@@ -20,7 +20,7 @@ public class RemoveApplicationFullCopyService extends ViPRService {
     @Param(ServiceParams.APPLICATION)
     private URI applicationId;
 
-    @Param(ServiceParams.COPY_NAME)
+    @Param(ServiceParams.APPLICATION_COPY_SETS)
     protected String name;
 
     @Param(ServiceParams.APPLICATION_SUB_GROUP)
@@ -32,6 +32,10 @@ public class RemoveApplicationFullCopyService extends ViPRService {
         List<URI> fullCopyIds = BlockStorageUtils.getSingleFullCopyPerSubGroupAndStorageSystem(applicationId, name,
                 subGroups);
 
-        BlockStorageUtils.removeBlockResources(fullCopyIds, VolumeDeleteTypeEnum.FULL);
+        List<URI> allFullCopyIds = BlockStorageUtils.getAllFullCopyVolumes(applicationId, name, subGroups);
+
+        BlockStorageUtils.detachFullCopies(fullCopyIds);
+
+        BlockStorageUtils.removeBlockResources(allFullCopyIds, VolumeDeleteTypeEnum.FULL);
     }
 }

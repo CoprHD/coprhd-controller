@@ -1995,32 +1995,42 @@ public class SRDFOperations implements SmisConstants {
                 trustedSrc.getSrdfTargets().add(invalidTgt.getId().toString());
                 invalidSrc.getSrdfTargets().remove(invalidTgt.getId().toString());
                 
-                // Update the label of the invalid target to match it's new source.
-                VirtualArray invalidTgtVA = dbClient.queryObject(VirtualArray.class, invalidTgt.getVirtualArray());
-                StringBuilder newLabel = new StringBuilder();
-                newLabel.append(trustedSrc.getLabel());
+                updateVolumeLabels(trustedSrc, invalidTgt);
+                dbClient.updateAndReindexObject(asList(invalidTgt, trustedSrc, invalidSrc));
+            }
+        }
+    }
+    
+    /**
+     * Updates the label field of the invalidTgt, and if the volume is fronted by
+     * a Vplex Volume, also updates the target vplex volume label.
+     * @param trustedSrc -- source volume with correct label (vmax)
+     * @param invalidTgt -- target volume with incorrect label (vmax)
+     */
+    private void updateVolumeLabels(Volume trustedSrc, Volume invalidTgt) {
+     // Update the label of the invalid target to match it's new source.
+        VirtualArray invalidTgtVA = dbClient.queryObject(VirtualArray.class, invalidTgt.getVirtualArray());
+        StringBuilder newLabel = new StringBuilder();
+        newLabel.append(trustedSrc.getLabel());
+        newLabel.append("-target-");
+        newLabel.append(invalidTgtVA.getLabel());
+        log.info("Revised name for target: " + newLabel.toString());
+        invalidTgt.setLabel(newLabel.toString());
+        
+        
+        // See if there is a corresponding Vplex volume. If so update it's label as well.
+        Volume tgtVplexVolume = VPlexSrdfUtil.getVplexVolumeFromSrdfVolume(dbClient, invalidTgt);
+        if (tgtVplexVolume != null) {
+            // If the target volume is fronted by Vplex, the source volume should also be Vplex fronted
+            Volume srcVplexVolume = VPlexSrdfUtil.getVplexVolumeFromSrdfVolume(dbClient, trustedSrc);
+            if (srcVplexVolume != null) {
+                newLabel.setLength(0);
+                newLabel.append(srcVplexVolume.getLabel());
                 newLabel.append("-target-");
                 newLabel.append(invalidTgtVA.getLabel());
-                log.info("Revised name for target: " + newLabel.toString());
-                invalidTgt.setLabel(newLabel.toString());
-                dbClient.updateObject(asList(invalidTgt, trustedSrc, invalidSrc));
-                
-                // See if there is a corresponding Vplex volume. If so update it's label as well.
-                Volume vplexVolume = VPlexSrdfUtil.getVplexVolumeFromSrdfVolume(dbClient, invalidTgt);
-                if (vplexVolume != null) {
-                    newLabel.setLength(0);
-                    int baseNameLen = trustedSrc.getLabel().length();
-                    if (baseNameLen > 2) {
-                        // remove vplex associated volume -0 or -1 suffix
-                        baseNameLen -= 2;
-                    }
-                    newLabel.append(trustedSrc.getLabel().substring(0, baseNameLen));
-                    newLabel.append("-target-");
-                    newLabel.append(invalidTgtVA.getLabel());
-                    log.info("Revised name for VPlex target: " + newLabel.toString());
-                    vplexVolume.setLabel(newLabel.toString());
-                    dbClient.updateObject(vplexVolume);
-                }
+                log.info("Revised name for VPlex target: " + newLabel.toString());
+                tgtVplexVolume.setLabel(newLabel.toString());
+                dbClient.updateAndReindexObject(tgtVplexVolume);
             }
         }
     }

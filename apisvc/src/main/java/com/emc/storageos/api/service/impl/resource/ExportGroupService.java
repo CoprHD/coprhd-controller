@@ -458,9 +458,10 @@ public class ExportGroupService extends TaskResourceService {
     }
 
     /**
-     * Validate the BlockSnapshot exports from the request param.
+     * Validate the BlockSnapshot exports being added from the request param.
      *
-     * @param param the export group create request param.
+     * @param param the export group update request param.
+     * @param exportGroup the existing export group being updated.
      */
     private void validateBlockSnapshotsForExportGroupUpdate(ExportUpdateParam param, ExportGroup exportGroup) {
         if (param != null && exportGroup != null) {

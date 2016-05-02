@@ -184,7 +184,7 @@ public class CinderMaskingOrchestrator extends AbstractMaskingFirstOrchestrator
                     masks.add(exportMask);
 
                     String maskingStep = generateExportMaskAddVolumesWorkflow(workflow,
-                            null, storage, exportGroup, exportMask, volumeMap);
+                            null, storage, exportGroup, exportMask, volumeMap, null);
                     String zoningMapUpdateStep = generateZoningMapUpdateWorkflow(
                             workflow, maskingStep, exportGroup, storage);
                     generateZoningAddVolumesWorkflow(workflow, zoningMapUpdateStep,

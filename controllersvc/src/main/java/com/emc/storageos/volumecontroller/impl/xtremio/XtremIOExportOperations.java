@@ -5,8 +5,6 @@
 
 package com.emc.storageos.volumecontroller.impl.xtremio;
 
-import static com.emc.storageos.db.client.util.CommonTransformerFunctions.fctnInitiatorToPortName;
-
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -37,6 +35,7 @@ import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.util.CommonTransformerFunctions;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
+import com.emc.storageos.exceptions.DeviceControllerErrors;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
 import com.emc.storageos.util.ExportUtils;
@@ -64,106 +63,217 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
     public void createExportMask(StorageSystem storage, URI exportMaskURI,
             VolumeURIHLU[] volumeURIHLUs, List<URI> targetURIList, List<Initiator> initiatorList,
             TaskCompleter taskCompleter) throws DeviceControllerException {
-        ExportMask exportMask = dbClient.queryObject(ExportMask.class, exportMaskURI);
-        if (exportMask == null || exportMask.getInactive()) {
-            throw new DeviceControllerException("Invalid ExportMask URI: " + exportMaskURI);
-        }
+        _log.info("{} createExportMask START...", storage.getSerialNumber());
+        try {
+            _log.info("createExportMask: Export mask id: {}", exportMaskURI);
+            _log.info("createExportMask: volume-HLU pairs: {}", Joiner.on(',').join(volumeURIHLUs));
+            _log.info("createExportMask: initiators: {}", Joiner.on(',').join(initiatorList));
+            _log.info("createExportMask: assignments: {}", Joiner.on(',').join(targetURIList));
+            _log.info("User assigned HLUs will be ignored as Cinder does not support it.");
 
-        runLunMapCreationAlgorithm(storage, exportMask, volumeURIHLUs, initiatorList,
-                targetURIList, taskCompleter);
+            ExportMask exportMask = dbClient.queryObject(ExportMask.class, exportMaskURI);
+            if (exportMask == null || exportMask.getInactive()) {
+                throw new DeviceControllerException("Invalid ExportMask URI: " + exportMaskURI);
+            }
+
+            runLunMapCreationAlgorithm(storage, exportMask, volumeURIHLUs, initiatorList,
+                    targetURIList, taskCompleter);
+        } catch (final Exception ex) {
+            _log.error("Problem in createExportMask: ", ex);
+            ServiceError serviceError = DeviceControllerErrors.xtremio
+                    .operationFailed("createExportMask", ex.getMessage());
+            taskCompleter.error(dbClient, serviceError);
+        }
+        _log.info("{} createExportMask END...", storage.getSerialNumber());        
     }
 
     @Override
     public void deleteExportMask(StorageSystem storage, URI exportMaskURI, List<URI> volumeURIList,
             List<URI> targetURIList, List<Initiator> initiatorList, TaskCompleter taskCompleter)
                     throws DeviceControllerException {
-        ExportMask exportMask = dbClient.queryObject(ExportMask.class, exportMaskURI);
-        if (exportMask == null || exportMask.getInactive()) {
-            throw new DeviceControllerException("Invalid ExportMask URI: " + exportMaskURI);
+        _log.info("{} deleteExportMask START...", storage.getSerialNumber());
+
+        try {
+            _log.info("Export mask id: {}", exportMaskURI);
+            // TODO DUPP:
+            // 1. Get the volume, targets, and initiators from the caller
+            // 2. Ensure (if possible) that those are the only volumes/initiators impacted by delete mask
+            if (volumeURIList != null) {
+                _log.info("deleteExportMask: volumes:  {}", Joiner.on(',').join(volumeURIList));
+            }
+            if (targetURIList != null) {
+                _log.info("deleteExportMask: assignments: {}", Joiner.on(',').join(targetURIList));
+            }
+            if (initiatorList != null) {
+                _log.info("deleteExportMask: initiators: {}", Joiner.on(',').join(initiatorList));
+            }
+
+            ExportMask exportMask = dbClient.queryObject(ExportMask.class, exportMaskURI);
+            if (exportMask == null || exportMask.getInactive()) {
+                throw new DeviceControllerException("Invalid ExportMask URI: " + exportMaskURI);
+            }
+
+            // initiators are volumes are empty list , hence get it from export mask.
+            List<URI> volumeUris = new ArrayList<URI>(Collections2.transform(exportMask.getVolumes()
+                    .keySet(), CommonTransformerFunctions.FCTN_STRING_TO_URI));
+
+            List<URI> initiatorUriList = new ArrayList<URI>(Collections2.transform(
+                    exportMask.getInitiators(), CommonTransformerFunctions.FCTN_STRING_TO_URI));
+
+            List<Initiator> initiators = dbClient.queryObject(Initiator.class, initiatorUriList);
+
+            runLunMapDeletionOrRemoveInitiatorAlgorithm(storage, exportMask, volumeUris, initiators, taskCompleter);
+        } catch (final Exception ex) {
+            _log.error("Problem in deleteExportMask: ", ex);
+            ServiceError serviceError = DeviceControllerErrors.xtremio
+                    .operationFailed("deleteExportMask", ex.getMessage());
+            taskCompleter.error(dbClient, serviceError);
         }
-
-        // initiators are volumes are empty list , hence get it from export mask.
-
-        List<URI> volumeUris = new ArrayList<URI>(Collections2.transform(exportMask.getVolumes()
-                .keySet(), CommonTransformerFunctions.FCTN_STRING_TO_URI));
-
-        List<URI> initiatorUriList = new ArrayList<URI>(Collections2.transform(
-                exportMask.getInitiators(), CommonTransformerFunctions.FCTN_STRING_TO_URI));
-
-        List<Initiator> initiators = dbClient.queryObject(Initiator.class, initiatorUriList);
-
-        runLunMapDeletionOrRemoveInitiatorAlgorithm(storage, exportMask, volumeUris, initiators, taskCompleter);
+        _log.info("{} deleteExportMask END...", storage.getSerialNumber());
     }
 
     @Override
-    public void addVolume(StorageSystem storage, URI exportMaskURI, VolumeURIHLU[] volumeURIHLUs,
-            TaskCompleter taskCompleter) throws DeviceControllerException {
-        ExportMask exportMask = dbClient.queryObject(ExportMask.class, exportMaskURI);
-        if (exportMask == null || exportMask.getInactive()) {
-            throw new DeviceControllerException("Invalid ExportMask URI: " + exportMaskURI);
-        }
-        Set<String> initiatorUris = exportMask.getInitiators();
-        List<URI> initiatorUriList = new ArrayList<URI>(Collections2.transform(initiatorUris,
-                CommonTransformerFunctions.FCTN_STRING_TO_URI));
-        List<Initiator> initiators = dbClient.queryObject(Initiator.class, initiatorUriList);
+    public void addVolumes(StorageSystem storage, URI exportMaskURI, VolumeURIHLU[] volumeURIHLUs,
+            List<Initiator> initiatorList, TaskCompleter taskCompleter) throws DeviceControllerException {
+        _log.info("{} addVolumes START...", storage.getSerialNumber());
 
-        runLunMapCreationAlgorithm(storage, exportMask, volumeURIHLUs, initiators, null,
-                taskCompleter);
+        try {
+            _log.info("addVolumes: Export mask id: {}", exportMaskURI);
+            _log.info("addVolumes: volume-HLU pairs: {}", Joiner.on(',').join(volumeURIHLUs));
+            // TODO DUPP:
+            // 1. Get initiator list from the caller above for completeness
+            // 2. If possible, log if these volumes are going to be exported to additional initiators than what the request asked for
+            if (initiatorList != null) {
+                _log.info("addVolumes: initiators impacted: {}", Joiner.on(',').join(initiatorList));
+            }
+
+            ExportMask exportMask = dbClient.queryObject(ExportMask.class, exportMaskURI);
+            if (exportMask == null || exportMask.getInactive()) {
+                throw new DeviceControllerException("Invalid ExportMask URI: " + exportMaskURI);
+            }
+            Set<String> initiatorUris = exportMask.getInitiators();
+            List<URI> initiatorUriList = new ArrayList<URI>(Collections2.transform(initiatorUris,
+                    CommonTransformerFunctions.FCTN_STRING_TO_URI));
+            List<Initiator> initiators = dbClient.queryObject(Initiator.class, initiatorUriList);
+
+            runLunMapCreationAlgorithm(storage, exportMask, volumeURIHLUs, initiators, null,
+                    taskCompleter);
+        } catch (final Exception ex) {
+            _log.error("Problem in addVolumes: ", ex);
+            ServiceError serviceError = DeviceControllerErrors.xtremio
+                    .operationFailed("addVolumes", ex.getMessage());
+            taskCompleter.error(dbClient, serviceError);
+        }
+        _log.info("{} addVolumes END...", storage.getSerialNumber());   
+    }
+
+    @Override
+    public void removeVolumes(StorageSystem storage, URI exportMaskURI, List<URI> volumeUris,
+            List<Initiator> initiatorList, TaskCompleter taskCompleter) throws DeviceControllerException {
+        _log.info("{} removeVolumes START...", storage.getSerialNumber());
+
+        try {
+            _log.info("removeVolumes: Export mask id: {}", exportMaskURI);
+            _log.info("removeVolumes: volumes: {}", Joiner.on(',').join(volumeUris));
+            // TODO DUPP:
+            // 1. Get initiator list from the caller
+            // 2. Verify that the initiators are the ONLY ones impacted by this remove volumes, otherwise fail.
+            // 
+            // This implementation is pulling the initiators directly out of the export mask because the caller to detach 
+            //    the volumes needs this information.  This might be OK to do separately than verifying the initiators that are
+            //    impacted from the orchestrator, although it is likely they will be the same list.
+            //
+            if (initiatorList != null) {
+                _log.info("removeVolumes: impacted initiators: {}", Joiner.on(",").join(initiatorList));
+            }
+
+            ExportMask exportMask = dbClient.queryObject(ExportMask.class, exportMaskURI);
+            if (exportMask == null || exportMask.getInactive()) {
+                throw new DeviceControllerException("Invalid ExportMask URI: " + exportMaskURI);
+            }
+
+            Set<String> initiatorUris = exportMask.getInitiators();
+            List<URI> initiatorUriList = new ArrayList<URI>(Collections2.transform(initiatorUris,
+                    CommonTransformerFunctions.FCTN_STRING_TO_URI));
+            List<Initiator> initiators = dbClient.queryObject(Initiator.class, initiatorUriList);
+            runLunMapDeletionAlgorithm(storage, exportMask, volumeUris, initiators, taskCompleter);
+        } catch (final Exception ex) {
+            _log.error("Problem in removeVolumes: ", ex);
+            ServiceError serviceError = DeviceControllerErrors.xtremio
+                    .operationFailed("removeVolumes", ex.getMessage());
+            taskCompleter.error(dbClient, serviceError);
+        }
+        _log.info("{} removeVolumes END...", storage.getSerialNumber());   
+    }
+
+    @Override
+    public void addInitiators(StorageSystem storage, URI exportMaskURI, List<URI> volumeURIs,
+            List<Initiator> initiators, List<URI> targets, TaskCompleter taskCompleter) throws DeviceControllerException {
+        _log.info("{} addInitiators START...", storage.getSerialNumber());
+
+        try {
+            _log.info("addInitiators: Export mask id: {}", exportMaskURI);
+            // TODO DUPP:
+            // 1. Get the impacted volumes from the caller
+            // 2. Log any other volumes that are being exposed to the initiator
+            if (volumeURIs != null) {
+                _log.info("addInitiators: volumes : {}", Joiner.on(',').join(volumeURIs));
+            }
+            _log.info("addInitiators: initiators : {}", Joiner.on(',').join(initiators));
+            _log.info("addInitiators: targets : {}", Joiner.on(",").join(targets));
+
+
+            ExportMask exportMask = dbClient.queryObject(ExportMask.class, exportMaskURI);
+            if (exportMask == null || exportMask.getInactive()) {
+                throw new DeviceControllerException("Invalid ExportMask URI: " + exportMaskURI);
+            }
+            Map<URI, Integer> map = new HashMap<URI, Integer>();
+            for (Entry<String, String> entry : exportMask.getVolumes().entrySet()) {
+                map.put(URI.create(entry.getKey()), Integer.parseInt(entry.getValue()));
+            }
+
+            // to make it uniform , using these structures
+            VolumeURIHLU[] volumeLunArray = ControllerUtils.getVolumeURIHLUArray(
+                    storage.getSystemType(), map, dbClient);
+            runLunMapCreationAlgorithm(storage, exportMask, volumeLunArray, initiators, targets,
+                    taskCompleter);
+        } catch (final Exception ex) {
+            _log.error("Problem in addInitiators: ", ex);
+            ServiceError serviceError = DeviceControllerErrors.xtremio
+                    .operationFailed("addInitiators", ex.getMessage());
+            taskCompleter.error(dbClient, serviceError);
+        }
+        _log.info("{} addInitiators END...", storage.getSerialNumber());  
 
     }
 
     @Override
-    public void removeVolume(StorageSystem storage, URI exportMaskURI, List<URI> volumeUris,
-            TaskCompleter taskCompleter) throws DeviceControllerException {
-        ExportMask exportMask = dbClient.queryObject(ExportMask.class, exportMaskURI);
-        if (exportMask == null || exportMask.getInactive()) {
-            throw new DeviceControllerException("Invalid ExportMask URI: " + exportMaskURI);
-        }
-
-        Set<String> initiatorUris = exportMask.getInitiators();
-        List<URI> initiatorUriList = new ArrayList<URI>(Collections2.transform(initiatorUris,
-                CommonTransformerFunctions.FCTN_STRING_TO_URI));
-        List<Initiator> initiators = dbClient.queryObject(Initiator.class, initiatorUriList);
-        runLunMapDeletionAlgorithm(storage, exportMask, volumeUris, initiators, taskCompleter);
-
-    }
-
-    @Override
-    public void addInitiator(StorageSystem storage, URI exportMaskURI, List<Initiator> initiators,
-            List<URI> targets, TaskCompleter taskCompleter) throws DeviceControllerException {
-        ExportMask exportMask = dbClient.queryObject(ExportMask.class, exportMaskURI);
-        if (exportMask == null || exportMask.getInactive()) {
-            throw new DeviceControllerException("Invalid ExportMask URI: " + exportMaskURI);
-        }
-        Map<URI, Integer> map = new HashMap<URI, Integer>();
-        for (Entry<String, String> entry : exportMask.getVolumes().entrySet()) {
-            map.put(URI.create(entry.getKey()), Integer.parseInt(entry.getValue()));
-        }
-
-        // to make it uniform , using these structures
-        VolumeURIHLU[] volumeLunArray = ControllerUtils.getVolumeURIHLUArray(
-                storage.getSystemType(), map, dbClient);
-        runLunMapCreationAlgorithm(storage, exportMask, volumeLunArray, initiators, targets,
-                taskCompleter);
-
-    }
-
-    @Override
-    public void removeInitiator(StorageSystem storage, URI exportMaskURI,
-            List<Initiator> initiators, List<URI> targets, TaskCompleter taskCompleter)
+    public void removeInitiators(StorageSystem storage, URI exportMaskURI,
+            List<URI> volumeURIList, List<Initiator> initiators, List<URI> targets, TaskCompleter taskCompleter)
                     throws DeviceControllerException {
+        _log.info("{} removeInitiators START...", storage.getSerialNumber());
+
         ExportMask exportMask = dbClient.queryObject(ExportMask.class, exportMaskURI);
         if (exportMask == null || exportMask.getInactive()) {
             throw new DeviceControllerException("Invalid ExportMask URI: " + exportMaskURI);
         }
 
         XtremIOClient client = null;
-        // if host Name is not available in at least one of the initiator, then
-        // set it to
+        // if host Name is not available in at least one of the initiator, then set it to
         // Default_IG;
         List<String> failedIGs = new ArrayList<String>();
         ArrayListMultimap<String, Initiator> groupInitiatorsByIG = ArrayListMultimap.create();
         try {
+            _log.info("removeInitiators: Export mask id: {}", exportMaskURI);
+            // TODO DUPP:
+            // 1. Get the impacted volumes from the caller
+            // 2. If any other volumes are impacted by removing this initiator, fail the operation
+            if (volumeURIList != null) {
+                _log.info("removeInitiators: volumes : {}", Joiner.on(',').join(volumeURIList));
+            }
+            _log.info("removeInitiators: initiators : {}", Joiner.on(',').join(initiators));
+            _log.info("removeInitiators: targets : {}", Joiner.on(',').join(targets));
+
             String hostName = null;
             String clusterName = null;
             client = XtremIOProvUtils.getXtremIOClient(dbClient, storage, xtremioRestClientFactory);
@@ -203,7 +313,7 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
                     failedIGs.add(initiator.getLabel());
                 }
             }
-            dbClient.updateAndReindexObject(exportMask);
+            dbClient.updateObject(exportMask);
 
             if (!failedIGs.isEmpty()) {
                 String errMsg = "Export Operations failed deleting these initiators: ".concat(Joiner.on(", ").join(
@@ -227,7 +337,7 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
             taskCompleter.error(dbClient, serviceError);
             return;
         }
-
+        _log.info("{} removeInitiators END...", storage.getSerialNumber());
     }
 
     @Override

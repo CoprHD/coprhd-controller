@@ -41,6 +41,7 @@ import com.emc.storageos.util.ConnectivityUtil;
 import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.volumecontroller.impl.VolumeURIHLU;
 import com.emc.storageos.volumecontroller.impl.smis.ExportMaskOperations;
+import com.google.common.base.Joiner;
 
 public class CinderExportOperations implements ExportMaskOperations {
 	
@@ -66,12 +67,12 @@ public class CinderExportOperations implements ExportMaskOperations {
             List<Initiator> initiatorList, TaskCompleter taskCompleter)
             throws DeviceControllerException {
         log.info("{} createExportMask START...", storage.getSerialNumber());
-        log.info("Export mask id: {}", exportMaskId);
-        log.info("createExportMask: assignments: {}", targetURIList);
-        log.info("createExportMask: initiators: {}", initiatorList);
-        log.info("createExportMask: volume-HLU pairs: {}", volumeURIHLUs);
-        log.info("User assigned HLUs will be ignored as Cinder does not support it.");
         try {
+            log.info("createExportMask: Export mask id: {}", exportMaskId);
+            log.info("createExportMask: volume-HLU pairs: {}", Joiner.on(',').join(volumeURIHLUs));
+            log.info("createExportMask: initiators: {}", Joiner.on(',').join(initiatorList));
+            log.info("createExportMask: assignments: {}", Joiner.on(',').join(targetURIList));
+            log.info("User assigned HLUs will be ignored as Cinder does not support it.");
 
             ExportMask exportMask = dbClient.queryObject(ExportMask.class, exportMaskId);
             List<Volume> volumes = new ArrayList<Volume>();
@@ -98,7 +99,7 @@ public class CinderExportOperations implements ExportMaskOperations {
             }
 
             updateTargetLunIdInExportMask(volumeToTargetLunMap, exportMask);
-            dbClient.updateAndReindexObject(exportMask);
+            dbClient.updateObject(exportMask);
 
             taskCompleter.ready(dbClient);
         } catch (final Exception ex) {
@@ -116,9 +117,22 @@ public class CinderExportOperations implements ExportMaskOperations {
             List<Initiator> initiatorList, TaskCompleter taskCompleter)
             throws DeviceControllerException {
         log.info("{} deleteExportMask START...", storage.getSerialNumber());
-        log.info("Export mask id: {}", exportMaskId);
 
         try {
+            log.info("Export mask id: {}", exportMaskId);
+            // TODO DUPP:
+            // 1. Get the volume, targets, and initiators from the caller
+            // 2. Ensure (if possible) that those are the only volumes/initiators impacted by delete mask
+            if (volumeURIList != null) {
+                log.info("deleteExportMask: volumes:  {}", Joiner.on(',').join(volumeURIList));
+            }
+            if (targetURIList != null) {
+                log.info("deleteExportMask: assignments: {}", Joiner.on(',').join(targetURIList));
+            }
+            if (initiatorList != null) {
+                log.info("deleteExportMask: initiators: {}", Joiner.on(',').join(initiatorList));
+            }
+            
             // There is no masking concept on Cinder to delete the export mask.
             // But before marking the task completer as ready,
             // detach the volumes from the initiators that are there in the export mask.
@@ -141,9 +155,9 @@ public class CinderExportOperations implements ExportMaskOperations {
                 }
             }
 
-            log.info("deleteExportMask: volumes:  {}", volumeURIList);
-            log.info("deleteExportMask: assignments: {}", targetURIList);
-            log.info("deleteExportMask: initiators: {}", initiatorList);
+            log.info("deleteExportMask: volumes:  {}", Joiner.on(',').join(volumeURIList));
+            log.info("deleteExportMask: assignments: {}", Joiner.on(',').join(targetURIList));
+            log.info("deleteExportMask: initiators: {}", Joiner.on(',').join(initiatorList));
 
             detachVolumesFromInitiators(storage, volumeList, initiatorList);
 
@@ -158,19 +172,25 @@ public class CinderExportOperations implements ExportMaskOperations {
     }
 
     @Override
-    public void addVolume(StorageSystem storage, URI exportMaskId,
-            VolumeURIHLU[] volumeURIHLUs, TaskCompleter taskCompleter)
+    public void addVolumes(StorageSystem storage, URI exportMaskId,
+            VolumeURIHLU[] volumeURIHLUs, List<Initiator> initiatorList, TaskCompleter taskCompleter)
             throws DeviceControllerException {
-        log.info("{} addVolume START...", storage.getSerialNumber());
-        log.info("Export mask id: {}", exportMaskId);
-        log.info("addVolume: volume-HLU pairs: {}", volumeURIHLUs);
-        log.info("User assigned HLUs will be ignored as Cinder does not support it.");
+        log.info("{} addVolumes START...", storage.getSerialNumber());
 
         try {
+            log.info("addVolumes: Export mask id: {}", exportMaskId);
+            log.info("addVolumes: volume-HLU pairs: {}", Joiner.on(',').join(volumeURIHLUs));
+            // TODO DUPP:
+            // 1. Get initiator list from the caller above for completeness
+            // 2. If possible, log if these volumes are going to be exported to additional initiators than what the request asked for
+            if (initiatorList != null) {
+                log.info("addVolumes: initiators impacted: {}", Joiner.on(',').join(initiatorList));
+            }
+            log.info("User assigned HLUs will be ignored as Cinder does not support it.");
 
             ExportMask exportMask = dbClient.queryObject(ExportMask.class, exportMaskId);
             List<Volume> volumes = new ArrayList<Volume>();
-            List<Initiator> initiatorList = new ArrayList<Initiator>();
+            List<Initiator> maskInitiatorList = new ArrayList<Initiator>();
             // map to store target LUN id generated for each volume
             Map<URI, Integer> volumeToTargetLunMap = new HashMap<URI, Integer>();
             StringMap initiators = exportMask.getUserAddedInitiators();
@@ -183,23 +203,23 @@ public class CinderExportOperations implements ExportMaskOperations {
             for (String ini : initiators.values()) {
                 Initiator initiator = dbClient.queryObject(Initiator.class,
                         URI.create(ini));
-                initiatorList.add(initiator);
+                maskInitiatorList.add(initiator);
             }
 
             // Map to store volume to initiatorTargetMap
             Map<Volume, Map<String, List<String>>> volumeToFCInitiatorTargetMap = new HashMap<Volume, Map<String, List<String>>>();
 
-            attachVolumesToInitiators(storage, volumes, initiatorList,
+            attachVolumesToInitiators(storage, volumes, maskInitiatorList,
                     volumeToTargetLunMap, volumeToFCInitiatorTargetMap,
                     exportMask);
 
             // Update targets in the export mask
             if (!volumeToFCInitiatorTargetMap.isEmpty())
             {
-                updateTargetsInExportMask(storage, volumes.get(0), volumeToFCInitiatorTargetMap, initiatorList, exportMask);
+                updateTargetsInExportMask(storage, volumes.get(0), volumeToFCInitiatorTargetMap, maskInitiatorList, exportMask);
             }
             updateTargetLunIdInExportMask(volumeToTargetLunMap, exportMask);
-            dbClient.updateAndReindexObject(exportMask);
+            dbClient.updateObject(exportMask);
 
             taskCompleter.ready(dbClient);
         } catch (final Exception ex) {
@@ -208,22 +228,33 @@ public class CinderExportOperations implements ExportMaskOperations {
                     .operationFailed("doAddVolumes", ex.getMessage());
             taskCompleter.error(dbClient, serviceError);
         }
-        log.info("{} addVolume END...", storage.getSerialNumber());
+        log.info("{} addVolumes END...", storage.getSerialNumber());
     }
 
     @Override
-    public void removeVolume(StorageSystem storage, URI exportMaskId,
-            List<URI> volumeURIs, TaskCompleter taskCompleter)
+    public void removeVolumes(StorageSystem storage, URI exportMaskId,
+            List<URI> volumeURIs, List<Initiator> initiatorList, TaskCompleter taskCompleter)
             throws DeviceControllerException {
-        log.info("{} removeVolume START...", storage.getSerialNumber());
-        log.info("Export mask id: {}", exportMaskId);
-        log.info("removeVolume: volumes: {}", volumeURIs);
+        log.info("{} removeVolumes START...", storage.getSerialNumber());
 
         try {
+            log.info("removeVolumes: Export mask id: {}", exportMaskId);
+            log.info("removeVolumes: volumes: {}", Joiner.on(',').join(volumeURIs));
+            // TODO DUPP:
+            // 1. Get initiator list from the caller
+            // 2. Verify that the initiators are the ONLY ones impacted by this remove volumes, otherwise fail.
+            // 
+            // This implementation is pulling the initiators directly out of the export mask because the caller to detach 
+            //    the volumes needs this information.  This might be OK to do separately than verifying the initiators that are
+            //    impacted from the orchestrator, although it is likely they will be the same list.
+            //
+            if (initiatorList != null) {
+                log.info("removeVolumes: impacted initiators: {}", Joiner.on(",").join(initiatorList));
+            }
 
             ExportMask exportMask = dbClient.queryObject(ExportMask.class, exportMaskId);
             List<Volume> volumes = new ArrayList<Volume>();
-            List<Initiator> initiatorList = new ArrayList<Initiator>();
+            List<Initiator> userAddedInitiatorList = new ArrayList<Initiator>();
             StringMap initiators = exportMask.getUserAddedInitiators();
 
             for (URI volumeURI : volumeURIs) {
@@ -233,10 +264,10 @@ public class CinderExportOperations implements ExportMaskOperations {
             for (String ini : initiators.values()) {
                 Initiator initiator = dbClient.queryObject(Initiator.class,
                         URI.create(ini));
-                initiatorList.add(initiator);
+                userAddedInitiatorList.add(initiator);
             }
 
-            detachVolumesFromInitiators(storage, volumes, initiatorList);
+            detachVolumesFromInitiators(storage, volumes, userAddedInitiatorList);
 
             taskCompleter.ready(dbClient);
         } catch (final Exception ex) {
@@ -245,19 +276,25 @@ public class CinderExportOperations implements ExportMaskOperations {
                     .operationFailed("doRemoveVolumes", ex.getMessage());
             taskCompleter.error(dbClient, serviceError);
         }
-        log.info("{} removeVolume END...", storage.getSerialNumber());
+        log.info("{} removeVolumes END...", storage.getSerialNumber());
     }
 
     @Override
-    public void addInitiator(StorageSystem storage, URI exportMaskId,
-            List<Initiator> initiators, List<URI> targets,
-            TaskCompleter taskCompleter) throws DeviceControllerException {
-        log.info("{} addInitiator START...", storage.getSerialNumber());
-        log.info("Export mask id: {}", exportMaskId);
-        log.info("addInitiator: initiators : {}", initiators);
-        log.info("addInitiator: targets : {}", targets);
+    public void addInitiators(StorageSystem storage, URI exportMaskId,
+            List<URI> volumeURIs, List<Initiator> initiators,
+            List<URI> targets, TaskCompleter taskCompleter) throws DeviceControllerException {
+        log.info("{} addInitiators START...", storage.getSerialNumber());
 
         try {
+            log.info("addInitiators: Export mask id: {}", exportMaskId);
+            // TODO DUPP:
+            // 1. Get the impacted volumes from the caller
+            // 2. Log any other volumes that are being exposed to the initiator
+            if (volumeURIs != null) {
+                log.info("addInitiators: volumes : {}", Joiner.on(',').join(volumeURIs));
+            }
+            log.info("addInitiators: initiators : {}", Joiner.on(',').join(initiators));
+            log.info("addInitiators: targets : {}", Joiner.on(",").join(targets));
 
             ExportMask exportMask = dbClient.queryObject(ExportMask.class, exportMaskId);
             List<Volume> volumeList = new ArrayList<Volume>();
@@ -282,7 +319,7 @@ public class CinderExportOperations implements ExportMaskOperations {
             if (!volumeToFCInitiatorTargetMap.isEmpty())
             {
                 updateTargetsInExportMask(storage, volumeList.get(0), volumeToFCInitiatorTargetMap, initiators, exportMask);
-                dbClient.updateAndReindexObject(exportMask);
+                dbClient.updateObject(exportMask);
             }
 
             // TODO : update volumeToTargetLunMap in export mask.?
@@ -294,19 +331,25 @@ public class CinderExportOperations implements ExportMaskOperations {
                     .operationFailed("doAddInitiators", ex.getMessage());
             taskCompleter.error(dbClient, serviceError);
         }
-        log.info("{} addInitiator END...", storage.getSerialNumber());
+        log.info("{} addInitiators END...", storage.getSerialNumber());
     }
 
     @Override
-    public void removeInitiator(StorageSystem storage, URI exportMaskId,
-            List<Initiator> initiators, List<URI> targets,
-            TaskCompleter taskCompleter) throws DeviceControllerException {
-        log.info("{} removeInitiator START...", storage.getSerialNumber());
-        log.info("Export mask id: {}", exportMaskId);
-        log.info("removeInitiator: initiators : {}", initiators);
-        log.info("removeInitiator: targets : {}", targets);
+    public void removeInitiators(StorageSystem storage, URI exportMaskId,
+            List<URI> volumeURIList, List<Initiator> initiators,
+            List<URI> targets, TaskCompleter taskCompleter) throws DeviceControllerException {
+        log.info("{} removeInitiators START...", storage.getSerialNumber());
 
         try {
+            log.info("removeInitiators: Export mask id: {}", exportMaskId);
+            // TODO DUPP:
+            // 1. Get the impacted volumes from the caller
+            // 2. If any other volumes are impacted by removing this initiator, fail the operation
+            if (volumeURIList != null) {
+                log.info("removeInitiators: volumes : {}", Joiner.on(',').join(volumeURIList));
+            }
+            log.info("removeInitiators: initiators : {}", Joiner.on(',').join(initiators));
+            log.info("removeInitiators: targets : {}", Joiner.on(',').join(targets));
 
             ExportMask exportMask = dbClient.queryObject(ExportMask.class, exportMaskId);
             List<Volume> volumeList = new ArrayList<Volume>();
@@ -327,7 +370,7 @@ public class CinderExportOperations implements ExportMaskOperations {
                     .operationFailed("doRemoveInitiators", ex.getMessage());
             taskCompleter.error(dbClient, serviceError);
         }
-        log.info("{} removeInitiator END...", storage.getSerialNumber());
+        log.info("{} removeInitiators END...", storage.getSerialNumber());
     }
 
     @Override

@@ -912,7 +912,7 @@ abstract public class AbstractBasicMaskingOrchestrator extends AbstractDefaultMa
                             mask.getMaskName(), Joiner.on(",").join(volumesToRemove)));
 
                     generateDeviceSpecificRemoveVolumesWorkflow(workflow, stepMap.get(entry.getKey()), exportGroup, mask, storage,
-                            volumesToRemove, completer);
+                            volumesToRemove, null, completer);
 
                     anyOperationsToDo = true;
 
@@ -1191,7 +1191,7 @@ abstract public class AbstractBasicMaskingOrchestrator extends AbstractDefaultMa
                                 volumesToRemoveList.addAll(volumesToRemove);
                                 previousStep = generateDeviceSpecificExportMaskRemoveVolumesWorkflow(
                                         workflow, previousStep, exportGroup, exportMask, storage,
-                                        volumesToRemoveList, null);
+                                        volumesToRemoveList, null, null);
                                 generatedWorkFlowSteps = true;
                             }
                         }
@@ -1223,7 +1223,7 @@ abstract public class AbstractBasicMaskingOrchestrator extends AbstractDefaultMa
                 if (generatedWorkFlowSteps) {
                     // Add a task to clean up the export group when the export masks remove their volumes
                     previousStep = generateDeviceSpecificExportGroupRemoveVolumesCleanup(workflow, previousStep, storage, exportGroup,
-                            volumeURIs);
+                            volumeURIs, null);
                 }
 
                 String successMessage = String.format(
@@ -1390,7 +1390,7 @@ abstract public class AbstractBasicMaskingOrchestrator extends AbstractDefaultMa
                                 previousStep = generateDeviceSpecificRemoveVolumesWorkflow(
                                         workflow, previousStep,
                                         exportGroup, exportMask, storage,
-                                        new ArrayList<URI>(volumesToRemove), null);
+                                        new ArrayList<URI>(volumesToRemove), null, null);
 
                                 someOperationDone = true;
                             }

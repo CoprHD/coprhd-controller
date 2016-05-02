@@ -242,16 +242,18 @@ public class VmaxExportOperations implements ExportMaskOperations {
             List<Initiator> initiatorList,
             TaskCompleter taskCompleter) throws DeviceControllerException {
         _log.info("{} createExportMask START...", storage.getSerialNumber());
-        _log.info("createExportMask: volume-HLU pairs:  {}", volumeURIHLUs);
-        _log.info("createExportMask: targets:    {}", targetURIList);
-        _log.info("createExportMask: initiators: {}", initiatorList);
+
         Map<StorageGroupPolicyLimitsParam, CIMObjectPath> newlyCreatedChildVolumeGroups = new HashMap<StorageGroupPolicyLimitsParam, CIMObjectPath>();
         ExportOperationContext context = new VmaxExportOperationContext();
         // Prime the context object
         taskCompleter.updateWorkflowStepContext(context);
 
         try {
-
+            _log.info("Export mask id: {}", exportMaskURI);
+            _log.info("createExportMask: volume-HLU pairs: {}", Joiner.on(',').join(volumeURIHLUs));
+            _log.info("createExportMask: initiators: {}", Joiner.on(',').join(initiatorList));
+            _log.info("createExportMask: assignments: {}", Joiner.on(',').join(targetURIList));
+            
             ExportMask mask = _dbClient.queryObject(ExportMask.class, exportMaskURI);
             String maskingViewName = generateMaskViewName(storage, mask);
 
@@ -329,6 +331,20 @@ public class VmaxExportOperations implements ExportMaskOperations {
             TaskCompleter taskCompleter) throws DeviceControllerException {
         _log.info("{} deleteExportMask START...", storage.getSerialNumber());
         try {
+            _log.info("Export mask id: {}", exportMaskURI);
+            // TODO DUPP:
+            // 1. Get the volume, targets, and initiators from the caller
+            // 2. Ensure (if possible) that those are the only volumes/initiators impacted by delete mask
+            if (volumeURIList != null) {
+                _log.info("deleteExportMask: volumes:  {}", Joiner.on(',').join(volumeURIList));
+            }
+            if (targetURIList != null) {
+                _log.info("deleteExportMask: assignments: {}", Joiner.on(',').join(targetURIList));
+            }
+            if (initiatorList != null) {
+                _log.info("deleteExportMask: initiators: {}", Joiner.on(',').join(initiatorList));
+            }
+
             boolean isVmax3 = storage.checkIfVmax3();
             WBEMClient client = _helper.getConnection(storage).getCimClient();
             String maskingViewName = _helper.getExportMaskName(exportMaskURI);
@@ -660,12 +676,21 @@ public class VmaxExportOperations implements ExportMaskOperations {
     }
 
     @Override
-    public void addVolume(StorageSystem storage,
+    public void addVolumes(StorageSystem storage,
             URI exportMaskURI,
             VolumeURIHLU[] volumeURIHLUs,
-            TaskCompleter taskCompleter) throws DeviceControllerException {
-        _log.info("{} addVolume START...", storage.getSerialNumber());
+            List<Initiator> initiatorList, TaskCompleter taskCompleter) throws DeviceControllerException {
+        _log.info("{} addVolumes START...", storage.getSerialNumber());
         try {
+            _log.info("addVolumes: Export mask id: {}", exportMaskURI);
+            _log.info("addVolumes: volume-HLU pairs: {}", Joiner.on(',').join(volumeURIHLUs));
+            // TODO DUPP:
+            // 1. Get initiator list from the caller above for completeness
+            // 2. If possible, log if these volumes are going to be exported to additional initiators than what the request asked for
+            if (initiatorList != null) {
+                _log.info("addVolumes: initiators impacted: {}", Joiner.on(',').join(initiatorList));
+            }
+                
             boolean isVmax3 = storage.checkIfVmax3();
             ExportOperationContext context = new VmaxExportOperationContext();
             // Prime the context object
@@ -1004,11 +1029,11 @@ public class VmaxExportOperations implements ExportMaskOperations {
             }
             taskCompleter.ready(_dbClient);
         } catch (Exception e) {
-            _log.error(String.format("addVolume failed - maskName: %s", exportMaskURI.toString()), e);
+            _log.error(String.format("addVolumes failed - maskName: %s", exportMaskURI.toString()), e);
             ServiceError serviceError = DeviceControllerException.errors.jobFailed(e);
             taskCompleter.error(_dbClient, serviceError);
         }
-        _log.info("{} addVolume END...", storage.getSerialNumber());
+        _log.info("{} addVolumes END...", storage.getSerialNumber());
     }
 
     /**
@@ -1040,13 +1065,22 @@ public class VmaxExportOperations implements ExportMaskOperations {
     }
 
     @Override
-    public void removeVolume(StorageSystem storage,
+    public void removeVolumes(StorageSystem storage,
             URI exportMaskURI,
             List<URI> volumeURIList,
-            TaskCompleter taskCompleter) throws DeviceControllerException {
-        _log.info("{} removeVolume START...", storage.getSerialNumber());
+            List<Initiator> initiatorList, TaskCompleter taskCompleter) throws DeviceControllerException {
+        _log.info("{} removeVolumes START...", storage.getSerialNumber());
 
         try {
+            _log.info("removeVolumes: Export mask id: {}", exportMaskURI);
+            _log.info("removeVolumes: volumes: {}", Joiner.on(',').join(volumeURIList));
+            // TODO DUPP:
+            // 1. Get initiator list from the caller
+            // 2. Verify that the initiators are the ONLY ones impacted by this remove volumes, otherwise fail.
+            if (initiatorList != null) {
+                _log.info("removeVolumes: impacted initiators: {}", Joiner.on(",").join(initiatorList));
+            }
+            
             boolean isVmax3 = storage.checkIfVmax3();
             WBEMClient client = _helper.getConnection(storage).getCimClient();
             // Get the context from the task completer, in case this is a rollback.
@@ -1214,7 +1248,7 @@ public class VmaxExportOperations implements ExportMaskOperations {
                 taskCompleter.ready(_dbClient);
             }
         } catch (Exception e) {
-            _log.error(String.format("removeVolume failed - maskName: %s", exportMaskURI.toString()), e);
+            _log.error(String.format("removeVolumes failed - maskName: %s", exportMaskURI.toString()), e);
             ServiceError serviceError = null;
             if (null != e.getMessage() && e.getMessage().contains("FAST association cannot have an empty storage group")) {
                 serviceError = DeviceControllerException.errors.concurrentRemoveFromSGCausesEmptySG(e);
@@ -1223,7 +1257,7 @@ public class VmaxExportOperations implements ExportMaskOperations {
             }
             taskCompleter.error(_dbClient, serviceError);
         }
-        _log.info("{} removeVolume END...", storage.getSerialNumber());
+        _log.info("{} removeVolumes END...", storage.getSerialNumber());
     }
 
     /**
@@ -1343,10 +1377,20 @@ public class VmaxExportOperations implements ExportMaskOperations {
     }
 
     @Override
-    public void addInitiator(StorageSystem storage, URI exportMaskURI,
-            List<Initiator> initiatorList, List<URI> targetURIList, TaskCompleter taskCompleter) throws DeviceControllerException {
-        _log.info("{} addInitiator START...", storage.getSerialNumber());
+    public void addInitiators(StorageSystem storage, URI exportMaskURI,
+            List<URI> volumeURIs, List<Initiator> initiatorList, List<URI> targetURIList, TaskCompleter taskCompleter) throws DeviceControllerException {
+        _log.info("{} addInitiators START...", storage.getSerialNumber());
         try {
+            _log.info("addInitiators: Export mask id: {}", exportMaskURI);
+            // TODO DUPP:
+            // 1. Get the impacted volumes from the caller
+            // 2. Log any other volumes that are being exposed to the initiator
+            if (volumeURIs != null) {
+                _log.info("addInitiators: volumes : {}", Joiner.on(',').join(volumeURIs));
+            }
+            _log.info("addInitiators: initiators : {}", Joiner.on(',').join(initiatorList));
+            _log.info("addInitiators: targets : {}", Joiner.on(",").join(targetURIList));
+            
             ExportOperationContext context = new VmaxExportOperationContext();
             // Prime the context object
             taskCompleter.updateWorkflowStepContext(context);
@@ -1413,23 +1457,23 @@ public class VmaxExportOperations implements ExportMaskOperations {
 
                 _dbClient.updateObject(exportMask);
             }
-            _log.info(String.format("addInitiator succeeded - maskName: %s", exportMaskURI.toString()));
+            _log.info(String.format("addInitiators succeeded - maskName: %s", exportMaskURI.toString()));
             taskCompleter.ready(_dbClient);
         } catch (Exception e) {
-            _log.error(String.format("addInitiator failed - maskName: %s", exportMaskURI.toString()), e);
+            _log.error(String.format("addInitiators failed - maskName: %s", exportMaskURI.toString()), e);
             ServiceError serviceError = DeviceControllerException.errors.jobFailed(e);
             taskCompleter.error(_dbClient, serviceError);
         }
-        _log.info("{} addInitiator END...", storage == null ? null : storage.getSerialNumber());
+        _log.info("{} addInitiators END...", storage == null ? null : storage.getSerialNumber());
     }
 
     @Override
-    public void removeInitiator(StorageSystem storage,
+    public void removeInitiators(StorageSystem storage,
             URI exportMaskURI,
+            List<URI> volumeURIList,
             List<Initiator> initiatorList,
-            List<URI> targetURIList,
-            TaskCompleter taskCompleter) throws DeviceControllerException {
-        _log.info("{} removeInitiator START...", storage == null ? null : storage.getSerialNumber());
+            List<URI> targetURIList, TaskCompleter taskCompleter) throws DeviceControllerException {
+        _log.info("{} removeInitiators START...", storage == null ? null : storage.getSerialNumber());
         String clusterName = getClusterNameFromInitiators(initiatorList);
         if (clusterName == null) {
             final String logMsg = "All initiators should belong to the same cluster or not have a cluster name at all";
@@ -1441,6 +1485,16 @@ public class VmaxExportOperations implements ExportMaskOperations {
         } else {
             CloseableIterator<CIMInstance> cigInstances = null;
             try {
+                _log.info("removeInitiators: Export mask id: {}", exportMaskURI);
+                // TODO DUPP:
+                // 1. Get the impacted volumes from the caller
+                // 2. If any other volumes are impacted by removing this initiator, fail the operation
+                if (volumeURIList != null) {
+                    _log.info("removeInitiators: volumes : {}", Joiner.on(',').join(volumeURIList));
+                }
+                _log.info("removeInitiators: initiators : {}", Joiner.on(',').join(initiatorList));
+                _log.info("removeInitiators: targets : {}", Joiner.on(',').join(targetURIList));
+                
                 // Get the context from the task completer, in case this is a rollback.
                 ExportOperationContext context = (ExportOperationContext) WorkflowService.getInstance().loadStepData(
                         taskCompleter.getOpId());
@@ -1535,7 +1589,7 @@ public class VmaxExportOperations implements ExportMaskOperations {
 
                         CIMInstance portGroupInstance = _helper.getPortGroupInstance(storage, mask.getMaskName());
                         if (null == portGroupInstance) {
-                            String errMsg = String.format("removeInitiator failed - maskName %s : Port group not found ",
+                            String errMsg = String.format("removeInitiators failed - maskName %s : Port group not found ",
                                     mask.getMaskName());
                             ServiceError serviceError = DeviceControllerException.errors.jobFailedMsg(errMsg, null);
                             taskCompleter.error(_dbClient, serviceError);
@@ -1574,10 +1628,10 @@ public class VmaxExportOperations implements ExportMaskOperations {
                         }
                     }
                 }
-                _log.info(String.format("removeInitiator succeeded - maskName: %s", exportMaskURI.toString()));
+                _log.info(String.format("removeInitiators succeeded - maskName: %s", exportMaskURI.toString()));
                 taskCompleter.ready(_dbClient);
             } catch (Exception e) {
-                _log.error(String.format("removeInitiator failed - maskName: %s", exportMaskURI.toString()), e);
+                _log.error(String.format("removeInitiators failed - maskName: %s", exportMaskURI.toString()), e);
                 String opName = ResourceOperationTypeEnum.DELETE_EXPORT_INITIATOR.getName();
                 ServiceError serviceError = DeviceControllerException.errors.jobFailedOpMsg(opName, e.getMessage());
                 taskCompleter.error(_dbClient, serviceError);
@@ -1587,7 +1641,7 @@ public class VmaxExportOperations implements ExportMaskOperations {
                 }
             }
         }
-        _log.info("{} removeInitiator END...", storage == null ? null : storage.getSerialNumber());
+        _log.info("{} removeInitiators END...", storage == null ? null : storage.getSerialNumber());
     }
 
     /**

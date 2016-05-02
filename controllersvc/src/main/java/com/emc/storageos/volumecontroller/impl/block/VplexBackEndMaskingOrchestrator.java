@@ -39,8 +39,8 @@ public interface VplexBackEndMaskingOrchestrator extends MaskingOrchestrator {
      *            [IN] - URI to Volume object mapping. These are the volumes to place
      *
      */
-            void suggestExportMasksForPlacement(StorageSystem storage, BlockStorageDevice device, List<Initiator> initiators,
-                    ExportMaskPlacementDescriptor placementDescriptor);
+    void suggestExportMasksForPlacement(StorageSystem storage, BlockStorageDevice device, List<Initiator> initiators,
+            ExportMaskPlacementDescriptor placementDescriptor);
 
     /**
      * Searches the storage device for any ExportMask (e.g. MaskingView) that contains
@@ -51,7 +51,7 @@ public interface VplexBackEndMaskingOrchestrator extends MaskingOrchestrator {
      * @param initiators - List of Initiator objects to be searched for.
      * @return a map of URIs to Export Masks that contain any of the initiators
      */
-            Map<URI, ExportMask> readExistingExportMasks(
+    Map<URI, ExportMask> readExistingExportMasks(
             StorageSystem storage, BlockStorageDevice device,
             List<Initiator> initiators);
 
@@ -63,7 +63,7 @@ public interface VplexBackEndMaskingOrchestrator extends MaskingOrchestrator {
      * @param mask -- ExportMask
      * @return -- updated ExportMask that is also persisted
      */
-            ExportMask refreshExportMask(StorageSystem storage,
+    ExportMask refreshExportMask(StorageSystem storage,
             BlockStorageDevice device, ExportMask mask);
 
     /**
@@ -111,7 +111,7 @@ public interface VplexBackEndMaskingOrchestrator extends MaskingOrchestrator {
      * @param completer -- TaskCompleter to be fired when complete.
      * @return Workflow.Method
      */
-            Workflow.Method createOrAddVolumesToExportMaskMethod(URI arrayURI,
+    Workflow.Method createOrAddVolumesToExportMaskMethod(URI arrayURI,
             URI exportGroupURI, URI exportMaskURI,
             Map<URI, Integer> volumeMap, TaskCompleter completer);
 
@@ -126,7 +126,7 @@ public interface VplexBackEndMaskingOrchestrator extends MaskingOrchestrator {
      * @param completer -- TaskCompleter to be fired when complete.
      * @param stepId --Step id of Workflow Step.
      */
-            void createOrAddVolumesToExportMask(URI arrayURI, URI exportGroupURI, URI exportMaskURI,
+    void createOrAddVolumesToExportMask(URI arrayURI, URI exportGroupURI, URI exportMaskURI,
             Map<URI, Integer> volumeMap, TaskCompleter completer, String stepId);
 
     /**
@@ -139,12 +139,13 @@ public interface VplexBackEndMaskingOrchestrator extends MaskingOrchestrator {
      * @param exportGroupURI -- ExportGroup URI
      * @param exportMaskURI -- ExportMask URI
      * @param volumes -- List of Volume URIs to be removed from the Mask
+     * @param initiatorURIs -- Initiators that are impacted by this change
      * @param completer -- Task completer to be fired when complete.
      * @return
      */
-            Workflow.Method deleteOrRemoveVolumesFromExportMaskMethod(URI arrayURI,
+    Workflow.Method deleteOrRemoveVolumesFromExportMaskMethod(URI arrayURI,
             URI exportGroupURI, URI exportMaskURI,
-            List<URI> volumes, TaskCompleter completer);
+            List<URI> volumes, List<URI> initiatorURIs, TaskCompleter completer);
 
     /**
      * Delete an Export Mask (VMAX: Masking View, VNX: Storage Group) on the backend array
@@ -155,9 +156,10 @@ public interface VplexBackEndMaskingOrchestrator extends MaskingOrchestrator {
      * @param exportGroupURI -- ExportGroup URI
      * @param exportMaskURI -- ExportMask URI
      * @param volumes -- List of volume URIs
+     * @param initiatorURIs -- Initiators that are impacted by this change
      * @param completer -- TaskCompleter to be fired when complete.
      * @param stepId -- Workflow step id.
      */
-            void deleteOrRemoveVolumesFromExportMask(URI arrayURI, URI exportGroupURI, URI exportMaskURI,
-            List<URI> volumes, TaskCompleter completer, String stepId);
+    void deleteOrRemoveVolumesFromExportMask(URI arrayURI, URI exportGroupURI, URI exportMaskURI,
+            List<URI> volumes, List<URI> initiatorURIs, TaskCompleter completer, String stepId);
 }

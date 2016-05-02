@@ -68,7 +68,7 @@ public abstract class DefaultBlockStorageDevice implements BlockStorageDevice, R
     }
 
     @Override
-    public void doExportGroupCreate(StorageSystem storage,
+    public void doExportCreate(StorageSystem storage,
             ExportMask exportMask, Map<URI, Integer> volumeMap,
             List<Initiator> initiators, List<URI> targets,
             TaskCompleter taskCompleter) throws DeviceControllerException {
@@ -77,8 +77,8 @@ public abstract class DefaultBlockStorageDevice implements BlockStorageDevice, R
     }
 
     @Override
-    public void doExportGroupDelete(StorageSystem storage,
-            ExportMask exportMask, TaskCompleter taskCompleter)
+    public void doExportDelete(StorageSystem storage,
+            ExportMask exportMask, List<URI> volumeURIs, List<URI> initiatorURIs, TaskCompleter taskCompleter)
             throws DeviceControllerException {
         throw DeviceControllerException.exceptions
                 .blockDeviceOperationNotSupported();
@@ -86,7 +86,7 @@ public abstract class DefaultBlockStorageDevice implements BlockStorageDevice, R
 
     @Override
     public void doExportAddVolume(StorageSystem storage, ExportMask exportMask,
-            URI volume, Integer lun, TaskCompleter taskCompleter)
+            URI volume, Integer lun, List<Initiator> initiators, TaskCompleter taskCompleter)
             throws DeviceControllerException {
         throw DeviceControllerException.exceptions
                 .blockDeviceOperationNotSupported();
@@ -94,15 +94,15 @@ public abstract class DefaultBlockStorageDevice implements BlockStorageDevice, R
 
     @Override
     public void doExportAddVolumes(StorageSystem storage,
-            ExportMask exportMask, Map<URI, Integer> volumes,
-            TaskCompleter taskCompleter) throws DeviceControllerException {
+            ExportMask exportMask, List<Initiator> initiators,
+            Map<URI, Integer> volumes, TaskCompleter taskCompleter) throws DeviceControllerException {
         throw DeviceControllerException.exceptions
                 .blockDeviceOperationNotSupported();
     }
 
     @Override
     public void doExportRemoveVolume(StorageSystem storage,
-            ExportMask exportMask, URI volume, TaskCompleter taskCompleter)
+            ExportMask exportMask, URI volume, List<Initiator> initiators, TaskCompleter taskCompleter)
             throws DeviceControllerException {
         throw DeviceControllerException.exceptions
                 .blockDeviceOperationNotSupported();
@@ -111,23 +111,23 @@ public abstract class DefaultBlockStorageDevice implements BlockStorageDevice, R
     @Override
     public void doExportRemoveVolumes(StorageSystem storage,
             ExportMask exportMask, List<URI> volumes,
-            TaskCompleter taskCompleter) throws DeviceControllerException {
+            List<Initiator> initiators, TaskCompleter taskCompleter) throws DeviceControllerException {
         throw DeviceControllerException.exceptions
                 .blockDeviceOperationNotSupported();
     }
 
     @Override
     public void doExportAddInitiator(StorageSystem storage,
-            ExportMask exportMask, Initiator initiator, List<URI> targets,
-            TaskCompleter taskCompleter) throws DeviceControllerException {
+            ExportMask exportMask, List<URI> volumeURIs, Initiator initiator,
+            List<URI> targets, TaskCompleter taskCompleter) throws DeviceControllerException {
         throw DeviceControllerException.exceptions
                 .blockDeviceOperationNotSupported();
     }
 
     @Override
     public void doExportAddInitiators(StorageSystem storage,
-            ExportMask exportMask, List<Initiator> initiators,
-            List<URI> targets, TaskCompleter taskCompleter)
+            ExportMask exportMask, List<URI> volumeURIs,
+            List<Initiator> initiators, List<URI> targets, TaskCompleter taskCompleter)
             throws DeviceControllerException {
         throw DeviceControllerException.exceptions
                 .blockDeviceOperationNotSupported();
@@ -135,16 +135,16 @@ public abstract class DefaultBlockStorageDevice implements BlockStorageDevice, R
 
     @Override
     public void doExportRemoveInitiator(StorageSystem storage,
-            ExportMask exportMask, Initiator initiator, List<URI> targets,
-            TaskCompleter taskCompleter) throws DeviceControllerException {
+            ExportMask exportMask, List<URI> volumes, Initiator initiator,
+            List<URI> targets, TaskCompleter taskCompleter) throws DeviceControllerException {
         throw DeviceControllerException.exceptions
                 .blockDeviceOperationNotSupported();
     }
 
     @Override
     public void doExportRemoveInitiators(StorageSystem storage,
-            ExportMask exportMask, List<Initiator> initiators,
-            List<URI> targets, TaskCompleter taskCompleter)
+            ExportMask exportMask, List<URI> volumes,
+            List<Initiator> initiators, List<URI> targets, TaskCompleter taskCompleter)
             throws DeviceControllerException {
         throw DeviceControllerException.exceptions
                 .blockDeviceOperationNotSupported();

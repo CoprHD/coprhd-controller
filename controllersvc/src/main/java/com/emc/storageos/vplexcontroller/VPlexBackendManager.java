@@ -627,7 +627,7 @@ public class VPlexBackendManager {
                     mask.getId(), volumes, stepId);
             VplexBackEndMaskingOrchestrator orca = getOrch(storage);
             Workflow.Method removeVolumesMethod = orca.deleteOrRemoveVolumesFromExportMaskMethod(
-                    storage.getId(), exportGroup.getId(), mask.getId(), volumes, exportTaskCompleter);
+                    storage.getId(), exportGroup.getId(), mask.getId(), volumes, null, exportTaskCompleter);
             workflow.createStep(EXPORT_STEP,
                     String.format("Removing volume from ExportMask %s", mask.getMaskName()),
                     previousStepId, storage.getId(), storage.getSystemType(), orca.getClass(),
@@ -850,7 +850,7 @@ public class VPlexBackendManager {
         Workflow.Method updateMaskMethod = orca.createOrAddVolumesToExportMaskMethod(
                 array.getId(), exportGroup.getId(), exportMask.getId(), volumeLunIdMap, createCompleter);
         Workflow.Method rollbackMaskMethod = orca.deleteOrRemoveVolumesFromExportMaskMethod(
-                array.getId(), exportGroup.getId(), exportMask.getId(), volumeList, rollbackCompleter);
+                array.getId(), exportGroup.getId(), exportMask.getId(), volumeList, null, rollbackCompleter);
         workflow.createStep(EXPORT_STEP, "createOrAddVolumesToExportMask: " + exportMask.getMaskName(),
                 previousStepId, array.getId(), array.getSystemType(), orca.getClass(),
                 updateMaskMethod, rollbackMaskMethod, maskStepId);

@@ -11,7 +11,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
-import com.emc.storageos.plugins.common.Constants;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -24,8 +23,8 @@ import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.util.StringSetUtil;
 import com.emc.storageos.exceptions.DeviceControllerException;
-import com.emc.storageos.networkcontroller.NetworkFCContext;
 import com.emc.storageos.networkcontroller.impl.NetworkDeviceController;
+import com.emc.storageos.plugins.common.Constants;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.volumecontroller.BlockStorageDevice;
@@ -104,9 +103,9 @@ public class MaskingWorkflowEntryPoints implements Controller {
      * 
      * @param storageURI - URI of the Storage array.
      * @param exportGroupURI - URI of the ExportGroup
+     * @param exportMaskURI - The URI of the Export Mask.
      * @param volumeMap - A map of Volume URI to HUL Integer value.
      * @param initiatorURIs - A list of Initiator URIs.
-     * @param exportMaskURI - The URI of the Export Mask.
      * @param targets - A list of URIs representing Targets.
      * @param taskCompleter - The ExportCreateCompleter.
      * @param token - A String token that can be used to update the
@@ -115,16 +114,19 @@ public class MaskingWorkflowEntryPoints implements Controller {
      * 
      */
     public void doExportGroupCreate(URI storageURI, URI exportGroupURI,
-            Map<URI, Integer> volumeMap, List<URI> initiatorURIs,
-            URI exportMaskURI, List<URI> targets,
+            URI exportMaskURI, Map<URI, Integer> volumeMap,
+            List<URI> initiatorURIs, List<URI> targets,
             TaskCompleter taskCompleter,
             String token) throws ControllerException {
         String call =
-                String.format("doExportGroupCreate(%s, %s, [%s], [%s], %s, [%s], %s)",
-                        storageURI.toString(), exportGroupURI.toString(),
-                        Joiner.on(',').join(volumeMap.entrySet()),
-                        Joiner.on(',').join(initiatorURIs), exportMaskURI,
-                        Joiner.on(',').join(targets), taskCompleter.getOpId());
+                String.format("doExportGroupCreate(%s, %s, %s, [%s], [%s], [%s], %s)",
+                        storageURI.toString(), 
+                        exportGroupURI.toString(),
+                        exportMaskURI.toString(),
+                        volumeMap != null ? Joiner.on(',').join(volumeMap.entrySet()) : "No Volumes",
+                        initiatorURIs != null ? Joiner.on(',').join(initiatorURIs) : "No Initiators", 
+                        targets != null ? Joiner.on(',').join(targets) : "No Target Ports", 
+                        taskCompleter.getOpId());
         try {
             WorkflowStepCompleter.stepExecuting(token);
             List<Initiator> initiators = _dbClient.queryObject(Initiator.class,
@@ -134,7 +136,7 @@ public class MaskingWorkflowEntryPoints implements Controller {
             StorageSystem storage = _dbClient
                     .queryObject(StorageSystem.class, storageURI);
 
-            getDevice(storage).doExportGroupCreate(storage, exportMask, volumeMap,
+            getDevice(storage).doExportCreate(storage, exportMask, volumeMap,
                     initiators, targets, taskCompleter);
 
             _log.info(String.format("%s end", call));
@@ -177,7 +179,7 @@ public class MaskingWorkflowEntryPoints implements Controller {
             _log.info("Step {} has stored step data other than ExportOperationContext. Exception: {}", token, e);
         }
         _log.info("Rolling back operations: " + context);
-        doExportGroupDelete(storageURI, exportGroupURI, exportMaskURI, taskCompleter, token);
+        doExportGroupDelete(storageURI, exportGroupURI, exportMaskURI, null, null, taskCompleter, token);
     }
 
     /**
@@ -233,9 +235,12 @@ public class MaskingWorkflowEntryPoints implements Controller {
             URI exportMaskURI, Map<URI, Integer> volumeMap,
             TaskCompleter taskCompleter,
             String token) throws ControllerException {
-        String call = String.format("doExportGroupAddVolumes(%s, %s, %s, %s)",
-                storageURI.toString(), exportGroupURI.toString(),
-                Joiner.on(',').join(volumeMap.entrySet()), taskCompleter.getOpId());
+        String call = String.format("doExportGroupAddVolumes(%s, %s, %s, [%s], %s)",
+                storageURI.toString(), 
+                exportGroupURI.toString(),
+                exportMaskURI.toString(),
+                Joiner.on(',').join(volumeMap.entrySet()), 
+                taskCompleter.getOpId());
         try {
             WorkflowStepCompleter.stepExecuting(token);
             ExportMask exportMask = _dbClient
@@ -243,8 +248,8 @@ public class MaskingWorkflowEntryPoints implements Controller {
             StorageSystem storage = _dbClient
                     .queryObject(StorageSystem.class, storageURI);
 
-            getDevice(storage).doExportAddVolumes(storage, exportMask, volumeMap,
-                    taskCompleter);
+            getDevice(storage).doExportAddVolumes(storage, exportMask, null,
+                    volumeMap, taskCompleter);
 
             _log.info(String.format("%s end", call));
         } catch (final InternalException e) {
@@ -266,16 +271,16 @@ public class MaskingWorkflowEntryPoints implements Controller {
      * @param exportGroupURI [in] - ExportGroup URI
      * @param exportMaskURI [in] - ExportMask URI
      * @param volumeMap [in] - Map of Volume URI to HLU Integer value
+     * @param initiatorURIs [in] - Impacted initiators
      * @param contextKey [in] - context token
      * @param token [in] - String token generated by the rollback processing
-     * 
      * @throws ControllerException
      */
     public void rollbackExportGroupAddVolumes(URI storageURI, URI exportGroupURI,
             URI exportMaskURI,
             Map<URI, Integer> volumeMap,
-            String contextKey,
-            String token) throws ControllerException {
+            List<URI> initiatorURIs,
+            String contextKey, String token) throws ControllerException {
         List<URI> list = new ArrayList<URI>();
         list.addAll(volumeMap.keySet());
         ExportTaskCompleter taskCompleter =
@@ -289,15 +294,15 @@ public class MaskingWorkflowEntryPoints implements Controller {
         } catch (ClassCastException e) {
             _log.info("Step {} has stored step data other than ExportOperationContext. Exception: {}", token, e);
         }
+
         doExportGroupRemoveVolumes(storageURI, exportGroupURI, exportMaskURI, list,
-                taskCompleter, token);
+                initiatorURIs, taskCompleter, token);
     }
 
     public void exportGroupDelete(URI storageURI, URI exportGroupURI,
             String token) throws ControllerException {
         String call = String.format("doExportGroupDelete(%s, %s, %s)",
                 storageURI.toString(), exportGroupURI.toString(), token);
-        NetworkFCContext networkContext = new NetworkFCContext();
         TaskCompleter taskCompleter = new ExportDeleteCompleter(exportGroupURI, false, token);
         try {
             _log.info(String.format("%s start", call));
@@ -324,10 +329,10 @@ public class MaskingWorkflowEntryPoints implements Controller {
                 List<URI> exportMaskURIs = new ArrayList<URI>();
                 List<URI> volumeURIs = ExportMaskUtils.getVolumeURIs(exportMask);
                 exportMaskURIs.add(exportMask.getId());
-                boolean zoningSuccess = _networkDeviceController
+                _networkDeviceController
                         .zoneExportMasksDelete(exportGroupURI, exportMaskURIs, volumeURIs, UUID.randomUUID().toString());
-                getDevice(storage).doExportGroupDelete(storage, exportMask,
-                        taskCompleter);
+                getDevice(storage).doExportDelete(storage, exportMask,
+                        null, null, taskCompleter);
             } else {
                 _log.info("export_delete: no export mask, task completed");
                 taskCompleter.ready(_dbClient);
@@ -345,20 +350,24 @@ public class MaskingWorkflowEntryPoints implements Controller {
     }
 
     public void doExportGroupDelete(URI storageURI, URI exportGroupURI,
-            URI exportMaskURI, TaskCompleter taskCompleter,
-            String token) throws ControllerException {
+            URI exportMaskURI, List<URI> volumeURIs,
+            List<URI> initiatorURIs, TaskCompleter taskCompleter, String token) throws ControllerException {
         String call =
-                String.format("doExportGroupDelete(%s, %s, %s, %s)",
-                        storageURI.toString(), exportGroupURI.toString(),
-                        exportMaskURI, taskCompleter.getOpId());
+                String.format("doExportGroupDelete(%s, %s, %s, [%s], [%s], %s)",
+                        storageURI.toString(), 
+                        exportGroupURI.toString(),
+                        exportMaskURI.toString(),
+                        volumeURIs != null ? Joiner.on(',').join(volumeURIs) : "No Volumes", 
+                        initiatorURIs != null ? Joiner.on(',').join(initiatorURIs) : "No Initiators", 
+                        taskCompleter.getOpId());
         try {
             WorkflowStepCompleter.stepExecuting(token);
             ExportMask exportMask = _dbClient
                     .queryObject(ExportMask.class, exportMaskURI);
             StorageSystem storage = _dbClient
                     .queryObject(StorageSystem.class, storageURI);
-
-            getDevice(storage).doExportGroupDelete(storage, exportMask, taskCompleter);
+            
+            getDevice(storage).doExportDelete(storage, exportMask, volumeURIs, initiatorURIs, taskCompleter);
 
             _log.info(String.format("%s end", call));
         } catch (final InternalException e) {
@@ -373,20 +382,25 @@ public class MaskingWorkflowEntryPoints implements Controller {
 
     public void doExportGroupRemoveVolumes(URI storageURI, URI exportGroupURI,
             URI exportMaskURI, List<URI> volumeURIs,
-            TaskCompleter taskCompleter,
-            String token) throws ControllerException {
-        String call = String.format("doExportGroupRemoveVolumes(%s, %s, %s, %s)",
-                storageURI.toString(), exportGroupURI.toString(),
-                Joiner.on(',').join(volumeURIs), taskCompleter.getOpId());
+            List<URI> initiatorURIs,
+            TaskCompleter taskCompleter, String token) throws ControllerException {
+        String call = String.format("doExportGroupRemoveVolumes(%s, %s, %s, [%s], [%s], %s)",
+                storageURI.toString(), 
+                exportGroupURI.toString(),
+                exportMaskURI.toString(),
+                volumeURIs != null ? Joiner.on(',').join(volumeURIs) : "No Volumes", 
+                initiatorURIs != null ? Joiner.on(',').join(initiatorURIs) : "No Initiators", 
+                taskCompleter.getOpId());
         try {
             WorkflowStepCompleter.stepExecuting(token);
             ExportMask exportMask = _dbClient
                     .queryObject(ExportMask.class, exportMaskURI);
             StorageSystem storage = _dbClient
                     .queryObject(StorageSystem.class, storageURI);
-
+            List<Initiator> initiators = _dbClient.queryObject(Initiator.class, initiatorURIs);
+            
             getDevice(storage).doExportRemoveVolumes(storage, exportMask, volumeURIs,
-                    taskCompleter);
+                    initiators, taskCompleter);
 
             _log.info(String.format("%s end", call));
         } catch (final InternalException e) {
@@ -401,12 +415,16 @@ public class MaskingWorkflowEntryPoints implements Controller {
 
     public void doExportGroupRemoveVolumesCleanup(URI storageURI, URI exportGroupURI,
             List<URI> volumeURIs,
-            TaskCompleter taskCompleter,
-            String token) throws ControllerException {
-        String call = String.format("doExportGroupRemoveVolumesCleanup(%s, %s, %s)",
-                storageURI.toString(), exportGroupURI.toString(),
-                Joiner.on(',').join(volumeURIs));
+            List<URI> initiatorURIs,
+            TaskCompleter taskCompleter, String token) throws ControllerException {
+        String call = String.format("doExportGroupRemoveVolumesCleanup(%s, %s, [%s], [%s], %s)",
+                storageURI.toString(), 
+                exportGroupURI.toString(),
+                volumeURIs != null ? Joiner.on(',').join(volumeURIs) : "No Voumes",
+                initiatorURIs != null ? Joiner.on(',').join(initiatorURIs) : "No Initiators",
+                taskCompleter.getOpId());
         try {
+
             WorkflowStepCompleter.stepExecuting(token);
             ExportGroup exportGroup = _dbClient
                     .queryObject(ExportGroup.class, exportGroupURI);
@@ -419,7 +437,7 @@ public class MaskingWorkflowEntryPoints implements Controller {
                     (exportGroup.getExportMasks() == null || exportGroup.getExportMasks().isEmpty())) {
                 _dbClient.markForDeletion(exportGroup);
             } else {
-                _dbClient.updateAndReindexObject(exportGroup);
+                _dbClient.updateObject(exportGroup);
             }
 
             taskCompleter.ready(_dbClient);
@@ -432,17 +450,20 @@ public class MaskingWorkflowEntryPoints implements Controller {
     }
 
     public void doExportGroupAddInitiators(URI storageURI, URI exportGroupURI,
-            URI exportMaskURI, List<URI> initiatorURIs,
+            URI exportMaskURI, 
+            List<URI> volumeURIs,
+            List<URI> initiatorURIs,
             List<URI> newSps,
-            TaskCompleter taskCompleter,
-            String token) throws ControllerException {
-        String call = String.format("doExportGroupAddInitiators(%s, %s, %s, %s)",
-                storageURI.toString(), exportGroupURI.toString(),
-                Joiner.on(',').join(initiatorURIs), taskCompleter.getOpId());
+            TaskCompleter taskCompleter, String token) throws ControllerException {
+        String call = String.format("doExportGroupAddInitiators(%s, %s, %s, %s, %s, %s)",
+                storageURI.toString(), 
+                exportGroupURI.toString(),
+                exportMaskURI.toString(),
+                initiatorURIs != null ? Joiner.on(',').join(initiatorURIs) : "No Initiators",
+                newSps != null ? Joiner.on(',').join(newSps) : "No Target Ports",
+                taskCompleter.getOpId());
         try {
             WorkflowStepCompleter.stepExecuting(token);
-            ExportGroup exportGroup = _dbClient.queryObject(ExportGroup.class,
-                    exportGroupURI);
             ExportMask exportMask = _dbClient
                     .queryObject(ExportMask.class, exportMaskURI);
             StorageSystem storage = _dbClient
@@ -451,7 +472,7 @@ public class MaskingWorkflowEntryPoints implements Controller {
                     .queryObject(Initiator.class, initiatorURIs);
 
             getDevice(storage).doExportAddInitiators(storage, exportMask,
-                    initiators, newSps, taskCompleter);
+                    volumeURIs, initiators, newSps, taskCompleter);
 
             _log.info(String.format("%s end", call));
         } catch (final InternalException e) {
@@ -472,16 +493,16 @@ public class MaskingWorkflowEntryPoints implements Controller {
      * @param storageURI [in] - StorageSystem URI
      * @param exportGroupURI [in] - ExportGroup URI
      * @param exportMaskURI [in] - ExportMask URI
+     * @param volumeURIs [in] - Impacted volume URIs
      * @param initiatorURIs [in] - List of Initiator URIs
      * @param contextKey [in] - context token
      * @param token [in] - String token generated by the rollback processing
-     * 
      * @throws ControllerException
      */
     public void rollbackExportGroupAddInitiators(URI storageURI, URI exportGroupURI,
-            URI exportMaskURI, List<URI> initiatorURIs,
-            String contextKey,
-            String token) throws ControllerException {
+            URI exportMaskURI, List<URI> volumeURIs,
+            List<URI> initiatorURIs,
+            String contextKey, String token) throws ControllerException {
         ExportTaskCompleter taskCompleter =
                 new ExportMaskRemoveInitiatorCompleter(exportGroupURI, exportMaskURI,
                         initiatorURIs, token);
@@ -495,16 +516,23 @@ public class MaskingWorkflowEntryPoints implements Controller {
             _log.info("Step {} has stored step data other than ExportOperationContext. Exception: {}", token, e);
         }
         doExportGroupRemoveInitiators(storageURI, exportGroupURI, exportMaskURI,
-                initiatorURIs, true, taskCompleter, token);
+                volumeURIs, initiatorURIs, true, taskCompleter, token);
     }
 
     public void doExportGroupRemoveInitiators(URI storageURI, URI exportGroupURI,
-            URI exportMaskURI, List<URI> initiatorURIs,
-            boolean removeTargets,
+            URI exportMaskURI, 
+            List<URI> volumeURIs,
+            List<URI> initiatorURIs,
+            boolean removeTargets, 
             TaskCompleter taskCompleter, String token) throws ControllerException {
-        String call = String.format("doExportGroupRemoveInitiators(%s, %s, %s, %s, %s)",
-                storageURI.toString(), exportGroupURI.toString(),
-                Joiner.on(',').join(initiatorURIs), removeTargets, taskCompleter.getOpId());
+        String call = String.format("doExportGroupRemoveInitiators(%s, %s, %s, [%s], [%s], %s, %s)",
+                storageURI.toString(), 
+                exportGroupURI.toString(),
+                exportMaskURI.toString(),
+                volumeURIs != null ? Joiner.on(',').join(volumeURIs) : "No Volumes", 
+                initiatorURIs != null ? Joiner.on(',').join(initiatorURIs) : "No Initiators", 
+                removeTargets, 
+                taskCompleter.getOpId());
         try {
             WorkflowStepCompleter.stepExecuting(token);
             ExportMask exportMask = _dbClient
@@ -513,18 +541,18 @@ public class MaskingWorkflowEntryPoints implements Controller {
                     .queryObject(StorageSystem.class, storageURI);
             List<Initiator> initiators = _dbClient
                     .queryObject(Initiator.class, initiatorURIs);
-
+            
             List<URI> targetPorts = _blockScheduler.getRemoveInitiatorStoragePorts(exportMask,
                     initiators);
             getDevice(storage).doExportRemoveInitiators(storage, exportMask,
-                    initiators, removeTargets ? targetPorts : null, taskCompleter);
+                    volumeURIs, initiators, removeTargets ? targetPorts : null, taskCompleter);
 
             // TODO - move this to the completer
             if (targetPorts != null && !targetPorts.isEmpty()) {
                 for (URI targetPort : targetPorts) {
                     exportMask.removeTarget(targetPort);
                 }
-                _dbClient.updateAndReindexObject(exportMask);
+                _dbClient.updateObject(exportMask);
             }
 
             _log.info(String.format("%s end", call));
@@ -540,8 +568,8 @@ public class MaskingWorkflowEntryPoints implements Controller {
 
     public void doExportGroupToCleanExportMask(URI exportGroupURI, URI exportMaskURI,
             TaskCompleter taskCompleter, String token) throws ControllerException {
-        String call = String.format("doExportGroupToCleanExportMask(%s, %s)",
-                exportGroupURI.toString(), exportMaskURI);
+        String call = String.format("doExportGroupToCleanExportMask(%s, %s, %s)",
+                exportGroupURI.toString(), exportMaskURI.toString(), taskCompleter.getOpId());
         try {
             WorkflowStepCompleter.stepExecuting(token);
             taskCompleter.ready(_dbClient);
@@ -554,10 +582,13 @@ public class MaskingWorkflowEntryPoints implements Controller {
     }
 
     public void doExportGroupToCleanVolumesInExportMask(URI exportGroupURI,
-            URI exportMaskURI, List<URI> volumeToRemove, TaskCompleter taskCompleter,
+            URI exportMaskURI, List<URI> volumesToRemove, TaskCompleter taskCompleter,
             String token) throws ControllerException {
-        String call = String.format("doExportGroupToCleanVolumesInExportMask(%s, %s)",
-                exportGroupURI.toString(), exportMaskURI);
+        String call = String.format("doExportGroupToCleanVolumesInExportMask(%s, %s, [%s], %s)",
+                exportGroupURI.toString(), 
+                exportMaskURI.toString(),
+                volumesToRemove != null ? Joiner.on(',').join(volumesToRemove) : "No Volumes",
+                taskCompleter.getOpId());
         try {
             WorkflowStepCompleter.stepExecuting(token);
             taskCompleter.ready(_dbClient);

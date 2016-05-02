@@ -156,10 +156,10 @@ public class VNXeMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
             for (ExportMask exportMask : exportMasks) {
                 if (deleteStep == null) {
                     deleteStep = generateExportMaskDeleteWorkflow(workflow, zoningStep,
-                            storage, exportGroup, exportMask, null);
+                            storage, exportGroup, exportMask, null, null, null);
                 } else {
                     deleteStep = generateExportMaskDeleteWorkflow(workflow, deleteStep,
-                            storage, exportGroup, exportMask, null);
+                            storage, exportGroup, exportMask, null, null, null);
                 }
             }
 
@@ -262,10 +262,10 @@ public class VNXeMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                             exportMask.getId().toString()));
                     if (deleteStep == null) {
                         deleteStep = generateExportMaskDeleteWorkflow(workflow, zoningStep, storage,
-                                exportGroup, exportMask, null);
+                                exportGroup, exportMask, null, null, null);
                     } else {
                         deleteStep = generateExportMaskDeleteWorkflow(workflow, deleteStep, storage,
-                                exportGroup, exportMask, null);
+                                exportGroup, exportMask, null, null, null);
                     }
 
                 }
@@ -321,10 +321,10 @@ public class VNXeMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                 for (ExportMask exportMask : exportMasks) {
                     if (exportStep == null) {
                         exportStep = generateExportMaskAddVolumesWorkflow(workflow, zoningStep, storage,
-                                exportGroup, exportMask, volumeMap);
+                                exportGroup, exportMask, volumeMap, null);
                     } else {
                         exportStep = generateExportMaskAddVolumesWorkflow(workflow, exportStep, storage,
-                                exportGroup, exportMask, volumeMap);
+                                exportGroup, exportMask, volumeMap, null);
                     }
                 }
                 String successMessage = String.format(
@@ -412,10 +412,10 @@ public class VNXeMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                     for (ExportMask exportMask : deleteMasks) {
                         if (deleteStep == null) {
                             deleteStep = generateExportMaskDeleteWorkflow(workflow, zoningStep, storage,
-                                    exportGroup, exportMask, null);
+                                    exportGroup, exportMask, null, null, null);
                         } else {
                             deleteStep = generateExportMaskDeleteWorkflow(workflow, deleteStep, storage,
-                                    exportGroup, exportMask, null);
+                                    exportGroup, exportMask, null, null, null);
                         }
                     }
                 }
@@ -426,10 +426,10 @@ public class VNXeMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                     for (ExportMask exportMask : updateMasks) {
                         if (unexportStep == null) {
                             unexportStep = generateExportMaskRemoveVolumesWorkflow(workflow, zoningStep,
-                                    storage, exportGroup, exportMask, volumes, null);
+                                    storage, exportGroup, exportMask, volumes, null, null);
                         } else {
                             unexportStep = generateExportMaskRemoveVolumesWorkflow(workflow, unexportStep,
-                                    storage, exportGroup, exportMask, volumes, null);
+                                    storage, exportGroup, exportMask, volumes, null, null);
                         }
                     }
                 }
@@ -440,7 +440,7 @@ public class VNXeMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
             } else {
                 _log.info("export_volume_remove: no export (initiator should be empty)");
                 exportGroup.removeVolumes(volumes);
-                _dbClient.persistObject(exportGroup);
+                _dbClient.updateObject(exportGroup);
                 taskCompleter.ready(_dbClient);
             }
 

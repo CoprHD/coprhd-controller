@@ -163,7 +163,7 @@ public class XIVMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                             // Make sure the zoning map is getting updated for user-created masks
                             updateZoningMap(exportGroup, exportMask, true);
                             generateExportMaskAddVolumesWorkflow(workflow, EXPORT_GROUP_ZONING_TASK, storage,
-                                    exportGroup, exportMask, volumesToAdd);
+                                    exportGroup, exportMask, volumesToAdd, null);
                             anyVolumesAdded = true;
                             // Need to check if the mask is not already associated with
                             // ExportGroup. This is case when we are adding volume to
@@ -874,7 +874,7 @@ public class XIVMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                 _log.info(String.format("adding these volumes %s to mask %s",
                         Joiner.on(",").join(volumesToAdd.keySet()), mask.getMaskName()));
                 stepMap.put(entry.getKey(), generateExportMaskAddVolumesWorkflow(workflow, attachGroupSnapshot, storage, exportGroup, mask,
-                        volumesToAdd));
+                        volumesToAdd, null));
             }
 
             for (Entry<URI, Set<Initiator>> entry : existingMasksToUpdateWithNewInitiators.entrySet()) {

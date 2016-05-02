@@ -68,7 +68,6 @@ import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportOrchest
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportTaskCompleter;
 import com.emc.storageos.volumecontroller.impl.utils.ExportMaskUtils;
 import com.emc.storageos.volumecontroller.placement.BlockStorageScheduler;
-import com.emc.storageos.volumecontroller.placement.ExportPathUpdater;
 import com.emc.storageos.workflow.Workflow;
 import com.emc.storageos.workflow.WorkflowException;
 import com.emc.storageos.workflow.WorkflowService;
@@ -325,7 +324,7 @@ abstract public class AbstractDefaultMaskingOrchestrator {
             vols.add(bo);
         }
         exportMask.addToUserCreatedVolumes(vols);
-        _dbClient.persistObject(exportMask);
+        _dbClient.updateObject(exportMask);
         // Make a new TaskCompleter for the exportStep. It has only one subtask.
         // This is due to existing requirements in the doExportGroupCreate completion
         // logic.
@@ -335,8 +334,8 @@ abstract public class AbstractDefaultMaskingOrchestrator {
                 maskingStep);
 
         Workflow.Method maskingExecuteMethod = new Workflow.Method(
-                "doExportGroupCreate", storageURI, exportGroupURI, volumeMap,
-                initiatorURIs, exportMask.getId(), targets, exportTaskCompleter);
+                "doExportGroupCreate", storageURI, exportGroupURI, exportMask.getId(),
+                volumeMap, initiatorURIs, targets, exportTaskCompleter);
 
         Workflow.Method maskingRollbackMethod = new Workflow.Method(
                 "rollbackExportGroupCreate",
@@ -352,11 +351,30 @@ abstract public class AbstractDefaultMaskingOrchestrator {
         return new GenExportMaskCreateWorkflowResult(exportMask.getId(), maskingStep);
     }
 
+    /**
+     * Generate export mask steps and add to workflow.
+     * 
+     * TODO DUPP:
+     * 1. Change all callers to send in expected volumes and initiators (not just ones from the ExportMask!)
+     * 
+     * @param workflow workflow to add steps to
+     * @param previousStep previous step before these steps
+     * @param storage storage system
+     * @param exportGroup export group impacted
+     * @param exportMask export mask to delete
+     * @param volumes volumes we expect to be impacted
+     * @param initiators initiators we expect to be impacted
+     * @param taskCompleter completer
+     * @return step ID
+     * @throws Exception
+     */
     public String generateExportMaskDeleteWorkflow(Workflow workflow,
             String previousStep,
             StorageSystem storage,
             ExportGroup exportGroup,
             ExportMask exportMask,
+            List<URI> volumes, 
+            List<URI> initiators, 
             ExportTaskCompleter taskCompleter)
             throws Exception {
         URI exportGroupURI = exportGroup.getId();
@@ -374,7 +392,7 @@ abstract public class AbstractDefaultMaskingOrchestrator {
         }
 
         Workflow.Method maskingExecuteMethod = new Workflow.Method(
-                "doExportGroupDelete", storageURI, exportGroupURI, exportMaskURI,
+                "doExportGroupDelete", storageURI, exportGroupURI, exportMaskURI, volumes, initiators,
                 exportTaskCompleter);
 
         maskingStep = workflow.createStep(EXPORT_GROUP_MASKING_TASK,
@@ -387,12 +405,28 @@ abstract public class AbstractDefaultMaskingOrchestrator {
         return maskingStep;
     }
 
+    /**
+     * Generate workflow steps to add volumes to an export mask
+     * TODO DUPP:
+     * 1. Change all callers to send down initiators it expects to be impacted by this operation.
+     * 
+     * @param workflow workflow
+     * @param previousStep previous step ID
+     * @param storage storage system
+     * @param exportGroup export group
+     * @param exportMask export mask
+     * @param volumesToAdd volumes to add to the mask
+     * @param initiators initiators that should be impacted by this operation (and for rollback)
+     * @return step ID
+     * @throws Exception
+     */
     public String generateExportMaskAddVolumesWorkflow(Workflow workflow,
             String previousStep,
             StorageSystem storage,
             ExportGroup exportGroup,
             ExportMask exportMask,
-            Map<URI, Integer> volumesToAdd)
+            Map<URI, Integer> volumesToAdd, 
+            List<Initiator> initiators)
             throws Exception {
         URI exportGroupURI = exportGroup.getId();
         URI exportMaskURI = exportMask.getId();
@@ -404,11 +438,11 @@ abstract public class AbstractDefaultMaskingOrchestrator {
 
         Workflow.Method maskingExecuteMethod = new Workflow.Method(
                 "doExportGroupAddVolumes", storageURI, exportGroupURI, exportMaskURI,
-                volumesToAdd, exportTaskCompleter);
+                volumesToAdd, initiators, exportTaskCompleter);
 
         Workflow.Method maskingRollbackMethod = new Workflow.Method(
                 "rollbackExportGroupAddVolumes", storageURI, exportGroupURI,
-                exportMaskURI, volumesToAdd, maskingStep);
+                exportMaskURI, volumesToAdd, initiators, maskingStep);
 
         maskingStep = workflow.createStep(EXPORT_GROUP_MASKING_TASK,
                 String.format("Adding volumes to mask %s (%s)",
@@ -420,12 +454,29 @@ abstract public class AbstractDefaultMaskingOrchestrator {
         return maskingStep;
     }
 
+    /**
+     * Generate workflow steps to remove volumes from an export mask
+     * TODO DUPP:
+     * 1. Change all callers to send down initiators it expects to be impacted by this operation.
+     * 
+     * @param workflow workflow
+     * @param previousStep previous step ID
+     * @param storage storage system
+     * @param exportGroup export group 
+     * @param exportMask export mask
+     * @param volumesToRemove volumes to remove
+     * @param initiators initiators that should be impacted
+     * @param completer completer
+     * @return step ID
+     * @throws Exception
+     */
     public String generateExportMaskRemoveVolumesWorkflow(Workflow workflow,
             String previousStep,
             StorageSystem storage,
             ExportGroup exportGroup,
             ExportMask exportMask,
             List<URI> volumesToRemove,
+            List<URI> initiators,
             ExportTaskCompleter
             completer)
             throws Exception {
@@ -446,7 +497,7 @@ abstract public class AbstractDefaultMaskingOrchestrator {
 
         Workflow.Method maskingExecuteMethod = new Workflow.Method(
                 "doExportGroupRemoveVolumes", storageURI, exportGroupURI,
-                exportMaskURI, volumesToRemove, exportTaskCompleter);
+                exportMaskURI, volumesToRemove, initiators, exportTaskCompleter);
 
         maskingStep = workflow.createStep(EXPORT_GROUP_MASKING_TASK,
                 String.format("Removing volumes from mask %s (%s)",
@@ -458,11 +509,25 @@ abstract public class AbstractDefaultMaskingOrchestrator {
         return maskingStep;
     }
 
+    /**
+     * Generate workflow steps to remove volumes from an export mask.
+     * TODO DUPP:
+     * 1. Change all callers to send down initiators that should be impacted by this volume removal.
+     * 
+     * @param workflow workflow
+     * @param previousStep previous step ID
+     * @param storage storage device 
+     * @param exportGroup export group
+     * @param volumeURIs volume list
+     * @param initiatorURIs initiators impacted by this operation
+     * @return step ID
+     */
     public String generateExportGroupRemoveVolumesCleanup(Workflow workflow,
             String previousStep,
             StorageSystem storage,
             ExportGroup exportGroup,
-            List<URI> volumeURIs) {
+            List<URI> volumeURIs,
+            List<URI> initiatorURIs) {
         URI exportGroupURI = exportGroup.getId();
         URI storageURI = storage.getId();
 
@@ -472,7 +537,7 @@ abstract public class AbstractDefaultMaskingOrchestrator {
 
         Workflow.Method cleanupExecuteMethod = new Workflow.Method(
                 "doExportGroupRemoveVolumesCleanup", storageURI, exportGroupURI,
-                volumeURIs, exportTaskCompleter);
+                volumeURIs, initiatorURIs, exportTaskCompleter);
 
         cleanupStep = workflow.createStep(EXPORT_GROUP_CLEANUP_TASK,
                 String.format("Cleanup of volumes from export group %s",
@@ -484,6 +549,22 @@ abstract public class AbstractDefaultMaskingOrchestrator {
         return cleanupStep;
     }
 
+    /**
+     * Generate workflow steps to add initiators to an export mask
+     * TODO: DUPP:
+     * 1. This method already has a list of volumes, but it looks like it's a "new volume" list.  We perhaps need a new volume list for impacted volumes?
+     *  
+     * @param workflow workflow
+     * @param previousStep previous step ID
+     * @param storage storage device
+     * @param exportGroup export group
+     * @param exportMask export mask
+     * @param initiatorURIs initiator list
+     * @param newVolumeURIs new volume IDs
+     * @param token step ID
+     * @return step ID
+     * @throws Exception
+     */
     public String generateExportMaskAddInitiatorsWorkflow(Workflow workflow,
             String previousStep,
             StorageSystem storage,
@@ -516,7 +597,7 @@ abstract public class AbstractDefaultMaskingOrchestrator {
                 exportMask.getZoningMap(), pathParams, volumeURIs, _networkDeviceController, exportGroup.getVirtualArray(), token);
         newTargetURIs = BlockStorageScheduler.getTargetURIsFromAssignments(assignments);
         exportMask.addZoningMap(BlockStorageScheduler.getZoneMapFromAssignments(assignments));
-        _dbClient.persistObject(exportMask);
+        _dbClient.updateObject(exportMask);
 
         String maskingStep = workflow.createStepId();
         ExportTaskCompleter exportTaskCompleter = new ExportMaskAddInitiatorCompleter(
@@ -525,11 +606,11 @@ abstract public class AbstractDefaultMaskingOrchestrator {
 
         Workflow.Method maskingExecuteMethod = new Workflow.Method(
                 "doExportGroupAddInitiators", storageURI, exportGroupURI,
-                exportMaskURI, initiatorURIs, newTargetURIs, exportTaskCompleter);
+                exportMaskURI, volumeURIs, initiatorURIs, newTargetURIs, exportTaskCompleter);
 
         Workflow.Method rollbackMethod = new Workflow.Method(
                 "rollbackExportGroupAddInitiators", storageURI, exportGroupURI,
-                exportMaskURI, initiatorURIs, maskingStep);
+                exportMaskURI, volumeURIs, initiatorURIs, maskingStep);
 
         maskingStep = workflow.createStep(EXPORT_GROUP_MASKING_TASK,
                 String.format("Adding initiators to mask %s (%s)",
@@ -544,18 +625,35 @@ abstract public class AbstractDefaultMaskingOrchestrator {
     protected String generateExportMaskRemoveInitiatorsWorkflow(Workflow workflow, String previousStep,
             StorageSystem storage, ExportGroup exportGroup, ExportMask exportMask,
             List<URI> initiatorURIs, boolean removeTargets) throws Exception {
-        return generateExportMaskRemoveInitiatorsWorkflow(workflow, previousStep, storage, exportGroup, exportMask, initiatorURIs,
-                removeTargets, null);
+        return generateExportMaskRemoveInitiatorsWorkflow(workflow, previousStep, storage, exportGroup, exportMask, null,
+                initiatorURIs, removeTargets, null);
     }
 
+    /**
+     * Generate workflow steps to remove initiators from an export mask
+     * TODO DUPP:
+     * 1. Add impacted volume list to each caller of this method.
+     * 
+     * @param workflow workflow
+     * @param previousStep previous step ID
+     * @param storage storage device
+     * @param exportGroup export group
+     * @param exportMask export mask
+     * @param volumeURIs volumes impacted by this operation
+     * @param initiatorURIs initiators
+     * @param removeTargets ports to remove
+     * @param completer completer
+     * @return step ID
+     * @throws Exception
+     */
     public String generateExportMaskRemoveInitiatorsWorkflow(Workflow workflow,
             String previousStep,
             StorageSystem storage,
             ExportGroup exportGroup,
             ExportMask exportMask,
+            List<URI> volumeURIs,
             List<URI> initiatorURIs,
-            boolean removeTargets,
-            ExportTaskCompleter completer)
+            boolean removeTargets, ExportTaskCompleter completer)
             throws Exception {
         URI exportGroupURI = exportGroup.getId();
         URI exportMaskURI = exportMask.getId();
@@ -573,7 +671,7 @@ abstract public class AbstractDefaultMaskingOrchestrator {
 
         Workflow.Method maskingExecuteMethod = new Workflow.Method(
                 "doExportGroupRemoveInitiators", storageURI, exportGroupURI,
-                exportMaskURI, initiatorURIs, removeTargets, exportTaskCompleter);
+                exportMaskURI, volumeURIs, initiatorURIs, removeTargets, exportTaskCompleter);
 
         maskingStep = workflow.createStep(EXPORT_GROUP_MASKING_TASK,
                 String.format("Removing initiators from %s (%s)",
@@ -809,7 +907,7 @@ abstract public class AbstractDefaultMaskingOrchestrator {
         String zoningStep = generateZoningAddVolumesWorkflow(workflow, attachGroupSnapshot,
                 exportGroup, masks, volumeURIs);
         return generateExportMaskAddVolumesWorkflow(workflow, zoningStep, storage, exportGroup,
-                mask, volumesToAdd);
+                mask, volumesToAdd, null);
     }
 
     /**
@@ -902,7 +1000,7 @@ abstract public class AbstractDefaultMaskingOrchestrator {
         String unZoneStep = generateZoningDeleteWorkflow(workflow, previousStep, exportGroup,
                 Arrays.asList(mask));
         return generateExportMaskDeleteWorkflow(workflow, unZoneStep, storage,
-                exportGroup, mask, null);
+                exportGroup, mask, null, null, null);
     }
 
     /**
@@ -939,17 +1037,18 @@ abstract public class AbstractDefaultMaskingOrchestrator {
      * @param mask
      * @param storage
      * @param volumesToRemove
+     * @param initiatorURIs TODO
      * @param completer
      * @throws Exception
      */
     public String generateDeviceSpecificRemoveVolumesWorkflow(Workflow workflow,
             String previousStep, ExportGroup exportGroup, ExportMask mask, StorageSystem storage,
-            List<URI> volumesToRemove, ExportTaskCompleter completer) throws Exception {
+            List<URI> volumesToRemove, List<URI> initiatorURIs, ExportTaskCompleter completer) throws Exception {
         String zoningStep = generateZoningRemoveVolumesWorkflow(workflow, previousStep,
                 exportGroup, Arrays.asList(mask), volumesToRemove);
 
         return generateExportMaskRemoveVolumesWorkflow(workflow, zoningStep, storage, exportGroup,
-                mask, volumesToRemove, completer);
+                mask, volumesToRemove, initiatorURIs, completer);
     }
 
     /**
@@ -966,7 +1065,7 @@ abstract public class AbstractDefaultMaskingOrchestrator {
             String previousStep, ExportGroup exportGroup, ExportMask exportMask,
             StorageSystem storage) throws Exception {
         return generateExportMaskDeleteWorkflow(workflow, previousStep, storage,
-                exportGroup, exportMask, null);
+                exportGroup, exportMask, null, null, null);
     }
 
     /**
@@ -978,15 +1077,16 @@ abstract public class AbstractDefaultMaskingOrchestrator {
      * @param exportMask
      * @param storage
      * @param volumesToRemove
+     * @param initiatorURIs TODO
      * @param completer
      * @return last step in workflow
      * @throws Exception
      */
     public String generateDeviceSpecificExportMaskRemoveVolumesWorkflow(Workflow workflow,
             String previousStep, ExportGroup exportGroup, ExportMask exportMask,
-            StorageSystem storage, List<URI> volumesToRemove, ExportTaskCompleter completer) throws Exception {
+            StorageSystem storage, List<URI> volumesToRemove, List<URI> initiatorURIs, ExportTaskCompleter completer) throws Exception {
         return generateExportMaskRemoveVolumesWorkflow(workflow, previousStep, storage,
-                exportGroup, exportMask, volumesToRemove, completer);
+                exportGroup, exportMask, volumesToRemove, initiatorURIs, completer);
     }
 
     /**
@@ -1028,12 +1128,13 @@ abstract public class AbstractDefaultMaskingOrchestrator {
      * @param storage
      * @param exportGroup
      * @param volumeURIs
+     * @param initiatorURIs initiators impacted by this change
      */
     public String generateDeviceSpecificExportGroupRemoveVolumesCleanup(Workflow workflow,
             String previousStep, StorageSystem storage, ExportGroup exportGroup,
-            List<URI> volumeURIs) {
+            List<URI> volumeURIs, List<URI> initiatorURIs) {
         return generateExportGroupRemoveVolumesCleanup(workflow, previousStep, storage,
-                exportGroup, volumeURIs);
+                exportGroup, volumeURIs, initiatorURIs);
     }
 
     /**

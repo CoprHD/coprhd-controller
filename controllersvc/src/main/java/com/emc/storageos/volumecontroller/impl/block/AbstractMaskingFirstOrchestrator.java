@@ -258,7 +258,7 @@ abstract public class AbstractMaskingFirstOrchestrator extends
 
         // First create the masking step
         String maskingStepId = generateExportMaskAddVolumesWorkflow(workflow,
-                previousStep, storage, exportGroup, mask, volumesToAdd);
+                previousStep, storage, exportGroup, mask, volumesToAdd, null);
 
         // Second create the zoning step - this will wait for the masking
         // completion

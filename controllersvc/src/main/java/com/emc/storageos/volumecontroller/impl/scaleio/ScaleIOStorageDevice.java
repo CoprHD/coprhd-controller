@@ -318,84 +318,91 @@ public class ScaleIOStorageDevice extends DefaultBlockStorageDevice {
     }
 
     @Override
-    public void doExportGroupCreate(StorageSystem storage, ExportMask exportMask, Map<URI, Integer> volumeMap, List<Initiator> initiators,
+    public void doExportCreate(StorageSystem storage, ExportMask exportMask, Map<URI, Integer> volumeMap, List<Initiator> initiators,
             List<URI> targets, TaskCompleter taskCompleter) throws DeviceControllerException {
         filterInitiators(initiators);
         mapVolumes(storage, volumeMap, initiators, taskCompleter);
     }
 
     @Override
-    public void doExportGroupDelete(StorageSystem storage, ExportMask exportMask, TaskCompleter taskCompleter)
+    public void doExportDelete(StorageSystem storage, ExportMask exportMask, List<URI> volumeURIs, List<URI> initiatorURIs, TaskCompleter taskCompleter)
             throws DeviceControllerException {
-        List<URI> volumeURIs = ExportMaskUtils.getVolumeURIs(exportMask);
-        Set<Initiator> initiators =
+        List<URI> maskVolumeURIs = ExportMaskUtils.getVolumeURIs(exportMask);
+        // TODO DUPP:
+        // 1. We should be using the initiators sent to us, not grabbing them from the exportmask.
+        // 2. We should be using the volumes sent to us as well
+        Set<Initiator> maskInitiators =
                 ExportMaskUtils.getInitiatorsForExportMask(dbClient, exportMask, null);
-        filterInitiators(initiators);
-        unmapVolumes(storage, volumeURIs, initiators, taskCompleter);
+        filterInitiators(maskInitiators);
+        unmapVolumes(storage, maskVolumeURIs, maskInitiators, taskCompleter);
     }
 
     @Override
-    public void doExportAddVolume(StorageSystem storage, ExportMask exportMask, URI volume, Integer lun, TaskCompleter taskCompleter)
+    public void doExportAddVolume(StorageSystem storage, ExportMask exportMask, URI volume, Integer lun, List<Initiator> initiators, TaskCompleter taskCompleter)
             throws DeviceControllerException {
         Map<URI, Integer> volumes = new HashMap<>();
         volumes.put(volume, lun);
-        Set<Initiator> initiators =
+        // TODO DUPP:
+        // 1. Get the initiators from the orchestrator/caller and not from this call below.
+        Set<Initiator> maskInitiators =
                 ExportMaskUtils.getInitiatorsForExportMask(dbClient, exportMask, null);
-        filterInitiators(initiators);
-        mapVolumes(storage, volumes, initiators, taskCompleter);
+        filterInitiators(maskInitiators);
+        mapVolumes(storage, volumes, maskInitiators, taskCompleter);
     }
 
     @Override
-    public void doExportAddVolumes(StorageSystem storage, ExportMask exportMask, Map<URI, Integer> volumes, TaskCompleter taskCompleter)
+    public void doExportAddVolumes(StorageSystem storage, ExportMask exportMask, List<Initiator> initiators, Map<URI, Integer> volumes, TaskCompleter taskCompleter)
             throws DeviceControllerException {
-        Set<Initiator> initiators =
+        // TODO DUPP:
+        // 1. Get the initiators from the orchestrator/caller and not from this call below.
+        Set<Initiator> maskInitiators =
                 ExportMaskUtils.getInitiatorsForExportMask(dbClient, exportMask, null);
-        filterInitiators(initiators);
-        mapVolumes(storage, volumes, initiators, taskCompleter);
+        filterInitiators(maskInitiators);
+        mapVolumes(storage, volumes, maskInitiators, taskCompleter);
     }
 
     @Override
-    public void doExportRemoveVolume(StorageSystem storage, ExportMask exportMask, URI volume, TaskCompleter taskCompleter)
+    public void doExportRemoveVolume(StorageSystem storage, ExportMask exportMask, URI volume, List<Initiator> initiators, TaskCompleter taskCompleter)
             throws DeviceControllerException {
-        Set<Initiator> initiators =
+        Set<Initiator> maskInitiators =
                 ExportMaskUtils.getInitiatorsForExportMask(dbClient, exportMask, null);
-        filterInitiators(initiators);
-        unmapVolumes(storage, asList(volume), initiators, taskCompleter);
+        filterInitiators(maskInitiators);
+        unmapVolumes(storage, asList(volume), maskInitiators, taskCompleter);
     }
 
     @Override
-    public void doExportRemoveVolumes(StorageSystem storage, ExportMask exportMask, List<URI> volumes, TaskCompleter taskCompleter)
+    public void doExportRemoveVolumes(StorageSystem storage, ExportMask exportMask, List<URI> volumes, List<Initiator> initiators, TaskCompleter taskCompleter)
             throws DeviceControllerException {
-        Set<Initiator> initiators =
+        Set<Initiator> maskInitiators =
                 ExportMaskUtils.getInitiatorsForExportMask(dbClient, exportMask, null);
-        filterInitiators(initiators);
-        unmapVolumes(storage, volumes, initiators, taskCompleter);
+        filterInitiators(maskInitiators);
+        unmapVolumes(storage, volumes, maskInitiators, taskCompleter);
     }
 
     @Override
-    public void doExportAddInitiator(StorageSystem storage, ExportMask exportMask, Initiator initiator, List<URI> targets,
-            TaskCompleter taskCompleter) throws DeviceControllerException {
+    public void doExportAddInitiator(StorageSystem storage, ExportMask exportMask, List<URI> volumeURIs, Initiator initiator,
+            List<URI> targets, TaskCompleter taskCompleter) throws DeviceControllerException {
         Map<URI, Integer> volumes = createVolumeMapForExportMask(exportMask);
         mapVolumes(storage, volumes, asList(initiator), taskCompleter);
     }
 
     @Override
-    public void doExportAddInitiators(StorageSystem storage, ExportMask exportMask, List<Initiator> initiators, List<URI> targets,
-            TaskCompleter taskCompleter) throws DeviceControllerException {
+    public void doExportAddInitiators(StorageSystem storage, ExportMask exportMask, List<URI> volumeURIs, List<Initiator> initiators,
+            List<URI> targets, TaskCompleter taskCompleter) throws DeviceControllerException {
         Map<URI, Integer> volumes = createVolumeMapForExportMask(exportMask);
         mapVolumes(storage, volumes, initiators, taskCompleter);
     }
 
     @Override
-    public void doExportRemoveInitiator(StorageSystem storage, ExportMask exportMask, Initiator initiator, List<URI> targets,
-            TaskCompleter taskCompleter) throws DeviceControllerException {
+    public void doExportRemoveInitiator(StorageSystem storage, ExportMask exportMask, List<URI> volumes, Initiator initiator,
+            List<URI> targets, TaskCompleter taskCompleter) throws DeviceControllerException {
         List<URI> volumeURIs = ExportMaskUtils.getVolumeURIs(exportMask);
         unmapVolumes(storage, volumeURIs, asList(initiator), taskCompleter);
     }
 
     @Override
-    public void doExportRemoveInitiators(StorageSystem storage, ExportMask exportMask, List<Initiator> initiators, List<URI> targets,
-            TaskCompleter taskCompleter) throws DeviceControllerException {
+    public void doExportRemoveInitiators(StorageSystem storage, ExportMask exportMask, List<URI> volumes, List<Initiator> initiators,
+            List<URI> targets, TaskCompleter taskCompleter) throws DeviceControllerException {
         List<URI> volumeURIs = ExportMaskUtils.getVolumeURIs(exportMask);
         unmapVolumes(storage, volumeURIs, initiators, taskCompleter);
     }

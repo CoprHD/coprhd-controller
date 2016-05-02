@@ -462,17 +462,17 @@ public class VplexCinderMaskingOrchestrator extends CinderMaskingOrchestrator
                     }
                 }
 
-                _dbClient.persistObject(exportMask);
+                _dbClient.updateObject(exportMask);
 
-                _log.debug(String.format("Calling doExportGroupCreate on the device %s",
+                _log.debug(String.format("Calling doExportCreate on the device %s",
                         array.getId().toString()));
-                device.doExportGroupCreate(array, exportMask, volumeMap,
+                device.doExportCreate(array, exportMask, volumeMap,
                         initiators, targets, completer);
             }
             else {
                 _log.debug(String.format("Calling doExportAddVolumes on the device %s",
                         array.getId().toString()));
-                device.doExportAddVolumes(array, exportMask, volumeMap, completer);
+                device.doExportAddVolumes(array, exportMask, null, volumeMap, completer);
             }
 
         } catch (Exception ex) {
@@ -497,7 +497,7 @@ public class VplexCinderMaskingOrchestrator extends CinderMaskingOrchestrator
             URI exportGroupURI,
             URI exportMaskURI,
             List<URI> volumes,
-            TaskCompleter completer) {
+            List<URI> initiatorURIs, TaskCompleter completer) {
         return new Workflow.Method("deleteOrRemoveVolumesFromExportMask",
                 arrayURI,
                 exportGroupURI,
@@ -511,8 +511,8 @@ public class VplexCinderMaskingOrchestrator extends CinderMaskingOrchestrator
             URI exportGroupURI,
             URI exportMaskURI,
             List<URI> volumes,
-            TaskCompleter completer,
-            String stepId) {
+            List<URI> initiatorURIs,
+            TaskCompleter completer, String stepId) {
         try {
             WorkflowStepCompleter.stepExecuting(stepId);
             StorageSystem array = _dbClient.queryObject(StorageSystem.class, arrayURI);
@@ -557,14 +557,15 @@ public class VplexCinderMaskingOrchestrator extends CinderMaskingOrchestrator
             if (remainingVolumes.isEmpty()
                     && (exportMask.getExistingVolumes() == null
                     || exportMask.getExistingVolumes().isEmpty())) {
-                _log.debug(String.format("Calling doExportGroupDelete on the device %s",
+                _log.debug(String.format("Calling doExportDelete on the device %s",
                         array.getId().toString()));
-                device.doExportGroupDelete(array, exportMask, completer);
+                device.doExportDelete(array, exportMask, null, null, completer);
             }
             else {
                 _log.debug(String.format("Calling doExportRemoveVolumes on the device %s",
                         array.getId().toString()));
-                device.doExportRemoveVolumes(array, exportMask, volumes, completer);
+                List<Initiator> initiators = _dbClient.queryObject(Initiator.class, initiatorURIs);
+                device.doExportRemoveVolumes(array, exportMask, volumes, initiators, completer);
             }
         } catch (Exception ex) {
             _log.error("Failed to delete or remove volumes to export mask for cinder: ", ex);

@@ -4156,6 +4156,7 @@ recoverpoint_tests()
             fi
 
             if [ "$RPMP_TESTS" = "1" ]; then
+                secho 'MetroPoint change vpool...'
                 recoverpoint_vpool_change_test ${rpmpvolume}${volume_name_modifier} ${rpmp_noprotection_vpool} ${rpmp_src_vpool} ${RP_METROPOINT_CONSISTENCY_GROUP}
             fi
 

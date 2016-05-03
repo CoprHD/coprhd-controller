@@ -675,8 +675,8 @@
             <map>
                 <entry key-ref="volumeLabel" value="true"/>
                 <entry key-ref="projectName" value="false"/>
-                <entry key-ref="storageSystemSerialNumber" value="false"/>
-                <entry key-ref="volumeNativeId" value="false"/>
+                <entry key-ref="srcStorageSystemSerialNumber" value="false"/>
+                <entry key-ref="srcVolumeNativeId" value="false"/>
             </map>
         </property>
         <property name="scope">
@@ -686,7 +686,7 @@
         </property>
         <property name="defaultValues">
             <map>
-                <entry key="vplex" value="(volumeLabel)"/>
+                <entry key="vplex" value="{volume_label}"/>
             </map>
         </property>
         <property name="constraints">
@@ -706,8 +706,8 @@
             <map>
                 <entry key-ref="volumeLabel" value="true"/>
                 <entry key-ref="projectName" value="false"/>
-                <entry key-ref="storageSystemSerialNumber" value="false"/>
-                <entry key-ref="volumeNativeId" value="false"/>
+                <entry key-ref="srcStorageSystemSerialNumber" value="false"/>
+                <entry key-ref="srcVolumeNativeId" value="false"/>
                 <entry key-ref="hostLabel" value="true"/>
                 <entry key-ref="hostName" value="true"/>
             </map>
@@ -719,7 +719,7 @@
         </property>
         <property name="defaultValues">
             <map>
-                <entry key="vplex" value="(volumeLabel)"/>
+                <entry key="vplex" value="{volume_label}"/>
             </map>
         </property>
         <property name="constraints">
@@ -739,8 +739,8 @@
             <map>
                 <entry key-ref="volumeLabel" value="true"/>
                 <entry key-ref="projectName" value="false"/>
-                <entry key-ref="storageSystemSerialNumber" value="false"/>
-                <entry key-ref="volumeNativeId" value="false"/>
+                <entry key-ref="srcStorageSystemSerialNumber" value="false"/>
+                <entry key-ref="srcVolumeNativeId" value="false"/>
                 <entry key-ref="clusterName" value="true"/>
             </map>
         </property>
@@ -751,7 +751,7 @@
         </property>
         <property name="defaultValues">
             <map>
-                <entry key="vplex" value="(volumeLabel)"/>
+                <entry key="vplex" value="{volume_label}"/>
             </map>
         </property>
         <property name="constraints">
@@ -771,8 +771,8 @@
             <map>
                 <entry key-ref="volumeLabel" value="true"/>
                 <entry key-ref="projectName" value="false"/>
-                <entry key-ref="storageSystemSerialNumber" value="false"/>
-                <entry key-ref="volumeNativeId" value="false"/>
+                <entry key-ref="srcStorageSystemSerialNumber" value="false"/>
+                <entry key-ref="srcVolumeNativeId" value="false"/>
                 <entry key-ref="haStorageSystemSerialNumber" value="false"/>
                 <entry key-ref="haVolumeNativeId" value="false"/>
             </map>
@@ -784,7 +784,7 @@
         </property>
         <property name="defaultValues">
             <map>
-                <entry key="vplex" value="(volumeLabel)"/>
+                <entry key="vplex" value="{volume_label}"/>
             </map>
         </property>
         <property name="constraints">
@@ -804,8 +804,8 @@
             <map>
                 <entry key-ref="volumeLabel" value="true"/>
                 <entry key-ref="projectName" value="false"/>
-                <entry key-ref="storageSystemSerialNumber" value="false"/>
-                <entry key-ref="volumeNativeId" value="false"/>
+                <entry key-ref="srcStorageSystemSerialNumber" value="false"/>
+                <entry key-ref="srcVolumeNativeId" value="false"/>
                 <entry key-ref="haStorageSystemSerialNumber" value="false"/>
                 <entry key-ref="haVolumeNativeId" value="false"/>
                 <entry key-ref="hostLabel" value="true"/>
@@ -819,7 +819,7 @@
         </property>
         <property name="defaultValues">
             <map>
-                <entry key="vplex" value="(volumeLabel)"/>
+                <entry key="vplex" value="{volume_label}"/>
             </map>
         </property>
         <property name="constraints">
@@ -839,8 +839,8 @@
             <map>
                 <entry key-ref="volumeLabel" value="true"/>
                 <entry key-ref="projectName" value="false"/>
-                <entry key-ref="storageSystemSerialNumber" value="false"/>
-                <entry key-ref="volumeNativeId" value="false"/>
+                <entry key-ref="srcStorageSystemSerialNumber" value="false"/>
+                <entry key-ref="srcVolumeNativeId" value="false"/>
                 <entry key-ref="haStorageSystemSerialNumber" value="false"/>
                 <entry key-ref="haVolumeNativeId" value="false"/>
                 <entry key-ref="clusterName" value="true"/>
@@ -853,7 +853,7 @@
         </property>
         <property name="defaultValues">
             <map>
-                <entry key="vplex" value="(volumeLabel)"/>
+                <entry key="vplex" value="{volume_label}"/>
             </map>
         </property>
         <property name="constraints">
@@ -872,9 +872,16 @@
         <property name="sample" value="volumeABC"/>
     </bean>
 
-    <bean id="volumeNativeId" class="com.emc.storageos.customconfigcontroller.DataSourceVariable">
+    <bean id="srcStorageSystemSerialNumber" class="com.emc.storageos.customconfigcontroller.DataSourceVariable">
+        <property name="sourceClass" value="com.emc.storageos.db.client.model.StorageSystem"/>
+        <property name="displayName" value="src_array_serial_number"/>
+        <property name="propertyName" value="serialNumber"/>
+        <property name="sample" value="000123456789"/>
+    </bean>
+
+    <bean id="srcVolumeNativeId" class="com.emc.storageos.customconfigcontroller.DataSourceVariable">
         <property name="sourceClass" value="com.emc.storageos.db.client.model.Volume"/>
-        <property name="displayName" value="vol_nativeid"/>
+        <property name="displayName" value="src_vol_nativeid"/>
         <property name="propertyName" value="nativeId"/>
         <property name="sample" value="01370"/>
     </bean>

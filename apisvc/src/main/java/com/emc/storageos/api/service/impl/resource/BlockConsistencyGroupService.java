@@ -653,7 +653,10 @@ public class BlockConsistencyGroupService extends TaskResourceService {
                 if (volume.isVPlexVolume(dbClient)) {
                     Volume backendVolume = VPlexUtil.getVPLEXBackendVolume(volume, false, dbClient);
                     if (backendVolume != null && NullColumnValueGetter.isNullValue(backendVolume.getReplicationGroupInstance())) {
-                        throw APIException.badRequests.cgReplicationNotAllowedMissingReplicationGroup(backendVolume.getLabel());
+                        // Ignore HA volumes not in a consistency group if a CG is specified; no snap sessions on HA side
+                        if (consistencyGroup != null && !NullColumnValueGetter.isNullURI(backendVolume.getConsistencyGroup())) {
+                            throw APIException.badRequests.cgReplicationNotAllowedMissingReplicationGroup(backendVolume.getLabel());
+                        }
                     }
                     backendVolume = VPlexUtil.getVPLEXBackendVolume(volume, true, dbClient);
                     if (backendVolume != null && NullColumnValueGetter.isNullValue(backendVolume.getReplicationGroupInstance())) {

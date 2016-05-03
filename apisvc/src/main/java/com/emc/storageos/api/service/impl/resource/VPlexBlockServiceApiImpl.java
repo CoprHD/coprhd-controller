@@ -360,7 +360,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
      * @return
      */
     public List<VolumeDescriptor> createVPlexVolumeDescriptors(VolumeCreate param, Project project,
-            VirtualArray vArray, VirtualPool vPool, List<Recommendation> recommendations,
+            final VirtualArray vArray, final VirtualPool vPool, List<Recommendation> recommendations,
             String task, VirtualPoolCapabilityValuesWrapper vPoolCapabilities, 
             URI blockConsistencyGroupURI, TaskList taskList, List<URI> allVolumes, boolean createTask) {
         s_logger.info("Request to create {} VPlex virtual volume(s)",
@@ -433,7 +433,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
             s_logger.info("Processing backend recommendations for Virtual Array {}", varrayId);
             List<VPlexRecommendation> vplexRecommendations = varrayRecommendationsMap.get(varrayId);
             List<VolumeDescriptor> varrayDescriptors = makeBackendVolumeDescriptors(
-                    vplexRecommendations, project, vplexProject, volumeLabel, varrayCount, 
+                    vplexRecommendations, project, vplexProject, vPool, volumeLabel, varrayCount, 
                     size, backendCG, vPoolCapabilities, createTask, task);
             descriptors.addAll(varrayDescriptors);
             List<URI> varrayURIs = VolumeDescriptor.getVolumeURIs(varrayDescriptors);
@@ -3675,6 +3675,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
      * @param recommendations -- a VPlex recommendation list
      * @param project - Project containing the Vplex volumes
      * @param vplexProject -- private project of the Vplex
+     * @param rootVpool -- top level Virtual Pool (VpoolUse.ROOT)
      * @param varrayCount -- instance count of the varray being provisioned
      * @param size -- size of each volume
      * @param backendCG -- the CG to be used on the backend Storage Systems
@@ -3685,7 +3686,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
      */
     private List<VolumeDescriptor> makeBackendVolumeDescriptors(
             List<VPlexRecommendation> recommendations, 
-            Project project, Project vplexProject, 
+            Project project, Project vplexProject, VirtualPool rootVpool,
             String volumeLabel, int varrayCount, long size, 
             BlockConsistencyGroup backendCG, VirtualPoolCapabilityValuesWrapper vPoolCapabilities,
             boolean createTask, String task) {
@@ -3742,9 +3743,10 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
             descriptors = VolumeDescriptor.filterByType(descriptors, types);
             for (VolumeDescriptor descriptor : descriptors) {
                 Volume volume = _dbClient.queryObject(Volume.class, descriptor.getVolumeURI());
-                s_logger.info("Received prepared volume {} ({}) type {}", volume.getLabel(), volume.getId(), descriptor.getType().name());
+                s_logger.info(String.format("Received prepared volume %s (%s, args) type %s",
+                        volume.getLabel(), volume.getId(), descriptor.getType().name()));
                 volume.addInternalFlags(DataObject.Flag.INTERNAL_OBJECT);
-                configureCGAndReplicationGroup(vPoolCapabilities, backendCG, volume);
+                configureCGAndReplicationGroup(rootVpool, vPoolCapabilities, backendCG, volume);
                 _dbClient.updateObject(volume);
             }
             return descriptors;
@@ -3785,7 +3787,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
                         size, thinVolumePreAllocationSize, vplexProject,
                         varray, vpool, storageDeviceURI,
                         storagePoolURI, newVolumeLabel, backendCG, vPoolCapabilities);
-                configureCGAndReplicationGroup(vPoolCapabilities, backendCG, volume);
+                configureCGAndReplicationGroup(rootVpool, vPoolCapabilities, backendCG, volume);
                 volume.addInternalFlags(Flag.INTERNAL_OBJECT);
                 _dbClient.persistObject(volume);
 
@@ -3808,14 +3810,25 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
     
     /**
      * Configures the consistency group(s) and sets the volume replicationGroupInstance.
+     * @param rootVpool - root VirtualPool
      * @param vPoolCapabilities -- a VirtualPoolCapabilitiesWrapper
      * @param backendCG -- the consistency group for the backend array
      * @param volume -- volume being configured
      */
-    private void configureCGAndReplicationGroup(VirtualPoolCapabilityValuesWrapper vPoolCapabilities,
+    private void configureCGAndReplicationGroup(VirtualPool rootVpool, VirtualPoolCapabilityValuesWrapper vPoolCapabilities,
             BlockConsistencyGroup backendCG, Volume volume) {
         // Don't process CGs / replication groups on SRDF volumes.
         if (volume.checkForSRDF()) {
+            return;
+        }
+        // If this is the HA side of a VPLEX-SRDF virtual volume, then don't allow a consistency group.
+        // This is necessary so that we want try to set up snapshot sessions or replicationGroupInstances on the HA volume.
+        if (VirtualPool.vPoolSpecifiesHighAvailabilityDistributed(rootVpool) 
+                && !VirtualPool.getRemoteProtectionSettings(rootVpool, _dbClient).isEmpty()
+                && !volume.checkForSRDF()) {
+            if (volume.getConsistencyGroup() != null) {
+                volume.setConsistencyGroup(NullColumnValueGetter.getNullURI());
+            }
             return;
         }
         // The consistency group or null when not specified.

@@ -100,17 +100,15 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
             return waitFor;
         }
 
-        // Get the consistency group. If no consistency group for source
-        // volumes,
-        // just return. Get CG from any descriptor.
+        // Get the consistency group. If no consistency group for 
+        // any source volumes, just return. Get CG from any descriptor.
         URI cgURI = null;
-        final VolumeDescriptor firstVolumeDescriptor = volumeDescriptors.get(0);
-        if (firstVolumeDescriptor != null) {
-            Volume volume = _dbClient.queryObject(Volume.class, firstVolumeDescriptor.getVolumeURI());
-            if (!(volume != null && volume.isInCG() &&
-                    (ControllerUtils.isVmaxVolumeUsing803SMIS(volume, _dbClient) || ControllerUtils.isNotInRealVNXRG(volume, _dbClient)))) {
-                log.info("No replica steps required");
-                return waitFor;
+        for (VolumeDescriptor descriptor : volumeDescriptors) {
+            Volume volume = _dbClient.queryObject(Volume.class, descriptor.getVolumeURI());
+            if (volume == null || !volume.isInCG() || 
+                    !(ControllerUtils.isVmaxVolumeUsing803SMIS(volume, _dbClient) || ControllerUtils.isNotInRealVNXRG(volume, _dbClient))) {
+                log.info("No replica steps required for volume: " + descriptor.getVolumeURI());
+                continue;
             }
             log.info("CG URI:{}", volume.getConsistencyGroup());
             cgURI = volume.getConsistencyGroup();
@@ -128,15 +126,15 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
         
         List<VolumeDescriptor> nonSrdfVolumeDescriptors = VolumeDescriptor.filterByType(volumes,
                 new VolumeDescriptor.Type[] { VolumeDescriptor.Type.BLOCK_DATA }, null);
+        List<VolumeDescriptor> srdfSourceVolumeDescriptors = VolumeDescriptor.filterByType(volumes,
+                new VolumeDescriptor.Type[] { VolumeDescriptor.Type.SRDF_SOURCE,
+                        VolumeDescriptor.Type.SRDF_EXISTING_SOURCE }, null);
 
-        if (nonSrdfVolumeDescriptors != null && !nonSrdfVolumeDescriptors.isEmpty()) {
+        if (srdfSourceVolumeDescriptors.isEmpty()) {
             waitFor = createReplicaIfCGHasReplica(workflow, waitFor,
                     nonSrdfVolumeDescriptors, cgURI);
         } else {
             // Create Replica for SRDF R1 and R2 if any replica available already
-            List<VolumeDescriptor> srdfSourceVolumeDescriptors = VolumeDescriptor.filterByType(volumes,
-                    new VolumeDescriptor.Type[] { VolumeDescriptor.Type.SRDF_SOURCE,
-                            VolumeDescriptor.Type.SRDF_EXISTING_SOURCE }, null);
             log.debug("srdfSourceVolumeDescriptors :{}", srdfSourceVolumeDescriptors);
             List<VolumeDescriptor> srdfTargetVolumeDescriptors = VolumeDescriptor.filterByType(volumes,
                     new VolumeDescriptor.Type[] { VolumeDescriptor.Type.SRDF_TARGET }, null);

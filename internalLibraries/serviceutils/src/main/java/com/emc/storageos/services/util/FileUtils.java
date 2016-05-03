@@ -4,15 +4,7 @@
  */
 package com.emc.storageos.services.util;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.FileReader;
-import java.io.FilenameFilter;
-import java.io.IOException;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
+import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -23,6 +15,7 @@ import java.util.Comparator;
 import java.util.Date;
 import java.util.List;
 import java.util.Properties;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Pattern;
 
 import org.apache.commons.lang.StringUtils;
@@ -157,6 +150,35 @@ public class FileUtils {
         } catch (Exception e) {
             log.error("Failed to delete {}.", filePath, e);
         }
+    }
+
+    public static Properties loadProperties(String propertyFile) throws Exception {
+        Properties props = new Properties();
+        InputStream in = null;
+        try {
+            in = new FileInputStream(propertyFile);
+            if (in != null) {
+                props.load(in);
+            }
+        } catch (FileNotFoundException e) {
+            log.error(String.format("Could not locate the file %s", propertyFile));
+            log.error(e.getMessage(), e);
+            throw e;
+        } catch (IOException ex) {
+            log.error(String.format("Could not read the file %s", propertyFile));
+            log.error(ex.getMessage(), ex);
+            throw ex;
+        } finally {
+            try {
+                if (in != null) {
+                    in.close();
+                }
+            } catch (IOException e) {
+                log.error("Failed while closing inputstream");
+                log.error(e.getMessage(),e);
+            }
+        }
+        return props;
     }
 
     /**

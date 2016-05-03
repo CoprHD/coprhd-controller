@@ -27,8 +27,6 @@
     <task:annotation-driven executor="taskExecutor" scheduler="taskScheduler"/>
     <util:properties id="logsvcProperties" location="classpath:logsvc.properties" />
 
-    <util:properties id="ipProperties" location="file:///.volumes/bootfs/etc/ip.properties" />
-
     <bean id="softwareUpdate" class="com.emc.storageos.systemservices.impl.upgrade.beans.SoftwareUpdate">
         <property name="catalogServerHostNames" >
 	        <list>

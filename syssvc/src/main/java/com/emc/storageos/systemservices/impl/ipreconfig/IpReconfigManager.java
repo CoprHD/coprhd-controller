@@ -46,6 +46,7 @@ public class IpReconfigManager implements Runnable {
     private static final long IPRECONFIG_TIMEOUT = 24 * 60 * 60 * 1000; // 24 hours timeout for the procedure. TODO: suitable for DR?
     private static final long POLL_INTERVAL = 10 * 1000; // 10 second polling interval
     private static final String UPDATE_ZKIP_LOCK = "update_zkip";
+    private static final String CLUSTER_IP_PROPFILE = "/data/ip.properties";
 
     // ipreconfig entry in ZK
     Configuration config = null;
@@ -79,12 +80,22 @@ public class IpReconfigManager implements Runnable {
         return (Map) ovfProperties;
     }
 
-    private Properties ipProperties;    // current ip properties of all sites
-    public void setIpProperties(Properties ipProps) {
-        ipProperties = ipProps;
-    }
+    private Properties ipProperties = null;    // current ip properties of all sites
+
     public Map<String, String> getIpProps() {
-        return (Map) ipProperties;
+        try {
+            if (ipProperties == null) {
+                ipProperties = FileUtils.loadProperties(CLUSTER_IP_PROPFILE);
+            }
+        } catch (Exception e) {
+            log.error("Failed to get cluster ip properties.");
+            return null;
+        }
+
+        Map<String, String> map = new HashMap<String, String>();
+        for (final String name: ipProperties.stringPropertyNames())
+            map.put(name, ipProperties.getProperty(name));
+        return map;
     }
 
     /**
@@ -105,11 +116,11 @@ public class IpReconfigManager implements Runnable {
 
     /**
      * Initialize ipreconfig manager
-     * 1. Load local ovfenv properties
+     * 1. Load cluster ip info from local ovfenv or cluster ip property file
      * 2. Register node listener for ipreconfig config znode in ZK
      */
     public void init() {
-        if (ipProperties == null) {
+        if (!FileUtils.exists(CLUSTER_IP_PROPFILE)) {
             loadLocalOvfProps();
         } else {
             loadClusterIpProps();
@@ -159,6 +170,7 @@ public class IpReconfigManager implements Runnable {
                 nodeCount += Integer.valueOf(ipProps.get(globalPropName));
             }
         }
+
         vdcnodeId = ((CoordinatorClientImpl)_coordinator.getCoordinatorClient()).getVdcNodeId();
     }
 

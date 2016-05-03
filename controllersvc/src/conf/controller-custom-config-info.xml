@@ -692,6 +692,7 @@
         <property name="constraints">
             <list>
                 <ref bean="illegalCharsConstraint"/>
+                <ref bean="illegalFirstCharConstraint"/>
                 <ref bean="virtualVolNameMaxLengthConstraint"/>
             </list>
         </property>
@@ -724,6 +725,7 @@
         <property name="constraints">
             <list>
                 <ref bean="illegalCharsConstraint"/>
+                <ref bean="illegalFirstCharConstraint"/>
                 <ref bean="virtualVolNameMaxLengthConstraint"/>
             </list>
         </property>
@@ -755,6 +757,7 @@
         <property name="constraints">
             <list>
                 <ref bean="illegalCharsConstraint"/>
+                <ref bean="illegalFirstCharConstraint"/>
                 <ref bean="virtualVolNameMaxLengthConstraint"/>
             </list>
         </property>
@@ -787,6 +790,7 @@
         <property name="constraints">
             <list>
                 <ref bean="illegalCharsConstraint"/>
+                <ref bean="illegalFirstCharConstraint"/>
                 <ref bean="virtualVolNameMaxLengthConstraint"/>
             </list>
         </property>
@@ -821,6 +825,7 @@
         <property name="constraints">
             <list>
                 <ref bean="illegalCharsConstraint"/>
+                <ref bean="illegalFirstCharConstraint"/>
                 <ref bean="virtualVolNameMaxLengthConstraint"/>
             </list>
         </property>
@@ -854,6 +859,7 @@
         <property name="constraints">
             <list>
                 <ref bean="illegalCharsConstraint"/>
+                <ref bean="illegalFirstCharConstraint"/>
                 <ref bean="virtualVolNameMaxLengthConstraint"/>
             </list>
         </property>
@@ -1418,6 +1424,7 @@
                 <entry key="default" value="\\s+|[^a-zA-Z0-9_#@+-]"/>
                 <entry key="hds" value="[^]a-zA-Z0-9_#@!$='`~&#37;&amp;+\[^.-]"/>
                 <entry key="xtremio" value="[^a-zA-Z0-9_#@!$~+&#37;^.*:?|-]"/>
+                <entry key="vplex" value="[^a-zA-Z0-9_-]"/>
             </map>
         </property>
         <property name="description" value="Valid characters are letters, numbers and _ # @ + -"/>
@@ -1462,8 +1469,9 @@
     <bean id="illegalFirstCharConstraint" class="com.emc.storageos.customconfigcontroller.IllegalFirstCharConstraint">
         <property name="illegalCharsRegexMap">
             <map>
-                <entry key="mds" value=" "/>
                 <entry key="default" value="[^A-Za-z]"/>
+                <entry key="mds" value=" "/>                
+                <entry key="vplex" value="[^A-Za-z_]"/>
             </map>
         </property>
         <property name="description" value="Valid first characters are letters for Brocade"/>

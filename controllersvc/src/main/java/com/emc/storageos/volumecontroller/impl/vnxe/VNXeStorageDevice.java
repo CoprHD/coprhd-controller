@@ -2623,4 +2623,10 @@ public class VNXeStorageDevice extends VNXeOperations
         return BiosCommandResult.createErrorResult(
                 DeviceControllerErrors.vnxe.operationNotSupported());
     }
+
+	@Override
+	public Map<URI, List<String>> doFindHostHLUs(StorageSystem storage, List<URI> hostURIs, TaskCompleter completer)
+			throws DeviceControllerException {
+		return null;
+	}
 }

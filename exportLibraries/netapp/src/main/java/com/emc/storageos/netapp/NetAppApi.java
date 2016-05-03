@@ -1040,12 +1040,16 @@ public class NetAppApi {
 
             netAppFacade = new NetAppFacade(_ipAddress, _portNumber, _userName,
                     _password, _https);
-            Boolean status = netAppFacade.createVirtualNas(args);
+            Boolean status = netAppFacade.createVirtualNas(args.getvNasName(),
+                    args.getStorageUnits(), args.getIpSpace(),
+                    args.getIpAdds());
             if (status) {
-                netAppFacade.setupVirtualNas(args);
-                if (args.getAddProtocols() != null && !args.getAddProtocols().isEmpty()) {
-                    Boolean protocolStatus = netAppFacade.allowVnasProtocols(args.getvNasName(), args.getAddProtocols(), CREATE_VFILER);
-                    if (protocolStatus && args.getAddProtocols().contains("cifs")) {
+                netAppFacade.setupVirtualNas(args.getvNasName(), args.getAdminHostIp(), args.getAdminHostName(),
+                        args.getDnsDomain(), args.getDnsServers(), args.getNisDomain(),
+                        args.getNisServers(), args.getAuthPassword());
+                if (args.getProtocols() != null && !args.getProtocols().isEmpty()) {
+                    Boolean protocolStatus = netAppFacade.allowVnasProtocols(args.getvNasName(), args.getProtocols(), CREATE_VFILER);
+                    if (protocolStatus && args.getProtocols().contains("cifs")) {
                         netAppFacade = new NetAppFacade(_ipAddress, _portNumber, _userName,
                                 _password, _https, args.getvNasName());
                         netAppFacade.startCifsService(args.getvNasName());

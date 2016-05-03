@@ -6,6 +6,7 @@ package com.emc.storageos.model.vnas;
 
 import java.net.URI;
 import java.util.List;
+import java.util.Set;
 
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlElementWrapper;
@@ -22,7 +23,7 @@ import com.emc.storageos.model.valid.Length;
  */
 
 @XmlRootElement(name = "vnas_create")
-public class VirtualNasCreateParam extends VirtualNasParam {
+public class VirtualNasCreateParam {
 
     private static final long serialVersionUID = -1618701804694842786L;
 
@@ -30,10 +31,20 @@ public class VirtualNasCreateParam extends VirtualNasParam {
     private String vNasName;
 
     // List of IP addresses add to VNAS
-    private List<String> addIpAdds;
+    private List<String> vnasInterfaces;
 
     // List of Storage Units add to VNAS
-    private List<String> addStorageUnits;
+    // base directory for Isilon access zone
+    // file system path for VNX VDM
+    // volume path for NetApp vFiler
+    private List<String> storageUnits;
+
+    // IP Space for virtual NAS
+    // Applicable for NetApp
+    private String ipSpace;
+
+    // List of protocols add to VNAS
+    private Set<String> protocols;
 
     // Storage System URI
     private URI storageSystem;
@@ -68,24 +79,24 @@ public class VirtualNasCreateParam extends VirtualNasParam {
         this.vNasName = vNasName;
     }
 
-    @XmlElementWrapper(name = "add_ip_addresses")
-    @XmlElement(required = true, name = "add_ip_address")
-    public List<String> getAddIpAdds() {
-        return addIpAdds;
+    @XmlElementWrapper(name = "vnas_interfaces")
+    @XmlElement(required = true, name = "vnas_interface")
+    public List<String> getIpAdds() {
+        return vnasInterfaces;
     }
 
-    public void setAddIpAdds(List<String> addIpAdds) {
-        this.addIpAdds = addIpAdds;
+    public void setIpAdds(List<String> vnasInterfaces) {
+        this.vnasInterfaces = vnasInterfaces;
     }
 
-    @XmlElementWrapper(name = "add_storage_units")
-    @XmlElement(required = true, name = "add_storage_unit")
-    public List<String> getAddStorageUnits() {
-        return addStorageUnits;
+    @XmlElementWrapper(name = "storage_units")
+    @XmlElement(required = true, name = "storage_unit")
+    public List<String> getStorageUnits() {
+        return storageUnits;
     }
 
-    public void setAddStorageUnits(List<String> addStorageUnits) {
-        this.addStorageUnits = addStorageUnits;
+    public void setStorageUnits(List<String> addStorageUnits) {
+        this.storageUnits = addStorageUnits;
     }
 
     @XmlElement(required = true, name = "storage_system")
@@ -161,6 +172,25 @@ public class VirtualNasCreateParam extends VirtualNasParam {
 
     public void setAuthPassword(String authPassword) {
         this.authPassword = authPassword;
+    }
+
+    @XmlElementWrapper(name = "protocols")
+    @XmlElement(name = "protocol")
+    public Set<String> getProtocols() {
+        return protocols;
+    }
+
+    public void setProtocols(Set<String> addProtocols) {
+        this.protocols = addProtocols;
+    }
+
+    @XmlElement(name = "ip_space")
+    public String getIpSpace() {
+        return ipSpace;
+    }
+
+    public void setIpSpace(String ipSpace) {
+        this.ipSpace = ipSpace;
     }
 
 }

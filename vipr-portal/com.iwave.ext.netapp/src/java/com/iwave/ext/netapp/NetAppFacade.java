@@ -14,11 +14,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import netapp.manage.NaElement;
+
 import org.apache.commons.beanutils.ConvertUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.log4j.Logger;
 
-import com.emc.storageos.model.vnas.VirtualNasCreateParam;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.iwave.ext.netapp.model.CifsAcl;
@@ -28,8 +29,6 @@ import com.iwave.ext.netapp.model.NetAppDevice;
 import com.iwave.ext.netapp.model.Qtree;
 import com.iwave.ext.netapp.model.Quota;
 import com.iwave.ext.netapp.utils.ExportRule;
-
-import netapp.manage.NaElement;
 
 @SuppressWarnings({ "findbugs:WMI_WRONG_MAP_ITERATOR" })
 /**
@@ -1551,16 +1550,12 @@ public class NetAppFacade {
         return share.modifyNFSShare(exportPath, exportRules);
     }
 
-    public boolean createVirtualNas(VirtualNasCreateParam args) {
-        String vFilerName = args.getvNasName();
-        List<String> ipAddresses = args.getAddIpAdds();
-        List<String> storageUnits = args.getAddStorageUnits();
-        String ipSpace = args.getIpSpace();
+    public boolean createVirtualNas(String vFilerName, List<String> storageUnits, String ipSpace, List<String> ipAddrs) {
         if (log.isDebugEnabled()) {
             log.debug("Creating vfiler with params[vFilerName]: " + vFilerName);
         }
         VFiler vFiler = new VFiler(server.getNaServer(), null);
-        return vFiler.createVFiler(vFilerName, ipAddresses, storageUnits, ipSpace);
+        return vFiler.createVFiler(vFilerName, ipAddrs, storageUnits, ipSpace);
     }
 
     public boolean allowVnasProtocols(String vFilerName, Set<String> protocols, String opType) {
@@ -1579,15 +1574,8 @@ public class NetAppFacade {
         return vFiler.disallowProtocols(vFilerName, protocols);
     }
 
-    public boolean setupVirtualNas(VirtualNasCreateParam args) {
-        String vFilerName = args.getvNasName();
-        String adminHostIp = args.getAdminHostIp();
-        String adminHostName = args.getAdminHostName() != null ? args.getAdminHostName() : "";
-        String dnsDomain = args.getDnsDomain();
-        List<String> dnsServers = args.getDnsServers();
-        String nisDomain = args.getNisDomain();
-        List<String> nisServers = args.getNisServers();
-        String password = args.getAuthPassword();
+    public boolean setupVirtualNas(String vFilerName, String adminHostIp, String adminHostName, String dnsDomain,
+            List<String> dnsServers, String nisDomain, List<String> nisServers, String password) {
         if (log.isDebugEnabled()) {
             log.debug("Creating vfiler with params[vFilerName]: " + vFilerName);
         }

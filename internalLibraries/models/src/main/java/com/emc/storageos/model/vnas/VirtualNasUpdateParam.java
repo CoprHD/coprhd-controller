@@ -20,21 +20,24 @@ import javax.xml.bind.annotation.XmlRootElement;
  */
 
 @XmlRootElement(name = "vnas_update")
-public class VirtualNasUpdateParam extends VirtualNasParam {
+public class VirtualNasUpdateParam {
 
     private static final long serialVersionUID = 6355777536519941066L;
 
     // List of IP addresses add to VNAS
     private List<String> addIpAdds;
 
-    // List of Storage Units add to VNAS
-    private List<String> addStorageUnits;
-
     // List of IP addresses remove from VNAS
     private List<String> removeIpAdds;
 
+    // List of Storage Units add to VNAS
+    private List<String> addStorageUnits;
+
     // List of Storage Units remove from VNAS
     private List<String> removeStorageUnits;
+
+    // List of protocols add from VNAS
+    private Set<String> addProtocols;
 
     // List of protocols remove from VNAS
     private Set<String> removeProtocols;
@@ -87,6 +90,16 @@ public class VirtualNasUpdateParam extends VirtualNasParam {
 
     public void setRemoveProtocols(Set<String> removeProtocols) {
         this.removeProtocols = removeProtocols;
+    }
+
+    @XmlElementWrapper(name = "add_protocols")
+    @XmlElement(name = "add_protocol")
+    public Set<String> getAddProtocols() {
+        return addProtocols;
+    }
+
+    public void setAddProtocols(Set<String> addProtocols) {
+        this.addProtocols = addProtocols;
     }
 
 }

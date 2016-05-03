@@ -1,13 +1,21 @@
+/*
+ * Copyright 2016 EMC Corporation
+ * All Rights Reserved
+ */
 package com.emc.storageos.hp3par.impl;
 
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentMap;
 
 import org.apache.commons.lang.mutable.MutableBoolean;
 import org.apache.commons.lang.mutable.MutableInt;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.emc.storageos.hp3par.connection.ConnectionInfo;
 import com.emc.storageos.storagedriver.AbstractStorageDriver;
 import com.emc.storageos.storagedriver.BlockStorageDriver;
 import com.emc.storageos.storagedriver.DriverTask;
@@ -27,9 +35,14 @@ import com.emc.storageos.storagedriver.model.VolumeSnapshot;
 import com.emc.storageos.storagedriver.storagecapabilities.CapabilityInstance;
 import com.emc.storageos.storagedriver.storagecapabilities.StorageCapabilities;
 
-public class HP3PARDriver extends AbstractStorageDriver implements BlockStorageDriver {
+public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockStorageDriver {
 
-	private static final Logger _log = LoggerFactory.getLogger(HP3PARDriver.class);
+	private static final Logger _log = LoggerFactory.getLogger(HP3PARStorageDriver.class);
+	private ConcurrentMap<String, ConnectionInfo> connectionMap = null;
+	
+	public HP3PARStorageDriver () {
+		
+	}
 	
 	@Override
 	public List<String> getSystemTypes() {
@@ -57,9 +70,31 @@ public class HP3PARDriver extends AbstractStorageDriver implements BlockStorageD
 
 	@Override
 	public DriverTask discoverStorageSystem(List<StorageSystem> storageSystems) {
-		// TODO Auto-generated method stub
-		 _log.info("3PAR discovery successsful"); 
-		return null;
+	
+	    try {
+	        // For each 3par system
+	        for (StorageSystem storageSystem : storageSystems) {
+	            ConnectionInfo connectionInfo = new ConnectionInfo(storageSystem.getIpAddress(),
+	                    storageSystem.getPortNumber(),
+	                    storageSystem.getUsername(),
+	                    storageSystem.getPassword());
+
+	            URI deviceURI = new URI("https", null, 
+	                    storageSystem.getIpAddress(), storageSystem.getPortNumber(), "/", null, null);
+
+	            // key=uri+user+pass to make unique, value=all details
+	            connectionMap.putIfAbsent(deviceURI.toString() + 
+	                    ":" + storageSystem.getUsername() + ":" + storageSystem.getPassword(),
+	                    connectionInfo);
+	            
+	            
+	        }
+	        _log.info("3PAR discovery successsful---");
+	    } catch (Exception e) {
+	        e.printStackTrace();
+	    }
+
+	    return null;
 	}
 
 	@Override

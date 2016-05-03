@@ -1232,7 +1232,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
         getDiscPathsForUnManaged().addAll(pathList);
         namespace = customConfigHandler.getComputedCustomConfigValue(CustomConfigConstants.ISILON_SYSTEM_ACCESS_ZONE_NAMESPACE, "isilon",
                 null);
-        getDiscPathsForUnManaged().add(namespace);
+        getDiscPathsForUnManaged().add(IFS_ROOT + "/" + namespace + "/");
 
     }
 

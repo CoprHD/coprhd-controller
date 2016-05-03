@@ -63,10 +63,6 @@ public class StorageProviderTypes {
     	return SCALEIOAPI.equals(type);
     }
     
-    public static boolean isXIV(String type) {
-    	return IBMXIV.equals(type);
-    }
-    
     public static String fromStorageArrayType(String storageArrayType) {
         return fromStorageArrayTypeMap.get(storageArrayType);
     }

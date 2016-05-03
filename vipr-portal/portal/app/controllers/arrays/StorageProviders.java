@@ -247,15 +247,17 @@ public class StorageProviders extends ViprResourceController {
             return StorageProviderTypes.isScaleIOApi(interfaceType);
         }
 
-        public boolean isXIV() {
-            return StorageProviderTypes.isXIV(interfaceType);
-        }
-        
 		public void setXIVParameters() {
-			if (isXIV()) {
+			if (StringUtils.isNotEmpty(this.hyperScaleUser)) {
 				this.secondaryUsername = this.hyperScaleUser;
+			}
+			if (StringUtils.isNotEmpty(this.hyperScalePassword)) {
 				this.secondaryPassword = this.hyperScalePassword;
+			}
+			if (StringUtils.isNotEmpty(this.hyperScaleConfPasswd)) {
 				this.secondaryPasswordConfirm = this.hyperScaleConfPasswd;
+			}
+			if (StringUtils.isNotEmpty(this.hyperScaleURL)) {
 				this.elementManagerURL = this.hyperScaleURL;
 			}
 		}

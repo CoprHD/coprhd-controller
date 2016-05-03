@@ -220,6 +220,17 @@ public class StorageProviders extends ViprResourceController {
 
         public String elementManagerURL;
         
+        @MaxSize(2048)
+        public String hyperScaleUser;
+
+        @MaxSize(2048)
+        public String hyperScalePassword = "";
+
+        @MaxSize(2048)
+        public String hyperScaleConfPasswd = "";
+
+        public String hyperScaleURL;
+        
 
         public StorageProviderForm() {        	
         }
@@ -236,6 +247,19 @@ public class StorageProviders extends ViprResourceController {
             return StorageProviderTypes.isScaleIOApi(interfaceType);
         }
 
+        public boolean isXIV() {
+            return StorageProviderTypes.isXIV(interfaceType);
+        }
+        
+		public void setXIVParameters() {
+			if (isXIV()) {
+				this.secondaryUsername = this.hyperScaleUser;
+				this.secondaryPassword = this.hyperScalePassword;
+				this.secondaryPasswordConfirm = this.hyperScaleConfPasswd;
+				this.elementManagerURL = this.hyperScaleURL;
+			}
+		}
+
         public void readFrom(StorageProviderRestRep storageProvider) {
             this.id = storageProvider.getId().toString();
             this.name = storageProvider.getName();
@@ -247,15 +271,21 @@ public class StorageProviders extends ViprResourceController {
             this.interfaceType = storageProvider.getInterface();
             this.secondaryUsername = storageProvider.getSecondaryUsername();
             this.secondaryPassword = ""; // the platform will never return the real password
-            this.elementManagerURL = storageProvider.getElementManagerURL();      
+            this.elementManagerURL = storageProvider.getElementManagerURL();  
+            this.hyperScaleUser = storageProvider.getSecondaryUsername();
+            this.hyperScalePassword = ""; // the platform will never return the real password
+            this.hyperScaleURL = storageProvider.getElementManagerURL();  
             if(isScaleIOApi()) {
             	this.secondaryUsername = this.userName;
             	this.secondaryPassword = this.password;
             	this.secondaryPasswordConfirm = this.confirmPassword;
             }
+            setXIVParameters();
+            
         }
 
         public URI save() {
+        	setXIVParameters();
             if (isNew()) {
                 return create().getResourceId();
             }

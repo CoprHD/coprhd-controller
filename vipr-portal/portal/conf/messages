@@ -1896,6 +1896,10 @@ smisProvider.secondaryPassword=MDM Password
 smisProvider.secondaryPasswordConfirm=Confirm MDM Password
 smisProvider.secondaryPassword.confirmPassword.not.match=User MDM Password and Confirm MDM Password do not match.
 smisProvider.elementManagerURL=Element Manager URL
+smisProvider.hyperScaleURL=Hyper Scale Manager URL
+smisProvider.hyperScaleUser=Hyper Scale Manager User
+smisProvider.hyperScalePassword=Hyper Scale Manager Password
+smisProvider.hyperScaleConfPasswd=Confirm Hyper Scale Manager Password
 
 storageProvider.interfaceType.hicommand=Hitachi HiCommand
 storageProvider.interfaceType.smis=SMI-S for EMC VMAX, VNX Block

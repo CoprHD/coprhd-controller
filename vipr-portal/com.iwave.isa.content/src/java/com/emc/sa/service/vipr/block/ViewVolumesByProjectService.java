@@ -5,10 +5,8 @@
 package com.emc.sa.service.vipr.block;
 
 import static com.emc.sa.service.ServiceParams.NAME;
-
-
-
-
+import static com.emc.sa.service.ServiceParams.PROJECT;
+import static com.emc.sa.service.ServiceParams.VOLUMES;
 
 import java.net.URI;
 
@@ -22,7 +20,11 @@ import com.emc.vipr.client.Tasks;
 public class ViewVolumesByProjectService extends ViPRService {
 	@Param(NAME)
     protected String name;
+	
+	@Param(PROJECT)
 	protected URI pId;
+	
+	@Param(VOLUMES)
 	protected URI vId;
 	
 	@Override

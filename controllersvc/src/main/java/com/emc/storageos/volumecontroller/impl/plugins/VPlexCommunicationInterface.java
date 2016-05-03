@@ -883,7 +883,11 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
             _dbClient.queryByConstraint(AlternateIdConstraint.Factory
                     .getVolumeNativeIdConstraint(volumeNativeGuid), result);
             if (result.iterator().hasNext()) {
-                return _dbClient.queryObject(Volume.class, result.iterator().next());
+                Volume volume = _dbClient.queryObject(Volume.class, result.iterator().next());
+                // only return active volumes
+                if (null != volume && !volume.getInactive()) {
+                    return volume;
+                }
             }
         }
 

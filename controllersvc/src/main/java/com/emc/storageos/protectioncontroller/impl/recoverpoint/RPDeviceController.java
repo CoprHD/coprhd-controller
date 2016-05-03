@@ -751,7 +751,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
         // the lock fails.
         lockCG(completer);
 
-        return STEP_DV_CLEANUP;
+        return waitFor;
     }
 
     @Override
@@ -1704,7 +1704,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
             // If this was a vpool Update, now is a good time to update the vpool and Volume information
             if (VolumeDescriptor.getVirtualPoolChangeVolume(volumeDescriptors) != null) {
                 Volume volume = _dbClient.queryObject(Volume.class, VolumeDescriptor.getVirtualPoolChangeVolume(volumeDescriptors));
-                URI newVpoolURI = getVirtualPoolChangeVirtualPool(volumeDescriptors);
+                URI newVpoolURI = getVirtualPoolChangeNewVirtualPool(volumeDescriptors);
                 volume.setVirtualPool(newVpoolURI);
                 volume.setPersonality(Volume.PersonalityTypes.SOURCE.toString());
                 volume.setAccessState(Volume.VolumeAccessState.READWRITE.name());
@@ -1876,12 +1876,12 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
      * @param volumeDescriptors list of volumes
      * @return URI of the vpool change vpool
      */
-    private URI getVirtualPoolChangeVirtualPool(List<VolumeDescriptor> volumeDescriptors) {
+    private URI getVirtualPoolChangeNewVirtualPool(List<VolumeDescriptor> volumeDescriptors) {
         if (volumeDescriptors != null) {
             for (VolumeDescriptor volumeDescriptor : volumeDescriptors) {
                 if (volumeDescriptor.getParameters() != null) {
-                    if ((URI) volumeDescriptor.getParameters().get(VolumeDescriptor.PARAM_VPOOL_CHANGE_VPOOL_ID) != null) {
-                        return (URI) volumeDescriptor.getParameters().get(VolumeDescriptor.PARAM_VPOOL_CHANGE_VPOOL_ID);
+                    if ((URI) volumeDescriptor.getParameters().get(VolumeDescriptor.PARAM_VPOOL_CHANGE_NEW_VPOOL_ID) != null) {
+                        return (URI) volumeDescriptor.getParameters().get(VolumeDescriptor.PARAM_VPOOL_CHANGE_NEW_VPOOL_ID);
                     }
                 }
             }
@@ -1917,7 +1917,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
      * @param recommendation
      */
     private Collection<RPExport> generateStorageSystemExportMaps(CGRequestParams cgParams, List<VolumeDescriptor> volumeDescriptors) {
-        _log.info("Generate the storage system exports");
+        _log.info("Generate the storage system exports...START");
         Map<String, RPExport> rpExportMap = new HashMap<String, RPExport>();
 
         // First, iterate through source/target volumes (via the replication set). This will be slightly
@@ -1925,32 +1925,54 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
         // volume.
         for (CreateRSetParams rset : cgParams.getRsets()) {
             _log.info("Replication Set: " + rset.getName());
-            Set<CreateVolumeParams> uniqueVolumeParams = new HashSet<CreateVolumeParams>();
-            uniqueVolumeParams.addAll(rset.getVolumes());
-            for (CreateVolumeParams rsetVolume : uniqueVolumeParams) {
+            Set<CreateVolumeParams> createVolumeParams = new HashSet<CreateVolumeParams>();
+            createVolumeParams.addAll(rset.getVolumes()); 
+            List<URI> processedRsetVolumes = new ArrayList<URI>();
+            for (CreateVolumeParams rsetVolume : createVolumeParams) {
+                // MetroPoint RSets will have the Source volume listed twice:
+                //
+                // 1. Once for the Active Production Copy 
+                // 2. Once for the Standby Production Copy
+                //
+                // This is the same volume WWN but it is for two distinct RP Copies.
+                //
+                // We only need a single reference to the Source volume for export purposes
+                // as we already make allowances in the below code for exporting this volume to 
+                // multiple VPLEX export groups (aka Storage Views). 
+                //
+                // So if we have already created exports for this Source volume, we can skip 
+                // the second reference and continue processing.
+                if (processedRsetVolumes.contains(rsetVolume.getVolumeURI())) {
+                    continue;
+                }                
+                processedRsetVolumes.add(rsetVolume.getVolumeURI());
+                
                 // Retrieve the volume
                 Volume volume = _dbClient.queryObject(Volume.class, rsetVolume.getVolumeURI());
 
-                // List of volumes, normally just one volume will be added to this list unless
+                _log.info(String.format("Generating Exports for %s volume [%s](%s)...", 
+                        volume.getPersonality().toString(), volume.getLabel(), volume.getId()));
+                
+                // List of volumes to export, normally just one volume will be added to this list unless
                 // we have a MetroPoint config. In which case we would have two (each leg of the VPLEX).
                 Set<Volume> volumes = new HashSet<Volume>();
 
                 // Check to see if this is a SOURCE volume
                 if (volume.checkPersonality(PersonalityTypes.SOURCE.toString())) {
-                    // Now check the vpool to ensure we're exporting to the source volume to then correct place or
-                    // places in the case of MetroPoint, however, it could be a change vpool. In that case get the change
+                    // Check the vpool to ensure we're exporting the source volume to the correct storage system. 
+                    // In the case of MetroPoint, however, it could be a change vpool. In that case get the change
                     // vpool new vpool.
                     URI vpoolURI = null;
                     if (VolumeDescriptor.getVirtualPoolChangeVolume(volumeDescriptors) != null) {
-                        vpoolURI = getVirtualPoolChangeVirtualPool(volumeDescriptors);
+                        vpoolURI = getVirtualPoolChangeNewVirtualPool(volumeDescriptors);
                     } else {
                         vpoolURI = volume.getVirtualPool();
                     }
 
                     VirtualPool vpool = _dbClient.queryObject(VirtualPool.class, vpoolURI);
 
-                    // In an RP+VPLEX distributed setup, the user can choose to protect only the HA side, so we would export only to the
-                    // HA StorageView on the VPLEX.
+                    // In an RP+VPLEX distributed setup, the user can choose to protect only the HA side, 
+                    // so we would export only to the HA StorageView on the VPLEX.
                     boolean exportToHASideOnly = VirtualPool.isRPVPlexProtectHASide(vpool);
 
                     if (exportToHASideOnly || VirtualPool.vPoolSpecifiesMetroPoint(vpool)) {
@@ -1984,9 +2006,8 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                     URI storageSystem = rsetVolume.getStorageSystem();
                     String rpSiteName = vol.getInternalSiteName();
                     URI varray = vol.getVirtualArray();
-                    // Intentionally want the label and ID of the parent volume, not the inner looping vol.
+                    // Intentionally want the ID of the parent volume, not the inner looping vol.
                     // This is because we could be trying to create exports for MetroPoint.
-                    String volumeLabel = volume.getLabel();
                     URI volumeId = volume.getId();
 
                     // Generate a unique key based on Storage System + Internal Site + Virtual Array
@@ -2012,8 +2033,9 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                                 }
                             }
                         }
-                    }
-                    _log.info("Add Volume: " + volumeLabel + " to export: " + rpExport);
+                    }                    
+                    _log.info(String.format("Adding %s volume [%s](%s) to export: %s", 
+                            volume.getPersonality().toString(), volume.getLabel(), volume.getId(), rpExport.toString()));
                     rpExport.getVolumes().add(volumeId);
                 }
             }
@@ -2032,10 +2054,12 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                 // Retrieve the volume
                 Volume volume = _dbClient.queryObject(Volume.class, journalVolume.getVolumeURI());
 
+                _log.info(String.format("Generating export for %s volume [%s](%s)...", 
+                        volume.getPersonality().toString(), volume.getLabel(), volume.getId()));
+                
                 URI storageSystem = journalVolume.getStorageSystem();
                 String rpSiteName = volume.getInternalSiteName();
                 URI varray = volume.getVirtualArray();
-                String volumeLabel = volume.getLabel();
                 URI volumeId = volume.getId();
 
                 // Generate a unique key based on Storage System + Internal Site + Virtual Array
@@ -2053,12 +2077,14 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                     rpExportMap.put(key, rpExport);
                 }
 
-                _log.info(String.format("Add Journal Volume: [%s] to export : [%s]", volumeLabel, rpExport.toString()));
-
+                _log.info(String.format("Adding %s volume [%s](%s) to export: %s", 
+                        volume.getPersonality().toString(), volume.getLabel(), volume.getId(), rpExport.toString()));
                 rpExport.getVolumes().add(volumeId);
             }
         }
 
+        _log.info("Generate the storage system exports...END");
+        
         return rpExportMap.values();
     }
 
@@ -5904,8 +5930,8 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
                 Volume sourceVolume = _dbClient.queryObject(Volume.class, descriptor.getVolumeURI());
 
-                URI newVpoolURI = (URI) descriptor.getParameters().get(VolumeDescriptor.PARAM_VPOOL_CHANGE_VPOOL_ID);
-                URI oldVPoolURI = (URI) descriptor.getParameters().get(VolumeDescriptor.PARAM_VPOOL_OLD_VPOOL_ID);
+                URI newVpoolURI = (URI) descriptor.getParameters().get(VolumeDescriptor.PARAM_VPOOL_CHANGE_NEW_VPOOL_ID);
+                URI oldVPoolURI = (URI) descriptor.getParameters().get(VolumeDescriptor.PARAM_VPOOL_CHANGE_OLD_VPOOL_ID);
 
                 VirtualPool newVpool = _dbClient.queryObject(VirtualPool.class, newVpoolURI);
                 VirtualPool oldVpool = _dbClient.queryObject(VirtualPool.class, oldVPoolURI);
@@ -6102,7 +6128,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
             if (descriptor.getParameters().get(VolumeDescriptor.PARAM_DO_NOT_DELETE_VOLUME) != null) {
                 // This is a rollback protection operation. We do not want to delete the volume but we do
                 // want to remove protection from it.
-                newVpoolURI = (URI) descriptor.getParameters().get(VolumeDescriptor.PARAM_VPOOL_CHANGE_VPOOL_ID);
+                newVpoolURI = (URI) descriptor.getParameters().get(VolumeDescriptor.PARAM_VPOOL_CHANGE_NEW_VPOOL_ID);
                 _log.info(String.format("Adding step to remove protection from Volume (%s) and move it to vpool (%s)",
                         descriptor.getVolumeURI(), newVpoolURI));
                 volumeURIs.add(descriptor.getVolumeURI());

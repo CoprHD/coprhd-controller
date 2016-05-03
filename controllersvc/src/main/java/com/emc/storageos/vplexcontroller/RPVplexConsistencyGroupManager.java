@@ -393,9 +393,8 @@ public class RPVplexConsistencyGroupManager extends AbstractConsistencyGroupMana
                     distributed = true;
             }
         } else {
-           // VPlexApiException vex;
-            String reason = "Associated volume for the virtual volume is empty";
-            throw VPlexApiException.exceptions.emptyAssociatedVolumes(vplexCluster, reason);
+            String reason = "Associated volume is empty";
+            throw VPlexApiException.exceptions.emptyAssociatedVolumes(vplexVolume.getDeviceLabel(), vplexCluster, reason);
         }
         
         // Keep a reference to the VPLEX

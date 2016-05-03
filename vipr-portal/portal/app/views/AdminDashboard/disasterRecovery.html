@@ -17,84 +17,86 @@
         				#{list items:drsites, as:'site'}
         				<tr>
 							<td>
+								<span class="expandable">
 								<form action="#{./vdcLink host:site.vipEndpoint, path:''/}" method="POST" accept-charset="utf-8" enctype="application/x-www-form-urlencoded" id="StandbySite${site.uuid}">
       								#{authenticityToken /}
 	  								<input type="hidden" name="auth-token" value="${token}">
  								</form>
 								<a href="https://${site.vipEndpoint}" onclick="$('#StandbySite${site.uuid}').submit(); return false;">${site.name}</a>
+								</span>
 							</td>
 							<td>
 								#{if site.state == "ACTIVE"}
 								    #{if site.runningState }
-									   <span class="label label-success"><span class=" glyphicon glyphicon-ok"></span></span><span> &{'renderFunctions.disasterRecovery.status.active'}</span>
+									   <span class="label label-success"><span class=" glyphicon glyphicon-ok"></span></span><span class="expandable"> &{'renderFunctions.disasterRecovery.status.active'}</span>
 									#{/if}
 									#{else}
-								       <span class="label label-warning"><span class=" glyphicon glyphicon-warning-sign"></span></span><span> &{'renderFunctions.disasterRecovery.status.active'}</span>
+								       <span class="label label-warning"><span class=" glyphicon glyphicon-warning-sign"></span></span><span class="expandable"> &{'renderFunctions.disasterRecovery.status.active'}</span>
 									#{/else}   
 								#{/if}
 								#{if site.state == "ACTIVE_SWITCHING_OVER"}
-								<span class="label label-danger"><span class="glyphicon glyphicon-refresh rotate"></span></span><span> &{'renderFunctions.disasterRecovery.status.active.switchingover'}</span>
+								<span class="label label-danger"><span class="glyphicon glyphicon-refresh rotate"></span></span><span class="expandable"> &{'renderFunctions.disasterRecovery.status.active.switchingover'}</span>
 								#{/if}
 								#{if site.state == "ACTIVE_FAILING_OVER"}
-								<span class="label label-danger"><span class="glyphicon glyphicon-refresh rotate"></span></span><span> &{'renderFunctions.disasterRecovery.status.active.failingover'}</span>
+								<span class="label label-danger"><span class="glyphicon glyphicon-refresh rotate"></span></span><span class="expandable"> &{'renderFunctions.disasterRecovery.status.active.failingover'}</span>
 								#{/if}
 								#{if site.state == "STANDBY_ADDING"}
-								<span class="label label-info"><span class="glyphicon glyphicon-refresh rotate"></span></span><span> &{'renderFunctions.disasterRecovery.status.standby.adding'}</span>
+								<span class="label label-info"><span class="glyphicon glyphicon-refresh rotate"></span></span><span class="expandable"> &{'renderFunctions.disasterRecovery.status.standby.adding'}</span>
 								#{/if}
 								#{if site.state == "STANDBY_SYNCING"}
-								<span class="label label-info"><span class="glyphicon glyphicon-refresh rotate"></span></span><span> &{'renderFunctions.disasterRecovery.status.standby.syncing'}</span>
+								<span class="label label-info"><span class="glyphicon glyphicon-refresh rotate"></span></span><span class="expandable"> &{'renderFunctions.disasterRecovery.status.standby.syncing'}</span>
 								#{/if}
 								#{if site.state == "STANDBY_SYNCED"}
 								    #{if site.runningState }
-								       <span class="label label-success"><span class="glyphicon glyphicon-ok"></span></span><span> &{'renderFunctions.disasterRecovery.status.standby.synced'}</span>
+								       <span class="label label-success"><span class="glyphicon glyphicon-ok"></span></span><span class="expandable"> &{'renderFunctions.disasterRecovery.status.standby.synced'}</span>
 									#{/if}
 									#{else}
-								       <span class="label label-warning"><span class="glyphicon glyphicon-warning-sign"></span></span><span> &{'renderFunctions.disasterRecovery.status.standby.synced'}</span>
+								       <span class="label label-warning"><span class="glyphicon glyphicon-warning-sign"></span></span><span class="expandable"> &{'renderFunctions.disasterRecovery.status.standby.synced'}</span>
 									#{/else}   
 								#{/if}
 								#{if site.state == "STANDBY_PAUSING"}
-								<span class="label label-info"><span class="glyphicon glyphicon-refresh rotate"></span></span><span> &{'renderFunctions.disasterRecovery.status.standby.pausing'}</span>
+								<span class="label label-info"><span class="glyphicon glyphicon-refresh rotate"></span></span><span class="expandable"> &{'renderFunctions.disasterRecovery.status.standby.pausing'}</span>
 								#{/if}
 								#{if site.state == "STANDBY_PAUSED"}
-								<span class="label label-info"><span class="glyphicon glyphicon-pause"></span></span><span> &{'renderFunctions.disasterRecovery.status.standby.paused'}</span>
+								<span class="label label-info"><span class="glyphicon glyphicon-pause"></span></span><span class="expandable"> &{'renderFunctions.disasterRecovery.status.standby.paused'}</span>
 								#{/if}
 								#{if site.state == "STANDBY_TESTING"}
-								<span class="label label-info"><span class="glyphicon glyphicon-refresh rotate"></span></span><span> &{'renderFunctions.disasterRecovery.status.standby.testing'}</span>
+								<span class="label label-info"><span class="glyphicon glyphicon-refresh rotate"></span></span><span class="expandable"> &{'renderFunctions.disasterRecovery.status.standby.testing'}</span>
 								#{/if}
 								#{if site.state == "STANDBY_SWITCHING_OVER"}
-								<span class="label label-danger"><span class="glyphicon glyphicon-refresh rotate"></span></span><span> &{'renderFunctions.disasterRecovery.status.standby.switchingover'}</span>
+								<span class="label label-danger"><span class="glyphicon glyphicon-refresh rotate"></span></span><span class="expandable"> &{'renderFunctions.disasterRecovery.status.standby.switchingover'}</span>
 								#{/if}
 								#{if site.state == "STANDBY_FAILING_OVER"}
-								<span class="label label-danger"><span class="glyphicon glyphicon-refresh rotate"></span></span><span> &{'renderFunctions.disasterRecovery.status.standby.failingover'}</span>
+								<span class="label label-danger"><span class="glyphicon glyphicon-refresh rotate"></span></span><span class="expandable"> &{'renderFunctions.disasterRecovery.status.standby.failingover'}</span>
 								#{/if}
 								#{if site.state == "STANDBY_REMOVING"}
-								<span class="label label-danger"><span class="glyphicon glyphicon-refresh rotate"></span></span><span> &{'renderFunctions.disasterRecovery.status.standby.removing'}</span>
+								<span class="label label-danger"><span class="glyphicon glyphicon-refresh rotate"></span></span><span class="expandable"> &{'renderFunctions.disasterRecovery.status.standby.removing'}</span>
 								#{/if}
 								#{if site.state == "STANDBY_RESUMING"}
-								<span class="label label-info"><span class="glyphicon glyphicon-refresh rotate"></span></span><span> &{'renderFunctions.disasterRecovery.status.standby.resuming'}</span>
+								<span class="label label-info"><span class="glyphicon glyphicon-refresh rotate"></span></span><span class="expandable"> &{'renderFunctions.disasterRecovery.status.standby.resuming'}</span>
 								#{/if}
 								#{if site.state == "ACTIVE_DEGRADED"}
-								    <span class="label label-danger"><span class="glyphicon glyphicon-remove"></span></span><span> &{'renderFunctions.disasterRecovery.status.standby.failbackDegraded'}</span>
+								    <span class="label label-danger"><span class="glyphicon glyphicon-remove"></span></span><span class="expandable"> &{'renderFunctions.disasterRecovery.status.standby.failbackDegraded'}</span>
 								#{/if}
 								#{if site.state == "STANDBY_DEGRADING"}
-								    <span class="label label-danger"><span class="glyphicon glyphicon-refresh rotate"></span></span><span> &{'renderFunctions.disasterRecovery.status.standby.degrading'}</span>
+								    <span class="label label-danger"><span class="glyphicon glyphicon-refresh rotate"></span></span><span class="expandable"> &{'renderFunctions.disasterRecovery.status.standby.degrading'}</span>
 								#{/if}
 								#{if site.state == "STANDBY_DEGRADED"}
-								    <span class="label label-danger"><span class="glyphicon glyphicon-remove"></span></span><span> &{'renderFunctions.disasterRecovery.status.standby.degraded'}</span>
+								    <span class="label label-danger"><span class="glyphicon glyphicon-remove"></span></span><span class="expandable"> &{'renderFunctions.disasterRecovery.status.standby.degraded'}</span>
 								#{/if}
 								#{if site.state == "STANDBY_ERROR"}
-								    <span class="label label-danger"><span class="glyphicon glyphicon-remove"></span></span><span> &{'renderFunctions.disasterRecovery.status.standby.error'}</span>
+								    <span class="label label-danger"><span class="glyphicon glyphicon-remove"></span></span><span class="expandable"> &{'renderFunctions.disasterRecovery.status.standby.error'}</span>
 								#{/if}
 							</td>
 							<td>
 								#{if site.networkHealth == "GOOD"}
-								<span class="label label-success"><span class="glyphicon glyphicon-ok"></span></span><span> &{'renderFunctions.disasterRecovery.networkHealth.good'}</span>
+								<span class="label label-success"><span class="glyphicon glyphicon-ok"></span></span><span class="expandable"> &{'renderFunctions.disasterRecovery.networkHealth.good'}</span>
 								#{/if}
 								#{if site.networkHealth == "SLOW"}
-								<span class="label label-warning"><span class="glyphicon glyphicon-warning-sign"></span></span><span> &{'renderFunctions.disasterRecovery.networkHealth.slow'}</span>
+								<span class="label label-warning"><span class="glyphicon glyphicon-warning-sign"></span></span><span class="expandable"> &{'renderFunctions.disasterRecovery.networkHealth.slow'}</span>
 								#{/if}
 								#{if site.networkHealth == "BROKEN"}
-								<span class="label label-danger"><span class="glyphicon glyphicon-remove"></span></span><span> &{'renderFunctions.disasterRecovery.networkHealth.broken'}</span>
+								<span class="label label-danger"><span class="glyphicon glyphicon-remove"></span></span><span class="expandable"> &{'renderFunctions.disasterRecovery.networkHealth.broken'}</span>
 								#{/if}
 							</td>
 						</tr>
@@ -114,17 +116,26 @@
 
 <style type="text/css">
 .table td {
-  max-width: 100px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+	max-width: 100px;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+.table td:hover {
+	overflow: visible;
+	z-index: 2;
 }
 
-.table td:hover {
-  position:absolute;
-  max-width: none;
-  background:#fff;
-  z-index:100;
-  overflow: visible;
+.expandable {
+	padding-top: 5px;
+	padding-bottom: 6px;
+}
+.expandable:hover {
+	background-color: #f5f5f5;
+	position: relative;
+	max-width: none;
+	z-index: 2;
+	padding-top: 5px;
+	padding-bottom: 6px;
 }
 </style>

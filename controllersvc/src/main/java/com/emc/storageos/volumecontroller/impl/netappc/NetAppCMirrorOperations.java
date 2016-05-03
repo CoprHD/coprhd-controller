@@ -1,3 +1,7 @@
+/*
+ * Copyright (c) 2015 EMC Corporation
+ * All Rights Reserved
+ */
 package com.emc.storageos.volumecontroller.impl.netappc;
 
 import java.net.URI;
@@ -22,7 +26,6 @@ public class NetAppCMirrorOperations implements FileMirrorOperations {
     }
 
     public NetAppCMirrorOperations() {
-        // TODO Auto-generated constructor stub
     }
 
     @Override

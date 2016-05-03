@@ -1,3 +1,7 @@
+/*
+ * Copyright (c) 2012-2016 iWave Software LLC
+ * All Rights Reserved
+ */
 package com.iwave.ext.netappc.model;
 
 public class SnapmirrorResp {

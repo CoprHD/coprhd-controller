@@ -818,8 +818,10 @@ public class DisasterRecoveryServiceTest {
         addrLookupMap.setNodeId("vipr1");
         
         doReturn(standbySite2).when(drUtil).getLocalSite();
+        doReturn(true).when(drUtil).isAllSyssvcUp(standbySite2.getUuid());
         doReturn(ClusterInfo.ClusterState.STABLE).when(coordinator).getControlNodesState(standbySite2.getUuid());
         doReturn("leader").when(drUtil).getLocalCoordinatorMode();
+        doReturn(true).when(drUtil).isParticipantNode("leader");
         doReturn(addrLookupMap).when(coordinator).getInetAddessLookupMap();
         
         drService.precheckForFailover();

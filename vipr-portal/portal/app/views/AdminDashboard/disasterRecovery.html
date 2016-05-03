@@ -44,6 +44,9 @@
 								#{if site.state == "STANDBY_SYNCING"}
 									<span class="glyphicon glyphicon-refresh rotate" style="color:#0000FF"></span><span> &{'renderFunctions.disasterRecovery.status.standby.syncing'}</span>
 								#{/if}
+								#{if site.state == "STANDBY_INCR_SYNCING"}
+									<span class="glyphicon glyphicon-refresh rotate" style="color:#0000FF"></span><span> &{'renderFunctions.disasterRecovery.status.standby.syncing.incr'}</span>
+								#{/if}
 								#{if site.state == "STANDBY_SYNCED"}
 								    #{if site.runningState }
 									   <img class="glyphicon glyphicon-ok" src="/public/img/Ready.png"><span> &{'renderFunctions.disasterRecovery.status.standby.synced'}</span>

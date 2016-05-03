@@ -144,7 +144,19 @@ angular.module('tags').directive({
 				scope.isTestSite = false;
 				scope.isFailover = false;
              }
-             
+
+             if(scope.row.status.toUpperCase() == "STANDBY_INCR_SYNCING"){
+				scope.isPauseSite = true;
+				#{if isActiveSite }
+					scope.isFailover = false;
+				#{/if}
+				#{else}
+					if(scope.row.id == localUuId) {
+						scope.isFailover = true;
+					}
+				#{/else}
+             }
+                          
              if (scope.row.networkHealth.toUpperCase() == "BROKEN") {
              	scope.isFailover = false;
              }
@@ -179,7 +191,7 @@ function watchLoadStatus(datatable, itemsJson) {
     var fieldToWatch = 'status';
     var triggerValues = ['STANDBY_ADDING','STANDBY_SYNCING','STANDBY_PAUSING','STANDBY_RESUMING',
     	'STANDBY_SWITCHING_OVER','STANDBY_FAILING_OVER','ACTIVE_SWITCHING_OVER','ACTIVE_FAILING_OVER',
-    	'STANDBY_DEGRADING','STANDBY_REMOVING'];
+    	'STANDBY_DEGRADING','STANDBY_REMOVING', 'STANDBY_INCR_SYNCING'];
     var triggerStableValues =  ['ACTIVE','ACTIVE_DEGRADED','ACTIVE_DEGRADED','STANDBY_SYNCED','STANDBY_ERROR','STANDBY_PAUSED'];
     
     watchDatatableField(datatable, itemsJson, fieldToWatch, triggerValues, fields);
@@ -203,6 +215,7 @@ function standbyStatusIcon(o, val) {
         'ACTIVE_FAILING_OVER': 'label-danger',
         'STANDBY_ADDING': 'label-info',
         'STANDBY_SYNCING' : 'label-info',
+        'STANDBY_INCR_SYNCING' : 'label-info',
         'STANDBY_SYNCED': 'label-success',
         'STANDBY_PAUSING': 'label-info',
         'STANDBY_PAUSED': 'label-info',
@@ -222,6 +235,7 @@ function standbyStatusIcon(o, val) {
         'ACTIVE_FAILING_OVER': 'glyphicon glyphicon-refresh rotate',
         'STANDBY_ADDING': 'glyphicon glyphicon-refresh rotate',
         'STANDBY_SYNCING' : 'glyphicon glyphicon-refresh rotate',
+        'STANDBY_INCR_SYNCING' : 'glyphicon glyphicon-refresh rotate',
         'STANDBY_SYNCED': 'glyphicon glyphicon-ok',
         'STANDBY_PAUSING': 'glyphicon glyphicon-refresh rotate',
         'STANDBY_PAUSED': 'glyphicon glyphicon-pause',
@@ -243,6 +257,7 @@ function standbyStatusIcon(o, val) {
             'STANDBY_ADDING': Messages.get("renderFunctions.disasterRecovery.status.standby.adding"),
             'STANDBY_SYNCING' : Messages.get("renderFunctions.disasterRecovery.status.standby.syncing"),
             'STANDBY_SYNCED': Messages.get("renderFunctions.disasterRecovery.status.standby.synced"),
+            'STANDBY_INCR_SYNCING': Messages.get("renderFunctions.disasterRecovery.status.standby.syncing.incr"),
             'STANDBY_PAUSING': Messages.get("renderFunctions.disasterRecovery.status.standby.pausing"),
             'STANDBY_PAUSED': Messages.get("renderFunctions.disasterRecovery.status.standby.paused"),
             'STANDBY_TESTING' : Messages.get("renderFunctions.disasterRecovery.status.standby.testing"),

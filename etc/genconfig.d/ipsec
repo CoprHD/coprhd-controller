@@ -89,7 +89,13 @@ _gen_ipsec_conf() {
 
 
     local vdc_ids=$(echo ${_GENCONFIG_vdc_ids} | sed 's/,/ /g')
-    local site_ids=$(echo ${_GENCONFIG_site_ids} | sed 's/,/ /g')
+    local site_ids=""
+    for vdc in ${vdc_ids} ; do
+        local var="_GENCONFIG_vdc_${vdc}_site_ids"
+        local value=$(echo "${!var}" | sed 's/,/ /g')
+        site_ids="${site_ids} ${value}"
+    done
+
     local content="${COMMON_SECTION}"
     for vdc in ${vdc_ids} ; do
         for site in ${site_ids} ; do

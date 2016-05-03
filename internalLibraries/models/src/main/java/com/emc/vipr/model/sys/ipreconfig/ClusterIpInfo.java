@@ -5,6 +5,8 @@
 package com.emc.vipr.model.sys.ipreconfig;
 
 import com.emc.storageos.model.property.PropertyConstants;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlElementWrapper;
@@ -19,6 +21,7 @@ import java.util.*;
  */
 @XmlRootElement(name = "cluster_ipinfo")
 public class ClusterIpInfo implements Serializable {
+    private static final Logger log = LoggerFactory.getLogger(ClusterIpInfo.class);
 
     private Map<String, SiteIpInfo> siteIpInfoMap = new HashMap<String, SiteIpInfo>();
 
@@ -118,15 +121,18 @@ public class ClusterIpInfo implements Serializable {
             // separate global prop name to vdcsiteId and internal prop name;
             String[] tmpFields = globalPropName.split("_");
             String vdcsiteId = tmpFields[0] + "_" + tmpFields[1] + "_" + tmpFields[2];
-            String vdcsiteIdPrefix = vdcsiteId + "_";
-            String vdcsiteInternalPropName = globalPropName.split(vdcsiteIdPrefix)[1];
+            String vdcsiteInternalPropName = globalPropName.substring(vdcsiteId.length()+1);
+            log.info("vdcsiteId={}, vdcsiteInternalPropName={}", vdcsiteId, vdcsiteInternalPropName);
 
             // put globalPropMap into vdcsitePropMap;
             Map<String, String> sitePropMap = vdcsitePropMap.get(vdcsiteId);
             if (null == sitePropMap) {
                 sitePropMap = new HashMap<String, String>();
             }
-            sitePropMap.put(vdcsiteInternalPropName, globalPropMap.get(globalPropName));
+            String propValue = globalPropMap.get(globalPropName);
+            log.info("PropValue={}", propValue);
+
+            sitePropMap.put(vdcsiteInternalPropName, propValue);
             vdcsitePropMap.put(vdcsiteId, sitePropMap);
         }
 

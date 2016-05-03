@@ -41,7 +41,7 @@
         <property name="defaultProperties" ref="defaultProperties"/>
         <property name="ovfProperties" ref="ovfProperties"/>                                                    
         <property name="dbVersionInfo" ref="dbVersionInfo"/>
-        <property name="vdcnodeId" value="1"/>
+        <property name="vdcNodeId" value="1"/>
     </bean>
 
     <bean id="nodeCount" class="java.lang.Integer">

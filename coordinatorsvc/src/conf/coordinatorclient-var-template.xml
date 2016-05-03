@@ -45,7 +45,7 @@
         <property name="ovfProperties" ref="ovfProperties"/>
         <property name="dbVersionInfo" ref="dbVersionInfo"/>
         <!-- each node in each VDC must have unique id starting from 1 -->
-        <property name="vdcnodeId" value="${coordinator_node_index}"/>
+        <property name="vdcNodeId" value="${coordinator_node_index}"/>
     </bean>
 
     <bean id="nodeCount" class="java.lang.Integer">

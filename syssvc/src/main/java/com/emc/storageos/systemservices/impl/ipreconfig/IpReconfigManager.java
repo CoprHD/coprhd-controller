@@ -159,7 +159,7 @@ public class IpReconfigManager implements Runnable {
                 nodeCount += Integer.valueOf(ipProps.get(globalPropName));
             }
         }
-        vdcnodeId = ((CoordinatorClientImpl)_coordinator.getCoordinatorClient()).getVdcnodeId();
+        vdcnodeId = ((CoordinatorClientImpl)_coordinator.getCoordinatorClient()).getVdcNodeId();
     }
 
     /**

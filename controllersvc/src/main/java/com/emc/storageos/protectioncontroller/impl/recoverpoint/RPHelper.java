@@ -459,7 +459,7 @@ public class RPHelper {
                         operationType = LOG_MSG_OPERATION_TYPE_REMOVE_PROTECTION;
                         Map<String, Object> volumeParams = new HashMap<String, Object>();
                         volumeParams.put(VolumeDescriptor.PARAM_DO_NOT_DELETE_VOLUME, Boolean.TRUE);
-                        volumeParams.put(VolumeDescriptor.PARAM_VPOOL_CHANGE_VPOOL_ID, newVpool.getId());
+                        volumeParams.put(VolumeDescriptor.PARAM_VPOOL_CHANGE_NEW_VPOOL_ID, newVpool.getId());
                         descriptor.setParameters(volumeParams);
                     }
 
@@ -520,7 +520,7 @@ public class RPHelper {
                         operationType = LOG_MSG_OPERATION_TYPE_REMOVE_PROTECTION;
                         Map<String, Object> volumeParams = new HashMap<String, Object>();
                         volumeParams.put(VolumeDescriptor.PARAM_DO_NOT_DELETE_VOLUME, Boolean.TRUE);
-                        volumeParams.put(VolumeDescriptor.PARAM_VPOOL_CHANGE_VPOOL_ID, newVpool.getId());
+                        volumeParams.put(VolumeDescriptor.PARAM_VPOOL_CHANGE_NEW_VPOOL_ID, newVpool.getId());
                         descriptor.setParameters(volumeParams);
                     }
                     _log.info(String.format("Adding BLOCK_DATA descriptor to %s volume [%s] (%s)",

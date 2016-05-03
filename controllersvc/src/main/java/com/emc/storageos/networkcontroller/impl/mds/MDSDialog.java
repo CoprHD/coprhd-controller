@@ -972,13 +972,16 @@ public class MDSDialog extends SSHDialog {
      */
     private boolean checkForZoneSession(String[] lines, Integer retryCount, boolean forIvr)
             throws NetworkDeviceControllerException {
-
+    	
+    	_log.debug("Checking for Zones session...");
         String busyKey = "MDSDialog.checkForEnhancedZoneSession.busy";
         String createdKey = "MDSDialog.checkForEnhancedZoneSession.created";
+        String pendingAction = "there is a pending action. Check ivr status";
 
         if (forIvr) {
             busyKey = "MDSDialog.ivr.checkForEnhancedZoneSession.busy";
             createdKey = "MDSDialog.ivr.checkForEnhancedZoneSession.created";
+            pendingAction = "there is a pending action. Check ivr status";
         }
 
         for (String s : lines) {
@@ -986,7 +989,7 @@ public class MDSDialog extends SSHDialog {
                 inSession = true;
                 return false;
             }
-            if (s.startsWith(MDSDialogProperties.getString(busyKey))) { // Lock is currently busy
+            if (s.startsWith(MDSDialogProperties.getString(busyKey)) || s.contains(pendingAction)) { // Lock is currently busy
                 if ((retryCount + 1) < sessionLockRetryMax) {
                     _log.info("Zone session lock is busy, will retry after " + defaultTimeout / 1000 + " seconds...");
                     try {

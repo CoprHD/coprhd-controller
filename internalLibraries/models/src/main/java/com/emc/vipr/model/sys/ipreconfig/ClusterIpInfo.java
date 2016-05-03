@@ -21,7 +21,7 @@ import java.util.*;
  */
 @XmlRootElement(name = "cluster_ipinfo")
 public class ClusterIpInfo implements Serializable {
-    private static final Logger log = LoggerFactory.getLogger(ClusterIpInfo.class);
+    //private static final Logger log = LoggerFactory.getLogger(ClusterIpInfo.class);
 
     private Map<String, SiteIpInfo> siteIpInfoMap = new HashMap<String, SiteIpInfo>();
 
@@ -122,7 +122,7 @@ public class ClusterIpInfo implements Serializable {
             String[] tmpFields = globalPropName.split("_");
             String vdcsiteId = tmpFields[0] + "_" + tmpFields[1] + "_" + tmpFields[2];
             String vdcsiteInternalPropName = globalPropName.substring(vdcsiteId.length()+1);
-            log.info("vdcsiteId={}, vdcsiteInternalPropName={}", vdcsiteId, vdcsiteInternalPropName);
+            //log.debug("vdcsiteId={}, vdcsiteInternalPropName={}", vdcsiteId, vdcsiteInternalPropName);
 
             // put globalPropMap into vdcsitePropMap;
             Map<String, String> sitePropMap = vdcsitePropMap.get(vdcsiteId);
@@ -130,7 +130,7 @@ public class ClusterIpInfo implements Serializable {
                 sitePropMap = new HashMap<String, String>();
             }
             String propValue = globalPropMap.get(globalPropName);
-            log.info("PropValue={}", propValue);
+            //log.debug("PropValue={}", propValue);
 
             sitePropMap.put(vdcsiteInternalPropName, propValue);
             vdcsitePropMap.put(vdcsiteId, sitePropMap);

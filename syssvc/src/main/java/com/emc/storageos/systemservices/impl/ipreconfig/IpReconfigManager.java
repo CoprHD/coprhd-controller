@@ -765,7 +765,10 @@ public class IpReconfigManager implements Runnable {
 
         int i = 1;
         for (Map.Entry<String, SiteIpInfo> me: clusterIpInfo.getSiteIpInfoMap().entrySet()) {
-            for (; i< me.getValue().getNodeCount(); i++) {
+            log.info("VdcSiteId:{}", me.getKey());
+            log.info("VdcSiteInfo:{}", me.getValue().toString());
+
+            for (int j=0; j< me.getValue().getNodeCount(); j++, i++) {
                 String nodestatus_key = String.format(IpReconfigConstants.CONFIG_NODESTATUS_KEY, i);
                 cfg.setConfig(nodestatus_key, IpReconfigConstants.NodeStatus.None.toString());
             }

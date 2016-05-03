@@ -154,7 +154,6 @@ import com.emc.storageos.vplex.api.VPlexDeviceInfo;
 import com.emc.storageos.vplex.api.VPlexDistributedDeviceInfo;
 import com.emc.storageos.vplex.api.VPlexInitiatorInfo.Initiator_Type;
 import com.emc.storageos.vplex.api.VPlexMigrationInfo;
-import com.emc.storageos.vplex.api.VPlexPortInfo;
 import com.emc.storageos.vplex.api.VPlexStorageViewInfo;
 import com.emc.storageos.vplex.api.VPlexVirtualVolumeInfo;
 import com.emc.storageos.vplex.api.VPlexVirtualVolumeInfo.WaitOnRebuildResult;
@@ -818,8 +817,12 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
 
             List<VPlexVirtualVolumeInfo> virtualVolumeInfos = new ArrayList<VPlexVirtualVolumeInfo>();
             Map<String, Volume> vplexVolumeNameMap = new HashMap<String, Volume>();
+            Map<String, String> vplexVolumeCustomNameMap = new HashMap<String, String>();
             List<VPlexClusterInfo> clusterInfoList = null;
             for (Volume vplexVolume : volumeMap.keySet()) {
+                DataSource volumeNameConfigDataSource = null;
+                Volume srcSideAssocVolume = null;
+                Volume haSideAssocVolume = null;
                 URI vplexVolumeId = vplexVolume.getId();
                 _log.info(String.format("Creating virtual volume: %s (%s)", vplexVolume.getLabel(), vplexVolumeId));
                 URI vplexVolumeVarrayURI = vplexVolume.getVirtualArray();
@@ -839,26 +842,51 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                         // VPLEX volume's associated volumes list which is an unordered
                         // StringSet.
                         vinfos.add(0, info);
+                        srcSideAssocVolume = storageVolume;
                     } else {
                         vinfos.add(info);
+                        haSideAssocVolume = storageVolume;
                     }
                 }
+                
+                // Create the VPLEX volume name custom configuration datasource and generate the
+                // custom volume name based on whether the volume is a local or distributed volume.
+                String customizedVirtualVolumeName = null;
+                boolean isDistributed = (vinfos.size() == 2);
+                String haSideAsscoVolumeNativeId = null;
+                StorageSystem haSideStorageSystem = null;
+                if (haSideAssocVolume != null) {
+                    haSideStorageSystem = _dbClient.queryObject(StorageSystem.class, haSideAssocVolume.getStorageController());
+                    haSideAsscoVolumeNativeId = haSideAssocVolume.getNativeId();
+                }
+                StorageSystem srcSideStorageSystem = _dbClient.queryObject(StorageSystem.class, srcSideAssocVolume.getStorageController());
+                Project project = _dbClient.queryObject(Project.class, vplexVolume.getProject().getURI());
+                volumeNameConfigDataSource = dataSourceFactory.createVPlexVolumeNameDataSource(project, vplexVolume.getLabel(),
+                        srcSideStorageSystem, srcSideAssocVolume.getNativeId(), haSideStorageSystem, haSideAsscoVolumeNativeId,
+                        null, null);
+                if (isDistributed) {
+                    customizedVirtualVolumeName = customConfigHandler.getComputedCustomConfigValue(
+                            CustomConfigConstants.VPLEX_DISTRIBUTED_VOLUME_NAME, vplex.getSystemType(), 
+                            volumeNameConfigDataSource);
+                } else {
+                    customizedVirtualVolumeName = customConfigHandler.getComputedCustomConfigValue(
+                            CustomConfigConstants.VPLEX_LOCAL_VOLUME_NAME, vplex.getSystemType(), 
+                            volumeNameConfigDataSource);                    
+                }
+                                
                 // Update rollback information.
                 rollbackData.add(vinfos);
                 _workflowService.storeStepData(stepId, rollbackData);
 
                 // Make a call to get cluster info
                 if (null == clusterInfoList) {
-
                     boolean isItlFetch = VPlexApiUtils.isITLBasedSearch(vinfos.get(0));
                     clusterInfoList = client.getClusterInfo(false, isItlFetch);
                 }
 
-                // Make the call to create a virtual volume. It is distributed if there are two (or more?)
-                // physical volumes.
-                boolean isDistributed = (vinfos.size() >= 2);
-                VPlexVirtualVolumeInfo vvInfo = client.createVirtualVolume(vinfos, isDistributed, false, false, clusterId, clusterInfoList,
-                        false);
+                // Make the call to create a virtual volume. 
+                VPlexVirtualVolumeInfo vvInfo = client.createVirtualVolume(vinfos, isDistributed,
+                        false, false, clusterId, clusterInfoList, false);
 
                 if (vvInfo == null) {
                     VPlexApiException ex = VPlexApiException.exceptions.cantFindRequestedVolume(vplexVolume.getLabel());
@@ -866,20 +894,33 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 }
 
                 vplexVolumeNameMap.put(vvInfo.getName(), vplexVolume);
+                vplexVolumeCustomNameMap.put(vvInfo.getName(), customizedVirtualVolumeName);
                 virtualVolumeInfos.add(vvInfo);
             }
 
+            // Find the volumes just created to collect all the required attributes,
+            // and update the volume instances in the database.
             Map<String, VPlexVirtualVolumeInfo> foundVirtualVolumes = client.findVirtualVolumes(clusterInfoList, virtualVolumeInfos);
 
             if (!foundVirtualVolumes.isEmpty()) {
                 for (Entry<String, Volume> entry : vplexVolumeNameMap.entrySet()) {
                     Volume vplexVolume = entry.getValue();
                     VPlexVirtualVolumeInfo vvInfo = foundVirtualVolumes.get(entry.getKey());
+                    // Now we try and rename the volume to the customized name.
+                    String customizedVirtualVolumeName = vplexVolumeCustomNameMap.get(entry.getKey());
+                    if ((customizedVirtualVolumeName != null) && (!customizedVirtualVolumeName.isEmpty())) {
+                        try {
+                            vvInfo = client.renameResource(vvInfo, customizedVirtualVolumeName);
+                        } catch (Exception e) {
+                            _log.warn("An error occurred attempting to rename VPLEX volume {} to {}", entry.getKey(), customizedVirtualVolumeName);
+                        }
+                    }
                     buf.append(vvInfo.getName() + " ");
                     _log.info(String.format("Created virtual volume: %s path: %s", vvInfo.getName(), vvInfo.getPath()));
                     vplexVolume.setNativeId(vvInfo.getPath());
                     vplexVolume.setNativeGuid(vvInfo.getPath());
                     vplexVolume.setDeviceLabel(vvInfo.getName());
+                    vplexVolume.setWWN(vvInfo.getWwn());
                     // For Vplex virtual volumes set allocated capacity to 0 (cop-18608)
                     vplexVolume.setAllocatedCapacity(0L);
                     vplexVolume.setProvisionedCapacity(vvInfo.getCapacityBytes());

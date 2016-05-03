@@ -494,49 +494,39 @@ public class ExportGroupService extends TaskResourceService {
 
     /**
      * Validates the list of BlockObjects for RecoverPoint bookmarks that reference
-     * the same consistency group and RP target copy.
+     * the same consistency group and RP site.
      *
      * @param blockObjURIs the list of BlockObject URIs.
      */
     private void validateRPBlockSnapshotsForExport(List<URI> blockObjURIs) {
-        List<BlockSnapshot> rpBlockObjectsToSearch = new ArrayList<BlockSnapshot>();
+        Map<URI, List<String>> cgToRpSiteMap = new HashMap<URI, List<String>>();
 
         for (URI blockObjectURI : blockObjURIs) {
             if (URIUtil.isType(blockObjectURI, BlockSnapshot.class)) {
                 BlockSnapshot snapshot = _dbClient.queryObject(BlockSnapshot.class, blockObjectURI);
 
-                if (TechnologyType.RP.name().equalsIgnoreCase(snapshot.getTechnologyType())) {
-                    if (rpBlockObjectsToSearch.isEmpty()) {
-                        // The search list is empty on the first iteration so add the first element and continue
-                        rpBlockObjectsToSearch.add(snapshot);
-                        continue;
+                if (TechnologyType.RP.name().equalsIgnoreCase(snapshot.getTechnologyType())
+                        && !NullColumnValueGetter.isNullURI(snapshot.getConsistencyGroup())) {
+
+                    // Check to see if there is an RP bookmark that references
+                    // the same RP copy and consistency group.
+                    List<String> rpSites = cgToRpSiteMap.get(snapshot.getConsistencyGroup());
+
+                    if (rpSites == null) {
+                        // Initialize the list of RP sites
+                        rpSites = new ArrayList<String>();
+                        cgToRpSiteMap.put(snapshot.getConsistencyGroup(), rpSites);
                     }
 
-                    // The list of BlockSnapshot elements to search for a duplicate entry
-                    List<BlockSnapshot> searchElementsToAdd = new ArrayList<BlockSnapshot>();
-
-                    for (BlockSnapshot searchSnap : rpBlockObjectsToSearch) {
-                        // Check to see if there is an RP bookmark that references
-                        // the same RP copy and consistency group.
-                        if (!NullColumnValueGetter.isNullURI(snapshot.getConsistencyGroup()) &&
-                                snapshot.getConsistencyGroup().equals(searchSnap.getConsistencyGroup())
-                                && NullColumnValueGetter.isNotNullValue(snapshot.getEmInternalSiteName())
-                                && snapshot.getEmInternalSiteName().equalsIgnoreCase(searchSnap.getEmInternalSiteName())) {
-                            // Request is trying to export 2 RP bookmarks for the same target copy and
-                            // consistency group.
-                            BlockConsistencyGroup cg = _dbClient.queryObject(BlockConsistencyGroup.class,
-                                    snapshot.getConsistencyGroup());
-                            String rpCopyName = RPHelper.getCgCopyName(_dbClient, cg, snapshot.getVirtualArray(), false);
-                            throw APIException.badRequests.duplicateRpBookMarkExport(rpCopyName, cg.getLabel());
-                        } else {
-                            // Add element to search list
-                            searchElementsToAdd.add(snapshot);
-                        }
-                    }
-
-                    if (!searchElementsToAdd.isEmpty()) {
-                        // Add new elements to the search list
-                        rpBlockObjectsToSearch.addAll(searchElementsToAdd);
+                    if (rpSites.contains(snapshot.getEmInternalSiteName())) {
+                        // Request is trying to export 2 RP bookmarks for the same target copy and
+                        // consistency group.
+                        BlockConsistencyGroup cg = _dbClient.queryObject(BlockConsistencyGroup.class,
+                                snapshot.getConsistencyGroup());
+                        String rpCopyName = RPHelper.getCgCopyName(_dbClient, cg, snapshot.getVirtualArray(), false);
+                        throw APIException.badRequests.duplicateRpBookMarkExport(rpCopyName, cg.getLabel());
+                    } else {
+                        rpSites.add(snapshot.getEmInternalSiteName());
                     }
                 }
             }

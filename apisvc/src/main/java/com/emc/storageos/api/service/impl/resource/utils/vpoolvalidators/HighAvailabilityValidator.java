@@ -43,11 +43,12 @@ public class HighAvailabilityValidator extends VirtualPoolValidator<BlockVirtual
 
     @Override
     protected void validateVirtualPoolCreateAttributeValue(BlockVirtualPoolParam createParam, DbClient dbClient) {
-        // Validations similar to the update ones in this class are currently defined
-        // in the BlockVirtualPoolService.createBlockVirtualPool() - for create. These
-        // should be moved over here. Validations for mixed protection are done in the
-        // ProtectionValidator so no need to have them in this class.
-        
+        /*
+         * Validations similar to the update ones in this class are currently defined
+         * in the BlockVirtualPoolService.createBlockVirtualPool() - for create. These
+         * should be moved over here. Validations for mixed protection are done in the
+         * ProtectionValidator so no need to have them in this class.
+         */
         validateVplexHANotSRDFProtected(createParam.getHighAvailability(), dbClient);
     }
 

@@ -14,6 +14,7 @@
 		class="com.emc.storageos.volumecontroller.impl.plugins.IsilonCommunicationInterface">
         <property name="isilonApiFactory" ref="isilonapifactory" />
         <property name="partitionManager" ref="partitionManager"/>
+        <property name="customConfigHandler" ref="customConfigHandler" />
 	</bean>
 
     <bean id="partitionManager" class="com.emc.storageos.plugins.common.PartitionManager" />

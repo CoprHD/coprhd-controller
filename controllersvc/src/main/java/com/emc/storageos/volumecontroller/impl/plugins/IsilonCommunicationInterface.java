@@ -152,6 +152,11 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
      * @return List object
      */
     public List<String> getDiscPathsForUnManaged() {
+
+        if (null == _discPathsForUnManaged) {
+            _discPathsForUnManaged = new ArrayList<String>();
+
+        }
         return _discPathsForUnManaged;
     }
 
@@ -162,6 +167,15 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
      */
     public void setDiscPathsForUnManaged(List<String> discPathsForUnManaged) {
         this._discPathsForUnManaged = discPathsForUnManaged;
+    }
+
+    /**
+     * Set the controller config info
+     * 
+     * @return
+     */
+    public void setCustomConfigHandler(CustomConfigHandler customConfigHandler) {
+        this.customConfigHandler = customConfigHandler;
     }
 
     /**

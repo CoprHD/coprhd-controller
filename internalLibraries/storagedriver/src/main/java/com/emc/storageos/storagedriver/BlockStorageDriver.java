@@ -7,19 +7,19 @@ package com.emc.storageos.storagedriver;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.commons.lang.mutable.MutableBoolean;
+import org.apache.commons.lang.mutable.MutableInt;
+
 import com.emc.storageos.storagedriver.model.Initiator;
 import com.emc.storageos.storagedriver.model.StoragePort;
 import com.emc.storageos.storagedriver.model.StorageSystem;
 import com.emc.storageos.storagedriver.model.StorageVolume;
 import com.emc.storageos.storagedriver.model.VolumeClone;
 import com.emc.storageos.storagedriver.model.VolumeConsistencyGroup;
-import com.emc.storageos.storagedriver.model.VolumeToHostExportInfo;
 import com.emc.storageos.storagedriver.model.VolumeMirror;
 import com.emc.storageos.storagedriver.model.VolumeSnapshot;
 import com.emc.storageos.storagedriver.storagecapabilities.CapabilityInstance;
 import com.emc.storageos.storagedriver.storagecapabilities.StorageCapabilities;
-import org.apache.commons.lang.mutable.MutableBoolean;
-import org.apache.commons.lang.mutable.MutableInt;
 
 /**
  * BlockStorageDriver interface.
@@ -242,16 +242,55 @@ public interface BlockStorageDriver extends StorageDriver {
 
     /**
      * This method returns a map of Initiator-Target access information for a given volume.
-     * Key in the returned map is host FQDN, value: instance of VolumeITMappingInfo.
-     * Each entry in the map represents access information from a host (key) to a given storage volume.
+     *
+     * Key in the returned map is host FQDN, value: instance of HostExportInfo.
+     * Each entry in the map represents access information from a host (key) to a given volume.
      * The entry value contains volume native id, list of host initiators with list of storage array ports which are
-     * mapped and masked for this volume access on array.
+     * mapped and masked to access this volume on array.
      *
      * @param volume Storage volume. Type: Input.
      * @return Map of a host FQDN to initiator-target mapping info for the host (key) and the volume. Type: Output.
      */
+    public Map<String, HostExportInfo> getVolumeExportInfoForHosts(StorageVolume volume);
 
-    public Map<String, VolumeToHostExportInfo> getVolumeToHostExportInfoForHosts(StorageVolume volume);
+    /**
+     * This method returns a map of Initiator-Target access information for a given snapshot.
+     *
+     * Key in the returned map is host FQDN, value: instance of HostExportInfo.
+     * Each entry in the map represents access information from a host (key) to a given snapshot.
+     * The entry value contains snapshot native id, list of host initiators with list of storage array ports which are
+     * mapped and masked to access this snapshot on array.
+     *
+     * @param snapshot Snapshot. Type: Input.
+     * @return Map of a host FQDN to initiator-target mapping info for the host (key) and the snapshot. Type: Output.
+     */
+    public Map<String, HostExportInfo> getSnapshotExportInfoForHosts(VolumeSnapshot snapshot);
+
+    /**
+     * This method returns a map of Initiator-Target access information for a given clone.
+     *
+     * Key in the returned map is host FQDN, value: instance of HostExportInfo.
+     * Each entry in the map represents access information from a host (key) to a given clone.
+     * The entry value contains clone native id, list of host initiators with list of storage array ports which are
+     * mapped and masked to access this clone on array.
+     *
+     * @param clone Snapshot. Type: Input.
+     * @return Map of a host FQDN to initiator-target mapping info for the host (key) and the clone. Type: Output.
+     */
+    public Map<String, HostExportInfo> getCloneExportInfoForHosts(VolumeClone clone);
+
+    /**
+     * This method returns a map of Initiator-Target access information for a given mirror.
+     *
+     * Key in the returned map is host FQDN, value: instance of HostExportInfo.
+     * Each entry in the map represents access information from a host (key) to a given mirror.
+     * The entry value contains mirror native id, list of host initiators with list of storage array ports which are
+     * mapped and masked to access this mirror on array.
+     *
+     * @param mirror Snapshot. Type: Input.
+     * @return Map of a host FQDN to initiator-target mapping info for the host (key) and the mirror. Type: Output.
+     */
+    public Map<String, HostExportInfo> getMirrorExportInfoForHosts(VolumeMirror mirror);
 
 
     /**
@@ -299,7 +338,7 @@ public interface BlockStorageDriver extends StorageDriver {
     public DriverTask deleteConsistencyGroup(VolumeConsistencyGroup consistencyGroup);
 
     /**
-     * Create snapshot of consistency group.
+     * Create mirror of consistency group.
      * @param consistencyGroup consistency group of parent volume. Type: Input.
      * @param snapshots   input/output parameter
      * @param capabilities Capabilities of snapshots. Type: Input.

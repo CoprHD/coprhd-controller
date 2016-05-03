@@ -10,7 +10,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
-import com.emc.storageos.storagedriver.model.VolumeToHostExportInfo;
 import org.apache.commons.lang.mutable.MutableBoolean;
 import org.apache.commons.lang.mutable.MutableInt;
 import org.slf4j.Logger;
@@ -19,9 +18,10 @@ import org.slf4j.LoggerFactory;
 import com.emc.storageos.storagedriver.AbstractStorageDriver;
 import com.emc.storageos.storagedriver.BlockStorageDriver;
 import com.emc.storageos.storagedriver.DriverTask;
+import com.emc.storageos.storagedriver.HostExportInfo;
 import com.emc.storageos.storagedriver.RegistrationData;
-import com.emc.storageos.storagedriver.model.ITL;
 import com.emc.storageos.storagedriver.model.Initiator;
+import com.emc.storageos.storagedriver.model.StorageBlockObject;
 import com.emc.storageos.storagedriver.model.StorageHostComponent;
 import com.emc.storageos.storagedriver.model.StorageObject;
 import com.emc.storageos.storagedriver.model.StoragePool;
@@ -44,18 +44,24 @@ public class StorageDriverSimulator extends AbstractStorageDriver implements Blo
     private static Integer portIndex = 0;
     private static Map<String, Integer> systemNameToPortIndexName = new HashMap<>();
 
-    // map for storage system to host to volume export info data;
+    // map for storage system to host export info data for a volume;
     // key: array native id
     // value: map where key is volume native id and value is list of volume export info object for this volume for different hosts (one entry for each host)
-    private static Map<String, Map<String, List<VolumeToHostExportInfo>>> arrayToVolumeToVolumeExportInfoMap = new HashMap<>();
+    private static Map<String, Map<String, List<HostExportInfo>>> arrayToVolumeToVolumeExportInfoMap = new HashMap<>();
     // defines which volume page is exported to which host
     private static Map<Integer, String> pageToHostMap;
+    private static Map<String, Integer> hostToPageMap;
     static
     {
         pageToHostMap = new HashMap<>();
         pageToHostMap.put(0, "10.20.30.40");
         pageToHostMap.put(1, "10.20.30.50");
         pageToHostMap.put(2, "10.20.30.60");
+
+        hostToPageMap = new HashMap<>();
+        hostToPageMap.put("10.20.30.40", 0);
+        hostToPageMap.put("10.20.30.50", 1);
+        hostToPageMap.put("10.20.30.60", 2);
     }
 
     private static Map<String, List<String>> hostToInitiatorPortIdMap;
@@ -255,9 +261,10 @@ public class StorageDriverSimulator extends AbstractStorageDriver implements Blo
 
             port.setDeviceLabel("er-port-1234577" + i + storageSystem.getNativeId());
             port.setPortName(port.getDeviceLabel());
-            port.setNetworkId("er-network77"+ storageSystem.getNativeId());
-            //port.setNetworkId("er-networkScaleIO");
+            //port.setNetworkId("er-network77"+ storageSystem.getNativeId());
+            port.setNetworkId("11");
             port.setTransportType(StoragePort.TransportType.FC);
+            //port.setTransportType(StoragePort.TransportType.IP);
             port.setPortNetworkId("6" + Integer.toHexString(index) + ":FE:FE:FE:FE:FE:FE:1" + i);
             port.setOperationalStatus(StoragePort.OperationalStatus.OK);
             port.setPortHAZone("zone-"+i);
@@ -483,21 +490,54 @@ public class StorageDriverSimulator extends AbstractStorageDriver implements Blo
     }
 
     @Override
-    public Map<String, VolumeToHostExportInfo> getVolumeToHostExportInfoForHosts(StorageVolume volume) {
+    public Map<String, HostExportInfo> getVolumeExportInfoForHosts(StorageVolume volume) {
 
         _log.info("Processing export info for volume: {}", volume);
-        String systemId = volume.getStorageSystemId();
-        Map<String,List<VolumeToHostExportInfo>> volumeToHostExportInfoMap = arrayToVolumeToVolumeExportInfoMap.get(systemId);
-        // get volume export data
-        List<VolumeToHostExportInfo> volumeExportInfo = volumeToHostExportInfoMap.get(volume.getNativeId());
+        Map<String, HostExportInfo> exportInfoMap = getStorageObjectExportInfo(volume.getStorageSystemId(), volume.getNativeId());
+        _log.info("Export info data for volume {}: {} .", volume, exportInfoMap);
 
-        Map<String, VolumeToHostExportInfo> resultMap = new HashMap<>();
-        for (VolumeToHostExportInfo exportInfo : volumeExportInfo) {
-            resultMap.put(exportInfo.getHostName(), exportInfo);
+        return exportInfoMap;
+    }
+
+    @Override
+    public Map<String, HostExportInfo> getSnapshotExportInfoForHosts(VolumeSnapshot snapshot) {
+        _log.info("Processing export info for snapshot: {}", snapshot);
+        Map<String, HostExportInfo> exportInfoMap = getStorageObjectExportInfo(snapshot.getStorageSystemId(), snapshot.getNativeId());
+        _log.info("Export info data for volume {}: {} .", snapshot, exportInfoMap);
+
+        return exportInfoMap;
+    }
+
+    @Override
+    public Map<String, HostExportInfo> getCloneExportInfoForHosts(VolumeClone clone) {
+        _log.info("Processing export info for volume: {}", clone);
+        Map<String, HostExportInfo> exportInfoMap = getStorageObjectExportInfo(clone.getStorageSystemId(), clone.getNativeId());
+        _log.info("Export info data for volume {}: {} .", clone, exportInfoMap);
+
+        return exportInfoMap;
+    }
+
+    @Override
+    public Map<String, HostExportInfo> getMirrorExportInfoForHosts(VolumeMirror mirror) {
+        _log.info("Processing export info for volume: {}", mirror);
+        Map<String, HostExportInfo> exportInfoMap = getStorageObjectExportInfo(mirror.getStorageSystemId(), mirror.getNativeId());
+        _log.info("Export info data for volume {}: {} .", mirror, exportInfoMap);
+
+        return exportInfoMap;
+    }
+
+    private Map<String, HostExportInfo> getStorageObjectExportInfo(String systemId, String objectId) {
+        Map<String, HostExportInfo> resultMap = new HashMap<>();
+        Map<String, List<HostExportInfo>> volumeToHostExportInfoMap = arrayToVolumeToVolumeExportInfoMap.get(systemId);
+        // get storage object export data
+        if (volumeToHostExportInfoMap != null) {
+            List<HostExportInfo> volumeExportInfo = volumeToHostExportInfoMap.get(objectId);
+            if (volumeExportInfo != null) {
+                for (HostExportInfo exportInfo : volumeExportInfo) {
+                    resultMap.put(exportInfo.getHostName(), exportInfo);
+                }
+            }
         }
-
-        _log.info("Export info data for volume {}: {} .", volume, resultMap);
-
         return resultMap;
     }
 
@@ -638,7 +678,7 @@ public class StorageDriverSimulator extends AbstractStorageDriver implements Blo
             driverVolume.setStorageSystemId(storageSystem.getNativeId());
             driverVolume.setStoragePoolId("pool-1234577-" + token.intValue() + storageSystem.getNativeId());
             driverVolume.setNativeId("driverSimulatorVolume-1234567-" + token.intValue() + "-" + vol);
-            driverVolume.setConsistencyGroup("driverSimulatorCG-"+token.intValue());
+           // driverVolume.setConsistencyGroup("driverSimulatorCG-"+token.intValue());
             driverVolume.setAccessStatus(StorageVolume.AccessStatus.READ_WRITE);
             driverVolume.setThinlyProvisioned(true);
             driverVolume.setThinVolumePreAllocationSize(3000L);
@@ -653,44 +693,7 @@ public class StorageDriverSimulator extends AbstractStorageDriver implements Blo
             // get host for this page
             String hostName = pageToHostMap.get(token.intValue());
             _log.info("Process host {}", hostName);
-            Map<String, List<VolumeToHostExportInfo>> volumeToExportInfoMap = arrayToVolumeToVolumeExportInfoMap.get(driverVolume.getStorageSystemId());
-            if (volumeToExportInfoMap == null) {
-                volumeToExportInfoMap = new HashMap<>();
-                arrayToVolumeToVolumeExportInfoMap.put(driverVolume.getStorageSystemId(), volumeToExportInfoMap);
-            }
-
-            List<VolumeToHostExportInfo> volumeToHostExportInfoList = volumeToExportInfoMap.get(driverVolume.getNativeId());
-            if (volumeToHostExportInfoList == null) {
-                volumeToHostExportInfoList = new ArrayList<>();
-                volumeToExportInfoMap.put(driverVolume.getNativeId(), volumeToHostExportInfoList);
-            }
-
-            // build volume export info
-            VolumeToHostExportInfo exportInfo;
-            // get volume info
-            List<String> volumeIds = new ArrayList<>();
-            volumeIds.add(driverVolume.getNativeId());
-            // for initiators we only know port network id and host name
-            List<String> hostInitiatorIds = hostToInitiatorPortIdMap.get(hostName);
-            List<Initiator> initiators = new ArrayList<>();
-            for (String initiatorId : hostInitiatorIds) {
-                Initiator initiator = new Initiator();
-                initiator.setHostName(hostName);
-                initiator.setPort(initiatorId);
-                initiators.add(initiator);
-            }
-            // decide about ports.
-            if (token.intValue()%2 == 1) {
-                // for odd pages we generate invalid masks for volumes (to test negative scenarios)
-                int portIndex = vol < ports.size()? vol : ports.size()-1;
-                List<StoragePort> exportPorts = Collections.singletonList(ports.get(portIndex));
-                exportInfo = new VolumeToHostExportInfo(hostName, volumeIds, initiators, exportPorts);
-            } else {
-                exportInfo = new VolumeToHostExportInfo(hostName, volumeIds, initiators, ports);
-            }
-
-            volumeToHostExportInfoList.add(exportInfo);
-            _log.info("VolumeToHostExportInfo: " + volumeToHostExportInfoList);
+            generateExportDataForVolume(hostName, driverVolume.getStorageSystemId(), driverVolume.getNativeId(), vol, ports);
         }
 
         String taskType = "create-storage-volumes";
@@ -710,6 +713,47 @@ public class StorageDriverSimulator extends AbstractStorageDriver implements Blo
             token.setValue(0); // last page
         }
         return task;
+    }
+
+    private void generateExportDataForVolume(String hostName, String storageSystemId, String volumeId, int volumeIndex, List<StoragePort> ports) {
+        Map<String, List<HostExportInfo>> volumeToExportInfoMap = arrayToVolumeToVolumeExportInfoMap.get(storageSystemId);
+        if (volumeToExportInfoMap == null) {
+            volumeToExportInfoMap = new HashMap<>();
+            arrayToVolumeToVolumeExportInfoMap.put(storageSystemId, volumeToExportInfoMap);
+        }
+
+        List<HostExportInfo> volumeToHostExportInfoList = volumeToExportInfoMap.get(volumeId);
+        if (volumeToHostExportInfoList == null) {
+            volumeToHostExportInfoList = new ArrayList<>();
+            volumeToExportInfoMap.put(volumeId, volumeToHostExportInfoList);
+        }
+
+        // build volume export info
+        HostExportInfo exportInfo;
+        // get volume info
+        List<String> volumeIds = new ArrayList<>();
+        volumeIds.add(volumeId);
+        // for initiators we only know port network id and host name
+        List<String> hostInitiatorIds = hostToInitiatorPortIdMap.get(hostName);
+        List<Initiator> initiators = new ArrayList<>();
+        for (String initiatorId : hostInitiatorIds) {
+            Initiator initiator = new Initiator();
+            initiator.setHostName(hostName);
+            initiator.setPort(initiatorId);
+            initiators.add(initiator);
+        }
+        // decide about ports.
+        if (hostToPageMap.get(hostName) % 2 == 1) {
+            // for odd pages we generate invalid masks for volumes (to test negative scenarios)
+            int portIndex = volumeIndex < ports.size() ? volumeIndex : ports.size() - 1;
+            List<StoragePort> exportPorts = Collections.singletonList(ports.get(portIndex));
+            exportInfo = new HostExportInfo(hostName, volumeIds, initiators, exportPorts);
+        } else {
+            exportInfo = new HostExportInfo(hostName, volumeIds, initiators, ports);
+        }
+
+        volumeToHostExportInfoList.add(exportInfo);
+        _log.info("VolumeToHostExportInfo: " + volumeToHostExportInfoList);
     }
 
     @Override
@@ -747,11 +791,14 @@ public class StorageDriverSimulator extends AbstractStorageDriver implements Blo
             snapshot.setDeviceLabel(volume.getNativeId() + "snap-" + i);
             snapshot.setStorageSystemId(volume.getStorageSystemId());
             snapshot.setAccessStatus(StorageObject.AccessStatus.READ_ONLY);
-            snapshot.setConsistencyGroup(volume.getConsistencyGroup() + "snapSet-" + i);
+            //snapshot.setConsistencyGroup(volume.getConsistencyGroup() + "snapSet-" + i);
             snapshot.setAllocatedCapacity(1000L);
             snapshot.setProvisionedCapacity(volume.getProvisionedCapacity());
             snapshot.setWwn(String.format("%s%s", snapshot.getStorageSystemId(), snapshot.getNativeId()));
             snapshots.add(snapshot);
+
+            // generate export data for this snap --- the same export data as for its parent volume
+            generateExportDataForVolumeReplica(volume, snapshot);
         }
         return snapshots;
     }
@@ -768,12 +815,15 @@ public class StorageDriverSimulator extends AbstractStorageDriver implements Blo
             clone.setStorageSystemId(volume.getStorageSystemId());
             clone.setStoragePoolId(volume.getStoragePoolId());
             clone.setAccessStatus(StorageObject.AccessStatus.READ_WRITE);
-            clone.setConsistencyGroup(volume.getConsistencyGroup() + "cloneGroup-" + i);
+            //clone.setConsistencyGroup(volume.getConsistencyGroup() + "cloneGroup-" + i);
             clone.setAllocatedCapacity(volume.getAllocatedCapacity());
             clone.setProvisionedCapacity(volume.getProvisionedCapacity());
             clone.setThinlyProvisioned(true);
             clone.setWwn(String.format("%s%s", clone.getStorageSystemId(), clone.getNativeId()));
             clones.add(clone);
+
+            // generate export data for this clone --- the same export data as for its parent volume
+            generateExportDataForVolumeReplica(volume, clone);
         }
         return clones;
     }
@@ -781,6 +831,27 @@ public class StorageDriverSimulator extends AbstractStorageDriver implements Blo
     @Override
     public List<VolumeMirror> getVolumeMirrors(StorageVolume volume) {
         return null;
+    }
+
+    private void generateExportDataForVolumeReplica(StorageVolume volume, StorageBlockObject replica) {
+        Map<String, List<HostExportInfo>> volumeToExportInfoMap = arrayToVolumeToVolumeExportInfoMap.get(volume.getStorageSystemId());
+        if (volumeToExportInfoMap != null) {
+            List<HostExportInfo> volumeExportInfoList = volumeToExportInfoMap.get(volume.getNativeId());
+            if (volumeExportInfoList != null && !volumeExportInfoList.isEmpty()) {
+                List<HostExportInfo> replicaExportInfoList = new ArrayList<>();
+                // build replica export info from info of parent volume
+                for (HostExportInfo hostExportInfo : volumeExportInfoList) {
+                    List<String> snapIds = new ArrayList<>();
+                    snapIds.add(replica.getNativeId());
+                    List<Initiator> hostInitiators = hostExportInfo.getInitiators();
+                    List<StoragePort> exportPorts = hostExportInfo.getTargets();
+                    HostExportInfo exportInfo = new HostExportInfo(hostExportInfo.getHostName(), snapIds, hostInitiators, exportPorts);
+                    replicaExportInfoList.add(exportInfo);
+                }
+                _log.info("Export Info for replica: {} --- {}", replica.getNativeId(), replicaExportInfoList);
+                volumeToExportInfoMap.put(replica.getNativeId(), replicaExportInfoList);
+            }
+        }
     }
 
     @Override

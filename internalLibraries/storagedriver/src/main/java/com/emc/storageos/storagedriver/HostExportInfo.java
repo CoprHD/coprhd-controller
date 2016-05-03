@@ -2,24 +2,27 @@
  * Copyright (c) 2016 EMC Corporation
  * All Rights Reserved
  */
-package com.emc.storageos.storagedriver.model;
+package com.emc.storageos.storagedriver;
+
+import com.emc.storageos.storagedriver.model.Initiator;
+import com.emc.storageos.storagedriver.model.StoragePort;
 
 import java.util.List;
 
 /**
- * This class describes how a storage volume is mapped to a host
+ * This helper class describes host export info for a given host to a list of given storage objects.
  */
 
-public class VolumeToHostExportInfo {
+public class HostExportInfo {
 
     String hostName; // FQDN of a host
-    List<String> volumeNativeIds; // storage volumes native Ids
+    List<String> storageObjectNativeIds; // storage object native Ids (volume/clone/snap/mirror)
     List<Initiator> initiators; // List of host initiators
     List<StoragePort> targets;    // List of storage ports
 
-    public VolumeToHostExportInfo(String hostName, List<String> volumeNativeIds, List<Initiator> initiators, List<StoragePort> targets) {
+    public HostExportInfo(String hostName, List<String> storageObjectNativeIds, List<Initiator> initiators, List<StoragePort> targets) {
         this.hostName = hostName;
-        this.volumeNativeIds = volumeNativeIds;
+        this.storageObjectNativeIds = storageObjectNativeIds;
         this.initiators = initiators;
         this.targets = targets;
     }
@@ -32,12 +35,12 @@ public class VolumeToHostExportInfo {
         this.hostName = hostName;
     }
 
-    public List<String> getVolumeNativeIds() {
-        return volumeNativeIds;
+    public List<String> getStorageObjectNativeIds() {
+        return storageObjectNativeIds;
     }
 
-    public void setVolumeNativeIds(List<String> volumeNativeIds) {
-        this.volumeNativeIds = volumeNativeIds;
+    public void setStorageObjectNativeIds(List<String> storageObjectNativeIds) {
+        this.storageObjectNativeIds = storageObjectNativeIds;
     }
 
     public List<StoragePort> getTargets() {
@@ -58,7 +61,7 @@ public class VolumeToHostExportInfo {
 
     @Override
     public String toString() {
-        return "\n\tHost name: "+hostName+"; \n\tvolumes: "+volumeNativeIds+"; \n\tinitiators: "+
+        return "\n\tHost name: "+hostName+"; \n\tvolumes: "+ storageObjectNativeIds +"; \n\tinitiators: "+
                 initiators+"; \n\ttargets: "+targets+"\n";
     }
 

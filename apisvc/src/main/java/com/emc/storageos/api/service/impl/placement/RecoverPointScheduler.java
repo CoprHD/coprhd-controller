@@ -714,7 +714,6 @@ public class RecoverPointScheduler implements Scheduler {
      * @param haVpool - HA Virtual Pool, in case of VPLEX HA
      * @param capabilities - Virtual Pool capabilities
      * @return List of storage pools matching the above criteria and has visibility to a VPLEX storage system
-     * @return
      */
     private Map<String, List<StoragePool>> getVplexMatchingPools(VirtualArray srcVarray, VirtualPool srcVpool,
             VirtualArray haVarray, VirtualPool haVpool,
@@ -824,7 +823,7 @@ public class RecoverPointScheduler implements Scheduler {
      * @param project - Project
      * @param capabilities - Virtual Pool capabilities
      * @param vplexPoolMapForVarray - Map of virtual array to visible storage pools for that virtual array
-     * @return
+     * @return HA recommendation
      */
     private Recommendation findVPlexHARecommendations(VirtualArray varray, VirtualPool vpool,
             VirtualArray haVarray, VirtualPool haVpool, Project project,
@@ -1665,11 +1664,11 @@ public class RecoverPointScheduler implements Scheduler {
      * This function will swap src and ha varrays and src and ha vpools IF
      * the src vpool has specified this.
      *
-     * @param srcVarray
-     * @param srcVpool
-     * @param haVarray
-     * @param haVpool
-     * @param dbClient
+     * @param srcVarray Source varray
+     * @param srcVpool Source vpool
+     * @param haVarray HA varray
+     * @param haVpool HA vpool
+     * @param dbClient DB Client reference
      */
     public static SwapContainer initializeSwapContainer(SwapContainer container, DbClient dbClient) {
         // Refresh vpools in case previous activities have changed their temporal representation.
@@ -1743,7 +1742,7 @@ public class RecoverPointScheduler implements Scheduler {
 
     /**
      * Scheduler for a Vpool change from a protected VPLEX Virtual volume to a different type
-     * pf protection. Ex: RP+VPLEX upgrade to MetroPoint
+     * of protection. Ex: RP+VPLEX upgrade to MetroPoint
      *
      * @param volume volume that is being changed to a protected vpool
      * @param newVpool vpool requested to change to (must be protected)
@@ -2422,7 +2421,7 @@ public class RecoverPointScheduler implements Scheduler {
      * @param satisfiedSourceVolCount - resource count that is satisfied in the recommendation
      * @param placementStat - Placement status to update
      * @param vpoolChangeVolume - change Virtual Pool param
-     * @param isMPStandby - indicates if this a metropoint and if this is a recommendation for the standy-site
+     * @param isMPStandby - indicates if this a MetroPoint and if this is a recommendation for the standby-site
      * @return - Recommendation for source
      */
     private RPRecommendation buildSourceRecommendation(String associatedStorageSystem, VirtualArray varray,
@@ -2471,9 +2470,9 @@ public class RecoverPointScheduler implements Scheduler {
      * @param ps - Protection system
      * @param capabilities - Virtual Pool capabilities
      * @param requestedResourceCount - Resource count satisfied in this recommendation.
-     *            For journals, it is always 1 as we dont fragment journal over multiple pools.
+     *            For journals, it is always 1 as we don't fragment journal over multiple pools.
      * @param vpoolChangeVolume - change Virtual Pool param
-     * @param isMPStandby - indicates if this a metropoint and if this is a recommendation for the standy-site
+     * @param isMPStandby - indicates if this a MetroPoint and if this is a recommendation for the standby-site
      * @return - Recommendation for journal
      */
     public RPRecommendation buildJournalRecommendation(RPProtectionRecommendation rpProtectionRecommendation, String internalSiteName,
@@ -2576,7 +2575,7 @@ public class RecoverPointScheduler implements Scheduler {
     }
 
     /**
-     * This method takes the passed in capabilities and returns back a capabilies object that contains information needed for
+     * This method takes the passed in capabilities and returns back a capabilities object that contains information needed for
      * RP journal volumes. Calculates the size based on the journal policy and sets the resource count to 1.
      *
      * @param journalPolicy Journal Policy from the VirtualPool
@@ -2818,7 +2817,7 @@ public class RecoverPointScheduler implements Scheduler {
             VirtualPool vpool, VirtualArray haVarray, VirtualPool haVpool,
             VirtualPoolCapabilityValuesWrapper capabilities, String personality, String internalSiteName) {
 
-        // TODO (Brad/Bharath): ChangeVPool doesnt add any new targets. If new targets are requested as part of the changeVpool,
+        // TODO (Brad/Bharath): ChangeVPool doesn't add any new targets. If new targets are requested as part of the changeVpool,
         // then this code needs to be enhanced to be able to handle that.
 
         _log.info("RP Placement : Fetching pool recommendations for : " + personality);
@@ -2842,7 +2841,7 @@ public class RecoverPointScheduler implements Scheduler {
         for (StoragePool storagePool : candidatePools) {
             int count = Math.abs((int) (storagePool.getFreeCapacity() / (sizeInKB)));
             RPRecommendation recommendedPool = getRecommendationForStoragePool(poolsInAllRecommendations, storagePool);
-            // pool should be capable of satisfying atleast one resource of the specified size.
+            // pool should be capable of satisfying at least one resource of the specified size.
             if (count >= 1) {
                 if (recommendedPool == null) {
                     buff.append(String.format("%nRP Placement : # of resources of size %sGB that pool %s can accomodate: %s",
@@ -2958,13 +2957,13 @@ public class RecoverPointScheduler implements Scheduler {
     }
 
     /**
-     * Checks if existing recommendations for pools can satisfy requested resource count in addition to what it already satisifies.
+     * Checks if existing recommendations for pools can satisfy requested resource count in addition to what it already satisfies.
      *
      * @param sizeInBytes - Size requested in bytes
      * @param requestedCount - Resource count requested
      * @param sizeInKB - Size in KB
      * @param recs - Existing recommendations
-     * @return List of recommendations that can satisfy already satisified count # of resources plus new count
+     * @return List of recommendations that can satisfy already satisfied count # of resources plus new count
      */
     private List<Recommendation> placeAlreadyRecommendedPool(long sizeInBytes,
             long requestedCount, long sizeInKB,
@@ -3416,8 +3415,8 @@ public class RecoverPointScheduler implements Scheduler {
      * @param protectionVarrays - List of protection Virtual Arrays
      * @param capabilities - Virtual Pool capabilities
      * @param requestedCount - Resource count desired
-     * @param isMetroPoint - Boolean indicating whether this is Metropoint
-     * @param primaryRecommendation - Primary Recommendation in case of Metropoint. This field is null except for when we are finding
+     * @param isMetroPoint - Boolean indicating whether this is MetroPoint
+     * @param primaryRecommendation - Primary Recommendation in case of MetroPoint. This field is null except for when we are finding
      *            solution for MP standby
      * @param project - Project
      * @return - True if protection solution was found, false otherwise.
@@ -3977,11 +3976,11 @@ public class RecoverPointScheduler implements Scheduler {
     /**
      * Determines if the RP site is connected to the passed virtual array.
      *
-     * @param storageSystemURI 
-     * @param protectionSystemURI
-     * @param siteId
+     * @param storageSystemURI  Storage System ID
+     * @param protectionSystemURI Protection Systen ID
+     * @param siteId RP Site ID
      * @param virtualArray the virtual array to check for RP site connectivity
-     * @return
+     * @return True if the RP Site is connected to the varray, false otherwise.
      */
     public boolean isRpSiteConnectedToVarray(URI storageSystemURI, URI protectionSystemURI, String siteId, VirtualArray virtualArray) {
         ProtectionSystem protectionSystem =
@@ -4053,7 +4052,7 @@ public class RecoverPointScheduler implements Scheduler {
 
     /**
      * Sorts the Set of ProtectionSystem objects by the cgLastCreatedTime field.
-     * Objects will be sorted from oldest to most current timestamp. The Set
+     * Objects will be sorted from oldest to most current time stamp. The Set
      * will also be converted to a List because of the use of a Comparator.
      *
      * @param protectionSystems the Set of ProtectionSystem objects to sort.
@@ -4081,7 +4080,7 @@ public class RecoverPointScheduler implements Scheduler {
 
     /**
      * Convenience method to create a String of protection system labels/CG last created
-     * timestamps.
+     * time stamps.
      *
      * @param protectionSystems The Collection of protection systems to create a String from.
      * @return the String representation of the protection system Collection.
@@ -4102,7 +4101,6 @@ public class RecoverPointScheduler implements Scheduler {
 
     /**
      * Inner class to handle RP placement status
-     *
      */
     private static class PlacementStatus {
         private String srcVArray;

@@ -42,7 +42,6 @@ public class VirtualPoolCapabilityValuesWrapper implements Serializable {
     public static final String SUPPORT_SOFT_LIMIT = "soft_limit";
     public static final String SUPPORT_NOTIFICATION_LIMIT = "notification_limit";
     public static final String QUOTA = "quota";
-    public static final String CHANGE_VPOOL_VOLUME = "changeVpoolVolume";
 
     public static final String FILE_RP_RPO_VALUE = "fileRpRpoValue";
     public static final String FILE_RP_RPO_TYPE = "fileRpRpoType";
@@ -54,6 +53,7 @@ public class VirtualPoolCapabilityValuesWrapper implements Serializable {
     public static final String EXISTING_SOURCE_FILE_SYSTEM = "existing_source_file_system";
     public static final String SOURCE_STORAGE_SYSTEM = "source_storage_system";
     public static final String FILE_TARGET_COPY_NAME = "file_target_copy_name";
+    public static final String CHANGE_VPOOL_VOLUME = "changeVpoolVolume";
 
     // meta volume capabilities
     public static final String IS_META_VOLUME = "isMetaVolume";

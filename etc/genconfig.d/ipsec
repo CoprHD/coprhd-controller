@@ -87,17 +87,10 @@ _gen_ipsec_conf() {
         return 0;
     fi
 
-
-    local vdc_ids=$(echo ${_GENCONFIG_vdc_ids} | sed 's/,/ /g')
-    local site_ids=""
-    for vdc in ${vdc_ids} ; do
-        local var="_GENCONFIG_vdc_${vdc}_site_ids"
-        local value=$(echo "${!var}" | sed 's/,/ /g')
-        site_ids="${site_ids} ${value}"
-    done
-
     local content="${COMMON_SECTION}"
     for vdc in ${vdc_ids} ; do
+        local var="_GENCONFIG_vdc_${vdc}_site_ids"
+        local site_ids=$(echo "${!var}" | sed 's/,/ /g')
         for site in ${site_ids} ; do
             local ips=$(_get_ips_in_specified_site "${vdc}" "${site}")
             connections=$(_gen_conn_sections "${ips}")
@@ -118,6 +111,8 @@ EOF
     if [[ ${_GENCONFIG_NETWORK_STACK} == DUAL_STACK ]]; then
         LOCAL_IP=$(_get_local_ip "ipv6")
         for vdc in ${vdc_ids} ; do
+            local var="_GENCONFIG_vdc_${vdc}_site_ids"
+            local site_ids=$(echo "${!var}" | sed 's/,/ /g')
             for site in ${site_ids} ; do
                     local ips=$(_get_ips_in_specified_site "${vdc}" "${site}" "ipv6")
                     connections=$(_gen_conn_sections "${ips}")

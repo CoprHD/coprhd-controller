@@ -52,7 +52,7 @@ public interface ConsistencyGroupManager {
      * @param opId The unique task identifier.
      * 
      * @throws InternalException When an error occurs configuring the
-     *             consistency group deConsistencyGroupManagerletion workflow.
+     *             consistency group deletion workflow.
      */
     public void deleteConsistencyGroup(Workflow workflow, URI vplexURI, URI cgURI, String opId)
             throws InternalException;

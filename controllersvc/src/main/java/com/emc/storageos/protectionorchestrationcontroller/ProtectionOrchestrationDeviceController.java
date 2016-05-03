@@ -35,6 +35,13 @@ import com.emc.storageos.vplexcontroller.VPlexDeviceController;
 import com.emc.storageos.workflow.Workflow;
 import com.emc.storageos.workflow.WorkflowService;
 
+/**
+ * This class orchestrates Protection Operations across various devices. The immediate use
+ * was to orchestrate SRDF protection operations with the Vplex.
+ * Please feel free to add Protection orchestrations here (including RP).
+ * The parameters need not necessarily be VolumeDescriptors.
+ *
+ */
 public class ProtectionOrchestrationDeviceController implements ProtectionOrchestrationController {
     private static final Logger s_logger = LoggerFactory.getLogger(ProtectionOrchestrationDeviceController.class);
     private static SRDFDeviceController srdfDeviceController;
@@ -43,10 +50,10 @@ public class ProtectionOrchestrationDeviceController implements ProtectionOrches
     private static DbClient dbClient;
     
     static final String SRDF_PROTECTION_OPERATION = "SRDF_PROTECTION_OPERATION";
+    private final String[] srdfFlushableOps = { "failover", "failover-cancel", "swap", "resume" };
     
     @Override
     public void performSRDFProtectionOperation(URI storageSystemId, Copy copy, String op, String task) {
-        boolean workflowNeeded = false;
         StorageSystem storageSystem = dbClient.queryObject(StorageSystem.class, storageSystemId);
         // Maps Vplex volume that needs to be flushed to underlying array volume
         Map<Volume, Volume> vplexToArrayVolumesToFlush = getVplexVolumesToBeCacheFlushed(copy, op);
@@ -92,7 +99,7 @@ public class ProtectionOrchestrationDeviceController implements ProtectionOrches
         }
     }
     
-    private final String[] srdfFlushableOps = { "failover", "failover-cancel", "swap", "resume" };
+   
     /**
      * Returns true if the SRDF operation requires a cache flush on the Vplex.
      * @param op
@@ -110,7 +117,7 @@ public class ProtectionOrchestrationDeviceController implements ProtectionOrches
      * @return map of Vplex Volume to be flushed to associated array volume that will be updated
      */
     private Map<Volume, Volume> getVplexVolumesToBeCacheFlushed(Copy copy, String op) {
-        // Map of Vplex Volume to array volume that will be updated with protectio noperation.
+        // Map of Vplex Volume to array volume that will be updated with protection operation.
         Map<Volume, Volume> vplexToArrayVolumes = new HashMap<Volume, Volume>();
         Set<URI> addedVolumes = new HashSet<URI>();
         // Determine if the operation requires a flush.
@@ -135,8 +142,8 @@ public class ProtectionOrchestrationDeviceController implements ProtectionOrches
         addedVolumes.add(vplexVolume.getId());
         // Determine if target volume is in a CG, and if so, get related SRDF volumes.
         if (protoVolume.getConsistencyGroup() != null) {
-            BlockConsistencyGroup cg = dbClient.queryObject(BlockConsistencyGroup.class, protoVolume.getConsistencyGroup())
-;            // Find all the volumes in that same consistency group
+            BlockConsistencyGroup cg = dbClient.queryObject(BlockConsistencyGroup.class, protoVolume.getConsistencyGroup());
+            // Find all the volumes in that same consistency group
             List<Volume> cgVolumes = BlockConsistencyGroupUtils.getActiveNonVplexVolumesInCG(
                     cg, dbClient, null);
             // Loop through the CG volumes on the same storage system, adding the Vplex equivalent volume to the set to be flushed

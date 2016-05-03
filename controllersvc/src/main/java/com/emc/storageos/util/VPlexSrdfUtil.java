@@ -52,15 +52,7 @@ public class VPlexSrdfUtil {
      * @return - Vplex volume fronting SRDF volume, or null
      */
     static public Volume getVplexVolumeFromSrdfVolume(DbClient dbClient, Volume srdfVolume) {
-        List<Volume> vplexVolumes = CustomQueryUtility
-                .queryActiveResourcesByConstraint(dbClient, Volume.class, 
-                        getVolumesByAssociatedId(srdfVolume.getId().toString()));
-        for (Volume vplexVolume : vplexVolumes) {
-            // There should only be one volume in list, ie. target only associated with
-            // one Vplex volume
-            return vplexVolume;
-        }
-        return null;
+        return Volume.fetchVplexVolume(dbClient, srdfVolume);
     }
     
     /**

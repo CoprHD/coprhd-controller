@@ -11649,6 +11649,10 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
     }
 
     private static void updateTimeoutValues() {
+        if (null == coordinator) {
+            return;
+        }
+
         // Update the timeout values
         int maxAsyncPollingRetries = Integer.valueOf(ControllerUtils.getPropertyValueFromCoordinator(coordinator,
                 "controller_vplex_max_async_polls"));

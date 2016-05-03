@@ -8,6 +8,7 @@ import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -20,7 +21,10 @@ import org.apache.commons.lang.StringUtils;
 import org.codehaus.jettison.json.JSONException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 
+import com.emc.storageos.customconfigcontroller.CustomConfigConstants;
+import com.emc.storageos.customconfigcontroller.impl.CustomConfigHandler;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
@@ -136,6 +140,8 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
     private static final String CHECKPOINT_SCHEDULE = "checkpoint_schedule";
 
     private List<String> _discPathsForUnManaged;
+    @Autowired
+    private CustomConfigHandler customConfigHandler;
 
     /**
      * Get Unmanaged File System Container paths
@@ -143,6 +149,10 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
      * @return List object
      */
     public List<String> getDiscPathsForUnManaged() {
+        if (null == _discPathsForUnManaged) {
+            _discPathsForUnManaged = new ArrayList<String>();
+
+        }
         return _discPathsForUnManaged;
     }
 
@@ -162,6 +172,15 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
      */
     public void setIsilonApiFactory(IsilonApiFactory factory) {
         _factory = factory;
+    }
+
+    /**
+     * Set the controller config info
+     * 
+     * @return
+     */
+    public void setCustomConfigHandler(CustomConfigHandler customConfigHandler) {
+        this.customConfigHandler = customConfigHandler;
     }
 
     /**
@@ -1201,6 +1220,23 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
     }
 
     /**
+     * add custom directory path from configuration
+     */
+    private void updateDiscoveryPathForUnManagedFS() {
+        String paths = "";
+        String namespace = "";
+
+        paths = customConfigHandler.getComputedCustomConfigValue(CustomConfigConstants.ISILON_UNMANAGE_FILE_SYSTEM_LOCATIONS, "isilon",
+                null);
+        List<String> pathList = Arrays.asList(paths.split(","));
+        getDiscPathsForUnManaged().addAll(pathList);
+        namespace = customConfigHandler.getComputedCustomConfigValue(CustomConfigConstants.ISILON_SYSTEM_ACCESS_ZONE_NAMESPACE, "isilon",
+                null);
+        getDiscPathsForUnManaged().add(namespace);
+
+    }
+
+    /**
      * Check license is valid or not
      * 
      * @param licenseStatus
@@ -1302,6 +1338,8 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
             List<IsilonAccessZone> isilonAccessZones = isilonApi.getAccessZones(null);
             Map<String, NASServer> nasServers = getNASServer(storageSystem, isilonAccessZones);
             setDiscPathForAccess(nasServers);
+            // update the Path from Controller Configuration
+            updateDiscoveryPathForUnManagedFS();
 
             // Get All FileShare
             HashMap<String, HashSet<String>> allSMBShares = discoverAllSMBShares(storageSystem, isilonAccessZones);

@@ -848,6 +848,78 @@
         </property>
     </bean>
     
+           <bean id="isilonPathCustomization" class="com.emc.storageos.customconfigcontroller.CustomConfigType">
+    	<property name="name" value="IsilonPathCustomization"/>
+       <property name="configType" value="CustomName"/>
+        <property name="type" value="String"/>
+        <property name="dataSourceVariables">
+            <map>
+                <entry key-ref="isilonClusterName" value="false"/>
+                <entry key-ref="projectName" value="true"/>
+                <entry key-ref="tenantName" value="true"/>
+                <entry key-ref="vpoolName" value="true"/>
+            </map>
+    	</property>
+ 		<property name="scope">
+            <map>
+         <entry key="systemType" value="isilon"/>
+            </map>
+        </property>
+        <property name="defaultValues">
+            <map>
+                <entry key="isilon" value="{vpool_name}/{tenant_name}/{project_name}"/>                    
+            </map>
+        </property>
+        <property name="constraints">
+            <list>
+                <ref bean="isilonPathIllegalCharsConstraint"/>
+            </list>
+        </property>
+        
+    </bean>
+    
+           <bean id="isilonSystemAccessZoneNameSpace" class="com.emc.storageos.customconfigcontroller.CustomConfigType">
+    	<property name="name" value="IsilonSystemAccessZoneNameSpace"/>
+              <property name="configType" value="SimpleValue"/>
+        <property name="type" value="String"/>
+ 		<property name="scope">
+            <map>
+         <entry key="systemType" value="isilon"/>
+            </map>
+        </property>
+        <property name="defaultValues">
+            <map>
+                <entry key="isilon" value="vipr"/>                    
+            </map>
+        </property>
+                <property name="constraints">
+            <list>
+                <ref bean="illegalCharsConstraint"/>
+            </list>
+        </property>
+    </bean>
+    
+     <bean id="isilonUnManageFileSystemLocations" class="com.emc.storageos.customconfigcontroller.CustomConfigType">
+    	<property name="name" value="IsilonUnManageFileSystemLocations"/>
+              <property name="configType" value="SimpleValue"/>
+        <property name="type" value="String"/>
+ 		<property name="scope">
+            <map>
+         <entry key="systemType" value="isilon"/>
+            </map>
+        </property>
+        <property name="defaultValues">
+            <map>
+                <entry key="isilon" value="/ifs/sos/"/>                    
+            </map>
+        </property>
+                <property name="constraints">
+            <list>
+                <ref bean="isilonDirLocationsIllegalCharsConstraint"/>
+            </list>
+        </property>
+    </bean>
+    
     <bean id="portAllocationMetricsEnabled" class="com.emc.storageos.customconfigcontroller.CustomConfigType">
     	<property name="name" value="PortAllocationMetricsEnabled"/>
         <property name="configType" value="SimpleValue"/>
@@ -1144,6 +1216,23 @@
         <property name="sample" value="clusterABC"/>
     </bean>  
     
+    <bean id="isilonClusterName" class="com.emc.storageos.customconfigcontroller.DataSourceVariable">
+        <property name="displayName" value="isilon_cluster_name"/>
+        <property name="sample" value="clusterABC"/>
+    </bean> 
+        <bean id="tenantName" class="com.emc.storageos.customconfigcontroller.DataSourceVariable">
+        <property name="sourceClass" value="com.emc.storageos.db.client.model.TenantOrg"/>
+        <property name="displayName" value="tenant_name"/>
+        <property name="propertyName" value="label"/>
+        <property name="sample" value="tenantABC"/>
+    </bean> 
+        <bean id="vpoolName" class="com.emc.storageos.customconfigcontroller.DataSourceVariable">
+        <property name="sourceClass" value="com.emc.storageos.db.client.model.VirtualPool"/>
+        <property name="displayName" value="vpool_name"/>
+        <property name="propertyName" value="label"/>
+        <property name="sample" value="vpoolABC"/>
+    </bean>
+    
      <bean id="autoTieringPolicy" class="com.emc.storageos.customconfigcontroller.DataSourceVariable">
         <property name="sourceClass" value="com.emc.storageos.db.client.model.AutoTieringPolicy"/>
         <property name="displayName" value="auto_tiering_policy_name"/>
@@ -1232,6 +1321,36 @@
         </property>   
         <property name="name" value="IllegalCharsConstraint"/> 
     </bean>
+  
+  <bean id="isilonPathIllegalCharsConstraint" class="com.emc.storageos.customconfigcontroller.IllegalCharsConstraint">
+        <property name="illegalCharsRegexMap">
+            <map>
+                <entry key="default" value="[^A-Za-z0-9_/]"/>
+            </map>
+        </property>
+        <property name="description" value="Valid characters are letters, numbers , forward slash and _"/>
+        <property name="replacementMap">
+            <map>
+                <entry key="default" value=""/>
+            </map>
+        </property>   
+        <property name="name" value="IllegalCharsConstraint"/> 
+    </bean>
+    
+     <bean id="isilonDirLocationsIllegalCharsConstraint" class="com.emc.storageos.customconfigcontroller.IllegalCharsConstraint">
+        <property name="illegalCharsRegexMap">
+            <map>
+                <entry key="default" value="[^A-Za-z0-9_,/]"/>
+            </map>
+        </property>
+        <property name="description" value="Enter the Path for directories(comma seperated) .Access zone directoies are automatically included.Valid characters are letters, numbers ,comma,forward slash and _"/>
+        <property name="replacementMap">
+            <map>
+                <entry key="default" value=""/>
+            </map>
+        </property>   
+        <property name="name" value="IllegalCharsConstraint"/> 
+    </bean> 
     
     <bean id="illegalFirstCharConstraint" class="com.emc.storageos.customconfigcontroller.IllegalFirstCharConstraint">
         <property name="illegalCharsRegexMap">

@@ -14,12 +14,6 @@
 		class="com.emc.storageos.volumecontroller.impl.plugins.IsilonCommunicationInterface">
         <property name="isilonApiFactory" ref="isilonapifactory" />
         <property name="partitionManager" ref="partitionManager"/>
-        <property name="discPathsForUnManaged">        
-            <list>
-                <value>/ifs/sos/</value>
-                <value>/ifs/vipr/</value>
-            </list>
-        </property>
 	</bean>
 
     <bean id="partitionManager" class="com.emc.storageos.plugins.common.PartitionManager" />

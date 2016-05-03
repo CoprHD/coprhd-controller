@@ -95,6 +95,7 @@ import com.emc.sa.service.vipr.block.tasks.StartBlockSnapshot;
 import com.emc.sa.service.vipr.block.tasks.StartFullCopy;
 import com.emc.sa.service.vipr.block.tasks.SwapCGContinuousCopies;
 import com.emc.sa.service.vipr.block.tasks.SwapContinuousCopies;
+import com.emc.sa.service.vipr.block.tasks.ViewVolumesByProject;
 import com.emc.sa.service.vipr.tasks.GetCluster;
 import com.emc.sa.service.vipr.tasks.GetHost;
 import com.emc.sa.service.vipr.tasks.GetStorageSystem;
@@ -332,6 +333,11 @@ public class BlockStorageUtils {
         String newSize = gbToVolumeSize(newSizeInGB);
         Task<VolumeRestRep> task = execute(new ExpandVolume(volumeId, newSize));
         addAffectedResource(task);
+    }
+    
+    public static Task<String> simplyTest(String name, URI pId, URI vId) {
+    	Tasks<String> task = execute(new ViewVolumesByProject(name, pId, vId));
+    	return task.latestFinishedTask();
     }
 
     public static URI createHostExport(URI projectId, URI virtualArrayId, List<URI> volumeIds, Integer hlu, Host host,

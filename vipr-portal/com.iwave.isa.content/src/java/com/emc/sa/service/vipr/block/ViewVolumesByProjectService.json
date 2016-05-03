@@ -4,6 +4,12 @@
   fields:{
     name:{
       type:"text"
+    },
+    project:{
+      type:"assetType.vipr.project"
+    },
+    volumes:{
+      type:"assetType.vipr.sourceBlockVolume"
     }
   }
 }

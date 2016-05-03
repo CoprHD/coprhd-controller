@@ -142,15 +142,21 @@ public class IpReconfigManager implements Runnable {
         } else {
             vdcnodeId = Integer.valueOf(node_id.split("vipr")[1]);
         }
+        log.info("vdcnodeid={}", vdcnodeId);
+
         nodeCount = Integer.valueOf(ovfprops.get(PropertyConstants.NODE_COUNT_KEY));
+        log.info("nodeCount={}", nodeCount);
 
         // change to multiple site format
         Map<String, String> ipprops = new HashMap<String, String>();
         for (Map.Entry<String, String> me: ovfprops.entrySet()) {
             String propkey = me.getKey();
+            log.info("ovfenv propkey={}", propkey);
+
             if (propkey.startsWith("network")||propkey.startsWith("node")) {
                 String ippropkey = String.format(PropertyConstants.IPPROP_PREFIX, 1) + "_" + propkey;
                 ipprops.put(ippropkey, me.getValue());
+                log.info("ip props: key={}, value={}", propkey, me.getValue());
             }
         }
         currentIpinfo = new ClusterIpInfo();

@@ -118,7 +118,8 @@ public class ClusterIpInfo implements Serializable {
             // separate global prop name to vdcsiteId and internal prop name;
             String[] tmpFields = globalPropName.split("_");
             String vdcsiteId = tmpFields[0] + "_" + tmpFields[1] + "_" + tmpFields[2];
-            String vdcsiteInternalPropName = globalPropName.split(vdcsiteId)[1];
+            String vdcsiteIdPrefix = vdcsiteId + "_";
+            String vdcsiteInternalPropName = globalPropName.split(vdcsiteIdPrefix)[1];
 
             // put globalPropMap into vdcsitePropMap;
             Map<String, String> sitePropMap = vdcsitePropMap.get(vdcsiteId);

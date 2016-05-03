@@ -58,6 +58,9 @@
                 <ref bean="nasDynamicPerformancePlacementEnabled"/>
                 <ref bean="nasUsePhysicalNASForProvisioning"/>
                 <ref bean="nasShareVNASWithMultipleProjects"/>
+                <ref bean="isilonPathCustomization"/>
+                <ref bean="isilonSystemAccessZoneNameSpace"/>
+                <ref bean="isilonUnManageFileSystemLocations"/>
             </list>
         </property>
     </bean>

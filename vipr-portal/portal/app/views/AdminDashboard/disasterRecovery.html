@@ -116,26 +116,21 @@
 
 <style type="text/css">
 .table td {
-	max-width: 100px;
-	white-space: nowrap;
-	overflow: hidden;
-	text-overflow: ellipsis;
+    max-width: 100px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 .table td:hover {
-	overflow: visible;
-	z-index: 2;
+    overflow: visible;
 }
-
-.expandable {
-	padding-top: 5px;
-	padding-bottom: 6px;
-}
-.expandable:hover {
-	background-color: #f5f5f5;
-	position: relative;
-	max-width: none;
-	z-index: 2;
-	padding-top: 5px;
-	padding-bottom: 6px;
+.table td:hover .expandable {
+    background-color: #f5f5f5;
+    position: relative;
+    max-width: none;
+    z-index: 2;
+    padding-top: 5px;
+    padding-bottom: 5px;
+    padding-right: 5px;
 }
 </style>

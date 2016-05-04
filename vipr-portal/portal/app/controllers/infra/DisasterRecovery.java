@@ -218,10 +218,9 @@ public class DisasterRecovery extends ViprResourceController {
             if (SiteState.STANDBY_PAUSED.toString().equals(site.getState())) {
                 continue;
             }
-            String siteId = site.getUuid();
-            SiteDetailRestRep detail = DisasterRecoveryUtils.getSiteDetails(siteId);
+            SiteDetailRestRep detail = DisasterRecoveryUtils.getSiteDetails(site.getUuid());
             if (!ClusterInfo.ClusterState.STABLE.toString().equals(detail.getClusterState())) {
-                flash.error(MessagesUtils.get(ADD_WARNING, siteId));
+                flash.error(MessagesUtils.get(ADD_WARNING, site.getName()));
                 list();
             }
         }

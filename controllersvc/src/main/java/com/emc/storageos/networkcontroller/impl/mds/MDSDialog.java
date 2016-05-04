@@ -975,7 +975,7 @@ public class MDSDialog extends SSHDialog {
 
         String busyKey = "MDSDialog.checkForEnhancedZoneSession.busy";
         String createdKey = "MDSDialog.checkForEnhancedZoneSession.created";
-        
+
         if (forIvr) {
             busyKey = "MDSDialog.ivr.checkForEnhancedZoneSession.busy";
             createdKey = "MDSDialog.ivr.checkForEnhancedZoneSession.created";

@@ -564,7 +564,9 @@ public class VPlexApiVirtualVolumeManager {
         if (virtualVolumeInfo == null) {
             throw VPlexApiException.exceptions.cantFindRequestedVolume(virtualVolumeName);
         }
-        s_logger.info("Found virtual volume");
+        s_logger.info("Found virtual volume {} with starting capacity {} and expandable capacity {}",
+                virtualVolumeInfo.getName(), virtualVolumeInfo.getCapacityBytes(),
+                virtualVolumeInfo.getExpandableCapacityBytes());
 
         ClientResponse response = null;
         try {
@@ -590,7 +592,7 @@ public class VPlexApiVirtualVolumeManager {
                             virtualVolumeName, String.valueOf(response.getStatus()), cause);
                 }
             }
-            s_logger.info("Successfully expanded virtual volume");
+            s_logger.info("Successfully started virtual volume expansion");
         } catch (VPlexApiException vae) {
             throw vae;
         } catch (Exception e) {
@@ -629,15 +631,25 @@ public class VPlexApiVirtualVolumeManager {
 
         int retryCount = 0;
         VPlexApiDiscoveryManager discoveryMgr = _vplexApiClient.getDiscoveryManager();
+        Long startingCapacity = virtualVolumeInfo.getCapacityBytes();
+        s_logger.info("Expansion starting capacity for virtual volume {} is {}", 
+                virtualVolumeInfo.getName(), startingCapacity);
 
         while (++retryCount <= expansionStatusRetryCount) {
             try {
                 // Pause before obtaining the volume info.
+                s_logger.info("pausing {}ms before checking {} volume expansion completion status", 
+                        expansionStatusSleepTime, virtualVolumeInfo.getName());
                 VPlexApiUtils.pauseThread(expansionStatusSleepTime);
                 discoveryMgr.updateVirtualVolumeInfo(clusterName, virtualVolumeInfo);
-                s_logger.info("Expansion status is {}", virtualVolumeInfo.getExpansionStatus());
-                if (VPlexVirtualVolumeInfo.ExpansionStatus.INPROGRESS.getStatus().equals(
-                        virtualVolumeInfo.getExpansionStatus())) {
+                s_logger.info("Expansion status is {}, current capacity is {}, and expandable capacity is {}", 
+                        virtualVolumeInfo.getExpansionStatus(), virtualVolumeInfo.getCapacityBytes(),
+                        virtualVolumeInfo.getExpandableCapacityBytes());
+                boolean inProgress = VPlexVirtualVolumeInfo.ExpansionStatus.INPROGRESS.getStatus().equals(
+                        virtualVolumeInfo.getExpansionStatus());
+                boolean capacityUnchanged = startingCapacity == virtualVolumeInfo.getCapacityBytes();
+                boolean hasExpandableCapacityRemaining = virtualVolumeInfo.getExpandableCapacityBytes() > 0;
+                if (inProgress || capacityUnchanged || hasExpandableCapacityRemaining) {
                     s_logger.info("Expansion still in progress");
                     continue;
                 } else {

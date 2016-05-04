@@ -68,6 +68,7 @@ public class VPlexVirtualVolumeInfo extends VPlexResourceInfo {
         BLOCK_COUNT("block-count"),
         BLOCK_SIZE("block-size"),
         EXPANSION_STATUS("expansion-status"),
+        EXPANSION_CAPACITY("expandable-capacity"),
         SUPPORTING_DEVICE("supporting-device"),
         SERVICE_STATUS("service-status"),
         LOCALITY("locality"),
@@ -122,6 +123,9 @@ public class VPlexVirtualVolumeInfo extends VPlexResourceInfo {
 
     // The expansion status
     private String expansionStatus;
+
+    // The expandable capacity
+    private String expandableCapacity;
 
     // The name of the local or distributed device supporting
     // this virtual volume.
@@ -196,6 +200,24 @@ public class VPlexVirtualVolumeInfo extends VPlexResourceInfo {
      */
     public void setExpansionStatus(String strVal) {
         expansionStatus = strVal;
+    }
+
+    /**
+     * Getter for the volume expandable capacity.
+     * 
+     * @return The volume expandable capacity.
+     */
+    public String getExpandableCapacity() {
+        return expandableCapacity;
+    }
+
+    /**
+     * Setter for the volume expandable capacity.
+     * 
+     * @param strVal The volume expandable capacity.
+     */
+    public void setExpandableCapacity(String strVal) {
+        expandableCapacity = strVal;
     }
 
     /**
@@ -355,6 +377,27 @@ public class VPlexVirtualVolumeInfo extends VPlexResourceInfo {
     }
 
     /**
+     * Return the current virtual volume expandable capacity in bytes.
+     * 
+     * @return the current virtual volume expandable capacity in bytes
+     */
+    public Long getExpandableCapacityBytes() {
+        if ((expandableCapacity != null) && !VPlexApiConstants.NULL_ATT_VAL.equals(expandableCapacity)) {
+            // expandable-capacity is in the format "2342340 B"
+            String[] parts = expandableCapacity.split(" ");
+            if (parts.length == 2) {
+                try {
+                    return Long.valueOf(parts[0]);
+                } catch (NumberFormatException ex) {
+                    s_logger.error("could not parse a usable number from expandable capacity: {}", expandableCapacity);
+                }
+            }
+        }
+
+        return Long.valueOf(0);
+    }
+
+    /**
      * Update the virtual volume name after path of the virtual volume
      * when a migration associated with the virtual volume is committed.
      * 
@@ -401,6 +444,7 @@ public class VPlexVirtualVolumeInfo extends VPlexResourceInfo {
         str.append(", blockCount: ").append(blockCount);
         str.append(", blockSize: ").append(blockSize);
         str.append(", expansionStatus: ").append(expansionStatus);
+        str.append(", expandableCapacity: ").append(expandableCapacity);
         str.append(", supportingDevice: ").append(supportingDevice);
         if (supportingDeviceInfo != null) {
             str.append(", supportingDeviceInfo: ").append(supportingDeviceInfo.toString());

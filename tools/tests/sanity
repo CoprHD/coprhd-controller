@@ -2971,7 +2971,7 @@ recoverpoint_export_bookmark_host_setup()
 
     run hosts create ${RP_HOSTNAME} $TENANT Windows ${RP_HOSTNAME} --port 8111 --username user --password 'password' --osversion 1.0
     run initiator create ${RP_HOSTNAME} FC ${PWWN1} --node ${WWNN1}
-    run transportzone add ${RECOVERPOINT_VARRAY1}/${CLUSTER1NET_NAME} ${PWWN1}
+    transportzone add ${RECOVERPOINT_VARRAY1}/${CLUSTER1NET_NAME} ${PWWN1}
 }
 
 recoverpoint_auto_snapshot_cleanup_test()

@@ -7,6 +7,7 @@ package com.emc.storageos.services.util;
 import com.emc.storageos.model.property.PropertyConstants;
 import com.emc.vipr.model.sys.ipreconfig.ClusterIpInfo;
 
+import com.emc.vipr.model.sys.ipreconfig.SiteIpInfo;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -163,17 +164,16 @@ public class PlatformUtils {
      * 
      * @param ipinfo
      * @param nodeid
-     * @param node_count
      * @return
      */
-    public static String genOvfenvPropertyKVString(ClusterIpInfo ipinfo, String nodeid, int node_count) {
+    public static String genOvfenvPropertyKVString(SiteIpInfo ipinfo, String nodeid) {
         // Compose cluster configuration key/value properties string
-        StringBuffer clusterprops = new StringBuffer();
-        clusterprops.append(ipinfo.toString());
-        clusterprops.append(PropertyConstants.NODE_COUNT_KEY).append(PropertyConstants.DELIMITER).append(node_count).append("\n");
-        clusterprops.append(PropertyConstants.NODE_ID_KEY).append(PropertyConstants.DELIMITER).append(nodeid).append("\n");
+        StringBuffer siteprops = new StringBuffer();
+        siteprops.append(ipinfo.toString());
+        siteprops.append(PropertyConstants.NODE_COUNT_KEY).append(PropertyConstants.DELIMITER).append(ipinfo.getNodeCount()).append("\n");
+        siteprops.append(PropertyConstants.NODE_ID_KEY).append(PropertyConstants.DELIMITER).append(nodeid).append("\n");
 
-        return clusterprops.toString();
+        return siteprops.toString();
     }
 
     /**

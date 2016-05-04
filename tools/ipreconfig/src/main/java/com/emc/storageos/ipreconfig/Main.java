@@ -12,6 +12,7 @@ import com.emc.storageos.services.util.PlatformUtils;
 import com.emc.storageos.systemservices.impl.ipreconfig.IpReconfigConstants;
 import com.emc.storageos.systemservices.impl.ipreconfig.IpReconfigUtil;
 import com.emc.vipr.model.sys.ipreconfig.ClusterIpInfo;
+import com.emc.vipr.model.sys.ipreconfig.SiteIpInfo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -29,23 +30,28 @@ import java.util.Map;
  */
 public class Main {
     private static final Logger log = LoggerFactory.getLogger(Main.class);
-    private static final int CMD_TIMEOUT = 10 * 1000;
+    public static final String VDC_PROPS_FILE_NAME = "vdcconfig.properties";
+    public static String active_site_id;
+    public static String my_site_id;
 
     private static void usage() {
         System.out.println("Usage: ");
-        System.out.println("ipreconfig [commit|rollback]");
+        System.out.println("ipreconfig <active_site_id> <my_site_id> [commit|rollback]");
         System.exit(-1);
     }
 
     public static void main(String[] args) throws Exception {
-        if (args.length != 1) {
+        if (args.length != 3) {
             usage();
         }
 
         try {
-            if (args[0].equals("commit")) {
+            active_site_id = args[0];
+            my_site_id = args[1];
+
+            if (args[2].equals("commit")) {
                 commitNewIP();
-            } else if (args[0].equals("rollback")) {
+            } else if (args[2].equals("rollback")) {
                 rollbackToOldIP();
             } else {
                 usage();
@@ -70,7 +76,6 @@ public class Main {
         // 1. get current ip info from ovfenv device
         Map<String, String> ovfenvprop = PlatformUtils.getOvfenvProperties();
         String node_id = ovfenvprop.get(PropertyConstants.NODE_ID_KEY);
-        int node_count = Integer.valueOf(ovfenvprop.get(PropertyConstants.NODE_COUNT_KEY));
 
         // 2. get new ip info from local file
         ClusterIpInfo newIpinfo = IpReconfigUtil.readIpinfoFile(IpReconfigConstants.NEWIP_PATH);
@@ -86,11 +91,11 @@ public class Main {
                 return;
             case LOCALAWARE_CLUSTERPERSISTENT:
                 log.info("Trying to connect with new cluster ...", localnode_status);
-                handlePossibleJump(newIpinfo, node_id, node_count);
+                handlePossibleJump(newIpinfo, node_id);
                 break;
             case CLUSTERACK_CLUSTERPERSISTENT:
                 log.info("Trying to commit new IPs directly ...", localnode_status);
-                applyIpinfo(newIpinfo, node_id, node_count, true);
+                applyIpinfo(newIpinfo, node_id, true);
                 break;
             default:
                 log.info("No need to handle status {}...", localnode_status);
@@ -107,21 +112,22 @@ public class Main {
         // 1. get current ip info from ovfenv device
         Map<String, String> ovfenvprop = PlatformUtils.getOvfenvProperties();
         String node_id = ovfenvprop.get(PropertyConstants.NODE_ID_KEY);
-        int node_count = Integer.valueOf(ovfenvprop.get(PropertyConstants.NODE_COUNT_KEY));
 
         // 2. get old ip info from local file
         ClusterIpInfo oldIpinfo = IpReconfigUtil.readIpinfoFile(IpReconfigConstants.OLDIP_PATH);
 
         // 3. apply old ipinfo
-        applyIpinfo(oldIpinfo, node_id, node_count, false);
+        applyIpinfo(oldIpinfo, node_id, false);
     }
 
-    private static void applyIpinfo(ClusterIpInfo ipinfo, String nodeid, int node_count, boolean bNewIp) throws Exception {
+    private static void applyIpinfo(ClusterIpInfo ipinfo, String nodeid, boolean bNewIp) throws Exception {
         log.info("applying ip info: {}", ipinfo.toString());
         String isoFilePath = "/tmp/ovf-env.iso";
         File isoFile = new File(isoFilePath);
         try {
-            String tmpstr = PlatformUtils.genOvfenvPropertyKVString(ipinfo, nodeid, node_count);
+            SiteIpInfo siteIpInfo = ipinfo.getSiteIpInfoMap().get(my_site_id);
+
+            String tmpstr = PlatformUtils.genOvfenvPropertyKVString(siteIpInfo, nodeid);
 
             PlatformUtils.genOvfenvIsoImage(tmpstr, isoFilePath);
 
@@ -157,7 +163,7 @@ public class Main {
      * @param node_count
      * @throws Exception
      */
-    private static void handlePossibleJump(ClusterIpInfo newIpinfo, String node_id, int node_count) throws Exception {
+    private static void handlePossibleJump(ClusterIpInfo newIpinfo, String node_id) throws Exception {
 /* TODO:
         Integer node_id_number = Integer.valueOf(node_id.split("vipr")[1]);
         boolean bIpv4 = true;
@@ -188,7 +194,7 @@ public class Main {
             Thread.sleep(5 * 1000);
         }
         log.info("New IPs seems have NOT been commited in quorum nodes of the cluster, so still using current IPs.");
-        */
+
         return;
     }
 

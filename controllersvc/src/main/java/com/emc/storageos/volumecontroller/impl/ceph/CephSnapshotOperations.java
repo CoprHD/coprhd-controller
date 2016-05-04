@@ -25,6 +25,10 @@ import com.emc.storageos.volumecontroller.TaskCompleter;
 /**
  * Snapshot related operation for Ceph cluster
  *
+ * See http://docs.ceph.com/docs/master/rbd/rbd-snapshot/#snapshot-basics for basic snapshot operations details.
+ *
+ * The implementation is based on Ceph Hammer feature set.
+ *
  */
 public class CephSnapshotOperations extends DefaultSnapshotOperations {
 

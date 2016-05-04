@@ -30,6 +30,12 @@ import com.emc.storageos.volumecontroller.impl.utils.ExportMaskUtils;
 import com.emc.storageos.workflow.Workflow;
 import com.google.common.base.Joiner;
 
+/**
+ * The implementation has been copied from ScaleIOMaskingOrchestrator with no changes,
+ * except determineExportGroupCreateSteps, which implementation is left to be default
+ * (SIO's implementation does not differs with default one).
+ *
+ */
 public class CephMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
     private static final Logger _log = LoggerFactory.getLogger(CephMaskingOrchestrator.class);
 

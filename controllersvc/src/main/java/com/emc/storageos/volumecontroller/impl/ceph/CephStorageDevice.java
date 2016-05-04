@@ -52,6 +52,11 @@ import com.iwave.ext.linux.LinuxSystemCLI;
  * Ceph specific provisioning implementation class.
  * This class is responsible to do all provisioning operations by interacting with Ceph cluster.
  *
+ * See http://docs.ceph.com/docs/master/rbd/rados-rbd-cmds/ for basic volume operations details.
+ * See http://docs.ceph.com/docs/master/rbd/rbd-ko/ for map volume operations details.
+ *
+ * The implementation is based on Ceph Hammer feature set.
+ *
  */
 public class CephStorageDevice extends DefaultBlockStorageDevice {
 

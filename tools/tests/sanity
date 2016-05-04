@@ -3896,7 +3896,6 @@ recoverpoint_cg_failover_test()
 
 recoverpoint_vpool_change_test()
 {
-<<<<<<< HEAD
     # Run change vpool tests on the volume if the flag is set.
     # These tests will:
     #  1. Remove protection from the RP volume.

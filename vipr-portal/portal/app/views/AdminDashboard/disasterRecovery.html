@@ -17,11 +17,11 @@
         				#{list items:drsites, as:'site'}
         				<tr>
 							<td>
+                                <form action="#{./vdcLink host:site.vipEndpoint, path:''/}" method="POST" accept-charset="utf-8" enctype="application/x-www-form-urlencoded" id="StandbySite${site.uuid}">
+                                    #{authenticityToken /}
+                                    <input type="hidden" name="auth-token" value="${token}">
+                                </form>
 								<span class="expandable">
-								<form action="#{./vdcLink host:site.vipEndpoint, path:''/}" method="POST" accept-charset="utf-8" enctype="application/x-www-form-urlencoded" id="StandbySite${site.uuid}">
-      								#{authenticityToken /}
-	  								<input type="hidden" name="auth-token" value="${token}">
- 								</form>
 								<a href="https://${site.vipEndpoint}" onclick="$('#StandbySite${site.uuid}').submit(); return false;">${site.name}</a>
 								</span>
 							</td>
@@ -129,8 +129,7 @@
     position: relative;
     max-width: none;
     z-index: 2;
-    padding-top: 5px;
-    padding-bottom: 5px;
-    padding-right: 5px;
+    padding-bottom: .3em;
+    padding-right: .2em;
 }
 </style>

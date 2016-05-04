@@ -638,8 +638,6 @@ public class VPlexApiVirtualVolumeManager {
         while (++retryCount <= expansionStatusRetryCount) {
             try {
                 // Pause before obtaining the volume info.
-                s_logger.info("pausing {}ms before checking {} volume expansion completion status", 
-                        expansionStatusSleepTime, virtualVolumeInfo.getName());
                 VPlexApiUtils.pauseThread(expansionStatusSleepTime);
                 discoveryMgr.updateVirtualVolumeInfo(clusterName, virtualVolumeInfo);
                 s_logger.info("Expansion status is {}, current capacity is {}, and expandable capacity is {}", 

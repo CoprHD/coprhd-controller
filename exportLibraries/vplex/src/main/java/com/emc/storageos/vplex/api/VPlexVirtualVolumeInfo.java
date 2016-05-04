@@ -68,7 +68,7 @@ public class VPlexVirtualVolumeInfo extends VPlexResourceInfo {
         BLOCK_COUNT("block-count"),
         BLOCK_SIZE("block-size"),
         EXPANSION_STATUS("expansion-status"),
-        EXPANSION_CAPACITY("expandable-capacity"),
+        EXPANDABLE_CAPACITY("expandable-capacity"),
         SUPPORTING_DEVICE("supporting-device"),
         SERVICE_STATUS("service-status"),
         LOCALITY("locality"),

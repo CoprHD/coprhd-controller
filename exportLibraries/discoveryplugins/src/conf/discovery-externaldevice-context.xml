@@ -12,6 +12,7 @@
 
     <bean id="unManagedVolumeDiscoverer" class="com.emc.storageos.volumecontroller.impl.externaldevice.ExternalDeviceUnManagedVolumeDiscoverer">
         <property name="networkDeviceController" ref="networkDeviceController"/>
+        <property name="coordinator" ref="coordinator"/>
     </bean>
 
     <bean id="partitionManager" class="com.emc.storageos.plugins.common.PartitionManager" />

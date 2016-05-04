@@ -16,6 +16,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.hp3par.connection.ConnectionInfo;
+import com.emc.storageos.hp3par.connection.HP3PARApiFactory;
 import com.emc.storageos.storagedriver.AbstractStorageDriver;
 import com.emc.storageos.storagedriver.BlockStorageDriver;
 import com.emc.storageos.storagedriver.DriverTask;
@@ -39,6 +40,7 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
 
 	private static final Logger _log = LoggerFactory.getLogger(HP3PARStorageDriver.class);
 	private ConcurrentMap<String, ConnectionInfo> connectionMap = null;
+	private HP3PARApiFactory hp3parApiFactory;
 	
 	public HP3PARStorageDriver () {
 		
@@ -67,6 +69,22 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
 		// TODO Auto-generated method stub
 		return null;
 	}
+	
+	///////////
+	private HP3PARApi getHP3PARDevice(StorageSystem ecsSystem) {
+        URI deviceURI;
+        try {
+            deviceURI = new URI("https", null, ecsSystem.getIpAddress(), ecsSystem.getPortNumber(), "/", null, null);
+            return hp3parApiFactory
+                    .getRESTClient(deviceURI, ecsSystem.getUsername(), ecsSystem.getPassword());
+        } catch (URISyntaxException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+            return null;
+        }       
+    }
+	
+	////////////////
 
 	@Override
 	public DriverTask discoverStorageSystem(List<StorageSystem> storageSystems) {
@@ -87,7 +105,9 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
 	                    ":" + storageSystem.getUsername() + ":" + storageSystem.getPassword(),
 	                    connectionInfo);
 	            
-	            
+	            HP3PARApi hp3parApi = getHP3PARDevice(storageSystem);
+	            String authToken = hp3parApi.getAuthToken();
+	            _log.info("3PAR auth key {} ",authToken);
 	        }
 	        _log.info("3PAR discovery successsful---");
 	    } catch (Exception e) {

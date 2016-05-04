@@ -173,7 +173,10 @@ case ${1} in
 
         /etc/diskresizetool
 
-        /opt/storageos/bin/ipreconfig ${STORAGEOS_IPRECONFIG_MODE}
+        active_site_id=$(/etc/systool --getvdcprops | grep site_active_id | cut -d'=' -f2)
+        my_site_id=$(/etc/systool --getvdcprops | grep site_myid | cut -d'=' -f2)
+
+        /opt/storageos/bin/ipreconfig ${active_site_id} ${my_site_id} ${STORAGEOS_IPRECONFIG_MODE}
 
         if [ "${STORAGEOS_BOOT_MODE}" == "normal" ]; then
             _checkIPConsistencyInMultiSitesEnv

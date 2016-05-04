@@ -48,6 +48,7 @@ public class Main {
         try {
             active_site_id = args[0];
             my_site_id = args[1];
+            log.info("active site id:{}, my site id:{}", active_site_id, my_site_id);
 
             if (args[2].equals("commit")) {
                 commitNewIP();

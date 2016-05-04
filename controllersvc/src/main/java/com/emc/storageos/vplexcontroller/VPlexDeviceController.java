@@ -853,25 +853,29 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 // custom volume name based on whether the volume is a local or distributed volume.
                 String customizedVirtualVolumeName = null;
                 boolean isDistributed = (vinfos.size() == 2);
-                String haSideAsscoVolumeNativeId = null;
-                StorageSystem haSideStorageSystem = null;
-                if (haSideAssocVolume != null) {
-                    haSideStorageSystem = _dbClient.queryObject(StorageSystem.class, haSideAssocVolume.getStorageController());
-                    haSideAsscoVolumeNativeId = haSideAssocVolume.getNativeId();
-                }
-                StorageSystem srcSideStorageSystem = _dbClient.queryObject(StorageSystem.class, srcSideAssocVolume.getStorageController());
-                Project project = _dbClient.queryObject(Project.class, vplexVolume.getProject().getURI());
-                volumeNameConfigDataSource = dataSourceFactory.createVPlexVolumeNameDataSource(project, vplexVolume.getLabel(),
-                        srcSideStorageSystem, srcSideAssocVolume.getNativeId(), haSideStorageSystem, haSideAsscoVolumeNativeId,
-                        null, null);
-                if (isDistributed) {
-                    customizedVirtualVolumeName = customConfigHandler.getComputedCustomConfigValue(
-                            CustomConfigConstants.VPLEX_DISTRIBUTED_VOLUME_NAME, vplex.getSystemType(), 
-                            volumeNameConfigDataSource);
-                } else {
-                    customizedVirtualVolumeName = customConfigHandler.getComputedCustomConfigValue(
-                            CustomConfigConstants.VPLEX_LOCAL_VOLUME_NAME, vplex.getSystemType(), 
-                            volumeNameConfigDataSource);                    
+                try {
+                    String haSideAsscoVolumeNativeId = null;
+                    StorageSystem haSideStorageSystem = null;
+                    if (haSideAssocVolume != null) {
+                        haSideStorageSystem = _dbClient.queryObject(StorageSystem.class, haSideAssocVolume.getStorageController());
+                        haSideAsscoVolumeNativeId = haSideAssocVolume.getNativeId();
+                    }
+                    StorageSystem srcSideStorageSystem = _dbClient.queryObject(StorageSystem.class, srcSideAssocVolume.getStorageController());
+                    Project project = _dbClient.queryObject(Project.class, vplexVolume.getProject().getURI());
+                    volumeNameConfigDataSource = dataSourceFactory.createVPlexVolumeNameDataSource(project, vplexVolume.getLabel(),
+                            srcSideStorageSystem, srcSideAssocVolume.getNativeId(), haSideStorageSystem, haSideAsscoVolumeNativeId,
+                            null, null);
+                    if (isDistributed) {
+                        customizedVirtualVolumeName = customConfigHandler.getComputedCustomConfigValue(
+                                CustomConfigConstants.VPLEX_DISTRIBUTED_VOLUME_NAME, vplex.getSystemType(), 
+                                volumeNameConfigDataSource);
+                    } else {
+                        customizedVirtualVolumeName = customConfigHandler.getComputedCustomConfigValue(
+                                CustomConfigConstants.VPLEX_LOCAL_VOLUME_NAME, vplex.getSystemType(), 
+                                volumeNameConfigDataSource);
+                    }
+                } catch (Exception e) {
+                    _log.warn("An error occurred preparing the custom VPLEX volume name for volume {}", vplexVolume.getId());
                 }
                                 
                 // Update rollback information.
@@ -909,10 +913,11 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                     // Now we try and rename the volume to the customized name.
                     String customizedVirtualVolumeName = vplexVolumeCustomNameMap.get(entry.getKey());
                     if ((customizedVirtualVolumeName != null) && (!customizedVirtualVolumeName.isEmpty())) {
+                        _log.info("Renaming VPLEX volume {} to custom name {}", entry.getKey(), customizedVirtualVolumeName);
                         try {
                             vvInfo = client.renameResource(vvInfo, customizedVirtualVolumeName);
                         } catch (Exception e) {
-                            _log.warn("An error occurred attempting to rename VPLEX volume {} to {}", entry.getKey(), customizedVirtualVolumeName);
+                            _log.warn("An error occurred attempting to rename VPLEX volume {} to {}", entry.getKey(), customizedVirtualVolumeName, e);
                         }
                     }
                     buf.append(vvInfo.getName() + " ");

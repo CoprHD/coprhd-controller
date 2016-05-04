@@ -972,11 +972,9 @@ public class MDSDialog extends SSHDialog {
      */
     private boolean checkForZoneSession(String[] lines, Integer retryCount, boolean forIvr)
             throws NetworkDeviceControllerException {
-    	
+
         String busyKey = "MDSDialog.checkForEnhancedZoneSession.busy";
         String createdKey = "MDSDialog.checkForEnhancedZoneSession.created";
-        String pendingAction = "there is a pending action. Check ivr status";
-
         if (forIvr) {
             busyKey = "MDSDialog.ivr.checkForEnhancedZoneSession.busy";
             createdKey = "MDSDialog.ivr.checkForEnhancedZoneSession.created";

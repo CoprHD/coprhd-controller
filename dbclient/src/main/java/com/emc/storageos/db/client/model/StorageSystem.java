@@ -701,7 +701,7 @@ public class StorageSystem extends DiscoveredSystemObject {
 
     @Name("sharedStorageCapacity")
     public Boolean getSharedStorageCapacity() {
-        return sharedStorageCapacity;
+        return sharedStorageCapacity == null ? false : sharedStorageCapacity;
     }
 
     public void setSharedStorageCapacity(final Boolean sharedStorageCapacity) {

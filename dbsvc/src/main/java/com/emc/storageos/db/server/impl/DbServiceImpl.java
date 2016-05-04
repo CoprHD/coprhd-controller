@@ -661,6 +661,8 @@ public class DbServiceImpl implements DbService {
             _schemaUtil.checkAndSetupBootStrapInfo(_dbClient);
         }
         
+        dbMgr.init();
+        
         if (_handler.run()) {
             // Setup the bootstrap info root tenant, if root tenant migrated from local db, then skip it
             if (isGeoDbsvc()) {

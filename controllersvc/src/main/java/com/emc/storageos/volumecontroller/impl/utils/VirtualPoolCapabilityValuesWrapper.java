@@ -375,9 +375,9 @@ public class VirtualPoolCapabilityValuesWrapper implements Serializable {
         return value != null ? (String) value : null;
     }
 
-    public Boolean getReplicaCreateInactive() {
+    public String getReplicaCreateInactive() {
         Object value = _vpoolCapabilities.get(REPLICA_CREATE_INACTIVE);
-        return value != null ? (Boolean) value : null;
+        return value != null ? (String) value : null;
     }
 
 }

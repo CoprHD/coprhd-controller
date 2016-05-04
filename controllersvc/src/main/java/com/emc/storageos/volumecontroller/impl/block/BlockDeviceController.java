@@ -247,8 +247,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
     public static final String DELETE_GROUP_STEP_GROUP = "DELETE_GROUP";
     private static final String RESTORE_FROM_FULLCOPY_STEP = "restoreFromFullCopy";
     
-    private static final String METHOD_CREATE_FULL_COPY_STEP = "createFullCopyStep";
-    private static final String STEP_CREATE_FULL_COPY = "createFullCopy";
+    private static final String METHOD_CREATE_FULL_COPY_STEP = "createFullCopy";
 
     public void setDbClient(DbClient dbc) {
         _dbClient = dbc;
@@ -6540,15 +6539,13 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
     public String addStepsForCreateFullCopy(Workflow workflow, String waitFor, List<VolumeDescriptor> volumeDescriptors,
             String taskId) throws InternalException {
         
-        String fullCopyWaitFor = waitFor;
-        
         List<VolumeDescriptor> blockVolmeDescriptors = VolumeDescriptor.filterByType(volumeDescriptors,
-                new VolumeDescriptor.Type[] { VolumeDescriptor.Type.BLOCK_DATA },
+                new VolumeDescriptor.Type[] { VolumeDescriptor.Type.BLOCK_DATA, VolumeDescriptor.Type.VPLEX_IMPORT_VOLUME },
                 new VolumeDescriptor.Type[] {});
         
         // If no volumes to create, just return
         if (blockVolmeDescriptors.isEmpty()) {
-            return fullCopyWaitFor;
+            return waitFor;
         }
         
         URI storageURI = null;
@@ -6562,16 +6559,16 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                 if (!NullColumnValueGetter.isNullURI(parentId)) {
                     fullCopyList.add(volume.getId());
                     storageURI = volume.getStorageController();
-                    createInactive = descriptor.getCapabilitiesValues().getReplicaCreateInactive().booleanValue();
+                    createInactive = Boolean.getBoolean(descriptor.getCapabilitiesValues().getReplicaCreateInactive());
                 }
             }
         }
         
         if (!fullCopyList.isEmpty()) {
-            fullCopyWaitFor = addCreateFullCopyStep(workflow, storageURI, fullCopyList, createInactive, fullCopyWaitFor);
+            return addCreateFullCopyStep(workflow, storageURI, fullCopyList, createInactive, waitFor);
         }
         
-        return fullCopyWaitFor;
+        return waitFor;
     }
 
     /**
@@ -6595,25 +6592,11 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                 createInactive);
         Workflow.Method nullRollbackMethod = new Workflow.Method(ROLLBACK_METHOD_NULL);
 
-        workflow.createStep(FULL_COPY_CREATE_ORCHESTRATION_STEP, "Create Block Full Copy", waitFor, storageSystem.getId(),
+        waitFor = workflow.createStep(FULL_COPY_CREATE_ORCHESTRATION_STEP, "Create Block Full Copy", waitFor, storageSystem.getId(),
                 storageSystem.getSystemType(), this.getClass(), createFullCopyMethod, nullRollbackMethod, stepId);
         _log.info(String.format("Added %s step [%s] in workflow", FULL_COPY_CREATE_STEP_GROUP, stepId));
 
-        return FULL_COPY_CREATE_ORCHESTRATION_STEP;
-    }
-
-    /**
-     * Invokes the method to perform the full copy operation
-     *
-     * @param storageURI
-     * @param fullCopyVolumes
-     * @param createInactive
-     * @param stepId
-     * @return
-     */
-    public boolean createFullCopyStep(URI storageURI, List<URI> fullCopyVolumes, boolean createInactive, String stepId) {
-        createFullCopy(storageURI, fullCopyVolumes, createInactive, stepId);
-        return true;
+        return waitFor;
     }
 
     /* (non-Javadoc)

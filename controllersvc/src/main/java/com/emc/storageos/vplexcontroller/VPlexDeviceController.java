@@ -7020,13 +7020,6 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                     completer.addConsistencyGroupId(primarySourceObject.getConsistencyGroup());
                 }
 
-                // Now create the step to do the native full copy of this
-                // primary backend volume or the snapshot to the passed import volumes.
-                waitFor = createStepForNativeCopy(workflow,
-                        primarySourceObject, importVolumeDescriptors, waitFor);
-                _log.info("Created workflow step to create {} copies of the primary",
-                        importVolumeDescriptors.size());
-
                 // Next, create a step to create and start an import volume
                 // workflow for each copy.
                 createStepsForFullCopyImport(workflow, vplexURI, primarySourceObject,
@@ -11662,8 +11655,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
         VPlexApiClient.setMaxMigrationAsyncPollingRetries(maxMigrationAsyncPollingRetries);
     }
     
-    private static final String METHOD_CREATE_FULL_COPY_STEP = "createFullCopyStep";
-    private static final String STEP_CREATE_FULL_COPY = "createFullCopy";
+    private static final String METHOD_CREATE_FULL_COPY_STEP = "createFullCopy";
 
     /* (non-Javadoc)
      * @see com.emc.storageos.blockorchestrationcontroller.BlockOrchestrationInterface#addStepsForCreateFullCopy(com.emc.storageos.workflow.Workflow, java.lang.String, java.util.List, java.lang.String)
@@ -11684,7 +11676,6 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
         
         URI vplexUri = null;
 
-        List<URI> fullCopyList = new ArrayList<URI>();
         for (VolumeDescriptor descriptor : blockVolmeDescriptors) {
             Volume volume = _dbClient.queryObject(Volume.class, descriptor.getVolumeURI());
             if (volume != null && !volume.getInactive()) {
@@ -11693,11 +11684,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             }
         }
         
-        if (!fullCopyList.isEmpty()) {
-            waitFor = addCreateFullCopyStep(workflow, vplexUri, volumeDescriptors, waitFor);
-        }
-        
-        return null;
+        return addCreateFullCopyStep(workflow, vplexUri, volumeDescriptors, waitFor);
     }
     
     /**
@@ -11720,33 +11707,11 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
         Workflow.Method createFullCopyMethod = new Workflow.Method(METHOD_CREATE_FULL_COPY_STEP, vplexUri, volumeDescriptors);
         Workflow.Method nullRollbackMethod = new Workflow.Method(ROLLBACK_METHOD_NULL);
 
-        workflow.createStep(STEP_CREATE_FULL_COPY, "Create Block Full Copy subtask for RecoverPoint", waitFor, storageSystem.getId(),
+        waitFor = workflow.createStep(METHOD_CREATE_FULL_COPY_STEP, "Create Block Full Copy for VPlex", waitFor, storageSystem.getId(),
                 storageSystem.getSystemType(), this.getClass(), createFullCopyMethod, nullRollbackMethod, stepId);
-        _log.info(String.format("Added %s step [%s] in workflow", STEP_CREATE_FULL_COPY, stepId));
+        _log.info(String.format("Added %s step [%s] in workflow", METHOD_CREATE_FULL_COPY_STEP, stepId));
 
-        return STEP_CREATE_FULL_COPY;
-    }
-
-    /**
-     * Invokes the method to perform the full copy operation
-     *
-     * @param storageURI
-     * @param fullCopyVolumes
-     * @param createInactive
-     * @param stepId
-     * @return
-     */
-    public boolean createFullCopyStep(URI vplexUri, List<VolumeDescriptor> volumeDescriptors, String stepId) {
-        WorkflowStepCompleter.stepExecuting(stepId);
-        try {
-            createFullCopy(vplexUri, volumeDescriptors, stepId);
-            // Update the workflow state.
-            WorkflowStepCompleter.stepSucceded(stepId);
-        } catch (Exception e) {
-            WorkflowStepCompleter.stepFailed(stepId, DeviceControllerException.errors.jobFailed(e));
-            return false;
-        }
-        return true;
+        return waitFor;
     }
 
     /* (non-Javadoc)

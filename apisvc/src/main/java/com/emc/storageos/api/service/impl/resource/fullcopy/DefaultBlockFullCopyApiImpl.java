@@ -150,7 +150,7 @@ public class DefaultBlockFullCopyApiImpl extends AbstractBlockFullCopyApiImpl {
         // Build up a list of VolumeDescriptors based on the volumes
         final List<VolumeDescriptor> volumeDescriptors = new ArrayList<VolumeDescriptor>();
         VirtualPoolCapabilityValuesWrapper cosCapabilities = new VirtualPoolCapabilityValuesWrapper();
-        cosCapabilities.put(VirtualPoolCapabilityValuesWrapper.REPLICA_CREATE_INACTIVE, new Boolean(createInactive));
+        cosCapabilities.put(VirtualPoolCapabilityValuesWrapper.REPLICA_CREATE_INACTIVE, new Boolean(createInactive).toString());
         for (Volume volume : volumes) {
             VolumeDescriptor desc = new VolumeDescriptor(VolumeDescriptor.Type.BLOCK_DATA,
                     volume.getStorageController(), volume.getId(),

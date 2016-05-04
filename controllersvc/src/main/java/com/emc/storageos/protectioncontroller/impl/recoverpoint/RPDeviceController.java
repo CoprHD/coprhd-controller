@@ -222,9 +222,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
     private static final String METHOD_ENABLE_IMAGE_ACCESS_FULL_COPY_STEP = "enableImageAccessForFullCopyStep";
     private static final String METHOD_DISABLE_IMAGE_ACCESS_FULL_COPY_STEP = "disableImageAccessForFullCopies";
     private static final String METHOD_CREATE_BLOCK_FULL_COPY_STEP = "createBlockFullCopyStep";
-    private static final String METHOD_ACTIVATE_BLOCK_FULL_COPY_STEP = "activateBlockFullCopyStep";
     private static final String STEP_CREATE_BLOCK_FULL_COPY = "createBlockFullCopy";
-    private static final String STEP_ACTIVATE_BLOCK_FULL_COPY = "activateBlockFullCopy";
 
     // Methods in the export group delete workflow
     private static final String METHOD_DISABLE_IMAGE_ACCESS_STEP = "disableImageAccessStep";
@@ -4582,7 +4580,6 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
         }
         
         ProtectionSystem protectionSystem = null;
-        String bookmarkName = null;
 
         Set<String> volumeWWNs = new HashSet<String>();
         List<URI> fullCopyList = new ArrayList<URI>();
@@ -4597,9 +4594,6 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                             protectionSystem = _dbClient.queryObject(ProtectionSystem.class, parentVolume.getProtectionController());
                             volumeWWNs.add(RPHelper.getRPWWn(parentId, _dbClient));
                             fullCopyList.add(volume.getId());
-                            if (bookmarkName == null) {
-                                bookmarkName = descriptor.getCapabilitiesValues().getRPTemporaryBookmarkName();
-                            }
                         }
                     }
                 }
@@ -4608,7 +4602,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
         
         if (!volumeWWNs.isEmpty()) {
             // Disable image access
-            return addDisableImageAccessForFullCopyStep(workflow, protectionSystem, fullCopyList, bookmarkName, volumeWWNs, waitFor);
+            return addDisableImageAccessForFullCopyStep(workflow, protectionSystem, fullCopyList, volumeWWNs, waitFor);
         }
         
         return waitFor;
@@ -4686,7 +4680,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
             waitFor = addCreateBlockFullCopyStep(workflow, storageURI, fullCopyList, createInactive, waitFor);
 
             // Step 4 - Disable image access
-            waitFor = addDisableImageAccessForFullCopyStep(workflow, protectionSystem, fullCopyList, bookmarkName, volumeWWNs, waitFor);
+            waitFor = addDisableImageAccessForFullCopyStep(workflow, protectionSystem, fullCopyList, volumeWWNs, waitFor);
 
             String successMessage = String.format("Successfully created full copies for %s", Joiner.on(",").join(fullCopyList));
             workflow.executePlan(completer, successMessage);
@@ -5578,16 +5572,16 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
      * @throws InternalException
      */
     private String addDisableImageAccessForFullCopyStep(Workflow workflow, ProtectionSystem rpSystem, List<URI> fullCopyIds,
-            String bookmarkName, Set<String> volumeWWNs, String waitFor) throws InternalException {
+            Set<String> volumeWWNs, String waitFor) throws InternalException {
         String stepId = workflow.createStepId();
 
         Workflow.Method disableImageAccessExecuteMethod = new Workflow.Method(METHOD_DISABLE_IMAGE_ACCESS_FULL_COPY_STEP, rpSystem.getId(),
-                fullCopyIds, bookmarkName, volumeWWNs);
+                fullCopyIds, volumeWWNs);
 
-        workflow.createStep(STEP_DISABLE_IMAGE_ACCESS, String.format("Disable image access for bookmark %s ", bookmarkName), waitFor, rpSystem.getId(),
+        workflow.createStep(STEP_DISABLE_IMAGE_ACCESS, String.format("Disable image access for bookmark"), waitFor, rpSystem.getId(),
                 rpSystem.getSystemType(), this.getClass(), disableImageAccessExecuteMethod, null, stepId);
 
-        _log.info(String.format("Added disable access for bookmark %s step [%s] in workflow", bookmarkName, stepId));
+        _log.info(String.format("Added disable access for bookmark step [%s] in workflow", stepId));
         return STEP_DISABLE_IMAGE_ACCESS;
     }
 
@@ -5601,7 +5595,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
      * @param opId
      * @throws ControllerException
      */
-    public void disableImageAccessForFullCopies(URI protectionDevice, List<URI> fullCopyIds, String emName, Set<String> volumeWWNs,
+    public void disableImageAccessForFullCopies(URI protectionDevice, List<URI> fullCopyIds, Set<String> volumeWWNs,
             String opId) throws ControllerException {
         TaskCompleter completer = null;
         try {
@@ -5619,7 +5613,6 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
             RecoverPointClient rp = RPHelper.getRecoverPointClient(system);
             MultiCopyDisableImageRequestParams request = new MultiCopyDisableImageRequestParams();
             request.setVolumeWWNSet(volumeWWNs);
-            request.setEmName(emName);
             MultiCopyDisableImageResponse response = rp.disableImageCopies(request);
             if (response == null) {
                 throw DeviceControllerExceptions.recoverpoint.failedDisableAccessOnRP();

@@ -8,8 +8,10 @@ import static com.emc.storageos.api.mapper.BlockMapper.map;
 import static com.emc.storageos.api.mapper.DbObjectMapper.map;
 import static com.emc.storageos.api.mapper.DbObjectMapper.toNamedRelatedResource;
 import static com.emc.storageos.api.mapper.TaskMapper.toTask;
+import static com.emc.storageos.db.client.constraint.ContainmentConstraint.Factory.getVolumesByConsistencyGroup;
 import static com.emc.storageos.db.client.util.CommonTransformerFunctions.fctnDataObjectToID;
 import static com.emc.storageos.db.client.util.NullColumnValueGetter.isNullURI;
+import static com.google.common.collect.Collections2.transform;
 
 import java.net.URI;
 import java.util.ArrayList;
@@ -38,7 +40,10 @@ import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.api.mapper.BlockMigrationMapper;
 import com.emc.storageos.api.service.impl.placement.VPlexScheduler;
+import com.emc.storageos.api.service.impl.resource.fullcopy.BlockFullCopyUtils;
+import com.emc.storageos.api.service.impl.resource.snapshot.BlockSnapshotSessionUtils;
 import com.emc.storageos.api.service.impl.resource.utils.BlockServiceUtils;
+import com.emc.storageos.api.service.impl.resource.utils.CapacityUtils;
 import com.emc.storageos.api.service.impl.resource.utils.VirtualPoolChangeAnalyzer;
 import com.emc.storageos.api.service.impl.resource.utils.VolumeIngestionUtil;
 import com.emc.storageos.api.service.impl.response.BulkList;
@@ -64,7 +69,9 @@ import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.VplexMirror;
+import com.emc.storageos.db.client.model.BlockConsistencyGroup.Types;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
+import com.emc.storageos.db.client.util.StringSetUtil;
 import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.model.BulkIdParam;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
@@ -77,12 +84,16 @@ import com.emc.storageos.model.block.MigrationParam;
 import com.emc.storageos.model.block.MigrationRestRep;
 import com.emc.storageos.model.block.NamedVolumesList;
 import com.emc.storageos.model.block.VolumeVirtualArrayChangeParam;
+import com.emc.storageos.model.block.VolumeVirtualPoolChangeParam;
 import com.emc.storageos.model.host.HostList;
+import com.emc.storageos.protectioncontroller.impl.recoverpoint.RPHelper;
+import com.emc.storageos.security.audit.AuditLogManager;
 import com.emc.storageos.security.authentication.StorageOSUser;
 import com.emc.storageos.security.authorization.ACL;
 import com.emc.storageos.security.authorization.CheckPermission;
 import com.emc.storageos.security.authorization.DefaultPermissions;
 import com.emc.storageos.security.authorization.Role;
+import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.svcs.errorhandling.resources.InternalServerErrorException;
@@ -95,6 +106,7 @@ import com.emc.storageos.vplex.api.VPlexApiException;
 import com.emc.storageos.vplex.api.VPlexMigrationInfo;
 import com.emc.storageos.vplexcontroller.VPlexController;
 import com.google.common.base.Function;
+import com.google.common.base.Joiner;
 
 /**
  * Service used to manage resource migrations.
@@ -810,6 +822,90 @@ public class MigrationService extends TaskResourceService {
     }
 
     /**
+     * Determines if there are any associated resources that are indirectly affected by this volume operation. If
+     * there are we should add them to the Task object.
+     *
+     * @param volume The volume the operation is being performed on
+     * @param vpool The vpool needed for extra information on whether to add associated resources
+     * @return A list of any associated resources, null otherwise
+     */
+    private List<? extends DataObject> getTaskAssociatedResources(Volume volume, VirtualPool vpool) {
+        List<? extends DataObject> associatedResources = null;
+
+        VirtualPool currentVpool = _dbClient.queryObject(VirtualPool.class, volume.getVirtualPool());
+
+        // If RP protection has been specified, we want to further determine what type of virtual pool
+        // change has been made.
+        if (VirtualPool.vPoolSpecifiesProtection(currentVpool) && VirtualPool.vPoolSpecifiesProtection(vpool)
+                && !NullColumnValueGetter.isNullURI(volume.getConsistencyGroup())) {
+            // Get all RP Source volumes in the CG
+            List<Volume> allRPSourceVolumesInCG = RPHelper.getCgSourceVolumes(volume.getConsistencyGroup(), _dbClient);
+            // Remove the volume in question from the associated list, don't want a double entry because the
+            // volume passed in will already be counted as an associated resource for the Task.
+            allRPSourceVolumesInCG.remove(volume.getId());
+
+            if (VirtualPool.vPoolSpecifiesRPVPlex(currentVpool)
+                    && VirtualPool.vPoolSpecifiesMetroPoint(vpool)) {
+                // For an upgrade to MetroPoint (moving from RP+VPLEX vpool to MetroPoint vpool), even though the user
+                // would have chosen 1 volume to update but we need to update ALL the RSets/volumes in the CG.
+                // We can't just update one RSet/volume.
+                s_logger.info("VirtualPool change for to upgrade to MetroPoint.");
+                return allRPSourceVolumesInCG;
+            }
+
+            // Determine if the copy mode setting has changed. For this type of change, all source volumes
+            // in the consistency group are affected.
+            String currentCopyMode = currentVpool.getRpCopyMode() == null ? "" : currentVpool.getRpCopyMode();
+            String newCopyMode = vpool.getRpCopyMode() == null ? "" : vpool.getRpCopyMode();
+
+            if (!newCopyMode.equals(currentCopyMode)) {
+                // The copy mode setting has changed.
+                _log.info(String.format("VirtualPool change to update copy from %s to %s.", currentCopyMode, newCopyMode));
+                return allRPSourceVolumesInCG;
+            }
+        }
+
+        return associatedResources;
+    }
+
+    /**
+     * returns the types (RP, VPLEX, SRDF or LOCAL) that will be created based on the vpool
+     *
+     * @param vpool
+     * @param requestedTypes
+     */
+    private ArrayList<String> getRequestedTypes(VirtualPool vpool) {
+
+        ArrayList<String> requestedTypes = new ArrayList<String>();
+
+        if (VirtualPool.vPoolSpecifiesProtection(vpool)) {
+            requestedTypes.add(Types.RP.name());
+        }
+
+        // Note that for ingested VPLEX CGs or CGs created in releases
+        // prior to 2.2, there will be no corresponding native
+        // consistency group. We don't necessarily want to fail
+        // volume creations in these CGs, so we don't require the
+        // LOCAL type.
+        if (VirtualPool.vPoolSpecifiesHighAvailability(vpool)) {
+            requestedTypes.add(Types.VPLEX.name());
+        }
+
+        if (VirtualPool.vPoolSpecifiesSRDF(vpool)) {
+            requestedTypes.add(Types.SRDF.name());
+        }
+
+        if (!VirtualPool.vPoolSpecifiesProtection(vpool)
+                && !VirtualPool.vPoolSpecifiesHighAvailability(vpool)
+                && !VirtualPool.vPoolSpecifiesSRDF(vpool)
+                && vpool.getMultivolumeConsistency()) {
+            requestedTypes.add(Types.LOCAL.name());
+        }
+
+        return requestedTypes;
+    }
+
+    /**
      * Determines whether or not the passed VirtualPool change for the passed Volume is
      * supported. Throws a ServiceCodeException when the vpool change is not
      * supported.
@@ -943,10 +1039,6 @@ public class MigrationService extends TaskResourceService {
 
             // Verify that all consistency groups are fully specified
             for (Map.Entry<URI, Volume> entry : cgId2Volume.entrySet()) {
-                // Currently, we only care about verifying CG's when adding SRDF protection
-                if (!isAddingSRDFProtection(entry.getValue(), targetVPool)) {
-                    continue;
-                }
 
                 List<URI> memberIds = _dbClient.queryByConstraint(getVolumesByConsistencyGroup(entry.getKey()));
 
@@ -959,7 +1051,7 @@ public class MigrationService extends TaskResourceService {
             }
         } finally {
             if (failure) {
-                throw APIException.badRequests.cannotAddSRDFProtectionToPartialCG(errorMsg.toString());
+                throw APIException.badRequests.cannotChangeVpoolOfPartialCG(errorMsg.toString());
             }
         }
     }

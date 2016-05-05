@@ -17,6 +17,7 @@ import java.util.Set;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 
 import com.emc.storageos.api.service.authorization.PermissionsHelper;
 import com.emc.storageos.api.service.impl.placement.StorageScheduler;
@@ -757,6 +758,31 @@ public class DefaultMigrationServiceApiImpl extends AbstractMigrationServiceApiI
         }
 
         return userRequestedCapacity;
+    }
+
+    /**
+     * Returns the backend volume of the passed VPLEX volume in the passed
+     * virtual array.
+     *
+     * @param vplexVolume A reference to the VPLEX volume.
+     * @param varrayURI The URI of the virtual array.
+     *
+     * @return A reference to the backend volume for the passed VPLEX volume in
+     *         the passed virtual array, or null if the backend volumes are not
+     *         know, as in the case of an ingested VPLEX volume.
+     */
+    private Volume getAssociatedVolumeInVArray(Volume vplexVolume, URI varrayURI) {
+        StringSet associatedVolumeIds = vplexVolume.getAssociatedVolumes();
+        if (associatedVolumeIds != null) {
+            for (String associatedVolumeId : associatedVolumeIds) {
+                Volume associatedVolume = _dbClient.queryObject(Volume.class,
+                        URI.create(associatedVolumeId));
+                if (associatedVolume.getVirtualArray().equals(varrayURI)) {
+                    return associatedVolume;
+                }
+            }
+        }
+        return null;
     }
 
     /**

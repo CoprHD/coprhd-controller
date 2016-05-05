@@ -9,6 +9,7 @@ import java.net.URISyntaxException;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
 import org.apache.commons.lang.mutable.MutableBoolean;
@@ -40,11 +41,16 @@ import com.emc.storageos.storagedriver.storagecapabilities.StorageCapabilities;
 public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockStorageDriver {
 
 	private static final Logger _log = LoggerFactory.getLogger(HP3PARStorageDriver.class);
-	private ConcurrentMap<String, ConnectionInfo> connectionMap = null;
+	private ConcurrentMap<String, ConnectionInfo> connectionMap;
 	private HP3PARApiFactory hp3parApiFactory;
 	
 	public HP3PARStorageDriver () {
-		
+	    connectionMap = new ConcurrentHashMap<String, ConnectionInfo>();
+	    hp3parApiFactory = new HP3PARApiFactory();
+	    hp3parApiFactory.setConnectionTimeoutMs(30000);
+	    hp3parApiFactory.setConnManagerTimeout(60000);
+	    hp3parApiFactory.setSocketConnectionTimeoutMs(7200000);
+	    hp3parApiFactory.init();
 	}
 	
 	@Override
@@ -72,12 +78,12 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
 	}
 	
 	///////////
-	private HP3PARApi getHP3PARDevice(StorageSystem ecsSystem) {
+	private HP3PARApi getHP3PARDevice(StorageSystem hp3parSystem) {
         URI deviceURI;
         try {
-            deviceURI = new URI("https", null, ecsSystem.getIpAddress(), ecsSystem.getPortNumber(), "/", null, null);
+            deviceURI = new URI("https", null, hp3parSystem.getIpAddress(), hp3parSystem.getPortNumber(), "/", null, null);
             return hp3parApiFactory
-                    .getRESTClient(deviceURI, ecsSystem.getUsername(), ecsSystem.getPassword());
+                    .getRESTClient(deviceURI, hp3parSystem.getUsername(), hp3parSystem.getPassword());
         } catch (URISyntaxException e) {
             // TODO Auto-generated catch block
             e.printStackTrace();
@@ -110,18 +116,23 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
 	            _log.info("StorageDriver: discoverStorageSystem information for storage system {}, name {} - start",
 	                    storageSystem.getIpAddress(), storageSystem.getSystemName());            
 
-	            ConnectionInfo connectionInfo = new ConnectionInfo(storageSystem.getIpAddress(),
-	                    storageSystem.getPortNumber(),
-	                    storageSystem.getUsername(),
-	                    storageSystem.getPassword());
-
 	            URI deviceURI = new URI("https", null, 
 	                    storageSystem.getIpAddress(), storageSystem.getPortNumber(), "/", null, null);
 
-	            // key=uri+user+pass to make unique, value=all details
-	            connectionMap.putIfAbsent(deviceURI.toString() + 
-	                    ":" + storageSystem.getUsername() + ":" + storageSystem.getPassword(),
-	                    connectionInfo);
+	            ConnectionInfo connectionInfo = connectionMap.get(deviceURI +
+	                    ":" + storageSystem.getUsername() + ":" + storageSystem.getPassword());
+	            
+	            if (connectionInfo == null) {
+	                connectionInfo = new ConnectionInfo(storageSystem.getIpAddress(),
+                            storageSystem.getPortNumber(),
+                            storageSystem.getUsername(),
+                            storageSystem.getPassword());
+
+	                // key=uri+user+pass to make unique, value=all details
+	                connectionMap.putIfAbsent(deviceURI.toString() +
+	                        ":" + storageSystem.getUsername() + ":" + storageSystem.getPassword(),
+	                        connectionInfo);
+	            }
 
 	            HP3PARApi hp3parApi = getHP3PARDevice(storageSystem);
 	            String authToken = hp3parApi.getAuthToken();

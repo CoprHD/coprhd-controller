@@ -2951,6 +2951,7 @@ rp_vpool_setup()
     if [ "${RP_TESTS}" = "1" -o "${RPVPLEX_TESTS}" = "1" -o "${RPMP_TESTS}" = "1" ]; then
         rp_targets
         rp_regular
+        rp_noprotection
         if [ "${RP_CDP}" = "1" ]; then
             rp_cdp
         fi
@@ -2960,7 +2961,6 @@ rp_vpool_setup()
         if [ "${RP_CLR}" = "1" ]; then
             rp_clr
         fi
-        rp_noprotection
     fi
 
     if [ "${RPVPLEX_TESTS}" = "1" -o "${RPMP_TESTS}" = "1" ]; then
@@ -2968,6 +2968,9 @@ rp_vpool_setup()
         rp_regular
         rpvplex_targets
         rpvplex_ha
+        rpvplexlocal_noprotection
+        rpvplexdist_noprotection
+        rp_noprotection
         if [ "${RP_CDP}" = "1" ]; then
             rpvplex_cdp
             rpmp_cdp
@@ -2980,10 +2983,6 @@ rp_vpool_setup()
             rpvplex_clr
             rpmp_clr
         fi
-
-        rpvplexlocal_noprotection
-        rpvplexdist_noprotection
-        rp_noprotection
     fi
 
     if [ "${RPXIO_TESTS}" = "1" ]; then
@@ -3522,6 +3521,7 @@ recoverpoint_ingest_test()
     fi
 
     rp_target_vpool=rp_targets
+
     if [ "${RPXIO_TESTS}" = "1" ]; then
         rp_target_vpool=rpxio_targets
     fi
@@ -4167,13 +4167,13 @@ recoverpoint_vpool_change_test()
     if [ a${upgrade_to_mp} != a ] ; then
         secho 'Change Virtual Pool - Upgrade To MetroPoint'
         run volume change_cos ${PROJECT}/${base_volume} ${upgrade_to_mp}
-    else
-        secho 'Change Virtual Pool - Remove Protection'
-        run volume change_cos ${PROJECT}/${base_volume} ${noprotection_vpool}
-
-        secho 'Change Virtual Pool - Add Protection'
-        run volume change_cos ${PROJECT}/${base_volume} ${rp_vpool} --consistencyGroup ${rp_cg}
     fi
+
+    secho 'Change Virtual Pool - Remove RecoverPoint Protection'
+    run volume change_cos ${PROJECT}/${base_volume} ${noprotection_vpool}
+
+    secho 'Change Virtual Pool - Add RecoverPoint Protection'
+    run volume change_cos ${PROJECT}/${base_volume} ${rp_vpool} --consistencyGroup ${rp_cg}
 }
 
 recoverpoint_vpool_change_replication_mode_test()
@@ -4271,6 +4271,10 @@ recoverpoint_simulator_setup()
         run cos update block rp_targets --storage $VMAX1_SIMULATOR_NATIVEGUID
         run cos update block rp_targets --storage $VMAX2_SIMULATOR_NATIVEGUID
         run cos update block rp_targets --storage $VMAX3_SIMULATOR_NATIVEGUID
+        run cos update block rp_noprotection --storage $VMAX1_SIMULATOR_NATIVEGUID
+        run cos update block rp_noprotection --storage $VMAX2_SIMULATOR_NATIVEGUID
+        run cos update block rp_noprotection --storage $VMAX3_SIMULATOR_NATIVEGUID
+
         if [ "${RP_CDP}" = "1" ]; then
             run cos update block rp_cdp --storage $VMAX1_SIMULATOR_NATIVEGUID
             run cos update block rp_cdp-sync --storage $VMAX1_SIMULATOR_NATIVEGUID
@@ -4291,6 +4295,12 @@ recoverpoint_simulator_setup()
         run cos update block rpvplex_ha --storage $VMAX1_SIMULATOR_NATIVEGUID
         run cos update block rpvplex_ha --storage $VMAX2_SIMULATOR_NATIVEGUID
         run cos update block rpvplex_ha --storage $VMAX3_SIMULATOR_NATIVEGUID
+        run cos update block rpvplexlocal_noprotection --storage $VMAX1_SIMULATOR_NATIVEGUID
+        run cos update block rpvplexlocal_noprotection --storage $VMAX2_SIMULATOR_NATIVEGUID
+        run cos update block rpvplexlocal_noprotection --storage $VMAX3_SIMULATOR_NATIVEGUID
+        run cos update block rpvplexdist_noprotection --storage $VMAX1_SIMULATOR_NATIVEGUID
+        run cos update block rpvplexdist_noprotection --storage $VMAX2_SIMULATOR_NATIVEGUID
+        run cos update block rpvplexdist_noprotection --storage $VMAX3_SIMULATOR_NATIVEGUID
 
         if [ "${RP_CDP}" = "1" ]; then
             run cos update block rpvplex_cdp --storage $VMAX1_SIMULATOR_NATIVEGUID
@@ -4579,8 +4589,8 @@ recoverpoint_tests()
             fi
 
             if [ "$RPMP_TESTS" = "1" ]; then
-                secho 'MP change vpool...NOT YET SUPPORTED!!'
-                #recoverpoint_vpool_change_test ${rpmpvolume}${volume_name_modifier} ${rpmp_noprotection_vpool} ${rpmp_src_vpool} ${RP_METROPOINT_CONSISTENCY_GROUP}
+                secho 'MetroPoint change vpool...'
+                recoverpoint_vpool_change_test ${rpmpvolume}${volume_name_modifier} ${rpmp_noprotection_vpool} ${rpmp_src_vpool} ${RP_METROPOINT_CONSISTENCY_GROUP}
             fi
 
             if [ "$RPXIO_TESTS" = "1" ]; then

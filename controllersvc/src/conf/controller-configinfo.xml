@@ -45,6 +45,7 @@
         <entry key="Discovery-vnxunity-all" value="discovery-vnxunity-context.xml" />
         <entry key="Discovery-vnxunity-unmanaged_volumes" value="discovery-vnxunity-context.xml" />
         <entry key="Discovery-vnxunity-unmanaged_filesystems" value="discovery-vnxunity-context.xml" />
+        <entry key="Scanner-vnxunity" value="discovery-vnxunity-context.xml"/>
 
  
         <entry key="Discovery-xtremio-all" value="discovery-xtremio-context.xml"/>

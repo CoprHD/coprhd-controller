@@ -23,7 +23,7 @@ class StorageProvider(object):
     URI_STORAGEPROVIDER_SCAN = '/vdc/storage-providers/scan'
 
     INTERFACE_TYPE_LIST = ["hicommand", "smis", "vplex", "cinder",
-                            "scaleioapi", "ddmc","ibmxiv" ,"xtremio" ]
+                            "scaleioapi", "ddmc","ibmxiv" ,"xtremio", "vnxunity" ]
 
     def __init__(self, ipAddr, port):
 

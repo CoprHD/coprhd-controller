@@ -250,10 +250,12 @@ public class ApiClientTest {
 
     }
 
-    // @Test
+     @Test
     public void getSystem() {
         apiClient.getStorageSystem();
-        apiClient.getNasServers();
+        apiClient.logout();
+        apiClient.getStorageSystem();
+        //apiClient.getNasServers();
     }
 
     //@Test
@@ -304,7 +306,7 @@ public class ApiClientTest {
         System.out.print(snap.isAttached());
     }
     
-    @Test
+    //@Test
     public void getJob() {
         JobRequest req = new JobRequest(_client, "N-612");
         VNXeCommandJob job = req.get();

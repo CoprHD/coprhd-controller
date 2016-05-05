@@ -5,6 +5,8 @@
 
 package com.emc.storageos.volumecontroller.impl.plugins;
 
+import static com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator.generateNativeGuid;
+
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -26,12 +28,19 @@ import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StoragePool.PoolServiceType;
 import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.model.StorageProtocol;
+import com.emc.storageos.db.client.model.StorageProvider;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StorageTier;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.plugins.AccessProfile;
 import com.emc.storageos.plugins.BaseCollectionException;
+import com.emc.storageos.plugins.StorageSystemViewObject;
+import com.emc.storageos.scaleio.ScaleIOException;
+import com.emc.storageos.scaleio.api.restapi.ScaleIORestClient;
+import com.emc.storageos.scaleio.api.restapi.response.ScaleIOProtectionDomain;
+import com.emc.storageos.scaleio.api.restapi.response.ScaleIOSystem;
+import com.emc.storageos.util.VersionChecker;
 import com.emc.storageos.vnxe.VNXeApiClient;
 import com.emc.storageos.vnxe.VNXeApiClientFactory;
 import com.emc.storageos.vnxe.VNXeException;
@@ -75,6 +84,7 @@ public class VNXUnityCommunicationInterface extends
             .getLogger(VNXUnityCommunicationInterface.class);
     private static final String NEW = "new";
     private static final String EXISTING = "existing";
+    private static final int LOCK_WAIT_SECONDS = 300;
 
     // Reference to the VNX unity client factory allows us to get a VNX unity client
     // and execute requests to the VNX Unity storage system.
@@ -107,6 +117,49 @@ public class VNXUnityCommunicationInterface extends
     @Override
     public void scan(AccessProfile accessProfile)
             throws BaseCollectionException {
+        _logger.info("Starting scan of Unity StorageProvider. IP={}", accessProfile.getIpAddress());
+        StorageProvider.ConnectionStatus cxnStatus = StorageProvider.ConnectionStatus.CONNECTED;
+        StorageProvider provider = _dbClient.queryObject(StorageProvider.class, accessProfile.getSystemId());
+
+        _locker.acquireLock(accessProfile.getIpAddress(), LOCK_WAIT_SECONDS);
+        try {
+            VNXeApiClient apiClient = getVnxUnityClient(accessProfile);
+            if (apiClient != null) {
+                Map<String, StorageSystemViewObject> storageSystemsCache = accessProfile.getCache();
+                BasicSystemInfo unitySystem = apiClient.getBasicSystemInfo();;
+
+                String unityType = StorageSystem.Type.vnxunity.name();
+                String version = unitySystem.getApiVersion();
+                String compatibility = StorageSystem.CompatibilityStatus.COMPATIBLE.name();
+                provider.setCompatibilityStatus(compatibility);
+                provider.setVersionString(version);
+                VNXeStorageSystem system = apiClient.getStorageSystem();
+
+                _logger.info("Found Unity: {} ", system.getSerialNumber());
+                String id = system.getSerialNumber();
+                String nativeGuid = generateNativeGuid(unityType, id);
+                StorageSystemViewObject viewObject = storageSystemsCache.get(nativeGuid);
+                if (viewObject == null) {
+                    viewObject = new StorageSystemViewObject();
+                }
+                viewObject.setDeviceType(unityType);
+                viewObject.addprovider(accessProfile.getSystemId().toString());
+                viewObject.setProperty(StorageSystemViewObject.MODEL, unitySystem.getModel());
+                viewObject.setProperty(StorageSystemViewObject.SERIAL_NUMBER, id);
+                storageSystemsCache.put(nativeGuid, viewObject);
+                
+            }
+        } catch (Exception e) {
+            cxnStatus = StorageProvider.ConnectionStatus.NOTCONNECTED;
+            _logger.error(String.format("Exception was encountered when attempting to scan Unity Instance %s",
+                    accessProfile.getIpAddress()), e);
+            throw VNXeException.exceptions.scanFailed(accessProfile.getIpAddress(), e);
+        } finally {
+            provider.setConnectionStatus(cxnStatus.name());
+            _dbClient.updateObject(provider);
+            _logger.info("Completed scan of Unity StorageProvider. IP={}", accessProfile.getIpAddress());
+            _locker.releaseLock(accessProfile.getIpAddress());
+        }
     }
 
     /**
@@ -182,7 +235,10 @@ public class VNXUnityCommunicationInterface extends
                     viprStorageSystem.setSupportedReplicationTypes(supportedReplica);
 
                     viprStorageSystem.setSupportSoftLimit(true);
-
+                    viprStorageSystem.setIpAddress(accessProfile.getIpAddress());
+                    viprStorageSystem.setUsername(accessProfile.getUserName());
+                    viprStorageSystem.setPortNumber(accessProfile.getPortNumber());
+                    viprStorageSystem.setPassword(accessProfile.getPassword());
                     _dbClient.updateObject(viprStorageSystem);
                     _completer.statusPending(_dbClient, "Completed discovery of system properties");
                 } else {

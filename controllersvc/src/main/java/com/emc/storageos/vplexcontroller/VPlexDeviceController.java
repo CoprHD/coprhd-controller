@@ -3285,9 +3285,8 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
 
             VPlexApiClient client = getVPlexAPIClient(_vplexApiFactory, vplex, _dbClient);
             Map<String, String> targetPortToPwwnMap = VPlexControllerUtils.getTargetPortToPwwnMap(client);
-
+            Map<URI, String> volumesRemovedByDeletingStorageView = new HashMap<URI, String>();
             for (ExportMask exportMask : exportMasks) {
-
                 String vplexClusterName = VPlexUtil.getVplexClusterName(exportMask, vplexURI, client, _dbClient);
                 VPlexStorageViewInfo storageView = client.getStorageView(vplexClusterName, exportMask.getMaskName());
                 VPlexControllerUtils.refreshExportMask(
@@ -3402,7 +3401,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                     removeVolumesFromStorageViewAndMask(client, exportMask, volumeURIList);
 
                     if (!existingVolumes) {
-                        // create workflow and steps to remove zones and inititaors
+                        // create workflow and steps to remove zones and initiators
                         String completerStepId = workflow.createStepId();
                         ExportMaskRemoveInitiatorCompleter maskCompleter = new ExportMaskRemoveInitiatorCompleter(
                                 exportURI, exportMask.getId(), URIUtil.toURIList(exportMask.getInitiators()), completerStepId);
@@ -3428,18 +3427,109 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                             + exportMask.getMaskName());
                     hasSteps = true;
                     Workflow.Method deleteStorageView = deleteStorageViewMethod(vplexURI, exportMask.getId());
-                    workflow.createStep(DELETE_STORAGE_VIEW,
+                    String deleteStepId = workflow.createStep(DELETE_STORAGE_VIEW,
                             String.format("Deleting storage view: %s (%s)", exportMask.getMaskName(), exportMask.getId()),
                             null, vplexURI, vplex.getSystemType(), this.getClass(), deleteStorageView, null, null);
-
+                    // These volumes are being unexported by simply deleting the storage view. So don't want to rename
+                    // them until the storage view deletion is successful.
+                    for (URI volumeUri : volumeURIList) {
+                        volumesRemovedByDeletingStorageView.put(volumeUri, deleteStepId);
+                    }
+                }
+            }
+                
+            // Here some volumes may already be exported because they were simply removed from the 
+            // storage view outside of any workflow step. Some volumes may be removed because the 
+            // storage view is deleted, which does occur in a workflow step. We will add a rename 
+            // step for each volume. Those unexported as a result of deleting the storage view, will
+            // only occur after the storage view is deleted.
+            for (URI volumeUri : volumeURIs) {
+                String customizedVirtualVolumeName = null;
+                try {
+                    Volume volume = getDataObject(Volume.class, volumeUri, _dbClient);
+                    if (volume.getStorageController().equals(vplex.getId())) {
+                        String customConfig = null;
+                        Volume srcSideAssocVolume = null;
+                        Volume haSideAssocVolume = null;
+                        DataSource volumeNameConfigDataSource = null;
+                        URI vplexVolumeVarrayURI = volume.getVirtualArray();
+                        StringSet associatedVolumeIds = volume.getAssociatedVolumes();
+                        if ((associatedVolumeIds != null) && (!associatedVolumeIds.isEmpty())) {
+                            boolean isDistributed = (associatedVolumeIds.size() == 2);
+                            for (String associatedVolumeId: associatedVolumeIds) {
+                                Volume associatedVolume = _dbClient.queryObject(Volume.class, URI.create(associatedVolumeId));
+                                if (associatedVolume.getVirtualArray().equals(vplexVolumeVarrayURI)) {
+                                    srcSideAssocVolume = associatedVolume;
+                                } else {
+                                    haSideAssocVolume = associatedVolume;
+                                }
+                            }
+                            
+                            ExportGroup latestExportGroup = null;
+                            String hostOrClusterName = null;
+                            String exportType = null;
+                            if (volume.isVolumeExported(_dbClient, true, true)) {
+                                List<ExportGroup> exportGroups = getExportGroupsForVolume(volume);
+                                for (ExportGroup eg : exportGroups) {
+                                    if (!eg.getLabel().equalsIgnoreCase(exportGroup.getLabel())) {
+                                        if (latestExportGroup == null) {
+                                            latestExportGroup = eg;
+                                        } else if (eg.getCreationTime().getTimeInMillis() > latestExportGroup.getCreationTime().getTimeInMillis()) {
+                                            latestExportGroup = eg;
+                                        }
+                                    }
+                                }
+                            }
+                            
+                            if (latestExportGroup != null) {
+                                hostOrClusterName = latestExportGroup.getLabel();
+                                exportType = latestExportGroup.getType();
+                                if (isDistributed) {
+                                    customConfig = ExportGroup.ExportGroupType.Host.name().equals(exportType) ? 
+                                            CustomConfigConstants.VPLEX_HOST_EXPORT_DISTRIBUTED_VOLUME_NAME :
+                                                CustomConfigConstants.VPLEX_CLUSTER_EXPORT_DISTRIBUTED_VOLUME_NAME;
+                                } else {
+                                    customConfig = ExportGroup.ExportGroupType.Host.name().equals(exportType) ? 
+                                            CustomConfigConstants.VPLEX_HOST_EXPORT_LOCAL_VOLUME_NAME :
+                                                CustomConfigConstants.VPLEX_CLUSTER_EXPORT_LOCAL_VOLUME_NAME;
+                                }
+                            } else {
+                                if (isDistributed) {
+                                    customConfig = CustomConfigConstants.VPLEX_DISTRIBUTED_VOLUME_NAME;
+                                } else {
+                                    customConfig = CustomConfigConstants.VPLEX_LOCAL_VOLUME_NAME;
+                                }                                
+                            }
+    
+                            String haSideAsscoVolumeNativeId = null;
+                            StorageSystem haSideStorageSystem = null;
+                            if (haSideAssocVolume != null) {
+                                haSideStorageSystem = _dbClient.queryObject(StorageSystem.class, haSideAssocVolume.getStorageController());
+                                haSideAsscoVolumeNativeId = haSideAssocVolume.getNativeId();
+                            }
+                            StorageSystem srcSideStorageSystem = _dbClient.queryObject(StorageSystem.class, srcSideAssocVolume.getStorageController());
+                            Project project = _dbClient.queryObject(Project.class, volume.getProject().getURI());
+                            volumeNameConfigDataSource = dataSourceFactory.createVPlexVolumeNameDataSource(project, volume.getLabel(),
+                                    srcSideStorageSystem, srcSideAssocVolume.getNativeId(), haSideStorageSystem, haSideAsscoVolumeNativeId,
+                                    hostOrClusterName, exportType);                           
+                            customizedVirtualVolumeName = customConfigHandler.getComputedCustomConfigValue(
+                                    customConfig, vplex.getSystemType(), volumeNameConfigDataSource);
+                            // May have to wait for the storage view to be deleted when the volume is unexported by
+                            // deleting the storage view. Otherwise, the volume was already successfully removed from
+                            // the storage view.
+                            String renameWaitFor = volumesRemovedByDeletingStorageView.get(volumeUri);
+                            handleVirtualVolumeRenaming(workflow, vplex, volume.getId(), customizedVirtualVolumeName, renameWaitFor);
+                            hasSteps = true;
+                        }
+                    }
+                } catch (Exception e) {
+                    _log.warn("An error occurred creating a workflow step to rename volume {} to {}", volumeUri, customizedVirtualVolumeName, e);
                 }
             }
 
             if (hasSteps) {
-                workflow.executePlan(
-                        completer,
-                        String.format("Sucessfully removed volumes or deleted Storage View: %s (%s)", exportGroup.getLabel(),
-                                exportGroup.getId()));
+                workflow.executePlan(completer, String.format("Sucessfully removed volumes or deleted Storage View: %s (%s)",
+                        exportGroup.getLabel(), exportGroup.getId()));
             } else {
                 completer.ready(_dbClient);
             }

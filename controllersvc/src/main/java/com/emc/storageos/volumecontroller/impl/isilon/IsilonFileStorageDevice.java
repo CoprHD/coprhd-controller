@@ -868,13 +868,9 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
             _log.info("IsilonFileStorageDevice doCreateFS {} with name {} - start", args.getFsId(), args.getFsName());
             IsilonApi isi = getIsilonDevice(storage);
 
-            String projName = null;
-            String tenantOrg = null;
             VirtualNAS vNAS = args.getvNAS();
             String vNASPath = null;
             String customPath = getCustomPath(storage, args);
-            String viprSystemNameSpaceDir = getSystemAccessZoneNamespace();
-            String mountPath = null;
             if (vNAS != null) {
                 vNASPath = vNAS.getBaseDirPath();
                 _log.info("vNAS base directory path: {}", vNASPath);
@@ -883,12 +879,19 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
             String usePhysicalNASForProvisioning = customConfigHandler.getComputedCustomConfigValue(
                     CustomConfigConstants.USE_PHYSICAL_NAS_FOR_PROVISIONING, "isilon", null);
             _log.info("Use System access zone to provision filesystem? {}", usePhysicalNASForProvisioning);
-            if (Boolean.valueOf(usePhysicalNASForProvisioning)) {
 
-                mountPath = IFS_ROOT + FW_SLASH + viprSystemNameSpaceDir + FW_SLASH + customPath + FW_SLASH + args.getFsName();
+            String mountPath = null;
+            // Update the mount path as required
+            if (vNASPath != null && !vNASPath.trim().isEmpty()) {
+                mountPath = vNASPath + FW_SLASH + customPath + FW_SLASH + args.getFsName();
+
+            } else if (Boolean.valueOf(usePhysicalNASForProvisioning)) {
+
+                mountPath = IFS_ROOT + FW_SLASH + getSystemAccessZoneNamespace() + FW_SLASH + customPath + FW_SLASH + args.getFsName();
             } else {
-
-                mountPath = IFS_ROOT + FW_SLASH + vNASPath + FW_SLASH + customPath + FW_SLASH + args.getFsName();
+                _log.error(
+                        "No suitable access zone found for provisioning. Provisioning on System access zone is disabled");
+                throw DeviceControllerException.exceptions.createFileSystemOnPhysicalNASDisabled();
             }
 
             // replace extra forward slash with single one

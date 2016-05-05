@@ -30,6 +30,7 @@ import java.util.Map;
  */
 public class Main {
     private static final Logger log = LoggerFactory.getLogger(Main.class);
+    private static final int CMD_TIMEOUT = 10 * 1000;
     public static String active_site_id;
     public static String my_site_id;
 
@@ -201,6 +202,7 @@ public class Main {
             Thread.sleep(5 * 1000);
         }
         log.info("New IPs seems have NOT been commited in quorum nodes of the cluster, so still using current IPs.");
+*/
 
         return;
     }

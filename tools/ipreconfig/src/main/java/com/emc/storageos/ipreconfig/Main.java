@@ -30,7 +30,6 @@ import java.util.Map;
  */
 public class Main {
     private static final Logger log = LoggerFactory.getLogger(Main.class);
-    public static final String VDC_PROPS_FILE_NAME = "vdcconfig.properties";
     public static String active_site_id;
     public static String my_site_id;
 
@@ -126,9 +125,14 @@ public class Main {
         String isoFilePath = "/tmp/ovf-env.iso";
         File isoFile = new File(isoFilePath);
         try {
-            SiteIpInfo siteIpInfo = ipinfo.getSiteIpInfoMap().get(my_site_id);
+            int my_site_index = Integer.valueOf(my_site_id.substring(PropertyConstants.SITE_SHORTID_PREFIX.length()));
+            SiteIpInfo siteIpInfo = ipinfo.getSiteIpInfoMap().get(String.format(PropertyConstants.IPPROP_PREFIX, my_site_index));
+            if (siteIpInfo == null) {
+                log.error("Failed to find new ip info for the current site.");
+            }
 
             String tmpstr = PlatformUtils.genOvfenvPropertyKVString(siteIpInfo, nodeid);
+            log.info("new ovfenv property key-value string is: {}", tmpstr);
 
             PlatformUtils.genOvfenvIsoImage(tmpstr, isoFilePath);
 
@@ -145,6 +149,7 @@ public class Main {
             isoFile.delete();
         }
 
+        /*TODO: uncomment after test
         if (bNewIp) {
             FileUtils.deleteFile(IpReconfigConstants.NEWIP_PATH);
             FileUtils.deleteFile(IpReconfigConstants.NEWIP_EXPIRATION);
@@ -152,6 +157,7 @@ public class Main {
             IpReconfigUtil.writeNodeStatusFile(IpReconfigConstants.NodeStatus.LOCAL_ROLLBACK.toString());
             FileUtils.deleteFile(IpReconfigConstants.OLDIP_PATH);
         }
+        */
     }
 
     /**

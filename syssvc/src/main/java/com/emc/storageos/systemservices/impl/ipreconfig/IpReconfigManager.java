@@ -153,7 +153,7 @@ public class IpReconfigManager implements Runnable {
             String propkey = me.getKey();
             log.info("ovfenv propkey={}", propkey);
 
-            if (propkey.startsWith("network")||propkey.startsWith("node")) {
+            if (propkey.startsWith(PropertyConstants.NETOWRK_PROP_PREFIX)||propkey.startsWith(PropertyConstants.NODE_PROP_PREFIX)) {
                 String ippropkey = String.format(PropertyConstants.IPPROP_PREFIX, 1) + "_" + propkey;
                 ipprops.put(ippropkey, me.getValue());
                 log.info("ip props: key={}, value={}", propkey, me.getValue());
@@ -834,7 +834,7 @@ public class IpReconfigManager implements Runnable {
             log.info("Got lock for updating local site IPs into ZK ...");
 
             for(Site site : drUtil.listSites()) {
-                int site_index = Integer.valueOf(site.getSiteShortId().split("site")[1]);
+                int site_index = Integer.valueOf(site.getSiteShortId().split(PropertyConstants.SITE_SHORTID_PREFIX)[1]);
                 String ipprop_prefix = String.format(PropertyConstants.IPPROP_PREFIX, site_index);
                 if (newIpinfo.getSiteIpInfoMap().containsKey(ipprop_prefix)) {
                     SiteIpInfo siteIpInfo = newIpinfo.getSiteIpInfoMap().get(ipprop_prefix);

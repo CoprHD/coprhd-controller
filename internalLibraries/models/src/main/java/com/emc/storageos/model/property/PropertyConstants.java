@@ -45,7 +45,13 @@ public class PropertyConstants {
     public static final String IPV6_ADDR_DEFAULT = "::0";
     public static final String IPV6_PREFIX_LEN_DEFAULT = "64";
 
+    // TODO: geo competibility; remove vdc etc.
     public static final String IPPROP_PREFIX = "vdc_vdc1_site%s";
+    public static final String VDC_SHORTID_PREFIX = "vdc";
+    public static final String SITE_SHORTID_PREFIX = "site";
+
+    public static final String NETOWRK_PROP_PREFIX = "network";
+    public static final String NODE_PROP_PREFIX = "node";
 
     // deployment related property keys and value sets.
     public static final String CONFIG_KEY_SCENARIO = "scenario";

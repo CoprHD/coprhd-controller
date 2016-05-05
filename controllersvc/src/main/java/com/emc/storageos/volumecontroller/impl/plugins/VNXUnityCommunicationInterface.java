@@ -331,7 +331,10 @@ public class VNXUnityCommunicationInterface extends
                 StoragePortAssociationHelper.runUpdatePortAssociationsProcess(allNewPorts, allExistingPorts, _dbClient,
                         _coordinator, poolsToMatchWithVpool);
                 _completer.statusPending(_dbClient, "Completed pool discovery");
-
+                 
+                // This associates the VNas with the virtual array
+                StoragePortAssociationHelper.runUpdateVirtualNasAssociationsProcess(allExistingPorts, null, _dbClient);
+                _logger.info("update virtual nas association for unity");
                 /**
                  * Discover AutoTieringPolicies and StorageTiers if FASTVP
                  * enabled.
@@ -362,6 +365,8 @@ public class VNXUnityCommunicationInterface extends
                         storageSystemURI.toString());
 
             }
+            
+            
         } catch (Exception e) {
             detailedStatusMessage = String.format("Discovery failed for VNX Unity %s: %s", storageSystemURI.toString(),
                     e.getLocalizedMessage());

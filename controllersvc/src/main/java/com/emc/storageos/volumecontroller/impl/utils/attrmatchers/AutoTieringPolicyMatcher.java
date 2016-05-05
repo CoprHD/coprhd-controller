@@ -109,7 +109,7 @@ public class AutoTieringPolicyMatcher extends AttributeMatcher {
                         policyNameSet.add(AutoTieringPolicy.VnxFastPolicy.DEFAULT_LOWEST_AVAILABLE.toString());
                         policyNameSet.add(AutoTieringPolicy.VnxFastPolicy.DEFAULT_NO_MOVEMENT.toString());
                     } else if (Type.vnxe.toString().equalsIgnoreCase(system.getSystemType())
-                                || Type.vnxunity.toString().equalsIgnoreCase(system.getSystemType())) {
+                                || Type.unity.toString().equalsIgnoreCase(system.getSystemType())) {
                         policyNameSet.add(StorageResource.TieringPolicyEnum.AUTOTIER_HIGH.name());
                         policyNameSet.add(StorageResource.TieringPolicyEnum.AUTOTIER.name());
                         policyNameSet.add(StorageResource.TieringPolicyEnum.HIGHEST.name());

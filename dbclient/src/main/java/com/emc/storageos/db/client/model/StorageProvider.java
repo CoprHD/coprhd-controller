@@ -150,7 +150,7 @@ public class StorageProvider extends DataObject {
         cinder,
         ibmxiv,
         scaleioapi,
-        vnxunity,
+        unity,
         xtremio;
 
         /**
@@ -175,8 +175,8 @@ public class StorageProvider extends DataObject {
                 systemTypes.add(Type.scaleio.name());
             } else if (xtremio.equals(interfaceType)) {
                 systemTypes.add(Type.xtremio.name());
-            } else if (vnxunity.equals(interfaceType)) {
-                systemTypes.add(Type.vnxunity.name());
+            } else if (unity.equals(interfaceType)) {
+                systemTypes.add(Type.unity.name());
             }
             return systemTypes;
         }

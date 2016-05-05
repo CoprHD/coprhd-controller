@@ -227,7 +227,7 @@ public class VNXeJob extends Job implements Serializable {
     public VNXeApiClient getVNXeClient(JobContext jobContext) {
 	VNXeApiClient vnxeApiClient = null;
         StorageSystem storageSystem = jobContext.getDbClient().queryObject(StorageSystem.class, _storageSystemUri);
-	 if (Type.vnxunity.toString().equalsIgnoreCase(storageSystem.getSystemType())) {
+	 if (Type.unity.toString().equalsIgnoreCase(storageSystem.getSystemType())) {
 		vnxeApiClient = jobContext.getVNXeApiClientFactory().getUnityClient(
                         storageSystem.getIpAddress(), storageSystem.getPortNumber(),
                         storageSystem.getUsername(), storageSystem.getPassword());

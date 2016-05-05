@@ -132,7 +132,7 @@ public class VNXUnityCommunicationInterface extends
                 Map<String, StorageSystemViewObject> storageSystemsCache = accessProfile.getCache();
                 BasicSystemInfo unitySystem = apiClient.getBasicSystemInfo();;
 
-                String unityType = StorageSystem.Type.vnxunity.name();
+                String unityType = StorageSystem.Type.unity.name();
                 String version = unitySystem.getApiVersion();
                 String compatibility = StorageSystem.CompatibilityStatus.COMPATIBLE.name();
                 provider.setCompatibilityStatus(compatibility);

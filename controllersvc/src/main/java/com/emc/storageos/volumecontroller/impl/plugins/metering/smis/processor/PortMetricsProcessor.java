@@ -1358,7 +1358,7 @@ public class PortMetricsProcessor {
         String name = systemType.name();
         // For all VNX type, prefix is "vnxblock"
         if (StorageSystem.Type.vnxblock.equals(systemType) || StorageSystem.Type.vnxfile.equals(systemType)
-                || StorageSystem.Type.vnxe.equals(systemType) || StorageSystem.Type.vnxunity.equals(systemType)) {
+                || StorageSystem.Type.vnxe.equals(systemType) || StorageSystem.Type.unity.equals(systemType)) {
             name = StorageSystem.Type.vnxblock.name();
         } else if (!StorageSystem.Type.vmax.equals(systemType) && !StorageSystem.Type.hds.equals(systemType)) {
             // for other system type besides vnx, vmax, hds are categorirzed as "other_arrays"

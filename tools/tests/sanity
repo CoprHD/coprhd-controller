@@ -454,7 +454,7 @@ VNXE_SMBFILESHARE1=cifs1$(date +%Y%m%d%H%M%S)
 # UNITY  device configuration
 #
 UNITY_DEV=unity_device
-UNITY_NATIVEGUID=VNXUNITY+$UNITY_SN
+UNITY_NATIVEGUID=UNITY+$UNITY_SN
 #
 # DataDomain file device configuration
 #
@@ -9200,8 +9200,7 @@ unity_setup()
     networksystem show $BROCADE_NETWORK &> /dev/null && return $?
     networksystem create $BROCADE_NETWORK brocade --smisip $BROCADE_IP --smisport 5988 --smisuser $BROCADE_USER --smispw $BROCADE_PW --smisssl false
     secho "Starting storage system create"
-    discoveredsystem create $UNITY_DEV vnxunity $UNITY_IP $UNITY_PORT $UNITY_USER $UNITY_PW --serialno=$UNITY_SN
-    #discoveredsystem create unity6 vnxunity 10.247.28.161 443 bourne "Bourn3!!" --serialno=FNM00154600349
+    discoveredsystem create $UNITY_DEV unity $UNITY_IP $UNITY_PORT $UNITY_USER $UNITY_PW --serialno=$UNITY_SN
     storagedevice list
 
     project_setup

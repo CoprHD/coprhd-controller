@@ -13,7 +13,7 @@
 
     <bean id="partitionManager" class="com.emc.storageos.plugins.common.PartitionManager" />
 
-	<bean id="vnxunity"
+	<bean id="unity"
 		class="com.emc.storageos.volumecontroller.impl.plugins.VNXUnityCommunicationInterface">
         <property name="clientFactory" ref="clientFactory" />
         <property name="unManagedObjectDiscoverer" ref="unityUnManagedObjectDiscoverer" />

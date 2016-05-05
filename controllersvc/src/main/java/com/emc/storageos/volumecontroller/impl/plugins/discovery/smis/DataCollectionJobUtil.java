@@ -107,7 +107,7 @@ public class DataCollectionJobUtil {
                         ((StorageProvider) taskObject).getInterfaceType())) {
             populateXtremIOAccessProfile(profile, (StorageProvider) taskObject);
         } else if (clazz == StorageProvider.class &&
-                StorageProvider.InterfaceType.vnxunity.name().equalsIgnoreCase(
+                StorageProvider.InterfaceType.unity.name().equalsIgnoreCase(
                         ((StorageProvider) taskObject).getInterfaceType())) {
             populateUnityAccessProfile(profile, (StorageProvider) taskObject);
         } else if (clazz == StorageSystem.class) {
@@ -364,7 +364,7 @@ public class DataCollectionJobUtil {
         accessProfile.setIpAddress(providerInfo.getIPAddress());
         accessProfile.setUserName(providerInfo.getUserName());
         accessProfile.setPassword(providerInfo.getPassword());
-        accessProfile.setSystemType(DiscoveredDataObject.Type.vnxunity.name());
+        accessProfile.setSystemType(DiscoveredDataObject.Type.unity.name());
         accessProfile.setPortNumber(providerInfo.getPortNumber());
         accessProfile.setSslEnable(String.valueOf(providerInfo.getUseSSL()));
     }
@@ -572,7 +572,7 @@ public class DataCollectionJobUtil {
             accessProfile.setPortNumber(storageDevice.getPortNumber());
             accessProfile.setLastSampleTime(0L);
         } else if (storageDevice.getSystemType().equals(
-                Type.vnxunity.toString())) {
+                Type.unity.toString())) {
             populateUnityAccessProfileForSystem(accessProfile, storageDevice);
         } else {
             throw new RuntimeException("populateAccessProfile: Device type unknown : "

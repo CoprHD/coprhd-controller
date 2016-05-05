@@ -28,11 +28,11 @@
         <entry key="Discovery-vnxe-unmanaged_filesystems" value="discovery-vnxe-context.xml" />
 	    <entry key="Metering-vnxe" value="metering-vnxe-context.xml" />
 
-         <entry key="Discovery-vnxunity-all" value="discovery-vnxunity-context.xml" />
-        <entry key="Discovery-vnxunity-unmanaged_volumes" value="discovery-vnxunity-context.xml" />
-        <entry key="Discovery-vnxunity-unmanaged_filesystems" value="discovery-vnxunity-context.xml" />
-        <entry key="Metering-vnxunity" value="metering-vnxunity-context.xml" />
-        <entry key="Scanner-vnxunity" value="discovery-vnxunity-context.xml"/>
+         <entry key="Discovery-unity-all" value="discovery-vnxunity-context.xml" />
+        <entry key="Discovery-unity-unmanaged_volumes" value="discovery-vnxunity-context.xml" />
+        <entry key="Discovery-unity-unmanaged_filesystems" value="discovery-vnxunity-context.xml" />
+        <entry key="Metering-unity" value="metering-vnxunity-context.xml" />
+        <entry key="Scanner-unity" value="discovery-vnxunity-context.xml"/>
 
 	    
         <entry key="NS_Discovery-mds-all" value="discovery-mds-context.xml" />

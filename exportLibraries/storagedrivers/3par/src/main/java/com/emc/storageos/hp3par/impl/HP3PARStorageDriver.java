@@ -8,6 +8,7 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.ConcurrentMap;
 
 import org.apache.commons.lang.mutable.MutableBoolean;
@@ -84,14 +85,31 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
         }       
     }
 	
+    /**
+     * Create driver task for task type
+     *
+     * @param taskType
+     */
+    public DriverTask createDriverTask(String taskType) {
+        String taskID = String.format("%s+%s+%s", HP3PARConstants.DRIVER_NAME, taskType, UUID.randomUUID());
+        DriverTask task = new HP3PARDriverTask(taskID);
+        return task;
+    }
+	
 	////////////////
 
 	@Override
 	public DriverTask discoverStorageSystem(List<StorageSystem> storageSystems) {
-	
-	    try {
-	        // For each 3par system
-	        for (StorageSystem storageSystem : storageSystems) {
+        String taskType = "discover-storage-system";
+        String taskId = String.format("%s+%s+%s", HP3PARConstants.DRIVER_NAME, taskType, UUID.randomUUID().toString());
+        DriverTask task = new HP3PARDriverTask(taskId);
+
+	    // For each 3par system
+	    for (StorageSystem storageSystem : storageSystems) {
+	        try {
+	            _log.info("StorageDriver: discoverStorageSystem information for storage system {}, name {} - start",
+	                    storageSystem.getIpAddress(), storageSystem.getSystemName());            
+
 	            ConnectionInfo connectionInfo = new ConnectionInfo(storageSystem.getIpAddress(),
 	                    storageSystem.getPortNumber(),
 	                    storageSystem.getUsername(),
@@ -104,17 +122,29 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
 	            connectionMap.putIfAbsent(deviceURI.toString() + 
 	                    ":" + storageSystem.getUsername() + ":" + storageSystem.getPassword(),
 	                    connectionInfo);
-	            
+
 	            HP3PARApi hp3parApi = getHP3PARDevice(storageSystem);
 	            String authToken = hp3parApi.getAuthToken();
 	            _log.info("3PAR auth key {} ",authToken);
+
+	            ////
+	            ///get serial number and other details
+	            ////
+	            storageSystem.setNativeId(deviceURI.toString() + 
+	                    ":" + storageSystem.getUsername() + ":" + storageSystem.getPassword());
+	            _log.info("3PAR discovery successsful---");    
+	        } catch (Exception e) {
+	            _log.error("Unable to discover the storage system information {}.\n",
+	                    storageSystem.getSystemName());
+	            task.setMessage(String.format("Unable to query the storage system %s information ",
+	                    storageSystem.getSystemName()) + e.getMessage());
+	            task.setStatus(DriverTask.TaskStatus.FAILED);
+	            e.printStackTrace();
 	        }
-	        _log.info("3PAR discovery successsful---");
-	    } catch (Exception e) {
-	        e.printStackTrace();
 	    }
 
-	    return null;
+	    // return driver task (indicates 
+	    return task;
 	}
 
 	@Override

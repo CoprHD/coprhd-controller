@@ -104,6 +104,7 @@ public interface BackupConstants {
 
     String FTPS_URL_PREFIX = "ftps://";
     String FTP_URL_PREFIX = "ftp://";
+    String SMB_URL_PREFIX = "smb://";
     String CONTENT_LENGTH_HEADER = "Content-Length:";
     int FILE_DOES_NOT_EXIST = 19;
     String MD5_SUFFIX = ".md5";

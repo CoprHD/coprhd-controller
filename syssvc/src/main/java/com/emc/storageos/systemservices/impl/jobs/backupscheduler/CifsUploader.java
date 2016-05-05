@@ -47,7 +47,7 @@ public class CifsUploader extends Uploader {
 
     @Override
     public void rename(String sourceFileName, String destFileName) throws Exception {
-        //cifsClient.rename(sourceFileName, destFileName);
+        cifsClient.rename(sourceFileName, destFileName);
     }
 }
 

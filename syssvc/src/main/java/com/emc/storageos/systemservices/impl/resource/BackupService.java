@@ -31,6 +31,7 @@ import javax.ws.rs.POST;
 import javax.ws.rs.DELETE;
 import javax.ws.rs.core.*;
 
+import com.emc.storageos.management.backup.util.CifsClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -220,8 +221,14 @@ public class BackupService {
                 log.warn("External server has not been configured");
                 throw new IllegalStateException("External server has not been configured");
             }
-            FtpClient ftpClient = new FtpClient(externalServerUrl, userName, password);
-            List<String> backupFiles = ftpClient.listAllFiles();
+            List<String> backupFiles = null;
+            if (externalServerUrl.startsWith(BackupConstants.SMB_URL_PREFIX)) {
+                CifsClient cifsClient = new CifsClient(externalServerUrl,userName,password);
+                backupFiles = cifsClient.listAllFiles();
+            }else {
+                FtpClient ftpClient = new FtpClient(externalServerUrl, userName, password);
+                backupFiles = ftpClient.listAllFiles();
+            }
             ExternalBackups backups = new ExternalBackups(backupFiles);
             return backups;
         } catch (Exception e) {
@@ -813,7 +820,7 @@ public class BackupService {
      *         if its size() is 0, means can not find the backup set of specified tag;
      *         if it is not isValid(), means can not get enough files for specified tag.
      */
-    public BackupFileSet getDownloadList(String backupTag) {
+    public BackupFileSet getDownloadListgetDownloadList(String backupTag) {
         BackupFileSet files = this.backupOps.listRawBackup(true);
 
         BackupFileSet filesForTag = files.subsetOf(backupTag, null, null);

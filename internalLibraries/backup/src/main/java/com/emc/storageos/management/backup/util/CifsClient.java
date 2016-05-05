@@ -4,10 +4,7 @@
  */
 package com.emc.storageos.management.backup.util;
 
-import jcifs.smb.NtlmPasswordAuthentication;
-import jcifs.smb.SmbFile;
-import jcifs.smb.SmbFileInputStream;
-import jcifs.smb.SmbFileOutputStream;
+import jcifs.smb.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -60,6 +57,18 @@ public class CifsClient {
         SmbFile remoteBackupFile = new SmbFile(uri + BackupFileName, auth);
         return new SmbFileInputStream(remoteBackupFile);
     }
+
+    public void rename (String sourceFileName ,String destFileName) throws Exception {
+        SmbFile sourceFile = new SmbFile(uri + sourceFileName,auth);
+        SmbFile destFile = new SmbFile(uri + destFileName,auth);
+        try {
+            sourceFile.renameTo(destFile);
+        }catch (SmbException e) {
+            log.warn("failed to rename file from {} to {}",sourceFileName,destFileName);
+            throw e;
+        }
+    }
+
 
     public static Boolean isSupported (String url) {
         return true;

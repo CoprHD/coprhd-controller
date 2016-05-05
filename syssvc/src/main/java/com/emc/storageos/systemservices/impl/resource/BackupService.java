@@ -820,7 +820,7 @@ public class BackupService {
      *         if its size() is 0, means can not find the backup set of specified tag;
      *         if it is not isValid(), means can not get enough files for specified tag.
      */
-    public BackupFileSet getDownloadListgetDownloadList(String backupTag) {
+    public BackupFileSet getDownloadList(String backupTag) {
         BackupFileSet files = this.backupOps.listRawBackup(true);
 
         BackupFileSet filesForTag = files.subsetOf(backupTag, null, null);

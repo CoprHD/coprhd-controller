@@ -304,17 +304,24 @@ public class RecoveryManager implements Runnable {
         validateClusterStatus();
     }
 
-    private void informHibernateNodeToReconfigure() throws Exception{
+    private void informHibernateNodeToReconfigure() {
         DrUtil drUtil = new DrUtil(coordinator.getCoordinatorClient());
         if (drUtil.isMultisite()) {
-            long vdcConfigVersion = DrUtil.newVdcConfigVersion();
+            InterProcessLock lock = null;
             try {
+                lock = drUtil.getDROperationLock();
+                long vdcConfigVersion = DrUtil.newVdcConfigVersion();
                 log.info("Has multi sites, informing the hibernate nodes to reconfigure..");
                 drUtil.updateVdcTargetVersion(coordinator.getCoordinatorClient().getSiteId(),
                         SiteInfo.DR_OP_NODE_RECOVERY, vdcConfigVersion);
             } catch (Exception e) {
                 log.error("Failed to inform the hibernate nodes to reconfigure", e);
-                throw APIException.internalServerErrors.nodeRebuildFailed();
+            } finally {
+                try {
+                    lock.release();
+                } catch (Exception ignore) {
+                    log.error(String.format("Lock release failed when node recovery"));
+                }
             }
         }
     }

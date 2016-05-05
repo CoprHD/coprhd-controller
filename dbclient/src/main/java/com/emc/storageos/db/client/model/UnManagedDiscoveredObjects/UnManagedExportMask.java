@@ -59,6 +59,7 @@ public class UnManagedExportMask extends UnManagedDiscoveredObject {
     }
 
     @Name("maskName")
+    @AlternateId("AltIdIndex")
     public String getMaskName() {
         return _maskName;
     }

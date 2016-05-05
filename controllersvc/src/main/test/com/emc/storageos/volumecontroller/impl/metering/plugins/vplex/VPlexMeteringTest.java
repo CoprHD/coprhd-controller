@@ -49,6 +49,7 @@ import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.TimeSeries;
 import com.emc.storageos.db.client.model.TimeSeriesSerializer;
+import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.plugins.AccessProfile;
 import com.emc.storageos.plugins.common.Constants;
@@ -637,6 +638,18 @@ public class VPlexMeteringTest {
         @Override
         public boolean hasUsefulData() {
             return false;
+        }
+
+        @Override
+        public Operation suspended(Class<? extends DataObject> clazz, URI id, String opId, String message) throws DatabaseException {
+            // TODO Auto-generated method stub
+            return null;
+        }
+
+        @Override
+        public Operation suspended(Class<? extends DataObject> clazz, URI id, String opId) throws DatabaseException {
+            // TODO Auto-generated method stub
+            return null;
         }
     }
 

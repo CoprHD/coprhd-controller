@@ -20,6 +20,7 @@ import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.TimeSeries;
 import com.emc.storageos.db.client.model.TimeSeriesSerializer;
+import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 

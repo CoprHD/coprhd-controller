@@ -37,7 +37,9 @@ clean_tracker_info() {
         echo "delete /config/dbDowntimeTracker/dbsvc" | /opt/storageos/bin/zkCli.sh &>/dev/null
         echo "delete /config/dbDowntimeTracker/geodbsvc" | /opt/storageos/bin/zkCli.sh &>/dev/null
     elif [[ "${PRODUCT_VERSION}" == "vipr-3.0."* ]]; then
-        echo "Please check if need to delete db downtime info in zk.."
+        siteid=$(sudo /etc/systool --getvdcprops | awk -F '=' '/\<site_my_uuid\>/ {print $2}')
+        echo "delete /sites/$siteid/config/dbDowntimeTracker/dbsvc" | /opt/storageos/bin/zkCli.sh
+        echo "delete /sites/$siteid/config/dbDowntimeTracker/geodbsvc" | /opt/storageos/bin/zkCli.sh
     fi
 }
 
@@ -49,7 +51,7 @@ rebuild_data() {
 }
 
 confirm_db_repair_finished() {
-    local message="Please check 'Database Housekeeping Stauts', it's finished?"
+    local message="Please check 'Database Housekeeping Status', it's finished?"
     while true; do
         read -p "$message(yes/no)" yn
         case $yn in
@@ -86,6 +88,10 @@ CORRUPTED_HOST=($@)
 if [ ${#} -eq 0 -o ${#} -gt $[ $NODE_COUNT / 2 ] ] ; then
     usage
     exit 2
+fi
+if [ "$1" == "--help" -o "$1" == "-h" -o "$1" == "-help" ]; then
+    usage
+    exit 0
 fi
 
 comands=(input_password purge_data db_repair clean_tracker_info rebuild_data)

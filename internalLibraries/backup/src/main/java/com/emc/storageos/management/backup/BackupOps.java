@@ -1459,29 +1459,28 @@ public class BackupOps {
 
         for (int retryCnt = 0; retryCnt < BackupConstants.RETRY_MAX_CNT; retryCnt++) {
             try {
+                BackupRestoreStatus s = queryBackupRestoreStatus(backupTag, true);
+                backupInfo.setRestoreStatus(s);
+
                 List<BackupProcessor.BackupTask<BackupInfo>> backupTasks =
-                        new BackupProcessor(getHosts(), ports, backupTag).process(new QueryBackupCallable(), true);
+                        new BackupProcessor(getHosts(), Arrays.asList(ports.get(2)), backupTag)
+                                .process(new QueryBackupCallable(), true);
 
                 for (BackupProcessor.BackupTask task : backupTasks) {
                     BackupInfo backupInfoFromNode = (BackupInfo) task.getResponse().getFuture().get();
                     log.info("Query backup({}) success", backupTag);
                     mergeBackupInfo(backupInfo, backupInfoFromNode);
                 }
-
-                BackupRestoreStatus s = queryBackupRestoreStatus(backupTag, true);
-                backupInfo.setRestoreStatus(s);
-
-                return backupInfo;
             }catch (RetryableBackupException e) {
                 log.info("Retry to query backup {}", backupTag);
                 continue;
             } catch (Exception e) {
                 log.error("e=", e);
-                break;
             }
+            break;
         }
 
-        return null;
+        return backupInfo;
     }
 
     private void mergeBackupInfo(BackupInfo dst, BackupInfo info) {

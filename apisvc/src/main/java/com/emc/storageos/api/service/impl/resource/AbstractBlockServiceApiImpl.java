@@ -712,7 +712,7 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
     @Override
     public void changeVirtualArrayForVolumes(List<Volume> volumes,
             BlockConsistencyGroup cg, List<Volume> cgVolumes, VirtualArray varray,
-            String taskId) throws InternalException {
+            boolean isHostMigration, URI migrationHostURI, String taskId) throws InternalException {
         throw APIException.methodNotAllowed.notSupported();
     }
 

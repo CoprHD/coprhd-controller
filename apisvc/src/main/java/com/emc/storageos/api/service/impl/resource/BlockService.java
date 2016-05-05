@@ -3049,6 +3049,9 @@ public class BlockService extends TaskResourceService {
         Volume volume = queryVolumeResource(id);
         _log.info("Found volume");
 
+        boolean isHostMigration = param.getIsHostMigration();
+        URI migrationHostURI = param.getMigrationHost();
+
         // Don't operate on VPLEX backend or RP Journal volumes.
         BlockServiceUtils.validateNotAnInternalBlockObject(volume, false);
 
@@ -3096,7 +3099,8 @@ public class BlockService extends TaskResourceService {
         try {
             BlockServiceApi blockServiceAPI = getBlockServiceImplForVirtualPoolChange(volume, vpool);
             _log.info("Got block service implementation for VirtualPool change request");
-            blockServiceAPI.changeVolumeVirtualPool(Arrays.asList(volume), vpool, param, taskId);
+            blockServiceAPI.changeVolumeVirtualPool(Arrays.asList(volume), vpool, 
+                    isHostMigration, migrationHostURI, param, taskId);
             _log.info("Executed VirtualPool change for volume.");
         } catch (InternalException | APIException e) {
             String errorMsg = String.format("Volume VirtualPool change error: %s", e.getMessage());
@@ -3174,6 +3178,8 @@ public class BlockService extends TaskResourceService {
         // Create a unique task id.
         String taskId = UUID.randomUUID().toString();
 
+        boolean isHostMigration = param.getIsHostMigration();
+        URI migrationHostURI = param.getMigrationHost();
         List<Volume> volumes = new ArrayList<Volume>();
         TaskList taskList = new TaskList();
 
@@ -3311,7 +3317,7 @@ public class BlockService extends TaskResourceService {
             _log.info("Got block service implementation for VirtualPool change request");
             VirtualPoolChangeParam oldParam = convertNewVirtualPoolChangeParamToOldParam(param);
             blockServiceAPI.changeVolumeVirtualPool(volumes, vPool,
-                    oldParam, taskId);
+                    isHostMigration, migrationHostURI, oldParam, taskId);
             _log.info("Executed VirtualPool change for given volumes.");
         } catch (Exception e) {
             String errorMsg = String.format(
@@ -3496,6 +3502,37 @@ public class BlockService extends TaskResourceService {
     }
 
     /**
+     * Lists the id and name for all the hosts that belong to the given tenant organization.
+     *
+     * @param tid the URI of a CoprHD tenant organization
+     * @prereq none
+     * @brief List hosts
+     * @return a list of hosts that belong to the tenant organization.
+     * @throws DatabaseException when a DB error occurs
+     */
+    @GET
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    public HostList getMigrationHosts(@QueryParam("tenant") final URI tid) throws DatabaseException {
+        URI tenantId;
+        StorageOSUser user = getUserFromContext();
+        if (tid == null || StringUtils.isBlank(tid.toString())) {
+            tenantId = URI.create(user.getTenantId());
+        } else {
+            tenantId = tid;
+        }
+        // this call validates the tenant id
+        TenantOrg tenant = _permissionsHelper.getObjectById(tenantId, TenantOrg.class);
+        ArgValidator.checkEntity(tenant, tenantId, isIdEmbeddedInURL(tenantId), true);
+
+        // check the user permissions for this tenant org
+        verifyAuthorizedInTenantOrg(tenantId, user);
+        // get all host children
+        HostList migrationHostList = new HostList();
+        migrationHostList.setHosts(map(ResourceTypeEnum.HOST, listChildren(tenantId, Host.class, "label", "tenant")));
+        return migrationHostList;
+    }
+
+    /**
      * Allows the caller to change the virtual array of the passed volume. Currently,
      * this is only possible for a local VPlex virtual volumes. Additionally, the
      * volume must not be exported. The volume can be migrated to the other cluster
@@ -3523,7 +3560,8 @@ public class BlockService extends TaskResourceService {
             VirtualArrayChangeParam varrayChangeParam) throws InternalException, APIException {
         _log.info("Request to change varray for volume {}", id);
         TaskList taskList = changeVirtualArrayForVolumes(Arrays.asList(id),
-                varrayChangeParam.getVirtualArray());
+                varrayChangeParam.getVirtualArray(), param.getIsHostMigration(),
+                param.getMigrationHost());
         return taskList.getTaskList().get(0);
     }
 
@@ -3552,7 +3590,8 @@ public class BlockService extends TaskResourceService {
     public TaskList changeVolumesVirtualArray(VolumeVirtualArrayChangeParam param)
             throws InternalException, APIException {
         _log.info("Request to change varray for volumes {}", param.getVolumes());
-        return changeVirtualArrayForVolumes(param.getVolumes(), param.getVirtualArray());
+        return changeVirtualArrayForVolumes(param.getVolumes(), param.getVirtualArray(),
+                param.getIsHostMigration(), param.getMigrationHost());
     }
 
     /**
@@ -3566,8 +3605,8 @@ public class BlockService extends TaskResourceService {
      *
      * @throws InternalException, APIException
      */
-    private TaskList changeVirtualArrayForVolumes(List<URI> volumeURIs, URI tgtVarrayURI)
-            throws InternalException, APIException {
+    private TaskList changeVirtualArrayForVolumes(List<URI> volumeURIs, URI tgtVarrayURI,
+            boolean isHostMigration, URI migrationHostURI) throws InternalException, APIException {
 
         // Create the result.
         TaskList taskList = new TaskList();
@@ -3628,10 +3667,7 @@ public class BlockService extends TaskResourceService {
             // execute the change. If it is possible that volumes
             // with multiple implementations can be selected for a
             // varray change, then we would need a map of the
-            // implementation to use for a given volume. However,
-            // currently only VPLEX volumes can be moved, so valid
-            // volumes for a varray change will always have the same
-            // implementation.
+            // implementation to use for a given volume.
             blockServiceAPI = getBlockServiceImpl(volume);
 
             // Verify that the virtual array change is allowed for the
@@ -3704,7 +3740,8 @@ public class BlockService extends TaskResourceService {
         if (cg != null) {
             try {
                 // When the volumes are part of a CG, executed as a single workflow.
-                blockServiceAPI.changeVirtualArrayForVolumes(volumes, cg, cgVolumes, tgtVarray, taskId);
+                blockServiceAPI.changeVirtualArrayForVolumes(volumes, cg, cgVolumes, tgtVarray,
+                        isHostMigration, migrationHostURI, taskId);
                 _log.info("Executed virtual array change for volumes");
             } catch (InternalException | APIException e) {
                 // Fail all the tasks.
@@ -3731,7 +3768,8 @@ public class BlockService extends TaskResourceService {
             // When the volumes are not in a CG, then execute as individual workflows.
             for (Volume volume : volumes) {
                 try {
-                    blockServiceAPI.changeVirtualArrayForVolumes(Arrays.asList(volume), cg, cgVolumes, tgtVarray, taskId);
+                    blockServiceAPI.changeVirtualArrayForVolumes(Arrays.asList(volume), cg, cgVolumes, tgtVarray,
+                            isHostMigration, migrationHostURI, taskId);
                     _log.info("Executed virtual array change for volume {}", volume.getId());
                 } catch (InternalException | APIException e) {
                     String errorMsg = String.format("Volume virtual array change error: %s", e.getMessage());

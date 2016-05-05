@@ -24,6 +24,8 @@ public class UnManagedFileQuotaDirectory extends UnManagedFileObject {
 
     protected Integer _softGrace;
 
+    protected String _nativeId;
+
     /**
      * Get parent fs native guid
      * 
@@ -93,5 +95,15 @@ public class UnManagedFileQuotaDirectory extends UnManagedFileObject {
     public void setSoftGrace(Integer _softGrace) {
         this._softGrace = _softGrace;
         setChanged("softGrace");
+    }
+
+    @Name("nativeId")
+    public String getNativeId() {
+        return _nativeId;
+    }
+
+    public void setNativeId(String _nativeId) {
+        this._nativeId = _nativeId;
+        setChanged("nativeId");
     }
 }

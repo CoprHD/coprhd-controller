@@ -7,6 +7,7 @@ package com.emc.storageos.api.service.impl.resource;
 import static com.emc.storageos.api.mapper.DbObjectMapper.toNamedRelatedResource;
 import static com.emc.storageos.api.mapper.FileMapper.map;
 
+import java.io.IOException;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Calendar;
@@ -85,6 +86,7 @@ import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.volumecontroller.FileControllerConstants;
 import com.emc.storageos.volumecontroller.impl.ControllerUtils;
+import com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator;
 import com.emc.storageos.volumecontroller.impl.monitoring.RecordableBourneEvent;
 import com.emc.storageos.volumecontroller.impl.monitoring.RecordableEventManager;
 import com.emc.storageos.volumecontroller.impl.monitoring.cim.enums.RecordType;
@@ -660,7 +662,7 @@ public class UnManagedFilesystemService extends TaggedResource {
         return filesystemList;
     }
 
-    private void ingestFileQuotaDirectories(FileShare parentFS) {
+    private void ingestFileQuotaDirectories(FileShare parentFS) throws IOException {
         String parentFsNativeGUID = parentFS.getNativeGuid();
         URIQueryResultList result = new URIQueryResultList();
         List<QuotaDirectory> quotaDirectories = new ArrayList<>();
@@ -672,21 +674,26 @@ public class UnManagedFilesystemService extends TaggedResource {
         for (UnManagedFileQuotaDirectory unManagedFileQuotaDirectory : unManagedFileQuotaDirectories) {
             QuotaDirectory quotaDirectory = new QuotaDirectory();
             quotaDirectory.setId(URIUtil.createId(QuotaDirectory.class));
-            quotaDirectory.setParent(new NamedURI(parentFS.getId(),
-                    unManagedFileQuotaDirectory.getLabel()));
+            quotaDirectory.setParent(new NamedURI(parentFS.getId(), unManagedFileQuotaDirectory.getLabel()));
+            quotaDirectory.setNativeId(unManagedFileQuotaDirectory.getNativeId());
             quotaDirectory.setLabel(unManagedFileQuotaDirectory.getLabel());
             quotaDirectory.setOpStatus(new OpStatusMap());
             quotaDirectory.setProject(new NamedURI(parentFS.getProject().getURI(), unManagedFileQuotaDirectory.getLabel()));
             quotaDirectory.setTenant(new NamedURI(parentFS.getTenant().getURI(), unManagedFileQuotaDirectory.getLabel()));
+            quotaDirectory.setNativeGuid(NativeGUIDGenerator.generateNativeGuid(_dbClient, quotaDirectory, parentFS.getName()));
+            quotaDirectory.setInactive(false);
 
             quotaDirectory.setSoftLimit(
-                    unManagedFileQuotaDirectory.getSoftLimit() != 0 ? unManagedFileQuotaDirectory.getSoftLimit()
+                    unManagedFileQuotaDirectory.getSoftLimit() != null && unManagedFileQuotaDirectory.getSoftLimit() != 0
+                            ? unManagedFileQuotaDirectory.getSoftLimit()
                             : parentFS.getSoftLimit() != null ? parentFS.getSoftLimit().intValue() : 0);
             quotaDirectory.setSoftGrace(
-                    unManagedFileQuotaDirectory.getSoftGrace() != 0 ? unManagedFileQuotaDirectory.getSoftGrace()
+                    unManagedFileQuotaDirectory.getSoftGrace() != null && unManagedFileQuotaDirectory.getSoftGrace() != 0
+                            ? unManagedFileQuotaDirectory.getSoftGrace()
                             : parentFS.getSoftGracePeriod() != null ? parentFS.getSoftGracePeriod() : 0);
             quotaDirectory.setNotificationLimit(
-                    unManagedFileQuotaDirectory.getNotificationLimit() != 0 ? unManagedFileQuotaDirectory.getNotificationLimit()
+                    unManagedFileQuotaDirectory.getNotificationLimit() != null && unManagedFileQuotaDirectory.getNotificationLimit() != 0
+                            ? unManagedFileQuotaDirectory.getNotificationLimit()
                             : parentFS.getNotificationLimit() != null ? parentFS.getNotificationLimit().intValue() : 0);
             String convertedName = unManagedFileQuotaDirectory.getLabel().replaceAll("[^\\dA-Za-z_]", "");
             _logger.info("FileService::QuotaDirectory Original name {} and converted name {}", unManagedFileQuotaDirectory.getLabel(),

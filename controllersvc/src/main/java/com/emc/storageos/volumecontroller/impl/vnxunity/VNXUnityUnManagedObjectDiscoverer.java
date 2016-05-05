@@ -1131,6 +1131,7 @@ public class VNXUnityUnManagedObjectDiscoverer {
                         unManagedFileQuotaDirectory.setSoftGrace(0);
                     }
                     unManagedFileQuotaDirectory.setNotificationLimit(0);
+                    unManagedFileQuotaDirectory.setNativeId(quota.getId());
                     if (!checkUnManagedQuotaDirectoryExistsInDB(dbClient, nativeUnmanagedGUID)) {
                         unManagedTreeQuotaInsert.add(unManagedFileQuotaDirectory);
                     } else {

@@ -61,10 +61,16 @@ public class CifsClient {
         return new SmbFileInputStream(remoteBackupFile);
     }
 
+    public static Boolean isSupported (String url) {
+        return true;
+    }
+
     private NtlmPasswordAuthentication getNtlmPasswordAuthentication() {
         return new NtlmPasswordAuthentication(username + ":" + password);
 
     }
+
+
 
 
 }

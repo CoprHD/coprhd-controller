@@ -26,7 +26,7 @@ public class CifsUploader extends Uploader {
     }
 
     public static boolean isSupported(String url) {
-        return FtpClient.isSupported(url);
+        return CifsClient.isSupported(url);
     }
 
     @Override

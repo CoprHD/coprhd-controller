@@ -21,6 +21,10 @@ public abstract class Uploader {
             return null;
         }
 
+        if (CifsUploader.isSupported(cfg.uploadUrl)) {
+            return new CifsUploader(cfg,cli);
+        }
+
         if (FtpsUploader.isSupported(cfg.uploadUrl)) {
             return new FtpsUploader(cfg, cli);
         }

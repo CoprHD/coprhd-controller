@@ -860,7 +860,7 @@ public class VNXUnityCommunicationInterface extends
 
             for (VNXeCifsServer cifsServer : cifsServers) {
                 _logger.info("Cifs Server {} for {} ", cifsServer.getName(), nasServer.getName());
-                if (!cifsServer.getFileInterfaces().isEmpty()) {
+                if (cifsServer.getFileInterfaces()!= null && !cifsServer.getFileInterfaces().isEmpty()) {
                     _logger.info("{} has CIFS Enabled since interfaces are found ", nasServer.getName(),
                             cifsServer.getName() + ":" + cifsServer.getFileInterfaces());
                     protocols.add(StorageProtocol.File.CIFS.name());

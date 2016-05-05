@@ -114,7 +114,7 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
             cgURI = volume.getConsistencyGroup();
         }
 
-        // if array consistency in disabled in CG and VPLEX/RP provisioning, skip creating replicas.
+        // If array consistency in disabled in CG and VPLEX/RP provisioning, skip creating replicas.
         // Reason:Provisioning new volumes for VPLEX/RP CG in Application does not add backend volume to RG
         if (!NullColumnValueGetter.isNullURI(cgURI)) {
             BlockConsistencyGroup cg = _dbClient.queryObject(BlockConsistencyGroup.class, cgURI);
@@ -122,6 +122,9 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
                 log.info("No replica steps required for CG {} as array consistency is disabled.", cg.getLabel());
                 return waitFor;
             }
+        } else {
+            log.info("No replica steps required because no volumes had CG");
+            return waitFor;
         }
         
         List<VolumeDescriptor> nonSrdfVolumeDescriptors = VolumeDescriptor.filterByType(volumes,

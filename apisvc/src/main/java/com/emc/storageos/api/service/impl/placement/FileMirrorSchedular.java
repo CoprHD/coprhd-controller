@@ -29,6 +29,7 @@ import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.VpoolRemoteCopyProtectionSettings;
+import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.volumecontroller.AttributeMatcher;
 import com.emc.storageos.volumecontroller.AttributeMatcher.Attributes;
@@ -276,10 +277,8 @@ public class FileMirrorSchedular implements Scheduler {
     @Override
     public List<Recommendation> getRecommendationsForVpool(VirtualArray vArray, Project project, VirtualPool vPool, VpoolUse vPoolUse,
             VirtualPoolCapabilityValuesWrapper capabilities, Map<VpoolUse, List<Recommendation>> currentRecommendations) {
-        // TODO Auto-generated method stub
-        return null;
+        throw DeviceControllerException.exceptions.operationNotSupported();
     }
-    
     
     private FileRecommendation getSourceRecommendationParameters(FileShare sourceFs, StorageSystem storageSystem) {
 
@@ -339,7 +338,6 @@ public class FileMirrorSchedular implements Scheduler {
 
     @Override
     public boolean handlesVpool(VirtualPool vPool, VpoolUse vPoolUse) {
-        // not implemented
         return false;
     }
 }

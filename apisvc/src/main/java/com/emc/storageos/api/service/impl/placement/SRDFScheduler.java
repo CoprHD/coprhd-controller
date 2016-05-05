@@ -49,6 +49,7 @@ import com.emc.storageos.volumecontroller.impl.utils.MetaVolumeUtils;
 import com.emc.storageos.volumecontroller.impl.utils.ObjectLocalCache;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
 import com.emc.storageos.volumecontroller.impl.utils.attrmatchers.SRDFMetroMatcher;
+import com.emc.storageos.workflow.WorkflowException;
 
 /**
  * Advanced SRDF based scheduling function for block storage. StorageScheduler is done based on
@@ -1271,7 +1272,7 @@ public class SRDFScheduler implements Scheduler {
             List<Recommendation> currentRecommendations) {
         List<Recommendation> recommendations = new ArrayList<Recommendation>();
         if (currentRecommendations == null) {
-            currentRecommendations = new ArrayList<Recommendation>();
+            throw WorkflowException.exceptions.workflowConstructionError("Required parameter currentRecommendations is null");
         }
         // Look through the existing SRDF Recommendations for a SRDFRecommendation
         // that has has matching varray and vpool.
@@ -1308,7 +1309,6 @@ public class SRDFScheduler implements Scheduler {
 
     @Override
     public boolean handlesVpool(VirtualPool vPool, VpoolUse vPoolUse) {
-        // TODO Auto-generated method stub
         return (VirtualPool.vPoolSpecifiesSRDF(vPool) || vPoolUse == VpoolUse.SRDF_COPY);
     }
     

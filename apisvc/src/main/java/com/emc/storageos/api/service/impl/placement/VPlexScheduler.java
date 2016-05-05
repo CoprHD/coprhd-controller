@@ -501,7 +501,7 @@ public class VPlexScheduler implements Scheduler {
            capabilities.put(VirtualPoolCapabilityValuesWrapper.SOURCE_STORAGE_SYSTEM, sourceStorageSystem);
         }
 
-        // Call the lower level scheduler to get it's recommendations.
+        // Call the lower level scheduler to get its recommendations.
         Scheduler nextScheduler = _placementManager.getNextScheduler(
                 SCHEDULER_NAME, srcVpool, srcVpoolUse);
         _log.info(String.format("Calling next scheduler: %s", nextScheduler.getClass().getSimpleName()));
@@ -1183,7 +1183,7 @@ public class VPlexScheduler implements Scheduler {
 
         // Get and validate the high availability VirtualArray and VirtualPool.
         // Note that the HA VirtualPool is optional. When not specified, the
-        // high availability VirtualPool is the passed VirtualPool is use.
+        // high availability VirtualPool is the passed (root) VirtualPool.
         VirtualPool haVPool = vPool;
         VirtualArray haVArray = null;
         StringMap haVaVpMap = vPool.getHaVarrayVpoolMap();

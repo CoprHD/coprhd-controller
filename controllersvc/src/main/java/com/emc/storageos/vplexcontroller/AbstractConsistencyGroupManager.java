@@ -552,17 +552,24 @@ public abstract class AbstractConsistencyGroupManager implements ConsistencyGrou
      */
     public void removeVolumesFromCG(URI vplexURI, URI cgURI, List<URI> vplexVolumeURIs,
             String stepId) throws WorkflowException {
-        // Update workflow step.
-        WorkflowStepCompleter.stepExecuting(stepId);
-        log.info("Updated workflow step state to execute for remove volumes from consistency group.");
+        try {
+            // Update workflow step.
+            WorkflowStepCompleter.stepExecuting(stepId);
+            log.info("Updated workflow step state to execute for remove volumes from consistency group.");
 
-        ServiceCoded codedError = removeVolumesFromCGInternal(vplexURI, cgURI, vplexVolumeURIs);
+            ServiceCoded codedError = removeVolumesFromCGInternal(vplexURI, cgURI, vplexVolumeURIs);
 
-        if (codedError != null) {
-            WorkflowStepCompleter.stepFailed(stepId, codedError);
-        } else {
-            WorkflowStepCompleter.stepSucceded(stepId);    
-        }    
+            if (codedError != null) {
+                WorkflowStepCompleter.stepFailed(stepId, codedError);
+            } else {
+                WorkflowStepCompleter.stepSucceded(stepId);    
+            }    
+        } catch (Exception ex) {
+            log.error("Exception removing volumes from consistency group: " + ex.getMessage(), ex);
+            String opName = ResourceOperationTypeEnum.DELETE_CG_VOLUME.getName();
+            ServiceError serviceError = VPlexApiException.errors.removeVolumesFromCGFailed(opName, ex);
+            WorkflowStepCompleter.stepFailed(stepId, serviceError);
+        }
     }
     
     /**
@@ -672,9 +679,4 @@ public abstract class AbstractConsistencyGroupManager implements ConsistencyGrou
         // Default is this is not supported and adds no steps.
         return waitFor;
     }
-    
-    
-    
-    
-
 }

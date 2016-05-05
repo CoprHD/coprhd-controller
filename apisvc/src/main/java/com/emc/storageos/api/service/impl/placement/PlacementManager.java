@@ -103,8 +103,8 @@ public class PlacementManager {
     }
     
     /**
-     * New call that can return multiple placement results, one for the ROOT level Vpool, but also others
-     * for example for SRDF_COPY. 
+     * A call that can return multiple placement results, one for the ROOT level Vpool, but also others
+     * for example for SRDF_COPY. The output is a map of Vpool use to the list of recommendations for that Vpool.
      * @param virtualArray - Virtual Array object
      * @param project - Project object
      * @param virtualPool- Virtual Pool object
@@ -117,7 +117,8 @@ public class PlacementManager {
         Map<VpoolUse, List<Recommendation>> recommendationMap = new HashMap<VpoolUse, List<Recommendation>>();
         
         
-        // Invoke the top level scheduler
+        // Invoke scheduling on the top level Virtual Pool (termed ROOT). This virtual pool
+        // may have within it other virtual pools that may need to be separately scheduled.
         VpoolUse use = VpoolUse.ROOT;       // the apisvc vpool
         Scheduler scheduler = getNextScheduler(null, virtualPool, use);
         List<Recommendation> newRecommendations = scheduler.getRecommendationsForVpool(
@@ -125,9 +126,10 @@ public class PlacementManager {
         if (newRecommendations.isEmpty()) {
            return recommendationMap;
         }
-        recommendationMap.put(VpoolUse.ROOT, newRecommendations);
+        recommendationMap.put(use, newRecommendations);
         
-        // VPLEX will automatically take care of the VPLEX_HA use
+        // VPLEX will automatically take care of the VPLEX_HA virtual pool,
+        // so it is not invoked specifically here.
         
         // Loop over the SRDF Copies, invoking a scheduler on them.
         if (VirtualPool.vPoolSpecifiesSRDF(virtualPool)) {

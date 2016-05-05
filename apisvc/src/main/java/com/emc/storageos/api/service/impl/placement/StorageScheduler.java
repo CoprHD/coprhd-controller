@@ -927,6 +927,23 @@ public class StorageScheduler implements Scheduler {
      * @param cosCapabilities virtual pool wrapper
      * @param createInactive create the device in an inactive state
      */
+    /**
+     * Create volumes from recommendations objects.
+     * @param size -- size of volumes in bytes
+     * @param task -- overall task id
+     * @param taskList -- a TaskList new tasks may be inserted into
+     * @param project -- Project object
+     * @param neighborhood -- Virtual array
+     * @param vPool -- Virtual pool
+     * @param volumeCount -- number of like volumes to be created
+     * @param recommendations -- List of Recommendation objects describing pools to use for volumes
+     * @param consistencyGroup -- The BlockConsistencyGroup object to be used for the volumes
+     * @param volumeCounter -- The current volume counter, used to generate unique names for like volumes
+     * @param volumeLabel -- Label (prefix) of the volumes to be created
+     * @param preparedVolumes -- Output argument that receives the prepared volumes
+     * @param cosCapabilities - VirtualPoolCapabilityValuesWrapper contains parameters for volume creation
+     * @param createInactive-- used to set the Volume syncActive flag (to the inverted sense of createInactive)
+     */
     public void prepareRecommendedVolumes(Long size, String task, TaskList taskList,
             Project project, VirtualArray neighborhood, VirtualPool vPool, Integer volumeCount,
             List<Recommendation> recommendations, BlockConsistencyGroup consistencyGroup, int volumeCounter,
@@ -950,7 +967,6 @@ public class StorageScheduler implements Scheduler {
                     volumePrecreated = true;
                 }
 
-                // long size = SizeUtil.translateSize(param.getSize());
                 long thinVolumePreAllocationSize = 0;
                 if (null != vPool.getThinVolumePreAllocationPercentage()) {
                     thinVolumePreAllocationSize = VirtualPoolUtil.getThinVolumePreAllocationSize(

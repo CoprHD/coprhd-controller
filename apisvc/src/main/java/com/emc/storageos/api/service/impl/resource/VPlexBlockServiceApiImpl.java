@@ -89,6 +89,7 @@ import com.emc.storageos.db.client.util.ResourceOnlyNameGenerator;
 import com.emc.storageos.db.client.util.SizeUtil;
 import com.emc.storageos.db.client.util.StringSetUtil;
 import com.emc.storageos.db.common.DependencyChecker;
+import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.model.ResourceTypeEnum;
 import com.emc.storageos.model.TaskList;
@@ -106,6 +107,7 @@ import com.emc.storageos.model.vpool.VirtualPoolChangeOperationEnum;
 import com.emc.storageos.security.authorization.BasePermissionsHelper;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
+import com.emc.storageos.svcs.errorhandling.resources.BadRequestException;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.svcs.errorhandling.resources.InternalServerErrorException;
 import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
@@ -339,8 +341,8 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
     public List<VolumeDescriptor> createVolumesAndDescriptors(List<VolumeDescriptor> descriptors, String name, Long size, Project project,
             VirtualArray varray, VirtualPool vpool, List<Recommendation> recommendations, TaskList taskList, String task,
             VirtualPoolCapabilityValuesWrapper vpoolCapabilities) {
-        // TODO Auto-generated method stub
-        return null;
+        // Not currently called from AbstractBlockServiceApiImpl.createVolumesAndDescriptors
+        throw DeviceControllerException.exceptions.operationNotSupported();
     }
 
     /**
@@ -3357,7 +3359,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
                                     }
                                 }
                             }
-                            // Let the SRDF code fill in it's own set of volume descriptors
+                            // Let the SRDF code fill in its own set of volume descriptors
                             List<URI> srdfVolumeIds = new ArrayList<URI>();
                             srdfVolumeIds.add(assocVolume.getId());
                             SRDFBlockServiceApiImpl srdfApi = (SRDFBlockServiceApiImpl) BlockService.getBlockServiceImpl("srdf");
@@ -3455,7 +3457,8 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
                     
                 } else if (associatedVolume.getSrdfParent() != null) {  // SRDF target volume
                     // We don't handle SRDF targets directly, they are obtained above from the call to getVolumeDescriptorsForExpandVolume
-                    // in the SRDF api controller.
+                    // in the SRDF api controller. The user should not specify expansion on a target virtual volume.
+                    throw BadRequestException.badRequests.cannotExpandTargetVirtualVolume(volume.getLabel());
                
                 } else {    // A nice, plain, simple backing volume
                     VolumeDescriptor descriptor = new VolumeDescriptor(
@@ -3640,13 +3643,19 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
         controller.resyncSnapshot(vplexSystem.getId(), snapshot.getId(), taskId);
     }
     
+    /**
+     * Sort the recommendations by VirtualArray. There can be up to two
+     * VirtualArrays, the requested VirtualArray and the HA VirtualArray
+     * either passed or determined by the placement when HA virtual volumes
+     * are being created. We also set the VPlex storage system, which
+     * should be the same for all recommendations.
+     * 
+     * @param recommendations -- list of Recommendations
+     * @param vplexSystemURIOut -- Output parameter the Vplex system URI
+     * @return
+     */
     private Map<String, List<VPlexRecommendation>> sortRecommendationsByVarray(
             List<Recommendation> recommendations, URI[] vplexSystemURIOut) {
-        // Sort the recommendations by VirtualArray. There can be up to two
-        // VirtualArrays, the requested VirtualArray and the HA VirtualArray
-        // either passed or determined by the placement when HA virtual volumes
-        // are being created. We also set the VPlex storage system, which
-        // should be the same for all recommendations.
         URI vplexStorageSystemURI = null;
         Map<String, List<VPlexRecommendation>> varrayRecommendationsMap =
                 new HashMap<String, List<VPlexRecommendation>>();

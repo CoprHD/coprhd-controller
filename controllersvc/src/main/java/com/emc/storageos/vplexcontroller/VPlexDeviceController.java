@@ -11472,7 +11472,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
         
     /**
      * Adds the steps post restore / resync that need to be done to reconnect the HA side of
-     * distrubuted volumes.
+     * distributed volumes.
      * @param workflow -- Workflow steps are to be added to
      * @param vplexToArrayVolumes -- map of vplex volume to corresponding array volume
      * @param vplexVolumeIdToDetachStep -- map of vplex distributed volume to detach step

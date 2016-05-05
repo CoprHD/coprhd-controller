@@ -72,19 +72,17 @@ public interface BlockServiceApi {
             throws InternalException;
     
     /**
-     * Creates new volume descriptors (and Volume db instances) from recommendations.
-     * Adds any new descriptors to the descriptors list. 
-     * @param name
-     * @param size
-     * @param param
-     * @param project
-     * @param varray
-     * @param vpool
-     * @param recommendations
-     * @param taskList
-     * @param task
-     * @param vpoolCapabilities
-     * @return
+     * @param descriptors -- List of existing VolumeDescriptors
+     * @param name -- String prefix used for volume label
+     * @param size -- Size of the volume in bytes
+     * @param project -- Project object
+     * @param varray -- VirtualArray object
+     * @param vpool -- VirtualPool object
+     * @param recommendations -- List of Recommendations describing StoragePools to be used
+     * @param taskList -- A TaskList to which tasks can be added
+     * @param task-- The String task identifier for the overall operation
+     * @param vpoolCapabilities -- A virtualPoolCapabilityValuesWrapper containing volume creation parameters
+     * @return List of VolumeDescriptors including the Volumes that were generated 
      */
     public List<VolumeDescriptor> createVolumesAndDescriptors(List<VolumeDescriptor> descriptors,
             String name, Long size, Project project,

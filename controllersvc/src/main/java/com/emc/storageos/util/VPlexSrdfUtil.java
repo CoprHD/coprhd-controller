@@ -141,8 +141,8 @@ public class VPlexSrdfUtil {
     
     /**
      * Given a list of Vplex volume URIs, returns a map of VPlexVolume to corresonding SRDF backend volume.
-     * @param dbClient
-     * @param vplexVolumeURIs
+     * @param dbClient database client handle
+     * @param vplexVolumeURIs -- List of vplex volume URIs
      * @return Map<Volume, Volume> of vplex to srdf volumes
      */
     public static Map<Volume, Volume> makeVplexToSrdfVolumeMap(DbClient dbClient, List<URI> vplexVolumeURIs) {

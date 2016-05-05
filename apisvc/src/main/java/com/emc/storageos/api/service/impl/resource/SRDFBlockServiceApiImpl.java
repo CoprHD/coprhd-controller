@@ -335,7 +335,7 @@ public class SRDFBlockServiceApiImpl extends AbstractBlockServiceApiImpl<SRDFSch
                         }
                         targetDescriptors.add(desc);
                     }
-                    
+                    _log.error("No target recommendation found in the recommendation virtualArrayTargetMap");
                 }
 
                 _log.info("Adding Non-Source Volume Descriptor for: " + desc.toString());

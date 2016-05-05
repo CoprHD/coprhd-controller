@@ -96,6 +96,7 @@ import com.emc.storageos.volumecontroller.SRDFRecommendation;
 import com.emc.storageos.volumecontroller.impl.ControllerUtils;
 import com.emc.storageos.volumecontroller.impl.smis.SmisConstants;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
+import com.emc.storageos.workflow.WorkflowException;
 import com.google.common.base.Joiner;
 
 public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi {
@@ -1832,6 +1833,11 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
                 api = BlockService.getBlockServiceImpl(DiscoveredDataObject.Type.srdf.name());
             } else if (recommendation instanceof VolumeRecommendation) {
                 api = BlockService.getBlockServiceImpl(BlockServiceApi.DEFAULT);
+            } else {
+                String message = String.format("No BlockServiceApiImpl to handle recommendation of class: ", 
+                        recommendation.getClass().getName());
+                s_logger.error(message);
+                throw WorkflowException.exceptions.workflowConstructionError(message);
             }
             volumeDescriptors.addAll(api.createVolumesAndDescriptors(descriptors, name, size, project, 
                     varray, vpool, recommendations, taskList, task, vpoolCapabilities));

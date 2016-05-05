@@ -2127,9 +2127,9 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
         for (VolumeDescriptor volumeDescriptor : volumeDescriptors) {
             if (volumeDescriptor.getParameters() != null) {
                 if (volumeDescriptor.getParameters().get(
-                        VolumeDescriptor.PARAM_VPOOL_CHANGE_VPOOL_ID) != null) {
+                        VolumeDescriptor.PARAM_VPOOL_CHANGE_NEW_VPOOL_ID) != null) {
                     return (URI) volumeDescriptor.getParameters().get(
-                            VolumeDescriptor.PARAM_VPOOL_CHANGE_VPOOL_ID);
+                            VolumeDescriptor.PARAM_VPOOL_CHANGE_NEW_VPOOL_ID);
                 }
             }
         }

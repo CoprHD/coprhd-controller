@@ -1475,11 +1475,11 @@ public class BackupOps {
                 log.info("Retry to query backup {}", backupTag);
                 continue;
             } catch (Exception e) {
-                log.error("e=", e);
+                log.error("Query local backup({}) info failed", backupTag, e);
             }
             break;
         }
-
+        
         return backupInfo;
     }
 

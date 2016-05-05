@@ -373,10 +373,7 @@ COS_VNXEBLOCK_CG=cosvnxe_cg
 COS_VNXEBLOCK_FC=cosvnxe_fc
 COS_VNXEBLOCK_ISCSI=cosvnxe_iscsi
 COS_ECS=ecs_vpool
-COS_UNITY=cosunity
 COS_UNITYBLOCK_CG=cosunity_cg
-COS_UNITYBLOCK_FC=cosunity_fc
-COS_UNITYBLOCK_ISCSI=cosunity_iscsi
 
 #
 # Isilon configuration
@@ -9197,6 +9194,7 @@ snapvx_single_tests()
     secho "Deleting the VMAX3 source volume"
     volume delete $PROJECT/$VOLUME_NAME --wait
 }
+
 unity_setup()
 {
     networksystem show $BROCADE_NETWORK &> /dev/null && return $?
@@ -9213,7 +9211,8 @@ unity_setup()
     run neighborhood allow $NH $TENANT
     run transportzone assign ${SRDF_VMAXA_VSAN} $NH
     storagepool update $UNITY_NATIVEGUID --type block --volume_type THIN_AND_THICK
-    
+    run transportzone add ${SRDF_VMAXA_VSAN} $UNITY_INIT_PWWN1
+    run transportzone add ${SRDF_VMAXA_VSAN} $UNITY_INIT_PWWN2
     unity_cos_setup
     run cos update block $COS_UNITYBLOCK_CG --storage $UNITY_NATIVEGUID
 }
@@ -9231,8 +9230,9 @@ unity_tests()
     eg=eg-${RANDOM}
 	    
 	    run transportzone add $NH/$IP_ZONE $iqn1
-    run volume create $vol1 $PROJECT $NH $COS_UNITYBLOCK_CG $BLK_SIZE --wait
-    run volume expand $PROJECT/$vol1 $BLK_SIZE_EXPAND --wait
+    run volume create $vol1 $PROJECT $NH $COS_UNITYBLOCK_CG $BLK_SIZE
+    sleep 60
+    run volume expand $PROJECT/$vol1 $BLK_SIZE_EXPAND
 	
     run hosts create $hostLbl $TENANT Windows $host --port 8111 --username user --password 'password' --osversion 1.0
     run initiator create $hostLbl FC $UNITY_INIT_PWWN1 --node $UNITY_INIT_NODE
@@ -9251,7 +9251,8 @@ unity_tests()
     echo "unity consistency group tests"
 	    
     run blockconsistencygroup create $PROJECT $consistency_group
-    run volume create $vol2 $PROJECT $NH $COS_UNITYBLOCK_CG 1280000000 --consistencyGroup $consistency_group --wait
+    run volume create $vol2 $PROJECT $NH $COS_UNITYBLOCK_CG 1280000000 --consistencyGroup $consistency_group
+    sleep 60
     run blocksnapshot create $PROJECT/$vol2 $snap2_label --wait
     run blocksnapshot delete $PROJECT/$vol2/${snap2_label} --wait
     run volume delete $PROJECT/$vol2 --wait
@@ -9272,8 +9273,7 @@ unity_cos_setup()
                          --provisionType 'Thin' \
                          --neighborhoods $NH \
                          --multiVolumeConsistency 
-
-                                 
+                                
 }
 
 ${SS}_setup

@@ -23,7 +23,6 @@ import javax.cim.CIMProperty;
 import javax.wbem.CloseableIterator;
 import javax.wbem.WBEMException;
 
-import com.emc.storageos.volumecontroller.impl.utils.ExportMaskUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -61,6 +60,8 @@ import com.emc.storageos.volumecontroller.impl.smis.SmisConstants;
 import com.emc.storageos.volumecontroller.impl.smis.SmisException;
 import com.emc.storageos.volumecontroller.impl.smis.ibm.IBMCIMObjectPathFactory;
 import com.emc.storageos.volumecontroller.impl.smis.ibm.IBMSmisConstants;
+import com.emc.storageos.volumecontroller.impl.utils.ExportMaskUtils;
+import com.emc.storageos.volumecontroller.impl.xiv.XIVRESTOperationHelper;
 import com.google.common.base.Joiner;
 import com.google.common.base.Strings;
 
@@ -85,6 +86,7 @@ public class XIVExportOperations implements ExportMaskOperations {
     private XIVSmisCommandHelper _helper;
     private DbClient _dbClient;
     private IBMCIMObjectPathFactory _cimPath;
+    private XIVRESTOperationHelper _restAPIHelper;
 
     @Autowired
     private NetworkDeviceController _networkDeviceController;
@@ -101,19 +103,12 @@ public class XIVExportOperations implements ExportMaskOperations {
     public void setDbClient(DbClient dbClient) {
         _dbClient = dbClient;
     }
+    
+    public void setRestOperationHelper(XIVRESTOperationHelper helper) {
+        _restAPIHelper = helper;
+    }
 
-    /*
-     * (non-Javadoc) Creates an ExportMask with the given initiators & volumes.
-     * 
-     * The export mask may have already been created.
-     * 
-     * @param targetURIList not used
-     * 
-     * @param initiatorList shouldn't be null/empty. Initiators in the list may
-     * have been created.
-     */
-    @Override
-    public void createExportMask(StorageSystem storage, URI exportMaskURI,
+    private void createSMISExportMask(StorageSystem storage, URI exportMaskURI,
             VolumeURIHLU[] volumeURIHLUs, List<URI> targetURIList,
             List<Initiator> initiatorList, TaskCompleter taskCompleter)
             throws DeviceControllerException {
@@ -1172,4 +1167,36 @@ public class XIVExportOperations implements ExportMaskOperations {
     public Map<URI, Integer> getExportMaskHLUs(StorageSystem storage, ExportMask exportMask) {
         return Collections.emptyMap();
     }
+    
+    /*
+     * (non-Javadoc) Creates an ExportMask with the given initiators & volumes.
+     * 
+     * The export mask may have already been created.
+     * 
+     * @param targetURIList not used
+     * 
+     * @param initiatorList shouldn't be null/empty. Initiators in the list may
+     * have been created.
+     */
+    @Override
+    public void createExportMask(StorageSystem storage, URI exportMaskURI,
+            VolumeURIHLU[] volumeURIHLUs, List<URI> targetURIList,
+            List<Initiator> initiatorList, TaskCompleter taskCompleter)
+            throws DeviceControllerException {
+        _log.info("{} createExportMask START...", storage.getLabel());
+        _log.info("createExportMask: mask id: {}", exportMaskURI);
+        _log.info("createExportMask: volume-HLU pairs: {}", volumeURIHLUs);
+        _log.info("createExportMask: tartets: {}", targetURIList);
+        _log.info("createExportMask: initiators: {}", initiatorList);
+        
+        if(_restAPIHelper.isClusteredHost(storage, initiatorList)){
+            _log.info("Executing createExportMask using REST on Storage {}", storage.getLabel());
+            _restAPIHelper.createRESTExportMask(storage, exportMaskURI,volumeURIHLUs, targetURIList,initiatorList,  taskCompleter);
+        } else {
+            _log.info("Executing createExportMask using SMIS on Storage {}", storage.getLabel());
+            createSMISExportMask(storage, exportMaskURI, volumeURIHLUs, targetURIList, initiatorList, taskCompleter);
+        }
+    }
+    
+    
 }

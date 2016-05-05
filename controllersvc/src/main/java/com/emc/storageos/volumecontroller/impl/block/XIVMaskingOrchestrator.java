@@ -645,7 +645,7 @@ public class XIVMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                 initiatorURIs, hostURIs);
         
         //TODO : update volumeMap here to find the next HLU here.
-        findNextAvailableHLU(storage, initiatorURIs, exportGroup, volumeMap);
+        updateVolumeHLU(storage, initiatorURIs, exportGroup, volumeMap);
 
         // Find the export masks that are associated with any or all the ports in
         // portNames. We will have to do processing differently based on whether
@@ -1006,20 +1006,20 @@ public class XIVMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
         return newSteps;
     }
     
-	/**
-	 * Finds Next available HLU for the Host/Hosts (Cluster) and updates the
-	 * volume Map to the next HLU reference
-	 * 
-	 * @param system
-	 *            Storage Array on whic export operation is executed
-	 * @param initiatorURIs
-	 *            List of Host initiators
-	 * @param exportGroup
-	 *            Export group reference
-	 * @param volumeMap
-	 *            Volume and HLU mapping.
-	 */
-    private void findNextAvailableHLU(StorageSystem system, List<URI> initiatorURIs, ExportGroup exportGroup, Map<URI, Integer> volumeMap) {
+    /**
+     * Finds Next available HLU for the Host/Hosts (Cluster) and updates the
+     * volume Map to the next HLU reference if user has chosen system to decide on HLU number
+     * 
+     * @param system
+     *            Storage Array on whic export operation is executed
+     * @param initiatorURIs
+     *            List of Host initiators
+     * @param exportGroup
+     *            Export group reference
+     * @param volumeMap
+     *            Volume and HLU mapping.
+     */
+    private void updateVolumeHLU(StorageSystem system, List<URI> initiatorURIs, ExportGroup exportGroup, Map<URI, Integer> volumeMap) {
         boolean findHLU = false;
         Map<String, List<URI>> computeResourceToInitiators = mapInitiatorsToComputeResource(exportGroup, initiatorURIs);
         Set<String> hostURISet = computeResourceToInitiators.keySet();
@@ -1038,20 +1038,20 @@ public class XIVMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
             Map<URI, List<String>> hostToHLUsMap = device.doFindHostHLUs(system, hostURIs, null);
             Iterator<Entry<URI, List<String>>> hostToHLUsItr = hostToHLUsMap.entrySet().iterator();
             Set<String> commonHLUs = new HashSet<String>();
-            while(hostToHLUsItr.hasNext()){
-            	Entry<URI, List<String>> hostHLUs = hostToHLUsItr.next();
-            	commonHLUs.addAll(hostHLUs.getValue());
+            while (hostToHLUsItr.hasNext()) {
+                Entry<URI, List<String>> hostHLUs = hostToHLUsItr.next();
+                commonHLUs.addAll(hostHLUs.getValue());
             }
-            //Update Volume Map to the next available HLU.
+            // Update Volume Map to the next available HLU.
             for (Entry<URI, Integer> volumeMapEntry : volumeMap.entrySet()) {
-            	int nextHLU = 1;
-                while(commonHLUs.contains(String.valueOf(nextHLU))){
-                	nextHLU++;
+                int nextHLU = 1;
+                while (commonHLUs.contains(String.valueOf(nextHLU))) {
+                    nextHLU++;
                 }
                 if (nextHLU < 512) {
-                	_log.info("Updating HLU of Volume {} from {} to " + nextHLU, volumeMapEntry.getKey(), volumeMapEntry.getValue());
-                	commonHLUs.add(String.valueOf(nextHLU));
-                	volumeMap.put(volumeMapEntry.getKey(), Integer.valueOf(nextHLU));
+                    _log.info("Updating HLU of Volume {} from {} to " + nextHLU, volumeMapEntry.getKey(), volumeMapEntry.getValue());
+                    commonHLUs.add(String.valueOf(nextHLU));
+                    volumeMap.put(volumeMapEntry.getKey(), Integer.valueOf(nextHLU));
                 }
             }
         }

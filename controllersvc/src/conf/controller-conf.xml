@@ -109,6 +109,7 @@
         <property name="smisCommandHelper" ref="xivSmisCommandHelper"/>
         <property name="dbClient" ref="dbclient"/>
         <property name="cimObjectPathFactory" ref="ibmCIMObjectPathFactory"/>
+        <property name="restOperationHelper" ref="xivRestOperationHelper"/>
     </bean>
     
     <bean id="xivStoragedevicePreProcessor" class="com.emc.storageos.volumecontroller.impl.smis.ibm.xiv.XIVSmisStorageDevicePreProcessor">
@@ -1547,5 +1548,17 @@
 	<bean id="auditLogManagerFactory" class="com.emc.storageos.security.audit.AuditLogManagerFactory">
         <property name="coordinator" ref="coordinator"/>
         <property name="dbClient" ref="dbclient"/>
+    </bean>
+    
+    <bean id="xivapifactory" class="com.emc.storageos.xiv.api.XIVApiFactory"
+		init-method="init" destroy-method="shutdown">
+	   <property name="connectionTimeoutMs" value="30000"/>
+	   <property name="connManagerTimeout" value="60000"/>
+       <property name="socketConnectionTimeoutMs" value="7200000" />	
+	</bean>
+	
+	<bean id="xivRestOperationHelper" class="com.emc.storageos.volumecontroller.impl.xiv.XIVRESTOperationHelper">
+        <property name="dbClient" ref="dbclient"/>
+        <property name="restAPIFactory" ref="xivapifactory"/>
     </bean>
 </beans>

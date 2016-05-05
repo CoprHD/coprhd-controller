@@ -1475,7 +1475,7 @@ public class BackupOps {
                 log.info("Retry to query backup {}", backupTag);
                 continue;
             } catch (Exception e) {
-                log.error("Query local backup({}) info failed", backupTag, e);
+                log.warn("Query local backup({}) info got an error", backupTag, e);
             }
             break;
         }

@@ -1751,26 +1751,6 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
      * @param varrayUri -- NOTE! The varrayURI may NOT be the same as the exportGroup varray!.
      * @param initiators if initiators is null, the method will use all initiators from the ExportGroup
      * @param blockObjectMap the key (URI) of this map can reference either the volume itself or a snapshot.
-     * @param workflow the controller workflow
-     * @param waitFor -- If non-null, will wait on previous workflow step
-     * @param opId the workflow step id
-     * @return the last Workflow Step id
-     * @throws Exception
-     */
-    private String assembleExportMasksWorkflow(URI vplexURI, URI export, URI varrayUri, List<URI> initiators,
-            Map<URI, Integer> blockObjectMap, Workflow workflow, String waitFor, String opId) throws Exception {
-        return assembleExportMasksWorkflow(vplexURI, export, varrayUri, initiators, blockObjectMap, workflow, true, waitFor, opId);
-    }
-
-    /**
-     * Method to assemble the find or create VPLEX storage views (export masks) workflow for the given
-     * ExportGroup, Initiators, and the block object Map.
-     *
-     * @param vplexURI the URI of the VPLEX StorageSystem object
-     * @param export the ExportGroup in question
-     * @param varrayUri -- NOTE! The varrayURI may NOT be the same as the exportGroup varray!.
-     * @param initiators if initiators is null, the method will use all initiators from the ExportGroup
-     * @param blockObjectMap the key (URI) of this map can reference either the volume itself or a snapshot.
      * @param rename Add rename step.
      * @param workflow the controller workflow
      * @param waitFor -- If non-null, will wait on previous workflow step
@@ -1782,7 +1762,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             Map<URI, Integer> blockObjectMap, Workflow workflow, boolean rename, String waitFor, String opId) throws Exception {
 
         long startAssembly = new Date().getTime();
-
+        
         StorageSystem vplexSystem = getDataObject(StorageSystem.class, vplexURI, _dbClient);
         ExportGroup exportGroup = getDataObject(ExportGroup.class, export, _dbClient);
 
@@ -2035,7 +2015,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                             Project project = _dbClient.queryObject(Project.class, vplexVolume.getProject().getURI());
                             volumeNameConfigDataSource = dataSourceFactory.createVPlexVolumeNameDataSource(project, vplexVolume.getLabel(),
                                     srcSideStorageSystem, srcSideAssocVolume.getNativeId(), haSideStorageSystem, haSideAsscoVolumeNativeId,
-                                    null, null);
+                                    exportGroup.getLabel(), exportGroup.getType());
                             if (isDistributed) {
                                 customConfig = ExportGroup.ExportGroupType.Host.name().equals(exportGroup.getType()) ? 
                                         CustomConfigConstants.VPLEX_HOST_EXPORT_DISTRIBUTED_VOLUME_NAME :
@@ -2046,8 +2026,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                                             CustomConfigConstants.VPLEX_CLUSTER_EXPORT_LOCAL_VOLUME_NAME;
                             }
                             customizedVirtualVolumeName = customConfigHandler.getComputedCustomConfigValue(
-                                CustomConfigConstants.VPLEX_DISTRIBUTED_VOLUME_NAME, vplexSystem.getSystemType(), 
-                                volumeNameConfigDataSource);
+                                    customConfig, vplexSystem.getSystemType(), volumeNameConfigDataSource);
                             handleVirtualVolumeRenaming(workflow, vplexSystem, bo.getId(), customizedVirtualVolumeName, "storageView");
                         }
                     }

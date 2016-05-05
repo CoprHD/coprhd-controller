@@ -6,8 +6,6 @@ package com.emc.storageos.db.client.model;
 
 import java.net.URI;
 
-import com.emc.storageos.model.host.InitiatorList;
-
 /**
  * Represents a volume migration operation.
  */
@@ -38,7 +36,7 @@ public class Migration extends DataObject {
     private boolean _isHostMigration;
 
     // Host initiators to be used in the case of a host based migration
-    private InitiatorList _initiatorList;
+    private URI _migrationHost;
 
     /**
      * Getter for the URI of the volume being migrated.
@@ -182,22 +180,22 @@ public class Migration extends DataObject {
     }
 
     /**
-     * Getter for the initiator list.
+     * Getter for the migration host.
      *
-     * @return The list of initiators for the migration host.
+     * @return The URI of the host for host-based migrations.
      */
-    @Name("initiatorList")
-    public InitiatorList getInitiatorList() {
-        return _initiatorList;
+    @Name("migrationHost")
+    public URI getMigrationHost() {
+        return _migrationHost;
     }
 
     /**
-     * Setter for the initiator list.
+     * Setter for the migration host.
      *
-     * @param initiatorList The list of initiators for the migration host.
+     * @param migrationHost The URI of the host for host-based migrations.
      */
-    public void setInitiatorList(InitiatorList initiatorList) {
-        _initiatorList = initiatorList;
-        setChanged("initiatorList");
+    public void setMigrationHost(URI migrationHost) {
+        _migrationHost = migrationHost;
+        setChanged("migrationHost");
     }
 }

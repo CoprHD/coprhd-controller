@@ -44,8 +44,7 @@ public class VolumeDescriptor implements Serializable {
         SRDF_SOURCE(15),     // SRDF remote mirror source
         SRDF_TARGET(16),     // SRDF remote mirror target
         SRDF_EXISTING_SOURCE(17),  // SRDF existing source volume
-        VPLEX_MIGRATE_VOLUME(18),
-        MIGRATE_VOLUME(19); // Data volume for migration
+        VPLEX_MIGRATE_VOLUME(18);
 
         private final int order;
 

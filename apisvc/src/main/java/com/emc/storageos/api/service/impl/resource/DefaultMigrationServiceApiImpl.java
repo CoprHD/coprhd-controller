@@ -8,6 +8,7 @@ import static com.emc.storageos.api.mapper.DbObjectMapper.toNamedRelatedResource
 
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -17,6 +18,7 @@ import java.util.Set;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.emc.storageos.api.service.authorization.PermissionsHelper;
 import com.emc.storageos.api.service.impl.placement.StorageScheduler;
 import com.emc.storageos.api.service.impl.placement.VirtualPoolUtil;
 import com.emc.storageos.api.service.impl.placement.VolumeRecommendation;
@@ -32,7 +34,6 @@ import com.emc.storageos.db.client.model.BlockConsistencyGroup.Types;
 import com.emc.storageos.db.client.model.BlockMirror;
 import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.Host;
-import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.DataObject.Flag;
 import com.emc.storageos.db.client.model.Migration;
 import com.emc.storageos.db.client.model.NamedURI;
@@ -51,11 +52,13 @@ import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.migrationorchestrationcontroller.MigrationOrchestrationController;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.model.ResourceTypeEnum;
-import com.emc.storageos.model.host.InitiatorList;
+import com.emc.storageos.model.block.VolumeVirtualPoolChangeParam;
+import com.emc.storageos.model.vpool.VirtualPoolChangeOperationEnum;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.volumecontroller.Recommendation;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
+import com.google.common.collect.Table;
 
 /*
  * Default implementation of the Migration Service Api.
@@ -63,6 +66,9 @@ import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValues
 public class DefaultMigrationServiceApiImpl extends AbstractMigrationServiceApiImpl<StorageScheduler> {
     private static final Logger s_logger = LoggerFactory
             .getLogger(DefaultMigrationServiceApiImpl.class);
+
+    @Autowired
+    private final PermissionsHelper _permissionsHelper = null;
 
     // The max number of volumes allowed in a CG for varray and vpool
     // changes resulting in backend data migrations. Set in the API
@@ -153,9 +159,9 @@ public class DefaultMigrationServiceApiImpl extends AbstractMigrationServiceApiI
      * {@inheritDoc}
      */
     @Override
-    public void migrateVolumesVirtualArray(List<Volume> volumes,
+    public void changeVolumesVirtualArray(List<Volume> volumes,
             BlockConsistencyGroup cg, List<Volume> cgVolumes, VirtualArray tgtVarray,
-            boolean isHostMigration, InitiatorList initiatorList, String taskId) throws InternalException {
+            boolean isHostMigration, URI migrationHostURI, String taskId) throws InternalException {
 
         // Since the backend volume would change and snapshots are just
         // snapshots of the backend volume, the user would lose all snapshots
@@ -222,7 +228,7 @@ public class DefaultMigrationServiceApiImpl extends AbstractMigrationServiceApiI
 
         // Create the volume descriptors for the virtual array change.
         List<VolumeDescriptor> descriptors = createVolumeDescriptorsForVarrayChange(
-                volumes, tgtVarray, isHostMigration, initiatorList, taskId);
+                volumes, tgtVarray, isHostMigration, migrationHostURI, taskId);
 
         try {
             // Orchestrate the virtual array change.
@@ -247,6 +253,171 @@ public class DefaultMigrationServiceApiImpl extends AbstractMigrationServiceApiI
     }
 
     /**
+     * {@inheritDoc}
+     *
+     * @throws InternalException
+     */
+    private void changeVolumeVirtualPool(URI systemURI, Volume volume, VirtualPool vpool,
+            VolumeVirtualPoolChangeParam vpoolChangeParam, String taskId) throws InternalException {
+        VirtualPool volumeVirtualPool = _dbClient.queryObject(VirtualPool.class, volume.getVirtualPool());
+        s_logger.info("Volume {} VirtualPool change.", volume.getId());
+
+        String transferSpeed = null;
+        ArrayList<Volume> volumes = new ArrayList<Volume>();
+        volumes.add(volume);
+
+        if (checkCommonVpoolUpdates(volumes, vpool, taskId)) {
+            return;
+        }
+
+        // Prepare for volume VirtualPool change.
+        StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, systemURI);
+        boolean isHostMigration = vpoolChangeParam.getIsHostMigration();
+        URI migrationHostURI = vpoolChangeParam.getMigrationHost();
+        s_logger.info("VirtualPool change for volume.");
+        List<VolumeDescriptor> descriptors = createChangeVirtualPoolDescriptors(storageSystem, volume, vpool,
+                isHostMigration, migrationHostURI, taskId, null, null);
+
+        // Now we get the Orchestration controller and use it to change the virtual pool of the volumes.
+        orchestrateVPoolChanges(Arrays.asList(volume), descriptors, taskId);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void changeVolumesVirtualPool(List<Volume> volumes, VirtualPool vpool,
+            VolumeVirtualPoolChangeParam vpoolChangeParam, String taskId) throws InternalException {
+
+        // Check for common Vpool updates handled by generic code. It returns true if handled.
+        if (checkCommonVpoolUpdates(volumes, vpool, taskId)) {
+            return;
+        }
+
+        Volume changeVPoolVolume = volumes.get(0);
+        VirtualPool currentVPool = _dbClient.queryObject(VirtualPool.class, changeVPoolVolume.getVirtualPool());
+        List<Volume> cgVolumes = new ArrayList<Volume>();
+        BlockConsistencyGroup cg = null;
+        boolean foundVolumeNotInCG = false;
+        for (Volume volume : volumes) {
+            URI cgURI = volume.getConsistencyGroup();
+            if ((cg == null) && (!foundVolumeNotInCG)) {
+                if (!NullColumnValueGetter.isNullURI(cgURI)) {
+                    cg = _permissionsHelper.getObjectById(cgURI, BlockConsistencyGroup.class);
+                        s_logger.info("All volumes should be in CG {}:{}", cgURI, cg.getLabel());
+                    cgVolumes.addAll(getActiveCGVolumes(cg));
+                } else {
+                    s_logger.info("No volumes should be in CGs");
+                    foundVolumeNotInCG = true;
+                }
+            } else if (((cg != null) && (NullColumnValueGetter.isNullURI(cgURI))) ||
+                       ((foundVolumeNotInCG) && (!NullColumnValueGetter.isNullURI(cgURI)))) {
+                // A volume was in a CG, so all volumes must be in a CG.
+                if (cg != null) {
+                    // Volumes should all be in the CG and this one is not.
+                    s_logger.error("Volume {}:{} is not in the CG", volume.getId(), volume.getLabel());
+                } else {
+                    s_logger.error("Volume {}:{} is in CG {}", new Object[] { volume.getId(),
+                            volume.getLabel(), cgURI });
+                }
+                throw APIException.badRequests.cantChangeVpoolNotAllCGVolumes();
+            }
+        }
+
+        if (cg != null) {
+            VirtualPoolChangeOperationEnum vpoolChange = VirtualPoolChangeAnalyzer
+                    .getSupportedVolumeVirtualPoolChangeOperation(changeVPoolVolume, currentVPool, vpool,
+                            _dbClient, new StringBuffer());
+            // If any of the volumes is in such a CG and if this is a data
+            // migration of the volumes, then the volumes passed must be all
+            // the volumes in the CG and only the volumes in the CG.
+            if ((vpoolChange != null) && (vpoolChange == VirtualPoolChangeOperationEnum.DATA_MIGRATION)) {
+                s_logger.info("Vpool change is a data migration");
+
+                // If the volumes are in a CG veryfy that they are
+                // all in the same CG and all volumes are passed.
+                if (cg != null) {
+                    s_logger.info("Verify all volumes in CG {}:{}", cg.getId(), cg.getLabel());
+                    verifyVolumesInCG(volumes, cgVolumes);
+                }
+
+                // All volumes will be migrated in the same workflow.
+                // If there are many volumes in the CG, the workflow
+                // will have many steps. Worse, if an error occurs
+                // additional workflow steps get added for rollback.
+                // An issue can then arise trying to persist the
+                // workflow to Zoo Keeper because the workflow
+                // persistence is restricted to 250000 bytes. So
+                // we add a restriction on the number of volumes in
+                // the CG that will be allowed for a data migration
+                // vpool change.
+                if (cgVolumes.size() > _maxCgVolumesForMigration) {
+                    throw APIException.badRequests
+                            .cgContainsTooManyVolumesForVPoolChange(cg.getLabel(),
+                                    volumes.size(), _maxCgVolumesForMigration);
+                }
+
+                // When migrating multiple volumes in the CG we
+                // want to be sure the target vpool ensures the
+                // migration targets will be placed on the same
+                // storage system as the migration targets will
+                // be placed in a CG on the target storage system.
+                if (cgVolumes.size() > 1) {
+                    s_logger.info("Multiple volume request, verifying target storage systems");
+                    verifyTargetSystemsForCGDataMigration(cgVolumes, vpool, cg.getVirtualArray());
+                }
+
+                // Get all volume descriptors for all volumes to be migrated.
+                URI systemURI = changeVPoolVolume.getStorageController();
+                StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, systemURI);
+                List<VolumeDescriptor> descriptors = new ArrayList<VolumeDescriptor>();
+                URI migrationHostURI = vpoolChangeParam.getMigrationHost();
+                boolean isHostMigration = vpoolChangeParam.getIsHostMigration();
+                for (Volume volume : cgVolumes) {
+                    descriptors.addAll(createChangeVirtualPoolDescriptors(storageSystem,
+                            volume, vpool, isHostMigration, migrationHostURI, taskId, null, null));
+                }
+
+                // Orchestrate the vpool changes of all volumes as a single request.
+                orchestrateVPoolChanges(cgVolumes, descriptors, taskId);
+            }
+        }
+
+        // Otherwise proceed as we normally would performing
+        // individual vpool changes for each volume.
+        for (Volume volume : volumes) {
+            changeVolumeVirtualPool(volume.getStorageController(), volume, vpool,
+                    vpoolChangeParam, taskId);
+        }
+    }
+
+    /**
+     * Invokes the block orchestrator for a vpool change operation.
+     *
+     * @param volumes The volumes undergoing the vpool change.
+     * @param descriptors The prepared volume descriptors.
+     * @param taskId The task identifier.
+     */
+    private void orchestrateVPoolChanges(List<Volume> volumes, List<VolumeDescriptor> descriptors, String taskId) {
+        try {
+            MigrationOrchestrationController controller = getController(
+                    MigrationOrchestrationController.class,
+                    MigrationOrchestrationController.MIGRATION_ORCHESTRATION_DEVICE);
+            controller.changeVirtualPool(descriptors, taskId);
+        } catch (InternalException e) {
+            if (s_logger.isErrorEnabled()) {
+                s_logger.error("Controller error", e);
+            }
+            String errMsg = String.format("Controller error on changeVolumeVirtualPool: %s", e.getMessage());
+            Operation statusUpdate = new Operation(Operation.Status.error.name(), errMsg);
+            for (Volume volume : volumes) {
+                _dbClient.updateTaskOpStatus(Volume.class, volume.getId(), taskId, statusUpdate);
+            }
+            throw e;
+        }
+    }
+
+    /**
      * Creates the volumes descriptors for a varray change for the passed
      * list of volumes.
      *
@@ -257,7 +428,7 @@ public class DefaultMigrationServiceApiImpl extends AbstractMigrationServiceApiI
      * @return A list of volume descriptors
      */
     private List<VolumeDescriptor> createVolumeDescriptorsForVarrayChange(List<Volume> volumes,
-            VirtualArray tgtVarray, boolean isHostMigration, InitiatorList initiatorList, String taskId) {
+            VirtualArray tgtVarray, boolean isHostMigration, URI migrationHostURI, String taskId) {
 
         // The list of descriptors for the virtual array change.
         List<VolumeDescriptor> descriptors = new ArrayList<VolumeDescriptor>();
@@ -286,8 +457,67 @@ public class DefaultMigrationServiceApiImpl extends AbstractMigrationServiceApiI
                     assocVolume.getVirtualPool());
             descriptors.addAll(createBackendVolumeMigrationDescriptors(storageSystem,
                     volume, assocVolume, tgtVarray, assocVolumeVPool,
-                    getVolumeCapacity(assocVolume), isHostMigration, initiatorList,
+                    getVolumeCapacity(assocVolume), isHostMigration, migrationHostURI,
                     taskId, null, null));
+        }
+
+        return descriptors;
+    }
+
+    /**
+     * Change the VirtualPool for the passed virtual volume on the passed VPlex
+     * storage system.
+     *
+     * @param vplexSystem A reference to the VPlex storage system.
+     * @param volume A reference to the virtual volume.
+     * @param newVpool The desired VirtualPool.
+     * @param isHostMigration Boolean describing if the migration is host-based or not.
+     * @param migrationHostURI The URI for the migration host in host-based migrations.
+     * @param taskId The task identifier.
+     *
+     * @throws InternalException
+     */
+    protected List<VolumeDescriptor> createChangeVirtualPoolDescriptors(StorageSystem vplexSystem, Volume volume,
+            VirtualPool newVpool, boolean isHostMigration, URI migrationHostURI, String taskId,
+            List<Recommendation> recommendations, VirtualPoolCapabilityValuesWrapper capabilities)
+    throws InternalException {
+        // Get the varray and current vpool for the virtual volume.
+        URI volumeVarrayURI = volume.getVirtualArray();
+        VirtualArray volumeVarray = _dbClient.queryObject(VirtualArray.class, volumeVarrayURI);
+        s_logger.info("Virtual volume varray is {}", volumeVarrayURI);
+        URI volumeVpoolURI = volume.getVirtualPool();
+        VirtualPool currentVpool = _dbClient.queryObject(VirtualPool.class, volumeVpoolURI);
+
+        List<VolumeDescriptor> descriptors = new ArrayList<VolumeDescriptor>();
+
+        // Add the Volume Descriptor for change vpool
+        VolumeDescriptor volumeDesc = new VolumeDescriptor(VolumeDescriptor.Type.GENERAL_VOLUME,
+                volume.getStorageController(),
+                volume.getId(),
+                volume.getPool(), null);
+
+        Map<String, Object> volumeParams = new HashMap<String, Object>();
+        volumeParams.put(VolumeDescriptor.PARAM_VPOOL_CHANGE_VOLUME_ID, volume.getId());
+        volumeParams.put(VolumeDescriptor.PARAM_VPOOL_CHANGE_VPOOL_ID, newVpool.getId());
+        volumeParams.put(VolumeDescriptor.PARAM_VPOOL_OLD_VPOOL_ID, volume.getVirtualPool());
+        volumeDesc.setParameters(volumeParams);
+        descriptors.add(volumeDesc);
+
+        // A VirtualPool change on a VPlex virtual volume requires
+        // a migration of the data on the backend volume(s) used by
+        // the virtual volume to new volumes that satisfy the new
+        // new VirtualPool. So we need to get the placement
+        // recommendations for the new volumes to which the data
+        // will be migrated and prepare the volume(s). First
+        // determine if the backend volume on the source side,
+        // i.e., the backend volume in the same varray as the
+        // vplex volume. Recall for ingested volumes, we know
+        // nothing about the backend volumes.
+        if (VirtualPoolChangeAnalyzer.vpoolChangeRequiresMigration(currentVpool, newVpool)) {
+            Volume migSrcVolume = getAssociatedVolumeInVArray(volume, volumeVarrayURI);
+            descriptors.addAll(createBackendVolumeMigrationDescriptors(vplexSystem, volume,
+                    migSrcVolume, volumeVarray, newVpool, getVolumeCapacity(migSrcVolume != null ? migSrcVolume : volume),
+                    isHostMigration, migrationHostURI, taskId, recommendations, false, capabilities));
         }
 
         return descriptors;
@@ -311,7 +541,7 @@ public class DefaultMigrationServiceApiImpl extends AbstractMigrationServiceApiI
      */
     private List<VolumeDescriptor> createBackendVolumeMigrationDescriptors(StorageSystem storageSystem,
             Volume virtualVolume, Volume sourceVolume, VirtualArray varray, VirtualPool vpool,
-            Long capacity, boolean isHostMigration, InitiatorList initiatorList, String taskId,
+            Long capacity, boolean isHostMigration, URI migrationHostURI, String taskId,
             List<VolumeRecommendation> recommendations, VirtualPoolCapabilityValuesWrapper capabilities) {
 
         URI sourceVolumeURI = null;
@@ -430,7 +660,7 @@ public class DefaultMigrationServiceApiImpl extends AbstractMigrationServiceApiI
         // migrations list.
         Migration migration = prepareMigration(virtualVolume.getId(),
                 sourceVolumeURI, targetVolumeURI, isHostMigration,
-                initiatorList, taskId);
+                migrationHostURI, taskId);
 
         descriptors.add(new VolumeDescriptor(VolumeDescriptor.Type.MIGRATE_VOLUME,
                 targetStorageSystem,
@@ -541,14 +771,14 @@ public class DefaultMigrationServiceApiImpl extends AbstractMigrationServiceApiI
      * @return A reference to a newly created Migration.
      */
     public Migration prepareMigration(URI virtualVolumeURI, URI sourceURI, URI targetURI,
-            boolean isHostMigration, InitiatorList initiatorList, String token) {
+            boolean isHostMigration, URI migrationHostURI, String token) {
         Migration migration = new Migration();
         migration.setId(URIUtil.createId(Migration.class));
         migration.setVolume(virtualVolumeURI);
         migration.setSource(sourceURI);
         migration.setTarget(targetURI);
         migration.setIsHostMigration(isHostMigration);
-        migration.setInitiatorList(initiatorList);
+        migration.setMigrationHost(migrationHostURI);
         _dbClient.createObject(migration);
         migration.setOpStatus(new OpStatusMap());
         Operation op = _dbClient.createTaskOpStatus(Migration.class, migration.getId(),

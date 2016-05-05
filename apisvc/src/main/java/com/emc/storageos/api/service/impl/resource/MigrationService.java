@@ -8,11 +8,13 @@ import static com.emc.storageos.api.mapper.BlockMapper.map;
 import static com.emc.storageos.api.mapper.DbObjectMapper.map;
 import static com.emc.storageos.api.mapper.DbObjectMapper.toNamedRelatedResource;
 import static com.emc.storageos.api.mapper.TaskMapper.toTask;
+import static com.emc.storageos.db.client.util.CommonTransformerFunctions.fctnDataObjectToID;
 import static com.emc.storageos.db.client.util.NullColumnValueGetter.isNullURI;
 
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -49,8 +51,8 @@ import com.emc.storageos.db.client.model.BlockMirror;
 import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
+import com.emc.storageos.db.client.model.ExportPathParams;
 import com.emc.storageos.db.client.model.Host;
-import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.Migration;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.Project;
@@ -74,9 +76,8 @@ import com.emc.storageos.model.block.MigrationList;
 import com.emc.storageos.model.block.MigrationParam;
 import com.emc.storageos.model.block.MigrationRestRep;
 import com.emc.storageos.model.block.NamedVolumesList;
-import com.emc.storageos.model.block.MigrateVolumeVirtualArrayParam;
+import com.emc.storageos.model.block.VolumeVirtualArrayChangeParam;
 import com.emc.storageos.model.host.HostList;
-import com.emc.storageos.model.host.InitiatorList;
 import com.emc.storageos.security.authentication.StorageOSUser;
 import com.emc.storageos.security.authorization.ACL;
 import com.emc.storageos.security.authorization.CheckPermission;
@@ -88,6 +89,7 @@ import com.emc.storageos.svcs.errorhandling.resources.InternalServerErrorExcepti
 import com.emc.storageos.util.ConnectivityUtil;
 import com.emc.storageos.volumecontroller.Recommendation;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
+import com.emc.storageos.volumecontroller.placement.ExportPathUpdater;
 import com.emc.storageos.vplex.api.VPlexApiConstants;
 import com.emc.storageos.vplex.api.VPlexApiException;
 import com.emc.storageos.vplex.api.VPlexMigrationInfo;
@@ -141,6 +143,20 @@ public class MigrationService extends TaskResourceService {
      * @return migration service implementation object
      */
     private MigrationServiceApi getMigrationServiceImpl(Volume volume) {
+        return getMigrationServiceImpl("default");
+    }
+
+    /**
+     * Returns a reference to the MigrationServiceApi that should be used to execute
+     * change the VirtualPool for the passed volume to the passed VirtualPool.
+     *
+     * @param volume A reference to the volume.
+     * @param vpool A reference to the VirtualPool.
+     *
+     * @return A reference to the MigrationServiceApi that should be used execute
+     *         the VirtualPool change for the volume.
+     */
+    private MigrationServiceApi getMigrationServiceImplForVirtualPoolChange(Volume volume, VirtualPool vpool) {
         return getMigrationServiceImpl("default");
     }
 
@@ -424,7 +440,7 @@ public class MigrationService extends TaskResourceService {
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @CheckPermission(roles = { Role.TENANT_ADMIN }, acls = { ACL.OWN, ACL.ALL })
-    public TaskList migrateVolumesVirtualArray(MigrateVolumeVirtualArrayParam param)
+    public TaskList changeVolumesVirtualArray(VolumeVirtualArrayChangeParam param)
             throws InternalException, APIException, DatabaseException {
         s_logger.info("Request to change varray for volumes {}", param.getVolumes());
 
@@ -442,8 +458,6 @@ public class MigrationService extends TaskResourceService {
         // Validate that each of the volumes passed in is eligible for the varray change
         VirtualArray tgtVarray = null;
         BlockConsistencyGroup cg = null;
-        Host migrationHost = null;
-        InitiatorList initiatorList = null;
         MigrationServiceApi migrationServiceApi = null;
         List<Volume> volumes = new ArrayList<Volume>();
         List<Volume> cgVolumes = new ArrayList<Volume>();
@@ -531,12 +545,7 @@ public class MigrationService extends TaskResourceService {
         if (cg != null) {
             // all volume in CG must have been passed.
             s_logger.info("Verify all volumes in CG {}:{}", cg.getId(), cg.getLabel());
-            URI storageId = cg.getStorageController();
-            if (!NullColumnValueGetter.isNullURI(storageId)) {
-                verifyVolumesInCG(volumes, cgVolumes);
-            } else {
-                verifyVolumesInCG(volumes, cgVolumes);
-            }
+            verifyVolumesInCG(volumes, cgVolumes);
         }
 
         // Create a task for each volume and set the initial
@@ -548,16 +557,12 @@ public class MigrationService extends TaskResourceService {
             taskList.addTask(resourceTask);
         }
 
-        if (isHostMigration) {
-            initiatorList = getInitiators(migrationHostURI);
-        }
-
         // Now execute the varray change for the volumes.
         if (cg != null) {
             try {
                 // When the volumes are part of a CG, executed as a single workflow.
-                migrationServiceApi.migrateVolumesVirtualArray(volumes, cg, cgVolumes, tgtVarray,
-                            isHostMigration, initiatorList, taskId);
+                migrationServiceApi.changeVolumesVirtualArray(volumes, cg, cgVolumes, tgtVarray,
+                            isHostMigration, migrationHostURI, taskId);
                 s_logger.info("Executed virtual array change for volumes");
             } catch (InternalException | APIException e) {
                 // Fail all the tasks.
@@ -584,8 +589,8 @@ public class MigrationService extends TaskResourceService {
             // When the volumes are not in a CG, then execute as individual workflows.
             for (Volume volume : volumes) {
                 try {
-                    migrationServiceApi.migrateVolumesVirtualArray(Arrays.asList(volume), cg, cgVolumes, tgtVarray,
-                                isHostMigration, initiatorList, taskId);
+                    migrationServiceApi.changeVolumesVirtualArray(Arrays.asList(volume), cg, cgVolumes, tgtVarray,
+                                isHostMigration, migrationHostURI, taskId);
                     s_logger.info("Executed virtual array change for volume {}", volume.getId());
                 } catch (InternalException | APIException e) {
                     String errorMsg = String.format("Volume virtual array change error: %s", e.getMessage());
@@ -620,24 +625,268 @@ public class MigrationService extends TaskResourceService {
     }
 
     /**
-     * Gets the id and name for all the host initiators of a host.
+     * Allows the caller to change the virtual pool for the volumes identified in
+     * the request.
      *
-     * @param id The URI of the host.
-     * @return List of Host Initiators.
-     * @throws DatabaseException when a DB error occurs.
+     * @brief Change the virtual pool for the given volumes.
+     *
+     * @param param the VolumeVirtualPoolChangeParam
+     * @return A List of TaskResourceRep representing the virtual pool change for the
+     *         volumes.
+     * @throws InternalException, APIException
      */
-    private InitiatorList getInitiators(URI id) throws DatabaseException {
-        Host host = queryObject(Host.class, id, false);
-        // check the user permissions
-        verifyAuthorizedInTenantOrg(host.getTenant(), getUserFromContext());
-        // get the initiators
-        InitiatorList initiatorList = new InitiatorList();
-        List<NamedElementQueryResultList.NamedElement> dataObjects = listChildren(id, Initiator.class, "iniport", "host");
-        for (NamedElementQueryResultList.NamedElement dataObject : dataObjects) {
-            initiatorList.getInitiators().add(toNamedRelatedResource(ResourceTypeEnum.INITIATOR,
-                        dataObject.getId(), dataObject.getName()));
+    @POST
+    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @CheckPermission(roles = { Role.TENANT_ADMIN }, acls = { ACL.OWN, ACL.ALL })
+    public TaskList changeVolumesVirtualPool(VolumeVirtualPoolChangeParam param)
+            throws InternalException, APIException {
+
+        // verify volume ids list is provided.
+        List<URI> ids = param.getVolumes();
+        ArgValidator.checkFieldNotEmpty(ids, "volumes");
+        s_logger.info("Request to change VirtualPool for volumes {}", ids);
+
+        // Create a unique task id.
+        String taskId = UUID.randomUUID().toString();
+
+        List<Volume> volumes = new ArrayList<Volume>();
+        TaskList taskList = new TaskList();
+
+        for (URI id : ids) {
+            // Get the volume.
+            ArgValidator.checkFieldUriType(id, Volume.class, "volume");
+            Volume volume = queryVolumeResource(id);
+            volumes.add(volume);
+
+            // Make sure that we don't have some pending
+            // operation against the volume
+            checkForPendingTasks(Arrays.asList(volume.getTenant().getURI()), Arrays.asList(volume));
         }
-        return initiatorList;
+
+        s_logger.info("Found volumes");
+
+        /**
+         * verify that all volumes belong to same vPool.
+         *
+         * If so and vPool change detects it as Auto-tiering policy change,
+         * then they are of same system type.
+         */
+        verifyAllVolumesBelongToSameVpool(volumes);
+
+        // target vPool
+        VirtualPool vPool = null;
+
+        // total provisioned capacity to check for vPool quota.
+        long totalProvisionedCapacity = 0;
+
+        for (Volume volume : volumes) {
+            s_logger.info("Checking on volume: {}", volume.getId());
+
+            // Don't operate on VPLEX backend or RP Journal volumes.
+            BlockServiceUtils.validateNotAnInternalBlockObject(volume, false);
+
+            // Don't operate on ingested volumes.
+            VolumeIngestionUtil.checkOperationSupportedOnIngestedVolume(volume,
+                    ResourceOperationTypeEnum.CHANGE_BLOCK_VOLUME_VPOOL, _dbClient);
+
+            // Get the project.
+            URI projectURI = volume.getProject().getURI();
+            Project project = _permissionsHelper.getObjectById(projectURI,
+                    Project.class);
+            ArgValidator.checkEntity(project, projectURI, false);
+            s_logger.info("Found volume project {}", projectURI);
+
+            // Verify the user is authorized for the volume's project.
+            BlockServiceUtils.verifyUserIsAuthorizedForRequest(project, getUserFromContext(), _permissionsHelper);
+            s_logger.info("User is authorized for volume's project");
+
+            // Get the VirtualPool for the request and verify that the
+            // project's tenant has access to the VirtualPool.
+            vPool = BlockService.getVirtualPoolForRequest(project, param.getVirtualPool(),
+                    _dbClient, _permissionsHelper);
+            s_logger.info("Found new VirtualPool {}", vPool.getId());
+
+            // Verify that the VirtualPool change is allowed for the
+            // requested volume and VirtualPool.
+            verifyVirtualPoolChangeSupportedForVolumeAndVirtualPool(volume, vPool);
+            s_logger.info("VirtualPool change is supported for requested volume and VirtualPool");
+
+            totalProvisionedCapacity += volume.getProvisionedCapacity()
+                    .longValue();
+        }
+        verifyAllVolumesInCGRequirement(volumes, vPool);
+
+        // verify target vPool quota
+        if (!CapacityUtils.validateVirtualPoolQuota(_dbClient, vPool,
+                totalProvisionedCapacity)) {
+            throw APIException.badRequests.insufficientQuotaForVirtualPool(
+                    vPool.getLabel(), "volume");
+        }
+
+        // Create a task for each volume and set the initial task state to pending.
+        for (Volume volume : volumes) {
+            // Associated resources are any resources that are indirectly affected by this
+            // volume's virtual pool change. The user should be notified if there are any.
+            List<? extends DataObject> associatedResources = getTaskAssociatedResources(volume, vPool);
+            List<URI> associatedResourcesURIs = new ArrayList<URI>();
+            if (associatedResources != null
+                    && !associatedResources.isEmpty()) {
+                for (DataObject obj : associatedResources) {
+                    associatedResourcesURIs.add(obj.getId());
+                }
+            }
+
+            // New operation
+            Operation op = new Operation();
+            op.setResourceType(ResourceOperationTypeEnum.CHANGE_BLOCK_VOLUME_VPOOL);
+            op.setDescription("Change vpool operation");
+            if (!associatedResourcesURIs.isEmpty()) {
+                op.setAssociatedResourcesField(Joiner.on(',').join(associatedResourcesURIs));
+            }
+            op = _dbClient.createTaskOpStatus(Volume.class, volume.getId(), taskId, op);
+
+            TaskResourceRep volumeTask = null;
+            if (associatedResources != null) {
+                // We need the task to reflect that there are associated resources affected by this operation.
+                volumeTask = toTask(volume, associatedResources, taskId, op);
+            } else {
+                volumeTask = toTask(volume, taskId, op);
+            }
+
+            taskList.getTaskList().add(volumeTask);
+        }
+
+        // if this vpool request change has a consistency group, set its requested types
+        if (param.getConsistencyGroup() != null) {
+            BlockConsistencyGroup cg = _dbClient.queryObject(BlockConsistencyGroup.class, param.getConsistencyGroup());
+            if (cg != null && !cg.getInactive()) {
+                cg.getRequestedTypes().addAll(getRequestedTypes(vPool));
+                _dbClient.updateObject(cg);
+            }
+        }
+
+        // Get the required migration service API implementation to
+        // make the desired VirtualPool change on this volume. This
+        // essentially determines the controller that will be used
+        // to execute the VirtualPool update on the volume.
+        try {
+            /**
+             * If it is Auto-tiering policy change, the system type remains same
+             * between source and target vPools.
+             * Volumes from single vPool would be of same characteristics and
+             * all would specify same operation.
+             */
+            MigrationServiceApi migrationServiceApi = getMigrationServiceImplForVirtualPoolChange(
+                    volumes.get(0), vPool);
+            s_logger.info("Got block service implementation for VirtualPool change request");
+            migrationServiceAPI.changeVolumesVirtualPool(volumes, vPool,
+                    param, taskId);
+            s_logger.info("Executed VirtualPool change for given volumes.");
+        } catch (Exception e) {
+            String errorMsg = String.format(
+                    "Volume VirtualPool change error: %s", e.getMessage());
+            s_logger.error(errorMsg, e);
+            for (TaskResourceRep volumeTask : taskList.getTaskList()) {
+                volumeTask.setState(Operation.Status.error.name());
+                volumeTask.setMessage(errorMsg);
+                _dbClient.updateTaskOpStatus(Volume.class, volumeTask
+                        .getResource().getId(), taskId, new Operation(
+                        Operation.Status.error.name(), errorMsg));
+            }
+            throw e;
+        }
+
+        // Record Audit operation.
+        for (Volume volume : volumes) {
+            auditOp(OperationTypeEnum.CHANGE_VOLUME_VPOOL, true,
+                    AuditLogManager.AUDITOP_BEGIN, volume.getLabel(), 1, volume
+                            .getVirtualArray().toString(),
+                    volume.getProject()
+                            .toString());
+        }
+
+        return taskList;
+    }
+
+    /**
+     * Determines whether or not the passed VirtualPool change for the passed Volume is
+     * supported. Throws a ServiceCodeException when the vpool change is not
+     * supported.
+     *
+     * @param volume A reference to the volume.
+     * @param newVpool A reference to the new VirtualPool.
+     */
+    private void verifyVirtualPoolChangeSupportedForVolumeAndVirtualPool(Volume volume, VirtualPool newVpool) {
+
+        VirtualPool currentVpool = _dbClient.queryObject(VirtualPool.class, volume.getVirtualPool());
+        URI systemURI = volume.getStorageController();
+        StorageSystem system = _dbClient.queryObject(StorageSystem.class, systemURI);
+        String systemType = system.getSystemType();
+
+        StringBuffer notSuppReasonBuff = new StringBuffer();
+        notSuppReasonBuff.setLength(0);
+
+        // Check if an Export Path Params change.
+        if (VirtualPoolChangeAnalyzer.isSupportedPathParamsChange(volume, currentVpool, newVpool,
+                _dbClient, notSuppReasonBuff)) {
+            ExportPathUpdater updater = new ExportPathUpdater(_dbClient);
+            ExportPathParams newParam = new ExportPathParams(newVpool.getNumPaths(),
+                    newVpool.getMinPaths(), newVpool.getPathsPerInitiator());
+            updater.validateChangePathParams(volume.getId(), newParam);
+            s_logger.info("New VPool specifies an Export Path Params change");
+            return;
+        }
+
+        // Check if it is an Auto-tiering policy change.
+        notSuppReasonBuff.setLength(0);
+        if (VirtualPoolChangeAnalyzer.isSupportedAutoTieringPolicyAndLimitsChange(volume, currentVpool, newVpool,
+                _dbClient, notSuppReasonBuff)) {
+            s_logger.info("New VPool specifies an Auto-tiering policy change");
+            return;
+        }
+
+        // Check if it is a replication mode change
+        if (VirtualPoolChangeAnalyzer.isSupportedReplicationModeChange(currentVpool, newVpool,
+                notSuppReasonBuff)) {
+            s_logger.info("New VPool specifies a replication mode change");
+            return;
+        }
+
+        // Determine if the vpool change will require a migration
+        boolean migrateSourceVolume = VirtualPoolChangeAnalyzer
+                .vpoolChangeRequiresMigration(currentVpool,
+                    newVpool);
+
+        if (migrateSourceVolume) {
+            // Has a source volume, so not ingested
+            URIQueryResultList snapshotURIs = new URIQueryResultList();
+            _dbClient.queryByConstraint(ContainmentConstraint.Factory.getVolumeSnapshotConstraint(
+                    volume.getId()), snapshotURIs);
+            List<BlockSnapshot> snapshots = _dbClient.queryObject(BlockSnapshot.class, snapshotURIs);
+
+            // Check for snapshot sessions for the volume
+            if (BlockSnapshotSessionUtils.volumeHasSnapshotSession(volume, _dbClient)) {
+                throw APIException.badRequests.volumeForVpoolChangeHasSnaps(volume.getLabel());
+            }
+
+            // Can't migrate the source side backend volume if it has full copy sessions
+            if (BlockFullCopyUtils.volumeHasFullCopySession(volume, _dbClient)) {
+                throw APIException.badRequests.volumeForVpoolChangeHasFullCopies(volume.getLabel());
+            }
+
+            // If the volume has mirrors then vpool change will not be allowed.
+            // User needs to explicitly delete mirrors first.
+            StringSet mirrorURIs = volume.getMirrors();
+            if (mirrorURIs != null && !mirrorURIs.isEmpty()) {
+                List<BlockMirror> mirrors = _dbClient.queryObject(BlockMirror.class,
+                        StringSetUtil.stringSetToUriList(mirrorURIs));
+                if (mirrors != null && !mirrors.isEmpty()) {
+                    throw APIException.badRequests
+                            .volumeForVpoolChangeHasMirrors(volume.getId().toString(), volume.getLabel());
+                }
+            }
+        }
     }
 
     /**
@@ -667,6 +916,68 @@ public class MigrationService extends TaskResourceService {
                 s_logger.error("Volume {}:{} not found in CG", volume.getId(), volume.getLabel());
                 throw APIException.badRequests.cantChangeVarrayVolumeIsNotInCG();
             }
+        }
+    }
+
+    /**
+     * Given a list of volumes, verify that any consistency groups associated with its volumes
+     * are fully specified, i.e. the list contains all the members of a consistency group.
+     *
+     * @param volumes
+     * @param targetVPool
+     */
+    private void verifyAllVolumesInCGRequirement(List<Volume> volumes, VirtualPool targetVPool) {
+        StringBuilder errorMsg = new StringBuilder();
+        boolean failure = false;
+        Collection<URI> volIds = transform(volumes, fctnDataObjectToID());
+        Map<URI, Volume> cgId2Volume = new HashMap<>();
+
+        try {
+            // Build map of consistency groups to a single group member representative
+            for (Volume volume : volumes) {
+                URI cgId = volume.getConsistencyGroup();
+                if (!isNullURI(cgId) && !cgId2Volume.containsKey(cgId)) {
+                    cgId2Volume.put(cgId, volume);
+                }
+            }
+
+            // Verify that all consistency groups are fully specified
+            for (Map.Entry<URI, Volume> entry : cgId2Volume.entrySet()) {
+                // Currently, we only care about verifying CG's when adding SRDF protection
+                if (!isAddingSRDFProtection(entry.getValue(), targetVPool)) {
+                    continue;
+                }
+
+                List<URI> memberIds = _dbClient.queryByConstraint(getVolumesByConsistencyGroup(entry.getKey()));
+
+                memberIds.removeAll(volIds);
+                if (!memberIds.isEmpty()) {
+                    failure = true;
+                    errorMsg.append(entry.getValue().getLabel())
+                            .append(" is missing other consistency group members.\n");
+                }
+            }
+        } finally {
+            if (failure) {
+                throw APIException.badRequests.cannotAddSRDFProtectionToPartialCG(errorMsg.toString());
+            }
+        }
+    }
+
+    /**
+     * Verify that all volumes belong to same vpool.
+     *
+     * @param volumes the volumes
+     */
+    private void verifyAllVolumesBelongToSameVpool(List<Volume> volumes) {
+        URI vPool = null;
+        for (Volume volume : volumes) {
+            if (vPool != null
+                    && !vPool.toString().equalsIgnoreCase(
+                            volume.getVirtualPool().toString())) {
+                throw APIException.badRequests.volumesShouldBelongToSameVpool();
+            }
+            vPool = volume.getVirtualPool();
         }
     }
 

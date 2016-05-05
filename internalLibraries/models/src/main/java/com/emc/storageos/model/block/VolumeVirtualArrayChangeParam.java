@@ -23,13 +23,18 @@ public class VolumeVirtualArrayChangeParam {
 
     private List<URI> volumes;
     private URI virtualArray;
+    private URI migrationHost;
+    private boolean isHostMigration;
 
     public VolumeVirtualArrayChangeParam() {
     }
 
-    public VolumeVirtualArrayChangeParam(List<URI> volumes, URI virtualArray) {
+    public VolumeVirtualArrayChangeParam(List<URI> volumes, URI virtualArray,
+    		URI migrationHost, boolean isHostMigration) {
         this.volumes = volumes;
         this.virtualArray = virtualArray;
+        this.migrationHost = migrationHost;
+        this.isHostMigration = isHostMigration;
     }
 
     @XmlElementWrapper(required = true, name = "volumes")
@@ -57,5 +62,23 @@ public class VolumeVirtualArrayChangeParam {
 
     public void setVirtualArray(URI virtualArray) {
         this.virtualArray = virtualArray;
+    }
+
+    @XmlElement(required = false, name = "host")
+    public URI getMigrationHost() {
+        return migrationHost;
+    }
+
+    public void setMigrationHost(URI migrationHost) {
+        this.migrationHost = migrationHost;
+    }
+
+    @XmlElement(required = false, name = "ishostmigration")
+    public boolean getIsHostMigration() {
+        return isHostMigration;
+    }
+
+    public void setIsHostMigration(boolean isHostMigration) {
+        this.isHostMigration = isHostMigration;
     }
 }

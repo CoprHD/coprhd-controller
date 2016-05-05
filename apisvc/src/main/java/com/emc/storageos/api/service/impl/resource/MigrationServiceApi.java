@@ -10,8 +10,9 @@ import java.util.List;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.VirtualArray;
+import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
-import com.emc.storageos.model.host.InitiatorList;
+import com.emc.storageos.model.block.VolumeVirtualPoolChangeParam;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 
@@ -23,6 +24,9 @@ public interface MigrationServiceApi {
      * Define the default MigrationServiceApi implementation.
      */
     public static final String DEFAULT = "default";
+
+    public static final String CONTROLLER_SVC = "controllersvc";
+    public static final String CONTROLLER_SVC_VER = "1";
 
     /**
      * Get the snapshots for the passed volume.
@@ -74,11 +78,27 @@ public interface MigrationServiceApi {
      * @param cg A reference to the volume's consistency group, or null.
      * @param cgVolumes List of volumes in the CG when not null.
      * @param tgtVarray A reference to the new varray.
+     * @param isHostMigration Boolean describing if the migration will be host or driver based
+     * @param migrationHostURI URI of the host for host-based migration
      *
      * @throws InternalException
      */
-    public void migrateVolumesVirtualArray(List<Volume> volume,
+    public void changeVolumesVirtualArray(List<Volume> volume,
             BlockConsistencyGroup cg, List<Volume> cgVolumes, VirtualArray tgtVarray,
-            boolean isHostMigration, InitiatorList initiatorList, String taskId) throws InternalException;
+            boolean isHostMigration, URI migrationHostURI, String taskId) throws InternalException;
+
+    /**
+     * Defines the API to change the vpool for the passed volumes to the passed
+     * vpool.
+     *
+     * @param volumes List of volumes.
+     * @param targetVpool A reference to the new vpool.
+     * @param vpoolChangeParam vpool change request
+     * @param taskId The task identifier.
+     * @throws InternalException the internal exception
+     */
+    public void changeVolumesVirtualPool(List<Volume> volumes,
+            VirtualPool targetVpool, VolumeVirtualPoolChangeParam vpoolChangeParam, String taskId)
+            throws InternalException;
 
 }

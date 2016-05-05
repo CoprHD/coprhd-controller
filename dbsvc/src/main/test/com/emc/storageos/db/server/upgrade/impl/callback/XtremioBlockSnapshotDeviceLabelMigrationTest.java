@@ -5,6 +5,7 @@
 
 package com.emc.storageos.db.server.upgrade.impl.callback;
 
+import java.io.File;
 import java.io.IOException;
 import java.net.URI;
 import java.util.ArrayList;
@@ -26,7 +27,6 @@ import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.upgrade.BaseCustomMigrationCallback;
 import com.emc.storageos.db.client.upgrade.callbacks.XtremioBlockSnapshotDeviceLabelMigration;
-import com.emc.storageos.db.server.DbsvcTestBase;
 import com.emc.storageos.db.server.upgrade.DbSimpleMigrationTestBase;
 
 public class XtremioBlockSnapshotDeviceLabelMigrationTest extends DbSimpleMigrationTestBase {
@@ -45,7 +45,17 @@ public class XtremioBlockSnapshotDeviceLabelMigrationTest extends DbSimpleMigrat
             }
         });
 
-        DbsvcTestBase.setup();
+        // Adding this, which is typically executed in the base class
+        // call, as it is needed to clear the DB file between runs.
+        _dataDir = new File(dataDir);
+        if (_dataDir.exists() && _dataDir.isDirectory()) {
+            cleanDirectory(_dataDir);
+        }
+        _dataDir.mkdir();
+
+        // Commenting this out as it prevents the migration callback
+        // from being executed when the test is executed.
+        // DbsvcTestBase.setup();
         log.info("completed setup");
     }
 

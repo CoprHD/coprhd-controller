@@ -615,7 +615,9 @@ public class DefaultMigrationServiceApiImpl extends AbstractMigrationServiceApiI
 
         // If a driver assisted migration was requested, verify that the driver can handle
         // the migration.
-        verifyDriverCapabilities(sourceVolume.getStorageController(), targetStorageSystem);
+        if (!isHostMigration) {
+            verifyDriverCapabilities(sourceVolume.getStorageController(), targetStorageSystem);
+        }
         // Create a volume for the new backend volume to which
         // data will be migrated.
         Volume targetVolume = prepareVolumeForRequest(capacity,

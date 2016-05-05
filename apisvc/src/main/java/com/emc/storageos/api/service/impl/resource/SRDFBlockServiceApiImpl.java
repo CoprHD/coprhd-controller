@@ -999,7 +999,8 @@ public class SRDFBlockServiceApiImpl extends AbstractBlockServiceApiImpl<SRDFSch
      */
     @Override
     public void changeVolumeVirtualPool(final URI systemURI, final Volume volume,
-            final VirtualPool vpool, final VirtualPoolChangeParam vpoolChangeParam, final String taskId)
+            final VirtualPool vpool, final boolean isHostMigration, final URI migrationHostURI,
+            final VirtualPoolChangeParam vpoolChangeParam, final String taskId)
             throws InternalException {
         _log.debug("Volume {} VirtualPool change.", volume.getId());
 
@@ -1037,7 +1038,8 @@ public class SRDFBlockServiceApiImpl extends AbstractBlockServiceApiImpl<SRDFSch
 
     @Override
     public void changeVolumeVirtualPool(List<Volume> volumes, VirtualPool vpool,
-            VirtualPoolChangeParam vpoolChangeParam, String taskId) throws InternalException {
+            boolean isHostMigration, URI migrationHostURI, VirtualPoolChangeParam vpoolChangeParam,
+            String taskId) throws InternalException {
 
         // Check for common Vpool updates handled by generic code. It returns true if handled.
         if (checkCommonVpoolUpdates(volumes, vpool, taskId)) {

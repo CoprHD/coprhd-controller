@@ -688,7 +688,7 @@ public class BlockMirrorServiceApiImpl extends AbstractBlockServiceApiImpl<Stora
 
     @Override
     public void changeVolumeVirtualPool(URI systemURI, Volume volume, VirtualPool virtualPool,
-            VirtualPoolChangeParam cosChangeParam,
+            boolean isHostMigration, URI migrationHostURI, VirtualPoolChangeParam cosChangeParam,
             String taskId) throws ControllerException {
         StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, systemURI);
         String systemType = storageSystem.getSystemType();
@@ -717,7 +717,8 @@ public class BlockMirrorServiceApiImpl extends AbstractBlockServiceApiImpl<Stora
 
     @Override
     public void changeVolumeVirtualPool(List<Volume> volumes, VirtualPool vpool,
-            VirtualPoolChangeParam vpoolChangeParam, String taskId) throws InternalException {
+            boolean isHostMigration, URI migrationHostURI, VirtualPoolChangeParam vpoolChangeParam,
+            String taskId) throws InternalException {
 
         // Check for common Vpool updates handled by generic code. It returns true if handled.
         if (checkCommonVpoolUpdates(volumes, vpool, taskId)) {
@@ -725,7 +726,8 @@ public class BlockMirrorServiceApiImpl extends AbstractBlockServiceApiImpl<Stora
         }
 
         for (Volume volume : volumes) {
-            changeVolumeVirtualPool(volume.getStorageController(), volume, vpool, vpoolChangeParam, taskId);
+            changeVolumeVirtualPool(volume.getStorageController(), volume, vpool, isHostMigration,
+                    migrationHostURI, vpoolChangeParam, taskId);
         }
     }
 

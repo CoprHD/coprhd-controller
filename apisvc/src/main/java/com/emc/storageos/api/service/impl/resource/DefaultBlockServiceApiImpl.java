@@ -11,6 +11,7 @@ import static java.text.MessageFormat.format;
 
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -21,8 +22,10 @@ import java.util.Set;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 
 import com.emc.storageos.api.mapper.TaskMapper;
+import com.emc.storageos.api.service.authorization.PermissionsHelper;
 import com.emc.storageos.api.service.impl.placement.StorageScheduler;
 import com.emc.storageos.api.service.impl.placement.VirtualPoolUtil;
 import com.emc.storageos.api.service.impl.placement.VolumeRecommendation;
@@ -60,7 +63,9 @@ import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.model.TaskList;
 import com.emc.storageos.model.TaskResourceRep;
 import com.emc.storageos.model.application.VolumeGroupUpdateParam.VolumeGroupVolumeList;
+import com.emc.storageos.model.block.VirtualPoolChangeParam;
 import com.emc.storageos.model.block.VolumeCreate;
+import com.emc.storageos.model.block.VolumeVirtualPoolChangeParam;
 import com.emc.storageos.model.systems.StorageSystemConnectivityList;
 import com.emc.storageos.model.vpool.VirtualPoolChangeList;
 import com.emc.storageos.model.vpool.VirtualPoolChangeOperationEnum;
@@ -81,6 +86,9 @@ public class DefaultBlockServiceApiImpl extends AbstractBlockServiceApiImpl<Stor
     
     private static final String MIGRATION_LABEL_SUFFIX = "m";
     
+    @Autowired
+    private final PermissionsHelper _permissionsHelper = null;
+
     // The max number of volumes allowed in a CG for varray and vpool
     // changes resulting in backend data migrations. Set in the API
     // service configuration file.
@@ -407,7 +415,8 @@ public class DefaultBlockServiceApiImpl extends AbstractBlockServiceApiImpl<Stor
      *
      * @throws InternalException
      */
-    private void changeVolumeVirtualPool(URI systemURI, Volume volume, VirtualPool vpool,
+    @Override
+    public void changeVolumeVirtualPool(URI systemURI, Volume volume, VirtualPool vpool,
             boolean isHostMigration, URI migrationHostURI, VirtualPoolChangeParam vpoolChangeParam,
             String taskId) throws InternalException {
         VirtualPool volumeVirtualPool = _dbClient.queryObject(VirtualPool.class, volume.getVirtualPool());
@@ -436,7 +445,7 @@ public class DefaultBlockServiceApiImpl extends AbstractBlockServiceApiImpl<Stor
      */
     @Override
     public void changeVolumeVirtualPool(List<Volume> volumes, VirtualPool vpool,
-            boolean isHostMigration, URI migrationHostURI, VolumeVirtualPoolChangeParam vpoolChangeParam,
+            boolean isHostMigration, URI migrationHostURI, VirtualPoolChangeParam vpoolChangeParam,
             String taskId) throws InternalException {
 
         // Check for common Vpool updates handled by generic code. It returns true if handled.

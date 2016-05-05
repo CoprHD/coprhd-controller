@@ -80,9 +80,6 @@ public class MigrationService extends TaskResourceService {
     // A reference to the BlockServiceApi for VPlex.
     VPlexBlockServiceApiImpl _vplexBlockServiceApi = null;
 
-    // Migration Service Implementations
-    static volatile private Map<String, MigrationServiceApi> _migrationServiceApis;
-
     // A logger reference.
     private static final Logger s_logger = LoggerFactory
             .getLogger(MigrationService.class);

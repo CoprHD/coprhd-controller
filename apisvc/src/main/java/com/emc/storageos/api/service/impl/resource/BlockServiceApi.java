@@ -218,13 +218,16 @@ public interface BlockServiceApi {
      * @param systemURI URI of the storage system on which the volume resides.
      * @param volume A reference to the volume.
      * @param targetVpool A reference to the new vpool.
+     * @param isHostMigration Boolean describing if the migration will be host or driver based.
+     * @param migrationHostURI URI of the migration host.
      * @param vpoolChangeParam vpool change request
      * @param taskId The task identifier.
      * 
      * @throws InternalException
      */
     public void changeVolumeVirtualPool(URI systemURI, Volume volume,
-            VirtualPool targetVpool, VirtualPoolChangeParam vpoolChangeParam, String taskId)
+            VirtualPool targetVpool, boolean isHostMigration,
+            URI migrationHostURI, VirtualPoolChangeParam vpoolChangeParam, String taskId)
             throws InternalException;
 
     /**
@@ -233,18 +236,21 @@ public interface BlockServiceApi {
      * 
      * @param volumes List of volumes.
      * @param targetVpool A reference to the new vpool.
+     * @param isHostMigration Boolean describing if the migration will be host or driver based.
+     * @param migrationHostURI URI of the migration host.
      * @param vpoolChangeParam vpool change request
      * @param taskId The task identifier.
      * @throws InternalException the internal exception
      */
     public void changeVolumeVirtualPool(List<Volume> volumes,
-            VirtualPool targetVpool, VirtualPoolChangeParam vpoolChangeParam, String taskId)
+            VirtualPool targetVpool, boolean isHostMigration,
+            URI migrationHostURI, VirtualPoolChangeParam vpoolChangeParam, String taskId)
             throws InternalException;
 
     /**
      * Defines the API to change the varray for the passed volumes to the passed
      * varray.
-     *
+     * 
      * @param volume A list of volume.
      * @param cg A reference to the volume's consistency group, or null.
      * @param cgVolumes List of volume in the CG when not null.
@@ -252,7 +258,7 @@ public interface BlockServiceApi {
      * @param isHostMigration Boolean describing if the migration will be host or driver based.
      * @param migrationHostURI URI of the migration host.
      * @param taskId The task identifier.
-     *
+     * 
      * @throws InternalException
      */
     public void changeVirtualArrayForVolumes(List<Volume> volume,

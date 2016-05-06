@@ -46,7 +46,6 @@ public class IpReconfigManager implements Runnable {
     private static final long IPRECONFIG_TIMEOUT = 24 * 60 * 60 * 1000; // 24 hours timeout for the procedure. TODO: suitable for DR?
     private static final long POLL_INTERVAL = 10 * 1000; // 10 second polling interval
     private static final String UPDATE_ZKIP_LOCK = "update_zkip";
-    private static final String CLUSTER_NETWORK_PROPFILE = "/data/cluster_network.properties";
 
     // ipreconfig entry in ZK
     Configuration config = null;
@@ -85,7 +84,7 @@ public class IpReconfigManager implements Runnable {
     public Map<String, String> getIpProps() {
         try {
             if (ipProperties == null) {
-                ipProperties = FileUtils.loadProperties(CLUSTER_NETWORK_PROPFILE);
+                ipProperties = FileUtils.readProperties(IpReconfigConstants.CLUSTER_NETWORK_PROPFILE);
             }
         } catch (Exception e) {
             log.error("Failed to get cluster ip properties.");
@@ -120,7 +119,9 @@ public class IpReconfigManager implements Runnable {
      * 2. Register node listener for ipreconfig config znode in ZK
      */
     public void init() {
-        if (!FileUtils.exists(CLUSTER_NETWORK_PROPFILE)) {
+        if (!FileUtils.exists(IpReconfigConstants.CLUSTER_NETWORK_PROPFILE)) {
+            // During the fresh-installation, the ip property file is not generated yet,
+            // so we need to load cluster network info from local ovfenv env.
             //TODO: during upgrade, need to load again with all info after all nodes upgraded.
             loadLocalOvfProps();
         } else {
@@ -143,10 +144,7 @@ public class IpReconfigManager implements Runnable {
         } else {
             vdcnodeId = Integer.valueOf(node_id.split("vipr")[1]);
         }
-        log.info("vdcnodeid={}", vdcnodeId);
-
         nodeCount = Integer.valueOf(ovfprops.get(PropertyConstants.NODE_COUNT_KEY));
-        log.info("nodeCount={}", nodeCount);
 
         // change to multiple site format
         Map<String, String> ipprops = new HashMap<String, String>();
@@ -155,7 +153,7 @@ public class IpReconfigManager implements Runnable {
             log.info("ovfenv propkey={}", propkey);
 
             if (propkey.startsWith(PropertyConstants.NETOWRK_PROP_PREFIX)||propkey.startsWith(PropertyConstants.NODE_PROP_PREFIX)) {
-                String ippropkey = String.format(PropertyConstants.IPPROP_PREFIX, 1) + "_" + propkey;
+                String ippropkey = String.format(PropertyConstants.IPPROP_PREFIX, 1, 1) + PropertyConstants.UNDERSCORE_DELIMITER + propkey;
                 ipprops.put(ippropkey, me.getValue());
                 log.info("ip props: key={}, value={}", propkey, me.getValue());
             }
@@ -835,8 +833,9 @@ public class IpReconfigManager implements Runnable {
             log.info("Got lock for updating local site IPs into ZK ...");
 
             for(Site site : drUtil.listSites()) {
+                int vdc_index = Integer.valueOf(site.getVdcShortId().split(PropertyConstants.VDC_SHORTID_PREFIX)[1]);
                 int site_index = Integer.valueOf(site.getSiteShortId().split(PropertyConstants.SITE_SHORTID_PREFIX)[1]);
-                String ipprop_prefix = String.format(PropertyConstants.IPPROP_PREFIX, site_index);
+                String ipprop_prefix = String.format(PropertyConstants.IPPROP_PREFIX, vdc_index, site_index);
                 if (newIpinfo.getSiteIpInfoMap().containsKey(ipprop_prefix)) {
                     SiteIpInfo siteIpInfo = newIpinfo.getSiteIpInfoMap().get(ipprop_prefix);
                     log.info("Going to persist site {} IPs into ZK ...", ipprop_prefix);

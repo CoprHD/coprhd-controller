@@ -130,6 +130,23 @@ public class SiteIpv6Setting implements Serializable {
         return propStrBuf.toString();
     }
 
+    public String toVdcSiteString(String vdcsiteid) {
+        StringBuffer propStrBuf = new StringBuffer();
+        propStrBuf.append(vdcsiteid).append(PropertyConstants.UNDERSCORE_DELIMITER)
+                  .append(PropertyConstants.IPV6_VIP_KEY).append(PropertyConstants.DELIMITER).append(network_vip6).append("\n");
+        propStrBuf.append(vdcsiteid).append(PropertyConstants.UNDERSCORE_DELIMITER)
+                  .append(PropertyConstants.IPV6_PREFIX_KEY).append(PropertyConstants.DELIMITER).append(network_prefix_length).append("\n");
+        propStrBuf.append(vdcsiteid).append(PropertyConstants.UNDERSCORE_DELIMITER)
+                  .append(PropertyConstants.IPV6_GATEWAY_KEY).append(PropertyConstants.DELIMITER).append(network_gateway6).append("\n");
+        int i = 0;
+        for (String network_addr : network_addrs) {
+            String network_ipaddr_key = String.format(PropertyConstants.IPV6_ADDR_KEY, ++i);
+            propStrBuf.append(vdcsiteid).append(PropertyConstants.UNDERSCORE_DELIMITER)
+                      .append(network_ipaddr_key).append(PropertyConstants.DELIMITER).append(network_addr).append("\n");
+        }
+        return propStrBuf.toString();
+    }
+
     /*
      * Load from key/value property map
      */

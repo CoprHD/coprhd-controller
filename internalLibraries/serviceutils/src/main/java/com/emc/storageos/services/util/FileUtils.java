@@ -152,7 +152,7 @@ public class FileUtils {
         }
     }
 
-    public static Properties loadProperties(String propertyFile) throws Exception {
+    public static Properties readProperties(String propertyFile) throws Exception {
         Properties props = new Properties();
         InputStream in = null;
         try {
@@ -179,6 +179,32 @@ public class FileUtils {
             }
         }
         return props;
+    }
+
+    public static void writeProperties(String propertyFile, Properties props) throws Exception {
+        File f = null;
+        OutputStream out = null;
+        try {
+            f = new File(propertyFile);
+            out = new FileOutputStream(f);
+            if (out != null) {
+                props.store(out, "");
+            }
+        } catch (Exception ex) {
+            log.error(String.format("Could not write ip properties to file %s", propertyFile));
+            log.error(ex.getMessage(), ex);
+            throw ex;
+        } finally {
+            try {
+                if (out != null) {
+                    out.close();
+                }
+            } catch (IOException e) {
+                log.error("Failed while closing outputstream");
+                log.error(e.getMessage(),e);
+            }
+        }
+        return;
     }
 
     /**

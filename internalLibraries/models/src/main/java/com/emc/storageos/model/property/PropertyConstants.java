@@ -46,7 +46,7 @@ public class PropertyConstants {
     public static final String IPV6_PREFIX_LEN_DEFAULT = "64";
 
     // TODO: geo competibility; remove vdc etc.
-    public static final String IPPROP_PREFIX = "vdc_vdc1_site%s";
+    public static final String IPPROP_PREFIX = "vdc_vdc%s_site%s";
     public static final String VDC_SHORTID_PREFIX = "vdc";
     public static final String SITE_SHORTID_PREFIX = "site";
 
@@ -85,4 +85,5 @@ public class PropertyConstants {
 
     // property key/value pair delimiter
     public static final String DELIMITER = "=";
+    public static final String UNDERSCORE_DELIMITER = "_";
 }

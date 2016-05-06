@@ -21,7 +21,7 @@ import java.util.*;
  */
 @XmlRootElement(name = "cluster_ipinfo")
 public class ClusterIpInfo implements Serializable {
-    //private static final Logger log = LoggerFactory.getLogger(ClusterIpInfo.class);
+    private static final Logger log = LoggerFactory.getLogger(ClusterIpInfo.class);
 
     private Map<String, SiteIpInfo> siteIpInfoMap = new HashMap<String, SiteIpInfo>();
 
@@ -89,7 +89,6 @@ public class ClusterIpInfo implements Serializable {
         return true;
     }
 
-
 	@Override
     public String toString() {
         StringBuffer propStrBuf = new StringBuffer();
@@ -99,6 +98,18 @@ public class ClusterIpInfo implements Serializable {
             propStrBuf.append(key);
             propStrBuf.append(PropertyConstants.DELIMITER);
             propStrBuf.append(siteIpInfoMap.get(key).toString());
+            propStrBuf.append("\n");
+        }
+
+        return propStrBuf.toString();
+    }
+
+    public String toVdcSiteString() {
+        StringBuffer propStrBuf = new StringBuffer();
+
+        SortedSet<String> vdcsiteids = new TreeSet<String>(siteIpInfoMap.keySet());
+        for (String vdcsiteid : vdcsiteids) {
+            propStrBuf.append(siteIpInfoMap.get(vdcsiteid).toVdcSiteString(vdcsiteid));
             propStrBuf.append("\n");
         }
 
@@ -122,7 +133,7 @@ public class ClusterIpInfo implements Serializable {
             String[] tmpFields = globalPropName.split("_");
             String vdcsiteId = tmpFields[0] + "_" + tmpFields[1] + "_" + tmpFields[2];
             String vdcsiteInternalPropName = globalPropName.substring(vdcsiteId.length()+1);
-            //log.debug("vdcsiteId={}, vdcsiteInternalPropName={}", vdcsiteId, vdcsiteInternalPropName);
+            log.debug("vdcsiteId={}, vdcsiteInternalPropName={}", vdcsiteId, vdcsiteInternalPropName);
 
             // put globalPropMap into vdcsitePropMap;
             Map<String, String> sitePropMap = vdcsitePropMap.get(vdcsiteId);
@@ -130,7 +141,7 @@ public class ClusterIpInfo implements Serializable {
                 sitePropMap = new HashMap<String, String>();
             }
             String propValue = globalPropMap.get(globalPropName);
-            //log.debug("PropValue={}", propValue);
+            log.debug("PropValue={}", propValue);
 
             sitePropMap.put(vdcsiteInternalPropName, propValue);
             vdcsitePropMap.put(vdcsiteId, sitePropMap);
@@ -161,35 +172,4 @@ public class ClusterIpInfo implements Serializable {
         return errmsg;
     }
 
-    public boolean weakEqual(String vip, String vip6, Map<String, String> ipv4Addresses, Map<String, String> ipv6Addresses) {
-/* TODO: move 
-        if (!ipv6_setting.getNetworkVip6().equals(vip6)) {
-            return false;
-        }
-        if (!ipv4_setting.getNetworkVip().equals(vip)) {
-            return false;
-        }
-
-        if (ipv4Addresses != null) {
-            List<String> site_ipv4addrs = new LinkedList<String>();
-            SortedSet<String> nodeIds = new TreeSet<String>(ipv4Addresses.keySet());
-            for (String nodeId : nodeIds) {
-                site_ipv4addrs.add(ipv4Addresses.get(nodeId));
-            }
-            if (!ipv4_setting.getNetworkAddrs().equals(site_ipv4addrs))
-                return false;
-        }
-
-        if (ipv6Addresses != null) {
-            List<String> site_ipv6addrs = new LinkedList<String>();
-            SortedSet<String> nodeIds = new TreeSet<String>(ipv6Addresses.keySet());
-            for (String nodeId : nodeIds) {
-                site_ipv6addrs.add(ipv6Addresses.get(nodeId));
-            }
-            if (!ipv6_setting.getNetworkAddrs().equals(site_ipv6addrs))
-                return false;
-        }
-*/
-        return true;
-    }
 }

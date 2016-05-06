@@ -124,6 +124,23 @@ public class SiteIpv4Setting implements Serializable {
         return propStrBuf.toString();
     }
 
+    public String toVdcSiteString(String vdcsiteid) {
+        StringBuffer propStrBuf = new StringBuffer();
+        propStrBuf.append(vdcsiteid).append(PropertyConstants.UNDERSCORE_DELIMITER)
+                  .append(PropertyConstants.IPV4_VIP_KEY).append(PropertyConstants.DELIMITER).append(network_vip).append("\n");
+        propStrBuf.append(vdcsiteid).append(PropertyConstants.UNDERSCORE_DELIMITER)
+                  .append(PropertyConstants.IPV4_NETMASK_KEY).append(PropertyConstants.DELIMITER).append(network_netmask).append("\n");
+        propStrBuf.append(vdcsiteid).append(PropertyConstants.UNDERSCORE_DELIMITER)
+                  .append(PropertyConstants.IPV4_GATEWAY_KEY).append(PropertyConstants.DELIMITER).append(network_gateway).append("\n");
+        int i = 0;
+        for (String network_addr : network_addrs) {
+            String network_ipaddr_key = String.format(PropertyConstants.IPV4_ADDR_KEY, ++i);
+            propStrBuf.append(vdcsiteid).append(PropertyConstants.UNDERSCORE_DELIMITER)
+                      .append(network_ipaddr_key).append(PropertyConstants.DELIMITER).append(network_addr).append("\n");
+        }
+        return propStrBuf.toString();
+    }
+
     /*
      * Load from key/value property map
      */

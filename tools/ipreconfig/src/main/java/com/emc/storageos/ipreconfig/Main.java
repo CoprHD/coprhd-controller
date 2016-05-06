@@ -31,28 +31,31 @@ import java.util.Map;
 public class Main {
     private static final Logger log = LoggerFactory.getLogger(Main.class);
     private static final int CMD_TIMEOUT = 10 * 1000;
+    public static String my_vdc_id;
     public static String active_site_id;
     public static String my_site_id;
 
     private static void usage() {
         System.out.println("Usage: ");
-        System.out.println("ipreconfig <active_site_id> <my_site_id> [commit|rollback]");
+        System.out.println("ipreconfig <my_vdc_id> <active_site_id> <my_site_id> [commit|rollback]");
         System.exit(-1);
     }
 
     public static void main(String[] args) throws Exception {
-        if (args.length != 3) {
+        if (args.length != 4) {
             usage();
         }
 
         try {
-            active_site_id = args[0];
-            my_site_id = args[1];
+            my_vdc_id = args[0];
+            active_site_id = args[1];
+            my_site_id = args[2];
+            log.info("current vdc id:{}", my_vdc_id);
             log.info("active site id:{}, my site id:{}", active_site_id, my_site_id);
 
-            if (args[2].equals("commit")) {
+            if (args[3].equals("commit")) {
                 commitNewIP();
-            } else if (args[2].equals("rollback")) {
+            } else if (args[3].equals("rollback")) {
                 rollbackToOldIP();
             } else {
                 usage();
@@ -122,12 +125,23 @@ public class Main {
     }
 
     private static void applyIpinfo(ClusterIpInfo ipinfo, String nodeid, boolean bNewIp) throws Exception {
-        log.info("applying ip info: {}", ipinfo.toString());
+        log.info("applying ip info: {}...", ipinfo.toString());
+
+        // write ip properties (with vdc site prefix) into cluster ip property file
+        log.info("Writing new ip info to cluster network property file ...");
+        FileUtils.writePlainFile(IpReconfigConstants.CLUSTER_NETWORK_PROPFILE, ipinfo.toVdcSiteString().getBytes());
+
+        if (PlatformUtils.isVMwareVapp()) {
+            log.info("No need to apply new ip info to vApp ovfenv cdrom.  User need to do it by themselves.");
+            return;
+        }
+
         String isoFilePath = "/tmp/ovf-env.iso";
         File isoFile = new File(isoFilePath);
         try {
+            int my_vdc_index = Integer.valueOf(my_vdc_id.substring(PropertyConstants.VDC_SHORTID_PREFIX.length()));
             int my_site_index = Integer.valueOf(my_site_id.substring(PropertyConstants.SITE_SHORTID_PREFIX.length()));
-            SiteIpInfo siteIpInfo = ipinfo.getSiteIpInfoMap().get(String.format(PropertyConstants.IPPROP_PREFIX, my_site_index));
+            SiteIpInfo siteIpInfo = ipinfo.getSiteIpInfoMap().get(String.format(PropertyConstants.IPPROP_PREFIX, my_vdc_index, my_site_index));
             if (siteIpInfo == null) {
                 log.error("Failed to find new ip info for the current site.");
             }
@@ -180,8 +194,8 @@ public class Main {
         }
 
         log.info("Checking if new IPs had already been commited...");
-        for (int i = 1; i < 24; i++) {
-            // Here we assume each node would startup with functional network within at most 2m.
+        for (int i = 1; i < 120; i++) {
+            // Here we assume each node would startup with functional network within at most 10m.
             // So we will check new IPs for 24 times (5s interval).
             log.info("Trying to ping other nodes ...");
             int alivenodes = 0;

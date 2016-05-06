@@ -109,6 +109,13 @@ public class SiteIpInfo implements Serializable {
         return propStrBuf.toString();
     }
 
+    public String toVdcSiteString(String vdcsiteid) {
+        StringBuffer propStrBuf = new StringBuffer();
+        propStrBuf.append(ipv4_setting.toVdcSiteString(vdcsiteid));
+        propStrBuf.append(ipv6_setting.toVdcSiteString(vdcsiteid));
+        return propStrBuf.toString();
+    }
+
     /*
      * Load key/value property map
      */

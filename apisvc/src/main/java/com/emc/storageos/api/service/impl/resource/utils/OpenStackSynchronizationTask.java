@@ -166,6 +166,24 @@ public class OpenStackSynchronizationTask extends ResourceService {
         return _keystoneUtilsService.getKeystoneProvider();
     }
 
+    public int getTaskInterval() {
+
+        AuthnProvider keystoneProvider = getKeystoneProvider();
+        int interval = DEFAULT_INTERVAL_DELAY;
+
+        if (keystoneProvider != null && keystoneProvider.getTenantsSynchronizationOptions() != null) {
+
+            for (String option : keystoneProvider.getTenantsSynchronizationOptions()) {
+                // There is only ADDITION, DELETION and interval in this StringSet
+                if (!AuthnProvider.TenantsSynchronizationOptions.ADDITION.toString().equals(option) && !AuthnProvider.TenantsSynchronizationOptions.DELETION.toString().equals(option)) {
+                    interval = Integer.parseInt(option);
+                }
+            }
+        }
+
+        return interval;
+    }
+
     /**
      * Retrieves UserMapping from CoprHD Tenant.
      *
@@ -385,17 +403,19 @@ public class OpenStackSynchronizationTask extends ResourceService {
                     }
                 }
 
+                StringSet syncOptions = keystoneProvider.getTenantsSynchronizationOptions();
+
                 // Check whether Automatic Addition is enabled.
-                // if (keystoneProvider.getAutomaticAddition() && !osTenantList.isEmpty()) {
-                if (!osTenantList.isEmpty()) {
+                if (!osTenantList.isEmpty() &&
+                        syncOptions.contains(AuthnProvider.TenantsSynchronizationOptions.ADDITION.toString())) {
                     for (TenantV2 tenant : osTenantList) {
                         createTenant(tenant, keystoneProvider);
                     }
                 }
 
                 // Removes CoprHD Tenants related to OpenStack that are absent in OS.
-                // if (keystoneProvider.getAutomaticDeletion() && !coprhdTenantList.isEmpty()) {
-                if (!coprhdTenantList.isEmpty()) {
+                if (!coprhdTenantList.isEmpty() &&
+                        syncOptions.contains(AuthnProvider.TenantsSynchronizationOptions.DELETION.toString())) {
 
                     List<URI> projectURI = _dbClient.queryByType(Project.class, true);
                     Iterator<Project> projectIter = _dbClient.queryIterativeObjects(Project.class, projectURI);

@@ -253,7 +253,7 @@ public class AuthnConfigurationService extends TaggedResource {
             // If the checkbox is checked, then register CoprHD.
             if (provider.getAutoRegCoprHDNImportOSProjects()){
                 createTenantsAndProjectsForAutomaticKeystoneRegistration(provider);
-                // TODO: _openStackSynchronizationTask.startSynchronizationTask(provider.getTaskInterval());
+                _openStackSynchronizationTask.startSynchronizationTask(_openStackSynchronizationTask.getTaskInterval());
             }
         }
 
@@ -384,7 +384,7 @@ public class AuthnConfigurationService extends TaggedResource {
             AuthnProvider provider, AuthnProviderParamsToValidate validateP) {
         String oldPassword = provider.getManagerPassword();
         boolean isAutoRegistered = provider.getAutoRegCoprHDNImportOSProjects();
-        // TODO: int synchronizationInterval = provider.getTaskInterval();
+        int synchronizationInterval = _openStackSynchronizationTask.getTaskInterval();
         //if the configured domain has tenant then we can't update
         //that domain.
         checkForActiveTenantsUsingDomains(provider.getDomains());
@@ -405,14 +405,16 @@ public class AuthnConfigurationService extends TaggedResource {
         _log.debug("Saving to the DB the updated provider: {}", provider.toString());
         persistProfileAndNotifyChange(provider, false);
 
+        int newSynchronizationInterval = _openStackSynchronizationTask.getTaskInterval();
+
         if (provider.getAutoRegCoprHDNImportOSProjects() && !isAutoRegistered) {
             _keystoneUtils.registerCoprhdInKeystone(provider.getManagerDN(), provider.getServerUrls(), provider.getManagerPassword());
             createTenantsAndProjectsForAutomaticKeystoneRegistration(provider);
-            // TODO: _openStackSynchronizationTask.startSynchronizationTask(provider.getTaskInterval());
+            _openStackSynchronizationTask.startSynchronizationTask(newSynchronizationInterval);
         }
-        /* TODO: if (isAutoRegistered && synchronizationInterval != provider.getTaskInterval()) {
-            _openStackSynchronizationTask.rescheduleTask(provider.getTaskInterval());
-        }*/
+         if (isAutoRegistered && synchronizationInterval != newSynchronizationInterval) {
+            _openStackSynchronizationTask.rescheduleTask(newSynchronizationInterval);
+        }
         auditOp(OperationTypeEnum.UPDATE_AUTHPROVIDER, true, null,
                 provider.getId().toString(), provider.toString());
         return map(getProviderById(id, false));

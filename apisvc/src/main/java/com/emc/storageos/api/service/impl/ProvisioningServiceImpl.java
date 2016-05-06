@@ -47,7 +47,7 @@ public class ProvisioningServiceImpl extends AbstractSecuredWebServer implements
         // Launch OpenStack synchronization task if Keystone Authentication Provider exists.
         AuthnProvider keystoneProvider = _openStackSynchronizationTask.getKeystoneProvider();
         if (keystoneProvider != null) {
-            // TODO: _openStackSynchronizationTask.start(keystoneProvider.getTaskInterval());
+             _openStackSynchronizationTask.start(_openStackSynchronizationTask.getTaskInterval());
         }
     }
 

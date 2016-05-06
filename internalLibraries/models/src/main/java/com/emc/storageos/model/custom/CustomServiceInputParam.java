@@ -10,8 +10,7 @@ import javax.xml.bind.annotation.XmlRootElement;
 /**
  * 
  * 
- * @valid true
- * @valid false
+ * 
  */
 @XmlRootElement(name = "Custom_invoke")
 public class CustomServiceInputParam {

@@ -104,30 +104,6 @@ _isIPConsistent() {
     echo "true" && return
 }
 
-_checkIPConsistencyInMultiSitesEnv() {
-    is_appaliance=$(/etc/systool --is-appliance)
-    [ $is_appaliance == "false" ] && return;
-
-    # Single site IP change via vSphere or Installer will be handled furtherly by IpReconfigManger
-    /etc/systool --getvdcprops | grep site_ids | grep ','
-    [ $? -ne 0 ] && return
-
-    echo -n "In multiple sites env, check if IP is consistent between ovfenv and vdc properties"
-    ret=$(_isIPConsistent)
-    if [ $ret == "false" ]; then
-        echo "Vdc site ip info: "
-        /etc/systool --getvdcprops | egrep -e 'vdc_vdc|site_myid'
-
-        echo "Local site ip info: "
-        /etc/getovfproperties --readCDROM
-
-        echo -e "\n\e[1;31m***\n*** IP configuration can not be altered from vSphere or Installer in multiple sites env.\n*** Please power off, revert it and follow the user guide to change IP in multiple sites environment.\n***\n*** Press any key to power off this VM\n***\e[0m"
-        read -n 1
-        /etc/systool --poweroff
-        exit
-    fi
-}
-
 _set_storageos_variable() {
     sed -i "s,${1}=\"[a-z\-]*\",${1}=\"${2}\",g" ${STORAGEOS_SYSCONFIG}
 }
@@ -177,10 +153,6 @@ case ${1} in
         my_site_id=$(/etc/systool --getvdcprops | grep site_myid | cut -d'=' -f2)
 
         /opt/storageos/bin/ipreconfig ${active_site_id} ${my_site_id} ${STORAGEOS_IPRECONFIG_MODE}
-
-        if [ "${STORAGEOS_BOOT_MODE}" == "normal" ]; then
-            _checkIPConsistencyInMultiSitesEnv
-        fi
 
         echo -n "Initializing configuration properties"
         /etc/systool --initializeprops 2>>/var/log/genconfig.log || rc_failed 1

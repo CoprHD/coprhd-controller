@@ -2842,6 +2842,8 @@ recoverpoint_export_bookmark_tests()
         rp_tgt_varrays=${3}
         # The virtual pool
         vpool=${4}
+        # RP type
+        rptype=${5}
 
         rpsnap=rpsnap-${RP_MODIFIED_HOSTNAME}-${RANDOM}
         blocksnap=blocksnap-${RP_MODIFIED_HOSTNAME}-${RANDOM}
@@ -2881,7 +2883,7 @@ recoverpoint_export_bookmark_tests()
 	    done
         done
 
-        recoverpoint_export_bookmark_host_setup ${vpool}
+        recoverpoint_export_bookmark_host_setup ${vpool} ${rptype}
 
         sleep 20
 	
@@ -2948,30 +2950,46 @@ recoverpoint_export_bookmark_tests()
 recoverpoint_export_bookmark_host_setup()
 {
     vpool=${1}
+    rptype=${2}
 
-    if [ "$RP_QUICK_PARAM" == "quick" ]; then
-        CLUSTER1NET_NAME=VSAN_11
-    else
-        CLUSTER1NET_NAME=FABRIC_losam082-fabric
-    fi
-
-    if [ "${vpool}" = "rp${rptypetag}_cdp" ]; then
-        PWWN1=10:00:00:E0:E0:E0:E0:E0
-        WWNN1=20:00:00:E0:E0:E0:E0:E0
+    if [ "${vpool}" = "rp${rptype}_cdp" ]; then
+        PWWN1=10:00:00:E0:E0:E0:A1:E0
+        WWNN1=20:00:00:E0:E0:E0:A1:E0
+        PWWN2=10:00:00:E0:E0:E0:A2:E0
+        WWNN2=20:00:00:E0:E0:E0:A2:E0
+        PWWN3=10:00:00:E0:E0:E0:A3:D0
+        WWNN3=20:00:00:E0:E0:E0:A3:D0
         RP_HOSTNAME=${RP_EXPORT_GROUP_HOST}-${RANDOM}-cdp
-    elif [ "${vpool}" = "rp${rptypetag}_crr" ]; then
-        PWWN1=10:00:00:E0:E0:E0:E0:F0
-        WWNN1=20:00:00:E0:E0:E0:E0:F0
+    elif [ "${vpool}" = "rp${rptype}_crr" ]; then
+        PWWN1=10:00:00:E0:E0:E0:B1:F0
+        WWNN1=20:00:00:E0:E0:E0:B1:F0
+        PWWN2=10:00:00:E0:E0:E0:B2:F0
+        WWNN2=20:00:00:E0:E0:E0:B2:F0
+        PWWN3=10:00:00:E0:E0:E0:B3:D0
+        WWNN3=20:00:00:E0:E0:E0:B3:D0
         RP_HOSTNAME=${RP_EXPORT_GROUP_HOST}-${RANDOM}-crr
-    elif [ "${vpool}" = "rp${rptypetag}_clr" ]; then
-        PWWN1=10:00:00:E0:E0:E0:E0:D0
-        WWNN1=20:00:00:E0:E0:E0:E0:D0
+    elif [ "${vpool}" = "rp${rptype}_clr" ]; then
+        PWWN1=10:00:00:E0:E0:E0:C1:D0
+        WWNN1=20:00:00:E0:E0:E0:C1:D0
+        PWWN2=10:00:00:E0:E0:E0:C2:D0
+        WWNN2=20:00:00:E0:E0:E0:C2:D0
+        PWWN3=10:00:00:E0:E0:E0:C3:D0
+        WWNN3=20:00:00:E0:E0:E0:C3:D0
         RP_HOSTNAME=${RP_EXPORT_GROUP_HOST}-${RANDOM}-clr
     fi
 
     run hosts create ${RP_HOSTNAME} $TENANT Windows ${RP_HOSTNAME} --port 8111 --username user --password 'password' --osversion 1.0
     run initiator create ${RP_HOSTNAME} FC ${PWWN1} --node ${WWNN1}
-    transportzone add ${RECOVERPOINT_VARRAY1}/${CLUSTER1NET_NAME} ${PWWN1}
+    run initiator create ${RP_HOSTNAME} FC ${PWWN2} --node ${WWNN2}
+    run initiator create ${RP_HOSTNAME} FC ${PWWN3} --node ${WWNN3}
+
+    if [ "$RP_QUICK_PARAM" == "quick" ]; then
+        run transportzone add ${RECOVERPOINT_VARRAY1}/VSAN_11 ${PWWN1}
+        run transportzone add ${RECOVERPOINT_VARRAY2}/VSAN_12 ${PWWN2}
+        run transportzone add ${RECOVERPOINT_VARRAY3}/VSAN_13 ${PWWN3}
+    else
+        run transportzone add ${RECOVERPOINT_VARRAY1}/FABRIC_losam082-fabric ${PWWN1}
+    fi
 }
 
 recoverpoint_auto_snapshot_cleanup_test()
@@ -4375,7 +4393,7 @@ recoverpoint_tests()
                 recoverpoint_vpool_change_replication_mode_test ${rpvolume}${volume_name_modifier} ${rp_src_vpool}
 
                 # RP Export Bookmark Test
-                recoverpoint_export_bookmark_tests ${rpvolume} $RECOVERPOINT_VARRAY1 ${rp_tgt_varrays} ${rp_src_vpool}
+                recoverpoint_export_bookmark_tests ${rpvolume} $RECOVERPOINT_VARRAY1 ${rp_tgt_varrays} ${rp_src_vpool} ""
             fi
 
             # RP+VPLEX test cases
@@ -4408,7 +4426,7 @@ recoverpoint_tests()
                 # recoverpoint_vpool_change_replication_mode_test ${rpvplexvolume}${volume_name_modifier} ${rpvplex_src_vpool}
 
                 # RP Export Bookmark Test
-                recoverpoint_export_bookmark_tests ${rpvplexvolume} $RECOVERPOINT_VARRAY1 ${rp_tgt_varrays} ${rpvplex_src_vpool}
+                recoverpoint_export_bookmark_tests ${rpvplexvolume} $RECOVERPOINT_VARRAY1 ${rp_tgt_varrays} ${rpvplex_src_vpool} "vplex"
             fi
 
             # MP test cases
@@ -4436,7 +4454,7 @@ recoverpoint_tests()
                 # recoverpoint_vpool_change_replication_mode_test ${rpmpvolume}${volume_name_modifier} ${rpmp_src_vpool}
 
                 # RP Export Bookmark Test
-                recoverpoint_export_bookmark_tests ${rpmpvolume} $RECOVERPOINT_VARRAY1 ${rp_tgt_varrays} ${rpmp_src_vpool}
+                recoverpoint_export_bookmark_tests ${rpmpvolume} $RECOVERPOINT_VARRAY1 ${rp_tgt_varrays} ${rpmp_src_vpool} "mp"
             fi
 
             if [ "$RPXIO_TESTS" = "1" ]; then

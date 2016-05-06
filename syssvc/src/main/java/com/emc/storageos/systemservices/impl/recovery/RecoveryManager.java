@@ -318,9 +318,11 @@ public class RecoveryManager implements Runnable {
                 log.error("Failed to inform the hibernate nodes to reconfigure", e);
             } finally {
                 try {
-                    lock.release();
+                    if (lock != null) {
+                        lock.release();
+                    }
                 } catch (Exception ignore) {
-                    log.error(String.format("Lock release failed when node recovery"));
+                    log.error("Release lock failed when node recovery", ignore);
                 }
             }
         }

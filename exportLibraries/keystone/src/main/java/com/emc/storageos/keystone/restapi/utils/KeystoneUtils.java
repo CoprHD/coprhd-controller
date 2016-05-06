@@ -18,10 +18,11 @@
 package com.emc.storageos.keystone.restapi.utils;
 
 import com.emc.storageos.cinder.CinderConstants;
+import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.db.client.model.AuthnProvider;
 import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.keystone.KeystoneConstants;
-import com.emc.storageos.keystone.OpenStackSynchronizationJob;
 import com.emc.storageos.keystone.restapi.KeystoneApiClient;
 import com.emc.storageos.keystone.restapi.KeystoneRestClientFactory;
 import com.emc.storageos.keystone.restapi.model.response.*;
@@ -31,9 +32,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.net.URI;
-import java.util.Map;
-import java.util.Properties;
-import java.util.Set;
+import java.util.*;
 
 /**
  * Keystone API Utils class.
@@ -47,15 +46,15 @@ public class KeystoneUtils {
     public static final String OPENSTACK_DEFAULT_REGION = "RegionOne";
 
     private KeystoneRestClientFactory _keystoneApiFactory;
-    private OpenStackSynchronizationJob _openStackSynchronizationJob;
     private Properties _ovfProperties;
+    private DbClient _dbClient;
+
+    public void setDbClient(DbClient dbClient) {
+        this._dbClient = dbClient;
+    }
 
     public void setKeystoneFactory(KeystoneRestClientFactory factory) {
         this._keystoneApiFactory = factory;
-    }
-
-    public void setOpenStackSynchronizationJob(OpenStackSynchronizationJob openStackSynchronizationJob) {
-        this._openStackSynchronizationJob = openStackSynchronizationJob;
     }
 
     public void setOvfProperties(Properties ovfProps) {
@@ -336,11 +335,7 @@ public class KeystoneUtils {
 
         String url = "";
 
-        // Get cluster Virtual IP.
-        Map<String, String> ovfprops = (Map) _ovfProperties;
-        ClusterIpv4Setting ipv4Setting = new ClusterIpv4Setting();
-        ipv4Setting.loadFromPropertyMap(ovfprops);
-        String clusterVIP = ipv4Setting.getNetworkVip();
+        String clusterVIP = getVIP();
 
         if (clusterVIP == null) {
             _log.error("Could not retrieve cluster Virtual IP");
@@ -364,6 +359,20 @@ public class KeystoneUtils {
         endpoint.setInternalURL(url);
 
         return endpoint;
+    }
+
+    /**
+     * Returns Virtual IP of CoprHD.
+     *
+     * @return CoprHD VIP.
+     */
+    public String getVIP() {
+
+        // Get cluster Virtual IP.
+        Map<String, String> ovfprops = (Map) _ovfProperties;
+        ClusterIpv4Setting ipv4Setting = new ClusterIpv4Setting();
+        ipv4Setting.loadFromPropertyMap(ovfprops);
+        return ipv4Setting.getNetworkVip();
     }
 
     /**
@@ -398,6 +407,7 @@ public class KeystoneUtils {
      * @param managerPassword of an Authentication Provider
      */
     public void deleteCinderEndpoints(String managerDN, StringSet serverUrls, String managerPassword){
+
         // Create a new KeystoneAPI.
         KeystoneApiClient keystoneApi = getKeystoneApi(managerDN, serverUrls, managerPassword);
         // Get a cinderv2 service id.
@@ -421,26 +431,24 @@ public class KeystoneUtils {
     }
 
     /**
-     * Start synchronization between CoprHD and OpenStack Tenants.
+     * Retrieves Keystone Authentication Provider from CoprHD.
      *
+     * @return Keystone Authentication Provider.
      */
-    public void startSynchronizationTask(){
-        try {
-            _openStackSynchronizationJob.start();
-        } catch (Exception e) {
-            _log.error("Exception when trying to start synchronization task: {}", e.getMessage());
+    public AuthnProvider getKeystoneProvider() {
+
+        List<URI> authnProviderURI = _dbClient.queryByType(AuthnProvider.class, true);
+        Iterator<AuthnProvider> providerIter = _dbClient.queryIterativeObjects(AuthnProvider.class, authnProviderURI);
+        // Iterate over Providers and return Keystone Provider.
+        while (providerIter.hasNext()) {
+            AuthnProvider provider = providerIter.next();
+            if (AuthnProvider.ProvidersType.keystone.toString().equalsIgnoreCase(provider.getMode())) {
+                return provider;
+            }
         }
+
+        // Return null whether Keystone Provider is missing in CoprHD.
+        return null;
     }
 
-    /**
-     * Stop synchronization between CoprHD and OpenStack Tenants.
-     *
-     */
-    public void stopSynchronizationTask(){
-        try {
-            _openStackSynchronizationJob.stop();
-        } catch (Exception e) {
-            _log.error("Exception when trying to stop synchronization task: {}", e.getMessage());
-        }
-    }
 }

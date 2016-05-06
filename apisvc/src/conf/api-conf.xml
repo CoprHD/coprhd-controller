@@ -441,6 +441,20 @@
         <property name="coordinator" ref="coordinator"/>
     </bean>
 
+    <bean id="authnConfigurationService" class="com.emc.storageos.api.service.impl.resource.AuthnConfigurationService">
+        <property name="dbClient" ref="dbclient"/>
+        <property name="coordinator" ref="coordinator"/>
+        <property name="keystoneUtils" ref="keystoneUtils"/>
+        <property name="tenantsService" ref="tenantsService"/>
+        <property name="openStackSynchronizationTask" ref="openStackSynchronizationTask"/>
+    </bean>
+
+    <bean id="projectService" class="com.emc.storageos.api.service.impl.resource.ProjectService">
+        <property name="dbClient" ref="dbclient"/>
+        <property name="coordinator" ref="coordinator"/>
+        <property name="customConfigHandler" ref="customConfigHandler" />
+    </bean>
+
     <bean id="blockService" class="com.emc.storageos.api.service.impl.resource.BlockService">
        <property name="dbClient" ref="dbclient"/>
        <property name="coordinator" ref="coordinator"/>
@@ -457,6 +471,7 @@
        </map>
        </property>
     </bean>
+
     <bean id="application" class="com.emc.storageos.api.service.impl.resource.StorageApplication">
         <property name="resource">
             <set>
@@ -473,6 +488,7 @@
                     <property name="coordConfigStoringHelper" ref="zooKeeperHelper"/>
                     <property name="localUsers" ref="localUserMap"/>
                 </bean>
+                <ref bean="openStackSynchronizationTask"/>
                 <ref bean="blockService"/>
                 <ref bean="tenantService"/>
                 <ref bean="tenantsService"/>
@@ -488,17 +504,15 @@
                 <ref bean="ipInterfaceService"/>
                 <ref bean="customConfigService"/>
                 <ref bean="volumeGroupService"/>
+                <ref bean="authnConfigurationService" />
+
                 <bean class="com.emc.storageos.api.service.impl.resource.MeteringService">
                     <property name="dbClient" ref="dbclient"/>
                     <property name="coordinator" ref="coordinator"/>
                     <property name="statRetriever" ref="statRetriever"/>
                 </bean>
-                <bean class="com.emc.storageos.api.service.impl.resource.ProjectService">
-                    <property name="dbClient" ref="dbclient"/>
-                    <property name="coordinator" ref="coordinator"/>
-                    <property name="customConfigHandler" ref="customConfigHandler" />
-                </bean>
                 <ref bean="fileService"/>
+                <ref bean="projectService"/>
                 <ref bean="bucketService"/>
                 <bean class="com.emc.storageos.api.service.impl.resource.InternalFileResource">
                     <property name="dbClient" ref="dbclient"/>
@@ -707,12 +721,6 @@
                     <property name="dbClient" ref="dbclient"/>
                     <property name="coordinator" ref="coordinator"/>
                 </bean>                
-                <bean class="com.emc.storageos.api.service.impl.resource.AuthnConfigurationService">
-                    <property name="dbClient" ref="dbclient"/>
-                    <property name="coordinator" ref="coordinator"/>
-                    <property name="keystoneUtils" ref="keystoneUtils"/>
-                    <property name="tenantsService" ref="tenantsService"/>
-                </bean>
                 <bean class="com.emc.storageos.api.service.impl.resource.WorkflowService">
                     <property name="dbClient" ref="dbclient"/>
                     <property name="coordinator" ref="coordinator"/>
@@ -821,6 +829,13 @@
         <property name="dbClient" ref="dbclient"/>
     </bean>
 
+    <bean id="openStackSynchronizationTask" class="com.emc.storageos.api.service.impl.resource.utils.OpenStackSynchronizationTask">
+        <property name="keystoneUtilsService" ref="keystoneUtils" />
+        <property name="dbClient" ref="dbclient" />
+        <property name="coordinator" ref="coordinator" />
+        <property name="authnConfigurationService" ref="authnConfigurationService" />
+    </bean>
+
     <bean id="apiservice" class="com.emc.storageos.api.service.impl.ProvisioningServiceImpl">
         <property name="application" ref="application"/>
         <property name="disableSSL" value="false"/>
@@ -833,6 +848,7 @@
         <property name="serviceInfo" ref="serviceinfo"/>
         <property name="ciphersToInclude" ref="strongCiphers"/>
         <property name="coordinator" ref="coordinator"/>
+        <property name="openStackSynchronizationTask" ref="openStackSynchronizationTask" />
         <!-- Must not be configured for less than the number of expected connections. -->
         <property name="lowResourcesConnections" value="1000"/>
         <property name="lowResourcesMaxIdleTime" value="3000"/>

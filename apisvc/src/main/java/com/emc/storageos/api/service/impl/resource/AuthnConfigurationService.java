@@ -37,6 +37,7 @@ import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
+import com.emc.storageos.api.service.impl.resource.utils.OpenStackSynchronizationTask;
 import com.emc.storageos.cinder.CinderConstants;
 import com.emc.storageos.db.client.model.*;
 import com.emc.storageos.keystone.restapi.model.response.*;
@@ -103,6 +104,8 @@ public class AuthnConfigurationService extends TaggedResource {
 
     private KeystoneUtils _keystoneUtils;
 
+    private OpenStackSynchronizationTask _openStackSynchronizationTask;
+
     private static final String EVENT_SERVICE_TYPE = "authconfig";
 
     @Override
@@ -116,6 +119,10 @@ public class AuthnConfigurationService extends TaggedResource {
 
     public void setKeystoneUtils(KeystoneUtils keystoneUtils) {
         this._keystoneUtils = keystoneUtils;
+    }
+
+    public void setOpenStackSynchronizationTask(OpenStackSynchronizationTask openStackSynchronizationTask) {
+        this._openStackSynchronizationTask = openStackSynchronizationTask;
     }
 
     /**
@@ -225,7 +232,6 @@ public class AuthnConfigurationService extends TaggedResource {
             // If the checkbox is checked, then register CoprHD.
             if(provider.getAutoRegCoprHDNImportOSProjects()){
                 _keystoneUtils.registerCoprhdInKeystone(provider.getManagerDN(), provider.getServerUrls(), provider.getManagerPassword());
-                _keystoneUtils.startSynchronizationTask();
             }
         } else {
             // Now validate the authn provider to make sure
@@ -247,6 +253,7 @@ public class AuthnConfigurationService extends TaggedResource {
             // If the checkbox is checked, then register CoprHD.
             if (provider.getAutoRegCoprHDNImportOSProjects()){
                 createTenantsAndProjectsForAutomaticKeystoneRegistration(provider);
+                // TODO: _openStackSynchronizationTask.startSynchronizationTask(provider.getTaskInterval());
             }
         }
 
@@ -288,38 +295,54 @@ public class AuthnConfigurationService extends TaggedResource {
         TenantResponse tenantResponse = keystoneApi.getKeystoneTenants();
 
         for (TenantV2 tenant : tenantResponse.getTenants()) {
-            // Create mapping rules
-            List<UserMappingParam> userMappings = new ArrayList<>();
-            List<String> values = new ArrayList<>();
-            values.add(tenant.getId());
-
-            List<UserMappingAttributeParam> attributes = new ArrayList<>();
-            attributes.add(new UserMappingAttributeParam(KeystoneUtils.OPENSTACK_TENANT_ID, values));
-
-            userMappings.add(new UserMappingParam(provider.getDomains().iterator().next(), attributes, new ArrayList<String>()));
-
-            TenantCreateParam param = new TenantCreateParam(CinderConstants.TENANT_NAME_PREFIX + " " + tenant.getName(), userMappings);
-            if (tenant.getDescription() != null) {
-                param.setDescription(tenant.getDescription());
-            } else {
-                param.setDescription(CinderConstants.TENANT_NAME_PREFIX);
-            }
-
-            // Create a tenant.
-            TenantOrgRestRep tenantOrgRestRep = _tenantsService.createSubTenant(_permissionsHelper.getRootTenant().getId(), param);
-
-            // Create a project.
-            ProjectParam projectParam = new ProjectParam(tenant.getName() + CinderConstants.PROJECT_NAME_SUFFIX);
-            ProjectElement projectElement = _tenantsService.createProject(tenantOrgRestRep.getId(), projectParam);
-
-            // Tag project with OpenStack tenant_id
-            Project project = _dbClient.queryObject(Project.class, projectElement.getId());
-            ScopedLabelSet tagSet = new ScopedLabelSet();
-            ScopedLabel tagLabel = new ScopedLabel(tenantOrgRestRep.getId().toString(), tenant.getId());
-            tagSet.add(tagLabel);
-            project.setTag(tagSet);
-            _dbClient.updateObject(project);
+            createTenantAndProjectForOpenstackTenant(tenant, provider);
         }
+    }
+
+    private void createTenantAndProjectForOpenstackTenant(TenantV2 tenant, AuthnProvider provider) {
+
+        TenantCreateParam param = prepareTenantMappingForOpenstack(tenant, provider);
+
+        // Create a tenant.
+        TenantOrgRestRep tenantOrgRestRep = _tenantsService.createSubTenant(_permissionsHelper.getRootTenant().getId(), param);
+
+        // Create a project.
+        ProjectParam projectParam = new ProjectParam(tenant.getName() + CinderConstants.PROJECT_NAME_SUFFIX);
+        ProjectElement projectElement = _tenantsService.createProject(tenantOrgRestRep.getId(), projectParam);
+
+        tagProjectWithOpenstackId(projectElement.getId(), tenant.getId(), tenantOrgRestRep.getId().toString());
+    }
+
+    public TenantCreateParam prepareTenantMappingForOpenstack(TenantV2 tenant, AuthnProvider provider) {
+        // Create mapping rules
+        List<UserMappingParam> userMappings = new ArrayList<>();
+        List<String> values = new ArrayList<>();
+        values.add(tenant.getId());
+
+        List<UserMappingAttributeParam> attributes = new ArrayList<>();
+        attributes.add(new UserMappingAttributeParam(KeystoneUtils.OPENSTACK_TENANT_ID, values));
+
+        userMappings.add(new UserMappingParam(provider.getDomains().iterator().next(), attributes, new ArrayList<String>()));
+
+        TenantCreateParam param = new TenantCreateParam(CinderConstants.TENANT_NAME_PREFIX + " " + tenant.getName(), userMappings);
+        if (tenant.getDescription() != null) {
+            param.setDescription(tenant.getDescription());
+        } else {
+            param.setDescription(CinderConstants.TENANT_NAME_PREFIX);
+        }
+
+        return param;
+    }
+
+    public void tagProjectWithOpenstackId(URI projectId, String osTenantId, String coprhdTenantId) {
+
+        // Tag project with OpenStack tenant_id
+        Project project = _dbClient.queryObject(Project.class, projectId);
+        ScopedLabelSet tagSet = new ScopedLabelSet();
+        ScopedLabel tagLabel = new ScopedLabel(coprhdTenantId, osTenantId);
+        tagSet.add(tagLabel);
+        project.setTag(tagSet);
+        _dbClient.updateObject(project);
     }
 
     /**
@@ -361,7 +384,8 @@ public class AuthnConfigurationService extends TaggedResource {
             AuthnProvider provider, AuthnProviderParamsToValidate validateP) {
         String oldPassword = provider.getManagerPassword();
         boolean isAutoRegistered = provider.getAutoRegCoprHDNImportOSProjects();
-        //if the configured domain has tenant then we can't update 
+        // TODO: int synchronizationInterval = provider.getTaskInterval();
+        //if the configured domain has tenant then we can't update
         //that domain.
         checkForActiveTenantsUsingDomains(provider.getDomains());
         overlayProvider(provider, param);
@@ -384,7 +408,11 @@ public class AuthnConfigurationService extends TaggedResource {
         if (provider.getAutoRegCoprHDNImportOSProjects() && !isAutoRegistered) {
             _keystoneUtils.registerCoprhdInKeystone(provider.getManagerDN(), provider.getServerUrls(), provider.getManagerPassword());
             createTenantsAndProjectsForAutomaticKeystoneRegistration(provider);
+            // TODO: _openStackSynchronizationTask.startSynchronizationTask(provider.getTaskInterval());
         }
+        /* TODO: if (isAutoRegistered && synchronizationInterval != provider.getTaskInterval()) {
+            _openStackSynchronizationTask.rescheduleTask(provider.getTaskInterval());
+        }*/
         auditOp(OperationTypeEnum.UPDATE_AUTHPROVIDER, true, null,
                 provider.getId().toString(), provider.toString());
         return map(getProviderById(id, false));
@@ -746,6 +774,7 @@ public class AuthnConfigurationService extends TaggedResource {
             checkForUserGroupsUsingDomains(provider.getDomains());
             verifyDomainsIsNotInUse(provider.getDomains());
         } else {
+            _openStackSynchronizationTask.stopSynchronizationTask();
             // Delete Cinder endpoints.
             _keystoneUtils.deleteCinderEndpoints(provider.getManagerDN(), provider.getServerUrls(), provider.getManagerPassword());
         }

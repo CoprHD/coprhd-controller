@@ -1827,6 +1827,72 @@ Please DO NOT modify the content.
             </field>
         </fields>
     </data_object_schema>
+    <data_object_schema name="OSTenant" type="com.emc.storageos.db.client.model.OSTenant">
+        <annotations/>
+        <fields>
+            <field name="osId" type="java.lang.String">
+                <annotations/>
+            </field>
+            <field name="creationTime" type="java.util.Calendar">
+                <annotations/>
+            </field>
+            <field name="id" type="java.net.URI">
+                <annotations>
+                    <annotation name="Id" type="com.emc.storageos.db.client.model.Id"/>
+                </annotations>
+            </field>
+            <field name="inactive" type="java.lang.Boolean">
+                <annotations>
+                    <annotation name="DecommissionedIndex" type="com.emc.storageos.db.client.model.DecommissionedIndex">
+                        <annotation_value name="value" value="Decommissioned"/>
+                    </annotation>
+                </annotations>
+            </field>
+            <field name="internalFlags" type="java.lang.Long">
+                <annotations/>
+            </field>
+            <field name="label" type="java.lang.String">
+                <annotations>
+                    <annotation name="PrefixIndex" type="com.emc.storageos.db.client.model.PrefixIndex">
+                        <annotation_value name="cf" value="LabelPrefixIndex"/>
+                        <annotation_value name="scoped" value="false"/>
+                        <annotation_value name="minChars" value="2"/>
+                    </annotation>
+                    <annotation name="Length" type="com.emc.storageos.model.valid.Length">
+                        <annotation_value name="min" value="2"/>
+                        <annotation_value name="max" value="30"/>
+                    </annotation>
+                </annotations>
+            </field>
+            <field name="description" type="java.lang.String">
+                <annotations/>
+            </field>
+            <field name="status" type="com.emc.storageos.db.client.model.OpStatusMap">
+                <annotations>
+                    <annotation name="ClockIndependent" type="com.emc.storageos.db.client.model.ClockIndependent">
+                        <annotation_value name="value" type="com.emc.storageos.db.client.model.Operation" value="Operation"/>
+                    </annotation>
+                </annotations>
+            </field>
+            <field name="tags" type="com.emc.storageos.db.client.model.ScopedLabelSet">
+                <annotations>
+                    <annotation name="ScopedLabelIndex" type="com.emc.storageos.db.client.model.ScopedLabelIndex">
+                        <annotation_value name="cf" value="ScopedTagPrefixIndex"/>
+                        <annotation_value name="minChars" value="2"/>
+                    </annotation>
+                </annotations>
+            </field>
+            <field name="name" type="java.lang.String">
+                <annotations/>
+            </field>
+            <field name="excluded" type="java.lang.Boolean">
+                <annotations/>
+            </field>
+            <field name="enabled" type="java.lang.Boolean">
+                <annotations/>
+            </field>
+        </fields>
+    </data_object_schema>
     <data_object_schema name="QosSpecs" type="com.emc.storageos.db.client.model.QosSpecification">
         <annotations/>
         <fields>

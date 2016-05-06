@@ -14,58 +14,69 @@
  * limitations under the License.
  *
  */
+package com.emc.storageos.db.client.model;
 
-package com.emc.storageos.keystone.restapi.model.response;
 
 /**
- * Keystone API Tenant class.
+ * OpenStack Tenant data object.
  */
-public class TenantV2 {
 
-    private String id;
+@Cf("OSTenant")
+public class OSTenant extends DataObject{
+
+    private String osId;
     private String description;
-    private String enabled;
+    private Boolean enabled = true;
     private String name;
+    private Boolean excluded = false;
 
-    public String getId() {
-        return id;
+    @Name("osid")
+    public String getOsId() {
+        return osId;
     }
 
-    public void setId(String id) {
-        this.id = id;
+    public void setOsId(String osId) {
+        this.osId = osId;
+        this.setChanged("osid");
     }
 
+    @Name("description")
     public String getDescription() {
         return description;
     }
 
     public void setDescription(String description) {
         this.description = description;
+        this.setChanged("description");
     }
 
-    public String getEnabled() {
+    @Name("enabled")
+    public boolean getEnabled() {
         return enabled;
     }
 
-    public void setEnabled(String enabled) {
+    public void setEnabled(Boolean enabled) {
         this.enabled = enabled;
+        this.setChanged("enabled");
     }
 
+    @Name("name")
     public String getName() {
         return name;
     }
 
     public void setName(String name) {
         this.name = name;
+        this.setChanged("name");
     }
 
-    @Override
-    public String toString() {
-        return "[" +
-                "id='" + id + '\'' +
-                ", description='" + description + '\'' +
-                ", enabled='" + enabled + '\'' +
-                ", name='" + name + '\'' +
-                ']';
+    @Name("excluded")
+    public boolean getExcluded() {
+        return excluded;
+    }
+
+    public void setExcluded(Boolean excluded) {
+        this.excluded = excluded;
+        this.setChanged("excluded");
     }
 }

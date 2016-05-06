@@ -6,8 +6,12 @@ package com.emc.storageos.hp3par.impl;
 
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -77,33 +81,10 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
 		return null;
 	}
 	
-	///////////
-	private HP3PARApi getHP3PARDevice(StorageSystem hp3parSystem) {
-        URI deviceURI;
-        try {
-            deviceURI = new URI("https", null, hp3parSystem.getIpAddress(), hp3parSystem.getPortNumber(), "/", null, null);
-            return hp3parApiFactory
-                    .getRESTClient(deviceURI, hp3parSystem.getUsername(), hp3parSystem.getPassword());
-        } catch (URISyntaxException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
-            return null;
-        }       
-    }
+	//////////////////////////
 	
-    /**
-     * Create driver task for task type
-     *
-     * @param taskType
-     */
-    public DriverTask createDriverTask(String taskType) {
-        String taskID = String.format("%s+%s+%s", HP3PARConstants.DRIVER_NAME, taskType, UUID.randomUUID());
-        DriverTask task = new HP3PARDriverTask(taskID);
-        return task;
-    }
+	///////////////////////////////
 	
-	////////////////
-
 	@Override
 	public DriverTask discoverStorageSystem(List<StorageSystem> storageSystems) {
         String taskType = "discover-storage-system";
@@ -138,9 +119,11 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
 	            String authToken = hp3parApi.getAuthToken(storageSystem.getUsername(),storageSystem.getPassword());
 	            _log.info("3PAR auth key {} ", authToken);
 
-	            ////
+	            /////////////////////////
 	            ///get serial number and other details
-	            ////
+	            ////////////////////
+	            
+	            task.setStatus(DriverTask.TaskStatus.READY);
 	            storageSystem.setNativeId(deviceURI.toString() + 
 	                    ":" + storageSystem.getUsername() + ":" + storageSystem.getPassword());
 	               _log.info("Successfull discovery of 3PAR storage system {}, name {} - end",
@@ -152,10 +135,11 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
 	                    storageSystem.getSystemName()) + e.getMessage());
 	            task.setStatus(DriverTask.TaskStatus.FAILED);
 	            e.printStackTrace();
+	            // return error task immediately
+	            return task;
 	        }
 	    }
-
-	    // return driver task (indicates 
+	    
 	    return task;
 	}
 
@@ -332,5 +316,32 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
 		// TODO Auto-generated method stub
 		return null;
 	}
-
+	
+	/*
+	 * Internal methods in the driver
+	 */
+    private HP3PARApi getHP3PARDevice(StorageSystem hp3parSystem) throws HP3PARException {
+        URI deviceURI;
+        try {
+            deviceURI = new URI("https", null, hp3parSystem.getIpAddress(), hp3parSystem.getPortNumber(), "/", null, null);
+            return hp3parApiFactory
+                    .getRESTClient(deviceURI, hp3parSystem.getUsername(), hp3parSystem.getPassword());
+        } catch (Exception e) {
+            e.printStackTrace();
+            _log.error("Error in getting 3PAR device");
+            throw new HP3PARException("Error in getting 3PAR device");
+        }       
+    }
+    
+    /**
+     * Create driver task for task type
+     *
+     * @param taskType
+     */
+    public DriverTask createDriverTask(String taskType) {
+        String taskID = String.format("%s+%s+%s", HP3PARConstants.DRIVER_NAME, taskType, UUID.randomUUID());
+        DriverTask task = new HP3PARDriverTask(taskID);
+        return task;
+    }
+    
 }

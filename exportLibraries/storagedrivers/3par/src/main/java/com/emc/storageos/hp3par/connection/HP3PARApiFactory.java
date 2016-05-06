@@ -17,6 +17,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.hp3par.impl.HP3PARApi;
+import com.emc.storageos.hp3par.impl.HP3PARException;
 import com.sun.jersey.api.client.Client;
 import com.sun.jersey.api.client.filter.HTTPBasicAuthFilter;
 import com.sun.jersey.client.apache.ApacheHttpClient;
@@ -130,17 +131,22 @@ public class HP3PARApiFactory {
      * @param username
      * @param password
      * @return api client
+     * @throws HP3PARException 
      */
-    public HP3PARApi getRESTClient(URI endpoint, String username, String password) {
-        HP3PARApi hp3parApi = _clientMap.get(endpoint.toString() + ":" + username + ":" + password);
-        if (hp3parApi == null) {
-            Client jerseyClient = new ApacheHttpClient(_clientHandler);
-            jerseyClient.addFilter(new HTTPBasicAuthFilter(username, password));
-            RESTClient restClient = new RESTClient(jerseyClient);
-            hp3parApi = new HP3PARApi(endpoint, restClient);
-            _clientMap.putIfAbsent(endpoint.toString() + ":" + username + ":" + password, hp3parApi);
+    public HP3PARApi getRESTClient(URI endpoint, String username, String password) throws HP3PARException {
+        try {
+            HP3PARApi hp3parApi = _clientMap.get(endpoint.toString() + ":" + username + ":" + password);
+            if (hp3parApi == null) {
+                Client jerseyClient = new ApacheHttpClient(_clientHandler);
+                jerseyClient.addFilter(new HTTPBasicAuthFilter(username, password));
+                RESTClient restClient = new RESTClient(jerseyClient);
+                hp3parApi = new HP3PARApi(endpoint, restClient);
+                _clientMap.putIfAbsent(endpoint.toString() + ":" + username + ":" + password, hp3parApi);
+            }
+            return hp3parApi;
+        } catch (Exception e) {
+            throw new HP3PARException(e.toString());
         }
-        return hp3parApi;
     }
     
     // Sample direct program

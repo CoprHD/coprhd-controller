@@ -55,55 +55,6 @@ _get_ipv6_compressed(){
     fi
 }
 
-_isIPConsistent() {
-    declare -A vdcpropMap
-    vdcprops=$(/etc/systool --getvdcprops)
-    while read -r line
-    do
-      IFS='=' read -ra pair <<< "$line"
-      vdcpropMap[${pair[0]}]=${pair[1]}
-    done <<< "$vdcprops"
-    
-    declare -A ovfenvpropMap
-    ovfenvprops=$(/etc/getovfproperties --readCDROM)
-    while read -r line
-    do
-      IFS='=' read -ra pair <<< "$line"
-      ovfenvpropMap[${pair[0]}]=${pair[1]}
-    done <<< "$ovfenvprops"
-    
-    site_myid=${vdcpropMap["site_myid"]}
-    
-    declare node_count=0
-    node_count=$((${ovfenvpropMap["node_count"]}))
-    declare node_index=0
-    while [ $node_index -lt $node_count ]; do
-      node_index=$(($node_index+1))
-    
-      vdc_ipv4key="vdc_vdc1_"$site_myid"_network_"$node_index"_ipaddr";
-      ovfenv_ipv4key="network_"$node_index"_ipaddr";
-      [ "${vdcpropMap[$vdc_ipv4key]}" != "${ovfenvpropMap[$ovfenv_ipv4key]}" ] && echo "false" && return
-    
-      vdc_ipv6key="vdc_vdc1_"$site_myid"_network_"$node_index"_ipaddr6";
-      vdc_ipaddr6=$(_get_ipv6_compressed "${vdcpropMap[$vdc_ipv6key]}")
-      ovfenv_ipv6key="network_"$node_index"_ipaddr6";
-      ovfenv_ipaddr6=$(_get_ipv6_compressed "${ovfenvpropMap[$ovfenv_ipv6key]}")
-      [ "${vdc_ipaddr6}" != "${ovfenv_ipaddr6}" ] && echo "false" && return
-    done 
-
-    ovfenv_vipkey="network_vip"
-    vdc_vipkey="vdc_vdc1_"$site_myid"_network_vip";
-    [ "${vdcpropMap[$vdc_vipkey]}" != "${ovfenvpropMap[$ovfenv_vipkey]}" ] && echo "false" && return
-
-    ovfenv_vip6key="network_vip6"
-    ovfenv_vip6=$(_get_ipv6_compressed "${ovfenvpropMap[$ovfenv_vip6key]}")
-    vdc_vip6key="vdc_vdc1_"$site_myid"_network_vip6";
-    vdc_vip6=$(_get_ipv6_compressed "${vdcpropMap[$vdc_vip6key]}")
-    [ -n "${vdcpropMap[$vdc_vipkey]}" ] && [ "${vdc_vip6}" != "${ovfenv_vip6}" ] && echo "false" && return
-
-    echo "true" && return
-}
-
 _set_storageos_variable() {
     sed -i "s,${1}=\"[a-z\-]*\",${1}=\"${2}\",g" ${STORAGEOS_SYSCONFIG}
 }

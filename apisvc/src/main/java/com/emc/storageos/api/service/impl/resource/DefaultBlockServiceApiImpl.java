@@ -561,6 +561,7 @@ public class DefaultBlockServiceApiImpl extends AbstractBlockServiceApiImpl<Stor
         if (volumes.size() < cgVolumes.size()) {
             throw APIException.badRequests.cantChangeVarrayNotAllCGVolumes();
         }
+    }
 
     /**
      * Invokes the block orchestrator for a vpool change operation.
@@ -625,6 +626,7 @@ public class DefaultBlockServiceApiImpl extends AbstractBlockServiceApiImpl<Stor
                 }
             }
         }
+    }
 
     /**
      * Creates the volumes descriptors for a varray change for the passed
@@ -770,6 +772,8 @@ public class DefaultBlockServiceApiImpl extends AbstractBlockServiceApiImpl<Stor
      * @param isHostMigration Boolean describing if the migration will be host or driver based.
      * @param migrationHostURI URI of the migration host.
      * @param taskId The task identifier.
+     * @param recommendations Scheduling recommendations for new volume backend.
+     * @param capabilities The virtual pool capabilities.
      * @param newVolumes An OUT parameter to which the new volume is added.
      * @param migrationMap A OUT parameter to which the new migration is added.
      * @param poolVolumeMap An OUT parameter associating the new Volume to the
@@ -900,13 +904,23 @@ public class DefaultBlockServiceApiImpl extends AbstractBlockServiceApiImpl<Stor
                 sourceVolumeURI, targetVolumeURI, isHostMigration,
                 migrationHostURI, taskId);
 
-        descriptors.add(new VolumeDescriptor(VolumeDescriptor.Type.MIGRATE_VOLUME,
+        if (isHostMigration) {
+            descriptors.add(new VolumeDescriptor(VolumeDescriptor.Type.HOST_MIGRATE_VOLUME,
                 targetStorageSystem,
                 targetVolumeURI,
                 targetStoragePool,
                 cgURI,
                 migration.getId(),
                 capabilities));
+        } else {
+            descriptors.add(new VolumeDescriptor(VolumeDescriptor.Type.DRIVER_MIGRATE_VOLUME,
+                targetStorageSystem,
+                targetVolumeURI,
+                targetStoragePool,
+                cgURI,
+                migration.getId(),
+                capabilities));
+        }
 
         _log.info("Prepared migration {}.", migration.getId());
 
@@ -922,6 +936,7 @@ public class DefaultBlockServiceApiImpl extends AbstractBlockServiceApiImpl<Stor
     private void verifyDriverCapabilities(URI sourceStorageSystemURI, URI targetStorageSystemURI)
             throws InternalException {
         // Not yet implemented
+        return
     }
 
     /**
@@ -1018,8 +1033,9 @@ public class DefaultBlockServiceApiImpl extends AbstractBlockServiceApiImpl<Stor
         migration.setVolume(virtualVolumeURI);
         migration.setSource(sourceURI);
         migration.setTarget(targetURI);
-        migration.setIsHostMigration(isHostMigration);
-        migration.setMigrationHost(migrationHostURI);
+        if (isHostMigration) {
+            migration.setMigrationHost(migrationHostURI);
+        }
         _dbClient.createObject(migration);
         migration.setOpStatus(new OpStatusMap());
         Operation op = _dbClient.createTaskOpStatus(Migration.class, migration.getId(),

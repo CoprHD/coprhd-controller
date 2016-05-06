@@ -31,10 +31,6 @@ public class Migration extends DataObject {
     // The percentage done.
     private String _percentDone;
 
-    // Boolean representing whether the migration will be done by a southbound driver, or by the
-    // CoprHD controller through an external Linux host.
-    private boolean _isHostMigration;
-
     // Host initiators to be used in the case of a host based migration
     private URI _migrationHost;
 
@@ -157,26 +153,6 @@ public class Migration extends DataObject {
     public void setPercentDone(String percentDone) {
         _percentDone = percentDone;
         setChanged("percentDone");
-    }
-
-    /**
-     * Getter for the host migration boolean.
-     *
-     * @return The boolean describing the type of migration to be performed.
-     */
-    @Name("isHostMigration")
-    public boolean getIsHostMigration() {
-        return _isHostMigration;
-    }
-
-    /**
-     * Setter for the host migration boolean.
-     *
-     * @param isHostMigration The boolean describing the type of migration to be performed.
-     */
-    public void setIsHostMigration(boolean isHostMigration) {
-        _isHostMigration = isHostMigration;
-        setChanged("isHostMigration");
     }
 
     /**

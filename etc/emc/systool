@@ -350,6 +350,87 @@ _write_props_file() {
 
 _set_vdc_props() {
     _write_props_file "${1}" "${bootfs_vdc_props}"
+    _set_ip_props "${1}"
+}
+
+# During setting vdc properties, we need to (re)set ip prop file for the following
+# cases in which the sites info would change.
+# For all other cases (e.g pausing/resuming standby), no need to update ip prop file.
+# 1) fresh-install
+# 2) upgrade
+# 3) adding standby site
+# 4) removing standby site
+#
+# In addition, ip reconfiguration procedure would also change ip property file.
+_set_ip_props() {
+    # load new vdc properties
+    declare -A newVdcPropMap
+    while read -r line
+    do
+      IFS='=' read -ra pair <<< "$line"
+      newVdcPropMap[${pair[0]}]=${pair[1]}
+    done < "${1}"
+
+    # load current cluster ip properties if exists
+    declare -A currIpPropMap
+    if [  -e "${datafs_ip_props}" ] ; then
+        while read -r line
+        do
+          IFS='=' read -ra pair <<< "$line"
+          currIpPropMap[${pair[0]}]=${pair[1]}
+        done < "${datafs_ip_props}"
+    fi
+
+    site_ids_key="site_ids"
+    if [ "${newVdcPropMap[${site_ids_key}]}" != "${currIpPropMap[${site_ids_key}]}" ]; then
+
+        rm -f "${datafs_ip_props}.bak"
+
+        # write only ip related info into ip prop file
+        for key in "${!newVdcPropMap[@]}"
+        do
+            if [[ "${key}" == vdc_vdc*_site*_network_* ]]; then
+                echo "${key}=${newVdcPropMap[${key}]}" >> "${datafs_ip_props}.bak"
+            fi
+        done
+
+        # preserve current gateway or network mask related info if exist
+        for key in "${!currIpPropMap[@]}"
+        do
+            if [[ "${key}" == vdc_vdc*_site*_network_gateway* || "${key}" == vdc_vdc*_site*_network_netmask || "${key}" == vdc_vdc*_site*_network_prefix_length ]]; then
+                echo "${key}=${currIpPropMap[${key}]}" >> "${datafs_ip_props}.bak"
+            fi
+        done
+
+        # if current ip prop file already has gateway etc. info, no need to load from local site
+        vdc_myid=${newVdcPropMap["vdc_myid"]}
+        site_myid=${newVdcPropMap["site_myid"]}
+        currsite_gateway_key="vdc_"${vdc_myid}"_"${site_myid}"_network_gateway"
+        if [ "${currIpPropMap[${currsite_gateway_key}]}" != "" ]; return
+
+        # load local site gateway, mask info from ovfenv file (/etc/ovfenv.properties) and write into ip prop file
+        # Note: We should not read from ovfenv part/cdrom. User could change ovfenv media IP directly, it would
+        # bring inconsistency and we need to assure it would not break system.
+        # Currently /etc/ovfenv.properties (4-way merged) would always have correct ip info now.
+        declare -A localIpPropMap
+        while read -r line
+        do
+          IFS='=' read -ra pair <<< "$line"
+          localIpPropMap[${pair[0]}]=${pair[1]}
+        done < "${ovf_props_file}"
+        for key in "${!localIpPropMap[@]}"
+        do
+            if [[ "${key}" == network_gateway* || "${key}" == network_netmask || "${key}" == network_prefix_length ]]; then
+                tmpkey="vdc_"${vdc_myid}"_"${site_myid}"_"${key}
+                echo "${tmpkey}=${localIpPropMap[${key}]}" >> "${datafs_ip_props}.bak"
+            fi
+        done
+
+        mv -f "${datafs_ip_props}.bak" "${datafs_ip_props}"
+        chmod 600     "${2}"
+
+        # TODO: where to get all other sites' gateway and mask??? (for upgrade case)
+    fi
 }
 
 _set_ssl_props() {
@@ -816,6 +897,7 @@ BOOTFS_UUID="3c426f75-726e-6520-2f62-6f6f7466733e"
 bootfs_dev=$(/sbin/findfs UUID=${BOOTFS_UUID} 2>/dev/null) || bootfs_dev='/dev/sda1'
 bootfs_mntp=${bootfs_mntp:-'/.volumes/bootfs'}
 bootfs_vdc_props=${bootfs_vdc_props:-${bootfs_mntp}/etc/vdcconfig.properties}
+datafs_ip_props=${datafs_ip_props:-/data/cluster_network.properties}
 bootfs_ssl_props=${bootfs_ssl_props:-${bootfs_mntp}/etc/ssl.properties}
 bootfs_datarevision_props=${bootfs_datarevision_props:-${bootfs_mntp}/etc/datarevision.properties}
 override_props='config-override.properties'
@@ -898,6 +980,7 @@ case ${#} in
             --setoverrides)           _x _set_override_props   "${2}" ;;
             --set-controller-ovfprops) _x _set_controller_props "${2}" ;;            
             --setvdcprops)            _x _set_vdc_props        "${2}" ;;
+            --setipprops)             _x _set_ip_props         "${2}" ;;
             --setsslprops)            _x _set_ssl_props        "${2}" ;;
             --set-data-revision)      _x _set_data_revision    "${2}" ;;
             --restart)                _x _restart              "${2}" ;;

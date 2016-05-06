@@ -46,7 +46,7 @@ public class IpReconfigManager implements Runnable {
     private static final long IPRECONFIG_TIMEOUT = 24 * 60 * 60 * 1000; // 24 hours timeout for the procedure. TODO: suitable for DR?
     private static final long POLL_INTERVAL = 10 * 1000; // 10 second polling interval
     private static final String UPDATE_ZKIP_LOCK = "update_zkip";
-    private static final String CLUSTER_IP_PROPFILE = "/data/ip.properties";
+    private static final String CLUSTER_NETWORK_PROPFILE = "/data/cluster_network.properties";
 
     // ipreconfig entry in ZK
     Configuration config = null;
@@ -85,7 +85,7 @@ public class IpReconfigManager implements Runnable {
     public Map<String, String> getIpProps() {
         try {
             if (ipProperties == null) {
-                ipProperties = FileUtils.loadProperties(CLUSTER_IP_PROPFILE);
+                ipProperties = FileUtils.loadProperties(CLUSTER_NETWORK_PROPFILE);
             }
         } catch (Exception e) {
             log.error("Failed to get cluster ip properties.");
@@ -120,7 +120,8 @@ public class IpReconfigManager implements Runnable {
      * 2. Register node listener for ipreconfig config znode in ZK
      */
     public void init() {
-        if (!FileUtils.exists(CLUSTER_IP_PROPFILE)) {
+        if (!FileUtils.exists(CLUSTER_NETWORK_PROPFILE)) {
+            //TODO: during upgrade, need to load again with all info after all nodes upgraded.
             loadLocalOvfProps();
         } else {
             loadClusterIpProps();

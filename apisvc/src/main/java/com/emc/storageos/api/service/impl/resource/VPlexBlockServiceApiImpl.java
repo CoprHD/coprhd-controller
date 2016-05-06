@@ -279,7 +279,6 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
         if (srdfCopyRecommendations != null) {
             // We may have a Vplex protected SRDF copy- if so add those into the mix
             // This may be a Vplex volume or not
-            // TODO: Rework this to always call createVolumesAndDescriptors even for Vplex case.
             for (Recommendation srdfCopyRecommendation : srdfCopyRecommendations) {
                 vArray = _dbClient.queryObject(VirtualArray.class, srdfCopyRecommendation.getVirtualArray());
                 vPool = srdfCopyRecommendation.getVirtualPool();

@@ -29,6 +29,7 @@ import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.TimeZone;
 
 public class MailHandler {
 
@@ -107,7 +108,7 @@ public class MailHandler {
 
         Map<String, String> params = Maps.newHashMap();
         params.put("siteName", siteName);
-        params.put("degradeTime", degradeTime);
+        params.put("degradeTime", String.format("%s (TimeZone: %s)", degradeTime, TimeZone.getDefault().getID()));
         String title = String.format("ATTENTION - %s site has been marked as STANDBY_DEGRADED state", siteName);
         String content = MailHelper.readTemplate("StandbySiteDegraded.html");
         content = MailHelper.parseTemplate(params, content);

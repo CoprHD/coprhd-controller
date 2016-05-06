@@ -59,13 +59,13 @@ public class MigrationHandlerImpl implements MigrationHandler {
 
     private CoordinatorClient coordinator;
     private InternalDbClient dbClient;
-    private DbSchemas currentSchema;
+	private DbSchemas currentSchema;
     private Service service;
     @SuppressWarnings("unused")
     private String[] pkgs;
     private String[] ignoredPkgs;
     private Map<String, List<BaseCustomMigrationCallback>> customMigrationCallbacks;
-    private DbServiceStatusChecker statusChecker;
+	private DbServiceStatusChecker statusChecker;
     private SchemaUtil schemaUtil;
 
     String targetVersion;
@@ -105,6 +105,14 @@ public class MigrationHandlerImpl implements MigrationHandler {
         this.coordinator = coordinator;
     }
 
+    public CoordinatorClient getCoordinator() {
+		return coordinator;
+	}
+
+	public InternalDbClient getDbClient() {
+		return dbClient;
+	}
+	
     /**
      * Set db client
      * 
@@ -128,6 +136,10 @@ public class MigrationHandlerImpl implements MigrationHandler {
     public void setService(Service service) {
         this.service = service;
     }
+
+    public Map<String, List<BaseCustomMigrationCallback>> getCustomMigrationCallbacks() {
+		return customMigrationCallbacks;
+	}
 
     /**
      * set versioned custom migration callbacks

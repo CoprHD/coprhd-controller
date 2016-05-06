@@ -400,7 +400,11 @@ public class DefaultBlockServiceApiImpl extends AbstractBlockServiceApiImpl<Stor
             for (VolumeDescriptor descriptor : descriptors) {
                 // Make sure to clean up the tasks associated with the
                 // migration targets and migrations.
-                if (VolumeDescriptor.Type.MIGRATE_VOLUME.equals(descriptor.getType())) {
+                if (VolumeDescriptor.Type.HOST_MIGRATE_VOLUME.equals(descriptor.getType())) {
+                    _dbClient.error(Volume.class, descriptor.getVolumeURI(), taskId, e);
+                    _dbClient.error(Migration.class, descriptor.getMigrationId(), taskId, e);
+                }
+                if (VolumeDescriptor.Type.DRIVER_MIGRATE_VOLUME.equals(descriptor.getType())) {
                     _dbClient.error(Volume.class, descriptor.getVolumeURI(), taskId, e);
                     _dbClient.error(Migration.class, descriptor.getMigrationId(), taskId, e);
                 }

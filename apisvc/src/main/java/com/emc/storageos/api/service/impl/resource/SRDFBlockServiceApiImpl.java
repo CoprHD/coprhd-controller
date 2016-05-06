@@ -825,7 +825,8 @@ public class SRDFBlockServiceApiImpl extends AbstractBlockServiceApiImpl<SRDFSch
     @Override
     public void changeVirtualArrayForVolumes(final List<Volume> volume,
             final BlockConsistencyGroup cg, final List<Volume> cgVolumes,
-            final VirtualArray varray, final String taskId) throws ControllerException {
+            final VirtualArray varray, final boolean isHostMigration,
+            final URI migrationHostURI, final String taskId) throws ControllerException {
         throw APIException.methodNotAllowed.notSupported();
     }
 

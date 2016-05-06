@@ -41,6 +41,7 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 
+import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -85,6 +86,7 @@ import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.ExportPathParams;
+import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.Migration;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.Project;
@@ -110,6 +112,7 @@ import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.client.util.SizeUtil;
 import com.emc.storageos.db.client.util.StringSetUtil;
+import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.model.BulkIdParam;
 import com.emc.storageos.model.BulkRestRep;
 import com.emc.storageos.model.NamedRelatedResourceRep;
@@ -144,6 +147,7 @@ import com.emc.storageos.model.block.VolumeVirtualArrayChangeParam;
 import com.emc.storageos.model.block.VolumeVirtualPoolChangeParam;
 import com.emc.storageos.model.block.export.ITLBulkRep;
 import com.emc.storageos.model.block.export.ITLRestRepList;
+import com.emc.storageos.model.host.HostList;
 import com.emc.storageos.model.protection.ProtectionSetRestRep;
 import com.emc.storageos.model.search.SearchResultResourceRep;
 import com.emc.storageos.model.search.SearchResults;
@@ -3560,8 +3564,8 @@ public class BlockService extends TaskResourceService {
             VirtualArrayChangeParam varrayChangeParam) throws InternalException, APIException {
         _log.info("Request to change varray for volume {}", id);
         TaskList taskList = changeVirtualArrayForVolumes(Arrays.asList(id),
-                varrayChangeParam.getVirtualArray(), param.getIsHostMigration(),
-                param.getMigrationHost());
+                varrayChangeParam.getVirtualArray(), varrayChangeParam.getIsHostMigration(),
+                varrayChangeParam.getMigrationHost());
         return taskList.getTaskList().get(0);
     }
 

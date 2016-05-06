@@ -936,7 +936,7 @@ public class DefaultBlockServiceApiImpl extends AbstractBlockServiceApiImpl<Stor
     private void verifyDriverCapabilities(URI sourceStorageSystemURI, URI targetStorageSystemURI)
             throws InternalException {
         // Not yet implemented
-        return
+        return;
     }
 
     /**

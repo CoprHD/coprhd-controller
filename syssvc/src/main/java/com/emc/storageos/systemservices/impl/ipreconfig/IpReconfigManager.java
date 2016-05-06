@@ -718,20 +718,14 @@ public class IpReconfigManager implements Runnable {
      * Check if platform is supported
      */
     private void checkPlatform() {
-        if (PlatformUtils.isVMwareVapp()) {
-            log.info("Platform(VApp) is unsupported for ip reconfiguraiton");
-            throw new UnsupportedOperationException("VApp is unsupported for ip reconfiguration");
-        }
-        if (PlatformUtils.hasMultipleSites()) {
-            log.info("Multiple sites env is unsupported for ip reconfiguraiton");
-            throw new UnsupportedOperationException("Multiple sites env is unsupported for ip reconfiguration");
-        }
+        return;
     }
 
     /**
      * Check if cluster is in health status
      */
     private void checkClusterStatus() throws Exception {
+        // TODO: all the sites stable ...
         ClusterInfo.ClusterState controlNodeState = _coordinator.getCoordinatorClient().getControlNodesState();
         if (controlNodeState == null ||
                 !controlNodeState.equals(ClusterInfo.ClusterState.STABLE)) {

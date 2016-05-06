@@ -56,6 +56,7 @@ public interface CustomConfigConstants {
     public String XTREMIO_CLUSTER_INITIATOR_GROUP_FOLDER_NAME = "XtremIOClusterInitiatorGroupFolderName";
 
     public String VPLEX_STORAGE_VIEW_NAME = "VPlexStorageViewName";
+    public String VPLEX_CUSTOM_VOLUME_NAMING_ENABLED = "VPlexCustomVolumeNamingEnabled";
     public String VPLEX_LOCAL_VOLUME_NAME = "VPlexLocalVolumeName";
     public String VPLEX_HOST_EXPORT_LOCAL_VOLUME_NAME = "VPlexHostExportLocalVolumeName";
     public String VPLEX_CLUSTER_EXPORT_LOCAL_VOLUME_NAME = "VPlexClusterExportLocalVolumeName";

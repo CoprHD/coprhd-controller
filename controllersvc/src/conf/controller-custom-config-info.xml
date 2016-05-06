@@ -53,6 +53,7 @@
                 <ref bean="hdsHostStorageDomainNickName"/>
                 <ref bean="hdsHostModeOption" />
                 <ref bean="vplexStorageViewName"/>
+                <ref bean="vplexCustomVolumeNamingEnabled"/>
                 <ref bean="vplexLocalVolumeName"/>
                 <ref bean="vplexHostExportLocalVolumeName"/>
                 <ref bean="vplexClusterExportLocalVolumeName"/>
@@ -667,6 +668,22 @@
         </property>
     </bean>
     
+    <bean id="vplexCustomVolumeNamingEnabled" class="com.emc.storageos.customconfigcontroller.CustomConfigType">
+        <property name="name" value="VPlexCustomVolumeNamingEnabled"/>
+        <property name="configType" value="SimpleValue"/>
+        <property name="type" value="Boolean"/>
+        <property name="scope">
+            <map>
+                <entry key="systemType" value="vplex"/>
+            </map>
+        </property>
+        <property name="defaultValues">
+            <map>
+                <entry key="vplex" value="false"/>
+            </map>
+        </property>
+    </bean>
+
     <bean id="vplexLocalVolumeName" class="com.emc.storageos.customconfigcontroller.CustomConfigType">
         <property name="name" value="VPlexLocalVolumeName"/>
         <property name="configType" value="CustomName"/>

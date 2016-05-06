@@ -720,6 +720,7 @@ CustomConfigs.configType.HDSHostStorageDomainName=Host Group Name
 CustomConfigs.configType.HDSHostStorageDomainNickName=Host Group Nick Name
 CustomConfigs.configType.HDSHostModeOption=Host Mode Option
 CustomConfigs.configType.VPlexStorageViewName=Storage View Name
+CustomConfigs.configType.VPlexCustomVolumeNamingEnabled=Custom Volume Naming Enabled
 CustomConfigs.configType.VPlexLocalVolumeName=Local Volume Name
 CustomConfigs.configType.VPlexHostExportLocalVolumeName=Host Exported Local Volume Name
 CustomConfigs.configType.VPlexClusterExportLocalVolumeName=Cluster Exported Local Volume Name

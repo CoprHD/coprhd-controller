@@ -73,7 +73,7 @@ public class XIVRESTOperationHelper {
                     HOST_STATUS hostStatus = null;
                     String hostName = host.getLabel();
                     try {
-                        hostStatus = restExportOpr.getHostStatus(storage.getIpAddress(), hostName);
+                        hostStatus = restExportOpr.getHostStatus(storage.getSmisProviderIP(), hostName);
                     } catch (Exception e) {
                         _log.error("Unable to validate host {} information on array : {} ", hostName, storage.getLabel(), e);
                     }

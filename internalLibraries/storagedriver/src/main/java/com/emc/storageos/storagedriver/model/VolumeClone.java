@@ -14,7 +14,7 @@ public class VolumeClone extends StorageVolume {
     private String storageSystemId;
 
     // replication state of this clone. Type: Output.
-    ReplicationState replicationState;
+    ReplicationState replicationState = ReplicationState.UNKNOWN;
 
     public static enum ReplicationState {
         UNKNOWN, SYNCHRONIZED, CREATED, RESYNCED, INACTIVE, DETACHED, RESTORED;

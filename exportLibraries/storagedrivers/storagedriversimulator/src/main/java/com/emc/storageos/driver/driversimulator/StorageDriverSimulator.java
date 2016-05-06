@@ -40,7 +40,7 @@ public class StorageDriverSimulator extends AbstractStorageDriver implements Blo
 
     private static final Logger _log = LoggerFactory.getLogger(StorageDriverSimulator.class);
     private static final String DRIVER_NAME = "SimulatorDriver";
-    private static final int NUMBER_OF_VOLUME_PAGES = 2;
+    private static final int NUMBER_OF_VOLUME_PAGES = 1;
     private static Integer portIndex = 0;
     private static Map<String, Integer> systemNameToPortIndexName = new HashMap<>();
 
@@ -822,6 +822,7 @@ public class StorageDriverSimulator extends AbstractStorageDriver implements Blo
             clone.setProvisionedCapacity(volume.getProvisionedCapacity());
             clone.setThinlyProvisioned(true);
             clone.setWwn(String.format("%s%s", clone.getStorageSystemId(), clone.getNativeId()));
+            clone.setReplicationState(VolumeClone.ReplicationState.SYNCHRONIZED);
             clones.add(clone);
 
             // generate export data for this clone --- the same export data as for its parent volume

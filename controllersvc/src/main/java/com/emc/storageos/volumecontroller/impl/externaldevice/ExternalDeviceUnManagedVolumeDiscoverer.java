@@ -156,7 +156,7 @@ public class ExternalDeviceUnManagedVolumeDiscoverer {
                                 storageSystem.getNativeGuid(), driverVolume.getNativeId());
                         Volume viprVolume = DiscoveryUtils.checkStorageVolumeExistsInDB(dbClient, managedVolumeNativeGuid);
                         if (null != viprVolume) {
-                            log.info("Skipping volume {} as it is already managed by ViPR", managedVolumeNativeGuid);
+                            log.info("Skipping volume {} as it is already managed by ViPR. Id: {}", managedVolumeNativeGuid, viprVolume.getId());
 
                             // get export data for managed volume to process later --- we need to collect export data for
                             // managed volume
@@ -919,9 +919,10 @@ public class ExternalDeviceUnManagedVolumeDiscoverer {
 
         StringSet deviceLabel = new StringSet();
         deviceLabel.add(driverClone.getDeviceLabel());
-        unManagedVolumeInformation.remove(UnManagedVolume.SupportedVolumeInformation.DEVICE_LABEL.toString());
-        unManagedVolumeInformation.put(UnManagedVolume.SupportedVolumeInformation.DEVICE_LABEL.toString(),
-                deviceLabel);
+        unManagedVolume.putVolumeInfo(UnManagedVolume.SupportedVolumeInformation.DEVICE_LABEL.toString(), deviceLabel);
+        //unManagedVolumeInformation.remove(UnManagedVolume.SupportedVolumeInformation.DEVICE_LABEL.toString());
+        //unManagedVolumeInformation.put(UnManagedVolume.SupportedVolumeInformation.DEVICE_LABEL.toString(),
+        //        deviceLabel);
 
 
         if (driverClone.getAccessStatus() != null) {
@@ -933,9 +934,10 @@ public class ExternalDeviceUnManagedVolumeDiscoverer {
 
         StringSet systemTypes = new StringSet();
         systemTypes.add(storageSystem.getSystemType());
-        unManagedVolumeInformation.remove(UnManagedVolume.SupportedVolumeInformation.SYSTEM_TYPE.toString());
-        unManagedVolumeInformation.put(UnManagedVolume.SupportedVolumeInformation.SYSTEM_TYPE.toString(),
-                systemTypes);
+        unManagedVolume.putVolumeInfo(UnManagedVolume.SupportedVolumeInformation.SYSTEM_TYPE.toString(), systemTypes);
+        //unManagedVolumeInformation.remove(UnManagedVolume.SupportedVolumeInformation.SYSTEM_TYPE.toString());
+        //unManagedVolumeInformation.put(UnManagedVolume.SupportedVolumeInformation.SYSTEM_TYPE.toString(),
+        //        systemTypes);
 
         StringSet nativeId = new StringSet();
         nativeId.add(driverClone.getNativeId());
@@ -1012,6 +1014,14 @@ public class ExternalDeviceUnManagedVolumeDiscoverer {
         unManagedVolumeInformation.remove(UnManagedVolume.SupportedVolumeInformation.ALLOCATED_CAPACITY.toString());
         unManagedVolumeInformation.put(UnManagedVolume.SupportedVolumeInformation.ALLOCATED_CAPACITY.toString(),
                 allocatedCapacity);
+
+        StringSet replicaState = new StringSet();
+        replicaState.add(driverClone.getReplicationState().toString());
+        unManagedVolume.putVolumeInfo(UnManagedVolume.SupportedVolumeInformation.REPLICA_STATE.toString(), replicaState);
+
+        StringSet accessStatus = new StringSet();
+        accessStatus.add(driverClone.getAccessStatus().toString());
+        unManagedVolume.putVolumeInfo(UnManagedVolume.SupportedVolumeInformation.ACCESS.toString(), accessStatus);
 
         // Set matched vpools the same as parent.
         StringSet parentMatchedVPools = parentUnManagedVolume.getSupportedVpoolUris();
@@ -1344,7 +1354,7 @@ public class ExternalDeviceUnManagedVolumeDiscoverer {
                     // masks. We also, remove this mask from "unmanagedExportMasks" set in its unmanaged storage volumes.
                     log.info("The result export info for host {} and storage array {} does not comply with existing mask.",
                             hostName, storageSystem.getNativeId());
-                    removeInvalidMaskFromVolumes(unManagedMask, dbClient);
+                    removeInvalidMaskDataFromVolumes(unManagedMask, dbClient);
                     unManagedMask.setInactive(true);
                     dbClient.updateObject(unManagedMask);
                 }
@@ -1798,20 +1808,30 @@ public class ExternalDeviceUnManagedVolumeDiscoverer {
 
     /**
      * Removes id of invalid unmanaged export mask from unmanaged volumes in this mask.
+     * Removes initiators for this mask from volumes and does other cleanup in the volumes properties
+     * related to export as required.
      *
      * @param unManagedMask
      * @param dbClient
      */
-    void removeInvalidMaskFromVolumes(UnManagedExportMask unManagedMask, DbClient dbClient) {
+    void removeInvalidMaskDataFromVolumes(UnManagedExportMask unManagedMask, DbClient dbClient) {
             Set<UnManagedVolume> unManagedVolumesToUpdate = new HashSet<>();
             String unManagedMaskId = unManagedMask.getId().toString();
+            StringSet knownInitiatorUris = unManagedMask.getKnownInitiatorUris();
+            StringSet knownInitiatorNetworkIds = unManagedMask.getKnownInitiatorNetworkIds();
             StringSet volumeUris = unManagedMask.getUnmanagedVolumeUris();
             for (String volumeUriString : volumeUris) {
                 URI volumeUri = URI.create(volumeUriString);
                 UnManagedVolume volume = dbClient.queryObject(UnManagedVolume.class, volumeUri);
                 if (volume != null) {
-                    StringSet unmanagedMasks = volume.getUnmanagedExportMasks();
-                    unmanagedMasks.remove(unManagedMaskId);
+                    StringSet unManagedMasks = volume.getUnmanagedExportMasks();
+                    unManagedMasks.remove(unManagedMaskId);
+                    volume.getInitiatorUris().removeAll(knownInitiatorUris);
+                    volume.getInitiatorNetworkIds().removeAll(knownInitiatorNetworkIds);
+                    if (unManagedMasks.isEmpty()) {
+                        volume.getVolumeCharacterstics().put(UnManagedVolume.SupportedVolumeCharacterstics.IS_VOLUME_EXPORTED.toString(), FALSE);
+                        volume.getVolumeCharacterstics().put(UnManagedVolume.SupportedVolumeCharacterstics.IS_NONRP_EXPORTED.toString(), FALSE);
+                    }
                     unManagedVolumesToUpdate.add(volume);
                 }
             }

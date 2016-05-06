@@ -70,4 +70,10 @@ public class ContainmentPermissionsConstraintImpl extends ConstraintImpl impleme
     public Class<? extends DataObject> getDataObjectType() {
         return _field.getDataObjectType();
     }
+    
+	@Override
+	public boolean isValid() {
+        return this._indexKey!=null && !this._indexKey.isEmpty();
+	}
+
 }

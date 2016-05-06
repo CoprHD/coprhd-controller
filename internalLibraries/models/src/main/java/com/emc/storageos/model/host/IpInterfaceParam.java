@@ -64,7 +64,6 @@ public abstract class IpInterfaceParam {
     /**
      * The IPv6 scope id.
      * 
-     * @valid none
      */
     @XmlElement(name = "scope_id")
     @JsonProperty("scope_id")
@@ -79,7 +78,6 @@ public abstract class IpInterfaceParam {
     /**
      * The name of the IpInterface
      * 
-     * @valid none
      */
     @XmlElement()
     public String getName() {

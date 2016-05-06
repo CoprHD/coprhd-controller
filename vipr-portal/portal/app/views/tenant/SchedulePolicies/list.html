@@ -1,0 +1,6 @@
+#{extends 'main.html'/}
+#{set navSelected: ['nav.tenantsettings', 'nav.schedulepolicies'] /}
+
+#{tenantSelector/}
+#{DataTable.header titleKey:'schedulepolicies.list.title' /}
+#{DataTable.crudTable id:'schedulepolicies', dataTable:dataTable, deleteConfirm:messages.get('schedulepolicies.deleteConfirm')/}

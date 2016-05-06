@@ -5,11 +5,15 @@
 package com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.impl;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.VolumeIngestionContext;
 import com.emc.storageos.api.service.impl.resource.utils.VolumeIngestionUtil;
 import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.db.client.model.BlockConsistencyGroup;
+import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedConsistencyGroup;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume;
 
 /**
@@ -21,6 +25,9 @@ public class BlockVolumeIngestionContext implements VolumeIngestionContext {
 
     private UnManagedVolume _unManagedVolume;
     private List<String> _errorMessages;
+
+    private Map<String, BlockConsistencyGroup> _cgsToCreateMap;
+    private List<UnManagedConsistencyGroup> _umCGsToUpdate;
 
     /**
      * Constructor.
@@ -60,8 +67,9 @@ public class BlockVolumeIngestionContext implements VolumeIngestionContext {
      */
     @Override
     public void commit() {
-        // basic block volume ingestion doesn't need to commit anything
-        // as all database saves are handled at the end of the ingestion process
+        // commit the UnmanagedConsistencyGroups and CGs to create
+        _dbClient.updateObject(getUmCGObjectsToUpdate());
+        _dbClient.updateObject(getCGObjectsToCreateMap().values());
     }
 
     /*
@@ -71,8 +79,9 @@ public class BlockVolumeIngestionContext implements VolumeIngestionContext {
      */
     @Override
     public void rollback() {
-        // basic block volume ingestion doesn't need to roll back anything
-        // as all database saves are handled at the end of the ingestion process
+        // rollback the UnmanagedConsistencyGroups and CGs to create
+        getUmCGObjectsToUpdate().clear();
+        getCGObjectsToCreateMap().clear();
     }
 
     /*
@@ -88,4 +97,28 @@ public class BlockVolumeIngestionContext implements VolumeIngestionContext {
 
         return _errorMessages;
     }
+
+    /*
+     * (non-Javadoc)
+     * 
+     * @see com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext#getCGObjectsToCreateMap()
+     */
+    @Override
+    public Map<String, BlockConsistencyGroup> getCGObjectsToCreateMap() {
+        if (null == _cgsToCreateMap) {
+            _cgsToCreateMap = new HashMap<String, BlockConsistencyGroup>();
+        }
+
+        return _cgsToCreateMap;
+    }
+
+    @Override
+    public List<UnManagedConsistencyGroup> getUmCGObjectsToUpdate() {
+        if (null == _umCGsToUpdate) {
+            _umCGsToUpdate = new ArrayList<UnManagedConsistencyGroup>();
+        }
+
+        return _umCGsToUpdate;
+    }
+
 }

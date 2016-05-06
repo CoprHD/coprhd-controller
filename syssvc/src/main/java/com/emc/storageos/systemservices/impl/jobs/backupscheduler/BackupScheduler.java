@@ -84,6 +84,7 @@ public class BackupScheduler extends Notifier implements Runnable, Callable<Obje
     @Autowired
     private DrUtil drUtil;
 
+
     private SchedulerConfig cfg;
     private BackupExecutor backupExec;
     private UploadExecutor uploadExec;
@@ -92,6 +93,19 @@ public class BackupScheduler extends Notifier implements Runnable, Callable<Obje
     private ScheduledFuture<?> scheduledTask;
 
     public BackupScheduler() {
+    }
+
+    public SchedulerConfig getCfg() {
+        if (cfg.uploadUrl == null) {
+            try {
+                cfg.reload();
+            }catch(Exception e) {
+                log.error("Failed to reload cfg e=", e);
+                throw new RuntimeException(e);
+            }
+        }
+
+        return cfg;
     }
 
     public static BackupScheduler getSingletonInstance() {
@@ -271,6 +285,7 @@ public class BackupScheduler extends Notifier implements Runnable, Callable<Obje
         }
 
         String drSiteId = drUtil.getLocalSite().getUuid();
+
         // Remove all non alphanumeric characters
         drSiteId = drSiteId.replaceAll("^[^a-zA-Z0-9]+|[^a-zA-Z0-9]+$", "");
         
@@ -283,6 +298,7 @@ public class BackupScheduler extends Notifier implements Runnable, Callable<Obje
             {
                 add(tag);
                 add(nodeId);
+                add(drUtil.getLocalSite().getName());
             }
         };
     }
@@ -352,17 +368,9 @@ public class BackupScheduler extends Notifier implements Runnable, Callable<Obje
 
             isLeader = false;
 
-            // Stop scheduler thread
+            // Stop scheduler thread.
             service.shutdown();
-            try {
-                while (!service.awaitTermination(30, TimeUnit.SECONDS)) {
-                    log.info("Waiting scheduler thread pool to shutdown for another 30s");
-                }
-            } catch (InterruptedException e) {
-                log.error("Interrupted while waiting to shutdown scheduler thread pool.", e);
-                Thread.currentThread().interrupt();
-                return;
-            }
+            // Never block here. It may block all other node listeners 
         }
     }
 }

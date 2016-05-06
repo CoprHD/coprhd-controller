@@ -18,8 +18,10 @@ import com.sun.jersey.spi.scanning.AnnotationScannerListener;
 public abstract class PackageScanner {
     protected DbSchemaScannerInterceptor _scannerInterceptor = null;
     private PackageNamesScanner _scanner;
-
+    private String[] packages;
+    
     public PackageScanner(String... packages) {
+    	this.packages = packages;
         _scanner = new PackageNamesScanner(packages);
     }
 
@@ -29,6 +31,7 @@ public abstract class PackageScanner {
      * @param packages
      */
     public void setPackages(String... packages) {
+    	this.packages = packages;
         _scanner = new PackageNamesScanner(packages);
     }
 
@@ -53,6 +56,15 @@ public abstract class PackageScanner {
         while (it.hasNext()) {
             processClass(it.next());
         }
+    }
+    
+    @SuppressWarnings("unchecked")
+	protected Collection<Class<?>> getModelClasses(Class<? extends Annotation>... annotations) {
+    	PackageNamesScanner clazzScanner = new PackageNamesScanner(this.packages);
+        AnnotationScannerListener scannerListener = new AnnotationScannerListener(annotations);
+        clazzScanner.scan(scannerListener);
+
+        return scannerListener.getAnnotatedClasses();
     }
 
     /**

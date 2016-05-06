@@ -22,6 +22,7 @@ import javax.wbem.CloseableIterator;
 import javax.wbem.client.EnumerateResponse;
 import javax.wbem.client.WBEMClient;
 
+import com.emc.storageos.volumecontroller.impl.plugins.SMICommunicationInterface;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -58,7 +59,7 @@ public class StorageVolumeBoundPoolProcessor extends StorageProcessor {
         Map<String, Set<String>> vmax2ThinPoolToBoundVolumesMap = (Map<String, Set<String>>) keyMap
                 .get(Constants.VMAX2_THIN_POOL_TO_BOUND_VOLUMES);
         _dbClient = (DbClient) keyMap.get(Constants.dbClient);
-        WBEMClient client = (WBEMClient) keyMap.get(Constants._cimClient);
+        WBEMClient client = SMICommunicationInterface.getCIMClient(keyMap);
         CIMObjectPath storagePoolPath = null;
         try {
             storagePoolPath = getObjectPathfromCIMArgument(_args);

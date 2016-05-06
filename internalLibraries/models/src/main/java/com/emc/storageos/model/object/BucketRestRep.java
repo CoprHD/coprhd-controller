@@ -50,7 +50,6 @@ public class BucketRestRep extends DataObjectRestRep {
     /**
      * SoftQuota of the bucket in GB
      * 
-     * @valid none
      */
     @XmlElement(name = "soft_quota")
     public String getSoftQuota() {
@@ -64,7 +63,6 @@ public class BucketRestRep extends DataObjectRestRep {
     /**
      * HardQuota of the Bucket in GB
      * 
-     * @valid none
      */
     @XmlElement(name = "hard_quota")
     public String getHardQuota() {
@@ -78,7 +76,6 @@ public class BucketRestRep extends DataObjectRestRep {
     /**
      * URI for the virtual pool the Bucket resides on.
      * 
-     * @valid none
      */
     @XmlElement(name = "vpool")
     @JsonProperty("vpool")
@@ -93,7 +90,6 @@ public class BucketRestRep extends DataObjectRestRep {
     /**
      * URI for the virtual array containing the virtual pool and the Bucket.
      * 
-     * @valid none
      */
     @XmlElement(name = "varray")
     @JsonProperty("varray")
@@ -108,7 +104,6 @@ public class BucketRestRep extends DataObjectRestRep {
     /**
      * URI for the storage pool containing storage allocated for the Bucket.
      * 
-     * @valid none
      */
     @XmlElement(name = "storage_pool")
     public RelatedResourceRep getPool() {
@@ -122,7 +117,6 @@ public class BucketRestRep extends DataObjectRestRep {
     /**
      * URI for the project containing the Bucket.
      * 
-     * @valid none
      */
     @XmlElement
     public RelatedResourceRep getProject() {
@@ -134,7 +128,7 @@ public class BucketRestRep extends DataObjectRestRep {
     }
 
     /**
-     * Set of valid protocols (S3, Swift & Atmos).
+     * Set of valid protocols S3, Swift and Atmos.
      */
     @XmlElementWrapper(name = "protocols")
     @XmlElement(name = "protocol")
@@ -152,7 +146,6 @@ public class BucketRestRep extends DataObjectRestRep {
     /**
      * URI representing the storage system supporting the Bucket.
      * 
-     * @valid none
      */
     @XmlElement(name = "storage_system")
     public RelatedResourceRep getStorageSystem() {
@@ -166,7 +159,6 @@ public class BucketRestRep extends DataObjectRestRep {
     /**
      * URI representing the storage port.
      * 
-     * @valid 1 - 65535
      */
     @XmlElement(name = "storage_port")
     public RelatedResourceRep getStoragePort() {
@@ -180,7 +172,6 @@ public class BucketRestRep extends DataObjectRestRep {
     /**
      * The URI of the tenant to which the Bucket belongs.
      * 
-     * @valid none
      */
     @XmlElement
     public RelatedResourceRep getTenant() {

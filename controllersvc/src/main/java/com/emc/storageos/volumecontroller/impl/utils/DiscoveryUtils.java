@@ -26,6 +26,7 @@ import com.emc.storageos.db.client.model.AutoTieringPolicy.HitachiTieringPolicy;
 import com.emc.storageos.db.client.model.AutoTieringPolicy.VnxFastPolicy;
 import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
+import com.emc.storageos.db.client.model.ObjectNamespace;
 import com.emc.storageos.db.client.model.ProtectionSet;
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StoragePort;
@@ -281,12 +282,14 @@ public class DiscoveryUtils {
         List<StoragePool> modifiedPools = new ArrayList<StoragePool>();
         while (storagePoolIter.hasNext()) {
             StoragePool pool = dbClient.queryObject(StoragePool.class, storagePoolIter.next());
+            if (pool.getInactive()) {
+                continue;
+            }
             modifiedPools.add(pool);
             pool.setCompatibilityStatus(DiscoveredDataObject.CompatibilityStatus.INCOMPATIBLE.name());
-            dbClient.persistObject(pool);
+            dbClient.updateObject(pool);
         }
         ImplicitPoolMatcher.matchModifiedStoragePoolsWithAllVirtualPool(modifiedPools, dbClient, coordinator);
-        ;
 
         // Mark all Ports as incompatible
         URIQueryResultList storagePortURIs = new URIQueryResultList();
@@ -296,8 +299,11 @@ public class DiscoveryUtils {
         Iterator<URI> storagePortIter = storagePortURIs.iterator();
         while (storagePortIter.hasNext()) {
             StoragePort port = dbClient.queryObject(StoragePort.class, storagePortIter.next());
+            if (port.getInactive()) {
+                continue;
+            }
             port.setCompatibilityStatus(DiscoveredDataObject.CompatibilityStatus.INCOMPATIBLE.name());
-            dbClient.persistObject(port);
+            dbClient.updateObject(port);
         }
     }
 
@@ -599,16 +605,13 @@ public class DiscoveryUtils {
      */
     public static Set<URI> getAllUnManagedProtectionSetsForSystem(
             DbClient dbClient, String protectionSystemUri) {
-        
-        final URIQueryResultList result = new URIQueryResultList();
-        dbClient.queryByConstraint(AlternateIdConstraint.Factory
-                .getUnManagedProtectionSetsByProtectionSystemUriConstraint(protectionSystemUri), result);
-
         Set<URI> cgSet = new HashSet<URI>();
-        Iterator<URI> results = result.iterator(); 
-        while (results.hasNext()) {
-            cgSet.add(results.next());
+        List<UnManagedProtectionSet> cgs = CustomQueryUtility.getUnManagedProtectionSetByProtectionSystem(dbClient, protectionSystemUri);
+        Iterator<UnManagedProtectionSet> cgsItr = cgs.iterator();
+        while (cgsItr.hasNext()) {
+            cgSet.add(cgsItr.next().getId());
         }
+        
         return cgSet;
     }
 
@@ -811,4 +814,48 @@ public class DiscoveryUtils {
     	return unmanagedCG;
     }
 
+    /**
+     * Dump & remove deleted namespaces in object storage
+     * 
+     * @param discoveredNamespaces
+     * @param dbClient
+     * @param storageSystemId
+     */
+    public static void checkNamespacesNotVisible(List<ObjectNamespace> discoveredNamespaces,
+            DbClient dbClient, URI storageSystemId) {
+        // Get the namespaces previousy discovered
+        URIQueryResultList objNamespaceURIs = new URIQueryResultList();
+        dbClient.queryByConstraint(
+                ContainmentConstraint.Factory.getStorageDeviceObjectNamespaceConstraint(storageSystemId),
+                objNamespaceURIs);
+        Iterator<URI> objNamespaceIter = objNamespaceURIs.iterator();
+
+        List<URI> existingNamespacesURI = new ArrayList<URI>();
+        while (objNamespaceIter.hasNext()) {
+            existingNamespacesURI.add(objNamespaceIter.next());
+        }
+
+        List<URI> discoveredNamespacesURI = new ArrayList<URI>();
+        for (ObjectNamespace namespace : discoveredNamespaces) {
+            discoveredNamespacesURI.add(namespace.getId());
+        }
+
+        // Present in existing but not in discovered; remove them
+        Set<URI> namespacesDiff = Sets.difference(new HashSet<URI>(existingNamespacesURI), new HashSet<URI>(discoveredNamespacesURI));
+
+        if (!namespacesDiff.isEmpty()) {
+            Iterator<ObjectNamespace> objNamespaceIt = dbClient.queryIterativeObjects(ObjectNamespace.class, namespacesDiff, true);
+            while (objNamespaceIt.hasNext()) {
+                ObjectNamespace namespace = objNamespaceIt.next();
+                // Namespace is not associated with tenant
+                if (namespace.getTenant() == null) {
+                    _log.info("Object Namespace not visible & getting deleted {} : {}", namespace.getNativeId(), namespace.getId());
+                    namespace.setDiscoveryStatus(DiscoveredDataObject.DiscoveryStatus.NOTVISIBLE.name());
+                    namespace.setInactive(true);
+                }
+                dbClient.updateObject(namespace);
+            }
+        }
+    }
+    
 }

@@ -44,9 +44,7 @@ import sun.security.x509.AlgorithmId;
 import sun.security.x509.AuthorityKeyIdentifierExtension;
 import sun.security.x509.CertificateAlgorithmId;
 import sun.security.x509.CertificateExtensions;
-import sun.security.x509.CertificateIssuerName;
 import sun.security.x509.CertificateSerialNumber;
-import sun.security.x509.CertificateSubjectName;
 import sun.security.x509.CertificateValidity;
 import sun.security.x509.CertificateVersion;
 import sun.security.x509.CertificateX509Key;
@@ -118,8 +116,8 @@ public class KeyCertificatePairGenerator {
 
         info.set(X509CertInfo.VALIDITY, interval);
         info.set(X509CertInfo.SERIAL_NUMBER, new CertificateSerialNumber(sn));
-        info.set(X509CertInfo.SUBJECT, new CertificateSubjectName(owner));
-        info.set(X509CertInfo.ISSUER, new CertificateIssuerName(owner));
+        info.set(X509CertInfo.SUBJECT, owner);
+        info.set(X509CertInfo.ISSUER, owner);
         info.set(X509CertInfo.KEY, new CertificateX509Key(pubKey));
         info.set(X509CertInfo.VERSION, new CertificateVersion(CertificateVersion.V3));
         AlgorithmId keyAlgo =
@@ -474,16 +472,15 @@ public class KeyCertificatePairGenerator {
         SecureRandom random = null;
         try {
 
-            random =
-                    SecureRandom.getInstance(valuesHolder.getSecuredRandomAlgorithm());
+            random = SecureRandom.getInstance(SecurityUtil.getSecuredRandomAlgorithm());
             keyGen =
                     KeyPairGenerator.getInstance(
                             KeyCertificateAlgorithmValuesHolder.DEFAULT_KEY_ALGORITHM);
             keyGen.initialize(valuesHolder.getKeySize(), random);
             return keyGen.generateKeyPair();
-        } catch (NoSuchAlgorithmException e) {
+        } catch (Exception e) {
             throw SecurityException.fatals.noSuchAlgorithmException(
-                    valuesHolder.getSecuredRandomAlgorithm(), e);
+                    SecurityUtil.getSecuredRandomAlgorithm(), e);
         } finally {
             if (keyGen != null) {
                 SecurityUtil.clearSensitiveData(keyGen);

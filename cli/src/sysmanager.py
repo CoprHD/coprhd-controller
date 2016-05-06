@@ -2973,7 +2973,7 @@ def failover_site_parser(subcommand_parsers,common_parser):
         description='ViPR: CLI usage to do failover from standby site',
         parents=[common_parser],
         conflict_handler='resolve',
-        help='Failover from standby site. This operation is only allowed when acitve site is down')
+        help='Failover from standby site. This operation is only allowed when active site is down')
     
     mandatory_args = failover_site_parser.add_argument_group(
         'mandatory arguments')
@@ -3105,6 +3105,18 @@ def system_parser(parent_subparser, common_parser):
     sysmgrcontrolsvc.upload_backup_status_parser(subcommand_parsers, common_parser)
     
     sysmgrcontrolsvc.backup_info_parser(subcommand_parsers, common_parser)
+    
+    sysmgrcontrolsvc.backupset_restore_parser(subcommand_parsers,common_parser)
+    
+    sysmgrcontrolsvc.backupset_restore_status_parser(subcommand_parsers,common_parser)
+    
+    sysmgrcontrolsvc.get_backupsets_external_parser(subcommand_parsers, common_parser)
+    
+    sysmgrcontrolsvc.get_backupsets_info_parser(subcommand_parsers,common_parser)
+    
+    sysmgrcontrolsvc.backupset_pull_parser(subcommand_parsers,common_parser)
+    
+    sysmgrcontrolsvc.backupset_pull_cancel_parser(subcommand_parsers,common_parser)
     
     list_sites_parser(subcommand_parsers,common_parser)
     

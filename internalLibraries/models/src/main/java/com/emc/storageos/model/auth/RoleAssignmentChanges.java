@@ -15,14 +15,12 @@ public class RoleAssignmentChanges {
     /**
      * List of role assignment entries elements to be added.
      * 
-     * @valid none
      */
     private List<RoleAssignmentEntry> add;
 
     /**
      * List of role assignment entries elements to be removed.
      * 
-     * @valid none
      */
     private List<RoleAssignmentEntry> remove;
 

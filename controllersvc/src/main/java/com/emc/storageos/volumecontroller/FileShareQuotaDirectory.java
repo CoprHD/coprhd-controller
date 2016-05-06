@@ -29,6 +29,9 @@ public class FileShareQuotaDirectory implements Serializable {
     private String _securityStyle;
     private Boolean _oplock;
     private Long _size;
+    private int softLimit;
+    private int notificationLimit;
+    private int softGrace;
 
     // private SecurityStyles _securityStyle;
 
@@ -47,6 +50,9 @@ public class FileShareQuotaDirectory implements Serializable {
         _securityStyle = qtree.getSecurityStyle();
         _oplock = qtree.getOpLock();
         _size = qtree.getSize();
+        this.softLimit = qtree.getSoftLimit();
+        this.softGrace = qtree.getSoftGrace();
+        this.notificationLimit = qtree.getNotificationLimit();
     }
 
     public String getName() {
@@ -67,6 +73,30 @@ public class FileShareQuotaDirectory implements Serializable {
 
     public Long getSize() {
         return _size;
+    }
+
+    public int getSoftLimit() {
+        return softLimit;
+    }
+
+    public void setSoftLimit(int softLimit) {
+        this.softLimit = softLimit;
+    }
+
+    public int getNotificationLimit() {
+        return notificationLimit;
+    }
+
+    public void setNotificationLimit(int notificationLimit) {
+        this.notificationLimit = notificationLimit;
+    }
+
+    public int getSoftGrace() {
+        return softGrace;
+    }
+
+    public void setSoftGrace(int softGrace) {
+        this.softGrace = softGrace;
     }
 
 }

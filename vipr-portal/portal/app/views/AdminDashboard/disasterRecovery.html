@@ -17,21 +17,21 @@
         				#{list items:drsites, as:'site'}
         				<tr>
 							<td>
-								<form action="#{./vdcLink host:site.vip, path:''/}" method="POST" accept-charset="utf-8" enctype="application/x-www-form-urlencoded" id="StandbySite${site.uuid}">
+								<form action="#{./vdcLink host:site.vipEndpoint, path:''/}" method="POST" accept-charset="utf-8" enctype="application/x-www-form-urlencoded" id="StandbySite${site.uuid}">
       								#{authenticityToken /}
 	  								<input type="hidden" name="auth-token" value="${token}">
  								</form>
-								<a href="#" onclick="$('#StandbySite${site.uuid}').submit(); return false;">${site.name}</a>
+								<a href="https://${site.vipEndpoint}" onclick="$('#StandbySite${site.uuid}').submit(); return false;">${site.name}</a>
 							</td>
 							<td>
 								#{if site.state == "ACTIVE"}
-									<img class="glyphicon glyphicon-ok" src="/public/img/Ready.png"><span> &{'renderFunctions.disasterRecovery.status.primary'}</span>
+									<img class="glyphicon glyphicon-ok" src="/public/img/Ready.png"><span> &{'renderFunctions.disasterRecovery.status.active'}</span>
 								#{/if}
 								#{if site.state == "ACTIVE_SWITCHING_OVER"}
-									<span class="glyphicon glyphicon-refresh rotate" style="color:#FF0000"></span><span> &{'renderFunctions.disasterRecovery.status.primary.switchingover'}</span>
+									<span class="glyphicon glyphicon-refresh rotate" style="color:#FF0000"></span><span> &{'renderFunctions.disasterRecovery.status.active.switchingover'}</span>
 								#{/if}
 								#{if site.state == "ACTIVE_FAILING_OVER"}
-									<span class="glyphicon glyphicon-refresh rotate" style="color:#FF0000"></span><span> &{'renderFunctions.disasterRecovery.status.primary.failingover'}</span>
+									<span class="glyphicon glyphicon-refresh rotate" style="color:#FF0000"></span><span> &{'renderFunctions.disasterRecovery.status.active.failingover'}</span>
 								#{/if}
 								#{if site.state == "STANDBY_ADDING"}
 									<span class="glyphicon glyphicon-refresh rotate" style="color:#0000FF"></span><span> &{'renderFunctions.disasterRecovery.status.standby.adding'}</span>
@@ -66,19 +66,25 @@
 								#{if site.state == "ACTIVE_DEGRADED"}
 									<img class="glyphicon glyphicon-ok" src="/public/img/Critical.png"><span> &{'renderFunctions.disasterRecovery.status.standby.failbackDegraded'}</span>
 								#{/if}
+								#{if site.state == "STANDBY_DEGRADING"}
+									<span class="glyphicon glyphicon-refresh rotate" style="color:#FF0000"></span><span> &{'renderFunctions.disasterRecovery.status.standby.degrading'}</span>
+								#{/if}
+								#{if site.state == "STANDBY_DEGRADED"}
+									<img class="glyphicon glyphicon-ok" src="/public/img/Critical.png"><span> &{'renderFunctions.disasterRecovery.status.standby.degraded'}</span>
+								#{/if}
 								#{if site.state == "STANDBY_ERROR"}
 									<img class="glyphicon glyphicon-ok" src="/public/img/Critical.png"><span> &{'renderFunctions.disasterRecovery.status.standby.error'}</span>
 								#{/if}
 							</td>
 							<td>
-								#{if site.networkHealth == "Good"}
-								<img class="glyphicon glyphicon-ok" src="/public/img/Ready.png" alt="Good">
+								#{if site.networkHealth == "GOOD"}
+								<img class="glyphicon glyphicon-ok" src="/public/img/Ready.png" alt="Good"><span> &{'renderFunctions.disasterRecovery.networkHealth.good'}</span>
 								#{/if}
-								#{if site.networkHealth == "Slow"}
-								<img class="glyphicon glyphicon-ok" src="/public/img/Warning.png" alt="Slow">
+								#{if site.networkHealth == "SLOW"}
+								<img class="glyphicon glyphicon-ok" src="/public/img/Warning.png" alt="Slow"><span> &{'renderFunctions.disasterRecovery.networkHealth.slow'}</span>
 								#{/if}
-								#{if site.networkHealth == "Broken"}
-								<img class="glyphicon glyphicon-ok" src="/public/img/Critical.png" alt="Broken">
+								#{if site.networkHealth == "BROKEN"}
+								<img class="glyphicon glyphicon-ok" src="/public/img/Critical.png" alt="Broken"><span> &{'renderFunctions.disasterRecovery.networkHealth.broken'}</span>
 								#{/if}
 							</td>
 						</tr>

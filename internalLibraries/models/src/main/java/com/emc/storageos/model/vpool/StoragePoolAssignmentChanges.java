@@ -27,7 +27,6 @@ public class StoragePoolAssignmentChanges {
     /**
      * The list of storage pools to be added to the virtual pool
      * 
-     * @valid none
      */
     @XmlElement(name = "add")
     public StoragePoolAssignments getAdd() {
@@ -41,7 +40,6 @@ public class StoragePoolAssignmentChanges {
     /**
      * The list of storage pools to be removed from the virtual pool
      * 
-     * @valid none
      */
     @XmlElement(name = "remove")
     public StoragePoolAssignments getRemove() {

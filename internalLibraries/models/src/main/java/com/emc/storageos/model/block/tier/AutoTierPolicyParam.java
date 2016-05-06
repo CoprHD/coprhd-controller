@@ -21,10 +21,11 @@ public class AutoTierPolicyParam {
 
     /**
      * The provisioning type of the auto tiering policy
+     * Valid values:
+     * Thin
+     * Thick
+     * All
      * 
-     * @valid Thin
-     * @valid Thick
-     * @valid All
      */
     @XmlElement(name = "provisioning_type", required = false)
     public String getProvisioningType() {

@@ -75,6 +75,8 @@
     <div class="col-sm-4">
       #{include 'AdminDashboard/version.html'/}
       #{include 'AdminDashboard/health.html'/}
-      #{include 'AdminDashboard/disasterRecovery.html'/}
+      #{if isDrConfigured}
+        #{include 'AdminDashboard/disasterRecovery.html'/}
+      #{/if}
     </div>
 </div>

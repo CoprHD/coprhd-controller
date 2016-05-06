@@ -61,20 +61,21 @@ public class CreateBlockSnapshotService extends ViPRService {
         if (ConsistencyUtils.isVolumeStorageType(storageType)) {
             volumes = new ArrayList<>();
             volumes = BlockStorageUtils.getBlockResources(uris(volumeIds));
+        }
             
-            if (BlockProvider.SESSION_SNAPSHOT_TYPE_VALUE.equals(type)) {               
-                if (linkedSnapshotName != null && !linkedSnapshotName.isEmpty()) {
-                    // If trying to create a Snapshot Session and the optional linkedSnapshotName 
-                    // is populated, make sure that linkedSnapshotCount > 0.
-                    if (linkedSnapshotCount == null || linkedSnapshotCount.intValue() <= 0) {
-                        ExecutionUtils.fail("failTask.CreateBlockSnapshot.linkedSnapshotCount.precheck", new Object[] {}, new Object[] {});
-                    }
-                    // Ensure that copy mode is selected
-                    if (linkedSnapshotCopyMode == null
-                            || !(BlockProvider.LINKED_SNAPSHOT_COPYMODE_VALUE.equals(linkedSnapshotCopyMode)
-                                    || BlockProvider.LINKED_SNAPSHOT_NOCOPYMODE_VALUE.equals(linkedSnapshotCopyMode))) {
-                        ExecutionUtils.fail("failTask.CreateBlockSnapshot.linkedSnapshotCopyMode.precheck", new Object[] {}, new Object[] {});
-                    }
+        if (BlockProvider.SNAPSHOT_SESSION_TYPE_VALUE.equals(type)
+                || BlockProvider.CG_SNAPSHOT_SESSION_TYPE_VALUE.equals(type)) {               
+            if (linkedSnapshotName != null && !linkedSnapshotName.isEmpty()) {
+                // If trying to create a Snapshot Session and the optional linkedSnapshotName 
+                // is populated, make sure that linkedSnapshotCount > 0.
+                if (linkedSnapshotCount == null || linkedSnapshotCount.intValue() <= 0) {
+                    ExecutionUtils.fail("failTask.CreateBlockSnapshot.linkedSnapshotCount.precheck", new Object[] {}, new Object[] {});
+                }
+                // Ensure that copy mode is selected
+                if (linkedSnapshotCopyMode == null
+                        || !(BlockProvider.LINKED_SNAPSHOT_COPYMODE_VALUE.equals(linkedSnapshotCopyMode)
+                                || BlockProvider.LINKED_SNAPSHOT_NOCOPYMODE_VALUE.equals(linkedSnapshotCopyMode))) {
+                    ExecutionUtils.fail("failTask.CreateBlockSnapshot.linkedSnapshotCopyMode.precheck", new Object[] {}, new Object[] {});
                 }
             }
         }
@@ -85,7 +86,7 @@ public class CreateBlockSnapshotService extends ViPRService {
         Tasks<? extends DataObjectRestRep> tasks;
         if (ConsistencyUtils.isVolumeStorageType(storageType)) {
             for (BlockObjectRestRep volume : volumes) {
-                if (BlockProvider.SESSION_SNAPSHOT_TYPE_VALUE.equals(type)) {
+                if (BlockProvider.SNAPSHOT_SESSION_TYPE_VALUE.equals(type)) {
                     tasks = execute(new CreateBlockSnapshotSession(volume.getId(), nameParam, 
                                                                     linkedSnapshotName, linkedSnapshotCount, linkedSnapshotCopyMode));
                 } else {
@@ -95,7 +96,12 @@ public class CreateBlockSnapshotService extends ViPRService {
             }
         } else {
             for (String consistencyGroupId : volumeIds) {
-                tasks = ConsistencyUtils.createSnapshot(uri(consistencyGroupId), nameParam, readOnly);
+                if (BlockProvider.CG_SNAPSHOT_SESSION_TYPE_VALUE.equals(type)) {
+                    tasks = ConsistencyUtils.createSnapshotSession(uri(consistencyGroupId), nameParam, 
+                                                                    linkedSnapshotName, linkedSnapshotCount, linkedSnapshotCopyMode);
+                } else {
+                    tasks = ConsistencyUtils.createSnapshot(uri(consistencyGroupId), nameParam, readOnly);
+                }
                 addAffectedResources(tasks);
             }
         }

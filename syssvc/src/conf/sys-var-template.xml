@@ -15,10 +15,11 @@
         <property name="serviceBeacon" ref="beacon" />
         <property name="service" ref="serviceinfo" />
         <property name="nodeCount" ref="nodeCount" />
-	<property name="vip" value="${network_vip_effective}" />
+        <property name="vip" value="${network_vip_effective}" />
         <property name="statusChecker" ref="statusChecker"/>
         <property name="drUtil" ref="drUtil"/>
         <property name="dbCommonInfo" ref="dbcommoninfo"/>
+    	<property name="backCompatPreYoda" ref="backCompatPreYoda"/>
     </bean>
     
     <import resource="classpath:dbclient-conf.xml"/>

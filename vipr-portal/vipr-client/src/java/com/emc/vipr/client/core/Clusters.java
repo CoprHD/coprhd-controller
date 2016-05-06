@@ -201,7 +201,9 @@ public class Clusters extends AbstractCoreBulkResources<ClusterRestRep> implemen
      * 
      * @param id
      *            the ID of the cluster to deactivate.
-     * @prereq The cluster hosts must not have block or file exports
+     * 
+     *  The cluster hosts must not have block or file exports
+     * 
      */
     public Task<ClusterRestRep> deactivate(URI id) {
         return deactivate(id, false);

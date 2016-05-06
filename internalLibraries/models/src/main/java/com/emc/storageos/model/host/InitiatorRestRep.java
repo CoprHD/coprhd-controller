@@ -36,7 +36,6 @@ public class InitiatorRestRep extends HostInterfaceRestRep {
     /**
      * The host name for the initiator.
      * 
-     * @valid none
      * @return The initiator host name.
      */
     @XmlElement(name = "hostname")
@@ -51,7 +50,6 @@ public class InitiatorRestRep extends HostInterfaceRestRep {
     /**
      * The name of the cluster for the initiator.
      * 
-     * @valid none
      * @return The initiator cluster name.
      */
     @XmlElement(name = "clustername")
@@ -66,7 +64,6 @@ public class InitiatorRestRep extends HostInterfaceRestRep {
     /**
      * The initiator node.
      * 
-     * @valid none
      * @return The initiator node.
      */
     @XmlElement(name = "initiator_node")
@@ -81,7 +78,6 @@ public class InitiatorRestRep extends HostInterfaceRestRep {
     /**
      * The port for the initiator.
      * 
-     * @valid none
      * @return The initiator port.
      */
     @XmlElement(name = "initiator_port")
@@ -96,7 +92,6 @@ public class InitiatorRestRep extends HostInterfaceRestRep {
     /**
      * The label for the initiator.
      * 
-     * @valid none
      * @return The initiator label.
      */
     @XmlElement(name = "label")

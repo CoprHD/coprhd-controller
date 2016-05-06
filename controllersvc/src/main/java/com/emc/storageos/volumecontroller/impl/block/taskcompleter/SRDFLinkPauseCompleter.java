@@ -16,6 +16,7 @@ import com.emc.storageos.db.client.model.Operation.Status;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
+import com.emc.storageos.volumecontroller.impl.smis.SRDFOperations.Mode;
 
 public class SRDFLinkPauseCompleter extends SRDFTaskCompleter {
 
@@ -45,6 +46,12 @@ public class SRDFLinkPauseCompleter extends SRDFTaskCompleter {
 
     @Override
     protected Volume.VolumeAccessState getVolumeAccessStateForSuccess(Volume v) {
-        return Volume.VolumeAccessState.READWRITE;
+    	if (null != v.getSrdfCopyMode() && Mode.ACTIVE.equals(Mode.valueOf(v.getSrdfCopyMode())) && v.getPersonality().equals(Volume.PersonalityTypes.TARGET.toString())) {
+    		// For Active mode target access state is always updated from the provider
+    		// after each operation so just use that.
+    		return Volume.VolumeAccessState.getVolumeAccessState(v.getAccessState());
+    	} else {
+    		return Volume.VolumeAccessState.READWRITE;
+    	}
     }
 }

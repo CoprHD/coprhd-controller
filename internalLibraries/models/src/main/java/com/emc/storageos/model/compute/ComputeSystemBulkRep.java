@@ -25,7 +25,6 @@ public class ComputeSystemBulkRep extends BulkRestRep {
     /**
      * List of compute system objects that exist in ViPR.
      * 
-     * @valid none
      */
     @XmlElement(name = "compute_system")
     public List<ComputeSystemRestRep> getComputeSystems() {

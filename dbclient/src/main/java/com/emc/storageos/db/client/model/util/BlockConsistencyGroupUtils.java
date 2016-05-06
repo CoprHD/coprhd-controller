@@ -33,6 +33,8 @@ public class BlockConsistencyGroupUtils {
      * group name.
      */
     private static final String SPLITTER = ":";
+    public static final String CLUSTER_1 = "cluster-1";
+    public static final String CLUSTER_2 = "cluster-2";
 
     /**
      * Parses out the cluster name from the combined cluster/cg name.
@@ -152,9 +154,10 @@ public class BlockConsistencyGroupUtils {
      * @param vplexSystem The VPlex storage system.
      * @param clusterName The VPlex cluster name.
      * @param cgName The consistency group name.
+     * @param isDistributed True if the check is for a distributed CG.
      * @return true if the VPlex consistency group has been created, false otherwise.
      */
-    public static boolean isVplexCgCreated(BlockConsistencyGroup cg, String vplexSystem, String clusterName, String cgName) {
+    public static boolean isVplexCgCreated(BlockConsistencyGroup cg, String vplexSystem, String clusterName, String cgName, boolean isDistributed) {
         boolean vplexCgCreated = false;
 
         if (cg.getSystemConsistencyGroups() == null) {
@@ -163,8 +166,15 @@ public class BlockConsistencyGroupUtils {
 
         StringSet clusterCgNames = cg.getSystemConsistencyGroups().get(vplexSystem);
         if (clusterCgNames != null && !clusterCgNames.isEmpty()) {
-            String clusterCgName = buildClusterCgName(clusterName, cgName);
-            vplexCgCreated = clusterCgNames.contains(clusterCgName);
+            if (isDistributed) {
+                String cluster1CgName = buildClusterCgName(CLUSTER_1, cgName);
+                String cluster2CgName = buildClusterCgName(CLUSTER_2, cgName);
+                vplexCgCreated = clusterCgNames.contains(cluster1CgName)
+                                    || clusterCgNames.contains(cluster2CgName);
+            } else {
+                String clusterCgName = buildClusterCgName(clusterName, cgName);
+                vplexCgCreated = clusterCgNames.contains(clusterCgName);
+            }
         }
 
         return vplexCgCreated;
@@ -222,7 +232,7 @@ public class BlockConsistencyGroupUtils {
                     StorageSystem cgSystem = dbClient.queryObject(StorageSystem.class, cgSystemUri);
                     // TODO: If we add support for new block systems, add the same in the
                     // isBlockStorageSystem
-                    if (Type.isBlockStorageSystem(Type.valueOf(cgSystem.getSystemType()))) {
+                    if (Type.isBlockStorageSystem(cgSystem.getSystemType())) {
                         localSystemUris.add(cgSystemUri);
                     }
                 }
@@ -308,6 +318,35 @@ public class BlockConsistencyGroupUtils {
     }
 
     /**
+     * Gets the active native, non-VPLEX, non-RP volumes in the consistency group.
+     *
+     * @param cg        Consistency group.
+     * @param dbClient  Database client.
+     * @return          A list of native back-end volumes in the given consistency group.
+     */
+    public static List<Volume> getActiveNativeVolumesInCG(BlockConsistencyGroup cg, DbClient dbClient) {
+        List<Volume> volumeList = new ArrayList<>();
+        URIQueryResultList uriQueryResultList = new URIQueryResultList();
+        dbClient.queryByConstraint(getVolumesByConsistencyGroup(cg.getId()),
+                uriQueryResultList);
+        Iterator<Volume> volumeIterator = dbClient.queryIterativeObjects(Volume.class,
+                uriQueryResultList);
+        while (volumeIterator.hasNext()) {
+            Volume volume = volumeIterator.next();
+            if (!volume.getInactive()) {
+                // We want the non-VPlex volumes, which are those volumes that do not have associated volumes.
+                if (volume.getAssociatedVolumes() == null || volume.getAssociatedVolumes().isEmpty()) {
+                    String personality = volume.getPersonality();
+                    if (personality == null || PersonalityTypes.SOURCE.name().equalsIgnoreCase(personality)) {
+                        volumeList.add(volume);
+                    }
+                }
+            }
+        }
+        return volumeList;
+    }
+
+    /**
      * Verify that the project for the volume is the same as that for the
      * consistency group. Throws an APIException when the projects are not the
      * same.
@@ -328,5 +367,25 @@ public class BlockConsistencyGroupUtils {
                     .consistencyGroupAddVolumeThatIsInDifferentProject(volume.getLabel(),
                             projects.get(0).getLabel(), projects.get(1).getLabel());
         }
+    }
+
+    public static List<Volume> getAllCGVolumes(BlockConsistencyGroup cg, DbClient dbClient) {
+        List<Volume> result = new ArrayList<>();
+        
+        if (cg.checkForType(BlockConsistencyGroup.Types.VPLEX) && cg.checkForType(BlockConsistencyGroup.Types.RP)) {
+            // VPLEX+RP - Right now application supports taking snap sessions on RP targets too.
+            result.addAll(getActiveVplexVolumesInCG(cg, dbClient, null));
+        } else if (cg.checkForType(BlockConsistencyGroup.Types.VPLEX) && !cg.checkForType(BlockConsistencyGroup.Types.RP)) {
+            // VPLEX
+            result.addAll(getActiveVplexVolumesInCG(cg, dbClient, null));
+        } else if (cg.checkForType(BlockConsistencyGroup.Types.RP) && !cg.checkForType(BlockConsistencyGroup.Types.VPLEX)) {
+            // RP Right now application supports taking snap sessions on RP targets too.
+            result.addAll(getActiveNonVplexVolumesInCG(cg, dbClient, null));
+        } else {
+            // Native (no protection)
+            result.addAll(getActiveNativeVolumesInCG(cg, dbClient));
+        }
+
+        return result;
     }
 }

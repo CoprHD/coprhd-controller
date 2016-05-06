@@ -26,7 +26,6 @@ public class VirtualPoolPoolUpdateParam {
     /**
      * Changes to the assigned storage pools for a virtual pool.
      * 
-     * @valid none
      */
     @XmlElement(name = "assigned_pool_changes")
     public StoragePoolAssignmentChanges getStoragePoolAssignmentChanges() {

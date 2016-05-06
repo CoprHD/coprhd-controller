@@ -29,7 +29,6 @@ public class VirtualPoolList {
     /**
      * The list of virtual pool response instances.
      * 
-     * @valid none
      */
     @XmlElement(name = "virtualpool")
     @JsonProperty("virtualpool")

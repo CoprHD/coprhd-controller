@@ -7,7 +7,6 @@ PORTS_PROTECTED_IN_CLUSTER="tcp/2181 tcp/2888 tcp/2889 tcp/7000 tcp/7100 tcp/719
 PORTS_PROTECTED_ACROSS_SITE="tcp/2888 tcp/2889 tcp/7000 tcp/7100"
 IPSEC_CONF_FILE="/etc/ipsec.conf"
 IPSEC_SECRET_FILE="/etc/ipsec.secrets"
-FIRT_BOOT_FLAG_FILE="/.volumes/bootfs/etc/first_boot_flag"
 
 #
 # common section for all connnections in ipsec.conf
@@ -64,47 +63,22 @@ EOF
     done
 }
 
-
-_create_first_boot_flag_file() {
-    /etc/systool --remount-rw
-    local dir="$(dirname -- "${FIRT_BOOT_FLAG_FILE}")"
-    [ -d "${dir}" ] || mkdir -p -- "${dir}"
-    touch -- "${FIRT_BOOT_FLAG_FILE}"
-    /etc/systool --remount-ro
-}
-
 #
 # generate ipsec.conf and ipsec.secrets
 #
 _gen_ipsec_conf() {
 
-    # based on flag file AND directory "/data/db/1" to determine if need to generate conf files
-    #
-    # flag file dose NOT exists: first boot, further check "data/db/1" directory existence
-    #      - not exist: new installation, generate conf files
-    #      - exist    : first boot after upgrade, do NOT generate conf files
-    #
-    # flag file exists: following up boots, further check ipsec_enabled flag 
-    #      - true : generate files
-    #      - false: do NOT generate files
-    #
     local start_ipsec
-    if [ -f "${FIRT_BOOT_FLAG_FILE}" ] ; then 
-        if [ "${_GENCONFIG_ipsec_status}" == "disabled" ] ; then
-            rm -f ${IPSEC_CONF_FILE} ${IPSEC_SECRET_FILE}
-            start_ipsec=false	
-        else
-            start_ipsec=true		
-        fi
-    else
-        _create_first_boot_flag_file
+    if [ "${_GENCONFIG_back_compat_preyoda}" == "true" ] ; then
+        # disable ipsec before yoda upgrade is done
+        export _GENCONFIG_ipsec_status="disabled"
+    fi 
 
-        if [ -d /data/db/1 ] ; then
-            rm -f ${IPSEC_CONF_FILE} ${IPSEC_SECRET_FILE}
-            start_ipsec=false	
-        else
-            start_ipsec=true
-        fi
+    if [ "${_GENCONFIG_ipsec_status}" == "disabled" ] ; then
+        rm -f ${IPSEC_CONF_FILE} ${IPSEC_SECRET_FILE}
+        start_ipsec=false	
+    else
+        start_ipsec=true		
     fi
 
     if [ "${start_ipsec}" = false ] ; then

@@ -389,7 +389,7 @@ public class InternalDbClient extends DbClientImpl {
     public Map<String, String> queryHostIPAddressesMap(VirtualDataCenter vdc) {
         Site activeSite = drUtil.getActiveSite(vdc.getShortId());
         Map<String, String> hostIPv4AddressMap = activeSite.getHostIPv4AddressMap();
-        if (hostIPv4AddressMap != null && !hostIPv4AddressMap.isEmpty()) {
+        if (hostIPv4AddressMap != null && !hostIPv4AddressMap.isEmpty() && activeSite.isUsingIpv4()) {
             return hostIPv4AddressMap;
         }
         return activeSite.getHostIPv6AddressMap();

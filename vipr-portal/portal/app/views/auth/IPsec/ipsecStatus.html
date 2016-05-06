@@ -123,14 +123,19 @@
                 <div class="panel-heading"><h3 class="panel-title">&{'ipsec.configuration'}</h3></div>
                 <div class="panel-body">
                     <div class="row text-margin-left">
-                        <span class="text">&{'ipsec.configuration.keysGeneratedOn'}</span>
+                        <span class="text">&{'ipsec.configuration.keysGeneratedOn'}&nbsp;&nbsp;</span>
                         #{if !ipSecStatusInfo}
                             <span class="loadingBox">
-                                &nbsp;&nbsp; <img src="/public/img/loading-huge.gif" height="32" width="32" alt="Loading...">
+                                <img src="/public/img/loading-huge.gif" height="32" width="32" alt="Loading...">
                             </span>
                         #{/if}
                         #{if ipSecStatusInfo}
-                            <span class="text" style="font-weight:bold">&nbsp;&nbsp; ${ipSecStatusInfo.configGeneratedDate }</span>
+                            <span id="configGeneratedDate" class="text" style="font-weight:bold">Unknown</span>
+                            #{if ipSecStatusInfo.configGeneratedDate}
+                                <script>
+                                    $('#configGeneratedDate').text(formatLocalDateTime(new Date('${ipSecStatusInfo.configGeneratedDate }')));
+                                </script>
+                            #{/if}
                         #{/if}
                     </div>
                 </div>

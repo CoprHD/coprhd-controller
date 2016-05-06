@@ -39,6 +39,7 @@ import com.emc.storageos.volumecontroller.impl.smis.SmisConstants.SYNC_TYPE;
 import com.emc.storageos.volumecontroller.impl.smis.job.SmisCloneRestoreJob;
 import com.emc.storageos.volumecontroller.impl.smis.job.SmisCloneResyncJob;
 import com.emc.storageos.volumecontroller.impl.smis.job.SmisCreateCGCloneJob;
+import com.emc.storageos.volumecontroller.impl.utils.ConsistencyGroupUtils;
 
 public class VmaxCloneOperations extends AbstractCloneOperations {
     private static final Logger _log = LoggerFactory.getLogger(VmaxCloneOperations.class);
@@ -74,7 +75,7 @@ public class VmaxCloneOperations extends AbstractCloneOperations {
         try {
             final Volume first = _dbClient.queryObject(Volume.class, cloneList.get(0));
             Volume sourceVolume = _dbClient.queryObject(Volume.class, first.getAssociatedSourceVolume());
-            sourceGroupName = _helper.getConsistencyGroupName(sourceVolume, storage);
+            sourceGroupName = ConsistencyGroupUtils.getSourceConsistencyGroupName(sourceVolume, _dbClient);
             URI tenant = sourceVolume.getTenant().getURI();
             TenantOrg tenantOrg = _dbClient.queryObject(TenantOrg.class, tenant);
             String targetGroupLabel = generateLabel(tenantOrg, sourceVolume);
@@ -197,7 +198,7 @@ public class VmaxCloneOperations extends AbstractCloneOperations {
             callEMCRefreshIfRequired(_dbClient, _helper, storage, clones);
             Volume clone = _dbClient.queryObject(Volume.class, clones.get(0));
             Volume sourceVol = _dbClient.queryObject(Volume.class, clone.getAssociatedSourceVolume());
-            String consistencyGroupName = _helper.getConsistencyGroupName(sourceVol, storage);
+            String consistencyGroupName = ConsistencyGroupUtils.getSourceConsistencyGroupName(sourceVol, _dbClient);
             String replicationGroupName = clone.getReplicationGroupInstance();
             CIMObjectPath groupSynchronized = _cimPath.getGroupSynchronizedPath(storage, consistencyGroupName, replicationGroupName);
             if (_helper.checkExists(storage, groupSynchronized, false, false) != null) {
@@ -235,7 +236,7 @@ public class VmaxCloneOperations extends AbstractCloneOperations {
             callEMCRefreshIfRequired(_dbClient, _helper, storage, clones);
             Volume clone = _dbClient.queryObject(Volume.class, clones.get(0));
             Volume sourceVol = _dbClient.queryObject(Volume.class, clone.getAssociatedSourceVolume());
-            String consistencyGroupName = _helper.getConsistencyGroupName(sourceVol, storage);
+            String consistencyGroupName = ConsistencyGroupUtils.getSourceConsistencyGroupName(sourceVol, _dbClient);
             String replicationGroupName = clone.getReplicationGroupInstance();
             CIMObjectPath groupSynchronized = _cimPath.getGroupSynchronizedPath(storage, consistencyGroupName, replicationGroupName);
             if (_helper.checkExists(storage, groupSynchronized, false, false) != null) {
@@ -348,7 +349,7 @@ public class VmaxCloneOperations extends AbstractCloneOperations {
             Volume cloneObj = _dbClient.queryObject(Volume.class, clone);
             Volume volumeObj = _dbClient.queryObject(Volume.class, sourceVolume);
             CIMObjectPath srcRepSvcPath = _cimPath.getControllerReplicationSvcPath(storage);
-            String volumeGroupName = _helper.getConsistencyGroupName(volumeObj, storage);
+            String volumeGroupName = ConsistencyGroupUtils.getSourceConsistencyGroupName(volumeObj, _dbClient);
             CIMObjectPath volumeGroupPath = _cimPath.getReplicationGroupPath(storage, volumeGroupName);
             CIMObjectPath cloneGroupPath = _cimPath.getReplicationGroupPath(storage, cloneObj.getReplicationGroupInstance());
 

@@ -7,6 +7,7 @@ package com.emc.storageos.volumecontroller;
 import com.emc.storageos.cinder.api.CinderApiFactory;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.hds.api.HDSApiFactory;
+import com.emc.storageos.isilon.restapi.IsilonApiFactory;
 import com.emc.storageos.vnxe.VNXeApiClientFactory;
 import com.emc.storageos.volumecontroller.impl.smis.CIMConnectionFactory;
 import com.emc.storageos.volumecontroller.impl.smis.SmisCommandHelper;
@@ -25,8 +26,26 @@ public class JobContext
     private SmisCommandHelper _helper;
     private XIVSmisCommandHelper _xivHelper;
     private CinderApiFactory cinderApiFactory = null;
+    private IsilonApiFactory _isilonApiFactory = null;
+    
+
     private VNXeApiClientFactory _vnxeApiClientFactory;
 
+    public JobContext(DbClient dbClient, CIMConnectionFactory cimConnectionFactory,
+            VPlexApiFactory vplexApiFactory, HDSApiFactory hdsApiFactory, CinderApiFactory cinderApiFactory,
+            VNXeApiClientFactory vnxeApiClientFactory, SmisCommandHelper helper, 
+            XIVSmisCommandHelper xivHelper, IsilonApiFactory isilonApiFactory) {
+        _dbClient = dbClient;
+        _cimConnectionFactory = cimConnectionFactory;
+        _vplexApiFactory = vplexApiFactory;
+        this.hdsApiFactory = hdsApiFactory;
+        this.cinderApiFactory = cinderApiFactory;
+        _vnxeApiClientFactory = vnxeApiClientFactory;
+        _helper = helper;
+        this._isilonApiFactory = isilonApiFactory;
+        _xivHelper = xivHelper;
+    }
+    
     public JobContext(DbClient dbClient, CIMConnectionFactory cimConnectionFactory,
             VPlexApiFactory vplexApiFactory, HDSApiFactory hdsApiFactory, CinderApiFactory cinderApiFactory,
             VNXeApiClientFactory vnxeApiClientFactory, SmisCommandHelper helper) {
@@ -37,11 +56,12 @@ public class JobContext
         this.cinderApiFactory = cinderApiFactory;
         _vnxeApiClientFactory = vnxeApiClientFactory;
         _helper = helper;
+        
     }
 
     public JobContext(DbClient dbClient, CIMConnectionFactory cimConnectionFactory,
             VPlexApiFactory vplexApiFactory, HDSApiFactory hdsApiFactory, CinderApiFactory cinderApiFactory,
-            VNXeApiClientFactory vnxeApiClientFactory, SmisCommandHelper helper,
+            VNXeApiClientFactory vnxeApiClientFactory,SmisCommandHelper helper,
             XIVSmisCommandHelper xivHelper) {
         this(dbClient, cimConnectionFactory, vplexApiFactory, hdsApiFactory,
                 cinderApiFactory, vnxeApiClientFactory, helper);
@@ -79,5 +99,9 @@ public class JobContext
 
     public VNXeApiClientFactory getVNXeApiClientFactory() {
         return _vnxeApiClientFactory;
+    }
+    
+    public IsilonApiFactory getIsilonApiFactory() {
+        return _isilonApiFactory;
     }
 }

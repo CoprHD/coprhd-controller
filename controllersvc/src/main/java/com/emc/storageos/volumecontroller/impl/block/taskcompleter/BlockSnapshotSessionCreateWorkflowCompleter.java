@@ -6,8 +6,11 @@ package com.emc.storageos.volumecontroller.impl.block.taskcompleter;
 
 import java.net.URI;
 import java.util.List;
-import java.util.Map;
 
+import com.emc.storageos.db.client.URIUtil;
+import com.emc.storageos.db.client.model.BlockConsistencyGroup;
+import com.emc.storageos.db.client.model.util.BlockConsistencyGroupUtils;
+import com.google.common.collect.Lists;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -33,7 +36,7 @@ public class BlockSnapshotSessionCreateWorkflowCompleter extends BlockSnapshotSe
     public static final String SNAPSHOT_SESSION_CREATE_FAIL_MSG = "Failed to create Block Snapshot Session %s for source %s";
 
     // A map of the BlockSnapshot instances linked to the session for the request.
-    private final Map<URI, List<URI>> _sessionSnapshotMap;
+    private final List<List<URI>> _sessionSnapshotURIs;
 
     // A logger.
     private static final Logger s_logger = LoggerFactory.getLogger(BlockSnapshotSessionCreateWorkflowCompleter.class);
@@ -41,13 +44,13 @@ public class BlockSnapshotSessionCreateWorkflowCompleter extends BlockSnapshotSe
     /**
      * Constructor
      * 
-     * @param snapSessionURIs The URIs of the BlockSnapshotSession instances created in the request.
-     * @param sessionSnapshotsMap A map of the BlockSnapshot instances linked to the session for the request.
+     * @param snapSessionURI The URI of the BlockSnapshotSession instance created in the request.
+     * @param sessionSnapshotURIs A map of the BlockSnapshot URIs linked to the session for the request.
      * @param taskId The unique task identifier.
      */
-    public BlockSnapshotSessionCreateWorkflowCompleter(List<URI> snapSessionURIs, Map<URI, List<URI>> sessionSnapshotsMap, String taskId) {
-        super(snapSessionURIs, taskId);
-        _sessionSnapshotMap = sessionSnapshotsMap;
+    public BlockSnapshotSessionCreateWorkflowCompleter(URI snapSessionURI, List<List<URI>> sessionSnapshotURIs, String taskId) {
+        super(snapSessionURI, taskId);
+        _sessionSnapshotURIs = sessionSnapshotURIs;
     }
 
     /**
@@ -56,22 +59,21 @@ public class BlockSnapshotSessionCreateWorkflowCompleter extends BlockSnapshotSe
     @Override
     protected void complete(DbClient dbClient, Operation.Status status, ServiceCoded coded) throws DeviceControllerException {
         try {
-            List<URI> snapSessionURIs = getIds();
-            for (URI snapSessionURI : snapSessionURIs) {
-                BlockSnapshotSession snapSession = dbClient.queryObject(BlockSnapshotSession.class, snapSessionURI);
-                BlockObject sourceObj = BlockObject.fetch(dbClient, snapSession.getParent().getURI());
+            BlockSnapshotSession snapSession = dbClient.queryObject(BlockSnapshotSession.class, getId());
+            List<BlockObject> allSources = getAllSources(snapSession, dbClient);
 
-                // Record the results.
-                recordBlockSnapshotSessionOperation(dbClient, OperationTypeEnum.CREATE_SNAPSHOT_SESSION,
-                        status, snapSession, sourceObj);
+            // Record the results.
+            recordBlockSnapshotSessionOperation(dbClient, OperationTypeEnum.CREATE_SNAPSHOT_SESSION,
+                    status, snapSession, allSources.get(0));
 
-                // Update the status map of the snapshot session.
-                switch (status) {
-                    case error:
-                        // For those BlockSnapshot instances representing linked targets that
-                        // were not successfully created and linked to the array snapshot
-                        // represented by the BlockSnapshotSession instance, mark them inactive.
-                        for (URI snapshotURI : _sessionSnapshotMap.get(snapSessionURI)) {
+            // Update the status map of the snapshot session.
+            switch (status) {
+                case error:
+                    // For those BlockSnapshot instances representing linked targets that
+                    // were not successfully created and linked to the array snapshot
+                    // represented by the BlockSnapshotSession instance, mark them inactive.
+                    for (List<URI> snapshotURIs : _sessionSnapshotURIs) {
+                        for (URI snapshotURI : snapshotURIs) {
                             // Successfully linked targets will be in the list of linked
                             // targets for the session.
                             StringSet linkedTargets = snapSession.getLinkedTargets();
@@ -85,27 +87,30 @@ public class BlockSnapshotSessionCreateWorkflowCompleter extends BlockSnapshotSe
                                 }
                             }
                         }
+                    }
 
-                        setErrorOnDataObject(dbClient, BlockSnapshotSession.class, snapSessionURI, coded);
-                        break;
-                    case ready:
-                        setReadyOnDataObject(dbClient, BlockSnapshotSession.class, snapSessionURI);
-                        break;
-                    default:
-                        String errMsg = String.format("Unexpected status %s for completer for task %s", status.name(), getOpId());
-                        s_logger.info(errMsg);
-                        throw DeviceControllerException.exceptions.unexpectedCondition(errMsg);
-                }
-
+                    setErrorOnDataObject(dbClient, BlockSnapshotSession.class, getId(), coded);
+                    for (BlockObject source : allSources) {
+                        setErrorOnDataObject(dbClient, URIUtil.getModelClass(source.getId()), source.getId(), coded);
+                    }
+                    break;
+                case ready:
+                    setReadyOnDataObject(dbClient, BlockSnapshotSession.class, getId());
+                    for (BlockObject source : allSources) {
+                        setReadyOnDataObject(dbClient, URIUtil.getModelClass(source.getId()), source);
+                    }
+                    break;
+                default:
+                    String errMsg = String.format("Unexpected status %s for completer for task %s", status.name(), getOpId());
+                    s_logger.info(errMsg);
+                    throw DeviceControllerException.exceptions.unexpectedCondition(errMsg);
             }
 
-            if (isNotifyWorkflow()) {
-                // If there is a workflow, update the task to complete.
-                updateWorkflowStatus(status, coded);
-            }
             s_logger.info("Done snapshot session create task {} with status: {}", getOpId(), status.name());
         } catch (Exception e) {
             s_logger.error("Failed updating status for snapshot session create task {}", getOpId(), e);
+        } finally {
+            super.complete(dbClient, status, coded);
         }
     }
 

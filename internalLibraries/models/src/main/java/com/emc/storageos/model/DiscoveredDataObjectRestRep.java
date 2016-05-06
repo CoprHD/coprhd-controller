@@ -51,15 +51,14 @@ public abstract class DiscoveredDataObjectRestRep extends DataObjectRestRep {
      * <li>NETAPP
      * <li>SYMMETRIX
      * </ul>
-     * 
-     * @valid Network : <i>transport-type</i>+<i>network-system-type</i>+<i>fabric-WWN</i>
-     * @valid NetworkSystem: <i>network-system-type</i>+<i>management-IP-address</i>+<i>management-port</i>
-     * @valid StoragePool : <i>storage-system-type</i>+<i>storage-system-serial-number</i>+POOL+<i>pool-native-id</i>
-     * @valid StoragePort : <i>storage-system-type</i>+<i>storage-system-serial-number</i>+PORT+<i>port-network-id</i>
-     * @valid StorageSystem: <i>storage-system-type</i>+<i>serial-number</i>
-     * @valid StorageTier, Auto-Tiering: <i>storage-system-type</i>+<i>storage-system-serial-number</i>+FASTPOLICY+<i>policy-name</i>
-     * @valid StorageTier, VMAX: <i>storage-system-type</i>+<i>storage-system-serial-number</i>+TIER+<i>tier-name</i>
-     * @valid StorageTier, VNX: <i>storage-system-type</i>+<i>storage-system-serial-number</i>+TIER+<i>pool-name</i>+<i>tier-name</i>
+     * Valid values: 
+     * Network
+     * NetworkSystem
+     * StoragePool
+     * StoragePort
+     * StorageSystem
+     * StorageTier:VMAX
+     * StorageTier: VNX
      * 
      */
     @XmlElement(name = "native_guid")

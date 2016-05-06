@@ -9,9 +9,11 @@ import com.emc.storageos.db.client.model.Operation.Status;
 import com.emc.storageos.db.client.model.VcenterDataCenter;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.security.audit.AuditLogManager;
+import com.emc.storageos.security.audit.AuditLogManagerFactory;
 import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 import com.emc.storageos.volumecontroller.TaskCompleter;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -36,8 +38,7 @@ public class VcenterClusterCompleter extends TaskCompleter {
             throws DeviceControllerException {
         log.info("VcenterClusterCompleter.complete {}", status.name());
         VcenterDataCenter vcenterDataCenter = dbClient.queryObject(VcenterDataCenter.class, getId());
-        AuditLogManager auditMgr = new AuditLogManager();
-        auditMgr.setDbClient(dbClient);
+        AuditLogManager auditMgr = AuditLogManagerFactory.getAuditLogManager();
         if (status == Status.error) {
             log.info("Error in state " + status);
             dbClient.error(VcenterDataCenter.class, getId(), getOpId(), coded);

@@ -20,6 +20,7 @@ import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume.SupportedVolumeCharacterstics;
 import com.emc.storageos.plugins.BaseCollectionException;
+import com.emc.storageos.plugins.common.Constants;
 import com.emc.storageos.plugins.common.PartitionManager;
 import com.emc.storageos.plugins.common.domainmodel.Operation;
 import com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator;
@@ -42,7 +43,7 @@ public class VolumeDiscoveryPostProcessor extends StorageProcessor {
 
     public void runReplicaPostProcessing(Map<String, LocalReplicaObject> volumeToReplicaMap, DbClient dbClient) {
         setSupportedVPoolsForReplicas(volumeToReplicaMap, dbClient);
-        filterNestedSnapshots(volumeToReplicaMap, dbClient);
+        filterUnsupportedSnapshots(volumeToReplicaMap, dbClient);
     }
 
     private void setSupportedVPoolsForReplicas(
@@ -76,8 +77,7 @@ public class VolumeDiscoveryPostProcessor extends StorageProcessor {
                         setVPoolsForDependents(vPools, srcObj,
                                 volumeToReplicaMap, modifiedUnManagedVolumes,
                                 dbClient);
-                    }
-                    else {
+                    } else {
                         _logger.info("Cannot find supported VPools for {}", srcNativeGuid);
                     }
                 } catch (Exception e) {
@@ -131,45 +131,72 @@ public class VolumeDiscoveryPostProcessor extends StorageProcessor {
         }
     }
 
-    private void filterNestedSnapshots(
+    private void filterUnsupportedSnapshots(
             Map<String, LocalReplicaObject> volumeToReplicaMap, DbClient dbClient) {
         _logger.info("Post processing UnManagedVolumes filterNestedSnapshots");
         List<UnManagedVolume> modifiedUnManagedVolumes = new ArrayList<UnManagedVolume>();
 
         for (Entry<String, LocalReplicaObject> entry : volumeToReplicaMap.entrySet()) {
             String nativeGuid = entry.getKey();
-            // for each snapshot target, if it has its own snapshot targets, then the snapshot target and all its snapshot targets are non ingestable
             LocalReplicaObject obj = entry.getValue();
+            // Process each snapshot
             if (LocalReplicaObject.Types.BlockSnapshot.equals(obj.getType())) {
-                // check its snapshots
-                StringSet targets = obj.getSnapshots();
-                if (targets != null && !targets.isEmpty()) {
-                    try {
-                        UnManagedVolume unManagedVolume = checkUnManagedVolumeExistsInDB(nativeGuid, dbClient);
-                        if (unManagedVolume != null) {
-                            _logger.info("Set UnManagedVolume {} for {} to non ingestable, this snapshot target is the source of other snapshot targets.", unManagedVolume.getId(), nativeGuid);
-                            unManagedVolume.getVolumeCharacterstics().put(SupportedVolumeCharacterstics.IS_INGESTABLE.name(),
-                                    FALSE);
-                            modifiedUnManagedVolumes.add(unManagedVolume);
-                        } else {
-                            _logger.warn("No UnManagedVolume found for {}", nativeGuid);
-                        }
+                try {
+                    UnManagedVolume unManagedVolume = checkUnManagedVolumeExistsInDB(nativeGuid, dbClient);
 
-                        // set all its snapshot targets to non ingestable since they are snapshot targets of a snapshot target
-                        for (String tgtNativeId : targets) {
-                            UnManagedVolume tgtUnManagedVolume = checkUnManagedVolumeExistsInDB(tgtNativeId, dbClient);
-                            if (tgtUnManagedVolume != null) {
-                                _logger.info("Set UnManagedVolume {} for {} to non ingestable, the source of this snapshot target is also a snapshot target.", unManagedVolume.getId(), tgtNativeId);
-                                tgtUnManagedVolume.getVolumeCharacterstics().put(SupportedVolumeCharacterstics.IS_INGESTABLE.name(),
-                                        FALSE);
-                                modifiedUnManagedVolumes.add(tgtUnManagedVolume);
+                    // If the snapshot synchronization path indicates the snapshot target volume
+                    // is linked to an unsupported synchronization aspect, then the snapshot is not
+                    // ingestable.
+                    String syncAspectPath = obj.getSettingsInstance();
+                    if (Constants.NOT_INGESTABLE_SYNC_ASPECT.equals(syncAspectPath)) {
+                        unManagedVolume.getVolumeCharacterstics().put(SupportedVolumeCharacterstics.IS_INGESTABLE.name(), FALSE);
+                        unManagedVolume.getVolumeCharacterstics().put(SupportedVolumeCharacterstics.IS_NOT_INGESTABLE_REASON.name(),
+                                "The snapshot cannot be ingested because the snapshot target volume is linked to an unsupported "
+                                        + "array snapshot whose name is used by multiple array snapshots for the same source volume. The "
+                                        + "storage system likely uses generation numbers to differentiate these snapshots, and the controller "
+                                        + "does not currently support generation numbers");
+                        modifiedUnManagedVolumes.add(unManagedVolume);
+                    } else {
+                        // If a snapshot has its own snapshot targets, then the snapshot target and all its
+                        // snapshot targets are non ingestable
+                        StringSet targets = obj.getSnapshots();
+                        if (targets != null && !targets.isEmpty()) {
+                            if (unManagedVolume != null) {
+                                _logger.info(
+                                        "Set UnManagedVolume {} for {} to non ingestable, this snapshot target is the source of other snapshot targets.",
+                                        unManagedVolume.getId(), nativeGuid);
+                                unManagedVolume.getVolumeCharacterstics().put(SupportedVolumeCharacterstics.IS_INGESTABLE.name(), FALSE);
+                                unManagedVolume.getVolumeCharacterstics().put(SupportedVolumeCharacterstics.IS_NOT_INGESTABLE_REASON.name(),
+                                        "The snapshot cannot be ingested because the snapshot is the source for a cascaded snapshot, "
+                                                + "which is not currently supported by the controller");
+                                modifiedUnManagedVolumes.add(unManagedVolume);
                             } else {
-                                _logger.warn("No UnManagedVolume found for {}", tgtNativeId);
+                                _logger.warn("No UnManagedVolume found for {}", nativeGuid);
+                            }
+
+                            // set all its snapshot targets to non ingestable since they are snapshot targets of a snapshot target
+                            for (String tgtNativeId : targets) {
+                                UnManagedVolume tgtUnManagedVolume = checkUnManagedVolumeExistsInDB(tgtNativeId, dbClient);
+                                if (tgtUnManagedVolume != null) {
+                                    _logger.info(
+                                            "Set UnManagedVolume {} for {} to non ingestable, the source of this snapshot target is also a snapshot target.",
+                                            unManagedVolume.getId(), tgtNativeId);
+                                    tgtUnManagedVolume.getVolumeCharacterstics().put(SupportedVolumeCharacterstics.IS_INGESTABLE.name(),
+                                            FALSE);
+                                    tgtUnManagedVolume.getVolumeCharacterstics().put(
+                                            SupportedVolumeCharacterstics.IS_NOT_INGESTABLE_REASON.name(),
+                                            "The snapshot cannot be ingested because it is a cascaded snapshot which is not currently "
+                                                    + "supported by the controller");
+
+                                    modifiedUnManagedVolumes.add(tgtUnManagedVolume);
+                                } else {
+                                    _logger.warn("No UnManagedVolume found for {}", tgtNativeId);
+                                }
                             }
                         }
-                    } catch (Exception e) {
-                        _logger.warn("Exception on filterNestedSnapshots {}", e.getMessage());
                     }
+                } catch (Exception e) {
+                    _logger.warn("Exception on filterNestedSnapshots {}", e.getMessage());
                 }
             }
 

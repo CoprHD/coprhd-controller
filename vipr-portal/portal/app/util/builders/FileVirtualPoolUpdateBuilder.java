@@ -51,6 +51,12 @@ public class FileVirtualPoolUpdateBuilder extends VirtualPoolUpdateBuilder {
         }
         return null;
     }
+    private Boolean getOldScheduleSnapshots() {
+        if ((oldVirtualPool.getProtection() != null) && (oldVirtualPool.getProtection().getScheduleSnapshots() != null)) {
+            return oldVirtualPool.getProtection().getScheduleSnapshots();
+        }
+        return null;
+    }
 
     public FileVirtualPoolUpdateBuilder setSnapshots(Integer maxSnapshots) {
         if (!ObjectUtils.equals(maxSnapshots, getOldMaxSnapshots())) {
@@ -101,6 +107,21 @@ public class FileVirtualPoolUpdateBuilder extends VirtualPoolUpdateBuilder {
     public FileVirtualPoolUpdateBuilder setReplicationParam(FileVirtualPoolReplicationUpdateParam replicationParam) {
         getProtection().setReplicationParam(replicationParam);
         return this;
+    }
+    
+    public FileVirtualPoolUpdateBuilder setScheduleSnapshots(Boolean scheduleSnapshots) {
+        if (!ObjectUtils.equals(scheduleSnapshots, getOldScheduleSnapshots())) {
+            getProtection().setScheduleSnapshots(scheduleSnapshots);
+        }
+        return this;
+    }
+    
+    public static Boolean getScheduleSnapshots(FileVirtualPoolRestRep virtualPool) {
+        return getScheduleSnapshots(getProtection(virtualPool));
+    }
+
+    public static Boolean getScheduleSnapshots(FileVirtualPoolProtectionParam protection) {
+        return protection != null ? protection.getScheduleSnapshots() : null;
     }
 
 }

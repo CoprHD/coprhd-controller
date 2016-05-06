@@ -302,25 +302,6 @@ public class ZkBackupHandler extends BackupHandler {
         FileUtils.copyFileToDirectory(siteIdFile, targetDir);
     }
 
-    /**
-     * Collect current site's vdc properties and output to a props file
-     * @param folder
-     */
-    private void backupVdcProps(File folder) throws IOException {
-        String[] cmds = {"/etc/systool", "--getvdcprops"};
-        Exec.Result result = Exec.sudo(BackupConstants.SYSTOOL_TIMEOUT_MILLIS, cmds);
-        if (!result.exitedNormally() || result.getExitValue() != 0) {
-            log.error("Filed to get vdcprops via /etc/systool --getvdcprops");
-            throw new IOException("Can't backup vdc properties for current site");
-        }
-        Writer writer = new PrintWriter(new FileOutputStream(new File(folder, BackupConstants.VDC_PROPS_FILE_NAME)));
-        try {
-            writer.write(result.getStdOutput());
-        } finally {
-            writer.close();
-        }
-    }
-
     @Override
     public File dumpBackup(final String backupTag, final String fullBackupTag) {
         File targetDir = new File(backupContext.getBackupDir(), backupTag);
@@ -334,7 +315,6 @@ public class ZkBackupHandler extends BackupHandler {
                     NotExistEnum.NOT_EXSIT_CREATE);
             backupFolder(targetFolder, zkDir);
             backupSiteId(targetFolder);
-            backupVdcProps(targetFolder);
         } catch (IOException ex) {
             throw BackupException.fatals.failedToDumpZkData(fullBackupTag, ex);
         }

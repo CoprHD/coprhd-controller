@@ -48,7 +48,6 @@ public abstract class DataObjectRestRep {
      * The name assigned to this resource in ViPR. The resource name is set by
      * a user and can be changed at any time. It is not a unique identifier.
      * 
-     * @valid none
      */
     @XmlElement
     public String getName() {
@@ -64,7 +63,6 @@ public abstract class DataObjectRestRep {
      * The resource ID is guaranteed to be unique and immutable across all
      * virtual data centers for all time.
      * 
-     * @valid urn:storageos:<i>resource-type</i>:<i>UUID</i>:
      */
     @XmlElement(name = "id")
     public URI getId() {
@@ -78,7 +76,6 @@ public abstract class DataObjectRestRep {
     /**
      * A hyperlink to the details for this resource
      * 
-     * @valid none
      */
     @XmlElement(name = "link")
     public RestLinkRep getLink() {
@@ -92,7 +89,6 @@ public abstract class DataObjectRestRep {
     /**
      * A timestamp that shows when this resource was created in ViPR
      * 
-     * @valid <i>YYYY</i>-<i>MM</i>-<i>DDTHH</i>:<i>mm</i>:<i>ss</i>Z
      */
     @XmlElement(name = "creation_time")
     @XmlJavaTypeAdapter(CalendarAdapter.class)
@@ -108,13 +104,11 @@ public abstract class DataObjectRestRep {
      * Keywords and labels that can be added by a user to a resource
      * to make it easy to find when doing a search.
      * 
-     * @valid none
      */
     @XmlElementWrapper(name = "tags")
     /**
      * A keyword or label
      *
-     * @valid none
      */
     @XmlElement(name = "tag")
     public Set<String> getTags() {
@@ -133,8 +127,6 @@ public abstract class DataObjectRestRep {
      * a resource, the resource is put in this state before
      * it is removed from the ViPR database.
      * 
-     * @valid true
-     * @valid false
      */
     @XmlElement
     public Boolean getInactive() {
@@ -195,8 +187,6 @@ public abstract class DataObjectRestRep {
     /**
      * Whether or not the resource is an internal resource.
      * 
-     * @valid true
-     * @valid false
      */
     @XmlElement
     public Boolean getInternal() {

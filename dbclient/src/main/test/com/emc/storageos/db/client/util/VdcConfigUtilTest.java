@@ -11,6 +11,7 @@ import java.util.Map;
 
 import org.junit.Assert;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import com.emc.storageos.coordinator.client.model.Constants;
@@ -21,6 +22,8 @@ import com.emc.storageos.coordinator.common.Configuration;
 import com.emc.storageos.coordinator.common.impl.ConfigurationImpl;
 import com.emc.storageos.db.client.model.StringMap;
 
+// These tests cannot run without services running on the system.  It is ignored by default for the benefit of CoprHD and public unit testing.
+@Ignore
 public class VdcConfigUtilTest {
     private static VdcConfigUtil vdcConfigUtil;
 

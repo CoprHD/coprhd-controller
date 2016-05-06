@@ -328,6 +328,53 @@ angular.module('fields', ['vipr']).directive({  //NOSONAR ("Suppressing Sonar vi
     },
     /**
      * @ngdoc directive
+     * @name fields.directive:dateTime
+     *
+     * @description
+     * A styled text box. Automatically binds to `field.value`.
+     *
+     * @restrict E
+     *
+     *@example
+     <example module="fields">
+     <file name="index.html">
+     <div ng-controller='FieldsCtrl' v-field='storage'>
+        <date-time></date-time>{{storage}}
+     </div>
+     </file>
+     <file name="script.js">
+     angular.module('fields').controller('FieldsCtrl', function($scope) {
+        $scope.storage = "ViPR";
+     });
+     </file>
+     </example>
+     */    
+    dateTime: function($compile) {
+        return {
+            require: "^vField",
+            restrict: "E",
+            replace: true,
+            template: '<input type="datetime-local" ng-model="field.value" class="form-control" autocomplete="on">',
+            link: function (scope, element, attrs) {
+                var content = angular.element('<input type="hidden" value="{{field.hidden}}" name="{{field.name}}" />');
+                content.attr("ng-disabled", attrs.ngDisabled);
+                content.insertAfter(element);
+                scope.disabled = scope.$eval(attrs.ngDisabled);
+                $compile(content)(scope);
+            },
+            controller: function ($scope) {
+            	$scope.$watch('field.value', function(newVal, oldVal) {
+					// Gets the value of the date/time in UTC milliseconds
+            		var utcDateTimeInMillis = moment(newVal).toDate().getTime();
+					// Keeps the date/time in millseconds and formats it
+            		$scope.field.hidden = moment.utc(utcDateTimeInMillis).format("YYYY-MM-DD_HH:mm:ss");
+                })
+            	$scope.field.value = new Date();
+            }
+        }
+    },    
+    /**
+     * @ngdoc directive
      * @name fields.directive:inputPassword
      *
      * @description

@@ -15,6 +15,7 @@ import java.util.List;
 import java.util.UUID;
 
 import javax.ws.rs.Consumes;
+import javax.ws.rs.DELETE;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
 import javax.ws.rs.PUT;
@@ -32,6 +33,7 @@ import com.emc.storageos.api.service.authorization.PermissionsHelper;
 import com.emc.storageos.api.service.impl.placement.BucketRecommendation;
 import com.emc.storageos.api.service.impl.placement.BucketScheduler;
 import com.emc.storageos.api.service.impl.placement.VirtualPoolUtil;
+import com.emc.storageos.api.service.impl.resource.utils.BucketACLUtility;
 import com.emc.storageos.api.service.impl.response.BulkList;
 import com.emc.storageos.api.service.impl.response.ProjOwnedResRepFilter;
 import com.emc.storageos.api.service.impl.response.ResRepFilter;
@@ -47,22 +49,28 @@ import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringSet;
+import com.emc.storageos.db.client.model.Task;
 import com.emc.storageos.db.client.model.TenantOrg;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
+import com.emc.storageos.db.client.model.util.TaskUtils;
 import com.emc.storageos.db.client.util.NameGenerator;
 import com.emc.storageos.db.client.util.SizeUtil;
 import com.emc.storageos.db.exceptions.DatabaseException;
+import com.emc.storageos.ecs.api.ECSException;
 import com.emc.storageos.model.BulkIdParam;
 import com.emc.storageos.model.RelatedResourceRep;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.model.ResourceTypeEnum;
 import com.emc.storageos.model.TaskResourceRep;
+import com.emc.storageos.model.object.BucketACE;
+import com.emc.storageos.model.object.BucketACL;
 import com.emc.storageos.model.object.BucketBulkRep;
 import com.emc.storageos.model.object.BucketDeleteParam;
 import com.emc.storageos.model.object.BucketParam;
 import com.emc.storageos.model.object.BucketRestRep;
 import com.emc.storageos.model.object.BucketUpdateParam;
+import com.emc.storageos.model.object.ObjectBucketACLUpdateParams;
 import com.emc.storageos.security.audit.AuditLogManager;
 import com.emc.storageos.security.authentication.StorageOSUser;
 import com.emc.storageos.security.authorization.ACL;
@@ -190,16 +198,16 @@ public class BucketService extends TaskResourceService {
         _permissionsHelper.checkTenantHasAccessToVirtualArray(tenant.getId(), neighborhood);
 
         // check vpool reference
-        VirtualPool cos = _dbClient.queryObject(VirtualPool.class, param.getVpool());
-        _permissionsHelper.checkTenantHasAccessToVirtualPool(tenant.getId(), cos);
-        ArgValidator.checkEntity(cos, param.getVpool(), false);
-        if (!VirtualPool.Type.object.name().equals(cos.getType())) {
+        VirtualPool vpool = _dbClient.queryObject(VirtualPool.class, param.getVpool());
+        _permissionsHelper.checkTenantHasAccessToVirtualPool(tenant.getId(), vpool);
+        ArgValidator.checkEntity(vpool, param.getVpool(), false);
+        if (!VirtualPool.Type.object.name().equals(vpool.getType())) {
             throw APIException.badRequests.virtualPoolNotForObjectStorage(VirtualPool.Type.object.name());
         }
 
         // verify retention. Its validated only if Retention is configured.
-        if (retention != 0 && cos.getMaxRetention() != 0 && retention > cos.getMaxRetention()) {
-            throw APIException.badRequests.insufficientRetentionForVirtualPool(cos.getLabel(), "bucket");
+        if (retention != 0 && vpool.getMaxRetention() != 0 && retention > vpool.getMaxRetention()) {
+            throw APIException.badRequests.insufficientRetentionForVirtualPool(vpool.getLabel(), "bucket");
         }
 
         VirtualPoolCapabilityValuesWrapper capabilities = new VirtualPoolCapabilityValuesWrapper();
@@ -208,9 +216,9 @@ public class BucketService extends TaskResourceService {
         capabilities.put(VirtualPoolCapabilityValuesWrapper.THIN_PROVISIONING, Boolean.FALSE);
         capabilities.put(VirtualPoolCapabilityValuesWrapper.QUOTA, hardQuota.toString());
 
-        List<BucketRecommendation> placement = _bucketScheduler.placeBucket(neighborhood, cos, capabilities);
+        List<BucketRecommendation> placement = _bucketScheduler.placeBucket(neighborhood, vpool, capabilities);
         if (placement.isEmpty()) {
-            throw APIException.badRequests.noMatchingStoragePoolsForVpoolAndVarray(cos.getId(), neighborhood.getId());
+            throw APIException.badRequests.noMatchingStoragePoolsForVpoolAndVarray(vpool.getLabel(), neighborhood.getLabel());
         }
 
         // Randomly select a recommended pool
@@ -218,7 +226,7 @@ public class BucketService extends TaskResourceService {
         BucketRecommendation recommendation = placement.get(0);
 
         String task = UUID.randomUUID().toString();
-        Bucket bucket = prepareBucket(param, project, tenant, neighborhood, cos, flags, recommendation);
+        Bucket bucket = prepareBucket(param, project, tenant, neighborhood, vpool, flags, recommendation);
 
         _log.info(String.format(
                 "createBucket --- Bucket: %1$s, StoragePool: %2$s, StorageSystem: %3$s",
@@ -296,9 +304,7 @@ public class BucketService extends TaskResourceService {
                 "BucketDelete --- Bucket id: %1$s, Task: %2$s, ForceDelete: %3$s", id, task, param.getForceDelete()));
         ArgValidator.checkFieldUriType(id, Bucket.class, "id");
         Bucket bucket = queryResource(id);
-        if (!param.getForceDelete()) {
-            ArgValidator.checkReference(Bucket.class, id, checkForDelete(bucket));
-        }
+        
         StorageSystem device = _dbClient.queryObject(StorageSystem.class, bucket.getStorageDevice());
 
         Operation op = _dbClient.createTaskOpStatus(Bucket.class, bucket.getId(),
@@ -306,7 +312,7 @@ public class BucketService extends TaskResourceService {
         op.setDescription("Bucket deactivate");
 
         ObjectController controller = getController(ObjectController.class, device.getSystemType());
-        controller.deleteBucket(bucket.getStorageDevice(), id, task);
+        controller.deleteBucket(bucket.getStorageDevice(), id, param.getDeleteType(), task);
 
         auditOp(OperationTypeEnum.DELETE_BUCKET, true, AuditLogManager.AUDITOP_BEGIN,
                 bucket.getId().toString(), device.getId().toString());
@@ -456,6 +462,128 @@ public class BucketService extends TaskResourceService {
 
         return toTask(bucket, task, op);
     }
+    
+    /**
+     * Add/Update the ACL settings for bucket
+     * 
+     * @param id
+     * @param param
+     * @return
+     * @throws InternalException
+     */
+    @PUT
+    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("/{id}/acl")
+    @CheckPermission(roles = { Role.TENANT_ADMIN }, acls = { ACL.OWN, ACL.ALL })
+    public TaskResourceRep updateBucketACL(@PathParam("id") URI id,
+            ObjectBucketACLUpdateParams param) throws InternalException {
+
+        _log.info("Update bucket acl request received. BucketId: {}",
+                id.toString());
+        _log.info("Request body: {}", param.toString());
+
+        Bucket bucket = null;
+        ArgValidator.checkFieldUriType(id, Bucket.class, "id");
+        bucket = _dbClient.queryObject(Bucket.class, id);
+        ArgValidator.checkEntity(bucket, id, isIdEmbeddedInURL(id));
+        
+        if (bucket.getVersion() == null) {
+            syncBucketACL(bucket);
+        }
+
+        // Verify the Bucket ACL Settings
+        BucketACLUtility bucketACLUtil = new BucketACLUtility(_dbClient, bucket.getName(), bucket.getId());
+        bucketACLUtil.verifyBucketACL(param);
+        _log.info("Request payload verified. No errors found.");
+
+        StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, bucket.getStorageDevice());
+        ObjectController controller = getController(ObjectController.class, storageSystem.getSystemType());
+        
+        String task = UUID.randomUUID().toString();
+        _log.info(String.format(
+                "Bucket ACL Update --- Bucket id: %1$s, Task: %2$s", id, task));
+
+
+        Operation op = _dbClient.createTaskOpStatus(Bucket.class, bucket.getId(),
+                task, ResourceOperationTypeEnum.UPDATE_BUCKET_ACL);
+        op.setDescription("Bucket ACL update");
+
+        controller.updateBucketACL(bucket.getStorageDevice(), id, param, task);
+
+        auditOp(OperationTypeEnum.UPDATE_BUCKET_ACL, true, AuditLogManager.AUDITOP_BEGIN,
+                bucket.getId().toString(), bucket.getStorageDevice().toString());
+
+        return toTask(bucket, task, op);
+    }
+
+    /**
+     * Gets the ACL settings for bucket
+     * 
+     * @param id
+     * @return
+     * @throws InternalException
+     */
+    @GET
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("/{id}/acl")
+    @CheckPermission(roles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN }, acls = { ACL.ANY })
+    public BucketACL getBucketACL(@PathParam("id") URI id) throws InternalException {
+        _log.info("Request recieved to get Bucket ACL with Id: {}", id);
+
+        // Validate the Bucket
+        Bucket bucket = null;
+        ArgValidator.checkFieldUriType(id, Bucket.class, "id");
+        bucket = _dbClient.queryObject(Bucket.class, id);
+        ArgValidator.checkEntity(bucket, id, isIdEmbeddedInURL(id));
+        if (bucket.getVersion() == null) {
+            syncBucketACL(bucket);
+        }
+
+        BucketACL bucketAcl = new BucketACL();
+        BucketACLUtility bucketACLUtil = new BucketACLUtility(_dbClient, bucket.getName(), bucket.getId());
+        List<BucketACE> bucketAces = bucketACLUtil.queryExistingBucketACL();
+
+        _log.info("Number of existing ACLs found : {} ", bucketAces.size());
+        if (!bucketAces.isEmpty()) {
+            bucketAcl.setBucketACL(bucketAces);
+        }
+        return bucketAcl;
+    }
+    
+    @DELETE
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("/{id}/acl")
+    @CheckPermission(roles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN }, acls = { ACL.ANY })
+    public TaskResourceRep deleteBucketACL(@PathParam("id") URI id) {
+        
+        _log.info("Request recieved to delete ACL for the Bucket Id: {}", id);
+
+        // Validate the Bucket
+        Bucket bucket = null;
+        ArgValidator.checkFieldUriType(id, Bucket.class, "id");
+        bucket = _dbClient.queryObject(Bucket.class, id);
+        ArgValidator.checkEntity(bucket, id, isIdEmbeddedInURL(id));
+
+        StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, bucket.getStorageDevice());
+        ObjectController controller = getController(ObjectController.class, storageSystem.getSystemType());
+        
+        String task = UUID.randomUUID().toString();
+        _log.info(String.format(
+                "Delete Bucket ACL --- Bucket id: %1$s, Task: %2$s", id, task));
+
+
+        Operation op = _dbClient.createTaskOpStatus(Bucket.class, bucket.getId(),
+                task, ResourceOperationTypeEnum.DELETE_BUCKET_ACL);
+        op.setDescription("Delete Bucket ACL");
+        
+        controller.deleteBucketACL(bucket.getStorageDevice(), id, task);
+        auditOp(OperationTypeEnum.DELETE_BUCKET_ACL, true, AuditLogManager.AUDITOP_BEGIN,
+                bucket.getId().toString(), bucket.getStorageDevice().toString());
+
+        return toTask(bucket, task, op);
+        
+    }
 
     @Override
     protected ResourceTypeEnum getResourceType() {
@@ -515,5 +643,61 @@ public class BucketService extends TaskResourceService {
         if (softQuota < 0 || hardQuota < 0 || softQuota > hardQuota) {
             throw APIException.badRequests.invalidQuotaRequestForObjectStorage(bucketName);
         }
+    }
+    
+    private void syncBucketACL(Bucket bucket) throws InternalException {
+
+        StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, bucket.getStorageDevice());
+        ObjectController controller = getController(ObjectController.class, storageSystem.getSystemType());
+        String task = UUID.randomUUID().toString();
+        _log.info(String.format(
+                "SYNC Bucket ACL  --- Bucket id: %1$s, Task: %2$s", bucket.getId(), task));
+
+        Operation op = _dbClient.createTaskOpStatus(Bucket.class, bucket.getId(),
+                task, ResourceOperationTypeEnum.SYNC_BUCKET_ACL);
+        op.setDescription("Sync Bucket ACL");
+        controller.syncBucketACL(bucket.getStorageDevice(), bucket.getId(), task);
+
+        auditOp(OperationTypeEnum.SYNC_BUCKET_ACL, true, AuditLogManager.AUDITOP_BEGIN,
+                bucket.getId().toString(), bucket.getStorageDevice().toString());
+
+        toTask(bucket, task, op);
+        // Waiting till the task is ready to proceed.
+        boolean breakLoop = false;
+        boolean failedOp = true;
+        long startTime = System.currentTimeMillis();
+        String READY = "ready";
+        String ERROR = "error";
+        String message = "";
+        int MAX_SYNC_TIMEOUT = 8000;
+        while (!breakLoop) {
+            Task dbTask = TaskUtils.findTaskForRequestId(_dbClient, bucket.getId(), task);
+            if (READY.equals(dbTask.getStatus())) {
+                breakLoop = true;
+                failedOp = false;
+            }
+            if (ERROR.equals(dbTask.getStatus())) {
+                breakLoop = true;
+                message = dbTask.getMessage();
+            }
+            if ((System.currentTimeMillis() - startTime) > MAX_SYNC_TIMEOUT) {
+                breakLoop = true;
+                message = "Request Time-Out  Wait untill bucket sync task is finished.";
+            }
+            try {
+                Thread.sleep(100);
+            } catch (InterruptedException ex) {
+                // When we catch the InterruptException and swallow it, we essentially prevent any higher level methods/thread groups from
+                // noticing the interrupt. Which may cause problems.
+                // By calling Thread.currentThread().interrupt(), we set the interrupt flag of the thread, so higher level interrupt
+                // handlers will notice it and can handle it appropriately.
+                Thread.currentThread().interrupt();
+            }
+        }
+        if (failedOp) {
+            throw ECSException.exceptions.bucketACLUpdateFailed(bucket.getName(),
+                    "Could not get ACL from ECS {} " + message + " Please try again later.");
+        }
+
     }
 }

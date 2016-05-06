@@ -41,9 +41,12 @@ public class SysClientFactory {
     public static final URI URI_REBOOT_NODE = URI.create("/control/internal/node/reboot");
     public static final URI URI_SEND_POWEROFF_AGREEMENT = URI.create("/control/internal/node/poweroff-agreement");
     public static final URI URI_NODE_BACKUPS_DOWNLOAD = URI.create("/backupset/internal/node-backups/download");
+    public static final URI URI_NODE_BACKUPS_PULL = URI.create("/backupset/internal/pull");
     public static final URI URI_GET_PROPERTIES = URI.create("/config/internal/properties");
     public static final URI URI_GET_DBREPAIR_STATUS = URI.create("/control/internal/node/dbrepair-status");
     public static final String BASE_URL_FORMAT = "http://%1$s:%2$s";
+    public static final String URI_NODE_BACKUPS_RESTORE_TEMPLATE =
+            "/backupset/internal/restore?backupname=%s&isLocal=%s&password=%s&isgeofromscratch=%s";
 
     // URI for retrieving managed capacity for provisioning in apisvc
     public static final URI _URI_PROVISIONING_MANAGED_CAPACITY = URI.create
@@ -177,13 +180,14 @@ public class SysClientFactory {
                 throw e;
             }
             final int status = response.getStatus();
+
             if (!isSuccess(status)) {
+                _log.info("response={}", response);
                 throw SyssvcException.syssvcExceptions.sysClientError(
-                        MessageFormatter.arrayFormat("POST" +
-                                "request on URI {} to node {} failed with status {}",
-                                new Object[] { postUri, _endpoint.toString(),
-                                        status }).getMessage());
+                        MessageFormatter.arrayFormat("POST request on URI {} to node {} failed with status {}",
+                                new Object[] { postUri, _endpoint.toString(), status }).getMessage());
             }
+
             return returnType != null ? response.getEntity(returnType) : null;
         }
 
@@ -195,7 +199,7 @@ public class SysClientFactory {
          * @throws SysClientException
          */
         private void checkNodeStatus(URI uri, String uriCmd) throws SysClientException {
-            _log.info("Entering SysClientFacotry.checkNodeStatus()");
+            _log.info("Entering SysClientFactory.checkNodeStatus()");
             String nodeIP;
             try {
                 _log.info("Before InetAddress.getByName()");
@@ -203,14 +207,11 @@ public class SysClientFactory {
                 _log.info("after InetAddress.getByName()");
             } catch (UnknownHostException e) {
                 _log.info(" request on URI {} to node {} failed to get node IP address {}",
-                        new Object[] { uri, _endpoint.toString(),
-                                e.getMessage() });
+                        new Object[] { uri, _endpoint.toString(), e.getMessage() });
 
                 throw SyssvcException.syssvcExceptions.sysClientError(
-                        MessageFormatter.arrayFormat(uriCmd +
-                                " request on URI {} to node {} failed to get node IP address {}",
-                                new Object[] { uri, _endpoint.toString(),
-                                        e.getMessage() }).getMessage());
+                        MessageFormatter.arrayFormat(uriCmd + " request on URI {} to node {} failed to get node IP address {}",
+                                new Object[] { uri, _endpoint.toString(), e.getMessage() }).getMessage());
             }
 
             _log.info("out first try catch");
@@ -220,8 +221,7 @@ public class SysClientFactory {
             _log.info("Exec.Result");
             if (result.getExitValue() == _IPCHECKTOOL_IP_CONFLICT) {
                 _log.info(" request on URI {} to node {} failed due to IP conflict at {}",
-                        new Object[] { uri, _endpoint.toString(),
-                                nodeIP });
+                        new Object[] { uri, _endpoint.toString(), nodeIP });
 
                 throw SyssvcException.syssvcExceptions.sysClientError(
                         MessageFormatter.arrayFormat(uriCmd +

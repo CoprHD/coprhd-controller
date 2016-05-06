@@ -15,10 +15,20 @@ import javax.xml.bind.annotation.XmlRootElement;
 @XmlAccessorType(XmlAccessType.PROPERTY)
 public class SiteDetailRestRep {
     private Date creationTime;
-    private Date pausedTime;
+    private Date lastSyncTime;
     private Date lastUpdateTime;
     private Double networkLatencyInMs;
     private String clusterState;
+    private boolean dataSynced;
+
+    @XmlElement(name = "dataSynced")
+    public boolean isDataSynced() {
+        return dataSynced;
+    }
+
+    public void setDataSynced(boolean dataSynced) {
+        this.dataSynced = dataSynced;
+    }
 
     @XmlElement(name = "creationTime")
     public Date getCreationTime() {
@@ -30,12 +40,12 @@ public class SiteDetailRestRep {
     }
 
     @XmlElement(name = "pausedTime")
-    public Date getPausedTime() {
-        return pausedTime;
+    public Date getLastSyncTime() {
+        return lastSyncTime;
     }
 
-    public void setPausedTime(Date pausedTime) {
-        this.pausedTime = pausedTime;
+    public void setLastSyncTime(Date pausedTime) {
+        this.lastSyncTime = pausedTime;
     }
 
     @XmlElement(name = "lastUpdateTime")
@@ -70,8 +80,8 @@ public class SiteDetailRestRep {
         StringBuilder builder = new StringBuilder();
         builder.append("SiteActionsTime [creationTime=");
         builder.append(creationTime);
-        builder.append(", pausedTime=");
-        builder.append(pausedTime);
+        builder.append(", lastSyncTime=");
+        builder.append(lastSyncTime);
         builder.append(", lastUpdateTime=");
         builder.append(lastUpdateTime);
         builder.append(", networkLatencyInMs=");

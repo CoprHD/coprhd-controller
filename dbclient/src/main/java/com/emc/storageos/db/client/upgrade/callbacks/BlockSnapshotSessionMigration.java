@@ -19,6 +19,7 @@ import com.emc.storageos.db.client.model.BlockSnapshotSession;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.upgrade.BaseCustomMigrationCallback;
+import com.emc.storageos.svcs.errorhandling.resources.MigrationCallbackException;
 
 /**
  * Migration callback creates a BlockSnapshotSession instance for each VMAX BlockSnapshot and
@@ -33,7 +34,7 @@ public class BlockSnapshotSessionMigration extends BaseCustomMigrationCallback {
      * {@inheritDoc}
      */
     @Override
-    public void process() {
+    public void process() throws MigrationCallbackException {
         s_logger.info("Executing BlockSnapshotSession migration callback.");
         try {
             DbClient dbClient = getDbClient();
@@ -96,6 +97,7 @@ public class BlockSnapshotSessionMigration extends BaseCustomMigrationCallback {
         snapshotSession.setSessionLabel(snapshot.getSnapsetLabel());
         snapshotSession.setParent(snapshot.getParent());
         snapshotSession.setProject(snapshot.getProject());
+        snapshotSession.setStorageController(snapshot.getStorageController());
         snapshotSession.setSessionInstance(snapshot.getSettingsInstance());
         StringSet linkedTargets = new StringSet();
         linkedTargets.add(snapshot.getId().toString());

@@ -877,12 +877,13 @@ public class ExportGroupService extends TaskResourceService {
      * @param hosts the list of hosts to validate
      * @param initiators the list of initiators to validate
      * @param volumes The list of volumes being exported (used to calculate numPaths)
+     * @param pathParam Optional ExportPathParameters block (ignored if null)
      * @return the aggregate list of initiators needed to export all the hosts and clusters and initiators
      */
     List<URI> validateClientsAndPopulate(ExportGroup exportGroup,
             Project project, VirtualArray varray, Collection<URI> storageSystems,
             List<URI> clusters, List<URI> hosts,
-            List<URI> initiators, Collection<URI> volumes) {
+            List<URI> initiators, Collection<URI> volumes, ExportPathParameters pathParam) {
         List<URI> allInitiators = new ArrayList<URI>();
         List<URI> allHosts = new ArrayList<URI>();
         if (initiators != null && !initiators.isEmpty()) {
@@ -926,7 +927,7 @@ public class ExportGroupService extends TaskResourceService {
         if (!allInitiators.isEmpty()) {
             // Validate StoragePorts can be assigned
             validatePortAssignmentOnStorageSystems(storageSystems,
-                    exportGroup, allInitiators, volumes);
+                    exportGroup, allInitiators, volumes, pathParam);
         }
 
         filterOutInitiatorsNotAssociatedWithVArray(exportGroup, storageSystems, null, allInitiators);
@@ -1739,9 +1740,10 @@ public class ExportGroupService extends TaskResourceService {
      * @param exportGroup
      * @param initiatorURIs
      * @param volumes
+     * @param pathParam optional ExportPathParameter block to override validation check
      */
     private void validatePortAssignmentOnStorageSystems(Collection<URI> storageSystemURIs,
-            ExportGroup exportGroup, List<URI> initiatorURIs, Collection<URI> volumes) {
+            ExportGroup exportGroup, List<URI> initiatorURIs, Collection<URI> volumes, ExportPathParameters pathParam) {
         // Do not validate ExportGroup Initiator type exports
         if (exportGroup.forInitiator()) {
             return;
@@ -1773,7 +1775,7 @@ public class ExportGroupService extends TaskResourceService {
                         _log.info(String.format("Validating port assignments varray %s initiators %s",
                                 varrayKey.toString(), initiatorAddresses));
                         validatePortAssignment(storageSystem, varrayKey, _blockStorageScheduler,
-                                initiators, varrayToVolumes.get(varrayKey), exportGroup.getId());
+                                initiators, varrayToVolumes.get(varrayKey), exportGroup.getId(), pathParam);
                     }
                 }
                 if (nValidations == 0) {
@@ -1786,7 +1788,8 @@ public class ExportGroupService extends TaskResourceService {
                         CommonTransformerFunctions.fctnInitiatorToPortName());
                 _log.info(String.format("Validating port assignments varray %s initiators %s",
                         varray.toString(), initiatorAddresses));
-                validatePortAssignment(storageSystem, varray, _blockStorageScheduler, initiators, volumes, exportGroup.getId());
+                validatePortAssignment(storageSystem, varray, _blockStorageScheduler, initiators, 
+                        volumes, exportGroup.getId(), pathParam);
             }
         }
     }
@@ -1799,14 +1802,28 @@ public class ExportGroupService extends TaskResourceService {
      * @param varray VirtualArray of ExportGroup
      * @param blockScheduler
      * @param initiators List<Initiators>
+     * @param exportPathParameters Optional export path parameters to affect validation
      * @param numPaths
      */
     private void validatePortAssignment(StorageSystem storageSystem, URI varray,
             BlockStorageScheduler blockScheduler, List<Initiator> initiators, 
-            Collection<URI> volumes, URI exportGroupURI) {
+            Collection<URI> volumes, URI exportGroupURI, ExportPathParameters exportPathParameters) {
         try {
+            
             ExportPathParams pathParams = blockScheduler.calculateExportPathParamForVolumes(
                     volumes, 0, storageSystem.getId(), exportGroupURI);
+            if (exportPathParameters != null) {
+                // Override the path parameters for the validity check.
+                if (exportPathParameters.getMaxPaths() != null) {
+                    pathParams.setMaxPaths(exportPathParameters.getMaxPaths());
+                }
+                if (exportPathParameters.getMinPaths() != null) {
+                    pathParams.setMinPaths(exportPathParameters.getMinPaths());
+                }
+                if (exportPathParameters.getPathsPerInitiator() != null) {
+                    pathParams.setPathsPerInitiator(exportPathParameters.getPathsPerInitiator());
+                }
+            }
             blockScheduler.assignStoragePorts(storageSystem,
                     varray, initiators, pathParams, null, volumes);
         } catch (ControllerException ex) {

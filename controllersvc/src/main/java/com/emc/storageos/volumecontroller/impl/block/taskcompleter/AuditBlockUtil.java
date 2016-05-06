@@ -10,6 +10,7 @@ import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.security.audit.AuditLogManager;
+import com.emc.storageos.security.audit.AuditLogManagerFactory;
 import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.volumecontroller.impl.ControllerUtils;
 
@@ -30,8 +31,7 @@ public class AuditBlockUtil {
      */
     public static void auditBlock(DbClient dbClient, OperationTypeEnum auditType,
             boolean operationalStatus, String operationStage, Object... descparams) {
-        AuditLogManager auditMgr = new AuditLogManager();
-        auditMgr.setDbClient(dbClient);
+        AuditLogManager auditMgr = AuditLogManagerFactory.getAuditLogManager();
         auditMgr.recordAuditLog(null,
                 null,
                 ControllerUtils.BLOCK_EVENT_SERVICE,

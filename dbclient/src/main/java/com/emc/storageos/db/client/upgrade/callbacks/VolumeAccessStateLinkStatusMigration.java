@@ -15,6 +15,7 @@ import org.slf4j.LoggerFactory;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.upgrade.BaseCustomMigrationCallback;
+import com.emc.storageos.svcs.errorhandling.resources.MigrationCallbackException;
 
 /**
  * Migration handler to initialize access_state and link_status. These fields will likely be
@@ -25,7 +26,7 @@ public class VolumeAccessStateLinkStatusMigration extends BaseCustomMigrationCal
     private static final Logger log = LoggerFactory.getLogger(VolumeAccessStateLinkStatusMigration.class);
 
     @Override
-    public void process() {
+    public void process() throws MigrationCallbackException {
         initializeVolumeFields();
     }
 

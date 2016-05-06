@@ -20,6 +20,7 @@ import javax.wbem.WBEMException;
 import javax.wbem.client.EnumerateResponse;
 import javax.wbem.client.WBEMClient;
 
+import com.emc.storageos.volumecontroller.impl.plugins.SMICommunicationInterface;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -630,7 +631,7 @@ public abstract class StorageProcessor extends PoolProcessor {
         WBEMClient client = null;
 
         try {
-            client = (WBEMClient) keyMap.get(Constants._cimClient);
+            client = SMICommunicationInterface.getCIMClient(keyMap);
             objPath = getObjectPathfromCIMArgument(_args);
             instChunks = (EnumerateResponse<CIMInstance>) resultObj;
             // process entries returned in the Open operation

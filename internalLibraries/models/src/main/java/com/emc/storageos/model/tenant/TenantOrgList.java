@@ -25,7 +25,6 @@ public class TenantOrgList {
     /**
      * List of this tenant's subtenants.
      * 
-     * @valid none
      * @return List of NamedRelatedResourceRep
      */
     @XmlElement(name = "subtenant")

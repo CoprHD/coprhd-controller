@@ -16,6 +16,7 @@ public class SiteParam {
     private String uuid;
     private String name;
     private String vip;
+    private String vip6;
     private String shortId;
     private Map<String, String> hostIPv4AddressMap;
     private Map<String, String> hostIPv6AddressMap;
@@ -54,6 +55,15 @@ public class SiteParam {
 
     public void setVip(String vip) {
         this.vip = vip;
+    }
+    
+    @XmlElement(name = "vip6")
+    public String getVip6() {
+        return vip6;
+    }
+
+    public void setVip6(String vip6) {
+        this.vip6 = vip6;
     }
 
     @XmlElement(name = "secret_key")

@@ -5,6 +5,7 @@
 package com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.processor.detailedDiscovery;
 
 import java.util.Map;
+import java.util.Set;
 
 import javax.cim.CIMArgument;
 import javax.cim.CIMDataType;
@@ -32,6 +33,7 @@ public class ReplicationRelationshipProcessor extends StorageProcessor {
     private final static Logger _logger = LoggerFactory
             .getLogger(ReplicationRelationshipProcessor.class);
     private final static String COPY_STATE = "CopyState";
+    private final static String COPY_METHODOLOGY = "CopyMethodology";
     private final static String SYNC_TYPE = "SyncType";
     private final static String SYNC_STATE = "SyncState";
     private final static String EMC_RELATIONSHIP_NAME = "EMCRelationshipName";
@@ -44,9 +46,11 @@ public class ReplicationRelationshipProcessor extends StorageProcessor {
     private static final String COPY_STATE_INACTIVE = "8";
     // replica state for clone of snapshot, which is not restorable in ViPR
     private static final String SNAPSHOT_CLONE_REPLICA_STATE = Volume.ReplicationState.UNKNOWN.name();
+    private static final String SNAPVX_COPY_METHODOLOGY = "3";
 
     private Map<String, LocalReplicaObject> _volumeToLocalReplicaMap;
     private Map<String, Map<String, String>> _syncAspectMap;
+    private Map<String, Set<String>> _duplicateSyncAspectElementNameMap;
 
     @SuppressWarnings("unchecked")
     @Override
@@ -57,6 +61,8 @@ public class ReplicationRelationshipProcessor extends StorageProcessor {
                 .get(Constants.UN_VOLUME_LOCAL_REPLICA_MAP);
         _syncAspectMap = (Map<String, Map<String, String>>) keyMap
                 .get(Constants.SNAPSHOT_NAMES_SYNCHRONIZATION_ASPECT_MAP);
+        _duplicateSyncAspectElementNameMap = (Map<String, Set<String>>) keyMap
+                .get(Constants.DUPLICATE_SYNC_ASPECT_ELEMENT_NAME_MAP);
 
         CIMInstance[] instances = (CIMInstance[]) getFromOutputArgs((CIMArgument[]) resultObj, SmisConstants.SYNCHRONIZATIONS);
         if (instances == null) {
@@ -77,6 +83,7 @@ public class ReplicationRelationshipProcessor extends StorageProcessor {
                 String srcNativeGuid = getUnManagedVolumeNativeGuidFromVolumePath(sourcePath);
                 _logger.info("Target Native Guid {}, Source Native Guid {}", nativeGuid, srcNativeGuid);
                 String syncType = getCIMPropertyValue(instance, SYNC_TYPE);
+                String copyMethod = getCIMPropertyValue(instance, COPY_METHODOLOGY);
 
                 LocalReplicaObject replicaObj = _volumeToLocalReplicaMap
                         .get(nativeGuid);
@@ -89,7 +96,7 @@ public class ReplicationRelationshipProcessor extends StorageProcessor {
                     // Need to set source
                     _logger.info("Found Target Local Replica Object {}",
                             replicaObj);
-                    if (SYNC_TYPE_SNAPSHOT.equals(syncType)) {
+                    if (isReplicationSnapshot(syncType, copyMethod)) {
                         StringSet fullCopies = replicaObj.getFullCopies();
                         if (fullCopies != null && !fullCopies.isEmpty()) {
                             for (String fullCopyNativeGuid : fullCopies) {
@@ -127,13 +134,59 @@ public class ReplicationRelationshipProcessor extends StorageProcessor {
                 String syncState = getCIMPropertyValue(instance, SYNC_STATE);
                 String copyState = getCIMPropertyValue(instance, COPY_STATE);
                 boolean inSync = COPY_STATE_SYNCHRONIZED.equals(copyState);
-                if (SYNC_TYPE_CLONE.equals(syncType) ||
+
+                if (isReplicationSnapshot(syncType, copyMethod)) {
+                    replicaObj.setType(LocalReplicaObject.Types.BlockSnapshot);
+                    String emcCopyState = getCIMPropertyValue(instance, EMC_COPY_STATE_DESC);
+                    if (INACTIVE.equals(emcCopyState)) {
+                        // for an inactive snapshot, needsCopyToTarget has to be set,
+                        // so that ViPR will try to "activate" it by calling copySnapshotToTarget during export
+                        replicaObj.setNeedsCopyToTarget(true);
+                    }
+
+                    replicaObj.setSyncActive(inSync);
+                    replicaObj.setTechnologyType(BlockSnapshot.TechnologyType.NATIVE.name());
+
+                    // We check to see if the snapshot target volume is linked to an unsupported
+                    // synchronization aspect. The unsupported synchronization aspects are those
+                    // aspects that share the same name, likely because they are VMAX3 SnapVx
+                    // aspects that utilize generation numbers to differentiate array snapshots
+                    // with the same name. The names of these aspects are in the duplicate
+                    // synchronization aspect element names map. If the snapshot relationship
+                    // name maps to a duplicate name, then we set the aspect path, i.e., the
+                    // settingsInstance to a value that indicates the snapshot is linked an invalid
+                    // aspect. In the volume discovery post processor, we will check this value
+                    // for each snapshot and if it is set to this specific invalid value, we will
+                    // mark the UnManagedVolume instance representing the snapshot as not ingestable.
+                    String relationshipName = getCIMPropertyValue(instance, EMC_RELATIONSHIP_NAME);
+                    Set<String> duplicateElementNamesForSrc = _duplicateSyncAspectElementNameMap.get(srcNativeGuid);
+                    if ((duplicateElementNamesForSrc != null) && (duplicateElementNamesForSrc.contains(relationshipName))) {
+                        _logger.info("Processed snapshot {} linked to unsupported synchronization aspect with name {}",
+                                nativeGuid, relationshipName);
+                        replicaObj.setSettingsInstance(Constants.NOT_INGESTABLE_SYNC_ASPECT);
+                    } else {
+                        Map<String, String> aspectsForSource = _syncAspectMap.get(srcNativeGuid);
+                        if (null != aspectsForSource) {
+                            String aspectKey = getSyncAspectMapKey(srcNativeGuid, relationshipName);
+                            if (aspectsForSource.containsKey(aspectKey)) {
+                                String syncAspect = aspectsForSource.get(aspectKey);
+                                replicaObj.setSettingsInstance(syncAspect);
+                            }
+                        }
+                    }
+
+                    if (null == srcReplicaObj.getSnapshots()) {
+                        srcReplicaObj.setSnapshots(new StringSet());
+                    }
+
+                    srcReplicaObj.getSnapshots().add(nativeGuid);
+                } else if (SYNC_TYPE_CLONE.equals(syncType) ||
                         (SYNC_TYPE_MIRROR.equals(syncType) &&
                                 // On VNX, full copies are actually mirrors
                                 // Mirrors with restorable states (fractured and split, except synchronized) are treated as full copies,
                                 // while mirrors with synchronized and other states are treated as mirrors
                                 systemName.toLowerCase().startsWith(Constants.CLARIION) &&
-                        (copyState.equals(COPY_STATE_FRACTURED) || copyState.equals(COPY_STATE_SPLIT)))) {
+                                (copyState.equals(COPY_STATE_FRACTURED) || copyState.equals(COPY_STATE_SPLIT)))) {
                     replicaObj.setType(LocalReplicaObject.Types.FullCopy);
                     replicaObj.setSyncActive(inSync);
                     replicaObj.setReplicaState(isReplicaOfSnapshot ? SNAPSHOT_CLONE_REPLICA_STATE : getReplicaState(copyState));
@@ -154,30 +207,6 @@ public class ReplicationRelationshipProcessor extends StorageProcessor {
                     }
 
                     srcReplicaObj.getMirrors().add(nativeGuid);
-                } else if (SYNC_TYPE_SNAPSHOT.equals(syncType)) {
-                    replicaObj.setType(LocalReplicaObject.Types.BlockSnapshot);
-                    String emcCopyState = getCIMPropertyValue(instance, EMC_COPY_STATE_DESC);
-                    if (INACTIVE.equals(emcCopyState)) {
-                        // for an inactive snapshot, needsCopyToTarget has to be set,
-                        // so that ViPR will try to "activate" it by calling copySnapshotToTarget during export
-                        replicaObj.setNeedsCopyToTarget(true);
-                    }
-
-                    replicaObj.setSyncActive(inSync);
-                    replicaObj.setTechnologyType(BlockSnapshot.TechnologyType.NATIVE.name());
-
-                    String relationshipName = getCIMPropertyValue(instance, EMC_RELATIONSHIP_NAME);
-                    Map<String, String> aspectsForSource = _syncAspectMap.get(srcNativeGuid);
-                    if (null != aspectsForSource) {
-                        String syncAspect = aspectsForSource.get(getSyncAspectMapKey(srcNativeGuid, relationshipName));
-                        replicaObj.setSettingsInstance(syncAspect);
-                    }
-
-                    if (null == srcReplicaObj.getSnapshots()) {
-                        srcReplicaObj.setSnapshots(new StringSet());
-                    }
-
-                    srcReplicaObj.getSnapshots().add(nativeGuid);
                 } else {
                     _logger.debug("Ignore Target {}, SyncType {}", nativeGuid, syncType);
                 }
@@ -226,5 +255,16 @@ public class ReplicationRelationshipProcessor extends StorageProcessor {
             default:
                 return Volume.ReplicationState.UNKNOWN.name();
         }
+    }
+
+    /**
+     * Returns true if the given syncType and/or copyMethod is determined to represent a snapshot.
+     *
+     * @param syncType Value of a SyncType property.
+     * @param copyMethod Value of a CopyMethodology property.
+     * @return true, if they represent a snapshot, false otherwise.
+     */
+    private boolean isReplicationSnapshot(String syncType, String copyMethod) {
+        return SYNC_TYPE_SNAPSHOT.equals(syncType) || (SYNC_TYPE_CLONE.equals(syncType) && SNAPVX_COPY_METHODOLOGY.equals(copyMethod));
     }
 }

@@ -27,6 +27,7 @@ import com.emc.storageos.db.client.model.SMBShareMap;
 import com.emc.storageos.db.client.model.TenantOrg;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.exceptions.DatabaseException;
+import com.emc.storageos.model.TaskList;
 import com.emc.storageos.model.TaskResourceRep;
 import com.emc.storageos.model.file.*;
 import com.emc.storageos.security.authorization.Role;
@@ -74,9 +75,10 @@ public class InternalFileResource extends ResourceService {
             rep.setMessage("Only [system_admin, tenant_admin] can provision file systems for object");
             rep.setState(Operation.Status.error.name());
             return rep;
+            
         }
         try {
-            rep = _fileService.createFSInternal(param, _internalProject, tenant, INTERNAL_FILESHARE_FLAGS);
+        	rep = _fileService.createFSInternal(param, _internalProject, tenant, INTERNAL_FILESHARE_FLAGS);
         } catch (Exception ex) {
             rep = new TaskResourceRep();
             _log.error("Exception occurred while creating file system due to:", ex);

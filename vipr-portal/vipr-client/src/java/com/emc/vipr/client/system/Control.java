@@ -150,7 +150,8 @@ public class Control {
      * <p>
      * API Call: POST /cluster/ipreconfig
      * 
-     * @param ClusterIpInfo
+     * @param clusterIpInfo
+     * @param powerOff
      * @return boolean
      */
     public boolean reconfigClusterIps(ClusterIpInfo clusterIpInfo, boolean powerOff) {

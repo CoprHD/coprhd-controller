@@ -27,6 +27,7 @@ import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.upgrade.BaseCustomMigrationCallback;
 import com.emc.storageos.db.client.util.StringSetUtil;
 import com.emc.storageos.db.client.util.WWNUtility;
+import com.emc.storageos.svcs.errorhandling.resources.MigrationCallbackException;
 
 /**
  * Migration process to handle setting of _userAddedVolumes _userAddedInitiators and _initiators
@@ -40,7 +41,7 @@ public class VplexExportMaskInitiatorsAndVolumesMigration extends BaseCustomMigr
     private static final Logger log = LoggerFactory.getLogger(VplexExportMaskInitiatorsAndVolumesMigration.class);
 
     @Override
-    public void process() {
+    public void process() throws MigrationCallbackException {
 
         DbClient dbClient = getDbClient();
 

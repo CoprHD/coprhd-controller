@@ -177,6 +177,16 @@ public enum SiteState {
         public boolean isDROperationOngoing() {
             return false;
         }
+    },
+    
+    /**
+     *  None state for dummy active site
+     */
+    NONE {
+        @Override
+        public boolean isDROperationOngoing() {
+            return false;
+        }
     };
 
     /**

@@ -15,12 +15,13 @@ import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.upgrade.BaseCustomMigrationCallback;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
+import com.emc.storageos.svcs.errorhandling.resources.MigrationCallbackException;
 
 public class BlockSnapshotReplicationGroupInstanceMigration extends BaseCustomMigrationCallback {
     private static final Logger log = LoggerFactory.getLogger(FullCopyVolumeReplicaStateMigration.class);
 
     @Override
-    public void process() {
+    public void process() throws MigrationCallbackException {
         initializeField();
     }
 

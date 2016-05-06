@@ -10,6 +10,7 @@ import java.util.Set;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.UriInfo;
 
+import com.emc.vipr.client.core.BlockSnapshotSessions;
 import com.sun.jersey.spi.container.ContainerRequest;
 import com.sun.jersey.spi.container.ContainerRequestFilter;
 import com.sun.jersey.spi.container.ContainerResponseFilter;
@@ -223,8 +224,7 @@ public class PermissionsFilterFactory extends AbstractPermissionsFilterFactory {
                         return getProjectIdFromResourceId(uriStr, BlockService.getBlockServiceResourceClass(uriStr));
                     } else if (_resourceClazz.isAssignableFrom(BlockConsistencyGroupService.class)) {
                         return getProjectIdFromResourceId(uriStr, BlockConsistencyGroup.class);
-                    }
-                    if (_resourceClazz.isAssignableFrom(BlockSnapshotService.class)) {
+                    } else if (_resourceClazz.isAssignableFrom(BlockSnapshotService.class)) {
                         return getProjectIdFromResourceBlockSnapshotId(uriStr, BlockSnapshot.class);
                     } else if (_resourceClazz.isAssignableFrom(FileSnapshotService.class)) {
                         return getProjectIdFromResourceSnapshotId(uriStr, Snapshot.class);
@@ -238,7 +238,9 @@ public class PermissionsFilterFactory extends AbstractPermissionsFilterFactory {
                         return getProjectIdFromComputeResources(uriStr);
                     } else if (_resourceClazz.isAssignableFrom(BucketService.class)) {
                         return getProjectIdFromResourceId(uriStr, Bucket.class);
-                    } 
+                    } else if (_resourceClazz.isAssignableFrom(BlockSnapshotSessionService.class)) {
+                        return getProjectIdFromResourceBlockSnapshotId(uriStr, BlockSnapshotSession.class);
+                    }
                 } else {
                     _log.warn("project id not available for this resource type");
                 }
@@ -420,9 +422,8 @@ public class PermissionsFilterFactory extends AbstractPermissionsFilterFactory {
                 return request;
             }
             // disallowed operation
-            String siteId = drUtil.getActiveSiteId();
-            Site activeSite = drUtil.getSiteFromLocalVdc(siteId);
-            throw APIException.forbidden.disallowOperationOnDrStandby(activeSite.getVip());
+            Site activeSite = drUtil.getActiveSite();
+            throw APIException.forbidden.disallowOperationOnDrStandby(activeSite.getVipEndPoint());
         }
         
         @Override

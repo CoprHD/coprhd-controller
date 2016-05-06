@@ -20,6 +20,7 @@ import com.emc.storageos.coordinator.common.impl.ConfigurationImpl;
 import com.emc.storageos.coordinator.common.impl.ZkPath;
 import com.emc.storageos.db.client.model.VirtualDataCenter;
 import com.emc.storageos.db.client.upgrade.BaseCustomMigrationCallback;
+import com.emc.storageos.svcs.errorhandling.resources.MigrationCallbackException;
 
 /**
  * Cleanup db config from pre-yoda release
@@ -29,7 +30,7 @@ public class VdcConfigMigration extends BaseCustomMigrationCallback {
             VdcConfigMigration.class);
 
     @Override
-    public void process() {
+    public void process() throws MigrationCallbackException {
         cleanupStaleDbConfig();
         migrateVdcConfigToZk();
     }

@@ -15,6 +15,7 @@ import org.slf4j.LoggerFactory;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.upgrade.BaseCustomMigrationCallback;
+import com.emc.storageos.svcs.errorhandling.resources.MigrationCallbackException;
 
 /**
  * Migration handler to initialize the multi-volume consistency field to true for
@@ -25,7 +26,7 @@ public class VirtualPoolMultiVolumeConsistencyMigration extends BaseCustomMigrat
     private static final Logger log = LoggerFactory.getLogger(VirtualPoolMultiVolumeConsistencyMigration.class);
 
     @Override
-    public void process() {
+    public void process() throws MigrationCallbackException {
         updateRecoverPointVirtualPools();
     }
 

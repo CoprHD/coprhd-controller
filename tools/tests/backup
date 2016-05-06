@@ -14,6 +14,7 @@ import argparse
 import sys
 import os
 from bourne import Bourne
+import sysmgr as SysMgr
 
 #----------------------------------------------------------------------
 # backup cli functions
@@ -39,6 +40,18 @@ def list_backup(args):
             if(backup['name'] == args.name):
                 print backup['name']
 
+def list_external_backup(args):
+    bourne.connect(args.ip)
+    backuparray = bourne.list_external_backup()
+    if backuparray is None:
+        print None
+    elif backuparray['backups'] is None:
+        print None
+    else:
+        for backup in backuparray['backups']:
+            if(backup.startswith(args.name)):
+                print backup
+
 def download_backup(args):
     bourne.connect(args.ip)
     if (args.filepath.endswith(".zip") is False):
@@ -48,6 +61,35 @@ def download_backup(args):
     if (filename):
         with open(filename, 'wb') as fp:
             fp.write(str(response))
+
+def upload_backup(args):
+    bourne.connect(args.ip)
+    response=bourne.upload_backup(args.name)
+
+def query_upload_backup(args):
+    bourne.connect(args.ip)
+    status=bourne.query_upload_backup(args.name)
+    if status is None:
+        print None
+    else:
+        print status['upload_status']['status']
+
+def pull_backup(args):
+    bourne.connect(args.ip)
+    response=bourne.pull_backup(args.name)
+
+def query_pull_backup(args):
+    bourne.connect(args.ip)
+    status=bourne.query_pull_backup(args.name, args.isLocal)
+    if status is None:
+        print None
+    else:
+        print status['status']
+
+def restore_backup(args):
+    bourne.connect(args.ip)
+    response=bourne.restore_backup(args.name, args.isLocal, args.password)
+    print response
 
 #----------------------------------------------------------------------
 # command-line parsing
@@ -60,16 +102,22 @@ except:
 
 # backup [--ip ipaddr]
 parser = argparse.ArgumentParser(description = 'Bourne tenant cli usage.')
-parser.add_argument('cmd', help = 'cmd = (create | list | delete | download)')
+parser.add_argument('cmd',
+  help = 'cmd = (create | list | list-external | delete | download | upload | query-upload | pull | query-pull | restore)')
+
 parser.add_argument('--ip', metavar = 'ipaddr', help = 'IP address of bourne', default=bourne_ip)
 
 # create backup
 backupcreate = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
 backupcreate.add_argument('name', help = 'name of backup file', type=str)
 
-# list backup
+# list local backup
 backuplist = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
 backuplist.add_argument('name', help = 'name of backup file', type=str)
+
+# list external backup
+backuplistexternal = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+backuplistexternal.add_argument('name', help = 'name of backup file', type=str)
 
 # delete backup
 backupdelete = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
@@ -79,6 +127,29 @@ backupdelete.add_argument('name', help = 'name of backup file', type=str)
 backupdownload = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
 backupdownload.add_argument('name', help = 'name of backup file', type=str)
 backupdownload.add_argument('filepath', help= 'path of target file', type=str)
+
+# upload backup
+backupupload = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+backupupload.add_argument('name', help = 'name of backup file', type=str)
+
+# query_upload backup
+backupquery_upload = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+backupquery_upload.add_argument('name', help = 'name of backup file', type=str)
+
+# pull backup
+backuppull = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+backuppull.add_argument('name', help = 'name of backup file', type=str)
+
+# query_pull backup
+backupquery_pull = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+backupquery_pull.add_argument('name', help = 'name of backup file', type=str)
+backupquery_pull.add_argument('isLocal', help = 'local or remote backup', type=str)
+
+# restore backup
+backuprestore = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+backuprestore.add_argument('name', help = 'name of backup file', type=str)
+backuprestore.add_argument('isLocal', help = 'local or remote backup', type=str)
+backuprestore.add_argument('password', help = 'root password', type=str)
 
 #----------------------------------------------------------------------
 # Main script
@@ -98,12 +169,30 @@ try:
     elif (cmd == "list"):
         args = backuplist.parse_args()
         list_backup(args)
+    elif (cmd == "list-external"):
+        args = backuplistexternal.parse_args()
+        list_external_backup(args)
     elif (cmd == "delete"):
         args = backupdelete.parse_args()
         delete_backup(args)
     elif (cmd == "download"):
         args = backupdownload.parse_args()
         download_backup(args)
+    elif (cmd == "upload"):
+        args = backupupload.parse_args()
+        upload_backup(args)
+    elif (cmd == "query-upload"):
+        args = backupquery_upload.parse_args()
+        query_upload_backup(args)
+    elif (cmd == "pull"):
+        args = backuppull.parse_args()
+        pull_backup(args)
+    elif (cmd == "query-pull"):
+        args = backupquery_pull.parse_args()
+        query_pull_backup(args)
+    elif (cmd == "restore"):
+        args = backuprestore.parse_args()
+        restore_backup(args)
     else:
         parser.print_help()
 except:

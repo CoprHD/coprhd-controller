@@ -17,6 +17,7 @@ import java.util.StringTokenizer;
 import org.codehaus.jettison.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 
 import com.emc.storageos.vplex.api.VPlexCacheStatusInfo.InvalidateStatus;
 import com.emc.storageos.vplex.api.VPlexVirtualVolumeInfo.WaitOnRebuildResult;
@@ -34,6 +35,7 @@ public class VPlexApiVirtualVolumeManager {
 
     // A reference to the API client.
     private VPlexApiClient _vplexApiClient;
+    
 
     /**
      * Package protected constructor.
@@ -1374,7 +1376,8 @@ public class VPlexApiVirtualVolumeManager {
      * @throws VPlexApiException
      */
     VPlexVirtualVolumeInfo createDistributedVirtualVolume(VPlexVirtualVolumeInfo virtualVolume,
-            VolumeInfo newRemoteVolume, boolean discoveryRequired, boolean rename, String clusterId) throws VPlexApiException {
+            VolumeInfo newRemoteVolume, boolean discoveryRequired, boolean rename, String clusterId, 
+            String transferSize) throws VPlexApiException {
         // Determine the "local" device
         String virtualVolumeName = virtualVolume.getName();
         String localDeviceName = virtualVolume.getSupportingDevice();
@@ -1459,6 +1462,18 @@ public class VPlexApiVirtualVolumeManager {
             VPlexVirtualVolumeInfo vvInfo = discoveryMgr.findVirtualVolume(
                     localDevice.getCluster(), virtualVolumeName, false);
 
+            // If transferSize is set, set the rebuild size for the distributed device created by 
+            // device-attach mirror.
+            VPlexDistributedDeviceInfo distDeviceInfo = discoveryMgr
+                    .findDistributedDevice(localDevice.getName());
+            
+            if (transferSize != null) {
+            	String deviceName = distDeviceInfo.getName();
+            	s_logger.info("Rebuild transfer size of {} will be set for device {}",transferSize, deviceName);            	
+            	setRebuildTransferSize(deviceName, transferSize);	
+            }
+            
+            
             // Compute updated name and rename the distributed virtual volume.
             if (rename) {
                 String remoteName = remoteDevice.getName().replaceAll(VPlexApiConstants.DEVICE_PREFIX, "");
@@ -1470,9 +1485,6 @@ public class VPlexApiVirtualVolumeManager {
                         + VPlexApiConstants.VIRTUAL_VOLUME_SUFFIX;
                 vvInfo = renameVPlexResource(vvInfo, newVvName);
 
-                // Update the distributed device name
-                VPlexDistributedDeviceInfo distDeviceInfo = discoveryMgr
-                        .findDistributedDevice(localDevice.getName());
                 String newDdName = distDeviceInfo.getName();
                 newDdName = newDdName.replaceFirst(VPlexApiConstants.DEVICE_PREFIX,
                         VPlexApiConstants.DIST_DEVICE_PREFIX + VPlexApiConstants.DIST_DEVICE_NAME_DELIM);
@@ -1523,6 +1535,7 @@ public class VPlexApiVirtualVolumeManager {
             if (rulesetName != null) {
                 argsMap.put(VPlexApiConstants.ARG_DASH_R, rulesetName);
             }
+                        
             JSONObject postDataObject = VPlexApiUtils.createPostData(argsMap, true);
             s_logger.info("Device Attach Mirror POST data is {}", postDataObject.toString());
             response = _vplexApiClient.post(requestURI, postDataObject.toString());
@@ -1549,7 +1562,55 @@ public class VPlexApiVirtualVolumeManager {
             }
         }
     }
-
+    
+    /**
+     * Execute the "rebuild set-transfer-size" command.
+     * 
+     * @param deviceName -- Distributed device on which we need to set the rebuild size
+     * @param transferSize -- The transfer size that needs to be set in VPLEX
+     * @throws VPlexApiException
+     */
+    
+    public void setRebuildTransferSize(String deviceName, String transferSize){
+        ClientResponse response = null;
+        try {
+        	s_logger.info("Setting transfer size");
+        	URI requestURI = _vplexApiClient.getBaseURI().resolve(VPlexApiConstants.URI_REBUILD_SET_TRANSFER_SIZE);
+        	s_logger.info("Rebuild Transfer size URI is {}", requestURI.toString());
+        	Map<String, String> argsMap = new HashMap<String, String>();
+        	StringBuilder deviceAndSize = new StringBuilder();
+        	deviceAndSize.append(deviceName);
+        	deviceAndSize.append(" ");
+        	deviceAndSize.append(transferSize);
+        	argsMap.put(VPlexApiConstants.ARG_DEVICES, deviceAndSize.toString());
+    	
+            JSONObject postDataObject = VPlexApiUtils.createPostData(argsMap, false);
+            s_logger.info("Rebuild Set Transfer Size POST data is {}", postDataObject.toString());
+            response = _vplexApiClient.post(requestURI, postDataObject.toString());
+            String responseStr = response.getEntity(String.class);
+            s_logger.info("Rebuild Set Transfer Size response is {}", responseStr);
+            if (response.getStatus() != VPlexApiConstants.SUCCESS_STATUS) {
+                if (response.getStatus() == VPlexApiConstants.ASYNC_STATUS) {
+                    s_logger.info("Rebuild Set Transfer Size command completing asynchronously");
+                    _vplexApiClient.waitForCompletion(response);
+                } else {
+                    String cause = VPlexApiUtils.getCauseOfFailureFromResponse(responseStr);
+                    throw VPlexApiException.exceptions.setRebuildSetTransferSpeeFailureStatus(
+                            String.valueOf(response.getStatus()), cause);
+                }
+            }
+            s_logger.info("Successfully executed rebuild set-transfer-size command");
+        } catch (VPlexApiException vae) {
+            throw vae;
+        } catch (Exception e) {
+            throw VPlexApiException.exceptions.failedSetTransferSize(e);
+        } finally {
+            if (response != null) {
+                response.close();
+            }
+        }
+    }
+    
     /**
      * Waits for the rebuild of the passed distributed volume to complete.
      * Will wait for up to 4 hours before it stops waiting and returns a

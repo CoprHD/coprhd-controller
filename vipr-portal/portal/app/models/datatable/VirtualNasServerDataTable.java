@@ -11,6 +11,7 @@ import util.datatable.DataTable;
 import com.emc.storageos.model.NamedRelatedResourceRep;
 import com.emc.storageos.model.project.ProjectRestRep;
 import com.emc.storageos.model.vnas.VirtualNASRestRep;
+import com.emc.vipr.client.exceptions.ServiceErrorException;
 
 public class VirtualNasServerDataTable extends DataTable {
 
@@ -102,11 +103,25 @@ public class VirtualNasServerDataTable extends DataTable {
 
                     for (Iterator<String> iterator = associatedProjects.iterator(); iterator.hasNext();) {
                         String projectId = iterator.next();
-                        ProjectRestRep projectRestRep = getViprClient().projects().get(URI.create(projectId));
-                        projectList.append(projectRestRep.getName()).append(", ");
-                        projectListWithIds.append(projectRestRep.getName()).append("+").append(projectRestRep.getId()).append(",");
+                        try {
+                            ProjectRestRep projectRestRep = getViprClient().projects().get(URI.create(projectId));
+                            projectList.append(projectRestRep.getName()).append(", ");
+                            projectListWithIds.append(projectRestRep.getName()).append("+").append(projectRestRep.getId()).append(",");
+                        } catch (ServiceErrorException serviceErrorException) {
+                            /*
+                             * Check if the error is due to insufficient permissions
+                             * Error code: 3000
+                             */
+                            if (serviceErrorException.getCode() == 3000) {
+                                continue;
+                            } else {
+                                throw serviceErrorException;
+                            }
+                        }
                     }
-                    this.project = projectList.substring(0, projectList.length() - 2);
+                    if ((projectList.length() - 2) >= 0) {
+                        this.project = projectList.substring(0, projectList.length() - 2);
+                    }
                 }
             }
 

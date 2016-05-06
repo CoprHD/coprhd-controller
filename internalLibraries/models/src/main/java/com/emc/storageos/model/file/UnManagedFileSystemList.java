@@ -36,7 +36,6 @@ public class UnManagedFileSystemList {
     /**
      * List of unmanaged file systems.
      * 
-     * @valid none
      */
     @XmlElement(name = "unmanaged_filesystem")
     public List<RelatedResourceRep> getUnManagedFileSystem() {
@@ -54,7 +53,6 @@ public class UnManagedFileSystemList {
      * The list of unmanaged FileSystems with name which are available in a storage system.
      * Used primarily to ingest volumes into ViPR.
      * 
-     * @valid none
      */
     @XmlElement(name = "named_unmanaged_filesystem")
     public List<NamedRelatedResourceRep> getNamedUnManagedFileSystem() {

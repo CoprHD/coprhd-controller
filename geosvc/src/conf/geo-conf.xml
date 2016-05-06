@@ -177,6 +177,7 @@
         <property name="bypassMigrationLock" value="true"/>
         <property name="localContext" ref="dbclientcontext"/>
         <property name="geoContext" ref="geodbclientcontext"/>
+        <property name="drUtil" ref="drUtil"/>
     </bean>
 
     <bean id="vdcController" class="com.emc.storageos.geo.vdccontroller.impl.VdcControllerImpl">

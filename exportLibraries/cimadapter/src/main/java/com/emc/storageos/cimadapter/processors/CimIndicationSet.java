@@ -428,7 +428,7 @@ public class CimIndicationSet {
 
                     // Start with an inexpensive test.
                     // Does it look anything like a WBEM URI?
-                    if (value.indexOf('/') != -1) {
+                    if (value.matches("/+[\\w\\.\\d/]+.*")) {
                         // Confirm with an expensive test.
                         // Can we make a CIMObjectPath from it?
                         CIMObjectPath path = null;

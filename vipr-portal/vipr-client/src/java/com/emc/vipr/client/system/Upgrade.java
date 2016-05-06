@@ -24,6 +24,7 @@ public class Upgrade {
     private static final String FORCE_PARAM = "force";
     private static final String FORCE = "1";
     private static final String SHOW_ALL_VERSIONS = "1";
+    private static final String SITE_PARAM = "site";
 
     private RestClient client;
 
@@ -64,14 +65,29 @@ public class Upgrade {
     }
 
     /**
-     * Provides progress information when an image download is in progress
+     * Provides progress information when an image download is in progress for the local site
      * <p>
      * API Call: POST /upgrade/image/download/progress
      * 
      * @return The Download Progress information
      */
     public DownloadProgress getDownloadProgress() {
-        return client.get(DownloadProgress.class, IMAGE_DOWNLOAD_PROGRESS_URL);
+        return getDownloadProgress(null);
+    }
+
+    /**
+     * Provides progress information when an image download is in progress for a specific site
+     * <p>
+     * API Call: POST /upgrade/image/download/progress?site=siteId
+     *
+     * @return The Download Progress information
+     */
+    public DownloadProgress getDownloadProgress(String siteId) {
+        UriBuilder builder = client.uriBuilder(IMAGE_DOWNLOAD_PROGRESS_URL);
+        if (siteId != null) {
+            addQueryParam(builder, SITE_PARAM, siteId);
+        }
+        return client.getURI(DownloadProgress.class, builder.build());
     }
 
     /**
@@ -123,28 +139,16 @@ public class Upgrade {
      * API Call: PUT /upgrade/target-version
      * 
      * @param version The new version number
-     * @param doGeoPrecheck If false, skips all multi-VDC pre-checks.
+     * @param doPrecheck If false, skips all multi-VDC/DR pre-checks.
      * @return The cluster information
      */
-    public ClusterInfo setTargetVersion(String version, boolean doGeoPrecheck) {
+    public ClusterInfo setTargetVersion(String version, boolean doPrecheck) {
         UriBuilder builder = client.uriBuilder(TARGET_VERSION_URL);
         addQueryParam(builder, VERSION_PARAM, version);
-        if (!doGeoPrecheck) {
+        if (!doPrecheck) {
             addQueryParam(builder, FORCE_PARAM, FORCE);
         }
         return client.putURI(ClusterInfo.class, null, builder.build());
-    }
-
-    /**
-     * Update target version with no version number verification. Version can only be
-     * updated incrementally. Ex: storageos-1.0.0.2.xx can only be updated to
-     * sotrageos-1.0.0.3.xx and not to storageos-1.0.0.4.xx
-     * 
-     * @param version The new version number
-     * @return The cluster information
-     */
-    public ClusterInfo setTargetVersion(String version) {
-        return setTargetVersion(version, true);
     }
 
     /**
@@ -156,21 +160,33 @@ public class Upgrade {
      *            the installed versions are less than MAX_SOFTWARE_VERSIONS
      * @return The cluster information
      */
-    public ClusterInfo getClusterInfo(boolean showAllVersions) {
+    public ClusterInfo getClusterInfo(String siteId, boolean showAllVersions) {
         UriBuilder builder = client.uriBuilder(CLUSTER_STATE_URL);
         if (showAllVersions) {
             addQueryParam(builder, FORCE_PARAM, SHOW_ALL_VERSIONS);
+        }
+        if (siteId != null) {
+            addQueryParam(builder, SITE_PARAM, siteId);
         }
         return client.getURI(ClusterInfo.class, builder.build());
     }
 
     /**
-     * Shows the cluster information, excluding all removable versions.
+     * Shows the cluster information for the local site, excluding all removable versions.
      * 
      * @return The cluster state information
      */
     public ClusterInfo getClusterInfo() {
-        return getClusterInfo(false);
+        return getClusterInfo(null, false);
+    }
+
+    /**
+     * Shows the cluster information for a specific site, excluding all removable versions.
+     *
+     * @return The cluster state information
+     */
+    public ClusterInfo getClusterInfo(String siteId) {
+        return getClusterInfo(siteId, false);
     }
 
     /**
@@ -179,7 +195,7 @@ public class Upgrade {
      * @return the cluster state
      */
     public String getClusterState() {
-        return getClusterInfo(false).getCurrentState();
+        return getClusterInfo(null, false).getCurrentState();
     }
 
     /*

@@ -19,6 +19,9 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
+import com.emc.storageos.coordinator.exceptions.RetryableCoordinatorException;
+import com.emc.storageos.plugins.common.Constants;
+import com.emc.storageos.services.util.StorageDriverManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -36,6 +39,7 @@ import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.BlockSnapshot;
+import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StorageSystem;
@@ -44,14 +48,17 @@ import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.Volume.ReplicationState;
+import com.emc.storageos.db.client.model.VolumeGroup;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.model.TaskList;
 import com.emc.storageos.model.TaskResourceRep;
 import com.emc.storageos.model.block.VolumeRestRep;
+import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.volumecontroller.BlockController;
 import com.emc.storageos.volumecontroller.ControllerException;
+import com.emc.storageos.volumecontroller.impl.ControllerUtils;
 import com.emc.storageos.volumecontroller.impl.smis.ReplicationUtils;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
 
@@ -75,6 +82,9 @@ public abstract class AbstractBlockFullCopyApiImpl implements BlockFullCopyApi {
 
     // A reference to a logger.
     private static final Logger s_logger = LoggerFactory.getLogger(AbstractBlockFullCopyApiImpl.class);
+
+    private static StorageDriverManager storageDriverManager = (StorageDriverManager)StorageDriverManager.
+            getApplicationContext().getBean(StorageDriverManager.STORAGE_DRIVER_MANAGER);
 
     /**
      * Constructor
@@ -108,8 +118,15 @@ public abstract class AbstractBlockFullCopyApiImpl implements BlockFullCopyApi {
             Volume fcSourceVolume = (Volume) fcSourceObj;
             URI cgURI = fcSourceVolume.getConsistencyGroup();
             if (!isNullURI(cgURI)) {
-                BlockConsistencyGroup cg = _dbClient.queryObject(BlockConsistencyGroup.class, cgURI);
-                fcSourceObjList.addAll(getActiveCGVolumes(cg));
+                // if volume is part of COPY type Volume Group, get only the Array Group volumes
+                if (fcSourceVolume.getApplication(_dbClient) != null) {
+                    fcSourceObjList.addAll(
+                            ControllerUtils.getVolumesPartOfRG(fcSourceVolume.getStorageController(),
+                                    fcSourceVolume.getReplicationGroupInstance(), _dbClient));
+                } else {
+                    BlockConsistencyGroup cg = _dbClient.queryObject(BlockConsistencyGroup.class, cgURI);
+                    fcSourceObjList.addAll(getActiveCGVolumes(cg));
+                }
             } else {
                 fcSourceObjList.add(fcSourceObj);
             }
@@ -127,7 +144,8 @@ public abstract class AbstractBlockFullCopyApiImpl implements BlockFullCopyApi {
         Map<URI, Volume> fullCopyMap = new HashMap<URI, Volume>();
         URI cgURI = fcSourceObj.getConsistencyGroup();
         if ((!isNullURI(cgURI))
-                && (!BlockFullCopyUtils.isFullCopyDetached(fullCopyVolume, _dbClient))) {
+                && (!BlockFullCopyUtils.isFullCopyDetached(fullCopyVolume, _dbClient))
+                && (NullColumnValueGetter.isNotNullValue(fullCopyVolume.getReplicationGroupInstance()))) {
             // If the full copy is not detached and the source is
             // in a CG, then the full copy is treated as a set and
             // there should be a full copy for each source in the
@@ -135,7 +153,7 @@ public abstract class AbstractBlockFullCopyApiImpl implements BlockFullCopyApi {
             // group instance.
             URIQueryResultList queryResults = new URIQueryResultList();
             _dbClient.queryByConstraint(AlternateIdConstraint.Factory
-                    .getCloneReplicationGroupInstanceConstraint(fullCopyVolume
+                    .getVolumeReplicationGroupInstanceConstraint(fullCopyVolume
                             .getReplicationGroupInstance()), queryResults);
             Iterator<URI> resultsIter = queryResults.iterator();
             while (resultsIter.hasNext()) {
@@ -220,9 +238,15 @@ public abstract class AbstractBlockFullCopyApiImpl implements BlockFullCopyApi {
      *            source.
      */
     protected void verifyFullCopySupportedForStoragePool(StoragePool storagePool) {
-        StringSet copyTypes = storagePool.getSupportedCopyTypes();
-        if ((copyTypes == null) || (!copyTypes.contains(StoragePool.CopyTypes.UNSYNC_UNASSOC.name()))) {
-            throw APIException.badRequests.fullCopyNotSupportedOnArray(storagePool.getStorageDevice());
+        URI storageSystemUri = storagePool.getStorageDevice();
+        StorageSystem storageSystem = (StorageSystem) _dbClient.queryObject(storageSystemUri);
+
+        if (!storageDriverManager.isDriverManaged(storageSystem.getSystemType())) {
+         // for driver managed systems we allow full copy.
+            StringSet copyTypes = storagePool.getSupportedCopyTypes();
+            if ((copyTypes == null) || (!copyTypes.contains(StoragePool.CopyTypes.UNSYNC_UNASSOC.name()))) {
+                throw APIException.badRequests.fullCopyNotSupportedOnArray(storagePool.getStorageDevice());
+            }
         }
     }
 
@@ -274,26 +298,27 @@ public abstract class AbstractBlockFullCopyApiImpl implements BlockFullCopyApi {
             BlockController controller = getController(BlockController.class,
                     storageSystem.getSystemType());
             for (URI fullCopyURI : fullCopyURIs) {
-                _dbClient.createTaskOpStatus(Volume.class, fullCopyURI, taskId,
-                        ResourceOperationTypeEnum.ACTIVATE_VOLUME_FULL_COPY);
+                Operation op = _dbClient.createTaskOpStatus(Volume.class, fullCopyURI,
+                        taskId, ResourceOperationTypeEnum.ACTIVATE_VOLUME_FULL_COPY);
+                fullCopyMap.get(fullCopyURI).getOpStatus().put(taskId, op);
+                TaskResourceRep fullCopyVolumeTask = TaskMapper.toTask(
+                        fullCopyMap.get(fullCopyURI), taskId, op);
+                taskList.getTaskList().add(fullCopyVolumeTask);
             }
+
+            addConsistencyGroupTasks(Arrays.asList(fcSourceObj), taskList, taskId,
+                    ResourceOperationTypeEnum.ACTIVATE_CONSISTENCY_GROUP_FULL_COPY);
+
             try {
                 controller.activateFullCopy(storageSystem.getId(), new ArrayList<URI>(
                         fullCopyURIs), taskId);
             } catch (ControllerException ce) {
                 s_logger.error("Failed to activate volume full copy {}", fullCopyVolume.getId(), ce);
-                _dbClient.error(Volume.class, fullCopyVolume.getId(), taskId, ce);
-            }
-
-            // Get the updated task status
-            for (URI fullCopyURI : fullCopyURIs) {
-                Volume updatedFullCopyVolume = _dbClient.queryObject(Volume.class, fullCopyURI);
-                Operation taskOpStatus = updatedFullCopyVolume.getOpStatus().get(taskId);
-                TaskResourceRep task = TaskMapper.toTask(fullCopyMap.get(fullCopyURI),
-                        taskId, taskOpStatus);
-                taskList.addTask(task);
+                handleFailedRequest(taskId, taskList,
+                        new ArrayList<Volume>(fullCopyMap.values()), ce, false);
             }
         }
+
         return taskList;
     }
 
@@ -348,29 +373,28 @@ public abstract class AbstractBlockFullCopyApiImpl implements BlockFullCopyApi {
             BlockController controller = getController(BlockController.class,
                     storageSystem.getSystemType());
             for (URI fullCopyURI : fullCopyURIs) {
-                _dbClient.createTaskOpStatus(Volume.class, fullCopyURI, taskId,
-                        ResourceOperationTypeEnum.DETACH_VOLUME_FULL_COPY);
+                Operation op = _dbClient.createTaskOpStatus(Volume.class, fullCopyURI,
+                        taskId, ResourceOperationTypeEnum.DETACH_VOLUME_FULL_COPY);
+                fullCopyMap.get(fullCopyURI).getOpStatus().put(taskId, op);
+                TaskResourceRep fullCopyVolumeTask = TaskMapper.toTask(
+                        fullCopyMap.get(fullCopyURI), taskId, op);
+                taskList.getTaskList().add(fullCopyVolumeTask);
             }
+
+            if (NullColumnValueGetter.isNotNullValue(fullCopyVolume.getReplicationGroupInstance())) {
+                addConsistencyGroupTasks(Arrays.asList(fcSourceObj), taskList, taskId,
+                        ResourceOperationTypeEnum.DETACH_CONSISTENCY_GROUP_FULL_COPY);
+            }
+
             try {
                 controller.detachFullCopy(storageSystem.getId(), new ArrayList<URI>(
                         fullCopyURIs), taskId);
             } catch (ControllerException ce) {
                 s_logger.error("Failed to detach volume full copy {}", fullCopyVolume.getId(), ce);
-                _dbClient.error(Volume.class, fullCopyVolume.getId(), taskId, ce);
-            }
-
-            // Get the updated task status
-            for (URI fullCopyURI : fullCopyURIs) {
-                Volume updatedFullCopyVolume = _dbClient.queryObject(Volume.class, fullCopyURI);
-                Operation taskOpStatus = updatedFullCopyVolume.getOpStatus().get(taskId);
-                TaskResourceRep task = TaskMapper.toTask(fullCopyMap.get(fullCopyURI),
-                        taskId, taskOpStatus);
-                taskList.addTask(task);
+                handleFailedRequest(taskId, taskList,
+                        new ArrayList<Volume>(fullCopyMap.values()), ce, false);
             }
         }
-
-        addConsistencyGroupTasks(Arrays.asList(fcSourceObj), taskList, taskId,
-                ResourceOperationTypeEnum.DETACH_CONSISTENCY_GROUP_FULL_COPY);
 
         return taskList;
     }
@@ -419,7 +443,7 @@ public abstract class AbstractBlockFullCopyApiImpl implements BlockFullCopyApi {
          * Delete volume api call will delete all its related replicas for VMAX using SMI 8.0.3.
          * Hence vmax using 8.0.3 can be delete even if volume has replicas.
          */
-        if (volume.isInCG() && BlockServiceUtils.checkCGVolumeCanBeAddedOrRemoved(volume, _dbClient)) {
+        if (volume.isInCG() && BlockServiceUtils.checkCGVolumeCanBeAddedOrRemoved(null, volume, _dbClient)) {
             return true;
         }
 
@@ -453,6 +477,21 @@ public abstract class AbstractBlockFullCopyApiImpl implements BlockFullCopyApi {
         }
 
         return true;
+    }
+
+    /**
+     * Gets the varray from cache.
+     *
+     * @param vArrayCache the varray cache
+     * @param vArrayURI the virtual array
+     * @return the varray from cache
+     */
+    protected VirtualArray getVarrayFromCache(Map<URI, VirtualArray> vArrayCache, URI vArrayURI) {
+        if (vArrayCache.get(vArrayURI) == null) {
+            VirtualArray vArray = _dbClient.queryObject(VirtualArray.class, vArrayURI);
+            vArrayCache.put(vArrayURI, vArray);
+        }
+        return vArrayCache.get(vArrayURI);
     }
 
     /**
@@ -490,18 +529,29 @@ public abstract class AbstractBlockFullCopyApiImpl implements BlockFullCopyApi {
         return result;
     }
 
+
     /**
-     * Looks up controller dependency for given hardware
-     * 
+     * Looks up controller dependency for given hardware type.
+     * If cannot locate controller for defined hardware type, lookup controller for
+     * EXTERNALDEVICE.
+     *
      * @param clazz controller interface
      * @param hw hardware name
      * @param <T>
-     * 
      * @return
      */
     protected <T extends Controller> T getController(Class<T> clazz, String hw) {
-        return _coordinator.locateService(clazz, BlockServiceApi.CONTROLLER_SVC,
-                BlockServiceApi.CONTROLLER_SVC_VER, hw, clazz.getSimpleName());
+        T controller;
+        try {
+            controller = _coordinator.locateService(
+                    clazz, BlockServiceApi.CONTROLLER_SVC,
+                    BlockServiceApi.CONTROLLER_SVC_VER, hw, clazz.getSimpleName());
+        } catch (RetryableCoordinatorException rex) {
+            controller = _coordinator.locateService(
+                    clazz, BlockServiceApi.CONTROLLER_SVC,
+                    BlockServiceApi.CONTROLLER_SVC_VER, Constants.EXTERNALDEVICE, clazz.getSimpleName());
+        }
+        return controller;
     }
 
     /**
@@ -607,6 +657,44 @@ public abstract class AbstractBlockFullCopyApiImpl implements BlockFullCopyApi {
     protected void verifyCGSnapshotRequest() {
         // We don't support creating full copies of snapshots in consistency groups.
         throw APIException.badRequests.fullCopyNotSupportedForConsistencyGroup();
+    }
+
+    /**
+     * Updates passed volume and tasks on failure.
+     * 
+     * @param taskId The unique task id.
+     * @param taskList A list of the task responses.
+     * @param volumes The list of volumes for the operation.
+     * @param sc A reference to the error.
+     * @param markInactive true to mark the volumes inactive, false otherwise.
+     */
+    protected void handleFailedRequest(String taskId, TaskList taskList,
+            List<Volume> volumes, ServiceCoded sc, boolean markInactive) {
+        for (TaskResourceRep volumeTask : taskList.getTaskList()) {
+            volumeTask.setState(Operation.Status.error.name());
+            volumeTask.setMessage(sc.getMessage());
+            URI resourceURI = volumeTask.getResource().getId();
+            DataObject dataObject = null;
+            if (URIUtil.isType(resourceURI, BlockConsistencyGroup.class)) {
+                dataObject = _dbClient.queryObject(BlockConsistencyGroup.class, resourceURI);
+            } else if (URIUtil.isType(resourceURI, VolumeGroup.class)) {
+                dataObject = _dbClient.queryObject(VolumeGroup.class, resourceURI);
+            } else {
+                dataObject = _dbClient.queryObject(Volume.class, resourceURI);
+            }
+            Operation op = dataObject.getOpStatus().get(taskId);
+            if (op != null) {
+                op.error(sc);
+                dataObject.getOpStatus().updateTaskStatus(taskId, op);
+                _dbClient.updateObject(dataObject);
+            }
+        }
+        if (markInactive) {
+            for (Volume volume : volumes) {
+                volume.setInactive(true);
+                _dbClient.updateObject(volume);
+            }
+        }
     }
 
     /**

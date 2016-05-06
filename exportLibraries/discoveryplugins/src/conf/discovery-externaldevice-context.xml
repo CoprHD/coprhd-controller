@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:util="http://www.springframework.org/schema/util"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
+
+
+
+    <!-- <bean id="scaleioDriver" class="com.emc.storageos.driver.scaleio.ScaleIOStorageDriver">
+     </bean> -->
+     <bean id="storageDriverSimulator" class="com.emc.storageos.driver.driversimulator.StorageDriverSimulator">
+     </bean>
+
+     <bean id="externaldevice" class="com.emc.storageos.volumecontroller.impl.plugins.ExternalDeviceCommunicationInterface">
+         <!-- Discovery storage drivers -->
+         <property name="drivers">
+             <map>
+                <!-- <entry key="scaleiosystem" value-ref="scaleioDriver"/> -->
+                <entry key="driversystem" value-ref="storageDriverSimulator"/>
+            </map>
+        </property>
+    </bean>
+
+
+</beans>

@@ -33,7 +33,7 @@ public class BlockSnapshotSessionLinkTargetsWorkflowCompleter extends BlockSnaps
 
     // The URIs of the BlockSnapshot instances representing the target volumes
     // to be linked to the session
-    private final List<URI> _snapshotURIs;
+    private final List<List<URI>> _snapshotURILists;
 
     // A logger.
     private static final Logger s_logger = LoggerFactory.getLogger(BlockSnapshotSessionLinkTargetsWorkflowCompleter.class);
@@ -42,13 +42,13 @@ public class BlockSnapshotSessionLinkTargetsWorkflowCompleter extends BlockSnaps
      * Constructor
      * 
      * @param snapSessionURI The URI of the BlockSnapshotSession instance.
-     * @param snapshotURIs The URIs of the BlockSnapshot instances representing the
+     * @param snapshotURILists The URIs of the BlockSnapshot instances representing the
      *            targets volume to be linked to the session.
      * @param taskId The unique task identifier.
      */
-    public BlockSnapshotSessionLinkTargetsWorkflowCompleter(URI snapSessionURI, List<URI> snapshotURIs, String taskId) {
+    public BlockSnapshotSessionLinkTargetsWorkflowCompleter(URI snapSessionURI, List<List<URI>> snapshotURILists, String taskId) {
         super(snapSessionURI, taskId);
-        _snapshotURIs = snapshotURIs;
+        _snapshotURILists = snapshotURILists;
     }
 
     /**
@@ -59,7 +59,8 @@ public class BlockSnapshotSessionLinkTargetsWorkflowCompleter extends BlockSnaps
         URI snapSessionURI = getId();
         try {
             BlockSnapshotSession snapSession = dbClient.queryObject(BlockSnapshotSession.class, snapSessionURI);
-            BlockObject sourceObj = BlockObject.fetch(dbClient, snapSession.getParent().getURI());
+            List<BlockObject> allSources = getAllSources(snapSession, dbClient);
+            BlockObject sourceObj = allSources.get(0);
 
             // Record the results.
             recordBlockSnapshotSessionOperation(dbClient, OperationTypeEnum.LINK_SNAPSHOT_SESSION_TARGET,
@@ -71,17 +72,19 @@ public class BlockSnapshotSessionLinkTargetsWorkflowCompleter extends BlockSnaps
                     // For those BlockSnapshot instances representing linked targets that
                     // were not successfully created and linked to the array snapshot
                     // represented by the BlockSnapshotSession instance, mark them inactive.
-                    for (URI snapshotURI : _snapshotURIs) {
-                        // Successfully linked targets will be in the list of linked
-                        // targets for the session.
-                        StringSet linkedTargets = snapSession.getLinkedTargets();
-                        if ((linkedTargets == null) || (!linkedTargets.contains(snapshotURI.toString()))) {
-                            BlockSnapshot snapshot = dbClient.queryObject(BlockSnapshot.class, snapshotURI);
-                            // If rollback was successful the snapshot would already have been
-                            // marked inactive, so be sure to check for null.
-                            if ((snapshot != null) && (!snapshot.getInactive())) {
-                                snapshot.setInactive(true);
-                                dbClient.updateObject(snapshot);
+                    for (List<URI> snapshotURIs : _snapshotURILists) {
+                        for (URI snapshotURI : snapshotURIs) {
+                            // Successfully linked targets will be in the list of linked
+                            // targets for the session.
+                            StringSet linkedTargets = snapSession.getLinkedTargets();
+                            if ((linkedTargets == null) || (!linkedTargets.contains(snapshotURI.toString()))) {
+                                BlockSnapshot snapshot = dbClient.queryObject(BlockSnapshot.class, snapshotURI);
+                                // If rollback was successful the snapshot would already have been
+                                // marked inactive, so be sure to check for null.
+                                if ((snapshot != null) && (!snapshot.getInactive())) {
+                                    snapshot.setInactive(true);
+                                    dbClient.updateObject(snapshot);
+                                }
                             }
                         }
                     }
@@ -96,14 +99,11 @@ public class BlockSnapshotSessionLinkTargetsWorkflowCompleter extends BlockSnaps
                     s_logger.info(errMsg);
                     throw DeviceControllerException.exceptions.unexpectedCondition(errMsg);
             }
-
-            if (isNotifyWorkflow()) {
-                // If there is a workflow, update the task to complete.
-                updateWorkflowStatus(status, coded);
-            }
             s_logger.info("Done create and link new target volumes task {} with status: {}", getOpId(), status.name());
         } catch (Exception e) {
             s_logger.error("Failed updating status for create and link new target volumes task {}", getOpId(), e);
+        } finally {
+            super.complete(dbClient, status, coded);
         }
     }
 

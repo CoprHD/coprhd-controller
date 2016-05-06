@@ -1,6 +1,7 @@
 dependencies {
 	compile project(":errorhandling")
 	compile project(":serviceutils")
-
+	compile project(":dbsvc")
+	
     testCompile library(commons_logging)
 }

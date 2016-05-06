@@ -6,9 +6,7 @@
 package com.emc.storageos.systemservices.impl.vdc;
 
 import java.net.URI;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.lang.StringUtils;
@@ -16,7 +14,6 @@ import org.apache.curator.framework.recipes.barriers.DistributedBarrier;
 import org.apache.curator.framework.recipes.locks.InterProcessLock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 
 import com.emc.storageos.coordinator.client.model.Constants;
 import com.emc.storageos.coordinator.client.model.PropertyInfoExt;
@@ -32,14 +29,11 @@ import com.emc.storageos.coordinator.common.impl.ZkPath;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.impl.DbClientImpl;
 import com.emc.storageos.db.client.util.VdcConfigUtil;
-import com.emc.storageos.management.backup.BackupConstants;
 import com.emc.storageos.management.jmx.recovery.DbManagerOps;
-import com.emc.storageos.security.ipsec.IPsecConfig;
 import com.emc.storageos.services.util.Waiter;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.svcs.errorhandling.resources.InternalServerErrorException;
 import com.emc.storageos.systemservices.impl.client.SysClientFactory;
-import com.emc.storageos.systemservices.impl.ipsec.IPsecManager;
 import com.emc.storageos.systemservices.impl.upgrade.CoordinatorClientExt;
 import com.emc.storageos.systemservices.impl.upgrade.LocalRepository;
 
@@ -51,15 +45,12 @@ import com.emc.storageos.systemservices.impl.upgrade.LocalRepository;
 public abstract class VdcOpHandler {
     private static final Logger log = LoggerFactory.getLogger(VdcOpHandler.class);
     
-    private static final int VDC_RPOP_BARRIER_TIMEOUT = 5*60; // 5 mins
+    // 6 mins for barrier timeout. it should be longer than loopInterval
+    private static final int VDC_OP_BARRIER_TIMEOUT = 360; 
     private static final int SWITCHOVER_ZK_WRITALE_WAIT_INTERVAL = 1000 * 5;
     private static final int FAILOVER_ZK_WRITALE_WAIT_INTERVAL = 1000 * 15;
-    private static final int SWITCHOVER_BARRIER_TIMEOUT = 300;
-    private static final int FAILOVER_BARRIER_TIMEOUT = 300;
     private static final int MAX_PAUSE_RETRY = 20;
     private static final int IPSEC_RESTART_DELAY = 1000 * 60; // 1 min
-    // data revision time out - 5 minutes
-    private static final long DATA_REVISION_WAIT_TIMEOUT_SECONDS = 300;
     
     private static final String URI_INTERNAL_POWEROFF = "/control/internal/cluster/poweroff";
     private static final String LOCK_REMOVE_STANDBY="drRemoveStandbyLock";
@@ -67,7 +58,6 @@ public abstract class VdcOpHandler {
     private static final String LOCK_PAUSE_STANDBY="drPauseStandbyLock";
     private static final String LOCK_DEGRADE_STANDBY="drDegradeStandbyLock";
     private static final String LOCK_REJOIN_STANDBY="drRejoinStandbyLock";
-    private static final String LOCK_ADD_STANDBY="drAddStandbyLock";
 
     public static final String NTPSERVERS = "network_ntpservers";
 
@@ -80,20 +70,30 @@ public abstract class VdcOpHandler {
     protected PropertyInfoExt targetVdcPropInfo;
     protected PropertyInfoExt localVdcPropInfo;
     protected SiteInfo targetSiteInfo;
-    protected boolean isRebootNeeded = false;
+    private boolean concurrentRebootNeeded = false;
+    private boolean rollingRebootNeeded = false;
     
     public VdcOpHandler() {
     }
     
     public abstract void execute() throws Exception;
     
-    public boolean isRebootNeeded() {
-        return isRebootNeeded;
+    public boolean isConcurrentRebootNeeded() {
+        return concurrentRebootNeeded;
     }
     
-    public void setRebootNeeded(boolean rebootRequired) {
-        this.isRebootNeeded = rebootRequired;
+    public void setConcurrentRebootNeeded(boolean rebootRequired) {
+        this.concurrentRebootNeeded = rebootRequired;
     }
+
+    public boolean isRollingRebootNeeded() {
+        return rollingRebootNeeded;
+    }
+
+    public void setRollingRebootNeeded(boolean rollingRebootRequired) {
+        this.rollingRebootNeeded = rollingRebootRequired;
+    }
+
 
     /**
      * No-op - simply do nothing
@@ -104,6 +104,10 @@ public abstract class VdcOpHandler {
         
         @Override
         public void execute() {
+            if (isGeoConfigChange()) {
+                log.info("Geo config change detected. set rolling reboot to true");
+                setRollingRebootNeeded(true);
+            }
         }
     }
     
@@ -120,60 +124,54 @@ public abstract class VdcOpHandler {
          */
         @Override
         public void execute() throws Exception {
+            String backCompatPreYoda = targetVdcPropInfo.getProperty(VdcConfigUtil.BACK_COMPAT_PREYODA);
+            if (Boolean.valueOf(backCompatPreYoda)) {
+                log.info("Set back_comp_preyoda flag to true so that ipsec can start");
+                targetVdcPropInfo.addProperty(VdcConfigUtil.BACK_COMPAT_PREYODA, String.valueOf(false));
+                setRollingRebootNeeded(true);
+            }
+            
+            if (isGeoConfigChange()) {
+                log.info("Geo config change detected. set concurrent reboot to true");
+                setConcurrentRebootNeeded(true);
+            }
+            
             syncFlushVdcConfigToLocal();
             refreshIPsec();
         }
     }
 
     /**
-     * Transit Cassandra native encryption to IPsec
+     * Geo config change - add/remove vdc 
      */
-    public static class IPSecEnableHandler extends VdcOpHandler {
-        private static String IPSEC_LOCK = "ipsec_enable_lock";
-
-        @Autowired
-        IPsecManager ipsecMgr;
-        @Autowired
-        IPsecConfig ipsecConfig;
-
-        public IPSecEnableHandler() {
+    public static class GeoConfigChangeOpHandler extends VdcOpHandler {
+        public GeoConfigChangeOpHandler() {
         }
         
+        /**
+         * Reconfig IPsec/firewall when vdc properties (key, IPs or both) get changed. 
+         * Rolling restart the cluster if it is remove-vdc
+         * 
+         * @throws Exception
+         */
         @Override
         public void execute() throws Exception {
-            InterProcessLock lock = acquireIPsecLock();
-            try {
-                if (ipsecKeyExisted()) {
-                    log.info("Real IPsec key already existed, No need to rotate.");
-                    return;
-                }
-                String version = ipsecMgr.rotateKey();
-                log.info("Kicked off IPsec key rotation. The version is {}", version);
-            } finally {
-                releaseIPsecLock(lock);
+            syncFlushVdcConfigToLocal();
+            refreshIPsec();
+            refreshFirewall();
+            
+            if (isRemovingVdc()) {
+                setRollingRebootNeeded(true);
             }
         }
-
-        private InterProcessLock acquireIPsecLock() throws Exception {
-            InterProcessLock lock = coordinator.getCoordinatorClient().getSiteLocalLock(IPSEC_LOCK);
-            lock.acquire();
-            log.info("Acquired the lock {}", IPSEC_LOCK);
-            return lock;
-        }
-
-        private void releaseIPsecLock(InterProcessLock lock) {
-            try {
-                lock.release();
-            } catch (Exception e) {
-                log.warn("Fail to release the lock {}", IPSEC_LOCK);
-            }
-        }
-
-        private boolean ipsecKeyExisted() throws Exception {
-            return !StringUtils.isEmpty(ipsecConfig.getPreSharedKeyFromZK());
+        
+        private boolean isRemovingVdc() {
+            String newVdcIds =  targetVdcPropInfo.getProperty(VdcConfigUtil.VDC_IDS);
+            String origVdcIds = localVdcPropInfo.getProperty(VdcConfigUtil.VDC_IDS);
+            return newVdcIds.length() < origVdcIds.length();
         }
     }
-
+    
     /**
      * Process DR config change for add-standby op on all existing sites
      *  - flush vdc config to disk, regenerate config files and reload services for ipsec, firewall, coordinator, db
@@ -184,64 +182,42 @@ public abstract class VdcOpHandler {
         
         @Override
         public void execute() throws Exception {
-            if (drUtil.isActiveSite()) {
-                log.info("Acquiring lock {} to update default properties of standby", LOCK_ADD_STANDBY);
-                InterProcessLock lock = coordinator.getCoordinatorClient().getSiteLocalLock(LOCK_ADD_STANDBY);
-                lock.acquire();
-                log.info("Acquired lock successfully");
-                try {
-                    disableBackupSchedulerForStandby();
-                } finally {
-                    lock.release();
-                    log.info("Released lock for {}", LOCK_ADD_STANDBY);
-                }
-            }
             reconfigVdc();
-        }
-        
-        private void disableBackupSchedulerForStandby() {
-            List<Site> sites = drUtil.listSitesInState(SiteState.STANDBY_ADDING);
-            for (Site site : sites) {
-                String siteId = site.getUuid();
-                PropertyInfoExt sitePropInfo = coordinator.getSiteSpecificProperties(siteId);
-                if (sitePropInfo == null) {
-                    log.info("Disable backupscheduler for {}", site.getUuid());
-                    Map<String, String> siteProps = new HashMap<String, String>();
-                    siteProps.put(BackupConstants.SCHEDULER_ENABLED, "false");
-                    coordinator.setSiteSpecificProperties(siteProps, siteId);
-                }
+            if (drUtil.isActiveSite()) {
+                changeSiteState(SiteState.STANDBY_ADDING, SiteState.STANDBY_SYNCING);
             }
         }
     }
 
     /**
      * Process DR config change for add-standby on newly added site
-     *   flush vdc config to disk, increase data revision and reboot. After reboot, it sync db/zk data from active sites during db/zk startup
+     *   flush npt config to local properties, increase data revision and reboot. After reboot, it sync db/zk data from active sites during db/zk startup
+     *   We don't flush vdc properties to local until data revision is changed successfully. The reason is - we don't want to change anything at local
+     *   if data revision change fails. 
      */
     public static class DrChangeDataRevisionHandler extends VdcOpHandler {
         public DrChangeDataRevisionHandler() {
-            setRebootNeeded(true);
         }
 
         @Override
         public void execute() throws Exception {
-            flushVdcConfigToLocal();
             flushNtpConfigToLocal();
             checkDataRevision();
         }
         
         private void checkDataRevision() throws Exception {
             // Step4: change data revision
-            String targetDataRevision = targetSiteInfo.getTargetDataRevision();
-            log.info("Step4: check if target data revision is changed - {}", targetDataRevision);
             try {
-                String localRevision = localRepository.getDataRevision();
-                log.info("Step4: local data revision is {}", localRevision);
-                if (!targetSiteInfo.isNullTargetDataRevision() && !targetDataRevision.equals(localRevision)) {
+                long targetDataRevision = Long.parseLong(targetSiteInfo.getTargetDataRevision());
+                log.info("check if target data revision is changed - {}", targetDataRevision);
+                
+                long localRevision = Long.parseLong(localRepository.getDataRevision());
+                log.info("local data revision is {}", localRevision);
+                if (targetDataRevision > 0 && targetDataRevision > localRevision) {
                     updateDataRevision();
                 }
             } catch (Exception e) {
-                log.error("Step4: Failed to update data revision. {}", e);
+                log.error("Failed to update data revision. {}", e);
                 throw e;
             }
         }
@@ -257,28 +233,34 @@ public abstract class VdcOpHandler {
         private void updateDataRevision() throws Exception {
             String localRevision = localRepository.getDataRevision();
             String targetDataRevision = targetSiteInfo.getTargetDataRevision();
-            log.info("Step3: Trying to reach agreement with timeout for data revision change");
+            long vdcConfigVersion = targetSiteInfo.getVdcConfigVersion();
+            log.info("Trying to reach agreement with timeout for data revision change");
             String barrierPath = String.format("%s/%s/DataRevisionBarrier", ZkPath.SITES, coordinator.getCoordinatorClient().getSiteId());
             DistributedDoubleBarrier barrier = coordinator.getCoordinatorClient().getDistributedDoubleBarrier(barrierPath, coordinator.getNodeCount());
             try {
-                boolean phase1Agreed = barrier.enter(DATA_REVISION_WAIT_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+                boolean phase1Agreed = barrier.enter(VDC_OP_BARRIER_TIMEOUT, TimeUnit.SECONDS);
                 if (phase1Agreed) {
                     // reach phase 1 agreement, we can start write to local property file
-                    log.info("Step3: Reach phase 1 agreement for data revision change");
-                    localRepository.setDataRevision(targetDataRevision, false);
-                    boolean phase2Agreed = barrier.leave(DATA_REVISION_WAIT_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+                    log.info("Reach phase 1 agreement for data revision change");
+                    localRepository.setDataRevision(targetDataRevision, false, vdcConfigVersion);
+                    boolean phase2Agreed = barrier.leave(VDC_OP_BARRIER_TIMEOUT, TimeUnit.SECONDS);
                     if (phase2Agreed) {
                         // phase 2 agreement is received, we can make sure data revision change is written to local property file
-                        log.info("Step3: Reach phase 2 agreement for data revision change");
-                        localRepository.setDataRevision(targetDataRevision, true);
+                        log.info("Reach phase 2 agreement for data revision change");
+                        localRepository.setDataRevision(targetDataRevision, true, vdcConfigVersion);
+                        setConcurrentRebootNeeded(true);
                     } else {
-                        log.info("Step3: Failed to reach phase 2 agreement. Rollback revision change");
-                        localRepository.setDataRevision(localRevision, true);
+                        log.info("Failed to reach phase 2 agreement. Rollback revision change");
+                        localRepository.setDataRevision(localRevision, true, vdcConfigVersion);
+                        throw new IllegalStateException("Failed to reach phase 2 agreement on data revision change");
                     }
-                } 
-                log.warn("Step3: Failed to reach agreement among all the nodes. Delay data revision change until next run");
+                } else {
+                    barrier.leave(VDC_OP_BARRIER_TIMEOUT, TimeUnit.SECONDS);
+                    log.warn("Failed to reach agreement among all the nodes. Delay data revision change until next run");
+                    throw new IllegalStateException("Failed to reach phase 1 agreement on data revision change");
+                }
             } catch (Exception ex) {
-                log.warn("Step3. Internal error happens when negotiating data revision change", ex);
+                log.warn("Internal error happens when negotiating data revision change", ex);
                 throw ex;
             }
         }
@@ -298,6 +280,25 @@ public abstract class VdcOpHandler {
     }
 
     /**
+     * Purge old data revisions on given site
+     *  - call /etc/systool --purge-data-revision to cleanup unused data revisions on local disk
+     */
+    public static class DrPurgeDataRevisionHandler extends VdcOpHandler {
+        public DrPurgeDataRevisionHandler() {
+        }
+        
+        @Override
+        public void execute() throws Exception {
+            SiteInfo siteInfo = coordinator.getCoordinatorClient().getTargetInfo(SiteInfo.class);
+            String purgeSiteId = siteInfo.getSourceSiteUUID();
+            log.info("Purging data revision should be done on site {}", purgeSiteId);
+            if (drUtil.getLocalSite().getUuid().equals(purgeSiteId)) {
+                localRepository.purgeDataRevision();
+            }
+        }
+    }
+    
+    /**
      * Process DR config change for remove-standby op
      *  - active site: power off to-be-removed standby, remove the db nodes from 
      *                 gossip/strategy options, reconfig/restart ipsec/firewall/coordinator
@@ -305,6 +306,8 @@ public abstract class VdcOpHandler {
      *  - to-be-removed standby - do nothing, go ahead to reboot
      */
     public static class DrRemoveStandbyHandler extends VdcOpHandler {
+        private static final int MAX_WAIT_TIME_IN_MIN = 30;
+
         public DrRemoveStandbyHandler() {
         }
         
@@ -318,7 +321,7 @@ public abstract class VdcOpHandler {
                 log.info("Standby site - waiting for completion of db removal from active site");
                 Site localSite = drUtil.getLocalSite();
                 if (localSite.getState().equals(SiteState.STANDBY_REMOVING)) {
-                    log.info("Current standby site is removed from DR. You can power it on and promote it as acitve later");
+                    log.info("Current standby site is removed from DR. You can power it on and promote it as active later");
                     // cleanup site error 
                     SiteError siteError = coordinator.getCoordinatorClient().getTargetInfo(localSite.getUuid(), SiteError.class);
                     if (siteError != null) {
@@ -327,9 +330,14 @@ public abstract class VdcOpHandler {
                     }
                     return;
                 } else {
-                    log.info("Waiting for completion of site removal from acitve site");
-                    while (drUtil.hasSiteInState(SiteState.STANDBY_REMOVING)) {
-                        log.info("Waiting for completion of site removal from acitve site");
+                    long start = System.currentTimeMillis();
+                    log.info("Waiting for completion of site removal from active site");
+                    while (drUtil.hasSiteInState(SiteState.STANDBY_REMOVING) && drUtil.getLocalSite().getState() != SiteState.STANDBY_PAUSED) {
+                        if (System.currentTimeMillis() - start > MAX_WAIT_TIME_IN_MIN * 60 * 1000) {
+                            throw new IllegalStateException("Timeout reached when wait for site to be removed"); 
+                        }
+                        
+                        log.info("Waiting for completion of site removal from active site");
                         retrySleep();
                     }
                 }
@@ -349,7 +357,7 @@ public abstract class VdcOpHandler {
                         
                     for (Site site : toBeRemovedSites) {
                         try {
-                            poweroffRemoteSite(site);
+                            tryPoweroffRemoteSite(site);
                             removeDbNodesFromGossip(site);
                         } catch (Exception e) { 
                             populateStandbySiteErrorIfNecessary(site, APIException.internalServerErrors.removeStandbyReconfigFailed(e.getMessage()));
@@ -359,7 +367,7 @@ public abstract class VdcOpHandler {
                     for (Site site : toBeRemovedSites) {
                         try {
                             removeDbNodesFromStrategyOptions(site);
-                            drUtil.removeSiteConfiguration(site);
+                            drUtil.removeSite(site);
                         } catch (Exception e) { 
                             populateStandbySiteErrorIfNecessary(site, APIException.internalServerErrors.removeStandbyReconfigFailed(e.getMessage()));
                             throw e;
@@ -398,7 +406,7 @@ public abstract class VdcOpHandler {
         }
         
         /**
-         * Update the strategy options and remove the paused site from gossip ring on the acitve site.
+         * Update the strategy options and remove the paused site from gossip ring on the active site.
          * This should be done after the firewall has been updated to block the paused site so that it's not affected.
          */
         private void checkAndPauseOnActive() {
@@ -461,7 +469,8 @@ public abstract class VdcOpHandler {
         private void checkAndPauseOnStandby() {
             // wait for the coordinator to be blocked on the active site
             int retryCnt = 0;
-            while (coordinator.isActiveSiteHealthy()) {
+            Site activeSite = drUtil.getActiveSite();
+            while (coordinator.isActiveSiteZKLeaderAlive(activeSite)) {
                 if (++retryCnt > MAX_PAUSE_RETRY) {
                     throw new IllegalStateException("timeout waiting for coordinatorsvc to be blocked on active site.");
                 }
@@ -471,7 +480,7 @@ public abstract class VdcOpHandler {
 
             String state = drUtil.getLocalCoordinatorMode(coordinator.getMyNodeId());
             if (DrUtil.ZOOKEEPER_MODE_READONLY.equals(state)) {
-                coordinator.reconfigZKToWritable(true);
+                coordinator.reconfigZKToWritable();
             }
 
             Site localSite = drUtil.getLocalSite();
@@ -479,6 +488,17 @@ public abstract class VdcOpHandler {
                 localSite.setState(SiteState.STANDBY_PAUSED);
                 log.info("Updating local site state to STANDBY_PAUSED");
                 coordinator.getCoordinatorClient().persistServiceConfiguration(localSite.toConfiguration());
+
+                for (Site standby : drUtil.listStandbySites()) {
+                    if (SiteState.STANDBY_PAUSING.equals(standby.getState())) {
+                        // all the other pausing sites are sync'ed with the current site
+                        // since they have been paused at the same time
+                        // this will make it a lot easier if we later failover to any of the paused sites
+                        standby.setState(SiteState.STANDBY_SYNCED);
+                        log.info("Updating state of site {} to STANDBY_SYNCED", standby.getUuid());
+                        coordinator.getCoordinatorClient().persistServiceConfiguration(standby.toConfiguration());
+                    }
+                }
             }
         }
     }
@@ -494,8 +514,11 @@ public abstract class VdcOpHandler {
         
         @Override
         public void execute() throws Exception {
+            //if site is in observer restart dbsvc
+            restartDbsvcOnResumedSite();
             // on all sites, reconfig to enable firewall/ipsec
             reconfigVdc();
+            changeSiteState(SiteState.STANDBY_RESUMING, SiteState.STANDBY_SYNCING);
         }
     }
 
@@ -630,13 +653,14 @@ public abstract class VdcOpHandler {
         private static final int TIME_WAIT_FOR_OLD_ACTIVE_SWITCHOVER_MS = 1000 * 5;
         private static final int MAX_WAIT_TIME_IN_MIN = 5;
         private boolean isRebootNeeded = true;
+        private boolean hasSingleNodeSite = false;
         
         public DrSwitchoverHandler() {
             isRebootNeeded = true;
         }
         
         @Override
-        public boolean isRebootNeeded() {
+        public boolean isConcurrentRebootNeeded() {
             return isRebootNeeded;
         }
         
@@ -644,10 +668,11 @@ public abstract class VdcOpHandler {
         public void execute() throws Exception {
             Site site = drUtil.getLocalSite();
             SiteInfo siteInfo = coordinator.getCoordinatorClient().getTargetInfo(SiteInfo.class);
+            hasSingleNodeSite = hasSingleNodeSite();
             
             // Update site state
             if (site.getUuid().equals(siteInfo.getSourceSiteUUID())) {
-                log.info("This is switchover active site (old acitve)");
+                log.info("This is switchover active site (old active)");
 
                 coordinator.stopCoordinatorSvcMonitor();
                 
@@ -656,9 +681,10 @@ public abstract class VdcOpHandler {
                 stopActiveSiteRelatedServices();
                 
                 updateSwitchoverSiteState(site, SiteState.STANDBY_SYNCED, Constants.SWITCHOVER_BARRIER_SET_STATE_TO_SYNCED, site.getNodeCount());
-                updateSwitchoverSiteState(drUtil.getSiteFromLocalVdc(siteInfo.getTargetSiteUUID()), SiteState.STANDBY_SWITCHING_OVER,
+                Site newActiveSite = drUtil.getSiteFromLocalVdc(siteInfo.getTargetSiteUUID());
+                drUtil.recordDrOperationStatus(newActiveSite.getUuid(), SiteState.STANDBY_SWITCHING_OVER);
+                updateSwitchoverSiteState(newActiveSite, SiteState.STANDBY_SWITCHING_OVER,
                         Constants.SWITCHOVER_BARRIER_SET_STATE_TO_STANDBY_SWITCHINGOVER, site.getNodeCount());
-                
                 waitForBarrierRemovedToRestart(site);
             } else if (site.getUuid().equals(siteInfo.getTargetSiteUUID())) {
                 log.info("This is switchover standby site (new active)");
@@ -674,8 +700,8 @@ public abstract class VdcOpHandler {
                 waitForOldActiveZKLeaderDown(oldActiveSite);
                 
                 flushVdcConfigToLocal();
-                proccessSingleNodeSiteCase();
                 refreshCoordinator();
+                proccessSingleNodeSiteCase();
                 
                 updateSwitchoverSiteState(site, SiteState.ACTIVE, Constants.SWITCHOVER_BARRIER_SET_STATE_TO_ACTIVE, site.getNodeCount());
             } else {
@@ -705,7 +731,7 @@ public abstract class VdcOpHandler {
         }
 
         private void proccessSingleNodeSiteCase() {
-            if (hasSingleNodeSite()) {
+            if (hasSingleNodeSite) {
                 log.info("Single node deployment detected. Need refresh firewall/ipsec");
                 refreshIPsec();
                 refreshFirewall();
@@ -741,7 +767,7 @@ public abstract class VdcOpHandler {
             }
             
             VdcPropertyBarrier barrier = new VdcPropertyBarrier(Constants.SWITCHOVER_BARRIER_STANDBY_RESTART_OLD_ACTIVE,
-                    SWITCHOVER_BARRIER_TIMEOUT, site.getNodeCount(), false);
+                    VDC_OP_BARRIER_TIMEOUT, site.getNodeCount(), false);
             barrier.enter();
             
             if (coordinator.isVirtualIPHolder()) {
@@ -784,7 +810,7 @@ public abstract class VdcOpHandler {
             
             coordinator.blockUntilZookeeperIsWritableConnected(SWITCHOVER_ZK_WRITALE_WAIT_INTERVAL);
             
-            VdcPropertyBarrier barrier = new VdcPropertyBarrier(barrierName, SWITCHOVER_BARRIER_TIMEOUT, memberQty, false);
+            VdcPropertyBarrier barrier = new VdcPropertyBarrier(barrierName, VDC_OP_BARRIER_TIMEOUT, memberQty, false);
             barrier.enter();
             try {
                 log.info("Set state from {} to {}", site.getState(), siteState);
@@ -833,14 +859,21 @@ public abstract class VdcOpHandler {
             Site site = drUtil.getLocalSite();
 
             if (isNewActiveSiteForFailover(site)) {
-                isRebootNeeded = true;
+                setConcurrentRebootNeeded(true);
                 coordinator.stopCoordinatorSvcMonitor();
                 reconfigVdc();
                 coordinator.blockUntilZookeeperIsWritableConnected(FAILOVER_ZK_WRITALE_WAIT_INTERVAL);
                 processFailover();
+                localRepository.rebaseZkSnapshot();
                 waitForAllNodesAndReboot(site);
             } else {
                 reconfigVdc();
+                // Flush vdc properties includes VDC_CONFIG_VERSION to disk here, since the next step restarts syssvc
+                PropertyInfoExt vdcProperty = new PropertyInfoExt(targetVdcPropInfo.getAllProperties());
+                vdcProperty.addProperty(VdcConfigUtil.VDC_CONFIG_VERSION, String.valueOf(targetSiteInfo.getVdcConfigVersion()));
+                localRepository.setVdcPropertyInfo(vdcProperty);
+
+                localRepository.restartCoordinator("observer");
             }
         }
         
@@ -872,17 +905,17 @@ public abstract class VdcOpHandler {
                 // double check site state
                 oldActiveSite = getOldActiveSiteForFailover();
                 if (oldActiveSite == null) {
-                    log.info("Old acitve site has been remove by other node, no action needed.");
+                    log.info("Old active site has been remove by other node, no action needed.");
                     return;
                 }
 
-                poweroffRemoteSite(oldActiveSite);    
+                tryPoweroffRemoteSite(oldActiveSite);    
                 removeDbNodesFromGossip(oldActiveSite);
                 removeDbNodesFromStrategyOptions(oldActiveSite);
                 postHandlerFactory.initializeAllHandlers();
-                drUtil.removeSiteConfiguration(oldActiveSite);
+                drUtil.removeSite(oldActiveSite);
             } catch (Exception e) {
-                log.error("Failed to remove old acitve site in failover, {}", e);
+                log.error("Failed to remove old active site in failover, {}", e);
                 throw e;
             } finally {
                 if (lock != null) {
@@ -904,7 +937,7 @@ public abstract class VdcOpHandler {
             coordinator.blockUntilZookeeperIsWritableConnected(FAILOVER_ZK_WRITALE_WAIT_INTERVAL);
             
             log.info("Wait for barrier to reboot cluster");
-            VdcPropertyBarrier barrier = new VdcPropertyBarrier(Constants.FAILOVER_BARRIER, FAILOVER_BARRIER_TIMEOUT, site.getNodeCount(), true);
+            VdcPropertyBarrier barrier = new VdcPropertyBarrier(Constants.FAILOVER_BARRIER, VDC_OP_BARRIER_TIMEOUT, site.getNodeCount(), true);
             barrier.enter();
             if (!barrier.leave()) {
                 throw new IllegalStateException("Not all nodes leave the barrier");
@@ -912,7 +945,7 @@ public abstract class VdcOpHandler {
             log.info("Reboot this node after failover");
         }
     }
-    
+
     /**
      * This handler will be triggered in active site when it detect there are other active sites exist.
      * Degraded itself to ACTIVE_DEGRADE and not provide any provisioning functions.
@@ -920,7 +953,7 @@ public abstract class VdcOpHandler {
      */
     public static class DrFailbackDegradeHandler extends VdcOpHandler {
         public DrFailbackDegradeHandler() {
-            setRebootNeeded(true);
+            setConcurrentRebootNeeded(true);
         }
         
         @Override
@@ -928,9 +961,21 @@ public abstract class VdcOpHandler {
             //no need to wait any barrier and some nodes may not be up
             reconfigVdc(false);
         }
-        
     }
-    
+
+    /**
+     * IP Change handler to update IPs info from ZK to vdcproperty
+     */
+    public static class IPChangeHandler extends VdcOpHandler {
+        public IPChangeHandler() {
+        }
+
+        @Override
+        public void execute() throws Exception {
+            syncFlushVdcConfigToLocal();
+        }
+    }
+
     public CoordinatorClientExt getCoordinator() {
         return coordinator;
     }
@@ -1009,7 +1054,7 @@ public abstract class VdcOpHandler {
      * Simulaneously flush vdc config on all nodes in current site. via barrier
      */
     protected void syncFlushVdcConfigToLocal() throws Exception {
-        VdcPropertyBarrier vdcBarrier = new VdcPropertyBarrier(targetSiteInfo, VDC_RPOP_BARRIER_TIMEOUT);
+        VdcPropertyBarrier vdcBarrier = new VdcPropertyBarrier(targetSiteInfo, VDC_OP_BARRIER_TIMEOUT);
         vdcBarrier.enter();
         try {
             flushVdcConfigToLocal();
@@ -1028,6 +1073,24 @@ public abstract class VdcOpHandler {
             if (!allLeft) {
                 log.info("wait 1 minute, so all nodes be able to return from leave()");
                 Thread.sleep(IPSEC_RESTART_DELAY);
+            }
+        }
+    }
+
+    protected void restartDbsvcOnResumedSite() throws Exception {
+        Site site = drUtil.getLocalSite();
+
+        //check both state and last state so we know this is a retry
+        if (site.getState().equals(SiteState.STANDBY_RESUMING)
+                && site.getLastState().equals(SiteState.STANDBY_RESUMING)) {
+            VdcPropertyBarrier barrier = new VdcPropertyBarrier(Constants.RESUME_BARRIER_RESTART_DBSVC,
+                    VDC_OP_BARRIER_TIMEOUT, site.getNodeCount(), false);
+            barrier.enter();
+            try {
+                localRepository.restart(Constants.GEODBSVC_NAME);
+                localRepository.restart(Constants.DBSVC_NAME);
+            } finally {
+                barrier.leave();
             }
         }
     }
@@ -1089,34 +1152,55 @@ public abstract class VdcOpHandler {
         log.info("Removed site {} configuration from db strategy options", site.getUuid());
     }
 
-    protected void poweroffRemoteSite(Site site) {
+    /**
+     * Just try, don't guarantee successfully done
+     */
+    protected void tryPoweroffRemoteSite(Site site) {
         String siteId = site.getUuid();
-        if (!drUtil.isSiteUp(siteId)) {
-            log.info("Site {} is down. no need to poweroff it", site.getUuid());
-            return;
-        }
         // all syssvc shares same port
-        String baseNodeURL = String.format(SysClientFactory.BASE_URL_FORMAT, site.getVip(), service.getEndpoint().getPort());
-        SysClientFactory.getSysClient(URI.create(baseNodeURL)).post(URI.create(URI_INTERNAL_POWEROFF), null, null);
-        log.info("Powering off site {}", siteId);
-        while(drUtil.isSiteUp(siteId)) {
-            log.info("Short sleep and will check site status later");
-            retrySleep();
+        String baseNodeURL = String.format(SysClientFactory.BASE_URL_FORMAT, site.getVipEndPoint(), service.getEndpoint().getPort());
+        try {
+            SysClientFactory.getSysClient(URI.create(baseNodeURL)).post(URI.create(URI_INTERNAL_POWEROFF), null, null);
+            log.info("Powering off site {}", siteId);
+            while(drUtil.isSiteUp(siteId)) {
+                log.info("Short sleep and will check site status later");
+                retrySleep();
+            }
+        } catch (Exception e) {
+            log.warn("Error happened when trying to poweroff remove site {}", siteId, e);
         }
     }
-    
+
     protected void retrySleep() {
         waiter.sleep(SWITCHOVER_ZK_WRITALE_WAIT_INTERVAL);
     }
     
     protected void populateStandbySiteErrorIfNecessary(Site site, InternalServerErrorException e) {
-        SiteError error = new SiteError(e);
-        
-        log.info("Set error state for site: {}", site.getUuid());
-        coordinator.getCoordinatorClient().setTargetInfo(site.getUuid(),  error);
 
+        SiteState operation = site.getState();
+        SiteError error = new SiteError(e,operation.name());
+
+        log.info("set site {} state to STANDBY_ERROR, set lastState to {}",site.getName(),site.getState());
+        coordinator.getCoordinatorClient().setTargetInfo(site.getUuid(),  error);
+        site.setLastState(site.getState());
         site.setState(SiteState.STANDBY_ERROR);
         coordinator.getCoordinatorClient().persistServiceConfiguration(site.toConfiguration());
+    }
+
+    protected void changeSiteState(SiteState from, SiteState to) {
+        List<Site> newSites = drUtil.listSitesInState(from);
+        for(Site newSite : newSites) {
+            log.info("Change standby site {} state from {} to {}", new Object[]{newSite.getSiteShortId(), from, to});
+            newSite.setLastState(from);
+            newSite.setState(to);
+            coordinator.getCoordinatorClient().persistServiceConfiguration(newSite.toConfiguration());
+        }
+    }
+    
+    protected boolean isGeoConfigChange() {
+        boolean isGeo =  targetVdcPropInfo.getProperty(VdcConfigUtil.VDC_IDS).contains(",")
+                    || localVdcPropInfo.getProperty(VdcConfigUtil.VDC_IDS).contains(",");
+        return isGeo && !StringUtils.equals(targetVdcPropInfo.getProperty(VdcConfigUtil.VDC_IDS), localVdcPropInfo.getProperty(VdcConfigUtil.VDC_IDS));
     }
     
     /**
@@ -1161,8 +1245,8 @@ public abstract class VdcOpHandler {
             } else {
                 log.warn("Only Part of nodes entered within {} seconds at path {}", timeout, barrierPath);
                 // we need clean our double barrier if not all nodes enter it, but not need to wait for all nodes to leave since error occurs
-                barrier.leave(); 
-                throw new Exception("Only Part of nodes entered within timeout");
+                barrier.leave(timeout, TimeUnit.SECONDS); 
+                throw new IllegalStateException("Only Part of nodes entered within timeout");
             }
         }
 

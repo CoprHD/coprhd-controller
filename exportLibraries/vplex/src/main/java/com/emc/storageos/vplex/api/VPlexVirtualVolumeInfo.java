@@ -305,7 +305,7 @@ public class VPlexVirtualVolumeInfo extends VPlexResourceInfo {
      * @param strVal The volume vpd-id.
      */
     public void setVpdId(String strVal) {
-        locality = strVal;
+        vpdId = strVal;
     }
     
     /**

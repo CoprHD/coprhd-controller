@@ -18,7 +18,7 @@ import com.emc.storageos.model.block.VolumeRestRep;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 
 /**
- * The ExtremeIO storage system implementation for the block full copy API.
+ * The XtremIO storage system implementation for the block full copy API.
  */
 public class XtremIOBlockFullCopyApiImpl extends DefaultBlockFullCopyApiImpl {
 
@@ -40,7 +40,7 @@ public class XtremIOBlockFullCopyApiImpl extends DefaultBlockFullCopyApiImpl {
      */
     @Override
     public List<BlockObject> getAllSourceObjectsForFullCopyRequest(BlockObject fcSourceObj) {
-        throw APIException.methodNotAllowed.notSupportedForExtremeIO();
+        throw APIException.methodNotAllowed.notSupportedForXtremIO();
     }
 
     /**
@@ -48,7 +48,7 @@ public class XtremIOBlockFullCopyApiImpl extends DefaultBlockFullCopyApiImpl {
      */
     @Override
     public void validateFullCopyCreateRequest(List<BlockObject> fcSourceObjList, int count) {
-        throw APIException.methodNotAllowed.notSupportedForExtremeIO();
+        throw APIException.methodNotAllowed.notSupportedForXtremIO();
     }
 
     /**
@@ -57,7 +57,7 @@ public class XtremIOBlockFullCopyApiImpl extends DefaultBlockFullCopyApiImpl {
     @Override
     public TaskList create(List<BlockObject> fcSourceObjList, VirtualArray varray,
             String name, boolean createInactive, int count, String taskId) {
-        throw APIException.methodNotAllowed.notSupportedForExtremeIO();
+        throw APIException.methodNotAllowed.notSupportedForXtremIO();
     }
 
     /**
@@ -65,7 +65,7 @@ public class XtremIOBlockFullCopyApiImpl extends DefaultBlockFullCopyApiImpl {
      */
     @Override
     public TaskList activate(BlockObject fcSourceObj, Volume fullCopyVolume) {
-        throw APIException.methodNotAllowed.notSupportedForExtremeIO();
+        throw APIException.methodNotAllowed.notSupportedForXtremIO();
     }
 
     /**
@@ -73,7 +73,7 @@ public class XtremIOBlockFullCopyApiImpl extends DefaultBlockFullCopyApiImpl {
      */
     @Override
     public TaskList detach(BlockObject fcSourceObj, Volume fullCopyVolume) {
-        throw APIException.methodNotAllowed.notSupportedForExtremeIO();
+        throw APIException.methodNotAllowed.notSupportedForXtremIO();
     }
 
     /**
@@ -81,7 +81,7 @@ public class XtremIOBlockFullCopyApiImpl extends DefaultBlockFullCopyApiImpl {
      */
     @Override
     public TaskList restoreSource(Volume sourceVolume, Volume fullCopyVolume) {
-        throw APIException.methodNotAllowed.notSupportedForExtremeIO();
+        throw APIException.methodNotAllowed.notSupportedForXtremIO();
     }
 
     /**
@@ -89,7 +89,7 @@ public class XtremIOBlockFullCopyApiImpl extends DefaultBlockFullCopyApiImpl {
      */
     @Override
     public TaskList resynchronizeCopy(Volume sourceVolume, Volume fullCopyVolume) {
-        throw APIException.methodNotAllowed.notSupportedForExtremeIO();
+        throw APIException.methodNotAllowed.notSupportedForXtremIO();
     }
 
     /**
@@ -97,6 +97,6 @@ public class XtremIOBlockFullCopyApiImpl extends DefaultBlockFullCopyApiImpl {
      */
     @Override
     public VolumeRestRep checkProgress(URI sourceURI, Volume fullCopyVolume) {
-        throw APIException.methodNotAllowed.notSupportedForExtremeIO();
+        throw APIException.methodNotAllowed.notSupportedForXtremIO();
     }
 }

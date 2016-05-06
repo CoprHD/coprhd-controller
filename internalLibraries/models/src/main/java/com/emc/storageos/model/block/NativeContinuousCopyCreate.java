@@ -32,7 +32,6 @@ public class NativeContinuousCopyCreate {
     /**
      * User provided name.
      * 
-     * @valid none
      */
     @XmlElement(required = true)
     public String getName() {
@@ -45,9 +44,8 @@ public class NativeContinuousCopyCreate {
 
     /**
      * User provided number of copies.
-     * 
-     * @valid none
-     */
+     *
+     */ 
     @XmlElement(required = false)
     public Integer getCount() {
         return count;

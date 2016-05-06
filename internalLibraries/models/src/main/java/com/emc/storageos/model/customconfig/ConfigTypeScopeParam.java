@@ -26,9 +26,9 @@ public class ConfigTypeScopeParam {
 
     /**
      * The scope type
-     * 
-     * @valid systemType
-     * @valid global
+     * Valid values:
+     *  systemType
+     *  global
      */
     @XmlElement(name = "type")
     public String getType() {
@@ -42,7 +42,6 @@ public class ConfigTypeScopeParam {
     /**
      * The scope value
      * 
-     * @valid none
      */
     @XmlElement(name = "value")
     public List<String> getValue() {

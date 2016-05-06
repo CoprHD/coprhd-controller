@@ -259,8 +259,8 @@ public class DbClientContext {
 
         // Check and reset default write consistency level
         final DrUtil drUtil = new DrUtil(hostSupplier.getCoordinatorClient());
-        if (drUtil.isActiveSite()) {
-            log.info("Schedule db consistency level monitor on DR acitve site");
+        if (drUtil.isActiveSite() && !drUtil.isMultivdc()) {
+            log.info("Schedule db consistency level monitor on DR active site");
             exe.scheduleWithFixedDelay(new Runnable() {
                 @Override
                 public void run() {

@@ -1,0 +1,31 @@
+#
+# Copyright (c) 2015-2016 EMC Corporation
+# All Rights Reserved
+#
+# This software contains the intellectual property of EMC Corporation
+# or is licensed to EMC Corporation from third parties.  Use of this
+# software and the intellectual property contained therein is expressly
+# limited to the terms and conditions of the License Agreement under which
+# it is provided by or on behalf of EMC.
+#
+
+DEVKIT_BUILD=9
+DEVKIT_IMAGE=coprhddevkit:2.5.0.0.$(DEVKIT_BUILD)
+DEVKIT_LOCAL=CoprHDDevKit.x86_64-2.5.0.0.$(DEVKIT_BUILD).tbz
+DEVKIT_ADDRS=https://build.coprhd.org/jenkins/userContent/DevKits/2.5.0.0.$(DEVKIT_BUILD)/$(DEVKIT_LOCAL)
+DOCKER_RUN=docker run --rm --privileged --net=host -w /workspace -v "$(CURDIR)/..:/workspace" -v "/disks:/disks" $(DEVKIT_IMAGE)
+PRODUCT_FOLDER=CoprHDDevKit
+.DEFAULT: appliance
+.PHONY: appliance
+
+appliance:
+	docker history "$(DEVKIT_IMAGE)" &> /dev/null || wget --continue "$(DEVKIT_ADDRS)"
+	[ ! -f "$(DEVKIT_LOCAL)" ] || cat "$(DEVKIT_LOCAL)" | docker import - $(DEVKIT_IMAGE)
+	[ ! -f "$(DEVKIT_LOCAL)" ] || rm "$(DEVKIT_LOCAL)"
+	$(DOCKER_RUN) make -f $(PRODUCT_FOLDER)/Makefile $@ $(MAKEFLAGS)
+
+%::
+	docker history "$(DEVKIT_IMAGE)" &> /dev/null || wget --continue "$(DEVKIT_ADDRS)"
+	[ ! -f "$(DEVKIT_LOCAL)" ] || cat "$(DEVKIT_LOCAL)" | docker import - $(DEVKIT_IMAGE)
+	[ ! -f "$(DEVKIT_LOCAL)" ] || rm "$(DEVKIT_LOCAL)"
+	$(DOCKER_RUN) make -f $(PRODUCT_FOLDER)/Makefile $@ $(MAKEFLAGS)

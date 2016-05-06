@@ -27,7 +27,6 @@ public class VirtualArrayResourceRestRep extends DiscoveredDataObjectRestRep {
      * The virtual arrays to which this resource has been explicitly
      * assigned by a user.
      * 
-     * @valid none
      */
     @XmlElement(name = "assigned_varrays")
     public Set<String> getAssignedVirtualArrays() {
@@ -48,7 +47,6 @@ public class VirtualArrayResourceRestRep extends DiscoveredDataObjectRestRep {
      * the storage pools on that storage port's storage system would also be
      * connected to the virtual array.
      * 
-     * @valid none
      */
     @XmlElement(name = "connected_varrays")
     public Set<String> getConnectedVirtualArrays() {
@@ -70,7 +68,6 @@ public class VirtualArrayResourceRestRep extends DiscoveredDataObjectRestRep {
      * assignments for the resource, all of the connected virtual arrays are the
      * tagged virtual arrays.
      * 
-     * @valid none
      */
     @XmlElement(name = "tagged_varrays")
     public Set<String> getTaggedVirtualArrays() {

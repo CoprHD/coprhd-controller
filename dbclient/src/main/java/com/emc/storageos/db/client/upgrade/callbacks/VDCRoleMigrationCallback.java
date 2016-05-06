@@ -15,6 +15,8 @@ import com.emc.storageos.db.client.model.VirtualDataCenter;
 import com.emc.storageos.db.client.upgrade.BaseCustomMigrationCallback;
 import com.emc.storageos.db.common.VdcUtil;
 import com.emc.storageos.db.exceptions.DatabaseException;
+import com.emc.storageos.svcs.errorhandling.resources.MigrationCallbackException;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.support.ClassPathXmlApplicationContext;
@@ -48,7 +50,7 @@ public class VDCRoleMigrationCallback extends BaseCustomMigrationCallback {
     }
 
     @Override
-    public void process() {
+    public void process() throws MigrationCallbackException {
 
         _log.info("VDC Role Migration Started ...");
 
@@ -171,7 +173,7 @@ public class VDCRoleMigrationCallback extends BaseCustomMigrationCallback {
     }
 
     // for test only
-    public static void main(String[] args) {
+    public static void main(String[] args) throws Exception {
 
         VDCRoleMigrationCallback cb = new VDCRoleMigrationCallback();
 

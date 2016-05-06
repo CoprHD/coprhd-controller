@@ -1,0 +1,34 @@
+#{if 'SOURCE'.equalsIgnoreCase(personality)}
+  <table class='table table-condensed table-striped'>
+  <thead>
+    <tr>
+      <th>&{'resources.filesystem.mirroring.fileSystem'}</th>
+      <th style="text-align:right;">&{'resources.filesystem.mirroring.status'}</th>
+    </tr>
+  </thead>
+  <tbody>  
+    #{list items:fileMirrors, as:'fileShare'}
+      <tr>
+        <td>
+		${fileShare.name}
+        </td>
+        <td style="text-align:right;">
+        ${fileShare.protection.mirrorStatus}
+        </td>
+      </tr>
+    #{/list}
+    <tr>
+    <td></td>
+      <td style="text-align:right;">
+        <a class="btn btn-xs btn-success" href="@{mirrorOperationFileSystem(params.fileSystemId,'start')}">&{'button.mirroring.start'}</a>
+        <a class="btn btn-danger btn-xs" href="@{mirrorOperationFileSystem(params.fileSystemId,'stop')}">&{'button.mirroring.stop'}</a>
+        <a class="btn btn-info btn-xs" href="@{mirrorOperationFileSystem(params.fileSystemId,'pause')}">&{'button.mirroring.pause'}</a>
+        <a class="btn btn-info btn-xs" href="@{mirrorOperationFileSystem(params.fileSystemId,'resume')}">&{'button.mirroring.resume'}</a>
+      </td>
+    </tr>
+  </tbody>
+  </table>
+#{/if}
+#{else}
+  &{'resources.filesystem.mirroring.none'}
+#{/else}

@@ -17,6 +17,7 @@ import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.VirtualNAS;
 import com.emc.storageos.db.client.upgrade.BaseCustomMigrationCallback;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
+import com.emc.storageos.svcs.errorhandling.resources.MigrationCallbackException;
 
 public class VirtualNASMultipleProjectsAssociationMigration extends
         BaseCustomMigrationCallback {
@@ -25,7 +26,7 @@ public class VirtualNASMultipleProjectsAssociationMigration extends
             .getLogger(VirtualNASMultipleProjectsAssociationMigration.class);
 
     @Override
-    public void process() {
+    public void process() throws MigrationCallbackException {
 
         logger.info("Migration started.");
 

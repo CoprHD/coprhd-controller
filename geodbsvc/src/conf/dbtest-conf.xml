@@ -18,6 +18,7 @@
         <property name="bypassMigrationLock" value="true"/>
         <property name="geoContext" ref="geodbclientcontext"/>
         <property name="localContext" ref="plainDbContext"/>
+        <property name="drUtil" ref="drUtil"/>
     </bean>
     
     <bean id="dbsvc" class="com.emc.storageos.db.server.impl.DbServiceImpl">

@@ -17,7 +17,6 @@ public class TaskList {
     /**
      * A list of tasks, including the details of each task.
      * 
-     * @valid none
      */
     private List<TaskResourceRep> taskList;
 

@@ -33,6 +33,7 @@ import com.emc.storageos.api.service.impl.resource.TaskResourceService;
 import com.emc.storageos.api.service.impl.resource.utils.CinderApiUtils;
 import com.emc.storageos.api.service.impl.response.ProjOwnedResRepFilter;
 import com.emc.storageos.api.service.impl.response.ResRepFilter;
+import com.emc.storageos.cinder.CinderConstants;
 import com.emc.storageos.cinder.model.CinderAvailZonesResp;
 import com.emc.storageos.cinder.model.CinderAvailabiltyZone;
 import com.emc.storageos.cinder.model.CinderExtension;
@@ -85,6 +86,10 @@ public class MiscService extends TaskResourceService {
         return CinderHelpers.getInstance(_dbClient, _permissionsHelper);
     }
 
+    private QuotaHelper getQuotaHelper() {
+        return QuotaHelper.getInstance(_dbClient, _permissionsHelper);
+    }
+    
     /**
      * Get Limits
      * 
@@ -104,8 +109,11 @@ public class MiscService extends TaskResourceService {
         if (project == null) {
             throw APIException.badRequests.projectWithTagNonexistent(openstack_tenant_id);
         }
+        
+        HashMap<String, String> defaultQuotaMap = getQuotaHelper().loadDefaultsMapFromDb();
+        
         int totalSizeUsed = 0;
-        int maxQuota = (int) QuotaService.DEFAULT_PROJECT_TOTALGB_QUOTA;
+        int maxQuota = Long.valueOf(defaultQuotaMap.get(CinderConstants.ResourceQuotaDefaults.GIGABYTES.getResource())).intValue();
         int maxTotalVolumes = 0;
         int maxTotalSnapshots = 0;
         int totalVolumesUsed = 0;
@@ -116,13 +124,13 @@ public class MiscService extends TaskResourceService {
         }
 
         UsageStats objUsageStats = new UsageStats();
-        objUsageStats = getCinderHelper().getStorageStats(null, project.getId());
+        objUsageStats = getQuotaHelper().getStorageStats(null, project.getId());
 
         totalVolumesUsed = (int) objUsageStats.volumes;
         totalSnapshotsUsed = (int) objUsageStats.snapshots;
         totalSizeUsed = (int) objUsageStats.spaceUsed;
 
-        QuotaOfCinder projQuota = getCinderHelper().getProjectQuota(openstack_tenant_id, getUserFromContext());
+        QuotaOfCinder projQuota = getQuotaHelper().getProjectQuota(openstack_tenant_id, getUserFromContext());
         if (projQuota != null) {
             maxTotalVolumes = projQuota.getVolumesLimit().intValue();
             maxTotalSnapshots = (int) projQuota.getSnapshotsLimit().intValue();
@@ -131,12 +139,12 @@ public class MiscService extends TaskResourceService {
             QuotaOfCinder quotaObj = new QuotaOfCinder();
             quotaObj.setId(URI.create(UUID.randomUUID().toString()));
             quotaObj.setProject(project.getId());
-            quotaObj.setVolumesLimit(QuotaService.DEFAULT_PROJECT_VOLUMES_QUOTA);
-            quotaObj.setSnapshotsLimit(QuotaService.DEFAULT_PROJECT_SNAPSHOTS_QUOTA);
+            quotaObj.setVolumesLimit(Long.valueOf(defaultQuotaMap.get(CinderConstants.ResourceQuotaDefaults.VOLUMES.getResource())));
+            quotaObj.setSnapshotsLimit(Long.valueOf(defaultQuotaMap.get(CinderConstants.ResourceQuotaDefaults.SNAPSHOTS.getResource())));
             quotaObj.setTotalQuota((long) maxQuota);
             _dbClient.createObject(quotaObj);
-            maxTotalSnapshots = (int) QuotaService.DEFAULT_PROJECT_SNAPSHOTS_QUOTA;
-            maxTotalVolumes = (int) QuotaService.DEFAULT_PROJECT_VOLUMES_QUOTA;
+            maxTotalSnapshots = quotaObj.getSnapshotsLimit().intValue();
+            maxTotalVolumes = quotaObj.getVolumesLimit().intValue();
         }
 
         Map<String, Integer> absoluteDetailsMap = new HashMap<String, Integer>();
@@ -215,16 +223,60 @@ public class MiscService extends TaskResourceService {
     public Response getOsServices(@PathParam("tenant_id") String openstack_tenant_id, @Context HttpHeaders header) {
         _log.info("START getOsServices");
 
+        boolean serviceDown = false;
+        
         CinderOsServicesRestResp osServicesResp = new CinderOsServicesRestResp();
         CinderOsService volumeService = new CinderOsService();
+        CinderOsService schedulerService = new CinderOsService();
         Date curDate = new Date();
         SimpleDateFormat  format = new SimpleDateFormat("dd-M-yyyy hh:mm:ss:SSS");
         
-        String localNodeId = _coordinator.getInetAddessLookupMap().getNodeId();       
-        
         volumeService.setBinary("coprHD-volume");
-        volumeService.setHost(localNodeId);
-        volumeService.setZone("nova");   
+        volumeService.setZone("nova"); 
+        schedulerService.setBinary("coprHD-scheduler");
+        schedulerService.setZone("nova");        
+        
+        if (_coordinator == null || !_coordinator.isConnected())
+        {
+            _log.info("Coordinator service  is Down");
+            serviceDown = true;
+        } else 
+        {
+        	if((_coordinator.locateAllSvcsAllVers("geosvc").isEmpty()) || 
+        	  (_coordinator.locateAllSvcsAllVers("geodbsvc").isEmpty()) ||
+        	  (_coordinator.locateAllSvcsAllVers("dbsvc").isEmpty()) ||
+        	  (_coordinator.locateAllSvcsAllVers("authsvc").isEmpty()) ||
+        	  (_coordinator.locateAllSvcsAllVers("syssvc").isEmpty()) ||
+        	  (_coordinator.locateAllSvcsAllVers("controllersvc").isEmpty()))       	  
+        	{
+                _log.info("Services like geosvc/geodbsvc/dbsvc/authsvc/syssvc/controllersvc may be Down");
+                serviceDown = true;	
+        	}  
+        }
+        
+        if (serviceDown)
+        {
+            volumeService.setHost(""); 
+           	volumeService.setState("down");
+        	volumeService.setStatus("disabled");
+        	volumeService.setDisabledReason("Required coprHD service or services may be down");
+            curDate = new Date();
+            volumeService.setUpdatedAt(format.format(curDate));
+            osServicesResp.getServices().add(volumeService);
+            
+           	schedulerService.setState("down");
+        	schedulerService.setStatus("disabled");
+            schedulerService.setDisabledReason("Required coprHD service or services may be down");             
+            schedulerService.setHost(""); 
+            curDate = new Date();
+            schedulerService.setUpdatedAt(format.format(curDate));
+            osServicesResp.getServices().add(schedulerService);
+        	
+            return CinderApiUtils.getCinderResponse(osServicesResp, header, false);     	
+        }
+        
+        String localNodeId = _coordinator.getInetAddessLookupMap().getNodeId();       
+        volumeService.setHost(localNodeId); 
         //If Apisvc is running and any storage system is registered then coprHD-volume is up
         List<URI> ids = _dbClient.queryByType(StorageSystem.class, true);
         Iterator<StorageSystem> iter = _dbClient.queryIterativeObjects(StorageSystem.class, ids);
@@ -243,24 +295,12 @@ public class MiscService extends TaskResourceService {
         curDate = new Date();
         volumeService.setUpdatedAt(format.format(curDate));
         osServicesResp.getServices().add(volumeService);
-              
-        List<Service> schedulerSvcs = _coordinator.locateAllSvcsAllVers("controllersvc");
-        CinderOsService schedulerService = new CinderOsService();
-        schedulerService.setBinary("coprHD-scheduler");
-        schedulerService.setHost(localNodeId);
-        schedulerService.setZone("nova");
-        
-        if (schedulerSvcs.isEmpty())
-        {          
-        	schedulerService.setState("down");
-        	schedulerService.setStatus("disabled");
-            schedulerService.setDisabledReason("controller service is not available");              	
-        }else	
-        {        	
-        	schedulerService.setState("up");
-        	schedulerService.setStatus("enabled");
-        	schedulerService.setDisabledReason(null);      
-        }  
+
+        schedulerService.setHost(localNodeId);        
+        schedulerService.setState("up");
+        schedulerService.setStatus("enabled");
+        schedulerService.setDisabledReason(null);      
+  
         curDate = new Date();
         schedulerService.setUpdatedAt(format.format(curDate));
         osServicesResp.getServices().add(schedulerService);

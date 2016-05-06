@@ -1,0 +1,53 @@
+{
+  baseKey:"LinkSnapshotOfApplication.Application",
+  serviceId:"LinkSnapshotOfApplication",
+  fields:{
+  
+    application:{
+      type:"assetType.vipr.application"
+    },
+    
+    applicationCopySets:{
+      type:"assetType.vipr.applicationSnapshotSessionCopySets"
+    },
+    
+    applicationSubGroup:{
+      type:"assetType.vipr.replicationGroup",
+      select:"many"
+    },
+    
+    linkedSnapshot:{
+      type:"assetType.vipr.linkedSnapshotsForApplicationSnapshotSessionLinkService",
+      select: "many",
+      required: "false"
+    },
+    
+    advanced:{
+      type:"group",
+      lockable: true,
+      collapsed:true,
+      items:{
+        linkedSnapshotName:{
+          type:"text",
+          required: "false",
+          validation:{
+            min:2,
+            max:128
+          }
+        },
+        linkedSnapshotCount:{
+          type:"number",
+          required: "false",
+          initialValue: "1",
+          validation:{
+              min:1
+          }
+        },
+        linkedSnapshotCopyMode:{
+          type:"assetType.vipr.linkedSnapshotCopyMode",
+          required: "false"
+        }
+      }
+    }
+  }
+}

@@ -79,6 +79,8 @@ public abstract class ConstraintImpl implements Constraint {
         return constraintDescriptor;
     }
 
+    public abstract boolean isValid();
+    
     public void setStartId(URI startId) {
         if (startId != null) {
             this.startId = startId.toString();

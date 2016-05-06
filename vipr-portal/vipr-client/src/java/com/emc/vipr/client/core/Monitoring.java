@@ -29,8 +29,7 @@ public class Monitoring {
      * @param date
      *            the date to format as an hour time bucket.
      * @return the stream containing the events as XML.
-     * 
-     * @see #getEventsForTimeBucketAsStream(String)
+     * @see #getEventsForTimeBucketAsStream(Date)
      * @see TimeBucketUtils#forHour(Date)
      */
     public InputStream getEventsForHourAsStream(Date date) {
@@ -46,8 +45,7 @@ public class Monitoring {
      * @param date
      *            the date to format as an hour time bucket.
      * @return the stream containing the events as XML.
-     * 
-     * @see #getEventsForTimeBucketAsStream(String)
+     * @see #getEventsForTimeBucketAsStream(Date)
      * @see TimeBucketUtils#forHour(Date)
      */
     public InputStream getEventsForMinuteAsStream(Date date) {
@@ -58,11 +56,11 @@ public class Monitoring {
 
     /**
      * Gets the event for the given time bucket, as a stream. A time bucket can be either an hour or a minute of any
-     * day, in the form of <tt>yyyy-MM-dd'T'HH</tt> for hour or <tt>yy-MM-dd'T'HH:mm for minute.
+     * day, in the form of <tt>yyyy-MM-dd'T'HH</tt> for hour or <tt>yy-MM-dd'T'HH:mm for minute.</tt>
      * <p>
      * API Call: <tt>GET /monitoring/events?time_bucket={timeBucket}</tt>
      * 
-     * @param timeBucket
+     * @param date
      *            the time bucket for which to retrieve the events.
      * @return the stream containing the events as XML. This must be closed by the client in order to release the
      *         connection.

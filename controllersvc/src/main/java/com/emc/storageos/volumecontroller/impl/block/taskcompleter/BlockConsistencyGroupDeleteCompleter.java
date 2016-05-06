@@ -4,15 +4,16 @@
  */
 package com.emc.storageos.volumecontroller.impl.block.taskcompleter;
 
+import java.net.URI;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 import com.emc.storageos.volumecontroller.impl.monitoring.RecordableEventManager;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.net.URI;
 
 public class BlockConsistencyGroupDeleteCompleter extends BlockConsistencyGroupTaskCompleter {
     private static final Logger _log = LoggerFactory.getLogger(BlockConsistencyGroupDeleteCompleter.class);
@@ -27,19 +28,21 @@ public class BlockConsistencyGroupDeleteCompleter extends BlockConsistencyGroupT
     protected void complete(DbClient dbClient, Operation.Status status, ServiceCoded coded) {
         try {
             super.complete(dbClient, status, coded);
-            BlockConsistencyGroup consistencyGroup = dbClient.queryObject(BlockConsistencyGroup.class, getConsistencyGroupURI());
-
-            switch (status) {
-                case error:
-                    dbClient.error(BlockConsistencyGroup.class, consistencyGroup.getId(), getOpId(),
-                            coded);
-                    break;
-                default:
-                    dbClient.ready(BlockConsistencyGroup.class, consistencyGroup.getId(), getOpId());
+            if (getConsistencyGroupURI() != null) {
+                BlockConsistencyGroup consistencyGroup = dbClient.queryObject(BlockConsistencyGroup.class, getConsistencyGroupURI());
+    
+                switch (status) {
+                    case error:
+                        dbClient.error(BlockConsistencyGroup.class, consistencyGroup.getId(), getOpId(),
+                                coded);
+                        break;
+                    default:
+                        dbClient.ready(BlockConsistencyGroup.class, consistencyGroup.getId(), getOpId());
+                }
+    
+                recordBourneBlockConsistencyGroupEvent(dbClient, consistencyGroup.getId(), eventType(status),
+                        status, eventMessage(status, consistencyGroup));
             }
-
-            recordBourneBlockConsistencyGroupEvent(dbClient, consistencyGroup.getId(), eventType(status),
-                    status, eventMessage(status, consistencyGroup));
         } catch (Exception e) {
             _log.error("Failed updating status. BlockConsistencyGroupDelete {}, for task " + getOpId(), getId(), e);
         }

@@ -8,18 +8,25 @@ import com.emc.storageos.coordinator.client.model.Site;
 import com.emc.storageos.coordinator.client.model.SiteInfo;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.coordinator.client.service.DrUtil;
+import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.db.client.model.VirtualDataCenter;
 import com.emc.storageos.db.client.util.VdcConfigUtil;
+import com.emc.storageos.db.common.VdcUtil;
 import com.emc.storageos.model.ipsec.IPsecStatus;
 import com.emc.storageos.model.ipsec.IpsecParam;
 import com.emc.storageos.security.geo.GeoClientCacheManager;
+import com.emc.storageos.security.helpers.SecurityUtil;
 import com.emc.storageos.security.ipsec.IPsecConfig;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.systemservices.impl.upgrade.LocalRepository;
 import com.emc.storageos.security.exceptions.SecurityException;
+import org.apache.commons.lang.RandomStringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.util.CollectionUtils;
+
+import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -29,9 +36,13 @@ import java.util.List;
  */
 public class IPsecManager {
 
+    private static final int KEY_LENGTH = 64;
+    private static final char[] charsForKey =
+            "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz".toCharArray();
+
     private static final Logger log = LoggerFactory.getLogger(IPsecManager.class);
-    private static final String STATUS_ENABLED = "enabled";
-    private static final String STATUS_DISABLED = "disabled";
+    public static final String STATUS_ENABLED = "enabled";
+    public static final String STATUS_DISABLED = "disabled";
     private static final String STATUS_GOOD = "good";
     private static final String STATUS_DEGRADED = "degraded";
 
@@ -44,7 +55,19 @@ public class IPsecManager {
     private DrUtil drUtil;
 
     @Autowired
+    DbClient dbClient;
+
+    @Autowired
     private GeoClientCacheManager geoClientManager;
+
+    /**
+     * generate a 64-byte key for IPsec
+     * @return
+     */
+    public String generateKey() throws Exception {
+        return RandomStringUtils.random(KEY_LENGTH, 0, charsForKey.length-1,
+                true, true, charsForKey, SecureRandom.getInstance(SecurityUtil.getSecuredRandomAlgorithm()));
+    }
 
     /**
      * Checking ipsec status against the entire system.
@@ -78,28 +101,44 @@ public class IPsecManager {
      * Rotate IPsec preshared key for the entired system.
      * @return
      */
-    public String rotateKey() {
-        String psk = ipsecConfig.generateKey();
-
+    public String rotateKey(boolean enableIpsec) {
         try {
+            String psk = generateKey();
+
             long vdcConfigVersion = DrUtil.newVdcConfigVersion();
 
+            String ipsecStatus = null;
+            if (enableIpsec) {
+                ipsecStatus = STATUS_ENABLED;
+            }
+
             // send to other VDCs if has.
-            updateIPsecKeyToOtherVDCs(psk, vdcConfigVersion);
+            updateIPsecKeyToOtherVDCs(psk, vdcConfigVersion, ipsecStatus);
 
             // finally update local vdc
+            if (enableIpsec) {
+                ipsecConfig.setIpsecStatus(ipsecStatus);
+            }
             ipsecConfig.setPreSharedKey(psk);
             updateTargetSiteInfo(vdcConfigVersion);
 
             log.info("IPsec Key gets rotated successfully to the version {}", vdcConfigVersion);
             return Long.toString(vdcConfigVersion);
         } catch (Exception e) {
-            log.warn("Fail to rotate ipsec key due to: {}", e);
+            log.warn("Fail to rotate ipsec key.", e);
             throw SecurityException.fatals.failToRotateIPsecKey(e);
         }
     }
 
-    private void updateIPsecKeyToOtherVDCs(String psk, long vdcConfigVersion) {
+    /**
+     * Rotate preshared key for the entired system.
+     * @return
+     */
+    public String rotateKey() {
+        return rotateKey(false);
+    }
+
+    private void updateIPsecKeyToOtherVDCs(String psk, long vdcConfigVersion, String ipsecStatus) {
 
         if (! drUtil.isMultivdc()) {
             log.info("This is not Geo deployment. No need to update ipsec key to other VDCs");
@@ -108,17 +147,18 @@ public class IPsecManager {
 
         List<String> vdcIds = drUtil.getOtherVdcIds();
         for (String peerVdcId : vdcIds) {
-            IpsecParam ipsecParam = buildIpsecParam(vdcConfigVersion, psk);
+            IpsecParam ipsecParam = buildIpsecParam(vdcConfigVersion, psk, ipsecStatus);
             geoClientManager.getGeoClient(peerVdcId).rotateIpsecKey(peerVdcId, ipsecParam);
         }
 
-        log.info("");
+        log.info("Updated all the VDCs latest ipsec properties");
     }
 
-    private IpsecParam buildIpsecParam(long vdcConfigVersion, String ipsecKey) {
+    private IpsecParam buildIpsecParam(long vdcConfigVersion, String ipsecKey, String ipsecStatus) {
         IpsecParam param = new IpsecParam();
         param.setIpsecKey(ipsecKey);
         param.setVdcConfigVersion(vdcConfigVersion);
+        param.setIpsecStatus(ipsecStatus);
         return param;
     }
 
@@ -129,13 +169,29 @@ public class IPsecManager {
      * @return
      */
     public String changeIpsecStatus(String status) {
+        return changeIpsecStatus(status, true);
+    }
+
+    public String changeIpsecStatus(String status, boolean bChangeStatusForOtherVdcs) {
         if (status != null && (status.equalsIgnoreCase(STATUS_ENABLED) || status.equalsIgnoreCase(STATUS_DISABLED))) {
             String oldState = ipsecConfig.getIpsecStatus();
             if (status.equalsIgnoreCase(oldState)) {
                 log.info("ipsec already in state: " + oldState + ", skip the operation.");
                 return oldState;
             }
-            log.info("change Ipsec State from " + oldState + " to " + status);
+            log.info("changing Ipsec State from " + oldState + " to " + status);
+
+            // in GEO env, sending request to other vdcs
+            if (bChangeStatusForOtherVdcs && drUtil.isMultivdc()) {
+                List<String> vdcIds = drUtil.getOtherVdcIds();
+                String vdcConfigVersion = loadVdcConfigVersionFromZK();
+                for (String peerVdcId : vdcIds) {
+                    log.info("changing ipsec status for: " + vdcIds);
+                    geoClientManager.getGeoClient(peerVdcId).changeIpsecStatus(peerVdcId,
+                            status, vdcConfigVersion);
+                }
+            }
+
             ipsecConfig.setIpsecStatus(status);
         } else {
             throw APIException.badRequests.invalidIpsecStatus();
@@ -189,12 +245,33 @@ public class IPsecManager {
      * make sure cluster is in stable status
      */
     public void verifyClusterIsStable() {
-        if (drUtil.isAllSitesStable()) {
+
+        // in GEO env, check if other vdcs are stable
+        if (drUtil.isMultivdc()) {
+            List<String> vdcIds = drUtil.getOtherVdcIds();
+            for (String peerVdcId : vdcIds) {
+                if (!geoClientManager.getGeoClient(peerVdcId).isVdcStable()) {
+                    log.error(vdcIds + " is not stable");
+                    throw APIException.serviceUnavailable.clusterStateNotStable();
+                }
+            }
+        }
+
+        // check if local vdc is stable
+        if (drUtil.isAllSitesStable() && !hasOngoingVdcOp()) {
             // cluster is stable for ipsec change
             return;
         } else {
             throw APIException.serviceUnavailable.clusterStateNotStable();
         }
+    }
+
+    private boolean hasOngoingVdcOp() {
+        VdcUtil.setDbClient(dbClient);
+        VirtualDataCenter localVdc = VdcUtil.getLocalVdc();
+        VirtualDataCenter.ConnectionStatus vdcStatus = localVdc.getConnectionStatus();
+        return ! (vdcStatus.equals(VirtualDataCenter.ConnectionStatus.CONNECTED) ||
+                vdcStatus.equals(VirtualDataCenter.ConnectionStatus.ISOLATED));
     }
 
     /**
@@ -211,5 +288,14 @@ public class IPsecManager {
      */
     public void setCoordinator(CoordinatorClient coordinator) {
         this.coordinator = coordinator;
+    }
+
+    /**
+     * Check if ipsec is enabled.
+     * @return
+     */
+    public boolean isEnabled() {
+        return ipsecConfig.getIpsecStatus() == null ||
+                ipsecConfig.getIpsecStatus().equals(STATUS_ENABLED);
     }
 }

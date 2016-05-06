@@ -154,12 +154,12 @@ ext {
 
     ]
     curator_client = [
-        "org.apache.curator:curator-client:2.9.1",
-        "org.apache.curator:curator-framework:2.9.1",
-        "org.apache.curator:curator-recipes:2.9.1",
-        "org.apache.curator:curator-test:2.9.1",
-        "org.apache.curator:curator-x-discovery:2.9.1",
-        "org.apache.curator:curator-x-discovery-server:2.9.1",
+        "org.apache.curator:curator-client:2.10.0",
+        "org.apache.curator:curator-framework:2.10.0",
+        "org.apache.curator:curator-recipes:2.10.0",
+        "org.apache.curator:curator-test:2.10.0",
+        "org.apache.curator:curator-x-discovery:2.10.0",
+        "org.apache.curator:curator-x-discovery-server:2.10.0",
     ]
     google_gson = [
         "com.google.code.gson:gson:2.1",
@@ -290,14 +290,18 @@ ext {
         "net.sf.apt-jelly:apt-jelly-core:2.15",
         "net.sf.apt-jelly:apt-jelly-freemarker:2.15",
         "commons-digester:commons-digester:2.1",
-        "org.codehaus.enunciate:enunciate-core:1.25",
-        "org.codehaus.enunciate:enunciate-core-annotations:1.25",
-        "org.codehaus.enunciate:enunciate-core-rt:1.25",
-        "org.codehaus.enunciate:enunciate-docs:1.25",
-        "org.codehaus.enunciate:enunciate-xml:1.25",
-        "org.freemarker:freemarker:2.3.14",
+		"commons-configuration:commons-configuration:1.9",
+        "com.webcohesion.enunciate:enunciate-core:2.1.1",
+        "com.webcohesion.enunciate:enunciate-core-annotations:2.1.1",
+        "com.webcohesion.enunciate:enunciate-rt-util:2.1.1",
+        "com.webcohesion.enunciate:enunciate-docs:2.1.1",
+        "com.webcohesion.enunciate:enunciate-java-json-client:2.1.1",
+		"com.webcohesion.enunciate:enunciate-java-xml-client:2.1.1",
+        "org.freemarker:freemarker:2.3.22",
         "org.jdom:jdom:1.1.2",
-
+		"org.reflections:reflections:0.9.10",
+		"org.jgrapht:jgrapht-core:0.9.1",
+		"com.netflix.rxjava:rxjava-core:0.19.0",
     ]
     protobuf = [
         "com.google.protobuf:protobuf-java:2.5.0",

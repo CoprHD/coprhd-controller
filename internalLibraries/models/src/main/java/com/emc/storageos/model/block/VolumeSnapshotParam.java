@@ -18,6 +18,10 @@ public class VolumeSnapshotParam {
     private Boolean readOnly;
     private String type;
 
+    // flag to specify if the copy needs to be taken on HA side of VPLEX Distributed volumes
+    // By default, create copy on source back end side
+    private Boolean copyOnHighAvailabilitySide = Boolean.FALSE;
+
     public VolumeSnapshotParam() {
     }
 
@@ -30,7 +34,6 @@ public class VolumeSnapshotParam {
     /**
      * Snapshot name.
      * 
-     * @valid none
      */
     @XmlElement
     public String getName() {
@@ -53,8 +56,6 @@ public class VolumeSnapshotParam {
      * That is, the operation will create and activate
      * the synchronization for the snapshot.
      * 
-     * @valid true
-     * @valid false
      */
     @XmlElement(name = "create_inactive", required = false, defaultValue = "false")
     public Boolean getCreateInactive() {
@@ -69,7 +70,6 @@ public class VolumeSnapshotParam {
      * Type of replication. Unspecified implies an
      * array-based snapshot.
      * 
-     * @valid none
      */
     @XmlElement(name = "type")
     public String getType() {
@@ -83,8 +83,6 @@ public class VolumeSnapshotParam {
     /**
      * If read_only is set to true, then the snapshot will be created
      * as read only, i.e., it will not be possible to write into the snapshot
-     * @valid true
-     * @valid false
      */
     @XmlElement(name = "read_only", required = false, defaultValue = "false")
 	public Boolean getReadOnly() {
@@ -94,5 +92,17 @@ public class VolumeSnapshotParam {
 	public void setReadOnly(Boolean readOnly) {
 		this.readOnly = readOnly;
 	}
-    
+
+    /**
+     * Flag to specify if the copy needs to be taken on HA side of VPLEX Distributed volumes.
+     * By default, it is considered as false which means copy is requested on source backend side.
+     */
+    @XmlElement(name = "copy_on_high_availability_side", defaultValue = "false")
+    public Boolean getCopyOnHighAvailabilitySide() {
+        return copyOnHighAvailabilitySide;
+    }
+
+    public void setCopyOnHighAvailabilitySide(Boolean copyOnHighAvailabilitySide) {
+        this.copyOnHighAvailabilitySide = copyOnHighAvailabilitySide;
+    }
 }

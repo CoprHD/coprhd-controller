@@ -113,13 +113,13 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
 	    // For each 3par system
 	    for (StorageSystem storageSystem : storageSystems) {
 	        try {
-	            _log.info("StorageDriver: discoverStorageSystem information for storage system {}, name {} - start",
+	            _log.info("3PAR DiscoverStorageSystem information for storage system {}, name {} - start",
 	                    storageSystem.getIpAddress(), storageSystem.getSystemName());            
 
 	            URI deviceURI = new URI("https", null, 
 	                    storageSystem.getIpAddress(), storageSystem.getPortNumber(), "/", null, null);
 
-	            ConnectionInfo connectionInfo = connectionMap.get(deviceURI +
+	            ConnectionInfo connectionInfo = connectionMap.get(deviceURI.toString() +
 	                    ":" + storageSystem.getUsername() + ":" + storageSystem.getPassword());
 	            
 	            if (connectionInfo == null) {
@@ -135,15 +135,16 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
 	            }
 
 	            HP3PARApi hp3parApi = getHP3PARDevice(storageSystem);
-	            String authToken = hp3parApi.getAuthToken();
-	            _log.info("3PAR auth key {} ",authToken);
+	            String authToken = hp3parApi.getAuthToken(storageSystem.getUsername(),storageSystem.getPassword());
+	            _log.info("3PAR auth key {} ", authToken);
 
 	            ////
 	            ///get serial number and other details
 	            ////
 	            storageSystem.setNativeId(deviceURI.toString() + 
 	                    ":" + storageSystem.getUsername() + ":" + storageSystem.getPassword());
-	            _log.info("3PAR discovery successsful---");    
+	               _log.info("Successfull discovery of 3PAR storage system {}, name {} - end",
+	                        storageSystem.getIpAddress(), storageSystem.getSystemName());    
 	        } catch (Exception e) {
 	            _log.error("Unable to discover the storage system information {}.\n",
 	                    storageSystem.getSystemName());

@@ -123,23 +123,6 @@ public class HP3PARApiFactory {
         _connectionManager.shutdown();
     }
     
-//    /**
-//     * Create HP3PAR API client
-//     * 
-//     * @param endpoint HP3PAR endpoint
-//     * @return
-//     */
-//    public HP3PARApi getRESTClient(URI endpoint) {
-//        HP3PARApi hp3parApi = _clientMap.get(endpoint.toString() + ":" + ":");
-//        if (hp3parApi == null) {
-//            Client jerseyClient = new ApacheHttpClient(_clientHandler);
-//            RESTClient restClient = new RESTClient(jerseyClient);
-//            hp3parApi = new HP3PARApi(endpoint, restClient);
-//            _clientMap.putIfAbsent(endpoint.toString() + ":" + ":", hp3parApi);
-//        }
-//        return hp3parApi;
-//    }
-
     /**
      * Create HP3PAR API client
      * 
@@ -163,13 +146,18 @@ public class HP3PARApiFactory {
     // Sample direct program
     public static void main(String[] args) {
         System.out.println("starting HP3PAR main");
+        try {
         URI uri = URI.create(String.format("https://10.247.143.100:8080/api/v1/credentials"));
         HP3PARApiFactory factory = new HP3PARApiFactory();
         BasicConfigurator.configure();
         factory.init();
         HP3PARApi hp3parApi = factory.getRESTClient(uri, "superme", "superme");
         
-        String authToken = hp3parApi.getAuthToken();
-        System.out.println(authToken);
-   }
+        String authToken = hp3parApi.getAuthToken("superme", "superme");
+            System.out.println(authToken);
+        } catch (Exception e) {
+            System.out.println(e.toString());
+            e.printStackTrace();
+        }
+   } //end main
 }

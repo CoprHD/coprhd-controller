@@ -31,6 +31,7 @@ _usage() {
     echo "   or: $0 --setoverrides file" >&2
     echo "   or: $0 --getvdcprops"      >&2
     echo "   or: $0 --setvdcprops file" >&2
+    echo "   or: $0 --setipprops file" >&2
     echo "   or: $0 --getsslprops"      >&2
     echo "   or: $0 --setsslprops file" >&2
     echo "   or: $0 --get-data-revision" >&2
@@ -406,28 +407,31 @@ _set_ip_props() {
         vdc_myid=${newVdcPropMap["vdc_myid"]}
         site_myid=${newVdcPropMap["site_myid"]}
         currsite_gateway_key="vdc_"${vdc_myid}"_"${site_myid}"_network_gateway"
-        if [ "${currIpPropMap[${currsite_gateway_key}]}" != "" ]; return
-
-        # load local site gateway, mask info from ovfenv file (/etc/ovfenv.properties) and write into ip prop file
-        # Note: We should not read from ovfenv part/cdrom. User could change ovfenv media IP directly, it would
-        # bring inconsistency and we need to assure it would not break system.
-        # Currently /etc/ovfenv.properties (4-way merged) would always have correct ip info now.
-        declare -A localIpPropMap
-        while read -r line
-        do
-          IFS='=' read -ra pair <<< "$line"
-          localIpPropMap[${pair[0]}]=${pair[1]}
-        done < "${ovf_props_file}"
-        for key in "${!localIpPropMap[@]}"
-        do
-            if [[ "${key}" == network_gateway* || "${key}" == network_netmask || "${key}" == network_prefix_length ]]; then
-                tmpkey="vdc_"${vdc_myid}"_"${site_myid}"_"${key}
-                echo "${tmpkey}=${localIpPropMap[${key}]}" >> "${datafs_ip_props}.bak"
-            fi
-        done
+        echo "there is no gateway now"
+        echo "${currIpPropMap[${currsite_gateway_key}]}"
+        echo "after there is no gateway now"
+        if [ "${currIpPropMap[${currsite_gateway_key}]}" == "" ]; then
+            # load local site gateway, mask info from ovfenv file (/etc/ovfenv.properties) and write into ip prop file
+            # Note: We should not read from ovfenv part/cdrom. User could change ovfenv media IP directly, it would
+            # bring inconsistency and we need to assure it would not break system.
+            # Currently /etc/ovfenv.properties (4-way merged) would always have correct ip info now.
+            declare -A localIpPropMap
+            while read -r line
+            do
+              IFS='=' read -ra pair <<< "$line"
+              localIpPropMap[${pair[0]}]=${pair[1]}
+            done < "${ovf_props_file}"
+            for key in "${!localIpPropMap[@]}"
+            do
+                if [[ "${key}" == network_gateway* || "${key}" == network_netmask || "${key}" == network_prefix_length ]]; then
+                    tmpkey="vdc_"${vdc_myid}"_"${site_myid}"_"${key}
+                    echo "${tmpkey}=${localIpPropMap[${key}]}" >> "${datafs_ip_props}.bak"
+                fi
+            done
+        fi
 
         mv -f "${datafs_ip_props}.bak" "${datafs_ip_props}"
-        chmod 600     "${2}"
+        chmod 600 "${datafs_ip_props}"
 
         # TODO: where to get all other sites' gateway and mask??? (for upgrade case)
     fi

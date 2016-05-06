@@ -2954,6 +2954,7 @@ rp_vpool_setup()
     if [ "${RP_TESTS}" = "1" -o "${RPVPLEX_TESTS}" = "1" -o "${RPMP_TESTS}" = "1" ]; then
         rp_targets
         rp_regular
+        rp_noprotection
         if [ "${RP_CDP}" = "1" ]; then
             rp_cdp
         fi
@@ -2963,7 +2964,6 @@ rp_vpool_setup()
         if [ "${RP_CLR}" = "1" ]; then
             rp_clr
         fi
-        rp_noprotection
     fi
 
     if [ "${RPVPLEX_TESTS}" = "1" -o "${RPMP_TESTS}" = "1" ]; then
@@ -2971,6 +2971,9 @@ rp_vpool_setup()
         rp_regular
         rpvplex_targets
         rpvplex_ha
+        rpvplexlocal_noprotection
+        rpvplexdist_noprotection
+        rp_noprotection
         if [ "${RP_CDP}" = "1" ]; then
             rpvplex_cdp
             rpmp_cdp
@@ -2984,9 +2987,6 @@ rp_vpool_setup()
             rpmp_clr
         fi
 
-        rpvplexlocal_noprotection
-        rpvplexdist_noprotection
-        rp_noprotection
     fi
 
     if [ "${RPXIO_TESTS}" = "1" ]; then
@@ -4473,6 +4473,10 @@ recoverpoint_simulator_setup()
         run cos update block rp_targets --storage $VMAX1_SIMULATOR_NATIVEGUID
         run cos update block rp_targets --storage $VMAX2_SIMULATOR_NATIVEGUID
         run cos update block rp_targets --storage $VMAX3_SIMULATOR_NATIVEGUID
+        run cos update block rp_noprotection --storage $VMAX1_SIMULATOR_NATIVEGUID
+        run cos update block rp_noprotection --storage $VMAX2_SIMULATOR_NATIVEGUID
+        run cos update block rp_noprotection --storage $VMAX3_SIMULATOR_NATIVEGUID
+
         if [ "${RP_CDP}" = "1" ]; then
             run cos update block rp_cdp --storage $VMAX1_SIMULATOR_NATIVEGUID
             run cos update block rp_cdp-sync --storage $VMAX1_SIMULATOR_NATIVEGUID
@@ -4493,6 +4497,12 @@ recoverpoint_simulator_setup()
         run cos update block rpvplex_ha --storage $VMAX1_SIMULATOR_NATIVEGUID
         run cos update block rpvplex_ha --storage $VMAX2_SIMULATOR_NATIVEGUID
         run cos update block rpvplex_ha --storage $VMAX3_SIMULATOR_NATIVEGUID
+        run cos update block rpvplexlocal_noprotection --storage $VMAX1_SIMULATOR_NATIVEGUID
+        run cos update block rpvplexlocal_noprotection --storage $VMAX2_SIMULATOR_NATIVEGUID
+        run cos update block rpvplexlocal_noprotection --storage $VMAX3_SIMULATOR_NATIVEGUID
+        run cos update block rpvplexdist_noprotection --storage $VMAX1_SIMULATOR_NATIVEGUID
+        run cos update block rpvplexdist_noprotection --storage $VMAX2_SIMULATOR_NATIVEGUID
+        run cos update block rpvplexdist_noprotection --storage $VMAX3_SIMULATOR_NATIVEGUID
 
         if [ "${RP_CDP}" = "1" ]; then
             run cos update block rpvplex_cdp --storage $VMAX1_SIMULATOR_NATIVEGUID
@@ -4524,6 +4534,7 @@ recoverpoint_simulator_setup()
     fi
     if [ "${RPXIO_TESTS}" = "1" ]; then
         run cos update block rpxio_targets --storage $XIO_4X_SIM_NATIVEGUID
+        run cos update block rp_noprotection --storage $XIO_4X_SIM_NATIVEGUID
         run cos update block rpxio_cdp --storage $XIO_4X_SIM_NATIVEGUID
     fi
 }
@@ -4616,6 +4627,7 @@ recoverpoint_tests()
         rp_noprotection_vpool='rp_noprotection'
         rpvplex_noprotection_vpool='rpvplexdist_noprotection'
         rpmp_noprotection_vpool='rpvplexdist_noprotection'
+        rpxio_noprotection_vpool='rp_noprotection'
 
         rp_type=''
 
@@ -4890,16 +4902,13 @@ recoverpoint_tests()
                 recoverpoint_export_bookmark_tests ${rpmpvolume} $RECOVERPOINT_VARRAY1 ${rp_tgt_varrays} ${rpmp_src_vpool} "mp"
             fi
 
-            if [ "$RPXIO_TESTS" = "1" ]; then
-                secho 'RP XIO tests...'
-
-                # Change Virtual Pool Test
-                recoverpoint_vpool_change_test ${rpxiovolume}${volume_name_modifier} ${rpxio_noprotection_vpool} ${rpxio_src_vpool} ${RP_XIO_CONSISTENCY_GROUP}
-            fi
-
             # XIO test cases
             if [ "$RPXIO_TESTS" = "1" ]; then
                 secho 'XIO tests...'
+
+                # Change Virtual Pool Test
+                recoverpoint_vpool_change_test ${rpxiovolume}${volume_name_modifier} ${rpxio_noprotection_vpool} ${rpxio_src_vpool} ${RP_XIO_CONSISTENCY_GROUP}
+
                 # Add Journal Test
                 recoverpoint_add_journal_volume ${rpxio_tgt_varray} ${rpxio_tgt_varray} ${rpxio_tgt_vpool} ${RP_XIO_CONSISTENCY_GROUP}
                 
@@ -4917,9 +4926,13 @@ recoverpoint_tests()
                 recoverpoint_cg_failover_test ${RP_XIO_CONSISTENCY_GROUP} ${rpxiovolume}${volume_name_modifier} ${rpxio_src_varray} ${rpxio_tgt_volumes} ${rpxio_tgt_varrays}
 
                 # Change Replication Mode Test
-                secho 'RP change vpool - replication mode'
-                recoverpoint_vpool_change_replication_mode_test ${rpxiovolume}${volume_name_modifier} ${rpxio_src_vpool_sync}
-                recoverpoint_vpool_change_replication_mode_test ${rpxiovolume}${volume_name_modifier} ${rpxio_src_vpool}
+                secho 'RP change vpool - replication mode, not supported on RP/XIO yet'
+                #recoverpoint_vpool_change_replication_mode_test ${rpxiovolume}${volume_name_modifier} ${rpxio_src_vpool_sync}
+                #recoverpoint_vpool_change_replication_mode_test ${rpxiovolume}${volume_name_modifier} ${rpxio_src_vpool}
+
+                # RP Export Bookmark Test
+                recoverpoint_export_bookmark_tests ${rpxiovolume} $RECOVERPOINT_VARRAY1 ${rpxio_tgt_varrays} ${rpxio_src_vpool} "xio"
+
             fi
         fi
 

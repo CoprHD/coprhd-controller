@@ -90,7 +90,7 @@ public class RemoteMirrorProtectionValidator extends
             _logger.info("Not SRDF Specified");
             return;
         }
-        updateVplexProtection(updateParam, dbClient);
+        validateVPlexProtection(updateParam, dbClient);
         checkSystemIsVMAX(vpool, updateParam);
         Map<URI, VpoolRemoteCopyProtectionSettings> remoteSettingsMap =
                 VirtualPool.getRemoteProtectionSettings(vpool, dbClient);
@@ -162,8 +162,7 @@ public class RemoteMirrorProtectionValidator extends
             if (createParam.hasRemoteCopyProtection()) {
                 for (VirtualPoolRemoteProtectionVirtualArraySettingsParam remoteSettings : createParam
                         .getProtection().getRemoteCopies().getRemoteCopySettings()) {
-                    if (null != remoteSettings.getRemoteCopyMode() 
-                            && remoteSettings.getRemoteCopyMode().equals(Mode.ACTIVE.name())) {
+                    if (Mode.ACTIVE.name().equals(remoteSettings.getRemoteCopyMode())) {
                         throw APIException.badRequests.vplexNotSupportedWithSRDFActive(); 
                     }
                     if (null != remoteSettings.getVpool()) {
@@ -184,7 +183,7 @@ public class RemoteMirrorProtectionValidator extends
      * @param updateParam -- BlockVirtualPoolUpdateParam
      * @param dbClient -- database handle
      */
-    private void updateVplexProtection(
+    private void validateVPlexProtection(
             final BlockVirtualPoolUpdateParam updateParam, DbClient dbClient) {
         // VPLEX checks with SRDF
         if (updateParam.specifiesHighAvailability()) {
@@ -194,8 +193,7 @@ public class RemoteMirrorProtectionValidator extends
                     && updateParam.getProtection().getRemoteCopies().getAdd() != null) {
                 for (VirtualPoolRemoteProtectionVirtualArraySettingsParam remoteSettings : 
                     updateParam.getProtection().getRemoteCopies().getAdd()) {
-                    if (null != remoteSettings.getRemoteCopyMode() 
-                            && remoteSettings.getRemoteCopyMode().equals(Mode.ACTIVE.name())) {
+                    if (Mode.ACTIVE.name().equals(remoteSettings.getRemoteCopyMode())) {
                         throw APIException.badRequests.vplexNotSupportedWithSRDFActive(); 
                     }
                     if (null != remoteSettings.getVpool()) {

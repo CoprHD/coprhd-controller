@@ -36,7 +36,7 @@ import com.emc.storageos.workflow.WorkflowException;
 import com.emc.storageos.workflow.WorkflowService;
 import com.emc.storageos.workflow.WorkflowStepCompleter;
 
-public class NativeMigrationDeviceController extends MigrationControllerImp implements MigrationOrchestrationInterface {
+public class NativeMigrationDeviceController implements MigrationOrchestrationInterface {
     private static final Logger _log = LoggerFactory.getLogger(NativeMigrationDeviceController.class);
     private DbClient _dbClient;
 

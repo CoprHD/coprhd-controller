@@ -2,11 +2,12 @@ package com.emc.storageos.migrationorchestrationcontroller;
 
 import java.util.List;
 
+import com.emc.storageos.Controller;
 import com.emc.storageos.blockorchestrationcontroller.VolumeDescriptor;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.workflow.Workflow;
 
-public interface MigrationOrchestrationInterface {
+public interface MigrationOrchestrationInterface extends Controller {
     /**
      * Adds the steps necessary for changing the virtual pool of one or more volumes of a given
      * technology (Block, RP, VPlex, etc.) to the given Workflow.

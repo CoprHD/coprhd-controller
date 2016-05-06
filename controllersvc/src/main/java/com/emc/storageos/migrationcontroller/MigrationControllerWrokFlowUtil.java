@@ -22,8 +22,8 @@ import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.volumecontroller.impl.block.BlockDeviceController;
 import com.emc.storageos.workflow.Workflow;
 
-public class MigrationControllerImp implements MigrationController {
-    private static final Logger _log = LoggerFactory.getLogger(MigrationControllerImp.class);
+public class MigrationControllerWrokFlowUtil {
+    private static final Logger _log = LoggerFactory.getLogger(MigrationControllerWrokFlowUtil.class);
     private DbClient _dbClient;
     private static final String MIGRATE_GENERAL_VOLUME_METHOD_NAME = "migrateGeneralVolume";
     private static final String RB_MIGRATE_GENERAL_VOLUME_METHOD_NAME = "rollbackMigrateGeneralVolume";
@@ -32,35 +32,48 @@ public class MigrationControllerImp implements MigrationController {
     private static final String DELETE_MIGRATION_SOURCES_METHOD = "deleteMigrationSources";
     private static final String MIGRATION_VOLUME_EXPORT_METHOD_NAME = "migrateVolumeExport";
     private static final String RB_MIGRATION_VOLUME_EXPORT_METHOD_NAME = "rollbackMigrateVolumeExport";
+    private static final String HOST_MIGRATION_VOLUME_EXPORT_METHOD_NAME = "hostMigrateVolumeExport";
+    private static final String RB_HOST_MIGRATION_VOLUME_EXPORT_METHOD_NAME = "rollbackHostMigrateVolumeExport";
 
     private static final String DELETE_MIGRATION_SOURCES_STEP = "deleteSources";
     private static final String MIGRATION_CREATE_STEP = "migrate";
     private static final String MIGRATION_COMMIT_STEP = "commit";
     private static final String MIGRATION_VOLUME_EXPORT_STEP = "exportVolume";
+    private static final String HOST_MIGRATION_VOLUME_EXPORT_STEP = "hostExportVolume";
 
 
-    @Override
-    public String createWorkflowStepsForBlockVolumeExport(Workflow workflow,
-            List<URI> volumeURIs, URI hostURI, String waitFor)
+    public MigrationControllerWrokFlowUtil() {
+
+    }
+    public String createWorkflowStepsForBlockVolumeExport(Workflow workflow, String waitFor,
+            List<URI> volumeURIs, URI hostURI, String taskId)
             throws InternalException {
         Host host = getDataObject(Host.class, hostURI, _dbClient);
+
         String stepId = workflow.createStepId();
+        Workflow.Method migrationExportOrchestrationExecuteMethod = new Workflow.Method(HOST_MIGRATION_VOLUME_EXPORT_METHOD_NAME);
+        Workflow.Method migrationExportOrchestrationExecuteRollbackMethod = new Workflow.Method(RB_HOST_MIGRATION_VOLUME_EXPORT_METHOD_NAME);
+
+        workflow.createStep(HOST_MIGRATION_VOLUME_EXPORT_STEP, "Create host Export group orchestration subtask for host migration",
+                waitFor, host.getId(), host.getSystemType(), false, this.getClass(),
+                migrationExportOrchestrationExecuteMethod, migrationExportOrchestrationExecuteRollbackMethod, stepId);
+
+        stepId = workflow.createStepId();
         Workflow.Method exportOrchestrationExecuteMethod = new Workflow.Method(MIGRATION_VOLUME_EXPORT_METHOD_NAME,
-                volumeURIs, hostURI);
+                hostURI, volumeURIs);
 
         Workflow.Method exportOrchestrationExecutionRollbackMethod =
-                new Workflow.Method(RB_MIGRATION_VOLUME_EXPORT_METHOD_NAME, volumeURIs, hostURI, stepId);
+                new Workflow.Method(RB_MIGRATION_VOLUME_EXPORT_METHOD_NAME, workflow.getWorkflowURI(), stepId);
 
-        waitFor = workflow.createStep(MIGRATION_VOLUME_EXPORT_STEP, "Create export group orchestration subtask for host",
-                waitFor, hostURI, host.getSystemType(), false, this.getClass(),
+        workflow.createStep(MIGRATION_VOLUME_EXPORT_STEP, "Create export group orchestration subtask for host",
+                HOST_MIGRATION_VOLUME_EXPORT_STEP, hostURI, host.getSystemType(), false, this.getClass(),
                 exportOrchestrationExecuteMethod, exportOrchestrationExecutionRollbackMethod, stepId);
 
-        return waitFor;
+        return MIGRATION_VOLUME_EXPORT_STEP;
 
     }
 
 
-    @Override
     public String createWorkflowStepsForMigrateGeneralVolumes(Workflow workflow, URI storageURI,
             URI generalVolumeURI, List<URI> targetVolumeURIs, URI newVpoolURI, URI newVarrayURI,
             Map<URI, URI> migrationsMap, String waitFor) throws InternalException {
@@ -96,7 +109,6 @@ public class MigrationControllerImp implements MigrationController {
 
     }
 
-    @Override
     public String createWorkflowStepsForCommitMigration(Workflow workflow, URI storageURI,
             URI generalVolumeURI, Map<URI, URI> migrationsMap, String waitFor)
             throws InternalException {
@@ -137,7 +149,6 @@ public class MigrationControllerImp implements MigrationController {
         }
     }
 
-    @Override
     public String createWorkflowStepsForDeleteMigrationSource(Workflow workflow, URI storageURI,
             URI generalVolumeURI, URI newVpoolURI, URI newVarrayURI, Map<URI, URI> migrationsMap,
             String waitFor) throws InternalException {
@@ -170,7 +181,6 @@ public class MigrationControllerImp implements MigrationController {
 
     }
 
-    @Override
     public String createWorkflowStepsForDeleteConsistencyGroup(Workflow workflow, URI cgURI,
             List<URI> localSystemsToRemoveCG, String lastStep) throws InternalException {
 

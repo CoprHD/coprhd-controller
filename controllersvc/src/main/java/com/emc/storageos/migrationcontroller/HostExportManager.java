@@ -11,6 +11,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 
 import org.slf4j.Logger;
@@ -35,7 +36,10 @@ import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.Volume;
+import com.emc.storageos.exceptions.DeviceControllerErrors;
 import com.emc.storageos.exceptions.DeviceControllerException;
+import com.emc.storageos.locking.LockTimeoutValue;
+import com.emc.storageos.locking.LockType;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
@@ -52,13 +56,17 @@ import com.emc.storageos.volumecontroller.placement.StoragePortsAssignerFactory;
 import com.emc.storageos.workflow.Workflow;
 import com.emc.storageos.workflow.WorkflowException;
 import com.emc.storageos.workflow.WorkflowService;
+import com.emc.storageos.workflow.WorkflowStepCompleter;
 import com.google.common.base.Joiner;
 
 public class HostExportManager {
     private static final Logger _log = LoggerFactory.getLogger(HostExportManager.class);
     private static DbClient _dbClient = null;
     private List<URI> exportGroupsCreated;
+    private Map<URI, Set<URI>> exportGroupVolumesAdded;
+
     private static final String STEP_EXPORT_GROUP = "migrationExportGroup";
+    private static final String DELIMITER = "::";
 
     private ExportWorkflowUtils _exportWfUtils;
     private WorkflowService _workflowService;
@@ -123,8 +131,6 @@ public class HostExportManager {
 
             Host host = getDataObject(Host.class, hostURI, _dbClient);
             List<Initiator> hostInitiators = ComputeSystemHelper.queryInitiators(_dbClient, hostURI);
-            //todo: get lock
-            //acquireHostLockKeysForExport(taskId,volumeURIs,hostInitiators);
             
             Volume firstVolume = getDataObject(Volume.class, volumeURIs.get(0), _dbClient);
             URI projectURI = firstVolume.getProject().getURI();
@@ -138,6 +144,8 @@ public class HostExportManager {
                 StorageSystem storageSystem = getDataObject(StorageSystem.class, volume.getStorageController(), _dbClient);
                 storageSystemMap.put(volume.getStorageController(), storageSystem);
             }
+            // todo: get lock
+            acquireHostLockKeysForExport(taskId, hostURI, storageSystemMap);
             
             // Main processing containers. ExportGroup --> StorageSystem --> Volumes
             // Populate the container for the export workflow step generation
@@ -273,7 +281,7 @@ public class HostExportManager {
                     _log.info(buffer.toString());
 
                     waitFor = _exportWfUtils.
-                            generateExportGroupAddVolumes(workFlow, STEP_EXPORT_GROUP,
+                            generateExportGroupAddVolumes(workflow, STEP_EXPORT_GROUP,
                                     waitFor, storageSystemURI,
                                     exportGroup.getId(), volumesToAdd);
 
@@ -328,6 +336,68 @@ public class HostExportManager {
         _log.info("End adding host Migration Export Volumes steps.");
 
         return true;
+    }
+
+    public boolean exportOrchestrationRollbackSteps(URI parentWorkflow, String exportOrchestrationStepId, String token)
+            throws WorkflowException {
+        // The workflow service now provides a rollback facility for a child workflow. It rolls back every step in an already
+        // (successfully) completed child workflow. The child workflow is located by the parentWorkflow URI and exportOrchestrationStepId.
+        _workflowService.rollbackChildWorkflow(parentWorkflow, exportOrchestrationStepId, token);
+
+        return true;
+    } 
+    
+    public boolean hostExportOrchestrationRollbackSteps (String stepId) {
+        WorkflowStepCompleter.stepSucceded(stepId);
+        _log.info("Completed hostExportOrchestrationSteps");
+        return true;
+    }
+    
+    public boolean hostExportOrchestrationSteps (String stepId) {
+        _log.info("Executing hostExportOrchestrationRollbackSteps");
+        WorkflowStepCompleter.stepExecuting(stepId);
+        try {
+            hostExportGroupRollback();
+            WorkflowStepCompleter.stepSucceded(stepId);
+            _log.info("Completed hostExportOrchestrationRollbackSteps");
+
+        } catch (Exception e) {
+            stepFailed(stepId, "hostExportOrchestrationRollbackSteps");
+            _log.info("Failed hostExportOrchestrationRollbackSteps");
+
+        }
+        return true;
+    }
+    
+    private void hostExportGroupRollback() {
+        // Rollback any newly created export groups
+        if (exportGroupsCreated != null && !exportGroupsCreated.isEmpty()) {
+            for (URI exportGroupURI : exportGroupsCreated) {
+                ExportGroup exportGroup = _dbClient.queryObject(ExportGroup.class, exportGroupURI);
+                if (exportGroup != null && !exportGroup.getInactive()) {
+                    _log.info(String.format("Marking ExportGroup [%s](%s) for deletion.", exportGroup.getLabel(), exportGroup.getId()));
+                    _dbClient.markForDeletion(exportGroup);
+                }
+            }
+        }
+
+        // Rollback any volumes that have been added/persisted to existing export groups
+        if (exportGroupVolumesAdded != null && !exportGroupVolumesAdded.isEmpty()) {
+            for (Entry<URI, Set<URI>> entry : exportGroupVolumesAdded.entrySet()) {
+                if (entry.getValue() != null && !entry.getValue().isEmpty()) {
+                    if (exportGroupsCreated != null && !exportGroupsCreated.isEmpty()) {
+                        if (exportGroupsCreated.contains(entry.getKey())) {
+                            // We already marked this EG for deletion, so keep going.
+                            continue;
+                        }
+                    }
+                    ExportGroup exportGroup = _dbClient.queryObject(ExportGroup.class, entry.getKey());
+                    _log.info(String.format("Removing volumes (%s) from ExportGroup (%s).", entry.getValue(), entry.getKey()));
+                    exportGroup.removeVolumes(new ArrayList<URI>(entry.getValue()));
+                    _dbClient.updateObject(exportGroup);
+                }
+            }
+        }
     }
 
     @SuppressWarnings("serial")
@@ -507,4 +577,64 @@ public class HostExportManager {
         }
         exportGroup.getOpStatus().put(task, op);
     }
+
+    private void acquireHostLockKeysForExport(String taskId, URI hostURI,
+            Map<URI, StorageSystem> storageSystemMap) {
+        _log.info("Start : Acquiring host lock keys for export");
+        List<String> lockKeys = new ArrayList<String>();
+
+        for (Map.Entry<URI, StorageSystem> storageEntry : storageSystemMap.entrySet()) {
+            lockKeys.addAll(getHostMigrateStorageLockKeys(_dbClient,hostURI, storageEntry.getKey()));
+        }
+
+        boolean acquiredLocks = _exportWfUtils.getWorkflowService().acquireWorkflowStepLocks(
+                taskId, lockKeys, LockTimeoutValue.get(LockType.RP_EXPORT));
+        if (!acquiredLocks) {
+            throw DeviceControllerException.exceptions.failedToAcquireLock(lockKeys.toString(),
+                    "ExportOrchestrationSteps: RP Export");
+        }
+        for (String lockKey : lockKeys) {
+            _log.info("Acquired lock : " + lockKey);
+        }
+        _log.info("Done : Acquiring RP lock keys for export");
+    }
+
+    static public List<String> getHostMigrateStorageLockKeys(DbClient dbClient, 
+            URI hostURI, URI storageURI) {
+        String storageKey = getStorageKey(dbClient, storageURI);
+        List<String> lockKeys = new ArrayList<String>();
+        // Collect the needed hosts, which can be specified either by URI or string name.
+  
+        String hostName = getDataObject(Host.class, hostURI, _dbClient).getHostName();
+
+         // Now make a key for every host / storage pair
+        String key = hostName + DELIMITER + storageKey;
+        key = key.replaceAll("\\s", "");
+        if (!lockKeys.contains(key)) {
+            lockKeys.add(key);
+        }
+
+        _log.info("Lock keys: " + lockKeys.toString());
+        return lockKeys;
+    }
+    
+    static private String getStorageKey(DbClient dbClient, URI storageURI) {
+        if (storageURI == null) {
+            // Return an empty string if no storageURI supplied
+            return "";
+        }
+        StorageSystem storage = dbClient.queryObject(StorageSystem.class, storageURI);
+        if (storage != null) {
+            return storage.getNativeGuid();
+        }
+        return storageURI.toString();
+    }
+
+    private boolean stepFailed(final String token, final String step)
+            throws WorkflowException {
+        WorkflowStepCompleter.stepFailed(token,
+                DeviceControllerErrors.hostmigration.stepFailed(step));
+        return false;
+    }
+
 }

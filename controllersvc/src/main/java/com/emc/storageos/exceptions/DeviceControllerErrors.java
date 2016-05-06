@@ -9,6 +9,7 @@ import com.emc.storageos.cinder.errorhandling.CinderErrors;
 import com.emc.storageos.datadomain.restapi.errorhandling.DataDomainApiErrors;
 import com.emc.storageos.hds.HDSErrors;
 import com.emc.storageos.isilon.restapi.IsilonErrors;
+import com.emc.storageos.migrationcontroller.MigrationErrors;
 import com.emc.storageos.netapp.NetAppErrors;
 import com.emc.storageos.netappc.NetAppCErrors;
 import com.emc.storageos.networkcontroller.exceptions.NetworkDeviceControllerErrors;
@@ -64,6 +65,9 @@ public interface DeviceControllerErrors {
 
     /** Holds the methods used to create RecoverPoint related error conditions */
     public static final RecoverPointErrors recoverpoint = ExceptionMessagesProxy.create(RecoverPointErrors.class);
+
+    /** Holds the methods used to migration related error conditions */
+    public static final MigrationErrors hostmigration = ExceptionMessagesProxy.create(MigrationErrors.class);
 
     /** Holds the methods used to create VNX related error conditions */
     public static final VNXErrors vnx = ExceptionMessagesProxy.create(VNXErrors.class);

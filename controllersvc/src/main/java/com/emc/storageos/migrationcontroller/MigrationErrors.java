@@ -28,18 +28,6 @@ public interface MigrationErrors {
             final Throwable cause);
 
     @DeclareServiceCode(ServiceCode.MIGRATION_ERROR)
-    public ServiceError createVirtualVolumesFailed(final String opName,
-            final Throwable cause);
-
-    @DeclareServiceCode(ServiceCode.MIGRATION_ERROR)
-    public ServiceError createVirtualVolumesRollbackFailed(final String stepId,
-            final Throwable cause);
-
-    @DeclareServiceCode(ServiceCode.MIGRATION_ERROR)
-    public ServiceError deleteVirtualVolumesFailed(final String opName,
-            final Throwable cause);
-
-    @DeclareServiceCode(ServiceCode.MIGRATION_ERROR)
     public ServiceError exportGroupCreateFailed(final String opName,
             final Throwable cause);
 
@@ -223,4 +211,7 @@ public interface MigrationErrors {
     @DeclareServiceCode(ServiceCode.MIGRATION_ERROR)
     public ServiceError operateMigrationFailed(final String opName,
             final Throwable cause);
+
+    @DeclareServiceCode(ServiceCode.MIGRATION_ERROR)
+    public ServiceError stepFailed(final String step);
 }

@@ -6,7 +6,7 @@ import java.net.URI;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Arrays;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -18,6 +18,7 @@ import org.slf4j.LoggerFactory;
 import com.emc.storageos.blockorchestrationcontroller.VolumeDescriptor;
 import com.emc.storageos.computesystemcontroller.impl.ComputeSystemHelper;
 import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.Migration;
 import com.emc.storageos.db.client.model.StorageSystem;
@@ -30,26 +31,29 @@ import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.volumecontroller.impl.ControllerServiceImpl;
 import com.emc.storageos.volumecontroller.impl.job.QueueJob;
-import com.emc.storageos.vplex.api.clientdata.VolumeInfo;
-import com.emc.storageos.vplexcontroller.VPlexControllerUtils;
 import com.emc.storageos.vplexcontroller.completers.MigrationTaskCompleter;
 import com.emc.storageos.workflow.Workflow;
 import com.emc.storageos.workflow.WorkflowException;
 import com.emc.storageos.workflow.WorkflowService;
 import com.emc.storageos.workflow.WorkflowStepCompleter;
+import com.iwave.ext.linux.LinuxSystemCLI;
+import com.iwave.ext.linux.model.PowerPathDevice;
 
-public class HostMigrationDeviceController extends MigrationControllerImp implements MigrationOrchestrationInterface {
+public class HostMigrationDeviceController implements MigrationOrchestrationInterface {
     private static final Logger _log = LoggerFactory.getLogger(HostMigrationDeviceController.class);
     private DbClient _dbClient;
     private URI _hostURI;
+    HostExportManager _hostExportMgr;
     // private final List<Initiator> _initiators = new ArrayList<Initiator>();
     // private List<URI> migrateInitiatorsURIs = new ArrayList<URI>();
-
+    protected LinuxSystemCLI _linuxSystem;
     private static volatile HostMigrationDeviceController _instance;
     private WorkflowService _workflowService;
     // Constants used for creating a migration name.
     private static final String MIGRATION_NAME_PREFIX = "M_";
     private static final String MIGRATION_NAME_DATE_FORMAT = "yyMMdd-HHmmss-SSS";
+
+    private boolean _usePowerPath;
 
     public HostMigrationDeviceController() {
         _instance = this;
@@ -66,6 +70,7 @@ public class HostMigrationDeviceController extends MigrationControllerImp implem
     @Override
     public String addStepsForChangeVirtualPool(Workflow workflow, String waitFor, List<VolumeDescriptor> volumes, String taskId)
             throws InternalException {
+        MigrationControllerWrokFlowUtil migrationControllerWrokFlowUtil = new MigrationControllerWrokFlowUtil();
         try {
             // Get all the General Volumes.
             List<VolumeDescriptor> generalVolumes = VolumeDescriptor.filterByType(
@@ -105,11 +110,12 @@ public class HostMigrationDeviceController extends MigrationControllerImp implem
                     new VolumeDescriptor.Type[] {});
 
             List<Initiator> hostInitiators = ComputeSystemHelper.queryInitiators(_dbClient, _hostURI);
-
+            _hostExportMgr = new HostExportManager();
             // export source volumes
             if (hostMigrateVolumes != null && !hostMigrateVolumes.isEmpty()) {
-                lastStep = createWorkflowStepsForBlockVolumeExport(workflow, changeVpoolGeneralVolumeURIs,
-                        _hostURI, lastStep);
+                lastStep = migrationControllerWrokFlowUtil.createWorkflowStepsForBlockVolumeExport(workflow, lastStep,
+                        changeVpoolGeneralVolumeURIs,
+                        _hostURI, taskId);
                 _log.info("Created workflow steps for volume export.");
             }
 
@@ -166,19 +172,19 @@ public class HostMigrationDeviceController extends MigrationControllerImp implem
                         _log.info("migration controller migrate volume {} by storage system{}",
                                 generalVolumeURI, _hostURI);
 
-                        waitForStep = createWorkflowStepsForBlockVolumeExport(workflow,
-                                newVolumes, _hostURI, waitFor);
+                        waitForStep = migrationControllerWrokFlowUtil.createWorkflowStepsForBlockVolumeExport(workflow, lastStep,
+                                newVolumes, _hostURI, taskId);
                         _log.info("Created workflow steps for volume export.");
 
-                        waitForStep = createWorkflowStepsForMigrateGeneralVolumes(workflow, _hostURI,
+                        waitForStep = migrationControllerWrokFlowUtil.createWorkflowStepsForMigrateGeneralVolumes(workflow, _hostURI,
                                 generalVolumeURI, newVolumes, newVpoolURI, null, migrationMap, waitForStep);
                         _log.info("Created workflow steps for volume migration.");
 
-                        waitForStep = createWorkflowStepsForCommitMigration(workflow, _hostURI,
+                        waitForStep = migrationControllerWrokFlowUtil.createWorkflowStepsForCommitMigration(workflow, _hostURI,
                                 generalVolumeURI, migrationMap, waitForStep);
                         _log.info("Created workflow steps for commit migration.");
 
-                        lastStep = createWorkflowStepsForDeleteMigrationSource(workflow, _hostURI,
+                        lastStep = migrationControllerWrokFlowUtil.createWorkflowStepsForDeleteMigrationSource(workflow, _hostURI,
                                 generalVolumeURI, newVpoolURI, null, migrationMap, waitForStep);
                         _log.info("Created workflow steps for commit migration.");
                     } catch (Exception e) {
@@ -193,7 +199,8 @@ public class HostMigrationDeviceController extends MigrationControllerImp implem
                 cgURI = getDataObject(Volume.class, changeVpoolGeneralVolumeURIs.get(0), _dbClient).getConsistencyGroup();
                 if (!NullColumnValueGetter.isNullURI(cgURI)) {
                     _log.info("Vpool change volumes are in CG {}", cgURI);
-                    lastStep = createWorkflowStepsForDeleteConsistencyGroup(workflow, cgURI, localSystemsToRemoveCG, lastStep);
+                    lastStep = migrationControllerWrokFlowUtil.createWorkflowStepsForDeleteConsistencyGroup(workflow, cgURI,
+                            localSystemsToRemoveCG, lastStep);
                 }
             }
 
@@ -218,10 +225,22 @@ public class HostMigrationDeviceController extends MigrationControllerImp implem
         return null;
     }
 
-    public void migrateVolumeExport(URI hostURI, List<URI> volumeURIs, String stepId) throws WorkflowException {
+    public void migrateVolumeExport(URI hostURI, List<URI> volumeURIs, String stepId) {
 
-        HostExportManager hostExportMgr = new HostExportManager();
-        hostExportMgr.exportOrchestrationSteps(this, volumeURIs, hostURI, stepId);
+        _hostExportMgr.exportOrchestrationSteps(this, volumeURIs, hostURI, stepId);
+    }
+
+    public void rollbackMigrateVolumeExport(URI parentWorkflow, String exportOrchestrationStepId, String token) {
+        _hostExportMgr.exportOrchestrationRollbackSteps(parentWorkflow, exportOrchestrationStepId, token);
+    }
+
+    public void hostMigrateVolumeExport(String stepId) {
+
+        _hostExportMgr.hostExportOrchestrationSteps(stepId);
+    }
+
+    public void rollbackHostMigrateVolumeExport(String stepId) {
+        _hostExportMgr.hostExportOrchestrationRollbackSteps(stepId);
     }
 
     public void migrateGeneralVolume(URI storageURI, URI generalVolumeURI,
@@ -245,12 +264,14 @@ public class HostMigrationDeviceController extends MigrationControllerImp implem
                     generalVolume.getStorageController(), _dbClient);
             _log.info("Storage system for migration source is {}",
                     generalVolume.getStorageController());
-            List<String> srcVolumeitls = VPlexControllerUtils.getVolumeITLs(generalVolume);
-            VolumeInfo srcVolumeInfo = new VolumeInfo(
-                    srcStorageSystem.getNativeGuid(), srcStorageSystem.getSystemType(), generalVolume.getWWN()
-                            .toUpperCase().replaceAll(":", ""),
-                    generalVolume.getNativeId(),
-                    generalVolume.getThinlyProvisioned().booleanValue(), srcVolumeitls);
+            /*
+             * List<String> srcVolumeitls = VPlexControllerUtils.getVolumeITLs(generalVolume);
+             * VolumeInfo srcVolumeInfo = new VolumeInfo(
+             * srcStorageSystem.getNativeGuid(), srcStorageSystem.getSystemType(), generalVolume.getWWN()
+             * .toUpperCase().replaceAll(":", ""),
+             * generalVolume.getNativeId(),
+             * generalVolume.getThinlyProvisioned().booleanValue(), srcVolumeitls);
+             */
 
 
             // Setup the native volume info for the migration target.
@@ -259,12 +280,14 @@ public class HostMigrationDeviceController extends MigrationControllerImp implem
                     migrationTarget.getStorageController(), _dbClient);
             _log.info("Storage system for migration target is {}",
                     migrationTarget.getStorageController());
-            List<String> tgtVolumeitls = VPlexControllerUtils.getVolumeITLs(migrationTarget);
-            VolumeInfo tgtVolumeInfo = new VolumeInfo(
-                    targetStorageSystem.getNativeGuid(), targetStorageSystem.getSystemType(), migrationTarget.getWWN()
-                            .toUpperCase().replaceAll(":", ""),
-                    migrationTarget.getNativeId(),
-                    migrationTarget.getThinlyProvisioned().booleanValue(), tgtVolumeitls);
+            /*
+             * List<String> tgtVolumeitls = VPlexControllerUtils.getVolumeITLs(migrationTarget);
+             * VolumeInfo tgtVolumeInfo = new VolumeInfo(
+             * targetStorageSystem.getNativeGuid(), targetStorageSystem.getSystemType(), migrationTarget.getWWN()
+             * .toUpperCase().replaceAll(":", ""),
+             * migrationTarget.getNativeId(),
+             * migrationTarget.getThinlyProvisioned().booleanValue(), tgtVolumeitls);
+             */
 
             // Get the migration associated with the target.
             Migration migration = getDataObject(Migration.class, migrationURI, _dbClient);
@@ -293,7 +316,7 @@ public class HostMigrationDeviceController extends MigrationControllerImp implem
             // Boolean isRemoteMigration = newVarrayURI != null;
 
             List<MigrationInfo> migrationInfoList = hostMigrateGeneralVolume(
-                    migrationName, Arrays.asList(srcVolumeInfo), Arrays.asList(tgtVolumeInfo));
+                    migrationName, generalVolume, migrationTarget);
             _log.info("Started host migration");
 
             // We store step data indicating that the migration was successfully
@@ -332,8 +355,77 @@ public class HostMigrationDeviceController extends MigrationControllerImp implem
         }
     }
 
-    private List<MigrationInfo> hostMigrateGeneralVolume(String migrationName, List<VolumeInfo> srcVolumeInfo,
-            List<VolumeInfo> tgtVolumeInfo) {
+    private List<MigrationInfo> hostMigrateGeneralVolume(String migrationName, Volume srcVolume,
+            Volume tgtVolume) {
+        Host host = getDataObject(Host.class, _hostURI, _dbClient);
+        if (_linuxSystem == null) {
+            LinuxSystemCLI _linuxSystem = new LinuxSystemCLI();
+            _linuxSystem.setHost(host.getHostName());
+            _linuxSystem.setPort(host.getPortNumber());
+            _linuxSystem.setUsername(host.getUsername());
+            _linuxSystem.setPassword(host.getPassword());
+            _linuxSystem.setHostId(host.getId());
+        }
+        List<Initiator> hostInitiators = ComputeSystemHelper.queryInitiators(_dbClient, _hostURI);
+        // todo: precheck mountpoint, multipath, filesystem, refresh storage
+
+        try {
+            _usePowerPath = checkForMultipathingSoftware(host);
+        } catch (Exception e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        }
+        String srcDevice = getDevice(host, srcVolume, _usePowerPath);
+        String tgtDevice = getDevice(host, tgtVolume, _usePowerPath);
+    }
+
+    private String getDevice(Host host, Volume volume, boolean usePowerPath) {
+        try {
+            // we will retry this up to 5 times
+            int remainingAttempts = 5;
+            while (remainingAttempts-- >= 0) {
+                try {
+                    if (usePowerPath) {
+                        return findPowerPathEntry(host, volume).getDevice();
+                    }
+                    else {
+                        return LinuxUtils.getDeviceForEntry(findMultiPathEntry(host, volume));
+                    }
+                } catch (IllegalStateException e) {
+                    String errorMessage = String.format("Unable to find device for WWN %s. %s more attempts will be made.",
+                            volume.getWWN(), remainingAttempts);
+                    if (remainingAttempts == 0) {
+                        getDeviceFailed(volume, errorMessage, e);
+                    }
+                    logWarn("linux.support.device.not.found", volume.getWwn(), remainingAttempts);
+                    Thread.sleep(5000);
+                    refreshStorage(Collections.singleton(volume), usePowerPath);
+                }
+            }
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+
+        return null;
+    }
+
+    public PowerPathDevice findPowerPathEntry(Host host, Volume volume) throws Exception {
+        PowerPathDevice entry = HostMigrationCommand.FindPowerPathEntryForVolume(host, volume);
+        return entry;
+    }
+
+    private boolean checkForMultipathingSoftware(Host host) {
+        String powerPathError = HostMigrationCommand.checkForPowerPath(host);
+        if (powerPathError == null) {
+            return true;
+        }
+
+        String multipathError = HostMigrationCommand.checkForMultipath(host);
+        if (multipathError == null) {
+            return false;
+        }
+        _log.info("failTask.LinuxSupport.noMultipath", new Object[] {}, powerPathError, multipathError);
+        return false;
 
     }
 

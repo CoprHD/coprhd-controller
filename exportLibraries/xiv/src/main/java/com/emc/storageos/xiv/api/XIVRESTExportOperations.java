@@ -31,18 +31,20 @@ public class XIVRESTExportOperations {
     private static Logger _log = LoggerFactory.getLogger(XIVRESTExportOperations.class);
     private final RESTClient _client;
     private final URI _baseURI;
-
-    private static String SEPARATOR = ":";
-    private static String NAME = "name";
-    private static String STATUS_EXECUTION_PASS = "0";
-    private static String STATUS = "status";
-    private static String RESPONSE = "response";
-    private static String DATA = "data";
-    private static String HOST = "host";
-    private static String CLUSTER = "cluster";
-    private static String MESSAGE = "message";
-    private static String SERVER = "server";
-    private static String FAILED_SYSTEMS = "failed_systems";
+    
+    private static final String ID = "id";
+    private static final String SEPARATOR = ":";
+    private static final String NAME = "name";
+    private static final String STATUS_EXECUTION_PASS = "0";
+    private static final String STATUS = "status";
+    private static final String RESPONSE = "response";
+    private static final String DATA = "data";
+    private static final String HOST = "host";
+    private static final String VOLMAP = "vol_map";
+    private static final String CLUSTER = "cluster";
+    private static final String MESSAGE = "message";
+    private static final String SERVER = "server";
+    private static final String FAILED_SYSTEMS = "failed_systems";
     
     private static String INSTANCE_URL = "/:{1}";
     private static String CLUSTER_URL = "/xiv/v2/:{0}/clusters";
@@ -135,6 +137,15 @@ public class XIVRESTExportOperations {
     }
 
     public boolean findAvailability(final String uri) throws Exception {
+        return findAvailability(getInstance(uri));
+    }
+    
+    public boolean findAvailability(final JSONObject instance) throws Exception {
+        ResponseValidator status = new ResponseValidator(instance);
+        return !status.isFailed();
+    }
+    
+    public JSONObject getInstance(final String uri) throws Exception {
         JSONObject instance = null;
         ClientResponse response = null;
         try {
@@ -143,8 +154,7 @@ public class XIVRESTExportOperations {
         } catch (Exception e) {
             throw XIVRestException.exceptions.xivRestRequestFailure(uri, response.getStatus());
         }
-        ResponseValidator status = new ResponseValidator(instance);
-        return !status.isFailed();
+        return instance;
     }
     
     public ResponseValidator createInstance(final String xivSystem, final String uri, final String jsonBody) throws Exception {
@@ -160,8 +170,9 @@ public class XIVRESTExportOperations {
         return failureStatus;
     }
 
-    public void createCluster(final String xivSystem, final String clusterName) throws Exception {
-        if (findAvailability(MessageFormat.format(CLUSTER_INSTANCE_URL, xivSystem, clusterName))) {
+    public boolean createCluster(final String xivSystem, final String clusterName) throws Exception {
+        boolean isAvailable = findAvailability(MessageFormat.format(CLUSTER_INSTANCE_URL, xivSystem, clusterName));
+        if (isAvailable) {
             _log.info("Cluster {} already exist on XIV {}. Skipping creation!", clusterName, xivSystem);
         } else {
             final String body = MessageFormat.format(CLUSTER_CREATE_BODY, clusterName);
@@ -171,10 +182,12 @@ public class XIVRESTExportOperations {
                 throw XIVRestException.exceptions.clusterCreationFailure(xivSystem, clusterName, failureStatus.toString());
             }
         }
+        return isAvailable;
     }
 
-    public void createHost(final String xivSystem, final String clusterName, final String hostName) throws Exception {
-        if (findAvailability(MessageFormat.format(Host_INSTANCE_URL, xivSystem, hostName))) {
+    public boolean createHost(final String xivSystem, final String clusterName, final String hostName) throws Exception {
+        boolean isAvailable = findAvailability(MessageFormat.format(Host_INSTANCE_URL, xivSystem, hostName));
+        if (isAvailable) {
             _log.info("Host {} already exist on XIV {}. Skipping creation!", hostName, xivSystem);
         } else {
             final String body = MessageFormat.format(HOST_CREATE_BODY, clusterName, hostName);
@@ -184,11 +197,13 @@ public class XIVRESTExportOperations {
                 throw XIVRestException.exceptions.hostCreationFailure(xivSystem, hostName, failureStatus.toString());
             }
         }
+        return isAvailable;
     }
 
-    public void createHostPort(final String xivSystem, final String hostName, final String hostPort, final String hostPortType)
+    public boolean createHostPort(final String xivSystem, final String hostName, final String hostPort, final String hostPortType)
             throws Exception {
-        if (findAvailability(MessageFormat.format(Host_PORT_INSTANCE_URL, xivSystem, hostPort))) {
+        boolean isAvailable = findAvailability(MessageFormat.format(Host_PORT_INSTANCE_URL, xivSystem, hostPort));
+        if (isAvailable) {
             _log.info("HostPort {} already exist on XIV {}. Skipping creation!", hostPort, xivSystem);
         } else {
             final String body = MessageFormat.format(HOST_PORT_CREATE_BODY, hostName, hostPort, hostPortType);
@@ -198,11 +213,13 @@ public class XIVRESTExportOperations {
                 throw XIVRestException.exceptions.hostCreationFailure(xivSystem, hostName, failureStatus.toString());
             }
         }
+        return isAvailable;
     }
     
-    public void exportVolumeToCluster(final String xivSystem, final String clusterName, final String volumeName, final String lunID)
+    public boolean exportVolumeToCluster(final String xivSystem, final String clusterName, final String volumeName, final String lunID)
             throws Exception {
-        if (findAvailability(MessageFormat.format(EXPORT_VOLUME_TO_CLUSTER_INSTANCE_URL, xivSystem, clusterName, volumeName))) {
+        boolean isAvailable = findAvailability(MessageFormat.format(EXPORT_VOLUME_TO_CLUSTER_INSTANCE_URL, xivSystem, clusterName, volumeName));
+        if (isAvailable) {
             _log.info("Volume {} already already exported to Cluster {} on XIV {}. Skipping Export!", volumeName, clusterName, xivSystem);
         } else {
             final String body = MessageFormat.format(EXPORT_VOLUME_TO_CLUSTER_BODY, clusterName, volumeName, lunID);
@@ -212,24 +229,18 @@ public class XIVRESTExportOperations {
                 throw XIVRestException.exceptions.volumeExportToClusterFailure(xivSystem, clusterName, volumeName, failureStatus.toString());
             }
         }
+        return isAvailable;
     }
     
     public HOST_STATUS getHostStatus(final String xivSystem, final String hostName) throws Exception{
-        HOST_STATUS hostStatus = HOST_STATUS.HOST_NOT_PRESENT;
         final String hostURI = MessageFormat.format(Host_INSTANCE_URL, xivSystem, hostName);
-        if (findAvailability(hostURI)) {
+        HOST_STATUS hostStatus = HOST_STATUS.HOST_NOT_PRESENT;
+        JSONObject hostInstance = getInstance(hostURI);
+        
+        if (findAvailability(hostInstance)) {
             hostStatus = HOST_STATUS.STANDALONE_HOST;
-            JSONObject hostInstance = null;
-            ClientResponse response = null;
-            try {
-                response = _client.get(_baseURI.resolve(hostURI));
-                hostInstance = response.getEntity(JSONObject.class);
-            } catch (Exception e) {
-                throw XIVRestException.exceptions.xivRestRequestFailure(hostURI, response.getStatus());
-            }
-            
-            JSONObject status = hostInstance.getJSONObject(RESPONSE);
-            JSONObject data = status.getJSONObject(DATA);
+            JSONObject response = hostInstance.getJSONObject(RESPONSE);
+            JSONObject data = response.getJSONObject(DATA);
             JSONObject host = data.getJSONObject(HOST);
             final String hostCluster = host.getString(CLUSTER);
             if(null!=hostCluster && !hostCluster.isEmpty()){

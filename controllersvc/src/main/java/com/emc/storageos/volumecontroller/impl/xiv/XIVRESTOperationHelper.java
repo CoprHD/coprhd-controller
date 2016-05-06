@@ -1,7 +1,10 @@
 package com.emc.storageos.volumecontroller.impl.xiv;
 
 import java.net.URI;
+import java.util.ArrayList;
 import java.util.List;
+
+import javax.cim.CIMProperty;
 
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
@@ -13,6 +16,7 @@ import com.emc.storageos.db.client.model.BlockMirror;
 import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.Cluster;
 import com.emc.storageos.db.client.model.ExportGroup;
+import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.StorageProvider;
@@ -21,6 +25,7 @@ import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
 import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.volumecontroller.impl.VolumeURIHLU;
+import com.emc.storageos.volumecontroller.impl.smis.ibm.IBMSmisConstants;
 import com.emc.storageos.xiv.api.XIVApiFactory;
 import com.emc.storageos.xiv.api.XIVRESTExportOperations;
 import com.emc.storageos.xiv.api.XIVRestException;
@@ -103,6 +108,8 @@ public class XIVRESTOperationHelper {
             final String storageIP = storage.getSmisProviderIP();
             final String clusterName = cluster.getLabel();
             final String hostName = host.getLabel();
+            
+            List<Initiator> existingInitiators = new ArrayList<Initiator>();
 
             // Create Cluster if not exist
             restExportOpr.createCluster(storageIP, clusterName);
@@ -113,8 +120,10 @@ public class XIVRESTOperationHelper {
             // Add Initiators to Host.
             if (initiatorList != null && !initiatorList.isEmpty()) {
                 for (Initiator initiator : initiatorList) {
-                    restExportOpr.createHostPort(storageIP, hostName, Initiator.normalizePort(initiator.getInitiatorPort()),
-                            initiator.getProtocol().toLowerCase());
+                    if(restExportOpr.createHostPort(storageIP, hostName, Initiator.normalizePort(initiator.getInitiatorPort()),
+                            initiator.getProtocol().toLowerCase())){
+                        existingInitiators.add(initiator);
+                    }
                 }
             }
 
@@ -135,6 +144,14 @@ public class XIVRESTOperationHelper {
                     }
                 }
             }
+            
+            //Update Masking information
+            ExportMask exportMask = _dbClient.queryObject(ExportMask.class, exportMaskURI);
+            exportMask.setCreatedBySystem(false);
+            exportMask.addToUserCreatedInitiators(existingInitiators);
+            exportMask.setMaskName(hostName); 
+            exportMask.setLabel(hostName);
+            _dbClient.persistObject(exportMask);
 
             taskCompleter.ready(_dbClient);
         } catch (Exception e) {

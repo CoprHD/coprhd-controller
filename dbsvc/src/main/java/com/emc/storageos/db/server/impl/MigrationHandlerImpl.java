@@ -59,13 +59,13 @@ public class MigrationHandlerImpl implements MigrationHandler {
 
     private CoordinatorClient coordinator;
     private InternalDbClient dbClient;
-	private DbSchemas currentSchema;
+    private DbSchemas currentSchema;
     private Service service;
     @SuppressWarnings("unused")
     private String[] pkgs;
     private String[] ignoredPkgs;
     private Map<String, List<BaseCustomMigrationCallback>> customMigrationCallbacks;
-	private DbServiceStatusChecker statusChecker;
+    private DbServiceStatusChecker statusChecker;
     private SchemaUtil schemaUtil;
 
     String targetVersion;
@@ -140,7 +140,7 @@ public class MigrationHandlerImpl implements MigrationHandler {
     public Map<String, List<BaseCustomMigrationCallback>> getCustomMigrationCallbacks() {
 		return customMigrationCallbacks;
 	}
-
+    
     /**
      * set versioned custom migration callbacks
      * 

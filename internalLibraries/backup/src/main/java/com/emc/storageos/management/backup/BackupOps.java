@@ -37,6 +37,7 @@ import javax.management.remote.JMXConnector;
 import javax.management.remote.JMXConnectorFactory;
 import javax.management.remote.JMXServiceURL;
 
+import com.emc.storageos.management.backup.util.CifsClient;
 import com.emc.storageos.management.backup.util.FtpClient;
 import com.emc.vipr.model.sys.backup.BackupInfo;
 import org.apache.commons.io.FilenameUtils;
@@ -1640,12 +1641,13 @@ public class BackupOps {
      * @return
      * @throws IOException
      */
-    public BackupInfo getBackupInfo(String backupName, String serverUri, String username, String password) throws IOException {
+    public BackupInfo getBackupInfo(String backupName, String serverUri, String username, String password) throws Exception {
         log.info("To get backup info of {} from server={} ", backupName, serverUri);
 
         BackupInfo backupInfo = new BackupInfo();
-
-        FtpClient client = new FtpClient(serverUri, username, password);
+        //debug for cifs
+        //FtpClient client = new FtpClient(serverUri, username, password);
+        CifsClient client = new CifsClient(serverUri, username, password);
         try {
             long size = client.getFileSize(backupName);
             backupInfo.setBackupSize(size);

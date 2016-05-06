@@ -4,12 +4,14 @@
  */
 package com.emc.storageos.management.backup.util;
 
+import com.emc.storageos.management.backup.BackupConstants;
 import jcifs.smb.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.net.MalformedURLException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -41,6 +43,9 @@ public class CifsClient {
         SmbFile smbDir = new SmbFile(uri, auth);
         String[] files = smbDir.list();
         for (String file : files) {
+            if (!file.endsWith(BackupConstants.COMPRESS_SUFFIX)) {
+                continue;
+            }
             if (prefix == null || file.startsWith(prefix)) {
                 fileList.add(file);
                 log.info("Listing {}", file);
@@ -67,6 +72,11 @@ public class CifsClient {
             log.warn("failed to rename file from {} to {}",sourceFileName,destFileName);
             throw e;
         }
+    }
+
+    public long getFileSize(String fileName) throws Exception{
+        SmbFile smbFile = new SmbFile(uri + fileName,auth);
+        return smbFile.length();
     }
 
 

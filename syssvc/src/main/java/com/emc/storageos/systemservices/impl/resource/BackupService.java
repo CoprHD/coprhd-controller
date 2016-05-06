@@ -552,7 +552,9 @@ public class BackupService {
         //Step1: get the size of compressed backup file from server
         long size = 0;
         try {
-            FtpClient client = new FtpClient(cfg.uploadUrl, cfg.uploadUserName, cfg.getExternalServerPassword());
+            CifsClient client = new CifsClient(cfg.uploadUrl, cfg.uploadUserName, cfg.getExternalServerPassword());
+            //debug for cifs
+            //FtpClient client = new FtpClient(cfg.uploadUrl, cfg.uploadUserName, cfg.getExternalServerPassword());
             size = client.getFileSize(backupName);
         }catch(Exception  e) {
             log.warn("Failed to get the backup file size, e=", e);
@@ -792,11 +794,15 @@ public class BackupService {
             String externalServerUrl = cfg.getExternalServerUrl();
             String userName = cfg.getExternalServerUserName();
             String password = cfg.getExternalServerPassword();
+            CifsClient cifsClient = new CifsClient(externalServerUrl,userName,password);
             FtpClient ftpClient = new FtpClient(externalServerUrl, userName, password);
             List<String> backupFiles = new ArrayList();
 
             try {
-                backupFiles = ftpClient.listFiles(backupName);
+                //debug for cifs
+                //backupFiles = ftpClient.listFiles(backupName);
+                backupFiles = cifsClient.listFiles(backupName);
+
                 log.info("The remote backup files={}", backupFiles);
 
                 if (backupFiles.isEmpty()) {

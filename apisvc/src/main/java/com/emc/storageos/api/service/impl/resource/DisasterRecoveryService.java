@@ -1798,7 +1798,8 @@ public class DisasterRecoveryService {
         }
 
         // should be PAUSED, either marked by itself or user
-        if (standby.getState() != SiteState.STANDBY_PAUSED) {
+        // Also allow user to failover to an ACTIVE_DEGRADED site
+        if (standby.getState() != SiteState.STANDBY_PAUSED && standby.getState() != SiteState.ACTIVE_DEGRADED) {
             throw APIException.internalServerErrors.failoverPrecheckFailed(standby.getName(),
                     "Please wait for this site to recognize the Active site is down and automatically switch to a Paused state before failing over.");
         }

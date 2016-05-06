@@ -1167,6 +1167,7 @@ xtremio_ingest_test()
     fi
 
     # Labels
+    export_name=$XTREMIOEXPORT_GROUP
     XIO_RANDOM=${RANDOM}
     XIO_INGEST_VOL1_CG=${XIO_INGEST_VOL1_CGBASE}${XIO_RANDOM}
     XIO_INGEST_VOL1=${XIO_INGEST_VOL1BASE}1${XIO_RANDOM}
@@ -1495,8 +1496,10 @@ xtremio_setup()
 xtremio_tests()
 {
    echo 'xtremio tests invoked'
-   xtremio_block_tests
-   xtremio_blockconsistency_tests
+   if [ "$XIO_BLOCK_TESTS" = "1" ]; then
+       xtremio_block_tests
+       xtremio_blockconsistency_tests
+   fi
    # Ingest specific tests
    if [ "$XIO_INGESTTESTS" = "1" ]; then
         secho "XIO ingest volumes"
@@ -2951,7 +2954,6 @@ rp_vpool_setup()
     if [ "${RP_TESTS}" = "1" -o "${RPVPLEX_TESTS}" = "1" -o "${RPMP_TESTS}" = "1" ]; then
         rp_targets
         rp_regular
-        rp_noprotection
         if [ "${RP_CDP}" = "1" ]; then
             rp_cdp
         fi
@@ -2961,6 +2963,7 @@ rp_vpool_setup()
         if [ "${RP_CLR}" = "1" ]; then
             rp_clr
         fi
+        rp_noprotection
     fi
 
     if [ "${RPVPLEX_TESTS}" = "1" -o "${RPMP_TESTS}" = "1" ]; then
@@ -2968,9 +2971,6 @@ rp_vpool_setup()
         rp_regular
         rpvplex_targets
         rpvplex_ha
-        rpvplexlocal_noprotection
-        rpvplexdist_noprotection
-        rp_noprotection
         if [ "${RP_CDP}" = "1" ]; then
             rpvplex_cdp
             rpmp_cdp
@@ -2983,6 +2983,10 @@ rp_vpool_setup()
             rpvplex_clr
             rpmp_clr
         fi
+
+        rpvplexlocal_noprotection
+        rpvplexdist_noprotection
+        rp_noprotection
     fi
 
     if [ "${RPXIO_TESTS}" = "1" ]; then
@@ -3521,7 +3525,6 @@ recoverpoint_ingest_test()
     fi
 
     rp_target_vpool=rp_targets
-
     if [ "${RPXIO_TESTS}" = "1" ]; then
         rp_target_vpool=rpxio_targets
     fi
@@ -3906,11 +3909,7 @@ recoverpoint_ingest()
 
     if [ "$RP_CRR" = "1" ] ; then
         recoverpoint_ingest_test rp${rptypetag}_crr
-        if [ "${RPXIO_TESTS}" = "0" ]; then
-            recoverpoint_ingest_export_test rp${rptypetag}_crr
-        else
-            secho "XIO Export Tests Disabled; Export host registration in physical network needs work"
-        fi
+        recoverpoint_ingest_export_test rp${rptypetag}_crr
     fi
     
     if [ "$RP_CLR" = "1" ] ; then
@@ -3919,11 +3918,7 @@ recoverpoint_ingest()
             return;
         fi
         recoverpoint_ingest_test rp${rptypetag}_clr
-        if [ "${RPXIO_TESTS}" = "0" ]; then
-            recoverpoint_ingest_export_test rp${rptypetag}_clr
-        else
-            secho "XIO Export Tests Disabled; Export host registration in physical network needs work"
-        fi
+        recoverpoint_ingest_export_test rp${rptypetag}_clr        
     fi
 
     secho "RP ingest ${rptypetag} tests complete"
@@ -4167,13 +4162,13 @@ recoverpoint_vpool_change_test()
     if [ a${upgrade_to_mp} != a ] ; then
         secho 'Change Virtual Pool - Upgrade To MetroPoint'
         run volume change_cos ${PROJECT}/${base_volume} ${upgrade_to_mp}
+    else
+        secho 'Change Virtual Pool - Remove Protection'
+        run volume change_cos ${PROJECT}/${base_volume} ${noprotection_vpool}
+
+        secho 'Change Virtual Pool - Add Protection'
+        run volume change_cos ${PROJECT}/${base_volume} ${rp_vpool} --consistencyGroup ${rp_cg}
     fi
-
-    secho 'Change Virtual Pool - Remove RecoverPoint Protection'
-    run volume change_cos ${PROJECT}/${base_volume} ${noprotection_vpool}
-
-    secho 'Change Virtual Pool - Add RecoverPoint Protection'
-    run volume change_cos ${PROJECT}/${base_volume} ${rp_vpool} --consistencyGroup ${rp_cg}
 }
 
 recoverpoint_vpool_change_replication_mode_test()
@@ -4271,10 +4266,6 @@ recoverpoint_simulator_setup()
         run cos update block rp_targets --storage $VMAX1_SIMULATOR_NATIVEGUID
         run cos update block rp_targets --storage $VMAX2_SIMULATOR_NATIVEGUID
         run cos update block rp_targets --storage $VMAX3_SIMULATOR_NATIVEGUID
-        run cos update block rp_noprotection --storage $VMAX1_SIMULATOR_NATIVEGUID
-        run cos update block rp_noprotection --storage $VMAX2_SIMULATOR_NATIVEGUID
-        run cos update block rp_noprotection --storage $VMAX3_SIMULATOR_NATIVEGUID
-
         if [ "${RP_CDP}" = "1" ]; then
             run cos update block rp_cdp --storage $VMAX1_SIMULATOR_NATIVEGUID
             run cos update block rp_cdp-sync --storage $VMAX1_SIMULATOR_NATIVEGUID
@@ -4295,12 +4286,6 @@ recoverpoint_simulator_setup()
         run cos update block rpvplex_ha --storage $VMAX1_SIMULATOR_NATIVEGUID
         run cos update block rpvplex_ha --storage $VMAX2_SIMULATOR_NATIVEGUID
         run cos update block rpvplex_ha --storage $VMAX3_SIMULATOR_NATIVEGUID
-        run cos update block rpvplexlocal_noprotection --storage $VMAX1_SIMULATOR_NATIVEGUID
-        run cos update block rpvplexlocal_noprotection --storage $VMAX2_SIMULATOR_NATIVEGUID
-        run cos update block rpvplexlocal_noprotection --storage $VMAX3_SIMULATOR_NATIVEGUID
-        run cos update block rpvplexdist_noprotection --storage $VMAX1_SIMULATOR_NATIVEGUID
-        run cos update block rpvplexdist_noprotection --storage $VMAX2_SIMULATOR_NATIVEGUID
-        run cos update block rpvplexdist_noprotection --storage $VMAX3_SIMULATOR_NATIVEGUID
 
         if [ "${RP_CDP}" = "1" ]; then
             run cos update block rpvplex_cdp --storage $VMAX1_SIMULATOR_NATIVEGUID
@@ -4418,6 +4403,7 @@ recoverpoint_tests()
         rp_src_varray=$RECOVERPOINT_VARRAY1
         rpvplex_src_varray=$RECOVERPOINT_VARRAY1
         rpmp_src_varray=$RECOVERPOINT_VARRAY1
+	rpxio_src_varray=$RECOVERPOINT_VARRAY1
 
         # Vpools for change vpool - Remove Protection
         rp_noprotection_vpool='rp_noprotection'
@@ -4447,6 +4433,11 @@ recoverpoint_tests()
             rpmp_standby_tgt_varray=$RECOVERPOINT_VARRAY2
             rpmp_tgt_varrays=($RECOVERPOINT_VARRAY1 $RECOVERPOINT_VARRAY2)
             rpmp_tgt_vpool='rp_targets'
+            
+            # XIO
+            rpxio_tgt_varray=$RECOVERPOINT_VARRAY1
+            rpxio_tgt_varrays=($RECOVERPOINT_VARRAY1)
+            rpxio_tgt_vpool='rpxio_targets'
         fi
 
         if [ "$RP_CRR" = "1" ]; then
@@ -4468,6 +4459,11 @@ recoverpoint_tests()
             rpmp_tgt_varrays=($RECOVERPOINT_VARRAY3)
             rpmp_standby_tgt_varray=''
             rpmp_tgt_vpool='rp_targets'
+
+            # XIO
+            rpxio_tgt_varray=$RECOVERPOINT_VARRAY1
+            rpxio_tgt_varrays=($RECOVERPOINT_VARRAY1)
+            rpxio_tgt_vpool='rpxio_targets'
         fi
 
         if [ "$RP_CLR" = "1" ]; then
@@ -4489,6 +4485,11 @@ recoverpoint_tests()
             rpmp_tgt_varrays=($RECOVERPOINT_VARRAY1 $RECOVERPOINT_VARRAY2 $RECOVERPOINT_VARRAY3)
             rpmp_standby_tgt_varray=''
             rpmp_tgt_vpool='rp_targets'
+
+            # XIO
+            rpxio_tgt_varray=$RECOVERPOINT_VARRAY3
+            rpxio_tgt_varrays=($RECOVERPOINT_VARRAY1 $RECOVERPOINT_VARRAY3)
+            rpxio_tgt_vpool='rpxio_targets'
         fi
 
         # RP
@@ -4512,7 +4513,7 @@ recoverpoint_tests()
         # XIO
         rpxio_src_vpool='rpxio_'$rp_type
         rpxio_src_vpool_sync=${rpxio_src_vpool}'-sync'
-        rpxiovolume=${RP_METROPOINT_VOLUME}
+        rpxiovolume=${RP_XIO_VOLUME}
         rpxiovolumetarget=${xiovolume}'-target-'${rpxio_active_tgt_varray}
 
         # Ingestion Tests
@@ -4589,8 +4590,8 @@ recoverpoint_tests()
             fi
 
             if [ "$RPMP_TESTS" = "1" ]; then
-                secho 'MetroPoint change vpool...'
-                recoverpoint_vpool_change_test ${rpmpvolume}${volume_name_modifier} ${rpmp_noprotection_vpool} ${rpmp_src_vpool} ${RP_METROPOINT_CONSISTENCY_GROUP}
+                secho 'MP change vpool...NOT YET SUPPORTED!!'
+                #recoverpoint_vpool_change_test ${rpmpvolume}${volume_name_modifier} ${rpmp_noprotection_vpool} ${rpmp_src_vpool} ${RP_METROPOINT_CONSISTENCY_GROUP}
             fi
 
             if [ "$RPXIO_TESTS" = "1" ]; then
@@ -4691,6 +4692,31 @@ recoverpoint_tests()
                 # recoverpoint_vpool_change_replication_mode_test ${rpmpvolume}${volume_name_modifier} ${rpmp_src_vpool_sync}
                 # recoverpoint_vpool_change_replication_mode_test ${rpmpvolume}${volume_name_modifier} ${rpmp_src_vpool}
             fi
+
+            # XIO test cases
+            if [ "$RPXIO_TESTS" = "1" ]; then
+                secho 'XIO tests...'
+                # Add Journal Test
+                recoverpoint_add_journal_volume ${rpxio_tgt_varray} ${rpxio_tgt_varray} ${rpxio_tgt_vpool} ${RP_XIO_CONSISTENCY_GROUP}
+                
+                # Snapshot/Bookmark Test
+                if [ "${RP_CLR}" = "1" ]; then
+                    recoverpoint_auto_snapshot_cleanup_test ${rpxiovolume}${volume_name_modifier} ${rpxiovolumetarget}${volume_name_modifier} ${rpxio_tgt_varray} ${rpxiovolume}-target-${RECOVERPOINT_VARRAY1}
+                else
+                    recoverpoint_auto_snapshot_cleanup_test ${rpxiovolume}${volume_name_modifier} ${rpxiovolumetarget}${volume_name_modifier} ${rpxio_tgt_varray}
+                fi
+
+                # Failover Test
+                recoverpoint_failover_test ${rpxiovolume}${volume_name_modifier} ${rpxiovolumetarget}${volume_name_modifier}
+
+                # CG Failover/Swap Test
+                recoverpoint_cg_failover_test ${RP_XIO_CONSISTENCY_GROUP} ${rpxiovolume}${volume_name_modifier} ${rpxio_src_varray} ${rpxio_tgt_volumes} ${rpxio_tgt_varrays}
+
+                # Change Replication Mode Test
+                secho 'RP change vpool - replication mode'
+                recoverpoint_vpool_change_replication_mode_test ${rpxiovolume}${volume_name_modifier} ${rpxio_src_vpool_sync}
+                recoverpoint_vpool_change_replication_mode_test ${rpxiovolume}${volume_name_modifier} ${rpxio_src_vpool}
+            fi
         fi
 
         ### End RecoverPoint test cases ###
@@ -4710,6 +4736,10 @@ recoverpoint_tests()
         if [ "$RPMP_TESTS" = "1" ]; then
             secho 'MP volume cleanup...'
             recoverpoint_cleanup_volumes ${rpmpvolume} $RP_VOLUME_COUNT
+        fi
+        if [ "$RPXIO_TESTS" = "1" ]; then
+            secho 'XIO volume cleanup...'
+            recoverpoint_cleanup_volumes ${rpxiovolume} $RP_VOLUME_COUNT
         fi
 
         secho 'CG cleanup...'

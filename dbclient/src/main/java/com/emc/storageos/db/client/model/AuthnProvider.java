@@ -31,6 +31,7 @@ public class AuthnProvider extends DataObject {
     private String _description;
     private Boolean _disable;
     private Boolean _autoRegCoprHDNImportOSProjects;
+    private StringSet _tenantsSynchronizationOptions;
     private StringSet _serverUrls;
     private StringSet _domains;
     private String _serverCert;
@@ -57,6 +58,10 @@ public class AuthnProvider extends DataObject {
     // values to be used for the searchScope element
     public static enum SearchScope {
         ONELEVEL, SUBTREE
+    }
+
+    public enum TenantsSynchronizationOptions {
+        ADDITION, DELETION
     }
 
     @Name("mode")
@@ -114,6 +119,17 @@ public class AuthnProvider extends DataObject {
     public void setAutoRegCoprHDNImportOSProjects(Boolean autoRegCoprHDNImportOSProjects) {
         _autoRegCoprHDNImportOSProjects = autoRegCoprHDNImportOSProjects;
         setChanged("autoRegCoprHDNImportOSProjects");
+    }
+
+    @Name("tenantsSynchronizationOptions")
+    public StringSet getTenantsSynchronizationOptions() {
+        return _tenantsSynchronizationOptions;
+    }
+
+    public void setTenantsSynchronizationOptions(
+            StringSet tenantsSynchronizationOptions) {
+        _tenantsSynchronizationOptions = tenantsSynchronizationOptions;
+        setChanged("tenantsSynchronizationOptions");
     }
 
     @Name("serverUrls")

@@ -30,6 +30,7 @@
 		}
     	$('#ldapSources_mode').on('change', setFormByType);
     	$('#ldapSources_mode').on('change', setDefaults);
+        $('#ldapSources_autoRegCoprHDNImportOSProjects').on('change', showTenantsSettings);
 
         setFormByType();       
     });
@@ -45,6 +46,7 @@
     	        $('#ldapSources_groupAttribute').closest($ctrlElements).show();
     	        $('#ldapSources_groupWhiteListValues').closest($ctrlElements).show();
                 $('#ldapSources_autoRegCoprHDNImportOSProjects').closest($ctrlElements).hide();
+                $('#ldapSources_tenantsSynchronizationOptions').closest($ctrlElements).hide();
     	    } else {
     	        $('#ldapSources_groupObjectClasses').closest($ctrlElements).hide();
     	        $('#ldapSources_groupMemberAttributes').closest($ctrlElements).hide();
@@ -53,6 +55,7 @@
     	    }
         }else if (authType == 'keystone'){
             $('#ldapSources_autoRegCoprHDNImportOSProjects').closest($ctrlElements).show();
+            showTenantsSettings();
             $('#ldapSources_groupAttribute').closest($ctrlElements).show();
             $('#ldapSources_groupWhiteListValues').closest($ctrlElements).show();
     	    $('#ldapSources_searchScopeControlGroup').closest($ctrlElements).hide();
@@ -63,6 +66,7 @@
             
         } else {
             $('#ldapSources_autoRegCoprHDNImportOSProjects').closest($ctrlElements).hide();
+            $('#ldapSources_tenantsSynchronizationOptions').closest($ctrlElements).hide();
             $('#ldapSources_groupObjectClasses').closest($ctrlElements).hide();
             $('#ldapSources_groupMemberAttributes').closest($ctrlElements).hide();
             $('#ldapSources_groupAttribute').closest($ctrlElements).show();
@@ -72,7 +76,18 @@
     	    $('#ldapSources_searchFilterControlGroup').closest($ctrlElements).show();
         }
     }
-    
+
+    function showTenantsSettings() {
+        var $ctrlElements = $("fieldset");
+        if ($('#ldapSources_autoRegCoprHDNImportOSProjects').is(':checked')) {
+            $('#ldapSources_tenantsSynchronizationOptions').closest($ctrlElements).show();
+            $('#ldapSources_synchronizationInterval').closest($ctrlElements).show();
+        } else{
+          $('#ldapSources_tenantsSynchronizationOptions').closest($ctrlElements).hide();
+          $('#ldapSources_synchronizationInterval').closest($ctrlElements).hide();
+        }
+    }
+
     function setDefaults() {
         var authType = $('#ldapSources_mode').val();
         var group = $('#ldapSources_groupAttribute');
@@ -189,6 +204,29 @@
           }
         }%
       #{Form.booleanCheckBoxControlGroup field:field/}
+    #{/field}
+    </fieldset>
+
+    <fieldset>
+    #{field 'ldapSources.tenantsSynchronizationOptions'}
+        %{
+         if (readOnlyCheckboxForAutomaticRegistration) {
+            field.disabled = true
+         }
+        }%
+      #{Form.selectManyControlGroup field:field, options:tenantsOptions/}
+    #{/field}
+
+    #{field 'ldapSources.synchronizationInterval'}
+        %{
+            field.helpTextKey = field.name + '.description'
+            field.required = false
+         if (readOnlyCheckboxForAutomaticRegistration) {
+            field.disabled = true
+            field.value = readOnlySynchronizationInterval
+        }
+        }%
+      #{Form.inputTextControlGroup field:field /}
     #{/field}
     </fieldset>
 

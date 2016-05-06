@@ -20,6 +20,11 @@ import java.util.Set;
 public class AuthnCreateParam extends AuthnProviderBaseParam {
 
     /**
+     *
+     */
+
+    private Set<String> tenantsSynchronizationOptions;
+    /**
      * Valid ldap or ldaps url strings.
      * 
      */
@@ -63,6 +68,19 @@ public class AuthnCreateParam extends AuthnProviderBaseParam {
     private Set<String> groupMemberAttributes;
 
     public AuthnCreateParam() {
+    }
+
+    @XmlElementWrapper(name = "tenants_synchronization_options")
+    @XmlElement(name = "tenants_synchronization_option")
+    public Set<String> getTenantsSynchronizationOptions() {
+        if (tenantsSynchronizationOptions == null) {
+            tenantsSynchronizationOptions = new LinkedHashSet<String>();
+        }
+        return tenantsSynchronizationOptions;
+    }
+
+    public void setTenantsSynchronizationOptions(Set<String> tenantsSynchronizationOptions) {
+        this.tenantsSynchronizationOptions = tenantsSynchronizationOptions;
     }
 
     @XmlElementWrapper(name = "server_urls")
@@ -145,6 +163,16 @@ public class AuthnCreateParam extends AuthnProviderBaseParam {
         } else {
             sb.append("null");
         }
+
+        sb.append(", tenantsSynchronizationOptions=");
+        if (tenantsSynchronizationOptions != null) {
+            for (String s : tenantsSynchronizationOptions) {
+                sb.append(s).append(",");
+            }
+        } else {
+            sb.append("null");
+        }
+
         sb.append(", domain=");
         if (domains != null) {
             for (String s : domains) {

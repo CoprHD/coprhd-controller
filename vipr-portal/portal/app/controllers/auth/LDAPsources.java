@@ -31,6 +31,7 @@ import com.emc.storageos.cinder.CinderConstants;
 import com.emc.storageos.db.client.model.AuthnProvider;
 
 import models.SearchScopes;
+import models.TenantsSynchronizationOptions;
 import models.datatable.LDAPsourcesDataTable;
 import models.datatable.LDAPsourcesDataTable.LDAPsourcesInfo;
 
@@ -43,16 +44,13 @@ import play.data.validation.MinSize;
 import play.data.validation.Required;
 import play.data.validation.Validation;
 import play.mvc.With;
-import util.AuthSourceType;
-import util.AuthnProviderUtils;
-import util.EnumOption;
-import util.MessagesUtils;
-import util.VCenterUtils;
+import util.*;
 
 import com.emc.storageos.model.auth.AuthnCreateParam;
 import com.emc.storageos.model.auth.AuthnProviderRestRep;
 import com.emc.storageos.model.auth.AuthnUpdateParam;
 import com.emc.storageos.model.auth.AuthnUpdateParam.DomainChanges;
+import com.emc.storageos.model.auth.AuthnUpdateParam.TenantsSynchronizationOptionsChanges;
 import com.emc.storageos.model.auth.AuthnUpdateParam.GroupWhitelistValueChanges;
 import com.emc.storageos.model.auth.AuthnUpdateParam.ServerUrlChanges;
 import com.emc.storageos.model.auth.AuthnUpdateParam.GroupObjectClassChanges;
@@ -102,7 +100,7 @@ public class LDAPsources extends ViprResourceController {
         renderArgs.put("keyStoneType", AuthSourceType.keystone);
         renderArgs.put("keystoneServerURL", KEYSTONE_SERVER_URL);
         renderArgs.put("searchScopeTypeList", SearchScopes.options(SearchScopes.ONELEVEL, SearchScopes.SUBTREE));
-
+        renderArgs.put("tenantsOptions", TenantsSynchronizationOptions.options(TenantsSynchronizationOptions.ADDITION, TenantsSynchronizationOptions.DELETION));
         renderArgs.put("showLdapGroup", VCenterUtils.checkCompatibleVDCVersion(EXPECTED_GEO_VERSION_FOR_LDAP_GROUP_SUPPORT));
     }
 
@@ -215,6 +213,10 @@ public class LDAPsources extends ViprResourceController {
         
         public Boolean autoRegCoprHDNImportOSProjects;
 
+        public List<String> tenantsSynchronizationOptions;
+
+        public String synchronizationInterval;
+
         @Required
         public List<String> domains;
 
@@ -261,6 +263,7 @@ public class LDAPsources extends ViprResourceController {
             renderArgs.put("groupMemberAttributesString", StringUtils.join(this.groupMemberAttributes, "\n"));
             renderArgs.put("readOnlyGroupAttribute", !isGroupAttributeBlankOrNull(this.groupAttribute));
             renderArgs.put("readOnlyCheckboxForAutomaticRegistration", this.autoRegCoprHDNImportOSProjects);
+            renderArgs.put("readOnlySynchronizationInterval", this.synchronizationInterval);
         }
 
         public boolean isNew() {
@@ -274,6 +277,7 @@ public class LDAPsources extends ViprResourceController {
             this.description = ldapSources.getDescription();
             this.disable = ldapSources.getDisable();
             this.autoRegCoprHDNImportOSProjects = ldapSources.getAutoRegCoprHDNImportOSProjects();
+            this.tenantsSynchronizationOptions = Lists.newArrayList(ldapSources.getTenantsSynchronizationOptions());
             this.domains = Lists.newArrayList(ldapSources.getDomains());
             this.groupAttribute = isGroupAttributeBlankOrNull(ldapSources.getGroupAttribute()) ? "" : ldapSources.getGroupAttribute();
             this.groupWhiteListValues = Lists.newArrayList(ldapSources.getGroupWhitelistValues());
@@ -305,6 +309,7 @@ public class LDAPsources extends ViprResourceController {
             param.setDescription(StringUtils.trimToNull(this.description));
             param.setDisable(this.disable);
             param.setAutoRegCoprHDNImportOSProjects(this.autoRegCoprHDNImportOSProjects);
+            param.setTenantsSynchronizationOptionsChanges(getTenantsSynchronizationOptionsChanges(provider));
 
             param.setManagerDn(this.managerDn);
             param.setManagerPassword(StringUtils.trimToNull(this.managerPassword));
@@ -333,6 +338,19 @@ public class LDAPsources extends ViprResourceController {
             Set<String> oldValues = provider.getDomains();
 
             DomainChanges changes = new DomainChanges();
+            changes.getAdd().addAll(newValues);
+            changes.getAdd().removeAll(oldValues);
+            changes.getRemove().addAll(oldValues);
+            changes.getRemove().removeAll(newValues);
+
+            return changes;
+        }
+
+        private TenantsSynchronizationOptionsChanges getTenantsSynchronizationOptionsChanges(AuthnProviderRestRep provider) {
+            Set<String> newValues = Sets.newHashSet(parseMultiLineInput(this.tenantsSynchronizationOptions.get(0)));
+            Set<String> oldValues = provider.getTenantsSynchronizationOptions();
+
+            TenantsSynchronizationOptionsChanges changes = new TenantsSynchronizationOptionsChanges();
             changes.getAdd().addAll(newValues);
             changes.getAdd().removeAll(oldValues);
             changes.getRemove().addAll(oldValues);
@@ -400,6 +418,8 @@ public class LDAPsources extends ViprResourceController {
             param.setDescription(StringUtils.trimToNull(this.description));
             param.setDisable(this.disable);
             param.setAutoRegCoprHDNImportOSProjects(this.autoRegCoprHDNImportOSProjects);
+            param.getTenantsSynchronizationOptions().addAll(this.tenantsSynchronizationOptions);
+            param.getTenantsSynchronizationOptions().add(this.synchronizationInterval);
             param.setGroupAttribute(this.groupAttribute);
             param.setManagerDn(this.managerDn);
             param.setManagerPassword(this.managerPassword);

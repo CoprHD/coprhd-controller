@@ -320,6 +320,9 @@ AuthSourceType.keystone=Keystone
 SearchScope.ONELEVEL=One Level
 SearchScope.SUBTREE=Subtree
 
+TenantsSynchronizationOptions.ADDITION=Automatic addition of Tenants
+TenantsSynchronizationOptions.DELETION=Automatic deletion of Tenants
+
 TransportProtocol.FC=FC
 TransportProtocol.IP=IP
 TransportProtocol.Ethernet=Ethernet
@@ -1613,6 +1616,10 @@ ldapSources.disable=Disabled
 ldapSources.disable.help=Disabled providers will not have their connectivity validated or be available for processing login requests
 ldapSources.autoRegCoprHDNImportOSProjects=Automatic Registration and Tenant Mapping
 ldapSources.autoRegCoprHDNImportOSProjects.help=This SDS controller will be added as Block Storage Service in Keystone. Tenants and Projects from Keystone will be imported automatically.
+ldapSources.tenantsSynchronizationOptions =Tenants synchronization options
+ldapSources.addTenants=Add tenants
+ldapSources.synchronizationInterval=Synchronization interval
+ldapSources.synchronizationInterval.description=Synchronization interval provided in seconds
 ldapSources.domains=Domains
 ldapSources.domains.description=List all Domains, one per line
 ldapSources.groupAttribute=Group Attribute

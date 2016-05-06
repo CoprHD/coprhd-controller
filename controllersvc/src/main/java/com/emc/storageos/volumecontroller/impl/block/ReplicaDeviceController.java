@@ -23,6 +23,8 @@ import java.util.Map.Entry;
 import java.util.Set;
 
 import com.emc.storageos.db.client.model.util.BlockConsistencyGroupUtils;
+import com.emc.storageos.volumecontroller.impl.utils.labels.LabelFormat;
+import com.emc.storageos.volumecontroller.impl.utils.labels.LabelFormatFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -409,7 +411,6 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
             for (String snapGroupName : snapGroupNames) {
                 String copyMode = ControllerUtils.getCopyModeFromSnapshotGroup(snapGroupName, systemURI, _dbClient);
                 log.info("Existing snap group {}, copy mode {}", snapGroupName, copyMode);
-                List<Map<URI, BlockSnapshot>> snapSessionSnapshots = new ArrayList<>();
                 // prepare snapshot target
                 BlockSnapshot blockSnapshot = prepareSnapshot(volume, snapGroupName);
                 blockSnapshot.setCopyMode(copyMode);
@@ -608,7 +609,11 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
         }
         snapshot.setSnapsetLabel(existingSnapSnapSetLabel);
 
-        snapshot.setLabel(volume.getLabel() + "-" + ControllerUtils.extractGroupName(repGroupName));
+        Set<String> existingLabels =
+                ControllerUtils.getSnapshotLabelsFromExistingSnaps(repGroupName, volume.getStorageController(), _dbClient);
+        LabelFormatFactory labelFormatFactory = new LabelFormatFactory();
+        LabelFormat labelFormat = labelFormatFactory.getLabelFormat(existingLabels);
+        snapshot.setLabel(labelFormat.next());
 
         snapshot.setTechnologyType(BlockSnapshot.TechnologyType.NATIVE.name());
         _dbClient.createObject(snapshot);

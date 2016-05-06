@@ -58,6 +58,11 @@ public class DbsvcQuorumMonitor implements Runnable {
             return;
         }
 
+        Site localSite = drUtil.getLocalSite();
+        if (localSite.getState() == SiteState.ACTIVE) {
+            updateSiteMonitorResult(localSite);
+        }
+
         List<Site> standbySites = drUtil.listStandbySites();
         List<Site> sitesToDegrade = new ArrayList<>();
         for (Site standbySite : standbySites) {

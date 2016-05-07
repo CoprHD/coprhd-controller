@@ -1061,8 +1061,16 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             Map<URI, List<VolumeDescriptor>> vplexMap = VolumeDescriptor.getDeviceMap(vplexVolumes);
 
             // For each VPLEX, delete the virtual volumes.
+            // This block of code will create one or two steps for each Vplex, one dealing with
+            // consistency groups for SRDF targets (if needed), and the other deleting the 
+            // Virtual Volumes. The delete virtual volumes step will wait on the CG step if present,
+            // otherwise the incoming step from the caller. All the delete virtual volumes steps
+            // are in the VPLEX_STEP step group, which subsequent steps will wait on.
+            // This allows operation for delete virtual volumes in each Vplex to operate in parellel, 
+            // but subsequent steps will wait on all the delete virtual volumes operations to complete.
             for (URI vplexURI : vplexMap.keySet()) {
                 List<URI> vplexVolumeURIs = VolumeDescriptor.getVolumeURIs(vplexMap.get(vplexURI));
+                String vplexWaitFor = waitFor;
                 
                 // If there are VPlex Volumes fronting SRDF targets, handle them.
                 // They will need to be removed from the CG that represents the SRDF targets.
@@ -1072,14 +1080,14 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                     StorageSystem vplexSystem = VPlexControllerUtils.getDataObject(StorageSystem.class, vplexURI, _dbClient);
                     Volume vol = VPlexControllerUtils.getDataObject(Volume.class, volURI, _dbClient);
                     ConsistencyGroupManager consistencyGroupManager = getConsistencyGroupManager(vol);
-                    waitFor = consistencyGroupManager.addStepsForRemovingVolumesFromSRDFTargetCG(
-                            workflow, vplexSystem, volsForTargetCG, waitFor);
+                    vplexWaitFor = consistencyGroupManager.addStepsForRemovingVolumesFromSRDFTargetCG(
+                            workflow, vplexSystem, volsForTargetCG, vplexWaitFor);
                 }
                 
                 workflow.createStep(VPLEX_STEP,
                         String.format("Delete VPlex Virtual Volumes:%n%s",
                                 BlockDeviceController.getVolumesMsg(_dbClient, vplexVolumeURIs)),
-                        waitFor, vplexURI,
+                        vplexWaitFor, vplexURI,
                         DiscoveredDataObject.Type.vplex.name(), this.getClass(),
                         deleteVirtualVolumesMethod(vplexURI, vplexVolumeURIs, doNotFullyDeleteVolumeList),
                         rollbackMethodNullMethod(), null);

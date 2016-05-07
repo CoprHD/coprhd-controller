@@ -62,6 +62,7 @@ import com.emc.storageos.volumecontroller.impl.block.taskcompleter.BlockConsiste
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.BlockSnapshotRestoreCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.VolumeWorkflowCompleter;
 import com.emc.storageos.volumecontroller.impl.smis.SmisConstants;
+import com.emc.storageos.volumecontroller.impl.smis.srdf.SRDFUtils;
 import com.emc.storageos.workflow.Workflow;
 import com.emc.storageos.workflow.WorkflowException;
 import com.emc.storageos.workflow.WorkflowStepCompleter;
@@ -147,7 +148,7 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
                     srdfSourceVolumeDescriptors, cgURI);
 
             // Create replica for R2
-            URI targetVolumeCG = getTargetVolumeCGFromSourceCG(cgURI);
+            URI targetVolumeCG = SRDFUtils.getTargetVolumeCGFromSourceCG(_dbClient, cgURI);
             if (targetVolumeCG != null) {
                 waitFor = createReplicaIfCGHasReplica(workflow, waitFor, srdfTargetVolumeDescriptors, targetVolumeCG);
             }
@@ -1703,24 +1704,5 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
         }
 
         return waitFor;
-    }
-
-    private URI getTargetVolumeCGFromSourceCG(URI sourceCG) {
-        List<Volume> sourceVolumes = CustomQueryUtility.queryActiveResourcesByConstraint(_dbClient, Volume.class,
-                AlternateIdConstraint.Factory.getBlockObjectsByConsistencyGroup(sourceCG.toString()));
-
-        for (Volume sourceVolume : sourceVolumes) {
-            if (sourceVolume.getSrdfTargets() != null) {
-                for (String target : sourceVolume.getSrdfTargets()) {
-                    if (NullColumnValueGetter.isNotNullValue(target)) {
-                        Volume targetVolume = _dbClient.queryObject(Volume.class, URI.create(target));
-                        if (!NullColumnValueGetter.isNullURI(targetVolume.getConsistencyGroup())) {
-                            return targetVolume.getConsistencyGroup();
-                        }
-                    }
-                }
-            }
-        }
-        return null;
     }
 }

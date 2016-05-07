@@ -2018,7 +2018,7 @@ public class SRDFOperations implements SmisConstants {
         invalidTgt.setLabel(newLabel.toString());
         
         
-        // See if there is a corresponding Vplex volume. If so update it's label as well.
+        // See if there is a corresponding Vplex volume. If so update its label as well.
         Volume tgtVplexVolume = VPlexSrdfUtil.getVplexVolumeFromSrdfVolume(dbClient, invalidTgt);
         if (tgtVplexVolume != null) {
             // If the target volume is fronted by Vplex, the source volume should also be Vplex fronted

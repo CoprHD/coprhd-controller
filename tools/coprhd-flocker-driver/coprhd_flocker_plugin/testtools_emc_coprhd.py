@@ -34,10 +34,16 @@ def coprhd_client_for_test():
     varray = dataset['varray']
     cookiedir = dataset['cookiedir']
     vpool = dataset['vpool']
+    vpool_platinum = dataset['vpool_platinum']
+    vpool_gold = dataset['vpool_gold']
+    vpool_silver = dataset['vpool_silver']
+    vpool_bronze = dataset['vpool_bronze']
     hostexportgroup = dataset['hostexportgroup']
+    coprhdcli_security_file = dataset['coprhdcli_security_file']
+    cluster_id = dataset['cluster_id']
     
-    config = configuration(coprhdhost, port, username, password, tenant,project, varray, cookiedir, vpool, hostexportgroup)
-    cli_obj = CoprHDCLIDriver(coprhdhost,port, username, password, tenant,project, varray, cookiedir, vpool, hostexportgroup)
+    config = configuration(coprhdhost, port, username, password, tenant,project, varray, cookiedir, vpool,vpool_platinum,vpool_gold,vpool_silver,vpool_bronze,hostexportgroup,coprhdcli_security_file,cluster_id)
+    cli_obj = CoprHDCLIDriver(coprhdhost,port, username, password, tenant,project, varray, cookiedir, vpool,vpool_platinum,vpool_gold,vpool_silver,vpool_bronze,hostexportgroup,coprhdcli_security_file,cluster_id)
     return config,cli_obj
 
 #coprhd_client_for_test()

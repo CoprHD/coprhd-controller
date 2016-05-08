@@ -21,6 +21,7 @@ import org.apache.commons.lang.mutable.MutableInt;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.emc.storageos.hp3par.command.SystemCommandResult;
 import com.emc.storageos.hp3par.connection.ConnectionInfo;
 import com.emc.storageos.hp3par.connection.HP3PARApiFactory;
 import com.emc.storageos.storagedriver.AbstractStorageDriver;
@@ -39,7 +40,12 @@ import com.emc.storageos.storagedriver.model.VolumeClone;
 import com.emc.storageos.storagedriver.model.VolumeConsistencyGroup;
 import com.emc.storageos.storagedriver.model.VolumeMirror;
 import com.emc.storageos.storagedriver.model.VolumeSnapshot;
+import com.emc.storageos.storagedriver.model.StorageObject.AccessStatus;
+import com.emc.storageos.storagedriver.model.StorageSystem.SupportedProvisioningType;
+import com.emc.storageos.storagedriver.model.StorageSystem.SupportedReplication;
 import com.emc.storageos.storagedriver.storagecapabilities.CapabilityInstance;
+import com.emc.storageos.storagedriver.storagecapabilities.CommonStorageCapabilities;
+import com.emc.storageos.storagedriver.storagecapabilities.CustomStorageCapabilities;
 import com.emc.storageos.storagedriver.storagecapabilities.StorageCapabilities;
 
 public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockStorageDriver {
@@ -81,10 +87,6 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
 		return null;
 	}
 	
-	//////////////////////////
-	
-	///////////////////////////////
-	
 	@Override
 	public DriverTask discoverStorageSystem(List<StorageSystem> storageSystems) {
         String taskType = "discover-storage-system";
@@ -99,33 +101,47 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
 
 	            URI deviceURI = new URI("https", null, 
 	                    storageSystem.getIpAddress(), storageSystem.getPortNumber(), "/", null, null);
+	            String uniqueId = deviceURI.toString();
 
-	            ConnectionInfo connectionInfo = connectionMap.get(deviceURI.toString() +
-	                    ":" + storageSystem.getUsername() + ":" + storageSystem.getPassword());
-	            
-	            if (connectionInfo == null) {
-	                connectionInfo = new ConnectionInfo(storageSystem.getIpAddress(),
-                            storageSystem.getPortNumber(),
-                            storageSystem.getUsername(),
-                            storageSystem.getPassword());
+	            ConnectionInfo connectionInfo = new ConnectionInfo(storageSystem.getIpAddress(),
+	                    storageSystem.getPortNumber(),
+	                    storageSystem.getUsername(),
+	                    storageSystem.getPassword());
 
-	                // key=uri+user+pass to make unique, value=all details
-	                connectionMap.putIfAbsent(deviceURI.toString() +
-	                        ":" + storageSystem.getUsername() + ":" + storageSystem.getPassword(),
-	                        connectionInfo);
-	            }
+	            //Re-enter the connection info always as there could be change in user name/password 
+	            connectionMap.put(uniqueId, connectionInfo);
 
 	            HP3PARApi hp3parApi = getHP3PARDevice(storageSystem);
 	            String authToken = hp3parApi.getAuthToken(storageSystem.getUsername(),storageSystem.getPassword());
-	            _log.info("3PAR auth key {} ", authToken);
-
-	            /////////////////////////
-	            ///get serial number and other details
-	            ////////////////////
+	            if (authToken == null) {
+	                break;
+	            }
 	            
+	            SystemCommandResult systemRes = hp3parApi.getSystemDetails();
+	            storageSystem.setSerialNumber(systemRes.getSerialNumber());
+	            storageSystem.setMajorVersion(systemRes.getSystemVersion());
+	            storageSystem.setMinorVersion("0"); //as there is no individual portion in version
+	            storageSystem.setFirmwareVersion(systemRes.getSystemVersion());
+	            storageSystem.setIsSupportedVersion(true); //always supported
+	            storageSystem.setModel(systemRes.getModel());
+	            storageSystem.setProvisioningType(SupportedProvisioningType.THIN_AND_THICK);
+                Set<StorageSystem.SupportedReplication> supportedReplications = new HashSet<>();
+                supportedReplications.add(StorageSystem.SupportedReplication.elementReplica);
+                supportedReplications.add(StorageSystem.SupportedReplication.groupReplica);
+                storageSystem.setSupportedReplications(supportedReplications);
+                
+                storageSystem.setNativeId(uniqueId + ":" + systemRes.getSerialNumber());
+	            if (storageSystem.getDeviceLabel() == null)
+	            {
+	                storageSystem.setDeviceLabel(storageSystem.getDisplayName());
+	            }
+	            storageSystem.setAccessStatus(AccessStatus.READ_WRITE);
+                
+	            setConnInfoToRegistry(storageSystem.getNativeId(), storageSystem.getIpAddress(), storageSystem.getPortNumber(),
+	                    storageSystem.getUsername(), storageSystem.getPassword());
+
 	            task.setStatus(DriverTask.TaskStatus.READY);
-	            storageSystem.setNativeId(deviceURI.toString() + 
-	                    ":" + storageSystem.getUsername() + ":" + storageSystem.getPassword());
+	            storageSystem.setNativeId(uniqueId);
 	               _log.info("Successfull discovery of 3PAR storage system {}, name {} - end",
 	                        storageSystem.getIpAddress(), storageSystem.getSystemName());    
 	        } catch (Exception e) {
@@ -138,7 +154,7 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
 	            // return error task immediately
 	            return task;
 	        }
-	    }
+	    } // end for each StorageSystem
 	    
 	    return task;
 	}
@@ -146,12 +162,14 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
 	@Override
 	public DriverTask discoverStoragePools(StorageSystem storageSystem, List<StoragePool> storagePools) {
 		// TODO Auto-generated method stub
+	    _log.info("3PAR Discover pools for native id {}", storageSystem.getNativeId());
 		return null;
 	}
 
 	@Override
 	public DriverTask discoverStoragePorts(StorageSystem storageSystem, List<StoragePort> storagePorts) {
 		// TODO Auto-generated method stub
+	    _log.info("3PAR Discover ports");
 		return null;
 	}
 
@@ -338,10 +356,28 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
      *
      * @param taskType
      */
-    public DriverTask createDriverTask(String taskType) {
+    private DriverTask createDriverTask(String taskType) {
         String taskID = String.format("%s+%s+%s", HP3PARConstants.DRIVER_NAME, taskType, UUID.randomUUID());
         DriverTask task = new HP3PARDriverTask(taskID);
         return task;
     }
     
+    private void setConnInfoToRegistry(String systemNativeId, String ipAddress, int port, String username, String password) {
+        Map<String, List<String>> attributes = new HashMap<>();
+        List<String> listIP = new ArrayList<>();
+        List<String> listPort = new ArrayList<>();
+        List<String> listUserName = new ArrayList<>();
+        List<String> listPwd = new ArrayList<>();
+
+        listIP.add(ipAddress);
+        attributes.put("IP_ADDRESS", listIP);
+                listPort.add(Integer.toString(port));
+        attributes.put("PORT_NUMBER", listPort);
+                listUserName.add(username);
+        attributes.put("USER_NAME", listUserName);
+                listPwd.add(password);
+        attributes.put("PASSWORD", listPwd);
+        _log.info(String.format("StorageDriver: setting connection information for %s, attributes: %s ", systemNativeId, attributes));
+        this.driverRegistry.setDriverAttributesForKey("StorageDriverSimulator", systemNativeId, attributes);
+    }
 }

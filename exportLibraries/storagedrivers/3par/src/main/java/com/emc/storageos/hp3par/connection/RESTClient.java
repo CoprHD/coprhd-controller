@@ -31,6 +31,12 @@ public class RESTClient {
         WebResource r = _client.resource(url);
         return r.header("Content-Type", MediaType.APPLICATION_JSON).post(ClientResponse.class, body);
     }
+    
+    public ClientResponse get_json(URI url, String authToken) {
+        WebResource r = _client.resource(url);
+        return r.header("Content-Type", "application/json").header("X-HP3PAR-WSAPI-SessionKey", authToken).get(ClientResponse.class);
+    }
+
 
     /**
      * Close the client
@@ -38,5 +44,4 @@ public class RESTClient {
     public void close() {
         _client.destroy();
     }
-
 }

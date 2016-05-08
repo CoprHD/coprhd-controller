@@ -16,6 +16,7 @@ import org.apache.log4j.BasicConfigurator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.emc.storageos.hp3par.command.SystemCommandResult;
 import com.emc.storageos.hp3par.impl.HP3PARApi;
 import com.emc.storageos.hp3par.impl.HP3PARException;
 import com.sun.jersey.api.client.Client;
@@ -135,6 +136,7 @@ public class HP3PARApiFactory {
      */
     public HP3PARApi getRESTClient(URI endpoint, String username, String password) throws HP3PARException {
         try {
+            // key=uri+user+pass to make unique, value=HP3PARApi object
             HP3PARApi hp3parApi = _clientMap.get(endpoint.toString() + ":" + username + ":" + password);
             if (hp3parApi == null) {
                 Client jerseyClient = new ApacheHttpClient(_clientHandler);
@@ -160,7 +162,10 @@ public class HP3PARApiFactory {
         HP3PARApi hp3parApi = factory.getRESTClient(uri, "superme", "superme");
         
         String authToken = hp3parApi.getAuthToken("superme", "superme");
-            System.out.println(authToken);
+        System.out.println(authToken);
+        
+        SystemCommandResult sysRes = hp3parApi.getSystemDetails();
+        System.out.println(sysRes.toString());
         } catch (Exception e) {
             System.out.println(e.toString());
             e.printStackTrace();

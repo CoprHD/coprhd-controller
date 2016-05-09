@@ -40,6 +40,7 @@ import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVol
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume.SupportedVolumeCharacterstics;
 import com.emc.storageos.db.client.util.CommonTransformerFunctions;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
+import com.emc.storageos.util.ConnectivityUtil;
 import com.emc.storageos.volumecontroller.impl.utils.ExportMaskUtils;
 import com.google.common.base.Joiner;
 import com.google.common.collect.Collections2;
@@ -272,12 +273,36 @@ public abstract class BlockIngestExportOrchestrator extends ResourceService {
                             .getChildrenUris(_dbClient, requestContext.getCluster(), Host.class, "cluster");
                     _logger.info("Found Hosts {} in cluster {}", Joiner.on(",").join(hostUris), cluster.getId());
                     List<Set<String>> iniGroupByHost = new ArrayList<Set<String>>();
+                    URI varrayUri = requestContext.getVarray(unManagedVolume).getId();
+                    boolean isVplexDistributedVolume = VolumeIngestionUtil.isVplexDistributedVolume(unManagedVolume);
                     for (URI hostUri : hostUris) {
-                        iniGroupByHost.add(getInitiatorsOfHost(hostUri));
+                        Set<String> initsOfHost = getInitiatorsOfHost(hostUri);
+                        if (isVplexDistributedVolume) {
+                            // this is a distributed vplex volume, may have split fabrics 
+                            // with different connectivity per host, see COP-22384
+                            Iterator<String> initsOfHostIt = initsOfHost.iterator();
+                            while (initsOfHostIt.hasNext()) {
+                                String uriStr = initsOfHostIt.next();
+                                Initiator init = _dbClient.queryObject(Initiator.class, URI.create(uriStr));
+                                _logger.info("checking initiator {} for connectivity", init.getInitiatorPort());
+                                if (null != init) {
+                                    Set<String> connectedVarrays = ConnectivityUtil.getInitiatorVarrays(init.getInitiatorPort(), _dbClient);
+                                    _logger.info("initiator's connected varrays are: {}", connectedVarrays);
+                                    if (!connectedVarrays.contains(varrayUri.toString())) {
+                                        _logger.info("initiator {} of host {} is not connected to varray {}, removing",
+                                                init.getInitiatorPort(), hostUri, varrayUri);
+                                        initsOfHostIt.remove();
+                                    }
+                                }
+                            }
+                        }
+                        if (!initsOfHost.isEmpty()) {
+                            iniGroupByHost.add(initsOfHost);
+                        }
                     }
 
                     eligibleMasks = VolumeIngestionUtil.findMatchingExportMaskForCluster(blockObject,
-                            unManagedMasks, iniGroupByHost, _dbClient, requestContext.getVarray(unManagedVolume).getId(),
+                            unManagedMasks, iniGroupByHost, _dbClient, varrayUri,
                             requestContext.getVpool(unManagedVolume).getId(), requestContext.getCluster(), errorMessages);
                     // Volume cannot be exposed to both Cluster and Host
                     if (eligibleMasks.size() == 1) {

@@ -4592,4 +4592,23 @@ public class VolumeIngestionUtil {
         return false;
     }
 
+    /**
+     * Returns true if the given UnManagedVolume is a VPLEX distributed volume.
+     * 
+     * @param unManagedVolume the UnManagedVolume to check
+     * @return true if the given UnManagedVolume is a VPLEX distributed volume
+     */
+    public static boolean isVplexDistributedVolume(UnManagedVolume unManagedVolume) {
+        if (isVplexVolume(unManagedVolume)) {
+            String locality = PropertySetterUtil.extractValueFromStringSet(
+                    SupportedVolumeInformation.VPLEX_LOCALITY.toString(),
+                    unManagedVolume.getVolumeInformation());
+            if (VPlexApiConstants.DISTRIBUTED_VIRTUAL_VOLUME.equals(locality)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
 }

@@ -9,6 +9,7 @@ dependencies {
             project(":coordinatorsvc")
     testCompile project(":errorhandling")
     testCompile project(":com.emc.sa.model")
+    runtime group: 'com.datastax.cassandra',  name: 'cassandra-driver-core', version: '3.0.0'
 }
 
 test {

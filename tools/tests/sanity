@@ -9894,6 +9894,9 @@ networkcontroller_tests()
 
     echo "deleteding host..."
     hosts delete $HOST_NAME
+
+    python delete.py $BOURNE_IPADDR
+
 }
 
 ${SS}_setup

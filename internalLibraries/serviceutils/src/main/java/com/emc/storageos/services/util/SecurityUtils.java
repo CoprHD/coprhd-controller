@@ -55,10 +55,8 @@ public class SecurityUtils {
         if (value == null) {
             return null;
         }
-        // remove ESAPI cononicalize here, as for remove potential XSS threats, Jsoup solely should work. 
-        // Jsoup cleans all html tags, which also includes <script> tags, and for parameters for our REST API, 
-        // any valid values shouldn't contain any html tags.
-        // value = ESAPI.encoder().canonicalize(value);
+        // firstly, ESAPI canonicalize input, then Jsoup cleans all html tags, which includes <script> tags.
+        value = ESAPI.encoder().canonicalize(value);
         value = value.replaceAll("\0", "");
         value = Jsoup.clean(value, "", Whitelist.none(), new Document.OutputSettings().prettyPrint(false));
 

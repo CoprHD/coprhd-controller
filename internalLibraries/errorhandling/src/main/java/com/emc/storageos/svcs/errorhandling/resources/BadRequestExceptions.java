@@ -2242,7 +2242,7 @@ public interface BadRequestExceptions {
     public BadRequestException sourceNotExported(final URI sourceId);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
-    public BadRequestException cannotCreateSnapshotCgPartOfApplication(final String cgName, String applicationName);
+    public BadRequestException cannotCreateSnapshotCgPartOfApplication(String applicationName);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException invalidParameterRemovePreexistingInitiator(final String maskName, final String initiatorPort);
@@ -2887,6 +2887,9 @@ public interface BadRequestExceptions {
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException backupIntervalIsInvalid(String interval);
 
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException backupStartTimeIsInvalid(String startTime);
+
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException invalidPermissionForBucketACL(String permission);
 
@@ -2956,4 +2959,7 @@ public interface BadRequestExceptions {
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException addRecoverPointProtectionRequiresCG();
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException snapshotRestoreNotSupported();
 }

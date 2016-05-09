@@ -24,6 +24,7 @@ import java.util.*;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
@@ -83,7 +84,6 @@ public class BackupOps {
     private List<Integer> ports;
     private CoordinatorClient coordinatorClient;
     private int quorumSize;
-    private List<String> vdcList;
     private File backupDir;
 
     private DrUtil drUtil;
@@ -254,23 +254,6 @@ public class BackupOps {
         this.coordinatorClient = coordinatorClient;
     }
 
-    /**
-     * Gets vdc list
-     */
-    public List<String> getVdcList() {
-        return vdcList;
-    }
-
-    /**
-     * Sets vdc list
-     * 
-     * @param vdcList
-     *            The list of vdcs
-     */
-    public void setVdcList(List<String> vdcList) {
-        this.vdcList = vdcList;
-    }
-
     public File getBackupDir() {
         return backupDir;
     }
@@ -392,6 +375,8 @@ public class BackupOps {
         }
 
         log.info("found db {} geodb {}", found_db_file, found_geodb_file);
+        log.info("isGeo:{}", isGeo);
+
         if (!found_db_file) {
             String errMsg = String.format("%s does not contain db files", backupFolder.getAbsolutePath());
             throw new RuntimeException(errMsg);
@@ -589,6 +574,9 @@ public class BackupOps {
 
     public void setRestoreStatus(String backupName, boolean isLocal, BackupRestoreStatus.Status s, String details,
                                  boolean increaseCompleteNumber, boolean doLock) {
+        if (increaseCompleteNumber) {
+            log.info("The download is finished lock={}", doLock);
+        }
         updateRestoreStatus(backupName, isLocal, s, details, null, 0, increaseCompleteNumber, null, true, doLock);
     }
 
@@ -613,10 +601,10 @@ public class BackupOps {
             if (doLock) {
                 lock = getLock(BackupConstants.RESTORE_STATUS_UPDATE_LOCK,
                         -1, TimeUnit.MILLISECONDS); // -1= no timeout
-            }
 
-            if (doLog) {
-                log.info("get lock {}", BackupConstants.RESTORE_STATUS_UPDATE_LOCK);
+                if (doLog) {
+                    log.info("get lock {}", BackupConstants.RESTORE_STATUS_UPDATE_LOCK);
+                }
             }
 
             BackupRestoreStatus s = queryBackupRestoreStatus(backupName, isLocal);
@@ -652,19 +640,19 @@ public class BackupOps {
                 s.setBackupFileNames(backupfileNames);
             }
 
-            updateBackupRestoreStatus(s);
+            updateBackupRestoreStatus(s, backupName);
 
             persistBackupRestoreStatus(s, isLocal, doLog);
 
             if (doLog) {
-                log.info("Persist backup restore status {} to zk successfully", s);
+                log.info("Persist backup restore status {} to zk successfully ", s);
             }
         }finally {
-            if (doLog) {
-                log.info("To release lock {}", BackupConstants.RESTORE_STATUS_UPDATE_LOCK);
-            }
-
             if (doLock) {
+                if (doLog) {
+                    log.info("To release lock {}", BackupConstants.RESTORE_STATUS_UPDATE_LOCK);
+                }
+
                 releaseLock(lock);
             }
         }
@@ -672,13 +660,11 @@ public class BackupOps {
     }
 
     public boolean hasStandbySites() {
-        DrUtil drUtil = new DrUtil();
-        drUtil.setCoordinator(coordinatorClient);
         List<Site> sites = drUtil.listSites();
         return sites.size() > 1;
     }
 
-    private void updateBackupRestoreStatus(BackupRestoreStatus s) {
+    private void updateBackupRestoreStatus(BackupRestoreStatus s, String backupName) {
         BackupRestoreStatus.Status restoreStatus = s.getStatus();
         if ( restoreStatus == BackupRestoreStatus.Status.DOWNLOADING) {
             long nodeNumber = getHosts().size();
@@ -702,11 +688,13 @@ public class BackupOps {
             return true;
         }
 
-        if (s.getStatus() == BackupRestoreStatus.Status.DOWNLOAD_SUCCESS) {
+        BackupRestoreStatus.Status currentStatus = s.getStatus();
+
+        if (currentStatus == BackupRestoreStatus.Status.DOWNLOAD_SUCCESS) {
             return false;
         }
 
-        if ( (status == BackupRestoreStatus.Status.DOWNLOAD_CANCELLED) && (!s.getStatus().canBeCanceled())) {
+        if ( (status == BackupRestoreStatus.Status.DOWNLOAD_CANCELLED) && (!currentStatus.canBeCanceled())) {
             log.info("current status {} can't be canceled", s);
             return false;
         }
@@ -736,7 +724,7 @@ public class BackupOps {
 
     public synchronized  void setGeoFlag(String backupName, boolean isLocal) {
         BackupRestoreStatus state = queryBackupRestoreStatus(backupName, isLocal);
-        state.setIsGeo(true);
+        state.setGeo(true);
         log.info("Persist backup restore status {} stack=", state, new Throwable());
         Map<String, String> allItems = state.toMap();
 
@@ -780,7 +768,7 @@ public class BackupOps {
                 throw new RuntimeException(errMsg);
             }
 
-            String[] tokens = lines.get(0).split("\\s");
+            String[] tokens = lines.get(0).split("\\t");
 
             if (tokens.length != 3) {
                 String errMsg = String.format("Invalid md5 file %s : only 3 fields allowed in a line", md5Filename);
@@ -965,6 +953,28 @@ public class BackupOps {
         Preconditions.checkArgument(isValidLinuxFileName(backupTag)
                         && !backupTag.contains(BackupConstants.BACKUP_NAME_DELIMITER),
                 "Invalid backup name: %s", backupTag);
+
+        // The backupname should not contain 'vipr1,vipr2,...,vipr5'
+        // or we will not be able to separate backup files for each node.
+        String pattern="(vipr[1-5].*)";
+        Pattern hostnameReg=Pattern.compile(pattern);
+        Matcher m = hostnameReg.matcher(backupTag);
+        boolean match = false;
+        StringBuilder builder = new StringBuilder();
+        while (m.find()) {
+            if (match) {
+                builder.append(",");
+            }
+
+            match = true;
+            builder.append(m.group(0));
+        }
+
+        if (match) {
+            String errMsg = String.format("The backup name should not contains %s", builder.toString());
+            log.error(errMsg);
+            throw BackupException.fatals.invalidParameters(errMsg);
+        }
     }
 
     private boolean isValidLinuxFileName(String fileName) {
@@ -1674,53 +1684,6 @@ public class BackupOps {
 
     private boolean isPropEntry(ZipEntry zentry) {
         return zentry.getName().endsWith(BackupConstants.BACKUP_INFO_SUFFIX);
-    }
-
-    private void setBackupInfo(ZipInputStream zin, String backupName, BackupInfo backupInfo) throws IOException {
-        setBackupInfo(backupInfo, backupName, zin);
-        /*
-        Properties properties = loadProperties(zin);
-
-        backupInfo.setVersion(getBackupVersion(properties));
-        backupInfo.setCreateTime(getCreateTime(properties, backupInfo.getFileName()));
-        backupInfo.setSiteId(getSiteIDFromProperties(properties));
-        backupInfo.setSiteName(getSiteNameFromProperties(properties));
-        backupInfo.setRestoreStatus(queryBackupRestoreStatus(backupInfo.getFileName(), false));
-        */
-    }
-
-    /**
-     * Get backup info from local disk, it could be the local backup or the downloaded remote backup
-     * @param backupFolder the folder of local backup
-     * @return
-     */
-    public BackupInfo getBackupInfo(File backupFolder, boolean isLocal) {
-        File[] backupFiles = getBackupFiles(backupFolder);
-
-        File propFile = null;
-        long size = 0;
-
-        for (File backupFile : backupFiles) {
-            size += backupFile.length();
-
-            if (backupFile.getName().endsWith(BackupConstants.BACKUP_INFO_SUFFIX)) {
-                propFile = backupFile;
-            }
-        }
-
-        BackupInfo backupInfo = new BackupInfo();
-
-        String backupName = backupFolder.getName();
-
-        try (FileInputStream in = new FileInputStream(propFile)) {
-            setBackupInfo(backupInfo, backupName, in);
-        }catch (IOException e) {
-            log.error("Failed to get backup info from {} e=", propFile.getName(), e);
-        }
-
-        backupInfo.setBackupSize(size);
-
-        return backupInfo;
     }
 
     public void setBackupInfo(BackupInfo backupInfo, String backupName, InputStream in) {

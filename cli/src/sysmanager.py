@@ -1568,9 +1568,7 @@ def update_cluster_version_parser(subcommand_parsers, common_parser):
         description='ViPR: CLI usage to update the cluster',
         parents=[common_parser],
         conflict_handler='resolve',
-        help='Updates target version. Version can only be updated' +
-        ' incrementally. Ex: vipr-3.0.0.2.x can only be' +
-        ' updated to vipr-3.0.0.3.x and not to vipr-3.0.0.4.x')
+        help='Upgrades ViPR to specified target version.Refer to specific ViPR version "Release notes" for supported upgrade paths')
     update_cluster_version_parser.add_argument('-f', '-force',
                                                action='store_true',
                                                dest='force',

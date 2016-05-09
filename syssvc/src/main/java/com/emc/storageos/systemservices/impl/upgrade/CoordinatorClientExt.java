@@ -30,7 +30,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -109,7 +108,6 @@ public class CoordinatorClientExt {
     private CoordinatorClient _coordinator;
     private SysSvcBeaconImpl _beacon;
     private ServiceImpl _svc;
-    private Properties dbCommonInfo;
     private InterProcessLock _remoteDownloadLock = null;
     private volatile InterProcessLock _targetLock = null;
     private InterProcessLock _newVersionLock = null;
@@ -127,6 +125,7 @@ public class CoordinatorClientExt {
     
     private DbServiceStatusChecker statusChecker = null;
     private boolean backCompatPreYoda = true;
+    private boolean isStandby = false;
 
     @Autowired
     private DrSiteNetworkMonitor drSiteNetworkMonitor;
@@ -152,10 +151,6 @@ public class CoordinatorClientExt {
         mySvcId = _svc.getId();
     }
 
-    public void setDbCommonInfo(Properties dbCommonInfo) {
-        this.dbCommonInfo = dbCommonInfo;
-    }
-
     public void setCoordinator(CoordinatorClient coordinator) {
         _coordinator = coordinator;
     }
@@ -171,7 +166,15 @@ public class CoordinatorClientExt {
     public void setBackCompatPreYoda(Boolean backCompat) {
         backCompatPreYoda = backCompat;
     }
-    
+
+    public boolean isStandby() {
+        return isStandby;
+    }
+
+    public void setStandby(boolean isStandby) {
+        this.isStandby = isStandby;
+    }
+
     /**
      * Get property
      * 
@@ -1475,7 +1478,7 @@ public class CoordinatorClientExt {
      * On active site, start a thread to monitor db quorum of each standby site
      */
     public void start() {
-        if (drUtil.isStandby()) {
+        if (isStandby) {
             _log.info("Start monitoring local coordinatorsvc status on standby site");
             ScheduledExecutorService exe = Executors.newScheduledThreadPool(1, new ThreadFactory() {
                 @Override
@@ -1496,7 +1499,7 @@ public class CoordinatorClientExt {
                     return new Thread(r, "DbsvcQuorumMonitor");
                 }
             });
-            exe.scheduleAtFixedRate(new DbsvcQuorumMonitor(_coordinator, dbCommonInfo),
+            exe.scheduleAtFixedRate(new DbsvcQuorumMonitor(_coordinator),
                     0, DB_MONITORING_INTERVAL, TimeUnit.SECONDS);
         }
 

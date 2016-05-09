@@ -6,7 +6,6 @@ package com.emc.storageos.api.service.impl.resource.blockingestorchestration;
 
 import java.net.URI;
 import java.util.ArrayList;
-import java.util.Calendar;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -408,7 +407,6 @@ public abstract class BlockIngestOrchestrator {
         volume.setVirtualPool(vPool.getId());
         volume.setVirtualArray(virtualArray.getId());
         volume.setStorageController(system.getId());
-        volume.setCreationTime(Calendar.getInstance());
         volume.setPool(unManagedVolume.getStoragePoolUri());
         // adding capacity
         String allocatedCapacity = PropertySetterUtil.extractValueFromStringSet(
@@ -909,7 +907,8 @@ public abstract class BlockIngestOrchestrator {
                     BlockObject parentRPVolume = VolumeIngestionUtil.getRPVolume(requestContext, parent, _dbClient);
                     umpset = VolumeIngestionUtil.getUnManagedProtectionSetForManagedVolume(requestContext, parentRPVolume, _dbClient);
                 }
-                allRPCGVolumesIngested = VolumeIngestionUtil.validateAllVolumesInCGIngested(ingestedUnManagedVolumes, umpset, _dbClient);
+                allRPCGVolumesIngested = VolumeIngestionUtil.validateAllVolumesInCGIngested(ingestedUnManagedVolumes, umpset,
+                        requestContext, _dbClient);
                 // If not fully ingested, mark the volume as internal. This will be marked visible when the RP CG is ingested
                 if (!allRPCGVolumesIngested) {
                     parent.addInternalFlags(INTERNAL_VOLUME_FLAGS);
@@ -926,7 +925,7 @@ public abstract class BlockIngestOrchestrator {
                         if (parent instanceof Volume) {
                             StringSet associatedVolumes = ((Volume) parent).getAssociatedVolumes();
                             if (associatedVolumes != null && associatedVolumes.contains(replica.getId().toString())) {
-                                _logger.info("associated volume {} of {} has already been ingested", 
+                                _logger.info("associated volume {} of {} has already been ingested",
                                         replica.forDisplay(), parent.forDisplay());
                             } else if (VolumeIngestionUtil.isVplexBackendVolume(replica, _dbClient)) {
                                 VolumeIngestionUtil.setupVplexParentRelations(replica, parent, _dbClient);

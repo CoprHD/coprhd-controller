@@ -65,10 +65,10 @@ public class IPsecService {
     }
 
     /**
-     * change IPsec status to enabled/disabled for the vdc
+     * Change IPsec status to enabled/disabled within VDC and across sites.
      *
-     * recommend not turning it to disabled in product env, doing this will downgrade the
-     * security protection level.
+     * Setting status to disabled is not recommended in production environment, as it
+     * will downgrade the security protection level.
      *
      * @param status - valid values [ enabled | disabled ] (case insensitive)
      * @return the new IPsec state

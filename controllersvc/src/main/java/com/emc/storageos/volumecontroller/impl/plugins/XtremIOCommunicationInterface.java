@@ -29,7 +29,6 @@ import com.emc.storageos.db.client.model.StoragePort.PortType;
 import com.emc.storageos.db.client.model.StorageProvider;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringSet;
-import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.plugins.AccessProfile;
 import com.emc.storageos.plugins.BaseCollectionException;
 import com.emc.storageos.plugins.StorageSystemViewObject;
@@ -71,7 +70,9 @@ public class XtremIOCommunicationInterface extends
     @Override
     public void collectStatisticsInformation(AccessProfile accessProfile)
             throws BaseCollectionException {
-
+        _logger.info("Start collecting statistics for ip address {}", accessProfile.getIpAddress());
+        _logger.info("Collect statistics for XtremIO not supported.");
+        _logger.info("End collecting statistics for ip address {}", accessProfile.getIpAddress());
     }
 
     @Override

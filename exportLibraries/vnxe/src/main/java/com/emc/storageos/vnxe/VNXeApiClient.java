@@ -131,6 +131,7 @@ import com.emc.storageos.vnxe.requests.PoolListRequest;
 import com.emc.storageos.vnxe.requests.PoolRequest;
 import com.emc.storageos.vnxe.requests.SnapRequests;
 import com.emc.storageos.vnxe.requests.StorageProcessorListRequest;
+import com.emc.storageos.vnxe.requests.StorageResourceRequest;
 import com.emc.storageos.vnxe.requests.StorageSystemRequest;
 import com.emc.storageos.vnxe.requests.StorageTierRequest;
 
@@ -2617,5 +2618,26 @@ public class VNXeApiClient {
         _logger.info("attaching snap:", snapId);
         SnapRequests req = new SnapRequests(_khClient);
         return req.detachSnapSync(snapId);
+    }
+    
+    /**
+     * Get detatils of a storage resource. (Consistency group is a storage resource)
+     * @param id
+     * @return
+     */
+    public StorageResource getStorageResource(String id) {
+        StorageResourceRequest req = new StorageResourceRequest(_khClient);
+        return req.get(id);
+    }
+    
+    /**
+     * Get details of a host initiator
+     * @param initId initiator id
+     * @return VNXeHostInitiator
+     */
+    public VNXeHostInitiator getHostInitiator(String initId) {
+        HostInitiatorRequest req = new HostInitiatorRequest(_khClient);
+        return req.get(initId);
+        
     }
 }

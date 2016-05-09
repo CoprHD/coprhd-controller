@@ -9,6 +9,7 @@
 	<bean id="vnxunityUnManagedObjectDiscoverer"
         class="com.emc.storageos.volumecontroller.impl.vnxunity.VNXUnityUnManagedObjectDiscoverer">
         <property name="vnxeApiClientFactory" ref="clientFactory" />
+        <property name="networkDeviceController" ref="networkDeviceController"/>
     </bean>
 
     <bean id="partitionManager" class="com.emc.storageos.plugins.common.PartitionManager" />

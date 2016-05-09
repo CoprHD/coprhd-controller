@@ -17,6 +17,7 @@ import com.emc.storageos.vnxe.VNXeApiClient;
 import com.emc.storageos.vnxe.VNXeUtils;
 import com.emc.storageos.vnxe.models.BasicSystemInfo;
 import com.emc.storageos.vnxe.models.Snap;
+import com.emc.storageos.vnxe.models.StorageResource;
 import com.emc.storageos.vnxe.models.VNXeBase;
 import com.emc.storageos.vnxe.models.VNXeCifsShare;
 import com.emc.storageos.vnxe.models.VNXeCommandJob;
@@ -250,7 +251,7 @@ public class ApiClientTest {
 
     }
 
-     @Test
+    // @Test
     public void getSystem() {
         apiClient.getStorageSystem();
         apiClient.logout();
@@ -311,5 +312,21 @@ public class ApiClientTest {
         JobRequest req = new JobRequest(_client, "N-612");
         VNXeCommandJob job = req.get();
         System.out.println(job.getMessageOut().getMessage());
+    }
+    
+    //@Test
+    public void getCG() {
+        StorageResourceRequest req = new StorageResourceRequest(_client);
+        StorageResource res = req.get("res_1");
+        System.out.println(res.getName());
+        System.out.println(res.getLuns().size());
+    }
+    
+    @Test
+    public void getHostInitiator() {
+        HostInitiatorRequest req = new HostInitiatorRequest(_client);
+        VNXeHostInitiator res = req.get("HostInitiator_4");
+        System.out.println(res.getPortWWN());
+        System.out.println(res.getNodeWWN());
     }
 }

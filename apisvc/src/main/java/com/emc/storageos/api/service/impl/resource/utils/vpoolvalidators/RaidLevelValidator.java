@@ -55,7 +55,7 @@ public class RaidLevelValidator extends VirtualPoolValidator<BlockVirtualPoolPar
                             param.getSystemType())
                     && !VirtualPool.SystemType.vnxe.toString().equalsIgnoreCase(
                             param.getSystemType())
-                    && !VirtualPool.SystemType.vnxunity.toString().equalsIgnoreCase(
+                    && !VirtualPool.SystemType.unity.toString().equalsIgnoreCase(
                             param.getSystemType())) {
                 throw APIException.badRequests.virtualPoolSupportsVmaxVnxblockWithRaid();
             }
@@ -69,7 +69,7 @@ public class RaidLevelValidator extends VirtualPoolValidator<BlockVirtualPoolPar
             if (!deviceTypes.contains(VirtualPool.SystemType.vmax.toString())
                     && !deviceTypes.contains(VirtualPool.SystemType.vnxblock.toString())
                     && !deviceTypes.contains(VirtualPool.SystemType.vnxe.toString())
-                    && !deviceTypes.contains(VirtualPool.SystemType.vnxunity.toString())) {
+                    && !deviceTypes.contains(VirtualPool.SystemType.unity.toString())) {
                 throw APIException.badRequests.virtualPoolSupportsVmaxVnxblockWithRaid();
             }
         }
@@ -99,7 +99,7 @@ public class RaidLevelValidator extends VirtualPoolValidator<BlockVirtualPoolPar
                         createParam.getSystemType())
                 && !VirtualPool.SystemType.vnxe.toString().equalsIgnoreCase(
                         createParam.getSystemType())
-                && !VirtualPool.SystemType.vnxunity.toString().equalsIgnoreCase(
+                && !VirtualPool.SystemType.unity.toString().equalsIgnoreCase(
                         createParam.getSystemType())) {
             throw APIException.badRequests.parameterOnlySupportedForVmaxAndVnxBlock("Raid Levels");
         }

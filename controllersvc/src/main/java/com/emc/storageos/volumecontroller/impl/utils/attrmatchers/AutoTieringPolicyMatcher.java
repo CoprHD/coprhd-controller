@@ -80,7 +80,7 @@ public class AutoTieringPolicyMatcher extends AttributeMatcher {
         } else if (deviceTypes.contains(VirtualPool.SystemType.hds.name())) {
             filteredPoolList = getAutoTieringPoolsOnHDS(autoTieringPolicyName, attributeMap, pools);
         } else if (deviceTypes.contains(VirtualPool.SystemType.vnxe.toString())
-                   || deviceTypes.contains(VirtualPool.SystemType.vnxunity.toString())) {
+                   || deviceTypes.contains(VirtualPool.SystemType.unity.toString())) {
             filteredPoolList = getPoolsWithAutoTieringEnabled(pools);
         }
         _logger.info("Pools Matching Auto Tiering name Ended:{}",
@@ -140,7 +140,7 @@ public class AutoTieringPolicyMatcher extends AttributeMatcher {
             if (deviceTypes.contains(VirtualPool.SystemType.vmax.toString()) ||
                     deviceTypes.contains(VirtualPool.SystemType.vnxblock.toString()) ||
                     deviceTypes.contains(VirtualPool.SystemType.vnxe.toString()) ||
-                    deviceTypes.contains(VirtualPool.SystemType.vnxunity.toString()) ||
+                    deviceTypes.contains(VirtualPool.SystemType.unity.toString()) ||
                     deviceTypes.contains(VirtualPool.SystemType.hds.name())) {
                 status = true;
             }

@@ -24,6 +24,8 @@ import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
+import com.emc.storageos.db.client.model.HostInterface;
+import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.ShareACL;
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StoragePort;
@@ -31,7 +33,13 @@ import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.StringSetMap;
+import com.emc.storageos.db.client.model.ZoneInfo;
+import com.emc.storageos.db.client.model.ZoneInfoMap;
+import com.emc.storageos.db.client.model.DataObject.Flag;
+import com.emc.storageos.db.client.model.StoragePort.TransportType;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedCifsShareACL;
+import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedConsistencyGroup;
+import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedExportMask;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedFileExportRule;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedFileQuotaDirectory;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedFileSystem;
@@ -42,23 +50,35 @@ import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVol
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume.SupportedVolumeCharacterstics;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume.SupportedVolumeInformation;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
+import com.emc.storageos.networkcontroller.impl.NetworkDeviceController;
 import com.emc.storageos.plugins.AccessProfile;
 import com.emc.storageos.plugins.common.Constants;
 import com.emc.storageos.plugins.common.PartitionManager;
+import com.emc.storageos.util.ExportUtils;
+import com.emc.storageos.util.NetworkUtil;
 import com.emc.storageos.vnxe.VNXeApiClient;
 import com.emc.storageos.vnxe.VNXeApiClientFactory;
+import com.emc.storageos.vnxe.models.BlockHostAccess;
+import com.emc.storageos.vnxe.models.StorageResource;
 import com.emc.storageos.vnxe.models.VNXUnityQuotaConfig;
 import com.emc.storageos.vnxe.models.VNXUnityTreeQuota;
 import com.emc.storageos.vnxe.models.VNXeBase;
 import com.emc.storageos.vnxe.models.VNXeCifsShare;
 import com.emc.storageos.vnxe.models.VNXeFileInterface;
 import com.emc.storageos.vnxe.models.VNXeFileSystem;
+import com.emc.storageos.vnxe.models.VNXeHost;
+import com.emc.storageos.vnxe.models.VNXeHostInitiator;
 import com.emc.storageos.vnxe.models.VNXeLun;
 import com.emc.storageos.vnxe.models.VNXeNfsShare;
 import com.emc.storageos.volumecontroller.FileControllerConstants;
 import com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator;
 import com.emc.storageos.volumecontroller.impl.utils.DiscoveryUtils;
 import com.emc.storageos.volumecontroller.impl.utils.UnManagedExportVerificationUtility;
+import com.emc.storageos.vplexcontroller.VPlexControllerUtils;
+import com.emc.storageos.xtremio.restapi.XtremIOClient;
+import com.emc.storageos.xtremio.restapi.XtremIOClientFactory;
+import com.emc.storageos.xtremio.restapi.model.response.XtremIOConsistencyGroup;
+import com.emc.storageos.xtremio.restapi.model.response.XtremIOInitiator;
 import com.google.common.base.Joiner;
 import com.google.common.collect.Sets;
 import com.google.common.collect.Sets.SetView;
@@ -74,12 +94,26 @@ public class VNXUnityUnManagedObjectDiscoverer {
     private static final String ROOT_USER_ACCESS = "root";
     private static final String SECURITY_FLAVOR = "sys";
     private static final String CIFS_MAX_USERS = "2147483647";
+    private static final String UNMANAGED_CONSISTENCY_GROUP = "UnManagedConsistencyGroup";
+    private static final String UNMANAGED_EXPORT_MASK = "UnManagedExportMask";
 
     private VNXeApiClientFactory vnxeApiClientFactory;
+    private NetworkDeviceController networkDeviceController;
+
+    public void setNetworkDeviceController(
+            NetworkDeviceController networkDeviceController) {
+        this.networkDeviceController = networkDeviceController;
+    }
 
     List<UnManagedVolume> unManagedVolumesInsert = null;
     List<UnManagedVolume> unManagedVolumesUpdate = null;
     Set<URI> unManagedVolumesReturnedFromProvider = new HashSet<URI>();
+    private Map<String, UnManagedConsistencyGroup> unManagedCGToUpdateMap = null;
+    private final Set<URI> allCurrentUnManagedCgURIs = new HashSet<URI>();
+    private List<UnManagedConsistencyGroup> unManagedCGToUpdate = null;
+    private List<UnManagedExportMask> unManagedExportMasksToCreate = null;
+    private List<UnManagedExportMask> unManagedExportMasksToUpdate = null;
+    private final Set<URI> allCurrentUnManagedExportMaskUris = new HashSet<URI>();
 
     List<UnManagedFileSystem> unManagedFilesystemsInsert = null;
     List<UnManagedFileSystem> unManagedFilesystemsUpdate = null;
@@ -106,6 +140,7 @@ public class VNXUnityUnManagedObjectDiscoverer {
 
         unManagedVolumesInsert = new ArrayList<UnManagedVolume>();
         unManagedVolumesUpdate = new ArrayList<UnManagedVolume>();
+        unManagedCGToUpdateMap = new HashMap<String, UnManagedConsistencyGroup>();
 
         StorageSystem storageSystem = dbClient.queryObject(StorageSystem.class,
                 accessProfile.getSystemId());
@@ -114,7 +149,7 @@ public class VNXUnityUnManagedObjectDiscoverer {
 
         if (luns != null && !luns.isEmpty()) {
             Map<String, StoragePool> pools = getStoragePoolMap(storageSystem, dbClient);
-
+            Map<String, List<UnManagedVolume>> hostVolumesMap = new HashMap<String, List<UnManagedVolume>> ();
             for (VNXeLun lun : luns) {
                 UnManagedVolume unManagedVolume = null;
                 String managedVolumeNativeGuid = NativeGUIDGenerator.generateNativeGuidForVolumeOrBlockSnapShot(
@@ -136,9 +171,29 @@ public class VNXUnityUnManagedObjectDiscoverer {
                         unManagedVolumeNatvieGuid);
 
                 unManagedVolume = createUnManagedVolume(unManagedVolume, unManagedVolumeNatvieGuid, lun, storageSystem, storagePool,
-                        dbClient);
+                        dbClient, hostVolumesMap);
 
                 unManagedVolumesReturnedFromProvider.add(unManagedVolume.getId());
+                Boolean isVolumeInCG = lun.getType() == VNXeApiClient.GENERIC_STORAGE_LUN_TYPE ? true : false;
+                if (isVolumeInCG) {
+                    String cgId = lun.getStorageResource().getId();
+                    addObjectToUnManagedConsistencyGroup(apiClient, unManagedVolume, cgId, storageSystem, dbClient);
+                } else {
+                    // Make sure the unManagedVolume object does not contain CG information from previous discovery
+                    unManagedVolume.getVolumeCharacterstics().put(
+                            SupportedVolumeCharacterstics.IS_VOLUME_ADDED_TO_CONSISTENCYGROUP.toString(), Boolean.FALSE.toString());
+                    // set the uri of the unmanaged CG in the unmanaged volume object to empty
+                    unManagedVolume.getVolumeInformation().put(SupportedVolumeInformation.UNMANAGED_CONSISTENCY_GROUP_URI.toString(),
+                                "");
+                    
+                }
+            }
+
+            if (!unManagedCGToUpdateMap.isEmpty()) {
+                unManagedCGToUpdate = new ArrayList<UnManagedConsistencyGroup>(unManagedCGToUpdateMap.values());
+                partitionManager.updateAndReIndexInBatches(unManagedCGToUpdate,
+                        unManagedCGToUpdate.size(), dbClient, UNMANAGED_CONSISTENCY_GROUP);
+                unManagedCGToUpdate.clear();
             }
 
             if (!unManagedVolumesInsert.isEmpty()) {
@@ -149,10 +204,17 @@ public class VNXUnityUnManagedObjectDiscoverer {
                 partitionManager.updateAndReIndexInBatches(unManagedVolumesUpdate,
                         Constants.DEFAULT_PARTITION_SIZE, dbClient, UNMANAGED_VOLUME);
             }
-
+            
+            
             // Process those active unmanaged volume objects available in database but not in newly discovered items, to
             // mark them inactive.
             DiscoveryUtils.markInActiveUnManagedVolumes(storageSystem, unManagedVolumesReturnedFromProvider, dbClient, partitionManager);
+            // Process those active unmanaged consistency group objects available in database but not in newly discovered items, to mark them
+            // inactive.
+            DiscoveryUtils.performUnManagedConsistencyGroupsBookKeeping(storageSystem, allCurrentUnManagedCgURIs, dbClient, partitionManager);
+            
+            // Next discover the unmanaged export masks
+            discoverUnmanagedExportMasks(storageSystem.getId(), hostVolumesMap, apiClient, dbClient, partitionManager);
         } else {
             log.info("There are no luns found on the system: {}", storageSystem.getId());
         }
@@ -532,7 +594,7 @@ public class VNXUnityUnManagedObjectDiscoverer {
                             UnManagedFileSystem.SupportedFileSystemCharacterstics.IS_FILESYSTEM_EXPORTED
                                     .toString(),
                             Boolean.TRUE.toString());
-                    dbClient.persistObject(unManagedFs);
+                    dbClient.updateObject(unManagedFs);
 
                 } catch (IOException e) {
                     log.error("IOException occured in discoverAllCifsShares()", e);
@@ -707,10 +769,11 @@ public class VNXUnityUnManagedObjectDiscoverer {
      * @param system
      * @param pool
      * @param dbClient
+     * @param hostVolumeMap hosts and exported volumes map
      * @return
      */
     private UnManagedVolume createUnManagedVolume(UnManagedVolume unManagedVolume, String unManagedVolumeNativeGuid,
-            VNXeLun lun, StorageSystem system, StoragePool pool, DbClient dbClient) {
+            VNXeLun lun, StorageSystem system, StoragePool pool, DbClient dbClient, Map<String, List<UnManagedVolume>>hostVolumeMap) {
         boolean created = false;
         if (null == unManagedVolume) {
             unManagedVolume = new UnManagedVolume();
@@ -727,15 +790,31 @@ public class VNXUnityUnManagedObjectDiscoverer {
         Map<String, String> unManagedVolumeCharacteristics = new HashMap<String, String>();
 
         Boolean isVolumeExported = false;
+
         if (lun.getHostAccess() != null && !lun.getHostAccess().isEmpty()) {
-            isVolumeExported = true;
+            // clear the previous unmanaged export masks, initiators if any. The latest export masks will be updated later.
+            unManagedVolume.getUnmanagedExportMasks().clear();
+            unManagedVolume.getInitiatorNetworkIds().clear();
+            unManagedVolume.getInitiatorUris().clear();
+            for (BlockHostAccess access : lun.getHostAccess()) {
+                int accessMask = access.getAccessMask();
+                if (accessMask == BlockHostAccess.HostLUNAccessEnum.BOTH.getValue() ||
+                        accessMask == BlockHostAccess.HostLUNAccessEnum.PRODUCTION.getValue()) {
+                    isVolumeExported = true;
+                    String hostId = access.getHost().getId();
+                    List<UnManagedVolume> exportedVolumes = hostVolumeMap.get(hostId);
+                    if (exportedVolumes == null) {
+                        exportedVolumes = new ArrayList<UnManagedVolume>();
+                        hostVolumeMap.put(hostId, exportedVolumes);
+                    }
+                    exportedVolumes.add(unManagedVolume);
+                }
+            }
         }
-        unManagedVolumeCharacteristics.put(SupportedVolumeCharacterstics.IS_VOLUME_EXPORTED.toString(), isVolumeExported.toString());
-
-        Boolean isVolumeInCG = lun.getType() == VNXeApiClient.GENERIC_STORAGE_LUN_TYPE ? true : false;
-        unManagedVolumeCharacteristics.put(SupportedVolumeCharacterstics.IS_VOLUME_ADDED_TO_CONSISTENCYGROUP.toString(),
-                isVolumeInCG.toString());
-
+        if (isVolumeExported) {
+            unManagedVolumeCharacteristics.put(SupportedVolumeCharacterstics.IS_VOLUME_EXPORTED.toString(), isVolumeExported.toString());
+        }
+        
         StringSet deviceLabel = new StringSet();
         deviceLabel.add(lun.getName());
         unManagedVolumeInformation.put(SupportedVolumeInformation.DEVICE_LABEL.toString(),
@@ -1167,6 +1246,257 @@ public class VNXUnityUnManagedObjectDiscoverer {
             return true;
         }
         return false;
+    }
+    
+    /**
+     * Adds the passed in unmanaged volume to an unmanaged consistency group object
+     *
+     * @param apiClient - connection to Unity REST interface
+     * @param unManagedVolume - unmanaged volume associated with a consistency group
+     * @param cgNameToProcess - consistency group being processed
+     * @param storageSystem - storage system the objects are on
+     * @param dbClient - dbclient
+     * @throws Exception
+     */
+    private void addObjectToUnManagedConsistencyGroup(VNXeApiClient apiClient, UnManagedVolume unManagedVolume,
+            String cgNameToProcess, StorageSystem storageSystem, DbClient dbClient) throws Exception {
+        
+        log.info("Unmanaged volume {} belongs to consistency group {} on the array", unManagedVolume.getLabel(), cgNameToProcess);
+        // Update the unManagedVolume object with CG information
+        unManagedVolume.getVolumeCharacterstics().put(SupportedVolumeCharacterstics.IS_VOLUME_ADDED_TO_CONSISTENCYGROUP.toString(),
+                Boolean.TRUE.toString());
+
+        String unManagedCGNativeGuid = NativeGUIDGenerator.generateNativeGuidForCG(storageSystem.getNativeGuid(), cgNameToProcess);
+        // determine if the unmanaged CG already exists in the unManagedCGToUpdateMap or in the database
+        // if the the unmanaged CG is not in either create a new one
+        UnManagedConsistencyGroup unManagedCG = null;
+        if (unManagedCGToUpdateMap.containsKey(unManagedCGNativeGuid)) {
+            unManagedCG = unManagedCGToUpdateMap.get(unManagedCGNativeGuid);
+            log.info("Unmanaged consistency group {} was previously added to the unManagedCGToUpdateMap", unManagedCG.getLabel());
+        } else {
+            unManagedCG = DiscoveryUtils.checkUnManagedCGExistsInDB(dbClient, unManagedCGNativeGuid);
+            if (null == unManagedCG) {
+                // unmanaged CG does not exist in the database, create it
+                StorageResource res = apiClient.getStorageResource(cgNameToProcess);
+                unManagedCG = createUnManagedCG(unManagedCGNativeGuid, res, storageSystem.getId(), dbClient);
+                log.info("Created unmanaged consistency group: {}", unManagedCG.getId().toString());
+            } else {
+                log.info("Unmanaged consistency group {} was previously added to the database", unManagedCG.getLabel());
+                // clean out the list of unmanaged volumes if this unmanaged cg was already
+                // in the database and its first time being used in this discovery operation
+                // the list should be re-populated by the current discovery operation
+                log.info("Cleaning out unmanaged volume map from unmanaged consistency group: {}", unManagedCG.getLabel());
+                unManagedCG.getUnManagedVolumesMap().clear();
+            }
+        }
+        log.info("Adding unmanaged volume {} to unmanaged consistency group {}", unManagedVolume.getLabel(), unManagedCG.getLabel());
+        // set the uri of the unmanaged CG in the unmanaged volume object
+        unManagedVolume.getVolumeInformation().put(SupportedVolumeInformation.UNMANAGED_CONSISTENCY_GROUP_URI.toString(),
+                unManagedCG.getId().toString());
+        // add the unmanaged volume object to the unmanaged CG
+        unManagedCG.getUnManagedVolumesMap().put(unManagedVolume.getNativeGuid(), unManagedVolume.getId().toString());
+        // add the unmanaged CG to the map of unmanaged CGs to be updated in the database once all volumes have been processed
+        unManagedCGToUpdateMap.put(unManagedCGNativeGuid, unManagedCG);
+        // add the unmanaged CG to the current set of CGs being discovered on the array. This is for book keeping later.
+        allCurrentUnManagedCgURIs.add(unManagedCG.getId());
+    }
+    
+    /**
+     * Creates a new UnManagedConsistencyGroup object in the database
+     *
+     * @param unManagedCGNativeGuid - nativeGuid of the unmanaged consistency group
+     * @param res - unity consistency group returned from REST client
+     * @param storageSystemURI - storage system of the consistency group
+     * @param dbClient - database client
+     * @return the new UnManagedConsistencyGroup object
+     */
+    private UnManagedConsistencyGroup createUnManagedCG(String unManagedCGNativeGuid,
+            StorageResource res, URI storageSystemURI, DbClient dbClient) {
+        UnManagedConsistencyGroup unManagedCG = new UnManagedConsistencyGroup();
+        unManagedCG.setId(URIUtil.createId(UnManagedConsistencyGroup.class));
+        unManagedCG.setLabel(res.getId());
+        unManagedCG.setName(res.getName());
+        unManagedCG.setNativeGuid(unManagedCGNativeGuid);
+        unManagedCG.setStorageSystemUri(storageSystemURI);
+        unManagedCG.setNumberOfVols(Integer.toString(res.getLuns().size()));
+        dbClient.createObject(unManagedCG);
+        return unManagedCG;
+    }
+    
+
+    /**
+     * Create unmanaged export masks per host
+     *
+     * @param systemId
+     * @param hostVolumesMap host-- exportedvolume list
+     * @param apiClient
+     * @param dbClient
+     * @param partitionManager
+     * @throws Exception
+     */
+    private void discoverUnmanagedExportMasks(URI systemId, Map<String, List<UnManagedVolume>> hostVolumesMap,
+            VNXeApiClient apiClient, DbClient dbClient, PartitionManager partitionManager)
+                    throws Exception {
+        unManagedExportMasksToCreate = new ArrayList<UnManagedExportMask>();
+        unManagedExportMasksToUpdate = new ArrayList<UnManagedExportMask>();
+
+        List<UnManagedVolume> unManagedExportVolumesToUpdate = new ArrayList<UnManagedVolume>();
+        // In Unity, the volumes are exposed through all the storage ports.
+        // Get all the storage ports to be added as known ports in the unmanaged export mask
+        // If the host ports are FC, then all add all FC storage ports to the mask
+        // else add all IP ports
+        StringSet knownFCStoragePortUris = new StringSet();
+        StringSet knownIPStoragePortUris = new StringSet();
+        List<StoragePort> matchedFCPorts = new ArrayList<StoragePort>();
+
+        URIQueryResultList storagePortURIs = new URIQueryResultList();
+        dbClient.queryByConstraint(
+                ContainmentConstraint.Factory.getStorageDeviceStoragePortConstraint(systemId),
+                storagePortURIs);
+        Iterator<URI> portsItr = storagePortURIs.iterator();
+        while (portsItr.hasNext()) {
+            URI storagePortURI = portsItr.next();
+            StoragePort port = dbClient.queryObject(StoragePort.class, storagePortURI);
+            if (TransportType.FC.toString().equals(port.getTransportType())) {
+                knownFCStoragePortUris.add(storagePortURI.toString());
+                matchedFCPorts.add(port);
+            } else if (TransportType.IP.toString().equals(port.getTransportType())) {
+                knownIPStoragePortUris.add(storagePortURI.toString());
+            }
+        }
+
+        for (Map.Entry<String, List<UnManagedVolume>> entry : hostVolumesMap.entrySet()) {
+            String hostId = entry.getKey();
+            List<UnManagedVolume> volumes = entry.getValue();
+            StringSet knownInitSet = new StringSet();
+            StringSet knownNetworkIdSet = new StringSet();
+            StringSet knownVolumeSet = new StringSet();
+            List<Initiator> matchedFCInitiators = new ArrayList<Initiator>();
+            
+            VNXeHost host = apiClient.getHostById(hostId);
+            List<VNXeBase> fcInits = host.getFcHostInitiators();
+            List<VNXeBase> iScsiInits = host.getIscsiHostInitiators();
+            if (fcInits != null && !fcInits.isEmpty()) {
+                for (VNXeBase init : fcInits) {
+                    VNXeHostInitiator initiator = apiClient.getHostInitiator(init.getId());
+                    String portwwn = initiator.getPortWWN();
+                    Initiator knownInitiator = NetworkUtil.getInitiator(portwwn, dbClient);
+                    if (knownInitiator != null) {
+                        knownInitSet.add(knownInitiator.getId().toString());
+                        knownNetworkIdSet.add(portwwn);
+                        matchedFCInitiators.add(knownInitiator);
+                    }
+                }
+            }
+            if (iScsiInits != null && !iScsiInits.isEmpty()) {
+                for (VNXeBase init : iScsiInits) {
+                    VNXeHostInitiator initiator = apiClient.getHostInitiator(init.getId());
+                    String portwwn = initiator.getPortWWN();
+                    Initiator knownInitiator = NetworkUtil.getInitiator(portwwn, dbClient);
+                    if (knownInitiator != null) {
+                        knownInitSet.add(knownInitiator.getId().toString());
+                        knownNetworkIdSet.add(portwwn);
+                    }
+                }
+            }
+            if (knownNetworkIdSet.isEmpty()) {
+                log.info(String.format("The host %s does not have any known initiators", hostId));
+                continue;
+            }
+            String firstNetworkId = knownNetworkIdSet.iterator().next();
+            UnManagedExportMask mask = getUnManagedExportMask(firstNetworkId, dbClient, systemId);
+            mask.setStorageSystemUri(systemId);
+            // set the host name as the mask name
+            mask.setMaskName(host.getName());
+            allCurrentUnManagedExportMaskUris.add(mask.getId());
+            for (UnManagedVolume hostUnManagedVol : volumes) {
+                hostUnManagedVol.setInitiatorNetworkIds(knownNetworkIdSet);
+                hostUnManagedVol.setInitiatorUris(knownInitSet);
+                hostUnManagedVol.getUnmanagedExportMasks().add(mask.getId().toString());
+                mask.getUnmanagedVolumeUris().add(hostUnManagedVol.getId().toString());
+                unManagedExportVolumesToUpdate.add(hostUnManagedVol);
+            }
+            
+            mask.replaceNewWithOldResources(knownInitSet, knownNetworkIdSet, knownVolumeSet,
+                    !matchedFCInitiators.isEmpty() ? knownFCStoragePortUris : knownIPStoragePortUris);
+
+            updateZoningMap(mask, matchedFCInitiators, matchedFCPorts);
+        }
+
+        if (!unManagedExportMasksToCreate.isEmpty()) {
+            partitionManager.insertInBatches(unManagedExportMasksToCreate,
+                    Constants.DEFAULT_PARTITION_SIZE, dbClient, UNMANAGED_EXPORT_MASK);
+            unManagedExportMasksToCreate.clear();
+        }
+        if (!unManagedExportMasksToUpdate.isEmpty()) {
+            partitionManager.updateInBatches(unManagedExportMasksToUpdate,
+                    Constants.DEFAULT_PARTITION_SIZE, dbClient, UNMANAGED_EXPORT_MASK);
+            unManagedExportMasksToUpdate.clear();
+        }
+
+        if (!unManagedExportVolumesToUpdate.isEmpty()) {
+            partitionManager.updateAndReIndexInBatches(unManagedExportVolumesToUpdate,
+                    Constants.DEFAULT_PARTITION_SIZE, dbClient, UNMANAGED_VOLUME);
+            unManagedExportVolumesToUpdate.clear();
+        }
+
+        DiscoveryUtils.markInActiveUnManagedExportMask(systemId, allCurrentUnManagedExportMaskUris, dbClient, partitionManager);
+
+    }
+    
+    /**
+     * Get existing unmanaged export mask, or create a new one.
+     * @param knownInitiatorNetworkId The initiator network id (pwwn)
+     * @param dbClient
+     * @param systemURI
+     * @return
+     */
+    private UnManagedExportMask getUnManagedExportMask(String knownInitiatorNetworkId, DbClient dbClient, URI systemURI) {
+        URIQueryResultList result = new URIQueryResultList();
+        dbClient.queryByConstraint(AlternateIdConstraint.Factory
+                .getUnManagedExportMaskKnownInitiatorConstraint(knownInitiatorNetworkId), result);
+        UnManagedExportMask uem = null;
+        Iterator<URI> it = result.iterator();
+        while (it.hasNext()) {
+            UnManagedExportMask potentialUem = dbClient.queryObject(UnManagedExportMask.class, it.next());
+            // Check whether the uem belongs to the same storage system. This to avoid in picking up the
+            // vplex uem.
+            if (URIUtil.identical(potentialUem.getStorageSystemUri(), systemURI)) {
+                uem = potentialUem;
+                unManagedExportMasksToUpdate.add(uem);
+                break;
+            }
+        }
+        if (uem != null && !uem.getInactive()) {
+            // clean up collections (we'll be refreshing them)
+            uem.getKnownInitiatorUris().clear();
+            uem.getKnownInitiatorNetworkIds().clear();
+            uem.getKnownStoragePortUris().clear();
+            uem.getKnownVolumeUris().clear();
+            uem.getUnmanagedInitiatorNetworkIds().clear();
+            uem.getUnmanagedStoragePortNetworkIds().clear();
+            uem.getUnmanagedVolumeUris().clear();
+        } else {
+            uem = new UnManagedExportMask();
+            uem.setId(URIUtil.createId(UnManagedExportMask.class));
+            unManagedExportMasksToCreate.add(uem);
+        }
+        return uem;
+    }
+    
+    /**
+     * Set mask zoning map
+     * @param mask
+     * @param initiators
+     * @param storagePorts
+     */
+    private void updateZoningMap(UnManagedExportMask mask, List<Initiator> initiators, List<StoragePort> storagePorts) {
+        ZoneInfoMap zoningMap = networkDeviceController.getInitiatorsZoneInfoMap(initiators, storagePorts);
+        for (ZoneInfo zoneInfo : zoningMap.values()) {
+            log.info("Found zone: {} for initiator {} and port {}", new Object[] { zoneInfo.getZoneName(),
+                    zoneInfo.getInitiatorWwn(), zoneInfo.getPortWwn() });
+        }
+        mask.setZoningMap(zoningMap);
     }
 
 }

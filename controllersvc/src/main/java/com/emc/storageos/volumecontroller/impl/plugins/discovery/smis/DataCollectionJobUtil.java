@@ -574,6 +574,9 @@ public class DataCollectionJobUtil {
         } else if (storageDevice.getSystemType().equals(
                 Type.unity.toString())) {
             populateUnityAccessProfileForSystem(accessProfile, storageDevice);
+            if (null != nameSpace) {
+                accessProfile.setnamespace(nameSpace);
+            }
         } else {
             throw new RuntimeException("populateAccessProfile: Device type unknown : "
                     + storageDevice.getSystemType());

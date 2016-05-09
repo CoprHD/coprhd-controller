@@ -27,14 +27,14 @@ import java.util.List;
 @XmlRootElement(name = "openstack_tenants")
 public class TenantListRestResp {
 
-    List<TenantV2> openstackTenants = new ArrayList<>();
+    List<TenantV2> openstack_tenants = new ArrayList<>();
 
     @XmlElementRef
-    public List<TenantV2> getOpenstackTenants() {
-        return openstackTenants;
+    public List<TenantV2> getOpenstack_tenants() {
+        return openstack_tenants;
     }
 
-    public void setOpenstackTenants(List<TenantV2> openstackTenants) {
-        this.openstackTenants = openstackTenants;
+    public void setOpenstack_tenants(List<TenantV2> openstack_tenants) {
+        this.openstack_tenants = openstack_tenants;
     }
 }

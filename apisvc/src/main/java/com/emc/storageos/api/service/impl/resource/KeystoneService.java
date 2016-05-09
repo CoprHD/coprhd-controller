@@ -86,7 +86,7 @@ public class KeystoneService extends TaskResourceService {
             List<TenantV2> OSTenantList = new ArrayList<>(Arrays.asList(keystoneApiClient.getKeystoneTenants().getTenants()));
 
             TenantListRestResp response = new TenantListRestResp();
-            response.setOpenstackTenants(OSTenantList);
+            response.setOpenstack_tenants(OSTenantList);
 
             return response;
         }

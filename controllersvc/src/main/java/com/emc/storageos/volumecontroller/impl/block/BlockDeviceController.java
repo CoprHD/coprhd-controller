@@ -69,6 +69,7 @@ import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.Volume.ReplicationState;
 import com.emc.storageos.db.client.model.VolumeGroup;
 import com.emc.storageos.db.client.model.factories.VolumeFactory;
+import com.emc.storageos.db.client.model.util.BlockConsistencyGroupUtils;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.exceptions.DatabaseException;
@@ -2080,7 +2081,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                 "Restore volume %s from snapshot %s",
                 volume, snapshot), waitFor,
                 storage, getDeviceType(storage),
-                BlockDeviceController.class, restoreVolumeMethod, null, null);
+                BlockDeviceController.class, restoreVolumeMethod, rollbackMethodNullMethod(), null);
         _log.info(
                 "Created workflow step to restore block volume {} from snapshot {}",
                 volume, snapshot);
@@ -2433,7 +2434,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
             workflow.createStep(POST_BLOCK_VOLUME_RESTORE_GROUP, description, waitFor,
                     system.getId(), system.getSystemType(), BlockDeviceController.class,
                     terminateRestoreSessionsMethod(system.getId(), sourceVolume.getId(), blockSnapshot.getId()),
-                    null, null);
+                    rollbackMethodNullMethod(), null);
         }
     }
 
@@ -4221,7 +4222,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
             // For SRDF, we need to create target consistency group and
             // add target volumes to that target consistency group.
             if (srdfCG) {
-                createTargetConsistencyGroup(cg, addVolumesList, workflow, waitFor);
+                createTargetConsistencyGroup(cg, addVolumesList, workflow, waitFor, task);
             }
             // Finish up and execute the plan.
             _log.info("Executing workflow plan {}", UPDATE_CONSISTENCY_GROUP_STEP_GROUP);
@@ -4246,14 +4247,27 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
             taskCompleter = new BlockConsistencyGroupCreateCompleter(consistencyGroup, opId);
             String groupName = ControllerUtils.generateReplicationGroupName(storageSystem, consistencyGroup, replicationGroupName,
                     _dbClient);
+            String lockKey = groupName;
+            boolean isVNX = storageSystem.deviceIsType(Type.vnxblock);
+            if (isVNX && lockKey == null) {
+                lockKey = replicationGroupName;
+            }
             
             // Lock the CG for the step duration.
             List<String> lockKeys = new ArrayList<>();
-            lockKeys.add(ControllerLockingUtil.getReplicationGroupStorageKey(_dbClient, groupName, storage));
+            lockKeys.add(ControllerLockingUtil.getReplicationGroupStorageKey(_dbClient, lockKey, storage));
             _workflowService.acquireWorkflowStepLocks(opId, lockKeys, LockTimeoutValue.get(LockType.ARRAY_CG));
+
+            if (isVNX) {
+                // replication group may have been just created by another thread, in that case,
+                // group name for VNX will be array generated name (if arrayConsistency is true), or replicationGroupName if arrayConsistency is false
+                // so get the group name again here to be used in ControllerUtils.replicationGroupExists call
+                groupName = ControllerUtils.generateReplicationGroupName(storageSystem, consistencyGroup, replicationGroupName,
+                        _dbClient);
+            }
             
             // make sure this array consistency group was not just created by another thread that held the lock
-            if (ControllerUtils.replicationGroupExists(storage, groupName, _dbClient)) {
+            if (groupName != null && ControllerUtils.replicationGroupExists(storage, groupName, _dbClient)) {
                 taskCompleter.ready(_dbClient);
                 return true;
             }
@@ -4295,12 +4309,17 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
 
             // Lock the CG for the step duration.
             List<String> lockKeys = new ArrayList<String>();
+            if (replicationGroupName == null) {
+                replicationGroupName =
+                        ControllerUtils.generateReplicationGroupName(storageSystem, consistencyGroup, null, _dbClient);
+            }
             lockKeys.add(ControllerLockingUtil.getReplicationGroupStorageKey(_dbClient, replicationGroupName, storage));
             _workflowService.acquireWorkflowStepLocks(opId, lockKeys, LockTimeoutValue.get(LockType.ARRAY_CG));
 
             getDevice(storageSystem.getSystemType()).doAddToConsistencyGroup(
                     storageSystem, consistencyGroup, replicationGroupName, addVolumesList, taskCompleter);
         } catch (Exception e) {
+            _log.error("Error whilst adding to consistency group", e);
             ServiceError serviceError = DeviceControllerException.errors.jobFailed(e);
             taskCompleter.error(_dbClient, serviceError);
             WorkflowStepCompleter.stepFailed(opId, serviceError);
@@ -4371,7 +4390,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
      *            the wait for
      */
     private void createTargetConsistencyGroup(BlockConsistencyGroup sourceCG,
-            List<URI> addVolumesList, Workflow workflow, String waitFor) {
+            List<URI> addVolumesList, Workflow workflow, String waitFor, String task) {
         Volume sourceVolume = _dbClient.queryObject(Volume.class, addVolumesList.get(0));
         VirtualPool vPool = _dbClient.queryObject(VirtualPool.class, sourceVolume.getVirtualPool());
         VirtualArray protectionVirtualArray = null;
@@ -4411,12 +4430,13 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
 
         // Get SRDF Target volume list for the source volume list
         List<URI> addTargetVolumesList = getSRDFTargetVolumes(addVolumesList);
+
         if (!addTargetVolumesList.isEmpty()) {
             Volume targetVolume = _dbClient.queryObject(Volume.class, addTargetVolumesList.get(0));
             StorageSystem targetSystem = _dbClient.queryObject(StorageSystem.class, targetVolume.getStorageController());
+            String groupName = ControllerUtils.generateReplicationGroupName(targetSystem, targetCG, null, _dbClient);
             if (createGroup || !targetCG.created()) {
                 _log.info("Creating target Consistency group on Array.");
-                String groupName = ControllerUtils.generateReplicationGroupName(targetSystem, targetCG, null, _dbClient);
                 waitFor = workflow.createStep(UPDATE_CONSISTENCY_GROUP_STEP_GROUP,
                         String.format("Creating consistency group %s", targetCG.getId()),
                         waitFor, targetSystem.getId(), targetSystem.getSystemType(),
@@ -4426,12 +4446,17 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
             }
 
             _log.info("Adding target volumes to target Consistency group.");
-            workflow.createStep(UPDATE_CONSISTENCY_GROUP_STEP_GROUP,
+            waitFor = workflow.createStep(UPDATE_CONSISTENCY_GROUP_STEP_GROUP,
                     String.format("Updating consistency group %s", targetCG.getId()),
                     waitFor, targetSystem.getId(), targetSystem.getSystemType(),
                     this.getClass(),
                     addToConsistencyGroupMethod(targetSystem.getId(), targetCG.getId(), null, addTargetVolumesList),
                     rollbackMethodNullMethod(), null);
+
+            // call ReplicaDeviceController
+            waitFor = _replicaDeviceController.addStepsForAddingSessionsToCG(workflow, waitFor, targetCG.getId(), addTargetVolumesList,
+                    groupName, task);
+
         }
     }
 
@@ -6025,17 +6050,75 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
             Workflow workflow = _workflowService.getNewWorkflow(this, RESTORE_SNAPSHOT_SESSION_WF_NAME, false, opId);
             _log.info("Created new workflow to restore snapshot session {} with operation id {}",
                     snapSessionURI, opId);
+            String waitFor = null;
 
-            // We need to split the SRDF link for R2 snap restore if it is not paused already.
-            // Refer OPT#476788.
-            // TBD - This likely needs to be done.
+            // Check if we are dealing with a single volume or a group...
+            BlockObject sourceObj = null;
+            if (snapshotSession.hasConsistencyGroup()) {
+                // We need a single source volume for the session.
+                BlockConsistencyGroup cg = _dbClient.queryObject(BlockConsistencyGroup.class, snapshotSession.getConsistencyGroup());
+                List<Volume> nativeVolumes = BlockConsistencyGroupUtils.getActiveNativeVolumesInCG(cg, _dbClient);
+                // get source group name from the session.
+                String sourceGroupName = snapshotSession.getReplicationGroupInstance();
+                for (Volume volume : nativeVolumes) {
+                    if (sourceGroupName.equals(volume.getReplicationGroupInstance())) {
+                        sourceObj = volume;
+                        break;  // get source volume which matches session's RG name
+                    }
+                }
+            } else {
+                sourceObj = BlockObject.fetch(_dbClient, snapshotSession.getParent().getURI());
+            }
+
+            if (sourceObj instanceof Volume && isNonSplitSRDFTargetVolume((Volume) sourceObj)) {
+                // PRIOR to Restoring R2 Device from its session, we need to
+                // a) SUSPEND the R1-R2 pair if the Copy Mode is ACTIVE Or
+                // b) SPLIT the R1-R2 pair if the Copy Mode is SYNC/ ASYNC
+                Volume sourceVolume = (Volume) sourceObj;
+                URI srdfSourceVolumeURI = sourceVolume.getSrdfParent().getURI();
+                Volume srdfSourceVolume = _dbClient.queryObject(Volume.class, srdfSourceVolumeURI);
+                URI srdfSourceStorageSystemURI = srdfSourceVolume.getStorageController();
+                if (Mode.ACTIVE.equals(Mode.valueOf(sourceVolume.getSrdfCopyMode()))) {
+                    waitFor = suspendSRDFLinkWorkflowStep(waitFor, srdfSourceStorageSystemURI,
+                            srdfSourceVolumeURI, sourceObj.getId(), workflow);
+                } else {
+                    // split all members the group
+                    Workflow.Method splitMethod = srdfDeviceController.splitSRDFLinkMethod(srdfSourceStorageSystemURI,
+                            srdfSourceVolumeURI, sourceObj.getId(), false);
+
+                    Workflow.Method splitRollbackMethod = srdfDeviceController.resumeSyncPairMethod(srdfSourceStorageSystemURI,
+                            srdfSourceVolumeURI, sourceObj.getId());
+
+                    waitFor = workflow.createStep(SRDFDeviceController.SPLIT_SRDF_MIRRORS_STEP_GROUP,
+                            SRDFDeviceController.SPLIT_SRDF_MIRRORS_STEP_DESC, waitFor, srdfSourceStorageSystemURI,
+                            getDeviceType(srdfSourceStorageSystemURI), SRDFDeviceController.class, splitMethod,
+                            splitRollbackMethod, null);
+                }
+            } else if (sourceObj instanceof Volume && isNonSplitSRDFSourceVolume((Volume) sourceObj)) {
+                // PRIOR to Restoring R1 Device from its session, we need to SUSPEND the R1-R2 pair if the Copy Mode is ACTIVE
+                Volume srdfSourceVolume = (Volume) sourceObj;
+                URI srdfSourceStorageSystemURI = srdfSourceVolume.getStorageController();
+                StringSet targets = srdfSourceVolume.getSrdfTargets();
+                if (null != targets) {
+                    for (String target : targets) {
+                        if (NullColumnValueGetter.isNotNullValue(target)) {
+                            Volume srdfTargetVolume = _dbClient.queryObject(Volume.class, URI.create(target));
+                            if (null != srdfTargetVolume && Mode.ACTIVE.equals(Mode.valueOf(srdfTargetVolume.getSrdfCopyMode()))) {
+                                waitFor = suspendSRDFLinkWorkflowStep(waitFor, srdfSourceStorageSystemURI,
+                                        srdfSourceVolume.getId(), srdfTargetVolume.getId(), workflow);
+                            }
+                            break;
+                        }
+                    }
+                }
+            }
 
             // Create the workflow step to restore the snapshot session.
-            workflow.createStep(RESTORE_SNAPSHOT_SESSION_STEP_GROUP,
+            waitFor =  workflow.createStep(RESTORE_SNAPSHOT_SESSION_STEP_GROUP,
                     String.format("Restore snapshot session %s", snapSessionURI),
-                    null, systemURI, getDeviceType(systemURI), getClass(),
+                    waitFor, systemURI, getDeviceType(systemURI), getClass(),
                     restoreBlockSnapshotSessionMethod(systemURI, snapSessionURI),
-                    null, null);
+                    rollbackMethodNullMethod(), null);
 
             // Execute the workflow.
             workflow.executePlan(completer, "Restore block snapshot session successful");
@@ -6299,7 +6382,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
        if (removeVolumeList != null && !removeVolumeList.isEmpty()) {
            Volume vol = _dbClient.queryObject(Volume.class, removeVolumeList.get(0));
            URI cgUri = vol.getConsistencyGroup();
-            String groupName = vol.getReplicationGroupInstance();
+           String groupName = vol.getReplicationGroupInstance();
            StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, storage);
            // call ReplicaDeviceController
            waitFor = _replicaDeviceController.addStepsForRemovingVolumesFromCG(workflow, waitFor, cgUri, removeVolumeList, opId);

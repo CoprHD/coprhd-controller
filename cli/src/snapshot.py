@@ -2802,11 +2802,6 @@ def tag_parser(subcommand_parsers, common_parser):
                        dest='consistencygroup',
                        help='Name of a consistencygroup')
 
-    tag_parser.add_argument('-synchronous', '-sync',
-                            dest='sync',
-                            help='Synchronous snapshot export',
-                            action='store_true')
-
     tag.add_tag_parameters(tag_parser)
 
     tag_parser.set_defaults(func=snapshot_tag)

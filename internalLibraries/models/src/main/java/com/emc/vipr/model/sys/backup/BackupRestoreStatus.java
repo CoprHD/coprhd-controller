@@ -108,7 +108,7 @@ public class BackupRestoreStatus {
         return isGeo;
     }
 
-    public void setIsGeo(boolean isGeo) {
+    public void setGeo(boolean isGeo) {
         this.isGeo = isGeo;
     }
 
@@ -278,7 +278,7 @@ public class BackupRestoreStatus {
           .append(backupName)
           .append("\nsize to download:")
           .append(sizeToDownload)
-          .append("\ndownloaded size:")
+          .append("\ndownloaded size: ")
           .append(downloadedSize)
           .append("\nfilesDownloaded:")
           .append(backupFileNames)

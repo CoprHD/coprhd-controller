@@ -51,6 +51,7 @@ import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.model.OpStatusMap;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.Project;
+import com.emc.storageos.db.client.model.RemoteDirectorGroup;
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.model.StorageSystem;
@@ -482,22 +483,24 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
         Collection<VirtualPool> allVpools = getVPoolsForVolumeBasedOnSystemConnectivity(volume);
 
         Iterator<VirtualPool> vpoolIter = allVpools.iterator();
+        StringBuffer logMsg = new StringBuffer();
+        logMsg.append("Analyzing vpools for change vpool operations:\n");
         while (vpoolIter.hasNext()) {
             StringBuffer notAllowedReason = new StringBuffer();
             VirtualPool targetVpool = vpoolIter.next();
             List<VirtualPoolChangeOperationEnum> allowedOperations = getVirtualPoolChangeAllowedOperationsForVolume(
                     volume, currentVpool, targetVpool, notAllowedReason);
-
-            StringBuffer logMsg = new StringBuffer();
-            logMsg.append("Vpool [" + targetVpool.getLabel() + "]");
+            
+            logMsg.append("\tVpool [" + targetVpool.getLabel() + "]");
             logMsg.append((notAllowedReason.length() > 0) ? " not allowed: " + notAllowedReason.toString() : " allowed but only for: ");
             logMsg.append((allowedOperations != null && !allowedOperations.isEmpty()) ? Joiner.on("\t").join(allowedOperations) : "");
-            s_logger.info(logMsg.toString());
+            logMsg.append("\n");
 
             vpoolChangeList.getVirtualPools().add(
                     toVirtualPoolChangeRep(targetVpool, allowedOperations,
                             notAllowedReason.toString()));
-        }
+        }        
+        s_logger.info(logMsg.toString());
 
         return vpoolChangeList;
     }
@@ -1359,6 +1362,11 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
         List<URI> activeMirrorsForParent = getActiveMirrorsForVolume(parent);
         if (!activeMirrorsForParent.isEmpty()) {
             throw APIException.badRequests.snapshotParentHasActiveMirrors(parent.getLabel(), activeMirrorsForParent.size());
+        }
+        // Snap restore to V3 SRDF(Async) Target volume is not supported
+        if (parent.isVmax3Volume(_dbClient) && Volume.isSRDFProtectedVolume(parent) && !parent.isSRDFSource()
+                && RemoteDirectorGroup.SupportedCopyModes.ASYNCHRONOUS.name().equalsIgnoreCase(parent.getSrdfCopyMode())) {
+            throw APIException.badRequests.snapshotRestoreNotSupported();
         }
     }
 

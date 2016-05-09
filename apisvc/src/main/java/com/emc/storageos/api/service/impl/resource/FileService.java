@@ -104,10 +104,10 @@ import com.emc.storageos.model.SnapshotList;
 import com.emc.storageos.model.TaskList;
 import com.emc.storageos.model.TaskResourceRep;
 import com.emc.storageos.model.block.MirrorList;
-import com.emc.storageos.model.file.Copy;
 import com.emc.storageos.model.file.ExportRule;
 import com.emc.storageos.model.file.ExportRules;
 import com.emc.storageos.model.file.FileCifsShareACLUpdateParams;
+import com.emc.storageos.model.file.FileCopy;
 import com.emc.storageos.model.file.FileExportUpdateParam;
 import com.emc.storageos.model.file.FileNfsACLUpdateParams;
 import com.emc.storageos.model.file.FilePolicyList;
@@ -3064,7 +3064,7 @@ public class FileService extends TaskResourceService {
     @CheckPermission(roles = { Role.TENANT_ADMIN }, acls = { ACL.OWN, ACL.ALL })
     public TaskList failoverProtection(@PathParam("id") URI id, FileReplicationParam param) throws ControllerException {
         ArgValidator.checkFieldUriType(id, FileShare.class, "id");
-        Copy copy = param.getCopies().get(0);
+        FileCopy copy = param.getCopies().get(0);
         if (copy.getType().equalsIgnoreCase(FileTechnologyType.REMOTE_MIRROR.name())) {
             return performFileProtectionAction(param, id, ProtectionOp.FAILOVER.getRestOp());
         } else {
@@ -3099,7 +3099,7 @@ public class FileService extends TaskResourceService {
     public TaskList failbackProtection(@PathParam("id") URI id, FileReplicationParam param) throws ControllerException {
 
         ArgValidator.checkFieldUriType(id, FileShare.class, "id");
-        Copy copy = param.getCopies().get(0);
+        FileCopy copy = param.getCopies().get(0);
         if (copy.getType().equalsIgnoreCase(FileTechnologyType.REMOTE_MIRROR.name())) {
             return performFileProtectionAction(param, id, ProtectionOp.FAILBACK.getRestOp());
         } else {
@@ -3202,7 +3202,7 @@ public class FileService extends TaskResourceService {
     private TaskList performFileProtectionAction(FileReplicationParam param, URI id, String op) {
         TaskResourceRep taskResp = null;
         TaskList taskList = new TaskList();
-        Copy copy = param.getCopies().get(0);
+        FileCopy copy = param.getCopies().get(0);
         if (copy.getType().equalsIgnoreCase(FileTechnologyType.REMOTE_MIRROR.name()) ||
                 copy.getType().equalsIgnoreCase(FileTechnologyType.LOCAL_MIRROR.name())) {
             taskResp = performProtectionAction(id, op);

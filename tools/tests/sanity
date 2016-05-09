@@ -9829,6 +9829,8 @@ networkcontroller_setup()
     echo "Discovering Cisco ..."
     run networksystem create CiscoMdsSimulator  mds --devip $HW_SIMULATOR_IP --devport 22 --username $SIMULATOR_CISCO_MDS_USER --password $SIMULATOR_CISCO_MDS_PW
 
+    echo "Creating Host..."
+    hosts create $HOST_NAME "linux" Other $HOST --port 22
 }
 
 ${SS}_setup

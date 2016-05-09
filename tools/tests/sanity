@@ -9842,6 +9842,8 @@ networkcontroller_setup()
     initiator create $HOST_NAME FC $ZONE1_ADDR1 --node $INITIATOR1_NODE
  
 
+    echo "Assign networks to Virtual Array..."
+    transportzone assign "VSAN_11" "varray"
 }
 
 ${SS}_setup

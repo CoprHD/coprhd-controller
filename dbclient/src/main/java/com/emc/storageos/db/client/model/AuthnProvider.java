@@ -31,8 +31,7 @@ public class AuthnProvider extends DataObject {
     private String _description;
     private Boolean _disable;
     private Boolean _autoRegCoprHDNImportOSProjects;
-    private StringSet _serverUrls; // All servers user input
-    private StringSet _disconnectedServerUrls; // Disconnected servers found during runtime. Be used to build Runtime authentication provider.
+    private StringSet _serverUrls;
     private StringSet _domains;
     private String _serverCert;
     private String _managerDN;

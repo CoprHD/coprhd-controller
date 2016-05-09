@@ -1,10 +1,13 @@
+/*
+ * Copyright (c) 2014 EMC Corporation
+ * All Rights Reserved
+ */
+
 package com.emc.storageos.volumecontroller.impl.xiv;
 
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
-
-import javax.cim.CIMProperty;
 
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
@@ -25,12 +28,19 @@ import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
 import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.volumecontroller.impl.VolumeURIHLU;
-import com.emc.storageos.volumecontroller.impl.smis.ibm.IBMSmisConstants;
 import com.emc.storageos.xiv.api.XIVApiFactory;
 import com.emc.storageos.xiv.api.XIVRESTExportOperations;
-import com.emc.storageos.xiv.api.XIVRestException;
 import com.emc.storageos.xiv.api.XIVRESTExportOperations.HOST_STATUS;
+import com.emc.storageos.xiv.api.XIVRestException;
 
+/**
+ * Helper class to support all REST operations performed on IBM XIV - Hyper Scale manager.
+ * 
+ * Current operations supported:
+ * Find if a Host is part of cluster on XIV
+ * Create Export Mask
+ *
+ */
 public class XIVRESTOperationHelper {
 
     private static Logger _log = LoggerFactory.getLogger(XIVRESTOperationHelper.class);
@@ -49,6 +59,12 @@ public class XIVRESTOperationHelper {
         _restAPIFactory = factory;
     }
 
+    /**
+     * Gets REST Client instance for a StorageSystem
+     * 
+     * @param storage StorageSystem instance
+     * @return XIVRESTExportOperations instance
+     */
     private XIVRESTExportOperations getRestClient(StorageSystem storage) {
         XIVRESTExportOperations restExportOpr = null;
         StorageProvider provider = _dbClient.queryObject(StorageProvider.class, storage.getActiveProviderURI());
@@ -62,6 +78,13 @@ public class XIVRESTOperationHelper {
         return restExportOpr;
     }
 
+    /**
+     * Validates if the Host is part of a Cluster on XIV system. Uses initiators to find out the Hosts
+     * 
+     * @param storage XIV Storage System instance
+     * @param initiatorList Host Initiators
+     * @return True if the host is part of Cluster else false.
+     */
     public boolean isClusteredHost(StorageSystem storage, List<Initiator> initiatorList) {
         boolean isClusteredHost = false;
         if (null != initiatorList && !initiatorList.isEmpty()) {
@@ -97,6 +120,16 @@ public class XIVRESTOperationHelper {
         return isClusteredHost;
     }
 
+    /**
+     * Creates Export mask for a Cluster. Creates Cluster, Host and Inititators on XIV. Exports the volume to the Cluster.
+     * 
+     * @param storage XIV Storage System
+     * @param exportMaskURI Export Mask URI
+     * @param volumeURIHLUs Volume URIs to be exported
+     * @param targetURIList Target ports (not used for XIV)
+     * @param initiatorList Initiator ports
+     * @param taskCompleter Task Completer instance
+     */
     public void createRESTExportMask(StorageSystem storage, URI exportMaskURI,
             VolumeURIHLU[] volumeURIHLUs, List<URI> targetURIList,
             List<Initiator> initiatorList, TaskCompleter taskCompleter) {
@@ -108,7 +141,7 @@ public class XIVRESTOperationHelper {
             final String storageIP = storage.getSmisProviderIP();
             final String clusterName = cluster.getLabel();
             final String hostName = host.getLabel();
-            
+
             List<Initiator> existingInitiators = new ArrayList<Initiator>();
 
             // Create Cluster if not exist
@@ -120,8 +153,8 @@ public class XIVRESTOperationHelper {
             // Add Initiators to Host.
             if (initiatorList != null && !initiatorList.isEmpty()) {
                 for (Initiator initiator : initiatorList) {
-                    if(restExportOpr.createHostPort(storageIP, hostName, Initiator.normalizePort(initiator.getInitiatorPort()),
-                            initiator.getProtocol().toLowerCase())){
+                    if (restExportOpr.createHostPort(storageIP, hostName, Initiator.normalizePort(initiator.getInitiatorPort()),
+                            initiator.getProtocol().toLowerCase())) {
                         existingInitiators.add(initiator);
                     }
                 }
@@ -144,12 +177,12 @@ public class XIVRESTOperationHelper {
                     }
                 }
             }
-            
-            //Update Masking information
+
+            // Update Masking information
             ExportMask exportMask = _dbClient.queryObject(ExportMask.class, exportMaskURI);
             exportMask.setCreatedBySystem(false);
             exportMask.addToUserCreatedInitiators(existingInitiators);
-            exportMask.setMaskName(hostName); 
+            exportMask.setMaskName(hostName);
             exportMask.setLabel(hostName);
             _dbClient.persistObject(exportMask);
 

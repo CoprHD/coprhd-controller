@@ -1,3 +1,7 @@
+/*
+ * Copyright (c) 2008-2014 EMC Corporation
+ * All Rights Reserved
+ */
 package com.emc.storageos.xiv.api;
 
 import java.io.IOException;
@@ -26,12 +30,15 @@ import com.sun.jersey.api.client.ClientResponse;
 import com.sun.jersey.client.apache.ApacheHttpClient;
 import com.sun.jersey.client.apache.ApacheHttpClientHandler;
 
+/**
+ * Performs all the Export operations on XIV - Hyperscale Manager using its REST APIs
+ */
 public class XIVRESTExportOperations {
 
     private static Logger _log = LoggerFactory.getLogger(XIVRESTExportOperations.class);
     private final RESTClient _client;
     private final URI _baseURI;
-    
+
     private static final String ID = "id";
     private static final String SEPARATOR = ":";
     private static final String NAME = "name";
@@ -45,7 +52,7 @@ public class XIVRESTExportOperations {
     private static final String MESSAGE = "message";
     private static final String SERVER = "server";
     private static final String FAILED_SYSTEMS = "failed_systems";
-    
+
     private static String INSTANCE_URL = "/:{1}";
     private static String CLUSTER_URL = "/xiv/v2/:{0}/clusters";
     private static String HOST_URL = "/xiv/v2/:{0}/hosts";
@@ -55,23 +62,25 @@ public class XIVRESTExportOperations {
     private static String CLUSTER_INSTANCE_URL = CLUSTER_URL + INSTANCE_URL;
     private static String Host_INSTANCE_URL = HOST_URL + INSTANCE_URL;
     private static String Host_PORT_INSTANCE_URL = HOST_PORT_URL + INSTANCE_URL;
-    
+
     private static String CLUSTER_CREATE_BODY = "'{'\"request\":['{'\"action\":\"create\",\"params\":'{'\"name\":\"{0}\"'}}']'}'";
     private static String HOST_CREATE_BODY = "'{'\"request\":['{'\"action\":\"create\",\"params\":'{'\"name\":\"{1}\",\"cluster\":\"{0}\"'}}']'}'";
     private static String HOST_PORT_CREATE_BODY = "'{'\"request\":['{'\"action\":\"create\",\"params\":'{'\"port\":\"{1}\",\"host\":\"{0}\",\"type\":\"{2}\"'}}']'}'";
     private static String EXPORT_VOLUME_TO_CLUSTER_BODY = "'{'\"request\":['{'\"action\":\"create\",\"params\":'{'\"volume\":\"{1}\",\"host_cluster_name\":\"{0}\",\"map_type\":\"cluster\",\"lun\":\"{2}\"}}]}";
-    
+
+    /**
+     * Host Status on XIV
+     */
     public enum HOST_STATUS {
         CLUSTER_HOST,
         STANDALONE_HOST,
         HOST_NOT_PRESENT
     }
 
-    public XIVRESTExportOperations(URI endpoint, RESTClient client) {
-        _baseURI = endpoint;
-        _client = client;
-    }
-
+    /*
+     * Hyperscale Manger REST response validator.
+     * Used to find the Error state retured after REST operation.
+     */
     class ResponseValidator {
         boolean failed;
         String responseStatus;
@@ -136,16 +145,48 @@ public class XIVRESTExportOperations {
         }
     }
 
-    public boolean findAvailability(final String uri) throws Exception {
+    /**
+     * Constructor of XIVRESTExportOperations
+     * 
+     * @param endpoint Base URI of Hyperscale Manager
+     * @param client REST Client instance
+     */
+    public XIVRESTExportOperations(URI endpoint, RESTClient client) {
+        _baseURI = endpoint;
+        _client = client;
+    }
+
+    /**
+     * Find if the instance specified in URI is available on XIV system
+     * 
+     * @param uri Instance URI
+     * @return true if present else false
+     * @throws Exception If error occurs during execution
+     */
+    private boolean findAvailability(final String uri) throws Exception {
         return findAvailability(getInstance(uri));
     }
-    
-    public boolean findAvailability(final JSONObject instance) throws Exception {
+
+    /**
+     * Find if the instance specified using JSONObject is available on XIV system
+     * 
+     * @param instance Instance represented as JSONObject
+     * @return true if present else false
+     * @throws Exception If error occurs during execution
+     */
+    private boolean findAvailability(final JSONObject instance) throws Exception {
         ResponseValidator status = new ResponseValidator(instance);
         return !status.isFailed();
     }
-    
-    public JSONObject getInstance(final String uri) throws Exception {
+
+    /**
+     * Gets Instance as JSONObject from the URI specified
+     * 
+     * @param uri Instance URI
+     * @return Instance JSONObject
+     * @throws Exception Exception If error occurs during execution
+     */
+    private JSONObject getInstance(final String uri) throws Exception {
         JSONObject instance = null;
         ClientResponse response = null;
         try {
@@ -156,8 +197,17 @@ public class XIVRESTExportOperations {
         }
         return instance;
     }
-    
-    public ResponseValidator createInstance(final String xivSystem, final String uri, final String jsonBody) throws Exception {
+
+    /**
+     * Creates instance on XIV using the URI
+     * 
+     * @param xivSystem XIV System name on which the instance needs to be created
+     * @param uri URI representing the Instance base path
+     * @param jsonBody Create body in JSON format
+     * @return ResponseValidator of the create operation
+     * @throws Exception Exception Exception If error occurs during execution
+     */
+    private ResponseValidator createInstance(final String xivSystem, final String uri, final String jsonBody) throws Exception {
         ResponseValidator failureStatus = new ResponseValidator();
         ClientResponse response = null;
         try {
@@ -170,6 +220,14 @@ public class XIVRESTExportOperations {
         return failureStatus;
     }
 
+    /**
+     * Creates Cluster on XIV system
+     * 
+     * @param xivSystem XIV system
+     * @param clusterName Cluster name
+     * @return True if already present. Else False
+     * @throws Exception Exception Exception Exception If error occurs during execution
+     */
     public boolean createCluster(final String xivSystem, final String clusterName) throws Exception {
         boolean isAvailable = findAvailability(MessageFormat.format(CLUSTER_INSTANCE_URL, xivSystem, clusterName));
         if (isAvailable) {
@@ -185,6 +243,15 @@ public class XIVRESTExportOperations {
         return isAvailable;
     }
 
+    /**
+     * Creates Host on XIV system. Maps it to a Cluster
+     * 
+     * @param xivSystem xivSystem XIV system
+     * @param clusterName clusterName Cluster name
+     * @param hostName Host Name
+     * @return True if already present. Else False
+     * @throws Exception Exception Exception Exception If error occurs during execution
+     */
     public boolean createHost(final String xivSystem, final String clusterName, final String hostName) throws Exception {
         boolean isAvailable = findAvailability(MessageFormat.format(Host_INSTANCE_URL, xivSystem, hostName));
         if (isAvailable) {
@@ -200,6 +267,16 @@ public class XIVRESTExportOperations {
         return isAvailable;
     }
 
+    /**
+     * Creates Host Port (Initiator)
+     * 
+     * @param xivSystem xivSystem XIV system
+     * @param hostName Host Name
+     * @param hostPort Host Port name
+     * @param hostPortType Host Port type
+     * @return True if already present. Else False
+     * @throws Exception Exception Exception Exception If error occurs during execution
+     */
     public boolean createHostPort(final String xivSystem, final String hostName, final String hostPort, final String hostPortType)
             throws Exception {
         boolean isAvailable = findAvailability(MessageFormat.format(Host_PORT_INSTANCE_URL, xivSystem, hostPort));
@@ -215,10 +292,21 @@ public class XIVRESTExportOperations {
         }
         return isAvailable;
     }
-    
+
+    /**
+     * Exports a volume to a Cluster
+     * 
+     * @param xivSystem XIV System
+     * @param clusterName Cluster name to where volume is exported
+     * @param volumeName Name of the volume to be exported
+     * @param lunID LUN number to be assigned
+     * @return True if Volume is already exported to a specific Cluster. Else false.
+     * @throws Exception Exception Exception Exception If error occurs during execution
+     */
     public boolean exportVolumeToCluster(final String xivSystem, final String clusterName, final String volumeName, final String lunID)
             throws Exception {
-        boolean isAvailable = findAvailability(MessageFormat.format(EXPORT_VOLUME_TO_CLUSTER_INSTANCE_URL, xivSystem, clusterName, volumeName));
+        boolean isAvailable = findAvailability(
+                MessageFormat.format(EXPORT_VOLUME_TO_CLUSTER_INSTANCE_URL, xivSystem, clusterName, volumeName));
         if (isAvailable) {
             _log.info("Volume {} already already exported to Cluster {} on XIV {}. Skipping Export!", volumeName, clusterName, xivSystem);
         } else {
@@ -226,31 +314,40 @@ public class XIVRESTExportOperations {
             ResponseValidator failureStatus = createInstance(xivSystem, MessageFormat.format(EXPORT_VOLUME_URL, xivSystem), body);
 
             if (failureStatus.isFailed()) {
-                throw XIVRestException.exceptions.volumeExportToClusterFailure(xivSystem, clusterName, volumeName, failureStatus.toString());
+                throw XIVRestException.exceptions.volumeExportToClusterFailure(xivSystem, clusterName, volumeName,
+                        failureStatus.toString());
             }
         }
         return isAvailable;
     }
-    
-    public HOST_STATUS getHostStatus(final String xivSystem, final String hostName) throws Exception{
+
+    /**
+     * Gets status of Host on XIV system
+     * 
+     * @param xivSystem XIV system
+     * @param hostName Host name to be verified
+     * @return HOST_STATUS
+     * @throws Exception Exception Exception Exception If error occurs during execution
+     */
+    public HOST_STATUS getHostStatus(final String xivSystem, final String hostName) throws Exception {
         final String hostURI = MessageFormat.format(Host_INSTANCE_URL, xivSystem, hostName);
         HOST_STATUS hostStatus = HOST_STATUS.HOST_NOT_PRESENT;
         JSONObject hostInstance = getInstance(hostURI);
-        
+
         if (findAvailability(hostInstance)) {
             hostStatus = HOST_STATUS.STANDALONE_HOST;
             JSONObject response = hostInstance.getJSONObject(RESPONSE);
             JSONObject data = response.getJSONObject(DATA);
             JSONObject host = data.getJSONObject(HOST);
             final String hostCluster = host.getString(CLUSTER);
-            if(null!=hostCluster && !hostCluster.isEmpty()){
+            if (null != hostCluster && !hostCluster.isEmpty()) {
                 hostStatus = HOST_STATUS.CLUSTER_HOST;
             }
         }
         return hostStatus;
     }
-    
 
+    // TODO : For dev testing. To be removed later.
     public static void main(String[] args) throws Exception {
 
         // Setup the connection parameters.
@@ -260,11 +357,6 @@ public class XIVRESTExportOperations {
         params.setConnectionTimeout(1000 * 30);
         params.setSoTimeout(1000 * 60 * 60);
         params.setTcpNoDelay(true);
-
-        // Create the HTTP connection manager for managing the set of HTTP
-        // connections and set the configuration parameters. Also, make sure
-        // idle connections are closed immediately to prevent a buildup of
-        // connections in the CLOSE_WAIT state.
 
         MultiThreadedHttpConnectionManager mgr = new MultiThreadedHttpConnectionManager();
         mgr.setParams(params);
@@ -295,21 +387,23 @@ public class XIVRESTExportOperations {
         initiators.add("1000000000000001");
         initiators.add("1000000000000002");
         hostInitiatorMap.put("Vineeth_Host_1", initiators);
-        
-        /*storageDevice.createCluster(xivSystem, clusterName);
-                
-        Iterator<Entry<String, List<String>>> set = hostInitiatorMap.entrySet().iterator();
-        while(set.hasNext()){
-            Entry<String, List<String>> entry = set.next();
-            storageDevice.createHost(xivSystem, clusterName, entry.getKey());
-            List<String> ini = entry.getValue();
-            for(String initiator : ini){
-                storageDevice.createHostPort(xivSystem, entry.getKey(), initiator, "fc");
-            }
-        }*/
-        
-        //storageDevice.exportVolumeToCluster(xivSystem, clusterName, "Test_Private_LUN_toCluster", "4");
-        
+
+        /*
+         * storageDevice.createCluster(xivSystem, clusterName);
+         * 
+         * Iterator<Entry<String, List<String>>> set = hostInitiatorMap.entrySet().iterator();
+         * while(set.hasNext()){
+         * Entry<String, List<String>> entry = set.next();
+         * storageDevice.createHost(xivSystem, clusterName, entry.getKey());
+         * List<String> ini = entry.getValue();
+         * for(String initiator : ini){
+         * storageDevice.createHostPort(xivSystem, entry.getKey(), initiator, "fc");
+         * }
+         * }
+         */
+
+        // storageDevice.exportVolumeToCluster(xivSystem, clusterName, "Test_Private_LUN_toCluster", "4");
+
         storageDevice.getHostStatus(xivSystem, "Vineeth_Host_1");
 
         restClient.close();

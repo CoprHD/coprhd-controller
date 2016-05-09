@@ -3,7 +3,6 @@
  * All Rights Reserved
  */
 
-
 package com.emc.storageos.xiv.api;
 
 import java.net.URI;
@@ -16,6 +15,10 @@ import com.sun.jersey.api.client.ClientResponse;
 import com.sun.jersey.api.client.WebResource;
 import com.sun.jersey.api.client.filter.HTTPBasicAuthFilter;
 
+/**
+ * REST Client instance
+ *
+ */
 public class RESTClient {
 
     private static Logger _log = LoggerFactory.getLogger(RESTClient.class);

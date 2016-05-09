@@ -1,9 +1,16 @@
+/*
+ * Copyright (c) 2008-2014 EMC Corporation
+ * All Rights Reserved
+ */
 package com.emc.storageos.xiv.api;
 
 import com.emc.storageos.svcs.errorhandling.model.ExceptionMessagesProxy;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
 
+/**
+ * XIV REST Exception
+ */
 public class XIVRestException extends InternalException {
     private static final long serialVersionUID = 8903079831758201184L;
 

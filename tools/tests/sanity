@@ -9816,6 +9816,10 @@ snapvx_single_tests()
     secho "Deleting the VMAX3 source volume"
     volume delete $PROJECT/$VOLUME_NAME --wait
 }
+networkcontroller_setup()
+{
+  echo "************* NetworkController setup  *****************"
+}
 
 ${SS}_setup
 if [ $DO_SETUP_ONLY -eq 0 ]; then

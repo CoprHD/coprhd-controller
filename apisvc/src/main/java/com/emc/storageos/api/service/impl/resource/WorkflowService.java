@@ -4,29 +4,30 @@
  */
 package com.emc.storageos.api.service.impl.resource;
 
-import static com.emc.storageos.api.mapper.WorkflowMapper.map;
 import static com.emc.storageos.api.mapper.TaskMapper.toTask;
+import static com.emc.storageos.api.mapper.WorkflowMapper.map;
 
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.EnumSet;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Set;
 import java.util.UUID;
 
-import javax.ws.rs.*;
+import javax.ws.rs.GET;
+import javax.ws.rs.PUT;
+import javax.ws.rs.Path;
+import javax.ws.rs.PathParam;
+import javax.ws.rs.Produces;
+import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
-import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.OpStatusMap;
 import com.emc.storageos.db.client.model.Operation;
-import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.Workflow;
 import com.emc.storageos.db.client.model.WorkflowStep;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
@@ -292,8 +293,8 @@ public class WorkflowService extends TaskResourceService {
      * Suspends a workflow when it tries to execute a given step, and all other executing steps
      * have suspended.
      * @preq none
-     * @brief Resumes a suspended workflow
-     * @param uri - URI of the suspended workflow.
+     * @brief Suspends a workflow
+     * @param uri - URI of the workflow.
      * @param stepURI - URI of the workflow step 
      * @return - No data returned in response body
      */
@@ -303,22 +304,61 @@ public class WorkflowService extends TaskResourceService {
     @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN,
             Role.SYSTEM_MONITOR, Role.TENANT_ADMIN })
     public Response suspendWorkflowStep(@PathParam("id") URI uri, @PathParam("stepId") URI stepURI) {
-    	Workflow workflow = queryResource(uri);
-    	// Verify the workflow is either RUNNING or ROLLING_BACK
-    	EnumSet<WorkflowState> expected = 
-    	        EnumSet.of(WorkflowState.RUNNING, WorkflowState.ROLLING_BACK);
-    	WorkflowState completionState = WorkflowState.valueOf(workflow.getCompletionState());
-    	ArgValidator.checkFieldForValueFromEnum(completionState, "Workflow State", expected);
-    	if (!NullColumnValueGetter.isNullURI(stepURI)) {
-    	    // Validate step id.
-    	    WorkflowStep step = _dbClient.queryObject(WorkflowStep.class, stepURI);
-    	    ArgValidator.checkEntityNotNull(step, stepURI, isIdEmbeddedInURL(stepURI));
-    	} 
-    	String taskId = UUID.randomUUID().toString();
-    	getController().suspendWorkflowStep(uri, stepURI, taskId);
-    	return Response.ok().build();
+        Workflow workflow = queryResource(uri);
+        // Verify the workflow is either RUNNING or ROLLING_BACK
+        EnumSet<WorkflowState> expected = 
+                EnumSet.of(WorkflowState.RUNNING, WorkflowState.ROLLING_BACK);
+        WorkflowState completionState = WorkflowState.valueOf(workflow.getCompletionState());
+        ArgValidator.checkFieldForValueFromEnum(completionState, "Workflow State", expected);
+        if (!NullColumnValueGetter.isNullURI(stepURI)) {
+            // Validate step id.
+            WorkflowStep step = _dbClient.queryObject(WorkflowStep.class, stepURI);
+            ArgValidator.checkEntityNotNull(step, stepURI, isIdEmbeddedInURL(stepURI));
+        } 
+        String taskId = UUID.randomUUID().toString();
+        getController().suspendWorkflowStep(uri, stepURI, taskId);
+        return Response.ok().build();
     }
     
+    /**
+     * Adds a class and method to the list of methods to suspend in a workflow.
+     * Requires a class (simple name) and method
+     * 
+     * @preq none
+     * @param className - class name to suspend
+     * @param methodName - method name to suspend
+     * @return - No data returned in response body
+     */
+    @PUT
+    @Path("/suspend/{class}")
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN,
+            Role.SYSTEM_MONITOR, Role.TENANT_ADMIN })
+    public Response suspendTriggerAdd(@PathParam("class") String className, @QueryParam("method") String methodName) {
+        getController().addSuspendTrigger(className, methodName);
+        return Response.ok().build();
+    }
+
+    /**
+     * Removes a class and method to the list of methods to suspend in a workflow.
+     * Requires a class (simple name) and method
+     * NOTE: Perhaps PUT /resume is not a good moniker for this operations.  It's really "remove from suspend list".
+     * 
+     * @preq none
+     * @param className - class name to remove from suspend list
+     * @param methodName - method name to remove from suspend list
+     * @return - No data returned in response body
+     */
+    @PUT
+    @Path("/resume/{class}")
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN,
+            Role.SYSTEM_MONITOR, Role.TENANT_ADMIN })
+    public Response suspendTriggerRemove(@PathParam("class") String className, @QueryParam("method") String methodName) {
+        getController().removeSuspendTrigger(className, methodName);
+        return Response.ok().build();
+    }
+
     private List<URI> getChildWorkflows(WorkflowStep step) {
         URIQueryResultList result = new URIQueryResultList();
         _dbClient.queryByConstraint(AlternateIdConstraint.Factory

@@ -55,6 +55,7 @@ import com.emc.storageos.volumecontroller.impl.Dispatcher;
 import com.emc.storageos.workflow.Workflow.Step;
 import com.emc.storageos.workflow.Workflow.StepState;
 import com.emc.storageos.workflow.Workflow.StepStatus;
+import com.google.common.base.Joiner;
 
 /**
  * A singleton WorkflowService is created on each Bourne node to manage Workflows.
@@ -69,6 +70,7 @@ import com.emc.storageos.workflow.Workflow.StepStatus;
  * @author Watson
  */
 public class WorkflowService implements WorkflowController {
+    private static final String CLASS_METHOD_SEPARATOR = ".";
     private static final Logger _log = LoggerFactory.getLogger(WorkflowService.class);
     private static final Long MILLISECONDS_IN_SECOND = 1000L;
     private static volatile WorkflowService _instance = null;
@@ -90,6 +92,9 @@ public class WorkflowService implements WorkflowController {
     private String _zkStepToWorkflowPath = ZkPath.WORKFLOW.toString() + "/step2workflow/%s";
     private String _zkStepToWorkflow = ZkPath.WORKFLOW.toString() + "/step2workflow";
 
+    // User-provided suspend-on-start class/method
+    private Set<String> suspendClassMethods = new HashSet<>();
+    
     /**
      * Returns the ZK path for workflow state. This node has a child for each Step.
      * 
@@ -814,7 +819,13 @@ public class WorkflowService implements WorkflowController {
             if (!workflow.getStepMap().isEmpty()) {
             	_log.info("Executing workflow plan: " + workflow.getWorkflowURI() + " " + workflow.getOrchTaskId());
             	workflow.setWorkflowState(WorkflowState.RUNNING);
-                persistWorkflow(workflow);
+
+                for (Step step : workflow.getStepMap().values()) {
+                    // DUPP TODO: Add scanner to see if there are any steps that would like to cause a suspension
+                    
+                }            	
+
+            	persistWorkflow(workflow);
                 
                 for (Step step : workflow.getStepMap().values()) {
                     persistWorkflowStep(workflow, step);
@@ -1654,6 +1665,68 @@ public class WorkflowService implements WorkflowController {
 		}
 	}
 	
+    @Override
+    public void addSuspendTrigger(String className, String methodName) throws ControllerException {
+        // Validate the class and method names
+        validateClassMethodNames(className, methodName);
+        
+        // If className is null (and methodName isn't), all classes with this method name are suspended
+        if (className == null) {
+            className = "*";
+        }
+        
+        // If methodName is null (and className isn't), all methods in this class are suspended
+        if (methodName == null) {
+            methodName = "*";
+        }
+        
+        // Add to the static list in the class
+        suspendClassMethods.add(className + CLASS_METHOD_SEPARATOR + methodName);        
+    }
+    
+    @Override
+    public void removeSuspendTrigger(String className, String methodName) throws ControllerException {
+        // Validate the class and method names
+        validateClassMethodNames(className, methodName);
+        
+        if (className == null) {
+            className = "*";
+        }
+        
+        if (methodName == null) {
+            methodName = "*";
+        }
+        
+        // Add to the static list in the class
+        String classMethodName = className + CLASS_METHOD_SEPARATOR + methodName;
+        if (!suspendClassMethods.contains(classMethodName)) {
+            throw WorkflowException.exceptions.workflowSuspendTriggerNotFound(classMethodName, Joiner.on(",").join(suspendClassMethods));
+        }
+        
+        suspendClassMethods.remove(classMethodName);        
+    }
+
+    /**
+     * Validate the class and method names
+     * 
+     * @param className class name
+     * @param methodName method name
+     */
+    private void validateClassMethodNames(String className, String methodName) {
+        // Validate you have valid arguments
+        if (className == null && methodName == null) {
+            throw WorkflowException.exceptions.workflowSuspendTriggerInvalidNull();
+        }
+
+        if (className.contains(CLASS_METHOD_SEPARATOR)) {
+            throw WorkflowException.exceptions.workflowSuspendTriggerInvalid(className);
+        }
+
+        if (methodName.contains(CLASS_METHOD_SEPARATOR)) {
+            throw WorkflowException.exceptions.workflowSuspendTriggerInvalid(methodName);
+        }
+    }
+    
 	/**
 	 * Queue steps to resume workflow.
 	 * @param workflow
@@ -2192,5 +2265,4 @@ public class WorkflowService implements WorkflowController {
         this._ownerLocker = _ownerLocker;
     }
 
-
-	}
+}

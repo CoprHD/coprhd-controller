@@ -37,9 +37,29 @@ public interface WorkflowController extends Controller {
 	 * rolled back if possible.
 	 * @param workflow -- Workflow URI
 	 * @param taskId -- String task id
-	 * @throws ControllerException
+     * @throws ControllerException
 	 */
 	public abstract void rollbackWorkflow(URI workflow, String taskId)
 		throws ControllerException;
 
+    /**
+     * Add a suspend trigger.
+     * 
+     * @param className name of a class (simple name)
+     * @param methodName method name of a class
+     * @throws ControllerException
+     */
+    public abstract void addSuspendTrigger(String className, String methodName)
+        throws ControllerException;
+
+    /**
+     * Remove a suspend trigger.
+     * 
+     * @param className name of a class (simple name)
+     * @param methodName method name of a class
+     * @throws ControllerException
+     */
+    public abstract void removeSuspendTrigger(String className, String methodName)
+        throws ControllerException;
+    
 }

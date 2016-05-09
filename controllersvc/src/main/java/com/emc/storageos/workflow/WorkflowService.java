@@ -9,11 +9,13 @@ import java.net.URI;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
+import java.util.Collection;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
@@ -32,6 +34,9 @@ import com.emc.storageos.coordinator.client.service.DistributedDataManager;
 import com.emc.storageos.coordinator.common.impl.ZkPath;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
+import com.emc.storageos.db.client.model.DataObject;
+import com.emc.storageos.db.client.model.Operation;
+import com.emc.storageos.db.client.model.Operation.Status;
 import com.emc.storageos.db.client.model.Task;
 import com.emc.storageos.db.client.model.util.TaskUtils;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
@@ -45,6 +50,7 @@ import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
 import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.volumecontroller.ControllerLockingService;
+import com.emc.storageos.volumecontroller.impl.ControllerUtils;
 import com.emc.storageos.volumecontroller.impl.Dispatcher;
 import com.emc.storageos.workflow.Workflow.Step;
 import com.emc.storageos.workflow.Workflow.StepState;
@@ -62,7 +68,7 @@ import com.emc.storageos.workflow.Workflow.StepStatus;
  * 
  * @author Watson
  */
-public class WorkflowService {
+public class WorkflowService implements WorkflowController {
     private static final Logger _log = LoggerFactory.getLogger(WorkflowService.class);
     private static final Long MILLISECONDS_IN_SECOND = 1000L;
     private static volatile WorkflowService _instance = null;
@@ -73,6 +79,9 @@ public class WorkflowService {
     private ControllerLockingService _locker;
     private DistributedOwnerLockService _ownerLocker;
     private WorkflowScrubberExecutor _scrubber;
+
+    // Config properties
+    private final String WORKFLOW_SUSPEND_ON_ERROR_PROPERTY = "workflow_suspend_on_error";
 
     // Zookeeper paths, all proceeded by /workflow which is ZkPath.WORKFLOW
     private String _zkWorkflowPath = ZkPath.WORKFLOW.toString() + "/workflows/%s/%s/%s";
@@ -387,7 +396,9 @@ public class WorkflowService {
             lock = lockWorkflow(workflow);
             // Load the entire workflow state including the steps
             workflow = loadWorkflow(workflow);
-            assert (workflow != null);
+            if (workflow == null) {
+                throw WorkflowException.exceptions.workflowNotFound(workflowPath);
+            }
             synchronized (workflow) {
                 // Update the StepState structure
                 StepStatus status = workflow.getStepStatus(stepId);
@@ -404,15 +415,15 @@ public class WorkflowService {
                     }
                     // Check for any blocked steps and unblock them
                     checkBlockedSteps(workflow, stepId);
-                    // Terminal state achieved, delete the callback node
-                    // _dataManager.removeNode(path);
-                    // Remove the step to workflow path
-                    _dataManager.removeNode(getZKStep2WorkflowPath(stepId));
                 }
                 // Check to see if the workflow might be finished, or need a rollback.
                 if (workflow.allStatesTerminal()) {
-                    workflowDeleted = doWorkflowEndProcessing(workflow, automaticRollback);
+                    workflowDeleted = doWorkflowEndProcessing(workflow, automaticRollback, lock);
+                    if (workflowDeleted) {
+                        // lock is released by end processing if the workflow is deleted
+                        lock = null;
                 }
+            }
             }
         } catch (Exception ex) {
             String exMsg = "Exception processing updateStepStatus stepId: " + stepId + ": " + ex.getMessage();
@@ -432,28 +443,20 @@ public class WorkflowService {
      * 
      * @param workflow
      * @param automaticRollback
+     * @param workflowLock -- released only if workflow is deleted
      * @return deleted
      * @throws DeviceControllerException
      */
-    private boolean doWorkflowEndProcessing(Workflow workflow, boolean automaticRollback) throws DeviceControllerException {
+    private boolean doWorkflowEndProcessing(Workflow workflow, boolean automaticRollback, 
+            InterProcessLock workflowLock) throws DeviceControllerException {
         Map<String, StepStatus> statusMap = workflow.getStepStatusMap();
 
         // Print out the status of each step into the log.
-        for (StepStatus status : statusMap.values()) {
-            Date startTime = status.startTime;
-            Date endTime = status.endTime;
-            if (startTime != null && endTime != null) {
-                _log.info(String.format(
-                        "Step: %s (%s) state: %s message: %s started: %s completed: %s elapsed: %d ms",
-                        status.stepId, status.description,
-                        status.state, status.message, status.startTime,
-                        status.endTime, (status.endTime.getTime() - status.startTime.getTime())));
-            } else {
-                _log.info(String.format(
-                        "Step: %s (%s) state: %s message: %s ",
-                        status.stepId, status.description, status.state, status.message));
-            }
-        }
+        printStepStatuses(statusMap.values());
+        // Get the WorkflowState
+        WorkflowState state = workflow.getWorkflowStateFromSteps();
+        // Clear the suspend step so we will execute if resumed.
+        workflow.setSuspendStep(NullColumnValueGetter.getNullURI());
 
         // Get composite status and status message
         if (workflow._successMessage == null) {
@@ -463,42 +466,42 @@ public class WorkflowService {
                     workflow._orchTaskId);
         }
         String[] errorMessage = new String[] { workflow._successMessage };
-        StepState state = Workflow.getOverallState(statusMap, errorMessage);
+        // StepState state = Workflow.getOverallState(statusMap, errorMessage);
         _log.info(String.format("Workflow %s overall state: %s (%s)",
                 workflow.getOrchTaskId(), state, errorMessage[0]));
         ServiceError error = Workflow.getOverallServiceError(statusMap);
-        if (error != null) {
-            error.setMessage(errorMessage[0]);
-        }
 
         // Initiate rollback if needed.
-        if (automaticRollback && workflow.isRollbackState() == false && state == StepState.ERROR) {
-            if (workflow._rollbackHandler != null) {
-                workflow._rollbackHandler.initiatingRollback(workflow,
-                        workflow._rollbackHandlerArgs);
+        if (automaticRollback && workflow.isRollbackState() == false && state == WorkflowState.ERROR) {
+            boolean rollBackStarted = false;
+            if (workflow.isSuspendOnError()) {
+                _log.info(String.format("Suspending workflow %s on error, no rollback initiation", workflow.getWorkflowURI()));
+            } else {
+                rollBackStarted = initiateRollback(workflow);
             }
-            boolean rollBackStarted = initiateRollback(workflow);
             if (rollBackStarted) {
                 // Return now, wait until the rollback completions come here again.
+                workflow.setWorkflowState(WorkflowState.ROLLING_BACK);
+                persistWorkflow(workflow);
+                logWorkflow(workflow, true);
+                _log.info(String.format("Rollback initiated workflow %s" ,workflow.getWorkflowURI() ));
                 return false;
+            } else {
+                // Enter the suspend state on error
+                state = WorkflowState.SUSPENDED_ERROR;
             }
         }
+        // Save the updated workflow state
+        workflow.setWorkflowState(state);
+        persistWorkflow(workflow);
+        logWorkflow(workflow, true);
 
-        // At this point we're committed to deleting the workflow.
         try {
             // Check if rollback completed.
             if (workflow.isRollbackState()) {
                 if (workflow._rollbackHandler != null) {
                     workflow._rollbackHandler.rollbackComplete(workflow,
                             workflow._rollbackHandlerArgs);
-                }
-                // Print the status after all rollback operations are complete.
-                for (StepStatus status : statusMap.values()) {
-                    _log.info(String
-                            .format("Step: %s (%s) state: %s message: %s started: %s completed: %s elapsed: %d ms",
-                                    status.stepId, status.description,
-                                    status.state, status.message, status.startTime,
-                                    status.endTime, (status.endTime.getTime() - status.startTime.getTime())));
                 }
             }
 
@@ -512,33 +515,54 @@ public class WorkflowService {
             if (workflow._taskCompleter != null) {
                 switch (state) {
                     case ERROR:
-                    case CANCELLED:
                         workflow._taskCompleter.error(_dbClient, _locker, error);
                         break;
-                    default:
+                    case SUCCESS:
                         workflow._taskCompleter.ready(_dbClient, _locker);
+                        break;
+                    case SUSPENDED_ERROR:
+                    case SUSPENDED_NO_ERROR:
+                        workflow._taskCompleter.suspended(_dbClient, _locker, error);
+                        break;
+                    default:
                         break;
                 }
             }
         } finally {
+            //            // Remove the workflow from ZK unless it is suspended (either for an error, or no error)
+            //            if (workflow.getWorkflowState() != WorkflowState.SUSPENDED_ERROR 
+            //                    && workflow.getWorkflowState() != WorkflowState.SUSPENDED_NO_ERROR) {
+            //                destroyWorkflow(workflow);
+            //            }
             logWorkflow(workflow, true);
             // Release the Workflow's locks, if any.
             boolean removed = _ownerLocker.releaseLocks(workflow.getWorkflowURI().toString());
             if (!removed) {
                 _log.error("Unable to release workflow locks for: " + workflow.getWorkflowURI().toString());
             }
-            // Destroy the workflow from ZK
-            if (!workflow._nested) {
-                destroyWorkflow(workflow);
-            } else {
-                if (isExistingWorkflow(workflow)) {
-                    _log.info(String.format(
-                            "Workflow %s is nested, destruction deferred until parent destroys",
-                            workflow.getWorkflowURI()));
+            // Remove the workflow from ZK unless it is suspended (either for an error, or no error)
+            if (workflow.getWorkflowState() != WorkflowState.SUSPENDED_ERROR 
+                    && workflow.getWorkflowState() != WorkflowState.SUSPENDED_NO_ERROR) {
+                removed = false;
+                if (!workflow._nested) {
+                    // Remove the workflow from ZK unless it is suspended (either for an error, or no error)
+                    if (workflow.getWorkflowState() != WorkflowState.SUSPENDED_ERROR
+                            && workflow.getWorkflowState() != WorkflowState.SUSPENDED_NO_ERROR) {
+                        unlockWorkflow(workflow, workflowLock);
+                        destroyWorkflow(workflow);
+                        return true;
+                    }
+                } else {
+                    if (isExistingWorkflow(workflow)) {
+                        _log.info(String.format(
+                                "Workflow %s is nested, destruction deferred until parent destroys",
+                                workflow.getWorkflowURI()));
+                    }
+                    logWorkflow(workflow, true);
                 }
             }
         }
-        return true;
+        return false;
     }
 
     /**
@@ -568,6 +592,7 @@ public class WorkflowService {
         Workflow workflow = new Workflow(this, controller.getClass().getSimpleName(),
                 method, taskId, workflowURI);
         workflow.setRollbackContOnError(rollbackContOnError);
+        workflow.setSuspendOnError(Boolean.valueOf(ControllerUtils.getPropertyValueFromCoordinator(_coordinator, WORKFLOW_SUSPEND_ON_ERROR_PROPERTY)));
         // logWorkflow assigns the workflowURI.
         logWorkflow(workflow, false);
         // Keep track if it's a nested Workflow
@@ -586,8 +611,15 @@ public class WorkflowService {
             destroyNestedWorkflows(workflow);
             // Remove all the Step data nodes.
             for (Step step : workflow.getStepMap().values()) {
-                String dataPath = getZKStepDataPath(step.stepId);
+                // Remove the back pointer from step id to workflow.
+                String dataPath = getZKStep2WorkflowPath(step.stepId);
                 Stat stat = _dataManager.checkExists(dataPath);
+                if (stat != null) {
+                    _dataManager.removeNode(dataPath);
+                }
+                // Remove the step state.
+                dataPath = getZKStepDataPath(step.stepId);
+                stat = _dataManager.checkExists(dataPath);
                 if (stat != null) {
                     _dataManager.removeNode(dataPath);
                 }
@@ -711,8 +743,7 @@ public class WorkflowService {
      * This method sets up the workflow from ZK data if the workflow already exists.
      * The state for each of the Steps is loaded from ZK.
      * This is called from updateStepStatus().
-     * 
-     * @param workflow
+     * @param workflow, or null if nothing could be loaded from ZK
      */
     private Workflow loadWorkflow(Workflow workflow) throws WorkflowException {
         try {
@@ -781,9 +812,10 @@ public class WorkflowService {
         InterProcessLock lock = null;
         try {
             if (!workflow.getStepMap().isEmpty()) {
+            	_log.info("Executing workflow plan: " + workflow.getWorkflowURI() + " " + workflow.getOrchTaskId());
+            	workflow.setWorkflowState(WorkflowState.RUNNING);
                 persistWorkflow(workflow);
-                _log.info("Executing workflow plan: " + workflow.getWorkflowURI() + " " + workflow.getOrchTaskId());
-
+                
                 for (Step step : workflow.getStepMap().values()) {
                     persistWorkflowStep(workflow, step);
                 }
@@ -933,10 +965,17 @@ public class WorkflowService {
      * @param workflow Workflow containing the Step
      * @param step Step checked.
      * @return true if the step is blocked waiting on a pre-requiste step to complete, false if runnable now.
-     * @throws CancelledException if a prerequisite step has had an error or has been cancelled.
+     * @throws CancelledException if a prerequisite step has had an error or has been cancelled
+     * or if this step (or all steps) should be cancelled because of suspend request.
      */
     boolean isBlocked(Workflow workflow, Step step) throws WorkflowException,
             CancelledException {
+        if (workflow.getSuspendStep() != null 
+                && (workflow.getSuspendStep().equals(workflow.getWorkflowURI()) 
+                    || workflow.getSuspendStep().equals(step.workflowStepURI)  )) {
+            // We want to cancel this step, not because of an error, but just to suspend the workflow.
+            throw new CancelledException();
+        }
         // The step cannot be blocked if waitFor is null (which means not specified)
         if (step.waitFor == null) {
             return false;
@@ -981,7 +1020,7 @@ public class WorkflowService {
      * Initiate a rollback of the entire workflow.
      * 
      * @param workflow - The workflow to be rolled back.
-     * @return true if rollback initiated
+     * @return true if rollback initiated, false if suspended.
      */
     public boolean initiateRollback(Workflow workflow) throws WorkflowException {
         // Verify all existing steps are in a terminal state.
@@ -994,6 +1033,7 @@ public class WorkflowService {
         }
 
         // Make sure all non-cancelled nodes have a rollback method.
+        // TODO: handle null rollback methods better.
         boolean norollback = false;
         for (Step step : workflow.getStepMap().values()) {
             if (step.status.state != StepState.CANCELLED && step.rollbackMethod == null) {
@@ -1005,6 +1045,14 @@ public class WorkflowService {
         }
         if (norollback) {
             return false;
+        }
+
+        _log.info("Generating rollback steps for workflow: " + workflow.getWorkflowURI());
+        
+        // Going to try and initiate the rollback.
+        if (workflow._rollbackHandler != null) {
+            workflow._rollbackHandler.initiatingRollback(workflow,
+                    workflow._rollbackHandlerArgs);
         }
 
         // Determine the steps that need to be rolled back.
@@ -1099,9 +1147,11 @@ public class WorkflowService {
         }
         workflow.getStepGroupMap().putAll(rollbackStepGroupMap);
         workflow.setRollbackState(true);
+        workflow.setWorkflowState(WorkflowState.ROLLING_BACK);
 
         // Persist the workflow since we added the rollback groups
         persistWorkflow(workflow);
+        logWorkflow(workflow, true);
 
         // Now queue all the new steps.
         for (Step step : rollbackStepMap.values()) {
@@ -1145,7 +1195,8 @@ public class WorkflowService {
                 try {
                     Map<String, StepStatus> statusMap = workflow.getAllStepStatus();
                     String[] errorMessage = new String[] { workflow._successMessage };
-                    StepState state = workflow.getOverallState(statusMap, errorMessage);
+                    Workflow.getOverallState(statusMap, errorMessage);
+                    WorkflowState state = workflow.getWorkflowState();
                     logWorkflow.setCompletionState(state.name());
                     logWorkflow.setCompletionMessage(errorMessage[0]);
                 } catch (WorkflowException ex) {
@@ -1482,6 +1533,177 @@ public class WorkflowService {
         return releasedLocks;
     }
 
+    @Override
+	public void suspendWorkflowStep(URI workflowURI, URI stepURI, String taskId)
+			throws ControllerException {
+        WorkflowTaskCompleter completer = new WorkflowTaskCompleter(workflowURI, taskId);
+		_log.info(String.format("Suspend request workflow: %s step: %s", workflowURI, stepURI));
+        Workflow workflow = loadWorkflowFromUri(workflowURI);
+        if (NullColumnValueGetter.isNullURI(stepURI)) {
+            // In this case, we want to suspend any step trying to unblock.
+            workflow.setSuspendStep(workflowURI);
+        } else {
+            // In this case, we want to suspend only when we reach designated step.
+            workflow.setSuspendStep(stepURI);
+	}
+        persistWorkflow(workflow);
+        completer.ready(_dbClient);
+	}
+
+	@Override
+	public void resumeWorkflow(URI uri, String taskId)
+			throws ControllerException {
+	    Workflow workflow  = null;
+	    WorkflowTaskCompleter completer = null;
+	    InterProcessLock workflowLock = null;
+	    completer = new WorkflowTaskCompleter(uri, taskId);
+		try {
+			_log.info(String.format("Resume request workflow: %s", uri));
+			workflow = loadWorkflowFromUri(uri);
+			if (workflow == null) {
+			    // Cannot resume non-existent workflow
+			    throw WorkflowException.exceptions.workflowNotFound(uri.toString());
+			}
+			WorkflowState state = workflow.getWorkflowState();
+			if (state != WorkflowState.SUSPENDED_ERROR 
+			        && state != WorkflowState.SUSPENDED_NO_ERROR) {
+			    // Cannot resume a workflow that is not suspended
+			    _log.info(String.format("Child workflow %s state %s is not suspended and will not be resumed", uri, state));
+			    return;
+			}
+			workflowLock = lockWorkflow(workflow);
+			Map<String, com.emc.storageos.db.client.model.Workflow> childWFMap 
+			                = getChildWorkflowsMap(workflow);
+			removeRollbackSteps(workflow);
+			queueResumeSteps(workflow, childWFMap);
+			// Resume the child workflows if applicable.
+			for (com.emc.storageos.db.client.model.Workflow child : childWFMap.values()) {
+			    resumeWorkflow(child.getId(), null);
+			}
+			completer.ready(_dbClient);
+		} catch(WorkflowException ex) {
+			completer.error(_dbClient, ex);;
+		} finally {
+		    unlockWorkflow(workflow, workflowLock);
+		}
+	}
+	
+	@Override
+	public void rollbackWorkflow(URI uri, String taskId)
+			throws ControllerException {
+		WorkflowTaskCompleter completer = new WorkflowTaskCompleter(uri, taskId);
+		try {
+			_log.info(String.format("Rollback requested workflow: %s", uri));
+			Workflow workflow = loadWorkflowFromUri(uri);
+			if (workflow == null) {
+			    throw WorkflowException.exceptions.workflowNotFound(uri.toString());
+			}
+	        completer.statusPending(_dbClient, "Rollback requested on workflow: " + uri.toString());
+			removeRollbackSteps(workflow);
+
+	        // See if there are child Workflows that need to be rolled back.
+	        // These are roll-backed first.
+	        Map<String, com.emc.storageos.db.client.model.Workflow> childWFMap 
+	        = getChildWorkflowsMap(workflow);
+	        for (Entry<String, com.emc.storageos.db.client.model.Workflow> entry : childWFMap.entrySet()) {
+	            String parentStepId = entry.getKey();
+	            Workflow child = loadWorkflowFromUri(entry.getValue().getId());
+	            WorkflowState state = child.getWorkflowState();
+	            switch(state) {
+	            case SUSPENDED_ERROR:
+	            case SUSPENDED_NO_ERROR:
+	                _dbClient.pending(com.emc.storageos.db.client.model.Workflow.class, 
+	                        child.getWorkflowURI(), parentStepId, "rolling back sub-workflow");
+	                rollbackWorkflow(child.getWorkflowURI(), entry.getKey());
+	                Status status  = waitOnOperationComplete(com.emc.storageos.db.client.model.Workflow.class, 
+	                        child.getWorkflowURI(), parentStepId);
+	                _log.info(String.format("Child rollback task %s completed with state %s", taskId, status.name()));;
+	                // TODO: should we go forward if unable to roll back child?
+	                break;
+	            default:
+	                continue;
+	            }
+	        }
+	        
+	        // Now try to start rollback of top level Workflow
+	        _dbClient.pending(com.emc.storageos.db.client.model.Workflow.class, 
+                    workflow.getWorkflowURI(), workflow.getOrchTaskId(), "rolling back top-level-workflow");
+	        InterProcessLock workflowLock = null;
+	        try {
+	            workflowLock = lockWorkflow(workflow);
+			boolean rollBackStarted = initiateRollback(workflow);
+			if (rollBackStarted) {
+            	_log.info(String.format("Rollback initiated workflow %s" ,workflow.getWorkflowURI() ));
+	        } else {
+	            // We were unable to initiate rollback for some reason, this is an error.
+	            WorkflowState state = workflow.getWorkflowStateFromSteps();
+	            switch (state) {
+	            case SUCCESS:
+	                completer.ready(_dbClient);;
+	                break;
+	            default:
+	                WorkflowException ex = WorkflowException.exceptions.workflowRollbackNotInitiated(uri.toString());
+	                completer.error(_dbClient, ex);;
+	                }
+	        }
+	        } finally {
+	            unlockWorkflow(workflow, workflowLock);
+	        }
+		} catch (WorkflowException ex) {
+	        _log.info("Exception rolling back workflow: ", ex.getMessage(), ex);
+		}
+	}
+	
+	/**
+	 * Queue steps to resume workflow.
+	 * @param workflow
+	 */
+	private void queueResumeSteps(Workflow workflow, 
+	        Map<String, com.emc.storageos.db.client.model.Workflow> childWFMap) {
+		Map<String, Step> stepMap = workflow.getStepMap();
+		// Get a map of orchestration task id to child workflow URI.
+		
+		// Clear any error steps. Mark back to CREATED.
+		for (String stepId : workflow.getStepMap().keySet()) {
+			Step step = workflow.getStepMap().get(stepId);
+			StepState state = workflow.getStepStatus(stepId).state;
+			switch(state) {
+			case ERROR:
+			    // If there is a suspended child WF for a step, we set it to executing rather than created.
+			    // resumeWorkflow will resume the appropriate child workflows.
+			    if (childWFMap.containsKey(stepId)) {
+			        Workflow child = loadWorkflowFromUri(childWFMap.get(stepId).getId());
+			        if (child.getWorkflowState() == WorkflowState.SUSPENDED_ERROR 
+			                || child.getWorkflowState() == WorkflowState.SUSPENDED_NO_ERROR) { 
+			            workflow.getStepStatus(stepId).updateState(StepState.EXECUTING, null, "");
+			            break;
+			        }
+			    } 
+			    workflow.getStepStatus(stepId).updateState(StepState.CREATED, null, "");
+			    break;
+			case BLOCKED:
+			case CREATED:
+			case CANCELLED:
+			case EXECUTING:
+				workflow.getStepStatus(stepId).updateState(StepState.CREATED, null, "");
+				break;
+			case QUEUED:
+			case SUCCESS: 
+				break;
+			}
+		}
+		// Queue the newly recreated steps 
+		for (String stepId : workflow.getStepMap().keySet()) {
+			Step step = workflow.getStepMap().get(stepId);
+			if (step.status.state == StepState.CREATED) {
+				queueWorkflowStep(workflow, step);
+				persistWorkflowStep(workflow, step);
+			}
+		}
+		workflow.setWorkflowState(WorkflowState.RUNNING);
+		persistWorkflow(workflow);
+		logWorkflow(workflow, true);
+	}
     /**
      * This call will rollback a child workflow given the parent's workflow URI and the step-id
      * of the parent step which is the child workflow's orchestration task id.
@@ -1509,8 +1731,7 @@ public class WorkflowService {
             Workflow childWorkflow = loadWorkflowFromUri(childURI);
             if (childWorkflow == null) {
                 _log.info("Could not locate child workflow %s (%s), possibly it was already deleted");
-                ServiceCoded coded = WorkflowException.exceptions.workflowNotFound(childURI.toString());
-                WorkflowStepCompleter.stepFailed(stepId, coded);
+    			WorkflowStepCompleter.stepSucceded(stepId);
                 return;
             }
             // TODO: This is a short-term fix for 12858. A more appropriate fix would be to detect that the zk copy of the WF does not
@@ -1579,6 +1800,9 @@ public class WorkflowService {
         }
 
         // See if can restart the previous rollback.
+		InterProcessLock workflowLock = null;
+		try {
+		    workflowLock = lockWorkflow(workflow);
         boolean rollBackStarted = resumePreviousRollback(workflow);
         if (rollBackStarted) {
             _log.info(String.format(
@@ -1606,6 +1830,9 @@ public class WorkflowService {
             ServiceCoded coded = WorkflowException.exceptions.workflowRollbackNotInitiated(uri.toString());
             WorkflowStepCompleter.stepFailed(stepId, coded);
         }
+		} finally {
+		    unlockWorkflow(workflow, workflowLock);
+    }
     }
 
     /**
@@ -1674,23 +1901,6 @@ public class WorkflowService {
         return true;
     }
 
-    /**
-     * Load the Workflow from Zookeeper using the URI as a starting point by looking it up in the database.
-     * 
-     * @param workflowURI
-     * @return Workflow instantiated from Zookeeper, null if cannot be found.
-     * @throws ControllerException
-     */
-    private Workflow loadWorkflowFromUri(URI workflowURI) {
-        com.emc.storageos.db.client.model.Workflow dbWorkflow = _dbClient.queryObject(com.emc.storageos.db.client.model.Workflow.class,
-                workflowURI);
-        if (dbWorkflow != null) {
-            Workflow workflow = new Workflow(this, dbWorkflow.getOrchControllerName(), dbWorkflow.getOrchMethod(), workflowURI);
-            workflow = loadWorkflow(workflow);
-            return workflow;
-        }
-        return null;
-    }
 
     /**
      * Attempts to intuit the start time for a provisioning operation from the orchestrationId.
@@ -1783,6 +1993,149 @@ public class WorkflowService {
         }
     }
 
+    /**
+     * Load the Workflow from Zookeeper using the URI as a starting point by looking it up in the database.
+     * @param workflowURI
+     * @return
+     * @throws ControllerException
+     */
+    private Workflow loadWorkflowFromUri(URI workflowURI) throws ControllerException {
+        com.emc.storageos.db.client.model.Workflow dbWorkflow = _dbClient.queryObject(com.emc.storageos.db.client.model.Workflow.class, workflowURI);
+        if (dbWorkflow != null) {
+            Workflow workflow = new Workflow(this, dbWorkflow.getOrchControllerName(), dbWorkflow.getOrchMethod(), workflowURI);
+            workflow = loadWorkflow(workflow);
+            return workflow;
+        }
+        _log.info("Workflow not found in db: " + workflowURI.toString());
+        throw WorkflowException.exceptions.workflowNotFound(workflowURI.toString());
+    }
+
+	/**
+	 * Removes all rollback steps from the Workflow. Used in resuming a workflow.
+	 * @param workflow Workflow
+	 */
+	private void removeRollbackSteps(Workflow workflow) {
+		Set<String> rollbackStepIds = new HashSet<String>();
+		Map<String, Step> stepMap = workflow.getStepMap();
+		// Determine rollback steps
+		for (Step step : stepMap.values()) {
+			if (step.isRollbackStep) {
+				rollbackStepIds.add(step.stepId);
+				if ( ! NullColumnValueGetter.isNullURI(step.workflowStepURI)) {
+					// Remove the rollback step from the database
+					com.emc.storageos.db.client.model.WorkflowStep dbStep =
+							_dbClient.queryObject(
+									com.emc.storageos.db.client.model.WorkflowStep.class, step.workflowStepURI);
+					if (dbStep != null) _dbClient.markForDeletion(dbStep);
+				}
+			}
+		}
+		// Remove each rollback step from StepMap, StepStatusMap, StepGroupMap members
+		for (String stepId : rollbackStepIds) {
+			workflow.getStepMap().remove(stepId);
+			workflow.getStepStatusMap().remove(stepId);
+			for (String stepGroup : workflow.getStepGroupMap().keySet()) {
+				workflow.getStepGroupMap().get(stepGroup).remove(stepId);
+			}
+		}
+	}
+	
+    /**
+	 * Queue steps to resume workflow.
+	 * @param workflow
+	 */
+	private void queueResumeSteps(Workflow workflow) {
+		Map<String, Step> stepMap = workflow.getStepMap();
+		// Clear any error steps. Mark back to CREATED.
+		for (String stepId : workflow.getStepMap().keySet()) {
+			Step step = workflow.getStepMap().get(stepId);
+			StepState state = workflow.getStepStatus(stepId).state;
+			switch(state) {
+			case  BLOCKED:
+			case CREATED:
+			case CANCELLED:
+			case ERROR:
+			case EXECUTING:
+				workflow.getStepStatus(stepId).updateState(StepState.CREATED, null, "");
+				break;
+			case QUEUED:
+			case SUCCESS: 
+				break;
+			}
+		}
+		// Queue the newly recreated steps 
+		for (String stepId : workflow.getStepMap().keySet()) {
+			Step step = workflow.getStepMap().get(stepId);
+			if (step.status.state == StepState.CREATED) {
+				queueWorkflowStep(workflow, step);
+			}
+		}
+		workflow.setWorkflowState(WorkflowState.RUNNING);
+		logWorkflow(workflow, true);
+	}
+
+    /**
+     * Returns a map of orchestration task id to child database workflow for all the children
+     * of the specified workflow.
+     * @param workflow - parent Workflow
+     * @return Map of orchestration task id (String) to child workflow URI
+     */
+    private Map<String, com.emc.storageos.db.client.model.Workflow> getChildWorkflowsMap(Workflow workflow) {
+        Map<String, com.emc.storageos.db.client.model.Workflow> childWFOrchTaskId2URI 
+                            = new HashMap<String, com.emc.storageos.db.client.model.Workflow>();
+        Set<URI> childWorkflowURIs = workflow._childWorkflows;
+        if (childWorkflowURIs == null || childWorkflowURIs.isEmpty()) {
+            return childWFOrchTaskId2URI;
+        }
+        List<com.emc.storageos.db.client.model.Workflow> childWorkflows 
+                        = _dbClient.queryObject(com.emc.storageos.db.client.model.Workflow.class, childWorkflowURIs);
+        for (com.emc.storageos.db.client.model.Workflow child : childWorkflows) {
+            if (child == null || child.getInactive() == true) {
+                continue;
+            }
+            childWFOrchTaskId2URI.put(child.getOrchTaskId(), child);
+        }
+        return childWFOrchTaskId2URI;
+    }
+    
+    /**
+     *  Waits on an operation to complete.
+     * @param clazz -- Class extending DataObject
+     * @param uri -- URI of object
+     * @param taskId -- Task id to be examined
+     * @return -- Status  (returns Status.error if record could not found)
+     */
+    private Status waitOnOperationComplete(Class <? extends DataObject> clazz, URI uri, String taskId) {
+        Status status = Status.pending;
+        do {
+            DataObject dobj = _dbClient.queryObject(uri);
+            if (dobj == null || dobj.getInactive() || dobj.getOpStatus() == null || !dobj.getOpStatus().containsKey(taskId)) {
+                return Status.error;
+            }
+            Operation operation = dobj.getOpStatus().get(taskId);
+            status = Status.toStatus(operation.getStatus());
+        } while (status == Status.pending);
+        return status;
+    }
+
+    private void printStepStatuses(Collection<StepStatus> stepStatuses) {
+        for (StepStatus status : stepStatuses) {
+            Date startTime = status.startTime;
+            Date endTime = status.endTime;
+            if (startTime != null && endTime != null) {
+            _log.info(String.format(
+                    "Step: %s (%s) state: %s message: %s started: %s completed: %s elapsed: %d ms",
+                    status.stepId, status.description,
+                    status.state, status.message, status.startTime, 
+                    status.endTime, (status.endTime.getTime() - status.startTime.getTime())));
+            } else {
+                _log.info(String.format(
+                        "Step: %s (%s) state: %s message: %s ",
+                        status.stepId, status.description, status.state, status.message ));
+            }
+        }
+    }
+
     public static void completerStepSucceded(String stepId)
             throws WorkflowException {
         _instance.updateStepStatus(stepId, StepState.SUCCESS, null, "Step completed successfully");
@@ -1838,4 +2191,6 @@ public class WorkflowService {
     public void setOwnerLocker(DistributedOwnerLockService _ownerLocker) {
         this._ownerLocker = _ownerLocker;
     }
-}
+
+
+	}

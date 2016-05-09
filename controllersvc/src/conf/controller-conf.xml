@@ -980,6 +980,7 @@
                 <ref bean="ucsDevice"/>
                 <ref bean="vcenterController"/>
                 <ref bean="objectDeviceController"/>
+		        <ref bean="workflowService"/>
             </set>
         </property>
         <property name="deviceMaxConnectionMap">
@@ -1484,6 +1485,11 @@
         <property name="dispatcher" ref="dispatcher"/>
         <property name="controller" ref="fileOrchestrationDeviceController" />
         <property name="dbClient" ref="dbclient"/>
+    </bean>
+
+    <bean id="workflowController" class="com.emc.storageos.workflow.WorkflowControllerImpl">
+        <property name="dispatcher" ref="dispatcher"/>
+        <property name="controller" ref="workflowService" />
     </bean>
 
     <bean class="org.springframework.remoting.rmi.RmiServiceExporter" depends-on="beacon">

@@ -4,6 +4,8 @@
  */
 package com.emc.storageos.workflow;
 
+import com.emc.storageos.exceptions.DeviceControllerExceptions;
+import com.emc.storageos.svcs.errorhandling.model.ExceptionMessagesProxy;
 import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
 
 /**
@@ -12,6 +14,9 @@ import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
 public class WorkflowRestartedException extends WorkflowException {
 
     private static final long serialVersionUID = -8346457868124567639L;
+
+	 public static final WorkflowExceptions exceptions = ExceptionMessagesProxy
+	            .create(WorkflowExceptions.class);
 
     protected WorkflowRestartedException(final ServiceCode code, final Throwable cause,
             final String detailBase, final String detailKey, final Object[] detailParams) {

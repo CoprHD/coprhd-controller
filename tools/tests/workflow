@@ -87,6 +87,11 @@ def print_steps(steps):
 
 def workflow_steps(args):
     bourne.connect(args.ip)
+    wf = bourne.workflow_get(args.id)
+    try:
+        print wf['orchestration_method'],  '   state: ', wf['completion_state'], '   task: ', wf['orchestration_task_id']
+    except:
+        print
     stepsx = bourne.workflow_steps(args.id)	
     #print stepsx
     steps = stepsx['workflow_step']
@@ -95,6 +100,17 @@ def workflow_steps(args):
     except:
         print 'sort exception'
     print_steps(steps)
+
+def workflow_resume(args):
+    bourne.connect(args.ip)
+    x = bourne.workflow_resume(args.id)
+    print x
+
+def workflow_rollback(args):
+    bourne.connect(args.ip)
+    x = bourne.workflow_rollback(args.id)
+    print x
+
 
 def workflow_tree(args):
     bourne.connect(args.ip)
@@ -168,7 +184,7 @@ except:
 
 # network <cmd> <cmd_args>  [--ip ipaddr]
 parser = argparse.ArgumentParser(description = 'Bourne CoS cli usage.')
-parser.add_argument('cmd', help = 'cmd = (list | recent | steps)')
+parser.add_argument('cmd', help = 'cmd = (list | recent | steps | tree | resume | rollback | suspend)')
 parser.add_argument('--ip',	metavar = 'ipaddr',	help = 'IP address of bourne', default=bourne_ip)
 
 # workflow steps id
@@ -184,6 +200,14 @@ recent = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
 # workflow tree
 tree = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
 tree.add_argument('--active_only',	help = 'Only display tre of active workflows', action='store_true')
+
+# workflow resume
+resume = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+resume.add_argument('id', help = 'ID of workflow')
+
+# workflow rollback
+rollback = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+rollback.add_argument('id', help = 'ID of workflow')
 
 #----------------------------------------------------------------------
 # Main script
@@ -210,6 +234,12 @@ try:
     elif (cmd == "tree"):
         args = tree.parse_args()
         workflow_tree(args)
+    elif (cmd == "resume"):
+        args = resume.parse_args()
+        workflow_resume(args)
+    elif (cmd == "rollback"):
+        args = rollback.parse_args()
+        workflow_rollback(args)
     else:
         parser.print_help()
 except:

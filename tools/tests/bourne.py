@@ -413,6 +413,9 @@ URI_WORKFLOW_LIST               = URI_SERVICES_BASE + '/vdc/workflows'
 URI_WORKFLOW_RECENT             = URI_WORKFLOW_LIST + '/recent'
 URI_WORKFLOW_INSTANCE           = URI_WORKFLOW_LIST + '/{0}'
 URI_WORKFLOW_STEPS              = URI_WORKFLOW_INSTANCE + '/steps'
+URI_WORKFLOW_RESUME             = URI_WORKFLOW_LIST + '/{0}/resume'
+URI_WORKFLOW_ROLLBACK           = URI_WORKFLOW_LIST + '/{0}/rollback'
+URI_WORKFLOW_SUSPEND		= URI_WORKFLOW_LIST + '/{0}/suspend/{1}'
 
 URI_AUDIT_QUERY = URI_SERVICES_BASE + '/audit/logs/?time_bucket={0}&language={1}'
 URI_MONITOR_QUERY = URI_SERVICES_BASE + '/monitoring/events/?time_bucket={0}'
@@ -8015,6 +8018,27 @@ class Bourne:
 
     def workflow_get(self, uri):
         return self.api('GET', URI_WORKFLOW_INSTANCE.format(uri))
+
+    def workflow_show_task(self, uri, task):
+        workflow_task_uri = URI_WORKFLOW_INSTANCE + '/tasks/{1}'
+        return self.api('GET', workflow_task_uri.format(uri, task))
+
+    def workflow_resume(self, uri):
+        o = self.api('PUT', URI_WORKFLOW_RESUME.format(uri))
+        if (o['code'] > 0):
+             return o
+        result = self.api_sync_2(o['resource']['id'], o['op_id'], self.workflow_show_task)
+        return result
+
+    def workflow_rollback(self, uri):
+        o = self.api('PUT', URI_WORKFLOW_ROLLBACK.format(uri))
+        if (o['code'] > 0):
+             return o
+        result = self.api_sync_2(o['resource']['id'], o['op_id'], self.workflow_show_task)
+        return result
+
+    def workflow_suspend(self, uri, step):
+        return self.api('PUT', URI_WORKFLOW_SUSPEND.format(uri, step), null)
 
     def workflow_recent(self):
         return self.api('GET', URI_WORKFLOW_RECENT)

@@ -9844,6 +9844,10 @@ networkcontroller_setup()
 
     echo "Assign networks to Virtual Array..."
     transportzone assign "VSAN_11" "varray"
+
+    echo "Add storage Ports to Virtual Array..."
+    storageport update "CLARIION+APM12391522735" FC --addvarrays "varray"
+
 }
 
 ${SS}_setup

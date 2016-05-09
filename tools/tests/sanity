@@ -9885,6 +9885,12 @@ networkcontroller_tests()
 
     echo "Removing storage Ports to Virtual Array..."
     storageport update "CLARIION+APM12391522735" FC --rmvarrays "varray"
+
+    echo "remove network"
+    run transportzone update "VSAN_11" --remNeighborhoods "varray"
+
+    echo "delete initiators from host..."
+    initiator delete $HOST_NAME/$ZONE1_ADDR1
 }
 
 ${SS}_setup

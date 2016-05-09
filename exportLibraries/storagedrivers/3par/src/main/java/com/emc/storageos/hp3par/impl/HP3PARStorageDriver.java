@@ -89,9 +89,7 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
 	
 	@Override
 	public DriverTask discoverStorageSystem(List<StorageSystem> storageSystems) {
-        String taskType = "discover-storage-system";
-        String taskId = String.format("%s+%s+%s", HP3PARConstants.DRIVER_NAME, taskType, UUID.randomUUID().toString());
-        DriverTask task = new HP3PARDriverTask(taskId);
+	    DriverTask task = createDriverTask(HP3PARConstants.TASK_TYPE_DISCOVER_STORAGE_SYSTEM);
 
 	    // For each 3par system
 	    for (StorageSystem storageSystem : storageSystems) {
@@ -116,6 +114,7 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
 	            if (authToken == null) {
 	                break;
 	            }
+	            _log.info("3PAR auth key: {}", authToken);
 	            
 	            SystemCommandResult systemRes = hp3parApi.getSystemDetails();
 	            storageSystem.setSerialNumber(systemRes.getSerialNumber());

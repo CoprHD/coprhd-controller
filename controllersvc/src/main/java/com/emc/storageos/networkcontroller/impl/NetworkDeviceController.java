@@ -437,8 +437,8 @@ public class NetworkDeviceController implements NetworkController {
                             _log.info(String.format(
                                     "%s FCZoneReference key: %s volume %s group %s",
                                     newOrExisting[0], ref.getPwwnKey(), ref.getVolumeUri(), exportGroupUri));
-                            	recordZoneEvent(ref, OperationTypeEnum.ADD_SAN_ZONE.name(),
-                                        OperationTypeEnum.ADD_SAN_ZONE.getDescription());
+                            recordZoneEvent(ref, OperationTypeEnum.ADD_SAN_ZONE.name(),
+                                    OperationTypeEnum.ADD_SAN_ZONE.getDescription());
                         }
                     } catch (DatabaseException ex) {
                         _log.error("Could not persist FCZoneReference: " + refKey);

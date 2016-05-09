@@ -1135,6 +1135,26 @@ xtremio_varray_setup()
     run neighborhood allow $NH $TENANT
 }
 
+xtremio_ingest_host_setup() {
+    PWWN1=10:00:00:00:C9:42:6D:50
+    WWNN1=20:00:00:00:C9:42:6D:50
+    PWWN2=10:00:00:00:C9:42:6D:51
+    WWNN2=20:00:00:00:C9:42:6D:51
+
+    run hosts create ${XTREMIO_INGEST_HOST} $TENANT Windows ${XTREMIO_INGEST_HOST} --port 8111 --username user --password 'password' --osversion 1.0 
+
+    run initiator create ${XTREMIO_INGEST_HOST} FC ${PWWN1} --node ${WWNN1}
+    run initiator create ${XTREMIO_INGEST_HOST} FC ${PWWN2} --node ${WWNN2}
+    if [ "$XIO_QUICK_PARAM" = "quick" ]; then
+        run transportzone add VSAN_11 ${PWWN1}
+        run transportzone add VSAN_11 ${PWWN2}
+    else
+        run transportzone add ${SRDF_VMAXA_VSAN} ${PWWN1}
+        run transportzone add ${SRDF_VMAXA_VSAN} ${PWWN2}
+    fi
+
+}
+
 xtremio_ingest_test()
 {
     secho "XtremIO ingest tests"
@@ -1147,9 +1167,13 @@ xtremio_ingest_test()
     fi
 
     # Labels
-    XIO_INGEST_VOL1_CG=${XIO_INGEST_VOL1_CGBASE}${RANDOM}
-    XIO_INGEST_VOL1=${XIO_INGEST_VOL1BASE}1${RANDOM}
-    XIO_INGEST_VOL2=${XIO_INGEST_VOL1BASE}2${RANDOM}
+    export_name=$XTREMIOEXPORT_GROUP
+    XIO_RANDOM=${RANDOM}
+    XIO_INGEST_VOL1_CG=${XIO_INGEST_VOL1_CGBASE}${XIO_RANDOM}
+    XIO_INGEST_VOL1=${XIO_INGEST_VOL1BASE}1${XIO_RANDOM}
+    XIO_INGEST_VOL2=${XIO_INGEST_VOL1BASE}2${XIO_RANDOM}
+    XIO_INGEST_SNAP1=xioingestsnap1${XIO_RANDOM}
+    XIO_INGEST_SNAP2=xioingestsnap2${XIO_RANDOM}
 
     # Create the consistency group + volume
     run blockconsistencygroup create ${PROJECT} ${XIO_INGEST_VOL1_CG}
@@ -1160,11 +1184,13 @@ xtremio_ingest_test()
 
     # Create XIO snapshots
     secho "Create snapshots"
-    run_noundo blocksnapshot create ${PROJECT}/${XIO_INGEST_VOL1} xioingestsnap1
-    run_noundo blocksnapshot delete ${PROJECT}/${XIO_INGEST_VOL1}/xioingestsnap1 --vipronly
+    run_noundo blocksnapshot create ${PROJECT}/${XIO_INGEST_VOL1} ${XIO_INGEST_SNAP1}
+    XIO_INGEST_SNAP1_ARRAY_LABEL=`/opt/storageos/bin/dbutils list BlockSnapshot | grep deviceLabel | awk '{print $3}'`
+    run_noundo blocksnapshot delete ${PROJECT}/${XIO_INGEST_VOL1}/${XIO_INGEST_SNAP1} --vipronly
 
-    run_noundo blocksnapshot create ${PROJECT}/${XIO_INGEST_VOL1} xioingestsnap2
-    run_noundo blocksnapshot delete ${PROJECT}/${XIO_INGEST_VOL1}/xioingestsnap2 --vipronly
+    run_noundo blocksnapshot create ${PROJECT}/${XIO_INGEST_VOL2} ${XIO_INGEST_SNAP2}
+    XIO_INGEST_SNAP2_ARRAY_LABEL=`/opt/storageos/bin/dbutils list BlockSnapshot | grep deviceLabel | awk '{print $3}'`
+    run_noundo blocksnapshot delete ${PROJECT}/${XIO_INGEST_VOL2}/${XIO_INGEST_SNAP2} --vipronly
 
     # Delete the volume and CG
     run volume delete ${PROJECT}/${XIO_INGEST_VOL1} --vipronly
@@ -1179,32 +1205,34 @@ xtremio_ingest_test()
     run storagedevice discover_namespace $INGEST_4X_NATIVEGUID 'UNMANAGED_VOLUMES'
 
     ##Make sure we fail when we ingest the volumes because snaps are not ingested yet
-    fail unmanagedvolume ingest_unexport ${NH} XTREMIO_4X_COS_FC $PROJECT --volspec "${XIO_INGEST_VOL1}"
-    fail unmanagedvolume ingest_unexport ${NH} XTREMIO_3X_COS_FC $PROJECT --volspec "${XIO_INGEST_VOL2}"
+    fail unmanagedvolume ingest_unexport ${NH} ${XTREMIO_4X_COS_FC} $PROJECT --volspec "${XIO_INGEST_VOL1}"
+    fail unmanagedvolume ingest_unexport ${NH} ${XTREMIO_3X_COS_FC} $PROJECT --volspec "${XIO_INGEST_VOL2}"
 
-    run unmanagedvolume ingest_unexport ${NH} XTREMIO_4X_COS_FC $PROJECT --volspec "xioingestsnap1"
-    run unmanagedvolume ingest_unexport ${NH} XTREMIO_3X_COS_FC $PROJECT --volspec "xioingestsnap2"
+    run unmanagedvolume ingest_unexport ${NH} ${XTREMIO_4X_COS_FC} $PROJECT --volspec "${XIO_INGEST_SNAP1_ARRAY_LABEL}"
+    run unmanagedvolume ingest_unexport ${NH} ${XTREMIO_3X_COS_FC} $PROJECT --volspec "${XIO_INGEST_SNAP2_ARRAY_LABEL}"
 
     # Verify the volumes, CG and snaps got created; fail script if this fails.
-    run volume show "${XIO_INGEST_VOL1}"
+    run volume show ${PROJECT}/${XIO_INGEST_VOL1}
     run blockconsistencygroup show "${XIO_INGEST_VOL1_CG}"
-    run blocksnapshot show "xioingestsnap1"
+    run blocksnapshot show ${PROJECT}/${XIO_INGEST_VOL1}/${XIO_INGEST_SNAP1_ARRAY_LABEL}
 
-    run volume show "${XIO_INGEST_VOL2}"
-    run blocksnapshot show "xioingestsnap2"
+    run volume show ${PROJECT}/${XIO_INGEST_VOL2}
+    run blocksnapshot show ${PROJECT}/${XIO_INGEST_VOL2}/${XIO_INGEST_SNAP2_ARRAY_LABEL}
 
     ## Run block tests for the volumes and snaps
-    xtremio_export_test ${export_name}1 ${v1} ${v2} ${xioingestsnap1} ${xioingestsnap2}
-    blockconsistencygroup_restore_snapshot $XIO_INGEST_VOL1_CG $xioingestsnap1
+    xtremio_export_test ${export_name}1 ${XIO_INGEST_VOL1} ${XIO_INGEST_VOL2} ${XIO_INGEST_SNAP1_ARRAY_LABEL} ${XIO_INGEST_SNAP2_ARRAY_LABEL}
+    if [ "$XIO_QUICK_PARAM" != "quick" ]; then
+        blockconsistencygroup_restore_snapshot $XIO_INGEST_VOL1_CG $XIO_INGEST_SNAP1_ARRAY_LABEL
+    fi
 
     # Delete the volumes, snaps and CG again
-    run_noundo blocksnapshot delete ${PROJECT}/${XIO_INGEST_VOL1}/xioingestsnap1 —-vipronly
-    run_noundo blocksnapshot delete ${PROJECT}/${XIO_INGEST_VOL1}/xioingestsnap2 —-vipronly
+    run_noundo blocksnapshot delete ${PROJECT}/${XIO_INGEST_VOL1}/${XIO_INGEST_SNAP1_ARRAY_LABEL} --vipronly
+    run_noundo blocksnapshot delete ${PROJECT}/${XIO_INGEST_VOL2}/${XIO_INGEST_SNAP2_ARRAY_LABEL} --vipronly
 
-    run volume delete ${PROJECT}/${XIO_INGEST_VOL1} --vipronly
-    run blockconsistencygroup delete ${XIO_INGEST_VOL1_CG} --vipronly
+    run_noundo volume delete ${PROJECT}/${XIO_INGEST_VOL1} --vipronly
+    run_noundo blockconsistencygroup delete ${XIO_INGEST_VOL1_CG} --vipronly
 
-    run volume delete ${PROJECT}/${XIO_INGEST_VOL2} --vipronly
+    run_noundo volume delete ${PROJECT}/${XIO_INGEST_VOL2} --vipronly
 
     # Discover unmanaged volumes on the array again
     run storagedevice discover_namespace $INGEST_3X_NATIVEGUID 'UNMANAGED_VOLUMES'
@@ -1213,33 +1241,169 @@ xtremio_ingest_test()
     ##Re-ingest
     ##Make sure we fail when we ingest the snaps because volumes are not ingested yet
 
-    fail unmanagedvolume ingest_unexport ${NH} XTREMIO_4X_COS_FC $PROJECT --volspec "xioingestsnap1"
-    fail unmanagedvolume ingest_unexport ${NH} XTREMIO_3X_COS_FC $PROJECT --volspec "xioingestsnap2"
+    fail unmanagedvolume ingest_unexport ${NH} ${XTREMIO_4X_COS_FC} $PROJECT --volspec "${XIO_INGEST_SNAP1_ARRAY_LABEL}"
+    fail unmanagedvolume ingest_unexport ${NH} ${XTREMIO_3X_COS_FC} $PROJECT --volspec "${XIO_INGEST_SNAP2_ARRAY_LABEL}"
 
-    run unmanagedvolume ingest_unexport ${NH} XTREMIO_4X_COS_FC $PROJECT --volspec "${XIO_INGEST_VOL1}"
-    run unmanagedvolume ingest_unexport ${NH} XTREMIO_3X_COS_FC $PROJECT --volspec "${XIO_INGEST_VOL2}"
+    run unmanagedvolume ingest_unexport ${NH} ${XTREMIO_4X_COS_FC} $PROJECT --volspec "${XIO_INGEST_VOL1}"
+    run unmanagedvolume ingest_unexport ${NH} ${XTREMIO_3X_COS_FC} $PROJECT --volspec "${XIO_INGEST_VOL2}"
 
     # Verify the volumes, CG and snaps got created; fail script if this fails.
-    run volume show "${XIO_INGEST_VOL1}"
+    run volume show ${PROJECT}/${XIO_INGEST_VOL1}
     run blockconsistencygroup show "${XIO_INGEST_VOL1_CG}"
-    run blocksnapshot show "xioingestsnap1"
+    run blocksnapshot show ${PROJECT}/${XIO_INGEST_VOL1}/${XIO_INGEST_SNAP1_ARRAY_LABEL}
 
-    run volume show "${XIO_INGEST_VOL2}"
-    run blocksnapshot show "xioingestsnap2"
+    run volume show ${PROJECT}/${XIO_INGEST_VOL2}
+    run blocksnapshot show ${PROJECT}/${XIO_INGEST_VOL2}/${XIO_INGEST_SNAP2_ARRAY_LABEL}
 
     ## Run block tests for the volumes and snaps
-    xtremio_export_test ${export_name}1 ${v1} ${v2} ${xioingestsnap1} ${xioingestsnap2}
-    blockconsistencygroup_restore_snapshot $XIO_INGEST_VOL1_CG $xioingestsnap1
+    xtremio_export_test ${export_name}1 ${XIO_INGEST_VOL1} ${XIO_INGEST_VOL2} ${XIO_INGEST_SNAP1_ARRAY_LABEL} ${XIO_INGEST_SNAP2_ARRAY_LABEL}
+    if [ "$XIO_QUICK_PARAM" != "quick" ]; then
+        blockconsistencygroup_restore_snapshot $XIO_INGEST_VOL1_CG $XIO_INGEST_SNAP1_ARRAY_LABEL
+    fi
 
     # Real removal of volume/CG
-    run_noundo blocksnapshot delete ${PROJECT}/${XIO_INGEST_VOL1}/${xioingestsnap1}
+    run_noundo blocksnapshot delete ${PROJECT}/${XIO_INGEST_VOL1}/${XIO_INGEST_SNAP1_ARRAY_LABEL}
     run_noundo volume delete ${PROJECT}/"${XIO_INGEST_VOL1}" --wait
-    run_noundo blockconsistencygroup delete ViPR-${RECOVERPOINT_INGEST_VOL1_CG}
+    run_noundo blockconsistencygroup delete ${XIO_INGEST_VOL1_CG}
 
-    run_noundo blocksnapshot delete ${PROJECT}/${XIO_INGEST_VOL2}/${xioingestsnap2}
+    run_noundo blocksnapshot delete ${PROJECT}/${XIO_INGEST_VOL2}/${XIO_INGEST_SNAP2_ARRAY_LABEL}
     run_noundo volume delete ${PROJECT}/"${XIO_INGEST_VOL2}" --wait
 
 }
+
+xtremio_ingest_export_test()
+{
+    secho "XtremIO ingest export tests"
+
+    INGEST_3X_NATIVEGUID=$XIO_3X_SIM_NATIVEGUID
+    INGEST_4X_NATIVEGUID=$XIO_4X_SIM_NATIVEGUID
+
+    if [ "$XIO_QUICK_PARAM" != "quick" ]; then
+        INGEST_3X_NATIVEGUID=$XTREMIO_3X_NATIVEGUID
+        INGEST_4X_NATIVEGUID=$XTREMIO_4X_NATIVEGUID
+    fi
+
+    # Labels
+    XIO_INGEST_VOL1_CG=${XIO_INGEST_VOL1_CGBASE}${XIO_RANDOM}exp
+    XIO_INGEST_VOL1=${XIO_INGEST_VOL1BASE}1${XIO_RANDOM}exp
+    XIO_INGEST_VOL2=${XIO_INGEST_VOL1BASE}2${XIO_RANDOM}exp
+    XIO_INGEST_SNAP1=xioingestsnap1${XIO_RANDOM}exp
+    XIO_INGEST_SNAP2=xioingestsnap2${XIO_RANDOM}exp
+
+    xtremio_ingest_host_setup
+
+    # Create the consistency group + volume
+    run blockconsistencygroup create ${PROJECT} ${XIO_INGEST_VOL1_CG}
+    run volume create ${XIO_INGEST_VOL1} ${PROJECT} ${NH} ${XTREMIO_4X_COS_FC} 1GB --consistencyGroup ${XIO_INGEST_VOL1_CG}
+
+    run volume create ${XIO_INGEST_VOL2} ${PROJECT} ${NH} ${XTREMIO_3X_COS_FC} 1GB
+
+    # Export the volume to a host
+
+    run export_group create ${PROJECT} EG-xio-ingest ${NH} --type Host --volspec "${PROJECT}/${XIO_INGEST_VOL1},${PROJECT}/${XIO_INGEST_VOL2}" --hosts "${XTREMIO_INGEST_HOST}"
+
+    # Create XIO snapshots
+    secho "Create snapshots"
+    run blocksnapshot create ${PROJECT}/${XIO_INGEST_VOL1} ${XIO_INGEST_SNAP1}
+    # Capture the deviceLabel of the snapshot which will be the label after unmanaged volume discovery
+    XIO_INGEST_SNAP1_ARRAY_LABEL=`/opt/storageos/bin/dbutils list BlockSnapshot | grep deviceLabel | awk '{print $3}'`
+    run export_group update ${PROJECT}/EG-xio-ingest --addVolspec "${PROJECT}/${XIO_INGEST_VOL1}/${XIO_INGEST_SNAP1}"
+    run blocksnapshot delete ${PROJECT}/${XIO_INGEST_VOL1}/${XIO_INGEST_SNAP1} --vipronly
+
+    run blocksnapshot create ${PROJECT}/${XIO_INGEST_VOL2} ${XIO_INGEST_SNAP2}
+    XIO_INGEST_SNAP2_ARRAY_LABEL=`/opt/storageos/bin/dbutils list BlockSnapshot | grep deviceLabel | awk '{print $3}'`
+    run export_group update ${PROJECT}/EG-xio-ingest --addVolspec "${PROJECT}/${XIO_INGEST_VOL2}/${XIO_INGEST_SNAP2}"
+    run blocksnapshot delete ${PROJECT}/${XIO_INGEST_VOL2}/${XIO_INGEST_SNAP2} --vipronly
+
+    # Delete the volume and CG
+    run volume delete ${PROJECT}/${XIO_INGEST_VOL1} --vipronly
+    run export_group delete ${PROJECT}/EG-xio-ingest
+    run blockconsistencygroup delete ${XIO_INGEST_VOL1_CG} --vipronly
+
+    run volume delete ${PROJECT}/${XIO_INGEST_VOL2} --vipronly
+
+    secho "XIO ingest discovery"
+
+    # Discover unmanaged volumes on the array
+    run storagedevice discover_namespace $INGEST_3X_NATIVEGUID 'UNMANAGED_VOLUMES'
+    run storagedevice discover_namespace $INGEST_4X_NATIVEGUID 'UNMANAGED_VOLUMES'
+
+    ##Make sure we fail when we ingest the volumes because snaps are not ingested yet
+    fail unmanagedvolume ingest_export ${NH} ${XTREMIO_4X_COS_FC} $PROJECT --volspec "${XIO_INGEST_VOL1}" --host ${XTREMIO_INGEST_HOST}
+    fail unmanagedvolume ingest_export ${NH} ${XTREMIO_3X_COS_FC} $PROJECT --volspec "${XIO_INGEST_VOL2}" --host ${XTREMIO_INGEST_HOST}
+
+
+    run unmanagedvolume ingest_export ${NH} ${XTREMIO_4X_COS_FC} $PROJECT --volspec "${XIO_INGEST_SNAP1_ARRAY_LABEL}" --host ${XTREMIO_INGEST_HOST}
+
+    run unmanagedvolume ingest_export ${NH} ${XTREMIO_3X_COS_FC} $PROJECT --volspec "${XIO_INGEST_SNAP2_ARRAY_LABEL}" --host ${XTREMIO_INGEST_HOST}
+
+    # Verify the volumes, EG, CG and snaps got created; fail script if this fails.
+    run volume show ${PROJECT}/${XIO_INGEST_VOL1}
+    run blockconsistencygroup show "${XIO_INGEST_VOL1_CG}"
+    run blocksnapshot show ${PROJECT}/${XIO_INGEST_VOL1}/${XIO_INGEST_SNAP1_ARRAY_LABEL}
+
+    run volume show ${PROJECT}/${XIO_INGEST_VOL2}
+    run blocksnapshot show ${PROJECT}/${XIO_INGEST_VOL2}/${XIO_INGEST_SNAP2_ARRAY_LABEL}
+    run export_group show  ${PROJECT}/${XTREMIO_INGEST_HOST}
+
+    ## Run block tests for the volumes and snaps
+    xtremio_export_test ${export_name}1 ${XIO_INGEST_VOL1} ${XIO_INGEST_VOL2} ${XIO_INGEST_SNAP1_ARRAY_LABEL} ${XIO_INGEST_SNAP2_ARRAY_LABEL}
+    if [ "$XIO_QUICK_PARAM" != "quick" ]; then
+        blockconsistencygroup_restore_snapshot $XIO_INGEST_VOL1_CG $XIO_INGEST_SNAP1_ARRAY_LABEL
+    fi
+
+    # Delete the volumes, snaps and CG again
+    run_noundo blocksnapshot delete ${PROJECT}/${XIO_INGEST_VOL1}/${XIO_INGEST_SNAP1_ARRAY_LABEL} --vipronly
+    run_noundo blocksnapshot delete ${PROJECT}/${XIO_INGEST_VOL2}/${XIO_INGEST_SNAP2_ARRAY_LABEL} --vipronly
+
+    run_noundo volume delete ${PROJECT}/${XIO_INGEST_VOL1} --vipronly
+    run_noundo blockconsistencygroup delete ${XIO_INGEST_VOL1_CG} --vipronly
+    run_noundo export_group delete ${PROJECT}/${XTREMIO_INGEST_HOST}
+    run_noundo volume delete ${PROJECT}/${XIO_INGEST_VOL2} --vipronly
+
+    # Discover unmanaged volumes on the array again
+    run storagedevice discover_namespace $INGEST_3X_NATIVEGUID 'UNMANAGED_VOLUMES'
+    run storagedevice discover_namespace $INGEST_4X_NATIVEGUID 'UNMANAGED_VOLUMES'
+    
+    ##Re-ingest
+    ##Make sure we fail when we ingest the snaps because volumes are not ingested yet
+
+    fail unmanagedvolume ingest_export ${NH} ${XTREMIO_4X_COS_FC} $PROJECT --volspec "${XIO_INGEST_SNAP1_ARRAY_LABEL}" --host ${XTREMIO_INGEST_HOST}
+
+    fail unmanagedvolume ingest_export ${NH} ${XTREMIO_3X_COS_FC} $PROJECT --volspec "${XIO_INGEST_SNAP2_ARRAY_LABEL}" --host ${XTREMIO_INGEST_HOST}
+
+    run unmanagedvolume ingest_export ${NH} ${XTREMIO_4X_COS_FC} $PROJECT --volspec "${XIO_INGEST_VOL1}" --host ${XTREMIO_INGEST_HOST}
+
+    run unmanagedvolume ingest_export ${NH} ${XTREMIO_3X_COS_FC} $PROJECT --volspec "${XIO_INGEST_VOL2}" --host ${XTREMIO_INGEST_HOST}
+
+
+    # Verify the volumes, CG and snaps got created; fail script if this fails.
+    run volume show ${PROJECT}/${XIO_INGEST_VOL1}
+    run blockconsistencygroup show "${XIO_INGEST_VOL1_CG}"
+    run blocksnapshot show ${PROJECT}/${XIO_INGEST_VOL1}/${XIO_INGEST_SNAP1_ARRAY_LABEL}
+
+    run volume show ${PROJECT}/${XIO_INGEST_VOL2}
+    run blocksnapshot show ${PROJECT}/${XIO_INGEST_VOL2}/${XIO_INGEST_SNAP2_ARRAY_LABEL}
+    run export_group show  ${PROJECT}/${XTREMIO_INGEST_HOST}
+
+    ## Run block tests for the volumes and snaps
+    xtremio_export_test ${export_name}1 ${XIO_INGEST_VOL1} ${XIO_INGEST_VOL2} ${XIO_INGEST_SNAP1_ARRAY_LABEL} ${XIO_INGEST_SNAP2_ARRAY_LABEL}
+    
+    if [ "$XIO_QUICK_PARAM" != "quick" ]; then
+        blockconsistencygroup_restore_snapshot $XIO_INGEST_VOL1_CG $XIO_INGEST_SNAP1_ARRAY_LABEL
+    fi
+
+    # Real removal of volume/CG
+    run_noundo export_group update ${PROJECT}/${XTREMIO_INGEST_HOST} --remVols "${PROJECT}/${XIO_INGEST_VOL1}/${XIO_INGEST_SNAP1_ARRAY_LABEL},${PROJECT}/${XIO_INGEST_VOL2}/${XIO_INGEST_SNAP2_ARRAY_LABEL}"
+    run_noundo blocksnapshot delete ${PROJECT}/${XIO_INGEST_VOL1}/${XIO_INGEST_SNAP1_ARRAY_LABEL}
+    run_noundo volume delete ${PROJECT}/"${XIO_INGEST_VOL1}" --wait
+
+    run_noundo blocksnapshot delete ${PROJECT}/${XIO_INGEST_VOL2}/${XIO_INGEST_SNAP2_ARRAY_LABEL}
+    run_noundo volume delete ${PROJECT}/"${XIO_INGEST_VOL2}" --wait
+    run_noundo export_group delete ${PROJECT}/${XTREMIO_INGEST_HOST}
+
+}
+
 
 xtremio_simulator_setup()
 {
@@ -1332,15 +1496,20 @@ xtremio_setup()
 xtremio_tests()
 {
    echo 'xtremio tests invoked'
-   xtremio_block_tests
-   if [ "$XIO_QUICK_PARAM" != "quick" ]; then
+   if [ "$XIO_BLOCK_TESTS" = "1" ]; then
+       xtremio_block_tests
        xtremio_blockconsistency_tests
    fi
    # Ingest specific tests
    if [ "$XIO_INGESTTESTS" = "1" ]; then
         secho "XIO ingest volumes"
-        xio_ingest_test
+        xtremio_ingest_test
         secho "XIO ingest tests complete"
+
+        secho "XIO ingest exported volumes"
+        xtremio_ingest_export_test
+        secho "XIO ingest tests complete"
+
    fi
 }
 
@@ -1352,7 +1521,9 @@ xtremio_blockconsistency_tests()
     xtremio_blockconsistencygroup_add_volume_test $CONSISTENCY_GROUP
     xtremio_blockconsistencygroup_snapshot_tests xio-$CONSISTENCY_GROUP $XTREMIO_4X_COS_FC xio-$CONSISTENCY_GROUP_SNAPSHOT
     blockconsistencygroup_bulk_test
-    blockconsistencygroup_cleanup
+    ### Delete volume from consistency group
+    echo "Deleting volume from consistency group"
+    run volume delete $PROJECT/volume-${CONSISTENCY_GROUP}
 }
 
 xtremio_blockconsistencygroup_add_volume_test()
@@ -1385,12 +1556,15 @@ xtremio_blockconsistencygroup_snapshot_tests()
     
     blockconsistencygroup_setup_snapshot $cg_name $cg_cos
     blockconsistencygroup_create_snapshot $cg_name $cg_snapshot
-    blockconsistencygroup_restore_snapshot $cg_name $cg_snapshot
+    if [ "$XIO_QUICK_PARAM" != "quick" ]; then
+        blockconsistencygroup_restore_snapshot $cg_name $cg_snapshot
+    fi
     blockconsistencygroup_show_snapshot $cg_name $cg_snapshot
     blockconsistencygroup_list_snapshot $cg_name $cg_snapshot
     blockconsistencygroup_deactivate_snapshot $cg_name $cg_snapshot
-    echo "Deleting snapshot consistency group"
-    run blockconsistencygroup delete $cg_name   
+
+    echo "Deleting volume in snapshot consistency group"
+    run volume delete $PROJECT/volume-${cg_name}   
 }
 
 xtremio_block_tests()
@@ -1406,8 +1580,8 @@ xtremio_block_tests()
 
     run volume create ${v1} $PROJECT $NH $cos1 $BLK_SIZE --thinVolume true
     run volume create ${v2} $PROJECT $NH $cos2 $BLK_SIZE --thinVolume true
-    run blocksnapshot create $PROJECT/$vol1 ${snap1_label}
-    run blocksnapshot create $PROJECT/$vol2 ${snap2_label}
+    run blocksnapshot create $PROJECT/${v1} ${snap1_label}
+    run blocksnapshot create $PROJECT/${v2} ${snap2_label}
 
 
     xtremio_export_test ${export_name}1 ${v1} ${v2} ${snap1_label} ${snap2_label}
@@ -1444,16 +1618,13 @@ xtremio_export_test()
     pwwn3=`pwwn C$k`
     pwwn4=`pwwn D$k`
 
-    run blocksnapshot create $vol1 ${snap1_label}
-    run blocksnapshot create $vol2 ${snap2_label}
-
     if [ "$BOURNE_SECURITY_DISABLED" != '1' ] ; then
         run bulkapi blocksnapshots $LOCAL_LDAP_SUPERUSER_USERNAME $LOCAL_LDAP_SUPERUSER_PASSWORD $LOCAL_LDAP_USER_PASSWORD_1
     fi
 
-    run export_group create $proj $expname $NH --volspec "$vol1+1,$snap1+2,$snap2+3" --inits "$hostname/$pwwn1"
+    run export_group create $proj $expname $NH --volspec "$vol1,$snap1,$snap2" --inits "$hostname/$pwwn1"
     run export_group show $exp
-    run export_group update $exp --addVolspec "$vol2+4" --remVols $vol1
+    run export_group update $exp --addVolspec "$vol2" --remVols $vol1
     run export_group show $exp
     run export_group update $exp --remInits "$hostname/$pwwn1"
     run export_group show $exp
@@ -2815,10 +2986,12 @@ rp_vpool_setup()
             rpvplex_clr
             rpmp_clr
         fi
+
     fi
 
     if [ "${RPXIO_TESTS}" = "1" ]; then
         rpxio_targets
+        rp_noprotection
         if [ "${RP_CDP}" = "1" ]; then
             rpxio_cdp
         fi
@@ -3384,6 +3557,8 @@ recoverpoint_ingest_discovery()
             INGEST_NATIVEGUID=$RECOVERPOINT_STORAGE_ARRAY_A_GUID
         fi
         RP_NATIVEGUID=$RECOVERPOINT_RP_NATIVEGUID
+    elif [ "${RPXIO_TESTS}" = "1" ]; then
+        INGEST_NATIVEGUID=$XIO_4X_SIM_NATIVEGUID
     fi
 
     if [ ${RP_CRR} = "1" -o ${RP_CLR} = "1" -o "${RPMP_TESTS}" = "1" ]; then
@@ -3524,7 +3699,6 @@ recoverpoint_ingest_test()
     fi
 
     rp_target_vpool=rp_targets
-
     if [ "${RPXIO_TESTS}" = "1" ]; then
         rp_target_vpool=rpxio_targets
     fi
@@ -3904,20 +4078,12 @@ recoverpoint_ingest()
 
     if [ "$RP_CDP" = "1" ] ; then
         recoverpoint_ingest_test rp${rptypetag}_cdp
-        if [ "${RPXIO_TESTS}" = "0" ]; then
-            recoverpoint_ingest_export_test rp${rptypetag}_cdp
-        else
-            secho "XIO Export Tests Disabled; Export host registration in physical network needs work"
-        fi
+        recoverpoint_ingest_export_test rp${rptypetag}_cdp
     fi
 
     if [ "$RP_CRR" = "1" ] ; then
         recoverpoint_ingest_test rp${rptypetag}_crr
-        if [ "${RPXIO_TESTS}" = "0" ]; then
-            recoverpoint_ingest_export_test rp${rptypetag}_crr
-        else
-            secho "XIO Export Tests Disabled; Export host registration in physical network needs work"
-        fi
+        recoverpoint_ingest_export_test rp${rptypetag}_crr
     fi
     
     if [ "$RP_CLR" = "1" ] ; then
@@ -3926,11 +4092,7 @@ recoverpoint_ingest()
             return;
         fi
         recoverpoint_ingest_test rp${rptypetag}_clr
-        if [ "${RPXIO_TESTS}" = "0" ]; then
-            recoverpoint_ingest_export_test rp${rptypetag}_clr
-        else
-            secho "XIO Export Tests Disabled; Export host registration in physical network needs work"
-        fi
+        recoverpoint_ingest_export_test rp${rptypetag}_clr        
     fi
 
     secho "RP ingest ${rptypetag} tests complete"
@@ -4194,7 +4356,6 @@ recoverpoint_vpool_change_test()
             secho 'Change Virtual Pool - Upgrade To MetroPoint'
             run volume change_cos ${PROJECT}/${base_volume} ${upgrade_to_mp}
         fi
-
         secho 'Change Virtual Pool - Remove RecoverPoint Protection'
         run volume change_cos ${PROJECT}/${base_volume} ${noprotection_vpool}
 
@@ -4373,9 +4534,9 @@ recoverpoint_simulator_setup()
         fi
     fi
     if [ "${RPXIO_TESTS}" = "1" ]; then
-        run cos update block rpxio_cdp --storage $XIO_4X_SIM_NATIVEGUID
         run cos update block rpxio_targets --storage $XIO_4X_SIM_NATIVEGUID
-
+        run cos update block rp_noprotection --storage $XIO_4X_SIM_NATIVEGUID
+        run cos update block rpxio_cdp --storage $XIO_4X_SIM_NATIVEGUID
     fi
 }
 
@@ -4461,11 +4622,13 @@ recoverpoint_tests()
         rp_src_varray=$RECOVERPOINT_VARRAY1
         rpvplex_src_varray=$RECOVERPOINT_VARRAY1
         rpmp_src_varray=$RECOVERPOINT_VARRAY1
+	rpxio_src_varray=$RECOVERPOINT_VARRAY1
 
         # Vpools for change vpool - Remove Protection
         rp_noprotection_vpool='rp_noprotection'
         rpvplex_noprotection_vpool='rpvplexdist_noprotection'
         rpmp_noprotection_vpool='rpvplexdist_noprotection'
+        rpxio_noprotection_vpool='rp_noprotection'
 
         rp_type=''
 
@@ -4490,6 +4653,11 @@ recoverpoint_tests()
             rpmp_standby_tgt_varray=$RECOVERPOINT_VARRAY2
             rpmp_tgt_varrays=($RECOVERPOINT_VARRAY1 $RECOVERPOINT_VARRAY2)
             rpmp_tgt_vpool='rp_targets'
+            
+            # XIO
+            rpxio_tgt_varray=$RECOVERPOINT_VARRAY1
+            rpxio_tgt_varrays=($RECOVERPOINT_VARRAY1)
+            rpxio_tgt_vpool='rpxio_targets'
         fi
 
         if [ "$RP_CRR" = "1" ]; then
@@ -4511,6 +4679,11 @@ recoverpoint_tests()
             rpmp_tgt_varrays=($RECOVERPOINT_VARRAY3)
             rpmp_standby_tgt_varray=''
             rpmp_tgt_vpool='rp_targets'
+
+            # XIO
+            rpxio_tgt_varray=$RECOVERPOINT_VARRAY1
+            rpxio_tgt_varrays=($RECOVERPOINT_VARRAY1)
+            rpxio_tgt_vpool='rpxio_targets'
         fi
 
         if [ "$RP_CLR" = "1" ]; then
@@ -4532,6 +4705,11 @@ recoverpoint_tests()
             rpmp_tgt_varrays=($RECOVERPOINT_VARRAY1 $RECOVERPOINT_VARRAY2 $RECOVERPOINT_VARRAY3)
             rpmp_standby_tgt_varray=''
             rpmp_tgt_vpool='rp_targets'
+
+            # XIO
+            rpxio_tgt_varray=$RECOVERPOINT_VARRAY3
+            rpxio_tgt_varrays=($RECOVERPOINT_VARRAY1 $RECOVERPOINT_VARRAY3)
+            rpxio_tgt_vpool='rpxio_targets'
         fi
 
         # RP
@@ -4555,7 +4733,7 @@ recoverpoint_tests()
         # XIO
         rpxio_src_vpool='rpxio_'$rp_type
         rpxio_src_vpool_sync=${rpxio_src_vpool}'-sync'
-        rpxiovolume=${RP_METROPOINT_VOLUME}
+        rpxiovolume=${RP_XIO_VOLUME}
         rpxiovolumetarget=${xiovolume}'-target-'${rpxio_active_tgt_varray}
 
         # Ingestion Tests
@@ -4725,11 +4903,37 @@ recoverpoint_tests()
                 recoverpoint_export_bookmark_tests ${rpmpvolume} $RECOVERPOINT_VARRAY1 ${rp_tgt_varrays} ${rpmp_src_vpool} "mp"
             fi
 
+            # XIO test cases
             if [ "$RPXIO_TESTS" = "1" ]; then
-                secho 'RP XIO tests...'
+                secho 'XIO tests...'
 
                 # Change Virtual Pool Test
                 recoverpoint_vpool_change_test ${rpxiovolume}${volume_name_modifier} ${rpxio_noprotection_vpool} ${rpxio_src_vpool} ${RP_XIO_CONSISTENCY_GROUP}
+
+                # Add Journal Test
+                recoverpoint_add_journal_volume ${rpxio_tgt_varray} ${rpxio_tgt_varray} ${rpxio_tgt_vpool} ${RP_XIO_CONSISTENCY_GROUP}
+                
+                # Snapshot/Bookmark Test
+                if [ "${RP_CLR}" = "1" ]; then
+                    recoverpoint_auto_snapshot_cleanup_test ${rpxiovolume}${volume_name_modifier} ${rpxiovolumetarget}${volume_name_modifier} ${rpxio_tgt_varray} ${rpxiovolume}-target-${RECOVERPOINT_VARRAY1}
+                else
+                    recoverpoint_auto_snapshot_cleanup_test ${rpxiovolume}${volume_name_modifier} ${rpxiovolumetarget}${volume_name_modifier} ${rpxio_tgt_varray}
+                fi
+
+                # Failover Test
+                recoverpoint_failover_test ${rpxiovolume}${volume_name_modifier} ${rpxiovolumetarget}${volume_name_modifier}
+
+                # CG Failover/Swap Test
+                recoverpoint_cg_failover_test ${RP_XIO_CONSISTENCY_GROUP} ${rpxiovolume}${volume_name_modifier} ${rpxio_src_varray} ${rpxio_tgt_volumes} ${rpxio_tgt_varrays}
+
+                # Change Replication Mode Test
+                secho 'RP change vpool - replication mode, not supported on RP/XIO yet'
+                #recoverpoint_vpool_change_replication_mode_test ${rpxiovolume}${volume_name_modifier} ${rpxio_src_vpool_sync}
+                #recoverpoint_vpool_change_replication_mode_test ${rpxiovolume}${volume_name_modifier} ${rpxio_src_vpool}
+
+                # RP Export Bookmark Test
+                recoverpoint_export_bookmark_tests ${rpxiovolume} $RECOVERPOINT_VARRAY1 ${rpxio_tgt_varrays} ${rpxio_src_vpool} "xio"
+
             fi
         fi
 
@@ -4750,6 +4954,10 @@ recoverpoint_tests()
         if [ "$RPMP_TESTS" = "1" ]; then
             secho 'MP volume cleanup...'
             recoverpoint_cleanup_volumes ${rpmpvolume} $RP_VOLUME_COUNT
+        fi
+        if [ "$RPXIO_TESTS" = "1" ]; then
+            secho 'XIO volume cleanup...'
+            recoverpoint_cleanup_volumes ${rpxiovolume} $RP_VOLUME_COUNT
         fi
 
         secho 'CG cleanup...'

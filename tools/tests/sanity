@@ -9823,8 +9823,12 @@ networkcontroller_setup()
     echo "Creating project..."
     project create "NTWKProject" --tenant 'linux'
     
-    echo "Discovering vnx ..."
+    echo "Discovering VNX..."
     smisprovider create $VNX_SMIS_DEV $HW_SIMULATOR_IP 5988 $SIMULATOR_CISCO_MDS_USER $SIMULATOR_CISCO_MDS_PW false
+
+    echo "Discovering Cisco ..."
+    run networksystem create CiscoMdsSimulator  mds --devip $HW_SIMULATOR_IP --devport 22 --username $SIMULATOR_CISCO_MDS_USER --password $SIMULATOR_CISCO_MDS_PW
+
 }
 
 ${SS}_setup

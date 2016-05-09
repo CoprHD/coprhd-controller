@@ -1492,14 +1492,6 @@ public class DisasterRecoveryService {
         return false;
     }
 
-    private Date getLastSyncTime(Site site) {
-        SiteMonitorResult monitorResult = coordinator.getTargetInfo(site.getUuid(), SiteMonitorResult.class);
-        if (monitorResult != null && monitorResult.getDbQuorumLastActive() != 0) {
-            return new Date(monitorResult.getDbQuorumLastActive());
-        } 
-        return null;
-    }
-
     /**
      * Query the details, such as transition timings, for specific standby site
      * 
@@ -1521,7 +1513,7 @@ public class DisasterRecoveryService {
             standbyDetails.setCreationTime(new Date(standby.getCreationTime()));
             Double latency = drUtil.getSiteNetworkState(uuid).getNetworkLatencyInMs();
             standbyDetails.setNetworkLatencyInMs(latency);
-            Date lastSyncTime = getLastSyncTime(standby);
+            Date lastSyncTime = drUtil.getLastSyncTime(standby);
             if (lastSyncTime != null) {
                 standbyDetails.setLastSyncTime(lastSyncTime);
             }
@@ -2081,6 +2073,10 @@ public class DisasterRecoveryService {
 
     private Runnable failbackDetectMonitor = new Runnable() {
 
+        // This is to record the last sync time of ACTIVE_DEGRADED site according to latest Active site
+        // and to persisted into local ZK before degrading local site.
+        private long lastSyncTime = -1L;
+
         @Override
         public void run() {
             try {
@@ -2116,7 +2112,16 @@ public class DisasterRecoveryService {
                         coordinator.persistServiceConfiguration(standbySite.toConfiguration());
                     }
                 }
-                
+
+                if (lastSyncTime != -1L) {
+                    SiteMonitorResult monitorResult = coordinator.getTargetInfo(localSite.getUuid(), SiteMonitorResult.class);
+                    if (monitorResult == null) {
+                        monitorResult = new SiteMonitorResult();
+                    }
+                    monitorResult.setDbQuorumLastActive(lastSyncTime);
+                    coordinator.setTargetInfo(localSite.getUuid(), monitorResult);
+                }
+
                 // At this moment this site is disconnected with others, so ok to have own vdc version.
                 drUtil.updateVdcTargetVersion(coordinator.getSiteId(), SiteInfo.DR_OP_FAILBACK_DEGRADE, DrUtil.newVdcConfigVersion());
 
@@ -2158,6 +2163,8 @@ public class DisasterRecoveryService {
 
         /**
          * @return true when Local site is in ACTIVE_DEGRADED state or can't be found according returned result from other site
+         * If local site is discarded, this method will initialize lastSyncTime member that indicates the time new active lost
+         * connection with old active. But if the old active site is deleted in new active site, this member won't be initialized.
          */
         private boolean isLocalSiteDiscarded() {
             String localSiteId = drUtil.getLocalSite().getUuid();
@@ -2170,6 +2177,7 @@ public class DisasterRecoveryService {
                     SiteList sites = client.getSiteList();
                     if (!isSiteContainedBy(localSiteId, sites) || isSiteDegraded(localSiteId, sites)) {
                         log.info("Local site {} is in ACTIVE_DEGRADED state or removed according data returned from site {}", localSiteId, remoteSite.getUuid());
+                        lastSyncTime = getLastSyncTime(localSiteId, sites);
                         return true;
                     }
                 } catch (Exception e) {
@@ -2222,6 +2230,15 @@ public class DisasterRecoveryService {
                 }
             }
             return false;
+        }
+
+        private long getLastSyncTime(String siteId, SiteList sites) {
+            for (SiteRestRep site : sites.getSites()) {
+                if (siteId.equals(site.getUuid())) {
+                    return site.getLastSyncTime();
+                }
+            }
+            return -1L;
         }
 
         private boolean isSiteContainedBy(String siteId, SiteList sites) {

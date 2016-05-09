@@ -2622,9 +2622,15 @@ rp_storage_setup()
 
            array_guid='RECOVERPOINT_STORAGE_ARRAY_'$var'_GUID'
            array_guid=${!array_guid}
-           
+
+           smis_port='RECOVERPOINT_STORAGE_ARRAY_'$var'_SMIS_PORT'          
+           smis_port=${!smis_port}
+
+           smis_ssl='RECOVERPOINT_STORAGE_ARRAY_'$var'_SMIS_SSL'
+           smis_ssl=${!smis_ssl}
+ 
            if [ "$array_guid" != "NONE" ]; then
-               smisprovider create $provider $provider_ip $SMIS_PORT $SMIS_USER $SMIS_PASSWORD false
+               smisprovider create $provider $provider_ip $smis_port $SMIS_USER $SMIS_PASSWORD $smis_ssl
            fi
         done
     fi
@@ -2831,46 +2837,213 @@ recoverpoint_exports_tests()
     secho 'done with recoverpoint exports cleanup'
 }
 
-recoverpoint_auto_snapshot_cleanup_test()
+recoverpoint_export_bookmark_tests()
 {
-    secho 'RP snapshot tests'
-    rpsnap=rpsnap_for_cleanup-${RP_MODIFIED_HOSTNAME}-${RANDOM}
-    blocksnap=blocksnap-${RP_MODIFIED_HOSTNAME}-${RANDOM}
+    if [ "$RP_EXPORT_BOOKMARK_TESTS" = "1" ]; then
+        secho 'Running RecoverPoint Export Bookmark Tests'
 
-    src_volume=${1}
-    tgt_volume=${2}
-    tgt_varray=${3}
-    tgt2_volume=${4}
+        # The source source volume - an arbitrary source volume from the CG
+        volume=${1}
+        # The virtual array corresonding to the source volume (src_volume)
+        rp_src_varray=${2}
+        # The target virtual arrays
+        rp_tgt_varrays=${3}
+        # The virtual pool
+        vpool=${4}
+        # RP type
+        rptype=${5}
 
-    # Create RP/Block snapshot
-    secho 'Create snapshot'
-    run blocksnapshot create ${PROJECT}/${src_volume} ${rpsnap} --type rp
-    blocksnapshot show ${PROJECT}/${src_volume}/${rpsnap}-${tgt_varray} | grep inactive | grep false
-    run protectionsystem discover $RECOVERPOINT
+        rpsnap=rpsnap-${RP_MODIFIED_HOSTNAME}-${RANDOM}
+        blocksnap=blocksnap-${RP_MODIFIED_HOSTNAME}-${RANDOM}
+        rpexport=$PROJECT/$RP_EXPORT_GROUP
 
-    secho 'Unaffected RP bookmark is being checked after RP discovery to ensure it is still active'
-    blocksnapshot show ${PROJECT}/${src_volume}/${rpsnap}-${tgt_varray} | grep inactive | grep false
+        # Have to account for "-1" being added to volume name if
+        # volume count is greater than 1.
+        volume_name_modifier=''
+        if [ "$RP_VOLUME_COUNT" = "1" ]; then
+            volume_name_modifier=''
+        else
+            volume_name_modifier='-1'
+        fi
 
-    secho 'Stopping protection for the copy and then re-enabling'
-    run volume change_link ${PROJECT}/${src_volume} stop ${PROJECT}/${tgt_volume} rp
+        #Create RP/Block snapshots (only create for the first volume if there is more than 1)
+        secho 'Creating RP bookmarks for each source volume'
+	
+        all_bookmarks=()
+  
+        for i in `seq $RP_VOLUME_COUNT`
+        do
+            #Create/show the snapshot/bookmark that was created for each target virtual array
+        
+            #If we only have a single volume we do not want to append anything to volume name.  Otherwise we want to
+            #append a volume count identifier.
+            volume_identifier=''
+            if [ "$RP_VOLUME_COUNT" -gt "1" ]; then
+                volume_identifier='-'${i}
+            fi    
+        
+            run blocksnapshot create ${PROJECT}/${volume}${volume_identifier} ${rpsnap} --type rp
+	    for tgt_varray in ${rp_tgt_varrays}
+	    do
+                #NOTE: RP bookmarks get created with for each target copy (virtual array)
+                all_bookmarks=("${all_bookmarks[@]}" "${PROJECT}/${volume}${volume_identifier}/${rpsnap}-${tgt_varray}")
+                blocksnapshot show ${PROJECT}/${volume}${volume_identifier}/${rpsnap}-${tgt_varray}
+	    done
+        done
+
+        recoverpoint_export_bookmark_host_setup ${vpool} ${rptype}
+
+        sleep 20
+	
+        secho 'Running export RP bookmark failure tests'
+
+        if [ "$RP_VOLUME_COUNT" -gt "1" ]; then	
+            secho 'Adding multiple bookmarks for the same target during export group create - expected failure'
+            #join the list of all the bookmarks created with commas
+            volspec="$(printf "%s,"  ${all_bookmarks[@]} | cut -d "," -f 1-${#all_bookmarks[@]})"
+            fail export_group create $PROJECT ${RP_EXPORT_GROUP} ${rp_src_varray} --type Host --volspec ${volspec} --hosts "${RP_HOSTNAME}"
+        fi
+
+        secho 'Creating 2 RP bookmarks for the same volume.'
+        run blocksnapshot create ${PROJECT}/${volume}${volume_name_modifier} ${rpsnap}-failtest1 --type rp
+        blocksnapshot show ${PROJECT}/${volume}${volume_name_modifier}/${rpsnap}-failtest1-${rp_tgt_varrays[0]}
+        run blocksnapshot create ${PROJECT}/${volume}${volume_name_modifier} ${rpsnap}-failtest2 --type rp
+        blocksnapshot show ${PROJECT}/${volume}${volume_name_modifier}/${rpsnap}-failtest2-${rp_tgt_varrays[0]}
     
-    sleep 15
-    run volume change_link ${PROJECT}/${src_volume} start ${PROJECT}/${tgt_volume} rp
+        run export_group create $PROJECT ${RP_EXPORT_GROUP} ${rp_tgt_varrays[0]} --type Host --volspec ${PROJECT}/${volume}${volume_name_modifier}/${rpsnap}-failtest1-${rp_tgt_varrays[0]} --hosts "${RP_HOSTNAME}"
+        export_group show ${rpexport}
+        secho 'Exporting RP bookmark for the same target copy as a bookmark already exported - expected failure'
+        fail export_group update ${rpexport} --addVolspec ${PROJECT}/${volume}${volume_name_modifier}/${rpsnap}-failtest2-${rp_tgt_varrays[0]}
+        export_group show ${rpexport}
+        run export_group delete ${rpexport}
+    
+        secho 'Finished running export RP bookmark failure tests'
 
-    if [ "${tgt2_volume}" != "" ]; then
-        secho 'Stopping protection for the copy and then re-enabling'
-        run volume change_link ${PROJECT}/${src_volume} stop ${PROJECT}/${tgt2_volume} rp
-        sleep 15
-        run volume change_link ${PROJECT}/${src_volume} start ${PROJECT}/${tgt2_volume} rp
+        secho 'Running export RP bookmark tests'
+        for tgt_varray in ${rp_tgt_varrays}
+        do
+            secho 'Running RP bookmark export tests for target copy '${tgt_varray}
+            run export_group create $PROJECT ${RP_EXPORT_GROUP}-${tgt_varray} ${tgt_varray} --type Host --volspec ${PROJECT}/${volume}${volume_name_modifier}/${rpsnap}-${tgt_varray} --hosts "${RP_HOSTNAME}"
+            export_group show ${rpexport}-${tgt_varray}
+            run export_group update ${rpexport}-${tgt_varray} --remVol ${PROJECT}/${volume}${volume_name_modifier}/${rpsnap}-${tgt_varray}
+            run export_group update ${rpexport}-${tgt_varray} --addVolspec ${PROJECT}/${volume}${volume_name_modifier}/${rpsnap}-${tgt_varray}
+            export_group show ${rpexport}-${tgt_varray}
+            run export_group delete ${rpexport}-${tgt_varray}
+        done
+
+        secho 'Finished with export RP bookmark tests, cleaning up'
+
+        blocksnapshot delete ${PROJECT}/${volume}${volume_name_modifier}/${rpsnap}-failtest1-${rp_tgt_varrays[0]}
+        blocksnapshot delete ${PROJECT}/${volume}${volume_name_modifier}/${rpsnap}-failtest2-${rp_tgt_varrays[0]}
+
+        for i in ${RP_VOLUME_COUNT}
+        do
+            for tgt_varray in ${rp_tgt_varrays}
+            do
+                volume_identifier=''
+                if [ "$RP_VOLUME_COUNT" -gt "1" ]; then
+                    volume_identifier='-'${i}
+                fi
+                blocksnapshot delete ${PROJECT}/${volume}${volume_identifier}/${rpsnap}-${tgt_varray}
+            done
+        done
+
+        run hosts delete ${RP_HOSTNAME}
+        secho 'Done with RecoverPoint bookmark export cleanup'
+    else
+        secho 'Skipping RecoverPoint Export Bookmark Tests'
+    fi
+}
+
+recoverpoint_export_bookmark_host_setup()
+{
+    vpool=${1}
+    rptype=${2}
+
+    if [ "${vpool}" = "rp${rptype}_cdp" ]; then
+        PWWN1=10:00:00:E0:E0:E0:A1:E0
+        WWNN1=20:00:00:E0:E0:E0:A1:E0
+        PWWN2=10:00:00:E0:E0:E0:A2:E0
+        WWNN2=20:00:00:E0:E0:E0:A2:E0
+        PWWN3=10:00:00:E0:E0:E0:A3:D0
+        WWNN3=20:00:00:E0:E0:E0:A3:D0
+        RP_HOSTNAME=${RP_EXPORT_GROUP_HOST}-${RANDOM}-cdp
+    elif [ "${vpool}" = "rp${rptype}_crr" ]; then
+        PWWN1=10:00:00:E0:E0:E0:B1:F0
+        WWNN1=20:00:00:E0:E0:E0:B1:F0
+        PWWN2=10:00:00:E0:E0:E0:B2:F0
+        WWNN2=20:00:00:E0:E0:E0:B2:F0
+        PWWN3=10:00:00:E0:E0:E0:B3:D0
+        WWNN3=20:00:00:E0:E0:E0:B3:D0
+        RP_HOSTNAME=${RP_EXPORT_GROUP_HOST}-${RANDOM}-crr
+    elif [ "${vpool}" = "rp${rptype}_clr" ]; then
+        PWWN1=10:00:00:E0:E0:E0:C1:D0
+        WWNN1=20:00:00:E0:E0:E0:C1:D0
+        PWWN2=10:00:00:E0:E0:E0:C2:D0
+        WWNN2=20:00:00:E0:E0:E0:C2:D0
+        PWWN3=10:00:00:E0:E0:E0:C3:D0
+        WWNN3=20:00:00:E0:E0:E0:C3:D0
+        RP_HOSTNAME=${RP_EXPORT_GROUP_HOST}-${RANDOM}-clr
     fi
 
-    secho 'Re-run discovery, RP bookmark should be cleaned up automatically'
-    sleep 10
-    run protectionsystem discover $RECOVERPOINT
+    run hosts create ${RP_HOSTNAME} $TENANT Windows ${RP_HOSTNAME} --port 8111 --username user --password 'password' --osversion 1.0
+    run initiator create ${RP_HOSTNAME} FC ${PWWN1} --node ${WWNN1}
+    run initiator create ${RP_HOSTNAME} FC ${PWWN2} --node ${WWNN2}
+    run initiator create ${RP_HOSTNAME} FC ${PWWN3} --node ${WWNN3}
 
-    secho 'Removed RP bookmark is being checked after RP discovery to ensure it is no longer active'
-    # Use "fail" instead of run because we expect this bookmark to fail.
-    fail blocksnapshot show ${PROJECT}/${src_volume}/${rpsnap}-${tgt_varray}
+    if [ "$RP_QUICK_PARAM" == "quick" ]; then
+        run transportzone add ${RECOVERPOINT_VARRAY1}/VSAN_11 ${PWWN1}
+        run transportzone add ${RECOVERPOINT_VARRAY2}/VSAN_12 ${PWWN2}
+        run transportzone add ${RECOVERPOINT_VARRAY3}/VSAN_13 ${PWWN3}
+    else
+        run transportzone add ${RECOVERPOINT_VARRAY1}/FABRIC_losam082-fabric ${PWWN1}
+    fi
+}
+
+recoverpoint_auto_snapshot_cleanup_test()
+{
+    if [ "$RP_AUTO_SNAP_CLEANUP_TESTS" = "1" ]; then    
+        secho 'Running RecoverPoint Auto Snapshot Cleanup Tests'
+        rpsnap=rpsnap_for_cleanup-${RP_MODIFIED_HOSTNAME}-${RANDOM}
+        blocksnap=blocksnap-${RP_MODIFIED_HOSTNAME}-${RANDOM}
+
+        src_volume=${1}
+        tgt_volume=${2}
+        tgt_varray=${3}
+        tgt2_volume=${4}
+
+        # Create RP/Block snapshot
+        secho 'Create snapshot'
+        run blocksnapshot create ${PROJECT}/${src_volume} ${rpsnap} --type rp
+        blocksnapshot show ${PROJECT}/${src_volume}/${rpsnap}-${tgt_varray} | grep inactive | grep false
+        run protectionsystem discover $RECOVERPOINT
+
+        secho 'Unaffected RP bookmark is being checked after RP discovery to ensure it is still active'
+        blocksnapshot show ${PROJECT}/${src_volume}/${rpsnap}-${tgt_varray} | grep inactive | grep false
+
+        secho 'Stopping protection for the copy and then re-enabling'
+        run volume change_link ${PROJECT}/${src_volume} stop ${PROJECT}/${tgt_volume} rp
+    
+        sleep 15
+        run volume change_link ${PROJECT}/${src_volume} start ${PROJECT}/${tgt_volume} rp
+
+        if [ "${tgt2_volume}" != "" ]; then
+            secho 'Stopping protection for the copy and then re-enabling'
+            run volume change_link ${PROJECT}/${src_volume} stop ${PROJECT}/${tgt2_volume} rp
+            sleep 15
+            run volume change_link ${PROJECT}/${src_volume} start ${PROJECT}/${tgt2_volume} rp
+        fi
+
+        secho 'Re-run discovery, RP bookmark should be cleaned up automatically'
+        sleep 10
+        run protectionsystem discover $RECOVERPOINT
+
+        secho 'Removed RP bookmark is being checked after RP discovery to ensure it is no longer active'
+        # Use "fail" instead of run because we expect this bookmark to fail.
+        fail blocksnapshot show ${PROJECT}/${src_volume}/${rpsnap}-${tgt_varray}
+    else
+        secho 'Skipping RecoverPoint Auto Snapshot Cleanup Tests'
+    fi
 }
 
 recoverpoint_ingest_host_setup()
@@ -3514,269 +3687,304 @@ recoverpoint_ingest()
 
 recoverpoint_failover_test()
 {
-    secho 'RP failover tests'
+    if [ "$RP_FAILOVER_TESTS" = "1" ]; then
+        secho 'Running RecoverPoint Failover Tests'
 
-    src_volume=${1}
-    tgt_volume=${2}
+        src_volume=${1}
+        tgt_volume=${2}
 
-    secho 'Verify the current state of the source and target vols'
-    run volume verify ${PROJECT}/${src_volume} personality SOURCE
-    run volume verify ${PROJECT}/${src_volume} access_state READWRITE
-    run volume verify ${PROJECT}/${src_volume} link_status IN_SYNC
-    run volume verify ${PROJECT}/${tgt_volume} personality TARGET
-    run volume verify ${PROJECT}/${tgt_volume} access_state NOT_READY
-    run volume verify ${PROJECT}/${tgt_volume} link_status IN_SYNC
+        secho 'Verify the current state of the source and target vols'
+        run volume verify ${PROJECT}/${src_volume} personality SOURCE
+        run volume verify ${PROJECT}/${src_volume} access_state READWRITE
+        run volume verify ${PROJECT}/${src_volume} link_status IN_SYNC
+        run volume verify ${PROJECT}/${tgt_volume} personality TARGET
+        run volume verify ${PROJECT}/${tgt_volume} access_state NOT_READY
+        run volume verify ${PROJECT}/${tgt_volume} link_status IN_SYNC
 
-    secho 'Failover'
-    run volume change_link ${PROJECT}/${src_volume} failover ${PROJECT}/${tgt_volume} rp
+        secho 'Failover'
+        run volume change_link ${PROJECT}/${src_volume} failover ${PROJECT}/${tgt_volume} rp
 
-    secho 'Verify post failover'
-    run volume verify ${PROJECT}/${src_volume} personality SOURCE
-    run volume verify ${PROJECT}/${src_volume} access_state READWRITE
-    run volume verify ${PROJECT}/${src_volume} link_status FAILED_OVER
-    run volume verify ${PROJECT}/${tgt_volume} personality TARGET
-    run volume verify ${PROJECT}/${tgt_volume} access_state READWRITE
-    run volume verify ${PROJECT}/${tgt_volume} link_status FAILED_OVER
+        secho 'Verify post failover'
+        run volume verify ${PROJECT}/${src_volume} personality SOURCE
+        run volume verify ${PROJECT}/${src_volume} access_state READWRITE
+        run volume verify ${PROJECT}/${src_volume} link_status FAILED_OVER
+        run volume verify ${PROJECT}/${tgt_volume} personality TARGET
+        run volume verify ${PROJECT}/${tgt_volume} access_state READWRITE
+        run volume verify ${PROJECT}/${tgt_volume} link_status FAILED_OVER
 
-    secho 'Cancel the failover'
-    run volume change_link ${PROJECT}/${src_volume} failover-cancel ${PROJECT}/${tgt_volume} rp
+        secho 'Cancel the failover'
+        run volume change_link ${PROJECT}/${src_volume} failover-cancel ${PROJECT}/${tgt_volume} rp
 
-    secho 'Verify post cancel, everything should be back to the start'
-    run volume verify ${PROJECT}/${src_volume} personality SOURCE
-    run volume verify ${PROJECT}/${src_volume} access_state READWRITE
-    run volume verify ${PROJECT}/${src_volume} link_status IN_SYNC
-    run volume verify ${PROJECT}/${tgt_volume} personality TARGET
-    run volume verify ${PROJECT}/${tgt_volume} access_state NOT_READY
-    run volume verify ${PROJECT}/${tgt_volume} link_status IN_SYNC
+        secho 'Verify post cancel, everything should be back to the start'
+        run volume verify ${PROJECT}/${src_volume} personality SOURCE
+        run volume verify ${PROJECT}/${src_volume} access_state READWRITE
+        run volume verify ${PROJECT}/${src_volume} link_status IN_SYNC
+        run volume verify ${PROJECT}/${tgt_volume} personality TARGET
+        run volume verify ${PROJECT}/${tgt_volume} access_state NOT_READY
+        run volume verify ${PROJECT}/${tgt_volume} link_status IN_SYNC
 
-    secho 'Failover again'
-    run volume change_link ${PROJECT}/${src_volume} failover ${PROJECT}/${tgt_volume} rp
+        secho 'Failover again'
+        run volume change_link ${PROJECT}/${src_volume} failover ${PROJECT}/${tgt_volume} rp
 
-    secho 'Verify post failover'
-    run volume verify ${PROJECT}/${src_volume} personality SOURCE
-    run volume verify ${PROJECT}/${src_volume} access_state READWRITE
-    run volume verify ${PROJECT}/${src_volume} link_status FAILED_OVER
-    run volume verify ${PROJECT}/${tgt_volume} personality TARGET
-    run volume verify ${PROJECT}/${tgt_volume} access_state READWRITE
-    run volume verify ${PROJECT}/${tgt_volume} link_status FAILED_OVER
+        secho 'Verify post failover'
+        run volume verify ${PROJECT}/${src_volume} personality SOURCE
+        run volume verify ${PROJECT}/${src_volume} access_state READWRITE
+        run volume verify ${PROJECT}/${src_volume} link_status FAILED_OVER
+        run volume verify ${PROJECT}/${tgt_volume} personality TARGET
+        run volume verify ${PROJECT}/${tgt_volume} access_state READWRITE
+        run volume verify ${PROJECT}/${tgt_volume} link_status FAILED_OVER
 
-    secho 'Swap'
-    run volume change_link ${PROJECT}/${src_volume} swap ${PROJECT}/${tgt_volume} rp
+        secho 'Swap'
+        run volume change_link ${PROJECT}/${src_volume} swap ${PROJECT}/${tgt_volume} rp
 
-    secho 'Verify post swap'
-    run volume verify ${PROJECT}/${src_volume} personality TARGET
-    run volume verify ${PROJECT}/${src_volume} access_state NOT_READY
-    run volume verify ${PROJECT}/${src_volume} link_status IN_SYNC
-    run volume verify ${PROJECT}/${tgt_volume} personality SOURCE
-    run volume verify ${PROJECT}/${tgt_volume} access_state READWRITE
-    run volume verify ${PROJECT}/${tgt_volume} link_status IN_SYNC
+        secho 'Verify post swap'
+        run volume verify ${PROJECT}/${src_volume} personality TARGET
+        run volume verify ${PROJECT}/${src_volume} access_state NOT_READY
+        run volume verify ${PROJECT}/${src_volume} link_status IN_SYNC
+        run volume verify ${PROJECT}/${tgt_volume} personality SOURCE
+        run volume verify ${PROJECT}/${tgt_volume} access_state READWRITE
+        run volume verify ${PROJECT}/${tgt_volume} link_status IN_SYNC
 
-    # Expand not working yet, might make separate test for just expand
-    #run volume expand ${PROJECT}/${tgt_volume} ${RP_SIZE_EXPAND}
+        # Expand not working yet, might make separate test for just expand
+        #run volume expand ${PROJECT}/${tgt_volume} ${RP_SIZE_EXPAND}
 
-    secho 'Failover once again, post swap'
-    run volume change_link ${PROJECT}/${tgt_volume} failover ${PROJECT}/${src_volume} rp
+        secho 'Failover once again, post swap'
+        run volume change_link ${PROJECT}/${tgt_volume} failover ${PROJECT}/${src_volume} rp
 
-    secho 'Verify post failover, post swap'
-    run volume verify ${PROJECT}/${src_volume} personality TARGET
-    run volume verify ${PROJECT}/${src_volume} access_state READWRITE
-    run volume verify ${PROJECT}/${src_volume} link_status FAILED_OVER
-    run volume verify ${PROJECT}/${tgt_volume} personality SOURCE
-    run volume verify ${PROJECT}/${tgt_volume} access_state READWRITE
-    run volume verify ${PROJECT}/${tgt_volume} link_status FAILED_OVER
+        secho 'Verify post failover, post swap'
+        run volume verify ${PROJECT}/${src_volume} personality TARGET
+        run volume verify ${PROJECT}/${src_volume} access_state READWRITE
+        run volume verify ${PROJECT}/${src_volume} link_status FAILED_OVER
+        run volume verify ${PROJECT}/${tgt_volume} personality SOURCE
+        run volume verify ${PROJECT}/${tgt_volume} access_state READWRITE
+        run volume verify ${PROJECT}/${tgt_volume} link_status FAILED_OVER
 
-    secho 'Swap back'
-    run volume change_link ${PROJECT}/${tgt_volume} swap ${PROJECT}/${src_volume} rp
+        secho 'Swap back'
+        run volume change_link ${PROJECT}/${tgt_volume} swap ${PROJECT}/${src_volume} rp
 
-    secho 'Verify post swap back, everything should be back to normal'
-    run volume verify ${PROJECT}/${src_volume} personality SOURCE
-    run volume verify ${PROJECT}/${src_volume} access_state READWRITE
-    run volume verify ${PROJECT}/${src_volume} link_status IN_SYNC
-    run volume verify ${PROJECT}/${tgt_volume} personality TARGET
-    run volume verify ${PROJECT}/${tgt_volume} access_state NOT_READY
-    run volume verify ${PROJECT}/${tgt_volume} link_status IN_SYNC
+        secho 'Verify post swap back, everything should be back to normal'
+        run volume verify ${PROJECT}/${src_volume} personality SOURCE
+        run volume verify ${PROJECT}/${src_volume} access_state READWRITE
+        run volume verify ${PROJECT}/${src_volume} link_status IN_SYNC
+        run volume verify ${PROJECT}/${tgt_volume} personality TARGET
+        run volume verify ${PROJECT}/${tgt_volume} access_state NOT_READY
+        run volume verify ${PROJECT}/${tgt_volume} link_status IN_SYNC
+    else
+        secho 'Skipping RecoverPoint Failover Tests'
+   fi
 }
 
 recoverpoint_cg_failover_test()
 {
-    # The name of the consistency group to swap
-    cg_name=${1}
-    # The source source volume - an arbitrary source volume from the CG
-    src_volume=${2}
-    # The virtual array corresonding to the source volume (src_volume)
-    src_varray=${3}
-    # The target volume name used to identify all target volumes
-    tgt_volumes=${4}
-    # The swap target virtual arrays
-    tgt_varrays=${5}
+    if [ "$RP_CG_FAILOVER_TESTS" = "1" ]; then
+        secho 'Running RecoverPoint Failover CG Tests'
 
-    secho 'RP consistency group failover/swap tests'
+        # The name of the consistency group to swap
+        cg_name=${1}
+        # The source source volume - an arbitrary source volume from the CG
+        src_volume=${2}
+        # The virtual array corresonding to the source volume (src_volume)
+        src_varray=${3}
+        # The target volume name used to identify all target volumes
+        tgt_volumes=${4}
+        # The swap target virtual arrays
+        tgt_varrays=${5}
 
-    # Test the CG swap and swap-back for every target virtual array
-    for tgt_varray in ${tgt_varrays}
-    do
-      secho 'Verify the current state of the source and target vols'
-      run volume verify ${PROJECT}/${src_volume} personality SOURCE
-      run volume verify ${PROJECT}/${src_volume} access_state READWRITE
-      run volume verify ${PROJECT}/${src_volume} link_status IN_SYNC
+        secho 'RP consistency group failover/swap tests'
+
+        # Test the CG swap and swap-back for every target virtual array
+        for tgt_varray in ${tgt_varrays}
+        do
+          secho 'Verify the current state of the source and target vols'
+          run volume verify ${PROJECT}/${src_volume} personality SOURCE
+          run volume verify ${PROJECT}/${src_volume} access_state READWRITE
+          run volume verify ${PROJECT}/${src_volume} link_status IN_SYNC
       
-      for tgt_volume in ${tgt_volumes}
-      do
-        run volume verify ${PROJECT}/${tgt_volume} personality TARGET
-        run volume verify ${PROJECT}/${tgt_volume} access_state NOT_READY
-        run volume verify ${PROJECT}/${tgt_volume} link_status IN_SYNC
-      done
-      
-      run blockconsistencygroup failover $cg_name --copyType rp --targetVarray $tgt_varray
-      
-      run volume verify ${PROJECT}/${src_volume} personality SOURCE
-      run volume verify ${PROJECT}/${src_volume} access_state READWRITE
-      run volume verify ${PROJECT}/${src_volume} link_status FAILED_OVER
-      
-      # Post-failover target verification
-      for tgt_volume in ${tgt_volumes}
-      do
-        # If the volume corresponds to the target varray used for the failover we
-        # need to verify different values
-        if [[ $tgt_volume == *$tgt_varray* ]]; then
-            run volume verify ${PROJECT}/${tgt_volume} personality TARGET
-            run volume verify ${PROJECT}/${tgt_volume} access_state READWRITE
-            run volume verify ${PROJECT}/${tgt_volume} link_status FAILED_OVER
-        else
+          for tgt_volume in ${tgt_volumes}
+          do
             run volume verify ${PROJECT}/${tgt_volume} personality TARGET
             run volume verify ${PROJECT}/${tgt_volume} access_state NOT_READY
             run volume verify ${PROJECT}/${tgt_volume} link_status IN_SYNC
-        fi
-      done
+          done
       
-      run blockconsistencygroup failover_cancel $cg_name --copyType rp --targetVarray $tgt_varray
+          run blockconsistencygroup failover $cg_name --copyType rp --targetVarray $tgt_varray
+      
+          run volume verify ${PROJECT}/${src_volume} personality SOURCE
+          run volume verify ${PROJECT}/${src_volume} access_state READWRITE
+          run volume verify ${PROJECT}/${src_volume} link_status FAILED_OVER
+      
+          # Post-failover target verification
+          for tgt_volume in ${tgt_volumes}
+          do
+            # If the volume corresponds to the target varray used for the failover we
+            # need to verify different values
+            if [[ $tgt_volume == *$tgt_varray* ]]; then
+                run volume verify ${PROJECT}/${tgt_volume} personality TARGET
+                run volume verify ${PROJECT}/${tgt_volume} access_state READWRITE
+                run volume verify ${PROJECT}/${tgt_volume} link_status FAILED_OVER
+            else
+                run volume verify ${PROJECT}/${tgt_volume} personality TARGET
+                run volume verify ${PROJECT}/${tgt_volume} access_state NOT_READY
+                run volume verify ${PROJECT}/${tgt_volume} link_status IN_SYNC
+            fi
+          done
+      
+          run blockconsistencygroup failover_cancel $cg_name --copyType rp --targetVarray $tgt_varray
 
-      run volume verify ${PROJECT}/${src_volume} personality SOURCE
-      run volume verify ${PROJECT}/${src_volume} access_state READWRITE
-      run volume verify ${PROJECT}/${src_volume} link_status IN_SYNC
+          run volume verify ${PROJECT}/${src_volume} personality SOURCE
+          run volume verify ${PROJECT}/${src_volume} access_state READWRITE
+          run volume verify ${PROJECT}/${src_volume} link_status IN_SYNC
       
-      for tgt_volume in ${tgt_volumes}
-      do
-        run volume verify ${PROJECT}/${tgt_volume} personality TARGET
-        run volume verify ${PROJECT}/${tgt_volume} access_state NOT_READY
-        run volume verify ${PROJECT}/${tgt_volume} link_status IN_SYNC
-      done
-      
-      run blockconsistencygroup failover $cg_name --copyType rp --targetVarray $tgt_varray
-      
-      run volume verify ${PROJECT}/${src_volume} personality SOURCE
-      run volume verify ${PROJECT}/${src_volume} access_state READWRITE
-      run volume verify ${PROJECT}/${src_volume} link_status FAILED_OVER
-      
-      # Post-failover target verification
-      for tgt_volume in ${tgt_volumes}
-      do
-        # If the volume corresponds to the target varray used for the failover we
-        # need to verify different values
-        if [[ $tgt_volume == *$tgt_varray* ]]; then
-            run volume verify ${PROJECT}/${tgt_volume} personality TARGET
-            run volume verify ${PROJECT}/${tgt_volume} access_state READWRITE
-            run volume verify ${PROJECT}/${tgt_volume} link_status FAILED_OVER
-        else
+          for tgt_volume in ${tgt_volumes}
+          do
             run volume verify ${PROJECT}/${tgt_volume} personality TARGET
             run volume verify ${PROJECT}/${tgt_volume} access_state NOT_READY
             run volume verify ${PROJECT}/${tgt_volume} link_status IN_SYNC
-        fi
-      done
+          done
       
-      run blockconsistencygroup swap $cg_name --copyType rp --targetVarray $tgt_varray
+          run blockconsistencygroup failover $cg_name --copyType rp --targetVarray $tgt_varray
+      
+          run volume verify ${PROJECT}/${src_volume} personality SOURCE
+          run volume verify ${PROJECT}/${src_volume} access_state READWRITE
+          run volume verify ${PROJECT}/${src_volume} link_status FAILED_OVER
+      
+          # Post-failover target verification
+          for tgt_volume in ${tgt_volumes}
+          do
+            # If the volume corresponds to the target varray used for the failover we
+            # need to verify different values
+            if [[ $tgt_volume == *$tgt_varray* ]]; then
+                run volume verify ${PROJECT}/${tgt_volume} personality TARGET
+                run volume verify ${PROJECT}/${tgt_volume} access_state READWRITE
+                run volume verify ${PROJECT}/${tgt_volume} link_status FAILED_OVER
+            else
+                run volume verify ${PROJECT}/${tgt_volume} personality TARGET
+                run volume verify ${PROJECT}/${tgt_volume} access_state NOT_READY
+                run volume verify ${PROJECT}/${tgt_volume} link_status IN_SYNC
+            fi
+          done
+      
+          run blockconsistencygroup swap $cg_name --copyType rp --targetVarray $tgt_varray
 
-      # Post-swap source verification
-      run volume verify ${PROJECT}/${src_volume} personality TARGET
-      run volume verify ${PROJECT}/${src_volume} access_state NOT_READY
-      run volume verify ${PROJECT}/${src_volume} link_status IN_SYNC
+          # Post-swap source verification
+          run volume verify ${PROJECT}/${src_volume} personality TARGET
+          run volume verify ${PROJECT}/${src_volume} access_state NOT_READY
+          run volume verify ${PROJECT}/${src_volume} link_status IN_SYNC
       
-      # Post-swap target verification
-      for tgt_volume in ${tgt_volumes}
-      do
-        run volume verify ${PROJECT}/${tgt_volume} personality SOURCE
-        run volume verify ${PROJECT}/${tgt_volume} access_state READWRITE
-        run volume verify ${PROJECT}/${tgt_volume} link_status IN_SYNC
-      done
-      
-      run blockconsistencygroup failover $cg_name --copyType rp --targetVarray $tgt_varray
-
-      run volume verify ${PROJECT}/${src_volume} personality TARGET
-      run volume verify ${PROJECT}/${src_volume} access_state READWRITE
-      run volume verify ${PROJECT}/${src_volume} link_status FAILED_OVER
-      
-      for tgt_volume in ${tgt_volumes}
-      do
-        # If the volume corresponds to the target varray used for the failover we
-        # need to verify different values
-        if [[ $tgt_volume == *$tgt_varray* ]]; then
+          # Post-swap target verification
+          for tgt_volume in ${tgt_volumes}
+          do
             run volume verify ${PROJECT}/${tgt_volume} personality SOURCE
             run volume verify ${PROJECT}/${tgt_volume} access_state READWRITE
-            run volume verify ${PROJECT}/${tgt_volume} link_status FAILED_OVER
-        else
-            run volume verify ${PROJECT}/${tgt_volume} personality SOURCE
+            run volume verify ${PROJECT}/${tgt_volume} link_status IN_SYNC
+          done
+      
+          run blockconsistencygroup failover $cg_name --copyType rp --targetVarray $tgt_varray
+
+          run volume verify ${PROJECT}/${src_volume} personality TARGET
+          run volume verify ${PROJECT}/${src_volume} access_state READWRITE
+          run volume verify ${PROJECT}/${src_volume} link_status FAILED_OVER
+      
+          for tgt_volume in ${tgt_volumes}
+          do
+            # If the volume corresponds to the target varray used for the failover we
+            # need to verify different values
+            if [[ $tgt_volume == *$tgt_varray* ]]; then
+                run volume verify ${PROJECT}/${tgt_volume} personality SOURCE
+                run volume verify ${PROJECT}/${tgt_volume} access_state READWRITE
+                run volume verify ${PROJECT}/${tgt_volume} link_status FAILED_OVER
+            else
+                run volume verify ${PROJECT}/${tgt_volume} personality SOURCE
+                run volume verify ${PROJECT}/${tgt_volume} access_state NOT_READY
+                run volume verify ${PROJECT}/${tgt_volume} link_status IN_SYNC
+            fi
+          done
+      
+          run blockconsistencygroup swap $cg_name --copyType rp --targetVarray $src_varray
+
+          # swap-back source verification
+          run volume verify ${PROJECT}/${src_volume} personality SOURCE
+          run volume verify ${PROJECT}/${src_volume} access_state READWRITE
+          run volume verify ${PROJECT}/${src_volume} link_status IN_SYNC
+      
+          # swap-back target verification
+          for tgt_volume in ${tgt_volumes}
+          do
+            run volume verify ${PROJECT}/${tgt_volume} personality TARGET
             run volume verify ${PROJECT}/${tgt_volume} access_state NOT_READY
             run volume verify ${PROJECT}/${tgt_volume} link_status IN_SYNC
-        fi
-      done
-      
-      run blockconsistencygroup swap $cg_name --copyType rp --targetVarray $src_varray
-
-      # swap-back source verification
-      run volume verify ${PROJECT}/${src_volume} personality SOURCE
-      run volume verify ${PROJECT}/${src_volume} access_state READWRITE
-      run volume verify ${PROJECT}/${src_volume} link_status IN_SYNC
-      
-      # swap-back target verification
-      for tgt_volume in ${tgt_volumes}
-      do
-        run volume verify ${PROJECT}/${tgt_volume} personality TARGET
-        run volume verify ${PROJECT}/${tgt_volume} access_state NOT_READY
-        run volume verify ${PROJECT}/${tgt_volume} link_status IN_SYNC
-      done
-    done
+          done
+        done
+    else
+        secho 'Skipping RecoverPoint Failover CG Tests'
+    fi
 }
 
 recoverpoint_vpool_change_test()
 {
-    base_volume=${1}
-    noprotection_vpool=${2}
-    rp_vpool=${3}
-    rp_cg=${4}
-    upgrade_to_mp=${5}
+    # Run change vpool tests on the volume if the flag is set.
+    # These tests will:
+    #  1. Remove protection from the RP volume.
+    #  2. Add protection to the now unprotected volume.
+    #  3. Upgrade to MP (only in the case of MP CRR tests - for now)
 
-    # Perform Upgrade to MP if the variable is present,
-    # Only RP+VPLEX Distributed CRR is eligible for this operation (for now).
-    if [ a${upgrade_to_mp} != a ] ; then
-        secho 'Change Virtual Pool - Upgrade To MetroPoint'
-        run volume change_cos ${PROJECT}/${base_volume} ${upgrade_to_mp}
+    if [ "$RP_CHANGE_VPOOL" = "1" ]; then
+        secho 'Running RecoverPoint Change Virtual Pool Tests'
+
+        base_volume=${1}
+        noprotection_vpool=${2}
+        rp_vpool=${3}
+        rp_cg=${4}
+        upgrade_to_mp=${5}
+
+        # Perform Upgrade to MP if the variable is present,
+        # Only RP+VPLEX Distributed CRR is eligible for this operation (for now).
+        if [ a${upgrade_to_mp} != a ] ; then
+            secho 'Change Virtual Pool - Upgrade To MetroPoint'
+            run volume change_cos ${PROJECT}/${base_volume} ${upgrade_to_mp}
+        fi
+
+        secho 'Change Virtual Pool - Remove RecoverPoint Protection'
+        run volume change_cos ${PROJECT}/${base_volume} ${noprotection_vpool}
+
+        secho 'Change Virtual Pool - Add RecoverPoint Protection'
+        run volume change_cos ${PROJECT}/${base_volume} ${rp_vpool} --consistencyGroup ${rp_cg}
+
+    else
+        secho 'Skipping RecoverPoint Change Virtual Pool Tests'
     fi
-
-    secho 'Change Virtual Pool - Remove RecoverPoint Protection'
-    run volume change_cos ${PROJECT}/${base_volume} ${noprotection_vpool}
-
-    secho 'Change Virtual Pool - Add RecoverPoint Protection'
-    run volume change_cos ${PROJECT}/${base_volume} ${rp_vpool} --consistencyGroup ${rp_cg}
 }
 
 recoverpoint_vpool_change_replication_mode_test()
 {
-    base_volume=${1}
-    target_vpool=${2}
+    if [ "$RP_CHANGE_REPLICATION_MODE_TESTS" = "1" ]; then
+        secho 'Running RecoverPoint Change Replication Mode Tests'
 
-    secho 'Change Virtual Pool - Update Replication Mode'
-    run volume change_cos ${PROJECT}/${base_volume} ${target_vpool}
+        base_volume=${1}
+        target_vpool=${2}
+
+        secho 'Change Virtual Pool - Update Replication Mode'
+        run volume change_cos ${PROJECT}/${base_volume} ${target_vpool}
+    else
+        secho 'Skipping RecoverPoint Change Replication Mode Tests'
+    fi
 }
 
 recoverpoint_add_journal_volume()
 {
-   copy_name=${1}
-   journ_varray=${2} 
-   journ_vpool=${3}     
-   rp_cg=${4}
+    if [ "$RP_ADD_JOURNAL_TESTS" = "1" ]; then    
+        secho 'Running RecoverPoint Add Journal Volume Tests'
 
-   secho 'RP add journal volume'
-   run volume add_journal ${copy_name} $PROJECT ${journ_varray} ${journ_vpool} 10GB --consistencyGroup ${rp_cg} --count=1  
+        copy_name=${1}
+        journ_varray=${2} 
+        journ_vpool=${3}     
+        rp_cg=${4}
+
+        secho 'RP add journal volume'
+        run volume add_journal ${copy_name} $PROJECT ${journ_varray} ${journ_vpool} 10GB --consistencyGroup ${rp_cg} --count=1  
+    else
+        secho 'Skipping RecoverPoint Add Journal Volume Tests'
+    fi
 }
 
 recoverpoint_simulator_varsetup() {
@@ -4142,38 +4350,6 @@ recoverpoint_tests()
             volume_name_modifier='-1'
         fi
 
-        # Run change vpool tests on the volume if the flag is set.
-        # These tests will:
-        #  1. Remove protection from the RP volume.
-        #  2. Add protection to the now unprotected volume.
-        #  3. Upgrade to MP (only in the case of MP CRR tests - for now)
-        if [ "$RP_CHANGE_VPOOL" = "1" ]; then
-            if [ "$RP_TESTS" = "1" ]; then
-                secho 'RP change vpool...'
-                recoverpoint_vpool_change_test ${rpvolume}${volume_name_modifier} ${rp_noprotection_vpool} ${rp_src_vpool} ${RP_CONSISTENCY_GROUP}
-            fi
-
-            if [ "$RPVPLEX_TESTS" = "1" ]; then
-                secho 'RP+VPLEX change vpool...'
-                if [ "$RP_CRR" = "1" ]; then
-                    # Upgrade to MetroPoint change vpool test
-                    recoverpoint_vpool_change_test ${rpvplexvolume}${volume_name_modifier} ${rpvplex_noprotection_vpool} ${rpvplex_src_vpool} ${RP_VPLEX_CONSISTENCY_GROUP} rpmp_crr
-                else
-                    recoverpoint_vpool_change_test ${rpvplexvolume}${volume_name_modifier} ${rpvplex_noprotection_vpool} ${rpvplex_src_vpool} ${RP_VPLEX_CONSISTENCY_GROUP}
-                fi
-            fi
-
-            if [ "$RPMP_TESTS" = "1" ]; then
-                secho 'MetroPoint change vpool...'
-                recoverpoint_vpool_change_test ${rpmpvolume}${volume_name_modifier} ${rpmp_noprotection_vpool} ${rpmp_src_vpool} ${RP_METROPOINT_CONSISTENCY_GROUP}
-            fi
-
-            if [ "$RPXIO_TESTS" = "1" ]; then
-                secho 'RP XIO change vpool...'
-                recoverpoint_vpool_change_test ${rpxiovolume}${volume_name_modifier} ${rpxio_noprotection_vpool} ${rpxio_src_vpool} ${RP_XIO_CONSISTENCY_GROUP}
-            fi
-        fi
-
         # Compile a list of target volume names that have been created for RP
         rp_tgt_volumes=()
         for tgt in ${rp_tgt_varrays}
@@ -4195,14 +4371,15 @@ recoverpoint_tests()
           rpmp_tgt_volumes=("${rpmp_tgt_volumes[@]}" "${rpmpvolume}-target-${tgt}${volume_name_modifier}")
         done
 
-        ### Begin RecoverPoint test cases ###
-
         # RP test cases
         # Run these test cases unless specified to only run create/delete tests
         if [ "$RP_RUN_VOLUME_CREATE_ONLY" = "0" ]; then
-
             if [ "$RP_TESTS" = "1" ]; then
                 secho 'RP tests...'
+
+                # Change Virtual Pool Test
+                recoverpoint_vpool_change_test ${rpvolume}${volume_name_modifier} ${rp_noprotection_vpool} ${rp_src_vpool} ${RP_CONSISTENCY_GROUP}
+
                 # Add Journal Test
                 recoverpoint_add_journal_volume ${rp_tgt_varray} ${rp_tgt_varray} ${rp_tgt_vpool} ${RP_CONSISTENCY_GROUP}
                 
@@ -4220,14 +4397,25 @@ recoverpoint_tests()
                 recoverpoint_cg_failover_test ${RP_CONSISTENCY_GROUP} ${rpvolume}${volume_name_modifier} ${rp_src_varray} ${rp_tgt_volumes} ${rp_tgt_varrays}
 
                 # Change Replication Mode Test
-                secho 'RP change vpool - replication mode'
                 recoverpoint_vpool_change_replication_mode_test ${rpvolume}${volume_name_modifier} ${rp_src_vpool_sync}
                 recoverpoint_vpool_change_replication_mode_test ${rpvolume}${volume_name_modifier} ${rp_src_vpool}
+
+                # RP Export Bookmark Test
+                recoverpoint_export_bookmark_tests ${rpvolume} $RECOVERPOINT_VARRAY1 ${rp_tgt_varrays} ${rp_src_vpool} ""
             fi
 
             # RP+VPLEX test cases
             if [ "$RPVPLEX_TESTS" = "1" ]; then
                 secho 'RP+VPLEX tests...'
+
+                # Change Virtual Pool Test
+                if [ "$RP_CRR" = "1" ]; then
+                    # Upgrade to MetroPoint change vpool test
+                    recoverpoint_vpool_change_test ${rpvplexvolume}${volume_name_modifier} ${rpvplex_noprotection_vpool} ${rpvplex_src_vpool} ${RP_VPLEX_CONSISTENCY_GROUP} rpmp_crr
+                else
+                    recoverpoint_vpool_change_test ${rpvplexvolume}${volume_name_modifier} ${rpvplex_noprotection_vpool} ${rpvplex_src_vpool} ${RP_VPLEX_CONSISTENCY_GROUP}
+                fi
+
                 # Add Journal Test
                 recoverpoint_add_journal_volume ${rpvplex_tgt_varray} ${rpvplex_tgt_varray} ${rpvplex_tgt_vpool} ${RP_VPLEX_CONSISTENCY_GROUP}
 
@@ -4244,11 +4432,18 @@ recoverpoint_tests()
                 secho 'RP change vpool - replication mode, not supported on RP/VPLEX yet'
                 # recoverpoint_vpool_change_replication_mode_test ${rpvplexvolume}${volume_name_modifier} ${rpvplex_src_vpool_sync}
                 # recoverpoint_vpool_change_replication_mode_test ${rpvplexvolume}${volume_name_modifier} ${rpvplex_src_vpool}
+
+                # RP Export Bookmark Test
+                recoverpoint_export_bookmark_tests ${rpvplexvolume} $RECOVERPOINT_VARRAY1 ${rp_tgt_varrays} ${rpvplex_src_vpool} "vplex"
             fi
 
             # MP test cases
             if [ "$RPMP_TESTS" = "1" ]; then
                 secho 'MetroPoint tests...'
+
+                # Change Virtual Pool Test
+                recoverpoint_vpool_change_test ${rpmpvolume}${volume_name_modifier} ${rpmp_noprotection_vpool} ${rpmp_src_vpool} ${RP_METROPOINT_CONSISTENCY_GROUP}
+
                 # Add Journal Test
                 recoverpoint_add_journal_volume ${rpmp_active_tgt_varray} ${rpmp_active_tgt_varray} ${rpmp_tgt_vpool} ${RP_METROPOINT_CONSISTENCY_GROUP}
 
@@ -4265,6 +4460,16 @@ recoverpoint_tests()
                 secho 'RP change vpool - replication mode, not supported on RP/MP yet'
                 # recoverpoint_vpool_change_replication_mode_test ${rpmpvolume}${volume_name_modifier} ${rpmp_src_vpool_sync}
                 # recoverpoint_vpool_change_replication_mode_test ${rpmpvolume}${volume_name_modifier} ${rpmp_src_vpool}
+
+                # RP Export Bookmark Test
+                recoverpoint_export_bookmark_tests ${rpmpvolume} $RECOVERPOINT_VARRAY1 ${rp_tgt_varrays} ${rpmp_src_vpool} "mp"
+            fi
+
+            if [ "$RPXIO_TESTS" = "1" ]; then
+                secho 'RP XIO tests...'
+
+                # Change Virtual Pool Test
+                recoverpoint_vpool_change_test ${rpxiovolume}${volume_name_modifier} ${rpxio_noprotection_vpool} ${rpxio_src_vpool} ${RP_XIO_CONSISTENCY_GROUP}
             fi
         fi
 

@@ -27,6 +27,7 @@ public class OpenStackTenantParam extends DataObjectRestRep {
     private Boolean enabled;
     private Boolean excluded;
     private String description;
+    private String osId;
 
     public OpenStackTenantParam() {
     }
@@ -34,7 +35,6 @@ public class OpenStackTenantParam extends DataObjectRestRep {
     /**
      * Indicates if OpenStack tenant is enabled.
      */
-
     @XmlElement(name = "enabled")
     public Boolean getEnabled() {
         return enabled;
@@ -47,7 +47,6 @@ public class OpenStackTenantParam extends DataObjectRestRep {
     /**
      * Indicates if OpenStack tenant is excluded.
      */
-
     @XmlElement(name = "excluded")
     public Boolean getExcluded() {
         return excluded;
@@ -60,7 +59,6 @@ public class OpenStackTenantParam extends DataObjectRestRep {
     /**
      * Description of OpenStack tenant.
      */
-
     @XmlElement(name = "description")
     public String getDescription() {
         return description;
@@ -68,5 +66,17 @@ public class OpenStackTenantParam extends DataObjectRestRep {
 
     public void setDescription(String description) {
         this.description = description;
+    }
+
+    /**
+     * ID of OpenStack tenant.
+     */
+    @XmlElement(name = "os_id")
+    public String getOsId() {
+        return osId;
+    }
+
+    public void setOsId(String osId) {
+        this.osId = osId;
     }
 }

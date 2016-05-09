@@ -9848,6 +9848,30 @@ networkcontroller_setup()
     echo "Add storage Ports to Virtual Array..."
     storageport update "CLARIION+APM12391522735" FC --addvarrays "varray"
 
+    echo "Creating virtual pool"
+    cos create block $COS_VNXBLOCK_THIN                                  \
+                         --description 'VNX thin storage' true      \
+                         --protocols FC               \
+                         --numpaths 1 \
+                         --maxpaths 2 \
+                         --max_snapshots 10 \
+                         --system_type vnxblock \
+                         --provisionType 'Thin' \
+                         --expandable true \
+                         --neighborhoods "varray"
+    
+}
+networkcontroller_tests()
+{
+    echo "************* NetworkController test  *****************"
+
+    echo "Creating volume"
+    run volume create "testVolume" "NTWKProject" "varray" $COS_VNXBLOCK_THIN $BLK_SIZE --thinVolume true
+
+    echo "Exporting volume..."
+    run export_group create --type Host "NTWKProject" "didimention5" "varray" --volspec "NTWKProject"/"testVolume" --hosts $HOST_NAME
+
+
 }
 
 ${SS}_setup

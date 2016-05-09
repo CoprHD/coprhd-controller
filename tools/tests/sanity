@@ -9512,11 +9512,11 @@ snapvx_single_tests()
 
     # Relink target to the snapvx session 2.
     secho "Relinking target to SnapVx session 2"
-    snapshotsession relink_target $PROJECT/$VOLUME_NAME/$SNAP_SESSION_NAME2 $PROJECT/$VOLUME_NAME/$SNAP_SESSION_TGT_NAME1
+    snapshotsession relink_target $PROJECT/$VOLUME_NAME/$SNAP_SESSION_NAME2 $PROJECT/$VOLUME_NAME/$SNAP_SESSION_TGT_NAME1-1
 
     # Unlink target from the snapvx session and delete target volume.
     secho "unlinking target from SnapVx session 2"
-    snapshotsession unlink_target $PROJECT/$VOLUME_NAME/$SNAP_SESSION_NAME2 $PROJECT/$VOLUME_NAME/$SNAP_SESSION_TGT_NAME1 --delete_target true
+    snapshotsession unlink_target $PROJECT/$VOLUME_NAME/$SNAP_SESSION_NAME2 $PROJECT/$VOLUME_NAME/$SNAP_SESSION_TGT_NAME1-1 --delete_target true
 
     # Delete the snapvx sessions.
     secho "Deleting SnapVx sessions 1 and 2"
@@ -9533,13 +9533,13 @@ snapvx_single_tests()
 
     # Restore the source from a linked target
     secho "Restoring source from linked target"
-    blocksnapshot restore $PROJECT/$VOLUME_NAME/$SNAP_SESSION_TGT_NAME3
+    blocksnapshot restore $PROJECT/$VOLUME_NAME/$SNAP_SESSION_TGT_NAME3-1
 
     # Unlink target from the snapvx session and delete target volume.
     secho "Unlinking all targets from SnapVx session 3"
     snapshotsession unlink_target $PROJECT/$VOLUME_NAME/$SNAP_SESSION_NAME3 $PROJECT/$VOLUME_NAME/$SNAP_SESSION_TGT_NAME2-1 --delete_target true
     snapshotsession unlink_target $PROJECT/$VOLUME_NAME/$SNAP_SESSION_NAME3 $PROJECT/$VOLUME_NAME/$SNAP_SESSION_TGT_NAME2-2 --delete_target true
-    snapshotsession unlink_target $PROJECT/$VOLUME_NAME/$SNAP_SESSION_NAME3 $PROJECT/$VOLUME_NAME/$SNAP_SESSION_TGT_NAME3 --delete_target true
+    snapshotsession unlink_target $PROJECT/$VOLUME_NAME/$SNAP_SESSION_NAME3 $PROJECT/$VOLUME_NAME/$SNAP_SESSION_TGT_NAME3-1 --delete_target true
 
     # Delete the snapvx session.
     secho "Deleting SnapVx sessions 3"

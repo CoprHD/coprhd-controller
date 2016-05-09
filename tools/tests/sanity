@@ -9831,6 +9831,9 @@ networkcontroller_setup()
 
     echo "Creating Host..."
     hosts create $HOST_NAME "linux" Other $HOST --port 22
+
+    echo "Creating Virtual Array..."
+    run neighborhood create "varray"
 }
 
 ${SS}_setup

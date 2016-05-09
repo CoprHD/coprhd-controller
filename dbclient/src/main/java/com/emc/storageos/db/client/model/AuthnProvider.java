@@ -248,15 +248,6 @@ public class AuthnProvider extends DataObject {
         setChanged("maxPageSize");
     }
 
-    @Name("disconnectdServers")
-    public StringSet getDisconnectedServerUrls() {
-        return _disconnectedServerUrls;
-    }
-
-    public void setDisconnectedServerUrls(StringSet disconnectedServerUrls) {
-        _disconnectedServerUrls = disconnectedServerUrls;
-    }
-
     @Name("lastModified")
     public Long getLastModified() {
         return _lastModified;

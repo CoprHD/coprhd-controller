@@ -188,18 +188,18 @@ public class ImmutableAuthenticationProviders {
      */
     private static AuthenticationProvider getLDAPProvider(CoordinatorClient coordinator,
             final AuthnProvider authenticationConfiguration, final DbClient dbclient) {
-        LdapContextSource contextSource =
-                createConfiguredLDAPContextSource(coordinator,
-                        authenticationConfiguration,
-                        SystemPropertyUtil.getLdapConnectionTimeout(coordinator));
+
+        LdapServerList servers = createLdapServerList(coordinator,
+                authenticationConfiguration,
+                SystemPropertyUtil.getLdapConnectionTimeout(coordinator));
 
         StorageOSLdapAuthenticationHandler authHandler = createLdapAuthenticationHandler(
-                authenticationConfiguration, contextSource);
+                authenticationConfiguration, servers);
 
         String[] returningAttributes = new String[] { StorageOSLdapPersonAttributeDao.COMMON_NAME,
                 StorageOSLdapPersonAttributeDao.LDAP_DISTINGUISHED_NAME };
         StorageOSLdapPersonAttributeDao attributeRepository = createLDAPAttributeRepository(
-                dbclient, coordinator, authenticationConfiguration, contextSource,
+                dbclient, coordinator, authenticationConfiguration, servers,
                 returningAttributes);
 
         attributeRepository.setProviderType(ProvidersType.ldap);
@@ -225,18 +225,17 @@ public class ImmutableAuthenticationProviders {
             CoordinatorClient coordinator,
             final AuthnProvider authenticationConfiguration, DbClient dbclient) {
 
-        LdapContextSource contextSource =
-                createConfiguredLDAPContextSource(coordinator,
-                        authenticationConfiguration,
-                        SystemPropertyUtil.getLdapConnectionTimeout(coordinator));
+        LdapServerList servers = createLdapServerList(coordinator,
+                authenticationConfiguration,
+                SystemPropertyUtil.getLdapConnectionTimeout(coordinator));
 
         StorageOSLdapAuthenticationHandler authHandler = createLdapAuthenticationHandler(
-                authenticationConfiguration, contextSource);
+                authenticationConfiguration, servers);
 
         String[] returningAttributes = new String[] { StorageOSLdapPersonAttributeDao.COMMON_NAME,
                 StorageOSLdapPersonAttributeDao.AD_DISTINGUISHED_NAME };
         StorageOSLdapPersonAttributeDao attributeRepository = createLDAPAttributeRepository(dbclient,
-                coordinator, authenticationConfiguration, contextSource, returningAttributes);
+                coordinator, authenticationConfiguration, servers, returningAttributes);
 
         attributeRepository.setProviderType(ProvidersType.ad);
         _log.debug("Adding AD mode auth handler to map");
@@ -248,7 +247,7 @@ public class ImmutableAuthenticationProviders {
      * Create the AD/LDAP attribute repository
      * 
      * @param authenticationConfiguration AD/LDAP provider configuration
-     * @param contextSource AD/LDAP context source
+     * @param servers AD/LDAP servers
      * @param returningAttributes list of attributes to return
      * @return StorageOSLdapPersonAttributeDao attribute repository for this configuration
      * @throws Exception
@@ -256,11 +255,11 @@ public class ImmutableAuthenticationProviders {
     private static StorageOSLdapPersonAttributeDao createLDAPAttributeRepository(DbClient dbclient,
             CoordinatorClient coordinator,
             final AuthnProvider authenticationConfiguration,
-            LdapContextSource contextSource,
+            LdapServerList servers,
             String[] returningAttributes) {
         GroupWhiteList groupWhiteList = createGroupWhiteList(authenticationConfiguration);
         StorageOSLdapPersonAttributeDao attributeRepository = new StorageOSLdapPersonAttributeDao();
-        attributeRepository.setContextSource(contextSource);
+        attributeRepository.setLdapServers(servers);
         attributeRepository.setDbClient(dbclient);
         attributeRepository.setGroupWhiteList(groupWhiteList);
         if (null != authenticationConfiguration.getMaxPageSize()) {
@@ -342,13 +341,13 @@ public class ImmutableAuthenticationProviders {
      * Create the authentication handler for this AD/LDAP configuration
      * 
      * @param authenticationConfiguration AD/LDAP provider configuration
-     * @param contextSource AD/LDAP context source
+     * @param servers AD/LDAP servers
      * @return BindLdapAuthenticationHandler generated from configuration
      * @throws Exception
      */
     private static StorageOSLdapAuthenticationHandler createLdapAuthenticationHandler(
             final AuthnProvider authenticationConfiguration,
-            LdapContextSource contextSource) {
+            LdapServerList servers) {
         StorageOSLdapAuthenticationHandler authHandler = new StorageOSLdapAuthenticationHandler();
         if (null == authenticationConfiguration
                 .getSearchFilter()) {
@@ -376,8 +375,47 @@ public class ImmutableAuthenticationProviders {
         } else {
             authHandler.setDomains(authenticationConfiguration.getDomains());
         }
-        authHandler.setContextSource(contextSource);
+        authHandler.setLdapServers(servers);
         return authHandler;
+    }
+
+    private static LdapServerList createLdapServerList(
+            CoordinatorClient coordinator,
+            AuthnProvider authenticationConfiguration,
+            int timeout) {
+
+        LdapServerList servers = new LdapServerList();
+        for (String url : authenticationConfiguration.getServerUrls()) {
+            LdapOrADServer server = createLdapOrAdServer(coordinator, authenticationConfiguration, timeout, url);
+            servers.add(server);
+        }
+        return servers;
+    }
+
+    private static ArrayList<LdapContextSource> createLDAPContextSources(
+            CoordinatorClient coordinator,
+            final AuthnProvider authenticationConfiguration,
+            final Map<String, String> environmentProperties) {
+
+        ArrayList<LdapContextSource> ctxSources = new ArrayList<>();
+
+        for (String url : authenticationConfiguration.getServerUrls()) {
+            LdapContextSource ctx = createLDAPContextSource(coordinator, authenticationConfiguration, environmentProperties, url);
+            ctxSources.add(ctx);
+        }
+        return ctxSources;
+    }
+
+    private static LdapOrADServer createLdapOrAdServer(
+            CoordinatorClient coordinator,
+            AuthnProvider authenticationConfiguration,
+            int timeout,
+            String url) {
+
+        LdapOrADServer server = new LdapOrADServer();
+        server.setContextSource(createConfiguredLDAPContextSource(coordinator, authenticationConfiguration, timeout, url));
+        server.setIsGood(true);
+        return server;
     }
 
     /**
@@ -390,7 +428,8 @@ public class ImmutableAuthenticationProviders {
     private static LdapContextSource createLDAPContextSource(
             CoordinatorClient coordinator,
             final AuthnProvider authenticationConfiguration,
-            final Map<String, String> environmentProperties) {
+            final Map<String, String> environmentProperties,
+            String serverUrl) {
         LdapContextSource contextSource = new LdapContextSource();
         contextSource.setAnonymousReadOnly(false);
         contextSource.setPooled(false);
@@ -412,8 +451,7 @@ public class ImmutableAuthenticationProviders {
                     .failedToCreateAuthenticationHandlerServerURLsAreRequired(authenticationConfiguration
                             .getId());
         } else {
-            contextSource.setUrls(authenticationConfiguration.getServerUrls().toArray(
-                    new String[authenticationConfiguration.getServerUrls().size()]));
+            contextSource.setUrl(serverUrl);
 
             if (contextSource.getUrls()[0].toLowerCase().startsWith(LDAPS_PROTOCOL)) {
                 environmentProperties.put("java.naming.ldap.factory.socket",
@@ -443,8 +481,9 @@ public class ImmutableAuthenticationProviders {
      * @param timeout: pass a value less than 1 if you wish not to use it.
      * @return LdapContextSource
      */
-    private static LdapContextSource createConfiguredLDAPContextSource(
-            CoordinatorClient coordinator, AuthnProvider authProvider, int timeout) {
+    public static LdapContextSource createConfiguredLDAPContextSource(
+            CoordinatorClient coordinator, AuthnProvider authProvider, int timeout, String url) {
+
         Map<String, String> environmentProperties = new HashMap<String, String>();
         environmentProperties.put("java.naming.security.authentication",
                 "simple");
@@ -459,7 +498,7 @@ public class ImmutableAuthenticationProviders {
             environmentProperties.put("com.sun.jndi.ldap.connect.timeout", String.valueOf((timeout * 1000)));
         }
 
-        return createLDAPContextSource(coordinator, authProvider, environmentProperties);
+        return createLDAPContextSource(coordinator, authProvider, environmentProperties, url);
     }
 
     /**
@@ -474,12 +513,14 @@ public class ImmutableAuthenticationProviders {
             final AuthnProviderParamsToValidate param,
             KeystoneRestClientFactory keystoneFactory,
             StringBuilder errorString, DbClient dbClient) {
+
         AuthnProvider authConfig = new AuthnProvider();
         authConfig.setManagerDN(param.getManagerDN());
         authConfig.setManagerPassword(param.getManagerPwd());
         StringSet urls = new StringSet();
         urls.addAll(param.getUrls());
         authConfig.setServerUrls(urls);
+
         if (AuthnProvider.ProvidersType.keystone.toString().equalsIgnoreCase(param.getMode())) {
             authConfig.setMode(AuthnProvider.ProvidersType.keystone.toString());
             checkKeystoneProviderConnectivity(authConfig, keystoneFactory);
@@ -488,10 +529,33 @@ public class ImmutableAuthenticationProviders {
             authConfig.setMode(AuthnProvider.ProvidersType.ldap.toString()); // we don't need AD specifics here
         }
 
-        LdapContextSource contextSource =
-                createConfiguredLDAPContextSource(coordinator, authConfig,
-                        SystemPropertyUtil.getLdapConnectionTimeout(coordinator));
-        LdapTemplate template = new LdapTemplate(contextSource);
+        LdapServerList servers = createLdapServerList(coordinator, authConfig, SystemPropertyUtil.getLdapConnectionTimeout(coordinator));
+
+        boolean good = false;
+        // Checking in order and return good if meeting one good.
+        for (LdapOrADServer server : servers.getConnectedServers()) {
+            good = doCheckProviderStatusOnSingleServer(server, param, errorString, dbClient);
+            if (good) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Check AD/Ldap provider against one of servers input
+     * @param server
+     * @param param
+     * @param errorString
+     * @param dbClient
+     * @return
+     */
+    public static boolean doCheckProviderStatusOnSingleServer(
+            LdapOrADServer server,
+            AuthnProviderParamsToValidate param,
+            StringBuilder errorString, DbClient dbClient) {
+
+        LdapTemplate template = new LdapTemplate(server.getContextSource());
         template.setIgnorePartialResultException(true);
         if (!checkManagerDNAndSearchBase(template, param, errorString)) {
             return false;

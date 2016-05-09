@@ -31,7 +31,8 @@ public class AuthnProvider extends DataObject {
     private String _description;
     private Boolean _disable;
     private Boolean _autoRegCoprHDNImportOSProjects;
-    private StringSet _serverUrls;
+    private StringSet _serverUrls; // All servers user input
+    private StringSet _disconnectedServerUrls; // Disconnected servers found during runtime. Be used to build Runtime authentication provider.
     private StringSet _domains;
     private String _serverCert;
     private String _managerDN;
@@ -248,6 +249,15 @@ public class AuthnProvider extends DataObject {
         setChanged("maxPageSize");
     }
 
+    @Name("disconnectdServers")
+    public StringSet getDisconnectedServerUrls() {
+        return _disconnectedServerUrls;
+    }
+
+    public void setDisconnectedServerUrls(StringSet disconnectedServerUrls) {
+        _disconnectedServerUrls = disconnectedServerUrls;
+    }
+
     @Name("lastModified")
     public Long getLastModified() {
         return _lastModified;
@@ -401,4 +411,5 @@ public class AuthnProvider extends DataObject {
     public static String getExpectedGeoVDCVersionForLDAPGroupSupport() {
         return EXPECTED_GEO_VERSION_FOR_LDAP_GROUP_SUPPORT;
     }
+
 }

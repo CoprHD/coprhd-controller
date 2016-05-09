@@ -5,10 +5,7 @@
 package com.emc.storageos.auth.ldap;
 
 import java.text.MessageFormat;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 import javax.naming.NameClassPair;
 import javax.naming.NamingEnumeration;
@@ -17,6 +14,9 @@ import javax.naming.directory.DirContext;
 import javax.naming.directory.SearchControls;
 import javax.naming.directory.SearchResult;
 
+import com.emc.storageos.auth.LdapFailureHandler;
+import com.emc.storageos.auth.impl.LdapOrADServer;
+import com.emc.storageos.auth.impl.LdapServerList;
 import org.apache.commons.httpclient.Credentials;
 import org.apache.commons.httpclient.UsernamePasswordCredentials;
 import org.slf4j.Logger;
@@ -27,7 +27,6 @@ import org.springframework.ldap.InvalidNameException;
 import org.springframework.ldap.core.LdapTemplate;
 import org.springframework.ldap.core.NameClassPairCallbackHandler;
 import org.springframework.ldap.core.SearchExecutor;
-import org.springframework.ldap.core.support.LdapContextSource;
 
 import com.emc.storageos.auth.StorageOSAuthenticationHandler;
 import com.emc.storageos.services.util.AlertsLogger;
@@ -41,14 +40,20 @@ public class StorageOSLdapAuthenticationHandler implements
 
     private Logger _log = LoggerFactory.getLogger(StorageOSLdapAuthenticationHandler.class);
     private AlertsLogger _alertLog = AlertsLogger.getAlertsLogger();
+
+    public Set<String> getDomains() {
+        return _domains;
+    }
+
     private Set<String> _domains;
     private String _rawFilter;
     private String _searchBase;
-    private LdapContextSource _contextSource;
     private LdapTemplate _ldapTemplate;
     private int _scope = SearchControls.SUBTREE_SCOPE;
     private int _timeLimit = 1000;
     private long _countLimit = 1000;
+    private LdapFailureHandler _failureHandler = new LdapFailureHandler();
+    private LdapServerList _ldapServers;
 
     public StorageOSLdapAuthenticationHandler() {
         super();
@@ -67,23 +72,60 @@ public class StorageOSLdapAuthenticationHandler implements
             _log.error("Illegal credentials username or password cannot be null or empty");
             return false;
         }
+
+        return doAuthentication(usernamePasswordCredentials);
+    }
+
+    /**
+     * Do authentication to ad/ldap. Will try all context sources building from URLs, in input order.
+     * If any one has connection failure, move that to the end and try next one until all.
+     * @param credentials
+     * @return
+     */
+    private boolean doAuthentication(UsernamePasswordCredentials credentials) {
+        ArrayList<LdapOrADServer> failedServers = new ArrayList<>();
+        boolean authResult = false;
+
+        //for (int i = 0; i < _contextSources.size(); i++) {
+        List<LdapOrADServer> connectedServers = _ldapServers.getConnectedServers();
+        for (LdapOrADServer server : connectedServers) {
+            try {
+                authResult = doAuthenticationOverSingleServer(server, credentials);
+
+                // After authentication, lets handle failed ldap servers
+                _failureHandler.handle(_ldapServers, failedServers);
+
+                // Finally return result;
+                return authResult;
+            } catch (CommunicationException e) {
+                failedServers.add(server);
+                _alertLog.error(MessageFormat.format("Connection to LDAP server {0} failed for domain(s) {1}. {2}",
+                        Arrays.toString(server.getContextSource().getUrls()), _domains, e.getMessage()));
+            }
+        }
+        throw UnauthorizedException.unauthorized.ldapCommunicationException();
+    }
+
+    private boolean doAuthenticationOverSingleServer(LdapOrADServer server, UsernamePasswordCredentials usernamePasswordCredentials) {
         String password = usernamePasswordCredentials.getPassword();
 
         List<String> dns = new ArrayList<String>();
         final String filter = LdapFilterUtil.getPersonFilterWithValues(_rawFilter, usernamePasswordCredentials.getUserName());
+
+        LdapTemplate ldapTemplate = new LdapTemplate(server.getContextSource());
         try {
-            _ldapTemplate.search(new StorageOSSearchExecutor(filter), new StorageOSNameClassPairCallbackHandler(dns));
+            ldapTemplate.search(new StorageOSSearchExecutor(filter), new StorageOSNameClassPairCallbackHandler(dns));
         } catch (CommunicationException e) {
             _alertLog.error(MessageFormat.format("Connection to LDAP server {0} failed for domain(s) {1}. {2}",
-                    Arrays.toString(_contextSource.getUrls()), _domains, e.getMessage()));
+                    Arrays.toString(server.getContextSource().getUrls()), _domains, e.getMessage()));
             throw UnauthorizedException.unauthorized.ldapCommunicationException();
 
         } catch (AuthenticationException e) {
             _alertLog
                     .error(MessageFormat
                             .format("Manager bind failed during search for user {0} in domain(s) {1}.  Check manager DN and password. {2}. "
-                                    +
-                                    "Note that any change to the manager DN username or password in the authentication provider must be manually changed in ViPR.",
+                                            +
+                                            "Note that any change to the manager DN username or password in the authentication provider must be manually changed in ViPR.",
                                     usernamePasswordCredentials.getUserName(), _domains, e.getMessage()));
             throw UnauthorizedException.unauthorized.managerBindFailed();
         } catch (InvalidNameException e) {
@@ -107,7 +149,7 @@ public class StorageOSLdapAuthenticationHandler implements
         }
 
         try {
-            DirContext test = _contextSource.getContext(dns.get(0), password);
+            DirContext test = server.getContextSource().getContext(dns.get(0), password);
             if (test != null) {
                 try {
                     test.close();
@@ -121,7 +163,7 @@ public class StorageOSLdapAuthenticationHandler implements
             return false;
         } catch (CommunicationException e) {
             _alertLog.error(MessageFormat.format("Connection to LDAP server {0} failed for domain(s) {1}. {2}",
-                    Arrays.toString(_contextSource.getUrls()), _domains, e.getMessage()));
+                    Arrays.toString(server.getContextSource().getUrls()), _domains, e.getMessage()));
             throw UnauthorizedException.unauthorized.ldapCommunicationException();
         } catch (Exception e) {
             _alertLog.error(MessageFormat.format("Second bind failed.  An exception was thrown while trying to authenticate user {0}. {1}",
@@ -146,6 +188,15 @@ public class StorageOSLdapAuthenticationHandler implements
         return false;
     }
 
+    /**
+     * @see com.emc.storageos.auth.StorageOSAuthenticationHandler#setFailureHandler(LdapFailureHandler)
+     * @param failureHandler
+     */
+    @Override
+    public void setFailureHandler(LdapFailureHandler failureHandler) {
+        this._failureHandler = failureHandler;
+    }
+
     private SearchControls getSearchControls() {
         SearchControls searchControls = new SearchControls();
         searchControls.setSearchScope(_scope);
@@ -167,10 +218,12 @@ public class StorageOSLdapAuthenticationHandler implements
         _searchBase = searchBase;
     }
 
-    public void setContextSource(final LdapContextSource contextSource) {
-        _contextSource = contextSource;
-        _ldapTemplate = new LdapTemplate(_contextSource);
-        _ldapTemplate.setIgnorePartialResultException(true);
+    public void setLdapServers(LdapServerList ldapServers) {
+        _ldapServers = ldapServers;
+    }
+
+    public LdapServerList getLdapServers() {
+        return _ldapServers;
     }
 
     private class StorageOSSearchExecutor implements SearchExecutor {

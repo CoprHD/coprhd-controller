@@ -70,4 +70,10 @@ public interface StorageOSPersonAttributeDao {
      * @return
      */
     public Map<URI, UserMapping> peekUserTenants(String username, URI tenantURI, List<UserMapping> userMapping);
+
+    /**
+     * Set the failure handler which will be invoked when provider connection has issue.
+     * @param failureHandler
+     */
+    public void setFailureHandler(LdapFailureHandler failureHandler);
 }

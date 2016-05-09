@@ -45,11 +45,14 @@ public class CustomAuthenticationManager implements AuthenticationManager {
     private CoordinatorClient _coordinator;
     private AuthenticationProvider _localAuthenticationProvider;
     private final ProviderConfigUpdater _updaterRunnable = new ProviderConfigUpdater();
+    private final LdapProviderMonitor _ldapProviderMonitor;
 
     @Autowired
     protected TokenManager _tokenManager;
 
     public CustomAuthenticationManager() {
+        _ldapProviderMonitor = new LdapProviderMonitor(_coordinator, _dbClient, _authNProviders);
+        _ldapProviderMonitor.start();
     }
 
     public void setDbClient(DbClient dbClient) {

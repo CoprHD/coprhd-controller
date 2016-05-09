@@ -9818,7 +9818,10 @@ snapvx_single_tests()
 }
 networkcontroller_setup()
 {
-  echo "************* NetworkController setup  *****************"
+    echo "************* NetworkController setup  *****************"
+    
+    echo "Creating project..."
+    project create "NTWKProject" --tenant 'linux'
 }
 
 ${SS}_setup

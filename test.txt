@@ -1,0 +1,1 @@
+Testing Stash notification plugin

@@ -123,13 +123,13 @@ public class DrSiteNetworkMonitor implements Runnable {
 
             if (ping > NETWORK_SLOW_THRESHOLD) {
                 siteNetworkState.setNetworkHealth(NetworkHealth.SLOW);
-                _log.warn("Network for standby %s is slow",site.getName());
+                _log.warn("Network for standby {} is slow",site.getName());
                 AlertsLogger.getAlertsLogger().warn(String.format("Network for standby %s is Broken:" +
                         "Latency was reported as %f ms",site.getName(),ping));
             }
             else if (ping < 0) {
                 siteNetworkState.setNetworkHealth(NetworkHealth.BROKEN);
-                _log.error("Network for standby %s is broken",site.getName());
+                _log.error("Network for standby {} is broken",site.getName());
                 AlertsLogger.getAlertsLogger().error(String.format("Network for standby %s is Broken:" +
                         "Latency was reported as %s ms",site.getName(),ping));
             }

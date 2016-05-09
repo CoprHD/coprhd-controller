@@ -2,9 +2,11 @@
 
 systemctl stop RP
 cd /tmp
+rm -f rp-simulators*.jar
 LATEST_URL=`curl http://lglw8129.lss.emc.com/cgi-bin/getLatestSimulator?rp | grep -oP '"queryResult":"\K.*?jar'`
 echo "Downloading $LATEST_URL"
 wget $LATEST_URL || exit 1
+rm -f /data/simulators/rp-sim/rp-simulators-*.jar
 cp rp-simulators-*.jar /data/simulators/rp-sim/
-rm rp-simulators*.jar
+rm -f rp-simulators*.jar
 systemctl start RP

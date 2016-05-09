@@ -323,15 +323,15 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
     private static final String HYPHEN_OPERATOR = "-";
 
     // migration speed to transfer size map
-    private static final Map<String, String> mgirationSpeedToTransferSizeMap;
+    private static final Map<String, String> migrationSpeedToTransferSizeMap;
 
     static {
-        mgirationSpeedToTransferSizeMap = new HashMap<String, String>();
-        mgirationSpeedToTransferSizeMap.put("Lowest", "128KB");
-        mgirationSpeedToTransferSizeMap.put("Low", "2MB");
-        mgirationSpeedToTransferSizeMap.put("Medium", "8MB");
-        mgirationSpeedToTransferSizeMap.put("High", "16MB");
-        mgirationSpeedToTransferSizeMap.put("Highest", "32MB");
+        migrationSpeedToTransferSizeMap = new HashMap<String, String>();
+        migrationSpeedToTransferSizeMap.put("Lowest", "128KB");
+        migrationSpeedToTransferSizeMap.put("Low", "2MB");
+        migrationSpeedToTransferSizeMap.put("Medium", "8MB");
+        migrationSpeedToTransferSizeMap.put("High", "16MB");
+        migrationSpeedToTransferSizeMap.put("Highest", "32MB");
     }
 
     // Volume restore step data keys
@@ -542,10 +542,10 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
 
             // If there are no VPlex volumes, just return
             if (vplexVolumes.isEmpty()) {
-                _log.info("No VPLEX steps required");
+                _log.info("No VPLEX create volume steps required.");
                 return waitFor;
             }
-            _log.info("Adding VPLEX steps for create volumes");
+            _log.info("Adding VPLEX create volume steps...");
 
             // Segregate the volumes by Device.
             Map<URI, List<VolumeDescriptor>> vplexDescMap = VolumeDescriptor
@@ -5297,7 +5297,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             String speed = customConfigHandler.getComputedCustomConfigValue(CustomConfigConstants.MIGRATION_SPEED,
                     vplexSystem.getSystemType(), null);
             _log.info("Migration speed is {}", speed);
-            String transferSize = mgirationSpeedToTransferSizeMap.get(speed);
+            String transferSize = migrationSpeedToTransferSizeMap.get(speed);
             // Make a call to the VPlex API client to migrate the virtual
             // volume. Note that we need to do a remote migration when a
             // local virtual volume is being migrated to the other VPlex
@@ -5955,7 +5955,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             // Get the configured migration speed. This value would be set in VPLEX through
             // "rebuild set-transfer-speed" command.
             if (setTransferSpeed != null) {
-                transferSize = mgirationSpeedToTransferSizeMap.get(setTransferSpeed);
+                transferSize = migrationSpeedToTransferSizeMap.get(setTransferSpeed);
                 if (transferSize == null) {
                     _log.info("Transfer speed parameter {} is invalid", setTransferSpeed);
                 }
@@ -5964,7 +5964,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 String speed = customConfigHandler.getComputedCustomConfigValue(CustomConfigConstants.MIGRATION_SPEED,
                         vplexSystem.getSystemType(), null);
                 _log.info("Migration speed is {}", speed);
-                transferSize = mgirationSpeedToTransferSizeMap.get(speed);
+                transferSize = migrationSpeedToTransferSizeMap.get(speed);
             }
 
             // Now make a Step to create the VPlex Virtual volumes.
@@ -10205,14 +10205,22 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             for (VolumeDescriptor vplexVirtualVolume : vplexVirtualVolumes) {
                 if (vplexVirtualVolume.getParameters() != null
                         && !vplexVirtualVolume.getParameters().isEmpty()) {
-                    if (newVpoolURI == null) {
-                        newVpoolURI = (URI) vplexVirtualVolume.getParameters().get(
-                                VolumeDescriptor.PARAM_VPOOL_CHANGE_VPOOL_ID);
+                    // Let's check to see if the PARAM_VPOOL_CHANGE_EXISTING_VOLUME_ID was populated 
+                    // in the descriptor params map. This would indicate that the descriptor
+                    // has information about the existing volume for the change vpool operation.
+                    Object existingVolumeId = vplexVirtualVolume.getParameters().get(
+                            VolumeDescriptor.PARAM_VPOOL_CHANGE_EXISTING_VOLUME_ID);                    
+                    if (existingVolumeId != null) {                        
+                        URI virtualVolumeURI = (URI) existingVolumeId;                        
+                        _log.info(String.format("Adding steps for change vpool for vplex volume %s", virtualVolumeURI.toString()));
+                    
+                        if (newVpoolURI == null) {
+                            newVpoolURI = (URI) vplexVirtualVolume.getParameters().get(
+                                    VolumeDescriptor.PARAM_VPOOL_CHANGE_NEW_VPOOL_ID);
+                        }
+                        
+                        changeVpoolVirtualVolumeURIs.add(virtualVolumeURI);
                     }
-                    URI virtualVolumeURI = (URI) vplexVirtualVolume.getParameters().get(
-                            VolumeDescriptor.PARAM_VPOOL_CHANGE_VOLUME_ID);
-                    _log.info("Adding steps for change vpool for vplex volume {}", virtualVolumeURI);
-                    changeVpoolVirtualVolumeURIs.add(virtualVolumeURI);
                 }
             }
 
@@ -11650,6 +11658,10 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
     }
 
     private static void updateTimeoutValues() {
+        if (null == coordinator) {
+            return;
+        }
+
         // Update the timeout values
         int maxAsyncPollingRetries = Integer.valueOf(ControllerUtils.getPropertyValueFromCoordinator(coordinator,
                 "controller_vplex_max_async_polls"));

@@ -9870,6 +9870,9 @@ networkcontroller_tests()
 
     echo "Exporting volume..."
     run export_group create --type Host "NTWKProject" "didimention5" "varray" --volspec "NTWKProject"/"testVolume" --hosts $HOST_NAME
+    
+    echo "Check Zoning"
+    python checkZoning.py $ZONE1_ADDR1 
 
 
 }

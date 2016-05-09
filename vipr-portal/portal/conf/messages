@@ -882,6 +882,7 @@ disasterRecovery.pause.success=Pause request initiated...
 disasterRecovery.resume.success=Resume request initiated for site: '%s'
 disasterRecovery.retry.success=Retry request initiated for site: '%s'
 disasterRecovery.test.success=Test Mode request initiated for site: '%s'
+disasterRecovery.add.unstable.warning=Can't add new site now, because site %s is not stable
 disasterRecovery.save.error=Failed to add standby '%s'
 disasterRecovery.pause.error=Failed to Pause Standby site(s). Please check log for more details.
 disasterRecovery.update.success=Updated Site: '%s'

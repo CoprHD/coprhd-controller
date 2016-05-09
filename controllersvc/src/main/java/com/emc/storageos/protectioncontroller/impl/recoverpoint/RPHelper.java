@@ -638,6 +638,29 @@ public class RPHelper {
     }
 
     /**
+     * Get all the target volumes in the consistency group for specified target virtual array.
+     *
+     * @param dbClient the database client
+     * @param consistencyGroup the consistency group id
+     * @param virtualArray target virtual array
+     * @return Volume of the target
+     */
+    public static List<Volume> getTargetVolumesForVarray(DbClient dbClient, URI consistencyGroup, URI virtualArray) {
+        List<Volume> targetVarrayVolumes = new ArrayList<Volume>();
+        List<Volume> cgTargetVolumes = getCgVolumes(dbClient, consistencyGroup, PersonalityTypes.TARGET.name());
+
+        if (cgTargetVolumes != null) {
+            for (Volume target : cgTargetVolumes) {
+                if (target.getVirtualArray().equals(virtualArray)) {
+                    targetVarrayVolumes.add(target);
+                }
+            }
+        }
+
+        return targetVarrayVolumes;
+    }
+
+    /**
      * Given a RP target volume, this method gets the corresponding source volume.
      *
      * @param dbClient the database client.
@@ -1206,11 +1229,11 @@ public class RPHelper {
     /*
      * Since there are several ways to express journal size policy, this helper method will take
      * the source size and apply the policy string to come up with a resulting size.
-     *
+     * 
      * @param sourceSizeStr size of the source volume
-     *
+     * 
      * @param journalSizePolicy the policy of the journal size. ("10gb", "min", or "3.5x" formats)
-     *
+     * 
      * @return journal volume size result
      */
     public static long getJournalSizeGivenPolicy(String sourceSizeStr, String journalSizePolicy, int resourceCount) {
@@ -1995,8 +2018,9 @@ public class RPHelper {
             if (cgVolume.getPersonality() == null) {
                 continue;
             }
-            
-            if (RPHelper.isMetroPointVolume(dbClient, cgVolume) && cgVolume.getPersonality().equalsIgnoreCase(PersonalityTypes.SOURCE.toString()) && productionCopy) {
+
+            if (RPHelper.isMetroPointVolume(dbClient, cgVolume)
+                    && cgVolume.getPersonality().equalsIgnoreCase(PersonalityTypes.SOURCE.toString()) && productionCopy) {
                 // If the volume is MetroPoint, check for varrayId in the associated volumes since their RP Copy names will be different.
                 if (cgVolume.getAssociatedVolumes() != null) {
                     for (String assocVolumeIdStr : cgVolume.getAssociatedVolumes()) {
@@ -2006,7 +2030,7 @@ public class RPHelper {
                         }
                     }
                 }
-            }           
+            }
 
             if (!URIUtil.identical(cgVolume.getVirtualArray(), varrayId)) {
                 continue;

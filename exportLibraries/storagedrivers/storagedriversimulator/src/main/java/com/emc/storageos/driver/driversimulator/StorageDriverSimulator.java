@@ -40,7 +40,7 @@ public class StorageDriverSimulator extends AbstractStorageDriver implements Blo
 
     private static final Logger _log = LoggerFactory.getLogger(StorageDriverSimulator.class);
     private static final String DRIVER_NAME = "SimulatorDriver";
-    private static final int NUMBER_OF_VOLUME_PAGES = 1;
+    private static final int NUMBER_OF_VOLUME_PAGES = 2;
     private static Integer portIndex = 0;
     private static Map<String, Integer> systemNameToPortIndexName = new HashMap<>();
 
@@ -73,10 +73,6 @@ public class StorageDriverSimulator extends AbstractStorageDriver implements Blo
         hostToInitiatorPortIdMap.put(pageToHostMap.get(1).get(0), new ArrayList<>(Arrays.asList("50:06:01:61:36:68:09:81", "50:06:01:61:36:68:09:82")));
         hostToInitiatorPortIdMap.put(pageToHostMap.get(2).get(0), new ArrayList<>(Arrays.asList("50:06:01:61:36:68:10:81", "50:06:01:61:36:68:10:82")));
     }
-
-//    public StorageDriverSimulator(Registry driverRegistry, LockManager lockManager) {
-//        super(driverRegistry, lockManager);
-//    }
 
     //StorageDriver implementation
 
@@ -673,7 +669,7 @@ public class StorageDriverSimulator extends AbstractStorageDriver implements Blo
         discoverStoragePorts(storageSystem, ports);
 
         //for (int vol = 0; vol < 3; vol ++) {
-        for (int vol = 0; vol < 1; vol ++) {
+        for (int vol = 0; vol < 2; vol ++) {
             StorageVolume driverVolume = new StorageVolume();
             driverVolume.setStorageSystemId(storageSystem.getNativeId());
             driverVolume.setStoragePoolId("pool-1234577-" + token.intValue() + storageSystem.getNativeId());
@@ -800,7 +796,7 @@ public class StorageDriverSimulator extends AbstractStorageDriver implements Blo
             snapshots.add(snapshot);
 
             // generate export data for this snap --- the same export data as for its parent volume
-            //generateExportDataForVolumeReplica(volume, snapshot);
+            generateExportDataForVolumeReplica(volume, snapshot);
         }
         return snapshots;
     }
@@ -826,7 +822,7 @@ public class StorageDriverSimulator extends AbstractStorageDriver implements Blo
             clones.add(clone);
 
             // generate export data for this clone --- the same export data as for its parent volume
-            //generateExportDataForVolumeReplica(volume, clone);
+            generateExportDataForVolumeReplica(volume, clone);
         }
         return clones;
     }

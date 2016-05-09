@@ -9879,6 +9879,9 @@ networkcontroller_tests()
 
     echo "Cleaning up volumes..."
     run volume delete "NTWKProject"/"testVolume" --wait
+
+    echo "Cleaning up virtual pool..."
+    cos delete $COS_VNXBLOCK_THIN block
 }
 
 ${SS}_setup

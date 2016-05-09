@@ -9891,6 +9891,9 @@ networkcontroller_tests()
 
     echo "delete initiators from host..."
     initiator delete $HOST_NAME/$ZONE1_ADDR1
+
+    echo "deleteding host..."
+    hosts delete $HOST_NAME
 }
 
 ${SS}_setup

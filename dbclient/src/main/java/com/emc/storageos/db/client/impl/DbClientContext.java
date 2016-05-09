@@ -36,12 +36,14 @@ import com.netflix.astyanax.shallows.EmptyKeyspaceTracerFactory;
 import com.netflix.astyanax.thrift.AbstractOperationImpl;
 import com.netflix.astyanax.thrift.ThriftFamilyFactory;
 import com.netflix.astyanax.thrift.ddl.ThriftKeyspaceDefinitionImpl;
+
 import org.apache.cassandra.service.StorageProxy;
 import org.apache.cassandra.thrift.Cassandra;
 import org.apache.cassandra.thrift.KsDef;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.datastax.driver.core.Session;
 import com.emc.storageos.coordinator.client.model.Site;
 import com.emc.storageos.coordinator.client.model.SiteState;
 import com.emc.storageos.coordinator.client.service.DrUtil;
@@ -96,6 +98,12 @@ public class DbClientContext {
 
     // whether to retry once with LOCAL_QUORUM for write failure 
     private boolean retryFailedWriteWithLocalQuorum = false; 
+    
+    private static final int DB_NATIVE_TRANSPORT_PORT = 9042;
+    private static final int GEODB_NATIVE_TRANSPORT_PORT = 9043;
+    
+    private com.datastax.driver.core.Cluster cassandraCluster;
+    private Session cassandraSession;
     
     public void setCipherSuite(String cipherSuite) {
         this.cipherSuite = cipherSuite;
@@ -290,6 +298,15 @@ public class DbClientContext {
             }, 60, DEFAULT_CONSISTENCY_LEVEL_CHECK_SEC, TimeUnit.SECONDS);
         }
         
+        // init java driver
+        String[] contactPoints = new String[hosts.size()];
+        for (int i = 0; i < hosts.size(); i++) {
+            contactPoints[i] = hosts.get(i).getHostName();
+        }
+        cassandraCluster = com.datastax.driver.core.Cluster
+                .builder()
+                .addContactPoints(contactPoints).withPort(getNativeTransportPort()).build();
+        cassandraSession = cassandraCluster.connect("\"" + keyspaceName + "\"");
         
         initDone = true;
     }
@@ -354,6 +371,14 @@ public class DbClientContext {
         if (clusterContext != null) {
             clusterContext.shutdown();
             clusterContext = null;
+        }
+        
+        if (cassandraSession != null) {
+            cassandraSession.close();
+        }
+
+        if (cassandraCluster != null) {
+            cassandraCluster.close();
         }
 
         exe.shutdownNow();
@@ -573,4 +598,12 @@ public class DbClientContext {
         config.setDefaultWriteConsistencyLevel(ConsistencyLevel.CL_EACH_QUORUM);
     }
     
+    protected int getNativeTransportPort() {
+        int port = isGeoDbsvc() ? GEODB_NATIVE_TRANSPORT_PORT : DB_NATIVE_TRANSPORT_PORT;
+        return port;
+    }
+    
+    public Session getCassandraSession() {
+        return cassandraSession;
+    }
 }

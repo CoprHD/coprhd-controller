@@ -9869,10 +9869,13 @@ networkcontroller_tests()
     run volume create "testVolume" "NTWKProject" "varray" $COS_VNXBLOCK_THIN $BLK_SIZE --thinVolume true
 
     echo "Exporting volume..."
-    run export_group create --type Host "NTWKProject" "didimention5" "varray" --volspec "NTWKProject"/"testVolume" --hosts $HOST_NAME
+    run export_group create --type Host "NTWKProject" "expGroup" "varray" --volspec "NTWKProject"/"testVolume" --hosts $HOST_NAME
     
     echo "Check Zoning"
     python checkZoning.py $ZONE1_ADDR1 
+
+    echo "Cleaning up export groups..."
+    run export_group delete "NTWKProject"/"expGroup"
 
 
 }

@@ -16,8 +16,7 @@
                 <entry key="ImageServerController" value="rmi://localhost:10099/ImageServerController"/>
                 <entry key="RPController"  value="rmi://localhost:10099/RPController"/>
                 <entry key="VPlexController"  value="rmi://localhost:10099/VPlexController"/>
-                <entry key="BlockExportController"
-                       value="rmi://localhost:10099/BlockExportController"/>
+                <entry key="BlockExportController" value="rmi://localhost:10099/BlockExportController"/>
                 <entry key="BlockOrchestrationController" value="rmi://localhost:10099/BlockOrchestrationController"/>
                 <entry key="FileOrchestrationController" value="rmi://localhost:10099/FileOrchestrationController"/>
                 <entry key="FileReplicationController" value="rmi://localhost:10099/FileReplicationController" />
@@ -60,7 +59,8 @@
                 <value>xtremio</value>
                 <value>ecs</value>
                 <value>externaldevice</value>
-                <value>workflow</value>            </set>
+                <value>workflow</value>
+             </set>
         </property>
     </bean>
 </beans>

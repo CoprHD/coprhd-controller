@@ -16,15 +16,14 @@
                 <entry key="ComputeController" value="rmi://${node_id}:10099/ComputeController"/>
                 <entry key="VcenterController" value="rmi://${node_id}:10099/VcenterController"/>
                 <entry key="ImageServerController" value="rmi://${node_id}:10099/ImageServerController"/>
-                <entry key="BlockExportController"
-                       value="rmi://${node_id}:10099/BlockExportController"/>
+                <entry key="BlockExportController" value="rmi://${node_id}:10099/BlockExportController"/>
                 <entry key="BlockOrchestrationController" value="rmi://${node_id}:10099/BlockOrchestrationController"/>
                 <entry key="FileOrchestrationController" value="rmi://${node_id}:10099/FileOrchestrationController"/>
                 <entry key="FileReplicationController" value="rmi://${node_id}:10099/FileReplicationController" />
                 <entry key="SRDFController" value="rmi://${node_id}:10099/SRDFController" />
                 <entry key="ComputeSystemController" value="rmi://localhost:10099/ComputeSystemController"/>
                 <entry key="ObjectController"  value="rmi://${node_id}:10099/ObjectController"/>
-                <entry key="WorkflowController" value="rmi://${node_name}:10099/WorkflowController"/>
+                <entry key="WorkflowController" value="rmi://${node_id}:10099/WorkflowController"/>
             </map>
         </property>
         <property name="version" value="1"/>
@@ -60,7 +59,8 @@
                 <value>xtremio</value>
                 <value>ecs</value>
                 <value>externaldevice</value>
-                <value>workflow</value>            </set>
+                <value>workflow</value>
+             </set>
         </property>
     </bean>
 

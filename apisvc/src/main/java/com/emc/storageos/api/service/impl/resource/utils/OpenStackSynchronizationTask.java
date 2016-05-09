@@ -50,6 +50,8 @@ public class OpenStackSynchronizationTask extends ResourceService {
     private static final int INITIAL_DELAY = 60;
     // Maximum time for a timeout when awaiting for termination.
     private static final int MAX_TERMINATION_TIME = 120;
+    // Minimum interval in seconds.
+    private static final int MIN_INTERVAL_DELAY = 10;
 
     private static final String TENANT_ID = "tenant_id";
     private static final String OPENSTACK = "OpenStack";
@@ -100,11 +102,13 @@ public class OpenStackSynchronizationTask extends ResourceService {
      */
     public void rescheduleTask(int newInterval) {
 
-        if (newInterval > 0 && synchronizationTask != null) {
+        if (newInterval >= MIN_INTERVAL_DELAY && synchronizationTask != null) {
             synchronizationTask.cancel(false);
             synchronizationTask = _dataCollectionExecutorService
                     .scheduleAtFixedRate(new SynchronizationScheduler(), INITIAL_DELAY, newInterval, TimeUnit.SECONDS);
-            _log.info("Synchronization task has been rescheduled with {}s interval.", newInterval);
+            _log.debug("Synchronization task has been rescheduled with {}s interval.", newInterval);
+        } else {
+            throw APIException.internalServerErrors.rescheduleSynchronizationTaskError();
         }
     }
 
@@ -292,7 +296,7 @@ public class OpenStackSynchronizationTask extends ResourceService {
     }
 
     /**
-     * Compare OpenStack Tenant with CoprHD Tenant (both needs to have the same OpenStack ID).
+     * Compares OpenStack Tenant with CoprHD Tenant (both needs to have the same OpenStack ID).
      *
      * @param osTenant OpenStack Tenant.
      * @param coprhdTenant CoprHD Tenant related to OpenStack.
@@ -350,16 +354,14 @@ public class OpenStackSynchronizationTask extends ResourceService {
     }
 
     /**
-     * Start synchronization between CoprHD and OpenStack Tenants.
+     * Starts synchronization between CoprHD and OpenStack Tenants.
      *
      * @param interval Task interval.
      */
     public void startSynchronizationTask(int interval) {
         try {
-            if (interval > 0 && interval != DEFAULT_INTERVAL_DELAY) {
+            if (interval > MIN_INTERVAL_DELAY) {
                 start(interval);
-            } else {
-                start(DEFAULT_INTERVAL_DELAY);
             }
         } catch (Exception e) {
             _log.error("Exception when trying to start synchronization task: {}", e.getMessage());
@@ -367,7 +369,7 @@ public class OpenStackSynchronizationTask extends ResourceService {
     }
 
     /**
-     * Stop synchronization between CoprHD and OpenStack Tenants.
+     * Stops synchronization between CoprHD and OpenStack Tenants.
      *
      */
     public void stopSynchronizationTask() {

@@ -17,9 +17,12 @@
 
 package com.emc.storageos.keystone.restapi.model.response;
 
+import javax.xml.bind.annotation.XmlRootElement;
+
 /**
  * Keystone API Tenant class.
  */
+@XmlRootElement(name = "openstack_tenant")
 public class TenantV2 {
 
     private String id;

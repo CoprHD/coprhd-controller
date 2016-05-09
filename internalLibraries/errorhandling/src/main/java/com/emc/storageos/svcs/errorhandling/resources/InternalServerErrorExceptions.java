@@ -103,6 +103,9 @@ public interface InternalServerErrorExceptions {
     @DeclareServiceCode(ServiceCode.SYS_INTERNAL_SYS_CLIENT_ERROR)
     public InternalServerErrorException sendEventError(final String message);
 
+    @DeclareServiceCode(ServiceCode.SYS_UPDATE_OBJECT_ERROR)
+    public InternalServerErrorException rescheduleSynchronizationTaskError();
+
     @DeclareServiceCode(ServiceCode.SYS_INTERNAL_SYS_CLIENT_ERROR)
     public InternalServerErrorException attachmentSizeError(final long currentSize,
             final long maxSize);

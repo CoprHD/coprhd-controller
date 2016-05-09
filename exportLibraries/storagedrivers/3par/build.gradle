@@ -4,5 +4,9 @@ dependencies {
             library(commons_lang),
             library(httpclient3),
             library(log4j),
-            library(jersey)
+            library(jersey),
+            librarygoogle_gson),
+            library(google_gson),
+            library(json_sanitizer)
+            
 }

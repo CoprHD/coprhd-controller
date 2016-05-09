@@ -119,7 +119,7 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
 	            SystemCommandResult systemRes = hp3parApi.getSystemDetails();
 	            storageSystem.setSerialNumber(systemRes.getSerialNumber());
 	            storageSystem.setMajorVersion(systemRes.getSystemVersion());
-	            storageSystem.setMinorVersion("0"); //as there is no individual portion in version
+	            storageSystem.setMinorVersion("0"); //as there is no individual portion in 3par api
 	            storageSystem.setFirmwareVersion(systemRes.getSystemVersion());
 	            storageSystem.setIsSupportedVersion(true); //always supported
 	            storageSystem.setModel(systemRes.getModel());
@@ -128,14 +128,18 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
                 supportedReplications.add(StorageSystem.SupportedReplication.elementReplica);
                 supportedReplications.add(StorageSystem.SupportedReplication.groupReplica);
                 storageSystem.setSupportedReplications(supportedReplications);
-                
                 storageSystem.setNativeId(uniqueId + ":" + systemRes.getSerialNumber());
-	            if (storageSystem.getDeviceLabel() == null)
-	            {
-	                storageSystem.setDeviceLabel(storageSystem.getDisplayName());
+
+                if (storageSystem.getDeviceLabel() == null) {
+	                if (storageSystem.getDisplayName() != null) {
+	                    storageSystem.setDeviceLabel(storageSystem.getDisplayName());
+	                } else if (systemRes.getName() != null) {
+	                    storageSystem.setDeviceLabel(systemRes.getName());
+	                    storageSystem.setDisplayName(systemRes.getName());
+	                }
 	            }
-	            storageSystem.setAccessStatus(AccessStatus.READ_WRITE);
-                
+
+                storageSystem.setAccessStatus(AccessStatus.READ_WRITE);
 	            setConnInfoToRegistry(storageSystem.getNativeId(), storageSystem.getIpAddress(), storageSystem.getPortNumber(),
 	                    storageSystem.getUsername(), storageSystem.getPassword());
 

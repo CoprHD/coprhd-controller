@@ -3507,37 +3507,6 @@ public class BlockService extends TaskResourceService {
     }
 
     /**
-     * Lists the id and name for all the hosts that belong to the given tenant organization.
-     *
-     * @param tid the URI of a CoprHD tenant organization
-     * @prereq none
-     * @brief List hosts
-     * @return a list of hosts that belong to the tenant organization.
-     * @throws DatabaseException when a DB error occurs
-     */
-    @GET
-    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    public HostList getMigrationHosts(@QueryParam("tenant") final URI tid) throws DatabaseException {
-        URI tenantId;
-        StorageOSUser user = getUserFromContext();
-        if (tid == null || StringUtils.isBlank(tid.toString())) {
-            tenantId = URI.create(user.getTenantId());
-        } else {
-            tenantId = tid;
-        }
-        // this call validates the tenant id
-        TenantOrg tenant = _permissionsHelper.getObjectById(tenantId, TenantOrg.class);
-        ArgValidator.checkEntity(tenant, tenantId, isIdEmbeddedInURL(tenantId), true);
-
-        // check the user permissions for this tenant org
-        verifyAuthorizedInTenantOrg(tenantId, user);
-        // get all host children
-        HostList migrationHostList = new HostList();
-        migrationHostList.setHosts(map(ResourceTypeEnum.HOST, listChildren(tenantId, Host.class, "label", "tenant")));
-        return migrationHostList;
-    }
-
-    /**
      * Allows the caller to change the virtual array of the passed volume. Currently,
      * this is only possible for a local VPlex virtual volumes. Additionally, the
      * volume must not be exported. The volume can be migrated to the other cluster

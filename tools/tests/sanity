@@ -9877,7 +9877,8 @@ networkcontroller_tests()
     echo "Cleaning up export groups..."
     run export_group delete "NTWKProject"/"expGroup"
 
-
+    echo "Cleaning up volumes..."
+    run volume delete "NTWKProject"/"testVolume" --wait
 }
 
 ${SS}_setup

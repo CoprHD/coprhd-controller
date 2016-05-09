@@ -36,4 +36,8 @@ Please see this [page] (https://coprhd.atlassian.net/wiki/display/COP/How+to+dow
 
 Frequently Asked Questions
 --------------
-You have questions like how is CoprHD different from ViPR Controller?  We have some answers.  Check out our [FAQs] (https://coprhd.atlassian.net/wiki/display/COP/FAQ) 
+You have questions like how is CoprHD different from ViPR Controller?  We have some answers.  Check out our [FAQs] (https://coprhd.atlassian.net/wiki/display/COP/FAQ)
+
+
+
+

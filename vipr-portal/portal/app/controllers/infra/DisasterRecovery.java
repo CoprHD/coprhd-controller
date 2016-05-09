@@ -136,11 +136,9 @@ public class DisasterRecovery extends ViprResourceController {
                         break;
                     }
                 }
-                String targetURL = "https://" + standby_vip;
                 Boolean isSwitchover = false;
                 String site_uuid = id;
-                String site_state = result.getState();
-                maintenance(active_name, standby_name, standby_vip, site_uuid, site_state, isSwitchover, targetURL);
+                maintenance(active_name, standby_name, standby_vip, site_uuid, isSwitchover);
             }
             else {
                 flash.success(MessagesUtils.get(RETRY_SUCCESS, siteretry.getName()));
@@ -163,7 +161,6 @@ public class DisasterRecovery extends ViprResourceController {
         String standby_name = null;
         String standby_vip = null;
         String active_name = null;
-        String targetURL = null;
         Boolean isSwitchover = false;
 
         // Get active site details
@@ -186,16 +183,13 @@ public class DisasterRecovery extends ViprResourceController {
             standby_vip = result.getVipEndpoint();
         }
         String site_uuid = id;
-        result = DisasterRecoveryUtils.getSite(id);
-        String site_state = result.getState();
-        targetURL = "https://" + standby_vip;
-        maintenance(active_name, standby_name, standby_vip, site_uuid, site_state, isSwitchover, targetURL);
+        maintenance(active_name, standby_name, standby_vip, site_uuid, isSwitchover);
     }
 
     @FlashException("list")
     @Restrictions({ @Restrict("SECURITY_ADMIN"), @Restrict("RESTRICTED_SECURITY_ADMIN") })
-    public static void maintenance(String active_name, String standby_name, String standby_vip, String site_uuid, String site_state, Boolean isSwitchover, String targetURL) {
-        render(active_name, standby_name, standby_vip, site_uuid, site_state, isSwitchover, targetURL);
+    public static void maintenance(String active_name, String standby_name, String standby_vip, String site_uuid, Boolean isSwitchover) {
+        render(active_name, standby_name, standby_vip, site_uuid, isSwitchover);
     }
 
     private static DisasterRecoveryDataTable createDisasterRecoveryDataTable() {

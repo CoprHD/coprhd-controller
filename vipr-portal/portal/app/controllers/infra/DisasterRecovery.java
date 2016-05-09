@@ -5,16 +5,29 @@
 
 package controllers.infra;
 
+import com.emc.storageos.coordinator.client.model.SiteState;
+import com.emc.storageos.model.dr.SiteActive;
+import com.emc.storageos.model.dr.SiteAddParam;
+import com.emc.storageos.model.dr.SiteDetailRestRep;
+import com.emc.storageos.model.dr.SiteErrorResponse;
+import com.emc.storageos.model.dr.SiteIdListParam;
+import com.emc.storageos.model.dr.SiteRestRep;
+import com.emc.storageos.model.dr.SiteUpdateParam;
+import com.emc.vipr.client.exceptions.ServiceErrorException;
+import com.emc.vipr.model.sys.ClusterInfo;
+import com.google.common.collect.Lists;
+import controllers.Common;
+import controllers.deadbolt.Restrict;
+import controllers.deadbolt.Restrictions;
+import controllers.util.FlashException;
+import controllers.util.ViprResourceController;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-
 import models.datatable.DisasterRecoveryDataTable;
 import models.datatable.DisasterRecoveryDataTable.StandByInfo;
-
 import org.apache.commons.lang.StringUtils;
 import org.joda.time.DateTime;
-
 import play.data.binding.As;
 import play.data.validation.MaxSize;
 import play.data.validation.Required;
@@ -24,26 +37,6 @@ import util.DisasterRecoveryUtils;
 import util.MessagesUtils;
 import util.datatable.DataTablesSupport;
 import util.validation.HostNameOrIpAddress;
-
-import com.emc.storageos.model.dr.SiteDetailRestRep;
-import com.emc.storageos.model.dr.SiteAddParam;
-import com.emc.storageos.model.dr.SiteErrorResponse;
-import com.emc.storageos.model.dr.SiteIdListParam;
-import com.emc.storageos.model.dr.SiteUpdateParam;
-import com.emc.storageos.svcs.errorhandling.resources.APIException;
-import com.emc.vipr.client.exceptions.ServiceErrorException;
-import com.emc.vipr.model.sys.ClusterInfo;
-import com.emc.storageos.coordinator.client.model.SiteState;
-import com.emc.storageos.model.dr.SiteActive;
-import com.emc.storageos.model.dr.SiteRestRep;
-import com.google.common.collect.Lists;
-import com.sun.jersey.api.client.ClientResponse;
-
-import controllers.Common;
-import controllers.deadbolt.Restrict;
-import controllers.deadbolt.Restrictions;
-import controllers.util.FlashException;
-import controllers.util.ViprResourceController;
 
 @With(Common.class)
 @Restrictions({ @Restrict("SECURITY_ADMIN"), @Restrict("RESTRICTED_SECURITY_ADMIN"), @Restrict("SYSTEM_MONITOR"),
@@ -144,10 +137,10 @@ public class DisasterRecovery extends ViprResourceController {
                     }
                 }
                 String targetURL = "https://" + standby_vip;
-                Boolean iamActiveSite = false;
+                Boolean isSwitchover = false;
                 String site_uuid = id;
                 String site_state = result.getState();
-                render(active_name, standby_name, standby_vip, site_uuid, site_state, iamActiveSite, targetURL);
+                maintenance(active_name, standby_name, standby_vip, site_uuid, site_state, isSwitchover, targetURL);
             }
             else {
                 flash.success(MessagesUtils.get(RETRY_SUCCESS, siteretry.getName()));
@@ -171,7 +164,7 @@ public class DisasterRecovery extends ViprResourceController {
         String standby_vip = null;
         String active_name = null;
         String targetURL = null;
-        Boolean iamActiveSite = false;
+        Boolean isSwitchover = false;
 
         // Get active site details
         SiteRestRep activesite = DisasterRecoveryUtils.getActiveSite();
@@ -183,11 +176,11 @@ public class DisasterRecovery extends ViprResourceController {
             SiteActive currentSite = DisasterRecoveryUtils.checkActiveSite();
             if (currentSite.getIsActive() == true) {
                 DisasterRecoveryUtils.doSwitchover(id);
-                iamActiveSite = true;
+                isSwitchover = true;
             }
             else {
                 DisasterRecoveryUtils.doFailover(id);
-                iamActiveSite = false;
+                isSwitchover = false;
             }
             standby_name = result.getName();
             standby_vip = result.getVipEndpoint();
@@ -196,7 +189,13 @@ public class DisasterRecovery extends ViprResourceController {
         result = DisasterRecoveryUtils.getSite(id);
         String site_state = result.getState();
         targetURL = "https://" + standby_vip;
-        render(active_name, standby_name, standby_vip, site_uuid, site_state, iamActiveSite, targetURL);
+        maintenance(active_name, standby_name, standby_vip, site_uuid, site_state, isSwitchover, targetURL);
+    }
+
+    @FlashException("list")
+    @Restrictions({ @Restrict("SECURITY_ADMIN"), @Restrict("RESTRICTED_SECURITY_ADMIN") })
+    public static void maintenance(String active_name, String standby_name, String standby_vip, String site_uuid, String site_state, Boolean isSwitchover, String targetURL) {
+        render(active_name, standby_name, standby_vip, site_uuid, site_state, isSwitchover, targetURL);
     }
 
     private static DisasterRecoveryDataTable createDisasterRecoveryDataTable() {

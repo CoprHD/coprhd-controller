@@ -9834,6 +9834,10 @@ networkcontroller_setup()
 
     echo "Creating Virtual Array..."
     run neighborhood create "varray"
+
+    echo "Adding VSAN to Virtual Array..."
+    transportzone add "varray"/"VSAN_11" $ZONE1_ADDR1
+
 }
 
 ${SS}_setup

@@ -6,9 +6,9 @@ package com.emc.storageos.db.client.util;
 
 import com.emc.storageos.db.client.DbAggregatorItf;
 import com.emc.storageos.db.client.impl.*;
+import com.emc.storageos.db.client.javadriver.CassandraRow;
+import com.emc.storageos.db.client.javadriver.CassandraRows;
 import com.emc.storageos.db.client.model.DataObject;
-import com.netflix.astyanax.model.Column;
-import com.netflix.astyanax.model.Row;
 
 import java.net.URISyntaxException;
 import java.util.*;
@@ -45,14 +45,14 @@ public class FieldInSetAggregator implements DbAggregatorItf {
     }
 
     @Override
-    public void aggregate(Row<String, CompositeColumnName> row) {
+    public void aggregate(CassandraRows cassandraRows) {
 
-        if (row.getColumns().size() == 0) {
+        if (cassandraRows.getRows().size() == 0) {
             return;
         }
-        Column<CompositeColumnName> column = row.getColumns().iterator().next();
-        if (column.getName().getOne().equals(_field)) {
-            String value = ColumnValue.getPrimitiveColumnValue(column,
+        CassandraRow row = cassandraRows.getRows().iterator().next();
+        if (row.getCompositeColumnName().getOne().equals(_field)) {
+            String value = ColumnValue.getPrimitiveColumnValue(row.getRow(),
                     _columnField.getPropertyDescriptor()).toString();
             if (_set.contains(value)) {
                 try {

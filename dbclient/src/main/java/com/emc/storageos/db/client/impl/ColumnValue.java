@@ -181,6 +181,10 @@ public class ColumnValue {
         }
     }
     
+    public static <T> Object getPrimitiveColumnValue(Row row, PropertyDescriptor pd) {
+        return getPrimitiveColumnValue(row, 5, pd);
+    }
+    
     public static <T> Object getPrimitiveColumnValue(Row row, int columnIndex, PropertyDescriptor pd) {
         Object objValue = null;
         try {

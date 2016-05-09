@@ -28,9 +28,10 @@ import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.impl.ColumnField;
 import com.emc.storageos.db.client.impl.ColumnValue;
-import com.emc.storageos.db.client.impl.CompositeColumnName;
 import com.emc.storageos.db.client.impl.DataObjectType;
 import com.emc.storageos.db.client.impl.TypeMap;
+import com.emc.storageos.db.client.javadriver.CassandraRow;
+import com.emc.storageos.db.client.javadriver.CassandraRows;
 import com.emc.storageos.db.client.model.AuthnProvider;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.FileShare;
@@ -39,8 +40,6 @@ import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.TenantOrg;
 import com.emc.storageos.db.client.model.Vcenter;
 import com.emc.storageos.db.exceptions.DatabaseException;
-import com.netflix.astyanax.model.Column;
-import com.netflix.astyanax.model.Row;
 
 //Suppress Sonar violation of Lazy initialization of static fields should be synchronized
 //Junit test will be called in single thread by default, it's safe to ignore this violation
@@ -335,8 +334,8 @@ public class DbClientGeoTest extends DbsvcGeoTestBase {
         }
 
         @Override
-        public void aggregate(Row<String, CompositeColumnName> row) {
-            if (row.getColumns().size() == 0) {
+        public void aggregate(CassandraRows cassandraRows) {
+            if (cassandraRows.getRows().size() == 0) {
                 return;
             }
             DataObjectType doType = TypeMap.getDoType(_clazz);
@@ -347,9 +346,9 @@ public class DbClientGeoTest extends DbsvcGeoTestBase {
             if (columnField == null) {
                 throw new IllegalArgumentException();
             }
-            Column<CompositeColumnName> column = row.getColumns().iterator().next();
-            if (column.getName().getOne().equals(_field)) {
-                String value = ColumnValue.getPrimitiveColumnValue(column,
+            CassandraRow row = cassandraRows.getRows().iterator().next();
+            if (row.getCompositeColumnName().getOne().equals(_field)) {
+                String value = ColumnValue.getPrimitiveColumnValue(row.getRow(),
                         columnField.getPropertyDescriptor()).toString();
                 _list.add(value);
             }

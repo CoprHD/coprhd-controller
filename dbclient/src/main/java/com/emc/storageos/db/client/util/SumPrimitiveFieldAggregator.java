@@ -4,16 +4,19 @@
  */
 package com.emc.storageos.db.client.util;
 
-import com.emc.storageos.db.client.DbAggregatorItf;
-import com.emc.storageos.db.client.impl.*;
-import com.emc.storageos.db.client.model.DataObject;
-import com.netflix.astyanax.model.Column;
-import com.netflix.astyanax.model.Row;
-
 import java.util.Arrays;
-import java.util.Map;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.Map;
+
+import com.emc.storageos.db.client.DbAggregatorItf;
+import com.emc.storageos.db.client.impl.ColumnField;
+import com.emc.storageos.db.client.impl.ColumnValue;
+import com.emc.storageos.db.client.impl.DataObjectType;
+import com.emc.storageos.db.client.impl.TypeMap;
+import com.emc.storageos.db.client.javadriver.CassandraRow;
+import com.emc.storageos.db.client.javadriver.CassandraRows;
+import com.emc.storageos.db.client.model.DataObject;
 
 public class SumPrimitiveFieldAggregator implements DbAggregatorItf {
 
@@ -48,19 +51,19 @@ public class SumPrimitiveFieldAggregator implements DbAggregatorItf {
     }
 
     @Override
-    public void aggregate(Row<String, CompositeColumnName> row) {
+    public void aggregate(CassandraRows cassandraRows) {
 
-        if (row.getColumns().size() == 0) {
+        if (cassandraRows.getRows().size() == 0) {
             return;
         }
 
-        Iterator<Column<CompositeColumnName>> columnIter = row.getColumns().iterator();
+        Iterator<CassandraRow> columnIter = cassandraRows.getRows().iterator();
         String prevColumnName = "";
         Object prevValue = null;
         DoubleValue prevDValue = null;
         while (columnIter.hasNext()) {
-            Column<CompositeColumnName> column = columnIter.next();
-            String curName = column.getName().getOne();
+            CassandraRow cassandraRow = columnIter.next();
+            String curName = cassandraRow.getCompositeColumnName().getOne();
             if (!_valueMap.containsKey(curName)) {
                 if (prevValue != null) {
                     prevDValue = _valueMap.get(prevColumnName);
@@ -75,7 +78,7 @@ public class SumPrimitiveFieldAggregator implements DbAggregatorItf {
                     prevDValue.value += getDouble(prevValue);
                 }
                 ColumnField field = _doType.getColumnField(curName);
-                Object curValue = ColumnValue.getPrimitiveColumnValue(column, field.getPropertyDescriptor());
+                Object curValue = ColumnValue.getPrimitiveColumnValue(cassandraRow.getRow(), field.getPropertyDescriptor());
                 prevValue = curValue;
                 prevDValue = _valueMap.get(curName);
                 prevColumnName = curName;

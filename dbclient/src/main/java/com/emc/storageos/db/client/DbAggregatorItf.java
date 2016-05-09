@@ -5,14 +5,13 @@
 
 package com.emc.storageos.db.client;
 
-import com.emc.storageos.db.client.impl.CompositeColumnName;
-import com.netflix.astyanax.model.Row;
+import com.emc.storageos.db.client.javadriver.CassandraRows;
 
 /**
  */
 public interface DbAggregatorItf {
 
-    void aggregate(Row<String, CompositeColumnName> row);
+    void aggregate(CassandraRows rows);
 
     String[] getAggregatedFields();
 }

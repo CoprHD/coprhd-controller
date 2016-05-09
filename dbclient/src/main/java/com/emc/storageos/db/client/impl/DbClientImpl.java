@@ -623,7 +623,7 @@ public class DbClientImpl implements DbClient {
         Session cassandraSession = getSession(clazz);
         Map<URI, T> objectMap = new HashMap<URI, T>();
         for (ColumnField columnField : columnFields) {
-            List<CassandraRows> result = queryRowsWithAColumn(cassandraSession, ids, doType.getCF().getName(), columnField);
+            List<CassandraRows> result = queryRowsWithColumns(cassandraSession, ids, doType.getCF().getName(), Arrays.asList(new ColumnField[]{columnField}));
             
             Iterator<CassandraRows> it = result.iterator();
             
@@ -675,9 +675,8 @@ public class DbClientImpl implements DbClient {
             throw new IllegalArgumentException();
         }
 
-        boolean buildRange = false;
         String[] fields = aggregator.getAggregatedFields();
-        CompositeColumnName[] columns = new CompositeColumnName[fields.length];
+        ColumnField[] columns = new ColumnField[fields.length];
         for (int ii = 0; ii < fields.length; ii++) {
             ColumnField columnField = doType.getColumnField(fields[ii]);
             if (columnField == null) {
@@ -689,52 +688,29 @@ public class DbClientImpl implements DbClient {
                     throw DatabaseException.fatals.queryFailed(new Exception("... "));
                 }
             }
-            else if (columnField.getIndex() != null) {
-                buildRange = true;
-            }
-            columns[ii] = new CompositeColumnName(columnField.getName());
         }
 
-        List<String> idList = new ArrayList<String>();
+        List<URI> idList = new ArrayList<URI>();
         while (ids.hasNext()) {
             idList.clear();
             for (int ii = 0; ii < DEFAULT_BATCH_SIZE && ids.hasNext(); ii++) {
-                idList.add(ids.next().toString());
+                idList.add(ids.next());
             }
 
-            Keyspace ks = getKeyspace(clazz);
-
-            aggregateObjectFieldBatch(aggregator, ks, idList, doType, buildRange, columns);
-
+            aggregateObjectFieldBatch(aggregator, idList, doType, Arrays.asList(columns));
         }
     }
 
     private void aggregateObjectFieldBatch(
-            DbAggregatorItf aggregator, Keyspace ks, Collection<String> strIds, DataObjectType doType,
-            boolean buildRange, CompositeColumnName[] columns) {
-        OperationResult<Rows<String, CompositeColumnName>> result;
-        try {
-            if (buildRange) {
-                result = ks.prepareQuery(doType.getCF())
-                        .getKeySlice(strIds)
-                        .withColumnRange(CompositeColumnNameSerializer.get().buildRange()
-                                .greaterThanEquals(columns[0].getOne())
-                                .lessThanEquals(columns[0].getOne()))
-                        .execute();
-            }
-            else {
-                // valid for non-indexed columns
-                result = ks.prepareQuery(doType.getCF())
-                        .getKeySlice(strIds)
-                        .withColumnSlice(columns)
-                        .execute();
-            }
-        } catch (ConnectionException e) {
-            throw DatabaseException.retryables.connectionFailed(e);
-        }
-        Iterator<Row<String, CompositeColumnName>> it = result.getResult().iterator();
+            DbAggregatorItf aggregator, Collection<URI> strIds, DataObjectType doType, List<ColumnField> columns) {
+        List<CassandraRows> result;
+        
+        result = this.queryRowsWithColumns(this.getSession(doType.getDataObjectClass()), strIds, doType.getCF().getName(), columns);
+        
+        /* TODO catch exeption and throw to upper layer*/
+        Iterator<CassandraRows> it = result.iterator();
         while (it.hasNext()) {
-            Row<String, CompositeColumnName> row = it.next();
+            CassandraRows row = it.next();
             aggregator.aggregate(row);
         }
     }
@@ -1567,10 +1543,10 @@ public class DbClientImpl implements DbClient {
      * @return matching rows
      * @throws DatabaseException
      */
-    protected List<CassandraRows> queryRowsWithAColumn(Session cassandraSession, Collection<URI> ids, String tableName, ColumnField column) {
-        Statement statement = new SimpleStatement(String.format("Select * from \"%s\" where column1='%s' and key in %s ALLOW FILTERING",
+    protected List<CassandraRows> queryRowsWithColumns(Session cassandraSession, Collection<URI> ids, String tableName, List<ColumnField> columns) {
+        Statement statement = new SimpleStatement(String.format("Select * from \"%s\" where column1 in '%s' and key in %s ALLOW FILTERING",
                 tableName,
-                column.getName(), uriList2String(ids)));
+                columnField2String(columns), uriList2String(ids)));
 
         ResultSet resultSet = cassandraSession.execute(statement);
 
@@ -2041,6 +2017,20 @@ public class DbClientImpl implements DbClient {
             }
             
             buffer.append("'").append(uri.toString()).append("'");
+        }
+        buffer.append(")");
+        return buffer.toString();
+    }
+    
+    private String columnField2String(Collection<ColumnField> columns) {
+        StringBuilder buffer = new StringBuilder();
+        buffer.append("(");
+        for (ColumnField column : columns) {
+            if (buffer.length() > 1) {
+                buffer.append(", ");
+            }
+            
+            buffer.append("'").append(column.getName()).append("'");
         }
         buffer.append(")");
         return buffer.toString();

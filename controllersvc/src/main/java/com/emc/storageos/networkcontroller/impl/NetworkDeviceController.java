@@ -413,11 +413,8 @@ public class NetworkDeviceController implements NetworkController {
                                 _dbClient.markForDeletion(ref);
                                 _log.info(String.format("Remove FCZoneReference key: %s volume %s id %s",
                                         ref.getPwwnKey(), ref.getVolumeUri(), ref.getId().toString()));
-                                if(!zones.isEmpty()){
                                 	recordZoneEvent(ref, OperationTypeEnum.REMOVE_SAN_ZONE.name(),
                                             OperationTypeEnum.REMOVE_SAN_ZONE.getDescription());
-                                }
-                                
                             }
                         }
                     } catch (DatabaseException ex) {

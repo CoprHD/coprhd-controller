@@ -9882,6 +9882,9 @@ networkcontroller_tests()
 
     echo "Cleaning up virtual pool..."
     cos delete $COS_VNXBLOCK_THIN block
+
+    echo "Removing storage Ports to Virtual Array..."
+    storageport update "CLARIION+APM12391522735" FC --rmvarrays "varray"
 }
 
 ${SS}_setup

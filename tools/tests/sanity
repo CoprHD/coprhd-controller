@@ -2991,6 +2991,7 @@ rp_vpool_setup()
 
     if [ "${RPXIO_TESTS}" = "1" ]; then
         rpxio_targets
+        rp_noprotection
         if [ "${RP_CDP}" = "1" ]; then
             rpxio_cdp
         fi

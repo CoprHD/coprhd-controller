@@ -26,6 +26,9 @@ public class ChangeVolumeVirtualArrayService extends ViPRService {
     @Param(ServiceParams.TARGET_VIRTUAL_ARRAY)
     private URI targetVirtualArray;
 
+    @Param(ServiceParams.MIGRATION_TYPE)
+    private String migrationType;
+
     @Override
     public void execute() throws Exception {
         Tasks<VolumeRestRep> tasks = execute(new ChangeBlockVolumeVirtualArray(volumeIds, targetVirtualArray.toString()));

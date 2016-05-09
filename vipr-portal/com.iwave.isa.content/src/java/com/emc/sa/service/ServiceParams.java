@@ -92,6 +92,7 @@ public interface ServiceParams {
     public String APPLICATION_SNAPSHOT_TYPE = "applicationSnapshotType";
     public String TARGET_VIRTUAL_POOL = "targetVirtualPool";
     public String TARGET_VIRTUAL_ARRAY = "targetVirtualArray";
+    public String MIGRATION_TYPE = "migrationType";
 
     public String DATA_STORE = "dataStoreName";
     public String DATASTORE_DESCRIPTION = "dataStoreDescription";

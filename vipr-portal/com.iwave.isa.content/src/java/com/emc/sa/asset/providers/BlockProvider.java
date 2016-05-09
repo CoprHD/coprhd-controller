@@ -61,6 +61,7 @@ import com.emc.storageos.model.block.BlockObjectRestRep;
 import com.emc.storageos.model.block.BlockSnapshotRestRep;
 import com.emc.storageos.model.block.BlockSnapshotSessionList;
 import com.emc.storageos.model.block.BlockSnapshotSessionRestRep;
+import com.emc.storageos.model.block.MigrationTypeEnum;
 import com.emc.storageos.model.block.NamedVolumesList;
 import com.emc.storageos.model.block.VolumeDeleteTypeEnum;
 import com.emc.storageos.model.block.VolumeRestRep;
@@ -363,6 +364,16 @@ public class BlockProvider extends BaseAssetOptionsProvider {
                 + VirtualPoolChangeOperationEnum.VPLEX_DATA_MIGRATION.name()));
         options.add(newAssetOption(VirtualPoolChangeOperationEnum.VPLEX_LOCAL_TO_DISTRIBUTED.name(), "virtualPoolChange.operation."
                 + VirtualPoolChangeOperationEnum.VPLEX_LOCAL_TO_DISTRIBUTED.name()));
+        return options;
+    }
+
+    @Asset("migrationType")
+    public List<AssetOption> getMigrationType(AssetOptionsContext ctx) {
+        List<AssetOption> options = Lists.newArrayList();
+
+        options.add(newAssetOption(MigrationTypeEnum.HOST.toString(), "block.migration.type.host"));
+        options.add(newAssetOption(MigrationTypeEnum.DRIVER.toString(), "block.migration.type.driver"));
+
         return options;
     }
 

@@ -32,7 +32,7 @@
         <tr>
         <tr>
           <td class="status">{{'dbstatus.status' |t}}</td>
-          <td id="health" class="time">${health}</td></div>
+          <td><span id="dbState" data-state=${health}></span></td>
         </tr>  
         </tr>
         #{if dbstatus.status.toString()!='NOT_STARTED'}
@@ -64,4 +64,8 @@
     </div>
   </div>
 </div>
- 
+<script>
+$(document).ready(function(){
+	render.dbstatus('#dbState',$('#dbState').data('state'));
+});
+</script>

@@ -817,7 +817,7 @@ render.dbstatus = function(selector, val) {
             'classes': 'label-danger',
             'text': Messages.get("renderFunctions.database.status.fail")
         },
-        'SUCCESS': {
+        'FINISHED': {
         	'icon': 'glyphicon glyphicon-ok',
             'classes': 'label-success',
             'text': Messages.get("renderFunctions.database.status.success")

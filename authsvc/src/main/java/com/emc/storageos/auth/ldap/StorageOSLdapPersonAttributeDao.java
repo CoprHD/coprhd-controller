@@ -696,7 +696,7 @@ public class StorageOSLdapPersonAttributeDao implements StorageOSPersonAttribute
                 results = doLdapSearchOnSingleServer(base, ldapQuery, searchControls, mapper, server);
 
                 // After search, lets handle failed ldap servers
-                _failureHandler.handle(failedServers);
+                _failureHandler.handle(_ldapServers, failedServers);
 
                 return results;
             } catch (CommunicationException e) {

@@ -9,6 +9,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
+import com.emc.storageos.auth.LdapFailureHandler;
 import org.apache.commons.httpclient.Credentials;
 import org.apache.commons.httpclient.UsernamePasswordCredentials;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -72,5 +73,10 @@ public class StorageOSLocalPersonAttributeDao implements StorageOSPersonAttribut
     @Override
     public Map<URI, UserMapping> peekUserTenants(String username, URI tenantURI, List<UserMapping> userMappings) {
         return getUserTenants(username);
+    }
+
+    @Override
+    public void setFailureHandler(LdapFailureHandler failureHandler) {
+        
     }
 }

@@ -9822,6 +9822,9 @@ networkcontroller_setup()
     
     echo "Creating project..."
     project create "NTWKProject" --tenant 'linux'
+    
+    echo "Discovering vnx ..."
+    smisprovider create $VNX_SMIS_DEV $HW_SIMULATOR_IP 5988 $SIMULATOR_CISCO_MDS_USER $SIMULATOR_CISCO_MDS_PW false
 }
 
 ${SS}_setup

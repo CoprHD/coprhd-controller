@@ -76,6 +76,7 @@ import com.google.common.collect.Lists;
 public class RecoverPointScheduler implements Scheduler {
 
     public static final Logger _log = LoggerFactory.getLogger(RecoverPointScheduler.class);
+    private static final String SCHEDULER_NAME = "rp";
 
     @Autowired
     protected PermissionsHelper _permissionsHelper = null;
@@ -3024,7 +3025,7 @@ public class RecoverPointScheduler implements Scheduler {
             // pool should be capable of satisfying atleast one resource of the specified size.
             if (count >= 1) {
                 if (recommendedPool == null) {
-                    buff.append(String.format("%nRP Placement : # of resources of size %sGB that pool %s can accomodate: %s",
+                    buff.append(String.format("%nRP Placement : # of resources of size %fGB that pool %s can accomodate: %s",
                             SizeUtil.translateSize(sizeInBytes, SizeUtil.SIZE_GB), storagePool.getLabel(), count));
                     // Pool not in any recommendation thus far, create a new recommendation
                     Recommendation recommendation = new Recommendation();
@@ -3097,7 +3098,7 @@ public class RecoverPointScheduler implements Scheduler {
                 if (journalRec.getInternalSiteName().equals(internalSiteName)) {
                     StoragePool existingTargetPool = dbClient.queryObject(StoragePool.class, journalRec.getSourceStoragePool());
                     int count = Math.abs((int) (existingTargetPool.getFreeCapacity() / (sizeInKB)));
-                    _log.info(String.format("%nRP Placement : # of resources of size %dGB that pool %s can accomodate: %s%n",
+                    _log.info(String.format("%nRP Placement : # of resources of size %fGB that pool %s can accomodate: %s%n",
                             SizeUtil.translateSize(sizeInBytes, SizeUtil.SIZE_GB), existingTargetPool.getLabel(), count));
                     if (count >= requestedCount + journalRec.getResourceCount()) {
                         recommendations.add(journalRec);
@@ -4435,4 +4436,23 @@ public class RecoverPointScheduler implements Scheduler {
             return buff.toString();
         } // end toString
     } // end PlacementStatus class
+
+    @Override
+    public List<Recommendation> getRecommendationsForVpool(VirtualArray vArray, Project project, VirtualPool vPool, VpoolUse vPoolUse,
+            VirtualPoolCapabilityValuesWrapper capabilities, Map<VpoolUse, List<Recommendation>> currentRecommendations) {
+        // No special implementation based on Vpool - using original implementation
+        return getRecommendationsForResources(vArray, project, vPool, capabilities);
+    }
+
+    @Override
+    public String getSchedulerName() {
+        return SCHEDULER_NAME;
+    }
+
+    @Override
+    public boolean handlesVpool(VirtualPool vPool, VpoolUse vPoolUse) {
+        return (VirtualPool.vPoolSpecifiesProtection(vPool));
+    }
+    
+    
 }

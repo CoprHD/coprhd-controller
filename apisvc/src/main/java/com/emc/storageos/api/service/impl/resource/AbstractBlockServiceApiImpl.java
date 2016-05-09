@@ -26,6 +26,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import com.emc.storageos.Controller;
 import com.emc.storageos.api.service.authorization.PermissionsHelper;
 import com.emc.storageos.api.service.impl.placement.StorageScheduler;
+import com.emc.storageos.api.service.impl.placement.VolumeRecommendation;
+import com.emc.storageos.api.service.impl.placement.VpoolUse;
 import com.emc.storageos.api.service.impl.resource.fullcopy.BlockFullCopyManager;
 import com.emc.storageos.api.service.impl.resource.utils.BlockServiceUtils;
 import com.emc.storageos.api.service.impl.resource.utils.VirtualPoolChangeAnalyzer;
@@ -89,9 +91,12 @@ import com.emc.storageos.volumecontroller.BlockController;
 import com.emc.storageos.volumecontroller.BlockExportController;
 import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.volumecontroller.Recommendation;
+import com.emc.storageos.volumecontroller.SRDFCopyRecommendation;
+import com.emc.storageos.volumecontroller.SRDFRecommendation;
 import com.emc.storageos.volumecontroller.impl.ControllerUtils;
 import com.emc.storageos.volumecontroller.impl.smis.SmisConstants;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
+import com.emc.storageos.workflow.WorkflowException;
 import com.google.common.base.Joiner;
 
 public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi {
@@ -366,7 +371,7 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
      */
     @Override
     public TaskList createVolumes(VolumeCreate param, Project project, VirtualArray varray,
-            VirtualPool vpool, List<Recommendation> recommendations, TaskList taskList,
+            VirtualPool vpool, Map<VpoolUse, List<Recommendation>> recommendationMap, TaskList taskList,
             String task, VirtualPoolCapabilityValuesWrapper vpoolCapabilities) throws ControllerException,
             InternalException {
 
@@ -427,7 +432,7 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
      * 
      * @return The list of volume descriptors.
      */
-    abstract protected List<VolumeDescriptor> getDescriptorsForVolumesToBeDeleted(
+    abstract public List<VolumeDescriptor> getDescriptorsForVolumesToBeDeleted(
             URI systemURI, List<URI> volumeURIs, String deletionType);
 
     /**
@@ -673,12 +678,12 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
      * @throws InternalException
      */
     @Override
-    public void changeVolumeVirtualPool(URI systemURI, Volume volume, VirtualPool vpool,
+    public TaskList changeVolumeVirtualPool(URI systemURI, Volume volume, VirtualPool vpool,
             VirtualPoolChangeParam vpoolChangeParam, String taskId) throws InternalException {
         List<Volume> volumes = new ArrayList<Volume>();
         volumes.add(volume);
         if (checkCommonVpoolUpdates(volumes, vpool, taskId)) {
-            return;
+            return null;
         }
         throw APIException.methodNotAllowed.notSupported();
     }
@@ -689,14 +694,14 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
      * @throws InternalException
      */
     @Override
-    public void changeVolumeVirtualPool(List<Volume> volumes, VirtualPool vpool,
+    public TaskList changeVolumeVirtualPool(List<Volume> volumes, VirtualPool vpool,
             VirtualPoolChangeParam vpoolChangeParam, String taskId) throws InternalException {
         /**
          * 'Auto-tiering policy change' operation supports multiple volume processing.
          * At present, other operations only support single volume processing.
          */
         if (checkCommonVpoolUpdates(volumes, vpool, taskId)) {
-            return;
+            return null;
         }
         throw APIException.methodNotAllowed.notSupported();
     }
@@ -1814,6 +1819,30 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
             s_logger.info(String.format("Volume and Task Pre-creation Objects [Exec]--  Source Volume: %s, Op: %s",
                     desc.getVolumeURI(), task));
         }
+    }
+
+    @Override
+    public List<VolumeDescriptor> createVolumesAndDescriptors(List<VolumeDescriptor> descriptors, String name, Long size, Project project,
+            VirtualArray varray, VirtualPool vpool, List<Recommendation> recommendations, TaskList taskList, String task,
+            VirtualPoolCapabilityValuesWrapper vpoolCapabilities) {
+        BlockServiceApi api = null;
+        List<VolumeDescriptor> volumeDescriptors = new ArrayList<VolumeDescriptor>();
+        for (Recommendation recommendation : recommendations) {
+            if (recommendation instanceof SRDFRecommendation 
+                    || recommendation instanceof SRDFCopyRecommendation) {
+                api = BlockService.getBlockServiceImpl(DiscoveredDataObject.Type.srdf.name());
+            } else if (recommendation instanceof VolumeRecommendation) {
+                api = BlockService.getBlockServiceImpl(BlockServiceApi.DEFAULT);
+            } else {
+                String message = String.format("No BlockServiceApiImpl to handle recommendation of class: ", 
+                        recommendation.getClass().getName());
+                s_logger.error(message);
+                throw WorkflowException.exceptions.workflowConstructionError(message);
+            }
+            volumeDescriptors.addAll(api.createVolumesAndDescriptors(descriptors, name, size, project, 
+                    varray, vpool, recommendations, taskList, task, vpoolCapabilities));
+        }
+        return volumeDescriptors;
     }
     
     /**

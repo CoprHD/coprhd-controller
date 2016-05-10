@@ -34,7 +34,8 @@ public class ChangeVolumeVirtualArrayService extends ViPRService {
 
     @Override
     public void execute() throws Exception {
-        Tasks<VolumeRestRep> tasks = execute(new ChangeBlockVolumeVirtualArray(volumeIds, targetVirtualArray.toString()));
+        Tasks<VolumeRestRep> tasks = execute(new ChangeBlockVolumeVirtualArray(volumeIds, targetVirtualArray.toString(),
+                migrationType, migrationHost.toString()));
         addAffectedResources(tasks);
     }
 

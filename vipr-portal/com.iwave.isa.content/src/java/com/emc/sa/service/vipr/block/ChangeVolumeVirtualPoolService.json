@@ -32,7 +32,7 @@
       type:"assetType.vipr.migrationType"
     }
 
-    migrationHost:{
+    host:{
       type:"assetType.vipr.linuxHost"
     }
   }

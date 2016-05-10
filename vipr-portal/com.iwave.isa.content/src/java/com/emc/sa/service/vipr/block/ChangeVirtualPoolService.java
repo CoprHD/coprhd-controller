@@ -38,7 +38,8 @@ public class ChangeVirtualPoolService extends ViPRService {
 
     @Override
     public void execute() throws Exception {
-        Tasks<VolumeRestRep> tasks = execute(new ChangeBlockVolumeVirtualPool(uris(volumeIds), targetVirtualPool, consistencyGroup));
+        Tasks<VolumeRestRep> tasks = execute(new ChangeBlockVolumeVirtualPool(uris(volumeIds), targetVirtualPool, consistencyGroup,
+                migrationType, migrationHost));
         addAffectedResources(tasks);
     }
 }

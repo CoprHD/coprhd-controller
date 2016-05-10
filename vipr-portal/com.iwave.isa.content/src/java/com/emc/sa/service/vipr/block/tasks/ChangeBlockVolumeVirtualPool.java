@@ -18,19 +18,27 @@ public class ChangeBlockVolumeVirtualPool extends WaitForTasks<VolumeRestRep> {
     private List<URI> volumeIds;
     private URI targetVirtualPoolId;
     private URI consistencyGroup;
+    private String migrationType;
+    private URI migrationHost;
 
-    public ChangeBlockVolumeVirtualPool(URI volumeId, URI targetVirtualPoolId, URI consistencyGroup) {
+    public ChangeBlockVolumeVirtualPool(URI volumeId, URI targetVirtualPoolId, URI consistencyGroup,
+            String migrationType, URI migrationHost) {
         this.volumeIds = Lists.newArrayList(volumeId);
         this.targetVirtualPoolId = targetVirtualPoolId;
         this.consistencyGroup = consistencyGroup;
-        provideDetailArgs(volumeId, targetVirtualPoolId, consistencyGroup);
+        this.migrationType = migrationType;
+        this.migrationHost = migrationHost;
+        provideDetailArgs(volumeId, targetVirtualPoolId, consistencyGroup, migrationType, migrationHost);
     }
 
-    public ChangeBlockVolumeVirtualPool(List<URI> volumeIds, URI targetVirtualPoolId, URI consistencyGroup) {
+    public ChangeBlockVolumeVirtualPool(List<URI> volumeIds, URI targetVirtualPoolId, URI consistencyGroup
+            String migrationType, URI migrationHost) {
         this.volumeIds = volumeIds;
         this.targetVirtualPoolId = targetVirtualPoolId;
         this.consistencyGroup = consistencyGroup;
-        provideDetailArgs(volumeIds, targetVirtualPoolId, consistencyGroup);
+        this.migrationType = migrationType;
+        this.migrationHost = migrationHost;
+        provideDetailArgs(volumeIds, targetVirtualPoolId, consistencyGroup, migrationType, migrationHost);
     }
 
     @Override
@@ -41,6 +49,14 @@ public class ChangeBlockVolumeVirtualPool extends WaitForTasks<VolumeRestRep> {
         if (!NullColumnValueGetter.isNullURI(consistencyGroup)) {
             input.setConsistencyGroup(consistencyGroup);
         }
+        // Commented out for testing purposes in this commit - these param
+        // functions were added in another branch
+        // if (migrationType.equals(MigrationTypeEnum.HOST.toString())) {
+        //    param.setIsHostMigration(True);
+        //    param.setMigrationHost(migrationHost);
+        //} else if (migrationType.equals(MigrationTypeEnum.DRIVER.toString())) {
+        //    param.setIsHostMigration(False);
+        //}
         return getClient().blockVolumes().changeVirtualPool(input);
     }
 }

@@ -43,7 +43,7 @@ public class KHClient {
         config.getProperties().put(ApacheHttpClientConfig.PROPERTY_HANDLE_COOKIES, Boolean.TRUE);
         config.getState().setCredentials(null, host, port, username, password);
         _client = ApacheHttpClient.create(config);
-        //_client.addFilter(new LoggingFilter(System.out));
+        _client.addFilter(new LoggingFilter(System.out));
         Protocol.registerProtocol("https", new Protocol("https", new NonValidatingSocketFactory(), port));
 
         try {

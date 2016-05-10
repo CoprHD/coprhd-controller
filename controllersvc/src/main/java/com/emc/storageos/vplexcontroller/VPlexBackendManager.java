@@ -891,7 +891,7 @@ public class VPlexBackendManager {
     private boolean isMaskingFirst(StorageSystem array) {
         return (array.getSystemType().equals(DiscoveredDataObject.Type.vnxblock.name())
                 || array.getSystemType().equals(DiscoveredDataObject.Type.vnxe.name())
-                || array.getSystemType().equals(DiscoveredDataObject.Type.vnxunity.name())
+                || array.getSystemType().equals(DiscoveredDataObject.Type.unity.name())
                 || array.getSystemType().equals(DiscoveredDataObject.Type.openstack.name()));
 
     }

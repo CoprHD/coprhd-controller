@@ -59,5 +59,23 @@ public class HostLunRequests extends KHRequests<HostLun> {
         setFilter(VNXeConstants.LUN_FILTER + lunId);
         return getDataForObjects(HostLun.class);
     }
+    
+    public HostLun getSnapHostLun(String snapId, String hostId) {
+        _logger.info("Finding hostLun for snapId: {}, hostId: {}", snapId, hostId);
+        String filter = VNXeConstants.SNAP_FILTER_V31 + "\"" + snapId + "\"";
+        setFilter(filter);
+        HostLun result = null;
+        List<HostLun> hostLuns = getDataForObjects(HostLun.class);
+        for (HostLun hostLun : hostLuns) {
+            String lunHostId = hostLun.getHost().getId();
+            if (hostId.equals(lunHostId)) {
+                result = hostLun;
+                _logger.info("Found hostLun");
+                break;
+            }
+        }
+
+        return result;
+    }
 
 }

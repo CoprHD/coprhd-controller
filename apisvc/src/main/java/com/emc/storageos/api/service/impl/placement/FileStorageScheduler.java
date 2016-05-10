@@ -889,7 +889,7 @@ public class FileStorageScheduler implements Scheduler {
                     && !storage.getSystemType().equals(Type.netappc.toString())
                     && !storage.getSystemType().equals(Type.vnxe.toString())
                     && !storage.getSystemType().equals(Type.vnxfile.toString())
-		    && !storage.getSystemType().equals(Type.vnxunity.toString())
+		    && !storage.getSystemType().equals(Type.unity.toString())
                     && !storage.getSystemType().equals(
                             Type.datadomain.toString())) {
                 result.add(rec);

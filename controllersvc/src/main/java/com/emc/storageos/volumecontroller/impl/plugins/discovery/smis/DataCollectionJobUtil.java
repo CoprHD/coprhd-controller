@@ -106,6 +106,10 @@ public class DataCollectionJobUtil {
                 StorageProvider.InterfaceType.xtremio.name().equalsIgnoreCase(
                         ((StorageProvider) taskObject).getInterfaceType())) {
             populateXtremIOAccessProfile(profile, (StorageProvider) taskObject);
+        } else if (clazz == StorageProvider.class &&
+                StorageProvider.InterfaceType.unity.name().equalsIgnoreCase(
+                        ((StorageProvider) taskObject).getInterfaceType())) {
+            populateUnityAccessProfile(profile, (StorageProvider) taskObject);
         } else if (clazz == StorageSystem.class) {
             populateAccessProfile(profile, (StorageSystem) taskObject, nameSpace);
         } else if (clazz == ProtectionSystem.class) {
@@ -347,6 +351,23 @@ public class DataCollectionJobUtil {
         accessProfile.setPortNumber(providerInfo.getPortNumber());
         accessProfile.setSslEnable(String.valueOf(providerInfo.getUseSSL()));
     }
+    
+    /**
+     * inject details needed for Scanning
+     * 
+     * @param accessProfile
+     * @param providerInfo
+     */
+    private void populateUnityAccessProfile(AccessProfile accessProfile, StorageProvider providerInfo) {
+        accessProfile.setSystemId(providerInfo.getId());
+        accessProfile.setSystemClazz(providerInfo.getClass());
+        accessProfile.setIpAddress(providerInfo.getIPAddress());
+        accessProfile.setUserName(providerInfo.getUserName());
+        accessProfile.setPassword(providerInfo.getPassword());
+        accessProfile.setSystemType(DiscoveredDataObject.Type.unity.name());
+        accessProfile.setPortNumber(providerInfo.getPortNumber());
+        accessProfile.setSslEnable(String.valueOf(providerInfo.getUseSSL()));
+    }
 
     /**
      * inject Details needed for Discovery
@@ -471,8 +492,7 @@ public class DataCollectionJobUtil {
             }
         } else if (storageDevice.getSystemType().equals(Type.netapp.toString())
                 || storageDevice.getSystemType().equals(Type.netappc.toString())
-                || Type.vnxe.toString().equalsIgnoreCase(storageDevice.getSystemType())
-                || Type.vnxunity.toString().equalsIgnoreCase(storageDevice.getSystemType())) {
+                || Type.vnxe.toString().equalsIgnoreCase(storageDevice.getSystemType())) {
             accessProfile.setSystemType(storageDevice.getSystemType());
             accessProfile.setIpAddress(storageDevice.getIpAddress());
             accessProfile.setUserName(storageDevice.getUsername());
@@ -551,6 +571,12 @@ public class DataCollectionJobUtil {
             accessProfile.setPassword(storageDevice.getPassword());
             accessProfile.setPortNumber(storageDevice.getPortNumber());
             accessProfile.setLastSampleTime(0L);
+        } else if (storageDevice.getSystemType().equals(
+                Type.unity.toString())) {
+            populateUnityAccessProfileForSystem(accessProfile, storageDevice);
+            if (null != nameSpace) {
+                accessProfile.setnamespace(nameSpace);
+            }
         } else {
             throw new RuntimeException("populateAccessProfile: Device type unknown : "
                     + storageDevice.getSystemType());
@@ -613,6 +639,34 @@ public class DataCollectionJobUtil {
 
     }
 
+    /**
+     * Populate access profile for storage system.
+     * If it has active provider, it will populate the access profile from provider info,
+     * otherwise, it will populate the access profile from the storage system.
+     * @param accessProfile
+     * @param storageDevice
+     */
+    private void populateUnityAccessProfileForSystem(AccessProfile accessProfile, StorageSystem storageDevice) {
+        URI providerUri = storageDevice.getActiveProviderURI();
+        if (!NullColumnValueGetter.isNullURI(providerUri)) {
+            StorageProvider provider = _dbClient.queryObject(StorageProvider.class, providerUri);
+            accessProfile.setSystemType(storageDevice.getSystemType());
+            accessProfile.setIpAddress(provider.getIPAddress());
+            accessProfile.setUserName(provider.getUserName());
+            accessProfile.setPassword(provider.getPassword());
+            accessProfile.setserialID(storageDevice.getSerialNumber());
+            accessProfile.setPortNumber(provider.getPortNumber());
+            accessProfile.setLastSampleTime(0L);
+        } else {
+            accessProfile.setSystemType(storageDevice.getSystemType());
+            accessProfile.setIpAddress(storageDevice.getIpAddress());
+            accessProfile.setUserName(storageDevice.getUsername());
+            accessProfile.setPassword(storageDevice.getPassword());
+            accessProfile.setserialID(storageDevice.getSerialNumber());
+            accessProfile.setPortNumber(storageDevice.getPortNumber());
+            accessProfile.setLastSampleTime(0L);
+        }
+    }
     /**
      * If storageDevice is not AMS, use embedded provider else HCS ipAddress.
      * 

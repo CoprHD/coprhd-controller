@@ -138,7 +138,7 @@ public class NativeGUIDGenerator {
         _deviceTypeMap.put(StorageSystem.Type.openstack.name(), "OPENSTACK");
         _deviceTypeMap.put(StorageSystem.Type.scaleio.name(), "SCALEIO");
         _deviceTypeMap.put(StorageSystem.Type.vnxe.name(), "VNXE");
-        _deviceTypeMap.put(StorageSystem.Type.vnxunity.name(), "VNXUNITY");
+        _deviceTypeMap.put(StorageSystem.Type.unity.name(), "UNITY");
         _deviceTypeMap.put(StorageSystem.Type.xtremio.name(), "XTREMIO");
         _deviceTypeMap.put(StorageSystem.Type.ecs.name(), "ECS");
 
@@ -650,7 +650,7 @@ public class NativeGUIDGenerator {
         } else if (Type.vmax.name().equals(systemType)
                 || Type.vnxblock.name().equals(systemType)
                 || Type.vnxe.name().equals(systemType)
-                || Type.vnxunity.name().equals(systemType)) {
+                || Type.unity.name().equals(systemType)) {
             policyKey = FASTPOLICY;
         } else if (Type.hds.name().equals(systemType)) {
             policyKey = AUTO_TIERING_POLICY;

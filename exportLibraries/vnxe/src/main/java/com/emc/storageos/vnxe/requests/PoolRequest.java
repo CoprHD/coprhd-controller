@@ -14,7 +14,7 @@ public class PoolRequest extends KHRequests<VNXePool> {
     public PoolRequest(KHClient client, String id) {
         super(client);
         _url = URL + id ;
-	_fields = FIELDS;
+        _fields = FIELDS;
     }
 
     public VNXePool get() {

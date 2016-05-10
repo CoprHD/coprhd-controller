@@ -51,7 +51,7 @@ public class AutoTieringPolicyValidator extends VirtualPoolValidator<BlockVirtua
                             updateParam.getSystemType())
                     && !VirtualPool.SystemType.vnxe.toString().equalsIgnoreCase(
                             updateParam.getSystemType())
-                    && !VirtualPool.SystemType.vnxunity.toString().equalsIgnoreCase(
+                    && !VirtualPool.SystemType.unity.toString().equalsIgnoreCase(
                             updateParam.getSystemType())
                     && !VirtualPool.SystemType.hds.toString().equalsIgnoreCase(
                             updateParam.getSystemType())) {
@@ -90,7 +90,7 @@ public class AutoTieringPolicyValidator extends VirtualPoolValidator<BlockVirtua
                         createParam.getSystemType())
                 && !VirtualPool.SystemType.vnxe.toString().equalsIgnoreCase(
                         createParam.getSystemType())
-                && !VirtualPool.SystemType.vnxunity.toString().equalsIgnoreCase(
+                && !VirtualPool.SystemType.unity.toString().equalsIgnoreCase(
                         createParam.getSystemType())
                 && !VirtualPool.SystemType.hds.toString().equalsIgnoreCase(
                         createParam.getSystemType())) {

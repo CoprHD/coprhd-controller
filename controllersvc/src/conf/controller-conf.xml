@@ -169,7 +169,7 @@
                 <entry key="openstack" value-ref="cinderStorageDevice"/>
                 <entry key="scaleio" value-ref="scaleioStorageDevice"/>
                 <entry key="vnxe" value-ref="vnxeDevice"/>
-                <entry key="vnxunity" value-ref="vnxunityDevice"/>
+                <entry key="unity" value-ref="vnxunityDevice"/>
                 <entry key="xtremio" value-ref="xtremioStorageDevice"/>
                 <entry key="externaldevice" value-ref="externalBlockStorageDevice"/>
             </map>
@@ -844,7 +844,7 @@
                 <entry key="netapp" value-ref="netappFileDevice"/>
                 <entry key="netappc" value-ref="netappcFileDevice"/>
                 <entry key="vnxe" value-ref="vnxeDevice"/>
-				<entry key="vnxunity" value-ref="vnxUnityFileDevice"/>
+				<entry key="unity" value-ref="vnxUnityFileDevice"/>
                 <entry key="datadomain" value-ref="datadomainDevice"/>
             </map>
         </property>
@@ -942,7 +942,7 @@
                 <entry key="openstack" value-ref="cinderStorageDevice"/>
                 <entry key="scaleio" value-ref="scaleioStorageDevice"/>
                 <entry key="vnxe" value-ref="vnxeDevice"/>
-                <entry key="vnxunity" value-ref="vnxunityDevice"/>
+                <entry key="unity" value-ref="vnxunityDevice"/>
                 <entry key="xtremio" value-ref="xtremioStorageDevice"/>
                 <entry key="ibmxiv" value-ref="xivSmisDevice"/>
                 <entry key="externaldevice" value-ref="externalBlockStorageDevice"/>
@@ -958,7 +958,7 @@
                 <entry key="vmax" value-ref="vmaxSmisDevice"/>
                 <entry key="vnxblock" value-ref="vnxSmisDevice"/>
                 <entry key="vnxe" value-ref="vnxeDevice"/>
-                <entry key="vnxunity" value-ref="vnxunityDevice"/>
+                <entry key="unity" value-ref="vnxunityDevice"/>
                 <entry key="ibmxiv" value-ref="xivSmisDevice"/>
             </map>
         </property>
@@ -972,7 +972,7 @@
                 <entry key="vmax" value-ref="vmaxMaskingOrchestrator"/>
                 <entry key="vnxblock" value-ref="vnxMaskingOrchestrator"/>
                 <entry key="vnxe" value-ref="vnxeMaskingOrchestrator"/>
-                <entry key="vnxunity" value-ref="vnxunityMaskingOrchestrator"/>
+                <entry key="unity" value-ref="vnxunityMaskingOrchestrator"/>
                 <entry key="vplex" value-ref="vplexDeviceController"/>
                 <entry key="hds" value-ref="hdsMaskingOrchestrator"/>
                 <entry key="openstack" value-ref="cinderMaskingOrchestrator"/>

@@ -16,14 +16,17 @@
 #{/else}
 </div><br/>
 
+#{if active_name != null}
 <div>
    	<b style="font-size:14px">&{'disasterRecovery.switchover.active'}:</b>
    	<span>${active_name}</span>
 </div><br/>
+#{/if}
 <div>
    	<b style="font-size:14px">&{'disasterRecovery.switchover.standby'}:</b>
    	<span>${standby_name}</span>
-</div><br/><br/>
+</div>
+<br/><br/>
 
 #{if isSwitchover }
 	#{Form.subheader titleKey:"disasterRecovery.switchover.subtitle" /}

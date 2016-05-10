@@ -44,35 +44,37 @@ public class LdapProviderMonitor {
     public void start() {
         ScheduledExecutorService scheduleService = Executors.newScheduledThreadPool(1);
         scheduleService.scheduleAtFixedRate(new LdapMonitorWorker(), 0, MONITOR_INTERVAL_MIN, TimeUnit.MINUTES);
+        log.info("LdapProvider Monitor started.");
     }
 
     private class LdapMonitorWorker implements Runnable {
 
         @Override
         public void run() {
-            while (true) {
-                List<AuthenticationProvider> providers = providerList.getAuthenticationProviders();
-                for (AuthenticationProvider provider : providers) {
-                    if (!(provider.getHandler() instanceof StorageOSLdapAuthenticationHandler)) { // That's for AD or Ldap
-                        continue;
-                    }
-                    StorageOSLdapAuthenticationHandler handler = (StorageOSLdapAuthenticationHandler) provider.getHandler();
-                    LdapServerList ldapServers = handler.getLdapServers();
-                    List<LdapOrADServer> disconnectedServers = ldapServers.getDisconnectedServers();
+            log.info("Ldap Monitor Worker wake up ...");
+            List<AuthenticationProvider> providers = providerList.getAuthenticationProviders();
+            for (AuthenticationProvider provider : providers) {
+                if (!(provider.getHandler() instanceof StorageOSLdapAuthenticationHandler)) { // That's for AD or Ldap
+                    continue;
+                }
+                StorageOSLdapAuthenticationHandler handler = (StorageOSLdapAuthenticationHandler) provider.getHandler();
+                LdapServerList ldapServers = handler.getLdapServers();
+                List<LdapOrADServer> disconnectedServers = ldapServers.getDisconnectedServers();
 
-                    AuthnProvider authnProvider = queryAuthnProviderFromDB(handler.getDomains());
+                AuthnProvider authnProvider = queryAuthnProviderFromDB(handler.getDomains());
 
-                    // Do check.
-                    for (LdapOrADServer server : disconnectedServers) {
-                        log.info("Checking if server {}'s connection get back.");
-                        boolean isGood = checkLdapServerConnectivity(authnProvider, server.getContextSource().getUrls()[0]);
-                        if (isGood) {
-                            ldapServers.markAsConnected(server);
-                            log.info("The AD or ldap server {} came back.");
-                        }
+                // Do check.
+                for (LdapOrADServer server : disconnectedServers) {
+                    log.info("Checking if server {}'s connection get back.");
+                    boolean isGood = checkLdapServerConnectivity(authnProvider, server.getContextSource().getUrls()[0]);
+                    if (isGood) {
+                        ldapServers.markAsConnected(server);
+                        log.info("The AD or ldap server {} came back.");
                     }
                 }
             }
+
+            log.info("Ldap Monitor Worker done a cycle");
         }
     }
 

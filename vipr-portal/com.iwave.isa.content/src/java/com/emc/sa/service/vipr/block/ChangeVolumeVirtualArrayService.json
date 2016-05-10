@@ -23,6 +23,10 @@
     migrationType:{
       type:"assetType.vipr.migrationType"
     }
+
+    migrationHost:{
+      type:"assetType.vipr.linuxHost"
+    }
     
   }
   

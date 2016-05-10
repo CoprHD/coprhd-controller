@@ -29,8 +29,11 @@ public class ChangeVolumeVirtualPoolService extends ViPRService {
     @Param(value = ServiceParams.CONSISTENCY_GROUP, required = false)
     private URI consistencyGroup;
 
-    @Param(ServiceParams.MIGRATION_TYPE)
+    @Param(value = ServiceParams.MIGRATION_TYPE, required = false)
     private String migrationType;
+
+    @Param(value = ServiceParams.HOST, required = false)
+    private URI migrationHost;
 
     @Override
     public void execute() throws Exception {

@@ -77,6 +77,6 @@ public class StorageOSLocalPersonAttributeDao implements StorageOSPersonAttribut
 
     @Override
     public void setFailureHandler(LdapFailureHandler failureHandler) {
-        
+
     }
 }

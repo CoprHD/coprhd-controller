@@ -64,9 +64,11 @@ public class LdapProviderMonitor {
 
                     // Do check.
                     for (LdapOrADServer server : disconnectedServers) {
+                        log.info("Checking if server {}'s connection get back.");
                         boolean isGood = checkLdapServerConnectivity(authnProvider, server.getContextSource().getUrls()[0]);
                         if (isGood) {
                             ldapServers.updateWithConnected(server);
+                            log.info("The AD or ldap server {} came back.");
                         }
                     }
                 }

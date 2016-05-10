@@ -107,10 +107,13 @@ public class StorageOSLdapAuthenticationHandler implements
     }
 
     private boolean doAuthenticationOverSingleServer(LdapOrADServer server, UsernamePasswordCredentials usernamePasswordCredentials) {
+        _log.info("Do authentication to the server {}", server.getContextSource().getUrls()[0]);
+
         String password = usernamePasswordCredentials.getPassword();
 
         List<String> dns = new ArrayList<String>();
         final String filter = LdapFilterUtil.getPersonFilterWithValues(_rawFilter, usernamePasswordCredentials.getUserName());
+        _log.debug("Filter for authentication is {}", filter);
 
         LdapTemplate ldapTemplate = new LdapTemplate(server.getContextSource());
         try {
@@ -156,6 +159,7 @@ public class StorageOSLdapAuthenticationHandler implements
                 } catch (NamingException e) {
                     _log.error("Failed to close test context", e);
                 }
+                _log.info("Authenticate user {} against server {} successfully", usernamePasswordCredentials.getUserName(), server.getContextSource().getUrls()[0]);
                 return true;
             }
         } catch (AuthenticationException e) {

@@ -18,10 +18,8 @@ import com.emc.storageos.svcs.errorhandling.annotations.MessageBundle;
  * This interface holds all the methods used to create an error condition that will be associated
  * with an HTTP status of Bad Request (400)
  * <p/>
- * Remember to add the English message associated to the method in BadRequestExceptions.properties and use the
- * annotation
- * {@link DeclareServiceCode} to set the service code associated to this error condition. You may need to create a new
- * service code if there
+ * Remember to add the English message associated to the method in BadRequestExceptions.properties and use the annotation
+ * {@link DeclareServiceCode} to set the service code associated to this error condition. You may need to create a new service code if there
  * is no an existing one suitable for your error condition.
  * <p/>
  * For more information or to see an example, check the Developers Guide section in the Error Handling Wiki page:
@@ -856,8 +854,9 @@ public interface BadRequestExceptions {
     public BadRequestException failedToLoadKeyFromString(final Throwable e);
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
-    public BadRequestException trustStoreUpdatePartialSuccess(final int nAdd, final int nFailToAdd, final List<Integer> failedParse, final List<Integer> expired,
-                                                              final int nRemove, final int nFailToRemove, final List<Integer> notInTrustStore);
+    public BadRequestException trustStoreUpdatePartialSuccess(final int nAdd, final int nFailToAdd, final List<Integer> failedParse,
+            final List<Integer> expired,
+            final int nRemove, final int nFailToRemove, final List<Integer> notInTrustStore);
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID_URI)
     public BadRequestException invalidSeverityInURI(final String severity, final String severities);
@@ -2350,6 +2349,9 @@ public interface BadRequestExceptions {
 
     @DeclareServiceCode(ServiceCode.API_DUPLICATE_EXPORT_GROUP_NAME_SAME_PROJECT_AND_VARRAY)
     public BadRequestException duplicateExportGroupProjectAndVarray(final String egName);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException duplicateRpBookMarkExport(final String rpCopy, final String cgName);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException incompatibleGeoVersions(final String version, final String feature);

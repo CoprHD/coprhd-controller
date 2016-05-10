@@ -12,12 +12,12 @@ import java.util.Map;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-import com.emc.storageos.services.util.EnvConfig;
 import com.emc.storageos.vnxe.VNXeApiClient;
 import com.emc.storageos.vnxe.VNXeUtils;
 import com.emc.storageos.vnxe.models.BasicSystemInfo;
 import com.emc.storageos.vnxe.models.Snap;
 import com.emc.storageos.vnxe.models.StorageResource;
+import com.emc.storageos.vnxe.models.VNXUnityTreeQuota;
 import com.emc.storageos.vnxe.models.VNXeBase;
 import com.emc.storageos.vnxe.models.VNXeCifsShare;
 import com.emc.storageos.vnxe.models.VNXeCommandJob;
@@ -31,6 +31,7 @@ import com.emc.storageos.vnxe.models.VNXeLicense;
 import com.emc.storageos.vnxe.models.VNXeLun;
 import com.emc.storageos.vnxe.models.VNXePool;
 import com.emc.storageos.vnxe.models.VNXeStorageTier;
+import com.emc.storageos.vnxe.models.aclUserLookupSIDParam;
 
 public class ApiClientTest {
     private static KHClient _client;
@@ -42,11 +43,11 @@ public class ApiClientTest {
 
     @BeforeClass
     public static void setup() throws Exception {
-        
+
         _client = new KHClient(host, port, userName, password, true);
-        
+
         apiClient = new VNXeApiClient(_client);
-        
+
     }
 
     // @Test
@@ -121,7 +122,7 @@ public class ApiClientTest {
         }
     }
 
-     //@Test
+    // @Test
     public void createLun() {
         String name = "vipr-lun1";
         VNXeCommandJob job = apiClient.createLun(name, "pool_1", 2000000000L, true, null);
@@ -233,7 +234,7 @@ public class ApiClientTest {
         apiClient.createLunGroupSnap("res_4", "test-group-snap");
     }
 
-    //@Test
+    // @Test
     public void getFCPort() {
         List<VNXeFCPort> ports = apiClient.getAllFcPorts();
         System.out.println(ports.size());
@@ -256,10 +257,10 @@ public class ApiClientTest {
         apiClient.getStorageSystem();
         apiClient.logout();
         apiClient.getStorageSystem();
-        //apiClient.getNasServers();
+        // apiClient.getNasServers();
     }
 
-    //@Test
+    // @Test
     public void getStorageTier() {
         List<VNXeStorageTier> tiers = apiClient.getStorageTiers();
         for (VNXeStorageTier tier : tiers) {
@@ -267,54 +268,71 @@ public class ApiClientTest {
             System.out.println(VNXeUtils.convertDoubleSizeToViPRLong(tier.getSizeTotal()));
         }
     }
-    
-    //@Test
+
+    // @Test
     public void createConsistencyGroup() {
         VNXeCommandResult result = apiClient.createConsistencyGroup("testGroup1");
         System.out.println(result.getStorageResource().getId());
     }
-    
+
     // @Test
     public void createSnap() {
         VNXeCommandJob job = apiClient.createSnap("res_47", "snap1vipr41812", false);
         System.out.println(job.getId());
     }
-    
-    //@Test
+
+    // @Test
     public void deleteSnap() {
         apiClient.deleteSnap("38654705983");
     }
-    
-    //@Test
+
+    // @Test
     public void getSnapsBygroupId() {
         List<Snap> snaps = apiClient.getSnapshotsBySnapGroup("85899345949");
         for (Snap snap : snaps) {
             System.out.println(snap.getId());
         }
-        
+
     }
 
-    //@Test
+    // @Test
     public void restoreSnap() {
         VNXeCommandJob job = apiClient.restoreSnap("38654706051");
         System.out.println(job.getId());
     }
-    
-    //@Test
+
+    // @Test
     public void getSnap() {
         Snap snap = apiClient.getSnapshot("38654706039");
         System.out.print(snap.getAttachedWWN());
         System.out.print(snap.isAttached());
     }
-    
-    //@Test
+
+    // @Test
     public void getJob() {
         JobRequest req = new JobRequest(_client, "N-612");
         VNXeCommandJob job = req.get();
         System.out.println(job.getMessageOut().getMessage());
     }
-    
-    //@Test
+
+    // @Test
+    public void getQuota() {
+        FileSystemQuotaRequests req = new FileSystemQuotaRequests(_client);
+        List<VNXUnityTreeQuota> list = req.get();
+        System.out.println(list.get(0).getPath());
+    }
+
+    @Test
+    public void createACL() {
+        FileSystemShareACLRequests req = new FileSystemShareACLRequests(_client);
+        aclUserLookupSIDParam param = new aclUserLookupSIDParam();
+        param.setDomainName("provisioning.bourne.local");
+        param.setUserName("vipr_fileteam_rw");
+
+        System.out.println(req.getSIDForUser(param));
+    }
+
+    // @Test
     public void getCG() {
         StorageResourceRequest req = new StorageResourceRequest(_client);
         StorageResource res = req.get("res_1");

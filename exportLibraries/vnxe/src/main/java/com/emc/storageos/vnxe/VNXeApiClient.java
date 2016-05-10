@@ -17,13 +17,16 @@ import java.util.Set;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.emc.storageos.model.file.ShareACL;
 import com.emc.storageos.vnxe.models.AccessEnum;
 import com.emc.storageos.vnxe.models.BasicSystemInfo;
 import com.emc.storageos.vnxe.models.BlockHostAccess;
 import com.emc.storageos.vnxe.models.BlockHostAccess.HostLUNAccessEnum;
+import com.emc.storageos.vnxe.models.CifsShareACE;
 import com.emc.storageos.vnxe.models.CifsShareCreateForSnapParam;
 import com.emc.storageos.vnxe.models.CifsShareCreateParam;
 import com.emc.storageos.vnxe.models.CifsShareDeleteParam;
+import com.emc.storageos.vnxe.models.CifsShareModifyParam;
 import com.emc.storageos.vnxe.models.CifsShareParam;
 import com.emc.storageos.vnxe.models.ConsistencyGroupCreateParam;
 import com.emc.storageos.vnxe.models.CreateFileSystemParam;
@@ -92,6 +95,7 @@ import com.emc.storageos.vnxe.models.VNXePool;
 import com.emc.storageos.vnxe.models.VNXeStorageProcessor;
 import com.emc.storageos.vnxe.models.VNXeStorageSystem;
 import com.emc.storageos.vnxe.models.VNXeStorageTier;
+import com.emc.storageos.vnxe.models.aclUserLookupSIDParam;
 import com.emc.storageos.vnxe.requests.BasicSystemInfoRequest;
 import com.emc.storageos.vnxe.requests.BlockLunRequests;
 import com.emc.storageos.vnxe.requests.CifsServerListRequest;
@@ -109,6 +113,7 @@ import com.emc.storageos.vnxe.requests.FileSystemListRequest;
 import com.emc.storageos.vnxe.requests.FileSystemQuotaConfigRequests;
 import com.emc.storageos.vnxe.requests.FileSystemQuotaRequests;
 import com.emc.storageos.vnxe.requests.FileSystemRequest;
+import com.emc.storageos.vnxe.requests.FileSystemShareACLRequests;
 import com.emc.storageos.vnxe.requests.FileSystemSnapRequests;
 import com.emc.storageos.vnxe.requests.HostInitiatorRequest;
 import com.emc.storageos.vnxe.requests.HostIpPortRequests;
@@ -1546,7 +1551,7 @@ public class VNXeApiClient {
 
         String parentLunId = null;
         VNXeLun parentLun = null;
-        if (!_khClient.isUnity()) { 
+        if (!_khClient.isUnity()) {
             VNXeLunSnap lunSnap = getLunSnapshot(snapId);
             if (lunSnap == null) {
                 _logger.info("Could not find lun snap in the vxne: {}", snapId);
@@ -1556,7 +1561,7 @@ public class VNXeApiClient {
                 _logger.info("Attaching the snap: {}", snapId);
                 attachLunSnap(snapId);
             }
-            
+
             parentLunId = lunSnap.getLun().getId();
         } else {
             Snap snap = getSnapshot(snapId);
@@ -1570,18 +1575,18 @@ public class VNXeApiClient {
             if (snapGroup == null && (!snap.isAttached())) {
                 _logger.info("Attaching the snap: {}", snapId);
                 attachSnap(snapId);
-            } else if (snapGroup != null && (!snap.isAttached())){
+            } else if (snapGroup != null && (!snap.isAttached())) {
                 String groupId = snapGroup.getId();
                 attachSnap(groupId);
             }
         }
-        
+
         VNXeBase host = prepareHostsForExport(initiators);
 
         // Get host access info of the parent lun
 
         parentLun = getLun(parentLunId);
-        
+
         List<BlockHostAccess> hostAccesses = parentLun.getHostAccess();
         boolean snapHostAccessExists = false;
 
@@ -1636,7 +1641,7 @@ public class VNXeApiClient {
                 ConsistencyGroupRequests cgReq = new ConsistencyGroupRequests(_khClient);
                 cgReq.modifyConsistencyGroupSync(parentLun.getStorageResource().getId(), groupParam);
             }
-            
+
         }
         // get hlu
         HostLunRequests hostLunReq = new HostLunRequests(_khClient);
@@ -1657,7 +1662,7 @@ public class VNXeApiClient {
         }
         String parentLunId = null;
         String groupId = null;
-        if (!_khClient.isUnity()) { 
+        if (!_khClient.isUnity()) {
             VNXeLunSnap lunSnap = getLunSnapshot(snapId);
             if (lunSnap == null) {
                 _logger.info("Could not find lun snap in the vxne: {}", snapId);
@@ -1680,7 +1685,7 @@ public class VNXeApiClient {
             if (snapGroup == null && (snap.isAttached())) {
                 _logger.info("Detaching the snap: {}", snapId);
                 detachSnap(snapId);
-            } else if (snapGroup != null && snap.isAttached()){
+            } else if (snapGroup != null && snap.isAttached()) {
                 _logger.info("Detaching the snap: {}", snapId);
                 groupId = snapGroup.getId();
                 detachSnap(groupId);
@@ -2356,11 +2361,12 @@ public class VNXeApiClient {
         FileSystemQuotaConfigRequests req = new FileSystemQuotaConfigRequests(_khClient);
         return req.getFileSystemQuotaConfig(quotaConfigId);
     }
-    
+
     /**
      * Create consistency group for VNX Unity
      * 
-     * @param name consistency group name
+     * @param name
+     *            consistency group name
      * @return VNXeCommmandResult, with the consistency group id.
      */
     public VNXeCommandResult createConsistencyGroup(String name) {
@@ -2375,8 +2381,11 @@ public class VNXeApiClient {
 
     /**
      * Add luns to consistency group
-     * @param cgId consistency group Id
-     * @param luns luns to be added into the consistency group
+     * 
+     * @param cgId
+     *            consistency group Id
+     * @param luns
+     *            luns to be added into the consistency group
      * 
      */
     public VNXeCommandResult addLunsToConsistencyGroup(String cgId, List<String> luns) {
@@ -2397,8 +2406,10 @@ public class VNXeApiClient {
     /**
      * Remove luns from the consistency group
      * 
-     * @param cgId lun group id
-     * @param luns list of lun IDs
+     * @param cgId
+     *            lun group id
+     * @param luns
+     *            list of lun IDs
      * @return
      */
     public VNXeCommandResult removeLunsFromConsistencyGroup(String cgId, List<String> luns) {
@@ -2444,8 +2455,10 @@ public class VNXeApiClient {
      * then delete the Consistency group.
      * 
      * @param cgId
-     * @param isForceSnapDeletion if to delete snaps
-     * @param isForceVolumeDeletion if to delete all volumes in the CG
+     * @param isForceSnapDeletion
+     *            if to delete snaps
+     * @param isForceVolumeDeletion
+     *            if to delete all volumes in the CG
      * @return
      */
     public VNXeCommandResult deleteConsistencyGroup(String cgId,
@@ -2467,7 +2480,7 @@ public class VNXeApiClient {
             return deleteReq.deleteLunGroup(cgId, isForceSnapDeletion);
         }
     }
-    
+
     /**
      * Create multiple volumes in a lun group
      * 
@@ -2515,7 +2528,6 @@ public class VNXeApiClient {
 
     }
 
-
     /**
      * Get all the Tree Quotas
      * 
@@ -2525,12 +2537,14 @@ public class VNXeApiClient {
         FileSystemQuotaRequests req = new FileSystemQuotaRequests(_khClient);
         return req.get();
     }
-    
+
     /**
      * Create snapshot for VNX Unity
      * 
-     * @param resourceID lun or consistency group id
-     * @param name snapshot name
+     * @param resourceID
+     *            lun or consistency group id
+     * @param name
+     *            snapshot name
      * @param isReadOnly
      * @return VNXeCommandJob
      */
@@ -2545,11 +2559,12 @@ public class VNXeApiClient {
         SnapRequests req = new SnapRequests(_khClient);
         return req.createSnap(parm);
     }
-    
+
     /**
      * Delete snapshot
      * 
-     * @param snapId snapshot VNXe Id
+     * @param snapId
+     *            snapshot VNXe Id
      * @return VNXeCommandJob
      */
     public VNXeCommandResult deleteSnap(String snapId) {
@@ -2557,7 +2572,7 @@ public class VNXeApiClient {
         SnapRequests req = new SnapRequests(_khClient);
         return req.deleteSnap(snapId);
     }
-    
+
     /**
      * Get snapshot by its id
      * 
@@ -2571,9 +2586,10 @@ public class VNXeApiClient {
         return req.getSnap(id);
 
     }
-    
+
     /**
      * Get all snapshots related to a snap group Id
+     * 
      * @param snapGroupId
      * @return The list of snapshots belonging to the same snap group Id
      */
@@ -2584,6 +2600,7 @@ public class VNXeApiClient {
 
     /**
      * Restore a snapshot
+     * 
      * @param snapId
      * @return
      */
@@ -2591,15 +2608,16 @@ public class VNXeApiClient {
         SnapRequests req = new SnapRequests(_khClient);
         return req.restoreSnap(snapId, null);
     }
-    
+
     /**
      * If this is VNX Unity client.
+     * 
      * @return
      */
     public boolean isUnityClient() {
         return _khClient.isUnity();
     }
-    
+
     /**
      * Attach the snapshot so hosts can access it.
      * Attaching a snapshot makes the snapshot accessible to configured hosts.
@@ -2609,7 +2627,7 @@ public class VNXeApiClient {
         SnapRequests req = new SnapRequests(_khClient);
         return req.attachSnapSync(snapId);
     }
-    
+
     /**
      * Detach the snapshot so hosts can access it.
      * Attaching a snapshot makes the snapshot accessible to configured hosts.
@@ -2619,9 +2637,110 @@ public class VNXeApiClient {
         SnapRequests req = new SnapRequests(_khClient);
         return req.detachSnapSync(snapId);
     }
-    
+
+    public VNXeCommandJob updateShareACL(String fsId, String shareName, List<ShareACL> aclsToAdd, List<ShareACL> aclsToModify,
+            List<ShareACL> aclsToDelete) {
+        FileSystemRequest fsRequest = new FileSystemRequest(_khClient, fsId);
+        VNXeFileSystem fs = fsRequest.get();
+        if (fs == null) {
+            _logger.info("Could not find file system in the vxne");
+            throw VNXeException.exceptions.vnxeCommandFailed("Could not find file system in the vnxe for: " + fsId);
+        }
+        String resourceId = fs.getStorageResource().getId();
+        List<CifsShareACE> acesToAdd = new ArrayList<CifsShareACE>();
+        List<String> acesToDelete = new ArrayList<String>();
+        for (ShareACL acl : aclsToAdd) {
+            CifsShareACE newAce = new CifsShareACE();
+            newAce.setSid(getSIDForUser(acl.getUser(), acl.getDomain()));
+            newAce.setAccessLevel(getAccessEnum(acl.getPermission()));
+            newAce.setAccessType(1);
+            acesToAdd.add(newAce);
+        }
+        for (ShareACL acl : aclsToModify) {
+            CifsShareACE modifyAce = new CifsShareACE();
+            modifyAce.setSid(getSIDForUser(acl.getUser(), acl.getDomain()));
+            modifyAce.setAccessLevel(getAccessEnum(acl.getPermission()));
+            modifyAce.setAccessType(1);
+            acesToAdd.add(modifyAce);
+        }
+        for (ShareACL acl : aclsToDelete) {
+            acesToDelete.add(getSIDForUser(acl.getUser(), acl.getDomain()));
+        }
+        ModifyFileSystemParam param = new ModifyFileSystemParam();
+        CifsShareModifyParam cifsShareModify = new CifsShareModifyParam();
+        CifsShareParam cifsShareParameters = new CifsShareParam();
+        cifsShareParameters.setIsACEEnabled(true);
+        cifsShareParameters.setAddACE(acesToAdd);
+        cifsShareParameters.setRemoveSID(acesToDelete);
+        List<CifsShareModifyParam> modifyParam = new ArrayList<CifsShareModifyParam>();
+        modifyParam.add(cifsShareModify);
+        cifsShareModify.setCifsShareParameters(cifsShareParameters);
+        param.setCifsShareModify(modifyParam);
+        FileSystemActionRequest req = new FileSystemActionRequest(_khClient);
+        return req.modifyFileSystemAsync(param, resourceId);
+    }
+
+    public VNXeCommandJob deleteShareACL(String fsId, String shareId) {
+        FileSystemRequest fsRequest = new FileSystemRequest(_khClient, fsId);
+        VNXeFileSystem fs = fsRequest.get();
+        if (fs == null) {
+            _logger.info("Could not find file system in the vxne");
+            throw VNXeException.exceptions.vnxeCommandFailed("Could not find file system in the vnxe for: " + fsId);
+        }
+        String resourceId = fs.getStorageResource().getId();
+        FileSystemShareACLRequests aclReq = new FileSystemShareACLRequests(_khClient);
+        List<CifsShareACE> ACEs = aclReq.get(shareId);
+        List<String> acesToDelete = new ArrayList<String>();
+        for (CifsShareACE ace : ACEs) {
+            acesToDelete.add(ace.getSid());
+        }
+        ModifyFileSystemParam param = new ModifyFileSystemParam();
+        CifsShareModifyParam cifsShareModify = new CifsShareModifyParam();
+        CifsShareParam cifsShareParameters = new CifsShareParam();
+        cifsShareParameters.setIsACEEnabled(false);
+        cifsShareParameters.setRemoveSID(acesToDelete);
+        List<CifsShareModifyParam> modifyParam = new ArrayList<CifsShareModifyParam>();
+        modifyParam.add(cifsShareModify);
+        cifsShareModify.setCifsShareParameters(cifsShareParameters);
+        param.setCifsShareModify(modifyParam);
+        FileSystemActionRequest req = new FileSystemActionRequest(_khClient);
+        return req.modifyFileSystemAsync(param, resourceId);
+    }
+
+    public String getSIDForUser(String userName, String domainName) {
+        FileSystemShareACLRequests req = new FileSystemShareACLRequests(_khClient);
+        aclUserLookupSIDParam param = new aclUserLookupSIDParam();
+        if (domainName != null) {
+            param.setDomainName(domainName);
+        }
+        param.setUserName(userName);
+        return req.getSIDForUser(param);
+    }
+
+    private int getAccessEnum(String permission) throws VNXeException {
+        int access = 0;
+        if (permission != null) {
+            switch (permission.toLowerCase()) {
+                case "read":
+                    access = 1;
+                    break;
+
+                case "change":
+                    access = 2;
+                    break;
+                case "fullcontrol":
+                    access = 4;
+                    break;
+                default:
+                    throw new IllegalArgumentException(permission + " is not a valid permission for Cifs Share");
+            }
+        }
+        return access;
+    }
+
     /**
      * Get detatils of a storage resource. (Consistency group is a storage resource)
+     * 
      * @param id
      * @return
      */
@@ -2629,16 +2748,18 @@ public class VNXeApiClient {
         StorageResourceRequest req = new StorageResourceRequest(_khClient);
         return req.get(id);
     }
-    
+
     /**
      * Get details of a host initiator
-     * @param initId initiator id
+     * 
+     * @param initId
+     *            initiator id
      * @return VNXeHostInitiator
      */
     public VNXeHostInitiator getHostInitiator(String initId) {
         HostInitiatorRequest req = new HostInitiatorRequest(_khClient);
         return req.get(initId);
-        
+
     }
     
     /**

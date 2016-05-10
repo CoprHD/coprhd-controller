@@ -14,7 +14,6 @@ public class LdapOrADServer {
 
     private LdapContextSource contextSource;
     private boolean isGood;
-    private long badDuration;
 
     public LdapContextSource getContextSource() {
         return contextSource;
@@ -32,11 +31,12 @@ public class LdapOrADServer {
         this.isGood = isGood;
     }
 
-    public long getBadDuration() {
-        return badDuration;
-    }
-
-    public void setBadDuration(long badDuration) {
-        this.badDuration = badDuration;
+    @Override
+    public String toString() {
+        StringBuilder sb = new StringBuilder();
+        sb.append("IP: " + contextSource.getUrls());
+        sb.append(", ");
+        sb.append("State: " + isGood);
+        return sb.toString();
     }
 }

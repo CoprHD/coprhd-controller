@@ -4,10 +4,15 @@
  */
 package com.emc.storageos.auth.impl;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.util.ArrayList;
 import java.util.List;
 
 public class LdapServerList {
+    private static Logger log = LoggerFactory.getLogger(LdapServerList.class);
+
     ArrayList<LdapOrADServer> connectedServers = new ArrayList<>();
     ArrayList<LdapOrADServer> disConnectedServers = new ArrayList<>();
 
@@ -23,13 +28,17 @@ public class LdapServerList {
         connectedServers.add(server);
     }
 
-    public void updateWithConnected(LdapOrADServer server) {
+    public void markAsConnected(LdapOrADServer server) {
         connectedServers.remove(server);
         disConnectedServers.add(server);
+        log.info("Change back to connected ldap server {}. Now all connected servers are {}",
+                server, connectedServers);
     }
 
-    public void updateWithDisConnected(LdapOrADServer server) {
-        connectedServers.add(server);
-        disConnectedServers.remove(server);
+    public void markAsDisConnected(LdapOrADServer server) {
+        disConnectedServers.add(server);
+        connectedServers.remove(server);
+        log.info("Add one disconnected ldap server {} and All disconnected servers are {}",
+                server, disConnectedServers);
     }
 }

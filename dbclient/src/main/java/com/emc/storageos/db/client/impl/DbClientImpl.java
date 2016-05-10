@@ -253,6 +253,7 @@ public class DbClientImpl implements DbClient {
         if (_encryptionProvider != null) {
             _encryptionProvider.start();
         }
+
         if (_geoEncryptionProvider != null) {
             _geoEncryptionProvider.start();
         }

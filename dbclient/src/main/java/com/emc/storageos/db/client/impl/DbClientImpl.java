@@ -623,7 +623,7 @@ public class DbClientImpl implements DbClient {
         Session cassandraSession = getSession(clazz);
         Map<URI, T> objectMap = new HashMap<URI, T>();
         for (ColumnField columnField : columnFields) {
-            List<CassandraRows> result = queryRowsWithColumns(cassandraSession, ids, doType.getCF().getName(), Arrays.asList(new ColumnField[]{columnField}));
+            List<CassandraRows> result = queryRowsWithAColumn(cassandraSession, ids, doType.getCF().getName(), columnField);
             
             Iterator<CassandraRows> it = result.iterator();
             
@@ -676,7 +676,6 @@ public class DbClientImpl implements DbClient {
         }
 
         String[] fields = aggregator.getAggregatedFields();
-        ColumnField[] columns = new ColumnField[fields.length];
         for (int ii = 0; ii < fields.length; ii++) {
             ColumnField columnField = doType.getColumnField(fields[ii]);
             if (columnField == null) {
@@ -697,15 +696,15 @@ public class DbClientImpl implements DbClient {
                 idList.add(ids.next());
             }
 
-            aggregateObjectFieldBatch(aggregator, idList, doType, Arrays.asList(columns));
+            aggregateObjectFieldBatch(aggregator, idList, doType);
         }
     }
 
     private void aggregateObjectFieldBatch(
-            DbAggregatorItf aggregator, Collection<URI> strIds, DataObjectType doType, List<ColumnField> columns) {
+            DbAggregatorItf aggregator, Collection<URI> strIds, DataObjectType doType) {
         List<CassandraRows> result;
         
-        result = this.queryRowsWithColumns(this.getSession(doType.getDataObjectClass()), strIds, doType.getCF().getName(), columns);
+        result = this.queryRowsWithAllColumns(this.getSession(doType.getDataObjectClass()), strIds, doType.getCF().getName());
         
         /* TODO catch exeption and throw to upper layer*/
         Iterator<CassandraRows> it = result.iterator();
@@ -1543,10 +1542,10 @@ public class DbClientImpl implements DbClient {
      * @return matching rows
      * @throws DatabaseException
      */
-    protected List<CassandraRows> queryRowsWithColumns(Session cassandraSession, Collection<URI> ids, String tableName, List<ColumnField> columns) {
-        Statement statement = new SimpleStatement(String.format("Select * from \"%s\" where column1 in '%s' and key in %s ALLOW FILTERING",
+    protected List<CassandraRows> queryRowsWithAColumn(Session cassandraSession, Collection<URI> ids, String tableName, ColumnField column) {
+        Statement statement = new SimpleStatement(String.format("Select * from \"%s\" where column1='%s' and key in %s ALLOW FILTERING",
                 tableName,
-                columnField2String(columns), uriList2String(ids)));
+                column.getName(), uriList2String(ids)));
 
         ResultSet resultSet = cassandraSession.execute(statement);
 

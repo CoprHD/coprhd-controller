@@ -31,7 +31,7 @@ public class ChangeBlockVolumeVirtualPool extends WaitForTasks<VolumeRestRep> {
         provideDetailArgs(volumeId, targetVirtualPoolId, consistencyGroup, migrationType, migrationHost);
     }
 
-    public ChangeBlockVolumeVirtualPool(List<URI> volumeIds, URI targetVirtualPoolId, URI consistencyGroup
+    public ChangeBlockVolumeVirtualPool(List<URI> volumeIds, URI targetVirtualPoolId, URI consistencyGroup,
             String migrationType, URI migrationHost) {
         this.volumeIds = volumeIds;
         this.targetVirtualPoolId = targetVirtualPoolId;

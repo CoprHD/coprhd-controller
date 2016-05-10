@@ -32,6 +32,7 @@ import com.emc.storageos.model.dr.SiteIdListParam;
 import com.emc.storageos.model.dr.SiteUpdateParam;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.vipr.client.exceptions.ServiceErrorException;
+import com.emc.vipr.model.sys.ClusterInfo;
 import com.emc.storageos.coordinator.client.model.SiteState;
 import com.emc.storageos.model.dr.SiteActive;
 import com.emc.storageos.model.dr.SiteRestRep;
@@ -60,6 +61,7 @@ public class DisasterRecovery extends ViprResourceController {
     protected static final String DELETED_ERROR = "disasterRecovery.delete.error";
     protected static final String UNKNOWN = "disasterRecovery.unknown";
     protected static final String UPDATE_SUCCESS = "disasterRecovery.update.success";
+    protected static final String ADD_WARNING = "disasterRecovery.add.unstable.warning";
     private static final List<SiteState> activeStates =
             Arrays.asList(SiteState.ACTIVE, SiteState.ACTIVE_DEGRADED,SiteState.ACTIVE_FAILING_OVER, SiteState.ACTIVE_SWITCHING_OVER);
 
@@ -204,7 +206,7 @@ public class DisasterRecovery extends ViprResourceController {
 
     public static void listJson() {
         List<DisasterRecoveryDataTable.StandByInfo> disasterRecoveries = Lists.newArrayList();
-        for (SiteRestRep siteConfig : DisasterRecoveryUtils.getSiteDetails()) {
+        for (SiteRestRep siteConfig : DisasterRecoveryUtils.getSites()) {
             disasterRecoveries.add(new StandByInfo(siteConfig));
         }
         renderJSON(DataTablesSupport.createJSON(disasterRecoveries, params));
@@ -212,6 +214,17 @@ public class DisasterRecovery extends ViprResourceController {
 
     @Restrictions({ @Restrict("SECURITY_ADMIN"), @Restrict("RESTRICTED_SECURITY_ADMIN") })
     public static void create() {
+        for (SiteRestRep site : DisasterRecoveryUtils.getSites()) {
+            if (SiteState.STANDBY_PAUSED.toString().equals(site.getState())) {
+                continue;
+            }
+            SiteDetailRestRep detail = DisasterRecoveryUtils.getSiteDetails(site.getUuid());
+            if (!ClusterInfo.ClusterState.STABLE.toString().equals(detail.getClusterState())) {
+                flash.error(MessagesUtils.get(ADD_WARNING, site.getName()));
+                list();
+            }
+        }
+
         DisasterRecoveryForm site = new DisasterRecoveryForm();
         edit(site);
     }

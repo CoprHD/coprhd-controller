@@ -52,30 +52,34 @@ public class LdapProviderMonitor {
         @Override
         public void run() {
             log.info("Ldap Monitor Worker wake up ...");
-            List<AuthenticationProvider> providers = providerList.getAuthenticationProviders();
-            log.info("Ldap Monitor Worker got provider list. Size is {}", providers.size());
-            for (AuthenticationProvider provider : providers) {
-                if (!(provider.getHandler() instanceof StorageOSLdapAuthenticationHandler)) { // That's for AD or Ldap
-                    log.info("Found a provider but is not ldap mode. Skipping ...");
-                    continue;
-                }
-                log.info("Found a provider which is ldap mode.");
-                StorageOSLdapAuthenticationHandler handler = (StorageOSLdapAuthenticationHandler) provider.getHandler();
-                LdapServerList ldapServers = handler.getLdapServers();
-                List<LdapOrADServer> disconnectedServers = ldapServers.getDisconnectedServers();
-                log.info("Disconnected servers is {}", disconnectedServers);
+            try {
+                List<AuthenticationProvider> providers = providerList.getAuthenticationProviders();
+                log.info("Ldap Monitor Worker got provider list. Size is {}", providers.size());
+                for (AuthenticationProvider provider : providers) {
+                    if (!(provider.getHandler() instanceof StorageOSLdapAuthenticationHandler)) { // That's for AD or Ldap
+                        log.info("Found a provider but is not ldap mode. Skipping ...");
+                        continue;
+                    }
+                    log.info("Found a provider which is ldap mode.");
+                    StorageOSLdapAuthenticationHandler handler = (StorageOSLdapAuthenticationHandler) provider.getHandler();
+                    LdapServerList ldapServers = handler.getLdapServers();
+                    List<LdapOrADServer> disconnectedServers = ldapServers.getDisconnectedServers();
+                    log.info("Disconnected servers is {}", disconnectedServers);
 
-                AuthnProvider authnProvider = queryAuthnProviderFromDB(handler.getDomains());
+                    AuthnProvider authnProvider = queryAuthnProviderFromDB(handler.getDomains());
 
-                // Do check.
-                for (LdapOrADServer server : disconnectedServers) {
-                    log.info("Checking if server {}'s connection get back.");
-                    boolean isGood = checkLdapServerConnectivity(authnProvider, server.getContextSource().getUrls()[0]);
-                    if (isGood) {
-                        ldapServers.markAsConnected(server);
-                        log.info("The AD or ldap server {} came back.");
+                    // Do check.
+                    for (LdapOrADServer server : disconnectedServers) {
+                        log.info("Checking if server {}'s connection get back.");
+                        boolean isGood = checkLdapServerConnectivity(authnProvider, server.getContextSource().getUrls()[0]);
+                        if (isGood) {
+                            ldapServers.markAsConnected(server);
+                            log.info("The AD or ldap server {} came back.");
+                        }
                     }
                 }
+            } catch (Exception e) {
+                log.warn("Error to check ldap status. {}", e);
             }
 
             log.info("Ldap Monitor Worker done a cycle");

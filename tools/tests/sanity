@@ -9514,13 +9514,18 @@ snapvx_single_tests()
     secho "Relinking target to SnapVx session 2"
     snapshotsession relink_target $PROJECT/$VOLUME_NAME/$SNAP_SESSION_NAME2 $PROJECT/$VOLUME_NAME/$SNAP_SESSION_TGT_NAME1-1
 
+    # Delete the snapvx sessions.
+    secho "Deleting SnapVx session 1"
+    snapshotsession delete $PROJECT/$VOLUME_NAME/$SNAP_SESSION_NAME1
+
+    # delete the targetless session first before unlinking (OPT 498174)
+
     # Unlink target from the snapvx session and delete target volume.
     secho "unlinking target from SnapVx session 2"
     snapshotsession unlink_target $PROJECT/$VOLUME_NAME/$SNAP_SESSION_NAME2 $PROJECT/$VOLUME_NAME/$SNAP_SESSION_TGT_NAME1-1 --delete_target true
 
     # Delete the snapvx sessions.
-    secho "Deleting SnapVx sessions 1 and 2"
-    snapshotsession delete $PROJECT/$VOLUME_NAME/$SNAP_SESSION_NAME1
+    secho "Deleting SnapVx session 2"
     snapshotsession delete $PROJECT/$VOLUME_NAME/$SNAP_SESSION_NAME2
 
     # Create a snapvx session with multiple linked targets in copy mode

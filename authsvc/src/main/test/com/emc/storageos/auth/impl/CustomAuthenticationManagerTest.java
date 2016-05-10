@@ -14,6 +14,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
+import com.emc.storageos.auth.LdapFailureHandler;
 import com.emc.storageos.services.util.EnvConfig;
 import org.junit.*;
 import org.apache.commons.httpclient.Credentials;
@@ -1141,6 +1142,11 @@ public class CustomAuthenticationManagerTest extends DbsvcGeoTestBase {
             return false;
         }
 
+        @Override
+        public void setFailureHandler(LdapFailureHandler failureHandler) {
+
+        }
+
     }
 
     private class TestStorageOSPersonAttributeDao implements StorageOSPersonAttributeDao {
@@ -1178,6 +1184,11 @@ public class CustomAuthenticationManagerTest extends DbsvcGeoTestBase {
         @Override
         public Map<URI, UserMapping> peekUserTenants(String username, URI uri, List<UserMapping> userMappings) {
             return null;
+        }
+
+        @Override
+        public void setFailureHandler(LdapFailureHandler failureHandler) {
+            
         }
 
     }

@@ -112,7 +112,7 @@ public class ObjectVirtualPoolService extends VirtualPoolService {
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     public VirtualPoolList listObjectVirtualPool(@DefaultValue("") @QueryParam(VDC_ID_QUERY_PARAM) String shortVdcId) {
         _geoHelper.verifyVdcId(shortVdcId);
-        return getVirtualPoolList(VirtualPool.Type.object, shortVdcId);
+        return getVirtualPoolList(VirtualPool.Type.object, shortVdcId, null);
     }
 
     /**

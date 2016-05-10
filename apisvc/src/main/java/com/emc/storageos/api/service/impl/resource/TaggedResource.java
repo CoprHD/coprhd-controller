@@ -14,8 +14,11 @@ import java.util.Map;
 
 import javax.ws.rs.*;
 import javax.ws.rs.core.MediaType;
+
+import com.emc.storageos.db.client.model.TenantOrg;
 import com.emc.storageos.model.*;
 import com.emc.storageos.security.authorization.ExcludeLicenseCheck;
+import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -144,6 +147,25 @@ public abstract class TaggedResource extends ResourceService {
         } else {
             return tenantOwner.toString();
         }
+    }
+
+
+    /**
+     * Get tenant object from id
+     *
+     * @param tenantId the URN of a ViPR tenant
+     * @return
+     */
+    protected TenantOrg getTenantById(String tenantId) {
+        TenantOrg org = null;
+
+        if (!StringUtils.isEmpty(tenantId)) {
+            URI tenantUri = URI.create(tenantId);
+            org = _permissionsHelper.getObjectById(tenantUri, TenantOrg.class);
+            ArgValidator.checkEntity(org, tenantUri, isIdEmbeddedInURL(tenantUri), true);
+        }
+
+        return org;
     }
 
     /**

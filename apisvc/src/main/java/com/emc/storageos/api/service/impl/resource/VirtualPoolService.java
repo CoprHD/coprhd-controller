@@ -33,6 +33,7 @@ import java.util.Map;
 
 import javax.ws.rs.core.Response;
 
+import com.emc.storageos.db.client.model.*;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -52,21 +53,8 @@ import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
-import com.emc.storageos.db.client.model.Bucket;
-import com.emc.storageos.db.client.model.FileShare;
-import com.emc.storageos.db.client.model.QosSpecification;
-import com.emc.storageos.db.client.model.QuotaOfCinder;
-import com.emc.storageos.db.client.model.StoragePool;
-import com.emc.storageos.db.client.model.StringMap;
-import com.emc.storageos.db.client.model.StringSet;
-import com.emc.storageos.db.client.model.StringSetMap;
-import com.emc.storageos.db.client.model.VirtualArray;
-import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.VirtualPool.ProvisioningType;
 import com.emc.storageos.db.client.model.VirtualPool.Type;
-import com.emc.storageos.db.client.model.Volume;
-import com.emc.storageos.db.client.model.VpoolProtectionVarraySettings;
-import com.emc.storageos.db.client.model.VpoolRemoteCopyProtectionSettings;
 import com.emc.storageos.db.common.VdcUtil;
 import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.model.BulkIdParam;
@@ -716,7 +704,9 @@ public abstract class VirtualPoolService extends TaggedResource {
         }
     }
 
-    protected VirtualPoolList getVirtualPoolList(VirtualPool.Type type, String shortVdcId) {
+    protected VirtualPoolList getVirtualPoolList(VirtualPool.Type type, String shortVdcId, String tenantId) {
+
+        TenantOrg tenant_input = getTenantById(tenantId);
 
         URIQueryResultList vpoolList = new URIQueryResultList();
         VirtualPoolList list = new VirtualPoolList();
@@ -757,18 +747,36 @@ public abstract class VirtualPoolService extends TaggedResource {
             }
         }
 
-        URI tenant = URI.create(user.getTenantId());
-        List<URI> subtenants = _permissionsHelper.getSubtenantsWithRoles(user);
-        for (VirtualPool vpool : vpoolObjects) {
-            if (!_permissionsHelper.userHasGivenRole(user, null, Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR)) {
-                // filter by only authorized to us
-                if (_permissionsHelper.tenantHasUsageACL(tenant, vpool) ||
-                        _permissionsHelper.tenantHasUsageACL(subtenants, vpool)) {
-                    // this is an allowed VirtualPool, add it to the list
-                    list.getVirtualPool().add(toVirtualPoolResource(vpool));
-                }
+        // full list if role is {Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR}
+        if (_permissionsHelper.userHasGivenRole(user,
+                null, Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR)) {
+            for (VirtualPool virtualPool : vpoolObjects) {
+                list.getVirtualPool().add(toVirtualPoolResource(virtualPool));
+            }
+        } else {
+            // otherwise, filter by only authorized to use
+            URI tenant = null;
+            if (tenant_input == null) {
+                tenant = URI.create(user.getTenantId());
             } else {
-                list.getVirtualPool().add(toVirtualPoolResource(vpool));
+                tenant = tenant_input.getId();
+            }
+
+            for (VirtualPool virtualPool : vpoolObjects) {
+                if (_permissionsHelper.tenantHasUsageACL(tenant, virtualPool)) {
+                    list.getVirtualPool().add(toVirtualPoolResource(virtualPool));
+
+                }
+            }
+
+            // if no tenant specified in request, also adding vpools which sub-tenants of the user have access to.
+            if (tenant_input == null) {
+                List<URI> subtenants = _permissionsHelper.getSubtenantsWithRoles(user);
+                for (VirtualPool virtualPool : vpoolObjects) {
+                    if (_permissionsHelper.tenantHasUsageACL(subtenants, virtualPool)) {
+                        list.getVirtualPool().add(toVirtualPoolResource(virtualPool));
+                    }
+                }
             }
         }
 

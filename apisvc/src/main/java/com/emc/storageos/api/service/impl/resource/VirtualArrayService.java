@@ -34,6 +34,8 @@ import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
+import com.emc.storageos.db.client.model.*;
+import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -50,28 +52,9 @@ import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.NamedElementQueryResultList;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
-import com.emc.storageos.db.client.model.AutoTieringPolicy;
-import com.emc.storageos.db.client.model.Cluster;
-import com.emc.storageos.db.client.model.ComputeFabricUplinkPort;
-import com.emc.storageos.db.client.model.ComputeFabricUplinkPortChannel;
-import com.emc.storageos.db.client.model.ComputeSystem;
-import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.CompatibilityStatus;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.DiscoveryStatus;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.RegistrationStatus;
-import com.emc.storageos.db.client.model.DiscoveredSystemObject;
-import com.emc.storageos.db.client.model.FCEndpoint;
-import com.emc.storageos.db.client.model.Host;
-import com.emc.storageos.db.client.model.Initiator;
-import com.emc.storageos.db.client.model.Network;
-import com.emc.storageos.db.client.model.NetworkSystem;
-import com.emc.storageos.db.client.model.StoragePool;
-import com.emc.storageos.db.client.model.StoragePort;
-import com.emc.storageos.db.client.model.StorageProtocol;
-import com.emc.storageos.db.client.model.StorageSystem;
-import com.emc.storageos.db.client.model.StringSet;
-import com.emc.storageos.db.client.model.VirtualArray;
-import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.EndpointUtility;
 import com.emc.storageos.db.common.VdcUtil;
@@ -168,8 +151,13 @@ public class VirtualArrayService extends TaggedResource {
      */
     @GET
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    public VirtualArrayList getVirtualArrayList(@DefaultValue("") @QueryParam(VDC_ID_QUERY_PARAM) String shortVdcId) {
+    public VirtualArrayList getVirtualArrayList(
+            @DefaultValue("") @QueryParam(VDC_ID_QUERY_PARAM) String shortVdcId,
+            @DefaultValue("") @QueryParam(TENANT_ID_QUERY_PARAM) String tenantId ) {
         _geoHelper.verifyVdcId(shortVdcId);
+
+        TenantOrg tenant_input = getTenantById(tenantId);
+
         VirtualArrayList list = new VirtualArrayList();
         List<VirtualArray> nhObjList = Collections.emptyList();
         if (_geoHelper.isLocalVdcId(shortVdcId)) {
@@ -199,13 +187,29 @@ public class VirtualArrayService extends TaggedResource {
             }
         } else {
             // otherwise, filter by only authorized to use
-            URI tenant = URI.create(user.getTenantId());
-            List<URI> subtenants = _permissionsHelper.getSubtenantsWithRoles(user);
-            for (VirtualArray nh : nhObjList) {
-                if (_permissionsHelper.tenantHasUsageACL(tenant, nh) ||
-                        _permissionsHelper.tenantHasUsageACL(subtenants, nh)) {
+            URI tenant = null;
+            if (tenant_input == null) {
+                tenant = URI.create(user.getTenantId());
+            } else {
+                tenant = tenant_input.getId();
+            }
+
+            for (VirtualArray virtualArray : nhObjList) {
+                if (_permissionsHelper.tenantHasUsageACL(tenant, virtualArray)) {
                     list.getVirtualArrays().add(toNamedRelatedResource(ResourceTypeEnum.VARRAY,
-                            nh.getId(), nh.getLabel()));
+                            virtualArray.getId(), virtualArray.getLabel()));
+
+                }
+            }
+
+            // if no tenant specified in request, also adding varrays which sub-tenants of the user have access to.
+            if (tenant_input == null) {
+                List<URI> subtenants = _permissionsHelper.getSubtenantsWithRoles(user);
+                for (VirtualArray virtualArray : nhObjList) {
+                    if (_permissionsHelper.tenantHasUsageACL(subtenants, virtualArray)) {
+                        list.getVirtualArrays().add(toNamedRelatedResource(ResourceTypeEnum.VARRAY,
+                                virtualArray.getId(), virtualArray.getLabel()));
+                    }
                 }
             }
         }

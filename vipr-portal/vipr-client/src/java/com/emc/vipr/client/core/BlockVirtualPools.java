@@ -107,6 +107,29 @@ public class BlockVirtualPools extends AbstractCoreBulkResources<BlockVirtualPoo
     }
 
     /**
+     * Lists all virtual pools of specific tenant
+     * <p>
+     * API Call: <tt>GET /block/vpools</tt>
+     *
+     * @return the list of virtual pool references of specific tenant
+     */
+    public List<NamedRelatedVirtualPoolRep> listByTenant(URI tenantId) {
+        UriBuilder builder = client.uriBuilder(baseUrl);
+        builder.queryParam(SearchConstants.TENANT_ID_PARAM, tenantId);
+        VirtualPoolList response = client.getURI(VirtualPoolList.class, builder.build());
+        return ResourceUtils.defaultList(response.getVirtualPool());
+    }
+
+    public List<BlockVirtualPoolRestRep> getByTenant(URI tenantId) {
+        return getByTenant(tenantId, null);
+    }
+
+    public List<BlockVirtualPoolRestRep> getByTenant(URI tenantId, ResourceFilter<BlockVirtualPoolRestRep> filter) {
+        List<NamedRelatedVirtualPoolRep> refs = listByTenant(tenantId);
+        return getByRefs(refs, filter);
+    }
+
+    /**
      * Gets all block virtual pools.
      * 
      * @return the list of block virtual pools.

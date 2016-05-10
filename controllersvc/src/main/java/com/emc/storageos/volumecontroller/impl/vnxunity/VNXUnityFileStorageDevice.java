@@ -33,11 +33,13 @@ import com.emc.storageos.db.client.util.NameGenerator;
 import com.emc.storageos.exceptions.DeviceControllerErrors;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.model.file.ExportRule;
+import com.emc.storageos.model.file.ShareACL;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
 import com.emc.storageos.vnxe.VNXeApiClient;
 import com.emc.storageos.vnxe.VNXeException;
 import com.emc.storageos.vnxe.VNXeUtils;
 import com.emc.storageos.vnxe.models.AccessEnum;
+import com.emc.storageos.vnxe.models.VNXeCifsShare;
 import com.emc.storageos.vnxe.models.VNXeCommandJob;
 import com.emc.storageos.vnxe.models.VNXeFSSupportedProtocolEnum;
 import com.emc.storageos.vnxe.models.VNXeFileSystem;
@@ -267,7 +269,7 @@ public class VNXUnityFileStorageDevice extends VNXUnityOperations
     }
 
     @Override
- public BiosCommandResult doExport(StorageSystem storage,
+    public BiosCommandResult doExport(StorageSystem storage,
             FileDeviceInputOutput args, List<FileExport> exportList)
                     throws ControllerException {
 
@@ -276,7 +278,7 @@ public class VNXUnityFileStorageDevice extends VNXUnityOperations
             args.initFileObjExports();
 
         }
-        
+
         for (FileExport exp : exportList) {
             VNXeApiClient apiClient = getVnxUnityClient(storage);
             String fsId = args.getFs().getNativeId();
@@ -325,7 +327,7 @@ public class VNXUnityFileStorageDevice extends VNXUnityOperations
                     } else if (permission.equalsIgnoreCase(FileShareExport.Permissions.root.name())) {
                         access = AccessEnum.ROOT;
                         if (existingExport.getClients() != null && !existingExport.getClients().isEmpty()) {
-                        	if (rootClients == null) {
+                            if (rootClients == null) {
                                 rootClients = new ArrayList<String>();
                             }
                             rootClients.addAll(existingExport.getClients());
@@ -342,7 +344,7 @@ public class VNXUnityFileStorageDevice extends VNXUnityOperations
                         rwClients.addAll(exp.getClients());
                     }
                 } else if (permission.equalsIgnoreCase(FileShareExport.Permissions.ro.name())) {
-                	access = AccessEnum.READ;
+                    access = AccessEnum.READ;
                     if (exp.getClients() != null && !exp.getClients().isEmpty()) {
                         if (roClients == null) {
                             roClients = new ArrayList<String>();
@@ -350,7 +352,7 @@ public class VNXUnityFileStorageDevice extends VNXUnityOperations
                         roClients.addAll(exp.getClients());
                     }
                 } else if (permission.equalsIgnoreCase(FileShareExport.Permissions.root.name())) {
-                	access = AccessEnum.ROOT;
+                    access = AccessEnum.ROOT;
                     if (exp.getClients() != null && !exp.getClients().isEmpty()) {
                         if (rootClients == null) {
                             rootClients = new ArrayList<String>();
@@ -369,7 +371,7 @@ public class VNXUnityFileStorageDevice extends VNXUnityOperations
                     }
 
                     String shareName = VNXeUtils.buildNfsShareName(fsId, subdirName);
-                    
+
                     job = apiClient.exportFileSystem(fsId, roClients, rwClients, rootClients, access, path, shareName, null, comments);
                     if (job != null) {
                         completer = new VNXeFileTaskCompleter(FileShare.class, args.getFsId(), args.getOpId());
@@ -419,6 +421,7 @@ public class VNXUnityFileStorageDevice extends VNXUnityOperations
         return BiosCommandResult.createPendingResult();
 
     }
+
     @Override
     public BiosCommandResult doShare(StorageSystem storage,
             FileDeviceInputOutput args, SMBFileShare smbFileShare) throws ControllerException {
@@ -801,7 +804,7 @@ public class VNXUnityFileStorageDevice extends VNXUnityOperations
             }
             return BiosCommandResult.createErrorResult(error);
         }
-	StringBuilder logMsgBuilder = new StringBuilder(String.format(
+        StringBuilder logMsgBuilder = new StringBuilder(String.format(
                 "Delete filesystem snapshot job submitted - Array:%s, fileSystem: %s, snapshot: %s", storage.getSerialNumber(),
                 args.getFsName(), args.getSnapshotName()));
         _logger.info(logMsgBuilder.toString());
@@ -1580,8 +1583,8 @@ public class VNXUnityFileStorageDevice extends VNXUnityOperations
     }
 
     @Override
-    public BiosCommandResult doUpdateQuotaDirectory(StorageSystem storage,
-            FileDeviceInputOutput args, QuotaDirectory qd) throws ControllerException {
+    public BiosCommandResult doUpdateQuotaDirectory(StorageSystem storage, FileDeviceInputOutput args, QuotaDirectory qd)
+            throws ControllerException {
         _logger.info("updating Quota Directory: ", args.getQuotaDirectoryName());
         VNXUnityQuotaDirectoryTaskCompleter completer = null;
         VNXeApiClient apiClient = getVnxUnityClient(storage);
@@ -1631,19 +1634,60 @@ public class VNXUnityFileStorageDevice extends VNXUnityOperations
     }
 
     @Override
-    public BiosCommandResult updateShareACLs(StorageSystem storage,
-            FileDeviceInputOutput args) {
+    public BiosCommandResult updateShareACLs(StorageSystem storage, FileDeviceInputOutput args) {
 
-        return BiosCommandResult.createErrorResult(
-                DeviceControllerErrors.vnxe.operationNotSupported());
+        VNXeApiClient apiClient = getVnxUnityClient(storage);
+        // Requested Export Rules
+        List<ShareACL> aclsToAdd = args.getShareAclsToAdd();
+        List<ShareACL> aclsToDelete = args.getShareAclsToDelete();
+        List<ShareACL> aclsToModify = args.getShareAclsToModify();
+
+        // Get existing Acls for the share
+        List<ShareACL> aclsToProcess = args.getExistingShareAcls();
+
+        _logger.info("Share name : {}", args.getShareName());
+
+        // Process Acls
+        _logger.info("Number of existing ACLs found {}", aclsToProcess.size());
+        try {
+            apiClient.updateShareACL(args.getFsNativeId(), args.getShareName(), aclsToAdd, aclsToModify, aclsToDelete);
+        } catch (VNXeException ex) {
+            _logger.error("update Quota Directory got an exception", ex);
+            return BiosCommandResult.createErrorResult(ex);
+        } catch (Exception e) {
+            ServiceError error = DeviceControllerErrors.vnxe.jobFailed("UpdateShareACLs", e.getMessage());
+            _logger.error("update Quota Directory got an exception", e);
+            return BiosCommandResult.createErrorResult(error);
+        }
+        StringBuilder logMsgBuilder = new StringBuilder(String.format(
+                "update Share ACL job submitted - Array:%s, fileSystem: %s, Share: %s", storage.getSerialNumber(),
+                args.getFsName(), args.getShareName()));
+        _logger.info(logMsgBuilder.toString());
+        BiosCommandResult result = BiosCommandResult.createSuccessfulResult();
+        return result;
     }
 
     @Override
-    public BiosCommandResult deleteShareACLs(StorageSystem storageObj,
-            FileDeviceInputOutput args) {
-
-        return BiosCommandResult.createErrorResult(
-                DeviceControllerErrors.vnxe.operationNotSupported());
+    public BiosCommandResult deleteShareACLs(StorageSystem storage, FileDeviceInputOutput args) {
+        VNXeApiClient apiClient = getVnxUnityClient(storage);
+        _logger.info("Share name : {}", args.getShareName());
+        try {
+            VNXeCifsShare vnxeShare = apiClient.findCifsShareByName(args.getShareName());
+            apiClient.deleteShareACL(args.getFsNativeId(), vnxeShare.getId());
+        } catch (VNXeException ex) {
+            _logger.error("delete Quota Directory got an exception", ex);
+            return BiosCommandResult.createErrorResult(ex);
+        } catch (Exception e) {
+            ServiceError error = DeviceControllerErrors.vnxe.jobFailed("DeleteShareACLs", e.getMessage());
+            _logger.error("update Quota Directory got an exception", e);
+            return BiosCommandResult.createErrorResult(error);
+        }
+        StringBuilder logMsgBuilder = new StringBuilder(String.format(
+                "delete Share ACL job submitted - Array:%s, fileSystem: %s, Share: %s", storage.getSerialNumber(),
+                args.getFsName(), args.getShareName()));
+        _logger.info(logMsgBuilder.toString());
+        BiosCommandResult result = BiosCommandResult.createSuccessfulResult();
+        return result;
     }
 
     @Override

@@ -121,8 +121,7 @@ public class StorageOSLdapAuthenticationHandler implements
         } catch (CommunicationException e) {
             _alertLog.error(MessageFormat.format("Connection to LDAP server {0} failed for domain(s) {1}. {2}",
                     Arrays.toString(server.getContextSource().getUrls()), _domains, e.getMessage()));
-            throw UnauthorizedException.unauthorized.ldapCommunicationException();
-
+            throw e;
         } catch (AuthenticationException e) {
             _alertLog
                     .error(MessageFormat

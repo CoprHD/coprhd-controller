@@ -9654,17 +9654,17 @@ APP_VARRAY2=$RECOVERPOINT_VARRAY2
 APP_VARRAY3=$RECOVERPOINT_VARRAY3
 
 # application plstforms
-APPLICATION_TEST_VNX=${APPLICATION_TEST_VNX:=}
+APPLICATION_TEST_VNX=${APPLICATION_TEST_VNX:=1}
 APPLICATION_TEST_VMAX2=${APPLICATION_TEST_VMAX2:=1}
+APPLICATION_TEST_VMAX3=${APPLICATION_VMAX3:=1}
 # TODO need to implement applicaion test for xio and vmax3
-APPLICATION_TEST_VMAX3=${APPLICATION_VMAX3:=0}
 APPLICATION_TEST_XIO=${APPLICATION_TEST_XIO:=0}
 
 # applicaiton tests
 APPLICATION_TEST_CRUD=${APPLICATION_TEST_CRUD:=1}
 APPLICATION_TEST_BLOCK=${APPLICATION_TEST_BLOCK:=1}
 APPLICATION_TEST_VPLEX_LOCAL=${APPLICATION_TEST_VPLEX_LOCAL:=1}
-APPLICATION_TEST_VPLEX_DIST=${APPLICATION_TEST_VPLEX_DIST:=1}
+APPLICATION_TEST_VPLEX_DIST=${APPLICATION_TEST_VPLEX_DIST:=0}
 # TODO not implemented:
 APPLICATION_TEST_RP_BLOCK=${APPLICATION_TEST_RP_BLOCK:=0}
 APPLICATION_TEST_RP_VPLEX_LOCAL=${APPLICATION_TEST_RP_VPLEX_LOCAL:=0}
@@ -9787,10 +9787,33 @@ application_tests()
             application_deleteall
             secho "completed running block vplex+vmax2 tests"
         fi
+        if [ $APPLICATION_TEST_VPLEX_DIST -eq 1 ]; then
+            secho "running block vplex dist tests"
+            APPLICATION_CLONE_SUPPORTED=1
+            APPLICATION_SNAPSHOT_SUPPORTED=1
+            APPLICATION_RESYNC_SNAP_SUPPORTED=1
+            APPLICATION_LINK_SNAP_SUPPORTED=0
+            VG_VPOOL_CG=$APP_VPOOL_VMAX2_VPLEX_DIST
+            VG_VARRAY_CG=$APP_VARRAY2
+            APP_RUNNING_BLOCK_TEST=0
+            APPLICATION_CREATE_INACTIVE_SUPPORTED=0
+
+            app_test_subgroup1a="${VG_CGNAME1}a"
+            app_test_subgroup1b="${VG_CGNAME1}b"
+            app_test_subgroup2a="${VG_CGNAME2}a"
+            app_test_subgroup2b="${VG_CGNAME2}b"
+
+            application_createvols
+            application_add_remove_volume_tests
+            application_copy_tests
+            application_deleteall
+            secho "completed running block vplex dist tests"
+        fi
     fi
     if [ $APPLICATION_TEST_VMAX3 -eq 1 ]; then
         APPLICATION_CLONE_SUPPORTED=1
-        APPLICATION_SNAPSHOT_SUPPORTED=1
+        # TODO add snap session support
+        APPLICATION_SNAPSHOT_SUPPORTED=0
         APPLICATION_RESYNC_SNAP_SUPPORTED=0
         APPLICATION_LINK_SNAP_SUPPORTED=1
         APPLICATION_CREATE_INACTIVE_SUPPORTED=0
@@ -9811,46 +9834,23 @@ application_tests()
             application_deleteall
             secho "completed running block vmax3 tests"
         fi
-        if [ $APPLICATION_TEST_VPLEX_LOCAL -eq 1 ]; then
-            secho "running block vplex+vmax3 tests"
-            VG_VPOOL_CG=$APP_VPOOL_VMAX3_VPLEX_LOCAL
-            VG_VARRAY_CG=$APP_VARRAY3
-            APP_RUNNING_BLOCK_TEST=0
+        #if [ $APPLICATION_TEST_VPLEX_LOCAL -eq 1 ]; then
+            #secho "running block vplex+vmax3 tests"
+            #VG_VPOOL_CG=$APP_VPOOL_VMAX3_VPLEX_LOCAL
+            #VG_VARRAY_CG=$APP_VARRAY3
+            #APP_RUNNING_BLOCK_TEST=0
 
-            app_test_subgroup1a="${VG_CGNAME1}a"
-            app_test_subgroup1b="${VG_CGNAME1}b"
-            app_test_subgroup2a="${VG_CGNAME2}a"
-            app_test_subgroup2b="${VG_CGNAME2}b"
+            #app_test_subgroup1a="${VG_CGNAME1}a"
+            #app_test_subgroup1b="${VG_CGNAME1}b"
+            #app_test_subgroup2a="${VG_CGNAME2}a"
+            #app_test_subgroup2b="${VG_CGNAME2}b"
 
-            application_createvols
-            application_add_remove_volume_tests
-            application_copy_tests
-            application_deleteall
-            secho "completed running block vplex+vmax3 tests"
-        fi
-    fi
-
-    if [ $APPLICATION_TEST_VPLEX_DIST -eq 1 ]; then
-        secho "running block vplex dist tests"
-        APPLICATION_CLONE_SUPPORTED=1
-        APPLICATION_SNAPSHOT_SUPPORTED=1
-        APPLICATION_RESYNC_SNAP_SUPPORTED=1
-        APPLICATION_LINK_SNAP_SUPPORTED=0
-        VG_VPOOL_CG=$APP_VPOOL_VMAX2_VPLEX_DIST
-        VG_VARRAY_CG=$APP_VARRAY2
-        APP_RUNNING_BLOCK_TEST=0
-        APPLICATION_CREATE_INACTIVE_SUPPORTED=0
-
-        app_test_subgroup1a="${VG_CGNAME1}a"
-        app_test_subgroup1b="${VG_CGNAME1}b"
-        app_test_subgroup2a="${VG_CGNAME2}a"
-        app_test_subgroup2b="${VG_CGNAME2}b"
-
-        application_createvols
-        application_add_remove_volume_tests
-        application_copy_tests
-        application_deleteall
-        secho "completed running block vplex dist tests"
+            #application_createvols
+            #application_add_remove_volume_tests
+            #application_copy_tests
+            #application_deleteall
+            #secho "completed running block vplex+vmax3 tests"
+        #fi
     fi
 
     if [ $APPLICATION_TEST_XIO -eq 1 ]; then

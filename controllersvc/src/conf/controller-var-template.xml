@@ -21,7 +21,7 @@
                 <entry key="FileOrchestrationController" value="rmi://${node_id}:10099/FileOrchestrationController"/>
                 <entry key="FileReplicationController" value="rmi://${node_id}:10099/FileReplicationController" />
                 <entry key="SRDFController" value="rmi://${node_id}:10099/SRDFController" />
-                <entry key="ComputeSystemController" value="rmi://localhost:10099/ComputeSystemController"/>
+                <entry key="ComputeSystemController" value="rmi://${node_id}:10099/ComputeSystemController"/>
                 <entry key="ObjectController"  value="rmi://${node_id}:10099/ObjectController"/>
                 <entry key="WorkflowController" value="rmi://${node_id}:10099/WorkflowController"/>
             </map>

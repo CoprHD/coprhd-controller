@@ -2750,4 +2750,19 @@
         controlNodeOnly : false,
         value : "true", 
     }   
+    {
+        key : "workflow_suspend_on_class_method",
+        label : "Suspend on workflow class and method",
+        description : "Suspend on a workflow when encounters Class.Method",
+        minLen : 1,
+        userConfigurable : false,
+        userMutable : true,
+        hidden : true,
+        advanced : false,
+        tag : "Controller",
+        reconfigRequired : false,
+        rebootRequired : false,
+        controlNodeOnly : true,
+        value : "",
+    }   
 ]

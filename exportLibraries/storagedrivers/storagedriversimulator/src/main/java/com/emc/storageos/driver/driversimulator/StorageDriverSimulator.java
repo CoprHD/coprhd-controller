@@ -40,7 +40,14 @@ public class StorageDriverSimulator extends AbstractStorageDriver implements Blo
 
     private static final Logger _log = LoggerFactory.getLogger(StorageDriverSimulator.class);
     private static final String DRIVER_NAME = "SimulatorDriver";
-    private static final int NUMBER_OF_VOLUME_PAGES = 2;
+    private static final int NUMBER_OF_VOLUME_PAGES = 1;
+    private static final int NUMBER_OF_VOLUMES_ON_PAGE = 1;
+    private static final int NUMBER_OF_CLONES_FOR_VOLUME = 1;
+    private static final int NUMBER_OF_SNAPS_FOR_VOLUME = 1;
+    private static final boolean VOLUMES_IN_CG = true;
+    private static final boolean SNAPS_IN_CG = true;
+    private static final boolean CLONES_IN_CG = true;
+
     private static Integer portIndex = 0;
     private static Map<String, Integer> systemNameToPortIndexName = new HashMap<>();
 
@@ -642,7 +649,7 @@ public class StorageDriverSimulator extends AbstractStorageDriver implements Blo
             clone.setDeviceLabel(clone.getNativeId());
             clone.setProvisionedCapacity(clone.getRequestedCapacity());
             clone.setAllocatedCapacity(clone.getRequestedCapacity());
-            clone.setConsistencyGroup(consistencyGroup.getNativeId()+"_clone-"+cloneTimestamp);
+            clone.setConsistencyGroup(consistencyGroup.getNativeId() + "_clone-" + cloneTimestamp);
         }
         String taskType = "create-group-clone";
         String taskId = String.format("%s+%s+%s", DRIVER_NAME, taskType, UUID.randomUUID().toString());
@@ -669,12 +676,14 @@ public class StorageDriverSimulator extends AbstractStorageDriver implements Blo
         discoverStoragePorts(storageSystem, ports);
 
         //for (int vol = 0; vol < 3; vol ++) {
-        for (int vol = 0; vol < 2; vol ++) {
+        for (int vol = 0; vol < NUMBER_OF_VOLUMES_ON_PAGE; vol ++) {
             StorageVolume driverVolume = new StorageVolume();
             driverVolume.setStorageSystemId(storageSystem.getNativeId());
             driverVolume.setStoragePoolId("pool-1234577-" + token.intValue() + storageSystem.getNativeId());
             driverVolume.setNativeId("driverSimulatorVolume-1234567-" + token.intValue() + "-" + vol);
-           // driverVolume.setConsistencyGroup("driverSimulatorCG-"+token.intValue());
+            if (VOLUMES_IN_CG) {
+                driverVolume.setConsistencyGroup("driverSimulatorCG-" + token.intValue());
+            }
             driverVolume.setAccessStatus(StorageVolume.AccessStatus.READ_WRITE);
             driverVolume.setThinlyProvisioned(true);
             driverVolume.setThinVolumePreAllocationSize(3000L);
@@ -781,16 +790,18 @@ public class StorageDriverSimulator extends AbstractStorageDriver implements Blo
     @Override
     public List<VolumeSnapshot> getVolumeSnapshots(StorageVolume volume) {
         List<VolumeSnapshot> snapshots = new ArrayList<>();
-       // for (int i=0; i<2; i++) {
-        for (int i=0; i<1; i++) {
+
+        for (int i=0; i<NUMBER_OF_SNAPS_FOR_VOLUME; i++) {
             VolumeSnapshot snapshot = new VolumeSnapshot();
             snapshot.setParentId(volume.getNativeId());
             snapshot.setNativeId(volume.getNativeId() + "snap-" + i);
             snapshot.setDeviceLabel(volume.getNativeId() + "snap-" + i);
             snapshot.setStorageSystemId(volume.getStorageSystemId());
             snapshot.setAccessStatus(StorageObject.AccessStatus.READ_ONLY);
-            //snapshot.setConsistencyGroup(volume.getConsistencyGroup() + "snapSet-" + i);
-            snapshot.setAllocatedCapacity(1000L);
+            if (SNAPS_IN_CG) {
+                snapshot.setConsistencyGroup(volume.getConsistencyGroup() + "snapSet-" + i);
+            }
+                snapshot.setAllocatedCapacity(1000L);
             snapshot.setProvisionedCapacity(volume.getProvisionedCapacity());
             snapshot.setWwn(String.format("%s%s", snapshot.getStorageSystemId(), snapshot.getNativeId()));
             snapshots.add(snapshot);
@@ -804,8 +815,8 @@ public class StorageDriverSimulator extends AbstractStorageDriver implements Blo
     @Override
     public List<VolumeClone> getVolumeClones(StorageVolume volume) {
         List<VolumeClone> clones = new ArrayList<>();
-        // for (int i=0; i<2; i++) {
-        for (int i=0; i<1; i++) {
+
+        for (int i=0; i<NUMBER_OF_CLONES_FOR_VOLUME; i++) {
             VolumeClone clone = new VolumeClone();
             clone.setParentId(volume.getNativeId());
             clone.setNativeId(volume.getNativeId() + "clone-" + i);
@@ -813,7 +824,9 @@ public class StorageDriverSimulator extends AbstractStorageDriver implements Blo
             clone.setStorageSystemId(volume.getStorageSystemId());
             clone.setStoragePoolId(volume.getStoragePoolId());
             clone.setAccessStatus(StorageObject.AccessStatus.READ_WRITE);
-            //clone.setConsistencyGroup(volume.getConsistencyGroup() + "cloneGroup-" + i);
+            if (CLONES_IN_CG) {
+                clone.setConsistencyGroup(volume.getConsistencyGroup() + "cloneGroup-" + i);
+            }
             clone.setAllocatedCapacity(volume.getAllocatedCapacity());
             clone.setProvisionedCapacity(volume.getProvisionedCapacity());
             clone.setThinlyProvisioned(true);

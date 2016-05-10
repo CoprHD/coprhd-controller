@@ -1351,14 +1351,14 @@ public class VolumeGroupService extends TaskResourceService {
     }
 
     /**
-     * Validate full copies in the request are members of the application in the request
-     * @param fullCopyVolumesInRequest 
+     * Validate or creates the list of full copies in the request
      * 
-     * @param fullCopyURIsInRequest
-     *            the full copies in request
-     * @param volumeGroupVolumes
-     *            the volume group volumes
-     * @return the full copy objects
+     * @param fullCopyVolumesInRequest the list of all full copy volumes to be processed as part of the request
+     * @param fullCopyURIsInRequest the list of full copy URI's from the request object
+     * @param copySetName the name of the copy set that identifies the set of full copies in the request
+     * @param subGroups the name of the sub group that identifies the set of full copies in the request
+     * @param volumeGroupUri the volume group URI
+     * @return true if the request is partial, false if the request is full (includes all volumes in the application)
      */
     private boolean validateFullCopiesInRequest(List<Volume> fullCopyVolumesInRequest, final List<URI> fullCopyURIsInRequest, String copySetName, List<String> subGroups, URI volumeGroupUri) {
         

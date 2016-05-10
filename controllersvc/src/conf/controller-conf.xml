@@ -1021,6 +1021,19 @@
         <property name="scrubber" ref="workflowScrubber"/>
     </bean>
 
+    <bean id="workflowController" class="com.emc.storageos.workflow.WorkflowControllerImpl">
+        <property name="dispatcher" ref="dispatcher"/>
+        <property name="controller" ref="workflowService" />
+    </bean>
+
+    <bean class="org.springframework.remoting.rmi.RmiServiceExporter" depends-on="beacon">
+        <property name="serviceName" value="WorkflowController"/>
+        <property name="service" ref="workflowController"/>
+        <property name="serviceInterface" value="com.emc.storageos.workflow.WorkflowController"/>
+        <property name="registryPort" value="10099"/>
+        <property name="servicePort" value="40201"/>
+    </bean>
+
     <bean id="distributedOwnerLockService" class="com.emc.storageos.locking.DistributedOwnerLockServiceImpl">
         <property name="coordinator" ref="coordinator"/>
     </bean>
@@ -1341,7 +1354,7 @@
         <property name="cinderApiFactory" ref="cinderapifactory"/>
 		<property name="vnxeApiClientFactory" ref="vnxeApiClientFactory"/>
 		<property name="workflowService" ref="workflowService" />
-                <property name="distributedOwnerLockService" ref="distributedOwnerLockService"/>
+        <property name="distributedOwnerLockService" ref="distributedOwnerLockService"/>
         <property name="smisCommandHelper" ref="vmaxSmisCommandHelper"/>
 		<property name="xivSmisCommandHelper" ref="xivSmisCommandHelper"/>
 		<property name="monitoringJobConsumer" ref="monitoringJobConsumer" />
@@ -1487,11 +1500,6 @@
         <property name="dbClient" ref="dbclient"/>
     </bean>
 
-    <bean id="workflowController" class="com.emc.storageos.workflow.WorkflowControllerImpl">
-        <property name="dispatcher" ref="dispatcher"/>
-        <property name="controller" ref="workflowService" />
-    </bean>
-
     <bean class="org.springframework.remoting.rmi.RmiServiceExporter" depends-on="beacon">
         <property name="serviceName" value="FileOrchestrationController"/>
         <property name="service" ref="fileOrchestrationController"/>
@@ -1499,8 +1507,6 @@
         <property name="registryPort" value="10099"/>
         <property name="servicePort" value="40201"/>
     </bean>
-    <!-- tbd fileorchestrationdevice controller exporter ends-->
-    
 
     <bean id="dataObjectScanner" class="com.emc.storageos.db.common.DataObjectScanner" init-method="init">
         <property name="packages">

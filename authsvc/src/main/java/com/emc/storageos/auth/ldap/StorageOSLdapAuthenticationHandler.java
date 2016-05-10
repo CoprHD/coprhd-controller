@@ -91,19 +91,20 @@ public class StorageOSLdapAuthenticationHandler implements
         for (LdapOrADServer server : connectedServers) {
             try {
                 authResult = doAuthenticationOverSingleServer(server, credentials);
-
-                // After authentication, lets handle failed ldap servers
-                _failureHandler.handle(_ldapServers, failedServers);
-
-                // Finally return result;
-                return authResult;
             } catch (CommunicationException e) {
                 failedServers.add(server);
                 _alertLog.error(MessageFormat.format("Connection to LDAP server {0} failed for domain(s) {1}. {2}",
                         Arrays.toString(server.getContextSource().getUrls()), _domains, e.getMessage()));
             }
         }
-        throw UnauthorizedException.unauthorized.ldapCommunicationException();
+
+        // After authentication, lets handle failed ldap servers
+        if (!failedServers.isEmpty()) {
+            _failureHandler.handle(_ldapServers, failedServers);
+        }
+
+        // Finally return result;
+        return authResult;
     }
 
     private boolean doAuthenticationOverSingleServer(LdapOrADServer server, UsernamePasswordCredentials usernamePasswordCredentials) {
@@ -119,8 +120,7 @@ public class StorageOSLdapAuthenticationHandler implements
         try {
             ldapTemplate.search(new StorageOSSearchExecutor(filter), new StorageOSNameClassPairCallbackHandler(dns));
         } catch (CommunicationException e) {
-            _alertLog.error(MessageFormat.format("Connection to LDAP server {0} failed for domain(s) {1}. {2}",
-                    Arrays.toString(server.getContextSource().getUrls()), _domains, e.getMessage()));
+            _log.warn("Connection to LDAP server {} failed", Arrays.toString(server.getContextSource().getUrls()));
             throw e;
         } catch (AuthenticationException e) {
             _alertLog

@@ -322,11 +322,19 @@ public class ApiClientTest {
         System.out.println(res.getLuns().size());
     }
     
-    @Test
+    //@Test
     public void getHostInitiator() {
         HostInitiatorRequest req = new HostInitiatorRequest(_client);
         VNXeHostInitiator res = req.get("HostInitiator_4");
         System.out.println(res.getPortWWN());
         System.out.println(res.getNodeWWN());
+    }
+    
+    @Test
+    public void getLunSnap() {
+        List<Snap> snaps = apiClient.getSnapshotsForLun("sv_3");
+        for (Snap snap : snaps) {
+            System.out.println(snap.getName());
+        }
     }
 }

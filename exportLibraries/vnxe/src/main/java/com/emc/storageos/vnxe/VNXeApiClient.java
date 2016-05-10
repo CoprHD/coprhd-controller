@@ -2640,4 +2640,16 @@ public class VNXeApiClient {
         return req.get(initId);
         
     }
+    
+    /**
+     * Get snapshots for a given lun id
+     * This is for Unity only
+     * @param lunId
+     * @return
+     */
+    public List<Snap> getSnapshotsForLun(String lunId) {
+        SnapRequests req = new SnapRequests(_khClient);
+        return req.getLunSnaps(lunId);
+        
+    }
 }

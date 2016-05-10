@@ -16,6 +16,7 @@ import org.apache.log4j.BasicConfigurator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.emc.storageos.hp3par.command.CPGCommandResult;
 import com.emc.storageos.hp3par.command.SystemCommandResult;
 import com.emc.storageos.hp3par.impl.HP3PARApi;
 import com.emc.storageos.hp3par.impl.HP3PARException;
@@ -164,8 +165,11 @@ public class HP3PARApiFactory {
         String authToken = hp3parApi.getAuthToken("superme", "superme");
         System.out.println(authToken);
         
-        SystemCommandResult sysRes = hp3parApi.getSystemDetails();
-        System.out.println(sysRes.toString());
+        //SystemCommandResult sysRes = hp3parApi.getSystemDetails();
+        //System.out.println(sysRes.toString());
+        CPGCommandResult cpgRes = hp3parApi.getCPGDetails();
+        System.out.println(cpgRes.toString());
+
         } catch (Exception e) {
             System.out.println(e.toString());
             e.printStackTrace();

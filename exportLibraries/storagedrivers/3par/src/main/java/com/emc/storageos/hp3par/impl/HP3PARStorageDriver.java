@@ -33,6 +33,7 @@ import com.emc.storageos.storagedriver.model.Initiator;
 import com.emc.storageos.storagedriver.model.StorageHostComponent;
 import com.emc.storageos.storagedriver.model.StorageObject;
 import com.emc.storageos.storagedriver.model.StoragePool;
+import com.emc.storageos.storagedriver.model.StoragePool.Protocols;
 import com.emc.storageos.storagedriver.model.StoragePort;
 import com.emc.storageos.storagedriver.model.StorageSystem;
 import com.emc.storageos.storagedriver.model.StorageVolume;
@@ -106,7 +107,7 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
 	                    storageSystem.getUsername(),
 	                    storageSystem.getPassword());
 
-	            //Re-enter the connection info always as there could be change in user name/password 
+	            // Re-enter the connection info always as there could be change in user name/password 
 	            connectionMap.put(uniqueId, connectionInfo);
 
 	            HP3PARApi hp3parApi = getHP3PARDevice(storageSystem);
@@ -114,8 +115,9 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
 	            if (authToken == null) {
 	                break;
 	            }
-	            _log.info("3PAR auth key: {}", authToken);
+	            //_log.info("3PAR auth key: {}", authToken);
 	            
+	            // get storage details
 	            SystemCommandResult systemRes = hp3parApi.getSystemDetails();
 	            storageSystem.setSerialNumber(systemRes.getSerialNumber());
 	            storageSystem.setMajorVersion(systemRes.getSystemVersion());
@@ -138,6 +140,13 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
 	                    storageSystem.setDisplayName(systemRes.getName());
 	                }
 	            }
+                
+                // protocols supported
+                List<String> protocols = new ArrayList<String>();
+                protocols.add(Protocols.iSCSI.toString());
+                protocols.add(Protocols.FC.toString());
+                protocols.add(Protocols.FCoE.toString());
+                storageSystem.setProtocols(protocols);
 
                 storageSystem.setAccessStatus(AccessStatus.READ_WRITE);
 	            setConnInfoToRegistry(storageSystem.getNativeId(), storageSystem.getIpAddress(), storageSystem.getPortNumber(),
@@ -145,7 +154,7 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
 
 	            task.setStatus(DriverTask.TaskStatus.READY);
 	            storageSystem.setNativeId(uniqueId);
-	               _log.info("Successfull discovery of 3PAR storage system {}, name {} - end",
+	            _log.info("Successfull discovery of 3PAR storage system {}, name {} - end",
 	                        storageSystem.getIpAddress(), storageSystem.getSystemName());    
 	        } catch (Exception e) {
 	            _log.error("Unable to discover the storage system information {}.\n",
@@ -380,7 +389,7 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
         attributes.put("USER_NAME", listUserName);
                 listPwd.add(password);
         attributes.put("PASSWORD", listPwd);
-        _log.info(String.format("StorageDriver: setting connection information for %s, attributes: %s ", systemNativeId, attributes));
+        //_log.info(String.format("StorageDriver: setting connection information for %s, attributes: %s ", systemNativeId, attributes));
         this.driverRegistry.setDriverAttributesForKey("StorageDriverSimulator", systemNativeId, attributes);
     }
 }

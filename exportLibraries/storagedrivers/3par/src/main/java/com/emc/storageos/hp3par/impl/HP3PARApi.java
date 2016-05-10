@@ -7,6 +7,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.codehaus.jettison.json.JSONObject;
 
+import com.emc.storageos.hp3par.command.CPGCommandResult;
 import com.emc.storageos.hp3par.command.SystemCommandResult;
 import com.emc.storageos.hp3par.connection.RESTClient;
 import com.google.gson.Gson;
@@ -26,6 +27,7 @@ public class HP3PARApi {
 
     private static final URI URI_LOGIN = URI.create("/api/v1/credentials");
     private static final String URI_SYSTEM = "/api/v1/system";
+    private static final String URI_CPGS = "/api/v1/cpgs";
 
     public HP3PARApi(URI endpoint, RESTClient client) {
         _baseUrl = endpoint;
@@ -129,6 +131,37 @@ public class HP3PARApi {
             _log.info("HP3PARApi:getSystemDetails leave");
         } //end try/catch/finally
     }
+    
+    public CPGCommandResult getCPGDetails() throws Exception {
+        _log.info("HP3PARApi:getCPGDetails enter");
+        ClientResponse clientResp = null;
+
+        try {
+            clientResp = get(URI_CPGS);
+            if (clientResp == null) {
+                _log.error("There is no response from 3PAR");
+                throw new HP3PARException("There is no response from 3PAR");
+            } else if (clientResp.getStatus() != 200) {
+                String errResp = getResponseDetails(clientResp);
+                throw new HP3PARException(errResp);
+            } else {
+                String responseString = clientResp.getEntity(String.class);
+                _log.info("HP3PARApi:getCPGDetails 3PAR response is {}", responseString);
+                CPGCommandResult cpgResult = new Gson().fromJson(sanitize(responseString),
+                        CPGCommandResult.class);
+                return cpgResult;
+            }
+        } catch (Exception e) {
+            throw e;
+        } finally {
+            if (clientResp != null) {
+                clientResp.close();
+            }
+            _log.info("HP3PARApi:getSystemDetails leave");
+        } //end try/catch/finally
+    }    
+    
+    
     
     private String getResponseDetails(ClientResponse clientResp) {
         String detailedResponse = null, ref=null;;

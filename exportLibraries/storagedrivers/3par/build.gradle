@@ -5,7 +5,7 @@ dependencies {
             library(httpclient3),
             library(log4j),
             library(jersey),
-            librarygoogle_gson),
+            library(google_gson),
             library(google_gson),
             library(json_sanitizer)
             

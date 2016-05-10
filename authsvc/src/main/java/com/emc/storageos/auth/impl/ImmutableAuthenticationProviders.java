@@ -531,11 +531,13 @@ public class ImmutableAuthenticationProviders {
 
         LdapServerList servers = createLdapServerList(coordinator, authConfig, SystemPropertyUtil.getLdapConnectionTimeout(coordinator));
 
+        _log.info("Checking the status of the provider whose domains are {}", authConfig.getDomains().toArray());
         boolean good = false;
         // Checking in order and return good if meeting one good.
         for (LdapOrADServer server : servers.getConnectedServers()) {
             good = doCheckProviderStatusOnSingleServer(server, param, errorString, dbClient);
             if (good) {
+                _log.info("Checked provider against server {} successfully", server.getContextSource().getUrls()[0]);
                 return true;
             }
         }

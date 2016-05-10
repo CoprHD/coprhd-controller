@@ -1188,7 +1188,7 @@ public class CustomAuthenticationManagerTest extends DbsvcGeoTestBase {
 
         @Override
         public void setFailureHandler(LdapFailureHandler failureHandler) {
-            
+
         }
 
     }

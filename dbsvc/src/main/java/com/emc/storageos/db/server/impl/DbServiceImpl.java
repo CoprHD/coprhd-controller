@@ -104,7 +104,11 @@ public class DbServiceImpl implements DbService {
     @Autowired
     private DbManager dbMgr;
 
-    /**
+    public void setDbMgr(DbManager dbMgr) {
+		this.dbMgr = dbMgr;
+	}
+
+	/**
      * Set db client
      */
     public void setDbClient(DbClientImpl dbClient) {

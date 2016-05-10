@@ -52,9 +52,11 @@ import com.emc.storageos.db.common.DataObjectScanner;
 import com.emc.storageos.db.common.DbServiceStatusChecker;
 import com.emc.storageos.db.common.DependencyChecker;
 import com.emc.storageos.db.common.VdcUtil;
+import com.emc.storageos.db.server.impl.DbManager;
 import com.emc.storageos.db.server.impl.DbServiceImpl;
 import com.emc.storageos.db.server.impl.MigrationHandlerImpl;
 import com.emc.storageos.db.server.impl.SchemaUtil;
+import com.emc.storageos.db.server.upgrade.MockMigrationHandler;
 import com.emc.storageos.db.server.util.StubBeaconImpl;
 import com.emc.storageos.db.server.util.StubCoordinatorClientImpl;
 import com.emc.storageos.security.authentication.InternalApiSignatureKeyGenerator;
@@ -173,13 +175,14 @@ public class DbsvcTestBase {
      * Start embedded DB
      */
     protected static void startDb(String currentVersion, String targetVersion,  String extraModelsPkg) throws IOException {
-        startDb(currentVersion, targetVersion, extraModelsPkg, null);
+        startDb(currentVersion, targetVersion, extraModelsPkg, null, false);
     }
 
     /**
      * Start embedded DB
      */
-    protected static void startDb(String currentVersion, String targetVersion, String extraModelsPkg, DataObjectScanner scanner) throws IOException {
+    protected static void startDb(String currentVersion, String targetVersion, String extraModelsPkg, DataObjectScanner scanner,
+    		boolean createMockHandler) throws IOException {
         sourceVersion = new DbVersionInfo();
         sourceVersion.setSchemaVersion(currentVersion);
         
@@ -282,17 +285,8 @@ public class DbsvcTestBase {
         passwordUtils.setDbClient(_dbClient);
         schemaUtil.setPasswordUtils(passwordUtils);
 
-        MigrationHandlerImpl handler = new MigrationHandlerImpl();
-        handler.setPackages(pkgsArray);
-        handler.setService(service);
-        handler.setStatusChecker(statusChecker);
-        handler.setCoordinator(_coordinator);
-        handler.setDbClient(_dbClient);
-        handler.setSchemaUtil(schemaUtil);
-        handler.setPackages(pkgsArray);
 
-        handler.setCustomMigrationCallbacks(customMigrationCallbacks);
-
+        
         DependencyChecker localDependencyChecker = new DependencyChecker(_dbClient, scanner);
         _geoDependencyChecker = new GeoDependencyChecker(_dbClient, _coordinator, localDependencyChecker);
 
@@ -306,13 +300,33 @@ public class DbsvcTestBase {
         _dbsvc.setDbClient(_dbClient);
         _dbsvc.setBeacon(beacon);
         _dbsvc.setDbDir(dataDir);
-        _dbsvc.setMigrationHandler(handler);
         _dbsvc.setDisableScheduledDbRepair(true);
+        
+        _dbsvc.setMigrationHandler(getMigrationHandler(createMockHandler, pkgsArray));
+        _dbsvc.setDbMgr(new MockDbManager());
         _dbsvc.start();
 
         isDbStarted = true;
     }
 
+    private static MigrationHandlerImpl getMigrationHandler(boolean createMockHandler, String[] pkgsArray) {
+        MigrationHandlerImpl handler = null;
+        if (createMockHandler) {
+        	handler = new MockMigrationHandler();
+        } else {
+        	handler = new MigrationHandlerImpl();
+        }
+        handler.setPackages(pkgsArray);
+        handler.setService(service);
+        handler.setStatusChecker(statusChecker);
+        handler.setCoordinator(_coordinator);
+        handler.setDbClient(_dbClient);
+        handler.setSchemaUtil(schemaUtil);
+        handler.setPackages(pkgsArray);
+
+        handler.setCustomMigrationCallbacks(customMigrationCallbacks);
+        return handler;
+    }
     /**
      * Create DbClient to embedded DB
      * 
@@ -366,6 +380,17 @@ public class DbsvcTestBase {
         public int getThriftPort() {
             return 9160;
         }
+    }
+    
+    static class MockDbManager extends DbManager {
+    	@Override
+		public void init() {
+    		//do nothing
+		}
+    	@Override
+    	public void start() { 
+    		//do nothing
+    	}
     }
     
     protected static class TestMockDbServiceImpl extends DbServiceImpl {

@@ -131,7 +131,8 @@ public class DisasterRecovery extends ViprResourceController {
                 String standby_vip = siteretry.getVipEndpoint();
                 String active_name = null;
                 for (SiteRestRep site: DisasterRecoveryUtils.getStandbySites()){
-                    if (site.getState().equals(SiteState.ACTIVE_FAILING_OVER.name())){
+                    if (site.getState().equals(SiteState.ACTIVE_FAILING_OVER.name()) ||
+                            site.getState().equals(SiteState.ACTIVE_DEGRADED.name())){
                         active_name = site.getName();
                         break;
                     }

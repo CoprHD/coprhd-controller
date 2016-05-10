@@ -10,6 +10,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.junit.BeforeClass;
+import org.junit.Test;
 
 import com.emc.storageos.vnxe.VNXeApiClient;
 import com.emc.storageos.vnxe.VNXeUtils;
@@ -29,6 +30,7 @@ import com.emc.storageos.vnxe.models.VNXeLicense;
 import com.emc.storageos.vnxe.models.VNXeLun;
 import com.emc.storageos.vnxe.models.VNXePool;
 import com.emc.storageos.vnxe.models.VNXeStorageTier;
+import com.emc.storageos.vnxe.models.aclUserLookupSIDParam;
 
 public class ApiClientTest {
     private static KHClient _client;
@@ -316,4 +318,15 @@ public class ApiClientTest {
         List<VNXUnityTreeQuota> list = req.get();
         System.out.println(list.get(0).getPath());
     }
+
+    @Test
+    public void createACL() {
+        FileSystemShareACLRequests req = new FileSystemShareACLRequests(_client);
+        aclUserLookupSIDParam param = new aclUserLookupSIDParam();
+        param.setDomainName("provisioning.bourne.local");
+        param.setUserName("vipr_fileteam_rw");
+
+        System.out.println(req.getSIDForUser(param));
+    }
+
 }

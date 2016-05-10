@@ -6,6 +6,8 @@ package com.emc.storageos.auth.impl;
 
 import org.springframework.ldap.core.support.LdapContextSource;
 
+import java.util.Arrays;
+
 /**
  * Represent a ldap or AD server used by StorageOSAuthenticationHandler and StorageOSPersonAttributeDao.
  * Besides the instance of ContextSource, containing more information about the connection status and how long it's in bad state.
@@ -34,7 +36,7 @@ public class LdapOrADServer {
     @Override
     public String toString() {
         StringBuilder sb = new StringBuilder();
-        sb.append("IP: " + contextSource.getUrls());
+        sb.append("IP: " + Arrays.toString(contextSource.getUrls()));
         sb.append(", ");
         sb.append("State: " + isGood);
         return sb.toString();

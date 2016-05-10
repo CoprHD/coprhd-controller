@@ -53,13 +53,17 @@ public class LdapProviderMonitor {
         public void run() {
             log.info("Ldap Monitor Worker wake up ...");
             List<AuthenticationProvider> providers = providerList.getAuthenticationProviders();
+            log.info("Ldap Monitor Worker got provider list. Size is {}", providers.size());
             for (AuthenticationProvider provider : providers) {
                 if (!(provider.getHandler() instanceof StorageOSLdapAuthenticationHandler)) { // That's for AD or Ldap
+                    log.info("Found a provider but is not ldap mode. Skipping ...");
                     continue;
                 }
+                log.info("Found a provider which is ldap mode.");
                 StorageOSLdapAuthenticationHandler handler = (StorageOSLdapAuthenticationHandler) provider.getHandler();
                 LdapServerList ldapServers = handler.getLdapServers();
                 List<LdapOrADServer> disconnectedServers = ldapServers.getDisconnectedServers();
+                log.info("Disconnected servers is {}", disconnectedServers);
 
                 AuthnProvider authnProvider = queryAuthnProviderFromDB(handler.getDomains());
 
@@ -97,12 +101,14 @@ public class LdapProviderMonitor {
     private AuthnProvider queryAuthnProviderFromDB(Set<String> domains) {
         URIQueryResultList providers = new URIQueryResultList();
         String domain = (String) domains.toArray()[0]; // Must have at lease one
+        log.info("The query domain is {}", domain);
         try {
             dbClient.queryByConstraint(AlternateIdConstraint.Factory.getAuthnProviderDomainConstraint(domain), providers);
             Iterator<URI> it = providers.iterator();
             while (it.hasNext()) {
                 URI providerURI = it.next();
                 AuthnProvider provider = dbClient.queryObject(AuthnProvider.class, providerURI);
+                log.info("Found a provider");
                 if (provider != null && provider.getDisable() == false) {
                     return provider;
                 }
@@ -112,6 +118,7 @@ public class LdapProviderMonitor {
             throw ex;
         }
 
+        log.info("Found no provider");
         return null;
     }
 }

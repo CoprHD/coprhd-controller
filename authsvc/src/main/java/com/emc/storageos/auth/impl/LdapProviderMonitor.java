@@ -78,7 +78,9 @@ public class LdapProviderMonitor {
                     AuthnProvider authnProvider = queryAuthnProviderFromDB(handler.getDomains());
 
                     // Do check.
-                    for (LdapOrADServer server : disconnectedServers) {
+                    Iterator<LdapOrADServer> disConnectedServerItr = disconnectedServers.iterator();
+                    while (disConnectedServerItr.hasNext()) {
+                        LdapOrADServer server = disConnectedServerItr.next();
                         log.info("Checking if server {}'s connection get back.", server);
                         boolean isGood = checkLdapServerConnectivity(authnProvider, server.getContextSource().getUrls()[0]);
                         if (isGood) {

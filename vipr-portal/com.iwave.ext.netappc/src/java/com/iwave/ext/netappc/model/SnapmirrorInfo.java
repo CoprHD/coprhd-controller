@@ -8,6 +8,7 @@ package com.iwave.ext.netappc.model;
  * Information about the SnapMirror Relationship
  */
 public class SnapmirrorInfo {
+
     // source info
     private String sourceLocation;
     private String sourceVolume;
@@ -86,6 +87,13 @@ public class SnapmirrorInfo {
 
     public void setDestinationCluster(String destinationCluster) {
         this.destinationCluster = destinationCluster;
+    }
+
+    @Override
+    public String toString() {
+        return "SnapmirrorInfo [sourceLocation=" + sourceLocation + ", sourceVolume=" + sourceVolume + ", sourceVserver=" + sourceVserver
+                + ", sourceCluster=" + sourceCluster + ", destinationLocation=" + destinationLocation + ", destinationVolume="
+                + destinationVolume + ", destinationVserver=" + destinationVserver + ", destinationCluster=" + destinationCluster + "]";
     }
 
 }

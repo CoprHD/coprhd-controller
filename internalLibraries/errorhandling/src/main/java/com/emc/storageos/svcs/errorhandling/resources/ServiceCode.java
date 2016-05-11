@@ -448,7 +448,7 @@ public enum ServiceCode {
     SYS_BACKUP_EXTERNAL_SERVER_ERROR(30060),
     SYS_BACKUP_EXTERNAL_SERVER_FAILED(30061),
     SYS_BACKUP_RESTORE_FAILED(30062),
-    
+
     // Objsvc errors (40000 - 40999)
     OBJ_DATASTORE_CREATE_ERROR(40000),
     OBJ_DATASTORE_DELETE_ERROR(40001),
@@ -589,6 +589,7 @@ public enum ServiceCode {
     NETAPPC_CIFS_SHARE_ACL_UPDATE_ERROR(63016),
     NETAPPC_CIFS_SHARE_ACL_DELETE_ERROR(63017),
     NETAPPC_INVALID_OPERATION(63018),
+    NETAPP_SNAPMIRROR_ERROR(63019),
 
     // Unmanaged Volume Errors (64000 - 64999)
     UNMANAGED_VOLUME_INGESTION_EXCEPTION(64000),
@@ -639,32 +640,47 @@ public enum ServiceCode {
     // ****************************
 
     // API Errors:
-    @Deprecated API_BAD_PARAMETERS(30, FATAL),
-    @Deprecated API_UNAUTHORIZED_OPERATION(20, FATAL),
-    @Deprecated API_ERROR(70, FATAL),
+    @Deprecated
+    API_BAD_PARAMETERS(30, FATAL),
+    @Deprecated
+    API_UNAUTHORIZED_OPERATION(20, FATAL),
+    @Deprecated
+    API_ERROR(70, FATAL),
 
     // Controller Errors:
-    @Deprecated CONTROLLER_ERROR(160, FATAL),
-    @Deprecated CONTROLLER_STORAGE_ERROR(180, FATAL),
-    @Deprecated CONTROLLER_OBJECT_ERROR(190, FATAL),
-    @Deprecated CONTROLLER_NOT_FOUND(200, FATAL),
-    @Deprecated CONTROLLER_WORKFLOW_ERROR(210, FATAL),
+    @Deprecated
+    CONTROLLER_ERROR(160, FATAL),
+    @Deprecated
+    CONTROLLER_STORAGE_ERROR(180, FATAL),
+    @Deprecated
+    CONTROLLER_OBJECT_ERROR(190, FATAL),
+    @Deprecated
+    CONTROLLER_NOT_FOUND(200, FATAL),
+    @Deprecated
+    CONTROLLER_WORKFLOW_ERROR(210, FATAL),
 
     // Device Controller Errors (Asynchronous aspect of controllers):
-    @Deprecated WORKFLOW_ERROR(240, FATAL),
-    @Deprecated WORKFLOW_RESTARTED_ERROR(250, FATAL),
+    @Deprecated
+    WORKFLOW_ERROR(240, FATAL),
+    @Deprecated
+    WORKFLOW_RESTARTED_ERROR(250, FATAL),
 
     // Token encoding errors:
-    @Deprecated AUTH_TOKEN_ENCODING_ERROR(290, FATAL),
+    @Deprecated
+    AUTH_TOKEN_ENCODING_ERROR(290, FATAL),
 
     // General errors:
-    @Deprecated IO_ERROR(320, FATAL);
+    @Deprecated
+    IO_ERROR(320, FATAL);
 
     @Deprecated
     static enum Action {
-        @Deprecated RETRY,
-        @Deprecated FATAL,
-        @Deprecated NON_APPLICABLE
+        @Deprecated
+        RETRY,
+        @Deprecated
+        FATAL,
+        @Deprecated
+        NON_APPLICABLE
     };
 
     private final int _serviceCode;

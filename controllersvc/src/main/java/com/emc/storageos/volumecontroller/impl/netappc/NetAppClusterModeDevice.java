@@ -1873,20 +1873,22 @@ public class NetAppClusterModeDevice extends AbstractFileStorageDevice {
     // snapmirror operations
     @Override
     public void doCreateMirrorLink(StorageSystem system, URI source, URI target, TaskCompleter completer) {
-        // TODO Auto-generated method stub
-        super.doCreateMirrorLink(system, source, target, completer);
+        mirrorOperations.createMirrorFileShareLink(system, source, target, completer);
     }
 
     @Override
     public void doStartMirrorLink(StorageSystem system, FileShare target, TaskCompleter completer, String policyName) {
-        // TODO Auto-generated method stub
-        super.doStartMirrorLink(system, target, completer, policyName);
+        mirrorOperations.startMirrorFileShareLink(system, target, completer, policyName);
     }
 
     @Override
     public void doStopMirrorLink(StorageSystem system, FileShare target, TaskCompleter completer) {
-        // TODO Auto-generated method stub
-        super.doStopMirrorLink(system, target, completer);
+        mirrorOperations.stopMirrorFileShareLink(system, target, completer);
+    }
+
+    @Override
+    public void doFailoverLink(StorageSystem systemTarget, FileShare target, TaskCompleter completer, String devSpecificPolicyName) {
+        mirrorOperations.failoverMirrorFileShareLink(systemTarget, target, completer, devSpecificPolicyName);
     }
 
 }

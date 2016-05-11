@@ -1023,4 +1023,9 @@ public class NetAppClusterApi {
             throw NetAppCException.exceptions.resumeSnapMirrorFailed(snapMirrorInfo.getSourceVolume(), _ipAddress, e.getMessage());
         }
     }
+
+    public SnapmirrorInfoResp getSnapMirrorInfo(SnapmirrorInfo mirrorInfo) {
+
+        return null;
+    }
 }

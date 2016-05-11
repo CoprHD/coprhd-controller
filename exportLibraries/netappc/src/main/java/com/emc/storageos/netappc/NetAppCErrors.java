@@ -77,4 +77,8 @@ public interface NetAppCErrors {
 
     @DeclareServiceCode(ServiceCode.NETAPPC_INVALID_OPERATION)
     public ServiceError operationNotSupported();
+
+    @DeclareServiceCode(ServiceCode.NETAPP_SNAPMIRROR_ERROR)
+    public ServiceError jobFailed(final String operationName);
+
 }

@@ -6,6 +6,10 @@ package com.iwave.ext.netappc.model;
 
 public class SnapmirrorResp {
 
+    public static final String SUCCESSED = "succeeded";
+    public static final String FAILED = "failed";
+    public static final String INPROGRESS = "in_progress";
+
     public Integer getResultErrorCode() {
         return resultErrorCode;
     }

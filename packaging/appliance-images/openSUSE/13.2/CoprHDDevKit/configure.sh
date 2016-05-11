@@ -68,9 +68,8 @@ function installPackages
   cp -f /etc/zypp/repos.d/*.repo /tmp/coprhd.d/
 
   zypper --reposd-dir=/tmp/coprhd.d --non-interactive --no-gpg-checks refresh
-  zypper --reposd-dir=/tmp/coprhd.d --non-interactive --no-gpg-checks install --oldpackage docker=1.8.3-43.1 lvm2=2.02.98-43.24.1 udev=210.1448627060.53ee915-25.27.1 libudev1=210.1448627060.53ee915-25.27.1
   # package updates from the repo above (suse-13.2-oss-update)
-  zypper --reposd-dir=/tmp/coprhd.d --non-interactive --no-gpg-checks patch -g security --no-recommends
+  zypper --reposd-dir=/tmp/coprhd.d --non-interactive --non-interactive-include-reboot-patches --no-gpg-checks patch -g security --no-recommends
   rm -fr /tmp/coprhd.d
 
   zypper --non-interactive clean
@@ -358,7 +357,10 @@ EOF
 function updateOVF
 {
   OVF=$2
+  DISK=$( grep -oP 'ovf:href="\K[^"]*' ${OVF} )
+  SIZE=$( stat -c %s "$( dirname ${OVF} )/${DISK}" )
 
+  sed -i "s|ovf:id=\"file1\"|ovf:id=\"file1\" ovf:size=\"${SIZE}\"|g" ${OVF}
   cat ${OVF} | head -n -2 > ${OVF}.tmp
   sed -i "s|<VirtualHardwareSection>|<VirtualHardwareSection ovf:transport=\"iso\" ovf:required=\"false\">|g" ${OVF}.tmp
   sed -i "s|<vssd:VirtualSystemType>virtualbox-[0-9a-z.]\{1,\}</vssd:VirtualSystemType>|<vssd:VirtualSystemType>vmx-07</vssd:VirtualSystemType>|g" ${OVF}.tmp

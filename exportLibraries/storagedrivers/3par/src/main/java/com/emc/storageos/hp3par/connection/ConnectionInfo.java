@@ -6,64 +6,65 @@ package com.emc.storageos.hp3par.connection;
 
 public class ConnectionInfo {
     // management interface IP address
-    private String _ipAddress;
+    private String ipAddress;
 
     // management port number
-    private Integer _portNumber;
+    private Integer portNumber;
 
     // management interface user
-    private String _username;
+    private String username;
 
     // management interface password
-    private String _password;
+    private String password;
 
     // Whether or not SSL is used for connection
-    private boolean _useSSL;
+    private boolean useSSL;
 
-    public ConnectionInfo(String _ipAddress, Integer _portNumber, String _username, String _password) {
-    	this._ipAddress = _ipAddress; 
-    	this._portNumber = _portNumber;
-    	this._username = _username;
-    	this._password = _password;
+    public ConnectionInfo(String ipAddress, Integer portNumber, String username, String password) {
+        super();
+        this.ipAddress = ipAddress;
+        this.portNumber = portNumber;
+        this.username = username;
+        this.password = password;
     }
 
-	public String get_ipAddress() {
-		return _ipAddress;
-	}
+    public String getIpAddress() {
+        return ipAddress;
+    }
 
-	public void set_ipAddress(String _ipAddress) {
-		this._ipAddress = _ipAddress;
-	}
+    public void setIpAddress(String ipAddress) {
+        this.ipAddress = ipAddress;
+    }
 
-	public Integer get_portNumber() {
-		return _portNumber;
-	}
+    public Integer getPortNumber() {
+        return portNumber;
+    }
 
-	public void set_portNumber(Integer _portNumber) {
-		this._portNumber = _portNumber;
-	}
+    public void setPortNumber(Integer portNumber) {
+        this.portNumber = portNumber;
+    }
 
-	public String get_username() {
-		return _username;
-	}
+    public String getUsername() {
+        return username;
+    }
 
-	public void set_username(String _username) {
-		this._username = _username;
-	}
+    public void setUsername(String username) {
+        this.username = username;
+    }
 
-	public String get_password() {
-		return _password;
-	}
+    public String getPassword() {
+        return password;
+    }
 
-	public void set_password(String _password) {
-		this._password = _password;
-	}
+    public void setPassword(String password) {
+        this.password = password;
+    }
 
-	public boolean is_useSSL() {
-		return _useSSL;
-	}
+    public boolean isUseSSL() {
+        return useSSL;
+    }
 
-	public void set_useSSL(boolean _useSSL) {
-		this._useSSL = _useSSL;
-	}  
+    public void setUseSSL(boolean useSSL) {
+        this.useSSL = useSSL;
+    }  
 }

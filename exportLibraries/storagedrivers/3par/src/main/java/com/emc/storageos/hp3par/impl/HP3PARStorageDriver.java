@@ -21,6 +21,7 @@ import org.apache.commons.lang.mutable.MutableInt;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.emc.storageos.hp3par.command.CPGCommandResult;
 import com.emc.storageos.hp3par.command.SystemCommandResult;
 import com.emc.storageos.hp3par.connection.ConnectionInfo;
 import com.emc.storageos.hp3par.connection.HP3PARApiFactory;
@@ -95,20 +96,17 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
 	    // For each 3par system
 	    for (StorageSystem storageSystem : storageSystems) {
 	        try {
-	            _log.info("3PAR DiscoverStorageSystem information for storage system {}, name {} - start",
+	            _log.info("3PAR: DiscoverStorageSystem information for storage system {}, name {} - start",
 	                    storageSystem.getIpAddress(), storageSystem.getSystemName());            
 
 	            URI deviceURI = new URI("https", null, 
-	                    storageSystem.getIpAddress(), storageSystem.getPortNumber(), "/", null, null);
-	            String uniqueId = deviceURI.toString();
+                        storageSystem.getIpAddress(), storageSystem.getPortNumber(), "/", null, null);
+                String uniqueId = deviceURI.toString();
 
 	            ConnectionInfo connectionInfo = new ConnectionInfo(storageSystem.getIpAddress(),
 	                    storageSystem.getPortNumber(),
 	                    storageSystem.getUsername(),
 	                    storageSystem.getPassword());
-
-	            // Re-enter the connection info always as there could be change in user name/password 
-	            connectionMap.put(uniqueId, connectionInfo);
 
 	            HP3PARApi hp3parApi = getHP3PARDevice(storageSystem);
 	            String authToken = hp3parApi.getAuthToken(storageSystem.getUsername(),storageSystem.getPassword());
@@ -151,10 +149,11 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
                 storageSystem.setAccessStatus(AccessStatus.READ_WRITE);
 	            setConnInfoToRegistry(storageSystem.getNativeId(), storageSystem.getIpAddress(), storageSystem.getPortNumber(),
 	                    storageSystem.getUsername(), storageSystem.getPassword());
+	               // Re-enter the connection info always as there could be change in user name/password 
+                connectionMap.put(uniqueId, connectionInfo);
 
 	            task.setStatus(DriverTask.TaskStatus.READY);
-	            storageSystem.setNativeId(uniqueId);
-	            _log.info("Successfull discovery of 3PAR storage system {}, name {} - end",
+	            _log.info("3PAR: Successfull discovery storage system {}, name {} - end",
 	                        storageSystem.getIpAddress(), storageSystem.getSystemName());    
 	        } catch (Exception e) {
 	            _log.error("Unable to discover the storage system information {}.\n",
@@ -164,7 +163,7 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
 	            task.setStatus(DriverTask.TaskStatus.FAILED);
 	            e.printStackTrace();
 	            // return error task immediately
-	            return task;
+	            break;
 	        }
 	    } // end for each StorageSystem
 	    
@@ -173,9 +172,31 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
 
 	@Override
 	public DriverTask discoverStoragePools(StorageSystem storageSystem, List<StoragePool> storagePools) {
-		// TODO Auto-generated method stub
-	    _log.info("3PAR Discover pools for native id {}", storageSystem.getNativeId());
-		return null;
+	    //For this 3PAR system
+	    _log.info("3PAR: discoverStoragePools information for storage system {}, nativeId {} - start",
+                storageSystem.getIpAddress(), storageSystem.getNativeId());
+	    DriverTask task = createDriverTask(HP3PARConstants.TASK_TYPE_DISCOVER_STORAGE_POOLS);
+
+	    try {
+	        // get Api client
+	        ConnectionInfo connectionInfo = connectionMap.get(storageSystem.getNativeId());
+	        HP3PARApi hp3parApi = getHP3PARDevice(connectionInfo);
+
+            // get storage pool details
+            CPGCommandResult cpgResult = hp3parApi.getCPGDetails();
+	        
+            task.setStatus(DriverTask.TaskStatus.READY);
+            _log.info("3PAR: discoverStoragePools information for storage system {}, nativeId {} - end",
+                    storageSystem.getIpAddress(), storageSystem.getNativeId());
+	    } catch (Exception e) {
+            _log.error("Unable to discover the storage pool information {}.\n",
+                    storageSystem.getSystemName());
+            task.setMessage(String.format("Unable to query the storage system %s information ",
+                    storageSystem.getSystemName()) + e.getMessage());
+            task.setStatus(DriverTask.TaskStatus.FAILED);
+            e.printStackTrace();
+        }
+        return task;
 	}
 
 	@Override
@@ -358,11 +379,24 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
                     .getRESTClient(deviceURI, hp3parSystem.getUsername(), hp3parSystem.getPassword());
         } catch (Exception e) {
             e.printStackTrace();
-            _log.error("Error in getting 3PAR device");
+            _log.error("Error in getting 3PAR device: input StorageSystem");
             throw new HP3PARException("Error in getting 3PAR device");
         }       
     }
-    
+
+    private HP3PARApi getHP3PARDevice(ConnectionInfo connectionInfo) throws HP3PARException {
+        URI deviceURI;
+        try {
+            deviceURI = new URI("https", null, connectionInfo.getIpAddress(), connectionInfo.getPortNumber(), "/", null, null);
+            return hp3parApiFactory
+                    .getRESTClient(deviceURI, connectionInfo.getUsername(), connectionInfo.getPassword());
+        } catch (Exception e) {
+            e.printStackTrace();
+            _log.error("Error in getting 3PAR device: input ConnectionInfo");
+            throw new HP3PARException("Error in getting 3PAR device");
+        }       
+    }
+
     /**
      * Create driver task for task type
      *

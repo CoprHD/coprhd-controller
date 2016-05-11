@@ -45,13 +45,15 @@ public class OpenStackSynchronizationTask extends ResourceService {
 
     // Constants
     // Interval delay between each execution in seconds.
-    private static final int DEFAULT_INTERVAL_DELAY = 60;
+    public static final int DEFAULT_INTERVAL_DELAY = 60;
     // Initial delay before first execution in seconds.
     private static final int INITIAL_DELAY = 60;
     // Maximum time for a timeout when awaiting for termination.
     private static final int MAX_TERMINATION_TIME = 120;
     // Minimum interval in seconds.
-    private static final int MIN_INTERVAL_DELAY = 10;
+    public static final int MIN_INTERVAL_DELAY = 10;
+    // Default excluded option for OSTenant.
+    private static final boolean DEFAULT_EXCLUDED_TENANT_OPTION = false;
 
     private static final String TENANT_ID = "tenant_id";
     private static final String OPENSTACK = "OpenStack";
@@ -177,15 +179,25 @@ public class OpenStackSynchronizationTask extends ResourceService {
 
         if (keystoneProvider != null && keystoneProvider.getTenantsSynchronizationOptions() != null) {
 
-            for (String option : keystoneProvider.getTenantsSynchronizationOptions()) {
-                // There is only ADDITION, DELETION and interval in this StringSet
-                if (!AuthnProvider.TenantsSynchronizationOptions.ADDITION.toString().equals(option) && !AuthnProvider.TenantsSynchronizationOptions.DELETION.toString().equals(option)) {
-                    interval = Integer.parseInt(option);
-                }
+            String taskInterval = getSynchronizationOptionsInterval(keystoneProvider);
+            if (taskInterval != null) {
+                interval = Integer.parseInt(taskInterval);
             }
         }
 
         return interval;
+    }
+
+    public String getSynchronizationOptionsInterval(AuthnProvider keystoneProvider) {
+
+        for (String option : keystoneProvider.getTenantsSynchronizationOptions()) {
+            // There is only ADDITION, DELETION and interval in this StringSet
+            if (!AuthnProvider.TenantsSynchronizationOptions.ADDITION.toString().equals(option)
+                    && !AuthnProvider.TenantsSynchronizationOptions.DELETION.toString().equals(option)) {
+                return option;
+            }
+        }
+        return null;
     }
 
     /**
@@ -267,6 +279,8 @@ public class OpenStackSynchronizationTask extends ResourceService {
         while (osIter.hasNext()) {
 
             TenantV2 osTenant = osIter.next();
+            // Update information about this Tenant in CoprHD database.
+            updateOrCreateOpenstackTenantInCoprhd(osTenant);
             while (coprhdIter.hasNext()) {
 
                 TenantOrg coprhdTenant = coprhdIter.next();
@@ -293,6 +307,59 @@ public class OpenStackSynchronizationTask extends ResourceService {
         }
 
         return tenantsToUpdate;
+    }
+
+    /**
+     * Updates or creates CoprHD representation of OpenStack Tenant.
+     *
+     * @param tenant OpenStack Tenant.
+     * @return Updated or Created Tenant.
+     */
+    private OSTenant updateOrCreateOpenstackTenantInCoprhd(TenantV2 tenant) {
+
+        OSTenant osTenant = findOpenstackTenantInCoprhd(tenant);
+
+        if (osTenant != null) {
+            if (!osTenant.getDescription().equals(tenant.getDescription())) {
+                osTenant.setDescription(tenant.getDescription());
+            }
+            if (!osTenant.getName().equals(tenant.getName())) {
+                osTenant.setName(tenant.getName());
+            }
+            if (osTenant.getEnabled() != Boolean.parseBoolean(tenant.getEnabled())) {
+                osTenant.setEnabled(Boolean.parseBoolean(tenant.getEnabled()));
+            }
+
+            _dbClient.updateObject(osTenant);
+
+            return osTenant;
+        }
+
+        osTenant = mapTenant(tenant);
+        osTenant.setId(URIUtil.createId(OSTenant.class));
+        _dbClient.createObject(osTenant);
+
+        return osTenant;
+    }
+
+    /**
+     * Finds CoprHD representation of OpenStack Tenant.
+     *
+     * @param tenant OpenStack Tenant.
+     * @return CoprHD Tenant.
+     */
+    private OSTenant findOpenstackTenantInCoprhd(TenantV2 tenant) {
+        List<URI> osTenantURI = _dbClient.queryByType(OSTenant.class, true);
+        Iterator<OSTenant> osTenantIter = _dbClient.queryIterativeObjects(OSTenant.class, osTenantURI);
+
+        while (osTenantIter.hasNext()) {
+            OSTenant osTenant = osTenantIter.next();
+            if (osTenant.getOsId().equals(tenant.getId())) {
+                return osTenant;
+            }
+        }
+
+        return null;
     }
 
     /**
@@ -334,23 +401,38 @@ public class OpenStackSynchronizationTask extends ResourceService {
      */
     public void createTenant(TenantV2 tenant, AuthnProvider provider) {
 
-        TenantCreateParam param = _authnConfigurationService.prepareTenantMappingForOpenstack(tenant, provider);
+        OSTenant osTenant = findOpenstackTenantInCoprhd(tenant);
 
-        TenantOrg subtenant = new TenantOrg();
-        subtenant.setId(URIUtil.createId(TenantOrg.class));
-        subtenant.setParentTenant(new NamedURI(_permissionsHelper.getRootTenant().getId(), param.getLabel()));
-        subtenant.setLabel(param.getLabel());
-        subtenant.setDescription(param.getDescription());
-        List<BasePermissionsHelper.UserMapping> userMappings = BasePermissionsHelper.UserMapping.fromParamList(param.getUserMappings());
-        for (BasePermissionsHelper.UserMapping userMapping : userMappings) {
-            userMapping.setDomain(userMapping.getDomain().trim());
-            subtenant.addUserMapping(userMapping.getDomain(), userMapping.toString());
+        if (osTenant != null && !osTenant.getExcluded()) {
+            TenantCreateParam param = _authnConfigurationService.prepareTenantMappingForOpenstack(mapTenant(tenant), provider);
+
+            TenantOrg subtenant = new TenantOrg();
+            subtenant.setId(URIUtil.createId(TenantOrg.class));
+            subtenant.setParentTenant(new NamedURI(_permissionsHelper.getRootTenant().getId(), param.getLabel()));
+            subtenant.setLabel(param.getLabel());
+            subtenant.setDescription(param.getDescription());
+            List<BasePermissionsHelper.UserMapping> userMappings = BasePermissionsHelper.UserMapping.fromParamList(param.getUserMappings());
+            for (BasePermissionsHelper.UserMapping userMapping : userMappings) {
+                userMapping.setDomain(userMapping.getDomain().trim());
+                subtenant.addUserMapping(userMapping.getDomain(), userMapping.toString());
+            }
+            subtenant.addRole(new PermissionsKey(PermissionsKey.Type.SID,
+                    ROOT).toString(), Role.TENANT_ADMIN.toString());
+
+            _dbClient.createObject(subtenant);
         }
-        subtenant.addRole(new PermissionsKey(PermissionsKey.Type.SID,
-                ROOT).toString(), Role.TENANT_ADMIN.toString());
+    }
 
-        _dbClient.createObject(subtenant);
+    private OSTenant mapTenant(TenantV2 tenant) {
 
+        OSTenant osTenant = new OSTenant();
+        osTenant.setOsId(tenant.getId());
+        osTenant.setDescription(tenant.getDescription());
+        osTenant.setName(tenant.getName());
+        osTenant.setEnabled(Boolean.parseBoolean(tenant.getEnabled()));
+        osTenant.setExcluded(DEFAULT_EXCLUDED_TENANT_OPTION);
+
+        return osTenant;
     }
 
     /**

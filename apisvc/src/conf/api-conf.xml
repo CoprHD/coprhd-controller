@@ -554,7 +554,10 @@
                     <property name="placementManager" ref="placementManager"/>
                 </bean>
                 <bean class="com.emc.storageos.api.service.impl.resource.KeystoneService">
+                    <property name="dbClient" ref="dbclient" />
                     <property name="keystoneUtils" ref="keystoneUtils" />
+                    <property name="openStackSynchronizationTask" ref="openStackSynchronizationTask" />
+                    <property name="authService" ref="authnConfigurationService" />
                 </bean>
                 <bean class="com.emc.storageos.api.service.impl.resource.cinder.QosService">
                     <property name="dbClient" ref="dbclient"/>

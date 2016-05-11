@@ -26,9 +26,9 @@ public class OSTenant extends DataObject{
 
     private String osId;
     private String description;
-    private Boolean enabled = true;
+    private Boolean enabled;
     private String name;
-    private Boolean excluded = false;
+    private Boolean excluded;
 
     @Name("osid")
     public String getOsId() {
@@ -51,7 +51,7 @@ public class OSTenant extends DataObject{
     }
 
     @Name("enabled")
-    public boolean getEnabled() {
+    public Boolean getEnabled() {
         return enabled;
     }
 
@@ -71,7 +71,7 @@ public class OSTenant extends DataObject{
     }
 
     @Name("excluded")
-    public boolean getExcluded() {
+    public Boolean getExcluded() {
         return excluded;
     }
 

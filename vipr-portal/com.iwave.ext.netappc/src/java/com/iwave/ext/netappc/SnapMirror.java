@@ -112,15 +112,63 @@ public class SnapMirror {
         return snapMirrorResp;
     }
 
-    public boolean resumesnapMirror(SnapmirrorInfo snapMirrorInfo) {
+    public boolean destroySnapMirror(SnapmirrorInfo snapMirrorInfo) {
+        NaElement elem = new NaElement("snapmirror-destroy");
 
+        // destination attributes
+        prepSourceReq(elem, snapMirrorInfo);
+
+        // source attributes
+        prepDestReq(elem, snapMirrorInfo);
+
+        try {
+            NaElement results = server.invokeElem(elem);
+
+        } catch (Exception e) {
+            String msg = "Failed to Abort SnapMirror: " + snapMirrorInfo.getDestinationVolume();
+            log.error(msg, e);
+            throw new NetAppCException(msg, e);
+        }
         return true;
     }
 
-    public SnapmirrorResp abortAsyncSnapMirror(SnapmirrorInfo snapMirrorInfo) {
-        SnapmirrorResp snapMirrorResp = new SnapmirrorResp();
+    public boolean resumesnapMirror(SnapmirrorInfo snapMirrorInfo) {
+        NaElement elem = new NaElement("snapmirror-resume");
 
-        return snapMirrorResp;
+        // destination attributes
+        prepSourceReq(elem, snapMirrorInfo);
+
+        // source attributes
+        prepDestReq(elem, snapMirrorInfo);
+
+        try {
+            NaElement results = server.invokeElem(elem);
+
+        } catch (Exception e) {
+            String msg = "Failed to Abort SnapMirror: " + snapMirrorInfo.getDestinationVolume();
+            log.error(msg, e);
+            throw new NetAppCException(msg, e);
+        }
+        return true;
+    }
+
+    public boolean abortSnapMirror(SnapmirrorInfo snapMirrorInfo) {
+        NaElement elem = new NaElement("snapmirror-abort");
+
+        // destination attributes
+        prepSourceReq(elem, snapMirrorInfo);
+
+        // source attributes
+        prepDestReq(elem, snapMirrorInfo);
+
+        try {
+            server.invokeElem(elem);
+        } catch (Exception e) {
+            String msg = "Failed to Abort SnapMirror: " + snapMirrorInfo.getDestinationVolume();
+            log.error(msg, e);
+            throw new NetAppCException(msg, e);
+        }
+        return true;
     }
 
     // helper function

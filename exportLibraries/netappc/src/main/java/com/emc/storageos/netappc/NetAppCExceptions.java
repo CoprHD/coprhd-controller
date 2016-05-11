@@ -161,6 +161,9 @@ public interface NetAppCExceptions {
     public NetAppCException deleteAsyncSnapMirrorFailed(final String volName, final String ip, final String message);
 
     @DeclareServiceCode(ServiceCode.NETAPPC_ERROR)
+    public NetAppCException abortSnapMirrorFailed(final String volName, final String ip, final String message);
+
+    @DeclareServiceCode(ServiceCode.NETAPPC_ERROR)
     public NetAppCException resyncAsyncSnapMirrorFailed(final String sourceLocation, final String destLocation, final String message);
 
     @DeclareServiceCode(ServiceCode.NETAPPC_ERROR)

@@ -26,11 +26,13 @@ import com.emc.storageos.volumecontroller.impl.ControllerServiceImpl;
 import com.emc.storageos.volumecontroller.impl.file.FileMirrorOperations;
 import com.emc.storageos.volumecontroller.impl.job.QueueJob;
 import com.emc.storageos.volumecontroller.impl.netappc.job.NetAppCSnapMirrorJob;
+import com.emc.storageos.volumecontroller.impl.netappc.job.NetAppSnapMirrorAbortJob;
 import com.emc.storageos.volumecontroller.impl.netappc.job.NetAppSnapMirrorCreateJob;
 import com.emc.storageos.volumecontroller.impl.netappc.job.NetAppSnapMirrorQuiesceJob;
 import com.emc.storageos.volumecontroller.impl.netappc.job.NetAppSnapMirrorResumeJob;
 import com.iwave.ext.netappc.model.SnapmirrorInfo;
 import com.iwave.ext.netappc.model.SnapmirrorInfoResp;
+import com.iwave.ext.netappc.model.SnapmirrorRelationshipStatus;
 import com.iwave.ext.netappc.model.SnapmirrorResp;
 import com.iwave.ext.netappc.model.SnapmirrorState;
 
@@ -76,8 +78,11 @@ public class NetAppCMirrorOperations implements FileMirrorOperations {
     }
 
     @Override
-    public void stopMirrorFileShareLink(StorageSystem system, FileShare target, TaskCompleter completer) throws DeviceControllerException {
+    public void stopMirrorFileShareLink(StorageSystem systemTarget, FileShare targetFs, TaskCompleter completer)
+            throws DeviceControllerException {
         // TODO Auto-generated method stub
+        FileShare sourceFs = _dbClient.queryObject(FileShare.class, targetFs.getParentFileShare().getURI());
+        StorageSystem sourceSystem = _dbClient.queryObject(StorageSystem.class, sourceFs.getStorageDevice());
 
     }
 
@@ -126,6 +131,7 @@ public class NetAppCMirrorOperations implements FileMirrorOperations {
     @Override
     public void deleteMirrorFileShareLink(StorageSystem system, URI source, URI target, TaskCompleter completer)
             throws DeviceControllerException {
+
     }
 
     @Override
@@ -154,7 +160,7 @@ public class NetAppCMirrorOperations implements FileMirrorOperations {
         StorageSystem sourceSystem = _dbClient.queryObject(StorageSystem.class, sourceFs.getStorageDevice());
 
         BiosCommandResult cmdResult =
-                doQuiesceSnapMirror(sourceSystem, targetSystem, sourceFs, targetFs, completer);
+                doResumeSnapMirror(sourceSystem, targetSystem, sourceFs, targetFs, completer);
 
         if (cmdResult.getCommandSuccess()) {
             completer.ready(_dbClient);
@@ -171,9 +177,23 @@ public class NetAppCMirrorOperations implements FileMirrorOperations {
 
     }
 
+    // cancel or abort mirror link operation
     @Override
-    public void cancelMirrorFileShareLink(StorageSystem system, FileShare target, TaskCompleter completer) throws DeviceControllerException {
+    public void cancelMirrorFileShareLink(StorageSystem targetSystem, FileShare targetFs, TaskCompleter completer)
+            throws DeviceControllerException {
+        FileShare sourceFs = _dbClient.queryObject(FileShare.class, targetFs.getParentFileShare().getURI());
+        StorageSystem sourceSystem = _dbClient.queryObject(StorageSystem.class, sourceFs.getStorageDevice());
 
+        BiosCommandResult cmdResult =
+                doAbortSnapMirror(sourceSystem, targetSystem, sourceFs, targetFs, completer);
+
+        if (cmdResult.getCommandSuccess()) {
+            completer.ready(_dbClient);
+        } else if (cmdResult.getCommandPending()) {
+            completer.statusPending(_dbClient, cmdResult.getMessage());
+        } else {
+            completer.error(_dbClient, cmdResult.getServiceCoded());
+        }
     }
 
     @Override
@@ -314,8 +334,10 @@ public class NetAppCMirrorOperations implements FileMirrorOperations {
         return BiosCommandResult.createSuccessfulResult();
     }
 
-    BiosCommandResult doDeleteSnapMirror(StorageSystem sourceSystem, StorageSystem targetSystem, FileShare sourceFs, FileShare targetFs,
+    BiosCommandResult doDestroySnapMirror(StorageSystem sourceSystem, StorageSystem targetSystem, FileShare sourceFs,
+            FileShare targetFs,
             TaskCompleter taskCompleter) {
+
         return BiosCommandResult.createSuccessfulResult();
     }
 
@@ -404,6 +426,39 @@ public class NetAppCMirrorOperations implements FileMirrorOperations {
         }
     }
 
+    BiosCommandResult doAbortSnapMirror(StorageSystem sourceSystem, StorageSystem targetSystem, FileShare sourceFs, FileShare targetFs,
+            TaskCompleter taskCompleter) {
+        SnapmirrorInfo snapMirrorInfo = prepareSnapMirrorInfo(sourceSystem, targetSystem, sourceFs, targetFs);
+        String destVserver = findSVMName(targetFs);
+        NetAppClusterApi ncApi = new NetAppClusterApi.Builder(targetSystem.getIpAddress(),
+                targetSystem.getPortNumber(), targetSystem.getUsername(),
+                targetSystem.getPassword()).https(true).svm(destVserver).build();
+
+        try {
+            SnapmirrorInfoResp mirrorInfoResp = ncApi.getSnapMirrorInfo(snapMirrorInfo);
+
+            if (mirrorInfoResp.getRelationshipStatus() != null
+                    && SnapmirrorRelationshipStatus.transferring.equals(mirrorInfoResp.getCurrentTransferError())) {
+                ncApi.abortSnapMirror(snapMirrorInfo);
+
+                NetAppSnapMirrorAbortJob snapMirrorQuiesceJob = new NetAppSnapMirrorAbortJob(snapMirrorInfo.getDestinationLocation(),
+                        sourceSystem.getId(),
+                        taskCompleter);
+
+                ControllerServiceImpl.enqueueJob(new QueueJob(snapMirrorQuiesceJob));
+                return BiosCommandResult.createPendingResult();
+            } else {
+                return BiosCommandResult.createSuccessfulResult();
+            }
+
+        } catch (Exception e) {
+            _log.error("Snapmirror Quiesce operation failed", e);
+            ServiceError error = DeviceControllerErrors.netappc.jobFailed("Snapmirror Quiesce operation failed:" + e.getMessage());
+            return BiosCommandResult.createErrorResult(error);
+
+        }
+    }
+
     BiosCommandResult doResumeSnapMirror(StorageSystem sourceSystem, StorageSystem targetSystem, FileShare sourceFs, FileShare targetFs,
             TaskCompleter taskCompleter) {
         SnapmirrorInfo snapMirrorInfo = prepareSnapMirrorInfo(sourceSystem, targetSystem, sourceFs, targetFs);
@@ -417,7 +472,7 @@ public class NetAppCMirrorOperations implements FileMirrorOperations {
             SnapmirrorInfoResp mirrorInfoResp = ncApi.getSnapMirrorInfo(snapMirrorInfo);
             if (SnapmirrorState.PAUSED.equals(mirrorInfoResp.getMirrorState()) ||
                     SnapmirrorState.SOURCE.equals(mirrorInfoResp.getMirrorState())) {
-                ncApi.quienceSnapMirror(snapMirrorInfo);
+                ncApi.resumeSnapMirror(snapMirrorInfo);
 
                 NetAppSnapMirrorResumeJob snapMirrorResumeJob = new NetAppSnapMirrorResumeJob(snapMirrorInfo.getDestinationLocation(),
                         sourceSystem.getId(),

@@ -2,6 +2,7 @@
  * Copyright (c) 2016 EMC Corporation
  * All Rights Reserved
  */
+
 package com.emc.storageos.volumecontroller.impl.netappc.job;
 
 import java.io.Serializable;
@@ -20,7 +21,8 @@ import com.emc.storageos.volumecontroller.JobContext;
 import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.volumecontroller.impl.JobPollResult;
 
-public class NetAppSnapMirrorCreateJob extends Job implements Serializable {
+public class NetAppSnapMirrorAbortJob extends Job implements Serializable {
+
     private static final Logger _logger = LoggerFactory.getLogger(NetAppSnapMirrorCreateJob.class);
 
     private static final long ERROR_TRACKING_LIMIT = 60 * 1000; // tracking limit for transient errors. set for 2 hours
@@ -36,14 +38,14 @@ public class NetAppSnapMirrorCreateJob extends Job implements Serializable {
     private JobPollResult _pollResult = new JobPollResult();
     private String _errorDescription = null;
 
-    public NetAppSnapMirrorCreateJob(String jobId, URI storageSystemUri, TaskCompleter taskCompleter, String jobName) {
+    public NetAppSnapMirrorAbortJob(String jobId, URI storageSystemUri, TaskCompleter taskCompleter, String jobName) {
         this._storageSystemUri = storageSystemUri;
         this._taskCompleter = taskCompleter;
         this._jobName = jobName;
         this._jobIds.add(jobId);
     }
 
-    public NetAppSnapMirrorCreateJob(String jobId, URI storageSystemUri, TaskCompleter taskCompleter) {
+    public NetAppSnapMirrorAbortJob(String jobId, URI storageSystemUri, TaskCompleter taskCompleter) {
         this._storageSystemUri = storageSystemUri;
         this._taskCompleter = taskCompleter;
         this._jobName = "netAppSnapMirrorStartJob";

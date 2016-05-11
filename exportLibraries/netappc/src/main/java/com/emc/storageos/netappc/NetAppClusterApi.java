@@ -1024,6 +1024,26 @@ public class NetAppClusterApi {
         }
     }
 
+    public boolean destorySnapMirror(SnapmirrorInfo snapMirrorInfo) {
+        try {
+            netAppClusterFacade = new NetAppClusterFacade(_ipAddress, _portNumber, _userName,
+                    _password, _https);
+            return netAppClusterFacade.destroySnapMirror(snapMirrorInfo);
+        } catch (Exception e) {
+            throw NetAppCException.exceptions.deleteAsyncSnapMirrorFailed(snapMirrorInfo.getSourceVolume(), _ipAddress, e.getMessage());
+        }
+    }
+
+    public boolean abortSnapMirror(SnapmirrorInfo snapMirrorInfo) {
+        try {
+            netAppClusterFacade = new NetAppClusterFacade(_ipAddress, _portNumber, _userName,
+                    _password, _https);
+            return netAppClusterFacade.abortSnapMirror(snapMirrorInfo);
+        } catch (Exception e) {
+            throw NetAppCException.exceptions.abortSnapMirrorFailed(snapMirrorInfo.getSourceVolume(), _ipAddress, e.getMessage());
+        }
+    }
+
     public SnapmirrorInfoResp getSnapMirrorInfo(SnapmirrorInfo mirrorInfo) {
 
         return null;

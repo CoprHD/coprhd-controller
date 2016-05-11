@@ -468,6 +468,7 @@ public class CustomAuthenticationManager implements AuthenticationManager {
                                         providers);
                         _lastReloadTime = timeNow;
                         updateLastKnown(providers);
+                        _ldapProviderMonitor.setAuthnProviders(_authNProviders);
                         _log.info("Done authn provider config reload. lastReloadTime {}", _lastReloadTime);
                     }
                     // sleep and check for updates

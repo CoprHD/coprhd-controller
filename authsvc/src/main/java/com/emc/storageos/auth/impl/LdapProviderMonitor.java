@@ -47,14 +47,23 @@ public class LdapProviderMonitor {
         log.info("LdapProvider Monitor started.");
     }
 
+    public void setAuthnProviders(ImmutableAuthenticationProviders authnProviders) {
+        synchronized (this) {
+            this.providerList = authnProviders;
+        }
+    }
+
     private class LdapMonitorWorker implements Runnable {
 
         @Override
         public void run() {
             log.info("Ldap Monitor Worker wake up ...");
             try {
-                List<AuthenticationProvider> providers = providerList.getAuthenticationProviders();
-                log.info("Ldap Monitor Worker got provider list. Size is {}", providers.size());
+                List<AuthenticationProvider> providers = null;
+                synchronized (this) {
+                    providers = providerList.getAuthenticationProviders();
+                }
+                log.info("Ldap Monitor Worker got provider list. Size is {}.", providers.size());
                 for (AuthenticationProvider provider : providers) {
                     if (!(provider.getHandler() instanceof StorageOSLdapAuthenticationHandler)) { // That's for AD or Ldap
                         log.info("Found a provider but is not ldap mode. Skipping ...");

@@ -83,7 +83,7 @@ public class StorageOSLdapAuthenticationHandler implements
      * @return
      */
     private boolean doAuthentication(UsernamePasswordCredentials credentials) {
-        ArrayList<LdapOrADServer> failedServers = new ArrayList<>();
+        ArrayList<LdapOrADServer> disconnectedServers = new ArrayList<>();
         boolean authResult = false;
 
         //for (int i = 0; i < _contextSources.size(); i++) {
@@ -92,15 +92,19 @@ public class StorageOSLdapAuthenticationHandler implements
             try {
                 authResult = doAuthenticationOverSingleServer(server, credentials);
             } catch (CommunicationException e) {
-                failedServers.add(server);
+                disconnectedServers.add(server);
                 _alertLog.error(MessageFormat.format("Connection to LDAP server {0} failed for domain(s) {1}. {2}",
                         Arrays.toString(server.getContextSource().getUrls()), _domains, e.getMessage()));
             }
         }
 
         // After authentication, lets handle failed ldap servers
-        if (!failedServers.isEmpty()) {
-            _failureHandler.handle(_ldapServers, failedServers);
+        if (!disconnectedServers.isEmpty()) {
+            _failureHandler.handle(_ldapServers, disconnectedServers);
+        }
+
+        if (connectedServers.size() == disconnectedServers.size()) { // All servers are disconnected
+            throw UnauthorizedException.unauthorized.ldapCommunicationException();
         }
 
         // Finally return result;

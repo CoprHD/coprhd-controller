@@ -8,6 +8,7 @@ import com.emc.storageos.auth.impl.LdapOrADServer;
 import com.emc.storageos.auth.impl.LdapServerList;
 
 import java.util.ArrayList;
+import java.util.List;
 
 public class LdapFailureHandler {
     /**

@@ -687,7 +687,7 @@ public class StorageOSLdapPersonAttributeDao implements StorageOSPersonAttribute
     }
 
     private List doLdapSearch(String base, String ldapQuery, SearchControls searchControls, AttributesMapper mapper) {
-        ArrayList<LdapOrADServer> failedServers = new ArrayList<>();
+        ArrayList<LdapOrADServer> disConnectedServers = new ArrayList<>();
         List results = null;
 
         List<LdapOrADServer> connectedServers = _ldapServers.getConnectedServers();
@@ -695,14 +695,18 @@ public class StorageOSLdapPersonAttributeDao implements StorageOSPersonAttribute
             try {
                 results = doLdapSearchOnSingleServer(base, ldapQuery, searchControls, mapper, server);
             } catch (CommunicationException e) {
-                failedServers.add(server);
+                disConnectedServers.add(server);
                 _log.info("Failed to connect to all AD/Ldap servers.", e);
             }
         }
 
         // After search, lets handle failed ldap servers
-        if (! failedServers.isEmpty()) {
-            _failureHandler.handle(_ldapServers, failedServers);
+        if (! disConnectedServers.isEmpty()) {
+            _failureHandler.handle(_ldapServers, disConnectedServers);
+        }
+
+        if (connectedServers.size() == disConnectedServers.size()) { // All servers are disconnected
+            throw UnauthorizedException.unauthorized.ldapCommunicationException();
         }
 
         return results;

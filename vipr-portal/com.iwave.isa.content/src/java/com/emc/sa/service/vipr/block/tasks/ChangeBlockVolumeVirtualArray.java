@@ -34,7 +34,7 @@ public class ChangeBlockVolumeVirtualArray extends WaitForTasks<VolumeRestRep> {
         this.migrationType = migrationType;
         this.migrationHost = migrationHost;
         provideDetailArgs(targetVirtualArrayId, getVolumesDisplayString(),
-                migationType, migrationHost);
+                migrationType, migrationHost);
     }
 
     @Override

@@ -9346,25 +9346,57 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             VplexMirror vplexMirror = getDataObject(VplexMirror.class, vplexMirrorURI, _dbClient);
             Volume sourceVplexVolume = getDataObject(Volume.class, vplexMirror.getSource().getURI(), _dbClient);
             Volume promoteVolume = _dbClient.queryObject(Volume.class, promoteVolumeURI);
+            StorageSystem vplexSystem = getDataObject(StorageSystem.class, vplexURI, _dbClient);
 
             // Find virtual volume that should have been created when we did detach mirror.
             // Virtual volume is created with the same name as the device name.
             VPlexVirtualVolumeInfo vvInfo = client.findVirtualVolume(vplexMirror.getDeviceLabel());
+            
+            // Get the backend volume for this promoted VPLEX volume. Since we know it is 
+            // a local VPLEX volume, there will only be one. Also get the volume's storage
+            // system.
+            StringSet assocVolumes = vplexMirror.getAssociatedVolumes();
+            URI srcSideAssocVolumeURI = URI.create(assocVolumes.iterator().next());
+            Volume srcSideAssocVolume = getDataObject(Volume.class, srcSideAssocVolumeURI, _dbClient);
+            StorageSystem srcSideStorageSystem = _dbClient.queryObject(StorageSystem.class, srcSideAssocVolume.getStorageController());
+            
+            // Get the project for the promoted VPLEX volume.
+            Project project = _dbClient.queryObject(Project.class, promoteVolume.getProject().getURI());
+            
+            // Get the ViPR label for the promoted VPLEX volume.
+            String promotedLabel = String.format("%s-%s", sourceVplexVolume.getLabel(), vplexMirror.getLabel());
 
-            // Build the name for volume so as to rename the vplex volume that is created
-            // with the same name as the device name to follow the name pattern _vol
-            // as the suffix for the vplex volumes
-            StringBuilder volumeNameBuilder = new StringBuilder();
-            volumeNameBuilder.append(vplexMirror.getDeviceLabel());
-            volumeNameBuilder.append(VPlexApiConstants.VIRTUAL_VOLUME_SUFFIX);
+            // Rename the vplex volume created using device detach mirror. If custom naming is enabled 
+            // generate the custom name, else the name follows the default naming convention and must
+            // be renamed to append the "_vol" suffix.
+            try {
+                String newVolumeName = null;
+                Boolean customVolumeNamingEnabled = customConfigHandler.getComputedCustomConfigBooleanValue(
+                        CustomConfigConstants.VPLEX_CUSTOM_VOLUME_NAMING_ENABLED, vplexSystem.getSystemType(), null);
+                if (customVolumeNamingEnabled) {
+                    DataSource volumeNameConfigDataSource = dataSourceFactory.createVPlexVolumeNameDataSource(project, promotedLabel,
+                            srcSideStorageSystem, srcSideAssocVolume.getNativeId(), null, null, null, null);
+                    newVolumeName = customConfigHandler.getComputedCustomConfigValue(
+                            CustomConfigConstants.VPLEX_LOCAL_VOLUME_NAME, vplexSystem.getSystemType(), volumeNameConfigDataSource);                    
+                } else {
+                    // Build the name for volume so as to rename the vplex volume that is created
+                    // with the same name as the device name to follow the name pattern _vol
+                    // as the suffix for the vplex volumes
+                    StringBuilder volumeNameBuilder = new StringBuilder();
+                    volumeNameBuilder.append(vplexMirror.getDeviceLabel());
+                    volumeNameBuilder.append(VPlexApiConstants.VIRTUAL_VOLUME_SUFFIX);
+                    newVolumeName = volumeNameBuilder.toString();
+                }
+                
+                // Rename the vplex volume created using device detach mirror,
+                vvInfo = client.renameResource(vvInfo, newVolumeName.toString());
+            } catch (Exception e) {
+                _log.warn("An error occurred renaming promoted VPLEX volume {}", promoteVolume.getId());
+            }
 
-            // Rename the vplex volume created using device detach mirror,
-            vvInfo = client.renameResource(vvInfo, volumeNameBuilder.toString());
-
-            _log.info(String.format("Promoted virtual volume: %s path: %s", vvInfo.getName(), vvInfo.getPath()));
+            _log.info(String.format("Renamed promoted virtual volume: %s path: %s", vvInfo.getName(), vvInfo.getPath()));
 
             // Fill in the details for the promoted vplex volume
-            String promotedLabel = String.format("%s-%s", sourceVplexVolume.getLabel(), vplexMirror.getLabel());
             promoteVolume.setLabel(promotedLabel);
             promoteVolume.setNativeId(vvInfo.getPath());
             promoteVolume.setNativeGuid(vvInfo.getPath());
@@ -9377,7 +9409,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             promoteVolume.setVirtualArray(vplexMirror.getVirtualArray());
             promoteVolume.setStorageController(vplexMirror.getStorageController());
             promoteVolume.setPool(NullColumnValueGetter.getNullURI());
-            promoteVolume.setAssociatedVolumes(new StringSet(vplexMirror.getAssociatedVolumes()));
+            promoteVolume.setAssociatedVolumes(new StringSet(assocVolumes));
             promoteVolume.setThinlyProvisioned(vplexMirror.getThinlyProvisioned());
             promoteVolume.setThinVolumePreAllocationSize(vplexMirror.getThinPreAllocationSize());
             // VPLEX volumes created by VIPR have syncActive set to true hence setting same value for promoted vplex volumes
@@ -9394,7 +9426,6 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             _dbClient.updateObject(promoteVolume);
 
             WorkflowStepCompleter.stepSucceded(stepId);
-
         } catch (VPlexApiException vae) {
             _log.error("Exception promoting mirror volume: " + vae.getMessage(), vae);
             WorkflowStepCompleter.stepFailed(stepId, vae);

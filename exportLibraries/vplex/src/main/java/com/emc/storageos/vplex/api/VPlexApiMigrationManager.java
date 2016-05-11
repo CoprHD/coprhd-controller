@@ -1316,8 +1316,7 @@ public class VPlexApiMigrationManager {
     private boolean volumeHasDefaultNamingConvention(VPlexMigrationInfo migrationInfo) {     
         // First check where the source extent for the migration follows
         // the ViPR default naming convention. This is mostly going to be 
-        // the case ingestion case with non-default names and we won't 
-        // rename anything.
+        // ingestion case.
         String migrationSrcName = migrationInfo.getSource();
         if (!migrationSrcName.startsWith(VPlexApiConstants.EXTENT_PREFIX)
                 && !migrationSrcName.endsWith(VPlexApiConstants.EXTENT_SUFFIX)) {

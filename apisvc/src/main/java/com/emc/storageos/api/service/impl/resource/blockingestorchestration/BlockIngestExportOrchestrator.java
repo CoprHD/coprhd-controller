@@ -284,8 +284,8 @@ public abstract class BlockIngestExportOrchestrator extends ResourceService {
                             while (initsOfHostIt.hasNext()) {
                                 String uriStr = initsOfHostIt.next();
                                 Initiator init = _dbClient.queryObject(Initiator.class, URI.create(uriStr));
-                                _logger.info("checking initiator {} for connectivity", init.getInitiatorPort());
                                 if (null != init) {
+                                    _logger.info("checking initiator {} for connectivity", init.getInitiatorPort());
                                     Set<String> connectedVarrays = ConnectivityUtil.getInitiatorVarrays(init.getInitiatorPort(), _dbClient);
                                     _logger.info("initiator's connected varrays are: {}", connectedVarrays);
                                     if (!connectedVarrays.contains(varrayUri.toString())) {

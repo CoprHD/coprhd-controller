@@ -86,7 +86,6 @@ public class StorageOSLdapAuthenticationHandler implements
         ArrayList<LdapOrADServer> disconnectedServers = new ArrayList<>();
         boolean authResult = false;
 
-        //for (int i = 0; i < _contextSources.size(); i++) {
         List<LdapOrADServer> connectedServers = _ldapServers.getConnectedServers();
         for (LdapOrADServer server : connectedServers) {
             try {
@@ -103,7 +102,7 @@ public class StorageOSLdapAuthenticationHandler implements
             _failureHandler.handle(_ldapServers, disconnectedServers);
         }
 
-        if (connectedServers.size() == disconnectedServers.size()) { // All servers are disconnected
+        if (connectedServers.isEmpty()) { // All servers are disconnected
             throw UnauthorizedException.unauthorized.ldapCommunicationException();
         }
 

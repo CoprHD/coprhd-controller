@@ -705,7 +705,7 @@ public class StorageOSLdapPersonAttributeDao implements StorageOSPersonAttribute
             _failureHandler.handle(_ldapServers, disConnectedServers);
         }
 
-        if (connectedServers.size() == disConnectedServers.size()) { // All servers are disconnected
+        if (connectedServers.isEmpty()) { // All servers are disconnected
             throw UnauthorizedException.unauthorized.ldapCommunicationException();
         }
 

@@ -1413,6 +1413,9 @@ public class VNXUnityUnManagedObjectDiscoverer {
                 for (VNXeBase init : fcInits) {
                     VNXeHostInitiator initiator = apiClient.getHostInitiator(init.getId());
                     String portwwn = initiator.getPortWWN();
+                    if (portwwn == null || portwwn.isEmpty()) {
+                        continue;
+                    }
                     Initiator knownInitiator = NetworkUtil.getInitiator(portwwn, dbClient);
                     if (knownInitiator != null) {
                         knownInitSet.add(knownInitiator.getId().toString());
@@ -1425,6 +1428,9 @@ public class VNXUnityUnManagedObjectDiscoverer {
                 for (VNXeBase init : iScsiInits) {
                     VNXeHostInitiator initiator = apiClient.getHostInitiator(init.getId());
                     String portwwn = initiator.getPortWWN();
+                    if (portwwn == null || portwwn.isEmpty()) {
+                        continue;
+                    }
                     Initiator knownInitiator = NetworkUtil.getInitiator(portwwn, dbClient);
                     if (knownInitiator != null) {
                         knownInitSet.add(knownInitiator.getId().toString());

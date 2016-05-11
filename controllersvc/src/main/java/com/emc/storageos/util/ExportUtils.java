@@ -1528,4 +1528,53 @@ public class ExportUtils {
         }
         return result;
     }
+    
+    /**
+     * Gets the most recent export group for the passed volume.
+     * 
+     * @param volume A reference to the volumes
+     * @param ignoreExportGroup An export group to ignore, else null.
+     * @param dbClient A reference to a database client.
+     * 
+     * @return The most recent export or null if not exported or only exported to the passed group to be ignored.
+     */
+    public static ExportGroup getMostRecentExportForVolume(Volume volume, ExportGroup ignoreExportGroup, DbClient dbClient) {
+        ExportGroup mostRecentExportGroup = null;
+        if (volume.isVolumeExported(dbClient, true, true)) {
+            List<ExportGroup> exportGroups = getExportGroupsForBlockObject(volume, dbClient);
+            for (ExportGroup eg : exportGroups) {
+                if ((ignoreExportGroup == null) || (!eg.getLabel().equalsIgnoreCase(ignoreExportGroup.getLabel()))) {
+                    if (mostRecentExportGroup == null) {
+                        mostRecentExportGroup = eg;
+                    } else if (eg.getCreationTime().getTimeInMillis() > mostRecentExportGroup.getCreationTime().getTimeInMillis()) {
+                        mostRecentExportGroup = eg;
+                    }
+                }
+            }
+        }
+        
+        return mostRecentExportGroup;
+    }
+        
+    /**
+     * Return a list of ExportGroups for a BlockObject on an array.
+     * This is used by deleteVolumes to find the ExportGroup(s) on the underlying array.
+     *
+     * @param volume BlockObject - Volume
+     * @return List<ExportGroup>
+     * @throws Exception
+     */
+    public static List<ExportGroup> getExportGroupsForBlockObject(BlockObject bo, DbClient dbClient) {
+        URIQueryResultList exportGroupURIs = new URIQueryResultList();
+        dbClient.queryByConstraint(ContainmentConstraint.Factory.getBlockObjectExportGroupConstraint(bo.getId()), exportGroupURIs);
+        List<ExportGroup> exportGroups = new ArrayList<ExportGroup>();
+        for (URI egURI : exportGroupURIs) {
+            ExportGroup exportGroup = dbClient.queryObject(ExportGroup.class, egURI);
+            if (exportGroup == null || exportGroup.getInactive() == true) {
+                continue;
+            }
+            exportGroups.add(exportGroup);
+        }
+        return exportGroups;
+    }
 }

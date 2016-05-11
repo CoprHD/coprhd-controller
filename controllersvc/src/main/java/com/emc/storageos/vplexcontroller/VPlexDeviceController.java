@@ -44,7 +44,6 @@ import com.emc.storageos.customconfigcontroller.impl.CustomConfigHandler;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
-import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup.Types;
@@ -3474,25 +3473,12 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                                     }
                                 }
                                 
-                                ExportGroup latestExportGroup = null;
                                 String hostOrClusterName = null;
                                 String exportType = null;
-                                if (volume.isVolumeExported(_dbClient, true, true)) {
-                                    List<ExportGroup> exportGroups = getExportGroupsForVolume(volume);
-                                    for (ExportGroup eg : exportGroups) {
-                                        if (!eg.getLabel().equalsIgnoreCase(exportGroup.getLabel())) {
-                                            if (latestExportGroup == null) {
-                                                latestExportGroup = eg;
-                                            } else if (eg.getCreationTime().getTimeInMillis() > latestExportGroup.getCreationTime().getTimeInMillis()) {
-                                                latestExportGroup = eg;
-                                            }
-                                        }
-                                    }
-                                }
-                                
-                                if (latestExportGroup != null) {
-                                    hostOrClusterName = latestExportGroup.getLabel();
-                                    exportType = latestExportGroup.getType();
+                                ExportGroup mostRecentExportGroup = ExportUtils.getMostRecentExportForVolume(volume, exportGroup, _dbClient);
+                                if (mostRecentExportGroup != null) {
+                                    hostOrClusterName = mostRecentExportGroup.getLabel();
+                                    exportType = mostRecentExportGroup.getType();
                                     if (isDistributed) {
                                         customConfig = ExportGroup.ExportGroupType.Host.name().equals(exportType) ? 
                                                 CustomConfigConstants.VPLEX_HOST_EXPORT_DISTRIBUTED_VOLUME_NAME :
@@ -5124,28 +5110,6 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
     }
 
     /**
-     * Return a list of ExportGroups for a BlockObject on an array.
-     * This is used by deleteVolumes to find the ExportGroup(s) on the underlying array.
-     *
-     * @param volume BlockObject - Volume
-     * @return List<ExportGroup>
-     * @throws Exception
-     */
-    private List<ExportGroup> getExportGroupsForVolume(BlockObject volume) throws Exception {
-        URIQueryResultList exportGroupURIs = new URIQueryResultList();
-        _dbClient.queryByConstraint(ContainmentConstraint.Factory.getBlockObjectExportGroupConstraint(volume.getId()), exportGroupURIs);
-        List<ExportGroup> exportGroups = new ArrayList<ExportGroup>();
-        for (URI egURI : exportGroupURIs) {
-            ExportGroup exportGroup = _dbClient.queryObject(ExportGroup.class, egURI);
-            if (exportGroup == null || exportGroup.getInactive() == true) {
-                continue;
-            }
-            exportGroups.add(exportGroup);
-        }
-        return exportGroups;
-    }
-
-    /**
      * Gets the end for to communicate with the passed VPlex.
      *
      * @param vplex The VPlex storage system.
@@ -6593,28 +6557,47 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 Boolean customVolumeNamingEnabled = customConfigHandler.getComputedCustomConfigBooleanValue(
                         CustomConfigConstants.VPLEX_CUSTOM_VOLUME_NAMING_ENABLED, vplex.getSystemType(), null);
                 if (customVolumeNamingEnabled) {
-                    String customizedVirtualVolumeName = null;
+                    String customConfig  = null;
                     DataSource volumeNameConfigDataSource = null;
                     String haSideAsscoVolumeNativeId = null;
                     StorageSystem haSideStorageSystem = null;
+                    String hostOrClusterName = null;
+                    String exportType = null;
                     if (newVolume != null) {
                         haSideStorageSystem = _dbClient.queryObject(StorageSystem.class, newVolume.getStorageController());
                         haSideAsscoVolumeNativeId = newVolume.getNativeId();
                     }
                     StorageSystem srcSideStorageSystem = _dbClient.queryObject(StorageSystem.class, srcSideAssocVolume.getStorageController());
                     Project project = _dbClient.queryObject(Project.class, vplexVolume.getProject().getURI());
+                    ExportGroup mostRecentExportGroup = ExportUtils.getMostRecentExportForVolume(vplexVolume, null, _dbClient);
+                    if (mostRecentExportGroup != null) {
+                        hostOrClusterName = mostRecentExportGroup.getLabel();
+                        exportType = mostRecentExportGroup.getType();
+                    }
                     volumeNameConfigDataSource = dataSourceFactory.createVPlexVolumeNameDataSource(project, vplexVolume.getLabel(),
                             srcSideStorageSystem, srcSideAssocVolume.getNativeId(), haSideStorageSystem, haSideAsscoVolumeNativeId,
-                            null, null);
-                    if (newVolume != null) {
-                        customizedVirtualVolumeName = customConfigHandler.getComputedCustomConfigValue(
-                                CustomConfigConstants.VPLEX_DISTRIBUTED_VOLUME_NAME, vplex.getSystemType(), 
-                                volumeNameConfigDataSource);
+                            hostOrClusterName, exportType);
+                    
+                    if (mostRecentExportGroup != null) {
+                        if (newVolume != null) {
+                            customConfig = ExportGroup.ExportGroupType.Host.name().equals(exportType) ? 
+                                    CustomConfigConstants.VPLEX_HOST_EXPORT_DISTRIBUTED_VOLUME_NAME :
+                                        CustomConfigConstants.VPLEX_CLUSTER_EXPORT_DISTRIBUTED_VOLUME_NAME;
+                        } else {
+                            customConfig = ExportGroup.ExportGroupType.Host.name().equals(exportType) ? 
+                                    CustomConfigConstants.VPLEX_HOST_EXPORT_LOCAL_VOLUME_NAME :
+                                        CustomConfigConstants.VPLEX_CLUSTER_EXPORT_LOCAL_VOLUME_NAME;
+                        }
                     } else {
-                        customizedVirtualVolumeName = customConfigHandler.getComputedCustomConfigValue(
-                                CustomConfigConstants.VPLEX_LOCAL_VOLUME_NAME, vplex.getSystemType(), 
-                                volumeNameConfigDataSource);
+                        if (newVolume != null) {
+                            customConfig = CustomConfigConstants.VPLEX_DISTRIBUTED_VOLUME_NAME;
+                        } else {
+                            customConfig = CustomConfigConstants.VPLEX_LOCAL_VOLUME_NAME;
+                        }                                
                     }
+                    
+                    String customizedVirtualVolumeName = customConfigHandler.getComputedCustomConfigValue(
+                                customConfig, vplex.getSystemType(), volumeNameConfigDataSource);
                     
                     _log.info("Renaming VPLEX volume {} to custom name {}", vplexVolume.getDeviceLabel(), customizedVirtualVolumeName);
                     virtvinfo = client.renameResource(virtvinfo, customizedVirtualVolumeName);
@@ -6772,7 +6755,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             }
             URI sourceSystemURI = volume.getStorageController();
             _log.info("Storage system URI is {}", sourceSystemURI);
-            List<ExportGroup> sourceExportGroups = getExportGroupsForVolume(volume);
+            List<ExportGroup> sourceExportGroups = ExportUtils.getExportGroupsForBlockObject(volume, _dbClient);
             for (ExportGroup sourceExportGroup : sourceExportGroups) {
                 URI sourceExportGroupURI = sourceExportGroup.getId();
                 _log.info("Export group URI is {}", sourceExportGroupURI);

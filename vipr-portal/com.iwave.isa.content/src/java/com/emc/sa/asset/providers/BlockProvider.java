@@ -183,6 +183,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
     private static final String VOLUME_TYPE = "Volume";
 
     private static final String NONE_TYPE = "None";
+    private static final String IBMXIV_SYSTEM_TYPE = "ibmxiv";
 
     public static boolean isExclusiveStorage(String storageType) {
         return EXCLUSIVE_STORAGE.equals(storageType);
@@ -767,6 +768,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
             List<BlockConsistencyGroupRestRep> consistencyGroups = api(ctx).blockConsistencyGroups()
                     .search()
                     .byProject(project)
+                    .filter(new ConsistencyGroupIBMXIVFilter(client).not())
                     .run();
             return createBaseResourceOptions(consistencyGroups);
         }
@@ -2021,6 +2023,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
                     .search()
                     .byProject(project)
                     .run();
+
             return createBaseResourceOptions(consistencyGroups);
         }
     }
@@ -2622,7 +2625,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
 
             @Override
             public boolean accept(VolumeRestRep item) {
-                return !isInConsistencyGroup(item);
+                return !isInConsistencyGroup(item) || isIBMXIVVolume(item);
             }
         });
     }
@@ -3204,6 +3207,33 @@ public class BlockProvider extends BaseAssetOptionsProvider {
                 return filter.accept((VolumeRestRep) item);
             }
             return false;
+        }
+    }
+
+    /**
+     * Return true if the volume is an IBM XIV volume
+     *
+     * @param vol
+     * @return
+     */
+    private boolean isIBMXIVVolume(VolumeRestRep vol) {
+        return vol != null && IBMXIV_SYSTEM_TYPE.equals(vol.getSystemType());
+    }
+
+    /**
+     * IBM XIV filter for consistency group.
+     */
+    private static class ConsistencyGroupIBMXIVFilter extends DefaultResourceFilter<BlockConsistencyGroupRestRep> {
+        private final ViPRCoreClient _client;
+
+        public ConsistencyGroupIBMXIVFilter(ViPRCoreClient client) {
+            this._client = client;
+        }
+
+        @Override
+        public boolean accept(BlockConsistencyGroupRestRep cg) {
+            StorageSystemRestRep sys = _client.storageSystems().get(cg.getStorageController());
+            return sys != null && IBMXIV_SYSTEM_TYPE.equals(sys.getSystemType());
         }
     }
 }

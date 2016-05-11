@@ -621,7 +621,7 @@ public class XIVSmisStorageDevice extends DefaultBlockStorageDevice {
         try {
             List<BlockSnapshot> snapshots = _dbClient.queryObject(
                     BlockSnapshot.class, snapshotList);
-            if (inReplicationGroup(snapshots)) {
+            if (ControllerUtils.checkSnapshotsInConsistencyGroup(snapshots, _dbClient, taskCompleter)) {
                 _snapshotOperations.createGroupSnapshots(storage, snapshotList,
                         createInactive, readOnly, taskCompleter);
             } else {
@@ -647,7 +647,7 @@ public class XIVSmisStorageDevice extends DefaultBlockStorageDevice {
         try {
             List<BlockSnapshot> snapshots = _dbClient.queryObject(
                     BlockSnapshot.class, Arrays.asList(snapshot));
-            if (inReplicationGroup(snapshots)) {
+            if (ControllerUtils.checkSnapshotsInConsistencyGroup(snapshots, _dbClient, taskCompleter)) {
                 _snapshotOperations.restoreGroupSnapshots(storage, volume,
                         snapshot, taskCompleter);
             } else {
@@ -672,7 +672,7 @@ public class XIVSmisStorageDevice extends DefaultBlockStorageDevice {
         try {
             List<BlockSnapshot> snapshots = _dbClient.queryObject(
                     BlockSnapshot.class, Arrays.asList(snapshot));
-            if (inReplicationGroup(snapshots)) {
+            if (ControllerUtils.checkSnapshotsInConsistencyGroup(snapshots, _dbClient, taskCompleter)) {
                 _snapshotOperations.deleteGroupSnapshots(storage, snapshot,
                         taskCompleter);
             } else {
@@ -749,6 +749,7 @@ public class XIVSmisStorageDevice extends DefaultBlockStorageDevice {
                 return;
             }
 
+            // CG has not really been created on array side yet, but to ViPR it is created
             consistencyGroup.addSystemConsistencyGroup(storage.getId().toString(), EMTPY_CG_NAME);
             consistencyGroup.setStorageController(storage.getId());
             consistencyGroup.addConsistencyGroupTypes(Types.LOCAL.name());
@@ -772,7 +773,7 @@ public class XIVSmisStorageDevice extends DefaultBlockStorageDevice {
             // Check if the consistency group does exist
             String groupName = _helper
                     .getConsistencyGroupName(consistencyGroup, storage);
-            if (!groupName.equals(EMTPY_CG_NAME)) {
+            if (groupName != null && !groupName.equals(EMTPY_CG_NAME)) {
                 CIMObjectPath cgPath = _cimPath.getConsistencyGroupPath(
                         storage, groupName);
                 CIMInstance cgPathInstance = _helper.checkExists(storage,
@@ -788,7 +789,10 @@ public class XIVSmisStorageDevice extends DefaultBlockStorageDevice {
                 }
             }
             // Set the consistency group to inactive
-            consistencyGroup.removeSystemConsistencyGroup(storage.getId().toString(), groupName);
+            if (groupName != null) {
+                consistencyGroup.removeSystemConsistencyGroup(storage.getId().toString(), groupName);
+            }
+
             if (markInactive) {
                 consistencyGroup.setInactive(true);
             }
@@ -974,31 +978,6 @@ public class XIVSmisStorageDevice extends DefaultBlockStorageDevice {
             _log.error(msg, e);
         }
         return null;
-    }
-
-    /**
-     * Given a list of BlockSnapshot objects, determine if they were created as
-     * part of a consistency group.
-     *
-     * @param snapshotList
-     *            [required] - List of BlockSnapshot objects
-     * @return true if the BlockSnapshots were created as part of volume
-     *         consistency group.
-     */
-    private boolean inReplicationGroup(final List<BlockSnapshot> snapshotList) {
-        boolean isCgCreate = false;
-        if (snapshotList.size() == 1) {
-            BlockSnapshot snapshot = snapshotList.get(0);
-            URI cgUri = snapshot.getConsistencyGroup();
-            if (cgUri != null) {
-                final BlockConsistencyGroup group = _dbClient.queryObject(
-                        BlockConsistencyGroup.class, cgUri);
-                isCgCreate = group != null;
-            }
-        } else if (snapshotList.size() > 1) {
-            isCgCreate = true;
-        }
-        return isCgCreate;
     }
 
     /**

@@ -79,11 +79,11 @@ public class LdapProviderMonitor {
 
                     // Do check.
                     for (LdapOrADServer server : disconnectedServers) {
-                        log.info("Checking if server {}'s connection get back.");
+                        log.info("Checking if server {}'s connection get back.", server);
                         boolean isGood = checkLdapServerConnectivity(authnProvider, server.getContextSource().getUrls()[0]);
                         if (isGood) {
                             ldapServers.markAsConnected(server);
-                            log.info("The AD or ldap server {} came back.");
+                            log.info("The AD or ldap server {} came back.", server);
                         }
                     }
                 }
@@ -114,14 +114,12 @@ public class LdapProviderMonitor {
     private AuthnProvider queryAuthnProviderFromDB(Set<String> domains) {
         URIQueryResultList providers = new URIQueryResultList();
         String domain = (String) domains.toArray()[0]; // Must have at lease one
-        log.info("The query domain is {}", domain);
         try {
             dbClient.queryByConstraint(AlternateIdConstraint.Factory.getAuthnProviderDomainConstraint(domain), providers);
             Iterator<URI> it = providers.iterator();
             while (it.hasNext()) {
                 URI providerURI = it.next();
                 AuthnProvider provider = dbClient.queryObject(AuthnProvider.class, providerURI);
-                log.info("Found a provider");
                 if (provider != null && provider.getDisable() == false) {
                     return provider;
                 }
@@ -130,8 +128,6 @@ public class LdapProviderMonitor {
             log.error("Could not query for authn providers to check for existing domain {}", domain, ex);
             throw ex;
         }
-
-        log.info("Found no provider");
         return null;
     }
 }

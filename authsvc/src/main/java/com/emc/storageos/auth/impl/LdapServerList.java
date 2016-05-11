@@ -8,13 +8,14 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 public class LdapServerList {
     private static Logger log = LoggerFactory.getLogger(LdapServerList.class);
 
-    ArrayList<LdapOrADServer> connectedServers = new ArrayList<>();
-    ArrayList<LdapOrADServer> disConnectedServers = new ArrayList<>();
+    List<LdapOrADServer> connectedServers = Collections.synchronizedList(new ArrayList<LdapOrADServer>());
+    List<LdapOrADServer> disConnectedServers = Collections.synchronizedList(new ArrayList<LdapOrADServer>());
 
     public List<LdapOrADServer> getConnectedServers() {
         return connectedServers;

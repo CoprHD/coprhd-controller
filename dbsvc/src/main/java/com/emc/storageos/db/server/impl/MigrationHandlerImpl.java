@@ -109,9 +109,9 @@ public class MigrationHandlerImpl implements MigrationHandler {
 		return coordinator;
 	}
 
-	public InternalDbClient getDbClient() {
-		return dbClient;
-	}
+    public DbClient getDbClient() {
+        return dbClient;
+    }
 	
     /**
      * Set db client

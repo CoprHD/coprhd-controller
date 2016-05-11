@@ -9611,13 +9611,12 @@ unity_tests()
     run initiator create $hostLbl FC $UNITY_INIT_PWWN1 --node $UNITY_INIT_NODE
     run initiator create $hostLbl FC $UNITY_INIT_PWWN2 --node $UNITY_INIT_NODE
 	
-    run export_group create $PROJECT $eg $NH --type Host --volspec $PROJECT/$vol1 --hosts $hostLbl --wait
+    run export_group create $PROJECT $eg $NH --type Host --volspec $PROJECT/$vol1 --hosts $hostLbl
 		
-    run blocksnapshot create $PROJECT/$vol1 $snap1_label --wait
+    run blocksnapshot create $PROJECT/$vol1 $snap1_label
     run blocksnapshot list $PROJECT/$vol1
-    run blocksnapshot restore $PROJECT/$vol1/${snap1_label} --wait
-    run blocksnapshot delete $PROJECT/$vol1/${snap1_label} --wait
-    run export_group delete $PROJECT/$eg --wait
+    run blocksnapshot delete $PROJECT/$vol1/${snap1_label}
+    run export_group delete $PROJECT/$eg
     run volume delete $PROJECT/$vol1 --wait
     run hosts delete $hostLbl
 	    
@@ -9626,8 +9625,10 @@ unity_tests()
     run blockconsistencygroup create $PROJECT $consistency_group
     run volume create $vol2 $PROJECT $NH $COS_UNITYBLOCK_CG 1280000000 --consistencyGroup $consistency_group
     sleep 60
-    run blocksnapshot create $PROJECT/$vol2 $snap2_label --wait
-    run blocksnapshot delete $PROJECT/$vol2/${snap2_label} --wait
+    run blocksnapshot create $PROJECT/$vol2 $snap2_label
+    sleep 30
+    run blocksnapshot delete $PROJECT/$vol2/${snap2_label}
+    sleep 30
     run volume delete $PROJECT/$vol2 --wait
     run blockconsistencygroup delete $consistency_group
     echo "**** Done unity"
@@ -9642,8 +9643,9 @@ unity_cos_setup()
                          --protocols FC                   \
                          --numpaths 2 \
                          --max_snapshots 10 \
-                         --system_type vnxunity \
+                         --system_type unity \
                          --provisionType 'Thin' \
+                         --expandable true \
                          --neighborhoods $NH \
                          --multiVolumeConsistency 
                                 

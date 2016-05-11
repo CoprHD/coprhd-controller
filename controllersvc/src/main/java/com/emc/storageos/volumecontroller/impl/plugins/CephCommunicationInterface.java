@@ -55,8 +55,8 @@ public class CephCommunicationInterface extends ExtendedCommunicationInterfaceIm
     private static final StringSet COPY_TYPES = new StringSet();
     private static final String PORT_NAME = "Ceph Port";
     private static final String PORT_GROUP = "Ceph Port Group";
-    private static final long MINIMUM_VOLUME_SIZE = ControllerUtils.convertBytesToKBytes("1073741824"); // 1 MB
-    private static final long MAXIMUM_VOLUME_SIZE = ControllerUtils.convertBytesToKBytes("10995116277760"); // 10 TB
+    private static final long MINIMAL_VOLUME_SIZE = ControllerUtils.convertBytesToKBytes("1073741824"); // 1 MB
+    private static final long MAXIMAL_VOLUME_SIZE = ControllerUtils.convertBytesToKBytes("10995116277760"); // 10 TB
 
     static {
     	 // UNSYNC_ASSOC -> snapshot, UNSYNC_UNASSOC -> clone
@@ -94,6 +94,9 @@ public class CephCommunicationInterface extends ExtendedCommunicationInterfaceIm
             viewObject.setProperty(StorageSystemViewObject.SERIAL_NUMBER, clusterInfo.getFsid());
             viewObject.setProperty(StorageSystemViewObject.STORAGE_NAME, systemNativeGUID);
             viewObject.setProperty(StorageSystemViewObject.MODEL, "Ceph Storage Cluster");
+            // TODO It is possible to figure out more Ceph cluster details (version, alternative IPs, etc),
+            // but neither Java client, nor pure librados provide this info. Since Ceph (with clien libraries)
+            // is an open source project it is possible to extend its functionality, and then use it here
             storageSystemsCache.put(systemNativeGUID, viewObject);
             status = StorageProvider.ConnectionStatus.CONNECTED;
         } catch (Exception e) {
@@ -144,10 +147,10 @@ public class CephCommunicationInterface extends ExtendedCommunicationInterfaceIm
                     storagePool.setOperationalStatus(PoolOperationalStatus.READY.name());
                     storagePool.setDiscoveryStatus(DiscoveryStatus.VISIBLE.name());
                     storagePool.setRegistrationStatus(RegistrationStatus.REGISTERED.toString());
-                    storagePool.setMinimumThinVolumeSize(MINIMUM_VOLUME_SIZE);
+                    storagePool.setMinimumThinVolumeSize(MINIMAL_VOLUME_SIZE);
                     // Ceph does not limit maximum volume size, but a limitation is required by CoprHD
                     // to allow volume creating
-                    storagePool.setMaximumThinVolumeSize(MAXIMUM_VOLUME_SIZE);
+                    storagePool.setMaximumThinVolumeSize(MAXIMAL_VOLUME_SIZE);
                     newPools.add(storagePool);
                 } else if (storagePools.size() == 1) {
                     storagePool = storagePools.get(0);
@@ -208,6 +211,8 @@ public class CephCommunicationInterface extends ExtendedCommunicationInterfaceIm
                 storagePort.setPortType(PortType.frontend.name());
                 storagePort.setTransportType(Transport.IP.name());
 
+                // TODO Neither Java client, nor pure librados provide details about Ceph status, though,
+                // it is possible to extend Ceph client (librados and Java library) functionality, and then use it here
                 storagePort.setOperationalStatus(OperationalStatus.OK.name());
                 storagePort.setCompatibilityStatus(CompatibilityStatus.COMPATIBLE.name());
                 storagePort.setDiscoveryStatus(DiscoveryStatus.VISIBLE.name());

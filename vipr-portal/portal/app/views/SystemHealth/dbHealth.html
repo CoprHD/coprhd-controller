@@ -21,10 +21,10 @@
 #{/if}
 
 <div class="col-md-1 ">
-    <knob warn="value < (max * 0.1)" danger="value < (max * 0.3)" value="progress" max ="100" ></knob>
+    <knob id="knobValue" warn="value < (max * 0.1)" danger="value < (max * 0.3)" value="progress" max ="100" ></knob>
  </div>
 
- <div class="row">
+ <div id= "dbPanel" class="row">
   <div class="col-md-12">
     <div class="dbstats">
       <table class="table table-condensed table-striped">
@@ -64,4 +64,10 @@
     </div>
   </div>
 </div>
- 
+<script>
+$(document).ready(function() {
+	setTimeout(function () { location.reload(1); }, 60000);
+});
+
+
+</script>

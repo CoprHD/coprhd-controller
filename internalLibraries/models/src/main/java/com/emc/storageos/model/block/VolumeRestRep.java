@@ -287,9 +287,9 @@ public class VolumeRestRep extends BlockObjectRestRep {
         /**
          * How this volume is used with respect to replication
          * Valid values:
-         *  SOURCE
-         *  TARGET
-         *  METADATA
+         *  SOURCE = A production volume
+         *  TARGET = A copy of a production volume
+         *  METADATA = A volume that stores meta-data for replication. Example = Recoverpoint journal volume
          */
         @XmlElement(name = "personality")
         public String getPersonality() {

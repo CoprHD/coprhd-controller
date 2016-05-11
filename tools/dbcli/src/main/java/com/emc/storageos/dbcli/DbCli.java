@@ -284,16 +284,31 @@ public class DbCli {
                     continue;
                 }
 
-                String fieldValue = fieldValueMap.get(pd.getName());
-                Class fieldClass = fieldTypeMap.get(pd.getName());
-                String fieldLocation = fieldLocationMap.get(pd.getName());
+                Name name = pd.getReadMethod().getAnnotation(Name.class);
+                if (name == null) {
+                    log.info(
+                            "Ignore data object fields without @Name annotation, fieldName={}.",
+                            pd.getName());
+                    continue;
+                }
 
-                Node fieldNode = fieldNodeMap.get(pd.getName());
+                String objKey = name.value();
+                String fieldValue = fieldValueMap.get(objKey);
+                if (fieldValue == null) {
+                    //To support xml file that the old version dumped, it used method name not @Name value
+                    objKey = pd.getName();
+                }
+
+                fieldValue = fieldValueMap.get(objKey);
+                Class fieldClass = fieldTypeMap.get(objKey);
+                String fieldLocation = fieldLocationMap.get(objKey);
+
+                Node fieldNode = fieldNodeMap.get(objKey);
 
                 if (fieldValue != null) {
                     Class type = pd.getPropertyType();
                     if (DEBUG) {
-                        System.out.print("\t" + pd.getName() + " = " + type);
+                        System.out.print("\t" + objKey + " = " + type);
                     }
 
                     try {
@@ -568,14 +583,15 @@ public class DbCli {
                 continue;
             }
 
+            String objKey = name.value(); //use value from @Name instead of mtehod name
             type = pd.getPropertyType();
             if (DEBUG) {
-                System.out.print("\t" + pd.getPropertyType() + "\t" + pd.getName() + " = ");
+                System.out.print("\t" + pd.getPropertyType() + "\t" + objKey + " = ");
             }
 
             Element fieldNode = doc.createElement("field");
             fieldNode.setAttribute("type", type.toString().substring(6)); // delete the prefix string "class "
-            fieldNode.setAttribute("name", pd.getName().toString());
+            fieldNode.setAttribute("name", objKey);
 
             if (type == StringSetMap.class) {
                 StringSetMap stringSetMap = (StringSetMap) objValue;
@@ -624,12 +640,20 @@ public class DbCli {
                 continue;
             }
 
+            Name nameAnnotation = pd.getReadMethod().getAnnotation(Name.class);
+            String objKey;
+            if (nameAnnotation == null) {
+                objKey = pd.getName();
+            } else {
+                objKey = nameAnnotation.value();
+            }
+
             objValue = pd.getReadMethod().invoke(object);
             if (objValue == null) {
                 continue;
             }
 
-            System.out.print("\t" + pd.getName() + " = ");
+            System.out.print("\t" + objKey + " = ");
 
             Encrypt encryptAnnotation = pd.getReadMethod().getAnnotation(Encrypt.class);
             if (encryptAnnotation != null) {

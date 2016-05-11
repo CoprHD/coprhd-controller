@@ -2329,8 +2329,8 @@
 		<property name="notifiers" value="backupscheduler" />
 	</bean>
 	<bean id="backup_scheduler_interval" class="com.emc.storageos.model.property.PropertyMetadata">
-		<property name="label" value="Backup Interval" />
-		<property name="description" value="The time interval in unit of Day(or Week/Month) between scheduled backups" />
+		<property name="label" value="Number of Backups per Day" />
+		<property name="description" value="The frequency scheduled backup starts per day" />
 		<property name="type" value="string" />
 		<property name="maxLen" value="15" />
 		<property name="tag" value="Backup" />
@@ -2616,6 +2616,32 @@
 		<property name="value" value="120" />
 		<property name="controlNodeOnly" value="true" />
 	</bean>
+	<bean id="controller_vplex_max_async_polls" class="com.emc.storageos.model.property.PropertyMetadata">
+		<property name="label" value="VPLEX max async. polls" />
+		<property name="description" value="Maximum polls for a VPLEX asynchronous response" />
+		<property name="type" value="uint32" />
+		<property name="tag" value="Controller" />
+		<property name="advanced" value="true" />
+		<property name="userMutable" value="true" />
+		<property name="userConfigurable" value="true" />
+		<property name="reconfigRequired" value="false" />
+		<property name="rebootRequired" value="false" />
+		<property name="value" value="240" />
+		<property name="controlNodeOnly" value="false" />
+	</bean>
+	<bean id="controller_vplex_migration_max_async_polls" class="com.emc.storageos.model.property.PropertyMetadata">
+		<property name="label" value="VPLEX max migration async. polls" />
+		<property name="description" value="Maximum polls for a VPLEX migration asynchronous response" />
+		<property name="type" value="uint32" />
+		<property name="tag" value="Controller" />
+		<property name="advanced" value="true" />
+		<property name="userMutable" value="true" />
+		<property name="userConfigurable" value="true" />
+		<property name="reconfigRequired" value="false" />
+		<property name="rebootRequired" value="false" />
+		<property name="value" value="240" />
+		<property name="controlNodeOnly" value="false" />
+	</bean>
 	<bean id="compute_vmware_esx_version" class="com.emc.storageos.model.property.PropertyMetadata">
 		<property name="label" value="VMware ESX Version" />
 		<property name="description" value="Minimum supported version for VMware ESX. Version format : MajorVersion[.MinorVersion[.MinorVersion...]] " />
@@ -2850,6 +2876,8 @@
 				<entry key="auth_lockout_time_in_minutes" value-ref="auth_lockout_time_in_minutes" />
 				<entry key="token_life_time_in_minutes" value-ref="token_life_time_in_minutes" />
 				<entry key="token_idle_time_in_minutes" value-ref="token_idle_time_in_minutes" />
+				<entry key="controller_vplex_max_async_polls" value-ref="controller_vplex_max_async_polls" />
+				<entry key="controller_vplex_migration_max_async_polls" value-ref="controller_vplex_migration_max_async_polls" />
 				<entry key="compute_vmware_esx_version" value-ref="compute_vmware_esx_version" />
 				<entry key="use_short_node_name" value-ref="use_short_node_name" />
 				<entry key="cim_connection_max_inactive_time" value-ref="cim_connection_max_inactive_time" />

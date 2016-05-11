@@ -16,7 +16,7 @@ public class RecoveryConstants {
     public static final String RECOVERY_LOCK = "recovery";
     public static final int RECOVERY_LOCK_TIMEOUT = 10 * 1000;
 
-    public static final long RECOVERY_CHECK_INTERVAL = 10 * 1000L;
+    public static final long RECOVERY_CHECK_INTERVAL = 30 * 1000L;
     public static final long RECOVERY_CHECK_TIMEOUT = 30 * 60 * 1000L;
 
     public static final int RECOVERY_RETRY_COUNT = 3;

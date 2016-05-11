@@ -309,11 +309,14 @@ public class UpgradeService {
 
     private void checkClusterState(boolean skipPausedSites) {
         for (Site site : drUtil.listSites()) {
-            // don't check cluster state for paused sites.
-            if (skipPausedSites && site.getState() == SiteState.STANDBY_PAUSED) {
-                continue;
+            if (site.getState() == SiteState.STANDBY_PAUSED) {
+                if (skipPausedSites) {
+                    continue;
+                } else {
+                    _log.error("Site {} is paused, stop proceeding image downloading request", site.getUuid());
+                    throw APIException.serviceUnavailable.sitePaused(site.getName());
+                }
             }
-            int nodeCount = site.getNodeCount();
             ClusterInfo.ClusterState state = _coordinator.getCoordinatorClient().getControlNodesState(site.getUuid());
             if (state != ClusterInfo.ClusterState.STABLE) {
                 _log.error("Site {} is not stable: {}", site.getUuid(), state);

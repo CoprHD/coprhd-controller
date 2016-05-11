@@ -25,6 +25,7 @@ public class CallHome {
     private static final String SOURCE_PARAM = "source";
     private static final String EVENT_ID_PARAM = "event_id";
     private static final String NODE_ID_PARAM = "node_id";
+    private static final String NODE_NAME_PARAM = "node_name";
     private static final String LOG_NAME_PARAM = "log_name";
     private static final String SEVERITY_PARAM = "severity";
     private static final String START_TIME_PARAM = "start";
@@ -111,6 +112,55 @@ public class CallHome {
         addQueryParam(builder, SOURCE_PARAM, source);
         addQueryParam(builder, EVENT_ID_PARAM, eventId);
         addQueryParam(builder, NODE_ID_PARAM, nodeIds);
+        addQueryParam(builder, LOG_NAME_PARAM, logNames);
+        addQueryParam(builder, SEVERITY_PARAM, severity);
+        addQueryParam(builder, START_TIME_PARAM, start);
+        addQueryParam(builder, END_TIME_PARAM, end);
+        addQueryParam(builder, MSG_REGEX_PARAM, msgRegex);
+        addQueryParam(builder, MAX_COUNT_PARAM, maxCount);
+
+        if (multipleRequests) {
+            addQueryParam(builder, FORCE_PARAM, FORCE);
+        }
+
+        return client.postURI(TaskResourceRep.class, eventParameters, builder.build());
+    }
+
+    /**
+     * Create an alert event with error logs attached, which aid in troubleshooting
+     * customer issues and sends it to ConnectEMC.
+     * <p>
+     * API Call: POST /callhome/alert
+     *
+     * @param source The service from which this API is invoked. Allowed values:
+     *            CONTROLLER, OBJECT Default: CONTROLLER
+     * @param eventId Event id for these alerts Allowed values: 999, 599 Default: 999
+     * @param nodeNames The names of the nodes for which log data is collected.
+     *            Allowed values: Current values of node_x_name properties
+     * @param logNames The names of the log files to process.
+     * @param severity The minimum severity level for a logged message. Allowed
+     *            values:0-9. Default value: 7
+     * @param start The start datetime of the desired time window. Value is inclusive.
+     *            Allowed values: "yyyy-MM-dd_HH:mm:ss" formatted date or datetime
+     *            in ms. Default: Set to yesterday same time
+     * @param end The end datetime of the desired time window. Value is inclusive.
+     *            Allowed values: "yyyy-MM-dd_HH:mm:ss" formatted date or datetime in ms.
+     * @param msgRegex A regular expression to which the log message conforms.
+     * @param maxCount Maximum number of log messages to retrieve. This may return more
+     *            than max count, if there are more messages with same timestamp as
+     *            of the latest message. Value should be greater than 0.
+     * @param multipleRequests If true, will run multiple requests at same time.
+     * @param eventParameters The event parameters
+     * @return The system service task
+     */
+    public TaskResourceRep sendAlertByNodeName(String source, Integer eventId, List<String> nodeNames,
+                                     List<String> logNames, Integer severity, String start, String end, String msgRegex,
+                                     Integer maxCount, boolean multipleRequests, EventParameters eventParameters) {
+
+        UriBuilder builder = client.uriBuilder(CALLHOME_ALERT_URL);
+        addQueryParam(builder, SOURCE_PARAM, source);
+        addQueryParam(builder, EVENT_ID_PARAM, eventId);
+        addQueryParam(builder, NODE_NAME_PARAM, nodeNames);
         addQueryParam(builder, LOG_NAME_PARAM, logNames);
         addQueryParam(builder, SEVERITY_PARAM, severity);
         addQueryParam(builder, START_TIME_PARAM, start);

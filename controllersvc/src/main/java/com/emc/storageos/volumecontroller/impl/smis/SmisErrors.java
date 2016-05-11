@@ -76,4 +76,7 @@ public interface SmisErrors {
 
     @DeclareServiceCode(ServiceCode.SMIS_COMMAND_ERROR)
     public ServiceError anExistingSGAlreadyHasTheInitiators(String maskURI, String initiators);
+
+    @DeclareServiceCode(ServiceCode.SMIS_COMMAND_ERROR)
+    public ServiceError swapOperationNotAllowedDueToActiveCopySessions();
 }

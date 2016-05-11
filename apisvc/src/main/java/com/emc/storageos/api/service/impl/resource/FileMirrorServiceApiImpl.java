@@ -323,7 +323,7 @@ public class FileMirrorServiceApiImpl extends AbstractFileServiceApiImpl<FileMir
                     fileLabelBuilder = new StringBuilder(targetFsPrefix).append("-target-" + varrayName);
                     _log.info("Target file system name {}", fileLabelBuilder.toString());
                     targetFileShare = prepareEmptyFileSystem(fileLabelBuilder.toString(), sourceFileShare.getCapacity(),
-                            project, recommendation, tenantOrg, varray, vpool, targetVpool, flags, task);
+                            project, recommendation, tenantOrg, targetVArray, vpool, targetVpool, flags, task);
 
                     // Set target file recommendations to target file system!!!
                     setFileMirrorRecommendation(recommendation, targetVpool, targetVArray, true, false, targetFileShare);

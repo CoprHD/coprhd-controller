@@ -14,6 +14,7 @@ public abstract class TenantParam {
 
     private String description;
     private String namespace;
+    private Boolean detachNamespace = false;
     private URI namespaceStorage;
     private URI webStorageDefaultProject;
     private URI webStorageDefaultVpool;
@@ -60,6 +61,22 @@ public abstract class TenantParam {
         this.namespace = namespace;
     }
     
+    /**
+     * Parameter to detach namespace from a tenant.
+     * 
+     */
+    @XmlElement(required = false)
+    public Boolean getDetachNamespace() {
+        return detachNamespace;
+    }
+
+    /**
+     * Set parameter to detach namespace from a tenant.
+     */
+    public void setDetachNamespace(Boolean detachNamespace) {
+        this.detachNamespace = detachNamespace;
+    }
+
     /**
      * Namespace object storage associated to a tenant.
      * 

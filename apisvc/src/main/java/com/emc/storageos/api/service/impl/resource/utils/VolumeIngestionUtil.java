@@ -4603,7 +4603,7 @@ public class VolumeIngestionUtil {
             String locality = PropertySetterUtil.extractValueFromStringSet(
                     SupportedVolumeInformation.VPLEX_LOCALITY.toString(),
                     unManagedVolume.getVolumeInformation());
-            if (VPlexApiConstants.DISTRIBUTED_VIRTUAL_VOLUME.equals(locality)) {
+            if (VPlexApiConstants.DISTRIBUTED_VIRTUAL_VOLUME.equalsIgnoreCase(locality)) {
                 return true;
             }
         }

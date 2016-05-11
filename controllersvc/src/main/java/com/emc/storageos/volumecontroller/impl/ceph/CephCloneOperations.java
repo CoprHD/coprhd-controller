@@ -6,6 +6,7 @@ package com.emc.storageos.volumecontroller.impl.ceph;
 
 import java.net.URI;
 import java.util.List;
+import java.util.UUID;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -62,7 +63,6 @@ public class CephCloneOperations implements CloneOperations {
         _log.info("START createSingleClone operation");
         try (CephClient cephClient = getClient(storageSystem)) {
         	Volume cloneObject = _dbClient.queryObject(Volume.class, cloneVolume);
-        	String cloneVolumeLabel = CephUtils.createNativeId(cloneObject);
 
         	BlockObject sourceObject = BlockObject.fetch(_dbClient, source);
         	BlockSnapshot sourceSnapshot = null;
@@ -84,41 +84,51 @@ public class CephCloneOperations implements CloneOperations {
             }
 
             StoragePool pool = _dbClient.queryObject(StoragePool.class, parentVolume.getPool());
-        	String poolId = pool.getPoolName();
+            String poolId = pool.getPoolName();
             String parentVolumeId = parentVolume.getNativeId();
             String snapshotId = sourceSnapshot.getNativeId();
+            String cloneId = null;
 
-            // Create Ceph snapshot of volume requested to clone
-            if (snapshotId == null || snapshotId.isEmpty()) {
-            	snapshotId = CephUtils.createNativeId(sourceSnapshot);
-            	cephClient.createSnap(poolId, parentVolumeId, snapshotId);
-            	sourceSnapshot.setNativeId(snapshotId);
-            	sourceSnapshot.setDeviceLabel(snapshotId);
-            	sourceSnapshot.setIsSyncActive(true);
-            	sourceSnapshot.setParent(new NamedURI(parentVolume.getId(), parentVolume.getLabel()));
-                _dbClient.updateObject(sourceSnapshot);
-                _log.info("Interim shapshot {} created for clone {}", sourceSnapshot.getId(), cloneObject.getId());
+            try {
+                if (snapshotId == null || snapshotId.isEmpty()) {
+                    // Create Ceph snapshot of volume requested to clone
+                	snapshotId = CephUtils.createNativeId(sourceSnapshot);
+                	cephClient.createSnap(poolId, parentVolumeId, snapshotId);
+                	sourceSnapshot.setNativeId(snapshotId);
+                	sourceSnapshot.setDeviceLabel(snapshotId);
+                	sourceSnapshot.setIsSyncActive(true);
+                	sourceSnapshot.setParent(new NamedURI(parentVolume.getId(), parentVolume.getLabel()));
+                    _dbClient.updateObject(sourceSnapshot);
+                    _log.info("Interim shapshot {} created for clone {}", sourceSnapshot.getId(), cloneObject.getId());
+                }
+
+                // Ceph requires cloning snapshot to be protected (from deleting)
+                if (!cephClient.snapIsProtected(poolId, parentVolumeId, snapshotId)) {
+                	cephClient.protectSnap(poolId, parentVolumeId, snapshotId);
+                }
+
+                // Do cloning
+                String cloneVolumeId = CephUtils.createNativeId(cloneObject);
+                cephClient.cloneSnap(poolId, parentVolumeId, snapshotId, cloneVolumeId);
+                cloneId = cloneVolumeId;
+
+                // Update clone object
+                cloneObject.setDeviceLabel(cloneId);
+                cloneObject.setNativeId(cloneId);
+                cloneObject.setNativeGuid(NativeGUIDGenerator.generateNativeGuid(_dbClient, cloneObject));
+                cloneObject.setProvisionedCapacity(parentVolume.getProvisionedCapacity());
+                cloneObject.setAllocatedCapacity(parentVolume.getAllocatedCapacity());
+                cloneObject.setAssociatedSourceVolume(sourceSnapshot.getId());
+                _dbClient.updateObject(cloneObject);
+
+                // Finish task
+                taskCompleter.ready(_dbClient);
+            } catch (Exception e) {
+                // Clean up created objects
+                cleanUpCloneObjects(cephClient, poolId, cloneId, snapshotId, parentVolumeId,
+                        sourceSnapshot);
+                throw e;
             }
-
-            // Ceph requires cloning snapshot to be protected (from deleting)
-            if (!cephClient.snapIsProtected(poolId, parentVolumeId, snapshotId)) {
-            	cephClient.protectSnap(poolId, parentVolumeId, snapshotId);
-            }
-
-            // Do cloning
-            cephClient.cloneSnap(poolId, parentVolumeId, snapshotId, cloneVolumeLabel);
-
-            // Update clone object
-            cloneObject.setDeviceLabel(cloneVolumeLabel);
-            cloneObject.setNativeId(cloneVolumeLabel);
-            cloneObject.setNativeGuid(NativeGUIDGenerator.generateNativeGuid(_dbClient, cloneObject));
-            cloneObject.setProvisionedCapacity(parentVolume.getProvisionedCapacity());
-            cloneObject.setAllocatedCapacity(parentVolume.getAllocatedCapacity());
-            cloneObject.setAssociatedSourceVolume(sourceSnapshot.getId());
-            _dbClient.updateObject(cloneObject);
-
-            // Finish task
-            taskCompleter.ready(_dbClient);
         } catch (Exception e) {
         	BlockObject obj = BlockObject.fetch(_dbClient, cloneVolume);
             if (obj != null) {
@@ -139,43 +149,51 @@ public class CephCloneOperations implements CloneOperations {
             String cloneId = cloneObject.getNativeId();
             StoragePool pool = _dbClient.queryObject(StoragePool.class, cloneObject.getPool());
             String poolId = pool.getPoolName();
-            BlockSnapshot parentSnapshot = _dbClient.queryObject(BlockSnapshot.class, cloneObject.getAssociatedSourceVolume());
-            String snapshotId = parentSnapshot.getNativeId();
-            Volume sourceVolume = _dbClient.queryObject(Volume.class, parentSnapshot.getParent());
-            String sourceVolumeId = sourceVolume.getNativeId();
+            BlockSnapshot sourceSnapshot = _dbClient.queryObject(BlockSnapshot.class, cloneObject.getAssociatedSourceVolume());
+            String snapshotId = sourceSnapshot.getNativeId();
+            Volume parentVolume = _dbClient.queryObject(Volume.class, sourceSnapshot.getParent());
+            String parentVolumeId = parentVolume.getNativeId();
 
-            // Flatten image
-            cephClient.flattenImage(poolId, cloneId);
+            try {
+                // Flatten image (detach Ceph volume from Ceph snapshot)
+                // http://docs.ceph.com/docs/master/rbd/rbd-snapshot/#getting-started-with-layering
+                cephClient.flattenImage(poolId, cloneId);
 
-            // Detach links
-            ReplicationUtils.removeDetachedFullCopyFromSourceFullCopiesList(cloneObject, _dbClient);
-            cloneObject.setAssociatedSourceVolume(NullColumnValueGetter.getNullURI());
-            cloneObject.setReplicaState(ReplicationState.DETACHED.name());
-            _dbClient.updateObject(cloneObject);
+                // Detach links
+                ReplicationUtils.removeDetachedFullCopyFromSourceFullCopiesList(cloneObject, _dbClient);
+                cloneObject.setAssociatedSourceVolume(NullColumnValueGetter.getNullURI());
+                cloneObject.setReplicaState(ReplicationState.DETACHED.name());
+                _dbClient.updateObject(cloneObject);
 
-            // Un-protect snapshot if it was the last child and delete internal interim snapshot
-            List<String> children = cephClient.getChildren(poolId, sourceVolumeId, snapshotId);
-            if (children.isEmpty()) {
-            	// Unprotect snapshot to enable deleting
-            	if (cephClient.snapIsProtected(poolId, sourceVolumeId, snapshotId)) {
-            		cephClient.unprotectSnap(poolId, sourceVolumeId, snapshotId);
-            	}
+                // Un-protect snapshot if it was the last child and delete internal interim snapshot
+                List<String> children = cephClient.getChildren(poolId, parentVolumeId, snapshotId);
+                if (children.isEmpty()) {
+                	// Unprotect snapshot to enable deleting
+                	if (cephClient.snapIsProtected(poolId, parentVolumeId, snapshotId)) {
+                		cephClient.unprotectSnap(poolId, parentVolumeId, snapshotId);
+                	}
 
-                // Interim snapshot is created to 'clone volume from volume' only
-                // and should be deleted at the step of detaching during full copy creation workflow
-                if (parentSnapshot.checkInternalFlags(Flag.INTERNAL_OBJECT) &&
-                        parentSnapshot.canBeDeleted() == null) {
-            		cephClient.deleteSnap(poolId, sourceVolumeId, snapshotId);
-            		_dbClient.markForDeletion(parentSnapshot);
+                    // Interim snapshot is created to 'clone volume from volume' only
+                    // and should be deleted at the step of detaching during full copy creation workflow
+                    if (sourceSnapshot.checkInternalFlags(Flag.INTERNAL_OBJECT)) {
+                		cephClient.deleteSnap(poolId, parentVolumeId, snapshotId);
+                		// Set to null to prevent handling in cleanUpCloneObjects
+                		snapshotId = null;
+                		_dbClient.markForDeletion(sourceSnapshot);
+                    }
+                } else if (sourceSnapshot.checkInternalFlags(Flag.INTERNAL_OBJECT)) {
+                    // If the snapshot (not interim) still has children, it may be used for another cloning right now
+                    // So that log the warning for interim snapshot only
+                    _log.warn("Could not delete interim snapshot {} because its Ceph snapshot {}@{} unexpectedly had another child",
+                            sourceSnapshot.getId(), parentVolumeId, snapshotId);
                 }
-            } else if (parentSnapshot.checkInternalFlags(Flag.INTERNAL_OBJECT)) {
-                // If the snapshot (not interim) still has children, it may be used for another cloning right now
-                // So that log the warning for interim snapshot only
-                _log.warn("Could not delete interim snapshot {} because its Ceph snapshot {}@{} unexpectedly had another child",
-                        parentSnapshot.getId(), sourceVolumeId, snapshotId);
-            }
 
-            taskCompleter.ready(_dbClient);
+                taskCompleter.ready(_dbClient);
+            } catch (Exception e) {
+                // Although detachSingleClone may be again called on error, it is better to remove objects now.
+                cleanUpCloneObjects(cephClient, poolId, cloneId, snapshotId, parentVolumeId, sourceSnapshot);
+                throw e;
+            }
 	    } catch (Exception e) {
         	BlockObject obj = BlockObject.fetch(_dbClient, cloneVolume);
             if (obj != null) {
@@ -260,7 +278,9 @@ public class CephCloneOperations implements CloneOperations {
     }
 
     /**
-     * Generate BlockSnapshot object to store info about interim snapshot used to clone given volume
+     * Generate BlockSnapshot object to store info about interim snapshot used to clone given volume.
+     * The object is created on createSingleClone, and is deleted on detachSingleClone,
+     * where the stored info is used. Corresponding Ceph snapshot is created and deleted simultaneously.
      *
      * @param volume [in] Volume object
      * @return generated BlockSnapshot object
@@ -268,21 +288,64 @@ public class CephCloneOperations implements CloneOperations {
     private BlockSnapshot prepareInternalSnapshotForVolume(Volume volume) {
         BlockSnapshot snapshot = new BlockSnapshot();
         snapshot.setId(URIUtil.createId(BlockSnapshot.class));
-        URI cgUri = volume.getConsistencyGroup();
-        if (cgUri != null) {
-            snapshot.setConsistencyGroup(cgUri);
-        }
-        snapshot.setSourceNativeId(volume.getNativeId());
+        snapshot.setLabel(String.format("temp-for-cloning-%s", UUID.randomUUID().toString()));
+        snapshot.setSourceNativeId(CephUtils.createNativeId(snapshot));
         snapshot.setParent(new NamedURI(volume.getId(), volume.getLabel()));
-        snapshot.setLabel(String.format("temp-for-cloning-%s", snapshot.getId()));
         snapshot.setStorageController(volume.getStorageController());
         snapshot.setVirtualArray(volume.getVirtualArray());
         snapshot.setProtocol(new StringSet());
         snapshot.getProtocol().addAll(volume.getProtocol());
         snapshot.setProject(new NamedURI(volume.getProject().getURI(), volume.getProject().getName()));
-        snapshot.setSnapsetLabel(ResourceOnlyNameGenerator.removeSpecialCharsForName(snapshot.getLabel(), SmisConstants.MAX_SNAPSHOT_NAME_LENGTH));
+        snapshot.setSnapsetLabel(ResourceOnlyNameGenerator.removeSpecialCharsForName(snapshot.getLabel(),
+                SmisConstants.MAX_SNAPSHOT_NAME_LENGTH));
+        // Since this BlockSnapshot object is interim, it is hidden from users with INTERNAL_OBJECT flag
         snapshot.addInternalFlags(Flag.INTERNAL_OBJECT);
         return snapshot;
+    }
+
+    /**
+     * Safely remove transient snapshot with dependencies.
+     * Intended for cleaning up on error of clone operations to prevent invisible transient snapshot to block
+     * source volume deletion.
+     *
+     * @param cephClient [in] Ceph Client object
+     * @param poolId [in] Ceph pool name
+     * @param cloneVolumeId [in] Ceph volume name of clone
+     * @param snapshotId [in] Ceph snapshot name of snapshot used to clone (transient or permanent)
+     * @param sourceVolumeId [in] Ceph volume name of source volume, which owns the snapshot
+     * @param snapshot [in] Transient BlockSnapshot object
+     */
+    private void cleanUpCloneObjects(CephClient cephClient, String poolId, String cloneVolumeId, String snapshotId,
+            String sourceVolumeId, BlockSnapshot snapshot) {
+        try {
+            if (cloneVolumeId != null) {
+                cephClient.deleteImage(poolId, cloneVolumeId);
+            }
+            if (snapshotId != null) {
+                List<String> children = cephClient.getChildren(poolId, sourceVolumeId, snapshotId);
+                if (children.isEmpty()) {
+                    if (cephClient.snapIsProtected(poolId, sourceVolumeId, snapshotId)) {
+                        cephClient.unprotectSnap(poolId, sourceVolumeId, snapshotId);
+                    }
+                    if (snapshot != null && snapshot.checkInternalFlags(Flag.INTERNAL_OBJECT)) {
+                        cephClient.deleteSnap(poolId, sourceVolumeId, snapshotId);
+                    }
+                }
+            }
+        } catch (Exception e) {
+            _log.error(String.format("Could not clean up volumes %s, %s, interim snapshot %s from Ceph pool %s, "
+                    + "handling exception of a clone operation",
+                    cloneVolumeId, sourceVolumeId, snapshotId, poolId), e);
+        }
+        try {
+            if (snapshot != null && snapshot.checkInternalFlags(Flag.INTERNAL_OBJECT)) {
+                _dbClient.markForDeletion(snapshot);
+            }
+        } catch (Exception e) {
+            _log.error(String.format("Could not clean up interim snapshot %s, "
+                    + "handling exception of a clone operation",
+                    snapshot.getId()), e);
+        }
     }
 
 }

@@ -19,6 +19,7 @@ import org.springframework.ldap.core.LdapTemplate;
 import org.springframework.ldap.core.support.LdapContextSource;
 
 import java.net.URI;
+import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
@@ -78,15 +79,17 @@ public class LdapProviderMonitor {
                     AuthnProvider authnProvider = queryAuthnProviderFromDB(handler.getDomains());
 
                     // Do check.
-                    Iterator<LdapOrADServer> disConnectedServerItr = disconnectedServers.iterator();
-                    while (disConnectedServerItr.hasNext()) {
-                        LdapOrADServer server = disConnectedServerItr.next();
+                    List<LdapOrADServer> backServers = new ArrayList<>();
+                    for (LdapOrADServer server : ldapServers.getDisconnectedServers()) {
                         log.info("Checking if server {}'s connection get back.", server);
                         boolean isGood = checkLdapServerConnectivity(authnProvider, server.getContextSource().getUrls()[0]);
                         if (isGood) {
-                            ldapServers.markAsConnected(server);
+                            backServers.add(server);
                             log.info("The AD or ldap server {} came back.", server);
                         }
+                    }
+                    for (LdapOrADServer backServer : backServers) {
+                        ldapServers.markAsConnected(backServer);
                     }
                 }
             } catch (Exception e) {

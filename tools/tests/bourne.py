@@ -5134,8 +5134,12 @@ class Bourne:
         s = self.api_sync_2(o['resource']['id'], o['op_id'], self.block_snapshot_show_task)
         return (o, s['state'], s['message'])
 
-    def block_snapshot_delete(self, uri):
-        o = self.api('POST', URI_RESOURCE_DEACTIVATE.format(URI_BLOCK_SNAPSHOTS.format(uri)))
+    def block_snapshot_delete(self, uri, vipronly):
+	posturi = URI_RESOURCE_DEACTIVATE.format(URI_BLOCK_SNAPSHOTS.format(uri))
+	if (vipronly):
+            posturi = posturi + '?type=VIPR_ONLY'
+            
+        o = self.api('POST', posturi)
         self.assert_is_dict(o)
         tasks = []
         for task in o['task']:

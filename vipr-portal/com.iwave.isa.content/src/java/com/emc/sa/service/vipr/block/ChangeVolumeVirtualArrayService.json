@@ -25,7 +25,7 @@
     }
 
     host:{
-      type:"assetType.vipr.linuxHost"
+      type:"assetType.vipr.host"
     }
     
   }

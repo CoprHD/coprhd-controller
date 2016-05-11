@@ -88,12 +88,18 @@ function installJava
 function installNginx
 {
   mkdir -p /tmp/nginx
-  wget --continue --output-document=/tmp/nginx/nginx-1.6.2.tar.gz http://nginx.org/download/nginx-1.6.2.tar.gz
-  wget --continue --output-document=/tmp/nginx/v0.3.0.tar.gz https://github.com/yaoweibin/nginx_upstream_check_module/archive/v0.3.0.tar.gz
-  wget --continue --output-document=/tmp/nginx/v0.25.tar.gz https://github.com/openresty/headers-more-nginx-module/archive/v0.25.tar.gz
-  tar --directory=/tmp/nginx -xzf /tmp/nginx/nginx-1.6.2.tar.gz
-  tar --directory=/tmp/nginx -xzf /tmp/nginx/v0.3.0.tar.gz
-  tar --directory=/tmp/nginx -xzf /tmp/nginx/v0.25.tar.gz
+  if [ -d /nginx-1.6.2 -a -d /nginx_upstream_check_module-0.3.0 -a -d /headers-more-nginx-module-0.25 ]; then
+    mv /nginx-1.6.2 /tmp/nginx/
+    mv /nginx_upstream_check_module-0.3.0 /tmp/nginx/
+    mv /headers-more-nginx-module-0.25 /tmp/nginx/
+  else
+    wget --continue --output-document=/tmp/nginx/nginx-1.6.2.tar.gz http://nginx.org/download/nginx-1.6.2.tar.gz
+    wget --continue --output-document=/tmp/nginx/v0.3.0.tar.gz https://github.com/yaoweibin/nginx_upstream_check_module/archive/v0.3.0.tar.gz
+    wget --continue --output-document=/tmp/nginx/v0.25.tar.gz https://github.com/openresty/headers-more-nginx-module/archive/v0.25.tar.gz
+    tar --directory=/tmp/nginx -xzf /tmp/nginx/nginx-1.6.2.tar.gz
+    tar --directory=/tmp/nginx -xzf /tmp/nginx/v0.3.0.tar.gz
+    tar --directory=/tmp/nginx -xzf /tmp/nginx/v0.25.tar.gz
+  fi
   patch --directory=/tmp/nginx/nginx-1.6.2 -p1 < /tmp/nginx/nginx_upstream_check_module-0.3.0/check_1.5.12+.patch
   bash -c "cd /tmp/nginx/nginx-1.6.2; ./configure --add-module=/tmp/nginx/nginx_upstream_check_module-0.3.0 --add-module=/tmp/nginx/headers-more-nginx-module-0.25 --with-http_ssl_module --prefix=/usr --conf-path=/etc/nginx/nginx.conf"
   make --directory=/tmp/nginx/nginx-1.6.2

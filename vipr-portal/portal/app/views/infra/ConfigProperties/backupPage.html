@@ -12,23 +12,37 @@
             checkIsZero(this.value, 'manual');
         });
 
-        $backup_interval = $("#backup_scheduler_interval");
-        $backup_interval_num = $("#backup_scheduler_interval_num");
-        $backup_interval_num.val(parseInt($backup_interval.val()));
-        $selector_interval = $("#backup_scheduler_interval_unit");
-        var units = ["Day", "Week", "Month"];
-        for (var i in  units) {
-            var value = units[i].toLowerCase();
-            var $option = $("<option value=" + value + ">" + units[i] + "</option>");
-            if ($backup_interval.val().indexOf(value) > -1) {
+        var intervalId = "backup_scheduler_interval";
+        $backup_interval = $("#" + intervalId);
+        $selector_interval = $("#" + intervalId + "_selector");
+        var isValidInterval = false; //check $backup_interval.val()
+        $intervals = {};
+        $intervals['1'] = '1day'; //only support 1 or 2 times per day now
+        $intervals['2'] = '12hour'; //start time is listening to this value, if we select this one, start time will be changed. The related logic is in controller.js.
+        for (var key in $intervals) {
+            var value = $intervals[key];
+            var $option = $("<option value=" + key + ">" + key + "</option>");
+            if ($backup_interval.val() === value) {
+                isValidInterval = true;
                 $option.prop("selected", "selected");
             }
             $option.appendTo($selector_interval);
         }
+
+        if (!isValidInterval) {
+            var $option = $("<option selected='selected'></option>");
+            $option.appendTo($selector_interval);
+
+            var controlGrp = $("#" + intervalId + "ControlGroup");
+            controlGrp.addClass('has-error');
+            $('.help-inline', controlGrp).text("&{'configProperties.backup.interval.invalid.inline'}");
+            $('#alerts_error .message').html("&{'configProperties.backup.interval.invalid'}");
+            $('#alerts_error').slideDown('fast');
+        }
     });
 
     function setBackupSchedulerInterval() {
-        var value = $backup_interval_num.val() + $selector_interval.val();
+        var value = $intervals[$selector_interval.val()];
         $backup_interval.val(value);
         checkForm();
     }
@@ -66,7 +80,7 @@
     <div class="col-sm-6 controls" ng-controller="ConfigBackupCtrl">
         <div class="row col-gap-sm" id="backup-time">
             <input id="${id}" type="hidden" name="${name}" value="${originalValue}" data-originalvalue="${originalValue}">
-                <time-picker ng-model="backup_startTime"></time-picker>
+            <time-picker ng-model="backup_startTime" ng-format="backup_format"></time-picker>
             <div class="col-sm-12">#{if description}<p class="help-block clear">${description}</p>#{/if}</div>
         </div>
     </div>
@@ -91,16 +105,10 @@ disabled:unstable;
     <label class="control-label col-sm-3" for="${id}">${label}:</label>
 
     <div class="col-sm-6 controls">
-        <div class="row col-gap-sm">
+        <div class="row col-gap-sm" id="backup-interval">
             <input id="${id}" type="hidden" name="${name}" value="${originalValue}" data-originalvalue="${originalValue}">
-            <div class="col-md-6">
-                <input type="text" class="form-control" id="${id}_num" style="vertical-align: top"
-                       onkeyup="setBackupSchedulerInterval()"/>
-            </div>
-            <div class="col-md-6">
-                <select id="${id}_unit" class="form-control" onchange="setBackupSchedulerInterval()">
-                </select>
-            </div>
+            <select id="${id}_selector" class="form-control" onchange="setBackupSchedulerInterval()">
+            </select>
             <div class="col-sm-12">#{if description}<p class="help-block clear">${description}</p>#{/if}</div>
         </div>
     </div>

@@ -17,6 +17,7 @@ public interface CinderConstants {
 
     public static String CINDER_SSH_PORT = "22";
     public static String CINDER_REST_PORT = "8776";
+    public static String OS_ADMIN_PORT = "35357";
     public static String AUTH_TOKEN_HEADER = "X-Auth-Token";
     public static String REST_API_VERSION_2 = "/v2";
     public static String DEFAULT_API_VERSION = REST_API_VERSION_2; // By default using v2

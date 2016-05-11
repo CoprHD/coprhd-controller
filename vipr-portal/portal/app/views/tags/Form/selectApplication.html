@@ -1,17 +1,14 @@
 %{
   fieldName = _fieldName ?: 'application'
-  application = _application ?: _caller.application
-  addEmptyOption = true
-  emptyOptionLabel = messages.get("common.none")
-  selectedApplication = emptyOptionLabel
+  applications = _applications ?: _caller.applications
+  selectedApplication =  _selectedApplication ?: _caller.selectedApplication
   
 }%
 <span class="application-select">
   #{field fieldName}
     %{
-      field.addEmptyOption = true;
-      field.emptyOptionLabel = messages.get("common.none")
-      field.options = application
+      
+      field.options = applications
       field.value = selectedApplication
       field.cssClass = 'input-sm'
      
@@ -24,7 +21,9 @@
 .application-select .chosen-container {
 	  min-width: 250px;
 	}
-
+.filter-select .chosen-container {
+	min-width: 250px;
+}
 .project-select + .application-select {
   margin-left: 10px;
 }

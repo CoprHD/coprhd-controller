@@ -56,6 +56,7 @@ import com.emc.storageos.svcs.errorhandling.resources.InternalServerErrorExcepti
 import com.emc.storageos.volumecontroller.impl.ControllerUtils;
 import com.emc.storageos.volumecontroller.impl.utils.ExportMaskUtils;
 import com.emc.storageos.volumecontroller.placement.BlockStorageScheduler;
+import com.emc.storageos.vplex.api.VPlexApiClient;
 import com.emc.storageos.vplex.api.VPlexApiException;
 import com.google.common.collect.Collections2;
 
@@ -393,7 +394,7 @@ public class VPlexUtil {
         // Read the initiators and partition them by Network
         List<Initiator> initiators = dbClient.queryObject(Initiator.class, initiatorURIs);
         Map<NetworkLite, List<Initiator>> networkToInitiators = NetworkUtil.getInitiatorsByNetwork(initiators, dbClient);
-        // Build the output map. For each varray, look at each Network to see if it's connected virtual arrays
+        // Build the output map. For each varray, look at each Network to see if its connected virtual arrays
         // contains this varray. If so, add all the Initiators in that Network to the varrayToInitiators map.
         for (URI varrayURI : varrayURIs) {
             for (NetworkLite network : networkToInitiators.keySet()) {
@@ -1358,6 +1359,22 @@ public class VPlexUtil {
     }
 
     /**
+     * Check if the volume is a vplex virtual volume
+     * @param volume the volume
+     * @param dbClient
+     * @return true or false
+     */
+    public static boolean isVplexVolume(Volume volume, DbClient dbClient) {
+        URI storageURI = volume.getStorageController();
+        StorageSystem storage = dbClient.queryObject(StorageSystem.class, storageURI);
+        if (DiscoveredDataObject.Type.vplex.name().equals(storage.getSystemType())) {
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    /**
      * Determines if the passed VPLEX volume is built on top of a target
      * volume for a block snapshot.
      * 
@@ -1456,4 +1473,45 @@ public class VPlexUtil {
         return result;
     }
 
+    /**
+     * Gets the VPLEX cluster name for the VPLEX cluster with connectivity to the given Virtual Array.
+     * 
+     * @param varrayUri the VirtualArray URI to check for VPLEX cluster connectivity
+     * @param vplexUri the VPLEX URI to check for connectivity
+     * @param client a reference to the VPlexApiClient for the VPLEX device
+     * @param dbClient a reference to the database client
+     * @return the VPLEX cluster name for the VPLEX cluster with connectivity to the given Virtual Array
+     * @throws Exception if the VPLEX cluster name cannot be determined
+     */
+    public static String getVplexClusterName(URI varrayUri, URI vplexUri, VPlexApiClient client, DbClient dbClient) throws Exception{
+
+        String vplexClusterId = ConnectivityUtil.getVplexClusterForVarray(varrayUri, vplexUri, dbClient);
+        if (vplexClusterId.equals(ConnectivityUtil.CLUSTER_UNKNOWN)) {
+            _log.error("Unable to find VPLEX cluster for the varray " + varrayUri);
+            throw VPlexApiException.exceptions.failedToFindCluster(vplexClusterId);
+        }
+
+        return client.getClusterName(vplexClusterId);
+    }
+
+    /**
+     * Gets the VPLEX cluster name for the VPLEX cluster with connectivity to the given ExportMask.
+     * 
+     * @param exportMask the ExportMask object to check for VPLEX cluster connectivity
+     * @param vplexUri the VPLEX URI to check for connectivity
+     * @param client a reference to the VPlexApiClient for the VPLEX device
+     * @param dbClient a reference to the database client
+     * @return the VPLEX cluster name for the VPLEX cluster with connectivity to the given Virtual Array
+     * @throws Exception if the VPLEX cluster name cannot be determined
+     */
+    public static String getVplexClusterName(ExportMask exportMask, URI vplexUri, VPlexApiClient client, DbClient dbClient) throws Exception{
+
+        String vplexClusterId = ConnectivityUtil.getVplexClusterForExportMask(exportMask, vplexUri, dbClient);
+        if (vplexClusterId.equals(ConnectivityUtil.CLUSTER_UNKNOWN)) {
+            _log.error("Unable to find VPLEX cluster for the ExportMask " + exportMask.getMaskName());
+            throw VPlexApiException.exceptions.failedToFindCluster(vplexClusterId);
+        }
+
+        return client.getClusterName(vplexClusterId);
+    }
 }

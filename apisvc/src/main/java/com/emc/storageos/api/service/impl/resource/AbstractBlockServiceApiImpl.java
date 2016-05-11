@@ -51,6 +51,7 @@ import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.model.OpStatusMap;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.Project;
+import com.emc.storageos.db.client.model.RemoteDirectorGroup;
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.model.StorageSystem;
@@ -1046,11 +1047,6 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
             throw APIException.badRequests.noVolumesToSnap();
         }
 
-        // Validate VNX. Cannot create snapshot if volume is not in a real replication group
-        if (ControllerUtils.isNotInRealVNXRG(reqVolume, _dbClient)) {
-            throw APIException.badRequests.snapshotsNotSupportedForNonRealVNXRG();
-        }
-
         // Verify the vpools of the volumes to be snapped support
         // snapshots and the maximum snapshots has not been reached.
         // Also, check for a duplicate name.
@@ -1179,6 +1175,7 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
         for (Volume volume : volumes) {
             // Attempt to create distinct labels here when creating >1 volumes (ScaleIO requirement)
             String rgName = volume.getReplicationGroupInstance();
+            VolumeGroup application = volume.getApplication(_dbClient);
             if (volume.isVPlexVolume(_dbClient)) {
                 Volume backendVol = VPlexUtil.getVPLEXBackendVolume(volumes.get(0), true, _dbClient);
                 if (backendVol != null && !backendVol.getInactive()) {
@@ -1187,7 +1184,7 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
             }
 
             String label = snapshotName;
-            if (NullColumnValueGetter.isNotNullValue(rgName)) {
+            if (NullColumnValueGetter.isNotNullValue(rgName) && application != null) {
                 // There can be multiple RGs in a CG, in such cases generate unique name
                 if (volumes.size() > 1) {
                     label = String.format("%s-%s-%s", snapshotName, rgName, count++);
@@ -1363,6 +1360,11 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
         List<URI> activeMirrorsForParent = getActiveMirrorsForVolume(parent);
         if (!activeMirrorsForParent.isEmpty()) {
             throw APIException.badRequests.snapshotParentHasActiveMirrors(parent.getLabel(), activeMirrorsForParent.size());
+        }
+        // Snap restore to V3 SRDF(Async) Target volume is not supported
+        if (parent.isVmax3Volume(_dbClient) && Volume.isSRDFProtectedVolume(parent) && !parent.isSRDFSource()
+                && RemoteDirectorGroup.SupportedCopyModes.ASYNCHRONOUS.name().equalsIgnoreCase(parent.getSrdfCopyMode())) {
+            throw APIException.badRequests.snapshotRestoreNotSupported();
         }
     }
 

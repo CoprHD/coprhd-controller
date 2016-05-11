@@ -54,6 +54,9 @@ arrays.CustomConfigs.list = ControllerConfigurationsPage
 arrays.ApplicationSupport.list = PhysicalApplications
 arrays.ApplicationSupport.create = PhysicalApplicationsCreateEdit
 arrays.ApplicationSupport.edit = PhysicalApplicationsCreateEdit
+arrays.MobilityGroups = VirtualMobilityGroups
+arrays.MobilityGroups.create = MobilityGroupCreate
+arrays.MobilityGroups.edit = MobilityGroupEdit
 
 # Auth
 auth.Certificates = TrustedCerts
@@ -65,6 +68,7 @@ auth.VDCRoleAssignments.create = vipr_c_assign_role
 auth.UserGroup = SecurityUserGroups
 auth.UserGroup.create = SecurityCreateUserGroup
 auth.UserGroup.edit = SecurityEditUserGroup
+auth.IPsec.ipsec = SecurityIPsec
 
 # Catalog
 catalog.ApprovalConfiguration = vipr_c_approval_settings
@@ -125,6 +129,9 @@ infra.VirtualDataCenters.create = CreateVirtualDataCenter
 infra.VirtualDataCenters.edit = EditVirtualDataCenter
 infra.VirtualDataCenters.endpoints = InterVDCCommunicationEndpoints
 infra.ClusterInfo = IPNetworkConfigurationPage
+infra.DisasterRecovery.create = DR_AddStandby
+infra.DisasterRecovery.edit = DR_EditStandby
+infra.DisasterRecovery.list = SystemDisasterRecovery
 
 # Resources
 resources.BlockConsistencyGroups = ResourcesConsistencyGroups
@@ -138,6 +145,7 @@ resources.ObjectBuckets= ResourcesBuckets
 resources.ResourceController = vipr_c_user_resources
 resources.VirtualNasServers.vNasServers = ResourcesNASServers
 resources.BlockApplications = ResourcesApplications
+resources.BlockSnapshotSessions = ResourcesBlockSnapshotSessions
 
 # Security
 security.Security.logout = vipr_not_logged_in
@@ -152,6 +160,10 @@ tenant.Tenants.edit = admin_tenants_add
 tenant.Tenants.listRoles = roles_assignments_tenant
 tenant.Tenants.editRole = roles_create_assignment_tenant
 tenant.Tenants.createRole = roles_create_assignment_tenant
+tenant.SchedulePolicies.list = TenantsSchedulePolicies
+tenant.SchedulePolicies.create = TenantsCreateEditPolicy
+tenant.SchedulePolicies.edit = TenantsCreateEditPolicy
+
 
 # USE
 use.CasClusters = CASCluster

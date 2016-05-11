@@ -838,9 +838,8 @@ public class BlockStorageDeviceTest {
         cg.setId(URIUtil.createId(BlockConsistencyGroup.class));
         cg.setType(BlockConsistencyGroup.Types.LOCAL.name());
         cg.setLabel("ViPRTest");
-        cg.setProject(new NamedURI(_project.getId(), cg.getLabel()));
-        cg.setTenant(new NamedURI(_project.getTenantOrg().getURI(), cg
-                .getLabel()));
+        cg.setProject(new NamedURI(_project.getId(), _project.getLabel()));
+        cg.setTenant(_project.getTenantOrg());
         cg.setInactive(false);
         _dbClient.createObject(cg);
 

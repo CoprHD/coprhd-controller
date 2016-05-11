@@ -8,7 +8,7 @@ public class Members {
     private SaUsage SAUsage;
     private SdUsage SDUsage;
     private SdGrowth SDGrowth;
-    private String state;
+    private Integer state;
     
     public Integer getId() {
         return id;
@@ -52,10 +52,10 @@ public class Members {
     public void setSDGrowth(SdGrowth sDGrowth) {
         SDGrowth = sDGrowth;
     }
-    public String getState() {
+    public Integer getState() {
         return state;
     }
-    public void setState(String state) {
+    public void setState(Integer state) {
         this.state = state;
     }
 }

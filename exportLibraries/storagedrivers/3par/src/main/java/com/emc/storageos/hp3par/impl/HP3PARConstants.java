@@ -2,7 +2,14 @@ package com.emc.storageos.hp3par.impl;
 
 public class HP3PARConstants {
 
-    public static final String DRIVER_NAME="HP-3PAR";
+    public static final String DRIVER_NAME ="HP-3PAR";
+    public static final String IP_ADDRESS = "IP_ADDRESS"; 
+    public static final String PORT_NUMBER = "PORT_NUMBER";
+    public static final String USER_NAME = "USER_NAME";
+    public static final String PASSWORD = "PASSWORD";
+    
+    public static Long KILO_BYTE = (long) 1024;
+    
     
     public static final String TASK_TYPE_DISCOVER_STORAGE_SYSTEM="discover-storage-system";
     public static final String TASK_TYPE_DISCOVER_STORAGE_POOLS="discover-storage-pools";

@@ -25,6 +25,7 @@ import models.properties.PropertyPage;
 import models.properties.SecurityPropertyPage;
 import models.properties.SmtpPropertyPage;
 import models.properties.SupportPropertyPage;
+import models.properties.SyslogPropertiesPage;
 import models.properties.UpgradePropertyPage;
 
 import org.apache.commons.lang.StringUtils;
@@ -174,6 +175,7 @@ public class ConfigProperties extends Controller {
             addPage(pages, new UpgradePropertyPage(properties));
             addPage(pages, new PasswordPropertyPage(properties));
             addPage(pages, new BackupPropertyPage(properties));
+            addPage(pages, new SyslogPropertiesPage(properties));
         }
         else {
             if (PlatformUtils.isAppliance()) {

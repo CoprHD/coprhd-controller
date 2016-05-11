@@ -108,9 +108,9 @@
 		<!-- On single node deployments (devkits, standalone, 1+0), default to NO auto-discovery.
 		     This value overrides the three values for "enable-metering", "enable-autodiscovery",
 		     and "enable-autoscan" to prevent over-use of managed resource (providers) during testing 
-		     and PoC deployments of CoprHD. 
+		     and PoC deployments of ViPR. 
 		     
-		     This value is ignored on multi-node deployments of CoprHD.
+		     This value is ignored on multi-node deployments of ViPR and all deployments of CoprHD.
 		     
 		     "false" ==> On single node deployments, NEVER auto-discover anything.  Do manual discoveries only.
 		     "true"  ==> On single node deployments, refer to the three variables below for auto operations.  

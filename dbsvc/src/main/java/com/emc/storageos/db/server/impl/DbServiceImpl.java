@@ -104,7 +104,11 @@ public class DbServiceImpl implements DbService {
     @Autowired
     private DbManager dbMgr;
 
-    /**
+    public void setDbMgr(DbManager dbMgr) {
+		this.dbMgr = dbMgr;
+	}
+
+	/**
      * Set db client
      */
     public void setDbClient(DbClientImpl dbClient) {
@@ -660,6 +664,8 @@ public class DbServiceImpl implements DbService {
         if (!isGeoDbsvc()) {
             _schemaUtil.checkAndSetupBootStrapInfo(_dbClient);
         }
+        
+        dbMgr.init();
         
         if (_handler.run()) {
             // Setup the bootstrap info root tenant, if root tenant migrated from local db, then skip it

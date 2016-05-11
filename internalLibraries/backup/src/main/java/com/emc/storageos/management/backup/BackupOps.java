@@ -24,6 +24,7 @@ import java.util.*;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
@@ -952,6 +953,28 @@ public class BackupOps {
         Preconditions.checkArgument(isValidLinuxFileName(backupTag)
                         && !backupTag.contains(BackupConstants.BACKUP_NAME_DELIMITER),
                 "Invalid backup name: %s", backupTag);
+
+        // The backupname should not contain 'vipr1,vipr2,...,vipr5'
+        // or we will not be able to separate backup files for each node.
+        String pattern="(vipr[1-5].*)";
+        Pattern hostnameReg=Pattern.compile(pattern);
+        Matcher m = hostnameReg.matcher(backupTag);
+        boolean match = false;
+        StringBuilder builder = new StringBuilder();
+        while (m.find()) {
+            if (match) {
+                builder.append(",");
+            }
+
+            match = true;
+            builder.append(m.group(0));
+        }
+
+        if (match) {
+            String errMsg = String.format("The backup name should not contains %s", builder.toString());
+            log.error(errMsg);
+            throw BackupException.fatals.invalidParameters(errMsg);
+        }
     }
 
     private boolean isValidLinuxFileName(String fileName) {
@@ -1436,29 +1459,28 @@ public class BackupOps {
 
         for (int retryCnt = 0; retryCnt < BackupConstants.RETRY_MAX_CNT; retryCnt++) {
             try {
+                BackupRestoreStatus s = queryBackupRestoreStatus(backupTag, true);
+                backupInfo.setRestoreStatus(s);
+
                 List<BackupProcessor.BackupTask<BackupInfo>> backupTasks =
-                        new BackupProcessor(getHosts(), ports, backupTag).process(new QueryBackupCallable(), true);
+                        new BackupProcessor(getHosts(), Arrays.asList(ports.get(2)), backupTag)
+                                .process(new QueryBackupCallable(), true);
 
                 for (BackupProcessor.BackupTask task : backupTasks) {
                     BackupInfo backupInfoFromNode = (BackupInfo) task.getResponse().getFuture().get();
                     log.info("Query backup({}) success", backupTag);
                     mergeBackupInfo(backupInfo, backupInfoFromNode);
                 }
-
-                BackupRestoreStatus s = queryBackupRestoreStatus(backupTag, true);
-                backupInfo.setRestoreStatus(s);
-
-                return backupInfo;
             }catch (RetryableBackupException e) {
                 log.info("Retry to query backup {}", backupTag);
                 continue;
             } catch (Exception e) {
-                log.error("e=", e);
-                break;
+                log.warn("Query local backup({}) info got an error", backupTag, e);
             }
+            break;
         }
-
-        return null;
+        
+        return backupInfo;
     }
 
     private void mergeBackupInfo(BackupInfo dst, BackupInfo info) {

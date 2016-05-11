@@ -94,6 +94,10 @@ elif [ ${SS} = "recoverpoint" ]; then
     RP_QUICK_PARAM=${4:-'quick'}
     AUTH=${5:-ldap}
     EXTRA_PARAM=${6}
+elif [ ${SS} = "xtremio" ]; then
+    XIO_QUICK_PARAM=${4:-'quick'}
+    AUTH=${5:-ldap}
+    EXTRA_PARAM=${6}
 elif [ ${SS} = "vdc" ]; then
     VDC_DEFAULT_ENDPOINT=vdc_dummy_endpoint
     VDC_ENDPOINT_B=${4:-$VDC_DEFAULT_ENDPOINT}
@@ -413,8 +417,10 @@ COS_VMAX3BLOCK_FC=COS_VMAX3BLOCK_FC
 
 XTREMIO=xtremio4
 XTREMIOVOL=volXtremIO
-XTREMIO_NATIVEGUID=XTREMIO+$XTREMIO_SN
-XTREMIO_COS_FC=xtremioTest3
+XTREMIO_3X_NATIVEGUID=XTREMIO+$XTREMIO_3X_SN
+XTREMIO_4X_NATIVEGUID=XTREMIO+$XTREMIO_4X_SN
+XTREMIO_3X_COS_FC=xtremioTest3
+XTREMIO_4X_COS_FC=xtremioTest4
 XTREMIO_INGEST_HOST=ingesthost.lss.emc.com
 XTREMIO_INGEST_HOST_LABEL=ingesthost
 
@@ -1073,41 +1079,387 @@ vnxblock_cos_setup()
 
 xtremio_cos_setup()
 {
-    run cos create block $XTREMIO_COS_FC                          \
-	--description 'Virtual-Pool-for-XtremIO-block-FC' true      \
+    run cos create block $XTREMIO_3X_COS_FC                          \
+	--description 'Virtual-Pool-for-XtremIO-block-FC' false      \
                          --protocols FC                         \
                          --numpaths 1 \
                          --max_snapshots 10 \
                          --system_type xtremio \
                          --provisionType 'Thin' \
                          --neighborhoods $NH
-    run cos allow $XTREMIO_COS_FC block $TENANT  
+    run cos allow $XTREMIO_3X_COS_FC block $TENANT
+
+    run cos create block $XTREMIO_4X_COS_FC                          \
+	--description 'Virtual-Pool-for-XtremIO-block-FC' false      \
+                         --protocols FC                         \
+                         --numpaths 1 \
+                         --max_snapshots 10 \
+                         --system_type xtremio \
+                         --provisionType 'Thin' \
+                         --neighborhoods $NH   \
+                         --multiVolumeConsistency
+    run cos allow $XTREMIO_4X_COS_FC block $TENANT  
 }
 
-xtremio_setup()
+xtremio_port_setup()
 {
-    networksystem show $BROCADE_NETWORK &> /dev/null && return $?
-    networksystem create $BROCADE_NETWORK brocade --smisip $BROCADE_IP --smisport 5988 --smisuser $BROCADE_USER --smispw $BROCADE_PW --smisssl false
-    storageprovider show $XTREMIO  &> /dev/null && return $?
-    secho "Starting storageprovider create"
-    storageprovider create $XTREMIO $XTREMIO_IP 443 $XTREMIO_USER $XTREMIO_PASSWD xtremio 
+    secho "XtremIO port setup"
+    run storageport update $XTREMIO_3X_NATIVEGUID FC --addvarrays $NH
+    run storageport update $XTREMIO_4X_NATIVEGUID FC --addvarrays $NH
+}
+
+xtremio_storage_setup() {
+    secho "Starting XtremIO 3.x storageprovider create"
+    storageprovider create xtremio3x $XTREMIO_3X_IP 443 $XTREMIO_3X_USER $XTREMIO_3X_PASSWD xtremio 
+
+    secho "Starting XtremIO 4.x storageprovider create"
+    storageprovider create xtremio4x $XTREMIO_4X_IP 443 $XTREMIO_4X_USER $XTREMIO_4X_PASSWD xtremio
+
+    secho 'XtremIO discover storage systems'
     storagedevice discover_all
     storagedevice list
+}
 
-    project_setup
-
-    secho "Setup ACLs on neighborhood for $TENANT"
-    run neighborhood allow $NH $TENANT
-    run neighborhood allow $NH $TENANT
+xtremio_network_setup()
+{
+    secho "XtremIO network setup"
+    networksystem show $BROCADE_NETWORK &> /dev/null && return $?
+    networksystem create $BROCADE_NETWORK brocade --smisip $BROCADE_IP --smisport 5988 --smisuser $BROCADE_USER --smispw $BROCADE_PW --smisssl false
     run transportzone assign ${SRDF_VMAXA_VSAN} $NH
-    for storageport in ${XTREMIO_INI}
+}
+
+xtremio_varray_setup()
+{
+    secho 'XtremIO varray setup for $TENANT'
+    run neighborhood allow $NH $TENANT
+}
+
+xtremio_ingest_host_setup() {
+    PWWN1=10:00:00:00:C9:42:6D:50
+    WWNN1=20:00:00:00:C9:42:6D:50
+    PWWN2=10:00:00:00:C9:42:6D:51
+    WWNN2=20:00:00:00:C9:42:6D:51
+
+    run hosts create ${XTREMIO_INGEST_HOST} $TENANT Windows ${XTREMIO_INGEST_HOST} --port 8111 --username user --password 'password' --osversion 1.0 
+
+    run initiator create ${XTREMIO_INGEST_HOST} FC ${PWWN1} --node ${WWNN1}
+    run initiator create ${XTREMIO_INGEST_HOST} FC ${PWWN2} --node ${WWNN2}
+    if [ "$XIO_QUICK_PARAM" = "quick" ]; then
+        run transportzone add VSAN_11 ${PWWN1}
+        run transportzone add VSAN_11 ${PWWN2}
+    else
+        run transportzone add ${SRDF_VMAXA_VSAN} ${PWWN1}
+        run transportzone add ${SRDF_VMAXA_VSAN} ${PWWN2}
+    fi
+
+}
+
+xtremio_ingest_test()
+{
+    secho "XtremIO ingest tests"
+    INGEST_3X_NATIVEGUID=$XIO_3X_SIM_NATIVEGUID
+    INGEST_4X_NATIVEGUID=$XIO_4X_SIM_NATIVEGUID
+
+    if [ "$XIO_QUICK_PARAM" != "quick" ]; then
+        INGEST_3X_NATIVEGUID=$XTREMIO_3X_NATIVEGUID
+        INGEST_4X_NATIVEGUID=$XTREMIO_4X_NATIVEGUID
+    fi
+
+    # Labels
+    export_name=$XTREMIOEXPORT_GROUP
+    XIO_RANDOM=${RANDOM}
+    XIO_INGEST_VOL1_CG=${XIO_INGEST_VOL1_CGBASE}${XIO_RANDOM}
+    XIO_INGEST_VOL1=${XIO_INGEST_VOL1BASE}1${XIO_RANDOM}
+    XIO_INGEST_VOL2=${XIO_INGEST_VOL1BASE}2${XIO_RANDOM}
+    XIO_INGEST_SNAP1=xioingestsnap1${XIO_RANDOM}
+    XIO_INGEST_SNAP2=xioingestsnap2${XIO_RANDOM}
+
+    # Create the consistency group + volume
+    run blockconsistencygroup create ${PROJECT} ${XIO_INGEST_VOL1_CG}
+    run volume create ${XIO_INGEST_VOL1} ${PROJECT} ${NH} ${XTREMIO_4X_COS_FC} 1GB --consistencyGroup ${XIO_INGEST_VOL1_CG}
+
+    run volume create ${XIO_INGEST_VOL2} ${PROJECT} ${NH} ${XTREMIO_3X_COS_FC} 1GB
+
+
+    # Create XIO snapshots
+    secho "Create snapshots"
+    run_noundo blocksnapshot create ${PROJECT}/${XIO_INGEST_VOL1} ${XIO_INGEST_SNAP1}
+    XIO_INGEST_SNAP1_ARRAY_LABEL=`/opt/storageos/bin/dbutils list BlockSnapshot | grep deviceLabel | awk '{print $3}'`
+    run_noundo blocksnapshot delete ${PROJECT}/${XIO_INGEST_VOL1}/${XIO_INGEST_SNAP1} --vipronly
+
+    run_noundo blocksnapshot create ${PROJECT}/${XIO_INGEST_VOL2} ${XIO_INGEST_SNAP2}
+    XIO_INGEST_SNAP2_ARRAY_LABEL=`/opt/storageos/bin/dbutils list BlockSnapshot | grep deviceLabel | awk '{print $3}'`
+    run_noundo blocksnapshot delete ${PROJECT}/${XIO_INGEST_VOL2}/${XIO_INGEST_SNAP2} --vipronly
+
+    # Delete the volume and CG
+    run volume delete ${PROJECT}/${XIO_INGEST_VOL1} --vipronly
+    run blockconsistencygroup delete ${XIO_INGEST_VOL1_CG} --vipronly
+
+    run volume delete ${PROJECT}/${XIO_INGEST_VOL2} --vipronly
+
+    secho "XIO ingest discovery"
+
+    # Discover unmanaged volumes on the array
+    run storagedevice discover_namespace $INGEST_3X_NATIVEGUID 'UNMANAGED_VOLUMES'
+    run storagedevice discover_namespace $INGEST_4X_NATIVEGUID 'UNMANAGED_VOLUMES'
+
+    ##Make sure we fail when we ingest the volumes because snaps are not ingested yet
+    fail unmanagedvolume ingest_unexport ${NH} ${XTREMIO_4X_COS_FC} $PROJECT --volspec "${XIO_INGEST_VOL1}"
+    fail unmanagedvolume ingest_unexport ${NH} ${XTREMIO_3X_COS_FC} $PROJECT --volspec "${XIO_INGEST_VOL2}"
+
+    run unmanagedvolume ingest_unexport ${NH} ${XTREMIO_4X_COS_FC} $PROJECT --volspec "${XIO_INGEST_SNAP1_ARRAY_LABEL}"
+    run unmanagedvolume ingest_unexport ${NH} ${XTREMIO_3X_COS_FC} $PROJECT --volspec "${XIO_INGEST_SNAP2_ARRAY_LABEL}"
+
+    # Verify the volumes, CG and snaps got created; fail script if this fails.
+    run volume show ${PROJECT}/${XIO_INGEST_VOL1}
+    run blockconsistencygroup show "${XIO_INGEST_VOL1_CG}"
+    run blocksnapshot show ${PROJECT}/${XIO_INGEST_VOL1}/${XIO_INGEST_SNAP1_ARRAY_LABEL}
+
+    run volume show ${PROJECT}/${XIO_INGEST_VOL2}
+    run blocksnapshot show ${PROJECT}/${XIO_INGEST_VOL2}/${XIO_INGEST_SNAP2_ARRAY_LABEL}
+
+    ## Run block tests for the volumes and snaps
+    xtremio_export_test ${export_name}1 ${XIO_INGEST_VOL1} ${XIO_INGEST_VOL2} ${XIO_INGEST_SNAP1_ARRAY_LABEL} ${XIO_INGEST_SNAP2_ARRAY_LABEL}
+    if [ "$XIO_QUICK_PARAM" != "quick" ]; then
+        blockconsistencygroup_restore_snapshot $XIO_INGEST_VOL1_CG $XIO_INGEST_SNAP1_ARRAY_LABEL
+    fi
+
+    # Delete the volumes, snaps and CG again
+    run_noundo blocksnapshot delete ${PROJECT}/${XIO_INGEST_VOL1}/${XIO_INGEST_SNAP1_ARRAY_LABEL} --vipronly
+    run_noundo blocksnapshot delete ${PROJECT}/${XIO_INGEST_VOL2}/${XIO_INGEST_SNAP2_ARRAY_LABEL} --vipronly
+
+    run_noundo volume delete ${PROJECT}/${XIO_INGEST_VOL1} --vipronly
+    run_noundo blockconsistencygroup delete ${XIO_INGEST_VOL1_CG} --vipronly
+
+    run_noundo volume delete ${PROJECT}/${XIO_INGEST_VOL2} --vipronly
+
+    # Discover unmanaged volumes on the array again
+    run storagedevice discover_namespace $INGEST_3X_NATIVEGUID 'UNMANAGED_VOLUMES'
+    run storagedevice discover_namespace $INGEST_4X_NATIVEGUID 'UNMANAGED_VOLUMES'
+    
+    ##Re-ingest
+    ##Make sure we fail when we ingest the snaps because volumes are not ingested yet
+
+    fail unmanagedvolume ingest_unexport ${NH} ${XTREMIO_4X_COS_FC} $PROJECT --volspec "${XIO_INGEST_SNAP1_ARRAY_LABEL}"
+    fail unmanagedvolume ingest_unexport ${NH} ${XTREMIO_3X_COS_FC} $PROJECT --volspec "${XIO_INGEST_SNAP2_ARRAY_LABEL}"
+
+    run unmanagedvolume ingest_unexport ${NH} ${XTREMIO_4X_COS_FC} $PROJECT --volspec "${XIO_INGEST_VOL1}"
+    run unmanagedvolume ingest_unexport ${NH} ${XTREMIO_3X_COS_FC} $PROJECT --volspec "${XIO_INGEST_VOL2}"
+
+    # Verify the volumes, CG and snaps got created; fail script if this fails.
+    run volume show ${PROJECT}/${XIO_INGEST_VOL1}
+    run blockconsistencygroup show "${XIO_INGEST_VOL1_CG}"
+    run blocksnapshot show ${PROJECT}/${XIO_INGEST_VOL1}/${XIO_INGEST_SNAP1_ARRAY_LABEL}
+
+    run volume show ${PROJECT}/${XIO_INGEST_VOL2}
+    run blocksnapshot show ${PROJECT}/${XIO_INGEST_VOL2}/${XIO_INGEST_SNAP2_ARRAY_LABEL}
+
+    ## Run block tests for the volumes and snaps
+    xtremio_export_test ${export_name}1 ${XIO_INGEST_VOL1} ${XIO_INGEST_VOL2} ${XIO_INGEST_SNAP1_ARRAY_LABEL} ${XIO_INGEST_SNAP2_ARRAY_LABEL}
+    if [ "$XIO_QUICK_PARAM" != "quick" ]; then
+        blockconsistencygroup_restore_snapshot $XIO_INGEST_VOL1_CG $XIO_INGEST_SNAP1_ARRAY_LABEL
+    fi
+
+    # Real removal of volume/CG
+    run_noundo blocksnapshot delete ${PROJECT}/${XIO_INGEST_VOL1}/${XIO_INGEST_SNAP1_ARRAY_LABEL}
+    run_noundo volume delete ${PROJECT}/"${XIO_INGEST_VOL1}" --wait
+    run_noundo blockconsistencygroup delete ${XIO_INGEST_VOL1_CG}
+
+    run_noundo blocksnapshot delete ${PROJECT}/${XIO_INGEST_VOL2}/${XIO_INGEST_SNAP2_ARRAY_LABEL}
+    run_noundo volume delete ${PROJECT}/"${XIO_INGEST_VOL2}" --wait
+
+}
+
+xtremio_ingest_export_test()
+{
+    secho "XtremIO ingest export tests"
+
+    INGEST_3X_NATIVEGUID=$XIO_3X_SIM_NATIVEGUID
+    INGEST_4X_NATIVEGUID=$XIO_4X_SIM_NATIVEGUID
+
+    if [ "$XIO_QUICK_PARAM" != "quick" ]; then
+        INGEST_3X_NATIVEGUID=$XTREMIO_3X_NATIVEGUID
+        INGEST_4X_NATIVEGUID=$XTREMIO_4X_NATIVEGUID
+    fi
+
+    # Labels
+    XIO_INGEST_VOL1_CG=${XIO_INGEST_VOL1_CGBASE}${XIO_RANDOM}exp
+    XIO_INGEST_VOL1=${XIO_INGEST_VOL1BASE}1${XIO_RANDOM}exp
+    XIO_INGEST_VOL2=${XIO_INGEST_VOL1BASE}2${XIO_RANDOM}exp
+    XIO_INGEST_SNAP1=xioingestsnap1${XIO_RANDOM}exp
+    XIO_INGEST_SNAP2=xioingestsnap2${XIO_RANDOM}exp
+
+    xtremio_ingest_host_setup
+
+    # Create the consistency group + volume
+    run blockconsistencygroup create ${PROJECT} ${XIO_INGEST_VOL1_CG}
+    run volume create ${XIO_INGEST_VOL1} ${PROJECT} ${NH} ${XTREMIO_4X_COS_FC} 1GB --consistencyGroup ${XIO_INGEST_VOL1_CG}
+
+    run volume create ${XIO_INGEST_VOL2} ${PROJECT} ${NH} ${XTREMIO_3X_COS_FC} 1GB
+
+    # Export the volume to a host
+
+    run export_group create ${PROJECT} EG-xio-ingest ${NH} --type Host --volspec "${PROJECT}/${XIO_INGEST_VOL1},${PROJECT}/${XIO_INGEST_VOL2}" --hosts "${XTREMIO_INGEST_HOST}"
+
+    # Create XIO snapshots
+    secho "Create snapshots"
+    run blocksnapshot create ${PROJECT}/${XIO_INGEST_VOL1} ${XIO_INGEST_SNAP1}
+    # Capture the deviceLabel of the snapshot which will be the label after unmanaged volume discovery
+    XIO_INGEST_SNAP1_ARRAY_LABEL=`/opt/storageos/bin/dbutils list BlockSnapshot | grep deviceLabel | awk '{print $3}'`
+    run export_group update ${PROJECT}/EG-xio-ingest --addVolspec "${PROJECT}/${XIO_INGEST_VOL1}/${XIO_INGEST_SNAP1}"
+    run blocksnapshot delete ${PROJECT}/${XIO_INGEST_VOL1}/${XIO_INGEST_SNAP1} --vipronly
+
+    run blocksnapshot create ${PROJECT}/${XIO_INGEST_VOL2} ${XIO_INGEST_SNAP2}
+    XIO_INGEST_SNAP2_ARRAY_LABEL=`/opt/storageos/bin/dbutils list BlockSnapshot | grep deviceLabel | awk '{print $3}'`
+    run export_group update ${PROJECT}/EG-xio-ingest --addVolspec "${PROJECT}/${XIO_INGEST_VOL2}/${XIO_INGEST_SNAP2}"
+    run blocksnapshot delete ${PROJECT}/${XIO_INGEST_VOL2}/${XIO_INGEST_SNAP2} --vipronly
+
+    # Delete the volume and CG
+    run volume delete ${PROJECT}/${XIO_INGEST_VOL1} --vipronly
+    run export_group delete ${PROJECT}/EG-xio-ingest
+    run blockconsistencygroup delete ${XIO_INGEST_VOL1_CG} --vipronly
+
+    run volume delete ${PROJECT}/${XIO_INGEST_VOL2} --vipronly
+
+    secho "XIO ingest discovery"
+
+    # Discover unmanaged volumes on the array
+    run storagedevice discover_namespace $INGEST_3X_NATIVEGUID 'UNMANAGED_VOLUMES'
+    run storagedevice discover_namespace $INGEST_4X_NATIVEGUID 'UNMANAGED_VOLUMES'
+
+    ##Make sure we fail when we ingest the volumes because snaps are not ingested yet
+    fail unmanagedvolume ingest_export ${NH} ${XTREMIO_4X_COS_FC} $PROJECT --volspec "${XIO_INGEST_VOL1}" --host ${XTREMIO_INGEST_HOST}
+    fail unmanagedvolume ingest_export ${NH} ${XTREMIO_3X_COS_FC} $PROJECT --volspec "${XIO_INGEST_VOL2}" --host ${XTREMIO_INGEST_HOST}
+
+
+    run unmanagedvolume ingest_export ${NH} ${XTREMIO_4X_COS_FC} $PROJECT --volspec "${XIO_INGEST_SNAP1_ARRAY_LABEL}" --host ${XTREMIO_INGEST_HOST}
+
+    run unmanagedvolume ingest_export ${NH} ${XTREMIO_3X_COS_FC} $PROJECT --volspec "${XIO_INGEST_SNAP2_ARRAY_LABEL}" --host ${XTREMIO_INGEST_HOST}
+
+    # Verify the volumes, EG, CG and snaps got created; fail script if this fails.
+    run volume show ${PROJECT}/${XIO_INGEST_VOL1}
+    run blockconsistencygroup show "${XIO_INGEST_VOL1_CG}"
+    run blocksnapshot show ${PROJECT}/${XIO_INGEST_VOL1}/${XIO_INGEST_SNAP1_ARRAY_LABEL}
+
+    run volume show ${PROJECT}/${XIO_INGEST_VOL2}
+    run blocksnapshot show ${PROJECT}/${XIO_INGEST_VOL2}/${XIO_INGEST_SNAP2_ARRAY_LABEL}
+    run export_group show  ${PROJECT}/${XTREMIO_INGEST_HOST}
+
+    ## Run block tests for the volumes and snaps
+    xtremio_export_test ${export_name}1 ${XIO_INGEST_VOL1} ${XIO_INGEST_VOL2} ${XIO_INGEST_SNAP1_ARRAY_LABEL} ${XIO_INGEST_SNAP2_ARRAY_LABEL}
+    if [ "$XIO_QUICK_PARAM" != "quick" ]; then
+        blockconsistencygroup_restore_snapshot $XIO_INGEST_VOL1_CG $XIO_INGEST_SNAP1_ARRAY_LABEL
+    fi
+
+    # Delete the volumes, snaps and CG again
+    run_noundo blocksnapshot delete ${PROJECT}/${XIO_INGEST_VOL1}/${XIO_INGEST_SNAP1_ARRAY_LABEL} --vipronly
+    run_noundo blocksnapshot delete ${PROJECT}/${XIO_INGEST_VOL2}/${XIO_INGEST_SNAP2_ARRAY_LABEL} --vipronly
+
+    run_noundo volume delete ${PROJECT}/${XIO_INGEST_VOL1} --vipronly
+    run_noundo blockconsistencygroup delete ${XIO_INGEST_VOL1_CG} --vipronly
+    run_noundo export_group delete ${PROJECT}/${XTREMIO_INGEST_HOST}
+    run_noundo volume delete ${PROJECT}/${XIO_INGEST_VOL2} --vipronly
+
+    # Discover unmanaged volumes on the array again
+    run storagedevice discover_namespace $INGEST_3X_NATIVEGUID 'UNMANAGED_VOLUMES'
+    run storagedevice discover_namespace $INGEST_4X_NATIVEGUID 'UNMANAGED_VOLUMES'
+    
+    ##Re-ingest
+    ##Make sure we fail when we ingest the snaps because volumes are not ingested yet
+
+    fail unmanagedvolume ingest_export ${NH} ${XTREMIO_4X_COS_FC} $PROJECT --volspec "${XIO_INGEST_SNAP1_ARRAY_LABEL}" --host ${XTREMIO_INGEST_HOST}
+
+    fail unmanagedvolume ingest_export ${NH} ${XTREMIO_3X_COS_FC} $PROJECT --volspec "${XIO_INGEST_SNAP2_ARRAY_LABEL}" --host ${XTREMIO_INGEST_HOST}
+
+    run unmanagedvolume ingest_export ${NH} ${XTREMIO_4X_COS_FC} $PROJECT --volspec "${XIO_INGEST_VOL1}" --host ${XTREMIO_INGEST_HOST}
+
+    run unmanagedvolume ingest_export ${NH} ${XTREMIO_3X_COS_FC} $PROJECT --volspec "${XIO_INGEST_VOL2}" --host ${XTREMIO_INGEST_HOST}
+
+
+    # Verify the volumes, CG and snaps got created; fail script if this fails.
+    run volume show ${PROJECT}/${XIO_INGEST_VOL1}
+    run blockconsistencygroup show "${XIO_INGEST_VOL1_CG}"
+    run blocksnapshot show ${PROJECT}/${XIO_INGEST_VOL1}/${XIO_INGEST_SNAP1_ARRAY_LABEL}
+
+    run volume show ${PROJECT}/${XIO_INGEST_VOL2}
+    run blocksnapshot show ${PROJECT}/${XIO_INGEST_VOL2}/${XIO_INGEST_SNAP2_ARRAY_LABEL}
+    run export_group show  ${PROJECT}/${XTREMIO_INGEST_HOST}
+
+    ## Run block tests for the volumes and snaps
+    xtremio_export_test ${export_name}1 ${XIO_INGEST_VOL1} ${XIO_INGEST_VOL2} ${XIO_INGEST_SNAP1_ARRAY_LABEL} ${XIO_INGEST_SNAP2_ARRAY_LABEL}
+    
+    if [ "$XIO_QUICK_PARAM" != "quick" ]; then
+        blockconsistencygroup_restore_snapshot $XIO_INGEST_VOL1_CG $XIO_INGEST_SNAP1_ARRAY_LABEL
+    fi
+
+    # Real removal of volume/CG
+    run_noundo export_group update ${PROJECT}/${XTREMIO_INGEST_HOST} --remVols "${PROJECT}/${XIO_INGEST_VOL1}/${XIO_INGEST_SNAP1_ARRAY_LABEL},${PROJECT}/${XIO_INGEST_VOL2}/${XIO_INGEST_SNAP2_ARRAY_LABEL}"
+    run_noundo export_group update ${PROJECT}/${XTREMIO_INGEST_HOST} --remVols "${PROJECT}/${XIO_INGEST_VOL1},${PROJECT}/${XIO_INGEST_VOL2}"
+    run_noundo blocksnapshot delete ${PROJECT}/${XIO_INGEST_VOL1}/${XIO_INGEST_SNAP1_ARRAY_LABEL}
+    run_noundo volume delete ${PROJECT}/"${XIO_INGEST_VOL1}" --wait
+
+    run_noundo blocksnapshot delete ${PROJECT}/${XIO_INGEST_VOL2}/${XIO_INGEST_SNAP2_ARRAY_LABEL}
+    run_noundo volume delete ${PROJECT}/"${XIO_INGEST_VOL2}" --wait
+    run_noundo export_group delete ${PROJECT}/${XTREMIO_INGEST_HOST}
+
+}
+
+
+xtremio_simulator_setup()
+{
+    project_setup
+    xtremio_varray_setup   
+    
+    run syssvc $CONFIG_FILE $BOURNE_IPADDR set_prop controller_discovery_refresh_interval 5
+ 
+    storageprovider create xtremio3x $XIO_SIMULATOR_IP 4430 root root xtremio 
+    storageprovider create xtremio4x $XIO_SIMULATOR_IP 4431 root root xtremio
+    run networksystem create $FABRIC_SIMULATOR  mds --devip $SIMULATOR_CISCO_MDS_IP --devport 22 --username $RP_FABRIC_SIM_USER --password $RP_FABRIC_SIM_PW
+    
+    storagedevice discover_all
+    storagedevice list    
+    run transportzone assign VSAN_11 ${NH}
+
+    # Make sure all of the pools are updated and matched
+    run storagedevice discover_all
+
+    run storagepool update $XIO_3X_SIM_NATIVEGUID --nhadd $NH --type block
+    run storagepool update $XIO_4X_SIM_NATIVEGUID --nhadd $NH --type block
+
+    
+    run storageport update $XIO_3X_SIM_NATIVEGUID FC --addvarrays $NH
+    run storageport update $XIO_4X_SIM_NATIVEGUID FC --addvarrays $NH
+
+    #Add the host ports to the network which contians the storage ports
+    for i in A1 A2 A3 A4 A5 A6 A7 A8 C1 C2 C3 C4 C5 C6 C7 C8
     do
-      run transportzone add $NH/${SRDF_VMAXA_VSAN} ${storageport}
+        wwn=`pwwn $i`
+    
+        secho "Adding $wwn to zone VSAN_11..."
+	run transportzone add VSAN_11 $wwn
     done
-    for porta in ${XTREMIO_STORAGE_PORTS}
-           do
-              run storageport update $XTREMIO_NATIVEGUID FC --addvarrays $NH
-           done
+
+
+    for i in B1 B2 B3 B4 B5 B6 B7 B8 D1 D2 D3 D4 D5 D6 D7 D8
+    do
+        wwn=`pwwn $i`
+        secho "Adding $wwn to zone VSAN_11..."
+        run transportzone add VSAN_11 $wwn
+    done
+    xtremio_cos_setup
+    run cos update block $XTREMIO_3X_COS_FC --storage $XIO_3X_SIM_NATIVEGUID
+    run cos update block $XTREMIO_4X_COS_FC --storage $XIO_4X_SIM_NATIVEGUID
+}
+
+xtremio_common_setup()
+{
+    project_setup
+    xtremio_varray_setup
+    xtremio_network_setup
+    xtremio_storage_setup
+    xtremio_port_setup
+    
+    
     #Add the host ports to the network which contians the storage ports
     for i in A1 A2 A3 A4 A5 A6 A7 A8 C1 C2 C3 C4 C5 C6 C7 C8
     do
@@ -1125,38 +1477,120 @@ xtremio_setup()
         run transportzone add $SRDF_VMAXA_VSAN $wwn
     done
     xtremio_cos_setup
+    run cos update block $XTREMIO_3X_COS_FC --storage $XTREMIO_3X_NATIVEGUID
+    run cos update block $XTREMIO_4X_COS_FC --storage $XTREMIO_4X_NATIVEGUID
+}
+
+xtremio_setup()
+{
+    if [ "$XIO_QUICK_PARAM" = "quick" ]; then
+        secho "XtremIO Simulator setup"
+        xtremio_simulator_setup
+    else
+        secho "XtremIO setup"
+        xtremio_common_setup
+    fi
+    
 }
 
 xtremio_tests()
 {
    echo 'xtremio tests invoked'
-   export_xtremio_tests
+   if [ "$XIO_BLOCK_TESTS" = "1" ]; then
+       xtremio_block_tests
+       xtremio_blockconsistency_tests
+   fi
+   # Ingest specific tests
+   if [ "$XIO_INGESTTESTS" = "1" ]; then
+        secho "XIO ingest volumes"
+        xtremio_ingest_test
+        secho "XIO ingest tests complete"
 
+        secho "XIO ingest exported volumes"
+        xtremio_ingest_export_test
+        secho "XIO ingest tests complete"
+
+   fi
 }
 
-export_xtremio_tests()
+xtremio_blockconsistency_tests()
 {
-  storagedevice discover_all
-  xtremio_block_tests  $XTREMIOEXPORT_GROUP $XTREMIOEXPORT_GROUP_HOST $XTREMIOVOL $XTREMIO_COS_FC $XTREMIOVOL $XTREMIO_COS_FC
+    # Create Consistency Group
+    blockconsistencygroup_create_test
+    blockconsistencygroup_show_test
+    xtremio_blockconsistencygroup_add_volume_test $CONSISTENCY_GROUP
+    xtremio_blockconsistencygroup_snapshot_tests xio-$CONSISTENCY_GROUP $XTREMIO_4X_COS_FC xio-$CONSISTENCY_GROUP_SNAPSHOT
+    blockconsistencygroup_bulk_test
+    ### Delete volume from consistency group
+    echo "Deleting volume from consistency group"
+    run volume delete $PROJECT/volume-${CONSISTENCY_GROUP}
+}
+
+xtremio_blockconsistencygroup_add_volume_test()
+{
+    cg_name=$1
+
+    ### Create Volume
+    echo "Adding volume to consistency group"
+    run volume create  volume-${cg_name} $PROJECT $NH $XTREMIO_4X_COS_FC 1280000000 --consistencyGroup $cg_name
+
+    ### Check that volume is inside the group
+    echo "Checking volume is part of consistency group"
+    run blockconsistencygroup check_volume  $PROJECT volume-${cg_name} $cg_name --expected
+
+    ### Check that consistencygroup cannot be deleted at this point
+    echo "Checking consistency group cannot be deleted with active volumes"
+    run blockconsistencygroup delete_with_volumes $cg_name
+}
+
+xtremio_blockconsistencygroup_snapshot_tests()
+{    
+    cg_name=$1
+    cg_cos=$2
+    cg_snapshot=$3
+    
+    echo "Running Consistency Group Snapshot tests"
+    echo "Consistency Group: $cg_name"
+    echo "CoS: $cg_cos"
+    echo "CG Snapshot: $cg_snapshot" 
+    
+    blockconsistencygroup_setup_snapshot $cg_name $cg_cos
+    blockconsistencygroup_create_snapshot $cg_name $cg_snapshot
+    if [ "$XIO_QUICK_PARAM" != "quick" ]; then
+        blockconsistencygroup_restore_snapshot $cg_name $cg_snapshot
+    fi
+    blockconsistencygroup_show_snapshot $cg_name $cg_snapshot
+    blockconsistencygroup_list_snapshot $cg_name $cg_snapshot
+    blockconsistencygroup_deactivate_snapshot $cg_name $cg_snapshot
+
+    echo "Deleting volume in snapshot consistency group"
+    run volume delete $PROJECT/volume-${cg_name}   
 }
 
 xtremio_block_tests()
 {
-    export_name=$1
-    export_host=$2
-    v1=${3}1
-    cos1=$4
-    v2=${5}2
-    cos2=$6
+    export_name=$XTREMIOEXPORT_GROUP
+    export_host=$XTREMIOEXPORT_GROUP_HOST
+    v1=${XTREMIOVOL}1
+    cos1=$XTREMIO_3X_COS_FC
+    v2=${XTREMIOVOL}2
+    cos2=$XTREMIO_4X_COS_FC
+    snap1_label=snap1-${HOSTNAME}-${RANDOM}
+    snap2_label=snap2-${HOSTNAME}-${RANDOM}
 
     run volume create ${v1} $PROJECT $NH $cos1 $BLK_SIZE --thinVolume true
-
     run volume create ${v2} $PROJECT $NH $cos2 $BLK_SIZE --thinVolume true
+    run blocksnapshot create $PROJECT/${v1} ${snap1_label}
+    run blocksnapshot create $PROJECT/${v2} ${snap2_label}
 
-    xtremio_export_test ${export_name}1 ${v1} ${v2}
 
+    xtremio_export_test ${export_name}1 ${v1} ${v2} ${snap1_label} ${snap2_label}
+
+    run blocksnapshot restore $snap2
     run volume bulkget
 
+    run blocksnapshot delete $PROJECT/${v1}/${snap1_label}
+    run blocksnapshot delete $PROJECT/${v2}/${snap2_label}
     run volume delete $PROJECT/${v1} --wait
     run volume delete $PROJECT/${v2} --wait
 }
@@ -1164,10 +1598,10 @@ xtremio_block_tests()
 
 xtremio_export_test()
 {
-    snap1_label=snap1-${HOSTNAME}-${RANDOM}
     vol1=$PROJECT/$2
     vol2=$PROJECT/$3
-    snap1=${vol1}/${snap1_label}
+    snap1=${vol1}/$4
+    snap2=${vol2}/$5
     proj=$PROJECT
     tenant=$TENANT
     c=1
@@ -1184,19 +1618,17 @@ xtremio_export_test()
     pwwn3=`pwwn C$k`
     pwwn4=`pwwn D$k`
 
-    run blocksnapshot create $vol1 ${snap1_label}
-
     if [ "$BOURNE_SECURITY_DISABLED" != '1' ] ; then
         run bulkapi blocksnapshots $LOCAL_LDAP_SUPERUSER_USERNAME $LOCAL_LDAP_SUPERUSER_PASSWORD $LOCAL_LDAP_USER_PASSWORD_1
     fi
 
-    run export_group create $proj $expname $NH --volspec "$vol1+1,$snap1+2" --inits "$hostname/$pwwn1"
+    run export_group create $proj $expname $NH --volspec "$vol1,$snap1,$snap2" --inits "$hostname/$pwwn1"
     run export_group show $exp
-    run export_group update $exp --addVolspec "$vol2+3" --remVols $vol1
+    run export_group update $exp --addVolspec "$vol2" --remVols $vol1
     run export_group show $exp
     run export_group update $exp --remInits "$hostname/$pwwn1"
     run export_group show $exp
-    run export_group update $exp --remVols $vol2,$snap1
+    run export_group update $exp --remVols $vol2,$snap1,$snap2
     run export_group show $exp
 
     if [ "$BOURNE_SECURITY_DISABLED" != '1' ] ; then
@@ -1204,7 +1636,6 @@ xtremio_export_test()
     fi
 
     run export_group delete $exp
-    run blocksnapshot delete $snap1
 }
 
 
@@ -2523,6 +2954,7 @@ rp_vpool_setup()
     if [ "${RP_TESTS}" = "1" -o "${RPVPLEX_TESTS}" = "1" -o "${RPMP_TESTS}" = "1" ]; then
         rp_targets
         rp_regular
+        rp_noprotection
         if [ "${RP_CDP}" = "1" ]; then
             rp_cdp
         fi
@@ -2532,7 +2964,6 @@ rp_vpool_setup()
         if [ "${RP_CLR}" = "1" ]; then
             rp_clr
         fi
-        rp_noprotection
     fi
 
     if [ "${RPVPLEX_TESTS}" = "1" -o "${RPMP_TESTS}" = "1" ]; then
@@ -2540,6 +2971,9 @@ rp_vpool_setup()
         rp_regular
         rpvplex_targets
         rpvplex_ha
+        rpvplexlocal_noprotection
+        rpvplexdist_noprotection
+        rp_noprotection
         if [ "${RP_CDP}" = "1" ]; then
             rpvplex_cdp
             rpmp_cdp
@@ -2553,13 +2987,11 @@ rp_vpool_setup()
             rpmp_clr
         fi
 
-        rpvplexlocal_noprotection
-        rpvplexdist_noprotection
-        rp_noprotection
     fi
 
     if [ "${RPXIO_TESTS}" = "1" ]; then
         rpxio_targets
+        rp_noprotection
         if [ "${RP_CDP}" = "1" ]; then
             rpxio_cdp
         fi
@@ -2620,9 +3052,15 @@ rp_storage_setup()
 
            array_guid='RECOVERPOINT_STORAGE_ARRAY_'$var'_GUID'
            array_guid=${!array_guid}
-           
+
+           smis_port='RECOVERPOINT_STORAGE_ARRAY_'$var'_SMIS_PORT'          
+           smis_port=${!smis_port}
+
+           smis_ssl='RECOVERPOINT_STORAGE_ARRAY_'$var'_SMIS_SSL'
+           smis_ssl=${!smis_ssl}
+ 
            if [ "$array_guid" != "NONE" ]; then
-               run smisprovider create $provider $provider_ip $provider_port $SMIS_USER $SMIS_PASSWORD $provider_use_ssl
+               smisprovider create $provider $provider_ip $smis_port $SMIS_USER $SMIS_PASSWORD $smis_ssl
            fi
         done
     fi
@@ -2829,46 +3267,213 @@ recoverpoint_exports_tests()
     secho 'done with recoverpoint exports cleanup'
 }
 
-recoverpoint_auto_snapshot_cleanup_test()
+recoverpoint_export_bookmark_tests()
 {
-    secho 'RP snapshot tests'
-    rpsnap=rpsnap_for_cleanup-${RP_MODIFIED_HOSTNAME}-${RANDOM}
-    blocksnap=blocksnap-${RP_MODIFIED_HOSTNAME}-${RANDOM}
+    if [ "$RP_EXPORT_BOOKMARK_TESTS" = "1" ]; then
+        secho 'Running RecoverPoint Export Bookmark Tests'
 
-    src_volume=${1}
-    tgt_volume=${2}
-    tgt_varray=${3}
-    tgt2_volume=${4}
+        # The source source volume - an arbitrary source volume from the CG
+        volume=${1}
+        # The virtual array corresonding to the source volume (src_volume)
+        rp_src_varray=${2}
+        # The target virtual arrays
+        rp_tgt_varrays=${3}
+        # The virtual pool
+        vpool=${4}
+        # RP type
+        rptype=${5}
 
-    # Create RP/Block snapshot
-    secho 'Create snapshot'
-    run blocksnapshot create ${PROJECT}/${src_volume} ${rpsnap} --type rp
-    blocksnapshot show ${PROJECT}/${src_volume}/${rpsnap}-${tgt_varray} | grep inactive | grep false
-    run protectionsystem discover $RECOVERPOINT
+        rpsnap=rpsnap-${RP_MODIFIED_HOSTNAME}-${RANDOM}
+        blocksnap=blocksnap-${RP_MODIFIED_HOSTNAME}-${RANDOM}
+        rpexport=$PROJECT/$RP_EXPORT_GROUP
 
-    secho 'Unaffected RP bookmark is being checked after RP discovery to ensure it is still active'
-    blocksnapshot show ${PROJECT}/${src_volume}/${rpsnap}-${tgt_varray} | grep inactive | grep false
+        # Have to account for "-1" being added to volume name if
+        # volume count is greater than 1.
+        volume_name_modifier=''
+        if [ "$RP_VOLUME_COUNT" = "1" ]; then
+            volume_name_modifier=''
+        else
+            volume_name_modifier='-1'
+        fi
 
-    secho 'Stopping protection for the copy and then re-enabling'
-    run volume change_link ${PROJECT}/${src_volume} stop ${PROJECT}/${tgt_volume} rp
+        #Create RP/Block snapshots (only create for the first volume if there is more than 1)
+        secho 'Creating RP bookmarks for each source volume'
+	
+        all_bookmarks=()
+  
+        for i in `seq $RP_VOLUME_COUNT`
+        do
+            #Create/show the snapshot/bookmark that was created for each target virtual array
+        
+            #If we only have a single volume we do not want to append anything to volume name.  Otherwise we want to
+            #append a volume count identifier.
+            volume_identifier=''
+            if [ "$RP_VOLUME_COUNT" -gt "1" ]; then
+                volume_identifier='-'${i}
+            fi    
+        
+            run blocksnapshot create ${PROJECT}/${volume}${volume_identifier} ${rpsnap} --type rp
+	    for tgt_varray in ${rp_tgt_varrays}
+	    do
+                #NOTE: RP bookmarks get created with for each target copy (virtual array)
+                all_bookmarks=("${all_bookmarks[@]}" "${PROJECT}/${volume}${volume_identifier}/${rpsnap}-${tgt_varray}")
+                blocksnapshot show ${PROJECT}/${volume}${volume_identifier}/${rpsnap}-${tgt_varray}
+	    done
+        done
+
+        recoverpoint_export_bookmark_host_setup ${vpool} ${rptype}
+
+        sleep 20
+	
+        secho 'Running export RP bookmark failure tests'
+
+        if [ "$RP_VOLUME_COUNT" -gt "1" ]; then	
+            secho 'Adding multiple bookmarks for the same target during export group create - expected failure'
+            #join the list of all the bookmarks created with commas
+            volspec="$(printf "%s,"  ${all_bookmarks[@]} | cut -d "," -f 1-${#all_bookmarks[@]})"
+            fail export_group create $PROJECT ${RP_EXPORT_GROUP} ${rp_src_varray} --type Host --volspec ${volspec} --hosts "${RP_HOSTNAME}"
+        fi
+
+        secho 'Creating 2 RP bookmarks for the same volume.'
+        run blocksnapshot create ${PROJECT}/${volume}${volume_name_modifier} ${rpsnap}-failtest1 --type rp
+        blocksnapshot show ${PROJECT}/${volume}${volume_name_modifier}/${rpsnap}-failtest1-${rp_tgt_varrays[0]}
+        run blocksnapshot create ${PROJECT}/${volume}${volume_name_modifier} ${rpsnap}-failtest2 --type rp
+        blocksnapshot show ${PROJECT}/${volume}${volume_name_modifier}/${rpsnap}-failtest2-${rp_tgt_varrays[0]}
     
-    sleep 15
-    run volume change_link ${PROJECT}/${src_volume} start ${PROJECT}/${tgt_volume} rp
+        run export_group create $PROJECT ${RP_EXPORT_GROUP} ${rp_tgt_varrays[0]} --type Host --volspec ${PROJECT}/${volume}${volume_name_modifier}/${rpsnap}-failtest1-${rp_tgt_varrays[0]} --hosts "${RP_HOSTNAME}"
+        export_group show ${rpexport}
+        secho 'Exporting RP bookmark for the same target copy as a bookmark already exported - expected failure'
+        fail export_group update ${rpexport} --addVolspec ${PROJECT}/${volume}${volume_name_modifier}/${rpsnap}-failtest2-${rp_tgt_varrays[0]}
+        export_group show ${rpexport}
+        run export_group delete ${rpexport}
+    
+        secho 'Finished running export RP bookmark failure tests'
 
-    if [ "${tgt2_volume}" != "" ]; then
-        secho 'Stopping protection for the copy and then re-enabling'
-        run volume change_link ${PROJECT}/${src_volume} stop ${PROJECT}/${tgt2_volume} rp
-        sleep 15
-        run volume change_link ${PROJECT}/${src_volume} start ${PROJECT}/${tgt2_volume} rp
+        secho 'Running export RP bookmark tests'
+        for tgt_varray in ${rp_tgt_varrays}
+        do
+            secho 'Running RP bookmark export tests for target copy '${tgt_varray}
+            run export_group create $PROJECT ${RP_EXPORT_GROUP}-${tgt_varray} ${tgt_varray} --type Host --volspec ${PROJECT}/${volume}${volume_name_modifier}/${rpsnap}-${tgt_varray} --hosts "${RP_HOSTNAME}"
+            export_group show ${rpexport}-${tgt_varray}
+            run export_group update ${rpexport}-${tgt_varray} --remVol ${PROJECT}/${volume}${volume_name_modifier}/${rpsnap}-${tgt_varray}
+            run export_group update ${rpexport}-${tgt_varray} --addVolspec ${PROJECT}/${volume}${volume_name_modifier}/${rpsnap}-${tgt_varray}
+            export_group show ${rpexport}-${tgt_varray}
+            run export_group delete ${rpexport}-${tgt_varray}
+        done
+
+        secho 'Finished with export RP bookmark tests, cleaning up'
+
+        blocksnapshot delete ${PROJECT}/${volume}${volume_name_modifier}/${rpsnap}-failtest1-${rp_tgt_varrays[0]}
+        blocksnapshot delete ${PROJECT}/${volume}${volume_name_modifier}/${rpsnap}-failtest2-${rp_tgt_varrays[0]}
+
+        for i in ${RP_VOLUME_COUNT}
+        do
+            for tgt_varray in ${rp_tgt_varrays}
+            do
+                volume_identifier=''
+                if [ "$RP_VOLUME_COUNT" -gt "1" ]; then
+                    volume_identifier='-'${i}
+                fi
+                blocksnapshot delete ${PROJECT}/${volume}${volume_identifier}/${rpsnap}-${tgt_varray}
+            done
+        done
+
+        run hosts delete ${RP_HOSTNAME}
+        secho 'Done with RecoverPoint bookmark export cleanup'
+    else
+        secho 'Skipping RecoverPoint Export Bookmark Tests'
+    fi
+}
+
+recoverpoint_export_bookmark_host_setup()
+{
+    vpool=${1}
+    rptype=${2}
+
+    if [ "${vpool}" = "rp${rptype}_cdp" ]; then
+        PWWN1=10:00:00:E0:E0:E0:A1:E0
+        WWNN1=20:00:00:E0:E0:E0:A1:E0
+        PWWN2=10:00:00:E0:E0:E0:A2:E0
+        WWNN2=20:00:00:E0:E0:E0:A2:E0
+        PWWN3=10:00:00:E0:E0:E0:A3:D0
+        WWNN3=20:00:00:E0:E0:E0:A3:D0
+        RP_HOSTNAME=${RP_EXPORT_GROUP_HOST}-${RANDOM}-cdp
+    elif [ "${vpool}" = "rp${rptype}_crr" ]; then
+        PWWN1=10:00:00:E0:E0:E0:B1:F0
+        WWNN1=20:00:00:E0:E0:E0:B1:F0
+        PWWN2=10:00:00:E0:E0:E0:B2:F0
+        WWNN2=20:00:00:E0:E0:E0:B2:F0
+        PWWN3=10:00:00:E0:E0:E0:B3:D0
+        WWNN3=20:00:00:E0:E0:E0:B3:D0
+        RP_HOSTNAME=${RP_EXPORT_GROUP_HOST}-${RANDOM}-crr
+    elif [ "${vpool}" = "rp${rptype}_clr" ]; then
+        PWWN1=10:00:00:E0:E0:E0:C1:D0
+        WWNN1=20:00:00:E0:E0:E0:C1:D0
+        PWWN2=10:00:00:E0:E0:E0:C2:D0
+        WWNN2=20:00:00:E0:E0:E0:C2:D0
+        PWWN3=10:00:00:E0:E0:E0:C3:D0
+        WWNN3=20:00:00:E0:E0:E0:C3:D0
+        RP_HOSTNAME=${RP_EXPORT_GROUP_HOST}-${RANDOM}-clr
     fi
 
-    secho 'Re-run discovery, RP bookmark should be cleaned up automatically'
-    sleep 10
-    run protectionsystem discover $RECOVERPOINT
+    run hosts create ${RP_HOSTNAME} $TENANT Windows ${RP_HOSTNAME} --port 8111 --username user --password 'password' --osversion 1.0
+    run initiator create ${RP_HOSTNAME} FC ${PWWN1} --node ${WWNN1}
+    run initiator create ${RP_HOSTNAME} FC ${PWWN2} --node ${WWNN2}
+    run initiator create ${RP_HOSTNAME} FC ${PWWN3} --node ${WWNN3}
 
-    secho 'Removed RP bookmark is being checked after RP discovery to ensure it is no longer active'
-    # Use "fail" instead of run because we expect this bookmark to fail.
-    fail blocksnapshot show ${PROJECT}/${src_volume}/${rpsnap}-${tgt_varray}
+    if [ "$RP_QUICK_PARAM" == "quick" ]; then
+        run transportzone add ${RECOVERPOINT_VARRAY1}/VSAN_11 ${PWWN1}
+        run transportzone add ${RECOVERPOINT_VARRAY2}/VSAN_12 ${PWWN2}
+        run transportzone add ${RECOVERPOINT_VARRAY3}/VSAN_13 ${PWWN3}
+    else
+        run transportzone add ${RECOVERPOINT_VARRAY1}/FABRIC_losam082-fabric ${PWWN1}
+    fi
+}
+
+recoverpoint_auto_snapshot_cleanup_test()
+{
+    if [ "$RP_AUTO_SNAP_CLEANUP_TESTS" = "1" ]; then    
+        secho 'Running RecoverPoint Auto Snapshot Cleanup Tests'
+        rpsnap=rpsnap_for_cleanup-${RP_MODIFIED_HOSTNAME}-${RANDOM}
+        blocksnap=blocksnap-${RP_MODIFIED_HOSTNAME}-${RANDOM}
+
+        src_volume=${1}
+        tgt_volume=${2}
+        tgt_varray=${3}
+        tgt2_volume=${4}
+
+        # Create RP/Block snapshot
+        secho 'Create snapshot'
+        run blocksnapshot create ${PROJECT}/${src_volume} ${rpsnap} --type rp
+        blocksnapshot show ${PROJECT}/${src_volume}/${rpsnap}-${tgt_varray} | grep inactive | grep false
+        run protectionsystem discover $RECOVERPOINT
+
+        secho 'Unaffected RP bookmark is being checked after RP discovery to ensure it is still active'
+        blocksnapshot show ${PROJECT}/${src_volume}/${rpsnap}-${tgt_varray} | grep inactive | grep false
+
+        secho 'Stopping protection for the copy and then re-enabling'
+        run volume change_link ${PROJECT}/${src_volume} stop ${PROJECT}/${tgt_volume} rp
+    
+        sleep 15
+        run volume change_link ${PROJECT}/${src_volume} start ${PROJECT}/${tgt_volume} rp
+
+        if [ "${tgt2_volume}" != "" ]; then
+            secho 'Stopping protection for the copy and then re-enabling'
+            run volume change_link ${PROJECT}/${src_volume} stop ${PROJECT}/${tgt2_volume} rp
+            sleep 15
+            run volume change_link ${PROJECT}/${src_volume} start ${PROJECT}/${tgt2_volume} rp
+        fi
+
+        secho 'Re-run discovery, RP bookmark should be cleaned up automatically'
+        sleep 10
+        run protectionsystem discover $RECOVERPOINT
+
+        secho 'Removed RP bookmark is being checked after RP discovery to ensure it is no longer active'
+        # Use "fail" instead of run because we expect this bookmark to fail.
+        fail blocksnapshot show ${PROJECT}/${src_volume}/${rpsnap}-${tgt_varray}
+    else
+        secho 'Skipping RecoverPoint Auto Snapshot Cleanup Tests'
+    fi
 }
 
 recoverpoint_ingest_host_setup()
@@ -2958,6 +3563,8 @@ recoverpoint_ingest_discovery()
             INGEST_NATIVEGUID=$RECOVERPOINT_STORAGE_ARRAY_A_GUID
         fi
         RP_NATIVEGUID=$RECOVERPOINT_RP_NATIVEGUID
+    elif [ "${RPXIO_TESTS}" = "1" ]; then
+        INGEST_NATIVEGUID=$XIO_4X_SIM_NATIVEGUID
     fi
 
     if [ ${RP_CRR} = "1" -o ${RP_CLR} = "1" -o "${RPMP_TESTS}" = "1" ]; then
@@ -3477,20 +4084,12 @@ recoverpoint_ingest()
 
     if [ "$RP_CDP" = "1" ] ; then
         recoverpoint_ingest_test rp${rptypetag}_cdp
-        if [ "${RPXIO_TESTS}" = "0" ]; then
-            recoverpoint_ingest_export_test rp${rptypetag}_cdp
-        else
-            secho "XIO Export Tests Disabled; Export host registration in physical network needs work"
-        fi
+        recoverpoint_ingest_export_test rp${rptypetag}_cdp
     fi
 
     if [ "$RP_CRR" = "1" ] ; then
         recoverpoint_ingest_test rp${rptypetag}_crr
-        if [ "${RPXIO_TESTS}" = "0" ]; then
-            recoverpoint_ingest_export_test rp${rptypetag}_crr
-        else
-            secho "XIO Export Tests Disabled; Export host registration in physical network needs work"
-        fi
+        recoverpoint_ingest_export_test rp${rptypetag}_crr
     fi
     
     if [ "$RP_CLR" = "1" ] ; then
@@ -3499,11 +4098,7 @@ recoverpoint_ingest()
             return;
         fi
         recoverpoint_ingest_test rp${rptypetag}_clr
-        if [ "${RPXIO_TESTS}" = "0" ]; then
-            recoverpoint_ingest_export_test rp${rptypetag}_clr
-        else
-            secho "XIO Export Tests Disabled; Export host registration in physical network needs work"
-        fi
+        recoverpoint_ingest_export_test rp${rptypetag}_clr        
     fi
 
     secho "RP ingest ${rptypetag} tests complete"
@@ -3511,269 +4106,303 @@ recoverpoint_ingest()
 
 recoverpoint_failover_test()
 {
-    secho 'RP failover tests'
+    if [ "$RP_FAILOVER_TESTS" = "1" ]; then
+        secho 'Running RecoverPoint Failover Tests'
 
-    src_volume=${1}
-    tgt_volume=${2}
+        src_volume=${1}
+        tgt_volume=${2}
 
-    secho 'Verify the current state of the source and target vols'
-    run volume verify ${PROJECT}/${src_volume} personality SOURCE
-    run volume verify ${PROJECT}/${src_volume} access_state READWRITE
-    run volume verify ${PROJECT}/${src_volume} link_status IN_SYNC
-    run volume verify ${PROJECT}/${tgt_volume} personality TARGET
-    run volume verify ${PROJECT}/${tgt_volume} access_state NOT_READY
-    run volume verify ${PROJECT}/${tgt_volume} link_status IN_SYNC
+        secho 'Verify the current state of the source and target vols'
+        run volume verify ${PROJECT}/${src_volume} personality SOURCE
+        run volume verify ${PROJECT}/${src_volume} access_state READWRITE
+        run volume verify ${PROJECT}/${src_volume} link_status IN_SYNC
+        run volume verify ${PROJECT}/${tgt_volume} personality TARGET
+        run volume verify ${PROJECT}/${tgt_volume} access_state NOT_READY
+        run volume verify ${PROJECT}/${tgt_volume} link_status IN_SYNC
 
-    secho 'Failover'
-    run volume change_link ${PROJECT}/${src_volume} failover ${PROJECT}/${tgt_volume} rp
+        secho 'Failover'
+        run volume change_link ${PROJECT}/${src_volume} failover ${PROJECT}/${tgt_volume} rp
 
-    secho 'Verify post failover'
-    run volume verify ${PROJECT}/${src_volume} personality SOURCE
-    run volume verify ${PROJECT}/${src_volume} access_state READWRITE
-    run volume verify ${PROJECT}/${src_volume} link_status FAILED_OVER
-    run volume verify ${PROJECT}/${tgt_volume} personality TARGET
-    run volume verify ${PROJECT}/${tgt_volume} access_state READWRITE
-    run volume verify ${PROJECT}/${tgt_volume} link_status FAILED_OVER
+        secho 'Verify post failover'
+        run volume verify ${PROJECT}/${src_volume} personality SOURCE
+        run volume verify ${PROJECT}/${src_volume} access_state READWRITE
+        run volume verify ${PROJECT}/${src_volume} link_status FAILED_OVER
+        run volume verify ${PROJECT}/${tgt_volume} personality TARGET
+        run volume verify ${PROJECT}/${tgt_volume} access_state READWRITE
+        run volume verify ${PROJECT}/${tgt_volume} link_status FAILED_OVER
 
-    secho 'Cancel the failover'
-    run volume change_link ${PROJECT}/${src_volume} failover-cancel ${PROJECT}/${tgt_volume} rp
+        secho 'Cancel the failover'
+        run volume change_link ${PROJECT}/${src_volume} failover-cancel ${PROJECT}/${tgt_volume} rp
 
-    secho 'Verify post cancel, everything should be back to the start'
-    run volume verify ${PROJECT}/${src_volume} personality SOURCE
-    run volume verify ${PROJECT}/${src_volume} access_state READWRITE
-    run volume verify ${PROJECT}/${src_volume} link_status IN_SYNC
-    run volume verify ${PROJECT}/${tgt_volume} personality TARGET
-    run volume verify ${PROJECT}/${tgt_volume} access_state NOT_READY
-    run volume verify ${PROJECT}/${tgt_volume} link_status IN_SYNC
+        secho 'Verify post cancel, everything should be back to the start'
+        run volume verify ${PROJECT}/${src_volume} personality SOURCE
+        run volume verify ${PROJECT}/${src_volume} access_state READWRITE
+        run volume verify ${PROJECT}/${src_volume} link_status IN_SYNC
+        run volume verify ${PROJECT}/${tgt_volume} personality TARGET
+        run volume verify ${PROJECT}/${tgt_volume} access_state NOT_READY
+        run volume verify ${PROJECT}/${tgt_volume} link_status IN_SYNC
 
-    secho 'Failover again'
-    run volume change_link ${PROJECT}/${src_volume} failover ${PROJECT}/${tgt_volume} rp
+        secho 'Failover again'
+        run volume change_link ${PROJECT}/${src_volume} failover ${PROJECT}/${tgt_volume} rp
 
-    secho 'Verify post failover'
-    run volume verify ${PROJECT}/${src_volume} personality SOURCE
-    run volume verify ${PROJECT}/${src_volume} access_state READWRITE
-    run volume verify ${PROJECT}/${src_volume} link_status FAILED_OVER
-    run volume verify ${PROJECT}/${tgt_volume} personality TARGET
-    run volume verify ${PROJECT}/${tgt_volume} access_state READWRITE
-    run volume verify ${PROJECT}/${tgt_volume} link_status FAILED_OVER
+        secho 'Verify post failover'
+        run volume verify ${PROJECT}/${src_volume} personality SOURCE
+        run volume verify ${PROJECT}/${src_volume} access_state READWRITE
+        run volume verify ${PROJECT}/${src_volume} link_status FAILED_OVER
+        run volume verify ${PROJECT}/${tgt_volume} personality TARGET
+        run volume verify ${PROJECT}/${tgt_volume} access_state READWRITE
+        run volume verify ${PROJECT}/${tgt_volume} link_status FAILED_OVER
 
-    secho 'Swap'
-    run volume change_link ${PROJECT}/${src_volume} swap ${PROJECT}/${tgt_volume} rp
+        secho 'Swap'
+        run volume change_link ${PROJECT}/${src_volume} swap ${PROJECT}/${tgt_volume} rp
 
-    secho 'Verify post swap'
-    run volume verify ${PROJECT}/${src_volume} personality TARGET
-    run volume verify ${PROJECT}/${src_volume} access_state NOT_READY
-    run volume verify ${PROJECT}/${src_volume} link_status IN_SYNC
-    run volume verify ${PROJECT}/${tgt_volume} personality SOURCE
-    run volume verify ${PROJECT}/${tgt_volume} access_state READWRITE
-    run volume verify ${PROJECT}/${tgt_volume} link_status IN_SYNC
+        secho 'Verify post swap'
+        run volume verify ${PROJECT}/${src_volume} personality TARGET
+        run volume verify ${PROJECT}/${src_volume} access_state NOT_READY
+        run volume verify ${PROJECT}/${src_volume} link_status IN_SYNC
+        run volume verify ${PROJECT}/${tgt_volume} personality SOURCE
+        run volume verify ${PROJECT}/${tgt_volume} access_state READWRITE
+        run volume verify ${PROJECT}/${tgt_volume} link_status IN_SYNC
 
-    # Expand not working yet, might make separate test for just expand
-    #run volume expand ${PROJECT}/${tgt_volume} ${RP_SIZE_EXPAND}
+        # Expand not working yet, might make separate test for just expand
+        #run volume expand ${PROJECT}/${tgt_volume} ${RP_SIZE_EXPAND}
 
-    secho 'Failover once again, post swap'
-    run volume change_link ${PROJECT}/${tgt_volume} failover ${PROJECT}/${src_volume} rp
+        secho 'Failover once again, post swap'
+        run volume change_link ${PROJECT}/${tgt_volume} failover ${PROJECT}/${src_volume} rp
 
-    secho 'Verify post failover, post swap'
-    run volume verify ${PROJECT}/${src_volume} personality TARGET
-    run volume verify ${PROJECT}/${src_volume} access_state READWRITE
-    run volume verify ${PROJECT}/${src_volume} link_status FAILED_OVER
-    run volume verify ${PROJECT}/${tgt_volume} personality SOURCE
-    run volume verify ${PROJECT}/${tgt_volume} access_state READWRITE
-    run volume verify ${PROJECT}/${tgt_volume} link_status FAILED_OVER
+        secho 'Verify post failover, post swap'
+        run volume verify ${PROJECT}/${src_volume} personality TARGET
+        run volume verify ${PROJECT}/${src_volume} access_state READWRITE
+        run volume verify ${PROJECT}/${src_volume} link_status FAILED_OVER
+        run volume verify ${PROJECT}/${tgt_volume} personality SOURCE
+        run volume verify ${PROJECT}/${tgt_volume} access_state READWRITE
+        run volume verify ${PROJECT}/${tgt_volume} link_status FAILED_OVER
 
-    secho 'Swap back'
-    run volume change_link ${PROJECT}/${tgt_volume} swap ${PROJECT}/${src_volume} rp
+        secho 'Swap back'
+        run volume change_link ${PROJECT}/${tgt_volume} swap ${PROJECT}/${src_volume} rp
 
-    secho 'Verify post swap back, everything should be back to normal'
-    run volume verify ${PROJECT}/${src_volume} personality SOURCE
-    run volume verify ${PROJECT}/${src_volume} access_state READWRITE
-    run volume verify ${PROJECT}/${src_volume} link_status IN_SYNC
-    run volume verify ${PROJECT}/${tgt_volume} personality TARGET
-    run volume verify ${PROJECT}/${tgt_volume} access_state NOT_READY
-    run volume verify ${PROJECT}/${tgt_volume} link_status IN_SYNC
+        secho 'Verify post swap back, everything should be back to normal'
+        run volume verify ${PROJECT}/${src_volume} personality SOURCE
+        run volume verify ${PROJECT}/${src_volume} access_state READWRITE
+        run volume verify ${PROJECT}/${src_volume} link_status IN_SYNC
+        run volume verify ${PROJECT}/${tgt_volume} personality TARGET
+        run volume verify ${PROJECT}/${tgt_volume} access_state NOT_READY
+        run volume verify ${PROJECT}/${tgt_volume} link_status IN_SYNC
+    else
+        secho 'Skipping RecoverPoint Failover Tests'
+   fi
 }
 
 recoverpoint_cg_failover_test()
 {
-    # The name of the consistency group to swap
-    cg_name=${1}
-    # The source source volume - an arbitrary source volume from the CG
-    src_volume=${2}
-    # The virtual array corresonding to the source volume (src_volume)
-    src_varray=${3}
-    # The target volume name used to identify all target volumes
-    tgt_volumes=${4}
-    # The swap target virtual arrays
-    tgt_varrays=${5}
+    if [ "$RP_CG_FAILOVER_TESTS" = "1" ]; then
+        secho 'Running RecoverPoint Failover CG Tests'
 
-    secho 'RP consistency group failover/swap tests'
+        # The name of the consistency group to swap
+        cg_name=${1}
+        # The source source volume - an arbitrary source volume from the CG
+        src_volume=${2}
+        # The virtual array corresonding to the source volume (src_volume)
+        src_varray=${3}
+        # The target volume name used to identify all target volumes
+        tgt_volumes=${4}
+        # The swap target virtual arrays
+        tgt_varrays=${5}
 
-    # Test the CG swap and swap-back for every target virtual array
-    for tgt_varray in ${tgt_varrays}
-    do
-      secho 'Verify the current state of the source and target vols'
-      run volume verify ${PROJECT}/${src_volume} personality SOURCE
-      run volume verify ${PROJECT}/${src_volume} access_state READWRITE
-      run volume verify ${PROJECT}/${src_volume} link_status IN_SYNC
+        secho 'RP consistency group failover/swap tests'
+
+        # Test the CG swap and swap-back for every target virtual array
+        for tgt_varray in ${tgt_varrays}
+        do
+          secho 'Verify the current state of the source and target vols'
+          run volume verify ${PROJECT}/${src_volume} personality SOURCE
+          run volume verify ${PROJECT}/${src_volume} access_state READWRITE
+          run volume verify ${PROJECT}/${src_volume} link_status IN_SYNC
       
-      for tgt_volume in ${tgt_volumes}
-      do
-        run volume verify ${PROJECT}/${tgt_volume} personality TARGET
-        run volume verify ${PROJECT}/${tgt_volume} access_state NOT_READY
-        run volume verify ${PROJECT}/${tgt_volume} link_status IN_SYNC
-      done
-      
-      run blockconsistencygroup failover $cg_name --copyType rp --targetVarray $tgt_varray
-      
-      run volume verify ${PROJECT}/${src_volume} personality SOURCE
-      run volume verify ${PROJECT}/${src_volume} access_state READWRITE
-      run volume verify ${PROJECT}/${src_volume} link_status FAILED_OVER
-      
-      # Post-failover target verification
-      for tgt_volume in ${tgt_volumes}
-      do
-        # If the volume corresponds to the target varray used for the failover we
-        # need to verify different values
-        if [[ $tgt_volume == *$tgt_varray* ]]; then
-            run volume verify ${PROJECT}/${tgt_volume} personality TARGET
-            run volume verify ${PROJECT}/${tgt_volume} access_state READWRITE
-            run volume verify ${PROJECT}/${tgt_volume} link_status FAILED_OVER
-        else
+          for tgt_volume in ${tgt_volumes}
+          do
             run volume verify ${PROJECT}/${tgt_volume} personality TARGET
             run volume verify ${PROJECT}/${tgt_volume} access_state NOT_READY
             run volume verify ${PROJECT}/${tgt_volume} link_status IN_SYNC
-        fi
-      done
+          done
       
-      run blockconsistencygroup failover_cancel $cg_name --copyType rp --targetVarray $tgt_varray
+          run blockconsistencygroup failover $cg_name --copyType rp --targetVarray $tgt_varray
+      
+          run volume verify ${PROJECT}/${src_volume} personality SOURCE
+          run volume verify ${PROJECT}/${src_volume} access_state READWRITE
+          run volume verify ${PROJECT}/${src_volume} link_status FAILED_OVER
+      
+          # Post-failover target verification
+          for tgt_volume in ${tgt_volumes}
+          do
+            # If the volume corresponds to the target varray used for the failover we
+            # need to verify different values
+            if [[ $tgt_volume == *$tgt_varray* ]]; then
+                run volume verify ${PROJECT}/${tgt_volume} personality TARGET
+                run volume verify ${PROJECT}/${tgt_volume} access_state READWRITE
+                run volume verify ${PROJECT}/${tgt_volume} link_status FAILED_OVER
+            else
+                run volume verify ${PROJECT}/${tgt_volume} personality TARGET
+                run volume verify ${PROJECT}/${tgt_volume} access_state NOT_READY
+                run volume verify ${PROJECT}/${tgt_volume} link_status IN_SYNC
+            fi
+          done
+      
+          run blockconsistencygroup failover_cancel $cg_name --copyType rp --targetVarray $tgt_varray
 
-      run volume verify ${PROJECT}/${src_volume} personality SOURCE
-      run volume verify ${PROJECT}/${src_volume} access_state READWRITE
-      run volume verify ${PROJECT}/${src_volume} link_status IN_SYNC
+          run volume verify ${PROJECT}/${src_volume} personality SOURCE
+          run volume verify ${PROJECT}/${src_volume} access_state READWRITE
+          run volume verify ${PROJECT}/${src_volume} link_status IN_SYNC
       
-      for tgt_volume in ${tgt_volumes}
-      do
-        run volume verify ${PROJECT}/${tgt_volume} personality TARGET
-        run volume verify ${PROJECT}/${tgt_volume} access_state NOT_READY
-        run volume verify ${PROJECT}/${tgt_volume} link_status IN_SYNC
-      done
-      
-      run blockconsistencygroup failover $cg_name --copyType rp --targetVarray $tgt_varray
-      
-      run volume verify ${PROJECT}/${src_volume} personality SOURCE
-      run volume verify ${PROJECT}/${src_volume} access_state READWRITE
-      run volume verify ${PROJECT}/${src_volume} link_status FAILED_OVER
-      
-      # Post-failover target verification
-      for tgt_volume in ${tgt_volumes}
-      do
-        # If the volume corresponds to the target varray used for the failover we
-        # need to verify different values
-        if [[ $tgt_volume == *$tgt_varray* ]]; then
-            run volume verify ${PROJECT}/${tgt_volume} personality TARGET
-            run volume verify ${PROJECT}/${tgt_volume} access_state READWRITE
-            run volume verify ${PROJECT}/${tgt_volume} link_status FAILED_OVER
-        else
+          for tgt_volume in ${tgt_volumes}
+          do
             run volume verify ${PROJECT}/${tgt_volume} personality TARGET
             run volume verify ${PROJECT}/${tgt_volume} access_state NOT_READY
             run volume verify ${PROJECT}/${tgt_volume} link_status IN_SYNC
-        fi
-      done
+          done
       
-      run blockconsistencygroup swap $cg_name --copyType rp --targetVarray $tgt_varray
+          run blockconsistencygroup failover $cg_name --copyType rp --targetVarray $tgt_varray
+      
+          run volume verify ${PROJECT}/${src_volume} personality SOURCE
+          run volume verify ${PROJECT}/${src_volume} access_state READWRITE
+          run volume verify ${PROJECT}/${src_volume} link_status FAILED_OVER
+      
+          # Post-failover target verification
+          for tgt_volume in ${tgt_volumes}
+          do
+            # If the volume corresponds to the target varray used for the failover we
+            # need to verify different values
+            if [[ $tgt_volume == *$tgt_varray* ]]; then
+                run volume verify ${PROJECT}/${tgt_volume} personality TARGET
+                run volume verify ${PROJECT}/${tgt_volume} access_state READWRITE
+                run volume verify ${PROJECT}/${tgt_volume} link_status FAILED_OVER
+            else
+                run volume verify ${PROJECT}/${tgt_volume} personality TARGET
+                run volume verify ${PROJECT}/${tgt_volume} access_state NOT_READY
+                run volume verify ${PROJECT}/${tgt_volume} link_status IN_SYNC
+            fi
+          done
+      
+          run blockconsistencygroup swap $cg_name --copyType rp --targetVarray $tgt_varray
 
-      # Post-swap source verification
-      run volume verify ${PROJECT}/${src_volume} personality TARGET
-      run volume verify ${PROJECT}/${src_volume} access_state NOT_READY
-      run volume verify ${PROJECT}/${src_volume} link_status IN_SYNC
+          # Post-swap source verification
+          run volume verify ${PROJECT}/${src_volume} personality TARGET
+          run volume verify ${PROJECT}/${src_volume} access_state NOT_READY
+          run volume verify ${PROJECT}/${src_volume} link_status IN_SYNC
       
-      # Post-swap target verification
-      for tgt_volume in ${tgt_volumes}
-      do
-        run volume verify ${PROJECT}/${tgt_volume} personality SOURCE
-        run volume verify ${PROJECT}/${tgt_volume} access_state READWRITE
-        run volume verify ${PROJECT}/${tgt_volume} link_status IN_SYNC
-      done
-      
-      run blockconsistencygroup failover $cg_name --copyType rp --targetVarray $tgt_varray
-
-      run volume verify ${PROJECT}/${src_volume} personality TARGET
-      run volume verify ${PROJECT}/${src_volume} access_state READWRITE
-      run volume verify ${PROJECT}/${src_volume} link_status FAILED_OVER
-      
-      for tgt_volume in ${tgt_volumes}
-      do
-        # If the volume corresponds to the target varray used for the failover we
-        # need to verify different values
-        if [[ $tgt_volume == *$tgt_varray* ]]; then
+          # Post-swap target verification
+          for tgt_volume in ${tgt_volumes}
+          do
             run volume verify ${PROJECT}/${tgt_volume} personality SOURCE
             run volume verify ${PROJECT}/${tgt_volume} access_state READWRITE
-            run volume verify ${PROJECT}/${tgt_volume} link_status FAILED_OVER
-        else
-            run volume verify ${PROJECT}/${tgt_volume} personality SOURCE
+            run volume verify ${PROJECT}/${tgt_volume} link_status IN_SYNC
+          done
+      
+          run blockconsistencygroup failover $cg_name --copyType rp --targetVarray $tgt_varray
+
+          run volume verify ${PROJECT}/${src_volume} personality TARGET
+          run volume verify ${PROJECT}/${src_volume} access_state READWRITE
+          run volume verify ${PROJECT}/${src_volume} link_status FAILED_OVER
+      
+          for tgt_volume in ${tgt_volumes}
+          do
+            # If the volume corresponds to the target varray used for the failover we
+            # need to verify different values
+            if [[ $tgt_volume == *$tgt_varray* ]]; then
+                run volume verify ${PROJECT}/${tgt_volume} personality SOURCE
+                run volume verify ${PROJECT}/${tgt_volume} access_state READWRITE
+                run volume verify ${PROJECT}/${tgt_volume} link_status FAILED_OVER
+            else
+                run volume verify ${PROJECT}/${tgt_volume} personality SOURCE
+                run volume verify ${PROJECT}/${tgt_volume} access_state NOT_READY
+                run volume verify ${PROJECT}/${tgt_volume} link_status IN_SYNC
+            fi
+          done
+      
+          run blockconsistencygroup swap $cg_name --copyType rp --targetVarray $src_varray
+
+          # swap-back source verification
+          run volume verify ${PROJECT}/${src_volume} personality SOURCE
+          run volume verify ${PROJECT}/${src_volume} access_state READWRITE
+          run volume verify ${PROJECT}/${src_volume} link_status IN_SYNC
+      
+          # swap-back target verification
+          for tgt_volume in ${tgt_volumes}
+          do
+            run volume verify ${PROJECT}/${tgt_volume} personality TARGET
             run volume verify ${PROJECT}/${tgt_volume} access_state NOT_READY
             run volume verify ${PROJECT}/${tgt_volume} link_status IN_SYNC
-        fi
-      done
-      
-      run blockconsistencygroup swap $cg_name --copyType rp --targetVarray $src_varray
-
-      # swap-back source verification
-      run volume verify ${PROJECT}/${src_volume} personality SOURCE
-      run volume verify ${PROJECT}/${src_volume} access_state READWRITE
-      run volume verify ${PROJECT}/${src_volume} link_status IN_SYNC
-      
-      # swap-back target verification
-      for tgt_volume in ${tgt_volumes}
-      do
-        run volume verify ${PROJECT}/${tgt_volume} personality TARGET
-        run volume verify ${PROJECT}/${tgt_volume} access_state NOT_READY
-        run volume verify ${PROJECT}/${tgt_volume} link_status IN_SYNC
-      done
-    done
+          done
+        done
+    else
+        secho 'Skipping RecoverPoint Failover CG Tests'
+    fi
 }
 
 recoverpoint_vpool_change_test()
 {
-    base_volume=${1}
-    noprotection_vpool=${2}
-    rp_vpool=${3}
-    rp_cg=${4}
-    upgrade_to_mp=${5}
+    # Run change vpool tests on the volume if the flag is set.
+    # These tests will:
+    #  1. Remove protection from the RP volume.
+    #  2. Add protection to the now unprotected volume.
+    #  3. Upgrade to MP (only in the case of MP CRR tests - for now)
 
-    # Perform Upgrade to MP if the variable is present,
-    # Only RP+VPLEX Distributed CRR is eligible for this operation (for now).
-    if [ a${upgrade_to_mp} != a ] ; then
-        secho 'Change Virtual Pool - Upgrade To MetroPoint'
-        run volume change_cos ${PROJECT}/${base_volume} ${upgrade_to_mp}
-    else
-        secho 'Change Virtual Pool - Remove Protection'
+    if [ "$RP_CHANGE_VPOOL" = "1" ]; then
+        secho 'Running RecoverPoint Change Virtual Pool Tests'
+
+        base_volume=${1}
+        noprotection_vpool=${2}
+        rp_vpool=${3}
+        rp_cg=${4}
+        upgrade_to_mp=${5}
+
+        # Perform Upgrade to MP if the variable is present,
+        # Only RP+VPLEX Distributed CRR is eligible for this operation (for now).
+        if [ a${upgrade_to_mp} != a ] ; then
+            secho 'Change Virtual Pool - Upgrade To MetroPoint'
+            run volume change_cos ${PROJECT}/${base_volume} ${upgrade_to_mp}
+        fi
+        secho 'Change Virtual Pool - Remove RecoverPoint Protection'
         run volume change_cos ${PROJECT}/${base_volume} ${noprotection_vpool}
 
-        secho 'Change Virtual Pool - Add Protection'
+        secho 'Change Virtual Pool - Add RecoverPoint Protection'
         run volume change_cos ${PROJECT}/${base_volume} ${rp_vpool} --consistencyGroup ${rp_cg}
+
+    else
+        secho 'Skipping RecoverPoint Change Virtual Pool Tests'
     fi
 }
 
 recoverpoint_vpool_change_replication_mode_test()
 {
-    base_volume=${1}
-    target_vpool=${2}
+    if [ "$RP_CHANGE_REPLICATION_MODE_TESTS" = "1" ]; then
+        secho 'Running RecoverPoint Change Replication Mode Tests'
 
-    secho 'Change Virtual Pool - Update Replication Mode'
-    run volume change_cos ${PROJECT}/${base_volume} ${target_vpool}
+        base_volume=${1}
+        target_vpool=${2}
+
+        secho 'Change Virtual Pool - Update Replication Mode'
+        run volume change_cos ${PROJECT}/${base_volume} ${target_vpool}
+    else
+        secho 'Skipping RecoverPoint Change Replication Mode Tests'
+    fi
 }
 
 recoverpoint_add_journal_volume()
 {
-   copy_name=${1}
-   journ_varray=${2} 
-   journ_vpool=${3}     
-   rp_cg=${4}
+    if [ "$RP_ADD_JOURNAL_TESTS" = "1" ]; then    
+        secho 'Running RecoverPoint Add Journal Volume Tests'
 
-   secho 'RP add journal volume'
-   run volume add_journal ${copy_name} $PROJECT ${journ_varray} ${journ_vpool} 10GB --consistencyGroup ${rp_cg} --count=1  
+        copy_name=${1}
+        journ_varray=${2} 
+        journ_vpool=${3}     
+        rp_cg=${4}
+
+        secho 'RP add journal volume'
+        run volume add_journal ${copy_name} $PROJECT ${journ_varray} ${journ_vpool} 10GB --consistencyGroup ${rp_cg} --count=1  
+    else
+        secho 'Skipping RecoverPoint Add Journal Volume Tests'
+    fi
 }
 
 recoverpoint_simulator_varsetup() {
@@ -3790,16 +4419,14 @@ recoverpoint_simulator_varsetup() {
         RECOVERPOINT_STORAGE_ARRAY_C_GUID=${VMAX3_SIMULATOR_NATIVEGUID}
         RECOVERPOINT_STORAGE_ARRAY_D_GUID=${VMAX4_SIMULATOR_NATIVEGUID}
     fi
+    if [ "${RPXIO_TESTS}" = "1" ]; then
+        RECOVERPOINT_XTREMIO_GUID=${XIO_4X_SIM_NATIVEGUID}
+    fi
 }
 
 # Simulator setup
 recoverpoint_simulator_setup()
 {
-    if [ "${RPXIO_TESTS}" = "1" ]; then
-        echo "FAILURE: XIO in simulator mode not supported yet"
-        exit
-    fi
-
     secho 'RecoverPoint Simulator running'
     project_setup
     rp_varray_setup
@@ -3817,6 +4444,9 @@ recoverpoint_simulator_setup()
             run storageprovider create ${RECOVERPOINT_VPLEX_B} $VPLEX_IP ${VPLEX2_SIMULATOR_PORT} $VPLEX_USER "$VPLEX_PASSWD" vplex
         fi
         rp_port_setup
+    fi
+    if [ "${RPXIO_TESTS}" = "1" ]; then
+        run storageprovider create xtremeio1 $XIO_SIMULATOR_IP ${XIO_4X_SIMULATOR_PORT} root root xtremio
     fi
 
     run storagedevice discover_all
@@ -3839,6 +4469,9 @@ recoverpoint_simulator_setup()
     run storagepool update $VMAX1_SIMULATOR_NATIVEGUID --nhadd $RECOVERPOINT_VARRAY1 --type block
     run storagepool update $VMAX2_SIMULATOR_NATIVEGUID --nhadd $RECOVERPOINT_VARRAY2 --type block
     run storagepool update $VMAX3_SIMULATOR_NATIVEGUID --nhadd $RECOVERPOINT_VARRAY3 --type block
+    if [ "${RPXIO_TESTS}" = "1" ]; then
+        run storagepool update $XIO_4X_SIM_NATIVEGUID --nhadd $RECOVERPOINT_VARRAY1 --type block
+    fi
 
     # Simulator adjustments to cos (shouldn't be needed but RP simulator only sees a subset of what's on the network)
     rp_vpool_setup
@@ -3847,6 +4480,10 @@ recoverpoint_simulator_setup()
         run cos update block rp_targets --storage $VMAX1_SIMULATOR_NATIVEGUID
         run cos update block rp_targets --storage $VMAX2_SIMULATOR_NATIVEGUID
         run cos update block rp_targets --storage $VMAX3_SIMULATOR_NATIVEGUID
+        run cos update block rp_noprotection --storage $VMAX1_SIMULATOR_NATIVEGUID
+        run cos update block rp_noprotection --storage $VMAX2_SIMULATOR_NATIVEGUID
+        run cos update block rp_noprotection --storage $VMAX3_SIMULATOR_NATIVEGUID
+
         if [ "${RP_CDP}" = "1" ]; then
             run cos update block rp_cdp --storage $VMAX1_SIMULATOR_NATIVEGUID
             run cos update block rp_cdp-sync --storage $VMAX1_SIMULATOR_NATIVEGUID
@@ -3867,6 +4504,12 @@ recoverpoint_simulator_setup()
         run cos update block rpvplex_ha --storage $VMAX1_SIMULATOR_NATIVEGUID
         run cos update block rpvplex_ha --storage $VMAX2_SIMULATOR_NATIVEGUID
         run cos update block rpvplex_ha --storage $VMAX3_SIMULATOR_NATIVEGUID
+        run cos update block rpvplexlocal_noprotection --storage $VMAX1_SIMULATOR_NATIVEGUID
+        run cos update block rpvplexlocal_noprotection --storage $VMAX2_SIMULATOR_NATIVEGUID
+        run cos update block rpvplexlocal_noprotection --storage $VMAX3_SIMULATOR_NATIVEGUID
+        run cos update block rpvplexdist_noprotection --storage $VMAX1_SIMULATOR_NATIVEGUID
+        run cos update block rpvplexdist_noprotection --storage $VMAX2_SIMULATOR_NATIVEGUID
+        run cos update block rpvplexdist_noprotection --storage $VMAX3_SIMULATOR_NATIVEGUID
 
         if [ "${RP_CDP}" = "1" ]; then
             run cos update block rpvplex_cdp --storage $VMAX1_SIMULATOR_NATIVEGUID
@@ -3895,6 +4538,11 @@ recoverpoint_simulator_setup()
             run cos update block rpmp_clr --storage $VMAX2_SIMULATOR_NATIVEGUID
             run cos update block rpmp_clr --storage $VMAX3_SIMULATOR_NATIVEGUID
         fi
+    fi
+    if [ "${RPXIO_TESTS}" = "1" ]; then
+        run cos update block rpxio_targets --storage $XIO_4X_SIM_NATIVEGUID
+        run cos update block rp_noprotection --storage $XIO_4X_SIM_NATIVEGUID
+        run cos update block rpxio_cdp --storage $XIO_4X_SIM_NATIVEGUID
     fi
 }
 
@@ -3980,11 +4628,13 @@ recoverpoint_tests()
         rp_src_varray=$RECOVERPOINT_VARRAY1
         rpvplex_src_varray=$RECOVERPOINT_VARRAY1
         rpmp_src_varray=$RECOVERPOINT_VARRAY1
+	rpxio_src_varray=$RECOVERPOINT_VARRAY1
 
         # Vpools for change vpool - Remove Protection
         rp_noprotection_vpool='rp_noprotection'
         rpvplex_noprotection_vpool='rpvplexdist_noprotection'
         rpmp_noprotection_vpool='rpvplexdist_noprotection'
+        rpxio_noprotection_vpool='rp_noprotection'
 
         rp_type=''
 
@@ -4009,6 +4659,11 @@ recoverpoint_tests()
             rpmp_standby_tgt_varray=$RECOVERPOINT_VARRAY2
             rpmp_tgt_varrays=($RECOVERPOINT_VARRAY1 $RECOVERPOINT_VARRAY2)
             rpmp_tgt_vpool='rp_targets'
+            
+            # XIO
+            rpxio_tgt_varray=$RECOVERPOINT_VARRAY1
+            rpxio_tgt_varrays=($RECOVERPOINT_VARRAY1)
+            rpxio_tgt_vpool='rpxio_targets'
         fi
 
         if [ "$RP_CRR" = "1" ]; then
@@ -4030,6 +4685,11 @@ recoverpoint_tests()
             rpmp_tgt_varrays=($RECOVERPOINT_VARRAY3)
             rpmp_standby_tgt_varray=''
             rpmp_tgt_vpool='rp_targets'
+
+            # XIO
+            rpxio_tgt_varray=$RECOVERPOINT_VARRAY1
+            rpxio_tgt_varrays=($RECOVERPOINT_VARRAY1)
+            rpxio_tgt_vpool='rpxio_targets'
         fi
 
         if [ "$RP_CLR" = "1" ]; then
@@ -4051,6 +4711,11 @@ recoverpoint_tests()
             rpmp_tgt_varrays=($RECOVERPOINT_VARRAY1 $RECOVERPOINT_VARRAY2 $RECOVERPOINT_VARRAY3)
             rpmp_standby_tgt_varray=''
             rpmp_tgt_vpool='rp_targets'
+
+            # XIO
+            rpxio_tgt_varray=$RECOVERPOINT_VARRAY3
+            rpxio_tgt_varrays=($RECOVERPOINT_VARRAY1 $RECOVERPOINT_VARRAY3)
+            rpxio_tgt_vpool='rpxio_targets'
         fi
 
         # RP
@@ -4074,7 +4739,7 @@ recoverpoint_tests()
         # XIO
         rpxio_src_vpool='rpxio_'$rp_type
         rpxio_src_vpool_sync=${rpxio_src_vpool}'-sync'
-        rpxiovolume=${RP_METROPOINT_VOLUME}
+        rpxiovolume=${RP_XIO_VOLUME}
         rpxiovolumetarget=${xiovolume}'-target-'${rpxio_active_tgt_varray}
 
         # Ingestion Tests
@@ -4129,38 +4794,6 @@ recoverpoint_tests()
             volume_name_modifier='-1'
         fi
 
-        # Run change vpool tests on the volume if the flag is set.
-        # These tests will:
-        #  1. Remove protection from the RP volume.
-        #  2. Add protection to the now unprotected volume.
-        #  3. Upgrade to MP (only in the case of MP CRR tests - for now)
-        if [ "$RP_CHANGE_VPOOL" = "1" ]; then
-            if [ "$RP_TESTS" = "1" ]; then
-                secho 'RP change vpool...'
-                recoverpoint_vpool_change_test ${rpvolume}${volume_name_modifier} ${rp_noprotection_vpool} ${rp_src_vpool} ${RP_CONSISTENCY_GROUP}
-            fi
-
-            if [ "$RPVPLEX_TESTS" = "1" ]; then
-                secho 'RP+VPLEX change vpool...'
-                if [ "$RP_CRR" = "1" ]; then
-                    # Upgrade to MetroPoint change vpool test
-                    recoverpoint_vpool_change_test ${rpvplexvolume}${volume_name_modifier} ${rpvplex_noprotection_vpool} ${rpvplex_src_vpool} ${RP_VPLEX_CONSISTENCY_GROUP} rpmp_crr
-                else
-                    recoverpoint_vpool_change_test ${rpvplexvolume}${volume_name_modifier} ${rpvplex_noprotection_vpool} ${rpvplex_src_vpool} ${RP_VPLEX_CONSISTENCY_GROUP}
-                fi
-            fi
-
-            if [ "$RPMP_TESTS" = "1" ]; then
-                secho 'MP change vpool...NOT YET SUPPORTED!!'
-                #recoverpoint_vpool_change_test ${rpmpvolume}${volume_name_modifier} ${rpmp_noprotection_vpool} ${rpmp_src_vpool} ${RP_METROPOINT_CONSISTENCY_GROUP}
-            fi
-
-            if [ "$RPXIO_TESTS" = "1" ]; then
-                secho 'RP XIO change vpool...'
-                recoverpoint_vpool_change_test ${rpxiovolume}${volume_name_modifier} ${rpxio_noprotection_vpool} ${rpxio_src_vpool} ${RP_XIO_CONSISTENCY_GROUP}
-            fi
-        fi
-
         # Compile a list of target volume names that have been created for RP
         rp_tgt_volumes=()
         for tgt in ${rp_tgt_varrays}
@@ -4182,14 +4815,15 @@ recoverpoint_tests()
           rpmp_tgt_volumes=("${rpmp_tgt_volumes[@]}" "${rpmpvolume}-target-${tgt}${volume_name_modifier}")
         done
 
-        ### Begin RecoverPoint test cases ###
-
         # RP test cases
         # Run these test cases unless specified to only run create/delete tests
         if [ "$RP_RUN_VOLUME_CREATE_ONLY" = "0" ]; then
-
             if [ "$RP_TESTS" = "1" ]; then
                 secho 'RP tests...'
+
+                # Change Virtual Pool Test
+                recoverpoint_vpool_change_test ${rpvolume}${volume_name_modifier} ${rp_noprotection_vpool} ${rp_src_vpool} ${RP_CONSISTENCY_GROUP}
+
                 # Add Journal Test
                 recoverpoint_add_journal_volume ${rp_tgt_varray} ${rp_tgt_varray} ${rp_tgt_vpool} ${RP_CONSISTENCY_GROUP}
                 
@@ -4207,14 +4841,25 @@ recoverpoint_tests()
                 recoverpoint_cg_failover_test ${RP_CONSISTENCY_GROUP} ${rpvolume}${volume_name_modifier} ${rp_src_varray} ${rp_tgt_volumes} ${rp_tgt_varrays}
 
                 # Change Replication Mode Test
-                secho 'RP change vpool - replication mode'
                 recoverpoint_vpool_change_replication_mode_test ${rpvolume}${volume_name_modifier} ${rp_src_vpool_sync}
                 recoverpoint_vpool_change_replication_mode_test ${rpvolume}${volume_name_modifier} ${rp_src_vpool}
+
+                # RP Export Bookmark Test
+                recoverpoint_export_bookmark_tests ${rpvolume} $RECOVERPOINT_VARRAY1 ${rp_tgt_varrays} ${rp_src_vpool} ""
             fi
 
             # RP+VPLEX test cases
             if [ "$RPVPLEX_TESTS" = "1" ]; then
                 secho 'RP+VPLEX tests...'
+
+                # Change Virtual Pool Test
+                if [ "$RP_CRR" = "1" ]; then
+                    # Upgrade to MetroPoint change vpool test
+                    recoverpoint_vpool_change_test ${rpvplexvolume}${volume_name_modifier} ${rpvplex_noprotection_vpool} ${rpvplex_src_vpool} ${RP_VPLEX_CONSISTENCY_GROUP} rpmp_crr
+                else
+                    recoverpoint_vpool_change_test ${rpvplexvolume}${volume_name_modifier} ${rpvplex_noprotection_vpool} ${rpvplex_src_vpool} ${RP_VPLEX_CONSISTENCY_GROUP}
+                fi
+
                 # Add Journal Test
                 recoverpoint_add_journal_volume ${rpvplex_tgt_varray} ${rpvplex_tgt_varray} ${rpvplex_tgt_vpool} ${RP_VPLEX_CONSISTENCY_GROUP}
 
@@ -4231,11 +4876,18 @@ recoverpoint_tests()
                 secho 'RP change vpool - replication mode, not supported on RP/VPLEX yet'
                 # recoverpoint_vpool_change_replication_mode_test ${rpvplexvolume}${volume_name_modifier} ${rpvplex_src_vpool_sync}
                 # recoverpoint_vpool_change_replication_mode_test ${rpvplexvolume}${volume_name_modifier} ${rpvplex_src_vpool}
+
+                # RP Export Bookmark Test
+                recoverpoint_export_bookmark_tests ${rpvplexvolume} $RECOVERPOINT_VARRAY1 ${rp_tgt_varrays} ${rpvplex_src_vpool} "vplex"
             fi
 
             # MP test cases
             if [ "$RPMP_TESTS" = "1" ]; then
                 secho 'MetroPoint tests...'
+
+                # Change Virtual Pool Test
+                recoverpoint_vpool_change_test ${rpmpvolume}${volume_name_modifier} ${rpmp_noprotection_vpool} ${rpmp_src_vpool} ${RP_METROPOINT_CONSISTENCY_GROUP}
+
                 # Add Journal Test
                 recoverpoint_add_journal_volume ${rpmp_active_tgt_varray} ${rpmp_active_tgt_varray} ${rpmp_tgt_vpool} ${RP_METROPOINT_CONSISTENCY_GROUP}
 
@@ -4252,6 +4904,42 @@ recoverpoint_tests()
                 secho 'RP change vpool - replication mode, not supported on RP/MP yet'
                 # recoverpoint_vpool_change_replication_mode_test ${rpmpvolume}${volume_name_modifier} ${rpmp_src_vpool_sync}
                 # recoverpoint_vpool_change_replication_mode_test ${rpmpvolume}${volume_name_modifier} ${rpmp_src_vpool}
+
+                # RP Export Bookmark Test
+                recoverpoint_export_bookmark_tests ${rpmpvolume} $RECOVERPOINT_VARRAY1 ${rp_tgt_varrays} ${rpmp_src_vpool} "mp"
+            fi
+
+            # XIO test cases
+            if [ "$RPXIO_TESTS" = "1" ]; then
+                secho 'XIO tests...'
+
+                # Change Virtual Pool Test
+                recoverpoint_vpool_change_test ${rpxiovolume}${volume_name_modifier} ${rpxio_noprotection_vpool} ${rpxio_src_vpool} ${RP_XIO_CONSISTENCY_GROUP}
+
+                # Add Journal Test
+                recoverpoint_add_journal_volume ${rpxio_tgt_varray} ${rpxio_tgt_varray} ${rpxio_tgt_vpool} ${RP_XIO_CONSISTENCY_GROUP}
+                
+                # Snapshot/Bookmark Test
+                if [ "${RP_CLR}" = "1" ]; then
+                    recoverpoint_auto_snapshot_cleanup_test ${rpxiovolume}${volume_name_modifier} ${rpxiovolumetarget}${volume_name_modifier} ${rpxio_tgt_varray} ${rpxiovolume}-target-${RECOVERPOINT_VARRAY1}
+                else
+                    recoverpoint_auto_snapshot_cleanup_test ${rpxiovolume}${volume_name_modifier} ${rpxiovolumetarget}${volume_name_modifier} ${rpxio_tgt_varray}
+                fi
+
+                # Failover Test
+                recoverpoint_failover_test ${rpxiovolume}${volume_name_modifier} ${rpxiovolumetarget}${volume_name_modifier}
+
+                # CG Failover/Swap Test
+                recoverpoint_cg_failover_test ${RP_XIO_CONSISTENCY_GROUP} ${rpxiovolume}${volume_name_modifier} ${rpxio_src_varray} ${rpxio_tgt_volumes} ${rpxio_tgt_varrays}
+
+                # Change Replication Mode Test
+                secho 'RP change vpool - replication mode, not supported on RP/XIO yet'
+                #recoverpoint_vpool_change_replication_mode_test ${rpxiovolume}${volume_name_modifier} ${rpxio_src_vpool_sync}
+                #recoverpoint_vpool_change_replication_mode_test ${rpxiovolume}${volume_name_modifier} ${rpxio_src_vpool}
+
+                # RP Export Bookmark Test
+                recoverpoint_export_bookmark_tests ${rpxiovolume} $RECOVERPOINT_VARRAY1 ${rpxio_tgt_varrays} ${rpxio_src_vpool} "xio"
+
             fi
         fi
 
@@ -4272,6 +4960,10 @@ recoverpoint_tests()
         if [ "$RPMP_TESTS" = "1" ]; then
             secho 'MP volume cleanup...'
             recoverpoint_cleanup_volumes ${rpmpvolume} $RP_VOLUME_COUNT
+        fi
+        if [ "$RPXIO_TESTS" = "1" ]; then
+            secho 'XIO volume cleanup...'
+            recoverpoint_cleanup_volumes ${rpxiovolume} $RP_VOLUME_COUNT
         fi
 
         secho 'CG cleanup...'

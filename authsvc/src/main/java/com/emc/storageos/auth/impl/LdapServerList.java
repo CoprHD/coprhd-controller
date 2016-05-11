@@ -30,8 +30,8 @@ public class LdapServerList {
     }
 
     public void markAsConnected(LdapOrADServer server) {
-        connectedServers.remove(server);
-        disConnectedServers.add(server);
+        connectedServers.add(server);
+        disConnectedServers.remove(server);
         log.info("Change back to connected ldap server {}. Now all connected servers are {}",
                 server, connectedServers);
     }

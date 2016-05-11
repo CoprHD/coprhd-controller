@@ -49,14 +49,12 @@ public class ChangeBlockVolumeVirtualPool extends WaitForTasks<VolumeRestRep> {
         if (!NullColumnValueGetter.isNullURI(consistencyGroup)) {
             input.setConsistencyGroup(consistencyGroup);
         }
-        // Commented out for testing purposes in this commit - these param
-        // functions were added in another branch
-        // if (migrationType.equals(MigrationTypeEnum.HOST.toString())) {
-        //    param.setIsHostMigration(True);
-        //    param.setMigrationHost(migrationHost);
-        //} else if (migrationType.equals(MigrationTypeEnum.DRIVER.toString())) {
-        //    param.setIsHostMigration(False);
-        //}
+        if (migrationType.equals(MigrationTypeEnum.HOST.toString())) {
+            param.setIsHostMigration(True);
+            param.setMigrationHost(migrationHost);
+        } else if (migrationType.equals(MigrationTypeEnum.DRIVER.toString())) {
+            param.setIsHostMigration(False);
+        }
         return getClient().blockVolumes().changeVirtualPool(input);
     }
 }

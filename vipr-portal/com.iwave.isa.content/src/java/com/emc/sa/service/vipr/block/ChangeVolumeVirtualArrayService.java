@@ -29,7 +29,7 @@ public class ChangeVolumeVirtualArrayService extends ViPRService {
     @Param(ServiceParams.MIGRATION_TYPE)
     private String migrationType;
 
-    @Param(ServiceParams.HOST)
+    @Param(ServiceParams.LINUX_HOST)
     private URI migrationHost;
 
     @Override
@@ -61,5 +61,21 @@ public class ChangeVolumeVirtualArrayService extends ViPRService {
 
     public void setTargetVirtualArray(URI targetVirtualArray) {
         this.targetVirtualArray = targetVirtualArray;
+    }
+
+    public String getMigrationType() {
+        return migrationType;
+    }
+
+    public void setMigrationType(String migrationType) {
+        this.migrationType = migrationType;
+    }
+
+    public URI getMigrationHost() {
+        return migrationHost;
+    }
+
+    public void setMigrationHost(URI migrationHost) {
+        this.migrationHost = migrationHostl
     }
 }

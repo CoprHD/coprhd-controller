@@ -27,7 +27,6 @@ import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.HostInterface;
-import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.StringSetMap;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedConsistencyGroup;
@@ -85,7 +84,8 @@ public class ExternalDeviceUnManagedVolumeDiscoverer {
      * @param dbClient [IN]
      * @param partitionManager [IN]
      */
-    public void discoverUnManagedBlockObjects(BlockStorageDriver driver, com.emc.storageos.db.client.model.StorageSystem storageSystem,
+    public void discoverUnManagedBlockObjects(BlockStorageDriver driver,
+                                              com.emc.storageos.db.client.model.StorageSystem storageSystem,
                                               DbClient dbClient, PartitionManager partitionManager) {
 
         Set<URI> allCurrentUnManagedVolumeUris = new HashSet<>();
@@ -389,8 +389,9 @@ public class ExternalDeviceUnManagedVolumeDiscoverer {
      * @param dbClient
      * @return storage pool for unmanaged unmanged volume
      */
-    private com.emc.storageos.db.client.model.StoragePool getStoragePoolOfUnManagedVolume(com.emc.storageos.db.client.model.StorageSystem storageSystem,
-                                                                                          StorageVolume driverVolume, DbClient dbClient) {
+    private com.emc.storageos.db.client.model.StoragePool getStoragePoolOfUnManagedVolume(
+                                                            com.emc.storageos.db.client.model.StorageSystem storageSystem,
+                                                            StorageVolume driverVolume, DbClient dbClient) {
         com.emc.storageos.db.client.model.StoragePool storagePool = null;
         // Get vipr pool
         String driverPoolId = driverVolume.getStoragePoolId();
@@ -508,26 +509,30 @@ public class ExternalDeviceUnManagedVolumeDiscoverer {
 
     /**
      * Process snapshots of unManaged volume.
-     * Check if unManaged snapshot should be created and create unManaged volume indtance for a snpa in such a case.
+     * Check if unManaged snapshot should be created and create unManaged volume instance for a snapshot in such a case.
      * Add unManaged snapshot to parent volume CG if needed and update the snap with parent volume CG information.
+     * Gets export information for snapshots and stores it in the provided map.
      *
-     * @param driverVolume              driver volume for snap parent volume.
-     * @param unManagedParentVolume     unManaged parent volume
-     * @param storageSystem
-     * @param storagePool
-     * @param unManagedVolumesToCreate
-     * @param unManagedVolumesToUpdate
-     * @param allCurrentUnManagedCgURIs
-     * @param unManagedCGToUpdateMap    book keeping map of CG GUID to CG  instance
-     * @param driver                    storage driver for the storage array
+     * @param driverVolume              driver volume for snap parent volume. [IN]
+     * @param unManagedParentVolume     unManaged parent volume [IN/OUT]
+     * @param storageSystem             [IN]
+     * @param storagePool               [IN]
+     * @param unManagedVolumesToCreate  list of unmanaged volumes to create [OUT]
+     * @param unManagedVolumesToUpdate  list of unmanaged volumes to update [OUT]
+     * @param allCurrentUnManagedCgURIs set of unManaged CG uris found in the current discovery [OUT]
+     * @param unManagedCGToUpdateMap    map of unManaged CG GUID to unManaged CG instance [IN/OUT]
+     * @param unManagedVolumeNativeIdToUriMap map of unmanaged volumes nativeId to their uri [OUT]
+     * @param hostToUnManagedVolumeExportInfoMap map  with export data for unmanaged volumes (including snaps and clones)
+     * @param driver                    storage driver [IN]
      * @param dbClient
-     * @return
+     * @return                          set of URIs for unmanaged snapshots
      * @throws Exception
      */
     private Set<URI> processUnManagedSnapshots(StorageVolume driverVolume, UnManagedVolume unManagedParentVolume,
                                                com.emc.storageos.db.client.model.StorageSystem storageSystem,
                                                com.emc.storageos.db.client.model.StoragePool storagePool,
-                                               List<UnManagedVolume> unManagedVolumesToCreate, List<UnManagedVolume> unManagedVolumesToUpdate,
+                                               List<UnManagedVolume> unManagedVolumesToCreate,
+                                               List<UnManagedVolume> unManagedVolumesToUpdate,
                                                Set<URI> allCurrentUnManagedCgURIs,
                                                Map<String, UnManagedConsistencyGroup> unManagedCGToUpdateMap,
                                                Map<String, URI> unManagedVolumeNativeIdToUriMap,
@@ -596,10 +601,32 @@ public class ExternalDeviceUnManagedVolumeDiscoverer {
         return snapshotUris;
     }
 
+    /**
+     * Process clones of unManaged volume.
+     * Check if unManaged clone should be created and create unManaged volume instance for a clone in such a case.
+     * Add unManaged clone to parent volume CG if needed and update the clone with parent volume CG information.
+     * Gets export information for clones and stores it in the provided map.
+     *
+     * @param driverVolume              driver volume for clone parent volume. [IN]
+     * @param unManagedParentVolume     unManaged parent volume [IN/OUT]
+     * @param storageSystem             [IN]
+     * @param storagePool               [IN]
+     * @param unManagedVolumesToCreate  list of unmanaged volumes to create [OUT]
+     * @param unManagedVolumesToUpdate  list of unmanaged volumes to update [OUT]
+     * @param allCurrentUnManagedCgURIs set of unManaged CG uris found in the current discovery [OUT]
+     * @param unManagedCGToUpdateMap    map of unManaged CG GUID to unManaged CG instance [IN/OUT]
+     * @param unManagedVolumeNativeIdToUriMap map of unmanaged volumes nativeId to their uri [OUT]
+     * @param hostToUnManagedVolumeExportInfoMap map  with export data for unmanaged volumes (including snaps and clones)
+     * @param driver                    storage driver [IN]
+     * @param dbClient
+     * @return                          set of URIs for unmanaged clones
+     * @throws Exception
+     */
     private Set<URI> processUnManagedClones(StorageVolume driverVolume, UnManagedVolume unManagedParentVolume,
                                             com.emc.storageos.db.client.model.StorageSystem storageSystem,
                                             com.emc.storageos.db.client.model.StoragePool storagePool,
-                                            List<UnManagedVolume> unManagedVolumesToCreate, List<UnManagedVolume> unManagedVolumesToUpdate,
+                                            List<UnManagedVolume> unManagedVolumesToCreate,
+                                            List<UnManagedVolume> unManagedVolumesToUpdate,
                                             Set<URI> allCurrentUnManagedCgURIs,
                                             Map<String, UnManagedConsistencyGroup> unManagedCGToUpdateMap,
                                             Map<String, URI> unManagedVolumeNativeIdToUriMap,
@@ -671,7 +698,7 @@ public class ExternalDeviceUnManagedVolumeDiscoverer {
 
 
     /**
-     * Create new or update existing unManaged snapshot with unManaged snapshot discovery data.
+     * Create new or update existing unManaged snapshot with driver snapshot discovery data.
      *
      * @param driverSnapshot device snap [IN]
      * @param parentUnManagedVolume unmanaged parent volume [IN]
@@ -835,7 +862,8 @@ public class ExternalDeviceUnManagedVolumeDiscoverer {
     }
 
     /**
-     * Create new or update existing unManaged clone with unManaged clone discovery data.
+     * Create new or update existing unManaged clone with driver clone discovery data.
+     *
      * @param driverClone device clone [IN]
      * @param parentUnManagedVolume unmanaged parent volume [IN]
      * @param storageSystem [IN]
@@ -848,7 +876,8 @@ public class ExternalDeviceUnManagedVolumeDiscoverer {
     private UnManagedVolume createUnManagedClone(VolumeClone driverClone, UnManagedVolume parentUnManagedVolume,
                                                  com.emc.storageos.db.client.model.StorageSystem storageSystem,
                                                  com.emc.storageos.db.client.model.StoragePool storagePool,
-                                                 List<UnManagedVolume> unManagedVolumesToCreate, List<UnManagedVolume> unManagedVolumesToUpdate,
+                                                 List<UnManagedVolume> unManagedVolumesToCreate,
+                                                 List<UnManagedVolume> unManagedVolumesToUpdate,
                                                  DbClient dbClient) {
         // We process unManaged clone as unManaged volume
         boolean newVolume = false;
@@ -1006,7 +1035,8 @@ public class ExternalDeviceUnManagedVolumeDiscoverer {
      * @param driverVolume              volume for which we need to get export info [IN]
      * @param hostToVolumeExportInfoMap map, key --- host FQDN, value: list with export info for volumes exported to this host [IN/OUT]
      */
-    private void getVolumeExportInfo(BlockStorageDriver driver, StorageVolume driverVolume, Map<String, List<HostExportInfo>> hostToVolumeExportInfoMap) {
+    private void getVolumeExportInfo(BlockStorageDriver driver, StorageVolume driverVolume,
+                                     Map<String, List<HostExportInfo>> hostToVolumeExportInfoMap) {
         // get VolumeToHostExportInfo data for this volume from driver
         Map<String, HostExportInfo> volumeToHostExportInfo = driver.getVolumeExportInfoForHosts(driverVolume);
         log.info("Export info for volume {} is {}:", driverVolume, volumeToHostExportInfo);
@@ -1103,7 +1133,8 @@ public class ExternalDeviceUnManagedVolumeDiscoverer {
      */
     private void getExportInfoForManagedVolumeReplicas(Map<String, URI> managedVolumeNativeIdToUriMap,
                                                        Map<String, List<HostExportInfo>> hostToManagedVolumeExportInfoMap,
-                                                       DbClient dbClient, com.emc.storageos.db.client.model.StorageSystem storageSystem,
+                                                       DbClient dbClient,
+                                                       com.emc.storageos.db.client.model.StorageSystem storageSystem,
                                                        Volume viprVolume, StorageVolume driverVolume,
                                                        BlockStorageDriver driver) throws Exception {
 

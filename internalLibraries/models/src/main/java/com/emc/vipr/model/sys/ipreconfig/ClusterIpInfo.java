@@ -130,8 +130,8 @@ public class ClusterIpInfo implements Serializable {
         SortedSet<String> globalPropNames = new TreeSet<String>(globalPropMap.keySet());
         for (String globalPropName : globalPropNames) {
             // separate global prop name to vdcsiteId and internal prop name;
-            String[] tmpFields = globalPropName.split("_");
-            String vdcsiteId = tmpFields[0] + "_" + tmpFields[1] + "_" + tmpFields[2];
+            String[] tmpFields = globalPropName.split(PropertyConstants.UNDERSCORE_DELIMITER);
+            String vdcsiteId = tmpFields[0] + PropertyConstants.UNDERSCORE_DELIMITER + tmpFields[1] + PropertyConstants.UNDERSCORE_DELIMITER + tmpFields[2];
             String vdcsiteInternalPropName = globalPropName.substring(vdcsiteId.length()+1);
             log.debug("vdcsiteId={}, vdcsiteInternalPropName={}", vdcsiteId, vdcsiteInternalPropName);
 

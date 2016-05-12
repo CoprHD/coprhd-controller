@@ -355,16 +355,23 @@ _set_vdc_props() {
 }
 
 # During setting vdc properties, we need to (re)set ip prop file for the following
-# cases in which the sites info would change.
-# For all other cases (e.g pausing/resuming standby), no need to update ip prop file.
+# scenarios in which the sites number would change from ip prop file point of view.
+# For all other cases (e.g pausing/resuming/failover/switchover standby), no need to
+# update ip prop file.
 # 1) fresh-install
-# 2) upgrade
+# 2) upgrade (whatever from yoda or pre-yoda)
 # 3) adding standby site
 # 4) removing standby site
 #
 # In addition, ip reconfiguration procedure would also change ip property file.
+#
+# Note:
+# 1. For any sites, before ipreconfig via REST API is triggered for them, the IP prop file
+#    would include all sites' regular IPs but only local site's promisc IPs (gateway, netmask).
+# 2. For any sites, after ipreconfi via REST API is triggered for them, the IP file would
+#    include all sites' regular and promisc IPs.
 _set_ip_props() {
-    # load new vdc properties
+    # 1. load new vdc properties
     declare -A newVdcPropMap
     while read -r line
     do
@@ -372,68 +379,91 @@ _set_ip_props() {
       newVdcPropMap[${pair[0]}]=${pair[1]}
     done < "${1}"
 
-    # load current cluster ip properties if exists
-    declare -A currIpPropMap
+    # 2. load original cluster ip properties if exists
+    declare -A origIpPropMap
     if [  -e "${datafs_ip_props}" ] ; then
         while read -r line
         do
           IFS='=' read -ra pair <<< "$line"
-          currIpPropMap[${pair[0]}]=${pair[1]}
+          origIpPropMap[${pair[0]}]=${pair[1]}
         done < "${datafs_ip_props}"
     fi
 
+    # 3. If site number is not changed, no need to update IP prop file
     site_ids_key="site_ids"
-    if [ "${newVdcPropMap[${site_ids_key}]}" != "${currIpPropMap[${site_ids_key}]}" ]; then
+    orig_sites_ids=${origIpPropMap[${site_ids_key}]}
+    new_sites_ids=${newVdcPropMap[${site_ids_key}]}
+    [ "${new_sites_ids}" == "${orig_sites_ids}" ] && return
 
-        rm -f "${datafs_ip_props}.bak"
+    # 4. update IP prop file
+    # only fresh-install, upgrade, add/remove site scenarios would be here
 
-        # write only ip related info into ip prop file
-        for key in "${!newVdcPropMap[@]}"
-        do
-            if [[ "${key}" == vdc_vdc*_site*_network_* ]]; then
-                echo "${key}=${newVdcPropMap[${key}]}" >> "${datafs_ip_props}.bak"
-            fi
-        done
-
-        # preserve current gateway or network mask related info if exist
-        for key in "${!currIpPropMap[@]}"
-        do
-            if [[ "${key}" == vdc_vdc*_site*_network_gateway* || "${key}" == vdc_vdc*_site*_network_netmask || "${key}" == vdc_vdc*_site*_network_prefix_length ]]; then
-                echo "${key}=${currIpPropMap[${key}]}" >> "${datafs_ip_props}.bak"
-            fi
-        done
-
-        # if current ip prop file already has gateway etc. info, no need to load from local site
-        vdc_myid=${newVdcPropMap["vdc_myid"]}
-        site_myid=${newVdcPropMap["site_myid"]}
-        currsite_gateway_key="vdc_"${vdc_myid}"_"${site_myid}"_network_gateway"
-        echo "there is no gateway now"
-        echo "${currIpPropMap[${currsite_gateway_key}]}"
-        echo "after there is no gateway now"
-        if [ "${currIpPropMap[${currsite_gateway_key}]}" == "" ]; then
-            # load local site gateway, mask info from ovfenv file (/etc/ovfenv.properties) and write into ip prop file
-            # Note: We should not read from ovfenv part/cdrom. User could change ovfenv media IP directly, it would
-            # bring inconsistency and we need to assure it would not break system.
-            # Currently /etc/ovfenv.properties (4-way merged) would always have correct ip info now.
-            declare -A localIpPropMap
-            while read -r line
-            do
-              IFS='=' read -ra pair <<< "$line"
-              localIpPropMap[${pair[0]}]=${pair[1]}
-            done < "${ovf_props_file}"
-            for key in "${!localIpPropMap[@]}"
-            do
-                if [[ "${key}" == network_gateway* || "${key}" == network_netmask || "${key}" == network_prefix_length ]]; then
-                    tmpkey="vdc_"${vdc_myid}"_"${site_myid}"_"${key}
-                    echo "${tmpkey}=${localIpPropMap[${key}]}" >> "${datafs_ip_props}.bak"
-                fi
-            done
+    # 4.1 Always override regular IPs from newVdcPropMap into ip prop file
+    rm -f "${datafs_ip_props}.bak"
+    for key in "${!newVdcPropMap[@]}"
+    do
+        if [[ "${key}" == vdc_vdc*_site*_network_* ]]; then
+            echo "${key}=${newVdcPropMap[${key}]}" >> "${datafs_ip_props}.bak"
         fi
+    done
 
-        mv -f "${datafs_ip_props}.bak" "${datafs_ip_props}"
-        chmod 600 "${datafs_ip_props}"
+    # 4.2 update promisc network info
+    # load local ovfenv prop file
+    declare -A localIpPropMap
+    while read -r line
+    do
+      IFS='=' read -ra pair <<< "$line"
+      localIpPropMap[${pair[0]}]=${pair[1]}
+    done < "${ovf_props_file}"
 
-        # TODO: where to get all other sites' gateway and mask??? (for upgrade case)
+    if [ ! -e "${datafs_ip_props}" ] ; then
+        # a) For fresh-install and upgrade scenarios,
+        # write local site's promisc network info from ovfenv prop file
+        for key in "${!localIpPropMap[@]}"
+        do
+            if [[ "${key}" == network_gateway* || "${key}" == network_netmask || "${key}" == network_prefix_length ]]; then
+                tmpkey="vdc_"${vdc_myid}"_"${site_myid}"_"${key}
+                echo "${tmpkey}=${localIpPropMap[${key}]}" >> "${datafs_ip_props}.bak"
+            fi
+        done
+    else
+        # b) For standby addition/removal scenarios,
+        if [ ${#new_sites_ids} -gt ${#orig_sites_ids} ]; then
+            # b.1) For standby addition
+            site_myid=${newVdcPropMap["site_myid"]}
+            if [[ "${orig_sites_ids}" == *"${site_myid}"* ]]; then
+                # b.1.1) If new added site, write local site's promisc network info from ovfenv prop file
+                for key in "${!localIpPropMap[@]}"
+                do
+                    if [[ "${key}" == network_gateway* || "${key}" == network_netmask || "${key}" == network_prefix_length ]]; then
+                        tmpkey="vdc_"${vdc_myid}"_"${site_myid}"_"${key}
+                        echo "${tmpkey}=${localIpPropMap[${key}]}" >> "${datafs_ip_props}.bak"
+                    fi
+                done
+            else
+                # b.1.2) If original sites, preserve original promisc network info
+                for key in "${!origIpPropMap[@]}"
+                do
+                    if [[ "${key}" == network_gateway* || "${key}" == network_netmask || "${key}" == network_prefix_length ]]; then
+                        echo "${key}=${origIpPropMap[${key}]}" >> "${datafs_ip_props}.bak"
+                    fi
+                done
+            fi
+        else
+            # b.2) For standby removal, preserve only current existed sites' promisc network info
+                IFS=',' read -ra origsitesArray <<< "${orig_sites_ids}"
+                for origsite in "${}"; do
+                    [[ *"${origsite}"* == "${new_sites_ids}" ]] && continue;
+                    removalsite=${origsite}
+                done
+                for key in "${!origIpPropMap[@]}"
+                do
+                    if [[ "${key}" == network_gateway* || "${key}" == network_netmask || "${key}" == network_prefix_length ]]; then
+                        [[ "${key}" == *"${removalsite}"* ]] && continue;
+                        echo "${key}=${origIpPropMap[${key}]}" >> "${datafs_ip_props}.bak"
+                    fi
+                done
+        fi
     fi
 }
 

@@ -8,6 +8,7 @@ package com.emc.storageos.systemservices.impl.ipreconfig;
 import com.emc.storageos.coordinator.client.model.Constants;
 import com.emc.storageos.coordinator.client.model.Site;
 import com.emc.storageos.coordinator.client.model.SiteInfo;
+import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.coordinator.client.service.DrUtil;
 import com.emc.storageos.coordinator.client.service.NodeListener;
 import com.emc.storageos.coordinator.client.service.impl.CoordinatorClientImpl;
@@ -46,6 +47,7 @@ public class IpReconfigManager implements Runnable {
     private static final long IPRECONFIG_TIMEOUT = 24 * 60 * 60 * 1000; // 24 hours timeout for the procedure. TODO: suitable for DR?
     private static final long POLL_INTERVAL = 10 * 1000; // 10 second polling interval
     private static final String UPDATE_ZKIP_LOCK = "update_zkip";
+    private static final String CONFIG_KIND = "promiscnetwork";
 
     // ipreconfig entry in ZK
     Configuration config = null;
@@ -82,6 +84,7 @@ public class IpReconfigManager implements Runnable {
     private Properties ipProperties = null;    // current ip properties of all sites
 
     public Map<String, String> getIpProps() {
+        // 1. Load cluster network property file
         try {
             if (ipProperties == null) {
                 ipProperties = FileUtils.readProperties(IpReconfigConstants.CLUSTER_NETWORK_PROPFILE);
@@ -89,6 +92,28 @@ public class IpReconfigManager implements Runnable {
         } catch (Exception e) {
             log.error("Failed to get cluster ip properties.");
             return null;
+        }
+
+        // 2. Load cluster promisc network info from ZK if they do not exist which happens during
+        //    site addition and upgrade etc. scenarios.
+        CoordinatorClient coordinatorClient = _coordinator.getCoordinatorClient();
+        for (Site site: drUtil.listSites()) {
+            int vdc_index = Integer.valueOf(site.getVdcShortId().substring(PropertyConstants.VDC_SHORTID_PREFIX.length()));
+            int site_index = Integer.valueOf(site.getSiteShortId().substring(PropertyConstants.SITE_SHORTID_PREFIX.length()));
+            String ipprop_prefix = String.format(PropertyConstants.IPPROP_PREFIX, vdc_index, site_index);
+            String key = ipprop_prefix + PropertyConstants.UNDERSCORE_DELIMITER + PropertyConstants.IPV4_NETMASK_KEY;
+            if (ipProperties.getProperty(key) == null || ipProperties.getProperty(key).isEmpty()) {
+                Configuration config = coordinatorClient.queryConfiguration(site.getUuid(), CONFIG_KIND, Constants.GLOBAL_ID);
+
+                key = ipprop_prefix + PropertyConstants.UNDERSCORE_DELIMITER + PropertyConstants.IPV4_NETMASK_KEY;
+                ipProperties.setProperty(key, config.getConfig(PropertyConstants.IPV4_NETMASK_KEY));
+                key = ipprop_prefix + PropertyConstants.UNDERSCORE_DELIMITER + PropertyConstants.IPV4_GATEWAY_KEY;
+                ipProperties.setProperty(key, config.getConfig(PropertyConstants.IPV4_GATEWAY_KEY));
+                key = ipprop_prefix + PropertyConstants.UNDERSCORE_DELIMITER + PropertyConstants.IPV6_PREFIX_KEY;
+                ipProperties.setProperty(key, config.getConfig(PropertyConstants.IPV6_PREFIX_KEY));
+                key = ipprop_prefix + PropertyConstants.UNDERSCORE_DELIMITER + PropertyConstants.IPV6_GATEWAY_KEY;
+                ipProperties.setProperty(key, config.getConfig(PropertyConstants.IPV6_GATEWAY_KEY));
+            }
         }
 
         Map<String, String> map = new HashMap<String, String>();
@@ -115,55 +140,33 @@ public class IpReconfigManager implements Runnable {
 
     /**
      * Initialize ipreconfig manager
-     * 1. Load cluster ip info from local ovfenv or cluster ip property file
-     * 2. Register node listener for ipreconfig config znode in ZK
+     * 1. Wait for all sites' promisc network info configured
+     * 2. Load cluster ip info from cluster ip property file and promisc network info in ZK
+     * 3. Register node listener for ipreconfig config znode in ZK
      */
     public void init() {
-        if (!FileUtils.exists(IpReconfigConstants.CLUSTER_NETWORK_PROPFILE)) {
-            // During the fresh-installation, the ip property file is not generated yet,
-            // so we need to load cluster network info from local ovfenv env.
-            //TODO: during upgrade, need to load again with all info after all nodes upgraded.
-            loadLocalOvfProps();
-        } else {
-            loadClusterIpProps();
-        }
+        waitClusterPromiscNetworkConfig();
+
+        loadClusterIpProps();
+
         addIpreconfigListener();
 
         _coordinator.getZkConnection().curator().getConnectionStateListenable().addListener(_connectionListener);
     }
 
-    /*
-     * Load local ovfenv properties
-     */
-    private void loadLocalOvfProps() {
-        log.info("Loading local ovfenv properties");
-        Map<String, String> ovfprops = getOvfProps();
-        String node_id = ovfprops.get(PropertyConstants.NODE_ID_KEY);
-        if (node_id == null || node_id.equals(Constants.STANDALONE_ID)) {
-            vdcnodeId = 1;
-        } else {
-            vdcnodeId = Integer.valueOf(node_id.split("vipr")[1]);
-        }
-        nodeCount = Integer.valueOf(ovfprops.get(PropertyConstants.NODE_COUNT_KEY));
-
-        // change to multiple site format
-        Map<String, String> ipprops = new HashMap<String, String>();
-        for (Map.Entry<String, String> me: ovfprops.entrySet()) {
-            String propkey = me.getKey();
-            log.info("ovfenv propkey={}", propkey);
-
-            if (propkey.startsWith(PropertyConstants.NETOWRK_PROP_PREFIX)||propkey.startsWith(PropertyConstants.NODE_PROP_PREFIX)) {
-                String ippropkey = String.format(PropertyConstants.IPPROP_PREFIX, 1, 1) + PropertyConstants.UNDERSCORE_DELIMITER + propkey;
-                ipprops.put(ippropkey, me.getValue());
-                log.info("ip props: key={}, value={}", propkey, me.getValue());
+    private void loadClusterIpProps() {
+        while (!FileUtils.exists(IpReconfigConstants.CLUSTER_NETWORK_PROPFILE)) {
+            try {
+                // The network prop file would be generated a little later during fresh-install.
+                log.info("Waiting for the cluster network prop file initialized...");
+                Thread.sleep(3000);
+            } catch (Exception e) {
+                log.warn(e.getMessage());
             }
         }
-        currentIpinfo = new ClusterIpInfo();
-        currentIpinfo.loadFromPropertyMap(ipprops);
-    }
 
-    private void loadClusterIpProps() {
-        log.info("Loading network properties of current vdc");
+        log.info("Loading network properties of current cluster ...");
+
         Map<String, String> ipProps = getIpProps();
         currentIpinfo = new ClusterIpInfo();
         currentIpinfo.loadFromPropertyMap(ipProps);
@@ -863,6 +866,16 @@ public class IpReconfigManager implements Runnable {
                     site.setNodeCount(siteIpInfo.getNodeCount());
 
                     _coordinator.getCoordinatorClient().persistServiceConfiguration(site.toConfiguration());
+
+                    // update promisc network config into ZK
+                    ConfigurationImpl cfg = new ConfigurationImpl();
+                    cfg.setKind(CONFIG_KIND);
+                    cfg.setId(Constants.GLOBAL_ID);
+                    cfg.setConfig(PropertyConstants.IPV4_NETMASK_KEY, siteIpInfo.getIpv4Setting().getNetworkNetmask());
+                    cfg.setConfig(PropertyConstants.IPV4_GATEWAY_KEY, siteIpInfo.getIpv4Setting().getNetworkGateway());
+                    cfg.setConfig(PropertyConstants.IPV6_PREFIX_KEY, String.format("%s",siteIpInfo.getIpv6Setting().getNetworkPrefixLength()));
+                    cfg.setConfig(PropertyConstants.IPV6_GATEWAY_KEY, siteIpInfo.getIpv6Setting().getNetworkGateway6());
+                    _coordinator.getCoordinatorClient().persistServiceConfiguration(site.getUuid(), cfg);
                 }
             }
 
@@ -881,5 +894,54 @@ public class IpReconfigManager implements Runnable {
                 }
             }
         }
+    }
+
+    /**
+     * Checks and set local promisc network configuration information (i.e gateway, netmask)
+     */
+    private Configuration checkLocalPromiscNetworkConf() {
+        CoordinatorClient coordinatorClient = _coordinator.getCoordinatorClient();
+        Configuration config = coordinatorClient.queryConfiguration(coordinatorClient.getSiteId(), CONFIG_KIND, Constants.GLOBAL_ID);
+        if (config == null) {
+            ConfigurationImpl cfg = new ConfigurationImpl();
+            cfg.setKind(CONFIG_KIND);
+            cfg.setId(Constants.GLOBAL_ID);
+            cfg.setConfig(PropertyConstants.IPV4_NETMASK_KEY, ovfProperties.getProperty(PropertyConstants.IPV4_NETMASK_KEY));
+            cfg.setConfig(PropertyConstants.IPV4_GATEWAY_KEY, ovfProperties.getProperty(PropertyConstants.IPV4_GATEWAY_KEY));
+            cfg.setConfig(PropertyConstants.IPV6_PREFIX_KEY, ovfProperties.getProperty(PropertyConstants.IPV6_PREFIX_KEY));
+            cfg.setConfig(PropertyConstants.IPV6_GATEWAY_KEY, ovfProperties.getProperty(PropertyConstants.IPV6_GATEWAY_KEY));
+
+            coordinatorClient.persistServiceConfiguration(coordinatorClient.getSiteId(), cfg);
+            config = cfg;
+        }
+        return config;
+    }
+
+    /*
+     * Make sure all the sites have updated their promisc network info into ZK.
+     */
+    private void waitClusterPromiscNetworkConfig() {
+        // init promsic network info of local site into ZK if needed
+        checkLocalPromiscNetworkConf();
+
+        boolean bClusterPromiscNetworkConfigured = false;
+        do  {
+            try {
+                log.info("Checking if promisc network info from all sites have been configured ...");
+                bClusterPromiscNetworkConfigured = true;
+                for(Site site : drUtil.listSites()) {
+                    CoordinatorClient coordinatorClient = _coordinator.getCoordinatorClient();
+                    Configuration config = coordinatorClient.queryConfiguration(site.getUuid(), CONFIG_KIND, Constants.GLOBAL_ID);
+                    if (config == null) {
+                        bClusterPromiscNetworkConfigured = false;
+                        Thread.sleep(3000);
+                        break;
+                    }
+                }
+            } catch (Exception e) {
+                bClusterPromiscNetworkConfigured = false;
+            }
+        } while (bClusterPromiscNetworkConfigured == false);
+        return;
     }
 }

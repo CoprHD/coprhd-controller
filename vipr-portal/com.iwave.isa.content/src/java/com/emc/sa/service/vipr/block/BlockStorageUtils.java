@@ -669,9 +669,8 @@ public class BlockStorageUtils {
         ResourceType volumeType = ResourceType.fromResourceId(blockResourceId.toString());
         if (volumeType == ResourceType.VOLUME) {
             VolumeRestRep volume = (VolumeRestRep) getVolume(blockResourceId);
-            if (volume.getConsistencyGroup() != null
-                    && (volume.getSystemType().equalsIgnoreCase(DiscoveredDataObject.Type.vmax.name()) || 
-                    		volume.getSystemType().equalsIgnoreCase(DiscoveredDataObject.Type.vmax3.name()))) {
+            // If volume has a CG, ReplicaDeviceController will take care of replica cleanup.
+            if (volume.getConsistencyGroup() != null) {
                 return false;
             }
         }

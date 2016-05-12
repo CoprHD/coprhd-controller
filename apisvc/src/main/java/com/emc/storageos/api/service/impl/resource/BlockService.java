@@ -4220,12 +4220,6 @@ public class BlockService extends TaskResourceService {
                 throw APIException.badRequests.changeToVirtualPoolNotSupported(newVpool.getLabel(),
                         notSuppReasonBuff.toString());
             }
-        } else {
-            _log.info("VirtualPool change volume is not a vplex, vmax or vnxblock volume");
-            throw new ServiceCodeException(
-                    ServiceCode.API_VOLUME_VPOOL_CHANGE_DISRUPTIVE,
-                    "VirtualPool change is not supported for volume {0}",
-                    new Object[] { volume.getId() });
         }
     }
 

@@ -76,6 +76,6 @@ public class ChangeVolumeVirtualArrayService extends ViPRService {
     }
 
     public void setMigrationHost(URI migrationHost) {
-        this.migrationHost = migrationHostl
+        this.migrationHost = migrationHost;
     }
 }

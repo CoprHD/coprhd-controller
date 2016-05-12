@@ -2107,8 +2107,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
      */
     @Override
     public void changeVolumeVirtualPool(URI systemURI, Volume volume, VirtualPool newVpool,
-            boolean isHostMigration, URI migrationHostURI, VirtualPoolChangeParam vpoolChangeParam,
-            String taskId) throws InternalException {
+            VirtualPoolChangeParam vpoolChangeParam, String taskId) throws InternalException {
         _log.info(String.format("RP change virtual pool operation for volume [%s](%s) moving to new vpool [%s](%s).", 
                 volume.getLabel(), volume.getId(), newVpool.getLabel(), newVpool.getId()));
 
@@ -2153,8 +2152,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
 
     @Override
     public void changeVolumeVirtualPool(List<Volume> volumes, VirtualPool vpool,
-            boolean isHostMigration, URI migrationHostURI, VirtualPoolChangeParam vpoolChangeParam,
-            String taskId) throws InternalException {
+            VirtualPoolChangeParam vpoolChangeParam, String taskId) throws InternalException {
         // We support multi-volume removal of protection, but still not
         // multi-volume add protection. Check the first volume in the
         // list to see if the request is to remove protection.
@@ -2165,8 +2163,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
             // For now we only support changing the virtual pool for a single volume at a time
             // until CTRL-1347 and CTRL-5609 are fixed.
             if (volumes.size() == 1) {
-                changeVolumeVirtualPool(volumes.get(0).getStorageController(), volumes.get(0), vpool,
-                        isHostMigration, migrationHostURI, vpoolChangeParam, taskId);
+                changeVolumeVirtualPool(volumes.get(0).getStorageController(), volumes.get(0), vpool, vpoolChangeParam, taskId);
             } else {
                 throw APIException.methodNotAllowed.notSupportedWithReason(
                         "Multiple volume change virtual pool is currently not supported for RecoverPoint. "

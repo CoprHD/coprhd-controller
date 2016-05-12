@@ -3054,9 +3054,6 @@ public class BlockService extends TaskResourceService {
         Volume volume = queryVolumeResource(id);
         _log.info("Found volume");
 
-        boolean isHostMigration = param.getIsHostMigration();
-        URI migrationHostURI = param.getMigrationHost();
-
         // Don't operate on VPLEX backend or RP Journal volumes.
         BlockServiceUtils.validateNotAnInternalBlockObject(volume, false);
 
@@ -3104,8 +3101,7 @@ public class BlockService extends TaskResourceService {
         try {
             BlockServiceApi blockServiceAPI = getBlockServiceImplForVirtualPoolChange(volume, vpool);
             _log.info("Got block service implementation for VirtualPool change request");
-            blockServiceAPI.changeVolumeVirtualPool(Arrays.asList(volume), vpool, 
-                    isHostMigration, migrationHostURI, param, taskId);
+            blockServiceAPI.changeVolumeVirtualPool(Arrays.asList(volume), vpool, param, taskId);
             _log.info("Executed VirtualPool change for volume.");
         } catch (InternalException | APIException e) {
             String errorMsg = String.format("Volume VirtualPool change error: %s", e.getMessage());
@@ -3183,8 +3179,6 @@ public class BlockService extends TaskResourceService {
         // Create a unique task id.
         String taskId = UUID.randomUUID().toString();
 
-        boolean isHostMigration = param.getIsHostMigration();
-        URI migrationHostURI = param.getMigrationHost();
         List<Volume> volumes = new ArrayList<Volume>();
         TaskList taskList = new TaskList();
 
@@ -3321,8 +3315,7 @@ public class BlockService extends TaskResourceService {
                     volumes.get(0), vPool);
             _log.info("Got block service implementation for VirtualPool change request");
             VirtualPoolChangeParam oldParam = convertNewVirtualPoolChangeParamToOldParam(param);
-            blockServiceAPI.changeVolumeVirtualPool(volumes, vPool,
-                    isHostMigration, migrationHostURI, oldParam, taskId);
+            blockServiceAPI.changeVolumeVirtualPool(volumes, vPool, oldParam, taskId);
             _log.info("Executed VirtualPool change for given volumes.");
         } catch (Exception e) {
             String errorMsg = String.format(
@@ -3432,6 +3425,8 @@ public class BlockService extends TaskResourceService {
         oldParam.setProtection(newParam.getProtection());
         oldParam.setConsistencyGroup(newParam.getConsistencyGroup());
         oldParam.setTransferSpeedParam(newParam.getTransferSpeedParam());
+        oldParam.setIsHostMigration(newParam.getIsHostMigration());
+        oldParam.setMigrationHost(newParam.getMigrationHost());
         return oldParam;
     }
 

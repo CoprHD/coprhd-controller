@@ -1172,8 +1172,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
      */
     @Override
     public void changeVolumeVirtualPool(URI systemURI, Volume volume, VirtualPool vpool,
-            boolean isHostMigration, URI migrationHostURI, VirtualPoolChangeParam vpoolChangeParam,
-            String taskId) throws InternalException {
+            VirtualPoolChangeParam vpoolChangeParam, String taskId) throws InternalException {
         VirtualPool volumeVirtualPool = _dbClient.queryObject(VirtualPool.class, volume.getVirtualPool());
         s_logger.info("Volume {} VirtualPool change.", volume.getId());
 
@@ -1235,8 +1234,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
      */
     @Override
     public void changeVolumeVirtualPool(List<Volume> volumes, VirtualPool vpool,
-            boolean isHostMigration, URI migrationHostURI, VirtualPoolChangeParam vpoolChangeParam,
-            String taskId) throws InternalException {
+            VirtualPoolChangeParam vpoolChangeParam, String taskId) throws InternalException {
 
         // Check for common Vpool updates handled by generic code. It returns true if handled.
         if (checkCommonVpoolUpdates(volumes, vpool, taskId)) {
@@ -1328,7 +1326,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
                 if (!volumesNotInRG.isEmpty()) {
                     for (Volume volume : volumesNotInRG) {
                         changeVolumeVirtualPool(volume.getStorageController(), volume, vpool,
-                                isHostMigration, migrationHostURI, vpoolChangeParam, taskId);
+                                vpoolChangeParam, taskId);
                     }
                 }
                 return;
@@ -1339,7 +1337,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
         // individual vpool changes for each volume.
         for (Volume volume : volumes) {
             changeVolumeVirtualPool(volume.getStorageController(), volume, vpool,
-                    isHostMigration, migrationHostURI, vpoolChangeParam, taskId);
+                    vpoolChangeParam, taskId);
         }
     }
 

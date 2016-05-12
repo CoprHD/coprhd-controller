@@ -421,8 +421,7 @@ public class DefaultBlockServiceApiImpl extends AbstractBlockServiceApiImpl<Stor
      */
     @Override
     public void changeVolumeVirtualPool(URI systemURI, Volume volume, VirtualPool vpool,
-            boolean isHostMigration, URI migrationHostURI, VirtualPoolChangeParam vpoolChangeParam,
-            String taskId) throws InternalException {
+            VirtualPoolChangeParam vpoolChangeParam, String taskId) throws InternalException {
         VirtualPool volumeVirtualPool = _dbClient.queryObject(VirtualPool.class, volume.getVirtualPool());
         _log.info("Volume {} VirtualPool change.", volume.getId());
 
@@ -433,6 +432,9 @@ public class DefaultBlockServiceApiImpl extends AbstractBlockServiceApiImpl<Stor
         if (checkCommonVpoolUpdates(volumes, vpool, taskId)) {
             return;
         }
+
+        boolean isHostMigration = vpoolChangeParam.getIsHostMigration();
+        URI migrationHostURI = vpoolChangeParam.getMigrationHost();
 
         // Prepare for volume VirtualPool change.
         StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, systemURI);
@@ -449,14 +451,15 @@ public class DefaultBlockServiceApiImpl extends AbstractBlockServiceApiImpl<Stor
      */
     @Override
     public void changeVolumeVirtualPool(List<Volume> volumes, VirtualPool vpool,
-            boolean isHostMigration, URI migrationHostURI, VirtualPoolChangeParam vpoolChangeParam,
-            String taskId) throws InternalException {
+            VirtualPoolChangeParam vpoolChangeParam, String taskId) throws InternalException {
 
         // Check for common Vpool updates handled by generic code. It returns true if handled.
         if (checkCommonVpoolUpdates(volumes, vpool, taskId)) {
             return;
         }
 
+        boolean isHostMigration = vpoolChangeParam.getIsHostMigration();
+        URI migrationHostURI = vpoolChangeParam.getMigrationHost();
         Volume changeVPoolVolume = volumes.get(0);
         VirtualPool currentVPool = _dbClient.queryObject(VirtualPool.class, changeVPoolVolume.getVirtualPool());
         List<Volume> cgVolumes = new ArrayList<Volume>();

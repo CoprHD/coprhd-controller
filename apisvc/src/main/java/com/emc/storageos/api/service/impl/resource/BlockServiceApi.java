@@ -218,16 +218,13 @@ public interface BlockServiceApi {
      * @param systemURI URI of the storage system on which the volume resides.
      * @param volume A reference to the volume.
      * @param targetVpool A reference to the new vpool.
-     * @param isHostMigration Boolean describing if the migration will be host or driver based.
-     * @param migrationHostURI URI of the migration host.
      * @param vpoolChangeParam vpool change request
      * @param taskId The task identifier.
      * 
      * @throws InternalException
      */
     public void changeVolumeVirtualPool(URI systemURI, Volume volume,
-            VirtualPool targetVpool, boolean isHostMigration,
-            URI migrationHostURI, VirtualPoolChangeParam vpoolChangeParam, String taskId)
+            VirtualPool targetVpool, VirtualPoolChangeParam vpoolChangeParam, String taskId)
             throws InternalException;
 
     /**
@@ -236,15 +233,12 @@ public interface BlockServiceApi {
      * 
      * @param volumes List of volumes.
      * @param targetVpool A reference to the new vpool.
-     * @param isHostMigration Boolean describing if the migration will be host or driver based.
-     * @param migrationHostURI URI of the migration host.
      * @param vpoolChangeParam vpool change request
      * @param taskId The task identifier.
      * @throws InternalException the internal exception
      */
     public void changeVolumeVirtualPool(List<Volume> volumes,
-            VirtualPool targetVpool, boolean isHostMigration,
-            URI migrationHostURI, VirtualPoolChangeParam vpoolChangeParam, String taskId)
+            VirtualPool targetVpool, VirtualPoolChangeParam vpoolChangeParam, String taskId)
             throws InternalException;
 
     /**
@@ -519,5 +513,5 @@ public interface BlockServiceApi {
      * @return
      */
     public Collection<? extends String> getReplicationGroupNames(VolumeGroup group);
-    
+
 }

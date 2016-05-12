@@ -106,53 +106,7 @@ public class VirtualPoolChangeAnalyzer extends DataObjectChangeAnalyzer {
     private static boolean newVpoolDoesNotSpecifyHaVpool = false;
 
     /**
-     * Determines if the VPlex virtual volume vpool change is supported.
-     * 
-     * @param volume A reference to the volume.
-     * @param currentVpool A reference to the current volume vpool.
-     * @param newVpool The desired new vpool.
-     * @param dbClient A reference to a DB client.
-     * @return Supported change vpool operations
-     */
-    public static VirtualPoolChangeOperationEnum getSupportedVPlexVolumeVirtualPoolChangeOperation(Volume volume,
-            VirtualPool currentVpool, VirtualPool newVpool, DbClient dbClient,
-            StringBuffer notSuppReasonBuff) {
-        s_logger.info(String.format("Checking getSupportedVPlexVolumeVirtualPoolChangeOperation from [%s] to [%s]...",
-                currentVpool.getLabel(), newVpool.getLabel()));
-        // Make sure the VirtualPool's are not the same instance.
-        if (isSameVirtualPool(currentVpool, newVpool, notSuppReasonBuff)) {
-            return null;
-        }
-
-        // Throw an exception if any of the following properties are different
-        // between the current and new vpool. The check for a highAvailability
-        // change is below. Going from local to distributed or distributed to
-        // local is not supported through this vpool change.
-        String[] include = new String[] { TYPE, VARRAYS,
-                REF_VPOOL,
-                FAST_EXPANSION, ACLS,
-                INACTIVE, NUM_PATHS };
-        // If current vpool specifies mirror then add MIRROR_VPOOL to include.
-        if (VirtualPool.vPoolSpecifiesMirrors(currentVpool, dbClient)) {
-            include = addElementToArray(include, MIRROR_VPOOL);
-        }
-
-        Map<String, Change> changes = analyzeChanges(currentVpool, newVpool, include, null, null);
-        if (!changes.isEmpty()) {
-            fillInNotSupportedReasons(changes, notSuppReasonBuff);
-            return null;
-        }
-
-        if (VirtualPool.vPoolSpecifiesMirrors(newVpool, dbClient) &&
-                isSupportedAddMirrorsVirtualPoolChange(volume, currentVpool, newVpool, dbClient, notSuppReasonBuff)) {
-            return VirtualPoolChangeOperationEnum.ADD_MIRRORS;
-        }
-
-        return vplexCommonChecks(volume, currentVpool, newVpool, dbClient, notSuppReasonBuff, include);
-    }
-
-    /**
-     * Determines if the VPlex virtual volume vpool change is supported.
+     * Determines if the vpool change is supported.
      *
      * @param volume A reference to the volume.
      * @param currentVpool A reference to the current volume vpool.
@@ -206,6 +160,52 @@ public class VirtualPoolChangeAnalyzer extends DataObjectChangeAnalyzer {
         if (migrateVolume) {
             return VirtualPoolChangeOperationEnum.DATA_MIGRATION;
         }
+    }
+
+    /**
+     * Determines if the VPlex virtual volume vpool change is supported.
+     * 
+     * @param volume A reference to the volume.
+     * @param currentVpool A reference to the current volume vpool.
+     * @param newVpool The desired new vpool.
+     * @param dbClient A reference to a DB client.
+     * @return Supported change vpool operations
+     */
+    public static VirtualPoolChangeOperationEnum getSupportedVPlexVolumeVirtualPoolChangeOperation(Volume volume,
+            VirtualPool currentVpool, VirtualPool newVpool, DbClient dbClient,
+            StringBuffer notSuppReasonBuff) {
+        s_logger.info(String.format("Checking getSupportedVPlexVolumeVirtualPoolChangeOperation from [%s] to [%s]...",
+                currentVpool.getLabel(), newVpool.getLabel()));
+        // Make sure the VirtualPool's are not the same instance.
+        if (isSameVirtualPool(currentVpool, newVpool, notSuppReasonBuff)) {
+            return null;
+        }
+
+        // Throw an exception if any of the following properties are different
+        // between the current and new vpool. The check for a highAvailability
+        // change is below. Going from local to distributed or distributed to
+        // local is not supported through this vpool change.
+        String[] include = new String[] { TYPE, VARRAYS,
+                REF_VPOOL,
+                FAST_EXPANSION, ACLS,
+                INACTIVE, NUM_PATHS };
+        // If current vpool specifies mirror then add MIRROR_VPOOL to include.
+        if (VirtualPool.vPoolSpecifiesMirrors(currentVpool, dbClient)) {
+            include = addElementToArray(include, MIRROR_VPOOL);
+        }
+
+        Map<String, Change> changes = analyzeChanges(currentVpool, newVpool, include, null, null);
+        if (!changes.isEmpty()) {
+            fillInNotSupportedReasons(changes, notSuppReasonBuff);
+            return null;
+        }
+
+        if (VirtualPool.vPoolSpecifiesMirrors(newVpool, dbClient) &&
+                isSupportedAddMirrorsVirtualPoolChange(volume, currentVpool, newVpool, dbClient, notSuppReasonBuff)) {
+            return VirtualPoolChangeOperationEnum.ADD_MIRRORS;
+        }
+
+        return vplexCommonChecks(volume, currentVpool, newVpool, dbClient, notSuppReasonBuff, include);
     }
 
     /**

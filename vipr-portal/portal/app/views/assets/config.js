@@ -154,6 +154,12 @@ angular.module("config", []).constant({
                 icon: 'remove',
                 class: '',
                 key: 'resources.tasks.error'
+            },
+            '${task.suspended}':{
+                icon: 'refresh',
+                iconClass: 'rotate',
+                class: '',
+                key: 'resources.tasks.suspended'
             }
         },
         workflowStep: {

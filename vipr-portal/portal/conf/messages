@@ -3195,6 +3195,7 @@ resources.tasks.queued=Queued
 resources.tasks.pending=Pending
 resources.tasks.ready=Complete
 resources.tasks.error=Error
+resources.tasks.suspended=Suspended
 resources.tasks.total=Total
 resources.tasks.unknown=Unknown
 resources.tasks.notasks=No Tasks

@@ -8,11 +8,23 @@ public class DrOperationStatus {
 
     public static final String CONFIG_KIND = "disasterRecoveryOperationStatus";
     public static final String KEY_SITE_UUID = "siteUuid";
-    public static final String KEY_SITE_STATE = "siteState";
+    public static final String KEY_INTER_STATE = "interState";
+
+    public enum InterState {
+        ADDING_STANDBY,
+        REMOVING_STANDBY,
+        PAUSING_STANDBY,
+        RESUMING_STANDBY,
+        SWITCHINGOVER_ACTIVE,
+        SWITCHINGOVER_STANDBY,
+        FAILINGOVER_STANDBY,
+        DEGRADING_STANDBY,
+        REJOINING_STANDBY
+    }
 
     private String siteUuid;
 
-    private SiteState siteState;
+    private InterState interState;
 
     public DrOperationStatus() {
     }
@@ -31,12 +43,12 @@ public class DrOperationStatus {
         this.siteUuid = siteUuid;
     }
 
-    public SiteState getSiteState() {
-        return siteState;
+    public InterState getInterState() {
+        return interState;
     }
 
-    public void setSiteState(SiteState siteState) {
-        this.siteState = siteState;
+    public void setInterState(InterState interState) {
+        this.interState = interState;
     }
 
     public Configuration toConfiguration() {
@@ -44,7 +56,7 @@ public class DrOperationStatus {
         config.setKind(CONFIG_KIND);
         config.setId(siteUuid);
         config.setConfig(KEY_SITE_UUID, siteUuid);
-        config.setConfig(KEY_SITE_STATE, siteState.toString());
+        config.setConfig(KEY_INTER_STATE, interState.toString());
         return config;
     }
 
@@ -57,14 +69,14 @@ public class DrOperationStatus {
         }
 
         siteUuid = config.getConfig(KEY_SITE_UUID);
-        siteState = Enum.valueOf(SiteState.class, config.getConfig(KEY_SITE_STATE));
+        interState = Enum.valueOf(InterState.class, config.getConfig(KEY_INTER_STATE));
     }
 
     @Override
     public String toString() {
         StringBuilder sb = new StringBuilder();
         sb.append("Site [uuid=").append(siteUuid).append(",");
-        sb.append("state=").append(siteState.toString()).append("]");
+        sb.append("state=").append(interState.toString()).append("]");
         return sb.toString();
     }
 }

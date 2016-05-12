@@ -661,7 +661,7 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
         /*
          * 1. Invoke CreateListReplica with all source/target pairings.
          */
-        Method createListMethod = createListReplicasMethod(system.getId(), sourceURIs, targetURIs, false);
+        Method createListMethod = createListReplicasMethod(system.getId(), sourceURIs, targetURIs, vpoolChangeUri, false);
         // false here because we want to rollback individual links not the entire (pre-existing) group.
         Method rollbackMethod = rollbackSRDFLinksMethod(system.getId(), sourceURIs, targetURIs, false);
 
@@ -942,13 +942,18 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
                 system = dbClient.queryObject(StorageSystem.class, group.getSourceStorageSystemUri());
                 targetSystem = dbClient.queryObject(StorageSystem.class, group.getRemoteStorageSystemUri());
 
+                boolean activeMode = target.getSrdfCopyMode() != null && target.getSrdfCopyMode().equals(Mode.ACTIVE.toString());
+                boolean consExempt = true;
+                if (activeMode) {
+                    consExempt = false;
+                }
                 if (!source.hasConsistencyGroup()) {
-                    // No CG, so suspend single link (cons_exempt used in case of Asynchronous)
-                    boolean consExempt = true;
-                    boolean activeMode = target.getSrdfCopyMode() != null && target.getSrdfCopyMode().equals(Mode.ACTIVE.toString());
-                    if (activeMode) {
-                        consExempt = false;
-                    }
+                    // No CG, so suspend single link
+                    // Procedure:
+                    // For SYNC/ASYNC pairs, we need to a) suspend the pairs (cons_exempt used in case of Asynchronous)
+                    // and b)Detach the pairs.
+                    // For ACTIVE pairs, we need to a) Suspend all the pairs in the Project/ RDF Group
+                    // b) Detach the pairs and c)Resume the remaining pairs of the Project/ RDF Group .
                     Workflow.Method suspendMethod = suspendSRDFLinkMethod(system.getId(),
                             source.getId(), targetURI, consExempt);
                     String suspendStep = workflow.createStep(DELETE_SRDF_MIRRORS_STEP_GROUP,
@@ -979,30 +984,49 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
 
                 } else {
                     // Defensive steps to prevent orphaned SRDF Volumes, which cannot be deleted.
-                    // First we remove the sync pair from Async CG...
                     targetVolumeURIs.add(targetURI);
+                    // Procedure:
+                    // For SYNC/ASYNC pairs, we need to a) remove the pairs from the Group, b) suspend the pairs
+                    // and c)Detach the pairs.
+                    // For ACTIVE pairs, we need to a) Suspend all the pairs in the CG, b) Remove the pairs from the Group
+                    // c) Detach the pairs and d)Resume the remaining pairs of the Group.
+                    // Keep the methods handy
+                    Workflow.Method suspendPairMethod = suspendSRDFLinkMethod(system.getId(),
+                            source.getId(), targetURI, consExempt);
+                    Workflow.Method resumePairMethod = resumeSyncPairMethod(system.getId(),
+                            source.getId(), targetURI);
+                    if (activeMode) {
+                        // suspend the Active pair
+                        waitFor = workflow.createStep(DELETE_SRDF_MIRRORS_STEP_GROUP,
+                                SUSPEND_SRDF_MIRRORS_STEP_DESC, waitFor, system.getId(),
+                                system.getSystemType(), getClass(), suspendPairMethod, resumePairMethod, null);
+                    }
                     Workflow.Method removePairFromGroupMethod = removePairFromGroup(system.getId(),
                             source.getId(), targetURI, true);
                     String removePairFromGroupWorkflowDesc = String.format(REMOVE_SRDF_PAIR_STEP_DESC, target.getSrdfCopyMode());
-                    String detachVolumePairWorkflowDesc = String.format(DETACH_SRDF_PAIR_STEP_DESC, target.getSrdfCopyMode());
-
-                    String removePairFromGroupStep = workflow.createStep(DELETE_SRDF_MIRRORS_STEP_GROUP,
+                    waitFor = workflow.createStep(DELETE_SRDF_MIRRORS_STEP_GROUP,
                             removePairFromGroupWorkflowDesc, waitFor, system.getId(),
-                            system.getSystemType(), getClass(), removePairFromGroupMethod, null, null);
-                    // suspend the removed async pair
-                    Workflow.Method suspendPairMethod = suspendSRDFLinkMethod(system.getId(),
-                            source.getId(), targetURI, true);
-                    String suspendPairStep = workflow.createStep(DELETE_SRDF_MIRRORS_STEP_GROUP,
-                            SUSPEND_SRDF_MIRRORS_STEP_DESC, removePairFromGroupStep, system.getId(),
-                            system.getSystemType(), getClass(), suspendPairMethod, null, null);
-                    // Finally we detach the removed async pair...
+                            system.getSystemType(), getClass(), removePairFromGroupMethod, rollbackMethodNullMethod(), null);
+                    if (!activeMode) {
+                        waitFor = workflow.createStep(DELETE_SRDF_MIRRORS_STEP_GROUP,
+                                SUSPEND_SRDF_MIRRORS_STEP_DESC, waitFor, system.getId(),
+                                system.getSystemType(), getClass(), suspendPairMethod, null, null);
+                    }
+                    // We now detach the active p...
                     // don't proceed if detach fails, earlier we were allowing the delete operation
                     // to proceed even if there is a failure on detach.
+                    String detachVolumePairWorkflowDesc = String.format(DETACH_SRDF_PAIR_STEP_DESC, target.getSrdfCopyMode());
                     Workflow.Method detachPairMethod = detachVolumePairMethod(system.getId(),
                             source.getId(), targetURI);
                     waitFor = workflow.createStep(DELETE_SRDF_MIRRORS_STEP_GROUP,
-                            detachVolumePairWorkflowDesc, suspendPairStep, system.getId(),
-                            system.getSystemType(), getClass(), detachPairMethod, null, null);
+                            detachVolumePairWorkflowDesc, waitFor, system.getId(),
+                            system.getSystemType(), getClass(), detachPairMethod, rollbackMethodNullMethod(), null);
+                    if (activeMode) {
+                        // Now resume the remaining active pairs..
+                        waitFor = workflow.createStep(RESUME_SRDF_MIRRORS_STEP_GROUP,
+                                RESUME_SRDF_MIRRORS_STEP_DESC, waitFor, system.getId(),
+                                system.getSystemType(), getClass(), resumePairMethod, rollbackMethodNullMethod(), null);
+                    }
                 }
             }
         }
@@ -1371,11 +1395,13 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
     }
 
     private Workflow.Method
-            createListReplicasMethod(URI systemURI, List<URI> sourceURIs, List<URI> targetURIs, boolean addWaitForCopyState) {
-        return new Workflow.Method(CREATE_LIST_REPLICAS_METHOD, systemURI, sourceURIs, targetURIs, addWaitForCopyState);
+            createListReplicasMethod(URI systemURI, List<URI> sourceURIs, List<URI> targetURIs, URI vpoolChangeUri,
+                    boolean addWaitForCopyState) {
+        return new Workflow.Method(CREATE_LIST_REPLICAS_METHOD, systemURI, sourceURIs, targetURIs, vpoolChangeUri, addWaitForCopyState);
     }
 
-    public boolean createListReplicas(URI systemURI, List<URI> sourceURIs, List<URI> targetURIs, boolean addWaitForCopyState, String opId) {
+    public boolean createListReplicas(URI systemURI, List<URI> sourceURIs, List<URI> targetURIs, URI vpoolChangeUri,
+            boolean addWaitForCopyState, String opId) {
         log.info("START Creating list of replicas");
         TaskCompleter completer = null;
         try {
@@ -1386,7 +1412,7 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
             combined.addAll(sourceURIs);
             combined.addAll(targetURIs);
 
-            completer = new SRDFMirrorCreateCompleter(combined, null, opId);
+            completer = new SRDFMirrorCreateCompleter(combined, vpoolChangeUri, opId);
             getRemoteMirrorDevice().doCreateListReplicas(system, sourceURIs, targetURIs, addWaitForCopyState, completer);
             log.info("Sources: {}", Joiner.on(',').join(sourceURIs));
             log.info("Targets: {}", Joiner.on(',').join(targetURIs));
@@ -1501,7 +1527,7 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
         /*
          * Invoke CreateListReplica with all source/target pairings.
          */
-        Method createListMethod = createListReplicasMethod(system.getId(), sourceURIs, targetURIs, true);
+        Method createListMethod = createListReplicasMethod(system.getId(), sourceURIs, targetURIs, vpoolChangeUri, true);
         // false here because we want to rollback individual links not the entire (pre-existing) group.
         Method rollbackMethod = rollbackSRDFLinksMethod(system.getId(), sourceURIs, targetURIs, false);
 
@@ -1557,7 +1583,7 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
         /*
          * Invoke CreateListReplica with all source/target pairings.
          */
-        Method createListMethod = createListReplicasMethod(system.getId(), sourceURIs, targetURIs, false);
+        Method createListMethod = createListReplicasMethod(system.getId(), sourceURIs, targetURIs, vpoolChangeUri, false);
         // false here because we want to rollback individual links not the entire (pre-existing) group.
         Method rollbackMethod = rollbackSRDFLinksMethod(system.getId(), sourceURIs, targetURIs, false);
 

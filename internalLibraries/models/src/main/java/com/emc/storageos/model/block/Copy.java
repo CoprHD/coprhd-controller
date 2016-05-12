@@ -135,9 +135,9 @@ public class Copy implements Serializable {
     /**
      * User provided SRDF copy mode for the synchronization.
      * Valid values:
-     * SYNCHRONOUS
-     * ASYNCHRONOUS
-     * ADAPTIVECOPY
+     * SYNCHRONOUS = Change SRDf copy mode to SYNCHRONOUS
+     * ASYNCHRONOUS = Change SRDf copy mode to ASYNCHRONOUS
+     * ADAPTIVECOPY = Change SRDf copy mode to ADAPTIVECOPY
      *
      * @return
      */

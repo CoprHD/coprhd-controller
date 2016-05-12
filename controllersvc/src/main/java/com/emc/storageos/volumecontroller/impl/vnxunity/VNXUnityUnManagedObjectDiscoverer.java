@@ -24,7 +24,7 @@ import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
-import com.emc.storageos.db.client.model.HostInterface;
+import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.ShareACL;
 import com.emc.storageos.db.client.model.StoragePool;
@@ -35,7 +35,6 @@ import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.StringSetMap;
 import com.emc.storageos.db.client.model.ZoneInfo;
 import com.emc.storageos.db.client.model.ZoneInfoMap;
-import com.emc.storageos.db.client.model.DataObject.Flag;
 import com.emc.storageos.db.client.model.StoragePort.TransportType;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedCifsShareACL;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedConsistencyGroup;
@@ -54,11 +53,11 @@ import com.emc.storageos.networkcontroller.impl.NetworkDeviceController;
 import com.emc.storageos.plugins.AccessProfile;
 import com.emc.storageos.plugins.common.Constants;
 import com.emc.storageos.plugins.common.PartitionManager;
-import com.emc.storageos.util.ExportUtils;
 import com.emc.storageos.util.NetworkUtil;
 import com.emc.storageos.vnxe.VNXeApiClient;
 import com.emc.storageos.vnxe.VNXeApiClientFactory;
 import com.emc.storageos.vnxe.models.BlockHostAccess;
+import com.emc.storageos.vnxe.models.Snap;
 import com.emc.storageos.vnxe.models.StorageResource;
 import com.emc.storageos.vnxe.models.VNXUnityQuotaConfig;
 import com.emc.storageos.vnxe.models.VNXUnityTreeQuota;
@@ -74,11 +73,6 @@ import com.emc.storageos.volumecontroller.FileControllerConstants;
 import com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator;
 import com.emc.storageos.volumecontroller.impl.utils.DiscoveryUtils;
 import com.emc.storageos.volumecontroller.impl.utils.UnManagedExportVerificationUtility;
-import com.emc.storageos.vplexcontroller.VPlexControllerUtils;
-import com.emc.storageos.xtremio.restapi.XtremIOClient;
-import com.emc.storageos.xtremio.restapi.XtremIOClientFactory;
-import com.emc.storageos.xtremio.restapi.model.response.XtremIOConsistencyGroup;
-import com.emc.storageos.xtremio.restapi.model.response.XtremIOInitiator;
 import com.google.common.base.Joiner;
 import com.google.common.collect.Sets;
 import com.google.common.collect.Sets.SetView;
@@ -175,8 +169,9 @@ public class VNXUnityUnManagedObjectDiscoverer {
 
                 unManagedVolumesReturnedFromProvider.add(unManagedVolume.getId());
                 Boolean isVolumeInCG = lun.getType() == VNXeApiClient.GENERIC_STORAGE_LUN_TYPE ? true : false;
+                String cgId = null;
                 if (isVolumeInCG) {
-                    String cgId = lun.getStorageResource().getId();
+                    cgId = lun.getStorageResource().getId();
                     addObjectToUnManagedConsistencyGroup(apiClient, unManagedVolume, cgId, storageSystem, dbClient);
                 } else {
                     // Make sure the unManagedVolume object does not contain CG information from previous discovery
@@ -186,6 +181,44 @@ public class VNXUnityUnManagedObjectDiscoverer {
                     unManagedVolume.getVolumeInformation().put(SupportedVolumeInformation.UNMANAGED_CONSISTENCY_GROUP_URI.toString(),
                                 "");
                     
+                }
+                Integer snapCount = lun.getSnapCount();
+                if (snapCount >0) {
+                    List<Snap> snaps = apiClient.getSnapshotsForLun(lun.getId());
+                    if (snaps != null && !snaps.isEmpty()) {
+                        StringSet parentMatchedVPools = unManagedVolume.getSupportedVpoolUris();
+                        StringSet discoveredSnaps =  discoverVolumeSnaps(storageSystem, snaps, unManagedVolumeNatvieGuid, parentMatchedVPools, apiClient, 
+                                dbClient, hostVolumesMap, lun, isVolumeInCG, cgId);
+                        if (discoveredSnaps != null && !discoveredSnaps.isEmpty()) {
+                            unManagedVolume.getVolumeCharacterstics().put(SupportedVolumeCharacterstics.HAS_REPLICAS.toString(),
+                                    Boolean.TRUE.toString());
+                            StringSetMap unManagedVolumeInformation = unManagedVolume.getVolumeInformation();
+                            if (unManagedVolumeInformation.containsKey(SupportedVolumeInformation.SNAPSHOTS.toString())) {
+                                log.debug("Snaps :" + Joiner.on("\t").join(discoveredSnaps));
+                                if (null != discoveredSnaps && discoveredSnaps.isEmpty()) {
+                                    // replace with empty string set doesn't work, hence added explicit code to remove all
+                                    unManagedVolumeInformation.get(
+                                            SupportedVolumeInformation.SNAPSHOTS.toString()).clear();
+                                } else {
+                                    // replace with new StringSet
+                                    unManagedVolumeInformation.get(
+                                            SupportedVolumeInformation.SNAPSHOTS.toString()).replace(discoveredSnaps);
+                                    log.info("Replaced snaps :" + Joiner.on("\t").join(unManagedVolumeInformation.get(
+                                            SupportedVolumeInformation.SNAPSHOTS.toString())));
+                                }
+                            } else {
+                                unManagedVolumeInformation.put(
+                                        SupportedVolumeInformation.SNAPSHOTS.toString(), discoveredSnaps);
+                            }
+                        } else {
+                            unManagedVolume.getVolumeCharacterstics().put(SupportedVolumeCharacterstics.HAS_REPLICAS.toString(),
+                                    Boolean.FALSE.toString());
+                        }
+                    } else {
+                        unManagedVolume.getVolumeCharacterstics().put(SupportedVolumeCharacterstics.HAS_REPLICAS.toString(),
+                                Boolean.FALSE.toString());
+                    }
+
                 }
             }
 
@@ -811,9 +844,9 @@ public class VNXUnityUnManagedObjectDiscoverer {
                 }
             }
         }
-        if (isVolumeExported) {
-            unManagedVolumeCharacteristics.put(SupportedVolumeCharacterstics.IS_VOLUME_EXPORTED.toString(), isVolumeExported.toString());
-        }
+        
+        unManagedVolumeCharacteristics.put(SupportedVolumeCharacterstics.IS_VOLUME_EXPORTED.toString(), isVolumeExported.toString());
+        
         
         StringSet deviceLabel = new StringSet();
         deviceLabel.add(lun.getName());
@@ -1380,6 +1413,9 @@ public class VNXUnityUnManagedObjectDiscoverer {
                 for (VNXeBase init : fcInits) {
                     VNXeHostInitiator initiator = apiClient.getHostInitiator(init.getId());
                     String portwwn = initiator.getPortWWN();
+                    if (portwwn == null || portwwn.isEmpty()) {
+                        continue;
+                    }
                     Initiator knownInitiator = NetworkUtil.getInitiator(portwwn, dbClient);
                     if (knownInitiator != null) {
                         knownInitSet.add(knownInitiator.getId().toString());
@@ -1392,6 +1428,9 @@ public class VNXUnityUnManagedObjectDiscoverer {
                 for (VNXeBase init : iScsiInits) {
                     VNXeHostInitiator initiator = apiClient.getHostInitiator(init.getId());
                     String portwwn = initiator.getPortWWN();
+                    if (portwwn == null || portwwn.isEmpty()) {
+                        continue;
+                    }
                     Initiator knownInitiator = NetworkUtil.getInitiator(portwwn, dbClient);
                     if (knownInitiator != null) {
                         knownInitSet.add(knownInitiator.getId().toString());
@@ -1498,5 +1537,213 @@ public class VNXUnityUnManagedObjectDiscoverer {
         }
         mask.setZoningMap(zoningMap);
     }
+    
+    /**
+     * Discover Lun Snaps, and create UnManagedVolume for the snaps
+     * @param system
+     * @param snaps
+     * @param parentGUID
+     * @param parentMatchedVPools
+     * @param apiClient
+     * @param dbClient
+     * @param hostVolumesMap
+     * @param lun
+     * @param isSnapInCG
+     * @param cgName
+     * @return
+     * @throws Exception
+     */
+    private StringSet discoverVolumeSnaps(StorageSystem system, List<Snap> snaps, String parentGUID,
+            StringSet parentMatchedVPools, VNXeApiClient apiClient, DbClient dbClient,
+            Map<String, List<UnManagedVolume>> hostVolumesMap, VNXeLun lun, boolean isSnapInCG, String cgName) throws Exception {
 
+        StringSet snapsets = new StringSet();
+
+        for (Snap snapDetail : snaps) {
+            
+            UnManagedVolume unManagedVolume = null;
+
+            String managedSnapNativeGuid = NativeGUIDGenerator.generateNativeGuidForVolumeOrBlockSnapShot(
+                    system.getNativeGuid(), snapDetail.getId());
+            BlockSnapshot viprSnap = DiscoveryUtils.checkBlockSnapshotExistsInDB(dbClient, managedSnapNativeGuid);
+            if (null != viprSnap) {
+                log.info("Skipping snapshot {} as it is already managed by ViPR", managedSnapNativeGuid);
+                snapsets.add(managedSnapNativeGuid);
+                continue;
+            }
+
+            String unManagedVolumeNatvieGuid = NativeGUIDGenerator.generateNativeGuidForPreExistingVolume(
+                    system.getNativeGuid(), snapDetail.getId());
+
+            unManagedVolume = DiscoveryUtils.checkUnManagedVolumeExistsInDB(dbClient,
+                    unManagedVolumeNatvieGuid);
+
+            unManagedVolume = createUnManagedVolumeForSnap(unManagedVolume, unManagedVolumeNatvieGuid, lun, system, 
+                    dbClient, hostVolumesMap, snapDetail);
+            populateSnapInfo(unManagedVolume, snapDetail, parentGUID, parentMatchedVPools, cgName);
+            snapsets.add(unManagedVolumeNatvieGuid);
+            unManagedVolumesReturnedFromProvider.add(unManagedVolume.getId());
+
+            if (isSnapInCG) {
+                addObjectToUnManagedConsistencyGroup(apiClient, unManagedVolume, cgName, system,dbClient);
+                        
+            }
+        }
+
+        return snapsets;
+    }
+
+    /**
+     * Creates a new UnManagedVolume with the given arguments for a snap.
+     * 
+     * @param unManagedVolumeNativeGuid
+     * @param lun
+     * @param system
+     * @param pool
+     * @param dbClient
+     * @param hostVolumeMap hosts and exported volumes map
+     * @param snap detail of the snap
+     * @return
+     */
+    private UnManagedVolume createUnManagedVolumeForSnap(UnManagedVolume unManagedVolume, String unManagedVolumeNativeGuid,
+            VNXeLun lun, StorageSystem system, DbClient dbClient, Map<String, List<UnManagedVolume>>hostVolumeMap, Snap snap) {
+        boolean created = false;
+        if (null == unManagedVolume) {
+            unManagedVolume = new UnManagedVolume();
+            unManagedVolume.setId(URIUtil.createId(UnManagedVolume.class));
+            unManagedVolume.setNativeGuid(unManagedVolumeNativeGuid);
+            unManagedVolume.setStorageSystemUri(system.getId());
+            created = true;
+        }
+
+        unManagedVolume.setLabel(snap.getName());
+
+        Map<String, StringSet> unManagedVolumeInformation = new HashMap<String, StringSet>();
+        Map<String, String> unManagedVolumeCharacteristics = new HashMap<String, String>();
+
+        Boolean isSnapExported = false;
+
+        if (lun.getHostAccess() != null && !lun.getHostAccess().isEmpty()) {
+            // clear the previous unmanaged export masks, initiators if any. The latest export masks will be updated later.
+            unManagedVolume.getUnmanagedExportMasks().clear();
+            unManagedVolume.getInitiatorNetworkIds().clear();
+            unManagedVolume.getInitiatorUris().clear();
+            for (BlockHostAccess access : lun.getHostAccess()) {
+                int accessMask = access.getAccessMask();
+                if (accessMask == BlockHostAccess.HostLUNAccessEnum.BOTH.getValue() ||
+                        accessMask == BlockHostAccess.HostLUNAccessEnum.SNAPSHOT.getValue()) {
+                    isSnapExported = true;
+                    String hostId = access.getHost().getId();
+                    List<UnManagedVolume> exportedSnaps = hostVolumeMap.get(hostId);
+                    if (exportedSnaps == null) {
+                        exportedSnaps = new ArrayList<UnManagedVolume>();
+                        hostVolumeMap.put(hostId, exportedSnaps);
+                    }
+                    exportedSnaps.add(unManagedVolume);
+                }
+            }
+        }
+
+        unManagedVolumeCharacteristics.put(SupportedVolumeCharacterstics.IS_VOLUME_EXPORTED.toString(), isSnapExported.toString());
+        
+        StringSet deviceLabel = new StringSet();
+        deviceLabel.add(snap.getName());
+        unManagedVolumeInformation.put(SupportedVolumeInformation.DEVICE_LABEL.toString(),
+                deviceLabel);
+        
+        String snapWWN = snap.getAttachedWWN();
+        if (snapWWN != null && !snapWWN.isEmpty()) {
+            String volumeWWN = snapWWN.replaceAll(":", "");
+            unManagedVolume.setWwn(volumeWWN);
+        }
+
+        StringSet systemTypes = new StringSet();
+        systemTypes.add(system.getSystemType());
+
+        StringSet provCapacity = new StringSet();
+        provCapacity.add(String.valueOf(snap.getSize()));
+        unManagedVolumeInformation.put(SupportedVolumeInformation.PROVISIONED_CAPACITY.toString(),
+                provCapacity);
+
+        StringSet allocatedCapacity = new StringSet();
+        allocatedCapacity.add(String.valueOf(snap.getSize()));
+        unManagedVolumeInformation.put(SupportedVolumeInformation.ALLOCATED_CAPACITY.toString(),
+                allocatedCapacity);
+
+        unManagedVolumeInformation.put(SupportedVolumeInformation.SYSTEM_TYPE.toString(),
+                systemTypes);
+
+        StringSet nativeId = new StringSet();
+        nativeId.add(snap.getId());
+        unManagedVolumeInformation.put(SupportedVolumeInformation.NATIVE_ID.toString(),
+                nativeId);
+
+        unManagedVolumeCharacteristics.put(
+                SupportedVolumeCharacterstics.IS_INGESTABLE.toString(), Boolean.TRUE.toString());
+
+        unManagedVolumeCharacteristics.put(SupportedVolumeCharacterstics.IS_THINLY_PROVISIONED.toString(),
+                lun.getIsThinEnabled().toString());
+
+        unManagedVolume.addVolumeInformation(unManagedVolumeInformation);
+
+        if (unManagedVolume.getVolumeCharacterstics() == null) {
+            unManagedVolume.setVolumeCharacterstics(new StringMap());
+        }
+        unManagedVolume.getVolumeCharacterstics().replace(unManagedVolumeCharacteristics);
+
+        if (created) {
+            unManagedVolumesInsert.add(unManagedVolume);
+        } else {
+            unManagedVolumesUpdate.add(unManagedVolume);
+        }
+
+        return unManagedVolume;
+    }
+    
+    /**
+     * Populate snap detail info
+     * @param unManagedVolume
+     * @param snap
+     * @param parentVolumeNatvieGuid
+     * @param parentMatchedVPools
+     * @param cgName
+     */
+    private void populateSnapInfo(UnManagedVolume unManagedVolume, Snap snap, String parentVolumeNatvieGuid,
+            StringSet parentMatchedVPools, String cgName) {
+        log.info(String.format("populate snap:", snap.getName()));
+        unManagedVolume.getVolumeCharacterstics().put(SupportedVolumeCharacterstics.IS_SNAP_SHOT.toString(), Boolean.TRUE.toString());
+
+        StringSet parentVol = new StringSet();
+        parentVol.add(parentVolumeNatvieGuid);
+        unManagedVolume.getVolumeInformation().put(SupportedVolumeInformation.LOCAL_REPLICA_SOURCE_VOLUME.toString(), parentVol);
+
+        StringSet isSyncActive = new StringSet();
+        isSyncActive.add(Boolean.TRUE.toString());
+        unManagedVolume.getVolumeInformation().put(SupportedVolumeInformation.IS_SYNC_ACTIVE.toString(), isSyncActive);
+
+        StringSet isReadOnly = new StringSet();
+        Boolean readOnly = snap.getIsReadOnly();
+        isReadOnly.add(readOnly.toString());
+        unManagedVolume.getVolumeInformation().put(SupportedVolumeInformation.IS_READ_ONLY.toString(), isReadOnly);
+
+        StringSet techType = new StringSet();
+        techType.add(BlockSnapshot.TechnologyType.NATIVE.toString());
+        unManagedVolume.getVolumeInformation().put(SupportedVolumeInformation.TECHNOLOGY_TYPE.toString(), techType);
+
+        if (cgName != null && !cgName.isEmpty()) {
+            unManagedVolume.getVolumeInformation().put(SupportedVolumeInformation.SNAPSHOT_CONSISTENCY_GROUP_NAME.toString(),
+                    cgName);
+        }
+
+        log.debug("Matched Pools : {}", Joiner.on("\t").join(parentMatchedVPools));
+        if (null == parentMatchedVPools || parentMatchedVPools.isEmpty()) {
+            // Clearn all vpools as no matching vpools found.
+            log.info("no parent pool");
+            unManagedVolume.getSupportedVpoolUris().clear();
+        } else {
+            // replace with new StringSet
+            unManagedVolume.getSupportedVpoolUris().replace(parentMatchedVPools);
+            log.info("Replaced Pools :{}", Joiner.on("\t").join(unManagedVolume.getSupportedVpoolUris()));
+        }
+    }
 }

@@ -412,6 +412,13 @@ public interface AlternateIdConstraint extends Constraint {
                     replicaGroupInstance);
         }
 
+        public static AlternateIdConstraint getSnapshotSessionReplicationGroupInstanceConstraint(
+                String replicaGroupInstance) {
+            DataObjectType doType = TypeMap.getDoType(BlockSnapshotSession.class);
+            return new AlternateIdConstraintImpl(doType.getColumnField("replicationGroupInstance"),
+                    replicaGroupInstance);
+        }
+
         /**
          * Policy Names matching an Array will be returned.
          * Policy ID format : serialID-PolicyName
@@ -736,11 +743,6 @@ public interface AlternateIdConstraint extends Constraint {
         public static AlternateIdConstraint getObjectNamespaceByNativeGuidConstraint(String nativeGuid) {
             DataObjectType doType = TypeMap.getDoType(ObjectNamespace.class);
             return new AlternateIdConstraintImpl(doType.getColumnField(NATIVE_GUID), nativeGuid);
-        }
-
-        public static AlternateIdConstraint getFCZoneReferenceByWWNKey(String pwwnKey) {
-            DataObjectType doType = TypeMap.getDoType(FCZoneReference.class);
-            return new AlternateIdConstraintImpl(doType.getColumnField("pwwnKey"), pwwnKey);
         }
     }
 }

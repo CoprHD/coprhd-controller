@@ -76,16 +76,16 @@ public class MigrationInfo {
         /**
          * Constructor.
          * 
-         * @param status The VPlex status value.
+         * @param status The status value.
          */
         MigrationStatus(String status) {
             _status = status;
         }
 
         /**
-         * Getter for the VPlex value for the status.
+         * Getter for the value for the status.
          * 
-         * @return The VPlex value for the status.
+         * @return The value for the status.
          */
         public String getStatusValue() {
             return _status;
@@ -113,7 +113,11 @@ public class MigrationInfo {
 
     // Flag indicates if the migration is a device migration (true), or
     // extent migration (false).
-    private boolean isDeviceMigration;
+    private boolean isHostMigration;
+
+    private String migrationName;
+
+    private String contextPath;
 
     /**
      * Setter for the virtual volume info for the migration.
@@ -129,7 +133,7 @@ public class MigrationInfo {
      * 
      * @param volumeInfo The virtual volume info for the migration.
      */
-    public void setVirtualVolumeInfo(VolumeInfo volumeInfo) {
+    public void setGeneralVolumeInfo(VolumeInfo volumeInfo) {
         generalVolumeInfo = volumeInfo;
     }
 
@@ -228,8 +232,8 @@ public class MigrationInfo {
      * 
      * @return true for a device migration, false for an extent migration.
      */
-    public boolean getIsDeviceMigration() {
-        return isDeviceMigration;
+    public boolean getIsHostMigration() {
+        return isHostMigration;
     }
 
     /**
@@ -237,10 +241,27 @@ public class MigrationInfo {
      * 
      * @param boolVal true for a device migration, false for an extent migration.
      */
-    public void setIsDeviceMigration(boolean boolVal) {
-        isDeviceMigration = boolVal;
+    public void setIsHostMigration(boolean boolVal) {
+        isHostMigration = boolVal;
     }
 
+    public String getName() {
+        // TODO Auto-generated method stub
+        return migrationName;
+    }
+
+    public void setName(String name) {
+        // TODO Auto-generated method stub
+        migrationName = name;
+    }
+
+    public String getPath() {
+        return contextPath;
+    }
+
+    public void setPath(String path) {
+        contextPath = path;
+    }
     /**
      * {@inheritDoc}
      */
@@ -263,9 +284,12 @@ public class MigrationInfo {
         str.append(", targetName: ").append(targetName);
         str.append(", percentageDone: ").append(percentageDone);
         str.append(", startTime: ").append(startTime);
-        str.append(", isDeviceMigration: ").append(String.valueOf(isDeviceMigration));
+        str.append(", isHostMigration: ").append(String.valueOf(isHostMigration));
+        str.append("migrationname: ").append(migrationName);
+        str.append("contextPath: ").append(contextPath);
         str.append(" )");
 
         return str.toString();
     }
+
 }

@@ -1,13 +1,12 @@
 package com.emc.storageos.migrationcontroller;
 
 import java.io.Serializable;
-import java.net.URI;
-import java.net.URISyntaxException;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.Migration;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.StorageSystem;
@@ -19,10 +18,6 @@ import com.emc.storageos.volumecontroller.Job;
 import com.emc.storageos.volumecontroller.JobContext;
 import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.volumecontroller.impl.JobPollResult;
-import com.emc.storageos.vplex.api.VPlexApiClient;
-import com.emc.storageos.vplex.api.VPlexApiFactory;
-import com.emc.storageos.vplex.api.VPlexMigrationInfo;
-import com.emc.storageos.vplexcontroller.VPlexControllerUtils;
 import com.emc.storageos.vplexcontroller.completers.MigrationTaskCompleter;
 
 public class MigrationJob extends Job implements Serializable {
@@ -58,13 +53,16 @@ public class MigrationJob extends Job implements Serializable {
     // Logger reference.
     private static final Logger s_logger = LoggerFactory.getLogger(MigrationJob.class);
 
+    private final Host _host;
+
     /**
      * Constructor.
      * 
      * @param taskCompleter The task completer.
      */
-    public MigrationJob(MigrationTaskCompleter taskCompleter) {
+    public MigrationJob(MigrationTaskCompleter taskCompleter, Host host) {
         _taskCompleter = taskCompleter;
+        _host = host;
     }
 
     /**
@@ -101,23 +99,18 @@ public class MigrationJob extends Job implements Serializable {
             String migrationName = migration.getLabel();
             s_logger.debug("Migration is {}", migration.getId());
 
-            // Get the virtual volume associated with the migration
-            // and then get the VPlex storage system for that virtual
-            // volume.
+            // Get the general volume associated with the migration
+
             Volume generalVolume = dbClient.queryObject(Volume.class,
                     migration.getVolume());
-            s_logger.debug("Virtual volume is {}", generalVolume.getId());
+            s_logger.debug("general volume is {}", generalVolume.getId());
 
             storageSystem = dbClient.queryObject(StorageSystem.class,
                     generalVolume.getStorageController());
-            s_logger.debug("VPlex system is {}", storageSystem.getId());
+            s_logger.debug("storage system is {}", storageSystem.getId());
 
-            // Get the Host API client for this VPlex storage system
-            // and get the latest info for the migration.
-
-            MigrationInfo migrationInfo = //todo: get host migration Info
-                    .getMigrationInfo(migrationName);
-            s_logger.debug("Got migration info from VPlex");
+            MigrationInfo migrationInfo = HostMigrationCommand.findMigration(_host, migrationName);
+            s_logger.debug("Got migration info from host");
 
             // Update the migration in the database to reflect the
             // current status and percent done.
@@ -136,12 +129,12 @@ public class MigrationJob extends Job implements Serializable {
             s_logger.debug("Updated poll result");
 
             // Examine the status.
-            if (VPlexMigrationInfo.MigrationStatus.COMPLETE.getStatusValue().equals(
+            if (MigrationInfo.MigrationStatus.COMPLETE.getStatusValue().equals(
                     migrationStatus)) {
                 // Completed successfully
                 s_logger.info("Migration: {} completed sucessfully", migration.getId());
                 _status = JobStatus.SUCCESS;
-            } else if (VPlexMigrationInfo.MigrationStatus.COMMITTED.getStatusValue()
+            } else if (MigrationInfo.MigrationStatus.COMMITTED.getStatusValue()
                     .equals(migrationStatus)) {
                 // The migration job completed and somehow it was committed
                 // outside the scope of the workflow that created the
@@ -151,7 +144,7 @@ public class MigrationJob extends Job implements Serializable {
                 s_logger.info("Migration: {} completed and was committed",
                         migration.getId());
                 _status = JobStatus.SUCCESS;
-            } else if (VPlexMigrationInfo.MigrationStatus.CANCELLED.getStatusValue()
+            } else if (MigrationInfo.MigrationStatus.CANCELLED.getStatusValue()
                     .equals(migrationStatus)) {
                 // The migration job was cancelled outside the scope of the
                 // workflow that created the migration job.
@@ -159,7 +152,7 @@ public class MigrationJob extends Job implements Serializable {
                 s_logger.info("Migration: {} was cancelled prior to completion",
                         migration.getId());
                 _status = JobStatus.FAILED;
-            } else if (VPlexMigrationInfo.MigrationStatus.ERROR.getStatusValue().equals(
+            } else if (MigrationInfo.MigrationStatus.ERROR.getStatusValue().equals(
                     migrationStatus)) {
                 // The migration failed.
                 _errorDescription = "The migration failed";
@@ -223,7 +216,7 @@ public class MigrationJob extends Job implements Serializable {
                 _taskCompleter.ready(jobContext.getDbClient());
             } else if (_status == JobStatus.FAILED) {
                 s_logger.debug("Calling task completer for failed job");
-                ServiceError error = DeviceControllerErrors.vplex.migrationJobFailed(_errorDescription);
+                ServiceError error = DeviceControllerErrors.hostmigration.migrationJobFailed(_errorDescription);
                 _taskCompleter.error(jobContext.getDbClient(), error);
             }
         } catch (Exception e) {

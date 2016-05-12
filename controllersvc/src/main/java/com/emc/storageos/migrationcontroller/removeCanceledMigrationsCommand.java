@@ -2,10 +2,9 @@ package com.emc.storageos.migrationcontroller;
 
 import com.iwave.ext.linux.command.LinuxResultsCommand;
 
-public class IscsiConnectTargetCommand extends LinuxResultsCommand<String> {
-
-    public IscsiConnectTargetCommand(String args) {
-        setCommand("iscsictl");
+public class removeCanceledMigrationsCommand extends LinuxResultsCommand<String> {
+    public removeCanceledMigrationsCommand(String args) {
+        setCommand("/usr/bin/removemigrationrecord");
         addArgument(args);
     }
 
@@ -15,9 +14,9 @@ public class IscsiConnectTargetCommand extends LinuxResultsCommand<String> {
         if (getOutput() != null && getOutput().getStdout() != null) {
             String stdout = getOutput().getStdout();
             // todo parse output
-            results = "";
+
+            results = stdout;
         }
 
     }
-
 }

@@ -1,9 +1,9 @@
 package com.emc.storageos.migrationcontroller;
 
-import com.emc.storageos.recoverpoint.exceptions.RecoverPointException;
+import java.util.List;
+
 import com.emc.storageos.svcs.errorhandling.annotations.DeclareServiceCode;
 import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
-import com.emc.storageos.vplex.api.VPlexApiException;
 
 public interface MigrationControllerExceptions {
 
@@ -11,14 +11,31 @@ public interface MigrationControllerExceptions {
     public MigrationControllerException getDataObjectFailedNotFound(final String className, final String objId);
 
     @DeclareServiceCode(ServiceCode.MIGRATION_ERROR)
-    public VPlexApiException getDataObjectFailedInactive(final String objId);
+    public MigrationControllerException getDataObjectFailedInactive(final String objId);
 
     @DeclareServiceCode(ServiceCode.MIGRATION_ERROR)
-    public VPlexApiException getDataObjectFailedExc(final String objId, final Throwable cause);
+    public MigrationControllerException getDataObjectFailedExc(final String objId, final Throwable cause);
 
     @DeclareServiceCode(ServiceCode.MIGRATION_ERROR)
-    public VPlexApiException addStepsForChangeVirtualPoolFailed(final Throwable cause);
+    public MigrationControllerException addStepsForChangeVirtualPoolFailed(final Throwable cause);
 
     @DeclareServiceCode(ServiceCode.MIGRATION_ERROR)
-    public RecoverPointException getInitiatorPortsForArrayFailed(String rpSystem, String targetStorage);
+    public MigrationControllerException getInitiatorPortsForArrayFailed(final String device, final String array);
+
+    @DeclareServiceCode(ServiceCode.MIGRATION_ERROR)
+    public MigrationControllerException migrationRollbackFailure(final String volumeId, final String volumeLabel, final String migration);
+
+    @DeclareServiceCode(ServiceCode.MIGRATION_ERROR)
+    public MigrationControllerException cantCancelMigrationInvalidState(final String migrationName);
+
+    @DeclareServiceCode(ServiceCode.MIGRATION_ERROR)
+    public MigrationControllerException failedCancelMigrations(final List<String> migrationNames,
+            final Throwable cause);
+
+    @DeclareServiceCode(ServiceCode.MIGRATION_ERROR)
+    public MigrationControllerException rollbackMigrateVolume(final String migrationId, final Throwable cause);
+
+    @DeclareServiceCode(ServiceCode.MIGRATION_ERROR)
+    public MigrationControllerException cantCommitedMigrationNotCompletedSuccessfully(
+            final String migrationName);
 }

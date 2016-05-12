@@ -2,10 +2,10 @@ package com.emc.storageos.migrationcontroller;
 
 import com.iwave.ext.linux.command.LinuxResultsCommand;
 
-public class DoMigrationDDCommand extends LinuxResultsCommand<String> {
+public class MigrationVolumeCommand extends LinuxResultsCommand<String> {
 
-    public DoMigrationDDCommand(String args) {
-        setCommand("iscsictl");
+    public MigrationVolumeCommand(String args) {
+        setCommand("/usr/bin/migrationVolume");
         addArgument(args);
     }
 
@@ -16,7 +16,7 @@ public class DoMigrationDDCommand extends LinuxResultsCommand<String> {
             String stdout = getOutput().getStdout();
             // todo parse output   
             
-            results = "";
+            results = stdout;
         }
       
     }

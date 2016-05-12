@@ -291,7 +291,7 @@ public class SupportPackageCreator {
         Set<String> nodeIds = Collections.singleton(nodeId);
         Set<String> logNames = Collections.singleton(logName);
 
-        InputStream in = api().logs().getAsText(nodeIds, logNames, logSeverity, startTime, endTime, msgRegex, null);
+        InputStream in = api().logs().getAsText(nodeIds, null, logNames, logSeverity, startTime, endTime, msgRegex, null);
         try {
             IOUtils.copy(in, stream);
         } finally {

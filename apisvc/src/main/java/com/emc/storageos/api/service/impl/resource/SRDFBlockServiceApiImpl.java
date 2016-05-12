@@ -286,11 +286,11 @@ public class SRDFBlockServiceApiImpl extends AbstractBlockServiceApiImpl<SRDFSch
                         volume.getStorageController(), volume.getId(), volume.getPool(), null,
                         capabilities, volume.getCapacity());
                 Map<String, Object> volumeParams = new HashMap<String, Object>();
-                volumeParams.put(VolumeDescriptor.PARAM_VPOOL_CHANGE_VOLUME_ID,
+                volumeParams.put(VolumeDescriptor.PARAM_VPOOL_CHANGE_EXISTING_VOLUME_ID,
                         recommendation.getVpoolChangeVolume());
-                volumeParams.put(VolumeDescriptor.PARAM_VPOOL_CHANGE_VPOOL_ID,
+                volumeParams.put(VolumeDescriptor.PARAM_VPOOL_CHANGE_NEW_VPOOL_ID,
                         recommendation.getVpoolChangeVpool());
-                volumeParams.put(VolumeDescriptor.PARAM_VPOOL_OLD_VPOOL_ID,
+                volumeParams.put(VolumeDescriptor.PARAM_VPOOL_CHANGE_OLD_VPOOL_ID,
                         volume.getVirtualPool());
 
                 desc.setParameters(volumeParams);

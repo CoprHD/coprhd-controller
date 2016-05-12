@@ -889,7 +889,7 @@ public class FileDeviceInputOutput {
         return label.replaceAll("[^\\dA-Za-z ]", "").replaceAll("\\s+", "_");
     }
 
-    // replace all Special characters except forward slash; -+!@#$%^&())";:[]{}\ |
+    // replace all special characters except forward slash; -+!@#$%^&())";:[]{}\ |
     public String getPathWithoutSpecialCharacters(String path) {
         return path.replaceAll("[^/\\dA-Za-z ]", "").replaceAll("\\s+", "_");
     }

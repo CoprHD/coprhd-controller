@@ -1220,7 +1220,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
     }
 
     /**
-     * add custom directory path from configuration
+     * Add custom discovery directory paths from controller configuration
      */
     private void updateDiscoveryPathForUnManagedFS() {
         String paths = "";
@@ -1338,7 +1338,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
             List<IsilonAccessZone> isilonAccessZones = isilonApi.getAccessZones(null);
             Map<String, NASServer> nasServers = getNASServer(storageSystem, isilonAccessZones);
             setDiscPathForAccess(nasServers);
-            // update the Path from Controller Configuration
+            // update the path from controller configuration
             updateDiscoveryPathForUnManagedFS();
 
             // Get All FileShare

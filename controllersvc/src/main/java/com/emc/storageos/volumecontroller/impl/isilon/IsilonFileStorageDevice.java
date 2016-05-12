@@ -870,6 +870,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
 
             VirtualNAS vNAS = args.getvNAS();
             String vNASPath = null;
+            // get the custom path from the controller configuration
             String customPath = getCustomPath(storage, args);
             if (vNAS != null) {
                 vNASPath = vNAS.getBaseDirPath();
@@ -2590,12 +2591,12 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
     }
 
     /**
-     * Gets the File System Custom path value set
-     * in the Configuration Service View
+     * Gets the file system custom path value from controller configuration
      * 
-     * @return
+     * @param storage Isilon storage system
+     * @param args FileDeviceInputOutput object
+     * @return evaluated custom path
      */
-
     private String getCustomPath(StorageSystem storage, FileDeviceInputOutput args) {
 
         String path = "";
@@ -2615,10 +2616,10 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
     }
 
     /**
-     * Gets the File System Custom path value set
-     * in the Configuration Service View
+     * Get the File System default system access zone from
+     * controller configuration.
      * 
-     * @return
+     * @return access zone folder name
      */
 
     private String getSystemAccessZoneNamespace() {

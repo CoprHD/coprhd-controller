@@ -870,7 +870,7 @@
         </property>
         <property name="defaultValues">
             <map>
-                <entry key="isilon" value="{vpool_name}/{tenant_name}/{project_name}"/>                    
+                <entry key="isilon" value="{vpool_name.FIRST(32)}/{tenant_name.FIRST(32)}/{project_name.FIRST(32)}"/>                    
             </map>
         </property>
         <property name="constraints">

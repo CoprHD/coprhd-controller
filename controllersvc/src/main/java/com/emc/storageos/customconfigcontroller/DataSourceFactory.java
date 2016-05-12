@@ -290,7 +290,9 @@ public class DataSourceFactory {
     /**
      * Create a data source object for resolving Isilon file system path
      * 
-     * @param project the project that the file system will be created on
+     * @param project the project that the file system will be created under.
+     * @param vPool the virtual pool on file system will be created on.
+     * @param tenant the tenant by which file system is created by.
      * @param storageSystem the storageSystem that the file system will be created on.
      * @return a data source populated with the properties
      */

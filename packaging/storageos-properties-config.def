@@ -2754,6 +2754,7 @@
         key : "workflow_suspend_on_class_method",
         label : "Suspend on workflow class and method",
         description : "Suspend on a workflow when encounters Class.Method",
+	type : "string",
         minLen : 1,
         userConfigurable : false,
         userMutable : true,

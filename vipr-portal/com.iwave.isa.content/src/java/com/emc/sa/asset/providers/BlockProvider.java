@@ -3232,8 +3232,12 @@ public class BlockProvider extends BaseAssetOptionsProvider {
 
         @Override
         public boolean accept(BlockConsistencyGroupRestRep cg) {
-            StorageSystemRestRep sys = _client.storageSystems().get(cg.getStorageController());
-            return sys != null && IBMXIV_SYSTEM_TYPE.equals(sys.getSystemType());
+            if (cg.getStorageController() != null) {
+                StorageSystemRestRep sys = _client.storageSystems().get(cg.getStorageController());
+                return sys != null && IBMXIV_SYSTEM_TYPE.equals(sys.getSystemType());
+            }
+
+            return false;
         }
     }
 }

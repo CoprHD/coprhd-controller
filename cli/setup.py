@@ -34,7 +34,7 @@ if 'install' in sys.argv:
         print "...Interrupted"
         sys.exit()
 
-version = '2.4'
+version = '3.0'
 # Find the CLI version from version file.
 # This ver.txt generated while build process.
 # contains string storageos-cli-2.2.0.0.1
@@ -382,7 +382,7 @@ def _install_cli():
         scripts=['viprcli/viprcli.bat']
         )         
     if usingsetuptools: 
-        setupargs.update(dict(install_requires=[ 'setuptools', 'argparse==1.2.1', 'requests==0.13.5']))
+        setupargs.update(dict(install_requires=[ 'setuptools', 'argparse==1.2.1', 'requests==2.8.1']))
         setupargs.update(zip_safe=False) 
     else: 
         setupargs.update(dict(requires=[ 'setuptools', 'argparse', 'requests']))

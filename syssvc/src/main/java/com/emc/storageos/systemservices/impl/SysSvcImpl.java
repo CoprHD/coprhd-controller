@@ -46,7 +46,6 @@ public class SysSvcImpl extends AbstractSecuredWebServer implements SysSvc {
     private Thread _propertyManagerThread = null;
     private Thread _vdcManagerThread = null;
     private Thread _ipreconfigManagerThread = null;
-    private Thread _drNetworkMonitorThread = null;
     private int _timeout;
     private SoftwareUpdate _softwareUpdate;
 
@@ -77,9 +76,6 @@ public class SysSvcImpl extends AbstractSecuredWebServer implements SysSvc {
     @Autowired
     // used by data node to poll the ip address change of controller cluster
     private ClusterAddressPoller _clusterPoller;
-
-    @Autowired
-    private DrSiteNetworkMonitor _drSiteNetworkMonitor;
 
     @Autowired
     private DiagnosticsScheduler diagnosticsScheduler;
@@ -179,12 +175,6 @@ public class SysSvcImpl extends AbstractSecuredWebServer implements SysSvc {
         t.start();
     }
 
-    private void startNetworkMonitor() {
-        _drNetworkMonitorThread = new Thread(_drSiteNetworkMonitor);
-        _drNetworkMonitorThread.setName("DrSiteNetworkMonitor");
-        _drNetworkMonitorThread.start();
-    }
-
     private void startDiagnosticsScheduler() {
         diagnosticsScheduler.start();
     }
@@ -222,10 +212,6 @@ public class SysSvcImpl extends AbstractSecuredWebServer implements SysSvc {
             // since they would update beacon
             startPropertyManager();
             startVdcManager();
-
-            if (drUtil.isActiveSite()) {
-                startNetworkMonitor();
-            }
 
             startDiagnosticsScheduler();
             

@@ -4,15 +4,17 @@
  */
 package com.emc.sa.service.aix;
 
+import static com.emc.sa.service.vipr.ViPRExecutionUtils.logInfo;
+
 import java.net.URI;
 import java.util.List;
 import java.util.Set;
 
 import org.apache.commons.lang.StringUtils;
-import static com.emc.sa.service.vipr.ViPRExecutionUtils.logInfo;
 
 import com.emc.aix.AixSystem;
 import com.emc.aix.model.MountPoint;
+import com.emc.aix.model.MultiPathDevice;
 import com.emc.sa.engine.ExecutionUtils;
 import com.emc.sa.engine.bind.BindingUtils;
 import com.emc.sa.service.vipr.block.BlockStorageUtils;
@@ -22,7 +24,6 @@ import com.emc.storageos.model.block.BlockObjectRestRep;
 import com.emc.storageos.model.block.VolumeRestRep;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
-import com.emc.aix.model.MultiPathDevice;
 import com.iwave.ext.linux.model.PowerPathDevice;
 
 public class UnmountBlockVolumeHelper {
@@ -87,7 +88,7 @@ public class UnmountBlockVolumeHelper {
     }
 
     /**
-     * search through the volumes list to find the {@link VolumeSpec} which has the given wwn and return it's
+     * search through the volumes list to find the {@link VolumeSpec} which has the given wwn and return its
      * 'viprVolume' which is a {@link VolumeRestRep}
      */
     private BlockObjectRestRep findVolumeRestRepByWwn(String relatedWwn) {

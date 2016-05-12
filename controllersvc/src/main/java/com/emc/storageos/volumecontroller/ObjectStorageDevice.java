@@ -83,15 +83,6 @@ public interface ObjectStorageDevice {
     BiosCommandResult doSyncBucketACL(StorageSystem storageObj, Bucket bucket, ObjectDeviceInputOutput objectArgs, String taskId) throws ControllerException;
 
     /**
-     * Get user secret keys
-     * @param storageObj
-     * @param userId
-     * @return
-     * @throws InternalException
-     */
-    ObjectUserSecretKey doGetUserSecretKeys(StorageSystem storageObj, String userId) throws InternalException;
-    
-    /**
      * Add user secret keys
      * @param storageObj
      * @param userId

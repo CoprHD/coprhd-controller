@@ -27,7 +27,6 @@
                 <value>7399</value>
             </list>
         </property>
-        <property name="vdcList" ref="vdcList"/>
         <property name="backupDir" ref="backupFolder"/>
     </bean>
 

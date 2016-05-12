@@ -71,12 +71,18 @@ import com.emc.storageos.db.client.model.UserGroup;
 import com.emc.storageos.db.client.model.Vcenter;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
+import com.emc.storageos.db.client.model.Volume;
+import com.emc.storageos.db.client.model.VolumeGroup;
+import com.emc.storageos.db.client.util.CustomQueryUtility;
+import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.common.VdcUtil;
 import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.model.BulkIdParam;
+import com.emc.storageos.model.NamedRelatedResourceRep;
 import com.emc.storageos.model.RelatedResourceRep;
 import com.emc.storageos.model.ResourceTypeEnum;
 import com.emc.storageos.model.TaskResourceRep;
+import com.emc.storageos.model.application.VolumeGroupList;
 import com.emc.storageos.model.auth.PrincipalsToValidate;
 import com.emc.storageos.model.auth.RoleAssignmentChanges;
 import com.emc.storageos.model.auth.RoleAssignmentEntry;
@@ -120,6 +126,7 @@ import com.emc.storageos.svcs.errorhandling.resources.ForbiddenException;
 import com.emc.storageos.volumecontroller.impl.monitoring.RecordableBourneEvent;
 import com.emc.storageos.volumecontroller.impl.monitoring.RecordableEventManager;
 import com.emc.storageos.volumecontroller.impl.monitoring.cim.enums.RecordType;
+import com.google.common.collect.Lists;
 
 /**
  * API for creating and manipulating tenants
@@ -291,6 +298,10 @@ public class TenantsService extends TaggedResource {
     @CheckPermission(roles = { Role.TENANT_ADMIN, Role.SECURITY_ADMIN })
     public TenantOrgRestRep setTenant(@PathParam("id") URI id, TenantUpdateParam param) {
         TenantOrg tenant = getTenantById(id, true);
+        ObjectNamespace namesp = null;
+        boolean namespModified = false;
+        ObjectNamespace oldNamesp = null;
+        boolean oldNamespModified = false;
         if (param.getLabel() != null && !param.getLabel().isEmpty()) {
             if (!tenant.getLabel().equalsIgnoreCase(param.getLabel())) {
                 checkForDuplicateName(param.getLabel(), TenantOrg.class, tenant.getParentTenant()
@@ -308,25 +319,64 @@ public class TenantsService extends TaggedResource {
             tenant.setDescription(param.getDescription());
         }
 
-        if (param.getNamespace() != null && !param.getNamespace().isEmpty()) {
-            checkForDuplicateNamespace(param.getNamespace());
+        if (!StringUtils.isEmpty(param.getNamespace())) {
+            if (!param.getNamespace().equals(tenant.getNamespace())) {
+                checkForDuplicateNamespace(param.getNamespace());
+            }
 
-            if (tenant.getNamespace() != null && !tenant.getNamespace().isEmpty()) {
+            if (!StringUtils.isEmpty(tenant.getNamespace()) && !"null".equals(tenant.getNamespace())) {
                 if (!tenant.getNamespace().equalsIgnoreCase(param.getNamespace())) {
+                    List<Class<? extends DataObject>> excludeTypes = Lists.newArrayList();
+                    excludeTypes.add(ObjectNamespace.class);
                     // Though we are not deleting need to check no dependencies on this tenant
-                    ArgValidator.checkReference(TenantOrg.class, id, checkForDelete(tenant));
+                    ArgValidator.checkReference(TenantOrg.class, id, checkForDelete(tenant, excludeTypes));
                 }
             }
+            String oldNamespace = tenant.getNamespace();
             tenant.setNamespace(param.getNamespace());
             // Update tenant info in respective namespace CF
             List<URI> allNamespaceURI = _dbClient.queryByType(ObjectNamespace.class, true);
             Iterator<ObjectNamespace> nsItr = _dbClient.queryIterativeObjects(ObjectNamespace.class, allNamespaceURI);
             while (nsItr.hasNext()) {
-                ObjectNamespace namesp = nsItr.next();
+                namesp = nsItr.next();
                 if (namesp.getNativeId().equalsIgnoreCase(param.getNamespace())) {
                     namesp.setTenant(tenant.getId());
                     namesp.setMapped(true);
-                    _dbClient.updateObject(namesp);
+                    // There is a chance of exceptions ahead; hence updated db at the end
+                    namespModified = true;
+                    break;
+                }
+            }
+            // removing link between tenant and the old namespace
+            List<URI> namespaceURIs = _dbClient.queryByType(ObjectNamespace.class, true);
+            Iterator<ObjectNamespace> nsItrToUnMap = _dbClient.queryIterativeObjects(ObjectNamespace.class, namespaceURIs);
+            while (nsItrToUnMap.hasNext()) {
+                oldNamesp = nsItrToUnMap.next();
+                if (oldNamesp.getNativeId().equalsIgnoreCase(oldNamespace)) {
+                    oldNamesp.setMapped(false);
+                    oldNamespModified = true;
+                    break;
+                }
+            }
+
+        }
+        if (param.getDetachNamespace()) {
+
+            List<Class<? extends DataObject>> excludeTypes = Lists.newArrayList();
+            excludeTypes.add(ObjectNamespace.class);
+            // Though we are not deleting need to check no dependencies on this tenant
+            ArgValidator.checkReference(TenantOrg.class, id, checkForDelete(tenant, excludeTypes));
+            String oldNamespace = tenant.getNamespace();
+            tenant.setNamespace(NullColumnValueGetter.getNullStr());
+            // Update tenant info in respective namespace CF
+            List<URI> allNamespaceURI = _dbClient.queryByType(ObjectNamespace.class, true);
+            Iterator<ObjectNamespace> nsItr = _dbClient.queryIterativeObjects(ObjectNamespace.class, allNamespaceURI);
+            while (nsItr.hasNext()) {
+                namesp = nsItr.next();
+                if (namesp.getNativeId().equalsIgnoreCase(oldNamespace)) {
+                    namesp.setMapped(false);
+                    // There is a chance of exceptions ahead; hence updated db at the end
+                    namespModified = true;
                     break;
                 }
             }
@@ -392,6 +442,12 @@ public class TenantsService extends TaggedResource {
             mapOutProviderTenantCheck(tenant);
         }
 
+        if (namespModified) {
+            _dbClient.updateObject(namesp);
+        }
+        if (oldNamespModified) {
+            _dbClient.updateObject(oldNamesp);
+        }
         _dbClient.updateAndReindexObject(tenant);
 
         recordOperation(OperationTypeEnum.UPDATE_TENANT, tenant.getId(), tenant);
@@ -414,6 +470,8 @@ public class TenantsService extends TaggedResource {
     @CheckPermission(roles = { Role.SECURITY_ADMIN })
     public TenantOrgRestRep createSubTenant(@PathParam("id") URI id,
             TenantCreateParam param) {
+        ObjectNamespace namesp = null;
+        boolean namespModified = false;
         TenantOrg parent = getTenantById(id, true);
         if (!TenantOrg.isRootTenant(parent)) {
             throw APIException.badRequests.parentTenantIsNotRoot();
@@ -433,11 +491,12 @@ public class TenantsService extends TaggedResource {
             List<URI> allNamespaceURI = _dbClient.queryByType(ObjectNamespace.class, true);
             Iterator<ObjectNamespace> nsItr = _dbClient.queryIterativeObjects(ObjectNamespace.class, allNamespaceURI);
             while (nsItr.hasNext()) {
-                ObjectNamespace namesp = nsItr.next();
+                namesp = nsItr.next();
                 if (subtenant.getNamespace().equalsIgnoreCase(namesp.getNativeId())) {
                     namesp.setTenant(subtenant.getId());
                     namesp.setMapped(true);
-                    _dbClient.updateObject(namesp);
+                    // There could be exceptions ahead; update the db at end
+                    namespModified = true;
                     break;
                 }
             }
@@ -457,6 +516,9 @@ public class TenantsService extends TaggedResource {
         // perform user tenant check before persistent
         mapOutProviderTenantCheck(subtenant);
 
+        if (namespModified) {
+            _dbClient.updateObject(namesp);
+        }
         _dbClient.createObject(subtenant);
         // To Do - add attributes to the set of attributes to pull from AD/LDAP
 
@@ -713,6 +775,45 @@ public class TenantsService extends TaggedResource {
                     toNamedRelatedResource(ResourceTypeEnum.PROJECT, el.getId(), el.getName()));
         }
         return list;
+    }
+
+    /**
+     * List volume groups the user is authorized to see
+     * 
+     * @param id the URN of a ViPR Tenant/Subtenant
+     * @prereq none
+     * @brief List volume groups
+     * @return List of volume groups
+     */
+    @GET
+    @Path("/{id}/volume-groups")
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    public VolumeGroupList listVolumeGroups(@PathParam("id") URI id) {
+        // tenant id and user permission will get validated in listProjects()
+        ProjectList projectList = listProjects(id);
+        Set<URI> projects = new HashSet<URI>();
+        for (NamedRelatedResourceRep projectRep : projectList.getProjects()) {
+            projects.add(projectRep.getId());
+        }
+
+        // for each project, get all volumes. Collect volume group ids for all volumes
+        StringSet volumeGroups = new StringSet();
+        for (URI project : projects) {
+            URIQueryResultList list = new URIQueryResultList();
+            _dbClient.queryByConstraint(ContainmentConstraint.Factory.getProjectVolumeConstraint(project), list);
+            Iterator<Volume> resultsIt = _dbClient.queryIterativeObjects(Volume.class, list);
+            while (resultsIt.hasNext()) {
+                volumeGroups.addAll(resultsIt.next().getVolumeGroupIds());
+            }
+        }
+
+        // form Volume Group list response
+        VolumeGroupList volumeGroupList = new VolumeGroupList();
+        for (String vg : volumeGroups) {
+            VolumeGroup volumeGroup = _dbClient.queryObject(VolumeGroup.class, URI.create(vg));
+            volumeGroupList.getVolumeGroups().add(toNamedRelatedResource(volumeGroup));
+        }
+        return volumeGroupList;
     }
 
     /**

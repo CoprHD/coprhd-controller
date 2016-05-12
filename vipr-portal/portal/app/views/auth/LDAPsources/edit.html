@@ -60,9 +60,6 @@
     	    $('#ldapSources_searchFilterControlGroup').closest($ctrlElements).hide();
     	    $('#ldapSources_groupObjectClasses').closest($ctrlElements).hide();
             $('#ldapSources_groupMemberAttributes').closest($ctrlElements).hide();
-            if(editMode){
-              $('#ldapSources_domains').prop('readonly',true);
-           }
             
         } else {
             $('#ldapSources_autoRegCoprHDNImportOSProjects').closest($ctrlElements).hide();
@@ -80,12 +77,14 @@
         var authType = $('#ldapSources_mode').val();
         var group = $('#ldapSources_groupAttribute');
         var search = $('#ldapSources_searchFilter');
+        var serverUrls = $('#ldapSources_serverUrls');
 
         if (!group.val()) {
             group.val('CN');
         }
         if (authType == '${keyStoneType}') {
         	group.val('tenant_id');
+            serverUrls.val('${keystoneServerURL}');
         }
         
         if (authType == '${ldapType}') {

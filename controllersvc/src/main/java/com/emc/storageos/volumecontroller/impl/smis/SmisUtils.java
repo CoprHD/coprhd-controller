@@ -18,6 +18,7 @@ import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
+import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.Volume;
@@ -242,5 +243,44 @@ public class SmisUtils {
             return fastSetting.toString();
         }
         return null;
+    }
+
+    /*
+     * Set settings instance for VMAX V3 only.
+     *
+     * @param StorageSytem      storage
+     * @param sourceElementId   String of source volume (or source group) ID
+     * @param elementName       String used as ElementName when creating ReplicationSettingData during single snapshot
+     *                          creation, or RelationshipName used in CreateGroupReplica for group snapshot.
+     *
+     * @see com.emc.storageos.volumecontroller.impl.smis.vmax.VmaxSnapshotOperations#getReplicationSettingData
+     *
+     * Note elementName should be target device's DeviceID or target group ID.
+     */
+    public static String generateVmax3SettingsInstance(StorageSystem storage, String sourceElementId, String elementName) {
+        // SYMMETRIX-+-000196700567-+-<sourceElementId>-+-<elementName>-+-0
+        StringBuilder sb = new StringBuilder("SYMMETRIX");
+        sb.append(Constants.SMIS80_DELIMITER)
+                .append(storage.getSerialNumber())
+                .append(Constants.SMIS80_DELIMITER).append(sourceElementId)
+                .append(Constants.SMIS80_DELIMITER).append(elementName)
+                .append(Constants.SMIS80_DELIMITER).append("0");
+        return sb.toString();
+    }
+
+    /**
+     * Gets the session label from settings instance.
+     *
+     * @param snapshot the snapshot
+     * @return the session label from settings instance
+     */
+    public static String getSessionLabelFromSettingsInstance(BlockSnapshot snapshot) {
+        String sessionLabel = null;
+        String settingsInstance = snapshot.getSettingsInstance();
+        if (settingsInstance != null && !settingsInstance.isEmpty()) {
+            String[] instanceArray = settingsInstance.split(Constants.SMIS80_DELIMITER_REGEX);
+            sessionLabel = instanceArray[3];
+        }
+        return sessionLabel;
     }
 }

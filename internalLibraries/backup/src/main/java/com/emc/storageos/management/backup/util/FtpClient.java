@@ -4,12 +4,13 @@
  */
 package com.emc.storageos.management.backup.util;
 
+import java.net.URI;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.regex.Pattern;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -56,8 +57,6 @@ public class FtpClient {
         builder.command().add("-I");
         builder.command().add(uri + fileName);
 
-        log.info("command={}", hidePassword(builder.command()));
-
         long length = 0;
 
         try (ProcessRunner processor = new ProcessRunner(builder.start(), false)) {
@@ -99,7 +98,6 @@ public class FtpClient {
         builder.command().add("-");
         builder.command().add(uri + fileName);
 
-         log.info("command={}", hidePassword(builder.command()));
         return new ProcessOutputStream(builder.start());
     }
 
@@ -107,8 +105,6 @@ public class FtpClient {
         ProcessBuilder builder = getBuilder();
         builder.command().add("-l");
         builder.command().add(uri);
-
-        log.info("cmd={}", hidePassword(builder.command()));
 
         List<String> fileList = new ArrayList<String>();
         try (ProcessRunner processor = new ProcessRunner(builder.start(), false)) {
@@ -141,12 +137,23 @@ public class FtpClient {
     }
 
     public void rename(String sourceFileName, String destFileName) throws Exception {
+        if (uri == null) {
+            throw new IllegalStateException("uri is null");
+        }
+        URI serverUri = new URI(uri);
+        String endpoint = serverUri.getScheme() + "://" + serverUri.getAuthority();
+        String path = serverUri.getPath();
+        String sourceName = (new File(path, sourceFileName)).toString().substring(1);
+        String destName = (new File(path, destFileName)).toString().substring(1);
+
         ProcessBuilder builder = getBuilder();
-        builder.command().add(uri);
+        builder.command().add(endpoint);
         builder.command().add("-Q");
-        builder.command().add("RNFR " + sourceFileName);
+        builder.command().add("RNFR " + sourceName);
         builder.command().add("-Q");
-        builder.command().add("RNTO " + destFileName);
+        builder.command().add("RNTO " + destName);
+        log.info("cmd={}", hidePassword(builder.command()));
+
 
         try (ProcessRunner processor = new ProcessRunner(builder.start(), false)) {
             StringBuilder errText = new StringBuilder();

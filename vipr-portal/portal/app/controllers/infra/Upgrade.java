@@ -86,7 +86,7 @@ public class Upgrade extends Controller {
             BourneUtil.getSysClient().upgrade().triggerDbCheck();
         } catch (Exception e) {
             Logger.error(e, "Checking Database Consistency");
-            flash.error(e.getMessage());
+            flash.error(MessagesUtils.escape(e.getMessage()));
         }
         render(clusterInfo,clusterState);
     }
@@ -103,7 +103,7 @@ public class Upgrade extends Controller {
             BourneUtil.getSysClient().upgrade().cancelDbCheck();
         } catch (Exception e) {
             Logger.error(e, "Cancelling Database Consistency");
-            flash.error(e.getMessage());
+            flash.error(MessagesUtils.escape(e.getMessage()));
         }
         index();
     }
@@ -118,7 +118,7 @@ public class Upgrade extends Controller {
             getSysClient().upgrade().setTargetVersion(version, doPrecheck);
         } catch (Exception e) {
             Logger.error(e, "Setting target version to  %s", version);
-            flash.error(e.getMessage());
+            flash.error(MessagesUtils.escape(e.getMessage()));
         }
         flash.success(MessagesUtils.get("upgrade.setTargetVersion", version));
         Maintenance.maintenance(Common.reverseRoute(Upgrade.class, "index"));
@@ -129,7 +129,7 @@ public class Upgrade extends Controller {
             getSysClient().upgrade().removeImage(version, true);
         } catch (Exception e) {
             Logger.error(e, "Error removing Image %s", version);
-            flash.error(e.getMessage());
+            flash.error(MessagesUtils.escape(e.getMessage()));
         }
 
         index();
@@ -140,7 +140,7 @@ public class Upgrade extends Controller {
             getSysClient().upgrade().installImage(version, false);
         } catch (Exception e) {
             Logger.error(e, "Installing Image %s", version);
-            flash.error(e.getMessage());
+            flash.error(MessagesUtils.escape(e.getMessage()));
         }
 
         index();
@@ -166,7 +166,7 @@ public class Upgrade extends Controller {
             getSysClient().upgrade().cancelInstallImage();
         } catch (Exception e) {
             Logger.error(e, "Cancelling Install Image");
-            flash.error(e.getMessage());
+            flash.error(MessagesUtils.escape(e.getMessage()));
         }
 
         index();
@@ -205,7 +205,7 @@ public class Upgrade extends Controller {
                 }
             } catch (Exception e) {
                 Logger.error(e, "Getting Standby Site Cluster Info");
-                flash.error(String.format("Failed to get cluster state for site %s", standby.getName()));
+                flash.error(MessagesUtils.escape(String.format("Failed to get cluster state for site %s", standby.getName())));
             }
         }
         return false;

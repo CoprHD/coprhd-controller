@@ -10,6 +10,7 @@ import static com.emc.vipr.client.core.util.ResourceUtils.uris;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -35,10 +36,10 @@ import util.datatable.DataTablesSupport;
 import com.emc.sa.util.DiskSizeConversionUtils;
 import com.emc.storageos.model.NamedRelatedResourceRep;
 import com.emc.storageos.model.VirtualArrayRelatedResourceRep;
-import com.emc.storageos.model.file.Copy;
 import com.emc.storageos.model.file.ExportRule;
 import com.emc.storageos.model.file.ExportRules;
 import com.emc.storageos.model.file.FileCifsShareACLUpdateParams;
+import com.emc.storageos.model.file.FileCopy;
 import com.emc.storageos.model.file.FileNfsACLUpdateParams;
 import com.emc.storageos.model.file.FilePolicyRestRep;
 import com.emc.storageos.model.file.FileReplicationParam;
@@ -161,6 +162,18 @@ public class FileSystems extends ResourceController {
         render(fileSystem);
     }
 
+    public static void getVarrayVpool(String resourceId) {
+        HashMap<String, String> response = new HashMap<String, String>();
+        URI fileShareId = uri(resourceId);
+        ViPRCoreClient client = BourneUtil.getViprClient();
+        FileShareRestRep fileShare = client.fileSystems().get(fileShareId);
+        URI vArray = fileShare.getVirtualArray().getId();
+        URI vPool = fileShare.getVirtualPool().getId();
+        response.put("vArray", client.varrays().get(vArray).getName());
+        response.put("vPool", client.fileVpools().get(vPool).getName());
+        renderJSON(response);
+    }
+
     public static void fileSystemExports(String fileSystemId) {
         URI id = uri(fileSystemId);
         List<ExportRule> exports = FileUtils.getFSExportRules(id);
@@ -189,6 +202,7 @@ public class FileSystems extends ResourceController {
 
     public static void fileSystemNfsACLs(String fileSystemId) {
         ViPRCoreClient client = BourneUtil.getViprClient();
+
         List<NfsACL> nfsAcls = client.fileSystems().getAllNfsACLs(
                 uri(fileSystemId));
         render(nfsAcls);
@@ -560,10 +574,10 @@ public class FileSystems extends ResourceController {
     @FlashException(referrer = { "fileSystem" })
     public static void mirrorOperationFileSystem(String fileSystemId, String mirrorOperation) {
         ViPRCoreClient client = BourneUtil.getViprClient();
-        Copy copy = new Copy();
+        FileCopy copy = new FileCopy();
         copy.setType(LOCAL_MIRROR);
         FileReplicationParam param = new FileReplicationParam();
-        List<Copy> listCopy = new ArrayList();
+        List<FileCopy> listCopy = new ArrayList();
         listCopy.add(copy);
         param.setCopies(listCopy);
 

@@ -143,6 +143,17 @@ adg_KIWIMods() {
      xsed $FileArchiveBuilder 's/--exclude=image/--exclude=\.\/image/'
     fi
 
+    FileLinuxRC="$kiwiPath/KIWILinuxRC.sh"
+    if [ -f $FileLinuxRC ]; then
+     echo "Modifying to fix for FIPS firstboot issue $FileLinuxRC"
+     linenum=`grep -n "# create grub2 configuration" $FileLinuxRC | cut -d ":" -f1`
+     let linenum=$linenum+2
+     sed -i."bak" "$linenum i \    /usr/sbin/haveged" $FileLinuxRC
+     linenum=`grep -n "# reset bind mount to standard boot dir" $FileLinuxRC | cut -d ":" -f1`
+     let linenum=$linenum+5
+     sed -i "$linenum i \    mv /\$bootdir/tmp/.vmlinuz* /\$bootdir" $FileLinuxRC
+    fi
+
     #######################################################
     # Modify zypper cache behaviour
     sed -i "s|my @cache = (\"/var/cache/kiwi\");|my \$packageCache = (dirname \$root) . \"/packages\";\n\tmy @cache = (\"/var/cache/kiwi\", \$packageCache);|" $kiwiPath/KIWIRoot.pm
@@ -835,7 +846,8 @@ fix_sshd_config() {
 s/AuthorizedKeysFile.*authorized_keys$/AuthorizedKeysFile    \.ssh\/authorized_keys2/
 s/^\#HostKey \/etc\/ssh\/ssh_host_rsa_key/HostKey \/etc\/ssh\/ssh_host_rsa_key/
 s/^\#HostKey \/etc\/ssh\/ssh_host_dsa_key/HostKey \/etc\/ssh\/ssh_host_dsa_key /
-s/^\#HostKey \/etc\/ssh\/ssh_host_ecdsa_key/HostKey \/etc\/ssh\/ssh_host_ecdsa_key/'
+s/^\#HostKey \/etc\/ssh\/ssh_host_ecdsa_key/HostKey \/etc\/ssh\/ssh_host_ecdsa_key/
+s/^\#UseDNS yes/UseDNS no/'
 }
 
 fix_sudoers() {

@@ -26,7 +26,7 @@ public class CifsShareRequests extends KHRequests<VNXeCifsShare> {
     public CifsShareRequests(KHClient client) {
         super(client);
         _url = URL;
-	_fields = FIELDS;
+        _fields = FIELDS;
     }
 
     /**
@@ -43,7 +43,8 @@ public class CifsShareRequests extends KHRequests<VNXeCifsShare> {
     /**
      * Get cifs share per its name.
      * 
-     * @param shareName cifsShare name
+     * @param shareName
+     *            cifsShare name
      * @return list of cifsShare
      */
     public List<VNXeCifsShare> getCifsShareByName(String shareName) {
@@ -51,6 +52,23 @@ public class CifsShareRequests extends KHRequests<VNXeCifsShare> {
         queryParams.add(VNXeConstants.FILTER, VNXeConstants.NAME_FILTER + "\"" + shareName + "\"");
         setQueryParameters(queryParams);
         return getDataForObjects(VNXeCifsShare.class);
+    }
+
+    /**
+     * Get cifs share per its name.
+     * 
+     * @param fsId
+     *            Filesystem Id
+     * @param shareName
+     *            cifsShare name
+     * @return list of cifsShare
+     */
+    public VNXeCifsShare getCifsShareByNameAndFS(String fsId, String shareName) {
+        MultivaluedMap<String, String> queryParams = new MultivaluedMapImpl();
+        queryParams.add(VNXeConstants.FILTER, VNXeConstants.NAME_FILTER + "\"" + shareName + "\"" + " and "
+                + VNXeConstants.FILE_SYSTEM_FILTER_V31 + "\"" + fsId + "\"");
+        setQueryParameters(queryParams);
+        return getDataForObjects(VNXeCifsShare.class).get(0);
     }
 
     /**
@@ -66,38 +84,39 @@ public class CifsShareRequests extends KHRequests<VNXeCifsShare> {
     /**
      * Delete CIFS share
      * 
-     * @param shareId cifsShare id
+     * @param shareId
+     *            cifsShare id
      * @return VNXeCommandJob
      */
     public VNXeCommandJob deleteShareForSnapshot(String shareId) {
         _url = URL_SHARE + shareId;
         if (getShare(shareId) != null) {
-	    unsetQueryParameters();
+            unsetQueryParameters();
             return deleteRequestAsync(null);
         } else {
             throw VNXeException.exceptions.vnxeCommandFailed("The shareId is not found: " + shareId);
         }
     }
 
-      /**
-      * Delete CIFS share sync
-      *
-      * @param shareId cifsShare id
-      * @return VNXeCommandResult
-      */
-     public VNXeCommandResult deleteShareForSnapshotSync(String shareId) {
-         VNXeCommandResult result = new VNXeCommandResult();
-         _url = URL_SHARE + shareId;
-         if (getShare(shareId) != null) {
-             unsetQueryParameters();
-             deleteRequest(null);
-             result.setSuccess(true);
-             return result;
-         } else {
-             throw VNXeException.exceptions.vnxeCommandFailed("The shareId is not found: " + shareId);
-         }
-     }
-
+    /**
+     * Delete CIFS share sync
+     *
+     * @param shareId
+     *            cifsShare id
+     * @return VNXeCommandResult
+     */
+    public VNXeCommandResult deleteShareForSnapshotSync(String shareId) {
+        VNXeCommandResult result = new VNXeCommandResult();
+        _url = URL_SHARE + shareId;
+        if (getShare(shareId) != null) {
+            unsetQueryParameters();
+            deleteRequest(null);
+            result.setSuccess(true);
+            return result;
+        } else {
+            throw VNXeException.exceptions.vnxeCommandFailed("The shareId is not found: " + shareId);
+        }
+    }
 
     /**
      * Get the specific CIFS share

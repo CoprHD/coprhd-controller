@@ -2641,6 +2641,7 @@ public class VNXeApiClient {
     public VNXeCommandJob updateShareACL(String fsId, String shareName, List<ShareACL> aclsToAdd, List<ShareACL> aclsToModify,
             List<ShareACL> aclsToDelete) {
         FileSystemRequest fsRequest = new FileSystemRequest(_khClient, fsId);
+        CifsShareRequests cifsReq = new CifsShareRequests(_khClient);
         VNXeFileSystem fs = fsRequest.get();
         if (fs == null) {
             _logger.info("Could not find file system in the vxne");
@@ -2670,8 +2671,14 @@ public class VNXeApiClient {
         CifsShareModifyParam cifsShareModify = new CifsShareModifyParam();
         CifsShareParam cifsShareParameters = new CifsShareParam();
         cifsShareParameters.setIsACEEnabled(true);
-        cifsShareParameters.setAddACE(acesToAdd);
-        cifsShareParameters.setRemoveSID(acesToDelete);
+        if (!acesToAdd.isEmpty()) {
+            cifsShareParameters.setAddACE(acesToAdd);
+        }
+        if (!acesToDelete.isEmpty()) {
+            cifsShareParameters.setRemoveSID(acesToDelete);
+        }
+        VNXeBase cifsShare = new VNXeBase(cifsReq.getCifsShareByNameAndFS(fsId, shareName).getId());
+        cifsShareModify.setCifsShare(cifsShare);
         List<CifsShareModifyParam> modifyParam = new ArrayList<CifsShareModifyParam>();
         modifyParam.add(cifsShareModify);
         cifsShareModify.setCifsShareParameters(cifsShareParameters);
@@ -2698,7 +2705,11 @@ public class VNXeApiClient {
         CifsShareModifyParam cifsShareModify = new CifsShareModifyParam();
         CifsShareParam cifsShareParameters = new CifsShareParam();
         cifsShareParameters.setIsACEEnabled(false);
-        cifsShareParameters.setRemoveSID(acesToDelete);
+        if (!acesToDelete.isEmpty()) {
+            cifsShareParameters.setRemoveSID(acesToDelete);
+        }
+        VNXeBase cifsShare = new VNXeBase(shareId);
+        cifsShareModify.setCifsShare(cifsShare);
         List<CifsShareModifyParam> modifyParam = new ArrayList<CifsShareModifyParam>();
         modifyParam.add(cifsShareModify);
         cifsShareModify.setCifsShareParameters(cifsShareParameters);
@@ -2739,7 +2750,7 @@ public class VNXeApiClient {
     }
 
     /**
-     * Get detatils of a storage resource. (Consistency group is a storage resource)
+     * Get details of a storage resource. (Consistency group is a storage resource)
      * 
      * @param id
      * @return

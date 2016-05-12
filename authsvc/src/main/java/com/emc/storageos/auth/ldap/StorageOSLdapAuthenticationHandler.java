@@ -5,7 +5,10 @@
 package com.emc.storageos.auth.ldap;
 
 import java.text.MessageFormat;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Set;
 
 import javax.naming.NameClassPair;
 import javax.naming.NamingEnumeration;
@@ -14,9 +17,6 @@ import javax.naming.directory.DirContext;
 import javax.naming.directory.SearchControls;
 import javax.naming.directory.SearchResult;
 
-import com.emc.storageos.auth.LdapFailureHandler;
-import com.emc.storageos.auth.impl.LdapOrADServer;
-import com.emc.storageos.auth.impl.LdapServerList;
 import org.apache.commons.httpclient.Credentials;
 import org.apache.commons.httpclient.UsernamePasswordCredentials;
 import org.slf4j.Logger;
@@ -28,6 +28,9 @@ import org.springframework.ldap.core.LdapTemplate;
 import org.springframework.ldap.core.NameClassPairCallbackHandler;
 import org.springframework.ldap.core.SearchExecutor;
 
+import com.emc.storageos.auth.LdapFailureHandler;
+import com.emc.storageos.auth.impl.LdapOrADServer;
+import com.emc.storageos.auth.impl.LdapServerList;
 import com.emc.storageos.auth.StorageOSAuthenticationHandler;
 import com.emc.storageos.services.util.AlertsLogger;
 import com.emc.storageos.svcs.errorhandling.resources.UnauthorizedException;

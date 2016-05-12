@@ -9,7 +9,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
-import com.emc.storageos.auth.LdapFailureHandler;
 import org.apache.commons.httpclient.Credentials;
 import org.apache.commons.httpclient.UsernamePasswordCredentials;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -20,6 +19,7 @@ import com.emc.storageos.db.client.model.StorageOSUserDAO;
 import com.emc.storageos.security.authorization.BasePermissionsHelper;
 import com.emc.storageos.security.authorization.BasePermissionsHelper.UserMapping;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
+import com.emc.storageos.auth.LdapFailureHandler;
 
 /**
  * Attribute repository class for local users.

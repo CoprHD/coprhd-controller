@@ -10,6 +10,7 @@ import static com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator.genera
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
@@ -57,6 +58,7 @@ import com.emc.storageos.vnxe.models.RaidGroup;
 import com.emc.storageos.vnxe.models.RaidTypeEnum;
 import com.emc.storageos.db.client.model.VirtualNAS;
 import com.emc.storageos.vnxe.models.VNXeBase;
+import com.emc.storageos.db.client.model.VirtualNAS.VirtualNasState;
 import com.emc.storageos.vnxe.models.VNXeCifsServer;
 import com.emc.storageos.vnxe.models.VNXeEthernetPort;
 import com.emc.storageos.vnxe.models.VNXeFCPort;
@@ -793,9 +795,12 @@ public class VNXUnityCommunicationInterface extends
                 haDomain.setName(nasServer.getName());
                 haDomain.setSerialNumber(nasServer.getId());
                 haDomain.setFileSharingProtocols(protocols);
+		haDomain.setVirtual(true);
                 newNasServers.add(haDomain);
+		
             } else {
                 haDomain.setFileSharingProtocols(protocols);
+		haDomain.setVirtual(true);
                 existingNasServers.add(haDomain);
             }
             nasServerIdMap.put(nasServer.getId(), haDomain.getId());
@@ -920,20 +925,22 @@ public class VNXUnityCommunicationInterface extends
             CifsServerMap cifsServersMap = new CifsServerMap();
 
             for (VNXeCifsServer cifsServer : cifsServers) {
-                _logger.info("Cifs Server {} for {} ", cifsServer.getName(), nasServer.getName());
-                if (!cifsServer.getFileInterfaces().isEmpty()) {
-                    _logger.info("{} has CIFS Enabled since interfaces are found ", nasServer.getName(),
-                            cifsServer.getName() + ":" + cifsServer.getFileInterfaces());
-                    protocols.add(StorageProtocol.File.CIFS.name());
-
-                    NasCifsServer nasCifsServer = new NasCifsServer();
-                    nasCifsServer.setId(cifsServer.getId());
-                    // nasCifsServer.setInterfaces(cifsServer.getFileInterfaces()); TODO
-                    nasCifsServer.setMoverIdIsVdm(true);
-                    nasCifsServer.setName(cifsServer.getName());
-                    // nasCifsServer.setType(cifsServer.getType());
-                    nasCifsServer.setDomain(cifsServer.getDomain());
-                    cifsServersMap.put(cifsServer.getName(), nasCifsServer);
+		if (cifsServer.getNasServer().getId().equals(nasServer.getId())) {
+                	_logger.info("Cifs Server {} for {} ", cifsServer.getName(), nasServer.getName());
+	                if (!cifsServer.getFileInterfaces().isEmpty()) {
+        	            _logger.info("{} has CIFS Enabled since interfaces are found ", nasServer.getName(),
+                	            cifsServer.getName() + ":" + cifsServer.getFileInterfaces());
+	                    protocols.add(StorageProtocol.File.CIFS.name());
+	
+        	            NasCifsServer nasCifsServer = new NasCifsServer();
+                	    nasCifsServer.setId(cifsServer.getId());
+	                    // nasCifsServer.setInterfaces(cifsServer.getFileInterfaces()); TODO
+        	            nasCifsServer.setMoverIdIsVdm(true);
+                	    nasCifsServer.setName(cifsServer.getName());
+	                    // nasCifsServer.setType(cifsServer.getType());
+        	            nasCifsServer.setDomain(cifsServer.getDomain());
+                	    cifsServersMap.put(cifsServer.getName(), nasCifsServer);
+			}
                 }
             }
 
@@ -945,12 +952,13 @@ public class VNXUnityCommunicationInterface extends
                 vNas.setStorageDeviceURI(system.getId());
                 vNas.setNasName(nasServer.getName());
                 vNas.setNativeId(nasServer.getId());
-                // vNas.setNasState(nasServer.get); TODO
+                vNas.setNasState(VirtualNasState.LOADED.name()); 
                 vNas.setProtocols(protocols);
                 vNas.setCifsServersMap(cifsServersMap);
                 newNasServers.add(vNas);
             } else {
                 vNas.setProtocols(protocols);
+		vNas.setNasState(VirtualNasState.LOADED.name());
                 existingNasServers.add(vNas);
             }
         }
@@ -988,6 +996,8 @@ public class VNXUnityCommunicationInterface extends
 
         List<StoragePort> newStoragePorts = new ArrayList<StoragePort>();
         List<StoragePort> existingStoragePorts = new ArrayList<StoragePort>();
+		
+		List<VirtualNAS> modifiedServers = new ArrayList<VirtualNAS>();
 
         _logger.info("Start storage port discovery for storage system {}",
                 system.getId());
@@ -1014,7 +1024,7 @@ public class VNXUnityCommunicationInterface extends
             if (haDomainUri == null) {
                 continue;
             }
-
+			
             // Check if storage port was already discovered
             String portNativeGuid = NativeGUIDGenerator.generateNativeGuid(
                     system, intf.getIpAddress(), NativeGUIDGenerator.PORT);
@@ -1067,6 +1077,26 @@ public class VNXUnityCommunicationInterface extends
             }
             port.setDiscoveryStatus(DiscoveryStatus.VISIBLE.name());
             port.setCompatibilityStatus(DiscoveredDataObject.CompatibilityStatus.COMPATIBLE.name());
+			
+			// Associate Storage Port to Virtual NAS
+			
+			VirtualNAS vNas = findvNasByNativeId(system, nasServerId);
+			if (vNas != null) {
+                if (vNas.getStoragePorts() != null && !vNas.getStoragePorts().isEmpty()) {
+                    if (vNas.getStoragePorts().contains(port.getId())) {
+                        vNas.getStoragePorts().remove(port.getId());
+                    }
+                }
+                vNas.getStoragePorts().add(port.getId().toString());
+                modifiedServers.add(vNas);
+                _logger.info("VirtualNAS : {} : port : {} got modified", vNas.getId(), port.getPortName());
+            }
+        }
+		
+		//Persist the modified virtual nas servers
+		if (modifiedServers != null && !modifiedServers.isEmpty()) {
+            _logger.info("Modified VirtualNAS servers size {}", modifiedServers.size());
+            _dbClient.persistObject(modifiedServers);
         }
 
         _logger.info("Storage port discovery for storage system {} complete",
@@ -1075,6 +1105,38 @@ public class VNXUnityCommunicationInterface extends
         storagePorts.put(NEW, newStoragePorts);
         storagePorts.put(EXISTING, existingStoragePorts);
         return storagePorts;
+    }
+	
+  /**
+     * Find the Virtual NAS by Native ID for the specified VNX File storage array
+     * 
+     * @param system storage system information including credentials.
+     * @param Native id of the specified Virtual NAS
+     * @return Virtual NAS Server
+     */
+    private VirtualNAS findvNasByNativeId(StorageSystem system, String nativeId) {
+        URIQueryResultList results = new URIQueryResultList();
+        VirtualNAS vNas = null;
+
+        // Set storage port details to vNas
+        String nasNativeGuid = NativeGUIDGenerator.generateNativeGuid(
+                system, nativeId, NativeGUIDGenerator.VIRTUAL_NAS);
+
+        _dbClient.queryByConstraint(
+                AlternateIdConstraint.Factory.getVirtualNASByNativeGuidConstraint(nasNativeGuid),
+                results);
+        Iterator<URI> iter = results.iterator();
+        while (iter.hasNext()) {
+            VirtualNAS tmpVnas = _dbClient.queryObject(VirtualNAS.class, iter.next());
+
+            if (tmpVnas != null && !tmpVnas.getInactive()) {
+                vNas = tmpVnas;
+                _logger.info("found virtual NAS {}", tmpVnas.getNativeGuid() + ":" + tmpVnas.getNasName());
+                break;
+            }
+        }
+        return vNas;
+
     }
 
     private HashMap<String, List<StorageHADomain>> discoverStorageProcessors(

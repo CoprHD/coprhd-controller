@@ -384,7 +384,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
 
                         if (fsCheck) {
                             String errMsg = new String(
-                                    "delete file system from DB failed due to either snapshots or QDs exist on FS " + fsObj.getLabel());
+                                    "delete file system from DB failed due to either snapshots or quota directories exist for file system " + fsObj.getLabel());
                             _log.error(errMsg);
 
                             final ServiceCoded serviceCoded = DeviceControllerException.errors.jobFailedOpMsg(
@@ -393,7 +393,8 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                             fsObj.getOpStatus().updateTaskStatus(opId, result.toOperation());
                             recordFileDeviceOperation(_dbClient, OperationTypeEnum.DELETE_FILE_SYSTEM, result.isCommandSuccess(), "", "",
                                     fsObj, storageObj);
-                            WorkflowStepCompleter.stepFailed(opId, result.getServiceCoded());
+                            _dbClient.persistObject(fsObj);
+			    WorkflowStepCompleter.stepFailed(opId, result.getServiceCoded());
                             return;
                         }
                     }
@@ -3425,7 +3426,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
         if (vNASURI != null) {
             VirtualNAS vNAS = _dbClient.queryObject(VirtualNAS.class, vNASURI);
             args.setvNAS(vNAS);
-        }
+	 }
     }
 
     /**

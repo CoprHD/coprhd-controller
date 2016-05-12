@@ -28,16 +28,6 @@ public class WorkflowControllerImpl implements WorkflowController {
 		execOrchestration("rollbackWorkflow", workflow, taskId);
 	}
 	
-    @Override
-    public void addSuspendTrigger(String className, String methodName) throws ControllerException {
-        execOrchestration("addSuspendTrigger", className, methodName);
-    }
-
-    @Override
-    public void removeSuspendTrigger(String className, String methodName) throws ControllerException {
-        execOrchestration("removeSuspendTrigger", className, methodName);
-    }
-
 	private void execOrchestration(String methodName, Object ... args) throws ControllerException {
 		dispatcher.queue(NullColumnValueGetter.getNullURI(), WORKFLOW_CONTROLLER_DEVICE,
 				getController(), methodName, args);

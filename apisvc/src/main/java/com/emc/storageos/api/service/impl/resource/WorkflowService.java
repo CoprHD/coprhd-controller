@@ -320,45 +320,6 @@ public class WorkflowService extends TaskResourceService {
         return Response.ok().build();
     }
     
-    /**
-     * Adds a class and method to the list of methods to suspend in a workflow.
-     * Requires a class (simple name) and method
-     * 
-     * @preq none
-     * @param className - class name to suspend
-     * @param methodName - method name to suspend
-     * @return - No data returned in response body
-     */
-    @PUT
-    @Path("/suspend/{class}")
-    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN,
-            Role.SYSTEM_MONITOR, Role.TENANT_ADMIN })
-    public Response suspendTriggerAdd(@PathParam("class") String className, @QueryParam("method") String methodName) {
-        getController().addSuspendTrigger(className, methodName);
-        return Response.ok().build();
-    }
-
-    /**
-     * Removes a class and method to the list of methods to suspend in a workflow.
-     * Requires a class (simple name) and method
-     * NOTE: Perhaps PUT /resume is not a good moniker for this operations.  It's really "remove from suspend list".
-     * 
-     * @preq none
-     * @param className - class name to remove from suspend list
-     * @param methodName - method name to remove from suspend list
-     * @return - No data returned in response body
-     */
-    @PUT
-    @Path("/resume/{class}")
-    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN,
-            Role.SYSTEM_MONITOR, Role.TENANT_ADMIN })
-    public Response suspendTriggerRemove(@PathParam("class") String className, @QueryParam("method") String methodName) {
-        getController().removeSuspendTrigger(className, methodName);
-        return Response.ok().build();
-    }
-
     private List<URI> getChildWorkflows(WorkflowStep step) {
         URIQueryResultList result = new URIQueryResultList();
         _dbClient.queryByConstraint(AlternateIdConstraint.Factory

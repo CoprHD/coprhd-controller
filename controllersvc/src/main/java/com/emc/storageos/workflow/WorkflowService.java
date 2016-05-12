@@ -55,7 +55,6 @@ import com.emc.storageos.volumecontroller.impl.Dispatcher;
 import com.emc.storageos.workflow.Workflow.Step;
 import com.emc.storageos.workflow.Workflow.StepState;
 import com.emc.storageos.workflow.Workflow.StepStatus;
-import com.google.common.base.Joiner;
 
 /**
  * A singleton WorkflowService is created on each Bourne node to manage Workflows.
@@ -84,6 +83,7 @@ public class WorkflowService implements WorkflowController {
 
     // Config properties
     private final String WORKFLOW_SUSPEND_ON_ERROR_PROPERTY = "workflow_suspend_on_error";
+    private final String WORKFLOW_SUSPEND_ON_CLASS_METHOD_PROPERTY = "workflow_suspend_on_class_method";
 
     // Zookeeper paths, all proceeded by /workflow which is ZkPath.WORKFLOW
     private String _zkWorkflowPath = ZkPath.WORKFLOW.toString() + "/workflows/%s/%s/%s";
@@ -820,10 +820,40 @@ public class WorkflowService implements WorkflowController {
             	_log.info("Executing workflow plan: " + workflow.getWorkflowURI() + " " + workflow.getOrchTaskId());
             	workflow.setWorkflowState(WorkflowState.RUNNING);
 
-                for (Step step : workflow.getStepMap().values()) {
-                    // DUPP TODO: Add scanner to see if there are any steps that would like to cause a suspension
-                    
-                }            	
+            	// Load the current workflow property to suspend on class/method
+            	String suspendOn = _coordinator.getPropertyInfo().getProperty(WORKFLOW_SUSPEND_ON_CLASS_METHOD_PROPERTY);
+            	String suspendClass = null;
+            	String suspendMethod = null;
+            	if (suspendOn != null) {
+            	    if (suspendOn.contains(".")) {
+            	        suspendClass = suspendOn.substring(0, suspendOn.indexOf("."));
+            	        suspendMethod = suspendOn.substring(suspendOn.indexOf(".")+1);
+            	    } else {
+            	        suspendClass = suspendOn;
+            	        suspendMethod = "*";
+            	    }
+            	
+            	    // Scan all steps for class and methods that should be set to the suspended state.
+            	    for (Step step : workflow.getStepMap().values()) {
+            	        boolean suspendStep = false;
+            	        
+            	        // If suspend class and method are true, everything suspends all of the time.
+            	        if (suspendClass.equals("*") && suspendMethod.equals("*")) {
+            	            suspendStep = true;
+            	        } else if (step.controllerName.endsWith(suspendClass) &&
+            	                (step.executeMethod.methodName.equals(suspendMethod) ||
+            	             suspendMethod.equals("*"))) {
+            	            suspendStep = true;
+            	        } else if (suspendClass.equals("*") && step.executeMethod.methodName.equals(suspendMethod)) {
+            	            suspendStep = true;
+            	        }
+            	        
+            	        if (suspendStep) {
+            	            logStep(workflow, step);
+            	            workflow.setSuspendStep(step.workflowStepURI);
+            	        }
+            	    }
+            	}
 
             	persistWorkflow(workflow);
                 
@@ -1556,7 +1586,7 @@ public class WorkflowService implements WorkflowController {
         } else {
             // In this case, we want to suspend only when we reach designated step.
             workflow.setSuspendStep(stepURI);
-	}
+        }
         persistWorkflow(workflow);
         completer.ready(_dbClient);
 	}
@@ -1665,68 +1695,6 @@ public class WorkflowService implements WorkflowController {
 		}
 	}
 	
-    @Override
-    public void addSuspendTrigger(String className, String methodName) throws ControllerException {
-        // Validate the class and method names
-        validateClassMethodNames(className, methodName);
-        
-        // If className is null (and methodName isn't), all classes with this method name are suspended
-        if (className == null) {
-            className = "*";
-        }
-        
-        // If methodName is null (and className isn't), all methods in this class are suspended
-        if (methodName == null) {
-            methodName = "*";
-        }
-        
-        // Add to the static list in the class
-        suspendClassMethods.add(className + CLASS_METHOD_SEPARATOR + methodName);        
-    }
-    
-    @Override
-    public void removeSuspendTrigger(String className, String methodName) throws ControllerException {
-        // Validate the class and method names
-        validateClassMethodNames(className, methodName);
-        
-        if (className == null) {
-            className = "*";
-        }
-        
-        if (methodName == null) {
-            methodName = "*";
-        }
-        
-        // Add to the static list in the class
-        String classMethodName = className + CLASS_METHOD_SEPARATOR + methodName;
-        if (!suspendClassMethods.contains(classMethodName)) {
-            throw WorkflowException.exceptions.workflowSuspendTriggerNotFound(classMethodName, Joiner.on(",").join(suspendClassMethods));
-        }
-        
-        suspendClassMethods.remove(classMethodName);        
-    }
-
-    /**
-     * Validate the class and method names
-     * 
-     * @param className class name
-     * @param methodName method name
-     */
-    private void validateClassMethodNames(String className, String methodName) {
-        // Validate you have valid arguments
-        if (className == null && methodName == null) {
-            throw WorkflowException.exceptions.workflowSuspendTriggerInvalidNull();
-        }
-
-        if (className.contains(CLASS_METHOD_SEPARATOR)) {
-            throw WorkflowException.exceptions.workflowSuspendTriggerInvalid(className);
-        }
-
-        if (methodName.contains(CLASS_METHOD_SEPARATOR)) {
-            throw WorkflowException.exceptions.workflowSuspendTriggerInvalid(methodName);
-        }
-    }
-    
 	/**
 	 * Queue steps to resume workflow.
 	 * @param workflow

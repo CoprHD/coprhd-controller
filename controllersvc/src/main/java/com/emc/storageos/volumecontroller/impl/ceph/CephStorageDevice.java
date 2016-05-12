@@ -72,7 +72,7 @@ public class CephStorageDevice extends DefaultBlockStorageDevice {
     	private String volumeName = null;
     	private String snapshotName = null;
 
-    	public RBDMappingOptions(BlockObject object) {
+    	RBDMappingOptions(BlockObject object) {
         	URI uri = object.getId();
         	Volume volume = null;
         	BlockSnapshot snapshot = null;

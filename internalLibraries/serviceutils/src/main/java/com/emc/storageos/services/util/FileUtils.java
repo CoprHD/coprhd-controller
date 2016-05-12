@@ -252,6 +252,17 @@ public class FileUtils {
         }
     }
 
+    public static void setfacl(File file, String faclperm) {
+        if (file == null || file.exists() == false) {
+            return;
+        }
+        String[] cmds = { "/usr/bin/setfacl", "-m", faclperm, file.getAbsolutePath() };
+        Exec.Result result = Exec.exec(Exec.DEFAULT_CMD_TIMEOUT, cmds);
+        if (result.execFailed() || result.getExitValue() != 0) {
+            throw new IllegalStateException(String.format("Execute command failed: %s", result));
+        }
+    }
+
     /**
      * Get file by regEx under dir.
      * 

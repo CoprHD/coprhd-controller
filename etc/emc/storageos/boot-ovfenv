@@ -103,7 +103,6 @@ case ${1} in
         my_vdc_id=$(/etc/systool --getvdcprops | grep vdc_myid | cut -d'=' -f2)
         active_site_id=$(/etc/systool --getvdcprops | grep site_active_id | cut -d'=' -f2)
         my_site_id=$(/etc/systool --getvdcprops | grep site_myid | cut -d'=' -f2)
-
         /opt/storageos/bin/ipreconfig ${my_vdc_id} ${active_site_id} ${my_site_id} ${STORAGEOS_IPRECONFIG_MODE}
 
         echo -n "Initializing configuration properties"

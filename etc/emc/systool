@@ -403,7 +403,7 @@ _set_ip_props() {
     echo "${site_ids_key}=${newVdcPropMap[${site_ids_key}]}" >> "${datafs_ip_props}.bak"
     for key in "${!newVdcPropMap[@]}"
     do
-        if [[ "${key}" == vdc_vdc*_site*_network_* ]]; then
+        if [[ "${key}" == vdc_vdc*_site*_network_* || "${key}" == vdc_vdc*_site*_node_count* ]]; then
             echo "${key}=${newVdcPropMap[${key}]}" >> "${datafs_ip_props}.bak"
         fi
     done
@@ -470,6 +470,7 @@ _set_ip_props() {
 
     mv -f "${datafs_ip_props}.bak" "${datafs_ip_props}"
     chmod 600 "${datafs_ip_props}"
+    setfacl -m u:storageos:r "${datafs_ip_props}"
 }
 
 _set_ssl_props() {

@@ -31,6 +31,8 @@ import java.util.Map;
 public class Main {
     private static final Logger log = LoggerFactory.getLogger(Main.class);
     private static final int CMD_TIMEOUT = 10 * 1000;
+    private static final String CLUSTER_NETWORK_PROPERTY_FILE_MODE="600";
+    private static final String CLUSTER_NETWORK_PROPERTY_FILE_ACLPERM="u:storageos:r";
     public static String my_vdc_id;
     public static String active_site_id;
     public static String my_site_id;
@@ -130,6 +132,9 @@ public class Main {
         // write ip properties (with vdc site prefix) into cluster ip property file
         log.info("Writing new ip info to cluster network property file ...");
         FileUtils.writePlainFile(IpReconfigConstants.CLUSTER_NETWORK_PROPFILE, ipinfo.toVdcSiteString().getBytes());
+        File ipPropFile = new File(IpReconfigConstants.CLUSTER_NETWORK_PROPFILE);
+        FileUtils.chmod(ipPropFile, CLUSTER_NETWORK_PROPERTY_FILE_MODE);
+        FileUtils.setfacl(ipPropFile, CLUSTER_NETWORK_PROPERTY_FILE_ACLPERM);
 
         if (PlatformUtils.isVMwareVapp()) {
             log.info("No need to apply new ip info to vApp ovfenv cdrom.  User need to do it by themselves.");

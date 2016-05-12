@@ -2773,4 +2773,15 @@ public class VNXeApiClient {
         return req.getLunSnaps(lunId);
         
     }
+    
+    /**
+     * Get consistency group native Id by its name
+     * @param cgName consistency group name
+     * @return consistency group native Id
+     */
+    public String getConsistencyGroupIdByName(String cgName) {
+        ConsistencyGroupRequests req = new ConsistencyGroupRequests(_khClient);
+        return req.getConsistencyGroupIdByName(cgName);
+        
+    }
 }

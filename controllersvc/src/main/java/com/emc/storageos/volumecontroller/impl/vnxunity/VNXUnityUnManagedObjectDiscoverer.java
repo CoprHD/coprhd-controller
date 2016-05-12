@@ -1351,7 +1351,7 @@ public class VNXUnityUnManagedObjectDiscoverer {
             StorageResource res, URI storageSystemURI, DbClient dbClient) {
         UnManagedConsistencyGroup unManagedCG = new UnManagedConsistencyGroup();
         unManagedCG.setId(URIUtil.createId(UnManagedConsistencyGroup.class));
-        unManagedCG.setLabel(res.getId());
+        unManagedCG.setLabel(res.getName());
         unManagedCG.setName(res.getName());
         unManagedCG.setNativeGuid(unManagedCGNativeGuid);
         unManagedCG.setStorageSystemUri(storageSystemURI);

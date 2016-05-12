@@ -182,7 +182,10 @@ public class VNXUnityUnManagedObjectDiscoverer {
                                 "");
                     
                 }
+                
+                // Discover snaps
                 Integer snapCount = lun.getSnapCount();
+                boolean hasSnap = false;
                 if (snapCount >0) {
                     List<Snap> snaps = apiClient.getSnapshotsForLun(lun.getId());
                     if (snaps != null && !snaps.isEmpty()) {
@@ -190,35 +193,36 @@ public class VNXUnityUnManagedObjectDiscoverer {
                         StringSet discoveredSnaps =  discoverVolumeSnaps(storageSystem, snaps, unManagedVolumeNatvieGuid, parentMatchedVPools, apiClient, 
                                 dbClient, hostVolumesMap, lun, isVolumeInCG, cgId);
                         if (discoveredSnaps != null && !discoveredSnaps.isEmpty()) {
+                            hasSnap = true;
                             unManagedVolume.getVolumeCharacterstics().put(SupportedVolumeCharacterstics.HAS_REPLICAS.toString(),
                                     Boolean.TRUE.toString());
                             StringSetMap unManagedVolumeInformation = unManagedVolume.getVolumeInformation();
                             if (unManagedVolumeInformation.containsKey(SupportedVolumeInformation.SNAPSHOTS.toString())) {
-                                log.debug("Snaps :" + Joiner.on("\t").join(discoveredSnaps));
-                                if (null != discoveredSnaps && discoveredSnaps.isEmpty()) {
-                                    // replace with empty string set doesn't work, hence added explicit code to remove all
-                                    unManagedVolumeInformation.get(
-                                            SupportedVolumeInformation.SNAPSHOTS.toString()).clear();
-                                } else {
-                                    // replace with new StringSet
-                                    unManagedVolumeInformation.get(
-                                            SupportedVolumeInformation.SNAPSHOTS.toString()).replace(discoveredSnaps);
-                                    log.info("Replaced snaps :" + Joiner.on("\t").join(unManagedVolumeInformation.get(
+                                
+                                // replace with new StringSet
+                                unManagedVolumeInformation.get(
+                                        SupportedVolumeInformation.SNAPSHOTS.toString()).replace(discoveredSnaps);
+                                log.info("Replaced snaps :" + Joiner.on("\t").join(unManagedVolumeInformation.get(
                                             SupportedVolumeInformation.SNAPSHOTS.toString())));
-                                }
                             } else {
                                 unManagedVolumeInformation.put(
                                         SupportedVolumeInformation.SNAPSHOTS.toString(), discoveredSnaps);
                             }
-                        } else {
-                            unManagedVolume.getVolumeCharacterstics().put(SupportedVolumeCharacterstics.HAS_REPLICAS.toString(),
-                                    Boolean.FALSE.toString());
-                        }
-                    } else {
-                        unManagedVolume.getVolumeCharacterstics().put(SupportedVolumeCharacterstics.HAS_REPLICAS.toString(),
-                                Boolean.FALSE.toString());
+                        } 
                     }
 
+                }    
+                if (!hasSnap){
+                    // no snap
+                    unManagedVolume.getVolumeCharacterstics().put(SupportedVolumeCharacterstics.HAS_REPLICAS.toString(),
+                            Boolean.FALSE.toString());
+                    StringSetMap unManagedVolumeInformation = unManagedVolume.getVolumeInformation();
+                    if(unManagedVolumeInformation != null && 
+                            unManagedVolumeInformation.containsKey(SupportedVolumeInformation.SNAPSHOTS.toString())) {
+                        // replace with empty string set doesn't work, hence added explicit code to remove all
+                        unManagedVolumeInformation.get(
+                                SupportedVolumeInformation.SNAPSHOTS.toString()).clear();
+                    }
                 }
             }
 
@@ -1449,8 +1453,8 @@ public class VNXUnityUnManagedObjectDiscoverer {
             mask.setMaskName(host.getName());
             allCurrentUnManagedExportMaskUris.add(mask.getId());
             for (UnManagedVolume hostUnManagedVol : volumes) {
-                hostUnManagedVol.setInitiatorNetworkIds(knownNetworkIdSet);
-                hostUnManagedVol.setInitiatorUris(knownInitSet);
+                hostUnManagedVol.getInitiatorNetworkIds().addAll(knownNetworkIdSet);
+                hostUnManagedVol.getInitiatorUris().addAll(knownInitSet);
                 hostUnManagedVol.getUnmanagedExportMasks().add(mask.getId().toString());
                 mask.getUnmanagedVolumeUris().add(hostUnManagedVol.getId().toString());
                 unManagedExportVolumesToUpdate.add(hostUnManagedVol);

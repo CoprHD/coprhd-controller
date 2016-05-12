@@ -2107,7 +2107,6 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
      */
     @Override
     public void changeVolumeVirtualPool(URI systemURI, Volume volume, VirtualPool newVpool,
-<<<<<<< HEAD
             boolean isHostMigration, URI migrationHostURI, VirtualPoolChangeParam vpoolChangeParam,
             String taskId) throws InternalException {
         _log.info(String.format("RP change virtual pool operation for volume [%s](%s) moving to new vpool [%s](%s).", 

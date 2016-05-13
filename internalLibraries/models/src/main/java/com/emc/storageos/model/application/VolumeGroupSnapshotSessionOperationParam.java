@@ -15,6 +15,10 @@ public class VolumeGroupSnapshotSessionOperationParam {
     // By default, consider snapshot session operation for all array replication groups in Application */
     private Boolean partial = Boolean.FALSE;
     private List<URI> snapshotSessions;
+    // alternative to passing a list of full copy volumes
+    private String copySetName;
+    // alternative to passing partial flag and list of full copy volumes
+    private List<String> subGroups;
 
     public VolumeGroupSnapshotSessionOperationParam() {
     }
@@ -40,7 +44,7 @@ public class VolumeGroupSnapshotSessionOperationParam {
         this.partial = partial;
     }
 
-    @XmlElementWrapper(required = true, name = "snapshot_sessions")
+    @XmlElementWrapper(name = "snapshot_sessions")
     /**
      * List of snapshot session IDs.
      * 
@@ -63,5 +67,36 @@ public class VolumeGroupSnapshotSessionOperationParam {
 
     public void setSnapshotSessions(List<URI> snapshotSessions) {
         this.snapshotSessions = snapshotSessions;
+    }
+
+    /**
+     * @return the copySetName
+     */
+    @XmlElement(name = "copy_set_name", required = false)
+    public String getCopySetName() {
+        return copySetName;
+    }
+
+    /**
+     * @param copySetName the copySetName to set
+     */
+    public void setCopySetName(String copySetName) {
+        this.copySetName = copySetName;
+    }
+
+    /**
+     * @return the subGroups
+     */
+    @XmlElementWrapper(required = true, name = "subgroups")
+    @XmlElement(required = false, name = "subgroup")
+    public List<String> getSubGroups() {
+        return subGroups;
+    }
+
+    /**
+     * @param subGroups the subGroups to set
+     */
+    public void setSubGroups(List<String> subGroups) {
+        this.subGroups = subGroups;
     }
 }

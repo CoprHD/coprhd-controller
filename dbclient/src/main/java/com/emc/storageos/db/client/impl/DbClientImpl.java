@@ -1693,7 +1693,7 @@ public class DbClientImpl implements DbClient {
     public Operation suspended(Class<? extends DataObject> clazz, URI id,
             String opId, String message) throws DatabaseException {
         Operation updateOperation = new Operation();
-        updateOperation.suspended(message);
+        updateOperation.suspendedNoError(message);
         return updateTaskStatus(clazz, id, opId, updateOperation);
     }
     
@@ -1701,7 +1701,7 @@ public class DbClientImpl implements DbClient {
     public Operation suspended(Class<? extends DataObject> clazz, URI id,
             String opId) throws DatabaseException {
         Operation updateOperation = new Operation();
-        updateOperation.suspended();
+        updateOperation.suspendedNoError();
         return updateTaskStatus(clazz, id, opId, updateOperation);
     }
 

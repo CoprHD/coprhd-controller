@@ -1,10 +1,15 @@
 package com.emc.sa.service.vipr.rackhd;
 
+import java.io.IOException;
 import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+
+import org.apache.commons.io.IOUtils;
+import org.eclipse.jetty.util.log.Log;
 
 import com.emc.sa.engine.ExecutionUtils;
 import com.emc.sa.service.vipr.ViPRExecutionUtils;
@@ -12,15 +17,18 @@ import com.emc.sa.service.vipr.rackhd.gson.AffectedResource;
 import com.emc.sa.service.vipr.rackhd.gson.Node;
 import com.emc.sa.service.vipr.rackhd.gson.Workflow;
 import com.emc.sa.service.vipr.rackhd.gson.Task;
-import com.emc.sa.service.vipr.rackhd.gson.ViprOperation;
 import com.emc.sa.service.vipr.rackhd.gson.ViprTask;
+import com.emc.sa.service.vipr.rackhd.gson.ViprOperation;
 import com.emc.sa.service.vipr.rackhd.gson.WorkflowDefinition;
 import com.emc.sa.service.vipr.rackhd.tasks.RackHdGetWorkflowTasks;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.model.TaskResourceRep;
+import com.emc.storageos.rackhd.api.restapi.RackHdRestClient;
 import com.emc.vipr.client.ViPRCoreClient;
+import com.emc.vipr.model.catalog.AssetOption;
 import com.google.gson.Gson;
 import com.google.gson.JsonSyntaxException;
+import com.sun.jersey.api.client.ClientResponse;
 
 //TODO: move log messages to separate file (for internationalization)
 
@@ -38,6 +46,15 @@ public class RackHdUtils {
     private static final String WORKFLOW_CANCELLED_STATE = "cancelled";
     private static final String WORKFLOW_FAILED_STATE =  "failed";
     private static final String WORKFLOW_PENDING_STATE = "pending";
+
+    // TODO: move these hard-coded strings out
+    public static final String USER = "root";
+    public static final String PASSWORD = "ChangeMe1!";
+    public static final String RACKHDSCHEME = "http"; // include, else URI.resolve(..) fails
+    public static final String RACKHDSERVER = "lgloc189.lss.emc.com";
+    public static final String RACKHDSERVERPORT = "8080";
+
+    public static final String RACKHD_API_NODE = "/api/1.1/nodes";
 
     private static final Gson gson = new Gson();
 
@@ -165,18 +182,18 @@ public class RackHdUtils {
         return rackHdWorkflow.getInstanceId();
     }
 
-    public static String[] getRackHdTaskResults(String workflowResponse) {
+    public static String[] getAnsibleResults(String workflowResponse) {
         Workflow wf = RackHdUtils.getWorkflowObjFromJson(workflowResponse);  
         return  wf.getContext().getAnsibleResultFile();    
     }
 
-    public static void updateAffectedResources(ViprTask viprTask) {
-        if(viprTask != null) {
+    public static void updateAffectedResources(ViprOperation viprOperation) {
+        if(viprOperation != null) {
             StringSet currentResources = ExecutionUtils.currentContext().
                     getExecutionState().getAffectedResources();
-            for(ViprOperation viprOperation:viprTask.getTask()) { 
-                if(!currentResources.contains(viprOperation.getResource().getId())) {
-                    currentResources.add(viprOperation.getResource().getId());
+            for(ViprTask viprTask:viprOperation.getTask()) { 
+                if(!currentResources.contains(viprTask.getResource().getId())) {
+                    currentResources.add(viprTask.getResource().getId());
                 }
             }
         }
@@ -203,13 +220,9 @@ public class RackHdUtils {
         return Arrays.asList(wf.getTasks());
     }
 
-    public static ViprTask parseViprTask(String taskResult) {
+    public static ViprOperation parseViprTasks(String ansibleResult) {
         try {  // try parsing result as a ViPR Task
-            ViprTask t =  gson.fromJson(taskResult,ViprTask.class);
-            if (t.getTask() == null) {
-                return null;
-            }
-            return t;
+            return gson.fromJson(ansibleResult,ViprOperation.class);
         } catch(JsonSyntaxException e) {
             return null;
         }
@@ -223,30 +236,22 @@ public class RackHdUtils {
         }
     }
 
-    public static URI locateTaskInVipr(ViprTask viprTask, ViPRCoreClient client) {
-        // given a task response from RackHD representing a Task started by 
-        // a RackHD workflow task, find corresponding task running in ViPR
-        URI taskIdToReturn = null;
-        for(ViprOperation opToFind : viprTask.getTask()) { 
-            for(URI taskUri : client.tasks().listBulkIds()) { //TODO: implement tasks.findByOpID()
-                TaskResourceRep taskCandidate = client.tasks().get(taskUri);
-                if(taskCandidate.getOpId().equals(opToFind.getOp_id())) {
-                    // this task should be assigned to this order
-                    ExecutionUtils.currentContext().logInfo("RackHD started " + 
-                            " task '" + taskCandidate.getName()+ "'");
-                    if(taskIdToReturn != null) {
-                        //TODO: remove after confirming there will be only one task
-                        throw new IllegalStateException("Operation " + 
-                                opToFind.getOp_id() + " linked to more " +
-                                "than one task.  Tasks: " + 
-                                taskCandidate.getId() + " and " + 
-                                taskIdToReturn);
-                    }
-                    taskIdToReturn = taskCandidate.getId();
-                }
-            }
+    public static List<TaskResourceRep> locateTasksInVipr(ViprOperation viprOperation, ViPRCoreClient client) {
+        // given a response from RackHD representing an Operation with Tasks started by 
+        // a RackHD workflow task, find corresponding tasks running in ViPR
+        // (this is useful in cases like: a volume(s) was created from a RackHD workflow
+        //  using the ViPR API, and now you want to find the tasks running in ViPR
+        //  that corresponds to it/them.)  
+        try {
+            return client.tasks().getByIds(viprOperation.getTaskIds());
         }
-        return taskIdToReturn;
+        catch (URISyntaxException e) {
+            ExecutionUtils.currentContext().logInfo("Warning: there was a " +
+                    "problem locating tasks in ViPR that were initiated in " +
+                    "RackHD.  (Task IDs from RackHD are not valid.  " + 
+                    e.getMessage());
+            return new ArrayList<TaskResourceRep>();
+        }  
     }
 
     public static void waitForTasks(List<URI> tasksStartedByRackHd, ViPRCoreClient client) {
@@ -254,8 +259,9 @@ public class RackHdUtils {
             return;
         }  
         ExecutionUtils.currentContext().logInfo("RackHD Workflow complete.  " +
-                " Waiting for Tasks in ViPR started by RackHD workflow.");
-
+                "Waiting for Tasks in ViPR to finish that were started by " +
+                "RackHD workflow.");
+        
         long startTime = System.currentTimeMillis();
         boolean allTasksDone = false;
 
@@ -280,5 +286,46 @@ public class RackHdUtils {
                         "timed out.");
             }
         }
+    }
+    public static List<AssetOption> getNodeOptions(String workflowJson) { 
+        List<AssetOption> assetOptionList = new ArrayList<>(); 
+        Node[] nodes =
+                gson.fromJson(workflowJson,Node[].class);
+        if( (nodes != null) && (nodes.length > 0) ) {
+            List<Node> nodeList = Arrays.asList(nodes);
+            for(Node node: nodeList) {
+                if(node.isComputeNode()) {
+                    assetOptionList.add(new AssetOption(node.getId(),
+                            node.getName()));
+                }
+            }
+        }
+        assetOptionList.add(new AssetOption("null","None"));
+        return assetOptionList;
+    }
+
+    public static String makeRestCall(String uriString, RackHdRestClient restClient) {
+        return makeRestCall(uriString,null,restClient);
+    }
+
+    public static String makeRestCall(String uriString, String postBody,
+            RackHdRestClient restClient) {
+
+        ClientResponse response = null;
+        if(postBody == null) {
+            response = restClient.get(URI.create(uriString));
+        } else {
+            response = restClient.post(URI.create(uriString),postBody);
+        }
+
+        String responseString = null;
+        try {
+            responseString = IOUtils.toString(response.getEntityInputStream(),"UTF-8");
+        } catch (IOException e) {
+            ExecutionUtils.currentContext().logError("Error getting response " +
+                    "from RackHD for: " + uriString + " :: "+ e.getMessage());
+            e.printStackTrace();
+        }
+        return responseString;
     }
 }

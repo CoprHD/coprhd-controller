@@ -150,7 +150,7 @@ fi
 
 [ -z "${AUTH}" ] && AUTH=${4:-ldap}
 
-DO_SETUP_ONLY=1
+DO_SETUP_ONLY=0
 for a in $* 
 do
     if [ "$a"x = "-setup_onlyx" ]; then
@@ -4472,7 +4472,11 @@ recoverpoint_simulator_setup()
     if [ "${RPXIO_TESTS}" = "1" ]; then
         run storagepool update $XIO_4X_SIM_NATIVEGUID --nhadd $RECOVERPOINT_VARRAY1 --type block
     fi
+}
 
+# Simulator vpool setup
+recoverpoint_simulator_vpool_setup()
+{
     # Simulator adjustments to cos (shouldn't be needed but RP simulator only sees a subset of what's on the network)
     rp_vpool_setup
 
@@ -4556,7 +4560,6 @@ recoverpoint_common_setup()
     rp_port_setup
     rp_protection_system_setup
     rp_isolate_rpa_clusters
-    rp_vpool_setup
 }
 
 recoverpoint_setup()
@@ -4567,6 +4570,7 @@ recoverpoint_setup()
         if [ "$RP_RUN_SETUP" = "1" ]; then
             secho 'RecoverPoint Simulator setup'
             recoverpoint_simulator_setup
+            recoverpoint_simulator_vpool_setup
         else
             # This is intentionally a local-only execution for now.  Regular sanity for RP should always have RP_RUN_SETUP turned on.
             RP_SANITY_RANDOM=`/opt/storageos/bin/dbutils list UnManagedVolume | grep label | awk '{print $3}' | cut -c10-12 | head -1`
@@ -4575,8 +4579,10 @@ recoverpoint_setup()
     elif [ "$RP_RUN_SETUP" = "1" ]; then
         secho 'RecoverPoint setup'
         recoverpoint_common_setup
+        rp_vpool_setup
     fi
 }
+
 
 recoverpoint_cleanup_volumes()
 {
@@ -9984,39 +9990,173 @@ application_vpool_setup()
 
 }
 
+application_sim_vpool_setup()
+{
+    secho "application_sim_vpool_setup()"
+
+    if [ $APPLICATION_TEST_VNX -eq 1 ]; then
+        # Create CoS for VNX
+        run cos create block $APP_VPOOL_VNX_BLOCK                       \
+            --description 'Consistency-Group-Block-VNX-CoS' false   \
+                            --protocols FC        \
+                            --numpaths 1               \
+                            --max_snapshots 10         \
+                            --provisionType 'Thin'     \
+                            --neighborhoods $APP_VARRAY1        \
+                            --multiVolumeConsistency
+
+        run cos update block $APP_VPOOL_VNX_BLOCK --storage $APPLICATION_VNX1_NATIVEGUID
+        run cos allow $APP_VPOOL_VNX_BLOCK block $TENANT
+
+        # Create CoS for VNX + VPLEX local
+        run cos create block $APP_VPOOL_VNX_VPLEX_LOCAL                       \
+            --description 'Consistency-Group-VPLEX-local-VNX-CoS' false   \
+                            --protocols FC        \
+                            --numpaths 2               \
+                            --max_snapshots 10         \
+                            --provisionType 'Thin'     \
+                            --neighborhoods $APP_VARRAY1        \
+                            --highavailability vplex_local           \
+                            --multiVolumeConsistency
+
+        run cos update block $APP_VPOOL_VNX_VPLEX_LOCAL --storage $APPLICATION_VNX1_NATIVEGUID
+        run cos allow $APP_VPOOL_VNX_VPLEX_LOCAL block $TENANT
+
+        # Create CoS for ha side of vplex distributed
+        run cos create block $APP_VPOOL_VNX_HA               \
+            --description 'Consistency-Group-HA-VNX-CoS' false   \
+                            --protocols FC        \
+                            --numpaths 1               \
+                            --max_snapshots 10         \
+                            --provisionType 'Thin'     \
+                            --neighborhoods $APP_VARRAY1
+
+        run cos update block $APP_VPOOL_VNX_HA --storage $APPLICATION_VNX1_NATIVEGUID
+        run cos allow $APP_VPOOL_VNX_HA block $TENANT
+    fi
+
+    if [ $APPLICATION_TEST_VMAX2 -eq 1 ]; then
+        # Create CoS for VMAX2
+        run cos create block $APP_VPOOL_VMAX2_BLOCK               \
+            --description 'Consistency-Group-Block-VMAX2-CoS' false   \
+                            --protocols FC        \
+                            --numpaths 1               \
+                            --max_snapshots 10         \
+                            --provisionType 'Thin'     \
+                            --neighborhoods $APP_VARRAY1        \
+                            --multiVolumeConsistency
+
+        run cos update block $APP_VPOOL_VMAX2_BLOCK --storage $APPLICATION_VMAX2_NATIVEGUID1
+        run cos allow $APP_VPOOL_VMAX2_BLOCK block $TENANT
+
+        # Create CoS for VMAX2 + vplex local
+        run cos create block $APP_VPOOL_VMAX2_VPLEX_LOCAL \
+            --description 'Consistency-Group-Block-VMAX2-VPLEX-local-CoS' false   \
+                            --protocols FC        \
+                            --numpaths 2               \
+                            --max_snapshots 10         \
+                            --provisionType 'Thin'     \
+                            --neighborhoods $APP_VARRAY1        \
+                            --highavailability vplex_local           \
+                            --multiVolumeConsistency
+
+        run cos update block $APP_VPOOL_VMAX2_VPLEX_LOCAL --storage $APPLICATION_VMAX2_NATIVEGUID1
+        run cos allow $APP_VPOOL_VMAX2_VPLEX_LOCAL block $TENANT
+
+        # Create CoS for ha side of vplex distributed
+        run cos create block $APP_VPOOL_VMAX2_HA               \
+            --description 'Consistency-Group-HA-VMAX2-CoS' false   \
+                            --protocols FC        \
+                            --numpaths 1               \
+                            --max_snapshots 10         \
+                            --provisionType 'Thin'     \
+                            --neighborhoods $APP_VARRAY2
+
+        run cos update block $APP_VPOOL_VMAX2_HA --storage $APPLICATION_VMAX2_NATIVEGUID2
+        run cos allow $APP_VPOOL_VMAX2_HA block $TENANT
+
+        # Create CoS for VMAX2/VNX + vplex distributed
+        run cos create block $APP_VPOOL_VMAX2_VPLEX_DIST \
+            --description 'Consistency-Group-Block-VMAX2-VPLEX-dist-CoS' false   \
+                            --protocols FC        \
+                            --numpaths 2               \
+                            --max_snapshots 10         \
+                            --provisionType 'Thin'     \
+                            --neighborhoods $APP_VARRAY1        \
+                            --highavailability vplex_distributed \
+                            --haNeighborhood $APP_VARRAY2 \
+                            --haCos $APP_VPOOL_VMAX2_HA \
+                            --multiVolumeConsistency
+
+        run cos update block $APP_VPOOL_VMAX2_VPLEX_DIST --storage $APPLICATION_VMAX2_NATIVEGUID1
+        run cos allow $APP_VPOOL_VMAX2_VPLEX_DIST block $TENANT
+    fi
+
+    if [ $APPLICATION_TEST_VMAX3 -eq 1 ]; then
+        # Create CoS for VMAX3
+        run cos create block $APP_VPOOL_VMAX3_BLOCK               \
+            --description 'Consistency-Group-Block-VMAX3-CoS' false   \
+                            --protocols FC        \
+                            --numpaths 1               \
+                            --max_snapshots 10         \
+                            --provisionType 'Thin'     \
+                            --neighborhoods $APP_VARRAY1        \
+                            --multiVolumeConsistency
+
+        run cos update block $APP_VPOOL_VMAX3_BLOCK --storage $APPLICATION_VMAX3_NATIVEGUID1
+        run cos allow $APP_VPOOL_VMAX3_BLOCK block $TENANT
+
+        # Create CoS for VMAX3 + vplex local
+        run cos create block $APP_VPOOL_VMAX3_VPLEX_LOCAL \
+            --description 'Consistency-Group-Block-VMAX3-VPLEX-local-CoS' false   \
+                            --protocols FC        \
+                            --numpaths 2               \
+                            --max_snapshots 10         \
+                            --provisionType 'Thin'     \
+                            --neighborhoods $APP_VARRAY1        \
+                            --highavailability vplex_local           \
+                            --multiVolumeConsistency
+
+        run cos update block $APP_VPOOL_VMAX3_VPLEX_LOCAL --storage $APPLICATION_VMAX3_NATIVEGUID1
+        run cos allow $APP_VPOOL_VMAX3_VPLEX_LOCAL block $TENANT
+
+        # Create CoS for ha side of vplex distributed
+        run cos create block $APP_VPOOL_VMAX3_HA               \
+            --description 'Consistency-Group-HA-VMAX2-CoS' false   \
+                            --protocols FC        \
+                            --numpaths 1               \
+                            --max_snapshots 10         \
+                            --provisionType 'Thin'     \
+                            --neighborhoods $APP_VARRAY2
+
+        run cos update block $APP_VPOOL_VMAX3_HA --storage $APPLICATION_VMAX3_NATIVEGUID2
+        run cos allow $APP_VPOOL_VMAX3_HA block $TENANT
+
+        # Create CoS for VMAX2/VNX + vplex distributed
+        run cos create block $APP_VPOOL_VMAX3_VPLEX_DIST \
+            --description 'Consistency-Group-Block-VMAX3-VPLEX-dist-CoS' false   \
+                            --protocols FC        \
+                            --numpaths 2               \
+                            --max_snapshots 10         \
+                            --provisionType 'Thin'     \
+                            --neighborhoods $APP_VARRAY1        \
+                            --highavailability vplex_distributed \
+                            --haNeighborhood $APP_VARRAY2 \
+                            --haCos $APP_VPOOL_VMAX3_HA \
+                            --multiVolumeConsistency
+
+        run cos update block $APP_VPOOL_VMAX3_VPLEX_DIST --storage $APPLICATION_VMAX3_NATIVEGUID1
+        run cos allow $APP_VPOOL_VMAX3_VPLEX_DIST block $TENANT
+
+    fi
+}
+
 application_setup()
 {
     secho "application_setup()"
 
     # recoverpoint setup is used for application tests so we
-    # override some of the providers to cover application use cases
-    RECOVERPOINT_SMIS_PROVIDER_B=$APPLICATION_VMAX2_SMIS_PROVIDER
-    RECOVERPOINT_SMIS_PROVIDER_B_IP=$APPLICATION_VMAX2_SMIS_PROVIDER_IP
-    RECOVERPOINT_SMIS_PROVIDER_B_PORT=$SMIS_SSL_PORT
-    RECOVERPOINT_STORAGE_ARRAY_B_GUID=$APPLICATION_VMAX2_STORAGE_ARRAY_GUID
-
-    RECOVERPOINT_SMIS_PROVIDER_C=$APPLICATION_VMAX3_SMIS_PROVIDER
-    RECOVERPOINT_SMIS_PROVIDER_C_IP=$APPLICATION_VMAX3_SMIS_PROVIDER_IP
-    RECOVERPOINT_SMIS_PROVIDER_C_PORT=$SMIS_SSL_PORT
-    RECOVERPOINT_STORAGE_ARRAY_C_GUID=$APPLICATION_VMAX3_STORAGE_ARRAY_GUID
-
-    APPLICATION_VNX1_NATIVEGUID=$RECOVERPOINT_STORAGE_ARRAY_A_GUID
-    APPLICATION_VMAX2_NATIVEGUID=$RECOVERPOINT_STORAGE_ARRAY_B_GUID
-    APPLICATION_VMAX3_NATIVEGUID=$RECOVERPOINT_STORAGE_ARRAY_C_GUID
-
-    APP_VPOOL_VNX_BLOCK=app_vpool_simple_vnx
-    APP_VPOOL_VNX_VPLEX_LOCAL=app_vpool_vplex_local_vnx
-    APP_VPOOL_VMAX2_BLOCK=app_vpool_simple_vmax2_505
-    APP_VPOOL_VMAX2_VPLEX_LOCAL=app_vpool_vplex_local_vmax2_505
-    APP_VPOOL_VMAX3_BLOCK=app_vpool_simple_vmax3
-    APP_VPOOL_VMAX3_VPLEX_LOCAL=app_vpool_vplex_local_vmax3
-
-    APP_VPOOL_VNX_HA=app_vpool_ha_vnx
-    APP_VPOOL_VMAX2_VPLEX_DIST=app_vpool_vplex_dist_vmax2
-
-    APP_VARRAY1=$RECOVERPOINT_VARRAY1
-    APP_VARRAY2=$RECOVERPOINT_VARRAY2
-    APP_VARRAY3=$RECOVERPOINT_VARRAY3
+    # override some of the RP options to cover application use cases
 
     RP_TESTS=1
     RPVPLEX_TESTS=1
@@ -10025,23 +10165,46 @@ application_setup()
     RP_CDP=1
     RP_CRR=1
 
-    # all rp setup except vpools
-    project_setup
-    rp_varray_setup
-    rp_network_setup
-    rp_storage_setup
-    rp_port_setup
-    rp_protection_system_setup
-    rp_isolate_rpa_clusters
+    if [ "$APP_QUICK_PARAM" = "quick" ]; then
+        secho 'Application Simulator setup'
+        APPLICATION_VNX1_NATIVEGUID=$APP_SIMULATOR_VNX_NATIVEGUID
+        APPLICATION_VMAX2_NATIVEGUID1=$APP_SIMULATOR_VMAX2_NATIVEGUID1
+        APPLICATION_VMAX2_NATIVEGUID2=$APP_SIMULATOR_VMAX2_NATIVEGUID2
+        APPLICATION_VMAX3_NATIVEGUID1=$APP_SIMULATOR_VMAX3_NATIVEGUID1
+        APPLICATION_VMAX3_NATIVEGUID2=$APP_SIMULATOR_VMAX3_NATIVEGUID2
+        recoverpoint_simulator_varsetup
+        recoverpoint_simulator_setup
 
-    application_vpool_setup
+        # applicaiton vpool setup
+        application_sim_vpool_setup
+    else
+        secho 'Application real hardware setup'
+
+        RECOVERPOINT_SMIS_PROVIDER_B=$APPLICATION_VMAX2_SMIS_PROVIDER
+        RECOVERPOINT_SMIS_PROVIDER_B_IP=$APPLICATION_VMAX2_SMIS_PROVIDER_IP
+        RECOVERPOINT_SMIS_PROVIDER_B_PORT=$SMIS_SSL_PORT
+        RECOVERPOINT_STORAGE_ARRAY_B_GUID=$APPLICATION_VMAX2_STORAGE_ARRAY_GUID
+
+        RECOVERPOINT_SMIS_PROVIDER_C=$APPLICATION_VMAX3_SMIS_PROVIDER
+        RECOVERPOINT_SMIS_PROVIDER_C_IP=$APPLICATION_VMAX3_SMIS_PROVIDER_IP
+        RECOVERPOINT_SMIS_PROVIDER_C_PORT=$SMIS_SSL_PORT
+        RECOVERPOINT_STORAGE_ARRAY_C_GUID=$APPLICATION_VMAX3_STORAGE_ARRAY_GUID
+
+        APPLICATION_VNX1_NATIVEGUID=$RECOVERPOINT_STORAGE_ARRAY_A_GUID
+        APPLICATION_VMAX2_NATIVEGUID=$RECOVERPOINT_STORAGE_ARRAY_B_GUID
+        APPLICATION_VMAX3_NATIVEGUID=$RECOVERPOINT_STORAGE_ARRAY_C_GUID
+        recoverpoint_common_setup
+
+        # applicaiton vpool setup
+        application_vpool_setup
+    fi
 }
 
 application_crud_test()
 {
     secho "application_crud_test()"
 
-    appname=sanityapp-crun_test-${RANDOM}
+    appname=sanityapp-crud_test-${RANDOM}
 
     # test and verify create volume group
     run volumegroup create ${appname} descrip COPY
@@ -10187,14 +10350,14 @@ application_copy_tests()
     run volumegroup verify-volume ${VG_COPYVG1} ${VG_CG2VOLID2}
     run volumegroup verify-volume ${VG_COPYVG1} ${VG_CG2VOLID3}
 
-    if [[ $APPLICATION_CLONE_SUPPORTED -eq 1 ]]; then
+    if [ $APPLICATION_CLONE_SUPPORTED -eq 1 -a $APPLICATION_TEST_CLONES -eq 1 ]; then
         APPLICATION_RESYNC_COPY_SUPPORTED=1
         APPLICATION_DETACH_COPY_SUPPORTED=1
         APPLICATION_LINK_COPY_SUPPORTED=0
         application_full_copy_tests clone
     fi
 
-    if [[ $APPLICATION_SNAPSHOT_SUPPORTED -eq 1 ]]; then
+    if [ $APPLICATION_SNAPSHOT_SUPPORTED -eq 1 -a $APPLICATION_TEST_SNAPSHOTS -eq 1 ]; then
         APPLICATION_RESYNC_COPY_SUPPORTED=$APPLICATION_RESYNC_SNAP_SUPPORTED
         APPLICATION_DETACH_COPY_SUPPORTED=0
         APPLICATION_LINK_COPY_SUPPORTED=$APPLICATION_LINK_SNAP_SUPPORTED
@@ -10400,7 +10563,7 @@ application_tests()
         if [ $APPLICATION_TEST_BLOCK -eq 1 ]; then
             secho "running block vmax2 tests"
             VG_VPOOL_CG=$APP_VPOOL_VMAX2_BLOCK
-            VG_VARRAY_CG=$APP_VARRAY2
+            VG_VARRAY_CG=$APP_VARRAY1
             APP_RUNNING_BLOCK_TEST=1
             APPLICATION_CREATE_INACTIVE_SUPPORTED=1
 
@@ -10418,7 +10581,7 @@ application_tests()
         if [ $APPLICATION_TEST_VPLEX_LOCAL -eq 1 ]; then
             secho "running block vplex+vmax2 tests"
             VG_VPOOL_CG=$APP_VPOOL_VMAX2_VPLEX_LOCAL
-            VG_VARRAY_CG=$APP_VARRAY2
+            VG_VARRAY_CG=$APP_VARRAY1
             APP_RUNNING_BLOCK_TEST=0
             APPLICATION_CREATE_INACTIVE_SUPPORTED=0
 
@@ -10434,13 +10597,9 @@ application_tests()
             secho "completed running block vplex+vmax2 tests"
         fi
         if [ $APPLICATION_TEST_VPLEX_DIST -eq 1 ]; then
-            secho "running block vplex dist tests"
-            APPLICATION_CLONE_SUPPORTED=1
-            APPLICATION_SNAPSHOT_SUPPORTED=1
-            APPLICATION_RESYNC_SNAP_SUPPORTED=1
-            APPLICATION_LINK_SNAP_SUPPORTED=0
+            secho "running block vplex+vmax2 dist tests"
             VG_VPOOL_CG=$APP_VPOOL_VMAX2_VPLEX_DIST
-            VG_VARRAY_CG=$APP_VARRAY2
+            VG_VARRAY_CG=$APP_VARRAY1
             APP_RUNNING_BLOCK_TEST=0
             APPLICATION_CREATE_INACTIVE_SUPPORTED=0
 
@@ -10453,7 +10612,7 @@ application_tests()
             application_add_remove_volume_tests
             application_copy_tests
             application_deleteall
-            secho "completed running block vplex dist tests"
+            secho "completed running block vplex+vmax2 dist tests"
         fi
     fi
     if [ $APPLICATION_TEST_VMAX3 -eq 1 ]; then
@@ -10466,7 +10625,7 @@ application_tests()
         if [ $APPLICATION_TEST_BLOCK -eq 1 ]; then
             secho "running block vmax3 tests"
             VG_VPOOL_CG=$APP_VPOOL_VMAX3_BLOCK
-            VG_VARRAY_CG=$APP_VARRAY3
+            VG_VARRAY_CG=$APP_VARRAY1
             APP_RUNNING_BLOCK_TEST=1
 
             app_test_subgroup1a=""
@@ -10480,23 +10639,40 @@ application_tests()
             application_deleteall
             secho "completed running block vmax3 tests"
         fi
-        #if [ $APPLICATION_TEST_VPLEX_LOCAL -eq 1 ]; then
-            #secho "running block vplex+vmax3 tests"
-            #VG_VPOOL_CG=$APP_VPOOL_VMAX3_VPLEX_LOCAL
-            #VG_VARRAY_CG=$APP_VARRAY3
-            #APP_RUNNING_BLOCK_TEST=0
+        if [ $APPLICATION_TEST_VPLEX_LOCAL -eq 1 ]; then
+            secho "running block vplex+vmax3 local tests"
+            VG_VPOOL_CG=$APP_VPOOL_VMAX3_VPLEX_LOCAL
+            VG_VARRAY_CG=$APP_VARRAY1
+            APP_RUNNING_BLOCK_TEST=0
 
-            #app_test_subgroup1a="${VG_CGNAME1}a"
-            #app_test_subgroup1b="${VG_CGNAME1}b"
-            #app_test_subgroup2a="${VG_CGNAME2}a"
-            #app_test_subgroup2b="${VG_CGNAME2}b"
+            app_test_subgroup1a="${VG_CGNAME1}a"
+            app_test_subgroup1b="${VG_CGNAME1}b"
+            app_test_subgroup2a="${VG_CGNAME2}a"
+            app_test_subgroup2b="${VG_CGNAME2}b"
 
-            #application_createvols
-            #application_add_remove_volume_tests
-            #application_copy_tests
-            #application_deleteall
-            #secho "completed running block vplex+vmax3 tests"
-        #fi
+            application_createvols
+            application_add_remove_volume_tests
+            application_copy_tests
+            application_deleteall
+            secho "completed running block vplex+vmax3 local tests"
+        fi
+        if [ $APPLICATION_TEST_VPLEX_LOCAL -eq 1 ]; then
+            secho "running block vplex+vmax3 dist tests"
+            VG_VPOOL_CG=$APP_VPOOL_VMAX3_VPLEX_DIST
+            VG_VARRAY_CG=$APP_VARRAY1
+            APP_RUNNING_BLOCK_TEST=0
+
+            app_test_subgroup1a="${VG_CGNAME1}a"
+            app_test_subgroup1b="${VG_CGNAME1}b"
+            app_test_subgroup2a="${VG_CGNAME2}a"
+            app_test_subgroup2b="${VG_CGNAME2}b"
+
+            application_createvols
+            application_add_remove_volume_tests
+            application_copy_tests
+            application_deleteall
+            secho "completed running block vplex+vmax3 dist tests"
+        fi
     fi
 
     if [ $APPLICATION_TEST_XIO -eq 1 ]; then

@@ -21,11 +21,14 @@ import org.apache.log4j.Logger;
 
 import com.google.common.collect.Maps;
 import com.iwave.ext.netapp.AggregateInfo;
+import com.iwave.ext.netapp.NetAppException;
 import com.iwave.ext.netappc.NFSSecurityStyle;
 import com.iwave.ext.netapp.QuotaCommands;
 import com.iwave.ext.netappc.NetAppCException;
 import com.iwave.ext.netappc.model.CifsAcl;
 import com.iwave.ext.netapp.Server;
+import com.iwave.ext.netapp.VFiler;
+import com.iwave.ext.netapp.VFilerInfo;
 import com.iwave.ext.netapp.model.ExportsRuleInfo;
 import com.iwave.ext.netapp.model.NetAppDevice;
 import com.iwave.ext.netapp.model.Qtree;
@@ -790,11 +793,49 @@ public class NetAppClusterFacade {
         StorageVirtualMachine svm = new StorageVirtualMachine(server.getNaServer(), null);
         return svm.listSVMs(true);
     }
-
+    
     public void modifyNFSShare(String fsName, String qtreeName, String exportPath,
             ExportRule oldRule, ExportRule newRule)
     {
         FlexFileShare share = new FlexFileShare(server.getNaServer(), exportPath);
         share.changeNFSShare(fsName, qtreeName, oldRule, newRule, exportPath);
     }
+    
+    /**
+     * @return A list of specific CIFS configuration values
+     */
+    public Map<String,Map<String, String>> listCIFSConfig() {
+        NaElement elem = new NaElement("cifs-server-get-iter");
+        
+        NaElement cifsResult;
+        Map<String, Map<String,String>> vServerCifsConfig= Maps.newHashMap();
+        
+        try {
+            NaElement cifsServerConfigList = server.getNaServer().invokeElem(elem);
+            
+            cifsResult= cifsServerConfigList.getChildByName("attributes-list");
+            for(NaElement cifs : (List<NaElement>) cifsResult.getChildren()){
+                Map<String, String> properties = Maps.newHashMap();
+                
+                properties.put("domain", cifs.getChildContent("domain"));
+                properties.put("domain-workgroup", cifs.getChildContent("domain-workgroup"));
+                properties.put("organizational-unit", cifs.getChildContent("organizational-unit"));
+                properties.put("cifs-server-name", cifs.getChildContent("cifs-server"));
+                String vserver= cifs.getChildContent("vserver");
+                if(!"".equals(vserver)){
+                    vServerCifsConfig.put(vserver, properties);
+                }
+            }
+            
+        } catch (Exception e) {
+            String msg = "Failed to get array system info";
+            log.error(msg, e);
+            throw new NetAppException(msg, e);
+        }
+
+        return vServerCifsConfig;
+    }
+
+    
+    
 }

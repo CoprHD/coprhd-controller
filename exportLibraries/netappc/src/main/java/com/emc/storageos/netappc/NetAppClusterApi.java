@@ -24,6 +24,7 @@ import com.iwave.ext.netappc.NetAppClusterFacade;
 import com.iwave.ext.netappc.StorageVirtualMachineInfo;
 import com.iwave.ext.netappc.model.CifsAccess;
 import com.iwave.ext.netappc.model.CifsAcl;
+import com.iwave.ext.netappc.model.SnapMirrorVolumeStatus;
 import com.iwave.ext.netappc.model.SnapmirrorInfo;
 import com.iwave.ext.netappc.model.SnapmirrorInfoResp;
 import com.iwave.ext.netappc.model.SnapmirrorResp;
@@ -1045,7 +1046,32 @@ public class NetAppClusterApi {
     }
 
     public SnapmirrorInfoResp getSnapMirrorInfo(SnapmirrorInfo mirrorInfo) {
+        try {
+            netAppClusterFacade = new NetAppClusterFacade(_ipAddress, _portNumber, _userName,
+                    _password, _https);
+            return netAppClusterFacade.getSnapMirrorInfo(mirrorInfo);
+        } catch (Exception e) {
+            throw NetAppCException.exceptions.getSnapMirrorStatusFailed(mirrorInfo.getSourceVolume(), _ipAddress, e.getMessage());
+        }
+    }
 
-        return null;
+    public SnapMirrorVolumeStatus getSnapMirrorVolumeStatus(String volume) {
+        try {
+            netAppClusterFacade = new NetAppClusterFacade(_ipAddress, _portNumber, _userName,
+                    _password, _https);
+            return netAppClusterFacade.getSnapMirrorVolumeStatus(volume);
+        } catch (Exception e) {
+            throw NetAppCException.exceptions.getSnapMirrorStatusFailed(volume, _ipAddress, e.getMessage());
+        }
+    }
+
+    public SnapmirrorInfoResp getSnapMirrorDestInfo(SnapmirrorInfo mirrorInfo) {
+        try {
+            netAppClusterFacade = new NetAppClusterFacade(_ipAddress, _portNumber, _userName,
+                    _password, _https);
+            return netAppClusterFacade.getSnapMirrorDestInfo(mirrorInfo);
+        } catch (Exception e) {
+            throw NetAppCException.exceptions.getSnapMirrorStatusFailed(mirrorInfo.getSourceVolume(), _ipAddress, e.getMessage());
+        }
     }
 }

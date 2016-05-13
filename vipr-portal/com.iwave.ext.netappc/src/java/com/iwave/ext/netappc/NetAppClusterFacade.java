@@ -29,6 +29,7 @@ import com.iwave.ext.netapp.model.Qtree;
 import com.iwave.ext.netapp.model.Quota;
 import com.iwave.ext.netapp.utils.ExportRule;
 import com.iwave.ext.netappc.model.CifsAcl;
+import com.iwave.ext.netappc.model.SnapMirrorVolumeStatus;
 import com.iwave.ext.netappc.model.SnapmirrorInfo;
 import com.iwave.ext.netappc.model.SnapmirrorInfoResp;
 import com.iwave.ext.netappc.model.SnapmirrorResp;
@@ -842,6 +843,21 @@ public class NetAppClusterFacade {
     public boolean destroySnapMirror(SnapmirrorInfo snapMirrorInfo) {
         SnapMirror snapMirror = new SnapMirror(server.getNaServer(), null);
         return snapMirror.destroySnapMirror(snapMirrorInfo);
+    }
+
+    public SnapmirrorInfoResp getSnapMirrorInfo(SnapmirrorInfo snapMirrorInfo) {
+        SnapMirror snapMirror = new SnapMirror(server.getNaServer(), null);
+        return snapMirror.getSnapMirrorInfo(snapMirrorInfo);
+    }
+
+    public SnapMirrorVolumeStatus getSnapMirrorVolumeStatus(String volume) {
+        SnapMirror snapMirror = new SnapMirror(server.getNaServer(), null);
+        return snapMirror.getSnapMirrorVolumeStatus(volume);
+    }
+
+    public SnapmirrorInfoResp getSnapMirrorDestInfo(SnapmirrorInfo snapMirrorInfo) {
+        SnapMirror snapMirror = new SnapMirror(server.getNaServer(), null);
+        return snapMirror.getSnapMirrorDestInfo(snapMirrorInfo);
     }
 
 }

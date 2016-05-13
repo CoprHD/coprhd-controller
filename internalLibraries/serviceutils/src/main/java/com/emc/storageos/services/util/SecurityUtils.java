@@ -56,7 +56,7 @@ public class SecurityUtils {
             return null;
         }
         // firstly, ESAPI canonicalize input, then Jsoup cleans all html tags, which includes <script> tags.
-        value = ESAPI.encoder().canonicalize(value);
+        value = ESAPI.encoder().canonicalize(value, false, false);
         value = value.replaceAll("\0", "");
         value = Jsoup.clean(value, "", Whitelist.none(), new Document.OutputSettings().prettyPrint(false));
 

@@ -4035,6 +4035,9 @@ public class SmisCommandHelper implements SmisConstants {
      * @return
      */
     public String generateGroupName(Set<String> existingGroupNames, String storageGroupName) {
+        // replace "+" in the group name with "-" to make sure that we do not hit limitation on vmax3 for group names with
+        // "+"
+        storageGroupName = storageGroupName.replaceAll(Constants.SMIS_PLUS_REGEX, Constants.HYPHEN);
         String result = storageGroupName;
         // Is 'storageGroupName' already in the list of existing names?
         if (existingGroupNames.contains(storageGroupName)) {

@@ -189,7 +189,7 @@ public class ApiClientTest {
         init.setName("lgly6193.lss.emc.com");
         List<VNXeHostInitiator> inits = new ArrayList<VNXeHostInitiator>();
         inits.add(init);
-        VNXeExportResult result = apiClient.exportLun(lunId, inits);
+        VNXeExportResult result = apiClient.exportLun(lunId, inits, null);
         System.out.println(result.getHlu());
     }
 
@@ -356,17 +356,23 @@ public class ApiClientTest {
         }
     }
     
-    // @Test
+    //@Test
     public void createLunInCG() {
         List<String> names = new ArrayList<String>();
         names.add("vv5113");
-        VNXeCommandJob job = apiClient.createLunsInConsistencyGroup(names, "pool_1", 2000000000L, true, null, "res_168");
+        VNXeCommandJob job = apiClient.createLunsInConsistencyGroup(names, "pool_1", 2000000000L, true, null, "res_116");
         System.out.println(job.getId());
     }
     
-    @Test
+    // @Test
     public void getCgIdByName() {
         String id = apiClient.getConsistencyGroupIdByName("cg5118");
         System.out.println(id);
+    }
+    
+    @Test
+    public void modifyHlu() {
+        apiClient.modifyHostLunHlu("Host_20", "Host_20_sv_189_prod", 0);
+        
     }
 }

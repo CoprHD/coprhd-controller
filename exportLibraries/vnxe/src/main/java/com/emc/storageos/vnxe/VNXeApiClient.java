@@ -43,6 +43,7 @@ import com.emc.storageos.vnxe.models.HostCreateParam;
 import com.emc.storageos.vnxe.models.HostInitiatorCreateParam;
 import com.emc.storageos.vnxe.models.HostIpPortCreateParam;
 import com.emc.storageos.vnxe.models.HostLun;
+import com.emc.storageos.vnxe.models.HostLunModifyParam;
 import com.emc.storageos.vnxe.models.HostTypeEnum;
 import com.emc.storageos.vnxe.models.LunAddParam;
 import com.emc.storageos.vnxe.models.LunCreateParam;
@@ -52,6 +53,7 @@ import com.emc.storageos.vnxe.models.LunModifyParam;
 import com.emc.storageos.vnxe.models.LunParam;
 import com.emc.storageos.vnxe.models.LunSnapCreateParam;
 import com.emc.storageos.vnxe.models.ModifyFileSystemParam;
+import com.emc.storageos.vnxe.models.ModifyHostLUNsParam;
 import com.emc.storageos.vnxe.models.NfsShareCreateForSnapParam;
 import com.emc.storageos.vnxe.models.NfsShareCreateParam;
 import com.emc.storageos.vnxe.models.NfsShareDeleteParam;
@@ -1384,7 +1386,7 @@ public class VNXeApiClient {
      * @return
      * @throws VNXeException
      */
-    public VNXeExportResult exportLun(String lunId, List<VNXeHostInitiator> initiators) throws VNXeException {
+    public VNXeExportResult exportLun(String lunId, List<VNXeHostInitiator> initiators, Integer newhlu) throws VNXeException {
         _logger.info("Exporting lun: {}", lunId);
 
         VNXeLun lun = getLun(lunId);
@@ -1452,8 +1454,14 @@ public class VNXeApiClient {
         // get hlu
         HostLunRequests hostLunReq = new HostLunRequests(_khClient);
         HostLun hostLun = hostLunReq.getHostLun(lunId, host.getId(), HostLunRequests.ID_SEQUENCE_LUN);
+        int hluResult = hostLun.getHlu();
+        if (isUnityClient() && newhlu != null && newhlu.intValue() != -1) {
+            _logger.info("Modify hlu");
+            modifyHostLunHlu(host.getId(), hostLun.getId(), newhlu);
+            hluResult = newhlu;
+        }
         VNXeExportResult result = new VNXeExportResult();
-        result.setHlu(hostLun.getHlu());
+        result.setHlu(hluResult);
         result.setLunId(lunId);
         result.setHostId(host.getId());
         _logger.info("Done exporting lun: {}", lunId);
@@ -1546,7 +1554,7 @@ public class VNXeApiClient {
      * @return
      * @throws VNXeException
      */
-    public VNXeExportResult exportSnap(String snapId, List<VNXeHostInitiator> initiators) throws VNXeException {
+    public VNXeExportResult exportSnap(String snapId, List<VNXeHostInitiator> initiators, Integer newhlu) throws VNXeException {
         _logger.info("Exporting lun snap: {}", snapId);
 
         String parentLunId = null;
@@ -1646,9 +1654,14 @@ public class VNXeApiClient {
         // get hlu
         HostLunRequests hostLunReq = new HostLunRequests(_khClient);
         HostLun hostLun = hostLunReq.getHostLun(parentLun.getId(), host.getId(), HostLunRequests.ID_SEQUENCE_SNAP);
-
+        int hluResult = hostLun.getHlu();
+        if (isUnityClient() && newhlu != null && newhlu.intValue() != -1) {
+            _logger.info("Modify hlu");
+            modifyHostLunHlu(host.getId(), hostLun.getId(), newhlu);
+            hluResult = newhlu;
+        }
         VNXeExportResult result = new VNXeExportResult();
-        result.setHlu(hostLun.getHlu());
+        result.setHlu(hluResult);
         result.setHostId(host.getId());
         _logger.info("Done exporting lun snap: {}", snapId);
         return result;
@@ -2794,5 +2807,24 @@ public class VNXeApiClient {
         ConsistencyGroupRequests req = new ConsistencyGroupRequests(_khClient);
         return req.getConsistencyGroupIdByName(cgName);
         
+    }
+    
+    /**
+     * Modify host lun HLU
+     * @param hostId Host Id
+     * @param hostLunId HostLun Id
+     * @param hlu The new hlu value
+     */
+    public void modifyHostLunHlu(String hostId, String hostLunId, int hlu) {
+        HostRequest req = new HostRequest(_khClient, hostId);
+        ModifyHostLUNsParam param = new ModifyHostLUNsParam();
+        HostLunModifyParam hostLunParam = new HostLunModifyParam();
+        hostLunParam.setHlu(hlu);
+        VNXeBase hostLun = new VNXeBase(hostLunId);
+        hostLunParam.setHostLun(hostLun);
+        List<HostLunModifyParam> parmList = new ArrayList<HostLunModifyParam>();
+        parmList.add(hostLunParam);
+        param.setHostLunModifyList(parmList);
+        req.modifyHostLun(param);
     }
 }

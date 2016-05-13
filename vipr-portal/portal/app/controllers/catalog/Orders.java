@@ -144,6 +144,26 @@ public class Orders extends OrderExecution {
         renderJSON(results);
     }
 
+    @FlashException(referrer = { "receiptContent" })
+    public static void rollbackTask(String orderId, String taskId) {
+        if (StringUtils.isNotBlank(taskId)) {
+            ViPRCoreClient client = BourneUtil.getViprClient();
+            // client.blockMigrations().pause(uri(migrationId));
+            flash.put("info", MessagesUtils.get("resources.tasks.rollbackMessage", taskId));
+        }
+        receipt(orderId);
+    }
+
+    @FlashException(referrer = { "receiptContent" })
+    public static void resumeTask(String orderId, String taskId) {
+        if (StringUtils.isNotBlank(taskId)) {
+            ViPRCoreClient client = BourneUtil.getViprClient();
+            // client.blockMigrations().pause(uri(migrationId));
+            flash.put("info", MessagesUtils.get("resources.tasks.resumeMessage", taskId));
+        }
+        receipt(orderId);
+    }
+
     /**
      * Resubmits an order, creating a new copy with the same parameters.
      * 

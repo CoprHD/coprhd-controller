@@ -3196,6 +3196,8 @@ resources.tasks.pending=Pending
 resources.tasks.ready=Complete
 resources.tasks.error=Error
 resources.tasks.suspended=Suspended
+resources.tasks.resume=Resume
+resources.tasks.rollback=Rollback
 resources.tasks.total=Total
 resources.tasks.unknown=Unknown
 resources.tasks.notasks=No Tasks
@@ -3207,6 +3209,8 @@ resources.tasks.time.running=Started <strong>%s</strong> running for <strong>%s<
 resources.tasks.time.done=Started <strong>%s</strong> and ran for <strong>%s</strong>.
 resources.tasks.percent=&nbsp;%s%%
 resource.task.unknown=Unknown Task with ID '%s'
+resources.tasks.resumeMessage=Resuming task '%s'.
+resources.tasks.rollbackMessage=Rolling back task '%s'.
 
 
 resources.common.tags=Tags

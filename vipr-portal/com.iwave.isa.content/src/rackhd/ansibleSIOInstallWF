@@ -1,0 +1,10 @@
+{
+ "friendlyName": "Install ScaleIO",
+ "injectableName": "Install.ScaleIO", 
+ "tasks": [
+  {
+   "label": "Install ScaleIO Task",
+   "taskName": "Task.Ansible"
+  }
+ ]
+}

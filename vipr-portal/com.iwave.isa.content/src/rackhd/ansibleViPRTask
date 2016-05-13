@@ -1,0 +1,11 @@
+{
+  "friendlyName": "Ansible Task",
+  "injectableName": "Task.ViPR.Ansible",
+  "implementsTask": "Task.Base.Ansible",
+  "options": {
+    "playbook": "playbook.yml",
+    "limit": "vipr",
+    "vars": {} 
+  },
+  "properties": {}
+} 

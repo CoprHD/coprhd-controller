@@ -1,0 +1,6 @@
+    #wait for vipr task to complete
+
+  - name: Call included file to test variable apssing
+    include: playbook-vipr-taskpoller.yml task={{item}}
+    with_items:  "{{restResult.json.task}}"
+

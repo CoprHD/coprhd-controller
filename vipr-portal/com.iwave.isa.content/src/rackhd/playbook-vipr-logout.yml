@@ -1,6 +1,6 @@
   - name: Logout of ViPR
     uri:
-      url: https://{{ inventory_hostname }}:{{ api_port }}/logout
+      url: https://{{ host_address }}:{{ api_port }}/logout
       validate_certs: no
-      HEADER_X-SDS-AUTH-TOKEN: "{{loginResults.x_sds_auth_token}}"
+      HEADER_X-SDS-AUTH-TOKEN: "{{loginToken}}"
     register: logoutResults   # get results of last call in this var 

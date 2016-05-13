@@ -1,0 +1,13 @@
+{
+  "friendlyName": "Collect ScaleIO MDM Primaries",
+  "injectableName": "Task.ScaleIO.MDM.Primaries.Collect",
+  "implementsTask": "Task.Base.Ansible",
+  "options": {
+    "playbook": "/root/ansible-work/playbook-vipr-options-sio-mdm-pri-collect.yml", 
+    "limit":"localhost",
+    "vars":{
+      "resultFile":"/tmp/ansible-sio-mdm-pri-{{ context.graphId }}.out"
+    } 
+  },
+  "properties": {}
+} 

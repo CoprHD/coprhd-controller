@@ -7,6 +7,21 @@
       required: "true",
       lockable: true
     },
+    Node:{
+      type:"assetType.rackhd.node",
+      required: "true",
+      lockable: true
+    },
+    Interface:{
+      type:"assetType.rackhd.interface.node",
+      required: "false",
+      lockable: true
+    },
+    Node_ScaleIO_MDM_Primaries:{
+      type:"assetType.rackhd.sio_mdm_pri",
+      required: "false",
+      lockable: true
+    },
     Playbook:{
       type:"text",
       required: "false",

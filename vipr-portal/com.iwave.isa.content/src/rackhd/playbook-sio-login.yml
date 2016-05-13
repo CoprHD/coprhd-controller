@@ -1,0 +1,27 @@
+
+    # user defined facts
+  - set_fact: login_user="admin"
+  - set_fact: login_password="Cluster1!"
+  - set_fact: api_port="443"
+
+  - name: Login to ScaleIO
+    uri:
+      url: https://{{ inventory_hostname }}:{{ api_port }}/api/login
+      validate_certs: no
+      user: "{{ login_user }}"
+      password: "{{ login_password }}"
+      return_content: yes
+    ignore_errors: yes 
+    register: loginResults
+
+  - set_fact: loginSucceeded={{ loginResults.status|int < 300 }}
+  - set_fact: loginToken={{ loginResults.content }}
+
+  - debug: var=loginResults
+    when: not loginSucceeded
+
+  - lineinfile: dest={{ ansibleResultFile }} line="{{ loginResults.content }}" create="yes" 
+    when: not loginSucceeded
+
+  - fail: msg="Login failed"
+    when: not loginSucceeded 

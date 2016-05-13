@@ -4,30 +4,32 @@
  */
 package com.emc.sa.asset.providers;
 
-import java.io.IOException;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.apache.commons.io.IOUtils;
+import org.apache.commons.lang.StringUtils;
 import org.springframework.stereotype.Component;
 
+import com.emc.sa.asset.AssetConverter;
 import com.emc.sa.asset.AssetOptionsContext;
 import com.emc.sa.asset.BaseAssetOptionsProvider;
 import com.emc.sa.asset.annotation.Asset;
 import com.emc.sa.asset.annotation.AssetNamespace;
+import com.emc.sa.service.vipr.rackhd.RackHdUtils;
 import com.emc.sa.service.vipr.rackhd.gson.AssetOptionPair;
 import com.emc.sa.service.vipr.rackhd.gson.Workflow;
 import com.emc.sa.service.vipr.rackhd.gson.WorkflowDefinition;
+import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.rackhd.api.restapi.RackHdRestClient;
 import com.emc.storageos.rackhd.api.restapi.RackHdRestClientFactory;
 import com.emc.vipr.model.catalog.AssetOption;
 import com.google.gson.Gson;
 import com.google.gson.JsonSyntaxException;
-import com.sun.jersey.api.client.ClientResponse;
 
 @Component
 @AssetNamespace("rackhd")
@@ -40,13 +42,6 @@ public class RackHdProvider extends BaseAssetOptionsProvider {
 
     private RackHdRestClient restClient;
 
-    // TODO: move these hard-coded strings out
-    private static final String USER = "root";
-    private static final String PASSWORD = "ChangeMe1!";
-    private static final String RACKHDSCHEME = "http"; // include, else URI.resolve(..) fails
-    private static final String RACKHDSERVER = "lgloc189.lss.emc.com";
-    private static final String RACKHDSERVERPORT = "8080";
-
     // constants
     private static final String RACKHD_API_WORKFLOWS = "/api/1.1/workflows";
     private static final int RACKHD_WORKFLOW_CHECK_INTERVAL = 1; // secs
@@ -55,6 +50,10 @@ public class RackHdProvider extends BaseAssetOptionsProvider {
     private static final String WORKFLOW_TIMEOUT_RESPONSE = "[{\"key\":\"TIMEOUT_ERROR\",\"value\":\"TIMEOUT_ERROR\"}]";
     private static final String RACKHD_API_WORKFLOW_LIBRARY = "/api/1.1/workflows/library/*";
 
+    // special JSON svc descriptors like assetType.rackhd.node 
+    private static final String ASSET_TYPE_NODE = "node";
+    private static final String ASSET_TYPE_WORKFLOW = "workflow";
+    
     // JSON converter
     private static Gson gson = new Gson();
 
@@ -74,8 +73,10 @@ public class RackHdProvider extends BaseAssetOptionsProvider {
         factory.setSocketConnectionTimeoutMs(3600000);
         factory.setConnectionTimeoutMs(3600000);
         factory.init();
-        String endpoint = RACKHDSCHEME + "://" + RACKHDSERVER + ":" + RACKHDSERVERPORT;
-        restClient = (RackHdRestClient) factory.getRESTClient(URI.create(endpoint), USER, PASSWORD, true);
+        String endpoint = RackHdUtils.RACKHDSCHEME + "://" +
+                RackHdUtils.RACKHDSERVER + ":" + RackHdUtils.RACKHDSERVERPORT;
+        restClient = (RackHdRestClient) factory.getRESTClient(URI.create(endpoint),
+                RackHdUtils.USER, RackHdUtils.PASSWORD, true);
     }
 
     @Override
@@ -84,41 +85,95 @@ public class RackHdProvider extends BaseAssetOptionsProvider {
         return assetTypeName.startsWith(ASSET_NAMESPACE_TAG + "."); 
     }
 
+    Map<String,String> parentAssetParams = new HashMap<>();
+    
     @Override
     public List<AssetOption> getAssetOptions(AssetOptionsContext context, String assetTypeName,
-            Map<String, String> availableAssets) { 
-        thisAssetType = assetTypeName.substring(ASSET_NAMESPACE_TAG.length() + 1); 
+            Map<String, String> availableAssets) {
+    
+        parentAssetParams.clear();
+        for(String parentAssetName: getAssetDependencies(assetTypeName,availableAssets.keySet())) {
+            String parentAssetValue = availableAssets.get(parentAssetName);
+
+            // TODO: possible bug:  sometimes param values have quotes (same in RackHDService)
+            if(parentAssetValue != null) {
+                if( parentAssetValue.equals("\"\"")) {
+                    parentAssetValue = "";
+                } else if ( parentAssetValue.length() > 2 &&
+                        parentAssetValue.endsWith("\"") && parentAssetValue.startsWith("\"")) {
+                    parentAssetValue = parentAssetValue.substring(1, parentAssetValue.length()-1);
+                    warn("Removing quotes from param " + parentAssetName + ":" + parentAssetValue +
+                            "  (Result: " + parentAssetValue + ")");
+                }
+            }
+
+            // TODO: consider refactoring the way we handle None/null params
+            if(parentAssetValue.equalsIgnoreCase("null")) {  
+                continue; // skip "null"
+            }
+
+            parentAssetParams.put(parentAssetName.split("\\.")[1], parentAssetValue);
+            info(assetTypeName + " depends on " + parentAssetName +
+                    " = " + parentAssetValue);
+        }
+        
+        thisAssetType = assetTypeName.split("\\.")[1];
         assetTypeName = ASSET_NAMESPACE_TAG + "." + ASSET_TAG;  // force to our method name 
         return super.getAssetOptions(context,assetTypeName,availableAssets); 
     } 
 
     @Override
     public List<String> getAssetDependencies(String assetType, Set<String> availableTypes) {
-        assetType =  ASSET_NAMESPACE_TAG + "." + ASSET_TAG;  // force to our method name 
-        return super.getAssetDependencies(assetType,availableTypes); 
+        // rackhd.a1.a2 means a1 depends on a2
+        // rackhd.a1.a2.a3 means a1 depends on a2 and a3, etc
+        List<String> result = new ArrayList<>();
+        String[] assetTypeParts = assetType.split("\\.");
+        for(int i=2;i<assetTypeParts.length;i++) {
+            String assetDependsOn = assetTypeParts[0] + "." + assetTypeParts[i];
+            if(availableTypes.contains(assetDependsOn)) {
+                result.add(assetDependsOn);
+            }
+        }
+        return result;
     }
 
     @Asset(ASSET_TAG)
     public List<AssetOption> getRackHdOptions(AssetOptionsContext ctx) { 
 
-        info("Getting asset options for '" + thisAssetType + "' from RackHD.");
-
+        info("Getting asset options for '" + thisAssetType + "' from RackHD."); 
+                
         // special case (move to new provider or refactor out of here later)
-        if(thisAssetType.equalsIgnoreCase("workflow")) {
-            String workflowJson = makeRestCall(RACKHD_API_WORKFLOW_LIBRARY);
+        if(thisAssetType.equalsIgnoreCase(ASSET_TYPE_WORKFLOW)) {
+            String workflowJson = RackHdUtils.makeRestCall(RACKHD_API_WORKFLOW_LIBRARY,restClient);
             return getWorkflowOptions(workflowJson);
         }
 
+        // special case (move to new provider or refactor out of here later)
+        if(thisAssetType.equalsIgnoreCase(ASSET_TYPE_NODE)) {
+            String workflowJson = RackHdUtils.makeRestCall(RackHdUtils.RACKHD_API_NODE,restClient);
+            return RackHdUtils.getNodeOptions(workflowJson);
+        }
+
+        // if node ID available, use in API call
+        // TODO: verify that node ID exists & is valid? (user
+        //   could randomly create a field called 'node' for something else) 
+        String apiUrl = parentAssetParams.containsKey(ASSET_TYPE_NODE) ?
+                RackHdUtils.RACKHD_API_NODE + "/" + 
+                parentAssetParams.get(ASSET_TYPE_NODE) + "/workflows" :
+                RACKHD_API_WORKFLOWS;
+
         // Start the RackHD workflow to get options
-        String workflowResponse = makeRestCall(RACKHD_API_WORKFLOWS,
-                makePostBody(thisAssetType));
+        String workflowResponse = RackHdUtils.makeRestCall(apiUrl,
+                makePostBody(),restClient);
+
+        info("Started RackHD Workflow " + getWorkflowTaskId(workflowResponse));
 
         // Get results (waiting for RackHD workflow to complete)
         int intervals = 0;
         while ( !isWorkflowSuccess(workflowResponse) ) {
             sleep(RACKHD_WORKFLOW_CHECK_INTERVAL);
-            workflowResponse = makeRestCall(RACKHD_API_WORKFLOWS + "/" + 
-                    getWorkflowTaskId(workflowResponse));
+            workflowResponse = RackHdUtils.makeRestCall(RACKHD_API_WORKFLOWS + "/" +
+                    getWorkflowTaskId(workflowResponse),restClient);
             if( isTimedOut(++intervals) ) {
                 error("RackHD workflow " + getWorkflowTaskId(workflowResponse) + " timed out.");
                 return jsonToOptions(Arrays.asList(WORKFLOW_TIMEOUT_RESPONSE));
@@ -161,8 +216,7 @@ public class RackHdProvider extends BaseAssetOptionsProvider {
     }
 
     private boolean isWorkflowSuccess(String workflowResponse) {
-        Workflow rackHdWorkflow = getWorkflowObjFromJson(workflowResponse);  
-        info("RackHD workflow status=" + rackHdWorkflow.get_status());
+        Workflow rackHdWorkflow = getWorkflowObjFromJson(workflowResponse);
         return rackHdWorkflow.get_status().equalsIgnoreCase(WORKFLOW_SUCCESS_STATE);
     }
 
@@ -170,9 +224,21 @@ public class RackHdProvider extends BaseAssetOptionsProvider {
         return gson.fromJson(workflowResponse,Workflow.class);
     }
 
-    private String makePostBody(String thisAssetType) {
-        return "{\"name\": \"assetType." + ASSET_NAMESPACE_TAG + 
-                "." + thisAssetType + "\"}";
+    private String makePostBody() {
+        StringBuffer postBody = new StringBuffer("{\"name\": \"assetType." + 
+                ASSET_NAMESPACE_TAG + "." + thisAssetType + "\"");
+        if(!parentAssetParams.isEmpty()) {
+           postBody.append(",\"options\":{");
+           for(String parentAssetParam : parentAssetParams.keySet()) {
+               postBody.append("\"" + parentAssetParam + "\":\"" +
+                       parentAssetParams.get(parentAssetParam) +
+                       "\",");
+           }
+           postBody.deleteCharAt(postBody.length()-1); // remove last comma
+           postBody.append("}");
+        }
+        postBody.append("}");; 
+        return postBody.toString();
     }
 
     private List<AssetOption> jsonToOptions(List<String> ansibleResultFiles) {
@@ -208,30 +274,5 @@ public class RackHdProvider extends BaseAssetOptionsProvider {
         } 
     }
 
-    private String makeRestCall(String uriString) {
-        return makeRestCall(uriString,null);
-    }
-
-    private String makeRestCall(String uriString, String postBody) {
-        info("RackHD request uri: " + uriString);
-
-        ClientResponse response = null;
-        if(postBody == null) {
-            response = restClient.get(uri(uriString));
-        } else {
-            info("RackHD request post body: " + postBody);
-            response = restClient.post(uri(uriString),postBody);
-        }
-
-        String responseString = null;
-        try {
-            responseString = IOUtils.toString(response.getEntityInputStream(),"UTF-8");
-        } catch (IOException e) {
-            error("Error getting response from RackHD for: " + uriString +
-                    " :: "+ e.getMessage());
-            e.printStackTrace();
-        }
-        return responseString;
-    }
 
 }

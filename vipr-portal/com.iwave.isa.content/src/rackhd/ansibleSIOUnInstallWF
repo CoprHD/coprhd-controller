@@ -1,0 +1,24 @@
+{
+ "friendlyName": "Uninstall ScaleIO",
+ "injectableName": "Uninstall.ScaleIO",
+ "options": {
+  "defaults": {
+   "playbook": "/ScaleIO/ansible-scaleio/uninstall_scaleio.yml",
+   "vars": {
+    "sio_name": "ScaleIO_via_RackHD",
+    "sio_ip_address": "{{ ansible_hostname }}",
+    "sio_use_ssl": "true",
+    "sio_port_number": "443",
+    "sio_user_name": "admin",
+    "sio_password": "Cluster1!"
+   }
+  },
+ "properties": {}
+ },
+ "tasks": [
+  {
+   "label": "Install ScaleIO Task",
+   "taskName": "Task.Ansible"
+  }
+ ]
+}

@@ -1,13 +1,17 @@
 
-  - set_fact: body='{"count":"{{ NumberOfVolumes }}","name":"{{ VolumeName }}","project":"{{ Project }}","size":"{{ Size }}","varray":"{{ VirtualArray }}","vpool":"{{ VirtualPool }}" }' #" 
+  - name: Set body for REST volume create call to ViPR
+    set_fact: body='{"count":"{{ NumberOfVolumes }}","name":"{{ VolumeName }}","project":"{{ Project }}","size":"{{ Size }}","varray":"{{ VirtualArray }}","vpool":"{{ VirtualPool }}" }' #" 
 
-  - set_fact: path="/block/volumes.json"
+  - name: Set path for REST call
+    set_fact: path="/block/volumes.json"
 
-  - include: playbook-rest-request.yml
+  - name: include script for REST request
+    include: playbook-rest-request.yml
 
-    # ansibleResultFile is passed in by RackHD's ansible-job.js
-  - lineinfile: dest='{{ ansibleResultFile }}' line='{{ restResult.content }}' create='yes'
+  - name: Write results of volume create call out to Ansible result file
+    lineinfile: dest='{{ansibleResultFile}}' line=' {{restResult.content}}' create='yes' 
 
-  - fail: msg="Create Volume {{ VolumeName }} failed"
+  - name: Check for failure based on HTTP return code
+    fail: msg="Create Volume {{ VolumeName }} failed.  {{ restResult }}"
     when: restResult.status|int >299
 

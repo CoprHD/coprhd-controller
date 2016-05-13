@@ -954,6 +954,12 @@ public class BlockService extends TaskResourceService {
         ArgValidator.checkEntity(tenant, project.getTenantOrg().getURI(), false);
         CapacityUtils.validateQuotasForProvisioning(_dbClient, vpool, project, tenant, size, "volume");
 
+        // set compute param
+        URI computeURI = param.getComputeResource();
+        if (!NullColumnValueGetter.isNullURI(computeURI)) {
+            capabilities.put(VirtualPoolCapabilityValuesWrapper.COMPUTE, computeURI.toString());
+        }
+
         // COP-14028
         // Changing the return of a TaskList to return immediately while the underlying tasks are
         // being built up. Steps:

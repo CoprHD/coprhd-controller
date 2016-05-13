@@ -9,6 +9,7 @@ import static com.emc.storageos.api.mapper.TaskMapper.toTask;
 
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -24,6 +25,8 @@ import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.api.service.impl.resource.AbstractBlockServiceApiImpl;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
+import com.emc.storageos.customconfigcontroller.CustomConfigConstants;
+import com.emc.storageos.customconfigcontroller.impl.CustomConfigHandler;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
@@ -34,7 +37,9 @@ import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.BlockMirror;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.BlockSnapshot;
+import com.emc.storageos.db.client.model.Cluster;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
+import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.model.OpStatusMap;
 import com.emc.storageos.db.client.model.Operation;
@@ -72,6 +77,7 @@ import com.emc.storageos.volumecontroller.impl.utils.ProvisioningAttributeMapBui
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
 import com.emc.storageos.volumecontroller.impl.utils.attrmatchers.CapacityMatcher;
 import com.emc.storageos.volumecontroller.impl.utils.attrmatchers.MaxResourcesMatcher;
+import com.google.common.base.Joiner;
 
 /**
  * Basic storage scheduling functions of block and file storage. StorageScheduler is done based on desired
@@ -79,9 +85,14 @@ import com.emc.storageos.volumecontroller.impl.utils.attrmatchers.MaxResourcesMa
  */
 public class StorageScheduler implements Scheduler {
     public static final Logger _log = LoggerFactory.getLogger(StorageScheduler.class);
+
+    final private static String GLOBAL_CUSTOM_CONFIG_SCOPE = "global";
+    final private static int DEFAULT_HOST_RESOURCE_POOL_UTILIZATION_CEILING = 100;
+
     private DbClient _dbClient;
 
     private CoordinatorClient _coordinator;
+    private CustomConfigHandler _customConfigHandler;
     private PortMetricsProcessor _portMetricsProcessor;
 
     private final Comparator<StoragePool> _storagePoolComparator = new StoragePoolFreeCapacityComparator();
@@ -93,6 +104,10 @@ public class StorageScheduler implements Scheduler {
 
     public void setCoordinator(CoordinatorClient coordinator) {
         _coordinator = coordinator;
+    }
+
+    public void setCustomConfigHandler(CustomConfigHandler customConfigHandler) {
+        _customConfigHandler = customConfigHandler;
     }
 
     public void setPortMetricsProcessor(PortMetricsProcessor portMetricsProcessor) {
@@ -381,6 +396,15 @@ public class StorageScheduler implements Scheduler {
         // Get pools for VirtualPool and VirtualArray
         List<StoragePool> matchedPoolsForCos = VirtualPool.getValidStoragePools(vpool, _dbClient, true);
 
+        if (matchedPoolsForCos.isEmpty()) {
+            _log.warn("vPool {} does not have any valid storage pool in vArray {}.",
+                    vpool.getId(), varray.getId());
+            throw APIException.badRequests.noStoragePoolsForVpoolInVarray(varray.getLabel(), vpool.getLabel());
+        }
+
+        // Filter out non-qualified pools based on host resource placement policy
+        applyHostResourcePlacementPolicy(varray, vpool, capabilities, matchedPoolsForCos);
+
         AttributeMapBuilder provMapBuilder = new ProvisioningAttributeMapBuilder(capabilities.getSize(),
                 varrayId, capabilities.getThinVolumePreAllocateSize());
         provMapBuilder.putAttributeInMap(AttributeMatcher.Attributes.provisioning_type.toString(),
@@ -548,6 +572,92 @@ public class StorageScheduler implements Scheduler {
     }
 
     /**
+     * Apply host resource placement policies
+     *
+     * @param vArray [in] - VirtualArray.
+     * @param vPool [in] - VirtualPool.
+     * @param capabilities [in/out] - VirtualPoolCapabilityValuesWrapper.
+     * @param candidatePools [in/out] - list of candidate StoragePools.
+     * @throws BadRequestException
+     */
+    private void applyHostResourcePlacementPolicy(VirtualArray vArray, VirtualPool vPool, VirtualPoolCapabilityValuesWrapper capabilities,
+            List<StoragePool> candidatePools) {
+        String compute = capabilities.getCompute();
+        boolean hostResourceSpanMultiplePools = true;
+        int poolUtilCeiling = DEFAULT_HOST_RESOURCE_POOL_UTILIZATION_CEILING;
+        URI computeAffiliatedPool = null;
+
+        if (compute != null) {
+            // check if resource can span multiple pools
+            hostResourceSpanMultiplePools = Boolean.valueOf(_customConfigHandler.getComputedCustomConfigValue(
+                    CustomConfigConstants.HOST_RESOURCE_SPAN_MULTIPLE_POOLS, GLOBAL_CUSTOM_CONFIG_SCOPE, null));
+            poolUtilCeiling = Integer.valueOf(
+                    _customConfigHandler.getComputedCustomConfigValue(
+                            CustomConfigConstants.HOST_RESOURCE_POOL_UTILIZATION_CEILING,
+                            GLOBAL_CUSTOM_CONFIG_SCOPE, null));
+            if (poolUtilCeiling <= 0 || poolUtilCeiling > 100) {
+                poolUtilCeiling = DEFAULT_HOST_RESOURCE_POOL_UTILIZATION_CEILING;
+            }
+
+            // find out affiliated pool if resource span is not allowed
+            if (!hostResourceSpanMultiplePools) {
+                computeAffiliatedPool = getAffiliatedPool(compute);
+            }
+        }
+
+        // the param will be used in getRecommendationsForPools
+        capabilities.put(VirtualPoolCapabilityValuesWrapper.ALLOW_HOST_RESOURCE_SPAN, hostResourceSpanMultiplePools);
+
+        if (compute != null &&
+                (!hostResourceSpanMultiplePools || poolUtilCeiling != DEFAULT_HOST_RESOURCE_POOL_UTILIZATION_CEILING)) {
+            for (Iterator<StoragePool> iter = candidatePools.iterator(); iter.hasNext();) {
+                StoragePool pool = iter.next();
+                if ((!NullColumnValueGetter.isNullURI(computeAffiliatedPool) && !computeAffiliatedPool.equals(pool)) ||
+                        (poolUtilCeiling != DEFAULT_HOST_RESOURCE_POOL_UTILIZATION_CEILING &&
+                        pool.getSubscribedCapacity().doubleValue() / pool.getTotalCapacity() > poolUtilCeiling)) {
+                    iter.remove();
+                }
+            }
+
+            if (!candidatePools.isEmpty()) {
+                _log.info("Candidate pool(s) {} for host/cluster {}", Joiner.on(',').join(candidatePools), compute);
+            } else {
+                _log.warn("vPool {} does not have required storage pool in vArray {}.",
+                        vPool.getId(), vArray.getId());
+                throw APIException.badRequests.noStoragePoolsForVpoolInVarray(vArray.getLabel(), vPool.getLabel());
+            }
+        }
+    }
+
+    /**
+     * Find out storage pool of existing mapped volumes of a host/cluster
+     *
+     * @param compute URI string of host or cluster
+     * @return storage pool URI, or null
+     */
+    private URI getAffiliatedPool(String compute) {
+        // get host/cluster's affiliated pool
+        boolean isCluster = URIUtil.isType(URIUtil.uri(compute), Cluster.class);
+        List<ExportGroup> exportGroups = CustomQueryUtility.queryActiveResourcesByConstraint(_dbClient, ExportGroup.class,
+                AlternateIdConstraint.Factory.getConstraint(ExportGroup.class, isCluster ? "clusters" : "hosts", compute));
+        // find a volume exported to the host/cluster
+        for (ExportGroup exportGroup : exportGroups) {
+            StringMap volumes = exportGroup.getVolumes();
+            if (volumes != null && !volumes.isEmpty()) {
+                for (String volumeURIStr : volumes.keySet()) {
+                    URI volumeURI = URI.create(volumeURIStr);
+                    if (URIUtil.isType(volumeURI, Volume.class)) {
+                        Volume volume = _dbClient.queryObject(Volume.class, URI.create(volumeURIStr));
+                        return volume.getPool();
+                    }
+                }
+            }
+        }
+
+        return null;
+    }
+
+    /**
      * Returns first storage pool from the passed list of candidate storage
      * pools that has at least the passed free capacity.
      * Note: do not change order of candidate pools.
@@ -676,13 +786,33 @@ public class StorageScheduler implements Scheduler {
         // be recommended.
         URI cgURI = capabilities.getBlockConsistencyGroup();
         int count = capabilities.getResourceCount();
+
+        // If not allowing host resource span, find recommendation from each pool
+        if ((count > 1) && !capabilities.getAllowHostResourceSpan()) {
+            // Sorting the pools here ensures they are in the desired order
+            sortPools(candidatePools);
+
+            // Now attempt to find a recommendation from storage pools until we find a
+            // a recommendation or run out of pools
+            for (StoragePool pool :  candidatePools) {
+                List<Recommendation> recommendations = getRecommendedPools(varrayId,
+                        Arrays.asList(pool), capabilities, false);
+                if (!recommendations.isEmpty()) {
+                    return recommendations;
+                }
+            }
+
+            // No recommendations found on any pool
+            return new ArrayList<Recommendation>();
+        }
+
         if ((count > 1) && (!NullColumnValueGetter.isNullURI(cgURI))) {
             BlockConsistencyGroup cg = _dbClient.queryObject(BlockConsistencyGroup.class, cgURI);
             if (cg == null) {
                 throw APIException.internalServerErrors.invalidObject(cgURI.toString());
             }
 
-            if (!cg.created()) {
+            if (!cg.created()) { // don't know ConsistencyGroup's StorageSystem type yet
                 // Sorting the pools here ensures they are in the desired order
                 // and will be in the desired order for each storage system.
                 sortPools(candidatePools);
@@ -696,6 +826,13 @@ public class StorageScheduler implements Scheduler {
                 Map<URI, List<StoragePool>> systemPoolMap = new LinkedHashMap<URI, List<StoragePool>>();
                 for (StoragePool candidatePool : candidatePools) {
                     URI systemURI = candidatePool.getStorageDevice();
+
+                    // For IBM XIV, all volumes in a CG must be in same pool
+                    // create an entry per pool, instead of per array
+                    if (PoolClassNames.IBMTSDS_VirtualPool.name().equals(candidatePool.getPoolClassName())) {
+                        systemURI = candidatePool.getId();
+                    }
+
                     List<StoragePool> systemPools = null;
                     if (systemPoolMap.containsKey(systemURI)) {
                         systemPools = systemPoolMap.get(systemURI);
@@ -780,16 +917,6 @@ public class StorageScheduler implements Scheduler {
             if (poolWithRequiredCapacity != null) {
                 StoragePool recommendedPool = poolWithRequiredCapacity;
                 candidatePools.remove(recommendedPool);
-
-                // IBM XIV needs all volumes in the same pool in order to add to a CG
-                if (recommendedPool.getPoolClassName() != null
-                        && recommendedPool.getPoolClassName().equals(PoolClassNames.IBMTSDS_VirtualPool.name())
-                        && capabilities.getBlockConsistencyGroup() != null
-                        && currentCount != capabilities.getResourceCount()) {
-                    // can not put all resources to the same IBM XIV pool
-                    _log.info("Skip IBM XIV pool {} as it doesn't have enough space to support all the resources", recommendedPool.getId());
-                    continue;
-                }
 
                 _log.debug("Recommending storage pool {} for {} resources.",
                         recommendedPool.getId(), currentCount);

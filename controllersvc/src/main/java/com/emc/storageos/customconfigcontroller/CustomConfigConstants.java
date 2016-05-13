@@ -77,5 +77,6 @@ public interface CustomConfigConstants {
     public String USE_PHYSICAL_NAS_FOR_PROVISIONING = "NasUsePhysicalNASForProvisioning";
     public String SHARE_VNAS_WITH_MULTIPLE_PROJECTS = "NasShareVNASWithMultipleProjects";
     
-    
+    public String HOST_RESOURCE_SPAN_MULTIPLE_POOLS = "HostResourceSpanMultiplePools";
+    public String HOST_RESOURCE_POOL_UTILIZATION_CEILING = "HostResourcePoolUtilizationCeiling";
 }

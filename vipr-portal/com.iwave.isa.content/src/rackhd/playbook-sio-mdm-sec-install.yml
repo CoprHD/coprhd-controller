@@ -1,0 +1,51 @@
+--- 
+- name:  set up facts
+  hosts: rackhd
+  become: yes 
+  tasks:
+
+  - set_fact: scaleio_password="Cluster1!"
+  - debug: var=scaleio_password
+
+  - set_fact: scaleio_mdm_primary_ip="{{ Interface }}" #"
+  - debug: var=scaleio_mdm_primary_ip
+
+  - set_fact: scaleio_mdm_primary_hostname="{{ ansible_fqdn }}" #"
+  - debug: var=scaleio_mdm_primary_hostname
+
+    #-------------- common ----------------
+  - name: install required packages
+    yum: name="{{ item }}" state=latest   #"
+    with_items:
+       - numactl
+       - libaio
+    #-------------------------------------- 
+  - name: install pre-requisite packages
+    yum: name={{ item }} state=latest
+    with_items:
+    - mutt
+    - bash-completion
+    - python
+  
+  - name: pre-requisite on rhel6 based os
+    sysctl: name=kernel.shmmax value=209715200
+    when: ansible_os_family == "RedHat" and ansible_distribution_major_version == "6" 
+    #--------------------------------------------------
+    #- include: ../../install_scaleio.yml
+  - name: copy files
+    copy: src="{{ item }}" dest="/var/tmp/" mode="0644"
+    register: file
+    with_fileglob:
+      - "files/*mdm*.rpm"
+  
+  - name: install package
+    yum: name="{{ file.results[0].dest }}" state="present"
+    environment:
+      MDM_IP: "{{scaleio_mdm_primary_ip}}"
+    
+    #--------------------------------------------
+  - name: secondary node login
+    command: scli --login --mdm_ip {{ scaleio_mdm_primary_ip }} --username admin --password {{ scaleio_password }} 
+
+  - name: add secondary mdm
+    command: scli --add_secondary_mdm --mdm_ip {{ scaleio_mdm_primary_ip }} --secondary_mdm_ip "{{ hostvars[groups['mdm'][1]]['ansible_'+scaleio_interface]['ipv4']['address'] }}" 

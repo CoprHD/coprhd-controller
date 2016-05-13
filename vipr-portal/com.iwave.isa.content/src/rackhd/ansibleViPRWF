@@ -3,9 +3,8 @@
  "injectableName": "Ansible.ViPR.Workflow", 
  "tasks": [
   {
-   "label": "ViPR Task",
-   "taskName": "Task.Ansible",
-   "ignoreFailure": true 
+   "label": "Ansible ViPR Task",
+   "taskName": "Task.ViPR.Ansible"
   }
  ]
 }

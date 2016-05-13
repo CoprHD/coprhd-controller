@@ -3,7 +3,8 @@
   "injectableName": "Task.ViPR.Varrays.Get",
   "implementsTask": "Task.Base.Ansible",
   "options": {
-    "playbook": "/root/ansible-work/playbook-vipr-options-varrays.yml" 
+    "playbook": "/root/ansible-work/playbook-vipr-options-varrays.yml",
+    "limit": "localhost"
   },
   "properties": {}
 } 

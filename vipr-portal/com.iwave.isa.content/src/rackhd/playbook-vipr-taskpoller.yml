@@ -1,0 +1,19 @@
+
+  - name: Make REST Request for status of ViPR Task {{task.id}}
+    uri:
+      url: https://{{ host_address }}:{{ port }}/vdc/tasks/{{task.id}}.json
+      validate_certs: no  # TODO: enable for production
+      HEADER_X-SDS-AUTH-TOKEN: "{{ loginToken|default(omit) }}"
+      HEADER_Content-Type: "application/json"
+      body_format: json
+      method: "GET" 
+      return_content: yes 
+    register: restResult
+    until: restResult.json.state != 'pending'
+    retries: 60
+    delay: 10
+
+  - name: Failing workflow if ViPR task fails
+    fail: msg="Task failed {{ task.name }} {{ task.id }}" #"
+    when: restResult.json.state == 'error'
+

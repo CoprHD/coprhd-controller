@@ -1,6 +1,5 @@
 ---
-- hosts: vipr
-  connection: local #commands run on this server (not remotely)
+- hosts: localhost 
   tasks:
 
   - include: playbook-vipr-login.yml

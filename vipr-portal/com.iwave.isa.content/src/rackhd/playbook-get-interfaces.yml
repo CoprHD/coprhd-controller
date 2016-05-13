@@ -1,5 +1,5 @@
 ---
-- hosts: all 
+- hosts: rackhd
   tasks:
 
   - file: path={{ansibleResultFile}} state=touch mode="u=rw,g=r,o=r"
@@ -8,13 +8,13 @@
   - lineinfile: dest={{ ansibleResultFile }} line="["
 
   - lineinfile: dest={{ ansibleResultFile }} 
-                line="{\"name\":\""{{ item }}"\",\"id\":\""{{ hostvars[inventory_hostname]['ansible_' + item]['ipv4']['address'] }}"\"},"
+                line=" {\"name\":\"{{ item }} ({{ hostvars[inventory_hostname]['ansible_' + item]['ipv4']['address'] }})\",\"id\":\"{{ hostvars[inventory_hostname]['ansible_' + item]['ipv4']['address'] }}\"},"
     with_items:
       - "{{ansible_interfaces}}"
     when: hostvars[inventory_hostname]['ansible_' + item]['ipv4']['address'] is defined
 
-    # replace last instance of line ending with comma with line, minus the comma
-  - lineinfile: dest={{ ansibleResultFile }} regexp="^(.*),$" line="\1" backrefs=yes
+  - lineinfile: dest={{ ansibleResultFile }} line=" {\"name\":\"None\",\"id\":\"null\"}"
+
     # end file with bracket for end of list
   - lineinfile: dest={{ ansibleResultFile }} line="]"
 

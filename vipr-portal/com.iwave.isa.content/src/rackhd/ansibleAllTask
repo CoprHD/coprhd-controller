@@ -1,0 +1,11 @@
+{
+  "friendlyName": "Ansible All Task",
+  "injectableName": "Task.All.Ansible",
+  "implementsTask": "Task.Base.Ansible",
+  "options": {
+    "playbook": "playbook.yml",
+    "limit": "all",
+    "vars": {} 
+  },
+  "properties": {}
+} 

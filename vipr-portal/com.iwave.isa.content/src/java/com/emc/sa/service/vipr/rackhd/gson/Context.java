@@ -4,7 +4,7 @@ public class Context {
     private String[] ansibleResultFile;
 
     public String[] getAnsibleResultFile() {
-        return ansibleResultFile;
+        return ansibleResultFile == null ? new String[0] : ansibleResultFile;
     }
 
     public void setAnsibleResultFile(String[] ansibleResultFile) {

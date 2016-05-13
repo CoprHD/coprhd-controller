@@ -160,6 +160,8 @@ public class VirtualPoolChangeAnalyzer extends DataObjectChangeAnalyzer {
         if (migrateVolume) {
             return VirtualPoolChangeOperationEnum.DATA_MIGRATION;
         }
+
+        return null;
     }
 
     /**

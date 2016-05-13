@@ -3211,10 +3211,10 @@ public class BlockProvider extends BaseAssetOptionsProvider {
     }
 
     /**
-     * Return true if the volume is an IBM XIV volume
+     * Check if volume is an IBM XIV volume
      *
-     * @param vol
-     * @return
+     * @param vol VolumeRestRep instance to be checked.
+     * @return true if the volume is an IBM XIV volume, false otherwise
      */
     private boolean isIBMXIVVolume(VolumeRestRep vol) {
         return vol != null && IBMXIV_SYSTEM_TYPE.equals(vol.getSystemType());

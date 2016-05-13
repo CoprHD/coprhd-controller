@@ -103,7 +103,7 @@ import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValues
 public class XIVSmisStorageDevice extends DefaultBlockStorageDevice {
     private static final Logger _log = LoggerFactory
             .getLogger(XIVSmisStorageDevice.class);
-    private static final String EMTPY_CG_NAME = " ";
+    private static final String EMPTY_CG_NAME = " ";
     private DbClient _dbClient;
     protected XIVSmisCommandHelper _helper;
     private IBMCIMObjectPathFactory _cimPath;
@@ -750,7 +750,7 @@ public class XIVSmisStorageDevice extends DefaultBlockStorageDevice {
             }
 
             // CG has not really been created on array side yet, but to ViPR it is created
-            consistencyGroup.addSystemConsistencyGroup(storage.getId().toString(), EMTPY_CG_NAME);
+            consistencyGroup.addSystemConsistencyGroup(storage.getId().toString(), EMPTY_CG_NAME);
             consistencyGroup.setStorageController(storage.getId());
             consistencyGroup.addConsistencyGroupTypes(Types.LOCAL.name());
             _dbClient.persistObject(consistencyGroup);
@@ -773,7 +773,7 @@ public class XIVSmisStorageDevice extends DefaultBlockStorageDevice {
             // Check if the consistency group does exist
             String groupName = _helper
                     .getConsistencyGroupName(consistencyGroup, storage);
-            if (groupName != null && !groupName.equals(EMTPY_CG_NAME)) {
+            if (groupName != null && !groupName.equals(EMPTY_CG_NAME)) {
                 CIMObjectPath cgPath = _cimPath.getConsistencyGroupPath(
                         storage, groupName);
                 CIMInstance cgPathInstance = _helper.checkExists(storage,
@@ -1061,7 +1061,7 @@ public class XIVSmisStorageDevice extends DefaultBlockStorageDevice {
 
         String groupName = _helper.getConsistencyGroupName(consistencyGroup,
                 storageSystem);
-        if (groupName.equals(EMTPY_CG_NAME)) { // may also check if CG
+        if (groupName.equals(EMPTY_CG_NAME)) { // may also check if CG
                                                // instance
             // exists on array, or not, if
             // not, re-create it here
@@ -1084,7 +1084,7 @@ public class XIVSmisStorageDevice extends DefaultBlockStorageDevice {
             // somehow, removing before adding won't work
             consistencyGroup.addSystemConsistencyGroup(storageSystem.getId().toString(), deviceName);
             consistencyGroup.removeSystemConsistencyGroup(storageSystem.getId()
-                    .toString(), EMTPY_CG_NAME);
+                    .toString(), EMPTY_CG_NAME);
             _dbClient.persistObject(consistencyGroup);
         } else {
             // existing CG, add volumes to the CG

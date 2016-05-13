@@ -43,10 +43,10 @@ public class ChangeBlockVolumeVirtualArray extends WaitForTasks<VolumeRestRep> {
         param.setVirtualArray(targetVirtualArrayId);
         param.setVolumes(volumeIds);
         if (migrationType.equals(MigrationTypeEnum.HOST.toString())) {
-            param.setIsHostMigration(True);
+            param.setIsHostMigration(true);
            param.setMigrationHost(migrationHost);
         } else if (migrationType.equals(MigrationTypeEnum.DRIVER.toString())) {
-            param.setIsHostMigration(False);
+            param.setIsHostMigration(false);
         }
         return getClient().blockVolumes().changeVirtualArrayForVolumes(param);
     }

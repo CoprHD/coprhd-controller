@@ -9,6 +9,7 @@ import java.util.List;
 
 import com.emc.sa.service.vipr.tasks.WaitForTasks;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
+import com.emc.storageos.model.block.MigrationTypeEnum;
 import com.emc.storageos.model.block.VolumeRestRep;
 import com.emc.storageos.model.block.VolumeVirtualPoolChangeParam;
 import com.emc.vipr.client.Tasks;
@@ -43,18 +44,18 @@ public class ChangeBlockVolumeVirtualPool extends WaitForTasks<VolumeRestRep> {
 
     @Override
     protected Tasks<VolumeRestRep> doExecute() throws Exception {
-        VolumeVirtualPoolChangeParam input = new VolumeVirtualPoolChangeParam();
-        input.setVolumes(volumeIds);
-        input.setVirtualPool(targetVirtualPoolId);
+        VolumeVirtualPoolChangeParam param = new VolumeVirtualPoolChangeParam();
+        param.setVolumes(volumeIds);
+        param.setVirtualPool(targetVirtualPoolId);
         if (!NullColumnValueGetter.isNullURI(consistencyGroup)) {
-            input.setConsistencyGroup(consistencyGroup);
+            param.setConsistencyGroup(consistencyGroup);
         }
         if (migrationType.equals(MigrationTypeEnum.HOST.toString())) {
-            param.setIsHostMigration(True);
+            param.setIsHostMigration(true);
             param.setMigrationHost(migrationHost);
         } else if (migrationType.equals(MigrationTypeEnum.DRIVER.toString())) {
-            param.setIsHostMigration(False);
+            param.setIsHostMigration(false);
         }
-        return getClient().blockVolumes().changeVirtualPool(input);
+        return getClient().blockVolumes().changeVirtualPool(param);
     }
 }

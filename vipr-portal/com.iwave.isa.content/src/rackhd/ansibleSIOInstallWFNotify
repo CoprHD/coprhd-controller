@@ -1,0 +1,24 @@
+{
+ "friendlyName": "Install ScaleIO Workflow",
+ "injectableName": "Install.ScaleIO", 
+ "tasks": [
+  {
+   "label": "Install ScaleIO Task",
+   "taskName": "Task.Ansible"
+  },
+  {
+   "label": "Update IT Database",
+   "taskName": "Task.Ansible",
+   "waitOn": {
+     "Install ScaleIO Task": "complete"
+   }
+  },
+  {
+   "label": "Send Email",
+   "taskName": "Task.Ansible",
+   "waitOn": {
+     "Update IT Database": "complete"
+   }
+  }
+ ]
+}

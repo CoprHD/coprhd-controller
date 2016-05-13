@@ -1,0 +1,17 @@
+{
+  "friendlyName": "Get ScaleIO Primary MDMs",
+  "injectableName": "assetType.rackhd.sio_mdm_pri", 
+  "tasks": [
+   {
+    "label": "Locate ScaleIO MDM Primaries",
+    "taskName": "Task.ScaleIO.MDM.Primaries.Locate"
+   },
+   {
+    "label": "Collect ScaleIO MDM Primaries",
+    "taskName": "Task.ScaleIO.MDM.Primaries.Collect",
+    "waitOn": {
+      "Locate ScaleIO MDM Primaries": "finished"
+    }
+   }
+ ]
+}

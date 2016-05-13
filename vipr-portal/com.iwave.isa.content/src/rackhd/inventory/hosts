@@ -1,0 +1,5 @@
+[vipr]
+10.247.87.142
+
+[localhost]
+127.0.0.1  ansible_connection=local

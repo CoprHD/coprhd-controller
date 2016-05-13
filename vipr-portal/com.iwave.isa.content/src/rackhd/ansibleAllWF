@@ -1,0 +1,10 @@
+{
+ "friendlyName": "Ansible All Workflow",
+ "injectableName": "Ansible.All.Workflow", 
+ "tasks": [
+  {
+   "label": "Ansible All Task",
+   "taskName": "Task.All.Ansible"
+  }
+ ]
+}

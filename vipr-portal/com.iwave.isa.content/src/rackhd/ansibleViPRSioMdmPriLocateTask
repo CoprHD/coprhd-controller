@@ -1,0 +1,13 @@
+{
+  "friendlyName": "Locate ScaleIO MDM Primaries",
+  "injectableName": "Task.ScaleIO.MDM.Primaries.Locate",
+  "implementsTask": "Task.Base.Ansible",
+  "options": {
+    "playbook": "/root/ansible-work/playbook-vipr-options-sio-mdm-pri-locate.yml",
+    "limit":"all",
+    "vars":{
+     "resultFile":"/tmp/ansible-sio-mdm-pri-{{ context.graphId }}.out" 
+    }
+  },
+  "properties": {}
+} 

@@ -8,10 +8,12 @@
     # start writing JSON format with bracket for list of name:id pairs
   - lineinfile: dest={{ ansibleResultFile }} line="["
     # write pairs out to file 
-  - lineinfile: dest={{ ansibleResultFile }} line="{\"name\":\"{{ item.name }}\",\"id\":\"{{ item.id }}\"}," 
+
+  - lineinfile: dest={{ ansibleResultFile }} line=" {\"name\":\"{{ item.name }}\",\"id\":\"{{ item.id }}\"}," 
     with_items:
-      - "{{optionsData}}" 
-    # replace last instance of line ending with comma with line, minus the comma 
-  - lineinfile: dest={{ ansibleResultFile }} regexp="^(.*),$" line="\1" backrefs=yes
+      - "{{optionsData}}"
+
+  - lineinfile: dest={{ ansibleResultFile }} line=" {\"name\":\"None\",\"id\":\"null\"}"
+
     # end file with bracket for end of list
-  - lineinfile: dest={{ ansibleResultFile }} line="]"
+  - lineinfile: dest={{ ansibleResultFile }} line="]" 

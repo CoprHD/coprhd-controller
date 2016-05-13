@@ -278,9 +278,7 @@ public class SchemaUtil {
 
             _log.info("kd={}", kd);
             try {
-                //TODO: change checkAndInitSchemaOnStandBy()
-                // boolean inited = onStandby ? checkAndInitSchemaOnStandby(kd) : checkAndInitSchemaOnActive(kd, waitForSchema);
-                boolean inited = checkAndInitSchemaOnActive(kd, waitForSchema);
+                boolean inited = onStandby ? checkAndInitSchemaOnStandby(kd) : checkAndInitSchemaOnActive(kd, waitForSchema);
 
                 if (inited)  {
                     return;
@@ -350,35 +348,36 @@ public class SchemaUtil {
         return false;
     }
 
-    private boolean checkAndInitSchemaOnStandby(KeyspaceDefinition kd) throws ConnectionException{
+    private boolean checkAndInitSchemaOnStandby(KeyspaceMetadata kd) throws ConnectionException{
         _log.info("try scan and setup db on standby site ...");
         if (kd == null) {
             _log.info("keyspace not exist yet. Wait {} seconds for schema from active site", DBINIT_RETRY_INTERVAL);
             return false;
-        } else {
-            _log.info("keyspace exist already");
+        }
 
-            String currentDbSchemaVersion = _coordinator.getCurrentDbSchemaVersion();
-            if (currentDbSchemaVersion == null) {
-                _log.info("set current version for standby site {}", _service.getVersion());
-                setCurrentVersion(_service.getVersion());
-            }
-            Site currentSite = drUtil.getLocalSite();
-            if (SiteState.STANDBY_SYNCING.equals(currentSite.getState())) {
-                // Ensure schema agreement before checking the strategy options,
-                // since the strategy options from the local site might be older than the active site
-                // and shouldn't be relied on any more.
-                while (clientContext.ensureSchemaAgreement()) {
-                    // If there are unreachable nodes, wait until there is at least
-                    // one reachable node from the other site (which contains the latest db schema).
-                    if (getReachableDcCount() > 1) {
-                        break;
-                    }
+        _log.info("keyspace exist already");
+
+        String currentDbSchemaVersion = _coordinator.getCurrentDbSchemaVersion();
+        if (currentDbSchemaVersion == null) {
+            _log.info("set current version for standby site {}", _service.getVersion());
+            setCurrentVersion(_service.getVersion());
+        }
+
+        Site currentSite = drUtil.getLocalSite();
+        if (SiteState.STANDBY_SYNCING.equals(currentSite.getState())) {
+            // Ensure schema agreement before checking the strategy options,
+            // since the strategy options from the local site might be older than the active site
+            // and shouldn't be relied on any more.
+            while (clientContext.ensureSchemaAgreement()) {
+                // If there are unreachable nodes, wait until there is at least
+                // one reachable node from the other site (which contains the latest db schema).
+                if (getReachableDcCount() > 1) {
+                    break;
                 }
             }
-            checkStrategyOptions();
-            return true;
         }
+        checkStrategyOptions();
+        return true;
     }
 
     private int getReachableDcCount() {

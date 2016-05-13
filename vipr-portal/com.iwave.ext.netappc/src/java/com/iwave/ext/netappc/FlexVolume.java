@@ -341,6 +341,17 @@ public class FlexVolume {
                                 }
                             }
                         }
+                        NaElement volSnapShotAttrs = volInfo.getChildByName("volume-snapshot-attributes");
+                        if (volSpaceAttrs != null) {
+                            for (NaElement info : (List<NaElement>) volSnapShotAttrs.getChildren()) {
+                                String name = info.getName();
+                                if (attrs == null || attrs.contains(name)) {
+                                    infos.put(name, info.getContent());
+                                }
+                            }
+                        }
+
+                        
                         volumes.add(infos);
                     }
                 }

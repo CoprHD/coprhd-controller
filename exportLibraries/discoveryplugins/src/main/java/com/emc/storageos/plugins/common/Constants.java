@@ -233,6 +233,7 @@ public class Constants {
     public static final String SNAPSHOT_BLOCKS_RESERVED = "snapshot-blocks-reserved";
     public static final String SNAPSHOT_BYTES_RESERVED = "snapshot-bytes-reserved";
     public static final String SNAPSHOT_COUNT = "snapshot-count";
+    public static final String SNAPSHOT_RESERVE_SIZE = "snapshot-reserve-size";
     public static final String PARENT = "parent";
     public static final String STORAGE_DEVICE = "storageDevice";
     public static final String INITIATOR_HLU_MAP = "initiatirToHLU";

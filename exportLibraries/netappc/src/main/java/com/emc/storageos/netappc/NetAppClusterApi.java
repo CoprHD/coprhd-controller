@@ -467,9 +467,22 @@ public class NetAppClusterApi {
         } catch (Exception e) {
             _logger.info("No vSevrers discovered.");
         }
-
         return svms;
     }
+    
+    
+    public Map<String,Map<String,String>> listCifsConfig() {
+        Map<String,Map<String,String>> svms = null;
+        try {
+            netAppClusterFacade = new NetAppClusterFacade(_ipAddress, _portNumber, _userName,
+                    _password, _https);
+            svms = netAppClusterFacade.listCIFSConfig();
+        } catch (Exception e) {
+            _logger.info("No vSevrers discovered.");
+        }
+        return svms;
+    }
+
 
     public Map<String, String> systemInfo() throws NetAppCException {
         try {

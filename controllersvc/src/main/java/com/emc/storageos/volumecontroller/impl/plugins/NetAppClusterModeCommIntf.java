@@ -24,7 +24,11 @@ import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
+import com.emc.storageos.db.client.model.CifsServerMap;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
+import com.emc.storageos.db.client.model.NASServer;
+import com.emc.storageos.db.client.model.NasCifsServer;
+import com.emc.storageos.db.client.model.PhysicalNAS;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.DiscoveryStatus;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.RegistrationStatus;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.Type;
@@ -36,6 +40,7 @@ import com.emc.storageos.db.client.model.StorageProtocol;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.StringSet;
+import com.emc.storageos.db.client.model.VirtualNAS;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedCifsShareACL;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedFSExport;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedFSExportMap;
@@ -47,20 +52,25 @@ import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedSMB
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedSMBShareMap;
 import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.model.file.FileExportUpdateParams.ExportSecurityType;
+import com.emc.storageos.netapp.NetAppApi;
+import com.emc.storageos.netapp.NetAppException;
 import com.emc.storageos.netappc.NetAppCException;
 import com.emc.storageos.netappc.NetAppClusterApi;
 import com.emc.storageos.plugins.AccessProfile;
 import com.emc.storageos.plugins.BaseCollectionException;
 import com.emc.storageos.plugins.common.Constants;
+import com.emc.storageos.plugins.metering.vnxfile.VNXFileCollectionException;
 import com.emc.storageos.util.VersionChecker;
 import com.emc.storageos.volumecontroller.FileControllerConstants;
 import com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator;
 import com.emc.storageos.volumecontroller.impl.StoragePortAssociationHelper;
+import com.emc.storageos.volumecontroller.impl.plugins.metering.smis.processor.MetricsKeys;
 import com.emc.storageos.volumecontroller.impl.utils.DiscoveryUtils;
 import com.emc.storageos.volumecontroller.impl.utils.ImplicitPoolMatcher;
 import com.emc.storageos.volumecontroller.impl.utils.UnManagedExportVerificationUtility;
 import com.google.common.base.Joiner;
 import com.iwave.ext.netapp.AggregateInfo;
+import com.iwave.ext.netapp.VFilerInfo;
 import com.iwave.ext.netapp.model.ExportsHostnameInfo;
 import com.iwave.ext.netapp.model.ExportsRuleInfo;
 import com.iwave.ext.netapp.model.SecurityRuleInfo;
@@ -92,6 +102,9 @@ public class NetAppClusterModeCommIntf extends
     private static final String NFS = "NFS";
     private static final String SPACE_GUARANTEE_NONE = "none";
     private static final String VOLUME_STATE_OFFLINE = "offline";
+    private static final Long TB = 1024L * 1024L * 1024L * 1024L;
+    private static final Long QTREES_PER_VOL = 4995L;
+
 
     List<UnManagedFileExportRule> unManagedExportRulesInsert = null;
     List<UnManagedFileExportRule> unManagedExportRulesUpdate = null;
@@ -144,7 +157,28 @@ public class NetAppClusterModeCommIntf extends
     @Override
     public void collectStatisticsInformation(AccessProfile accessProfile)
             throws BaseCollectionException {
-        // TODO Auto-generated method stub
+     // Compute the load on each virtual servers!!
+        URI storageSystemId = null;
+
+        try {
+        
+        _logger.info("Metering for {} using ip {}",
+        accessProfile.getSystemId(), accessProfile.getIpAddress());
+        
+        storageSystemId = accessProfile.getSystemId();
+        
+        StorageSystem netAppArray = _dbClient.queryObject(
+                StorageSystem.class, storageSystemId);
+        computeStaticLoadMetrics(netAppArray);
+        
+        }catch(Exception e){
+            String message = "collectStatisticsInformation failed. Storage system: "
+                    + storageSystemId;
+            _logger.error(message, e);
+            throw NetAppException.exceptions.collectStatsFailed(
+                    accessProfile.getIpAddress(), accessProfile.getSystemType(), message);
+
+        }
 
     }
 
@@ -921,6 +955,11 @@ public class NetAppClusterModeCommIntf extends
                 system.getPortNumber(), system.getUsername(),
                 system.getPassword()).https(true).build();
 
+        List<VirtualNAS> newvNasServers = new ArrayList<VirtualNAS>();
+        List<VirtualNAS> existingvNasServers = new ArrayList<VirtualNAS>();
+        
+        Map<String,Map<String,String>> vnasCifsConfig = netAppCApi.listCifsConfig();
+
         StorageHADomain portGroup = null;
         List<StorageVirtualMachineInfo> svms = netAppCApi.listSVM();
         if (null == svms || svms.isEmpty()) {
@@ -1002,6 +1041,35 @@ public class NetAppClusterModeCommIntf extends
                 } else {
                     existingPortGroups.add(portGroup);
                 }
+                
+                
+                Map<String,String> cifsConfig = vnasCifsConfig.get(vs.getName());
+
+                VirtualNAS existingNas = DiscoveryUtils.findvNasByNativeId(_dbClient, system, vs.getName());
+                if (existingNas != null) {
+                    StringSet existingProtocols = existingNas.getProtocols();
+                    if (existingProtocols == null) {
+                        existingProtocols = new StringSet();
+                    }
+                    // clear existing protocols and add new protocols.
+                    existingProtocols.clear();
+                    existingProtocols.addAll(protocols);
+                    // Set the CIFS map!!
+                    setCifsServerMapForNASServer(cifsConfig, existingNas);
+                    existingNas.setNasState("LOADED");
+                    existingNas.setDiscoveryStatus(DiscoveryStatus.VISIBLE.name());
+                    existingvNasServers.add(existingNas);
+                } else {
+                    VirtualNAS vNas = createVirtualNas(system, vs);
+                    if (vNas != null) {
+                        vNas.setProtocols(protocols);
+                        // Set the CIFS map!!
+                        setCifsServerMapForNASServer(cifsConfig, vNas);
+                        newvNasServers.add(vNas);
+                    }
+                }
+            
+                
             }
         }
 
@@ -2070,5 +2138,225 @@ public class NetAppClusterModeCommIntf extends
                     port, export.getPathname(), export.getPathname());
         }
         return tempUnManagedFSExport;
+    }
+    
+    
+    /**
+     * Create Virtual NAS for the specified VNX File storage array
+     * 
+     * @param system storage system information including credentials.
+     * @param discovered VDM of the specified VNX File storage array
+     * @return Virtual NAS Server
+     * @throws VNXFileCollectionException
+     */
+    private VirtualNAS createVirtualNas(StorageSystem system, StorageVirtualMachineInfo svmInfo) {
+
+        VirtualNAS vNas = new VirtualNAS();
+
+        vNas.setNasName(svmInfo.getName());
+        vNas.setStorageDeviceURI(system.getId());
+        vNas.setNativeId(svmInfo.getName());
+        vNas.setNasState("LOADED");
+        vNas.setId(URIUtil.createId(VirtualNAS.class));
+
+        String nasNativeGuid = NativeGUIDGenerator.generateNativeGuid(
+                system, svmInfo.getName(), NativeGUIDGenerator.VIRTUAL_NAS);
+        vNas.setNativeGuid(nasNativeGuid);
+
+//        PhysicalNAS parentNas = DiscoveryUtils.findPhysicalNasByNativeId(_dbClient, system, DEFAULT_FILER);
+
+//        if (parentNas != null) {
+//            vNas.setParentNasUri(parentNas.getId());
+
+            StringMap dbMetrics = vNas.getMetrics();
+            _logger.info("new Virtual NAS created with guid {} ", vNas.getNativeGuid());
+
+            // Set the Limit Metric keys!!
+            Long maxObjects = 500L;
+            if ("FAS2220".equalsIgnoreCase(system.getModel())) {
+                maxObjects = 200L;
+            }
+            // 16TB * number of flex volumes per vserver!!
+            Long maxCapacity = 16L * TB * maxObjects;
+            Long maxExports = maxObjects * QTREES_PER_VOL;
+
+            dbMetrics.put(MetricsKeys.maxStorageCapacity.name(), String.valueOf(maxCapacity));
+            dbMetrics.put(MetricsKeys.maxStorageObjects.name(), String.valueOf(maxObjects));
+            dbMetrics.put(MetricsKeys.maxCifsShares.name(), String.valueOf(maxExports));
+            dbMetrics.put(MetricsKeys.maxNFSExports.name(), String.valueOf(maxExports));
+            vNas.setMetrics(dbMetrics);
+
+//        }
+
+        return vNas;
+    }
+
+    
+    private void computeStaticLoadMetrics(StorageSystem system) {
+
+        _logger.info("computeStaticLoanMetrics started...");
+
+                
+        NetAppClusterApi netAppCApi = new NetAppClusterApi.Builder(system.getIpAddress(),system.getPortNumber(),system.getUsername(), system.getPassword()).https(true).build();
+
+        List<StorageVirtualMachineInfo> storageVitualMachinesInfo = netAppCApi.listSVM();
+        
+        for (StorageVirtualMachineInfo svmInfo : storageVitualMachinesInfo) {
+
+            NASServer nasServer = DiscoveryUtils.findvNasByNativeId(_dbClient, system, svmInfo.getName());
+            if (nasServer == null) {
+                _logger.info("vFiler {} discovered is not found in DB; Ignored for compute metrics", svmInfo.getName());
+                continue;
+            }
+
+            
+            NetAppClusterApi ncApi = new NetAppClusterApi.Builder(system.getIpAddress(),
+                    system.getPortNumber(), system.getUsername(),
+                    system.getPassword()).https(true).svm(svmInfo.getName()).build();
+
+            _logger.info(" vServer {} ", svmInfo.getName());
+
+            int numFileSystems = 0;
+            int numSnapshots = 0;
+            Long totalFileSystemsSize = 0L;
+            Long totalSnapshotsSize = 0L;
+
+            int nfsExportsCount = 0;
+            int cifsSharesCount = 0;
+
+            List<Map<String, String>> usageStats = new ArrayList<Map<String, String>>();
+            
+            List<String> volumeNames = ncApi.listFileSystems();
+            if (volumeNames != null && !volumeNames.isEmpty()) {
+
+                _logger.debug(" {} file systems found..", volumeNames.size());
+
+                String owningvFiler = null;
+                Long size = 0L;
+                Long snapshotBytesReserved = 0L;
+                Long snapshots = 0L;
+                for (String volumeName : volumeNames) {
+                    
+                    usageStats = ncApi.listVolumeInfo(volumeName, null);
+                    _logger.info(" Scanning for filesystem {} ", volumeName);
+                    for (Map<String, String> map : usageStats) {
+                        if (map.get(Constants.OWNING_VFILER) != null) {
+                            owningvFiler = map.get(Constants.OWNING_VFILER);
+                        }
+                        if (map.get(Constants.SIZE_TOTAL) != null) {
+                            size = Long.valueOf(map.get(Constants.SIZE_TOTAL));
+                        }
+                        if (map.get(Constants.SNAPSHOT_COUNT) != null) {
+                            snapshots = Long.valueOf(map.get(Constants.SNAPSHOT_COUNT));
+                        }
+                        if (snapshots > 0 && map.get(Constants.SNAPSHOT_RESERVE_SIZE) != null) {
+                            snapshotBytesReserved = Long.valueOf(map.get(Constants.SNAPSHOT_RESERVE_SIZE));
+                        }
+                    }
+                    // Ignore the objects of other vServer--------------------------------------------!!
+                    if (owningvFiler != null && !owningvFiler.equalsIgnoreCase(svmInfo.getName())) {
+                        _logger.info(" file system {} is not belongs to vfiler {} ", volumeName, svmInfo.getName());
+                        continue;
+                    }
+
+                    _logger.debug(" file system size {} and snapshots {} ", size, snapshots);
+                    // Count the objects
+                    totalFileSystemsSize += size;
+                    totalSnapshotsSize += snapshotBytesReserved;
+                    numSnapshots += snapshots;
+                    numFileSystems++;
+                }
+
+                _logger.info(" vfiler - number of filesystems {}, snapshorts {} ", numFileSystems, numSnapshots);
+
+                // Get the list of NFS exports and Shares!!!
+                try {
+                    nfsExportsCount = ncApi.listNFSExportRules(null).size();
+                    cifsSharesCount = ncApi.listShares(null).size();
+                } catch (Exception ex) {
+                    _logger.error(" Error getting NFS and CIFS shares  {}", ex.getMessage());
+                }
+
+                _logger.info(" vfiler - number of nfsExportsCount {}, cifsSharesCount {} ", nfsExportsCount, cifsSharesCount);
+
+                // 4. Compute metrics!!!
+                StringMap dbMetrics = nasServer.getMetrics();
+                if (dbMetrics == null) {
+                    dbMetrics = new StringMap();
+                }
+                // set total nfs and cifs exports for give AZ
+                dbMetrics.put(MetricsKeys.totalNfsExports.name(), String.valueOf(nfsExportsCount));
+                dbMetrics.put(MetricsKeys.totalCifsShares.name(), String.valueOf(cifsSharesCount));
+
+                // File systems and its snapshot counts
+                // file system size and it snapshot sizes!!!
+                Long totalProvCap = totalFileSystemsSize + totalSnapshotsSize;
+                int totalStorageObjects = numFileSystems + numSnapshots;
+                dbMetrics.put(MetricsKeys.storageObjects.name(), String.valueOf(totalStorageObjects));
+                dbMetrics.put(MetricsKeys.usedStorageCapacity.name(), String.valueOf(totalProvCap));
+
+                // Maximum exports or shares should the maximum qtees!!
+                // Each share/export create a qtree.
+                Long maxExports = MetricsKeys.getLong(MetricsKeys.maxNFSExports, dbMetrics);
+
+                Long maxStorObjs = MetricsKeys.getLong(MetricsKeys.maxStorageObjects, dbMetrics);
+                Long maxCapacity = MetricsKeys.getLong(MetricsKeys.maxStorageCapacity, dbMetrics);
+
+                Long totalExports = Long.valueOf(nfsExportsCount + cifsSharesCount);
+                // setting overLoad factor (true or false)
+                String overLoaded = FALSE;
+                if (totalExports >= maxExports || totalProvCap >= maxCapacity || totalStorageObjects >= maxStorObjs) {
+                    overLoaded = TRUE;
+                }
+
+                double percentageLoadExports = 0.0;
+                // percentage calculator
+                if (totalExports > 0.0) {
+                    percentageLoadExports = ((double) (totalExports) / maxExports) * 100;
+                }
+                double percentageLoadStorObj = ((double) (totalProvCap) / maxCapacity) * 100;
+                double percentageLoad = (percentageLoadExports + percentageLoadStorObj) / 2;
+
+                dbMetrics.put(MetricsKeys.percentLoad.name(), String.valueOf(percentageLoad));
+                dbMetrics.put(MetricsKeys.overLoaded.name(), overLoaded);
+            }
+        }
+    }
+    
+    /**
+     * Set the cifs servers for NASServer
+     * 
+     * @param cifsConfig
+     *            cifs config map
+     * @param nasServer
+     *            the NAS server in which CIFS server map will be set
+     */
+    private void setCifsServerMapForNASServer(Map<String, String> cifsConfig, NASServer nasServer) {
+
+        if (nasServer == null) {
+            return;
+        }
+
+        if (cifsConfig != null && !cifsConfig.isEmpty()) {
+
+            _logger.info("Set the authentication providers for NAS: {}", nasServer.getNasName());
+            String serverName = cifsConfig.get("cifs-server-name");
+            String domain = cifsConfig.get("domain");
+
+            CifsServerMap cifsServersMap = nasServer.getCifsServersMap();
+            if (cifsServersMap != null) {
+                cifsServersMap.clear();
+            } else {
+                cifsServersMap = new CifsServerMap();
+            }
+            
+            NasCifsServer nasCifsServer = new NasCifsServer();
+            nasCifsServer.setName(serverName);
+            nasCifsServer.setDomain(domain);
+            cifsServersMap.put(serverName, nasCifsServer);
+            _logger.info("Setting provider: {} and domain: {}", serverName, domain);
+            nasServer.setCifsServersMap(cifsServersMap);
+            
+        }
     }
 }

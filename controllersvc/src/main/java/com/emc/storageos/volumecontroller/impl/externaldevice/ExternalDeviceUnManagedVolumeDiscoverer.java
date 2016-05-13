@@ -141,10 +141,6 @@ public class ExternalDeviceUnManagedVolumeDiscoverer {
             // prepare storage system
             StorageSystem driverStorageSystem = ExternalDeviceCommunicationInterface.initStorageSystem(storageSystem);
             do {
-                // Map of host FQDN to list of export info objects for unManaged volumes exported to this host
-                // Map<String, List<HostExportInfo>> hostToUnManagedVolumeExportInfoMap = new HashMap<>();
-                // Map of host FQDN to list of export info objects for managed volumes exported to this host
-                // Map<String, List<HostExportInfo>> hostToManagedVolumeExportInfoMap = new HashMap<>();
                 Map<String, List<HostExportInfo>> hostToVolumeExportInfoMap = new HashMap<>();
 
                 List<StorageVolume> driverVolumes = new ArrayList<>();
@@ -683,7 +679,7 @@ public class ExternalDeviceUnManagedVolumeDiscoverer {
                     // replace with new StringSet
                     unManagedVolumeInformation.get(
                             UnManagedVolume.SupportedVolumeInformation.FULL_COPIES.toString()).replace(unManagedClones);
-                    log.info("Replaced snaps :" + Joiner.on("\t").join(unManagedVolumeInformation.get(
+                    log.info("Replaced clones :" + Joiner.on("\t").join(unManagedVolumeInformation.get(
                             UnManagedVolume.SupportedVolumeInformation.FULL_COPIES.toString())));
                 } else {
                     unManagedVolumeInformation.put(
@@ -971,10 +967,10 @@ public class ExternalDeviceUnManagedVolumeDiscoverer {
         if (isParentVolumeInCG.equals(Boolean.TRUE.toString())) {
             // set clone consistency group name
             if (driverClone.getConsistencyGroup() != null && !driverClone.getConsistencyGroup().isEmpty()) {
-                StringSet snapCgName = new StringSet();
-                snapCgName.add(driverClone.getConsistencyGroup());
+                StringSet cloneCgName = new StringSet();
+                cloneCgName.add(driverClone.getConsistencyGroup());
                 unManagedVolume.putVolumeInfo(UnManagedVolume.SupportedVolumeInformation.FULL_COPY_CONSISTENCY_GROUP_NAME.toString(),
-                        snapCgName);
+                        cloneCgName);
             }
         }
 
@@ -1530,10 +1526,10 @@ public class ExternalDeviceUnManagedVolumeDiscoverer {
     /**
      * Validates that hostExportInfo has the same set of initiators and storage ports as provided input arguments.
      *
-     * @param initiatorNetworkIds
-     * @param storagePortNativeIds
-     * @param hostExportInfo
-     * @return
+     * @param initiatorNetworkIds [IN] Set of initiator network ids
+     * @param storagePortNativeIds [IN] Set of storage ports network ids
+     * @param hostExportInfo [IN] host export info to verify
+     * @return true if verification passed, false otherwise
      */
     boolean verifyHostExports(Set<String> initiatorNetworkIds, Set<String> storagePortNativeIds, HostExportInfo hostExportInfo) {
         if (initiatorNetworkIds == null || storagePortNativeIds == null) {

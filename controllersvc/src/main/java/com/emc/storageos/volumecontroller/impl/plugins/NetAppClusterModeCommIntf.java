@@ -1072,6 +1072,24 @@ public class NetAppClusterModeCommIntf extends
                 
             }
         }
+        
+        List<VirtualNAS> discoveredVNasServers = new ArrayList<VirtualNAS>();
+        // Persist the NAS servers!!!
+        if (existingvNasServers != null && !existingvNasServers.isEmpty()) {
+            _logger.info("discoverPortGroups - modified PhysicalNAS servers size {}", existingvNasServers.size());
+            _dbClient.updateObject(existingvNasServers);
+            discoveredVNasServers.addAll(existingvNasServers);
+        }
+
+        if (newvNasServers != null && !newvNasServers.isEmpty()) {
+            _logger.info("discoverPortGroups - new VirtualNAS servers size {}", newvNasServers.size());
+            _dbClient.createObject(newvNasServers);
+            discoveredVNasServers.addAll(newvNasServers);
+        }
+
+        // Verify the existing vnas servers!!!
+        DiscoveryUtils.checkVirtualNasNotVisible(discoveredVNasServers, _dbClient, system.getId());
+
 
         portGroups.put(NEW, newPortGroups);
         portGroups.put(EXISTING, existingPortGroups);

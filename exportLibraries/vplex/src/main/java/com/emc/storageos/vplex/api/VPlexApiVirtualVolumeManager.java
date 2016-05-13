@@ -23,6 +23,8 @@ import com.emc.storageos.vplex.api.VPlexVirtualVolumeInfo.WaitOnRebuildResult;
 import com.emc.storageos.vplex.api.clientdata.VolumeInfo;
 import com.sun.jersey.api.client.ClientResponse;
 
+import javafx.beans.binding.When;
+
 /**
  * VPlexApiVirtualVolumeManager provides methods creating and destroying virtual
  * volumes.
@@ -448,7 +450,7 @@ public class VPlexApiVirtualVolumeManager {
                     throw vae;
                 }
             }
-        } else {
+        } else if (virtualVolumeName.endsWith(VPlexApiConstants.VIRTUAL_VOLUME_SUFFIX)) {
             // Otherwise, perhaps the virtual volume creation failed and
             // the delete is being called to cleanup any intermediate
             // resources in the virtual volume stack.
@@ -1228,7 +1230,7 @@ public class VPlexApiVirtualVolumeManager {
             // If the local device is found, dismantle it.
             s_logger.info("Tearing down local device {}", deviceName);
             dismantleResource(deviceInfo.getPath(), true, true);
-        } else {
+        } else if (deviceName.startsWith(VPlexApiConstants.DEVICE_PREFIX)) {
             // Otherwise delete the extent that may exist for
             // this local device.
             s_logger.info("Destroying extents for local device {}", deviceName);

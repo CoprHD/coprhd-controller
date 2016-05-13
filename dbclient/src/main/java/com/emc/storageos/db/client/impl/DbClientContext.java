@@ -340,9 +340,6 @@ public class DbClientContext {
 
         log.info("createCF={}", createCF);
 
-        if (cassandraSession == null) {
-            cassandraSession = cassandraCluster.connect();
-        }
         cassandraSession.execute(createCF);
     }
 
@@ -374,9 +371,6 @@ public class DbClientContext {
         String alterStatement = builder.toString();
         log.info("alter statement={}", alterStatement);
 
-        if (cassandraSession == null) {
-            cassandraSession = cassandraCluster.connect();
-        }
         cassandraSession.execute(alterStatement);
     }
 
@@ -409,6 +403,7 @@ public class DbClientContext {
 
         String[] contactPoints = {LOCAL_HOST};
         cassandraCluster = initConnection(contactPoints);
+        cassandraSession = cassandraCluster.connect();
     }
 
     /**
@@ -500,7 +495,6 @@ public class DbClientContext {
     }
 
     private void createKeySpace(Map<String, String> strategyOptions) {
-        cassandraSession = cassandraCluster.connect();
         StringBuilder replications = new StringBuilder();
         boolean appendComma = false;
 
@@ -718,9 +712,5 @@ public class DbClientContext {
     protected int getNativeTransportPort() {
         int port = isGeoDbsvc() ? GEODB_NATIVE_TRANSPORT_PORT : DB_NATIVE_TRANSPORT_PORT;
         return port;
-    }
-    
-    public Session getCassandraSession() {
-        return cassandraSession;
     }
 }

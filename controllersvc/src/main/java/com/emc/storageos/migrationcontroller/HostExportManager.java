@@ -20,6 +20,9 @@ import org.slf4j.LoggerFactory;
 import com.emc.storageos.computesystemcontroller.impl.ComputeSystemHelper;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
+import com.emc.storageos.db.client.constraint.ContainmentConstraint;
+import com.emc.storageos.db.client.constraint.URIQueryResultList;
+import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.DataObject.Flag;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.RegistrationStatus;
 import com.emc.storageos.db.client.model.ExportGroup;
@@ -47,6 +50,7 @@ import com.emc.storageos.util.ConnectivityUtil;
 import com.emc.storageos.util.NetworkLite;
 import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.volumecontroller.ControllerLockingService;
+import com.emc.storageos.volumecontroller.impl.block.AbstractDefaultMaskingOrchestrator;
 import com.emc.storageos.volumecontroller.impl.block.BlockDeviceController;
 import com.emc.storageos.volumecontroller.impl.block.ExportWorkflowUtils;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.hostMigrationExportOrchestrationCompleter;
@@ -66,6 +70,7 @@ public class HostExportManager {
     private Map<URI, Set<URI>> exportGroupVolumesAdded;
 
     private static final String STEP_EXPORT_GROUP = "migrationExportGroup";
+    private static final String UNEXPORT_STEP = AbstractDefaultMaskingOrchestrator.EXPORT_GROUP_MASKING_TASK;
     private static final String DELIMITER = "::";
 
     private ExportWorkflowUtils _exportWfUtils;
@@ -338,6 +343,94 @@ public class HostExportManager {
         return true;
     }
 
+    public boolean addUnexportVolumeWfSteps(Workflow subWorkflow,
+            String waitFor, List<URI> uris, List<URI> exportGroupTracker)
+            throws Exception {
+        boolean workflowStepsAdded = false;
+        // Main processing containers. ExportGroup --> StorageSystem --> Volumes
+        // Populate the container for the export workflow step generation
+        Map<URI, Map<URI, List<URI>>> exportStorageVolumeMap = new HashMap<URI, Map<URI, List<URI>>>();
+        for (URI uri : uris) {
+            _log.info("Volume URI is {}", uri);
+            Volume volume = _dbClient.queryObject(Volume.class, uri);
+            if (volume == null || volume.getInactive()) {
+                continue;
+            }
+            URI sourceSystemURI = volume.getStorageController();
+            _log.info("Storage system URI is {}", sourceSystemURI);
+            List<ExportGroup> sourceExportGroups = getExportGroupsForVolume(volume);
+            for (ExportGroup sourceExportGroup : sourceExportGroups) {
+                URI sourceExportGroupURI = sourceExportGroup.getId();
+                _log.info("Export group URI is {}", sourceExportGroupURI);
+                if (exportGroupTracker != null) {
+                    exportGroupTracker.add(sourceExportGroupURI);
+                }
+
+                Map<URI, List<URI>> storageToVolumes = exportStorageVolumeMap.get(sourceExportGroupURI);
+                if (storageToVolumes == null) {
+                    storageToVolumes = new HashMap<URI, List<URI>>();
+                    exportStorageVolumeMap.put(sourceExportGroupURI,
+                            storageToVolumes);
+                }
+
+                List<URI> volumeURIs = storageToVolumes.get(sourceSystemURI);
+                if (volumeURIs == null) {
+                    volumeURIs = new ArrayList<URI>();
+                    storageToVolumes.put(sourceSystemURI, volumeURIs);
+                }
+                volumeURIs.add(uri);
+            }
+        }
+
+        for (URI exportGroupURI : exportStorageVolumeMap.keySet()) {
+            for (URI storageURI : exportStorageVolumeMap.get(exportGroupURI).keySet()) {
+                StorageSystem storage = _dbClient.queryObject(StorageSystem.class, storageURI);
+                List<URI> volumes = exportStorageVolumeMap.get(exportGroupURI).get(storageURI);
+                if (volumes.isEmpty()) {
+                    _log.info(String.format(
+                            "Not generating workflow steps to unexport backend volumes in ExportGroup %s because no volumes were found",
+                            exportGroupURI.toString()));
+                    continue; // CTRL 12474: Do not generate steps if there are no volumes to process
+                }
+
+                boolean stepsAdded = addWorkflowStepsToRemoveVolumes(subWorkflow,
+                        waitFor, storage, exportGroupURI, volumes);
+                if (stepsAdded) {
+                    workflowStepsAdded = true;
+                }
+            }
+        }
+
+        return workflowStepsAdded;
+    }
+
+    private List<ExportGroup> getExportGroupsForVolume(BlockObject volume) throws Exception {
+        URIQueryResultList exportGroupURIs = new URIQueryResultList();
+        _dbClient.queryByConstraint(ContainmentConstraint.Factory.getBlockObjectExportGroupConstraint(volume.getId()), exportGroupURIs);
+        List<ExportGroup> exportGroups = new ArrayList<ExportGroup>();
+        for (URI egURI : exportGroupURIs) {
+            ExportGroup exportGroup = _dbClient.queryObject(ExportGroup.class, egURI);
+            if (exportGroup == null || exportGroup.getInactive() == true) {
+                continue;
+            }
+            exportGroups.add(exportGroup);
+        }
+        return exportGroups;
+    }
+
+    private boolean addWorkflowStepsToRemoveVolumes(Workflow workflow, String waitFor,
+            StorageSystem storage, URI exportGroupURI, List<URI> volumeURIs) {
+        _log.info("Adding steps to remove volumes from export groups.");
+
+        URI storageURI = storage.getId();
+
+        _exportWfUtils.generateExportGroupRemoveVolumes(workflow,
+                UNEXPORT_STEP, waitFor, storageURI,
+                exportGroupURI, volumeURIs);
+
+        return true;
+    }
+
     public boolean exportOrchestrationRollbackSteps(URI parentWorkflow, String exportOrchestrationStepId, String token)
             throws WorkflowException {
         // The workflow service now provides a rollback facility for a child workflow. It rolls back every step in an already
@@ -369,6 +462,7 @@ public class HostExportManager {
         return true;
     }
     
+
     private void hostExportGroupRollback() {
         // Rollback any newly created export groups
         if (exportGroupsCreated != null && !exportGroupsCreated.isEmpty()) {

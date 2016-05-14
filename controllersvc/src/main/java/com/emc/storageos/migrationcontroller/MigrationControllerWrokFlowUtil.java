@@ -41,7 +41,6 @@ public class MigrationControllerWrokFlowUtil {
     private static final String MIGRATION_VOLUME_EXPORT_STEP = "exportVolume";
     private static final String HOST_MIGRATION_VOLUME_EXPORT_STEP = "hostExportVolume";
 
-
     public MigrationControllerWrokFlowUtil() {
 
     }
@@ -216,5 +215,4 @@ public class MigrationControllerWrokFlowUtil {
         }
         return lastStep;
     }
-
 }

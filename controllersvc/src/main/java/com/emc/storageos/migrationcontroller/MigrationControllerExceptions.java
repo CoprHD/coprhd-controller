@@ -20,6 +20,9 @@ public interface MigrationControllerExceptions {
     public MigrationControllerException addStepsForChangeVirtualPoolFailed(final Throwable cause);
 
     @DeclareServiceCode(ServiceCode.MIGRATION_ERROR)
+    public MigrationControllerException addStepsForChangeVirtualArrayFailed(final Throwable cause);
+
+    @DeclareServiceCode(ServiceCode.MIGRATION_ERROR)
     public MigrationControllerException getInitiatorPortsForArrayFailed(final String device, final String array);
 
     @DeclareServiceCode(ServiceCode.MIGRATION_ERROR)

@@ -44,6 +44,4 @@ public interface MigrationOrchestrationInterface extends Controller {
     public String addStepsForChangeVirtualArray(Workflow workflow, String waitFor,
             List<VolumeDescriptor> volumes, String taskId) throws InternalException;
 
-    public String addStepsForMigrateVolumes(Workflow workflow, String waitFor,
-            List<VolumeDescriptor> volumes, String taskId) throws InternalException;
 }

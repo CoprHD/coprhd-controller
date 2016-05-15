@@ -19,7 +19,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.hp3par.command.CPGCommandResult;
-import com.emc.storageos.hp3par.command.Members;
+import com.emc.storageos.hp3par.command.CPGMembers;
+import com.emc.storageos.hp3par.command.PortCommandResult;
+import com.emc.storageos.hp3par.command.PortMembers;
+import com.emc.storageos.hp3par.command.PortStatMembers;
+import com.emc.storageos.hp3par.command.PortStatisticsCommandResult;
 import com.emc.storageos.hp3par.command.SystemCommandResult;
 import com.emc.storageos.hp3par.connection.HP3PARApiFactory;
 import com.emc.storageos.storagedriver.AbstractStorageDriver;
@@ -38,6 +42,8 @@ import com.emc.storageos.storagedriver.model.StoragePool.RaidLevels;
 import com.emc.storageos.storagedriver.model.StoragePool.SupportedDriveTypes;
 import com.emc.storageos.storagedriver.model.StoragePool.SupportedResourceType;
 import com.emc.storageos.storagedriver.model.StoragePort;
+import com.emc.storageos.storagedriver.model.StoragePort.PortType;
+import com.emc.storageos.storagedriver.model.StoragePort.TransportType;
 import com.emc.storageos.storagedriver.model.StorageSystem;
 import com.emc.storageos.storagedriver.model.StorageVolume;
 import com.emc.storageos.storagedriver.model.VolumeClone;
@@ -183,7 +189,7 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
             // for each ViPR Storage pool = 3PAR CPG
             for (int index = 0; index < cpgResult.getTotal(); index++) {
                 StoragePool pool = new StoragePool();
-                Members currMember =  cpgResult.getMembers().get(index);
+                CPGMembers currMember =  cpgResult.getMembers().get(index);
                 
                 pool.setPoolName(currMember.getName());
                 pool.setStorageSystemId(storageSystem.getNativeId());
@@ -194,13 +200,13 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
                 supportedProtocols.add(Protocols.FCoE);
                 pool.setProtocols(supportedProtocols);
                 
-                pool.setTotalCapacity(currMember.getUsrUsage().getTotalMiB().longValue() *
-                        currMember.getSAUsage().getTotalMiB().longValue() *
-                        currMember.getSDUsage().getTotalMiB().longValue() *
+                pool.setTotalCapacity((currMember.getUsrUsage().getTotalMiB().longValue() +
+                        currMember.getSAUsage().getTotalMiB().longValue() +
+                        currMember.getSDUsage().getTotalMiB().longValue()) *
                         HP3PARConstants.KILO_BYTE); 
-                pool.setSubscribedCapacity(currMember.getUsrUsage().getUsedMiB().longValue() *
-                        currMember.getSAUsage().getUsedMiB().longValue() *
-                        currMember.getSDUsage().getUsedMiB().longValue() *
+                pool.setSubscribedCapacity((currMember.getUsrUsage().getUsedMiB().longValue() +
+                        currMember.getSAUsage().getUsedMiB().longValue() +
+                        currMember.getSDUsage().getUsedMiB().longValue()) *
                         HP3PARConstants.KILO_BYTE);
                 pool.setFreeCapacity(pool.getTotalCapacity() - pool.getSubscribedCapacity());
                 
@@ -274,10 +280,102 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
 
 	@Override
 	public DriverTask discoverStoragePorts(StorageSystem storageSystem, List<StoragePort> storagePorts) {
-		// TODO Auto-generated method stub
-	    _log.info("3PAR Discover ports");
-		return null;
-	}
+        //For this 3PAR system
+        _log.info("3PAR: discoverStoragePorts information for storage system {}, nativeId {} - start",
+                storageSystem.getIpAddress(), storageSystem.getNativeId());
+        DriverTask task = createDriverTask(HP3PARConstants.TASK_TYPE_DISCOVER_STORAGE_PORTS);
+
+        try {
+            // get Api client
+            HP3PARApi hp3parApi = getHP3PARDeviceFromNativeId(storageSystem.getNativeId());
+
+            // get storage port details
+            PortCommandResult portResult = hp3parApi.getPortDetails();
+            PortStatisticsCommandResult portStatResult = hp3parApi.getPortStatisticsDetail();
+            
+            // for each ViPR Storage port = 3PAR host port
+            for (int index = 0; index < portResult.getTotal(); index++) {
+                StoragePort port = new StoragePort();
+                PortMembers currMember =  portResult.getMembers().get(index);
+                
+                // Avoid suspended and free ports
+                if (currMember.getMode() == HP3PARConstants.MODE_SUSPENDED || 
+                        currMember.getType() == HP3PARConstants.TYPE_FREE) {
+                    continue;
+                }
+                
+                if (currMember.getLabel() == null) {
+                    String label = String.format("port:%s:%s:%s", currMember.getPortPos().getNode(),
+                            currMember.getPortPos().getSlot(), currMember.getPortPos().getCardPort());
+                    port.setPortName(label);
+                }
+                
+                port.setStorageSystemId(storageSystem.getNativeId());
+                
+                // set protocol and port number(WWWN/iqn)
+                switch(currMember.getProtocol()) {
+                    case 1:
+                    case 3:
+                        port.setTransportType(TransportType.FC);
+                        break;
+                    case 2:
+                    case 4:
+                        port.setTransportType(TransportType.IP);
+                        break;
+                }
+                
+                // loop for port speed as specific query is not supported
+                for (int stat = 0; stat < portStatResult.getTotal(); stat++) {
+                    PortStatMembers currStat = portStatResult.getMembers().get(stat);
+
+                    if (currMember.getPortPos().getNode() == currStat.getNode() && 
+                            currMember.getPortPos().getSlot() == currStat.getSlot() && 
+                            currMember.getPortPos().getCardPort() == currStat.getCardPort()) {
+                        port.setPortSpeed(currStat.getSpeed() * HP3PARConstants.KILO_BYTE * HP3PARConstants.KILO_BYTE);
+                    }
+                }
+
+                // grouping with cluster node and slot
+                port.setPortGroup(currMember.getPortPos().getNode().toString());
+                port.setPortSubGroup(currMember.getPortPos().getSlot().toString());
+                
+                // set protocol specific properties
+                if (port.getTransportType().equals(TransportType.FC)) {
+                    port.setPortNetworkId(currMember.getPortWWN());                    
+                } else {
+                    port.setIpAddress(currMember.getIPAddr());
+                    port.setPortNetworkId(currMember.getiSCSINmae());                    
+                }
+
+                // connected to disk or host(switch)
+                if (currMember.getType() == HP3PARConstants.TYPE_DISK) {
+                    port.setPortType(PortType.backend);
+                } else {
+                    port.setPortType(PortType.frontend);
+                }
+                
+                String id = String.format("port:%s:%s:%s", currMember.getPortPos().getNode(),
+                        currMember.getPortPos().getSlot(), currMember.getPortPos().getCardPort());
+                port.setNativeId(id);
+                port.setOperationalStatus(StoragePort.OperationalStatus.OK);  
+                
+                _log.info("3PAR: added storage port {}, native id {}",  port.getPortName(), port.getNativeId());
+                storagePorts.add(port);
+            } //for each storage pool
+            
+            task.setStatus(DriverTask.TaskStatus.READY);
+            _log.info("3PAR: discoverStoragePorts information for storage system {}, nativeId {} - end",
+                    storageSystem.getIpAddress(), storageSystem.getNativeId());
+        } catch (Exception e) {
+            _log.error("3PAR: Unable to discover the storage port information {}.\n",
+                    storageSystem.getSystemName());
+            task.setMessage(String.format("Unable to query the storage system %s information ",
+                    storageSystem.getSystemName()) + e.getMessage());
+            task.setStatus(DriverTask.TaskStatus.FAILED);
+            e.printStackTrace();
+        }
+        return task;
+    }
 
 	@Override
 	public DriverTask discoverStorageHostComponents(StorageSystem storageSystem,

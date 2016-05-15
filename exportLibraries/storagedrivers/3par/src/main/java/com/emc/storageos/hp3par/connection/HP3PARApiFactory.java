@@ -17,6 +17,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.hp3par.command.CPGCommandResult;
+import com.emc.storageos.hp3par.command.PortStatisticsCommandResult;
 import com.emc.storageos.hp3par.command.SystemCommandResult;
 import com.emc.storageos.hp3par.impl.HP3PARApi;
 import com.emc.storageos.hp3par.impl.HP3PARException;
@@ -117,6 +118,7 @@ public class HP3PARApiFactory {
         _clientHandler = new ApacheHttpClientHandler(client);
 
         Protocol.registerProtocol("https", new Protocol("https", new NonValidatingSocketFactory(), 8080));
+        //Protocol.registerProtocol("http", new Protocol("http", new NonValidatingSocketFactory(), 8008));
     }
 
     /**
@@ -165,10 +167,12 @@ public class HP3PARApiFactory {
         String authToken = hp3parApi.getAuthToken("superme", "superme");
         System.out.println(authToken);
         
-        //SystemCommandResult sysRes = hp3parApi.getSystemDetails();
+        SystemCommandResult sysRes = hp3parApi.getSystemDetails();
         //System.out.println(sysRes.toString());
-        CPGCommandResult cpgRes = hp3parApi.getCPGDetails();
-        System.out.println(cpgRes.toString());
+        //CPGCommandResult cpgRes = hp3parApi.getCPGDetails();
+        //System.out.println(cpgRes.toString());
+        //hp3parApi.getPortDetails();
+        PortStatisticsCommandResult portStatRes = hp3parApi.getPortStatisticsDetail();
 
         } catch (Exception e) {
             System.out.println(e.toString());

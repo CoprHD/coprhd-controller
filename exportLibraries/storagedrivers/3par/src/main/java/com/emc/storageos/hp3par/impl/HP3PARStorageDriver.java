@@ -308,11 +308,12 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
                     String label = String.format("port:%s:%s:%s", currMember.getPortPos().getNode(),
                             currMember.getPortPos().getSlot(), currMember.getPortPos().getCardPort());
                     port.setPortName(label);
-                }
+                } else {
+                    port.setPortName(currMember.getLabel());
+                    }
                 
                 port.setStorageSystemId(storageSystem.getNativeId());
                 
-                // set protocol and port number(WWWN/iqn)
                 switch(currMember.getProtocol()) {
                     case 1:
                     case 3:
@@ -339,8 +340,8 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
                 port.setPortGroup(currMember.getPortPos().getNode().toString());
                 port.setPortSubGroup(currMember.getPortPos().getSlot().toString());
                 
-                // set protocol specific properties
-                if (port.getTransportType().equals(TransportType.FC)) {
+                // set specific properties based on protocol
+                if (port.getTransportType().equals(TransportType.FC.toString())) {
                     port.setPortNetworkId(currMember.getPortWWN());                    
                 } else {
                     port.setIpAddress(currMember.getIPAddr());

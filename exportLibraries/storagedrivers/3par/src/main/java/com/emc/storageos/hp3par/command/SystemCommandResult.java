@@ -1,5 +1,9 @@
 package com.emc.storageos.hp3par.command;
 
+/*
+ * Copyright 2016 EMC Corporation
+ * All Rights Reserved
+ */
 public class SystemCommandResult {
     private String name;
     private String systemVersion;

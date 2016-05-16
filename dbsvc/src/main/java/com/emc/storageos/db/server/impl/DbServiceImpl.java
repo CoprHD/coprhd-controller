@@ -436,6 +436,7 @@ public class DbServiceImpl implements DbService {
         Date lastModified = getLastModified(localDbDir);
         boolean isDirEmpty =  lastModified == null || localDbDir.list().length == 0;
         long localTimeStamp = (isDirEmpty) ? TimeUtils.getCurrentTime() : lastModified.getTime();
+        _log.info("test");
 
         _log.info("Service timestamp in ZK is {}, local file is: {}", zkTimeStamp, localTimeStamp);
         long diffTime = (zkTimeStamp > localTimeStamp) ? (zkTimeStamp - localTimeStamp) : 0;

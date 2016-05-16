@@ -122,7 +122,6 @@ public class HP3PARApiFactory {
         _clientHandler = new ApacheHttpClientHandler(client);
 
         Protocol.registerProtocol("https", new Protocol("https", new NonValidatingSocketFactory(), 8080));
-        //Protocol.registerProtocol("http", new Protocol("http", new NonValidatingSocketFactory(), 8008));
     }
 
     /**

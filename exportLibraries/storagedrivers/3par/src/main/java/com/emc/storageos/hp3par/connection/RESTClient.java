@@ -8,6 +8,9 @@ import java.net.URI;
 import com.sun.jersey.api.client.*;
 import javax.ws.rs.core.MediaType;
 
+/*
+ * REST communication with 3PAR storage device 
+ */
 public class RESTClient {
     private Client _client;
 
@@ -20,13 +23,6 @@ public class RESTClient {
         _client = client;
     }
 
-    /**
-     * Post resource at url
-     * 
-     * @param url url to post to
-     * @param body content to post
-     * @return ClientResponse response
-     */
     public ClientResponse post_json(URI url, String body) {
         WebResource r = _client.resource(url);
         return r.header("Content-Type", MediaType.APPLICATION_JSON).post(ClientResponse.class, body);

@@ -81,8 +81,8 @@ public class ExternalDeviceUnManagedVolumeDiscoverer {
      * Discovers unmanaged block objects: volumes, snaps, clones, their CG information and their exports.
      * @param driver storage driver reference [IN]
      * @param storageSystem storage system [IN]
-     * @param dbClient [IN]
-     * @param partitionManager [IN]
+     * @param dbClient reference to db client [IN]
+     * @param partitionManager partition manager [IN]
      */
     public void discoverUnManagedBlockObjects(BlockStorageDriver driver,
                                               com.emc.storageos.db.client.model.StorageSystem storageSystem,
@@ -115,7 +115,7 @@ public class ExternalDeviceUnManagedVolumeDiscoverer {
 
         // get inter-process lock for exclusive discovery of unmanaged objects for a given system
         // lock is backed by curator's InterProcessMutex.
-        InterProcessLock lock;
+        InterProcessLock lock = null;
         String lockName = UNMANAGED_DISCOVERY_LOCK + storageSystem.getSystemType() + "-" + storageSystem.getNativeId();
         try {
             lock = coordinator.getLock(lockName);
@@ -127,9 +127,12 @@ public class ExternalDeviceUnManagedVolumeDiscoverer {
                 return;
             }
         } catch (Exception ex) {
-            log.error("Error processing unmanaged discovery for storage system: {}. Failed to get lock {} for this operation.",
-                    storageSystem.getNativeId(), lockName, ex);
-            return;
+            // check that lock was not acquired. if lock was acquired for this thread, proceed.
+            if (lock == null || !lock.isAcquiredInThisProcess()) {
+                log.error("Error processing unmanaged discovery for storage system: {}. Failed to get lock {} for this operation.",
+                        storageSystem.getNativeId(), lockName, ex);
+                return;
+            }
         }
         log.info("Started discovery of UnManagedVolumes for system {}", storageSystem.getId());
 
@@ -156,21 +159,21 @@ public class ExternalDeviceUnManagedVolumeDiscoverer {
                     try {
                         com.emc.storageos.db.client.model.StoragePool storagePool = getStoragePoolOfUnManagedVolume(storageSystem, driverVolume, dbClient);
                         if (null == storagePool) {
-                            log.error("Skipping unManaged volume discovery as the volume {} storage pool doesn't exist in ViPR", driverVolume.getNativeId());
+                            log.error("Skipping unManaged volume discovery as the volume {} storage pool doesn't exist in controller", driverVolume.getNativeId());
                             continue;
                         }
                         String managedVolumeNativeGuid = NativeGUIDGenerator.generateNativeGuidForVolumeOrBlockSnapShot(
                                 storageSystem.getNativeGuid(), driverVolume.getNativeId());
-                        Volume viprVolume = DiscoveryUtils.checkStorageVolumeExistsInDB(dbClient, managedVolumeNativeGuid);
-                        if (null != viprVolume) {
-                            log.info("Skipping volume {} as it is already managed by ViPR. Id: {}", managedVolumeNativeGuid, viprVolume.getId());
+                        Volume systemVolume = DiscoveryUtils.checkStorageVolumeExistsInDB(dbClient, managedVolumeNativeGuid);
+                        if (null != systemVolume) {
+                            log.info("Skipping volume {} as it is already managed by the system. Id: {}", managedVolumeNativeGuid, systemVolume.getId());
 
                             // get export data for managed volume to process later --- we need to collect export data for
                             // managed volume
-                            managedVolumeNativeIdToUriMap.put(driverVolume.getNativeId(), viprVolume.getId());
+                            managedVolumeNativeIdToUriMap.put(driverVolume.getNativeId(), systemVolume.getId());
                             getVolumeExportInfo(driver, driverVolume, hostToVolumeExportInfoMap);
                             getExportInfoForManagedVolumeReplicas(managedVolumeNativeIdToUriMap, hostToVolumeExportInfoMap,
-                                    dbClient, storageSystem, viprVolume, driverVolume, driver);
+                                    dbClient, storageSystem, systemVolume, driverVolume, driver);
                             continue;
                         }
 
@@ -273,7 +276,7 @@ public class ExternalDeviceUnManagedVolumeDiscoverer {
      * @param storagePool              storage pool for unManaged volume [IN]
      * @param unManagedVolumesToCreate list of new unManaged volumes [OUT]
      * @param unManagedVolumesToUpdate list of unManaged volumes to update [OUT]
-     * @param dbClient
+     * @param dbClient reference to db client [IN]
      * @return unmanaged volume
      */
     private UnManagedVolume createUnManagedVolume(StorageVolume driverVolume, com.emc.storageos.db.client.model.StorageSystem storageSystem,
@@ -293,7 +296,7 @@ public class ExternalDeviceUnManagedVolumeDiscoverer {
             unManagedVolume.setStorageSystemUri(storageSystem.getId());
 
             if (driverVolume.getWwn() == null) {
-                unManagedVolume.setWwn(String.format("%s%s", driverVolume.getStorageSystemId(), driverVolume.getNativeId()));
+                unManagedVolume.setWwn(String.format("%s:%s", driverVolume.getStorageSystemId(), driverVolume.getNativeId()));
             } else {
                 unManagedVolume.setWwn(driverVolume.getWwn());
             }
@@ -380,16 +383,16 @@ public class ExternalDeviceUnManagedVolumeDiscoverer {
     /**
      * Get storage pool of unManaged volume.
      *
-     * @param storageSystem [IN]
-     * @param driverVolume [IN]
-     * @param dbClient
+     * @param storageSystem storage system [IN]
+     * @param driverVolume reference to driver [IN]
+     * @param dbClient reference to db client [IN]
      * @return storage pool for unmanaged unmanged volume
      */
     private com.emc.storageos.db.client.model.StoragePool getStoragePoolOfUnManagedVolume(
                                                             com.emc.storageos.db.client.model.StorageSystem storageSystem,
                                                             StorageVolume driverVolume, DbClient dbClient) {
         com.emc.storageos.db.client.model.StoragePool storagePool = null;
-        // Get vipr pool
+        // Get system pool
         String driverPoolId = driverVolume.getStoragePoolId();
         String poolNativeGuid = NativeGUIDGenerator.generateNativeGuid(
                 storageSystem, driverPoolId, NativeGUIDGenerator.POOL);
@@ -416,7 +419,7 @@ public class ExternalDeviceUnManagedVolumeDiscoverer {
      * @param allCurrentUnManagedCgURIs set of unManaged CG uris found in the current discovery [OUT]
      * @param unManagedCGToUpdateMap    map of unManaged CG GUID to unManaged CG instance [IN/OUT]
      * @param driver                    storage driver [IN]
-     * @param dbClient
+     * @param dbClient                  reference to db client [IN]
      * @throws Exception
      */
     private void addObjectToUnManagedConsistencyGroup(com.emc.storageos.db.client.model.StorageSystem storageSystem,
@@ -431,7 +434,7 @@ public class ExternalDeviceUnManagedVolumeDiscoverer {
                 cgNativeId);
         log.info("UnManaged consistency group has nativeGuid {} ", unManagedCGNativeGuid);
         // determine if the unManaged CG already exists in the unManagedCGToUpdateMap or in the database
-        // if the the unManaged CG is not in either create a new one
+        // if the the unManaged CG is not in either, create a new one
         UnManagedConsistencyGroup unManagedCG = null;
         if (unManagedCGToUpdateMap.containsKey(unManagedCGNativeGuid)) {
             unManagedCG = unManagedCGToUpdateMap.get(unManagedCGNativeGuid);
@@ -481,9 +484,9 @@ public class ExternalDeviceUnManagedVolumeDiscoverer {
     /**
      * Create unManaged CG for a given driver CG.
      *
-     * @param driverCG
-     * @param storageSystem
-     * @param dbClient
+     * @param driverCG reference to native CG
+     * @param storageSystem storage system
+     * @param dbClient reference to db client [IN]
      * @return umanaged CG
      */
     private UnManagedConsistencyGroup createUnManagedCG(VolumeConsistencyGroup driverCG,
@@ -511,8 +514,8 @@ public class ExternalDeviceUnManagedVolumeDiscoverer {
      *
      * @param driverVolume              driver volume for snap parent volume. [IN]
      * @param unManagedParentVolume     unManaged parent volume [IN/OUT]
-     * @param storageSystem             [IN]
-     * @param storagePool               [IN]
+     * @param storageSystem             storage system [IN]
+     * @param storagePool               storage pool [IN]
      * @param unManagedVolumesToCreate  list of unmanaged volumes to create [OUT]
      * @param unManagedVolumesToUpdate  list of unmanaged volumes to update [OUT]
      * @param allCurrentUnManagedCgURIs set of unManaged CG uris found in the current discovery [OUT]
@@ -520,7 +523,7 @@ public class ExternalDeviceUnManagedVolumeDiscoverer {
      * @param unManagedVolumeNativeIdToUriMap map of unmanaged volumes nativeId to their uri [OUT]
      * @param hostToUnManagedVolumeExportInfoMap map  with export data for unmanaged volumes (including snaps and clones)
      * @param driver                    storage driver [IN]
-     * @param dbClient
+     * @param dbClient                  reference to db client [IN]
      * @return                          set of URIs for unmanaged snapshots
      * @throws Exception
      */
@@ -546,9 +549,9 @@ public class ExternalDeviceUnManagedVolumeDiscoverer {
             for (VolumeSnapshot driverSnapshot : driverSnapshots) {
                 String managedSnapNativeGuid = NativeGUIDGenerator.generateNativeGuidForVolumeOrBlockSnapShot(
                         storageSystem.getNativeGuid(), driverSnapshot.getNativeId());
-                BlockSnapshot viprSnap = DiscoveryUtils.checkBlockSnapshotExistsInDB(dbClient, managedSnapNativeGuid);
-                if (null != viprSnap) {
-                    log.info("Skipping snapshot {} as it is already managed by ViPR", managedSnapNativeGuid);
+                BlockSnapshot systemSnap = DiscoveryUtils.checkBlockSnapshotExistsInDB(dbClient, managedSnapNativeGuid);
+                if (null != systemSnap) {
+                    log.info("Skipping snapshot {} as it is already managed by the system.", managedSnapNativeGuid);
                     continue;
                 }
 
@@ -605,8 +608,8 @@ public class ExternalDeviceUnManagedVolumeDiscoverer {
      *
      * @param driverVolume              driver volume for clone parent volume. [IN]
      * @param unManagedParentVolume     unManaged parent volume [IN/OUT]
-     * @param storageSystem             [IN]
-     * @param storagePool               [IN]
+     * @param storageSystem             storage system [IN]
+     * @param storagePool               storage pool [IN]
      * @param unManagedVolumesToCreate  list of unmanaged volumes to create [OUT]
      * @param unManagedVolumesToUpdate  list of unmanaged volumes to update [OUT]
      * @param allCurrentUnManagedCgURIs set of unManaged CG uris found in the current discovery [OUT]
@@ -614,7 +617,7 @@ public class ExternalDeviceUnManagedVolumeDiscoverer {
      * @param unManagedVolumeNativeIdToUriMap map of unmanaged volumes nativeId to their uri [OUT]
      * @param hostToUnManagedVolumeExportInfoMap map  with export data for unmanaged volumes (including snaps and clones)
      * @param driver                    storage driver [IN]
-     * @param dbClient
+     * @param dbClient                  reference to db client [IN]
      * @return                          set of URIs for unmanaged clones
      * @throws Exception
      */
@@ -640,9 +643,9 @@ public class ExternalDeviceUnManagedVolumeDiscoverer {
             for (VolumeClone driverClone : driverClones) {
                 String managedCloneNativeGuid = NativeGUIDGenerator.generateNativeGuidForVolumeOrBlockSnapShot(
                         storageSystem.getNativeGuid(), driverClone.getNativeId());
-                Volume viprClone = DiscoveryUtils.checkStorageVolumeExistsInDB(dbClient, managedCloneNativeGuid);
-                if (null != viprClone) {
-                    log.info("Skipping clone {} as it is already managed by ViPR", managedCloneNativeGuid);
+                Volume systemClone = DiscoveryUtils.checkStorageVolumeExistsInDB(dbClient, managedCloneNativeGuid);
+                if (null != systemClone) {
+                    log.info("Skipping clone {} as it is already managed by the system.", managedCloneNativeGuid);
                     continue;
                 }
 
@@ -698,11 +701,11 @@ public class ExternalDeviceUnManagedVolumeDiscoverer {
      *
      * @param driverSnapshot device snap [IN]
      * @param parentUnManagedVolume unmanaged parent volume [IN]
-     * @param storageSystem [IN]
-     * @param storagePool [IN]
-     * @param unManagedVolumesToCreate [OUT]
-     * @param unManagedVolumesToUpdate [OUT]
-     * @param dbClient [IN]
+     * @param storageSystem storage system [IN]
+     * @param storagePool storage pool [IN]
+     * @param unManagedVolumesToCreate list of unmanaged volumes to create [OUT]
+     * @param unManagedVolumesToUpdate list of unmanaged volumes to update [OUT]
+     * @param dbClient reference to db client [IN]
      * @return unmanaged volume for device snapshot
      */
     private UnManagedVolume createUnManagedSnapshot(VolumeSnapshot driverSnapshot, UnManagedVolume parentUnManagedVolume,
@@ -724,7 +727,7 @@ public class ExternalDeviceUnManagedVolumeDiscoverer {
             unManagedVolume.setStorageSystemUri(storageSystem.getId());
 
             if (driverSnapshot.getWwn() == null) {
-                unManagedVolume.setWwn(String.format("%s%s", driverSnapshot.getStorageSystemId(), driverSnapshot.getNativeId()));
+                unManagedVolume.setWwn(String.format("%s:%s", driverSnapshot.getStorageSystemId(), driverSnapshot.getNativeId()));
             } else {
                 unManagedVolume.setWwn(driverSnapshot.getWwn());
             }
@@ -862,11 +865,11 @@ public class ExternalDeviceUnManagedVolumeDiscoverer {
      *
      * @param driverClone device clone [IN]
      * @param parentUnManagedVolume unmanaged parent volume [IN]
-     * @param storageSystem [IN]
-     * @param storagePool [IN]
-     * @param unManagedVolumesToCreate [OUT]
-     * @param unManagedVolumesToUpdate [OUT]
-     * @param dbClient [IN]
+     * @param storageSystem storage system [IN]
+     * @param storagePool storage pool [IN]
+     * @param unManagedVolumesToCreate list of unmanaged volumes to create [OUT]
+     * @param unManagedVolumesToUpdate list of unmanaged volumes to update [OUT]
+     * @param dbClient reference to db client [IN]
      * @return unmanaged volume for device clone
      */
     private UnManagedVolume createUnManagedClone(VolumeClone driverClone, UnManagedVolume parentUnManagedVolume,
@@ -889,7 +892,7 @@ public class ExternalDeviceUnManagedVolumeDiscoverer {
             unManagedVolume.setStorageSystemUri(storageSystem.getId());
 
             if (driverClone.getWwn() == null) {
-                unManagedVolume.setWwn(String.format("%s%s", driverClone.getStorageSystemId(), driverClone.getNativeId()));
+                unManagedVolume.setWwn(String.format("%s:%s", driverClone.getStorageSystemId(), driverClone.getNativeId()));
             } else {
                 unManagedVolume.setWwn(driverClone.getWwn());
             }
@@ -1113,74 +1116,74 @@ public class ExternalDeviceUnManagedVolumeDiscoverer {
 
     /**
      * Get export info for replicas (snaps and clones) of managed volume.
-     * We expect that all replicas of managed volume should be managed (known to vipr) ---
+     * We expect that all replicas of managed volume should be managed (known to the system) ---
      * enforced by  ingest framework, plus we do not support coexistence .
      * Warning log message is generated for each replica which is unmanaged.
      *
-     * @param managedVolumeNativeIdToUriMap    [OUT], map
+     * @param managedVolumeNativeIdToUriMap    [OUT], map: key --- managed volume native id, value: volume uri.
      * @param hostToManagedVolumeExportInfoMap [OUT], map: key --- host name, value: list of export infos for volumes exported
      *                                         to this host.
-     * @param dbClient                         [IN]
-     * @param storageSystem                    [IN]
-     * @param viprVolume                       [IN]
-     * @param driverVolume                     [IN]
-     * @param driver                           [IN]
+     * @param dbClient                         reference to db client [IN]
+     * @param storageSystem                    storage system [IN]
+     * @param systemVolume                     system volume  [IN]
+     * @param driverVolume                     native volume [IN]
+     * @param driver                           reference to driver [IN]
      * @throws Exception
      */
     private void getExportInfoForManagedVolumeReplicas(Map<String, URI> managedVolumeNativeIdToUriMap,
                                                        Map<String, List<HostExportInfo>> hostToManagedVolumeExportInfoMap,
                                                        DbClient dbClient,
                                                        com.emc.storageos.db.client.model.StorageSystem storageSystem,
-                                                       Volume viprVolume, StorageVolume driverVolume,
+                                                       Volume systemVolume, StorageVolume driverVolume,
                                                        BlockStorageDriver driver) throws Exception {
 
         // get export info for managed volume  snapshots
-        log.info("Processing snapshots for managed volume {} ", viprVolume.getNativeGuid());
+        log.info("Processing snapshots for managed volume {} ", systemVolume.getNativeGuid());
         List<VolumeSnapshot> driverSnapshots = driver.getVolumeSnapshots(driverVolume);
         if (driverSnapshots == null || driverSnapshots.isEmpty()) {
-            log.info("There are no snapshots for volume {} ", viprVolume.getNativeGuid());
+            log.info("There are no snapshots for volume {} ", systemVolume.getNativeGuid());
         } else {
-            log.info("Snapshots for managed volume {}:" + Joiner.on("\t").join(driverSnapshots), viprVolume.getNativeGuid());
+            log.info("Snapshots for managed volume {}:" + Joiner.on("\t").join(driverSnapshots), systemVolume.getNativeGuid());
             for (VolumeSnapshot driverSnapshot : driverSnapshots) {
                 String managedSnapNativeGuid = NativeGUIDGenerator.generateNativeGuidForVolumeOrBlockSnapShot(
                         storageSystem.getNativeGuid(), driverSnapshot.getNativeId());
-                BlockSnapshot viprSnap = DiscoveryUtils.checkBlockSnapshotExistsInDB(dbClient, managedSnapNativeGuid);
-                if (viprSnap == null) {
+                BlockSnapshot systemSnap = DiscoveryUtils.checkBlockSnapshotExistsInDB(dbClient, managedSnapNativeGuid);
+                if (systemSnap == null) {
                     log.warn("Found unmanaged snapshot of managed volume --- this is unexpected! Skipping this snapshot {}.",
                             driverSnapshot.getNativeId());
                     continue;
                 } else {
                     log.info("Processing managed {} snapshot of managed volume ().",
-                            viprSnap.getNativeId(), viprVolume.getNativeGuid());
+                            systemSnap.getNativeId(), systemVolume.getNativeGuid());
                 }
 
                 // get export data for the snapshot
-                managedVolumeNativeIdToUriMap.put(driverSnapshot.getNativeId(), viprSnap.getId());
+                managedVolumeNativeIdToUriMap.put(driverSnapshot.getNativeId(), systemSnap.getId());
                 getSnapshotExportInfo(driver, driverSnapshot, hostToManagedVolumeExportInfoMap);
             }
         }
         // get export info for managed volume  clones
-        log.info("Processing clones for managed volume {} ", viprVolume.getNativeGuid());
+        log.info("Processing clones for managed volume {} ", systemVolume.getNativeGuid());
         List<VolumeClone> driverClones = driver.getVolumeClones(driverVolume);
         if (driverClones == null || driverClones.isEmpty()) {
-            log.info("There are no clones for volume {} ", viprVolume.getNativeGuid());
+            log.info("There are no clones for volume {} ", systemVolume.getNativeGuid());
         } else {
-            log.info("Clones for managed volume {}:" + Joiner.on("\t").join(driverClones), viprVolume.getNativeGuid());
+            log.info("Clones for managed volume {}:" + Joiner.on("\t").join(driverClones), systemVolume.getNativeGuid());
             for (VolumeClone driverClone : driverClones) {
                 String managedCloneNativeGuid = NativeGUIDGenerator.generateNativeGuidForVolumeOrBlockSnapShot(
                         storageSystem.getNativeGuid(), driverClone.getNativeId());
-                Volume viprClone = DiscoveryUtils.checkStorageVolumeExistsInDB(dbClient, managedCloneNativeGuid);
-                if (viprClone == null) {
+                Volume systemClone = DiscoveryUtils.checkStorageVolumeExistsInDB(dbClient, managedCloneNativeGuid);
+                if (systemClone == null) {
                     log.warn("Found unmanaged clone of managed volume --- this is unexpected! Skipping this clone {}.",
                             driverClone.getNativeId());
                     continue;
                 } else {
                     log.info("Processing managed {} clone of managed volume ().",
-                            viprClone.getNativeId(), viprVolume.getNativeGuid());
+                            systemClone.getNativeId(), systemVolume.getNativeGuid());
                 }
 
                 // get export data for the clone
-                managedVolumeNativeIdToUriMap.put(driverClone.getNativeId(), viprClone.getId());
+                managedVolumeNativeIdToUriMap.put(driverClone.getNativeId(), systemClone.getId());
                 getCloneExportInfo(driver, driverClone, hostToManagedVolumeExportInfoMap);
             }
         }
@@ -1198,8 +1201,8 @@ public class ExternalDeviceUnManagedVolumeDiscoverer {
      *                                        key: host FQDN, value: list of volume export info for this host.[IN]
      * @param invalidExportHosts              Set of host FQDN for which we found invalid exports to the storage system. [IN/OUT]
      *                                        We will exclude exports for these hosts from processing.
-     * @param dbClient
-     * @param partitionManager
+     * @param dbClient                        reference to db client [IN]
+     * @param partitionManager                partition manager [IN]
      */
     private void processExportData(BlockStorageDriver driver, com.emc.storageos.db.client.model.StorageSystem storageSystem,
                                    Map<String, URI> unManagedVolumeNativeIdToUriMap,
@@ -1274,7 +1277,7 @@ public class ExternalDeviceUnManagedVolumeDiscoverer {
      * @param storageSystem
      * @param hostToVolumeExportInfoMap [IN] map: key --- host FQDN, value --- list of volume export info instances
      * @param invalidExportHosts        [IN, OUT] set of invalid hosts, for which we skip export processing for a given array
-     * @param dbClient
+     * @param dbClient                  reference to db client [IN]
      * @param masksToUpdateForVolumes   [OUT] map: key --- URI of existing unmanaged export mask, value --- export info to use
      *                                  to update the mask.
      * @param masksToCreateForVolumes   [OUT] list of export info instances for which we need to create new unmanaged masks.
@@ -1395,13 +1398,13 @@ public class ExternalDeviceUnManagedVolumeDiscoverer {
     /**
      * This method processes export info for volumes and returns unmanaged masks to create and existing unmanaged masks to update.
      *
-     * @param storageSystem                   [IN]
+     * @param storageSystem                   storage system [IN]
      * @param exportInfosForExistingMasks     [IN] map: key --- mask uri, value --- volume export info to add to the mask.
      * @param exportInfosForNewMasks          [IN] list of volume export info for which we need to create new masks.
      * @param unManagedVolumeNativeIdToUriMap [IN] map of unmanaged volume native id to unmanaged volume URI
      * @param unManagedExportMasksToUpdate    [OUT] list of unmanaged export masks to update
      * @param unManagedExportMasksToCreate    [OUT] list of unmanaged export masks to create
-     * @param dbClient
+     * @param dbClient                        reference to db client [IN]
      */
     private void processUnManagedMasksForVolumes(com.emc.storageos.db.client.model.StorageSystem storageSystem,
                                                  Map<URI, HostExportInfo> exportInfosForExistingMasks,
@@ -1481,7 +1484,7 @@ public class ExternalDeviceUnManagedVolumeDiscoverer {
      * Verifies that all members of the specified list have the same set of initiators ans the same set
      * of storage ports.
      *
-     * @param hostExportInfoList
+     * @param hostExportInfoList list of HostExportInfo data
      * @return If validation is success return VolumeToHostExportInfo with common set of initiators, common set of
      * ports, and all volumes from all elements of input list.
      * If validation failed, return null.
@@ -1562,7 +1565,7 @@ public class ExternalDeviceUnManagedVolumeDiscoverer {
      * there will be only zero or one such mask.
      *
      * @param maskName  mask name
-     * @param dbClient
+     * @param dbClient  reference to db client [IN]
      * @param systemURI storage system
      * @return unmanaged export mask or null, if there is no mask this name and storage array
      */
@@ -1591,7 +1594,7 @@ public class ExternalDeviceUnManagedVolumeDiscoverer {
      * @param hostExportInfo       source for unmanaged export mask data
      * @param unManagedVolumesUris set of unManaged volumes database ids for unManaged mask
      * @param managedVolumesUris   set of managed volumes database ids for unManaged mask
-     * @param dbClient
+     * @param dbClient             reference to db client [IN]
      * @return unManaged export mask
      */
     private UnManagedExportMask createUnManagedExportMask(com.emc.storageos.db.client.model.StorageSystem storageSystem,
@@ -1685,11 +1688,11 @@ public class ExternalDeviceUnManagedVolumeDiscoverer {
     }
 
     /**
-     * Updates zoning information in the unmanaged export mask.
+     * Updates zoning information in the unmanaged export mask for a given set of initiators and storage ports.
      *
      * @param mask unmanaged export [IN/OUT]
-     * @param initiators [IN]
-     * @param storagePorts [IN]
+     * @param initiators initiators for zone map [IN]
+     * @param storagePorts storage ports for zone map [IN]
      */
     private void updateZoningMap(UnManagedExportMask mask, List<com.emc.storageos.db.client.model.Initiator> initiators,
                                  List<com.emc.storageos.db.client.model.StoragePort> storagePorts) {
@@ -1707,8 +1710,8 @@ public class ExternalDeviceUnManagedVolumeDiscoverer {
      * @param unManagedVolumeNativeIdToUriMap [IN] helper map
      * @param unManagedExportMasksToCreate [IN] list of masks with volumes
      * @param unManagedExportMasksToUpdate [IN] list of masks with volumes
-     * @param dbClient
-     * @param partitionManager
+     * @param dbClient reference to db client [IN]
+     * @param partitionManager partition manager [IN]
      */
     private void updateUnManagedVolumesWithExportData(Map<String, URI> unManagedVolumeNativeIdToUriMap,
                                                       List<UnManagedExportMask> unManagedExportMasksToCreate,
@@ -1781,8 +1784,8 @@ public class ExternalDeviceUnManagedVolumeDiscoverer {
      * Removes initiators for this mask from volumes and does other cleanup in the volumes properties
      * related to export as required.
      *
-     * @param unManagedMask
-     * @param dbClient
+     * @param unManagedMask unmanaged mask [IN]
+     * @param dbClient reference to db client [IN]
      */
     void removeInvalidMaskDataFromVolumes(UnManagedExportMask unManagedMask, DbClient dbClient) {
             Set<UnManagedVolume> unManagedVolumesToUpdate = new HashSet<>();

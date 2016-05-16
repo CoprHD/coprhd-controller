@@ -484,7 +484,6 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
                 cloneObject.setDeviceLabel(driverCloneResult.getDeviceLabel());
                 cloneObject.setNativeGuid(NativeGUIDGenerator.generateNativeGuid(dbClient, cloneObject));
                 cloneObject.setReplicaState(driverCloneResult.getReplicationState().name());
-                cloneObject.setCapacity(driverCloneResult.getRequestedCapacity());
                 cloneObject.setProvisionedCapacity(driverCloneResult.getProvisionedCapacity());
                 cloneObject.setAllocatedCapacity(driverCloneResult.getAllocatedCapacity());
                 cloneObject.setInactive(false);
@@ -571,7 +570,6 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
                     cloneObject.setNativeGuid(NativeGUIDGenerator.generateNativeGuid(dbClient, cloneObject));
                     cloneObject.setReplicaState(driverCloneResult.getReplicationState().name());
                     cloneObject.setReplicationGroupInstance(driverCloneResult.getConsistencyGroup());
-                    cloneObject.setCapacity(driverCloneResult.getRequestedCapacity());
                     cloneObject.setProvisionedCapacity(driverCloneResult.getProvisionedCapacity());
                     cloneObject.setAllocatedCapacity(driverCloneResult.getAllocatedCapacity());
                     cloneObject.setInactive(false);
@@ -1143,7 +1141,6 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
             Volume parent = dbClient.queryObject(Volume.class, snapshot.getParent().getURI());
             VolumeSnapshot driverSnapshot = new VolumeSnapshot();
             driverSnapshot.setParentId(parent.getNativeId());
-            //driverSnapshot.setConsistencyGroup(consistencyGroup.getNativeId());
             driverSnapshot.setStorageSystemId(storageSystemNativeId);
             driverSnapshot.setDisplayName(snapshot.getLabel());
             if (readOnly) {

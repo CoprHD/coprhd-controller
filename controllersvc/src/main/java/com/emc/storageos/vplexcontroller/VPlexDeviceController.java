@@ -3671,7 +3671,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             // Create the ExportMask if there are volumes in this varray.
             if (!varrayVolumeMap.isEmpty()) {
                 lastStepId = assembleExportMasksWorkflow(vplexURI, exportURI, varrayURI,
-                        hostInitiatorURIs, varrayVolumeMap, workflow, false, previousStepId, opId);
+                        hostInitiatorURIs, varrayVolumeMap, workflow, true, previousStepId, opId);
             }
         } else {
             VPlexApiClient client = getVPlexAPIClient(_vplexApiFactory, vplex, _dbClient);

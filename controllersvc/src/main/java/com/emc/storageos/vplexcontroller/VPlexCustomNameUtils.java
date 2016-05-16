@@ -167,8 +167,13 @@ public class VPlexCustomNameUtils {
     public static VPlexVirtualVolumeInfo renameVPlexVolume(VPlexApiClient client, VPlexVirtualVolumeInfo vvInfo, String newVolumeName) {
         VPlexVirtualVolumeInfo updateVolumeInfo = vvInfo;
         try {
-            s_logger.info("Renaming VPLEX volume {} to custom name {}", vvInfo.getName(), newVolumeName);
-            updateVolumeInfo = client.renameResource(vvInfo, newVolumeName);
+            String currentVolumeName = vvInfo.getName();
+            if (!currentVolumeName.equals(newVolumeName)) {
+                s_logger.info("Renaming VPLEX volume {} to custom name {}", vvInfo.getName(), newVolumeName);
+                updateVolumeInfo = client.renameResource(vvInfo, newVolumeName);                
+            } else {
+                s_logger.info("Skip rename as volume is already named {}", newVolumeName);
+            }
         } catch (Exception e) {
             s_logger.warn(String.format("Error attempting to rename VPLEX volume %s to %s", vvInfo.getName(), newVolumeName), e);
         }       

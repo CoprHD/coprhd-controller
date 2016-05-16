@@ -17,12 +17,14 @@
 package com.emc.storageos.api.service.impl.resource.utils;
 
 import com.emc.storageos.api.service.impl.resource.*;
+import com.emc.storageos.cinder.CinderConstants;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.*;
 import com.emc.storageos.keystone.restapi.KeystoneApiClient;
 import com.emc.storageos.keystone.restapi.model.response.TenantV2;
 import com.emc.storageos.keystone.restapi.utils.KeystoneUtils;
 import com.emc.storageos.model.tenant.TenantCreateParam;
+import com.emc.storageos.security.authorization.ACL;
 import com.emc.storageos.security.authorization.BasePermissionsHelper;
 import com.emc.storageos.security.authorization.PermissionsKey;
 import com.emc.storageos.security.authorization.Role;
@@ -66,6 +68,10 @@ public class OpenStackSynchronizationTask extends ResourceService {
     private AuthnConfigurationService _authnConfigurationService;
 
     private ScheduledFuture synchronizationTask;
+
+    public ScheduledFuture getSynchronizationTask() {
+        return synchronizationTask;
+    }
 
     public void setAuthnConfigurationService(AuthnConfigurationService authnConfigurationService) {
         this._authnConfigurationService = authnConfigurationService;
@@ -190,14 +196,18 @@ public class OpenStackSynchronizationTask extends ResourceService {
 
     public String getSynchronizationOptionsInterval(AuthnProvider keystoneProvider) {
 
-        for (String option : keystoneProvider.getTenantsSynchronizationOptions()) {
-            // There is only ADDITION, DELETION and interval in this StringSet
-            if (!AuthnProvider.TenantsSynchronizationOptions.ADDITION.toString().equals(option)
-                    && !AuthnProvider.TenantsSynchronizationOptions.DELETION.toString().equals(option)) {
-                return option;
+        if (keystoneProvider != null && keystoneProvider.getTenantsSynchronizationOptions() != null) {
+            for (String option : keystoneProvider.getTenantsSynchronizationOptions()) {
+                // There is only ADDITION, DELETION and interval in this StringSet.
+                if (!AuthnProvider.TenantsSynchronizationOptions.ADDITION.toString().equals(option)
+                        && !AuthnProvider.TenantsSynchronizationOptions.DELETION.toString().equals(option)) {
+                    return option;
+                }
             }
         }
-        return null;
+
+        // Return default interval when getTenantsSynchronizationOptions() does not contain interval.
+        return Integer.toString(DEFAULT_INTERVAL_DELAY);
     }
 
     /**
@@ -285,6 +295,9 @@ public class OpenStackSynchronizationTask extends ResourceService {
 
                 TenantOrg coprhdTenant = coprhdIter.next();
                 String tenantMapping = getCoprhdTenantUserMapping(coprhdTenant);
+                if (tenantMapping == null) {
+                    throw APIException.internalServerErrors.targetIsNullOrEmpty("TenantMapping");
+                }
                 String tenantId = getTenantIdFromUserMapping(tenantMapping);
                 if (tenantId.equals(osTenant.getId())) {
                     if (!areTenantsIdentical(osTenant, coprhdTenant)) {
@@ -317,7 +330,7 @@ public class OpenStackSynchronizationTask extends ResourceService {
      */
     private OSTenant updateOrCreateOpenstackTenantInCoprhd(TenantV2 tenant) {
 
-        OSTenant osTenant = findOpenstackTenantInCoprhd(tenant);
+        OSTenant osTenant = findOpenstackTenantInCoprhd(tenant.getId());
 
         if (osTenant != null) {
             if (!osTenant.getDescription().equals(tenant.getDescription())) {
@@ -345,16 +358,17 @@ public class OpenStackSynchronizationTask extends ResourceService {
     /**
      * Finds CoprHD representation of OpenStack Tenant.
      *
-     * @param tenant OpenStack Tenant.
+     * @param tenantId OpenStack Tenant ID.
      * @return CoprHD Tenant.
      */
-    private OSTenant findOpenstackTenantInCoprhd(TenantV2 tenant) {
+    private OSTenant findOpenstackTenantInCoprhd(String tenantId) {
+
         List<URI> osTenantURI = _dbClient.queryByType(OSTenant.class, true);
         Iterator<OSTenant> osTenantIter = _dbClient.queryIterativeObjects(OSTenant.class, osTenantURI);
 
         while (osTenantIter.hasNext()) {
             OSTenant osTenant = osTenantIter.next();
-            if (osTenant.getOsId().equals(tenant.getId())) {
+            if (osTenant.getOsId().equals(tenantId)) {
                 return osTenant;
             }
         }
@@ -399,28 +413,49 @@ public class OpenStackSynchronizationTask extends ResourceService {
      * @param tenant OpenStack Tenant.
      * @param provider Keystone Authentication Provider.
      */
-    public void createTenant(TenantV2 tenant, AuthnProvider provider) {
+    public TenantOrg createTenant(TenantV2 tenant, AuthnProvider provider) {
 
-        OSTenant osTenant = findOpenstackTenantInCoprhd(tenant);
+        TenantCreateParam param = _authnConfigurationService.prepareTenantMappingForOpenstack(mapTenant(tenant), provider);
 
-        if (osTenant != null && !osTenant.getExcluded()) {
-            TenantCreateParam param = _authnConfigurationService.prepareTenantMappingForOpenstack(mapTenant(tenant), provider);
-
-            TenantOrg subtenant = new TenantOrg();
-            subtenant.setId(URIUtil.createId(TenantOrg.class));
-            subtenant.setParentTenant(new NamedURI(_permissionsHelper.getRootTenant().getId(), param.getLabel()));
-            subtenant.setLabel(param.getLabel());
-            subtenant.setDescription(param.getDescription());
-            List<BasePermissionsHelper.UserMapping> userMappings = BasePermissionsHelper.UserMapping.fromParamList(param.getUserMappings());
-            for (BasePermissionsHelper.UserMapping userMapping : userMappings) {
-                userMapping.setDomain(userMapping.getDomain().trim());
-                subtenant.addUserMapping(userMapping.getDomain(), userMapping.toString());
-            }
-            subtenant.addRole(new PermissionsKey(PermissionsKey.Type.SID,
-                    ROOT).toString(), Role.TENANT_ADMIN.toString());
-
-            _dbClient.createObject(subtenant);
+        TenantOrg subtenant = new TenantOrg();
+        subtenant.setId(URIUtil.createId(TenantOrg.class));
+        subtenant.setParentTenant(new NamedURI(_permissionsHelper.getRootTenant().getId(), param.getLabel()));
+        subtenant.setLabel(param.getLabel());
+        subtenant.setDescription(param.getDescription());
+        List<BasePermissionsHelper.UserMapping> userMappings = BasePermissionsHelper.UserMapping.fromParamList(param.getUserMappings());
+        for (BasePermissionsHelper.UserMapping userMapping : userMappings) {
+            userMapping.setDomain(userMapping.getDomain().trim());
+            subtenant.addUserMapping(userMapping.getDomain(), userMapping.toString());
         }
+        subtenant.addRole(new PermissionsKey(PermissionsKey.Type.SID,
+                ROOT).toString(), Role.TENANT_ADMIN.toString());
+
+        _dbClient.createObject(subtenant);
+
+        return subtenant;
+    }
+
+    /**
+     * Creates a CoprHD Project for given Tenant.
+     *
+     * @param owner CoprHD Tenant that will own this project.
+     * @param param OpenStack Tenant.
+     */
+    private Project createProject(TenantOrg owner, TenantV2 param) {
+
+        Project project = new Project();
+        project.setId(URIUtil.createId(Project.class));
+        project.setLabel(param.getName() + CinderConstants.PROJECT_NAME_SUFFIX);
+        project.setTenantOrg(new NamedURI(owner.getId(), project.getLabel()));
+        project.setOwner(ROOT);
+
+        project.addAcl(
+                new PermissionsKey(PermissionsKey.Type.SID, ROOT, owner.getId().toString()).toString(),
+                ACL.OWN.toString());
+
+        _dbClient.createObject(project);
+
+        return project;
     }
 
     private OSTenant mapTenant(TenantV2 tenant) {
@@ -480,6 +515,10 @@ public class OpenStackSynchronizationTask extends ResourceService {
 
                 AuthnProvider keystoneProvider = getKeystoneProvider();
 
+                if (keystoneProvider == null) {
+                    throw APIException.internalServerErrors.targetIsNullOrEmpty("Keystone Authentication Provider");
+                }
+
                 // Update every Tenant on tenantsToUpdate list.
                 if (tenantsToUpdate != null && !tenantsToUpdate.isEmpty()) {
                     for (TenantOrg tenant : tenantsToUpdate) {
@@ -493,7 +532,33 @@ public class OpenStackSynchronizationTask extends ResourceService {
                 if (!osTenantList.isEmpty() &&
                         syncOptions.contains(AuthnProvider.TenantsSynchronizationOptions.ADDITION.toString())) {
                     for (TenantV2 tenant : osTenantList) {
-                        createTenant(tenant, keystoneProvider);
+
+                        OSTenant osTenant = findOpenstackTenantInCoprhd(tenant.getId());
+                        if (osTenant != null && !osTenant.getExcluded()) {
+                            TenantOrg tenantOrg = createTenant(tenant, keystoneProvider);
+                            Project project = createProject(tenantOrg, tenant);
+                            _authnConfigurationService.tagProjectWithOpenstackId(project.getId(), tenant.getId(), tenantOrg.getId().toString());
+                        }
+                    }
+                }
+
+                // Remove CoprHD representation of OpenStack Tenant that are removed from OpenStack.
+                if (syncOptions.contains(AuthnProvider.TenantsSynchronizationOptions.DELETION.toString())) {
+                    for (TenantOrg tenant : coprhdTenantList) {
+                        String tenantMapping = getCoprhdTenantUserMapping(tenant);
+
+                        if (tenantMapping == null) {
+                            throw APIException.internalServerErrors.targetIsNullOrEmpty("TenantMapping");
+                        }
+
+                        String tenantId = getTenantIdFromUserMapping(tenantMapping);
+                        OSTenant osTenant = findOpenstackTenantInCoprhd(tenantId);
+
+                        if (osTenant == null) {
+                            throw APIException.internalServerErrors.targetIsNullOrEmpty("OSTenant");
+                        }
+
+                        _dbClient.markForDeletion(osTenant);
                     }
                 }
 

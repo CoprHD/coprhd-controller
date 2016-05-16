@@ -16,6 +16,7 @@
  */
 package com.emc.storageos.api.service.impl.resource;
 
+import com.emc.storageos.api.mapper.DbObjectMapper;
 import com.emc.storageos.api.service.impl.resource.utils.OpenStackSynchronizationTask;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.AuthnProvider;
@@ -26,6 +27,8 @@ import com.emc.storageos.keystone.restapi.model.response.TenantListRestResp;
 import com.emc.storageos.keystone.restapi.model.response.TenantV2;
 import com.emc.storageos.keystone.restapi.utils.KeystoneUtils;
 import com.emc.storageos.model.ResourceTypeEnum;
+import com.emc.storageos.model.keystone.CoprhdOsTenant;
+import com.emc.storageos.model.keystone.CoprhdOsTenantListRestRep;
 import com.emc.storageos.model.keystone.OpenStackTenantListParam;
 import com.emc.storageos.model.keystone.OpenStackTenantParam;
 import com.emc.storageos.security.authentication.StorageOSUser;
@@ -104,7 +107,7 @@ public class KeystoneService extends TaskResourceService {
             return response;
         }
 
-        throw APIException.internalServerErrors.targetIsNullOrEmpty("Keystone Provider");
+        throw APIException.internalServerErrors.targetIsNullOrEmpty("Keystone Authentication Provider");
     }
 
     /**
@@ -120,7 +123,7 @@ public class KeystoneService extends TaskResourceService {
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @CheckPermission(roles = { Role.SECURITY_ADMIN })
-    public void saveOpenstackTenants(OpenStackTenantListParam param) {
+    public CoprhdOsTenantListRestRep saveOpenstackTenants(OpenStackTenantListParam param) {
 
         List<OSTenant> openstackTenants = new ArrayList<>();
 
@@ -133,11 +136,21 @@ public class KeystoneService extends TaskResourceService {
         }
 
         AuthnProvider keystoneProvider = _keystoneUtils.getKeystoneProvider();
+
+        if (keystoneProvider == null) {
+            throw APIException.internalServerErrors.targetIsNullOrEmpty("Keystone Authentication Provider");
+        }
+
         if (keystoneProvider.getAutoRegCoprHDNImportOSProjects()) {
 
-            _authService.createTenantsAndProjectsForAutomaticKeystoneRegistration(keystoneProvider);
-            _openStackSynchronizationTask.startSynchronizationTask(_openStackSynchronizationTask.getTaskInterval());
+            if (_openStackSynchronizationTask.getSynchronizationTask() == null) {
+                // Do not create Tenants and Projects once synchronization task is running.
+                _authService.createTenantsAndProjectsForAutomaticKeystoneRegistration(keystoneProvider);
+                _openStackSynchronizationTask.startSynchronizationTask(_openStackSynchronizationTask.getTaskInterval());
+            }
         }
+
+        return map(openstackTenants);
     }
 
     private OSTenant prepareOpenstackTenant(OpenStackTenantParam param) {
@@ -150,6 +163,30 @@ public class KeystoneService extends TaskResourceService {
         openstackTenant.setExcluded(param.getExcluded());
         openstackTenant.setOsId(param.getOsId());
         return openstackTenant;
+    }
+
+    private CoprhdOsTenantListRestRep map(List<OSTenant> tenants) {
+
+        CoprhdOsTenantListRestRep response = new CoprhdOsTenantListRestRep();
+        List<CoprhdOsTenant> coprhdOsTenants = new ArrayList<>();
+        for (OSTenant osTenant : tenants) {
+            coprhdOsTenants.add(mapOsTenant(osTenant));
+        }
+        response.setCoprhd_os_tenants(coprhdOsTenants);
+
+        return response;
+    }
+
+    private CoprhdOsTenant mapOsTenant(OSTenant from) {
+
+        CoprhdOsTenant to = new CoprhdOsTenant();
+        DbObjectMapper.mapDataObjectFields(from, to);
+        to.setExcluded(from.getExcluded());
+        to.setDescription(from.getDescription());
+        to.setOsId(from.getOsId());
+        to.setEnabled(from.getEnabled());
+
+        return to;
     }
 
     @Override

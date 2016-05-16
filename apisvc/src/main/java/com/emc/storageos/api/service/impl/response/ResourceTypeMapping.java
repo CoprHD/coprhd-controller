@@ -1,129 +1,34 @@
 /*
- * Copyright (c) 2015 EMC Corporation
- * All Rights Reserved
+ * Copyright 2015 EMC Corporation
+ * Copyright 2016 Intel Corporation
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
  */
 package com.emc.storageos.api.service.impl.response;
-
-import static com.emc.storageos.model.ResourceTypeEnum.AUTHN_PROVIDER;
-import static com.emc.storageos.model.ResourceTypeEnum.AUTO_TIERING_POLICY;
-import static com.emc.storageos.model.ResourceTypeEnum.BLOCK_CONSISTENCY_GROUP;
-import static com.emc.storageos.model.ResourceTypeEnum.BLOCK_MIRROR;
-import static com.emc.storageos.model.ResourceTypeEnum.BLOCK_SNAPSHOT;
-import static com.emc.storageos.model.ResourceTypeEnum.BLOCK_SNAPSHOT_SESSION;
-import static com.emc.storageos.model.ResourceTypeEnum.BLOCK_VPOOL;
-import static com.emc.storageos.model.ResourceTypeEnum.BUCKET;
-import static com.emc.storageos.model.ResourceTypeEnum.CLUSTER;
-import static com.emc.storageos.model.ResourceTypeEnum.COMPUTE_ELEMENT;
-import static com.emc.storageos.model.ResourceTypeEnum.COMPUTE_IMAGE;
-import static com.emc.storageos.model.ResourceTypeEnum.COMPUTE_IMAGESERVER;
-import static com.emc.storageos.model.ResourceTypeEnum.COMPUTE_SYSTEM;
-import static com.emc.storageos.model.ResourceTypeEnum.COMPUTE_VPOOL;
-import static com.emc.storageos.model.ResourceTypeEnum.CUSTOM_CONFIG;
-import static com.emc.storageos.model.ResourceTypeEnum.DATA_STORE;
-import static com.emc.storageos.model.ResourceTypeEnum.EXPORT_GROUP;
-import static com.emc.storageos.model.ResourceTypeEnum.FC_PORT_CONNECTION;
-import static com.emc.storageos.model.ResourceTypeEnum.FILE;
-import static com.emc.storageos.model.ResourceTypeEnum.FILE_SNAPSHOT;
-import static com.emc.storageos.model.ResourceTypeEnum.FILE_VPOOL;
-import static com.emc.storageos.model.ResourceTypeEnum.HOST;
-import static com.emc.storageos.model.ResourceTypeEnum.INITIATOR;
-import static com.emc.storageos.model.ResourceTypeEnum.IPINTERFACE;
-import static com.emc.storageos.model.ResourceTypeEnum.MIGRATION;
-import static com.emc.storageos.model.ResourceTypeEnum.NETWORK;
-import static com.emc.storageos.model.ResourceTypeEnum.NETWORK_SYSTEM;
-import static com.emc.storageos.model.ResourceTypeEnum.OBJECT_VPOOL;
-import static com.emc.storageos.model.ResourceTypeEnum.PROJECT;
-import static com.emc.storageos.model.ResourceTypeEnum.PROTECTION_SET;
-import static com.emc.storageos.model.ResourceTypeEnum.PROTECTION_SYSTEM;
-import static com.emc.storageos.model.ResourceTypeEnum.QUOTA_DIR;
-import static com.emc.storageos.model.ResourceTypeEnum.RDF_GROUP;
-import static com.emc.storageos.model.ResourceTypeEnum.SMIS_PROVIDER;
-import static com.emc.storageos.model.ResourceTypeEnum.STORAGE_POOL;
-import static com.emc.storageos.model.ResourceTypeEnum.STORAGE_PORT;
-import static com.emc.storageos.model.ResourceTypeEnum.STORAGE_PROVIDER;
-import static com.emc.storageos.model.ResourceTypeEnum.STORAGE_SYSTEM;
-import static com.emc.storageos.model.ResourceTypeEnum.STORAGE_TIER;
-import static com.emc.storageos.model.ResourceTypeEnum.SYS_EVENT;
-import static com.emc.storageos.model.ResourceTypeEnum.TASK;
-import static com.emc.storageos.model.ResourceTypeEnum.TENANT;
-import static com.emc.storageos.model.ResourceTypeEnum.UNMANAGED_FILESYSTEMS;
-import static com.emc.storageos.model.ResourceTypeEnum.UNMANAGED_VOLUMES;
-import static com.emc.storageos.model.ResourceTypeEnum.USER_GROUP;
-import static com.emc.storageos.model.ResourceTypeEnum.VARRAY;
-import static com.emc.storageos.model.ResourceTypeEnum.VCENTER;
-import static com.emc.storageos.model.ResourceTypeEnum.VCENTERDATACENTER;
-import static com.emc.storageos.model.ResourceTypeEnum.VDC;
-import static com.emc.storageos.model.ResourceTypeEnum.VIRTUAL_NAS;
-import static com.emc.storageos.model.ResourceTypeEnum.VOLUME;
-import static com.emc.storageos.model.ResourceTypeEnum.VOLUME_GROUP;
-import static com.emc.storageos.model.ResourceTypeEnum.VPLEX_MIRROR;
-import static com.emc.storageos.model.ResourceTypeEnum.VPOOL;
-import static com.emc.storageos.model.ResourceTypeEnum.WORKFLOW;
-import static com.emc.storageos.model.ResourceTypeEnum.WORKFLOW_STEP;
-import static com.emc.storageos.model.ResourceTypeEnum.SCHEDULE_POLICY;
 
 import java.util.HashMap;
 import java.util.Map;
 
+import com.emc.storageos.db.client.model.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.emc.storageos.db.client.model.AuthnProvider;
-import com.emc.storageos.db.client.model.AutoTieringPolicy;
-import com.emc.storageos.db.client.model.BlockConsistencyGroup;
-import com.emc.storageos.db.client.model.BlockMirror;
-import com.emc.storageos.db.client.model.BlockSnapshot;
-import com.emc.storageos.db.client.model.BlockSnapshotSession;
-import com.emc.storageos.db.client.model.Bucket;
-import com.emc.storageos.db.client.model.Cluster;
-import com.emc.storageos.db.client.model.ComputeElement;
-import com.emc.storageos.db.client.model.ComputeImage;
-import com.emc.storageos.db.client.model.ComputeImageServer;
-import com.emc.storageos.db.client.model.ComputeSystem;
-import com.emc.storageos.db.client.model.ComputeVirtualPool;
-import com.emc.storageos.db.client.model.CustomConfig;
-import com.emc.storageos.db.client.model.DataObject;
-import com.emc.storageos.db.client.model.ExportGroup;
-import com.emc.storageos.db.client.model.FCEndpoint;
-import com.emc.storageos.db.client.model.FileShare;
-import com.emc.storageos.db.client.model.Host;
-import com.emc.storageos.db.client.model.HostingDeviceInfo;
-import com.emc.storageos.db.client.model.Initiator;
-import com.emc.storageos.db.client.model.IpInterface;
-import com.emc.storageos.db.client.model.Migration;
-import com.emc.storageos.db.client.model.Network;
-import com.emc.storageos.db.client.model.NetworkSystem;
-import com.emc.storageos.db.client.model.Project;
-import com.emc.storageos.db.client.model.ProtectionSet;
-import com.emc.storageos.db.client.model.ProtectionSystem;
-import com.emc.storageos.db.client.model.QuotaDirectory;
-import com.emc.storageos.db.client.model.RemoteDirectorGroup;
-import com.emc.storageos.db.client.model.SMISProvider;
-import com.emc.storageos.db.client.model.SchedulePolicy;
-import com.emc.storageos.db.client.model.Snapshot;
-import com.emc.storageos.db.client.model.StoragePool;
-import com.emc.storageos.db.client.model.StoragePort;
-import com.emc.storageos.db.client.model.StorageProvider;
-import com.emc.storageos.db.client.model.StorageSystem;
-import com.emc.storageos.db.client.model.StorageTier;
-import com.emc.storageos.db.client.model.SysEvent;
-import com.emc.storageos.db.client.model.Task;
-import com.emc.storageos.db.client.model.TenantOrg;
-import com.emc.storageos.db.client.model.UserGroup;
-import com.emc.storageos.db.client.model.Vcenter;
-import com.emc.storageos.db.client.model.VcenterDataCenter;
-import com.emc.storageos.db.client.model.VirtualArray;
-import com.emc.storageos.db.client.model.VirtualDataCenter;
-import com.emc.storageos.db.client.model.VirtualNAS;
-import com.emc.storageos.db.client.model.VirtualPool;
-import com.emc.storageos.db.client.model.Volume;
-import com.emc.storageos.db.client.model.VolumeGroup;
-import com.emc.storageos.db.client.model.VplexMirror;
-import com.emc.storageos.db.client.model.Workflow;
-import com.emc.storageos.db.client.model.WorkflowStep;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedFileSystem;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume;
 import com.emc.storageos.model.ResourceTypeEnum;
+
+import static com.emc.storageos.model.ResourceTypeEnum.*;
 
 public class ResourceTypeMapping {
     private static final Logger _log = LoggerFactory.getLogger(ResourceTypeMapping.class);
@@ -191,6 +96,7 @@ public class ResourceTypeMapping {
         classMapping.put(VOLUME_GROUP, VolumeGroup.class);
         classMapping.put(BLOCK_SNAPSHOT_SESSION, BlockSnapshotSession.class);
         classMapping.put(SCHEDULE_POLICY, SchedulePolicy.class);
+        classMapping.put(OPENSTACK_TENANT, OSTenant.class);
 
         for (Map.Entry<ResourceTypeEnum, Class<? extends DataObject>> entry : classMapping.entrySet()) {
             resourceMapping.put(entry.getValue(), entry.getKey());

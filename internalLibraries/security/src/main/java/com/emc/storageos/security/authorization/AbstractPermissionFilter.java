@@ -154,7 +154,11 @@ public abstract class AbstractPermissionFilter implements ResourceFilter, Contai
                 // but also need to take into consideration of subtenants, which user has tenant roles.
                 acls = getUsageAclsFromURI(user.getTenantId(), getUriInfo());
                 for (String subtenantId : _permissionsHelper.getSubtenantsForUser(user)) {
-                    acls.addAll(getUsageAclsFromURI(subtenantId, getUriInfo()));
+                    if (acls == null) {
+                        acls = getUsageAclsFromURI(subtenantId, getUriInfo());
+                    } else {
+                        acls.addAll(getUsageAclsFromURI(subtenantId, getUriInfo()));
+                    }
                 }
             }
             // see if we got any and we got a hit

@@ -24,14 +24,19 @@ public class VirtualPoolChangeParam {
     private BlockVirtualPoolProtectionParam protection;
     private URI consistencyGroup;
     private String transferSpeed; 
+    private URI migrationHost;
+    private boolean isHostMigration;
 
     public VirtualPoolChangeParam() {
     }
 
     public VirtualPoolChangeParam(URI virtualPool,
-            BlockVirtualPoolProtectionParam protection) {
+            BlockVirtualPoolProtectionParam protection,
+            URI migrationHost, boolean isHostMigration) {
         this.virtualPool = virtualPool;
         this.protection = protection;
+        this.migrationHost = migrationHost;
+        this.isHostMigration = isHostMigration;
     }
 
     /**
@@ -87,6 +92,24 @@ public class VirtualPoolChangeParam {
 
     public void setConsistencyGroup(URI consistencyGroup) {
         this.consistencyGroup = consistencyGroup;
+    }
+    
+    @XmlElement(required = false, name = "host")
+    public URI getMigrationHost() {
+        return migrationHost;
+    }
+
+    public void setMigrationHost(URI migrationHost) {
+        this.migrationHost = migrationHost;
+    }
+
+    @XmlElement(required = false, name = "ishostmigration")
+    public boolean getIsHostMigration() {
+        return isHostMigration;
+    }
+
+    public void setIsHostMigration(boolean isHostMigration) {
+        this.isHostMigration = isHostMigration;
     }
 
 }

@@ -31,6 +31,9 @@ public class Migration extends DataObject {
     // The percentage done.
     private String _percentDone;
 
+    // Host initiators to be used in the case of a host based migration
+    private URI _migrationHost;
+
     /**
      * Getter for the URI of the volume being migrated.
      * 
@@ -150,5 +153,25 @@ public class Migration extends DataObject {
     public void setPercentDone(String percentDone) {
         _percentDone = percentDone;
         setChanged("percentDone");
+    }
+
+    /**
+     * Getter for the migration host.
+     *
+     * @return The URI of the host for host-based migrations.
+     */
+    @Name("migrationHost")
+    public URI getMigrationHost() {
+        return _migrationHost;
+    }
+
+    /**
+     * Setter for the migration host.
+     *
+     * @param migrationHost The URI of the host for host-based migrations.
+     */
+    public void setMigrationHost(URI migrationHost) {
+        _migrationHost = migrationHost;
+        setChanged("migrationHost");
     }
 }

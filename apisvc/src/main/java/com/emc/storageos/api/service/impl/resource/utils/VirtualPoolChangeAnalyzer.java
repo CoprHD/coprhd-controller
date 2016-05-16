@@ -106,6 +106,65 @@ public class VirtualPoolChangeAnalyzer extends DataObjectChangeAnalyzer {
     private static boolean newVpoolDoesNotSpecifyHaVpool = false;
 
     /**
+     * Determines if the vpool change is supported.
+     *
+     * @param volume A reference to the volume.
+     * @param currentVpool A reference to the current volume vpool.
+     * @param newVpool The desired new vpool.
+     * @param dbClient A reference to a DB client.
+     * @return Supported change vpool operations
+     */
+    public static VirtualPoolChangeOperationEnum getSupportedVolumeVirtualPoolChangeOperation(Volume volume,
+            VirtualPool currentVpool, VirtualPool newVpool, DbClient dbClient,
+            StringBuffer notSuppReasonBuff) {
+        s_logger.info(String.format("Checking getSupportedVPlexVolumeVirtualPoolChangeOperation from [%s] to [%s]...",
+                currentVpool.getLabel(), newVpool.getLabel()));
+        // Make sure the VirtualPool's are not the same instance.
+        if (isSameVirtualPool(currentVpool, newVpool, notSuppReasonBuff)) {
+            return null;
+        }
+
+        // Throw an exception if any of the following properties are different
+        // between the current and new vpool.
+        String[] include = new String[] { TYPE, VARRAYS,
+                REF_VPOOL,
+                FAST_EXPANSION, ACLS,
+                INACTIVE, NUM_PATHS };
+        // If current vpool specifies mirror then add MIRROR_VPOOL to include.
+        if (VirtualPool.vPoolSpecifiesMirrors(currentVpool, dbClient)) {
+            include = addElementToArray(include, MIRROR_VPOOL);
+        }
+
+        Map<String, Change> changes = analyzeChanges(currentVpool, newVpool, include, null, null);
+        if (!changes.isEmpty()) {
+            fillInNotSupportedReasons(changes, notSuppReasonBuff);
+            return null;
+        }
+
+        if (VirtualPool.vPoolSpecifiesMirrors(newVpool, dbClient) &&
+                isSupportedAddMirrorsVirtualPoolChange(volume, currentVpool, newVpool, dbClient, notSuppReasonBuff)) {
+            return VirtualPoolChangeOperationEnum.ADD_MIRRORS;
+        }
+
+        // If the volume is in a CG and the target vpool does not specify multi
+        // volume consistency, then the vpool change is not permitted.
+        if ((!NullColumnValueGetter.isNullURI(volume.getConsistencyGroup())) &&
+                (!newVpool.getMultivolumeConsistency())) {
+            notSuppReasonBuff
+                    .append("The volume is in a consistency group but the target virtual pool does not specify multi-volume consistency");
+            return null;
+        }
+
+        boolean migrateVolume = vpoolChangeRequiresMigration(currentVpool, newVpool);
+
+        if (migrateVolume) {
+            return VirtualPoolChangeOperationEnum.DATA_MIGRATION;
+        }
+
+        return null;
+    }
+
+    /**
      * Determines if the VPlex virtual volume vpool change is supported.
      * 
      * @param volume A reference to the volume.

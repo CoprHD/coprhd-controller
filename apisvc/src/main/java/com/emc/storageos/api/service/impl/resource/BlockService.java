@@ -6,6 +6,7 @@
 package com.emc.storageos.api.service.impl.resource;
 
 import static com.emc.storageos.api.mapper.BlockMapper.map;
+import static com.emc.storageos.api.mapper.DbObjectMapper.map;
 import static com.emc.storageos.api.mapper.DbObjectMapper.toNamedRelatedResource;
 import static com.emc.storageos.api.mapper.ProtectionMapper.map;
 import static com.emc.storageos.api.mapper.TaskMapper.toTask;
@@ -41,6 +42,7 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 
+import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -85,6 +87,7 @@ import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.ExportPathParams;
+import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.Migration;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.Project;
@@ -110,6 +113,7 @@ import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.client.util.SizeUtil;
 import com.emc.storageos.db.client.util.StringSetUtil;
+import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.model.BulkIdParam;
 import com.emc.storageos.model.BulkRestRep;
 import com.emc.storageos.model.NamedRelatedResourceRep;
@@ -144,6 +148,7 @@ import com.emc.storageos.model.block.VolumeVirtualArrayChangeParam;
 import com.emc.storageos.model.block.VolumeVirtualPoolChangeParam;
 import com.emc.storageos.model.block.export.ITLBulkRep;
 import com.emc.storageos.model.block.export.ITLRestRepList;
+import com.emc.storageos.model.host.HostList;
 import com.emc.storageos.model.protection.ProtectionSetRestRep;
 import com.emc.storageos.model.search.SearchResultResourceRep;
 import com.emc.storageos.model.search.SearchResults;
@@ -3310,8 +3315,7 @@ public class BlockService extends TaskResourceService {
                     volumes.get(0), vPool);
             _log.info("Got block service implementation for VirtualPool change request");
             VirtualPoolChangeParam oldParam = convertNewVirtualPoolChangeParamToOldParam(param);
-            blockServiceAPI.changeVolumeVirtualPool(volumes, vPool,
-                    oldParam, taskId);
+            blockServiceAPI.changeVolumeVirtualPool(volumes, vPool, oldParam, taskId);
             _log.info("Executed VirtualPool change for given volumes.");
         } catch (Exception e) {
             String errorMsg = String.format(
@@ -3421,6 +3425,8 @@ public class BlockService extends TaskResourceService {
         oldParam.setProtection(newParam.getProtection());
         oldParam.setConsistencyGroup(newParam.getConsistencyGroup());
         oldParam.setTransferSpeedParam(newParam.getTransferSpeedParam());
+        oldParam.setIsHostMigration(newParam.getIsHostMigration());
+        oldParam.setMigrationHost(newParam.getMigrationHost());
         return oldParam;
     }
 
@@ -3523,7 +3529,8 @@ public class BlockService extends TaskResourceService {
             VirtualArrayChangeParam varrayChangeParam) throws InternalException, APIException {
         _log.info("Request to change varray for volume {}", id);
         TaskList taskList = changeVirtualArrayForVolumes(Arrays.asList(id),
-                varrayChangeParam.getVirtualArray());
+                varrayChangeParam.getVirtualArray(), varrayChangeParam.getIsHostMigration(),
+                varrayChangeParam.getMigrationHost());
         return taskList.getTaskList().get(0);
     }
 
@@ -3552,7 +3559,8 @@ public class BlockService extends TaskResourceService {
     public TaskList changeVolumesVirtualArray(VolumeVirtualArrayChangeParam param)
             throws InternalException, APIException {
         _log.info("Request to change varray for volumes {}", param.getVolumes());
-        return changeVirtualArrayForVolumes(param.getVolumes(), param.getVirtualArray());
+        return changeVirtualArrayForVolumes(param.getVolumes(), param.getVirtualArray(),
+                param.getIsHostMigration(), param.getMigrationHost());
     }
 
     /**
@@ -3566,8 +3574,8 @@ public class BlockService extends TaskResourceService {
      *
      * @throws InternalException, APIException
      */
-    private TaskList changeVirtualArrayForVolumes(List<URI> volumeURIs, URI tgtVarrayURI)
-            throws InternalException, APIException {
+    private TaskList changeVirtualArrayForVolumes(List<URI> volumeURIs, URI tgtVarrayURI,
+            boolean isHostMigration, URI migrationHostURI) throws InternalException, APIException {
 
         // Create the result.
         TaskList taskList = new TaskList();
@@ -3628,10 +3636,7 @@ public class BlockService extends TaskResourceService {
             // execute the change. If it is possible that volumes
             // with multiple implementations can be selected for a
             // varray change, then we would need a map of the
-            // implementation to use for a given volume. However,
-            // currently only VPLEX volumes can be moved, so valid
-            // volumes for a varray change will always have the same
-            // implementation.
+            // implementation to use for a given volume.
             blockServiceAPI = getBlockServiceImpl(volume);
 
             // Verify that the virtual array change is allowed for the
@@ -3704,7 +3709,8 @@ public class BlockService extends TaskResourceService {
         if (cg != null) {
             try {
                 // When the volumes are part of a CG, executed as a single workflow.
-                blockServiceAPI.changeVirtualArrayForVolumes(volumes, cg, cgVolumes, tgtVarray, taskId);
+                blockServiceAPI.changeVirtualArrayForVolumes(volumes, cg, cgVolumes, tgtVarray,
+                        isHostMigration, migrationHostURI, taskId);
                 _log.info("Executed virtual array change for volumes");
             } catch (InternalException | APIException e) {
                 // Fail all the tasks.
@@ -3731,7 +3737,8 @@ public class BlockService extends TaskResourceService {
             // When the volumes are not in a CG, then execute as individual workflows.
             for (Volume volume : volumes) {
                 try {
-                    blockServiceAPI.changeVirtualArrayForVolumes(Arrays.asList(volume), cg, cgVolumes, tgtVarray, taskId);
+                    blockServiceAPI.changeVirtualArrayForVolumes(Arrays.asList(volume), cg, cgVolumes, tgtVarray,
+                            isHostMigration, migrationHostURI, taskId);
                     _log.info("Executed virtual array change for volume {}", volume.getId());
                 } catch (InternalException | APIException e) {
                     String errorMsg = String.format("Volume virtual array change error: %s", e.getMessage());
@@ -4213,12 +4220,6 @@ public class BlockService extends TaskResourceService {
                 throw APIException.badRequests.changeToVirtualPoolNotSupported(newVpool.getLabel(),
                         notSuppReasonBuff.toString());
             }
-        } else {
-            _log.info("VirtualPool change volume is not a vplex, vmax or vnxblock volume");
-            throw new ServiceCodeException(
-                    ServiceCode.API_VOLUME_VPOOL_CHANGE_DISRUPTIVE,
-                    "VirtualPool change is not supported for volume {0}",
-                    new Object[] { volume.getId() });
         }
     }
 

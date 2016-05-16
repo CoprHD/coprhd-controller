@@ -251,6 +251,7 @@ public class IpReconfigManager implements Runnable {
         if (System.currentTimeMillis() >= expiration_time) {
             // set procedure failed when it is expired
             setFailed(IpReconfigConstants.ERRSTR_TIMEOUT);
+            FileUtils.deleteFile(IpReconfigConstants.NODESTATUS_PATH);
             return;
         }
 
@@ -335,6 +336,7 @@ public class IpReconfigManager implements Runnable {
                     log.error("unexpected node status before reboot: {}", localnode_status);
                     // if installer is used before the procedure finished, we will get unexpected node status
                     setFailed(IpReconfigConstants.ERRSTR_MANUAL_CONFIGURED);
+                    FileUtils.deleteFile(IpReconfigConstants.NODESTATUS_PATH);
                     break;
             }
         } else {
@@ -364,6 +366,7 @@ public class IpReconfigManager implements Runnable {
                     log.error("unexpected node status after reboot: {}", localnode_status);
                     // if installer is used before the procedure finished, we will get unexpected node status
                     setFailed(IpReconfigConstants.ERRSTR_MANUAL_CONFIGURED);
+                    FileUtils.deleteFile(IpReconfigConstants.NODESTATUS_PATH);
                     break;
             }
         }
@@ -587,6 +590,7 @@ public class IpReconfigManager implements Runnable {
                                 expiration_time = Long.valueOf(config.getConfig(IpReconfigConstants.CONFIG_EXPIRATION_KEY));
                                 if (expiration_time < System.currentTimeMillis()) {
                                     setFailed(IpReconfigConstants.ERRSTR_TIMEOUT);
+                                    FileUtils.deleteFile(IpReconfigConstants.NODESTATUS_PATH);
                                     return;
                                 }
                             }

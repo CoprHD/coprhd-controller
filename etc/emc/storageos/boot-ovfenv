@@ -27,6 +27,10 @@
 # Source /etc/sysconfig/storageos 
 #
 STORAGEOS_SYSCONFIG=${STORAGEOS_SYSCONFIG:-'/etc/sysconfig/storageos'}
+datafs_ip_props=${datafs_ip_props:-/data/cluster_network.properties}
+newip_temp_path=${newip_temp_path:-/data/ipreconfig/newip}
+oldip_temp_path=${oldip_temp_path:-/data/ipreconfig/oldip}
+
 test -r "${STORAGEOS_SYSCONFIG}"       || exit 6
 . ${STORAGEOS_SYSCONFIG}
 
@@ -53,6 +57,94 @@ _get_ipv6_compressed(){
         ipaddr=$(sipcalc ${1} | egrep '^Compressed address' | awk '{print $4}')
         [ ! -z ${ipaddr} ] && echo ${ipaddr} || echo ${1}
     fi
+}
+
+# handle kinds of scenarios related with cluster IPs during boot-up.
+_handleClusterIPs() {
+    if [ ! -e "${datafs_ip_props}" ]; then
+        # fresh-installation, no IP prop file yet
+        echo "No need to handle cluster IPs during fresh installation." >> /var/log/boot-ovfenv.log
+        return
+    fi
+
+    # 1. Commit new IPs (triggered by REST API) or rollback old IPs (revert IPs changed by REST API)
+    bRestAPI="false"
+    if [ -e "${newip_temp_path}" -a "${STORAGEOS_IPRECONFIG_MODE}" = "commit" ] || [ -e "${oldip_temp_path}" -a "${STORAGEOS_IPRECONFIG_MODE}" = "rollback" ]; then
+        bRestAPI="true"
+
+        my_vdc_id=$(/etc/systool --getvdcprops | grep vdc_myid | cut -d'=' -f2)
+        active_site_id=$(/etc/systool --getvdcprops | grep site_active_id | cut -d'=' -f2)
+        my_site_id=$(/etc/systool --getvdcprops | grep site_myid | cut -d'=' -f2)
+        /opt/storageos/bin/ipreconfig ${my_vdc_id} ${active_site_id} ${my_site_id} ${STORAGEOS_IPRECONFIG_MODE}
+    fi
+
+    # 2. check whether there is IP inconsistent b/w ovfenv device and IP prop file
+
+    # 2.1 load current cluster ip properties if exists
+    declare -A currIpPropMap
+    while read -r line
+    do
+      IFS='=' read -ra pair <<< "$line"
+      currIpPropMap[${pair[0]}]=${pair[1]}
+    done < "${datafs_ip_props}"
+
+    # 2.2 load current local ovfenv prop file
+    declare -A currOvfenvPropMap
+    while read -r line
+    do
+      IFS='=' read -ra pair <<< "$line"
+      currOvfenvPropMap[${pair[0]}]=${pair[1]}
+    done < "${ovf_props_file}"
+
+    # 2.3 load current vdc prop file
+    declare -A currVdcPropMap
+    while read -r line
+    do
+      IFS='=' read -ra pair <<< "$line"
+      currVdcPropMap[${pair[0]}]=${pair[1]}
+    done < "${1}"
+
+    vdc_myid=${currVdcPropMap["vdc_myid"]}
+    site_myid=${currVdcPropMap["site_myid"]}
+
+    bConsistent="true"
+    for key in "${!currOvfenvPropMap[@]}"
+    do
+       if [[ "${key}" == network* ]]; then
+            tmpkey="vdc_"${vdc_myid}"_"${site_myid}"_"${key}
+            if [ "${currVdcPropMap[${tmpkey}]}" != "${currOvfenvPropMap[${key}]}" ]; then
+                errstr="Value of ${key} in local ovfenv device (${currOvfenvPropMap[${key}]}) is different from that in cluster IP (${currVdcPropMap[${tmpkey}]})"
+                echo $errstr >> /var/log/boot-ovfenv.log
+                bConsistent="false"
+                break
+            fi
+        fi
+    done
+
+    # 3. Do nothing if IP info is consistent
+    [ "${bConsistent}" = "true" ] && return
+
+    # 4.
+    if [[ "${currIpPropMap[]}" == *,* ]]; then
+        # multiple sites
+        if [ "${bRestAPI}" = "true" ]; then
+            tmpstr="You are changing IPs via REST API or rollbacking to a original IPs while the local site is an vApp environment.  So you also need to manually change IPs via vCenter to align with the desired IPs."
+        else
+            tmpstr="You are changing IPs via vCenter in a multiple sites environment which is not allowed.  Instead, please use GUI/REST API to change cluster IPs, after vApp is automatically shutdown, please also change IPs via vCenter to align with the desired IPs."
+        fi
+    else
+        # single site
+        if [ "${bRestAPI}" = "true" ]; then
+            tmpstr="You are changing IPs via REST API or rollbacking to a original IPs in an vApp environment.  So you also need to manually change IPs via vCenter to align with the desired IPs."
+        else
+            # TODO: write to IP prop
+        fi
+    fi
+    echo $tmpstr >> /var/log/boot-ovfenv.log
+
+
+
+
 }
 
 _set_storageos_variable() {
@@ -100,10 +192,8 @@ case ${1} in
 
         /etc/diskresizetool
 
-        my_vdc_id=$(/etc/systool --getvdcprops | grep vdc_myid | cut -d'=' -f2)
-        active_site_id=$(/etc/systool --getvdcprops | grep site_active_id | cut -d'=' -f2)
-        my_site_id=$(/etc/systool --getvdcprops | grep site_myid | cut -d'=' -f2)
-        /opt/storageos/bin/ipreconfig ${my_vdc_id} ${active_site_id} ${my_site_id} ${STORAGEOS_IPRECONFIG_MODE}
+
+
 
         echo -n "Initializing configuration properties"
         /etc/systool --initializeprops 2>>/var/log/genconfig.log || rc_failed 1

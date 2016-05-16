@@ -325,6 +325,13 @@ _get_vdc_props() {
     if [ -f "${bootfs_vdc_props}" ] ; then
         _read_file "${bootfs_vdc_props}"
     fi
+    
+    # do not add site-specific promisc ip info into vdc properties 
+    if [ -f "${datafs_ip_props}" ] ; then
+        sed '/gateway/d;/netmask/d;/prefix_length/d' "${datafs_ip_props}" > "${datafs_ip_nopromisc_props}"
+        _read_file "${datafs_ip_nopromisc_props}"
+        rm -f "${datafs_ip_nopromisc_props}"
+    fi
 }
 
 _get_ssl_props() {
@@ -349,9 +356,16 @@ _write_props_file() {
 
 }
 
+# Vdc properties would be persisted into two different files
+# 1. ip related file in data fs
+# 2. non-ip related file in boot fs 
 _set_vdc_props() {
-    _write_props_file "${1}" "${bootfs_vdc_props}"
+    # de-couple ip related properties and site_ids into dedicated ip prop file
     _set_ip_props "${1}"
+    sed -i '/^vdc_vdc/d;/^site_ids/d' "${1}"
+
+   # put all other vdc properties into vdc property file 
+    _write_props_file "${1}" "${bootfs_vdc_props}"
 }
 
 # During setting vdc properties, we need to (re)set ip prop file for the following
@@ -882,6 +896,10 @@ _props_trymerge() {
             cat  "${bootfs_vdc_props}"
         fi
 
+        if [ -f "${datafs_ip_props}" ] ; then
+            cat  "${datafs_ip_props}"
+        fi
+
         if [ -f "${bootfs_ssl_props}" ] ; then
             cat  "${bootfs_ssl_props}"
         fi
@@ -938,6 +956,7 @@ bootfs_dev=$(/sbin/findfs UUID=${BOOTFS_UUID} 2>/dev/null) || bootfs_dev='/dev/s
 bootfs_mntp=${bootfs_mntp:-'/.volumes/bootfs'}
 bootfs_vdc_props=${bootfs_vdc_props:-${bootfs_mntp}/etc/vdcconfig.properties}
 datafs_ip_props=${datafs_ip_props:-/data/cluster_network.properties}
+datafs_ip_nopromisc_props=${datafs_ip_nopromisc_props:-/data/cluster_network_noprommisc.properties}
 bootfs_ssl_props=${bootfs_ssl_props:-${bootfs_mntp}/etc/ssl.properties}
 bootfs_datarevision_props=${bootfs_datarevision_props:-${bootfs_mntp}/etc/datarevision.properties}
 override_props='config-override.properties'

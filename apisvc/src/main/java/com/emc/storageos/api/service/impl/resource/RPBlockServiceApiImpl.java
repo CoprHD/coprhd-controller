@@ -1053,7 +1053,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
             boolean createTask = Volume.PersonalityTypes.SOURCE.equals(personality);
             descriptors.addAll(vplexBlockServiceApiImpl
                     .createVPlexVolumeDescriptors(volumeCreateParam, project, varray, vpool,
-                            vplexRecommendations, task, capabilities, taskList, volumes, createTask));
+                            vplexRecommendations, task, capabilities, capabilities.getBlockConsistencyGroup(), taskList, volumes, createTask));
             vplexVirtualVolume = this.getVPlexVirtualVolume(volumes);
         } else {
             if (Volume.PersonalityTypes.SOURCE.equals(personality)) {

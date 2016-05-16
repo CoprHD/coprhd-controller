@@ -120,7 +120,7 @@ public class StorageSystemTypes {
         return VNXe.equals(type);
     }
 
-    public static boolean isVnxUnity(String type) {
+    public static boolean isUnity(String type) {
         return UNITY.equals(type);
     }
 

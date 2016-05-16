@@ -584,7 +584,8 @@ public class BlockVirtualPoolForm extends VirtualPoolCommonForm<BlockVirtualPool
     }
 
     public AutoTierPolicyNamesCall autoTierPolicyNames() {
-        boolean isVnx = StorageSystemTypes.isVnxBlock(systemType) || StorageSystemTypes.isVNXe(systemType);
+        boolean isVnx = StorageSystemTypes.isVnxBlock(systemType) || StorageSystemTypes.isVNXe(systemType) ||
+                    StorageSystemTypes.isUnity(systemType);
         boolean uniqueNames = defaultBoolean(uniqueAutoTierPolicyNames) || isVnx;
         return new AutoTierPolicyNamesCall(uris(virtualArrays), provisioningType, systemType, uniqueNames);
     }

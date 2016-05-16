@@ -141,11 +141,16 @@ public class VNXeCreateVolumesJob extends VNXeJob {
             if (group == null) {
                 group = dbClient.queryObject(BlockConsistencyGroup.class, volume.getConsistencyGroup());
             }
-            String deviceName = group.getCgNameOnStorageSystem(volume.getStorageController());
-            VNXeLun vnxeLun = apiClient.getLunByLunGroup(deviceName, volume.getNativeGuid());
+            String cgId = null;
+            if (apiClient.isUnityClient()) {
+                String cgName = volume.getReplicationGroupInstance();
+                cgId = apiClient.getConsistencyGroupIdByName(cgName);
+            } else {
+                cgId = group.getCgNameOnStorageSystem(volume.getStorageController());
+            }
+            VNXeLun vnxeLun = apiClient.getLunByLunGroup(cgId, volume.getNativeGuid());
             if (vnxeLun != null) {
                 updateVolume(volume, vnxeLun, dbClient);
-                volume.setReplicationGroupInstance(deviceName);
                 dbClient.updateObject(volume);
 
                 if (logMsgBuilder.length() != 0) {

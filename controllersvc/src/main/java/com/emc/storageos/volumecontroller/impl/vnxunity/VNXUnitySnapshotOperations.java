@@ -119,7 +119,8 @@ public class VNXUnitySnapshotOperations extends VNXeSnapshotOperation {
             String groupName = volume.getReplicationGroupInstance();
             if (NullColumnValueGetter.isNotNullValue(groupName)) {
                 VNXeApiClient apiClient = getVnxeClient(storage);
-                VNXeCommandJob job = apiClient.createSnap(groupName, snapLabelToUse, readOnly);
+                String cgId = apiClient.getConsistencyGroupIdByName(groupName);
+                VNXeCommandJob job = apiClient.createSnap(cgId, snapLabelToUse, readOnly);
                 if (job != null) {
                     ControllerServiceImpl.enqueueJob(
                             new QueueJob(new VNXUnityCreateCGSnapshotJob(job.getId(),

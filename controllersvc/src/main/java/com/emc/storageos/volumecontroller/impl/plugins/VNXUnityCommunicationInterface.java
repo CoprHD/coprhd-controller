@@ -1502,7 +1502,7 @@ public class VNXUnityCommunicationInterface extends
                 isNewTier = true;
             }
 
-            tierObj.setLabel(tier.getName());
+            tierObj.setLabel(tier.getId());
             tierObj.setTotalCapacity(VNXeUtils.convertDoubleSizeToViPRLong(tier.getSizeTotal()));
             if (isNewTier) {
                 newTiers.add(tierObj);

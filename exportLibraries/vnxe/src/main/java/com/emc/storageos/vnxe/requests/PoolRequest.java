@@ -9,7 +9,7 @@ import com.emc.storageos.vnxe.models.VNXePool;
 
 public class PoolRequest extends KHRequests<VNXePool> {
     private static final String URL = "/api/instances/pool/";
-    private static final String FIELDS = "raidType,tiers,sizeTotal,sizeFree,name,isEmpty,poolFastVP,isFASTCacheEnabled";
+    private static final String FIELDS = "raidType,tiers,sizeTotal,sizeFree,sizeSubscribed,name,isEmpty,poolFastVP,isFASTCacheEnabled";
 
     public PoolRequest(KHClient client, String id) {
         super(client);

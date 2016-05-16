@@ -362,7 +362,7 @@ _write_props_file() {
 _set_vdc_props() {
     # de-couple ip related properties and site_ids into dedicated ip prop file
     _set_ip_props "${1}"
-    sed -i '/^vdc_vdc/d;/^site_ids/d' "${1}"
+    sed -i '/^vdc_vdc/d' "${1}"
 
    # put all other vdc properties into vdc property file 
     _write_props_file "${1}" "${bootfs_vdc_props}"
@@ -404,9 +404,34 @@ _set_ip_props() {
     fi
 
     # 3. If site number is not changed, no need to update IP prop file
-    site_ids_key="site_ids"
-    orig_sites_ids=${origIpPropMap[${site_ids_key}]}
-    new_sites_ids=${newVdcPropMap[${site_ids_key}]}
+
+    declare -A origSiteIdsArray
+    origSiteIdsArray=($(cat ${datafs_ip_props} | grep 'vdc_vdc' | cut -d'_' -f3 | sort -u))
+    count=0
+    for origSiteId in "${origSiteIdsArray[@]}"; do
+        if [ $count -eq 0 ]; then
+            orig_sites_ids=${origSiteId}
+            count=$(($count+1))
+            continue
+        fi
+        orig_sites_ids+=","${origSiteId}
+    done
+
+    new_sites_ids=${newVdcPropMap["site_ids"]}
+    declare -A tmpNewSiteIdsArray
+    IFS=',' read -ra tmpNewSiteIdsArray <<< ${new_sites_ids}
+    declare -A newSiteIdsArray
+    newSiteIdsArray=($(sort<<< "${tmpNewSiteIdsArray[*]}"))
+    count=0
+    for newSiteId in "${newSiteIdsArray[@]}"; do
+        if [ $count -eq 0 ]; then
+            new_sites_ids=${newSiteId}
+            count=$(($count+1))
+            continue
+        fi
+        new_sites_ids+=","${newSiteId}
+    done
+
     [ "${new_sites_ids}" == "${orig_sites_ids}" ] && return
 
     # 4. update IP prop file
@@ -414,7 +439,6 @@ _set_ip_props() {
 
     # 4.1 Always override regular IPs from newVdcPropMap into ip prop file
     rm -f "${datafs_ip_props}.bak"
-    echo "${site_ids_key}=${newVdcPropMap[${site_ids_key}]}" >> "${datafs_ip_props}.bak"
     for key in "${!newVdcPropMap[@]}"
     do
         if [[ "${key}" == vdc_vdc*_site*_network_* || "${key}" == vdc_vdc*_site*_node_count* ]]; then
@@ -467,8 +491,7 @@ _set_ip_props() {
             fi
         else
             # b.2) For standby removal, preserve only current existed sites' promisc network info
-                IFS=',' read -ra origsitesArray <<< "${orig_sites_ids}"
-                for origsite in "${origsitesArray[@]}"; do
+                for origsite in "${origSiteIdsArray[@]}"; do
                     [[ "${new_sites_ids}" == *"${origsite}"* ]] && continue
                     removalsite=${origsite}
                 done

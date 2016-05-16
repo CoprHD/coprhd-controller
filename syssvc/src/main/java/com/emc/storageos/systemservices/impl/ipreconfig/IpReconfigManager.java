@@ -172,11 +172,8 @@ public class IpReconfigManager implements Runnable {
         currentIpinfo.loadFromPropertyMap(ipProps);
 
         nodeCount = 0;
-        SortedSet<String> globalPropNames = new TreeSet<String>(ipProps.keySet());
-        for (String globalPropName : globalPropNames) {
-            if (globalPropName.contains(PropertyConstants.NODE_COUNT_KEY)) {
-                nodeCount += Integer.valueOf(ipProps.get(globalPropName));
-            }
+        for (Map.Entry<String, SiteIpInfo> me: currentIpinfo.getSiteIpInfoMap().entrySet()) {
+            nodeCount+=me.getValue().getNodeCount();
         }
 
         vdcnodeId = ((CoordinatorClientImpl)_coordinator.getCoordinatorClient()).getVdcNodeId();

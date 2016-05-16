@@ -35,6 +35,7 @@ public class PropertyConstants {
     public static final String IPV4_GATEWAY_KEY = "network_gateway";
     public static final String IPV4_NETMASK_KEY = "network_netmask";
     public static final String IPV4_VIP_KEY = "network_vip";
+    public static final String IPV4_ADDR_POSTFIX = "_ipaddr";
     public static final String IPV4_ADDR_DEFAULT = "0.0.0.0";
     public static final String NETMASK_DEFAULT = "255.255.255.0";
 
@@ -42,6 +43,7 @@ public class PropertyConstants {
     public static final String IPV6_GATEWAY_KEY = "network_gateway6";
     public static final String IPV6_PREFIX_KEY = "network_prefix_length";
     public static final String IPV6_VIP_KEY = "network_vip6";
+    public static final String IPV6_ADDR_POSTFIX = "_ipaddr6";
     public static final String IPV6_ADDR_DEFAULT = "::0";
     public static final String IPV6_PREFIX_LEN_DEFAULT = "64";
 

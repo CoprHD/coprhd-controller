@@ -674,11 +674,6 @@ public class StorageOSLdapPersonAttributeDao implements StorageOSPersonAttribute
             ValidationFailureReason[] failureReason) {
         try {
             return doLdapSearch(base, ldapQuery, searchControls, mapper);
-        } catch (CommunicationException e) {
-            // all caught exceptions must return null. Spring LDAP returns empty list for empty search result.
-            _log.error("Caught communication exception connecting to ldap server", e);
-            failureReason[0] = ValidationFailureReason.LDAP_CONNECTION_FAILED;
-            return null;
         } catch (AuthenticationException e) {
             _log.error("Caught authentication exception connecting to ldap server", e);
             failureReason[0] = ValidationFailureReason.LDAP_MANAGER_AUTH_FAILED;

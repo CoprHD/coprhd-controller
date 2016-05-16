@@ -14,12 +14,12 @@ import org.apache.commons.httpclient.UsernamePasswordCredentials;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.emc.storageos.auth.AuthenticationManager.ValidationFailureReason;
+import com.emc.storageos.auth.LdapFailureHandler;
 import com.emc.storageos.auth.StorageOSPersonAttributeDao;
 import com.emc.storageos.db.client.model.StorageOSUserDAO;
 import com.emc.storageos.security.authorization.BasePermissionsHelper;
 import com.emc.storageos.security.authorization.BasePermissionsHelper.UserMapping;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
-import com.emc.storageos.auth.LdapFailureHandler;
 
 /**
  * Attribute repository class for local users.

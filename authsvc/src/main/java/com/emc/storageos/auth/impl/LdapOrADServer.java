@@ -15,7 +15,6 @@ import java.util.Arrays;
 public class LdapOrADServer {
 
     private LdapContextSource contextSource;
-    private boolean isGood;
 
     public LdapContextSource getContextSource() {
         return contextSource;
@@ -25,20 +24,10 @@ public class LdapOrADServer {
         this.contextSource = contextSource;
     }
 
-    public boolean isGood() {
-        return isGood;
-    }
-
-    public void setIsGood(boolean isGood) {
-        this.isGood = isGood;
-    }
-
     @Override
     public String toString() {
         StringBuilder sb = new StringBuilder();
         sb.append("IP: " + Arrays.toString(contextSource.getUrls()));
-        sb.append(", ");
-        sb.append("State: " + isGood);
         return sb.toString();
     }
 }

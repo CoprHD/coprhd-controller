@@ -43,11 +43,6 @@ public class StorageOSLdapAuthenticationHandler implements
 
     private Logger _log = LoggerFactory.getLogger(StorageOSLdapAuthenticationHandler.class);
     private AlertsLogger _alertLog = AlertsLogger.getAlertsLogger();
-
-    public Set<String> getDomains() {
-        return _domains;
-    }
-
     private Set<String> _domains;
     private String _rawFilter;
     private String _searchBase;
@@ -173,7 +168,7 @@ public class StorageOSLdapAuthenticationHandler implements
         } catch (CommunicationException e) {
             _alertLog.error(MessageFormat.format("Connection to LDAP server {0} failed for domain(s) {1}. {2}",
                     Arrays.toString(server.getContextSource().getUrls()), _domains, e.getMessage()));
-            throw UnauthorizedException.unauthorized.ldapCommunicationException();
+            throw e;
         } catch (Exception e) {
             _alertLog.error(MessageFormat.format("Second bind failed.  An exception was thrown while trying to authenticate user {0}. {1}",
                     usernamePasswordCredentials.getUserName(), e.getMessage()));
@@ -217,6 +212,10 @@ public class StorageOSLdapAuthenticationHandler implements
 
     public void setDomains(final Set<String> stringSet) {
         _domains = stringSet;
+    }
+
+    public Set<String> getDomains() {
+        return _domains;
     }
 
     public void setFilter(final String filter) {

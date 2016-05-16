@@ -1186,7 +1186,7 @@ public class BlockConsistencyGroupService extends TaskResourceService {
         StorageOSUser user = getUserFromContext();
         if (!(_permissionsHelper.userHasGivenRole(user, project.getTenantOrg().getURI(),
                 Role.TENANT_ADMIN) || _permissionsHelper.userHasGivenACL(user, project.getId(),
-                        ACL.OWN, ACL.ALL))) {
+                ACL.OWN, ACL.ALL))) {
             throw APIException.forbidden.insufficientPermissionsForUser(user.getName());
         }
     }
@@ -2263,7 +2263,7 @@ public class BlockConsistencyGroupService extends TaskResourceService {
 
         RPController controller = getController(RPController.class, system.getSystemType());
 
-        controller.performProtectionOperation(system.getId(), consistencyGroupId, targetVolume.getId(), pointInTime, op, task);
+        controller.performProtectionOperation(system.getId(), consistencyGroupId, targetVolume.getId(), pointInTime, null, op, task);
         /*
          * auditOp(OperationTypeEnum.PERFORM_PROTECTION_ACTION, true, AuditLogManager.AUDITOP_BEGIN,
          * op, copyID.toString(), id.toString(), system.getId().toString());

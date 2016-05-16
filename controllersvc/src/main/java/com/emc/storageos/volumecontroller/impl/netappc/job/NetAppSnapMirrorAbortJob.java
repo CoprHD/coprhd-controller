@@ -48,7 +48,7 @@ public class NetAppSnapMirrorAbortJob extends Job implements Serializable {
     public NetAppSnapMirrorAbortJob(String jobId, URI storageSystemUri, TaskCompleter taskCompleter) {
         this._storageSystemUri = storageSystemUri;
         this._taskCompleter = taskCompleter;
-        this._jobName = "netAppSnapMirrorStartJob";
+        this._jobName = "netAppSnapMirrorAbortJob";
         this._jobIds.add(jobId);
     }
 

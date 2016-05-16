@@ -172,4 +172,7 @@ public interface NetAppCExceptions {
     @DeclareServiceCode(ServiceCode.NETAPPC_ERROR)
     public NetAppCException getSnapMirrorStatusFailed(final String volName, final String ip, final String message);
 
+    @DeclareServiceCode(ServiceCode.NETAPPC_ERROR)
+    public NetAppCException getSnapMirrorCronScheduleFailed(final String jobName, final String ip, final String message);
+
 }

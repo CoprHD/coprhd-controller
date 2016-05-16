@@ -30,6 +30,7 @@ import com.iwave.ext.netapp.model.Quota;
 import com.iwave.ext.netapp.utils.ExportRule;
 import com.iwave.ext.netappc.model.CifsAcl;
 import com.iwave.ext.netappc.model.SnapMirrorVolumeStatus;
+import com.iwave.ext.netappc.model.SnapmirrorCronScheduleInfo;
 import com.iwave.ext.netappc.model.SnapmirrorInfo;
 import com.iwave.ext.netappc.model.SnapmirrorInfoResp;
 import com.iwave.ext.netappc.model.SnapmirrorResp;
@@ -860,4 +861,24 @@ public class NetAppClusterFacade {
         return snapMirror.getSnapMirrorDestInfo(snapMirrorInfo);
     }
 
+    // cron schedule operations
+    public SnapmirrorCronScheduleInfo createCronSchedule(String fsRpoValue, String fsRpoType, String name) {
+        NetAppCJob netappCJob = new NetAppCJob(server.getNaServer(), name);
+        return netappCJob.createCronSchedule(fsRpoValue, fsRpoType, name);
+    }
+
+    public SnapmirrorCronScheduleInfo modifyCronSchedule(String fsRpoValue, String fsRpoType, String name) {
+        NetAppCJob netappCJob = new NetAppCJob(server.getNaServer(), name);
+        return netappCJob.modifyCronSchedule(fsRpoValue, fsRpoType, name);
+    }
+
+    public boolean deleteCronSchedule(String jobName) {
+        NetAppCJob netappCJob = new NetAppCJob(server.getNaServer(), jobName);
+        return netappCJob.deleteCronSchedule(jobName);
+    }
+
+    public SnapmirrorCronScheduleInfo getCronSchedule(String jobName) {
+        NetAppCJob netappCJob = new NetAppCJob(server.getNaServer(), jobName);
+        return netappCJob.getCronSchedule(jobName);
+    }
 }

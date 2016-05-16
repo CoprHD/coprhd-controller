@@ -25,6 +25,7 @@ import com.iwave.ext.netappc.StorageVirtualMachineInfo;
 import com.iwave.ext.netappc.model.CifsAccess;
 import com.iwave.ext.netappc.model.CifsAcl;
 import com.iwave.ext.netappc.model.SnapMirrorVolumeStatus;
+import com.iwave.ext.netappc.model.SnapmirrorCronScheduleInfo;
 import com.iwave.ext.netappc.model.SnapmirrorInfo;
 import com.iwave.ext.netappc.model.SnapmirrorInfoResp;
 import com.iwave.ext.netappc.model.SnapmirrorResp;
@@ -1072,6 +1073,48 @@ public class NetAppClusterApi {
             return netAppClusterFacade.getSnapMirrorDestInfo(mirrorInfo);
         } catch (Exception e) {
             throw NetAppCException.exceptions.getSnapMirrorStatusFailed(mirrorInfo.getSourceVolume(), _ipAddress, e.getMessage());
+        }
+    }
+
+    // NetappC mode cron schedule operations
+
+    public SnapmirrorCronScheduleInfo createCronSchedule(String fsRpoValue, String fsRpoType, String name) {
+        try {
+            netAppClusterFacade = new NetAppClusterFacade(_ipAddress, _portNumber, _userName,
+                    _password, _https);
+            return netAppClusterFacade.createCronSchedule(fsRpoValue, fsRpoType, name);
+        } catch (Exception e) {
+            throw NetAppCException.exceptions.getSnapMirrorCronScheduleFailed(name, _ipAddress, e.getMessage());
+        }
+    }
+
+    public SnapmirrorCronScheduleInfo modifyCronSchedule(String fsRpoValue, String fsRpoType, String name) {
+        try {
+            netAppClusterFacade = new NetAppClusterFacade(_ipAddress, _portNumber, _userName,
+                    _password, _https);
+            return netAppClusterFacade.modifyCronSchedule(fsRpoValue, fsRpoType, name);
+        } catch (Exception e) {
+            throw NetAppCException.exceptions.getSnapMirrorCronScheduleFailed(name, _ipAddress, e.getMessage());
+        }
+    }
+
+    public boolean deleteCronSchedule(String name) {
+        try {
+            netAppClusterFacade = new NetAppClusterFacade(_ipAddress, _portNumber, _userName,
+                    _password, _https);
+            return netAppClusterFacade.deleteCronSchedule(name);
+        } catch (Exception e) {
+            throw NetAppCException.exceptions.getSnapMirrorCronScheduleFailed(name, _ipAddress, e.getMessage());
+        }
+    }
+
+    public SnapmirrorCronScheduleInfo getCronSchedule(String name) {
+        try {
+            netAppClusterFacade = new NetAppClusterFacade(_ipAddress, _portNumber, _userName,
+                    _password, _https);
+            return netAppClusterFacade.getCronSchedule(name);
+        } catch (Exception e) {
+            throw NetAppCException.exceptions.getSnapMirrorCronScheduleFailed(name, _ipAddress, e.getMessage());
         }
     }
 }

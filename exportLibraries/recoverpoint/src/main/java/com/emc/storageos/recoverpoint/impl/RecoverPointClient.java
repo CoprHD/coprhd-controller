@@ -2398,6 +2398,11 @@ public class RecoverPointClient {
         // imageManager.disableCGCopy(functionalAPI, cgCopyUID);
     }
 
+    public void enableCGCopyDirectAccess(RPCopyRequestParams copyToEnableDirectAccess) throws RecoverPointException {
+        RecoverPointImageManagementUtils imageManager = new RecoverPointImageManagementUtils();
+        imageManager.enableCGCopyDirectAcess(functionalAPI, copyToEnableDirectAccess);
+    }
+
     /**
      * Cancel a failover operation, usually a failover after a failover without a swap.
      *

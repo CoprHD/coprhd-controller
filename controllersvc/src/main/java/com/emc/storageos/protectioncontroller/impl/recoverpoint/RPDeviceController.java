@@ -78,6 +78,7 @@ import com.emc.storageos.locking.LockRetryException;
 import com.emc.storageos.locking.LockTimeoutValue;
 import com.emc.storageos.locking.LockType;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
+import com.emc.storageos.model.block.Copy;
 import com.emc.storageos.plugins.common.Constants;
 import com.emc.storageos.protectioncontroller.RPController;
 import com.emc.storageos.recoverpoint.exceptions.RecoverPointException;
@@ -1644,7 +1645,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
             WorkflowStepCompleter.stepExecuting(token);
             ProtectionSystem rpSystem = _dbClient.queryObject(ProtectionSystem.class, rpSystemId);
-            URI cgId = volumeDescriptors.iterator().next().getCapabilitiesValues().getBlockConsistencyGroup();            
+            URI cgId = volumeDescriptors.iterator().next().getCapabilitiesValues().getBlockConsistencyGroup();
             boolean attachAsClean = true;
 
             for (VolumeDescriptor sourceVolumedescriptor : sourceVolumeDescriptors) {
@@ -1677,7 +1678,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                 throw DeviceControllerException.exceptions.failedToAcquireLock(lockKeys.toString(),
                         String.format("Create or add volumes to RP consistency group id: %s", cgId.toString()));
             }
-            
+
             BlockConsistencyGroup cg = _dbClient.queryObject(BlockConsistencyGroup.class, cgId);
 
             RecoverPointCGResponse response = null;
@@ -1926,40 +1927,40 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
         for (CreateRSetParams rset : cgParams.getRsets()) {
             _log.info("Replication Set: " + rset.getName());
             Set<CreateVolumeParams> createVolumeParams = new HashSet<CreateVolumeParams>();
-            createVolumeParams.addAll(rset.getVolumes()); 
+            createVolumeParams.addAll(rset.getVolumes());
             List<URI> processedRsetVolumes = new ArrayList<URI>();
             for (CreateVolumeParams rsetVolume : createVolumeParams) {
                 // MetroPoint RSets will have the Source volume listed twice:
                 //
-                // 1. Once for the Active Production Copy 
+                // 1. Once for the Active Production Copy
                 // 2. Once for the Standby Production Copy
                 //
                 // This is the same volume WWN but it is for two distinct RP Copies.
                 //
                 // We only need a single reference to the Source volume for export purposes
-                // as we already make allowances in the below code for exporting this volume to 
-                // multiple VPLEX export groups (aka Storage Views). 
+                // as we already make allowances in the below code for exporting this volume to
+                // multiple VPLEX export groups (aka Storage Views).
                 //
-                // So if we have already created exports for this Source volume, we can skip 
+                // So if we have already created exports for this Source volume, we can skip
                 // the second reference and continue processing.
                 if (processedRsetVolumes.contains(rsetVolume.getVolumeURI())) {
                     continue;
-                }                
+                }
                 processedRsetVolumes.add(rsetVolume.getVolumeURI());
-                
+
                 // Retrieve the volume
                 Volume volume = _dbClient.queryObject(Volume.class, rsetVolume.getVolumeURI());
 
-                _log.info(String.format("Generating Exports for %s volume [%s](%s)...", 
+                _log.info(String.format("Generating Exports for %s volume [%s](%s)...",
                         volume.getPersonality().toString(), volume.getLabel(), volume.getId()));
-                
+
                 // List of volumes to export, normally just one volume will be added to this list unless
                 // we have a MetroPoint config. In which case we would have two (each leg of the VPLEX).
                 Set<Volume> volumes = new HashSet<Volume>();
 
                 // Check to see if this is a SOURCE volume
                 if (volume.checkPersonality(PersonalityTypes.SOURCE.toString())) {
-                    // Check the vpool to ensure we're exporting the source volume to the correct storage system. 
+                    // Check the vpool to ensure we're exporting the source volume to the correct storage system.
                     // In the case of MetroPoint, however, it could be a change vpool. In that case get the change
                     // vpool new vpool.
                     URI vpoolURI = null;
@@ -1971,7 +1972,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
                     VirtualPool vpool = _dbClient.queryObject(VirtualPool.class, vpoolURI);
 
-                    // In an RP+VPLEX distributed setup, the user can choose to protect only the HA side, 
+                    // In an RP+VPLEX distributed setup, the user can choose to protect only the HA side,
                     // so we would export only to the HA StorageView on the VPLEX.
                     boolean exportToHASideOnly = VirtualPool.isRPVPlexProtectHASide(vpool);
 
@@ -2033,8 +2034,8 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                                 }
                             }
                         }
-                    }                    
-                    _log.info(String.format("Adding %s volume [%s](%s) to export: %s", 
+                    }
+                    _log.info(String.format("Adding %s volume [%s](%s) to export: %s",
                             volume.getPersonality().toString(), volume.getLabel(), volume.getId(), rpExport.toString()));
                     rpExport.getVolumes().add(volumeId);
                 }
@@ -2054,9 +2055,9 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                 // Retrieve the volume
                 Volume volume = _dbClient.queryObject(Volume.class, journalVolume.getVolumeURI());
 
-                _log.info(String.format("Generating export for %s volume [%s](%s)...", 
+                _log.info(String.format("Generating export for %s volume [%s](%s)...",
                         volume.getPersonality().toString(), volume.getLabel(), volume.getId()));
-                
+
                 URI storageSystem = journalVolume.getStorageSystem();
                 String rpSiteName = volume.getInternalSiteName();
                 URI varray = volume.getVirtualArray();
@@ -2077,14 +2078,14 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                     rpExportMap.put(key, rpExport);
                 }
 
-                _log.info(String.format("Adding %s volume [%s](%s) to export: %s", 
+                _log.info(String.format("Adding %s volume [%s](%s) to export: %s",
                         volume.getPersonality().toString(), volume.getLabel(), volume.getId(), rpExport.toString()));
                 rpExport.getVolumes().add(volumeId);
             }
         }
 
         _log.info("Generate the storage system exports...END");
-        
+
         return rpExportMap.values();
     }
 
@@ -4058,7 +4059,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
      * @see com.emc.storageos.volumecontroller.RPController#stopProtection(java.net.URI, java.net.URI, java.lang.String)
      */
     @Override
-    public void performProtectionOperation(URI protectionDevice, URI id, URI copyID, String pointInTime, String op,
+    public void performProtectionOperation(URI protectionDevice, URI id, URI copyID, String pointInTime, String imageAccessMode, String op,
             String task)
             throws ControllerException {
         RPCGProtectionTaskCompleter taskCompleter = null;
@@ -4317,6 +4318,17 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                 copyParams.setCopyVolumeInfo(volumeProtectionInfo);
                 rp.failoverCopyTestCancel(copyParams);
                 taskCompleter.ready(_dbClient, _locker);
+            } else if (op.equals("change-access-mode")) {
+                taskCompleter.setOperationTypeEnum(OperationTypeEnum.CHANGE_RP_IMAGE_ACCESS_MODE);
+                RPCopyRequestParams copyParams = new RPCopyRequestParams();
+                copyParams.setCopyVolumeInfo(volumeProtectionInfo);
+                if (imageAccessMode != null && Copy.ImageAccessMode.DIRECT_ACCESS.name().equalsIgnoreCase(imageAccessMode)) {
+                    rp.enableCGCopyDirectAccess(copyParams);
+                    taskCompleter.ready(_dbClient, _locker);
+                } else {
+                    taskCompleter.error(_dbClient, _locker,
+                            DeviceControllerErrors.recoverpoint.imageAccessModeNotSupported(imageAccessMode));
+                }
             } else {
                 taskCompleter.error(_dbClient, _locker, DeviceControllerErrors.recoverpoint.methodNotSupported());
             }

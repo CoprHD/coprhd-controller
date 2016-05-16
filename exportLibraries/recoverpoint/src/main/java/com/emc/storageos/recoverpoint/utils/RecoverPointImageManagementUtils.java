@@ -447,6 +447,33 @@ public class RecoverPointImageManagementUtils {
         }
     }
 
+    public void enableCGCopyDirectAcess(FunctionalAPIImpl impl, RPCopyRequestParams copyToEnableDirectAccess)
+            throws RecoverPointException {
+        String cgCopyName = NAME_UNKNOWN;
+        String cgName = NAME_UNKNOWN;
+
+        ConsistencyGroupCopyUID cgCopyUID = RecoverPointUtils.mapRPVolumeProtectionInfoToCGCopyUID(copyToEnableDirectAccess
+                .getCopyVolumeInfo());
+
+        // TODO: make sure the copy we are operating on is not a production copy
+
+        try {
+            cgCopyName = impl.getGroupCopyName(cgCopyUID);
+            cgName = impl.getGroupName(cgCopyUID.getGroupUID());
+
+            // Wait for the copy to be in logged access mode
+            waitForCGCopyState(impl, cgCopyUID, ImageAccessMode.LOGGED_ACCESS, false);
+
+            impl.enableDirectAccess(cgCopyUID);
+        } catch (FunctionalAPIActionFailedException_Exception e) {
+            throw RecoverPointException.exceptions.failedToEnableCopy(cgCopyName, cgName, e);
+        } catch (FunctionalAPIInternalError_Exception e) {
+            throw RecoverPointException.exceptions.failedToEnableCopy(cgCopyName, cgName, e);
+        } catch (InterruptedException e) {
+            throw RecoverPointException.exceptions.failedToEnableCopy(cgCopyName, cgName, e);
+        }
+    }
+
     /**
      * Convenience method that determines if 2 CG copies are equal. The cluster and copy UIDs
      * for each copy must be equal in order for the copies to be equal.

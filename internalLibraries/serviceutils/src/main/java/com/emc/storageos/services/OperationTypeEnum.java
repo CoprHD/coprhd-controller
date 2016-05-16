@@ -93,6 +93,7 @@ public enum OperationTypeEnum {
     FAILOVER_CANCEL_RP_LINK("RPLinkFailedOverCanceled", "RPLinkFailOverCancelFailed", "RP Link Fail Over Cancel"),
     FAILOVER_TEST_RP_LINK("RPLinkTestFailedOver", "RPLinkTestFailOverFailed", "RP Link Test Fail Over"),
     FAILOVER_TEST_CANCEL_RP_LINK("RPLinkTestCancelFailedOver", "RPLinkTestCancelFailOverFailed", "RP Link Test Cancel Fail Over"),
+    CHANGE_RP_IMAGE_ACCESS_MODE("RPImageAccessModeChanged", "RPImageAccessModeChangeFailed", "RP Image Access Mode Change"),
 
     CREATE_VOLUME_MIRROR("VolumeMirrorCreated", "VolumeMirrorCreateFailed", "VolumeMirror Create"),
     DEACTIVATE_VOLUME_MIRROR("VolumeMirrorDeactivated", "VolumeMirrorDeactivateFailed", "VolumeMirror Deactivate"),
@@ -178,7 +179,8 @@ public enum OperationTypeEnum {
     START_FILE_MIRROR("FileSystemMirrorStart", "FileSystemMirrorStartFailed", "FileSystemMirror Start"),
     REFRESH_FILE_MIRROR("FileSystemMirrorRefresh", "FileSystemMirrorRefreshFailed", "FileSystemMirror Refresh"),
     RESYNC_FILE_MIRROR("FileSystemMirrorResync", "FileSystemMirrorResyncFailed", "FileSystemMirror Resync"),
-    MODIFY_FILE_MIRROR_RPO("UPDATE FILE SHARE REPLICATION RPO", "FileSystemMirrorModifyRPOFailed", "operation to update filesystem replication RPO"),
+    MODIFY_FILE_MIRROR_RPO("UPDATE FILE SHARE REPLICATION RPO", "FileSystemMirrorModifyRPOFailed",
+            "operation to update filesystem replication RPO"),
 
     CREATE_BUCKET("BucketCreated", "BucketCreateFailed", "Bucket created"),
     DELETE_BUCKET("BucketDeleted", "BucketDeleteFailed", "Bucket deleted"),
@@ -461,10 +463,12 @@ public enum OperationTypeEnum {
             "VolumeGroupFullCopy Resynchronize"),
 
     CREATE_VOLUME_GROUP_SNAPSHOT("VolumeGroupSnapshotCreated", "VolumeGroupSnapshotCreateFailed", "VolumeGroupSnapshot Create"),
-    ACTIVATE_VOLUME_GROUP_SNAPSHOT("VolumeGroupSnapshotActivated", "VolumeGroupSnapshotActivateFailed", "VolumeGroupSnapshot Activate"),   
-    DEACTIVATE_VOLUME_GROUP_SNAPSHOT("VolumeGroupSnapshotDeactivated", "VolumeGroupSnapshotDeactivateFailed", "VolumeGroupSnapshot Deactivate"),
+    ACTIVATE_VOLUME_GROUP_SNAPSHOT("VolumeGroupSnapshotActivated", "VolumeGroupSnapshotActivateFailed", "VolumeGroupSnapshot Activate"),
+    DEACTIVATE_VOLUME_GROUP_SNAPSHOT("VolumeGroupSnapshotDeactivated", "VolumeGroupSnapshotDeactivateFailed",
+            "VolumeGroupSnapshot Deactivate"),
     RESTORE_VOLUME_GROUP_SNAPSHOT("VolumeGroupSnapshotRestored", "VolumeGroupSnapshotRestoreFailed", "VolumeGroupSnapshot Restored"),
-    RESYNCHRONIZE_VOLUME_GROUP_SNAPSHOT("VolumeGroupSnapshotResynchronized", "VolumeGroupSnapshotResynchronizeFailed", "VolumeGroupSnapshot Resynchronize"),
+    RESYNCHRONIZE_VOLUME_GROUP_SNAPSHOT("VolumeGroupSnapshotResynchronized", "VolumeGroupSnapshotResynchronizeFailed",
+            "VolumeGroupSnapshot Resynchronize"),
 
     CREATE_VOLUME_GROUP_SNAPSHOT_SESSION("VolumeGroupSnapshotSessionCreated", "VolumeGroupSnapshotSessionCreateFailed",
             "VolumeGroupSnapshotSession Create"),

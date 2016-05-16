@@ -456,6 +456,6 @@ ext {
     ]
 
     ceph = [
-        "com.ceph:rados:0.2.0"
+        "com.ceph:rados:0.3.0"
     ]
 }

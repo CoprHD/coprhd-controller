@@ -33,13 +33,11 @@ import com.emc.storageos.db.client.util.NameGenerator;
 import com.emc.storageos.exceptions.DeviceControllerErrors;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.model.file.ExportRule;
-import com.emc.storageos.model.file.ShareACL;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
 import com.emc.storageos.vnxe.VNXeApiClient;
 import com.emc.storageos.vnxe.VNXeException;
 import com.emc.storageos.vnxe.VNXeUtils;
 import com.emc.storageos.vnxe.models.AccessEnum;
-import com.emc.storageos.vnxe.models.VNXeCifsShare;
 import com.emc.storageos.vnxe.models.VNXeCommandJob;
 import com.emc.storageos.vnxe.models.VNXeFSSupportedProtocolEnum;
 import com.emc.storageos.vnxe.models.VNXeFileSystem;
@@ -1635,59 +1633,14 @@ public class VNXUnityFileStorageDevice extends VNXUnityOperations
 
     @Override
     public BiosCommandResult updateShareACLs(StorageSystem storage, FileDeviceInputOutput args) {
-
-        VNXeApiClient apiClient = getVnxUnityClient(storage);
-        // Requested Export Rules
-        List<ShareACL> aclsToAdd = args.getShareAclsToAdd();
-        List<ShareACL> aclsToDelete = args.getShareAclsToDelete();
-        List<ShareACL> aclsToModify = args.getShareAclsToModify();
-
-        // Get existing Acls for the share
-        List<ShareACL> aclsToProcess = args.getExistingShareAcls();
-
-        _logger.info("Share name : {}", args.getShareName());
-
-        // Process Acls
-        _logger.info("Number of existing ACLs found {}", aclsToProcess.size());
-        try {
-            apiClient.updateShareACL(args.getFsNativeId(), args.getShareName(), aclsToAdd, aclsToModify, aclsToDelete);
-        } catch (VNXeException ex) {
-            _logger.error("update Quota Directory got an exception", ex);
-            return BiosCommandResult.createErrorResult(ex);
-        } catch (Exception e) {
-            ServiceError error = DeviceControllerErrors.vnxe.jobFailed("UpdateShareACLs", e.getMessage());
-            _logger.error("update Quota Directory got an exception", e);
-            return BiosCommandResult.createErrorResult(error);
-        }
-        StringBuilder logMsgBuilder = new StringBuilder(String.format(
-                "update Share ACL job submitted - Array:%s, fileSystem: %s, Share: %s", storage.getSerialNumber(),
-                args.getFsName(), args.getShareName()));
-        _logger.info(logMsgBuilder.toString());
-        BiosCommandResult result = BiosCommandResult.createSuccessfulResult();
-        return result;
+        return BiosCommandResult.createErrorResult(
+                DeviceControllerErrors.vnxe.operationNotSupported());
     }
 
     @Override
     public BiosCommandResult deleteShareACLs(StorageSystem storage, FileDeviceInputOutput args) {
-        VNXeApiClient apiClient = getVnxUnityClient(storage);
-        _logger.info("Share name : {}", args.getShareName());
-        try {
-            VNXeCifsShare vnxeShare = apiClient.findCifsShareByName(args.getShareName());
-            apiClient.deleteShareACL(args.getFsNativeId(), vnxeShare.getId());
-        } catch (VNXeException ex) {
-            _logger.error("delete Quota Directory got an exception", ex);
-            return BiosCommandResult.createErrorResult(ex);
-        } catch (Exception e) {
-            ServiceError error = DeviceControllerErrors.vnxe.jobFailed("DeleteShareACLs", e.getMessage());
-            _logger.error("update Quota Directory got an exception", e);
-            return BiosCommandResult.createErrorResult(error);
-        }
-        StringBuilder logMsgBuilder = new StringBuilder(String.format(
-                "delete Share ACL job submitted - Array:%s, fileSystem: %s, Share: %s", storage.getSerialNumber(),
-                args.getFsName(), args.getShareName()));
-        _logger.info(logMsgBuilder.toString());
-        BiosCommandResult result = BiosCommandResult.createSuccessfulResult();
-        return result;
+        return BiosCommandResult.createErrorResult(
+                DeviceControllerErrors.vnxe.operationNotSupported());
     }
 
     @Override

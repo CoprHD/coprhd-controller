@@ -128,7 +128,7 @@ public class XIVRESTExportOperations {
                             }
                             if (!failed) {
                                 failedSystems = status.optJSONArray(FAILED_SYSTEMS);
-                                if (null!=failedSystems && failedSystems.length() > 0) {
+                                if (null != failedSystems && failedSystems.length() > 0) {
                                     failed = true;
                                 }
                             }
@@ -136,7 +136,7 @@ public class XIVRESTExportOperations {
                         JSONObject responseObj = response.optJSONObject(RESPONSE);
                         if (!failed && null != responseObj) {
                             JSONObject counts = responseObj.optJSONObject(COUNTS);
-                            if(null!=counts) {
+                            if (null != counts) {
                                 String datacount = counts.optString(DATACOUNT);
                                 String totalcount = counts.optString(TOTALCOUNT);
                                 if (STATUS_EXECUTION_PASS.equals(datacount) || STATUS_EXECUTION_PASS.equals(totalcount)) {
@@ -260,7 +260,7 @@ public class XIVRESTExportOperations {
      * @param xivSystem XIV system
      * @param clusterName Cluster name
      * @return True if already present. Else False
-     * @throws Exception Exception Exception Exception If error occurs during execution
+     * @throws Exception Throws Exception If error occurs during execution
      */
     public boolean createCluster(final String xivSystem, final String clusterName) throws Exception {
         boolean isAvailable = findAvailability(MessageFormat.format(CLUSTER_INSTANCE_URL, xivSystem, clusterName));
@@ -277,6 +277,14 @@ public class XIVRESTExportOperations {
         return isAvailable;
     }
 
+    /**
+     * Deletes cluster if its is present only if the underlying structure is deleted
+     * 
+     * @param xivSystem XIV system that hosts the cluster
+     * @param clusterName Cluster name
+     * @return True if deleted. Else false.
+     * @throws Exception Throws Exception If error occurs during execution
+     */
     public boolean deleteCluster(final String xivSystem, final String clusterName) throws Exception {
         final String instanceURL = MessageFormat.format(CLUSTER_INSTANCE_URL, xivSystem, clusterName);
         boolean deleteSuccessful = false;
@@ -329,6 +337,14 @@ public class XIVRESTExportOperations {
         return isAvailable;
     }
 
+    /**
+     * Deletes Host on the XIV if underlying instances are deleted
+     * 
+     * @param xivSystem XIV system
+     * @param hostName Host name to be deleted
+     * @return True if deleted. Else false.
+     * @throws Exception Throws Exception If error occurs during execution
+     */
     public boolean deleteHost(final String xivSystem, final String hostName) throws Exception {
         final String instanceURL = MessageFormat.format(HOST_INSTANCE_URL, xivSystem, hostName);
         boolean deleteSuccessful = false;
@@ -364,7 +380,7 @@ public class XIVRESTExportOperations {
     /**
      * Creates Host Port (Initiator)
      * 
-     * @param xivSystem xivSystem XIV system
+     * @param xivSystem XIV system
      * @param hostName Host Name
      * @param hostPort Host Port name
      * @param hostPortType Host Port type
@@ -387,20 +403,31 @@ public class XIVRESTExportOperations {
         return isAvailable;
     }
 
+    /**
+     * Deletes Host Port on the Host if all the underlying instances are deleted.
+     * 
+     * @param xivSystem XIV System
+     * @param hostName Host name where the port exists
+     * @param hostPort Host port name
+     * @param hostPortType Host port type
+     * @return True if it is deleted. Else false.
+     * @throws Exception Throws Exception If error occurs during execution
+     */
     public boolean deleteHostPort(final String xivSystem, final String hostName, final String hostPort, final String hostPortType)
             throws Exception {
         final String instanceURL = MessageFormat.format(HOST_PORT_INSTANCE_URL, xivSystem, hostPortType, hostName, hostPort);
         boolean deleteSuccessful = false;
         if (findAvailability(instanceURL)) {
             // Validate if there are any volumes mapped before deleting.
-            boolean isVolumeExportAvailable = findAvailability(MessageFormat.format(EXPORT_VOLUME_URL + SEARCH_URL, xivSystem, HOST, hostName));
+            boolean isVolumeExportAvailable = findAvailability(
+                    MessageFormat.format(EXPORT_VOLUME_URL + SEARCH_URL, xivSystem, HOST, hostName));
             if (!isVolumeExportAvailable) {
                 // Now go ahead and delete HostPort.
                 ResponseValidator failureStatus = executePOSTRequest(xivSystem, instanceURL, DELETE_BODY);
                 deleteSuccessful = true;
                 if (failureStatus.isFailed()) {
                     throw XIVRestException.exceptions.hostPortDeleteFailure(xivSystem, hostName, hostPort, failureStatus.toString());
-                }    
+                }
             } else {
                 _log.warn("There are some more Volume exported to Host {}. Skipping Host Port deletion.", hostName);
             }
@@ -446,9 +473,20 @@ public class XIVRESTExportOperations {
         return isAvailable;
     }
 
+    /**
+     * Un exports the volume masked to Host/Cluster
+     * 
+     * @param xivSystem XIV system
+     * @param exportType Export type [Cluster/Host]
+     * @param exportName Export name
+     * @param volumeName Volume name
+     * @return True if unexport is successful. Else false.
+     * @throws Exception Throws Exception If error occurs during execution
+     */
     public boolean unExportVolume(final String xivSystem, final String exportType, final String exportName, final String volumeName)
             throws Exception {
-        final String instanceURL = MessageFormat.format(EXPORT_VOLUME_INSTANCE_URL, xivSystem, exportType.toLowerCase(), exportName, volumeName);
+        final String instanceURL = MessageFormat.format(EXPORT_VOLUME_INSTANCE_URL, xivSystem, exportType.toLowerCase(), exportName,
+                volumeName);
         boolean deleteSuccessful = false;
         if (findAvailability(instanceURL)) {
             ResponseValidator failureStatus = executePOSTRequest(xivSystem, instanceURL, DELETE_BODY);
@@ -457,7 +495,8 @@ public class XIVRESTExportOperations {
                 throw XIVRestException.exceptions.volumeExportToClusterFailure(xivSystem, exportName, volumeName, failureStatus.toString());
             }
         } else {
-            _log.info("Volume not available to do unexport on XIV {} : {}", exportType + SEPARATOR + exportName + SEPARATOR + volumeName, xivSystem);
+            _log.info("Volume not available to do unexport on XIV {} : {}", exportType + SEPARATOR + exportName + SEPARATOR + volumeName,
+                    xivSystem);
         }
         return deleteSuccessful;
     }
@@ -488,6 +527,14 @@ public class XIVRESTExportOperations {
         return hostStatus;
     }
 
+    /**
+     * Gets Host port for a Host on XIV
+     * 
+     * @param xivSystem XIV system
+     * @param hostName Host name
+     * @return Collection of Host Port names
+     * @throws Exception Throws Exception If error occurs during execution
+     */
     public Set<String> getHostPorts(final String xivSystem, final String hostName) throws Exception {
         String hostPortSearchURL = MessageFormat.format(HOST_PORT_URL + SEARCH_URL, xivSystem, HOST, hostName);
         JSONObject hostPortsInstance = getInstance(hostPortSearchURL);
@@ -506,12 +553,20 @@ public class XIVRESTExportOperations {
         return discHostPorts;
     }
 
+    /**
+     * Gets Volumes mapped on the XIV
+     * 
+     * @param xivSystem XIV system
+     * @param hostName Host name
+     * @return Map of Volume and LUN id
+     * @throws Exception Throws Exception If error occurs during execution
+     */
     public Map<String, Integer> getVolumesMappedToHost(final String xivSystem, final String hostName) throws Exception {
         String hostPortSearchURL = MessageFormat.format(EXPORT_VOLUME_URL + SEARCH_URL, xivSystem, HOST, hostName);
         JSONObject volsMappedToHostInstance = getInstance(hostPortSearchURL);
         Map<String, Integer> discVolsMappedToHost = new HashMap<String, Integer>();
         Map<String, Integer> discVolWWNMappedToHost = new HashMap<String, Integer>();
-        
+
         if (findAvailability(volsMappedToHostInstance)) {
             JSONObject response = volsMappedToHostInstance.getJSONObject(RESPONSE);
             JSONObject data = response.getJSONObject(DATA);
@@ -522,19 +577,19 @@ public class XIVRESTExportOperations {
                 discVolsMappedToHost.put(mappedVolume.getString(VOLUME), new Integer(mappedVolume.getString(LUN)));
             }
         }
-        if(!discVolsMappedToHost.isEmpty()){
-        	Set<Entry<String, Integer>> discVolsMappedToHostSet = discVolsMappedToHost.entrySet();
-        	for(Entry<String, Integer> volMapping : discVolsMappedToHostSet){
-        		String volName = volMapping.getKey();
-        		String volInstanceURL = MessageFormat.format(VOLUME_INSTANCE_URL, xivSystem, volName);
+        if (!discVolsMappedToHost.isEmpty()) {
+            Set<Entry<String, Integer>> discVolsMappedToHostSet = discVolsMappedToHost.entrySet();
+            for (Entry<String, Integer> volMapping : discVolsMappedToHostSet) {
+                String volName = volMapping.getKey();
+                String volInstanceURL = MessageFormat.format(VOLUME_INSTANCE_URL, xivSystem, volName);
                 JSONObject volInstance = getInstance(volInstanceURL);
                 JSONObject response = volInstance.getJSONObject(RESPONSE);
                 JSONObject data = response.getJSONObject(DATA);
                 JSONObject volumeData = data.getJSONObject(VOLUME);
                 discVolWWNMappedToHost.put(volumeData.getString(WWN), volMapping.getValue());
-        	}
+            }
         }
-        
+
         return discVolWWNMappedToHost;
     }
 

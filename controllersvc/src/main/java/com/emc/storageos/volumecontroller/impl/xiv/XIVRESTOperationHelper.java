@@ -107,7 +107,7 @@ public class XIVRESTOperationHelper {
         ExportMask exportMask = _dbClient.queryObject(ExportMask.class, exportMaskURI);
 
         List<ExportGroup> exportGroup = ExportMaskUtils.getExportGroups(_dbClient, exportMask);
-        if (null!=exportGroup && !exportGroup.isEmpty() && exportGroup.get(0).forCluster()) {
+        if (null != exportGroup && !exportGroup.isEmpty() && exportGroup.get(0).forCluster()) {
             XIVRESTExportOperations restExportOpr = getRestClient(storage);
             if (null != restExportOpr) {
                 String hostName = null;
@@ -181,21 +181,21 @@ public class XIVRESTOperationHelper {
             List<Initiator> initiatorList, TaskCompleter taskCompleter) {
 
         try {
-            
+
             ExportMask exportMask = _dbClient.queryObject(ExportMask.class, exportMaskURI);
             XIVRESTExportOperations restExportOpr = getRestClient(storage);
-            
+
             final String storageIP = storage.getSmisProviderIP();
             final Host host = _dbClient.queryObject(Host.class, initiatorList.get(0).getHost());
 
             String exportName = host.getLabel();
             String clusterName = null;
             final String exportType = ExportMaskUtils.getExportType(_dbClient, exportMask);
-            if(ExportGroup.ExportGroupType.Cluster.name().equals(exportType)){
+            if (ExportGroup.ExportGroupType.Cluster.name().equals(exportType)) {
                 Cluster cluster = _dbClient.queryObject(Cluster.class, host.getCluster());
                 clusterName = cluster.getLabel();
                 exportName = clusterName;
-                
+
                 // Create Cluster if not exist
                 restExportOpr.createCluster(storageIP, clusterName);
             }
@@ -274,6 +274,13 @@ public class XIVRESTOperationHelper {
         return nativeId;
     }
 
+    /**
+     * Refresh the export mask with the user added configuration
+     * 
+     * @param storage XIX sotrage system
+     * @param mask Export Mask instance
+     * @param _networkDeviceController Network configuration instance
+     */
     public void refreshRESTExportMask(StorageSystem storage, ExportMask mask, NetworkDeviceController _networkDeviceController) {
 
         try {
@@ -342,58 +349,68 @@ public class XIVRESTOperationHelper {
         } catch (Exception e) {
             String msg = "Error when attempting to query LUN masking information: " + e.getMessage();
             _log.error(MessageFormat.format("Encountered an SMIS error when attempting to refresh existing exports: {0}", msg), e);
-            //throw XIVRestException.exceptions.refreshExistingMaskFailure(msg);
+            // throw XIVRestException.exceptions.refreshExistingMaskFailure(msg);
         }
     }
 
+    /**
+     * Deletes the Export Mask and its attributes
+     * 
+     * @param storage XIV storage system
+     * @param exportMaskURI Export mask URI
+     * @param volumeURIList Volume URI as list
+     * @param targetURIList target port URI as list [ not used for xiv]
+     * @param initiatorList Initiator port URI as list
+     * @param taskCompleter task completer instance
+     */
     public void deleteRESTExportMask(StorageSystem storage, URI exportMaskURI, List<URI> volumeURIList, List<URI> targetURIList,
             List<Initiator> initiatorList, TaskCompleter taskCompleter) {
         try {
             ExportMask exportMask = _dbClient.queryObject(ExportMask.class, exportMaskURI);
-            
+
             final String storageIP = storage.getSmisProviderIP();
             final String exportType = ExportMaskUtils.getExportType(_dbClient, exportMask);
             final String name = exportMask.getMaskName();
             final String hostName = exportMask.getLabel();
-            
+
             final StringSet emInitiatorURIs = exportMask.getInitiators();
             final StringMap emVolumeURIs = exportMask.getVolumes();
 
             XIVRESTExportOperations restExportOpr = getRestClient(storage);
             URI hostURI = null;
-            
-            //Un export Volumes
-            if(null!=emVolumeURIs){
-            	Iterator<Entry<String, String>> emVolumeURIItr = emVolumeURIs.entrySet().iterator();
-	            while (emVolumeURIItr.hasNext()) {
-	            	URI volUri = URI.create(emVolumeURIItr.next().getKey());
-	                if (URIUtil.isType(volUri, Volume.class)) {
-	                    Volume volume = _dbClient.queryObject(Volume.class, volUri);
-	                    restExportOpr.unExportVolume(storageIP, exportType, name, volume.getLabel());
-	                }
-	            }
+
+            // Un export Volumes
+            if (null != emVolumeURIs) {
+                Iterator<Entry<String, String>> emVolumeURIItr = emVolumeURIs.entrySet().iterator();
+                while (emVolumeURIItr.hasNext()) {
+                    URI volUri = URI.create(emVolumeURIItr.next().getKey());
+                    if (URIUtil.isType(volUri, Volume.class)) {
+                        Volume volume = _dbClient.queryObject(Volume.class, volUri);
+                        restExportOpr.unExportVolume(storageIP, exportType, name, volume.getLabel());
+                    }
+                }
             }
-            
-            //Delete initiators
-            if(null!=emInitiatorURIs){
-	            for(String initiatorURI : emInitiatorURIs){
-	            	Initiator initiator = _dbClient.queryObject(Initiator.class, URI.create(initiatorURI));
-	                String normalizedPort = Initiator.normalizePort(initiator.getLabel());
-	                restExportOpr.deleteHostPort(storageIP, hostName, normalizedPort, initiator.getProtocol().toLowerCase());
-	                if(null==hostURI){
-	                	hostURI = initiator.getHost();
-	                }
-	            }
+
+            // Delete initiators
+            if (null != emInitiatorURIs) {
+                for (String initiatorURI : emInitiatorURIs) {
+                    Initiator initiator = _dbClient.queryObject(Initiator.class, URI.create(initiatorURI));
+                    String normalizedPort = Initiator.normalizePort(initiator.getLabel());
+                    restExportOpr.deleteHostPort(storageIP, hostName, normalizedPort, initiator.getProtocol().toLowerCase());
+                    if (null == hostURI) {
+                        hostURI = initiator.getHost();
+                    }
+                }
             }
-            
-            //Delete Host if there are no associated Initiators/Volume to it.
+
+            // Delete Host if there are no associated Initiators/Volume to it.
             boolean hostDeleted = restExportOpr.deleteHost(storageIP, hostName);
-            
-            //Delete Cluster if there is no associated hosts to it.
-            if(ExportGroup.ExportGroupType.Cluster.name().equals(exportType)){
+
+            // Delete Cluster if there is no associated hosts to it.
+            if (ExportGroup.ExportGroupType.Cluster.name().equals(exportType)) {
                 restExportOpr.deleteCluster(storageIP, name);
             }
-            
+
             // Perform post-mask-delete cleanup steps
             if (hostDeleted && emVolumeURIs.size() > 0) {
                 Host host = _dbClient.queryObject(Host.class, hostURI);
@@ -409,13 +426,13 @@ public class XIVRESTOperationHelper {
 
             _dbClient.updateObject(exportMask);
             taskCompleter.ready(_dbClient);
-        } catch (Exception e){
+        } catch (Exception e) {
             _log.error("Unexpected error: deleteExportMask failed.", e);
             ServiceError error = XIVRestException.exceptions.methodFailed("createExportMask", e.getMessage());
             taskCompleter.error(_dbClient, error);
         }
     }
-    
+
     private void unsetTag(DataObject object, String scope) {
         ScopedLabelSet tagSet = object.getTag();
         if (tagSet == null) {
@@ -425,7 +442,7 @@ public class XIVRESTOperationHelper {
         removeLabel(tagSet, scope);
         _dbClient.updateObject(object);
     }
-    
+
     private void removeLabel(ScopedLabelSet tagSet, String scope) {
         ScopedLabel oldScopedLabel = null;
         Iterator<ScopedLabel> itr = tagSet.iterator();

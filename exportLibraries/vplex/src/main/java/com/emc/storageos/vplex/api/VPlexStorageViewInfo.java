@@ -138,15 +138,8 @@ public class VPlexStorageViewInfo extends VPlexResourceInfo {
         for (String volumeInfoStr : virtualVolumes) {
             StringTokenizer tokenizer = new StringTokenizer(volumeInfoStr, ",");
             String hluStr = tokenizer.nextToken();
-            Integer volumeHLU = -1;
-            hluStr = hluStr.substring(1); // skips the opening "("
-            if (null != hluStr && !VPlexApiConstants.NULL_ATT_VAL.equals(hluStr)) {
-                try {
-                    volumeHLU = Integer.valueOf(hluStr);
-                } catch (NumberFormatException ex) {
-                    s_logger.error("could not parse HLU from '{}', will be set to -1", hluStr);
-                }
-            }
+            hluStr = hluStr.substring(1); // skips an opening "("
+            Integer volumeHLU = Integer.valueOf(hluStr);
             String volumeName = tokenizer.nextToken();
             String vpdId = tokenizer.nextToken();
             int indexColon = vpdId.indexOf(':');

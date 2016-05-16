@@ -323,8 +323,7 @@ public class XIVExportOperations implements ExportMaskOperations {
         _log.info("{} createExportMask END...", storage.getLabel());
     }
 
-    @Override
-    public void deleteExportMask(StorageSystem storage, URI exportMaskURI,
+    public void deleteSMISExportMask(StorageSystem storage, URI exportMaskURI,
             List<URI> volumeURIList, List<URI> targetURIList,
             List<Initiator> initiatorList, TaskCompleter taskCompleter)
             throws DeviceControllerException {
@@ -729,8 +728,7 @@ public class XIVExportOperations implements ExportMaskOperations {
         return matchingMasks;
     }
 
-    @Override
-    public ExportMask refreshExportMask(StorageSystem storage, ExportMask mask) {
+    public ExportMask refreshSMISExportMask(StorageSystem storage, ExportMask mask) {
         try {
             CIMInstance instance = _helper.getSCSIProtocolController(storage,
                     mask);
@@ -1185,11 +1183,11 @@ public class XIVExportOperations implements ExportMaskOperations {
             throws DeviceControllerException {
         _log.info("{} createExportMask START...", storage.getLabel());
         _log.info("createExportMask: mask id: {}", exportMaskURI);
-        _log.info("createExportMask: volume-HLU pairs: {}", volumeURIHLUs);
+        _log.info("createExportMask: volume-HLU pairs: {}", volumeURIHLUs.toString());
         _log.info("createExportMask: tartets: {}", targetURIList);
         _log.info("createExportMask: initiators: {}", initiatorList);
         
-        if(_restAPIHelper.isClusteredHost(storage, initiatorList)){
+        if(_restAPIHelper.isClusteredHost(storage, exportMaskURI, initiatorList)){
             _log.info("Executing createExportMask using REST on Storage {}", storage.getLabel());
             _restAPIHelper.createRESTExportMask(storage, exportMaskURI,volumeURIHLUs, targetURIList,initiatorList,  taskCompleter);
         } else {
@@ -1198,5 +1196,32 @@ public class XIVExportOperations implements ExportMaskOperations {
         }
     }
     
+    @Override
+    public ExportMask refreshExportMask(StorageSystem storage, ExportMask mask) {
+        if(_restAPIHelper.isClusteredHost(storage, mask.getId(), null)){
+            _log.info("Executing refreshExportMask using REST on Storage {}", storage.getLabel());
+            _restAPIHelper.refreshRESTExportMask(storage, mask, _networkDeviceController);
+        } else {
+            _log.info("Executing refreshExportMask using SMIS on Storage {}", storage.getLabel());
+            refreshSMISExportMask(storage, mask);
+        }
+        return mask;
+    }
     
+    @Override
+    public void deleteExportMask(StorageSystem storage, URI exportMaskURI,
+            List<URI> volumeURIList, List<URI> targetURIList,
+            List<Initiator> initiatorList, TaskCompleter taskCompleter)
+            throws DeviceControllerException {
+        _log.info("{} deleteExportMask START...", storage.getLabel());
+        if(_restAPIHelper.isClusteredHost(storage, exportMaskURI, null)){
+            _log.info("Executing deleteExportMask using REST on Storage {}", storage.getLabel());
+            _restAPIHelper.deleteRESTExportMask(storage, exportMaskURI, volumeURIList,  targetURIList, initiatorList, taskCompleter);
+        } else {
+            _log.info("Executing deleteExportMask using SMIS on Storage {}", storage.getLabel());
+            deleteSMISExportMask(storage, exportMaskURI, volumeURIList,  targetURIList, initiatorList, taskCompleter);
+        }
+        _log.info("{} deleteExportMask END...", storage.getLabel());
+    }
+        
 }

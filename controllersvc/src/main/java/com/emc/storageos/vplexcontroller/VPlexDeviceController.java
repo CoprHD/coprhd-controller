@@ -2904,6 +2904,9 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             boolean isRecoverPointExport = ExportUtils.checkIfInitiatorsForRP(_dbClient,
                     exportGroup.getInitiators());
 
+            // validate volume to lun map to make sure there aren't any duplicate LUN entries
+            ExportUtils.validateExportGroupVolumeMap(exportGroup.getLabel(), volumeMap);
+
             // Determine whether this export will be done across both VPLEX clusters,
             // or just the src or ha varray.
             // We get a map of varray to the volumes that can be exported in each varray.

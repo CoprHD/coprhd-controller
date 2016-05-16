@@ -4036,7 +4036,8 @@ public class SmisCommandHelper implements SmisConstants {
      */
     public String generateGroupName(Set<String> existingGroupNames, String storageGroupName) {
         // replace "+" in the group name with "-" to make sure that we do not hit limitation on vmax3 for group names with
-        // "+"
+        // "+" and do not return false positive here for such a mask. For example, mask with "+"s does not exist on array, but
+        // when we replace "+"s bu "_"s we hit the existing mask on device.
         storageGroupName = storageGroupName.replaceAll(Constants.SMIS_PLUS_REGEX, Constants.HYPHEN);
         String result = storageGroupName;
         // Is 'storageGroupName' already in the list of existing names?

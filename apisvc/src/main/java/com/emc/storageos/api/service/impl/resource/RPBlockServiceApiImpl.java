@@ -34,6 +34,7 @@ import com.emc.storageos.api.service.impl.placement.RecoverPointScheduler;
 import com.emc.storageos.api.service.impl.placement.RecoverPointScheduler.SwapContainer;
 import com.emc.storageos.api.service.impl.placement.StorageScheduler;
 import com.emc.storageos.api.service.impl.placement.VirtualPoolUtil;
+import com.emc.storageos.api.service.impl.placement.VpoolUse;
 import com.emc.storageos.api.service.impl.resource.fullcopy.BlockFullCopyManager;
 import com.emc.storageos.api.service.impl.resource.utils.BlockServiceUtils;
 import com.emc.storageos.api.service.impl.resource.utils.CapacityCalculatorFactory;
@@ -1704,8 +1705,9 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
 
     @Override
     public TaskList createVolumes(VolumeCreate param, Project project, VirtualArray varray,
-            VirtualPool vpool, List<Recommendation> recommendations, TaskList taskList, String task,
+            VirtualPool vpool, Map<VpoolUse, List<Recommendation>> recommendationMap, TaskList taskList, String task,
             VirtualPoolCapabilityValuesWrapper capabilities) throws InternalException {
+        List<Recommendation> recommendations = recommendationMap.get(VpoolUse.ROOT);
         // List of volumes to be prepared
         List<URI> volumeURIs = new ArrayList<URI>();
 
@@ -2097,7 +2099,9 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
 
         TaskList taskList = new TaskList();
         createTaskForVolume(changeVpoolVolume, ResourceOperationTypeEnum.CHANGE_BLOCK_VOLUME_VPOOL, taskList, taskId);
-        createVolumes(param, project, varray, newVpool, recommendations, taskList, taskId, capabilities);
+        Map<VpoolUse, List<Recommendation>> recommendationMap = new HashMap<VpoolUse, List<Recommendation>>();
+        recommendationMap.put(VpoolUse.ROOT, recommendations);
+        createVolumes(param, project, varray, newVpool, recommendationMap, taskList, taskId, capabilities);
     }
 
     /**
@@ -2106,7 +2110,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
      * @throws InternalException
      */
     @Override
-    public void changeVolumeVirtualPool(URI systemURI, Volume volume, VirtualPool newVpool,
+    public TaskList changeVolumeVirtualPool(URI systemURI, Volume volume, VirtualPool newVpool,
             VirtualPoolChangeParam vpoolChangeParam, String taskId) throws InternalException {
         _log.info(String.format("RP change virtual pool operation for volume [%s](%s) moving to new vpool [%s](%s).", 
                 volume.getLabel(), volume.getId(), newVpool.getLabel(), newVpool.getId()));
@@ -2116,7 +2120,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
 
         // Check for common Vpool updates handled by generic code. It returns true if handled.
         if (checkCommonVpoolUpdates(volumes, newVpool, taskId)) {
-            return;
+            return null;
         }
 
         // Get the storage system to check for supported types
@@ -2148,10 +2152,11 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                 upgradeToProtectedVolume(volume, newVpool, vpoolChangeParam, taskId);
             }
         }
+        return null;
     }
 
     @Override
-    public void changeVolumeVirtualPool(List<Volume> volumes, VirtualPool vpool,
+    public TaskList changeVolumeVirtualPool(List<Volume> volumes, VirtualPool vpool,
             VirtualPoolChangeParam vpoolChangeParam, String taskId) throws InternalException {
         // We support multi-volume removal of protection, but still not
         // multi-volume add protection. Check the first volume in the
@@ -2170,6 +2175,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                                 + "Please select one volume at a time.");
             }
         }
+        return null;
     }
 
     /**
@@ -2863,7 +2869,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
     }
 
     @Override
-    protected List<VolumeDescriptor> getDescriptorsForVolumesToBeDeleted(URI systemURI,
+    public List<VolumeDescriptor> getDescriptorsForVolumesToBeDeleted(URI systemURI,
             List<URI> volumeURIs, String deletionType) {
         // Get descriptors for all volumes impacted by the deletion of the requested volumes.
         List<VolumeDescriptor> volumeDescriptors = _rpHelper.getDescriptorsForVolumesToBeDeleted(systemURI, volumeURIs, deletionType, null);
@@ -3315,7 +3321,9 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
         capabilities.put(VirtualPoolCapabilityValuesWrapper.BLOCK_CONSISTENCY_GROUP, volume.getConsistencyGroup());
         TaskList taskList = new TaskList();
         createTaskForVolume(volume, ResourceOperationTypeEnum.CHANGE_BLOCK_VOLUME_VPOOL, taskList, taskId);
-        createVolumes(param, project, varray, newVpool, recommendations, taskList, taskId, capabilities);
+        Map<VpoolUse, List<Recommendation>> recommendationMap = new HashMap<VpoolUse, List<Recommendation>>();
+        recommendationMap.put(VpoolUse.ROOT, recommendations);
+        createVolumes(param, project, varray, newVpool, recommendationMap, taskList, taskId, capabilities);
     }
 
     /**
@@ -3560,7 +3568,9 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
         _log.info("Copy {} is protected by RP Site {}", copyName, internalSiteName);
 
         TaskList taskList = new TaskList();
-        return this.createVolumes(param, project, journalVarray, journalVpool, recommendations, taskList, task, capabilities);
+        Map<VpoolUse, List<Recommendation>> recommendationMap = new HashMap<VpoolUse, List<Recommendation>>();
+        recommendationMap.put(VpoolUse.ROOT, recommendations);
+        return this.createVolumes(param, project, journalVarray, journalVpool, recommendationMap, taskList, task, capabilities);
     }
 
     /**
@@ -3797,6 +3807,14 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
             }
         }
         return groupNames;
+    }
+    
+    @Override
+    public List<VolumeDescriptor> createVolumesAndDescriptors(List<VolumeDescriptor> descriptors, String name, Long size, Project project,
+            VirtualArray varray, VirtualPool vpool, List<Recommendation> recommendations, TaskList taskList, String task,
+            VirtualPoolCapabilityValuesWrapper vpoolCapabilities) {
+        // This method is not used for RP
+        return null;
     }
 
     /**

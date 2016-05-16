@@ -8,6 +8,7 @@ import static com.emc.storageos.db.client.constraint.AlternateIdConstraint.Facto
 
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -1084,7 +1085,7 @@ public class VPlexUtil {
         if (!NullColumnValueGetter.isNullURI(cgUri)) {
             BlockConsistencyGroup cg = dbClient.queryObject(BlockConsistencyGroup.class, cgUri);
             if (cg != null) {
-                if (!cg.getTypes().contains(Types.LOCAL.toString())) {
+                if (!cg.getTypes().contains(Types.LOCAL.toString()) && !cg.getTypes().contains(Types.SRDF.toString())) {
                     result = true;
                 }
             }
@@ -1472,6 +1473,8 @@ public class VPlexUtil {
         }
         return result;
     }
+    
+    
 
     /**
      * Gets the VPLEX cluster name for the VPLEX cluster with connectivity to the given Virtual Array.

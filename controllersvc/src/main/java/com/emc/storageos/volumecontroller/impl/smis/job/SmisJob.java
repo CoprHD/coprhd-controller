@@ -30,6 +30,8 @@ import java.net.URI;
 import java.util.HashMap;
 import java.util.Map;
 
+import static com.google.common.base.Strings.isNullOrEmpty;
+
 /**
  * An SMI-S job
  */
@@ -45,6 +47,7 @@ public class SmisJob extends Job implements Serializable
     private static final String JOB_PROPERTY_KEY_PERCENT_COMPLETE = "PercentComplete";
     private static final String JOB_PROPERTY_KEY_OPERATIONAL_STS = "OperationalStatus";
     private static final String JOB_PROPERTY_KEY_ERROR_DESC = "ErrorDescription";
+    private static final String JOB_PROPERTY_KEY_JOB_STATUS = "JobStatus";
     private static final long ERROR_TRACKING_LIMIT = 2 * 60 * 60 * 1000; // tracking limit for transient errors. set for 2 hours
     private static final long POST_PROCESSING_ERROR_TRACKING_LIMIT = 20 * 60 * 1000; // tracking limit for transient errors in post
                                                                                      // processing, 20 minutes
@@ -197,14 +200,10 @@ public class SmisJob extends Job implements Serializable
                         }
                         if ((_status != JobStatus.SUCCESS) && (_status != JobStatus.IN_PROGRESS)) {
                             // parse ErrorDescription
-                            CIMProperty<String> errorDescription =
-                                    (CIMProperty<String>) jobPathInstance.getProperty(JOB_PROPERTY_KEY_ERROR_DESC);
-                            _errorDescription = errorDescription.toString();
+                            _errorDescription = getErrorDescription(jobPathInstance);
                             _status = JobStatus.FAILED;
                             _logger.error("SmisJob: {} failed; Details: {}", getJobName(), _errorDescription);
-                            CIMArgument[] pOutputArguments = new CIMArgument[1];
-                            Object errorReponse = wbemClient.invokeMethod(getCimJob(), "GetErrors", null, pOutputArguments);
-                            _logger.error("GetErrors() response :{}", pOutputArguments);
+                            logErrorsFromJob(wbemClient);
                         }
                     } else {
                         // reset status from previous possible transient error status
@@ -253,6 +252,7 @@ public class SmisJob extends Job implements Serializable
                 }
             } catch (Exception e) {
                 setFatalErrorStatus(e.getMessage());
+                setPostProcessingFailedStatus(e.getMessage());
                 _logger.error("Problem while trying to update status", e);
             } finally {
                 if (isJobInTerminalFailedState()) {
@@ -409,5 +409,35 @@ public class SmisJob extends Job implements Serializable
 
     public boolean isJobInTerminalSuccessState() {
         return (getJobStatus() == Job.JobStatus.SUCCESS && getJobPostProcessingStatus() == Job.JobStatus.SUCCESS);
+    }
+
+    private void logErrorsFromJob(WBEMClient wbemClient) throws WBEMException {
+        try {
+            CIMArgument[] pOutputArguments = new CIMArgument[1];
+            wbemClient.invokeMethod(getCimJob(), "GetErrors", null, pOutputArguments);
+            _logger.error("GetErrors() for job {} response :{}", getCimJob(), pOutputArguments);
+        } catch (Exception e) {
+            _logger.error("GetErrors() for job {} failed.", getCimJob(), e);
+        }
+    }
+
+    /**
+     * Attempt to get a non-empty error description from the CIM Job.
+     *
+     * @param   jobPathInstance The SMI-S job.
+     * @return  Non-empty string containing the error description, or a default.
+     */
+    private String getErrorDescription(CIMInstance jobPathInstance) {
+        String[] errorKeys = new String[] {JOB_PROPERTY_KEY_ERROR_DESC, JOB_PROPERTY_KEY_JOB_STATUS};
+
+        for (String errorKey : errorKeys) {
+            CIMProperty<String> errorProperty = (CIMProperty<String>) jobPathInstance.getProperty(errorKey);
+            if (errorProperty != null && !isNullOrEmpty(errorProperty.getValue())) {
+                String msg = errorProperty.getValue();
+                _logger.info("Job {} has error message: {}", jobPathInstance.getObjectPath(), msg);
+                return msg;
+            }
+        }
+        return String.format("No error description available for job %s.", jobPathInstance.getObjectPath());
     }
 }

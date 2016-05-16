@@ -592,11 +592,11 @@ public class VolumeIngestionUtil {
                     }
                 }
             }
-            
+
         } else {
             _logger.error("Context found of type: {} invalid", context.getClass().toString());
         }
-        
+
         return isRPProtectingVplexVolumes;
     }
 
@@ -1439,7 +1439,6 @@ public class VolumeIngestionUtil {
      * Creates an ExportMask for the given arguments and returns the BlockObject.
      *
      * @param eligibleMask an UnManagedExportMask to base the ExportMask on
-     * @param system the StorageSystem for the ExportMask
      * @param unManagedVolume the UnManagedVolume being ingested
      * @param exportGroup the ExportGroup for the ExportMask
      * @param volume the Volume object for the ExportMask
@@ -1449,8 +1448,7 @@ public class VolumeIngestionUtil {
      * @param exportMaskLabel the name of the ExportMask
      * @throws Exception
      */
-    public static <T extends BlockObject> ExportMask createExportMask(UnManagedExportMask eligibleMask, StorageSystem system,
-            UnManagedVolume unManagedVolume,
+    public static <T extends BlockObject> ExportMask createExportMask(UnManagedExportMask eligibleMask, UnManagedVolume unManagedVolume,
             ExportGroup exportGroup, T volume, DbClient dbClient, List<Host> hosts, Cluster cluster, String exportMaskLabel)
                     throws Exception {
         _logger.info("Creating ExportMask for unManaged Mask {}", eligibleMask.getMaskName());
@@ -1466,8 +1464,8 @@ public class VolumeIngestionUtil {
 
         Map<String, Integer> wwnToHluMap = extractWwnToHluMap(eligibleMask, dbClient);
 
-        ExportMask exportMask = ExportMaskUtils.initializeExportMaskWithVolumes(system, exportGroup, eligibleMask.getMaskName(),
-                exportMaskLabel, allInitiators, null, storagePortUris, eligibleMask.getZoningMap(), volume,
+        ExportMask exportMask = ExportMaskUtils.initializeExportMaskWithVolumes(eligibleMask.getStorageSystemUri(), exportGroup,
+                eligibleMask.getMaskName(), exportMaskLabel, allInitiators, null, storagePortUris, eligibleMask.getZoningMap(), volume,
                 eligibleMask.getUnmanagedInitiatorNetworkIds(), eligibleMask.getNativeId(), userAddedInis, dbClient, wwnToHluMap);
 
         // remove unmanaged mask if created if the block object is not marked as internal
@@ -3627,7 +3625,7 @@ public class VolumeIngestionUtil {
                 }
             }
         }
-        
+
         if (cg == null) {
             cg = new BlockConsistencyGroup();
             cg.setId(URIUtil.createId(BlockConsistencyGroup.class));
@@ -4164,7 +4162,7 @@ public class VolumeIngestionUtil {
             if (requestContext.getVolumeContext() instanceof BlockVolumeIngestionContext) {
                 // In order to decorate the CG properly with all system types, we need to add the CG to the context to be persisted later.
                 _logger.info("Adding BlockConsistencyGroup {} to the BlockVolumeIngestContext (hash {})", cg.forDisplay(), cg.hashCode());
-                ((BlockVolumeIngestionContext)requestContext.getVolumeContext()).getCGObjectsToCreateMap().put(cg.getId().toString(), cg);
+                ((BlockVolumeIngestionContext) requestContext.getVolumeContext()).getCGObjectsToCreateMap().put(cg.getId().toString(), cg);
             } else {
                 _logger.info("Persisting BlockConsistencyGroup {} (hash {})", cg.forDisplay(), cg.hashCode());
                 dbClient.createObject(cg);

@@ -104,13 +104,13 @@ public abstract class BlockIngestExportOrchestrator extends ResourceService {
                     _logger.warn("Host skipped {} as we can't find at least 1 initiator in registered status", hostObj.getLabel());
                     return;
                 }
-                
+
                 computeInitiators.addAll(initiatorSet);
             }
 
             if (null != requestContext.getDeviceInitiators() && !requestContext.getDeviceInitiators().isEmpty()) {
                 if (exportGroup.checkInternalFlags(Flag.RECOVERPOINT)) {
-                    // RP export groups are cluster-based, although they don't contains a cluster/host ID 
+                    // RP export groups are cluster-based, although they don't contains a cluster/host ID
                     exportGroupType = ExportGroupType.Cluster.name();
                 } else {
                     // note: ViPR-generated greenfield VPLEX export groups
@@ -124,7 +124,7 @@ public abstract class BlockIngestExportOrchestrator extends ResourceService {
                             requestContext.getDeviceInitiators());
                     return;
                 }
-                
+
                 // For validation checks below, add these initiator to the compute resource list
                 for (Initiator initiator : requestContext.getDeviceInitiators()) {
                     computeInitiators.add(initiator.getId().toString());
@@ -153,7 +153,7 @@ public abstract class BlockIngestExportOrchestrator extends ResourceService {
                     itr.remove();
                     continue;
                 }
-                if (VolumeIngestionUtil.isVplexVolume(unManagedVolume) && 
+                if (VolumeIngestionUtil.isVplexVolume(unManagedVolume) &&
                         !VolumeIngestionUtil.isRpExportMask(unManagedExportMask, _dbClient) &&
                         !VolumeIngestionUtil.validateExportMaskMatchesVplexCluster(requestContext, unManagedVolume, unManagedExportMask)) {
                     // logs already inside the above method.
@@ -174,7 +174,7 @@ public abstract class BlockIngestExportOrchestrator extends ResourceService {
                 } else {
                     // check if mask has already been created
                     exportMask = getExportMaskAlreadyCreated(unManagedExportMask, requestContext.getRootIngestionRequestContext());
-                    
+
                     if (exportMask == null) {
                         _logger.info("\tno mask found");
                         continue;
@@ -286,9 +286,8 @@ public abstract class BlockIngestExportOrchestrator extends ResourceService {
                         // ExportMask
                         _logger.info("Only 1 mask {} found for cluster {}", eligibleMasks.get(0).toString(), cluster.forDisplay());
 
-                        ExportMask exportMaskToCreate = VolumeIngestionUtil.createExportMask(eligibleMasks.get(0), system,
-                                unManagedVolume, exportGroup, blockObject,
-                                _dbClient, hosts, cluster, cluster.getLabel());
+                        ExportMask exportMaskToCreate = VolumeIngestionUtil.createExportMask(eligibleMasks.get(0), unManagedVolume,
+                                exportGroup, blockObject, _dbClient, hosts, cluster, cluster.getLabel());
                         exportMasksToCreate.add(exportMaskToCreate);
                         uemsToPersist.add(eligibleMasks.get(0));
                         masksIngestedCount.increment();
@@ -298,9 +297,8 @@ public abstract class BlockIngestExportOrchestrator extends ResourceService {
                                 cluster.forDisplay());
                         // 1 MV per Cluster Node
                         for (UnManagedExportMask eligibleMask : eligibleMasks) {
-                            ExportMask exportMaskToCreate = VolumeIngestionUtil.createExportMask(eligibleMask, system,
-                                    unManagedVolume, exportGroup, blockObject,
-                                    _dbClient, hosts, cluster, cluster.getLabel());
+                            ExportMask exportMaskToCreate = VolumeIngestionUtil.createExportMask(eligibleMask, unManagedVolume, exportGroup,
+                                    blockObject, _dbClient, hosts, cluster, cluster.getLabel());
                             exportMasksToCreate.add(exportMaskToCreate);
                             uemsToPersist.add(eligibleMask);
                             masksIngestedCount.increment();
@@ -324,9 +322,8 @@ public abstract class BlockIngestExportOrchestrator extends ResourceService {
                         _logger.info("No eligible unmanaged export masks found for Host {}", host.getId());
                     }
                     for (UnManagedExportMask eligibleMask : eligibleMasks) {
-                        ExportMask exportMaskToCreate = VolumeIngestionUtil.createExportMask(eligibleMask, system,
-                                unManagedVolume, exportGroup, blockObject,
-                                _dbClient, hosts, cluster, host.getHostName());
+                        ExportMask exportMaskToCreate = VolumeIngestionUtil.createExportMask(eligibleMask, unManagedVolume, exportGroup,
+                                blockObject, _dbClient, hosts, cluster, host.getHostName());
                         exportMasksToCreate.add(exportMaskToCreate);
                         uemsToPersist.add(eligibleMask);
                         masksIngestedCount.increment();
@@ -357,10 +354,8 @@ public abstract class BlockIngestExportOrchestrator extends ResourceService {
                     }
                     for (UnManagedExportMask eligibleMask : eligibleMasks) {
                         // this getHostName will be the name of the VPLEX device
-                        ExportMask exportMaskToCreate = VolumeIngestionUtil.createExportMask(eligibleMask, system,
-                                unManagedVolume, exportGroup, blockObject,
-                                _dbClient, hosts, cluster,
-                                deviceInitiators.get(0).getHostName());
+                        ExportMask exportMaskToCreate = VolumeIngestionUtil.createExportMask(eligibleMask, unManagedVolume, exportGroup,
+                                blockObject, _dbClient, hosts, cluster, deviceInitiators.get(0).getHostName());
                         exportMasksToCreate.add(exportMaskToCreate);
                         uemsToPersist.add(eligibleMask);
                         masksIngestedCount.increment();
@@ -415,8 +410,8 @@ public abstract class BlockIngestExportOrchestrator extends ResourceService {
 
     /**
      * Find existing but newly-created export mask in IngestionRequestContext which contains
-     * the right attributes. 
-     * 
+     * the right attributes.
+     *
      * @param mask
      * @param requestContext
      * @return

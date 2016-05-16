@@ -18,8 +18,6 @@ import java.util.Set;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import sun.net.util.IPAddressUtil;
-
 import com.emc.storageos.customconfigcontroller.DataSource;
 import com.emc.storageos.customconfigcontroller.DataSourceFactory;
 import com.emc.storageos.db.client.DbClient;
@@ -62,6 +60,8 @@ import com.emc.storageos.util.ExportUtils;
 import com.emc.storageos.volumecontroller.impl.block.ExportMaskPolicy;
 import com.google.common.base.Strings;
 import com.google.common.collect.Collections2;
+
+import sun.net.util.IPAddressUtil;
 
 public class ExportMaskUtils {
     private static final Logger _log = LoggerFactory.getLogger(ExportMaskUtils.class);
@@ -574,7 +574,7 @@ public class ExportMaskUtils {
 
     // don't want to disturb the existing method, hence overloaded
     static public <T extends BlockObject> ExportMask initializeExportMaskWithVolumes(
-            StorageSystem storage, ExportGroup exportGroup, String maskName, String maskLabel,
+            URI storage, ExportGroup exportGroup, String maskName, String maskLabel,
             List<Initiator> initiators, Map<URI, Integer> volumeMap,
             List<URI> targets, ZoneInfoMap zoneInfoMap,
             T volume, Set<String> unManagedInitiators, String nativeId,
@@ -585,7 +585,7 @@ public class ExportMaskUtils {
         ExportMask exportMask = new ExportMask();
         exportMask.setId(URIUtil.createId(ExportMask.class));
         exportMask.setMaskName(maskName);
-        exportMask.setStorageDevice(storage.getId());
+        exportMask.setStorageDevice(storage);
 
         String resourceRef;
         if (exportGroup.getType() != null) {
@@ -1162,7 +1162,7 @@ public class ExportMaskUtils {
     /**
      * Compare the ExportMask's volumes with a map containing the latest discovered volumes. Return a map of volumes
      * that are new.
-     * 
+     *
      * @param mask [IN] - ExportMask to check
      * @param discoveredVolumes [IN] - Map of Volume WWN to Integer HLU representing discovered volumes.
      * @return Map of Volume WWN (normalized) to Integer HLU representing new volumes, which do not exist in the ExportMask.
@@ -1228,7 +1228,8 @@ public class ExportMaskUtils {
      * @return List of Initiators that should added to exportMask's userAddedInitiator list. ExportMasks should be on the same array as
      *         'exportMask'.
      */
-    public static List<Initiator> findIfInitiatorsAreUserAddedInAnotherMask(ExportMask exportMask, List<Initiator> newInitiators, DbClient dbClient) {
+    public static List<Initiator> findIfInitiatorsAreUserAddedInAnotherMask(ExportMask exportMask, List<Initiator> newInitiators,
+            DbClient dbClient) {
         List<Initiator> userAddedInitiators = new ArrayList<>();
 
         // Iterate through the set of ExportMasks that contain 'newInitiators' and find if it has the initiator in its userAddedInitiator

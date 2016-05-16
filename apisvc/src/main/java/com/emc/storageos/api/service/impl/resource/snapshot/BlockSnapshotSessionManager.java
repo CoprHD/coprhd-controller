@@ -255,8 +255,7 @@ public class BlockSnapshotSessionManager {
         if (!param.getVolumes().isEmpty()) {
             // volume group snapshot session
             // group volumes by backend storage system and replication group
-            storageRgToVolumes = BlockServiceUtils.
-                    getReplicationGroupVolumes(param.getVolumes(), cg.getId(), _dbClient, _uriInfo);
+            storageRgToVolumes = BlockServiceUtils.getReplicationGroupVolumes(param.getVolumes(), cg.getId(), _dbClient, _uriInfo);
         } else {
             // CG snapshot session
             storageRgToVolumes = BlockServiceUtils.getReplicationGroupVolumes(
@@ -378,7 +377,7 @@ public class BlockSnapshotSessionManager {
         List<List<URI>> snapSessionSnapshotURIs = new ArrayList<>();
 
         for (Map<URI, BlockSnapshot> snapshotMap : snapSessionSnapshots) {
-            //Set Copy Mode
+            // Set Copy Mode
             for (Entry<URI, BlockSnapshot> entry : snapshotMap.entrySet()) {
                 entry.getValue().setCopyMode(newTargetsCopyMode);
             }
@@ -485,7 +484,7 @@ public class BlockSnapshotSessionManager {
 
         List<List<URI>> snapSessionSnapshotURIs = new ArrayList<>();
         for (Map<URI, BlockSnapshot> snapshotMap : snapshots) {
-            //Set Copy Mode
+            // Set Copy Mode
             for (Entry<URI, BlockSnapshot> entry : snapshotMap.entrySet()) {
                 entry.getValue().setCopyMode(newTargetsCopyMode);
             }
@@ -609,7 +608,8 @@ public class BlockSnapshotSessionManager {
      * 
      * @return A TaskResourceRep.
      */
-    public TaskResourceRep unlinkTargetVolumesFromSnapshotSession(URI snapSessionURI, SnapshotSessionUnlinkTargetsParam param, OperationTypeEnum opType) {
+    public TaskResourceRep unlinkTargetVolumesFromSnapshotSession(URI snapSessionURI, SnapshotSessionUnlinkTargetsParam param,
+            OperationTypeEnum opType) {
         s_logger.info("START unlink targets from snapshot session {}", snapSessionURI);
 
         // Get the snapshot session.
@@ -1016,7 +1016,7 @@ public class BlockSnapshotSessionManager {
     }
 
     private List<BlockObject> getAllSnapshotSessionSources(BlockSnapshotSession snapSession) {
-        if (snapSession.hasConsistencyGroup()) {
+        if (snapSession.hasConsistencyGroup() && NullColumnValueGetter.isNotNullValue(snapSession.getReplicationGroupInstance())) {
             BlockConsistencyGroup cg = _dbClient.queryObject(BlockConsistencyGroup.class, snapSession.getConsistencyGroup());
             List<Volume> cgSources = BlockConsistencyGroupUtils.getAllCGVolumes(cg, _dbClient);
             // return only those volumes belonging to session's RG

@@ -27,9 +27,12 @@ public class BlockLunRequests extends KHRequests<VNXeLun> {
     private static final String URL_LUNS = "/api/types/lun/instances";
     private static final String URL_LUN = "/api/instances/lun/";
     private static final String URL_LUN_MODIFY_ACTION = "/action/modifyLun";
+    private static final String FIELDS = "name,wwn,pool,storageResource,health,sizeTotal,sizeAllocated,isThinEnabled,snapWwn,"
+            + "snapsSize,hostAccess,snapCount,type";
 
     public BlockLunRequests(KHClient client) {
         super(client);
+        _fields = FIELDS;
     }
 
     /**
@@ -79,7 +82,12 @@ public class BlockLunRequests extends KHRequests<VNXeLun> {
      */
     public VNXeLun getByLunGroup(String lunGroupId, String lunName) {
         _url = URL_LUNS;
-        String filter = VNXeConstants.STORAGE_RESOURCE_FILTER + lunGroupId;
+        String filter = null;
+        if (_client.isUnity()) {
+            filter = VNXeConstants.STORAGE_RESOURCE_FILTER+"\""+lunGroupId+"\"";
+        } else {
+            filter = VNXeConstants.STORAGE_RESOURCE_FILTER + lunGroupId;
+        }
         setFilter(filter);
         VNXeLun vnxeLun = null;
         List<VNXeLun> luns = getDataForObjects(VNXeLun.class);
@@ -101,7 +109,13 @@ public class BlockLunRequests extends KHRequests<VNXeLun> {
      */
     public List<VNXeLun> getLunsInLunGroup(String lunGroupId) {
         _url = URL_LUNS;
-        setFilter(VNXeConstants.STORAGE_RESOURCE_FILTER + lunGroupId);
+        String filter = null;
+        if (_client.isUnity()) {
+            filter = VNXeConstants.STORAGE_RESOURCE_FILTER+"\""+lunGroupId+"\"";
+        } else {
+            filter = VNXeConstants.STORAGE_RESOURCE_FILTER + lunGroupId;
+        }
+        setFilter(filter);
 
         return getDataForObjects(VNXeLun.class);
 

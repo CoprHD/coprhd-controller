@@ -65,6 +65,7 @@ public class DiscoveredDataObject extends DataObject {
         static public Type scaleio = new Type("scaleio", types.values().size());
         static public Type xtremio = new Type("xtremio", types.values().size());
         static public Type ecs = new Type("ecs", types.values().size());
+        static public Type unity = new Type("unity", types.values().size());
 
         private String name;
         private int ordinal;
@@ -146,7 +147,8 @@ public class DiscoveredDataObject extends DataObject {
                         type.equals(vplex) ||
                         type.equals(ibmxiv) ||
                         type.equals(xtremio) ||
-                        type.equals(scaleio);
+                        type.equals(scaleio) ||
+                        type.equals(unity);
             }
         }
 
@@ -163,7 +165,7 @@ public class DiscoveredDataObject extends DataObject {
                 return storageDriverManager.isBlockStorageSystem(storageType);
             } else {
                 Type type = Type.valueOf(storageType);
-                return (type.equals(vnxblock) || type.equals(vmax) || type.equals(vnxe) || type.equals(hds) || type.equals(ibmxiv) || type.equals(xtremio) || type.equals(scaleio));
+                return (type.equals(vnxblock) || type.equals(vmax) || type.equals(vnxe) || type.equals(hds) || type.equals(ibmxiv) || type.equals(xtremio) || type.equals(scaleio) || type.equals(unity));
             }
         }
 

@@ -21,6 +21,11 @@ public class VolumeGroupSnapshotSessionUnlinkTargetsParam extends VolumeGroupSna
 
     // The list of targets to be unlinked.
     private List<SnapshotSessionUnlinkTargetParam> linkedTargets;
+    
+    // use instead of list of target volumes
+    private String targetName;
+    
+    private Boolean deleteTarget;
 
     /**
      * Default constructor.
@@ -37,7 +42,7 @@ public class VolumeGroupSnapshotSessionUnlinkTargetsParam extends VolumeGroupSna
         this.linkedTargets = linkedTargets;
     }
 
-    @XmlElementWrapper(name = "linked_targets", required = true)
+    @XmlElementWrapper(name = "linked_targets", required = false)
     /**
      * Gets the list of targets to be unlinked.
      * 
@@ -45,7 +50,7 @@ public class VolumeGroupSnapshotSessionUnlinkTargetsParam extends VolumeGroupSna
      * 
      * @return The list of targets to be unlinked.
      */
-    @XmlElement(name = "linked_target", required = true)
+    @XmlElement(name = "linked_target", required = false)
     public List<SnapshotSessionUnlinkTargetParam> getLinkedTargets() {
         return linkedTargets;
     }
@@ -57,5 +62,35 @@ public class VolumeGroupSnapshotSessionUnlinkTargetsParam extends VolumeGroupSna
      */
     public void setLinkedTargets(List<SnapshotSessionUnlinkTargetParam> linkedTargets) {
         this.linkedTargets = linkedTargets;
+    }
+
+    /**
+     * @return the targetName
+     */
+    @XmlElement(name = "target_name", required = false)
+    public String getTargetName() {
+        return targetName;
+    }
+
+    /**
+     * @param targetName the targetName to set
+     */
+    public void setTargetName(String targetName) {
+        this.targetName = targetName;
+    }
+
+    /**
+     * @return the deleteTarget
+     */
+    @XmlElement(name = "delete_target", required = false, defaultValue = "false")
+    public Boolean getDeleteTarget() {
+        return deleteTarget;
+    }
+
+    /**
+     * @param deleteTarget the deleteTarget to set
+     */
+    public void setDeleteTarget(Boolean deleteTarget) {
+        this.deleteTarget = deleteTarget;
     }
 }

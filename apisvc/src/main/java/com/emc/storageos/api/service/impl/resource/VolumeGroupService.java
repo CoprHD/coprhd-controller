@@ -2742,7 +2742,7 @@ public class VolumeGroupService extends TaskResourceService {
     private List<URI> getRelinkTargetIdsForSession(final VolumeGroupSnapshotSessionRelinkTargetsParam param,
             BlockSnapshotSession session, int numberOfRequestedSessions) {
         List<URI> targetIds = new ArrayList<URI>();
-        if (numberOfRequestedSessions == 1) {
+        if (param.getLinkedTargetIds() != null && !param.getLinkedTargetIds().isEmpty() && numberOfRequestedSessions == 1) {
             /**
              * It could be a request from user to re-link targets to different snap sessions.
              * So, don't filter given targets based on snap session.
@@ -2756,13 +2756,24 @@ public class VolumeGroupService extends TaskResourceService {
              * Re-link to same linked targets
              */
             StringSet sessionTargets = session.getLinkedTargets();
-            for (URI snapURI : param.getLinkedTargetIds()) {
-                // Snapshot session targets are represented by BlockSnapshot instances in ViPR.
-                ArgValidator.checkFieldUriType(snapURI, BlockSnapshot.class, "id");
-                BlockSnapshot snap = _dbClient.queryObject(BlockSnapshot.class, snapURI);
-                ArgValidator.checkEntityNotNull(snap, snapURI, isIdEmbeddedInURL(snapURI));
-                if (sessionTargets != null && sessionTargets.contains(snapURI.toString())) {
-                    targetIds.add(snapURI);
+            if (param.getLinkedTargetIds() != null && !param.getLinkedTargetIds().isEmpty()) {
+                for (URI snapURI : param.getLinkedTargetIds()) {
+                    // Snapshot session targets are represented by BlockSnapshot instances in ViPR.
+                    ArgValidator.checkFieldUriType(snapURI, BlockSnapshot.class, "id");
+                    BlockSnapshot snap = _dbClient.queryObject(BlockSnapshot.class, snapURI);
+                    ArgValidator.checkEntityNotNull(snap, snapURI, isIdEmbeddedInURL(snapURI));
+                    if (sessionTargets != null && sessionTargets.contains(snapURI.toString())) {
+                        targetIds.add(snapURI);
+                    }
+                }
+            } else {
+                ArgValidator.checkFieldNotEmpty(param.getTargetName(), "target_name");
+                for (String linkedTgtId : session.getLinkedTargets()) {
+                    URI snapURI = URI.create(linkedTgtId);
+                    BlockSnapshot snap = _dbClient.queryObject(BlockSnapshot.class, snapURI);
+                    if (StringUtils.equals(param.getTargetName(), snap.getSnapsetLabel())) {
+                        targetIds.add(snapURI);
+                    }
                 }
             }
         }
@@ -2787,15 +2798,30 @@ public class VolumeGroupService extends TaskResourceService {
         List<SnapshotSessionUnlinkTargetParam> targetIds = new ArrayList<SnapshotSessionUnlinkTargetParam>();
         List<URI> selectedURIs = new ArrayList<URI>();
         StringSet sessionTargets = session.getLinkedTargets();
-        for (SnapshotSessionUnlinkTargetParam unlinkTarget : param.getLinkedTargets()) {
-            URI snapURI = unlinkTarget.getId();
-            // Snapshot session targets are represented by BlockSnapshot instances in ViPR.
-            ArgValidator.checkFieldUriType(snapURI, BlockSnapshot.class, "id");
-            BlockSnapshot snap = _dbClient.queryObject(BlockSnapshot.class, snapURI);
-            ArgValidator.checkEntityNotNull(snap, snapURI, isIdEmbeddedInURL(snapURI));
-            if (sessionTargets != null && sessionTargets.contains(snapURI.toString())) {
-                targetIds.add(unlinkTarget);
-                selectedURIs.add(snapURI);
+        if (param.getLinkedTargets() != null && !param.getLinkedTargets().isEmpty()) {
+            for (SnapshotSessionUnlinkTargetParam unlinkTarget : param.getLinkedTargets()) {
+                URI snapURI = unlinkTarget.getId();
+                // Snapshot session targets are represented by BlockSnapshot instances in ViPR.
+                ArgValidator.checkFieldUriType(snapURI, BlockSnapshot.class, "id");
+                BlockSnapshot snap = _dbClient.queryObject(BlockSnapshot.class, snapURI);
+                ArgValidator.checkEntityNotNull(snap, snapURI, isIdEmbeddedInURL(snapURI));
+                if (sessionTargets != null && sessionTargets.contains(snapURI.toString())) {
+                    targetIds.add(unlinkTarget);
+                    selectedURIs.add(snapURI);
+                }
+            }
+        } else {
+            ArgValidator.checkFieldNotEmpty(param.getTargetName(), "target_name");
+            for (String linkedTgtId : session.getLinkedTargets()) {
+                URI snapURI = URI.create(linkedTgtId);
+                BlockSnapshot snap = _dbClient.queryObject(BlockSnapshot.class, snapURI);
+                if (StringUtils.equals(param.getTargetName(), snap.getSnapsetLabel())) {
+                    SnapshotSessionUnlinkTargetParam unlinkTarget = new SnapshotSessionUnlinkTargetParam();
+                    unlinkTarget.setId(snap.getId());
+                    unlinkTarget.setDeleteTarget(param.getDeleteTarget() == null ? false : param.getDeleteTarget());
+                    targetIds.add(unlinkTarget);
+                    selectedURIs.add(snapURI);
+                }
             }
         }
         log.info(String.format("Target ids for snapshot session %s : %s",

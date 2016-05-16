@@ -20,6 +20,9 @@ public class VolumeGroupSnapshotSessionRelinkTargetsParam extends VolumeGroupSna
 
     // The new linked target information.
     private List<URI> linkedTargetIds;
+    
+    // use instead of list of target volumes; only if re-linking to the same target
+    private String targetName;
 
     /**
      * Default constructor.
@@ -41,8 +44,8 @@ public class VolumeGroupSnapshotSessionRelinkTargetsParam extends VolumeGroupSna
      * 
      * @return The URIs of the linked targets to be re-linked.
      */
-    @XmlElementWrapper(name = "ids", required = true)
-    @XmlElement(name = "id", required = true)
+    @XmlElementWrapper(name = "ids", required = false)
+    @XmlElement(name = "id", required = false)
     public List<URI> getLinkedTargetIds() {
         return linkedTargetIds;
     }
@@ -54,5 +57,20 @@ public class VolumeGroupSnapshotSessionRelinkTargetsParam extends VolumeGroupSna
      */
     public void setLinkedTargetIds(List<URI> linkedTargetIds) {
         this.linkedTargetIds = linkedTargetIds;
+    }
+
+    /**
+     * @return the targetName
+     */
+    @XmlElement(name = "target_name", required = false)
+    public String getTargetName() {
+        return targetName;
+    }
+
+    /**
+     * @param targetName the targetName to set
+     */
+    public void setTargetName(String targetName) {
+        this.targetName = targetName;
     }
 }

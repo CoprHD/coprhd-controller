@@ -919,22 +919,23 @@ class VolumeGroup(object):
             targetEntries.append(targetDict)
         return targetEntries
 
-    # relink/unlink target
-    def volume_group_snapshotsession_target_operation(self, name, snapshotsessionnames, target_names, partial, operation, uri):
+    # relink target
+    def volume_group_snapshotsession_relink_operation(self, name, copysetName, targetName, snapshotsessionnames, target_names, partial):
         volume_group_uri = self.query_by_name(name)
 
         request = dict()
         
-        request["snapshot_sessions"] = self.query_snapshotsession_uris_by_names(name, snapshotsessionnames)
-
-        if operation == "relink":
-            request["ids"] = self.query_snapshot_uris_by_names(name, target_names)
-        elif operation == "unlink":
-            request["linked_targets"] = self.get_unlink_target_entries(name, target_names)
-        else:
-            raise SOSError(
-                SOSError.SOS_FAILURE_ERR,
-                "error: unsupported operation: " + operation)
+        if (snapshotsessionnames):
+            request["snapshot_sessions"] = self.query_snapshotsession_uris_by_names(name, set(snapshotsessionnames.split(',')))
+            
+        if (copysetName):
+            request["copy_set_name"] = copysetName
+            
+        if (targetName):
+            request["target_name"] = targetName
+        
+        if (target_names):
+            request["ids"] = self.query_snapshot_uris_by_names(name, set(target_names.split(',')))
 
         # if partial request
         if (partial):
@@ -946,7 +947,42 @@ class VolumeGroup(object):
         (s, h) = common.service_json_request(
             self.__ipAddr, self.__port,
             "POST",
-            uri.format(volume_group_uri), body)
+            VolumeGroup.URI_VOLUME_GROUP_SNAPSHOT_SESSION_RELINK.format(volume_group_uri), body)
+        o = common.json_decode(s)
+        return o
+        
+    # unlink target
+    def volume_group_snapshotsession_unlink_operation(self, name, copysetName, targetName, delete, snapshotsessionnames, target_names, partial):
+        volume_group_uri = self.query_by_name(name)
+
+        request = dict()
+        
+        if (snapshotsessionnames):
+            request["snapshot_sessions"] = self.query_snapshotsession_uris_by_names(name, set(snapshotsessionnames.split(',')))
+            
+        if (copysetName):
+            request["copy_set_name"] = copysetName
+            
+        if (targetName):
+            request["target_name"] = targetName
+            
+        if (delete):
+            request["delete_target"] = delete
+        
+        if (target_names):
+            request["linked_targets"] = self.get_unlink_target_entries(name, set(target_names.split(',')))
+
+        # if partial request
+        if (partial):
+            request["partial"] = partial
+
+        body = json.dumps(request)
+
+        # REST api call
+        (s, h) = common.service_json_request(
+            self.__ipAddr, self.__port,
+            "POST",
+            VolumeGroup.URI_VOLUME_GROUP_SNAPSHOT_SESSION_UNLINK.format(volume_group_uri), body)
         o = common.json_decode(s)
         return o
 
@@ -2533,35 +2569,6 @@ def volume_group_snapshotsession_link(args):
                 e.err_text,
                 e.err_code)
 
-# Snapshot Session Target Operation (relink/unlink) Function
-def volume_group_snapshotsession_target_operation(args, operation, uri):
-    obj = VolumeGroup(args.ip, args.port)
-
-    try:
-        obj.volume_group_snapshotsession_target_operation(
-            args.name,
-            set(args.snapshotsessions.split(',')),
-            set(args.target_names.split(',')),
-            args.partial,
-            operation,
-            uri)
-        return
-
-    except SOSError as e:
-        if (e.err_code == SOSError.SOS_FAILURE_ERR):
-            raise SOSError(
-                SOSError.SOS_FAILURE_ERR,
-                operation + " snapshot session target for " +
-                args.name +
-                " failed\n" +
-                e.err_text)
-        else:
-            common.format_err_msg_and_raise(
-                operation,
-                "snapshot session target",
-                e.err_text,
-                e.err_code)
-
 # snapshotsession_relink_parser
 def snapshotsession_relink_parser(subcommand_parsers, common_parser):
     snapshotsession_relink_parser = subcommand_parsers.add_parser(
@@ -2571,11 +2578,15 @@ def snapshotsession_relink_parser(subcommand_parsers, common_parser):
         help='Relink volume group snapshot session targets',
         description='ViPR Relink Snapshot Session of a VolumeGroup CLI usage.')
 
-    mandatory_args = snapshotsession_relink_parser.add_argument_group('mandatory arguments')
-    mandatory_args.add_argument('-targets', '-t',
+    group = snapshotsession_relink_parser.add_mutually_exclusive_group(required=False)
+    group.add_argument('-targetname',
+                               dest='target_name',
+                               metavar='<target_name>',
+                               help='Target name to relink; use to relink to the same target')
+    group.add_argument('-targets', '-t',
                                metavar='<target,...>',
                                dest='target_names',
-                               help='List of target volumes')
+                               help='List of target volumes; use to relink to a different target')
 
     # Add parameter from common snapshot session parser.
     volume_group_snapshotsession_common_parser(snapshotsession_relink_parser)
@@ -2583,7 +2594,32 @@ def snapshotsession_relink_parser(subcommand_parsers, common_parser):
 
 # Relink Snapshot Session Function
 def volume_group_snapshotsession_relink(args):
-    volume_group_snapshotsession_target_operation(args, "relink", VolumeGroup.URI_VOLUME_GROUP_SNAPSHOT_SESSION_RELINK)
+    obj = VolumeGroup(args.ip, args.port)
+
+    try:
+        obj.volume_group_snapshotsession_relink_operation(
+            args.name,
+            args.copySetName,
+            args.target_name,
+            args.snapshotsessions,
+            args.target_names,
+            args.partial)
+        return
+
+    except SOSError as e:
+        if (e.err_code == SOSError.SOS_FAILURE_ERR):
+            raise SOSError(
+                SOSError.SOS_FAILURE_ERR,
+                "relink snapshot session target for " +
+                args.name +
+                " failed\n" +
+                e.err_text)
+        else:
+            common.format_err_msg_and_raise(
+                "relink",
+                "snapshot session target",
+                e.err_text,
+                e.err_code)
 
 # snapshotsession_unlink_parser
 def snapshotsession_unlink_parser(subcommand_parsers, common_parser):
@@ -2594,12 +2630,19 @@ def snapshotsession_unlink_parser(subcommand_parsers, common_parser):
         help='Unlink volume group snapshot session targets',
         description='ViPR Unlink Snapshot Session of a VolumeGroup CLI usage.')
 
-    mandatory_args = snapshotsession_unlink_parser.add_argument_group('mandatory arguments')
-    mandatory_args.add_argument('-targets', '-t',
+    group = snapshotsession_unlink_parser.add_mutually_exclusive_group(required=True)
+    group.add_argument('-targetname',
+                               dest='target_name',
+                               metavar='<target_name>',
+                               help='Target name to unlink')
+    group.add_argument('-targets', '-t',
                                metavar='<target:delete,...>',
                                dest='target_names',
-                               help='List of target volumes in the format <target_name>:delete, delete part is optional',
-                               required=True)
+                               help='List of target volumes in the format <target_name>:delete, delete part is optional (Deprecated)')
+    snapshotsession_unlink_parser.add_argument('-delete',
+                              dest='delete',
+                              action='store_true',
+                              help='Delete the target volume after unlink')
 
     # Add parameter from common snapshot session parser.
     volume_group_snapshotsession_common_parser(snapshotsession_unlink_parser)
@@ -2607,7 +2650,33 @@ def snapshotsession_unlink_parser(subcommand_parsers, common_parser):
 
 # Unlink Snapshot Session Function
 def volume_group_snapshotsession_unlink(args):
-    volume_group_snapshotsession_target_operation(args, "unlink", VolumeGroup.URI_VOLUME_GROUP_SNAPSHOT_SESSION_UNLINK)
+    obj = VolumeGroup(args.ip, args.port)
+
+    try:
+        obj.volume_group_snapshotsession_unlink_operation(
+            args.name,
+            args.copySetName,
+            args.target_name,
+            args.delete,
+            args.snapshotsessions,
+            args.target_names,
+            args.partial)
+        return
+
+    except SOSError as e:
+        if (e.err_code == SOSError.SOS_FAILURE_ERR):
+            raise SOSError(
+                SOSError.SOS_FAILURE_ERR,
+                "unlink snapshot session target for " +
+                args.name +
+                " failed\n" +
+                e.err_text)
+        else:
+            common.format_err_msg_and_raise(
+                "unlink",
+                "snapshot session target",
+                e.err_text,
+                e.err_code)
 
 # snapshotsession_list_parser
 def snapshotsession_list_parser(subcommand_parsers, common_parser):

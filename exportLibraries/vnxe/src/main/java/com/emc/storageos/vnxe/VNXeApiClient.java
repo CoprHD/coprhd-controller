@@ -17,13 +17,16 @@ import java.util.Set;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.emc.storageos.model.file.ShareACL;
 import com.emc.storageos.vnxe.models.AccessEnum;
 import com.emc.storageos.vnxe.models.BasicSystemInfo;
 import com.emc.storageos.vnxe.models.BlockHostAccess;
 import com.emc.storageos.vnxe.models.BlockHostAccess.HostLUNAccessEnum;
+import com.emc.storageos.vnxe.models.CifsShareACE;
 import com.emc.storageos.vnxe.models.CifsShareCreateForSnapParam;
 import com.emc.storageos.vnxe.models.CifsShareCreateParam;
 import com.emc.storageos.vnxe.models.CifsShareDeleteParam;
+import com.emc.storageos.vnxe.models.CifsShareModifyParam;
 import com.emc.storageos.vnxe.models.CifsShareParam;
 import com.emc.storageos.vnxe.models.ConsistencyGroupCreateParam;
 import com.emc.storageos.vnxe.models.CreateFileSystemParam;
@@ -94,6 +97,7 @@ import com.emc.storageos.vnxe.models.VNXePool;
 import com.emc.storageos.vnxe.models.VNXeStorageProcessor;
 import com.emc.storageos.vnxe.models.VNXeStorageSystem;
 import com.emc.storageos.vnxe.models.VNXeStorageTier;
+import com.emc.storageos.vnxe.models.aclUserLookupSIDParam;
 import com.emc.storageos.vnxe.requests.BasicSystemInfoRequest;
 import com.emc.storageos.vnxe.requests.BlockLunRequests;
 import com.emc.storageos.vnxe.requests.CifsServerListRequest;
@@ -111,6 +115,7 @@ import com.emc.storageos.vnxe.requests.FileSystemListRequest;
 import com.emc.storageos.vnxe.requests.FileSystemQuotaConfigRequests;
 import com.emc.storageos.vnxe.requests.FileSystemQuotaRequests;
 import com.emc.storageos.vnxe.requests.FileSystemRequest;
+import com.emc.storageos.vnxe.requests.FileSystemShareACLRequests;
 import com.emc.storageos.vnxe.requests.FileSystemSnapRequests;
 import com.emc.storageos.vnxe.requests.HostInitiatorRequest;
 import com.emc.storageos.vnxe.requests.HostIpPortRequests;
@@ -2646,6 +2651,117 @@ public class VNXeApiClient {
         return req.detachSnapSync(snapId);
     }
 
+    public VNXeCommandJob updateShareACL(String fsId, String shareName, List<ShareACL> aclsToAdd, List<ShareACL> aclsToModify,
+            List<ShareACL> aclsToDelete) {
+        FileSystemRequest fsRequest = new FileSystemRequest(_khClient, fsId);
+        CifsShareRequests cifsReq = new CifsShareRequests(_khClient);
+        VNXeFileSystem fs = fsRequest.get();
+        if (fs == null) {
+            _logger.info("Could not find file system in the vxne");
+            throw VNXeException.exceptions.vnxeCommandFailed("Could not find file system in the vnxe for: " + fsId);
+        }
+        String resourceId = fs.getStorageResource().getId();
+        List<CifsShareACE> acesToAdd = new ArrayList<CifsShareACE>();
+        List<String> acesToDelete = new ArrayList<String>();
+        for (ShareACL acl : aclsToAdd) {
+            CifsShareACE newAce = new CifsShareACE();
+            newAce.setSid(getSIDForUser(acl.getUser(), acl.getDomain()));
+            newAce.setAccessLevel(getAccessEnum(acl.getPermission()));
+            newAce.setAccessType(1);
+            acesToAdd.add(newAce);
+        }
+        for (ShareACL acl : aclsToModify) {
+            CifsShareACE modifyAce = new CifsShareACE();
+            modifyAce.setSid(getSIDForUser(acl.getUser(), acl.getDomain()));
+            modifyAce.setAccessLevel(getAccessEnum(acl.getPermission()));
+            modifyAce.setAccessType(1);
+            acesToAdd.add(modifyAce);
+        }
+        for (ShareACL acl : aclsToDelete) {
+            acesToDelete.add(getSIDForUser(acl.getUser(), acl.getDomain()));
+        }
+        ModifyFileSystemParam param = new ModifyFileSystemParam();
+        CifsShareModifyParam cifsShareModify = new CifsShareModifyParam();
+        CifsShareParam cifsShareParameters = new CifsShareParam();
+        cifsShareParameters.setIsACEEnabled(true);
+        if (!acesToAdd.isEmpty()) {
+            cifsShareParameters.setAddACE(acesToAdd);
+        }
+        if (!acesToDelete.isEmpty()) {
+            cifsShareParameters.setRemoveSID(acesToDelete);
+        }
+        VNXeBase cifsShare = new VNXeBase(cifsReq.getCifsShareByNameAndFS(fsId, shareName).getId());
+        cifsShareModify.setCifsShare(cifsShare);
+        List<CifsShareModifyParam> modifyParam = new ArrayList<CifsShareModifyParam>();
+        modifyParam.add(cifsShareModify);
+        cifsShareModify.setCifsShareParameters(cifsShareParameters);
+        param.setCifsShareModify(modifyParam);
+        FileSystemActionRequest req = new FileSystemActionRequest(_khClient);
+        return req.modifyFileSystemAsync(param, resourceId);
+    }
+
+    public VNXeCommandJob deleteShareACL(String fsId, String shareId) {
+        FileSystemRequest fsRequest = new FileSystemRequest(_khClient, fsId);
+        VNXeFileSystem fs = fsRequest.get();
+        if (fs == null) {
+            _logger.info("Could not find file system in the vxne");
+            throw VNXeException.exceptions.vnxeCommandFailed("Could not find file system in the vnxe for: " + fsId);
+        }
+        String resourceId = fs.getStorageResource().getId();
+        FileSystemShareACLRequests aclReq = new FileSystemShareACLRequests(_khClient);
+        List<CifsShareACE> ACEs = aclReq.get(shareId);
+        List<String> acesToDelete = new ArrayList<String>();
+        for (CifsShareACE ace : ACEs) {
+            acesToDelete.add(ace.getSid());
+        }
+        ModifyFileSystemParam param = new ModifyFileSystemParam();
+        CifsShareModifyParam cifsShareModify = new CifsShareModifyParam();
+        CifsShareParam cifsShareParameters = new CifsShareParam();
+        cifsShareParameters.setIsACEEnabled(false);
+        if (!acesToDelete.isEmpty()) {
+            cifsShareParameters.setRemoveSID(acesToDelete);
+        }
+        VNXeBase cifsShare = new VNXeBase(shareId);
+        cifsShareModify.setCifsShare(cifsShare);
+        List<CifsShareModifyParam> modifyParam = new ArrayList<CifsShareModifyParam>();
+        modifyParam.add(cifsShareModify);
+        cifsShareModify.setCifsShareParameters(cifsShareParameters);
+        param.setCifsShareModify(modifyParam);
+        FileSystemActionRequest req = new FileSystemActionRequest(_khClient);
+        return req.modifyFileSystemAsync(param, resourceId);
+    }
+
+    public String getSIDForUser(String userName, String domainName) {
+        FileSystemShareACLRequests req = new FileSystemShareACLRequests(_khClient);
+        aclUserLookupSIDParam param = new aclUserLookupSIDParam();
+        if (domainName != null) {
+            param.setDomainName(domainName);
+        }
+        param.setUserName(userName);
+        return req.getSIDForUser(param);
+    }
+
+    private int getAccessEnum(String permission) throws VNXeException {
+        int access = 0;
+        if (permission != null) {
+            switch (permission.toLowerCase()) {
+                case "read":
+                    access = 1;
+                    break;
+
+                case "change":
+                    access = 2;
+                    break;
+                case "fullcontrol":
+                    access = 4;
+                    break;
+                default:
+                    throw new IllegalArgumentException(permission + " is not a valid permission for Cifs Share");
+            }
+        }
+        return access;
+    }
+
     /**
      * Get details of a storage resource. (Consistency group is a storage resource)
      * 
@@ -2682,23 +2798,29 @@ public class VNXeApiClient {
         return req.getLunSnaps(lunId);
 
     }
-    
+
     /**
      * Get consistency group native Id by its name
-     * @param cgName consistency group name
+     * 
+     * @param cgName
+     *            consistency group name
      * @return consistency group native Id
      */
     public String getConsistencyGroupIdByName(String cgName) {
         ConsistencyGroupRequests req = new ConsistencyGroupRequests(_khClient);
         return req.getConsistencyGroupIdByName(cgName);
-        
+
     }
-    
+
     /**
      * Modify host lun HLU
-     * @param hostId Host Id
-     * @param hostLunId HostLun Id
-     * @param hlu The new hlu value
+     * 
+     * @param hostId
+     *            Host Id
+     * @param hostLunId
+     *            HostLun Id
+     * @param hlu
+     *            The new hlu value
      */
     public void modifyHostLunHlu(String hostId, String hostLunId, int hlu) {
         HostRequest req = new HostRequest(_khClient, hostId);

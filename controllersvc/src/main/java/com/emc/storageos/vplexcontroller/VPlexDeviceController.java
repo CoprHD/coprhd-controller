@@ -1730,6 +1730,9 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
         blockObjectMap = filteredBlockObjectMap;
         _log.info("object map after filtering for this VPLEX: " + blockObjectMap);
 
+        // validate volume to lun map to make sure there aren't any duplicate LUN entries
+        ExportUtils.validateExportGroupVolumeMap(exportGroup.getLabel(), blockObjectMap);
+
         VPlexApiClient client = getVPlexAPIClient(_vplexApiFactory, vplexSystem, _dbClient);
 
         // we will need lists of new export masks to create and existing export masks to simply update
@@ -2903,9 +2906,6 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             URI srcVarray = exportGroup.getVirtualArray();
             boolean isRecoverPointExport = ExportUtils.checkIfInitiatorsForRP(_dbClient,
                     exportGroup.getInitiators());
-
-            // validate volume to lun map to make sure there aren't any duplicate LUN entries
-            ExportUtils.validateExportGroupVolumeMap(exportGroup.getLabel(), volumeMap);
 
             // Determine whether this export will be done across both VPLEX clusters,
             // or just the src or ha varray.

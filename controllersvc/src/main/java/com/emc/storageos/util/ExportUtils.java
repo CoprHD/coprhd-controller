@@ -689,6 +689,8 @@ public class ExportUtils {
         if (!validationErrors.isEmpty()) {
             String details = Joiner.on(". ").join(validationErrors);
             throw DeviceControllerException.exceptions.exportGroupInconsistentLunViolation(exportGroupName, details);
+        } else {
+            _log.info("volume map for Export Group {} has valid LUN information: {}", exportGroupName, volumeMap);
         }
     }
 

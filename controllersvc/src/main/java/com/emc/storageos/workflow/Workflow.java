@@ -116,10 +116,13 @@ public class Workflow implements Serializable {
         public StepStatus status;
         /** URI of Cassandra logging record. */
         URI workflowStepURI;
+        /** Is this a rollback step? */
         public boolean isRollbackStep = false;
+        /** Rollback steps only: Step ID of the step that created this step */
+        public String foundingStepId; 
 
         /**
-         * Created COP-37 to track hashCode() implemenatation in this class.
+         * Created COP-37 to track hashCode() implementation in this class.
          */
         @SuppressWarnings({ "squid:S1206" })
         public boolean equals(Object o) {
@@ -154,6 +157,7 @@ public class Workflow implements Serializable {
             rb.controllerName = this.controllerName;
             rb.executeMethod = this.rollbackMethod;
             rb.stepGroup = ROLLBACK_GROUP;
+            rb.foundingStepId = this.stepId;
             return rb;
         }
     };

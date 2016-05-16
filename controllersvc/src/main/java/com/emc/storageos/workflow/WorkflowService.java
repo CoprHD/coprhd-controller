@@ -44,7 +44,6 @@ import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.locking.DistributedOwnerLockService;
 import com.emc.storageos.locking.LockRetryException;
-import com.emc.storageos.model.property.PropertyInfo;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
@@ -70,7 +69,6 @@ import com.emc.storageos.workflow.Workflow.StepStatus;
  * @author Watson
  */
 public class WorkflowService implements WorkflowController {
-    private static final String CLASS_METHOD_SEPARATOR = ".";
     private static final Logger _log = LoggerFactory.getLogger(WorkflowService.class);
     private static final Long MILLISECONDS_IN_SECOND = 1000L;
     private static volatile WorkflowService _instance = null;
@@ -410,15 +408,28 @@ public class WorkflowService implements WorkflowController {
                 StepStatus status = workflow.getStepStatus(stepId);
                 
                 // If an error is reported, and we're supposed to suspend on error, suspend
-                // Note: we may not want to do this for rollback steps?
-                if  (StepState.ERROR == state && workflow.isSuspendOnError()) {
+                // Do not suspend rollback steps.
+                Step step = workflow.getStepMap().get(stepId);
+                if  (StepState.ERROR == state && workflow.isSuspendOnError() && !workflow.isRollbackState()) {
                 	state = StepState.SUSPENDED_ERROR;
+                }
+                
+                // if this is a rollback step that ran as a result of a SUSPENDED_ERROR step, move over the 
+                // SUSPENDED_ERROR step to ERROR
+                if (step.isRollbackStep()) {
+                	if (step.foundingStepId != null) {
+                		if (workflow.getStepMap().get(step.foundingStepId) != null) {
+                			Step foundingStep = workflow.getStepMap().get(step.foundingStepId);
+                			StepStatus foundingStatus = workflow.getStepStatus(step.foundingStepId);
+                			foundingStatus.updateState(StepState.ERROR, code, message);
+                			persistWorkflowStepUpdate(workflow, foundingStep);
+                		}
+                	}
                 }
                 
                 _log.info(String.format("Updating workflow step: %s state %s : %s", stepId, state, message));
                 status.updateState(state, code, message);
                 // Persist the updated step state
-                Step step = workflow.getStepMap().get(stepId);
                 persistWorkflowStepUpdate(workflow, step);
                 if (status.isTerminalState()) {
                     // release any step level locks held.
@@ -535,7 +546,6 @@ public class WorkflowService implements WorkflowController {
                         workflow._taskCompleter.ready(_dbClient, _locker);
                         break;
                     case SUSPENDED_ERROR:
-                    	//workflow._taskCompleter.error(_dbClient, _locker, error);
                         workflow._taskCompleter.suspendedError(_dbClient, _locker, error);
                         break;
                     case SUSPENDED_NO_ERROR:
@@ -1680,14 +1690,14 @@ public class WorkflowService implements WorkflowController {
 	            switch(state) {
 	            case SUSPENDED_ERROR:
 	            case SUSPENDED_NO_ERROR:
-	                _dbClient.pending(com.emc.storageos.db.client.model.Workflow.class, 
-	                        child.getWorkflowURI(), parentStepId, "rolling back sub-workflow");
-	                rollbackWorkflow(child.getWorkflowURI(), entry.getKey());
-	                Status status  = waitOnOperationComplete(com.emc.storageos.db.client.model.Workflow.class, 
-	                        child.getWorkflowURI(), parentStepId);
-	                _log.info(String.format("Child rollback task %s completed with state %s", taskId, status.name()));;
-	                // TODO: should we go forward if unable to roll back child?
-	                break;
+	            	_dbClient.pending(com.emc.storageos.db.client.model.Workflow.class, 
+	            			child.getWorkflowURI(), parentStepId, "rolling back sub-workflow");
+	            	rollbackWorkflow(child.getWorkflowURI(), entry.getKey());
+	            	Status status  = waitOnOperationComplete(com.emc.storageos.db.client.model.Workflow.class, 
+	            			child.getWorkflowURI(), parentStepId);
+	            	_log.info(String.format("Child rollback task %s completed with state %s", taskId, status.name()));;
+	            	// TODO: should we go forward if unable to roll back child?
+	            	break;
 	            default:
 	                continue;
 	            }

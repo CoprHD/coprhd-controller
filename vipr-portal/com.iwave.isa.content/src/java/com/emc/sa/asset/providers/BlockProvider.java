@@ -768,7 +768,6 @@ public class BlockProvider extends BaseAssetOptionsProvider {
             List<BlockConsistencyGroupRestRep> consistencyGroups = api(ctx).blockConsistencyGroups()
                     .search()
                     .byProject(project)
-                    .filter(new ConsistencyGroupIBMXIVFilter(client).not())
                     .run();
             return createBaseResourceOptions(consistencyGroups);
         }
@@ -3218,26 +3217,5 @@ public class BlockProvider extends BaseAssetOptionsProvider {
      */
     private boolean isIBMXIVVolume(VolumeRestRep vol) {
         return vol != null && IBMXIV_SYSTEM_TYPE.equals(vol.getSystemType());
-    }
-
-    /**
-     * IBM XIV filter for consistency group.
-     */
-    private static class ConsistencyGroupIBMXIVFilter extends DefaultResourceFilter<BlockConsistencyGroupRestRep> {
-        private final ViPRCoreClient _client;
-
-        public ConsistencyGroupIBMXIVFilter(ViPRCoreClient client) {
-            this._client = client;
-        }
-
-        @Override
-        public boolean accept(BlockConsistencyGroupRestRep cg) {
-            if (cg.getStorageController() != null) {
-                StorageSystemRestRep sys = _client.storageSystems().get(cg.getStorageController());
-                return sys != null && IBMXIV_SYSTEM_TYPE.equals(sys.getSystemType());
-            }
-
-            return false;
-        }
     }
 }

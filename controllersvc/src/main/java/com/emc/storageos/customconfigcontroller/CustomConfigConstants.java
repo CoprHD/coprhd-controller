@@ -62,6 +62,9 @@ public interface CustomConfigConstants {
     public String HDS_HOST_STORAGE_HOST_MODE_OPTION = "HDSHostModeOption";
 
     public String ISILON_CLUSTER_NAME = "isilon_cluster_name";
+    public String ISILON_SYSTEM_ACCESS_ZONE = "system_access_zone";
+    public String ISILON_USER_ACCESS_ZONE = "user_access_zone";
+    public String ISILON_NO_ACCESS_ZONE = "no_access_zone";
 
     public String PORT_ALLOCATION_INITIATOR_CEILLING = "PortAllocationInitiatorCeiling";
     public String PORT_ALLOCATION_VOLUME_CEILLING = "PortAllocationVolumeCeiling";
@@ -81,6 +84,6 @@ public interface CustomConfigConstants {
 
     public String ISILON_PATH_CUSTOMIZATION = "IsilonPathCustomization";
     public String ISILON_SYSTEM_ACCESS_ZONE_NAMESPACE = "IsilonSystemAccessZoneNameSpace";
-    public String ISILON_UNMANAGE_FILE_SYSTEM_LOCATIONS = "IsilonUnManageFileSystemLocations";
+    public String ISILON_UNMANAGED_FILE_SYSTEM_LOCATIONS = "IsilonUnmanagedFileSystemLocations";
 
 }

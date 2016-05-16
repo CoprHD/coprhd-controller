@@ -15,6 +15,7 @@
         <property name="isilonApiFactory" ref="isilonapifactory" />
         <property name="partitionManager" ref="partitionManager"/>
         <property name="customConfigHandler" ref="customConfigHandler" />
+        <property name="dataSourceFactory" ref="dataSourceFactory"/>
 	</bean>
 
     <bean id="partitionManager" class="com.emc.storageos.plugins.common.PartitionManager" />

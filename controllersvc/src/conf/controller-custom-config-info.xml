@@ -60,7 +60,7 @@
                 <ref bean="nasShareVNASWithMultipleProjects"/>
                 <ref bean="isilonPathCustomization"/>
                 <ref bean="isilonSystemAccessZoneNameSpace"/>
-                <ref bean="isilonUnManageFileSystemLocations"/>
+                <ref bean="isilonUnmanagedFileSystemLocations"/>
             </list>
         </property>
     </bean>
@@ -902,10 +902,17 @@
         </property>
     </bean>
     
-     <bean id="isilonUnManageFileSystemLocations" class="com.emc.storageos.customconfigcontroller.CustomConfigType">
-    	<property name="name" value="IsilonUnManageFileSystemLocations"/>
-              <property name="configType" value="SimpleValue"/>
+     <bean id="isilonUnmanagedFileSystemLocations" class="com.emc.storageos.customconfigcontroller.CustomConfigType">
+    	<property name="name" value="IsilonUnmanagedFileSystemLocations"/>
+             <property name="configType" value="CustomName"/>
         <property name="type" value="String"/>
+        <property name="dataSourceVariables">
+            <map>
+                <entry key-ref="systemAccessZone" value="false"/>
+                <entry key-ref="userAccessZone" value="false"/>
+                 <entry key-ref="noAccessZone" value="false"/>
+            </map>
+    	</property>
  		<property name="scope">
             <map>
          <entry key="systemType" value="isilon"/>
@@ -913,7 +920,7 @@
         </property>
         <property name="defaultValues">
             <map>
-                <entry key="isilon" value="/ifs/sos/"/>                    
+                <entry key="isilon" value="{system_access_zone},{user_access_zone},/ifs/sos/"/>                    
             </map>
         </property>
                 <property name="constraints">
@@ -1223,6 +1230,19 @@
         <property name="displayName" value="isilon_cluster_name"/>
         <property name="sample" value="clusterABC"/>
     </bean> 
+        <bean id="systemAccessZone" class="com.emc.storageos.customconfigcontroller.DataSourceVariable">
+        <property name="displayName" value="system_access_zone"/>
+        <property name="sample" value="/ifs/vipr"/>
+    </bean> 
+        <bean id="userAccessZone" class="com.emc.storageos.customconfigcontroller.DataSourceVariable">
+        <property name="displayName" value="user_access_zone"/>
+        <property name="sample" value="/ifs/zoneA,/ifs/zoneB"/>
+    </bean> 
+        <bean id="noAccessZone" class="com.emc.storageos.customconfigcontroller.DataSourceVariable">
+        <property name="displayName" value="no_access_zone"/>
+        <property name="sample" value=","/>
+    </bean>
+    
         <bean id="tenantName" class="com.emc.storageos.customconfigcontroller.DataSourceVariable">
         <property name="sourceClass" value="com.emc.storageos.db.client.model.TenantOrg"/>
         <property name="displayName" value="tenant_name"/>

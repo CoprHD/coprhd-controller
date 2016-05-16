@@ -305,6 +305,19 @@ public class DataSourceFactory {
     }
 
     /**
+     * Create a data source object for resolving Isilon unmanaged file system locations
+     * 
+     * @param storageSystem the storageSystem that the file system will be created on.
+     * @return a data source populated with the properties
+     */
+    public DataSource createIsilonUnmanagedFileSystemLocationsDataSource(StorageSystem storageSystem) {
+
+        return createDataSource(CustomConfigConstants.ISILON_UNMANAGED_FILE_SYSTEM_LOCATIONS,
+                new DataObject[] { storageSystem });
+
+    }
+
+    /**
      * Creates a data source objects for a customizable configuration
      * using the sample data stored in the configType definition.
      * 

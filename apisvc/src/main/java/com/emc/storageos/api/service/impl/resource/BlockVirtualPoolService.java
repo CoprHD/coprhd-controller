@@ -51,6 +51,7 @@ import com.emc.storageos.api.service.impl.resource.cinder.QosService;
 import com.emc.storageos.api.service.impl.response.BulkList;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
+import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.NamedURI;
@@ -65,6 +66,7 @@ import com.emc.storageos.db.client.model.VirtualPool.Type;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.VpoolProtectionVarraySettings;
 import com.emc.storageos.db.client.model.VpoolRemoteCopyProtectionSettings;
+import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume;
 import com.emc.storageos.db.client.model.VpoolRemoteCopyProtectionSettings.CopyModes;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.common.VdcUtil;
@@ -137,14 +139,27 @@ public class BlockVirtualPoolService extends VirtualPoolService {
         VirtualPool vpool = getVirtualPool(VirtualPool.Type.block, id);
         ArgValidator.checkFieldNotEmpty(param.getIds(), "volume_id");
 
-        List<Volume> volumes = _dbClient.queryObject(Volume.class, param.getIds());
+        // We only need one volume from the current vpool to determine
+        // which other vpools we can move to.
+        Volume volume = _dbClient.queryObject(Volume.class, param.getIds().get(0));
+        
+       // List<Volume> volumes = _dbClient.queryObject(Volume.class, param.getIds());
 
-        VirtualPoolChangeList virtualPoolChangeList = null;
+        VirtualPoolChangeList virtualPoolChangeList = new VirtualPoolChangeList();
+        
+        //BH
+//        URIQueryResultList result = new URIQueryResultList();
+//        _dbClient.queryByConstraint(
+//                AlternateIdConstraint.Factory.getUnManagedVolumeSupportedVPoolConstraint(vPoolId.toString()),
+//                result);
+//        Iterator<UnManagedVolume> unmanagedVolumeItr = _dbClient.queryIterativeObjects(UnManagedVolume.class,
+//                result, true);
+//        while (unmanagedVolumeItr.hasNext()) {
 
-        if (volumes != null && !volumes.isEmpty()) {
-            _log.info("Found {} volumes", volumes.size());
+        if (volume != null) {
+            //_log.info("Found {} volumes", volumes.size());
 
-            for (Volume volume : volumes) {
+            //for (Volume volume : volumes) {
                 // throw exception if one of the volume is not in the source virtual pool
                 if (!volume.getVirtualPool().equals(id)) {
                     throw APIException.badRequests.volumeNotInVirtualPool(volume.getLabel(), vpool.getLabel());
@@ -155,17 +170,11 @@ public class BlockVirtualPoolService extends VirtualPoolService {
                 BlockServiceApi blockServiceApi = BlockService.getBlockServiceImpl(volume, _dbClient);
                 _log.info("Got BlockServiceApi for volume");
 
-                // Return the list of potential VirtualPool for a VirtualPool change for this volume.
+                // Return the list of candidate VirtualPools for a VirtualPool change for this volume.
                 VirtualPoolChangeList volumeVirturalPoolChangeList = blockServiceApi.getVirtualPoolForVirtualPoolChange(volume);
-
-                if (virtualPoolChangeList == null) {
-                    // initialized intersected list of the very first volume to use it as based.
-                    virtualPoolChangeList = new VirtualPoolChangeList();
-                    virtualPoolChangeList.getVirtualPools().addAll(volumeVirturalPoolChangeList.getVirtualPools());
-                } else {
-                    virtualPoolChangeList.getVirtualPools().retainAll(volumeVirturalPoolChangeList.getVirtualPools());
-                }
-            }
+                virtualPoolChangeList.getVirtualPools().addAll(volumeVirturalPoolChangeList.getVirtualPools());
+                
+            //}
         }
 
         return virtualPoolChangeList;

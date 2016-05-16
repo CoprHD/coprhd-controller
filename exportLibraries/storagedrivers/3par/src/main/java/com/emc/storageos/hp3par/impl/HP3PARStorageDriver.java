@@ -292,15 +292,16 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
             // get storage port details
             PortCommandResult portResult = hp3parApi.getPortDetails();
             PortStatisticsCommandResult portStatResult = hp3parApi.getPortStatisticsDetail();
-            
+            _log.info("1111111111");
             // for each ViPR Storage port = 3PAR host port
-            for (int index = 0; index < portResult.getTotal(); index++) {
+            for (Integer index = 0; index < portResult.getTotal(); index++) {
                 StoragePort port = new StoragePort();
                 PortMembers currMember =  portResult.getMembers().get(index);
-                
+                _log.info("22222222222");
                 // Avoid suspended and free ports
                 if (currMember.getMode() == HP3PARConstants.MODE_SUSPENDED || 
-                        currMember.getType() == HP3PARConstants.TYPE_FREE) {
+                        currMember.getType() == HP3PARConstants.TYPE_FREE ||
+                        currMember.getType() == HP3PARConstants.TYPE_DISK) {
                     continue;
                 }
                 
@@ -313,15 +314,20 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
                     }
                 
                 port.setStorageSystemId(storageSystem.getNativeId());
-                
+                _log.info("333333333333");
                 switch(currMember.getProtocol()) {
                     case 1:
-                    case 3:
                         port.setTransportType(TransportType.FC);
+                        break;
+                    case 3:
+                        port.setTransportType(TransportType.Ethernet);
                         break;
                     case 2:
                     case 4:
                         port.setTransportType(TransportType.IP);
+                        break;
+                    default:
+                        _log.error("3PAR: discoverStoragePorts Invalid port type");
                         break;
                 }
                 
@@ -335,33 +341,58 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
                         port.setPortSpeed(currStat.getSpeed() * HP3PARConstants.KILO_BYTE * HP3PARConstants.KILO_BYTE);
                     }
                 }
-
+                _log.info("44444444444");
                 // grouping with cluster node and slot
                 port.setPortGroup(currMember.getPortPos().getNode().toString());
                 port.setPortSubGroup(currMember.getPortPos().getSlot().toString());
-                
+                _log.info("555555555555");
+                String id2 = String.format("port:%s:%s:%s", currMember.getPortPos().getNode(),
+                        currMember.getPortPos().getSlot(), currMember.getPortPos().getCardPort());
+                _log.info("5555 id {}", id2);
                 // set specific properties based on protocol
-                if (port.getTransportType().equals(TransportType.FC.toString())) {
-                    port.setPortNetworkId(currMember.getPortWWN());                    
+                if (port.getTransportType().equals(TransportType.FC.toString()) ||
+                        port.getTransportType().equals(TransportType.Ethernet.toString())) {
+                    _log.info("5555 aaaaaa");
+                    port.setPortNetworkId(currMember.getPortWWN());
+                    // Filling values as its expected by SB SDK
+                    port.setEndPointID(currMember.getPortWWN());
                 } else {
+                    _log.info("5555 bbbb");
                     port.setIpAddress(currMember.getIPAddr());
-                    port.setPortNetworkId(currMember.getiSCSINmae());                    
+                    _log.info("5555 cccccc");
+                    port.setPortNetworkId(currMember.getiSCSINmae());
+                    // Filling values as its expected by SB SDK                    
+                    port.setEndPointID(currMember.getiSCSINmae());
                 }
 
+                _log.info("666666666666666");
                 // connected to disk or host(switch)
                 if (currMember.getType() == HP3PARConstants.TYPE_DISK) {
+                    _log.info("666666 should never see this");
                     port.setPortType(PortType.backend);
                 } else {
                     port.setPortType(PortType.frontend);
                 }
                 
+                // Filling values as its expected by SB SDK
+                port.setTcpPortNumber(index.longValue());
+                port.setAvgBandwidth(port.getPortSpeed());
+                port.setPortHAZone(String.format("domain%s", currMember.getPortPos().getNode()));
+                
+                _log.info("77777777777777777");
                 String id = String.format("port:%s:%s:%s", currMember.getPortPos().getNode(),
                         currMember.getPortPos().getSlot(), currMember.getPortPos().getCardPort());
+                // Storage object properties
                 port.setNativeId(id);
+                port.setDeviceLabel(port.getPortName());
+                port.setDisplayName(port.getPortName());
+                storageSystem.setAccessStatus(AccessStatus.READ_WRITE);
+
                 port.setOperationalStatus(StoragePort.OperationalStatus.OK);  
-                
+                _log.info("888888888888888888");
                 _log.info("3PAR: added storage port {}, native id {}",  port.getPortName(), port.getNativeId());
                 storagePorts.add(port);
+                _log.info("99999999999");
             } //for each storage pool
             
             task.setStatus(DriverTask.TaskStatus.READY);

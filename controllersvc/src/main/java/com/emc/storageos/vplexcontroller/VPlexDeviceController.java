@@ -11851,7 +11851,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
         workflow.createStep(RENAME_VIRTUAL_VOLUME_STEP,
                 String.format("Rename VPLEX virtual volume: %s to %s", vplexVolumeURI, newVolumeName),
                 waitFor, vplexURI, vplexSystem.getSystemType(),
-                this.getClass(), executeMethod, rollbackMethodNullMethod(), waitFor);
+                this.getClass(), executeMethod, rollbackMethodNullMethod(), null);
         return RENAME_VIRTUAL_VOLUME_STEP;
     }
     

@@ -75,7 +75,7 @@ public class RPControllerImpl extends AbstractDiscoveredSystemController impleme
 
     @Override
     public void performProtectionOperation(URI protectionDevice, URI id,
-            URI copyID, String pointInTime, String op, String task) throws InternalException {
+            URI copyID, String pointInTime, String imageAccessMode, String op, String task) throws InternalException {
         execFS("performProtectionOperation", protectionDevice, id, copyID, pointInTime, op, task);
     }
 
@@ -109,13 +109,16 @@ public class RPControllerImpl extends AbstractDiscoveredSystemController impleme
         execFS("deleteSnapshot", protectionDevice, snapshot, task);
     }
 
-    /* (non-Javadoc)
-     * @see com.emc.storageos.protectioncontroller.RPController#updateApplication(java.net.URI, com.emc.storageos.volumecontroller.ApplicationAddVolumeList, java.util.List, java.net.URI, java.lang.String)
+    /*
+     * (non-Javadoc)
+     * 
+     * @see com.emc.storageos.protectioncontroller.RPController#updateApplication(java.net.URI,
+     * com.emc.storageos.volumecontroller.ApplicationAddVolumeList, java.util.List, java.net.URI, java.lang.String)
      */
     @Override
     public void updateApplication(URI systemURI, ApplicationAddVolumeList addVolumesNotInCG, List<URI> removeVolumesURI, URI applicationId,
             String taskId) {
         execFS("updateApplication", systemURI, addVolumesNotInCG, removeVolumesURI, applicationId, taskId);
-        
+
     }
 }

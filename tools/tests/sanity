@@ -10361,7 +10361,7 @@ application_copy_tests()
         APPLICATION_RESYNC_COPY_SUPPORTED=$APPLICATION_RESYNC_SNAP_SUPPORTED
         APPLICATION_DETACH_COPY_SUPPORTED=0
         APPLICATION_LINK_COPY_SUPPORTED=$APPLICATION_LINK_SNAP_SUPPORTED
-        application_full_copy_tests snapshot
+        application_full_copy_tests $APPLICATION_SNAP_TYPE
     fi
 
     run volumegroup remove-volumes ${VG_COPYVG1} ${VG_CG1VOLID1},${VG_CG1VOLID2},${VG_CG1VOLID3},${VG_CG1VOLID4}
@@ -10440,21 +10440,20 @@ application_full_copy_tests()
 
         # delete the full copy volumes
         run volume delete $VG_FCVOLUMES --wait
-    else
-        run volumegroup delete-$copy_type $VG_COPYVG1 $VG_FCNAME
-        fail volumegroup verify-copy-set $copy_type $VG_COPYVG1 $VG_FCNAME
-    fi
 
-    if [[ $APPLICATION_LINK_COPY_SUPPORTED -eq 1 ]]; then
-        run volumegroup link-copy $copy_type $VG_COPYVG1 $VG_FCNAME
+    elif [[ $APPLICATION_LINK_COPY_SUPPORTED -eq 1 ]]; then
+        run volumegroup link-copy $copy_type $VG_COPYVG1 $VG_FCNAME 1 tgt-${VG_COPYVG1} nocopy
         run volumegroup unlink-copy $copy_type $VG_COPYVG1 $VG_FCNAME
 
         # run use cases with snapshot linked
         run volumegroup create-copy $copy_type $VG_COPYVG1 $VG_FCNAME3
         run volumegroup link-copy $copy_type $VG_COPYVG1 $VG_FCNAME3
         run volumegroup restore-copy $copy_type $VG_COPYVG1 $VG_FCNAME3
-        run volumegroup delete-$copy_type $VG_COPYVG1 $VG_FCNAME3
+        run volumegroup delete-copy $copy_type $VG_COPYVG1 $VG_FCNAME3
         fail volumegroup verify-copy-set $copy_type $VG_COPYVG1 $VG_FCNAME3
+    else
+        run volumegroup delete-copy $copy_type $VG_COPYVG1 $VG_FCNAME
+        fail volumegroup verify-copy-set $copy_type $VG_COPYVG1 $VG_FCNAME
     fi
 
 
@@ -10477,7 +10476,7 @@ application_full_copy_tests()
             # delete the full copy volumes
             run volume delete $VG_FCVOLUMES --wait
         else
-            run volumegroup delete-snapshot $VG_COPYVG1 $VG_FCNAME2
+            run volumegroup delete-copy $copy_type $VG_COPYVG1 $VG_FCNAME2
             fail volumegroup verify-copy-set $copy_type $VG_COPYVG1 $VG_FCNAME2
         fi
     fi
@@ -10560,6 +10559,7 @@ application_tests()
         APPLICATION_SNAPSHOT_SUPPORTED=1
         APPLICATION_RESYNC_SNAP_SUPPORTED=1
         APPLICATION_LINK_SNAP_SUPPORTED=0
+        APPLICATION_SNAP_TYPE='snapshot'
         if [ $APPLICATION_TEST_BLOCK -eq 1 ]; then
             secho "running block vmax2 tests"
             VG_VPOOL_CG=$APP_VPOOL_VMAX2_BLOCK
@@ -10618,10 +10618,11 @@ application_tests()
     if [ $APPLICATION_TEST_VMAX3 -eq 1 ]; then
         APPLICATION_CLONE_SUPPORTED=1
         # TODO add snap session support
-        APPLICATION_SNAPSHOT_SUPPORTED=0
+        APPLICATION_SNAPSHOT_SUPPORTED=1
         APPLICATION_RESYNC_SNAP_SUPPORTED=0
         APPLICATION_LINK_SNAP_SUPPORTED=1
         APPLICATION_CREATE_INACTIVE_SUPPORTED=0
+        APPLICATION_SNAP_TYPE='snapshotsession'
         if [ $APPLICATION_TEST_BLOCK -eq 1 ]; then
             secho "running block vmax3 tests"
             VG_VPOOL_CG=$APP_VPOOL_VMAX3_BLOCK
@@ -10679,6 +10680,7 @@ application_tests()
         APPLICATION_CLONE_SUPPORTED=0
         APPLICATION_SNAPSHOT_SUPPORTED=1
         APPLICATION_CREATE_INACTIVE_SUPPORTED=0
+        APPLICATION_SNAP_TYPE='snapshot'
         if [ $APPLICATION_TEST_BLOCK -eq 1 ]; then
             secho "running block xio tests"
             VG_VPOOL_CG=$APP_VPOOL_XIO_BLOCK

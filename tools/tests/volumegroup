@@ -31,7 +31,8 @@ usage()
     echo "           create-copy [clone | snapshot | snapsession] <name> <copy-set-name> [<activate-flag> <subgroups,subgroup,...>]"
     echo "           detach-copy [clone | snapshot | snapsession] <name> <copy-set-name> [<subgroup,subgroup,...>]"
     echo "           restore-copy [clone | snapshot | snapsession] <name> <copy-set-name> [<subgroup,subgroup,...>]"
-    echo "           resync-copy [clone | snapshot | snapsession] <name> <copy-set-name> [<subgroup,subgroup,...>]"
+    echo "           resync-copy [clone | snapshot] <name> <copy-set-name> [<subgroup,subgroup,...>]"
+    echo "           delete-copy [snapshot | snapsession] <name> <copy-set-name> [<subgroup,subgroup,...>]"
     echo "           list-full-copy-sets <name>"
     echo "           verify-full-copy-set <name> <copy-set-name>"
     echo "           list_full_copy_volumes <name> <copy-set-name>"
@@ -380,16 +381,19 @@ volume_group_link_copy()
     copy_type=$1
     application=$2
     copy_set_name=$3
-    subgroups=$4
+    count=$4
+    tgt_name=$5
+    copy_mode=$6
+    subgroups=$7
     echo "link ${copy_type} ${copy_set_name} of application ${application} subgroups <${subgroups}>"
     viprcli_authenticate >$ dev/null
     if [[ $subgroups == "" ]]; then
-        echo "viprcli volumegroup ${copy_type}-link -name ${application} -copysetname ${copy_set_name}"
-        viprcli volumegroup ${copy_type}-link -name $application -copysetname $copy_set_name
+        echo "viprcli volumegroup ${copy_type}-link -name ${application} -copysetname ${copy_set_name} -count ${count} -targetname ${tgt_name} -copymode ${copy_mode}"
+        viprcli volumegroup ${copy_type}-link -name $application -copysetname $copy_set_name -count $count -targetname $tgt_name -copymode $copy_mode
     else
         # for partial support
-        echo "viprcli volumegroup ${copy_type}-link -name ${application} -copysetname ${copy_set_name} -subgroups ${subgroups}"
-        viprcli volumegroup ${copy_type}-link -name $application -copysetname $copy_set_name -subgroups $subgroups
+        echo "viprcli volumegroup ${copy_type}-link -name ${application} -copysetname ${copy_set_name} -count ${count} -targetname ${tgt_name} -copymode ${copy_mode} -subgroups ${subgroups}"
+        viprcli volumegroup ${copy_type}-link -name $application -copysetname $copy_set_name -count $count -targetname $tgt_name -copymode $copy_mode -subgroups $subgroups
     fi
     retval=$?
     viprcli_logout >$ dev/null
@@ -408,50 +412,71 @@ volume_group_unlink_copy()
     copy_type=$1
     application=$2
     copy_set_name=$3
-    subgroups=$4
-    echo "unlink ${copy_type} ${copy_set_name} of application ${application} subgroups <${subgroups}>"
+    tgt_name=$4
+    echo "unlink ${copy_type} ${tgt_name} ${copy_set_name} of application ${application}"
     viprcli_authenticate >$ dev/null
-    if [[ $subgroups == "" ]]; then
-        echo "viprcli volumegroup ${copy_type}-unlink -name ${application} -copysetname ${copy_set_name}"
-        viprcli volumegroup ${copy_type}-unlink -name $application -copysetname $copy_set_name
-    else
-        # for partial support
-        echo "viprcli volumegroup ${copy_type}-unlink -name ${application} -copysetname ${copy_set_name} -subgroups ${subgroups}"
-        viprcli volumegroup ${copy_type}-unlink -name $application -copysetname $copy_set_name -subgroups $subgroups
-    fi
+
+    echo "viprcli volumegroup ${copy_type}-unlink -name ${application} -copysetname ${copy_set_name} -targetname ${tgt_name}"
+    viprcli volumegroup ${copy_type}-unlink -name $application -copysetname $copy_set_name -targetname $tgt_name
+
     retval=$?
     viprcli_logout >$ dev/null
     if [ $retval -eq 0 ]; then
       volume_group_wait_for_tasks $application $copy_type
     fi
-    echo "volume group ${application} unlink ${copy_type} ${copy_set_name} subgroups <${subgroups}> completed with return code ${retval}"
+    echo "volume group ${application} unlink ${copy_type} ${tgt_name} ${copy_set_name} completed with return code ${retval}"
+    return $retval
+}
+
+#
+# unlink a copy of an applicaiton
+#
+volume_group_relink_copy()
+{
+    copy_type=$1
+    application=$2
+    copy_set_name=$3
+    tgt_name=$4
+    echo "unlink ${copy_type} ${tgt_name} ${copy_set_name} of application ${application}"
+    viprcli_authenticate >$ dev/null
+
+    echo "viprcli volumegroup ${copy_type}-unlink -name ${application} -copysetname ${copy_set_name} -targetname ${tgt_name}"
+    viprcli volumegroup ${copy_type}-unlink -name $application -copysetname $copy_set_name -targetname $tgt_name
+
+    retval=$?
+    viprcli_logout >$ dev/null
+    if [ $retval -eq 0 ]; then
+      volume_group_wait_for_tasks $application $copy_type
+    fi
+    echo "volume group ${application} unlink ${copy_type} ${tgt_name} ${copy_set_name} completed with return code ${retval}"
     return $retval
 }
 
 #
 # delete a snapshot of an applicaiton
 #
-volume_group_delete_snapshot()
+volume_group_delete_copy()
 {
-    application=$1
-    copy_set_name=$2
-    subgroups=$3
-    echo "delete snapshot ${copy_set_name} of application ${application} subgroups <${subgroups}>"
+    copy_type=$1
+    application=$2
+    copy_set_name=$3
+    subgroups=$4
+    echo "delete ${copy_type} ${copy_set_name} of application ${application} subgroups <${subgroups}>"
     viprcli_authenticate >$ dev/null
     if [[ $subgroups == "" ]]; then
-        echo "viprcli volumegroup snapshot-deactivate -name ${application} -copysetname ${copy_set_name}"
-        viprcli volumegroup snapshot-deactivate -name $application -copysetname $copy_set_name
+        echo "viprcli volumegroup ${copy_type}-deactivate -name ${application} -copysetname ${copy_set_name}"
+        viprcli volumegroup ${copy_type}-deactivate -name $application -copysetname $copy_set_name
     else
         # for partial support
         echo "viprcli volumegroup snapshot-deactivate -name ${application} -copysetname ${copy_set_name} -subgroups ${subgroups}"
-        viprcli volumegroup snapshot-deactivate -name $application -copysetname $copy_set_name -subgroups $subgroups
+        viprcli volumegroup ${copy_type}-deactivate -name $application -copysetname $copy_set_name -subgroups $subgroups
     fi
     retval=$?
     viprcli_logout >$ dev/null
     if [ $retval -eq 0 ]; then
-      volume_group_wait_for_tasks $application snapshot
+      volume_group_wait_for_tasks $application $copy_type
     fi
-    echo "volume group ${application} delete snapshot ${copy_set_name} subgroups <${subgroups}> completed with return code ${retval}"
+    echo "volume group ${application} delete ${copy_type} ${copy_set_name} subgroups <${subgroups}> completed with return code ${retval}"
     return $retval
 }
 
@@ -602,7 +627,7 @@ volume_group_wait_for_tasks()
         cmd="$VIPRCLI_CMD volume tasks -project $project -tenant $tenant -hostname $BOURNE_IPADDR"
         wait_for_tasks $cmd
     else
-        if [[ $2 == "snapshot" ]]; then
+        if [[ $2 == "snapshot" || $2 == "snapshotsession" ]]; then
             project=`volume_group_get_project_from_volumegroup ${1}`
             cgs=`volume_group_get_cgs_from_volumegroup ${1}`
             for cg in ${cgs//,/ }
@@ -821,10 +846,10 @@ elif [ $1 == 'create-copy-inactive' ]; then
     [ $# -ge 3 ] || usage
     shift
     volume_group_create_copy_inactive "$@"
-elif [ $1 == 'delete-snapshot' ]; then
+elif [ $1 == 'delete-copy' ]; then
     [ $# -ge 2 ] || usage
     shift
-    volume_group_delete_snapshot "$@"
+    volume_group_delete_copy "$@"
 elif [ $1 == 'detach-copy' ]; then
     [ $# -ge 3 ] || usage
     shift
@@ -837,6 +862,10 @@ elif [ $1 == 'restore-copy' ]; then
     [ $# -ge 3 ] || usage
     shift
     volume_group_restore_copy "$@"
+elif [ $1 == 'link-copy' ]; then
+    [ $# -ge 3 ] || usage
+    shift
+    volume_group_link_copy "$@"
 elif [ $1 == 'activate-copy' ]; then
     [ $# -ge 3 ] || usage
     shift

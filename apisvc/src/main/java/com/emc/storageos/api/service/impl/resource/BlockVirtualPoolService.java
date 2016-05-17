@@ -143,38 +143,21 @@ public class BlockVirtualPoolService extends VirtualPoolService {
         // which other vpools we can move to.
         Volume volume = _dbClient.queryObject(Volume.class, param.getIds().get(0));
         
-       // List<Volume> volumes = _dbClient.queryObject(Volume.class, param.getIds());
-
         VirtualPoolChangeList virtualPoolChangeList = new VirtualPoolChangeList();
-        
-        //BH
-//        URIQueryResultList result = new URIQueryResultList();
-//        _dbClient.queryByConstraint(
-//                AlternateIdConstraint.Factory.getUnManagedVolumeSupportedVPoolConstraint(vPoolId.toString()),
-//                result);
-//        Iterator<UnManagedVolume> unmanagedVolumeItr = _dbClient.queryIterativeObjects(UnManagedVolume.class,
-//                result, true);
-//        while (unmanagedVolumeItr.hasNext()) {
 
         if (volume != null) {
-            //_log.info("Found {} volumes", volumes.size());
+            if (!volume.getVirtualPool().equals(id)) {
+                throw APIException.badRequests.volumeNotInVirtualPool(volume.getLabel(), vpool.getLabel());
+            }
 
-            //for (Volume volume : volumes) {
-                // throw exception if one of the volume is not in the source virtual pool
-                if (!volume.getVirtualPool().equals(id)) {
-                    throw APIException.badRequests.volumeNotInVirtualPool(volume.getLabel(), vpool.getLabel());
-                }
+            // Get the block service implementation for this volume.
+            BlockServiceApi blockServiceApi = BlockService.getBlockServiceImpl(volume, _dbClient);
+            
+            _log.info("Got BlockServiceApi for volume, now checking for vpool change candidates...");
 
-                // get potential virtual pool change list of each volume
-                // Get the block service implementation for this volume.
-                BlockServiceApi blockServiceApi = BlockService.getBlockServiceImpl(volume, _dbClient);
-                _log.info("Got BlockServiceApi for volume");
-
-                // Return the list of candidate VirtualPools for a VirtualPool change for this volume.
-                VirtualPoolChangeList volumeVirturalPoolChangeList = blockServiceApi.getVirtualPoolForVirtualPoolChange(volume);
-                virtualPoolChangeList.getVirtualPools().addAll(volumeVirturalPoolChangeList.getVirtualPools());
-                
-            //}
+            // Return the list of candidate VirtualPools for a VirtualPool change for this volume.
+            VirtualPoolChangeList volumeVirturalPoolChangeList = blockServiceApi.getVirtualPoolForVirtualPoolChange(volume);
+            virtualPoolChangeList.getVirtualPools().addAll(volumeVirturalPoolChangeList.getVirtualPools());                
         }
 
         return virtualPoolChangeList;

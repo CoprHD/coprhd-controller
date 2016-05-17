@@ -1590,4 +1590,13 @@ public class NetAppFacade {
         VFiler vFiler = new VFiler(server.getNaServer(), null);
         return vFiler.getAllowedProtocols(vFilerName);
     }
+
+    public String getvFilerStatus(String vFilerName) {
+        if (log.isDebugEnabled()) {
+            log.debug("Getting status of vfiler");
+        }
+
+        VFiler vFiler = new VFiler(server.getNaServer(), null);
+        return vFiler.getvFilerStatus(vFilerName);
+    }
 }

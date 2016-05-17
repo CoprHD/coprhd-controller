@@ -117,6 +117,7 @@ public class NetAppFileCommunicationInterface extends
     private static final String SNAPSHOT = ".snapshot";
     private static final Long TB = 1024L * 1024L * 1024L * 1024L;
     private static final Long QTREES_PER_VOL = 4995L;
+    private static final String VFILER_RUNNING_STATUS = "running";
 
     private static final Logger _logger = LoggerFactory
             .getLogger(NetAppFileCommunicationInterface.class);
@@ -435,7 +436,7 @@ public class NetAppFileCommunicationInterface extends
                         }
                     }
                 } else {
-
+                    String vFilerStatus = netAppApi.getvFilerStatus(vf.getName());
                     VirtualNAS existingNas = DiscoveryUtils.findvNasByNativeId(_dbClient, system, vf.getName());
                     if (existingNas != null) {
                         StringSet existingProtocols = existingNas.getProtocols();
@@ -446,8 +447,16 @@ public class NetAppFileCommunicationInterface extends
                         existingProtocols.clear();
                         existingProtocols.addAll(protocols);
                         // Set the CIFS map!!
-                        setCifsServerMapForNASServer(cifsConfig, existingNas);
-                        existingNas.setNasState("LOADED");
+                        if (protocols.contains(StorageProtocol.File.CIFS.name())) {
+                            setCifsServerMapForNASServer(cifsConfig, existingNas);
+                        }
+
+                        // Whether the vFiler is in running state or not!!!
+                        if (VFILER_RUNNING_STATUS.equalsIgnoreCase(vFilerStatus)) {
+                            existingNas.setNasState("LOADED");
+                        } else {
+                            existingNas.setNasState(vFilerStatus);
+                        }
                         existingNas.setDiscoveryStatus(DiscoveryStatus.VISIBLE.name());
                         PhysicalNAS parentNas = DiscoveryUtils.findPhysicalNasByNativeId(_dbClient, system, DEFAULT_FILER);
                         if (parentNas != null) {
@@ -458,8 +467,15 @@ public class NetAppFileCommunicationInterface extends
                         VirtualNAS vNas = createVirtualNas(system, vf);
                         if (vNas != null) {
                             vNas.setProtocols(protocols);
+                            if (VFILER_RUNNING_STATUS.equalsIgnoreCase(vFilerStatus)) {
+                                vNas.setNasState("LOADED");
+                            } else {
+                                vNas.setNasState(vFilerStatus);
+                            }
                             // Set the CIFS map!!
-                            setCifsServerMapForNASServer(cifsConfig, vNas);
+                            if (protocols.contains(StorageProtocol.File.CIFS.name())) {
+                                setCifsServerMapForNASServer(cifsConfig, vNas);
+                            }
                             newvNasServers.add(vNas);
                         }
                     }
@@ -2472,7 +2488,6 @@ public class NetAppFileCommunicationInterface extends
         vNas.setNasName(vFiler.getName());
         vNas.setStorageDeviceURI(system.getId());
         vNas.setNativeId(vFiler.getName());
-        vNas.setNasState("LOADED");
         vNas.setId(URIUtil.createId(VirtualNAS.class));
 
         String nasNativeGuid = NativeGUIDGenerator.generateNativeGuid(

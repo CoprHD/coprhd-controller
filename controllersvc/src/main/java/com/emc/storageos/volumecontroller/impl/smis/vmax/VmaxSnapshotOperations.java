@@ -7,7 +7,9 @@ package com.emc.storageos.volumecontroller.impl.smis.vmax;
 import static com.emc.storageos.db.client.constraint.ContainmentConstraint.Factory.getLinkedTargetSnapshotSessionConstraint;
 import static com.emc.storageos.db.client.util.CommonTransformerFunctions.fctnBlockObjectToNativeID;
 import static com.emc.storageos.db.client.util.CustomQueryUtility.queryActiveResourcesByConstraint;
+import static com.emc.storageos.volumecontroller.impl.smis.ReplicationUtils.callEMCRefresh;
 import static com.emc.storageos.volumecontroller.impl.smis.ReplicationUtils.callEMCRefreshIfRequired;
+import static com.emc.storageos.volumecontroller.impl.smis.ReplicationUtils.checkReplicationGroupAccessibleOrFail;
 import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.COPY_STATE_MIXED_INT_VALUE;
 import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.COPY_STATE_RESTORED_INT_VALUE;
 import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.CP_EMC_UNIQUE_ID;
@@ -998,7 +1000,11 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
         try {
             if (storageSystem.checkIfVmax3()) {
                 for (String deviceId : deviceIds) {
-                    _helper.removeVolumeFromParkingSLOStorageGroup(storageSystem, deviceId, false);
+                    try {
+                        _helper.removeVolumeFromParkingSLOStorageGroup(storageSystem, deviceId, false);
+                    } catch (Exception e) {
+                        _log.info("Failed to remove device {} from SLO SG.  It may have already been removed", deviceId);
+                    }
                     _log.info("Done invoking remove volume {} from parking SLO storage group", deviceId);
                 }
             }
@@ -1921,16 +1927,29 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
                 _log.info("Delete target device {} :{}", targetDeviceId, snapshotURI);
                 Collection<String> nativeIds = transform(snapshots, fctnBlockObjectToNativeID());
 
+
                 if (snapshot.hasConsistencyGroup() && NullColumnValueGetter.isNotNullValue(snapshot.getReplicationGroupInstance())) {
-                    deleteTargetGroup(system, snapshot.getReplicationGroupInstance());
+                    try {
+                        checkReplicationGroupAccessibleOrFail(system, snapshot, _dbClient, _helper, _cimPath);
+                        deleteTargetGroup(system, snapshot.getReplicationGroupInstance());
+                    } catch (DeviceControllerException | WBEMException e) {
+                        _log.info("Failed to delete the target group.  It may have already been deleted.");
+                    }
+
                 }
 
                 // Ingested non-exported snapshot could be associated with SGs outside of ViPR,
                 // remove snapshot from them before deleting it.
                 for (BlockSnapshot snap : snapshots) {
-                    _helper.removeVolumeFromStorageGroupsIfVolumeIsNotInAnyMV(system, snap);
+                    try {
+                        _helper.removeVolumeFromStorageGroupsIfVolumeIsNotInAnyMV(system, snap);
+                    } catch (Exception e) {
+                        _log.info("Failed to remove snap {} from storage groups.  It may have already been removed.",
+                                snap.getNativeGuid());
+                    }
                 }
 
+                callEMCRefresh(_helper, system, true);
                 deleteTargetDevices(system, nativeIds.toArray(new String[] {}), completer);
                 _log.info("Delete target device complete");
             } else if (!syncObjectFound) {

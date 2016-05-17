@@ -9,12 +9,13 @@ import static org.junit.Assert.assertTrue;
 
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.commons.lang.ArrayUtils;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.slf4j.Logger;
@@ -24,6 +25,7 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
+import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.impl.DbClientContext;
 import com.emc.storageos.db.client.model.AbstractChangeTrackingSet;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
@@ -43,12 +45,17 @@ import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.VirtualPool.SupportedDriveTypes;
 import com.emc.storageos.db.client.model.VpoolProtectionVarraySettings;
+import com.emc.storageos.db.client.model.VpoolRemoteCopyProtectionSettings;
 import com.emc.storageos.db.common.VdcUtil;
 import com.emc.storageos.db.server.DbClientTest.DbClientImplUnitTester;
 import com.emc.storageos.db.server.DbsvcTestBase;
+import com.emc.storageos.svcs.errorhandling.resources.BadRequestException;
 import com.emc.storageos.util.ConnectivityUtil;
 import com.emc.storageos.volumecontroller.RPProtectionRecommendation;
 import com.emc.storageos.volumecontroller.RPRecommendation;
+import com.emc.storageos.volumecontroller.Recommendation;
+import com.emc.storageos.volumecontroller.SRDFCopyRecommendation;
+import com.emc.storageos.volumecontroller.SRDFRecommendation;
 import com.emc.storageos.volumecontroller.VPlexRecommendation;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
 
@@ -94,6 +101,698 @@ public class PlacementTests extends DbsvcTestBase {
             ((DbClientImplUnitTester) _dbClient).removeAll();
         }
     }
+    
+    @Test
+    public void testSRDFBasicPlacement() {
+        String[] vmax1FE = { "50:FE:FE:FE:FE:FE:FE:00", "50:FE:FE:FE:FE:FE:FE:01" };
+        String[] vmax2FE = { "51:FE:FE:FE:FE:FE:FE:00", "51:FE:FE:FE:FE:FE:FE:01" };
+        
+        // Create 2 Virtual Arrays
+        VirtualArray srcVarray = PlacementTestUtils.createVirtualArray(_dbClient, "srcVarray");
+        VirtualArray tgtVarray = PlacementTestUtils.createVirtualArray(_dbClient, "tgtVarray");
+        
+        // Create 2 Networks
+        StringSet connVA = new StringSet();
+        connVA.add(srcVarray.getId().toString());
+        Network network1 = PlacementTestUtils.createNetwork(_dbClient, vmax1FE, "VSANSite1", "FC+BROCADE+FE", connVA);
+
+        connVA = new StringSet();
+        connVA.add(tgtVarray.getId().toString());
+        Network network2 = PlacementTestUtils.createNetwork(_dbClient, vmax2FE, "VSANSite2", "FC+CISCO+FE", connVA);
+        
+        // Create 2 storage systems
+        StorageSystem[] storageSystems = PlacementTestUtils.createSRDFStorageSystems(_dbClient, 
+                "vmax1", network1, vmax1FE, srcVarray, 
+                "vmax2", network2, vmax2FE, tgtVarray);
+        StorageSystem storageSystem1 = storageSystems[1];
+        StorageSystem storageSystem2 = storageSystems[2];
+        
+        StoragePool[] storagePools = PlacementTestUtils.createStoragePoolsForTwo(_dbClient, storageSystem1, srcVarray, storageSystem2, tgtVarray);
+        
+        // Create a target virtual pool
+        VirtualPool tgtVpool = new VirtualPool();
+        tgtVpool.setId(URI.create("tgtVpool"));
+        tgtVpool.setLabel("Target Vpool");
+        tgtVpool.setSupportedProvisioningType(VirtualPool.ProvisioningType.Thin.name());
+        tgtVpool.setDriveType(SupportedDriveTypes.FC.name());
+        StringSet matchedPools2 = new StringSet();
+        matchedPools2.add(storagePools[4].getId().toString());
+        matchedPools2.add(storagePools[5].getId().toString());
+        matchedPools2.add(storagePools[6].getId().toString());
+        tgtVpool.setMatchedStoragePools(matchedPools2);
+        tgtVpool.setUseMatchedPools(true);
+        StringSet virtualArrays2 = new StringSet();
+        virtualArrays2.add(tgtVarray.getId().toString());
+        tgtVpool.setVirtualArrays(virtualArrays2);
+        _dbClient.createObject(tgtVpool);
+        
+        // Make a remote copy protection setting
+        VpoolRemoteCopyProtectionSettings settings = new VpoolRemoteCopyProtectionSettings();
+        settings.setId(URI.create("remoteCopySettings"));
+        settings.setCopyMode(VpoolRemoteCopyProtectionSettings.CopyModes.ASYNCHRONOUS.name());
+        settings.setVirtualArray(tgtVarray.getId());
+        settings.setVirtualPool(tgtVpool.getId());
+        _dbClient.createObject(settings);
+        
+        // Create an SRDF source virtual pool
+        VirtualPool srcVpool = new VirtualPool();
+        srcVpool.setId(URI.create("srcVpool"));
+        srcVpool.setLabel("Source Vpool");
+        srcVpool.setSupportedProvisioningType(VirtualPool.ProvisioningType.Thin.name());
+        srcVpool.setDriveType(SupportedDriveTypes.FC.name());
+        StringSet matchedPools1 = new StringSet();
+        matchedPools1.add(storagePools[1].getId().toString());
+        matchedPools1.add(storagePools[2].getId().toString());
+        matchedPools1.add(storagePools[3].getId().toString());
+        srcVpool.setMatchedStoragePools(matchedPools1);
+        srcVpool.setUseMatchedPools(true);
+        StringSet virtualArrays1 = new StringSet();
+        virtualArrays1.add(srcVarray.getId().toString());
+        srcVpool.setVirtualArrays(virtualArrays1);
+        StringMap remoteProtectionSettings = new StringMap();
+        remoteProtectionSettings.put(tgtVarray.getId().toString(), settings.getId().toString());
+        srcVpool.setProtectionRemoteCopySettings(remoteProtectionSettings);
+        _dbClient.createObject(srcVpool);
+        
+        // Create Tenant
+        TenantOrg tenant = new TenantOrg();
+        tenant.setId(URI.create("tenant"));
+        _dbClient.createObject(tenant);
+
+        // Create a project object
+        Project project = new Project();
+        project.setId(URI.create("project"));
+        project.setLabel("RDG1");
+        project.setTenantOrg(new NamedURI(tenant.getId(), project.getLabel()));
+        _dbClient.createObject(project);
+
+        // Create capabilities
+        VirtualPoolCapabilityValuesWrapper capabilities = PlacementTestUtils.createCapabilities("2GB", 1, null);
+
+        // Run single volume placement: Run 10 times to make sure pool3 never comes up for source and pool6 for target.
+        for (int i = 0; i < 10; i++) {
+            Map<VpoolUse, List<Recommendation>> recommendationsMap = 
+                    PlacementTestUtils.invokePlacementForVpool(_dbClient, _coordinator, srcVarray, project, srcVpool,
+                    capabilities);
+            List<Recommendation> recommendations = recommendationsMap.get(VpoolUse.ROOT);
+            assertNotNull(recommendations);
+            assertTrue(!recommendations.isEmpty());
+            assertNotNull(recommendations.get(0));
+            assert(recommendations.get(0) instanceof SRDFRecommendation);
+            SRDFRecommendation srdfRecommendation = (SRDFRecommendation) recommendations.get(0);
+            URI srcStoragePool = srdfRecommendation.getSourceStoragePool();
+            assert(srcStoragePool.equals(storagePools[1].getId()) || srcStoragePool.equals(storagePools[2].getId()));
+            recommendations = recommendationsMap.get(VpoolUse.SRDF_COPY);
+            assertTrue(!recommendations.isEmpty());
+            assertNotNull(recommendations.get(0));
+            assert(recommendations.get(0) instanceof SRDFCopyRecommendation);
+            SRDFCopyRecommendation srdfCopyRecommendation = (SRDFCopyRecommendation) recommendations.get(0);
+            URI tgtStoragePool = srdfCopyRecommendation.getSourceStoragePool();
+            assert(tgtStoragePool.equals(storagePools[4].getId()) || tgtStoragePool.equals(storagePools[5].getId()));
+        }
+    }
+    
+    @Test
+    public void testVPlexLocalSRDFBasicPlacement() {
+        String[] vmax1FE = { "50:FE:FE:FE:FE:FE:FE:00", "50:FE:FE:FE:FE:FE:FE:01" };
+        String[] vmax2FE = { "51:FE:FE:FE:FE:FE:FE:00", "51:FE:FE:FE:FE:FE:FE:01" };
+        String[] vplexFE = { "FE:FE:FE:FE:FE:FE:FE:00", "FE:FE:FE:FE:FE:FE:FE:01" };
+        String[] vplexBE = { "BE:BE:BE:BE:BE:BE:BE:00", "BE:BE:BE:BE:BE:BE:BE:01" };
+        
+        // Create 2 Virtual Arrays
+        VirtualArray srcVarray = PlacementTestUtils.createVirtualArray(_dbClient, "srcVarray");
+        VirtualArray tgtVarray = PlacementTestUtils.createVirtualArray(_dbClient, "tgtVarray");
+        
+        // Create 2 Networks
+        StringSet connVA = new StringSet();
+        connVA.add(srcVarray.getId().toString());
+        Network network1 = PlacementTestUtils.createNetwork(_dbClient, vmax1FE, "VSANSite1", "FC+BROCADE+FE", connVA);
+
+        connVA = new StringSet();
+        connVA.add(tgtVarray.getId().toString());
+        Network network2 = PlacementTestUtils.createNetwork(_dbClient, vmax2FE, "VSANSite2", "FC+CISCO+FE", connVA);
+        
+        // Create 2 storage systems
+        StorageSystem[] storageSystems = PlacementTestUtils.createSRDFStorageSystems(_dbClient, 
+                "vmax1", network1, vmax1FE, srcVarray, 
+                "vmax2", network2, vmax2FE, tgtVarray);
+        StorageSystem storageSystem1 = storageSystems[1];
+        StorageSystem storageSystem2 = storageSystems[2];
+        
+        StoragePool[] storagePools = PlacementTestUtils.createStoragePoolsForTwo(_dbClient, storageSystem1, srcVarray, storageSystem2, tgtVarray);
+        
+        StorageSystem vplexSystem = 
+                PlacementTestUtils.createVPlexOneCluster(_dbClient, "vplex1", srcVarray, network1, network1, vplexFE, vplexBE);
+        
+        // Create a target virtual pool
+        VirtualPool tgtVpool = new VirtualPool();
+        tgtVpool.setId(URI.create("tgtVpool"));
+        tgtVpool.setLabel("Target Vpool");
+        tgtVpool.setSupportedProvisioningType(VirtualPool.ProvisioningType.Thin.name());
+        tgtVpool.setDriveType(SupportedDriveTypes.FC.name());
+        StringSet matchedPools2 = new StringSet();
+        matchedPools2.add(storagePools[4].getId().toString());
+        matchedPools2.add(storagePools[5].getId().toString());
+        matchedPools2.add(storagePools[6].getId().toString());
+        tgtVpool.setMatchedStoragePools(matchedPools2);
+        tgtVpool.setUseMatchedPools(true);
+        StringSet virtualArrays2 = new StringSet();
+        virtualArrays2.add(tgtVarray.getId().toString());
+        tgtVpool.setVirtualArrays(virtualArrays2);
+        _dbClient.createObject(tgtVpool);
+        
+        // Make a remote copy protection setting
+        VpoolRemoteCopyProtectionSettings settings = new VpoolRemoteCopyProtectionSettings();
+        settings.setId(URI.create("remoteCopySettings"));
+        settings.setCopyMode(VpoolRemoteCopyProtectionSettings.CopyModes.ASYNCHRONOUS.name());
+        settings.setVirtualArray(tgtVarray.getId());
+        settings.setVirtualPool(tgtVpool.getId());
+        _dbClient.createObject(settings);
+        
+        // Create an VPLEX Local/SRDF source virtual pool
+        VirtualPool srcVpool = new VirtualPool();
+        srcVpool.setId(URI.create("srcVpool"));
+        srcVpool.setLabel("Source Vpool");
+        srcVpool.setSupportedProvisioningType(VirtualPool.ProvisioningType.Thin.name());
+        srcVpool.setDriveType(SupportedDriveTypes.FC.name());
+        StringSet matchedPools1 = new StringSet();
+        matchedPools1.add(storagePools[1].getId().toString());
+        matchedPools1.add(storagePools[2].getId().toString());
+        matchedPools1.add(storagePools[3].getId().toString());
+        srcVpool.setMatchedStoragePools(matchedPools1);
+        srcVpool.setUseMatchedPools(true);
+        StringSet virtualArrays1 = new StringSet();
+        virtualArrays1.add(srcVarray.getId().toString());
+        srcVpool.setVirtualArrays(virtualArrays1);
+        StringMap remoteProtectionSettings = new StringMap();
+        remoteProtectionSettings.put(tgtVarray.getId().toString(), settings.getId().toString());
+        srcVpool.setProtectionRemoteCopySettings(remoteProtectionSettings);
+        srcVpool.setHighAvailability(VirtualPool.HighAvailabilityType.vplex_local.name());
+        _dbClient.createObject(srcVpool);
+        
+        // Create Tenant
+        TenantOrg tenant = new TenantOrg();
+        tenant.setId(URI.create("tenant"));
+        _dbClient.createObject(tenant);
+
+        // Create a project object
+        Project project = new Project();
+        project.setId(URI.create("project"));
+        project.setLabel("RDG1");
+        project.setTenantOrg(new NamedURI(tenant.getId(), project.getLabel()));
+        _dbClient.createObject(project);
+
+        // Create capabilities
+        VirtualPoolCapabilityValuesWrapper capabilities = PlacementTestUtils.createCapabilities("2GB", 1, null);
+
+        // Run single volume placement: Run 10 times to make sure pool3 never comes up for source and pool6 for target.
+        for (int i = 0; i < 10; i++) {
+            Map<VpoolUse, List<Recommendation>> recommendationsMap = 
+                    PlacementTestUtils.invokePlacementForVpool(_dbClient, _coordinator, srcVarray, project, srcVpool,
+                    capabilities);
+            List<Recommendation> recommendations = recommendationsMap.get(VpoolUse.ROOT);
+            assertNotNull(recommendations);
+            assertTrue(!recommendations.isEmpty());
+            assertNotNull(recommendations.get(0));
+            assert(recommendations.get(0) instanceof VPlexRecommendation);
+            VPlexRecommendation vplexRecommendation = (VPlexRecommendation) recommendations.get(0);
+            URI srcStoragePool = vplexRecommendation.getSourceStoragePool();
+            assert(srcStoragePool.equals(storagePools[1].getId()) || srcStoragePool.equals(storagePools[2].getId()));
+            assert(vplexRecommendation.getRecommendation() instanceof SRDFRecommendation);
+            recommendations = recommendationsMap.get(VpoolUse.SRDF_COPY);
+            assertTrue(!recommendations.isEmpty());
+            assertNotNull(recommendations.get(0));
+            assert(recommendations.get(0) instanceof SRDFCopyRecommendation);
+            SRDFCopyRecommendation srdfCopyRecommendation = (SRDFCopyRecommendation) recommendations.get(0);
+            URI tgtStoragePool = srdfCopyRecommendation.getSourceStoragePool();
+            assert(tgtStoragePool.equals(storagePools[4].getId()) || tgtStoragePool.equals(storagePools[5].getId()));
+        }
+    }
+    
+    @Test
+    public void testVPlexLocalSRDFVPlexTargetBasicPlacement() {
+        String[] vmax1FE = { "50:FE:FE:FE:FE:FE:FE:00", "50:FE:FE:FE:FE:FE:FE:01" };
+        String[] vmax2FE = { "51:FE:FE:FE:FE:FE:FE:00", "51:FE:FE:FE:FE:FE:FE:01" };
+        String[] vplex1FE = { "FE:FE:FE:FE:FE:FE:FE:00", "FE:FE:FE:FE:FE:FE:FE:01" };
+        String[] vplex1BE = { "BE:BE:BE:BE:BE:BE:BE:00", "BE:BE:BE:BE:BE:BE:BE:01" };
+        String[] vplex2FE = { "FE:FE:FE:FE:FE:FE:FE:02", "FE:FE:FE:FE:FE:FE:FE:03" };
+        String[] vplex2BE = { "BE:BE:BE:BE:BE:BE:BE:02", "BE:BE:BE:BE:BE:BE:BE:03" };
+        
+        // Create 2 Virtual Arrays
+        VirtualArray srcVarray = PlacementTestUtils.createVirtualArray(_dbClient, "srcVarray");
+        VirtualArray tgtVarray = PlacementTestUtils.createVirtualArray(_dbClient, "tgtVarray");
+        
+        // Create 2 Networks
+        StringSet connVA = new StringSet();
+        connVA.add(srcVarray.getId().toString());
+        Network network1 = PlacementTestUtils.createNetwork(_dbClient, vmax1FE, "VSANSite1", "FC+BROCADE+FE", connVA);
+        network1.addEndpoints(Arrays.asList(vplex1FE), true);
+        network1.addEndpoints(Arrays.asList(vplex1BE), true);
+        
+
+        connVA = new StringSet();
+        connVA.add(tgtVarray.getId().toString());
+        Network network2 = PlacementTestUtils.createNetwork(_dbClient, vmax2FE, "VSANSite2", "FC+CISCO+FE", connVA);
+        network2.addEndpoints(Arrays.asList(vplex2FE), true);
+        network2.addEndpoints(Arrays.asList(vplex2BE), true);
+        
+        // Create 2 storage systems
+        StorageSystem[] storageSystems = PlacementTestUtils.createSRDFStorageSystems(_dbClient, 
+                "vmax1", network1, vmax1FE, srcVarray, 
+                "vmax2", network2, vmax2FE, tgtVarray);
+        StorageSystem storageSystem1 = storageSystems[1];
+        StorageSystem storageSystem2 = storageSystems[2];
+        
+        StoragePool[] storagePools = PlacementTestUtils.createStoragePoolsForTwo(_dbClient, storageSystem1, srcVarray, storageSystem2, tgtVarray);
+        
+        StorageSystem vplexSystem = 
+                PlacementTestUtils.createVPlexOneCluster(_dbClient, "vplex1", srcVarray, network1, network1, vplex1FE, vplex1BE);
+        
+        StorageSystem vplexSystem2 =
+                PlacementTestUtils.createVPlexOneCluster(_dbClient, "vplex2", tgtVarray, network2, network2, vplex2FE, vplex2BE);
+        
+        // Create a target virtual pool
+        VirtualPool tgtVpool = new VirtualPool();
+        tgtVpool.setId(URI.create("tgtVpool"));
+        tgtVpool.setLabel("Target Vpool");
+        tgtVpool.setSupportedProvisioningType(VirtualPool.ProvisioningType.Thin.name());
+        tgtVpool.setDriveType(SupportedDriveTypes.FC.name());
+        StringSet matchedPools2 = new StringSet();
+        matchedPools2.add(storagePools[4].getId().toString());
+        matchedPools2.add(storagePools[5].getId().toString());
+        matchedPools2.add(storagePools[6].getId().toString());
+        tgtVpool.setMatchedStoragePools(matchedPools2);
+        tgtVpool.setUseMatchedPools(true);
+        StringSet virtualArrays2 = new StringSet();
+        virtualArrays2.add(tgtVarray.getId().toString());
+        tgtVpool.setVirtualArrays(virtualArrays2);
+        tgtVpool.setHighAvailability(VirtualPool.HighAvailabilityType.vplex_local.name());
+        _dbClient.createObject(tgtVpool);
+        
+        // Make a remote copy protection setting
+        VpoolRemoteCopyProtectionSettings settings = new VpoolRemoteCopyProtectionSettings();
+        settings.setId(URI.create("remoteCopySettings"));
+        settings.setCopyMode(VpoolRemoteCopyProtectionSettings.CopyModes.ASYNCHRONOUS.name());
+        settings.setVirtualArray(tgtVarray.getId());
+        settings.setVirtualPool(tgtVpool.getId());
+        _dbClient.createObject(settings);
+        
+        // Create an VPLEX Local/SRDF source virtual pool
+        VirtualPool srcVpool = new VirtualPool();
+        srcVpool.setId(URI.create("srcVpool"));
+        srcVpool.setLabel("Source Vpool");
+        srcVpool.setSupportedProvisioningType(VirtualPool.ProvisioningType.Thin.name());
+        srcVpool.setDriveType(SupportedDriveTypes.FC.name());
+        StringSet matchedPools1 = new StringSet();
+        matchedPools1.add(storagePools[1].getId().toString());
+        matchedPools1.add(storagePools[2].getId().toString());
+        matchedPools1.add(storagePools[3].getId().toString());
+        srcVpool.setMatchedStoragePools(matchedPools1);
+        srcVpool.setUseMatchedPools(true);
+        StringSet virtualArrays1 = new StringSet();
+        virtualArrays1.add(srcVarray.getId().toString());
+        srcVpool.setVirtualArrays(virtualArrays1);
+        StringMap remoteProtectionSettings = new StringMap();
+        remoteProtectionSettings.put(tgtVarray.getId().toString(), settings.getId().toString());
+        srcVpool.setProtectionRemoteCopySettings(remoteProtectionSettings);
+        srcVpool.setHighAvailability(VirtualPool.HighAvailabilityType.vplex_local.name());
+        _dbClient.createObject(srcVpool);
+        
+        // Create Tenant
+        TenantOrg tenant = new TenantOrg();
+        tenant.setId(URI.create("tenant"));
+        _dbClient.createObject(tenant);
+
+        // Create a project object
+        Project project = new Project();
+        project.setId(URI.create("project"));
+        project.setLabel("RDG1");
+        project.setTenantOrg(new NamedURI(tenant.getId(), project.getLabel()));
+        _dbClient.createObject(project);
+
+        // Create capabilities
+        VirtualPoolCapabilityValuesWrapper capabilities = PlacementTestUtils.createCapabilities("2GB", 1, null);
+
+        // Run single volume placement: Run 10 times to make sure pool3 never comes up for source and pool6 for target.
+        for (int i = 0; i < 10; i++) {
+            Map<VpoolUse, List<Recommendation>> recommendationsMap = 
+                    PlacementTestUtils.invokePlacementForVpool(_dbClient, _coordinator, srcVarray, project, srcVpool,
+                    capabilities);
+            List<Recommendation> recommendations = recommendationsMap.get(VpoolUse.ROOT);
+            assertNotNull(recommendations);
+            assertTrue(!recommendations.isEmpty());
+            assertNotNull(recommendations.get(0));
+            assert(recommendations.get(0) instanceof VPlexRecommendation);
+            VPlexRecommendation vplexRecommendation = (VPlexRecommendation) recommendations.get(0);
+            URI srcStoragePool = vplexRecommendation.getSourceStoragePool();
+            assert(srcStoragePool.equals(storagePools[1].getId()) || srcStoragePool.equals(storagePools[2].getId()));
+            assert(vplexRecommendation.getVPlexStorageSystem().equals(vplexSystem.getId()))
+;           assert(vplexRecommendation.getRecommendation() instanceof SRDFRecommendation);
+            recommendations = recommendationsMap.get(VpoolUse.SRDF_COPY);
+            assertTrue(!recommendations.isEmpty());
+            assertNotNull(recommendations.get(0));
+            assert(recommendations.get(0) instanceof VPlexRecommendation);
+            VPlexRecommendation vplex2Recommendation = (VPlexRecommendation) recommendations.get(0);
+            URI tgtStoragePool = vplex2Recommendation.getSourceStoragePool();
+            assert(tgtStoragePool.equals(storagePools[4].getId()) || tgtStoragePool.equals(storagePools[5].getId()));
+            assert(vplex2Recommendation.getVPlexStorageSystem().equals(vplexSystem2.getId()));
+            assert(vplex2Recommendation.getRecommendation() instanceof SRDFCopyRecommendation);
+;        }
+    }
+    
+    /**
+     * This tests that given multiple Vmax arrays capable of SRDF pairing, it will always
+     * choose those that are Vplex protected. Below vmax1 and vmax2 are on networks with Vplex;
+     * vmax3 and vmax4 are on different works in same varrays with no Vplex.
+     */
+    @Test
+    public void testVPlexLocalSRDFVPlexTargetAdvancedPlacement() {
+        String[] vmax1FE = { "50:FE:FE:FE:FE:FE:FE:00", "50:FE:FE:FE:FE:FE:FE:01" };
+        String[] vmax2FE = { "51:FE:FE:FE:FE:FE:FE:00", "51:FE:FE:FE:FE:FE:FE:01" };
+        String[] vmax3FE = { "52:FE:FE:FE:FE:FE:FE:00", "52:FE:FE:FE:FE:FE:FE:01" };
+        String[] vmax4FE = { "53:FE:FE:FE:FE:FE:FE:00", "53:FE:FE:FE:FE:FE:FE:01" };
+        String[] vplex1FE = { "FE:FE:FE:FE:FE:FE:FE:00", "FE:FE:FE:FE:FE:FE:FE:01" };
+        String[] vplex1BE = { "BE:BE:BE:BE:BE:BE:BE:00", "BE:BE:BE:BE:BE:BE:BE:01" };
+        String[] vplex2FE = { "FE:FE:FE:FE:FE:FE:FE:02", "FE:FE:FE:FE:FE:FE:FE:03" };
+        String[] vplex2BE = { "BE:BE:BE:BE:BE:BE:BE:02", "BE:BE:BE:BE:BE:BE:BE:03" };
+        
+        // Create 2 Virtual Arrays
+        VirtualArray srcVarray = PlacementTestUtils.createVirtualArray(_dbClient, "srcVarray");
+        VirtualArray tgtVarray = PlacementTestUtils.createVirtualArray(_dbClient, "tgtVarray");
+        
+        // Create 4 Networks
+        StringSet connVA = new StringSet();
+        connVA.add(srcVarray.getId().toString());
+        Network network1 = PlacementTestUtils.createNetwork(_dbClient, vmax1FE, "VSANSite1", "FC+BROCADE+FE", connVA);
+
+        connVA = new StringSet();
+        connVA.add(tgtVarray.getId().toString());
+        Network network2 = PlacementTestUtils.createNetwork(_dbClient, vmax2FE, "VSANSite2", "FC+CISCO+FE", connVA);
+        
+        connVA = new StringSet();
+        connVA.add(srcVarray.getId().toString());
+        Network network3 = PlacementTestUtils.createNetwork(_dbClient, vmax3FE, "VSANSite1B", "FC+BROCADE+FEB", connVA);
+
+        connVA = new StringSet();
+        connVA.add(tgtVarray.getId().toString());
+        Network network4 = PlacementTestUtils.createNetwork(_dbClient, vmax4FE, "VSANSite2B", "FC+CISCO+FEB", connVA);
+        
+        // Create 2 storage systems
+        StorageSystem[] storageSystems = PlacementTestUtils.createSRDFStorageSystems(_dbClient, 
+                "vmax1", network1, vmax1FE, srcVarray, 
+                "vmax2", network2, vmax2FE, tgtVarray);
+        StorageSystem storageSystem1 = storageSystems[1];
+        StorageSystem storageSystem2 = storageSystems[2];
+        
+        StoragePool[] storagePools = PlacementTestUtils.createStoragePoolsForTwo(_dbClient, storageSystem1, srcVarray, storageSystem2, tgtVarray);
+        
+        StorageSystem[] storageSystemsB = PlacementTestUtils.createSRDFStorageSystems(_dbClient, 
+                "vmax3", network3, vmax3FE, srcVarray, 
+                "vmax4", network4, vmax4FE, tgtVarray);
+        StorageSystem storageSystem3 = storageSystemsB[1];
+        StorageSystem storageSystem4 = storageSystemsB[2];
+        
+        StoragePool[] storagePoolsB = PlacementTestUtils.createStoragePoolsForTwo(_dbClient, storageSystem3, srcVarray, storageSystem4, tgtVarray);
+        
+        StorageSystem vplexSystem = 
+                PlacementTestUtils.createVPlexOneCluster(_dbClient, "vplex1", srcVarray, network1, network1, vplex1FE, vplex1BE);
+        
+        StorageSystem vplexSystem2 =
+                PlacementTestUtils.createVPlexOneCluster(_dbClient, "vplex2", tgtVarray, network2, network2, vplex2FE, vplex2BE);
+        
+        // Create a target virtual pool
+        VirtualPool tgtVpool = new VirtualPool();
+        tgtVpool.setId(URI.create("tgtVpool"));
+        tgtVpool.setLabel("Target Vpool");
+        tgtVpool.setSupportedProvisioningType(VirtualPool.ProvisioningType.Thin.name());
+        tgtVpool.setDriveType(SupportedDriveTypes.FC.name());
+        tgtVpool.setUseMatchedPools(true);
+        StringSet virtualArrays2 = new StringSet();
+        virtualArrays2.add(tgtVarray.getId().toString());
+        tgtVpool.setVirtualArrays(virtualArrays2);
+        tgtVpool.setHighAvailability(VirtualPool.HighAvailabilityType.vplex_local.name());
+        
+        List<StoragePool> targetStoragePools = new ArrayList<StoragePool>();
+        targetStoragePools.add(storagePools[4]);
+        targetStoragePools.add(storagePools[5]);
+        targetStoragePools.add(storagePools[6]);
+        targetStoragePools.add(storagePoolsB[4]);
+        targetStoragePools.add(storagePoolsB[5]);
+        targetStoragePools.add(storagePoolsB[6]);
+        StringSet matchedPools = PlacementTestUtils.runVPlexHighAvailabilityMatcher(_dbClient, tgtVpool, targetStoragePools);
+        assert(matchedPools.size() == 3);
+        tgtVpool.setMatchedStoragePools(matchedPools);
+        _dbClient.createObject(tgtVpool);
+        
+        // Make a remote copy protection setting
+        VpoolRemoteCopyProtectionSettings settings = new VpoolRemoteCopyProtectionSettings();
+        settings.setId(URI.create("remoteCopySettings"));
+        settings.setCopyMode(VpoolRemoteCopyProtectionSettings.CopyModes.ASYNCHRONOUS.name());
+        settings.setVirtualArray(tgtVarray.getId());
+        settings.setVirtualPool(tgtVpool.getId());
+        _dbClient.createObject(settings);
+        
+        // Create an VPLEX Local/SRDF source virtual pool
+        VirtualPool srcVpool = new VirtualPool();
+        srcVpool.setId(URI.create("srcVpool"));
+        srcVpool.setLabel("Source Vpool");
+        srcVpool.setSupportedProvisioningType(VirtualPool.ProvisioningType.Thin.name());
+        srcVpool.setDriveType(SupportedDriveTypes.FC.name());
+        srcVpool.setUseMatchedPools(true);
+        StringSet virtualArrays1 = new StringSet();
+        virtualArrays1.add(srcVarray.getId().toString());
+        srcVpool.setVirtualArrays(virtualArrays1);
+        StringMap remoteProtectionSettings = new StringMap();
+        remoteProtectionSettings.put(tgtVarray.getId().toString(), settings.getId().toString());
+        srcVpool.setProtectionRemoteCopySettings(remoteProtectionSettings);
+        srcVpool.setHighAvailability(VirtualPool.HighAvailabilityType.vplex_local.name());
+        
+        List<StoragePool> sourceStoragePools = new ArrayList<StoragePool>();
+        sourceStoragePools.add(storagePools[1]);
+        sourceStoragePools.add(storagePools[2]);
+        sourceStoragePools.add(storagePools[3]);
+        sourceStoragePools.add(storagePoolsB[1]);
+        sourceStoragePools.add(storagePoolsB[2]);
+        sourceStoragePools.add(storagePoolsB[3]);
+        matchedPools = PlacementTestUtils.runVPlexHighAvailabilityMatcher(_dbClient, srcVpool, sourceStoragePools);
+        assert(matchedPools.size() == 3);
+        srcVpool.setMatchedStoragePools(matchedPools);
+        _dbClient.createObject(srcVpool);
+        
+        // Create Tenant
+        TenantOrg tenant = new TenantOrg();
+        tenant.setId(URI.create("tenant"));
+        _dbClient.createObject(tenant);
+
+        // Create a project object
+        Project project = new Project();
+        project.setId(URI.create("project"));
+        project.setLabel("RDG1");
+        project.setTenantOrg(new NamedURI(tenant.getId(), project.getLabel()));
+        _dbClient.createObject(project);
+
+        // Create capabilities
+        VirtualPoolCapabilityValuesWrapper capabilities = PlacementTestUtils.createCapabilities("2GB", 1, null);
+
+        // Run single volume placement: Run 10 times to make sure pool3 never comes up for source and pool6 for target.
+        for (int i = 0; i < 10; i++) {
+            Map<VpoolUse, List<Recommendation>> recommendationsMap = 
+                    PlacementTestUtils.invokePlacementForVpool(_dbClient, _coordinator, srcVarray, project, srcVpool,
+                    capabilities);
+            List<Recommendation> recommendations = recommendationsMap.get(VpoolUse.ROOT);
+            assertNotNull(recommendations);
+            assertTrue(!recommendations.isEmpty());
+            assertNotNull(recommendations.get(0));
+            assert(recommendations.get(0) instanceof VPlexRecommendation);
+            VPlexRecommendation vplexRecommendation = (VPlexRecommendation) recommendations.get(0);
+            URI srcStoragePool = vplexRecommendation.getSourceStoragePool();
+            assert(srcStoragePool.equals(storagePools[1].getId()) || srcStoragePool.equals(storagePools[2].getId()));
+            assert(vplexRecommendation.getVPlexStorageSystem().equals(vplexSystem.getId()))
+;           assert(vplexRecommendation.getRecommendation() instanceof SRDFRecommendation);
+            recommendations = recommendationsMap.get(VpoolUse.SRDF_COPY);
+            assertTrue(!recommendations.isEmpty());
+            assertNotNull(recommendations.get(0));
+            assert(recommendations.get(0) instanceof VPlexRecommendation);
+            VPlexRecommendation vplex2Recommendation = (VPlexRecommendation) recommendations.get(0);
+            URI tgtStoragePool = vplex2Recommendation.getSourceStoragePool();
+            assert(tgtStoragePool.equals(storagePools[4].getId()) || tgtStoragePool.equals(storagePools[5].getId()));
+            assert(vplex2Recommendation.getVPlexStorageSystem().equals(vplexSystem2.getId()));
+            assert(vplex2Recommendation.getRecommendation() instanceof SRDFCopyRecommendation);
+;        }
+    }
+    
+    @Test
+    public void testVPlexDistributedSRDFVPlexTargetBasicPlacement() {
+        String[] vmax1FE = { "50:FE:FE:FE:FE:FE:FE:00", "50:FE:FE:FE:FE:FE:FE:01" };
+        String[] vmax2FE = { "51:FE:FE:FE:FE:FE:FE:00", "51:FE:FE:FE:FE:FE:FE:01" };
+        String[] vmax3FE = { "52:FE:FE:FE:FE:FE:FE:00", "52:FE:FE:FE:FE:FE:FE:01" };
+        String[] vplex1FE = { "FE:FE:FE:FE:FE:FE:FE:00", "FE:FE:FE:FE:FE:FE:FE:01" };
+        String[] vplex1BE = { "BE:BE:BE:BE:BE:BE:BE:00", "BE:BE:BE:BE:BE:BE:BE:01" };
+        String[] vplex2FE = { "FE:FE:FE:FE:FE:FE:FE:02", "FE:FE:FE:FE:FE:FE:FE:03" };
+        String[] vplex2BE = { "BE:BE:BE:BE:BE:BE:BE:02", "BE:BE:BE:BE:BE:BE:BE:03" };
+        String[] vplex3FE = { "FE:FE:FE:FE:FE:FE:FE:04", "FE:FE:FE:FE:FE:FE:FE:05" };
+        String[] vplex3BE = { "BE:BE:BE:BE:BE:BE:BE:04", "BE:BE:BE:BE:BE:BE:BE:05" };
+        
+        // Create 3 Virtual Arrays
+        VirtualArray srcVarray = PlacementTestUtils.createVirtualArray(_dbClient, "srcVarray");
+        VirtualArray tgtVarray = PlacementTestUtils.createVirtualArray(_dbClient, "tgtVarray");
+        VirtualArray haVarray = PlacementTestUtils.createVirtualArray(_dbClient, "haVarray");
+        
+        // Create 2 Networks
+        StringSet connVA = new StringSet();
+        connVA.add(srcVarray.getId().toString());
+        Network network1 = PlacementTestUtils.createNetwork(_dbClient, vmax1FE, "VSANSite1", "FC+BROCADE+FE", connVA);
+        network1.addEndpoints(Arrays.asList(vplex1BE), true);
+        
+
+        connVA = new StringSet();
+        connVA.add(tgtVarray.getId().toString());
+        Network network2 = PlacementTestUtils.createNetwork(_dbClient, vmax2FE, "VSANSite2", "FC+CISCO+FE", connVA);
+        
+        connVA = new StringSet();
+        connVA.add(tgtVarray.getId().toString());
+        Network network3 = PlacementTestUtils.createNetwork(_dbClient, vmax2FE, "VSANSite2", "FC+CISCO+FE", connVA);
+        
+        
+        // Create 2 storage systems in SRDF pair
+        StorageSystem[] storageSystems = PlacementTestUtils.createSRDFStorageSystems(_dbClient, 
+                "vmax1", network1, vmax1FE, srcVarray, 
+                "vmax2", network2, vmax2FE, tgtVarray);
+        StorageSystem storageSystem1 = storageSystems[1];
+        StorageSystem storageSystem2 = storageSystems[2];
+        
+        
+        StoragePool[] storagePools = PlacementTestUtils.createStoragePoolsForTwo(_dbClient, storageSystem1, srcVarray, storageSystem2, tgtVarray);
+        
+        // Create ha StorageSystem
+        StorageSystem storageSystem3 = PlacementTestUtils.createStorageSystem(_dbClient, 
+                "vmax3", network3, vmax3FE, haVarray);
+        StoragePool[] haPools = PlacementTestUtils.createStoragePools(_dbClient, storageSystem3, haVarray);
+        
+        StorageSystem vplexSystem = 
+                PlacementTestUtils.createVPlexTwoCluster(
+                        _dbClient, "vplex1", 
+                        srcVarray, network1, network1, vplex1FE, vplex1BE, 
+                        haVarray, network3, network3, vplex3FE, vplex3BE);
+        
+        StorageSystem vplexSystem2 =
+                PlacementTestUtils.createVPlexOneCluster(_dbClient, "vplex2", tgtVarray, network2, network2, vplex2FE, vplex2BE);
+        
+        // Create HA vpool.
+        VirtualPool haVpool = new VirtualPool();
+        haVpool.setId(URIUtil.createId(VirtualPool.class));
+        haVpool.setLabel("haVpool");
+        haVpool.setSupportedProvisioningType(VirtualPool.ProvisioningType.Thin.name());
+        haVpool.setDriveType(SupportedDriveTypes.FC.name());
+        haVpool.setType(VirtualPool.Type.block.name());
+        StringSet matchedPools3 = new StringSet();
+        matchedPools3.add(haPools[1].getId().toString());
+        haVpool.setMatchedStoragePools(matchedPools3);
+        haVpool.setUseMatchedPools(true);
+        StringSet virtualArrays3 = new StringSet();
+        virtualArrays3.add(haVpool.getId().toString());
+        _dbClient.createObject(haVpool);
+        
+        // Create a target virtual pool
+        VirtualPool tgtVpool = new VirtualPool();
+        tgtVpool.setId(URI.create("tgtVpool"));
+        tgtVpool.setLabel("Target Vpool");
+        tgtVpool.setSupportedProvisioningType(VirtualPool.ProvisioningType.Thin.name());
+        tgtVpool.setDriveType(SupportedDriveTypes.FC.name());
+        haVpool.setType(VirtualPool.Type.block.name());
+        StringSet matchedPools2 = new StringSet();
+        matchedPools2.add(storagePools[4].getId().toString());
+        matchedPools2.add(storagePools[5].getId().toString());
+        matchedPools2.add(storagePools[6].getId().toString());
+        tgtVpool.setMatchedStoragePools(matchedPools2);
+        tgtVpool.setUseMatchedPools(true);
+        StringSet virtualArrays2 = new StringSet();
+        virtualArrays2.add(tgtVarray.getId().toString());
+        tgtVpool.setVirtualArrays(virtualArrays2);
+        tgtVpool.setHighAvailability(VirtualPool.HighAvailabilityType.vplex_local.name());
+        _dbClient.createObject(tgtVpool);
+        
+        // Make a remote copy protection setting
+        VpoolRemoteCopyProtectionSettings settings = new VpoolRemoteCopyProtectionSettings();
+        settings.setId(URI.create("remoteCopySettings"));
+        settings.setCopyMode(VpoolRemoteCopyProtectionSettings.CopyModes.ASYNCHRONOUS.name());
+        settings.setVirtualArray(tgtVarray.getId());
+        settings.setVirtualPool(tgtVpool.getId());
+        _dbClient.createObject(settings);
+        
+        // Create an VPLEX Local/SRDF source virtual pool
+        VirtualPool srcVpool = new VirtualPool();
+        srcVpool.setId(URI.create("srcVpool"));
+        srcVpool.setLabel("Source Vpool");
+        srcVpool.setSupportedProvisioningType(VirtualPool.ProvisioningType.Thin.name());
+        srcVpool.setDriveType(SupportedDriveTypes.FC.name());
+        haVpool.setType(VirtualPool.Type.block.name());
+        StringSet matchedPools1 = new StringSet();
+        matchedPools1.add(storagePools[1].getId().toString());
+        matchedPools1.add(storagePools[2].getId().toString());
+        matchedPools1.add(storagePools[3].getId().toString());
+        srcVpool.setMatchedStoragePools(matchedPools1);
+        srcVpool.setUseMatchedPools(true);
+        StringSet virtualArrays1 = new StringSet();
+        virtualArrays1.add(srcVarray.getId().toString());
+        srcVpool.setVirtualArrays(virtualArrays1);
+        StringMap remoteProtectionSettings = new StringMap();
+        remoteProtectionSettings.put(tgtVarray.getId().toString(), settings.getId().toString());
+        srcVpool.setProtectionRemoteCopySettings(remoteProtectionSettings);
+        srcVpool.setHighAvailability(VirtualPool.HighAvailabilityType.vplex_distributed.name());
+        StringMap haVarrayMap = new StringMap();
+        haVarrayMap.put(haVarray.getId().toString(), haVpool.getId().toString());
+        srcVpool.setHaVarrayVpoolMap(haVarrayMap);
+        _dbClient.createObject(srcVpool);
+        
+        // Create Tenant
+        TenantOrg tenant = new TenantOrg();
+        tenant.setId(URI.create("tenant"));
+        _dbClient.createObject(tenant);
+
+        // Create a project object
+        Project project = new Project();
+        project.setId(URI.create("project"));
+        project.setLabel("RDG1");
+        project.setTenantOrg(new NamedURI(tenant.getId(), project.getLabel()));
+        _dbClient.createObject(project);
+
+        // Create capabilities
+        VirtualPoolCapabilityValuesWrapper capabilities = PlacementTestUtils.createCapabilities("2GB", 1, null);
+
+        // Run single volume placement: Run 10 times to make sure pool3 never comes up for source and pool6 for target.
+        for (int i = 0; i < 10; i++) {
+            Map<VpoolUse, List<Recommendation>> recommendationsMap = 
+                    PlacementTestUtils.invokePlacementForVpool(_dbClient, _coordinator, srcVarray, project, srcVpool,
+                    capabilities);
+            List<Recommendation> recommendations = recommendationsMap.get(VpoolUse.ROOT);
+            assertNotNull(recommendations);
+            assertTrue(recommendations.size() == 2);
+            assertNotNull(recommendations.get(0));
+            // Check source side recommendation
+            assert(recommendations.get(0) instanceof VPlexRecommendation);
+            VPlexRecommendation vplexRecommendation = (VPlexRecommendation) recommendations.get(0);
+            URI srcStoragePool = vplexRecommendation.getSourceStoragePool();
+            assert(srcStoragePool.equals(storagePools[1].getId()) || srcStoragePool.equals(storagePools[2].getId()));
+            assert(vplexRecommendation.getVPlexStorageSystem().equals(vplexSystem.getId()));
+            assert(vplexRecommendation.getRecommendation() instanceof SRDFRecommendation);
+            // Check HA side recommendation
+            vplexRecommendation = (VPlexRecommendation) recommendations.get(1);
+            assert(vplexRecommendation.getSourceStoragePool().equals(haPools[1].getId()));
+            assert(vplexRecommendation.getVPlexStorageSystem().equals(vplexSystem.getId()));
+            recommendations = recommendationsMap.get(VpoolUse.SRDF_COPY);
+            assertTrue(!recommendations.isEmpty());
+            // Check SRDF recommendation
+            assertNotNull(recommendations.get(0));
+            assert(recommendations.get(0) instanceof VPlexRecommendation);
+            VPlexRecommendation vplex2Recommendation = (VPlexRecommendation) recommendations.get(0);
+            URI tgtStoragePool = vplex2Recommendation.getSourceStoragePool();
+            assert(tgtStoragePool.equals(storagePools[4].getId()) || tgtStoragePool.equals(storagePools[5].getId()));
+            assert(vplex2Recommendation.getVPlexStorageSystem().equals(vplexSystem2.getId()));
+            assert(vplex2Recommendation.getRecommendation() instanceof SRDFCopyRecommendation);
+;        }
+    }
+    
 
     @Test
     public void testDbClientSanity() {
@@ -230,7 +929,8 @@ public class PlacementTests extends DbsvcTestBase {
         String[] vplexFE = { "FE:FE:FE:FE:FE:FE:FE:00", "FE:FE:FE:FE:FE:FE:FE:01" };
         String[] vplexBE = { "BE:BE:BE:BE:BE:BE:BE:00", "BE:BE:BE:BE:BE:BE:BE:01" };
 
-        String[] vmaxFE = { "50:FE:FE:FE:FE:FE:FE:00", "50:FE:FE:FE:FE:FE:FE:01" };
+        String[] vmax1FE = { "50:FE:FE:FE:FE:FE:FE:00", "50:FE:FE:FE:FE:FE:FE:01" };
+        String[] vmax2FE = { "50:FE:FE:FE:FE:FE:FE:00", "50:FE:FE:FE:FE:FE:FE:01" };
 
         // Create a Network
         Network networkFE = PlacementTestUtils.createNetwork(_dbClient, vplexFE, "VSANFE", "FC+BROCADE+FE", null);
@@ -240,14 +940,25 @@ public class PlacementTests extends DbsvcTestBase {
         VirtualArray varray = PlacementTestUtils.createVirtualArray(_dbClient, "varray1");
 
         // Create a storage system
-        StorageSystem storageSystem = PlacementTestUtils.createStorageSystem(_dbClient, "vmax", "vmax1");
+        StorageSystem storageSystem1 = PlacementTestUtils.createStorageSystem(_dbClient, "vmax", "vmax1");
 
         // Create two front-end storage ports VMAX
-        List<StoragePort> vmaxPorts = new ArrayList<StoragePort>();
-        for (int i = 0; i < vmaxFE.length; i++) {
-            vmaxPorts.add(PlacementTestUtils.createStoragePort(_dbClient, storageSystem, networkBE, vmaxFE[i], varray,
+        List<StoragePort> vmax1Ports = new ArrayList<StoragePort>();
+        for (int i = 0; i < vmax1FE.length; i++) {
+            vmax1Ports.add(PlacementTestUtils.createStoragePort(_dbClient, storageSystem1, networkBE, vmax1FE[i], varray,
                     StoragePort.PortType.frontend.name(), "portGroupvmax" + i, "C0+FC0" + i));
         }
+        
+        // Create a second storage system
+        StorageSystem storageSystem2 = PlacementTestUtils.createStorageSystem(_dbClient, "vmax", "vmax2");
+        
+        // Create front end ports for the second VMAX
+        List<StoragePort> vmax2Ports = new ArrayList<StoragePort>();
+        for (int i = 0; i < vmax1FE.length; i++) {
+            vmax2Ports.add(PlacementTestUtils.createStoragePort(_dbClient, storageSystem2, networkBE, vmax2FE[i], varray,
+                    StoragePort.PortType.frontend.name(), "portGroupvmax" + i, "C0+FC0" + i));
+        }
+       
 
         // Create a VPLEX storage system
         StorageSystem vplexStorageSystem = PlacementTestUtils.createStorageSystem(_dbClient, "vplex", "vplex1");
@@ -267,19 +978,34 @@ public class PlacementTests extends DbsvcTestBase {
         }
 
         // Create a storage pool
-        StoragePool pool1 = PlacementTestUtils.createStoragePool(_dbClient, varray, storageSystem, "pool1", "Pool1",
+        StoragePool pool1 = PlacementTestUtils.createStoragePool(_dbClient, varray, storageSystem1, "pool1", "Pool1",
                 Long.valueOf(1024 * 1024 * 10), Long.valueOf(1024 * 1024 * 10), 300, 300,
                 StoragePool.SupportedResourceTypes.THIN_ONLY.toString());
 
         // Create a storage pool
-        StoragePool pool2 = PlacementTestUtils.createStoragePool(_dbClient, varray, storageSystem, "pool2", "Pool2",
+        StoragePool pool2 = PlacementTestUtils.createStoragePool(_dbClient, varray, storageSystem1, "pool2", "Pool2",
                 Long.valueOf(1024 * 1024 * 10), Long.valueOf(1024 * 1024 * 10), 300, 300,
                 StoragePool.SupportedResourceTypes.THIN_ONLY.toString());
 
         // Create a storage pool
-        StoragePool pool3 = PlacementTestUtils.createStoragePool(_dbClient, varray, storageSystem, "pool3", "Pool3",
+        StoragePool pool3 = PlacementTestUtils.createStoragePool(_dbClient, varray, storageSystem1, "pool3", "Pool3",
                 Long.valueOf(1024 * 1024 * 1), Long.valueOf(1024 * 1024 * 1), 100, 100,
                 StoragePool.SupportedResourceTypes.THIN_ONLY.toString());
+        
+        StoragePool pool4 = PlacementTestUtils.createStoragePool(_dbClient, varray, storageSystem2, "pool4", "Pool4",
+                Long.valueOf(1024 * 1024 * 10), Long.valueOf(1024 * 1024 * 10), 300, 300,
+                StoragePool.SupportedResourceTypes.THIN_ONLY.toString());
+
+        // Create a storage pool
+        StoragePool pool5 = PlacementTestUtils.createStoragePool(_dbClient, varray, storageSystem2, "pool5", "Pool5",
+                Long.valueOf(1024 * 1024 * 10), Long.valueOf(1024 * 1024 * 10), 300, 300,
+                StoragePool.SupportedResourceTypes.THIN_ONLY.toString());
+
+        // Create a storage pool
+        StoragePool pool6 = PlacementTestUtils.createStoragePool(_dbClient, varray, storageSystem2, "pool6", "Pool6",
+                Long.valueOf(1024 * 1024 * 1), Long.valueOf(1024 * 1024 * 1), 100, 100,
+                StoragePool.SupportedResourceTypes.THIN_ONLY.toString());
+
 
         // Create a virtual pool
         VirtualPool vpool = new VirtualPool();
@@ -291,6 +1017,9 @@ public class PlacementTests extends DbsvcTestBase {
         matchedPools.add(pool1.getId().toString());
         matchedPools.add(pool2.getId().toString());
         matchedPools.add(pool3.getId().toString());
+        matchedPools.add(pool4.getId().toString());
+        matchedPools.add(pool5.getId().toString());
+        matchedPools.add(pool6.getId().toString());
         vpool.setMatchedStoragePools(matchedPools);
         vpool.setUseMatchedPools(true);
         _dbClient.createObject(vpool);
@@ -306,6 +1035,9 @@ public class PlacementTests extends DbsvcTestBase {
         matchedPools.add(pool1.getId().toString());
         matchedPools.add(pool2.getId().toString());
         matchedPools.add(pool3.getId().toString());
+        matchedPools.add(pool4.getId().toString());
+        matchedPools.add(pool5.getId().toString());
+        matchedPools.add(pool6.getId().toString());
         vplexVpool.setMatchedStoragePools(matchedPools);
         vplexVpool.setUseMatchedPools(true);
         _dbClient.createObject(vplexVpool);
@@ -316,7 +1048,9 @@ public class PlacementTests extends DbsvcTestBase {
         project.setLabel("project");
         _dbClient.createObject(project);
 
+        // Test that only pools from the source storageSystem1 show up.
         VirtualPoolCapabilityValuesWrapper capabilities = PlacementTestUtils.createCapabilities("2GB", 1, null);
+        capabilities.put(VirtualPoolCapabilityValuesWrapper.SOURCE_STORAGE_SYSTEM, storageSystem1);
 
         // Run single volume placement: Run 10 times to make sure pool3 never comes up.
         for (int i = 0; i < 10; i++) {
@@ -332,6 +1066,27 @@ public class PlacementTests extends DbsvcTestBase {
             assertTrue("vmax1".equals(rec.getSourceStorageSystem().toString()));
             assertTrue("vplex1".equals(rec.getVPlexStorageSystem().toString()));
             assertTrue(("pool2".equals(rec.getSourceStoragePool().toString())) || ("pool1".equals(rec.getSourceStoragePool().toString())));
+            _log.info("Recommendation " + i + ": " + recommendations.size() + ", Pool Chosen: " + rec.getSourceStoragePool().toString());
+        }
+        
+        // Test that only pools from the source storageSystem2 show up.
+        capabilities = PlacementTestUtils.createCapabilities("2GB", 1, null);
+        capabilities.put(VirtualPoolCapabilityValuesWrapper.SOURCE_STORAGE_SYSTEM, storageSystem2);
+
+        // Run single volume placement: Run 10 times to make sure pool3 never comes up.
+        for (int i = 0; i < 10; i++) {
+            List recommendations = PlacementTestUtils.invokePlacement(_dbClient, _coordinator, varray, project, vplexVpool, capabilities);
+
+            assertNotNull(recommendations);
+            assertTrue(!recommendations.isEmpty());
+            assertNotNull(recommendations.get(0));
+            VPlexRecommendation rec = (VPlexRecommendation) recommendations.get(0);
+            assertNotNull(rec.getSourceStoragePool());
+            assertNotNull(rec.getSourceStorageSystem());
+            assertNotNull(rec.getVPlexStorageSystem());
+            assertTrue("vmax2".equals(rec.getSourceStorageSystem().toString()));
+            assertTrue("vplex1".equals(rec.getVPlexStorageSystem().toString()));
+            assertTrue(("pool4".equals(rec.getSourceStoragePool().toString())) || ("pool5".equals(rec.getSourceStoragePool().toString())));
             _log.info("Recommendation " + i + ": " + recommendations.size() + ", Pool Chosen: " + rec.getSourceStoragePool().toString());
         }
     }
@@ -1182,7 +1937,6 @@ public class PlacementTests extends DbsvcTestBase {
      * This is a negative test. Placement should fail.
      */
     @Test
-    @Ignore
     public void testNegativeBasicRPPlacement() {
         String[] vmax1FE = { "50:FE:FE:FE:FE:FE:FE:00", "50:FE:FE:FE:FE:FE:FE:01" };
         String[] vmax2FE = { "51:FE:FE:FE:FE:FE:FE:00", "51:FE:FE:FE:FE:FE:FE:01" };
@@ -1368,56 +2122,15 @@ public class PlacementTests extends DbsvcTestBase {
         // Run single volume placement: Run 10 times to make sure placement fails. There are no pools for RP source that can satisfy the
         // requested size of volume.
         for (int i = 0; i < 10; i++) {
-            List recommendations = PlacementTestUtils.invokePlacement(_dbClient, _coordinator, varray1, project, rpTgtVpool, capabilities);
-
-            assertNotNull(recommendations);
-            assertTrue(!recommendations.isEmpty());
-            assertNotNull(recommendations.get(0));
-
-            RPProtectionRecommendation rec = (RPProtectionRecommendation) recommendations.get(0);
-            assertNotNull(rec.getSourceRecommendations());
-            assertTrue(!rec.getSourceRecommendations().isEmpty());
-            assertNotNull(rec.getProtectionDevice());
-            assertNotNull(rec.getPlacementStepsCompleted().name());
-            assertTrue("rp1".equals(rec.getProtectionDevice().toString()));
-
-            for (RPRecommendation rpRec : rec.getSourceRecommendations()) {
-                assertNotNull(rpRec.getInternalSiteName());
-                assertNotNull(rpRec.getSourceStorageSystem());
-                assertNotNull(rpRec.getSourceStoragePool());
-                assertTrue("site1".equals(rpRec.getInternalSiteName()));
-                assertTrue("vmax1".equals(rpRec.getSourceStorageSystem().toString()));
-                assertTrue(("pool1".equals(rpRec.getSourceStoragePool().toString())));
-
-                assertNotNull(rpRec.getTargetRecommendations());
-                assertTrue(!rpRec.getTargetRecommendations().isEmpty());
-                for (RPRecommendation targetRec : rpRec.getTargetRecommendations()) {
-                    assertNotNull(targetRec.getSourceStoragePool());
-                    assertTrue("vmax2".equals(targetRec.getSourceStorageSystem().toString()));
-                    assertTrue("site2".equals(targetRec.getInternalSiteName()));
-                    assertTrue("pool5".equals(targetRec.getSourceStoragePool().toString())
-                            || "pool4".equals(targetRec.getSourceStoragePool().toString()));
-                }
+            boolean caught = false;
+            List recommendations = null;
+            try {
+            recommendations = PlacementTestUtils.invokePlacement(_dbClient, _coordinator, varray1, project, rpTgtVpool, capabilities);
+            } catch (BadRequestException e) {
+                caught = true;
+                _log.info("Caught expected Exception", e);
             }
-
-            // source journal
-            assertNotNull(rec.getSourceJournalRecommendation());
-            assertNotNull(rec.getSourceJournalRecommendation().getSourceStoragePool());
-            assertNotNull(rec.getSourceJournalRecommendation().getInternalSiteName());
-            assertTrue(("pool1".equals(rec.getSourceJournalRecommendation().getSourceStoragePool().toString())));
-
-            // target journal
-            assertNotNull(rec.getTargetJournalRecommendations());
-            assertTrue(!rec.getTargetJournalRecommendations().isEmpty());
-            for (RPRecommendation targetJournalRec : rec.getTargetJournalRecommendations()) {
-                assertNotNull(targetJournalRec.getSourceStoragePool());
-                assertTrue("pool5".equals(targetJournalRec.getSourceStoragePool().toString())
-                        || "pool4".equals(targetJournalRec.getSourceStoragePool().toString()));
-                assertTrue("site2".equals(targetJournalRec.getInternalSiteName()));
-                assertTrue("vmax2".equals(targetJournalRec.getSourceStorageSystem().toString()));
-
-            }
-            _log.info(rec.toString(_dbClient));
+            assertTrue(caught);
         }
     }
 
@@ -4833,5 +5546,7 @@ public class PlacementTests extends DbsvcTestBase {
         _log.info(rec.toString(_dbClient));
 
     }
+    
+    
 
 }

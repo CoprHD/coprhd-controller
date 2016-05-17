@@ -19,6 +19,7 @@
                 <entry key="BlockExportController"
                        value="rmi://localhost:10099/BlockExportController"/>
                 <entry key="BlockOrchestrationController" value="rmi://localhost:10099/BlockOrchestrationController"/>
+                <entry key="ProtectionOrchestrationController" value="rmi://localhost:10099/ProtectionOrchestrationController"/>
                 <entry key="FileOrchestrationController" value="rmi://localhost:10099/FileOrchestrationController"/>
                 <entry key="FileReplicationController" value="rmi://localhost:10099/FileReplicationController" />
                 <entry key="ComputeSystemController" value="rmi://localhost:10099/ComputeSystemController"/>

@@ -539,14 +539,16 @@ public class RecoverPointUtils {
      */
     public static ConsistencyGroupCopyUID mapRPVolumeProtectionInfoToCGCopyUID(RecoverPointVolumeProtectionInfo rpProtectionInfo) {
         ConsistencyGroupUID cgUID = new ConsistencyGroupUID();
-        cgUID.setId(rpProtectionInfo.getRpVolumeGroupID());
         ConsistencyGroupCopyUID cgCopyUID = new ConsistencyGroupCopyUID();
-        cgCopyUID.setGlobalCopyUID(new GlobalCopyUID());
-        cgCopyUID.getGlobalCopyUID().setCopyUID(rpProtectionInfo.getRpVolumeGroupCopyID());
-        cgCopyUID.setGroupUID(cgUID);
-        ClusterUID ClusterUID = new ClusterUID();
-        ClusterUID.setId(rpProtectionInfo.getRpVolumeSiteID());
-        cgCopyUID.getGlobalCopyUID().setClusterUID(ClusterUID);
+        if (rpProtectionInfo != null) {
+            cgUID.setId(rpProtectionInfo.getRpVolumeGroupID());
+            cgCopyUID.setGlobalCopyUID(new GlobalCopyUID());
+            cgCopyUID.getGlobalCopyUID().setCopyUID(rpProtectionInfo.getRpVolumeGroupCopyID());
+            cgCopyUID.setGroupUID(cgUID);
+            ClusterUID ClusterUID = new ClusterUID();
+            ClusterUID.setId(rpProtectionInfo.getRpVolumeSiteID());
+            cgCopyUID.getGlobalCopyUID().setClusterUID(ClusterUID);
+        }
         return cgCopyUID;
     }
 

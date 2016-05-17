@@ -21,13 +21,11 @@
     },
 
     migrationType:{
-      type:"assetType.vipr.migrationType",
-      required: false
+      type:"assetType.vipr.migrationType"
     },
 
     linuxHost:{
-      type:"assetType.vipr.linuxHost",
-      required: false
+      type:"assetType.vipr.linuxHost"
     }
     
   }

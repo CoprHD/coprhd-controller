@@ -4,6 +4,31 @@
  */
 package com.emc.storageos.api.service.impl.resource;
 
+import java.net.URI;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.Date;
+import java.util.EnumSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+
+import javax.ws.rs.Consumes;
+import javax.ws.rs.GET;
+import javax.ws.rs.POST;
+import javax.ws.rs.PUT;
+import javax.ws.rs.Path;
+import javax.ws.rs.PathParam;
+import javax.ws.rs.Produces;
+import javax.ws.rs.QueryParam;
+import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.Response;
+
 import com.emc.storageos.api.mapper.TaskMapper;
 import com.emc.storageos.api.mapper.functions.MapTask;
 import com.emc.storageos.api.service.authorization.PermissionsHelper;
@@ -15,12 +40,21 @@ import com.emc.storageos.db.client.constraint.AggregatedConstraint;
 import com.emc.storageos.db.client.constraint.AggregationQueryResultList;
 import com.emc.storageos.db.client.constraint.Constraint;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
-import com.emc.storageos.db.client.constraint.NamedElementQueryResultList;
 import com.emc.storageos.db.client.model.NamedURI;
+import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.Task;
 import com.emc.storageos.db.client.model.TenantOrg;
+import com.emc.storageos.db.client.model.Workflow;
 import com.emc.storageos.db.client.model.util.TaskUtils;
-import com.emc.storageos.model.*;
+import com.emc.storageos.model.BulkIdParam;
+import com.emc.storageos.model.BulkRestRep;
+import com.emc.storageos.model.NamedRelatedResourceRep;
+import com.emc.storageos.model.RelatedResourceRep;
+import com.emc.storageos.model.ResourceOperationTypeEnum;
+import com.emc.storageos.model.ResourceTypeEnum;
+import com.emc.storageos.model.RestLinkRep;
+import com.emc.storageos.model.TagAssignment;
+import com.emc.storageos.model.TaskResourceRep;
 import com.emc.storageos.model.search.SearchResultResourceRep;
 import com.emc.storageos.model.search.SearchResults;
 import com.emc.storageos.model.search.Tags;
@@ -34,25 +68,10 @@ import com.emc.storageos.security.authorization.DefaultPermissions;
 import com.emc.storageos.security.authorization.Role;
 import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
+import com.emc.storageos.workflow.WorkflowController;
+import com.emc.storageos.workflow.WorkflowState;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
-import org.apache.commons.lang.StringUtils;
-
-import javax.ws.rs.*;
-import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.Response;
-import java.net.URI;
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.Date;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
 
 @Path("/vdc/tasks")
 @DefaultPermissions(readRoles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN, Role.SYSTEM_MONITOR, Role.TENANT_ADMIN },
@@ -252,6 +271,110 @@ public class TaskService extends TaggedResource {
     }
 
     /**
+     * Resumes a task.  This can only be performed on a Task that has status of: suspended_no_error
+     * Retries a task.  This can only be performed on a Task that has status of: suspended_error
+     * 
+     * In the case of retry, we will retry the controller workflow starting at the failed step.
+     * 
+     * @brief Resumes a task
+     * @param taskId ID of the task to be resumed
+     */
+    @POST
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("/{taskId}/resume")
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN }, acls = { ACL.OWN })
+    public Response resumeTask(@PathParam("taskId") URI taskId) {
+        Task task = queryResource(taskId);
+
+        // Permission Check
+        if (task.getTenant().equals(TenantOrg.SYSTEM_TENANT)) {
+            verifySystemAdmin();
+        }
+        else {
+            verifyUserHasAccessToTenants(Lists.newArrayList(task.getTenant()));
+        }
+
+        Workflow workflow = validateWorkflow(task);
+
+        // Resume the workflow
+        /* Operation op = */ WorkflowService.initTaskStatus(_dbClient, workflow, taskId.toString(), Operation.Status.pending, ResourceOperationTypeEnum.WORKFLOW_RESUME);
+        getWorkflowController().resumeWorkflow(workflow.getId(), taskId.toString());
+        
+        // Should I audit this operation?
+        
+        // Does Trevor expect to see the task object back?
+        return Response.ok().build();
+    }
+
+    /**
+     * Rolls back a task.  This can only be performed on a Task with status: suspended_error
+     * 
+     * @brief rolls back a task
+     * @param taskId ID of the task to roll back
+     */
+    @POST
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("/{taskId}/rollback")
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN }, acls = { ACL.OWN })
+    public Response rollbackTask(@PathParam("taskId") URI taskId) {
+        Task task = queryResource(taskId);
+
+        // Permission Check
+        if (task.getTenant().equals(TenantOrg.SYSTEM_TENANT)) {
+            verifySystemAdmin();
+        }
+        else {
+            verifyUserHasAccessToTenants(Lists.newArrayList(task.getTenant()));
+        }
+
+        Workflow workflow = validateWorkflow(task);
+
+        // Rollback the workflow
+        /* Operation op = */ WorkflowService.initTaskStatus(_dbClient, workflow, taskId.toString(), Operation.Status.pending, ResourceOperationTypeEnum.WORKFLOW_RESUME);
+        getWorkflowController().rollbackWorkflow(workflow.getId(), taskId.toString());
+        
+        // Should I audit this operation?
+        
+        // Does Trevor expect to see the task object back?
+        return Response.ok().build();
+    }
+    
+    private WorkflowController getWorkflowController() {
+        return getController(WorkflowController.class, WorkflowController.WORKFLOW_CONTROLLER_DEVICE);
+    }
+
+    /**
+     * Validate a task's workflow information for the purpose of restarting the workflow.
+     * 
+     * @param task task object
+     * @return a workflow (as a convenience)
+     */
+    private Workflow validateWorkflow(Task task) {
+        // Validate there is a workflow ID
+        if (task.getWorkflow() == null) {
+            throw APIException.badRequests.noWorkflowAssociatedWithTask(task.getId()); 
+        }
+        
+        // Validate the workflow exists
+        Workflow workflow = _dbClient.queryObject(Workflow.class, task.getWorkflow());
+        if (workflow == null) {
+            throw APIException.badRequests.noWorkflowAssociatedWithURI(task.getWorkflow());
+        }
+
+        // Validate the workflow is in any state
+        if (workflow.getCompletionState() == null) {
+            throw APIException.badRequests.workflowCompletionStateNotFound(workflow.getId());
+        }
+        
+        // Validate the workflow is in the right state
+        WorkflowState state = WorkflowState.valueOf(WorkflowState.class, workflow.getCompletionState());
+        EnumSet<WorkflowState> expected = EnumSet.of(WorkflowState.SUSPENDED_NO_ERROR, WorkflowState.SUSPENDED_ERROR);
+        ArgValidator.checkFieldForValueFromEnum(state, "Workflow completion state", expected);
+
+        return workflow;
+    }
+
+    /**
      * @brief Assign tags to resource
      *        Assign tags
      * 
@@ -444,24 +567,6 @@ public class TaskService extends TaggedResource {
         return false;
     }
 
-    /** @return a List of search results from the provided set of items, filtered to only those items the user has access to */
-    private List<SearchResultResourceRep> toTenantFilteredSearchResults(Set<URI> tenantIds, NamedElementQueryResultList items) {
-        List<SearchResultResourceRep> results = Lists.newArrayList();
-
-        Iterator<NamedElementQueryResultList.NamedElement> it = items.iterator();
-        while (it.hasNext()) {
-            NamedElementQueryResultList.NamedElement item = it.next();
-
-            Task task = _dbClient.queryObject(Task.class, item.getId());
-            if (task.getTenant() != null && tenantIds.contains(task.getTenant())) {
-                RestLinkRep selfLink = new RestLinkRep("self", RestLinkFactory.newLink(getResourceType(), item.getId()));
-                results.add(new SearchResultResourceRep(item.getId(), selfLink, null));
-            }
-        }
-
-        return results;
-    }
-
     private List<SearchResultResourceRep> toSearchResults(List<NamedURI> items) {
         List<SearchResultResourceRep> results = Lists.newArrayList();
 
@@ -475,19 +580,6 @@ public class TaskService extends TaggedResource {
     private SearchResultResourceRep toSearchResult(URI uri) {
         RestLinkRep selfLink = new RestLinkRep("self", RestLinkFactory.newLink(getResourceType(), uri));
         return new SearchResultResourceRep(uri, selfLink, null);
-    }
-
-    private static Date getDateTimestampParam(List<String> parameters) {
-        if (parameters == null || parameters.isEmpty()) {
-            return null;
-        }
-
-        String timestampStr = parameters.get(0);
-        if (StringUtils.isBlank(timestampStr)) {
-            return null;
-        }
-
-        return getDateFromString(timestampStr);
     }
 
     private static Date getDateFromString(String timestampStr) {

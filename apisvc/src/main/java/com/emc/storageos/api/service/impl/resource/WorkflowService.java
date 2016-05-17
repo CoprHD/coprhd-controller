@@ -23,6 +23,7 @@ import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
+import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
@@ -241,7 +242,7 @@ public class WorkflowService extends TaskResourceService {
     	Workflow workflow = queryResource(uri);
     	verifySuspendedWorkflow(workflow);
     	String taskId = UUID.randomUUID().toString();
-    	Operation op = initTaskStatus(workflow, taskId, Operation.Status.pending, ResourceOperationTypeEnum.WORKFLOW_ROLLBACK);
+    	Operation op = initTaskStatus(_dbClient, workflow, taskId, Operation.Status.pending, ResourceOperationTypeEnum.WORKFLOW_ROLLBACK);
     	getController().rollbackWorkflow(uri, taskId);
     	return toTask(workflow,taskId, op);
     }
@@ -262,15 +263,15 @@ public class WorkflowService extends TaskResourceService {
     	Workflow workflow = queryResource(uri);
     	verifySuspendedWorkflow(workflow);
     	String taskId = UUID.randomUUID().toString();
-        Operation op = initTaskStatus(workflow, taskId, Operation.Status.pending, ResourceOperationTypeEnum.WORKFLOW_RESUME);
-    	getController().resumeWorkflow(uri, taskId);
+        Operation op = initTaskStatus(_dbClient, workflow, taskId, Operation.Status.pending, ResourceOperationTypeEnum.WORKFLOW_RESUME);
+        getController().resumeWorkflow(uri, taskId);
     	return toTask(workflow, taskId, op);
     }
     
-    private void verifySuspendedWorkflow(Workflow workflow) {
-    	WorkflowState state = WorkflowState.valueOf(WorkflowState.class, workflow.getCompletionState());
-    	EnumSet<WorkflowState> expected = EnumSet.of(WorkflowState.SUSPENDED_NO_ERROR, WorkflowState.SUSPENDED_ERROR);
-    	ArgValidator.checkFieldForValueFromEnum(state, "Workflow completion state", expected);
+    protected static void verifySuspendedWorkflow(Workflow workflow) {
+        WorkflowState state = WorkflowState.valueOf(WorkflowState.class, workflow.getCompletionState());
+        EnumSet<WorkflowState> expected = EnumSet.of(WorkflowState.SUSPENDED_NO_ERROR, WorkflowState.SUSPENDED_ERROR);
+        ArgValidator.checkFieldForValueFromEnum(state, "Workflow completion state", expected);
     }
     
     /**
@@ -332,8 +333,8 @@ public class WorkflowService extends TaskResourceService {
     }
     
     private WorkflowController getController() {
-    	return getController(WorkflowController.class, WorkflowController.WORKFLOW_CONTROLLER_DEVICE);
-}
+        return getController(WorkflowController.class, WorkflowController.WORKFLOW_CONTROLLER_DEVICE);
+    }
     
     /**
      * Convenience method for initializing a task object with a status
@@ -344,16 +345,16 @@ public class WorkflowService extends TaskResourceService {
      * @param opType operation type
      * @return operation object
      */
-    private Operation initTaskStatus(Workflow workflow, String task, Operation.Status status, ResourceOperationTypeEnum opType) {
+    protected static Operation initTaskStatus(DbClient dbClient, Workflow workflow, String task, Operation.Status status, ResourceOperationTypeEnum opType) {
         if (workflow.getOpStatus() == null) {
-        	workflow.setOpStatus(new OpStatusMap());
-}
+            workflow.setOpStatus(new OpStatusMap());
+        }
         Operation op = new Operation();
         op.setResourceType(opType);
         if (status == Operation.Status.ready) {
-        	op.ready();
+            op.ready();
         } 
-        _dbClient.createTaskOpStatus(Workflow.class, workflow.getId(), task, op);
+        dbClient.createTaskOpStatus(Workflow.class, workflow.getId(), task, op);
         return op;
     }
 

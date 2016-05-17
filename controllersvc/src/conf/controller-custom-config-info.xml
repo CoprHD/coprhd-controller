@@ -1348,7 +1348,7 @@
   <bean id="isilonPathIllegalCharsConstraint" class="com.emc.storageos.customconfigcontroller.IllegalCharsConstraint">
         <property name="illegalCharsRegexMap">
             <map>
-                <entry key="default" value="[^A-Za-z0-9_/]"/>
+                <entry key="default" value="[^A-Za-z0-9_\-/]"/>
             </map>
         </property>
         <property name="description" value="Valid characters are letters, numbers , forward slash and _"/>
@@ -1363,10 +1363,10 @@
      <bean id="isilonDirLocationsIllegalCharsConstraint" class="com.emc.storageos.customconfigcontroller.IllegalCharsConstraint">
         <property name="illegalCharsRegexMap">
             <map>
-                <entry key="default" value="[^A-Za-z0-9_,/]"/>
+                <entry key="default" value="[^A-Za-z0-9_\-,/]"/>
             </map>
         </property>
-        <property name="description" value="Enter the Path for directories(comma seperated) .Access zone directoies are automatically included.Valid characters are letters, numbers ,comma,forward slash and _"/>
+        <property name="description" value="Enter the Path for directories(comma seperated) .Access zone directoies are automatically included.Valid characters are letters, numbers ,comma,forward slash, dash @ and _"/>
         <property name="replacementMap">
             <map>
                 <entry key="default" value=""/>

@@ -1241,7 +1241,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
         String systemAccessZone = "";
         String userAccessZone = "";
         String namespace = "";
-        String noAccessZone = "";
+        String noAccessZone = ",";
 
         // get the system access zones
         namespace = customConfigHandler.getComputedCustomConfigValue(CustomConfigConstants.ISILON_SYSTEM_ACCESS_ZONE_NAMESPACE,
@@ -1259,9 +1259,12 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
         paths = customConfigHandler.getComputedCustomConfigValue(CustomConfigConstants.ISILON_UNMANAGED_FILE_SYSTEM_LOCATIONS,
                 "isilon",
                 dataSource);
-        _log.info("Unmanaged file system locations are ", paths);
+        // trim leading or trailing or multiple comma.
+        paths = paths.replaceAll("^,+", "").replaceAll(",+$", "").replaceAll(",+", ",");
+        _log.info("Unmanaged file system locations are {}", paths);
         List<String> pathList = Arrays.asList(paths.split(","));
-        getDiscPathsForUnManaged().addAll(pathList);
+
+        setDiscPathsForUnManaged(pathList);
 
     }
 

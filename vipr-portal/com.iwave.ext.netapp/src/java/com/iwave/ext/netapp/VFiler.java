@@ -114,7 +114,7 @@ public class VFiler {
         }
 
         if (result != null) {
-            result.getChildContent("status");
+            return result.getChildContent("status");
         }
         return null;
     }

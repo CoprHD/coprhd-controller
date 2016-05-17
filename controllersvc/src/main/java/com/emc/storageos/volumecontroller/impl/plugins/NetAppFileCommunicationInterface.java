@@ -396,6 +396,8 @@ public class NetAppFileCommunicationInterface extends
                 List<String> protocolsSupported = netAppApi.getAllowedProtocols(vf.getName());
                 protocols.retainAll(protocolsSupported);
 
+                _logger.info("vNAS {} supported protocols are {} ", vf.getName(), protocols);
+
                 if (portGroup == null) {
                     portGroup = new StorageHADomain();
                     portGroup.setId(URIUtil.createId(StorageHADomain.class));

@@ -23,8 +23,8 @@ public class ChangeBlockVolumeVirtualArray extends WaitForTasks<VolumeRestRep> {
     private URI migrationHost;
 
     public ChangeBlockVolumeVirtualArray(List<String> volumeIds, String targetVirtualArrayId,
-            String migrationType, String migrationHost) {
-        this(uris(volumeIds), uri(targetVirtualArrayId), migrationType, uri(migrationHost));
+            String migrationType, URI migrationHost) {
+        this(uris(volumeIds), uri(targetVirtualArrayId), migrationType, migrationHost);
     }
 
     public ChangeBlockVolumeVirtualArray(List<URI> volumeIds, URI targetVirtualArrayId,

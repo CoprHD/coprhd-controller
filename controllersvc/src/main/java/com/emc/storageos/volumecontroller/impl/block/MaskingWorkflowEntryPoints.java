@@ -232,14 +232,16 @@ public class MaskingWorkflowEntryPoints implements Controller {
     }
 
     public void doExportGroupAddVolumes(URI storageURI, URI exportGroupURI,
-            URI exportMaskURI, Map<URI, Integer> volumeMap,
+            URI exportMaskURI, Map<URI, Integer> volumeMap, 
+            List<URI> initiatorURIs, 
             TaskCompleter taskCompleter,
             String token) throws ControllerException {
-        String call = String.format("doExportGroupAddVolumes(%s, %s, %s, [%s], %s)",
+        String call = String.format("doExportGroupAddVolumes(%s, %s, %s, [%s], [%s], %s)",
                 storageURI.toString(), 
                 exportGroupURI.toString(),
                 exportMaskURI.toString(),
-                Joiner.on(',').join(volumeMap.entrySet()), 
+                volumeMap != null ? Joiner.on(',').join(volumeMap.entrySet()) : "No Volumes",
+                initiatorURIs != null ? Joiner.on(',').join(initiatorURIs) : "No Initiators", 
                 taskCompleter.getOpId());
         try {
             WorkflowStepCompleter.stepExecuting(token);
@@ -247,8 +249,12 @@ public class MaskingWorkflowEntryPoints implements Controller {
                     .queryObject(ExportMask.class, exportMaskURI);
             StorageSystem storage = _dbClient
                     .queryObject(StorageSystem.class, storageURI);
+            List<Initiator> initiators = new ArrayList<>();
+            if (initiatorURIs != null && !initiatorURIs.isEmpty()) {
+                initiators = _dbClient.queryObject(Initiator.class, initiatorURIs);
+            }
 
-            getDevice(storage).doExportAddVolumes(storage, exportMask, null,
+            getDevice(storage).doExportAddVolumes(storage, exportMask, initiators,
                     volumeMap, taskCompleter);
 
             _log.info(String.format("%s end", call));
@@ -325,14 +331,32 @@ public class MaskingWorkflowEntryPoints implements Controller {
             ExportMask exportMask = ExportMaskUtils.getExportMask(_dbClient,
                     exportGroup, storageURI);
             if (exportMask != null) {
+                // TODO DUPP: 
+                // The entry points in this module are a little suspicious.  I'm changing
+                // the logic here to only consider volumes/initiators in the user added list.
                 _log.info("export_delete: export mask exists");
                 List<URI> exportMaskURIs = new ArrayList<URI>();
-                List<URI> volumeURIs = ExportMaskUtils.getVolumeURIs(exportMask);
+
+                // Only consider user added volumes for export mask delete
+                List<URI> volumeURIs = new ArrayList<>();
+                if (exportMask.getUserAddedVolumes() != null) {
+                    for (String volumeId : exportMask.getUserAddedVolumes().values()) {
+                        volumeURIs.add(URI.create(volumeId));
+                    }
+                }
+                
+                // Only consider user added initiators for export mask delete
+                List<URI> initiatorURIs = new ArrayList<>();
+                if (exportMask.getUserAddedInitiators() != null) {
+                    for (String initiatorId : exportMask.getUserAddedInitiators().values()) {
+                        initiatorURIs.add(URI.create(initiatorId));
+                    }
+                }
                 exportMaskURIs.add(exportMask.getId());
                 _networkDeviceController
                         .zoneExportMasksDelete(exportGroupURI, exportMaskURIs, volumeURIs, UUID.randomUUID().toString());
                 getDevice(storage).doExportDelete(storage, exportMask,
-                        null, null, taskCompleter);
+                        volumeURIs, initiatorURIs, taskCompleter);
             } else {
                 _log.info("export_delete: no export mask, task completed");
                 taskCompleter.ready(_dbClient);
@@ -397,7 +421,10 @@ public class MaskingWorkflowEntryPoints implements Controller {
                     .queryObject(ExportMask.class, exportMaskURI);
             StorageSystem storage = _dbClient
                     .queryObject(StorageSystem.class, storageURI);
-            List<Initiator> initiators = _dbClient.queryObject(Initiator.class, initiatorURIs);
+            List<Initiator> initiators = new ArrayList<>();
+            if (initiatorURIs != null && !initiatorURIs.isEmpty()) {
+                initiators = _dbClient.queryObject(Initiator.class, initiatorURIs);
+            }
             
             getDevice(storage).doExportRemoveVolumes(storage, exportMask, volumeURIs,
                     initiators, taskCompleter);

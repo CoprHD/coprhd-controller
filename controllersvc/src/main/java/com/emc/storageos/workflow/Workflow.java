@@ -138,7 +138,7 @@ public class Workflow implements Serializable {
         public static final String ROLLBACK_GROUP = "_rollback_group_";
 
         public boolean isRollbackStep() {
-            return this.stepGroup.equals(ROLLBACK_GROUP);
+            return ROLLBACK_GROUP.equalsIgnoreCase(this.stepGroup);
         }
 
         /**

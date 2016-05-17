@@ -437,18 +437,18 @@ volume_group_relink_copy()
     application=$2
     copy_set_name=$3
     tgt_name=$4
-    echo "unlink ${copy_type} ${tgt_name} ${copy_set_name} of application ${application}"
+    echo "relink ${copy_type} ${tgt_name} ${copy_set_name} of application ${application}"
     viprcli_authenticate >$ dev/null
 
-    echo "viprcli volumegroup ${copy_type}-unlink -name ${application} -copysetname ${copy_set_name} -targetname ${tgt_name}"
-    viprcli volumegroup ${copy_type}-unlink -name $application -copysetname $copy_set_name -targetname $tgt_name
+    echo "viprcli volumegroup ${copy_type}-relink -name ${application} -copysetname ${copy_set_name} -targetname ${tgt_name}"
+    viprcli volumegroup ${copy_type}-relink -name $application -copysetname $copy_set_name -targetname $tgt_name
 
     retval=$?
     viprcli_logout >$ dev/null
     if [ $retval -eq 0 ]; then
       volume_group_wait_for_tasks $application $copy_type
     fi
-    echo "volume group ${application} unlink ${copy_type} ${tgt_name} ${copy_set_name} completed with return code ${retval}"
+    echo "volume group ${application} relink ${copy_type} ${tgt_name} ${copy_set_name} completed with return code ${retval}"
     return $retval
 }
 
@@ -627,7 +627,7 @@ volume_group_wait_for_tasks()
         cmd="$VIPRCLI_CMD volume tasks -project $project -tenant $tenant -hostname $BOURNE_IPADDR"
         wait_for_tasks $cmd
     else
-        if [[ $2 == "snapshot" || $2 == "snapshotsession" ]]; then
+        if [[ $2 == "snapshot" ]]; then
             project=`volume_group_get_project_from_volumegroup ${1}`
             cgs=`volume_group_get_cgs_from_volumegroup ${1}`
             for cg in ${cgs//,/ }
@@ -635,6 +635,9 @@ volume_group_wait_for_tasks()
                 cmd="$VIPRCLI_CMD snapshot tasks -cg $cg -project $project -tenant $tenant -hostname $BOURNE_IPADDR"
                 wait_for_tasks $cmd
             done
+        elif [[ $2 == "snapshotsession" ]]; then
+            # viprcli does not support getting tasks for snapshot session objects so all we can do is sleep
+            sleep 20
         else
             project=`volume_group_get_project_from_volumegroup ${1}`
             cmd="$VIPRCLI_CMD volume tasks -project $project -tenant $tenant -hostname $BOURNE_IPADDR"
@@ -863,9 +866,17 @@ elif [ $1 == 'restore-copy' ]; then
     shift
     volume_group_restore_copy "$@"
 elif [ $1 == 'link-copy' ]; then
-    [ $# -ge 3 ] || usage
+    [ $# -ge 7 ] || usage
     shift
     volume_group_link_copy "$@"
+elif [ $1 == 'relink-copy' ]; then
+    [ $# -ge 5 ] || usage
+    shift
+    volume_group_relink_copy "$@"
+elif [ $1 == 'unlink-copy' ]; then
+    [ $# -ge 5 ] || usage
+    shift
+    volume_group_unlink_copy "$@"
 elif [ $1 == 'activate-copy' ]; then
     [ $# -ge 3 ] || usage
     shift

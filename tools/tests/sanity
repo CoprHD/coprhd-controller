@@ -10441,17 +10441,14 @@ application_full_copy_tests()
         # delete the full copy volumes
         run volume delete $VG_FCVOLUMES --wait
 
-    elif [[ $APPLICATION_LINK_COPY_SUPPORTED -eq 1 ]]; then
-        run volumegroup link-copy $copy_type $VG_COPYVG1 $VG_FCNAME 1 tgt-${VG_COPYVG1} nocopy
-        run volumegroup unlink-copy $copy_type $VG_COPYVG1 $VG_FCNAME
-
-        # run use cases with snapshot linked
-        run volumegroup create-copy $copy_type $VG_COPYVG1 $VG_FCNAME3
-        run volumegroup link-copy $copy_type $VG_COPYVG1 $VG_FCNAME3
-        run volumegroup restore-copy $copy_type $VG_COPYVG1 $VG_FCNAME3
-        run volumegroup delete-copy $copy_type $VG_COPYVG1 $VG_FCNAME3
-        fail volumegroup verify-copy-set $copy_type $VG_COPYVG1 $VG_FCNAME3
     else
+        if [[ $APPLICATION_LINK_COPY_SUPPORTED -eq 1 ]]; then
+            target_name="tgt-${VG_FCNAME}"
+            run volumegroup link-copy $copy_type $VG_COPYVG1 $VG_FCNAME 1 $target_name nocopy
+            run volumegroup restore-copy $copy_type $VG_COPYVG1 $VG_FCNAME
+            run volumegroup relink-copy $copy_type $VG_COPYVG1 $VG_FCNAME ${target_name}-1
+            run volumegroup unlink-copy $copy_type $VG_COPYVG1 $VG_FCNAME ${target_name}-1
+        fi
         run volumegroup delete-copy $copy_type $VG_COPYVG1 $VG_FCNAME
         fail volumegroup verify-copy-set $copy_type $VG_COPYVG1 $VG_FCNAME
     fi

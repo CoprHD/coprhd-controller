@@ -231,21 +231,6 @@ public class DefaultBlockServiceApiImpl extends AbstractBlockServiceApiImpl<Stor
      */
     @Override
     public VirtualPoolChangeList getVirtualPoolForVirtualPoolChange(Volume volume) {
-
-        // VirtualPool change is only potentially supported for VNX and VMAX block.
-        // So, in this case we throw a bad request exception.
-        URI volumeSystemURI = volume.getStorageController();
-        StorageSystem volumeSystem = _dbClient.queryObject(StorageSystem.class,
-                volumeSystemURI);
-        String systemType = volumeSystem.getSystemType();
-        if (!DiscoveredDataObject.Type.vmax.name().equals(systemType)
-                && !DiscoveredDataObject.Type.vnxblock.name().equals(systemType)
-                && !DiscoveredDataObject.Type.hds.name().equals(systemType)
-                && !DiscoveredDataObject.Type.xtremio.name().equals(systemType)) {
-            throw APIException.badRequests.changesNotSupportedFor("VirtualPool",
-                    format("volumes on storage systems of type {0}", systemType));
-        }
-
         return getVirtualPoolChangeListForVolume(volume);
     }
 
@@ -281,6 +266,8 @@ public class DefaultBlockServiceApiImpl extends AbstractBlockServiceApiImpl<Stor
                         notSuppReasonBuff)) {
             allowedOperations.add(VirtualPoolChangeOperationEnum.ADD_MIRRORS);
         }
+
+        allowedOperations.add(VirtualPoolChangeOperationEnum.DATA_MIGRATION);
 
         return allowedOperations;
     }
@@ -665,18 +652,11 @@ public class DefaultBlockServiceApiImpl extends AbstractBlockServiceApiImpl<Stor
             descriptor.setParameters(descrParams);
             descriptors.add(descriptor);
 
-            // We'll need to prepare a target volume and create a
-            // descriptor for each backend volume being migrated.
-            StringSet assocVolumes = volume.getAssociatedVolumes();
-            String assocVolumeId = assocVolumes.iterator().next();
-            URI assocVolumeURI = URI.create(assocVolumeId);
-            Volume assocVolume = _dbClient.queryObject(Volume.class, assocVolumeURI);
-            VirtualPool assocVolumeVPool = _dbClient.queryObject(VirtualPool.class,
+            VirtualPool volumeVPool = _dbClient.queryObject(VirtualPool.class,
                     assocVolume.getVirtualPool());
             descriptors.addAll(createBackendVolumeMigrationDescriptors(storageSystem,
-                    volume, assocVolume, tgtVarray, assocVolumeVPool,
-                    getVolumeCapacity(assocVolume), isHostMigration, migrationHostURI,
-                    taskId, null, null));
+                    volume, tgtVarray, volumeVPool, getVolumeCapacity(volume),
+                    isHostMigration, migrationHostURI, taskId, null, null));
         }
 
         return descriptors;
@@ -721,21 +701,10 @@ public class DefaultBlockServiceApiImpl extends AbstractBlockServiceApiImpl<Stor
         volumeDesc.setParameters(volumeParams);
         descriptors.add(volumeDesc);
 
-        // A VirtualPool change on a VPlex virtual volume requires
-        // a migration of the data on the backend volume(s) used by
-        // the virtual volume to new volumes that satisfy the new
-        // new VirtualPool. So we need to get the placement
-        // recommendations for the new volumes to which the data
-        // will be migrated and prepare the volume(s). First
-        // determine if the backend volume on the source side,
-        // i.e., the backend volume in the same varray as the
-        // vplex volume. Recall for ingested volumes, we know
-        // nothing about the backend volumes.
         if (VirtualPoolChangeAnalyzer.vpoolChangeRequiresMigration(currentVpool, newVpool)) {
-            Volume migSrcVolume = getAssociatedVolumeInVArray(volume, volumeVarrayURI);
             descriptors.addAll(createBackendVolumeMigrationDescriptors(storageSystem, volume,
-                    migSrcVolume, volumeVarray, newVpool, getVolumeCapacity(migSrcVolume != null ? migSrcVolume : volume),
-                    isHostMigration, migrationHostURI, taskId, recommendations, capabilities));
+                    volumeVarray, newVpool, getVolumeCapacity(volume), isHostMigration,
+                    migrationHostURI, taskId, recommendations, capabilities));
         }
 
         return descriptors;
@@ -771,7 +740,6 @@ public class DefaultBlockServiceApiImpl extends AbstractBlockServiceApiImpl<Stor
      * passed virtual volume to be migrated to a new volume with a new VirtualPool.
      *
      * @param storageSystem A reference to the storage system.
-     * @param virtualVolume A reference to the virtual volume.
      * @param sourceVolume A reference to the backend volume to be migrated.
      * @param varray A reference to the varray for the backend volume.
      * @param vpool A reference to the VirtualPool for the new volume.
@@ -787,9 +755,9 @@ public class DefaultBlockServiceApiImpl extends AbstractBlockServiceApiImpl<Stor
      *            storage pool in which it will be created.
      */
     private List<VolumeDescriptor> createBackendVolumeMigrationDescriptors(StorageSystem storageSystem,
-            Volume virtualVolume, Volume sourceVolume, VirtualArray varray, VirtualPool vpool,
-            Long capacity, boolean isHostMigration, URI migrationHostURI, String taskId,
-            List<VolumeRecommendation> recommendations, VirtualPoolCapabilityValuesWrapper capabilities) {
+            Volume sourceVolume, VirtualArray varray, VirtualPool vpool, Long capacity, boolean isHostMigration,
+            URI migrationHostURI, String taskId, List<VolumeRecommendation> recommendations,
+            VirtualPoolCapabilityValuesWrapper capabilities) {
 
         URI sourceVolumeURI = null;
         Project targetProject = null;
@@ -905,11 +873,10 @@ public class DefaultBlockServiceApiImpl extends AbstractBlockServiceApiImpl<Stor
 
         // Create a migration to represent the migration of data
         // from the backend volume to the new backend volume for the
-        // passed virtual volume and add the migration to the passed
+        // passed volume and add the migration to the passed
         // migrations list.
-        Migration migration = prepareMigration(virtualVolume.getId(),
-                sourceVolumeURI, targetVolumeURI, isHostMigration,
-                migrationHostURI, taskId);
+        Migration migration = prepareMigration(sourceVolumeURI,
+                targetVolumeURI, isHostMigration, migrationHostURI, taskId);
 
         if (isHostMigration) {
             descriptors.add(new VolumeDescriptor(VolumeDescriptor.Type.HOST_MIGRATE_VOLUME,
@@ -1024,7 +991,6 @@ public class DefaultBlockServiceApiImpl extends AbstractBlockServiceApiImpl<Stor
      * and target volumes for the migration, as well as if the migration
      * will be driver assisted or not.
      *
-     * @param virtualVolumeURI The URI of the virtual volume.
      * @param sourceURI The URI of the source volume for the migration.
      * @param targetURI The URI of the target volume for the migration.
      * @param isHostMigration Boolean describing if the migration will be host or driver based.
@@ -1033,11 +999,11 @@ public class DefaultBlockServiceApiImpl extends AbstractBlockServiceApiImpl<Stor
      *
      * @return A reference to a newly created Migration.
      */
-    public Migration prepareMigration(URI virtualVolumeURI, URI sourceURI, URI targetURI,
+    public Migration prepareMigration(URI sourceURI, URI targetURI,
             boolean isHostMigration, URI migrationHostURI, String token) {
         Migration migration = new Migration();
         migration.setId(URIUtil.createId(Migration.class));
-        migration.setVolume(virtualVolumeURI);
+        migration.setVolume(sourceURI);
         migration.setSource(sourceURI);
         migration.setTarget(targetURI);
         if (isHostMigration) {

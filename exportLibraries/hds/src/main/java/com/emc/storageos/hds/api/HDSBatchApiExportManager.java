@@ -7,9 +7,11 @@ package com.emc.storageos.hds.api;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import org.apache.http.HttpStatus;
 import org.milyn.payload.JavaResult;
@@ -22,6 +24,7 @@ import com.emc.storageos.hds.model.Add;
 import com.emc.storageos.hds.model.Delete;
 import com.emc.storageos.hds.model.EchoCommand;
 import com.emc.storageos.hds.model.Error;
+import com.emc.storageos.hds.model.Get;
 import com.emc.storageos.hds.model.HostStorageDomain;
 import com.emc.storageos.hds.model.Path;
 import com.emc.storageos.hds.model.StorageArray;
@@ -41,8 +44,24 @@ public class HDSBatchApiExportManager {
      */
     private static final Logger log = LoggerFactory
             .getLogger(HDSBatchApiExportManager.class);
+    
+    private static final int MAX_RETRIES = 10;
 
     private HDSApiClient hdsApiClient;
+    
+    private ThreadLocal<Integer> batchHSDDeleteRetries = new ThreadLocal<Integer>() {
+        @Override 
+        protected Integer initialValue() {
+            return 0;
+        }
+    };
+    
+    private ThreadLocal<Integer> batchLunPathDeleteRetries = new ThreadLocal<Integer>() {
+        @Override 
+        protected Integer initialValue() {
+            return 0;
+        }
+    };
 
     public HDSBatchApiExportManager(HDSApiClient hdsApiClient) {
         this.hdsApiClient = hdsApiClient;
@@ -303,7 +322,12 @@ public class HDSBatchApiExportManager {
                 responseStream = response.getEntityInputStream();
                 JavaResult javaResult = SmooksUtil.getParsedXMLJavaResult(
                         responseStream, HDSConstants.SMOOKS_CONFIG_FILE);
-                verifyErrorPayload(javaResult);
+                try {
+                    verifyErrorPayload(javaResult);
+                } catch (HDSException hdsException) {
+                    log.info("invalid response from server, retrying operation");
+                    retryBatchHSDDelete(systemId, hsdList, model, javaResult, response);
+                }
             } else {
                 throw HDSException.exceptions
                         .invalidResponseFromHDS(String
@@ -311,6 +335,7 @@ public class HDSBatchApiExportManager {
                                         response.getStatus()));
             }
         } finally {
+            batchHSDDeleteRetries.remove();//re-initializing the max retries to zero
             if (null != responseStream) {
                 try {
                     responseStream.close();
@@ -322,6 +347,73 @@ public class HDSBatchApiExportManager {
         log.info("Batch Query to delete HSD's completed.");
     }
 
+    private void retryBatchHSDDelete(String systemId, List<HostStorageDomain> hsdList, String model, JavaResult javaResult,
+            ClientResponse response)
+            throws InterruptedException, Exception {
+        Error error = javaResult.getBean(Error.class);
+        if (error != null && (error.getDescription().contains("2010")
+                || error.getDescription().contains("5132") || error.getDescription().contains("7473"))
+                && batchHSDDeleteRetries.get() <= MAX_RETRIES) {
+            Thread.sleep(60000); // Wait for a minute before retry
+            List<HostStorageDomain> unDeletedHSDs = new ArrayList<>();
+            unDeletedHSDs.addAll(hsdList.stream().filter(hsd -> getHostStorageDomain(systemId, hsd.getObjectID()) != null)
+                    .collect(Collectors.toList()));
+            batchHSDDeleteRetries.set(new Integer(batchHSDDeleteRetries.get() + 1));
+            deleteBatchHostStorageDomains(systemId, unDeletedHSDs, model);
+        } else {
+            throw HDSException.exceptions
+                    .invalidResponseFromHDS(String
+                            .format("Not able to delete HostStorageDomains due to invalid response %1$s from server",
+                                    response.getStatus()));
+        }
+    }
+
+    /**
+     * Return the existing HSD's configured on the storage array.
+     * 
+     * @param systemId
+     * @param type
+     * @return
+     * @throws Exception
+     */
+    public HostStorageDomain getHostStorageDomain(String systemId, String hsdId) {
+        InputStream responseStream = null;
+        HostStorageDomain hsd = null;
+        try {
+            Map<String, Object> attributeMap = new HashMap<String, Object>();
+            StorageArray array = new StorageArray(systemId);
+            attributeMap.put(HDSConstants.STORAGEARRAY, array);
+            Get getOp = new Get(HDSConstants.STORAGEARRAY);
+            attributeMap.put(HDSConstants.GET, getOp);
+            HostStorageDomain inputHsd = new HostStorageDomain(hsdId);
+            attributeMap.put(HDSConstants.HOST_STORAGE_DOMAIN, inputHsd);
+
+            String getHSDQuery = InputXMLGenerationClient.getInputXMLString(
+                    HDSConstants.GET_HSD_INFO_OP, attributeMap,
+                    HDSConstants.HITACHI_INPUT_XML_CONTEXT_FILE,
+                    HDSConstants.HITACHI_SMOOKS_CONFIG_FILE);
+
+            log.info("Query to get HostStorageDomain: {}", getHSDQuery);
+            URI endpointURI = hdsApiClient.getBaseURI();
+            ClientResponse response = hdsApiClient.post(endpointURI, getHSDQuery);
+            if (HttpStatus.SC_OK == response.getStatus()) {
+                responseStream = response.getEntityInputStream();
+                JavaResult javaResult = SmooksUtil.getParsedXMLJavaResult(responseStream,
+                        HDSConstants.SMOOKS_CONFIG_FILE);
+                hsd = javaResult.getBean(HostStorageDomain.class);
+            } 
+        } finally {
+            if (null != responseStream) {
+                try {
+                    responseStream.close();
+                } catch (IOException e) {
+                    log.warn("IOException occurred while closing the response stream");
+                }
+            }
+        }
+        return hsd;
+    }
+    
     /**
      * This method makes HTTP POST call to delete LUN Paths's using a batch
      * query from the storage system.
@@ -348,7 +440,12 @@ public class HDSBatchApiExportManager {
                 responseStream = response.getEntityInputStream();
                 JavaResult javaResult = SmooksUtil.getParsedXMLJavaResult(
                         responseStream, HDSConstants.SMOOKS_CONFIG_FILE);
-                verifyErrorPayload(javaResult);
+                try {
+                    verifyErrorPayload(javaResult);
+                } catch (HDSException hdsException) {
+                    log.info("invalid response from server, retrying operation");
+                    retryLunPathsDelete(systemId, pathList, model, javaResult, response);
+                }
                 log.info("Deleted {} LUN paths from system:{}",
                         pathList.size(), systemId);
             } else {
@@ -358,6 +455,7 @@ public class HDSBatchApiExportManager {
                                         response.getStatus()));
             }
         } finally {
+            batchLunPathDeleteRetries.remove();//Reinitializes the thread local variable to zero
             if (null != responseStream) {
                 try {
                     responseStream.close();
@@ -366,6 +464,24 @@ public class HDSBatchApiExportManager {
                 }
             }
         }
+    }
+    
+    private void retryLunPathsDelete(String systemId, List<Path> pathList, String model, JavaResult javaResult, ClientResponse response)
+            throws Exception {
+        Error error = javaResult.getBean(Error.class);
+        if (error != null && (error.getDescription().contains("2010")
+                || error.getDescription().contains("5132") || error.getDescription().contains("7473"))
+                && batchLunPathDeleteRetries.get() <= MAX_RETRIES) {
+            Thread.sleep(60000); // Wait for a minute before retry
+            batchLunPathDeleteRetries.set(new Integer(batchLunPathDeleteRetries.get() + 1));
+            deleteLUNPathsFromStorageSystem(systemId, pathList, model);
+        } else {
+            throw HDSException.exceptions
+                    .invalidResponseFromHDS(String
+                            .format("Not able to delete LunPaths due to invalid response %1$s from server",
+                                    response.getStatus()));
+        }
+
     }
 
     /**

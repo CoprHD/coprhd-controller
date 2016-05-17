@@ -2944,7 +2944,7 @@ public class BlockService extends TaskResourceService {
         ArgValidator.checkEntity(copyVolume, copy.getCopyID(), true);
 
         if (op.equalsIgnoreCase(ProtectionOp.CHANGE_ACCESS_MODE.getRestOp()) &&
-                !Copy.ImageAccessMode.DIRECT_ACCESS.name().equalsIgnoreCase(copy.getImageAccessMode())) {
+                !Copy.ImageAccessMode.DIRECT_ACCESS.name().equalsIgnoreCase(copy.getAccessMode())) {
             // TODO: throw unsupported exception for invalid access mode
         }
 
@@ -2976,7 +2976,7 @@ public class BlockService extends TaskResourceService {
 
         RPController controller = getController(RPController.class, system.getSystemType());
 
-        controller.performProtectionOperation(system.getId(), id, copy.getCopyID(), copy.getPointInTime(), copy.getImageAccessMode(), op,
+        controller.performProtectionOperation(system.getId(), id, copy.getCopyID(), copy.getPointInTime(), copy.getAccessMode(), op,
                 task);
         /*
          * auditOp(OperationTypeEnum.PERFORM_PROTECTION_ACTION, true, AuditLogManager.AUDITOP_BEGIN,

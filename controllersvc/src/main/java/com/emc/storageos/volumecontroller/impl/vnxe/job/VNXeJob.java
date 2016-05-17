@@ -225,17 +225,18 @@ public class VNXeJob extends Job implements Serializable {
      * @return
      */
     public VNXeApiClient getVNXeClient(JobContext jobContext) {
-	VNXeApiClient vnxeApiClient = null;
+
+        VNXeApiClient vnxeApiClient = null;
         StorageSystem storageSystem = jobContext.getDbClient().queryObject(StorageSystem.class, _storageSystemUri);
-	 if (Type.unity.toString().equalsIgnoreCase(storageSystem.getSystemType())) {
-		vnxeApiClient = jobContext.getVNXeApiClientFactory().getUnityClient(
-                        storageSystem.getIpAddress(), storageSystem.getPortNumber(),
-                        storageSystem.getUsername(), storageSystem.getPassword());
-	}else{
-	        vnxeApiClient = jobContext.getVNXeApiClientFactory().getClient(
-        	        storageSystem.getIpAddress(), storageSystem.getPortNumber(),
-                	storageSystem.getUsername(), storageSystem.getPassword());
-	}
+        if (Type.unity.toString().equalsIgnoreCase(storageSystem.getSystemType())) {
+            vnxeApiClient = jobContext.getVNXeApiClientFactory().getUnityClient(
+                    storageSystem.getIpAddress(), storageSystem.getPortNumber(),
+                    storageSystem.getUsername(), storageSystem.getPassword());
+        } else {
+            vnxeApiClient = jobContext.getVNXeApiClientFactory().getClient(
+                    storageSystem.getIpAddress(), storageSystem.getPortNumber(),
+                    storageSystem.getUsername(), storageSystem.getPassword());
+        }
         return vnxeApiClient;
     }
 

@@ -4,6 +4,15 @@
  */
 package com.emc.vipr.client.core;
 
+import static com.emc.vipr.client.core.util.ResourceUtils.defaultList;
+
+import java.net.URI;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import javax.ws.rs.core.UriBuilder;
+
 import com.emc.storageos.model.BulkIdParam;
 import com.emc.storageos.model.NamedRelatedResourceRep;
 import com.emc.storageos.model.TaskList;
@@ -14,14 +23,6 @@ import com.emc.storageos.model.tasks.TaskStatsRestRep;
 import com.emc.storageos.model.tasks.TasksList;
 import com.emc.vipr.client.core.impl.PathConstants;
 import com.emc.vipr.client.impl.RestClient;
-
-import javax.ws.rs.core.UriBuilder;
-import java.net.URI;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
-import static com.emc.vipr.client.core.util.ResourceUtils.defaultList;
 
 /**
  * Tasks resources.
@@ -150,6 +151,20 @@ public class TasksResources extends AbstractBulkResources<TaskResourceRep> {
 
     public TaskStatsRestRep getStats() {
         return getStatsByTenant(null);
+    }
+
+    /**
+     * Resume the task
+     */
+    public void resume() {
+        client.postURI(String.class, client.uriBuilder(baseUrl + "/resume").build());
+    }
+
+    /**
+     * Rollback the task
+     */
+    public void rollback() {
+        client.postURI(String.class, client.uriBuilder(baseUrl + "/rollback").build());
     }
 
     /**

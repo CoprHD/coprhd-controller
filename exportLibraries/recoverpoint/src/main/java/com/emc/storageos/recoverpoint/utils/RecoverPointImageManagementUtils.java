@@ -449,15 +449,22 @@ public class RecoverPointImageManagementUtils {
         }
     }
 
+    /**
+     * Enables CG direct access mode on the specified copy.
+     * 
+     * @param impl the FAPI implementation
+     * @param copyToEnableDirectAccess the copy to enable direct access on
+     * @throws RecoverPointException
+     */
     public void enableCGCopyDirectAcess(FunctionalAPIImpl impl, RPCopyRequestParams copyToEnableDirectAccess)
             throws RecoverPointException {
         String cgCopyName = NAME_UNKNOWN;
         String cgName = NAME_UNKNOWN;
 
+        // Not check cgCopUID for null because RecoverPointUtils.mapRPVolumeProtectionInfoToCGCopyUID
+        // ensures it will not be null.
         ConsistencyGroupCopyUID cgCopyUID = RecoverPointUtils.mapRPVolumeProtectionInfoToCGCopyUID(copyToEnableDirectAccess
                 .getCopyVolumeInfo());
-
-        // TODO: make sure the copy we are operating on is not a production copy
 
         try {
             cgCopyName = impl.getGroupCopyName(cgCopyUID);

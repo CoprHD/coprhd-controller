@@ -10,7 +10,7 @@ import com.emc.storageos.recoverpoint.responses.RecoverPointVolumeProtectionInfo
 
 /**
  * RP Copy object model object. This param object is used to restore/failover/enable RP volumes
- * 
+ *
  */
 public class RPCopyRequestParams {
 
@@ -21,6 +21,11 @@ public class RPCopyRequestParams {
     private String bookmarkName;
     private Date apitTime;
     private RecoverPointVolumeProtectionInfo copyVolumeInfo;
+    private String imageAccessMode;
+
+    public enum ImageAccessMode {
+        DIRECT_ACCESS
+    }
 
     public RPCopyRequestParams() {
         bookmarkName = null;
@@ -56,4 +61,13 @@ public class RPCopyRequestParams {
     public void setCopyVolumeInfo(RecoverPointVolumeProtectionInfo copyVolumeInfo) {
         this.copyVolumeInfo = copyVolumeInfo;
     }
+
+    public String getImageAccessMode() {
+        return imageAccessMode;
+    }
+
+    public void setImageAccessMode(String imageAccessMode) {
+        this.imageAccessMode = imageAccessMode;
+    }
+
 }

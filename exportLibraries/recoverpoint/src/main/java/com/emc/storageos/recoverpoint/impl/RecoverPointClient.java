@@ -2398,9 +2398,26 @@ public class RecoverPointClient {
         // imageManager.disableCGCopy(functionalAPI, cgCopyUID);
     }
 
-    public void enableCGCopyDirectAccess(RPCopyRequestParams copyToEnableDirectAccess) throws RecoverPointException {
-        RecoverPointImageManagementUtils imageManager = new RecoverPointImageManagementUtils();
-        imageManager.enableCGCopyDirectAcess(functionalAPI, copyToEnableDirectAccess);
+    /**
+     * Update the image access mode for a consistency group copy. Currently, the only supported access
+     * mode is direct access.
+     *
+     * @param copyToEnableImageAccessMode the copy to change image access mode on
+     * @throws RecoverPointException
+     */
+    public void updateImageAccessMode(RPCopyRequestParams copyToEnableImageAccessMode) throws RecoverPointException {
+        if (copyToEnableImageAccessMode != null) {
+            RecoverPointImageManagementUtils imageManager = new RecoverPointImageManagementUtils();
+
+            if (RPCopyRequestParams.ImageAccessMode.DIRECT_ACCESS.name().equalsIgnoreCase(copyToEnableImageAccessMode.getImageAccessMode())) {
+                imageManager.enableCGCopyDirectAcess(functionalAPI, copyToEnableImageAccessMode);
+            } else {
+                logger.error(String.format("Attempting to update image access mode to an unsupported access mode: ",
+                        copyToEnableImageAccessMode.getImageAccessMode()));
+            }
+        } else {
+            logger.error("Attempting to update image access mode with null request parameters.");
+        }
     }
 
     /**

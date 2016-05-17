@@ -78,7 +78,6 @@ import com.emc.storageos.locking.LockRetryException;
 import com.emc.storageos.locking.LockTimeoutValue;
 import com.emc.storageos.locking.LockType;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
-import com.emc.storageos.model.block.Copy;
 import com.emc.storageos.plugins.common.Constants;
 import com.emc.storageos.protectioncontroller.RPController;
 import com.emc.storageos.recoverpoint.exceptions.RecoverPointException;
@@ -4322,8 +4321,9 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                 taskCompleter.setOperationTypeEnum(OperationTypeEnum.CHANGE_RP_IMAGE_ACCESS_MODE);
                 RPCopyRequestParams copyParams = new RPCopyRequestParams();
                 copyParams.setCopyVolumeInfo(volumeProtectionInfo);
-                if (imageAccessMode != null && Copy.ImageAccessMode.DIRECT_ACCESS.name().equalsIgnoreCase(imageAccessMode)) {
-                    rp.enableCGCopyDirectAccess(copyParams);
+                copyParams.setImageAccessMode(imageAccessMode);
+                if (imageAccessMode != null) {
+                    rp.updateImageAccessMode(copyParams);
                     taskCompleter.ready(_dbClient, _locker);
                 } else {
                     taskCompleter.error(_dbClient, _locker,

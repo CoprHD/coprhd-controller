@@ -22,6 +22,9 @@ import com.sun.jersey.api.client.ClientResponse;
 
 import static com.google.json.JsonSanitizer.*;
 
+/**
+ * Implements communication with 3PAR storage  
+ */
 
 public class HP3PARApi {
     private final URI _baseUrl;
@@ -49,6 +52,13 @@ public class HP3PARApi {
         _client.close();
     }
     
+    /**
+     * Get authentication token from the storage
+     * @param user user name 
+     * @param password password
+     * @return authentication token
+     * @throws Exception
+     */
     public String getAuthToken(String user, String password) throws Exception {
         _log.info("HP3PARApi:getAuthToken enter");
         String authToken = null;
@@ -81,6 +91,11 @@ public class HP3PARApi {
         } //end try/catch/finally
     }
 
+    /**
+     * Get authentication token from the storage
+     * @return authentication token
+     * @throws Exception
+     */
     public String getAuthToken() throws Exception {
         _log.info("HP3PARApi:getAuthToken enter, after expiry");
         String authToken = null;
@@ -111,6 +126,11 @@ public class HP3PARApi {
         } //end try/catch/finally
     }
 
+    /**
+     * Gets the storage array information
+     * @return array details
+     * @throws Exception
+     */
     public SystemCommandResult getSystemDetails() throws Exception {
         _log.info("HP3PARApi:getSystemDetails enter");
         ClientResponse clientResp = null;
@@ -140,6 +160,11 @@ public class HP3PARApi {
         } //end try/catch/finally
     }
     
+    /**
+     * Gets 3PAR CPG attributes
+     * @return CPG details
+     * @throws Exception
+     */
     public CPGCommandResult getCPGDetails() throws Exception {
         _log.info("HP3PARApi:getCPGDetails enter");
         ClientResponse clientResp = null;
@@ -169,6 +194,11 @@ public class HP3PARApi {
         } //end try/catch/finally
     }    
     
+    /**
+     * Gets host port information
+     * @return port details
+     * @throws Exception
+     */
     public PortCommandResult getPortDetails() throws Exception {
         _log.info("HP3PARApi:getPortDetails enter");
         ClientResponse clientResp = null;
@@ -198,6 +228,11 @@ public class HP3PARApi {
         } //end try/catch/finally
     }    
     
+    /**
+     * Get port statistics information
+     * @return port details
+     * @throws Exception
+     */
     public PortStatisticsCommandResult getPortStatisticsDetail() throws Exception {
         _log.info("HP3PARApi:getPortStatisticsDetail enter");
         ClientResponse clientResp = null;

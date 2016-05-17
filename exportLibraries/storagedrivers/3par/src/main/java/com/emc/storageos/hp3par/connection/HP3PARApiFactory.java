@@ -158,6 +158,7 @@ public class HP3PARApiFactory {
     }
     
     // Sample direct program
+    /*
     public static void main(String[] args) {
         System.out.println("starting HP3PAR main");
         try {
@@ -182,4 +183,5 @@ public class HP3PARApiFactory {
             e.printStackTrace();
         }
    } //end main
+   */
 }

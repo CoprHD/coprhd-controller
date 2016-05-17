@@ -58,6 +58,12 @@ import com.emc.storageos.storagedriver.storagecapabilities.CommonStorageCapabili
 import com.emc.storageos.storagedriver.storagecapabilities.CustomStorageCapabilities;
 import com.emc.storageos.storagedriver.storagecapabilities.StorageCapabilities;
 
+/**
+ * 
+ * Implements functions to discover the HP 3PAR storage and provide provisioning
+ * You can refer super class for method details
+ *
+ */
 public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockStorageDriver {
 
 	private static final Logger _log = LoggerFactory.getLogger(HP3PARStorageDriver.class);
@@ -95,6 +101,7 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
 		return null;
 	}
 	
+
 	@Override
 	public DriverTask discoverStorageSystem(List<StorageSystem> storageSystems) {
 	    DriverTask task = createDriverTask(HP3PARConstants.TASK_TYPE_DISCOVER_STORAGE_SYSTEM);
@@ -172,6 +179,9 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
 	    return task;
 	}
 
+	/**
+	 * 
+	 */
 	@Override
 	public DriverTask discoverStoragePools(StorageSystem storageSystem, List<StoragePool> storagePools) {
 	    //For this 3PAR system

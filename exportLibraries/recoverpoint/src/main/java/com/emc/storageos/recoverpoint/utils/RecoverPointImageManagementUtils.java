@@ -5,6 +5,8 @@
 package com.emc.storageos.recoverpoint.utils;
 
 import java.sql.Timestamp;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.HashMap;
@@ -274,7 +276,7 @@ public class RecoverPointImageManagementUtils {
                 // Verify image is enabled correctly
                 logger.info("Wait for image to be in correct mode");
                 // This will wait for the state change, and throw if it times out or gets some other error
-                waitForCGCopyState(impl, cgCopy, accessMode, false);
+                waitForCGCopyState(impl, cgCopy, false, accessMode);
             }
 
         } catch (FunctionalAPIActionFailedException_Exception e) {
@@ -426,7 +428,7 @@ public class RecoverPointImageManagementUtils {
             cgName = impl.getGroupName(cgCopyUID.getGroupUID());
 
             // Wait for the RP failover to complete before obtaining the list of production copies
-            waitForCGCopyState(impl, cgCopyUID, null, false);
+            waitForCGCopyState(impl, cgCopyUID, false);
 
             ConsistencyGroupSettings groupSettings = impl.getGroupSettings(cgCopyUID.getGroupUID());
             List<ConsistencyGroupCopyUID> prodCopiesUIDs = groupSettings.getProductionCopiesUIDs();
@@ -462,7 +464,9 @@ public class RecoverPointImageManagementUtils {
             cgName = impl.getGroupName(cgCopyUID.getGroupUID());
 
             // Wait for the copy to be in logged access mode
-            waitForCGCopyState(impl, cgCopyUID, ImageAccessMode.LOGGED_ACCESS, false);
+            ImageAccessMode[] accessModes = new ImageAccessMode[] { ImageAccessMode.LOGGED_ACCESS, ImageAccessMode.VIRTUAL_ACCESS,
+                    ImageAccessMode.VIRTUAL_ACCESS_WITH_ROLL };
+            waitForCGCopyState(impl, cgCopyUID, false, accessModes);
 
             impl.enableDirectAccess(cgCopyUID);
         } catch (FunctionalAPIActionFailedException_Exception e) {
@@ -567,7 +571,7 @@ public class RecoverPointImageManagementUtils {
         impl.recoverProduction(groupCopy, true);
         logger.info("Wait for recoverProduction to complete");
         // 4.0 logic. Wait for the copy to no longer be in image access mode.
-        this.waitForCGCopyState(impl, groupCopy, ImageAccessMode.UNKNOWN, false);
+        this.waitForCGCopyState(impl, groupCopy, false, ImageAccessMode.UNKNOWN);
     }
 
     /**
@@ -1012,16 +1016,16 @@ public class RecoverPointImageManagementUtils {
      *
      * @param port - RP handle to use for RP operations
      * @param groupCopy - RP group copy we are looking at
-     * @param accessMode - Access mode we are waiting for
      * @param expectRollComplete - true or false we are expecting the state to be LOGGED_ACCESS_WITH_ROLL, and the roll is complete
+     * @param accessMode - Access modes we are waiting for. Optional
      *
      * @return void
      *
      * @throws RecoverPointException, FunctionalAPIActionFailedException_Exception, FunctionalAPIInternalError_Exception,
      *             InterruptedException
      **/
-    public void waitForCGCopyState(FunctionalAPIImpl port, ConsistencyGroupCopyUID groupCopy, ImageAccessMode accessMode,
-            boolean expectRollComplete)
+    public void waitForCGCopyState(FunctionalAPIImpl port, ConsistencyGroupCopyUID groupCopy,
+            boolean expectRollComplete, ImageAccessMode... accessMode)
             throws FunctionalAPIActionFailedException_Exception, FunctionalAPIInternalError_Exception, InterruptedException,
             RecoverPointException {
         ConsistencyGroupUID groupUID = groupCopy.getGroupUID();
@@ -1033,11 +1037,13 @@ public class RecoverPointImageManagementUtils {
         final int sleepTimeSeconds = 15; // seconds
         final int secondsPerMin = 60;
         final int numItersPerMin = secondsPerMin / sleepTimeSeconds;
-        logger.info("waitForCGCopyState called for copy " + cgCopyName + " of group " + cgName);
+
+        List<ImageAccessMode> accessModes = new ArrayList<ImageAccessMode>();
 
         logger.info("waitForCGCopyState called for copy " + cgCopyName + " of group " + cgName);
         if (accessMode != null) {
             logger.info("Waiting up to " + maxMinutes + " minutes for state to change to: " + accessMode);
+            accessModes = Arrays.asList(accessMode);
         } else {
             logger.info("Waiting up to " + maxMinutes + " minutes for state to change to: DIRECT_ACCESS or NO_ACCESS");
         }
@@ -1049,19 +1055,19 @@ public class RecoverPointImageManagementUtils {
                         StorageAccessState copyAccessState = groupCopyState.getStorageAccessState();
                         logger.info("Current Copy Access State: " + copyAccessState);
 
-                        if (accessMode == ImageAccessMode.LOGGED_ACCESS) {
+                        if (accessModes.contains(ImageAccessMode.LOGGED_ACCESS)) {
                             // HACK HACK HACK WJE had to add check for no access journal preserved, otherwise my restore wouldn't continue
                             if (copyAccessState == StorageAccessState.LOGGED_ACCESS
                                     || copyAccessState == StorageAccessState.NO_ACCESS_JOURNAL_PRESERVED) {
                                 logger.info("Copy " + cgCopyName + " of group " + cgName + " is in logged access.  Enable has completed");
                                 return;
                             }
-                        } else if (accessMode == ImageAccessMode.VIRTUAL_ACCESS) {
+                        } else if (accessModes.contains(ImageAccessMode.VIRTUAL_ACCESS)) {
                             if (copyAccessState == StorageAccessState.VIRTUAL_ACCESS) {
                                 logger.info("Copy " + cgCopyName + " of group " + cgName + " is in virtual access.  Enable has completed");
                                 return;
                             }
-                        } else if (accessMode == ImageAccessMode.VIRTUAL_ACCESS_WITH_ROLL) {
+                        } else if (accessModes.contains(ImageAccessMode.VIRTUAL_ACCESS_WITH_ROLL)) {
                             if (expectRollComplete) {
                                 if (copyAccessState == StorageAccessState.LOGGED_ACCESS_ROLL_COMPLETE) {
                                     logger.info("Copy " + cgCopyName + " of group " + cgName

@@ -421,8 +421,10 @@ public class WorkflowService implements WorkflowController {
                 		if (workflow.getStepMap().get(step.foundingStepId) != null) {
                 			Step foundingStep = workflow.getStepMap().get(step.foundingStepId);
                 			StepStatus foundingStatus = workflow.getStepStatus(step.foundingStepId);
-                			foundingStatus.updateState(StepState.ERROR, code, message);
-                			persistWorkflowStepUpdate(workflow, foundingStep);
+                			if (StepState.SUSPENDED_ERROR.equals(foundingStatus.state)) {
+                				foundingStatus.updateState(StepState.ERROR, code, message);
+                				persistWorkflowStepUpdate(workflow, foundingStep);
+                			}
                 		}
                 	}
                 }

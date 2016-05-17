@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014 EMC Corporation
+ * Copyright (c) 2016 EMC Corporation
  * All Rights Reserved
  */
 
@@ -57,9 +57,9 @@ import com.google.common.base.Joiner;
  * Create Export Mask
  *
  */
-public class XIVRESTOperationHelper {
+public class XIVRESTOperationsHelper {
 
-    private static Logger _log = LoggerFactory.getLogger(XIVRESTOperationHelper.class);
+    private static Logger _log = LoggerFactory.getLogger(XIVRESTOperationsHelper.class);
 
     private DbClient _dbClient;
     private XIVApiFactory _restAPIFactory;
@@ -137,7 +137,7 @@ public class XIVRESTOperationHelper {
      * @param hostName Host name to ve validated
      * @return true if the host is part of Cluster. Else false.
      */
-    public boolean isClusteredHostOnArray(StorageSystem storage, String hostName) {
+    private boolean isClusteredHostOnArray(StorageSystem storage, String hostName) {
         boolean isClusteredHost = false;
         XIVRESTExportOperations restExportOpr = getRestClient(storage);
         if (null != restExportOpr && null != hostName) {

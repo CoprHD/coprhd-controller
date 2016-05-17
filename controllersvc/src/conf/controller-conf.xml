@@ -109,7 +109,7 @@
         <property name="smisCommandHelper" ref="xivSmisCommandHelper"/>
         <property name="dbClient" ref="dbclient"/>
         <property name="cimObjectPathFactory" ref="ibmCIMObjectPathFactory"/>
-        <property name="restOperationHelper" ref="xivRestOperationHelper"/>
+        <property name="restOperationsHelper" ref="xivRestOperationsHelper"/>
     </bean>
     
     <bean id="xivStoragedevicePreProcessor" class="com.emc.storageos.volumecontroller.impl.smis.ibm.xiv.XIVSmisStorageDevicePreProcessor">
@@ -1557,7 +1557,7 @@
        <property name="socketConnectionTimeoutMs" value="7200000" />	
 	</bean>
 	
-	<bean id="xivRestOperationHelper" class="com.emc.storageos.volumecontroller.impl.xiv.XIVRESTOperationHelper">
+	<bean id="xivRestOperationsHelper" class="com.emc.storageos.volumecontroller.impl.xiv.XIVRESTOperationsHelper">
         <property name="dbClient" ref="dbclient"/>
         <property name="restAPIFactory" ref="xivapifactory"/>
     </bean>

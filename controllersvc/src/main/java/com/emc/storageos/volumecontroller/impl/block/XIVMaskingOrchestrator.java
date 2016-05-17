@@ -644,7 +644,7 @@ public class XIVMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
         queryHostInitiatorsAndAddToList(portNames, portNameToInitiatorURI,
                 initiatorURIs, hostURIs);
         
-        //TODO : update volumeMap here to find the next HLU here.
+        // Update volumeMap to find the next HLU here.
         updateVolumeHLU(storage, initiatorURIs, exportGroup, volumeMap);
 
         // Find the export masks that are associated with any or all the ports in
@@ -1052,6 +1052,8 @@ public class XIVMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                     _log.info("Updating HLU of Volume {} from {} to " + nextHLU, volumeMapEntry.getKey(), volumeMapEntry.getValue());
                     commonHLUs.add(String.valueOf(nextHLU));
                     volumeMap.put(volumeMapEntry.getKey(), Integer.valueOf(nextHLU));
+                } else {
+                    //TODO : throw exception if it exceeds max HLU
                 }
             }
         }

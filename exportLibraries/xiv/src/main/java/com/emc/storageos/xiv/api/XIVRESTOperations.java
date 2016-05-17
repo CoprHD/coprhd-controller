@@ -4,24 +4,14 @@
  */
 package com.emc.storageos.xiv.api;
 
-import java.io.IOException;
 import java.net.URI;
 import java.text.MessageFormat;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
-import org.apache.commons.httpclient.HttpClient;
-import org.apache.commons.httpclient.HttpMethod;
-import org.apache.commons.httpclient.HttpMethodRetryHandler;
-import org.apache.commons.httpclient.MultiThreadedHttpConnectionManager;
-import org.apache.commons.httpclient.params.HttpConnectionManagerParams;
-import org.apache.commons.httpclient.params.HttpMethodParams;
-import org.apache.commons.httpclient.protocol.Protocol;
 import org.codehaus.jettison.json.JSONArray;
 import org.codehaus.jettison.json.JSONException;
 import org.codehaus.jettison.json.JSONObject;
@@ -29,21 +19,17 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.db.client.model.ExportGroup;
-import com.sun.jersey.api.client.Client;
 import com.sun.jersey.api.client.ClientResponse;
-import com.sun.jersey.client.apache.ApacheHttpClient;
-import com.sun.jersey.client.apache.ApacheHttpClientHandler;
 
 /**
- * Performs all the Export operations on XIV - Hyperscale Manager using its REST APIs
+ * Performs all the operations on XIV - Hyperscale Manager using its REST APIs
  */
-public class XIVRESTExportOperations {
+public class XIVRESTOperations {
 
-    private static Logger _log = LoggerFactory.getLogger(XIVRESTExportOperations.class);
+    private static Logger _log = LoggerFactory.getLogger(XIVRESTOperations.class);
     private final RESTClient _client;
     private final URI _baseURI;
 
-    private static final String ID = "id";
     private static final String SEPARATOR = ":";
     private static final String NAME = "name";
     private static final String VOLUME = "volume";
@@ -180,12 +166,12 @@ public class XIVRESTExportOperations {
     }
 
     /**
-     * Constructor of XIVRESTExportOperations
+     * Constructor of XIVRESTOperations
      * 
      * @param endpoint Base URI of Hyperscale Manager
      * @param client REST Client instance
      */
-    public XIVRESTExportOperations(URI endpoint, RESTClient client) {
+    public XIVRESTOperations(URI endpoint, RESTClient client) {
         _baseURI = endpoint;
         _client = client;
     }
@@ -592,67 +578,4 @@ public class XIVRESTExportOperations {
 
         return discVolWWNMappedToHost;
     }
-
-    // TODO : For dev testing. To be removed later.
-    public static void main(String[] args) throws Exception {
-
-        // Setup the connection parameters.
-        HttpConnectionManagerParams params = new HttpConnectionManagerParams();
-        params.setMaxTotalConnections(300);
-        params.setDefaultMaxConnectionsPerHost(100);
-        params.setConnectionTimeout(1000 * 30);
-        params.setSoTimeout(1000 * 60 * 60);
-        params.setTcpNoDelay(true);
-
-        MultiThreadedHttpConnectionManager mgr = new MultiThreadedHttpConnectionManager();
-        mgr.setParams(params);
-        mgr.closeIdleConnections(0);
-
-        HttpClient client = new HttpClient(mgr);
-        client.getParams().setConnectionManagerTimeout(1000 * 60 * 60);
-        client.getParams().setParameter(HttpMethodParams.RETRY_HANDLER,
-                new HttpMethodRetryHandler() {
-                    @Override
-                    public boolean retryMethod(HttpMethod httpMethod, IOException e, int i) {
-                        return false;
-                    }
-                });
-
-        Protocol.registerProtocol("https", new Protocol("https", new NonValidatingSocketFactory(), 4443));
-
-        ApacheHttpClientHandler _clientHandler = new ApacheHttpClientHandler(client);
-        Client jerseyClient = new ApacheHttpClient(_clientHandler);
-        RESTClient restClient = new RESTClient(jerseyClient, "admin", "adminadmin");
-
-        XIVRESTExportOperations storageDevice = new XIVRESTExportOperations(URI.create("https://lglou188.lss.emc.com:8443"), restClient);
-
-        String xivSystem = "10.247.23.203";
-        String clusterName = "Vineeth_Cluster_1";
-        Map<String, List<String>> hostInitiatorMap = new HashMap<String, List<String>>();
-        List<String> initiators = new ArrayList<String>();
-        initiators.add("1000000000000001");
-        initiators.add("1000000000000002");
-        hostInitiatorMap.put("Vineeth_Host_1", initiators);
-
-        /*
-         * storageDevice.createCluster(xivSystem, clusterName);
-         * 
-         * Iterator<Entry<String, List<String>>> set = hostInitiatorMap.entrySet().iterator();
-         * while(set.hasNext()){
-         * Entry<String, List<String>> entry = set.next();
-         * storageDevice.createHost(xivSystem, clusterName, entry.getKey());
-         * List<String> ini = entry.getValue();
-         * for(String initiator : ini){
-         * storageDevice.createHostPort(xivSystem, entry.getKey(), initiator, "fc");
-         * }
-         * }
-         */
-
-        // storageDevice.exportVolumeToCluster(xivSystem, clusterName, "Test_Private_LUN_toCluster", "4");
-
-        storageDevice.getHostStatus(xivSystem, "Vineeth_Host_1");
-
-        restClient.close();
-    }
-
 }

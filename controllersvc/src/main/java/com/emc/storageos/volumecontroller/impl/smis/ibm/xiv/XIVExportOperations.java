@@ -61,7 +61,7 @@ import com.emc.storageos.volumecontroller.impl.smis.SmisException;
 import com.emc.storageos.volumecontroller.impl.smis.ibm.IBMCIMObjectPathFactory;
 import com.emc.storageos.volumecontroller.impl.smis.ibm.IBMSmisConstants;
 import com.emc.storageos.volumecontroller.impl.utils.ExportMaskUtils;
-import com.emc.storageos.volumecontroller.impl.xiv.XIVRESTOperationHelper;
+import com.emc.storageos.volumecontroller.impl.xiv.XIVRESTOperationsHelper;
 import com.google.common.base.Joiner;
 import com.google.common.base.Strings;
 
@@ -86,7 +86,7 @@ public class XIVExportOperations implements ExportMaskOperations {
     private XIVSmisCommandHelper _helper;
     private DbClient _dbClient;
     private IBMCIMObjectPathFactory _cimPath;
-    private XIVRESTOperationHelper _restAPIHelper;
+    private XIVRESTOperationsHelper _restAPIHelper;
 
     @Autowired
     private NetworkDeviceController _networkDeviceController;
@@ -104,7 +104,7 @@ public class XIVExportOperations implements ExportMaskOperations {
         _dbClient = dbClient;
     }
     
-    public void setRestOperationHelper(XIVRESTOperationHelper helper) {
+    public void setRestOperationsHelper(XIVRESTOperationsHelper helper) {
         _restAPIHelper = helper;
     }
 
@@ -323,7 +323,7 @@ public class XIVExportOperations implements ExportMaskOperations {
         _log.info("{} createExportMask END...", storage.getLabel());
     }
 
-    public void deleteSMISExportMask(StorageSystem storage, URI exportMaskURI,
+    private void deleteSMISExportMask(StorageSystem storage, URI exportMaskURI,
             List<URI> volumeURIList, List<URI> targetURIList,
             List<Initiator> initiatorList, TaskCompleter taskCompleter)
             throws DeviceControllerException {
@@ -728,7 +728,7 @@ public class XIVExportOperations implements ExportMaskOperations {
         return matchingMasks;
     }
 
-    public ExportMask refreshSMISExportMask(StorageSystem storage, ExportMask mask) {
+    private ExportMask refreshSMISExportMask(StorageSystem storage, ExportMask mask) {
         try {
             CIMInstance instance = _helper.getSCSIProtocolController(storage,
                     mask);

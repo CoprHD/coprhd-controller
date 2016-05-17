@@ -42,7 +42,7 @@ public class XIVApiFactory {
     private int connManagerTimeout = DEFAULT_CONN_MGR_TIMEOUT;
 
     private ApacheHttpClientHandler _clientHandler;
-    private ConcurrentMap<String, XIVRESTExportOperations> _clientMap;
+    private ConcurrentMap<String, XIVRESTOperations> _clientMap;
     private MultiThreadedHttpConnectionManager _connectionManager;
 
     /**
@@ -93,7 +93,7 @@ public class XIVApiFactory {
      */
     public void init() {
         _log.info(" XIVApiFactory:init XIVApi factory initialization");
-        _clientMap = new ConcurrentHashMap<String, XIVRESTExportOperations>();
+        _clientMap = new ConcurrentHashMap<String, XIVRESTOperations>();
 
         HttpConnectionManagerParams params = new HttpConnectionManagerParams();
         params.setDefaultMaxConnectionsPerHost(_maxConnPerHost);
@@ -132,12 +132,12 @@ public class XIVApiFactory {
      * @param endpoint XIV endpoint
      * @return
      */
-    public XIVRESTExportOperations getRESTClient(URI endpoint, String username, String password) {
-        XIVRESTExportOperations api = _clientMap.get(endpoint.toString() + ":" + username + ":" + password);
+    public XIVRESTOperations getRESTClient(URI endpoint, String username, String password) {
+        XIVRESTOperations api = _clientMap.get(endpoint.toString() + ":" + username + ":" + password);
         if (api == null) {
             Client jerseyClient = new ApacheHttpClient(_clientHandler);
             RESTClient restClient = new RESTClient(jerseyClient, username, password);
-            api = new XIVRESTExportOperations(endpoint, restClient);
+            api = new XIVRESTOperations(endpoint, restClient);
             _clientMap.putIfAbsent(endpoint.toString() + ":" + username + ":" + password, api);
         }
         return api;

@@ -17,12 +17,14 @@
 package com.emc.storageos.api.service.impl.resource.utils;
 
 import com.emc.storageos.api.service.impl.resource.*;
+import com.emc.storageos.cinder.CinderConstants;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.*;
 import com.emc.storageos.keystone.restapi.KeystoneApiClient;
 import com.emc.storageos.keystone.restapi.model.response.TenantV2;
 import com.emc.storageos.keystone.restapi.utils.KeystoneUtils;
 import com.emc.storageos.model.tenant.TenantCreateParam;
+import com.emc.storageos.security.authorization.ACL;
 import com.emc.storageos.security.authorization.BasePermissionsHelper;
 import com.emc.storageos.security.authorization.PermissionsKey;
 import com.emc.storageos.security.authorization.Role;
@@ -45,13 +47,15 @@ public class OpenStackSynchronizationTask extends ResourceService {
 
     // Constants
     // Interval delay between each execution in seconds.
-    private static final int DEFAULT_INTERVAL_DELAY = 60;
+    public static final int DEFAULT_INTERVAL_DELAY = 60;
     // Initial delay before first execution in seconds.
     private static final int INITIAL_DELAY = 60;
     // Maximum time for a timeout when awaiting for termination.
     private static final int MAX_TERMINATION_TIME = 120;
     // Minimum interval in seconds.
-    private static final int MIN_INTERVAL_DELAY = 10;
+    public static final int MIN_INTERVAL_DELAY = 10;
+    // Default excluded option for OSTenant.
+    private static final boolean DEFAULT_EXCLUDED_TENANT_OPTION = false;
 
     private static final String TENANT_ID = "tenant_id";
     private static final String OPENSTACK = "OpenStack";
@@ -64,6 +68,10 @@ public class OpenStackSynchronizationTask extends ResourceService {
     private AuthnConfigurationService _authnConfigurationService;
 
     private ScheduledFuture synchronizationTask;
+
+    public ScheduledFuture getSynchronizationTask() {
+        return synchronizationTask;
+    }
 
     public void setAuthnConfigurationService(AuthnConfigurationService authnConfigurationService) {
         this._authnConfigurationService = authnConfigurationService;
@@ -177,15 +185,29 @@ public class OpenStackSynchronizationTask extends ResourceService {
 
         if (keystoneProvider != null && keystoneProvider.getTenantsSynchronizationOptions() != null) {
 
-            for (String option : keystoneProvider.getTenantsSynchronizationOptions()) {
-                // There is only ADDITION, DELETION and interval in this StringSet
-                if (!AuthnProvider.TenantsSynchronizationOptions.ADDITION.toString().equals(option) && !AuthnProvider.TenantsSynchronizationOptions.DELETION.toString().equals(option)) {
-                    interval = Integer.parseInt(option);
-                }
+            String taskInterval = getSynchronizationOptionsInterval(keystoneProvider);
+            if (taskInterval != null) {
+                interval = Integer.parseInt(taskInterval);
             }
         }
 
         return interval;
+    }
+
+    public String getSynchronizationOptionsInterval(AuthnProvider keystoneProvider) {
+
+        if (keystoneProvider != null && keystoneProvider.getTenantsSynchronizationOptions() != null) {
+            for (String option : keystoneProvider.getTenantsSynchronizationOptions()) {
+                // There is only ADDITION, DELETION and interval in this StringSet.
+                if (!AuthnProvider.TenantsSynchronizationOptions.ADDITION.toString().equals(option)
+                        && !AuthnProvider.TenantsSynchronizationOptions.DELETION.toString().equals(option)) {
+                    return option;
+                }
+            }
+        }
+
+        // Return default interval when getTenantsSynchronizationOptions() does not contain interval.
+        return Integer.toString(DEFAULT_INTERVAL_DELAY);
     }
 
     /**
@@ -267,10 +289,15 @@ public class OpenStackSynchronizationTask extends ResourceService {
         while (osIter.hasNext()) {
 
             TenantV2 osTenant = osIter.next();
+            // Update information about this Tenant in CoprHD database.
+            updateOrCreateOpenstackTenantInCoprhd(osTenant);
             while (coprhdIter.hasNext()) {
 
                 TenantOrg coprhdTenant = coprhdIter.next();
                 String tenantMapping = getCoprhdTenantUserMapping(coprhdTenant);
+                if (tenantMapping == null) {
+                    throw APIException.internalServerErrors.targetIsNullOrEmpty("TenantMapping");
+                }
                 String tenantId = getTenantIdFromUserMapping(tenantMapping);
                 if (tenantId.equals(osTenant.getId())) {
                     if (!areTenantsIdentical(osTenant, coprhdTenant)) {
@@ -293,6 +320,60 @@ public class OpenStackSynchronizationTask extends ResourceService {
         }
 
         return tenantsToUpdate;
+    }
+
+    /**
+     * Updates or creates CoprHD representation of OpenStack Tenant.
+     *
+     * @param tenant OpenStack Tenant.
+     * @return Updated or Created Tenant.
+     */
+    private OSTenant updateOrCreateOpenstackTenantInCoprhd(TenantV2 tenant) {
+
+        OSTenant osTenant = findOpenstackTenantInCoprhd(tenant.getId());
+
+        if (osTenant != null) {
+            if (!osTenant.getDescription().equals(tenant.getDescription())) {
+                osTenant.setDescription(tenant.getDescription());
+            }
+            if (!osTenant.getName().equals(tenant.getName())) {
+                osTenant.setName(tenant.getName());
+            }
+            if (osTenant.getEnabled() != Boolean.parseBoolean(tenant.getEnabled())) {
+                osTenant.setEnabled(Boolean.parseBoolean(tenant.getEnabled()));
+            }
+
+            _dbClient.updateObject(osTenant);
+
+            return osTenant;
+        }
+
+        osTenant = mapTenant(tenant);
+        osTenant.setId(URIUtil.createId(OSTenant.class));
+        _dbClient.createObject(osTenant);
+
+        return osTenant;
+    }
+
+    /**
+     * Finds CoprHD representation of OpenStack Tenant.
+     *
+     * @param tenantId OpenStack Tenant ID.
+     * @return CoprHD Tenant.
+     */
+    private OSTenant findOpenstackTenantInCoprhd(String tenantId) {
+
+        List<URI> osTenantURI = _dbClient.queryByType(OSTenant.class, true);
+        Iterator<OSTenant> osTenantIter = _dbClient.queryIterativeObjects(OSTenant.class, osTenantURI);
+
+        while (osTenantIter.hasNext()) {
+            OSTenant osTenant = osTenantIter.next();
+            if (osTenant.getOsId().equals(tenantId)) {
+                return osTenant;
+            }
+        }
+
+        return null;
     }
 
     /**
@@ -332,9 +413,9 @@ public class OpenStackSynchronizationTask extends ResourceService {
      * @param tenant OpenStack Tenant.
      * @param provider Keystone Authentication Provider.
      */
-    public void createTenant(TenantV2 tenant, AuthnProvider provider) {
+    public TenantOrg createTenant(TenantV2 tenant, AuthnProvider provider) {
 
-        TenantCreateParam param = _authnConfigurationService.prepareTenantMappingForOpenstack(tenant, provider);
+        TenantCreateParam param = _authnConfigurationService.prepareTenantMappingForOpenstack(mapTenant(tenant), provider);
 
         TenantOrg subtenant = new TenantOrg();
         subtenant.setId(URIUtil.createId(TenantOrg.class));
@@ -351,6 +432,42 @@ public class OpenStackSynchronizationTask extends ResourceService {
 
         _dbClient.createObject(subtenant);
 
+        return subtenant;
+    }
+
+    /**
+     * Creates a CoprHD Project for given Tenant.
+     *
+     * @param owner CoprHD Tenant that will own this project.
+     * @param param OpenStack Tenant.
+     */
+    private Project createProject(TenantOrg owner, TenantV2 param) {
+
+        Project project = new Project();
+        project.setId(URIUtil.createId(Project.class));
+        project.setLabel(param.getName() + CinderConstants.PROJECT_NAME_SUFFIX);
+        project.setTenantOrg(new NamedURI(owner.getId(), project.getLabel()));
+        project.setOwner(ROOT);
+
+        project.addAcl(
+                new PermissionsKey(PermissionsKey.Type.SID, ROOT, owner.getId().toString()).toString(),
+                ACL.OWN.toString());
+
+        _dbClient.createObject(project);
+
+        return project;
+    }
+
+    private OSTenant mapTenant(TenantV2 tenant) {
+
+        OSTenant osTenant = new OSTenant();
+        osTenant.setOsId(tenant.getId());
+        osTenant.setDescription(tenant.getDescription());
+        osTenant.setName(tenant.getName());
+        osTenant.setEnabled(Boolean.parseBoolean(tenant.getEnabled()));
+        osTenant.setExcluded(DEFAULT_EXCLUDED_TENANT_OPTION);
+
+        return osTenant;
     }
 
     /**
@@ -398,6 +515,10 @@ public class OpenStackSynchronizationTask extends ResourceService {
 
                 AuthnProvider keystoneProvider = getKeystoneProvider();
 
+                if (keystoneProvider == null) {
+                    throw APIException.internalServerErrors.targetIsNullOrEmpty("Keystone Authentication Provider");
+                }
+
                 // Update every Tenant on tenantsToUpdate list.
                 if (tenantsToUpdate != null && !tenantsToUpdate.isEmpty()) {
                     for (TenantOrg tenant : tenantsToUpdate) {
@@ -411,7 +532,33 @@ public class OpenStackSynchronizationTask extends ResourceService {
                 if (!osTenantList.isEmpty() &&
                         syncOptions.contains(AuthnProvider.TenantsSynchronizationOptions.ADDITION.toString())) {
                     for (TenantV2 tenant : osTenantList) {
-                        createTenant(tenant, keystoneProvider);
+
+                        OSTenant osTenant = findOpenstackTenantInCoprhd(tenant.getId());
+                        if (osTenant != null && !osTenant.getExcluded()) {
+                            TenantOrg tenantOrg = createTenant(tenant, keystoneProvider);
+                            Project project = createProject(tenantOrg, tenant);
+                            _authnConfigurationService.tagProjectWithOpenstackId(project.getId(), tenant.getId(), tenantOrg.getId().toString());
+                        }
+                    }
+                }
+
+                // Remove CoprHD representation of OpenStack Tenant that are removed from OpenStack.
+                if (syncOptions.contains(AuthnProvider.TenantsSynchronizationOptions.DELETION.toString())) {
+                    for (TenantOrg tenant : coprhdTenantList) {
+                        String tenantMapping = getCoprhdTenantUserMapping(tenant);
+
+                        if (tenantMapping == null) {
+                            throw APIException.internalServerErrors.targetIsNullOrEmpty("TenantMapping");
+                        }
+
+                        String tenantId = getTenantIdFromUserMapping(tenantMapping);
+                        OSTenant osTenant = findOpenstackTenantInCoprhd(tenantId);
+
+                        if (osTenant == null) {
+                            throw APIException.internalServerErrors.targetIsNullOrEmpty("OSTenant");
+                        }
+
+                        _dbClient.markForDeletion(osTenant);
                     }
                 }
 

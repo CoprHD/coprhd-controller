@@ -14,30 +14,26 @@
  * limitations under the License.
  *
  */
-package com.emc.storageos.keystone.restapi.model.response;
+package com.emc.storageos.model.keystone;
 
-import javax.xml.bind.annotation.XmlElementRef;
+import javax.xml.bind.annotation.XmlAccessType;
+import javax.xml.bind.annotation.XmlAccessorType;
+import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
-import java.util.ArrayList;
 import java.util.List;
 
-/**
- * Keystone API get Tenants response class.
- */
-@XmlRootElement(name = "openstack_tenants")
-public class TenantListRestResp {
+@XmlRootElement(name = "coprhd_os_tenant_list")
+@XmlAccessorType(XmlAccessType.PROPERTY)
+public class CoprhdOsTenantListRestRep {
 
-    List<TenantV2> openstack_tenants;
+    private List<CoprhdOsTenant> coprhd_os_tenants;
 
-    @XmlElementRef
-    public List<TenantV2> getOpenstack_tenants() {
-        if (openstack_tenants == null) {
-            openstack_tenants = new ArrayList<>();
-        }
-        return openstack_tenants;
+    @XmlElement(name = "coprhd_os_tenants")
+    public List<CoprhdOsTenant> getCoprhd_os_tenants() {
+        return coprhd_os_tenants;
     }
 
-    public void setOpenstack_tenants(List<TenantV2> openstack_tenants) {
-        this.openstack_tenants = openstack_tenants;
+    public void setCoprhd_os_tenants(List<CoprhdOsTenant> coprhd_os_tenants) {
+        this.coprhd_os_tenants = coprhd_os_tenants;
     }
 }

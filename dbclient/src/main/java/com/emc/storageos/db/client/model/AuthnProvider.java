@@ -123,6 +123,9 @@ public class AuthnProvider extends DataObject {
 
     @Name("tenantsSynchronizationOptions")
     public StringSet getTenantsSynchronizationOptions() {
+        if (_tenantsSynchronizationOptions == null) {
+            _tenantsSynchronizationOptions = new StringSet();
+        }
         return _tenantsSynchronizationOptions;
     }
 

@@ -232,6 +232,12 @@ public class AuthnConfigurationService extends TaggedResource {
             // If the checkbox is checked, then register CoprHD.
             if(provider.getAutoRegCoprHDNImportOSProjects()){
                 _keystoneUtils.registerCoprhdInKeystone(provider.getManagerDN(), provider.getServerUrls(), provider.getManagerPassword());
+                String interval = _openStackSynchronizationTask.getSynchronizationOptionsInterval(provider);
+                // Set default interval time when chosen interval is lower than minimal value.
+                if (Integer.parseInt(interval) < OpenStackSynchronizationTask.MIN_INTERVAL_DELAY) {
+                    provider.getTenantsSynchronizationOptions().remove(interval);
+                    provider.getTenantsSynchronizationOptions().add(Integer.toString(OpenStackSynchronizationTask.DEFAULT_INTERVAL_DELAY));
+                }
             }
         } else {
             // Now validate the authn provider to make sure
@@ -247,15 +253,6 @@ public class AuthnConfigurationService extends TaggedResource {
 
         auditOp(OperationTypeEnum.CREATE_AUTHPROVIDER, true, null,
                 provider.toString(), provider.getId().toString());
-
-        // We have to create tenants and projects after the creation of AuthProvider.
-        if (null != mode && AuthnProvider.ProvidersType.keystone.toString().equalsIgnoreCase(mode)) {
-            // If the checkbox is checked, then register CoprHD.
-            if (provider.getAutoRegCoprHDNImportOSProjects()){
-                createTenantsAndProjectsForAutomaticKeystoneRegistration(provider);
-                _openStackSynchronizationTask.startSynchronizationTask(_openStackSynchronizationTask.getTaskInterval());
-            }
-        }
 
         // TODO:
         // recordTenantEvent(RecordableEventManager.EventType.ProfiletCreated,
@@ -287,19 +284,20 @@ public class AuthnConfigurationService extends TaggedResource {
         return password;
     }
 
-    private void createTenantsAndProjectsForAutomaticKeystoneRegistration(AuthnProvider provider) {
-        // Create a new KeystoneAPI.
-        KeystoneApiClient keystoneApi = _keystoneUtils.getKeystoneApi(provider.getManagerDN(), provider.getServerUrls(), provider.getManagerPassword());
+    public void createTenantsAndProjectsForAutomaticKeystoneRegistration(AuthnProvider provider) {
 
-        // Retrieve tenants from OpenStack via Keystone API.
-        TenantResponse tenantResponse = keystoneApi.getKeystoneTenants();
+        List<URI> osTenantURI = _dbClient.queryByType(OSTenant.class, true);
+        Iterator<OSTenant> osTenantIter = _dbClient.queryIterativeObjects(OSTenant.class, osTenantURI);
 
-        for (TenantV2 tenant : tenantResponse.getTenants()) {
-            createTenantAndProjectForOpenstackTenant(tenant, provider);
+        while (osTenantIter.hasNext()) {
+            OSTenant osTenant = osTenantIter.next();
+            if (!osTenant.getExcluded()) {
+                createTenantAndProjectForOpenstackTenant(osTenant, provider);
+            }
         }
     }
 
-    private void createTenantAndProjectForOpenstackTenant(TenantV2 tenant, AuthnProvider provider) {
+    private void createTenantAndProjectForOpenstackTenant(OSTenant tenant, AuthnProvider provider) {
 
         TenantCreateParam param = prepareTenantMappingForOpenstack(tenant, provider);
 
@@ -310,14 +308,14 @@ public class AuthnConfigurationService extends TaggedResource {
         ProjectParam projectParam = new ProjectParam(tenant.getName() + CinderConstants.PROJECT_NAME_SUFFIX);
         ProjectElement projectElement = _tenantsService.createProject(tenantOrgRestRep.getId(), projectParam);
 
-        tagProjectWithOpenstackId(projectElement.getId(), tenant.getId(), tenantOrgRestRep.getId().toString());
+        tagProjectWithOpenstackId(projectElement.getId(), tenant.getOsId(), tenantOrgRestRep.getId().toString());
     }
 
-    public TenantCreateParam prepareTenantMappingForOpenstack(TenantV2 tenant, AuthnProvider provider) {
+    public TenantCreateParam prepareTenantMappingForOpenstack(OSTenant tenant, AuthnProvider provider) {
         // Create mapping rules
         List<UserMappingParam> userMappings = new ArrayList<>();
         List<String> values = new ArrayList<>();
-        values.add(tenant.getId());
+        values.add(tenant.getOsId());
 
         List<UserMappingAttributeParam> attributes = new ArrayList<>();
         attributes.add(new UserMappingAttributeParam(KeystoneUtils.OPENSTACK_TENANT_ID, values));

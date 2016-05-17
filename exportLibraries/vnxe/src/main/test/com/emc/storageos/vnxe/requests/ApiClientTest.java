@@ -12,6 +12,7 @@ import java.util.Map;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
+import com.emc.storageos.services.util.EnvConfig;
 import com.emc.storageos.vnxe.VNXeApiClient;
 import com.emc.storageos.vnxe.VNXeUtils;
 import com.emc.storageos.vnxe.models.BasicSystemInfo;
@@ -35,9 +36,9 @@ import com.emc.storageos.vnxe.models.VNXeStorageTier;
 public class ApiClientTest {
     private static KHClient _client;
     private static VNXeApiClient apiClient;
-    private static String host = "losav161.lss.emc.com";
-    private static String userName = "bourne";
-    private static String password = "Bourn3!!";
+    private static String host = EnvConfig.get("sanity", "unity.host");
+    private static String userName = EnvConfig.get("sanity", "unity.username");
+    private static String password = EnvConfig.get("sanity", "unity.password");
     private static int port = 443;
 
     @BeforeClass

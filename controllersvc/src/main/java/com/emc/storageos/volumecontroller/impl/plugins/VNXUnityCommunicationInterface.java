@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014 EMC Corporation
+ * Copyright (c) 2016 EMC Corporation
  * All Rights Reserved
  */
 
@@ -38,13 +38,7 @@ import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.plugins.AccessProfile;
 import com.emc.storageos.plugins.BaseCollectionException;
-import com.emc.storageos.vnx.xmlapi.VNXCifsServer;
 import com.emc.storageos.plugins.StorageSystemViewObject;
-import com.emc.storageos.scaleio.ScaleIOException;
-import com.emc.storageos.scaleio.api.restapi.ScaleIORestClient;
-import com.emc.storageos.scaleio.api.restapi.response.ScaleIOProtectionDomain;
-import com.emc.storageos.scaleio.api.restapi.response.ScaleIOSystem;
-import com.emc.storageos.util.VersionChecker;
 import com.emc.storageos.vnxe.VNXeApiClient;
 import com.emc.storageos.vnxe.VNXeApiClientFactory;
 import com.emc.storageos.vnxe.VNXeException;
@@ -309,7 +303,7 @@ public class VNXUnityCommunicationInterface extends
                 if (iscsiPorts.get(EXISTING) != null && !iscsiPorts.get(EXISTING).isEmpty()) {
                     allExistingPorts.addAll(iscsiPorts.get(EXISTING));
                     hasIscsiPorts = true;
-                    _dbClient.updateObject(ports.get(EXISTING));
+                    _dbClient.updateObject(iscsiPorts.get(EXISTING));
                 }
                 if (hasIscsiPorts) {
                     arraySupportedProtocols.add(StorageProtocol.Block.iSCSI.name());
@@ -328,7 +322,7 @@ public class VNXUnityCommunicationInterface extends
                 if (fcPorts.get(EXISTING) != null && !fcPorts.get(EXISTING).isEmpty()) {
                     allExistingPorts.addAll(fcPorts.get(EXISTING));
                     hasFcPorts = true;
-                    _dbClient.updateObject(ports.get(EXISTING));
+                    _dbClient.updateObject(fcPorts.get(EXISTING));
                 }
                 if (hasFcPorts) {
                     arraySupportedProtocols.add(StorageProtocol.Block.FC.name());
@@ -548,7 +542,17 @@ public class VNXUnityCommunicationInterface extends
 
                     pool.setLabel(poolNativeGuid);
                     pool.setNativeGuid(poolNativeGuid);
-                    // FIXME: pool.setOperationalStatus(vnxePool.getStatus());
+                    Health poolHealth = vnxePool.getHealth();
+                    if (poolHealth != null) {
+                        int value = poolHealth.getValue();
+                        if (value == Health.HealthEnum.OK.getValue()|| 
+                                value == Health.HealthEnum.OK_BUT.getValue() ||
+                                value == Health.HealthEnum.DEGRADED.getValue()) {
+                            pool.setOperationalStatus(StoragePool.PoolOperationalStatus.READY.name());
+                        } else {
+                            pool.setOperationalStatus(StoragePool.PoolOperationalStatus.NOTREADY.name());
+                        }
+                    }
                     pool.setOperationalStatus(StoragePool.PoolOperationalStatus.READY.name());
                     pool.setPoolServiceType(PoolServiceType.block_file
                             .toString());
@@ -842,7 +846,7 @@ public class VNXUnityCommunicationInterface extends
         // Persist the NAS servers!!!
         if (existingVirtualNas != null && !existingVirtualNas.isEmpty()) {
             _logger.info("discoverNasServers - modified VirtualNAS servers size {}", existingVirtualNas.size());
-            _dbClient.persistObject(existingVirtualNas);
+            _dbClient.updateObject(existingVirtualNas);
         }
 
         if (newVirtualNas != null && !newVirtualNas.isEmpty()) {
@@ -998,7 +1002,7 @@ public class VNXUnityCommunicationInterface extends
         // Persist the modified virtual nas servers
         if (modifiedServers != null && !modifiedServers.isEmpty()) {
             _logger.info("Modified VirtualNAS servers size {}", modifiedServers.size());
-            _dbClient.persistObject(modifiedServers);
+            _dbClient.updateObject(modifiedServers);
         }
 
         _logger.info("Storage port discovery for storage system {} complete",
@@ -1362,6 +1366,13 @@ public class VNXUnityCommunicationInterface extends
         return storagePorts;
     }
 
+    /**
+     * Discover StorageTiers
+     * @param system
+     * @param client
+     * @return
+     * @throws VNXeException
+     */
     private HashMap<String, List<StorageTier>> discoverStorageTier(
             StorageSystem system, VNXeApiClient client) throws VNXeException {
 
@@ -1419,6 +1430,12 @@ public class VNXUnityCommunicationInterface extends
 
     }
 
+    /**
+     * Discover autoTier policies
+     * @param system
+     * @param apiClient
+     * @return
+     */
     private HashMap<String, List<AutoTieringPolicy>> discoverAutoTierPolicies(
             StorageSystem system, VNXeApiClient apiClient) {
         HashMap<String, List<AutoTieringPolicy>> policies = new HashMap<String, List<AutoTieringPolicy>>();
@@ -1480,6 +1497,12 @@ public class VNXUnityCommunicationInterface extends
 
     }
 
+    /**
+     * Check if the pool's autotiering is enabled. if there are more than one tier in the pool, then it is enabled.
+     * @param vnxePool
+     * @param system
+     * @return true or false
+     */
     private boolean getPoolAutoTieringEnabled(VNXePool vnxePool,
             StorageSystem system) {
         boolean enabled = false;

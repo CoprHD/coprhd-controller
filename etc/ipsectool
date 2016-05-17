@@ -98,9 +98,9 @@ _get_ips_in_specified_site() {
 _get_all_nodes() {
     local ips=""
     local vdc_ids=$(_get_prop "vdc_ids" | sed 's/,/ /g')
-    local site_ids=$(_get_prop "site_ids" | sed 's/,/ /g')
 
     for vdc in ${vdc_ids} ; do
+        local site_ids=$(_get_prop "vdc_${vdc}_site_ids" | sed 's/,/ /g')
         for site in ${site_ids} ; do
             ips="${ips} $(_get_ips_in_specified_site "${vdc}" "${site}")"
         done

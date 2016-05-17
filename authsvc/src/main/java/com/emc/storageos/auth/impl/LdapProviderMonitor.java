@@ -49,9 +49,7 @@ public class LdapProviderMonitor {
     }
 
     public void setAuthnProviders(ImmutableAuthenticationProviders authnProviders) {
-        synchronized (this) {
             this.providerList = authnProviders;
-        }
     }
 
     private class LdapMonitorWorker implements Runnable {
@@ -61,9 +59,7 @@ public class LdapProviderMonitor {
             log.info("Ldap Monitor Worker wake up ...");
             try {
                 List<AuthenticationProvider> providers = null;
-                synchronized (this) {
-                    providers = providerList.getAuthenticationProviders();
-                }
+                providers = providerList.getAuthenticationProviders();
                 log.info("Ldap Monitor Worker got provider list. Size is {}.", providers.size());
                 for (AuthenticationProvider provider : providers) {
                     if (!(provider.getHandler() instanceof StorageOSLdapAuthenticationHandler)) { // That's for AD or Ldap

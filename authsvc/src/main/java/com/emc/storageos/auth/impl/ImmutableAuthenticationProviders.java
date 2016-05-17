@@ -82,15 +82,11 @@ public class ImmutableAuthenticationProviders {
     private static Logger _log = LoggerFactory.getLogger(ImmutableAuthenticationProviders.class);
 
     private ImmutableAuthenticationProviders(final List<AuthenticationProvider> authenticationProviders) {
-        synchronized (this) {
-            _authenticationProviders = authenticationProviders;
-        }
+        _authenticationProviders = authenticationProviders;
     }
 
     public List<AuthenticationProvider> getAuthenticationProviders() {
-        synchronized (this) {
-            return _authenticationProviders;
-        }
+        return _authenticationProviders;
     }
 
     /**

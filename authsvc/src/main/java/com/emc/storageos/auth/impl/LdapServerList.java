@@ -14,7 +14,7 @@ import java.util.List;
 public class LdapServerList {
     private static Logger log = LoggerFactory.getLogger(LdapServerList.class);
 
-    List<LdapOrADServer> connectedServers = Collections.synchronizedList(new ArrayList<LdapOrADServer>());
+    List<LdapOrADServer> connectedServers = new ArrayList<LdapOrADServer>();
     List<LdapOrADServer> disConnectedServers = Collections.synchronizedList(new ArrayList<LdapOrADServer>());
 
     public List<LdapOrADServer> getConnectedServers() {
@@ -25,18 +25,18 @@ public class LdapServerList {
         return disConnectedServers;
     }
 
-    public void add(LdapOrADServer server) {
+    public synchronized void add(LdapOrADServer server) {
         connectedServers.add(server);
     }
 
-    public void markAsConnected(LdapOrADServer server) {
+    public synchronized void markAsConnected(LdapOrADServer server) {
         connectedServers.add(server);
         disConnectedServers.remove(server);
         log.info("Change back to connected ldap server {}. Now all connected servers are {}",
                 server, connectedServers);
     }
 
-    public void markAsDisConnected(LdapOrADServer server) {
+    public synchronized void markAsDisConnected(LdapOrADServer server) {
         disConnectedServers.add(server);
         connectedServers.remove(server);
         log.info("Add one disconnected ldap server {} and All disconnected servers are {}",

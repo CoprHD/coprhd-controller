@@ -435,9 +435,8 @@ public class DbServiceImpl implements DbService {
         File localDbDir = new File(dbDir);
         Date lastModified = getLastModified(localDbDir);
         boolean isDirEmpty =  lastModified == null || localDbDir.list().length == 0;
-        long localTimeStamp = (isDirEmpty) ? TimeUtils.getCurrentTime() : lastModified.getTime();
-        _log.info("test");
 
+        long localTimeStamp = (isDirEmpty) ? TimeUtils.getCurrentTime() : lastModified.getTime();
         _log.info("Service timestamp in ZK is {}, local file is: {}", zkTimeStamp, localTimeStamp);
         long diffTime = (zkTimeStamp > localTimeStamp) ? (zkTimeStamp - localTimeStamp) : 0;
         if (diffTime >= MAX_SERVICE_OUTAGE_TIME) {
@@ -450,7 +449,7 @@ public class DbServiceImpl implements DbService {
         }
 
         Long offlineTime = dbOfflineEventInfo.getOfflineTimeInMS(localNodeId);
-        if (offlineTime != null && offlineTime >= MAX_SERVICE_OUTAGE_TIME) {
+        if (!isDirEmpty && offlineTime != null && offlineTime >= MAX_SERVICE_OUTAGE_TIME) {
             String errMsg = String.format("This node is offline for more than %s days. It may bring stale data into " +
                     "database, so the service cannot continue to boot. Please poweroff this node and follow our " +
                     "node recovery procedure to recover this node", offlineTime/TimeUtils.DAYS);

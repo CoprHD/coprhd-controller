@@ -35,8 +35,8 @@ public class Copy implements Serializable {
     private String copyMode;
     // Format: "yyyy-MM-dd_HH:mm:ss" or datetime in milliseconds
     private String pointInTime;
-    // The desired image access mode for the target. Applies to RecoverPoint copies.
-    private String imageAccessMode;
+    // The desired access mode for the target. Applies to RecoverPoint copies.
+    private String accessMode;
 
     public enum SyncDirection {
         SOURCE_TO_TARGET,
@@ -168,11 +168,12 @@ public class Copy implements Serializable {
         this.pointInTime = pointInTime;
     }
 
-    public String getImageAccessMode() {
-        return imageAccessMode;
+    @XmlElement(name = "accessMode", required = false)
+    public String getAccessMode() {
+        return accessMode;
     }
 
-    public void setImageAccessMode(String imageAccessMode) {
-        this.imageAccessMode = imageAccessMode;
+    public void setAccessMode(String accessMode) {
+        this.accessMode = accessMode;
     }
 }

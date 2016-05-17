@@ -72,7 +72,7 @@ public class CephCommunicationInterface extends ExtendedCommunicationInterfaceIm
 
     @Override
     public void collectStatisticsInformation(AccessProfile accessProfile) throws BaseCollectionException {
-        _log.info("Starting collecting statistics of Ceph StorageProvider. IP={}", accessProfile.getIpAddress());
+        _log.info("Collect statistics for Ceph not supported. Storage Provider IP={}", accessProfile.getIpAddress());
     }
 
     @Override

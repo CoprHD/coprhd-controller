@@ -76,7 +76,7 @@ public class RPControllerImpl extends AbstractDiscoveredSystemController impleme
     @Override
     public void performProtectionOperation(URI protectionDevice, URI id,
             URI copyID, String pointInTime, String imageAccessMode, String op, String task) throws InternalException {
-        execFS("performProtectionOperation", protectionDevice, id, copyID, pointInTime, op, task);
+        execFS("performProtectionOperation", protectionDevice, id, copyID, pointInTime, imageAccessMode, op, task);
     }
 
     @Override
@@ -111,7 +111,7 @@ public class RPControllerImpl extends AbstractDiscoveredSystemController impleme
 
     /*
      * (non-Javadoc)
-     * 
+     *
      * @see com.emc.storageos.protectioncontroller.RPController#updateApplication(java.net.URI,
      * com.emc.storageos.volumecontroller.ApplicationAddVolumeList, java.util.List, java.net.URI, java.lang.String)
      */

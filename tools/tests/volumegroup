@@ -18,24 +18,28 @@ usage()
 {
     echo "Usage: volumegroup [create | list | show | delete | update | add-volumes | remove-volumes | show-volumes]"
     echo "           create <name> <description> <role> <parent>"
-    echo "           create <name> <description> MOBILITY <migrationType> <migrationGroupBy> <parent>"
-    echo "           list"
-    echo "           show <name>"
-    echo "           show-volumes <name>"
-    echo "           delete <name>"
     echo "           update <name> <newname> <description> <parent>"
+    echo "           delete <name>"
+    echo "           show <name>"
+    echo "           list"
+    echo "           verify <name> <field> <value>"
+    echo "           verify-volume <name> <volume-id>"
     echo "           add-volumes <name> <volume1,volume2,...> <cgid>"
     echo "           remove-volumes <name> <volume1,volume2,...>"
-    echo "           verify <name> <field> <value>"
-    echo "           verify-volumes <name> <volume-id>"
-    echo "           create-copy [clone | snapshot | snapsession] <name> <copy-set-name> [<activate-flag> <subgroups,subgroup,...>]"
-    echo "           detach-copy [clone | snapshot | snapsession] <name> <copy-set-name> [<subgroup,subgroup,...>]"
-    echo "           restore-copy [clone | snapshot | snapsession] <name> <copy-set-name> [<subgroup,subgroup,...>]"
-    echo "           resync-copy [clone | snapshot] <name> <copy-set-name> [<subgroup,subgroup,...>]"
+    echo "           show-volumes <name>"
+    echo "           create-copy [clone | snapshot | snapsession] <name> <copy-set-name> [<subgroups,subgroup,...>]"
+    echo "           create-copy-inactive [clone | snapshot | snapsession] <name> <copy-set-name> [<subgroups,subgroup,...>]"
     echo "           delete-copy [snapshot | snapsession] <name> <copy-set-name> [<subgroup,subgroup,...>]"
+    echo "           detach-copy clone <name> <copy-set-name> [<subgroup,subgroup,...>]"
+    echo "           resync-copy [clone | snapshot] <name> <copy-set-name> [<subgroup,subgroup,...>]"
+    echo "           restore-copy [clone | snapshot | snapsession] <name> <copy-set-name> [<subgroup,subgroup,...>]"
+    echo "           link-copy snapsession <name> <copy-set-name> [<subgroup,subgroup,...>]"
+    echo "           relink-copy snapsession <name> <copy-set-name> [<subgroup,subgroup,...>]"
+    echo "           unlink-copy snapsession <name> <copy-set-name> [<subgroup,subgroup,...>]"
+    echo "           activate-copy [clone | snapshot | snapsession] <name> <copy-set-name> [<subgroup,subgroup,...>]"
     echo "           list-full-copy-sets <name>"
-    echo "           verify-full-copy-set <name> <copy-set-name>"
-    echo "           list_full_copy_volumes <name> <copy-set-name>"
+    echo "           list_copy_volumes <name> <copy-set-name>"
+    echo "           verify-copy-set <name> <copy-set-name>"
     exit 2
 }
 
@@ -799,7 +803,6 @@ volume_group_get_cg_from_volume()
     echo $result
 }
 
-
 [ $# -ge 1 ] || usage
 
 if [ $1 == 'create' ]; then
@@ -893,14 +896,6 @@ elif [ $1 == 'verify-copy-set' ]; then
     [ $# -ge 2 ] || usage
     shift
     volume_group_verify_copy_set "$@"
-elif [ $1 == 'wait-for-tasks' ]; then
-    [ $# -ge 2 ] || usage
-    shift
-    volume_group_wait_for_tasks "$@"
-elif [ $1 == 'project-from-volume' ]; then
-    [ $# -ge 2 ] || usage
-    shift
-    volume_group_get_project_from_volume "$@"
 else
    usage
 fi

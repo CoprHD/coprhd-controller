@@ -398,15 +398,18 @@ _set_ip_props() {
     if [ -e "${datafs_ip_props}" ]; then
         while read -r line
         do
+          [[ "$line" != *=* ]] && continue
           IFS='=' read -ra pair <<< "$line"
           origIpPropMap[${pair[0]}]=${pair[1]}
         done < "${datafs_ip_props}"
     fi
 
-    # 3. If site number is not changed, no need to update IP prop file
-
-    declare -A origSiteIdsArray
-    origSiteIdsArray=($(cat ${datafs_ip_props} | grep 'vdc_vdc' | cut -d'_' -f3 | sort -u))
+    # 3. If sites are not changed, no need to update IP prop file
+    # 3.1 sort original site IDs
+    origSiteIdsArray=()
+    while read -r -d $'\n'; do
+        origSiteIdsArray+=("$REPLY")
+    done < <(cat ${datafs_ip_props} | grep 'vdc_vdc' | cut -d'_' -f3 | sort -u)
     count=0
     for origSiteId in "${origSiteIdsArray[@]}"; do
         if [ $count -eq 0 ]; then
@@ -417,10 +420,10 @@ _set_ip_props() {
         orig_sites_ids+=","${origSiteId}
     done
 
+    # 3.2 sort new site IDs
     new_sites_ids=${newVdcPropMap["site_ids"]}
-    declare -A tmpNewSiteIdsArray
+    tmpNewSiteIdsArray=()
     IFS=',' read -ra tmpNewSiteIdsArray <<< ${new_sites_ids}
-    declare -A newSiteIdsArray
     newSiteIdsArray=($(sort<<< "${tmpNewSiteIdsArray[*]}"))
     count=0
     for newSiteId in "${newSiteIdsArray[@]}"; do
@@ -432,7 +435,9 @@ _set_ip_props() {
         new_sites_ids+=","${newSiteId}
     done
 
+    # 3.3 return if no site changes
     [ "${new_sites_ids}" == "${orig_sites_ids}" ] && return
+
 
     # 4. update IP prop file
     # only fresh-install, upgrade, add/remove site scenarios would be here

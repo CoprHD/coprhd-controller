@@ -8,7 +8,6 @@ package com.emc.storageos.volumecontroller.impl.vnxe;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -34,7 +33,6 @@ import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.volumecontroller.impl.ControllerServiceImpl;
 import com.emc.storageos.volumecontroller.impl.block.AbstractBasicMaskingOrchestrator;
 import com.emc.storageos.volumecontroller.impl.block.MaskingWorkflowEntryPoints;
-import com.emc.storageos.volumecontroller.impl.block.AbstractDefaultMaskingOrchestrator.GenExportMaskCreateWorkflowResult;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportOrchestrationTask;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportTaskCompleter;
 import com.emc.storageos.volumecontroller.impl.utils.ExportMaskUtils;
@@ -552,7 +550,7 @@ public class VNXeMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
             } else {
                 _log.info("export_volume_remove: no export (initiator should be empty)");
                 exportGroup.removeVolumes(volumes);
-                _dbClient.persistObject(exportGroup);
+                _dbClient.updateObject(exportGroup);
                 taskCompleter.ready(_dbClient);
             }
 

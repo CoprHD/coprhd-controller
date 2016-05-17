@@ -496,17 +496,17 @@ _set_ip_props() {
             fi
         else
             # b.2) For standby removal, preserve only current existed sites' promisc network info
-                for origsite in "${origSiteIdsArray[@]}"; do
-                    [[ "${new_sites_ids}" == *"${origsite}"* ]] && continue
-                    removalsite=${origsite}
-                done
-                for key in "${!origIpPropMap[@]}"
-                do
-                    if [[ "${key}" == *network_gateway* || "${key}" == *network_netmask || "${key}" == *network_prefix_length ]]; then
-                        [[ "${key}" == *"${removalsite}"* ]] && continue
-                        echo "${key}=${origIpPropMap[${key}]}" >> "${datafs_ip_props}.bak"
-                    fi
-                done
+            for origsite in "${origSiteIdsArray[@]}"; do
+                [[ "${new_sites_ids}" == *"${origsite}"* ]] && continue
+                removalsite=${origsite}
+            done
+            for key in "${!origIpPropMap[@]}"
+            do
+                if [[ "${key}" == *network_gateway* || "${key}" == *network_netmask || "${key}" == *network_prefix_length ]]; then
+                    [[ "${key}" == *"${removalsite}"* ]] && continue
+                    echo "${key}=${origIpPropMap[${key}]}" >> "${datafs_ip_props}.bak"
+                fi
+            done
         fi
     fi
 

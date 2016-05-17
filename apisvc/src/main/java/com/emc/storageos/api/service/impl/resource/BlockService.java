@@ -103,6 +103,7 @@ import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.VirtualPool.RPCopyMode;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.Volume.PersonalityTypes;
+import com.emc.storageos.db.client.model.util.BlockConsistencyGroupUtils;
 import com.emc.storageos.db.client.model.VolumeGroup;
 import com.emc.storageos.db.client.model.VplexMirror;
 import com.emc.storageos.db.client.model.VpoolRemoteCopyProtectionSettings;
@@ -162,6 +163,7 @@ import com.emc.storageos.security.authorization.Role;
 import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.srdfcontroller.SRDFController;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
+import com.emc.storageos.svcs.errorhandling.resources.BadRequestException;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.svcs.errorhandling.resources.InternalServerErrorException;
 import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
@@ -837,6 +839,17 @@ public class BlockService extends TaskResourceService {
             if (!VirtualPool.vPoolSpecifiesSRDF(vpool) && consistencyGroup.checkForType(Types.SRDF)) {
                 throw APIException.badRequests.nonSRDFVolumeCannotbeAddedToSRDFCG();
             }
+            
+            if (VirtualPool.vPoolSpecifiesSRDF(vpool)) {
+                List<Volume> nativeVolumesInCG = 
+                        BlockConsistencyGroupUtils.getActiveNativeVolumesInCG(consistencyGroup, _dbClient);
+                for (Volume nativeVolume : nativeVolumesInCG) {
+                    // Cannot add volumes if in swapped state. This is a limitation that will eventually be removed.
+                    if (Volume.LinkStatus.SWAPPED.name().equals(nativeVolume.getLinkStatus())) {
+                        throw BadRequestException.badRequests.cannotAddVolumesToSwappedCG(consistencyGroup.getLabel());
+                    }
+                }
+            }
 
             // check if CG's storage system is associated to the requested virtual array
             validateCGValidWithVirtualArray(consistencyGroup, varray);
@@ -1276,6 +1289,11 @@ public class BlockService extends TaskResourceService {
                 (BlockFullCopyUtils.isVolumeFullCopySource(volume, _dbClient))) &&
                 (!getFullCopyManager().volumeCanBeExpanded(volume))) {
             throw APIException.badRequests.fullCopyExpansionNotAllowed(volume.getLabel());
+        }
+        
+        // Check for an SRDF volume with snapshots which cannot be expanded.
+        if (VirtualPool.vPoolSpecifiesSRDF(virtualPool)) {
+            validateExpandingSrdfVolume(volume);
         }
 
         // Make sure that we don't have some pending
@@ -5370,5 +5388,36 @@ public class BlockService extends TaskResourceService {
 
     private boolean isAddingSRDFProtection(Volume v, VirtualPool targetVPool) {
         return v.getSrdfTargets() == null && VirtualPool.vPoolSpecifiesSRDF(targetVPool);
+    }
+    
+    /**
+     * Validate volume being expanded is not an SRDF volume with snapshots attached,
+     * which isn't handled.
+     * @param volume -- Volume being expanded
+     * @throws Exception if cannot be expanded
+     */
+    private void validateExpandingSrdfVolume(Volume volume) {
+        if (BlockServiceUtils.getNumNativeSnapshots(volume.getId(), _dbClient) > 0) {
+            throw BadRequestException.badRequests.cannotExpandSRDFVolumeWithSnapshots(volume.getLabel());
+        }
+        Volume srdfVolume = volume;
+        if (volume.isVPlexVolume(_dbClient)) {
+            // Find associated SRDF volume
+            srdfVolume = VPlexSrdfUtil.getSrdfVolumeFromVplexVolume(_dbClient, volume);
+            if (srdfVolume != null) {
+                if (BlockServiceUtils.getNumNativeSnapshots(srdfVolume.getId(), _dbClient) > 0) {
+                    throw BadRequestException.badRequests.cannotExpandSRDFVolumeWithSnapshots(srdfVolume.getLabel());
+                }
+            }
+        }   
+        // Check target volumes    
+        if (srdfVolume.getSrdfTargets() != null) {
+            for (String target : volume.getSrdfTargets()) {
+                Volume targetVolume = _dbClient.queryObject(Volume.class, URI.create(target));
+                if (BlockServiceUtils.getNumNativeSnapshots(targetVolume.getId(), _dbClient) > 0) {
+                    throw BadRequestException.badRequests.cannotExpandSRDFVolumeWithSnapshots(targetVolume.getLabel());
+                }
+            }
+        }
     }
 }

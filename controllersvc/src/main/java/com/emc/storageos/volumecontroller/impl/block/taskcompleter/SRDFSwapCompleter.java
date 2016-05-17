@@ -20,9 +20,11 @@ import org.slf4j.LoggerFactory;
 public class SRDFSwapCompleter extends SRDFTaskCompleter {
 
     private static final Logger _log = LoggerFactory.getLogger(SRDFSwapCompleter.class);
+    private boolean swapBack;
 
-    public SRDFSwapCompleter(List<URI> ids, String opId) {
+    public SRDFSwapCompleter(List<URI> ids, String opId, boolean swapBack) {
         super(ids, opId);
+        this.swapBack = swapBack;
     }
 
     @Override
@@ -40,6 +42,6 @@ public class SRDFSwapCompleter extends SRDFTaskCompleter {
 
     @Override
     protected Volume.LinkStatus getVolumeSRDFLinkStatusForSuccess() {
-        return Volume.LinkStatus.SWAPPED;
+        return (swapBack ? Volume.LinkStatus.CONSISTENT : Volume.LinkStatus.SWAPPED);
     }
 }

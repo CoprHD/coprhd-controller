@@ -1875,6 +1875,7 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
             URI sourceVolumeUri = null;
             StorageSystem system = dbClient.queryObject(StorageSystem.class, systemUri);
             Volume volume = dbClient.queryObject(Volume.class, copy.getCopyID());
+            boolean isSwapped = (Volume.LinkStatus.SWAPPED.name().equals(volume.getLinkStatus()));
             List<String> targetVolumeUris = new ArrayList<String>();
             List<URI> combined = new ArrayList<URI>();
             if (PersonalityTypes.SOURCE.toString().equalsIgnoreCase(volume.getPersonality())) {
@@ -1932,7 +1933,7 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
                 completer = new SRDFLinkFailOverCancelCompleter(combined, task);
                 getRemoteMirrorDevice().doFailoverCancelLink(system, volume, completer);
             } else if (op.equalsIgnoreCase("swap")) {
-                completer = new SRDFSwapCompleter(combined, task);
+                completer = new SRDFSwapCompleter(combined, task, isSwapped);
                 getRemoteMirrorDevice().doSwapVolumePair(system, volume, completer);
             } else if (op.equalsIgnoreCase("pause")) {
                 completer = new SRDFLinkPauseCompleter(combined, task);

@@ -31,6 +31,7 @@ import com.emc.storageos.volumecontroller.impl.netappc.job.NetAppSnapMirrorCreat
 import com.emc.storageos.volumecontroller.impl.netappc.job.NetAppSnapMirrorQuiesceJob;
 import com.emc.storageos.volumecontroller.impl.netappc.job.NetAppSnapMirrorResumeJob;
 import com.iwave.ext.netappc.model.SnapMirrorVolumeStatus;
+import com.iwave.ext.netappc.model.SnapmirrorCreateParam;
 import com.iwave.ext.netappc.model.SnapmirrorCronScheduleInfo;
 import com.iwave.ext.netappc.model.SnapmirrorInfo;
 import com.iwave.ext.netappc.model.SnapmirrorInfoResp;
@@ -84,7 +85,6 @@ public class NetAppCMirrorOperations implements FileMirrorOperations {
         // TODO Auto-generated method stub
         FileShare sourceFs = _dbClient.queryObject(FileShare.class, targetFs.getParentFileShare().getURI());
         StorageSystem sourceSystem = _dbClient.queryObject(StorageSystem.class, sourceFs.getStorageDevice());
-
     }
 
     @Override
@@ -212,19 +212,26 @@ public class NetAppCMirrorOperations implements FileMirrorOperations {
             doInitialiseSnapMirror(StorageSystem sourceSystem, StorageSystem targetSystem, FileShare sourceFs, FileShare targetFs,
                     TaskCompleter taskCompleter) {
         SnapmirrorInfo snapMirrorInfo = prepareSnapMirrorInfo(sourceSystem, targetSystem, sourceFs, targetFs);
+        _log.info("NetAppCMirrorOperations - doInitialiseSnapMirror sourcelocation {} and destinationlocation {}- start",
+                snapMirrorInfo.getSourceLocation(), snapMirrorInfo.getDestinationLocation());
 
-        String sourceVserver = findSVMName(sourceFs);
-        NetAppClusterApi ncApi = new NetAppClusterApi.Builder(sourceSystem.getIpAddress(),
-                sourceSystem.getPortNumber(), sourceSystem.getUsername(),
-                sourceSystem.getPassword()).https(true).svm(sourceVserver).build();
+        String destVserver = findSVMName(targetFs);
+        NetAppClusterApi ncApi = new NetAppClusterApi.Builder(targetSystem.getIpAddress(),
+                targetSystem.getPortNumber(), targetSystem.getUsername(),
+                targetSystem.getPassword()).https(true).svm(destVserver).build();
         try {
+            // get the snapmirror state
             SnapmirrorInfoResp mirrorInfoResp = ncApi.getSnapMirrorInfo(snapMirrorInfo);
             if (SnapmirrorState.UNKNOWN.equals(mirrorInfoResp.getMirrorState()) ||
                     SnapmirrorState.READY.equals(mirrorInfoResp.getMirrorState())) {
 
+                // perform initial update of snapmirror relationship
                 SnapmirrorResp snapMirrorResult = ncApi.initialiseSnapMirror(snapMirrorInfo);
 
+                _log.info("NetAppCMirrorOperations - doInitialiseSnapMirror with job id {} and  policy result {} - complete",
+                        snapMirrorResult.getResultJobid(), snapMirrorResult.getResultStatus());
                 if (SnapmirrorResp.INPROGRESS.equals(snapMirrorResult.getResultStatus())) {
+
                     NetAppCSnapMirrorJob netappCSnapMirrorJob = new NetAppCSnapMirrorJob(snapMirrorResult.getResultJobid().toString(),
                             sourceSystem.getId(), taskCompleter);
 
@@ -238,7 +245,7 @@ public class NetAppCMirrorOperations implements FileMirrorOperations {
                     error.setCode(snapMirrorResult.getResultErrorCode());
                     return BiosCommandResult.createErrorResult(error);
 
-                } else {
+                } else {// on success
                     return BiosCommandResult.createSuccessfulResult();
                 }
             } else {
@@ -255,25 +262,56 @@ public class NetAppCMirrorOperations implements FileMirrorOperations {
         }
     }
 
+    /**
+     * Create SnapMirror relationship and
+     * The snapmirror-create API must be issued on the destination cluster
+     * 
+     * @param sourceSystem
+     * @param targetSystem
+     * @param sourceFs
+     * @param targetFs
+     * @param virtualPool
+     * @param taskCompleter
+     * @return
+     */
     BiosCommandResult doCreateSnapMirror(StorageSystem sourceSystem, StorageSystem targetSystem, FileShare sourceFs, FileShare targetFs,
             VirtualPool virtualPool, TaskCompleter taskCompleter) {
+
         SnapmirrorInfo snapMirrorInfo = prepareSnapMirrorInfo(sourceSystem, targetSystem, sourceFs, targetFs);
-        String sourceVserver = findSVMName(sourceFs);
-        NetAppClusterApi ncApi = new NetAppClusterApi.Builder(sourceSystem.getIpAddress(),
-                sourceSystem.getPortNumber(), sourceSystem.getUsername(),
-                sourceSystem.getPassword()).https(true).svm(sourceVserver).build();
+        _log.info("NetAppCMirrorOperations - doCreateSnapMirror sourcelocation {} and destinationlocation {}- start",
+                snapMirrorInfo.getSourceLocation(), snapMirrorInfo.getDestinationLocation());
+
+        String destVserver = findSVMName(targetFs);
+        NetAppClusterApi ncApi = new NetAppClusterApi.Builder(targetSystem.getIpAddress(),
+                targetSystem.getPortNumber(), targetSystem.getUsername(),
+                targetSystem.getPassword()).https(true).svm(destVserver).build();
 
         // create cron schedule policy
         SnapmirrorCronScheduleInfo scheduleInfo = doCreateCronSchedule(ncApi, virtualPool.getFrRpoValue().toString(),
                 virtualPool.getFrRpoType(), targetFs.getLabel());
+        SnapmirrorCreateParam snapMirrorCreateParam = null;
+        if (scheduleInfo != null) {
+            snapMirrorCreateParam = new SnapmirrorCreateParam(snapMirrorInfo);
+            // set schedule policy name
+            snapMirrorCreateParam.setCronScheduleName(scheduleInfo.getJobScheduleName());
+
+        } else {
+            ServiceError error =
+                    DeviceControllerErrors.netappc.jobFailed("Snapmirror create cron schedule is failed");
+            return BiosCommandResult.createErrorResult(error);
+        }
 
         try {
-            SnapmirrorInfoResp snapMirrorResult = ncApi.createSnapMirror(snapMirrorInfo);
+            // call create snap mirror relation ship
+            SnapmirrorInfoResp snapMirrorResult = ncApi.createSnapMirror(snapMirrorCreateParam);
             if (snapMirrorResult != null) {
                 NetAppSnapMirrorCreateJob snapMirrorCreateJob = new NetAppSnapMirrorCreateJob(snapMirrorInfo.getDestinationLocation(),
                         sourceSystem.getId(),
                         taskCompleter);
                 ControllerServiceImpl.enqueueJob(new QueueJob(snapMirrorCreateJob));
+                _log.info("NetAppCMirrorOperations - doCreateSnapMirror {} with policy state {} - complete",
+                        scheduleInfo.getJobScheduleName(),
+                        snapMirrorResult.getMirrorState().toString());
                 return BiosCommandResult.createPendingResult();
 
             } else {

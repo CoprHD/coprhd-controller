@@ -30,6 +30,7 @@ import com.iwave.ext.netapp.model.Quota;
 import com.iwave.ext.netapp.utils.ExportRule;
 import com.iwave.ext.netappc.model.CifsAcl;
 import com.iwave.ext.netappc.model.SnapMirrorVolumeStatus;
+import com.iwave.ext.netappc.model.SnapmirrorCreateParam;
 import com.iwave.ext.netappc.model.SnapmirrorCronScheduleInfo;
 import com.iwave.ext.netappc.model.SnapmirrorInfo;
 import com.iwave.ext.netappc.model.SnapmirrorInfoResp;
@@ -800,9 +801,9 @@ public class NetAppClusterFacade {
 
     // snap mirror relation operation
 
-    public SnapmirrorInfoResp createSnapmirror(SnapmirrorInfo snapMirrorInfo) {
+    public SnapmirrorInfoResp createSnapmirror(SnapmirrorCreateParam snapMirrorCreateParam) {
         SnapMirror snapMirror = new SnapMirror(server.getNaServer(), null);
-        return snapMirror.createSnapMirror(snapMirrorInfo);
+        return snapMirror.createSnapMirror(snapMirrorCreateParam);
     }
 
     public SnapmirrorResp initialiseSnapMirror(SnapmirrorInfo snapMirrorInfo) {

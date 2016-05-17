@@ -21,6 +21,25 @@ public class SnapmirrorInfo {
     private String destinationVserver;
     private String destinationCluster;
 
+    public SnapmirrorInfo(SnapmirrorInfo snapmirrorInfo) {
+        // source
+        this.sourceLocation = snapmirrorInfo.sourceLocation;
+        this.sourceCluster = snapmirrorInfo.sourceCluster;
+        this.sourceVserver = snapmirrorInfo.sourceVserver;
+        this.sourceVolume = snapmirrorInfo.sourceCluster;
+
+        // destination
+        this.destinationLocation = snapmirrorInfo.destinationLocation;
+        this.destinationCluster = snapmirrorInfo.destinationCluster;
+        this.destinationVserver = snapmirrorInfo.destinationVserver;
+        this.destinationVolume = snapmirrorInfo.destinationVolume;
+    }
+
+    // default constructor
+    public SnapmirrorInfo() {
+
+    }
+
     // getter and setter methods for Source Cluster
 
     public String getSourceLocation() {

@@ -25,6 +25,7 @@ import com.iwave.ext.netappc.StorageVirtualMachineInfo;
 import com.iwave.ext.netappc.model.CifsAccess;
 import com.iwave.ext.netappc.model.CifsAcl;
 import com.iwave.ext.netappc.model.SnapMirrorVolumeStatus;
+import com.iwave.ext.netappc.model.SnapmirrorCreateParam;
 import com.iwave.ext.netappc.model.SnapmirrorCronScheduleInfo;
 import com.iwave.ext.netappc.model.SnapmirrorInfo;
 import com.iwave.ext.netappc.model.SnapmirrorInfoResp;
@@ -955,14 +956,14 @@ public class NetAppClusterApi {
 
     // snap mirror operations
 
-    public SnapmirrorInfoResp createSnapMirror(SnapmirrorInfo snapMirrorInfo)
+    public SnapmirrorInfoResp createSnapMirror(SnapmirrorCreateParam snapMirrorCreateParam)
             throws NetAppCException {
         try {
             netAppClusterFacade = new NetAppClusterFacade(_ipAddress, _portNumber, _userName,
                     _password, _https);
-            return netAppClusterFacade.createSnapmirror(snapMirrorInfo);
+            return netAppClusterFacade.createSnapmirror(snapMirrorCreateParam);
         } catch (Exception e) {
-            throw NetAppCException.exceptions.createSnapMirrorFailed(snapMirrorInfo.getSourceVolume(), _ipAddress, e.getMessage());
+            throw NetAppCException.exceptions.createSnapMirrorFailed(snapMirrorCreateParam.getSourceVolume(), _ipAddress, e.getMessage());
         }
     }
 

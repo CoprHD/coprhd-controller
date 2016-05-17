@@ -6,6 +6,7 @@ import netapp.manage.NaServer;
 import org.apache.log4j.Logger;
 
 import com.iwave.ext.netappc.model.SnapMirrorVolumeStatus;
+import com.iwave.ext.netappc.model.SnapmirrorCreateParam;
 import com.iwave.ext.netappc.model.SnapmirrorInfo;
 import com.iwave.ext.netappc.model.SnapmirrorInfoResp;
 import com.iwave.ext.netappc.model.SnapmirrorRelationshipStatus;
@@ -24,24 +25,40 @@ public class SnapMirror {
         this.name = volumeName;
     }
 
-    public SnapmirrorInfoResp createSnapMirror(SnapmirrorInfo snapMirrorInfo) {
+    /**
+     * creates a SnapMirror relationship between a source and destination volumes
+     * 
+     * @param snapMirrorCreateParam
+     * @return
+     */
+    public SnapmirrorInfoResp createSnapMirror(SnapmirrorCreateParam snapMirrorCreateParam) {
 
         SnapmirrorInfoResp snapMirrorResp = null;
 
         NaElement elem = new NaElement("snapmirror-create");
 
         // destination attributes
-        prepSourceReq(elem, snapMirrorInfo);
+        prepSourceReq(elem, snapMirrorCreateParam);
 
         // source attributes
-        prepDestReq(elem, snapMirrorInfo);
+        prepDestReq(elem, snapMirrorCreateParam);
+
+        // the name of the cron schedule
+        elem.addNewChild("schedule", snapMirrorCreateParam.getCronScheduleName());
+
+        if (snapMirrorCreateParam.isReturnRecord() == true) {
+            elem.addNewChild("return-record", "true");
+        }
+
+        // type of the SnapMirror relationship
+        elem.addNewChild("relationship-type", snapMirrorCreateParam.getRelationshipType());
 
         try {
             NaElement results = server.invokeElem(elem);
             snapMirrorResp = parseSnapMirrorRelationShipInfo(results);
 
         } catch (Exception e) {
-            String msg = "Failed to create SnapMirror: " + snapMirrorInfo.getDestinationVolume();
+            String msg = "Failed to create SnapMirror: " + snapMirrorCreateParam.getDestinationVolume();
             log.error(msg, e);
             throw new NetAppCException(msg, e);
         }
@@ -192,7 +209,7 @@ public class SnapMirror {
             snapMirrorResp = parseSnapMirrorRelationShipInfo(results);
 
         } catch (Exception e) {
-            String msg = "Failed to SnapMirror Info: " + snapMirrorInfo.getDestinationLocation();
+            String msg = "Failed to get snapMirror info: " + snapMirrorInfo.getDestinationLocation();
             log.error(msg, e);
             throw new NetAppCException(msg, e);
         }

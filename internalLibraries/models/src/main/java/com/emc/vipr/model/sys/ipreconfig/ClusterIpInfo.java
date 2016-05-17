@@ -110,7 +110,6 @@ public class ClusterIpInfo implements Serializable {
         SortedSet<String> vdcsiteids = new TreeSet<String>(siteIpInfoMap.keySet());
         for (String vdcsiteid : vdcsiteids) {
             propStrBuf.append(siteIpInfoMap.get(vdcsiteid).toVdcSiteString(vdcsiteid));
-            propStrBuf.append("\n");
         }
 
         return propStrBuf.toString();
@@ -163,9 +162,12 @@ public class ClusterIpInfo implements Serializable {
 
     public String validate(ClusterIpInfo currentIpInfo) {
         String errmsg = "";
+        log.info("current cluster ip prop = {}", currentIpInfo.toVdcSiteString());
+        log.info("target cluster ip prop = {}", toVdcSiteString());
 
         for (Map.Entry<String, SiteIpInfo> me: getSiteIpInfoMap().entrySet()) {
             int nodecount = currentIpInfo.getSiteIpInfoMap().get(me.getKey()).getNodeCount();
+            log.info("current site {} node count = {}", me.getKey(), nodecount);
             errmsg = me.getValue().validate(nodecount);
             if (!errmsg.isEmpty()) {
                 return errmsg;

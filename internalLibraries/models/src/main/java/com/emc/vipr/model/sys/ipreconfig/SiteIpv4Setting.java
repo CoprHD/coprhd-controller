@@ -138,6 +138,8 @@ public class SiteIpv4Setting implements Serializable {
             propStrBuf.append(vdcsiteid).append(PropertyConstants.UNDERSCORE_DELIMITER)
                       .append(network_ipaddr_key).append(PropertyConstants.DELIMITER).append(network_addr).append("\n");
         }
+        propStrBuf.append(vdcsiteid).append(PropertyConstants.UNDERSCORE_DELIMITER)
+                .append(PropertyConstants.NODE_COUNT_KEY).append(PropertyConstants.DELIMITER).append(network_addrs.size()).append("\n");
         return propStrBuf.toString();
     }
 
@@ -146,13 +148,18 @@ public class SiteIpv4Setting implements Serializable {
      */
     public void loadFromPropertyMap(Map<String, String> propMap)
     {
-        String node_count = propMap.get(PropertyConstants.NODE_COUNT_KEY);
+        int node_count=0;
+        for (String key: propMap.keySet()) {
+            if (key.endsWith(PropertyConstants.IPV4_ADDR_POSTFIX)) {
+                node_count++;
+            }
+        }
 
         setNetworkVip(propMap.get(PropertyConstants.IPV4_VIP_KEY));
         setNetworkGateway(propMap.get(PropertyConstants.IPV4_GATEWAY_KEY));
         setNetworkNetmask(propMap.get(PropertyConstants.IPV4_NETMASK_KEY));
         network_addrs = new LinkedList<String>();
-        for (int i = 1; i <= Integer.valueOf(node_count); i++) {
+        for (int i = 1; i <= node_count; i++) {
             String network_ipaddr_key = String.format(PropertyConstants.IPV4_ADDR_KEY, i);
             network_addrs.add(propMap.get(network_ipaddr_key));
         }

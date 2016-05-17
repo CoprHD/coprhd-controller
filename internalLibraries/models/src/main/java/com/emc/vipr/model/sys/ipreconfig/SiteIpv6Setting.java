@@ -144,6 +144,8 @@ public class SiteIpv6Setting implements Serializable {
             propStrBuf.append(vdcsiteid).append(PropertyConstants.UNDERSCORE_DELIMITER)
                       .append(network_ipaddr_key).append(PropertyConstants.DELIMITER).append(network_addr).append("\n");
         }
+        propStrBuf.append(vdcsiteid).append(PropertyConstants.UNDERSCORE_DELIMITER)
+                .append(PropertyConstants.NODE_COUNT_KEY).append(PropertyConstants.DELIMITER).append(network_addrs.size()).append("\n");
         return propStrBuf.toString();
     }
 
@@ -152,13 +154,18 @@ public class SiteIpv6Setting implements Serializable {
      */
     public void loadFromPropertyMap(Map<String, String> propMap)
     {
-        String node_count = propMap.get(PropertyConstants.NODE_COUNT_KEY);
+        int node_count=0;
+        for (String key: propMap.keySet()) {
+            if (key.endsWith(PropertyConstants.IPV6_ADDR_POSTFIX)) {
+                node_count++;
+            }
+        }
 
         setNetworkVip6(propMap.get(PropertyConstants.IPV6_VIP_KEY));
         setNetworkGateway6(propMap.get(PropertyConstants.IPV6_GATEWAY_KEY));
         setNetworkPrefixLength(Integer.valueOf(propMap.get(PropertyConstants.IPV6_PREFIX_KEY)));
         network_addrs = new LinkedList<String>();
-        for (int i = 1; i <= Integer.valueOf(node_count); i++) {
+        for (int i = 1; i <= node_count; i++) {
             String network_ipaddr6_key = String.format(PropertyConstants.IPV6_ADDR_KEY, i);
             network_addrs.add(propMap.get(network_ipaddr6_key));
         }

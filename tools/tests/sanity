@@ -348,6 +348,7 @@ LOCAL_SECURE_LDAP_USER_USERNAME_WITH_SPACES='       secureLdapViPRUser1@'${LOCAL
 #
 COS_VNXFILE=cosvnxf
 COS_VNXE=cosvnxe
+COS_UNITY=cosunity
 COS_ISIFILE=cosisi
 COS_NETAPP=cosnetappf
 COS_NETAPPC=cosnetappcf
@@ -568,6 +569,9 @@ FSEXP_DEFAULT_EPS="$FSEXP1 $FSEXP2 $FSEXP3"
 SNAPEXP_DEFAULT_EPS="www.emc.com www.abc.com www.amazon.com"
 FS_VNXE_SIZE=2000000000
 FS_VNXE_EXPAND_SIZE=3000000000
+FS_UNITY_SIZE=3000000000
+FS_UNITY_EXPAND_SIZE=4000000000
+
 
 # Alternate configuration file for alternate hardware/variables
 ALTERNATE_CONFIG_FILE=myhardware.conf
@@ -9588,10 +9592,21 @@ unity_setup()
     run transportzone add ${SRDF_VMAXA_VSAN} $UNITY_INIT_PWWN2
     unity_cos_setup
     run cos update block $COS_UNITYBLOCK_CG --storage $UNITY_NATIVEGUID
+
+    storagepool update $UNITY_NATIVEGUID --type file
+    storageport update $UNITY_NATIVEGUID IP --tzone nh/iptz
+    run cos update file $COS_UNITY --storage $UNITY_NATIVEGUID
+
 }
 
 unity_tests()
 {
+    FS_SIZEMB=$FS_UNITY_SIZE;
+    FS_SIZE=$FS_UNITY_SIZE;
+    FS_EXPAND_SIZE=$FS_UNITY_EXPAND_SIZE;
+    file_tests $COS_UNITY default
+
+
     vol1=unity1-${RANDOM};
     vol2=unity-cg-${RANDOM};
     host=$PROJECT.lss.emc.com
@@ -9637,6 +9652,15 @@ unity_tests()
 unity_cos_setup()
 {
     secho "setting up Unity Virtual Pool"
+
+    run cos create file $COS_UNITY                               \
+         --description 'Virtual-Pool-for-unity-file' true \
+                         --protocols NFS CIFS --max_snapshots 10    \
+                         --provisionType 'Thin' \
+                         --neighborhoods $NH
+    ROOT_TENANT=`tenant root|tail -1`
+    run cos allow $COS_UNITY file $ROOT_TENANT
+
     
     run cos create block $COS_UNITYBLOCK_CG                            \
 	--description 'Virtual-Pool-for-unity-block-cg' true         \

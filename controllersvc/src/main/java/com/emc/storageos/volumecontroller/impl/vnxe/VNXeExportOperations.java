@@ -32,6 +32,7 @@ import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
 import com.emc.storageos.vnxe.VNXeApiClient;
 import com.emc.storageos.vnxe.models.Snap;
+import com.emc.storageos.vnxe.models.VNXeBase;
 import com.emc.storageos.vnxe.models.VNXeExportResult;
 import com.emc.storageos.vnxe.models.VNXeHostInitiator;
 import com.emc.storageos.vnxe.models.VNXeLunSnap;
@@ -266,6 +267,68 @@ public class VNXeExportOperations extends VNXeOperations implements ExportMaskOp
             TaskCompleter taskCompleter) throws DeviceControllerException {
 
         _logger.info("{} addInitiator START...", storage.getSerialNumber());
+        try {
+            VNXeApiClient apiClient = getVnxeClient(storage);
+            ExportMask exportMask = _dbClient.queryObject(ExportMask.class, exportMaskUri);
+            StringSet initiatorUris = exportMask.getInitiators();
+            List<Initiator> initiators = new ArrayList<Initiator>();
+            for (String initiatorUri : initiatorUris) {
+                Initiator init = _dbClient.queryObject(Initiator.class, URI.create(initiatorUri));
+                initiators.add(init);
+            }
+            // Finding existing host in the array
+            List<VNXeHostInitiator> vnxeInitiators = prepareInitiators(initiators);
+            String hostId = null;
+            for (VNXeHostInitiator init : vnxeInitiators ) {
+                VNXeHostInitiator foundInit = apiClient.getInitiatorByWWN(init.getInitiatorId());
+                if (foundInit != null) {
+                    VNXeBase host = foundInit.getParentHost();
+                    if (host != null) {
+                        hostId = host.getId();
+                        break;
+                    }
+                }
+            }
+            if (hostId == null) {
+                String msg = String.format("No existing host found in the array for the existing exportMask %s", exportMask.getMaskName()) ;
+                _logger.error(msg);
+                ServiceError error = DeviceControllerErrors.vnxe.jobFailed("addiniator", msg);
+                taskCompleter.error(_dbClient, error);
+                return;
+            }
+            
+            List<VNXeHostInitiator> newInitiators = prepareInitiators(initiatorList);
+            for (VNXeHostInitiator newInit : newInitiators) {
+                VNXeHostInitiator init = apiClient.getInitiatorByWWN(newInit.getInitiatorId());
+                if (init != null) {
+                    //found it
+                    VNXeBase host = init.getParentHost();
+                    if (host!= null && host.getId().equals(hostId)) {
+                        //do nothing. it is already in the array
+                        _logger.info("The initiator exist in the host in the array");
+                    } else {
+                        String msg = String.format("The new initiator %s does not belong to the same host as other initiators in the ExportMask",
+                                newInit.getInitiatorId());
+                        _logger.error(msg);
+                        ServiceError error = DeviceControllerErrors.vnxe.jobFailed("addiniator", msg);
+                        taskCompleter.error(_dbClient, error);
+                        return;
+                    }
+                } else {
+                    apiClient.createInitiator(newInit, hostId);
+                }
+            }
+            for (Initiator initiator : initiatorList) {
+                exportMask.getInitiators().add(initiator.getId().toString());
+            }
+            _dbClient.updateObject(exportMask);
+            taskCompleter.ready(_dbClient);
+
+        } catch (Exception e) {
+            _logger.error("Add volumes error: ", e);
+            ServiceError error = DeviceControllerErrors.vnxe.jobFailed("addVolume", e.getMessage());
+            taskCompleter.error(_dbClient, error);
+        }
 
     }
 

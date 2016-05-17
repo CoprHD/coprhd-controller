@@ -1227,19 +1227,19 @@ srdf_setup_once()
     networksystem show $BROCADE_NETWORK &> /dev/null && return $?
     networksystem create $BROCADE_NETWORK brocade --smisip $BROCADE_IP --smisport 5988 --smisuser $BROCADE_USER --smispw $BROCADE_PW --smisssl false
     smisprovider show $SRDF_VMAXA_SMIS_DEV &> /dev/null && return $?
-    smisprovider create $SRDF_VMAXA_SMIS_DEV $SRDF_VMAXA_SMIS_IP 5988 $SMIS_USER "$SMIS_PASSWD" false
+    smisprovider create $SRDF_VMAXA_SMIS_DEV $SRDF_VMAXA_SMIS_IP $SRDF_VMAXA_SMIS_PORT $SMIS_USER "$SMIS_PASSWD" $SRDF_VMAXA_SMIS_SSL
     smisprovider show $SRDF_VMAXB_SMIS_DEV &> /dev/null && return $?
-    smisprovider create $SRDF_VMAXB_SMIS_DEV $SRDF_VMAXB_SMIS_IP 5988 $SMIS_USER "$SMIS_PASSWD" false
+    smisprovider create $SRDF_VMAXB_SMIS_DEV $SRDF_VMAXB_SMIS_IP $SRDF_VMAXB_SMIS_PORT $SMIS_USER "$SMIS_PASSWD" $SRDF_VMAXB_SMIS_SSL
     smisprovider show $SRDF_V3_VMAXA_SMIS_DEV &> /dev/null && return $?
-    smisprovider create $SRDF_V3_VMAXA_SMIS_DEV $SRDF_V3_VMAXA_SMIS_IP 5988 $SMIS_USER "$SMIS_PASSWD" false
+    smisprovider create $SRDF_V3_VMAXA_SMIS_DEV $SRDF_V3_VMAXA_SMIS_IP $SRDF_V3_VMAXA_SMIS_PORT $SMIS_USER "$SMIS_PASSWD" $SRDF_V3_VMAXA_SMIS_SSL
     smisprovider show $SRDF_V3_VMAXB_SMIS_DEV &> /dev/null && return $?
-    smisprovider create $SRDF_V3_VMAXB_SMIS_DEV $SRDF_V3_VMAXB_SMIS_IP 5988 $SMIS_USER "$SMIS_PASSWD" false
+    smisprovider create $SRDF_V3_VMAXB_SMIS_DEV $SRDF_V3_VMAXB_SMIS_IP $SRDF_V3_VMAXB_SMIS_PORT $SMIS_USER "$SMIS_PASSWD" $SRDF_V3_VMAXB_SMIS_SSL
 
     # Adding additional array in order to test pool matching.
     # smisprovider show $VMAX_SMIS_DEV &> /dev/null && return $?
-    # smisprovider create $VMAX_SMIS_DEV $VMAX_SMIS_IP 5988 $SMIS_USER "$SMIS_PASSWD" false
+    # smisprovider create $VMAX_SMIS_DEV $VMAX_SMIS_IP $VMAX_SMIS_PORT $SMIS_USER "$SMIS_PASSWD" $VMAX_SMIS_SSL
     smisprovider show $VNX_SMIS_DEV &> /dev/null && return $?
-    smisprovider create $VNX_SMIS_DEV $VNX_SMIS_IP 5988 $SMIS_USER "$SMIS_PASSWD" false
+    smisprovider create $VNX_SMIS_DEV $VNX_SMIS_IP $VNX_SMIS_PORT $SMIS_USER "$SMIS_PASSWD" $VNX_SMIS_SSL
 
     storagedevice discover_all --ignore_error
     discoveredsystem show $SRDF_VMAXA_NATIVEGUID &> /dev/null && return $?
@@ -1757,7 +1757,7 @@ vplex_setup_once()
     if [ "$AUTH" == 'ipv6' ] ; then
 	echo "Setting up VPLEX environment for IPv6"
 	# Discover the storage systems 
-	smisprovider create $VPLEX_VMAX_SMIS_DEV_NAME $VPLEX_VMAX_SMIS_IP 5988 $VPLEX_SMIS_USER "$VPLEX_SMIS_PASSWD" false
+	smisprovider create $VPLEX_VMAX_SMIS_DEV_NAME $VPLEX_VMAX_SMIS_IP $VPLEX_VMAX_SMIS_PORT $VPLEX_SMIS_USER "$VPLEX_SMIS_PASSWD" $VPLEX_VMAX_SMIS_SSL
 	storageprovider create $VPLEX_DEV_NAME $VPLEX_IP 443 $VPLEX_USER "$VPLEX_PASSWD" vplex
 	storagedevice discover_all
 	storagedevice list
@@ -1813,9 +1813,9 @@ vplex_setup_once()
 	# Discover the storage systems 
 	echo "Discovering Storage Assets"
 	smisprovider show $VPLEX_VMAX_SMIS_DEV_NAME &> /dev/null && return $?
-	run smisprovider create $VPLEX_VMAX_SMIS_DEV_NAME $VPLEX_VMAX_SMIS_IP 5989 $VPLEX_SMIS_USER "$VPLEX_SMIS_PASSWD" true
-	run smisprovider create $VPLEX_VNX1_SMIS_DEV_NAME $VPLEX_VNX1_SMIS_IP 5989 $VPLEX_SMIS_USER "$VPLEX_SMIS_PASSWD" true
-	run smisprovider create $VPLEX_VNX2_SMIS_DEV_NAME $VPLEX_VNX2_SMIS_IP 5989 $VPLEX_SMIS_USER "$VPLEX_SMIS_PASSWD" true
+	run smisprovider create $VPLEX_VMAX_SMIS_DEV_NAME $VPLEX_VMAX_SMIS_IP $VPLEX_VMAX_SMIS_PORT $VPLEX_SMIS_USER "$VPLEX_SMIS_PASSWD" $VPLEX_VMAX_SMIS_SSL
+	run smisprovider create $VPLEX_VNX1_SMIS_DEV_NAME $VPLEX_VNX1_SMIS_IP $VPLEX_VNX1_SMIS_PORT $VPLEX_SMIS_USER "$VPLEX_SMIS_PASSWD" $VPLEX_VNX1_SMIS_SSL
+	run smisprovider create $VPLEX_VNX2_SMIS_DEV_NAME $VPLEX_VNX2_SMIS_IP $VPLEX_VNX2_SMIS_PORT $VPLEX_SMIS_USER "$VPLEX_SMIS_PASSWD" $VPLEX_VNX2_SMIS_SSL
 	storageprovider show $VPLEX_DEV_NAME &> /dev/null && return $?
 	run storageprovider create $VPLEX_DEV_NAME $VPLEX_IP 443 $VPLEX_USER "$VPLEX_PASSWD" vplex
 	run storagedevice discover_all
@@ -2003,7 +2003,7 @@ vmaxblock_discovery()
     smisprovider show $VMAX_SMIS_DEV &> /dev/null && return $?
 
     if [ $QUICK -eq 0 ]; then
-       smisprovider create $VMAX_SMIS_DEV $VMAX_SMIS_IP 5988 $SMIS_USER "$SMIS_PASSWD" false
+       smisprovider create $VMAX_SMIS_DEV $VMAX_SMIS_IP $VMAX_SMIS_PORT $SMIS_USER "$SMIS_PASSWD" $VMAX_SMIS_SSL
     fi
 
     storagedevice discover_all --ignore_error
@@ -2015,7 +2015,7 @@ vnxblock_discovery()
     smisprovider show $VNX_SMIS_DEV &> /dev/null && return $?
 
     if [ $QUICK -eq 0 ]; then
-       smisprovider create $VNX_SMIS_DEV $VNX_SMIS_IP 5988 $SMIS_USER "$SMIS_PASSWD" false
+       smisprovider create $VNX_SMIS_DEV $VNX_SMIS_IP $VNX_SMIS_PORT $SMIS_USER "$SMIS_PASSWD" $VNX_SMIS_SSL
     else
        smisprovider create $VNX_SMIS_DEV $SIMULATOR_SMIS_IP 5988 $SMIS_USER "$SMIS_PASSWD" false
     fi
@@ -4446,19 +4446,6 @@ datadomainfile_setup_once()
     storageport list $DATADOMAINF_NATIVEGUID
     storagedevice show $DATADOMAINF_NATIVEGUID &> /dev/null && return $?
 
-#    # Discover the storage systems 
-#    smisprovider show $VPLEX_VMAX_SMIS_DEV_NAME &> /dev/null && return $?
-#    smisprovider create $VPLEX_VMAX_SMIS_DEV_NAME $VPLEX_VMAX_SMIS_IP 5988 $VPLEX_SMIS_USER "$VPLEX_SMIS_PASSWD" false
-#    smisprovider create $VPLEX_VNX_SMIS_DEV $VPLEX_VNX_SMIS_IP 5988 $VPLEX_SMIS_USER "$VPLEX_SMIS_PASSWD" false
-#    storageprovider show $VPLEX_DEV_NAME &> /dev/null && return $?
-#    storageprovider create $VPLEX_DEV_NAME $VPLEX_IP 443 $VPLEX_USER "$VPLEX_PASSWD" vplex
-#    storagedevice discover_all
-#    storagedevice list
-#    storageport list $VPLEX_VNX_NATIVEGUID
-#    storageport list $VPLEX_VMAX_NATIVEGUID
-#    storageport list $VPLEX_GUID
-
-    # discoveredsystem create $DATADOMAINF_DEV datadomain $DATADOMAINF_IP $DATADOMAINF_PORT $DATADOMAINF_USER $DATADOMAINF_PW --serialno=$DATADOMAINF_SN
     datadomainfile_cos_setup
 
     storagepool update $DATADOMAINF_NATIVEGUID --type file
@@ -4880,7 +4867,7 @@ vnxblock_setup_once()
     smisprovider show $VNX_SMIS_DEV &> /dev/null && return $?
 
     if [ $QUICK -eq 0 ]; then
-       run smisprovider create $VNX_SMIS_DEV $VNX_SMIS_IP 5988 $SMIS_USER "$SMIS_PASSWD" false
+       run smisprovider create $VNX_SMIS_DEV $VNX_SMIS_IP $VNX_SMIS_PORT $SMIS_USER "$SMIS_PASSWD" $VNX_SMIS_SSL
     else
        run smisprovider create $VNX_SMIS_DEV $SIMULATOR_SMIS_IP 5988 $SMIS_USER "$SMIS_PASSWD" false
     fi
@@ -4929,7 +4916,7 @@ vmaxblock_setup_once()
 
     # If this is using the simulator, the vnxblock already took care of the SMIS provider
     if [ $QUICK -eq 0 ]; then
-       run smisprovider create $VMAX_SMIS_DEV $VMAX_SMIS_IP 5988 $SMIS_USER "$SMIS_PASSWD" false
+       run smisprovider create $VMAX_SMIS_DEV $VMAX_SMIS_IP $VMAX_SMIS_PORT $SMIS_USER "$SMIS_PASSWD" $VMAX_SMIS_SSL
     fi
 
     run storagedevice discover_all --ignore_error
@@ -6726,7 +6713,7 @@ vmax3_fc_setup_once()
 
     smisprovider show $VMAX3_FC_SMIS_DEV &> /dev/null && return $?
 
-    run smisprovider create $VMAX3_FC_SMIS_DEV $VMAX3_FC_SMIS_IP 5988 $SMIS_USER "$SMIS_PASSWD" false
+    run smisprovider create $VMAX3_FC_SMIS_DEV $VMAX3_FC_SMIS_IP $VMAX3_FC_SMIS_PORT $SMIS_USER "$SMIS_PASSWD" $VMAX3_FC_SMIS_SSL
 
     run storagedevice discover_all --ignore_error
     secho "Waiting 5 minutes after storage discovery"
@@ -9373,7 +9360,7 @@ snapvx_setup_once()
 
     # Create provider for VMAX3 array.
     secho "Creating VMAX3 provider"
-    smisprovider create $VMAX3_SMIS_DEV $VMAX3_SMIS_IP 5989 $SMIS_USER "$SMIS_PASSWD" true
+    smisprovider create $VMAX3_SMIS_DEV $VMAX3_SMIS_IP $VMAX3_SMIS_PORT $SMIS_USER "$SMIS_PASSWD" $VMAX3_SMIS_SSL
 
     # Discover the vmax3 array.
     secho "Discovering VMAX3 array"
@@ -9525,15 +9512,20 @@ snapvx_single_tests()
 
     # Relink target to the snapvx session 2.
     secho "Relinking target to SnapVx session 2"
-    snapshotsession relink_target $PROJECT/$VOLUME_NAME/$SNAP_SESSION_NAME2 $PROJECT/$VOLUME_NAME/$SNAP_SESSION_TGT_NAME1
+    snapshotsession relink_target $PROJECT/$VOLUME_NAME/$SNAP_SESSION_NAME2 $PROJECT/$VOLUME_NAME/$SNAP_SESSION_TGT_NAME1-1
+
+    # Delete the snapvx sessions.
+    secho "Deleting SnapVx session 1"
+    snapshotsession delete $PROJECT/$VOLUME_NAME/$SNAP_SESSION_NAME1
+
+    # delete the targetless session first before unlinking (OPT 498174)
 
     # Unlink target from the snapvx session and delete target volume.
     secho "unlinking target from SnapVx session 2"
-    snapshotsession unlink_target $PROJECT/$VOLUME_NAME/$SNAP_SESSION_NAME2 $PROJECT/$VOLUME_NAME/$SNAP_SESSION_TGT_NAME1 --delete_target true
+    snapshotsession unlink_target $PROJECT/$VOLUME_NAME/$SNAP_SESSION_NAME2 $PROJECT/$VOLUME_NAME/$SNAP_SESSION_TGT_NAME1-1 --delete_target true
 
     # Delete the snapvx sessions.
-    secho "Deleting SnapVx sessions 1 and 2"
-    snapshotsession delete $PROJECT/$VOLUME_NAME/$SNAP_SESSION_NAME1
+    secho "Deleting SnapVx session 2"
     snapshotsession delete $PROJECT/$VOLUME_NAME/$SNAP_SESSION_NAME2
 
     # Create a snapvx session with multiple linked targets in copy mode
@@ -9546,13 +9538,13 @@ snapvx_single_tests()
 
     # Restore the source from a linked target
     secho "Restoring source from linked target"
-    blocksnapshot restore $PROJECT/$VOLUME_NAME/$SNAP_SESSION_TGT_NAME3
+    blocksnapshot restore $PROJECT/$VOLUME_NAME/$SNAP_SESSION_TGT_NAME3-1
 
     # Unlink target from the snapvx session and delete target volume.
     secho "Unlinking all targets from SnapVx session 3"
     snapshotsession unlink_target $PROJECT/$VOLUME_NAME/$SNAP_SESSION_NAME3 $PROJECT/$VOLUME_NAME/$SNAP_SESSION_TGT_NAME2-1 --delete_target true
     snapshotsession unlink_target $PROJECT/$VOLUME_NAME/$SNAP_SESSION_NAME3 $PROJECT/$VOLUME_NAME/$SNAP_SESSION_TGT_NAME2-2 --delete_target true
-    snapshotsession unlink_target $PROJECT/$VOLUME_NAME/$SNAP_SESSION_NAME3 $PROJECT/$VOLUME_NAME/$SNAP_SESSION_TGT_NAME3 --delete_target true
+    snapshotsession unlink_target $PROJECT/$VOLUME_NAME/$SNAP_SESSION_NAME3 $PROJECT/$VOLUME_NAME/$SNAP_SESSION_TGT_NAME3-1 --delete_target true
 
     # Delete the snapvx session.
     secho "Deleting SnapVx sessions 3"

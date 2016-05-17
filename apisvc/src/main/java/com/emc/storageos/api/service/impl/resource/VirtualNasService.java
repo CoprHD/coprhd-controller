@@ -210,10 +210,10 @@ public class VirtualNasService extends TaggedResource {
         vnas.setId(URIUtil.createId(VirtualNAS.class));
         vnas.setLabel(vnasParam.getvNasName());
         vnas.setNasName(vnasParam.getvNasName());
-        for (String protocol : vnasParam.getAddProtocols()) {
+        for (String protocol : vnasParam.getProtocols()) {
             protocols.add(protocol.toLowerCase());
         }
-        vnasParam.setAddProtocols(protocols);
+        vnasParam.setProtocols(protocols);
         vnas.setProtocols(protocols);
         vnas.setStorageDeviceURI(vnasParam.getStorageSystem());
 

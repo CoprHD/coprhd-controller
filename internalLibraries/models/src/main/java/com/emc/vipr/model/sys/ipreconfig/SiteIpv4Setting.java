@@ -138,6 +138,8 @@ public class SiteIpv4Setting implements Serializable {
             propStrBuf.append(vdcsiteid).append(PropertyConstants.UNDERSCORE_DELIMITER)
                       .append(network_ipaddr_key).append(PropertyConstants.DELIMITER).append(network_addr).append("\n");
         }
+        propStrBuf.append(vdcsiteid).append(PropertyConstants.UNDERSCORE_DELIMITER)
+                .append(PropertyConstants.NODE_COUNT_KEY).append(PropertyConstants.DELIMITER).append(network_addrs.size()).append("\n");
         return propStrBuf.toString();
     }
 

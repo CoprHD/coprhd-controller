@@ -170,12 +170,13 @@ public class IpReconfigManager implements Runnable {
         Map<String, String> ipProps = getIpProps();
         currentIpinfo = new ClusterIpInfo();
         currentIpinfo.loadFromPropertyMap(ipProps);
+        log.info("current cluster ip properties: {}", currentIpinfo.toVdcSiteString());
 
         nodeCount = 0;
         for (Map.Entry<String, SiteIpInfo> me: currentIpinfo.getSiteIpInfoMap().entrySet()) {
             nodeCount+=me.getValue().getNodeCount();
+            log.info("site {} node count = {}", me.getKey(), me.getValue().getNodeCount());
         }
-
         vdcnodeId = ((CoordinatorClientImpl)_coordinator.getCoordinatorClient()).getVdcNodeId();
     }
 
@@ -698,6 +699,7 @@ public class IpReconfigManager implements Runnable {
     private void validateParameter(ClusterIpInfo clusterIpInfo, String postOperation) throws Exception {
         boolean bValid = true;
         String errmsg = "";
+        log.info("validating parameter:{}", clusterIpInfo.toVdcSiteString());
 
         if (!postOperation.equals("poweroff") && !postOperation.equals("reboot")) {
             bValid = false;

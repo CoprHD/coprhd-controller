@@ -456,8 +456,10 @@ public class NetAppFileCommunicationInterface extends
                         // Whether the vFiler is in running state or not!!!
                         if (VFILER_RUNNING_STATUS.equalsIgnoreCase(vFilerStatus)) {
                             existingNas.setNasState("LOADED");
+                        } else if (vFilerStatus != null) {
+                            existingNas.setNasState(vFilerStatus.toUpperCase());
                         } else {
-                            existingNas.setNasState(vFilerStatus);
+                            existingNas.setNasState("UNKNOWN");
                         }
                         existingNas.setDiscoveryStatus(DiscoveryStatus.VISIBLE.name());
                         PhysicalNAS parentNas = DiscoveryUtils.findPhysicalNasByNativeId(_dbClient, system, DEFAULT_FILER);
@@ -471,8 +473,10 @@ public class NetAppFileCommunicationInterface extends
                             vNas.setProtocols(protocols);
                             if (VFILER_RUNNING_STATUS.equalsIgnoreCase(vFilerStatus)) {
                                 vNas.setNasState("LOADED");
+                            } else if (vFilerStatus != null) {
+                                vNas.setNasState(vFilerStatus.toUpperCase());
                             } else {
-                                vNas.setNasState(vFilerStatus);
+                                vNas.setNasState("UNKNOWN");
                             }
                             // Set the CIFS map!!
                             if (protocols.contains(StorageProtocol.File.CIFS.name())) {

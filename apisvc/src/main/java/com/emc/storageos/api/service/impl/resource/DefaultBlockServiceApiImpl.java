@@ -652,7 +652,7 @@ public class DefaultBlockServiceApiImpl extends AbstractBlockServiceApiImpl<Stor
             descriptors.add(descriptor);
 
             VirtualPool volumeVPool = _dbClient.queryObject(VirtualPool.class,
-                    assocVolume.getVirtualPool());
+                    volume.getVirtualPool());
             descriptors.addAll(createBackendVolumeMigrationDescriptors(storageSystem,
                     volume, tgtVarray, volumeVPool, getVolumeCapacity(volume),
                     isHostMigration, migrationHostURI, taskId, null, null));

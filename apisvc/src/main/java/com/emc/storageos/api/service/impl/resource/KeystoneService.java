@@ -111,6 +111,33 @@ public class KeystoneService extends TaskResourceService {
     }
 
     /**
+     * Get OpenStack Tenant with given ID.
+     * Uses data from Keystone Authentication Provider to connect Keystone and retrieve Tenant information.
+     *
+     * @param id OpenStack Tenant ID.
+     * @brief Show OpenStack Tenant.
+     * @return OpenStack Tenant details.
+     * @see TenantListRestResp
+     */
+    @GET
+    @Path("/tenants/{id}")
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    public OpenStackTenantParam getOpenstackTenant(@PathParam("id") URI id) {
+
+        _log.debug("Keystone Service - getOpenstackTenant with id: {}", id.toString());
+
+        List<TenantV2> tenants = getOpenstackTenants().getOpenstack_tenants();
+
+        for (TenantV2 tenant : tenants) {
+            if (tenant.getId().equals(id.toString())) {
+                return mapToOpenstackParam(tenant);
+            }
+        }
+
+        throw APIException.internalServerErrors.targetIsNullOrEmpty("Openstack Tenant");
+    }
+
+    /**
      * Creates representation of OpenStack Tenants in CoprHD.
      *
      * @param param OpenStackTenantListParam OpenStack Tenants representation with all necessary elements.
@@ -175,6 +202,18 @@ public class KeystoneService extends TaskResourceService {
         response.setCoprhd_os_tenants(coprhdOsTenants);
 
         return response;
+    }
+
+    private OpenStackTenantParam mapToOpenstackParam(TenantV2 from) {
+        OpenStackTenantParam to = new OpenStackTenantParam();
+
+        to.setOsId(from.getId());
+        to.setDescription(from.getDescription());
+        to.setEnabled(Boolean.parseBoolean(from.getEnabled()));
+        to.setExcluded(false);
+        to.setName(from.getName());
+
+        return to;
     }
 
     private CoprhdOsTenant mapOsTenant(OSTenant from) {

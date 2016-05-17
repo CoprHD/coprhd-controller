@@ -21,22 +21,21 @@ package controllers.auth;
 import static com.emc.vipr.client.core.util.ResourceUtils.uris;
 
 import java.net.URI;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 import com.emc.storageos.cinder.CinderConstants;
 import com.emc.storageos.db.client.model.AuthnProvider;
 
 import com.emc.storageos.model.keystone.OpenStackTenantParam;
+import com.emc.vipr.client.core.OpenStackTenants;
 import models.SearchScopes;
 import models.TenantsSynchronizationOptions;
 import models.datatable.LDAPsourcesDataTable;
 import models.datatable.LDAPsourcesDataTable.LDAPsourcesInfo;
 
+//import models.datatable.StorageSystemDataTable;
 import models.datatable.OpenStackTenantsDataTable;
+import models.datatable.TenantsDataTable;
 import org.apache.commons.lang.StringUtils;
 import org.springframework.util.CollectionUtils;
 
@@ -217,8 +216,10 @@ public class LDAPsources extends ViprResourceController {
         }
 
         ldapSources.save();
+        if (!ldapSources.autoRegCoprHDNImportOSProjects) {
+            list();
+        }
         flash.success(MessagesUtils.get(SAVED, ldapSources.name));
-        list();
     }
 
     public static void delete(@As(",") String[] ids) {
@@ -455,8 +456,9 @@ public class LDAPsources extends ViprResourceController {
             param.setAutoRegCoprHDNImportOSProjects(this.autoRegCoprHDNImportOSProjects);
             if (tenantsSynchronizationOptions != null) {
                 param.setTenantsSynchronizationOptions((Sets.newHashSet(tenantsSynchronizationOptions)));
+                param.getTenantsSynchronizationOptions().add(this.synchronizationInterval);
             } else {
-                param.setTenantsSynchronizationOptions(Sets.<String> newHashSet());
+                param.setTenantsSynchronizationOptions(Sets.<String>newHashSet());
             }
             param.getTenantsSynchronizationOptions().add(StringUtils.trimToNull(this.synchronizationInterval));
             param.setGroupAttribute(this.groupAttribute);

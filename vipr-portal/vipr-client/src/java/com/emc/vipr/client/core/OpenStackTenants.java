@@ -36,7 +36,7 @@ import com.emc.vipr.client.impl.RestClient;
 public class OpenStackTenants extends AbstractCoreResources<OpenStackTenantParam> implements
         TopLevelResources<OpenStackTenantParam> {
     public OpenStackTenants(ViPRCoreClient parent, RestClient client) {
-        super(parent, client, OpenStackTenantParam.class, PathConstants.KEYSTONE_URL);
+        super(parent, client, OpenStackTenantParam.class, PathConstants.KEYSTONE_URL + "/tenants");
     }
 
     @Override
@@ -58,7 +58,7 @@ public class OpenStackTenants extends AbstractCoreResources<OpenStackTenantParam
      */
     @Override
     public List<NamedRelatedResourceRep> list() {
-        OpenStackTenantsList response = client.get(OpenStackTenantsList.class, baseUrl + "/tenants");
+        OpenStackTenantsList response = client.get(OpenStackTenantsList.class, baseUrl);
         return ResourceUtils.defaultList(response.getTenants());
     }
 

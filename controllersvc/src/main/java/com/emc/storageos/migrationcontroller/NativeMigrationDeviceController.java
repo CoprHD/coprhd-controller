@@ -42,6 +42,7 @@ public class NativeMigrationDeviceController implements MigrationOrchestrationIn
 
     private static volatile NativeMigrationDeviceController _instance;
     private WorkflowService _workflowService;
+    private MigrationControllerWrokFlowUtil _migrationControllerWrokFlowUtil;
 
     private static final String MIGRATION_NAME_PREFIX = "M_";
     private static final String MIGRATION_NAME_DATE_FORMAT = "yyMMdd-HHmmss-SSS";
@@ -56,6 +57,14 @@ public class NativeMigrationDeviceController implements MigrationOrchestrationIn
         return _instance;
     }
 
+    public void setWorkflowService(WorkflowService workflowService) {
+        this._workflowService = workflowService;
+    }
+
+    public void setMigrationControllerWrokFlowUtil(MigrationControllerWrokFlowUtil migrationControllerWrokFlowUtil) {
+        this._migrationControllerWrokFlowUtil = migrationControllerWrokFlowUtil;
+
+    }
     @Override
     public String addStepsForChangeVirtualPool(Workflow workflow, String waitFor, List<VolumeDescriptor> volumes, String taskId)
             throws InternalException {
@@ -164,15 +173,15 @@ public class NativeMigrationDeviceController implements MigrationOrchestrationIn
                         _log.info("migration controller migrate volume {} on storage system{}",
                                 generalVolumeURI, storageURI);
 
-                        waitForStep = createWorkflowStepsForMigrateGeneralVolumes(workflow, storageURI,
+                        waitForStep = _migrationControllerWrokFlowUtil.createWorkflowStepsForMigrateGeneralVolumes(workflow, storageURI,
                                 generalVolumeURI, newVolumes, newVpoolURI, null, migrationMap, waitFor);
                         _log.info("Created workflow steps for volume migration.");
 
-                        waitForStep = createWorkflowStepsForCommitMigration(workflow, storageURI,
+                        waitForStep = _migrationControllerWrokFlowUtil.createWorkflowStepsForCommitMigration(workflow, storageURI,
                                 generalVolumeURI, migrationMap, waitForStep);
                         _log.info("Created workflow steps for commit migration.");
 
-                        lastStep = createWorkflowStepsForDeleteMigrationSource(workflow, storageURI,
+                        lastStep = _migrationControllerWrokFlowUtil.createWorkflowStepsForDeleteMigrationSource(workflow, storageURI,
                                 generalVolumeURI, newVpoolURI, null, migrationMap, waitForStep);
                         _log.info("Created workflow steps for commit migration.");
                     } catch (Exception e) {
@@ -186,7 +195,8 @@ public class NativeMigrationDeviceController implements MigrationOrchestrationIn
                 // systemConsistencyGroup specified for the group.
                 if (!NullColumnValueGetter.isNullURI(cgURI)) {
                     _log.info("Vpool change volumes are in CG {}", cgURI);
-                    lastStep = createWorkflowStepsForDeleteConsistencyGroup(workflow, cgURI, localSystemsToRemoveCG, lastStep);
+                    lastStep = _migrationControllerWrokFlowUtil.createWorkflowStepsForDeleteConsistencyGroup(workflow, cgURI,
+                            localSystemsToRemoveCG, lastStep);
                 }
             }
 
@@ -199,13 +209,6 @@ public class NativeMigrationDeviceController implements MigrationOrchestrationIn
 
     @Override
     public String addStepsForChangeVirtualArray(Workflow workflow, String waitFor, List<VolumeDescriptor> volumes, String taskId)
-            throws InternalException {
-        // TODO Auto-generated method stub
-        return null;
-    }
-
-    @Override
-    public String addStepsForMigrateVolumes(Workflow workflow, String waitFor, List<VolumeDescriptor> volumes, String taskId)
             throws InternalException {
         // TODO Auto-generated method stub
         return null;
@@ -266,9 +269,12 @@ public class NativeMigrationDeviceController implements MigrationOrchestrationIn
             // this is the case.
             // Boolean isRemoteMigration = newVarrayURI != null;
 
-            List<MigrationInfo> migrationInfoList = _blockDeviceController.getDevice(
-                    srcStorageSystem.getSystemType()).doMigrateVolumes(srcStorageSystem,
-                    srcStoragePool, generalVolume, targetStorageSystem, tgtStoragePool, migrationTarget);
+            List<MigrationInfo> migrationInfoList = new ArrayList<MigrationInfo>();
+            /*
+             * _blockDeviceController.getDevice(
+             * srcStorageSystem.getSystemType()).doMigrateVolumes(srcStorageSystem,
+             * srcStoragePool, generalVolume, targetStorageSystem, tgtStoragePool, migrationTarget);
+             */
             _log.info("Started host migration");
 
             // We store step data indicating that the migration was successfully
@@ -293,7 +299,7 @@ public class NativeMigrationDeviceController implements MigrationOrchestrationIn
             // job when the migration completes.
             MigrationTaskCompleter migrationCompleter = new MigrationTaskCompleter(
                     migrationURI, stepId);
-            MigrationJob migrationJob = new MigrationJob(migrationCompleter);
+            MigrationJob migrationJob = new MigrationJob(migrationCompleter, null);  // need get host here.
             ControllerServiceImpl.enqueueJob(new QueueJob(migrationJob));
             _log.info("Queued job to monitor migration progress.");
         } catch (MigrationControllerException vae) {

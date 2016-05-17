@@ -10,6 +10,7 @@ import org.springframework.context.ApplicationContext;
 
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.systemservices.impl.upgrade.CoordinatorClientExt;
 import com.emc.storageos.volumecontroller.impl.Dispatcher;
 import com.emc.storageos.volumecontroller.impl.Main;
 import com.emc.storageos.volumecontroller.impl.utils.AttributeMatcherFramework;
@@ -88,7 +89,7 @@ abstract public class ControllersvcTestBase {
             sysProps.put("sblim.wbem.configURL", "file:/opt/storageos/conf/cimom.properties");
             sysProps.put("log4j.configuration", "controllersvc-log4j.properties");
             sysProps.put("product.home", "/opt/storageos" );
-            PropertyConfigurator.configure("controllersvc-log4j.properties");
+            PropertyConfigurator.configure("/opt/storageos/conf/controllersvc-log4j.properties");
             log.info("Beginning logging");
             Main.main(args);
         }

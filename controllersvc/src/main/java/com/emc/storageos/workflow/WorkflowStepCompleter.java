@@ -63,6 +63,26 @@ public class WorkflowStepCompleter implements Serializable {
     }
 
     /**
+     * Sets the step state to suspended
+     *
+     * @param stepId
+     * @throws WorkflowException
+     */
+    static public void stepSuspendedNoError(String stepId) throws WorkflowException {
+        WorkflowService.completerStepSuspendedNoError(stepId);
+    }
+
+    /**
+     * Sets the step state to suspended
+     *
+     * @param stepId
+     * @throws WorkflowException
+     */
+    static public void stepSuspendedError(String stepId) throws WorkflowException {
+        WorkflowService.completerStepSuspendedError(stepId);
+    }
+
+    /**
      * Compatible call using status compatible with existing Tasks
      * 
      * @param taskId -- The UUID for the task

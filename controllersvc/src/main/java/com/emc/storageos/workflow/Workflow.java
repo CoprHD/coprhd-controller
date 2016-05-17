@@ -116,10 +116,13 @@ public class Workflow implements Serializable {
         public StepStatus status;
         /** URI of Cassandra logging record. */
         URI workflowStepURI;
+        /** Is this a rollback step? */
         public boolean isRollbackStep = false;
+        /** Rollback steps only: Step ID of the step that created this step */
+        public String foundingStepId; 
 
         /**
-         * Created COP-37 to track hashCode() implemenatation in this class.
+         * Created COP-37 to track hashCode() implementation in this class.
          */
         @SuppressWarnings({ "squid:S1206" })
         public boolean equals(Object o) {
@@ -154,6 +157,7 @@ public class Workflow implements Serializable {
             rb.controllerName = this.controllerName;
             rb.executeMethod = this.rollbackMethod;
             rb.stepGroup = ROLLBACK_GROUP;
+            rb.foundingStepId = this.stepId;
             return rb;
         }
     };
@@ -175,7 +179,12 @@ public class Workflow implements Serializable {
         /** step was successfully completed (terminal state) */
         SUCCESS,
         /** step completed in error (terminal state) */
-        ERROR;
+        ERROR, 
+        /** step suspended, no error (user requested or system requested */
+        SUSPENDED_NO_ERROR,
+        /** step suspended due to an error */
+        SUSPENDED_ERROR;
+        
         /** Returns the equivalent Operation.Status value */
         public Operation.Status getOperationStatus() {
             if (this == SUCCESS) {
@@ -233,7 +242,7 @@ public class Workflow implements Serializable {
          * @return True if the step is in a Terminal State, i.e. CANCELLED, ERROR, or SUCCESS
          */
         boolean isTerminalState() {
-            return (state == StepState.CANCELLED
+            return (state == StepState.CANCELLED || state == StepState.SUSPENDED_NO_ERROR || state == StepState.SUSPENDED_ERROR
                     || state == StepState.ERROR || state == StepState.SUCCESS);
         }
 
@@ -261,6 +270,7 @@ public class Workflow implements Serializable {
                     || newState == StepState.SUCCESS || newState == StepState.ERROR) {
                 this.endTime = new Date();
             }
+            // SUSPENDED state doesn't need either start nor endTime specified
             this.serviceCode = code == null ? newState.getServiceCode() : code;
             this.notifyAll();
         }
@@ -665,6 +675,8 @@ public class Workflow implements Serializable {
     	switch(stepState) {
     	case SUCCESS: return WorkflowState.SUCCESS;
     	case ERROR: return WorkflowState.ERROR;
+    	case SUSPENDED_ERROR: return WorkflowState.SUSPENDED_ERROR;
+    	case SUSPENDED_NO_ERROR: return WorkflowState.SUSPENDED_NO_ERROR;
     	case CANCELLED: return WorkflowState.SUSPENDED_NO_ERROR;
     	default:
     		return getWorkflowState();
@@ -699,7 +711,7 @@ public class Workflow implements Serializable {
                 case SUCCESS:
                     break;
                 case ERROR:
-                    state = StepState.ERROR;
+                    state = status.state;
                     if (false == status.description.startsWith("Rollback")) {
                         // Save non-rollback message
                         if (buf.length() > 0) {
@@ -712,14 +724,21 @@ public class Workflow implements Serializable {
                         rbuf.append(status.message);
                     }
                     break;
-                case CANCELLED: // ERROR has higher precedence than CANCELLED
+                case SUSPENDED_NO_ERROR:
+                case SUSPENDED_ERROR:
                     if (state != StepState.ERROR) {
-                    state = StepState.CANCELLED;
+                    	state = status.state;
+                        errorMessage[0] = status.message;
+                        break;
+                    }                	
+                case CANCELLED: // ERROR and SUSPENDS have higher precedence than CANCELLED
+                    if (state != StepState.ERROR && state != StepState.SUSPENDED_NO_ERROR && state != StepState.SUSPENDED_ERROR) {
+                    	state = status.state;
                         errorMessage[0] = status.message;
                         break;
                     }
-                default: // ERROR and CANCELLED have higher precedence than any default state
-                    if (state != StepState.ERROR && state != StepState.CANCELLED) {
+                default: // ERROR and CANCELLED and SUSPENDS have higher precedence than any default state
+                    if (state != StepState.ERROR && state != StepState.CANCELLED && state != StepState.SUSPENDED_NO_ERROR && state != StepState.SUSPENDED_ERROR) {
                         state = status.state;
                         errorMessage[0] = status.message;
                         break;
@@ -743,13 +762,21 @@ public class Workflow implements Serializable {
             switch (status.state) {
                 case ERROR:
                     if (state != StepState.ERROR) { // we want to record the root error, the first one
-                        state = StepState.ERROR;
+                        state = status.state;
                         error = ServiceError.buildServiceError(status.serviceCode, status.message);
-                        break;
                     }
-                case CANCELLED: // ERROR has higher precedence than CANCELLED
-                    if (state != StepState.ERROR) {
-                        state = StepState.CANCELLED;
+                    break;
+                case SUSPENDED_NO_ERROR:
+                case SUSPENDED_ERROR:
+                   if (state != StepState.ERROR) {
+                	   state = status.state;
+                	   error = ServiceError.buildServiceError(status.serviceCode, status.message);
+                   }
+                   break;
+                
+                case CANCELLED: // ERROR and SUSPENDS have higher precedence than CANCELLED
+                    if (state != StepState.ERROR && state != StepState.SUSPENDED_NO_ERROR && state != StepState.SUSPENDED_ERROR) {
+                        state = status.state;
                         error = ServiceError.buildServiceError(status.serviceCode, status.message);
                     }
                     break;

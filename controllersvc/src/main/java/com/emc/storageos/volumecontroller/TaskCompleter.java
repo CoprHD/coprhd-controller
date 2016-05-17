@@ -183,8 +183,12 @@ public abstract class TaskCompleter implements Serializable {
         complete(dbClient, locker, Status.error, serviceCoded != null ? serviceCoded : DeviceControllerException.errors.unforeseen());
     }
 
-    public void suspended(DbClient dbClient, ControllerLockingService locker, ServiceCoded serviceCoded) throws DeviceControllerException {
-        complete(dbClient, locker, Status.suspended, serviceCoded!=null?serviceCoded:DeviceControllerException.errors.unforeseen());
+    public void suspendedNoError(DbClient dbClient, ControllerLockingService locker) throws DeviceControllerException {
+        complete(dbClient, locker, Status.suspended_no_error, (ServiceCoded)null);
+    }
+
+    public void suspendedError(DbClient dbClient, ControllerLockingService locker, ServiceCoded serviceCoded) throws DeviceControllerException {
+        complete(dbClient, locker, Status.suspended_error, serviceCoded!=null?serviceCoded:DeviceControllerException.errors.unforeseen());
     }
 
     public void statusReady(DbClient dbClient) throws DeviceControllerException {
@@ -225,7 +229,7 @@ public abstract class TaskCompleter implements Serializable {
                     }
                 }
                 break;
-            case suspended:
+            case suspended_no_error:
                 for (URI id : _ids) {
                     if(message == null)
                         dbClient.suspended(_clazz, id, _opId);
@@ -300,7 +304,12 @@ public abstract class TaskCompleter implements Serializable {
     protected void updateWorkflowStatus(Operation.Status status, ServiceCoded coded)
             throws WorkflowException {
         switch (status) {
-        case suspended:
+           case suspended_no_error:
+        	   WorkflowStepCompleter.stepSuspendedNoError(getOpId());
+        	   break;
+           case suspended_error:
+        	   WorkflowStepCompleter.stepSuspendedError(getOpId());
+        	   break;
             case error:
                 WorkflowStepCompleter.stepFailed(getOpId(), coded);
                 break;

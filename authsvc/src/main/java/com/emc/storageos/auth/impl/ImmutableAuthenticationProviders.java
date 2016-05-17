@@ -414,7 +414,6 @@ public class ImmutableAuthenticationProviders {
 
         LdapOrADServer server = new LdapOrADServer();
         server.setContextSource(createConfiguredLDAPContextSource(coordinator, authenticationConfiguration, timeout, url));
-        server.setIsGood(true);
         return server;
     }
 

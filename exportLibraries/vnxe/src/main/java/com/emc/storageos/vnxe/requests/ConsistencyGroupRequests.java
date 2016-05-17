@@ -18,10 +18,12 @@ public class ConsistencyGroupRequests extends KHRequests<StorageResource> {
     private static String URL_CREATE = "/api/types/storageResource/action/createConsistencyGroup";
     private static String URL_MODIFY1 = "/api/instances/storageResource/";
     private static String URL_MODIFY2 = "/action/modifyConsistencyGroup";
+    private static String URL_RESOURCES = "/api/types/storageResource/instances";
     private static String FIELDS = "name";
 
     public ConsistencyGroupRequests(KHClient client) {
         super(client);
+        _fields = FIELDS;
     }
 
     /**
@@ -73,7 +75,7 @@ public class ConsistencyGroupRequests extends KHRequests<StorageResource> {
      */
     public String getConsistencyGroupIdByName(String cgName) {
         String result = null;
-        _url = URL_MODIFY1;
+        _url = URL_RESOURCES;
         setFilter(VNXeConstants.NAME_FILTER + "\"" + cgName + "\"");
         List<StorageResource> res = getDataForObjects(StorageResource.class);
         if (res != null && !res.isEmpty()) {

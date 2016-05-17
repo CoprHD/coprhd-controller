@@ -55,17 +55,23 @@ public class VNXeExportOperations extends VNXeOperations implements ExportMaskOp
             ExportMask mask = _dbClient.queryObject(ExportMask.class, exportMask);
             for (VolumeURIHLU volURIHLU : volumeURIHLUs) {
                 URI volUri = volURIHLU.getVolumeURI();
+                String hlu = volURIHLU.getHLU();
+                _logger.info(String.format("hlu %s", hlu));
                 BlockObject blockObject = BlockObject.fetch(_dbClient, volUri);
                 String nativeId = blockObject.getNativeId();
+                VNXeExportResult result = null;
+                Integer newhlu = -1;
+                if (hlu != null && !hlu.isEmpty() && !hlu.equals(ExportGroup.LUN_UNASSIGNED_STR)) {
+                    newhlu =Integer.valueOf(hlu);
+                }
                 if (URIUtil.isType(volUri, Volume.class)) {
-                    VNXeExportResult result = apiClient.exportLun(nativeId, initiators);
+                    result = apiClient.exportLun(nativeId, initiators, newhlu);
                     mask.addVolume(volUri, result.getHlu());
                 } else if (URIUtil.isType(volUri, BlockSnapshot.class)) {
-                    VNXeExportResult result = apiClient.exportSnap(nativeId, initiators);
+                    result = apiClient.exportSnap(nativeId, initiators, null);
                     setSnapWWN(apiClient, blockObject, nativeId);
                     mask.addVolume(volUri, result.getHlu());
                 }
-
             }
             _dbClient.updateObject(mask);
             taskCompleter.ready(_dbClient);
@@ -184,13 +190,20 @@ public class VNXeExportOperations extends VNXeOperations implements ExportMaskOp
 
             for (VolumeURIHLU volURIHLU : volumeURIHLUs) {
                 URI volUri = volURIHLU.getVolumeURI();
+                String hlu = volURIHLU.getHLU();
+                _logger.info(String.format("hlu %s", hlu));
                 BlockObject blockObject = BlockObject.fetch(_dbClient, volUri);
                 String nativeId = blockObject.getNativeId();
+                VNXeExportResult result = null;
+                Integer newhlu = -1;
+                if (hlu != null && !hlu.isEmpty() && !hlu.equals(ExportGroup.LUN_UNASSIGNED_STR)) {
+                    newhlu =Integer.valueOf(hlu);
+                }
                 if (URIUtil.isType(volUri, Volume.class)) {
-                    VNXeExportResult result = apiClient.exportLun(nativeId, vnxeInitiators);
+                    result = apiClient.exportLun(nativeId, vnxeInitiators, newhlu);
                     exportMask.addVolume(volUri, result.getHlu());
                 } else if (URIUtil.isType(volUri, BlockSnapshot.class)) {
-                    VNXeExportResult result = apiClient.exportSnap(nativeId, vnxeInitiators);
+                    result = apiClient.exportSnap(nativeId, vnxeInitiators, newhlu);
                     exportMask.addVolume(volUri, result.getHlu());
                     setSnapWWN(apiClient, blockObject, nativeId);
                 }

@@ -29,13 +29,13 @@ import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.ShareACL;
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StoragePort;
+import com.emc.storageos.db.client.model.StoragePort.TransportType;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.StringSetMap;
 import com.emc.storageos.db.client.model.ZoneInfo;
 import com.emc.storageos.db.client.model.ZoneInfoMap;
-import com.emc.storageos.db.client.model.StoragePort.TransportType;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedCifsShareACL;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedConsistencyGroup;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedExportMask;
@@ -143,7 +143,7 @@ public class VNXUnityUnManagedObjectDiscoverer {
 
         if (luns != null && !luns.isEmpty()) {
             Map<String, StoragePool> pools = getStoragePoolMap(storageSystem, dbClient);
-            Map<String, List<UnManagedVolume>> hostVolumesMap = new HashMap<String, List<UnManagedVolume>> ();
+            Map<String, List<UnManagedVolume>> hostVolumesMap = new HashMap<String, List<UnManagedVolume>>();
             for (VNXeLun lun : luns) {
                 UnManagedVolume unManagedVolume = null;
                 String managedVolumeNativeGuid = NativeGUIDGenerator.generateNativeGuidForVolumeOrBlockSnapShot(
@@ -179,18 +179,19 @@ public class VNXUnityUnManagedObjectDiscoverer {
                             SupportedVolumeCharacterstics.IS_VOLUME_ADDED_TO_CONSISTENCYGROUP.toString(), Boolean.FALSE.toString());
                     // set the uri of the unmanaged CG in the unmanaged volume object to empty
                     unManagedVolume.getVolumeInformation().put(SupportedVolumeInformation.UNMANAGED_CONSISTENCY_GROUP_URI.toString(),
-                                "");
-                    
+                            "");
+
                 }
-                
+
                 // Discover snaps
                 Integer snapCount = lun.getSnapCount();
                 boolean hasSnap = false;
-                if (snapCount >0) {
+                if (snapCount > 0) {
                     List<Snap> snaps = apiClient.getSnapshotsForLun(lun.getId());
                     if (snaps != null && !snaps.isEmpty()) {
                         StringSet parentMatchedVPools = unManagedVolume.getSupportedVpoolUris();
-                        StringSet discoveredSnaps =  discoverVolumeSnaps(storageSystem, snaps, unManagedVolumeNatvieGuid, parentMatchedVPools, apiClient, 
+                        StringSet discoveredSnaps = discoverVolumeSnaps(storageSystem, snaps, unManagedVolumeNatvieGuid,
+                                parentMatchedVPools, apiClient,
                                 dbClient, hostVolumesMap, lun, isVolumeInCG, cgId);
                         if (discoveredSnaps != null && !discoveredSnaps.isEmpty()) {
                             hasSnap = true;
@@ -198,26 +199,26 @@ public class VNXUnityUnManagedObjectDiscoverer {
                                     Boolean.TRUE.toString());
                             StringSetMap unManagedVolumeInformation = unManagedVolume.getVolumeInformation();
                             if (unManagedVolumeInformation.containsKey(SupportedVolumeInformation.SNAPSHOTS.toString())) {
-                                
+
                                 // replace with new StringSet
                                 unManagedVolumeInformation.get(
                                         SupportedVolumeInformation.SNAPSHOTS.toString()).replace(discoveredSnaps);
                                 log.info("Replaced snaps :" + Joiner.on("\t").join(unManagedVolumeInformation.get(
-                                            SupportedVolumeInformation.SNAPSHOTS.toString())));
+                                        SupportedVolumeInformation.SNAPSHOTS.toString())));
                             } else {
                                 unManagedVolumeInformation.put(
                                         SupportedVolumeInformation.SNAPSHOTS.toString(), discoveredSnaps);
                             }
-                        } 
+                        }
                     }
 
-                }    
-                if (!hasSnap){
+                }
+                if (!hasSnap) {
                     // no snap
                     unManagedVolume.getVolumeCharacterstics().put(SupportedVolumeCharacterstics.HAS_REPLICAS.toString(),
                             Boolean.FALSE.toString());
                     StringSetMap unManagedVolumeInformation = unManagedVolume.getVolumeInformation();
-                    if(unManagedVolumeInformation != null && 
+                    if (unManagedVolumeInformation != null &&
                             unManagedVolumeInformation.containsKey(SupportedVolumeInformation.SNAPSHOTS.toString())) {
                         // replace with empty string set doesn't work, hence added explicit code to remove all
                         unManagedVolumeInformation.get(
@@ -241,15 +242,16 @@ public class VNXUnityUnManagedObjectDiscoverer {
                 partitionManager.updateAndReIndexInBatches(unManagedVolumesUpdate,
                         Constants.DEFAULT_PARTITION_SIZE, dbClient, UNMANAGED_VOLUME);
             }
-            
-            
+
             // Process those active unmanaged volume objects available in database but not in newly discovered items, to
             // mark them inactive.
             DiscoveryUtils.markInActiveUnManagedVolumes(storageSystem, unManagedVolumesReturnedFromProvider, dbClient, partitionManager);
-            // Process those active unmanaged consistency group objects available in database but not in newly discovered items, to mark them
+            // Process those active unmanaged consistency group objects available in database but not in newly
+            // discovered items, to mark them
             // inactive.
-            DiscoveryUtils.performUnManagedConsistencyGroupsBookKeeping(storageSystem, allCurrentUnManagedCgURIs, dbClient, partitionManager);
-            
+            DiscoveryUtils.performUnManagedConsistencyGroupsBookKeeping(storageSystem, allCurrentUnManagedCgURIs, dbClient,
+                    partitionManager);
+
             // Next discover the unmanaged export masks
             discoverUnmanagedExportMasks(storageSystem.getId(), hostVolumesMap, apiClient, dbClient, partitionManager);
         } else {
@@ -806,11 +808,12 @@ public class VNXUnityUnManagedObjectDiscoverer {
      * @param system
      * @param pool
      * @param dbClient
-     * @param hostVolumeMap hosts and exported volumes map
+     * @param hostVolumeMap
+     *            hosts and exported volumes map
      * @return
      */
     private UnManagedVolume createUnManagedVolume(UnManagedVolume unManagedVolume, String unManagedVolumeNativeGuid,
-            VNXeLun lun, StorageSystem system, StoragePool pool, DbClient dbClient, Map<String, List<UnManagedVolume>>hostVolumeMap) {
+            VNXeLun lun, StorageSystem system, StoragePool pool, DbClient dbClient, Map<String, List<UnManagedVolume>> hostVolumeMap) {
         boolean created = false;
         if (null == unManagedVolume) {
             unManagedVolume = new UnManagedVolume();
@@ -829,7 +832,8 @@ public class VNXUnityUnManagedObjectDiscoverer {
         Boolean isVolumeExported = false;
 
         if (lun.getHostAccess() != null && !lun.getHostAccess().isEmpty()) {
-            // clear the previous unmanaged export masks, initiators if any. The latest export masks will be updated later.
+            // clear the previous unmanaged export masks, initiators if any. The latest export masks will be updated
+            // later.
             unManagedVolume.getUnmanagedExportMasks().clear();
             unManagedVolume.getInitiatorNetworkIds().clear();
             unManagedVolume.getInitiatorUris().clear();
@@ -848,10 +852,9 @@ public class VNXUnityUnManagedObjectDiscoverer {
                 }
             }
         }
-        
+
         unManagedVolumeCharacteristics.put(SupportedVolumeCharacterstics.IS_VOLUME_EXPORTED.toString(), isVolumeExported.toString());
-        
-        
+
         StringSet deviceLabel = new StringSet();
         deviceLabel.add(lun.getName());
         unManagedVolumeInformation.put(SupportedVolumeInformation.DEVICE_LABEL.toString(),
@@ -1234,18 +1237,14 @@ public class VNXUnityUnManagedObjectDiscoverer {
                     unManagedFileQuotaDirectory.setNativeGuid(nativeUnmanagedGUID);
                     unManagedFileQuotaDirectory.setParentFSNativeGuid(fsNativeGUID);
                     unManagedFileQuotaDirectory.setSize(quota.getHardLimit());
-                    if (quota.getHardLimit() > 0) {
-                        Long softLimit = 0L;
-                        if (quota.getSoftLimit() > 0) {
-                            softLimit = quota.getSoftLimit() * 100 / quota.getHardLimit();
-                            int softGrace = qc.getGracePeriod() / (24 * 60 * 60);
-                            unManagedFileQuotaDirectory.setSoftGrace(softGrace);
-                        }
-                        unManagedFileQuotaDirectory.setSoftLimit(softLimit.intValue());
-                    } else {
-                        unManagedFileQuotaDirectory.setSoftLimit(0);
-                        unManagedFileQuotaDirectory.setSoftGrace(0);
+                    Long size = quota.getHardLimit() > 0 ? quota.getHardLimit() : fs.getSizeAllocated();
+                    Long softLimit = 0L;
+                    if (quota.getSoftLimit() > 0) {
+                        softLimit = quota.getSoftLimit() * 100 / size;
+                        int softGrace = qc.getGracePeriod() / (24 * 60 * 60);
+                        unManagedFileQuotaDirectory.setSoftGrace(softGrace);
                     }
+                    unManagedFileQuotaDirectory.setSoftLimit(softLimit.intValue());
                     unManagedFileQuotaDirectory.setNotificationLimit(0);
                     unManagedFileQuotaDirectory.setNativeId(quota.getId());
                     if (!checkUnManagedQuotaDirectoryExistsInDB(dbClient, nativeUnmanagedGUID)) {
@@ -1284,20 +1283,25 @@ public class VNXUnityUnManagedObjectDiscoverer {
         }
         return false;
     }
-    
+
     /**
      * Adds the passed in unmanaged volume to an unmanaged consistency group object
      *
-     * @param apiClient - connection to Unity REST interface
-     * @param unManagedVolume - unmanaged volume associated with a consistency group
-     * @param cgNameToProcess - consistency group being processed
-     * @param storageSystem - storage system the objects are on
-     * @param dbClient - dbclient
+     * @param apiClient
+     *            - connection to Unity REST interface
+     * @param unManagedVolume
+     *            - unmanaged volume associated with a consistency group
+     * @param cgNameToProcess
+     *            - consistency group being processed
+     * @param storageSystem
+     *            - storage system the objects are on
+     * @param dbClient
+     *            - dbclient
      * @throws Exception
      */
     private void addObjectToUnManagedConsistencyGroup(VNXeApiClient apiClient, UnManagedVolume unManagedVolume,
             String cgNameToProcess, StorageSystem storageSystem, DbClient dbClient) throws Exception {
-        
+
         log.info("Unmanaged volume {} belongs to consistency group {} on the array", unManagedVolume.getLabel(), cgNameToProcess);
         // Update the unManagedVolume object with CG information
         unManagedVolume.getVolumeCharacterstics().put(SupportedVolumeCharacterstics.IS_VOLUME_ADDED_TO_CONSISTENCYGROUP.toString(),
@@ -1332,26 +1336,31 @@ public class VNXUnityUnManagedObjectDiscoverer {
                 unManagedCG.getId().toString());
         // add the unmanaged volume object to the unmanaged CG
         unManagedCG.getUnManagedVolumesMap().put(unManagedVolume.getNativeGuid(), unManagedVolume.getId().toString());
-        // add the unmanaged CG to the map of unmanaged CGs to be updated in the database once all volumes have been processed
+        // add the unmanaged CG to the map of unmanaged CGs to be updated in the database once all volumes have been
+        // processed
         unManagedCGToUpdateMap.put(unManagedCGNativeGuid, unManagedCG);
         // add the unmanaged CG to the current set of CGs being discovered on the array. This is for book keeping later.
         allCurrentUnManagedCgURIs.add(unManagedCG.getId());
     }
-    
+
     /**
      * Creates a new UnManagedConsistencyGroup object in the database
      *
-     * @param unManagedCGNativeGuid - nativeGuid of the unmanaged consistency group
-     * @param res - unity consistency group returned from REST client
-     * @param storageSystemURI - storage system of the consistency group
-     * @param dbClient - database client
+     * @param unManagedCGNativeGuid
+     *            - nativeGuid of the unmanaged consistency group
+     * @param res
+     *            - unity consistency group returned from REST client
+     * @param storageSystemURI
+     *            - storage system of the consistency group
+     * @param dbClient
+     *            - database client
      * @return the new UnManagedConsistencyGroup object
      */
     private UnManagedConsistencyGroup createUnManagedCG(String unManagedCGNativeGuid,
             StorageResource res, URI storageSystemURI, DbClient dbClient) {
         UnManagedConsistencyGroup unManagedCG = new UnManagedConsistencyGroup();
         unManagedCG.setId(URIUtil.createId(UnManagedConsistencyGroup.class));
-        unManagedCG.setLabel(res.getId());
+        unManagedCG.setLabel(res.getName());
         unManagedCG.setName(res.getName());
         unManagedCG.setNativeGuid(unManagedCGNativeGuid);
         unManagedCG.setStorageSystemUri(storageSystemURI);
@@ -1359,13 +1368,13 @@ public class VNXUnityUnManagedObjectDiscoverer {
         dbClient.createObject(unManagedCG);
         return unManagedCG;
     }
-    
 
     /**
      * Create unmanaged export masks per host
      *
      * @param systemId
-     * @param hostVolumesMap host-- exportedvolume list
+     * @param hostVolumesMap
+     *            host-- exportedvolume list
      * @param apiClient
      * @param dbClient
      * @param partitionManager
@@ -1409,7 +1418,7 @@ public class VNXUnityUnManagedObjectDiscoverer {
             StringSet knownNetworkIdSet = new StringSet();
             StringSet knownVolumeSet = new StringSet();
             List<Initiator> matchedFCInitiators = new ArrayList<Initiator>();
-            
+
             VNXeHost host = apiClient.getHostById(hostId);
             List<VNXeBase> fcInits = host.getFcHostInitiators();
             List<VNXeBase> iScsiInits = host.getIscsiHostInitiators();
@@ -1459,7 +1468,7 @@ public class VNXUnityUnManagedObjectDiscoverer {
                 mask.getUnmanagedVolumeUris().add(hostUnManagedVol.getId().toString());
                 unManagedExportVolumesToUpdate.add(hostUnManagedVol);
             }
-            
+
             mask.replaceNewWithOldResources(knownInitSet, knownNetworkIdSet, knownVolumeSet,
                     !matchedFCInitiators.isEmpty() ? knownFCStoragePortUris : knownIPStoragePortUris);
 
@@ -1486,10 +1495,12 @@ public class VNXUnityUnManagedObjectDiscoverer {
         DiscoveryUtils.markInActiveUnManagedExportMask(systemId, allCurrentUnManagedExportMaskUris, dbClient, partitionManager);
 
     }
-    
+
     /**
      * Get existing unmanaged export mask, or create a new one.
-     * @param knownInitiatorNetworkId The initiator network id (pwwn)
+     * 
+     * @param knownInitiatorNetworkId
+     *            The initiator network id (pwwn)
      * @param dbClient
      * @param systemURI
      * @return
@@ -1526,9 +1537,10 @@ public class VNXUnityUnManagedObjectDiscoverer {
         }
         return uem;
     }
-    
+
     /**
      * Set mask zoning map
+     * 
      * @param mask
      * @param initiators
      * @param storagePorts
@@ -1541,9 +1553,10 @@ public class VNXUnityUnManagedObjectDiscoverer {
         }
         mask.setZoningMap(zoningMap);
     }
-    
+
     /**
      * Discover Lun Snaps, and create UnManagedVolume for the snaps
+     * 
      * @param system
      * @param snaps
      * @param parentGUID
@@ -1564,7 +1577,7 @@ public class VNXUnityUnManagedObjectDiscoverer {
         StringSet snapsets = new StringSet();
 
         for (Snap snapDetail : snaps) {
-            
+
             UnManagedVolume unManagedVolume = null;
 
             String managedSnapNativeGuid = NativeGUIDGenerator.generateNativeGuidForVolumeOrBlockSnapShot(
@@ -1582,15 +1595,15 @@ public class VNXUnityUnManagedObjectDiscoverer {
             unManagedVolume = DiscoveryUtils.checkUnManagedVolumeExistsInDB(dbClient,
                     unManagedVolumeNatvieGuid);
 
-            unManagedVolume = createUnManagedVolumeForSnap(unManagedVolume, unManagedVolumeNatvieGuid, lun, system, 
+            unManagedVolume = createUnManagedVolumeForSnap(unManagedVolume, unManagedVolumeNatvieGuid, lun, system,
                     dbClient, hostVolumesMap, snapDetail);
             populateSnapInfo(unManagedVolume, snapDetail, parentGUID, parentMatchedVPools, cgName);
             snapsets.add(unManagedVolumeNatvieGuid);
             unManagedVolumesReturnedFromProvider.add(unManagedVolume.getId());
 
             if (isSnapInCG) {
-                addObjectToUnManagedConsistencyGroup(apiClient, unManagedVolume, cgName, system,dbClient);
-                        
+                addObjectToUnManagedConsistencyGroup(apiClient, unManagedVolume, cgName, system, dbClient);
+
             }
         }
 
@@ -1605,12 +1618,14 @@ public class VNXUnityUnManagedObjectDiscoverer {
      * @param system
      * @param pool
      * @param dbClient
-     * @param hostVolumeMap hosts and exported volumes map
-     * @param snap detail of the snap
+     * @param hostVolumeMap
+     *            hosts and exported volumes map
+     * @param snap
+     *            detail of the snap
      * @return
      */
     private UnManagedVolume createUnManagedVolumeForSnap(UnManagedVolume unManagedVolume, String unManagedVolumeNativeGuid,
-            VNXeLun lun, StorageSystem system, DbClient dbClient, Map<String, List<UnManagedVolume>>hostVolumeMap, Snap snap) {
+            VNXeLun lun, StorageSystem system, DbClient dbClient, Map<String, List<UnManagedVolume>> hostVolumeMap, Snap snap) {
         boolean created = false;
         if (null == unManagedVolume) {
             unManagedVolume = new UnManagedVolume();
@@ -1628,7 +1643,8 @@ public class VNXUnityUnManagedObjectDiscoverer {
         Boolean isSnapExported = false;
 
         if (lun.getHostAccess() != null && !lun.getHostAccess().isEmpty()) {
-            // clear the previous unmanaged export masks, initiators if any. The latest export masks will be updated later.
+            // clear the previous unmanaged export masks, initiators if any. The latest export masks will be updated
+            // later.
             unManagedVolume.getUnmanagedExportMasks().clear();
             unManagedVolume.getInitiatorNetworkIds().clear();
             unManagedVolume.getInitiatorUris().clear();
@@ -1649,12 +1665,12 @@ public class VNXUnityUnManagedObjectDiscoverer {
         }
 
         unManagedVolumeCharacteristics.put(SupportedVolumeCharacterstics.IS_VOLUME_EXPORTED.toString(), isSnapExported.toString());
-        
+
         StringSet deviceLabel = new StringSet();
         deviceLabel.add(snap.getName());
         unManagedVolumeInformation.put(SupportedVolumeInformation.DEVICE_LABEL.toString(),
                 deviceLabel);
-        
+
         String snapWWN = snap.getAttachedWWN();
         if (snapWWN != null && !snapWWN.isEmpty()) {
             String volumeWWN = snapWWN.replaceAll(":", "");
@@ -1703,9 +1719,10 @@ public class VNXUnityUnManagedObjectDiscoverer {
 
         return unManagedVolume;
     }
-    
+
     /**
      * Populate snap detail info
+     * 
      * @param unManagedVolume
      * @param snap
      * @param parentVolumeNatvieGuid

@@ -546,8 +546,7 @@ public class VNXUnityCommunicationInterface extends
                     if (poolHealth != null) {
                         int value = poolHealth.getValue();
                         if (value == Health.HealthEnum.OK.getValue()|| 
-                                value == Health.HealthEnum.OK_BUT.getValue() ||
-                                value == Health.HealthEnum.DEGRADED.getValue()) {
+                                value == Health.HealthEnum.OK_BUT.getValue()) {
                             pool.setOperationalStatus(StoragePool.PoolOperationalStatus.READY.name());
                         } else {
                             pool.setOperationalStatus(StoragePool.PoolOperationalStatus.NOTREADY.name());

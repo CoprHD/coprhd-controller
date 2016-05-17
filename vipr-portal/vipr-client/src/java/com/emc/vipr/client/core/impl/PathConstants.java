@@ -88,6 +88,7 @@ public class PathConstants {
     public static final String SAN_ALIAS_URL = NETWORK_SYSTEM_URL + "/{id}/san-aliases";
     public static final String FC_PORT_CONNECTION_URL = "/vdc/fc-port-connections";
     public static final String AUTHN_PROVIDER_URL = "/vdc/admin/authnproviders";
+    public static final String KEYSTONE_URL = "/v2/keystone";
     public static final String WORKFLOW_URL = "/vdc/workflows";
     public static final String WORKFLOW_STEP_URL = "/vdc/workflows/steps";
     public static final String TASK_URL = "/vdc/tasks";

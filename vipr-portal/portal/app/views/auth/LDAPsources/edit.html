@@ -20,6 +20,25 @@
   var editMode = #{get 'editMode'/};
   var errors = #{get 'errors'/};
 
+    function addTenants() {
+        if ($('#ldapSources_mode').val() == 'keystone') {
+             $('#ldapSourceForm').submit(function(){
+                $.post($(this).attr('action'), $(this).serialize(), function(response){
+                     table.tenants.dataTable.create();
+                     table.tenants.dataTable.updateSelectedFooter();
+                     table.tenants.dataTable.reset();
+                     $('#addTenants').modal();
+                 },'xml');
+                 return false;
+             });
+        }
+        submitForm();
+  }
+
+    function submitForm(){
+        $('#ldapSourceForm').submit();
+    }
+
     $(document).ready(function() {
 		if (!editMode && !errors) {
     		setDefaults();
@@ -93,6 +112,7 @@
         var group = $('#ldapSources_groupAttribute');
         var search = $('#ldapSources_searchFilter');
         var serverUrls = $('#ldapSources_serverUrls');
+        var interval = $('#ldapSources_synchronizationInterval');
 
         if (!group.val()) {
             group.val('CN');
@@ -100,6 +120,7 @@
         if (authType == '${keyStoneType}') {
         	group.val('tenant_id');
             serverUrls.val('${keystoneServerURL}');
+            interval.val('${defaultInterval}');
         }
         
         if (authType == '${ldapType}') {
@@ -220,7 +241,7 @@
     #{field 'ldapSources.synchronizationInterval'}
         %{
             field.helpTextKey = field.name + '.description'
-            field.required = false
+            field.required = true
          if (readOnlyCheckboxForAutomaticRegistration) {
             field.disabled = true
             field.value = readOnlySynchronizationInterval
@@ -310,6 +331,26 @@
 
 
   </fieldset>
-  #{Form.saveCancel  /}
+    #{Form.buttonBar}
+    #{Form.button name:'button.save', class:'primary', icon:'ok-sign', size:'large', action:'addTenants();'/}
+    #{Form.button name:'button.cancel', icon:'trash', size:'large', href:@list()/}
+    #{/Form.buttonBar}
 #{/form}
+
+#{DataTable.formAction @addTenants(), id:'addTenantsForm', table:'tenants', fields:formFields/}
+#{Modal.dialog id:'addTenants'}
+  #{Modal.body}
+    #{DataTable.header titleKey:'ldapSources.addTenants', hideAlerts:true/}
+    #{DataTable.table id: 'tenants',
+                      dataTable: tenants,
+                      source: @tenantsListJson(),
+                      selectable: true,
+                      delayCreate: true,
+                      options: ['iDisplayLength': '8'] /}
+  #{/Modal.body}
+    #{Modal.footer}
+        #{Form.button 'button.save', class:'success', icon:'ok-sign', submit:'addTenantsForm',
+                      data:['enabled':'selected', 'table':'tenants']/}
+  #{/Modal.footer}
+#{/Modal.dialog}
 </div>

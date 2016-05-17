@@ -41,6 +41,7 @@ import com.emc.vipr.client.core.Networks;
 import com.emc.vipr.client.core.ObjectBuckets;
 import com.emc.vipr.client.core.ObjectNamespaces;
 import com.emc.vipr.client.core.ObjectVirtualPools;
+import com.emc.vipr.client.core.OpenStackTenants;
 import com.emc.vipr.client.core.Projects;
 import com.emc.vipr.client.core.ProtectionSystems;
 import com.emc.vipr.client.core.QuotaDirectories;
@@ -302,6 +303,10 @@ public class ViPRCoreClient {
 
     public StoragePools storagePools() {
         return new StoragePools(this, client);
+    }
+
+    public OpenStackTenants openStackTenants() {
+        return new OpenStackTenants(this, client);
     }
 
     public StoragePorts storagePorts() {

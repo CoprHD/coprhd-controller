@@ -30,11 +30,13 @@ import java.util.Set;
 import com.emc.storageos.cinder.CinderConstants;
 import com.emc.storageos.db.client.model.AuthnProvider;
 
+import com.emc.storageos.model.keystone.OpenStackTenantParam;
 import models.SearchScopes;
 import models.TenantsSynchronizationOptions;
 import models.datatable.LDAPsourcesDataTable;
 import models.datatable.LDAPsourcesDataTable.LDAPsourcesInfo;
 
+import models.datatable.OpenStackTenantsDataTable;
 import org.apache.commons.lang.StringUtils;
 import org.springframework.util.CollectionUtils;
 
@@ -66,6 +68,7 @@ import controllers.util.FlashException;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import util.datatable.DataTablesSupport;
 
 
 @With(Common.class)
@@ -85,6 +88,7 @@ public class LDAPsources extends ViprResourceController {
     private static final String KEYSTONE_SERVER_URL = CinderConstants.HTTP_URL + "[IP Address]" + CinderConstants.COLON
             + CinderConstants.OS_ADMIN_PORT
             + CinderConstants.REST_API_VERSION_2;
+    private static final String DEFAULT_INTERVAL = "60";
     
     //
     // Add reference data so that they can be reference in html template
@@ -99,9 +103,11 @@ public class LDAPsources extends ViprResourceController {
         renderArgs.put("ldapType", AuthSourceType.ldap);
         renderArgs.put("keyStoneType", AuthSourceType.keystone);
         renderArgs.put("keystoneServerURL", KEYSTONE_SERVER_URL);
+        renderArgs.put("defaultInterval", DEFAULT_INTERVAL);
         renderArgs.put("searchScopeTypeList", SearchScopes.options(SearchScopes.ONELEVEL, SearchScopes.SUBTREE));
         renderArgs.put("tenantsOptions", TenantsSynchronizationOptions.options(TenantsSynchronizationOptions.ADDITION, TenantsSynchronizationOptions.DELETION));
         renderArgs.put("showLdapGroup", VCenterUtils.checkCompatibleVDCVersion(EXPECTED_GEO_VERSION_FOR_LDAP_GROUP_SUPPORT));
+        renderArgs.put("tenants", new LDAPSourcesTenantsDataTable());
     }
 
     /**
@@ -116,6 +122,28 @@ public class LDAPsources extends ViprResourceController {
 
     public static void listJson() {
         performListJson(AuthnProviderUtils.getAuthnProviders(), new JsonItemOperation());
+    }
+
+    /**
+     * Shows the dialog for OpenStack tenants editing form.
+     *
+     */
+
+    public static void tenantsList() {
+        renderArgs.put("tenants", new OpenStackTenantsDataTable());
+        render();
+    }
+    /**
+     * Gets the list of tenants.
+     *
+     * @param id the Authn Provider ID.
+     */
+    public static void tenantsListJson() {
+        List<OpenStackTenantsDataTable.OpenStackTenant> tenants = Lists.newArrayList();
+        for (OpenStackTenantParam tenant : OpenStackTenantsUtils.getOpenStackTenants()) {
+            tenants.add(new OpenStackTenantsDataTable.OpenStackTenant(tenant));
+        }
+        renderJSON(DataTablesSupport.createJSON(tenants, params));
     }
 
     private static List<String> parseMultiLineString(String multiValueList) {
@@ -172,6 +200,13 @@ public class LDAPsources extends ViprResourceController {
         }
 
         edit(new LDAPsourcesForm(authnProvider));
+    }
+
+    @FlashException(referrer = { "edit" })
+    public static void addTenants(String ldadSourceId, @As(",") String[] ids) {
+        List<URI> tenants = Lists.newArrayList();
+        //OpenStackTenantsUtils.addOpenStackTenants();
+        list();
     }
 
     @FlashException(keep = true)
@@ -420,10 +455,10 @@ public class LDAPsources extends ViprResourceController {
             param.setAutoRegCoprHDNImportOSProjects(this.autoRegCoprHDNImportOSProjects);
             if (tenantsSynchronizationOptions != null) {
                 param.setTenantsSynchronizationOptions((Sets.newHashSet(tenantsSynchronizationOptions)));
-                param.getTenantsSynchronizationOptions().add(this.synchronizationInterval);
             } else {
                 param.setTenantsSynchronizationOptions(Sets.<String> newHashSet());
             }
+            param.getTenantsSynchronizationOptions().add(StringUtils.trimToNull(this.synchronizationInterval));
             param.setGroupAttribute(this.groupAttribute);
             param.setManagerDn(this.managerDn);
             param.setManagerPassword(this.managerPassword);
@@ -505,6 +540,12 @@ public class LDAPsources extends ViprResourceController {
             return isBlankOrNull;
         }
 
+    }
+
+    public static class LDAPSourcesTenantsDataTable extends OpenStackTenantsDataTable {
+        public LDAPSourcesTenantsDataTable() {
+            alterColumn("name").setRenderFunction(null);
+        }
     }
 
     protected static class JsonItemOperation implements ResourceValueOperation<LDAPsourcesInfo, AuthnProviderRestRep> {

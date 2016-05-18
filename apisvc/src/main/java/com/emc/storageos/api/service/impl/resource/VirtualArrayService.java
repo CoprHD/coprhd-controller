@@ -750,14 +750,14 @@ public class VirtualArrayService extends TaggedResource {
 
         // check user's home tenant
         if (_permissionsHelper.tenantHasUsageACL(tenantURI, vpool)) {
-            _log.debug("Tenant {} has usage ACL for VirtualPool {}", tenantURI, vpoolId);
+            _log.debug("Home tenant {} has usage ACL for VirtualPool {}", tenantURI, vpoolId);
             return true;
         }
 
         // check user's subtenant
         for (String subtenantId : _permissionsHelper.getSubtenantsForUser(user)) {
             if (_permissionsHelper.tenantHasUsageACL(URI.create(subtenantId), vpool)) {
-                _log.debug("Tenant {} has usage ACL for VirtualPool {}", tenantURI, vpoolId);
+                _log.debug("Subtenant {} has usage ACL for VirtualPool {}", tenantURI, vpoolId);
                 return true;
             }
         }

@@ -348,6 +348,33 @@ public class DataObjectType {
         }
     }
 
+    //For DataStax POC
+    public boolean serialize(RowMutatorDS mutatorDS, DataObject val) {
+        if (!_clazz.isInstance(val)) {
+            throw new IllegalArgumentException();
+        }
+        try {
+            boolean indexFieldsModified = false;
+            URI id = (URI) _idField.getPropertyDescriptor().getReadMethod().invoke(val);
+            if (id == null) {
+                throw new IllegalArgumentException();
+            }
+            for (ColumnField field : this._columnFieldMap.values()) {
+                //setMappedByField(val, field);
+                indexFieldsModified |= field.serialize(val, mutator);
+            }
+
+            //currently no lazy loader
+
+            return indexFieldsModified;
+        } catch (final IllegalAccessException e) {
+            throw DatabaseException.fatals.serializationFailedId(val.getId(), e);
+        } catch (final InvocationTargetException e) {
+            throw DatabaseException.fatals.serializationFailedId(val.getId(), e);
+        }
+
+    }
+
     <T extends DataObject> void
             deserializeColumns(T object, Row<String, CompositeColumnName> row, List<ColumnField> columns, boolean clear) {
 

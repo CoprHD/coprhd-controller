@@ -434,6 +434,14 @@ public class ColumnField {
         return addColumn(recordKey, column, val, mutator, null);
     }
 
+    //POC for DataStax
+    private boolean addColumn(String recordKey, CompositeColumnName column, Object val, DataObject obj){
+        //insert record
+
+
+        return true;
+    }
+
     /**
      * Serializes object field into database updates
      * 
@@ -575,6 +583,34 @@ public class ColumnField {
                     changed |= addColumn(id, getColumnName(null, mutator), nestedObject.toBytes(), mutator);
                 }
             }
+            return changed;
+        } catch (final InvocationTargetException e) {
+            throw DatabaseException.fatals.serializationFailedId(obj.getId(), e);
+        } catch (final IllegalAccessException e) {
+            throw DatabaseException.fatals.serializationFailedId(obj.getId(), e);
+        }
+    }
+    
+    //for DataStax POC
+    public boolean serialize(DataObject obj, RowMutatorDS rowMutatorDS) {
+        try {
+            Object val = _property.getReadMethod().invoke(obj);
+            if (val == null) {
+                return false;
+            }
+            String id = obj.getId().toString();
+            boolean changed = false;
+            switch (_colType) {
+                case NamedURI:
+                case Primitive: {
+                    if (!obj.isChanged(_name)) {
+                        return false;
+                    }
+                    changed = addColumn(id, getColumnName(null, mutator), val, mutator, obj);
+                    break;
+                }
+            }
+
             return changed;
         } catch (final InvocationTargetException e) {
             throw DatabaseException.fatals.serializationFailedId(obj.getId(), e);

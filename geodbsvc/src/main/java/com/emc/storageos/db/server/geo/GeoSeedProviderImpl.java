@@ -41,11 +41,9 @@ import com.emc.storageos.db.server.impl.DbServiceImpl;
 public class GeoSeedProviderImpl implements SeedProvider {
     private static final Logger log = LoggerFactory.getLogger(GeoSeedProviderImpl.class);
 
-    private static final String ID = "id";
     private static final String SEEDS = "seeds";
     private static final String COORDINATORS = "coordinators";
 
-    private String currentId;
     private CoordinatorClient coordinator;
     private List<String> seeds = new ArrayList<>();
 
@@ -130,12 +128,6 @@ public class GeoSeedProviderImpl implements SeedProvider {
      *     Use first node of all other vdc, and other active nodes in local vdc as seed nodes
      */
     private void initSeedList(Map<String, String> args) {
-        // get current node id
-        currentId = args.get(ID);
-        if (currentId == null) {
-            throw new IllegalArgumentException(ID);
-        }
-
         // seed nodes in sites
         String seedsArg = args.get(SEEDS);
         String[] seedIPs = null;
@@ -219,7 +211,8 @@ public class GeoSeedProviderImpl implements SeedProvider {
     }
 
     private boolean isOtherActiveNode(Configuration config) {
-        return !config.getId().equals(currentId) && Boolean.parseBoolean(config.getConfig(DbConfigConstants.JOINED));
+        String currentId = coordinator.getInetAddessLookupMap().getNodeId();
+        return !config.getConfig(DbConfigConstants.NODE_ID).equals(currentId) && Boolean.parseBoolean(config.getConfig(DbConfigConstants.JOINED));
     }
 
     private String getIpAddrFromConfig(Configuration config) {

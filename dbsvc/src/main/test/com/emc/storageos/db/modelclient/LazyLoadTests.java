@@ -89,7 +89,7 @@ public class LazyLoadTests extends DbsvcTestBase {
         // of the dbsvc background tasks, but we don't need them for this test
         setMigrationStatus(MigrationStatus.FAILED);
 
-        startDb(sourceVersion.getSchemaVersion(), sourceVersion.getSchemaVersion(), null, scanner);
+        startDb(sourceVersion.getSchemaVersion(), sourceVersion.getSchemaVersion(), null, scanner, false);
     }
 
     @Before

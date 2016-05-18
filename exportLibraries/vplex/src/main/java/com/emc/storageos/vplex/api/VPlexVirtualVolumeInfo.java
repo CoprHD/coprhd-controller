@@ -24,7 +24,9 @@ public class VPlexVirtualVolumeInfo extends VPlexResourceInfo {
 
     // Values for expansion status
     public enum ExpansionStatus {
-        INPROGRESS("in-progress");
+        INPROGRESS("in-progress"),
+        FAILED("failed"),
+        UNKNOWN("unknown");
 
         // The VPlex expansion status value.
         private String _status;
@@ -71,7 +73,8 @@ public class VPlexVirtualVolumeInfo extends VPlexResourceInfo {
         SUPPORTING_DEVICE("supporting-device"),
         SERVICE_STATUS("service-status"),
         LOCALITY("locality"),
-        VPD_ID("vpd-id");
+        VPD_ID("vpd-id"),
+        EXPANDABLE_CAPACITY("expandable-capacity");
 
         // The VPlex name for the attribute.
         private String _name;
@@ -141,8 +144,12 @@ public class VPlexVirtualVolumeInfo extends VPlexResourceInfo {
     // The clusters for the virtual volume.
     private List<String> clusters = new ArrayList<String>();
 
-    // The volume id containing the wwn
+    // The volume id containing the WWN.
     private String vpdId;
+    
+    // The expandable capacity for the volume.
+    private String expandableCapacity;
+
 
     /**
      * Getter for the volume block count.
@@ -309,6 +316,24 @@ public class VPlexVirtualVolumeInfo extends VPlexResourceInfo {
     }
     
     /**
+     * Getter for the volume expandable-capacity.
+     * 
+     * @return The volume expandable-capacity.
+     */
+    public String getExpandableCapacity() {
+        return expandableCapacity;
+    }
+    
+    /**
+     * Setter for the volume expandable-capacity.
+     * 
+     * @param strVal The volume expandable-capacity.
+     */
+    public void setExpandableCapacity(String strVal) {
+        expandableCapacity = strVal;
+    }
+
+    /**
      * Getter for the volume WWN, parsed
      * from the vpd-id value.
      * 
@@ -409,6 +434,7 @@ public class VPlexVirtualVolumeInfo extends VPlexResourceInfo {
         str.append(", locality: ").append(locality);
         str.append(", clusters: ").append(clusters);
         str.append(", vpdId: ").append(vpdId);
+        str.append(", expandableCapacity: ").append(expandableCapacity);
         str.append(" )");
         return str.toString();
     }

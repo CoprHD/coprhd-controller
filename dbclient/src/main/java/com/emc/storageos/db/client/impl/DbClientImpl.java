@@ -1114,6 +1114,7 @@ public class DbClientImpl implements DbClient {
         }
     }
 
+    //Modified for DataStax POC
     protected <T extends DataObject> List<URI> insertNewColumns(Keyspace ks, Collection<T> dataobjects) {
         List<URI> objectsToCleanup = new ArrayList<URI>();
         boolean retryFailedWriteWithLocalQuorum = true;
@@ -1127,6 +1128,8 @@ public class DbClientImpl implements DbClient {
         for (T object : dataobjects) {
             checkGeoVersionForMutation(object);
             DataObjectType doType = TypeMap.getDoType(object.getClass());
+            RowMutatorDS mutatorDS = new RowMutatorDS(getSession(object.getClass()), doType.getCF().getName());
+            _log.info("hlj start class={} mutatorDS={}", object.getClass(), mutatorDS);
 
             if (object.getId() == null || doType == null) {
                 throw new IllegalArgumentException();
@@ -1134,13 +1137,14 @@ public class DbClientImpl implements DbClient {
             if (doType.needPreprocessing()) {
                 preprocessTypeIndexes(ks, doType, object);
             }
-            if (doType.serialize(mutator, object, new LazyLoader(this))) {
+            if (doType.serialize(mutatorDS, mutator, object, new LazyLoader(this))) {
                 objectsToCleanup.add(object.getId());
             }
 
             if (!(object instanceof Task)) {
                 serializeTasks(object, mutator, objectsToCleanup);
             }
+            mutatorDS.execute();
         }
         mutator.executeRecordFirst();
 

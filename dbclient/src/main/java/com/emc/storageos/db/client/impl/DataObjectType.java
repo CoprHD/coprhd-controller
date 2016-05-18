@@ -349,7 +349,7 @@ public class DataObjectType {
     }
 
     //For DataStax POC
-    public boolean serialize(RowMutatorDS mutatorDS, DataObject val) {
+    public boolean serialize(RowMutatorDS mutatorDS, RowMutator mutator, DataObject val, LazyLoader lazyLoader) {
         if (!_clazz.isInstance(val)) {
             throw new IllegalArgumentException();
         }
@@ -360,12 +360,11 @@ public class DataObjectType {
                 throw new IllegalArgumentException();
             }
             for (ColumnField field : this._columnFieldMap.values()) {
-                //setMappedByField(val, field);
-                indexFieldsModified |= field.serialize(val, mutator);
+                setMappedByField(val, field);
+                indexFieldsModified |= field.serialize(val, mutatorDS, mutator);
             }
 
-            //currently no lazy loader
-
+            setLazyLoaders(val, lazyLoader);
             return indexFieldsModified;
         } catch (final IllegalAccessException e) {
             throw DatabaseException.fatals.serializationFailedId(val.getId(), e);

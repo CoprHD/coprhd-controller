@@ -17,6 +17,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -435,11 +436,22 @@ public class ColumnField {
     }
 
     //POC for DataStax
-    private boolean addColumn(String recordKey, CompositeColumnName column, Object val, DataObject obj){
-        //insert record
+    private boolean addColumn(String recordKey, CompositeColumnName column, Object val, RowMutatorDS rowMutatorDS, DataObject obj) {
+        if (_encrypt && _parentType.getEncryptionProvider() != null) {
+            val = _parentType.getEncryptionProvider().encrypt((String) val);
+        }
 
+        // insert record
+        rowMutatorDS.addColumn(recordKey, column, val);
 
-        return true;
+        if (_index == null || val == null) {
+            return false;
+        }
+
+        // insert index
+        boolean insertIndexed = false;
+
+        return insertIndexed;
     }
 
     /**
@@ -592,7 +604,7 @@ public class ColumnField {
     }
     
     //for DataStax POC
-    public boolean serialize(DataObject obj, RowMutatorDS rowMutatorDS) {
+    public boolean serialize(DataObject obj, RowMutatorDS rowMutatorDS, RowMutator mutator) {
         try {
             Object val = _property.getReadMethod().invoke(obj);
             if (val == null) {
@@ -606,9 +618,12 @@ public class ColumnField {
                     if (!obj.isChanged(_name)) {
                         return false;
                     }
-                    changed = addColumn(id, getColumnName(null, mutator), val, mutator, obj);
+                    _log.info("hlj before addColumn, id={}, val={}", id, val);
+                    changed = addColumn(id, getColumnName(null, null, rowMutatorDS.getTimeUUID()), val, rowMutatorDS, obj);
                     break;
                 }
+                default:
+                    this.serialize(obj, mutator);
             }
 
             return changed;
@@ -628,6 +643,10 @@ public class ColumnField {
      * @return
      */
     private CompositeColumnName getColumnName(String two, String three, RowMutator mutator) {
+        return getColumnName(two, three, mutator.getTimeUUID());
+    }
+
+    private CompositeColumnName getColumnName(String two, String three, UUID timeUUID) {
         switch (_colType) {
             case Id: {
                 return compositeName;
@@ -636,7 +655,7 @@ public class ColumnField {
             case Primitive:
             case NestedObject: {
                 if (isInactiveField() || needIndexConsistency()) {
-                    return new CompositeColumnName(_name, null, mutator.getTimeUUID());
+                    return new CompositeColumnName(_name, null, timeUUID);
                 } else {
                     return compositeName;
                 }
@@ -646,14 +665,14 @@ public class ColumnField {
                 if (_index == null) {
                     return new CompositeColumnName(_name, two, three);
                 } else {
-                    return new CompositeColumnName(_name, two, three, mutator.getTimeUUID());
+                    return new CompositeColumnName(_name, two, three, timeUUID);
                 }
             }
             case TrackingSetMap: {
                 if (_index == null) {
                     return new CompositeColumnName(_name, two, three);
                 } else {
-                    return new CompositeColumnName(_name, two, three, mutator.getTimeUUID());
+                    return new CompositeColumnName(_name, two, three, timeUUID);
                 }
             }
         }

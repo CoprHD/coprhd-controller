@@ -4,6 +4,7 @@ import com.datastax.driver.core.BatchStatement;
 import com.datastax.driver.core.PreparedStatement;
 import com.datastax.driver.core.Session;
 import com.datastax.driver.core.utils.UUIDs;
+import com.emc.storageos.db.client.model.DataObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -37,6 +38,28 @@ public class RowMutatorDS {
         this.timeUUID = UUIDs.timeBased();
     }
 
+    public void addColumn(String recordKey, CompositeColumnName column, Object val) {
+        recordAndIndexBatch
+                .add(insertRecord.bind(recordKey, column.getOne(), column.getTwo(), column.getThree(), column.getTimeUUID(), val));
+    }
 
+    public void execute() {
+        log.info("hlj in execute={}", recordAndIndexBatch);
+        session.execute(recordAndIndexBatch);
+        log.info("hlj in execute done.", recordAndIndexBatch);
+    }
 
+    public UUID getTimeUUID() {
+        return timeUUID;
+    }
+
+    @Override
+    public String toString() {
+        StringBuffer sb = new StringBuffer(super.toString());
+        sb.append(this.insertRecord);
+        sb.append(this.session);
+        sb.append(this.recordAndIndexBatch);
+        sb.append(this.timeUUID);
+        return sb.toString();
+    }
 }

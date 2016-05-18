@@ -1996,7 +1996,9 @@ public class SRDFOperations implements SmisConstants {
                 trustedSrc.getSrdfTargets().add(invalidTgt.getId().toString());
                 invalidSrc.getSrdfTargets().remove(invalidTgt.getId().toString());
                 
+		// Update the volume labels (and labels on associated Vplex volume if any)
                 updateVolumeLabels(trustedSrc, invalidTgt);
+		// Rename the volume on the vmax array itself and update the deviceLabel
                 helper.renameVolume(dbClient, targetSystem, invalidTgt, invalidTgt.getLabel());
                 dbClient.updateAndReindexObject(asList(invalidTgt, trustedSrc, invalidSrc));
             }

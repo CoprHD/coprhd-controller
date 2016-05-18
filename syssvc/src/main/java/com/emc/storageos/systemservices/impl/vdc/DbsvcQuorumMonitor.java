@@ -74,7 +74,7 @@ public class DbsvcQuorumMonitor implements Runnable {
             
             if (siteState.equals(SiteState.STANDBY_SYNCED)) {
                 SiteMonitorResult monitorResult = updateSiteMonitorResult(standbySite);
-                if (monitorResult.getDbQuorumLostSince() != 0) {
+                if (monitorResult.getDbQuorumLostSince() == 0) {
                     hasConnectedStandbySite = true;
                 }
                 checkEligibleForDegrade(monitorResult, standbySite, sitesToDegrade);

@@ -28,6 +28,9 @@ public class OpenStackTenantsUtils {
     public static List<OpenStackTenantParam> getOpenStackTenants() {
         return getViprClient().openStackTenants().getAll();
     }
+    public static OpenStackTenantParam getOpenStackTenant(String id) {
+        return getViprClient().openStackTenants().get(id);
+    }
 
     public static void addOpenStackTenants(OpenStackTenantListParam list) {
         getViprClient().openStackTenants().registerOpenStackTenants(list);

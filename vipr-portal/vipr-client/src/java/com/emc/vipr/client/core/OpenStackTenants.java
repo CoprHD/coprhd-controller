@@ -19,6 +19,7 @@ package com.emc.vipr.client.core;
 import java.util.List;
 
 import com.emc.storageos.model.NamedRelatedResourceRep;
+import com.emc.storageos.model.keystone.CoprhdOsTenantListRestRep;
 import com.emc.storageos.model.keystone.OpenStackTenantListParam;
 import com.emc.storageos.model.keystone.OpenStackTenantParam;
 import com.emc.storageos.model.keystone.OpenStackTenantsList;
@@ -81,8 +82,19 @@ public class OpenStackTenants extends AbstractCoreResources<OpenStackTenantParam
         return getByRefs(refs, filter);
     }
 
-    public void registerOpenStackTenants(OpenStackTenantListParam list) {
-        OpenStackTenantListParam response = client.post(OpenStackTenantListParam.class, list, baseUrl + "/tenants");
-        //return defaultList(response.getOpenstack_tenants());
+    /**
+     * Gets OpenStack tenant with given ID.
+     *
+     * @return single OpenStack tenant.
+     */
+    public OpenStackTenantParam get(String id) {
+        return client.get(OpenStackTenantParam.class, getIdUrl(), id);
+    }
+
+    /**
+     *
+     */
+    public CoprhdOsTenantListRestRep registerOpenStackTenants(OpenStackTenantListParam list) {
+        return client.post(CoprhdOsTenantListRestRep.class, list, baseUrl);
     }
 }

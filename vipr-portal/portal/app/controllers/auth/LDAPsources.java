@@ -26,6 +26,7 @@ import java.util.*;
 import com.emc.storageos.cinder.CinderConstants;
 import com.emc.storageos.db.client.model.AuthnProvider;
 
+import com.emc.storageos.model.keystone.OpenStackTenantListParam;
 import com.emc.storageos.model.keystone.OpenStackTenantParam;
 import com.emc.vipr.client.core.OpenStackTenants;
 import models.SearchScopes;
@@ -201,10 +202,21 @@ public class LDAPsources extends ViprResourceController {
         edit(new LDAPsourcesForm(authnProvider));
     }
 
-    @FlashException(referrer = { "edit" })
     public static void addTenants(String ldadSourceId, @As(",") String[] ids) {
-        List<URI> tenants = Lists.newArrayList();
-        //OpenStackTenantsUtils.addOpenStackTenants();
+        List<OpenStackTenantParam> tenants = OpenStackTenantsUtils.getOpenStackTenants();
+        if (ids != null) {
+            List<String> idList = Arrays.asList(ids);
+            for (OpenStackTenantParam tenant : tenants) {
+                if (!idList.contains(tenant.getOsId())) {
+                    tenant.setExcluded(true);
+                }
+            }
+        }
+        OpenStackTenantListParam params = new OpenStackTenantListParam();
+        params.setOpenstack_tenants(tenants);
+
+        OpenStackTenantsUtils.addOpenStackTenants(params);
+
         list();
     }
 

@@ -119,6 +119,9 @@ public class DefaultBlockSnapshotSessionApiImpl implements BlockSnapshotSessionA
         // Verify a name was specified in the request.
         ArgValidator.checkFieldNotEmpty(name, "name");
 
+        // Verify a name length does not exceed the maximum snapshot name length
+        ArgValidator.checkFieldLengthMaximum(name, SmisConstants.MAX_SMI80_SNAPSHOT_NAME_LENGTH, "name");
+
         // Verify the source objects.
         List<Volume> sourceVolumeList = new ArrayList<Volume>();
         for (BlockObject sourceObj : sourceObjList) {

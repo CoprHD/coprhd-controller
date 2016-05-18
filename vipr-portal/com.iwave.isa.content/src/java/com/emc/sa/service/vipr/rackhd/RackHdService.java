@@ -108,11 +108,13 @@ public class RackHdService extends ViPRService {
             Map.Entry<String, Object> entry = it.next();
             if(entry.getKey().contains("_")) {
                 String baseVarName = entry.getKey().split("_",2)[0];
-                if(params.containsKey(baseVarName)) {
-                    paramErrs.append(entry.getKey() + " with value " +
-                            entry.getValue() + " cannot override " + 
-                            baseVarName + " which already has a value " +
-                            params.get(baseVarName));
+                if(params.containsKey(baseVarName)  &&
+                        (!params.get(baseVarName).toString().
+                        equals(entry.getValue().toString())) ) {
+                    paramErrs.append(entry.getKey() + " with value '" +
+                            entry.getValue() + "' cannot override " + 
+                            baseVarName + " which already has a different " +
+                            "value '" + params.get(baseVarName) + "'");
                 } 
                 params.put(baseVarName, entry.getValue());
                 params.remove(entry.getKey());

@@ -355,7 +355,7 @@ public class IpReconfigManager implements Runnable {
                     target_nodestatus = IpReconfigConstants.NodeStatus.CLUSTER_SUCCEED;
                     if (isReadyForNextStatus(localnode_status, target_nodestatus)) {
                         assureIPConsistent();
-                        setSucceed();
+                        FileUtils.deleteFile(IpReconfigConstants.NODESTATUS_PATH);
                     }
                     break;
                 default:
@@ -423,7 +423,6 @@ public class IpReconfigManager implements Runnable {
     private void setSucceed() throws Exception {
         log.info("Succeed to reconfig cluster ip!");
         setStatus(ClusterNetworkReconfigStatus.Status.SUCCEED);
-        FileUtils.deleteFile(IpReconfigConstants.NODESTATUS_PATH);
     }
 
     /**
@@ -828,6 +827,14 @@ public class IpReconfigManager implements Runnable {
             lock.acquire();
             log.info("Got lock for updating local site IPs into ZK ...");
 
+            config = _coordinator.getCoordinatorClient().queryConfiguration(IpReconfigConstants.CONFIG_KIND, IpReconfigConstants.CONFIG_ID);
+            if (config != null) {
+                if (isSucceed(config)) {
+                    log.info("new IPs has been set succesfully by other nodes.");
+                    return;
+                }
+            }
+
             for(Site site : drUtil.listSites()) {
                 int vdc_index = Integer.valueOf(site.getVdcShortId().split(PropertyConstants.VDC_SHORTID_PREFIX)[1]);
                 int site_index = Integer.valueOf(site.getSiteShortId().split(PropertyConstants.SITE_SHORTID_PREFIX)[1]);
@@ -879,8 +886,12 @@ public class IpReconfigManager implements Runnable {
             }
 
             // wake up syssvc to regenerate configurations
-            drUtil.updateVdcTargetVersion(_coordinator.getCoordinatorClient().getSiteId(), SiteInfo.IP_OP_CHANGE, System.currentTimeMillis());
+            long vdcConfigVersion = DrUtil.newVdcConfigVersion();
+            for(Site site : drUtil.listSites()) {
+                drUtil.updateVdcTargetVersion(site.getUuid(), SiteInfo.IP_OP_CHANGE, vdcConfigVersion);
+            }
 
+            setSucceed();
             log.info("Finished update local site IPs into ZK");
         } catch (Exception e) {
             log.warn("Unexpected exception during updating local site IPs into ZK", e);

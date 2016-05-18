@@ -8025,15 +8025,11 @@ class Bourne:
 
     def workflow_resume(self, uri):
         o = self.api('PUT', URI_WORKFLOW_RESUME.format(uri))
-        if (o['code'] > 0):
-             return o
         result = self.api_sync_2(o['resource']['id'], o['op_id'], self.workflow_show_task)
         return result
 
     def workflow_rollback(self, uri):
         o = self.api('PUT', URI_WORKFLOW_ROLLBACK.format(uri))
-        if (o['code'] > 0):
-             return o
         result = self.api_sync_2(o['resource']['id'], o['op_id'], self.workflow_show_task)
         return result
 

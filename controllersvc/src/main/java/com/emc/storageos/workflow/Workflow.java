@@ -56,7 +56,7 @@ public class Workflow implements Serializable {
     Set<URI> _childWorkflows = new HashSet<URI>();	// workflowURI of child workflows
     Boolean _suspendOnError = true;  // suspend on error (rather than rollback)
     private WorkflowState _workflowState;
-    URI _suspendStep;            // Step to initiate workflow suspend
+    Set<URI> _suspendSteps = new HashSet<URI>();  // Steps that initiate workflow suspend
 
     // Define the serializable, persistent fields save in ZK
     private static final ObjectStreamField[] serialPersistentFields = {
@@ -79,7 +79,7 @@ public class Workflow implements Serializable {
             new ObjectStreamField("_stepStatusMap", Map.class),
             new ObjectStreamField("_suspendOnError", Boolean.class), 
             new ObjectStreamField("_workflowState", WorkflowState.class), 
-            new ObjectStreamField("_suspendStep", URI.class)
+            new ObjectStreamField("_suspendSteps", Set.class)
     };
 
     private static final Logger _log = LoggerFactory.getLogger(Workflow.class);
@@ -138,7 +138,7 @@ public class Workflow implements Serializable {
         public static final String ROLLBACK_GROUP = "_rollback_group_";
 
         public boolean isRollbackStep() {
-            return this.stepGroup.equals(ROLLBACK_GROUP);
+            return ROLLBACK_GROUP.equalsIgnoreCase(this.stepGroup);
         }
 
         /**
@@ -868,12 +868,12 @@ public class Workflow implements Serializable {
 		this._workflowState = workflowState;
 	}
 
-    public URI getSuspendStep() {
-        return _suspendStep;
+    public Set<URI> getSuspendSteps() {
+        return _suspendSteps;
 }
 
-    public void setSuspendStep(URI suspendStep) {
-        this._suspendStep = suspendStep;
+    public void setSuspendSteps(Set<URI> suspendSteps) {
+        this._suspendSteps = suspendSteps;
     }
 
 }

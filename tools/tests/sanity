@@ -5321,6 +5321,10 @@ common_setup()
     sec_start_ldap_server
     login_nd_configure_smtp_nd_add_licenses
 
+    # By default with automated tests, we don't want to suspend on error or have specific methods stop us.
+    run syssvc $CONFIG_FILE $BOURNE_IPADDR set_prop workflow_suspend_on_error false
+    run syssvc $CONFIG_FILE $BOURNE_IPADDR set_prop workflow_suspend_on_class_method "none"
+
     run syssvc $CONFIG_FILE "$BOURNE_IP" set_prop system_proxyuser_encpassword ${SYSADMIN_PASSWORD}
     tenant_setup
 

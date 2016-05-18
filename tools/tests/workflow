@@ -72,6 +72,15 @@ def print_steps(steps):
         print '    ' + step['execute_method'] + ' state: ' + step['state']
         print '    ' + step['description']
         print '    ' + step['system_id'] + ' ' + step['system_type']
+	try:
+	    classname = step['controller_name']
+	    words = classname.split('.')
+	    simple_name = ""
+	    for classy in words:
+		simple_name = classy;
+	    print '    ' + "Method: " + simple_name + '.' + step['execute_method']
+	except:
+	    print '    ' + "Method: <None>"
         try:
             print '    ' + 'WaitFor: ' + step['wait_for']
         except:

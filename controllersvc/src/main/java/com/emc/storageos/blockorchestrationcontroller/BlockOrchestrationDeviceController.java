@@ -4,6 +4,8 @@
  */
 package com.emc.storageos.blockorchestrationcontroller;
 
+import static com.emc.storageos.volumecontroller.impl.ControllerUtils.checkCloneConsistencyGroup;
+
 import java.io.Serializable;
 import java.net.URI;
 import java.util.ArrayList;
@@ -29,9 +31,11 @@ import com.emc.storageos.svcs.errorhandling.model.ServiceError;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.volumecontroller.ControllerLockingService;
+import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.volumecontroller.impl.block.BlockDeviceController;
 import com.emc.storageos.volumecontroller.impl.block.ReplicaDeviceController;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.BlockSnapshotRestoreCompleter;
+import com.emc.storageos.volumecontroller.impl.block.taskcompleter.CloneCreateWorkflowCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.CloneRestoreCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.VolumeCreateWorkflowCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.VolumeVarrayChangeTaskCompleter;
@@ -643,7 +647,8 @@ public class BlockOrchestrationDeviceController implements BlockOrchestrationCon
     @Override
     public void createFullCopy(List<VolumeDescriptor> volumeDescriptors, String taskId) throws InternalException {
         List<URI> volUris = VolumeDescriptor.getVolumeURIs(volumeDescriptors);
-        VolumeCreateWorkflowCompleter completer = new VolumeCreateWorkflowCompleter(volUris, taskId, volumeDescriptors);
+        TaskCompleter completer = new CloneCreateWorkflowCompleter(volUris, taskId);
+        checkCloneConsistencyGroup(volUris.get(0), getDbClient(), completer);
         Workflow workflow = null;
         try {
             // Generate the Workflow.

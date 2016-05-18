@@ -38,6 +38,7 @@ import com.emc.storageos.workflow.Workflow.StepState;
  *
  */
 public class WorkflowTest extends ControllersvcTestBase implements Controller {
+    private static final int SLEEP_MILLIS = 3000;
     private static final URI nullURI = NullColumnValueGetter.getNullURI();
     protected static final Logger log = LoggerFactory.getLogger(WorkflowTest.class);
     private static int sleepMillis = 0; // sleep time for each step in milliseconds
@@ -264,7 +265,7 @@ public class WorkflowTest extends ControllersvcTestBase implements Controller {
         workflowService.setSuspendClassMethodTestOnly(null);
         workflowService.setSuspendOnErrorTestOnly(true);
         injectedFailures.clear();
-        sleepMillis = 10000; // 10 seconds
+        sleepMillis = SLEEP_MILLIS;
         String taskId = UUID.randomUUID().toString();
         Workflow workflow = generate3StepWF(0, 1, taskId);
         Map<String, WorkflowStep> stepMap = readWorkflowFromDb(taskId);
@@ -307,7 +308,7 @@ public class WorkflowTest extends ControllersvcTestBase implements Controller {
         final String testname = new Object() {}.getClass().getEnclosingMethod().getName();
         printLog(testname + " started");
         injectedFailures.clear();
-        sleepMillis = 10000; // 10 seconds
+        sleepMillis = SLEEP_MILLIS;
 
         // We're not allowed to (and probably shouldn't) change system properties in the unit tester.
         // So we can override the class/method directly in the Workflow Service.
@@ -318,10 +319,10 @@ public class WorkflowTest extends ControllersvcTestBase implements Controller {
 
         // Generate a three step workflow.
         Workflow workflow = generate3StepWF(0, 1, taskId);
-        com.emc.storageos.db.client.model.Workflow dbWF = dbClient.queryObject(com.emc.storageos.db.client.model.Workflow.class,
-                workflow.getWorkflowURI());
         Operation op = dbClient.createTaskOpStatus(com.emc.storageos.db.client.model.Workflow.class, workflow.getWorkflowURI(),
                 taskId, ResourceOperationTypeEnum.CREATE_BLOCK_VOLUME);
+        com.emc.storageos.db.client.model.Workflow dbWF = dbClient.queryObject(com.emc.storageos.db.client.model.Workflow.class,
+                workflow.getWorkflowURI());
         dbWF.getOpStatus().put(taskId, op);
         Task wfTask = toTask(dbWF, taskId, op);
 
@@ -334,6 +335,12 @@ public class WorkflowTest extends ControllersvcTestBase implements Controller {
         validateStepStates(stepMap, testaSuccessSteps, testaErrorSteps, testaCancelledSteps, testaSuspendedSteps);
         wfTask = dbClient.queryObject(Task.class, wfTask.getId());
         assertTrue(wfTask.getStatus().equals("suspended_no_error"));
+        // Verify the completion state was filled in
+        dbWF = dbClient.queryObject(com.emc.storageos.db.client.model.Workflow.class,
+                workflow.getWorkflowURI());
+        assertNotNull(dbWF.getCompletionState());
+        assertEquals(String.format("Workflow completion state found: " + dbWF.getCompletionState()), dbWF.getCompletionState(),
+                "SUSPENDED_NO_ERROR");
 
         taskStatusMap.put(taskId, WorkflowState.CREATED);
         workflowService.resumeWorkflow(workflow.getWorkflowURI(), UUID.randomUUID().toString());
@@ -344,6 +351,85 @@ public class WorkflowTest extends ControllersvcTestBase implements Controller {
         validateStepStates(stepMap, testbSuccessSteps, testbErrorSteps, testbCancelledSteps, testbSuspendedSteps);
         wfTask = dbClient.queryObject(Task.class, wfTask.getId());
         assertTrue(wfTask.getStatus().equals("ready"));
+        // Verify the completion state was filled in
+        dbWF = dbClient.queryObject(com.emc.storageos.db.client.model.Workflow.class,
+                workflow.getWorkflowURI());
+        assertNotNull(dbWF.getCompletionState());
+        assertEquals(String.format("Workflow completion state found: " + dbWF.getCompletionState()), dbWF.getCompletionState(),
+                "SUCCESS");
+        sleepMillis = 0;
+        printLog(testname + " completed");
+    }
+
+    @Test
+    /**
+     * This test creates a two layer workflow where a step in the inner WF gets suspended.  Verify the top-level task.
+     * The result should be a fully successful workflow.
+     */
+    public void test_two_wf_three_steps_method_suspend_second_step_resume_task_verification() {
+        // Expected results for this test case
+        final String[] testaSuccessSteps = { "L0S1 sub", "L1S1 sub", "L1S2 sub" };
+        final String[] testaErrorSteps = {};
+        final String[] testaCancelledSteps = { "L0S3 sub" };
+        final String[] testaSuspendedSteps = { "L0S2 sub", "L1S3 sub", };
+
+        final String[] testbSuccessSteps = { "L0S1 sub", "L0S2 sub", "L0S3 sub", "L1S1 sub", "L1S2 sub", "L1S3 sub" };
+        final String[] testbErrorSteps = {};
+        final String[] testbCancelledSteps = {};
+        final String[] testbSuspendedSteps = {};
+
+        final String testname = new Object() {}.getClass().getEnclosingMethod().getName();
+        printLog(testname + " started");
+        injectedFailures.clear();
+        sleepMillis = SLEEP_MILLIS;
+
+        // We're not allowed to (and probably shouldn't) change system properties in the unit tester.
+        // So we can override the class/method directly in the Workflow Service.
+        workflowService.setSuspendClassMethodTestOnly(this.getClass().getSimpleName() + ".deepnop");
+        workflowService.setSuspendOnErrorTestOnly(true);
+
+        String taskId = UUID.randomUUID().toString();
+
+        // Generate a three step workflow.
+        Workflow workflow = generate3StepWF(0, 2, taskId);
+        Operation op = dbClient.createTaskOpStatus(com.emc.storageos.db.client.model.Workflow.class, workflow.getWorkflowURI(),
+                taskId, ResourceOperationTypeEnum.CREATE_BLOCK_VOLUME);
+        com.emc.storageos.db.client.model.Workflow dbWF = dbClient.queryObject(com.emc.storageos.db.client.model.Workflow.class,
+                workflow.getWorkflowURI());
+        dbWF.getOpStatus().put(taskId, op);
+        Task wfTask = toTask(dbWF, taskId, op);
+
+        // Gather the steps from the DB and wait for the workflow to hit a known "stopped" state
+        Map<String, WorkflowStep> stepMap = readWorkflowFromDb(taskId);
+        WorkflowState state = waitOnWorkflowComplete(taskId);
+        printLog("Workflow state after suspend: " + state);
+        assertTrue(state == WorkflowState.SUSPENDED_NO_ERROR);
+        stepMap = readWorkflowFromDb(taskId);
+        validateStepStates(stepMap, testaSuccessSteps, testaErrorSteps, testaCancelledSteps, testaSuspendedSteps);
+        wfTask = dbClient.queryObject(Task.class, wfTask.getId());
+        assertTrue(wfTask.getStatus().equals("suspended_no_error"));
+        // Verify the completion state was filled in
+        dbWF = dbClient.queryObject(com.emc.storageos.db.client.model.Workflow.class,
+                workflow.getWorkflowURI());
+        assertNotNull(dbWF.getCompletionState());
+        assertEquals(String.format("Workflow completion state found: " + dbWF.getCompletionState()), dbWF.getCompletionState(),
+                "SUSPENDED_NO_ERROR");
+
+        taskStatusMap.put(taskId, WorkflowState.CREATED);
+        workflowService.resumeWorkflow(workflow.getWorkflowURI(), UUID.randomUUID().toString());
+        state = waitOnWorkflowComplete(taskId);
+        printLog("Workflow state after resume: " + state);
+        assertTrue(state == WorkflowState.SUCCESS);
+        stepMap = readWorkflowFromDb(taskId);
+        validateStepStates(stepMap, testbSuccessSteps, testbErrorSteps, testbCancelledSteps, testbSuspendedSteps);
+        wfTask = dbClient.queryObject(Task.class, wfTask.getId());
+        assertTrue(wfTask.getStatus().equals("ready"));
+        // Verify the completion state was filled in
+        dbWF = dbClient.queryObject(com.emc.storageos.db.client.model.Workflow.class,
+                workflow.getWorkflowURI());
+        assertNotNull(dbWF.getCompletionState());
+        assertEquals(String.format("Workflow completion state found: " + dbWF.getCompletionState()), dbWF.getCompletionState(),
+                "SUCCESS");
         sleepMillis = 0;
         printLog(testname + " completed");
     }
@@ -371,7 +457,7 @@ public class WorkflowTest extends ControllersvcTestBase implements Controller {
         workflowService.setSuspendClassMethodTestOnly(this.getClass().getSimpleName() + ".sub");
         workflowService.setSuspendOnErrorTestOnly(true);
 
-        sleepMillis = 10000; // 10 seconds
+        sleepMillis = SLEEP_MILLIS;
         String taskId = UUID.randomUUID().toString();
         Workflow workflow = generate3StepWF(0, 1, taskId);
         Map<String, WorkflowStep> stepMap = readWorkflowFromDb(taskId);
@@ -505,7 +591,7 @@ public class WorkflowTest extends ControllersvcTestBase implements Controller {
         final String testname = new Object() {}.getClass().getEnclosingMethod().getName();
         printLog(testname + " started");
         injectedFailures.clear();
-        sleepMillis = 10000; // 10 seconds
+        sleepMillis = SLEEP_MILLIS;
 
         // We're not allowed to (and probably shouldn't) change system properties in the unit tester.
         // So we can override the class/method directly in the Workflow Service.
@@ -579,6 +665,10 @@ public class WorkflowTest extends ControllersvcTestBase implements Controller {
         return new Workflow.Method("nop", level, step);
     }
 
+    Workflow.Method deepnopMethod(int level, int step) {
+        return new Workflow.Method("deepnop", level, step);
+    }
+
     public void nop(int level, int step, String stepId) {
         WorkflowStepCompleter.stepExecuting(stepId);
         if (sleepMillis > 0) {
@@ -590,6 +680,24 @@ public class WorkflowTest extends ControllersvcTestBase implements Controller {
         }
         if (hasInjectedFailure(level, step)) {
             log.info("Injecting failure in step: " + genMsg(level, step, "nop"));
+            ServiceCoded coded = WorkflowException.errors.unforeseen();
+            WorkflowStepCompleter.stepFailed(stepId, coded);
+        } else {
+            WorkflowStepCompleter.stepSucceded(stepId);
+        }
+    }
+
+    public void deepnop(int level, int step, String stepId) {
+        WorkflowStepCompleter.stepExecuting(stepId);
+        if (sleepMillis > 0) {
+            try {
+                Thread.sleep(sleepMillis);
+            } catch (Exception ex) {
+                // no action
+            }
+        }
+        if (hasInjectedFailure(level, step)) {
+            log.info("Injecting failure in step: " + genMsg(level, step, "deepnop"));
             ServiceCoded coded = WorkflowException.errors.unforeseen();
             WorkflowStepCompleter.stepFailed(stepId, coded);
         } else {
@@ -631,6 +739,7 @@ public class WorkflowTest extends ControllersvcTestBase implements Controller {
             WorkflowStepCompleter.stepSucceded(stepId);
         } else {
             // Generate a sub-workflow. The completer will complete this step.
+            printLog("Generating a new 3 step WF");
             generate3StepWF(level, maxLevels, stepId);
         }
     }
@@ -660,8 +769,13 @@ public class WorkflowTest extends ControllersvcTestBase implements Controller {
         lastStep = workflow.createStep("second", genMsg(level, 2, "sub"), lastStep, nullURI,
                 this.getClass().getName(), false, this.getClass(), subMethod(level, maxLevels, 2), nopMethod(level, 2), null);
         // third step
-        lastStep = workflow.createStep("third", genMsg(level, 3, "sub"), lastStep, nullURI,
-                this.getClass().getName(), false, this.getClass(), nopMethod(level, 3), nopMethod(level, 3), null);
+        if (level + 1 == maxLevels) {
+            lastStep = workflow.createStep("third deep", genMsg(level, 3, "sub"), lastStep, nullURI,
+                    this.getClass().getName(), false, this.getClass(), deepnopMethod(level, 3), deepnopMethod(level, 3), null);
+        } else {
+            lastStep = workflow.createStep("third", genMsg(level, 3, "sub"), lastStep, nullURI,
+                    this.getClass().getName(), false, this.getClass(), nopMethod(level, 3), nopMethod(level, 3), null);
+        }
         // Execute and go
         workflow.executePlan(completer, String.format("Workflow level %d successful", level), new WorkflowCallback(), args, null, null);
         return workflow;

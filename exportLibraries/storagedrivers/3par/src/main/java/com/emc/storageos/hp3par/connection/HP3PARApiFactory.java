@@ -158,30 +158,36 @@ public class HP3PARApiFactory {
     }
     
     // Sample direct program
-    /*
+    
     public static void main(String[] args) {
         System.out.println("starting HP3PAR main");
         try {
         URI uri = URI.create(String.format("https://10.247.143.100:8080/api/v1/credentials"));
         HP3PARApiFactory factory = new HP3PARApiFactory();
+        factory.setConnectionTimeoutMs(30000*4);
+        factory.setConnManagerTimeout(60000*4);
+        factory.setSocketConnectionTimeoutMs(7200000*4);
         BasicConfigurator.configure();
         factory.init();
         HP3PARApi hp3parApi = factory.getRESTClient(uri, "superme", "superme");
+        String result = null;
         
         String authToken = hp3parApi.getAuthToken("superme", "superme");
         System.out.println(authToken);
         
-        SystemCommandResult sysRes = hp3parApi.getSystemDetails();
+        //SystemCommandResult sysRes = hp3parApi.getSystemDetails();
         //System.out.println(sysRes.toString());
         //CPGCommandResult cpgRes = hp3parApi.getCPGDetails();
         //System.out.println(cpgRes.toString());
         //hp3parApi.getPortDetails();
-        PortStatisticsCommandResult portStatRes = hp3parApi.getPortStatisticsDetail();
-
+        //PortStatisticsCommandResult portStatRes = hp3parApi.getPortStatisticsDetail();
+        if (hp3parApi.createVolume("One_try_api1", "One", true, (long)1024) == true)
+            System.out.println("Volume created");
+        
         } catch (Exception e) {
-            System.out.println(e.toString());
+            System.out.println(e.getMessage());
             e.printStackTrace();
         }
    } //end main
-   */
+   
 }

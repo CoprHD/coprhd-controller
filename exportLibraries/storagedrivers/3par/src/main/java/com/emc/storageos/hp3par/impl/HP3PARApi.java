@@ -7,6 +7,8 @@ package com.emc.storageos.hp3par.impl;
 import java.net.URI;
 import java.util.List;
 
+import javax.ws.rs.core.MultivaluedMap;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.codehaus.jettison.json.JSONObject;
@@ -39,6 +41,7 @@ public class HP3PARApi {
     private static final String URI_CPGS = "/api/v1/cpgs";
     private static final String URI_PORTS = "/api/v1/ports";
     private static final String URI_PORT_STATISTICS = "/api/v1/systemreporter/attime/portstatistics/daily";
+    private static final String URI_CREATE_VOLUME = "/api/v1/volumes";
 
     public HP3PARApi(URI endpoint, RESTClient client) {
         _baseUrl = endpoint;
@@ -262,6 +265,35 @@ public class HP3PARApi {
         } //end try/catch/finally
     }
 
+    public boolean createVolume(String name, String cpg, Boolean thin, Long size) throws Exception {
+        _log.info("HP3PARApi:createVolume enter");
+        ClientResponse clientResp = null;
+        String body = "{\"name\":\"" + name + "\", \"cpg\":\"" + cpg + 
+                "\", \"tpvv\":" + thin.toString() + ", \"sizeMiB\":" + size.toString() + "}";
+
+        try {
+            clientResp = post(URI_CREATE_VOLUME, body);
+            if (clientResp == null) {
+                _log.error("There is no response from 3PAR");
+                throw new HP3PARException("There is no response from 3PAR");
+            } else if (clientResp.getStatus() != 201) {
+                String errResp = getResponseDetails(clientResp);
+                throw new HP3PARException(errResp);
+            } else {
+                String responseString = getHeaderFieldValue(clientResp, "Location");
+                _log.info("HP3PARApi:createVolume 3PAR response is {}", responseString);
+                return true;
+            }
+        } catch (Exception e) {
+            throw e;
+        } finally {
+            if (clientResp != null) {
+                clientResp.close();
+            }
+            _log.info("HP3PARApi:createVolume leave");
+        } //end try/catch/finally
+    }
+
     
     private String getResponseDetails(ClientResponse clientResp) {
         String detailedResponse = null, ref=null;;
@@ -281,9 +313,34 @@ public class HP3PARApi {
         }
         return detailedResponse;
     }
+
+    private String getHeaderFieldValue(ClientResponse clientResp, String field) {
+        List<String> valueList = null;
+        String value = null;
+        try {
+            MultivaluedMap<String, String> headers = clientResp.getHeaders();
+            valueList = headers.get(field);
+            if (valueList.size() != 1) {
+                throw new HP3PARException("Filed not found");
+            }
+            value = valueList.get(0);
+        } catch (Exception e) {
+            _log.error("Unable to get value for field: %s", field);
+        }
+        return value;
+    }
     
     private ClientResponse get(final String uri) throws Exception {
         ClientResponse clientResp = _client.get_json(_baseUrl.resolve(uri), _authToken);
+        if (clientResp.getStatus() == 403) {
+            getAuthToken();
+            clientResp = _client.get_json(_baseUrl.resolve(uri), _authToken);
+        }
+        return clientResp;
+    }
+    
+    private ClientResponse post(final String uri, String body) throws Exception {
+        ClientResponse clientResp = _client.post_json(_baseUrl.resolve(uri), _authToken, body);
         if (clientResp.getStatus() == 403) {
             getAuthToken();
             clientResp = _client.get_json(_baseUrl.resolve(uri), _authToken);

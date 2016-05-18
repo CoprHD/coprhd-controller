@@ -25,12 +25,18 @@ public class RESTClient {
 
     public ClientResponse post_json(URI url, String body) {
         WebResource r = _client.resource(url);
-        return r.header("Content-Type", MediaType.APPLICATION_JSON).post(ClientResponse.class, body);
+        return r.header("Content-Type", "application/json").post(ClientResponse.class, body);
+    }
+
+    public ClientResponse post_json(URI url, String authToken, String body) {
+        WebResource r = _client.resource(url);
+        return r.header("Content-Type", "application/json").header("X-HP3PAR-WSAPI-SessionKey", authToken).post(ClientResponse.class, body);
     }
     
     public ClientResponse get_json(URI url, String authToken) {
         WebResource r = _client.resource(url);
-        return r.header("Content-Type", "application/json").header("X-HP3PAR-WSAPI-SessionKey", authToken).get(ClientResponse.class);
+        return r.header("Content-Type", "application/json").header("X-HP3PAR-WSAPI-SessionKey", authToken).
+                get(ClientResponse.class);
     }
 
 

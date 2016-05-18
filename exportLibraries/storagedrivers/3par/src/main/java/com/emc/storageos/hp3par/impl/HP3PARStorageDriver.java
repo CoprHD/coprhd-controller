@@ -102,6 +102,9 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
 	}
 	
 
+	/**
+	 * Get storage system information
+	 */
 	@Override
 	public DriverTask discoverStorageSystem(List<StorageSystem> storageSystems) {
 	    DriverTask task = createDriverTask(HP3PARConstants.TASK_TYPE_DISCOVER_STORAGE_SYSTEM);
@@ -109,7 +112,7 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
 	    // For each 3par system
 	    for (StorageSystem storageSystem : storageSystems) {
 	        try {
-	            _log.info("3PAR: DiscoverStorageSystem information for storage system {}, name {} - start",
+	            _log.info("3PAR: discoverStorageSystem information for storage system {}, name {} - start",
 	                    storageSystem.getIpAddress(), storageSystem.getSystemName());            
 
 	            URI deviceURI = new URI("https", null, 
@@ -165,10 +168,10 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
 	            _log.info("3PAR: Successfull discovery storage system {}, name {} - end",
 	                        storageSystem.getIpAddress(), storageSystem.getSystemName());    
 	        } catch (Exception e) {
-	            _log.error("3PAR: Unable to discover the storage system information {}.\n",
-	                    storageSystem.getSystemName());
-	            task.setMessage(String.format("Unable to query the storage system %s information ",
-	                    storageSystem.getSystemName()) + e.getMessage());
+	            String msg = String.format("3PAR: Unable to discover the storage system %s ip %s; Error: %s.\n",
+                        storageSystem.getSystemName(), storageSystem.getIpAddress(), e.getMessage());
+	            _log.error(msg);
+	            task.setMessage(msg);
 	            task.setStatus(DriverTask.TaskStatus.FAILED);
 	            e.printStackTrace();
 	            // return error task immediately
@@ -180,7 +183,7 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
 	}
 
 	/**
-	 * 
+	 * Get storage pool information 
 	 */
 	@Override
 	public DriverTask discoverStoragePools(StorageSystem storageSystem, List<StoragePool> storagePools) {
@@ -265,7 +268,7 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
                 pool.setPoolServiceType(PoolServiceType.block);
                 
                 // Storage object properties
-                pool.setNativeId(currMember.getUuid());
+                pool.setNativeId(currMember.getName());
                 pool.setDeviceLabel(currMember.getName());
                 pool.setDisplayName(currMember.getName());
                 storageSystem.setAccessStatus(AccessStatus.READ_WRITE);
@@ -278,16 +281,20 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
             _log.info("3PAR: discoverStoragePools information for storage system {}, nativeId {} - end",
                     storageSystem.getIpAddress(), storageSystem.getNativeId());
 	    } catch (Exception e) {
-            _log.error("3PAR: Unable to discover the storage pool information {}.\n",
-                    storageSystem.getSystemName());
-            task.setMessage(String.format("Unable to query the storage system %s information ",
-                    storageSystem.getSystemName()) + e.getMessage());
+	        String msg = String.format
+	                ("3PAR: Unable to discover the storage pool information for storage system %s native id %s; Error: %s.\n",
+                    storageSystem.getSystemName(), storageSystem.getNativeId(), e.getMessage());
+            _log.error(msg);
+            task.setMessage(msg);
             task.setStatus(DriverTask.TaskStatus.FAILED);
             e.printStackTrace();
         }
         return task;
 	}
 
+	/**
+	 * Get storage port information
+	 */
 	@Override
 	public DriverTask discoverStoragePorts(StorageSystem storageSystem, List<StoragePort> storagePorts) {
         //For this 3PAR system
@@ -394,10 +401,11 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
             _log.info("3PAR: discoverStoragePorts information for storage system {}, nativeId {} - end",
                     storageSystem.getIpAddress(), storageSystem.getNativeId());
         } catch (Exception e) {
-            _log.error("3PAR: Unable to discover the storage port information {}.\n",
-                    storageSystem.getSystemName());
-            task.setMessage(String.format("Unable to query the storage system %s information ",
-                    storageSystem.getSystemName()) + e.getMessage());
+            String msg = String.format
+                    ("3PAR: Unable to discover the storage port information for storage system %s native id %s; Error: %s.\n",
+                    storageSystem.getSystemName(), storageSystem.getNativeId(), e.getMessage());
+            _log.error(msg);
+            task.setMessage(msg);
             task.setStatus(DriverTask.TaskStatus.FAILED);
             e.printStackTrace();
         }
@@ -418,10 +426,39 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
 		return null;
 	}
 
+	/**
+	 * Create requested volumes
+	 */
 	@Override
 	public DriverTask createVolumes(List<StorageVolume> volumes, StorageCapabilities capabilities) {
-		// TODO Auto-generated method stub
-		return null;
+        DriverTask task = createDriverTask(HP3PARConstants.TASK_TYPE_CREATE_STORAGE_VOLUMES);
+
+        // For each requested volume (in one or more 3par system)
+        for (StorageVolume volume : volumes) {
+            try {
+                _log.info("3PAR:createVolumes for storage system native id {}, volume name {} - start",
+                        volume.getStorageSystemId(), volume.getDisplayName());            
+
+                int a = 0;
+                int b = 1/a;
+                
+                task.setStatus(DriverTask.TaskStatus.READY);
+                _log.info("3PAR:createVolumes for storage system native id {}, volume name {} - end",
+                        volume.getStorageSystemId(), volume.getDisplayName());            
+            } catch (Exception e) {
+                String msg = String.format(
+                        "3PAR: Unable to create volume name %s with pool id %s for storage system native id %s; Error: %s.\n",
+                        volume.getDisplayName(), volume.getStoragePoolId(), volume.getStorageSystemId(), e.getMessage());
+                _log.error(msg);
+                task.setMessage(msg);
+                task.setStatus(DriverTask.TaskStatus.FAILED);
+                e.printStackTrace();
+                // return error task immediately
+                break;
+            }
+        } // end for each volume
+        
+        return task;
 	}
 
 	@Override

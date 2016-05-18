@@ -648,8 +648,14 @@ public class BlockOrchestrationDeviceController implements BlockOrchestrationCon
     public void createFullCopy(List<VolumeDescriptor> volumeDescriptors, String taskId) throws InternalException {
         List<URI> volUris = VolumeDescriptor.getVolumeURIs(volumeDescriptors);
         TaskCompleter completer = new CloneCreateWorkflowCompleter(volUris, taskId);
-        checkCloneConsistencyGroup(volUris.get(0), getDbClient(), completer);
         Workflow workflow = null;
+        
+        List<VolumeDescriptor> blockVolmeDescriptors = VolumeDescriptor.filterByType(volumeDescriptors,
+                new VolumeDescriptor.Type[] { VolumeDescriptor.Type.BLOCK_DATA, VolumeDescriptor.Type.VPLEX_IMPORT_VOLUME },
+                new VolumeDescriptor.Type[] {});
+        List<URI> blockVolUris = VolumeDescriptor.getVolumeURIs(blockVolmeDescriptors);
+        checkCloneConsistencyGroup(blockVolUris.get(0), getDbClient(), completer);
+        
         try {
             // Generate the Workflow.
             workflow = _workflowService.getNewWorkflow(this,
@@ -665,15 +671,15 @@ public class BlockOrchestrationDeviceController implements BlockOrchestrationCon
             // First, call the BlockDeviceController to add its methods.
             waitFor = _blockDeviceController.addStepsForCreateFullCopy(
                     workflow, waitFor, volumeDescriptors, taskId);
-
-            s_logger.info("Checking for VPLEX steps");
-            // Call the VPlexDeviceController to add its methods if there are VPLEX volumes.
-            waitFor = _vplexDeviceController.addStepsForCreateFullCopy(
-                    workflow, waitFor, volumeDescriptors, taskId);
             
             s_logger.info("Adding steps for RecoverPoint post create full copy");
             // Call the RPDeviceController to add its methods if there are RP protections
             waitFor = _rpDeviceController.addStepsForPostCreateReplica(
+                    workflow, waitFor, volumeDescriptors, taskId);
+
+            s_logger.info("Checking for VPLEX steps");
+            // Call the VPlexDeviceController to add its methods if there are VPLEX volumes.
+            waitFor = _vplexDeviceController.addStepsForCreateFullCopy(
                     workflow, waitFor, volumeDescriptors, taskId);
 
             // Finish up and execute the plan.

@@ -49,20 +49,6 @@ public class HDSBatchApiExportManager {
 
     private HDSApiClient hdsApiClient;
     
-    private ThreadLocal<Integer> batchHSDDeleteRetries = new ThreadLocal<Integer>() {
-        @Override 
-        protected Integer initialValue() {
-            return 0;
-        }
-    };
-    
-    private ThreadLocal<Integer> batchLunPathDeleteRetries = new ThreadLocal<Integer>() {
-        @Override 
-        protected Integer initialValue() {
-            return 0;
-        }
-    };
-
     public HDSBatchApiExportManager(HDSApiClient hdsApiClient) {
         this.hdsApiClient = hdsApiClient;
     }
@@ -313,29 +299,60 @@ public class HDSBatchApiExportManager {
             List<HostStorageDomain> hsdList, String model) throws Exception {
         InputStream responseStream = null;
         try {
-            String deleteHSDsQuery = constructDeleteHSDsQuery(systemId, hsdList, model);
-            log.info("Batch Query to delete HSD's: {}", deleteHSDsQuery);
-            URI endpointURI = hdsApiClient.getBaseURI();
-            ClientResponse response = hdsApiClient.post(endpointURI,
-                    deleteHSDsQuery);
-            if (HttpStatus.SC_OK == response.getStatus()) {
-                responseStream = response.getEntityInputStream();
-                JavaResult javaResult = SmooksUtil.getParsedXMLJavaResult(
-                        responseStream, HDSConstants.SMOOKS_CONFIG_FILE);
-                try {
-                    verifyErrorPayload(javaResult);
-                } catch (HDSException hdsException) {
-                    log.info("invalid response from server, retrying operation");
-                    retryBatchHSDDelete(systemId, hsdList, model, javaResult, response);
+            List<HostStorageDomain> unDeletedHSDs = new ArrayList<>();
+            unDeletedHSDs.addAll(hsdList);
+            boolean operationSucceeds = false;
+            int retryCount = 0;
+            while (!operationSucceeds && retryCount <= MAX_RETRIES) {
+                retryCount++;
+                String deleteHSDsQuery = constructDeleteHSDsQuery(systemId, unDeletedHSDs, model);
+                log.info("Batch Query to delete HSD's: {}", deleteHSDsQuery);
+                URI endpointURI = hdsApiClient.getBaseURI();
+                ClientResponse response = hdsApiClient.post(endpointURI,
+                        deleteHSDsQuery);
+                if (HttpStatus.SC_OK == response.getStatus()) {
+                    responseStream = response.getEntityInputStream();
+                    JavaResult javaResult = SmooksUtil.getParsedXMLJavaResult(
+                            responseStream, HDSConstants.SMOOKS_CONFIG_FILE);
+                    try {
+                        verifyErrorPayload(javaResult);
+                    } catch (HDSException hdsException) {
+                        Error error = javaResult.getBean(Error.class);
+                        if (error != null && (error.getDescription().contains("2010")
+                                || error.getDescription().contains("5132") || error.getDescription().contains("7473"))) {
+                            log.info("Exception from HICommand Manager recieved during delete operation, retrying operation {} time",
+                                    retryCount);
+                            Thread.sleep(60000); // Wait for a minute before retry
+                            unDeletedHSDs.clear();
+                            unDeletedHSDs.addAll(hsdList.stream().filter(hsd -> getHostStorageDomain(systemId, hsd.getObjectID()) != null)
+                                    .collect(Collectors.toList()));
+                            if (unDeletedHSDs.isEmpty()) {
+                                operationSucceeds = true; // Operation succeeded
+                                log.info("Deleted {} LUN paths from system:{}",
+                                        hsdList.size(), systemId);
+                            } else {
+                                continue; // Retry the operation again if retry count not exceeded
+                            }
+                        } else {
+                            throw HDSException.exceptions
+                                    .invalidResponseFromHDS(String
+                                            .format("Not able to delete HostStorageDomains due to invalid response %1$s from server",
+                                                    response.getStatus()));
+                        }
+                    }
+                } else {
+                    throw HDSException.exceptions
+                            .invalidResponseFromHDS(String
+                                    .format("Not able to delete HostStorageDomains due to invalid response %1$s from server",
+                                            response.getStatus()));
                 }
-            } else {
+            }
+            if(!operationSucceeds) {// Delete operation failed ever after repeated retries
                 throw HDSException.exceptions
-                        .invalidResponseFromHDS(String
-                                .format("Not able to delete HostStorageDomains due to invalid response %1$s from server",
-                                        response.getStatus()));
+                .invalidResponseFromHDS(String
+                        .format("Not able to delete HostStorageDomains due to repeated errors from HiCommand server"));
             }
         } finally {
-            batchHSDDeleteRetries.remove();//re-initializing the max retries to zero
             if (null != responseStream) {
                 try {
                     responseStream.close();
@@ -345,27 +362,6 @@ public class HDSBatchApiExportManager {
             }
         }
         log.info("Batch Query to delete HSD's completed.");
-    }
-
-    private void retryBatchHSDDelete(String systemId, List<HostStorageDomain> hsdList, String model, JavaResult javaResult,
-            ClientResponse response)
-            throws InterruptedException, Exception {
-        Error error = javaResult.getBean(Error.class);
-        if (error != null && (error.getDescription().contains("2010")
-                || error.getDescription().contains("5132") || error.getDescription().contains("7473"))
-                && batchHSDDeleteRetries.get() <= MAX_RETRIES) {
-            Thread.sleep(60000); // Wait for a minute before retry
-            List<HostStorageDomain> unDeletedHSDs = new ArrayList<>();
-            unDeletedHSDs.addAll(hsdList.stream().filter(hsd -> getHostStorageDomain(systemId, hsd.getObjectID()) != null)
-                    .collect(Collectors.toList()));
-            batchHSDDeleteRetries.set(new Integer(batchHSDDeleteRetries.get() + 1));
-            deleteBatchHostStorageDomains(systemId, unDeletedHSDs, model);
-        } else {
-            throw HDSException.exceptions
-                    .invalidResponseFromHDS(String
-                            .format("Not able to delete HostStorageDomains due to invalid response %1$s from server",
-                                    response.getStatus()));
-        }
     }
 
     /**
@@ -430,32 +426,53 @@ public class HDSBatchApiExportManager {
             List<Path> pathList, String model) throws Exception {
         InputStream responseStream = null;
         try {
-            String deleteLUNsQuery = constructRemoveLUNsQuery(systemId,
-                    pathList, model);
-            log.info("Batch query to deleteLUNs Query: {}", deleteLUNsQuery);
-            URI endpointURI = hdsApiClient.getBaseURI();
-            ClientResponse response = hdsApiClient.post(endpointURI,
-                    deleteLUNsQuery);
-            if (HttpStatus.SC_OK == response.getStatus()) {
-                responseStream = response.getEntityInputStream();
-                JavaResult javaResult = SmooksUtil.getParsedXMLJavaResult(
-                        responseStream, HDSConstants.SMOOKS_CONFIG_FILE);
-                try {
-                    verifyErrorPayload(javaResult);
-                } catch (HDSException hdsException) {
-                    log.info("invalid response from server, retrying operation");
-                    retryLunPathsDelete(systemId, pathList, model, javaResult, response);
+            boolean operationSucceeds = false;
+            int retryCount = 0;
+            while (!operationSucceeds && retryCount <= MAX_RETRIES) {
+                retryCount++;
+                String deleteLUNsQuery = constructRemoveLUNsQuery(systemId,
+                        pathList, model);
+                log.info("Batch query to deleteLUNs Query: {}", deleteLUNsQuery);
+                URI endpointURI = hdsApiClient.getBaseURI();
+                ClientResponse response = hdsApiClient.post(endpointURI,
+                        deleteLUNsQuery);
+                if (HttpStatus.SC_OK == response.getStatus()) {
+                    responseStream = response.getEntityInputStream();
+                    JavaResult javaResult = SmooksUtil.getParsedXMLJavaResult(
+                            responseStream, HDSConstants.SMOOKS_CONFIG_FILE);
+                    try {
+                        verifyErrorPayload(javaResult);
+                    } catch (HDSException hdsException) {
+                        Error error = javaResult.getBean(Error.class);
+                        if (error != null && (error.getDescription().contains("2010")
+                                || error.getDescription().contains("5132") || error.getDescription().contains("7473"))) {
+                            log.info("Exception from HICommand Manager recieved during delete operation, retrying operation {} time",
+                                    retryCount);
+                            Thread.sleep(60000); // Wait for a minute before retry
+                            continue; // Retry the operation again if retry count not exceeded
+                        } else {
+                            throw HDSException.exceptions
+                                    .invalidResponseFromHDS(String
+                                            .format("Not able to delete LunPaths due to invalid response %1$s from server",
+                                                    response.getStatus()));
+                        }
+                    }
+                    operationSucceeds = true;
+                    log.info("Deleted {} LUN paths from system:{}",
+                            pathList.size(), systemId);
+                } else {
+                    throw HDSException.exceptions
+                            .invalidResponseFromHDS(String
+                                    .format("Not able to delete Volume from HostGroups due to invalid response %1$s from server",
+                                            response.getStatus()));
                 }
-                log.info("Deleted {} LUN paths from system:{}",
-                        pathList.size(), systemId);
-            } else {
+            }
+            if(!operationSucceeds) {// Delete operation failed ever after repeated retries
                 throw HDSException.exceptions
-                        .invalidResponseFromHDS(String
-                                .format("Not able to delete Volume from HostGroups due to invalid response %1$s from server",
-                                        response.getStatus()));
+                .invalidResponseFromHDS(String
+                        .format("Not able to delete LunPaths due to repeated errors from HiCommand server"));
             }
         } finally {
-            batchLunPathDeleteRetries.remove();//Reinitializes the thread local variable to zero
             if (null != responseStream) {
                 try {
                     responseStream.close();
@@ -464,24 +481,6 @@ public class HDSBatchApiExportManager {
                 }
             }
         }
-    }
-    
-    private void retryLunPathsDelete(String systemId, List<Path> pathList, String model, JavaResult javaResult, ClientResponse response)
-            throws Exception {
-        Error error = javaResult.getBean(Error.class);
-        if (error != null && (error.getDescription().contains("2010")
-                || error.getDescription().contains("5132") || error.getDescription().contains("7473"))
-                && batchLunPathDeleteRetries.get() <= MAX_RETRIES) {
-            Thread.sleep(60000); // Wait for a minute before retry
-            batchLunPathDeleteRetries.set(new Integer(batchLunPathDeleteRetries.get() + 1));
-            deleteLUNPathsFromStorageSystem(systemId, pathList, model);
-        } else {
-            throw HDSException.exceptions
-                    .invalidResponseFromHDS(String
-                            .format("Not able to delete LunPaths due to invalid response %1$s from server",
-                                    response.getStatus()));
-        }
-
     }
 
     /**

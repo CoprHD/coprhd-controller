@@ -1875,7 +1875,6 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
             URI sourceVolumeUri = null;
             StorageSystem system = dbClient.queryObject(StorageSystem.class, systemUri);
             Volume volume = dbClient.queryObject(Volume.class, copy.getCopyID());
-            boolean isSwapped = (Volume.LinkStatus.SWAPPED.name().equals(volume.getLinkStatus()));
             List<String> targetVolumeUris = new ArrayList<String>();
             List<URI> combined = new ArrayList<URI>();
             if (PersonalityTypes.SOURCE.toString().equalsIgnoreCase(volume.getPersonality())) {
@@ -1895,7 +1894,7 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
              * SRDF operations will be happening for all volumes available on ra group.
              * Hence adding the missing source volume ids in the taskCompleter to change the accessState and linkStatus field.
              */
-            Volume targetVol, sourceVol = null;
+            Volume targetVol = null, sourceVol = null;
             sourceVol = dbClient.queryObject(Volume.class, sourceVolumeUri);
             Iterator<String> taregtVolumeUrisIterator = targetVolumeUris.iterator();
             if (taregtVolumeUrisIterator.hasNext()) {
@@ -1933,7 +1932,17 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
                 completer = new SRDFLinkFailOverCancelCompleter(combined, task);
                 getRemoteMirrorDevice().doFailoverCancelLink(system, volume, completer);
             } else if (op.equalsIgnoreCase("swap")) {
-                completer = new SRDFSwapCompleter(combined, task, isSwapped);
+                Volume.LinkStatus successLinkStatus = Volume.LinkStatus.SWAPPED;
+                if ((Volume.LinkStatus.SWAPPED.name().equalsIgnoreCase(volume.getLinkStatus()))) {
+                    // Already swapped. Move back to CONSISTENT or IN_SYNC.
+                    if (targetVol != null 
+                            && Mode.ASYNCHRONOUS.name().equalsIgnoreCase(targetVol.getSrdfCopyMode())) {
+                        successLinkStatus = Volume.LinkStatus.CONSISTENT;
+                    } else {
+                        successLinkStatus = Volume.LinkStatus.IN_SYNC;
+                    }
+                }
+                completer = new SRDFSwapCompleter(combined, task, successLinkStatus);
                 getRemoteMirrorDevice().doSwapVolumePair(system, volume, completer);
             } else if (op.equalsIgnoreCase("pause")) {
                 completer = new SRDFLinkPauseCompleter(combined, task);

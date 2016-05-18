@@ -702,10 +702,16 @@ public class RecoverPointClient {
             Map<Long, ConsistencyGroupCopyUID> productionCopiesUID = new HashMap<Long, ConsistencyGroupCopyUID>();
             Map<Long, ConsistencyGroupCopyUID> nonProductionCopiesUID = new HashMap<Long, ConsistencyGroupCopyUID>();
 
+            // get a list of CG production copies so we can determine which copies are production and which
+            // are not.
+            List<ConsistencyGroupCopyUID> productionCopiesUIDs = functionalAPI.getGroupSettings(cgUID)
+                    .getProductionCopiesUIDs();
+
             for (ConsistencyGroupCopySettings copySettings : groupCopySettings) {
                 GlobalCopyUID globalCopyUID = copySettings.getCopyUID().getGlobalCopyUID();
-                if (ConsistencyGroupCopyRole.ACTIVE.equals(copySettings.getRoleInfo().getRole()) ||
-                        ConsistencyGroupCopyRole.TEMPORARY_ACTIVE.equals(copySettings.getRoleInfo().getRole())) {
+                ConsistencyGroupCopyUID copyUID = copySettings.getCopyUID();
+
+                if (RecoverPointUtils.isProductionCopy(copyUID, productionCopiesUIDs)) {
                     productionCopiesUID.put(Long.valueOf(globalCopyUID.getClusterUID().getId()), copySettings.getCopyUID());
                     prodSites.add(globalCopyUID.getClusterUID());
                 } else {
@@ -737,7 +743,11 @@ public class RecoverPointClient {
             RecoverPointImageManagementUtils rpiMgmt = new RecoverPointImageManagementUtils();
             logger.info("Waiting for links to become active for CG " + request.getCgName());
 
-            rpiMgmt.waitForCGLinkState(functionalAPI, cgUID, RecoverPointImageManagementUtils.getPipeActiveState(functionalAPI, cgUID));
+            // Wait for the CG link state to be active or paused. We can add replication sets to a CG that has a target
+            // copy in DIRECT_ACCESS mode. In this image access mode, the link state is PAUSED and is therefore a valid
+            // link state.
+            rpiMgmt.waitForCGLinkState(functionalAPI, cgUID, RecoverPointImageManagementUtils.getPipeActiveState(functionalAPI, cgUID),
+                    PipeState.PAUSED);
             logger.info(String.format("Replication sets have been added to consistency group %s.", request.getCgName()));
 
             response.setReturnCode(RecoverPointReturnCode.SUCCESS);

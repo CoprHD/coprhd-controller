@@ -451,7 +451,7 @@ public class RecoverPointImageManagementUtils {
 
     /**
      * Enables CG direct access mode on the specified copy.
-     * 
+     *
      * @param impl the FAPI implementation
      * @param copyToEnableDirectAccess the copy to enable direct access on
      * @throws RecoverPointException
@@ -1122,7 +1122,7 @@ public class RecoverPointImageManagementUtils {
      * @throws RecoverPointException, FunctionalAPIActionFailedException_Exception, FunctionalAPIInternalError_Exception,
      *             InterruptedException
      **/
-    public void waitForCGLinkState(FunctionalAPIImpl impl, ConsistencyGroupUID cgUID, PipeState desiredPipeState)
+    public void waitForCGLinkState(FunctionalAPIImpl impl, ConsistencyGroupUID cgUID, PipeState... desiredPipeState)
             throws RecoverPointException {
 
         int numRetries = 0;
@@ -1143,15 +1143,24 @@ public class RecoverPointImageManagementUtils {
             try {
                 cgState = impl.getGroupState(cgUID);
 
+                List<String> desiredPipeStates = new ArrayList<String>();
+
+                if (desiredPipeState != null) {
+                    // build the list of desired pipe states
+                    for (PipeState pipeState : desiredPipeState) {
+                        desiredPipeStates.add(pipeState.name());
+                    }
+                }
+
                 // Lets assume all links are in desired state and use boolean AND operation to concatenate the results
                 // to get a cumulative status on all the links.
                 // allLinksInDesiredState = true;
                 for (ConsistencyGroupLinkState linkstate : cgState.getLinksStates()) {
                     PipeState pipeState = linkstate.getPipeState();
-                    logger.info("CG link state is " + pipeState.toString() + "; desired state is: " + desiredPipeState.toString());
+                    logger.info("CG link state is " + pipeState.toString() + "; desired states are: " + desiredPipeStates.toString());
 
                     // Special consideration if we want the link to be in the active state.
-                    if (PipeState.ACTIVE.equals(desiredPipeState)) {
+                    if (desiredPipeStates.contains(PipeState.ACTIVE.name())) {
                         if (PipeState.ACTIVE.equals(pipeState)) {
                             allLinksInDesiredState = true;
                         } else if (PipeState.STAND_BY.equals(pipeState)) {
@@ -1159,10 +1168,21 @@ public class RecoverPointImageManagementUtils {
                             // an ACTIVE link state as well.
                             logger.info("CG link state is STAND_BY, valid state for MetroPoint.");
                         } else if (PipeState.PAUSED.equals(pipeState)) {
-                            logger.info("CG link state is PAUSED.  Resume link.");
-                            impl.startGroupTransfer(cgUID);
-                            allLinksInDesiredState = false;
-                            break;
+                            if (desiredPipeStates.contains(PipeState.PAUSED.name())) {
+                                // When DIRECT_ACCESS mode is set on a target copy, the link will be paused. If one of
+                                // the desired states is PAUSED, we must respect that and not attempt to start group
+                                // transfer.
+                                logger.info("CG link state is PAUSED.");
+                                allLinksInDesiredState = true;
+                            } else {
+                                // We only want to start group transfer if the only desired state is the active state. When
+                                // target copies are in DIRECT_ACCESS mode, the link will be paused and we do not want
+                                // to resume group transfer.
+                                logger.info("CG link state is PAUSED.  Resume link.");
+                                impl.startGroupTransfer(cgUID);
+                                allLinksInDesiredState = false;
+                                break;
+                            }
                         } else if (PipeState.INITIALIZING.equals(pipeState)) {
                             logger.info("CG link state is INITIALIZING.");
                             isInitializing = true;
@@ -1173,14 +1193,14 @@ public class RecoverPointImageManagementUtils {
                             allLinksInDesiredState = false;
                             break;
                         }
-                    } else if (PipeState.SNAP_IDLE.equals(desiredPipeState)) {
+                    } else if (desiredPipeStates.contains(PipeState.SNAP_IDLE.name())) {
                         if (PipeState.SNAP_IDLE.equals(pipeState) || PipeState.SNAP_SHIPPING.equals(pipeState)) {
                             allLinksInDesiredState = true;
                             break;
                         }
                     } else {
                         // Other desired states (like UNKNOWN [inactive])
-                        if (pipeState.equals(desiredPipeState)) {
+                        if (desiredPipeStates.contains(pipeState.name())) {
                             logger.info("CG link state matches the desired state.");
                             allLinksInDesiredState = true;
                         } else {

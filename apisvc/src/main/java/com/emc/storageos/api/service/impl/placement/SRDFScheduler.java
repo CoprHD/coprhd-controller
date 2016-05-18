@@ -1318,7 +1318,7 @@ public class SRDFScheduler implements Scheduler {
      * @param dbClient -- database client
      * @param projectURI -- Project URI -- used to constrain volumes
      * @param rdfGroupURI -- RDF Group -- used to match for LinkStatus
-     * @return true IFF a volume matching the specified RDF group has a LinkStatus of SWAPPED
+     * @return true if a volume matching the specified RDF group has a LinkStatus of SWAPPED
      */
     public static boolean rdfGroupHasSwappedVolumes(DbClient dbClient, URI projectURI, URI rdfGroupURI) {
         if (rdfGroupURI == null) {

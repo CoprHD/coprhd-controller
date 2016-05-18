@@ -673,6 +673,7 @@ public class StorageOSLdapPersonAttributeDao implements StorageOSPersonAttribute
             final SearchControls searchControls, final AttributesMapper mapper,
             ValidationFailureReason[] failureReason) {
         try {
+            _log.debug("Ldap query to get user's attributes is {}", ldapQuery);
             return doLdapSearch(base, ldapQuery, searchControls, mapper);
         } catch (AuthenticationException e) {
             _log.error("Caught authentication exception connecting to ldap server", e);

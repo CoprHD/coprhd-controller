@@ -405,10 +405,10 @@ public class DefaultBlockServiceApiImpl extends AbstractBlockServiceApiImpl<Stor
 
         try {
             // Orchestrate the virtual array change.
-            MigrationOrchestrationController controller = getController(
-                    MigrationOrchestrationController.class,
-                    MigrationOrchestrationController.MIGRATION_ORCHESTRATION_DEVICE);
-            controller.changeVirtualArray(descriptors, taskId);
+            //MigrationOrchestrationController controller = getController(
+            //        MigrationOrchestrationController.class,
+            //        MigrationOrchestrationController.MIGRATION_ORCHESTRATION_DEVICE);
+            //controller.changeVirtualArray(descriptors, taskId);
             _log.info("Successfully invoked migration orchestrator.");
         } catch (InternalException e) {
             _log.error("Controller error", e);
@@ -435,7 +435,7 @@ public class DefaultBlockServiceApiImpl extends AbstractBlockServiceApiImpl<Stor
      * @throws InternalException
      */
     @Override
-    public void changeVolumeVirtualPool(URI systemURI, Volume volume, VirtualPool vpool,
+    public TaskList changeVolumeVirtualPool(URI systemURI, Volume volume, VirtualPool vpool,
             VirtualPoolChangeParam vpoolChangeParam, String taskId) throws InternalException {
         VirtualPool volumeVirtualPool = _dbClient.queryObject(VirtualPool.class, volume.getVirtualPool());
         _log.info("Volume {} VirtualPool change.", volume.getId());
@@ -445,7 +445,7 @@ public class DefaultBlockServiceApiImpl extends AbstractBlockServiceApiImpl<Stor
         volumes.add(volume);
 
         if (checkCommonVpoolUpdates(volumes, vpool, taskId)) {
-            return;
+            return null;
         }
 
         boolean isHostMigration = vpoolChangeParam.getIsHostMigration();
@@ -459,18 +459,20 @@ public class DefaultBlockServiceApiImpl extends AbstractBlockServiceApiImpl<Stor
 
         // Now we get the Orchestration controller and use it to change the virtual pool of the volumes.
         orchestrateVPoolChanges(Arrays.asList(volume), descriptors, taskId);
+
+        return null;
     }
 
     /**
      * {@inheritDoc}
      */
     @Override
-    public void changeVolumeVirtualPool(List<Volume> volumes, VirtualPool vpool,
+    public TaskList changeVolumeVirtualPool(List<Volume> volumes, VirtualPool vpool,
             VirtualPoolChangeParam vpoolChangeParam, String taskId) throws InternalException {
 
         // Check for common Vpool updates handled by generic code. It returns true if handled.
         if (checkCommonVpoolUpdates(volumes, vpool, taskId)) {
-            return;
+            return null;
         }
 
         boolean isHostMigration = vpoolChangeParam.getIsHostMigration();
@@ -567,6 +569,8 @@ public class DefaultBlockServiceApiImpl extends AbstractBlockServiceApiImpl<Stor
         for (Volume volume : volumes) {
             changeVolumeVirtualPool(volume.getStorageController(), volume, vpool, vpoolChangeParam, taskId);
         }
+
+        return null;
     }
     
     /**
@@ -593,10 +597,10 @@ public class DefaultBlockServiceApiImpl extends AbstractBlockServiceApiImpl<Stor
      */
     private void orchestrateVPoolChanges(List<Volume> volumes, List<VolumeDescriptor> descriptors, String taskId) {
         try {
-            MigrationOrchestrationController controller = getController(
-                    MigrationOrchestrationController.class,
-                    MigrationOrchestrationController.MIGRATION_ORCHESTRATION_DEVICE);
-            controller.changeVirtualPool(descriptors, taskId);
+            //MigrationOrchestrationController controller = getController(
+            //        MigrationOrchestrationController.class,
+            //        MigrationOrchestrationController.MIGRATION_ORCHESTRATION_DEVICE);
+            //controller.changeVirtualPool(descriptors, taskId);
         } catch (InternalException e) {
             if (_log.isErrorEnabled()) {
                 _log.error("Controller error", e);
@@ -704,7 +708,7 @@ public class DefaultBlockServiceApiImpl extends AbstractBlockServiceApiImpl<Stor
      */
     protected List<VolumeDescriptor> createChangeVirtualPoolDescriptors(StorageSystem storageSystem, Volume volume,
             VirtualPool newVpool, boolean isHostMigration, URI migrationHostURI, String taskId,
-            List<VolumeRecommendation> recommendations, VirtualPoolCapabilityValuesWrapper capabilities)
+            List<Recommendation> recommendations, VirtualPoolCapabilityValuesWrapper capabilities)
     throws InternalException {
         // Get the varray and current vpool for the virtual volume.
         URI volumeVarrayURI = volume.getVirtualArray();
@@ -783,7 +787,7 @@ public class DefaultBlockServiceApiImpl extends AbstractBlockServiceApiImpl<Stor
      */
     private List<VolumeDescriptor> createBackendVolumeMigrationDescriptors(StorageSystem storageSystem,
             Volume sourceVolume, VirtualArray varray, VirtualPool vpool, Long capacity, boolean isHostMigration,
-            URI migrationHostURI, String taskId, List<VolumeRecommendation> recommendations,
+            URI migrationHostURI, String taskId, List<Recommendation> recommendations,
             VirtualPoolCapabilityValuesWrapper capabilities) {
 
         URI sourceVolumeURI = null;

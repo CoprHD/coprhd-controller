@@ -7,8 +7,11 @@ package com.emc.storageos.api.service.impl.resource;
 import java.net.URI;
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 
+import com.emc.storageos.api.service.impl.placement.VpoolUse;
 import com.emc.storageos.api.service.impl.resource.fullcopy.BlockFullCopyManager;
+import com.emc.storageos.blockorchestrationcontroller.VolumeDescriptor;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.BlockMirror;
 import com.emc.storageos.db.client.model.BlockSnapshot;
@@ -55,7 +58,7 @@ public interface BlockServiceApi {
      * @param project project requested
      * @param varray source VirtualArray
      * @param vpool VirtualPool requested
-     * @param recommendations Placement recommendation object
+     * @param recommendationMap Placement recommendation object
      * @param taskList list of tasks for source volumes
      * @param task task ID
      * @param vpoolCapabilities wrapper for vpool params
@@ -64,9 +67,27 @@ public interface BlockServiceApi {
      * @throws InternalException
      */
     public TaskList createVolumes(VolumeCreate param, Project project,
-            VirtualArray varray, VirtualPool vpool, List<Recommendation> recommendations,
+            VirtualArray varray, VirtualPool vpool, Map<VpoolUse, List<Recommendation>> recommendationMap,
             TaskList taskList, String task, VirtualPoolCapabilityValuesWrapper vpoolCapabilities)
             throws InternalException;
+    
+    /**
+     * @param descriptors -- List of existing VolumeDescriptors
+     * @param name -- String prefix used for volume label
+     * @param size -- Size of the volume in bytes
+     * @param project -- Project object
+     * @param varray -- VirtualArray object
+     * @param vpool -- VirtualPool object
+     * @param recommendations -- List of Recommendations describing StoragePools to be used
+     * @param taskList -- A TaskList to which tasks can be added
+     * @param task-- The String task identifier for the overall operation
+     * @param vpoolCapabilities -- A virtualPoolCapabilityValuesWrapper containing volume creation parameters
+     * @return List of VolumeDescriptors including the Volumes that were generated 
+     */
+    public List<VolumeDescriptor> createVolumesAndDescriptors(List<VolumeDescriptor> descriptors,
+            String name, Long size, Project project,
+            VirtualArray varray, VirtualPool vpool, List<Recommendation> recommendations,
+            TaskList taskList, String task, VirtualPoolCapabilityValuesWrapper vpoolCapabilities);
 
     /**
      * Delete the passed volumes for the passed system.
@@ -220,10 +241,11 @@ public interface BlockServiceApi {
      * @param targetVpool A reference to the new vpool.
      * @param vpoolChangeParam vpool change request
      * @param taskId The task identifier.
+     * @return TaskList Optional list of additional generated tasks for UI (can be null if not used)
      * 
      * @throws InternalException
      */
-    public void changeVolumeVirtualPool(URI systemURI, Volume volume,
+    public TaskList changeVolumeVirtualPool(URI systemURI, Volume volume,
             VirtualPool targetVpool, VirtualPoolChangeParam vpoolChangeParam, String taskId)
             throws InternalException;
 
@@ -235,9 +257,10 @@ public interface BlockServiceApi {
      * @param targetVpool A reference to the new vpool.
      * @param vpoolChangeParam vpool change request
      * @param taskId The task identifier.
+     * @return TaskList Optional list of additional generated tasks for UI (can be null if not used)
      * @throws InternalException the internal exception
      */
-    public void changeVolumeVirtualPool(List<Volume> volumes,
+    public TaskList changeVolumeVirtualPool(List<Volume> volumes,
             VirtualPool targetVpool, VirtualPoolChangeParam vpoolChangeParam, String taskId)
             throws InternalException;
 
@@ -513,5 +536,15 @@ public interface BlockServiceApi {
      * @return
      */
     public Collection<? extends String> getReplicationGroupNames(VolumeGroup group);
-
+    
+    /**
+     * Returns the volume descriptors which need to be deleted.
+     * @param systemURI - Storage System URI
+     * @param volumeURIs - List of Volume URIs
+     * @param deletionType - Deletion type, VIPR_ONLY or FULL
+     * @return list of VolumeDescriptors to be deleted suitable for BlockOrchestrationDeviceController
+     */
+    public List<VolumeDescriptor> getDescriptorsForVolumesToBeDeleted(URI systemURI,
+            List<URI> volumeURIs, String deletionType);
+    
 }

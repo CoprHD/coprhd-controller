@@ -530,7 +530,7 @@ public class VirtualPoolChangeAnalyzer extends DataObjectChangeAnalyzer {
         String[] excluded = new String[] { ACLS, ASSIGNED_STORAGE_POOLS, DESCRIPTION,
                 HA_VARRAY_VPOOL_MAP, LABEL, MATCHED_POOLS, INVALID_MATCHED_POOLS, NUM_PATHS,
                 STATUS, TAGS, CREATION_TIME, THIN_VOLUME_PRE_ALLOCATION_PERCENTAGE,
-                NON_DISRUPTIVE_EXPANSION, AUTO_CROSS_CONNECT_EXPORT, MIRROR_VPOOL };
+                NON_DISRUPTIVE_EXPANSION, AUTO_CROSS_CONNECT_EXPORT, MIRROR_VPOOL, REMOTECOPY_VARRAY_SETTINGS };
         Map<String, Change> changes = analyzeChanges(vpool1, vpool2, null, excluded, null);
 
         // Note that we assume vpool1 is for a non-vplex volume and

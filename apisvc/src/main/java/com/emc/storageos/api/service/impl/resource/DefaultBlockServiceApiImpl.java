@@ -29,6 +29,7 @@ import com.emc.storageos.api.service.authorization.PermissionsHelper;
 import com.emc.storageos.api.service.impl.placement.StorageScheduler;
 import com.emc.storageos.api.service.impl.placement.VirtualPoolUtil;
 import com.emc.storageos.api.service.impl.placement.VolumeRecommendation;
+import com.emc.storageos.api.service.impl.placement.VpoolUse;
 import com.emc.storageos.api.service.impl.resource.fullcopy.BlockFullCopyManager;
 import com.emc.storageos.api.service.impl.resource.fullcopy.BlockFullCopyUtils;
 import com.emc.storageos.api.service.impl.resource.utils.VirtualPoolChangeAnalyzer;
@@ -59,6 +60,7 @@ import com.emc.storageos.db.client.model.VolumeGroup;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.client.util.StringSetUtil;
+import com.emc.storageos.db.client.util.SizeUtil;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.model.TaskList;
 import com.emc.storageos.model.TaskResourceRep;
@@ -124,29 +126,15 @@ public class DefaultBlockServiceApiImpl extends AbstractBlockServiceApiImpl<Stor
 
     @Override
     public TaskList createVolumes(VolumeCreate param, Project project, VirtualArray neighborhood,
-            VirtualPool cos, List<Recommendation> recommendations, TaskList taskList,
+            VirtualPool cos, Map<VpoolUse, List<Recommendation>> recommendationMap, TaskList taskList,
             String task, VirtualPoolCapabilityValuesWrapper cosCapabilities) throws InternalException {
-        // Prepare the Bourne Volumes to be created and associated
-        // with the actual storage system volumes created. Also create
-        // a BlockTaskList containing the list of task resources to be
-        // returned for the purpose of monitoring the volume creation
-        // operation for each volume to be created.
-        int volumeCounter = 0;
-        String volumeLabel = param.getName();
-        List<Volume> preparedVolumes = new ArrayList<Volume>();
-        final BlockConsistencyGroup consistencyGroup = cosCapabilities.getBlockConsistencyGroup() == null ? null : _dbClient
-                .queryObject(BlockConsistencyGroup.class, cosCapabilities.getBlockConsistencyGroup());
-
-        // Prepare the volumes
-        _scheduler.prepareRecommendedVolumes(param, task, taskList, project,
-                neighborhood, cos, cosCapabilities.getResourceCount(), recommendations,
-                consistencyGroup, volumeCounter, volumeLabel, preparedVolumes, cosCapabilities, false);
-
-        // Prepare the volume descriptors based on the recommendations
-        final List<VolumeDescriptor> volumeDescriptors = prepareVolumeDescriptors(preparedVolumes, cosCapabilities);
-
-        // Log volume descriptor information
-        logVolumeDescriptorPrecreateInfo(volumeDescriptors, task);
+        
+        Long size = SizeUtil.translateSize(param.getSize());
+        List<VolumeDescriptor> existingDescriptors = new ArrayList<VolumeDescriptor>();
+        List<VolumeDescriptor> volumeDescriptors = createVolumesAndDescriptors(
+                existingDescriptors, param.getName(), size, 
+                project, neighborhood, cos, recommendationMap.get(VpoolUse.ROOT), taskList, task, cosCapabilities);
+        List<Volume> preparedVolumes = getPreparedVolumes(volumeDescriptors);
 
         final BlockOrchestrationController controller = getController(BlockOrchestrationController.class,
                 BlockOrchestrationController.BLOCK_ORCHESTRATION_DEVICE);
@@ -165,6 +153,46 @@ public class DefaultBlockServiceApiImpl extends AbstractBlockServiceApiImpl<Stor
         }
 
         return taskList;
+    }
+
+    @Override
+    public List<VolumeDescriptor> createVolumesAndDescriptors(List<VolumeDescriptor> descriptors, String volumeLabel, Long size, Project project,
+            VirtualArray varray, VirtualPool vpool, List<Recommendation> recommendations, TaskList taskList, String task,
+            VirtualPoolCapabilityValuesWrapper vpoolCapabilities) {
+        // Prepare the Bourne Volumes to be created and associated
+        // with the actual storage system volumes created. Also create
+        // a BlockTaskList containing the list of task resources to be
+        // returned for the purpose of monitoring the volume creation
+        // operation for each volume to be created.
+        int volumeCounter = 0;
+        List<Volume> preparedVolumes = new ArrayList<Volume>();
+        final BlockConsistencyGroup consistencyGroup = vpoolCapabilities.getBlockConsistencyGroup() == null ? null : _dbClient
+                .queryObject(BlockConsistencyGroup.class, vpoolCapabilities.getBlockConsistencyGroup());
+
+        // Prepare the volumes
+        _scheduler.prepareRecommendedVolumes(size, task, taskList, project,
+                varray, vpool, vpoolCapabilities.getResourceCount(), recommendations,
+                consistencyGroup, volumeCounter, volumeLabel, preparedVolumes, vpoolCapabilities, false);
+
+        // Prepare the volume descriptors based on the recommendations
+        final List<VolumeDescriptor> volumeDescriptors = prepareVolumeDescriptors(preparedVolumes, vpoolCapabilities);
+
+        // Log volume descriptor information
+        logVolumeDescriptorPrecreateInfo(volumeDescriptors, task);
+        
+        return volumeDescriptors;
+    }
+    
+    /**
+     * Retrieves the preparedVolumes from the volume descriptors.
+     * @param descriptors
+     * @return List<Volume>
+     */
+    private List<Volume> getPreparedVolumes(List<VolumeDescriptor> descriptors) {
+        List<URI> volumeURIs = VolumeDescriptor.getVolumeURIs(descriptors);
+        @SuppressWarnings("deprecation")
+        List<Volume> volumes = _dbClient.queryObject(Volume.class, volumeURIs);
+        return volumes;
     }
 
     private void failVolumeCreateRequest(String task, TaskList taskList, List<Volume> preparedVolumes, String errorMsg) {
@@ -1082,7 +1110,7 @@ public class DefaultBlockServiceApiImpl extends AbstractBlockServiceApiImpl<Stor
      * {@inheritDoc}
      */
     @Override
-    protected List<VolumeDescriptor> getDescriptorsForVolumesToBeDeleted(URI systemURI,
+    public List<VolumeDescriptor> getDescriptorsForVolumesToBeDeleted(URI systemURI,
             List<URI> volumeURIs, String deletionType) {
         List<VolumeDescriptor> volumeDescriptors = new ArrayList<VolumeDescriptor>();
         for (URI volumeURI : volumeURIs) {

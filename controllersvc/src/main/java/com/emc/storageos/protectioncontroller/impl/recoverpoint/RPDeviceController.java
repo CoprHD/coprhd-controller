@@ -23,6 +23,7 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.UUID;
 
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -4515,9 +4516,10 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
      */
     @Override
     public String addStepsForCreateFullCopy(Workflow workflow, String waitFor, List<VolumeDescriptor> volumeDescriptors, String taskId) throws InternalException {
-                
+              
+        _log.info("Adding steps for create full copy");
         List<VolumeDescriptor> blockVolmeDescriptors = VolumeDescriptor.filterByType(volumeDescriptors,
-                new VolumeDescriptor.Type[] { VolumeDescriptor.Type.BLOCK_DATA },
+                new VolumeDescriptor.Type[] { VolumeDescriptor.Type.BLOCK_DATA, VolumeDescriptor.Type.VPLEX_IMPORT_VOLUME },
                 new VolumeDescriptor.Type[] {});
         
         // If no volumes to create, just return
@@ -4539,13 +4541,19 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                 if (!NullColumnValueGetter.isNullURI(parentId)) {
                     Volume parentVolume = _dbClient.queryObject(Volume.class, parentId);
                     if (parentVolume != null && !parentVolume.getInactive()) {
-                        //                     && RPHelper.isProtectionBasedSnapshot(parentVolume, BlockSnapshot.TechnologyType.RP.name(), _dbClient)) {
-
-                        if (!NullColumnValueGetter.isNullURI(parentVolume.getProtectionController())) {
-                            protectionSystem = _dbClient.queryObject(ProtectionSystem.class, parentVolume.getProtectionController());
-                            volumeWWNs.add(RPHelper.getRPWWn(parentId, _dbClient));
+                        if (Volume.checkForVplexBackEndVolume(_dbClient, parentVolume)) {
+                            parentVolume = Volume.fetchVplexVolume(_dbClient, parentVolume);
+                        }
+                        if (StringUtils.equals(parentVolume.getPersonality(), Volume.PersonalityTypes.TARGET.toString())) {
+                            volumeWWNs.add(RPHelper.getRPWWn(parentVolume.getId(), _dbClient));
                             fullCopyList.add(volume.getId());
                             descriptor.getCapabilitiesValues().put(VirtualPoolCapabilityValuesWrapper.RP_TEMPORARY_BOOKMARK_NAME, bookmarkName);
+                            if (protectionSystem == null) {
+                                if (!NullColumnValueGetter.isNullURI(parentVolume.getProtectionController())) {
+                                    Volume srcVolume = RPHelper.getRPSourceVolumeFromTarget(_dbClient, parentVolume);
+                                    protectionSystem = _dbClient.queryObject(ProtectionSystem.class, srcVolume.getProtectionController());
+                                }
+                            }
                         }
                     }
                 }
@@ -4571,7 +4579,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
             List<VolumeDescriptor> volumeDescriptors, String taskId) throws InternalException {
         
         List<VolumeDescriptor> blockVolmeDescriptors = VolumeDescriptor.filterByType(volumeDescriptors,
-                new VolumeDescriptor.Type[] { VolumeDescriptor.Type.BLOCK_DATA },
+                new VolumeDescriptor.Type[] { VolumeDescriptor.Type.BLOCK_DATA, VolumeDescriptor.Type.VPLEX_IMPORT_VOLUME },
                 new VolumeDescriptor.Type[] {});
         
         // If no volumes to create, just return
@@ -4590,10 +4598,18 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                 if (!NullColumnValueGetter.isNullURI(parentId)) {
                     Volume parentVolume = _dbClient.queryObject(Volume.class, parentId);
                     if (parentVolume != null && !parentVolume.getInactive()) {
-                        if (!NullColumnValueGetter.isNullURI(parentVolume.getProtectionController())) {
-                            protectionSystem = _dbClient.queryObject(ProtectionSystem.class, parentVolume.getProtectionController());
-                            volumeWWNs.add(RPHelper.getRPWWn(parentId, _dbClient));
+                        if (Volume.checkForVplexBackEndVolume(_dbClient, parentVolume)) {
+                            parentVolume = Volume.fetchVplexVolume(_dbClient, parentVolume);
+                        }
+                        if (StringUtils.equals(parentVolume.getPersonality(), Volume.PersonalityTypes.TARGET.toString())) {
+                            volumeWWNs.add(RPHelper.getRPWWn(parentVolume.getId(), _dbClient));
                             fullCopyList.add(volume.getId());
+                            if (protectionSystem == null) {
+                                if (!NullColumnValueGetter.isNullURI(parentVolume.getProtectionController())) {
+                                    Volume srcVolume = RPHelper.getRPSourceVolumeFromTarget(_dbClient, parentVolume);
+                                    protectionSystem = _dbClient.queryObject(ProtectionSystem.class, srcVolume.getProtectionController());
+                                }
+                            }
                         }
                     }
                 }
@@ -5488,9 +5504,10 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
         Workflow.Method enableImageAccessExecuteMethod = new Workflow.Method(METHOD_ENABLE_IMAGE_ACCESS_FULL_COPY_STEP, rpSystem.getId(),
                 fullCopyIds, bookmarkName, volumeWWNs);
         Workflow.Method enableImageAccessExecutionRollbackMethod = new Workflow.Method(METHOD_DISABLE_IMAGE_ACCESS_FULL_COPY_STEP,
-                rpSystem.getId(), fullCopyIds, bookmarkName, volumeWWNs);
+                rpSystem.getId(), fullCopyIds, volumeWWNs);
 
-        workflow.createStep(STEP_ENABLE_IMAGE_ACCESS, String.format("Enable image access for bookmark %s", bookmarkName), waitFor, rpSystem.getId(), rpSystem.getSystemType(),
+        workflow.createStep(STEP_ENABLE_IMAGE_ACCESS, String.format("Enable image access for bookmark %s", bookmarkName), waitFor, 
+                rpSystem.getId(), rpSystem.getSystemType(),
                 this.getClass(), enableImageAccessExecuteMethod, enableImageAccessExecutionRollbackMethod, stepId);
 
         _log.info(String.format("Added enable image access for bookmark %s step [%s] in workflow", bookmarkName, stepId));

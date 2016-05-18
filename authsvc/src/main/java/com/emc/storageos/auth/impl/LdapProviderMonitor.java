@@ -12,6 +12,7 @@ import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.AuthnProvider;
 import com.emc.storageos.db.exceptions.DatabaseException;
+import com.emc.storageos.services.util.NamedScheduledThreadPoolExecutor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.ldap.core.DistinguishedName;
@@ -31,10 +32,12 @@ public class LdapProviderMonitor {
 
     private static final Logger log = LoggerFactory.getLogger(LdapProviderMonitor.class);
     private static final long MONITOR_INTERVAL_MIN = 10;
+    private static final String LDAP_MONITOR_NAME = "LdapProviderMonitor";
 
     private ImmutableAuthenticationProviders providerList;
     private DbClient dbClient;
     private CoordinatorClient coordinator;
+    private NamedScheduledThreadPoolExecutor threadPoolExecutor = null;
 
     public LdapProviderMonitor(CoordinatorClient coordinator, DbClient dbClient, ImmutableAuthenticationProviders providerList) {
         this.coordinator = coordinator;
@@ -43,9 +46,15 @@ public class LdapProviderMonitor {
     }
 
     public void start() {
-        ScheduledExecutorService scheduleService = Executors.newScheduledThreadPool(1);
-        scheduleService.scheduleAtFixedRate(new LdapMonitorWorker(), 0, MONITOR_INTERVAL_MIN, TimeUnit.MINUTES);
+        NamedScheduledThreadPoolExecutor threadService = new NamedScheduledThreadPoolExecutor(LDAP_MONITOR_NAME, 1);
+        threadPoolExecutor.scheduleAtFixedRate(new LdapMonitorWorker(), 0, MONITOR_INTERVAL_MIN, TimeUnit.MINUTES);
         log.info("LdapProvider Monitor started.");
+    }
+
+    public void stop() {
+        if (threadPoolExecutor != null) {
+            threadPoolExecutor.shutdown();
+        }
     }
 
     public void setAuthnProviders(ImmutableAuthenticationProviders authnProviders) {

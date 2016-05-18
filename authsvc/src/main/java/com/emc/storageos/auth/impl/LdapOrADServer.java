@@ -10,7 +10,6 @@ import java.util.Arrays;
 
 /**
  * Represent a ldap or AD server used by StorageOSAuthenticationHandler and StorageOSPersonAttributeDao.
- * Besides the instance of ContextSource, containing more information about the connection status and how long it's in bad state.
  */
 public class LdapOrADServer {
 

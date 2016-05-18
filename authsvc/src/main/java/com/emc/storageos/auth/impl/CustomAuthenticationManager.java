@@ -321,6 +321,7 @@ public class CustomAuthenticationManager implements AuthenticationManager {
     public void shutdown() {
         _updaterRunnable.shutdown();
         _updaterRunnable.wakeup();
+        _ldapProviderMonitor.stop();
     }
 
     @Override

@@ -1127,6 +1127,7 @@ public class HDSExportOperations implements ExportMaskOperations {
                 // Case 2 is handled here i.e. adding the new initiator to the
                 // existing HSD to access the volumes already exported in the exportmask.
                 if (!existingTargetPortsInMask.isEmpty()) {
+                    // Step 1: Collect all HSDs from export mask
                     StringSetMap deviceDataMap = exportMask.getDeviceDataMap();
                     if (null != deviceDataMap && !deviceDataMap.isEmpty()) {
                         List<HostStorageDomain> hsdResponseList = new ArrayList<>();

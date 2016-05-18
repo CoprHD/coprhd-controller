@@ -4,8 +4,6 @@
  */
 package com.emc.storageos.api.mapper;
 
-import java.util.Date;
-
 import com.emc.storageos.coordinator.client.model.Site;
 import com.emc.storageos.coordinator.client.model.SiteMonitorResult;
 import com.emc.storageos.coordinator.client.model.SiteNetworkState.NetworkHealth;
@@ -48,12 +46,6 @@ public class SiteMapper {
             }
         }
         to.setRunningState(runningState);
-
-        Date lastSyncTime = drUtil.getLastSyncTime(from);
-        if (lastSyncTime != null) {
-            to.setLastSyncTime(lastSyncTime.getTime());
-        }
-
         return to;
     }
     

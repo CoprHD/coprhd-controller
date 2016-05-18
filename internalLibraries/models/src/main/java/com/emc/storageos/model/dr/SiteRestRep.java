@@ -23,16 +23,6 @@ public class SiteRestRep extends DataObjectRestRep {
     private String networkHealth;
     private long createTime;
     private Boolean runningState;
-    private long lastSyncTime;
-
-    @XmlElement(name = "last_sync_time")
-    public long getLastSyncTime() {
-        return lastSyncTime;
-    }
-
-    public void setLastSyncTime(long lastSyncTime) {
-        this.lastSyncTime = lastSyncTime;
-    }
 
     @XmlElement(name = "create_time")
     public long getCreateTime() {

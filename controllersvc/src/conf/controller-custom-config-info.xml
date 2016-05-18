@@ -58,8 +58,6 @@
                 <ref bean="nasDynamicPerformancePlacementEnabled"/>
                 <ref bean="nasUsePhysicalNASForProvisioning"/>
                 <ref bean="nasShareVNASWithMultipleProjects"/>
-                <ref bean="hostResourceSpanMultiplePools"/>
-                <ref bean="hostResourcePoolUtilizationCeiling"/>
             </list>
         </property>
     </bean>
@@ -1054,44 +1052,6 @@
             <map>
                 <entry key="default" value="false"/>
             </map>
-        </property>
-    </bean>
-
-    <bean id="hostResourceSpanMultiplePools" class="com.emc.storageos.customconfigcontroller.CustomConfigType">
-        <property name="name" value="HostResourceSpanMultiplePools"/>
-        <property name="configType" value="SimpleValue"/>
-        <property name="type" value="Boolean"/>
-        <property name="scope">
-            <map>
-                <entry key="global" value="default"/>
-            </map>
-        </property>
-        <property name="defaultValues">
-            <map>
-                <entry key="default" value="true"/>
-            </map>
-        </property>
-    </bean>
-
-    <bean id="hostResourcePoolUtilizationCeiling" class="com.emc.storageos.customconfigcontroller.CustomConfigType">
-        <property name="name" value="HostResourcePoolUtilizationCeiling"/>
-        <property name="configType" value="SimpleValue"/>
-        <property name="type" value="Integer"/>
-        <property name="scope">
-            <map>
-                <entry key="global" value="default"/>
-            </map>
-        </property>
-        <property name="defaultValues">
-            <map>
-                <entry key="default" value="100"/>
-            </map>
-        </property>
-        <property name="constraints">
-            <list>
-                <ref bean="maxConstraint"/>
-                <ref bean="minConstraintZero"/>
-            </list>
         </property>
     </bean>
 

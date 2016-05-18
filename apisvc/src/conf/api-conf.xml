@@ -72,7 +72,6 @@
         <property name="coordinator" ref="coordinator"/>
         <property name="matcherFramework" ref="matcherFramework"/>
         <property name="portMetricsProcessor" ref="portMetricsProcessor"/>
-        <property name="customConfigHandler" ref="customConfigHandler"/>
     </bean>
 
     <bean id="vplexscheduler" class="com.emc.storageos.api.service.impl.placement.VPlexScheduler">

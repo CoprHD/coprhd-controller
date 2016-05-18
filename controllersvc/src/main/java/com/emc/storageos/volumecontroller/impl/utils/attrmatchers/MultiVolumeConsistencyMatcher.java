@@ -61,8 +61,12 @@ public class MultiVolumeConsistencyMatcher extends AttributeMatcher {
 
     @Override
     protected boolean isAttributeOn(Map<String, Object> attributeMap) {
+        if (attributeMap == null || attributeMap.get(Attributes.multi_volume_consistency.name()) == null) {
+            return false;
+        }
+
         final Boolean multiVolumeConsistency = (Boolean) attributeMap.get(Attributes.multi_volume_consistency.name());
-        return (null != attributeMap && multiVolumeConsistency != null && multiVolumeConsistency);
+        return (multiVolumeConsistency != null && multiVolumeConsistency);
     }
 
     private Map<URI, StorageSystem> getStorageSystems(List<StoragePool> pools) {

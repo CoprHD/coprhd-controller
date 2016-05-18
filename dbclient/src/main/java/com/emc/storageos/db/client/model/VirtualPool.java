@@ -50,6 +50,10 @@ public class VirtualPool extends DataObjectWithACLs implements GeoVisibleResourc
     private String _autoTierPolicyName;
     // Indicates the high availability type for the VirtualPool.
     private String _highAvailability;
+    // Indicates policy will be used for resource placement of the VirtualPool.
+    private String _placementPolicy;
+    // Indicates maximum percentage of utilization of pool prior to a placement
+    private int _poolUtilizationCeiling;
     // Thin or Thick or ThinandThick
     // combination of provisioningType & fast indicates FAST_VP or FAST_DP
     // Thin & Fast_ON --> FAST_VP
@@ -428,6 +432,11 @@ public class VirtualPool extends DataObjectWithACLs implements GeoVisibleResourc
         rp, local
     }
 
+    // Supported policies for resource placement
+    public static enum ResourcePlacementPolicyType {
+        metric_and_capacity, array_affinity, pool_affinity
+    };
+
     @AlternateId("AltIdIndex")
     @Name("type")
     public String getType() {
@@ -596,6 +605,26 @@ public class VirtualPool extends DataObjectWithACLs implements GeoVisibleResourc
     public void setHighAvailability(final String highAvailability) {
         _highAvailability = highAvailability;
         setChanged("highAvailability");
+    }
+
+    @Name("poolUtilizationCeiling")
+    public int getPoolUtilizationCeiling() {
+        return _poolUtilizationCeiling;
+    }
+
+    public void setPlacementPolicy(final int poolUtilizationCeiling) {
+        _poolUtilizationCeiling = poolUtilizationCeiling;
+        setChanged("poolUtilizationCeiling");
+    }
+
+    @Name("placementPolicy")
+    public String getPlacementPolicy() {
+        return _placementPolicy;
+    }
+
+    public void setPlacementPolicy(final String placementPolicy) {
+        _placementPolicy = placementPolicy;
+        setChanged("placementPolicy");
     }
 
     public void setSupportedProvisioningType(final String provisioningType) {

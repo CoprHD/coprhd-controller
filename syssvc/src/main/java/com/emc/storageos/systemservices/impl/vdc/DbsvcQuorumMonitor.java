@@ -58,10 +58,7 @@ public class DbsvcQuorumMonitor implements Runnable {
             return;
         }
 
-        Site localSite = drUtil.getLocalSite();
-        if (localSite.getState() == SiteState.ACTIVE) {
-            updateSiteMonitorResult(localSite);
-        }
+        boolean hasConnectedStandbySite = false;
 
         List<Site> standbySites = drUtil.listStandbySites();
         List<Site> sitesToDegrade = new ArrayList<>();
@@ -77,8 +74,18 @@ public class DbsvcQuorumMonitor implements Runnable {
             
             if (siteState.equals(SiteState.STANDBY_SYNCED)) {
                 SiteMonitorResult monitorResult = updateSiteMonitorResult(standbySite);
+                if (monitorResult.getDbQuorumLostSince() != 0) {
+                    hasConnectedStandbySite = true;
+                }
                 checkEligibleForDegrade(monitorResult, standbySite, sitesToDegrade);
             }
+        }
+
+        // update local site's monitor result
+        // if local site is active and there's connected standby site
+        Site localSite = drUtil.getLocalSite();
+        if (localSite.getState() == SiteState.ACTIVE && hasConnectedStandbySite) {
+            updateSiteMonitorResult(localSite);
         }
 
         // degrade all standby sites in a single batch

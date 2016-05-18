@@ -213,6 +213,13 @@ public class BlockVirtualPools extends AbstractCoreBulkResources<BlockVirtualPoo
         return defaultList(response.getVirtualPool());
     }
 
+    public List<NamedRelatedVirtualPoolRep> listByVirtualArrayAndTenant(URI varrayId, URI tenantId) {
+        UriBuilder builder = client.uriBuilder(String.format(ID_URL_FORMAT, VARRAY_URL) + "/vpools");
+        builder.queryParam(SearchConstants.TENANT_ID_PARAM, tenantId);
+        VirtualPoolList response = client.getURI(VirtualPoolList.class, builder.build(varrayId));
+        return defaultList(response.getVirtualPool());
+    }
+
     /**
      * Gets the storage pools that are associated with the given block virtual pool.
      * Convenience method for calling getByRefs(listByVirtualArray(varrayId)).
@@ -226,6 +233,22 @@ public class BlockVirtualPools extends AbstractCoreBulkResources<BlockVirtualPoo
      */
     public List<BlockVirtualPoolRestRep> getByVirtualArray(URI varrayId) {
         return getByVirtualArray(varrayId, null);
+    }
+
+    /**
+     * Gets the storage pools that are associated with the given block virtual pool and tenant.
+     *
+     * @param varrayId
+     *            the ID of the virtual array.
+     * @param tenantId
+     *            the ID of tenant
+     * @return the list of virtual pools.
+     *
+     * @see #listByVirtualArray(URI)
+     * @see #getByRefs(java.util.Collection)
+     */
+    public List<BlockVirtualPoolRestRep> getByVirtualArrayAndTenant(URI varrayId, URI tenantId) {
+        return getByVirtualArray(varrayId, tenantId, null);
     }
 
     /**
@@ -244,6 +267,12 @@ public class BlockVirtualPools extends AbstractCoreBulkResources<BlockVirtualPoo
      */
     public List<BlockVirtualPoolRestRep> getByVirtualArray(URI varrayId, ResourceFilter<BlockVirtualPoolRestRep> filter) {
         List<NamedRelatedVirtualPoolRep> refs = listByVirtualArray(varrayId);
+        return getByRefs(blockVpools(refs), filter);
+    }
+
+
+    public List<BlockVirtualPoolRestRep> getByVirtualArray(URI varrayId, URI tenantId, ResourceFilter<BlockVirtualPoolRestRep> filter) {
+        List<NamedRelatedVirtualPoolRep> refs = listByVirtualArrayAndTenant(varrayId, tenantId);
         return getByRefs(blockVpools(refs), filter);
     }
 

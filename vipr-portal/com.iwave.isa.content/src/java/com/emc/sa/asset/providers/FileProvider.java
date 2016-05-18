@@ -97,7 +97,7 @@ public class FileProvider extends BaseAssetOptionsProvider {
             virtualPools = api(ctx).fileVpools().getByTenant(ctx.getTenant());
         }
         else {
-            virtualPools = api(ctx).fileVpools().getByVirtualArray(virtualArray,
+            virtualPools = api(ctx).fileVpools().getByVirtualArrayAndTenant(virtualArray, ctx.getTenant(),
                     new VirtualPoolProtocolFilter<FileVirtualPoolRestRep>(protocols));
         }
         List<AssetOption> options = createBaseResourceOptions(virtualPools);

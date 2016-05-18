@@ -212,6 +212,13 @@ public class FileVirtualPools extends AbstractCoreBulkResources<FileVirtualPoolR
         return defaultList(response.getVirtualPool());
     }
 
+    public List<NamedRelatedVirtualPoolRep> listByVirtualArrayAndTenant(URI varrayId, URI tenantId) {
+        UriBuilder builder = client.uriBuilder(String.format(ID_URL_FORMAT, VARRAY_URL) + "/vpools");
+        builder.queryParam(SearchConstants.TENANT_ID_PARAM, tenantId);
+        VirtualPoolList response = client.getURI(VirtualPoolList.class, builder.build(varrayId));
+        return defaultList(response.getVirtualPool());
+    }
+
     /**
      * Gets the storage pools that are associated with the given block virtual pool.
      * Convenience method for calling getByRefs(listByVirtualArray(varrayId)).
@@ -243,6 +250,11 @@ public class FileVirtualPools extends AbstractCoreBulkResources<FileVirtualPoolR
      */
     public List<FileVirtualPoolRestRep> getByVirtualArray(URI varrayId, ResourceFilter<FileVirtualPoolRestRep> filter) {
         List<NamedRelatedVirtualPoolRep> refs = listByVirtualArray(varrayId);
+        return getByRefs(fileVpools(refs), filter);
+    }
+
+    public List<FileVirtualPoolRestRep> getByVirtualArrayAndTenant(URI varrayId, URI tenantId, ResourceFilter<FileVirtualPoolRestRep> filter) {
+        List<NamedRelatedVirtualPoolRep> refs = listByVirtualArrayAndTenant(varrayId, tenantId);
         return getByRefs(fileVpools(refs), filter);
     }
 

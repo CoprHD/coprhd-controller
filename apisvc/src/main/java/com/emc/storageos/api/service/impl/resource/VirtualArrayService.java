@@ -702,7 +702,11 @@ public class VirtualArrayService extends TaggedResource {
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}/vpools")
     @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR }, acls = { ACL.USE })
-    public VirtualPoolList getVirtualArrayVirtualPool(@PathParam("id") URI id) {
+    public VirtualPoolList getVirtualArrayVirtualPool(
+            @PathParam("id") URI id,
+            @DefaultValue("") @QueryParam(TENANT_ID_QUERY_PARAM) String tenantId) {
+        TenantOrg tenant_input = getTenantById(tenantId);
+
         VirtualPoolList cosList = new VirtualPoolList();
         URIQueryResultList resultList = new URIQueryResultList();
         _dbClient.queryByConstraint(
@@ -720,17 +724,22 @@ public class VirtualArrayService extends TaggedResource {
             }
 
             /*
-             * An user can see the vpool if:
+             * when input tenant parameter is null, An user can see the vpool if:
              * 1. be sysadmin or sysmonitor or restricted sysadmin
              * 2. mapped to that tenant.
              * 3. tenant admin but not mapping to the tenant cannot see it
+             *
+             * when input tenant parameter is not null, in addition to above conditions need be met,
+             * the specified tenant also need have access to the vpool.
              */
             StorageOSUser user = getUserFromContext();
             if (_permissionsHelper.userHasGivenRole(user, null,
                     Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR, Role.RESTRICTED_SYSTEM_ADMIN) ||
                     userTenantHasPermissionForVirtualPool(cosId.toString())) {
-                _log.debug("Adding VirtualPool");
-                cosList.getVirtualPool().add(toVirtualPoolResource(cos));
+                if (tenant_input == null || _permissionsHelper.tenantHasUsageACL(tenant_input.getId(), cos)) {
+                    _log.debug("Adding VirtualPool");
+                    cosList.getVirtualPool().add(toVirtualPoolResource(cos));
+                }
             }
         }
         return cosList;

@@ -1788,7 +1788,8 @@ public class DisasterRecoveryService {
         if (standby.getState() == SiteState.ACTIVE_DEGRADED) {
             for (Site site : drUtil.listSites()) {
                 if (!site.getUuid().equals(drUtil.getLocalSite().getUuid()) && isSiteAvailable(site)) {
-                    throw APIException.internalServerErrors.failoverPrecheckFailed(standby.getName(), "Active site is still available");
+                    throw APIException.internalServerErrors.failoverPrecheckFailed(standby.getName(),
+                            String.format("Site % is available, so it's not allowed to failover to an ACTIVE_DEGRADED site", site.getName()));
                 }
             }
         }

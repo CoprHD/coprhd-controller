@@ -14,8 +14,8 @@ public class MigrationOrchestrationControllerImpl implements MigrationOrchestrat
     private DbClient _dbClient;
 
     @Override
-    public void changeVirtualPool(List<VolumeDescriptor> volumes, String taskId) throws ControllerException {
-       execOrchestration("changeVirtualPool", volumes, taskId);
+    public void changeVirtualPool(List<VolumeDescriptor> volumeDescriptors, String taskId) throws ControllerException {
+        execOrchestration("changeVirtualPool", volumeDescriptors, taskId);
     }
 
     @Override

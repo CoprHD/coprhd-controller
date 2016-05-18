@@ -142,8 +142,39 @@ public class MigrationOrchestrationDeviceController implements MigrationOrchestr
         }
     }
 
-    public static BlockDeviceController getBlockDeviceController() {
+    public WorkflowService getWorkflowService() {
+        return _workflowService;
+    }
+
+    public void setWorkflowService(WorkflowService workflowService) {
+        this._workflowService = workflowService;
+    }
+
+    public DbClient getDbClient() {
+        return s_dbClient;
+    }
+
+    public void setDbClient(DbClient dbClient) {
+        this.s_dbClient = dbClient;
+    }
+
+    public void setLocker(ControllerLockingService locker) {
+        this._locker = locker;
+    }
+
+    public BlockDeviceController getBlockDeviceController() {
         return _blockDeviceController;
     }
 
+    public void setBlockDeviceController(BlockDeviceController blockDeviceController) {
+        this._blockDeviceController = blockDeviceController;
+    }
+
+    public static HostMigrationDeviceController getHostMigrationDeviceController() {
+        return _hostMigrationDeviceController;
+    }
+
+    public static void sethostMigrationDeviceController(HostMigrationDeviceController hostMigrationDeviceController) {
+        MigrationOrchestrationDeviceController._hostMigrationDeviceController = hostMigrationDeviceController;
+    }
 }

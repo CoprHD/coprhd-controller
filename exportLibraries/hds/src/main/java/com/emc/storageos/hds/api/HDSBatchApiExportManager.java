@@ -316,6 +316,7 @@ public class HDSBatchApiExportManager {
                             responseStream, HDSConstants.SMOOKS_CONFIG_FILE);
                     try {
                         verifyErrorPayload(javaResult);
+                        operationSucceeds = true; //If no exception then operation succeeds
                     } catch (HDSException hdsException) {
                         Error error = javaResult.getBean(Error.class);
                         if (error != null && (error.getDescription().contains("2010")
@@ -442,6 +443,7 @@ public class HDSBatchApiExportManager {
                             responseStream, HDSConstants.SMOOKS_CONFIG_FILE);
                     try {
                         verifyErrorPayload(javaResult);
+                        operationSucceeds = true; //If no exception then operation succeeds
                     } catch (HDSException hdsException) {
                         Error error = javaResult.getBean(Error.class);
                         if (error != null && (error.getDescription().contains("2010")

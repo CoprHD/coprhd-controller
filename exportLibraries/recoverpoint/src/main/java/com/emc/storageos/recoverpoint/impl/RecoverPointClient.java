@@ -669,7 +669,6 @@ public class RecoverPointClient {
             throw RecoverPointException.exceptions.noRecoverPointEndpoint();
         }
 
-        List<RecoverPointVolumeProtectionInfo> replicationSetsRollback = new ArrayList<RecoverPointVolumeProtectionInfo>();
         RecoverPointCGResponse response = new RecoverPointCGResponse();
         List<ConsistencyGroupCopySettings> groupCopySettings = null;
         ConsistencyGroupUID cgUID = null;
@@ -744,13 +743,7 @@ public class RecoverPointClient {
             response.setReturnCode(RecoverPointReturnCode.SUCCESS);
             return response;
         } catch (Exception e) {
-            for (CreateRSetParams rsetParam : request.getRsets()) {
-                for (CreateVolumeParams volumeParam : rsetParam.getVolumes()) {
-                    RecoverPointVolumeProtectionInfo volProtectionInfo = this.getProtectionInfoForVolume(volumeParam.getWwn());
-                    replicationSetsRollback.add(volProtectionInfo);
-                }
-            }
-            deleteReplicationSets(replicationSetsRollback);
+            logger.info("Failed to add replication set(s) to CG");
             throw RecoverPointException.exceptions.failedToAddReplicationSetToConsistencyGroup(request.getCgName(), getCause(e));
         }
     }
@@ -3271,6 +3264,10 @@ public class RecoverPointClient {
 
                 logger.info("Checking for volumes unattached to splitters");
                 RecoverPointUtils.verifyCGVolumesAttachedToSplitter(functionalAPI, cgID);
+
+                RecoverPointImageManagementUtils rpiMgmt = new RecoverPointImageManagementUtils();
+                logger.info("Waiting for links to become active for CG ");
+                rpiMgmt.waitForCGLinkState(functionalAPI, cgID, RecoverPointImageManagementUtils.getPipeActiveState(functionalAPI, cgID));
             } catch (FunctionalAPIActionFailedException_Exception e) {
                 throw RecoverPointException.exceptions.failedToRecreateReplicationSet(volumeWWNs.toString(), e);
             } catch (FunctionalAPIInternalError_Exception e) {

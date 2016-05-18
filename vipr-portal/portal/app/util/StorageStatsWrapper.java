@@ -20,7 +20,10 @@ public class StorageStatsWrapper {
     }
 
     public boolean isOverCapacity(LicenseFeature feature) {
-        return getUsagePercentage(feature) >= 100;
+        // TODO: Do not do compliance check in Yoda.
+        // Will enable it after Yoda
+        // return getUsagePercentage(feature) >= 100;
+        return false;
     }
 
     public String getManagedCapacityLabel(LicenseFeature feature) {

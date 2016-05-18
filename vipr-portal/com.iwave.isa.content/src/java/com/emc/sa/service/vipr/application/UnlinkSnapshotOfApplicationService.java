@@ -17,7 +17,6 @@ import com.emc.sa.service.vipr.ViPRService;
 import com.emc.sa.service.vipr.application.tasks.UnlinkSnapshotSessionForApplication;
 import com.emc.sa.service.vipr.block.BlockStorageUtils;
 import com.emc.storageos.model.DataObjectRestRep;
-import com.emc.storageos.model.block.NamedVolumesList;
 import com.emc.vipr.client.Tasks;
 
 @Service("UnlinkSnapshotOfApplication")
@@ -40,9 +39,9 @@ public class UnlinkSnapshotOfApplicationService extends ViPRService {
 
     @Override
     public void execute() throws Exception {
-        NamedVolumesList volList = getClient().application().getVolumeByApplication(applicationId);
-        List<URI> snapshotSessionIds = BlockStorageUtils.getSingleSnapshotSessionPerSubGroup(applicationId, applicationCopySet,
-                volList, subGroups);
+        List<URI> snapshotSessionIds = BlockStorageUtils.getSingleSnapshotSessionPerSubGroupAndStorageSystem(applicationId,
+                applicationCopySet,
+                subGroups);
         Tasks<? extends DataObjectRestRep> tasks = execute(new UnlinkSnapshotSessionForApplication(applicationId, snapshotSessionIds,
                 existingLinkedSnapshotIds, deleteTarget));
         addAffectedResources(tasks);

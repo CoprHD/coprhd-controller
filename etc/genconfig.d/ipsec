@@ -23,8 +23,8 @@ conn %default
     authby=secret
     auto=route
     type=transport
-    esp=aes128gcm16!
-    left=${LOCAL_IP}
+    esp=aes128gcm16-sha256!     
+    ike=aes128gcm16-sha256-prfsha256-ecp256!
 EOF
 )
 
@@ -50,9 +50,11 @@ _gen_conn_sections() {
             conn=$(cat << EOF
 
 conn ${LOCAL_IP}-${ip}-${port}
+    left=${LOCAL_IP}
     right=${ip}
     rightprotoport=${port}
 conn ${ip}-${LOCAL_IP}-${port}
+    left=${LOCAL_IP}
     right=${ip}
     leftprotoport=${port}
 
@@ -85,11 +87,11 @@ _gen_ipsec_conf() {
         return 0;
     fi
 
-
     local vdc_ids=$(echo ${_GENCONFIG_vdc_ids} | sed 's/,/ /g')
-    local site_ids=$(echo ${_GENCONFIG_site_ids} | sed 's/,/ /g')
     local content="${COMMON_SECTION}"
     for vdc in ${vdc_ids} ; do
+        local var="_GENCONFIG_vdc_${vdc}_site_ids"
+        local site_ids=$(echo "${!var}" | sed 's/,/ /g')
         for site in ${site_ids} ; do
             local ips=$(_get_ips_in_specified_site "${vdc}" "${site}")
             connections=$(_gen_conn_sections "${ips}")
@@ -102,6 +104,29 @@ EOF
 )
         done
     done
+
+
+    #
+    # if dual stack, need to add ipv6 connections in ipsec.conf too.
+    #
+    if [[ ${_GENCONFIG_NETWORK_STACK} == DUAL_STACK ]]; then
+        LOCAL_IP=$(_get_local_ip "ipv6")
+        for vdc in ${vdc_ids} ; do
+            local var="_GENCONFIG_vdc_${vdc}_site_ids"
+            local site_ids=$(echo "${!var}" | sed 's/,/ /g')
+            for site in ${site_ids} ; do
+                    local ips=$(_get_ips_in_specified_site "${vdc}" "${site}" "ipv6")
+                    connections=$(_gen_conn_sections "${ips}")
+                    content=$(cat << EOF
+${content}
+
+# ipv6 addresses in ${vdc}_${site}: ${ips}
+${connections}
+EOF
+)
+            done
+        done
+    fi
 
     # retrieve ipsec_key
     # the priority sequence as:

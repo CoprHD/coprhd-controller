@@ -49,13 +49,12 @@ public class MultipleMaskPerHostIngestOrchestrator extends BlockIngestExportOrch
 
     @Override
     protected ExportMask getExportMaskAlreadyIngested(UnManagedExportMask mask, DbClient dbClient) {
-        ExportMask exportMask = null;
         @SuppressWarnings("deprecation")
         List<URI> maskUris = dbClient.queryByConstraint(AlternateIdConstraint.Factory.getExportMaskByNameConstraint(mask
                 .getMaskName()));
         if (null != maskUris && !maskUris.isEmpty()) {
             for (URI maskUri : maskUris) {
-                exportMask = dbClient.queryObject(ExportMask.class, maskUri);
+                ExportMask exportMask = dbClient.queryObject(ExportMask.class, maskUri);
                 // COP-18184 : Check if the initiators are also matching
                 if (null != exportMask && exportMask.getInitiators() != null
                         && exportMask.getInitiators().containsAll(mask.getKnownInitiatorUris())) {
@@ -64,7 +63,7 @@ public class MultipleMaskPerHostIngestOrchestrator extends BlockIngestExportOrch
             }
         }
 
-        return exportMask;
+        return null;
     }
 
     /* (non-Javadoc)
@@ -72,7 +71,8 @@ public class MultipleMaskPerHostIngestOrchestrator extends BlockIngestExportOrch
      */
     @Override
     protected ExportMask getExportMaskAlreadyCreated(UnManagedExportMask mask, IngestionRequestContext requestContext) {
-        for (ExportMask createdMask : requestContext.findAllNewExportMasks()) {
+        List<ExportMask> exportMasks = requestContext.findAllNewExportMasks();
+        for (ExportMask createdMask : exportMasks) {
             // COP-18184 : Check if the initiators are also matching
             if (null != createdMask && createdMask.getInitiators() != null
                     && createdMask.getInitiators().containsAll(mask.getKnownInitiatorUris())) {

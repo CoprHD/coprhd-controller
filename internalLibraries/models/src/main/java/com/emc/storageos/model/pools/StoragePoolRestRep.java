@@ -325,6 +325,9 @@ public class StoragePoolRestRep extends VirtualArrayResourceRestRep {
      */
     @XmlElementWrapper(name = "protocols")
     /**
+     * Valid values:
+     * 	FC = Fibre Channel
+     * 	IP
      */
     @XmlElement(name = "protocol")
     public Set<String> getProtocols() {

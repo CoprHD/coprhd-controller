@@ -393,16 +393,13 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                             fsObj.getOpStatus().updateTaskStatus(opId, result.toOperation());
                             recordFileDeviceOperation(_dbClient, OperationTypeEnum.DELETE_FILE_SYSTEM, result.isCommandSuccess(), "", "",
                                     fsObj, storageObj);
-                            _dbClient.persistObject(fsObj);
+                            WorkflowStepCompleter.stepFailed(opId, result.getServiceCoded());
                             return;
-
-                        } else if (!fsCheck) {
-                            doDeleteSnapshotsFromDB(fsObj, true, null, args);  // Delete Snapshot and its references from DB
-                            args.addQuotaDirectory(null);
-                            doFSDeleteQuotaDirsFromDB(args);
                         }
                     }
-
+                    doDeleteSnapshotsFromDB(fsObj, true, null, args);  // Delete Snapshot and its references from DB
+                    args.addQuotaDirectory(null);
+                    doFSDeleteQuotaDirsFromDB(args);
                     deleteShareACLsFromDB(args);
                     doDeleteExportRulesFromDB(true, null, args);
                     doDeletePolicyReferenceFromDB(fsObj); // Remove FileShare Reference from Schedule Policy
@@ -3463,14 +3460,14 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             List<FileDescriptor> sourceDescriptors = FileDescriptor.filterByType(filesystems,
                     FileDescriptor.Type.FILE_DATA,
                     FileDescriptor.Type.FILE_MIRROR_SOURCE);
-            for (FileDescriptor descriptor : sourceDescriptors) {
+            for (FileDescriptor sourceDescriptor : sourceDescriptors) {
                 // create a step
                 waitFor = workflow.createStep(CREATE_FILESYSTEMS_STEP,
                         String.format("Creating File systems:%n%s", taskId),
-                        null, descriptor.getDeviceURI(),
-                        getDeviceType(descriptor.getDeviceURI()),
+                        null, sourceDescriptor.getDeviceURI(),
+                        getDeviceType(sourceDescriptor.getDeviceURI()),
                         this.getClass(),
-                        createFileSharesMethod(descriptor),
+                        createFileSharesMethod(sourceDescriptor),
                         rollbackMethodNullMethod(), null);
             }
             // create targetFileystems
@@ -3479,14 +3476,18 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             if (targetDescriptors != null && !targetDescriptors.isEmpty()) {
                 for (FileDescriptor descriptor : targetDescriptors) {
                     FileShare fileShare = _dbClient.queryObject(FileShare.class, descriptor.getFsURI());
+                    FileShare fileShareSource = _dbClient.queryObject(FileShare.class, fileShare.getParentFileShare().getURI());
                     if (fileShare.getParentFileShare() != null) {
-                        waitFor = workflow.createStep(CREATE_FILESYSTEMS_STEP,
+                        waitFor = workflow.createStep(
+                                CREATE_FILESYSTEMS_STEP,
                                 String.format("Creating Target File systems:%n%s", taskId),
-                                waitFor, descriptor.getDeviceURI(),
+                                waitFor,
+                                descriptor.getDeviceURI(),
                                 getDeviceType(descriptor.getDeviceURI()),
                                 this.getClass(),
                                 createFileSharesMethod(descriptor),
-                                rollbackCreateFileSharesMethod(descriptor.getDeviceURI(), asList(fileShare.getParentFileShare().getURI())),
+                                rollbackCreateFileSharesMethod(fileShareSource.getStorageDevice(), asList(fileShare.getParentFileShare()
+                                        .getURI())),
                                 null);
                     }
                 }

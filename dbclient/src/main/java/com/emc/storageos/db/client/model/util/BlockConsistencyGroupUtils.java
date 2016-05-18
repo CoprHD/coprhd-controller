@@ -241,6 +241,39 @@ public class BlockConsistencyGroupUtils {
 
         return localSystemUris;
     }
+    
+    /**
+     * Gets all the active volumes in the passed CG.
+     * 
+     * @param cg A reference to a VPLEX CG
+     * @param dbClient A reference to a database client
+     * @param personalityType The RecoverPoint personality type. Used to isolate VPlex volumes
+     *            in the consistency group to those of that personality type. Optional field
+     *            left null if not desired.
+     * 
+     * @return A list of the active VPLEX volumes in the passed VPLEX CG.
+     */
+    static public List<Volume> getActiveVolumesInCG(BlockConsistencyGroup cg, DbClient dbClient,
+            PersonalityTypes personalityType) {
+        List<Volume> volumeList = new ArrayList<Volume>();
+        URIQueryResultList uriQueryResultList = new URIQueryResultList();
+        dbClient.queryByConstraint(getVolumesByConsistencyGroup(cg.getId()),
+                uriQueryResultList);
+        Iterator<Volume> volumeIterator = dbClient.queryIterativeObjects(Volume.class,
+                uriQueryResultList);
+        while (volumeIterator.hasNext()) {
+            Volume volume = volumeIterator.next();
+            if (!volume.getInactive()) {
+                // If the personalityType is specified, we want to ensure we only consider
+                // volumes with that personality type.
+                if (personalityType == null ||
+                        (volume.getPersonality() != null && volume.getPersonality().equals(personalityType.name()))) {
+                    volumeList.add(volume);
+                }
+            }
+        }
+        return volumeList;
+    }
 
     /**
      * Gets the active VPLEX volumes in the passed VPLEX CG.
@@ -259,21 +292,25 @@ public class BlockConsistencyGroupUtils {
         URIQueryResultList uriQueryResultList = new URIQueryResultList();
         dbClient.queryByConstraint(getVolumesByConsistencyGroup(cg.getId()),
                 uriQueryResultList);
-        Iterator<Volume> volumeIterator = dbClient.queryIterativeObjects(Volume.class,
-                uriQueryResultList);
-        while (volumeIterator.hasNext()) {
-            Volume volume = volumeIterator.next();
-            if (!volume.getInactive()) {
-                // When determining the volumes to snap, we want the VPLEX volumes
-                // referencing the consistency group. The backend volumes for the
-                // VPLEX volume will also now reference the consistency group.
-                // At this point we just want the VPLEX volumes.
-                if (!Volume.checkForVplexBackEndVolume(dbClient, volume)) {
-                    // If the personalityType is specified, we want to ensure we only consider
-                    // volumes with that personality type.
-                    if (personalityType == null ||
-                            (volume.getPersonality() != null && volume.getPersonality().equals(personalityType.name()))) {
-                        volumeList.add(volume);
+        if (uriQueryResultList != null) {
+            Iterator<Volume> volumeIterator = dbClient.queryIterativeObjects(Volume.class,
+                    uriQueryResultList);
+            if (volumeIterator != null) {
+                while (volumeIterator.hasNext()) {
+                    Volume volume = volumeIterator.next();
+                    if (!volume.getInactive()) {
+                        // When determining the volumes to snap, we want the VPLEX volumes
+                        // referencing the consistency group. The backend volumes for the
+                        // VPLEX volume will also now reference the consistency group.
+                        // At this point we just want the VPLEX volumes.
+                        if (volume.isVPlexVolume(dbClient)) {
+                            // If the personalityType is specified, we want to ensure we only consider
+                            // volumes with that personality type.
+                            if (personalityType == null ||
+                                    (volume.getPersonality() != null && volume.getPersonality().equals(personalityType.name()))) {
+                                volumeList.add(volume);
+                            }
+                        }
                     }
                 }
             }
@@ -337,7 +374,8 @@ public class BlockConsistencyGroupUtils {
                 // We want the non-VPlex volumes, which are those volumes that do not have associated volumes.
                 if (volume.getAssociatedVolumes() == null || volume.getAssociatedVolumes().isEmpty()) {
                     String personality = volume.getPersonality();
-                    if (personality == null || PersonalityTypes.SOURCE.name().equalsIgnoreCase(personality)) {
+                    if (Volume.isSRDFProtectedVolume(volume) || personality == null
+                            || PersonalityTypes.SOURCE.name().equalsIgnoreCase(personality)) {
                         volumeList.add(volume);
                     }
                 }
@@ -371,16 +409,16 @@ public class BlockConsistencyGroupUtils {
 
     public static List<Volume> getAllCGVolumes(BlockConsistencyGroup cg, DbClient dbClient) {
         List<Volume> result = new ArrayList<>();
-
+        
         if (cg.checkForType(BlockConsistencyGroup.Types.VPLEX) && cg.checkForType(BlockConsistencyGroup.Types.RP)) {
-            // VPLEX+RP
-            result.addAll(getActiveVplexVolumesInCG(cg, dbClient, Volume.PersonalityTypes.SOURCE));
+            // VPLEX+RP - Right now application supports taking snap sessions on RP targets too.
+            result.addAll(getActiveVplexVolumesInCG(cg, dbClient, null));
         } else if (cg.checkForType(BlockConsistencyGroup.Types.VPLEX) && !cg.checkForType(BlockConsistencyGroup.Types.RP)) {
             // VPLEX
             result.addAll(getActiveVplexVolumesInCG(cg, dbClient, null));
         } else if (cg.checkForType(BlockConsistencyGroup.Types.RP) && !cg.checkForType(BlockConsistencyGroup.Types.VPLEX)) {
-            // RP
-            result.addAll(getActiveNonVplexVolumesInCG(cg, dbClient, Volume.PersonalityTypes.SOURCE));
+            // RP Right now application supports taking snap sessions on RP targets too.
+            result.addAll(getActiveNonVplexVolumesInCG(cg, dbClient, null));
         } else {
             // Native (no protection)
             result.addAll(getActiveNativeVolumesInCG(cg, dbClient));

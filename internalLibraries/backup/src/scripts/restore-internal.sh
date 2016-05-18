@@ -110,10 +110,10 @@ restore_data() {
         local command="bash -c 'ls $RESTORE_DIR/*_${viprNode}* &>/dev/null'"
         ssh_execute "$viprNode" "${command}"
         if [ $? == 0 ]; then
-            echo "To restore node ${viprNode}"
+            echo "Restoring node ${viprNode}"
             restore_node "${viprNode}"
         else
-            echo "To restore node ${viprNode} site id only"
+            echo "Restoring node ${viprNode} site id only"
             restore_node "${viprNode}" "onlysiteid"
         fi
         if [ $? != 0 ]; then
@@ -130,12 +130,12 @@ restore_node() {
     local viprNode=${1}
     cd ${RESTORE_DIR}
     local backupTag=`ls *_info.properties | awk '{split($0,a,"_"); print a[1]}'`
-    local command="/opt/storageos/bin/bkutils -r $RESTORE_DIR $backupTag"
+    local command="/opt/storageos/bin/bkutils -r ${RESTORE_DIR} '$backupTag'"
     if [ "$RESTORE_GEO_FROM_SCRATCH" == "true" ]; then
-        command="/opt/storageos/bin/bkutils -r ${RESTORE_DIR} $backupTag -f"
+        command="/opt/storageos/bin/bkutils -r ${RESTORE_DIR} '$backupTag' -f"
     fi
     if [ "${2}" == "onlysiteid" ]; then
-        command="/opt/storageos/bin/bkutils -r $RESTORE_DIR $backupTag osi"
+        command="/opt/storageos/bin/bkutils -r $RESTORE_DIR '$backupTag' osi"
     fi
     ssh_execute "$viprNode" "$command"
 }
@@ -153,7 +153,8 @@ LOCAL_NODE=`sudo /etc/systool --getprops | awk -F '=' '/\<node_id\>/ {print $2}'
 nodes_without_zk_data=()
 nodes_without_properties_file=()
 
-RESTORE_DIR="$1"
+RESTORE_ORIGIN="$1"
+RESTORE_DIR1="'$RESTORE_ORIGIN'"
 ROOT_PASSWORD="$2"
 RESTORE_GEO_FROM_SCRATCH="$3"
 LOG_FILE="$4"
@@ -163,10 +164,19 @@ LOG_FILE="$4"
 if [ "${LOG_FILE}" != "" ] ; then
     exec 1>${LOG_FILE} 2>&1
 fi
-
+TEMP_DIR=$(mktemp -d)
+RESTORE_DIR="${TEMP_DIR}/backup"
+cmd="ln -s "${RESTORE_DIR1}" "${RESTORE_DIR}"" 
+loop_execute "mkdir $TEMP_DIR" "true"
+loop_execute "chmod 755 $TEMP_DIR" "true"
+loop_execute "$cmd" "true"
 copy_zk_data
 copy_properties_file
 is_vdc_connected
+
+# make sure to direct to maintenance page
+sleep 5s
+
 stop_service
 restore_data
 if [[ "${RESTORE_RESULT}" == "failed" ]]; then

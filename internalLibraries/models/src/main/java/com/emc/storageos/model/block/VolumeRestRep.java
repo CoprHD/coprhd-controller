@@ -41,7 +41,6 @@ public class VolumeRestRep extends BlockObjectRestRep {
     private RelatedResourceRep pool;
     private List<RelatedResourceRep> volumeGroups;
     private Boolean supportsSnapshotSessions;
-    private String replicationGroupInstance;
     private String systemType;
 
     // Fields in a Volume that are specific to RecoverPoint
@@ -288,9 +287,9 @@ public class VolumeRestRep extends BlockObjectRestRep {
         /**
          * How this volume is used with respect to replication
          * Valid values:
-         *  SOURCE
-         *  TARGET
-         *  METADATA
+         *  SOURCE = A production volume
+         *  TARGET = A copy of a production volume
+         *  METADATA = A volume that stores meta-data for replication. Example = Recoverpoint journal volume
          */
         @XmlElement(name = "personality")
         public String getPersonality() {
@@ -626,24 +625,6 @@ public class VolumeRestRep extends BlockObjectRestRep {
 
     public void setSupportsSnapshotSessions(Boolean supportsSnapshotSessions) {
         this.supportsSnapshotSessions = supportsSnapshotSessions;
-    }
-
-    /**
-     * the replication group name on the array
-     * @return the replicationGroupInstance
-     */
-    @Override
-    @XmlElement(name = "replication_group_instance")
-    public String getReplicationGroupInstance() {
-        return replicationGroupInstance;
-    }
-
-    /**
-     * @param replicationGroupInstance the replicationGroupInstance to set
-     */
-    @Override
-    public void setReplicationGroupInstance(String replicationGroupInstance) {
-        this.replicationGroupInstance = replicationGroupInstance;
     }
 
     /**

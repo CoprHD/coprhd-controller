@@ -3,11 +3,34 @@
 
 #{set isActiveSite:controllers.infra.DisasterRecovery.isActiveSite() /}
 #{if showPauseButton}
-	#{DataTable.header titleKey:'disasterRecovery.title.pauseResume'/}
+	#{DataTable.header titleKey:'disasterRecovery.title.pause'/}
 #{/if}
 #{else}
 	#{DataTable.header titleKey:'disasterRecovery.title'/}
 #{/else}
+
+<div class="clear"></div>
+
+#{if (isActiveSite && controllers.infra.DisasterRecovery.hasActiveDegradedSite()) }
+<div class="alert alert-info">
+	<div style="display: inline-block;vertical-align: middle"><img class="glyphicon glyphicon-ok" src="/public/img/Warning.png"></div>
+	<div style="display: inline-block;vertical-align: middle">&{'disasterRecovery.activeDegradedWarning'}</div>
+</div>
+#{/if}
+#{elseif (isActiveSite && controllers.infra.DisasterRecovery.hasPausedSite()) }
+<div class="alert alert-info">
+	<div style="display: inline-block;vertical-align: middle"><img class="glyphicon glyphicon-ok" src="/public/img/Warning.png"></div>
+	<div style="display: inline-block;vertical-align: middle">&{'disasterRecovery.pausedSiteWarning'}</div>
+</div>
+#{/elseif}
+
+#{if !isActiveSite && controllers.infra.DisasterRecovery.getLocalSiteState() == "STANDBY_PAUSED" }
+<div class="alert alert-info">
+	<div style="display: inline-block;vertical-align: middle"><img class="glyphicon glyphicon-ok" src="/public/img/Warning.png"></div>
+	<div style="display: inline-block;vertical-align: middle">&{'disasterRecovery.pausedSiteDataNotConsistentWarning'}</div>
+</div>
+#{/if}
+
 #{DataTable.baseCrudTable id:'disasterRecovery',
 					dataTable:dataTable,
 					expandable: true}
@@ -29,13 +52,7 @@
 #{if showPauseButton}
 	<a href="@{infra.Upgrade.index()}">&{'disasterRecovery.backToUpgrade'}</a>
 #{/if}
-#{elseif (isActiveSite && util.DisasterRecoveryUtils.hasPausedSite()) }
-	<img class="glyphicon glyphicon-ok" src="/public/img/Warning.png">&nbsp;<span style="color: red">&{'disasterRecovery.pausedSiteWarning'}</span>
-#{/elseif}
 
-#{if !isActiveSite && util.DisasterRecoveryUtils.getLocalSiteState() == "STANDBY_PAUSED"}
-	<img class="glyphicon glyphicon-ok" src="/public/img/Warning.png">&nbsp;<span style="color: red">&{'disasterRecovery.pausedSiteDataNotConsistentWarning'}</span>
-#{/if}
 
 <script id="inlineActions.html" type="text/ng-template">
     <div class="btn-group-site">
@@ -44,7 +61,9 @@
 			  	#{if showPauseButton}
 					<a class="btn btn-default btn-xs" ng-show="isPauseSite" role="button" href="{{pauseUrl}}"onclick="if (!confirm('&{'disasterRecovery.confirm.pause'}')){return false;}")>{{'disasterRecovery.pauseButton' | t}}</a>
 				#{/if}
-				<a class="btn btn-default btn-xs" ng-show="isResumeSite" role="button" href="{{resumeUrl}}">{{'disasterRecovery.resumeButton' | t}}</a>
+				#{else}
+					<a class="btn btn-default btn-xs" ng-show="isResumeSite" role="button" href="{{resumeUrl}}">{{'disasterRecovery.resumeButton' | t}}</a>
+				#{/else}
 			#{/if}
 			<a class="btn btn-default btn-xs" ng-show="isRetrySite" role="button" href="{{retryUrl}}"onclick="if (!confirm('&{'disasterRecovery.confirm.retry'}')){return false;}")>{{'disasterRecovery.retryButton' | t}}</a>
 		#{/deadbolt.restrict}
@@ -64,11 +83,12 @@
 
 <script type="text/javascript">
 var standbypauseUrl = #{jsAction @pause(':uuid') /}
-var standbyresumeUrl = #{jsAction @resume(':uuid', showPauseButton) /}
+var standbyresumeUrl = #{jsAction @resume(':uuid') /}
 var standbytestUrl = #{jsAction @test(':uuid') /}
 var standbyfailoverUrl = #{jsAction @switchover(':uuid') /}
 var standbyretryUrl = #{jsAction @retry(':uuid') /}
-var isRetrySite = #{jsAction @isRetrySite(':uuid')/};
+var isRetrySite = #{jsAction @isRetrySite(':uuid')/}
+var localUuId = "${localSiteUuid}";
 
 angular.module('tags').directive({
 	actions: function() {
@@ -88,20 +108,34 @@ angular.module('tags').directive({
 
         	 if(scope.row.status.toUpperCase() == "STANDBY_SYNCED"){
 				scope.isPauseSite = true;
-				scope.isFailover = true;
+				#{if isActiveSite }
+					scope.isFailover = true;
+				#{/if}
+				#{else}
+					if(scope.row.id == localUuId) {
+						scope.isFailover = true;
+					}
+				#{/else}
              }
         	 
         	 if(scope.row.status.toUpperCase() == "STANDBY_PAUSED"){
 				scope.isResumeSite = true;
 				#{if !isActiveSite }
-					scope.isFailover = true;
+					if(scope.row.id == localUuId) {
+						scope.isFailover = true;
+					}
 				#{/if}
              }
 
+			 if(scope.row.status.toUpperCase() == "ACTIVE_DEGRADED"){
+				scope.isResumeSite = true;
+		     }
+             
              if(scope.row.status.toUpperCase() == "STANDBY_ERROR"){
              	if(isRetrySite({'uuid': scope.row.id})){
 					scope.isRetrySite = true;
 				}
+             	scope.isFailover = false;
              }
         	 
         	 if(scope.row.status.toUpperCase() == "ACTIVE"){
@@ -109,6 +143,22 @@ angular.module('tags').directive({
 				scope.isPauseSite = false;
 				scope.isTestSite = false;
 				scope.isFailover = false;
+             }
+
+             if(scope.row.status.toUpperCase() == "STANDBY_INCR_SYNCING"){
+				scope.isPauseSite = true;
+				#{if isActiveSite }
+					scope.isFailover = false;
+				#{/if}
+				#{else}
+					if(scope.row.id == localUuId) {
+						scope.isFailover = true;
+					}
+				#{/else}
+             }
+                          
+             if (scope.row.networkHealth.toUpperCase() == "BROKEN") {
+             	scope.isFailover = false;
              }
          }
      }
@@ -137,10 +187,15 @@ function renderLink(o, val) {
 
 <script type="text/javascript">
 function watchLoadStatus(datatable, itemsJson) {
-    var fields = ['status','VirtualIP','name','networkHealth'];
+    var fields = ['status','VirtualIP','name','networkHealth', 'runningState'];
     var fieldToWatch = 'status';
-    var triggerValues = ['STANDBY_ADDING','STANDBY_SYNCING','STANDBY_PAUSING','STANDBY_RESUMING','STANDBY_SWITCHING_OVER','STANDBY_FAILING_OVER','ACTIVE_SWITCHING_OVER','ACTIVE_FAILING_OVER','STANDBY_DEGRADING'];
+    var triggerValues = ['STANDBY_ADDING','STANDBY_SYNCING','STANDBY_PAUSING','STANDBY_RESUMING',
+    	'STANDBY_SWITCHING_OVER','STANDBY_FAILING_OVER','ACTIVE_SWITCHING_OVER','ACTIVE_FAILING_OVER',
+    	'STANDBY_DEGRADING','STANDBY_REMOVING', 'STANDBY_INCR_SYNCING'];
+    var triggerStableValues =  ['ACTIVE','ACTIVE_DEGRADED','ACTIVE_DEGRADED','STANDBY_SYNCED','STANDBY_ERROR','STANDBY_PAUSED'];
+    
     watchDatatableField(datatable, itemsJson, fieldToWatch, triggerValues, fields);
+    watchDatatableField(datatable, itemsJson, fieldToWatch, triggerStableValues, fields, 60000);
 }
 $(document).ready(function() {
     var dataTable = table.disasterRecovery.dataTable.getDataTable();
@@ -160,6 +215,7 @@ function standbyStatusIcon(o, val) {
         'ACTIVE_FAILING_OVER': 'label-danger',
         'STANDBY_ADDING': 'label-info',
         'STANDBY_SYNCING' : 'label-info',
+        'STANDBY_INCR_SYNCING' : 'label-info',
         'STANDBY_SYNCED': 'label-success',
         'STANDBY_PAUSING': 'label-info',
         'STANDBY_PAUSED': 'label-info',
@@ -179,6 +235,7 @@ function standbyStatusIcon(o, val) {
         'ACTIVE_FAILING_OVER': 'glyphicon glyphicon-refresh rotate',
         'STANDBY_ADDING': 'glyphicon glyphicon-refresh rotate',
         'STANDBY_SYNCING' : 'glyphicon glyphicon-refresh rotate',
+        'STANDBY_INCR_SYNCING' : 'glyphicon glyphicon-refresh rotate',
         'STANDBY_SYNCED': 'glyphicon glyphicon-ok',
         'STANDBY_PAUSING': 'glyphicon glyphicon-refresh rotate',
         'STANDBY_PAUSED': 'glyphicon glyphicon-pause',
@@ -200,6 +257,7 @@ function standbyStatusIcon(o, val) {
             'STANDBY_ADDING': Messages.get("renderFunctions.disasterRecovery.status.standby.adding"),
             'STANDBY_SYNCING' : Messages.get("renderFunctions.disasterRecovery.status.standby.syncing"),
             'STANDBY_SYNCED': Messages.get("renderFunctions.disasterRecovery.status.standby.synced"),
+            'STANDBY_INCR_SYNCING': Messages.get("renderFunctions.disasterRecovery.status.standby.syncing.incr"),
             'STANDBY_PAUSING': Messages.get("renderFunctions.disasterRecovery.status.standby.pausing"),
             'STANDBY_PAUSED': Messages.get("renderFunctions.disasterRecovery.status.standby.paused"),
             'STANDBY_TESTING' : Messages.get("renderFunctions.disasterRecovery.status.standby.testing"),
@@ -215,7 +273,12 @@ function standbyStatusIcon(o, val) {
 
     var label = defaultValue(labels[o.aData.status], 'label-default');
     var icon = defaultValue(icons[o.aData.status], 'glyphicon glyphicon-question-sign');
-
+    
+	if (o.aData.runningState == "FALSE" && (o.aData.status == "ACTIVE" || o.aData.status == "STANDBY_SYNCED")) {
+	    label = 'label-warning';
+	    icon = 'glyphicon glyphicon-warning-sign'
+	}
+	
     var message = defaultValue(messages[o.aData.status], Messages.get("renderFunctions.disasterRecovery.status.unknown"));
 
     return '<span class="label ' + label + '"><span class="' + icon + '"></span></span> <span>' + ' ' + message+'</span>';

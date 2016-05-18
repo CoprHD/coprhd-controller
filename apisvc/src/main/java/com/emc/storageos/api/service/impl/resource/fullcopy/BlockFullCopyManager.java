@@ -26,7 +26,7 @@ import com.emc.storageos.api.mapper.DbObjectMapper;
 import com.emc.storageos.api.mapper.TaskMapper;
 import com.emc.storageos.api.service.authorization.PermissionsHelper;
 import com.emc.storageos.api.service.impl.placement.PlacementManager;
-import com.emc.storageos.api.service.impl.placement.PlacementManager.SchedulerType;
+import com.emc.storageos.api.service.impl.placement.Scheduler;
 import com.emc.storageos.api.service.impl.resource.ArgValidator;
 import com.emc.storageos.api.service.impl.resource.BlockService;
 import com.emc.storageos.api.service.impl.resource.ResourceService;
@@ -164,30 +164,33 @@ public class BlockFullCopyManager {
      */
     private void createPlatformSpecificFullCopyImpls(CoordinatorClient coordinator,
             TenantsService tenantsService) {
+        Scheduler blockScheduler = _placementManager.getStorageScheduler("block");
+        Scheduler vplexScheduler = _placementManager.getStorageScheduler("vplex");
+        Scheduler rpScheduler = _placementManager.getStorageScheduler("rp");
         _fullCopyImpls.put(FullCopyImpl.dflt.name(), new DefaultBlockFullCopyApiImpl(_dbClient, coordinator,
-                _placementManager.getStorageScheduler(SchedulerType.block.name()), this));
+                blockScheduler, this));
         _fullCopyImpls.put(FullCopyImpl.vmax.name(), new VMAXBlockFullCopyApiImpl(_dbClient, coordinator,
-                _placementManager.getStorageScheduler(SchedulerType.block.name()), this));
+                blockScheduler, this));
         _fullCopyImpls.put(FullCopyImpl.vmax3.name(), new VMAX3BlockFullCopyApiImpl(_dbClient, coordinator,
-                _placementManager.getStorageScheduler(SchedulerType.block.name()), this));
+                blockScheduler, this));
         _fullCopyImpls.put(FullCopyImpl.vnx.name(), new VNXBlockFullCopyApiImpl(_dbClient, coordinator,
-                _placementManager.getStorageScheduler(SchedulerType.block.name()), this));
+                blockScheduler, this));
         _fullCopyImpls.put(FullCopyImpl.vnxe.name(), new VNXEBlockFullCopyApiImpl(_dbClient, coordinator,
-                _placementManager.getStorageScheduler(SchedulerType.block.name()), this));
+                blockScheduler, this));
         _fullCopyImpls.put(FullCopyImpl.hds.name(), new HDSBlockFullCopyApiImpl(_dbClient, coordinator,
-                _placementManager.getStorageScheduler(SchedulerType.block.name()), this));
+                blockScheduler, this));
         _fullCopyImpls.put(FullCopyImpl.openstack.name(), new OpenstackBlockFullCopyApiImpl(_dbClient, coordinator,
-                _placementManager.getStorageScheduler(SchedulerType.block.name()), this));
+                blockScheduler, this));
         _fullCopyImpls.put(FullCopyImpl.scaleio.name(), new ScaleIOBlockFullCopyApiImpl(_dbClient, coordinator,
-                _placementManager.getStorageScheduler(SchedulerType.block.name()), this));
+                blockScheduler, this));
         _fullCopyImpls.put(FullCopyImpl.xtremio.name(), new XtremIOBlockFullCopyApiImpl(_dbClient, coordinator,
-                _placementManager.getStorageScheduler(SchedulerType.block.name()), this));
+                blockScheduler, this));
         _fullCopyImpls.put(FullCopyImpl.xiv.name(), new XIVBlockFullCopyApiImpl(_dbClient, coordinator,
-                _placementManager.getStorageScheduler(SchedulerType.block.name()), this));
+                blockScheduler, this));
         _fullCopyImpls.put(FullCopyImpl.vplex.name(), new VPlexBlockFullCopyApiImpl(_dbClient, coordinator,
-                _placementManager.getStorageScheduler(SchedulerType.vplex.name()), tenantsService, this));
+                vplexScheduler, tenantsService, this));
         _fullCopyImpls.put(FullCopyImpl.rp.name(), new RPBlockFullCopyApiImpl(_dbClient, coordinator,
-                _placementManager.getStorageScheduler(SchedulerType.rp.name()), this));
+                rpScheduler, this));
     }
 
     /**
@@ -693,7 +696,7 @@ public class BlockFullCopyManager {
         Volume fullCopyVolume = (Volume) resourceMap.get(fullCopyURI);
 
         if (!sourceVolume.hasConsistencyGroup() ||
-                fullCopyVolume.getReplicationGroupInstance() == null) {
+                NullColumnValueGetter.isNullValue(fullCopyVolume.getReplicationGroupInstance())) {
             // check if this is vplex
             if (!VPlexUtil.isBackendFullCopyInReplicationGroup(fullCopyVolume, _dbClient)) {
                 throw APIException.badRequests.blockObjectHasNoConsistencyGroup();

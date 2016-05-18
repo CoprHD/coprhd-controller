@@ -1283,6 +1283,16 @@ public class BasePermissionsHelper {
         return subTenantRoles;
     }
 
+    /**
+     * return all subtenants the user has any tenant role over them.
+     *
+     * @param user
+     * @return
+     */
+    public Set<String> getSubtenantsForUser(StorageOSUser user) {
+        return getSubtenantRolesForUser(user).keySet();
+    }
+
     public void removeRootRoleAssignmentOnTenantAndProject() throws DatabaseException {
         String keyForRoot = new PermissionsKey(PermissionsKey.Type.SID, ROOT).toString();
         StringBuffer tenantRolesRemoved = new StringBuffer("Tenant roles removed: ");

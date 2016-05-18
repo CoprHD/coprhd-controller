@@ -142,8 +142,6 @@ public class DbClientImpl implements DbClient {
     private boolean initDone = false;
     private String _geoVersion;
     private DrUtil drUtil;
-    // whether to retry once with LOCAL_QUORUM for write failure 
-    protected boolean retryFailedWriteWithLocalQuorum = false; 
     
     public String getGeoVersion() {
         if (this._geoVersion == null) {
@@ -265,15 +263,6 @@ public class DbClientImpl implements DbClient {
 
         _indexCleaner = new IndexCleaner();
         
-        if (drUtil.isMultivdc()) {
-            // No need to retry for multi-vdc 
-            retryFailedWriteWithLocalQuorum = false;
-        } else {
-            // retry in DR configuration (default)
-            retryFailedWriteWithLocalQuorum = true;
-        }
-        _log.info("Retry for failed write with LOCAL_QUORUM: {}", retryFailedWriteWithLocalQuorum);
-        
         initDone = true;
     }
 
@@ -356,6 +345,10 @@ public class DbClientImpl implements DbClient {
      * @return
      */
     protected <T extends DataObject> Keyspace getKeyspace(Class<T> clazz) {
+        return getDbClientContext(clazz).getKeyspace();
+    }
+    
+    private <T extends DataObject> DbClientContext getDbClientContext(Class<T> clazz) {
         DbClientContext ctx = null;
         if (localContext == null && geoContext == null) {
             throw new IllegalStateException();
@@ -366,10 +359,13 @@ public class DbClientImpl implements DbClient {
         } else {
             ctx = KeyspaceUtil.isGlobal(clazz) ? geoContext : localContext;
         }
-
-        return ctx.getKeyspace();
+        return ctx;
     }
 
+    protected <T extends DataObject> boolean shouldRetryFailedWriteWithLocalQuorum(Class<T> clazz) {
+        return getDbClientContext(clazz).isRetryFailedWriteWithLocalQuorum();
+    }
+    
     @Override
     public synchronized void stop() {
         if (localContext != null) {
@@ -460,6 +456,7 @@ public class DbClientImpl implements DbClient {
             }
         }
         if (!cleanList.isEmpty()) {
+            boolean retryFailedWriteWithLocalQuorum = shouldRetryFailedWriteWithLocalQuorum(clazz);
             RowMutator mutator = new RowMutator(ks, retryFailedWriteWithLocalQuorum);
             SoftReference<IndexCleanupList> indexCleanUpRef = new SoftReference<IndexCleanupList>(cleanList);
             _indexCleaner.cleanIndexAsync(mutator, doType, indexCleanUpRef);
@@ -1126,8 +1123,14 @@ public class DbClientImpl implements DbClient {
     }
 
     protected <T extends DataObject> List<URI> insertNewColumns(Keyspace ks, Collection<T> dataobjects) {
-
         List<URI> objectsToCleanup = new ArrayList<URI>();
+        boolean retryFailedWriteWithLocalQuorum = true;
+        Iterator<T> dataObjectIterator = dataobjects.iterator();
+        if (dataObjectIterator.hasNext()) {
+            T dataObject = dataObjectIterator.next();
+            retryFailedWriteWithLocalQuorum = shouldRetryFailedWriteWithLocalQuorum(dataObject.getClass());
+        }
+        
         RowMutator mutator = new RowMutator(ks, retryFailedWriteWithLocalQuorum);
         for (T object : dataobjects) {
             checkGeoVersionForMutation(object);
@@ -1171,6 +1174,7 @@ public class DbClientImpl implements DbClient {
             doType.deserialize(clazz, row, cleanList, new LazyLoader(this));
         }
         if (!cleanList.isEmpty()) {
+            boolean retryFailedWriteWithLocalQuorum = shouldRetryFailedWriteWithLocalQuorum(clazz);
             RowMutator cleanupMutator = new RowMutator(ks, retryFailedWriteWithLocalQuorum);
             SoftReference<IndexCleanupList> indexCleanUpRef = new SoftReference<IndexCleanupList>(cleanList);
             _indexCleaner.cleanIndex(cleanupMutator, doType, indexCleanUpRef);
@@ -1348,6 +1352,7 @@ public class DbClientImpl implements DbClient {
             }
         }
         if (!removedList.isEmpty()) {
+            boolean retryFailedWriteWithLocalQuorum = shouldRetryFailedWriteWithLocalQuorum(clazz);
             RowMutator mutator = new RowMutator(ks, retryFailedWriteWithLocalQuorum);
             _indexCleaner.removeColumnAndIndex(mutator, doType, removedList);
         }

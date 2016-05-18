@@ -140,7 +140,7 @@ public class BlockSnapshotSessions extends ProjectResources<BlockSnapshotSession
     }
 
     /**
-     * Re-link a target to either it's current snapshot session or to a different
+     * Re-link a target to either its current snapshot session or to a different
      * snapshot session of the same source.
      * <p>
      * API Call: <tt>POST /block/snapshot-sessions/{id}/relink-targets</tt>

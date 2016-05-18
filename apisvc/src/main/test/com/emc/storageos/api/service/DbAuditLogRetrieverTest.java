@@ -4,10 +4,7 @@
  */
 package com.emc.storageos.api.service;
 
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.OutputStream;
+import java.io.*;
 
 import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.MediaType;
@@ -17,6 +14,10 @@ import javax.xml.bind.JAXBContext;
 import javax.xml.bind.JAXBException;
 import javax.xml.bind.Unmarshaller;
 
+import com.emc.storageos.api.service.impl.resource.utils.MarshallingExcetion;
+import com.emc.storageos.security.audit.AuditLogRequest;
+import org.joda.time.DateTime;
+import org.joda.time.DateTimeZone;
 import org.junit.Assert;
 import org.codehaus.jackson.map.AnnotationIntrospector;
 import org.codehaus.jackson.map.ObjectMapper;
@@ -28,6 +29,7 @@ import com.emc.storageos.api.service.impl.resource.utils.DbAuditLogRetriever;
 import com.emc.storageos.api.service.utils.DummyDBClient;
 import com.emc.storageos.api.service.utils.DummyHttpHeaders;
 import com.emc.storageos.api.service.utils.AuditLogs;
+import com.emc.storageos.db.exceptions.RetryableDatabaseException;
 import com.emc.storageos.svcs.errorhandling.resources.InternalServerErrorException;
 import com.sun.jersey.api.client.ClientResponse.Status;
 
@@ -46,26 +48,21 @@ public class DbAuditLogRetrieverTest {
         deleteIfExists(XmlTestOutputFile);
 
         DummyDBClient dbClient = new DummyDBClient();
-        AuditService auditResource = new AuditService();
         DbAuditLogRetriever dummyDbAuditLogRetriever = new DbAuditLogRetriever();
         dummyDbAuditLogRetriever.setDbClient(dbClient);
-        auditResource.setAuditLogRetriever(dummyDbAuditLogRetriever);
-
-        DummyHttpHeaders header = new DummyHttpHeaders(
-                MediaType.APPLICATION_XML_TYPE);
-
-        Response r = auditResource.getAuditLogs("2012-01-07T00:00", "en_US", header);
-        Assert.assertNotNull(r);
-        Assert.assertEquals(Status.OK.getStatusCode(), r.getStatus());
-        Assert.assertTrue(r.getEntity() instanceof StreamingOutput);
-        StreamingOutput so = (StreamingOutput) r.getEntity();
+        String timeBucket = "2012-01-07T00";
+        AuditLogRequest auditLogRequest = getAuditLogRequest(timeBucket);
+        MediaType mediaType = MediaType.APPLICATION_XML_TYPE;
 
         File of = new File(XmlTestOutputFile);
-
         OutputStream os = new FileOutputStream(of);
-        so.write(os);
-
-        os.close();
+        BufferedWriter out = new BufferedWriter(new OutputStreamWriter(os));
+        try {
+            dummyDbAuditLogRetriever.getBulkAuditLogs(auditLogRequest,mediaType,out);
+        } catch (MarshallingExcetion e ) {
+            Assert.fail(e.getMessage());
+        }
+        out.close();
 
         JAXBContext context = null;
         Unmarshaller unmarshaller = null;
@@ -81,8 +78,8 @@ public class DbAuditLogRetrieverTest {
         Assert.assertEquals(10, auditLogs.auditLogs.size());
         deleteIfExists(XmlTestOutputFile);
 
-    }
 
+    }
     @Test
     public void auditServiceDBExceptionsTestXML()
             throws WebApplicationException, IOException, JAXBException {
@@ -90,32 +87,23 @@ public class DbAuditLogRetrieverTest {
         deleteIfExists(XmlTestOutputFile);
 
         DummyDBClient dbClient = new DummyDBClient();
-        AuditService auditResource = new AuditService();
-        // statResource.setDbClient(dbClient);
         DbAuditLogRetriever dummyDbAuditLogRetriever = new DbAuditLogRetriever();
         dummyDbAuditLogRetriever.setDbClient(dbClient);
-        auditResource.setAuditLogRetriever(dummyDbAuditLogRetriever);
-
-        DummyHttpHeaders header = new DummyHttpHeaders(
-                MediaType.APPLICATION_XML_TYPE);
-
-        Response r = auditResource.getAuditLogs("2012-01-05T00:00", "en_US", header);
-        Assert.assertNotNull(r);
-        Assert.assertEquals(Status.OK.getStatusCode(), r.getStatus());
-        Assert.assertTrue(r.getEntity() instanceof StreamingOutput);
-        StreamingOutput so = (StreamingOutput) r.getEntity();
+        String timeBucket = "2012-01-02T00";
+        AuditLogRequest auditLogRequest = getAuditLogRequest(timeBucket);
+        MediaType mediaType = MediaType.APPLICATION_XML_TYPE;
 
         File of = new File(XmlTestOutputFile);
-
         OutputStream os = new FileOutputStream(of);
+        BufferedWriter out = new BufferedWriter(new OutputStreamWriter(os));
         try {
-            so.write(os);
-        } catch (IOException e) {
+            dummyDbAuditLogRetriever.getBulkAuditLogs(auditLogRequest,mediaType,out);
+        } catch (RetryableDatabaseException e ) {
             Assert.assertTrue(e.toString().contains("I/O"));
+        } catch (MarshallingExcetion e ) {
+            Assert.fail(e.getMessage());
         }
-
-        os.close();
-
+        out.close();
     }
 
     @Test
@@ -125,29 +113,21 @@ public class DbAuditLogRetrieverTest {
         deleteIfExists(XmlTestOutputFile);
 
         DummyDBClient dbClient = new DummyDBClient();
-        AuditService auditResource = new AuditService();
-        // statResource.setDbClient(dbClient);
         DbAuditLogRetriever dummyDbAuditLogRetriever = new DbAuditLogRetriever();
-        dummyDbAuditLogRetriever.setQueryThreadCount(queryThreadCount);
         dummyDbAuditLogRetriever.setDbClient(dbClient);
-        auditResource.setAuditLogRetriever(dummyDbAuditLogRetriever);
-
-        DummyHttpHeaders header = new DummyHttpHeaders(
-                MediaType.APPLICATION_XML_TYPE);
-
-        Response r = auditResource.getAuditLogs("2012-01-08T00:00", "en_US", header);
-        Assert.assertNotNull(r);
-        Assert.assertEquals(Status.OK.getStatusCode(), r.getStatus());
-        Assert.assertTrue(r.getEntity() instanceof StreamingOutput);
-        StreamingOutput so = (StreamingOutput) r.getEntity();
+        String timeBucket = "2012-01-08T00";
+        AuditLogRequest auditLogRequest = getAuditLogRequest(timeBucket);
+        MediaType mediaType = MediaType.APPLICATION_XML_TYPE;
 
         File of = new File(XmlTestOutputFile);
-
         OutputStream os = new FileOutputStream(of);
-        so.write(os);
-
-        os.close();
-
+        BufferedWriter out = new BufferedWriter(new OutputStreamWriter(os));
+        try {
+            dummyDbAuditLogRetriever.getBulkAuditLogs(auditLogRequest,mediaType,out);
+        } catch (MarshallingExcetion e ) {
+            Assert.assertTrue(true);
+        }
+        out.close();
     }
 
     @Test
@@ -157,26 +137,26 @@ public class DbAuditLogRetrieverTest {
         deleteIfExists(JsonTestOutputFile);
 
         DummyDBClient dbClient = new DummyDBClient();
-        AuditService auditResource = new AuditService();
         DbAuditLogRetriever dummyDbAuditLogRetriever = new DbAuditLogRetriever();
         dummyDbAuditLogRetriever.setDbClient(dbClient);
-        auditResource.setAuditLogRetriever(dummyDbAuditLogRetriever);
-
-        DummyHttpHeaders header = new DummyHttpHeaders(
-                MediaType.APPLICATION_JSON_TYPE);
-
-        Response r = auditResource.getAuditLogs("2012-01-07T00:00", "en_US", header);
-        Assert.assertNotNull(r);
-        Assert.assertEquals(Status.OK.getStatusCode(), r.getStatus());
-        Assert.assertTrue(r.getEntity() instanceof StreamingOutput);
-
-        StreamingOutput so = (StreamingOutput) r.getEntity();
+        String timeBucket = "2012-01-07T00";
+        DateTime startTime = new DateTime(timeBucket, DateTimeZone.UTC);
+        DateTime endTime =  startTime.plusMinutes(59);
+        AuditLogRequest auditLogRequest = new AuditLogRequest.Builder().timeBucket(timeBucket)
+                .start(startTime).end(endTime).lang("en_US").build();
+        MediaType mediaType = MediaType.APPLICATION_JSON_TYPE;
 
         File of = new File(JsonTestOutputFile);
 
         OutputStream os = new FileOutputStream(of);
-        so.write(os);
-        os.close();
+
+        BufferedWriter out = new BufferedWriter(new OutputStreamWriter(os));
+        try {
+            dummyDbAuditLogRetriever.getBulkAuditLogs(auditLogRequest,mediaType,out);
+        } catch (MarshallingExcetion e ) {
+            Assert.fail(e.getMessage());
+        }
+        out.close();
 
         ObjectMapper mapper = null;
         mapper = new ObjectMapper();
@@ -199,7 +179,6 @@ public class DbAuditLogRetrieverTest {
 
         DummyDBClient dbClient = null;
         AuditService auditResource = new AuditService();
-        // statResource.setDbClient(dbClient);
         DbAuditLogRetriever dummyDbAuditLogRetriever = new DbAuditLogRetriever();
         dummyDbAuditLogRetriever.setDbClient(dbClient);
         auditResource.setAuditLogRetriever(dummyDbAuditLogRetriever);
@@ -232,6 +211,13 @@ public class DbAuditLogRetrieverTest {
         if (f.exists()) {
             f.delete();
         }
+    }
+
+    private AuditLogRequest getAuditLogRequest(String timeBucket) {
+        DateTime startTime = new DateTime(timeBucket, DateTimeZone.UTC);
+        DateTime endTime =  startTime.plusMinutes(59);
+        return new AuditLogRequest.Builder().timeBucket(timeBucket)
+                .start(startTime).end(endTime).lang("en_US").build();
     }
 
 }

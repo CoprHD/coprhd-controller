@@ -307,7 +307,7 @@ public class XtremIOMaskingOrchestrator extends AbstractBasicMaskingOrchestrator
                     previousStep = generateZoningDeleteWorkflow(workflow, previousStep,
                             exportGroup, exportMaskstoDelete);
                     for (ExportMask exportMask : exportMaskstoDelete) {
-                        generateExportMaskDeleteWorkflow(workflow, previousStep, storage,
+                    	previousStep = generateExportMaskDeleteWorkflow(workflow, previousStep, storage,
                                 exportGroup, exportMask, null);
                     }
                 }
@@ -572,8 +572,9 @@ public class XtremIOMaskingOrchestrator extends AbstractBasicMaskingOrchestrator
                     }
                 }
                 if (!exportMaskDelete.isEmpty()) {
+                	String previousStep = zoningStep;
                     for (ExportMask exportMask : exportMaskDelete) {
-                        generateExportMaskDeleteWorkflow(workflow, zoningStep, storage,
+                    	previousStep = generateExportMaskDeleteWorkflow(workflow, previousStep, storage,
                                 exportGroup, exportMask, null);
                     }
                 }
@@ -634,8 +635,9 @@ public class XtremIOMaskingOrchestrator extends AbstractBasicMaskingOrchestrator
                     token);
             // CTRL-13080 fix - Mask really not needed, this method has to get called on every export operation once.
             refreshExportMask(storage, getDevice(), null);
-            if (exportGroup == null || exportGroup.getInactive()) {
+            if (exportGroup != null && exportGroup.getInactive()) {
                 exportGroup.getVolumes().clear();
+                _dbClient.updateObject(exportGroup);
                 taskCompleter.ready(_dbClient);
                 return;
             }
@@ -650,8 +652,9 @@ public class XtremIOMaskingOrchestrator extends AbstractBasicMaskingOrchestrator
 
             String previousStep = generateZoningDeleteWorkflow(workflow, null, exportGroup, exportMasks);
 
-            if (null == exportMasks || exportMasks.isEmpty()) {
+            if (exportGroup != null && (null == exportMasks || exportMasks.isEmpty())) {
                 exportGroup.getVolumes().clear();
+                _dbClient.updateObject(exportGroup);
                 taskCompleter.ready(_dbClient);
                 return;
             }

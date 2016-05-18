@@ -29,6 +29,7 @@ import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.volumecontroller.impl.smis.CIMConnectionFactory;
 import com.google.common.collect.Sets;
+import com.netflix.astyanax.connectionpool.ConnectionFactory;
 
 /**
  * Takes care monitoring for vmax and vnxblock storage devices.
@@ -38,7 +39,7 @@ public class BlockMonitoringImpl implements IMonitoringStorageSystem {
     private final Logger _logger = LoggerFactory.getLogger(BlockMonitoringImpl.class);
 
     /**
-     * Holds List of SMIS Provider's URI which are managed by this Bourne Node and it's callBack instance
+     * Holds List of SMIS Provider's URI which are managed by this Bourne Node and its callBack instance
      * Key : SMIS Provider's URI
      * Value: Callback instance of the MonitoringJob available on ZooKeeper
      */
@@ -90,8 +91,8 @@ public class BlockMonitoringImpl implements IMonitoringStorageSystem {
                         addSMISProviderIntoActiveProviderCache(smisProvider);
                         _logger.info("Added SMIS Provider {} into Active SMIS provider cache", smisProviderURI);
                     } else {
-                        _logger.info("Subscrition for the new Active SMIS Provider {} is failed. " +
-                                "Scheduled Job will try to make subscrition in the next cycle");
+                        _logger.info("Subscription for the new Active SMIS Provider {} is failed. " +
+                                "Scheduled Job will try to make subscription in the next cycle");
                     }
                 } else {
                     _logger.info("SMIS provider {} is Passive provider, so no need to make subscription for indication now",
@@ -216,7 +217,7 @@ public class BlockMonitoringImpl implements IMonitoringStorageSystem {
         Set<String> activeProvidersChangeSet = new HashSet<String>();
         Sets.difference(activeProvidersManagedByThisNodeFromDB, ACTIVE_SMIS_PROVIDERS_CACHE).copyInto(activeProvidersChangeSet);
         _logger.debug("activeProvidersChangeSet :{}", activeProvidersChangeSet);
-        startSubscritionForMonitoring(activeProvidersChangeSet);
+        startSubscriptionForMonitoring(activeProvidersChangeSet);
 
         /**
          * Find new passive provider change set to un-subscribe existing subscription
@@ -247,7 +248,7 @@ public class BlockMonitoringImpl implements IMonitoringStorageSystem {
                 ACTIVE_SMIS_PROVIDERS_CACHE.remove(smisProviderUri);
                 _logger.info("Cleared existing subscription for the passive SMI-S Provider :{}", smisProviderUri);
             } else {
-                _logger.error("Un Subscrition to the passive SMIS provider {} is failed. " +
+                _logger.error("Un Subscription to the passive SMIS provider {} is failed. " +
                         "Controller will try to un-subscribe in the next scheduled cycle", smisProviderUri);
             }
 
@@ -259,7 +260,7 @@ public class BlockMonitoringImpl implements IMonitoringStorageSystem {
      * 
      * @param activeProvidersChangeSet {@link Set} Active provider's URIs to make new subscription for monitoring.
      */
-    private void startSubscritionForMonitoring(
+    private void startSubscriptionForMonitoring(
             Set<String> activeProvidersChangeSet) {
         for (String smisProviderUri : activeProvidersChangeSet) {
             boolean isSuccess = _connectionFactory.subscribeSMIProviderConnection(smisProviderUri);
@@ -267,7 +268,7 @@ public class BlockMonitoringImpl implements IMonitoringStorageSystem {
                 ACTIVE_SMIS_PROVIDERS_CACHE.add(smisProviderUri);
                 _logger.info("Created new subscription for the active SMI-S Provider :{}", smisProviderUri);
             } else {
-                _logger.error("Subscrition to the active SMIS provider {} is failed. " +
+                _logger.error("Subscription to the active SMIS provider {} is failed. " +
                         "Controller will try to make new subscription in the next scheduled cycle", smisProviderUri);
             }
         }

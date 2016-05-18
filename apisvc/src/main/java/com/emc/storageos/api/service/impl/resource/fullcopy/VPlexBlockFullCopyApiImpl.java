@@ -137,10 +137,10 @@ public class VPlexBlockFullCopyApiImpl extends AbstractBlockFullCopyApiImpl {
                 // CG, then this is a CG created prior to 2.2 and in this
                 // case we want full copies treated like snapshots, which
                 // is only create a copy of the passed object.
-                if (!cg.checkForType(Types.LOCAL)) {
-                    fcSourceObjList.add(fcSourceObj);
-                } else {
+                if (cg.checkForType(Types.LOCAL) || cg.checkForType(Types.SRDF)) {
                     fcSourceObjList.addAll(getActiveCGVolumes(cg));
+                } else {
+                    fcSourceObjList.add(fcSourceObj);
                 }
             }
         } else {
@@ -283,8 +283,17 @@ public class VPlexBlockFullCopyApiImpl extends AbstractBlockFullCopyApiImpl {
             URI fcSourceURI = fcSourceObj.getId();
             // volumes in VolumeGroup can be from different vArrays
             varray = getVarrayFromCache(vArrayCache, fcSourceObj.getVirtualArray());
-            String copyName = name + (sortedSourceObjectList.size() > 1 ? "-" + ++sourceCounter : "");
-
+            String copyName = null;
+            if (fcSourceObj instanceof Volume && ((Volume) fcSourceObj).getApplication(_dbClient) != null) {
+                Volume backendVolume = VPlexUtil.getVPLEXBackendVolume((Volume) fcSourceObj, true, _dbClient);
+                if (NullColumnValueGetter.isNotNullValue(backendVolume.getReplicationGroupInstance())) {
+                    copyName = name + "-" + backendVolume.getReplicationGroupInstance()
+                            + (sortedSourceObjectList.size() > 1 ? "-" + ++sourceCounter : "");
+                }
+            }
+            if (copyName == null) {
+            	copyName = name + (sortedSourceObjectList.size() > 1 ? "-" + ++sourceCounter : "");
+            }
             vplexSrcSystemId = fcSourceObj.getStorageController();
             if (fcSourceObj instanceof Volume) {
                 // DO IT ONLY FOR VOLUME CLONE - In case of snapshot new VPLEX volume needs to be created

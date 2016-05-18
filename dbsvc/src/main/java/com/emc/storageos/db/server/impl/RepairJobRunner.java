@@ -5,12 +5,12 @@
 package com.emc.storageos.db.server.impl;
 
 import com.emc.storageos.services.util.JmxServerWrapper;
+import com.emc.storageos.services.util.TimeUtils;
 import org.apache.cassandra.service.StorageService;
 import org.apache.cassandra.service.ActiveRepairService;
 import org.apache.cassandra.service.StorageServiceMBean;
 import org.apache.cassandra.dht.Range;
 import org.apache.cassandra.dht.Token;
-import org.apache.cassandra.utils.concurrent.SimpleCondition;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -30,6 +30,8 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.locks.Condition;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 /**
  * Class handles running repair job and listening for messages related modeled
@@ -45,8 +47,11 @@ public class RepairJobRunner implements NotificationListener, AutoCloseable {
             .getLogger(RepairJobRunner.class);
     private final SimpleDateFormat format = new SimpleDateFormat(
             "yyyy-MM-dd HH:mm:ss,SSS");
+    private static final int MIN_MINUTE_FOR_REPAIR_TIME_IN_LOG = 5;
 
-    private final Condition condition = new SimpleCondition();
+    final private Lock lock = new ReentrantLock();
+    final private Condition finished = lock.newCondition();
+    private boolean repairRangeDone = false;
 
     /**
      * Flag to indicate the job is successful or failed
@@ -179,11 +184,10 @@ public class RepairJobRunner implements NotificationListener, AutoCloseable {
      * @throws IOException
      * @throws InterruptedException
      */
-    public boolean runRepair() throws IOException,
-            InterruptedException {
+    public boolean runRepair() throws IOException, InterruptedException {
         _startTimeInMillis = System.currentTimeMillis();
 
-        List<StringTokenRange> localRanges = getLocalRanges(this.keySpaceName);
+        List<StringTokenRange> localRanges = getLocalRanges(keySpaceName);
         if (localRanges == null) {
             _success = false;
             return false;
@@ -191,7 +195,7 @@ public class RepairJobRunner implements NotificationListener, AutoCloseable {
 
         _totalRepairSessions = localRanges.size();
         if (_totalRepairSessions == 0) {
-            _log.info("Nothing to repair for keyspace {}", this.keySpaceName);
+            _log.info("Nothing to repair for keyspace {}", keySpaceName);
             return _success;
         }
 
@@ -199,45 +203,35 @@ public class RepairJobRunner implements NotificationListener, AutoCloseable {
                 this.keySpaceName, _totalRepairSessions);
 
         // Find start token, in case the token is no longer in ring, we have to start from beginning
-        this._completedRepairSessions = this._lastToken == null ? 0 : indexOfRange(localRanges, this._lastToken);
-        if (this._completedRepairSessions == -1) {
-            _log.error("Recorded last working range \"{}\" is not found, starting from beginning", this._lastToken);
-            this._completedRepairSessions = 0;
+        _completedRepairSessions = _lastToken == null ? 0 : indexOfRange(localRanges, _lastToken);
+        if (_completedRepairSessions == -1) {
+            _log.error("Recorded last working range \"{}\" is not found, starting from beginning", _lastToken);
+            _completedRepairSessions = 0;
         } else {
             _log.info("Last token is {}, progress is {}%, starting repair from token #{}",
-                    new Object[] { this._lastToken, getProgress(), this._completedRepairSessions });
+                    new Object[] { _lastToken, getProgress(), _completedRepairSessions });
         }
 
         ScheduledFuture<?> jobMonitorHandle = startMonitor(svcProxy);
+        lock.lock();
         try {
             _aborted = false;
             _success = true;
             while (_completedRepairSessions < _totalRepairSessions) {
 
                 String currentDigest = DbRepairRunnable.getClusterStateDigest();
-                if (!this.clusterStateDigest.equals(currentDigest)) {
-                    _log.error("Cluster state changed from {} to {}, repair failed", this.clusterStateDigest, currentDigest);
+                if (!clusterStateDigest.equals(currentDigest)) {
+                    _log.error("Cluster state changed from {} to {}, repair failed", clusterStateDigest, currentDigest);
                     _success = false;
                     break;
                 }
 
-                StringTokenRange range = localRanges.get(this._completedRepairSessions);
+                StringTokenRange range = localRanges.get(_completedRepairSessions);
 
-                this.listener.onStartToken(range.end, getProgress());
-
-                int cmd = svcProxy.forceRepairRangeAsync(range.begin, range.end, this.keySpaceName,
-                        true, false, true);
-
-                _log.info("Wait for repairing this range to be done cmd={}", cmd);
-                if (cmd > 0) {
-                    condition.await();
-                }
-
-                _log.info("Repair this range is done success={}", _success);
+                repairRange(range);
 
                 if (!_success) {
-                    _log.error("Fail to repair range {} {}. Stopping the job",
-                            range.begin, range.end);
+                    _log.error("Fail to repair range {} {}. Stopping the job", range.begin, range.end);
                     break;
                 }
 
@@ -246,6 +240,7 @@ public class RepairJobRunner implements NotificationListener, AutoCloseable {
                 _log.info("{} repair sessions finished. Current progress {}%", _completedRepairSessions, getProgress());
             }
         } finally {
+            lock.unlock();
             jobMonitorHandle.cancel(false);
             _log.info("Stopped repair job monitor");
         }
@@ -255,8 +250,28 @@ public class RepairJobRunner implements NotificationListener, AutoCloseable {
             _lastToken = null;
         }
 
-        _log.info("Db repair consumes {} minutes", (System.currentTimeMillis() - _startTimeInMillis) / 60000);
+        long repairMillis = System.currentTimeMillis() - _startTimeInMillis;
+        _log.info("Db repair consumes {} ",repairMillis > MIN_MINUTE_FOR_REPAIR_TIME_IN_LOG * TimeUtils.MINUTES ?
+                repairMillis / TimeUtils.MINUTES + " minutes" : repairMillis / TimeUtils.SECONDS + " seconds");
+
         return _success;
+    }
+
+    private void repairRange(StringTokenRange range) throws InterruptedException {
+        listener.onStartToken(range.end, getProgress());
+
+        repairRangeDone = false;
+
+        int cmd = svcProxy.forceRepairRangeAsync(range.begin, range.end, keySpaceName, true, false, false);
+
+        _log.info("Wait for repairing this range to be done cmd={}", cmd);
+        if (cmd > 0) {
+            while (!repairRangeDone) {
+                finished.await();
+            }
+        }
+
+        _log.info("Repair this range is done success={}", _success);
     }
 
     /**
@@ -286,9 +301,7 @@ public class RepairJobRunner implements NotificationListener, AutoCloseable {
                         if (progress == _lastProgress) {
                             long delta = (currentMillis - _lastCheckMillis) / 60000;
                             if (delta > _maxWaitInMinutes) {
-                                _log.info(
-                                        "Repair job hangs for {} minutes. Abort it",
-                                        delta);
+                                _log.info("Repair job hangs for {} minutes. Abort it", delta);
                                 svcProxy.forceTerminateAllRepairSessions();
                                 _aborted = true;
                             }
@@ -327,46 +340,45 @@ public class RepairJobRunner implements NotificationListener, AutoCloseable {
      * Handle DB repair request notification from Cassandra JMX bean
      */
     public void handleNotification(Notification notification, Object handback) {
-        if ("repair".equals(notification.getType())) {
-            int[] status = (int[]) notification.getUserData();
-            if (status.length == 2) {
-                String message = String.format("Repair notification [%s] %s",
-                        format.format(notification.getTimeStamp()),
-                        notification.getMessage());
-                _log.info(message);
-                // repair status is int array with [0] = cmd number, [1] =
-                // status
-                if (status[1] == ActiveRepairService.Status.SESSION_FAILED
-                        .ordinal()) {
-                    _log.info("Repair session failed");
-                    _success = false;
-                } else if (status[1] == ActiveRepairService.Status.FINISHED
-                        .ordinal()) {
+        lock.lock();
+        try {
+            if ("repair".equals(notification.getType())) {
+                int[] status = (int[]) notification.getUserData();
+                if (status.length == 2) {
+                    _log.info("Repair notification [{}] {}", format.format(notification.getTimeStamp()),
+                            notification.getMessage());
+                    _log.info("status: {} {}", status[0], status[1]);
 
-                    _log.info("Repair session finished");
-                    if (_aborted) {
+                    // repair status is int array with [0] = cmd number, [1] = status
+                    if (status[1] == ActiveRepairService.Status.SESSION_FAILED.ordinal()) {
+                        _log.info("Repair cmd={} failed", status[0]);
                         _success = false;
+                    } else if (status[1] == ActiveRepairService.Status.FINISHED.ordinal()) {
+
+                        _log.info("Repair cmd={} finished", status[0]);
+                        if (_aborted) {
+                            _success = false;
+                        }
+                        repairRangeDone = true;
+                        finished.signal();
                     }
-                    condition.signalAll();
+                } else {
+                    _log.error("Unexpected notification: status.length {}", status.length);
                 }
-            } else {
-                _log.error("Unexpected notification: status.length {}", status.length);
+            } else if (JMXConnectionNotification.NOTIFS_LOST.equals(notification.getType())) {
+                _log.error("[{}] Lost notification. You should check server log for repair status of keyspace {}",
+                        format.format(notification.getTimeStamp()),
+                        keySpaceName);
+            } else if (JMXConnectionNotification.FAILED.equals(notification.getType())
+                    || JMXConnectionNotification.CLOSED.equals(notification.getType())) {
+                _log.error("JMX connection closed. You should check server log for repair status of keyspace {}"
+                                + "(Subsequent keyspaces are not going to be repaired).",
+                        keySpaceName);
+                repairRangeDone = true;
+                finished.signal();
             }
-        } else if (JMXConnectionNotification.NOTIFS_LOST.equals(notification.getType()))
-        {
-            String message = String.format("[%s] Lost notification. You should check server log for repair status of keyspace %s",
-                                           format.format(notification.getTimeStamp()),
-                                           keySpaceName);
-            _log.error(message);
-        }
-        else if (JMXConnectionNotification.FAILED.equals(notification.getType())
-                 || JMXConnectionNotification.CLOSED.equals(notification.getType()))
-        {
-            String message = String.format("JMX connection closed. You should check server log for repair status of keyspace %s"
-                                           + "(Subsequent keyspaces are not going to be repaired).",
-                                           keySpaceName);
-            _log.error(message);
-            condition.signalAll();
+        }finally {
+            lock.unlock();
         }
     }
 

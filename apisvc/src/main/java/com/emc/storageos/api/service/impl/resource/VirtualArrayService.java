@@ -747,7 +747,7 @@ public class VirtualArrayService extends TaggedResource {
 
     /**
      * Determines if the VirtualPool with the passed id is accessible to
-     * the user's tenant organization.
+     * the user's tenant (includes the subtenants user has TenantAdmin role) .
      * 
      * @param vpoolId The VirtualPool id.
      * 
@@ -763,10 +763,22 @@ public class VirtualArrayService extends TaggedResource {
 
         StorageOSUser user = getUserFromContext();
         URI tenantURI = URI.create(user.getTenantId());
-        _log.debug("Tenant is {}", tenantURI.toString());
-        boolean hasUsageACL = _permissionsHelper.tenantHasUsageACL(tenantURI, vpool);
-        _log.debug("Tenant has usage ACL for VirtualPool {}: {}", vpoolId, hasUsageACL);
-        return hasUsageACL;
+
+        // check user's home tenant
+        if (_permissionsHelper.tenantHasUsageACL(tenantURI, vpool)) {
+            _log.debug("Home tenant {} has usage ACL for VirtualPool {}", tenantURI, vpoolId);
+            return true;
+        }
+
+        // check user's subtenant
+        for (String subtenantId : _permissionsHelper.getSubtenantsForUser(user)) {
+            if (_permissionsHelper.tenantHasUsageACL(URI.create(subtenantId), vpool)) {
+                _log.debug("Subtenant {} has usage ACL for VirtualPool {}", tenantURI, vpoolId);
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**

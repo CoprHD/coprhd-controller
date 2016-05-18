@@ -1,4 +1,4 @@
-#!/bin/bash -e
+#!/bin/bash 
 #
 # Copyright (c) 2014 EMC Corporation
 # All Rights Reserved
@@ -15,6 +15,7 @@
 export PATH=/bin:/bin:/sbin:/usr/bin:/usr/sbin
 
 . /etc/rc.status
+set -e
 
 _usage() {
     set +Ex
@@ -34,6 +35,7 @@ _usage() {
     echo "   or: $0 --reconfig-security" >&2
     echo "   or: $0 --restart service"  >&2
     echo "   or: $0 --reload ntp|ssh|connectemc" >&2
+    echo "   or: $0 --dhparam generate dhparam" >&2
     exit 2
 }
 
@@ -252,6 +254,8 @@ _reload() {
             exec /usr/bin/systemctl restart nginx ;;
         firewall)
             exec /usr/bin/systemctl restart SuSEfirewall2 ;;
+        ipsec)
+            echo "skip reload ipsec in oss platform" ;;
         *)
             _fatal2 2 "Unsupported service type ${1}" ;;
     esac
@@ -521,6 +525,8 @@ case ${#} in
             --getsslprops)            _s _get_ssl_props ;;
             --initializeprops)        _x _initialize_props ;;
             --is-appliance)           echo "false" ;;
+            --dhparam)                exit 0 ;;
+
             *)                        _usage
         esac;;
     2)  case ${1} in

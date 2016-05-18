@@ -16,6 +16,8 @@ import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.api.service.authorization.PermissionsHelper;
 import com.emc.storageos.cinder.CinderConstants;
+import com.emc.storageos.cinder.model.CinderUsage;
+import com.emc.storageos.cinder.model.UsageAndLimits;
 import com.emc.storageos.cinder.model.UsageStats;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
@@ -362,8 +364,8 @@ public class QuotaHelper {
      */
     public UsageStats getStorageStats(URI vpool, URI projectId) {
         UsageStats objStats = new UsageStats();
-        long totalSnapshotsUsed = 0;
-        long totalSizeUsed = 0;
+        double totalSnapshotsUsed = 0;
+        double totalSizeUsed = 0;
         long totalVolumesUsed = 0;
         URIQueryResultList uris = new URIQueryResultList();
 
@@ -372,8 +374,8 @@ public class QuotaHelper {
             _dbClient.queryByConstraint(ContainmentConstraint.Factory.getVirtualPoolVolumeConstraint(vpool), volUris);
             for (URI voluri : volUris) {
                 Volume volume = _dbClient.queryObject(Volume.class, voluri);
-                if (volume != null && !volume.getInactive()) {
-                    totalSizeUsed += (long) (volume.getAllocatedCapacity() / GB);
+                if (volume != null && !volume.getInactive() && (volume.getProject().getURI().toString().equals(projectId.toString())) ) {
+                    totalSizeUsed +=  ((double)volume.getCapacity() / GB);
                     totalVolumesUsed++;
                 }
 
@@ -384,7 +386,7 @@ public class QuotaHelper {
                     BlockSnapshot blockSnap = _dbClient.queryObject(BlockSnapshot.class, snapUri);
                     if (blockSnap != null && !blockSnap.getInactive()) {
                         _log.info("ProvisionedCapacity = {} ", blockSnap.getProvisionedCapacity());
-                        totalSizeUsed += (long) (blockSnap.getProvisionedCapacity() / GB);
+                        totalSizeUsed += ((double)blockSnap.getProvisionedCapacity() / GB);
                         totalSnapshotsUsed++;
                     }
                 }
@@ -396,7 +398,7 @@ public class QuotaHelper {
             for (URI volUri : uris) {
                 Volume volume = _dbClient.queryObject(Volume.class, volUri);
                 if (volume != null && !volume.getInactive()) {
-                    totalSizeUsed += (long) (volume.getAllocatedCapacity() / GB);
+                    totalSizeUsed += ((double)volume.getCapacity() / GB);
                     totalVolumesUsed++;
                 }
 
@@ -406,16 +408,16 @@ public class QuotaHelper {
                 for (URI snapUri : snapList) {
                     BlockSnapshot blockSnap = _dbClient.queryObject(BlockSnapshot.class, snapUri);
                     if (blockSnap != null && !blockSnap.getInactive()) {
-                        totalSizeUsed += (long) (blockSnap.getProvisionedCapacity() / GB);
+                        totalSizeUsed += ((double)blockSnap.getProvisionedCapacity() / GB);
                         totalSnapshotsUsed++;
                     }
                 }
             }
         }
 
-        objStats.snapshots = totalSnapshotsUsed;
+        objStats.snapshots = (long)totalSnapshotsUsed;
         objStats.volumes = totalVolumesUsed;
-        objStats.spaceUsed = totalSizeUsed;
+        objStats.spaceUsed = (long)(Math.round(totalSizeUsed));
 
         return objStats;
     }
@@ -440,4 +442,69 @@ public class QuotaHelper {
 		return qMap;
     }
     
+    
+
+    /**
+     * Get usage statistics in terms of quota attributes like gigabytes,snapshots, volumes. 
+     * The details include in_use,reserved,limit.
+     * 
+     * 
+     * @prereq none
+     * 
+     * @param tenantId
+     * @param quotaMap of project and vpools
+     * @param proj project under consideration
+     * 
+     * @brief get usage statistics in terms of project and volume types.
+     * @return CinderUsage
+     */
+    public CinderUsage getUsageStatistics(URI tenantId , HashMap<String, String> quotaMap, Project proj){
+    	CinderUsage objCinderUsage = new CinderUsage();
+    	
+    	List<URI> vpools = _dbClient.queryByType(VirtualPool.class, true);
+        for (URI vpool : vpools) {
+            VirtualPool pool = _dbClient.queryObject(VirtualPool.class, vpool);
+            _log.debug("Looking up vpool {}", pool.getLabel());
+            if (pool != null && pool.getType().equalsIgnoreCase(VirtualPool.Type.block.name())) {
+                if (_permissionsHelper.tenantHasUsageACL(tenantId, pool)) {
+                		UsageStats stats = getStorageStats(pool.getId(), proj.getId());
+                		UsageAndLimits objSpaceUsage = new UsageAndLimits();                		
+                		objSpaceUsage.setIn_use(stats.spaceUsed);
+                		objSpaceUsage.setLimit(Long.parseLong(quotaMap.get("gigabytes" + "_" + pool.getLabel())));
+                		                		
+                		UsageAndLimits objVolsUsage = new UsageAndLimits();                		
+                		objVolsUsage.setIn_use(stats.volumes);
+                		objVolsUsage.setLimit(Long.parseLong(quotaMap.get("volumes" + "_" + pool.getLabel())));
+                		
+                		UsageAndLimits objSnapsUsage = new UsageAndLimits();                		
+                		objSnapsUsage.setIn_use(stats.snapshots);
+                		objSnapsUsage.setLimit(Long.parseLong(quotaMap.get("snapshots" + "_" + pool.getLabel())));
+                		
+                		objCinderUsage.getQuota_set().put("gigabytes" + "_" + pool.getLabel(),objSpaceUsage);
+                		objCinderUsage.getQuota_set().put("snapshots" + "_" + pool.getLabel(),objSnapsUsage);
+                		objCinderUsage.getQuota_set().put("volumes" + "_" + pool.getLabel(), objVolsUsage);                   
+                }
+            }
+        }
+        
+        //now get the usage information for the project
+        UsageStats stats = getStorageStats(null, proj.getId());
+        UsageAndLimits objSpaceUsage = new UsageAndLimits();		
+		objSpaceUsage.setIn_use(stats.spaceUsed);
+		objSpaceUsage.setLimit(Long.parseLong(quotaMap.get("gigabytes")));
+		                		
+		UsageAndLimits objVolsUsage = new UsageAndLimits();		
+		objVolsUsage.setIn_use(stats.volumes);
+		objVolsUsage.setLimit(Long.parseLong(quotaMap.get("volumes")));
+		
+		UsageAndLimits objSnapsUsage = new UsageAndLimits();		
+		objSnapsUsage.setIn_use(stats.snapshots);
+		objSnapsUsage.setLimit(Long.parseLong(quotaMap.get("snapshots")));
+		
+		objCinderUsage.getQuota_set().put("gigabytes",objSpaceUsage);
+		objCinderUsage.getQuota_set().put("snapshots",objSnapsUsage);
+		objCinderUsage.getQuota_set().put("volumes", objVolsUsage);  
+		
+		return objCinderUsage;
+    }
 }

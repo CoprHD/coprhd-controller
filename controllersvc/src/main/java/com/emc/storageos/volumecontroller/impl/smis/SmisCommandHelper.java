@@ -26,8 +26,6 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import javax.cim.CIMArgument;
 import javax.cim.CIMDataType;
@@ -183,8 +181,12 @@ public class SmisCommandHelper implements SmisConstants {
                 append(" -- Attempting invokeMethod ").append(methodName).append(" on\n").
                 append("  objectPath=").append(objectPath.toString()).
                 append(" with arguments: \n");
-        for (CIMArgument arg : inArgs) {
-            inputInfoBuffer.append("    inArg[").append(index++).append("]=").append(arg.toString()).append('\n');
+        if (inArgs != null) {
+            for (CIMArgument arg : inArgs) {
+                if (arg != null) {
+                    inputInfoBuffer.append("    inArg[").append(index++).append("]=").append(arg.toString()).append('\n');
+                }
+            }
         }
         _log.info(inputInfoBuffer.toString());
         long start = System.nanoTime();
@@ -420,7 +422,7 @@ public class SmisCommandHelper implements SmisConstants {
      * @param storageSystem the storage system
      * @param volume the volume
      */
-    public void removeVolumeFromStorageGroupsIfVolumeIsNotInAnyMV(StorageSystem storage, Volume volume) {
+    public void removeVolumeFromStorageGroupsIfVolumeIsNotInAnyMV(StorageSystem storage, BlockObject bo) {
         /**
          * If Volume is not associated with any MV, then remove the volume from its associated SGs.
          */
@@ -428,9 +430,9 @@ public class SmisCommandHelper implements SmisConstants {
         CloseableIterator<CIMInstance> sgInstancesItr = null;
         boolean isSGInAnyMV = true;
         try {
-            _log.info("Checking if Volume {} needs to be removed from Storage Groups which is not in any Masking View",
-                    volume.getNativeGuid());
-            CIMObjectPath volumePath = _cimPath.getBlockObjectPath(storage, volume);
+            _log.info("Checking if device {} needs to be removed from Storage Groups which is not in any Masking View",
+                    bo.getNativeGuid());
+            CIMObjectPath volumePath = _cimPath.getBlockObjectPath(storage, bo);
             // See if Volume is associated with MV
             mvPathItr = getAssociatorNames(storage, volumePath, null, SYMM_LUN_MASKING_VIEW,
                     null, null);
@@ -439,9 +441,9 @@ public class SmisCommandHelper implements SmisConstants {
             }
 
             if (!isSGInAnyMV) {
-                _log.info("Volume {} is not in any Masking View, hence removing it from Storage Groups if any",
-                        volume.getNativeGuid());
-                boolean forceFlag = ExportUtils.useEMCForceFlag(_dbClient, volume.getId());
+                _log.info("Device {} is not in any Masking View, hence removing it from Storage Groups if any",
+                        bo.getNativeGuid());
+                boolean forceFlag = ExportUtils.useEMCForceFlag(_dbClient, bo.getId());
                 // Get all the storage groups associated with this volume
                 sgInstancesItr = getAssociatorInstances(storage, volumePath, null,
                         SmisConstants.SE_DEVICE_MASKING_GROUP, null, null, PS_ELEMENT_NAME);
@@ -457,7 +459,7 @@ public class SmisCommandHelper implements SmisConstants {
                             removeVolumeGroupFromPolicyAndLimitsAssociation(client, storage, sgPath.getObjectPath());
                         }
 
-                        removeVolumesFromStorageGroup(storage, storageGroupName, Collections.singletonList(volume.getId()), forceFlag);
+                        removeVolumesFromStorageGroup(storage, storageGroupName, Collections.singletonList(bo.getId()), forceFlag);
 
                         // If there was only one volume in the SG, it would be empty after removing that last volume.
                         if (sgVolumeCount == 1) {
@@ -467,11 +469,11 @@ public class SmisCommandHelper implements SmisConstants {
                     }
                 }
             } else {
-                _log.info("Found that Volume {} is part of Masking View {}", volume.getNativeGuid(), mvPathItr.next());
+                _log.info("Found that Device {} is part of Masking View {}", bo.getNativeGuid(), mvPathItr.next());
             }
         } catch (Exception e) {
-            _log.warn("Exception while trying to remove volume {} from Storage Groups which is not in any Masking View",
-                    volume.getNativeGuid(), e);
+            _log.warn("Exception while trying to remove device {} from Storage Groups which is not in any Masking View",
+                    bo.getNativeGuid(), e);
         } finally {
             closeCIMIterator(mvPathItr);
             closeCIMIterator(sgInstancesItr);
@@ -2326,7 +2328,8 @@ public class SmisCommandHelper implements SmisConstants {
         boolean tagSet = false;
         // Set/Unset the RP tag (if applicable)
         if (volume != null && storageSystem != null && volume.checkForRp() && storageSystem.getSystemType() != null
-                && storageSystem.getSystemType().equalsIgnoreCase(DiscoveredDataObject.Type.vmax.toString())) {
+                && storageSystem.getSystemType().equalsIgnoreCase(DiscoveredDataObject.Type.vmax.toString())
+                && !storageSystem.checkIfVmax3()) {
             List<CIMObjectPath> volumePathList = new ArrayList<CIMObjectPath>();
             volumePathList.add(_cimPath.getBlockObjectPath(storageSystem, volume));
 
@@ -2441,8 +2444,8 @@ public class SmisCommandHelper implements SmisConstants {
 
     public CIMArgument[] getAddVolumesToMaskingGroupInputArguments(StorageSystem storageDevice, String storageGroupName,
             List<URI> volumeURIList, String[] deviceNumbers, boolean forceFlag) throws Exception {
-        CIMObjectPath maskingGroupPath = _cimPath.getMaskingGroupPath(storageDevice, extractGroupName(storageGroupName),
-                MASKING_GROUP_TYPE.SE_DeviceMaskingGroup);
+        CIMObjectPath maskingGroupPath = _cimPath.getMaskingGroupPath(storageDevice,
+                ControllerUtils.extractGroupName(storageGroupName), MASKING_GROUP_TYPE.SE_DeviceMaskingGroup);
         String[] volumeNames = getBlockObjectAlternateNames(volumeURIList);
         CIMObjectPath[] members = _cimPath.getVolumePaths(storageDevice, volumeNames);
         List<CIMArgument> argsList = new ArrayList<CIMArgument>();
@@ -2721,12 +2724,14 @@ public class SmisCommandHelper implements SmisConstants {
 
     }
 
-    public CIMArgument[] getRestoreFromSettingsStateInputArguments(CIMObjectPath settingsStatePath) {
-        return new CIMArgument[] {
-                _cimArgument.uint16(CP_OPERATION, RESTORE_FROM_SYNC_SETTINGS),
-                _cimArgument.reference(CP_SETTINGS_STATE, settingsStatePath),
-                _cimArgument.uint16(CP_WAIT_FOR_COPY_STATE, RESTORED_COPY_STATE)
-        };
+    public CIMArgument[] getRestoreFromSettingsStateInputArguments(CIMObjectPath settingsStatePath, boolean waitForCopyState) {
+        List<CIMArgument> args = new ArrayList<CIMArgument>();
+        args.add(_cimArgument.uint16(CP_OPERATION, RESTORE_FROM_SYNC_SETTINGS));
+        args.add(_cimArgument.reference(CP_SETTINGS_STATE, settingsStatePath));
+        if (waitForCopyState) {
+            args.add(_cimArgument.uint16(CP_WAIT_FOR_COPY_STATE, RESTORED_COPY_STATE));
+        }
+        return args.toArray(new CIMArgument[args.size()]);
     }
 
     public CIMArgument[] getDeleteReplicationGroupInputArguments(StorageSystem storage, String groupName) {
@@ -2796,6 +2801,7 @@ public class SmisCommandHelper implements SmisConstants {
     public CIMArgument[] getCreateGroupReplicaInputArgumentsForVMAX(
             StorageSystem storage, CIMObjectPath cgPath,
             boolean createInactive, String label, CIMObjectPath targetGroupPath,
+            CIMObjectPath targetVPSnapPoolPath,
             CIMInstance replicaSettingConsistentPointInTime,
             SYNC_TYPE syncType) {
         final CIMArgument[] basicArgs = new CIMArgument[] {
@@ -2804,6 +2810,9 @@ public class SmisCommandHelper implements SmisConstants {
         final List<CIMArgument> args = new ArrayList<CIMArgument>(asList(basicArgs));
         if (null != targetGroupPath) {
             args.add(_cimArgument.reference(CP_TARGET_GROUP, targetGroupPath));
+        }
+        if (null != targetVPSnapPoolPath) {
+            args.add(_cimArgument.reference(CP_TARGET_POOL, targetVPSnapPoolPath));
         }
         // If active, add the RelationshipName
         if (!createInactive) {
@@ -4199,7 +4208,7 @@ public class SmisCommandHelper implements SmisConstants {
 
     }
 
-    /*
+    /**
      * Giver 2 strings: str1 and str2, this method concatenates them by using the delimeter
      * and restricting the size of the resulting string to maxLength.
      *
@@ -4885,8 +4894,8 @@ public class SmisCommandHelper implements SmisConstants {
         return argsList.toArray(result);
     }
 
-    public CIMArgument[] getCreateGroupReplicaForSRDFInputArguments(CIMObjectPath srcCG, CIMObjectPath tgtCG,
-            CIMObjectPath collection, int mode, Object repSettingInstance) {
+    public CIMArgument[] getCreateGroupReplicaForSRDFInputArguments(StorageSystem storage, String replicaName,
+            CIMObjectPath srcCG, CIMObjectPath tgtCG, CIMObjectPath collection, int mode, Object repSettingInstance) {
         List<CIMArgument> args = new ArrayList<CIMArgument>();
         args.add(_cimArgument.reference(CP_CONNECTIVITY_COLLECTION, collection));
         // By default CG's are consistency enabled for 8.0.3 & 4.6.2.25 provider versions. Hence commenting the below line
@@ -4895,6 +4904,11 @@ public class SmisCommandHelper implements SmisConstants {
         args.add(_cimArgument.uint16(CP_SYNC_TYPE, MIRROR_VALUE));
         args.add(_cimArgument.reference(CP_SOURCE_GROUP, srcCG));
         args.add(_cimArgument.reference(CP_TARGET_GROUP, tgtCG));
+
+        int maxRelNameLength = storage.getUsingSmis80() ? MAX_SMI80_RELATIONSHIP_NAME : MAX_VMAX_RELATIONSHIP_NAME;
+        final String relationshipName = (replicaName.length() > maxRelNameLength) ? replicaName.substring(0, maxRelNameLength)
+                : replicaName;
+        args.add(_cimArgument.string(RELATIONSHIP_NAME, relationshipName));
         // args.add(_cimArgument.object(CP_REPLICATIONSETTING_DATA, repSettingInstance));
         // WaitForCopyState only valid for Active mode.
         if (SRDFOperations.Mode.ACTIVE.getMode() == mode) {
@@ -5998,7 +6012,8 @@ public class SmisCommandHelper implements SmisConstants {
             String replicationGroupName, List<URI> replicas) throws Exception {
         List<URI> replicasToAdd = new ArrayList<URI>();
         replicasToAdd.addAll(replicas);
-        CIMObjectPath replicationGroupPath = _cimPath.getReplicationGroupPath(storage, extractGroupName(replicationGroupName));
+        CIMObjectPath replicationGroupPath = _cimPath.getReplicationGroupPath(storage,
+                ControllerUtils.extractGroupName(replicationGroupName));
         List<URI> volumesInRG = findVolumesInReplicationGroup(
                 storage, replicationGroupPath, replicas);
         replicasToAdd.removeAll(volumesInRG);
@@ -6520,7 +6535,7 @@ public class SmisCommandHelper implements SmisConstants {
      */
     public CIMArgument[] getCreateListReplicaInputArguments(StorageSystem storageDevice, CIMObjectPath[] sourceVolumePath,
             CIMObjectPath[] targetVolumePath, List<String> labels, int syncType, String replicaName, String sessionName,
-            boolean createInactive) {
+            boolean createInactive, CIMObjectPath targetVPSnapPoolPath) {
         List<CIMArgument> args = new ArrayList<CIMArgument>();
         int inactiveValue = (syncType == SmisConstants.CLONE_VALUE) ? PREPARED_VALUE : INACTIVE_VALUE;
         int waitForCopyState = (createInactive) ? inactiveValue : ACTIVATE_VALUE;
@@ -6555,6 +6570,10 @@ public class SmisCommandHelper implements SmisConstants {
                 // For VMAX2 arrays use the VPSNAPS during createListReplica.
                 if (!storageDevice.checkIfVmax3()) {
                     repSettingData = getReplicationSettingDataInstanceForDesiredCopyMethod(storageDevice, replicaName, VP_SNAP_VALUE, true);
+                    if (targetVPSnapPoolPath != null) {
+                        // set the target pool path
+                        args.add(_cimArgument.reference(CP_TARGET_POOL, targetVPSnapPoolPath));
+                    }
                 } else {
                     // For VMAX3, we always create snapvx snapshots
                     repSettingData = getReplicationSettingDataInstanceForDesiredCopyMethod(storageDevice, sessionName,
@@ -6664,7 +6683,8 @@ public class SmisCommandHelper implements SmisConstants {
             StorageSystem storage, BlockObject blockObject,
             BlockSnapshot snapshot) throws WBEMException {
 
-        if (blockObject.hasConsistencyGroup()) {
+        if (blockObject.hasConsistencyGroup()
+                && NullColumnValueGetter.isNotNullValue(blockObject.getReplicationGroupInstance())) {
             return getSettingsDefineStateFromSourceGroup(storage, blockObject);
         }
         return getSettingsDefineStateFromSource(storage, blockObject);
@@ -6893,16 +6913,14 @@ public class SmisCommandHelper implements SmisConstants {
         return false;
     }
 
-    /*
+    /**
      * Creates an explicitly sized array of generic type T, containing the given value for all its elements.
      *
      * Example:
      * toMultiElementArray(2, true); => boolean[] array = new boolean[2] { true, true};
      *
      * @param count size of the array
-     *
      * @param value value for each element
-     *
      * @param <T> type of array
      *
      * @return Array of T, containing the same value for each element.
@@ -6922,11 +6940,10 @@ public class SmisCommandHelper implements SmisConstants {
                 CREATE_OR_MODIFY_ELEMENT_FROM_STORAGE_POOL;
     }
 
-    /*
+    /**
      * Get source object for a replica.
      *
      * @param dbClient
-     *
      * @param replica
      *
      * @return source object
@@ -7169,22 +7186,123 @@ public class SmisCommandHelper implements SmisConstants {
         return String.format("%s+%s##SSNAME+%s", systemSerial, replicationGroupName, sessionLabel);
     }
 
-    /**
-     * BlockSnapshot instances associated to an BlockSnapshotSession will have its replicationGroupName field set in a
-     * different format than regular BlockSnapshot instances, e.g. system-serial+groupName.
-     *
-     * This method will extract and return only the group name, if required.
-     *
-     * @param groupName Replication group name, possibly containing the system serial.
-     * @return Replication group name.
-     */
-    public String extractGroupName(String groupName) {
-        Pattern p = Pattern.compile("^\\S+\\+(\\S+)$");
-        Matcher matcher = p.matcher(groupName);
+    private String formatSessionLabelForFabrication(String systemSerial, String replicationGroupName) {
+        return String.format("%s+%s##SSNAME", systemSerial, replicationGroupName);
+    }
 
-        if (matcher.matches()) {
-            return matcher.group(1);
+    /**
+     * Remove EMCSFSEntry containing the groupSynchronized information. It would find the entry using the clone/snapshot replication group
+     * name and source replication group name, then remove it. This operation is necessary before deleting an attached clone/snaphost
+     * replication group.
+     *
+     * @param system the storage system
+     * @param replicationSvc the replication service
+     * @param replicaReplicationGroupName the replica replication group name
+     * @param sourceReplicationGroupName the source repilcation group name
+     */
+    public void removeSFSEntryForReplicaReplicationGroup(StorageSystem system,
+            CIMObjectPath replicationSvc,
+            String replicaReplicationGroupName,
+            String sourceReplicationGroupName) {
+        List<String> sfsEntries = getEMCSFSEntries(system, replicationSvc);
+        String entryLabel = formatReplicaLabelForSFSEntry(system.getSerialNumber(), replicaReplicationGroupName, sourceReplicationGroupName);
+        String removeEntry = null;
+
+        if (sfsEntries != null && !sfsEntries.isEmpty()) {
+            for (String entry : sfsEntries) {
+                if (entry.contains(entryLabel)) {
+                    removeEntry = entry;
+                    break;
+                }
+            }
         }
-        return groupName;
+        if (removeEntry == null) {
+            _log.info(String.format("The SFS entry is not found for the replica group %s and source group %s", replicaReplicationGroupName,
+                    sourceReplicationGroupName));
+            return;
+        }
+        try {
+            CIMArgument[] inArgs = new CIMArgument[] {
+                    _cimArgument.stringArray("SFSEntries", new String[] { removeEntry }) };
+            CIMArgument[] outArgs = new CIMArgument[5];
+            invokeMethod(system, replicationSvc, SmisConstants.EMC_REMOVE_SFSENTRIES, inArgs, outArgs);
+        } catch (WBEMException e) {
+            _log.error("EMCRemoveSFSEntries -- WBEMException: ", e);
+        }
+    }
+
+    /**
+     * Remove EMCSFSEntry containing the groupSynchronizedAspect information. It would find the entry using the snap session
+     * source replication group name, then remove it. This operation is necessary before deleting an attached snaphost session replication
+     * group.
+     *
+     * @param system
+     * @param replicationSvc
+     * @param sourceReplicationGroupName
+     */
+    public void removeSFSEntryForReplicaReplicationGroup(StorageSystem system,
+            CIMObjectPath replicationSvc,
+            String sourceReplicationGroupName) {
+        List<String> sfsEntries = getEMCSFSEntries(system, replicationSvc);
+        String groupSynchronizedAspectLabel = formatSessionLabelForFabrication(system.getSerialNumber(), sourceReplicationGroupName);
+        List<String> removeEntryList = new ArrayList<String>();
+
+        if (sfsEntries != null && !sfsEntries.isEmpty()) {
+            for (String entry : sfsEntries) {
+                if (entry.contains(groupSynchronizedAspectLabel)) {
+                    removeEntryList.add(entry);
+                }
+            }
+        }
+        if (removeEntryList.isEmpty()) {
+            _log.info(String.format("The expected SFS entry %s is not found for the source group %s",
+                    groupSynchronizedAspectLabel, sourceReplicationGroupName));
+            return;
+        }
+        try {
+            String[] removeEntries = new String[removeEntryList.size()];
+            removeEntries = removeEntryList.toArray(removeEntries);
+            CIMArgument[] inArgs = new CIMArgument[] {
+                    _cimArgument.stringArray("SFSEntries", removeEntries) };
+            CIMArgument[] outArgs = new CIMArgument[5];
+            invokeMethod(system, replicationSvc, SmisConstants.EMC_REMOVE_SFSENTRIES, inArgs, outArgs);
+        } catch (WBEMException e) {
+            _log.error("EMCRemoveSFSEntries -- WBEMException: ", e);
+        }
+    }
+
+    /**
+     * Construct a String using clone/snapshot replication group name and source replication group name for searching the EMCSFSEntries.
+     *
+     * @param systemSerial array serial number
+     * @param replicaReplicationGroupName - clone/snapshot replication group name
+     * @param sourceRGName - source replication group name
+     * @return constructed string
+     */
+    private String formatReplicaLabelForSFSEntry(String systemSerial, String replicaReplicationGroupName, String sourceRGName) {
+        return String.format("%s+%s#%s+%s#", systemSerial, sourceRGName, systemSerial, replicaReplicationGroupName);
+    }
+
+    /**
+     * Get EMCSFSEntries
+     *
+     * @param storage
+     * @param replicationSvc
+     * @return the list of EMCSFSEntries
+     */
+    public List<String> getEMCSFSEntries(StorageSystem storage, CIMObjectPath replicationSvc) {
+        CIMArgument[] outArgs = new CIMArgument[5];
+        try {
+            invokeMethod(storage, replicationSvc, SmisConstants.EMC_LIST_SFSENTRIES, null, outArgs);
+            for (CIMArgument arg : outArgs) {
+                if (arg != null && arg.getName().equalsIgnoreCase(SmisConstants.SFSENTRIES)) {
+                    String[] entries = (String[]) arg.getValue();
+                    return asList(entries);
+                }
+            }
+        } catch (WBEMException e) {
+            _log.error("get EMCSFSEntries -- WBEMException: ", e);
+        }
+        return null;
     }
 }

@@ -178,6 +178,7 @@ public enum OperationTypeEnum {
     START_FILE_MIRROR("FileSystemMirrorStart", "FileSystemMirrorStartFailed", "FileSystemMirror Start"),
     REFRESH_FILE_MIRROR("FileSystemMirrorRefresh", "FileSystemMirrorRefreshFailed", "FileSystemMirror Refresh"),
     RESYNC_FILE_MIRROR("FileSystemMirrorResync", "FileSystemMirrorResyncFailed", "FileSystemMirror Resync"),
+    MODIFY_FILE_MIRROR_RPO("UPDATE FILE SHARE REPLICATION RPO", "FileSystemMirrorModifyRPOFailed", "operation to update filesystem replication RPO"),
 
     CREATE_BUCKET("BucketCreated", "BucketCreateFailed", "Bucket created"),
     DELETE_BUCKET("BucketDeleted", "BucketDeleteFailed", "Bucket deleted"),
@@ -415,6 +416,8 @@ public enum OperationTypeEnum {
             "operation to send password to be expired mail"),
     SEND_STANDBY_NETWORK_BROKEN_MAIL("SEND STANDBY NETWORK BROKEN MAIL SUCCESS", "SEND STANDBY NETWORK BROKEN MAIL FAIL",
             "operation to send standby network broken mail"),
+    SEND_STANDBY_DEGRADED_MAIL("SEND STANDBY DEGRADED NOTIFICATION MAIL SUCCESS", "SEND STANDBY DEGRADED NOTIFICATION MAIL FAIL",
+            "operation to send standby degraded notification mail"),
     DELETE_CONFIG("DELETE CONFIG", "", "operation to delete controller config"),
     CREATE_CONFIG("CREATE CONFIG", "", "operation to create controller config"),
     UPDATE_CONFIG("UPDATE CONFIG", "", "operation to update controller config"),
@@ -487,19 +490,22 @@ public enum OperationTypeEnum {
             "Unlink targets from BlockSnapshotSession"),
     UPDATE_BUCKET_ACL("UPDATE BUCKET ACL", "", "operation to update bucket ACL"),
     DELETE_BUCKET_ACL("DELETE BUCKET ACL", "", "operation to delete bucket ACL"),
+    SYNC_BUCKET_ACL("SYNC BUCKET ACL", "", "operation to sync bucket ACL"),
 
     /* Disaster Recovery Operations */
     ADD_STANDBY("ADD STANDBY", "", "operation to initiate adding a new standby to ensemble"),
     REMOVE_STANDBY("REMOVE STANDBY", "", "operation to initiate removing an existing standby from ensemble"),
-    PAUSE_STANDBY("PAUSE STANDBY REPLICATION", "", "operation to initiate pausing replication between acitve site and standby site"),
-    RESUME_STANDBY("RESUME STANDBY REPLICATION", "", "operation to initiate resuming replication between acitve site and standby site"),
+    PAUSE_STANDBY("PAUSE STANDBY REPLICATION", "", "operation to initiate pausing replication between active site and standby site"),
+    RESUME_STANDBY("RESUME STANDBY REPLICATION", "", "operation to initiate resuming replication between active site and standby site"),
     RETRY_STANDBY_OP("RETRY STANDBY OPERATION", "", "operation to initiate retry of last operation on a standby site"),
     IPSEC_KEY_ROTATE("ROTATE IPSEC KEY", "", "operation to rotate ipsec pre shared key"),
-    SWITCHOVER("SWITCHOVER TO A STANDBY", "", "operation to initiate switching over from acitve site to a standby site"),
+    SWITCHOVER("SWITCHOVER TO A STANDBY", "", "operation to initiate switching over from active site to a standby site"),
     ACTIVE_SWITCHOVER("ACTIVE BECOME STANDBY AFTER SWITCHOVER", "", "operation that marks switchover on old active site complete"),
     STANDBY_SWITCHOVER("STANDBY BECOME ACTIVE AFTER SWITCHOVER", "", "operation that marks switchover on new active site complete"),
-    FAILOVER("FAILOVER TO A STANDBY", "", "operation to initiate failling over to a standby site"),
+    FAILOVER("FAILOVER TO A STANDBY", "", "operation to initiate failing over to a standby site"),
     STANDBY_FAILOVER("STANDBY BECOME ACTIVE AFTER FAILOVER", "", "operation that marks failover on new active site complete"),
+    STANDBY_DEGRADE("DEGRADE STANDBY", "", "operation that marks standby as degraded"),
+    STANDBY_REJOIN("STANDBY REJOIN VDC FROM STANDBY_DEGRADED STATE", "", "operation that marks standby has rejoined vdc rom degraded state"),
     UPDATE_SITE("UPDATE SITE", "", "operation to update site information"),
     CREATE_SCHEDULE_POLICY("SchedulePolicyCreated", "", "create schedule policy.");
 

@@ -72,6 +72,8 @@ import ipsecmanager
 import snapshotsession
 import schedulepolicy
 import objectuser
+import requests
+from requests.packages.urllib3.exceptions import InsecureRequestWarning
 
 warnings.filterwarnings(
     'ignore',
@@ -92,7 +94,7 @@ common_parser.add_argument('-hostname', '-hn',
                            metavar='<hostname>',
                            default=vipr_ip,
                            dest='ip',
-                           help='Hostname (fully qualifiled domain name) ' +
+                           help='Hostname (fully qualified domain name) ' +
                            'or IPv4 address (i.e. 192.0.2.0) or IPv6 address' +
                            ' inside quotes and brackets ' +
                            '(i.e. "[2001:db8::1]") of ViPR')
@@ -186,6 +188,7 @@ schedulepolicy.schedulepolicy_parser(module_parsers, common_parser)
 objectuser.objectuser_parser(module_parsers, common_parser)
 network.network_parser(module_parsers, common_parser)
 
+requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
 
 
 # Parse Command line Arguments and execute the corresponding routines

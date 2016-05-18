@@ -19,9 +19,7 @@ import org.springframework.context.support.ClassPathXmlApplicationContext;
 
 import java.text.Format;
 import java.text.SimpleDateFormat;
-import java.util.Arrays;
-import java.util.Date;
-import java.util.List;
+import java.util.*;
 
 //Suppress Sonar violation of Lazy initialization of static fields should be synchronized
 //This is a CLI application and main method will not be called by multiple threads
@@ -33,6 +31,7 @@ public class BackupCmd {
     private static final Options options = new Options();
     private static final String TOOL_NAME = "bkutils";
     private static final String ONLY_RESTORE_SITE_ID = "osi";
+
     private static BackupOps backupOps;
     private static CommandLine cli;
     private static RestoreManager restoreManager;
@@ -136,6 +135,7 @@ public class BackupCmd {
     }
 
     private static void init(String[] args) {
+
         initCommandLine(args);
         initRestoreManager();
 
@@ -264,7 +264,7 @@ public class BackupCmd {
 
         System.out.println("***Important***");
         System.out.println("Please start ViPR service after all nodes have been " +
-                "restored (command: \"service storageos start\").");
+                "restored (command: \"/etc/storageos/storageos start\").");
         System.out.println("ViPR has risk of data lost before data repair finished, " +
                 "please check the db repair process by service log");
     }

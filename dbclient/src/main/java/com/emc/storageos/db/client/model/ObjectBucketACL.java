@@ -141,8 +141,10 @@ public class ObjectBucketACL extends DataObject {
 
     public void calculateACLIndex() {
         String userOrGroupOrCustom = this.user;
+        String type = "user";
         if (userOrGroupOrCustom == null) {
             userOrGroupOrCustom = this.group != null ? this.group : this.customGroup;
+            type = this.group != null ? "group" : "customgroup";
         }
         StringBuffer aclIndexBuffer = new StringBuffer();
 
@@ -150,7 +152,7 @@ public class ObjectBucketACL extends DataObject {
             if (this.bucketId != null) {
                 aclIndexBuffer.append(this.bucketId)
                         .append(this.domain == null ? "" : this.domain.toLowerCase())
-                        .append(userOrGroupOrCustom.toLowerCase());
+                        .append(userOrGroupOrCustom.toLowerCase()).append(type);
                 this.setBucketACLIndex(aclIndexBuffer.toString());
             }
         }

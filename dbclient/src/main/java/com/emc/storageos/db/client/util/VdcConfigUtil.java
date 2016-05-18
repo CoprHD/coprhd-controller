@@ -27,7 +27,7 @@ import com.emc.storageos.coordinator.exceptions.RetryableCoordinatorException;
  * 
  * The VDC/Site configurations are stored in ZK as follows:
  * /config/disasterRecoverySites/<vdc_short_id>/<site_uuid>     has all the VDC/site configurations
- * /config/disasterRecoveryActive/<vdc_short_id>               specifies which site is the acitve in each VDC
+ * /config/disasterRecoveryActive/<vdc_short_id>               specifies which site is the active in each VDC
  * /config/geoLocalVDC/global                                   specifies the local VDC in the geo federation
  * 
  * The vdcconfig.properties includes the node IPs as the following
@@ -39,6 +39,7 @@ import com.emc.storageos.coordinator.exceptions.RetryableCoordinatorException;
  * vdc_ids  - all vdc ids (e.g vdc1, vdc2 .. )
  * vdc_myid - current vdc short id
  * site_ids - all site ids in current vdc
+ * vdc_vdc*_site_ids - site ids of specified vdc
  * site_active_id - active site id in current vdc
  * site_myid   - current site id 
  * 
@@ -63,6 +64,7 @@ public class VdcConfigUtil {
     public static final String SITE_MY_UUID="site_my_uuid";
     public static final String SITE_MYID="site_myid";
     public static final String SITE_IDS="site_ids";
+    public static final String VDC_SITE_IDS="vdc_%s_site_ids";
     public static final String SITE_ACTIVE_ID="site_active_id";
     public static final String BACK_COMPAT_PREYODA="back_compat_preyoda";
     
@@ -154,7 +156,8 @@ public class VdcConfigUtil {
                     && (site.getState().equals(SiteState.STANDBY_PAUSING)
                     || site.getState().equals(SiteState.STANDBY_PAUSED)
                     || site.getState().equals(SiteState.STANDBY_REMOVING)
-                    || site.getState().equals(SiteState.ACTIVE_FAILING_OVER))) {
+                    || site.getState().equals(SiteState.ACTIVE_FAILING_OVER)
+                    || site.getState().equals(SiteState.ACTIVE_DEGRADED))) {
 
                 continue;
             }
@@ -204,6 +207,8 @@ public class VdcConfigUtil {
                     DEFAULT_ACTIVE_SITE_ID :
                     drUtil.getSiteFromLocalVdc(activeSiteId).getSiteShortId());
         }
+
+        vdcConfig.put(String.format(VDC_SITE_IDS, vdcShortId), StringUtils.join(shortIds, ','));
     }
 
     private List<String> getHostsFromIPAddrMap(Map<String, String> IPv4Addresses, Map<String, String> IPv6Addresses) {

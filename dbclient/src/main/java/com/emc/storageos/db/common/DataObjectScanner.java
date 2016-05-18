@@ -5,6 +5,7 @@
 package com.emc.storageos.db.common;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -43,6 +44,7 @@ public class DataObjectScanner extends PackageScanner {
     private DependencyTracker _dependencyTracker;
     private boolean _dualDbSvcMode;
     private Properties _dbCommonInfo;
+    private Collection<Class<?>> modelClasses;
 
     /**
      * Get DependencyTracker
@@ -85,6 +87,7 @@ public class DataObjectScanner extends PackageScanner {
         _cfMap = new HashMap<String, ColumnFamily>();
         _geocfMap = new HashMap<String, ColumnFamily>();
 
+        this.modelClasses = getModelClasses(Cf.class);
         scan(Cf.class);
 
         _dependencyTracker.buildDependencyLevels();
@@ -165,6 +168,8 @@ public class DataObjectScanner extends PackageScanner {
     }
 
     private void addToTypeMap(Class clazz, Map<String, ColumnFamily> useCfMap) {
+    	DependencyInterceptor dependencyInterceptor = new DependencyInterceptor(this.modelClasses);
+    	
         Map<String, List<String>> indexCfTypeMap = new HashMap<String, List<String>>();
         DataObjectType doType = TypeMap.getDoType(clazz);
         useCfMap.put(doType.getCF().getName(), doType.getCF());
@@ -194,7 +199,13 @@ public class DataObjectScanner extends PackageScanner {
                     throw new IllegalStateException("Class: " + clazz.getName()
                             + " is a global object but it has illegal reference to a non-global dependency: " + field.getIndexRefType());
                 }
-                _dependencyTracker.addDependency(field.getIndexRefType(), clazz, field);
+                
+                if (dependencyInterceptor.isConcretModelClass(field.getIndexRefType())) {
+                    _dependencyTracker.addDependency(field.getIndexRefType(), clazz, field);
+                } else {
+                	_log.info("reference type is abstract class, need special process");
+                	dependencyInterceptor.handleDependency(_dependencyTracker, clazz, field);
+                }
             }
         }
         if (include) {

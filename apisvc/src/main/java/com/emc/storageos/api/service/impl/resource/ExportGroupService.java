@@ -55,6 +55,7 @@ import com.emc.storageos.db.client.constraint.ContainmentPrefixConstraint;
 import com.emc.storageos.db.client.constraint.NamedElementQueryResultList.NamedElement;
 import com.emc.storageos.db.client.constraint.PrefixConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
+import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.BlockMirror;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.BlockSnapshot;
@@ -104,6 +105,7 @@ import com.emc.storageos.model.block.export.ITLRestRepList;
 import com.emc.storageos.model.block.export.VolumeParam;
 import com.emc.storageos.model.search.SearchResultResourceRep;
 import com.emc.storageos.model.search.SearchResults;
+import com.emc.storageos.protectioncontroller.impl.recoverpoint.RPHelper;
 import com.emc.storageos.security.audit.AuditLogManager;
 import com.emc.storageos.security.authentication.StorageOSUser;
 import com.emc.storageos.security.authorization.ACL;
@@ -113,7 +115,6 @@ import com.emc.storageos.security.authorization.Role;
 import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.svcs.errorhandling.resources.BadRequestException;
-import com.emc.storageos.svcs.errorhandling.resources.BadRequestExceptions;
 import com.emc.storageos.util.ConnectivityUtil;
 import com.emc.storageos.util.ExportUtils;
 import com.emc.storageos.util.NetworkLite;
@@ -198,7 +199,7 @@ public class ExportGroupService extends TaskResourceService {
      * access a block volume, although in some scenarios, additional configurations may be required. There are three main types of export
      * group to meet the common use cases:
      * <ol>
-     * 
+     *
      * <li>Create an initiator type export group so that a single host can see one or more volumes. An example would be an export group for
      * a host boot lun or a private volume that is meant to be used by only one host. The assumption is, in this case the user wants the
      * boot or private volume to be accessed via known initiators. For this type of export, the request object is expected to have only
@@ -206,25 +207,25 @@ public class ExportGroupService extends TaskResourceService {
      * export group can belong to only one host, this does not mean the host can only have the initiator type export group. A hosts can be
      * part of many export groups of any type. The export group type {@link ExportGroupType#Initiator} should be specified in the request
      * for this type of export.</li>
-     * 
+     *
      * <li>Create an export group so that one or more hosts, which are not part of a cluster, can access one or more volumes. This is the
      * use case of a shared data lun. In this case, it is assumed that the user wants all the hosts initiators that are connected to the
      * storage array (up to the maximum specified by the virtual pool) to be able to access the volume. The export group type
      * {@link ExportGroupType#Host} should be specified in the request for this type of export.</li>
-     * 
+     *
      * <li>Create an export group so that one or more clusters of hosts can access one or more volumes. This is the same use case of shared
      * data lun as the {@link ExportGroupType#Host} use case with the exception that the user is managing a cluster of hosts as opposed to
      * individual hosts. In this case, the same assumption about the initiators as in the previous case is made. The export group type
      * {@link ExportGroupType#Cluster} should be specified in the request for this type of export.</li>
      * </ol>
-     * 
+     *
      * Note that the above discussion only mentions volumes but mirrors and snapshots can also be used in export groups.
-     * 
+     *
      * <p>
      * Once a block export is created, following incremental changes can be applied to it: - add volume or volume snapshot to the shared
      * storage pool - remove volume or volume snapshot from the shared storage pool - add new server to the cluster by adding initiator from
      * that server to the block export - remove visibility of shared storage to a server by removing initiators from the block export
-     * 
+     *
      * <p>
      * Similar to block storage provisioning, block export is also created within the scope of a varray. Hence, volumes and snapshots being
      * added to a block export must belong to the same varray. Fibre Channel and iSCSI initiators must be part of SANs belonging to the same
@@ -239,7 +240,7 @@ public class ExportGroupService extends TaskResourceService {
      * will be determined from the number of required initiator/storage-port communication paths.
      * <p>
      * NOTE: This is an asynchronous operation.
-     * 
+     *
      * @param param Export creation parameters
      * @brief Create block export
      * @return Block export details
@@ -280,6 +281,8 @@ public class ExportGroupService extends TaskResourceService {
         VirtualArray neighborhood = _dbClient.queryObject(VirtualArray.class, param.getVarray());
         _permissionsHelper.checkTenantHasAccessToVirtualArray(project.getTenantOrg().getURI(), neighborhood);
 
+        validateBlockSnapshotsForExportGroupCreate(param);
+
         // prepare the export group object
         ExportGroup exportGroup = prepareExportGroup(project, param);
 
@@ -293,7 +296,7 @@ public class ExportGroupService extends TaskResourceService {
         // If so, this is like because concurrent operations were in the API at the same time and another created
         // the ExportGroup.
         validateNotSameNameProjectAndVarray(param);
-        
+
         // If ExportPathParameter block is present, and volumes are present, validate have permissions.
         // Processing will be in the aysnc. task.
         if (param.getExportPathParameters() != null && !volumeMap.keySet().isEmpty()) {
@@ -317,7 +320,7 @@ public class ExportGroupService extends TaskResourceService {
         Operation.Status status = storageMap.isEmpty() ? Operation.Status.ready : Operation.Status.pending;
 
         _dbClient.createObject(exportGroup);
-        
+
         Operation op = initTaskStatus(exportGroup, task, status, ResourceOperationTypeEnum.CREATE_EXPORT_GROUP);
 
         // persist the export group to the database
@@ -328,7 +331,7 @@ public class ExportGroupService extends TaskResourceService {
 
         // call thread that does the work.
         CreateExportGroupSchedulingThread.executeApiTask(this, _asyncTaskService.getExecutorService(), _dbClient, neighborhood, project,
-                exportGroup, storageMap, param.getClusters(), param.getHosts(), 
+                exportGroup, storageMap, param.getClusters(), param.getHosts(),
                 param.getInitiators(), volumeMap, param.getExportPathParameters(), task, taskRes);
 
         _log.info("Kicked off thread to perform export create scheduling. Returning task: " + taskRes.getId());
@@ -344,7 +347,7 @@ public class ExportGroupService extends TaskResourceService {
      * <li>{@link ExportGroup.ExportGroupType#Host}: only hosts can be supplied.</li>
      * <li>{@link ExportGroup.ExportGroupType#Cluster}: only clusters can be supplied.</li>
      * </ol>
-     * 
+     *
      * @param param
      */
     private void validateCreateInputForExportType(ExportCreateParam param) {
@@ -371,7 +374,7 @@ public class ExportGroupService extends TaskResourceService {
 
     /**
      * A simple util to to check for null and empty on a collection
-     * 
+     *
      * @param col the collection
      * @return
      */
@@ -383,7 +386,7 @@ public class ExportGroupService extends TaskResourceService {
      * When updating an export group the input request should be validated to
      * ensure any initiators that are requested to be removed are initiators that
      * we are allowed to remove.
-     * 
+     *
      * @param param
      * @param exportGroup
      */
@@ -420,7 +423,7 @@ public class ExportGroupService extends TaskResourceService {
      * <li>{@link ExportGroup.ExportGroupType#Cluster}: clusters, hosts in already existing clusters and initiators in already existing
      * hosts can be supplied.</li>
      * </ol>
-     * 
+     *
      * @param param
      */
     private void validateUpdateInputForExportType(ExportUpdateParam param, ExportGroup exportGroup) {
@@ -438,14 +441,107 @@ public class ExportGroupService extends TaskResourceService {
     }
 
     /**
+     * Validate the BlockSnapshot exports from the request param.
+     *
+     * @param param the export group create request param.
+     */
+    private void validateBlockSnapshotsForExportGroupCreate(ExportCreateParam param) {
+        if (param != null) {
+            List<URI> blockObjURIs = new ArrayList<URI>();
+            for (VolumeParam volParam : param.getVolumes()) {
+                blockObjURIs.add(volParam.getId());
+            }
+
+            // validate the RP BlockSnapshots for ExportGroup create
+            validateRPBlockSnapshotsForExport(blockObjURIs);
+        }
+    }
+
+    /**
+     * Validate the BlockSnapshot exports being added from the request param.
+     *
+     * @param param the export group update request param.
+     * @param exportGroup the existing export group being updated.
+     */
+    private void validateBlockSnapshotsForExportGroupUpdate(ExportUpdateParam param, ExportGroup exportGroup) {
+        if (param != null && exportGroup != null) {
+            List<URI> blockObjURIs = new ArrayList<URI>();
+
+            List<VolumeParam> addVolumeParams = param.getVolumes().getAdd();
+
+            // We only care about the BlockObjects we are adding, not removing
+            if (addVolumeParams != null && !addVolumeParams.isEmpty()) {
+                // Collect the block objects being added from the request param
+                for (VolumeParam volParam : addVolumeParams) {
+                    blockObjURIs.add(volParam.getId());
+                }
+
+                // Collect the existing block objects from the export group. We are combining
+                // the block objects being added with the existing export block objects so that
+                // BlockSnapshots for the same target copy (virtual array) are identified more
+                // easily through validation.
+                if (exportGroup.getVolumes() != null) {
+                    for (Map.Entry<String, String> entry : exportGroup.getVolumes().entrySet()) {
+                        blockObjURIs.add(URI.create(entry.getKey()));
+                    }
+                }
+
+                // validate the RP BlockSnapshots for ExportGroup create
+                validateRPBlockSnapshotsForExport(blockObjURIs);
+            }
+        }
+    }
+
+    /**
+     * Validates the list of BlockObjects for RecoverPoint bookmarks that reference
+     * the same consistency group and RP site.
+     *
+     * @param blockObjURIs the list of BlockObject URIs.
+     */
+    private void validateRPBlockSnapshotsForExport(List<URI> blockObjURIs) {
+        Map<URI, List<String>> cgToRpSiteMap = new HashMap<URI, List<String>>();
+
+        for (URI blockObjectURI : blockObjURIs) {
+            if (URIUtil.isType(blockObjectURI, BlockSnapshot.class)) {
+                BlockSnapshot snapshot = _dbClient.queryObject(BlockSnapshot.class, blockObjectURI);
+
+                if (TechnologyType.RP.name().equalsIgnoreCase(snapshot.getTechnologyType())
+                        && !NullColumnValueGetter.isNullURI(snapshot.getConsistencyGroup())) {
+
+                    // Check to see if there is an RP bookmark that references
+                    // the same RP copy and consistency group.
+                    List<String> rpSites = cgToRpSiteMap.get(snapshot.getConsistencyGroup());
+
+                    if (rpSites == null) {
+                        // Initialize the list of RP sites
+                        rpSites = new ArrayList<String>();
+                        cgToRpSiteMap.put(snapshot.getConsistencyGroup(), rpSites);
+                    }
+
+                    if (rpSites.contains(snapshot.getEmInternalSiteName())) {
+                        // Request is trying to export 2 RP bookmarks for the same target copy and
+                        // consistency group.
+                        BlockConsistencyGroup cg = _dbClient.queryObject(BlockConsistencyGroup.class,
+                                snapshot.getConsistencyGroup());
+                        String rpCopyName = RPHelper.getCgCopyName(_dbClient, cg, snapshot.getVirtualArray(), false);
+                        throw APIException.badRequests.duplicateRpBookMarkExport(rpCopyName, cg.getLabel());
+                    } else {
+                        rpSites.add(snapshot.getEmInternalSiteName());
+                    }
+                }
+            }
+        }
+    }
+
+    /**
      * This is a helper function to perform the input validation for an export group
      * volumes and snapshots and return the map to be sent to the controller.
-     * 
+     *
      * @param volumes the input parameter
      * @param exportGroup the export group
      * @param storageMap an empty map that will be filled in by the function with the
      *            the block objects to export mapped by storage system
-     * 
+     *
      * @return a map of block object URI to LUN Id for the objects to be exported.
      */
     private Map<URI, Integer> validateBlockObjectsAndGetMap(List<VolumeParam> volumes,
@@ -490,7 +586,7 @@ public class ExportGroupService extends TaskResourceService {
 
     /**
      * Checks if the given volume is cinder volume.
-     * 
+     *
      * @param volume the volume
      * @param systemURIToSystemTypeMap the system uri to system type map
      * @return true, if it is cinder volume
@@ -510,7 +606,7 @@ public class ExportGroupService extends TaskResourceService {
     /**
      * Check if OpenStack snapshot and throw error
      * since snapshot export is not supported for OpenStack systems.
-     * 
+     *
      * @param block the block snapshot
      */
     private void checkIfOpenStackSnapshot(BlockSnapshot snapshot) {
@@ -524,7 +620,7 @@ public class ExportGroupService extends TaskResourceService {
 
     /**
      * Validate the blocksnapshot is active for export, if one is being exported
-     * 
+     *
      * @param block - BlockSnapshot object to export
      */
     private void checkForActiveBlockSnapshot(BlockSnapshot snapshot) {
@@ -540,7 +636,7 @@ public class ExportGroupService extends TaskResourceService {
     /**
      * This helper function is used by {@link #updateExportGroup(URI, ExportUpdateParam)} to
      * validate the user input and compute the updated lists of initiators, hosts and clusters.
-     * 
+     *
      * @param exportGroup the export group being updated.
      * @param project the export group project
      * @param storageSystems the storage systems where the export group volumes exist
@@ -670,7 +766,7 @@ public class ExportGroupService extends TaskResourceService {
      * Validate if the initiator is linked to the VirtualArray through some Network
      * Routine will examine the 'newInitiators' list and remove any that do not have any association
      * to the VirtualArrays associated with the StorageSystems.
-     * 
+     *
      * @param exportGroup [in] - ExportGroup object
      * @param storageSystems [in] - Collection of StorageSystem URIs associated with this VArray
      * @param connectedStorageSystems [in/out] - Optional parameter that will contain a list of
@@ -716,7 +812,7 @@ public class ExportGroupService extends TaskResourceService {
     /**
      * Determines is an initiator is in one of the StorageSystems networks.
      * This is changed to accomodate VPlex, which uses two Varrays per ExportGroup for distributed export.
-     * 
+     *
      * @param exportGroup -- the ExportGroup
      * @param initiator [in] - the initiator
      * @param system [in] - collection of StorageSystems
@@ -768,7 +864,7 @@ public class ExportGroupService extends TaskResourceService {
 
     /**
      * For Initiator type export groups, find the host to which the initiators belong.
-     * 
+     *
      * @param exportGroup the export group
      * @return the URI of the initiators host
      */
@@ -787,7 +883,7 @@ public class ExportGroupService extends TaskResourceService {
 
     /**
      * Updates the lists of hosts and initiator when a cluster is removed.
-     * 
+     *
      * @param cluster the cluster being removed
      * @param newHosts the list of hosts to update
      * @param newInitiators the list of initiators to update
@@ -802,7 +898,7 @@ public class ExportGroupService extends TaskResourceService {
 
     /**
      * Updates the list of initiator when a host is removed.
-     * 
+     *
      * @param hosturi the host being removed
      * @param newInitiators the list of initiators to update
      */
@@ -812,7 +908,7 @@ public class ExportGroupService extends TaskResourceService {
 
     /**
      * Validate that all the initiators to be added to the export group belong to the same host type
-     * 
+     *
      * @param initiators the list of initiators to validate
      */
     private void validateInitiatorHostOS(List<URI> initiators) {
@@ -858,7 +954,7 @@ public class ExportGroupService extends TaskResourceService {
     /**
      * Validate the data of an initiator. This validation is required when the user
      * has explicitly requested for the initiator to be added.
-     * 
+     *
      * @param initiator the initiator being validated.
      * @param exportGroup the export group where the initiator is to be added
      */
@@ -868,7 +964,7 @@ public class ExportGroupService extends TaskResourceService {
 
     /**
      * Validate the input data for clusters, hosts and initiators for {@link #createExportGroup(ExportCreateParam)}
-     * 
+     *
      * @param exportGroup the export group to populate
      * @param project the export group project
      * @param varray the export group varray
@@ -943,7 +1039,7 @@ public class ExportGroupService extends TaskResourceService {
 
     /**
      * Validates that the initiator doesn't belong to a deregistered Network
-     * 
+     *
      * @param initiator the initiator to validate
      * @param virtualArray the virtual array
      */
@@ -956,7 +1052,7 @@ public class ExportGroupService extends TaskResourceService {
 
     /**
      * Validates that the initiator is registered
-     * 
+     *
      * @param initiator the initiator to validate
      */
 
@@ -970,7 +1066,7 @@ public class ExportGroupService extends TaskResourceService {
      * Validates that the host belongs to same tenant org and/or project as the export group.
      * Also validates that the host has connectivity to all the storage systems that the
      * export group has block objects in.
-     * 
+     *
      * @param host the host being validated
      * @param exportGroup the export group where the host will be added
      * @param storageSystems the storage systems the export group has block objects in.
@@ -1008,7 +1104,7 @@ public class ExportGroupService extends TaskResourceService {
      * Validates that the host belongs to same tenant org and/or project as the export group.
      * Also validates that the host has connectivity to all the storage systems that the
      * export group has block objects in.
-     * 
+     *
      * @param host the host being validated
      * @param exportGroup the export group where the host will be added
      * @param storageSystems the storage systems the export group has block objects in.
@@ -1050,7 +1146,7 @@ public class ExportGroupService extends TaskResourceService {
      * Validates that a cluster is in the same tenant org and/or project as the export group.
      * Also makes sure that all hosts in the cluster have connectivity to all storage systems
      * the export group has block objects in.
-     * 
+     *
      * @param cluster the cluster being validated
      * @param exportGroup the export where the cluster will be added
      * @param storageSystems the storage systems the export group has block objects in.
@@ -1087,7 +1183,7 @@ public class ExportGroupService extends TaskResourceService {
     /**
      * For a given set of storage arrays, find the registered initiators on a host that
      * can connect to all the storage arrays given the possible varrays.
-     * 
+     *
      * @param host the host
      * @param storageSystems the set of arrays
      * @exportGroup - ExportGroup used to determine the Varrays
@@ -1110,7 +1206,7 @@ public class ExportGroupService extends TaskResourceService {
 
     /**
      * This function is to retrieve the children of a given class.
-     * 
+     *
      * @param id the URN of the parent
      * @param clzz the child class
      * @param linkField the name of the field in the child class that stored the parent id
@@ -1149,7 +1245,7 @@ public class ExportGroupService extends TaskResourceService {
      * clusters and hosts.</li>
      * </ol>
      * <b>Note:</b> The export group name, project and varray can not be modified.
-     * 
+     *
      * @param id the URN of a ViPR export group to be updated
      * @param param the request parameter
      * @brief Update block export
@@ -1174,7 +1270,8 @@ public class ExportGroupService extends TaskResourceService {
         validateUpdateInputForExportType(param, exportGroup);
         validateUpdateRemoveInitiators(param, exportGroup);
         validateUpdateIsNotForVPlexBackendVolumes(param, exportGroup);
-        
+        validateBlockSnapshotsForExportGroupUpdate(param, exportGroup);
+
         if (param.getExportPathParameters() != null) {
             // Only [RESTRICTED_]SYSTEM_ADMIN may override the Vpool export parameters
             if (!_permissionsHelper.userHasGivenRole(getUserFromContext(),
@@ -1182,7 +1279,7 @@ public class ExportGroupService extends TaskResourceService {
                 throw APIException.forbidden.onlySystemAdminsCanOverrideVpoolPathParameters(exportGroup.getLabel());
             }
         }
-        
+
         // call the controller to handle all updated
         String task = UUID.randomUUID().toString();
         Operation op = initTaskStatus(exportGroup, task, Operation.Status.pending, ResourceOperationTypeEnum.UPDATE_EXPORT_GROUP);
@@ -1207,7 +1304,7 @@ public class ExportGroupService extends TaskResourceService {
      * This function starts with the existing volumes and computes the final volumes
      * map. This is needed to check the validity of the lun values and for finding
      * the list of storage system against which the clients should be validated
-     * 
+     *
      * @param param
      * @param exportGroup the export group
      * @return the updateVolumesMap derived from the params
@@ -1231,7 +1328,7 @@ public class ExportGroupService extends TaskResourceService {
 
     /**
      * Given the requested changes, return a map of volume-lun.
-     * 
+     *
      * @param param the export group update request object
      * @param added a boolean that indicates if the map should be computed for
      *            the added or removed volumes in the request object.
@@ -1262,7 +1359,7 @@ public class ExportGroupService extends TaskResourceService {
      * <li>the block objects exists and that it is in the same project as the export group.</li>
      * <li>All block object are assigned a unique and valid lun Id, or that all of the block objects are NOT assigned a lun id. In this case
      * the system will assign a lun id.</li>
-     * 
+     *
      * @param blockObjectsMap a map of block object to lun id
      * @param exportGroup the export group to be updated
      * @return a map of storage systems to volume/lun maps
@@ -1322,7 +1419,7 @@ public class ExportGroupService extends TaskResourceService {
 
     /**
      * checks that either all lun ids are unique or all {@link ExportGroup#LUN_UNASSIGNED}
-     * 
+     *
      * @param luns the list of all luns
      * @param lun the lun to be validated
      */
@@ -1353,7 +1450,7 @@ public class ExportGroupService extends TaskResourceService {
     /**
      * Get block export details - the list of volumes and snapshots and the list of SCSI initiators
      * that the shared storage is exported to.
-     * 
+     *
      * @param groupId Export group Identifier
      * @brief Show block export
      * @return Block export details
@@ -1449,9 +1546,9 @@ public class ExportGroupService extends TaskResourceService {
         }
         return new ArrayList<Cluster>();
     }
-    
+
     private List<ExportPathParams> getPathParameters(ExportGroup export) {
-        if (! export.getPathParameters().isEmpty()) {
+        if (!export.getPathParameters().isEmpty()) {
             List<String> ids = new ArrayList<String>(export.getPathParameters().values());
             List<URI> uris = URIUtil.toURIList(ids);
             return _dbClient.queryObject(ExportPathParams.class, uris);
@@ -1469,9 +1566,9 @@ public class ExportGroupService extends TaskResourceService {
      * If SAN Zones were created as a result of this Export Group (see Export Group Create), they will be removed if they are not in use by
      * other Export Groups.
      * <p>
-     * 
+     *
      * NOTE: This is an asynchronous operation.
-     * 
+     *
      * @param groupId Block export identifier
      * @brief Delete block export
      * @return Task resource representation
@@ -1487,7 +1584,7 @@ public class ExportGroupService extends TaskResourceService {
         Operation op = null;
         ExportGroup exportGroup = lookupExportGroup(groupId);
         Map<URI, Map<URI, Integer>> storageMap = ExportUtils.getStorageToVolumeMap(exportGroup, true, _dbClient);
-        
+
         // Don't allow deactivation if there is an operation in progress.
         Set<URI> tenants = new HashSet<URI>();
         tenants.add(exportGroup.getTenant().getURI());
@@ -1497,7 +1594,7 @@ public class ExportGroupService extends TaskResourceService {
         // Mark deletion in progress. This will cause future updates to fail.
         exportGroup.addInternalFlags(DataObject.Flag.DELETION_IN_PROGRESS);
         // Remove any associated ExportPathParam
-        if (exportGroup.getVolumes() != null && !exportGroup.getVolumes().isEmpty() 
+        if (exportGroup.getVolumes() != null && !exportGroup.getVolumes().isEmpty()
                 && !exportGroup.getPathParameters().isEmpty()) {
             removeBlockObjectsFromPathParamMap(URIUtil.uris(exportGroup.getVolumes().keySet()), exportGroup);
         }
@@ -1521,7 +1618,7 @@ public class ExportGroupService extends TaskResourceService {
 
     /**
      * Retrieve resource representations based on input ids.
-     * 
+     *
      * @param param POST data containing the id list.
      * @brief List data of export group resources
      * @return list of representations.
@@ -1548,7 +1645,7 @@ public class ExportGroupService extends TaskResourceService {
 
     /**
      * Convenience method for initializing a task object with a status
-     * 
+     *
      * @param exportGroup export group
      * @param task task ID
      * @param status status to initialize with
@@ -1569,7 +1666,7 @@ public class ExportGroupService extends TaskResourceService {
     }
 
     /**
-     * 
+     *
      * @param project
      * @param param
      * @return
@@ -1595,7 +1692,7 @@ public class ExportGroupService extends TaskResourceService {
 
     /**
      * Return project of volume storage (volume/snapshot)
-     * 
+     *
      * @param block
      * @return
      */
@@ -1618,7 +1715,7 @@ public class ExportGroupService extends TaskResourceService {
      * <li>The export group varray is valid for the volume as determined by {@link #getBlockObjectVirtualArrays(BlockObject)}.</li>
      * <li>The volume is in the same project as the export group.</li>
      * </ol>
-     * 
+     *
      * @param exportGroup the export group where the volume is being added
      * @param volUri the uri of the volume of snapshot being added
      * @param currentVolumes the volumes that are already in the export group.
@@ -1659,7 +1756,7 @@ public class ExportGroupService extends TaskResourceService {
     /**
      * Gets the volume for the given id and if the volume is being added to the
      * export group, then also validate it.
-     * 
+     *
      * @param exportGroup the export grouo where the volume is being added
      * @param id the URN of a ViPR volume
      * @see #getAndValidateVolume(ExportGroup, URI, Collection)
@@ -1671,8 +1768,8 @@ public class ExportGroupService extends TaskResourceService {
 
     /**
      * Given the export name and a project URI, get the applicable export object.
-     * 
-     * 
+     *
+     *
      * @param groupId@return - null, if not found, otherwise the EXPORT associated
      *            with the project with name as 'groupName'.
      */
@@ -1685,7 +1782,7 @@ public class ExportGroupService extends TaskResourceService {
 
     /**
      * Check if initiators have connectivity to a storage port.
-     * 
+     *
      * @param exportGroup
      * @param initiators
      */
@@ -1709,7 +1806,7 @@ public class ExportGroupService extends TaskResourceService {
 
     /**
      * Checks if an initiator has connectivity to a storage system in a varray.
-     * 
+     *
      * @param storageSystem the storage system where connectivity is needed
      * @param varrays - A list of varrays to check for matches in (multiple varrays for VPLEX clusters)
      * @param initiator the initiator
@@ -1735,7 +1832,7 @@ public class ExportGroupService extends TaskResourceService {
     /**
      * Validate that we can assign the required number of ports for the varray(s)
      * required to complete the export. Multiple varrays could be used if VPLEX.
-     * 
+     *
      * @param storageSystemURIs
      * @param exportGroup
      * @param initiatorURIs
@@ -1788,7 +1885,7 @@ public class ExportGroupService extends TaskResourceService {
                         CommonTransformerFunctions.fctnInitiatorToPortName());
                 _log.info(String.format("Validating port assignments varray %s initiators %s",
                         varray.toString(), initiatorAddresses));
-                validatePortAssignment(storageSystem, varray, _blockStorageScheduler, initiators, 
+                validatePortAssignment(storageSystem, varray, _blockStorageScheduler, initiators,
                         volumes, exportGroup.getId(), pathParam);
             }
         }
@@ -1797,7 +1894,7 @@ public class ExportGroupService extends TaskResourceService {
     /**
      * Verifies that StoragePorts can be assigned for a StorageSystem given a set of Initiators.
      * This will verify that the numPaths variable is not too low or too high to allow assignment.
-     * 
+     *
      * @param storageSystem
      * @param varray VirtualArray of ExportGroup
      * @param blockScheduler
@@ -1806,10 +1903,10 @@ public class ExportGroupService extends TaskResourceService {
      * @param numPaths
      */
     private void validatePortAssignment(StorageSystem storageSystem, URI varray,
-            BlockStorageScheduler blockScheduler, List<Initiator> initiators, 
+            BlockStorageScheduler blockScheduler, List<Initiator> initiators,
             Collection<URI> volumes, URI exportGroupURI, ExportPathParameters exportPathParameters) {
         try {
-            
+
             ExportPathParams pathParams = blockScheduler.calculateExportPathParamForVolumes(
                     volumes, 0, storageSystem.getId(), exportGroupURI);
             if (exportPathParameters != null) {
@@ -1836,7 +1933,7 @@ public class ExportGroupService extends TaskResourceService {
      * Checks if any of the volume is vplex volume if yes diverts it to VpelxImpl
      * to validate vplex storage ports in varray.
      * Default impl does nothing for now for this check.
-     * 
+     *
      * @param storageSystemURIs
      * @param varray VirtualArray of ExportGroup
      * @param volumes Volumes that will be exported
@@ -1874,7 +1971,7 @@ public class ExportGroupService extends TaskResourceService {
 
     /**
      * Checks if an initiator has connectivity to a storage system in a varray.
-     * 
+     *
      * @param storageSystems the storage systems where connectivity is needed
      * @param initiator the initiator
      * @return true if at least one port is found
@@ -1887,7 +1984,7 @@ public class ExportGroupService extends TaskResourceService {
 
     /**
      * Checks if an initiator has connectivity to a storage system in a varray.
-     * 
+     *
      * @param storageSystems the storage systems where connectivity is needed
      * @param neighborhoodUri the varray of the storage volume
      * @param blockScheduler an instance of {@link BlockStorageScheduler}
@@ -1948,7 +2045,7 @@ public class ExportGroupService extends TaskResourceService {
      * <p>
      * This function is not designed for a very large number of initiators and performance is likely to be unsatisfactory if thousands of
      * initiators are requested.
-     * 
+     *
      * @param initiatorPorts a comma-delimited list of initiators wwn or iqn.
      * @brief List ITLs of volumes and snapshots exported to a list of initiators
      * @return an object containing all ITLs for the initiators
@@ -1972,7 +2069,7 @@ public class ExportGroupService extends TaskResourceService {
 
     /**
      * Retrieve ExportGroup representations based on input ids.
-     * 
+     *
      * @return list of ExportGroup representations.
      */
     @Override
@@ -2006,10 +2103,10 @@ public class ExportGroupService extends TaskResourceService {
     /**
      * A special iterator to create ExportGroupRestRep elements from
      * an ExportGroup iterator
-     * 
+     *
      * ExportGroupRestRep can not use the generic iterator because it has
      * a different constructor which requires a ExportGroup object AND a dbclient.
-     * 
+     *
      */
     private class ExportGroupRepIterator
             implements Iterator<ExportGroupRestRep> {
@@ -2075,7 +2172,7 @@ public class ExportGroupService extends TaskResourceService {
 
     /**
      * Simple wrapper that returns the BlockExportController proxy
-     * 
+     *
      * @return
      */
     BlockExportController getExportController() {
@@ -2097,7 +2194,7 @@ public class ExportGroupService extends TaskResourceService {
 
     /**
      * Get search results by name in zone or project.
-     * 
+     *
      * @return SearchedResRepList
      */
     @Override
@@ -2118,7 +2215,7 @@ public class ExportGroupService extends TaskResourceService {
 
     /**
      * Get search results by project alone.
-     * 
+     *
      * @return SearchedResRepList
      */
     @Override
@@ -2132,9 +2229,9 @@ public class ExportGroupService extends TaskResourceService {
 
     /**
      * Additional search criteria for a export group.
-     * 
+     *
      * If a matching export group is not found, an empty list is returned.
-     * 
+     *
      * Parameters - host String - URI of the host
      * - cluster String - URI of the cluster
      * - initiator String - URI of the initiator
@@ -2177,7 +2274,7 @@ public class ExportGroupService extends TaskResourceService {
 
     /**
      * Determine if string is a valid initiator id or wwn
-     * 
+     *
      * @param value to evaluate
      * @return true or false
      */
@@ -2195,7 +2292,7 @@ public class ExportGroupService extends TaskResourceService {
 
     /**
      * Validate if one param passed is valid
-     * 
+     *
      * @param params to evaluate
      * @param criterias that can be searched for
      * @return true of false
@@ -2212,7 +2309,7 @@ public class ExportGroupService extends TaskResourceService {
 
     /**
      * Validate params
-     * 
+     *
      * @param params to evaluate
      * @param criterias that can be searched for
      */
@@ -2246,7 +2343,7 @@ public class ExportGroupService extends TaskResourceService {
 
     /**
      * Determine if searching for type specific or not
-     * 
+     *
      * @param params to evaluate
      * @param criteria the valid criteria
      * @return true of false
@@ -2271,7 +2368,7 @@ public class ExportGroupService extends TaskResourceService {
 
     /**
      * Performs the search query based on the host Id.
-     * 
+     *
      * @param hostId the host Id to search
      * @param resRepLists search result are placed in this param
      * @param selfOnly true or false
@@ -2307,7 +2404,7 @@ public class ExportGroupService extends TaskResourceService {
 
     /**
      * Performs the search query based on the cluster Id.
-     * 
+     *
      * @param clusterId search param
      * @param resRepLists result
      * @param selfOnly true or false
@@ -2345,7 +2442,7 @@ public class ExportGroupService extends TaskResourceService {
 
     /**
      * Performs the search query based on the initiator Id.
-     * 
+     *
      * @param initiatorId search param
      * @param resRepLists result
      * @param selfOnly true or false
@@ -2376,7 +2473,7 @@ public class ExportGroupService extends TaskResourceService {
     /**
      * Performs the search query based on the initiator wwn. Will find the initiator associated with the passed
      * wwn in order to do the a search by initiator id.
-     * 
+     *
      * @param wwn search param
      * @param resRepLists result
      * @param selfOnly true or false
@@ -2396,7 +2493,7 @@ public class ExportGroupService extends TaskResourceService {
 
     /**
      * Change elements to URI
-     * 
+     *
      * @param namedElements to change to URI
      * @return list of URI
      */
@@ -2412,7 +2509,7 @@ public class ExportGroupService extends TaskResourceService {
 
     /**
      * Build search response based on query result.
-     * 
+     *
      * @param exportGroups from query
      * @param resRepLists result
      * @param selfOnly true or false
@@ -2466,7 +2563,7 @@ public class ExportGroupService extends TaskResourceService {
 
     /**
      * Get object specific permissions filter
-     * 
+     *
      */
     @Override
     public ResRepFilter<? extends RelatedResourceRep> getPermissionFilter(StorageOSUser user,
@@ -2478,7 +2575,7 @@ public class ExportGroupService extends TaskResourceService {
      * Validates that we are not creating an ExportGroup of with a duplicate name
      * in the same project and varray. This is used to detect collisions where doing
      * concurrent exports from the UI.
-     * 
+     *
      * @param param
      */
     private void validateNotSameNameProjectAndVarray(ExportCreateParam param) {
@@ -2496,7 +2593,7 @@ public class ExportGroupService extends TaskResourceService {
 
     /**
      * Validate that the update is not attempting to add/remove VPLEX backend volumes to/from a group.
-     * 
+     *
      * @param param [IN] - ExportUpdateParam holds the update request parameters
      * @param exportGroup [IN] - ExportGroup to update
      */
@@ -2520,18 +2617,18 @@ public class ExportGroupService extends TaskResourceService {
             BlockService.validateNoInternalBlockObjects(_dbClient, param.getVolumes().getRemove(), false);
         }
     }
-    
+
     /**
      * Validate the the optional path parameters are valid for the ExportGroup.
-     * 
+     *
      * @param param -- ExportPathParameters block
      * @param exportGroup -- ExportGroup
      * @param blockObjectURIs -- Collection of block object URIs, used only for validating ports
      * @return ExportPathParam suitable for persistence
      */
-     ExportPathParams validateAndCreateExportPathParam(ExportPathParameters param, 
+    ExportPathParams validateAndCreateExportPathParam(ExportPathParameters param,
             ExportGroup exportGroup, Collection<URI> blockObjectURIs) {
-        
+
         // If minPaths is specified, or pathsPerInitiator is specified, maxPaths must be specified
         if ((param.getMinPaths() != null || param.getPathsPerInitiator() != null) && param.getMaxPaths() == null) {
             throw APIException.badRequests.maxPathsRequired();
@@ -2546,7 +2643,7 @@ public class ExportGroupService extends TaskResourceService {
             ArgValidator.checkFieldMinimum(param.getMinPaths(), 1, "min_paths");
         } else {
             // Defaults to one path if not suppiled
-            param.setMinPaths(1);;
+            param.setMinPaths(1);
         }
         if (param.getPathsPerInitiator() != null) {
             ArgValidator.checkFieldMinimum(param.getPathsPerInitiator(), 1, "paths_per_initiator");
@@ -2562,15 +2659,17 @@ public class ExportGroupService extends TaskResourceService {
         if (param.getPathsPerInitiator() > param.getMaxPaths()) {
             throw APIException.badRequests.pathsPerInitiatorGreaterThanMaxPaths();
         }
-        
+
         // Collect the list of Storage Systems used by the block objects.
         Set<URI> storageArrays = new HashSet<URI>();
         for (URI blockObjectURI : blockObjectURIs) {
             BlockObject blockObject = BlockObject.fetch(_dbClient, blockObjectURI);
-            if (blockObject == null) continue;
+            if (blockObject == null) {
+                continue;
+            }
             storageArrays.add(blockObject.getStorageController());
         }
-        
+
         // validate storage ports if they are supplied
         validateExportPathParmPorts(param, exportGroup, storageArrays);
 
@@ -2580,25 +2679,26 @@ public class ExportGroupService extends TaskResourceService {
         pathParam.setMaxPaths(param.getMaxPaths());
         pathParam.setMinPaths(param.getMinPaths());
         pathParam.setPathsPerInitiator(param.getPathsPerInitiator());
-        if (param.getStoragePorts() != null) { 
+        if (param.getStoragePorts() != null) {
             pathParam.setStoragePorts(StringSetUtil.uriListToStringSet(param.getStoragePorts()));
         }
         pathParam.setExplicitlyCreated(false);
-        
+
         // Validate there are no existing exports for the hosts involved that we could not override.
         validateNoConflictingExports(exportGroup, storageArrays, pathParam);
-        
+
         return pathParam;
     }
-    
+
     /**
      * Throw an error if we cannot override the Vpool path parameters because there is already
      * an existing export from the indicated host(s) to storage array(s).
+     *
      * @param exportGroup
      * @param arrayURIs
      * @param pathParam -- New ExportPathParams to be used
      */
-    private void validateNoConflictingExports(ExportGroup exportGroup, Set<URI> arrayURIs, 
+    private void validateNoConflictingExports(ExportGroup exportGroup, Set<URI> arrayURIs,
             ExportPathParams pathParam) {
         _log.info("Requested path parameters: " + pathParam.toString());
         Map<String, String> conflictingMasks = new HashMap<String, String>();
@@ -2613,24 +2713,24 @@ public class ExportGroupService extends TaskResourceService {
                 continue;
             }
             // Look up all the Export Masks for this Initiator
-            List<ExportMask> exportMasks = 
-                ExportUtils.getInitiatorExportMasks(initiator, _dbClient);
+            List<ExportMask> exportMasks =
+                    ExportUtils.getInitiatorExportMasks(initiator, _dbClient);
             for (ExportMask exportMask : exportMasks) {
                 // If this mask is for the same Host and Storage combination, we cannot override
                 if (arrayURIs.contains(exportMask.getStorageDevice())) {
-                    ExportPathParams maskParam = 
-                                BlockStorageScheduler.calculateExportPathParamForExportMask(_dbClient, exportMask);
-                    _log.info(String.format("Existing mask %s (%s) parameters: %s", 
+                    ExportPathParams maskParam =
+                            BlockStorageScheduler.calculateExportPathParamForExportMask(_dbClient, exportMask);
+                    _log.info(String.format("Existing mask %s (%s) parameters: %s",
                             exportMask.getMaskName(), exportMask.getId(), maskParam));
-                    
+
                     // Determine if the mask is compatible with the requested parameters or not.
                     // To be compatible, the mask must have the same paths_per_initiator setting, and
                     // its max paths must be between the requested min paths and max paths.
                     // i.e. maskParams.ppi = pathParms.ppi and pathParams.minPath <= maskParams.maxpath <= pathParams.maxPath
-                    if (pathParam.getPathsPerInitiator() == maskParam.getPathsPerInitiator() 
-                            && (pathParam.getMinPaths() <= maskParam.getMaxPaths() 
+                    if (pathParam.getPathsPerInitiator() == maskParam.getPathsPerInitiator()
+                            && (pathParam.getMinPaths() <= maskParam.getMaxPaths()
                             && maskParam.getMaxPaths() <= pathParam.getMaxPaths())) {
-                        _log.info(String.format("Export mask %s is compatible with the requested parameters", 
+                        _log.info(String.format("Export mask %s is compatible with the requested parameters",
                                 exportMask.getMaskName()));
                     } else {
                         StorageSystem system = _dbClient.queryObject(StorageSystem.class, exportMask.getStorageDevice());
@@ -2638,9 +2738,10 @@ public class ExportGroupService extends TaskResourceService {
                         String systemName = (system != null) ? system.getLabel() : exportMask.getStorageDevice().toString();
                         if (!conflictingMasks.containsKey(hostName)) {
                             String msg = String.format(
-                             "Export Mask %s for Host %s and Array %s has %d paths and paths_per_initiator %d", 
-                             exportMask.getMaskName(), hostName, systemName, maskParam.getMaxPaths(), maskParam.getPathsPerInitiator());
-                        conflictingMasks.put(hostName, msg);
+                                    "Export Mask %s for Host %s and Array %s has %d paths and paths_per_initiator %d",
+                                    exportMask.getMaskName(), hostName, systemName, maskParam.getMaxPaths(),
+                                    maskParam.getPathsPerInitiator());
+                            conflictingMasks.put(hostName, msg);
                         }
                     }
                 }
@@ -2657,16 +2758,17 @@ public class ExportGroupService extends TaskResourceService {
             throw APIException.badRequests.cannotOverrideVpoolPathsBecauseExistingExports(builder.toString());
         }
     }
-    
+
     /**
      * Validate that if ports are supplied in the ExportPathParameters, then ports are supplied
      * for every array in the list of volumes to be provisioned. Also verify
      * the ports can be located, and there are at least as many ports as maxPaths.
+     *
      * @param param ExportPathParameters block
      * @param exportGroup
      * @param StorageArrays Collection<URI> Arrays that will be used for the Exports
      */
-    private void validateExportPathParmPorts(ExportPathParameters param, ExportGroup exportGroup, 
+    private void validateExportPathParmPorts(ExportPathParameters param, ExportGroup exportGroup,
             Collection<URI> storageArrays) {
         if (param.getClass() == null || param.getStoragePorts() == null || param.getStoragePorts().isEmpty()) {
             return;
@@ -2695,16 +2797,16 @@ public class ExportGroupService extends TaskResourceService {
             }
         }
     }
-    
+
     /**
      * For all the block objects in the list, checks to see if they are associated with an ExportPathParam object.
      * If so they are removed. If there are no remaining block objects, the ExportPathParam is deleted.
-     * 
+     *
      * @param blockObjectURIs
      * @param exportGroup
      */
     void removeBlockObjectsFromPathParamMap(Collection<URI> blockObjectURIs, ExportGroup exportGroup) {
-        // For each BlockObject, remove it's association to a ExportPathParam.
+        // For each BlockObject, remove its association to a ExportPathParam.
         for (URI blockObjectURI : blockObjectURIs) {
             String pathParamId = exportGroup.getPathParameters().get(blockObjectURI.toString());
             if (pathParamId == null)
@@ -2723,7 +2825,7 @@ public class ExportGroupService extends TaskResourceService {
 
     /**
      * Adds all the listed block objects to the specified export path parameters.
-     * 
+     *
      * @param blockObjectURIs
      * @param pathParamURI
      * @param exportGroup

@@ -71,9 +71,9 @@ public class VolumeDescriptor implements Serializable {
     private Map<String, Object> parameters = new HashMap<String, Object>();
 
     public static final String PARAM_VARRAY_CHANGE_NEW_VAARAY_ID = "varrayChangeNewVArrayId";
-    public static final String PARAM_VPOOL_CHANGE_VOLUME_ID = "vpoolChangeVolumeId";
-    public static final String PARAM_VPOOL_CHANGE_VPOOL_ID = "vpoolChangeVpoolId";
-    public static final String PARAM_VPOOL_OLD_VPOOL_ID = "vpoolOldVpoolId";
+    public static final String PARAM_VPOOL_CHANGE_EXISTING_VOLUME_ID = "vpoolChangeExistingVolumeId";
+    public static final String PARAM_VPOOL_CHANGE_NEW_VPOOL_ID = "vpoolChangeNewVpoolId";
+    public static final String PARAM_VPOOL_CHANGE_OLD_VPOOL_ID = "vpoolChangeOldVpoolId";
     public static final String PARAM_IS_COPY_SOURCE_ID = "isCopySourceId";
     public static final String PARAM_DO_NOT_DELETE_VOLUME = "doNotDeleteVolume";
 
@@ -251,8 +251,8 @@ public class VolumeDescriptor implements Serializable {
         if (descriptors != null) {
             for (VolumeDescriptor volumeDescriptor : descriptors) {
                 if (volumeDescriptor.getParameters() != null) {
-                    if ((URI) volumeDescriptor.getParameters().get(VolumeDescriptor.PARAM_VPOOL_CHANGE_VOLUME_ID) != null) {
-                        return (URI) volumeDescriptor.getParameters().get(VolumeDescriptor.PARAM_VPOOL_CHANGE_VOLUME_ID);
+                    if ((URI) volumeDescriptor.getParameters().get(VolumeDescriptor.PARAM_VPOOL_CHANGE_EXISTING_VOLUME_ID) != null) {
+                        return (URI) volumeDescriptor.getParameters().get(VolumeDescriptor.PARAM_VPOOL_CHANGE_EXISTING_VOLUME_ID);
                     }
                 }
             }
@@ -286,9 +286,9 @@ public class VolumeDescriptor implements Serializable {
         if (descriptors != null) {
             for (VolumeDescriptor volumeDescriptor : descriptors) {
                 if (volumeDescriptor.getParameters() != null) {
-                    if (volumeDescriptor.getParameters().get(VolumeDescriptor.PARAM_VPOOL_CHANGE_VOLUME_ID) != null) {
-                        URI volumeURI = (URI) volumeDescriptor.getParameters().get(VolumeDescriptor.PARAM_VPOOL_CHANGE_VOLUME_ID);
-                        URI oldVpoolURI = (URI) volumeDescriptor.getParameters().get(VolumeDescriptor.PARAM_VPOOL_OLD_VPOOL_ID);
+                    if (volumeDescriptor.getParameters().get(VolumeDescriptor.PARAM_VPOOL_CHANGE_EXISTING_VOLUME_ID) != null) {
+                        URI volumeURI = (URI) volumeDescriptor.getParameters().get(VolumeDescriptor.PARAM_VPOOL_CHANGE_EXISTING_VOLUME_ID);
+                        URI oldVpoolURI = (URI) volumeDescriptor.getParameters().get(VolumeDescriptor.PARAM_VPOOL_CHANGE_OLD_VPOOL_ID);
                         sourceVolumes.put(volumeURI, oldVpoolURI);
                     }
                 }

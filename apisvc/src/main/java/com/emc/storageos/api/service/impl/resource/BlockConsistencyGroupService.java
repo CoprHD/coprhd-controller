@@ -114,6 +114,7 @@ import com.emc.storageos.model.block.VolumeDeleteTypeEnum;
 import com.emc.storageos.model.block.VolumeFullCopyCreateParam;
 import com.emc.storageos.model.block.VolumeRestRep;
 import com.emc.storageos.protectioncontroller.RPController;
+import com.emc.storageos.protectionorchestrationcontroller.ProtectionOrchestrationController;
 import com.emc.storageos.security.audit.AuditLogManager;
 import com.emc.storageos.security.authentication.StorageOSUser;
 import com.emc.storageos.security.authorization.ACL;
@@ -307,7 +308,8 @@ public class BlockConsistencyGroupService extends TaskResourceService {
         BlockServiceApi blockServiceApiImpl = getBlockServiceImpl(consistencyGroup);
 
         // Get the CG volumes
-        List<Volume> volumes = blockServiceApiImpl.getActiveCGVolumes(consistencyGroup);
+        List<Volume> volumes = BlockConsistencyGroupUtils.getActiveVolumesInCG(consistencyGroup, 
+                                _dbClient, null);
 
         // If no volumes, just return the consistency group
         if (volumes.isEmpty()) {
@@ -452,7 +454,8 @@ public class BlockConsistencyGroupService extends TaskResourceService {
     /**
      * Check to see if the consistency group is active and not created. In
      * this case we can delete the consistency group. Otherwise we should
-     * not delete the consistency group.
+     * not delete the consistency group. Note if VPLEX CG has been created,
+     * we should call the VPlexConsistencyGroupManager to remove it.
      *
      * @param consistencyGroup
      *            A reference to the CG.
@@ -463,7 +466,8 @@ public class BlockConsistencyGroupService extends TaskResourceService {
             final BlockConsistencyGroup consistencyGroup) {
         // If the consistency group is active and not created we can delete it,
         // otherwise we cannot.
-        return (!consistencyGroup.getInactive() && !consistencyGroup.created());
+        return (!consistencyGroup.getInactive() && !consistencyGroup.created() 
+                && !consistencyGroup.getTypes().contains(BlockConsistencyGroup.Types.VPLEX.name()));
     }
 
     /**
@@ -649,7 +653,10 @@ public class BlockConsistencyGroupService extends TaskResourceService {
                 if (volume.isVPlexVolume(dbClient)) {
                     Volume backendVolume = VPlexUtil.getVPLEXBackendVolume(volume, false, dbClient);
                     if (backendVolume != null && NullColumnValueGetter.isNullValue(backendVolume.getReplicationGroupInstance())) {
-                        throw APIException.badRequests.cgReplicationNotAllowedMissingReplicationGroup(backendVolume.getLabel());
+                        // Ignore HA volumes not in a consistency group if a CG is specified; no snap sessions on HA side
+                        if (consistencyGroup != null && !NullColumnValueGetter.isNullURI(backendVolume.getConsistencyGroup())) {
+                            throw APIException.badRequests.cgReplicationNotAllowedMissingReplicationGroup(backendVolume.getLabel());
+                        }
                     }
                     backendVolume = VPlexUtil.getVPLEXBackendVolume(volume, true, dbClient);
                     if (backendVolume != null && NullColumnValueGetter.isNullValue(backendVolume.getReplicationGroupInstance())) {
@@ -2303,7 +2310,7 @@ public class BlockConsistencyGroupService extends TaskResourceService {
         BlockServiceApi blockServiceApiImpl = getBlockServiceImpl(consistencyGroup);
 
         // Get a list of CG volumes.
-        List<Volume> volumeList = blockServiceApiImpl.getActiveCGVolumes(consistencyGroup);
+        List<Volume> volumeList = BlockConsistencyGroupUtils.getActiveVolumesInCG(consistencyGroup, _dbClient, null);
 
         if (volumeList == null || volumeList.isEmpty()) {
             throw APIException.badRequests.consistencyGroupContainsNoVolumes(consistencyGroup.getId());
@@ -2386,8 +2393,9 @@ public class BlockConsistencyGroupService extends TaskResourceService {
 
         StorageSystem system = _dbClient.queryObject(StorageSystem.class,
                 targetVolume.getStorageController());
-        SRDFController controller = getController(SRDFController.class,
-                system.getSystemType());
+        ProtectionOrchestrationController controller = 
+                getController(ProtectionOrchestrationController.class, 
+                        ProtectionOrchestrationController.PROTECTION_ORCHESTRATION_DEVICE);
 
         // Create a new duplicate copy of the original copy. Update the copyId field to be the
         // ID of the target volume. Existing SRDF controller logic needs the target volume
@@ -2395,7 +2403,7 @@ public class BlockConsistencyGroupService extends TaskResourceService {
         Copy updatedCopy = new Copy(copy.getType(), copy.getSync(), targetVolume.getId(),
                 copy.getName(), copy.getCount());
 
-        controller.performProtectionOperation(system.getId(), updatedCopy, op, task);
+        controller.performSRDFProtectionOperation(system.getId(), updatedCopy, op, task);
 
         return toTask(targetVolume, task, status);
     }
@@ -2416,7 +2424,7 @@ public class BlockConsistencyGroupService extends TaskResourceService {
             BlockServiceApi blockServiceApiImpl = getBlockServiceImpl(consistencyGroup);
 
             // Get a list of CG volumes.
-            List<Volume> volumeList = blockServiceApiImpl.getActiveCGVolumes(consistencyGroup);
+            List<Volume> volumeList = BlockConsistencyGroupUtils.getActiveNonVplexVolumesInCG(consistencyGroup, _dbClient, null);
 
             if (volumeList == null || volumeList.isEmpty()) {
                 throw APIException.badRequests.consistencyGroupContainsNoVolumes(consistencyGroup.getId());

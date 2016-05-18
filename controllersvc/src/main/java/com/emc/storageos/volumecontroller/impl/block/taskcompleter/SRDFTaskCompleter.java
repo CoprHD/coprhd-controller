@@ -20,6 +20,7 @@ import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.Volume;
+import com.emc.storageos.db.client.model.Volume.VolumeAccessState;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.security.audit.AuditLogManager;
@@ -243,7 +244,9 @@ public class SRDFTaskCompleter extends TaskCompleter {
                 List<Volume> volumes = dbClient.queryObject(Volume.class, getIds());
                 for (Volume v : volumes) {
                     v.setLinkStatus(getVolumeSRDFLinkStatusForSuccess().name());
-                    v.setAccessState(getVolumeAccessStateForSuccess(v).name());
+                    if (v.getPersonality() != null) {                    
+                        v.setAccessState(getVolumeAccessStateForSuccess(v).name());
+                    }
                     if (v.getSrdfTargets() != null) {
                         List<URI> targetVolumeURIs = new ArrayList<URI>();
                         for (String targetId : v.getSrdfTargets()) {

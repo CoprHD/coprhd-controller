@@ -15,6 +15,7 @@ public class HP3PARConstants {
     public static Long KILO_BYTE = (long) 1024;
     
     public static final Integer MODE_SUSPENDED = 1;
+    public static final Integer MODE_TARGET = 2;
     public static final Integer TYPE_FREE = 3;
     public static final Integer TYPE_DISK = 2;
     

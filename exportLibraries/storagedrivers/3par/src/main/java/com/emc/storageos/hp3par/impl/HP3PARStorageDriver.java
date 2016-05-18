@@ -308,10 +308,8 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
                 StoragePort port = new StoragePort();
                 PortMembers currMember =  portResult.getMembers().get(index);
 
-                // Avoid suspended and free ports
-                if (currMember.getMode() == HP3PARConstants.MODE_SUSPENDED || 
-                        currMember.getType() == HP3PARConstants.TYPE_FREE ||
-                        currMember.getType() == HP3PARConstants.TYPE_DISK) {
+                // Consider ports which are connected to hosts and free ports which can be connected to hosts
+                if (currMember.getMode() != HP3PARConstants.MODE_TARGET) {
                     continue;
                 }
                 
@@ -373,7 +371,7 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
                 // Filling values as its expected by SB SDK
                 port.setTcpPortNumber(index.longValue());
                 port.setAvgBandwidth(port.getPortSpeed());
-                port.setPortHAZone(String.format("domain%s", currMember.getPortPos().getNode()));
+                port.setPortHAZone(String.format("Group-%s", currMember.getPortPos().getNode()));
                 
                 String id = String.format("port:%s:%s:%s", currMember.getPortPos().getNode(),
                         currMember.getPortPos().getSlot(), currMember.getPortPos().getCardPort());
@@ -383,6 +381,10 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
                 port.setDisplayName(port.getPortName());
                 storageSystem.setAccessStatus(AccessStatus.READ_WRITE);
 
+                // To provide provisioning without proper fabric; lglap114.lss.emc.com; root/standard
+                //TEMP CODE START**********************
+                port.setNetworkId("er-network77"+ storageSystem.getNativeId());
+                //TEMP CODE END************************
                 port.setOperationalStatus(StoragePort.OperationalStatus.OK);  
                 _log.info("3PAR: added storage port {}, native id {}",  port.getPortName(), port.getNativeId());
                 storagePorts.add(port);

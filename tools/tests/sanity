@@ -9596,7 +9596,8 @@ unity_setup()
     storagepool update $UNITY_NATIVEGUID --type file
     storageport update $UNITY_NATIVEGUID IP --tzone nh/iptz
     run cos update file $COS_UNITY --storage $UNITY_NATIVEGUID
-
+    run transportzone add $NH/$IP_ZONE $UNITY_IP_ENDPOINT1
+    run storagedevice discover_all
 }
 
 unity_tests()

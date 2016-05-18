@@ -17,6 +17,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.curator.framework.CuratorFramework;
@@ -966,7 +967,7 @@ public class WorkflowService implements WorkflowController {
     				persistWorkflowStepUpdate(workflow, step);
             		
             		workflow.getSuspendSteps().add(step.workflowStepURI);
-            		internalSuspendWorkflowStep(workflow._workflowURI, step.workflowStepURI);
+            		suspendWorkflowStep(workflow._workflowURI, step.workflowStepURI, UUID.randomUUID().toString());
                 } 
             } catch (CancelledException cancelEx) {
             	state = StepState.CANCELLED;
@@ -1046,7 +1047,7 @@ public class WorkflowService implements WorkflowController {
                         		step.status.updateState(StepState.SUSPENDED_NO_ERROR,  null, "Suspending step " + step.description);
                 				persistWorkflowStepUpdate(workflow, step);
                             	workflow.getSuspendSteps().add(step.workflowStepURI);
-                            	internalSuspendWorkflowStep(workflow._workflowURI, step.workflowStepURI);
+                            	suspendWorkflowStep(workflow._workflowURI, step.workflowStepURI, UUID.randomUUID().toString());
                             } else { 
                             	step.status.updateState(StepState.QUEUED, null, "Unblocked by step: "
                             			+ fromStepId);
@@ -1662,15 +1663,10 @@ public class WorkflowService implements WorkflowController {
 	public void suspendWorkflowStep(URI workflowURI, URI stepURI, String taskId)
 			throws ControllerException {
         WorkflowTaskCompleter completer = new WorkflowTaskCompleter(workflowURI, taskId);
-		internalSuspendWorkflowStep(workflowURI, stepURI);
-        completer.ready(_dbClient);
-	}
-
-	private void internalSuspendWorkflowStep(URI workflowURI, URI stepURI) {
-		_log.info(String.format("Suspend request workflow: %s step: %s", workflowURI, stepURI));
+        _log.info(String.format("Suspend request workflow: %s step: %s", workflowURI, stepURI));
         Workflow workflow = loadWorkflowFromUri(workflowURI);
         if (workflow.getSuspendSteps() == null) {
-        	workflow.setSuspendSteps(new HashSet<URI>());
+            workflow.setSuspendSteps(new HashSet<URI>());
         }
         if (NullColumnValueGetter.isNullURI(stepURI)) {
             // In this case, we want to suspend any step trying to unblock.
@@ -1680,6 +1676,7 @@ public class WorkflowService implements WorkflowController {
             workflow.getSuspendSteps().add(stepURI);
         }
         persistWorkflow(workflow);
+        completer.ready(_dbClient);
 	}
 
 	@Override

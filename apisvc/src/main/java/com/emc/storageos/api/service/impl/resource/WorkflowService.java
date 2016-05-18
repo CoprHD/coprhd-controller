@@ -42,6 +42,7 @@ import com.emc.storageos.model.workflow.WorkflowStepRestRep;
 import com.emc.storageos.security.authorization.CheckPermission;
 import com.emc.storageos.security.authorization.DefaultPermissions;
 import com.emc.storageos.security.authorization.Role;
+import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.workflow.WorkflowController;
 import com.emc.storageos.workflow.WorkflowState;
 
@@ -269,6 +270,9 @@ public class WorkflowService extends TaskResourceService {
     }
     
     protected static void verifySuspendedWorkflow(Workflow workflow) {
+        if (workflow.getCompletionState() == null) {
+            throw APIException.badRequests.workflowCompletionStateNotFound(workflow.getId());
+        }
         WorkflowState state = WorkflowState.valueOf(WorkflowState.class, workflow.getCompletionState());
         EnumSet<WorkflowState> expected = EnumSet.of(WorkflowState.SUSPENDED_NO_ERROR, WorkflowState.SUSPENDED_ERROR);
         ArgValidator.checkFieldForValueFromEnum(state, "Workflow completion state", expected);
@@ -309,6 +313,9 @@ public class WorkflowService extends TaskResourceService {
         // Verify the workflow is either RUNNING or ROLLING_BACK
         EnumSet<WorkflowState> expected = 
                 EnumSet.of(WorkflowState.RUNNING, WorkflowState.ROLLING_BACK);
+        if (workflow.getCompletionState() == null) {
+            throw APIException.badRequests.workflowCompletionStateNotFound(workflow.getId());
+        }
         WorkflowState completionState = WorkflowState.valueOf(workflow.getCompletionState());
         ArgValidator.checkFieldForValueFromEnum(completionState, "Workflow State", expected);
         if (!NullColumnValueGetter.isNullURI(stepURI)) {

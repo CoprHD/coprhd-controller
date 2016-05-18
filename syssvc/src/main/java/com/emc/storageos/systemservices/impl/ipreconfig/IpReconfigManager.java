@@ -712,7 +712,6 @@ public class IpReconfigManager implements Runnable {
         String errmsg = "";
 
         loadClusterIpProps();
-        log.info("validating parameter:{}", clusterIpInfo.toVdcSiteString());
 
         if (!postOperation.equals("poweroff") && !postOperation.equals("reboot")) {
             bValid = false;

@@ -4,6 +4,8 @@
  */
 package com.emc.vipr.model.sys.ipreconfig;
 
+import com.emc.storageos.model.property.PropertyConstants;
+
 import java.io.*;
 import java.util.Map;
 
@@ -113,6 +115,10 @@ public class SiteIpInfo implements Serializable {
         StringBuffer propStrBuf = new StringBuffer();
         propStrBuf.append(ipv4_setting.toVdcSiteString(vdcsiteid));
         propStrBuf.append(ipv6_setting.toVdcSiteString(vdcsiteid));
+        propStrBuf.append(vdcsiteid).append(PropertyConstants.UNDERSCORE_DELIMITER)
+                .append(PropertyConstants.NODE_COUNT_KEY).append(PropertyConstants.DELIMITER)
+                .append(ipv4_setting.getNetworkAddrs().size()).append("\n");
+
         return propStrBuf.toString();
     }
 

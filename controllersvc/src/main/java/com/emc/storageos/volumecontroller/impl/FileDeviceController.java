@@ -394,7 +394,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                             recordFileDeviceOperation(_dbClient, OperationTypeEnum.DELETE_FILE_SYSTEM, result.isCommandSuccess(), "", "",
                                     fsObj, storageObj);
                             _dbClient.persistObject(fsObj);
-			    WorkflowStepCompleter.stepFailed(opId, result.getServiceCoded());
+                            WorkflowStepCompleter.stepFailed(opId, result.getServiceCoded());
                             return;
                         }
                     }

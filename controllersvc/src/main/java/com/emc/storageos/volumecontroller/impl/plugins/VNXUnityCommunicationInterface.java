@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014 EMC Corporation
+ * Copyright (c) 2016 EMC Corporation
  * All Rights Reserved
  */
 
@@ -38,13 +38,7 @@ import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.plugins.AccessProfile;
 import com.emc.storageos.plugins.BaseCollectionException;
-import com.emc.storageos.vnx.xmlapi.VNXCifsServer;
 import com.emc.storageos.plugins.StorageSystemViewObject;
-import com.emc.storageos.scaleio.ScaleIOException;
-import com.emc.storageos.scaleio.api.restapi.ScaleIORestClient;
-import com.emc.storageos.scaleio.api.restapi.response.ScaleIOProtectionDomain;
-import com.emc.storageos.scaleio.api.restapi.response.ScaleIOSystem;
-import com.emc.storageos.util.VersionChecker;
 import com.emc.storageos.vnxe.VNXeApiClient;
 import com.emc.storageos.vnxe.VNXeApiClientFactory;
 import com.emc.storageos.vnxe.VNXeException;
@@ -132,7 +126,8 @@ public class VNXUnityCommunicationInterface extends
             VNXeApiClient apiClient = getVnxUnityClient(accessProfile);
             if (apiClient != null) {
                 Map<String, StorageSystemViewObject> storageSystemsCache = accessProfile.getCache();
-                BasicSystemInfo unitySystem = apiClient.getBasicSystemInfo();;
+                BasicSystemInfo unitySystem = apiClient.getBasicSystemInfo();
+                ;
 
                 String unityType = StorageSystem.Type.unity.name();
                 String version = unitySystem.getApiVersion();
@@ -153,7 +148,7 @@ public class VNXUnityCommunicationInterface extends
                 viewObject.setProperty(StorageSystemViewObject.MODEL, unitySystem.getModel());
                 viewObject.setProperty(StorageSystemViewObject.SERIAL_NUMBER, id);
                 storageSystemsCache.put(nativeGuid, viewObject);
-                
+
             }
         } catch (Exception e) {
             cxnStatus = StorageProvider.ConnectionStatus.NOTCONNECTED;
@@ -264,7 +259,7 @@ public class VNXUnityCommunicationInterface extends
                 if (!nasServers.get(EXISTING).isEmpty()) {
                     _dbClient.updateObject(nasServers.get(EXISTING));
                 }
-                _completer.statusPending(_dbClient, "Completed NAS Server discovery"); 
+                _completer.statusPending(_dbClient, "Completed NAS Server discovery");
 
                 // Discover FileInterfaces
                 List<StoragePort> allExistingPorts = new ArrayList<StoragePort>();
@@ -308,7 +303,7 @@ public class VNXUnityCommunicationInterface extends
                 if (iscsiPorts.get(EXISTING) != null && !iscsiPorts.get(EXISTING).isEmpty()) {
                     allExistingPorts.addAll(iscsiPorts.get(EXISTING));
                     hasIscsiPorts = true;
-                    _dbClient.updateObject(ports.get(EXISTING));
+                    _dbClient.updateObject(iscsiPorts.get(EXISTING));
                 }
                 if (hasIscsiPorts) {
                     arraySupportedProtocols.add(StorageProtocol.Block.iSCSI.name());
@@ -327,7 +322,7 @@ public class VNXUnityCommunicationInterface extends
                 if (fcPorts.get(EXISTING) != null && !fcPorts.get(EXISTING).isEmpty()) {
                     allExistingPorts.addAll(fcPorts.get(EXISTING));
                     hasFcPorts = true;
-                    _dbClient.updateObject(ports.get(EXISTING));
+                    _dbClient.updateObject(fcPorts.get(EXISTING));
                 }
                 if (hasFcPorts) {
                     arraySupportedProtocols.add(StorageProtocol.Block.FC.name());
@@ -374,7 +369,7 @@ public class VNXUnityCommunicationInterface extends
                 StoragePortAssociationHelper.runUpdatePortAssociationsProcess(allNewPorts, allExistingPorts, _dbClient,
                         _coordinator, poolsToMatchWithVpool);
                 _completer.statusPending(_dbClient, "Completed pool discovery");
-                 
+
                 // This associates the VNas with the virtual array
                 StoragePortAssociationHelper.runUpdateVirtualNasAssociationsProcess(allExistingPorts, null, _dbClient);
                 _logger.info("update virtual nas association for unity");
@@ -408,8 +403,7 @@ public class VNXUnityCommunicationInterface extends
                         storageSystemURI.toString());
 
             }
-            
-            
+
         } catch (Exception e) {
             detailedStatusMessage = String.format("Discovery failed for VNX Unity %s: %s", storageSystemURI.toString(),
                     e.getLocalizedMessage());
@@ -548,7 +542,16 @@ public class VNXUnityCommunicationInterface extends
 
                     pool.setLabel(poolNativeGuid);
                     pool.setNativeGuid(poolNativeGuid);
-                    // FIXME: pool.setOperationalStatus(vnxePool.getStatus());
+                    Health poolHealth = vnxePool.getHealth();
+                    if (poolHealth != null) {
+                        int value = poolHealth.getValue();
+                        if (value == Health.HealthEnum.OK.getValue()|| 
+                                value == Health.HealthEnum.OK_BUT.getValue()) {
+                            pool.setOperationalStatus(StoragePool.PoolOperationalStatus.READY.name());
+                        } else {
+                            pool.setOperationalStatus(StoragePool.PoolOperationalStatus.NOTREADY.name());
+                        }
+                    }
                     pool.setOperationalStatus(StoragePool.PoolOperationalStatus.READY.name());
                     pool.setPoolServiceType(PoolServiceType.block_file
                             .toString());
@@ -695,13 +698,13 @@ public class VNXUnityCommunicationInterface extends
     private HashMap<String, List<StorageHADomain>> discoverNasServers(
             StorageSystem system, VNXeApiClient client,
             Map<String, URI> nasServerIdMap, StringSet arraySupportedProtocols)
-            throws VNXeException {
+                    throws VNXeException {
         HashMap<String, List<StorageHADomain>> allNasServers = new HashMap<String, List<StorageHADomain>>();
 
         List<StorageHADomain> newNasServers = new ArrayList<StorageHADomain>();
         List<StorageHADomain> existingNasServers = new ArrayList<StorageHADomain>();
-		
-		List<VirtualNAS> newVirtualNas = new ArrayList<VirtualNAS>();
+
+        List<VirtualNAS> newVirtualNas = new ArrayList<VirtualNAS>();
         List<VirtualNAS> existingVirtualNas = new ArrayList<VirtualNAS>();
 
         boolean isNFSSupported = false;
@@ -783,73 +786,73 @@ public class VNXUnityCommunicationInterface extends
                 haDomain.setName(nasServer.getName());
                 haDomain.setSerialNumber(nasServer.getId());
                 haDomain.setFileSharingProtocols(protocols);
-				haDomain.setVirtual(true);
+                haDomain.setVirtual(true);
                 newNasServers.add(haDomain);
-		
+
             } else {
                 haDomain.setFileSharingProtocols(protocols);
-				haDomain.setVirtual(true);
+                haDomain.setVirtual(true);
                 existingNasServers.add(haDomain);
             }
             nasServerIdMap.put(nasServer.getId(), haDomain.getId());
-			
-			CifsServerMap cifsServersMap = new CifsServerMap();
+
+            CifsServerMap cifsServersMap = new CifsServerMap();
 
             for (VNXeCifsServer cifsServer : cifsServers) {
-				if (cifsServer.getNasServer().getId().equals(nasServer.getId())) {
-                	_logger.info("Cifs Server {} for {} ", cifsServer.getName(), nasServer.getName());
-	                if (!cifsServer.getFileInterfaces().isEmpty()) {
-        	            _logger.info("{} has CIFS Enabled since interfaces are found ", nasServer.getName(),
-                	            cifsServer.getName() + ":" + cifsServer.getFileInterfaces());
-	                    protocols.add(StorageProtocol.File.CIFS.name());
-	
-        	            NasCifsServer nasCifsServer = new NasCifsServer();
-                	    nasCifsServer.setId(cifsServer.getId());
-	                    // nasCifsServer.setInterfaces(cifsServer.getFileInterfaces()); TODO
-        	            nasCifsServer.setMoverIdIsVdm(true);
-                	    nasCifsServer.setName(cifsServer.getName());
-	                    // nasCifsServer.setType(cifsServer.getType());
-        	            nasCifsServer.setDomain(cifsServer.getDomain());
-                	    cifsServersMap.put(cifsServer.getName(), nasCifsServer);
-					}
+                if (cifsServer.getNasServer().getId().equals(nasServer.getId())) {
+                    _logger.info("Cifs Server {} for {} ", cifsServer.getName(), nasServer.getName());
+                    if (!cifsServer.getFileInterfaces().isEmpty()) {
+                        _logger.info("{} has CIFS Enabled since interfaces are found ", nasServer.getName(),
+                                cifsServer.getName() + ":" + cifsServer.getFileInterfaces());
+                        protocols.add(StorageProtocol.File.CIFS.name());
+
+                        NasCifsServer nasCifsServer = new NasCifsServer();
+                        nasCifsServer.setId(cifsServer.getId());
+                        // nasCifsServer.setInterfaces(cifsServer.getFileInterfaces()); TODO
+                        nasCifsServer.setMoverIdIsVdm(true);
+                        nasCifsServer.setName(cifsServer.getName());
+                        // nasCifsServer.setType(cifsServer.getType());
+                        nasCifsServer.setDomain(cifsServer.getDomain());
+                        cifsServersMap.put(cifsServer.getName(), nasCifsServer);
+                    }
                 }
             }
-			
-			VirtualNAS vNas = findvNasByNativeId(system, nasServer.getId());
+
+            VirtualNAS vNas = findvNasByNativeId(system, nasServer.getId());
 
             // If the nasServer was not previously discovered
             if (vNas == null) {
                 vNas = new VirtualNAS();
                 vNas.setId(URIUtil.createId(VirtualNAS.class));
-				String nasNativeGuid = NativeGUIDGenerator.generateNativeGuid(system, nasServer.getId(), NativeGUIDGenerator.VIRTUAL_NAS);
+                String nasNativeGuid = NativeGUIDGenerator.generateNativeGuid(system, nasServer.getId(), NativeGUIDGenerator.VIRTUAL_NAS);
                 vNas.setNativeGuid(nasNativeGuid);
                 vNas.setStorageDeviceURI(system.getId());
                 vNas.setNasName(nasServer.getName());
                 vNas.setNativeId(nasServer.getId());
-                vNas.setNasState(VirtualNasState.LOADED.name()); 
+                vNas.setNasState(VirtualNasState.LOADED.name());
                 vNas.setProtocols(protocols);
                 vNas.setCifsServersMap(cifsServersMap);
                 newVirtualNas.add(vNas);
             } else {
                 vNas.setProtocols(protocols);
-				vNas.setNasState(VirtualNasState.LOADED.name());
-				vNas.setCifsServersMap(cifsServersMap);
+                vNas.setNasState(VirtualNasState.LOADED.name());
+                vNas.setCifsServersMap(cifsServersMap);
                 existingVirtualNas.add(vNas);
             }
-			
+
         }
-		
+
         // Persist the NAS servers!!!
         if (existingVirtualNas != null && !existingVirtualNas.isEmpty()) {
             _logger.info("discoverNasServers - modified VirtualNAS servers size {}", existingVirtualNas.size());
-            _dbClient.persistObject(existingVirtualNas);           
+            _dbClient.updateObject(existingVirtualNas);
         }
 
         if (newVirtualNas != null && !newVirtualNas.isEmpty()) {
             _logger.info("discoverNasServers - new VirtualNAS servers size {}", newVirtualNas.size());
             _dbClient.createObject(newVirtualNas);
         }
-		
+
         if (isBothSupported) {
             arraySupportedProtocols.add(StorageProtocol.File.NFS.name());
             arraySupportedProtocols.add(StorageProtocol.File.CIFS.name());
@@ -898,8 +901,8 @@ public class VNXUnityCommunicationInterface extends
 
         List<StoragePort> newStoragePorts = new ArrayList<StoragePort>();
         List<StoragePort> existingStoragePorts = new ArrayList<StoragePort>();
-		
-		List<VirtualNAS> modifiedServers = new ArrayList<VirtualNAS>();
+
+        List<VirtualNAS> modifiedServers = new ArrayList<VirtualNAS>();
 
         _logger.info("Start storage port discovery for storage system {}",
                 system.getId());
@@ -926,7 +929,7 @@ public class VNXUnityCommunicationInterface extends
             if (haDomainUri == null) {
                 continue;
             }
-			
+
             // Check if storage port was already discovered
             String portNativeGuid = NativeGUIDGenerator.generateNativeGuid(
                     system, intf.getIpAddress(), NativeGUIDGenerator.PORT);
@@ -979,11 +982,11 @@ public class VNXUnityCommunicationInterface extends
             }
             port.setDiscoveryStatus(DiscoveryStatus.VISIBLE.name());
             port.setCompatibilityStatus(DiscoveredDataObject.CompatibilityStatus.COMPATIBLE.name());
-			
-			// Associate Storage Port to Virtual NAS
-			
-			VirtualNAS vNas = findvNasByNativeId(system, nasServerId);
-			if (vNas != null) {
+
+            // Associate Storage Port to Virtual NAS
+
+            VirtualNAS vNas = findvNasByNativeId(system, nasServerId);
+            if (vNas != null) {
                 if (vNas.getStoragePorts() != null && !vNas.getStoragePorts().isEmpty()) {
                     if (vNas.getStoragePorts().contains(port.getId())) {
                         vNas.getStoragePorts().remove(port.getId());
@@ -994,11 +997,11 @@ public class VNXUnityCommunicationInterface extends
                 _logger.info("VirtualNAS : {} : port : {} got modified", vNas.getId(), port.getPortName());
             }
         }
-		
-		//Persist the modified virtual nas servers
-		if (modifiedServers != null && !modifiedServers.isEmpty()) {
+
+        // Persist the modified virtual nas servers
+        if (modifiedServers != null && !modifiedServers.isEmpty()) {
             _logger.info("Modified VirtualNAS servers size {}", modifiedServers.size());
-            _dbClient.persistObject(modifiedServers);
+            _dbClient.updateObject(modifiedServers);
         }
 
         _logger.info("Storage port discovery for storage system {} complete",
@@ -1008,8 +1011,8 @@ public class VNXUnityCommunicationInterface extends
         storagePorts.put(EXISTING, existingStoragePorts);
         return storagePorts;
     }
-	
-  /**
+
+    /**
      * Find the Virtual NAS by Native ID for the specified VNX File storage array
      * 
      * @param system storage system information including credentials.
@@ -1043,7 +1046,7 @@ public class VNXUnityCommunicationInterface extends
 
     private HashMap<String, List<StorageHADomain>> discoverStorageProcessors(
             StorageSystem system, VNXeApiClient client, Map<String, URI> spIdMap)
-            throws VNXeException {
+                    throws VNXeException {
         HashMap<String, List<StorageHADomain>> result = new HashMap<String, List<StorageHADomain>>();
 
         List<StorageHADomain> newSPs = new ArrayList<StorageHADomain>();
@@ -1125,7 +1128,7 @@ public class VNXUnityCommunicationInterface extends
      */
     private HashMap<String, List<StoragePort>> discoverIscsiPorts(
             StorageSystem system, VNXeApiClient client, Map<String, URI> spIdMap)
-            throws VNXeException {
+                    throws VNXeException {
 
         HashMap<String, List<StoragePort>> storagePorts = new HashMap<String, List<StoragePort>>();
 
@@ -1254,7 +1257,7 @@ public class VNXUnityCommunicationInterface extends
      */
     private HashMap<String, List<StoragePort>> discoverFcPorts(
             StorageSystem system, VNXeApiClient client, Map<String, URI> spIdMap)
-            throws VNXeException {
+                    throws VNXeException {
 
         HashMap<String, List<StoragePort>> storagePorts = new HashMap<String, List<StoragePort>>();
 
@@ -1362,6 +1365,13 @@ public class VNXUnityCommunicationInterface extends
         return storagePorts;
     }
 
+    /**
+     * Discover StorageTiers
+     * @param system
+     * @param client
+     * @return
+     * @throws VNXeException
+     */
     private HashMap<String, List<StorageTier>> discoverStorageTier(
             StorageSystem system, VNXeApiClient client) throws VNXeException {
 
@@ -1419,6 +1429,12 @@ public class VNXUnityCommunicationInterface extends
 
     }
 
+    /**
+     * Discover autoTier policies
+     * @param system
+     * @param apiClient
+     * @return
+     */
     private HashMap<String, List<AutoTieringPolicy>> discoverAutoTierPolicies(
             StorageSystem system, VNXeApiClient apiClient) {
         HashMap<String, List<AutoTieringPolicy>> policies = new HashMap<String, List<AutoTieringPolicy>>();
@@ -1480,6 +1496,12 @@ public class VNXUnityCommunicationInterface extends
 
     }
 
+    /**
+     * Check if the pool's autotiering is enabled. if there are more than one tier in the pool, then it is enabled.
+     * @param vnxePool
+     * @param system
+     * @return true or false
+     */
     private boolean getPoolAutoTieringEnabled(VNXePool vnxePool,
             StorageSystem system) {
         boolean enabled = false;

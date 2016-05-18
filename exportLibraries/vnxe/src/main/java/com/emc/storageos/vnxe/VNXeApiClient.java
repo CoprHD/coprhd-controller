@@ -1932,7 +1932,6 @@ public class VNXeApiClient {
      * 
      * @param hosts
      * @return
-     * @TODO this is ISCSI only. will add FC case too.
      */
     private VNXeBase prepareHostsForExport(List<VNXeHostInitiator> hostInitiators) {
 
@@ -2711,5 +2710,39 @@ public class VNXeApiClient {
         parmList.add(hostLunParam);
         param.setHostLunModifyList(parmList);
         req.modifyHostLun(param);
+    }
+    
+    /**
+     * Get Initiator using its iqn or wwn
+     * @param wwn wwn or iqn
+     * @return host initiator instance
+     */
+    public VNXeHostInitiator getInitiatorByWWN(String wwn) {
+        HostInitiatorRequest initReq = new HostInitiatorRequest(_khClient);
+
+        return initReq.getByIQNorWWN(wwn);
+    }
+    
+    /**
+     * Create host initiator in the array
+     * @param inits
+     * @param hostId
+     */
+    public void createInitiator(VNXeHostInitiator newInit, String hostId) {
+
+        HostInitiatorCreateParam initCreateParam = new HostInitiatorCreateParam();
+        VNXeBase host = new VNXeBase(hostId);
+        initCreateParam.setHost(host);
+        if (newInit.getType() == HostInitiatorTypeEnum.INITIATOR_TYPE_ISCSI) {
+            initCreateParam.setInitiatorType(HostInitiatorTypeEnum.INITIATOR_TYPE_ISCSI.getValue());
+            initCreateParam.setInitiatorWWNorIqn(newInit.getChapUserName());
+            initCreateParam.setChapUser(newInit.getChapUserName());
+        } else {
+            initCreateParam.setInitiatorType(HostInitiatorTypeEnum.INITIATOR_TYPE_FC.getValue());
+            initCreateParam.setInitiatorWWNorIqn(newInit.getInitiatorId());
+        }
+        HostInitiatorRequest req = new HostInitiatorRequest(_khClient);
+        req.createHostInitiator(initCreateParam);
+
     }
 }

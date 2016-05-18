@@ -1053,7 +1053,7 @@ public class XIVMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                     commonHLUs.add(String.valueOf(nextHLU));
                     volumeMap.put(volumeMapEntry.getKey(), Integer.valueOf(nextHLU));
                 } else {
-                    //TODO : throw exception if it exceeds max HLU
+                    DeviceControllerException.errors.voluemExportNotPossible(volumeMapEntry.getKey().toString(), nextHLU, new Throwable());
                 }
             }
         }

@@ -44,8 +44,8 @@ import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.volumecontroller.impl.VolumeURIHLU;
 import com.emc.storageos.volumecontroller.impl.utils.ExportMaskUtils;
 import com.emc.storageos.xiv.api.XIVApiFactory;
-import com.emc.storageos.xiv.api.XIVRESTExportOperations;
-import com.emc.storageos.xiv.api.XIVRESTExportOperations.HOST_STATUS;
+import com.emc.storageos.xiv.api.XIVRESTOperations;
+import com.emc.storageos.xiv.api.XIVRESTOperations.HOST_STATUS;
 import com.emc.storageos.xiv.api.XIVRestException;
 import com.google.common.base.Joiner;
 
@@ -81,8 +81,8 @@ public class XIVRESTOperationsHelper {
      * @param storage StorageSystem instance
      * @return XIVRESTExportOperations instance
      */
-    private XIVRESTExportOperations getRestClient(StorageSystem storage) {
-        XIVRESTExportOperations restExportOpr = null;
+    private XIVRESTOperations getRestClient(StorageSystem storage) {
+        XIVRESTOperations restExportOpr = null;
         StorageProvider provider = _dbClient.queryObject(StorageProvider.class, storage.getActiveProviderURI());
         String providerUser = provider.getSecondaryUsername();
         String providerPassword = provider.getSecondaryPassword();
@@ -108,7 +108,7 @@ public class XIVRESTOperationsHelper {
 
         List<ExportGroup> exportGroup = ExportMaskUtils.getExportGroups(_dbClient, exportMask);
         if (null != exportGroup && !exportGroup.isEmpty() && exportGroup.get(0).forCluster()) {
-            XIVRESTExportOperations restExportOpr = getRestClient(storage);
+            XIVRESTOperations restExportOpr = getRestClient(storage);
             if (null != restExportOpr) {
                 String hostName = null;
 
@@ -139,7 +139,7 @@ public class XIVRESTOperationsHelper {
      */
     private boolean isClusteredHostOnArray(StorageSystem storage, String hostName) {
         boolean isClusteredHost = false;
-        XIVRESTExportOperations restExportOpr = getRestClient(storage);
+        XIVRESTOperations restExportOpr = getRestClient(storage);
         if (null != restExportOpr && null != hostName) {
             HOST_STATUS hostStatus = null;
 
@@ -183,7 +183,7 @@ public class XIVRESTOperationsHelper {
         try {
 
             ExportMask exportMask = _dbClient.queryObject(ExportMask.class, exportMaskURI);
-            XIVRESTExportOperations restExportOpr = getRestClient(storage);
+            XIVRESTOperations restExportOpr = getRestClient(storage);
 
             final String storageIP = storage.getSmisProviderIP();
             final Host host = _dbClient.queryObject(Host.class, initiatorList.get(0).getHost());
@@ -287,7 +287,7 @@ public class XIVRESTOperationsHelper {
             final String storageIP = storage.getSmisProviderIP();
             final String name = mask.getMaskName();
 
-            XIVRESTExportOperations restExportOpr = getRestClient(storage);
+            XIVRESTOperations restExportOpr = getRestClient(storage);
             StringBuilder builder = new StringBuilder();
 
             boolean addInitiators = false;
@@ -376,7 +376,7 @@ public class XIVRESTOperationsHelper {
             final StringSet emInitiatorURIs = exportMask.getInitiators();
             final StringMap emVolumeURIs = exportMask.getVolumes();
 
-            XIVRESTExportOperations restExportOpr = getRestClient(storage);
+            XIVRESTOperations restExportOpr = getRestClient(storage);
             URI hostURI = null;
 
             // Un export Volumes

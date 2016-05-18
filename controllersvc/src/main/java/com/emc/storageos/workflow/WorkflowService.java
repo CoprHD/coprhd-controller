@@ -482,7 +482,18 @@ public class WorkflowService implements WorkflowController {
         // Get the WorkflowState
         WorkflowState state = workflow.getWorkflowStateFromSteps();
         // Clear the suspend step so we will execute if resumed.
-        workflow.setSuspendStep(NullColumnValueGetter.getNullURI());
+        if (statusMap != null && workflow.getSuspendSteps() != null) {
+        	for (Map.Entry<String, StepStatus> statusEntry : statusMap.entrySet()) {
+        		if (statusEntry.getValue() != null && statusEntry.getValue().state != null &&
+        				(statusEntry.getValue().state == StepState.SUSPENDED_ERROR ||
+        				statusEntry.getValue().state == StepState.SUSPENDED_NO_ERROR)) {
+        			_log.info("Removing step " + statusEntry.getValue().description + " from the suspended steps list in the workflow");
+        			URI suspendStepURI = workflow.getStepMap().get(statusEntry.getKey()).workflowStepURI;
+        			workflow.getSuspendSteps().remove(suspendStepURI);
+                    persistWorkflow(workflow);
+        		}
+        	}
+        }
 
         // Get composite status and status message
         if (workflow._successMessage == null) {
@@ -839,48 +850,9 @@ public class WorkflowService implements WorkflowController {
             	_log.info("Executing workflow plan: " + workflow.getWorkflowURI() + " " + workflow.getOrchTaskId());
             	workflow.setWorkflowState(WorkflowState.RUNNING);
 
-            	// Load the current workflow property to suspend on class/method
-            	String suspendOn = _coordinator.getPropertyInfo().getProperty(WORKFLOW_SUSPEND_ON_CLASS_METHOD_PROPERTY);
-
-            	// If unit testing, get this value from the unit tester.
-            	if (_classMethodTestOnly != null) {
-            		suspendOn = _classMethodTestOnly;
-            	}
+            	// Mark steps that should be suspended in the workflow for later.
+            	suspendStepsMatchingProperty(workflow);
             	
-            	String suspendClass = null;
-            	String suspendMethod = null;
-            	if (suspendOn != null) {
-            	    if (suspendOn.contains(".")) {
-            	        suspendClass = suspendOn.substring(0, suspendOn.indexOf("."));
-            	        suspendMethod = suspendOn.substring(suspendOn.indexOf(".")+1);
-            	    } else {
-            	        suspendClass = suspendOn;
-            	        suspendMethod = "*";
-            	    }
-            	
-            	    // Scan all steps for class and methods that should be set to the suspended state.
-            	    for (Step step : workflow.getStepMap().values()) {
-            	        boolean suspendStep = false;
-            	        
-            	        // If suspend class and method are true, everything suspends all of the time.
-            	        if (suspendClass.equals("*") && suspendMethod.equals("*")) {
-            	            suspendStep = true;
-            	        } else if (step.controllerName.endsWith(suspendClass) &&
-            	                (step.executeMethod.methodName.equals(suspendMethod) ||
-            	             suspendMethod.equals("*"))) {
-            	            suspendStep = true;
-            	        } else if (suspendClass.equals("*") && step.executeMethod.methodName.equals(suspendMethod)) {
-            	            suspendStep = true;
-            	        }
-            	        
-            	        if (suspendStep) {
-            	            logStep(workflow, step);
-            	            workflow.setSuspendStep(step.workflowStepURI);
-            	            this.suspendWorkflowStep(workflow._workflowURI, step.workflowStepURI, workflow.getOrchTaskId());
-            	        }
-            	    }
-            	}
-
             	persistWorkflow(workflow);
                 
                 for (Step step : workflow.getStepMap().values()) {
@@ -915,6 +887,58 @@ public class WorkflowService implements WorkflowController {
         }
     }
 
+	/**
+	 * Marks steps as suspend-able when they are encountered and unblocked.
+	 * workflow_suspend_on_class_method, such as "MaskingWorkflowEntryPoints.doExportGroupAddVolumes"
+	 * 
+	 * @param workflow workflow to scan
+	 */
+	private void suspendStepsMatchingProperty(Workflow workflow) {
+		// Load the current workflow property to suspend on class/method
+		String suspendOn = _coordinator.getPropertyInfo().getProperty(WORKFLOW_SUSPEND_ON_CLASS_METHOD_PROPERTY);
+
+		// If unit testing, get this value from the unit tester.
+		if (_classMethodTestOnly != null) {
+			suspendOn = _classMethodTestOnly;
+		}
+		
+		String suspendClass = null;
+		String suspendMethod = null;
+		if (suspendOn != null) {
+		    if (suspendOn.contains(".")) {
+		        suspendClass = suspendOn.substring(0, suspendOn.indexOf("."));
+		        suspendMethod = suspendOn.substring(suspendOn.indexOf(".")+1);
+		    } else {
+		        suspendClass = suspendOn;
+		        suspendMethod = "*";
+		    }
+		
+		    // Scan all steps for class and methods that should be set to the suspended state.
+		    for (Step step : workflow.getStepMap().values()) {
+		        boolean suspendStep = false;
+		        
+		        // If suspend class and method are true, everything suspends all of the time.
+		        if (suspendClass.equals("*") && suspendMethod.equals("*")) {
+		            suspendStep = true;
+		        } else if (step.controllerName.endsWith(suspendClass) &&
+		                (step.executeMethod.methodName.equals(suspendMethod) ||
+		             suspendMethod.equals("*"))) {
+		            suspendStep = true;
+		        } else if (suspendClass.equals("*") && step.executeMethod.methodName.equals(suspendMethod)) {
+		            suspendStep = true;
+		        }
+		        
+		        if (suspendStep) {
+		            logStep(workflow, step);
+		            if (workflow.getSuspendSteps() == null) {
+		            	workflow.setSuspendSteps(new HashSet<URI>());
+		            }
+		            workflow.getSuspendSteps().add(step.workflowStepURI);
+		        }
+		    }
+		}
+	}
+
     /**
      * Queue the step on the Dispatcher to execute.
      * 
@@ -926,18 +950,25 @@ public class WorkflowService implements WorkflowController {
         synchronized (workflow) {
             StepState state = StepState.QUEUED; // default is to go into QUEUED state
             try {
-                if (isBlocked(workflow, step)) {
+            	if (isBlocked(workflow, step)) {
                     // We are blocked waiting on a prerequisite step
                     state = StepState.BLOCKED;
-                }
+                } else if (isStepMarkedForSuspend(workflow, step)) {
+            		state = StepState.SUSPENDED_NO_ERROR;
+
+            		logStep(workflow, step);
+            		if (workflow.getSuspendSteps() == null) {
+            			workflow.setSuspendSteps(new HashSet<URI>());
+            		}
+            		
+            		step.status.updateState(StepState.SUSPENDED_NO_ERROR,  null, "Suspending step " + step.description);
+    				persistWorkflowStepUpdate(workflow, step);
+            		
+            		workflow.getSuspendSteps().add(step.workflowStepURI);
+            		internalSuspendWorkflowStep(workflow._workflowURI, step.workflowStepURI);
+                } 
             } catch (CancelledException cancelEx) {
-                if (workflow.getSuspendStep() != null 
-                        && (workflow.getSuspendStep().equals(workflow.getWorkflowURI()) 
-                            || workflow.getSuspendStep().equals(step.workflowStepURI)  )) {
-                    state = StepState.SUSPENDED_NO_ERROR;
-                } else {
-                    state = StepState.CANCELLED;
-                }
+            	state = StepState.CANCELLED;
             }
 
             // Persist the Workflow and the Steps in Zookeeper
@@ -1004,28 +1035,33 @@ public class WorkflowService implements WorkflowController {
                 }
                 try {
                     try {
-                        if (false == isBlocked(workflow, step)) {
+                    	if (!isBlocked(workflow, step)) {
                             again = true;
-                            step.status.updateState(StepState.QUEUED, null, "Unblocked by step: "
-                                    + fromStepId);
-                            persistWorkflowStepUpdate(workflow, step);
-                            _log.info(String.format("Step %s has been unblocked by step %s",
-                                    step.stepId, fromStepId));
-                            dispatchStep(step, workflow._nested);
-                        }
+                            if (isStepMarkedForSuspend(workflow, step)) {
+                            	logStep(workflow, step);
+                            	if (workflow.getSuspendSteps() == null) {
+                            		workflow.setSuspendSteps(new HashSet<URI>());
+                            	}
+                        		step.status.updateState(StepState.SUSPENDED_NO_ERROR,  null, "Suspending step " + step.description);
+                				persistWorkflowStepUpdate(workflow, step);
+                            	workflow.getSuspendSteps().add(step.workflowStepURI);
+                            	internalSuspendWorkflowStep(workflow._workflowURI, step.workflowStepURI);
+                            } else { 
+                            	step.status.updateState(StepState.QUEUED, null, "Unblocked by step: "
+                            			+ fromStepId);
+                            	persistWorkflowStepUpdate(workflow, step);
+                            	_log.info(String.format("Step %s has been unblocked by step %s",
+                            			step.stepId, fromStepId));
+                            	dispatchStep(step, workflow._nested);
+                            }
+                    	} 
                     } catch (CancelledException ex) {
                     	again = true;
-                        if (workflow.getSuspendStep() != null 
-                                && (workflow.getSuspendStep().equals(workflow.getWorkflowURI()) 
-                                    || workflow.getSuspendStep().equals(step.workflowStepURI)  )) {
-                        	step.status.updateState(StepState.SUSPENDED_NO_ERROR, null, "Step suspended by request: " + step.stepId);
-                        } else {
-                        	// If we got a CancelledException, this step needs to be cancelled.
-                        	step.status.updateState(StepState.CANCELLED, null, "Cancelled by step: "
-                        			+ fromStepId);
-                        	_log.info(String.format("Step %s has been cancelled by step %s",
-                        			step.stepId, fromStepId));
-                        }
+                    	// If we got a CancelledException, this step needs to be cancelled.
+                    	step.status.updateState(StepState.CANCELLED, null, "Cancelled by step: "
+                    			+ fromStepId);
+                        _log.info(String.format("Step %s has been cancelled by step %s",
+                        		step.stepId, fromStepId));
                         persistWorkflowStepUpdate(workflow, step);
                     }
                 } catch (Exception ex) {
@@ -1034,6 +1070,20 @@ public class WorkflowService implements WorkflowController {
             }
         } while (again == true);
     }
+
+	/**
+	 * Convenience Method to determine if a step in a workflow is marked to be suspended when it's
+	 * time to run.
+	 * 
+	 * @param workflow workflow
+	 * @param step workflow step to analyze
+	 * @return true if the step is marked to be suspended
+	 */
+	private boolean isStepMarkedForSuspend(Workflow workflow, Step step) {
+		return workflow.getSuspendSteps() != null && !workflow.getSuspendSteps().isEmpty() 
+		        && (workflow.getSuspendSteps().contains(workflow.getWorkflowURI()) 
+		            || workflow.getSuspendSteps().contains(step.workflowStepURI)  );
+	}
 
 	/**
      * Determine if a workflow step is blocked. A step is blocked if it has a waitFor clause
@@ -1048,12 +1098,6 @@ public class WorkflowService implements WorkflowController {
      */
     boolean isBlocked(Workflow workflow, Step step) throws WorkflowException,
             CancelledException {
-        if (workflow.getSuspendStep() != null 
-                && (workflow.getSuspendStep().equals(workflow.getWorkflowURI()) 
-                    || workflow.getSuspendStep().equals(step.workflowStepURI)  )) {
-            // We want to cancel this step, not because of an error, but just to suspend the workflow.
-            throw new CancelledException();
-        }
         // The step cannot be blocked if waitFor is null (which means not specified)
         if (step.waitFor == null) {
             return false;
@@ -1617,26 +1661,32 @@ public class WorkflowService implements WorkflowController {
 	public void suspendWorkflowStep(URI workflowURI, URI stepURI, String taskId)
 			throws ControllerException {
         WorkflowTaskCompleter completer = new WorkflowTaskCompleter(workflowURI, taskId);
+		internalSuspendWorkflowStep(workflowURI, stepURI);
+        completer.ready(_dbClient);
+	}
+
+	private void internalSuspendWorkflowStep(URI workflowURI, URI stepURI) {
 		_log.info(String.format("Suspend request workflow: %s step: %s", workflowURI, stepURI));
         Workflow workflow = loadWorkflowFromUri(workflowURI);
+        if (workflow.getSuspendSteps() == null) {
+        	workflow.setSuspendSteps(new HashSet<URI>());
+        }
         if (NullColumnValueGetter.isNullURI(stepURI)) {
             // In this case, we want to suspend any step trying to unblock.
-            workflow.setSuspendStep(workflowURI);
+            workflow.getSuspendSteps().add(workflowURI);
         } else {
             // In this case, we want to suspend only when we reach designated step.
-            workflow.setSuspendStep(stepURI);
+            workflow.getSuspendSteps().add(stepURI);
         }
         persistWorkflow(workflow);
-        completer.ready(_dbClient);
 	}
 
 	@Override
 	public void resumeWorkflow(URI uri, String taskId)
 			throws ControllerException {
 	    Workflow workflow  = null;
-	    WorkflowTaskCompleter completer = null;
 	    InterProcessLock workflowLock = null;
-	    completer = new WorkflowTaskCompleter(uri, taskId);
+	    WorkflowTaskCompleter completer = new WorkflowTaskCompleter(uri, taskId);
 		try {
 			_log.info(String.format("Resume request workflow: %s", uri));
 			workflow = loadWorkflowFromUri(uri);
@@ -1772,7 +1822,8 @@ public class WorkflowService implements WorkflowController {
 				break;
 			}
 		}
-		// Queue the newly recreated steps 
+
+        // Queue the newly recreated steps 
 		for (String stepId : workflow.getStepMap().keySet()) {
 			Step step = workflow.getStepMap().get(stepId);
 			if (step.status.state == StepState.CREATED) {
@@ -2120,40 +2171,6 @@ public class WorkflowService implements WorkflowController {
 		}
 	}
 	
-    /**
-	 * Queue steps to resume workflow.
-	 * @param workflow
-	 */
-	private void queueResumeSteps(Workflow workflow) {
-		Map<String, Step> stepMap = workflow.getStepMap();
-		// Clear any error steps. Mark back to CREATED.
-		for (String stepId : workflow.getStepMap().keySet()) {
-			Step step = workflow.getStepMap().get(stepId);
-			StepState state = workflow.getStepStatus(stepId).state;
-			switch(state) {
-			case  BLOCKED:
-			case CREATED:
-			case CANCELLED:
-			case ERROR:
-			case EXECUTING:
-				workflow.getStepStatus(stepId).updateState(StepState.CREATED, null, "");
-				break;
-			case QUEUED:
-			case SUCCESS: 
-				break;
-			}
-		}
-		// Queue the newly recreated steps 
-		for (String stepId : workflow.getStepMap().keySet()) {
-			Step step = workflow.getStepMap().get(stepId);
-			if (step.status.state == StepState.CREATED) {
-				queueWorkflowStep(workflow, step);
-			}
-		}
-		workflow.setWorkflowState(WorkflowState.RUNNING);
-		logWorkflow(workflow, true);
-	}
-
     /**
      * Returns a map of orchestration task id to child database workflow for all the children
      * of the specified workflow.

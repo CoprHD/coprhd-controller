@@ -17,7 +17,7 @@ import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.management.backup.BackupConstants;
 
-public class FtpClient {
+public class FtpClient implements BackupClient {
     private static final Logger log = LoggerFactory.getLogger(FtpClient.class);
 
     private final String uri;
@@ -42,13 +42,13 @@ public class FtpClient {
         return builder;
     }
 
-    private static boolean startsWithIgnoreCase(String str, String prefix) {
-        return str.regionMatches(true, 0, prefix, 0, prefix.length());
-    }
-
     public static boolean isSupported(String url) {
         return startsWithIgnoreCase(url, BackupConstants.FTPS_URL_PREFIX) ||
                 startsWithIgnoreCase(url, BackupConstants.FTP_URL_PREFIX);
+    }
+
+    private static boolean startsWithIgnoreCase(String str, String prefix) {
+        return str.regionMatches(true, 0, prefix, 0, prefix.length());
     }
 
     public long getFileSize(String fileName) throws IOException, InterruptedException {
@@ -172,6 +172,10 @@ public class FtpClient {
         builder.command().add(remoteBackupFile);
 
         return new ProcessInputStream(builder.start());
+    }
+
+    public String getUri() {
+        return this.uri;
     }
 
     // just show the first letter of password

@@ -75,6 +75,8 @@ public class SchedulerConfig {
     public int intervalMultiple;
     public Integer startOffsetMinutes;
     public int copiesToKeep;
+    public String uploadServerType;
+    public String uploadDomain;
     public String uploadUrl;
     public String uploadUserName;
     private byte[] uploadPassword;
@@ -94,6 +96,16 @@ public class SchedulerConfig {
     public String getExternalServerUrl() {
         PropertyInfo propInfo = coordinator.getCoordinatorClient().getPropertyInfo();
         return getExternalServerUrl(propInfo);
+    }
+
+    public String getUploadServerType() {
+        PropertyInfo propInfo = coordinator.getCoordinatorClient().getPropertyInfo();
+        return getUploadServerType(propInfo);
+    }
+
+    public String getUploadDomain() {
+        PropertyInfo propInfo = coordinator.getCoordinatorClient().getPropertyInfo();
+        return getUploadDomain(propInfo);
     }
 
     public String getExternalServerUserName() {
@@ -127,9 +139,12 @@ public class SchedulerConfig {
         this.schedulerEnabled = isSchedulerEnabled(propInfo);
         this.startOffsetMinutes = getStartOffsetMinutes(propInfo);
         this.copiesToKeep = getCopiesToKeep(propInfo);
+        this.uploadServerType = getUploadServerType();
         this.uploadUrl = getExternalServerUrl(propInfo);
+        this.uploadDomain = getUploadDomain();
         this.uploadUserName = getExternalServerUserName(propInfo);
         this.uploadPassword = getExternalServerPassword(propInfo);
+
 
         initRetainedAndUploadedBackups();
     }
@@ -194,6 +209,14 @@ public class SchedulerConfig {
             url = urlStr + "/";
         }
         return url;
+    }
+
+    private String getUploadServerType(PropertyInfo propInfo) {
+        return propInfo.getProperty(BackupConstants.UPLOAD_SERVER_TYPE);
+    }
+
+    private String getUploadDomain(PropertyInfo propInfo) {
+        return propInfo.getProperty(BackupConstants.UPLOAD_SERVER_DOMAIN);
     }
 
     private String getExternalServerUserName(PropertyInfo propInfo) {

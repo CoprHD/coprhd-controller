@@ -12,24 +12,31 @@ import org.slf4j.LoggerFactory;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.MalformedURLException;
+import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.List;
 
 /**
  * Created by yangg8 on 4/28/2016.
  */
-public class CifsClient {
+public class CifsClient implements BackupClient{
     private static final Logger log = LoggerFactory.getLogger(CifsClient.class);
     private final String uri;
+    private final String domain;
     private final String username;
     private final String password;
     private NtlmPasswordAuthentication auth;
 
-    public CifsClient(String uri, String username, String password) {
+    public CifsClient(String uri, String domain, String username, String password) {
         this.uri = uri;
+        this.domain = domain;
         this.username = username;
         this.password = password;
-        auth = new NtlmPasswordAuthentication(username + ":" + password);
+        if ( this.domain != null && !this.domain.equals("")){
+            auth = new NtlmPasswordAuthentication(domain,username,password);
+        }else {
+            auth = new NtlmPasswordAuthentication(username + ":" + password);
+        }
 
     }
 
@@ -58,7 +65,7 @@ public class CifsClient {
         return listFiles(null);
     }
 
-    public InputStream download(String BackupFileName) throws Exception {
+    public InputStream download(String BackupFileName) throws MalformedURLException, SmbException, UnknownHostException {
         SmbFile remoteBackupFile = new SmbFile(uri + BackupFileName, auth);
         return new SmbFileInputStream(remoteBackupFile);
     }
@@ -79,9 +86,12 @@ public class CifsClient {
         return smbFile.length();
     }
 
-
     public static Boolean isSupported (String url) {
-        return true;
+        return url.regionMatches(true, 0, BackupConstants.SMB_URL_PREFIX, 0, BackupConstants.SMB_URL_PREFIX.length());
+    }
+
+    public String getUri() {
+        return uri;
     }
 
     private NtlmPasswordAuthentication getNtlmPasswordAuthentication() {

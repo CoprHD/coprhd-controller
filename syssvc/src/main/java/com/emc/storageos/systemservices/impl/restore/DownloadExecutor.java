@@ -19,8 +19,10 @@ import java.util.zip.ZipInputStream;
 import javax.ws.rs.core.MediaType;
 
 
+import com.emc.storageos.management.backup.ExternalServerType;
 import com.emc.storageos.management.backup.exceptions.BackupException;
 import com.emc.storageos.management.backup.util.CifsClient;
+import com.emc.storageos.management.backup.util.BackupClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -37,8 +39,7 @@ import com.emc.storageos.systemservices.impl.client.SysClientFactory;
 public final class DownloadExecutor implements  Runnable {
     private static final Logger log = LoggerFactory.getLogger(DownloadExecutor.class);
 
-    private FtpClient client;
-    private CifsClient cifsClient;
+    private BackupClient client;
     private String remoteBackupFileName;
     private BackupOps backupOps;
     private DownloadListener downloadListener;
@@ -48,8 +49,11 @@ public final class DownloadExecutor implements  Runnable {
     private volatile  boolean isCanceled = false;
 
     public DownloadExecutor(SchedulerConfig cfg, String backupZipFileName, BackupOps backupOps) {
-        client = new FtpClient(cfg.uploadUrl, cfg.uploadUserName, cfg.getExternalServerPassword());
-        cifsClient = new CifsClient(cfg.uploadUrl, cfg.uploadUserName, cfg.getExternalServerPassword());
+        if (ExternalServerType.cifs.name().equals(cfg.getUploadServerType())) {
+            client = new CifsClient(cfg.getExternalServerUrl(), cfg.getUploadDomain(), cfg.getExternalServerUserName(), cfg.getExternalServerPassword());
+        }else {
+            client = new FtpClient(cfg.getExternalServerUrl(), cfg.getExternalServerUserName(), cfg.getExternalServerPassword());
+        }
         remoteBackupFileName = backupZipFileName;
         this.backupOps = backupOps;
         fromRemoteServer = true;
@@ -209,7 +213,7 @@ public final class DownloadExecutor implements  Runnable {
         }
     }
 
-    private void pullBackupFilesFromRemoteServer() throws IOException, InterruptedException, Exception {
+    private void pullBackupFilesFromRemoteServer() throws Exception {
         log.info("pull backup files in {} from remote server start", remoteBackupFileName);
 
         backupOps.persistCurrentBackupInfo(remoteBackupFileName, false);
@@ -229,9 +233,7 @@ public final class DownloadExecutor implements  Runnable {
         byte[] buf = new byte[BackupConstants.DOWNLOAD_BUFFER_SIZE];
         //debug for cifs
         //InputStream in = client.download(remoteBackupFileName);
-
-        InputStream in = cifsClient.download(remoteBackupFileName);
-
+        InputStream in = client.download(remoteBackupFileName);
 
 
         //Step1: download the zip file

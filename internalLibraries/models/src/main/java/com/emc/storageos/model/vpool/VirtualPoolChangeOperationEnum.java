@@ -7,7 +7,7 @@ package com.emc.storageos.model.vpool;
 
 public enum VirtualPoolChangeOperationEnum {
     VPLEX_LOCAL_TO_DISTRIBUTED("Change one or more volumes from local VPLEX to distributed VPLEX virtual pool"),
-    VPLEX_DATA_MIGRATION("Migrate data from one or more volumes to new virtual pool"),
+    VPLEX_DATA_MIGRATION("Migrate data from one or more volumes to new virtual pool using VPLEX"),
     DATA_MIGRATION("Migrate data from one or more volumes to new virtual pool"),
     NON_VPLEX_TO_VPLEX("Change one or more volumes from non-VPLEX to a local or distributed virtual pool"),
     RP_PROTECTED("Change one or more volumes to include RecoverPoint protection"),

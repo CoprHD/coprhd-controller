@@ -26,6 +26,16 @@
     consistencyGroup: {
       type:"assetType.vipr.consistencyGroupWithVirtualPoolChangeOperation",
       required: false
+    },
+
+    migrationType:{
+      type:"assetType.vipr.migrationType",
+      required: false
+    },
+
+    linuxHost:{
+      type:"assetType.vipr.linuxHost",
+      required: false
     }
   }
   

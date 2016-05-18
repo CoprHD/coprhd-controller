@@ -36,6 +36,16 @@
     volume:{
       type:"assetType.vipr.virtualPoolChangeVolumeWithSourceFilter",
       select: "many"
+    },
+
+    migrationType:{
+      type:"assetType.vipr.migrationType",
+      required: false
+    },
+
+    linuxHost:{
+      type:"assetType.vipr.linuxHost",
+      required: false
     }
   }
   

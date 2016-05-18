@@ -13,6 +13,7 @@ public interface ServiceParams {
     public String SIZE_IN_GB = "size";
     public String SIZE_BOOT_VOL_IN_GB = "sizeBootVols";
     public String HOST = "host";
+    public String LINUX_HOST = "linuxHost";
     public String VCENTER = "vcenter";
     public String DATASTORE = "datastore";
     public String DATASTORE_NAME = "datastoreName";
@@ -92,6 +93,7 @@ public interface ServiceParams {
     public String APPLICATION_SNAPSHOT_TYPE = "applicationSnapshotType";
     public String TARGET_VIRTUAL_POOL = "targetVirtualPool";
     public String TARGET_VIRTUAL_ARRAY = "targetVirtualArray";
+    public String MIGRATION_TYPE = "migrationType";
 
     public String DATA_STORE = "dataStoreName";
     public String DATASTORE_DESCRIPTION = "dataStoreDescription";

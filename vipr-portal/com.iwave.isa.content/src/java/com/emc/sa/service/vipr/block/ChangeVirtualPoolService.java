@@ -30,9 +30,16 @@ public class ChangeVirtualPoolService extends ViPRService {
     @Param(value = ServiceParams.CONSISTENCY_GROUP, required = false)
     private URI consistencyGroup;
 
+    @Param(value = ServiceParams.MIGRATION_TYPE, required = false)
+    private String migrationType;
+
+    @Param(value = ServiceParams.LINUX_HOST, required = false)
+    private URI migrationHost;
+
     @Override
     public void execute() throws Exception {
-        Tasks<VolumeRestRep> tasks = execute(new ChangeBlockVolumeVirtualPool(uris(volumeIds), targetVirtualPool, consistencyGroup));
+        Tasks<VolumeRestRep> tasks = execute(new ChangeBlockVolumeVirtualPool(uris(volumeIds), targetVirtualPool, consistencyGroup,
+                migrationType, migrationHost));
         addAffectedResources(tasks);
     }
 }

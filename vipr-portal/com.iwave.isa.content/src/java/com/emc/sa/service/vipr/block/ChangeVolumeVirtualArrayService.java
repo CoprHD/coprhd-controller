@@ -26,9 +26,16 @@ public class ChangeVolumeVirtualArrayService extends ViPRService {
     @Param(ServiceParams.TARGET_VIRTUAL_ARRAY)
     private URI targetVirtualArray;
 
+    @Param(ServiceParams.MIGRATION_TYPE)
+    private String migrationType;
+
+    @Param(ServiceParams.LINUX_HOST)
+    private URI migrationHost;
+
     @Override
     public void execute() throws Exception {
-        Tasks<VolumeRestRep> tasks = execute(new ChangeBlockVolumeVirtualArray(volumeIds, targetVirtualArray.toString()));
+        Tasks<VolumeRestRep> tasks = execute(new ChangeBlockVolumeVirtualArray(volumeIds, targetVirtualArray.toString(),
+                migrationType, migrationHost));
         addAffectedResources(tasks);
     }
 
@@ -54,5 +61,21 @@ public class ChangeVolumeVirtualArrayService extends ViPRService {
 
     public void setTargetVirtualArray(URI targetVirtualArray) {
         this.targetVirtualArray = targetVirtualArray;
+    }
+
+    public String getMigrationType() {
+        return migrationType;
+    }
+
+    public void setMigrationType(String migrationType) {
+        this.migrationType = migrationType;
+    }
+
+    public URI getMigrationHost() {
+        return migrationHost;
+    }
+
+    public void setMigrationHost(URI migrationHost) {
+        this.migrationHost = migrationHost;
     }
 }

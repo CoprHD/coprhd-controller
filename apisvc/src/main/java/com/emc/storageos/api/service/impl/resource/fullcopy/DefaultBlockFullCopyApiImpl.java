@@ -30,7 +30,6 @@ import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
-import com.emc.storageos.db.client.model.VolumeGroup;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.model.TaskList;
@@ -39,7 +38,6 @@ import com.emc.storageos.model.block.VolumeRestRep;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.volumecontroller.BlockController;
-import com.emc.storageos.volumecontroller.impl.ControllerUtils;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
 
 /**
@@ -145,6 +143,13 @@ public class DefaultBlockFullCopyApiImpl extends AbstractBlockFullCopyApiImpl {
 
     }
         
+    /**
+     * creates volume descriptors based on the recommendations from placement
+     * 
+     * @param volumes volume list that came from the placement algorithm
+     * @param createInactive flag to determine if the clone should be activated or not
+     * @return a list of volume descriptors
+     */
     private List<VolumeDescriptor> prepareVolumeDescriptorsForFullCopy(List<Volume> volumes, boolean createInactive) {
 
         // Build up a list of VolumeDescriptors based on the volumes
@@ -229,61 +234,6 @@ public class DefaultBlockFullCopyApiImpl extends AbstractBlockFullCopyApiImpl {
             _dbClient.updateObject(toUpdate);
         }
         return volumesList;
-    }
-
-    /**
-     * Invokes the controller to create the full copy volumes.
-     * 
-     * @param fcSourceObj A reference to a full copy source.
-     * @param fullCopyVolumes A list of the prepared full copy volumes.
-     * @param createInactive true to create the full copies inactive, false otherwise.
-     * @param taskId The unique task identifier
-     * 
-     * @return TaskList
-     */
-    private TaskList invokeFullCopyCreate(BlockObject fcSourceObj, List<Volume> fullCopyVolumes,
-            Boolean createInactive, String taskId) {
-
-        StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class,
-                fcSourceObj.getStorageController());
-        TaskList taskList = new TaskList();
-
-        for (Volume volume : fullCopyVolumes) {
-            Operation op = _dbClient.createTaskOpStatus(Volume.class, volume.getId(),
-                    taskId, ResourceOperationTypeEnum.CREATE_VOLUME_FULL_COPY);
-            volume.getOpStatus().put(taskId, op);
-            TaskResourceRep volumeTask = TaskMapper.toTask(volume, taskId, op);
-            taskList.getTaskList().add(volumeTask);
-        }
-
-        // if Volume is part of Application (COPY type VolumeGroup)
-        VolumeGroup volumeGroup = (fcSourceObj instanceof Volume)
-                ? ((Volume) fcSourceObj).getApplication(_dbClient) : null;
-        if (volumeGroup != null &&
-                !ControllerUtils.checkVolumeForVolumeGroupPartialRequest(_dbClient, (Volume) fcSourceObj)) {
-
-            Operation op = _dbClient.createTaskOpStatus(VolumeGroup.class, volumeGroup.getId(), taskId,
-                    ResourceOperationTypeEnum.CREATE_VOLUME_GROUP_FULL_COPY);
-            taskList.getTaskList().add(TaskMapper.toTask(volumeGroup, taskId, op));
-            
-            // get all volumes to create tasks for all CGs involved
-            List<Volume> volumes = ControllerUtils.getVolumeGroupVolumes(_dbClient, volumeGroup);
-            addConsistencyGroupTasks(volumes, taskList, taskId,
-                    ResourceOperationTypeEnum.CREATE_CONSISTENCY_GROUP_FULL_COPY);
-        } else {
-            addConsistencyGroupTasks(Arrays.asList(fcSourceObj), taskList, taskId,
-                    ResourceOperationTypeEnum.CREATE_CONSISTENCY_GROUP_FULL_COPY);
-        }
-
-        try {
-            BlockController controller = getController(BlockController.class,
-                    storageSystem.getSystemType());
-            controller.createFullCopy(storageSystem.getId(),
-                    volumesToURIs(fullCopyVolumes), createInactive, taskId);
-        } catch (InternalException ie) {
-            handleFailedRequest(taskId, taskList, fullCopyVolumes, ie, true);
-        }
-        return taskList;
     }
 
     /**

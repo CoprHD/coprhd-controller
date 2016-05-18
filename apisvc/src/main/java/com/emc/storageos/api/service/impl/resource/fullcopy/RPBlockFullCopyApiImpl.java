@@ -118,7 +118,6 @@ public class RPBlockFullCopyApiImpl extends AbstractBlockFullCopyApiImpl {
             fullCopyApiImpl = _fullCopyMgr.getPlatformSpecificFullCopyImplForSystem(system);
             taskList.getTaskList().addAll(fullCopyApiImpl.create(blockList, varray, name, createInactive, count, taskId).getTaskList());
         }
-        
         return taskList;
     }
     

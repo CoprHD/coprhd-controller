@@ -1891,4 +1891,9 @@ public class NetAppClusterModeDevice extends AbstractFileStorageDevice {
         mirrorOperations.failoverMirrorFileShareLink(systemTarget, target, completer, devSpecificPolicyName);
     }
 
+    @Override
+    public void doDetachMirrorLink(StorageSystem system, URI source, URI target, TaskCompleter completer) {
+
+    }
+
 }

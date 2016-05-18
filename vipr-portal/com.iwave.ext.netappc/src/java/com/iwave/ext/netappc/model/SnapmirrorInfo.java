@@ -21,6 +21,8 @@ public class SnapmirrorInfo {
     private String destinationVserver;
     private String destinationCluster;
 
+    private String relationshipId;
+
     public SnapmirrorInfo(SnapmirrorInfo snapmirrorInfo) {
         // source
         this.sourceLocation = snapmirrorInfo.sourceLocation;
@@ -106,6 +108,14 @@ public class SnapmirrorInfo {
 
     public void setDestinationCluster(String destinationCluster) {
         this.destinationCluster = destinationCluster;
+    }
+
+    public String getRelationshipId() {
+        return relationshipId;
+    }
+
+    public void setRelationshipId(String relationshipId) {
+        this.relationshipId = relationshipId;
     }
 
     @Override

@@ -1027,6 +1027,16 @@ public class NetAppClusterApi {
         }
     }
 
+    public boolean releaseSnapMirror(SnapmirrorInfo snapMirrorInfo) {
+        try {
+            netAppClusterFacade = new NetAppClusterFacade(_ipAddress, _portNumber, _userName,
+                    _password, _https);
+            return netAppClusterFacade.releaseSnapMirror(snapMirrorInfo);
+        } catch (Exception e) {
+            throw NetAppCException.exceptions.deleteAsyncSnapMirrorFailed(snapMirrorInfo.getSourceVolume(), _ipAddress, e.getMessage());
+        }
+    }
+
     public boolean destorySnapMirror(SnapmirrorInfo snapMirrorInfo) {
         try {
             netAppClusterFacade = new NetAppClusterFacade(_ipAddress, _portNumber, _userName,

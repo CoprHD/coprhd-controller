@@ -186,6 +186,25 @@ public class SnapMirror {
         return true;
     }
 
+    public boolean releaseSnapMirror(SnapmirrorInfo snapMirrorInfo) {
+        NaElement elem = new NaElement("snapmirror-destroy");
+
+        // destination attributes
+        prepSourceReq(elem, snapMirrorInfo);
+
+        // source attributes
+        prepDestReq(elem, snapMirrorInfo);
+
+        try {
+            server.invokeElem(elem);
+        } catch (Exception e) {
+            String msg = "Failed to Release SnapMirror: " + snapMirrorInfo.getSourceLocation();
+            log.error(msg, e);
+            throw new NetAppCException(msg, e);
+        }
+        return true;
+    }
+
     /**
      * get the snapmirror relation ship details info
      * 
@@ -413,6 +432,12 @@ public class SnapMirror {
     private SnapmirrorInfoResp parseSnapMirrorRelationShipInfo(NaElement results) {
         SnapmirrorInfoResp snapMirrorResp = new SnapmirrorInfoResp();
 
+        // relationship-id
+        String relationShipId = results.getChildContent("relationship-id");
+        if (relationShipId != null && !relationShipId.isEmpty()) {
+            snapMirrorResp.setRelationshipId(relationShipId);
+        }
+
         String relationStatus = results.getChildContent("relationship-status");
         // relationship-status
         if (relationStatus != null && !relationStatus.isEmpty()) {
@@ -491,7 +516,6 @@ public class SnapMirror {
         if (destinationLocation != null && !destinationLocation.isEmpty()) {
             snapMirrorResp.setDestinationLocation(destinationLocation);
         }
-
         return snapMirrorResp;
     }
 

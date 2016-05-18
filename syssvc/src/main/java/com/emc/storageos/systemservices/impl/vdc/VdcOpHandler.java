@@ -247,6 +247,7 @@ public abstract class VdcOpHandler {
         @Override
         public void execute() throws Exception {
             reconfigVdc();
+
         }
     }
 

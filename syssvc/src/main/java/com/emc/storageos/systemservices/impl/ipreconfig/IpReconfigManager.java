@@ -52,7 +52,10 @@ public class IpReconfigManager implements Runnable {
     // ipreconfig entry in ZK
     Configuration config = null;
 
+
     private ClusterIpInfo currentIpinfo = null;   // current ip info of the cluster
+    private boolean bNeedRefresh = true;         // need refresh current cluster IPs or not
+
     private ClusterIpInfo newIpinfo = null;     // new ip info of the cluster
     private Integer vdcnodeId;                // identical node id within local VDC (multiple DR sites)
     private Integer nodeCount;
@@ -255,6 +258,13 @@ public class IpReconfigManager implements Runnable {
         // start polling executor
         startPollExecutor();
 
+        if (bNeedRefresh) {
+            // reload cluster IPs after receiving IP reconfiguration request
+            // in case there are sites addition/removal operations
+            loadClusterIpProps();
+            bNeedRefresh = false;
+        }
+
         // drive ip reconfiguration status machine
         driveIpReconfigStateMachine();
     }
@@ -423,6 +433,7 @@ public class IpReconfigManager implements Runnable {
     private void setSucceed() throws Exception {
         log.info("Succeed to reconfig cluster ip!");
         setStatus(ClusterNetworkReconfigStatus.Status.SUCCEED);
+        bNeedRefresh = true;
     }
 
     /**
@@ -436,6 +447,7 @@ public class IpReconfigManager implements Runnable {
         config.setConfig(IpReconfigConstants.CONFIG_STATUS_KEY, ClusterNetworkReconfigStatus.Status.FAILED.toString());
         config.setConfig(IpReconfigConstants.CONFIG_ERROR_KEY, error);
         _coordinator.getCoordinatorClient().persistServiceConfiguration(config);
+        bNeedRefresh = true;
     }
 
     /**
@@ -698,6 +710,8 @@ public class IpReconfigManager implements Runnable {
     private void validateParameter(ClusterIpInfo clusterIpInfo, String postOperation) throws Exception {
         boolean bValid = true;
         String errmsg = "";
+
+        loadClusterIpProps();
         log.info("validating parameter:{}", clusterIpInfo.toVdcSiteString());
 
         if (!postOperation.equals("poweroff") && !postOperation.equals("reboot")) {
@@ -820,6 +834,11 @@ public class IpReconfigManager implements Runnable {
      * Copy cluster IP info from disk to ZK.
      */
     void assureIPConsistent() {
+        if (!drUtil.isActiveSite()) {
+            log.info("Only active site would sync IPs info into ZK.");
+            return;
+        }
+
         InterProcessLock lock = null;
         try {
             log.info("Updating local site IPs to ZK ...");
@@ -835,6 +854,8 @@ public class IpReconfigManager implements Runnable {
                 }
             }
 
+            // wake up syssvc to regenerate configurations
+            long vdcConfigVersion = DrUtil.newVdcConfigVersion();
             for(Site site : drUtil.listSites()) {
                 int vdc_index = Integer.valueOf(site.getVdcShortId().split(PropertyConstants.VDC_SHORTID_PREFIX)[1]);
                 int site_index = Integer.valueOf(site.getSiteShortId().split(PropertyConstants.SITE_SHORTID_PREFIX)[1]);
@@ -872,6 +893,7 @@ public class IpReconfigManager implements Runnable {
                     site.setNodeCount(siteIpInfo.getNodeCount());
 
                     _coordinator.getCoordinatorClient().persistServiceConfiguration(site.toConfiguration());
+                    drUtil.updateVdcTargetVersion(site.getUuid(), SiteInfo.IP_OP_CHANGE, vdcConfigVersion);
 
                     // update promisc network config into ZK
                     ConfigurationImpl cfg = new ConfigurationImpl();
@@ -883,12 +905,6 @@ public class IpReconfigManager implements Runnable {
                     cfg.setConfig(PropertyConstants.IPV6_GATEWAY_KEY, siteIpInfo.getIpv6Setting().getNetworkGateway6());
                     _coordinator.getCoordinatorClient().persistServiceConfiguration(site.getUuid(), cfg);
                 }
-            }
-
-            // wake up syssvc to regenerate configurations
-            long vdcConfigVersion = DrUtil.newVdcConfigVersion();
-            for(Site site : drUtil.listSites()) {
-                drUtil.updateVdcTargetVersion(site.getUuid(), SiteInfo.IP_OP_CHANGE, vdcConfigVersion);
             }
 
             setSucceed();

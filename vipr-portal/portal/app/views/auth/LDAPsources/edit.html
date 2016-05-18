@@ -27,7 +27,10 @@
                      table.tenants.dataTable.create();
                      table.tenants.dataTable.updateSelectedFooter();
                      table.tenants.dataTable.reset();
-                     $('#addTenants').modal();
+                     $('#addTenants').modal({
+                         backdrop: 'static',
+                         keyboard: false
+                     });
                  },'xml');
                  return false;
              });

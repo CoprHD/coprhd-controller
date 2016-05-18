@@ -1784,7 +1784,32 @@ public class DisasterRecoveryService {
                     "Please wait for this site to recognize the Active site is down and automatically switch to a Paused state before failing over.");
         }
 
+        // Need to check active site state via HMAC way when failing over to ACTIVE_DEGRADED site
+        if (standby.getState() == SiteState.ACTIVE_DEGRADED) {
+            for (Site site : drUtil.listSites()) {
+                if (!site.getUuid().equals(drUtil.getLocalSite().getUuid()) && isSiteAvailable(site)) {
+                    throw APIException.internalServerErrors.failoverPrecheckFailed(standby.getName(), "Active site is still available");
+                }
+            }
+        }
+
         precheckForFailover();
+    }
+
+    /**
+     * Reuse /site/internal/list API to check if it can return result correctly
+     * @return true if result can be returned correctly, otherwise return false
+     */
+    private boolean isSiteAvailable(Site site) {
+        try (InternalSiteServiceClient client = new InternalSiteServiceClient(site, coordinator, apiSignatureGenerator)) {
+            SiteList sites = client.getSiteList();
+            if (!sites.getSites().isEmpty()) {
+                return true;
+            }
+        } catch (Exception e) {
+            log.warn("Error happened when trying to get sites from site {} via HMAC way", site.getUuid(), e);
+        }
+        return false;
     }
 
     void precheckForFailover() {

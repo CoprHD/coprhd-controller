@@ -15,7 +15,6 @@ import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.fileorchestrationcontroller.FileOrchestrationDeviceController.WorkflowCallback;
 import com.emc.storageos.migrationcontroller.HostMigrationDeviceController;
-import com.emc.storageos.migrationcontroller.NativeMigrationDeviceController;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
 import com.emc.storageos.volumecontroller.ControllerException;
@@ -32,7 +31,7 @@ public class MigrationOrchestrationDeviceController implements MigrationOrchestr
     private static DbClient s_dbClient;
     private static BlockDeviceController _blockDeviceController;
     private static HostMigrationDeviceController _hostMigrationDeviceController;
-    private static NativeMigrationDeviceController _nativeMigrationDeviceController;
+    // private static NativeMigrationDeviceController _nativeMigrationDeviceController;
     private ControllerLockingService _locker;
 
     static final String CREATE_VOLUMES_WF_NAME = "CREATE_VOLUMES_WORKFLOW";
@@ -70,8 +69,8 @@ public class MigrationOrchestrationDeviceController implements MigrationOrchestr
                     workflow, waitFor, volumes, taskId);
 
             // call the nativeMigrationDeviceController to add change virtual pool steps.
-            waitFor = _nativeMigrationDeviceController.addStepsForChangeVirtualPool(
-                    workflow, waitFor, volumes, taskId);
+            // waitFor = _nativeMigrationDeviceController.addStepsForChangeVirtualPool(
+            // workflow, waitFor, volumes, taskId);
             // Finish up and execute the plan.
             // The Workflow will handle the TaskCompleter
             String successMessage = "Change Virtual Pool suceeded for volumes: " + volURIs.toString();
@@ -125,8 +124,8 @@ public class MigrationOrchestrationDeviceController implements MigrationOrchestr
                     waitFor, volumeDescriptors, taskId);
 
             // Then call the NativeMigrationDeviceController to add change virtual array steps.
-            waitFor = _nativeMigrationDeviceController.addStepsForChangeVirtualArray(workflow,
-                    waitFor, volumeDescriptors, taskId);
+            // waitFor = _nativeMigrationDeviceController.addStepsForChangeVirtualArray(workflow,
+            // waitFor, volumeDescriptors, taskId);
 
             // Finish up and execute the plan.
             // The Workflow will handle the TaskCompleter

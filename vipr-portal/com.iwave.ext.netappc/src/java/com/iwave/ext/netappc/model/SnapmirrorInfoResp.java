@@ -65,4 +65,9 @@ public class SnapmirrorInfoResp extends SnapmirrorInfo {
         this.currentTransferError = currentTransferError;
     }
 
+    @Override
+    public String toString() {
+        return "SnapmirrorInfoResp [currentTransferType=" + currentTransferType + ", lastTransferType=" + lastTransferType
+                + ", mirrorState=" + mirrorState + ", relationshipStatus=" + relationshipStatus + "]";
+    }
 }

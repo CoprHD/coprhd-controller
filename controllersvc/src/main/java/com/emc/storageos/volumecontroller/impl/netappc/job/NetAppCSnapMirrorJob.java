@@ -13,12 +13,16 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.exceptions.DeviceControllerErrors;
-import com.emc.storageos.netapp.NetAppApi;
+import com.emc.storageos.netappc.NetAppClusterApi;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
 import com.emc.storageos.volumecontroller.Job;
 import com.emc.storageos.volumecontroller.JobContext;
 import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.volumecontroller.impl.JobPollResult;
+import com.iwave.ext.netappc.model.SnapmirrorInfo;
+import com.iwave.ext.netappc.model.SnapmirrorInfoResp;
+import com.iwave.ext.netappc.model.SnapmirrorRelationshipStatus;
+import com.iwave.ext.netappc.model.SnapmirrorState;
 
 public class NetAppCSnapMirrorJob extends Job implements Serializable {
     private static final Logger _logger = LoggerFactory.getLogger(NetAppCSnapMirrorJob.class);
@@ -27,7 +31,7 @@ public class NetAppCSnapMirrorJob extends Job implements Serializable {
     private String _jobName;
     private URI _storageSystemUri;
     private TaskCompleter _taskCompleter;
-    private List<String> _jobIds = new ArrayList<String>();
+    private List<SnapmirrorInfo> snapMirrors = new ArrayList<SnapmirrorInfo>();
 
     private long _error_tracking_time = 0L;
     private JobStatus _status = JobStatus.IN_PROGRESS;
@@ -35,35 +39,73 @@ public class NetAppCSnapMirrorJob extends Job implements Serializable {
     private JobPollResult _pollResult = new JobPollResult();
     private String _errorDescription = null;
 
-    public NetAppCSnapMirrorJob(String jobId, URI storageSystemUri, TaskCompleter taskCompleter, String jobName) {
+    public NetAppCSnapMirrorJob(SnapmirrorInfo snapMirror, URI storageSystemUri, TaskCompleter taskCompleter, String jobName) {
         this._storageSystemUri = storageSystemUri;
         this._taskCompleter = taskCompleter;
         this._jobName = jobName;
-        this._jobIds.add(jobId);
+        this.snapMirrors.add(snapMirror);
     }
 
-    public NetAppCSnapMirrorJob(String jobId, URI storageSystemUri, TaskCompleter taskCompleter) {
+    public NetAppCSnapMirrorJob(SnapmirrorInfo snapMirror, URI storageSystemUri, TaskCompleter taskCompleter) {
         this._storageSystemUri = storageSystemUri;
         this._taskCompleter = taskCompleter;
-        this._jobName = "netAppSnapMirrorQuiesceJob";
-        this._jobIds.add(jobId);
+        this._jobName = "netAppSnapMirrorCreateJob";
+        this.snapMirrors.add(snapMirror);
     }
 
     @Override
     public JobPollResult poll(JobContext jobContext, long trackingPeriodInMillis) {
-        String currentJob = _jobIds.get(0);
+        SnapmirrorInfo currentJob = snapMirrors.get(0);
         try {
-            NetAppApi netAppApi = getNetappCApi(jobContext);
-            if (netAppApi == null) {
-                String errorMessage = "No NetApp API found for: " + _storageSystemUri;
-                processTransientError(currentJob, trackingPeriodInMillis, errorMessage, null);
+            NetAppClusterApi netAppCApi = getNetappCApi(jobContext);
+            if (netAppCApi == null) {
+                String errorMessage = "No NetAppCluster API found for: " + _storageSystemUri;
+                processTransientError(currentJob.getRelationshipId(), trackingPeriodInMillis, errorMessage, null);
             } else {
                 _pollResult.setJobName(_jobName);
                 _pollResult.setJobId(_taskCompleter.getOpId());
 
+                SnapmirrorInfoResp snapmirrorResp = netAppCApi.getSnapMirrorInfo(currentJob);
+                SnapmirrorState mirrorState = SnapmirrorState.valueOf(_jobName);
+                SnapmirrorState currMirrorState = snapmirrorResp.getMirrorState();
+
+                if (snapmirrorResp.getCurrentTransferError() != null) {
+                    if (SnapmirrorState.READY.equals(mirrorState) && mirrorState.equals(currMirrorState)) {
+                        if (SnapmirrorRelationshipStatus.idle.equals(snapmirrorResp.getRelationshipStatus())) {
+                            setSuccessStatus(snapmirrorResp);
+                        } else {
+                            setProgressStatus(snapmirrorResp);
+                        }
+
+                    } else if (SnapmirrorState.SYNCRONIZED.equals(mirrorState) && mirrorState.equals(currMirrorState)) {
+                        if (SnapmirrorRelationshipStatus.idle.equals(snapmirrorResp.getRelationshipStatus())) {
+                            setSuccessStatus(snapmirrorResp);
+                        } else {
+                            setProgressStatus(snapmirrorResp);
+                        }
+
+                    } else if (SnapmirrorState.FAILOVER.equals(mirrorState) && mirrorState.equals(currMirrorState)) {
+                        // set the success status
+                        setSuccessStatus(snapmirrorResp);
+                    } else if (SnapmirrorState.PAUSED.equals(mirrorState) && mirrorState.equals(currMirrorState)) {
+                        if (SnapmirrorRelationshipStatus.quiesced.equals(snapmirrorResp.getRelationshipStatus()) &&
+                                SnapmirrorRelationshipStatus.idle.equals(snapmirrorResp.getRelationshipStatus())) {
+                            setSuccessStatus(snapmirrorResp);
+                        } else {
+                            setProgressStatus(snapmirrorResp);
+                        }
+                    } else {
+                        setProgressStatus(snapmirrorResp);
+                    }
+                } else {
+                    _pollResult.setErrorDescription(snapmirrorResp.getCurrentTransferError());
+                    _status = JobStatus.FAILED;
+                }
             }
+            _pollResult.setJobStatus(_status);
+            return _pollResult;
         } catch (Exception e) {
-            processTransientError(currentJob, trackingPeriodInMillis, e.getMessage(), e);
+            processTransientError(currentJob.getRelationshipId(), trackingPeriodInMillis, e.getMessage(), e);
         } finally {
             try {
                 updateStatus(jobContext);
@@ -73,14 +115,12 @@ public class NetAppCSnapMirrorJob extends Job implements Serializable {
             }
         }
         _pollResult.setJobStatus(_status);
-
         return _pollResult;
     }
 
     @Override
     public TaskCompleter getTaskCompleter() {
-        // TODO Auto-generated method stub
-        return null;
+        return _taskCompleter;
     }
 
     public void updateStatus(JobContext jobContext) throws Exception {
@@ -95,6 +135,18 @@ public class NetAppCSnapMirrorJob extends Job implements Serializable {
     public void setErrorStatus(String errorDescription) {
         _status = JobStatus.FATAL_ERROR;
         _errorDescription = errorDescription;
+    }
+
+    public void setSuccessStatus(SnapmirrorInfoResp snapmirrorResp) {
+        _status = JobStatus.SUCCESS;
+        _pollResult.setJobPercentComplete(100);
+        _logger.info("SnapMirror Job Name: {} succeeded and details of SnapMirror Information - {}", this._jobName,
+                snapmirrorResp.toString());
+    }
+
+    public void setProgressStatus(SnapmirrorInfoResp snapmirrorResp) {
+        _status = JobStatus.IN_PROGRESS;
+        _logger.info("SnapMirror JobName {} :  and progress details {} ", this._jobName, snapmirrorResp.toString());
     }
 
     public void setErrorTrackingTime(long trackingTime) {
@@ -129,7 +181,7 @@ public class NetAppCSnapMirrorJob extends Job implements Serializable {
      * @param jobContext
      * @return
      */
-    public NetAppApi getNetappCApi(JobContext jobContext) {
+    public NetAppClusterApi getNetappCApi(JobContext jobContext) {
         return null;
     }
 

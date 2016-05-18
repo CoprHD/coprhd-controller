@@ -19,6 +19,7 @@ import com.emc.storageos.volumecontroller.Job;
 import com.emc.storageos.volumecontroller.JobContext;
 import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.volumecontroller.impl.JobPollResult;
+import com.iwave.ext.netappc.model.SnapmirrorInfo;
 
 public class NetAppSnapMirrorCreateJob extends Job implements Serializable {
     private static final Logger _logger = LoggerFactory.getLogger(NetAppSnapMirrorCreateJob.class);
@@ -28,7 +29,7 @@ public class NetAppSnapMirrorCreateJob extends Job implements Serializable {
     private String _jobName;
     private URI _storageSystemUri;
     private TaskCompleter _taskCompleter;
-    private List<String> _jobIds = new ArrayList<String>();
+    private List<SnapmirrorInfo> snapMirrors = new ArrayList<SnapmirrorInfo>();
 
     private long _error_tracking_time = 0L;
     private JobStatus _status = JobStatus.IN_PROGRESS;
@@ -36,18 +37,18 @@ public class NetAppSnapMirrorCreateJob extends Job implements Serializable {
     private JobPollResult _pollResult = new JobPollResult();
     private String _errorDescription = null;
 
-    public NetAppSnapMirrorCreateJob(String jobId, URI storageSystemUri, TaskCompleter taskCompleter, String jobName) {
+    public NetAppSnapMirrorCreateJob(SnapmirrorInfo snapMirror, URI storageSystemUri, TaskCompleter taskCompleter, String jobName) {
         this._storageSystemUri = storageSystemUri;
         this._taskCompleter = taskCompleter;
         this._jobName = jobName;
-        this._jobIds.add(jobId);
+        this.snapMirrors.add(snapMirror);
     }
 
-    public NetAppSnapMirrorCreateJob(String jobId, URI storageSystemUri, TaskCompleter taskCompleter) {
+    public NetAppSnapMirrorCreateJob(SnapmirrorInfo snapMirror, URI storageSystemUri, TaskCompleter taskCompleter) {
         this._storageSystemUri = storageSystemUri;
         this._taskCompleter = taskCompleter;
         this._jobName = "netAppSnapMirrorCreateJob";
-        this._jobIds.add(jobId);
+        this.snapMirrors.add(snapMirror);
     }
 
     @Override

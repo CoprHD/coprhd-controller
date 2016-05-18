@@ -91,10 +91,11 @@ public class WorkflowService implements WorkflowController {
     private String _zkStepToWorkflowPath = ZkPath.WORKFLOW.toString() + "/step2workflow/%s";
     private String _zkStepToWorkflow = ZkPath.WORKFLOW.toString() + "/step2workflow";
 
-    // Test-provided suspend-on-start class/method
-	private String _classMethodTestOnly = null;
+    // Test-provided suspend variables that override system variables during unit testing.
+	private String _suspendClassMethodTestOnly = null;
+	private Boolean _suspendOnErrorTestOnly = null;
     
-    /**
+	/**
      * Returns the ZK path for workflow state. This node has a child for each Step.
      * 
      * @param workflow
@@ -627,7 +628,7 @@ public class WorkflowService implements WorkflowController {
         Workflow workflow = new Workflow(this, controller.getClass().getSimpleName(),
                 method, taskId, workflowURI);
         workflow.setRollbackContOnError(rollbackContOnError);
-        workflow.setSuspendOnError(Boolean.valueOf(ControllerUtils.getPropertyValueFromCoordinator(_coordinator, WORKFLOW_SUSPEND_ON_ERROR_PROPERTY)));
+        workflow.setSuspendOnError(_suspendOnErrorTestOnly != null ? _suspendOnErrorTestOnly : Boolean.valueOf(ControllerUtils.getPropertyValueFromCoordinator(_coordinator, WORKFLOW_SUSPEND_ON_ERROR_PROPERTY)));
         // logWorkflow assigns the workflowURI.
         logWorkflow(workflow, false);
         // Keep track if it's a nested Workflow
@@ -898,8 +899,8 @@ public class WorkflowService implements WorkflowController {
 		String suspendOn = _coordinator.getPropertyInfo().getProperty(WORKFLOW_SUSPEND_ON_CLASS_METHOD_PROPERTY);
 
 		// If unit testing, get this value from the unit tester.
-		if (_classMethodTestOnly != null) {
-			suspendOn = _classMethodTestOnly;
+		if (_suspendClassMethodTestOnly != null) {
+			suspendOn = _suspendClassMethodTestOnly;
 		}
 		
 		String suspendClass = null;
@@ -2304,8 +2305,17 @@ public class WorkflowService implements WorkflowController {
 	 * 
 	 * @param classMethod "Class.Method" string
 	 */
-	public void setClassMethodSuspendTestOnly(String classMethod) {
-		_classMethodTestOnly = classMethod; 
+	public void setSuspendClassMethodTestOnly(String classMethod) {
+		_suspendClassMethodTestOnly = classMethod; 
+	}
+
+    /**
+     * Specific to unit testing since we should not modify system-wide properties as part of a unit tester.
+     * 
+     * @param _suspendOnErrorTestOnly "true" to stop steps on error
+     */
+    public void setSuspendOnErrorTestOnly(Boolean _suspendOnErrorTestOnly) {
+		this._suspendOnErrorTestOnly = _suspendOnErrorTestOnly;
 	}
 
 }

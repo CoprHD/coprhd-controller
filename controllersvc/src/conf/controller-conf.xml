@@ -893,6 +893,7 @@
         <property name="dbClient" ref="dbclient"/>
      </bean>
     
+  
     <bean id="netappcFileDevice" class="com.emc.storageos.volumecontroller.impl.netappc.NetAppClusterModeDevice">
         <property name="dbClient" ref="dbclient"/>
         <property name="mirrorOperations" ref="netAppCMirrorOperations"/>

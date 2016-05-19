@@ -41,16 +41,8 @@ public class NetAppCMirrorOperations implements FileMirrorOperations {
 
     private DbClient _dbClient;
 
-    public DbClient get_dbClient() {
-        return _dbClient;
-    }
-
-    public void set_dbClient(DbClient _dbClient) {
-        this._dbClient = _dbClient;
-    }
-
-    // Default constructor
-    public NetAppCMirrorOperations() {
+    public void setDbClient(DbClient dbClient) {
+        _dbClient = dbClient;
     }
 
     @Override

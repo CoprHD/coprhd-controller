@@ -7,14 +7,11 @@ package com.emc.storageos.volumecontroller.impl.block.taskcompleter;
 import java.net.URI;
 import java.util.List;
 
-import com.emc.storageos.db.client.URIUtil;
-import com.emc.storageos.db.client.model.BlockConsistencyGroup;
-import com.emc.storageos.db.client.model.util.BlockConsistencyGroupUtils;
-import com.google.common.collect.Lists;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.BlockSnapshotSession;
@@ -98,6 +95,18 @@ public class BlockSnapshotSessionCreateWorkflowCompleter extends BlockSnapshotSe
                     setReadyOnDataObject(dbClient, BlockSnapshotSession.class, getId());
                     for (BlockObject source : allSources) {
                         setReadyOnDataObject(dbClient, URIUtil.getModelClass(source.getId()), source);
+                    }
+                    break;
+                case suspended_error:
+                    setSuspendedErrorOnDataObject(dbClient, BlockSnapshotSession.class, getId());
+                    for (BlockObject source : allSources) {
+                        setSuspendedErrorOnDataObject(dbClient, URIUtil.getModelClass(source.getId()), source);
+                    }
+                    break;
+                case suspended_no_error:
+                    setSuspendedNoErrorOnDataObject(dbClient, BlockSnapshotSession.class, getId());
+                    for (BlockObject source : allSources) {
+                        setSuspendedNoErrorOnDataObject(dbClient, URIUtil.getModelClass(source.getId()), source);
                     }
                     break;
                 default:

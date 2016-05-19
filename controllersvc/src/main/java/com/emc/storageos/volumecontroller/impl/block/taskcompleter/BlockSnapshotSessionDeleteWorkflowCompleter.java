@@ -7,9 +7,6 @@ package com.emc.storageos.volumecontroller.impl.block.taskcompleter;
 import java.net.URI;
 import java.util.List;
 
-import com.emc.storageos.db.client.model.BlockConsistencyGroup;
-import com.emc.storageos.db.client.model.Volume;
-import com.emc.storageos.db.client.model.util.BlockConsistencyGroupUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -63,6 +60,12 @@ public class BlockSnapshotSessionDeleteWorkflowCompleter extends BlockSnapshotSe
             switch (status) {
                 case error:
                     setErrorOnDataObject(dbClient, BlockSnapshotSession.class, snapSessionURI, coded);
+                    break;
+                case suspended_error:
+                    setSuspendedErrorOnDataObject(dbClient, BlockSnapshotSession.class, snapSessionURI);
+                    break;
+                case suspended_no_error:
+                    setSuspendedNoErrorOnDataObject(dbClient, BlockSnapshotSession.class, snapSessionURI);
                     break;
                 case ready:
                     setReadyOnDataObject(dbClient, BlockSnapshotSession.class, snapSessionURI);

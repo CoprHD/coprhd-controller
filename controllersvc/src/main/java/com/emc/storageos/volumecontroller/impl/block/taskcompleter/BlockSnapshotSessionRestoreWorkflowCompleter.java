@@ -7,8 +7,6 @@ package com.emc.storageos.volumecontroller.impl.block.taskcompleter;
 import java.net.URI;
 import java.util.List;
 
-import com.emc.storageos.db.client.model.BlockConsistencyGroup;
-import com.emc.storageos.db.client.model.util.BlockConsistencyGroupUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -16,7 +14,6 @@ import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.BlockSnapshotSession;
 import com.emc.storageos.db.client.model.Operation;
-import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
@@ -71,6 +68,12 @@ public class BlockSnapshotSessionRestoreWorkflowCompleter extends BlockSnapshotS
                         break;
                     case ready:
                         setReadyOnDataObject(dbClient, BlockSnapshotSession.class, snapSession.getId());
+                        break;
+                    case suspended_error:
+                        setSuspendedErrorOnDataObject(dbClient, BlockSnapshotSession.class, snapSession.getId());
+                        break;
+                    case suspended_no_error:
+                        setSuspendedNoErrorOnDataObject(dbClient, BlockSnapshotSession.class, snapSession.getId());
                         break;
                     default:
                         String errMsg = String.format("Unexpected status %s for completer for task %s", status.name(), getOpId());

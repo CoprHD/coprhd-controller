@@ -4,19 +4,20 @@
  */
 package com.emc.storageos.db.client.model;
 
-import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
-import com.google.common.base.Function;
-import com.google.common.collect.Lists;
-import org.apache.commons.lang.StringUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.beans.Transient;
 import java.net.URI;
 import java.util.Calendar;
 import java.util.List;
 import java.util.Objects;
 import java.util.StringTokenizer;
+
+import org.apache.commons.lang.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
+import com.google.common.base.Function;
+import com.google.common.collect.Lists;
 
 /**
  * Represents a Resource Task
@@ -302,6 +303,16 @@ public class Task extends DataObject {
     public boolean isReady() {
         String status = getStatus();
         return status != null && status.equals(Status.ready.name());
+    }
+
+    public boolean isSuspendedError() {
+        String status = getStatus();
+        return status != null && status.equals(Status.suspended_error.name());
+    }
+
+    public boolean isSuspendedNoError() {
+        String status = getStatus();
+        return status != null && status.equals(Status.suspended_no_error.name());
     }
 
     /**

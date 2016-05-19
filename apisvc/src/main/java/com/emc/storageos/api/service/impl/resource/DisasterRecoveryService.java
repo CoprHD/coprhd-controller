@@ -2125,7 +2125,9 @@ public class DisasterRecoveryService {
                 List<Site> standbySites = drUtil.listStandbySites();
                 
                 Site localSite = drUtil.getLocalSite();
+                SiteState lastState = localSite.getState();
                 localSite.setState(SiteState.ACTIVE_DEGRADED);
+                localSite.setLastState(lastState);
                 coordinator.persistServiceConfiguration(localSite.toConfiguration());
                 
                 for (Site standbySite : standbySites) {

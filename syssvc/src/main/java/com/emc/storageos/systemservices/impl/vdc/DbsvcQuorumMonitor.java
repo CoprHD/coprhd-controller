@@ -75,6 +75,7 @@ public class DbsvcQuorumMonitor implements Runnable {
             if (siteState.equals(SiteState.STANDBY_SYNCED)) {
                 SiteMonitorResult monitorResult = updateSiteMonitorResult(standbySite);
                 if (monitorResult.getDbQuorumLostSince() == 0) {
+                    log.info("Standby site {} is connected now", standbySite.getUuid());
                     hasConnectedStandbySite = true;
                 }
                 checkEligibleForDegrade(monitorResult, standbySite, sitesToDegrade);
@@ -309,7 +310,8 @@ public class DbsvcQuorumMonitor implements Runnable {
             monitorResult.setDbQuorumLastActive(current);
         }
         coordinatorClient.setTargetInfo(siteId, monitorResult);
-        
+        log.info(String.format("Update db quorum monitor result: quorum lost since %s, last active at %s, for site %s",
+                monitorResult.getDbQuorumLostSince(), monitorResult.getDbQuorumLastActive(), siteId));
         return monitorResult;
     }
 }

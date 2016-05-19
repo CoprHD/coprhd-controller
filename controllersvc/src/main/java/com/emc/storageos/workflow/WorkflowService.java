@@ -503,7 +503,8 @@ public class WorkflowService implements WorkflowController {
                 if (statusEntry.getValue() != null && statusEntry.getValue().state != null &&
                         (statusEntry.getValue().state == StepState.SUSPENDED_ERROR ||
                         statusEntry.getValue().state == StepState.SUSPENDED_NO_ERROR)) {
-                    _log.info("Removing step " + statusEntry.getValue().description + " from the suspended steps list in the workflow");
+                    _log.info("Removing step " + statusEntry.getValue().description + " from the suspended steps list in workflow "
+                            + workflow._workflowURI.toString());
                     URI suspendStepURI = workflow.getStepMap().get(statusEntry.getKey()).workflowStepURI;
                     workflow.getSuspendSteps().remove(suspendStepURI);
                     persistWorkflow(workflow);
@@ -974,6 +975,8 @@ public class WorkflowService implements WorkflowController {
                     if (workflow.getSuspendSteps() == null) {
                         workflow.setSuspendSteps(new HashSet<URI>());
                     }
+                    _log.info("Adding step " + step.description + " to workflow list of steps to suspend: "
+                            + workflow._workflowURI.toString());
                     workflow.getSuspendSteps().add(step.workflowStepURI);
                 }
             }

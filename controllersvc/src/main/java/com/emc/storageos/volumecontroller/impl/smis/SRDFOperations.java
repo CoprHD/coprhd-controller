@@ -76,6 +76,7 @@ import com.emc.storageos.volumecontroller.impl.block.taskcompleter.SRDFLinkStopC
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.SRDFMirrorCreateCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.SRDFTaskCompleter;
 import com.emc.storageos.volumecontroller.impl.providerfinders.FindProviderFactory;
+import com.emc.storageos.volumecontroller.impl.smis.job.SmisCreateMultiVolumeJob;
 import com.emc.storageos.volumecontroller.impl.smis.job.SmisSRDFCreateMirrorJob;
 import com.emc.storageos.volumecontroller.impl.smis.srdf.AbstractSRDFOperationContextFactory;
 import com.emc.storageos.volumecontroller.impl.smis.srdf.AbstractSRDFOperationContextFactory.SRDFOperation;
@@ -1995,7 +1996,10 @@ public class SRDFOperations implements SmisConstants {
                 trustedSrc.getSrdfTargets().add(invalidTgt.getId().toString());
                 invalidSrc.getSrdfTargets().remove(invalidTgt.getId().toString());
                 
+                // Update the volume labels (and labels on associated Vplex volume if any)
                 updateVolumeLabels(trustedSrc, invalidTgt);
+                // Rename the volume on the vmax array itself and update the deviceLabel
+                helper.renameVolume(dbClient, targetSystem, invalidTgt, invalidTgt.getLabel());
                 dbClient.updateAndReindexObject(asList(invalidTgt, trustedSrc, invalidSrc));
             }
         }
@@ -2016,6 +2020,12 @@ public class SRDFOperations implements SmisConstants {
         newLabel.append(invalidTgtVA.getLabel());
         log.info("Revised name for target: " + newLabel.toString());
         invalidTgt.setLabel(newLabel.toString());
+        NamedURI projectURI = invalidTgt.getProject();
+        projectURI.setName(newLabel.toString());
+        invalidTgt.setProject(projectURI);
+        NamedURI tenantURI = invalidTgt.getTenant();
+        tenantURI.setName(newLabel.toString());
+        invalidTgt.setTenant(tenantURI);
         
         
         // See if there is a corresponding Vplex volume. If so update its label as well.
@@ -2030,6 +2040,12 @@ public class SRDFOperations implements SmisConstants {
                 newLabel.append(invalidTgtVA.getLabel());
                 log.info("Revised name for VPlex target: " + newLabel.toString());
                 tgtVplexVolume.setLabel(newLabel.toString());
+                projectURI = tgtVplexVolume.getProject();
+                projectURI.setName(newLabel.toString());
+                tgtVplexVolume.setProject(projectURI);
+                tenantURI = tgtVplexVolume.getTenant();
+                tenantURI.setName(newLabel.toString());
+                tgtVplexVolume.setTenant(tenantURI);
                 dbClient.updateAndReindexObject(tgtVplexVolume);
             }
         }

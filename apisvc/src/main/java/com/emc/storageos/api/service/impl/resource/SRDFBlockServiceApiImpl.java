@@ -292,12 +292,11 @@ public class SRDFBlockServiceApiImpl extends AbstractBlockServiceApiImpl<SRDFSch
     private List<VolumeDescriptor> createVolumeDescriptors(final SRDFRecommendation recommendation,
             final List<URI> volumeURIs, final VirtualPoolCapabilityValuesWrapper capabilities)
             throws ControllerException {
-
-        List<Volume> preparedVolumes = _dbClient.queryObject(Volume.class, volumeURIs);
-
         List<VolumeDescriptor> descriptors = new ArrayList<VolumeDescriptor>();
-        // Package up the Volume descriptors
-        for (Volume volume : preparedVolumes) {
+        
+        // Package up the prepared Volumes into descriptors
+        for (URI volumeURI : volumeURIs) {
+            Volume volume = _dbClient.queryObject(Volume.class, volumeURI);
             VolumeDescriptor.Type volumeType = VolumeDescriptor.Type.SRDF_SOURCE;
 
             // CoS Change flow, mark the production volume as already existing, so it doesn't get

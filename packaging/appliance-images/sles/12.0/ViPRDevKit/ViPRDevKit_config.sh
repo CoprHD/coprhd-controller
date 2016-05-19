@@ -500,6 +500,12 @@ alias startvnc='vncserver; xrdp'
 alias stopvnc='vncserver -kill :1; xrdp -kill'   
 DEVKIT_ALIAS
 
+# Mount all the iso sles12 DVD:
+mkdir -p /disks/adgbuild
+mount -o nolock nasl02.lss.emc.com:/mnt_0231/imgengrep/adgbuild /disks/adgbuild
+mkdir -p /slesmedia/12-SLES-DVD1
+mount /disks/adgbuild/SLES12/SLE-12-Server-DVD-x86_64-GM-DVD1.iso /slesmedia/12-SLES-DVD1
+
 exit 0
 
 #######################################################

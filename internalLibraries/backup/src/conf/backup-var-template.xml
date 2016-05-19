@@ -35,12 +35,6 @@
         <constructor-arg type="java.lang.String" value="${network_ipaddr6}" />
     </bean>
 
-    <util:list id="vdcList" value-type="java.lang.String">
-        <foreach iterator="iter_vdcs">
-            <value>${iter_vdcs}</value>
-        </foreach>
-    </util:list>
-
     <bean id="backupFolder" class="java.io.File">
         <constructor-arg value="/data/backup"/>
     </bean>

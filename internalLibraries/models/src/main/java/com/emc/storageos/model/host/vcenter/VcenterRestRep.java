@@ -119,8 +119,9 @@ public class VcenterRestRep extends ComputeSystemRestRep {
      * A flag indicating whether to cascade the vCenter tenancy to all its
      * datacenters and its clusters and hosts or not. If cascaded vCenter
      * can belong to only one tenant.
-     *
-     *                  and its hosts and clusters.
+     * Valid values:
+     * 	true = cascades the vCenter tenancy to the datacenters and its hosts and clusters.
+     * 	false = does not cascase
      */
     @XmlElement(name = "cascade_tenancy")
     public Boolean getCascadeTenancy() {

@@ -40,6 +40,7 @@ import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVol
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume.SupportedVolumeCharacterstics;
 import com.emc.storageos.db.client.util.CommonTransformerFunctions;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
+import com.emc.storageos.util.ConnectivityUtil;
 import com.emc.storageos.volumecontroller.impl.utils.ExportMaskUtils;
 import com.google.common.base.Joiner;
 import com.google.common.collect.Collections2;
@@ -65,7 +66,7 @@ public abstract class BlockIngestExportOrchestrator extends ResourceService {
             List<UnManagedExportMask> unManagedMasks, MutableInt masksIngestedCount)
                     throws IngestionException {
         try {
-            _logger.info("Starting with unmanaged masks {} for unmanaged volume {}",
+            _logger.info("Ingesting unmanaged masks {} for unmanaged volume {}",
                     Joiner.on(",").join(unManagedVolume.getUnmanagedExportMasks()), unManagedVolume.getNativeGuid());
             List<UnManagedExportMask> uemsToPersist = new ArrayList<UnManagedExportMask>();
             Iterator<UnManagedExportMask> itr = unManagedMasks.iterator();
@@ -139,6 +140,7 @@ public abstract class BlockIngestExportOrchestrator extends ResourceService {
             // then add this unmanaged volume to the mask.
             while (itr.hasNext()) {
                 UnManagedExportMask unManagedExportMask = itr.next();
+
                 if (!VolumeIngestionUtil.validateStoragePortsInVarray(_dbClient, blockObject,
                         requestContext.getVarray(unManagedVolume).getId(), unManagedExportMask.getKnownStoragePortUris(),
                         unManagedExportMask, errorMessages)) {
@@ -148,6 +150,13 @@ public abstract class BlockIngestExportOrchestrator extends ResourceService {
                 }
                 if (!VolumeIngestionUtil.validateExportMaskMatchesComputeResourceInitiators(_dbClient, exportGroup, computeInitiators,
                         unManagedExportMask, errorMessages)) {
+                    // logs already inside the above method.
+                    itr.remove();
+                    continue;
+                }
+                if (VolumeIngestionUtil.isVplexVolume(unManagedVolume) && 
+                        !VolumeIngestionUtil.isRpExportMask(unManagedExportMask, _dbClient) &&
+                        !VolumeIngestionUtil.validateExportMaskMatchesVplexCluster(requestContext, unManagedVolume, unManagedExportMask)) {
                     // logs already inside the above method.
                     itr.remove();
                     continue;
@@ -229,8 +238,9 @@ public abstract class BlockIngestExportOrchestrator extends ResourceService {
 
                 // remove the unmanaged mask from unmanaged volume only if the block object has not been marked as internal
                 if (!blockObject.checkInternalFlags(Flag.PARTIALLY_INGESTED)) {
-                    _logger.info("breaking relationship between UnManagedExportMask {} and UnManagedVolume {}",
-                            unManagedExportMask.getMaskName(), unManagedVolume.forDisplay());
+                    _logger.info("block object {} is fully ingested, "
+                            + "breaking relationship between UnManagedExportMask {} and UnManagedVolume {}",
+                            blockObject.forDisplay(), unManagedExportMask.getMaskName(), unManagedVolume.forDisplay());
                     unManagedVolume.getUnmanagedExportMasks().remove(unManagedExportMask.getId().toString());
                     unManagedExportMask.getUnmanagedVolumeUris().remove(unManagedVolume.getId().toString());
                     uemsToPersist.add(unManagedExportMask);
@@ -263,12 +273,36 @@ public abstract class BlockIngestExportOrchestrator extends ResourceService {
                             .getChildrenUris(_dbClient, requestContext.getCluster(), Host.class, "cluster");
                     _logger.info("Found Hosts {} in cluster {}", Joiner.on(",").join(hostUris), cluster.getId());
                     List<Set<String>> iniGroupByHost = new ArrayList<Set<String>>();
+                    URI varrayUri = requestContext.getVarray(unManagedVolume).getId();
+                    boolean isVplexDistributedVolume = VolumeIngestionUtil.isVplexDistributedVolume(unManagedVolume);
                     for (URI hostUri : hostUris) {
-                        iniGroupByHost.add(getInitiatorsOfHost(hostUri));
+                        Set<String> initsOfHost = getInitiatorsOfHost(hostUri);
+                        if (isVplexDistributedVolume) {
+                            // this is a distributed vplex volume, may have split fabrics 
+                            // with different connectivity per host, see COP-22384
+                            Iterator<String> initsOfHostIt = initsOfHost.iterator();
+                            while (initsOfHostIt.hasNext()) {
+                                String uriStr = initsOfHostIt.next();
+                                Initiator init = _dbClient.queryObject(Initiator.class, URI.create(uriStr));
+                                if (null != init) {
+                                    _logger.info("checking initiator {} for connectivity", init.getInitiatorPort());
+                                    Set<String> connectedVarrays = ConnectivityUtil.getInitiatorVarrays(init.getInitiatorPort(), _dbClient);
+                                    _logger.info("initiator's connected varrays are: {}", connectedVarrays);
+                                    if (!connectedVarrays.contains(varrayUri.toString())) {
+                                        _logger.info("initiator {} of host {} is not connected to varray {}, removing",
+                                                init.getInitiatorPort(), hostUri, varrayUri);
+                                        initsOfHostIt.remove();
+                                    }
+                                }
+                            }
+                        }
+                        if (!initsOfHost.isEmpty()) {
+                            iniGroupByHost.add(initsOfHost);
+                        }
                     }
 
                     eligibleMasks = VolumeIngestionUtil.findMatchingExportMaskForCluster(blockObject,
-                            unManagedMasks, iniGroupByHost, _dbClient, requestContext.getVarray(unManagedVolume).getId(),
+                            unManagedMasks, iniGroupByHost, _dbClient, varrayUri,
                             requestContext.getVpool(unManagedVolume).getId(), requestContext.getCluster(), errorMessages);
                     // Volume cannot be exposed to both Cluster and Host
                     if (eligibleMasks.size() == 1) {

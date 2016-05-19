@@ -29,6 +29,7 @@ import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.util.BlockConsistencyGroupUtils;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
+import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.volumecontroller.ControllerException;
@@ -45,6 +46,7 @@ import com.emc.storageos.workflow.Workflow;
 import com.emc.storageos.workflow.WorkflowException;
 import com.emc.storageos.workflow.WorkflowService;
 import com.emc.storageos.workflow.WorkflowStepCompleter;
+import com.google.common.base.Joiner;
 
 public abstract class AbstractConsistencyGroupManager implements ConsistencyGroupManager, Controller {
     protected static final String CREATE_CG_STEP = "createCG";
@@ -241,7 +243,7 @@ public abstract class AbstractConsistencyGroupManager implements ConsistencyGrou
      * @param cgUri The URI of the ViPR consistency group.
      * @param cgName The name of the VPlex consistency group to delete.
      * @param clusterName The name of the VPlex cluster.
-     * @param setInative true to mark the CG for deletion.
+     * @param setInactive true to mark the CG for deletion.
      * @param stepId The workflow step identifier.
      *
      * @throws WorkflowException When an error occurs updating the work step
@@ -555,12 +557,34 @@ public abstract class AbstractConsistencyGroupManager implements ConsistencyGrou
             WorkflowStepCompleter.stepExecuting(stepId);
             log.info("Updated workflow step state to execute for remove volumes from consistency group.");
 
+            ServiceCoded codedError = removeVolumesFromCGInternal(vplexURI, cgURI, vplexVolumeURIs);
+
+            if (codedError != null) {
+                WorkflowStepCompleter.stepFailed(stepId, codedError);
+            } else {
+                WorkflowStepCompleter.stepSucceded(stepId);    
+            }    
+        } catch (Exception ex) {
+            log.error("Exception removing volumes from consistency group: " + ex.getMessage(), ex);
+            String opName = ResourceOperationTypeEnum.DELETE_CG_VOLUME.getName();
+            ServiceError serviceError = VPlexApiException.errors.removeVolumesFromCGFailed(opName, ex);
+            WorkflowStepCompleter.stepFailed(stepId, serviceError);
+        }
+    }
+    
+    /**
+     * The method called by the workflow to remove VPLEX volumes from a VPLEX
+     * consistency group.
+     * @param vplexURI -- URI of VPlex device
+     * @param cgURI -- URI of Consistency Group
+     * @param vplexVolumeURIs -- URI list of volumes that will be removed
+     * @return ServiceCoded exception if an error occurred, otherwise null if no error occurred.
+     */
+    protected ServiceCoded removeVolumesFromCGInternal(URI vplexURI, URI cgURI, List<URI> vplexVolumeURIs) {
+        try {
             if (vplexVolumeURIs.isEmpty()) {
-                log.info("empty volume list; no volumes to remove from CG %s", cgURI.toString());
-                // Update workflow step state to success.
-                WorkflowStepCompleter.stepSucceded(stepId);
-                log.info("Updated workflow step state to success for remove volumes from consistency group.");
-                return;
+                log.info("Empty volume list; no volumes to remove from CG %s", cgURI.toString());
+                return null;
             }
 
             // Get the API client.
@@ -568,44 +592,59 @@ public abstract class AbstractConsistencyGroupManager implements ConsistencyGrou
             VPlexApiClient client = getVPlexAPIClient(vplexApiFactory, vplexSystem, dbClient);
             log.info("Got VPLEX API client.");
 
-            Volume firstVPlexVolume = getDataObject(Volume.class, vplexVolumeURIs.get(0), dbClient);
-            String cgName = getVplexCgName(firstVPlexVolume, cgURI);
-
+            Map<String, List<String>> cgToVolumesMap = new HashMap<String, List<String>>();
             // Get the names of the volumes to be removed.
-            List<Volume> vplexVolumes = new ArrayList<Volume>();
-            List<String> vplexVolumeNames = new ArrayList<String>();
+            List<Volume> vplexVolumes = new ArrayList<Volume>();           
             for (URI vplexVolumeURI : vplexVolumeURIs) {
                 Volume vplexVolume = getDataObject(Volume.class, vplexVolumeURI, dbClient);
                 if (vplexVolume == null || vplexVolume.getInactive()) {
-                    log.error(String.format("skipping null or inactive vplex volume %s", vplexVolumeURI.toString()));
+                    log.error(String.format("Skipping null or inactive vplex volume %s", vplexVolumeURI.toString()));
                     continue;
                 }
+                // Remove CG reference from volume, it won't be persisted until after the operation completes.
                 vplexVolume.setConsistencyGroup(NullColumnValueGetter.getNullURI());
                 vplexVolumes.add(vplexVolume);
+                
+                // Get the CG name for this VPLEX volume, it could be a CG
+                // that is distributed, a CG on cluster-1, or a CG on cluster-2.
+                String cgName = getVplexCgName(vplexVolume, cgURI);
+                
+                // Keep a map of CG name grouped by all VPLEX volumes in that same CG. 
+                List<String> vplexVolumeNames = cgToVolumesMap.get(cgName);
+                if (vplexVolumeNames == null) {
+                    vplexVolumeNames = new ArrayList<String>();
+                    cgToVolumesMap.put(cgName, vplexVolumeNames);
+                }
                 vplexVolumeNames.add(vplexVolume.getDeviceLabel());
-                log.info(String.format("Removing VPLEX volume: %s (device label %s) from CG %s",
-                        vplexVolume.getNativeId(), vplexVolume.getDeviceLabel(), cgName));
+                
+                log.info(String.format("Adding VPLEX volume [%s](%s) with device label [%s] to be removed from VPLEX CG [%s]",
+                        vplexVolume.getLabel(), vplexVolume.getId(), vplexVolume.getDeviceLabel(), cgName));
             }
-            log.info("Got VPLEX volume names.");
-
-            // Remove the volumes from the CG.
-            client.removeVolumesFromConsistencyGroup(vplexVolumeNames, cgName, false);
+                        
+            for (Map.Entry<String, List<String>> entry : cgToVolumesMap.entrySet()) {
+                String cgName = entry.getKey();
+                List<String> vplexVolumeNames = entry.getValue();
+                
+                log.info(String.format("Removing the following VPLEX volumes from VPLEX CG [%s]: %s",
+                        cgName,  Joiner.on(", ").join(vplexVolumeNames)));
+                
+                // Remove the volumes from the CG.
+                client.removeVolumesFromConsistencyGroup(vplexVolumeNames, cgName, false);
+            }
+            
             log.info("Removed volumes from consistency group.");
+            dbClient.updateObject(vplexVolumes);
+            return null;
 
-            dbClient.persistObject(vplexVolumes);
-
-            // Update workflow step state to success.
-            WorkflowStepCompleter.stepSucceded(stepId);
-            log.info("Updated workflow step state to success for remove volumes from consistency group.");
         } catch (VPlexApiException vae) {
             log.error("Exception removing volumes from consistency group: " + vae.getMessage(), vae);
-            WorkflowStepCompleter.stepFailed(stepId, vae);
+            return vae;
         } catch (Exception ex) {
             log.error(
                     "Exception removing volumes from consistency group: " + ex.getMessage(), ex);
             String opName = ResourceOperationTypeEnum.DELETE_CG_VOLUME.getName();
             ServiceError serviceError = VPlexApiException.errors.removeVolumesFromCGFailed(opName, ex);
-            WorkflowStepCompleter.stepFailed(stepId, serviceError);
+            return serviceError;
         }
     }
 
@@ -627,4 +666,17 @@ public abstract class AbstractConsistencyGroupManager implements ConsistencyGrou
                 vplexVolumeURIs);
     }
 
+    @Override
+    public String addStepsForAddingVolumesToSRDFTargetCG(Workflow workflow, StorageSystem vplexSystem, List<URI> vplexVolumeURIs,
+            String waitFor) throws Exception {
+        // Default is this is not supported and adds no steps.
+        return waitFor;
+    }
+
+    @Override
+    public String addStepsForRemovingVolumesFromSRDFTargetCG(Workflow workflow, StorageSystem vplexSystem, List<URI> vplexVolumeURIs,
+            String waitFor) throws Exception {
+        // Default is this is not supported and adds no steps.
+        return waitFor;
+    }
 }

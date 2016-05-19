@@ -18,15 +18,19 @@ import com.emc.storageos.model.block.VolumeRestRep;
 import com.emc.vipr.client.core.util.ResourceUtils;
 import com.google.common.collect.Lists;
 
+import models.datatable.ApplicationSnapSessionDataTable;
+import models.datatable.ApplicationSnapSessionDataTable.ApplicationSnapshotSession;
+import models.datatable.ApplicationSnapSessionSetDataTable;
+import models.datatable.ApplicationSnapSessionSetDataTable.ApplicationSnapSessionSets;
+import models.datatable.ApplicationSnapshotDataTable;
+import models.datatable.ApplicationSnapshotSetDataTable;
+import models.datatable.ApplicationSnapshotSetDataTable.ApplicationSnapshotSets;
 import models.datatable.ApplicationSupportDataTable;
-import models.datatable.BlockSnapshotSessionsDataTable;
 import models.datatable.BlockSnapshotSessionsDataTable.BlockSnapshotSession;
-import models.datatable.BlockSnapshotsDataTable;
-import models.datatable.BlockVolumesDataTable.Volume;
+import models.datatable.ApplicationSnapshotDataTable.ApplicationSnapshots;
 import models.datatable.BlockVolumesDataTable;
-
-import models.datatable.BlockSnapshotsDataTable.BlockSnapshot;
-
+import models.datatable.ApplicationFullCopySetsDataTable;
+import models.datatable.ApplicationFullCopySetsDataTable.ApplicationFullCopySets;
 import play.mvc.With;
 import util.AppSupportUtil;
 import util.BourneUtil;
@@ -54,13 +58,48 @@ public class BlockApplications extends ResourceController {
 
     public static void blockApplicationDetails(String id) {
         renderArgs.put("dataTable", new VolumeApplicationDataTable());
+        renderArgs.put("cloneDataTable", new ApplicationFullCopySetsDataTable());
+        renderArgs.put("snapshotDataTable", new ApplicationSnapshotSetDataTable());
+        renderArgs.put("snapsessionDataTable", new ApplicationSnapSessionSetDataTable());
         VolumeGroupRestRep application = AppSupportUtil.getApplication(id);
-        Set<String> sessionSet = AppSupportUtil.getVolumeGroupSnapsetSessionSets(id);
-        Set<String> clonesSet = AppSupportUtil.getFullCopySetsByApplication(id);
-        Set<String> snapSets = AppSupportUtil.getVolumeGroupSnapshotSets(id);
-        render(application, clonesSet, sessionSet, snapSets);
+        render(application);
     }
 
+	public static void applicationCloneJson(String id) {
+		List<ApplicationFullCopySets> cloneDetails = Lists.newArrayList();
+		Set<String> clonesSet = AppSupportUtil.getFullCopySetsByApplication(id);
+		for (String clone : clonesSet) {
+			List<NamedRelatedResourceRep> volumeDetailClone = AppSupportUtil
+					.getVolumeGroupFullCopiesForSet(id, clone);
+			cloneDetails.add(new ApplicationFullCopySets(clone,
+					volumeDetailClone));
+		}
+		renderJSON(DataTablesSupport.createJSON(cloneDetails, params));
+	}
+    
+	public static void applicationSnapshotJson(String id) {
+		List<ApplicationSnapshotSets> snapDetails = Lists.newArrayList();
+		Set<String> snapSets = AppSupportUtil.getVolumeGroupSnapshotSets(id);
+		for (String snap : snapSets) {
+			List<NamedRelatedResourceRep> snapshots = AppSupportUtil
+					.getVolumeGroupSnapshotsForSet(id, snap);
+			snapDetails.add(new ApplicationSnapshotSets(snap, snapshots));
+		}
+		renderJSON(DataTablesSupport.createJSON(snapDetails, params));
+	}
+    
+	public static void applicationSnapSessionJson(String id) {
+		List<ApplicationSnapSessionSets> snapDetails = Lists.newArrayList();
+		Set<String> sessionSet = AppSupportUtil
+				.getVolumeGroupSnapsetSessionSets(id);
+		for (String snap : sessionSet) {
+			List<NamedRelatedResourceRep> snapshots = AppSupportUtil
+					.getVolumeGroupSnapshotSessionsByCopySet(id, snap);
+			snapDetails.add(new ApplicationSnapSessionSets(snap, snapshots));
+		}
+		renderJSON(DataTablesSupport.createJSON(snapDetails, params));
+	}
+    
     public static void applicationVolumeJson(String id) {
         List<VolumeApplication> volumeDetails = Lists.newArrayList();
         List<NamedRelatedResourceRep> volumes = AppSupportUtil.getVolumesByApplication(id);
@@ -90,7 +129,7 @@ public class BlockApplications extends ResourceController {
     }
 
     public static void getAssociatedSnapshots(String id, String snapSet) {
-        renderArgs.put("dataTable", new BlockSnapshotsDataTable());
+        renderArgs.put("dataTable", new ApplicationSnapshotDataTable());
         VolumeGroupRestRep application = AppSupportUtil.getApplication(id);
         String snapLabel = id + "~~~" + snapSet;
         render(application,snapLabel,snapSet);
@@ -98,17 +137,17 @@ public class BlockApplications extends ResourceController {
 
     public static void getAssociatedSnapshotsJSON(String snapLabel) {
         String[] snapSets = snapLabel.split("~~~");
-        List<BlockSnapshot> snapShotDetails = Lists.newArrayList();
+        List<ApplicationSnapshots> snapShotDetails = Lists.newArrayList();
         List<NamedRelatedResourceRep> snapsetDetails = AppSupportUtil.getVolumeGroupSnapshotsForSet(snapSets[0], snapSets[1]);
         for (NamedRelatedResourceRep snapShot : snapsetDetails) {
             BlockSnapshotRestRep blockSnapshot = BourneUtil.getViprClient().blockSnapshots().get(snapShot.getId());
-            snapShotDetails.add(new BlockSnapshot(blockSnapshot));
+            snapShotDetails.add(new ApplicationSnapshots(blockSnapshot));
         }
         renderJSON(DataTablesSupport.createJSON(snapShotDetails, params));
     }
 
     public static void getAssociatedSnapSession(String id, String sessionSet) {
-        renderArgs.put("dataTable", new BlockSnapshotSessionsDataTable());
+        renderArgs.put("dataTable", new ApplicationSnapSessionDataTable());
         VolumeGroupRestRep application = AppSupportUtil.getApplication(id);
         String sessionLabel = id + "~~~" + sessionSet;
         render(application, sessionLabel, sessionSet);
@@ -116,12 +155,12 @@ public class BlockApplications extends ResourceController {
     
     public static void getAssociatedSnapSessionJSON(String sessionLabel) {
         String[] sessionSet = sessionLabel.split("~~~");
-        List<BlockSnapshotSession> sessionDetails = Lists.newArrayList();
+        List<ApplicationSnapshotSession> sessionDetails = Lists.newArrayList();
         List<NamedRelatedResourceRep> sessionSetDetails = AppSupportUtil.getVolumeGroupSnapshotSessionsByCopySet(sessionSet[0],
                 sessionSet[1]);
         for (NamedRelatedResourceRep snapSession : sessionSetDetails) {
             BlockSnapshotSessionRestRep snapshotSession = BourneUtil.getViprClient().blockSnapshotSessions().get(snapSession.getId());
-            sessionDetails.add(new BlockSnapshotSession(snapshotSession));
+            sessionDetails.add(new ApplicationSnapshotSession(snapshotSession));
         }
         renderJSON(DataTablesSupport.createJSON(sessionDetails, params));
     }

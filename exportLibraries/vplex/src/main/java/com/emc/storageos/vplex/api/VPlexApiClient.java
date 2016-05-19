@@ -260,6 +260,21 @@ public class VPlexApiClient {
     }
 
     /**
+     * Gets the fully-populated VPlexStorageViewInfo object for the given storage view name
+     * on the given VPLEX cluster (by cluster name, not cluster id).
+     * 
+     * @param clusterName the cluster name for storage view scope
+     * @param storageViewName the name of the storage view to get
+     * @return a VPlexStorageViewInfo object for the storage view name and VPLEX cluster location
+     * @throws VPlexApiException
+     */
+    public VPlexStorageViewInfo getStorageView(String clusterName, String storageViewName)
+            throws VPlexApiException {
+        s_logger.info("Request to get storage view on VPlex at {}", _baseURI);
+        return _discoveryMgr.getStorageView(clusterName, storageViewName);
+    }
+
+    /**
      * Gets all virtual volumes on the VPLEX storage system.
      * 
      * @param shallow When true does a shallow discovery of the virtual volumes. A
@@ -1418,6 +1433,20 @@ public class VPlexApiClient {
         return response;
     }
 
+    static private int maxAsyncPollingRetries = VPlexApiConstants.MAX_RETRIES;
+    static private int maxMigrationAsyncPollingRetries = VPlexApiConstants.MAX_RETRIES;
+
+    /**
+     * Polls for asynchronous completion using the default maximum retries.
+     * 
+     * @see #waitForCompletion(ClientResponse, int)
+     * @param asyncResponse
+     * @return
+     */
+    String waitForCompletion(ClientResponse asyncResponse) {
+        return waitForCompletion(asyncResponse, maxAsyncPollingRetries);
+    }
+
     /**
      * When a VPlex command is executed via a POST request, if that command
      * takes longer than 60 seconds to complete, the VPlex command will return a
@@ -1429,11 +1458,12 @@ public class VPlexApiClient {
      * 
      * @param asyncResponse A response from the VPlex indicating a command is being run
      *            asynchronously because it is taking too long.
+     * @param maxRetries -- Maximum polling attempts before timeout.
      * 
      * @throws VPlexApiException When the command completes unsuccessfully or we
      *             time out because it is taking too long.
      */
-    String waitForCompletion(ClientResponse asyncResponse) throws VPlexApiException {
+    String waitForCompletion(ClientResponse asyncResponse, int maxRetries) throws VPlexApiException {
         MultivaluedMap<String, String> headers = asyncResponse.getHeaders();
         String taskResourceStr = headers.getFirst(VPlexApiConstants.LOCATION_HEADER);
         if (taskResourceStr == null) {
@@ -1443,7 +1473,7 @@ public class VPlexApiClient {
         // Check the task for completion until we've reached the
         // maximum number of status checks.
         int retries = 0;
-        while (retries++ < VPlexApiConstants.MAX_RETRIES) {
+        while (retries++ < maxRetries) {
             ClientResponse taskResponse = get(URI.create(taskResourceStr));
             String responseStr = taskResponse.getEntity(String.class);
             s_logger.info("Wait for completion response is {}", responseStr);
@@ -1701,6 +1731,42 @@ public class VPlexApiClient {
      */
     public String getDrillDownInfoForDevice(String deviceName) throws VPlexApiException {
         return _discoveryMgr.getDrillDownInfoForDevice(deviceName);
+    }
+
+    /**
+     * Returns the maximum number of retries for a polling operation.
+     * 
+     * @return integer number of retries
+     */
+    static public int getMaxAsyncPollingRetries() {
+        return maxAsyncPollingRetries;
+    }
+
+    /**
+     * Sets the maximum number of retries for an async. polling operation.
+     * 
+     * @param maxRetries integer
+     */
+    static public void setMaxAsyncPollingRetries(int maxRetries) {
+        maxAsyncPollingRetries = maxRetries;
+    }
+
+    /**
+     * Returns the maximum number of async. retries for a migration commit.
+     * 
+     * @return integer number of retries
+     */
+    static public int getMaxMigrationAsyncPollingRetries() {
+        return maxMigrationAsyncPollingRetries;
+    }
+
+    /**
+     * Sets the maximum number of async. retries for a migration commit.
+     * 
+     * @param maxRetries integer
+     */
+    static public void setMaxMigrationAsyncPollingRetries(int maxRetries) {
+        maxMigrationAsyncPollingRetries = maxRetries;
     }
 
 }

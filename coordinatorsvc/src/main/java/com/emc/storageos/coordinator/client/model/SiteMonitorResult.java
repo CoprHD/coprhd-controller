@@ -7,11 +7,13 @@ package com.emc.storageos.coordinator.client.model;
 import com.emc.storageos.coordinator.exceptions.FatalCoordinatorException;
 
 public class SiteMonitorResult implements CoordinatorSerializable {
-    
+    private static final String ENCODING_SEPARATOR = "\0";
+
     public static final String CONFIG_KIND = "siteMonitorState";
     public static final String CONFIG_ID = "global";
 
     private long dbQuorumLostSince;
+    private long dbQuorumLastActive;
     
     public SiteMonitorResult() {
         
@@ -29,9 +31,21 @@ public class SiteMonitorResult implements CoordinatorSerializable {
         this.dbQuorumLostSince = dbQuorumLostSince;
     }
 
+    public long getDbQuorumLastActive() {
+        return dbQuorumLastActive;
+    }
+
+    public void setDbQuorumLastActive(long dbQuorumLastActive) {
+        this.dbQuorumLastActive = dbQuorumLastActive;
+    }
+
     @Override
     public String encodeAsString() {
-        return String.valueOf(dbQuorumLostSince);
+        StringBuilder sb = new StringBuilder();
+        sb.append(dbQuorumLostSince);
+        sb.append(ENCODING_SEPARATOR);
+        sb.append(dbQuorumLastActive);
+        return sb.toString();
     }
 
     @Override
@@ -41,7 +55,17 @@ public class SiteMonitorResult implements CoordinatorSerializable {
         }
 
         try {
-            return new SiteMonitorResult(Long.valueOf(infoStr));
+            final String[] strings = infoStr.split(ENCODING_SEPARATOR);
+            SiteMonitorResult result = new SiteMonitorResult();
+            if (strings.length >= 1) {
+                long lostSince = Long.valueOf(strings[0]);
+                result.setDbQuorumLostSince(lostSince);
+            } 
+            if (strings.length > 1) {
+                long lastActive = Long.valueOf(strings[1]);
+                result.setDbQuorumLastActive(lastActive);
+            } 
+            return result;
         } catch (NumberFormatException e) {
             return new SiteMonitorResult();
         }

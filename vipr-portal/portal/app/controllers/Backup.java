@@ -67,15 +67,22 @@ public class Backup extends Controller {
         renderJSON(DataTablesSupport.createJSON(backups, params));
     }
 
+    /**
+     * Get local backup info
+     * @param ids
+     */
     @Restrictions({ @Restrict("SYSTEM_ADMIN"), @Restrict("SYSTEM_MONITOR"), @Restrict("RESTRICTED_SYSTEM_ADMIN") })
     public static void itemsJson(@As(",") String[] ids) {
         List<BackupDataTable.Backup> results = Lists.newArrayList();
         if (ids != null) {
             for (String id : ids) {
                 if (StringUtils.isNotBlank(id)) {
-                    BackupSet backup = BackupUtils.getBackup(id);
-                    if (backup != null) {
-                        results.add(new BackupDataTable.Backup(backup));
+                    BackupSet backupSet = BackupUtils.getBackup(id);
+                    if (backupSet != null) {
+                        BackupDataTable.Backup backup = new BackupDataTable.Backup(backupSet);
+                        BackupRestoreStatus restoreStatus = BackupUtils.getRestoreStatus(id, true);
+                        backup.alterLocalBackupRestoreStatus(restoreStatus);
+                        results.add(backup);
                     }
                 }
             }
@@ -83,20 +90,47 @@ public class Backup extends Controller {
         renderJSON(results);
     }
 
+    /**
+     * Only get the remote backup info
+     * @param ids
+     */
+    @Restrictions({ @Restrict("SYSTEM_ADMIN"), @Restrict("SYSTEM_MONITOR"), @Restrict("RESTRICTED_SYSTEM_ADMIN") })
     public static void externalItemsJson(@As(",") String[] ids) {
         List<BackupDataTable.Backup> results = Lists.newArrayList();
         if (ids != null) {
             for (String id : ids) {
                 if (StringUtils.isNotBlank(id)) {
-                    BackupInfo backupInfo = BackupUtils.getExternalBackup(id);
-                    BackupDataTable.Backup backup = new BackupDataTable.Backup(id);
-                    if (backupInfo.getCreateTime() != 0) {
-                        backup.creationtime = backupInfo.getCreateTime();
-                    }
-                    backup.status = backupInfo.getRestoreStatus().getStatus().name();
+                    BackupInfo backupInfo = BackupUtils.getBackupInfo(id, false);
+                    BackupDataTable.Backup backup = new BackupDataTable.Backup(id, false);
+                    backup.creationtime = backupInfo.getCreateTime();
+                    backup.sitename = backupInfo.getSiteName();
+                    backup.version = backupInfo.getVersion();
+                    backup.size = backupInfo.getBackupSize();
                     results.add(backup);
                 }
             }
+        }
+        renderJSON(results);
+    }
+
+    /**
+     * Only get the remote restore status
+     * @param ids
+     */
+    @Restrictions({ @Restrict("SYSTEM_ADMIN"), @Restrict("SYSTEM_MONITOR"), @Restrict("RESTRICTED_SYSTEM_ADMIN") })
+    public static void externalStatusJson(@As(",") String[] ids) {
+        List<BackupDataTable.Backup> results = Lists.newArrayList();
+        for (String id : ids) {
+            if (StringUtils.isNotBlank(id)) {
+                BackupDataTable.Backup backup = new BackupDataTable.Backup(id, false);
+                BackupRestoreStatus restoreStatus = BackupUtils.getRestoreStatus(id, false);
+                backup.status = restoreStatus.getStatus().name();
+                if (restoreStatus.getStatus() == BackupRestoreStatus.Status.RESTORE_FAILED) {
+                    backup.error = restoreStatus.getDetails();
+                }
+                results.add(backup);
+            }
+
         }
         renderJSON(results);
     }
@@ -137,7 +171,7 @@ public class Backup extends Controller {
         if (ids != null && ids.length > 0) {
             boolean deleteExecuted = false;
             for (String backupName : ids) {
-                BackupUtils.deleteBackup(backupName);
+                BackupUtils.deleteBackup(backupName.replace("+"," "));
                 deleteExecuted = true;
             }
             if (deleteExecuted == true) {
@@ -188,10 +222,7 @@ public class Backup extends Controller {
         RestoreForm restoreForm = new RestoreForm(name, params.get("restoreForm.password"), isLocal, params.get("restoreForm.isGeoFromScratch", boolean.class));
         restoreForm.restore();
 
-        BackupRestoreStatus status = BackupUtils.getRestoreStatus(name, isLocal);
-        if (status.isNotSuccess()) {
-            list(type);
-        }
+        flash("initialTimeout", 10000);
         Maintenance.maintenance(Common.reverseRoute(Backup.class, "list", "type", type));
     }
 
@@ -282,6 +313,9 @@ public class Backup extends Controller {
             for (String hostname : sizeToDownload.keySet()) {
                 int percentage = sizeToDownload.get(hostname) == 0L ? 0
                         : (int) (downloadedSize.get(hostname) * 100 / sizeToDownload.get(hostname));
+                if (percentage > 100) {
+                    percentage = 100;
+                }
                 percentageMap.put(hostname, percentage);
             }
         }

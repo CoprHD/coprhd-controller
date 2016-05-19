@@ -43,6 +43,9 @@ import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedCon
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume.SupportedVolumeInformation;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
+import com.emc.storageos.util.ConnectivityUtil;
+import com.emc.storageos.vplex.api.VPlexApiConstants;
+import com.emc.storageos.vplexcontroller.VPlexControllerUtils;
 import com.emc.storageos.vplexcontroller.VplexBackendIngestionContext;
 
 /**
@@ -70,6 +73,7 @@ public class VplexVolumeIngestionContext extends VplexBackendIngestionContext im
     private Iterator<UnManagedVolume> _backendVolumeUrisToProcessIterator;
     private List<VplexMirror> _createdVplexMirrors;
     private String _haClusterId;
+    private String _virtualVolumeVplexClusterName;
 
     private List<String> _errorMessages;
 
@@ -875,7 +879,8 @@ public class VplexVolumeIngestionContext extends VplexBackendIngestionContext im
                         vplexMirror.setCapacity(mirrorVolume.getCapacity());
                         vplexMirror.setLabel(mirrorVolume.getLabel());
                         vplexMirror.setNativeId(entry.getValue());
-                        vplexMirror.setAllocatedCapacity(mirrorVolume.getAllocatedCapacity());
+                        // For Vplex virtual volumes set allocated capacity to 0 (cop-18608)
+                        vplexMirror.setAllocatedCapacity(0L);
                         vplexMirror.setProvisionedCapacity(mirrorVolume.getProvisionedCapacity());
                         vplexMirror.setSource(new NamedURI(virtualVolume.getId(), virtualVolume.getLabel()));
                         vplexMirror.setStorageController(virtualVolume.getStorageController());
@@ -939,12 +944,7 @@ public class VplexVolumeIngestionContext extends VplexBackendIngestionContext im
      */
     @Override
     public BlockObject findCreatedBlockObject(String nativeGuid) {
-
         BlockObject blockObject = getBlockObjectsToBeCreatedMap().get(nativeGuid);
-        if (blockObject == null) {
-            blockObject = _parentRequestContext.findCreatedBlockObject(nativeGuid);
-        }
-
         return blockObject;
     }
 
@@ -1045,7 +1045,7 @@ public class VplexVolumeIngestionContext extends VplexBackendIngestionContext im
             }
         }
 
-        return _parentRequestContext.findCreatedBlockObject(uri);
+        return null;
     }
 
     /*
@@ -1186,5 +1186,73 @@ public class VplexVolumeIngestionContext extends VplexBackendIngestionContext im
     @Override
     public <T extends DataObject> T findDataObjectByType(Class<T> clazz, URI id, boolean fallbackToDatabase) {
         return getRootIngestionRequestContext().findDataObjectByType(clazz, id, fallbackToDatabase);
+    }
+
+    /**
+     * Get the name of the VPLEX cluster on which this virtual volume resides
+     * according to the Virtual Array that is currently being ingested.
+     * 
+     * @return the virtualVolumeVplexClusterName the VPLEX cluster name for this virtual volume
+     */
+    public String getVirtualVolumeVplexClusterName() {
+        if (_virtualVolumeVplexClusterName == null) {
+            // this should be set by the BlockVplexVolumeIngestOrchestrator to use the cluster
+            // name cache, but in the case of re-ingestion, it may not be set, so call from here
+            URI varrayUri = getRootIngestionRequestContext().getVarray(getUnmanagedVolume()).getId();
+            URI vplexUri = getRootIngestionRequestContext().getStorageSystem().getId();
+            String varrayClusterId = ConnectivityUtil.getVplexClusterForVarray(varrayUri, vplexUri, _dbClient);
+            _virtualVolumeVplexClusterName = VPlexControllerUtils.getClusterNameForId(varrayClusterId, vplexUri, _dbClient);
+        }
+
+        return _virtualVolumeVplexClusterName;
+    }
+
+    /**
+     * Sets the name of the VPLEX cluster on which this virtual volume resides
+     * according to the Virtual Array that is currently being ingested.
+     * 
+     * @param virtualVolumeVplexClusterName the VPLEX cluster name to set
+     */
+    public void setVirtualVolumeVplexClusterName(String virtualVolumeVplexClusterName) {
+        _logger.info("setting virtual volume VPLEX cluster name to " + virtualVolumeVplexClusterName);
+        this._virtualVolumeVplexClusterName = virtualVolumeVplexClusterName;
+    }
+
+    /**
+     * Returns a StringSet of associated volume URIs for this context's VPLEX virtual volume.
+     * If the volume already has associated backend volume URIs, then that Set is returned.
+     * Otherwise, the block objects to be created map will be checked for the existence of 
+     * ingested backend volumes that haven't been associated yet.
+     * 
+     * An incomplete or empty Set may be returned depending on the state of ingestion, but a warning
+     * will be logged if the count of volume URIs to be returned is not the expected number for the VPLEX
+     * virtual volume type (2 for distributed type, 1 for local type).
+     * 
+     * @param volume the VPLEX virtual volume object to check
+     * @return a StringSet of associated volume URIs for this context's VPLEX virtual volume
+     */
+    public StringSet getAssociatedVolumeIds(Volume volume) {
+        if (volume != null && volume.getAssociatedVolumes() != null && !volume.getAssociatedVolumes().isEmpty()) {
+            _logger.info("getAssociatedVolumes: volumes are already associated with the virtual volume, returning {}", 
+                   volume.getAssociatedVolumes());
+            return volume.getAssociatedVolumes();
+        }
+
+        StringSet associatedVolumes = new StringSet();
+        for (String backendVolumeNativeGuid : getBackendVolumeGuids()) {
+            BlockObject backendVolume = getBlockObjectsToBeCreatedMap().get(backendVolumeNativeGuid);
+            associatedVolumes.add(backendVolume.getId().toString());
+        }
+
+        if (this.isDistributed() && associatedVolumes.size() != VPlexApiConstants.DISTRIBUTED_BACKEND_VOLUME_COUNT) {
+            _logger.warn("getAssociatedVolumes: virtual volume is distributed, but {} backend volumes were found (expected 2)",
+                    associatedVolumes.size());
+        } else if (this.isLocal() && associatedVolumes.size() != VPlexApiConstants.LOCAL_BACKEND_VOLUME_COUNT) {
+            _logger.warn("getAssociatedVolumes: virtual volume is local, but {} backend volumes were found (expected 1)",
+                    associatedVolumes.size());
+        }
+
+        _logger.info("getAssociatedVolumes: backend volumes assembled, returning {}", associatedVolumes);
+        return associatedVolumes;
     }
 }

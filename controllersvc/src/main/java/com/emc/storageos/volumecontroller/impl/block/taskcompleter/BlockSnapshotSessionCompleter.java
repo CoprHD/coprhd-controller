@@ -9,31 +9,29 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
-import com.emc.storageos.db.client.URIUtil;
-import com.emc.storageos.db.client.model.BlockConsistencyGroup;
-import com.emc.storageos.db.client.model.BlockSnapshot;
-import com.emc.storageos.db.client.model.Volume;
-import com.emc.storageos.db.client.model.util.BlockConsistencyGroupUtils;
-import com.emc.storageos.exceptions.DeviceControllerException;
-import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
-import com.google.common.collect.Lists;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.db.client.URIUtil;
+import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.BlockObject;
+import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.BlockSnapshotSession;
 import com.emc.storageos.db.client.model.Operation;
+import com.emc.storageos.db.client.model.Volume;
+import com.emc.storageos.db.client.model.util.BlockConsistencyGroupUtils;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
+import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.security.audit.AuditLogManager;
 import com.emc.storageos.services.OperationTypeEnum;
-import com.emc.storageos.util.VPlexUtil;
+import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.volumecontroller.impl.ControllerUtils;
 import com.emc.storageos.volumecontroller.impl.monitoring.RecordableBourneEvent;
 import com.emc.storageos.volumecontroller.impl.monitoring.RecordableEventManager;
 import com.emc.storageos.volumecontroller.impl.monitoring.cim.enums.RecordType;
+import com.google.common.collect.Lists;
 
 /**
  * Abstract base task completer for operations on BlockSnapshotSession instances.
@@ -113,6 +111,8 @@ public abstract class BlockSnapshotSessionCompleter extends TaskCompleter {
                 case LINK_SNAPSHOT_SESSION_TARGET:
                 case UNLINK_SNAPSHOT_SESSION_TARGET:
                 case RELINK_SNAPSHOT_SESSION_TARGET:
+                case DELETE_VOLUME_SNAPSHOT:
+                case DELETE_CONSISTENCY_GROUP_SNAPSHOT:
                     AuditBlockUtil.auditBlock(dbClient, opType, opStatus, opStage, snapSessionId, snapSessionLabel, sourceObjId);
                     break;
                 default:
@@ -170,7 +170,7 @@ public abstract class BlockSnapshotSessionCompleter extends TaskCompleter {
      * @return              List of one or more BlockObject instances.
      */
     protected List<BlockObject> getAllSources(BlockSnapshotSession snapSession, DbClient dbClient) {
-        if (snapSession.hasConsistencyGroup()) {
+        if (NullColumnValueGetter.isNotNullValue(snapSession.getReplicationGroupInstance())) {
             BlockConsistencyGroup cg = dbClient.queryObject(BlockConsistencyGroup.class, snapSession.getConsistencyGroup());
             List<Volume> cgSources = BlockConsistencyGroupUtils.getAllCGVolumes(cg, dbClient);
             // return only those volumes belonging to session's RG

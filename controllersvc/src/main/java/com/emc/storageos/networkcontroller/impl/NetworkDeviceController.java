@@ -410,20 +410,14 @@ public class NetworkDeviceController implements NetworkController {
                             FCZoneReference ref = _dbClient.queryObject(FCZoneReference.class, fabricInfo.getFcZoneReferenceId());
                             if (ref != null) {
                                 refKey = ref.getPwwnKey();
-                                //Retrieve other zone references that have the same Port WWN. These zone references should be made
-                                //inactive as well since the initiator is no longer available. 
-                                URIQueryResultList queryResults = new URIQueryResultList();
-                                _dbClient.queryByConstraint(AlternateIdConstraint.Factory.getFCZoneReferenceByWWNKey(refKey), queryResults);
-                                Iterator<URI> queryResultsIter = queryResults.iterator();
-                                while (queryResultsIter.hasNext()) {
-                                	FCZoneReference refForWWNKey = _dbClient.queryObject(FCZoneReference.class, queryResultsIter.next());
-                                    _dbClient.markForDeletion(refForWWNKey);
-                                    _log.info(String.format("Remove FCZoneReference key: %s volume %s id %s",
-                                            refForWWNKey.getPwwnKey(), refForWWNKey.getVolumeUri(), refForWWNKey.getId().toString()));
-                                    recordZoneEvent(refForWWNKey, OperationTypeEnum.REMOVE_SAN_ZONE.name(),
+                                _dbClient.markForDeletion(ref);
+                                _log.info(String.format("Remove FCZoneReference key: %s volume %s id %s",
+                                        ref.getPwwnKey(), ref.getVolumeUri(), ref.getId().toString()));
+                                if(!zones.isEmpty()){
+                                	recordZoneEvent(ref, OperationTypeEnum.REMOVE_SAN_ZONE.name(),
                                             OperationTypeEnum.REMOVE_SAN_ZONE.getDescription());
                                 }
-  
+                                
                             }
                         }
                     } catch (DatabaseException ex) {
@@ -443,8 +437,11 @@ public class NetworkDeviceController implements NetworkController {
                             _log.info(String.format(
                                     "%s FCZoneReference key: %s volume %s group %s",
                                     newOrExisting[0], ref.getPwwnKey(), ref.getVolumeUri(), exportGroupUri));
-                            recordZoneEvent(ref, OperationTypeEnum.ADD_SAN_ZONE.name(),
-                                    OperationTypeEnum.ADD_SAN_ZONE.getDescription());
+                            if(!zones.isEmpty()){
+                            	recordZoneEvent(ref, OperationTypeEnum.ADD_SAN_ZONE.name(),
+                                        OperationTypeEnum.ADD_SAN_ZONE.getDescription());
+                            }
+                            
                         }
                     } catch (DatabaseException ex) {
                         _log.error("Could not persist FCZoneReference: " + refKey);
@@ -948,10 +945,10 @@ public class NetworkDeviceController implements NetworkController {
     public boolean zoneExportMasksCreate(URI exportGroupURI,
             List<URI> exportMaskURIs, Collection<URI> volumeURIs, String token) {
         ExportGroup exportGroup = null;
-        try {
-            exportGroup = _dbClient
-                    .queryObject(ExportGroup.class, exportGroupURI);
-            _log.info(String.format("Entering zoneExportMasksCreate for ExportGroup: %s (%s)",
+        try {    	
+        	exportGroup = _dbClient
+                    .queryObject(ExportGroup.class, exportGroupURI);   	            
+        	_log.info(String.format("Entering zoneExportMasksCreate for ExportGroup: %s (%s)",
                     exportGroup.getLabel(), exportGroup.getId()));
             if (exportMaskURIs == null && exportGroup.getExportMasks() != null) {
                 // If the ExportMasks aren't specified, do all in the ExportGroup.

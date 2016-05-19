@@ -1027,17 +1027,20 @@ public class XIVMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
         for (String hostURI : hostURISet) {
             hostURIs.add(URI.create(hostURI));
         }
+        //Loop through the volume entries to see if there is a request for Auto HLU.
         for (Entry<URI, Integer> volumeMapEntry : volumeMap.entrySet()) {
             if (volumeMapEntry.getValue() == -1) {
                 findHLU = true;
                 break;
             }
         }
+        //If auto HLU then start finding out the next HLU
         if (findHLU && !volumeMap.isEmpty()) {
             BlockStorageDevice device = getDevice();
             Map<URI, List<String>> hostToHLUsMap = device.doFindHostHLUs(system, hostURIs, null);
             Iterator<Entry<URI, List<String>>> hostToHLUsItr = hostToHLUsMap.entrySet().iterator();
             Set<String> commonHLUs = new HashSet<String>();
+            //Get the list of available HLU on array and then add that to the Set of common HLU
             while (hostToHLUsItr.hasNext()) {
                 Entry<URI, List<String>> hostHLUs = hostToHLUsItr.next();
                 commonHLUs.addAll(hostHLUs.getValue());

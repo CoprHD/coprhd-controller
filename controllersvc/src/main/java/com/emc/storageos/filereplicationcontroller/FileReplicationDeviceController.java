@@ -28,6 +28,7 @@ import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.fileorchestrationcontroller.FileDescriptor;
 import com.emc.storageos.fileorchestrationcontroller.FileOrchestrationInterface;
+import com.emc.storageos.model.file.FileReplicationParam;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
@@ -40,6 +41,7 @@ import com.emc.storageos.volumecontroller.impl.file.FileMirrorRollbackCompleter;
 import com.emc.storageos.volumecontroller.impl.file.MirrorFileCreateTaskCompleter;
 import com.emc.storageos.volumecontroller.impl.file.MirrorFileFailbackTaskCompleter;
 import com.emc.storageos.volumecontroller.impl.file.MirrorFileFailoverTaskCompleter;
+import com.emc.storageos.volumecontroller.impl.file.MirrorFileModifyRPOTaskCompleter;
 import com.emc.storageos.volumecontroller.impl.file.MirrorFilePauseTaskCompleter;
 import com.emc.storageos.volumecontroller.impl.file.MirrorFileRefreshTaskCompleter;
 import com.emc.storageos.volumecontroller.impl.file.MirrorFileResumeTaskCompleter;
@@ -833,4 +835,41 @@ public class FileReplicationDeviceController implements FileOrchestrationInterfa
         doFailTask(clazz, ids, opId, serviceCoded);
     }
 
+    @Override
+    public void updateFileSystemReplicationRPO(URI storage, URI fsuri, FileReplicationParam param, String opId)
+            throws ControllerException {
+
+        log.info("update FileSystem {} Replication RPO started", fsuri);
+        TaskCompleter completer = null;
+        StorageSystem system = dbClient.queryObject(StorageSystem.class, storage);
+
+        FileShare fileShare = dbClient.queryObject(FileShare.class, fsuri);
+        List<String> targetfileUris = new ArrayList<String>();
+        List<URI> combined = new ArrayList<URI>();
+
+        if (PersonalityTypes.SOURCE.toString().equalsIgnoreCase(fileShare.getPersonality())) {
+            targetfileUris.addAll(fileShare.getMirrorfsTargets());
+            combined.add(fileShare.getId());
+            combined.addAll(transform(fileShare.getMirrorfsTargets(), FCTN_STRING_TO_URI));
+        }
+
+        try {
+            for (String target : targetfileUris) {
+                FileShare targetFileShare = dbClient.queryObject(FileShare.class, URI.create(target));
+                // Since only one replication copy is supported so using get(0)
+                // TODO Since schema is locked so passing values instead of FileShare object reference
+                Long rpoValue = param.getCopies().get(0).getReplicationSettingParam().getRpoValue();
+                String rpoType = param.getCopies().get(0).getReplicationSettingParam().getRpoType();
+                completer = new MirrorFileModifyRPOTaskCompleter(FileShare.class, fileShare.getId(), opId);
+                completer.setNotifyWorkflow(false);
+                getRemoteMirrorDevice(system).doModifyReplicationRPO(system, rpoValue, rpoType, targetFileShare, completer);
+            }
+        } catch (Exception e) {
+            log.error("Failed operation {}", opId, e);
+            ServiceError error = DeviceControllerException.errors.jobFailed(e);
+            if (null != completer) {
+                completer.error(dbClient, error);
+            }
+        }
+    }
 }

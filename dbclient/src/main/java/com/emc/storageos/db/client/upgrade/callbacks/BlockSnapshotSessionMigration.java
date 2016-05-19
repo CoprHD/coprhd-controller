@@ -34,6 +34,8 @@ public class BlockSnapshotSessionMigration extends BaseCustomMigrationCallback {
     // A reference to a logger.
     private static final Logger s_logger = LoggerFactory.getLogger(BlockSnapshotSessionMigration.class);
 
+    private static final String SMIS80_DELIMITER_REGEX = "-\\+-";
+
     /**
      * {@inheritDoc}
      */
@@ -43,7 +45,7 @@ public class BlockSnapshotSessionMigration extends BaseCustomMigrationCallback {
         try {
             DbClient dbClient = getDbClient();
             List<BlockSnapshotSession> snapshotSessions = new ArrayList<BlockSnapshotSession>();
-            Map<URI, BlockSnapshotSession> groupSessionMap = new HashMap<>();
+            Map<URI, Map<String, BlockSnapshotSession>> groupSessionMap = new HashMap<>();
             List<URI> snapshotURIs = dbClient.queryByType(BlockSnapshot.class, true);
             Iterator<BlockSnapshot> snapshotsIter = dbClient.queryIterativeObjects(BlockSnapshot.class, snapshotURIs, true);
             while (snapshotsIter.hasNext()) {
@@ -61,14 +63,24 @@ public class BlockSnapshotSessionMigration extends BaseCustomMigrationCallback {
                     } else {
                         // Create the group session if necessary and add the snapshot as a
                         // linked target for that group session.
-                        BlockSnapshotSession snapshotSession = groupSessionMap.get(cgURI);
-                        if (snapshotSession == null) {
-                            snapshotSession = prepareSnapshotSession(snapshot);
-                            snapshotSessions.add(snapshotSession);
-                            groupSessionMap.put(cgURI, snapshotSession);
+                        String settingsInstance = snapshot.getSettingsInstance();
+                        Map<String, BlockSnapshotSession> grpSnapshotSessions = groupSessionMap.get(cgURI);
+                        if (grpSnapshotSessions != null) {
+                            BlockSnapshotSession snapshotSession = grpSnapshotSessions.get(settingsInstance);
+                            if (snapshotSession == null) {
+                                snapshotSession = prepareSnapshotSession(snapshot);
+                                grpSnapshotSessions.put(settingsInstance, snapshotSession);
+                                snapshotSessions.add(snapshotSession);
+                            } else {
+                                StringSet linkedTargets = snapshotSession.getLinkedTargets();
+                                linkedTargets.add(snapshot.getId().toString());
+                            }
                         } else {
-                            StringSet linkedTargets = snapshotSession.getLinkedTargets();
-                            linkedTargets.add(snapshot.getId().toString());
+                            grpSnapshotSessions = new HashMap<String, BlockSnapshotSession>();
+                            groupSessionMap.put(cgURI, grpSnapshotSessions);
+                            BlockSnapshotSession snapshotSession = prepareSnapshotSession(snapshot);
+                            grpSnapshotSessions.put(settingsInstance, snapshotSession);
+                            snapshotSessions.add(snapshotSession);
                         }
                     }
                 }
@@ -114,7 +126,7 @@ public class BlockSnapshotSessionMigration extends BaseCustomMigrationCallback {
         BlockSnapshotSession snapshotSession = new BlockSnapshotSession();
         URI snapSessionURI = URIUtil.createId(BlockSnapshotSession.class);
         snapshotSession.setId(snapSessionURI);
-        snapshotSession.setSessionLabel(snapshot.getSnapsetLabel());
+        snapshotSession.setSessionLabel(getSessionLabelFromSettingsInstance(snapshot));
         URI cgURI = snapshot.getConsistencyGroup();
         if (NullColumnValueGetter.isNullURI(cgURI)) {
             snapshotSession.setParent(snapshot.getParent());
@@ -135,5 +147,21 @@ public class BlockSnapshotSessionMigration extends BaseCustomMigrationCallback {
         linkedTargets.add(snapshot.getId().toString());
         snapshotSession.setLinkedTargets(linkedTargets);
         return snapshotSession;
+    }
+
+    /**
+     * Gets the session label from settings instance.
+     *
+     * @param snapshot the snapshot
+     * @return the session label from settings instance
+     */
+    private String getSessionLabelFromSettingsInstance(BlockSnapshot snapshot) {
+        String sessionLabel = null;
+        String settingsInstance = snapshot.getSettingsInstance();
+        if (settingsInstance != null && !settingsInstance.isEmpty()) {
+            String[] instanceArray = settingsInstance.split(SMIS80_DELIMITER_REGEX);
+            sessionLabel = instanceArray[3];
+        }
+        return sessionLabel;
     }
 }

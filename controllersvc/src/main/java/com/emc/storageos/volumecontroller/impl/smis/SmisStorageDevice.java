@@ -635,9 +635,9 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
                         cleanupAnyBackupSnapshots(storageSystem, volume);
                     }
                 }
-                if (storageSystem.deviceIsType(Type.vmax) && !storageSystem.checkIfVmax3()) {
-                    // VMAX2 - remove volume from Storage Groups if volume is not in any MaskingView
-                    // COP-16705 - Ingested non-exported Volume may be associated with FAST SG outside of ViPR. Clear them during delete.
+                if (storageSystem.deviceIsType(Type.vmax)) {
+                    // VMAX2 & VMAX3 - remove volume from Storage Groups if volume is not in any MaskingView
+                    // COP-16705, COP-21770 - Ingested non-exported Volume may be associated with SG outside of ViPR.
                     _helper.removeVolumeFromStorageGroupsIfVolumeIsNotInAnyMV(storageSystem, volume);
                 }
                 StorageSystem forProvider = _helper.getStorageSystemForProvider(storageSystem,
@@ -1706,7 +1706,7 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
      * @param replicationGroupName name of the replication group to be deleted
      * @param keepRGName Boolean if true, ViPR will keep group name for CG
      * @param markInactive True, if the user initiated removal of the BlockConsistencyGroup
-     * @param sourceReplicatoinGroup source replication group name
+     * @param sourceReplicationGroup source replication group name
      * @param taskCompleter TaskCompleter
 
      * @throws DeviceControllerException
@@ -1744,40 +1744,38 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
 
             // Find a provider with reference to the CG
             storage = findProviderFactory.withGroup(storage, groupName).find();
-            if (storage == null) {
-                // Fail the task
-                serviceError = DeviceControllerErrors.smis.noConsistencyGroupWithGivenName();
-                _log.warn(String.format("Consistency group %s not found on %s", groupName, systemURI));
-                return;
-            }
+            if (storage != null) {
+                // Check if the CG exists
+                CIMObjectPath cgPath = _cimPath.getReplicationGroupPath(storage, groupName);
+                CIMObjectPath replicationSvc = _cimPath.getControllerReplicationSvcPath(storage);
+                CIMInstance cgPathInstance = _helper.checkExists(storage, cgPath, false, false);
 
-            // Check if the CG exists
-            CIMObjectPath cgPath = _cimPath.getReplicationGroupPath(storage, groupName);
-            CIMObjectPath replicationSvc = _cimPath.getControllerReplicationSvcPath(storage);
-            CIMInstance cgPathInstance = _helper.checkExists(storage, cgPath, false, false);
+                if (cgPathInstance != null) {
+                    if (storage.deviceIsType(Type.vnxblock)) {
+                        cleanupAnyGroupBackupSnapshots(storage, cgPath);
+                    }
 
-            if (cgPathInstance != null) {
-                if (storage.deviceIsType(Type.vnxblock)) {
-                    cleanupAnyGroupBackupSnapshots(storage, cgPath);
+                    if (storage.deviceIsType(Type.vmax) && storage.checkIfVmax3()) {
+                        // if deleting snap session replication group, we need to remove the EMCSFSEntries first
+                        _helper.removeSFSEntryForReplicaReplicationGroup(storage, replicationSvc, replicationGroupName);
+                    }
+
+                    if (storage.checkIfVmax3() && replicationGroupName != null) {
+                        // if deleting snap session replication group, we need to remove the EMCSFSEntries first
+                        _helper.removeSFSEntryForReplicaReplicationGroup(storage, replicationSvc, replicationGroupName);
+
+                        markSnapSessionsInactiveForReplicationGroup(systemURI, consistencyGroupId, replicationGroupName);
+                    }
+
+                    // Invoke the deletion of the consistency group
+                    CIMArgument[] inArgs;
+                    CIMArgument[] outArgs = new CIMArgument[5];
+                    inArgs = _helper.getDeleteReplicationGroupInputArguments(storage, groupName);
+                    _helper.invokeMethod(storage, replicationSvc, SmisConstants.DELETE_GROUP, inArgs,
+                            outArgs);
                 }
-
-                if (storage.checkIfVmax3()) {
-                    // if deleting snap session replication group, we need to remove the EMCSFSEntries first
-                    _helper.removeSFSEntryForReplicaReplicationGroup(storage, replicationSvc, replicationGroupName);
-                }
-
-                if (sourceReplicationGroup != null && !sourceReplicationGroup.isEmpty()) {
-                    //  if deleting full copy replication group, we need to remove the EMCSFSEntries first
-                    _helper.removeSFSEntryForReplicaReplicationGroup(storage, replicationSvc, replicationGroupName,
-                            sourceReplicationGroup);
-                    
-                }
-                // Invoke the deletion of the consistency group
-                CIMArgument[] inArgs;
-                CIMArgument[] outArgs = new CIMArgument[5];
-                inArgs = _helper.getDeleteReplicationGroupInputArguments(storage, groupName);
-                _helper.invokeMethod(storage, replicationSvc, SmisConstants.DELETE_GROUP, inArgs,
-                        outArgs);
+            } else {
+                _log.info("No storage provider available with group {}.  Assume it has already been deleted.");
             }
 
             if (keepRGName || consistencyGroup == null) {
@@ -1826,6 +1824,29 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
                 taskCompleter.error(_dbClient, serviceError);
             } else {
                 taskCompleter.ready(_dbClient);
+            }
+        }
+    }
+
+    /**
+     * After clearing the snap session SFS entries in the SMI-S Provider for the replication group,
+     * mark the associated snap sessions inactive in database.
+     *
+     * @param storage the storage
+     * @param cg the consistency group
+     * @param rgName the replication group name
+     */
+    private void markSnapSessionsInactiveForReplicationGroup(URI storage, URI cg, String rgName) {
+        List<BlockSnapshotSession> sessionsList = CustomQueryUtility.queryActiveResourcesByConstraint(_dbClient,
+                BlockSnapshotSession.class,
+                AlternateIdConstraint.Factory.getSnapshotSessionReplicationGroupInstanceConstraint(rgName));
+
+        for (BlockSnapshotSession session : sessionsList) {
+            if (storage.toString().equals(session.getStorageController().toString())
+                    && (cg != null && cg.toString().equals(session.getConsistencyGroup().toString()))) {
+                _log.info("Marking snap session in-active: {}", session.getLabel());
+                session.setInactive(true);
+                _dbClient.updateObject(session);
             }
         }
     }
@@ -2137,7 +2158,11 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
                 } else {
                     CIMObjectPath replicationSvc = _cimPath.getControllerReplicationSvcPath(storage);
                     String[] blockObjectNames = _helper.getBlockObjectAlternateNames(volumes);
+
                     // Smis call to add volumes that are already available in Group, will result in error.
+                    // Refresh first for confidence and avoid false positives.
+                    forProvider = findProviderFactory.withGroup(storage, groupName).find();
+                    ReplicationUtils.callEMCRefresh(_helper, forProvider, true);
                     Set<String> blockObjectsToAdd = _helper.filterVolumesAlreadyPartOfReplicationGroup(
                             forProvider, cgPath, blockObjectNames);
                     if (!blockObjectsToAdd.isEmpty()) {

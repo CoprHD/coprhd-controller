@@ -46,11 +46,13 @@ public class BlockSnapshotSessionMigrationTest extends DbSimpleMigrationTestBase
     private static final String BASE_SNAPSHOT_NAME = "Snapshot";
     private static final String BASE_SNAPVX_SNAPSHOT_NAME = "SnapVx_Snapshot";
     private static final String BASE_GRP_SNAPVX_SNAPSHOT_NAME = "Grp_SnapVx_Snapshot";
-    private static final String BASE_SETTINGS_INSTANCE = "Settings";
-    private static final String BASE_GRP_SETTINGS_INSTANCE = "Grp_Settings";
+    // Settings Instance example: SYMMETRIX-+-<SYMM_ID>-+-<sourceElementId>-+-<elementName>-+-0
+    private static final String BASE_SETTINGS_INSTANCE = "SYMMETRIX-+-SYMM_ID-+-sourceElementId-+-elementName-+-0";
+    private static final String BASE_GRP_SETTINGS_INSTANCE = "SYMMETRIX-+-SYMM_ID-+-sourceGroupName-+-elementName-+-0";
     private static final String VMAX3_SYSTEM_FW_VERSION = "5977.xxx.xxx";
     private static final int SNAPSHOT_COUNT = 5;
     private static final int SNAPVX_SNAPSHOT_COUNT = 5;
+    private static final int GRP_SETTINGS_INSTANCE_COUNT = 2;
 
     // A map of the snapshots whose system supports snapshot sessions keyed by the snapshot id.
     private static Map<String, BlockSnapshot> _linkedTargetsMap = new HashMap<String, BlockSnapshot>();
@@ -198,19 +200,21 @@ public class BlockSnapshotSessionMigrationTest extends DbSimpleMigrationTestBase
         cg.setId(cgURI);
         newObjectsToBeCreated.add(cg);
         URI projectURI = URIUtil.createId(Project.class);
-        for (int i = 0; i < SNAPVX_SNAPSHOT_COUNT; i++) {
-            BlockSnapshot snapshot = new BlockSnapshot();
-            URI snapshotURI = URIUtil.createId(BlockSnapshot.class);
-            snapshot.setId(snapshotURI);
-            snapshot.setLabel(BASE_GRP_SNAPVX_SNAPSHOT_NAME + i);
-            snapshot.setSnapsetLabel(BASE_GRP_SNAPVX_SNAPSHOT_NAME);
-            snapshot.setProject(new NamedURI(projectURI, PROJECT_NAME));
-            URI parentURI = URIUtil.createId(Volume.class);
-            snapshot.setParent(new NamedURI(parentURI, GRP_PARENT_NAME + i));
-            snapshot.setConsistencyGroup(cgURI);
-            snapshot.setSettingsInstance(BASE_GRP_SETTINGS_INSTANCE);
-            snapshot.setStorageController(systemURI);
-            newObjectsToBeCreated.add(snapshot);
+        for (int i = 0; i < GRP_SETTINGS_INSTANCE_COUNT; i++) {
+            for (int j = 0; j < SNAPVX_SNAPSHOT_COUNT; j++) {
+                BlockSnapshot snapshot = new BlockSnapshot();
+                URI snapshotURI = URIUtil.createId(BlockSnapshot.class);
+                snapshot.setId(snapshotURI);
+                snapshot.setLabel(BASE_GRP_SNAPVX_SNAPSHOT_NAME + i + j);
+                snapshot.setSnapsetLabel(BASE_GRP_SNAPVX_SNAPSHOT_NAME + i);
+                snapshot.setProject(new NamedURI(projectURI, PROJECT_NAME));
+                URI parentURI = URIUtil.createId(Volume.class);
+                snapshot.setParent(new NamedURI(parentURI, GRP_PARENT_NAME + i + j));
+                snapshot.setConsistencyGroup(cgURI);
+                snapshot.setSettingsInstance(BASE_GRP_SETTINGS_INSTANCE + i);
+                snapshot.setStorageController(systemURI);
+                newObjectsToBeCreated.add(snapshot);
+            }
         }
 
         // Create the database objects.
@@ -251,7 +255,7 @@ public class BlockSnapshotSessionMigrationTest extends DbSimpleMigrationTestBase
                         _linkedTargetsMap.containsKey(linkedTargetId));
                 BlockSnapshot linkedTarget = _linkedTargetsMap.remove(linkedTargetId);
                 Assert.assertEquals("Label is not correct", linkedTarget.getLabel(), snapSession.getLabel());
-                Assert.assertEquals("Session label is not correct", linkedTarget.getSnapsetLabel(), snapSession.getSessionLabel());
+                Assert.assertEquals("Session label is not correct", "elementName", snapSession.getSessionLabel());
                 Assert.assertEquals("Session instance is not correct", linkedTarget.getSettingsInstance(),
                         snapSession.getSessionInstance());
                 Assert.assertEquals("Project is not correct", linkedTarget.getProject(), snapSession.getProject());
@@ -300,7 +304,7 @@ public class BlockSnapshotSessionMigrationTest extends DbSimpleMigrationTestBase
                 BlockSnapshot linkedTarget = _dbClient.queryObject(BlockSnapshot.class, URI.create(linkedTargetId));
                 Assert.assertNotNull("Linked target is null", linkedTarget);
                 Assert.assertEquals("Label is not correct", linkedTarget.getSnapsetLabel(), snapSession.getLabel());
-                Assert.assertEquals("Session label is not correct", linkedTarget.getSnapsetLabel(), snapSession.getSessionLabel());
+                Assert.assertEquals("Session label is not correct", "elementName", snapSession.getSessionLabel());
                 Assert.assertEquals("Session instance is not correct", linkedTarget.getSettingsInstance(),
                         snapSession.getSessionInstance());
                 Assert.assertEquals("Project is not correct", linkedTarget.getProject().getURI(), snapSession.getProject().getURI());
@@ -319,7 +323,7 @@ public class BlockSnapshotSessionMigrationTest extends DbSimpleMigrationTestBase
                 grpSnapshotCount++;
             }
         }
-        Assert.assertEquals("Snapshot count is not correct", grpSnapshotCount, SNAPVX_SNAPSHOT_COUNT);
-        Assert.assertEquals("Snapshot session count is not correct", sessionCount, 1);
+        Assert.assertEquals("Snapshot count is not correct", grpSnapshotCount, GRP_SETTINGS_INSTANCE_COUNT * SNAPVX_SNAPSHOT_COUNT);
+        Assert.assertEquals("Snapshot session count is not correct", sessionCount, GRP_SETTINGS_INSTANCE_COUNT);
     }
 }

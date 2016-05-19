@@ -158,6 +158,7 @@ public class PathConstants {
     public static final String VIRTUAL_NAS_SERVER_BY_PROJECT_URL = "/project/{project-id}";
     public static final String SCHEDULE_POLICIES_URL = "/schedule-policies";
     public static final String SCHEDULE_POLICIES_BY_TENANT_URL = TENANT_URL + "/{tenantId}/schedule-policies";
+    public static final String VOLUME_GROUPS_BY_TENANT_URL = TENANT_URL + "/{tenantId}/volume-groups";
     public static final String SCHEDULE_POLICIES_BY_POLICY_URL = SCHEDULE_POLICIES_URL+"/{policyId}";
     public static final String ASSIGN_POLICY_URL = "/file/filesystems/{fs_id}/assign-file-policy/{policy_id}";
     public static final String UNASSIGN_POLICY_URL = "/file/filesystems/{fs_id}/unassign-file-policy/{policy_id}";

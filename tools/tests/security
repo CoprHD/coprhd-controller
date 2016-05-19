@@ -25,8 +25,8 @@ def security_login(args):
             return
         except:
             if not args.sleep:
-		raise
-            print "Exception while logging in, sleep for",args.sleep,"seconds and try again"
+                raise
+        print "Exception while logging in, sleep for",args.sleep,"seconds and try again"
         time.sleep(args.sleep)
         timeCounter = time.time() - timeStart
         print  "Retrying... time elapsed: [" + str(timeCounter) + "s]"

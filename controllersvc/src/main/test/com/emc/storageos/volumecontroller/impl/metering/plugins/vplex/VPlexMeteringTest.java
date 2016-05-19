@@ -18,12 +18,13 @@ import java.util.concurrent.ExecutorService;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import com.emc.storageos.services.util.StorageDriverManager;
 import org.joda.time.DateTime;
 import org.junit.Assert;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.context.support.ClassPathXmlApplicationContext;
 
 import com.emc.storageos.customconfigcontroller.CustomConfigConstants;
 import com.emc.storageos.customconfigcontroller.CustomConfigResolver;
@@ -52,6 +53,7 @@ import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.plugins.AccessProfile;
 import com.emc.storageos.plugins.common.Constants;
 import com.emc.storageos.services.util.EnvConfig;
+import com.emc.storageos.services.util.StorageDriverManager;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 import com.emc.storageos.volumecontroller.impl.plugins.metering.smis.processor.PortMetricsProcessor;
 import com.emc.storageos.volumecontroller.impl.plugins.metering.vplex.ListVPlexPerpetualCSVFileNames;
@@ -61,11 +63,12 @@ import com.emc.storageos.volumecontroller.impl.plugins.metering.vplex.VPlexPerpe
 import com.google.common.base.Joiner;
 import com.google.common.base.Strings;
 import com.iwave.ext.linux.LinuxSystemCLI;
-import org.springframework.context.support.ClassPathXmlApplicationContext;
 
 /**
  * Tester class for VPlex metering related classes and functions
+ * This test requires a sanity.properties file to run, so therefore is not part of the master unit test suite.
  */
+@Ignore
 public class VPlexMeteringTest {
     public static final String SANITY = "sanity";
     public static final String VPLEX_HOST = "vplex.host";
@@ -76,7 +79,7 @@ public class VPlexMeteringTest {
     private final static String HOST = EnvConfig.get(SANITY, VPLEX_HOST);
     private final static String USERNAME = EnvConfig.get(SANITY, VPLEX_USERNAME);
     private final static String PASSWORD = EnvConfig.get(SANITY, VPLEX_PASSWORD);
-    private final static String[] DIRECTORS = EnvConfig.get(SANITY, VPLEX_DIRECTORS).split(",");
+    private final static String DIRECTORS = EnvConfig.get(SANITY, VPLEX_DIRECTORS);
     private final static int PORT_PER_DIRECTOR = Integer.valueOf(EnvConfig.get(SANITY, VPLEX_PORTS_PER_DIRECTOR));
 
     private static boolean alreadyPrinted = false;
@@ -182,7 +185,8 @@ public class VPlexMeteringTest {
         mockDbClient.MOCK_DB.put(storageSystem.getId(), storageSystem);
 
         int directorIndex = 1;
-        for (String directorName : DIRECTORS) {
+        String directors[] = DIRECTORS.split(",");
+        for (String directorName : directors) {
             int adapterIndex = (directorIndex % 2);
             String aOrB = directorName.substring(directorName.length() - 1);
             String adapterSerial = String.format("CF23K00000%d%d", directorIndex, adapterIndex);

@@ -24,10 +24,6 @@ public class BlockConsistencyGroupSnapshotCreate {
     private Boolean createInactive;
     private Boolean readOnly;
 
-    // flag to specify if the copy needs to be taken on HA side of VPLEX Distributed volumes
-    // By default, create copy on source back end side
-    private Boolean copyOnHighAvailabilitySide = Boolean.FALSE;
-
     public BlockConsistencyGroupSnapshotCreate() {
     }
 
@@ -114,17 +110,4 @@ public class BlockConsistencyGroupSnapshotCreate {
 	public void setReadOnly(Boolean readOnly) {
 		this.readOnly = readOnly;
 	}
-
-    /**
-     * Flag to specify if the copy needs to be taken on HA side of VPLEX Distributed volumes.
-     * By default, it is considered as false which means copy is requested on source backend side.
-     */
-    @XmlElement(name = "copy_on_high_availability_side", defaultValue = "false")
-    public Boolean getCopyOnHighAvailabilitySide() {
-        return copyOnHighAvailabilitySide;
-    }
-
-    public void setCopyOnHighAvailabilitySide(Boolean copyOnHighAvailabilitySide) {
-        this.copyOnHighAvailabilitySide = copyOnHighAvailabilitySide;
-    }
 }

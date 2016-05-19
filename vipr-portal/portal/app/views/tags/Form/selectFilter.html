@@ -1,0 +1,18 @@
+%{
+  fieldName = _fieldName ?: 'filter'
+  filters = _caller.filterOptions
+  selectedFilter = 'Project'
+}%    
+
+<span class="filter-select">
+  #{field fieldName}
+    %{
+      field.options = filters
+      field.value = selectedFilter
+      field.cssClass = 'input-sm'
+    }%
+    <label for="${field.id}">&{'filterBy'}:</label>
+    #{Form.selectOne field:field /}
+  #{/field}
+</span>
+

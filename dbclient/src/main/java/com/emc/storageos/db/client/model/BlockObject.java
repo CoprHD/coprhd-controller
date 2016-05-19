@@ -306,6 +306,17 @@ public abstract class BlockObject extends DataObject {
         }
         return false;
     }
+    
+    /**
+     * Check if the volume is a VPLEX volume.
+     *
+     * @param dbClient the db client
+     * @return true or false
+     */
+    public boolean isVPlexVolume(DbClient dbClient) {
+        StorageSystem storage = dbClient.queryObject(StorageSystem.class, getStorageController());
+        return DiscoveredDataObject.Type.vplex.name().equals(storage.getSystemType());
+    }
 
     /**
      * Deprecated - Needed only for 2.1 migration callback.

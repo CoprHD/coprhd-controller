@@ -927,6 +927,9 @@ public class DefaultBlockServiceApiImpl extends AbstractBlockServiceApiImpl<Stor
                 capabilities));
         }
 
+        // FOR TESTING
+        _log.error("Descriptors: {}", descriptors);
+
         _log.info("Prepared migration {}.", migration.getId());
 
         return descriptors;
@@ -1046,6 +1049,10 @@ public class DefaultBlockServiceApiImpl extends AbstractBlockServiceApiImpl<Stor
                 token, ResourceOperationTypeEnum.MIGRATE_BLOCK_VOLUME);
         migration.getOpStatus().put(token, op);
         _dbClient.updateObject(migration);
+
+        // FOR TESTING
+        _log.error("Migration source: {}, Migration target: {}, isHostMigration: {}, migrationHost: {}",
+                   sourceURI, targetURI, isHostMigration, migrationHostURI);
 
         return migration;
     }

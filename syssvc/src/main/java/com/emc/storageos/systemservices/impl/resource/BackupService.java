@@ -962,7 +962,7 @@ public class BackupService {
         };
     }
     private BackupClient getExternalServerClient(SchedulerConfig cfg ) {
-        if (ExternalServerType.cifs.name().equals(cfg.getUploadServerType())) {
+        if (ExternalServerType.CIFS.name().equalsIgnoreCase(cfg.getUploadServerType())) {
             return new CifsClient(cfg.getExternalServerUrl(), cfg.getUploadDomain(), cfg.getExternalServerUserName(), cfg.getExternalServerPassword());
         }else {
             return new FtpClient(cfg.getExternalServerUrl(), cfg.getExternalServerUserName(), cfg.getExternalServerPassword());

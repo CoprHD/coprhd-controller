@@ -49,7 +49,7 @@ public final class DownloadExecutor implements  Runnable {
     private volatile  boolean isCanceled = false;
 
     public DownloadExecutor(SchedulerConfig cfg, String backupZipFileName, BackupOps backupOps) {
-        if (ExternalServerType.cifs.name().equals(cfg.getUploadServerType())) {
+        if (ExternalServerType.CIFS.name().equalsIgnoreCase(cfg.getUploadServerType())) {
             client = new CifsClient(cfg.getExternalServerUrl(), cfg.getUploadDomain(), cfg.getExternalServerUserName(), cfg.getExternalServerPassword());
         }else {
             client = new FtpClient(cfg.getExternalServerUrl(), cfg.getExternalServerUserName(), cfg.getExternalServerPassword());

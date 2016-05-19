@@ -23,10 +23,10 @@ public abstract class Uploader {
             return null;
         }
 
-        if (ExternalServerType.ftp.name().equals(cfg.uploadServerType) && FtpsUploader.isSupported(cfg.uploadUrl) )
+        if (ExternalServerType.FTP.name().equalsIgnoreCase(cfg.uploadServerType) && FtpsUploader.isSupported(cfg.uploadUrl) )
             return new FtpsUploader(cfg, cli);
 
-        if (ExternalServerType.cifs.name().equals(cfg.uploadServerType) && CifsUploader.isSupported(cfg.uploadUrl)) {
+        if (ExternalServerType.CIFS.name().equalsIgnoreCase(cfg.uploadServerType) && CifsUploader.isSupported(cfg.uploadUrl)) {
             return new CifsUploader(cfg,cli);
         }
         throw new UnsupportedAddressTypeException();

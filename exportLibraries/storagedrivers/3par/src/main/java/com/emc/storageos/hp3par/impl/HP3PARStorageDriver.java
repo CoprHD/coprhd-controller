@@ -25,6 +25,7 @@ import com.emc.storageos.hp3par.command.PortMembers;
 import com.emc.storageos.hp3par.command.PortStatMembers;
 import com.emc.storageos.hp3par.command.PortStatisticsCommandResult;
 import com.emc.storageos.hp3par.command.SystemCommandResult;
+import com.emc.storageos.hp3par.command.VolumeDetailsCommandResult;
 import com.emc.storageos.hp3par.connection.HP3PARApiFactory;
 import com.emc.storageos.storagedriver.AbstractStorageDriver;
 import com.emc.storageos.storagedriver.BlockStorageDriver;
@@ -268,7 +269,7 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
                 pool.setPoolServiceType(PoolServiceType.block);
                 
                 // Storage object properties
-                pool.setNativeId(currMember.getName());
+                pool.setNativeId(currMember.getName()); //SB SDK is not sending pool name in volume creation
                 pool.setDeviceLabel(currMember.getName());
                 pool.setDisplayName(currMember.getName());
                 storageSystem.setAccessStatus(AccessStatus.READ_WRITE);
@@ -437,11 +438,27 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
         for (StorageVolume volume : volumes) {
             try {
                 _log.info("3PAR:createVolumes for storage system native id {}, volume name {} - start",
-                        volume.getStorageSystemId(), volume.getDisplayName());            
+                        volume.getStorageSystemId(), volume.getDisplayName());     
 
-                int a = 0;
-                int b = 1/a;
+                // get Api client
+                HP3PARApi hp3parApi = getHP3PARDeviceFromNativeId(volume.getStorageSystemId());
+
+                // Create volume
+                VolumeDetailsCommandResult volResult = null;
+                hp3parApi.createVolume(volume.getDisplayName(), 
+                        volume.getStoragePoolId(), 
+                        volume.getThinlyProvisioned(), 
+                        volume.getRequestedCapacity() / HP3PARConstants.KILO_BYTE / HP3PARConstants.KILO_BYTE);
+                volResult = hp3parApi.getVolumeDetails(volume.getDisplayName());
                 
+                //Volume attributes
+                volume.setProvisionedCapacity(volResult.getSizeMiB() * HP3PARConstants.KILO_BYTE * HP3PARConstants.KILO_BYTE);
+                volume.setAllocatedCapacity(volResult.getSizeMiB() * HP3PARConstants.KILO_BYTE * HP3PARConstants.KILO_BYTE);
+                volume.setWwn(volResult.getWwn());
+                volume.setNativeId(volume.getNativeId());
+                volume.setDeviceLabel(volume.getDisplayName());
+                volume.setAccessStatus(AccessStatus.READ_WRITE);
+
                 task.setStatus(DriverTask.TaskStatus.READY);
                 _log.info("3PAR:createVolumes for storage system native id {}, volume name {} - end",
                         volume.getStorageSystemId(), volume.getDisplayName());            

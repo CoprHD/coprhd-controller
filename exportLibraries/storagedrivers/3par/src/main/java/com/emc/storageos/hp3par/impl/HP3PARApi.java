@@ -5,6 +5,7 @@
 package com.emc.storageos.hp3par.impl;
 
 import java.net.URI;
+import java.text.MessageFormat;
 import java.util.List;
 
 import javax.ws.rs.core.MultivaluedMap;
@@ -17,6 +18,7 @@ import com.emc.storageos.hp3par.command.CPGCommandResult;
 import com.emc.storageos.hp3par.command.PortCommandResult;
 import com.emc.storageos.hp3par.command.PortStatisticsCommandResult;
 import com.emc.storageos.hp3par.command.SystemCommandResult;
+import com.emc.storageos.hp3par.command.VolumeDetailsCommandResult;
 import com.emc.storageos.hp3par.connection.RESTClient;
 import com.google.gson.Gson;
 import com.google.json.JsonSanitizer;
@@ -42,6 +44,8 @@ public class HP3PARApi {
     private static final String URI_PORTS = "/api/v1/ports";
     private static final String URI_PORT_STATISTICS = "/api/v1/systemreporter/attime/portstatistics/daily";
     private static final String URI_CREATE_VOLUME = "/api/v1/volumes";
+    private static final String URI_VOLUME_DETAILS = "/api/v1/volumes/{0}";
+    
 
     public HP3PARApi(URI endpoint, RESTClient client) {
         _baseUrl = endpoint;
@@ -77,6 +81,7 @@ public class HP3PARApi {
                 String errResp = getResponseDetails(clientResp);
                 throw new HP3PARException(errResp);
             } else {
+                MultivaluedMap<String, String> headers = clientResp.getHeaders();
                 JSONObject jObj = clientResp.getEntity(JSONObject.class);
                 authToken = jObj.getString("key");
             }
@@ -265,7 +270,7 @@ public class HP3PARApi {
         } //end try/catch/finally
     }
 
-    public boolean createVolume(String name, String cpg, Boolean thin, Long size) throws Exception {
+    public void createVolume(String name, String cpg, Boolean thin, Long size) throws Exception {
         _log.info("HP3PARApi:createVolume enter");
         ClientResponse clientResp = null;
         String body = "{\"name\":\"" + name + "\", \"cpg\":\"" + cpg + 
@@ -281,8 +286,7 @@ public class HP3PARApi {
                 throw new HP3PARException(errResp);
             } else {
                 String responseString = getHeaderFieldValue(clientResp, "Location");
-                _log.info("HP3PARApi:createVolume 3PAR response is {}", responseString);
-                return true;
+                _log.info("HP3PARApi:createVolume 3PAR response is Location: {}", responseString);
             }
         } catch (Exception e) {
             throw e;
@@ -294,7 +298,36 @@ public class HP3PARApi {
         } //end try/catch/finally
     }
 
-    
+    public VolumeDetailsCommandResult getVolumeDetails(String name) throws Exception {
+        _log.info("HP3PARApi:getVolumeDetails enter");
+        ClientResponse clientResp = null;
+        final String path = MessageFormat.format(URI_VOLUME_DETAILS, name);
+        
+        try {
+            clientResp = get(path);
+            if (clientResp == null) {
+                _log.error("There is no response from 3PAR");
+                throw new HP3PARException("There is no response from 3PAR");
+            } else if (clientResp.getStatus() != 200) {
+                String errResp = getResponseDetails(clientResp);
+                throw new HP3PARException(errResp);
+            } else {
+                String responseString = clientResp.getEntity(String.class);
+                _log.info("HP3PARApi:getVolumeDetails 3PAR response is {}", responseString);
+                VolumeDetailsCommandResult volResult = new Gson().fromJson(sanitize(responseString),
+                        VolumeDetailsCommandResult.class);
+                return volResult;
+            }
+        } catch (Exception e) {
+            throw e;
+        } finally {
+            if (clientResp != null) {
+                clientResp.close();
+            }
+            _log.info("HP3PARApi:getVolumeDetails leave");
+        } //end try/catch/finally
+    }
+
     private String getResponseDetails(ClientResponse clientResp) {
         String detailedResponse = null, ref=null;;
         try {
@@ -321,11 +354,24 @@ public class HP3PARApi {
             MultivaluedMap<String, String> headers = clientResp.getHeaders();
             valueList = headers.get(field);
             if (valueList.size() != 1) {
-                throw new HP3PARException("Filed not found");
+                _log.error("Field not found in header");
+                throw new HP3PARException("Field not found in header");
             }
             value = valueList.get(0);
         } catch (Exception e) {
-            _log.error("Unable to get value for field: %s", field);
+            _log.error("Unable to get value for field in header: %s", field);
+        }
+        return value;
+    }
+    
+    private String getResponseFieldValue(ClientResponse clientResp, String field) {
+        String value = null;
+        try {
+            JSONObject jObj = clientResp.getEntity(JSONObject.class);
+            value = jObj.getString(field);
+            _log.debug("HP3PARApi:getResponseFieldValue 3PAR response is : {}", jObj.toString());
+        } catch (Exception e) {
+            _log.error("Unable to get field value in response: %s", field);
         }
         return value;
     }
@@ -343,7 +389,7 @@ public class HP3PARApi {
         ClientResponse clientResp = _client.post_json(_baseUrl.resolve(uri), _authToken, body);
         if (clientResp.getStatus() == 403) {
             getAuthToken();
-            clientResp = _client.get_json(_baseUrl.resolve(uri), _authToken);
+            clientResp = _client.post_json(_baseUrl.resolve(uri), _authToken, body);
         }
         return clientResp;
     }

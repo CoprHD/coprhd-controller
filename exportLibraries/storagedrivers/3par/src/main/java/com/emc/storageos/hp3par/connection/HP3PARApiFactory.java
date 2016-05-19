@@ -23,6 +23,7 @@ import org.slf4j.LoggerFactory;
 import com.emc.storageos.hp3par.command.CPGCommandResult;
 import com.emc.storageos.hp3par.command.PortStatisticsCommandResult;
 import com.emc.storageos.hp3par.command.SystemCommandResult;
+import com.emc.storageos.hp3par.command.VolumeDetailsCommandResult;
 import com.emc.storageos.hp3par.impl.HP3PARApi;
 import com.emc.storageos.hp3par.impl.HP3PARException;
 import com.sun.jersey.api.client.Client;
@@ -158,7 +159,6 @@ public class HP3PARApiFactory {
     }
     
     // Sample direct program
-    
     public static void main(String[] args) {
         System.out.println("starting HP3PAR main");
         try {
@@ -170,19 +170,22 @@ public class HP3PARApiFactory {
         BasicConfigurator.configure();
         factory.init();
         HP3PARApi hp3parApi = factory.getRESTClient(uri, "superme", "superme");
-        String result = null;
         
         String authToken = hp3parApi.getAuthToken("superme", "superme");
         System.out.println(authToken);
         
-        //SystemCommandResult sysRes = hp3parApi.getSystemDetails();
-        //System.out.println(sysRes.toString());
-        //CPGCommandResult cpgRes = hp3parApi.getCPGDetails();
-        //System.out.println(cpgRes.toString());
-        //hp3parApi.getPortDetails();
-        //PortStatisticsCommandResult portStatRes = hp3parApi.getPortStatisticsDetail();
-        if (hp3parApi.createVolume("One_try_api1", "One", true, (long)1024) == true)
-            System.out.println("Volume created");
+//        SystemCommandResult sysRes = hp3parApi.getSystemDetails();
+//        System.out.println(sysRes.toString());
+//        CPGCommandResult cpgRes = hp3parApi.getCPGDetails();
+//        System.out.println(cpgRes.toString());
+//        hp3parApi.getPortDetails();
+//        PortStatisticsCommandResult portStatRes = hp3parApi.getPortStatisticsDetail();
+        
+//        System.out.println(hp3parApi.getVolumeWWN("One_thick1"));
+        
+        String vol = "One_try_api6";
+        hp3parApi.createVolume(vol, "One", true, (long)1024);
+        VolumeDetailsCommandResult res = hp3parApi.getVolumeDetails(vol);
         
         } catch (Exception e) {
             System.out.println(e.getMessage());

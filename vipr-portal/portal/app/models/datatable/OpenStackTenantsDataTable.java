@@ -17,21 +17,12 @@
 package models.datatable;
 
 import com.emc.storageos.model.keystone.OpenStackTenantParam;
-
 import util.datatable.DataTable;
-
-
-import com.emc.storageos.model.keystone.OpenStackTenantParam;
-
-import util.datatable.DataTable;
-import util.datatable.DataTableColumnConfiguration;
 
 public class OpenStackTenantsDataTable extends DataTable {
 
     public OpenStackTenantsDataTable() {
         addColumn("name");
-        addColumn("add");
-        addColumn("exclude");
         addColumn("description");
         sortAll();
         setDefaultSortField("name");

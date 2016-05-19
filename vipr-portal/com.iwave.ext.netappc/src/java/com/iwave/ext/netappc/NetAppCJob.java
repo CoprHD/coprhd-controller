@@ -149,13 +149,17 @@ public class NetAppCJob {
             // job-schedule-cron-month
             NaElement elemScheduleCronMonths = results.getChildByName("job-schedule-cron-month");
             if (elemScheduleCronMonths != null) {
-                List<Integer> dayList = new ArrayList<Integer>();
+                List<Integer> monthList = new ArrayList<Integer>();
                 for (NaElement elemMonth : (List<NaElement>) elemScheduleCronMonths.getChildren()) {
                     String monthString = elemMonth.getContent();
-                    Integer monthInteger = Integer.getInteger(monthString);
-                    dayList.add(monthInteger);
+                    if (monthString != null && !monthString.isEmpty()) {
+                        Integer monthInteger = Integer.getInteger(monthString);
+                        monthList.add(monthInteger);
+                    }
                 }
-                cronScheduleInfo.setJobScheduleCronDay(dayList);
+                if (!monthList.isEmpty()) {
+                    cronScheduleInfo.setJobScheduleCronDay(monthList);
+                }
             }
 
             // job-schedule-cron-day
@@ -164,35 +168,46 @@ public class NetAppCJob {
                 List<Integer> dayList = new ArrayList<Integer>();
                 for (NaElement elemDay : (List<NaElement>) elemScheduleCronDays.getChildren()) {
                     String dayString = elemDay.getContent();
-                    Integer dayInteger = Integer.getInteger(dayString);
-                    dayList.add(dayInteger);
+                    if (dayString != null && !dayString.isEmpty()) {
+                        Integer dayInteger = Integer.getInteger(dayString);
+                        dayList.add(dayInteger);
+                    }
                 }
-                cronScheduleInfo.setJobScheduleCronDay(dayList);
+                if (!dayList.isEmpty()) {
+                    cronScheduleInfo.setJobScheduleCronDay(dayList);
+                }
             }
 
             // job-schedule-cron-hour
             NaElement elemScheduleCronHours = results.getChildByName("job-schedule-cron-hour");
-            List<Integer> hourList = new ArrayList<Integer>();
             if (elemScheduleCronHours != null) {
+                List<Integer> hourList = new ArrayList<Integer>();
                 for (NaElement elemHour : (List<NaElement>) elemScheduleCronHours.getChildren()) {
                     String hourString = elemHour.getContent();
-                    Integer hourInteger = Integer.getInteger(hourString);
-                    hourList.add(hourInteger);
-
+                    if (hourString != null && !hourString.isEmpty()) {
+                        Integer hourInteger = Integer.getInteger(hourString);
+                        hourList.add(hourInteger);
+                    }
                 }
-                cronScheduleInfo.setJobScheduleCronHour(hourList);
+                if (!hourList.isEmpty()) {
+                    cronScheduleInfo.setJobScheduleCronHour(hourList);
+                }
             }
 
             // job-schedule-cron-minute
             NaElement elemScheduleCronMinute = results.getChildByName("job-schedule-cron-minute");
-            List<Integer> minuteList = new ArrayList<Integer>();
             if (elemScheduleCronMinute != null) {
+                List<Integer> minuteList = new ArrayList<Integer>();
                 for (NaElement elemMinute : (List<NaElement>) elemScheduleCronHours.getChildren()) {
                     String minuteString = elemMinute.getContent();
-                    Integer minuteInteger = Integer.getInteger(minuteString);
-                    minuteList.add(minuteInteger);
+                    if (minuteString != null && !minuteString.isEmpty()) {
+                        Integer minuteInteger = Integer.getInteger(minuteString);
+                        minuteList.add(minuteInteger);
+                    }
                 }
-                cronScheduleInfo.setJobScheduleCronMinute(minuteList);
+                if (!minuteList.isEmpty()) {
+                    cronScheduleInfo.setJobScheduleCronMinute(minuteList);
+                }
             }
         }
 
@@ -219,7 +234,6 @@ public class NetAppCJob {
                 elemSchedule.addNewChild("job-schedule-cron-month", fsRpoValue);
                 break;
         }
-
         return elemSchedule;
     }
 

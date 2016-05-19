@@ -10,6 +10,8 @@ public class SnapmirrorInfoResp extends SnapmirrorInfo {
         // TODO Auto-generated constructor stub
     }
 
+    private String scheduleName;
+
     // The type of transfer taking place
     private SnapmirrorTransferType currentTransferType;
     // The type of the previous transfer for the relationship
@@ -65,9 +67,18 @@ public class SnapmirrorInfoResp extends SnapmirrorInfo {
         this.currentTransferError = currentTransferError;
     }
 
+    public String getScheduleName() {
+        return scheduleName;
+    }
+
+    public void setScheduleName(String scheduleName) {
+        this.scheduleName = scheduleName;
+    }
+
     @Override
     public String toString() {
         return "SnapmirrorInfoResp [currentTransferType=" + currentTransferType + ", lastTransferType=" + lastTransferType
-                + ", mirrorState=" + mirrorState + ", relationshipStatus=" + relationshipStatus + "]";
+                + ", mirrorState=" + mirrorState + ", relationshipStatus=" + relationshipStatus + ", currentTransferError="
+                + currentTransferError + ", toString()=" + super.toString() + "]";
     }
 }

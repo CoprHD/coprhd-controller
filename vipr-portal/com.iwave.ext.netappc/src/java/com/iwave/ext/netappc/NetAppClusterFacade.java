@@ -806,14 +806,14 @@ public class NetAppClusterFacade {
         return snapMirror.createSnapMirror(snapMirrorCreateParam);
     }
 
-    public SnapmirrorResp initialiseSnapMirror(SnapmirrorInfo snapMirrorInfo) {
+    public boolean initialiseSnapMirror(SnapmirrorInfo snapMirrorInfo) {
         SnapMirror snapMirror = new SnapMirror(server.getNaServer(), null);
         return snapMirror.initialiseSnapMirror(snapMirrorInfo);
     }
 
-    public SnapmirrorResp breakSnapMirrorAsync(SnapmirrorInfo snapMirrorInfo) {
+    public boolean breakSnapMirror(SnapmirrorInfo snapMirrorInfo) {
         SnapMirror snapMirror = new SnapMirror(server.getNaServer(), null);
-        return snapMirror.breakAsyncSnapMirror(snapMirrorInfo);
+        return snapMirror.breakSnapMirror(snapMirrorInfo);
     }
 
     public SnapmirrorResp deleteSnapMirrorAsync(SnapmirrorInfo snapMirrorInfo) {
@@ -865,6 +865,21 @@ public class NetAppClusterFacade {
     public SnapmirrorInfoResp getSnapMirrorDestInfo(SnapmirrorInfo snapMirrorInfo) {
         SnapMirror snapMirror = new SnapMirror(server.getNaServer(), null);
         return snapMirror.getSnapMirrorDestInfo(snapMirrorInfo);
+    }
+
+    /**
+     * Checks whether SnapMirror license exists or not.
+     * 
+     * @return true if SnapMirror license exists; false otherwise
+     */
+    public boolean checkSnapMirrorLicense() {
+
+        if (log.isDebugEnabled()) {
+            log.debug("Checking SnapMirror license");
+        }
+
+        SnapMirror snapMirror = new SnapMirror(server.getNaServer(), null);
+        return snapMirror.checkLicense();
     }
 
     // cron schedule operations

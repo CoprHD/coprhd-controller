@@ -12,7 +12,9 @@ import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.exceptions.DeviceControllerErrors;
+import com.emc.storageos.netappc.NetAppCApiClientFactory;
 import com.emc.storageos.netappc.NetAppClusterApi;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
 import com.emc.storageos.volumecontroller.Job;
@@ -182,7 +184,13 @@ public class NetAppCSnapMirrorJob extends Job implements Serializable {
      * @return
      */
     public NetAppClusterApi getNetappCApi(JobContext jobContext) {
+        String vserver = snapMirrors.get(0).getDestinationVserver();
+        StorageSystem device = jobContext.getDbClient().queryObject(StorageSystem.class, _storageSystemUri);
+        NetAppCApiClientFactory factory = jobContext.getNetAppCApiClientFactory();
+        if (factory != null) {
+            return factory.getClient(device.getIpAddress(), device.getPortNumber(),
+                    device.getUsername(), device.getPassword(), true, vserver);
+        }
         return null;
     }
-
 }

@@ -1,10 +1,14 @@
 package com.iwave.ext.netappc;
 
+import java.util.Iterator;
+import java.util.List;
+
 import netapp.manage.NaElement;
 import netapp.manage.NaServer;
 
 import org.apache.log4j.Logger;
 
+import com.iwave.ext.netapp.NetAppException;
 import com.iwave.ext.netappc.model.SnapMirrorVolumeStatus;
 import com.iwave.ext.netappc.model.SnapmirrorCreateParam;
 import com.iwave.ext.netappc.model.SnapmirrorInfo;
@@ -65,7 +69,7 @@ public class SnapMirror {
         return snapMirrorResp;
     }
 
-    public SnapmirrorResp initialiseSnapMirror(SnapmirrorInfo snapMirrorInfo) {
+    public boolean initialiseSnapMirror(SnapmirrorInfo snapMirrorInfo) {
 
         SnapmirrorResp snapMirrorResp = null;
 
@@ -78,15 +82,13 @@ public class SnapMirror {
         prepDestReq(elem, snapMirrorInfo);
 
         try {
-            NaElement results = server.invokeElem(elem);
-            snapMirrorResp = parseRespJobResult(results);
-
+            server.invokeElem(elem);
         } catch (Exception e) {
             String msg = "Failed to Initialize SnapMirror: " + snapMirrorInfo.getDestinationVolume();
             log.error(msg, e);
             throw new NetAppCException(msg, e);
         }
-        return snapMirrorResp;
+        return true;
     }
 
     public SnapmirrorResp resyncSnapMirror(SnapmirrorInfo snapMirrorInfo) {
@@ -101,7 +103,7 @@ public class SnapMirror {
         return snapMirrorResp;
     }
 
-    public SnapmirrorResp breakAsyncSnapMirror(SnapmirrorInfo snapMirrorInfo) {
+    public boolean breakSnapMirror(SnapmirrorInfo snapMirrorInfo) {
         SnapmirrorResp snapMirrorResp = null;
 
         NaElement elem = new NaElement("snapmirror-break");
@@ -113,15 +115,13 @@ public class SnapMirror {
         prepDestReq(elem, snapMirrorInfo);
 
         try {
-            NaElement results = server.invokeElem(elem);
-            snapMirrorResp = parseRespJobResult(results);
-
+            server.invokeElem(elem);
         } catch (Exception e) {
             String msg = "Failed to Break SnapMirror: " + snapMirrorInfo.getDestinationVolume();
             log.error(msg, e);
             throw new NetAppCException(msg, e);
         }
-        return snapMirrorResp;
+        return true;
     }
 
     public boolean quiesceSnapMirror(SnapmirrorInfo snapMirrorInfo) {
@@ -367,6 +367,38 @@ public class SnapMirror {
         return true;
     }
 
+    /**
+     * Checks if license exists for SnapMirror
+     * 
+     * @return true if license exists for SnapMirror; false otherwise
+     */
+    @SuppressWarnings("unchecked")
+    public boolean checkLicense() {
+
+        boolean licenseValid = false;
+        NaElement elem = new NaElement("license-v2-status-list-info");
+        try {
+            List<NaElement> licences = server.invokeElem(elem).getChildByName("licenses").getChildren();
+            if (licences != null) {
+                for (Iterator<NaElement> iterator = licences.iterator(); iterator.hasNext();) {
+                    NaElement licenceElement = iterator.next();
+                    NaElement packageElement = licenceElement.getChildByName("package");
+                    NaElement typeElement = licenceElement.getChildByName("type");
+                    if ("SnapMirror".equals(packageElement.getContent())
+                            && "license".equals(typeElement.getContent())) {
+                        licenseValid = true;
+                    }
+                }
+            }
+
+        } catch (Exception e) {
+            String msg = "Failed to check snapmirror license.";
+            log.error(msg, e);
+            throw new NetAppException(msg, e);
+        }
+        return licenseValid;
+    }
+
     // helper function
 
     private void prepSourceReq(NaElement elem, SnapmirrorInfo snapMirrorInfo) {
@@ -462,6 +494,12 @@ public class SnapMirror {
 
         if (lastTransferType != null && !mirrorStatus.isEmpty()) {
             snapMirrorResp.setLastTransferType(SnapmirrorTransferType.valueOfLabel(lastTransferType));
+        }
+
+        // schedule
+        String scheduleName = results.getChildContent("schedule");
+        if (scheduleName != null && !scheduleName.isEmpty()) {
+            snapMirrorResp.setScheduleName(scheduleName);
         }
 
         // source details

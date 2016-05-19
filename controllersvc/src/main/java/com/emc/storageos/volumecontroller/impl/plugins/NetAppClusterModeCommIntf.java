@@ -30,10 +30,12 @@ import com.emc.storageos.db.client.model.DiscoveredDataObject.RegistrationStatus
 import com.emc.storageos.db.client.model.DiscoveredDataObject.Type;
 import com.emc.storageos.db.client.model.StorageHADomain;
 import com.emc.storageos.db.client.model.StoragePool;
+import com.emc.storageos.db.client.model.StoragePool.CopyTypes;
 import com.emc.storageos.db.client.model.StoragePool.PoolServiceType;
 import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.model.StorageProtocol;
 import com.emc.storageos.db.client.model.StorageSystem;
+import com.emc.storageos.db.client.model.StorageSystem.SupportedFileReplicationTypes;
 import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedCifsShareACL;
@@ -501,7 +503,7 @@ public class NetAppClusterModeCommIntf extends
                                 unManagedFs.setHasExports(true);
                                 unManagedFs.putFileSystemCharacterstics(
                                         UnManagedFileSystem.SupportedFileSystemCharacterstics.IS_FILESYSTEM_EXPORTED
-                                        .toString(), TRUE);
+                                                .toString(), TRUE);
                                 _dbClient.persistObject(unManagedFs);
                                 _logger.info("File System {} has Exports and their size is {}", unManagedFs.getId(),
                                         newUnManagedExportRules.size());
@@ -1247,7 +1249,7 @@ public class NetAppClusterModeCommIntf extends
                             unManagedFs.setHasShares(true);
                             unManagedFs.putFileSystemCharacterstics(
                                     UnManagedFileSystem.SupportedFileSystemCharacterstics.IS_FILESYSTEM_EXPORTED
-                                    .toString(), TRUE);
+                                            .toString(), TRUE);
                             _logger.debug("SMB Share map for NetAppC UMFS {} = {}",
                                     unManagedFs.getLabel(), unManagedFs.getUnManagedSmbShareMap());
                         }
@@ -1388,6 +1390,16 @@ public class NetAppClusterModeCommIntf extends
                     system.getPortNumber(), system.getUsername(),
                     system.getPassword()).https(true).build();
 
+            boolean snapMirrorLicenseExists = netAppCApi.checkSnapMirrorLicense();
+
+            // Set file replication type for NetApp storage system
+            if (snapMirrorLicenseExists) {
+                StringSet supportReplicationTypes = new StringSet();
+                supportReplicationTypes.add(SupportedFileReplicationTypes.REMOTE.name());
+                supportReplicationTypes.add(SupportedFileReplicationTypes.LOCAL.name());
+                system.setSupportedReplicationTypes(supportReplicationTypes);
+            }
+
             List<AggregateInfo> pools = netAppCApi.listClusterAggregates(null);
 
             for (AggregateInfo netAppPool : pools) {
@@ -1437,6 +1449,20 @@ public class NetAppClusterModeCommIntf extends
                 } else {
                     existingPools.add(pool);
                 }
+
+                // Currently support the Copy type ASYNC only
+                StringSet copyTypesSupported = new StringSet();
+
+                if (snapMirrorLicenseExists) {
+                    copyTypesSupported.add(CopyTypes.ASYNC.name());
+                    pool.setSupportedCopyTypes(copyTypesSupported);
+                } else {
+                    if (pool.getSupportedCopyTypes() != null &&
+                            pool.getSupportedCopyTypes().contains(CopyTypes.ASYNC.name())) {
+                        pool.getSupportedCopyTypes().remove(CopyTypes.ASYNC.name());
+                    }
+                }
+
                 // Update Pool details with new discovery run
                 pool.setTotalCapacity(netAppPool.getSizeTotal()
                         / BYTESCONVERTER);
@@ -1733,7 +1759,7 @@ public class NetAppClusterModeCommIntf extends
                         .toString(), TRUE);
 
         unManagedFileSystemCharacteristics.put(
-        		UnManagedFileSystem.SupportedFileSystemCharacterstics.IS_FILESYSTEM_EXPORTED
+                UnManagedFileSystem.SupportedFileSystemCharacterstics.IS_FILESYSTEM_EXPORTED
                         .toString(), FALSE);
 
         if (null != storagePort) {

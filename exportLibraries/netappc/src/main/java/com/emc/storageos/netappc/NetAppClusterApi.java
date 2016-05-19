@@ -967,7 +967,7 @@ public class NetAppClusterApi {
         }
     }
 
-    public SnapmirrorResp initialiseSnapMirror(SnapmirrorInfo snapMirrorInfo) {
+    public boolean initialiseSnapMirror(SnapmirrorInfo snapMirrorInfo) {
         try {
             netAppClusterFacade = new NetAppClusterFacade(_ipAddress, _portNumber, _userName,
                     _password, _https);
@@ -977,13 +977,13 @@ public class NetAppClusterApi {
         }
     }
 
-    public SnapmirrorResp breakSnapMirrorAsync(SnapmirrorInfo snapMirrorInfo) {
+    public boolean breakSnapMirror(SnapmirrorInfo snapMirrorInfo) {
         try {
             netAppClusterFacade = new NetAppClusterFacade(_ipAddress, _portNumber, _userName,
                     _password, _https);
-            return netAppClusterFacade.breakSnapMirrorAsync(snapMirrorInfo);
+            return netAppClusterFacade.breakSnapMirror(snapMirrorInfo);
         } catch (Exception e) {
-            throw NetAppCException.exceptions.breakAsyncSnapMirrorFailed(snapMirrorInfo.getSourceVolume(), _ipAddress, e.getMessage());
+            throw NetAppCException.exceptions.breakSnapMirrorFailed(snapMirrorInfo.getSourceVolume(), _ipAddress, e.getMessage());
         }
     }
 
@@ -993,7 +993,7 @@ public class NetAppClusterApi {
                     _password, _https);
             return netAppClusterFacade.deleteSnapMirrorAsync(snapMirrorInfo);
         } catch (Exception e) {
-            throw NetAppCException.exceptions.deleteAsyncSnapMirrorFailed(snapMirrorInfo.getSourceVolume(), _ipAddress, e.getMessage());
+            throw NetAppCException.exceptions.deleteSnapMirrorFailed(snapMirrorInfo.getSourceVolume(), _ipAddress, e.getMessage());
         }
     }
 
@@ -1003,7 +1003,7 @@ public class NetAppClusterApi {
                     _password, _https);
             return netAppClusterFacade.resyncSnapMirror(snapMirrorInfo);
         } catch (Exception e) {
-            throw NetAppCException.exceptions.resyncAsyncSnapMirrorFailed(snapMirrorInfo.getSourceVolume(), _ipAddress, e.getMessage());
+            throw NetAppCException.exceptions.resyncSnapMirrorFailed(snapMirrorInfo.getSourceVolume(), _ipAddress, e.getMessage());
         }
     }
 
@@ -1033,7 +1033,7 @@ public class NetAppClusterApi {
                     _password, _https);
             return netAppClusterFacade.releaseSnapMirror(snapMirrorInfo);
         } catch (Exception e) {
-            throw NetAppCException.exceptions.deleteAsyncSnapMirrorFailed(snapMirrorInfo.getSourceVolume(), _ipAddress, e.getMessage());
+            throw NetAppCException.exceptions.releaseSnapMirrorFailed(snapMirrorInfo.getSourceVolume(), _ipAddress, e.getMessage());
         }
     }
 
@@ -1043,7 +1043,7 @@ public class NetAppClusterApi {
                     _password, _https);
             return netAppClusterFacade.destroySnapMirror(snapMirrorInfo);
         } catch (Exception e) {
-            throw NetAppCException.exceptions.deleteAsyncSnapMirrorFailed(snapMirrorInfo.getSourceVolume(), _ipAddress, e.getMessage());
+            throw NetAppCException.exceptions.deleteSnapMirrorFailed(snapMirrorInfo.getSourceVolume(), _ipAddress, e.getMessage());
         }
     }
 
@@ -1055,6 +1055,19 @@ public class NetAppClusterApi {
         } catch (Exception e) {
             throw NetAppCException.exceptions.abortSnapMirrorFailed(snapMirrorInfo.getSourceVolume(), _ipAddress, e.getMessage());
         }
+    }
+
+    public Boolean checkSnapMirrorLicense() {
+        Boolean licenseExists = false;
+        try {
+            netAppClusterFacade = new NetAppClusterFacade(_ipAddress, _portNumber, _userName,
+                    _password, _https);
+            licenseExists = netAppClusterFacade.checkSnapMirrorLicense();
+        } catch (Exception e) {
+            throw NetAppCException.exceptions.checkSnapMirrorLicenseFailed(_ipAddress, e.getMessage());
+        }
+
+        return licenseExists;
     }
 
     public SnapmirrorInfoResp getSnapMirrorInfo(SnapmirrorInfo mirrorInfo) {
@@ -1073,7 +1086,7 @@ public class NetAppClusterApi {
                     _password, _https);
             return netAppClusterFacade.getSnapMirrorVolumeStatus(volume);
         } catch (Exception e) {
-            throw NetAppCException.exceptions.getSnapMirrorStatusFailed(volume, _ipAddress, e.getMessage());
+            throw NetAppCException.exceptions.getSnapMirrorVolumeStatus(volume, _ipAddress, e.getMessage());
         }
     }
 
@@ -1089,13 +1102,23 @@ public class NetAppClusterApi {
 
     // NetappC mode cron schedule operations
 
+    public SnapmirrorCronScheduleInfo getCronSchedule(String name) {
+        try {
+            netAppClusterFacade = new NetAppClusterFacade(_ipAddress, _portNumber, _userName,
+                    _password, _https);
+            return netAppClusterFacade.getCronSchedule(name);
+        } catch (Exception e) {
+            throw NetAppCException.exceptions.getCronScheduleFailed(name, _ipAddress, e.getMessage());
+        }
+    }
+
     public SnapmirrorCronScheduleInfo createCronSchedule(String fsRpoValue, String fsRpoType, String name) {
         try {
             netAppClusterFacade = new NetAppClusterFacade(_ipAddress, _portNumber, _userName,
                     _password, _https);
             return netAppClusterFacade.createCronSchedule(fsRpoValue, fsRpoType, name);
         } catch (Exception e) {
-            throw NetAppCException.exceptions.getSnapMirrorCronScheduleFailed(name, _ipAddress, e.getMessage());
+            throw NetAppCException.exceptions.createCronScheduleFailed(name, _ipAddress, e.getMessage());
         }
     }
 
@@ -1105,7 +1128,7 @@ public class NetAppClusterApi {
                     _password, _https);
             return netAppClusterFacade.modifyCronSchedule(fsRpoValue, fsRpoType, name);
         } catch (Exception e) {
-            throw NetAppCException.exceptions.getSnapMirrorCronScheduleFailed(name, _ipAddress, e.getMessage());
+            throw NetAppCException.exceptions.modifyCronScheduleFailed(name, _ipAddress, e.getMessage());
         }
     }
 
@@ -1115,17 +1138,8 @@ public class NetAppClusterApi {
                     _password, _https);
             return netAppClusterFacade.deleteCronSchedule(name);
         } catch (Exception e) {
-            throw NetAppCException.exceptions.getSnapMirrorCronScheduleFailed(name, _ipAddress, e.getMessage());
+            throw NetAppCException.exceptions.deleteCronScheduleFailed(name, _ipAddress, e.getMessage());
         }
     }
 
-    public SnapmirrorCronScheduleInfo getCronSchedule(String name) {
-        try {
-            netAppClusterFacade = new NetAppClusterFacade(_ipAddress, _portNumber, _userName,
-                    _password, _https);
-            return netAppClusterFacade.getCronSchedule(name);
-        } catch (Exception e) {
-            throw NetAppCException.exceptions.getSnapMirrorCronScheduleFailed(name, _ipAddress, e.getMessage());
-        }
-    }
 }

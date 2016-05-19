@@ -9,6 +9,7 @@ import java.net.URI;
 import com.emc.storageos.svcs.errorhandling.annotations.DeclareServiceCode;
 import com.emc.storageos.svcs.errorhandling.annotations.MessageBundle;
 import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
+import com.iwave.ext.netapp.NetAppException;
 
 /**
  * This interface holds all the methods used to create {@link NetAppCException}s
@@ -143,7 +144,7 @@ public interface NetAppCExceptions {
     public NetAppCException initializeSnapMirrorFailed(final String volName, final String ip, final String message);
 
     @DeclareServiceCode(ServiceCode.NETAPPC_ERROR)
-    public NetAppCException breakAsyncSnapMirrorFailed(final String volName, final String ip, final String message);
+    public NetAppCException breakSnapMirrorFailed(final String volName, final String ip, final String message);
 
     @DeclareServiceCode(ServiceCode.NETAPPC_ERROR)
     public NetAppCException resumeSnapMirrorFailed(final String volName, final String ip, final String message);
@@ -155,24 +156,32 @@ public interface NetAppCExceptions {
     public NetAppCException releaseSnapMirrorFailed(final String volName, final String ip, final String message);
 
     @DeclareServiceCode(ServiceCode.NETAPPC_ERROR)
-    public NetAppCException setScheduleSnapMirrorFailed(final String volName, final String ip, final String message);
-
-    @DeclareServiceCode(ServiceCode.NETAPPC_ERROR)
-    public NetAppCException deleteAsyncSnapMirrorFailed(final String volName, final String ip, final String message);
+    public NetAppCException deleteSnapMirrorFailed(final String volName, final String ip, final String message);
 
     @DeclareServiceCode(ServiceCode.NETAPPC_ERROR)
     public NetAppCException abortSnapMirrorFailed(final String volName, final String ip, final String message);
 
     @DeclareServiceCode(ServiceCode.NETAPPC_ERROR)
-    public NetAppCException resyncAsyncSnapMirrorFailed(final String sourceLocation, final String destLocation, final String message);
-
-    @DeclareServiceCode(ServiceCode.NETAPPC_ERROR)
-    public NetAppCException checkSnapMirrorLicenseFailed(final String ip, final String message);
+    public NetAppCException resyncSnapMirrorFailed(final String sourceLocation, final String destLocation, final String message);
 
     @DeclareServiceCode(ServiceCode.NETAPPC_ERROR)
     public NetAppCException getSnapMirrorStatusFailed(final String volName, final String ip, final String message);
 
     @DeclareServiceCode(ServiceCode.NETAPPC_ERROR)
-    public NetAppCException getSnapMirrorCronScheduleFailed(final String jobName, final String ip, final String message);
+    public NetAppCException getSnapMirrorVolumeStatus(final String volName, final String ip, final String message);
 
+    @DeclareServiceCode(ServiceCode.NETAPPC_ERROR)
+    public NetAppCException getCronScheduleFailed(final String jobName, final String ip, final String message);
+
+    @DeclareServiceCode(ServiceCode.NETAPPC_ERROR)
+    public NetAppCException createCronScheduleFailed(final String jobName, final String ip, final String message);
+
+    @DeclareServiceCode(ServiceCode.NETAPPC_ERROR)
+    public NetAppCException modifyCronScheduleFailed(final String jobName, final String ip, final String message);
+
+    @DeclareServiceCode(ServiceCode.NETAPPC_ERROR)
+    public NetAppCException deleteCronScheduleFailed(final String jobName, final String ip, final String message);
+
+    @DeclareServiceCode(ServiceCode.NETAPPC_ERROR)
+    public NetAppException checkSnapMirrorLicenseFailed(final String ip, final String message);
 }

@@ -27,7 +27,7 @@ public class SnapmirrorInfo {
         // source
         this.sourceLocation = snapmirrorInfo.sourceLocation;
         this.sourceVserver = snapmirrorInfo.sourceVserver;
-        this.sourceVolume = snapmirrorInfo.sourceCluster;
+        this.sourceVolume = snapmirrorInfo.sourceVolume;
 
         // destination
         this.destinationLocation = snapmirrorInfo.destinationLocation;

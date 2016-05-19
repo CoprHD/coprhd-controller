@@ -222,8 +222,8 @@ public class NetAppCJob {
                 elemSchedule.addNewChild("job-schedule-cron-minute", fsRpoValue);
                 break;
             case "HOURS":
-                elemSchedule = new NaElement("job-schedule-cron-hours");
-                elemSchedule.addNewChild("job-schedule-cron-hour", fsRpoValue);
+                elemSchedule = new NaElement("job-schedule-cron-hour");
+                elemSchedule.setContent(fsRpoValue);
                 break;
             case "DAYS":
                 elemSchedule = new NaElement("job-schedule-cron-days");

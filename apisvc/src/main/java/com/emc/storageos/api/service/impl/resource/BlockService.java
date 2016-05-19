@@ -1793,6 +1793,7 @@ public class BlockService extends TaskResourceService {
         }
 
         ArgValidator.checkFieldNotEmpty(copy.getType(), "type");
+        ArgValidator.checkFieldNotEmpty(copy.getAccessMode(), "accessMode");
         if (copy.getType().equalsIgnoreCase(TechnologyType.RP.toString())) {
             taskResp = performProtectionAction(id, copy, ProtectionOp.CHANGE_ACCESS_MODE.getRestOp());
             taskList.getTaskList().add(taskResp);
@@ -2943,9 +2944,10 @@ public class BlockService extends TaskResourceService {
         ArgValidator.checkEntity(volume, id, true);
         ArgValidator.checkEntity(copyVolume, copy.getCopyID(), true);
 
+        // Catch any attempts to use an invalid access mode
         if (op.equalsIgnoreCase(ProtectionOp.CHANGE_ACCESS_MODE.getRestOp()) &&
                 !Copy.ImageAccessMode.DIRECT_ACCESS.name().equalsIgnoreCase(copy.getAccessMode())) {
-            // TODO: throw unsupported exception for invalid access mode
+            throw APIException.badRequests.unsupportedAccessMode(copy.getAccessMode());
         }
 
         if (isNullURI(volume.getProtectionController())) {
@@ -5223,9 +5225,9 @@ public class BlockService extends TaskResourceService {
     /*
      * Validate if the physical array that the consistency group bonded to is associated
      * with the virtual array
-     *
+     * 
      * @param consistencyGroup
-     *
+     * 
      * @param varray virtual array
      */
     private void validateCGValidWithVirtualArray(BlockConsistencyGroup consistencyGroup,

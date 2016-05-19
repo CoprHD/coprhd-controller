@@ -34,7 +34,7 @@ QCOW2 := $(BUILD_DIR)/$(NAME).x86_64-$(VERSION).$(JOB).qcow2
 ZYPPER_PARAMS := --reposd-dir $(WORKSPACE)/zypper/reposd --cache-dir $(WORKSPACE)/zypper/cache --solv-cache-dir $(WORKSPACE)/zypper/solv --pkg-cache-dir $(WORKSPACE)/zypper/pkg
 
 .DEFAULT: all
-.PHONY: downloadISO downloadRPM createREPO ovf vmx tbz box vhd vbox qcow2 appliance devkit clean destroy
+.PHONY: downloadISO downloadRPM downloadTGZ createREPO ovf vmx tbz box vhd vbox qcow2 appliance devkit clean destroy
 all: appliance
 
 ##################################################
@@ -60,12 +60,32 @@ downloadRPM:
 	$(call targetLog,+)
 	rm -fr $(WORKSPACE)/zypper/reposd
 	mkdir -p $(WORKSPACE)/zypper/{reposd,cache,solv,pkg}
-	zypper $(ZYPPER_PARAMS) addrepo --name repo-oss --no-gpgcheck --no-check http://download.opensuse.org/distribution/13.2/repo/oss repo-oss
+	zypper $(ZYPPER_PARAMS) addrepo --name suse-13.2-oss --no-gpgcheck http://download.opensuse.org/distribution/13.2/repo/oss/suse suse-13.2-oss
+	zypper $(ZYPPER_PARAMS) addrepo --name suse-13.2-monitoring --no-gpgcheck http://download.opensuse.org/repositories/server:/monitoring/openSUSE_13.2 suse-13.2-monitoring
+	zypper $(ZYPPER_PARAMS) addrepo --name suse-13.2-seife --no-gpgcheck http://download.opensuse.org/repositories/home:/seife:/testing/openSUSE_13.2 suse-13.2-seife
+	zypper $(ZYPPER_PARAMS) addrepo --name suse-13.2-python --no-gpgcheck http://download.opensuse.org/repositories/devel:/languages:/python/openSUSE_13.2 suse-13.2-python
+	zypper $(ZYPPER_PARAMS) addrepo --name suse-13.2-network --no-gpgcheck http://download.opensuse.org/repositories/network:/utilities/openSUSE_13.2 suse-13.2-network
+	zypper $(ZYPPER_PARAMS) modifyrepo --priority  3 suse-13.2-oss
+	zypper $(ZYPPER_PARAMS) modifyrepo --priority  2 suse-13.2-monitoring
+	zypper $(ZYPPER_PARAMS) modifyrepo --priority  2 suse-13.2-seife
+	zypper $(ZYPPER_PARAMS) modifyrepo --priority  4 suse-13.2-python
+	zypper $(ZYPPER_PARAMS) modifyrepo --priority  4 suse-13.2-network
 	zypper $(ZYPPER_PARAMS) refresh
-	zypper $(ZYPPER_PARAMS) --non-interactive download fribidi fbiterm
+	zypper $(ZYPPER_PARAMS) download atop ca-certificates-cacert fbiterm fribidi GeoIP GeoIP-data java-1_8_0-openjdk-devel keepalived libGeoIP1 libserf-devel ndisc6 openssh-fips perl-Tk python-cjson python-gpgme python-iniparse python-py python-requests python-setools setools-libs sipcalc sshpass strongswan strongswan-ipsec strongswan-libs0 sysstat yum
+	zypper $(ZYPPER_PARAMS) addrepo --name suse-13.2-oss-update --no-gpgcheck http://download.opensuse.org/repositories/openSUSE:/13.2:/Update/standard suse-13.2-oss-update
+	zypper $(ZYPPER_PARAMS) modifyrepo --priority  1 suse-13.2-oss-update
+	zypper $(ZYPPER_PARAMS) refresh
+	zypper $(ZYPPER_PARAMS) download libudev1 lvm2 udev grub2 grub2-x86_64-efi grub2-i386-pc kernel-default kernel-default-devel kernel-devel kernel-source kernel-macros virtualbox virtualbox-guest-tools virtualbox-guest-kmp-default virtualbox-host-kmp-default
 	$(call targetLog,-)
 
-createREPO: | downloadRPM
+downloadTGZ:
+	$(call targetLog,+)
+	wget http://nginx.org/download/nginx-1.6.2.tar.gz --continue --progress=bar --output-document=$(WORKSPACE)/templates/nginx-1.6.2.tar.gz
+	wget --no-check-certificate https://github.com/yaoweibin/nginx_upstream_check_module/archive/v0.3.0.tar.gz --continue --progress=bar --output-document=$(WORKSPACE)/templates/v0.3.0.tar.gz
+	wget --no-check-certificate https://github.com/openresty/headers-more-nginx-module/archive/v0.25.tar.gz --continue --progress=bar --output-document=$(WORKSPACE)/templates/v0.25.tar.gz
+	$(call targetLog,-)
+
+createREPO: | downloadRPM downloadTGZ
 	$(call targetLog,+)
 	rm -fr $(WORKSPACE)/zypper/repo
 	mkdir -p $(WORKSPACE)/zypper/repo

@@ -56,6 +56,7 @@ suseConfig
 # CoprHD install
 #--------------------------------------
 bash /opt/ADG/conf/configure.sh installRepositories
+bash /opt/ADG/conf/configure.sh installPackages
 bash /opt/ADG/conf/configure.sh installJava
 bash /opt/ADG/conf/configure.sh installNginx
 bash /opt/ADG/conf/configure.sh installStorageOS
@@ -64,7 +65,7 @@ bash /opt/ADG/conf/configure.sh installXorg
 bash /opt/ADG/conf/configure.sh disableStorageOS
 
 #======================================
-# CoprHDDevKit setup
+# CoprHD setup
 #--------------------------------------
 mkdir -p /workspace
 chmod 1777 /workspace

@@ -3002,7 +3002,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                         }
                     } catch (Exception e) {
                         _log.warn(String.format("Error attempting to rename volume %s on deletion of storage view %s",
-                                vplexVolume.getId(), exportMask.getMaskName()), e);
+                                vplexVolume.getId(), exportMaskURI), e);
                     }
                 }
             }
@@ -3495,7 +3495,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
 
     /**
      * @param client -- VPlexApiClient used for communication
-     * @param exportMask -- ExportMask corresonding to the StorageView
+     * @param exportMask -- ExportMask corresponding to the StorageView
      * @param volumeURIList -- URI of virtual volumes
      * @param stepId -- Workflow step id
      * @throws WorkflowException

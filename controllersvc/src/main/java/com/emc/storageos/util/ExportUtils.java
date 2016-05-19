@@ -1541,7 +1541,7 @@ public class ExportUtils {
     public static ExportGroup getMostRecentExportForVolume(Volume volume, ExportGroup ignoreExportGroup, DbClient dbClient) {
         ExportGroup mostRecentExportGroup = null;
         if (volume.isVolumeExported(dbClient, true, true)) {
-            List<ExportGroup> exportGroups = getExportGroupsForBlockObject(volume, dbClient);
+            List<ExportGroup> exportGroups = getExportGroupsForBlockObject2(volume, dbClient);
             for (ExportGroup eg : exportGroups) {
                 if ((ignoreExportGroup == null) || (!eg.getLabel().equalsIgnoreCase(ignoreExportGroup.getLabel()))) {
                     if (mostRecentExportGroup == null) {
@@ -1555,7 +1555,7 @@ public class ExportUtils {
         
         return mostRecentExportGroup;
     }
-        
+    
     /**
      * Return a list of ExportGroups for a BlockObject on an array.
      * This is used by deleteVolumes to find the ExportGroup(s) on the underlying array.
@@ -1572,6 +1572,32 @@ public class ExportUtils {
             ExportGroup exportGroup = dbClient.queryObject(ExportGroup.class, egURI);
             if (exportGroup == null || exportGroup.getInactive() == true) {
                 continue;
+            }
+            exportGroups.add(exportGroup);
+        }
+        return exportGroups;
+    }
+    
+    public static List<ExportGroup> getExportGroupsForBlockObject2(BlockObject bo, DbClient dbClient) {
+        URIQueryResultList exportGroupURIs = new URIQueryResultList();
+        dbClient.queryByConstraint(ContainmentConstraint.Factory.getBlockObjectExportGroupConstraint(bo.getId()), exportGroupURIs);
+        List<ExportGroup> exportGroups = new ArrayList<ExportGroup>();
+        for (URI egURI : exportGroupURIs) {
+            ExportGroup exportGroup = dbClient.queryObject(ExportGroup.class, egURI);
+            if (exportGroup == null || exportGroup.getInactive() == true) {
+                continue;
+            }
+            StringSet exportMaskIds = exportGroup.getExportMasks();
+            List<URI> exportMaskURIs = new ArrayList<>(Collections2.transform(exportMaskIds, CommonTransformerFunctions.FCTN_STRING_TO_URI));
+            Iterator<ExportMask> exportMasksIter = dbClient.queryIterativeObjects(ExportMask.class, exportMaskURIs);
+            while (exportMasksIter.hasNext()) {
+                ExportMask exportMask = exportMasksIter.next();
+                StringMap exportMaskVolumeMap = exportMask.getVolumes();
+                Set<String> exportMaskVolumeIds = exportMaskVolumeMap.keySet();
+                if (exportMaskVolumeIds.contains(bo.getId().toString())) {
+                    exportGroups.add(exportGroup);
+                    break;
+                }
             }
             exportGroups.add(exportGroup);
         }

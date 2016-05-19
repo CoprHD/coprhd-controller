@@ -106,26 +106,29 @@ public class XIVRESTOperationsHelper {
         boolean isClusteredHost = false;
         ExportMask exportMask = _dbClient.queryObject(ExportMask.class, exportMaskURI);
 
-        List<ExportGroup> exportGroup = ExportMaskUtils.getExportGroups(_dbClient, exportMask);
-        if (null != exportGroup && !exportGroup.isEmpty() && exportGroup.get(0).forCluster()) {
-            XIVRESTOperations restExportOpr = getRestClient(storage);
-            if (null != restExportOpr) {
-                String hostName = null;
+        List<ExportGroup> exportGroups = ExportMaskUtils.getExportGroups(_dbClient, exportMask);
+        if (null != exportGroups && !exportGroups.isEmpty()) {
+            for (ExportGroup exportGroup : exportGroups) {
+                if (!isClusteredHost && exportGroup.forCluster()) {
+                    XIVRESTOperations restExportOpr = getRestClient(storage);
+                    if (null != restExportOpr) {
+                        String hostName = null;
 
-                if (null == initiators) {
-                    Set<Initiator> exportMaskInits = ExportMaskUtils.getInitiatorsForExportMask(_dbClient, exportMask, null);
-                    Iterator<Initiator> exportMaskInitsItr = exportMaskInits.iterator();
-                    if (exportMaskInitsItr.hasNext()) {
-                        hostName = exportMaskInitsItr.next().getHostName();
+                        if (null == initiators) {
+                            Set<Initiator> exportMaskInits = ExportMaskUtils.getInitiatorsForExportMask(_dbClient, exportMask, null);
+                            Iterator<Initiator> exportMaskInitsItr = exportMaskInits.iterator();
+                            if (exportMaskInitsItr.hasNext()) {
+                                hostName = exportMaskInitsItr.next().getHostName();
+                            }
+                        } else {
+                            Host host = _dbClient.queryObject(Host.class, initiators.get(0).getHost());
+                            hostName = host.getLabel();
+                        }
+
+                        isClusteredHost = isClusteredHostOnArray(storage, hostName);
                     }
-                } else {
-                    Host host = _dbClient.queryObject(Host.class, initiators.get(0).getHost());
-                    hostName = host.getLabel();
                 }
-
-                isClusteredHost = isClusteredHostOnArray(storage, hostName);
             }
-
         }
         return isClusteredHost;
     }
@@ -154,7 +157,7 @@ public class XIVRESTOperationsHelper {
                     _log.info("Host {} not present on Array {}. Creating a new instance!", hostName, storage.getLabel());
                     isClusteredHost = true;
                 } else if (HOST_STATUS.CLUSTER_HOST.equals(hostStatus)) {
-                    _log.info("Identified Host {} as a Clustered Host Array {}.", hostName, storage.getLabel());
+                    _log.info("Identified Host {} as a Clustered Host on Array {}.", hostName, storage.getLabel());
                     isClusteredHost = true;
                 } else if (HOST_STATUS.STANDALONE_HOST.equals(hostStatus)) {
                     _log.info("Host {} identified as a Standalone host on Array {}. Using SMIS for provisioning!", hostName,
@@ -220,7 +223,7 @@ public class XIVRESTOperationsHelper {
                     final String lunName = getBlockObjectAlternateName(volumeURIHLU.getVolumeURI());
                     final String volumeHLU = volumeURIHLU.getHLU();
                     if (volumeHLU != null && !volumeHLU.equalsIgnoreCase(ExportGroup.LUN_UNASSIGNED_STR)) {
-                        int hluDec = Integer.parseInt(volumeHLU, 16);
+                        int hluDec = Integer.parseInt(volumeHLU);
                         if (hluDec > MAXIMUM_LUN) {
                             String errMsg = String.format(INVALID_LUN_ERROR_MSG, hluDec, MAXIMUM_LUN);
                             _log.error(errMsg);
@@ -258,20 +261,20 @@ public class XIVRESTOperationsHelper {
      *             if URI is not a Volume/BlockSnapshot URI
      */
     private String getBlockObjectAlternateName(URI uri) throws Exception {
-        String nativeId;
+        String label;
         if (URIUtil.isType(uri, Volume.class)) {
             Volume volume = _dbClient.queryObject(Volume.class, uri);
-            nativeId = volume.getLabel();
+            label = volume.getLabel();
         } else if (URIUtil.isType(uri, BlockSnapshot.class)) {
             BlockSnapshot blockSnapshot = _dbClient.queryObject(BlockSnapshot.class, uri);
-            nativeId = blockSnapshot.getLabel();
+            label = blockSnapshot.getLabel();
         } else if (URIUtil.isType(uri, BlockMirror.class)) {
             BlockMirror blockMirror = _dbClient.queryObject(BlockMirror.class, uri);
-            nativeId = blockMirror.getLabel();
+            label = blockMirror.getLabel();
         } else {
             throw XIVRestException.exceptions.notAVolumeOrBlocksnapshotUri(uri);
         }
-        return nativeId;
+        return label;
     }
 
     /**
@@ -348,7 +351,7 @@ public class XIVRESTOperationsHelper {
             _log.info(builder.toString());
         } catch (Exception e) {
             String msg = "Error when attempting to query LUN masking information: " + e.getMessage();
-            _log.error(MessageFormat.format("Encountered an SMIS error when attempting to refresh existing exports: {0}", msg), e);
+            _log.error(MessageFormat.format("Encountered an error when attempting to refresh existing exports: {0}", msg), e);
             // throw XIVRestException.exceptions.refreshExistingMaskFailure(msg);
         }
     }

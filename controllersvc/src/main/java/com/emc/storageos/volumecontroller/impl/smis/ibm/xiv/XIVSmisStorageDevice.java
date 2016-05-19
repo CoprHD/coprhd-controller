@@ -1236,7 +1236,6 @@ public class XIVSmisStorageDevice extends DefaultBlockStorageDevice {
             if (!pcInstancesForHost.isEmpty()) {
                 CIMObjectPath specificCollectionPath = pcInstancesForHost.get(0).getObjectPath();
 
-                Set<String> hwIds = new HashSet<String>();
                 CloseableIterator<CIMInstance> seForPCItr = null;
                 try {
                 	seForPCItr = _helper.getReferenceInstances(storage, specificCollectionPath, "IBMTSDS_ProtocolControllerForSEUnit", null, new String[] { "DeviceNumber" });
@@ -1247,7 +1246,7 @@ public class XIVSmisStorageDevice extends DefaultBlockStorageDevice {
                     }
                     _log.info("HLU list for Host {} : {}", label, hostHLUs);
                 } catch (WBEMException e) {
-                	_log.error("Error occured during retrival of HLUs for a Host",e);
+                	_log.error("Error occured during retrieval of HLUs for a Host",e);
                 } finally {
                 	if (seForPCItr != null) {
                 		seForPCItr.close();

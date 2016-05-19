@@ -6995,7 +6995,6 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                                 new VolumeDescriptor.Type[] { Type.VPLEX_IMPORT_VOLUME },
                                 new VolumeDescriptor.Type[] {});
 
-                BlockObject primarySourceObject = null;
                 if (!vplexSrcVolumeDescrs.isEmpty()) {
                     // Find the backend volume that is the primary volume for one of
                     // the VPLEX volumes being copied. The primary backend volume is the
@@ -7005,24 +7004,22 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                     // use the same backend storage system.
                     VolumeDescriptor vplexSrcVolumeDescr = vplexSrcVolumeDescrs.get(0);
                     vplexSrcVolumeURI = vplexSrcVolumeDescr.getVolumeURI();
-                    primarySourceObject = getPrimaryForFullCopySrcVolume(vplexSrcVolumeURI);
+                    BlockObject primarySourceObject = getPrimaryForFullCopySrcVolume(vplexSrcVolumeURI);
+
+                    _log.info("Primary volume/snapshot is {}", primarySourceObject.getId());
+                    // add CG to taskCompleter
+                    if (!NullColumnValueGetter.isNullURI(primarySourceObject.getConsistencyGroup())) {
+                        completer.addConsistencyGroupId(primarySourceObject.getConsistencyGroup());
+                    }
+                    
                 } else {
                     // For snapshot full copy
-                    URI importVolUri = importVolumeDescriptors.get(0).getVolumeURI();
-                    Volume volumeToBeImported = _dbClient.queryObject(Volume.class, importVolUri);
-                    URI assocSrcVolumeURI = volumeToBeImported.getAssociatedSourceVolume();
-                    primarySourceObject = _dbClient.queryObject(BlockSnapshot.class, assocSrcVolumeURI);
-                }
-
-                _log.info("Primary volume/snapshot is {}", primarySourceObject.getId());
-                // add CG to taskCompleter
-                if (!NullColumnValueGetter.isNullURI(primarySourceObject.getConsistencyGroup())) {
-                    completer.addConsistencyGroupId(primarySourceObject.getConsistencyGroup());
+                    vplexSrcVolumeURI = vplexURI;
                 }
 
                 // Next, create a step to create and start an import volume
                 // workflow for each copy.
-                createStepsForFullCopyImport(workflow, vplexURI, primarySourceObject,
+                createStepsForFullCopyImport(workflow, vplexURI,
                         vplexVolumeDescriptors, volumeDescriptorsRG, waitFor);
                 _log.info("Created workflow steps to import the primary copies");
             }
@@ -7252,23 +7249,13 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
      *         wait.
      */
     private String createStepsForFullCopyImport(Workflow workflow, URI vplexURI,
-            BlockObject sourceBlockObject, List<VolumeDescriptor> vplexVolumeDescriptors,
+            List<VolumeDescriptor> vplexVolumeDescriptors,
             List<VolumeDescriptor> assocVolumeDescriptors, String waitFor) {
         StorageSystem vplexSystem = getDataObject(StorageSystem.class, vplexURI, _dbClient);
         _log.info("Got VPLEX {}", vplexURI);
 
         URI projectURI = null;
         URI tenantURI = null;
-        if (sourceBlockObject instanceof Volume) {
-            projectURI = ((Volume) sourceBlockObject).getProject().getURI();
-            tenantURI = ((Volume) sourceBlockObject).getTenant().getURI();
-        } else {
-            BlockSnapshot srcSnapshot = ((BlockSnapshot) sourceBlockObject);
-            URI parentVolumeURI = srcSnapshot.getParent().getURI();
-            Volume srcSnapParentVolume = _dbClient.queryObject(Volume.class, parentVolumeURI);
-            projectURI = srcSnapParentVolume.getProject().getURI();
-            tenantURI = srcSnapParentVolume.getTenant().getURI();
-        }
 
         Operation op = new Operation();
         op.setResourceType(ResourceOperationTypeEnum.CREATE_BLOCK_VOLUME);
@@ -7281,6 +7268,16 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             List<VolumeDescriptor> assocDescriptors = getDescriptorsForAssociatedVolumes(
                     vplexVolumeURI, assocVolumeDescriptors);
             descriptorsForImport.addAll(assocDescriptors);
+            
+            // get the project and tenant from the vplex volume
+            if (projectURI == null) {
+                Volume vplexVol = _dbClient.queryObject(Volume.class, vplexVolumeURI);
+                if (vplexVol != null && !vplexVol.getInactive()) {
+                    projectURI = vplexVol.getProject().getURI();
+                    tenantURI = vplexVol.getTenant().getURI();
+                }
+            }
+            
             _log.info("Added descriptors for the copy's associated volumes");
             String stepId = workflow.createStepId();
             Workflow.Method executeMethod = createImportCopyMethod(vplexURI,
@@ -11510,7 +11507,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                     _dbClient.updateObject(vplexCopy);
                     _dbClient.updateObject(vplexSrcVolume);
                     vplexVolumeDescriptors.add(vplexCopyVolume);
-                    createStepsForFullCopyImport(workflow, vplexSrcVolume.getStorageController(), backendSrc,
+                    createStepsForFullCopyImport(workflow, vplexSrcVolume.getStorageController(),
                             vplexVolumeDescriptors, blockDescriptors, waitFor);
                 }
             }

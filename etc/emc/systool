@@ -389,6 +389,7 @@ _set_ip_props() {
     declare -A newVdcPropMap
     while read -r line
     do
+      [[ "$line" != *=* ]] && continue
       IFS='=' read -ra pair <<< "$line"
       newVdcPropMap[${pair[0]}]=${pair[1]}
     done < "${1}"
@@ -456,6 +457,7 @@ _set_ip_props() {
     declare -A localIpPropMap
     while read -r line
     do
+      [[ "$line" != *=* ]] && continue
       IFS='=' read -ra pair <<< "$line"
       localIpPropMap[${pair[0]}]=${pair[1]}
     done < "${ovf_props_file}"
@@ -467,7 +469,7 @@ _set_ip_props() {
         # write local site's promisc network info from ovfenv prop file
         for key in "${!localIpPropMap[@]}"
         do
-            if [[ "${key}" == network_gateway* || "${key}" == network_netmask || "${key}" == network_prefix_length ]]; then
+            if [[ "${key}" == network_gateway* || "${key}" == network_netmask || "${key}" == network_prefix_length || "${key}" == node_count ]]; then
                 tmpkey="vdc_"${vdc_myid}"_"${site_myid}"_"${key}
                 echo "${tmpkey}=${localIpPropMap[${key}]}" >> "${datafs_ip_props}.bak"
             fi
@@ -477,20 +479,20 @@ _set_ip_props() {
         if [ ${#new_sites_ids} -gt ${#orig_sites_ids} ]; then
             # b.1) For standby addition
             if [[ "${orig_sites_ids}" == *"${site_myid}"* ]]; then
-                # b.1.1) If new added site, write local site's promisc network info from ovfenv prop file
-                for key in "${!localIpPropMap[@]}"
+                # b.1.1) If original sites, preserve original promisc network info
+                for key in "${!origIpPropMap[@]}"
                 do
-                    if [[ "${key}" == network_gateway* || "${key}" == network_netmask || "${key}" == network_prefix_length ]]; then
-                        tmpkey="vdc_"${vdc_myid}"_"${site_myid}"_"${key}
-                        echo "${tmpkey}=${localIpPropMap[${key}]}" >> "${datafs_ip_props}.bak"
+                    if [[ "${key}" == *network_gateway* || "${key}" == *network_netmask || "${key}" == *network_prefix_length || "${key}" == *node_count ]]; then
+                        echo "${key}=${origIpPropMap[${key}]}" >> "${datafs_ip_props}.bak"
                     fi
                 done
             else
-                # b.1.2) If original sites, preserve original promisc network info
-                for key in "${!origIpPropMap[@]}"
+                # b.1.2) If new added site, write local site's promisc network info from ovfenv prop file
+                for key in "${!localIpPropMap[@]}"
                 do
-                    if [[ "${key}" == network_gateway* || "${key}" == network_netmask || "${key}" == network_prefix_length ]]; then
-                        echo "${key}=${origIpPropMap[${key}]}" >> "${datafs_ip_props}.bak"
+                    if [[ "${key}" == network_gateway* || "${key}" == network_netmask || "${key}" == network_prefix_length || "${key}" == node_count ]]; then
+                        tmpkey="vdc_"${vdc_myid}"_"${site_myid}"_"${key}
+                        echo "${tmpkey}=${localIpPropMap[${key}]}" >> "${datafs_ip_props}.bak"
                     fi
                 done
             fi
@@ -502,7 +504,7 @@ _set_ip_props() {
                 done
                 for key in "${!origIpPropMap[@]}"
                 do
-                    if [[ "${key}" == *network_gateway* || "${key}" == *network_netmask || "${key}" == *network_prefix_length ]]; then
+                    if [[ "${key}" == *network_gateway* || "${key}" == *network_netmask || "${key}" == *network_prefix_length || "${key}" == *node_count ]]; then
                         [[ "${key}" == *"${removalsite}"* ]] && continue
                         echo "${key}=${origIpPropMap[${key}]}" >> "${datafs_ip_props}.bak"
                     fi

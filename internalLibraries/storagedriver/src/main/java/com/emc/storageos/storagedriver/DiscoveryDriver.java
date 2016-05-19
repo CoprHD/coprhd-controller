@@ -27,12 +27,7 @@ import com.emc.storageos.storagedriver.model.StorageVolume;
  * When method is not supported, return DriverTask in FAILED state with message indicating that operation is not supported.
  *
  */
-public interface DiscoveryDriver extends StorageDriver{
-
-    /**
-     *  Get driver registration data.
-     */
-    public RegistrationData getRegistrationData();
+public interface DiscoveryDriver extends StorageDriver {
 
     /**
      * Discover storage systems and their capabilities
@@ -67,16 +62,5 @@ public interface DiscoveryDriver extends StorageDriver{
      * @return
      */
     public DriverTask discoverStorageHostComponents(StorageSystem storageSystem, List<StorageHostComponent> embeddedStorageHostComponents);
-
-
-    /**
-     * Discover storage volumes
-     * @param storageSystem  Type: Input.
-     * @param storageVolumes Type: Output.
-     * @param token used for paging. Input 0 indicates that the first page should be returned. Output 0 indicates
-     *              that last page was returned. Type: Input/Output.
-     * @return
-     */
-    public DriverTask getStorageVolumes(StorageSystem storageSystem, List<StorageVolume> storageVolumes, MutableInt token);
 
 }

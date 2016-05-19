@@ -14,7 +14,6 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
-import com.emc.storageos.auth.LdapFailureHandler;
 import com.emc.storageos.services.util.EnvConfig;
 import org.junit.*;
 import org.apache.commons.httpclient.Credentials;

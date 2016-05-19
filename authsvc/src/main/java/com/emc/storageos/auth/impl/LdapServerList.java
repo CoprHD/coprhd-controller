@@ -7,15 +7,14 @@ package com.emc.storageos.auth.impl;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 public class LdapServerList {
     private static Logger log = LoggerFactory.getLogger(LdapServerList.class);
 
-    private List<LdapOrADServer> connectedServers = Collections.synchronizedList(new ArrayList<LdapOrADServer>());
-    private List<LdapOrADServer> disConnectedServers = Collections.synchronizedList(new ArrayList<LdapOrADServer>());
+    private List<LdapOrADServer> connectedServers = new CopyOnWriteArrayList<>();
+    private List<LdapOrADServer> disConnectedServers = new CopyOnWriteArrayList<>();
 
     public List<LdapOrADServer> getConnectedServers() {
         return connectedServers;

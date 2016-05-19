@@ -4,7 +4,7 @@
  */
 package com.emc.storageos.auth.local;
 
-import com.emc.storageos.auth.LdapFailureHandler;
+import com.emc.storageos.auth.impl.LdapFailureHandler;
 import com.emc.storageos.auth.StorageOSAuthenticationHandler;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.model.property.PropertyInfo;

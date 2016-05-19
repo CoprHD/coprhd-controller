@@ -28,7 +28,7 @@ import org.springframework.ldap.core.LdapTemplate;
 import org.springframework.ldap.core.NameClassPairCallbackHandler;
 import org.springframework.ldap.core.SearchExecutor;
 
-import com.emc.storageos.auth.LdapFailureHandler;
+import com.emc.storageos.auth.impl.LdapFailureHandler;
 import com.emc.storageos.auth.impl.LdapOrADServer;
 import com.emc.storageos.auth.impl.LdapServerList;
 import com.emc.storageos.auth.StorageOSAuthenticationHandler;
@@ -81,7 +81,6 @@ public class StorageOSLdapAuthenticationHandler implements
      * @return
      */
     private boolean doAuthentication(UsernamePasswordCredentials credentials) {
-        ArrayList<LdapOrADServer> disconnectedServers = new ArrayList<>();
         boolean authResult = false;
 
         List<LdapOrADServer> connectedServers = _ldapServers.getConnectedServers();
@@ -89,15 +88,10 @@ public class StorageOSLdapAuthenticationHandler implements
             try {
                 authResult = doAuthenticationOverSingleServer(server, credentials);
             } catch (CommunicationException e) {
-                disconnectedServers.add(server);
+                _failureHandler.handle(_ldapServers, server);
                 _alertLog.error(MessageFormat.format("Connection to LDAP server {0} failed for domain(s) {1}. {2}",
                         Arrays.toString(server.getContextSource().getUrls()), _domains, e.getMessage()));
             }
-        }
-
-        // After authentication, lets handle failed ldap servers
-        if (!disconnectedServers.isEmpty()) {
-            _failureHandler.handle(_ldapServers, disconnectedServers);
         }
 
         if (connectedServers.isEmpty()) { // All servers are disconnected

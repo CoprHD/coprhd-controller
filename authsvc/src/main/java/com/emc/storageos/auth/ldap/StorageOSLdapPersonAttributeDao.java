@@ -5,7 +5,7 @@
 package com.emc.storageos.auth.ldap;
 
 import com.emc.storageos.auth.AuthenticationManager.ValidationFailureReason;
-import com.emc.storageos.auth.LdapFailureHandler;
+import com.emc.storageos.auth.impl.LdapFailureHandler;
 import com.emc.storageos.auth.StorageOSPersonAttributeDao;
 import com.emc.storageos.auth.impl.LdapOrADServer;
 import com.emc.storageos.auth.impl.LdapServerList;
@@ -683,7 +683,6 @@ public class StorageOSLdapPersonAttributeDao implements StorageOSPersonAttribute
     }
 
     private List doLdapSearch(String base, String ldapQuery, SearchControls searchControls, AttributesMapper mapper) {
-        ArrayList<LdapOrADServer> disConnectedServers = new ArrayList<>();
         List results = null;
 
         List<LdapOrADServer> connectedServers = _ldapServers.getConnectedServers();
@@ -691,14 +690,9 @@ public class StorageOSLdapPersonAttributeDao implements StorageOSPersonAttribute
             try {
                 results = doLdapSearchOnSingleServer(base, ldapQuery, searchControls, mapper, server);
             } catch (CommunicationException e) {
-                disConnectedServers.add(server);
+                _failureHandler.handle(_ldapServers, server);
                 _log.info("Failed to connect to all AD/Ldap servers.", e);
             }
-        }
-
-        // After search, lets handle failed ldap servers
-        if (! disConnectedServers.isEmpty()) {
-            _failureHandler.handle(_ldapServers, disConnectedServers);
         }
 
         if (connectedServers.isEmpty()) { // All servers are disconnected

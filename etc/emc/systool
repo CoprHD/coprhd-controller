@@ -370,12 +370,12 @@ _set_vdc_props() {
 
 # During setting vdc properties, we need to (re)set ip prop file for the following
 # scenarios in which the sites number would change from ip prop file point of view.
-# For all other cases (e.g pausing/resuming/failover/switchover standby), no need to
+# For all other cases (e.g failover/switchover/ipsec etc.), no need to
 # update ip prop file.
 # 1) fresh-install
 # 2) upgrade (whatever from yoda or pre-yoda)
-# 3) adding standby site
-# 4) removing standby site
+# 3) adding/resuming standby site
+# 4) removing/pausing standby site
 #
 # In addition, ip reconfiguration procedure would also change ip property file.
 #
@@ -440,7 +440,7 @@ _set_ip_props() {
 
 
     # 4. update IP prop file
-    # only fresh-install, upgrade, add/remove site scenarios would be here
+    # only fresh-install, upgrade, add/pause/resume/remove site scenarios would be here
 
     # 4.1 Always override regular IPs from newVdcPropMap into ip prop file
     rm -f "${datafs_ip_props}.bak"

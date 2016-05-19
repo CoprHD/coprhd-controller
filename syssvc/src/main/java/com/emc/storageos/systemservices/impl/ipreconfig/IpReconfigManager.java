@@ -89,9 +89,7 @@ public class IpReconfigManager implements Runnable {
     public Map<String, String> getIpProps() {
         // 1. Load cluster network property file
         try {
-            if (ipProperties == null) {
-                ipProperties = FileUtils.readProperties(IpReconfigConstants.CLUSTER_NETWORK_PROPFILE);
-            }
+            ipProperties = FileUtils.readProperties(IpReconfigConstants.CLUSTER_NETWORK_PROPFILE);
         } catch (Exception e) {
             log.error("Failed to get cluster ip properties.");
             return null;

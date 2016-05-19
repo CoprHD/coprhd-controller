@@ -173,6 +173,8 @@ public class ClusterIpInfo implements Serializable {
                 return errmsg;
             }
         }
+
+        // TODO: unique detection among sites.
         return errmsg;
     }
 

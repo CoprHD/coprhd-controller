@@ -61,7 +61,7 @@ import com.emc.storageos.volumecontroller.impl.smis.SmisException;
 import com.emc.storageos.volumecontroller.impl.smis.ibm.IBMCIMObjectPathFactory;
 import com.emc.storageos.volumecontroller.impl.smis.ibm.IBMSmisConstants;
 import com.emc.storageos.volumecontroller.impl.utils.ExportMaskUtils;
-import com.emc.storageos.volumecontroller.impl.xiv.XIVRESTOperationsHelper;
+import com.emc.storageos.volumecontroller.impl.xiv.XIVRestOperationsHelper;
 import com.google.common.base.Joiner;
 import com.google.common.base.Strings;
 
@@ -86,7 +86,7 @@ public class XIVExportOperations implements ExportMaskOperations {
     private XIVSmisCommandHelper _helper;
     private DbClient _dbClient;
     private IBMCIMObjectPathFactory _cimPath;
-    private XIVRESTOperationsHelper _restAPIHelper;
+    private XIVRestOperationsHelper _restAPIHelper;
 
     @Autowired
     private NetworkDeviceController _networkDeviceController;
@@ -104,7 +104,7 @@ public class XIVExportOperations implements ExportMaskOperations {
         _dbClient = dbClient;
     }
     
-    public void setRestOperationsHelper(XIVRESTOperationsHelper helper) {
+    public void setRestOperationsHelper(XIVRestOperationsHelper helper) {
         _restAPIHelper = helper;
     }
 

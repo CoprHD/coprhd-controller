@@ -1572,15 +1572,18 @@
         <property name="dbClient" ref="dbclient"/>
     </bean>
     
-    <bean id="xivapifactory" class="com.emc.storageos.xiv.api.XIVApiFactory"
-		init-method="init" destroy-method="shutdown">
-	   <property name="connectionTimeoutMs" value="30000"/>
-	   <property name="connManagerTimeout" value="60000"/>
-       <property name="socketConnectionTimeoutMs" value="7200000" />	
-	</bean>
-	
-	<bean id="xivRestOperationsHelper" class="com.emc.storageos.volumecontroller.impl.xiv.XIVRESTOperationsHelper">
+	<bean id="xivRestOperationsHelper" class="com.emc.storageos.volumecontroller.impl.xiv.XIVRestOperationsHelper">
         <property name="dbClient" ref="dbclient"/>
-        <property name="restAPIFactory" ref="xivapifactory"/>
+        <property name="xivRestClientFactory" ref="xivRestClientFactory"/>
     </bean>
+    
+	<bean id="xivRestClientFactory" class="com.emc.storageos.xiv.api.XIVRestClientFactory" init-method="init" >
+        <property name="connectionTimeoutMs" value="30000"/>
+        <property name="maxConnections" value="300"/>
+        <property name="maxConnectionsPerHost" value="100"/>
+        <property name="socketConnectionTimeoutMs" value="3600000" />
+        <property name="connManagerTimeout" value="60000" />
+        <property name="needCertificateManager" value="true"/>
+    </bean>
+    
 </beans>

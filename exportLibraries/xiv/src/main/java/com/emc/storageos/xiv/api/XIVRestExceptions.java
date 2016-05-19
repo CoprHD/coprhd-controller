@@ -60,4 +60,12 @@ public interface XIVRestExceptions {
     @DeclareServiceCode(ServiceCode.XIV_COMMAND_FAILURE)
     public Exception refreshExistingMaskFailure(final String message);
 
+    @DeclareServiceCode(ServiceCode.XIV_COMMAND_FAILURE)
+    public XIVRestException authenticationFailure(String uri) ;
+
+    @DeclareServiceCode(ServiceCode.XIV_COMMAND_FAILURE)
+    public XIVRestException resourceNotFound(String uri);
+
+    @DeclareServiceCode(ServiceCode.XIV_COMMAND_FAILURE)
+    public XIVRestException internalError(String uri, String object);
 }

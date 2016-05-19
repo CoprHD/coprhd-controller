@@ -33,12 +33,7 @@ import com.sun.jersey.api.client.filter.LoggingFilter;
 public class XIVRestClient extends StandardRestClient{
 
     private static Logger _log = LoggerFactory.getLogger(XIVRestClient.class);
-    protected Client _client;
-    protected String _username;
-    protected String _password;
-    protected URI _base;
-    
-    public static final String ERROR_CODE = "httpStatusCode";
+    private static final String ERROR_CODE = "httpStatusCode";
 
     private static final String SEPARATOR = ":";
     private static final String NAME = "name";
@@ -194,6 +189,7 @@ public class XIVRestClient extends StandardRestClient{
         _base = baseURI;
         _username = username;
         _password = password;
+        _client.addFilter(new HTTPBasicAuthFilter(username, password));
     }
     
     /**
@@ -240,27 +236,7 @@ public class XIVRestClient extends StandardRestClient{
     @Override
     protected int checkResponse(URI uri, ClientResponse response) {
         ClientResponse.Status status = response.getClientResponseStatus();
-        int errorCode = status.getStatusCode();
-        if (errorCode >= 300) {
-            JSONObject obj = null;
-            int code = 0;
-            try {
-                obj = response.getEntity(JSONObject.class);
-                code = obj.getInt(ERROR_CODE);
-            } catch (Exception e) {
-                _log.error("Parsing the failure response object failed", e);
-            }
-
-            if (code == 404 || code == 410) {
-                throw XIVRestException.exceptions.resourceNotFound(uri.toString());
-            } else if (code == 401) {
-                throw XIVRestException.exceptions.authenticationFailure(uri.toString());
-            } else {
-                throw XIVRestException.exceptions.internalError(uri.toString(), obj.toString());
-            }
-        } else {
-            return errorCode;
-        }
+        return status.getStatusCode();
     }
 
     /**

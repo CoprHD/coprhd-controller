@@ -67,5 +67,5 @@ public interface XIVRestExceptions {
     public XIVRestException resourceNotFound(String uri);
 
     @DeclareServiceCode(ServiceCode.XIV_COMMAND_FAILURE)
-    public XIVRestException internalError(String uri, String object);
+    public XIVRestException internalError(String uri);
 }

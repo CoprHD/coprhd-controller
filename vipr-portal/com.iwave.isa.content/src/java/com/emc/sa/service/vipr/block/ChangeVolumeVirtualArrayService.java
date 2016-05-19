@@ -26,10 +26,10 @@ public class ChangeVolumeVirtualArrayService extends ViPRService {
     @Param(ServiceParams.TARGET_VIRTUAL_ARRAY)
     private URI targetVirtualArray;
 
-    @Param(ServiceParams.MIGRATION_TYPE)
+    @Param(value = ServiceParams.MIGRATION_TYPE, required = false)
     private String migrationType;
 
-    @Param(ServiceParams.LINUX_HOST)
+    @Param(value = ServiceParams.HOST, required = false)
     private URI migrationHost;
 
     @Override

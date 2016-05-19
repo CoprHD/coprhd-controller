@@ -33,7 +33,7 @@ public class ChangeVirtualPoolService extends ViPRService {
     @Param(value = ServiceParams.MIGRATION_TYPE, required = false)
     private String migrationType;
 
-    @Param(value = ServiceParams.LINUX_HOST, required = false)
+    @Param(value = ServiceParams.HOST, required = false)
     private URI migrationHost;
 
     @Override

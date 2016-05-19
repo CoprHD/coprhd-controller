@@ -13,7 +13,6 @@ public interface ServiceParams {
     public String SIZE_IN_GB = "size";
     public String SIZE_BOOT_VOL_IN_GB = "sizeBootVols";
     public String HOST = "host";
-    public String LINUX_HOST = "linuxHost";
     public String VCENTER = "vcenter";
     public String DATASTORE = "datastore";
     public String DATASTORE_NAME = "datastoreName";

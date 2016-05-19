@@ -232,9 +232,9 @@ public abstract class TaskCompleter implements Serializable {
             case suspended_no_error:
                 for (URI id : _ids) {
                     if(message == null)
-                        dbClient.suspended(_clazz, id, _opId);
+                        dbClient.suspended_no_error(_clazz, id, _opId);
                     else
-                        dbClient.suspended(_clazz, id, _opId, message);
+                        dbClient.suspended_no_error(_clazz, id, _opId, message);
                 }
                 break;
             default:

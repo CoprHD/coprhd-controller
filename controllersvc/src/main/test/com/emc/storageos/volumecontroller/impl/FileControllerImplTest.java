@@ -243,14 +243,14 @@ public class FileControllerImplTest {
         }
 
         @Override
-        public Operation suspended(Class<? extends DataObject> clazz, URI id,
+        public Operation suspended_no_error(Class<? extends DataObject> clazz, URI id,
                 String opId, String message) throws DatabaseException {
             // TODO Auto-generated method stub
             return null;
         }
 
         @Override
-        public Operation suspended(Class<? extends DataObject> clazz, URI id,
+        public Operation suspended_no_error(Class<? extends DataObject> clazz, URI id,
                 String opId) throws DatabaseException {
             // TODO Auto-generated method stub
             return null;
@@ -409,6 +409,18 @@ public class FileControllerImplTest {
         public boolean hasUsefulData() {
             // TODO Auto-generated method stub
             return false;
+        }
+
+        @Override
+        public Operation suspended_error(Class<? extends DataObject> clazz, URI id, String opId, String message) throws DatabaseException {
+            // TODO Auto-generated method stub
+            return null;
+        }
+
+        @Override
+        public Operation suspended_error(Class<? extends DataObject> clazz, URI id, String opId) throws DatabaseException {
+            // TODO Auto-generated method stub
+            return null;
         }
     }
 

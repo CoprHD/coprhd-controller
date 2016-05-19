@@ -1690,7 +1690,7 @@ public class DbClientImpl implements DbClient {
     }
 
     @Override
-    public Operation suspended(Class<? extends DataObject> clazz, URI id,
+    public Operation suspended_no_error(Class<? extends DataObject> clazz, URI id,
             String opId, String message) throws DatabaseException {
         Operation updateOperation = new Operation();
         updateOperation.suspendedNoError(message);
@@ -1698,13 +1698,29 @@ public class DbClientImpl implements DbClient {
     }
     
     @Override
-    public Operation suspended(Class<? extends DataObject> clazz, URI id,
+    public Operation suspended_no_error(Class<? extends DataObject> clazz, URI id,
             String opId) throws DatabaseException {
         Operation updateOperation = new Operation();
         updateOperation.suspendedNoError();
         return updateTaskStatus(clazz, id, opId, updateOperation);
     }
 
+    @Override
+    public Operation suspended_error(Class<? extends DataObject> clazz, URI id,
+            String opId, String message) throws DatabaseException {
+        Operation updateOperation = new Operation();
+        updateOperation.suspendedError(message);
+        return updateTaskStatus(clazz, id, opId, updateOperation);
+    }
+    
+    @Override
+    public Operation suspended_error(Class<? extends DataObject> clazz, URI id,
+            String opId) throws DatabaseException {
+        Operation updateOperation = new Operation();
+        updateOperation.suspendedError();
+        return updateTaskStatus(clazz, id, opId, updateOperation);
+    }
+    
     @Override
     public Operation pending(Class<? extends DataObject> clazz, URI id, String opId, String message) throws DatabaseException {
         Operation updateOperation = new Operation();

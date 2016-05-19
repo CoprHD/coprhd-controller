@@ -1128,6 +1128,7 @@ public class DbClientImpl implements DbClient {
         for (T object : dataobjects) {
             checkGeoVersionForMutation(object);
             DataObjectType doType = TypeMap.getDoType(object.getClass());
+            _log.info("hlj tablename={}",doType.getCF().getName());
             RowMutatorDS mutatorDS = new RowMutatorDS(getSession(object.getClass()), doType.getCF().getName());
             _log.info("hlj start class={} mutatorDS={}", object.getClass(), mutatorDS);
 

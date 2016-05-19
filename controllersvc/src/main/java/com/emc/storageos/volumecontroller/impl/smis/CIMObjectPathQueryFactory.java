@@ -32,7 +32,7 @@ import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
-import com.sun.xml.internal.xsom.impl.scd.Iterators.Map
+import com.sun.xml.internal.xsom.impl.scd.Iterators.Map;
 
 /**
  * This class uses WBEM queries to acquire the CIMObjectPath instances directly from the Provider.

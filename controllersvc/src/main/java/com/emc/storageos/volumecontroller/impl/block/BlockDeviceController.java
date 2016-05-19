@@ -246,6 +246,8 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
     private static final String UPDATE_VOLUMES_STEP_GROUP = "UPDATE_VOLUMES";
     public static final String DELETE_GROUP_STEP_GROUP = "DELETE_GROUP";
     private static final String RESTORE_FROM_FULLCOPY_STEP = "restoreFromFullCopy";
+    
+    private static final String METHOD_CREATE_FULL_COPY_STEP = "createFullCopy";
 
     public void setDbClient(DbClient dbc) {
         _dbClient = dbc;
@@ -3278,6 +3280,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
     static final String SNAPSHOT_DELETE_STEP_GROUP = "deleteSnapshotStepGroup";
     static final String MIRROR_FRACTURE_STEP_GROUP = "fractureMirrorStepGroup";
     static final String MIRROR_DETACH_STEP_GROUP = "detachMirrorStepGroup";
+    static final String FULL_COPY_CREATE_ORCHESTRATION_STEP = "createFullCopiesOrchestrationStep";
 
     @Override
     public void createFullCopy(URI storage, List<URI> fullCopyVolumes, Boolean createInactive,
@@ -6535,6 +6538,64 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                 this.getClass(), restoreFromFullcopyMethod, null, null);
         _log.info("Created workflow step to restore volume from full copies");
 
+        return waitFor;
+    }
+
+    /* (non-Javadoc)
+     * @see com.emc.storageos.blockorchestrationcontroller.BlockOrchestrationInterface#addStepsForCreateFullCopy(com.emc.storageos.workflow.Workflow, java.lang.String, java.util.List, java.lang.StringBuffer, java.lang.String)
+     */
+    @Override
+    public String addStepsForCreateFullCopy(Workflow workflow, String waitFor, List<VolumeDescriptor> volumeDescriptors,
+            String taskId) throws InternalException {
+        
+        List<VolumeDescriptor> blockVolmeDescriptors = VolumeDescriptor.filterByType(volumeDescriptors,
+                new VolumeDescriptor.Type[] { VolumeDescriptor.Type.BLOCK_DATA, VolumeDescriptor.Type.VPLEX_IMPORT_VOLUME },
+                new VolumeDescriptor.Type[] {});
+        
+        // If no volumes to create, just return
+        if (blockVolmeDescriptors.isEmpty()) {
+            return waitFor;
+        }
+        
+        URI storageURI = null;
+        boolean createInactive = false;
+
+        List<URI> fullCopyList = new ArrayList<URI>();
+        for (VolumeDescriptor descriptor : blockVolmeDescriptors) {
+            Volume volume = _dbClient.queryObject(Volume.class, descriptor.getVolumeURI());
+            if (volume != null && !volume.getInactive()) {
+                URI parentId = volume.getAssociatedSourceVolume();
+                if (!NullColumnValueGetter.isNullURI(parentId)) {
+                    fullCopyList.add(volume.getId());
+                    storageURI = volume.getStorageController();
+                    createInactive = Boolean.getBoolean(descriptor.getCapabilitiesValues().getReplicaCreateInactive());
+                }
+            }
+        }
+        
+        if (!fullCopyList.isEmpty()) {
+            String stepId = workflow.createStepId();
+            // Now add the steps to create the block full copy on the storage system
+            StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, storageURI);
+            Workflow.Method createFullCopyMethod = new Workflow.Method(METHOD_CREATE_FULL_COPY_STEP, storageURI, fullCopyList,
+                    createInactive);
+            Workflow.Method nullRollbackMethod = new Workflow.Method(ROLLBACK_METHOD_NULL);
+
+            waitFor = workflow.createStep(FULL_COPY_CREATE_ORCHESTRATION_STEP, "Create Block Full Copy", waitFor, storageSystem.getId(),
+                    storageSystem.getSystemType(), this.getClass(), createFullCopyMethod, nullRollbackMethod, stepId);
+            _log.info(String.format("Added %s step [%s] in workflow", FULL_COPY_CREATE_STEP_GROUP, stepId));
+        }
+        
+        return waitFor;
+    }
+
+    /* (non-Javadoc)
+     * @see com.emc.storageos.blockorchestrationcontroller.BlockOrchestrationInterface#addStepsForPostCreateReplica(com.emc.storageos.workflow.Workflow, java.lang.String, java.util.List, java.lang.StringBuffer, java.lang.String)
+     */
+    @Override
+    public String addStepsForPostCreateReplica(Workflow workflow, String waitFor, List<VolumeDescriptor> volumeDescriptors,
+            String taskId) throws InternalException {
+        // nothing to do post create replica
         return waitFor;
     }
 }

@@ -79,6 +79,16 @@ public interface BlockOrchestrationController extends Controller {
             String taskId) throws ControllerException;
     
     /**
+     * Create full copies with the passed volume descriptors.
+     * 
+     * @param volumes
+     * @param taskId
+     * @throws InternalException
+     */
+    public void createFullCopy(List<VolumeDescriptor> volumeDescriptors, String taskId)
+            throws InternalException;
+    
+    /**
      * Restore contents the source volumes from the full copies with the passed
      * URIs.
      * 

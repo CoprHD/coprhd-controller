@@ -21,14 +21,12 @@ import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
-import com.emc.storageos.migrationorchestrationcontroller.MigrationOrchestrationDeviceController;
 import com.emc.storageos.migrationorchestrationcontroller.MigrationOrchestrationInterface;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.volumecontroller.impl.ControllerServiceImpl;
-import com.emc.storageos.volumecontroller.impl.block.BlockDeviceController;
 import com.emc.storageos.volumecontroller.impl.job.QueueJob;
 import com.emc.storageos.vplexcontroller.completers.MigrationTaskCompleter;
 import com.emc.storageos.workflow.Workflow;
@@ -42,12 +40,12 @@ public class NativeMigrationDeviceController implements MigrationOrchestrationIn
 
     private static volatile NativeMigrationDeviceController _instance;
     private WorkflowService _workflowService;
-    private MigrationControllerWrokFlowUtil _migrationControllerWrokFlowUtil;
+    private MigrationControllerWorkFlowUtil _migrationControllerWorkFlowUtil;
 
     private static final String MIGRATION_NAME_PREFIX = "M_";
     private static final String MIGRATION_NAME_DATE_FORMAT = "yyMMdd-HHmmss-SSS";
 
-    private final BlockDeviceController _blockDeviceController = MigrationOrchestrationDeviceController.getBlockDeviceController();
+    // private final BlockDeviceController _blockDeviceController = MigrationOrchestrationDeviceController.getBlockDeviceController();
 
     public NativeMigrationDeviceController() {
         _instance = this;
@@ -61,8 +59,8 @@ public class NativeMigrationDeviceController implements MigrationOrchestrationIn
         this._workflowService = workflowService;
     }
 
-    public void setMigrationControllerWrokFlowUtil(MigrationControllerWrokFlowUtil migrationControllerWrokFlowUtil) {
-        this._migrationControllerWrokFlowUtil = migrationControllerWrokFlowUtil;
+    public void setMigrationControllerWrokFlowUtil(MigrationControllerWorkFlowUtil migrationControllerWorkFlowUtil) {
+        this._migrationControllerWorkFlowUtil = migrationControllerWorkFlowUtil;
 
     }
     @Override
@@ -173,15 +171,15 @@ public class NativeMigrationDeviceController implements MigrationOrchestrationIn
                         _log.info("migration controller migrate volume {} on storage system{}",
                                 generalVolumeURI, storageURI);
 
-                        waitForStep = _migrationControllerWrokFlowUtil.createWorkflowStepsForMigrateGeneralVolumes(workflow, storageURI,
+                        waitForStep = _migrationControllerWorkFlowUtil.createWorkflowStepsForMigrateGeneralVolumes(workflow, storageURI,
                                 generalVolumeURI, newVolumes, newVpoolURI, null, migrationMap, waitFor);
                         _log.info("Created workflow steps for volume migration.");
 
-                        waitForStep = _migrationControllerWrokFlowUtil.createWorkflowStepsForCommitMigration(workflow, storageURI,
+                        waitForStep = _migrationControllerWorkFlowUtil.createWorkflowStepsForCommitMigration(workflow, storageURI,
                                 generalVolumeURI, migrationMap, waitForStep);
                         _log.info("Created workflow steps for commit migration.");
 
-                        lastStep = _migrationControllerWrokFlowUtil.createWorkflowStepsForDeleteMigrationSource(workflow, storageURI,
+                        lastStep = _migrationControllerWorkFlowUtil.createWorkflowStepsForDeleteMigrationSource(workflow, storageURI,
                                 generalVolumeURI, newVpoolURI, null, migrationMap, waitForStep);
                         _log.info("Created workflow steps for commit migration.");
                     } catch (Exception e) {
@@ -195,7 +193,7 @@ public class NativeMigrationDeviceController implements MigrationOrchestrationIn
                 // systemConsistencyGroup specified for the group.
                 if (!NullColumnValueGetter.isNullURI(cgURI)) {
                     _log.info("Vpool change volumes are in CG {}", cgURI);
-                    lastStep = _migrationControllerWrokFlowUtil.createWorkflowStepsForDeleteConsistencyGroup(workflow, cgURI,
+                    lastStep = _migrationControllerWorkFlowUtil.createWorkflowStepsForDeleteConsistencyGroup(workflow, cgURI,
                             localSystemsToRemoveCG, lastStep);
                 }
             }

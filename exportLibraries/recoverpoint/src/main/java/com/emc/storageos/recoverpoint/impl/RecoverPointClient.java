@@ -79,6 +79,7 @@ import com.emc.fapiclient.ws.RpoPolicy;
 import com.emc.fapiclient.ws.SnapshotGranularity;
 import com.emc.fapiclient.ws.SnapshotShippingMode;
 import com.emc.fapiclient.ws.SnapshotShippingPolicy;
+import com.emc.fapiclient.ws.StorageAccessState;
 import com.emc.fapiclient.ws.SyncReplicationThreshold;
 import com.emc.fapiclient.ws.SystemStatistics;
 import com.emc.fapiclient.ws.UserVolumeSettings;
@@ -2460,8 +2461,9 @@ public class RecoverPointClient {
         ConsistencyGroupCopyUID cgCopyUID = RecoverPointUtils.mapRPVolumeProtectionInfoToCGCopyUID(copyParams.getCopyVolumeInfo());
         ConsistencyGroupCopyState copyState = imageManager.getCopyState(functionalAPI, cgCopyUID);
 
-        if (copyState != null && copyState.getAccessedImage() == null) {
-            // Enable to the latest image
+        if (copyState != null && copyState.getAccessedImage() == null &&
+                !StorageAccessState.DIRECT_ACCESS.equals(copyState.getStorageAccessState())) {
+            // Enable image access to the latest snapshot if copy image access isn't already enabled.
             failoverCopy(copyParams);
         }
 

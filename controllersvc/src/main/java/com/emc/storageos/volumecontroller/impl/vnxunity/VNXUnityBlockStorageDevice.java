@@ -248,6 +248,11 @@ public class VNXUnityBlockStorageDevice extends VNXUnityOperations
         Map<String, List<String>> cgNameMap = new HashMap<String, List<String>>();
         try {
             for (Volume volume : volumes) {
+                String lunId = volume.getNativeId();
+                if (!apiClient.checkLunExists(lunId)) {
+                    logger.info(String.format("The volume %s does not exist in the array, do nothing", volume.getLabel()));
+                    continue;
+                }
                 String cgName = volume.getReplicationGroupInstance();
                 if (NullColumnValueGetter.isNotNullValue(cgName)) {
                     List<String> lunIds = cgNameMap.get(cgName);

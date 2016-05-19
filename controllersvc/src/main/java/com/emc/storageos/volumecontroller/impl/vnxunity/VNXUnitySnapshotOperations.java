@@ -185,8 +185,8 @@ public class VNXUnitySnapshotOperations extends VNXeSnapshotOperation {
             Snap snap = apiClient.getSnapshot(snapshotObj.getNativeId());
             // Error out if the snapshot is attached
             if (snap.isAttached()) {
-                log.error("Snapshot {})is attached and cannot be used for restore, please unexport it first", snapshotObj.getLabel());
-                ServiceError error = DeviceControllerErrors.vnxe.cannotRestoreAttachedSnapshot(snapshot.toString());
+                log.error("Snapshot {})is exported and cannot be used for restore, please unexport it first", snapshotObj.getLabel());
+                ServiceError error = DeviceControllerErrors.vnxe.cannotRestoreAttachedSnapshot(snapshotObj.getLabel());
                 taskCompleter.error(_dbClient, error);
             }
 
@@ -218,8 +218,8 @@ public class VNXUnitySnapshotOperations extends VNXeSnapshotOperation {
             Snap snap = apiClient.getSnapshot(snapshotObj.getNativeId());
             // Error out if the snapshot is attached
             if (snap.isAttached()) {
-                log.error("Snapshot {})is attached and cannot be used for restore", snapshotObj.getLabel());
-                ServiceError error = DeviceControllerErrors.vnxe.cannotRestoreAttachedSnapshot(snapshot.toString());
+                log.error("Snapshot {})is exported and cannot be used for restore", snapshotObj.getLabel());
+                ServiceError error = DeviceControllerErrors.vnxe.cannotRestoreAttachedSnapshot(snapshotObj.getLabel());
                 taskCompleter.error(_dbClient, error);
             }
             VNXeCommandJob job = apiClient.restoreSnap(groupSnap.getId());

@@ -167,5 +167,28 @@ public class BlockLunRequests extends KHRequests<VNXeLun> {
         return result;
 
     }
+    
+    /**
+     * Check if lun exists in the array
+     * 
+     * @param lunId
+     * @return
+     */
+    public boolean checkLunExists(String lunId) {
+        _url = URL_LUNS;
+        String filter = null;
+        if (_client.isUnity()) {
+            filter = VNXeConstants.ID_FILTER+"\""+lunId+"\"";
+        } else {
+            filter = VNXeConstants.ID_FILTER + lunId;
+        }
+        setFilter(filter);
+        boolean found = false;
+        List<VNXeLun> luns = getDataForObjects(VNXeLun.class);
+        if (luns != null && !luns.isEmpty()) {
+            found = true;
+        }
+        return found;
+    }
 
 }

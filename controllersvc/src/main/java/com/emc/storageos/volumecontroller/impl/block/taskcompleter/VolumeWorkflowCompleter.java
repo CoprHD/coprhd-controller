@@ -67,10 +67,10 @@ public class VolumeWorkflowCompleter extends VolumeTaskCompleter {
                     dbClient.suspended_error(Volume.class, id, getOpId());
                 }
                 if (isNotifyWorkflow()) {
-                    WorkflowStepCompleter.stepSuspendedError(getOpId());
+                    WorkflowStepCompleter.stepSuspendedError(getOpId(), serviceCoded);
                 }
                 break;
-                
+
             default:
                 if (isNotifyWorkflow()) {
                     WorkflowStepCompleter.stepExecuting(getOpId());

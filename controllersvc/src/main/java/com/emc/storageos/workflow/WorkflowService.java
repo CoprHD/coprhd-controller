@@ -1798,6 +1798,11 @@ public class WorkflowService implements WorkflowController {
                 _log.info(String.format("Child workflow %s state %s is not suspended and will not be resumed", uri, state));
                 return;
             }
+
+            if (workflow._taskCompleter != null) {
+                workflow._taskCompleter.statusPending(_dbClient, "Resuming workflow");
+            }
+
             workflowLock = lockWorkflow(workflow);
             Map<String, com.emc.storageos.db.client.model.Workflow> childWFMap = getChildWorkflowsMap(workflow);
             removeRollbackSteps(workflow);
@@ -2399,9 +2404,9 @@ public class WorkflowService implements WorkflowController {
         _instance.updateStepStatus(stepId, StepState.SUSPENDED_NO_ERROR, null, "Step has been suspended due to configuration or request");
     }
 
-    public static void completerStepSuspendedError(String stepId)
+    public static void completerStepSuspendedError(String stepId, ServiceCoded coded)
             throws WorkflowException {
-        _instance.updateStepStatus(stepId, StepState.SUSPENDED_ERROR, null, "Step has been suspended due to an error");
+        _instance.updateStepStatus(stepId, StepState.SUSPENDED_ERROR, coded.getServiceCode(), "Step has been suspended due to an error");
     }
 
     public WorkflowScrubberExecutor getScrubber() {

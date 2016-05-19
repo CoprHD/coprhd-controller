@@ -158,7 +158,8 @@ public abstract class TaskCompleter implements Serializable {
      * Update the Operation status of the overall task to "ready" and the current workflow step to "success" (if any)
      * 
      * @param dbClient
-     * @throws DeviceControllerException TODO
+     * @throws DeviceControllerException
+     *             TODO
      */
     public void ready(DbClient dbClient) throws DeviceControllerException {
         complete(dbClient, Status.ready, null);
@@ -172,7 +173,8 @@ public abstract class TaskCompleter implements Serializable {
      * Update the Operation status of the task to "error" and the current workflow step to "error" too (if any)
      * 
      * @param dbClient
-     * @param message String message from controller
+     * @param message
+     *            String message from controller
      * @throws DeviceControllerException
      */
     public void error(DbClient dbClient, ServiceCoded serviceCoded) throws DeviceControllerException {
@@ -184,11 +186,13 @@ public abstract class TaskCompleter implements Serializable {
     }
 
     public void suspendedNoError(DbClient dbClient, ControllerLockingService locker) throws DeviceControllerException {
-        complete(dbClient, locker, Status.suspended_no_error, (ServiceCoded)null);
+        complete(dbClient, locker, Status.suspended_no_error, (ServiceCoded) null);
     }
 
-    public void suspendedError(DbClient dbClient, ControllerLockingService locker, ServiceCoded serviceCoded) throws DeviceControllerException {
-        complete(dbClient, locker, Status.suspended_error, serviceCoded!=null?serviceCoded:DeviceControllerException.errors.unforeseen());
+    public void suspendedError(DbClient dbClient, ControllerLockingService locker, ServiceCoded serviceCoded)
+            throws DeviceControllerException {
+        complete(dbClient, locker, Status.suspended_error,
+                serviceCoded != null ? serviceCoded : DeviceControllerException.errors.unforeseen());
     }
 
     public void statusReady(DbClient dbClient) throws DeviceControllerException {
@@ -231,7 +235,7 @@ public abstract class TaskCompleter implements Serializable {
                 break;
             case suspended_no_error:
                 for (URI id : _ids) {
-                    if(message == null)
+                    if (message == null)
                         dbClient.suspended_no_error(_clazz, id, _opId);
                     else
                         dbClient.suspended_no_error(_clazz, id, _opId, message);
@@ -239,7 +243,7 @@ public abstract class TaskCompleter implements Serializable {
                 break;
             case suspended_error:
                 for (URI id : _ids) {
-                    if(message == null)
+                    if (message == null)
                         dbClient.suspended_error(_clazz, id, _opId);
                     else
                         dbClient.suspended_error(_clazz, id, _opId, message);
@@ -283,13 +287,20 @@ public abstract class TaskCompleter implements Serializable {
     /**
      * Update a Workflow Step State.
      * 
-     * @param state Workflow.StepState
+     * @param state
+     *            Workflow.StepState
      * @param coded
      * @throws WorkflowException
      */
     protected void updateWorkflowState(Workflow.StepState state, ServiceCoded coded)
             throws WorkflowException {
         switch (state) {
+            case SUSPENDED_ERROR:
+                WorkflowStepCompleter.stepSuspendedError(getOpId(), coded);
+                break;
+            case SUSPENDED_NO_ERROR:
+                WorkflowStepCompleter.stepSuspendedNoError(getOpId());
+                break;
             case ERROR:
                 WorkflowStepCompleter.stepFailed(getOpId(), coded);
                 break;
@@ -305,19 +316,20 @@ public abstract class TaskCompleter implements Serializable {
     /**
      * Update a Workflow Step by using the Operation.Status.
      * 
-     * @param status Operation.Status
+     * @param status
+     *            Operation.Status
      * @param coded
      * @throws WorkflowException
      */
     protected void updateWorkflowStatus(Operation.Status status, ServiceCoded coded)
             throws WorkflowException {
         switch (status) {
-           case suspended_no_error:
-        	   WorkflowStepCompleter.stepSuspendedNoError(getOpId());
-        	   break;
-           case suspended_error:
-        	   WorkflowStepCompleter.stepSuspendedError(getOpId());
-        	   break;
+            case suspended_no_error:
+                WorkflowStepCompleter.stepSuspendedNoError(getOpId());
+                break;
+            case suspended_error:
+                WorkflowStepCompleter.stepSuspendedError(getOpId(), coded);
+                break;
             case error:
                 WorkflowStepCompleter.stepFailed(getOpId(), coded);
                 break;
@@ -332,7 +344,8 @@ public abstract class TaskCompleter implements Serializable {
     /**
      * Update the workflow step context
      * 
-     * @param context context information
+     * @param context
+     *            context information
      */
     public void updateWorkflowStepContext(Object context) {
         WorkflowService.getInstance().storeStepData(getOpId(), context);
@@ -342,10 +355,14 @@ public abstract class TaskCompleter implements Serializable {
     /**
      * Set the error status of the dataObject referred by the uri
      * 
-     * @param dbClient [in] - Database Client
-     * @param clazz [in] - Class in DataObject hierarchy
-     * @param uri [in] - URI of clazz
-     * @param coded [in] - ServiceCoded containing error message reference
+     * @param dbClient
+     *            [in] - Database Client
+     * @param clazz
+     *            [in] - Class in DataObject hierarchy
+     * @param uri
+     *            [in] - URI of clazz
+     * @param coded
+     *            [in] - ServiceCoded containing error message reference
      */
     protected void setErrorOnDataObject(DbClient dbClient, Class<? extends DataObject> clazz, URI uri,
             ServiceCoded coded) {
@@ -357,10 +374,14 @@ public abstract class TaskCompleter implements Serializable {
     /**
      * Set the error status of the dataObject
      * 
-     * @param dbClient [in] - Database Client
-     * @param clazz [in] - Class in DataObject hierarchy
-     * @param dObject [in] - DataObject of clazz
-     * @param coded [in] - ServiceCoded containing error message reference
+     * @param dbClient
+     *            [in] - Database Client
+     * @param clazz
+     *            [in] - Class in DataObject hierarchy
+     * @param dObject
+     *            [in] - DataObject of clazz
+     * @param coded
+     *            [in] - ServiceCoded containing error message reference
      */
     protected void setErrorOnDataObject(DbClient dbClient, Class<? extends DataObject> clazz, DataObject dObject,
             ServiceCoded coded) {
@@ -372,9 +393,12 @@ public abstract class TaskCompleter implements Serializable {
     /**
      * Set the ready status of the dataObject referred by the uri
      * 
-     * @param dbClient [in] - Database Client
-     * @param clazz [in] - Class in DataObject hierarchy
-     * @param uri [in] - URI of clazz
+     * @param dbClient
+     *            [in] - Database Client
+     * @param clazz
+     *            [in] - Class in DataObject hierarchy
+     * @param uri
+     *            [in] - URI of clazz
      */
     protected void setReadyOnDataObject(DbClient dbClient, Class<? extends DataObject> clazz, URI uri) {
         if (!NullColumnValueGetter.isNullURI(uri)) {
@@ -385,9 +409,12 @@ public abstract class TaskCompleter implements Serializable {
     /**
      * Set the ready status on the dataObject
      * 
-     * @param dbClient [in] - Database Client
-     * @param clazz [in] - Class in DataObject hierarchy
-     * @param dObject [in] - DataObject of clazz
+     * @param dbClient
+     *            [in] - Database Client
+     * @param clazz
+     *            [in] - Class in DataObject hierarchy
+     * @param dObject
+     *            [in] - DataObject of clazz
      */
     protected void setReadyOnDataObject(DbClient dbClient, Class<? extends DataObject> clazz, DataObject dObject) {
         if (dObject != null) {
@@ -398,9 +425,12 @@ public abstract class TaskCompleter implements Serializable {
     /**
      * Set the suspended error status of the dataObject referred by the uri
      * 
-     * @param dbClient [in] - Database Client
-     * @param clazz [in] - Class in DataObject hierarchy
-     * @param uri [in] - URI of clazz
+     * @param dbClient
+     *            [in] - Database Client
+     * @param clazz
+     *            [in] - Class in DataObject hierarchy
+     * @param uri
+     *            [in] - URI of clazz
      */
     protected void setSuspendedErrorOnDataObject(DbClient dbClient, Class<? extends DataObject> clazz, URI uri) {
         if (!NullColumnValueGetter.isNullURI(uri)) {
@@ -411,9 +441,12 @@ public abstract class TaskCompleter implements Serializable {
     /**
      * Set the suspended error status on the dataObject
      * 
-     * @param dbClient [in] - Database Client
-     * @param clazz [in] - Class in DataObject hierarchy
-     * @param dObject [in] - DataObject of clazz
+     * @param dbClient
+     *            [in] - Database Client
+     * @param clazz
+     *            [in] - Class in DataObject hierarchy
+     * @param dObject
+     *            [in] - DataObject of clazz
      */
     protected void setSuspendedErrorOnDataObject(DbClient dbClient, Class<? extends DataObject> clazz, DataObject dObject) {
         if (dObject != null) {
@@ -424,9 +457,12 @@ public abstract class TaskCompleter implements Serializable {
     /**
      * Set the suspended no-error status of the dataObject referred by the uri
      * 
-     * @param dbClient [in] - Database Client
-     * @param clazz [in] - Class in DataObject hierarchy
-     * @param uri [in] - URI of clazz
+     * @param dbClient
+     *            [in] - Database Client
+     * @param clazz
+     *            [in] - Class in DataObject hierarchy
+     * @param uri
+     *            [in] - URI of clazz
      */
     protected void setSuspendedNoErrorOnDataObject(DbClient dbClient, Class<? extends DataObject> clazz, URI uri) {
         if (!NullColumnValueGetter.isNullURI(uri)) {
@@ -437,16 +473,19 @@ public abstract class TaskCompleter implements Serializable {
     /**
      * Set the suspended no-error status on the dataObject
      * 
-     * @param dbClient [in] - Database Client
-     * @param clazz [in] - Class in DataObject hierarchy
-     * @param dObject [in] - DataObject of clazz
+     * @param dbClient
+     *            [in] - Database Client
+     * @param clazz
+     *            [in] - Class in DataObject hierarchy
+     * @param dObject
+     *            [in] - DataObject of clazz
      */
     protected void setSuspendedNoErrorOnDataObject(DbClient dbClient, Class<? extends DataObject> clazz, DataObject dObject) {
         if (dObject != null) {
             dbClient.suspended_no_error(clazz, dObject.getId(), getOpId());
         }
     }
-    
+
     protected void updateConsistencyGroupTasks(DbClient dbClient, Operation.Status status, ServiceCoded coded) {
         for (URI consistencyGroupId : getConsistencyGroupIds()) {
             _logger.info("Updating consistency group task: {}", consistencyGroupId);

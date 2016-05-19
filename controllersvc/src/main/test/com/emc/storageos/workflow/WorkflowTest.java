@@ -344,6 +344,17 @@ public class WorkflowTest extends ControllersvcTestBase implements Controller {
 
         taskStatusMap.put(taskId, WorkflowState.CREATED);
         workflowService.resumeWorkflow(workflow.getWorkflowURI(), UUID.randomUUID().toString());
+
+        // This will make sure the task goes into the pending state. Note: it's time-dependent so if you're debugging or
+        // changing the sleep times, this may not work properly.
+        try {
+            Thread.sleep(1000);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+        wfTask = dbClient.queryObject(Task.class, wfTask.getId());
+        assertTrue(wfTask.getStatus().equals("pending"));
+
         state = waitOnWorkflowComplete(taskId);
         printLog("Workflow state after resume: " + state);
         assertTrue(state == WorkflowState.SUCCESS);
@@ -403,6 +414,89 @@ public class WorkflowTest extends ControllersvcTestBase implements Controller {
         // third step
         lastStep = workflow.createStep("third deep", genMsg(0, 3, "sub"), lastStep, nullURI,
                 this.getClass().getName(), false, this.getClass(), deeplastnopMethod(0, 3), deeplastnopMethod(0, 3), null);
+
+        Operation op = dbClient.createTaskOpStatus(com.emc.storageos.db.client.model.Workflow.class, workflow.getWorkflowURI(),
+                taskId, ResourceOperationTypeEnum.CREATE_BLOCK_VOLUME);
+        // Execute and go
+        workflow.executePlan(completer, String.format("Workflow level %d successful", 0), new WorkflowCallback(), args, null, null);
+
+        // Generate a three step workflow.
+        com.emc.storageos.db.client.model.Workflow dbWF = dbClient.queryObject(com.emc.storageos.db.client.model.Workflow.class,
+                workflow.getWorkflowURI());
+        dbWF.getOpStatus().put(taskId, op);
+        Task wfTask = toTask(dbWF, taskId, op);
+
+        // Gather the steps from the DB and wait for the workflow to hit a known "stopped" state
+        Map<String, WorkflowStep> stepMap = readWorkflowFromDb(taskId);
+        WorkflowState state = waitOnWorkflowComplete(taskId);
+        printLog("Workflow state after suspend: " + state);
+        assertTrue(state == WorkflowState.SUSPENDED_NO_ERROR);
+        stepMap = readWorkflowFromDb(taskId);
+        validateStepStates(stepMap, testaSuccessSteps, testaErrorSteps, testaCancelledSteps, testaSuspendedSteps);
+        wfTask = dbClient.queryObject(Task.class, wfTask.getId());
+        assertTrue(wfTask.getStatus().equals("suspended_no_error"));
+        // Verify the completion state was filled in
+        dbWF = dbClient.queryObject(com.emc.storageos.db.client.model.Workflow.class,
+                workflow.getWorkflowURI());
+        assertNotNull(dbWF.getCompletionState());
+        assertEquals(String.format("Workflow completion state found: " + dbWF.getCompletionState()), dbWF.getCompletionState(),
+                "SUSPENDED_NO_ERROR");
+
+        taskStatusMap.put(taskId, WorkflowState.CREATED);
+        workflowService.resumeWorkflow(workflow.getWorkflowURI(), UUID.randomUUID().toString());
+        state = waitOnWorkflowComplete(taskId);
+        printLog("Workflow state after resume: " + state);
+        assertTrue(state == WorkflowState.SUCCESS);
+        stepMap = readWorkflowFromDb(taskId);
+        validateStepStates(stepMap, testbSuccessSteps, testbErrorSteps, testbCancelledSteps, testbSuspendedSteps);
+        wfTask = dbClient.queryObject(Task.class, wfTask.getId());
+        assertTrue(wfTask.getStatus().equals("ready"));
+        // Verify the completion state was filled in
+        dbWF = dbClient.queryObject(com.emc.storageos.db.client.model.Workflow.class,
+                workflow.getWorkflowURI());
+        assertNotNull(dbWF.getCompletionState());
+        assertEquals(String.format("Workflow completion state found: " + dbWF.getCompletionState()), dbWF.getCompletionState(),
+                "SUCCESS");
+        sleepMillis = 0;
+        printLog(testname + " completed");
+    }
+
+    @Test
+    /**
+     * This test sets a class and method to suspend, makes sure it suspends, and continues it.
+     * The result should be a fully successful workflow.
+     */
+    public void test_one_wf_one_step_method_suspend_first_step_resume_task_verification() {
+        // Expected results for this test case
+        final String[] testaSuccessSteps = {};
+        final String[] testaErrorSteps = {};
+        final String[] testaCancelledSteps = {};
+        final String[] testaSuspendedSteps = { "L0S1 sub" };
+
+        final String[] testbSuccessSteps = { "L0S1 sub" };
+        final String[] testbErrorSteps = {};
+        final String[] testbCancelledSteps = {};
+        final String[] testbSuspendedSteps = {};
+
+        final String testname = new Object() {}.getClass().getEnclosingMethod().getName();
+        printLog(testname + " started");
+        injectedFailures.clear();
+        sleepMillis = SLEEP_MILLIS;
+
+        // We're not allowed to (and probably shouldn't) change system properties in the unit tester.
+        // So we can override the class/method directly in the Workflow Service.
+        workflowService.setSuspendClassMethodTestOnly(this.getClass().getSimpleName() + ".deepfirstnop");
+        workflowService.setSuspendOnErrorTestOnly(true);
+
+        String taskId = UUID.randomUUID().toString();
+        String[] args = new String[1];
+        args[0] = taskId;
+        taskStatusMap.put(taskId, WorkflowState.CREATED);
+        Workflow workflow = workflowService.getNewWorkflow(this, "generate3StepWF", false, taskId);
+        WorkflowTaskCompleter completer = new WorkflowTaskCompleter(workflow.getWorkflowURI(), taskId);
+        // first step
+        workflow.createStep("first deep", genMsg(0, 1, "sub"), null, nullURI,
+                this.getClass().getName(), false, this.getClass(), deepfirstnopMethod(0, 1), deepfirstnopMethod(0, 1), null);
 
         Operation op = dbClient.createTaskOpStatus(com.emc.storageos.db.client.model.Workflow.class, workflow.getWorkflowURI(),
                 taskId, ResourceOperationTypeEnum.CREATE_BLOCK_VOLUME);
@@ -578,6 +672,7 @@ public class WorkflowTest extends ControllersvcTestBase implements Controller {
         assertEquals(String.format("Workflow completion state found: " + dbWF.getCompletionState()), dbWF.getCompletionState(),
                 "SUSPENDED_NO_ERROR");
 
+        // Make sure the task is "pending" while it is running
         taskStatusMap.put(taskId, WorkflowState.CREATED);
         workflowService.resumeWorkflow(workflow.getWorkflowURI(), UUID.randomUUID().toString());
         state = waitOnWorkflowComplete(taskId);

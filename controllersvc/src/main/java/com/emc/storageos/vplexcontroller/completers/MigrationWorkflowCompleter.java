@@ -54,7 +54,7 @@ public class MigrationWorkflowCompleter extends TaskCompleter {
                 WorkflowStepCompleter.stepExecuting(id);
                 break;
             case suspended_error:
-                WorkflowStepCompleter.stepSuspendedError(id);
+                WorkflowStepCompleter.stepSuspendedError(id, coded);
                 break;
             case suspended_no_error:
                 WorkflowStepCompleter.stepSuspendedNoError(id);
@@ -75,7 +75,7 @@ public class MigrationWorkflowCompleter extends TaskCompleter {
                 WorkflowStepCompleter.stepExecuting(id);
                 break;
             case SUSPENDED_ERROR:
-                WorkflowStepCompleter.stepSuspendedError(id);
+                WorkflowStepCompleter.stepSuspendedError(id, coded);
                 break;
             case SUSPENDED_NO_ERROR:
                 WorkflowStepCompleter.stepSuspendedNoError(id);
@@ -89,9 +89,12 @@ public class MigrationWorkflowCompleter extends TaskCompleter {
     /**
      * Update the status of the migration tasks.
      * 
-     * @param dbClient Reference to a database client
-     * @param status Operation status
-     * @param coded The error on error status.
+     * @param dbClient
+     *            Reference to a database client
+     * @param status
+     *            Operation status
+     * @param coded
+     *            The error on error status.
      */
     private void updateMigrationStatus(DbClient dbClient, Status status, ServiceCoded coded) {
         switch (status) {

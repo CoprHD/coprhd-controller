@@ -218,28 +218,24 @@ public class BlockVolumes extends ResourceController {
 
 		ViPRCoreClient client = BourneUtil.getViprClient();
 
-		VolumeRestRep volume = client.blockVolumes().get(uri(volumeId));
+        VolumeRestRep volume = client.blockVolumes().get(uri(volumeId));
 
-		URI consistencygroup = volume.getConsistencyGroup().getId();
+        URI consistencygroup = volume.getConsistencyGroup().getId();
 
-		List<BlockSnapshotSessionRestRep> snapshotSessions = Lists
-				.newArrayList();
+        List<BlockSnapshotSessionRestRep> snapshotSessions = Lists.newArrayList();
 
-		if (volume.getConsistencyGroup() != null) {
+        if (volume.getConsistencyGroup() != null) {
 
-			List<NamedRelatedResourceRep> cgSessions = client
-					.blockConsistencyGroups().getSnapshotSessions(
-							consistencygroup);
+            List<NamedRelatedResourceRep> cgSessions = client.blockConsistencyGroups().getSnapshotSessions(consistencygroup);
 
-			snapshotSessions = client.blockSnapshotSessions().getByRefs(
-					cgSessions);
-		} else {
+            snapshotSessions = client.blockSnapshotSessions().getByRefs(cgSessions);
 
-			List<NamedRelatedResourceRep> refs = client.blockSnapshotSessions()
-					.listByVolume(uri(volumeId));
+        } else {
 
-			snapshotSessions = client.blockSnapshotSessions().getByRefs(refs);
-		}
+            List<NamedRelatedResourceRep> refs = client.blockSnapshotSessions().listByVolume(uri(volumeId));
+
+            snapshotSessions = client.blockSnapshotSessions().getByRefs(refs);
+        }
 
 		render(snapshotSessions, volumeId);
     }

@@ -147,7 +147,7 @@ public class Orders extends OrderExecution {
     public static void rollbackTask(String orderId, String taskId) {
         if (StringUtils.isNotBlank(taskId)) {
             ViPRCoreClient client = BourneUtil.getViprClient();
-            client.tasks().rollback();
+            client.tasks().rollback(uri(taskId));
             flash.put("info", MessagesUtils.get("resources.tasks.rollbackMessage", taskId));
         }
         receipt(orderId);
@@ -157,7 +157,7 @@ public class Orders extends OrderExecution {
     public static void retryTask(String orderId, String taskId) {
         if (StringUtils.isNotBlank(taskId)) {
             ViPRCoreClient client = BourneUtil.getViprClient();
-            client.tasks().resume();
+            client.tasks().resume(uri(taskId));
             flash.put("info", MessagesUtils.get("resources.tasks.retryMessage", taskId));
         }
         receipt(orderId);
@@ -167,7 +167,7 @@ public class Orders extends OrderExecution {
     public static void resumeTask(String orderId, String taskId) {
         if (StringUtils.isNotBlank(taskId)) {
             ViPRCoreClient client = BourneUtil.getViprClient();
-            client.tasks().resume();
+            client.tasks().resume(uri(taskId));
             flash.put("info", MessagesUtils.get("resources.tasks.resumeMessage", taskId));
         }
         receipt(orderId);

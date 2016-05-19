@@ -181,12 +181,18 @@ public class IngestStrategyFactory {
         }
 
         public static IngestExportStrategyEnum getIngestStrategy(String strategyName) {
+            IngestExportStrategyEnum exportStrategy = null;
             for (IngestExportStrategyEnum strategy : copyOfValues) {
                 if (strategy.getIngestStrategy().contains(strategyName)) {
-                    return strategy;
+                    exportStrategy = strategy;
+                    break;
+                }
             }
+            if (exportStrategy == null) {
+                // for driver sdk managed systems
+                exportStrategy = IngestExportStrategyEnum.MASK_PER_HOST;
             }
-            return null;
+            return exportStrategy;
         }
 
         private static final IngestExportStrategyEnum[] copyOfValues = values();

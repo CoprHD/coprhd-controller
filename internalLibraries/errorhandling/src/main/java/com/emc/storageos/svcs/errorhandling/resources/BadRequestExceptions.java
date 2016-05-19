@@ -2695,9 +2695,6 @@ public interface BadRequestExceptions {
     public BadRequestException cannotAddSRDFProtectionToPartialCG(String msg);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
-    public BadRequestException cannotChangeVpoolOfPartialCG(String msg);
-
-    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException cannotDeleteImageServer();
 
     @DeclareServiceCode(ServiceCode.API_PRECONDITION_FAILED)

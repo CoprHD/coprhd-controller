@@ -4,6 +4,12 @@
  */
 package com.emc.storageos.vplexcontroller;
 
+import java.net.URI;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Set;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -16,6 +22,7 @@ import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.StorageSystem;
+import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.util.VPlexUtil;
 import com.emc.storageos.vplex.api.VPlexApiClient;
@@ -25,9 +32,9 @@ import com.emc.storageos.vplex.api.VPlexVirtualVolumeInfo;
  * A utility class that supports custom naming of VPLEX volumes on a VPLEX system.
  */
 public class VPlexCustomNameUtils {
-    
-    public static final String VPLEX_VIRTUAL_VOLUME_RENAME_STEP = "renameVolumeStep";
-    public static final String VPLEX_VIRTUAL_VOLUME_RENAME_METHOD = "renameVolume";
+
+    // Volume lock prefix.
+    private static final String VPLEX_VOLUME_LOCK_PREFIX = "Lock-VPLEX-Volume-";
     
     // Logger reference.
     private static final Logger s_logger = LoggerFactory.getLogger(VPlexConsistencyGroupManager.class);
@@ -156,15 +163,38 @@ public class VPlexCustomNameUtils {
     }
     
     /**
+     * Determines if the passed VPLEX volume is a distributed volume.
+     * 
+     * @param vplexVolume A reference to a VPLEX volume.
+     * @param client A reference to a VPLEX API client.
+     * 
+     * @return true if the volume is distributed, false otherwise.
+     */
+    public static boolean isVolumeDistributed(Volume vplexVolume, VPlexApiClient client) {
+        boolean isDistributed = false;
+        StringSet associatedVolumeIds = vplexVolume.getAssociatedVolumes();
+        if ((associatedVolumeIds != null) && (!associatedVolumeIds.isEmpty())) {
+            isDistributed = associatedVolumeIds.size() == 2 ? true : false;
+        } else {
+            VPlexVirtualVolumeInfo vvInfo = client.findVirtualVolume(vplexVolume.getDeviceLabel());
+            isDistributed = VPlexVirtualVolumeInfo.Locality.distributed.name().equals(
+                    vvInfo.getLocality()) ? true : false;
+        }
+        
+        return isDistributed;
+    }
+    
+    /**
      * Renames the volume represented by the passed VPLEX volume info with the passed name.
      * 
-     * @param client A reference to the VPLEX API client.
      * @param vvInfo A reference to the VPLEX volume info.
      * @param newVolumeName The new name for the volume.
+     * @param client A reference to the VPLEX API client.
      * 
      * @return A reference to the updated virtual volume info.
      */
-    public static VPlexVirtualVolumeInfo renameVPlexVolume(VPlexApiClient client, VPlexVirtualVolumeInfo vvInfo, String newVolumeName) {
+    public static VPlexVirtualVolumeInfo renameVolumeOnVPlex(VPlexVirtualVolumeInfo vvInfo,
+            String newVolumeName, VPlexApiClient client) {
         VPlexVirtualVolumeInfo updateVolumeInfo = vvInfo;
         try {
             String currentVolumeName = vvInfo.getName();
@@ -178,5 +208,55 @@ public class VPlexCustomNameUtils {
             s_logger.warn(String.format("Error attempting to rename VPLEX volume %s to %s", vvInfo.getName(), newVolumeName), e);
         }       
         return updateVolumeInfo;
+    }
+    
+    /**
+     * Renames the volume represented by the passed VPLEX volume info with the passed name.
+     * 
+     * @param vplexVolume A reference to the VPLEX volume.
+     * @param newVolumeName The new name for the volume.
+     * @param client A reference to the VPLEX API client.
+     * @param dbClient A reference to a database client.
+     * 
+     * @return A reference to the updated virtual volume info.
+     * 
+     * @throws Exception if the volume to rename cannot be found.
+     */
+    public static void renameVPlexVolume(Volume vplexVolume, String newVolumeName,
+            VPlexApiClient client, DbClient dbClient) throws Exception {
+        try {
+            VPlexVirtualVolumeInfo vvInfo = client.findVirtualVolume(vplexVolume.getDeviceLabel());
+            vvInfo = renameVolumeOnVPlex(vvInfo, newVolumeName, client);
+            vplexVolume.setNativeId(vvInfo.getPath());
+            vplexVolume.setNativeGuid(vvInfo.getPath());
+            vplexVolume.setDeviceLabel(vvInfo.getName());
+            dbClient.updateObject(vplexVolume);
+        } catch (Exception e) {
+            s_logger.warn(String.format("Error attempting to find VPLEX volume %s for rename", vplexVolume.getDeviceLabel()), e);
+            throw e;
+        }       
+    }    
+    
+    /**
+     * Given the passed set a volume URIs for the volumes on the passed VPLEX system,
+     * returns a list containing the unique lock names for these volumes.
+     * 
+     * @param vplexSystem The VPLEX system for the passed volumes.
+     * @param volumeURIs The URIs of the volumes for which to generate lock names.
+     * 
+     * @return The list of unique lock names for these volumes.
+     */
+    public static List<String> getVolumeLockNames(StorageSystem vplexSystem, Set<URI> volumeURIs) {
+        List<String> lockNames = new ArrayList<>();
+        Iterator<URI> volumeURIsIter = volumeURIs.iterator();
+        while (volumeURIsIter.hasNext()) {
+            URI volumeURI = volumeURIsIter.next();
+            StringBuilder lockNameBuilder = new StringBuilder(VPLEX_VOLUME_LOCK_PREFIX);
+            lockNameBuilder.append(vplexSystem.getSerialNumber());
+            lockNameBuilder.append("-");
+            lockNameBuilder.append(volumeURI);// TBD Maybe label for more readability
+            lockNames.add(lockNameBuilder.toString());
+        }
+        return lockNames;
     }
 }

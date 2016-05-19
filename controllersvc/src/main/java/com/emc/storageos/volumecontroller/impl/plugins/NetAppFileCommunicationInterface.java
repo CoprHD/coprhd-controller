@@ -294,7 +294,7 @@ public class NetAppFileCommunicationInterface extends
 
     private HashMap<String, List<StorageHADomain>> discoverPortGroups(StorageSystem system,
             List<VFilerInfo> virtualFilers)
-            throws NetAppFileCollectionException {
+                    throws NetAppFileCollectionException {
 
         HashMap<String, List<StorageHADomain>> portGroups = new HashMap<String, List<StorageHADomain>>();
         List<StorageHADomain> newPortGroups = new ArrayList<StorageHADomain>();
@@ -546,7 +546,7 @@ public class NetAppFileCommunicationInterface extends
     private Map<String, List<StoragePort>> discoverPorts(StorageSystem storageSystem,
             List<VFilerInfo> vFilers,
             List<StorageHADomain> haDomains)
-            throws NetAppFileCollectionException {
+                    throws NetAppFileCollectionException {
 
         URI storageSystemId = storageSystem.getId();
         HashMap<String, List<StoragePort>> storagePorts = new HashMap<String, List<StoragePort>>();
@@ -567,10 +567,9 @@ public class NetAppFileCommunicationInterface extends
                             continue;
                         }
                         URIQueryResultList results = new URIQueryResultList();
-                        String portNativeGuid =
-                                NativeGUIDGenerator.generateNativeGuid(storageSystem,
-                                        intf.getIpAddress(),
-                                        NativeGUIDGenerator.PORT);
+                        String portNativeGuid = NativeGUIDGenerator.generateNativeGuid(storageSystem,
+                                intf.getIpAddress(),
+                                NativeGUIDGenerator.PORT);
                         _dbClient.queryByConstraint(
                                 AlternateIdConstraint.Factory
                                         .getStoragePortByNativeGuidConstraint(portNativeGuid),
@@ -710,7 +709,7 @@ public class NetAppFileCommunicationInterface extends
         NetAppApi netAppApi = new NetAppApi.Builder(
                 storageSystem.getIpAddress(), storageSystem.getPortNumber(),
                 storageSystem.getUsername(), storageSystem.getPassword())
-                .https(true).build();
+                        .https(true).build();
 
         Collection<String> attrs = new ArrayList<String>();
         for (String property : ntpPropertiesList) {
@@ -788,10 +787,9 @@ public class NetAppFileCommunicationInterface extends
                 String address = getVfilerAddress(vFiler, vFilers);
                 if (vFiler != null && !vFiler.isEmpty()) {
                     // Need to use storage port for vFiler.
-                    String portNativeGuid =
-                            NativeGUIDGenerator.generateNativeGuid(storageSystem,
-                                    address,
-                                    NativeGUIDGenerator.PORT);
+                    String portNativeGuid = NativeGUIDGenerator.generateNativeGuid(storageSystem,
+                            address,
+                            NativeGUIDGenerator.PORT);
 
                     storagePort = getVfilerStoragePort(storageSystem, portNativeGuid, vFiler);
                 }
@@ -817,7 +815,8 @@ public class NetAppFileCommunicationInterface extends
                 validateListSizeLimitAndPersist(unManagedFileSystems, existingUnManagedFileSystems, Constants.DEFAULT_PARTITION_SIZE * 2);
             }
 
-            // Process those active unmanaged fs objects available in database but not in newly discovered items, to mark them inactive.
+            // Process those active unmanaged fs objects available in database but not in newly discovered items, to
+            // mark them inactive.
             markUnManagedFSObjectsInActive(storageSystem, allDiscoveredUnManagedFileSystems);
             _logger.info("New unmanaged Netapp file systems count: {}", newFileSystemsCount);
             _logger.info("Update unmanaged Netapp file systems count: {}", existingFileSystemsCount);
@@ -864,7 +863,7 @@ public class NetAppFileCommunicationInterface extends
             }
         }
     }
-    
+
     private void discoverUmanagedFileQuotaDirectory(AccessProfile profile) {
         URI storageSystemId = profile.getSystemId();
 
@@ -884,8 +883,8 @@ public class NetAppFileCommunicationInterface extends
             // Retrieve all the qtree info.
             List<Qtree> qtrees = netAppApi.listQtrees();
             List<Quota> quotas;
-            try {//Currently there are no API's available to check the quota status in general
-                quotas = netAppApi.listQuotas();//TODO check weather quota is on before doing this call
+            try {// Currently there are no API's available to check the quota status in general
+                quotas = netAppApi.listQuotas();// TODO check weather quota is on before doing this call
             } catch (Throwable e) {
                 _logger.error("Error while fetching quotas", e);
                 return;
@@ -919,7 +918,7 @@ public class NetAppFileCommunicationInterface extends
 
                     String nativeGUID = NativeGUIDGenerator.generateNativeGuidForQuotaDir(storageSystem.getSystemType(),
                             storageSystem.getSerialNumber(), quota.getQtree(), quota.getVolume());
-                    
+
                     String nativeUnmanagedGUID = NativeGUIDGenerator.generateNativeGuidForUnManagedQuotaDir(storageSystem.getSystemType(),
                             storageSystem.getSerialNumber(), quota.getQtree(), quota.getVolume());
                     if (checkStorageQuotaDirectoryExistsInDB(nativeGUID)) {
@@ -931,7 +930,8 @@ public class NetAppFileCommunicationInterface extends
                     unManagedFileQuotaDirectory.setLabel(quota.getQtree());
                     unManagedFileQuotaDirectory.setNativeGuid(nativeUnmanagedGUID);
                     unManagedFileQuotaDirectory.setParentFSNativeGuid(fsNativeGUID);
-                    if("enabled".equals(qTreeNameQTreeMap.get(quota.getVolume() + quota.getQtree()).getOplocks())) {
+                    unManagedFileQuotaDirectory.setNativeId("/vol/" + quota.getVolume() + "/" + quota.getQtree());
+                    if ("enabled".equals(qTreeNameQTreeMap.get(quota.getVolume() + quota.getQtree()).getOplocks())) {
                         unManagedFileQuotaDirectory.setOpLock(true);
                     }
                     unManagedFileQuotaDirectory.setSize(Long.valueOf(quota.getDiskLimit()));
@@ -961,15 +961,13 @@ public class NetAppFileCommunicationInterface extends
             if (null != storageSystem) {
                 cleanupDiscovery(storageSystem);
             }
-            _logger.error("discoverStorage failed.  Storage system: "
-                    + storageSystemId);
+            _logger.error("discoverStorage failed.  Storage system: " + storageSystemId);
             throw ve;
         } catch (Exception e) {
             if (null != storageSystem) {
                 cleanupDiscovery(storageSystem);
             }
-            _logger.error("discoverStorage failed. Storage system: "
-                    + storageSystemId, e);
+            _logger.error("discoverStorage failed. Storage system: " + storageSystemId, e);
             throw NetAppException.exceptions.discoveryFailed(storageSystemId.toString(), e);
         }
     }
@@ -1010,7 +1008,7 @@ public class NetAppFileCommunicationInterface extends
         NetAppApi netAppApi = new NetAppApi.Builder(
                 storageSystem.getIpAddress(), storageSystem.getPortNumber(),
                 storageSystem.getUsername(), storageSystem.getPassword())
-                .https(true).build();
+                        .https(true).build();
 
         Collection<String> attrs = new ArrayList<String>();
         for (String property : ntpPropertiesList) {
@@ -1022,7 +1020,8 @@ public class NetAppFileCommunicationInterface extends
             URIQueryResultList storagePoolURIs = new URIQueryResultList();
             _dbClient.queryByConstraint(ContainmentConstraint.Factory
                     .getStorageDeviceStoragePoolConstraint(storageSystem
-                            .getId()), storagePoolURIs);
+                            .getId()),
+                    storagePoolURIs);
 
             // Get storageport
             HashMap<String, StoragePool> pools = new HashMap<String, StoragePool>();
@@ -1216,14 +1215,14 @@ public class NetAppFileCommunicationInterface extends
             String anon = export.getSecurityRuleInfos().get(0).getAnon();
             if ((null != anon) && (anon.equals(ROOT_UID))) {
                 anon = ROOT_USER_ACCESS;
-            }
-            else {
+            } else {
                 anon = DEFAULT_ANONMOUS_ACCESS;
             }
 
             tempUnManagedFSExport = new UnManagedFSExport(clientList, port,
                     port + ":" + export.getPathname(), export.getSecurityRuleInfos().get(0)
-                            .getSecFlavor(), permission, anon, NFS,
+                            .getSecFlavor(),
+                    permission, anon, NFS,
                     port, export.getPathname(), export.getPathname());
         }
         return tempUnManagedFSExport;
@@ -1233,8 +1232,7 @@ public class NetAppFileCommunicationInterface extends
         String[] stgArray = nativeId.split("/");
         if (stgArray.length > 3) {
             return "/" + stgArray[1] + "/" + stgArray[2];
-        }
-        else {
+        } else {
             return nativeId;
         }
     }
@@ -1281,16 +1279,19 @@ public class NetAppFileCommunicationInterface extends
 
         unManagedFileSystemCharacteristics.put(
                 SupportedFileSystemCharacterstics.IS_THINLY_PROVISIONED
-                        .toString(), FALSE);
+                        .toString(),
+                FALSE);
 
         unManagedFileSystemCharacteristics.put(
                 UnManagedFileSystem.SupportedFileSystemCharacterstics.IS_INGESTABLE
-                        .toString(), TRUE);
+                        .toString(),
+                TRUE);
 
         // On netapp Systems this currently true.
         unManagedFileSystemCharacteristics.put(
                 UnManagedFileSystem.SupportedFileSystemCharacterstics.IS_FILESYSTEM_EXPORTED
-                        .toString(), FALSE);
+                        .toString(),
+                FALSE);
 
         if (null != storagePort) {
             StringSet storagePorts = new StringSet();
@@ -1339,7 +1340,8 @@ public class NetAppFileCommunicationInterface extends
                                     .toString())));
             unManagedFileSystemInformation.put(
                     SupportedFileSystemInformation.ALLOCATED_CAPACITY
-                            .toString(), allocatedCapacity);
+                            .toString(),
+                    allocatedCapacity);
         }
 
         // Get FileSystem used Space.
@@ -1354,7 +1356,8 @@ public class NetAppFileCommunicationInterface extends
                                     .toString())));
             unManagedFileSystemInformation.put(
                     SupportedFileSystemInformation.PROVISIONED_CAPACITY
-                            .toString(), provisionedCapacity);
+                            .toString(),
+                    provisionedCapacity);
         }
 
         // Save off FileSystem Name, Path, Mount and label information
@@ -1414,7 +1417,7 @@ public class NetAppFileCommunicationInterface extends
         }
         return false;
     }
-    
+
     /**
      * check Storage quotadir exists in DB
      * 
@@ -1460,7 +1463,7 @@ public class NetAppFileCommunicationInterface extends
         return filesystemInfo;
 
     }
-    
+
     private boolean checkUnManagedQuotaDirectoryExistsInDB(String nativeGuid)
             throws IOException {
         URIQueryResultList result = new URIQueryResultList();
@@ -1494,8 +1497,7 @@ public class NetAppFileCommunicationInterface extends
             // Example version String for Netapp looks like 8.1.2
             _logger.info("Verifying version details : Minimum Supported Version {} - Discovered NetApp Version {}",
                     minimumSupportedVersion, firmwareVersion);
-            if (VersionChecker.verifyVersionDetails(minimumSupportedVersion, firmwareVersion) < 0)
-            {
+            if (VersionChecker.verifyVersionDetails(minimumSupportedVersion, firmwareVersion) < 0) {
                 storageSystem.setCompatibilityStatus(DiscoveredDataObject.CompatibilityStatus.INCOMPATIBLE.name());
                 storageSystem.setReachableStatus(false);
                 DiscoveryUtils.setSystemResourcesIncompatible(_dbClient, _coordinator, storageSystem.getId());
@@ -1709,8 +1711,10 @@ public class NetAppFileCommunicationInterface extends
      * Names returned from array are only of the form: <fs name>.
      * Therefore, match occurs if file system name 'ends' with the name returned from array.
      * 
-     * @param fileSystem name of the file system (volume in NetApp terminology)
-     * @param fileSystemInfo list of file system attributes for each file.
+     * @param fileSystem
+     *            name of the file system (volume in NetApp terminology)
+     * @param fileSystemInfo
+     *            list of file system attributes for each file.
      * @return
      */
     private String getOwningVfiler(String fileSystem, List<Map<String, String>> fileSystemInfo) {
@@ -1744,8 +1748,10 @@ public class NetAppFileCommunicationInterface extends
     /**
      * Return the IP address for the specified vFiler.
      * 
-     * @param vFilerName name of the vFiler looking for.
-     * @param vFilersInfo List of vFilers with their information.
+     * @param vFilerName
+     *            name of the vFiler looking for.
+     * @param vFilersInfo
+     *            List of vFilers with their information.
      * @return IP address of the specified vFiler if found, otherwise null.
      */
     private String getVfilerAddress(String vFilerName, List<VFilerInfo> vFilersInfo) {
@@ -1764,7 +1770,8 @@ public class NetAppFileCommunicationInterface extends
             if (vFilerName.equals(info.getName())) {
                 List<VFNetInfo> netInfo = info.getInterfaces();
                 for (VFNetInfo intf : netInfo) {
-                    // e0M is the management interface which should be excluded while assigning ports to unmanaged file systems or exports
+                    // e0M is the management interface which should be excluded while assigning ports to unmanaged file
+                    // systems or exports
                     if (intf.getNetInterface().equals(MANAGEMENT_INTERFACE)) {
                         continue;
                     }
@@ -1784,8 +1791,7 @@ public class NetAppFileCommunicationInterface extends
     private HashMap<String, HashSet<UnManagedSMBFileShare>> getAllCifsShares(
             List<Map<String, String>> listShares) {
         // Discover All FileSystem
-        HashMap<String, HashSet<UnManagedSMBFileShare>> sharesHapMap =
-                new HashMap<String, HashSet<UnManagedSMBFileShare>>();
+        HashMap<String, HashSet<UnManagedSMBFileShare>> sharesHapMap = new HashMap<String, HashSet<UnManagedSMBFileShare>>();
         UnManagedSMBFileShare unManagedSMBFileShare = null;
         HashSet<UnManagedSMBFileShare> unManagedSMBFileShareHashSet = null;
 
@@ -1882,8 +1888,7 @@ public class NetAppFileCommunicationInterface extends
             NetAppApi netAppApi, URI fsId) {
         // get list of acls for given set of shares
         UnManagedCifsShareACL unManagedCifsShareACL = null;
-        List<UnManagedCifsShareACL> unManagedCifsShareACLList =
-                new ArrayList<UnManagedCifsShareACL>();
+        List<UnManagedCifsShareACL> unManagedCifsShareACLList = new ArrayList<UnManagedCifsShareACL>();
         // get acls for each share
         List<CifsAcl> cifsAclList = null;
         if (unManagedSMBFileShareHashSet != null && !unManagedSMBFileShareHashSet.isEmpty()) {
@@ -1987,9 +1992,9 @@ public class NetAppFileCommunicationInterface extends
                 String fsUnManagedFsNativeGuid = NativeGUIDGenerator
                         .generateNativeGuidForPreExistingFileSystem(
                                 storageSystem.getSystemType(), storageSystem
-                                        .getSerialNumber().toUpperCase(), shareNativeId);
-                UnManagedFileSystem unManagedFs =
-                        checkUnManagedFileSystemExistsInDB(fsUnManagedFsNativeGuid);
+                                        .getSerialNumber().toUpperCase(),
+                                shareNativeId);
+                UnManagedFileSystem unManagedFs = checkUnManagedFileSystemExistsInDB(fsUnManagedFsNativeGuid);
                 boolean fsAlreadyExists = unManagedFs == null ? false : true;
 
                 if (fsAlreadyExists) {
@@ -2020,13 +2025,14 @@ public class NetAppFileCommunicationInterface extends
                         unManagedFs.setHasShares(true);
                         unManagedFs.putFileSystemCharacterstics(
                                 UnManagedFileSystem.SupportedFileSystemCharacterstics.IS_FILESYSTEM_EXPORTED
-                                .toString(), TRUE);
+                                        .toString(),
+                                TRUE);
                         _logger.debug("SMB Share map for NetApp UMFS {} = {}",
                                 unManagedFs.getLabel(), unManagedFs.getUnManagedSmbShareMap());
                     }
 
-                    List<UnManagedCifsShareACL> tempUnManagedCifsShareAclList =
-                            getACLs(unManagedSMBFileShareHashSet, netAppApi, unManagedFs.getId());
+                    List<UnManagedCifsShareACL> tempUnManagedCifsShareAclList = getACLs(unManagedSMBFileShareHashSet, netAppApi,
+                            unManagedFs.getId());
 
                     // get the acl details for given fileshare
                     UnManagedCifsShareACL existingACL = null;
@@ -2052,7 +2058,7 @@ public class NetAppFileCommunicationInterface extends
                             unManagedCifsShareACLList.add(unManagedCifsShareACL);
                         }
                     }
-                    
+
                     // save the object
                     {
                         _dbClient.persistObject(unManagedFs);
@@ -2152,7 +2158,7 @@ public class NetAppFileCommunicationInterface extends
         NetAppApi netAppApi = new NetAppApi.Builder(
                 storageSystem.getIpAddress(), storageSystem.getPortNumber(),
                 storageSystem.getUsername(), storageSystem.getPassword())
-                .https(true).build();
+                        .https(true).build();
 
         Collection<String> attrs = new ArrayList<String>();
         for (String property : ntpPropertiesList) {
@@ -2273,7 +2279,8 @@ public class NetAppFileCommunicationInterface extends
                             unManagedFs.setHasExports(true);
                             unManagedFs.putFileSystemCharacterstics(
                                     UnManagedFileSystem.SupportedFileSystemCharacterstics.IS_FILESYSTEM_EXPORTED
-                                    .toString(), TRUE);
+                                            .toString(),
+                                    TRUE);
                             _dbClient.persistObject(unManagedFs);
                             _logger.info("File System {} has Exports and their size is {}", unManagedFs.getId(),
                                     newUnManagedExportRules.size());
@@ -2292,8 +2299,7 @@ public class NetAppFileCommunicationInterface extends
                                 UNMANAGED_EXPORT_RULE);
                         newUnManagedExportRules.clear();
                     }
-                }
-                else {
+                } else {
                     _logger.info("FileSystem " + unManagedFs
                             + "is not present in ViPR DB. Hence ignoring "
                             + deviceExport + " export");
@@ -2372,8 +2378,7 @@ public class NetAppFileCommunicationInterface extends
             // TODO: This functionality has to be revisited to handle uids for anon.
             if ((null != anon) && (anon.equals(ROOT_UID))) {
                 anon = ROOT_USER_ACCESS;
-            }
-            else {
+            } else {
                 anon = DEFAULT_ANONMOUS_ACCESS;
             }
             expRule.setAnon(anon);

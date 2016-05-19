@@ -470,7 +470,8 @@ public class UnManagedFilesystemService extends TaggedResource {
                 filesystem.setPortName(sPort.getPortName());
                 filesystem.setStoragePort(sPort.getId());
                 if (unManagedFileSystem.getHasExports()) {
-
+<<<<<<< HEAD
+=======
                     _logger.info("Storage Port Found {}", sPort);
                     if (null != sPort) {
                         filesystem.setPortName(sPort.getPortName());
@@ -499,6 +500,7 @@ public class UnManagedFilesystemService extends TaggedResource {
                                 inActiveUnManagedExportRules.add(rule);
                             }
                         }
+>>>>>>> 9a2b20b1bf69b404780f597b9a624f6b09253d26
 
                     filesystem.setFsExports(PropertySetterUtil.convertUnManagedExportMapToManaged(
                             unManagedFileSystem.getFsUnManagedExportMap(), sPort, dataMover));
@@ -527,6 +529,29 @@ public class UnManagedFilesystemService extends TaggedResource {
                 }
 
                 if (unManagedFileSystem.getHasShares()) {
+<<<<<<< HEAD
+                    filesystem.setSMBFileShares(PropertySetterUtil.convertUnManagedSMBMapToManaged(
+                            unManagedFileSystem.getUnManagedSmbShareMap(), sPort, dataMover));
+
+                    _logger.info("Share map for {} = {}", fsName, filesystem.getSMBFileShares());
+
+                    // Process Exports
+                    // Step 1 : Query them and Retrive associated Exports
+                    List<UnManagedCifsShareACL> cifsACLs = queryDBCifsShares(unManagedFileSystem);
+                    _logger.info("Number of Cifs ACL Found : {} for UnManaged Fs path : {}", cifsACLs.size(),
+                            unManagedFileSystem.getMountPath());
+
+                    if (cifsACLs != null && !cifsACLs.isEmpty()) {
+                        for (UnManagedCifsShareACL umCifsAcl : cifsACLs) {
+                            // Step 2 : Convert them to Cifs Share ACL
+                            // Step 3 : Keep them as a list to store in db, down the line at a shot
+                            umCifsAcl.setFileSystemId(filesystem.getId()); // Important to relate the shares to a FileSystem.
+                            createACL(umCifsAcl, fsCifsShareAcls, filesystem);
+                            // Step 4: Update the UnManaged Share ACL : Set Inactive as true
+                            umCifsAcl.setInactive(true);
+                            // Step 5 : Keep this list as updated.
+                            inActiveUnManagedShareCifs.add(umCifsAcl);
+=======
                     _logger.info("Storage Port Found {}", sPort);
                     if (null != sPort) {
                         filesystem.setPortName(sPort.getPortName());
@@ -554,6 +579,7 @@ public class UnManagedFilesystemService extends TaggedResource {
                                 // Step 5 : Keep this list as updated.
                                 inActiveUnManagedShareCifs.add(umCifsAcl);
                             }
+>>>>>>> 9a2b20b1bf69b404780f597b9a624f6b09253d26
                         }
                     }
                 }
@@ -565,9 +591,12 @@ public class UnManagedFilesystemService extends TaggedResource {
                         for (UnManagedNFSShareACL umNfsAcl : nfsACLs) {
                             // Step 2 : Convert them to nfs Share ACL
                             // Step 3 : Keep them as a list to store in db, down the line at a shot
-
+<<<<<<< HEAD
+                            umNfsAcl.setFileSystemId(filesystem.getId()); // Important to relate the shares to a FileSystem.
+=======
                             umNfsAcl.setFileSystemId(filesystem.getId()); // Important to relate the shares to a
                                                                           // FileSystem.
+>>>>>>> 9a2b20b1bf69b404780f597b9a624f6b09253d26
                             if (umNfsAcl.getPermissions().isEmpty()) {
                                 continue;
                             }
@@ -899,11 +928,17 @@ public class UnManagedFilesystemService extends TaggedResource {
 
     private boolean doesStoragePortExistsInVArray(StoragePort umfsStoragePort, VirtualArray virtualArray) {
 
+<<<<<<< HEAD
+        List<URI> virtualArrayPorts = returnAllPortsInVArray(virtualArray.getId());
 
+        if (virtualArrayPorts.contains(umfsStoragePort.getId())) {
+            return true;
+=======
         List<URI> virtualArrayPorts = returnAllPortsInVArray(virtualArray);
 
         if (virtualArrayPorts.contains(umfsStoragePort.getId())) {
             return umfsStoragePort;
+>>>>>>> 9a2b20b1bf69b404780f597b9a624f6b09253d26
         }
         return false;
     }

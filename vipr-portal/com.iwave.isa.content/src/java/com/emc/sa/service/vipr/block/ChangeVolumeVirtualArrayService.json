@@ -24,7 +24,7 @@
       type:"assetType.vipr.migrationType"
     },
 
-    linuxHost:{
+    host:{
       type:"assetType.vipr.linuxHost"
     }
     

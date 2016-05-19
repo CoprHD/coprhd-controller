@@ -33,7 +33,7 @@
       required: false
     },
 
-    linuxHost:{
+    host:{
       type:"assetType.vipr.linuxHost",
       required: false
     }

@@ -5345,28 +5345,6 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
     }
 
     /**
-     * Invokes the storage specific BlockController method to perform the full copy operation
-     *
-     * @param storageURI
-     * @param fullCopyVolumes
-     * @param createInactive
-     * @param stepId
-     * @return
-     */
-    public boolean createBlockFullCopyStep(URI storageURI, List<URI> fullCopyVolumes, boolean createInactive, String stepId) {
-        WorkflowStepCompleter.stepExecuting(stepId);
-        try {
-            StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, storageURI);
-            BlockController controller = getController(BlockController.class, storageSystem.getSystemType());
-            controller.createFullCopy(storageURI, fullCopyVolumes, createInactive, stepId);
-        } catch (Exception e) {
-            WorkflowStepCompleter.stepFailed(stepId, DeviceControllerException.errors.jobFailed(e));
-            return false;
-        }
-        return true;
-    }
-
-    /**
      * Method that adds the steps to the workflow to enable image access
      *
      * @param workflow

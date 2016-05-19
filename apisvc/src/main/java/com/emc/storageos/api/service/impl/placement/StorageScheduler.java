@@ -876,7 +876,7 @@ public class StorageScheduler implements Scheduler {
         // Handle array affinity placement
         // If inCG is true, it is similar to the array affinity case.
         // Only difference is that resources will not be placed to more than one preferred systems if inCG is true
-        if (inCG ||capabilities.getHostArrayAffinity()) {
+        if (capabilities.getResourceCount() > 1 && inCG ||capabilities.getHostArrayAffinity()) {
             List<Recommendation> recommendations = performArrayAffinityPlacement(varrayId, capabilities, candidatePools, inCG);
             if (!recommendations.isEmpty()) {
                 return recommendations;

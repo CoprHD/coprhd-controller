@@ -378,7 +378,7 @@ public class SnapMirror {
         boolean licenseValid = false;
         NaElement elem = new NaElement("license-v2-status-list-info");
         try {
-            List<NaElement> licences = server.invokeElem(elem).getChildByName("licenses").getChildren();
+            List<NaElement> licences = server.invokeElem(elem).getChildByName("license-v2-status").getChildren();
             if (licences != null) {
                 for (Iterator<NaElement> iterator = licences.iterator(); iterator.hasNext();) {
                     NaElement licenceElement = iterator.next();

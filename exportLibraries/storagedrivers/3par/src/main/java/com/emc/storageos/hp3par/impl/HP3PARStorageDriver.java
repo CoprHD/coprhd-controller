@@ -71,6 +71,7 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
 	private HP3PARApiFactory hp3parApiFactory;
 	
 	public HP3PARStorageDriver () {
+	    _log.info("AAAAA:Driver:Driver enter");
 	    hp3parApiFactory = new HP3PARApiFactory();
 	    hp3parApiFactory.setConnectionTimeoutMs(30000);
 	    hp3parApiFactory.setConnManagerTimeout(60000);
@@ -113,7 +114,7 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
 	    // For each 3par system
 	    for (StorageSystem storageSystem : storageSystems) {
 	        try {
-	            _log.info("3PAR: discoverStorageSystem information for storage system {}, name {} - start",
+	            _log.info("AAAAA:3PAR: discoverStorageSystem information for storage system {}, name {} - start",
 	                    storageSystem.getIpAddress(), storageSystem.getSystemName());            
 
 	            URI deviceURI = new URI("https", null, 
@@ -189,7 +190,7 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
 	@Override
 	public DriverTask discoverStoragePools(StorageSystem storageSystem, List<StoragePool> storagePools) {
 	    //For this 3PAR system
-	    _log.info("3PAR: discoverStoragePools information for storage system {}, nativeId {} - start",
+	    _log.info("AAAAA:3PAR: discoverStoragePools information for storage system {}, nativeId {} - start",
                 storageSystem.getIpAddress(), storageSystem.getNativeId());
 	    DriverTask task = createDriverTask(HP3PARConstants.TASK_TYPE_DISCOVER_STORAGE_POOLS);
 
@@ -260,9 +261,9 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
                 }
                 pool.setSupportedDriveTypes(supportedDriveTypes);
                 
-                pool.setMaximumThinVolumeSize(16 * HP3PARConstants.KILO_BYTE * HP3PARConstants.KILO_BYTE);
+                pool.setMaximumThinVolumeSize(16 * HP3PARConstants.MEGA_BYTE);
                 pool.setMinimumThinVolumeSize(256 * HP3PARConstants.KILO_BYTE);
-                pool.setMaximumThickVolumeSize(16 * HP3PARConstants.KILO_BYTE * HP3PARConstants.KILO_BYTE);
+                pool.setMaximumThickVolumeSize(16 * HP3PARConstants.MEGA_BYTE);
                 pool.setMinimumThickVolumeSize(256 * HP3PARConstants.KILO_BYTE);
 
                 pool.setSupportedResourceType(SupportedResourceType.THIN_AND_THICK);
@@ -299,7 +300,7 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
 	@Override
 	public DriverTask discoverStoragePorts(StorageSystem storageSystem, List<StoragePort> storagePorts) {
         //For this 3PAR system
-        _log.info("3PAR: discoverStoragePorts information for storage system {}, nativeId {} - start",
+        _log.info("AAAAA:3PAR: discoverStoragePorts information for storage system {}, nativeId {} - start",
                 storageSystem.getIpAddress(), storageSystem.getNativeId());
         DriverTask task = createDriverTask(HP3PARConstants.TASK_TYPE_DISCOVER_STORAGE_PORTS);
 
@@ -354,7 +355,7 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
                     if (currMember.getPortPos().getNode() == currStat.getNode() && 
                             currMember.getPortPos().getSlot() == currStat.getSlot() && 
                             currMember.getPortPos().getCardPort() == currStat.getCardPort()) {
-                        port.setPortSpeed(currStat.getSpeed() * HP3PARConstants.KILO_BYTE * HP3PARConstants.KILO_BYTE);
+                        port.setPortSpeed(currStat.getSpeed() * HP3PARConstants.MEGA_BYTE);
                     }
                 }
 
@@ -437,7 +438,7 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
         // For each requested volume (in one or more 3par system)
         for (StorageVolume volume : volumes) {
             try {
-                _log.info("3PAR:createVolumes for storage system native id {}, volume name {} - start",
+                _log.info("AAAAA:3PAR:createVolumes for storage system native id {}, volume name {} - start",
                         volume.getStorageSystemId(), volume.getDisplayName());     
 
                 // get Api client
@@ -448,14 +449,14 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
                 hp3parApi.createVolume(volume.getDisplayName(), 
                         volume.getStoragePoolId(), 
                         volume.getThinlyProvisioned(), 
-                        volume.getRequestedCapacity() / HP3PARConstants.KILO_BYTE / HP3PARConstants.KILO_BYTE);
+                        volume.getRequestedCapacity() / HP3PARConstants.MEGA_BYTE);
                 volResult = hp3parApi.getVolumeDetails(volume.getDisplayName());
                 
                 //Volume attributes
-                volume.setProvisionedCapacity(volResult.getSizeMiB() * HP3PARConstants.KILO_BYTE * HP3PARConstants.KILO_BYTE);
-                volume.setAllocatedCapacity(volResult.getSizeMiB() * HP3PARConstants.KILO_BYTE * HP3PARConstants.KILO_BYTE);
+                volume.setProvisionedCapacity(volResult.getSizeMiB() * HP3PARConstants.MEGA_BYTE);
+                volume.setAllocatedCapacity(volResult.getSizeMiB() * HP3PARConstants.MEGA_BYTE);
                 volume.setWwn(volResult.getWwn());
-                volume.setNativeId(volume.getNativeId());
+                volume.setNativeId(volResult.getUuid());
                 volume.setDeviceLabel(volume.getDisplayName());
                 volume.setAccessStatus(AccessStatus.READ_WRITE);
 
@@ -626,6 +627,7 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
     private HP3PARApi getHP3PARDevice(StorageSystem hp3parSystem) throws HP3PARException {
         URI deviceURI;
         try {
+            _log.info("AAAAA:Driver:getHP3PARDevice system enter");
             deviceURI = new URI("https", null, hp3parSystem.getIpAddress(), hp3parSystem.getPortNumber(), "/", null, null);
             return hp3parApiFactory
                     .getRESTClient(deviceURI, hp3parSystem.getUsername(), hp3parSystem.getPassword());
@@ -639,6 +641,7 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
     private HP3PARApi getHP3PARDevice(String ip, String port, String user, String pass) throws HP3PARException {
         URI deviceURI;
         try {
+            _log.info("AAAAA:Driver:getHP3PARDevice separate enter");
             deviceURI = new URI("https", null, ip, Integer.parseInt(port), "/", null, null);
             return hp3parApiFactory
                     .getRESTClient(deviceURI, user, pass);
@@ -651,6 +654,7 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
     
     private HP3PARApi getHP3PARDeviceFromNativeId(String nativeId) throws HP3PARException {
         try {
+            _log.info("AAAAA:Driver:getHP3PARDeviceFromNativeId enter");
             Map<String, List<String>> connectionInfo =
                     driverRegistry.getDriverAttributesForKey(HP3PARConstants.DRIVER_NAME, nativeId);
             List<String> ipAddress = connectionInfo.get(HP3PARConstants.IP_ADDRESS);

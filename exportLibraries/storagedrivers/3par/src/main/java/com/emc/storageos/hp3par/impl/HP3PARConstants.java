@@ -13,6 +13,7 @@ public class HP3PARConstants {
     public static final String PASSWORD = "PASSWORD";
     
     public static Long KILO_BYTE = (long) 1024;
+    public static Long MEGA_BYTE = (long) 1024 * 1024;
     
     public static final Integer MODE_SUSPENDED = 1;
     public static final Integer MODE_TARGET = 2;

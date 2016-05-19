@@ -99,6 +99,7 @@ public class HP3PARApiFactory {
      * Initialize HTTP client
      */
     public void init() {
+        _log.info("AAAAA:HP3PARApiFactory:init enter");
         _clientMap = new ConcurrentHashMap<String, HP3PARApi>();
 
         HttpConnectionManagerParams params = new HttpConnectionManagerParams();
@@ -143,15 +144,18 @@ public class HP3PARApiFactory {
      */
     public HP3PARApi getRESTClient(URI endpoint, String username, String password) throws HP3PARException {
         try {
+            _log.info("AAAAA:HP3PARApiFactory:getRESTClient enter");
             // key=uri+user+pass to make unique, value=HP3PARApi object
             HP3PARApi hp3parApi = _clientMap.get(endpoint.toString() + ":" + username + ":" + password);
             if (hp3parApi == null) {
+                _log.info("AAAAA:HP3PARApiFactory:hp3parApi null");
                 Client jerseyClient = new ApacheHttpClient(_clientHandler);
                 jerseyClient.addFilter(new HTTPBasicAuthFilter(username, password));
                 RESTClient restClient = new RESTClient(jerseyClient);
-                hp3parApi = new HP3PARApi(endpoint, restClient);
+                hp3parApi = new HP3PARApi(endpoint, restClient, username, password);
                 _clientMap.putIfAbsent(endpoint.toString() + ":" + username + ":" + password, hp3parApi);
             }
+            _log.info("AAAAA:HP3PARApiFactoryi:hp3parApi existing api");
             return hp3parApi;
         } catch (Exception e) {
             throw new HP3PARException(e.toString());

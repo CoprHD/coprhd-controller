@@ -47,9 +47,12 @@ public class HP3PARApi {
     private static final String URI_VOLUME_DETAILS = "/api/v1/volumes/{0}";
     
 
-    public HP3PARApi(URI endpoint, RESTClient client) {
+    public HP3PARApi(URI endpoint, RESTClient client, String userName, String pass) {
+    _log.info("AAAAA:HP3PARApi:HP3PARApi enter pass={}", pass);
         _baseUrl = endpoint;
         _client = client;
+        _user = userName;
+        _password = pass;
     }
 
     /**
@@ -67,7 +70,7 @@ public class HP3PARApi {
      * @throws Exception
      */
     public String getAuthToken(String user, String password) throws Exception {
-        _log.info("HP3PARApi:getAuthToken enter");
+        _log.info("AAAAA:HP3PARApi:getAuthToken enter");
         String authToken = null;
         ClientResponse clientResp = null;
         String body= "{\"user\":\"" + user + "\", \"password\":\"" + password + "\"}";
@@ -81,13 +84,13 @@ public class HP3PARApi {
                 String errResp = getResponseDetails(clientResp);
                 throw new HP3PARException(errResp);
             } else {
-                MultivaluedMap<String, String> headers = clientResp.getHeaders();
                 JSONObject jObj = clientResp.getEntity(JSONObject.class);
                 authToken = jObj.getString("key");
+                this._authToken = authToken;
+                this._user = user;
+                this._password = password;
+                _log.info("AAAAA:HP3PARApi:getAuthToken pass set={}", password);
             }
-            this._authToken = authToken;
-            this._user = user;
-            this._password = password;
             return authToken;
         } catch (Exception e) {
             throw e;
@@ -105,7 +108,7 @@ public class HP3PARApi {
      * @throws Exception
      */
     public String getAuthToken() throws Exception {
-        _log.info("HP3PARApi:getAuthToken enter, after expiry");
+        _log.info("AAAAA:HP3PARApi:getAuthToken enter, after expiry");
         String authToken = null;
         ClientResponse clientResp = null;
         String body= "{\"user\":\"" + _user + "\", \"password\":\"" + _password + "\"}";

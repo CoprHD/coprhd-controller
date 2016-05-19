@@ -28,6 +28,7 @@ import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
+import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.ContainmentPrefixConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.AutoTieringPolicy;
@@ -38,6 +39,7 @@ import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.Cluster;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.ExportGroup;
+import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.model.OpStatusMap;
 import com.emc.storageos.db.client.model.Operation;
@@ -525,22 +527,8 @@ public class StorageScheduler implements Scheduler {
         }
 
         boolean arrayAffinity = VirtualPool.ResourcePlacementPolicyType.array_affinity.name().equals(vpool.getPlacementPolicy());
-        boolean poolAffinity = VirtualPool.ResourcePlacementPolicyType.pool_affinity.name().equals(vpool.getPlacementPolicy());
-
         if (arrayAffinity) {
             capabilities.put(VirtualPoolCapabilityValuesWrapper.HOST_ARRAY_AFFINITY, true);
-            provMapBuilder.putAttributeInMap(AttributeMatcher.Attributes.host_array_affinity.name(), true);
-        }
-
-        if (poolAffinity) {
-            capabilities.put(VirtualPoolCapabilityValuesWrapper.HOST_POOL_AFFINITY, true);
-            provMapBuilder.putAttributeInMap(AttributeMatcher.Attributes.host_pool_affinity.name(), true);
-        }
-
-        if (arrayAffinity || poolAffinity) {
-            Map<URI, Set<URI>> affilatedArraysAndPools = getAffiliatedArraysAndPools(capabilities.getCompute());
-            capabilities.put(VirtualPoolCapabilityValuesWrapper.AFFILATED_ARRAYS_POOLS, affilatedArraysAndPools);
-            provMapBuilder.putAttributeInMap(AttributeMatcher.Attributes.affilated_arrays_pools.name(), affilatedArraysAndPools);
         }
 
         Map<String, Object> attributeMap = provMapBuilder.buildMap();
@@ -600,63 +588,65 @@ public class StorageScheduler implements Scheduler {
         // the map. Because we sorted the candidate pools first, this
         // ensures the first system in the map has the most desirable
         // pool according to the sorting algorithm.
-        Map<URI, List<StoragePool>> systemPoolMap = new LinkedHashMap<URI, List<StoragePool>>();
+        //
+        // Systems are added to different maps based on host preference
+        Set<String> preferredSystems = getAffiliatedSystems(capabilities.getCompute());
+        Map<URI, List<StoragePool>> preferredSystemPoolMap = new LinkedHashMap<URI, List<StoragePool>>();
+        Map<URI, List<StoragePool>> nonPreferredsystemPoolMap = new LinkedHashMap<URI, List<StoragePool>>();
         for (StoragePool candidatePool : candidatePools) {
             URI systemURI = candidatePool.getStorageDevice();
-
-            // For IBM XIV, all volumes in a CG must be in same pool
-            // create an entry per pool, instead of per array
-            if (inCG && PoolClassNames.IBMTSDS_VirtualPool.name().equals(candidatePool.getPoolClassName())) {
-                systemURI = candidatePool.getId();
-            }
-
-            List<StoragePool> systemPools = null;
-            if (systemPoolMap.containsKey(systemURI)) {
-                systemPools = systemPoolMap.get(systemURI);
+            if (preferredSystems.contains(candidatePool)) {
+                addSystemToMap(systemURI, candidatePool, inCG, preferredSystemPoolMap);
             } else {
-                systemPools = new ArrayList<StoragePool>();
-                systemPoolMap.put(systemURI, systemPools);
+                addSystemToMap(systemURI, candidatePool, inCG, nonPreferredsystemPoolMap);
             }
-            systemPools.add(candidatePool);
         }
 
         // Now attempt to find a recommendation from the set of
-        // storage pools for a storage system until we find a
-        // a recommendation or run out of systems
-
-        // Try to place to the first pool, then all pools of the first array
-        // if neither the pool nor the array has enough capacity, try next array
-        Map<URI, Set<URI>> affilatedArraysAndPools = capabilities.getAffilatededArraysAndPools();
-        boolean singlePoolPlacement = capabilities.getHostPoolAffinity() && affilatedArraysAndPools.size() <= 1;
-        Iterator<URI> systemIter = systemPoolMap.keySet().iterator();
+        // storage pools for a preferred storage system until we find a
+        // a recommendation or run out of preferred systems
+        // candidate pools that on preferred systems
+        List<StoragePool> preferredPools = new ArrayList<StoragePool>();
+        Iterator<URI> systemIter = preferredSystemPoolMap.keySet().iterator();
         while (systemIter.hasNext()) {
             URI systemURI = systemIter.next();
-            List<StoragePool> systemCandidatePools = systemPoolMap.get(systemURI);
-            // Now attempt to find a recommendation from the first pool
-            List<Recommendation> recommendations = getRecommendedPools(varrayId,
-                    Arrays.asList(systemCandidatePools.get(0)), capabilities, false);
-            if (!recommendations.isEmpty()) {
-                return recommendations;
-            }
-
-            // no need to try other pools any more as they have less capacity
-            // than the preferred just tested
-            // now try all the pools of the storage system
-            if (!singlePoolPlacement && systemCandidatePools.size() > 1) {
-                recommendations = getRecommendedPools(varrayId, systemCandidatePools, capabilities, false);
+            List<StoragePool> systemCandidatePools = nonPreferredsystemPoolMap.get(systemURI);
+            if (preferredSystems.contains(systemURI.toString())) {
+                // Now attempt to find a recommendation from the first system
+                List<Recommendation> recommendations = getRecommendedPools(varrayId, systemCandidatePools, capabilities, false);
                 if (!recommendations.isEmpty()) {
                     return recommendations;
                 }
+
+                preferredPools.addAll(systemCandidatePools);
             }
         }
 
-        // No single array has enough capacity to hold all the request resources
-        // if the known system list is not empty, e.g., host with existing exported volumes,
-        // try to place resources to all pools
-        // note this doesn't apply to new host, in that case, we only place resource to a single array
-        boolean singleArrayPlacement = capabilities.getHostArrayAffinity() && affilatedArraysAndPools.size() <= 1;
-        if (!singlePoolPlacement && !singleArrayPlacement && systemPoolMap.size() > 1) {
-            return getRecommendedPools(varrayId, candidatePools, capabilities, false);
+        // No single preferred array has enough capacity to hold all the request resources,
+        // now try to place resources to all preferred systems
+        // Note this doesn't apply to new host (preferredArrays is empty), in that case, we only place resource to a single array
+        if (!inCG && preferredSystemPoolMap.size() > 1) {
+            List<Recommendation> recommendations = getRecommendedPools(varrayId, preferredPools, capabilities, false);
+            if (!recommendations.isEmpty()) {
+                return recommendations;
+            }
+        }
+
+        // Try non preferred systems
+        // Resources will be placed to single system only
+        systemIter = nonPreferredsystemPoolMap.keySet().iterator();
+        while (systemIter.hasNext()) {
+            URI systemURI = systemIter.next();
+            List<StoragePool> systemCandidatePools = nonPreferredsystemPoolMap.get(systemURI);
+            if (preferredSystems.contains(systemURI.toString())) {
+                // Now attempt to find a recommendation from the first system
+                List<Recommendation> recommendations = getRecommendedPools(varrayId, systemCandidatePools, capabilities, false);
+                if (!recommendations.isEmpty()) {
+                    return recommendations;
+                }
+                
+                preferredPools.addAll(systemCandidatePools);
+            }
         }
 
         // No recommendations found on any storage system.
@@ -664,20 +654,47 @@ public class StorageScheduler implements Scheduler {
     }
 
     /**
-     * Find out storage systems and pools of existing mapped volumes of a host/cluster
+     * Add storage system to map
+     *
+     * @param systemURI system to be added
+     * @param pool storage pool on the system
+     * @param inCG CG volumes placement
+     * @param systemPoolMap map to be updated
+     */
+    private void addSystemToMap(URI systemURI, StoragePool pool, boolean inCG, Map<URI, List<StoragePool>> systemPoolMap) {
+        List<StoragePool> systemPools = null;
+
+        if (systemPoolMap.containsKey(systemURI)) {
+            systemPools = systemPoolMap.get(systemURI);
+
+            // For IBM XIV, all volumes in a CG must be in same pool, for each system, only add the first pool
+            // which with largest free capacity
+            if (!(inCG && PoolClassNames.IBMTSDS_VirtualPool.name().equals(pool.getPoolClassName()))) {
+                systemPools.add(pool);
+            }
+        } else {
+            systemPools = new ArrayList<StoragePool>();
+            systemPoolMap.put(systemURI, systemPools);
+            systemPools.add(pool);
+        }
+    }
+
+    /**
+     * Find out storage systems of existing mapped volumes of a host/cluster
      *
      * @param compute URI string of host or cluster
      *
-     * @return a map of storage system URI to pool URIs
+     * @return a set of strings of storage system URIs
      */
-    private Map<URI, Set<URI>> getAffiliatedArraysAndPools(String compute) {
-        // get host/cluster's affiliated pools
-        Map<URI, Set<URI>> systemPoolMap = new HashMap<URI, Set<URI>>();
+    private Set<String> getAffiliatedSystems(String compute) {
+        // get host/cluster's affiliated systems
+        Set<String> systems = new HashSet<String>();
         if (compute == null) {
-            return systemPoolMap;
+            return systems;
         }
 
-        boolean isCluster = URIUtil.isType(URIUtil.uri(compute), Cluster.class);
+        URI computeURI = URIUtil.uri(compute);
+        boolean isCluster = URIUtil.isType(computeURI, Cluster.class);
         List<ExportGroup> exportGroups = CustomQueryUtility.queryActiveResourcesByConstraint(_dbClient, ExportGroup.class,
                 AlternateIdConstraint.Factory.getConstraint(ExportGroup.class, isCluster ? "clusters" : "hosts", compute));
         // find a volume exported to the host/cluster
@@ -688,21 +705,30 @@ public class StorageScheduler implements Scheduler {
                     URI volumeURI = URI.create(volumeURIStr);
                     if (URIUtil.isType(volumeURI, Volume.class)) {
                         Volume volume = _dbClient.queryObject(Volume.class, URI.create(volumeURIStr));
-                        URI systemURI = volume.getStorageController();
-                        Set<URI> systemPools = null;
-                        if (systemPoolMap.containsKey(systemURI)) {
-                            systemPools = systemPoolMap.get(systemURI);
-                        } else {
-                            systemPools = new HashSet<URI>();
-                            systemPoolMap.put(systemURI, systemPools);
+                        if (volume != null && !volume.getInactive()) {
+                            systems.add(volume.getStorageController().toString());
                         }
-                        systemPools.add(volume.getPool());
                     }
                 }
             }
         }
 
-        return systemPoolMap;
+        // get preferred systems from hosts
+        if (isCluster) {
+            List<Host> hosts =
+                    CustomQueryUtility.queryActiveResourcesByConstraint(_dbClient, Host.class,
+                            ContainmentConstraint.Factory.getContainedObjectsConstraint(computeURI, Host.class, "cluster"));
+            for (Host host : hosts) {
+                systems.addAll(host.getPreferredSystemIds());
+            }
+        } else {
+            Host host = _dbClient.queryObject(Host.class, computeURI);
+            if (host != null && !host.getInactive()) {
+                systems.addAll(host.getPreferredSystemIds());
+            }
+        }
+
+        return systems;
     }
 
     /**

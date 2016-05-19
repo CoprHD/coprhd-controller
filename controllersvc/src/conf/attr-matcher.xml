@@ -58,8 +58,6 @@
     <util:list id="basicPlacementMatchers">
         <ref bean="activePoolMatcher" />
         <ref bean="neighborhoodsMatcher" />
-        <ref bean="hostPoolAffinityMatcher" />
-        <ref bean="hostArrayAffinityMatcher" />
         <ref bean="storageSystemMatcher" />
     </util:list>
 
@@ -112,8 +110,6 @@
     <bean id="fileScheduleSnapshotMatcher" class="com.emc.storageos.volumecontroller.impl.utils.attrmatchers.FileScheduleSnaphotMatcher" />
     <bean id="minDataCenterMatcher" class="com.emc.storageos.volumecontroller.impl.utils.attrmatchers.MinDataCenterMatcher"/>
     <bean id="bucketquotaMatcher" class="com.emc.storageos.volumecontroller.impl.utils.attrmatchers.BucketQuotaMatcher"/>
-    <bean id="hostPoolAffinityMatcher" class="com.emc.storageos.volumecontroller.impl.utils.attrmatchers.HostPoolAffinityMatcher" />
-    <bean id="hostArrayAffinityMatcher" class="com.emc.storageos.volumecontroller.impl.utils.attrmatchers.HostArrayAffinityMatcher" />
 	
 	<!-- The following bean represents how to inject a bean in a util class having static methods. 
 	     Ex. matcherFramework bean in a ImplicitPoolMatcher static method. -->

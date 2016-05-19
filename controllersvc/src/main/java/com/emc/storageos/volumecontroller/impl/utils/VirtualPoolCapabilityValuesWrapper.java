@@ -63,9 +63,7 @@ public class VirtualPoolCapabilityValuesWrapper implements Serializable {
     // compute resource capabilities
     public static final String COMPUTE = "compute";
     public static final String HOST_ARRAY_AFFINITY = "host_array_affinity";
-    public static final String HOST_POOL_AFFINITY = "host_pool_affinity";
-    public static final String AFFILATED_ARRAYS_POOLS = "affilated_arrays_pools";
-    public static final String POOL_UTILIZATION_CEILING = "pool_utilization_ceiling";
+    public static final String AFFILATED_ARRAYS = "affilated_arrays";
 
     private final Map<String, Object> _vpoolCapabilities = new HashMap<String, Object>();
 
@@ -206,16 +204,8 @@ public class VirtualPoolCapabilityValuesWrapper implements Serializable {
             _vpoolCapabilities.put(HOST_ARRAY_AFFINITY, capabilities.getHostArrayAffinity());
         }
 
-        if (capabilities.contains(HOST_POOL_AFFINITY)) {
-            _vpoolCapabilities.put(HOST_POOL_AFFINITY, capabilities.getHostPoolAffinity());
-        }
-
-        if (capabilities.contains(AFFILATED_ARRAYS_POOLS)) {
-            _vpoolCapabilities.put(AFFILATED_ARRAYS_POOLS, capabilities.getAffilatededArraysAndPools());
-        }
-
-        if (capabilities.contains(POOL_UTILIZATION_CEILING)) {
-            _vpoolCapabilities.put(POOL_UTILIZATION_CEILING, capabilities.getPoolUtilizationCeiling());
+        if (capabilities.contains(AFFILATED_ARRAYS)) {
+            _vpoolCapabilities.put(AFFILATED_ARRAYS, capabilities.getAffilatededArrays());
         }
     }
 
@@ -402,18 +392,8 @@ public class VirtualPoolCapabilityValuesWrapper implements Serializable {
         return value != null ? (Boolean) value : false;
     }
 
-    public boolean getHostPoolAffinity() {
-        Object value = _vpoolCapabilities.get(HOST_POOL_AFFINITY);
-        return value != null ? (Boolean) value : false;
-    }
-
-    public Map<URI, Set<URI>> getAffilatededArraysAndPools() {
-        Object value = _vpoolCapabilities.get(AFFILATED_ARRAYS_POOLS);
+    public Map<URI, Set<URI>> getAffilatededArrays() {
+        Object value = _vpoolCapabilities.get(AFFILATED_ARRAYS);
         return value != null ? (Map<URI, Set<URI>>) value : null;
-    }
-
-    public int getPoolUtilizationCeiling() {
-        Object value = _vpoolCapabilities.get(POOL_UTILIZATION_CEILING);
-        return value != null ? (Integer) value : 0;
     }
 }

@@ -479,8 +479,9 @@ public class NetAppCMirrorOperations implements FileMirrorOperations {
             boolean isDestorySnapMirror = ncApi.destorySnapMirror(snapMirrorInfo);
             if (isDestorySnapMirror == true) {
                 ncApi.releaseSnapMirror(snapMirrorInfo);
-                NetAppSnapMirrorDestroyJob netappCSnapMirrorJob = new NetAppSnapMirrorDestroyJob(mirrorInfoResp.getRelationshipId(),
-                        sourceSystem.getId(), taskCompleter);
+                NetAppSnapMirrorDestroyJob netappCSnapMirrorJob =
+                        new NetAppSnapMirrorDestroyJob(mirrorInfoResp.getScheduleName(),
+                                sourceSystem.getId(), taskCompleter);
 
                 ControllerServiceImpl.enqueueJob(new QueueJob(netappCSnapMirrorJob));
                 return BiosCommandResult.createPendingResult();

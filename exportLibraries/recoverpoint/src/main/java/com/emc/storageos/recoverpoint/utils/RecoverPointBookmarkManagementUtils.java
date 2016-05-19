@@ -27,7 +27,6 @@ import com.emc.fapiclient.ws.ConsistencyGroupUID;
 import com.emc.fapiclient.ws.FunctionalAPIActionFailedException_Exception;
 import com.emc.fapiclient.ws.FunctionalAPIImpl;
 import com.emc.fapiclient.ws.FunctionalAPIInternalError_Exception;
-import com.emc.fapiclient.ws.PipeState;
 import com.emc.fapiclient.ws.ReplicationSetSettings;
 import com.emc.fapiclient.ws.Snapshot;
 import com.emc.fapiclient.ws.SnapshotConsistencyType;
@@ -56,13 +55,13 @@ public class RecoverPointBookmarkManagementUtils {
 
     /**
      * Take a list of WWNs for a RecoverPoint appliance and return consistency group information for the WWNs
-     * 
+     *
      * @param impl - RP handle to perform RP operations
      * @param request - Input request of WWNs
      * @param unmappedWWNs - WWNs that could not be mapped to a consistency group
-     * 
+     *
      * @return WWN to consistency group mappings
-     * 
+     *
      * @throws RecoverPointException
      **/
     public Map<String, RPConsistencyGroup> mapCGsForWWNs(FunctionalAPIImpl impl, CreateBookmarkRequestParams request,
@@ -149,11 +148,11 @@ public class RecoverPointBookmarkManagementUtils {
 
     /**
      * Find the arrays for a CG
-     * 
+     *
      * @param groupSettings - A groupSettings object which contains, among other things, the array information for the CG
-     * 
+     *
      * @return The site to array mappings for the CG
-     * 
+     *
      * @throws RecoverPointException
      **/
     public Map<ClusterUID, Set<String>> mapCGToStorageArraysNoConnection(ConsistencyGroupSettings groupSettings)
@@ -206,14 +205,14 @@ public class RecoverPointBookmarkManagementUtils {
 
     /**
      * Create bookmarks for a CG
-     * 
+     *
      * @param impl - RP handle to use for RP operations
      * @param rpCGMap - The mapping of RP CGs to WWNs. Used to create a list of CGs to bookmark
      * @param request - Information about the bookmark to request
-     * 
+     *
      * @return CreateBookmarkResponse - Results of the create bookmark.
      *         TODO: Return bookmark information (date/time)
-     * 
+     *
      * @throws RecoverPointException
      **/
     public CreateBookmarkResponse createCGBookmarks(FunctionalAPIImpl impl, Map<String,
@@ -245,11 +244,11 @@ public class RecoverPointBookmarkManagementUtils {
         }
 
         // Make sure the CG is in a good state before we make bookmarks
-        RecoverPointImageManagementUtils imageManager = new RecoverPointImageManagementUtils();
-        for (ConsistencyGroupUID cgID : uniqueCGUIDlist) {        	
-            // Make sure the CG is ready for enable
-        	imageManager.waitForCGLinkState(impl, cgID, RecoverPointImageManagementUtils.getPipeActiveState(impl, cgID));
-        }
+        // RecoverPointImageManagementUtils imageManager = new RecoverPointImageManagementUtils();
+        // for (ConsistencyGroupUID cgID : uniqueCGUIDlist) {
+        // Make sure the CG is ready for enable
+        // imageManager.waitForCGLinkState(impl, cgID, RecoverPointImageManagementUtils.getPipeActiveState(impl, cgID));
+        // }
 
         try {
             impl.createBookmark(uniqueCGUIDlist, request.getBookmark(),
@@ -258,11 +257,9 @@ public class RecoverPointBookmarkManagementUtils {
             response.setCgBookmarkMap(findRPBookmarks(impl, rpCGSet, request));
             response.setReturnCode(RecoverPointReturnCode.SUCCESS);
         } catch (FunctionalAPIActionFailedException_Exception e) {
-            logger.error(e.getMessage());
-            response.setReturnCode(RecoverPointReturnCode.SUCCESS);
+            throw RecoverPointException.exceptions.failedToCreateBookmarkOnRecoverPoint(e);
         } catch (FunctionalAPIInternalError_Exception e) {
-            logger.error(e.getMessage());
-            return null;
+            throw RecoverPointException.exceptions.failedToCreateBookmarkOnRecoverPoint(e);
         }
 
         return response;
@@ -270,13 +267,13 @@ public class RecoverPointBookmarkManagementUtils {
 
     /**
      * Find the bookmarks that were created for a CG
-     * 
+     *
      * @param impl - RP handle to use for RP operations
      * @param rpCGset - List of CGs that had this bookmark created
      * @param request - Information about the bookmark that was created on the CGs
-     * 
+     *
      * @return Map of CGs with the bookmark information (CDP and/or CRR)
-     * 
+     *
      * @throws RecoverPointException
      **/
     public Map<RPConsistencyGroup, Set<RPBookmark>> findRPBookmarks(FunctionalAPIImpl impl, Set<RPConsistencyGroup> rpCGSet,
@@ -357,13 +354,13 @@ public class RecoverPointBookmarkManagementUtils {
 
     /**
      * Find the most recent bookmarks that were created for a CG with a given name
-     * 
+     *
      * @param impl - RP handle to use for RP operations
      * @param request - Information about the bookmark that was created on the CGs
      * @param cgUID - The CG to look for bookmarks
-     * 
+     *
      * @return A set of RP bookmarks found on the CG
-     * 
+     *
      * @throws RecoverPointException
      **/
     private Set<RPBookmark> getBookmarksForMostRecentBookmarkName(FunctionalAPIImpl impl,
@@ -433,12 +430,12 @@ public class RecoverPointBookmarkManagementUtils {
 
     /**
      * Find the bookmarks associated with a consistency group
-     * 
+     *
      * @param impl - RP handle to use for RP operations
      * @param cgUID - The CG to look for bookmarks
-     * 
+     *
      * @return A set of RP bookmarks found on the CG
-     * 
+     *
      * @throws RecoverPointException
      **/
     public List<RPBookmark> getRPBookmarksForCG(FunctionalAPIImpl impl, ConsistencyGroupUID cgUID) throws RecoverPointException {

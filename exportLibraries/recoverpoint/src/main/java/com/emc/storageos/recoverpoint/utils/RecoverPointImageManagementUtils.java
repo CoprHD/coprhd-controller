@@ -471,8 +471,7 @@ public class RecoverPointImageManagementUtils {
             cgName = impl.getGroupName(cgCopyUID.getGroupUID());
 
             // Wait for the copy to be in any of the legitimate access mode states that can precede direct access.
-            ImageAccessMode[] accessModes = new ImageAccessMode[] { ImageAccessMode.LOGGED_ACCESS, ImageAccessMode.VIRTUAL_ACCESS,
-                    ImageAccessMode.VIRTUAL_ACCESS_WITH_ROLL };
+            ImageAccessMode[] accessModes = new ImageAccessMode[] { ImageAccessMode.LOGGED_ACCESS, ImageAccessMode.VIRTUAL_ACCESS_WITH_ROLL };
             waitForCGCopyState(impl, cgCopyUID, false, accessModes);
 
             impl.enableDirectAccess(cgCopyUID);

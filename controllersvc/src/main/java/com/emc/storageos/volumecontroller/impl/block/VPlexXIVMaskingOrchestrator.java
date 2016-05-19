@@ -17,13 +17,13 @@ import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.Controller;
 import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.db.client.model.ExportGroup.ExportGroupType;
 import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.StringSetMap;
-import com.emc.storageos.db.client.model.ExportGroup.ExportGroupType;
 import com.emc.storageos.db.client.util.StringSetUtil;
 import com.emc.storageos.exceptions.DeviceControllerExceptions;
 import com.emc.storageos.locking.LockTimeoutValue;
@@ -38,9 +38,9 @@ import com.emc.storageos.volumecontroller.placement.StoragePortsAllocator;
 import com.emc.storageos.volumecontroller.placement.StoragePortsAssigner;
 import com.emc.storageos.vplex.api.VPlexApiException;
 import com.emc.storageos.workflow.Workflow;
+import com.emc.storageos.workflow.Workflow.Method;
 import com.emc.storageos.workflow.WorkflowService;
 import com.emc.storageos.workflow.WorkflowStepCompleter;
-import com.emc.storageos.workflow.Workflow.Method;
 
 /**
  * This implementation is used for export operations that are only intended to be
@@ -54,52 +54,55 @@ import com.emc.storageos.workflow.Workflow.Method;
  *
  */
 public class VPlexXIVMaskingOrchestrator extends XIVMaskingOrchestrator
-		implements VplexBackEndMaskingOrchestrator, Controller {
-	
-	private static final Logger _log = LoggerFactory.getLogger(VPlexXIVMaskingOrchestrator.class);
-	private static final int XIV_NUM_PORT_GROUP = 1;
-	BlockDeviceController _blockController = null;
-	WorkflowService _workflowService = null;
-	private boolean simulation = false;
+        implements VplexBackEndMaskingOrchestrator, Controller {
 
-	public VPlexXIVMaskingOrchestrator() {
-		
-	}
-	
-	public VPlexXIVMaskingOrchestrator(DbClient dbClient, BlockDeviceController controller) {
+    private static final Logger _log = LoggerFactory.getLogger(VPlexXIVMaskingOrchestrator.class);
+    private static final int XIV_NUM_PORT_GROUP = 1;
+    private BlockDeviceController _blockController = null;
+    private WorkflowService _workflowService = null;
+    private boolean simulation = false;
+
+    public VPlexXIVMaskingOrchestrator() {
+
+    }
+
+    public VPlexXIVMaskingOrchestrator(DbClient dbClient, BlockDeviceController controller) {
         this._dbClient = dbClient;
         this._blockController = controller;
     }
-	
-	public void setBlockDeviceController(BlockDeviceController blockController) {
+
+    public void setBlockDeviceController(BlockDeviceController blockController) {
         this._blockController = blockController;
     }
-	
-	public WorkflowService getWorkflowService() {
-	        return _workflowService;
-	}
-	
-	@Override
+
+    public WorkflowService getWorkflowService() {
+        return _workflowService;
+    }
+
+    public void setSimulation(boolean simulation) {
+        this.simulation = simulation;
+    }
+
+    @Override
     public void setWorkflowService(WorkflowService _workflowService) {
         this._workflowService = _workflowService;
     }
-	    
-	
-	@Override
+
+    @Override
     public Map<URI, ExportMask> readExistingExportMasks(
             StorageSystem storage,
             BlockStorageDevice device,
             List<Initiator> initiators) {
         return super.readExistingExportMasks(storage, device, initiators);
     }
-	
-	@Override
+
+    @Override
     public ExportMask refreshExportMask(StorageSystem storage,
             BlockStorageDevice device, ExportMask mask) {
         return super.refreshExportMask(storage, device, mask);
     }
-	
-	@Override
+
+    @Override
     public void suggestExportMasksForPlacement(
             StorageSystem storage, BlockStorageDevice device,
             List<Initiator> initiators,
@@ -107,17 +110,18 @@ public class VPlexXIVMaskingOrchestrator extends XIVMaskingOrchestrator
         super.suggestExportMasksForPlacement(storage, device, initiators, placementDescriptor);
     }
 
-	/* (non-Javadoc)
-	 * @see com.emc.storageos.volumecontroller.impl.block.
-	 * VplexBackEndMaskingOrchestrator#getPortGroups(java.util.Map, java.util.Map, java.net.URI, int)
-	 */
-	@Override
-	public Set<Map<URI, List<List<StoragePort>>>> getPortGroups(Map<URI,
-			List<StoragePort>> allocatablePorts,
-			Map<URI, NetworkLite> networkMap, 
-			URI varrayURI, int nInitiatorGroups) {
-		
-		_log.debug("START - getPortGroups");
+    /*
+     * (non-Javadoc)
+     * 
+     * @see com.emc.storageos.volumecontroller.impl.block.
+     * VplexBackEndMaskingOrchestrator#getPortGroups(java.util.Map, java.util.Map, java.net.URI, int)
+     */
+    @Override
+    public Set<Map<URI, List<List<StoragePort>>>> getPortGroups(Map<URI, List<StoragePort>> allocatablePorts,
+            Map<URI, NetworkLite> networkMap,
+            URI varrayURI, int nInitiatorGroups) {
+
+        _log.debug("START - getPortGroups");
         Set<Map<URI, List<List<StoragePort>>>> portGroups = new HashSet<Map<URI, List<List<StoragePort>>>>();
         Map<URI, Integer> portsAllocatedPerNetwork = new HashMap<URI, Integer>();
 
@@ -157,49 +161,55 @@ public class VPlexXIVMaskingOrchestrator extends XIVMaskingOrchestrator
 
         _log.debug("END - getPortGroups");
         return portGroups;
-	}
+    }
 
-	/* (non-Javadoc)
-	 * @see com.emc.storageos.volumecontroller.impl.block.
-	 * VplexBackEndMaskingOrchestrator#configureZoning(java.util.Map, java.util.Map, java.util.Map,
-	 *  com.emc.storageos.volumecontroller.placement.StoragePortsAssigner)
-	 */
-	@Override
-	public StringSetMap configureZoning(Map<URI, List<List<StoragePort>>> portGroup,
-			Map<String, Map<URI, Set<Initiator>>> initiatorGroup,
-			Map<URI, NetworkLite> networkMap,
-			StoragePortsAssigner assigner) {
-		
-		return VPlexBackEndOrchestratorUtil.configureZoning(portGroup, initiatorGroup, networkMap, assigner);
-	}
+    /*
+     * (non-Javadoc)
+     * 
+     * @see com.emc.storageos.volumecontroller.impl.block.
+     * VplexBackEndMaskingOrchestrator#configureZoning(java.util.Map, java.util.Map, java.util.Map,
+     * com.emc.storageos.volumecontroller.placement.StoragePortsAssigner)
+     */
+    @Override
+    public StringSetMap configureZoning(Map<URI, List<List<StoragePort>>> portGroup,
+            Map<String, Map<URI, Set<Initiator>>> initiatorGroup,
+            Map<URI, NetworkLite> networkMap,
+            StoragePortsAssigner assigner) {
 
-	/* (non-Javadoc)
-	 * @see com.emc.storageos.volumecontroller.impl.block.
-	 * VplexBackEndMaskingOrchestrator#createOrAddVolumesToExportMaskMethod(java.net.URI, java.net.URI,
-	 * java.net.URI, java.util.Map, com.emc.storageos.volumecontroller.TaskCompleter)
-	 */
-	@Override
-	public Method createOrAddVolumesToExportMaskMethod(URI arrayURI,
-			URI exportGroupURI, URI exportMaskURI,
-			Map<URI, Integer> volumeMap, TaskCompleter completer) {
-		
-		return new Workflow.Method("createOrAddVolumesToExportMask",
+        return VPlexBackEndOrchestratorUtil.configureZoning(portGroup, initiatorGroup, networkMap, assigner);
+    }
+
+    /*
+     * (non-Javadoc)
+     * 
+     * @see com.emc.storageos.volumecontroller.impl.block.
+     * VplexBackEndMaskingOrchestrator#createOrAddVolumesToExportMaskMethod(java.net.URI, java.net.URI,
+     * java.net.URI, java.util.Map, com.emc.storageos.volumecontroller.TaskCompleter)
+     */
+    @Override
+    public Method createOrAddVolumesToExportMaskMethod(URI arrayURI,
+            URI exportGroupURI, URI exportMaskURI,
+            Map<URI, Integer> volumeMap, TaskCompleter completer) {
+
+        return new Workflow.Method("createOrAddVolumesToExportMask",
                 arrayURI, exportGroupURI, exportMaskURI, volumeMap, completer);
-	}
+    }
 
-	/* (non-Javadoc)
-	 * @see com.emc.storageos.volumecontroller.impl.block.
-	 * VplexBackEndMaskingOrchestrator#createOrAddVolumesToExportMask(java.net.URI, java.net.URI,
-	 * java.net.URI, java.util.Map, com.emc.storageos.volumecontroller.TaskCompleter, java.lang.String)
-	 */
-	@Override
-	public void createOrAddVolumesToExportMask(URI arrayURI,
-			URI exportGroupURI, URI exportMaskURI,
-			Map<URI, Integer> volumeMap, 
-			TaskCompleter completer, String stepId) {
-		
-		try {
-			WorkflowStepCompleter.stepExecuting(stepId);
+    /*
+     * (non-Javadoc)
+     * 
+     * @see com.emc.storageos.volumecontroller.impl.block.
+     * VplexBackEndMaskingOrchestrator#createOrAddVolumesToExportMask(java.net.URI, java.net.URI,
+     * java.net.URI, java.util.Map, com.emc.storageos.volumecontroller.TaskCompleter, java.lang.String)
+     */
+    @Override
+    public void createOrAddVolumesToExportMask(URI arrayURI,
+            URI exportGroupURI, URI exportMaskURI,
+            Map<URI, Integer> volumeMap,
+            TaskCompleter completer, String stepId) {
+
+        try {
+            WorkflowStepCompleter.stepExecuting(stepId);
             StorageSystem array = _dbClient.queryObject(StorageSystem.class, arrayURI);
             ExportMask exportMask = _dbClient.queryObject(ExportMask.class, exportMaskURI);
 
@@ -218,7 +228,7 @@ public class VPlexXIVMaskingOrchestrator extends XIVMaskingOrchestrator
                     _dbClient, ExportGroupType.Host,
                     StringSetUtil.stringSetToUriList(exportMask.getInitiators()), arrayURI);
             getWorkflowService().acquireWorkflowStepLocks(stepId, lockKeys,
-            		LockTimeoutValue.get(LockType.VPLEX_BACKEND_EXPORT));
+                    LockTimeoutValue.get(LockType.VPLEX_BACKEND_EXPORT));
 
             // Refresh the ExportMask
             BlockStorageDevice device = _blockController.getDevice(array.getSystemType());
@@ -236,13 +246,13 @@ public class VPlexXIVMaskingOrchestrator extends XIVMaskingOrchestrator
                         initiatorURIs.add(initiator.getId());
                     }
                 }
-                
+
                 // Fetch the targets
                 List<URI> targets = new ArrayList<URI>();
                 for (String targetId : exportMask.getStoragePorts()) {
                     targets.add(URI.create(targetId));
                 }
-                
+
                 // The default completer passed in is for add volume, create correct one
                 completer = new ExportMaskCreateCompleter(exportGroupURI, exportMaskURI,
                         initiatorURIs, volumeMap, stepId);
@@ -253,41 +263,44 @@ public class VPlexXIVMaskingOrchestrator extends XIVMaskingOrchestrator
             }
 
         } catch (Exception ex) {
-            _log.error("Failed to create or add volumes to export mask for vmax: ", ex);
+            _log.error("Failed to create or add volumes to export mask for XIV: ", ex);
             VPlexApiException vplexex = DeviceControllerExceptions.vplex.addStepsForCreateVolumesFailed(ex);
             WorkflowStepCompleter.stepFailed(stepId, vplexex);
         }
-		
 
-	}
+    }
 
-	/* (non-Javadoc)
-	 * @see com.emc.storageos.volumecontroller.impl.block.
-	 * VplexBackEndMaskingOrchestrator#deleteOrRemoveVolumesFromExportMaskMethod(java.net.URI,
-	 * java.net.URI, java.net.URI, java.util.List, com.emc.storageos.volumecontroller.TaskCompleter)
-	 */
-	@Override
-	public Method deleteOrRemoveVolumesFromExportMaskMethod(URI arrayURI,
-			URI exportGroupURI, URI exportMaskURI,
-			List<URI> volumes, TaskCompleter completer) {
-		
-		return new Workflow.Method("deleteOrRemoveVolumesFromExportMask", arrayURI,
+    /*
+     * (non-Javadoc)
+     * 
+     * @see com.emc.storageos.volumecontroller.impl.block.
+     * VplexBackEndMaskingOrchestrator#deleteOrRemoveVolumesFromExportMaskMethod(java.net.URI,
+     * java.net.URI, java.net.URI, java.util.List, com.emc.storageos.volumecontroller.TaskCompleter)
+     */
+    @Override
+    public Method deleteOrRemoveVolumesFromExportMaskMethod(URI arrayURI,
+            URI exportGroupURI, URI exportMaskURI,
+            List<URI> volumes, TaskCompleter completer) {
+
+        return new Workflow.Method("deleteOrRemoveVolumesFromExportMask", arrayURI,
                 exportGroupURI, exportMaskURI, volumes, completer);
-	}
+    }
 
-	/* (non-Javadoc)
-	 * @see com.emc.storageos.volumecontroller.impl.block.
-	 * VplexBackEndMaskingOrchestrator#deleteOrRemoveVolumesFromExportMask(java.net.URI,
-	 * java.net.URI, java.net.URI, java.util.List, com.emc.storageos.volumecontroller.TaskCompleter,
-	 * java.lang.String)
-	 */
-	@Override
-	public void deleteOrRemoveVolumesFromExportMask(URI arrayURI,
-			URI exportGroupURI, URI exportMaskURI,
-			List<URI> volumes,
-			TaskCompleter completer, String stepId) {
-		
-		try {
+    /*
+     * (non-Javadoc)
+     * 
+     * @see com.emc.storageos.volumecontroller.impl.block.
+     * VplexBackEndMaskingOrchestrator#deleteOrRemoveVolumesFromExportMask(java.net.URI,
+     * java.net.URI, java.net.URI, java.util.List, com.emc.storageos.volumecontroller.TaskCompleter,
+     * java.lang.String)
+     */
+    @Override
+    public void deleteOrRemoveVolumesFromExportMask(URI arrayURI,
+            URI exportGroupURI, URI exportMaskURI,
+            List<URI> volumes,
+            TaskCompleter completer, String stepId) {
+
+        try {
             WorkflowStepCompleter.stepExecuting(stepId);
             StorageSystem array = _dbClient.queryObject(StorageSystem.class, arrayURI);
             BlockStorageDevice device = _blockController.getDevice(array.getSystemType());
@@ -306,7 +319,7 @@ public class VPlexXIVMaskingOrchestrator extends XIVMaskingOrchestrator
                     _dbClient, ExportGroupType.Host,
                     StringSetUtil.stringSetToUriList(exportMask.getInitiators()), arrayURI);
             getWorkflowService().acquireWorkflowStepLocks(stepId, lockKeys,
-            		LockTimeoutValue.get(LockType.VPLEX_BACKEND_EXPORT));
+                    LockTimeoutValue.get(LockType.VPLEX_BACKEND_EXPORT));
 
             // Make sure the completer will complete the work-flow. This happens on roll-back case.
             if (!completer.getOpId().equals(stepId)) {
@@ -321,30 +334,31 @@ public class VPlexXIVMaskingOrchestrator extends XIVMaskingOrchestrator
             if (exportMask.getVolumes() != null) {
                 remainingVolumes.addAll(exportMask.getVolumes().keySet());
             }
-            
+
             for (URI volume : volumes) {
                 remainingVolumes.remove(volume.toString());
             }
-            
+
             // If so, delete the ExportMask.
             if (remainingVolumes.isEmpty()
                     && (exportMask.getExistingVolumes() == null
-                        || exportMask.getExistingVolumes().isEmpty())) {
+                            || exportMask.getExistingVolumes().isEmpty())) {
                 device.doExportGroupDelete(array, exportMask, completer);
             } else {
                 device.doExportRemoveVolumes(array, exportMask, volumes, completer);
             }
-            
+
         } catch (Exception ex) {
-            _log.error("Failed to delete or remove volumes to export mask for vmax: ", ex);
+            _log.error("Failed to delete or remove volumes to export mask for XIV: ", ex);
             VPlexApiException vplexex = DeviceControllerExceptions.vplex.addStepsForDeleteVolumesFailed(ex);
             WorkflowStepCompleter.stepFailed(stepId, vplexex);
         }
-		
 
-	}
-	
-	/**
+    }
+
+    /**
+     * Allocate target storage ports based on the I/O load. Least I/O loaded
+     * storage port/s would be selected.
      * 
      * @param allocator
      * @param candidatePorts

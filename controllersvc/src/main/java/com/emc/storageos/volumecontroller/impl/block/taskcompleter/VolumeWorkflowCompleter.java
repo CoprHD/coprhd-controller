@@ -52,6 +52,25 @@ public class VolumeWorkflowCompleter extends VolumeTaskCompleter {
                     WorkflowStepCompleter.stepSucceded(getOpId());
                 }
                 break;
+            case suspended_no_error:
+                _log.info("suspended_no_error");
+                for (URI id : getIds()) {
+                    dbClient.suspended_no_error(Volume.class, id, getOpId());
+                }
+                if (isNotifyWorkflow()) {
+                    WorkflowStepCompleter.stepSuspendedNoError(getOpId());
+                }
+                break;
+            case suspended_error:
+                _log.info("suspended_error");
+                for (URI id : getIds()) {
+                    dbClient.suspended_error(Volume.class, id, getOpId());
+                }
+                if (isNotifyWorkflow()) {
+                    WorkflowStepCompleter.stepSuspendedError(getOpId());
+                }
+                break;
+                
             default:
                 if (isNotifyWorkflow()) {
                     WorkflowStepCompleter.stepExecuting(getOpId());

@@ -313,6 +313,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
     private static final String REMOVE_FROM_CONSISTENCY_GROUP_METHOD_NAME = "removeFromConsistencyGroup";
     private static final String ADD_TO_CONSISTENCY_GROUP_METHOD_NAME = "addToConsistencyGroup";
     private static final String RESTORE_FROM_FULLCOPY_METHOD_NAME = "restoreFromFullCopy";
+    private static final String CREATE_FULL_COPY_METHOD_NAME = "createFullCopy";
 
     // Constants used for creating a migration name.
     private static final String MIGRATION_NAME_PREFIX = "M_";
@@ -11651,8 +11652,6 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 "controller_vplex_migration_max_async_polls"));
         VPlexApiClient.setMaxMigrationAsyncPollingRetries(maxMigrationAsyncPollingRetries);
     }
-    
-    private static final String METHOD_CREATE_FULL_COPY_STEP = "createFullCopy";
 
     /* (non-Javadoc)
      * @see com.emc.storageos.blockorchestrationcontroller.BlockOrchestrationInterface#addStepsForCreateFullCopy(com.emc.storageos.workflow.Workflow, java.lang.String, java.util.List, java.lang.String)
@@ -11681,36 +11680,19 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             }
         }
         
-        return addCreateFullCopyStep(workflow, vplexUri, volumeDescriptors, waitFor);
-    }
-    
-    /**
-     * Add WF step for creating full copies
-     *
-     * @param workflow
-     * @param storageURI
-     * @param fullCopyList
-     * @param createInactive
-     * @param waitFor
-     * @return
-     * @throws InternalException
-     */
-    private String addCreateFullCopyStep(Workflow workflow, URI vplexUri, List<VolumeDescriptor> volumeDescriptors,
-            String waitFor) throws InternalException {
-
         String stepId = workflow.createStepId();
         // Now add the steps to create the block snapshot on the storage system
         StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, vplexUri);
-        Workflow.Method createFullCopyMethod = new Workflow.Method(METHOD_CREATE_FULL_COPY_STEP, vplexUri, volumeDescriptors);
+        Workflow.Method createFullCopyMethod = new Workflow.Method(CREATE_FULL_COPY_METHOD_NAME, vplexUri, volumeDescriptors);
         Workflow.Method nullRollbackMethod = new Workflow.Method(ROLLBACK_METHOD_NULL);
 
-        waitFor = workflow.createStep(METHOD_CREATE_FULL_COPY_STEP, "Create Block Full Copy for VPlex", waitFor, storageSystem.getId(),
+        waitFor = workflow.createStep(CREATE_FULL_COPY_METHOD_NAME, "Create Block Full Copy for VPlex", waitFor, storageSystem.getId(),
                 storageSystem.getSystemType(), this.getClass(), createFullCopyMethod, nullRollbackMethod, stepId);
-        _log.info(String.format("Added %s step [%s] in workflow", METHOD_CREATE_FULL_COPY_STEP, stepId));
+        _log.info(String.format("Added %s step [%s] in workflow", CREATE_FULL_COPY_METHOD_NAME, stepId));
 
         return waitFor;
     }
-
+    
     /* (non-Javadoc)
      * @see com.emc.storageos.blockorchestrationcontroller.BlockOrchestrationInterface#addStepsForPostCreateReplica(com.emc.storageos.workflow.Workflow, java.lang.String, java.util.List, java.lang.String)
      */

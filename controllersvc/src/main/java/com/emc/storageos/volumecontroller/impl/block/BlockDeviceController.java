@@ -6565,37 +6565,18 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
         }
         
         if (!fullCopyList.isEmpty()) {
-            return addCreateFullCopyStep(workflow, storageURI, fullCopyList, createInactive, waitFor);
+            String stepId = workflow.createStepId();
+            // Now add the steps to create the block full copy on the storage system
+            StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, storageURI);
+            Workflow.Method createFullCopyMethod = new Workflow.Method(METHOD_CREATE_FULL_COPY_STEP, storageURI, fullCopyList,
+                    createInactive);
+            Workflow.Method nullRollbackMethod = new Workflow.Method(ROLLBACK_METHOD_NULL);
+
+            waitFor = workflow.createStep(FULL_COPY_CREATE_ORCHESTRATION_STEP, "Create Block Full Copy", waitFor, storageSystem.getId(),
+                    storageSystem.getSystemType(), this.getClass(), createFullCopyMethod, nullRollbackMethod, stepId);
+            _log.info(String.format("Added %s step [%s] in workflow", FULL_COPY_CREATE_STEP_GROUP, stepId));
         }
         
-        return waitFor;
-    }
-
-    /**
-     * Add WF step for creating full copies
-     *
-     * @param workflow
-     * @param storageURI
-     * @param fullCopyList
-     * @param createInactive
-     * @param waitFor
-     * @return
-     * @throws InternalException
-     */
-    private String addCreateFullCopyStep(Workflow workflow, URI storageURI, List<URI> fullCopyList, boolean createInactive,
-            String waitFor) throws InternalException {
-
-        String stepId = workflow.createStepId();
-        // Now add the steps to create the block snapshot on the storage system
-        StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, storageURI);
-        Workflow.Method createFullCopyMethod = new Workflow.Method(METHOD_CREATE_FULL_COPY_STEP, storageURI, fullCopyList,
-                createInactive);
-        Workflow.Method nullRollbackMethod = new Workflow.Method(ROLLBACK_METHOD_NULL);
-
-        waitFor = workflow.createStep(FULL_COPY_CREATE_ORCHESTRATION_STEP, "Create Block Full Copy", waitFor, storageSystem.getId(),
-                storageSystem.getSystemType(), this.getClass(), createFullCopyMethod, nullRollbackMethod, stepId);
-        _log.info(String.format("Added %s step [%s] in workflow", FULL_COPY_CREATE_STEP_GROUP, stepId));
-
         return waitFor;
     }
 

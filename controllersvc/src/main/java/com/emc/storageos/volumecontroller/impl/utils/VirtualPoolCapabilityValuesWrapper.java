@@ -42,7 +42,6 @@ public class VirtualPoolCapabilityValuesWrapper implements Serializable {
     public static final String SUPPORT_SOFT_LIMIT = "soft_limit";
     public static final String SUPPORT_NOTIFICATION_LIMIT = "notification_limit";
     public static final String QUOTA = "quota";
-    public static final String RP_TEMPORARY_BOOKMARK_NAME = "rpTempBookmarkName";
 
     public static final String FILE_RP_RPO_VALUE = "fileRpRpoValue";
     public static final String FILE_RP_RPO_TYPE = "fileRpRpoType";
@@ -367,11 +366,6 @@ public class VirtualPoolCapabilityValuesWrapper implements Serializable {
 
     public String getFileTargetCopyName() {
         Object value = _vpoolCapabilities.get(FILE_TARGET_COPY_NAME);
-        return value != null ? (String) value : null;
-    }
-
-    public String getRPTemporaryBookmarkName() {
-        Object value = _vpoolCapabilities.get(RP_TEMPORARY_BOOKMARK_NAME);
         return value != null ? (String) value : null;
     }
 

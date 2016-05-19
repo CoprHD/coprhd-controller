@@ -659,6 +659,8 @@ public class DefaultBlockServiceApiImpl extends AbstractBlockServiceApiImpl<Stor
      *
      * @param volumes The volumes being moved.
      * @param tgtVarray The target virtual array.
+     * @param isHostMigration Boolean describing if the migration is host-based or not.
+     * @param migrationHostURI The URI for the migration host in host-based migrations.
      * @param taskId The task identifier.
      *
      * @return A list of volume descriptors
@@ -703,6 +705,8 @@ public class DefaultBlockServiceApiImpl extends AbstractBlockServiceApiImpl<Stor
      * @param isHostMigration Boolean describing if the migration is host-based or not.
      * @param migrationHostURI The URI for the migration host in host-based migrations.
      * @param taskId The task identifier.
+     * @param recommendations Scheduling recommendations for new volume backend.
+     * @param capabilities The virtual pool capabilities.
      *
      * @throws InternalException
      */

@@ -382,17 +382,15 @@ public class SnapMirror {
             if (licences != null) {
                 for (Iterator<NaElement> iterator = licences.iterator(); iterator.hasNext();) {
                     NaElement licenceElement = iterator.next();
-                    NaElement packageElement = licenceElement.getChildByName("package");
-                    NaElement typeElement = licenceElement.getChildByName("type");
-                    if ("SnapMirror".equals(packageElement.getContent())
-                            && "license".equals(typeElement.getContent())) {
+                    String packageStr = licenceElement.getChildByName("package").getContent();
+                    String methodStr = licenceElement.getChildByName("method").getContent();
+                    if ("snapmirror".equals(packageStr) && "license".equals(methodStr)) {
                         licenseValid = true;
                     }
                 }
             }
-
         } catch (Exception e) {
-            String msg = "Failed to check snapmirror license.";
+            String msg = "Failed to check snapmirror license-v2 status.";
             log.error(msg, e);
             throw new NetAppException(msg, e);
         }

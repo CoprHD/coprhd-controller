@@ -65,7 +65,12 @@ import com.google.common.base.Joiner;
 
 public class HostExportManager {
     private static final Logger _log = LoggerFactory.getLogger(HostExportManager.class);
-    private static DbClient _dbClient = null;
+    private static DbClient _dbClient;
+
+    private ExportWorkflowUtils _exportWfUtils;
+    private WorkflowService _workflowService;
+    private ControllerLockingService _locker;
+
     private List<URI> exportGroupsCreated;
     private Map<URI, Set<URI>> exportGroupVolumesAdded;
 
@@ -73,9 +78,6 @@ public class HostExportManager {
     private static final String UNEXPORT_STEP = AbstractDefaultMaskingOrchestrator.EXPORT_GROUP_MASKING_TASK;
     private static final String DELIMITER = "::";
 
-    private ExportWorkflowUtils _exportWfUtils;
-    private WorkflowService _workflowService;
-    private ControllerLockingService _locker;
 
     private static final String ALPHA_NUMERICS = "[^A-Za-z0-9_]";
     private static final String DASHED_NEWLINE = "---------------------------------%n";

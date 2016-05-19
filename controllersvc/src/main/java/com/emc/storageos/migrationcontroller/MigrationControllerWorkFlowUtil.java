@@ -22,9 +22,10 @@ import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.volumecontroller.impl.block.BlockDeviceController;
 import com.emc.storageos.workflow.Workflow;
 
-public class MigrationControllerWrokFlowUtil {
-    private static final Logger _log = LoggerFactory.getLogger(MigrationControllerWrokFlowUtil.class);
+public class MigrationControllerWorkFlowUtil {
+    private static final Logger _log = LoggerFactory.getLogger(MigrationControllerWorkFlowUtil.class);
     private DbClient _dbClient;
+    // Workflow controller method names.
     private static final String MIGRATE_GENERAL_VOLUME_METHOD_NAME = "migrateGeneralVolume";
     private static final String RB_MIGRATE_GENERAL_VOLUME_METHOD_NAME = "rollbackMigrateGeneralVolume";
     private static final String COMMIT_MIGRATION_METHOD_NAME = "commitMigration";
@@ -34,14 +35,14 @@ public class MigrationControllerWrokFlowUtil {
     private static final String RB_MIGRATION_VOLUME_EXPORT_METHOD_NAME = "rollbackMigrateVolumeExport";
     private static final String HOST_MIGRATION_VOLUME_EXPORT_METHOD_NAME = "hostMigrateVolumeExport";
     private static final String RB_HOST_MIGRATION_VOLUME_EXPORT_METHOD_NAME = "rollbackHostMigrateVolumeExport";
-
-    private static final String DELETE_MIGRATION_SOURCES_STEP = "deleteSources";
+    // Workflow step identifiers
     private static final String MIGRATION_CREATE_STEP = "migrate";
     private static final String MIGRATION_COMMIT_STEP = "commit";
     private static final String MIGRATION_VOLUME_EXPORT_STEP = "exportVolume";
     private static final String HOST_MIGRATION_VOLUME_EXPORT_STEP = "hostExportVolume";
+    private static final String DELETE_MIGRATION_SOURCES_STEP = "deleteSources";
 
-    public MigrationControllerWrokFlowUtil() {
+    public MigrationControllerWorkFlowUtil() {
 
     }
     public String createWorkflowStepsForBlockVolumeExport(Workflow workflow, String waitFor,

@@ -720,6 +720,24 @@
         </property>
     </bean>
     
+    <bean id="hostMigrationDeviceController" class="com.emc.storageos.migrationcontroller.HostMigrationDeviceController">
+        <property name="dbClient" ref="dbclient"/>
+        <property name="workflowService" ref="workflowService" />
+        <property name="hostExportManager" ref="hostExportMgr" />
+        <property name="migrationControllerWorkFlowUtil" ref="migrationControllerWorkFlowUtil" />
+    </bean>
+    
+    <bean id="hostExportMgr" class="com.emc.storageos.migrationcontroller.HostExportManager">
+        <property name="dbClient" ref="dbclient"/>
+        <property name="exportWorkflowUtils" ref="exportWorkflowUtils" />  
+        <property name="workflowService" ref="workflowService" />
+        <property name="locker" ref="locker"/> 
+    </bean>
+    
+    <bean id="migrationControllerWorkFlowUtil" class="com.emc.storageos.migrationcontroller.MigrationControllerWorkFlowUtil">
+        <property name="dbClient" ref="dbclient"/>
+    </bean>
+    
     <bean id="vplexDeviceController" class="com.emc.storageos.vplexcontroller.VPlexDeviceController">
         <property name="dbClient" ref="dbclient"/>
         <property name="workflowService" ref="workflowService" />
@@ -958,6 +976,7 @@
                 <ref bean="networkDeviceController"/>
                 <ref bean="rpProtection"/>
                 <ref bean="vplexDeviceController"/>
+                <ref bean="hostMigrationDeviceController"/>
                 <ref bean="maskingWorkflowEntryPoints"/>
                 <ref bean="blockDeviceExportController"/>
                 <ref bean="exportWorkflowEntryPoints"/>

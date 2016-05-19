@@ -2,6 +2,7 @@ package com.emc.storageos.migrationcontroller;
 
 import static com.emc.storageos.migrationcontroller.MigrationControllerUtils.getDataObject;
 
+import java.io.Serializable;
 import java.net.URI;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
@@ -36,13 +37,11 @@ import com.emc.storageos.volumecontroller.impl.block.AbstractDefaultMaskingOrche
 import com.emc.storageos.volumecontroller.impl.block.BlockDeviceController;
 import com.emc.storageos.volumecontroller.impl.job.QueueJob;
 import com.emc.storageos.vplex.api.VPlexApiException;
-import com.emc.storageos.vplexcontroller.VPlexDeviceController.DeleteMigrationSourcesCallback;
 import com.emc.storageos.vplexcontroller.completers.MigrationTaskCompleter;
 import com.emc.storageos.workflow.Workflow;
 import com.emc.storageos.workflow.WorkflowException;
 import com.emc.storageos.workflow.WorkflowService;
 import com.emc.storageos.workflow.WorkflowStepCompleter;
-import com.iwave.ext.linux.LinuxSystemCLI;
 import com.iwave.ext.linux.model.MultiPathEntry;
 import com.iwave.ext.linux.model.PowerPathDevice;
 
@@ -54,17 +53,17 @@ public class HostMigrationDeviceController implements MigrationOrchestrationInte
     private HostExportManager _hostExportMgr;
     // private final List<Initiator> _initiators = new ArrayList<Initiator>();
     // private List<URI> migrateInitiatorsURIs = new ArrayList<URI>();
-    protected LinuxSystemCLI _linuxSystem;
     private static volatile HostMigrationDeviceController _instance;
     private WorkflowService _workflowService;
-    private MigrationControllerWrokFlowUtil _migrationControllerWrokFlowUtil;
+    private MigrationControllerWorkFlowUtil _migrationControllerWorkFlowUtil;
+
     // Constants used for creating a migration name.
     private static final String MIGRATION_NAME_PREFIX = "M_";
     private static final String MIGRATION_NAME_DATE_FORMAT = "yyMMdd-HHmmss-SSS";
 
     private static final String DELETE_MIGRATION_SOURCES_WF_NAME = "deleteMigrationSources";
-    private static final String UNEXPORT_STEP = AbstractDefaultMaskingOrchestrator.EXPORT_GROUP_MASKING_TASK;
     private static final String DELETE_VOLUMES_METHOD_NAME = "deleteVolumes";
+    private static final String UNEXPORT_STEP = AbstractDefaultMaskingOrchestrator.EXPORT_GROUP_MASKING_TASK;
     private static final String MIGRATION_VOLUME_DELETE_STEP = "delete";
 
     private boolean _usePowerPath;
@@ -77,16 +76,12 @@ public class HostMigrationDeviceController implements MigrationOrchestrationInte
         return _instance;
     }
 
-    public void setMigrateInitiatorsURIs(List<URI> initiatorsUris) {
-        // migrateInitiatorsURIs = initiatorsUris;
-    }
-
     public void setWorkflowService(WorkflowService workflowService) {
         this._workflowService = workflowService;
     }
 
-    public void setMigrationControllerWrokFlowUtil(MigrationControllerWrokFlowUtil migrationControllerWrokFlowUtil) {
-        this._migrationControllerWrokFlowUtil = migrationControllerWrokFlowUtil;
+    public void setMigrationControllerWrokFlowUtil(MigrationControllerWorkFlowUtil migrationControllerWorkFlowUtil) {
+        this._migrationControllerWorkFlowUtil = migrationControllerWorkFlowUtil;
 
     }
 
@@ -136,7 +131,7 @@ public class HostMigrationDeviceController implements MigrationOrchestrationInte
             _hostExportMgr = new HostExportManager();
             // export source volumes
             if (hostMigrateVolumes != null && !hostMigrateVolumes.isEmpty()) {
-                lastStep = _migrationControllerWrokFlowUtil.createWorkflowStepsForBlockVolumeExport(workflow, lastStep,
+                lastStep = _migrationControllerWorkFlowUtil.createWorkflowStepsForBlockVolumeExport(workflow, lastStep,
                         changeVpoolGeneralVolumeURIs,
                         _hostURI, taskId);
                 _log.info("Created workflow steps for volume export.");
@@ -195,19 +190,19 @@ public class HostMigrationDeviceController implements MigrationOrchestrationInte
                         _log.info("migration controller migrate volume {} by storage system{}",
                                 generalVolumeURI, _hostURI);
 
-                        waitForStep = _migrationControllerWrokFlowUtil.createWorkflowStepsForBlockVolumeExport(workflow, lastStep,
+                        waitForStep = _migrationControllerWorkFlowUtil.createWorkflowStepsForBlockVolumeExport(workflow, lastStep,
                                 newVolumes, _hostURI, taskId);
                         _log.info("Created workflow steps for volume export.");
 
-                        waitForStep = _migrationControllerWrokFlowUtil.createWorkflowStepsForMigrateGeneralVolumes(workflow, _hostURI,
+                        waitForStep = _migrationControllerWorkFlowUtil.createWorkflowStepsForMigrateGeneralVolumes(workflow, _hostURI,
                                 generalVolumeURI, newVolumes, newVpoolURI, null, migrationMap, waitForStep);
                         _log.info("Created workflow steps for volume migration.");
 
-                        waitForStep = _migrationControllerWrokFlowUtil.createWorkflowStepsForCommitMigration(workflow, _hostURI,
+                        waitForStep = _migrationControllerWorkFlowUtil.createWorkflowStepsForCommitMigration(workflow, _hostURI,
                                 generalVolumeURI, migrationMap, waitForStep);
                         _log.info("Created workflow steps for commit migration.");
 
-                        lastStep = _migrationControllerWrokFlowUtil.createWorkflowStepsForDeleteMigrationSource(workflow, _hostURI,
+                        lastStep = _migrationControllerWorkFlowUtil.createWorkflowStepsForDeleteMigrationSource(workflow, _hostURI,
                                 generalVolumeURI, newVpoolURI, null, migrationMap, waitForStep);
                         _log.info("Created workflow steps for commit migration.");
                     } catch (Exception e) {
@@ -222,7 +217,7 @@ public class HostMigrationDeviceController implements MigrationOrchestrationInte
                 cgURI = getDataObject(Volume.class, changeVpoolGeneralVolumeURIs.get(0), _dbClient).getConsistencyGroup();
                 if (!NullColumnValueGetter.isNullURI(cgURI)) {
                     _log.info("Vpool change volumes are in CG {}", cgURI);
-                    lastStep = _migrationControllerWrokFlowUtil.createWorkflowStepsForDeleteConsistencyGroup(workflow, cgURI,
+                    lastStep = _migrationControllerWorkFlowUtil.createWorkflowStepsForDeleteConsistencyGroup(workflow, cgURI,
                             localSystemsToRemoveCG, lastStep);
                 }
             }
@@ -331,19 +326,19 @@ public class HostMigrationDeviceController implements MigrationOrchestrationInte
                     _log.info("migration controller migrate volume {} by storage system{}",
                             generalVolumeURI, _hostURI);
 
-                    waitForStep = _migrationControllerWrokFlowUtil.createWorkflowStepsForBlockVolumeExport(workflow, lastStep,
+                    waitForStep = _migrationControllerWorkFlowUtil.createWorkflowStepsForBlockVolumeExport(workflow, lastStep,
                             newVolumes, _hostURI, taskId);
                     _log.info("Created workflow steps for volume export.");
 
-                    waitForStep = _migrationControllerWrokFlowUtil.createWorkflowStepsForMigrateGeneralVolumes(workflow, _hostURI,
+                    waitForStep = _migrationControllerWorkFlowUtil.createWorkflowStepsForMigrateGeneralVolumes(workflow, _hostURI,
                             generalVolumeURI, newVolumes, null, tgtVarrayURI, migrationMap, waitForStep);
                     _log.info("Created workflow steps for volume migration.");
 
-                    waitForStep = _migrationControllerWrokFlowUtil.createWorkflowStepsForCommitMigration(workflow, _hostURI,
+                    waitForStep = _migrationControllerWorkFlowUtil.createWorkflowStepsForCommitMigration(workflow, _hostURI,
                             generalVolumeURI, migrationMap, waitForStep);
                     _log.info("Created workflow steps for commit migration.");
 
-                    lastStep = _migrationControllerWrokFlowUtil.createWorkflowStepsForDeleteMigrationSource(workflow, _hostURI,
+                    lastStep = _migrationControllerWorkFlowUtil.createWorkflowStepsForDeleteMigrationSource(workflow, _hostURI,
                             generalVolumeURI, null, tgtVarrayURI, migrationMap, waitForStep);
                     _log.info("Created workflow steps for commit migration.");
                 } catch (Exception e) {
@@ -935,6 +930,32 @@ public class HostMigrationDeviceController implements MigrationOrchestrationInte
 
     }
 
+    /**
+     * Callback handler for the delete migrations source sub workflow. The
+     * handler is informed when the workflow completes at which point we simply
+     * update the workflow step step state in the main workflow.
+     */
+    @SuppressWarnings("serial")
+    private static class DeleteMigrationSourcesCallback implements
+            Workflow.WorkflowCallbackHandler, Serializable {
+
+        /**
+         * {@inheritDoc}
+         * 
+         * @throws WorkflowException
+         */
+        @Override
+        public void workflowComplete(Workflow workflow, Object[] args) throws WorkflowException {
+            _log.info("Delete migration workflow completed.");
+
+            // Simply update the workflow step in the main workflow that caused
+            // the sub workflow to execute. The delete migration sources sub
+            // workflow is a cleanup step after a successfully committed
+            // migration. We don't want rollback, so we return success
+            // regardless of the result after the sub workflow has completed.
+            WorkflowStepCompleter.stepSucceded(args[0].toString());
+        }
+    }
 }
     
 

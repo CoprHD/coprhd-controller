@@ -21,6 +21,7 @@ import java.util.regex.Pattern;
 
 public class URIUtil {
     private static final Logger log = LoggerFactory.getLogger(URIUtil.class);
+    private static final int UUID_PARTS_COUNT = 3;
     private static final int VDC_PARTS_COUNT = 4;
 
     private static final String[] MODEL_PACKAGES = new String[] { "com.emc.storageos.db.client.model",
@@ -161,6 +162,16 @@ public class URIUtil {
     }
 
     /**
+     * Get the UUID embedded in the URI string, or null if none
+     *
+     * @param id a DataObject URI string
+     * @return the uuid
+     */
+    public static String parseUUIDFromURI(URI id) {
+        return (id != null) ? parsePartFromURI(id.toString(), UUID_PARTS_COUNT) : null;
+    }
+
+    /**
      * Get the VDC Id embedded in the URI string, or null if none
      * 
      * @param id a DataObject URI string
@@ -177,12 +188,23 @@ public class URIUtil {
      * @return the vdc id
      */
     public static String parseVdcIdFromURI(String id) {
+        return parsePartFromURI(id, VDC_PARTS_COUNT);
+    }
+
+    /**
+     * Get a part of Id embedded in the URI under given index, or null if none
+     *
+     * @param id a DataObject URI
+     * @param index an index of the part
+     * @return the vdc id
+     */
+    private static String parsePartFromURI(String id, int index) {
         String vdcId = null;
 
         if (id != null) {
             String[] segments = StringUtils.split(id, ':');
-            if ((segments.length > VDC_PARTS_COUNT) && StringUtils.isNotBlank(segments[VDC_PARTS_COUNT])) {
-                vdcId = segments[VDC_PARTS_COUNT];
+            if ((segments.length > index) && StringUtils.isNotBlank(segments[index])) {
+                vdcId = segments[index];
             }
         }
         return vdcId;

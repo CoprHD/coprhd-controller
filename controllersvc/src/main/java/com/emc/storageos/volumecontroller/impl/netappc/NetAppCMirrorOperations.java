@@ -26,7 +26,6 @@ import com.emc.storageos.volumecontroller.impl.file.FileMirrorOperations;
 import com.emc.storageos.volumecontroller.impl.job.QueueJob;
 import com.emc.storageos.volumecontroller.impl.netappc.job.NetAppCSnapMirrorJob;
 import com.emc.storageos.volumecontroller.impl.netappc.job.NetAppSnapMirrorAbortJob;
-import com.emc.storageos.volumecontroller.impl.netappc.job.NetAppSnapMirrorDestroyJob;
 import com.emc.storageos.volumecontroller.impl.netappc.job.NetAppSnapMirrorReleaseJob;
 import com.iwave.ext.netappc.model.SnapMirrorVolumeStatus;
 import com.iwave.ext.netappc.model.SnapmirrorCreateParam;
@@ -478,12 +477,12 @@ public class NetAppCMirrorOperations implements FileMirrorOperations {
         try {
             boolean isDestorySnapMirror = ncApi.destorySnapMirror(snapMirrorInfo);
             if (isDestorySnapMirror == true) {
-                ncApi.releaseSnapMirror(snapMirrorInfo);
-                NetAppSnapMirrorDestroyJob netappCSnapMirrorJob =
-                        new NetAppSnapMirrorDestroyJob(mirrorInfoResp.getScheduleName(),
-                                sourceSystem.getId(), taskCompleter);
-
-                ControllerServiceImpl.enqueueJob(new QueueJob(netappCSnapMirrorJob));
+                // ncApi.releaseSnapMirror(snapMirrorInfo);
+                // NetAppSnapMirrorDestroyJob netappCSnapMirrorJob =
+                // new NetAppSnapMirrorDestroyJob(mirrorInfoResp.getScheduleName(),
+                // sourceSystem.getId(), taskCompleter);
+                //
+                // ControllerServiceImpl.enqueueJob(new QueueJob(netappCSnapMirrorJob));
                 return BiosCommandResult.createPendingResult();
             }
 

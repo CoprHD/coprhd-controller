@@ -41,11 +41,11 @@ public class SnapMirror {
 
         NaElement elem = new NaElement("snapmirror-create");
 
-        // destination attributes
-        prepSourceReq(elem, snapMirrorCreateParam);
-
         // source attributes
-        prepDestReq(elem, snapMirrorCreateParam);
+        elem.addNewChild("source-location", snapMirrorCreateParam.getSourceLocation());
+
+        // destination attributes
+        elem.addNewChild("destination-location", snapMirrorCreateParam.getDestinationLocation());
 
         // the name of the cron schedule
         elem.addNewChild("schedule", snapMirrorCreateParam.getCronScheduleName());
@@ -459,7 +459,9 @@ public class SnapMirror {
         return snapMirrorResp;
     }
 
-    private SnapmirrorInfoResp parseSnapMirrorRelationShipInfo(NaElement results) {
+    private SnapmirrorInfoResp parseSnapMirrorRelationShipInfo(NaElement resultElem) {
+        NaElement results = resultElem.getChildByName("result").getChildByName("snapmirror-info");
+
         SnapmirrorInfoResp snapMirrorResp = new SnapmirrorInfoResp();
 
         // relationship-id
@@ -554,5 +556,4 @@ public class SnapMirror {
         }
         return snapMirrorResp;
     }
-
 }

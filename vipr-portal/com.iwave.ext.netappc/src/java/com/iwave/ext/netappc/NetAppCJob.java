@@ -43,8 +43,7 @@ public class NetAppCJob {
         elem.addNewChild("return-record", "true");
 
         // schedule time of job
-        NaElement elemSchedule = prepareScheduleTime(fsRpoValue, fsRpoType);
-        elem.addChildElem(elemSchedule);
+        prepareScheduleTime(fsRpoValue, fsRpoType, elem);
 
         try {
             NaElement results = server.invokeElem(elem);
@@ -79,9 +78,7 @@ public class NetAppCJob {
         elem.addNewChild("return-record", "true");
 
         // schedule time of job
-        NaElement elemSchedule = prepareScheduleTime(fsRpoValue, fsRpoType);
-        elem.addChildElem(elemSchedule);
-
+        prepareScheduleTime(fsRpoValue, fsRpoType, elem);
         try {
             NaElement results = server.invokeElem(elem);
 
@@ -141,10 +138,13 @@ public class NetAppCJob {
         return true;
     }
 
-    private SnapmirrorCronScheduleInfo parseSnapMirrorCronSchedule(NaElement results) {
+    private SnapmirrorCronScheduleInfo parseSnapMirrorCronSchedule(NaElement resultElem) {
+
         SnapmirrorCronScheduleInfo cronScheduleInfo = new SnapmirrorCronScheduleInfo();
+
         NaElement elemScheduleCron = null;
-        if (results != null) {
+        if (resultElem != null) {
+            NaElement results = resultElem.getChildByName("result").getChildByName("job-schedule-cron-info");
             List<Integer> scheduleList = null;
             // job-schedule-cron-month
             elemScheduleCron = results.getChildByName("job-schedule-cron-month");
@@ -181,6 +181,13 @@ public class NetAppCJob {
                     cronScheduleInfo.setJobScheduleCronMinute(scheduleList);
                 }
             }
+
+            NaElement cronName = results.getChildByName("job-schedule-name");
+
+            if (cronName != null) {
+                cronScheduleInfo.setJobScheduleName(cronName.getContent());
+            }
+
         }
 
         return cronScheduleInfo;
@@ -200,27 +207,43 @@ public class NetAppCJob {
         return dataList;
     }
 
-    NaElement prepareScheduleTime(String fsRpoValue, String fsRpoType) {
+    void prepareScheduleTime(String fsRpoValue, String fsRpoType, NaElement elemRoot) {
         NaElement elemSchedule = null;
         switch (fsRpoType.toUpperCase()) {
             case "MINUTES":
                 elemSchedule = new NaElement("job-schedule-cron-minute");
                 elemSchedule.addNewChild("cron-minute", fsRpoValue);
+                elemRoot.addChildElem(elemSchedule);
                 break;
             case "HOURS":
                 elemSchedule = new NaElement("job-schedule-cron-hour");
                 elemSchedule.addNewChild("cron-hour", fsRpoValue);
+                elemRoot.addChildElem(elemSchedule);
+
+                elemSchedule = new NaElement("job-schedule-cron-minute");
+                elemSchedule.addNewChild("cron-minute", "0");
+                elemRoot.addChildElem(elemSchedule);
                 break;
             case "DAYS":
                 elemSchedule = new NaElement("job-schedule-cron-day");
                 elemSchedule.addNewChild("cron-day", fsRpoValue);
+                elemRoot.addChildElem(elemSchedule);
+
+                elemSchedule = new NaElement("job-schedule-cron-hour");
+                elemSchedule.addNewChild("cron-hour", fsRpoValue);
+                elemRoot.addChildElem(elemSchedule);
+
+                elemSchedule = new NaElement("job-schedule-cron-minute");
+                elemSchedule.addNewChild("cron-minute", "0");
+                elemRoot.addChildElem(elemSchedule);
+
                 break;
             case "MONTH":
                 elemSchedule = new NaElement("job-schedule-cron-month");
                 elemSchedule.addNewChild("cron-month", fsRpoValue);
+                elemRoot.addChildElem(elemSchedule);
                 break;
         }
-        return elemSchedule;
     }
 
 }

@@ -133,6 +133,8 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
     private static final String CONVERT_TO_NONSRDF_DEVICES_METHOD = "convertToNonSrdfDevicesMethodStep";
     private static final String CREATE_LIST_REPLICAS_METHOD = "createListReplicas";
     private static final String UPDATE_VOLUME_PROEPERTIES_METHOD = "updateVolumeProperties";
+    private static final String ROLLBACK_REFRESH_SYSTEM_STEP_GROUP = "ROLLBACK_REFRESH_SRDF_SYSTEMS";
+    private static final String ROLLBACK_REFRESH_SYSTEM_STEP_DESC = "Null provisioning step; Refresh %s on rollback";
 
     private WorkflowService workflowService;
     private DbClient dbClient;
@@ -175,6 +177,9 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
             log.info("No SRDF Steps required");
             return waitFor;
         }
+
+        waitFor = addRollbackStepsForRefreshSystems(workflow, waitFor, srdfDescriptors);
+
         log.info("Adding SRDF steps for create volumes");
         // Create SRDF relationships
         waitFor = createElementReplicaSteps(workflow, waitFor, srdfDescriptors);
@@ -588,23 +593,49 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
         }
     }
 
+    private String addRollbackStepsForRefreshSystems(Workflow workflow, String waitFor, List<VolumeDescriptor> srdfDescriptors) {
+        List<VolumeDescriptor> targetDescriptors = VolumeDescriptor.filterByType(srdfDescriptors,
+                VolumeDescriptor.Type.SRDF_TARGET);
+
+        if (targetDescriptors.isEmpty()) {
+            return waitFor;
+        }
+
+        URI targetSystem = targetDescriptors.get(0).getDeviceURI();
+        StorageSystem tgt = dbClient.queryObject(StorageSystem.class, targetSystem);
+        Workflow.Method refreshTargetSystemsMethod = new Method(REFRESH_SRDF_TARGET_SYSTEM, tgt, null);
+
+        workflow.createStep(ROLLBACK_REFRESH_SYSTEM_STEP_GROUP, String.format(ROLLBACK_REFRESH_SYSTEM_STEP_DESC,
+                tgt.getSerialNumber()), waitFor, tgt.getId(), tgt.getSystemType(), this.getClass(),
+                rollbackMethodNullMethod(), refreshTargetSystemsMethod, null);
+
+        return ROLLBACK_REFRESH_SYSTEM_STEP_GROUP;
+    }
+
     private String addStepToRefreshSystem(String stepGroup, StorageSystem system, List<URI> volumeIds, String waitFor, Workflow workflow) {
         Workflow.Method refreshTargetSystemsMethod = new Method(REFRESH_SRDF_TARGET_SYSTEM, system, volumeIds);
         return workflow.createStep(stepGroup, REFRESH_SYSTEM_STEP_DESC, waitFor, system.getId(),
                 system.getSystemType(), getClass(), refreshTargetSystemsMethod, rollbackMethodNullMethod(), null);
     }
 
-    public void refreshStorageSystemStep(StorageSystem sourceSystem, List<URI> volumeIds, String opId) {
-        log.info("START refreshing system {} {}", sourceSystem.getLabel(), sourceSystem.getId());
+    /**
+     * Workflow step for refreshing the given StorageSystem via EMCRefreshSystem.
+     *
+     * @param system    The StorageSystem to refresh.
+     * @param volumeIds List of volumes IDs.  Null is allowed.
+     * @param opId      Workflow step ID.
+     */
+    public void refreshStorageSystemStep(StorageSystem system, List<URI> volumeIds, String opId) {
+        log.info("START refreshing system {} {}", system.getLabel(), system.getId());
         try {
             WorkflowStepCompleter.stepExecuting(opId);
-            getRemoteMirrorDevice().refreshStorageSystem(sourceSystem.getId(), volumeIds);
+            getRemoteMirrorDevice().refreshStorageSystem(system.getId(), volumeIds);
         } catch (Exception e) {
             log.warn("Refreshing system step failed", e);
         } finally {
             WorkflowStepCompleter.stepSucceded(opId);
         }
-        log.info("END refreshing system {} {}", sourceSystem.getLabel(), sourceSystem.getId());
+        log.info("END refreshing system {} {}", system.getLabel(), system.getId());
     }
 
     public void rollbackMethodNull(String stepId) throws WorkflowException {

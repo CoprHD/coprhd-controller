@@ -58,9 +58,7 @@ public class SnapMirror {
         elem.addNewChild("relationship-type", snapMirrorCreateParam.getRelationshipType());
 
         try {
-            NaElement results = server.invokeElem(elem);
-            snapMirrorResp = parseSnapMirrorRelationShipInfo(results);
-
+            server.invokeElem(elem);
         } catch (Exception e) {
             String msg = "Failed to create SnapMirror: " + snapMirrorCreateParam.getDestinationVolume();
             log.error(msg, e);
@@ -211,16 +209,13 @@ public class SnapMirror {
      * @param snapMirrorInfo
      * @return
      */
-    public SnapmirrorInfoResp getSnapMirrorInfo(SnapmirrorInfo snapMirrorInfo) {
+    public SnapmirrorInfoResp getSnapMirrorInfo(String destPath) {
         SnapmirrorInfoResp snapMirrorResp = null;
 
         NaElement elem = new NaElement("snapmirror-get");
 
-        // destination attributes
-        prepSourceReq(elem, snapMirrorInfo);
-
-        // source attributes
-        prepDestReq(elem, snapMirrorInfo);
+        // destination path
+        elem.addNewChild("destination-location", destPath);
 
         try {
             NaElement results = server.invokeElem(elem);
@@ -228,7 +223,7 @@ public class SnapMirror {
             snapMirrorResp = parseSnapMirrorRelationShipInfo(results);
 
         } catch (Exception e) {
-            String msg = "Failed to get snapMirror info: " + snapMirrorInfo.getDestinationLocation();
+            String msg = "Failed to get snapMirror info: " + destPath;
             log.error(msg, e);
             throw new NetAppCException(msg, e);
         }
@@ -460,99 +455,101 @@ public class SnapMirror {
     }
 
     private SnapmirrorInfoResp parseSnapMirrorRelationShipInfo(NaElement resultElem) {
-        NaElement results = resultElem.getChildByName("result").getChildByName("snapmirror-info");
-
         SnapmirrorInfoResp snapMirrorResp = new SnapmirrorInfoResp();
 
-        // relationship-id
-        String relationShipId = results.getChildContent("relationship-id");
-        if (relationShipId != null && !relationShipId.isEmpty()) {
-            snapMirrorResp.setRelationshipId(relationShipId);
-        }
+        if (resultElem != null) {
+            NaElement results = resultElem.getChildByName("attributes").getChildByName("snapmirror-info");
 
-        String relationStatus = results.getChildContent("relationship-status");
-        // relationship-status
-        if (relationStatus != null && !relationStatus.isEmpty()) {
-            snapMirrorResp.setRelationshipStatus(SnapmirrorRelationshipStatus.valueOf(relationStatus));
-        }
+            // relationship-id
+            String relationShipId = results.getChildContent("relationship-id");
+            if (relationShipId != null && !relationShipId.isEmpty()) {
+                snapMirrorResp.setRelationshipId(relationShipId);
+            }
 
-        // mirror-state
-        String mirrorStatus = results.getChildContent("mirror-state");
-        if (mirrorStatus != null && !mirrorStatus.isEmpty()) {
-            snapMirrorResp.setMirrorState(SnapmirrorState.valueOfLabel(mirrorStatus));
-        }
+            String relationStatus = results.getChildContent("relationship-status");
+            // relationship-status
+            if (relationStatus != null && !relationStatus.isEmpty()) {
+                snapMirrorResp.setRelationshipStatus(SnapmirrorRelationshipStatus.valueOf(relationStatus));
+            }
 
-        // current-transfer-type
-        String currentTransferType = results.getChildContent("current-transfer-type");
+            // mirror-state
+            String mirrorStatus = results.getChildContent("mirror-state");
+            if (mirrorStatus != null && !mirrorStatus.isEmpty()) {
+                snapMirrorResp.setMirrorState(SnapmirrorState.valueOfLabel(mirrorStatus));
+            }
 
-        if (currentTransferType != null && !currentTransferType.isEmpty()) {
-            snapMirrorResp.setCurrentTransferType(SnapmirrorTransferType.valueOfLabel(currentTransferType));
-        }
+            // current-transfer-type
+            String currentTransferType = results.getChildContent("current-transfer-type");
 
-        // last-transfer-type
-        String lastTransferType = results.getChildContent("last-transfer-type");
+            if (currentTransferType != null && !currentTransferType.isEmpty()) {
+                snapMirrorResp.setCurrentTransferType(SnapmirrorTransferType.valueOfLabel(currentTransferType));
+            }
 
-        if (lastTransferType != null && !mirrorStatus.isEmpty()) {
-            snapMirrorResp.setLastTransferType(SnapmirrorTransferType.valueOfLabel(lastTransferType));
-        }
+            // last-transfer-type
+            String lastTransferType = results.getChildContent("last-transfer-type");
 
-        // schedule
-        String scheduleName = results.getChildContent("schedule");
-        if (scheduleName != null && !scheduleName.isEmpty()) {
-            snapMirrorResp.setScheduleName(scheduleName);
-        }
+            if (lastTransferType != null && !mirrorStatus.isEmpty()) {
+                snapMirrorResp.setLastTransferType(SnapmirrorTransferType.valueOfLabel(lastTransferType));
+            }
 
-        // source details
+            // schedule
+            String scheduleName = results.getChildContent("schedule");
+            if (scheduleName != null && !scheduleName.isEmpty()) {
+                snapMirrorResp.setScheduleName(scheduleName);
+            }
 
-        // source-volume
-        String sourceVolume = results.getChildContent("source-volume");
+            // source details
 
-        if (sourceVolume != null && !sourceVolume.isEmpty()) {
-            snapMirrorResp.setSourceVolume(sourceVolume);
-        }
+            // source-volume
+            String sourceVolume = results.getChildContent("source-volume");
 
-        // source-vserver
-        String sourceVServer = results.getChildContent("source-vserver");
+            if (sourceVolume != null && !sourceVolume.isEmpty()) {
+                snapMirrorResp.setSourceVolume(sourceVolume);
+            }
 
-        if (sourceVServer != null && !sourceVServer.isEmpty()) {
-            snapMirrorResp.setSourceVserver(sourceVServer);
-        }
+            // source-vserver
+            String sourceVServer = results.getChildContent("source-vserver");
 
-        // source-cluster
-        String sourceCluster = results.getChildContent("source-cluster");
+            if (sourceVServer != null && !sourceVServer.isEmpty()) {
+                snapMirrorResp.setSourceVserver(sourceVServer);
+            }
 
-        if (sourceCluster != null && !sourceCluster.isEmpty()) {
-            snapMirrorResp.setSourceCluster(sourceCluster);
-        }
+            // source-cluster
+            String sourceCluster = results.getChildContent("source-cluster");
 
-        // source-location
-        String sourceLocation = results.getChildContent("source-location");
+            if (sourceCluster != null && !sourceCluster.isEmpty()) {
+                snapMirrorResp.setSourceCluster(sourceCluster);
+            }
 
-        if (sourceLocation != null && !sourceLocation.isEmpty()) {
-            snapMirrorResp.setSourceLocation(sourceLocation);
-        }
-        // target details
+            // source-location
+            String sourceLocation = results.getChildContent("source-location");
 
-        // destination-volume
-        String destinationVolume = results.getChildContent("destination-volume");
+            if (sourceLocation != null && !sourceLocation.isEmpty()) {
+                snapMirrorResp.setSourceLocation(sourceLocation);
+            }
+            // target details
 
-        if (destinationVolume != null && !destinationVolume.isEmpty()) {
-            snapMirrorResp.setDestinationVolume(destinationVolume);
-        }
-        // destination-vserver
-        String destinationVServer = results.getChildContent("destination-vserver");
-        if (destinationVServer != null && !destinationVServer.isEmpty()) {
-            snapMirrorResp.setDestinationVserver(destinationVServer);
-        }
-        // destination-cluster
-        String destinationCluster = results.getChildContent("destination-cluster");
-        if (destinationCluster != null && !destinationCluster.isEmpty()) {
-            snapMirrorResp.setDestinationCluster(destinationCluster);
-        }
-        // destination-location
-        String destinationLocation = results.getChildContent("destination-location");
-        if (destinationLocation != null && !destinationLocation.isEmpty()) {
-            snapMirrorResp.setDestinationLocation(destinationLocation);
+            // destination-volume
+            String destinationVolume = results.getChildContent("destination-volume");
+
+            if (destinationVolume != null && !destinationVolume.isEmpty()) {
+                snapMirrorResp.setDestinationVolume(destinationVolume);
+            }
+            // destination-vserver
+            String destinationVServer = results.getChildContent("destination-vserver");
+            if (destinationVServer != null && !destinationVServer.isEmpty()) {
+                snapMirrorResp.setDestinationVserver(destinationVServer);
+            }
+            // destination-cluster
+            String destinationCluster = results.getChildContent("destination-cluster");
+            if (destinationCluster != null && !destinationCluster.isEmpty()) {
+                snapMirrorResp.setDestinationCluster(destinationCluster);
+            }
+            // destination-location
+            String destinationLocation = results.getChildContent("destination-location");
+            if (destinationLocation != null && !destinationLocation.isEmpty()) {
+                snapMirrorResp.setDestinationLocation(destinationLocation);
+            }
         }
         return snapMirrorResp;
     }

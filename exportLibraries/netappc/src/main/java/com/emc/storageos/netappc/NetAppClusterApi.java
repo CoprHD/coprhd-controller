@@ -1070,13 +1070,13 @@ public class NetAppClusterApi {
         return licenseExists;
     }
 
-    public SnapmirrorInfoResp getSnapMirrorInfo(SnapmirrorInfo mirrorInfo) {
+    public SnapmirrorInfoResp getSnapMirrorInfo(String destPath) {
         try {
             netAppClusterFacade = new NetAppClusterFacade(_ipAddress, _portNumber, _userName,
                     _password, _https);
-            return netAppClusterFacade.getSnapMirrorInfo(mirrorInfo);
+            return netAppClusterFacade.getSnapMirrorInfo(destPath);
         } catch (Exception e) {
-            throw NetAppCException.exceptions.getSnapMirrorStatusFailed(mirrorInfo.getSourceVolume(), _ipAddress, e.getMessage());
+            throw NetAppCException.exceptions.getSnapMirrorStatusFailed(destPath, _ipAddress, e.getMessage());
         }
     }
 

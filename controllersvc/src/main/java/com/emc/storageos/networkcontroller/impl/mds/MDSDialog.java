@@ -975,18 +975,16 @@ public class MDSDialog extends SSHDialog {
 
         String busyKey = "MDSDialog.checkForEnhancedZoneSession.busy";
         String createdKey = "MDSDialog.checkForEnhancedZoneSession.created";
-        //TODO: Fix this to fetch it from the properties file
-        //String pendingKey = "MDSDialog.checkForEnhancedZoneSession.pending";
-        String pendingKey = "there is a pending action.";
-
+        String pendingKey = "MDSDialog.checkForEnhancedZoneSession.pending";
+        
         if (forIvr) {
             busyKey = "MDSDialog.ivr.checkForEnhancedZoneSession.busy";
             createdKey = "MDSDialog.ivr.checkForEnhancedZoneSession.created";
-            //pendingKey = "MDSDialog.ivr.checkForEnhancedZoneSession.pending";
+            pendingKey = "MDSDialog.ivr.checkForEnhancedZoneSession.pending";
         }
         
-        _log.info("LINES: {}", lines.toString());
         for (String s : lines) {
+        	_log.debug("line : {}", s);
             if (s.startsWith(MDSDialogProperties.getString(createdKey))) { // Enhanced zone session has been created
                 inSession = true;
                 return false;
@@ -1016,7 +1014,7 @@ public class MDSDialog extends SSHDialog {
                        return true;
                    }
                    _log.error("There is a pending session still, gave up after " + sessionLockRetryMax + " retries!");
-                   throw NetworkDeviceControllerException.exceptions.timeoutWaitingOnPrompt(SSHPrompt.MDS_CONFIG_IVR_ZONE.toString());
+                   throw NetworkDeviceControllerException.exceptions.timeoutWaitingOnPendingActions();
             }
         }
         return false;

@@ -299,9 +299,10 @@ public class ColumnValue {
      * @throws DatabaseException
      */
     public static <T> void setColumn(ColumnListMutation<T> columns, T name, Object val, Integer ttl) {
+        Class valClass = val.getClass();
         if (val == null) {
             columns.putEmptyColumn(name, ttl);
-        } else if (val.getClass() == byte[].class) {
+        } else if (valClass == byte[].class) {
             columns.putColumn(name, (byte[]) val, ttl);
         } else if (val.getClass() == String.class) {
             columns.putColumn(name, (String) val, ttl);

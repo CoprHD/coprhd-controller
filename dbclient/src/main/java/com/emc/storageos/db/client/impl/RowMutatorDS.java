@@ -2,32 +2,28 @@ package com.emc.storageos.db.client.impl;
 
 import com.datastax.driver.core.BatchStatement;
 import com.datastax.driver.core.BoundStatement;
-import com.datastax.driver.core.ColumnDefinitions;
 import com.datastax.driver.core.ConsistencyLevel;
-import com.datastax.driver.core.LocalDate;
 import com.datastax.driver.core.PreparedStatement;
-import com.datastax.driver.core.Row;
 import com.datastax.driver.core.Session;
-import com.datastax.driver.core.Token;
-import com.datastax.driver.core.TupleValue;
-import com.datastax.driver.core.TypeCodec;
-import com.datastax.driver.core.UDTValue;
-import com.datastax.driver.core.utils.Bytes;
 import com.datastax.driver.core.utils.UUIDs;
-import com.emc.storageos.db.client.model.DataObject;
-import com.google.common.reflect.TypeToken;
-import org.apache.cassandra.cql3.UntypedResultSet;
+import com.emc.storageos.db.client.model.NamedURI;
+import com.emc.storageos.db.client.model.ScopedLabel;
+import com.emc.storageos.db.exceptions.DatabaseException;
+import org.apache.cassandra.serializers.BooleanSerializer;
+import org.apache.cassandra.serializers.DoubleSerializer;
+import org.apache.cassandra.serializers.FloatSerializer;
+import org.apache.cassandra.serializers.Int32Serializer;
+import org.apache.cassandra.serializers.LongSerializer;
+import org.apache.cassandra.serializers.UTF8Serializer;
+import org.apache.cassandra.utils.ByteBufferUtil;
+import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.math.BigDecimal;
-import java.math.BigInteger;
-import java.net.InetAddress;
+import java.net.URI;
 import java.nio.ByteBuffer;
+import java.util.Calendar;
 import java.util.Date;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
 import java.util.UUID;
 
 import static com.datastax.driver.core.querybuilder.QueryBuilder.*;
@@ -61,28 +57,63 @@ public class RowMutatorDS {
 
     public void addColumn(String recordKey, CompositeColumnName column, Object val) {
         log.info("hlj, id={}, column={}, val={}, typeofval={}", recordKey, column, val, val.getClass());
-        String valString = (String) val;
-        ByteBuffer valByte = ByteBuffer.wrap(valString.getBytes());
+        ByteBuffer blobVal = RowMutatorDS.getByteBufferFromPrimitiveValue(val);
 
         BoundStatement insert = insertRecord.bind();
         insert.setString("key", recordKey);
-        if (column.getOne() != null) {
-            insert.setString("column1", column.getOne());
-        }
-        if (column.getTwo() != null) {
-            insert.setString("column2", column.getTwo());
-        }
-        if (column.getThree() != null) {
-            insert.setString("column3", column.getThree());
-        }
-        if (column.getTimeUUID() != null) {
-            insert.setUUID("column4", column.getTimeUUID());
-        }
-        if (valByte != null) {
-            insert.setBytes("value", valByte);
-        }
-        log.info("hlj insert={}", insert);
+        insert.setString("column1", column.getOne() == null ? StringUtils.EMPTY : column.getOne());
+        insert.setString("column2", column.getTwo() == null ? StringUtils.EMPTY : column.getTwo());
+        insert.setString("column3", column.getThree() == null ? StringUtils.EMPTY : column.getThree());
+        //todo when column4 is null, "Invalid null value for clustering key part column4" exception will be thrown
+        //todo so we should set column4 with an empty UUID here. but below is timeBased() not empty.
+        insert.setUUID("column4", column.getTimeUUID() == null ? UUIDs.timeBased() : column.getTimeUUID());
+        insert.setBytes("value", blobVal);
+        log.info("hlj insert={}, blobval={}", insert, blobVal);
         recordAndIndexBatch.add(insert);
+    }
+
+    public static ByteBuffer getByteBufferFromPrimitiveValue(Object val) {
+        log.info("hlj in convert={}, type={}", val, val.getClass());
+        if (val == null) {
+            return null;// ByteBufferUtil.EMPTY_BYTE_BUFFER
+        }
+        ByteBuffer blobVal = null;
+        Class valClass = val.getClass();
+        if (valClass == byte[].class) {
+            blobVal = ByteBuffer.wrap((byte[]) val);
+        } else if (valClass == String.class) {
+            blobVal = UTF8Serializer.instance.serialize((String) val);
+        } else if (valClass == URI.class ||
+                valClass == NamedURI.class ||
+                valClass == ScopedLabel.class) {
+            blobVal = UTF8Serializer.instance.serialize(val.toString());
+        } else if (valClass == Byte.class) {
+            blobVal = Int32Serializer.instance.serialize((Byte) val & 0xff);
+        } else if (valClass == Boolean.class) {
+            blobVal = BooleanSerializer.instance.serialize((Boolean) val);
+        } else if (valClass == Short.class) {
+            blobVal = ByteBuffer.allocate(2);
+            blobVal.putShort((Short) val);
+        } else if (valClass == Integer.class) {
+            blobVal = Int32Serializer.instance.serialize((Integer) val);
+        } else if (valClass == Long.class) {
+            blobVal = LongSerializer.instance.serialize((Long) val);
+        } else if (valClass == Float.class) {
+            blobVal = FloatSerializer.instance.serialize((Float) val);
+        } else if (valClass == Double.class) {
+            blobVal = DoubleSerializer.instance.serialize((Double) val);
+        } else if (valClass == Date.class) {
+            blobVal = LongSerializer.instance.serialize(((Date) val).getTime());
+        } else if (val instanceof Calendar) {
+            long timestamp = ((Calendar) val).getTimeInMillis();
+            blobVal = LongSerializer.instance.serialize(timestamp);
+        } else if (valClass.isEnum()) {
+            blobVal = UTF8Serializer.instance.serialize(((Enum<?>) val).name());
+        } else {
+            throw DatabaseException.fatals.serializationFailedUnsupportedType(val);
+        }
+
+        return blobVal;
     }
 
     public void execute() {

@@ -178,12 +178,16 @@ public class VirtualArrayService extends TaggedResource {
         }
 
         StorageOSUser user = getUserFromContext();
-        // full list if role is {Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR}
+
+        // full list if role is {Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR} AND no tenant restriction from input
+        // else only return the list, which input tenant has access.
         if (_permissionsHelper.userHasGivenRole(user,
                 null, Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR)) {
             for (VirtualArray nh : nhObjList) {
-                list.getVirtualArrays().add(toNamedRelatedResource(ResourceTypeEnum.VARRAY,
-                        nh.getId(), nh.getLabel()));
+                if (tenant_input == null || _permissionsHelper.tenantHasUsageACL(tenant_input.getId(), nh)) {
+                    list.getVirtualArrays().add(toNamedRelatedResource(ResourceTypeEnum.VARRAY,
+                            nh.getId(), nh.getLabel()));
+                }
             }
         } else {
             // otherwise, filter by only authorized to use

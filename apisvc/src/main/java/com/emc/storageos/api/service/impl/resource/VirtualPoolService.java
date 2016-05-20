@@ -747,11 +747,14 @@ public abstract class VirtualPoolService extends TaggedResource {
             }
         }
 
-        // full list if role is {Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR}
+        // full list if role is {Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR} AND no tenant restriction from input
+        // else only return the list, which input tenant has access.
         if (_permissionsHelper.userHasGivenRole(user,
                 null, Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR)) {
             for (VirtualPool virtualPool : vpoolObjects) {
-                list.getVirtualPool().add(toVirtualPoolResource(virtualPool));
+                if (tenant_input == null || _permissionsHelper.tenantHasUsageACL(tenant_input.getId(), virtualPool)) {
+                    list.getVirtualPool().add(toVirtualPoolResource(virtualPool));
+                }
             }
         } else {
             // otherwise, filter by only authorized to use

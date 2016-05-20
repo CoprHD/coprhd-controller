@@ -137,6 +137,10 @@ URI_VDC_RECONNECT_POST      = URI_VDC    + '/{0}/reconnect'
 URI_VDC_SECRETKEY           = URI_VDC    + '/secret-key'
 URI_VDC_CERTCHAIN           = URI_VDC    + '/keystore'
 
+URI_TASK                    = URI_VDC    + "/tasks"
+URI_TASK_GET                = URI_TASK   + '/{0}'
+URI_TASK_LIST               = URI_TASK
+
 URI_IPSEC                   = '/ipsec'
 URI_IPSEC_STATUS            = '/ipsec?status={0}'
 URI_IPSEC_KEY               = '/ipsec/key'
@@ -1157,6 +1161,33 @@ class Bourne:
             time.sleep(3)
             obj_op = show_opfn(pid, sid, op)
             tmo += 3
+            if (tmo > API_SYNC_TIMEOUT):
+                break
+
+        if (type(obj_op) is dict):
+            print str(obj_op)
+            if (obj_op['state'] == 'pending'):
+                raise Exception('Timed out waiting for request in pending state: ' + op)
+
+            if (obj_op['state'] == 'error' and not ignore_error):
+                raise Exception('There was an error encountered:\n' + json.dumps(obj_op, sort_keys=True, indent=4))
+
+        return obj_op
+
+    def api_sync_4(self, id, showfn, ignore_error=False):
+        obj_op = showfn(id)
+        tmo = 0
+	seen_pending = 0
+
+        while (obj_op['state'] == 'pending' or obj_op['state'] == 'suspended_no_error'):
+            time.sleep(1)
+	    if (obj_op['state'] == 'pending'):
+		seen_pending = 1;
+	    if (obj_op['state'] == 'suspended_no_error' and seen_pending == 1):
+		break
+		
+            obj_op = showfn(id)
+            tmo += 1
             if (tmo > API_SYNC_TIMEOUT):
                 break
 
@@ -3563,6 +3594,15 @@ class Bourne:
 
     def get_db_repair_status(self):
         return self.api('GET', URI_DB_REPAIR)
+
+    def task_list(self):
+        return self.api('GET', URI_TASK_LIST)
+
+    def task_show(self, uri):
+        return self.api('GET', URI_TASK_GET.format(uri))
+
+    def task_follow(self, uri):
+        return self.api_sync_4(uri, self.task_show)
 
     def volume_list(self, project):
         puri = self.project_query(project)

@@ -183,6 +183,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
     private static final String VOLUME_TYPE = "Volume";
 
     private static final String NONE_TYPE = "None";
+    private static final String IBMXIV_SYSTEM_TYPE = "ibmxiv";
 
     public static boolean isExclusiveStorage(String storageType) {
         return EXCLUSIVE_STORAGE.equals(storageType);
@@ -2021,6 +2022,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
                     .search()
                     .byProject(project)
                     .run();
+
             return createBaseResourceOptions(consistencyGroups);
         }
     }
@@ -2622,7 +2624,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
 
             @Override
             public boolean accept(VolumeRestRep item) {
-                return !isInConsistencyGroup(item);
+                return !isInConsistencyGroup(item) || isIBMXIVVolume(item);
             }
         });
     }
@@ -3205,5 +3207,15 @@ public class BlockProvider extends BaseAssetOptionsProvider {
             }
             return false;
         }
+    }
+
+    /**
+     * Check if volume is an IBM XIV volume
+     *
+     * @param vol VolumeRestRep instance to be checked.
+     * @return true if the volume is an IBM XIV volume, false otherwise
+     */
+    private boolean isIBMXIVVolume(VolumeRestRep vol) {
+        return vol != null && IBMXIV_SYSTEM_TYPE.equals(vol.getSystemType());
     }
 }

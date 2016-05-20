@@ -395,6 +395,15 @@ public abstract class BlockIngestOrchestrator {
 
         blockObject.setConsistencyGroup(cg.getId());
         blockObject.setReplicationGroupInstance(cg.getLabel());
+        if (blockObject instanceof BlockSnapshot) {
+            // Check if the unmanaged volume has SNAPSHOT_CONSISTENCY_GROUP_NAME property populated. If yes,
+            // use that for replicationGroupInstance
+            String snapsetName = PropertySetterUtil.extractValueFromStringSet(
+                    SupportedVolumeInformation.SNAPSHOT_CONSISTENCY_GROUP_NAME.toString(), unManagedVolume.getVolumeInformation());
+            if (snapsetName != null && !snapsetName.isEmpty()) {
+                blockObject.setReplicationGroupInstance(snapsetName);
+            }
+        }
     }
 
     /*

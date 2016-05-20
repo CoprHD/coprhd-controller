@@ -2105,14 +2105,36 @@ public class DisasterRecoveryService {
                     return;
                 }
 
+                degradeActiveSite();
+            } catch (Exception e) {
+                log.error("Error occured during failback detect monitor", e);
+            }
+        }
+        
+        private void degradeActiveSite() throws Exception {
+            try {
+                coordinator.startTransaction();
+                
+                List<Site> standbySites = drUtil.listStandbySites();
+                
                 Site localSite = drUtil.getLocalSite();
                 localSite.setState(SiteState.ACTIVE_DEGRADED);
                 coordinator.persistServiceConfiguration(localSite.toConfiguration());
+                
+                for (Site standbySite : standbySites) {
+                    if (!drUtil.isLocalSite(standbySite)) {
+                        standbySite.setState(SiteState.STANDBY_PAUSED);
+                        coordinator.persistServiceConfiguration(standbySite.toConfiguration());
+                    }
+                }
+                
                 // At this moment this site is disconnected with others, so ok to have own vdc version.
                 drUtil.updateVdcTargetVersion(coordinator.getSiteId(), SiteInfo.DR_OP_FAILBACK_DEGRADE, DrUtil.newVdcConfigVersion());
 
+                coordinator.commitTransaction();
             } catch (Exception e) {
-                log.error("Error occured during failback detect monitor", e);
+                coordinator.discardTransaction();
+                throw e;
             }
         }
 

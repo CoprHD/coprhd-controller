@@ -571,6 +571,9 @@ public class DataCollectionJobUtil {
             accessProfile.setPassword(storageDevice.getPassword());
             accessProfile.setPortNumber(storageDevice.getPortNumber());
             accessProfile.setLastSampleTime(0L);
+            if (null != nameSpace) {
+                accessProfile.setnamespace(nameSpace);
+            }
         } else if (storageDevice.getSystemType().equals(
                 Type.unity.toString())) {
             populateUnityAccessProfileForSystem(accessProfile, storageDevice);

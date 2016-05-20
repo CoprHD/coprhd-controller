@@ -1423,7 +1423,7 @@ public class BackupOps {
 
             return backupInfo;
         } catch (BackupException e) {
-            log.error("Node({}:{}) - Query backup info {} failed", host, port, backupName);
+            //log.error("Node({}:{}) - Query backup info {} failed", host, port, backupName);
             throw e;
         } finally {
             close(conn);

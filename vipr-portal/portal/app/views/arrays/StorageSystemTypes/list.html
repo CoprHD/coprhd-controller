@@ -1,0 +1,11 @@
+#{extends 'main.html' /}
+#{set navSelected: ['nav.settings', 'nav.storageSystemTypes'] /}
+
+#{DataTable.header titleKey:'storageSystemTypes.list.title' /}
+#{DataTable.crudTable id:'storageSystemTypes', 
+                      dataTable:dataTable,
+                      deleteConfirm:messages.get('storageSystemTypes.deleteConfirm')}
+         	#{Form.button name:'button.driverupload', icon:'ok', submit:'uploadForm', data:['enabled':'selected']/}
+#{/DataTable.crudTable}
+
+#{DataTable.formAction @upload(), id:'uploadForm',table:'storageSystemTypes'/}

@@ -145,6 +145,7 @@ nav.mobilityGroups=Mobility Groups
 nav.disasterRecovery=System Disaster Recovery
 nav.disasterRecovery.obsoleteWarning=Obsolete site
 nav.ipsec=IPsec
+nav.storageSystemTypes=Storage System Types
 
 # Override messages in the Secure plugin
 secure.title=
@@ -3206,7 +3207,6 @@ resources.tasks.time.done=Started <strong>%s</strong> and ran for <strong>%s</st
 resources.tasks.percent=&nbsp;%s%%
 resource.task.unknown=Unknown Task with ID '%s'
 
-
 resources.common.tags=Tags
 resources.common.id=ID
 resources.common.creationtime=Created
@@ -3625,6 +3625,29 @@ resources.consistencygroups.deleteConfirm=Are you sure you want to delete the se
 ResourceType.VOLUME=Volume
 ResourceType.EXPORT_GROUP=Export Group
 
+storageSystemTypes.list.title=Storage System Types
+storageSystemTypes.deleteConfirm=Are you sure you want to delete the selected Storage System Type?
+storageSystemTypes.name=Name
+storageSystemTypes.storageTypeId=Id
+storageSystemTypes.id=Id
+storageSystemTypes.storageSystemTypeDisplayName=Display Name
+storageSystemTypes.storageSystemTypeType=Type
+storageSystemTypes.portNumber=Port Number
+storageSystemTypes.sslPortNumber=SSL Port Number
+storageSystemTypes.isProvider=Is Provider
+storageSystemTypes.description=Description
+storageSystemTypes.create.title=Add New Storage System Type
+storageSystemTypes.add.title=Enter all information needed to add a new Storage System Type
+storageSystemTypes.upload.title=Upload Device Driver
+storageSystemTypes.upload.description=Upload Device Driver jar file
+storageSystemTypes.useSSL=Use SSL
+storageSystemTypes.isOnlyMDM=Use Only MDM
+storageSystemTypes.isElementMgr=Is Element Manager
+storageSystemTypes.useMDM=Use MDM
+storageSystemTypes.driverClassName=Driver Class Name
+storageSystemTypes.uploadButton=Upload
+deviceDriverFile=Device Driver Jar
+
 tasks.task=Task
 tasks.id=ID
 tasks.opId=Operation ID
@@ -3850,6 +3873,8 @@ button.mirroring.start=Start
 button.mirroring.stop=Stop
 button.mirroring.pause=Pause
 button.mirroring.resume=Resume
+
+button.driverupload=Upload Driver
 
 common.yes=Yes
 common.no=No

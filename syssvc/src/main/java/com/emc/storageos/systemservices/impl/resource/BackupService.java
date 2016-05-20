@@ -796,7 +796,7 @@ public class BackupService {
                     throw BackupException.fatals.backupFileNotFound(backupName);
                 }
             }catch (Exception e) {
-                log.error("Failed to list {} from server {} e=", backupName, externalServerUrl, e);
+                //log.error("Failed to list {} from server {} e=", backupName, externalServerUrl, e);
                 throw BackupException.fatals.externalBackupServerError(backupName);
             }
         }

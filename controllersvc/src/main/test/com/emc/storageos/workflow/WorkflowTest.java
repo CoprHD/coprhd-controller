@@ -198,6 +198,53 @@ public class WorkflowTest extends ControllersvcTestBase implements Controller {
 
     @Test
     /**
+     * This tests a two level hierarchical workflow where the lowest level last step fails.
+     * After the workflow suspends, remove the error and resume the workflow.
+     * The resulting workflow should pass all steps.
+     */
+    public void test15_two_level_wf_error_level2_step3_with_retry() {
+        // Expected results for this test case
+        final String[] testaSuccessSteps = { "L0S1 sub", "L1S1 sub", "L1S2 sub" };
+        final String[] testaErrorSteps = {};
+        final String[] testaCancelledSteps = { "L0S3 sub", };
+        final String[] testaSuspendedSteps = { "L0S2 sub", "L1S3 sub" };
+
+        final String[] testbSuccessSteps = { "L0S1 sub", "L0S2 sub", "L0S3 sub",
+                "L1S1 sub", "L1S2 sub", "L1S3 sub" };
+        final String[] testbErrorSteps = {};
+        final String[] testbCancelledSteps = {};
+        final String[] testbSuspendedSteps = {};
+
+        final String testname = new Object() {}.getClass().getEnclosingMethod().getName();
+        printLog(testname + " started");
+        workflowService.setSuspendClassMethodTestOnly(null);
+        workflowService.setSuspendOnErrorTestOnly(true);
+        injectedFailures.clear();
+        addInjectedFailure(1, 3); // level 2, step 3
+        String taskId = UUID.randomUUID().toString();
+        Workflow workflow = generate3StepWF(0, 2, taskId);
+        WorkflowState state = waitOnWorkflowComplete(taskId);
+        printLog("Top level workflow state: " + state);
+        Map<String, WorkflowStep> stepMap = readWorkflowFromDb(taskId);
+        assertTrue(state == WorkflowState.SUSPENDED_ERROR);
+        validateStepStates(stepMap, testaSuccessSteps, testaErrorSteps, testaCancelledSteps, testaSuspendedSteps);
+        if (state == WorkflowState.SUSPENDED_ERROR) {
+            // clear the error and try and resume.
+            injectedFailures.clear();
+            String resumeTaskId = UUID.randomUUID().toString();
+            workflowService.resumeWorkflow(workflow.getWorkflowURI(), resumeTaskId);
+            taskStatusMap.put(taskId, WorkflowState.CREATED);
+            state = waitOnWorkflowComplete(taskId);
+            printLog("Top level workflow state after resume: " + state);
+            stepMap = readWorkflowFromDb(taskId);
+            assertTrue(state == WorkflowState.SUCCESS);
+            validateStepStates(stepMap, testbSuccessSteps, testbErrorSteps, testbCancelledSteps, testbSuspendedSteps);
+        }
+        printLog(testname + " completed");
+    }
+
+    @Test
+    /**
      * This tests a three level hierarchical workflow where the lowest level last step fails.
      * After the workflow suspends, rollback the workflow. Then it verifies all the steps were
      * correctly cancelled or rolled back.
@@ -1022,9 +1069,15 @@ public class WorkflowTest extends ControllersvcTestBase implements Controller {
         if (++level >= maxLevels) {
             WorkflowStepCompleter.stepSucceded(stepId);
         } else {
-            // Generate a sub-workflow. The completer will complete this step.
-            printLog("Generating a new 3 step WF");
-            generate3StepWF(level, maxLevels, stepId);
+            String workflowMapping = "generate3StepWF:" + stepId + ":" + level;
+            if (workflowsKickedOff.contains(workflowMapping)) {
+                printLog("Idempotent check: already created/executed workflow from this step, not creating another one: " + workflowMapping);
+            } else {
+                // Generate a sub-workflow. The completer will complete this step.
+                printLog("Generating a new 3 step WF");
+                generate3StepWF(level, maxLevels, stepId);
+                workflowsKickedOff.add(workflowMapping);
+            }
         }
     }
 
@@ -1040,6 +1093,8 @@ public class WorkflowTest extends ControllersvcTestBase implements Controller {
      *            -- the orchestration task id for the workflow
      * @return
      */
+    Set<String> workflowsKickedOff = new HashSet<String>();
+
     public Workflow generate3StepWF(int level, int maxLevels, String orchTaskId) {
         String[] args = new String[1];
         args[0] = orchTaskId;

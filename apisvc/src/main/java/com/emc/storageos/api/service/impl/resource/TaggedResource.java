@@ -22,6 +22,7 @@ import javax.ws.rs.core.MediaType;
 
 
 import com.emc.storageos.db.client.model.TenantOrg;
+import com.emc.storageos.svcs.errorhandling.resources.BadRequestExceptions;
 import org.apache.commons.lang.StringUtils;
 
 import org.slf4j.Logger;
@@ -164,6 +165,10 @@ public abstract class TaggedResource extends ResourceService {
     /**
      * Get tenant object from id
      *
+     * it will also check if user have access to the tenant, return the tenant if:
+     *   1. it is user's home tenant
+     *   2. it is a subtenant which user has tenant role.
+     *
      * @param tenantId the URN of a ViPR tenant
      * @return
      */
@@ -176,7 +181,19 @@ public abstract class TaggedResource extends ResourceService {
             ArgValidator.checkEntity(org, tenantUri, isIdEmbeddedInURL(tenantUri), true);
         }
 
-        return org;
+        // check user has access to the input tenant
+        StorageOSUser user = getUserFromContext();
+        if (org.getId().toString().equals(user.getTenantId())) {
+            return org;
+        } else {
+            for (String subTenantId : _permissionsHelper.getSubtenantsForUser(user)){
+                if (org.getId().toString().equals(subTenantId)) {
+                    return org;
+                }
+            }
+        }
+
+        return null;
     }
 
     /**

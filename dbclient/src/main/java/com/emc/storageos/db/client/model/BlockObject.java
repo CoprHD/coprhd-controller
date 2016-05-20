@@ -307,6 +307,11 @@ public abstract class BlockObject extends DataObject {
         return false;
     }
 
+    @Override
+    public String toString() {
+        return _nativeId;
+    }
+
     /**
      * Deprecated - Needed only for 2.1 migration callback.
      * 

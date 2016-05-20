@@ -64,16 +64,9 @@ public class VNXUnityCreateCGSnapshotJob extends VNXeJob{
                     Volume volume = dbClient.queryObject(Volume.class, snapshot.getParent());
                     volumeToSnapMap.put(volume.getNativeId(), snapshot);
                 }
-
-                Map<String, Snap> lunToSnapMap = new HashMap<String, Snap>();
                 for (Snap snap : snaps) {
                     String lunId = snap.getLun().getId();
-                    lunToSnapMap.put(lunId, snap);
-                }
-                for (Map.Entry<String, BlockSnapshot> entry : volumeToSnapMap.entrySet()) {
-                    String lunId = entry.getKey();
-                    BlockSnapshot snapshot = entry.getValue();
-                    Snap snap = lunToSnapMap.get(lunId);
+                    BlockSnapshot snapshot = volumeToSnapMap.get(lunId);
                     snapshot.setNativeId(snap.getId());
                     snapshot.setNativeGuid(NativeGUIDGenerator.generateNativeGuid(storage, snapshot));
                     snapshot.setDeviceLabel(snap.getName());

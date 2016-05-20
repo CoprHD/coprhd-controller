@@ -1921,23 +1921,15 @@ public class StorageSystemService extends TaskResourceService {
             return false;
         }
 
-        // VNXe storage system supports both block and file type unmanaged objects discovery
-        if (Type.vnxe.toString().equalsIgnoreCase(storageSystem.getSystemType())) {
+        // VNXe and Unity storage system supports both block and file type unmanaged objects discovery
+        if (Type.vnxe.toString().equalsIgnoreCase(storageSystem.getSystemType()) ||
+                Type.unity.toString().equalsIgnoreCase(storageSystem.getSystemType())) {
             if (nameSpace.equalsIgnoreCase(Discovery_Namespaces.UNMANAGED_FILESYSTEMS.toString()) ||
                     nameSpace.equalsIgnoreCase(Discovery_Namespaces.UNMANAGED_VOLUMES.toString()) ||
                     nameSpace.equalsIgnoreCase(Discovery_Namespaces.ALL.toString())) {
                 return true;
             }
         }
-        // EMC Unity storage system supports both block and file type unmanaged objects discovery
-        if (Type.unity.toString().equalsIgnoreCase(storageSystem.getSystemType())) {
-            if (nameSpace.equalsIgnoreCase(Discovery_Namespaces.UNMANAGED_FILESYSTEMS.toString()) ||
-                    nameSpace.equalsIgnoreCase(Discovery_Namespaces.UNMANAGED_VOLUMES.toString()) ||
-                    nameSpace.equalsIgnoreCase(Discovery_Namespaces.ALL.toString())) {
-                return true;
-            }
-        }
-
 
         boolean isFileStorageSystem = storageSystem.storageSystemIsFile();
         if (isFileStorageSystem) {

@@ -30,7 +30,15 @@ def export_group_create(args):
 	    path_param['storage_ports'] = storage_ports
     except:
        print 'No path parameters (optional)'
-    o = bourne.export_group_create(args.name, args.project, args.neighborhood, args.type, args.volspec, args.inits, args.hosts, args.clusters, path_param)
+    (o, s) = bourne.export_group_create(args.name, args.project, args.neighborhood, args.type, args.volspec, args.inits, args.hosts, args.clusters, path_param)
+    if (s['state'] == 'suspended_no_error'):
+	print 'Export operation suspended'
+	print 'TaskID: ' + s['id']
+	print 'Workflow: ' + s['workflow']['id']
+    elif (s['state'] == 'ready'):
+	print 'Export group created with id ' + s['resource']['id']
+    else:
+	print 'Export group create failed.'
 
 def export_group_update(args):
     bourne.connect(args.ip)

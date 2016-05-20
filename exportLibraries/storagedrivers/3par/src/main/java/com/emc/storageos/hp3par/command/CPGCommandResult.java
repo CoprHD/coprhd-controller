@@ -8,7 +8,7 @@ import java.util.ArrayList;
 
 public class CPGCommandResult {
     private Integer total;
-    private ArrayList<CPGMembers> members;
+    private ArrayList<CPGMember> members;
     
     public Integer getTotal() {
         return total;
@@ -16,10 +16,10 @@ public class CPGCommandResult {
     public void setTotal(Integer total) {
         this.total = total;
     }
-    public ArrayList<CPGMembers> getMembers() {
+    public ArrayList<CPGMember> getMembers() {
         return members;
     }
-    public void setMembers(ArrayList<CPGMembers> members) {
+    public void setMembers(ArrayList<CPGMember> members) {
         this.members = members;
     }   
 }

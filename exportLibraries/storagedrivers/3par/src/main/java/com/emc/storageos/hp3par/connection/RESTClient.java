@@ -40,6 +40,18 @@ public class RESTClient {
                 .get(ClientResponse.class);
     }
 
+    public ClientResponse put_json(URI url, String authToken, String body) {
+        WebResource r = _client.resource(url);
+        return r.header("Content-Type", "application/json").header("X-HP3PAR-WSAPI-SessionKey", authToken)
+                .put(ClientResponse.class, body);
+    }
+
+    public ClientResponse delete_json(URI url, String authToken) {
+        WebResource r = _client.resource(url);
+        return r.header("Content-Type", "application/json").header("X-HP3PAR-WSAPI-SessionKey", authToken)
+                .delete(ClientResponse.class);
+    }
+
     /**
      * Close the client
      */

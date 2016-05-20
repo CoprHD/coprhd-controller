@@ -99,7 +99,7 @@ public class HP3PARApiFactory {
      * Initialize HTTP client
      */
     public void init() {
-        _log.info("AAAAA:HP3PARApiFactory:init enter");
+        _log.info("3PARDriver:HP3PARApiFactory init enter");
         _clientMap = new ConcurrentHashMap<String, HP3PARApi>();
 
         HttpConnectionManagerParams params = new HttpConnectionManagerParams();
@@ -144,18 +144,17 @@ public class HP3PARApiFactory {
      */
     public HP3PARApi getRESTClient(URI endpoint, String username, String password) throws HP3PARException {
         try {
-            _log.info("AAAAA:HP3PARApiFactory:getRESTClient enter");
+            _log.info("3PARDriver:getRESTClient1 enter");
             // key=uri+user+pass to make unique, value=HP3PARApi object
             HP3PARApi hp3parApi = _clientMap.get(endpoint.toString() + ":" + username + ":" + password);
             if (hp3parApi == null) {
-                _log.info("AAAAA:HP3PARApiFactory:hp3parApi null");
+                _log.info("3PARDriver:getRESTClient1 hp3parApi null");
                 Client jerseyClient = new ApacheHttpClient(_clientHandler);
                 jerseyClient.addFilter(new HTTPBasicAuthFilter(username, password));
                 RESTClient restClient = new RESTClient(jerseyClient);
                 hp3parApi = new HP3PARApi(endpoint, restClient, username, password);
                 _clientMap.putIfAbsent(endpoint.toString() + ":" + username + ":" + password, hp3parApi);
             }
-            _log.info("AAAAA:HP3PARApiFactoryi:hp3parApi existing api");
             return hp3parApi;
         } catch (Exception e) {
             throw new HP3PARException(e.toString());
@@ -180,18 +179,19 @@ public class HP3PARApiFactory {
         
 //        SystemCommandResult sysRes = hp3parApi.getSystemDetails();
 //        System.out.println(sysRes.toString());
-//        CPGCommandResult cpgRes = hp3parApi.getCPGDetails();
+//        CPGCommandResult cpgRes = hp3parApi.getAllCPGDetails();
 //        System.out.println(cpgRes.toString());
 //        hp3parApi.getPortDetails();
 //        PortStatisticsCommandResult portStatRes = hp3parApi.getPortStatisticsDetail();
         
-//        System.out.println(hp3parApi.getVolumeWWN("One_thick1"));
-        
-        String vol = "One_try_api6";
+        String vol = "3par_vol6";
         hp3parApi.createVolume(vol, "One", true, (long)1024);
-        VolumeDetailsCommandResult res = hp3parApi.getVolumeDetails(vol);
+        hp3parApi.expandVolume(vol, (long)2048);
+//        hp3parApi.getCPGDetails("One");
+        hp3parApi.deleteVolume(vol);
         
         } catch (Exception e) {
+            System.out.println("ERRRRRRROR");
             System.out.println(e.getMessage());
             e.printStackTrace();
         }

@@ -4,7 +4,7 @@
  */
 package com.emc.storageos.hp3par.command;
 
-public class CPGMembers {
+public class CPGMember {
     private Integer id;
     private String uuid;
     private String name;

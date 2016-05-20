@@ -98,9 +98,9 @@ public class BlockSnapshotSessionCreateWorkflowCompleter extends BlockSnapshotSe
                     }
                     break;
                 case suspended_error:
-                    setSuspendedErrorOnDataObject(dbClient, BlockSnapshotSession.class, getId());
+                    setSuspendedErrorOnDataObject(dbClient, BlockSnapshotSession.class, getId(), coded);
                     for (BlockObject source : allSources) {
-                        setSuspendedErrorOnDataObject(dbClient, URIUtil.getModelClass(source.getId()), source);
+                        setSuspendedErrorOnDataObject(dbClient, URIUtil.getModelClass(source.getId()), source, coded);
                     }
                     break;
                 case suspended_no_error:

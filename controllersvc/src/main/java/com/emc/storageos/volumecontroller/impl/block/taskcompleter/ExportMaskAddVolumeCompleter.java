@@ -11,7 +11,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import com.emc.storageos.util.ExportUtils;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.db.client.DbClient;
@@ -21,6 +20,7 @@ import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
+import com.emc.storageos.util.ExportUtils;
 
 @SuppressWarnings("serial")
 public class ExportMaskAddVolumeCompleter extends ExportTaskCompleter {
@@ -57,8 +57,8 @@ public class ExportMaskAddVolumeCompleter extends ExportTaskCompleter {
                 exportMask.addVolumes(_volumeMap);
                 exportGroup.addExportMask(exportMask.getId());
                 ExportUtils.reconcileHLUs(dbClient, exportGroup, exportMask, _volumeMap);
-                dbClient.updateAndReindexObject(exportMask);
-                dbClient.updateAndReindexObject(exportGroup);
+                dbClient.updateObject(exportMask);
+                dbClient.updateObject(exportGroup);
             }
 
         } catch (Exception e) {

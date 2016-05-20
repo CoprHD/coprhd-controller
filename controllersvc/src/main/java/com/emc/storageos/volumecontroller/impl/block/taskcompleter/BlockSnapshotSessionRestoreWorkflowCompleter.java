@@ -70,7 +70,7 @@ public class BlockSnapshotSessionRestoreWorkflowCompleter extends BlockSnapshotS
                         setReadyOnDataObject(dbClient, BlockSnapshotSession.class, snapSession.getId());
                         break;
                     case suspended_error:
-                        setSuspendedErrorOnDataObject(dbClient, BlockSnapshotSession.class, snapSession.getId());
+                        setSuspendedErrorOnDataObject(dbClient, BlockSnapshotSession.class, snapSession.getId(), coded);
                         break;
                     case suspended_no_error:
                         setSuspendedNoErrorOnDataObject(dbClient, BlockSnapshotSession.class, snapSession.getId());

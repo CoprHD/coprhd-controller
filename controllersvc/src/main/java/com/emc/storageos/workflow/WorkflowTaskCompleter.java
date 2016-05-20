@@ -36,7 +36,7 @@ public class WorkflowTaskCompleter extends TaskCompleter {
 		    update.suspendedNoError("workflow suspended due to request or configuration");
 		    break;
 		case suspended_error:
-		    update.suspendedError("workflow suspended due to error");
+		    update.suspendedError(coded);
 		    break;
 		}
 		Workflow workflow = dbClient.queryObject(Workflow.class, getId());

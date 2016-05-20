@@ -457,13 +457,8 @@ public class DummyDbClient implements DbClient {
     }
 
     @Override
-    public Operation suspended_error(Class<? extends DataObject> clazz, URI id, String opId, String message) throws DatabaseException {
-        // TODO Auto-generated method stub
-        return null;
-    }
-
-    @Override
-    public Operation suspended_error(Class<? extends DataObject> clazz, URI id, String opId) throws DatabaseException {
+    public Operation suspended_error(Class<? extends DataObject> clazz, URI id, String opId, ServiceCoded serviceCoded)
+            throws DatabaseException {
         // TODO Auto-generated method stub
         return null;
     }

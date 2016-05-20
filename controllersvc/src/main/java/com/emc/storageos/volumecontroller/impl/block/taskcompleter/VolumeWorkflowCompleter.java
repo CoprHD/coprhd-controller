@@ -64,7 +64,7 @@ public class VolumeWorkflowCompleter extends VolumeTaskCompleter {
             case suspended_error:
                 _log.info("suspended_error");
                 for (URI id : getIds()) {
-                    dbClient.suspended_error(Volume.class, id, getOpId());
+                    dbClient.suspended_error(Volume.class, id, getOpId(), serviceCoded);
                 }
                 if (isNotifyWorkflow()) {
                     WorkflowStepCompleter.stepSuspendedError(getOpId(), serviceCoded);

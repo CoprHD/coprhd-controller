@@ -406,10 +406,7 @@ public interface DbClient {
      * @return
      * @throws DatabaseException
      */
-    public Operation suspended_error(Class<? extends DataObject> clazz, URI id, String opId, String message)
-            throws DatabaseException;
-    
-    public Operation suspended_error(Class<? extends DataObject> clazz, URI id, String opId)
+    public Operation suspended_error(Class<? extends DataObject> clazz, URI id, String opId, ServiceCoded serviceCoded)
             throws DatabaseException;
     
     /**

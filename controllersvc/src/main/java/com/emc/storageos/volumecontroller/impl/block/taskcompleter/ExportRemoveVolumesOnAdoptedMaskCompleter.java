@@ -31,35 +31,6 @@ public class ExportRemoveVolumesOnAdoptedMaskCompleter extends ExportTaskComplet
         _volumes.addAll(volumes);
     }
 
-    private void updateExportMask(DbClient dbClient, Operation.Status status)
-            throws DeviceControllerException {
-        URI exportMaskUri = getMask();
-        ExportMask exportMask = (exportMaskUri != null) ?
-                dbClient.queryObject(ExportMask.class, getMask()) : null;
-        ExportGroup exportGroup = dbClient.queryObject(ExportGroup.class, getId());
-        for (URI volumeURI : _volumes) {
-            BlockObject volume = BlockObject.fetch(dbClient, volumeURI);
-            if (exportMask != null && status == Operation.Status.ready) {
-                exportMask.removeFromUserCreatedVolumes(volume);
-                exportMask.removeVolume(volume.getId());
-            }
-        }
-
-        if (exportMask != null) {
-            if (exportMask.getVolumes() == null ||
-                    exportMask.getVolumes().isEmpty()) {
-                exportGroup.removeExportMask(exportMask.getId());
-                dbClient.markForDeletion(exportMask);
-                dbClient.updateAndReindexObject(exportGroup);
-            } else {
-                dbClient.updateAndReindexObject(exportMask);
-            }
-        }
-
-        _log.info(String.format(
-                "Done ExportMaskRemoveVolume - Id: %s, OpId: %s, status: %s",
-                getId().toString(), getOpId(), status.name()));
-    }
 
     @Override
     protected void complete(DbClient dbClient, Operation.Status status,
@@ -82,9 +53,9 @@ public class ExportRemoveVolumesOnAdoptedMaskCompleter extends ExportTaskComplet
                         exportMask.getVolumes().isEmpty()) {
                     exportGroup.removeExportMask(exportMask.getId());
                     dbClient.markForDeletion(exportMask);
-                    dbClient.updateAndReindexObject(exportGroup);
+                    dbClient.updateObject(exportGroup);
                 } else {
-                    dbClient.updateAndReindexObject(exportMask);
+                    dbClient.updateObject(exportMask);
                 }
             }
 

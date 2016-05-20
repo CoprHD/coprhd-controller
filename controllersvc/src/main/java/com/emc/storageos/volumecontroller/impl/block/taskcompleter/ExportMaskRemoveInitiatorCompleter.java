@@ -32,30 +32,6 @@ public class ExportMaskRemoveInitiatorCompleter extends ExportTaskCompleter {
         _initiatorURIs.addAll(initiatorURIs);
     }
 
-    private void updateExportGroups(DbClient dbClient, Operation.Status status)
-            throws DeviceControllerException {
-        ExportGroup exportGroup = dbClient.queryObject(ExportGroup.class, getId());
-        ExportMask exportMask = (getMask() != null) ?
-                dbClient.queryObject(ExportMask.class, getMask()) : null;
-        if (exportMask != null) {
-            List<Initiator> initiators =
-                    dbClient.queryObject(Initiator.class, _initiatorURIs);
-            exportMask.removeInitiators(initiators);
-            exportMask.removeFromUserCreatedInitiators(initiators);
-            if (exportMask.getInitiators() == null ||
-                    exportMask.getInitiators().isEmpty()) {
-                exportGroup.removeExportMask(exportMask.getId());
-                dbClient.markForDeletion(exportMask);
-                dbClient.updateAndReindexObject(exportGroup);
-            } else {
-                dbClient.updateAndReindexObject(exportMask);
-            }
-            _log.info(String.format(
-                    "Done ExportMaskRemoveInitiator - Id: %s, OpId: %s, status: %s",
-                    getId().toString(), getOpId(), status.name()));
-        }
-    }
-
     @Override
     protected void complete(DbClient dbClient, Operation.Status status,
             ServiceCoded coded) throws DeviceControllerException {
@@ -72,9 +48,9 @@ public class ExportMaskRemoveInitiatorCompleter extends ExportTaskCompleter {
                         exportMask.getInitiators().isEmpty()) {
                     exportGroup.removeExportMask(exportMask.getId());
                     dbClient.markForDeletion(exportMask);
-                    dbClient.updateAndReindexObject(exportGroup);
+                    dbClient.updateObject(exportGroup);
                 } else {
-                    dbClient.updateAndReindexObject(exportMask);
+                    dbClient.updateObject(exportMask);
                 }
                 _log.info(String.format(
                         "Done ExportMaskRemoveInitiator - Id: %s, OpId: %s, status: %s",

@@ -9,7 +9,6 @@ import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
 
-import com.emc.storageos.util.ExportUtils;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.db.client.DbClient;
@@ -21,6 +20,7 @@ import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
+import com.emc.storageos.util.ExportUtils;
 
 public class ExportMaskAddInitiatorCompleter extends ExportMaskInitiatorCompleter {
     private static final org.slf4j.Logger _log = LoggerFactory
@@ -69,11 +69,11 @@ public class ExportMaskAddInitiatorCompleter extends ExportMaskInitiatorComplete
                 for (URI newTarget : _targetURIs) {
                     exportMask.addTarget(newTarget);
                 }
-                dbClient.updateAndReindexObject(exportMask);
+                dbClient.updateObject(exportMask);
             }
 
             ExportUtils.reconcileExportGroupsHLUs(dbClient, exportGroup);
-            dbClient.persistObject(exportGroup);
+            dbClient.updateObject(exportGroup);
             _log.info(String.format(
                     "Done ExportMaskAddInitiator - Id: %s, OpId: %s, status: %s",
                     getId().toString(), getOpId(), status.name()));

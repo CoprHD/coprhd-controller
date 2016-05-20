@@ -1707,17 +1707,9 @@ public class DbClientImpl implements DbClient {
 
     @Override
     public Operation suspended_error(Class<? extends DataObject> clazz, URI id,
-            String opId, String message) throws DatabaseException {
+            String opId, ServiceCoded serviceCoded) throws DatabaseException {
         Operation updateOperation = new Operation();
-        updateOperation.suspendedError(message);
-        return updateTaskStatus(clazz, id, opId, updateOperation);
-    }
-    
-    @Override
-    public Operation suspended_error(Class<? extends DataObject> clazz, URI id,
-            String opId) throws DatabaseException {
-        Operation updateOperation = new Operation();
-        updateOperation.suspendedError();
+        updateOperation.suspendedError(serviceCoded);
         return updateTaskStatus(clazz, id, opId, updateOperation);
     }
     

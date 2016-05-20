@@ -34,7 +34,7 @@ public class RollbackExportGroupCreateCompleter extends ExportTaskCompleter {
             if (exportMask != null) {
                 exportGroup.removeExportMask(exportMask.getId());
                 dbClient.markForDeletion(exportMask);
-                dbClient.updateAndReindexObject(exportGroup);
+                dbClient.updateObject(exportGroup);
             }
             _log.info(String.format("Done RollbackExportGroupCreate - Id: %s, OpId: %s, status: %s",
                     getId().toString(), getOpId(), status.name()));

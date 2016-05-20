@@ -62,7 +62,7 @@ public class BlockSnapshotSessionDeleteWorkflowCompleter extends BlockSnapshotSe
                     setErrorOnDataObject(dbClient, BlockSnapshotSession.class, snapSessionURI, coded);
                     break;
                 case suspended_error:
-                    setSuspendedErrorOnDataObject(dbClient, BlockSnapshotSession.class, snapSessionURI);
+                    setSuspendedErrorOnDataObject(dbClient, BlockSnapshotSession.class, snapSessionURI, coded);
                     break;
                 case suspended_no_error:
                     setSuspendedNoErrorOnDataObject(dbClient, BlockSnapshotSession.class, snapSessionURI);

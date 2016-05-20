@@ -243,10 +243,7 @@ public abstract class TaskCompleter implements Serializable {
                 break;
             case suspended_error:
                 for (URI id : _ids) {
-                    if (message == null)
-                        dbClient.suspended_error(_clazz, id, _opId);
-                    else
-                        dbClient.suspended_error(_clazz, id, _opId, message);
+                    dbClient.suspended_error(_clazz, id, _opId, coded);
                 }
                 break;
             default:
@@ -432,9 +429,9 @@ public abstract class TaskCompleter implements Serializable {
      * @param uri
      *            [in] - URI of clazz
      */
-    protected void setSuspendedErrorOnDataObject(DbClient dbClient, Class<? extends DataObject> clazz, URI uri) {
+    protected void setSuspendedErrorOnDataObject(DbClient dbClient, Class<? extends DataObject> clazz, URI uri, ServiceCoded coded) {
         if (!NullColumnValueGetter.isNullURI(uri)) {
-            dbClient.suspended_error(clazz, uri, getOpId());
+            dbClient.suspended_error(clazz, uri, getOpId(), coded);
         }
     }
 
@@ -448,9 +445,9 @@ public abstract class TaskCompleter implements Serializable {
      * @param dObject
      *            [in] - DataObject of clazz
      */
-    protected void setSuspendedErrorOnDataObject(DbClient dbClient, Class<? extends DataObject> clazz, DataObject dObject) {
+    protected void setSuspendedErrorOnDataObject(DbClient dbClient, Class<? extends DataObject> clazz, DataObject dObject, ServiceCoded coded) {
         if (dObject != null) {
-            dbClient.suspended_error(clazz, dObject.getId(), getOpId());
+            dbClient.suspended_error(clazz, dObject.getId(), getOpId(), coded);
         }
     }
 
@@ -497,7 +494,7 @@ public abstract class TaskCompleter implements Serializable {
                     setReadyOnDataObject(dbClient, BlockConsistencyGroup.class, consistencyGroupId);
                     break;
                 case suspended_error:
-                    setSuspendedErrorOnDataObject(dbClient, BlockConsistencyGroup.class, consistencyGroupId);
+                    setSuspendedErrorOnDataObject(dbClient, BlockConsistencyGroup.class, consistencyGroupId, coded);
                     break;
                 case suspended_no_error:
                     setSuspendedNoErrorOnDataObject(dbClient, BlockConsistencyGroup.class, consistencyGroupId);

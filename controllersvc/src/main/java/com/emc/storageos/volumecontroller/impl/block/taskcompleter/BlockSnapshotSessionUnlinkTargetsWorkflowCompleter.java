@@ -70,7 +70,7 @@ public class BlockSnapshotSessionUnlinkTargetsWorkflowCompleter extends BlockSna
                     setReadyOnDataObject(dbClient, BlockSnapshotSession.class, snapSessionURI);
                     break;
                 case suspended_error:
-                    setSuspendedErrorOnDataObject(dbClient, BlockSnapshotSession.class, snapSessionURI);
+                    setSuspendedErrorOnDataObject(dbClient, BlockSnapshotSession.class, snapSessionURI, coded);
                     break;
                 case suspended_no_error:
                     setSuspendedNoErrorOnDataObject(dbClient, BlockSnapshotSession.class, snapSessionURI);

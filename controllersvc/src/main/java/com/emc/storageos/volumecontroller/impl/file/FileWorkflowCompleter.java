@@ -51,7 +51,7 @@ public class FileWorkflowCompleter extends FileTaskCompleter {
                 break;
             case suspended_error:
                 for (URI id : getIds()) {
-                    dbClient.suspended_error(FileShare.class, id, getOpId());
+                    dbClient.suspended_error(FileShare.class, id, getOpId(), serviceCoded);
                 }
                 if (isNotifyWorkflow()) {
                     WorkflowStepCompleter.stepSuspendedError(getOpId(), serviceCoded);

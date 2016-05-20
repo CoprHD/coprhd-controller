@@ -5,16 +5,17 @@
 
 package com.emc.storageos.volumecontroller.impl.block.taskcompleter;
 
+import java.net.URI;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.exceptions.DeviceControllerException;
-import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 import com.emc.storageos.services.OperationTypeEnum;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.net.URI;
+import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 
 public class ExportCreateCompleter extends ExportTaskCompleter {
     private static final Logger _log = LoggerFactory.getLogger(ExportCreateCompleter.class);
@@ -38,6 +39,12 @@ public class ExportCreateCompleter extends ExportTaskCompleter {
                 case ready:
                     operation.ready();
                     break;
+                case suspended_no_error:
+                    operation.suspendedNoError();
+                    break;
+                case suspended_error:
+                    operation.suspendedError(coded);
+                    break;
                 default:
                     break;
             }
@@ -45,9 +52,9 @@ public class ExportCreateCompleter extends ExportTaskCompleter {
             // If the operation does not complete successfully,
             // then make sure that the inactive flag is set to true
             if (!hasActiveMasks(dbClient, exportGroup)) {
-                exportGroup.setInactive(status != Operation.Status.ready);
+                exportGroup.setInactive(status != Operation.Status.ready && status != Operation.Status.suspended_no_error);
             }
-            dbClient.persistObject(exportGroup);
+            dbClient.updateObject(exportGroup);
 
             _log.info("export_create completer: done");
             _log.info(String.format("Done ExportMaskCreate - Id: %s, OpId: %s, status: %s",

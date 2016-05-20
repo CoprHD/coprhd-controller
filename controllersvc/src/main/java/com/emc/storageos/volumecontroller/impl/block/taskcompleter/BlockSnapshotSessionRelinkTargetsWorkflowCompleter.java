@@ -66,7 +66,7 @@ public class BlockSnapshotSessionRelinkTargetsWorkflowCompleter extends BlockSna
                     setReadyOnDataObject(dbClient, BlockSnapshotSession.class, tgtSnapSessionURI);
                     break;
                 case suspended_error:
-                    setSuspendedErrorOnDataObject(dbClient, BlockSnapshotSession.class, tgtSnapSessionURI);
+                    setSuspendedErrorOnDataObject(dbClient, BlockSnapshotSession.class, tgtSnapSessionURI, coded);
                     break;
                 case suspended_no_error:
                     setSuspendedNoErrorOnDataObject(dbClient, BlockSnapshotSession.class, tgtSnapSessionURI);

@@ -8,12 +8,14 @@ package com.emc.storageos.db.client.model;
 import java.beans.Transient;
 import java.io.Serializable;
 import java.net.URI;
-import java.util.*;
+import java.util.Calendar;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
-
-import com.google.common.collect.Maps;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -23,6 +25,7 @@ import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
 import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
+import com.google.common.collect.Maps;
 
 /**
  * Operation status
@@ -131,6 +134,24 @@ public class Operation extends AbstractSerializableNestedObject implements Clock
         updateStatus(Status.suspended_error.name());
     }    
     
+    /**
+     * This method sets the status of the operation to "error"
+     * 
+     * @return
+     */
+    public void suspendedError(ServiceCoded sc) {
+        if (sc != null) {
+            setServiceCode(sc.getServiceCode().getCode());
+            setMessage(sc.getMessage());
+        }
+        updateStatus(Status.suspended_error.name());
+        if (sc instanceof Exception) {
+            _log.info("Setting operation to suspended with error due to an exception {}",
+                    ExceptionUtils.getExceptionMessage((Exception) sc));
+            _log.info("Caused by: {} ", (Exception) sc);
+        }
+    }
+
     public void pending()  {
         setMessage("Operation has been restarted");
         updateStatus(Status.pending.name());

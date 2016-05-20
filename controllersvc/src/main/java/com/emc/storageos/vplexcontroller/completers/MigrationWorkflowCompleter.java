@@ -110,7 +110,7 @@ public class MigrationWorkflowCompleter extends TaskCompleter {
                 break;
             case suspended_error:
                 for (URI migrationURI : _migrationURIs) {
-                    dbClient.suspended_error(Migration.class, migrationURI, getOpId());
+                    dbClient.suspended_error(Migration.class, migrationURI, getOpId(), coded);
                 }
                 break;
             case suspended_no_error:

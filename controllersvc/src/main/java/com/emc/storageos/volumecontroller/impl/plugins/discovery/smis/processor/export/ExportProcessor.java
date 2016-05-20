@@ -171,6 +171,7 @@ public class ExportProcessor extends Processor {
             // set storage system id
             URI systemId = (URI) keyMap.get(Constants.SYSTEMID);
             mask.setStorageSystemUri(systemId);
+            mask.setHasUnknownVolume(false);
 
             response = (EnumerateResponse<CIMInstance>) resultObj;
             processVolumesAndInitiatorsPaths(response.getResponses(), mask, matchedInitiators, matchedPorts, knownIniSet,
@@ -612,6 +613,10 @@ public class ExportProcessor extends Processor {
                         if (null != volume) {
                             knownVolumeSet.add(volume.getId().toString());
                         }
+                    }
+
+                    if (volume == null) {
+                        mask.setHasUnknownVolume(true);
                     }
 
                     nativeGuid = NativeGUIDGenerator.generateNativeGuidForPreExistingVolume(systemName.toUpperCase(), id);

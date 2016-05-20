@@ -8,6 +8,7 @@
         <entry key="Discovery-block-all" value="discovery-block-context.xml" />
         <entry key="Discovery-block-unmanaged_volumes" value="volumediscovery-block-context.xml" />
         <entry key="Discovery-block-block_snapshots" value="snapshotdiscovery-block-context.xml" />
+        <entry key="Discovery-block-array_affinity" value="arrayaffinitydiscovery-block-context.xml" />
         <entry key="Discovery-vplex-unmanaged_volumes" value="discovery-vplex-context.xml" />
         <entry key="Discovery-netapp-unmanaged_filesystems" value="discovery-netapp-context.xml" />
         <entry key="Discovery-netappc-unmanaged_filesystems" value="discovery-netappc-context.xml" />

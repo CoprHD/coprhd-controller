@@ -418,7 +418,7 @@ public class Host extends AbstractComputeSystem {
     /**
      * Setter for the the preferred storage system ids
      */
-    public void setpPreferredSystemIds(StringSet preferredSystemIds) {
+    public void setPreferredSystemIds(StringSet preferredSystemIds) {
         _preferredSystemIds = preferredSystemIds;
         setChanged("preferredSystemIds");
     }

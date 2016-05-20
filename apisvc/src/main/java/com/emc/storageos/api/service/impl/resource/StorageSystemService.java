@@ -706,6 +706,7 @@ public class StorageSystemService extends TaskResourceService {
         // Trigger unmanaged resource discovery only when system is compatible.
         if ((Discovery_Namespaces.UNMANAGED_VOLUMES.name().equalsIgnoreCase(namespace) ||
                 Discovery_Namespaces.BLOCK_SNAPSHOTS.name().equalsIgnoreCase(namespace) ||
+                Discovery_Namespaces.ARRAY_AFFINITY.name().equalsIgnoreCase(namespace) ||
                 Discovery_Namespaces.UNMANAGED_FILESYSTEMS.name().equalsIgnoreCase(namespace)) &&
                 !CompatibilityStatus.COMPATIBLE.name().equalsIgnoreCase(storageSystem.getCompatibilityStatus())) {
             throw APIException.badRequests.cannotDiscoverUnmanagedResourcesForUnsupportedSystem();
@@ -1912,6 +1913,15 @@ public class StorageSystemService extends TaskResourceService {
         boolean validNameSpace = false;
 
         if (Discovery_Namespaces.BLOCK_SNAPSHOTS.name().equalsIgnoreCase(nameSpace)) {
+            if (Type.vmax.name().equalsIgnoreCase(storageSystem.getSystemType()) ||
+                    Type.vnxblock.name().equalsIgnoreCase(storageSystem.getSystemType())) {
+                return true;
+            }
+
+            return false;
+        }
+
+        if (Discovery_Namespaces.ARRAY_AFFINITY.name().equalsIgnoreCase(nameSpace)) {
             if (Type.vmax.name().equalsIgnoreCase(storageSystem.getSystemType()) ||
                     Type.vnxblock.name().equalsIgnoreCase(storageSystem.getSystemType())) {
                 return true;

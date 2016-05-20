@@ -34,6 +34,7 @@ public class UnManagedExportMask extends UnManagedDiscoveredObject {
     private StringSet _unmanagedStoragePortNetworkIds;
     private StringSet _knownVolumeUris;
     private StringSet _unmanagedVolumeUris;
+    private Boolean _hasUnknownVolume;
     private ZoneInfoMap _zoningMap;
 
     @RelationIndex(cf = "UnManagedExportMaskRelationIndex", type = StorageSystem.class)
@@ -165,6 +166,16 @@ public class UnManagedExportMask extends UnManagedDiscoveredObject {
     public void setUnmanagedVolumeUris(
             StringSet unmanagedVolumeUris) {
         this._unmanagedVolumeUris = unmanagedVolumeUris;
+    }
+
+    @Name("hasUnknownVolume")
+    public Boolean getHasUnknownVolume() {
+        return _hasUnknownVolume == null ? false : _hasUnknownVolume;
+    }
+
+    public void setHasUnknownVolume(final Boolean hasUnknownVolume) {
+        this._hasUnknownVolume = hasUnknownVolume;
+        setChanged("hasUnknownVolume");
     }
 
     @Name("zoningMap")

@@ -1,0 +1,257 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
+
+	<!-- List of supported Namespaces -->
+	<bean id="namespaces"
+		class="com.emc.storageos.plugins.common.domainmodel.NamespaceList">
+		<property name="nsList">
+			<map>
+				<entry key="discover" value-ref="arrayAffinityDiscoverer" />
+
+			</map>
+		</property>
+	</bean>
+
+	<!-- List of operations for this performance namespace -->
+	<bean id="arrayAffinityDiscoverer" class="com.emc.storageos.plugins.common.domainmodel.Namespace">
+		<property name="operations">
+			<list>
+				<ref bean="start" />
+				<!-- All processors after this -->
+
+				<!-- get Controller Configuration Service -->
+				<ref bean="getControllerConfigurationService" />
+
+				<!-- get Existing Masking Views -->
+				<ref bean="getMaskingViews" />
+
+				<!-- get exports -->
+				<ref bean="getExports" />
+
+				<!-- This should be executed at the end of the array affinity discovery -->
+				<ref bean="updatePreferredSystems" />
+
+				<!-- "complete" should be the last step. All new steps above this -->
+				<ref bean="complete" />
+			</list>
+		</property>
+	</bean>
+
+	<bean id="start" class="com.emc.storageos.plugins.common.domainmodel.Operation">
+		<property name="arguments">
+			<list>
+				<ref bean="accessProfile"/>
+				<ref bean="dbclient"/>
+			</list>
+		</property>
+		<property name="instance" ref="connectionManagerUtils"/>
+		<property name="method" value="disallowReaping"/>
+		<property name="message" value="Setting keep alive for CIM Connections"/>
+	</bean>
+
+	<bean id="complete" class="com.emc.storageos.plugins.common.domainmodel.Operation">
+		<property name="arguments">
+			<list>
+				<ref bean="accessProfile"/>
+				<ref bean="dbclient"/>
+			</list>
+		</property>
+		<property name="instance" ref="connectionManagerUtils"/>
+		<property name="method" value="allowReaping"/>
+		<property name="message" value="Allow CIM connections for provider to be cleaned up"/>
+	</bean>
+
+	<bean id="connectionManagerUtils" class="com.emc.storageos.volumecontroller.impl.utils.ConnectionManagerUtils"/>
+
+	<bean id="accessProfile" class="com.emc.storageos.plugins.common.domainmodel.Argument">
+		<property name="creator" ref="argscreator" />
+		<property name="method" value="getReferenceValue" />
+		<property name="value" value="accessProfile" />
+	</bean>
+
+	<bean id="dbclient" class="com.emc.storageos.plugins.common.domainmodel.Argument">
+		<property name="creator" ref="argscreator" />
+		<property name="method" value="getReferenceValue" />
+		<property name="value" value="dbClient" />
+	</bean>
+
+	<!-- SMI-S Call to get Controller Configuration Service -->
+	<bean id="getControllerConfigurationService" class="com.emc.storageos.plugins.common.domainmodel.Operation">
+		<property name="arguments">
+			<list>
+				<ref bean="reference-controllerconfigurationService" />
+			</list>
+		</property>
+		<property name="instance" ref="cimClient" />
+		<property name="result" value="configurationService" />
+		<property name="method" value="enumerateInstanceNames" />
+		<property name="processor" ref="controllerConfigurationProcessor" />
+		<property name="message" value="Invoking enumerateInstanceNames to get configuration service details."/>
+	</bean>
+
+	<bean id="controllerConfigurationProcessor"
+		class="com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.processor.fast.ControllerConfigurationProcessor" />
+
+	<bean id="reference-controllerconfigurationService" class="com.emc.storageos.plugins.common.domainmodel.Argument">
+		<property name="creator" ref="argscreator" />
+		<property name="method" value="getReferenceValue" />
+		<property name="value" value="configurationService" />
+	</bean>
+
+	<bean id="getMaskingViews" class="com.emc.storageos.plugins.common.domainmodel.Operation">
+		<property name="arguments">
+			<list>
+				<ref bean="reference-controllerconfigurationService" />
+				<ref bean="null" />
+				<ref bean="resultClass-lunMaskingProtocolController" />
+				<ref bean="null" />
+				<ref bean="null" />
+
+			</list>
+		</property>
+		<property name="instance" ref="cimClient" />
+		<property name="result" value="maskingViews" />
+		<property name="method" value="associatorNames" />
+		<property name="processor" ref="cimpathprocessor" />
+		<property name="message" value="Invoking associatorNames to get MaskingView details"/>
+	</bean>
+
+	<bean id="resultClass-lunMaskingProtocolController" class="com.emc.storageos.plugins.common.domainmodel.Argument">
+		<property name="creator" ref="argscreator" />
+		<property name="method" value="getStringValue" />
+		<property name="value" value="EMC_LunMaskingSCSIProtocolController" />
+	</bean>
+
+	<!-- Processors -->
+	<bean id="cimpathprocessor"
+		class="com.emc.storageos.plugins.common.processor.CIMPathProcessor" />
+
+	<bean id="getExports" class="com.emc.storageos.plugins.common.domainmodel.Operation">
+        <property name="arguments">
+           <list>
+                <ref bean="reference-maskingViews" />
+                <ref bean="null" />
+                <ref bean="null" />
+                <ref bean="null" />
+                <ref bean="null" />
+                <ref bean="bool-true" />
+                <ref bean="null" />
+                <ref bean="null" />
+                <ref bean="null" />
+                <ref bean="timeout" />
+                <ref bean="bool" />
+                <ref bean="maxMaskingViewObjects" />
+            </list>
+        </property>
+        <property name="instance" ref="cimClient" />
+        <property name="result" value="" />
+        <property name="method" value="associators" />
+        <property name="processor" ref="exportProcessor" />
+        <property name="message" value="Invoking associators to get Export information."/>
+    </bean>
+
+	<bean id="reference-maskingViews" class="com.emc.storageos.plugins.common.domainmodel.Argument">
+		<property name="creator" ref="argscreator" />
+		<property name="method" value="getReferenceValue" />
+		<property name="value" value="maskingViews" />
+	</bean>
+
+    <bean id="timeout" class="com.emc.storageos.plugins.common.domainmodel.Argument">
+        <property name="creator" ref="argscreator" />
+        <property name="method" value="getIntValue32" />
+        <property name="value" value="1200" />
+        <property name="name" value="timeoutinSeconds" />
+    </bean>
+
+    <bean id="maxMaskingViewObjects" class="com.emc.storageos.plugins.common.domainmodel.Argument">
+        <property name="creator" ref="argscreator" />
+        <property name="method" value="getIntValue32" />
+        <property name="value" value="100" />
+        <property name="name" value="maxObjects" />
+    </bean>
+
+    <bean id="exportProcessor"
+        class="com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.processor.export.ExportProcessor">
+        <property name="partitionManager" ref="partitionManager"/>
+    </bean>
+
+    <!-- This should be executed at the end of the array affinity discovery -->
+	<bean id="updatePreferredSystems" class="com.emc.storageos.plugins.common.domainmodel.Operation">
+		<property name="arguments">
+			<list>
+				<ref bean="dbclient" />
+			</list>
+		</property>
+		<property name="instance" ref="arrayAffinityPostProcessor" />
+		<property name="method" value="updatePreferredSystems" />
+		<property name="message" value="Invoking updatePreferredSystems" />
+	</bean>
+
+	<bean id="arrayAffinityPostProcessor"
+		class="com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.processor.export.ArrayAffinityPostProcessor">
+		<property name="partitionManager" ref="partitionManager" />
+	</bean>
+
+	<bean id="null" class="com.emc.storageos.plugins.common.domainmodel.Argument">
+		<property name="creator" ref="argscreator" />
+		<property name="method" value="getStringValue" />
+		<property name="value">
+			<null />
+		</property>
+	</bean>
+
+	<bean id="bool" class="com.emc.storageos.plugins.common.domainmodel.Argument">
+		<property name="creator" ref="argscreator" />
+		<property name="method" value="getBoolValue" />
+		<property name="value" value="false" />
+		<property name="name" value="qualifiers" />
+	</bean>
+
+	<bean id="bool-true" class="com.emc.storageos.plugins.common.domainmodel.Argument">
+		<property name="creator" ref="argscreator" />
+		<property name="method" value="getBoolValue" />
+		<property name="value" value="true" />
+		<property name="name" value="qualifiers" />
+	</bean>
+
+	<!-- ArgsCreator Instance -->
+	<bean id="argscreator"
+		class="com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.SmisDiscoveryArgsCreator">
+		<constructor-arg ref="smiutility" />
+	</bean>
+
+	<!-- SMIUtility -->
+	<bean id="smiutility" class="com.emc.storageos.plugins.common.Util" />
+
+	<!-- cimClient -->
+	<bean id="cimClient" class="com.emc.storageos.plugins.common.domainmodel.Argument">
+		<property name="creator" ref="argscreator" />
+		<property name="method" value="getReferenceValue" />
+		<property name="value" value="cimClient" />
+	</bean>
+
+	<bean id="partitionManager" class="com.emc.storageos.plugins.common.PartitionManager"/>
+
+	<!-- Common for vnxBlock & VMAX -->
+	<bean id="block"
+		class="com.emc.storageos.volumecontroller.impl.plugins.SMICommunicationInterface">
+		<property name="executor" ref="executor" />
+		<property name="namespaces" ref="namespaces" />
+	</bean>
+
+	<bean id="commandgenerator"
+		class="com.emc.storageos.plugins.common.commandgenerator.CommandGenerator">
+		<property name="util" ref="smiutility" />
+	</bean>
+
+	<bean id="executor"
+		class="com.emc.storageos.volumecontroller.impl.plugins.metering.smis.SMIExecutor">
+
+		<property name="util" ref="smiutility" />
+		<property name="generator" ref="commandgenerator" />
+	</bean>
+
+</beans>

@@ -20,6 +20,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Random;
 import java.util.Set;
 import java.util.UUID;
 
@@ -4524,9 +4525,10 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
         }
 
         // A temporary date/time stamp for the bookmark name
-        String bookmarkName = VIPR_SNAPSHOT_PREFIX + new SimpleDateFormat("yyMMdd-HHmmss").format(new java.util.Date());
+        String bookmarkName = VIPR_SNAPSHOT_PREFIX + new Random().toString();
         
         ProtectionSystem protectionSystem = null;
+        Volume aSrcVolume = null;
 
         Set<String> volumeWWNs = new HashSet<String>();
         List<URI> fullCopyList = new ArrayList<URI>();
@@ -4545,8 +4547,8 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                             fullCopyList.add(volume.getId());
                             if (protectionSystem == null) {
                                 if (!NullColumnValueGetter.isNullURI(parentVolume.getProtectionController())) {
-                                    Volume srcVolume = RPHelper.getRPSourceVolumeFromTarget(_dbClient, parentVolume);
-                                    protectionSystem = _dbClient.queryObject(ProtectionSystem.class, srcVolume.getProtectionController());
+                                    aSrcVolume = RPHelper.getRPSourceVolumeFromTarget(_dbClient, parentVolume);
+                                    protectionSystem = _dbClient.queryObject(ProtectionSystem.class, aSrcVolume.getProtectionController());
                                 }
                             }
                         }
@@ -4559,6 +4561,14 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
             
             // Step 1 - Create a RP bookmark
             String rpWaitFor = addCreateBookmarkStep(workflow, new ArrayList<URI>(), protectionSystem, bookmarkName, volumeWWNs, false, waitFor);
+
+            // Lock CG for the duration of the workflow so enable and disable can complete before another workflow tries to enable image access
+            List<String> locks = new ArrayList<String>();
+            String lockName = generateRPLockCG(_dbClient, aSrcVolume.getId());
+            if (null != lockName) {
+                locks.add(lockName);
+                acquireWorkflowLockOrThrow(workflow, locks);
+            }
 
             // Step 2 - Enable image access
             rpWaitFor = addEnableImageAccessForFullCopyStep(workflow, protectionSystem, fullCopyList, bookmarkName, volumeWWNs, rpWaitFor);

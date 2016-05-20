@@ -127,6 +127,7 @@ import com.emc.storageos.volumecontroller.impl.smis.SmisConstants;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
 import com.emc.storageos.volumecontroller.impl.xtremio.prov.utils.XtremIOProvUtils;
 import com.emc.storageos.vplexcontroller.VPlexController;
+import com.emc.vipr.client.core.util.VirtualPoolUtils;
 import com.google.common.base.Joiner;
 import com.google.common.base.Predicate;
 import com.google.common.collect.Collections2;
@@ -1242,11 +1243,17 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
         } else {
             if (VirtualPoolChangeAnalyzer.isVPlexConvertToDistributed(volumeVirtualPool, vpool,
                     new StringBuffer())) {
+                if (!VirtualPoolUtil.checkMatchingRemoteCopyVarraysettings(volumeVirtualPool, vpool, _dbClient)) {
+                    s_logger.info("Incompatible Remote Copy Varray Settings");
+                    throw BadRequestException.badRequests.changeToVirtualPoolNotSupported(
+                            volumeVirtualPool.getLabel(), "Incompatible Remote Copy Varray Settings");
+                }
                 if (vpoolChangeParam.getTransferSpeedParam() != null) {
                     transferSpeed = vpoolChangeParam.getTransferSpeedParam();
                     s_logger.info("Coversion of volume from vplex local to distributed will use the provided transfer speed {}",
                             transferSpeed);
                 }
+                
                 // Convert vplex_local to vplex_distributed
                 upgradeToDistributed(systemURI, volume, vpool, transferSpeed, taskId);
             } else if (!VirtualPool.vPoolSpecifiesMirrors(volumeVirtualPool, _dbClient)
@@ -3362,7 +3369,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
                                     assocVolume.getStorageController(), srdfVolumeIds, deletionType);
                             volumeDescriptors.addAll(srdfDescriptors);
                         
-                        } else if (assocVolume.getSrdfParent() != null) {
+                        } else if (!NullColumnValueGetter.isNullNamedURI(assocVolume.getSrdfParent())) {
                             // SRDF target, caller needs to specify source
                             throw BadRequestException.badRequests.cannotDeleteSRDFTargetVolume(assocVolume.getLabel());
                         } else {
@@ -3453,12 +3460,8 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
                             descriptors.addAll(vplexTargetDescriptors);
                         }
                     }
-                    
-                } else if (associatedVolume.getSrdfParent() != null) {  // SRDF target volume
-                    // We don't handle SRDF targets directly, they are obtained above from the call to getVolumeDescriptorsForExpandVolume
-                    // in the SRDF api controller. The user should not specify expansion on a target virtual volume.
-                    throw BadRequestException.badRequests.cannotExpandTargetVirtualVolume(volume.getLabel());
-               
+                } else if (!NullColumnValueGetter.isNullNamedURI(associatedVolume.getSrdfParent())) {
+                    // We don't want any descriptors for the target.
                 } else {    // A nice, plain, simple backing volume
                     VolumeDescriptor descriptor = new VolumeDescriptor(
                             VolumeDescriptor.Type.BLOCK_DATA,
@@ -4178,4 +4181,5 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
         s_logger.info("generateLabelFromAssociatedVolume: " + builder.toString());
         return builder.toString();
     }
+    
 }

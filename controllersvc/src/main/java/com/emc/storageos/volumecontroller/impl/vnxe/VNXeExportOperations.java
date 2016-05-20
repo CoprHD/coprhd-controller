@@ -325,8 +325,8 @@ public class VNXeExportOperations extends VNXeOperations implements ExportMaskOp
             taskCompleter.ready(_dbClient);
 
         } catch (Exception e) {
-            _logger.error("Add volumes error: ", e);
-            ServiceError error = DeviceControllerErrors.vnxe.jobFailed("addVolume", e.getMessage());
+            _logger.error("Add initiators error: ", e);
+            ServiceError error = DeviceControllerErrors.vnxe.jobFailed("addInitiator", e.getMessage());
             taskCompleter.error(_dbClient, error);
         }
 

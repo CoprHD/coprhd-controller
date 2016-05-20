@@ -173,22 +173,20 @@ public abstract class TaggedResource extends ResourceService {
      * @return
      */
     protected TenantOrg getTenantById(String tenantId) {
-        TenantOrg org = null;
-
         if (!StringUtils.isEmpty(tenantId)) {
             URI tenantUri = URI.create(tenantId);
-            org = _permissionsHelper.getObjectById(tenantUri, TenantOrg.class);
+            TenantOrg org = _permissionsHelper.getObjectById(tenantUri, TenantOrg.class);
             ArgValidator.checkEntity(org, tenantUri, isIdEmbeddedInURL(tenantUri), true);
-        }
 
-        // check user has access to the input tenant
-        StorageOSUser user = getUserFromContext();
-        if (org.getId().toString().equals(user.getTenantId())) {
-            return org;
-        } else {
-            for (String subTenantId : _permissionsHelper.getSubtenantsForUser(user)){
-                if (org.getId().toString().equals(subTenantId)) {
-                    return org;
+            // check user has access to the input tenant
+            StorageOSUser user = getUserFromContext();
+            if (org.getId().toString().equals(user.getTenantId())) {
+                return org;
+            } else {
+                for (String subTenantId : _permissionsHelper.getSubtenantsForUser(user)){
+                    if (org.getId().toString().equals(subTenantId)) {
+                        return org;
+                    }
                 }
             }
         }

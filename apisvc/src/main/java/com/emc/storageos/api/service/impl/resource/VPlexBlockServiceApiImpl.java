@@ -3361,6 +3361,10 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
                             List<VolumeDescriptor> srdfDescriptors = srdfApi.getDescriptorsForVolumesToBeDeleted(
                                     assocVolume.getStorageController(), srdfVolumeIds, deletionType);
                             volumeDescriptors.addAll(srdfDescriptors);
+                        
+                        } else if (assocVolume.getSrdfParent() != null) {
+                            // SRDF target, caller needs to specify source
+                            throw BadRequestException.badRequests.cannotDeleteSRDFTargetVolume(assocVolume.getLabel());
                         } else {
                             VolumeDescriptor assocDesc = new VolumeDescriptor(VolumeDescriptor.Type.BLOCK_DATA,
                                     assocVolume.getStorageController(), assocVolume.getId(), null, null);

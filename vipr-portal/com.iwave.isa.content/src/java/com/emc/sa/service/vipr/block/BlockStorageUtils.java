@@ -34,6 +34,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.log4j.Logger;
@@ -669,11 +670,8 @@ public class BlockStorageUtils {
         ResourceType volumeType = ResourceType.fromResourceId(blockResourceId.toString());
         if (volumeType == ResourceType.VOLUME) {
             VolumeRestRep volume = (VolumeRestRep) getVolume(blockResourceId);
-            if (volume.getConsistencyGroup() != null
-                    && (volume.getSystemType().equalsIgnoreCase(DiscoveredDataObject.Type.vmax.name()) || 
-                    		volume.getSystemType().equalsIgnoreCase(DiscoveredDataObject.Type.vmax3.name()))) {
-                return false;
-            }
+            return !(isVmaxConsistencyVolume(volume) ||
+                    (isVplexVolume(volume, volume.getSystemType()) && isSrdfConsistencyVolume(volume)));
         }
         return true;
     }
@@ -1343,6 +1341,21 @@ public class BlockStorageUtils {
             }
         }
         return volumesToUse;
+    }
+
+    public static boolean isVmaxConsistencyVolume(VolumeRestRep volume ) {
+        return volume.getConsistencyGroup() != null &&
+                (volume.getSystemType().equalsIgnoreCase(DiscoveredDataObject.Type.vmax.name()) ||
+                        volume.getSystemType().equalsIgnoreCase(DiscoveredDataObject.Type.vmax3.name()));
+    }
+
+    public static boolean isSrdfConsistencyVolume(VolumeRestRep volume) {
+        if (volume.getConsistencyGroup() == null) {
+            return false;
+        }
+
+        BlockConsistencyGroupRestRep group = getBlockConsistencyGroup(volume.getConsistencyGroup().getId());
+        return group != null && group.getTypes().contains(BlockConsistencyGroup.Types.SRDF.name());
     }
 
 }

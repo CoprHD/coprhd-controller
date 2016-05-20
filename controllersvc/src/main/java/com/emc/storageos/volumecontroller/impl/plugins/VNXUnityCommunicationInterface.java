@@ -390,8 +390,6 @@ public class VNXUnityCommunicationInterface extends ExtendedCommunicationInterfa
             String guid = NativeGUIDGenerator.generateNativeGuid(viprStorageSystem);
             viprStorageSystem.setNativeGuid(guid);
 
-            viprStorageSystem.setLabel(guid);
-
             viprStorageSystem.setCompatibilityStatus(DiscoveredDataObject.CompatibilityStatus.COMPATIBLE.name());
 
             viprStorageSystem.setReachableStatus(true);

@@ -46,7 +46,7 @@ public class LdapProviderMonitor {
     }
 
     public void start() {
-        NamedScheduledThreadPoolExecutor threadService = new NamedScheduledThreadPoolExecutor(LDAP_MONITOR_NAME, 1);
+        NamedScheduledThreadPoolExecutor threadPoolExecutor = new NamedScheduledThreadPoolExecutor(LDAP_MONITOR_NAME, 1);
         threadPoolExecutor.scheduleAtFixedRate(new LdapMonitorWorker(), 0, MONITOR_INTERVAL_MIN, TimeUnit.MINUTES);
         log.info("LdapProvider Monitor started.");
     }

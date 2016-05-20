@@ -1,0 +1,208 @@
+#!/usr/bin/python
+#
+# Copyright (c) 2016 EMC Corporation
+# All Rights Reserved
+#
+
+import argparse
+import sys
+import os
+import json
+import time
+from bourne import Bourne
+
+#----------------------------------------------------------------------
+# task cli functions
+#----------------------------------------------------------------------
+
+def task_follow(args):
+    bourne.connect(args.ip)
+    tr = bourne.task_follow(args.id)
+    if (tr['state'] == 'suspended_no_error'):
+	print 'Task operation suspended'
+	print 'TaskID: ' + tr['id']
+	print 'Workflow: ' + tr['workflow']['id']
+    elif (tr['state'] == 'ready'):
+	print 'Task finished successfully'
+    else:
+	print 'Task create failed.'
+	    
+def task_delete(args):
+    bourne.connect(args.ip)
+    uris = []
+    if (args.project):
+        res = bourne.task_list(args.name)
+        for r in res:
+            uri = r['id']
+            task = bourne.task_show(uri)
+            # Only remove active tasks
+            if (not task['inactive']):
+                uris.append(uri)
+    else:
+        names = args.name.split(',')
+        for name in names:
+            print "Querying for task: " + name
+            task = bourne.task_show(uri)
+            # Only remove active tasks
+            if (not task['inactive']):
+                uris.append(uri)
+    start = time.time()
+    if (len(uris) > 1):
+        print "Multi task delete"
+        (o, s, m) = bourne.task_multi_delete(uris, args.wait, args.vipronly, args.force)
+    elif (len(uris) == 1):
+        print "Single task delete"
+        (o, s, m) = bourne.task_delete(uris[0], args.wait, args.vipronly, args.force)
+    else:
+        print "No active tasks to delete"
+        o = "There were no active tasks to delete"
+    total = time.time() - start
+    if (args.wait):
+       print "Task delete took", "{0:.2f}".format(total), "seconds to complete"
+       print "Task delete ended with status " + s + ". " + m
+    else:
+       print o
+
+def task_show(args):
+    bourne.connect(args.ip)
+    task_op = bourne.task_show(args.id)
+    bourne.pretty_print_json(task_op)
+
+def task_list(args):
+    bourne.connect(args.ip)
+    task_display_hdr()
+    res = bourne.task_list()
+    tasks = res['task']
+    for r in tasks:
+        task = bourne.task_show(r['id'])
+        task_display(task)
+
+def task_bulkget(args):
+    bourne.connect(args.ip)
+    print "Bulk get task test ..."
+    res = bourne.task_bulkget()
+    tasks = res['task']
+    task_display_hdr()
+    for v in tasks:
+        task_display(v)
+    print "Bulk get task completed"
+
+def task_tag(args):
+    bourne.connect(args.ip)
+    print 'Tagging task ', args.id
+    bourne.tag(args.resource_type, args.id, args.tags)
+
+def task_search(args):
+    bourne.connect(args.ip)
+    results = bourne.task_search(args.name, args.project, args.tag, args.wwn)
+    print 'Searching task ...'
+    if (len(results['resource']) == 0):
+        raise Exception('Task not found ')
+    else:
+        print 'Result: ', results['resource']
+
+#
+# display tasks in list form
+#
+task_display_fmt = '{0:60s} {1:20s} {2:10s}'
+
+def task_display_hdr():
+    print task_display_fmt.format('ID',   'NAME',    'STATUS')
+    print task_display_fmt.format('----', '------', '------')
+
+def task_display(task):
+    print task_display_fmt.format(task['id'], task['name'], task['state'])
+
+#----------------------------------------------------------------------
+# command-line parsing
+#
+#----------------------------------------------------------------------
+
+try:
+    bourne_ip = os.environ['BOURNE_IPADDR']
+except:
+    bourne_ip = 'localhost'
+
+# task <cmd> <cmd_args>  [--ip ipaddr]
+parser = argparse.ArgumentParser(description = 'Bourne task cli usage.')
+parser.add_argument('cmd', help = 'cmd = (create | delete | show | list | expand | change_cos_matches | change_cos | change_link | full_copy | full_copy_list | verify | exports)')
+parser.add_argument('--ip',	metavar = 'ipaddr',	help = 'IP address of bourne', default=bourne_ip)
+
+# task follow ID
+follow = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+follow.add_argument('id',		help = 'URI of task')
+
+# task delete uri
+delete = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+delete.add_argument('name',	help = 'name of task to be deleted')
+delete.add_argument('--wait', action='store_true', help = 'wait for the operation to complete')
+delete.add_argument('--vipronly', action='store_true', help = 'Delete only from ViPR')
+delete.add_argument('--force', action='store_true', help = 'Force delete even if internal')
+delete.add_argument('--project', help = 'delete all tasks in the project', action='store_true')
+
+# task show uri
+show = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+show.add_argument('id',	help = 'URI of task')
+
+# task list project
+list = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+
+# task bulkget
+bulkget = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+
+# tag 
+resource_type="task"
+tag = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+tag.add_argument('--resource_type',   metavar = 'resource_type',     help = 'resource type', default=resource_type)
+tag.add_argument('--id',     metavar = 'id',     help = 'resource id', default=None)
+tag.add_argument('name',     metavar = 'name',   help = 'resource name')
+tag.add_argument('tags',     metavar = 'tags',   help = 'tags', nargs='+', default=None)
+
+# search
+search = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+search.add_argument('--name',    metavar = 'name', help = 'name for search ', default=None)
+search.add_argument('--tag',     metavar = 'tag',    help = 'tag for search ', default=None)
+search.add_argument('--project', metavar = 'project',help = 'search within project', default=None)
+search.add_argument('--wwn', metavar = 'wwn',help = 'search for task with given wwn', default=None)
+
+
+#----------------------------------------------------------------------
+# Main script
+#----------------------------------------------------------------------
+
+try:
+
+    if (len(sys.argv) > 1):
+        cmd = sys.argv[1]
+    else:
+        cmd = None
+
+    bourne = Bourne()
+
+    if   (cmd == "follow"):
+        args = follow.parse_args()
+        task_follow(args)
+    elif (cmd == "delete"):
+        args = delete.parse_args()
+        task_delete(args)
+    elif (cmd == "show"):
+        args = show.parse_args()
+        task_show(args)
+    elif (cmd == "list"):
+        args = list.parse_args()
+        task_list(args)
+    elif (cmd == "bulkget"):
+        args = bulkget.parse_args()
+        task_bulkget(args)
+    elif(cmd == "tag"):
+        args = tag.parse_args()
+        task_tag(args)
+    elif(cmd == "search"):
+        args = search.parse_args()
+        task_search(args)
+    else:
+        parser.print_help()
+
+except:
+    raise
+

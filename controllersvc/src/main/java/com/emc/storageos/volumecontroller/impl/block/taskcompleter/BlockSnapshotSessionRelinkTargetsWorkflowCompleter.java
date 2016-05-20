@@ -65,6 +65,12 @@ public class BlockSnapshotSessionRelinkTargetsWorkflowCompleter extends BlockSna
                 case ready:
                     setReadyOnDataObject(dbClient, BlockSnapshotSession.class, tgtSnapSessionURI);
                     break;
+                case suspended_error:
+                    setSuspendedErrorOnDataObject(dbClient, BlockSnapshotSession.class, tgtSnapSessionURI);
+                    break;
+                case suspended_no_error:
+                    setSuspendedNoErrorOnDataObject(dbClient, BlockSnapshotSession.class, tgtSnapSessionURI);
+                    break;
                 default:
                     String errMsg = String.format("Unexpected status %s for completer for task %s", status.name(), getOpId());
                     s_logger.info(errMsg);

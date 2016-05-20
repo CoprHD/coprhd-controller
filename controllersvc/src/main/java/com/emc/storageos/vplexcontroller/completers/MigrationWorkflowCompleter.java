@@ -53,6 +53,12 @@ public class MigrationWorkflowCompleter extends TaskCompleter {
             case pending:
                 WorkflowStepCompleter.stepExecuting(id);
                 break;
+            case suspended_error:
+                WorkflowStepCompleter.stepSuspendedError(id, coded);
+                break;
+            case suspended_no_error:
+                WorkflowStepCompleter.stepSuspendedNoError(id);
+                break;
             default:
                 WorkflowStepCompleter.stepSucceded(id);
         }
@@ -68,6 +74,12 @@ public class MigrationWorkflowCompleter extends TaskCompleter {
             case EXECUTING:
                 WorkflowStepCompleter.stepExecuting(id);
                 break;
+            case SUSPENDED_ERROR:
+                WorkflowStepCompleter.stepSuspendedError(id, coded);
+                break;
+            case SUSPENDED_NO_ERROR:
+                WorkflowStepCompleter.stepSuspendedNoError(id);
+                break;
             case SUCCESS:
             default:
                 WorkflowStepCompleter.stepSucceded(id);
@@ -77,9 +89,12 @@ public class MigrationWorkflowCompleter extends TaskCompleter {
     /**
      * Update the status of the migration tasks.
      * 
-     * @param dbClient Reference to a database client
-     * @param status Operation status
-     * @param coded The error on error status.
+     * @param dbClient
+     *            Reference to a database client
+     * @param status
+     *            Operation status
+     * @param coded
+     *            The error on error status.
      */
     private void updateMigrationStatus(DbClient dbClient, Status status, ServiceCoded coded) {
         switch (status) {
@@ -91,6 +106,16 @@ public class MigrationWorkflowCompleter extends TaskCompleter {
             case ready:
                 for (URI migrationURI : _migrationURIs) {
                     dbClient.ready(Migration.class, migrationURI, getOpId());
+                }
+                break;
+            case suspended_error:
+                for (URI migrationURI : _migrationURIs) {
+                    dbClient.suspended_error(Migration.class, migrationURI, getOpId());
+                }
+                break;
+            case suspended_no_error:
+                for (URI migrationURI : _migrationURIs) {
+                    dbClient.suspended_no_error(Migration.class, migrationURI, getOpId());
                 }
                 break;
             default:

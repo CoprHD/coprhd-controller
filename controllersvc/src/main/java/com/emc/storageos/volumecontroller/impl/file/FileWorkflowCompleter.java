@@ -16,9 +16,9 @@ import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 import com.emc.storageos.workflow.WorkflowStepCompleter;
 
-public class FileWorkflowCompleter extends FileTaskCompleter{
-	
-	protected static final Logger _log = LoggerFactory.getLogger(FileWorkflowCompleter.class);
+public class FileWorkflowCompleter extends FileTaskCompleter {
+
+    protected static final Logger _log = LoggerFactory.getLogger(FileWorkflowCompleter.class);
 
     public FileWorkflowCompleter(List<URI> fsUris, String task) {
         super(FileShare.class, fsUris, task);
@@ -47,6 +47,22 @@ public class FileWorkflowCompleter extends FileTaskCompleter{
                 }
                 if (isNotifyWorkflow()) {
                     WorkflowStepCompleter.stepSucceded(getOpId());
+                }
+                break;
+            case suspended_error:
+                for (URI id : getIds()) {
+                    dbClient.suspended_error(FileShare.class, id, getOpId());
+                }
+                if (isNotifyWorkflow()) {
+                    WorkflowStepCompleter.stepSuspendedError(getOpId(), serviceCoded);
+                }
+                break;
+            case suspended_no_error:
+                for (URI id : getIds()) {
+                    dbClient.suspended_no_error(FileShare.class, id, getOpId());
+                }
+                if (isNotifyWorkflow()) {
+                    WorkflowStepCompleter.stepSuspendedNoError(getOpId());
                 }
                 break;
             default:

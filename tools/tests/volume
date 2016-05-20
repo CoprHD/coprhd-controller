@@ -39,7 +39,11 @@ def volume_create(args):
     print "Volume create took", "{0:.2f}".format(total), "seconds to complete"
     #print 'Volume_create debug : ' + str(s)
     for tr in tr_list:
-        if (tr['state'] == 'ready'):
+        if (tr['state'] == 'suspended_no_error'):
+	    print 'Volume operation suspended'
+            print 'TaskID: ' + tr['id']
+	    print 'Workflow: ' + tr['workflow']['id']
+        elif (tr['state'] == 'ready'):
             print 'Volume created with id ' + tr['resource']['id']
         else:
             print 'Volume create failed.'

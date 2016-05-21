@@ -32,9 +32,8 @@ def export_group_create(args):
        print 'No path parameters (optional)'
     (o, s) = bourne.export_group_create(args.name, args.project, args.neighborhood, args.type, args.volspec, args.inits, args.hosts, args.clusters, path_param)
     if (s['state'] == 'suspended_no_error'):
-	print 'Export operation suspended'
-	print 'TaskID: ' + s['id']
-	print 'Workflow: ' + s['workflow']['id']
+	# Important to not change this format as sanity and other scripts rely on it in this order with commas
+	print 'Export operation suspended, ' + s['id'] + ", " + s['workflow']['id']
     elif (s['state'] == 'ready'):
 	print 'Export group created with id ' + s['resource']['id']
     else:

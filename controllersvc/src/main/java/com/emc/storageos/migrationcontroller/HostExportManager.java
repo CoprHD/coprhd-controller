@@ -48,7 +48,6 @@ import com.emc.storageos.svcs.errorhandling.model.ServiceError;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.util.ConnectivityUtil;
 import com.emc.storageos.util.NetworkLite;
-import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.volumecontroller.ControllerLockingService;
 import com.emc.storageos.volumecontroller.impl.block.AbstractDefaultMaskingOrchestrator;
 import com.emc.storageos.volumecontroller.impl.block.BlockDeviceController;
@@ -122,7 +121,7 @@ public class HostExportManager {
     }
 
     public boolean exportOrchestrationSteps(HostMigrationDeviceController controller, List<URI> volumeURIs,
-            URI hostURI, String taskId) throws ControllerException {
+            URI hostURI, String taskId) throws InternalException {
         hostMigrationExportOrchestrationCompleter completer = new hostMigrationExportOrchestrationCompleter(volumeURIs, taskId);
         Workflow workflow = null;
         boolean lockException = false;
@@ -151,7 +150,7 @@ public class HostExportManager {
                 StorageSystem storageSystem = getDataObject(StorageSystem.class, volume.getStorageController(), _dbClient);
                 storageSystemMap.put(volume.getStorageController(), storageSystem);
             }
-            // todo: get lock
+            // todo: get lock ? need or not??
             acquireHostLockKeysForExport(taskId, hostURI, storageSystemMap);
             
             // Main processing containers. ExportGroup --> StorageSystem --> Volumes
@@ -323,17 +322,17 @@ public class HostExportManager {
             workflow.executePlan(completer, successMessage, new WorkflowCallback(), callbackArgs, null, null);
             
         }catch (Exception ex) {
-            _log.error("Could not create volumes: " + volumeURIs, ex);
-
+            _log.error("Could not do host migration export volumes: " + volumeURIs, ex);
+            hostExportGroupRollback();
             if (workflow != null) {
                 _workflowService.releaseAllWorkflowLocks(workflow);
             }
             String opName = ResourceOperationTypeEnum.HOST_MIGRATE_VOLUME.getName();
             ServiceError serviceError = null;
             if (lockException) {
-                serviceError = DeviceControllerException.errors.createVolumesAborted(volumeURIs.toString(), ex);
+                serviceError = MigrationControllerException.errors.exportGroupCreateAborted(volumeURIs.toString(), ex);
             } else {
-                serviceError = DeviceControllerException.errors.createVolumesFailed(
+                serviceError = MigrationControllerException.errors.exportGroupCreateFailed(
                         volumeURIs.toString(), opName, ex);
             }
             completer.error(_dbClient, _locker, serviceError);
@@ -442,13 +441,13 @@ public class HostExportManager {
         return true;
     } 
     
-    public boolean hostExportOrchestrationRollbackSteps (String stepId) {
+    public boolean hostExportOrchestrationSteps(String stepId) {
         WorkflowStepCompleter.stepSucceded(stepId);
         _log.info("Completed hostExportOrchestrationSteps");
         return true;
     }
     
-    public boolean hostExportOrchestrationSteps (String stepId) {
+    public boolean hostExportOrchestrationRollbackSteps(String stepId) {
         _log.info("Executing hostExportOrchestrationRollbackSteps");
         WorkflowStepCompleter.stepExecuting(stepId);
         try {
@@ -684,15 +683,15 @@ public class HostExportManager {
         }
 
         boolean acquiredLocks = _exportWfUtils.getWorkflowService().acquireWorkflowStepLocks(
-                taskId, lockKeys, LockTimeoutValue.get(LockType.RP_EXPORT));
+                taskId, lockKeys, LockTimeoutValue.get(LockType.HOST_MIGRATION_EXPORT));
         if (!acquiredLocks) {
             throw DeviceControllerException.exceptions.failedToAcquireLock(lockKeys.toString(),
-                    "ExportOrchestrationSteps: RP Export");
+                    "ExportOrchestrationSteps: host migration Export");
         }
         for (String lockKey : lockKeys) {
             _log.info("Acquired lock : " + lockKey);
         }
-        _log.info("Done : Acquiring RP lock keys for export");
+        _log.info("Done : Acquiring host migration lock keys for export");
     }
 
     static public List<String> getHostMigrateStorageLockKeys(DbClient dbClient, 

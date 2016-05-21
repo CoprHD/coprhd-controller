@@ -65,20 +65,20 @@ public class MigrationControllerWorkFlowUtil {
         Workflow.Method exportOrchestrationExecutionRollbackMethod =
                 new Workflow.Method(RB_MIGRATION_VOLUME_EXPORT_METHOD_NAME, workflow.getWorkflowURI(), stepId);
 
-        workflow.createStep(MIGRATION_VOLUME_EXPORT_STEP, "Create export group orchestration subtask for host",
+        waitFor = workflow.createStep(MIGRATION_VOLUME_EXPORT_STEP, "Create export group orchestration subtask for host",
                 HOST_MIGRATION_VOLUME_EXPORT_STEP, hostURI, host.getSystemType(), false, this.getClass(),
                 exportOrchestrationExecuteMethod, exportOrchestrationExecutionRollbackMethod, stepId);
 
-        return MIGRATION_VOLUME_EXPORT_STEP;
+        return waitFor;
 
     }
 
 
-    public String createWorkflowStepsForMigrateGeneralVolumes(Workflow workflow, URI storageURI,
+    public String createWorkflowStepsForMigrateGeneralVolumes(Workflow workflow, URI hostURI,
             URI generalVolumeURI, List<URI> targetVolumeURIs, URI newVpoolURI, URI newVarrayURI,
             Map<URI, URI> migrationsMap, String waitFor) throws InternalException {
         try {
-            StorageSystem storageSystem = getDataObject(StorageSystem.class, storageURI, _dbClient);
+            Host host = getDataObject(Host.class, hostURI, _dbClient);
             // Now make a migration Step for each passed target to which data
             // for the passed virtual volume will be migrated. The migrations
             // will be done from this controller.
@@ -91,14 +91,14 @@ public class MigrationControllerWorkFlowUtil {
                 String stepId = workflow.createStepId();
                 _log.info("Migration opId is {}", stepId);
                 Workflow.Method generalMigrationExecuteMethod = new Workflow.Method(
-                        MIGRATE_GENERAL_VOLUME_METHOD_NAME, storageURI, generalVolumeURI,
+                        MIGRATE_GENERAL_VOLUME_METHOD_NAME, hostURI, generalVolumeURI,
                         targetVolumeURI, migrationURI, newVarrayURI);
                 Workflow.Method generalMigrationRollbackMethod = new Workflow.Method(
-                        RB_MIGRATE_GENERAL_VOLUME_METHOD_NAME, storageURI, migrationURI, stepId);
+                        RB_MIGRATE_GENERAL_VOLUME_METHOD_NAME, hostURI, migrationURI, stepId);
                 _log.info("Creating workflow migration step");
                 workflow.createStep(MIGRATION_CREATE_STEP, String.format(
-                        "storagesystem %s migrating volume", storageSystem.getId().toString()),
-                        waitFor, storageSystem.getId(), storageSystem.getSystemType(),
+                        "storagesystem %s migrating volume", host.getId().toString()),
+                        waitFor, hostURI, host.getSystemType(),
                         getClass(), generalMigrationExecuteMethod, generalMigrationRollbackMethod, stepId);
                 _log.info("Created workflow migration step");
             }
@@ -109,11 +109,11 @@ public class MigrationControllerWorkFlowUtil {
 
     }
 
-    public String createWorkflowStepsForCommitMigration(Workflow workflow, URI storageURI,
+    public String createWorkflowStepsForCommitMigration(Workflow workflow, URI hostURI,
             URI generalVolumeURI, Map<URI, URI> migrationsMap, String waitFor)
             throws InternalException {
         try {
-            StorageSystem storageSystem = getDataObject(StorageSystem.class, storageURI, _dbClient);
+            Host host = getDataObject(Host.class, hostURI, _dbClient);
             // Once the migrations complete, we will commit the migrations.
             // So, now we create the steps to commit the migrations.
             List<URI> migrationURIs = new ArrayList<URI>(migrationsMap.values());
@@ -122,6 +122,7 @@ public class MigrationControllerWorkFlowUtil {
                 URI migrationURI = migrationsIter.next();
                 _log.info("Migration is {}", migrationURI);
                 Migration migration = getDataObject(Migration.class, migrationURI, _dbClient);
+
                 Boolean rename = Boolean.TRUE;
                 if (migration.getSource() == null) {
                     rename = Boolean.FALSE;
@@ -130,16 +131,16 @@ public class MigrationControllerWorkFlowUtil {
                 String stepId = workflow.createStepId();
                 _log.info("Commit operation id is {}", stepId);
                 Workflow.Method commitMigrationExecuteMethod = new Workflow.Method(
-                        COMMIT_MIGRATION_METHOD_NAME, storageURI, generalVolumeURI,
+                        COMMIT_MIGRATION_METHOD_NAME, hostURI, generalVolumeURI,
                         migrationURI, rename);
                 Workflow.Method commitMigrationRollbackMethod = new Workflow.Method(
                         RB_COMMIT_MIGRATION_METHOD_NAME, migrationURIs, stepId);
                 _log.info("Creating workflow step to commit migration");
                 waitFor = workflow.createStep(MIGRATION_COMMIT_STEP, String.format(
                         "storage sysmtem %s committing volume migration",
-                        storageSystem.getId().toString()),
-                        waitFor, storageSystem.getId(),
-                        storageSystem.getSystemType(), getClass(), commitMigrationExecuteMethod,
+                        host.getId().toString()),
+                        waitFor, hostURI,
+                        host.getSystemType(), getClass(), commitMigrationExecuteMethod,
                         commitMigrationRollbackMethod, stepId);
                 _log.info("Created workflow step to commit migration");
             }
@@ -149,11 +150,11 @@ public class MigrationControllerWorkFlowUtil {
         }
     }
 
-    public String createWorkflowStepsForDeleteMigrationSource(Workflow workflow, URI storageURI,
+    public String createWorkflowStepsForDeleteMigrationSource(Workflow workflow, URI hostURI,
             URI generalVolumeURI, URI newVpoolURI, URI newVarrayURI, Map<URI, URI> migrationsMap,
             String waitFor) throws InternalException {
         try {
-            StorageSystem storageSystem = getDataObject(StorageSystem.class, storageURI, _dbClient);
+            Host host = getDataObject(Host.class, hostURI, _dbClient);
             List<URI> migrationSources = new ArrayList<URI>();
             Iterator<URI> migrationsIter = migrationsMap.values().iterator();
             while (migrationsIter.hasNext()) {
@@ -166,11 +167,11 @@ public class MigrationControllerWorkFlowUtil {
             }
             String stepId = workflow.createStepId();
             Workflow.Method deleteMigrationExecuteMethod = new Workflow.Method(
-                    DELETE_MIGRATION_SOURCES_METHOD, storageURI, generalVolumeURI,
+                    DELETE_MIGRATION_SOURCES_METHOD, hostURI, generalVolumeURI,
                     newVpoolURI, newVarrayURI, migrationSources);
             workflow.createStep(DELETE_MIGRATION_SOURCES_STEP,
                     String.format("Creating workflow to delete migration sources"),
-                    waitFor, storageSystem.getId(), storageSystem.getSystemType(),
+                    waitFor, hostURI, host.getSystemType(),
                     getClass(), deleteMigrationExecuteMethod, null, stepId);
             _log.info("Created workflow step to create sub workflow for source deletion");
 

@@ -28,7 +28,11 @@ public interface MigrationErrors {
             final Throwable cause);
 
     @DeclareServiceCode(ServiceCode.MIGRATION_ERROR)
-    public ServiceError exportGroupCreateFailed(final String opName,
+    public ServiceError exportGroupCreateFailed(final String volUris,
+            final String operationName, final Throwable cause);
+
+    @DeclareServiceCode(ServiceCode.MIGRATION_ERROR)
+    public ServiceError exportGroupCreateAborted(final String volUris,
             final Throwable cause);
 
     @DeclareServiceCode(ServiceCode.MIGRATION_ERROR)

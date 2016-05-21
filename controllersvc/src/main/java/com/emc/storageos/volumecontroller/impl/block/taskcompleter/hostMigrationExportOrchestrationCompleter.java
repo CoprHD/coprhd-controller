@@ -42,7 +42,7 @@ public class hostMigrationExportOrchestrationCompleter extends TaskCompleter {
                 }
             }
         } catch (DatabaseException e) {
-            _log.error(String.format("Failed updating status for RP Export Orchestration - Id: %s, OpId: %s",
+            _log.error(String.format("Failed updating status for host Migration Export Orchestration - Id: %s, OpId: %s",
                     getId().toString(), getOpId()), e);
 
         }

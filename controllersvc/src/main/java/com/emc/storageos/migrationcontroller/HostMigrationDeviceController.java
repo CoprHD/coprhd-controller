@@ -19,10 +19,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.blockorchestrationcontroller.VolumeDescriptor;
-import com.emc.storageos.computesystemcontroller.impl.ComputeSystemHelper;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.Host;
-import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.Migration;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.Volume;
@@ -49,7 +47,6 @@ public class HostMigrationDeviceController implements MigrationOrchestrationInte
     private static final Logger _log = LoggerFactory.getLogger(HostMigrationDeviceController.class);
     private DbClient _dbClient;
     private URI _hostURI;
-    private Host _host;
     private HostExportManager _hostExportMgr;
     // private final List<Initiator> _initiators = new ArrayList<Initiator>();
     // private List<URI> migrateInitiatorsURIs = new ArrayList<URI>();
@@ -65,7 +62,7 @@ public class HostMigrationDeviceController implements MigrationOrchestrationInte
     private static final String DELETE_VOLUMES_METHOD_NAME = "deleteVolumes";
     private static final String UNEXPORT_STEP = AbstractDefaultMaskingOrchestrator.EXPORT_GROUP_MASKING_TASK;
     private static final String MIGRATION_VOLUME_DELETE_STEP = "delete";
-
+    private static final String DELETE_MIGRATION_SOURCES_STEP = "deleteSources";
     private boolean _usePowerPath;
 
     public HostMigrationDeviceController() {
@@ -88,7 +85,6 @@ public class HostMigrationDeviceController implements MigrationOrchestrationInte
     @Override
     public String addStepsForChangeVirtualPool(Workflow workflow, String waitFor, List<VolumeDescriptor> volumes, String taskId)
             throws InternalException {
-        // MigrationControllerWrokFlowUtil _migrationControllerWrokFlowUtil = new MigrationControllerWrokFlowUtil();
         try {
             // Get all the General Volumes.
             List<VolumeDescriptor> generalVolumes = VolumeDescriptor.filterByType(
@@ -117,9 +113,12 @@ public class HostMigrationDeviceController implements MigrationOrchestrationInte
                 }
             }
 
-            String lastStep = waitFor;
+            // currently not consider RP.
+
+            // todo: get _hostURI from descriptors;
 
             URI cgURI = null;
+            String lastStep = waitFor;
             List<URI> localSystemsToRemoveCG = new ArrayList<URI>();
 
             List<VolumeDescriptor> hostMigrateVolumes = VolumeDescriptor.filterByType(
@@ -127,18 +126,14 @@ public class HostMigrationDeviceController implements MigrationOrchestrationInte
                     new VolumeDescriptor.Type[] { VolumeDescriptor.Type.HOST_MIGRATE_VOLUME },
                     new VolumeDescriptor.Type[] {});
 
-            List<Initiator> hostInitiators = ComputeSystemHelper.queryInitiators(_dbClient, _hostURI);
-            _hostExportMgr = new HostExportManager();
-            // export source volumes
             if (hostMigrateVolumes != null && !hostMigrateVolumes.isEmpty()) {
-                lastStep = _migrationControllerWorkFlowUtil.createWorkflowStepsForBlockVolumeExport(workflow, lastStep,
-                        changeVpoolGeneralVolumeURIs,
-                        _hostURI, taskId);
-                _log.info("Created workflow steps for volume export.");
-            }
-            _host = getDataObject(Host.class, _hostURI, _dbClient);
-            String waitForStep = lastStep;
-            if (hostMigrateVolumes != null && !hostMigrateVolumes.isEmpty()) {
+                // export source volumes
+                if (hostMigrateVolumes != null && !hostMigrateVolumes.isEmpty()) {
+                    waitFor = _migrationControllerWorkFlowUtil.createWorkflowStepsForBlockVolumeExport(workflow, waitFor,
+                            changeVpoolGeneralVolumeURIs, _hostURI, taskId);
+                    _log.info("Created workflow steps for volume export.");
+                }
+                lastStep = waitFor;
                 for (URI generalVolumeURI : changeVpoolGeneralVolumeURIs) {
                     _log.info("Adding migration steps for general volume {}", generalVolumeURI);
 
@@ -186,29 +181,11 @@ public class HostMigrationDeviceController implements MigrationOrchestrationInte
                     // have completed and committed. This means that anything
                     // that waits on this, will occur after the migrations have
                     // completed, been committed, and the migration sources deleted.
-                    try {
-                        _log.info("migration controller migrate volume {} by storage system{}",
-                                generalVolumeURI, _hostURI);
-
-                        waitForStep = _migrationControllerWorkFlowUtil.createWorkflowStepsForBlockVolumeExport(workflow, lastStep,
-                                newVolumes, _hostURI, taskId);
-                        _log.info("Created workflow steps for volume export.");
-
-                        waitForStep = _migrationControllerWorkFlowUtil.createWorkflowStepsForMigrateGeneralVolumes(workflow, _hostURI,
-                                generalVolumeURI, newVolumes, newVpoolURI, null, migrationMap, waitForStep);
-                        _log.info("Created workflow steps for volume migration.");
-
-                        waitForStep = _migrationControllerWorkFlowUtil.createWorkflowStepsForCommitMigration(workflow, _hostURI,
-                                generalVolumeURI, migrationMap, waitForStep);
-                        _log.info("Created workflow steps for commit migration.");
-
-                        lastStep = _migrationControllerWorkFlowUtil.createWorkflowStepsForDeleteMigrationSource(workflow, _hostURI,
-                                generalVolumeURI, newVpoolURI, null, migrationMap, waitForStep);
-                        _log.info("Created workflow steps for commit migration.");
-                    } catch (Exception e) {
-                        throw MigrationControllerException.exceptions.addStepsForChangeVirtualPoolFailed(e);
-                    }
+                    lastStep = addStepsForMigrateVolumes(workflow, _hostURI,
+                            generalVolumeURI, newVolumes, migrationMap,
+                            newVpoolURI, null, taskId, waitFor);
                     _log.info("Add migration steps for general volume {}", generalVolumeURI);
+
                 }
 
                 // Add step to delete backend CG if necessary. Note that these
@@ -229,11 +206,45 @@ public class HostMigrationDeviceController implements MigrationOrchestrationInte
         }
     }
 
+    private String addStepsForMigrateVolumes(Workflow workflow, URI hostURI, URI generalVolumeURI,
+            List<URI> targetVolumeURIs, Map<URI, URI> migrationsMap,
+            URI newVpoolURI, URI newVarrayURI, String opId, String waitFor)
+            throws InternalException {
+
+        try {
+            _log.info("migration controller migrate volume {} by host{}",
+                    generalVolumeURI, _hostURI);
+
+            waitFor = _migrationControllerWorkFlowUtil.createWorkflowStepsForBlockVolumeExport(workflow, waitFor,
+                    targetVolumeURIs, _hostURI, opId);
+            _log.info("Created workflow steps for volume export.");
+
+            waitFor = _migrationControllerWorkFlowUtil.createWorkflowStepsForMigrateGeneralVolumes(workflow, _hostURI,
+                    generalVolumeURI, targetVolumeURIs, newVpoolURI, newVarrayURI, migrationsMap, waitFor);
+            _log.info("Created workflow steps for volume migration.");
+
+            String waitForStep = waitFor;
+            waitForStep = _migrationControllerWorkFlowUtil.createWorkflowStepsForCommitMigration(workflow, _hostURI,
+                    generalVolumeURI, migrationsMap, waitForStep);
+            _log.info("Created workflow steps for commit migration.");
+
+            _migrationControllerWorkFlowUtil.createWorkflowStepsForDeleteMigrationSource(workflow, _hostURI,
+                    generalVolumeURI, newVpoolURI, newVarrayURI, migrationsMap, waitForStep);
+            _log.info("Created workflow steps for delete migration source.");
+            return DELETE_MIGRATION_SOURCES_STEP;
+        } catch (Exception e) {
+            throw MigrationControllerException.exceptions.addStepsForChangeVirtualPoolFailed(e);
+        }
+    }
+
     @Override
     public String addStepsForChangeVirtualArray(Workflow workflow, String waitFor, List<VolumeDescriptor> volumes, String taskId)
             throws InternalException {
         try {
+            URI cgURI = null;
             URI tgtVarrayURI = null;
+
+            // todo: get host URI from descriptors
 
             List<URI> generalVolumeURIs = new ArrayList<URI>();
             // Get all the general Volumes and the new varray URI.
@@ -258,108 +269,85 @@ public class HostMigrationDeviceController implements MigrationOrchestrationInte
                 }
 
             }
-
             String lastStep = waitFor;
-            String waitForStep = lastStep;
             // Create steps to migrate the backend volumes.
             List<URI> localSystemsToRemoveCG = new ArrayList<URI>();
             List<VolumeDescriptor> hostMigrateVolumes = VolumeDescriptor.filterByType(
                     volumes, new VolumeDescriptor.Type[] { VolumeDescriptor.Type.HOST_MIGRATE_VOLUME },
                     new VolumeDescriptor.Type[] {});
-            for (URI generalVolumeURI : generalVolumeURIs) {
-                _log.info("Adding migration steps for general volume {}", generalVolumeURI);
 
-                // A list of the volumes to which the data on the current
-                // backend volumes will be migrated.
-                List<URI> newVolumes = new ArrayList<URI>();
-
-                // A Map containing a migration for each new backend
-                // volume
-                Map<URI, URI> migrationMap = new HashMap<URI, URI>();
-
-                // A map that specifies the storage pool in which
-                // each new volume should be created.
-                Map<URI, URI> poolVolumeMap = new HashMap<URI, URI>();
-
-                for (VolumeDescriptor desc : hostMigrateVolumes) {
-                    // Skip migration targets that are not for the VPLEX
-                    // volume being processed.
-                    Migration migration = getDataObject(Migration.class, desc.getMigrationId(), _dbClient);
-                    if (!migration.getVolume().equals(generalVolumeURI)) {
-                        continue;
-                    }
-
-                    _log.info("Found migration {} for VPLEX volume", migration.getId());
-
-                    // Set data required to add the migration steps.
-                    newVolumes.add(desc.getVolumeURI());
-                    migrationMap.put(desc.getVolumeURI(), desc.getMigrationId());
-                    poolVolumeMap.put(desc.getVolumeURI(), desc.getPoolURI());
-
-                    // If the migration is to a different storage system
-                    // we may need to remove the backend CG on the source
-                    // system after the migration completes.
-                    URI migSrcURI = migration.getSource();
-                    Volume migSrc = getDataObject(Volume.class, migSrcURI, _dbClient);
-                    URI migTgtURI = migration.getTarget();
-                    Volume migTgt = getDataObject(Volume.class, migTgtURI, _dbClient);
-                    if ((!migTgt.getStorageController().equals(migSrc.getStorageController())) &&
-                            (!localSystemsToRemoveCG.contains(migSrc.getStorageController()))) {
-                        _log.info("Will remove CG on local system {} if volume is in a CG.", migSrc.getStorageController());
-                        localSystemsToRemoveCG.add(migSrc.getStorageController());
-                    }
-                }
-
-                // Note that the migrate step here is a step group associated
-                // with deleting the migration sources after the migrations
-                // have completed and committed. This means that anything
-                // that waits on this, will occur after the migrations have
-                // completed, been committed, and the migration sources deleted.
-                /*
-                 * migrateStep = addStepsForMigrateVolumes(workflow, _hostURI,
-                 * generalVolumeURI, newVolumes, migrationMap, poolVolumeMap,
-                 * null, tgtVarrayURI, taskId, lastStep);
-                 * _log.info("Added migration steps for vplex volume {}", generalVolumeURI);
-                 */
-
-                try {
-                    _log.info("migration controller migrate volume {} by storage system{}",
-                            generalVolumeURI, _hostURI);
-
-                    waitForStep = _migrationControllerWorkFlowUtil.createWorkflowStepsForBlockVolumeExport(workflow, lastStep,
-                            newVolumes, _hostURI, taskId);
+            if (hostMigrateVolumes != null && !hostMigrateVolumes.isEmpty()) {
+                // export source volumes
+                if (hostMigrateVolumes != null && !hostMigrateVolumes.isEmpty()) {
+                    waitFor = _migrationControllerWorkFlowUtil.createWorkflowStepsForBlockVolumeExport(workflow, waitFor,
+                            generalVolumeURIs, _hostURI, taskId);
                     _log.info("Created workflow steps for volume export.");
-
-                    waitForStep = _migrationControllerWorkFlowUtil.createWorkflowStepsForMigrateGeneralVolumes(workflow, _hostURI,
-                            generalVolumeURI, newVolumes, null, tgtVarrayURI, migrationMap, waitForStep);
-                    _log.info("Created workflow steps for volume migration.");
-
-                    waitForStep = _migrationControllerWorkFlowUtil.createWorkflowStepsForCommitMigration(workflow, _hostURI,
-                            generalVolumeURI, migrationMap, waitForStep);
-                    _log.info("Created workflow steps for commit migration.");
-
-                    lastStep = _migrationControllerWorkFlowUtil.createWorkflowStepsForDeleteMigrationSource(workflow, _hostURI,
-                            generalVolumeURI, null, tgtVarrayURI, migrationMap, waitForStep);
-                    _log.info("Created workflow steps for commit migration.");
-                } catch (Exception e) {
-                    throw MigrationControllerException.exceptions.addStepsForChangeVirtualPoolFailed(e);
                 }
-                _log.info("Add migration steps for general volume {}", generalVolumeURI);
-            }
 
+                lastStep = waitFor;
+                for (URI generalVolumeURI : generalVolumeURIs) {
+                    _log.info("Adding migration steps for general volume {}", generalVolumeURI);
+
+                    // A list of the volumes to which the data on the current
+                    // backend volumes will be migrated.
+                    List<URI> newVolumes = new ArrayList<URI>();
+
+                    // A Map containing a migration for each new backend
+                    // volume
+                    Map<URI, URI> migrationMap = new HashMap<URI, URI>();
+
+                    for (VolumeDescriptor desc : hostMigrateVolumes) {
+                        // Skip migration targets that are not for the VPLEX
+                        // volume being processed.
+                        Migration migration = getDataObject(Migration.class, desc.getMigrationId(), _dbClient);
+                        if (!migration.getVolume().equals(generalVolumeURI)) {
+                            continue;
+                        }
+
+                        _log.info("Found migration {} for general volume", migration.getId());
+
+                        // Set data required to add the migration steps.
+                        newVolumes.add(desc.getVolumeURI());
+                        migrationMap.put(desc.getVolumeURI(), desc.getMigrationId());
+
+                        // If the migration is to a different storage system
+                        // we may need to remove the backend CG on the source
+                        // system after the migration completes.
+                        URI migSrcURI = migration.getSource();
+                        Volume migSrc = getDataObject(Volume.class, migSrcURI, _dbClient);
+                        URI migTgtURI = migration.getTarget();
+                        Volume migTgt = getDataObject(Volume.class, migTgtURI, _dbClient);
+                        if ((!migTgt.getStorageController().equals(migSrc.getStorageController())) &&
+                                (!localSystemsToRemoveCG.contains(migSrc.getStorageController()))) {
+                            _log.info("Will remove CG on local system {} if volume is in a CG.", migSrc.getStorageController());
+                            localSystemsToRemoveCG.add(migSrc.getStorageController());
+                        }
+                    }
+
+                    // Note that the migrate step here is a step group associated
+                    // with deleting the migration sources after the migrations
+                    // have completed and committed. This means that anything
+                    // that waits on this, will occur after the migrations have
+                    // completed, been committed, and the migration sources deleted.
+                    lastStep = addStepsForMigrateVolumes(workflow, _hostURI,
+                            generalVolumeURI, newVolumes, migrationMap,
+                            null, tgtVarrayURI, taskId, waitFor);
+                    _log.info("Add migration steps for general volume {}", generalVolumeURI);
+
+                }
+                cgURI = getDataObject(Volume.class, generalVolumeURIs.get(0), _dbClient).getConsistencyGroup();
+                if (!NullColumnValueGetter.isNullURI(cgURI)) {
+                    _log.info("Vpool change volumes are in CG {}", cgURI);
+                    lastStep = _migrationControllerWorkFlowUtil.createWorkflowStepsForDeleteConsistencyGroup(workflow, cgURI,
+                            localSystemsToRemoveCG, lastStep);
+                }
+
+            }
             // Return the last step
             return lastStep;
         } catch (Exception ex) {
             throw MigrationControllerException.exceptions.addStepsForChangeVirtualArrayFailed(ex);
         }
-    }
-
-    public String addStepsForMigrateVolumes(Workflow workflow, URI hostURI, URI generalVolumeURI,
-            List<URI> targetVolumeURIs, Map<URI, URI> migrationsMap,
-            Map<URI, URI> poolVolumeMap, URI newVpoolURI, URI newVarrayURI, String opId, String waitFor)
-            throws InternalException {
-
-        return null;
     }
 
     public void migrateVolumeExport(URI hostURI, List<URI> volumeURIs, String stepId) {
@@ -380,7 +368,7 @@ public class HostMigrationDeviceController implements MigrationOrchestrationInte
         _hostExportMgr.hostExportOrchestrationRollbackSteps(stepId);
     }
 
-    public void migrateGeneralVolume(URI storageURI, URI generalVolumeURI,
+    public void migrateGeneralVolume(URI hostURI, URI generalVolumeURI,
             URI targetVolumeURI, URI migrationURI, URI newVarrayURI, String stepId) throws WorkflowException {
         _log.info("Migration {} using target {}", migrationURI, targetVolumeURI);
 
@@ -393,43 +381,17 @@ public class HostMigrationDeviceController implements MigrationOrchestrationInte
             // rollback.
             _workflowService.storeStepData(stepId, Boolean.FALSE);
 
+            Host host = getDataObject(Host.class, _hostURI, _dbClient);
 
             // Get the general volume.
             Volume generalVolume = getDataObject(Volume.class, generalVolumeURI, _dbClient);
             String generalVolumeName = generalVolume.getDeviceLabel();
             _log.info("general volume name is {}", generalVolumeName);
-            /*
-             * StorageSystem srcStorageSystem = getDataObject(StorageSystem.class,
-             * generalVolume.getStorageController(), _dbClient);
-             */
-            _log.info("Storage system for migration source is {}",
-                    generalVolume.getStorageController());
-            /*
-             * List<String> srcVolumeitls = VPlexControllerUtils.getVolumeITLs(generalVolume);
-             * VolumeInfo srcVolumeInfo = new VolumeInfo(
-             * srcStorageSystem.getNativeGuid(), srcStorageSystem.getSystemType(), generalVolume.getWWN()
-             * .toUpperCase().replaceAll(":", ""),
-             * generalVolume.getNativeId(),
-             * generalVolume.getThinlyProvisioned().booleanValue(), srcVolumeitls);
-             */
-
 
             // Setup the native volume info for the migration target.
             Volume migrationTarget = getDataObject(Volume.class, targetVolumeURI, _dbClient);
-            /*
-             * StorageSystem targetStorageSystem = getDataObject(StorageSystem.class,
-             * migrationTarget.getStorageController(), _dbClient);
-             */
             _log.info("Storage system for migration target is {}",
                     migrationTarget.getStorageController());
-            /*
-             * List<String> tgtVolumeitls = VPlexControllerUtils.getVolumeITLs(migrationTarget);
-             * VolumeInfo tgtVolumeInfo = new VolumeInfo(
-             * targetStorageSystem.getNativeGuid(), targetStorageSystem.getSystemType(), migrationTarget.getWWN()
-             * .toUpperCase().replaceAll(":", ""),
-             * migrationTarget.getNativeId(),
-             * migrationTarget.getThinlyProvisioned().booleanValue(), tgtVolumeitls);
-             */
 
             // Get the migration associated with the target.
             Migration migration = getDataObject(Migration.class, migrationURI, _dbClient);
@@ -449,13 +411,6 @@ public class HostMigrationDeviceController implements MigrationOrchestrationInte
             migration.setLabel(migrationName);
             _dbClient.updateObject(migration);
             _log.info("Migration name is {}", migrationName);
-
-            // Make a call to the VPlex API client to migrate the virtual
-            // volume. Note that we need to do a remote migration when a
-            // local virtual volume is being migrated to the other VPlex
-            // cluster. If the passed new varray is not null, then
-            // this is the case.
-            // Boolean isRemoteMigration = newVarrayURI != null;
 
             List<MigrationInfo> migrationInfoList = hostMigrateGeneralVolume(
                     migrationName, generalVolume, migrationTarget);
@@ -483,7 +438,7 @@ public class HostMigrationDeviceController implements MigrationOrchestrationInte
             // job when the migration completes.
             MigrationTaskCompleter migrationCompleter = new MigrationTaskCompleter(
                     migrationURI, stepId);
-            MigrationJob migrationJob = new MigrationJob(migrationCompleter, _host);
+            MigrationJob migrationJob = new MigrationJob(migrationCompleter, host);
             ControllerServiceImpl.enqueueJob(new QueueJob(migrationJob));
             _log.info("Queued job to monitor migration progress.");
         } catch (MigrationControllerException vae) {
@@ -502,17 +457,18 @@ public class HostMigrationDeviceController implements MigrationOrchestrationInte
         // List<Initiator> hostInitiators = ComputeSystemHelper.queryInitiators(_dbClient, _hostURI);
         // todo: precheck mountpoint, multipath, filesystem, refresh storage
 
+        Host host = getDataObject(Host.class, _hostURI, _dbClient);
         try {
-            _usePowerPath = checkForMultipathingSoftware(_host);
+            _usePowerPath = checkForMultipathingSoftware(host);
         } catch (Exception e) {
             // TODO Auto-generated catch block
             e.printStackTrace();
         }
-        String srcDevice = getDevice(_host, srcVolume, _usePowerPath);
-        String tgtDevice = getDevice(_host, tgtVolume, _usePowerPath);
+        String srcDevice = getDevice(host, srcVolume, _usePowerPath);
+        String tgtDevice = getDevice(host, tgtVolume, _usePowerPath);
         _log.info("linux.migration.block.volume", srcDevice, tgtDevice);
 
-        String MigrationStatus = HostMigrationCommand.migrationCommand(_host, migrationName, srcDevice, tgtDevice);
+        String MigrationStatus = HostMigrationCommand.migrationCommand(host, migrationName, srcDevice, tgtDevice);
         if (MigrationStatus != "SUCCESS_STATUS") {
             if(MigrationStatus == "ASYNC_STATUS"){
                 _log.info("host migration is completing asynchronously");
@@ -521,7 +477,7 @@ public class HostMigrationDeviceController implements MigrationOrchestrationInte
             }                       
         }    
         _log.info("Successfully started migration {}", migrationName);
-        MigrationInfo migrationInfo = HostMigrationCommand.findMigration(_host, migrationName);
+        MigrationInfo migrationInfo = HostMigrationCommand.findMigration(host, migrationName);
         return Arrays.asList(migrationInfo);
 
     }
@@ -537,13 +493,14 @@ public class HostMigrationDeviceController implements MigrationOrchestrationInte
                 else {
                     return getDeviceForEntry(findMultiPathEntry(host, volume));
                 }
-            } catch (Exception e) {
+            } catch (IllegalStateException e) {
                 String errorMessage = String.format("Unable to find device for WWN %s. %s more attempts will be made.",
                         volume.getWWN(), remainingAttempts);
                 if (remainingAttempts == 0) {
                     throw new Exception(errorMessage);
                 }
                 _log.warn("linux.support.device.not.found", volume.getWWN(), remainingAttempts);
+                Thread.sleep(5000);
                 // refreshStorage(Collections.singleton(volume), usePowerPath);
             }
         }
@@ -585,6 +542,7 @@ public class HostMigrationDeviceController implements MigrationOrchestrationInte
             String migrateStepId, String stepId) throws WorkflowException {
         Migration migration = null;
         String migrationVolumeLabel = null;
+        Host host = getDataObject(Host.class, _hostURI, _dbClient);
         try {
             // Update step state to executing.
             WorkflowStepCompleter.stepExecuting(stepId);
@@ -618,7 +576,7 @@ public class HostMigrationDeviceController implements MigrationOrchestrationInte
 
                 // Try to cancel the migration and cleanup and remove any
                 // remnants of the migration.
-                cancelMigrations(_host, Arrays.asList(migration.getLabel()), true, true);
+                cancelMigrations(host, Arrays.asList(migration.getLabel()), true, true);
                 _log.info("Migration cancelled");
             }
             WorkflowStepCompleter.stepSucceded(stepId);
@@ -739,6 +697,7 @@ public class HostMigrationDeviceController implements MigrationOrchestrationInte
             Boolean rename, String stepId) throws WorkflowException {
         _log.info("Committing migration {}", migrationURI);
         Migration migration = null;
+        Host host = getDataObject(Host.class, _hostURI, _dbClient);
         try {
             // Update step state to executing.
             WorkflowStepCompleter.stepExecuting(stepId);
@@ -750,7 +709,7 @@ public class HostMigrationDeviceController implements MigrationOrchestrationInte
 
                 Volume generalVolume = getDataObject(Volume.class, generalVolumeURI, _dbClient);
                 try {
-                    String commitMigrationStatus = HostMigrationCommand.doCommitMigrationsCommand(_host, generalVolume.getDeviceLabel(),
+                    String commitMigrationStatus = HostMigrationCommand.doCommitMigrationsCommand(host, generalVolume.getDeviceLabel(),
                             Arrays.asList(migration.getLabel()), true, true, rename.booleanValue());
                     if (commitMigrationStatus != "SUCCESS_STATUS") {
                         if (commitMigrationStatus == "ASYNC_STATUS") {
@@ -800,7 +759,7 @@ public class HostMigrationDeviceController implements MigrationOrchestrationInte
             String stepId) throws WorkflowException {
         // Update step state to executing.
         WorkflowStepCompleter.stepExecuting(stepId);
-
+        Host host = getDataObject(Host.class, _hostURI, _dbClient);
         try {
             // Determine if any migration was successfully committed.
             boolean migrationCommitted = false;
@@ -813,7 +772,7 @@ public class HostMigrationDeviceController implements MigrationOrchestrationInte
                     continue;
                 }
                 
-                MigrationInfo migrationInfo = HostMigrationCommand.findMigration(_host, migration.getLabel());
+                MigrationInfo migrationInfo = HostMigrationCommand.findMigration(host, migration.getLabel());
                 if (migrationInfo.getStatus().equalsIgnoreCase(MigrationInfo.MigrationStatus.COMMITTED.name())) {
                     migrationCommitted = true;
                     migration.setMigrationStatus(MigrationInfo.MigrationStatus.COMMITTED.name());

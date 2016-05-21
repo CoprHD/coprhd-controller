@@ -545,7 +545,7 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
                 HP3PARApi hp3parApi = getHP3PARDeviceFromNativeId(volume.getStorageSystemId());
 
                 // Delete volume
-                hp3parApi.deleteVolume(volume.getDisplayName());
+                hp3parApi.deleteVolume(volume.getNativeId());
                 
                 task.setStatus(DriverTask.TaskStatus.READY);
                 _log.info("3PARDriver:deleteVolumes for storage system native id {}, volume name {} - end",

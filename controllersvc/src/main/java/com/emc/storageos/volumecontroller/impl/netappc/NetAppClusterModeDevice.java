@@ -159,8 +159,17 @@ public class NetAppClusterModeDevice extends AbstractFileStorageDevice {
             Long fsSize = args.getFsCapacity() / BYTESPERMB;
             String strFsSize = fsSize.toString() + "m";
 
-            if (!ncApi.createFS(args.getFsName(), args.getPoolNativeId(),
-                    strFsSize, args.getThinProvision())) {
+            Boolean isCreateSuccess = false;
+
+            if (FileShare.PersonalityTypes.TARGET.toString().equals(args.getFs().getPersonality())) {
+                isCreateSuccess = ncApi.createFS(args.getFsName(), args.getPoolNativeId(),
+                        strFsSize, args.getThinProvision(), null, "dp");
+            } else {
+                isCreateSuccess = ncApi.createFS(args.getFsName(), args.getPoolNativeId(),
+                        strFsSize, args.getThinProvision());
+            }
+
+            if (!isCreateSuccess) {
                 _log.error("NetAppClusterModeDevice doCreateFS {} - failed", args.getFsName());
 
                 BiosCommandResult rollbackResult = doDeleteFS(storage, args);

@@ -173,12 +173,84 @@ public class NetAppClusterApi {
         return status;
     }
 
+    public Boolean createVolume(String volName, String aggregate, String path, String size, Boolean isThin, String state, String type) {
+        netAppClusterFacade = new NetAppClusterFacade(_ipAddress, _portNumber, _userName,
+                _password, _https, true, _svmName);
+        String spaceReserve = "";
+        if (isThin) {
+            spaceReserve = "none";
+        }
+
+        String stateVol = "online";
+        if (state != null && !state.isEmpty()) {
+            stateVol = state;
+        }
+
+        String typeVol = "rw";
+        if (type != null && !type.isEmpty()) {
+            typeVol = type;
+        }
+
+        Boolean status = netAppClusterFacade.createFlexibleVolume(volName, aggregate,
+                path, size, spaceReserve, VOL_PERMISSION, stateVol, typeVol);
+        if (status) {
+            Collection<String> attrs = new ArrayList<String>();
+            attrs.add(VOL_ATTR_NAME);
+            for (int i = 0; i <= 3; i++) {
+                List<Map<String, String>> fileSystemCharacterics = netAppClusterFacade
+                        .listVolumeInfo(volName, attrs);
+                Map<String, String> fileSystemChar = fileSystemCharacterics
+                        .get(0);
+                String fsName = fileSystemChar.get(VOL_ATTR_RESULT_NAME);
+                if (volName.equals(fsName)) {
+                    _logger.info(
+                            "FS {} has been created successfully on the array",
+                            fsName);
+                    status = true;
+                    break;
+                } else {
+                    _logger.info("FS not seen on the array yet, check back in few seconds");
+                    status = false;
+                    try {
+                        Thread.sleep(3);
+                    } catch (InterruptedException e) {
+                        _logger.info("Failed to sleep after FS creation");
+                    }
+                    continue;
+                }
+            }
+        } else {
+            _logger.info("FS creation failed");
+            status = false;
+        }
+        return status;
+    }
+
     public Boolean createFS(String fsName, String aggregate, String size, Boolean isThin)
             throws NetAppCException {
         Boolean FailedStatus = false;
         try {
             String path = "/" + fsName;
             boolean createVolStatus = createVolume(fsName, aggregate, path, size, isThin);
+            if (createVolStatus) {
+                // Delete the NFS export that is created by default.
+                deleteNFS(path);
+            } else {
+                _logger.debug("FS creation failed...");
+                return FailedStatus;
+            }
+        } catch (Exception e) {
+            throw NetAppCException.exceptions.createFSFailed(fsName, e.getMessage());
+        }
+        return true;
+    }
+
+    public Boolean createFS(String fsName, String aggregate, String size, Boolean isThin, String state, String type)
+            throws NetAppCException {
+        Boolean FailedStatus = false;
+        try {
+            String path = "/" + fsName;
+            boolean createVolStatus = createVolume(fsName, aggregate, path, size, isThin, state, type);
             if (createVolStatus) {
                 // Delete the NFS export that is created by default.
                 deleteNFS(path);

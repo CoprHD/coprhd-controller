@@ -162,6 +162,45 @@ public class NetAppClusterFacade {
     }
 
     /**
+     * Creates a new flexible volume
+     * Only parameters for flexible volumes are provided.
+     * Note the volume may not be operational immediately after this method returns. Use
+     * getVolumeInfo() to query the status of the new volume.
+     * 
+     * @param volName - Required. Volume name.
+     * @param containingAggrName - Optional. Name of the aggregate in which to create the volume. Must
+     *            be used in conjunction with the size parameter.
+     * @param size - Optional. Size (with unit) of the new volume. Ex: 10g, 2000m, 1t. Must be used
+     *            in conjunction with containingAggrName.
+     * @param spaceReserve - Optional. Type of volume guarantee new volume will use. Valid
+     *            values are "none", "file", "volume".
+     * @param permission - Optional. Unix permission bits in octal string format.
+     * @param state - optional online, offline, restricted, or force-online
+     * @return type - optinal read-write, data-protection, or data-cache
+     */
+    public boolean createFlexibleVolume(String volName, String containingAggrName, String path, String size, String spaceReserve,
+            String permission, String state, String type)
+    {
+        if (log.isDebugEnabled()) {
+            StringBuilder sb = new StringBuilder("Creating new flexible volume offline with params" +
+                    "[volName,aggrName,path,size,spaceReserve]:");
+            sb.append(volName).append(", ");
+            sb.append(containingAggrName).append(", ");
+            sb.append(path).append(", ");
+            sb.append(size).append(", ");
+            sb.append(spaceReserve).append(", ");
+            sb.append(permission).append(", ");
+            sb.append(state).append(", ");
+            sb.append(type).append(", ");
+            log.debug(sb.toString());
+        }
+        // First create the volume
+        FlexVolume vol = new FlexVolume(server.getNaServer(), volName);
+        boolean result = vol.createFlexibleVolume(containingAggrName, path, size, spaceReserve, permission, state, type);
+        return result;
+    }
+
+    /**
      * Unmounts a volume.
      * 
      * @param volumeName

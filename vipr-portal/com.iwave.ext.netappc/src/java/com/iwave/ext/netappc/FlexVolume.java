@@ -103,6 +103,49 @@ public class FlexVolume {
         return true;
     }
 
+    public boolean createFlexibleVolume(String containingAggrName,
+            String path, String size, String spaceReserve, String permission, String state, String type) {
+        NaElement elem = new NaElement("volume-create");
+        elem.addNewChild("volume", name);
+
+        // Remaining params are optional
+        if (containingAggrName != null && !containingAggrName.isEmpty()) {
+            elem.addNewChild("containing-aggr-name", containingAggrName);
+        }
+        if (size != null && !size.isEmpty()) {
+            elem.addNewChild("size", size);
+        }
+        if (path != null && !path.isEmpty()) {
+            elem.addNewChild("junction-path", path);
+        }
+        if (spaceReserve != null && !spaceReserve.isEmpty()) {
+            elem.addNewChild("space-reserve", spaceReserve);
+        }
+        if (permission != null && !permission.isEmpty()) {
+            elem.addNewChild("unix-permissions", permission);
+        }
+
+        //
+        if (state != null && !state.isEmpty()) {
+            elem.addNewChild("volume-state", state);
+        }
+
+        // type of volume dp, ls & rw (default is rw)
+        if (state != null && !state.isEmpty()) {
+            elem.addNewChild("volume-type", type);
+        }
+
+        try {
+            server.invokeElem(elem);
+        } catch (Exception e) {
+            String msg = "Failed to create new volume: " + name;
+            log.error(msg, e);
+            throw new NetAppCException(msg, e);
+        }
+        return true;
+
+    }
+
     /**
      * Destroys a volume, releasing all storage blocks assigned to it.
      * 

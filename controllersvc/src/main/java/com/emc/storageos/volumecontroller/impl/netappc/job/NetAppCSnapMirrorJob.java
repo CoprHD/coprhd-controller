@@ -70,7 +70,7 @@ public class NetAppCSnapMirrorJob extends Job implements Serializable {
                 SnapmirrorState mirrorState = SnapmirrorState.valueOf(_jobName);
                 SnapmirrorState currMirrorState = snapmirrorResp.getMirrorState();
 
-                if (snapmirrorResp.getCurrentTransferError() != null) {
+                if (snapmirrorResp.getCurrentTransferError() == null) {
                     if (SnapmirrorState.READY.equals(mirrorState) && mirrorState.equals(currMirrorState)) {
                         if (SnapmirrorRelationshipStatus.idle.equals(snapmirrorResp.getRelationshipStatus())) {
                             setSuccessStatus(snapmirrorResp);
@@ -183,7 +183,9 @@ public class NetAppCSnapMirrorJob extends Job implements Serializable {
      * @return
      */
     public NetAppClusterApi getNetappCApi(JobContext jobContext) {
-        String vserver = snapMirrors.get(0).getDestinationVserver();
+        String vserver = _jobIds.get(0);
+        int i = vserver.indexOf(':');
+        vserver = vserver.substring(0, i);
         StorageSystem device = jobContext.getDbClient().queryObject(StorageSystem.class, _storageSystemUri);
         NetAppCApiClientFactory factory = jobContext.getNetAppCApiClientFactory();
         if (factory != null) {

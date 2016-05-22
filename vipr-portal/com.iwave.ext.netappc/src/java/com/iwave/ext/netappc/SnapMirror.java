@@ -475,21 +475,27 @@ public class SnapMirror {
             // mirror-state
             String mirrorStatus = results.getChildContent("mirror-state");
             if (mirrorStatus != null && !mirrorStatus.isEmpty()) {
-                snapMirrorResp.setMirrorState(SnapmirrorState.valueOfLabel(mirrorStatus));
+                snapMirrorResp.setMirrorState(SnapmirrorState.valueOf(mirrorStatus));
             }
 
             // current-transfer-type
             String currentTransferType = results.getChildContent("current-transfer-type");
 
             if (currentTransferType != null && !currentTransferType.isEmpty()) {
-                snapMirrorResp.setCurrentTransferType(SnapmirrorTransferType.valueOfLabel(currentTransferType));
+                snapMirrorResp.setCurrentTransferType(SnapmirrorTransferType.valueOf(currentTransferType));
+            }
+
+            String currentTransferError = results.getChildContent("current-transfer-error");
+
+            if (currentTransferError != null && !currentTransferError.isEmpty()) {
+                snapMirrorResp.setCurrentTransferError(currentTransferError);
             }
 
             // last-transfer-type
             String lastTransferType = results.getChildContent("last-transfer-type");
 
             if (lastTransferType != null && !mirrorStatus.isEmpty()) {
-                snapMirrorResp.setLastTransferType(SnapmirrorTransferType.valueOfLabel(lastTransferType));
+                snapMirrorResp.setLastTransferType(SnapmirrorTransferType.valueOf(lastTransferType));
             }
 
             // schedule

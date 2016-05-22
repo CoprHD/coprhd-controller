@@ -186,13 +186,17 @@ public class NetAppClusterApi {
             stateVol = state;
         }
 
+        String permissionVol = null;
         String typeVol = "rw";
         if (type != null && !type.isEmpty()) {
             typeVol = type;
+            // Only volumes of type "RW" can be assigned UNIX permissions
+            if ("rw".equals(type)) {
+                permissionVol = VOL_PERMISSION;
+            }
         }
-
         Boolean status = netAppClusterFacade.createFlexibleVolume(volName, aggregate,
-                path, size, spaceReserve, VOL_PERMISSION, stateVol, typeVol);
+                path, size, spaceReserve, permissionVol, stateVol, typeVol);
         if (status) {
             Collection<String> attrs = new ArrayList<String>();
             attrs.add(VOL_ATTR_NAME);

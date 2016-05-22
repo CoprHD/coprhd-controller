@@ -250,6 +250,11 @@ public class NetAppClusterApi {
         Boolean FailedStatus = false;
         try {
             String path = "/" + fsName;
+
+            if ("dp".equals(type)) {
+                path = null;
+            }
+
             boolean createVolStatus = createVolume(fsName, aggregate, path, size, isThin, state, type);
             if (createVolStatus) {
                 // Delete the NFS export that is created by default.

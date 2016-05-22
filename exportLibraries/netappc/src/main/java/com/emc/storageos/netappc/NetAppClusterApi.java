@@ -250,7 +250,7 @@ public class NetAppClusterApi {
         Boolean FailedStatus = false;
         try {
             String path = "/" + fsName;
-
+            // Only volumes of type "RW" can be mounted during create.
             if ("dp".equals(type)) {
                 path = null;
             }

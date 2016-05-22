@@ -1,3 +1,7 @@
+/*
+ * Copyright (c) 2012-2016 iWave Software LLC
+ * All Rights Reserved
+ */
 package com.iwave.ext.netappc;
 
 import java.util.ArrayList;
@@ -10,6 +14,11 @@ import org.apache.log4j.Logger;
 
 import com.iwave.ext.netappc.model.SnapmirrorCronScheduleInfo;
 
+/**
+ * 
+ * Cron Schedule Management operations for Snapmirror
+ *
+ */
 public class NetAppCJob {
 
     private Logger log = Logger.getLogger(getClass());

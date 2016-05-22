@@ -1,3 +1,7 @@
+/*
+ * Copyright (c) 2012-2016 iWave Software LLC
+ * All Rights Reserved
+ */
 package com.iwave.ext.netappc;
 
 import java.util.Iterator;
@@ -17,6 +21,10 @@ import com.iwave.ext.netappc.model.SnapmirrorRelationshipStatus;
 import com.iwave.ext.netappc.model.SnapmirrorResp;
 import com.iwave.ext.netappc.model.SnapmirrorState;
 import com.iwave.ext.netappc.model.SnapmirrorTransferType;
+
+/**
+ * Snapmirror management operations
+ */
 
 public class SnapMirror {
     private Logger log = Logger.getLogger(getClass());

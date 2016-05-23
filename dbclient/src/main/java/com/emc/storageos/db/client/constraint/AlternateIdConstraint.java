@@ -117,6 +117,11 @@ public interface AlternateIdConstraint extends Constraint {
             return new AlternateIdConstraintImpl(doType.getColumnField("knownInitiatorNetworkIds"), altId);
         }
 
+        public static AlternateIdConstraint getUnManagedExportMaskNameConstraint(String altId) {
+            DataObjectType doType = TypeMap.getDoType(UnManagedExportMask.class);
+            return new AlternateIdConstraintImpl(doType.getColumnField("maskName"), altId);
+        }
+
         public static AlternateIdConstraint getUnManagedVolumeInitiatorNetworkIdConstraint(String altId) {
             DataObjectType doType = TypeMap.getDoType(UnManagedVolume.class);
             return new AlternateIdConstraintImpl(doType.getColumnField("initiatorNetworkIds"), altId);
@@ -461,6 +466,11 @@ public interface AlternateIdConstraint extends Constraint {
             DataObjectType doType = TypeMap.getDoType(Initiator.class);
             return new AlternateIdConstraintImpl(doType.getColumnField("iniport"),
                     EndpointUtility.changeCase(initiatorPort));
+        }
+
+        public static AlternateIdConstraint getInitiatorHostnameInitiatorConstraint(String hostname) {
+            DataObjectType doType = TypeMap.getDoType(Initiator.class);
+            return new AlternateIdConstraintImpl(doType.getColumnField("hostname"), hostname);
         }
 
         public static AlternateIdConstraint getIpInterfaceIpAddressConstraint(String ipAddress) {

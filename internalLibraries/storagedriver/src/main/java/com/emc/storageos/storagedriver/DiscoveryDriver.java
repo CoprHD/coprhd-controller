@@ -75,5 +75,4 @@ public interface DiscoveryDriver extends StorageDriver {
      */
     public DriverTask discoverStorageProvider(StorageProvider storageProvider, List<StorageSystem> storageSystems);
 
-
 }

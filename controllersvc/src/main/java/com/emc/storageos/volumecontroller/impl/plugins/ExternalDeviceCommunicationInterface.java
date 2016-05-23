@@ -10,7 +10,6 @@ import static com.emc.storageos.db.client.util.CustomQueryUtility.queryActiveRes
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -18,7 +17,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import com.emc.storageos.db.client.model.StorageHADomain;
+import com.emc.storageos.storagedriver.BlockStorageDriver;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -26,6 +25,7 @@ import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.Network;
+import com.emc.storageos.db.client.model.StorageHADomain;
 import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
@@ -45,6 +45,7 @@ import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
 import com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator;
 import com.emc.storageos.volumecontroller.impl.StoragePortAssociationHelper;
 import com.emc.storageos.volumecontroller.impl.externaldevice.ExternalDeviceCollectionException;
+import com.emc.storageos.volumecontroller.impl.externaldevice.ExternalDeviceUnManagedVolumeDiscoverer;
 import com.emc.storageos.volumecontroller.impl.plugins.metering.smis.processor.MetricsKeys;
 import com.emc.storageos.volumecontroller.impl.utils.DiscoveryUtils;
 
@@ -60,8 +61,15 @@ public class ExternalDeviceCommunicationInterface extends
     private Logger _log = LoggerFactory.getLogger(ExternalDeviceCommunicationInterface.class);
     private Map<String, AbstractStorageDriver> drivers;
 
+    private ExternalDeviceUnManagedVolumeDiscoverer unManagedVolumeDiscoverer;
+    private ExternalDeviceUnManagedVolumeDiscoverer unManagedFileSystemDiscoverer;
+
     // Initialized drivers map
     private Map<String, AbstractStorageDriver> discoveryDrivers = new HashMap<>();
+
+    public void setUnManagedVolumeDiscoverer(ExternalDeviceUnManagedVolumeDiscoverer unManagedVolumeDiscoverer) {
+        this.unManagedVolumeDiscoverer = unManagedVolumeDiscoverer;
+    }
 
     public void setDrivers(Map<String, AbstractStorageDriver> drivers) {
         this.drivers = drivers;
@@ -131,10 +139,11 @@ public class ExternalDeviceCommunicationInterface extends
         try {
             if (null != accessProfile.getnamespace()
                     && (accessProfile.getnamespace().equals(com.emc.storageos.db.client.model.StorageSystem.Discovery_Namespaces.UNMANAGED_VOLUMES.toString()))) {
-                _log.warn("Discovery of unmanaged block objects is not supported for external storage system of type {}", accessProfile.getSystemType());
+                discoverUnManagedBlockObjects(driver, accessProfile);
+                _completer.statusReady(_dbClient, "Completed unmanaged block object discovery");
             } else if (null != accessProfile.getnamespace()
                     && (accessProfile.getnamespace().equals(com.emc.storageos.db.client.model.StorageSystem.Discovery_Namespaces.UNMANAGED_FILESYSTEMS.toString()))){
-                _log.warn("Discovery of unmanaged file systems is not supported for external storage system of type {}", accessProfile.getSystemType());
+               _log.warn("Discovery of unmanaged file systems is not supported for external storage system of type {}", accessProfile.getSystemType());
             } else {
                 // discover storage system
                 discoverStorageSystem(driver, accessProfile);
@@ -184,6 +193,39 @@ public class ExternalDeviceCommunicationInterface extends
             _completer.error(_dbClient, bEx);
         } catch (Exception ex) {
             _completer.error(_dbClient, null);
+        }
+    }
+
+    public void discoverUnManagedBlockObjects(AbstractStorageDriver driver, AccessProfile accessProfile) {
+        String detailedStatusMessage;
+        com.emc.storageos.db.client.model.StorageSystem storageSystem =
+                _dbClient.queryObject(com.emc.storageos.db.client.model.StorageSystem.class, accessProfile.getSystemId());
+        if (null == storageSystem) {
+            return;
+        }
+        try {
+            _log.info("discoverUnManagedBlockObjects information for storage system {}, native id {} - start",
+                    accessProfile.getSystemId(), storageSystem.getNativeGuid());
+            storageSystem.setDiscoveryStatus(DiscoveredDataObject.DataCollectionJobStatus.IN_PROGRESS.toString());
+            _dbClient.updateObject(storageSystem);
+            if (accessProfile.getnamespace().equals(com.emc.storageos.db.client.model.StorageSystem.Discovery_Namespaces.UNMANAGED_VOLUMES.toString())) {
+                unManagedVolumeDiscoverer.discoverUnManagedBlockObjects((BlockStorageDriver)driver, storageSystem, _dbClient, _partitionManager);
+            }
+
+            // discovery succeeds
+            detailedStatusMessage = String.format("discoverUnManagedBlockObjects completed successfully for %s: %s",
+                    storageSystem.getNativeId(), storageSystem.getId().toString());
+            _log.info(detailedStatusMessage);
+
+        } catch (Exception e) {
+            String message = String.format("discoverUnManagedBlockObjects failed for system %s with native id %s : %s .",
+                    storageSystem.getId(), storageSystem.getNativeGuid(), e.getMessage());
+            _log.error(message, e);
+            storageSystem.setLastDiscoveryStatusMessage(message);
+            throw e;
+        } finally {
+            _dbClient.updateObject(storageSystem);
+            _log.info("discoverUnManagedBlockObjects for system {} of type {} - end", accessProfile.getSystemId(), accessProfile.getSystemType());
         }
     }
 

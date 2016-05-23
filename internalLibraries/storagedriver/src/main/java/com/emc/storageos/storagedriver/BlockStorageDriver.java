@@ -196,6 +196,7 @@ public interface BlockStorageDriver extends StorageDriver {
      */
     public DriverTask createConsistencyGroupMirror(VolumeConsistencyGroup consistencyGroup, List<VolumeMirror> mirrors,
                                                    List<CapabilityInstance> capabilities);
+
     /**
      * Delete mirrors.
      *
@@ -365,6 +366,5 @@ public interface BlockStorageDriver extends StorageDriver {
      */
     public DriverTask createConsistencyGroupClone(VolumeConsistencyGroup consistencyGroup, List<VolumeClone> clones,
                                                   List<CapabilityInstance> capabilities);
-
 
 }

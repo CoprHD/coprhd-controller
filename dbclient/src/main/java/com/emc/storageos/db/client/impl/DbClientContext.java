@@ -16,7 +16,10 @@ import java.util.concurrent.TimeUnit;
 
 import com.datastax.driver.core.KeyspaceMetadata;
 import com.datastax.driver.core.Session;
+import com.datastax.driver.core.Statement;
 import com.datastax.driver.core.TableMetadata;
+import com.datastax.driver.core.WriteType;
+import com.datastax.driver.core.exceptions.DriverException;
 import com.netflix.astyanax.AstyanaxContext;
 import com.netflix.astyanax.CassandraOperationType;
 import com.netflix.astyanax.Cluster;
@@ -312,11 +315,79 @@ public class DbClientContext {
         initDone = true;
     }
 
+    public class ViPRRetryPolicy implements com.datastax.driver.core.policies.RetryPolicy {
+        private int maxRetry;
+        private int sleepInMS;
+
+        public ViPRRetryPolicy(int maxRetry, int sleepInMS) {
+            this.maxRetry = maxRetry;
+            this.sleepInMS = sleepInMS;
+        }
+
+        public RetryDecision onReadTimeout(Statement statement, com.datastax.driver.core.ConsistencyLevel cl, int requiredResponses, int receivedResponses, boolean dataRetrieved, int nbRetry) {
+            log.warn("onReadTimeout statement={} retried={} maxRetry={}", statement, nbRetry, maxRetry);
+            if (nbRetry == maxRetry)
+                return RetryDecision.rethrow();
+
+            delay();
+
+            return RetryDecision.retry(cl);
+        }
+
+        private void delay() {
+            try {
+                Thread.sleep(sleepInMS);
+            } catch (InterruptedException e) {
+                //ignore
+            }
+        }
+
+        public RetryDecision onWriteTimeout(Statement statement, com.datastax.driver.core.ConsistencyLevel cl, WriteType writeType, int requiredAcks, int receivedAcks, int nbRetry) {
+            log.warn("write timeout statement={} retried={} maxRetry={}", statement, nbRetry, maxRetry);
+            if (nbRetry == maxRetry)
+                return RetryDecision.rethrow();
+
+            delay();
+            // If the batch log write failed, retry the operation as this might just be we were unlucky at picking candidates
+            return RetryDecision.retry(cl);
+        }
+
+        public RetryDecision onUnavailable(Statement statement, com.datastax.driver.core.ConsistencyLevel cl, int requiredReplica, int aliveReplica, int nbRetry) {
+            log.warn("onUnavailable statement={} retried={} maxRetry={}", statement, nbRetry, maxRetry);
+            if (nbRetry == maxRetry) {
+                return RetryDecision.rethrow();
+            }
+
+            delay();
+            return RetryDecision.tryNextHost(cl);
+        }
+
+        public RetryDecision onRequestError(Statement statement, com.datastax.driver.core.ConsistencyLevel cl, DriverException e, int nbRetry) {
+            log.warn("onRequestError statement={} retried={} maxRetry={}", statement, nbRetry, maxRetry);
+            if (nbRetry == maxRetry) {
+                return RetryDecision.rethrow();
+            }
+
+            delay();
+            return RetryDecision.tryNextHost(cl);
+
+        }
+
+        public void init(com.datastax.driver.core.Cluster cluster) {
+            // nothing to do
+        }
+
+        public void close() {
+            // nothing to do
+        }
+    }
+
     private com.datastax.driver.core.Cluster initConnection(String[] contactPoints) {
         return com.datastax.driver.core.Cluster
                 .builder()
                 .addContactPoints(contactPoints).withPort(getNativeTransportPort())
                 .withClusterName(clusterName)
+                .withRetryPolicy(new ViPRRetryPolicy(10, 1000))
                 .build();
     }
 

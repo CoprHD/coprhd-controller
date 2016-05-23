@@ -3461,7 +3461,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
                         }
                     }
                 } else if (!NullColumnValueGetter.isNullNamedURI(associatedVolume.getSrdfParent())) {
-                    // We don't want any descriptors for the target.
+                    s_logger.info("Ignoring associated volume that is SRDF target: " + associatedVolume.getLabel());
                 } else {    // A nice, plain, simple backing volume
                     VolumeDescriptor descriptor = new VolumeDescriptor(
                             VolumeDescriptor.Type.BLOCK_DATA,

@@ -268,7 +268,7 @@ public class ImmutableAuthenticationProviders {
         }
         SearchControls searchControls = new SearchControls();
         searchControls.setCountLimit(SEARCH_CTL_COUNT_LIMIT);
-        searchControls.setTimeLimit(SystemPropertyUtil.getLdapConnectionTimeout(coordinator));
+        searchControls.setTimeLimit(SystemPropertyUtil.getLdapConnectionTimeout(coordinator) * 1000);
         searchControls.setSearchScope(convertSearchScope(authenticationConfiguration
                 .getSearchScope()));
         searchControls.setReturningAttributes(returningAttributes);

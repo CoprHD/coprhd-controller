@@ -48,7 +48,7 @@ public class SystemPropertyUtil {
     public static int getLdapConnectionTimeout(CoordinatorClient coordinatorClient) {
         String strTimeout = retreiveSystemProperty(coordinatorClient,
                 Constants.LDAP_CONNECTION_TIMEOUT);
-        return NumberUtils.toInt(strTimeout, DEFAULT_LDAP_CONNECTION_TIMEOUT_IN_SECS) * 1000;
+        return NumberUtils.toInt(strTimeout, DEFAULT_LDAP_CONNECTION_TIMEOUT_IN_SECS);
     }
 
 }

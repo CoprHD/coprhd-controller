@@ -67,7 +67,7 @@ public class NetAppCSnapMirrorJob extends Job implements Serializable {
                 _pollResult.setJobId(_taskCompleter.getOpId());
 
                 SnapmirrorInfoResp snapmirrorResp = netAppCApi.getSnapMirrorInfo(currentJob);
-                SnapmirrorState mirrorState = SnapmirrorState.valueOf(_jobName);
+                SnapmirrorState mirrorState = SnapmirrorState.valueOfLabel(_jobName);
                 SnapmirrorState currMirrorState = snapmirrorResp.getMirrorState();
 
                 if (snapmirrorResp.getCurrentTransferError() == null) {

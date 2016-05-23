@@ -197,7 +197,6 @@ public class NetAppCMirrorOperations implements FileMirrorOperations {
                 snapMirrorInfo.getSourceLocation(), snapMirrorInfo.getDestinationLocation());
 
         // set schedule policy name
-        SnapmirrorInfoResp snapMirrorResult = null;
         SnapmirrorCronScheduleInfo scheduleInfo = null;
         SnapmirrorCreateParam snapMirrorCreateParam = new SnapmirrorCreateParam(snapMirrorInfo);
         try {

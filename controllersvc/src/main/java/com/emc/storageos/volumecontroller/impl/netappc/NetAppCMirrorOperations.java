@@ -218,8 +218,8 @@ public class NetAppCMirrorOperations implements FileMirrorOperations {
 
                 ControllerServiceImpl.enqueueJob(new QueueJob(snapMirrorCreateJob));
 
-                _log.info("NetAppCMirrorOperations - doCreateSnapMirror {} with policy state {} - complete",
-                        snapMirrorResult.getScheduleName(), snapMirrorResult.getMirrorState().toString());
+                _log.info("NetAppCMirrorOperations - doCreateSnapMirror mirror relationship created with policy name {}  - complete",
+                        scheduleInfo.getJobScheduleName());
                 return BiosCommandResult.createPendingResult();
             } else {
                 ServiceError error =

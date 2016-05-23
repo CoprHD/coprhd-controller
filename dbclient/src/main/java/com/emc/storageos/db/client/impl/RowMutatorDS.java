@@ -36,6 +36,8 @@ public class RowMutatorDS {
     private PreparedStatement insertRecord;
     private PreparedStatement updateRecord;
     private PreparedStatement deleteRecord;
+    private PreparedStatement insertIndex;
+
 
     private BatchStatement recordAndIndexBatch;
 
@@ -56,19 +58,44 @@ public class RowMutatorDS {
     }
 
     public void addColumn(String recordKey, CompositeColumnName column, Object val) {
+        //todo we should consider 'ttl'
         log.info("hlj, id={}, column={}, val={}, typeofval={}", recordKey, column, val, val.getClass());
-        ByteBuffer blobVal = RowMutatorDS.getByteBufferFromPrimitiveValue(val);
-
         BoundStatement insert = insertRecord.bind();
         insert.setString("key", recordKey);
+        //For PRIMARY KEY (key, column1, column2, column3, column4), the primary key cannot be null
         insert.setString("column1", column.getOne() == null ? StringUtils.EMPTY : column.getOne());
         insert.setString("column2", column.getTwo() == null ? StringUtils.EMPTY : column.getTwo());
         insert.setString("column3", column.getThree() == null ? StringUtils.EMPTY : column.getThree());
-        //todo when column4 is null, "Invalid null value for clustering key part column4" exception will be thrown
-        //todo so we should set column4 with an empty UUID here. but below is timeBased() not empty.
+        //todo when column4 is null, "Invalid null value for clustering key part column4" exception will be thrown, so we should set column4 with an empty UUID here(but don't find how to). but below is timeBased() not empty.
         insert.setUUID("column4", column.getTimeUUID() == null ? UUIDs.timeBased() : column.getTimeUUID());
+        ByteBuffer blobVal = RowMutatorDS.getByteBufferFromPrimitiveValue(val);
         insert.setBytes("value", blobVal);
         log.info("hlj insert={}, blobval={}", insert, blobVal);
+        recordAndIndexBatch.add(insert);
+    }
+
+    public void addIndexColumn(String tableName, String indexRowKey, IndexColumnName column, Object val) {
+        log.info("hlj INDEX, rowKey={}, tableName={}, column={}, val={}, typeofval={}", indexRowKey, tableName, column, val, val.getClass());
+        //todo move to constructed method
+        insertIndex = this.session.prepare(insertInto(String.format("\"%s\"", tableName))
+                .value("key", bindMarker())
+                .value("column1", bindMarker())
+                .value("column2", bindMarker())
+                .value("column3", bindMarker())
+                .value("column4", bindMarker())
+                .value("column5", bindMarker())
+                .value("value", bindMarker())).setConsistencyLevel(ConsistencyLevel.LOCAL_QUORUM);
+        BoundStatement insert = insertIndex.bind();
+        insert.setString("key", indexRowKey);
+        // For PRIMARY KEY (key, column1, column2, column3, column4, column5), the primary key cannot be null
+        insert.setString("column1", column.getOne() == null ? StringUtils.EMPTY : column.getOne());
+        insert.setString("column2", column.getTwo() == null ? StringUtils.EMPTY : column.getTwo());
+        insert.setString("column3", column.getThree() == null ? StringUtils.EMPTY : column.getThree());
+        insert.setString("column4", column.getFour() == null ? StringUtils.EMPTY : column.getFour());
+        insert.setUUID("column5", column.getTimeUUID() == null ? UUIDs.timeBased() : column.getTimeUUID());
+        ByteBuffer blobVal = RowMutatorDS.getByteBufferFromPrimitiveValue(val);
+        insert.setBytes("value", blobVal);
+        log.info("hlj INDEX insert={}, blobval={}", insert, blobVal);
         recordAndIndexBatch.add(insert);
     }
 

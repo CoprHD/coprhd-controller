@@ -449,9 +449,8 @@ public class ColumnField {
         }
 
         // insert index
-        boolean insertIndexed = false;
-
-        return insertIndexed;
+        return _index.addColumn(recordKey, column, val, _parentType.getDataObjectClass().getSimpleName(),
+                rowMutatorDS, _ttl, obj);
     }
 
     /**

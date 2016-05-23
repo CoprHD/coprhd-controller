@@ -61,6 +61,34 @@ public class ScopedLabelDbIndex extends DbIndex {
         return true;
     }
 
+    @Override
+    boolean addColumn(String recordKey, CompositeColumnName column, Object value, String className, RowMutatorDS mutatorDS, Integer ttl, DataObject obj) {
+        ScopedLabel scopedLabel = (ScopedLabel) value;
+        String label = scopedLabel.getLabel();
+
+        if (label == null || label.length() < minPrefixChars) {
+            _log.warn("String too short in scoped prefix index field: {}", fieldName);
+            return false;
+        }
+
+        // scoped row key
+        String scopedRowKey = getRowKey(column, scopedLabel);
+
+        IndexColumnName indexEntry = new IndexColumnName(className, label.toLowerCase(),
+                label, recordKey, mutatorDS.getTimeUUID());
+
+        mutatorDS.addIndexColumn(indexCF.getName(), scopedRowKey, indexEntry, null);
+
+        // unscoped row key for global search
+        String rowKey = getRowKey(label);
+        indexEntry = new IndexColumnName(className,
+                label.toLowerCase(), label, recordKey, mutatorDS.getTimeUUID());
+
+        mutatorDS.addIndexColumn(indexCF.getName(), rowKey, indexEntry, null);
+
+        return true;
+    }
+
     boolean removeColumn(String recordKey, Column<CompositeColumnName> column,
             String className, RowMutator mutator,
             Map<String, List<Column<CompositeColumnName>>> fieldColumnMap) {

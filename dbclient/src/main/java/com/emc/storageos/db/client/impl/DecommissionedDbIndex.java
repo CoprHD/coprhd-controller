@@ -38,6 +38,14 @@ public class DecommissionedDbIndex extends DbIndex {
     }
 
     @Override
+    boolean addColumn(String recordKey, CompositeColumnName column, Object value, String className, RowMutatorDS mutatorDS, Integer ttl, DataObject obj) {
+        IndexColumnName indexEntry = new IndexColumnName(value.toString(), recordKey, mutatorDS.getTimeUUID());
+        String indexRowKey = className;
+        mutatorDS.addIndexColumn(indexCF.getName(), indexRowKey, indexEntry, null);
+        return true;
+    }
+
+    @Override
     boolean removeColumn(String recordKey, Column<CompositeColumnName> column,
             String className, RowMutator mutator,
             Map<String, List<Column<CompositeColumnName>>> fieldColumnMap) {

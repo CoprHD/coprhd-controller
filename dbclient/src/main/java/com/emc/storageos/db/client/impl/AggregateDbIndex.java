@@ -78,6 +78,28 @@ public class AggregateDbIndex extends DbIndex {
     }
 
     @Override
+    boolean addColumn(String recordKey, CompositeColumnName column, Object value, String className, RowMutatorDS mutatorDS, Integer ttl, DataObject obj) {
+        IndexColumnName indexEntry = new IndexColumnName(fieldName, recordKey, (UUID) null);
+
+        if (groupGlobal) {
+            String indexRowKey = className;
+            mutatorDS.addIndexColumn(indexCF.getName(), indexRowKey, indexEntry, value);
+        }
+
+        for (String field : groupBy) {
+            ColumnField colField = groupByFields.get(field);
+            if (colField != null && obj.isInitialized(field)) {
+                Object groupValue = ColumnField.getFieldValue(colField, obj);
+                if (groupValue != null) {
+                    String indexRowKey = getRowKey(className, groupValue);
+                    mutatorDS.addIndexColumn(indexCF.getName(), indexRowKey, indexEntry, value);
+                }
+            }
+        }
+        return true;
+    }
+
+    @Override
     boolean removeColumn(String recordKey, Column<CompositeColumnName> column,
             String className, RowMutator mutator,
             Map<String, List<Column<CompositeColumnName>>> fieldColumnMap) {

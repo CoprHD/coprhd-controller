@@ -40,6 +40,16 @@ public class NamedRelationDbIndex extends DbIndex {
     }
 
     @Override
+    boolean addColumn(String recordKey, CompositeColumnName column, Object value, String className, RowMutatorDS mutatorDS, Integer ttl, DataObject obj) {
+        String indexRowKey = getRowKey(column, value);
+        String name = ((NamedURI) value).getName();
+        IndexColumnName indexEntry = new IndexColumnName(className, name.toLowerCase(), name, recordKey, mutatorDS.getTimeUUID());
+
+        mutatorDS.addIndexColumn(indexCF.getName(), indexRowKey, indexEntry, null);
+        return true;
+    }
+
+    @Override
     boolean removeColumn(String recordKey, Column<CompositeColumnName> column,
             String className, RowMutator mutator,
             Map<String, List<Column<CompositeColumnName>>> fieldColumnMap) {

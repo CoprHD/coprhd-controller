@@ -44,6 +44,21 @@ public class AltIdDbIndex extends DbIndex {
     }
 
     @Override
+    boolean addColumn(String recordKey, CompositeColumnName column, Object value, String className, RowMutatorDS mutatorDS, Integer ttl, DataObject obj) {
+        if (value.toString().isEmpty()) {
+            // empty string in alternate id field, ignore and continue
+            _log.warn("Empty string in altenate id field: {}", fieldName);
+            return false;
+        }
+
+        String indexRowKey = getRowKey(column, value);
+        IndexColumnName indexEntry = new IndexColumnName(className, recordKey, mutatorDS.getTimeUUID());
+
+        mutatorDS.addIndexColumn(indexCF.getName(), indexRowKey, indexEntry, null);
+        return true;
+    }
+
+    @Override
     boolean removeColumn(String recordKey, Column<CompositeColumnName> column,
             String className, RowMutator mutator,
             Map<String, List<Column<CompositeColumnName>>> fieldColumnMap) {

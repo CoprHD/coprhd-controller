@@ -260,9 +260,11 @@ public class NetAppClusterApi {
             }
 
             boolean createVolStatus = createVolume(fsName, aggregate, path, size, isThin, state, type);
-            if (createVolStatus && path != null) {
+            if (createVolStatus) {
                 // Delete the NFS export that is created by default.
-                deleteNFS(fsName);
+                if (path != null) {
+                    deleteNFS(fsName);
+                }
             } else {
                 _logger.debug("FS creation failed...");
                 return FailedStatus;

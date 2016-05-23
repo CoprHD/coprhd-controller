@@ -852,7 +852,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
             softGracePeriod = Long.valueOf(args.getFsSoftGracePeriod());
         }
 
-        return isi.constructIsilonSmartQuotaObjectWithThreshold(null, null, false, null, capacity,
+        return isi.constructIsilonSmartQuotaObjectWithThreshold(null, null, null, false, null, capacity,
                 notificationLimit, softLimit, softGracePeriod);
     }
 
@@ -925,7 +925,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
 
             // set quota - save the quota id to extensions
             String qid = createQuotaWithThreshold(args.getFsMountPath(), args.getFsCapacity(), args.getFsSoftLimit(),
-                    args.getFsNotificationLimit(), softGrace, isi);
+                    args.getFsNotificationLimit(), softGrace, null, isi);
 
             if (args.getFsExtensions() == null) {
                 args.initFsExtensions();
@@ -1263,7 +1263,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
             // create directory for the file share
             isi.createDir(qDirPath, true);
 
-            String qid = checkThresholdAndcreateQuota(quotaDir, qDirSize, qDirPath, isi);
+            String qid = checkThresholdAndcreateQuota(quotaDir, qDirSize, qDirPath, args.getFsCapacity(), isi);
 
             if (args.getQuotaDirExtensions() == null) {
                 args.initQuotaDirExtensions();
@@ -1345,7 +1345,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
 
             } else {
                 // Create a new Quota
-                String qid = checkThresholdAndcreateQuota(quotaDir, qDirSize, qDirPath, isi);
+                String qid = checkThresholdAndcreateQuota(quotaDir, qDirSize, qDirPath, null, isi);
 
                 if (args.getQuotaDirExtensions() == null) {
                     args.initQuotaDirExtensions();
@@ -1378,11 +1378,11 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
             softGrace = Long.valueOf(quotaDir.getSoftGrace());
         }
 
-        return isi.constructIsilonSmartQuotaObjectWithThreshold(null, null, false, null, qDirSize,
+        return isi.constructIsilonSmartQuotaObjectWithThreshold(null, null, null, false, null, qDirSize,
                 notificationLimit, softlimit, softGrace);
     }
 
-    private String checkThresholdAndcreateQuota(QuotaDirectory quotaDir, Long qDirSize, String qDirPath, IsilonApi isi) {
+    private String checkThresholdAndcreateQuota(QuotaDirectory quotaDir, Long qDirSize, String qDirPath, Long fsSize, IsilonApi isi) {
         Long notificationLimit = 0L;
         Long softlimit = 0L;
         Long softGrace = 0L;
@@ -1400,11 +1400,11 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         }
 
         return createQuotaWithThreshold(qDirPath, qDirSize,
-                softlimit, notificationLimit, softGrace, isi);
+                softlimit, notificationLimit, softGrace, fsSize, isi);
     }
 
     public String createQuotaWithThreshold(String qDirPath, Long qDirSize, Long softLimitSize, Long notificationLimitSize,
-            Long softGracePeriod, IsilonApi isi) {
+            Long softGracePeriod, Long fsSize, IsilonApi isi) {
         boolean bThresholdsIncludeOverhead = true;
         boolean bIncludeSnapshots = true;
 
@@ -1419,7 +1419,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         }
 
         // set quota - save the quota id to extensions
-        String qid = isi.createQuota(qDirPath, bThresholdsIncludeOverhead,
+        String qid = isi.createQuota(qDirPath, fsSize, bThresholdsIncludeOverhead,
                 bIncludeSnapshots, qDirSize, notificationLimitSize != null ? notificationLimitSize : 0L,
                 softLimitSize != null ? softLimitSize : 0L, softGracePeriod != null ? softGracePeriod : 0L);
         return qid;
@@ -2313,8 +2313,10 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
     /**
      * Set the clients to isilon export based on type
      * 
-     * @param type one of "rw", "root" or "ro"
-     * @param hosts the clients to be set
+     * @param type
+     *            one of "rw", "root" or "ro"
+     * @param hosts
+     *            the clients to be set
      * @param isilonExport
      */
     private void setClientsIntoIsilonExport(String type, Set<String> hosts, IsilonExport isilonExport) {

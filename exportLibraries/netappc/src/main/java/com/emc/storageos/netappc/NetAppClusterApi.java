@@ -1094,43 +1094,43 @@ public class NetAppClusterApi {
         }
     }
 
-    public boolean quienceSnapMirror(SnapmirrorInfo snapMirrorInfo) {
+    public boolean quienceSnapMirror(String destLocation) {
         try {
             netAppClusterFacade = new NetAppClusterFacade(_ipAddress, _portNumber, _userName,
                     _password, _https);
-            return netAppClusterFacade.quienceSnapMirror(snapMirrorInfo);
+            return netAppClusterFacade.quienceSnapMirror(destLocation);
         } catch (Exception e) {
-            throw NetAppCException.exceptions.quiesceSnapMirrorFailed(snapMirrorInfo.getSourceVolume(), _ipAddress, e.getMessage());
+            throw NetAppCException.exceptions.quiesceSnapMirrorFailed(destLocation, _ipAddress, e.getMessage());
         }
     }
 
-    public boolean resumeSnapMirror(SnapmirrorInfo snapMirrorInfo) {
+    public boolean resumeSnapMirror(String destLocation) {
         try {
             netAppClusterFacade = new NetAppClusterFacade(_ipAddress, _portNumber, _userName,
                     _password, _https);
-            return netAppClusterFacade.resumeSnapMirror(snapMirrorInfo);
+            return netAppClusterFacade.resumeSnapMirror(destLocation);
         } catch (Exception e) {
-            throw NetAppCException.exceptions.resumeSnapMirrorFailed(snapMirrorInfo.getSourceVolume(), _ipAddress, e.getMessage());
+            throw NetAppCException.exceptions.resumeSnapMirrorFailed(destLocation, _ipAddress, e.getMessage());
         }
     }
 
-    public boolean releaseSnapMirror(SnapmirrorInfo snapMirrorInfo) {
+    public boolean releaseSnapMirror(final String location) {
         try {
             netAppClusterFacade = new NetAppClusterFacade(_ipAddress, _portNumber, _userName,
                     _password, _https);
-            return netAppClusterFacade.releaseSnapMirror(snapMirrorInfo);
+            return netAppClusterFacade.releaseSnapMirror(location);
         } catch (Exception e) {
-            throw NetAppCException.exceptions.releaseSnapMirrorFailed(snapMirrorInfo.getSourceVolume(), _ipAddress, e.getMessage());
+            throw NetAppCException.exceptions.releaseSnapMirrorFailed(location, _ipAddress, e.getMessage());
         }
     }
 
-    public boolean destorySnapMirror(SnapmirrorInfo snapMirrorInfo) {
+    public boolean destorySnapMirror(final String location) {
         try {
             netAppClusterFacade = new NetAppClusterFacade(_ipAddress, _portNumber, _userName,
                     _password, _https);
-            return netAppClusterFacade.destroySnapMirror(snapMirrorInfo);
+            return netAppClusterFacade.destroySnapMirror(location);
         } catch (Exception e) {
-            throw NetAppCException.exceptions.deleteSnapMirrorFailed(snapMirrorInfo.getSourceVolume(), _ipAddress, e.getMessage());
+            throw NetAppCException.exceptions.deleteSnapMirrorFailed(location, _ipAddress, e.getMessage());
         }
     }
 

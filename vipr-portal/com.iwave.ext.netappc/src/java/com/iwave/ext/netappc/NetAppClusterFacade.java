@@ -867,14 +867,14 @@ public class NetAppClusterFacade {
 
     }
 
-    public boolean quienceSnapMirror(SnapmirrorInfo snapMirrorInfo) {
+    public boolean quienceSnapMirror(String destLocation) {
         SnapMirror snapMirror = new SnapMirror(server.getNaServer(), null);
-        return snapMirror.quiesceSnapMirror(snapMirrorInfo);
+        return snapMirror.quiesceSnapMirror(destLocation);
     }
 
-    public boolean resumeSnapMirror(SnapmirrorInfo snapMirrorInfo) {
+    public boolean resumeSnapMirror(String location) {
         SnapMirror snapMirror = new SnapMirror(server.getNaServer(), null);
-        return snapMirror.resumesnapMirror(snapMirrorInfo);
+        return snapMirror.resumesnapMirror(location);
     }
 
     public boolean abortSnapMirror(SnapmirrorInfo snapMirrorInfo) {
@@ -882,17 +882,17 @@ public class NetAppClusterFacade {
         return snapMirror.abortSnapMirror(snapMirrorInfo);
     }
 
-    public boolean destroySnapMirror(SnapmirrorInfo snapMirrorInfo) {
+    public boolean destroySnapMirror(final String location) {
         SnapMirror snapMirror = new SnapMirror(server.getNaServer(), null);
-        return snapMirror.destroySnapMirror(snapMirrorInfo);
+        return snapMirror.destroySnapMirror(location);
     }
 
-    public boolean releaseSnapMirror(SnapmirrorInfo snapMirrorInfo) {
+    public boolean releaseSnapMirror(final String location) {
         SnapMirror snapMirror = new SnapMirror(server.getNaServer(), null);
-        return snapMirror.releaseSnapMirror(snapMirrorInfo);
+        return snapMirror.releaseSnapMirror(location);
     }
 
-    public SnapmirrorInfoResp getSnapMirrorInfo(String destPath) {
+    public SnapmirrorInfoResp getSnapMirrorInfo(final String destPath) {
         SnapMirror snapMirror = new SnapMirror(server.getNaServer(), null);
         return snapMirror.getSnapMirrorInfo(destPath);
     }

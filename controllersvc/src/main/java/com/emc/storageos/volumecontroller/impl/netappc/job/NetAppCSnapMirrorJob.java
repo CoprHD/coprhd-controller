@@ -96,6 +96,7 @@ public class NetAppCSnapMirrorJob extends Job implements Serializable {
                             setProgressStatus(snapmirrorResp);
                         }
                     } else {
+                        netAppCApi.releaseSnapMirror(snapmirrorResp.getSourceLocation());
                         setProgressStatus(snapmirrorResp);
                     }
                 } else {

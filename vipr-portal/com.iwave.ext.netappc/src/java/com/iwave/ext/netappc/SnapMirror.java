@@ -124,24 +124,36 @@ public class SnapMirror {
         return true;
     }
 
-    public boolean quiesceSnapMirror(SnapmirrorInfo snapMirrorInfo) {
+    public boolean quiesceSnapMirror(String destLocation) {
         NaElement elem = new NaElement("snapmirror-quiesce");
 
         // destination attributes
-        prepSourceReq(elem, snapMirrorInfo);
-
-        // source attributes
-        prepDestReq(elem, snapMirrorInfo);
+        elem.addNewChild("destination-location", destLocation);
 
         try {
             server.invokeElem(elem);
         } catch (Exception e) {
-            String msg = "Failed to Quiesce SnapMirror: " + snapMirrorInfo.getDestinationVolume();
+            String msg = "Failed to Quiesce SnapMirror: " + destLocation;
             log.error(msg, e);
             throw new NetAppCException(msg, e);
         }
         return true;
 
+    }
+
+    public boolean resumesnapMirror(String destLocation) {
+        NaElement elem = new NaElement("snapmirror-resume");
+        // destination attributes
+        elem.addNewChild("destination-location", destLocation);
+
+        try {
+            server.invokeElem(elem);
+        } catch (Exception e) {
+            String msg = "Failed to Resume SnapMirror: " + destLocation;
+            log.error(msg, e);
+            throw new NetAppCException(msg, e);
+        }
+        return true;
     }
 
     public SnapmirrorResp destroyAsyncSnapMirror(SnapmirrorInfo snapMirrorInfo) {
@@ -167,38 +179,31 @@ public class SnapMirror {
         return snapMirrorResp;
     }
 
-    public boolean destroySnapMirror(SnapmirrorInfo snapMirrorInfo) {
+    public boolean destroySnapMirror(String destLocation) {
         NaElement elem = new NaElement("snapmirror-destroy");
 
         // destination attributes
-        prepSourceReq(elem, snapMirrorInfo);
-
-        // source attributes
-        prepDestReq(elem, snapMirrorInfo);
+        elem.addNewChild("destination-location", destLocation);
 
         try {
             server.invokeElem(elem);
         } catch (Exception e) {
-            String msg = "Failed to Destroy SnapMirror: " + snapMirrorInfo.getDestinationVolume();
+            String msg = "Failed to Destroy SnapMirror: " + destLocation;
             log.error(msg, e);
             throw new NetAppCException(msg, e);
         }
         return true;
     }
 
-    public boolean releaseSnapMirror(SnapmirrorInfo snapMirrorInfo) {
+    public boolean releaseSnapMirror(String destLocation) {
         NaElement elem = new NaElement("snapmirror-destroy");
 
         // destination attributes
-        prepSourceReq(elem, snapMirrorInfo);
-
-        // source attributes
-        prepDestReq(elem, snapMirrorInfo);
-
+        elem.addNewChild("destination-location", destLocation);
         try {
             server.invokeElem(elem);
         } catch (Exception e) {
-            String msg = "Failed to Release SnapMirror: " + snapMirrorInfo.getSourceLocation();
+            String msg = "Failed to Release SnapMirror: " + destLocation;
             log.error(msg, e);
             throw new NetAppCException(msg, e);
         }
@@ -323,26 +328,6 @@ public class SnapMirror {
             throw new NetAppCException(msg, e);
         }
         return snapMirrorVolumeStatus;
-    }
-
-    public boolean resumesnapMirror(SnapmirrorInfo snapMirrorInfo) {
-        NaElement elem = new NaElement("snapmirror-resume");
-
-        // destination attributes
-        prepSourceReq(elem, snapMirrorInfo);
-
-        // source attributes
-        prepDestReq(elem, snapMirrorInfo);
-
-        try {
-            NaElement results = server.invokeElem(elem);
-
-        } catch (Exception e) {
-            String msg = "Failed to Resume SnapMirror: " + snapMirrorInfo.getDestinationVolume();
-            log.error(msg, e);
-            throw new NetAppCException(msg, e);
-        }
-        return true;
     }
 
     public boolean abortSnapMirror(SnapmirrorInfo snapMirrorInfo) {

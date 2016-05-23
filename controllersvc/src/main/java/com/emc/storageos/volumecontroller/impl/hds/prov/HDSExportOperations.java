@@ -1038,6 +1038,7 @@ public class HDSExportOperations implements ExportMaskOperations {
             hdsApiClient = hdsApiFactory.getClient(
                     getHDSServerManagementServerInfo(storage), storage.getSmisUserName(),
                     storage.getSmisPassword());
+            HDSApiExportManager exportMgr = hdsApiClient.getHDSApiExportManager();
             systemObjectID = HDSUtils.getSystemObjectID(storage);
             ExportMask exportMask = dbClient.queryObject(ExportMask.class, exportMaskURI);
 
@@ -1057,40 +1058,104 @@ public class HDSExportOperations implements ExportMaskOperations {
                 hostModeOption = hostModeInfo.second;
             }
 
-            // Case 1 is handled here for the new initiators & new target ports.
-            if (targetURIList != null && !targetURIList.isEmpty() &&
-                    !exportMask.hasTargets(targetURIList)) {
-                // If the HLU's are already configured on this target port, then an exception is thrown.
-                // User should make sure that all volumes should have same HLU across all target HSD's.
-                VolumeURIHLU[] volumeURIHLUs = getVolumeURIHLUFromExportMask(exportMask);
-                if (0 < volumeURIHLUs.length) {
-                    hsdsToCreate = processTargetPortsToFormHSDs(hdsApiClient, storage,
-                            targetURIList, hostName, exportMask, hostModeInfo, systemObjectID);
-                    // Step 1: Create all HSD's using batch operation.
-                    List<HostStorageDomain> hsdResponseList = hdsApiClient
-                            .getHDSBatchApiExportManager().addHostStorageDomains(
-                                    systemObjectID, hsdsToCreate, storage.getModel());
 
-                    if (null == hsdResponseList || hsdResponseList.isEmpty()) {
-                        log.error("Batch HSD creation failed to add new initiators. Aborting operation...");
-                        throw HDSException.exceptions.notAbleToAddHSD(storage
-                                .getSerialNumber());
+
+            /*
+             * There are two cases which we should handle here.
+             * 1. When new initiator's are added and user increased pathsPerInitiator & maximum paths.
+             * 2. New initiator's should be added to the existing HSD's to access the volumes which are already part of the export mask.
+             */
+
+            if (targetURIList != null && !targetURIList.isEmpty()) {
+
+                Set<URI> newTargetPorts = new HashSet<>(targetURIList);
+                Set<URI> existingTargetPortsInMask = new HashSet<>();
+                if (exportMask.getStoragePorts() != null) {
+                    existingTargetPortsInMask = new HashSet<>(targetURIList);
+                    Collection<URI> targetPorts = Collections2.transform(exportMask.getStoragePorts(),
+                            CommonTransformerFunctions.FCTN_STRING_TO_URI);
+                    existingTargetPortsInMask.retainAll(targetPorts);
+                }
+                newTargetPorts.removeAll(existingTargetPortsInMask);
+
+                log.info("list of new storage target ports {}", newTargetPorts);
+                log.info("list of existing storage target ports available in export masks {}", existingTargetPortsInMask);
+
+                // Case 1 is handled here for the new initiators & new target ports.
+                if (!newTargetPorts.isEmpty()) {
+                    // If the HLU's are already configured on this target port, then an exception is thrown.
+                    // User should make sure that all volumes should have same HLU across all target HSD's.
+                    VolumeURIHLU[] volumeURIHLUs = getVolumeURIHLUFromExportMask(exportMask);
+                    if (0 < volumeURIHLUs.length) {
+                        hsdsToCreate = processTargetPortsToFormHSDs(hdsApiClient, storage,
+                                targetURIList, hostName, exportMask, hostModeInfo, systemObjectID);
+                        // Step 1: Create all HSD's using batch operation.
+                        List<HostStorageDomain> hsdResponseList = hdsApiClient
+                                .getHDSBatchApiExportManager().addHostStorageDomains(
+                                        systemObjectID, hsdsToCreate, storage.getModel());
+
+                        if (null == hsdResponseList || hsdResponseList.isEmpty()) {
+                            log.error("Batch HSD creation failed to add new initiators. Aborting operation...");
+                            throw HDSException.exceptions.notAbleToAddHSD(storage
+                                    .getSerialNumber());
+                        }
+                        // Step 2: Add initiators to all HSD's.
+                        Iterator<StoragePort> storagePortIterator = dbClient.queryIterativeObjects(StoragePort.class, newTargetPorts);
+                        List<StoragePort> stPortList = new ArrayList<>();
+                        while (storagePortIterator.hasNext()) {
+                            StoragePort stPort = storagePortIterator.next();
+                            if (stPort != null && !stPort.getInactive()) {
+                                stPortList.add(stPort);
+                            }
+                        }
+                        hsdsWithInitiators = executeBatchHSDAddInitiatorsCommand(hdsApiClient,
+                                systemObjectID, hsdResponseList, stPortList, initiators, storage.getModel());
+
+                        // Step 3: Add volumes to all HSD's.
+                        List<Path> allHSDPaths = executeBatchHSDAddVolumesCommand(hdsApiClient,
+                                systemObjectID, hsdsWithInitiators, volumeURIHLUs, storage.getModel());
+
+                        if (null != allHSDPaths && !allHSDPaths.isEmpty()) {
+                            updateExportMaskDetailInDB(hsdsWithInitiators, allHSDPaths,
+                                    exportMask, storage, volumeURIHLUs);
+                        }
+
+                    } else {
+                        log.info("There are no volumes on this exportmask: {} to add to new initiator", exportMaskURI);
                     }
-                    // Step 2: Add initiators to all HSD's.
-                    hsdsWithInitiators = executeBatchHSDAddInitiatorsCommand(hdsApiClient,
-                            systemObjectID, hsdResponseList, ports, initiators, storage.getModel());
+                }
+                // Case 2 is handled here i.e. adding the new initiator to the
+                // existing HSD to access the volumes already exported in the exportmask.
+                if (!existingTargetPortsInMask.isEmpty()) {
+                    // Step 1: Collect all HSDs from export mask
+                    StringSetMap deviceDataMap = exportMask.getDeviceDataMap();
+                    if (null != deviceDataMap && !deviceDataMap.isEmpty()) {
+                        List<HostStorageDomain> hsdResponseList = new ArrayList<>();
+                        Set<String> hsdObjectIdSet = deviceDataMap.keySet();
+                        for (String hsdObjectId : hsdObjectIdSet) {
+                            HostStorageDomain hsd = exportMgr.getHostStorageDomain(systemObjectID, hsdObjectId);
+                            if (null == hsd) {
+                                throw HDSException.exceptions
+                                        .notAbleToFindHostStorageDomain(hsdObjectId);
+                            }
 
-                    // Step 3: Add volumes to all HSD's.
-                    List<Path> allHSDPaths = executeBatchHSDAddVolumesCommand(hdsApiClient,
-                            systemObjectID, hsdsWithInitiators, volumeURIHLUs, storage.getModel());
-
-                    if (null != allHSDPaths && !allHSDPaths.isEmpty()) {
-                        updateExportMaskDetailInDB(hsdsWithInitiators, allHSDPaths,
-                                exportMask, storage, volumeURIHLUs);
+                            hsdResponseList.add(hsd);
+                        }
+                        // Step 2: Add initiators to all HSD's.
+                        Iterator<StoragePort> storagePortIterator = dbClient.queryIterativeObjects(StoragePort.class,
+                                existingTargetPortsInMask, true);
+                        List<StoragePort> stPortList = new ArrayList<>();
+                        while (storagePortIterator.hasNext()) {
+                            StoragePort stPort = storagePortIterator.next();
+                            if (stPort != null) {
+                                stPortList.add(stPort);
+                            }
+                        }
+                        hsdsWithInitiators = executeBatchHSDAddInitiatorsCommand(hdsApiClient,
+                                systemObjectID, hsdResponseList, stPortList, initiators, storage.getModel());
+                    } else {
+                        log.info("There are no hsd information in exportMask to add initiators");
                     }
-
-                } else {
-                    log.info("There are no volumes on this exportmask: {} to add to new initiator", exportMaskURI);
                 }
             }
             taskCompleter.ready(dbClient);

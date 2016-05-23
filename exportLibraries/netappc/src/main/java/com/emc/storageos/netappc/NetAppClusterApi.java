@@ -1048,13 +1048,13 @@ public class NetAppClusterApi {
         }
     }
 
-    public boolean initialiseSnapMirror(SnapmirrorInfo snapMirrorInfo) {
+    public boolean initialiseSnapMirror(String destLocation) {
         try {
             netAppClusterFacade = new NetAppClusterFacade(_ipAddress, _portNumber, _userName,
                     _password, _https);
-            return netAppClusterFacade.initialiseSnapMirror(snapMirrorInfo);
+            return netAppClusterFacade.initialiseSnapMirror(destLocation);
         } catch (Exception e) {
-            throw NetAppCException.exceptions.initializeSnapMirrorFailed(snapMirrorInfo.getSourceVolume(), _ipAddress, e.getMessage());
+            throw NetAppCException.exceptions.initializeSnapMirrorFailed(destLocation, _ipAddress, e.getMessage());
         }
     }
 

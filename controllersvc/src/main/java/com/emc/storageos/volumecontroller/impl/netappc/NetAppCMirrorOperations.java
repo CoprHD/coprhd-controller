@@ -238,7 +238,7 @@ public class NetAppCMirrorOperations implements FileMirrorOperations {
      * 
      * @param sourceSystem
      * @param targetSystem
-     * @param sourceFs
+     * @param sourceFshhhhhhji
      * @param targetFs
      * @param taskCompleter
      * @return
@@ -258,7 +258,7 @@ public class NetAppCMirrorOperations implements FileMirrorOperations {
                     SnapmirrorState.READY.equals(mirrorInfoResp.getMirrorState())) {
 
                 // perform initial update of snapmirror relationship
-                ncApi.initialiseSnapMirror(snapMirrorInfo);
+                ncApi.initialiseSnapMirror(snapMirrorInfo.getDestinationLocation());
 
                 NetAppCSnapMirrorJob netappCSnapMirrorJob = new NetAppCSnapMirrorJob(snapMirrorInfo.getDestinationLocation(),
                         targetSystem.getId(), taskCompleter,

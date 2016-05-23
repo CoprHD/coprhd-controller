@@ -845,9 +845,9 @@ public class NetAppClusterFacade {
         return snapMirror.createSnapMirror(snapMirrorCreateParam);
     }
 
-    public boolean initialiseSnapMirror(SnapmirrorInfo snapMirrorInfo) {
+    public boolean initialiseSnapMirror(String destLocation) {
         SnapMirror snapMirror = new SnapMirror(server.getNaServer(), null);
-        return snapMirror.initialiseSnapMirror(snapMirrorInfo);
+        return snapMirror.initialiseSnapMirror(destLocation);
     }
 
     public boolean breakSnapMirror(SnapmirrorInfo snapMirrorInfo) {

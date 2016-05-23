@@ -138,7 +138,7 @@ public class FlexVolume {
         try {
             server.invokeElem(elem);
         } catch (Exception e) {
-            String msg = "Failed to create new volume: " + name;
+            String msg = "Failed to create new Flexiable volume: " + name;
             log.error(msg, e);
             throw new NetAppCException(msg, e);
         }

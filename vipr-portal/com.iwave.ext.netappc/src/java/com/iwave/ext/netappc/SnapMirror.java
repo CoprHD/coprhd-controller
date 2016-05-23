@@ -75,22 +75,16 @@ public class SnapMirror {
         return snapMirrorResp;
     }
 
-    public boolean initialiseSnapMirror(SnapmirrorInfo snapMirrorInfo) {
-
-        SnapmirrorResp snapMirrorResp = null;
-
+    public boolean initialiseSnapMirror(String destLocation) {
         NaElement elem = new NaElement("snapmirror-initialize");
 
         // destination attributes
-        prepSourceReq(elem, snapMirrorInfo);
-
-        // source attributes
-        prepDestReq(elem, snapMirrorInfo);
+        elem.addNewChild("destination-location", destLocation);
 
         try {
             server.invokeElem(elem);
         } catch (Exception e) {
-            String msg = "Failed to Initialize SnapMirror: " + snapMirrorInfo.getDestinationVolume();
+            String msg = "Failed to Initialize SnapMirror: " + destLocation;
             log.error(msg, e);
             throw new NetAppCException(msg, e);
         }

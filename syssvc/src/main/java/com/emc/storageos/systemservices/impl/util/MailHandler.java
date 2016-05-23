@@ -78,18 +78,17 @@ public class MailHandler {
             auditLogManager.recordAuditLog(
                     null, null, "syssvc",
                     OperationTypeEnum.SEND_STANDBY_NETWORK_BROKEN_MAIL,
-                    new Date().getTime(),
+                    System.currentTimeMillis(),
                     AuditLogManager.AUDITLOG_SUCCESS,
                     null, site.getName());
         } else {
-         // audit the mail sent failure
+            // audit the mail sent failure
             auditLogManager.recordAuditLog(
                     null, null, "syssvc",
                     OperationTypeEnum.SEND_STANDBY_NETWORK_BROKEN_MAIL,
                     System.currentTimeMillis(),
                     AuditLogManager.AUDITLOG_FAILURE,
                     null, site.getName());
-            return;
         }
     }
 

@@ -20,6 +20,7 @@ import javax.xml.bind.annotation.XmlAccessType;
 import javax.xml.bind.annotation.XmlAccessorType;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
+import java.util.ArrayList;
 import java.util.List;
 
 @XmlRootElement(name = "coprhd_os_tenant_list")
@@ -30,6 +31,9 @@ public class CoprhdOsTenantListRestRep {
 
     @XmlElement(name = "coprhd_os_tenants")
     public List<CoprhdOsTenant> getCoprhd_os_tenants() {
+        if (coprhd_os_tenants == null) {
+            coprhd_os_tenants = new ArrayList<>();
+        }
         return coprhd_os_tenants;
     }
 

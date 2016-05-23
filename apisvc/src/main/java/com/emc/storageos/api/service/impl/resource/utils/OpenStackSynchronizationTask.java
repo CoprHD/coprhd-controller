@@ -150,7 +150,7 @@ public class OpenStackSynchronizationTask extends ResourceService {
      *
      * @return List of CoprHD Tenants.
      */
-    private List<TenantOrg> getCoprhdTenantsWithOpenStackId() {
+    public List<TenantOrg> getCoprhdTenantsWithOpenStackId() {
 
         List<URI> coprhdTenantsURI = _dbClient.queryByType(TenantOrg.class, true);
         Iterator<TenantOrg> tenantsIter = _dbClient.queryIterativeObjects(TenantOrg.class, coprhdTenantsURI);
@@ -216,7 +216,7 @@ public class OpenStackSynchronizationTask extends ResourceService {
      * @param tenant CoprHD Tenant.
      * @return User Mapping for given Tenant.
      */
-    private String getCoprhdTenantUserMapping(TenantOrg tenant) {
+    public String getCoprhdTenantUserMapping(TenantOrg tenant) {
 
         StringSetMap userMappings = tenant.getUserMappings();
         // Ignore root Tenant.
@@ -411,11 +411,12 @@ public class OpenStackSynchronizationTask extends ResourceService {
      * Creates a CoprHD Tenant for given OpenStack Tenant.
      *
      * @param tenant OpenStack Tenant.
-     * @param provider Keystone Authentication Provider.
      */
-    public TenantOrg createTenant(TenantV2 tenant, AuthnProvider provider) {
+    public TenantOrg createTenant(OSTenant tenant) {
 
-        TenantCreateParam param = _authnConfigurationService.prepareTenantMappingForOpenstack(mapTenant(tenant), provider);
+        AuthnProvider provider = getKeystoneProvider();
+
+        TenantCreateParam param = _authnConfigurationService.prepareTenantMappingForOpenstack(tenant, provider);
 
         TenantOrg subtenant = new TenantOrg();
         subtenant.setId(URIUtil.createId(TenantOrg.class));
@@ -441,7 +442,7 @@ public class OpenStackSynchronizationTask extends ResourceService {
      * @param owner CoprHD Tenant that will own this project.
      * @param param OpenStack Tenant.
      */
-    private Project createProject(TenantOrg owner, TenantV2 param) {
+    public Project createProject(TenantOrg owner, OSTenant param) {
 
         Project project = new Project();
         project.setId(URIUtil.createId(Project.class));
@@ -535,8 +536,8 @@ public class OpenStackSynchronizationTask extends ResourceService {
 
                         OSTenant osTenant = findOpenstackTenantInCoprhd(tenant.getId());
                         if (osTenant != null && !osTenant.getExcluded()) {
-                            TenantOrg tenantOrg = createTenant(tenant, keystoneProvider);
-                            Project project = createProject(tenantOrg, tenant);
+                            TenantOrg tenantOrg = createTenant(mapTenant(tenant));
+                            Project project = createProject(tenantOrg, mapTenant(tenant));
                             _authnConfigurationService.tagProjectWithOpenstackId(project.getId(), tenant.getId(), tenantOrg.getId().toString());
                         }
                     }

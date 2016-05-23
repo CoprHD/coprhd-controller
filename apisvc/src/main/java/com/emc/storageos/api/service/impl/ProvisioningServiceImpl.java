@@ -46,7 +46,7 @@ public class ProvisioningServiceImpl extends AbstractSecuredWebServer implements
         _svcBeacon.start();
         // Launch OpenStack synchronization task if Keystone Authentication Provider exists.
         AuthnProvider keystoneProvider = _openStackSynchronizationTask.getKeystoneProvider();
-        if (keystoneProvider != null) {
+        if (keystoneProvider != null && keystoneProvider.getAutoRegCoprHDNImportOSProjects()) {
              _openStackSynchronizationTask.start(_openStackSynchronizationTask.getTaskInterval());
         }
     }

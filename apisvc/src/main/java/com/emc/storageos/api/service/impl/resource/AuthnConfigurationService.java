@@ -297,7 +297,7 @@ public class AuthnConfigurationService extends TaggedResource {
         }
     }
 
-    private void createTenantAndProjectForOpenstackTenant(OSTenant tenant, AuthnProvider provider) {
+    public void createTenantAndProjectForOpenstackTenant(OSTenant tenant, AuthnProvider provider) {
 
         TenantCreateParam param = prepareTenantMappingForOpenstack(tenant, provider);
 

@@ -852,7 +852,7 @@ public class NetAppClusterFacade {
 
     public boolean breakSnapMirror(String destLocation, String relationShipId) {
         SnapMirror snapMirror = new SnapMirror(server.getNaServer(), null);
-        return snapMirror.breakSnapMirror(snapMirrorInfo);
+        return snapMirror.breakSnapMirror(destLocation, relationShipId);
     }
 
     public SnapmirrorResp deleteSnapMirrorAsync(SnapmirrorInfo snapMirrorInfo) {

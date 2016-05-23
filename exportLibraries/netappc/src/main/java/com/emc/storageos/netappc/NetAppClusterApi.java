@@ -1153,7 +1153,7 @@ public class NetAppClusterApi {
         return licenseExists;
     }
 
-    public SnapmirrorInfoResp getSnapMirrorInfo(String destPath) {
+    public SnapmirrorInfoResp getSnapMirrorInfo(final String destPath) {
         try {
             netAppClusterFacade = new NetAppClusterFacade(_ipAddress, _portNumber, _userName,
                     _password, _https);

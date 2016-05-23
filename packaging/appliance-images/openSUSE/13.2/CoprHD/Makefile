@@ -82,8 +82,7 @@ downloadRPM:
 	zypper $(ZYPPER_PARAMS) addrepo --name suse-13.2-oss-update --no-gpgcheck http://download.opensuse.org/repositories/openSUSE:/13.2:/Update/standard suse-13.2-oss-update
 	zypper $(ZYPPER_PARAMS) modifyrepo --priority  1 suse-13.2-oss-update
 	zypper $(ZYPPER_PARAMS) refresh
-	zypper $(ZYPPER_PARAMS) download libudev1 lvm2 udev grub2 grub2-x86_64-efi grub2-i386-pc
-	zypper $(ZYPPER_PARAMS) patch --download-only -g security --no-recommends
+	zypper $(ZYPPER_PARAMS) download libudev1 lvm2 udev grub2 grub2-x86_64-efi grub2-i386-pc kernel-default kernel-default-devel kernel-devel kernel-source kernel-macros virtualbox virtualbox-guest-tools virtualbox-guest-kmp-default virtualbox-host-kmp-default
 	$(call targetLog,-)
 
 downloadTGZ:

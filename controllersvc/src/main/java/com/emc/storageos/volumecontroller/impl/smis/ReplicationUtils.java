@@ -445,7 +445,7 @@ public class ReplicationUtils {
 
         if (instance == null) {
             String msg = String.format("ReplicationGroup %s was not found on provider %s.  " +
-                    "Check SMI-S providers for connection issues or failover.",
+                    "It may have already been deleted, or check SMI-S providers for connection issues or failover.",
                     deviceName, storage.getActiveProviderURI());
             _log.warn(msg);
             throw DeviceControllerException.exceptions.consistencyGroupNotFoundForProvider(deviceName, label,

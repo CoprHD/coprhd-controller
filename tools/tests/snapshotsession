@@ -90,10 +90,10 @@ def snapshot_session_link_targets(args):
     total = time.time() - start
     print "Link targets to snapshot session completed in", "{0:.2f}".format(total), "seconds."
     if (state == 'ready'):
-        for task in tasks:
+        for task in tasklist['task']:
             print "Target successfully linked to snapshot session " + task['resource']['name'] + ' ' + task['resource']['id']
     else:
-        for task in tasks:
+        for task in tasklist['task']:
             print "Link target to snapshot session " + task['resource']['name'] + ' ' + task['resource']['id'] + " failed with error " + task['message']
 
 # Relink a target to a new snapshot session of the same source.
@@ -107,10 +107,10 @@ def snapshot_session_relink_target(args):
     total = time.time() - start
     print "Relink target " + target['name'] + ' ' + target['id'] + " from snapshot session completed in", "{0:.2f}".format(total), "seconds."
     if (state == 'ready'):
-        for task in tasks:
+        for task in tasklist['task']:
             print "Target successfully relinked to snapshot session " + task['resource']['name'] + ' ' + task['resource']['id']
     else:
-        for task in tasks:
+        for task in tasklist['task']:
             print "Relink target to snapshot session " + task['resource']['name'] + ' ' + task['resource']['id'] + " failed with error " + task['message']
 
 # Unlink a target from a block snapshot session.

@@ -118,7 +118,8 @@ public class NumPathsMatcher extends AttributeMatcher {
                 // If we need two or more paths, must have at least two HA Domains
                 if (!system.getIsDriverManaged()
                         && !system.getSystemType().equals(DiscoveredSystemObject.Type.scaleio.name())
-                        && !system.getSystemType().equals(DiscoveredSystemObject.Type.xtremio.name())) {
+                        && !system.getSystemType().equals(DiscoveredSystemObject.Type.xtremio.name())
+                        && !system.getSystemType().equals(DiscoveredSystemObject.Type.ceph.name())) {
                     if (maxPaths >= 2 && cachedUsableFCHADomains.get(dev) < 2) {
                         _logger.info("NumPathsMatcher disqualified pool: " + pool.getNativeGuid() + " max_paths: " + maxPaths
                                 + " because insufficient FC cpus (StorageHADomains)");
@@ -136,7 +137,8 @@ public class NumPathsMatcher extends AttributeMatcher {
                 }
                 // If we need two or more paths, must have at least two HA Domains
                 if (!system.getSystemType().equals(DiscoveredSystemObject.Type.scaleio.name())
-                        && !system.getSystemType().equals(DiscoveredSystemObject.Type.xtremio.name())) {
+                        && !system.getSystemType().equals(DiscoveredSystemObject.Type.xtremio.name())
+                        && !system.getSystemType().equals(DiscoveredSystemObject.Type.ceph.name())) {
                     if (maxPaths >= 2 && cachedUsableIPHADomains.get(dev) < 2) {
                         _logger.info("NumPathsMatcher disqualified pool: " + pool.getNativeGuid() + " max_paths: " + maxPaths
                                 + " because insufficient IP cpus (StorageHADomains)");

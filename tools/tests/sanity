@@ -16,7 +16,7 @@ Usage()
 {
     echo 'Usage: sanity <configuration_file> <bourne_ip>|<[bourne_ipv6]> {all | snapvx | isilon | vplex | vplexexport | vplexsnap | vnxblock | ingestblock | vnxblock_flex_varray | netapp | netappc | recoverpoint | xtremio | srdf |
  vnxfile | datadomainfile | vnxfile_flex_varray | vmaxblock | hds | vmaxblock_flex_varray | combined_block | blocksnapshot | blockmirror | full_copy | blockconsistencygroup | init | quick |
- errorhandling | vnxe | security | syssvc | audit | monitor | vdc | catalog | recovery | backuprestore backupserver-uri username password | dr | ipsec} [local|ldap] [<timeslot>] | sanzoning | application'
+ errorhandling | vnxe | security | syssvc | audit | monitor | vdc | catalog | recovery | backuprestore backupserver-uri username password | dr | ipsec | ceph} [local|ldap] [<timeslot>] | sanzoning | application'
     echo 'E.g.:  sanity conf/sanity.conf 137.69.169.21 all'
     echo 'E.g.:  sanity ~/.sanity/sanity.conf 137.69.169.21 isilon'
     echo 'Note: IPv6 needs to be square bracket surrounded. E.g.:  sanity [2620:0:170:2842::180] security'
@@ -160,7 +160,7 @@ done
 
 case $SS in
 
-    all|snapvx|isilon|vplex|vplexexport|vplexsnap|netapp|netappc|recoverpoint|srdf|vnxfile|datadomainfile|vnxfile_flex_varray|vnxblock|vnxblock_flex_varray|hds|xtremio|vmaxblock|ingestblock|vmaxblock_flex_varray|combined_block|syssvc|blocksnapshot|blockmirror|full_copy|blockconsistencygroup|security|monitor|audit|ui|init|quick|errorhandling|vdc|vnxe|recovery|backuprestore|sanzoning|dr|ipsec|application|driversystem)
+    all|snapvx|isilon|vplex|vplexexport|vplexsnap|netapp|netappc|recoverpoint|srdf|vnxfile|datadomainfile|vnxfile_flex_varray|vnxblock|vnxblock_flex_varray|hds|xtremio|vmaxblock|ingestblock|vmaxblock_flex_varray|combined_block|syssvc|blocksnapshot|blockmirror|full_copy|blockconsistencygroup|security|monitor|audit|ui|init|quick|errorhandling|vdc|vnxe|recovery|backuprestore|sanzoning|dr|ipsec|application|driversystem|ceph)
     ;;
 
     # These tests are handled by sanity integration tests written with the code
@@ -454,6 +454,15 @@ NETAPPCF_SMBSNAPSHARE2=smbsnapshare2$(date +%Y%m%d%H%M%S)
 VNXE_DEV=vnxe_device
 VNXE_NATIVEGUID=VNXE+$VNXE_SN
 VNXE_SMBFILESHARE1=cifs1$(date +%Y%m%d%H%M%S) 
+
+#
+# Ceph cluster configuration
+#
+CEPH_PROVIDER=ceph_test_cluster
+CEPH_CLIENT_HOST_NAME=ceph_client
+CEPH_COS=ceph_vpool
+CEPH_VOLNAME=EXPCephTest${RANDOM}
+CEPH_EXPORT_GROUP_NAME=EXPCephGroup${RANDOM}
 
 #
 # DataDomain file device configuration
@@ -1658,19 +1667,19 @@ srdf_setup_once()
     networksystem show $BROCADE_NETWORK &> /dev/null && return $?
     networksystem create $BROCADE_NETWORK brocade --smisip $BROCADE_IP --smisport 5988 --smisuser $BROCADE_USER --smispw $BROCADE_PW --smisssl false
     smisprovider show $SRDF_VMAXA_SMIS_DEV &> /dev/null && return $?
-    smisprovider create $SRDF_VMAXA_SMIS_DEV $SRDF_VMAXA_SMIS_IP 5988 $SMIS_USER "$SMIS_PASSWD" false
+    smisprovider create $SRDF_VMAXA_SMIS_DEV $SRDF_VMAXA_SMIS_IP $SRDF_VMAXA_SMIS_PORT $SMIS_USER "$SMIS_PASSWD" $SRDF_VMAXA_SMIS_SSL
     smisprovider show $SRDF_VMAXB_SMIS_DEV &> /dev/null && return $?
-    smisprovider create $SRDF_VMAXB_SMIS_DEV $SRDF_VMAXB_SMIS_IP 5988 $SMIS_USER "$SMIS_PASSWD" false
+    smisprovider create $SRDF_VMAXB_SMIS_DEV $SRDF_VMAXB_SMIS_IP $SRDF_VMAXB_SMIS_PORT $SMIS_USER "$SMIS_PASSWD" $SRDF_VMAXB_SMIS_SSL
     smisprovider show $SRDF_V3_VMAXA_SMIS_DEV &> /dev/null && return $?
-    smisprovider create $SRDF_V3_VMAXA_SMIS_DEV $SRDF_V3_VMAXA_SMIS_IP 5988 $SMIS_USER "$SMIS_PASSWD" false
+    smisprovider create $SRDF_V3_VMAXA_SMIS_DEV $SRDF_V3_VMAXA_SMIS_IP $SRDF_V3_VMAXA_SMIS_PORT $SMIS_USER "$SMIS_PASSWD" $SRDF_V3_VMAXA_SMIS_SSL
     smisprovider show $SRDF_V3_VMAXB_SMIS_DEV &> /dev/null && return $?
-    smisprovider create $SRDF_V3_VMAXB_SMIS_DEV $SRDF_V3_VMAXB_SMIS_IP 5988 $SMIS_USER "$SMIS_PASSWD" false
+    smisprovider create $SRDF_V3_VMAXB_SMIS_DEV $SRDF_V3_VMAXB_SMIS_IP $SRDF_V3_VMAXB_SMIS_PORT $SMIS_USER "$SMIS_PASSWD" $SRDF_V3_VMAXB_SMIS_SSL
 
     # Adding additional array in order to test pool matching.
     # smisprovider show $VMAX_SMIS_DEV &> /dev/null && return $?
-    # smisprovider create $VMAX_SMIS_DEV $VMAX_SMIS_IP 5988 $SMIS_USER "$SMIS_PASSWD" false
+    # smisprovider create $VMAX_SMIS_DEV $VMAX_SMIS_IP $VMAX_SMIS_PORT $SMIS_USER "$SMIS_PASSWD" $VMAX_SMIS_SSL
     smisprovider show $VNX_SMIS_DEV &> /dev/null && return $?
-    smisprovider create $VNX_SMIS_DEV $VNX_SMIS_IP 5988 $SMIS_USER "$SMIS_PASSWD" false
+    smisprovider create $VNX_SMIS_DEV $VNX_SMIS_IP $VNX_SMIS_PORT $SMIS_USER "$SMIS_PASSWD" $VNX_SMIS_SSL
 
     storagedevice discover_all --ignore_error
     discoveredsystem show $SRDF_VMAXA_NATIVEGUID &> /dev/null && return $?
@@ -2188,7 +2197,7 @@ vplex_setup_once()
     if [ "$AUTH" == 'ipv6' ] ; then
 	echo "Setting up VPLEX environment for IPv6"
 	# Discover the storage systems 
-	smisprovider create $VPLEX_VMAX_SMIS_DEV_NAME $VPLEX_VMAX_SMIS_IP 5988 $VPLEX_SMIS_USER "$VPLEX_SMIS_PASSWD" false
+	smisprovider create $VPLEX_VMAX_SMIS_DEV_NAME $VPLEX_VMAX_SMIS_IP $VPLEX_VMAX_SMIS_PORT $VPLEX_SMIS_USER "$VPLEX_SMIS_PASSWD" $VPLEX_VMAX_SMIS_SSL
 	storageprovider create $VPLEX_DEV_NAME $VPLEX_IP 443 $VPLEX_USER "$VPLEX_PASSWD" vplex
 	storagedevice discover_all
 	storagedevice list
@@ -2244,9 +2253,9 @@ vplex_setup_once()
 	# Discover the storage systems 
 	echo "Discovering Storage Assets"
 	smisprovider show $VPLEX_VMAX_SMIS_DEV_NAME &> /dev/null && return $?
-	run smisprovider create $VPLEX_VMAX_SMIS_DEV_NAME $VPLEX_VMAX_SMIS_IP 5989 $VPLEX_SMIS_USER "$VPLEX_SMIS_PASSWD" true
-	run smisprovider create $VPLEX_VNX1_SMIS_DEV_NAME $VPLEX_VNX1_SMIS_IP 5989 $VPLEX_SMIS_USER "$VPLEX_SMIS_PASSWD" true
-	run smisprovider create $VPLEX_VNX2_SMIS_DEV_NAME $VPLEX_VNX2_SMIS_IP 5989 $VPLEX_SMIS_USER "$VPLEX_SMIS_PASSWD" true
+	run smisprovider create $VPLEX_VMAX_SMIS_DEV_NAME $VPLEX_VMAX_SMIS_IP $VPLEX_VMAX_SMIS_PORT $VPLEX_SMIS_USER "$VPLEX_SMIS_PASSWD" $VPLEX_VMAX_SMIS_SSL
+	run smisprovider create $VPLEX_VNX1_SMIS_DEV_NAME $VPLEX_VNX1_SMIS_IP $VPLEX_VNX1_SMIS_PORT $VPLEX_SMIS_USER "$VPLEX_SMIS_PASSWD" $VPLEX_VNX1_SMIS_SSL
+	run smisprovider create $VPLEX_VNX2_SMIS_DEV_NAME $VPLEX_VNX2_SMIS_IP $VPLEX_VNX2_SMIS_PORT $VPLEX_SMIS_USER "$VPLEX_SMIS_PASSWD" $VPLEX_VNX2_SMIS_SSL
 	storageprovider show $VPLEX_DEV_NAME &> /dev/null && return $?
 	run storageprovider create $VPLEX_DEV_NAME $VPLEX_IP 443 $VPLEX_USER "$VPLEX_PASSWD" vplex
 	run storagedevice discover_all
@@ -2434,7 +2443,7 @@ vmaxblock_discovery()
     smisprovider show $VMAX_SMIS_DEV &> /dev/null && return $?
 
     if [ $QUICK -eq 0 ]; then
-       smisprovider create $VMAX_SMIS_DEV $VMAX_SMIS_IP 5988 $SMIS_USER "$SMIS_PASSWD" false
+       smisprovider create $VMAX_SMIS_DEV $VMAX_SMIS_IP $VMAX_SMIS_PORT $SMIS_USER "$SMIS_PASSWD" $VMAX_SMIS_SSL
     fi
 
     storagedevice discover_all --ignore_error
@@ -2446,7 +2455,7 @@ vnxblock_discovery()
     smisprovider show $VNX_SMIS_DEV &> /dev/null && return $?
 
     if [ $QUICK -eq 0 ]; then
-       smisprovider create $VNX_SMIS_DEV $VNX_SMIS_IP 5988 $SMIS_USER "$SMIS_PASSWD" false
+       smisprovider create $VNX_SMIS_DEV $VNX_SMIS_IP $VNX_SMIS_PORT $SMIS_USER "$SMIS_PASSWD" $VNX_SMIS_SSL
     else
        smisprovider create $VNX_SMIS_DEV $SIMULATOR_SMIS_IP 5988 $SMIS_USER "$SMIS_PASSWD" false
     fi
@@ -5138,19 +5147,6 @@ datadomainfile_setup_once()
     storageport list $DATADOMAINF_NATIVEGUID
     storagedevice show $DATADOMAINF_NATIVEGUID &> /dev/null && return $?
 
-#    # Discover the storage systems 
-#    smisprovider show $VPLEX_VMAX_SMIS_DEV_NAME &> /dev/null && return $?
-#    smisprovider create $VPLEX_VMAX_SMIS_DEV_NAME $VPLEX_VMAX_SMIS_IP 5988 $VPLEX_SMIS_USER "$VPLEX_SMIS_PASSWD" false
-#    smisprovider create $VPLEX_VNX_SMIS_DEV $VPLEX_VNX_SMIS_IP 5988 $VPLEX_SMIS_USER "$VPLEX_SMIS_PASSWD" false
-#    storageprovider show $VPLEX_DEV_NAME &> /dev/null && return $?
-#    storageprovider create $VPLEX_DEV_NAME $VPLEX_IP 443 $VPLEX_USER "$VPLEX_PASSWD" vplex
-#    storagedevice discover_all
-#    storagedevice list
-#    storageport list $VPLEX_VNX_NATIVEGUID
-#    storageport list $VPLEX_VMAX_NATIVEGUID
-#    storageport list $VPLEX_GUID
-
-    # discoveredsystem create $DATADOMAINF_DEV datadomain $DATADOMAINF_IP $DATADOMAINF_PORT $DATADOMAINF_USER $DATADOMAINF_PW --serialno=$DATADOMAINF_SN
     datadomainfile_cos_setup
 
     storagepool update $DATADOMAINF_NATIVEGUID --type file
@@ -5572,7 +5568,7 @@ vnxblock_setup_once()
     smisprovider show $VNX_SMIS_DEV &> /dev/null && return $?
 
     if [ $QUICK -eq 0 ]; then
-       run smisprovider create $VNX_SMIS_DEV $VNX_SMIS_IP 5988 $SMIS_USER "$SMIS_PASSWD" false
+       run smisprovider create $VNX_SMIS_DEV $VNX_SMIS_IP $VNX_SMIS_PORT $SMIS_USER "$SMIS_PASSWD" $VNX_SMIS_SSL
     else
        run smisprovider create $VNX_SMIS_DEV $SIMULATOR_SMIS_IP 5988 $SMIS_USER "$SMIS_PASSWD" false
     fi
@@ -5621,7 +5617,7 @@ vmaxblock_setup_once()
 
     # If this is using the simulator, the vnxblock already took care of the SMIS provider
     if [ $QUICK -eq 0 ]; then
-       run smisprovider create $VMAX_SMIS_DEV $VMAX_SMIS_IP 5988 $SMIS_USER "$SMIS_PASSWD" false
+       run smisprovider create $VMAX_SMIS_DEV $VMAX_SMIS_IP $VMAX_SMIS_PORT $SMIS_USER "$SMIS_PASSWD" $VMAX_SMIS_SSL
     fi
 
     run storagedevice discover_all --ignore_error
@@ -7457,7 +7453,7 @@ vmax3_fc_setup_once()
 
     smisprovider show $VMAX3_FC_SMIS_DEV &> /dev/null && return $?
 
-    run smisprovider create $VMAX3_FC_SMIS_DEV $VMAX3_FC_SMIS_IP 5988 $SMIS_USER "$SMIS_PASSWD" false
+    run smisprovider create $VMAX3_FC_SMIS_DEV $VMAX3_FC_SMIS_IP $VMAX3_FC_SMIS_PORT $SMIS_USER "$SMIS_PASSWD" $VMAX3_FC_SMIS_SSL
 
     run storagedevice discover_all --ignore_error
     secho "Waiting 5 minutes after storage discovery"
@@ -10104,7 +10100,7 @@ snapvx_setup_once()
 
     # Create provider for VMAX3 array.
     secho "Creating VMAX3 provider"
-    smisprovider create $VMAX3_SMIS_DEV $VMAX3_SMIS_IP 5989 $SMIS_USER "$SMIS_PASSWD" true
+    smisprovider create $VMAX3_SMIS_DEV $VMAX3_SMIS_IP $VMAX3_SMIS_PORT $SMIS_USER "$SMIS_PASSWD" $VMAX3_SMIS_SSL
 
     # Discover the vmax3 array.
     secho "Discovering VMAX3 array"
@@ -10256,15 +10252,20 @@ snapvx_single_tests()
 
     # Relink target to the snapvx session 2.
     secho "Relinking target to SnapVx session 2"
-    snapshotsession relink_target $PROJECT/$VOLUME_NAME/$SNAP_SESSION_NAME2 $PROJECT/$VOLUME_NAME/$SNAP_SESSION_TGT_NAME1
+    snapshotsession relink_target $PROJECT/$VOLUME_NAME/$SNAP_SESSION_NAME2 $PROJECT/$VOLUME_NAME/$SNAP_SESSION_TGT_NAME1-1
+
+    # Delete the snapvx sessions.
+    secho "Deleting SnapVx session 1"
+    snapshotsession delete $PROJECT/$VOLUME_NAME/$SNAP_SESSION_NAME1
+
+    # delete the targetless session first before unlinking (OPT 498174)
 
     # Unlink target from the snapvx session and delete target volume.
     secho "unlinking target from SnapVx session 2"
-    snapshotsession unlink_target $PROJECT/$VOLUME_NAME/$SNAP_SESSION_NAME2 $PROJECT/$VOLUME_NAME/$SNAP_SESSION_TGT_NAME1 --delete_target true
+    snapshotsession unlink_target $PROJECT/$VOLUME_NAME/$SNAP_SESSION_NAME2 $PROJECT/$VOLUME_NAME/$SNAP_SESSION_TGT_NAME1-1 --delete_target true
 
     # Delete the snapvx sessions.
-    secho "Deleting SnapVx sessions 1 and 2"
-    snapshotsession delete $PROJECT/$VOLUME_NAME/$SNAP_SESSION_NAME1
+    secho "Deleting SnapVx session 2"
     snapshotsession delete $PROJECT/$VOLUME_NAME/$SNAP_SESSION_NAME2
 
     # Create a snapvx session with multiple linked targets in copy mode
@@ -10277,13 +10278,13 @@ snapvx_single_tests()
 
     # Restore the source from a linked target
     secho "Restoring source from linked target"
-    blocksnapshot restore $PROJECT/$VOLUME_NAME/$SNAP_SESSION_TGT_NAME3
+    blocksnapshot restore $PROJECT/$VOLUME_NAME/$SNAP_SESSION_TGT_NAME3-1
 
     # Unlink target from the snapvx session and delete target volume.
     secho "Unlinking all targets from SnapVx session 3"
     snapshotsession unlink_target $PROJECT/$VOLUME_NAME/$SNAP_SESSION_NAME3 $PROJECT/$VOLUME_NAME/$SNAP_SESSION_TGT_NAME2-1 --delete_target true
     snapshotsession unlink_target $PROJECT/$VOLUME_NAME/$SNAP_SESSION_NAME3 $PROJECT/$VOLUME_NAME/$SNAP_SESSION_TGT_NAME2-2 --delete_target true
-    snapshotsession unlink_target $PROJECT/$VOLUME_NAME/$SNAP_SESSION_NAME3 $PROJECT/$VOLUME_NAME/$SNAP_SESSION_TGT_NAME3 --delete_target true
+    snapshotsession unlink_target $PROJECT/$VOLUME_NAME/$SNAP_SESSION_NAME3 $PROJECT/$VOLUME_NAME/$SNAP_SESSION_TGT_NAME3-1 --delete_target true
 
     # Delete the snapvx session.
     secho "Deleting SnapVx sessions 3"
@@ -10292,6 +10293,129 @@ snapvx_single_tests()
     # Delete the snapshot session source volume.
     secho "Deleting the VMAX3 source volume"
     volume delete $PROJECT/$VOLUME_NAME --wait
+}
+
+ceph_setup()
+{
+    secho "Ceph setup"
+    storageprovider show $CEPH_PROVIDER  &> /dev/null && return $?
+    run storageprovider create $CEPH_PROVIDER $CEPH_IP 22 $CEPH_USER "$CEPH_SECRET_KEY" ceph
+    run storagedevice discover_all
+    storagedevice list
+
+    storage_device=`storagedevice list | awk '/ceph/ {print($2)}'`
+    storage_port=`storageport list $storage_device | grep -o 'CEPH.*PORT+-'`
+    run transportzone add $IP_ZONE "$storage_port"
+
+    run cos create block $CEPH_COS true --description='Ceph-VPool' --protocols=RBD --provisionType='Thin' --max_snapshots=8 --neighborhoods="$NH" --expandable true --systemtype ceph
+    run cos allow $CEPH_COS block $TENANT
+
+    run hosts create "$CEPH_CLIENT_HOST_NAME" "$TENANT" Linux "$CEPH_CLIENT_HOST" --port 22 --username $CEPH_CLIENT_HOST_USER --password $CEPH_CLIENT_HOST_PASSWORD --discoverable true
+    sleep 10
+    port=`initiator list $CEPH_CLIENT_HOST_NAME | awk '/^rbd:/ {print($1)}'`
+    run transportzone add $IP_ZONE "$port"
+
+    secho "Ceph setup completed"
+}
+
+ceph_test_volume_capacity() {
+    local volname=$1
+    local expected_display_size=$2
+
+    local requested_capacity_gb=`volume show $volname | awk '/"requested_capacity_gb"/ {print($2)}' | sed "s/[\"',]//g"`
+    secho "Compare volume size $requested_capacity_gb with requested $display_size"
+    test "$requested_capacity_gb" = "$expected_display_size"
+}
+
+ceph_test_volumes() {
+    local size=$1
+    local display_size=$2
+
+    secho "${FUNCNAME} Begins: create/list/delete volumes"
+    run volume create $CEPH_VOLNAME $PROJECT $NH $CEPH_COS $size
+    local volname=$PROJECT/$CEPH_VOLNAME
+
+    run volume show $volname
+    ceph_test_volume_capacity $volname $display_size
+
+    run volume delete $volname --wait
+}
+
+ceph_test_expand_volume() {
+    local initial_size=$1
+    local new_size=$2
+    local display_new_size=$3
+
+    secho "${FUNCNAME} Begins: Expand volume"
+    run volume create $CEPH_VOLNAME $PROJECT $NH $CEPH_COS $initial_size
+    local volname=$PROJECT/$CEPH_VOLNAME
+
+    run volume expand $volname $new_size
+
+    ceph_test_volume_capacity $volname $display_new_size
+
+    run volume delete $volname --wait
+}
+
+ceph_test_full_copy() {
+    local initial_size=$1
+    local display_size=$2
+
+    secho "${FUNCNAME} Begins: Full copy volume"
+    run volume create $CEPH_VOLNAME $PROJECT $NH $CEPH_COS $initial_size
+    local volname=$PROJECT/$CEPH_VOLNAME
+
+    local fullcopy_name=FullCopy-"$CEPH_VOLNAME"
+    run volume full_copy $fullcopy_name $volname
+    local fcvolname=$PROJECT/$fullcopy_name
+
+    run volume show $fcvolname
+    ceph_test_volume_capacity $fcvolname $display_size
+
+    run volume delete $volname --wait
+    run volume delete $fcvolname --wait
+}
+
+ceph_test_snapshot() {
+    secho "${FUNCNAME} Begins: create/list/delete snapshot"
+    run volume create $CEPH_VOLNAME $PROJECT $NH $CEPH_COS $BLK_SIZE
+    local volname=$PROJECT/$CEPH_VOLNAME
+
+    local snap_name=Snap-"$VOLNAME"
+    run blocksnapshot create $volname $snap_name
+    local snapname=$volname/$snap_name
+
+    run blocksnapshot show $snapname
+
+    run blocksnapshot delete $snapname
+    run volume delete $volname --wait
+}
+
+ceph_test_export() {
+    secho "${FUNCNAME} Begins: Export/unexport volume"
+    run volume create $CEPH_VOLNAME $PROJECT $NH $CEPH_COS $BLK_SIZE
+    local volname=$PROJECT/$CEPH_VOLNAME
+    local snap_name=Snap-"$CEPH_VOLNAME"
+    run blocksnapshot create $volname $snap_name
+    local snapname=$volname/$snap_name
+
+    run export_group create $PROJECT $CEPH_EXPORT_GROUP_NAME $NH --type Host --volspec $volname --hosts "$CEPH_CLIENT_HOST_NAME"
+    local egname=$PROJECT/$CEPH_EXPORT_GROUP_NAME
+    run export_group update $egname --addVolspec $snapname
+
+    run export_group delete $egname
+    run blocksnapshot delete $snapname
+    run volume delete $volname --wait
+}
+
+ceph_tests()
+{
+    secho "Ceph tests"
+    ceph_test_volumes 1GB 1.00
+    ceph_test_expand_volume 1GB 2GB 2.00
+    ceph_test_full_copy 1GB 1.00
+    ceph_test_snapshot
+    ceph_test_export
 }
 
 ${SS}_setup

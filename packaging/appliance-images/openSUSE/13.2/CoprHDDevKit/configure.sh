@@ -68,9 +68,8 @@ function installPackages
   cp -f /etc/zypp/repos.d/*.repo /tmp/coprhd.d/
 
   zypper --reposd-dir=/tmp/coprhd.d --non-interactive --no-gpg-checks refresh
-  zypper --reposd-dir=/tmp/coprhd.d --non-interactive --no-gpg-checks install --oldpackage docker=1.8.3-43.1 lvm2=2.02.98-43.24.1 udev=210.1448627060.53ee915-25.27.1 libudev1=210.1448627060.53ee915-25.27.1
   # package updates from the repo above (suse-13.2-oss-update)
-  zypper --reposd-dir=/tmp/coprhd.d --non-interactive --no-gpg-checks patch -g security --no-recommends
+  zypper --reposd-dir=/tmp/coprhd.d --non-interactive --non-interactive-include-reboot-patches --no-gpg-checks patch -g security --no-recommends
   rm -fr /tmp/coprhd.d
 
   zypper --non-interactive clean
@@ -88,12 +87,18 @@ function installJava
 function installNginx
 {
   mkdir -p /tmp/nginx
-  wget --continue --output-document=/tmp/nginx/nginx-1.6.2.tar.gz http://nginx.org/download/nginx-1.6.2.tar.gz
-  wget --continue --output-document=/tmp/nginx/v0.3.0.tar.gz https://github.com/yaoweibin/nginx_upstream_check_module/archive/v0.3.0.tar.gz
-  wget --continue --output-document=/tmp/nginx/v0.25.tar.gz https://github.com/openresty/headers-more-nginx-module/archive/v0.25.tar.gz
-  tar --directory=/tmp/nginx -xzf /tmp/nginx/nginx-1.6.2.tar.gz
-  tar --directory=/tmp/nginx -xzf /tmp/nginx/v0.3.0.tar.gz
-  tar --directory=/tmp/nginx -xzf /tmp/nginx/v0.25.tar.gz
+  if [ -d /nginx-1.6.2 -a -d /nginx_upstream_check_module-0.3.0 -a -d /headers-more-nginx-module-0.25 ]; then
+    mv /nginx-1.6.2 /tmp/nginx/
+    mv /nginx_upstream_check_module-0.3.0 /tmp/nginx/
+    mv /headers-more-nginx-module-0.25 /tmp/nginx/
+  else
+    wget --continue --output-document=/tmp/nginx/nginx-1.6.2.tar.gz http://nginx.org/download/nginx-1.6.2.tar.gz
+    wget --continue --output-document=/tmp/nginx/v0.3.0.tar.gz https://github.com/yaoweibin/nginx_upstream_check_module/archive/v0.3.0.tar.gz
+    wget --continue --output-document=/tmp/nginx/v0.25.tar.gz https://github.com/openresty/headers-more-nginx-module/archive/v0.25.tar.gz
+    tar --directory=/tmp/nginx -xzf /tmp/nginx/nginx-1.6.2.tar.gz
+    tar --directory=/tmp/nginx -xzf /tmp/nginx/v0.3.0.tar.gz
+    tar --directory=/tmp/nginx -xzf /tmp/nginx/v0.25.tar.gz
+  fi
   patch --directory=/tmp/nginx/nginx-1.6.2 -p1 < /tmp/nginx/nginx_upstream_check_module-0.3.0/check_1.5.12+.patch
   bash -c "cd /tmp/nginx/nginx-1.6.2; ./configure --add-module=/tmp/nginx/nginx_upstream_check_module-0.3.0 --add-module=/tmp/nginx/headers-more-nginx-module-0.25 --with-http_ssl_module --prefix=/usr --conf-path=/etc/nginx/nginx.conf"
   make --directory=/tmp/nginx/nginx-1.6.2
@@ -352,7 +357,10 @@ EOF
 function updateOVF
 {
   OVF=$2
+  DISK=$( grep -oP 'ovf:href="\K[^"]*' ${OVF} )
+  SIZE=$( stat -c %s "$( dirname ${OVF} )/${DISK}" )
 
+  sed -i "s|ovf:id=\"file1\"|ovf:id=\"file1\" ovf:size=\"${SIZE}\"|g" ${OVF}
   cat ${OVF} | head -n -2 > ${OVF}.tmp
   sed -i "s|<VirtualHardwareSection>|<VirtualHardwareSection ovf:transport=\"iso\" ovf:required=\"false\">|g" ${OVF}.tmp
   sed -i "s|<vssd:VirtualSystemType>virtualbox-[0-9a-z.]\{1,\}</vssd:VirtualSystemType>|<vssd:VirtualSystemType>vmx-07</vssd:VirtualSystemType>|g" ${OVF}.tmp

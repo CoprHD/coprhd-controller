@@ -316,5 +316,7 @@ public class VPlexApiConstants {
 
     // delimiter for cause in VPLEX API error responses
     public static final String CAUSE_DELIM = "cause:";
-
+    
+    // The value returned by VPLEX when the volume has no expandable capacity.
+    public static final String NO_EXPANDABLE_CAPACITY = "0B";
 }

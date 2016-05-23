@@ -144,7 +144,7 @@ public class HP3PARApiFactory {
      */
     public HP3PARApi getRESTClient(URI endpoint, String username, String password) throws HP3PARException {
         try {
-            _log.info("3PARDriver:getRESTClient1 enter");
+            _log.info("3PARDriver:getRESTClient");
             // key=uri+user+pass to make unique, value=HP3PARApi object
             HP3PARApi hp3parApi = _clientMap.get(endpoint.toString() + ":" + username + ":" + password);
             if (hp3parApi == null) {
@@ -157,6 +157,8 @@ public class HP3PARApiFactory {
             }
             return hp3parApi;
         } catch (Exception e) {
+            e.printStackTrace();
+            _log.error("3PARDriver:getRESTClient Error in getting RESTclient");
             throw new HP3PARException(e.toString());
         }
     }

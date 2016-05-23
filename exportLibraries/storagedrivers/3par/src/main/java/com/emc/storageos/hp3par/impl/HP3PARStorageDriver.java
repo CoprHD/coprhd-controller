@@ -701,6 +701,8 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
 	 */
     private HP3PARApi getHP3PARDevice(StorageSystem hp3parSystem) throws HP3PARException {
         URI deviceURI;
+        _log.info("getHP3PARDevice input storage system");
+        
         try {
             deviceURI = new URI("https", null, hp3parSystem.getIpAddress(), hp3parSystem.getPortNumber(), "/", null, null);
             return hp3parApiFactory
@@ -714,6 +716,8 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
 
     private HP3PARApi getHP3PARDevice(String ip, String port, String user, String pass) throws HP3PARException {
         URI deviceURI;
+        _log.info("getHP3PARDevice input full details");
+        
         try {
             deviceURI = new URI("https", null, ip, Integer.parseInt(port), "/", null, null);
             return hp3parApiFactory

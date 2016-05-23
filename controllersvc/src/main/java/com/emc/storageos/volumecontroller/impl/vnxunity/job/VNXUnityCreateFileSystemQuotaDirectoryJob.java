@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014 EMC Corporation
+ * Copyright (c) 2016 EMC Corporation
  * All Rights Reserved
  */
 
@@ -82,7 +82,7 @@ public class VNXUnityCreateFileSystemQuotaDirectoryJob extends VNXeJob {
             FileDeviceController.recordFileDeviceOperation(dbClient, OperationTypeEnum.CREATE_FILE_SYSTEM_QUOTA_DIR, _isSuccess,
                     event, "", quotaObj, fsObj);
         } catch (Exception e) {
-            _logger.error("Caught an exception while trying to updateStatus for VNXeCreateFileSystemQuotaDirectoryJob", e);
+            _logger.error("Caught an exception while trying to updateStatus for VNXUnityCreateFileSystemQuotaDirectoryJob", e);
             setErrorStatus("Encountered an internal error during file system quota create job status processing : " + e.getMessage());
         } finally {
             super.updateStatus(jobContext);
@@ -127,7 +127,7 @@ public class VNXUnityCreateFileSystemQuotaDirectoryJob extends VNXeJob {
                         getTaskCompleter().getId()));
                 dbClient.updateObject(quotaObj);
             } else {
-                logMsgBuilder.append("Could not get newly created quota directory in the VNXe, using the quota name: ");
+                logMsgBuilder.append("Could not get newly created quota directory in the Unity, using the quota name: ");
                 logMsgBuilder.append(quotaObj.getName());
             }
         } catch (DatabaseException e) {

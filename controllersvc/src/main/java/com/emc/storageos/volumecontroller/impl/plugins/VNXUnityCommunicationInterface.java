@@ -803,11 +803,8 @@ public class VNXUnityCommunicationInterface extends ExtendedCommunicationInterfa
 
                         NasCifsServer nasCifsServer = new NasCifsServer();
                         nasCifsServer.setId(cifsServer.getId());
-                        // nasCifsServer.setInterfaces(cifsServer.getFileInterfaces());
-                        // TODO
                         nasCifsServer.setMoverIdIsVdm(true);
                         nasCifsServer.setName(cifsServer.getName());
-                        // nasCifsServer.setType(cifsServer.getType());
                         nasCifsServer.setDomain(cifsServer.getDomain());
                         cifsServersMap.put(cifsServer.getName(), nasCifsServer);
                     }
@@ -868,7 +865,6 @@ public class VNXUnityCommunicationInterface extends ExtendedCommunicationInterfa
         for (StorageHADomain domain : existingNasServers) {
             _logger.info("Existing NasServer : {} : {}", domain.getNativeGuid(), domain.getId());
         }
-        // return portGroups;
         allNasServers.put(NEW, newNasServers);
         allNasServers.put(EXISTING, existingNasServers);
         return allNasServers;
@@ -1460,7 +1456,7 @@ public class VNXUnityCommunicationInterface extends ExtendedCommunicationInterfa
             List<VNXeNasServer> nasServers = client.getNasServers();
             for (VNXeNasServer nasServer : nasServers) {
                 if ((nasServer.getMode() == VNXeNasServer.NasServerModeEnum.DESTINATION)
-                        || (nasServer.getIsReplicationDestination() == true)) {
+                        || nasServer.getIsReplicationDestination() ) {
                     _logger.debug("Found a replication destination NasServer");
                     continue;
                 }
@@ -1485,7 +1481,7 @@ public class VNXUnityCommunicationInterface extends ExtendedCommunicationInterfa
                 }
             }
         } catch (Exception e) {
-            _logger.error("CollectStatisticsInformation failed. Storage system: " + storageSystemId, e);
+            _logger.error("CollectStatisticsInformation failed. Storage system: {}", storageSystemId, e);
         }
     }
 
@@ -1504,15 +1500,11 @@ public class VNXUnityCommunicationInterface extends ExtendedCommunicationInterfa
                 totalFsCount++;
                 List<VNXeNfsShare> nfsShares = client.getNfsSharesForFileSystem(fs.getId());
                 if (nfsShares != null && !nfsShares.isEmpty()) {
-                    for (VNXeNfsShare nfsShare : nfsShares) {
-                        nfsSharesCount++;
-                    }
+                    nfsSharesCount = nfsSharesCount + nfsShares.size();
                 }
                 List<VNXeCifsShare> cifsShares = client.getCifsSharesForFileSystem(fs.getId());
                 if (cifsShares != null && !cifsShares.isEmpty()) {
-                    for (VNXeCifsShare cifsShare : cifsShares) {
-                        cifsSharesCount++;
-                    }
+                    cifsSharesCount = cifsSharesCount + cifsShares.size();
                 }
                 List<VNXeFileSystemSnap> snapshotsList = client.getFileSystemSnaps(fs.getId());
                 if (snapshotsList != null && !snapshotsList.isEmpty()) {
@@ -1522,15 +1514,11 @@ public class VNXUnityCommunicationInterface extends ExtendedCommunicationInterfa
 
                         List<VNXeNfsShare> snapNfsShares = client.getNfsSharesForSnap(snap.getId());
                         if (snapNfsShares != null && !snapNfsShares.isEmpty()) {
-                            for (VNXeNfsShare nfsShare : snapNfsShares) {
-                                nfsSharesCount++;
-                            }
+                            nfsSharesCount = nfsSharesCount + snapNfsShares.size();
                         }
                         List<VNXeCifsShare> snapCifsShares = client.getCifsSharesForSnap(snap.getId());
                         if (snapCifsShares != null && !snapCifsShares.isEmpty()) {
-                            for (VNXeCifsShare cifsShare : snapCifsShares) {
-                                cifsSharesCount++;
-                            }
+                            cifsSharesCount =  cifsSharesCount + snapCifsShares.size();
                         }
                     }
                 }

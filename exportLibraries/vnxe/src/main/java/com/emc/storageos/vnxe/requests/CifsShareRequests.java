@@ -128,4 +128,31 @@ public class CifsShareRequests extends KHRequests<VNXeCifsShare> {
         _url = URL_SHARE + shareId;
         return getDataForOneObject(VNXeCifsShare.class);
     }
+
+    /**
+     * Get the CIFS shares for a file system
+     *
+     * @param fileSystemId
+     * @return
+     */
+    public List<VNXeCifsShare> getSharesForFileSystem(String fileSystemId) {
+        MultivaluedMap<String, String> queryParams = new MultivaluedMapImpl();
+        queryParams.add(VNXeConstants.FILTER, VNXeConstants.FILE_SYSTEM_FILTER_V31 + "\"" + fileSystemId + "\"");
+        setQueryParameters(queryParams);
+        return getDataForObjects(VNXeCifsShare.class);
+    }
+
+    /**
+     * Get the CIFS shares for a file system snap
+     *
+     * @param snapId
+     * @return
+     */
+    public List<VNXeCifsShare> getSharesForFileSystemSnap(String snapId) {
+        MultivaluedMap<String, String> queryParams = new MultivaluedMapImpl();
+        queryParams.add(VNXeConstants.FILTER, VNXeConstants.SNAP_FILTER_V31 + "\"" + snapId + "\"");
+        setQueryParameters(queryParams);
+        return getDataForObjects(VNXeCifsShare.class);
+    }
+
 }

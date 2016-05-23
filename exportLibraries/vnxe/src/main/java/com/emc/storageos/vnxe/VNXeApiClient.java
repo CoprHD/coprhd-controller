@@ -262,6 +262,16 @@ public class VNXeApiClient {
     }
 
     /**
+     * get file systems based on nas server Id
+     */
+    public List<VNXeFileSystem> getFileSystemsForNasServer(String nasServerId) {
+        _logger.info("getting file systems by the nas server id: " + nasServerId);
+        FileSystemListRequest req = new FileSystemListRequest(_khClient);
+        return req.getFileSystemsForNasServer(nasServerId);
+
+    }
+
+    /**
      * get file system based on file system id
      */
     public VNXeFileSystem getFileSystemByFSId(String fsId) {
@@ -553,6 +563,34 @@ public class VNXeApiClient {
     }
 
     /**
+     * Find nfsShares for snapshot Id
+     *
+     * @param snapId
+     *            file system snapshot Id
+     * @return list of nfsShare
+     */
+    public List<VNXeNfsShare> getNfsSharesForSnap(String snapId) {
+        _logger.info("finding nfsShares for snap id: {} ", snapId);
+        NfsShareRequests req = new NfsShareRequests(_khClient);
+        List<VNXeNfsShare> shares = req.getSharesForFileSystemSnap(snapId);
+        return shares;
+    }
+
+    /**
+     * Find nfsShares for filesystem Id
+     *
+     * @param fsId
+     *            file system Id
+     * @return list of nfsShare
+     */
+    public List<VNXeNfsShare> getNfsSharesForFileSystem(String fsId) {
+        _logger.info("finding nfsShares for filesystem id: {} ", fsId);
+        NfsShareRequests req = new NfsShareRequests(_khClient);
+        List<VNXeNfsShare> shares = req.getSharesForFileSystem(fsId);
+        return shares;
+    }
+
+    /**
      * Delete nfsShare
      * 
      * @param nfsShareId
@@ -827,6 +865,34 @@ public class VNXeApiClient {
             return null;
         }
 
+    }
+
+    /**
+     * Find cifsShares for snapshot Id
+     *
+     * @param snapId
+     *            file system snapshot Id
+     * @return list of cifsShare
+     */
+    public List<VNXeCifsShare> getCifsSharesForSnap(String snapId) {
+        _logger.info("finding cifsShares for snap id: {} ", snapId);
+        CifsShareRequests req = new CifsShareRequests(_khClient);
+        List<VNXeCifsShare> shares = req.getSharesForFileSystemSnap(snapId);
+        return shares;
+    }
+
+    /**
+     * Find cifsShares for filesystem Id
+     *
+     * @param fsId
+     *            file system Id
+     * @return list of cifsShare
+     */
+    public List<VNXeCifsShare> getCifsSharesForFileSystem(String fsId) {
+        _logger.info("finding cifsShares for filesystem id: {} ", fsId);
+        CifsShareRequests req = new CifsShareRequests(_khClient);
+        List<VNXeCifsShare> shares = req.getSharesForFileSystem(fsId);
+        return shares;
     }
 
     /**
@@ -2681,20 +2747,22 @@ public class VNXeApiClient {
         return req.getLunSnaps(lunId);
 
     }
-    
+
     /**
      * Get consistency group native Id by its name
+     * 
      * @param cgName consistency group name
      * @return consistency group native Id
      */
     public String getConsistencyGroupIdByName(String cgName) {
         ConsistencyGroupRequests req = new ConsistencyGroupRequests(_khClient);
         return req.getConsistencyGroupIdByName(cgName);
-        
+
     }
-    
+
     /**
      * Modify host lun HLU
+     * 
      * @param hostId Host Id
      * @param hostLunId HostLun Id
      * @param hlu The new hlu value
@@ -2711,9 +2779,10 @@ public class VNXeApiClient {
         param.setHostLunModifyList(parmList);
         req.modifyHostLun(param);
     }
-    
+
     /**
      * Get Initiator using its iqn or wwn
+     * 
      * @param wwn wwn or iqn
      * @return host initiator instance
      */
@@ -2722,9 +2791,10 @@ public class VNXeApiClient {
 
         return initReq.getByIQNorWWN(wwn);
     }
-    
+
     /**
      * Create host initiator in the array
+     * 
      * @param inits
      * @param hostId
      */
@@ -2745,4 +2815,5 @@ public class VNXeApiClient {
         req.createHostInitiator(initCreateParam);
 
     }
+
 }

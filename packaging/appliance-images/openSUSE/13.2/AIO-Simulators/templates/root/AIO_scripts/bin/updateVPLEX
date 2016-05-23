@@ -3,13 +3,16 @@
 systemctl stop VPLEX
 systemctl stop VPLEX2
 cd /tmp
+rm -f vplex-simulators-*.jar
 LATEST_URL=`curl http://lglw8129.lss.emc.com/cgi-bin/getLatestSimulator?vplex | grep -oP '"queryResult":"\K.*?jar'`
 VERSION=${LATEST_URL##*-}
 echo "Downloading $LATEST_URL"
 wget $LATEST_URL || exit 1
+rm -f /data/simulators/vplex-sim/vplex-simulators-*.jar
 cp vplex-simulators-*.jar /data/simulators/vplex-sim/
+rm -f /data/simulators/vplex-sim_2/vplex-simulators2-*.jar
 cp vplex-simulators-*.jar /data/simulators/vplex-sim_2/vplex-simulators2-$VERSION
 
-rm vplex-simulators*.jar
+rm -f vplex-simulators*.jar
 systemctl start VPLEX
 systemctl start VPLEX2

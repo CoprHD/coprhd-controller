@@ -27,6 +27,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+/**
+ * Default, not-supported, implementation of SDK driver methods.
+ * Can be use as a base class for SDK storage drivers.
+ */
 public class DefaultStorageDriver extends AbstractStorageDriver implements BlockStorageDriver {
 
     private static final Logger _log = LoggerFactory.getLogger(DefaultStorageDriver.class);

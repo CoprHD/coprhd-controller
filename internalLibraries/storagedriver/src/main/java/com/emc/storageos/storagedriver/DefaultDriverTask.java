@@ -5,9 +5,11 @@
 
 package com.emc.storageos.storagedriver;
 
-
 import com.emc.storageos.storagedriver.DriverTask;
 
+/**
+ * Default implementation of DriverTask.
+ */
 public class DefaultDriverTask extends DriverTask {
 
     public DefaultDriverTask(String taskId) {

@@ -103,21 +103,21 @@ public class SnapMirror {
         return snapMirrorResp;
     }
 
-    public boolean breakSnapMirror(SnapmirrorInfo snapMirrorInfo) {
-        SnapmirrorResp snapMirrorResp = null;
+    public boolean breakSnapMirror(String destLocation, String relationShipId) {
 
         NaElement elem = new NaElement("snapmirror-break");
 
         // destination attributes
-        prepSourceReq(elem, snapMirrorInfo);
+        elem.addNewChild("destination-location", destLocation);
 
-        // source attributes
-        prepDestReq(elem, snapMirrorInfo);
+        if (relationShipId != null && relationShipId.isEmpty()) {
+            elem.addNewChild("relationship-id", relationShipId);
+        }
 
         try {
             server.invokeElem(elem);
         } catch (Exception e) {
-            String msg = "Failed to Break SnapMirror: " + snapMirrorInfo.getDestinationVolume();
+            String msg = "Failed to Break SnapMirror: " + destLocation;
             log.error(msg, e);
             throw new NetAppCException(msg, e);
         }
@@ -477,7 +477,8 @@ public class SnapMirror {
             // mirror-state
             String mirrorStatus = results.getChildContent("mirror-state");
             if (mirrorStatus != null && !mirrorStatus.isEmpty()) {
-                snapMirrorResp.setMirrorState(SnapmirrorState.valueOf(mirrorStatus));
+                SnapmirrorState currentMirrorStatus = SnapmirrorState.valueOfLabel(mirrorStatus);
+                snapMirrorResp.setMirrorState(currentMirrorStatus);
             }
 
             // current-transfer-type

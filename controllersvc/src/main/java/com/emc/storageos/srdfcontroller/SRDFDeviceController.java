@@ -205,7 +205,7 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
             for (String target : targets) {
                 Volume targetVolume = dbClient.queryObject(Volume.class, URI.create(target));
 
-                if (null == targetVolume) {
+                if (null == targetVolume || targetVolume.getInactive()) {
                     return waitFor;
                 }
 

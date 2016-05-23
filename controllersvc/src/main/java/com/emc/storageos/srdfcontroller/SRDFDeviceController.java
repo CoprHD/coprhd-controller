@@ -593,6 +593,16 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
         }
     }
 
+    /**
+     * Add rollback steps for refreshing the target providers.  Currently, for SRDF workflow steps
+     * we always try to use the active source provider, so here we will filter only the target descriptors
+     * in order to determine their provider, which most likely has gotten out of sync.
+     *
+     * @param workflow          The workflow instance.
+     * @param waitFor           Step ID to wait on until complete.
+     * @param srdfDescriptors   All SRDF descriptors.
+     * @return                  Step ID.
+     */
     private String addRollbackStepsForRefreshSystems(Workflow workflow, String waitFor, List<VolumeDescriptor> srdfDescriptors) {
         List<VolumeDescriptor> targetDescriptors = VolumeDescriptor.filterByType(srdfDescriptors,
                 VolumeDescriptor.Type.SRDF_TARGET);

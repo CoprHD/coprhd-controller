@@ -16,6 +16,9 @@ import static com.google.common.collect.Lists.newArrayList;
  */
 public class ReplicaCleanupFactory {
 
+    private ReplicaCleanupFactory() {
+    }
+
     /**
      * Build an instance of {@link ReplicaCleanupContext} for cleaning up
      * failed BlockSnapshots, failed BlockSnapshotSessions and stale entries

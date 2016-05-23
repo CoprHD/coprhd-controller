@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014 EMC Corporation
+ * Copyright (c) 2016 EMC Corporation
  * All Rights Reserved
  */
 
@@ -74,7 +74,7 @@ public class VNXUnityDeleteFileSystemQuotaDirectoryJob extends VNXeJob {
             FileDeviceController.recordFileDeviceOperation(dbClient, OperationTypeEnum.DELETE_FILE_SYSTEM_QUOTA_DIR, _isSuccess,
                     event, "", quotaObj, fsObj, storageObj);
         } catch (Exception e) {
-            _logger.error("Caught an exception while trying to updateStatus for VNXUnityDeleteFileSystemQuotaDirectoryJob", e);
+            _logger.error("Caught an exception while trying to update status for VNXUnityDeleteFileSystemQuotaDirectoryJob", e);
             setErrorStatus("Encountered an internal error during file system quota delete job status processing : " + e.getMessage());
         } finally {
             super.updateStatus(jobContext);

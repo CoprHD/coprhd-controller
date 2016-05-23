@@ -13,19 +13,19 @@ import com.emc.storageos.db.client.model.QuotaDirectory.SecurityStyles;
 public class UnManagedFileQuotaDirectory extends UnManagedFileObject {
 
     // GUID of parent FS
-    protected String _parentFSNativeGuid;
+    private String _parentFSNativeGuid;
 
-    protected Boolean _opLock;
+    private Boolean _opLock;
 
-    protected Long _size;
+    private Long _size;
 
-    protected Integer _softLimit;
+    private Integer _softLimit;
 
-    protected Integer _notificationLimit;
+    private Integer _notificationLimit;
 
-    protected Integer _softGrace;
+    private Integer _softGrace;
 
-    protected String _nativeId;
+    private String _nativeId;
 
     private String _securityStyle = SecurityStyles.parent.name();
 

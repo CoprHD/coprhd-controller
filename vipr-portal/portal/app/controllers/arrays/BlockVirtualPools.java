@@ -464,17 +464,8 @@ public class BlockVirtualPools extends ViprResourceController {
                 BlockProtocols.iSCSI,
                 BlockProtocols.ScaleIO
                 ));
-        renderArgs.put("systemTypeOptions", StorageSystemTypes.options(
-                StorageSystemTypes.NONE,
-                StorageSystemTypes.VMAX,
-                StorageSystemTypes.VNX_BLOCK,
-                StorageSystemTypes.VNXe,
-                StorageSystemTypes.HITACHI,
-                StorageSystemTypes.OPENSTACK,
-                StorageSystemTypes.SCALEIO,
-                StorageSystemTypes.XTREMIO,
-                StorageSystemTypes.IBMXIV
-                ));
+        renderArgs.put("systemTypeOptions", StorageSystemTypes.getBlockStorageOptions());
+
         renderArgs.put("driveTypeOptions", DriveTypes.options(
                 DriveTypes.NONE,
                 DriveTypes.FC,

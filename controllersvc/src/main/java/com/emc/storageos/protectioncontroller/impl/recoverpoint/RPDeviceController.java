@@ -220,7 +220,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
     // Methods in the create full copy workflow
     private static final String METHOD_ENABLE_IMAGE_ACCESS_FULL_COPY_STEP = "enableImageAccessForFullCopyStep";
-    private static final String METHOD_DISABLE_IMAGE_ACCESS_FULL_COPY_STEP = "disableImageAccessForFullCopies";
+    private static final String METHOD_DISABLE_IMAGE_ACCESS_FULL_COPY_STEP = "disableImageAccessForFullCopyStep";
 
     // Methods in the export group delete workflow
     private static final String METHOD_DISABLE_IMAGE_ACCESS_STEP = "disableImageAccessStep";
@@ -4521,6 +4521,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
         
         // If no volumes to create, just return
         if (blockVolmeDescriptors.isEmpty()) {
+            _log.warn("Skipping RP create steps for full copy because no block volume descriptors were found");
             return waitFor;
         }
 
@@ -4542,7 +4543,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                         if (Volume.checkForVplexBackEndVolume(_dbClient, parentVolume)) {
                             parentVolume = Volume.fetchVplexVolume(_dbClient, parentVolume);
                         }
-                        if (StringUtils.equals(parentVolume.getPersonality(), Volume.PersonalityTypes.TARGET.toString())) {
+                        if (StringUtils.equalsIgnoreCase(parentVolume.getPersonality(), Volume.PersonalityTypes.TARGET.toString())) {
                             volumeWWNs.add(RPHelper.getRPWWn(parentVolume.getId(), _dbClient));
                             fullCopyList.add(volume.getId());
                             if (protectionSystem == null) {
@@ -4606,7 +4607,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                         if (Volume.checkForVplexBackEndVolume(_dbClient, parentVolume)) {
                             parentVolume = Volume.fetchVplexVolume(_dbClient, parentVolume);
                         }
-                        if (StringUtils.equals(parentVolume.getPersonality(), Volume.PersonalityTypes.TARGET.toString())) {
+                        if (StringUtils.equalsIgnoreCase(parentVolume.getPersonality(), Volume.PersonalityTypes.TARGET.toString())) {
                             volumeWWNs.add(RPHelper.getRPWWn(parentVolume.getId(), _dbClient));
                             fullCopyList.add(volume.getId());
                             if (protectionSystem == null) {
@@ -5479,7 +5480,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
      * @param opId
      * @throws ControllerException
      */
-    public void disableImageAccessForFullCopies(URI protectionDevice, List<URI> fullCopyIds, Set<String> volumeWWNs,
+    public void disableImageAccessForFullCopyStep(URI protectionDevice, List<URI> fullCopyIds, Set<String> volumeWWNs,
             String opId) throws ControllerException {
         TaskCompleter completer = null;
         try {

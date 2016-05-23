@@ -2414,7 +2414,7 @@ public class VolumeIngestionUtil {
                 }
 
                 if (queryExportGroups.size() > 1) {
-                    _logger.info("More than one export group contains the initiator(s) requested.  Choosing the first one: "
+                    _logger.info("More than one export group contains the initiator(s) requested.  Choosing : "
                             + eg.getId().toString());
                 }
                 exportGroup = eg;
@@ -2980,7 +2980,12 @@ public class VolumeIngestionUtil {
                             updatedObjects.add(unManagedExportMask);
                         }
                     }
-
+                    // If the mask for ingested volume contains JOURNAL keyword, make sure we add it to
+                    // the ExportGroup created for journals
+                    boolean isJournalExport = false;
+                    if (unManagedExportMask.getMaskName().toLowerCase().contains("journal")) {
+                        isJournalExport = true;
+                    }
                     _logger.info("exportGroupType is " + exportGroupType);
                     URI computeResource = requestContext.getCluster() != null ? requestContext.getCluster() : requestContext.getHost();
                     _logger.info("computeResource is " + computeResource);
@@ -2991,6 +2996,19 @@ public class VolumeIngestionUtil {
                         _logger.info("exportGroup.getType() is " + exportGroup.getType());
                         boolean exportGroupTypeMatches = (null != exportGroupType)
                                 && exportGroupType.equalsIgnoreCase(exportGroup.getType());
+                        boolean isRPJournalExportGroup = exportGroup.checkInternalFlags(Flag.RECOVERPOINT_JOURNAL);
+                        // do not add RP source or target volumes to export group meant only for journals
+                        // If the mask for ingested volume contains JOURNAL keyword, make sure we add it to
+                        // the ExportGroup created for journals
+                        if (isJournalExport && !isRPJournalExportGroup) {
+                            _logger.info(
+                                    "Block object is associated with RP journal mask but export group is not marked for RP journals. Not adding to the export group");
+                            continue;
+                        } else if (!isJournalExport && isRPJournalExportGroup) {
+                            _logger.info(
+                                    "Block object is not associated with RP journal mask but export group is marked for RP journals. Not adding to the export group");
+                            continue;
+                        }
                         if (exportGroup.getProject().getURI().equals(getBlockProject(blockObject)) &&
                                 exportGroup.getVirtualArray().equals(blockObject.getVirtualArray()) &&
                                 (exportGroupTypeMatches || isVplexBackendVolume)) {
@@ -4593,7 +4611,7 @@ public class VolumeIngestionUtil {
 
     /**
      * Returns true if the given UnManagedVolume is a VPLEX distributed volume.
-     * 
+     *
      * @param unManagedVolume the UnManagedVolume to check
      * @return true if the given UnManagedVolume is a VPLEX distributed volume
      */

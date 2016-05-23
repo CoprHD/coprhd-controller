@@ -1944,9 +1944,6 @@ public class RPHelper {
         // If this is an exportGroup intended only for journal volumes, set the RECOVERPOINT_JOURNAL flag
         if (isJournalExport) {
             exportGroup.addInternalFlags(Flag.RECOVERPOINT_JOURNAL);
-            String egName = exportGroup.getGeneratedName() + "_JOURNAL";
-            exportGroup.setGeneratedName(egName);
-            exportGroup.setLabel(egName);
         }
 
         return exportGroup;
@@ -1960,16 +1957,20 @@ public class RPHelper {
      * @param storageSystem the StorageSystem for the ExportGroup
      * @param internalSiteName the RecoverPoint internal site name
      * @param virtualArray the VirtualArray for the ExportGroup
+     * @param isJournalExport flag indicating if this is an ExportGroup intended only for journal volumes
      * @return a RecoverPoint ExportGroup name String
      */
     public static String generateExportGroupName(ProtectionSystem protectionSystem,
-            StorageSystem storageSystem, String internalSiteName, VirtualArray virtualArray) {
+            StorageSystem storageSystem, String internalSiteName, VirtualArray virtualArray, boolean isJournalExport) {
         // This name generation needs to match ingestion code found in RPDeviceController until
         // we come up with better export group matching criteria.
         String protectionSiteName = protectionSystem.getRpSiteNames().get(internalSiteName);
         String exportGroupGeneratedName = protectionSystem.getNativeGuid() + "_" + storageSystem.getLabel() + "_" + protectionSiteName
                 + "_"
                 + virtualArray.getLabel();
+        if (isJournalExport) {
+            exportGroupGeneratedName = exportGroupGeneratedName + "_JOURNAL";
+        }
         // Remove all non alpha-numeric characters, excluding "_".
         exportGroupGeneratedName = exportGroupGeneratedName.replaceAll("[^A-Za-z0-9_]", "");
         _log.info("ExportGroup generated name is " + exportGroupGeneratedName);

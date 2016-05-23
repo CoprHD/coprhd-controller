@@ -2889,13 +2889,12 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             ExportMask exportMask = _dbClient.queryObject(ExportMask.class, exportMaskURI);
             ExportGroup exportGroup = null;
             if (exportGroupURI != null) {
-                _dbClient.queryObject(ExportGroup.class, exportGroupURI);
+                exportGroup = _dbClient.queryObject(ExportGroup.class, exportGroupURI);
             }
             WorkflowStepCompleter.stepExecuting(stepId);
             VPlexApiClient client = getVPlexAPIClient(_vplexApiFactory, vplex, _dbClient);
             Map<URI, Volume> userAddedVolumeMap = new HashMap<>();
             if (exportMask != null) {
-
                 String vplexClusterName = VPlexUtil.getVplexClusterName(exportMask, vplexURI, client, _dbClient);
                 VPlexStorageViewInfo storageView = client.getStorageView(vplexClusterName, exportMask.getMaskName());
                 if (storageView != null) {
@@ -2921,9 +2920,9 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                     // Get any user added volume still in the storage view.
                     StringMap volumeHLUMap = exportMask.getUserAddedVolumes();
                     for (Entry<String, String> entry : volumeHLUMap.entrySet()) {
-                        URI volumeURI = URI.create(entry.getKey());
+                        URI volumeURI = URI.create(entry.getValue());
                         Volume volume = _dbClient.queryObject(Volume.class, volumeURI);
-                        userAddedVolumeMap.put(volumeURI,  volume);
+                        userAddedVolumeMap.put(volumeURI, volume);
                     }
                     
                     // If custom VPLEX volume naming is enabled, we need to lock the volumes
@@ -2978,7 +2977,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                         // were not ingested, we have no way of knowing this unless
                         // we find the volume on the VPLEX.
                         boolean isDistributed = VPlexCustomNameUtils.isVolumeDistributed(vplexVolume, client);
-                        
+
                         // If the volume will still be exported after being removed
                         // from 'this' export mask, then we need to know the export 
                         // group to which the volumes was most recently exported and

@@ -1,0 +1,77 @@
+#!/usr/bin/python
+#
+# Copyright (c) 2015 EMC Corporation
+# All Rights Reserved
+#
+
+import argparse
+import sys
+import os
+from bourne import Bourne
+
+#----------------------------------------------------------------------
+# audit cli functions
+#----------------------------------------------------------------------
+
+def clusterip_query(args):
+    bourne.connect(args.vip)
+    return bourne.clusterip_query();
+    
+def clusterip_querystatus(args):
+    bourne.connect(args.vip)
+    return bourne.clusterip_querystatus();
+
+def clusterip_reconfig(args):
+    bourne.connect(args.vip)
+    return bourne.clusterip_reconfig(args.ipinfo);
+    return
+
+#----------------------------------------------------------------------
+# command-line parsing
+#----------------------------------------------------------------------
+
+try:
+    bourne_ip = os.environ['BOURNE_IPADDR']
+except:
+    bourne_ip = 'localhost'
+
+# ipreconfig <cmd> <cmd_args> [--ip ipaddr]
+parser = argparse.ArgumentParser(description = 'Bourne ipchange cli usage.')
+parser.add_argument('cmd', help = 'cmd = ( query | querystatus | reconfig) ')
+parser.add_argument('--vip',	metavar = 'ipaddr',	help = 'VIP address of bourne', default=bourne_ip)
+
+# query cluster ip
+query = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+
+# query ipreconfig status
+querystatus = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+
+# reconfig cluster IPs
+reconfig = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+reconfig.add_argument('ipinfo',    help = 'cluster IPs info. Format is like: <site1 ShortId>:<VIP>,<GW>,<NETMASK>,<Node1 IP>,<Node2 IP>..;<site2 ShortId>:<VIP>,...<Node1 IP>...;...')
+
+
+try:
+
+    if (len(sys.argv) > 1):
+        cmd = sys.argv[1]
+    else:
+        cmd = None
+
+    bourne = Bourne()
+
+    if  (cmd == "query"):
+        args = query.parse_args()
+        clusterip_query(args)
+    elif (cmd == "querystatus"):
+        args = querystatus.parse_args()
+        clusterip_querystatus(args)
+    elif (cmd == "reconfig"):
+        args = reconfig.parse_args()
+        clusterip_reconfig(args)
+    else:
+        parser.print_help()
+
+except:
+    raise
+    

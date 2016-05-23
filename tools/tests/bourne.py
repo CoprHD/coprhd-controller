@@ -489,6 +489,10 @@ URI_CHUNKDATA                   = URI_GEO_SERVICES_BASE + '/chunkdata/{0}'
 URI_OBJ_CERT                    = '/object-cert/keystore'
 URI_OBJ_SECRET_KEY                    = '/object-cert/secret-key'
 
+URI_CLUSTERIP_QUERY             = URI_SERVICES_BASE + '/control/cluster/ipinfo'
+URI_CLUSTERIP_RECONF_STATUS     = URI_SERVICES_BASE + '/control/cluster/ipreconfig_status'
+URI_CLUSTERIP_RECONF            = URI_SERVICES_BASE + '/control/cluster/ipreconfig'
+
 OBJCTRL_INSECURE_PORT           = '9010'
 OBJCTRL_PORT                    = '4443'
 S3_INSECURE_PORT                = '9020'
@@ -8859,3 +8863,67 @@ class Bourne:
         # complete, then they are all complete.
         task = self.api_sync_2(session_uri, task_opid, self.block_snapshot_session_show_task)
         return (tasklist, task['state'], task['message'])
+
+    def clusterip_query(self):
+        print 'Querying cluster IPs ...';
+        response = self.__api('GET', URI_CLUSTERIP_QUERY)
+        if (response.status_code != 200):
+            print "Query cluster IPs failed", response.status_code
+            raise Exception('Query cluster IPs failed')
+        print 'Query cluster IPs succeed. Result: ' + response.text
+        data=response.json()
+        for vdcsiteid in data['sites']:
+            print 'Query cluster IPs succeed. Result: ' + data["sites"][vdcsiteid]["ipv4_setting"]["network_netmask"]
+
+    def clusterip_querystatus(self):
+        print 'Querying cluster IP reconfig status ...';
+        response = self.__api('GET', URI_CLUSTERIP_RECONF_STATUS)
+        if (response.status_code != 200):
+            print "Query cluster IP reconfig status", response.status_code
+            raise Exception('Query cluster IP reconfig status')
+        print 'Query cluster IP reconfig status succeed. Result: ' + response.text
+
+    def clusterip_reconfig(self, ipinfo):
+        print 'Reconfiguring cluster IPs ...';
+        params=dict()
+        siteipmap=dict()
+        site_ipinfo=dict()
+        ipv4_setting=dict()
+        ipv6_setting=dict()
+
+        for siteipinfo in ipinfo.split(';'):
+            tmppair = siteipinfo.split(':') 
+            vdcsiteid = tmppair[0]
+            ips = tmppair[1]
+            ippair = ips.split(',')
+            
+            site_ipinfo={}
+
+            ipv4_setting={}
+            ipv6_setting={}
+
+            ipv4_setting['network_vip']=ippair[0]
+            ipv4_setting['network_gateway']=ippair[1]
+            ipv4_setting['network_netmask']=ippair[2]
+            ipv6_setting['network_vip6']="::0"
+            ipv6_setting['network_prefix_length']="64"
+            ipv6_setting['network_gateway6']="::0"
+ 
+            ipv4_setting['network_addrs']=[]
+            ipv6_setting['network_addrs']=[]
+
+            for i in range(3, len(ippair)):
+                ipv4_setting['network_addrs'].append(ippair[i])
+                ipv6_setting['network_addrs'].append("::0")
+   
+            site_ipinfo['ipv4_setting']=ipv4_setting        
+            site_ipinfo['ipv6_setting']=ipv6_setting        
+            siteipmap[vdcsiteid]=site_ipinfo
+
+        params['sites']=siteipmap
+        response = self.__api('POST', URI_CLUSTERIP_RECONF, params)
+        if (response.status_code != 202):
+            print "Failed to reconfig cluster IP", response.status_code
+            raise Exception('Failed to reconfig cluster IP')
+        print 'Successfully sent cluster IPs reconfiguration request. Result: ' + response.text
+

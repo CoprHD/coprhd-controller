@@ -63,40 +63,37 @@ public class MailHelper {
         this.coordinatorClient = coordinatorClient;
     }
 
-    public void sendMailMessage(String to, String subject, String html) {
+    /**
+     * @return true if mail message is successfully sent out, return false if SMTP settings is not configured properly
+     */
+    public boolean sendMailMessage(String to, String subject, String html) {
         try {
-            JavaMailSender mailSender = getMailSender();
-            if (mailSender != null) {
-                MimeMessage mimeMessage = mailSender.createMimeMessage();
+            if (smtpSettingsUpdated()) {
+                mailSender = createJavaMailSender();
+            }
+            if (mailSender == null) {
+                log.warn("Unable to send notification email. SMTP settings not configured properly.");
+                return false;
+            }
 
-                MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, false, "utf-8");
-                helper.setText(html, true);
-                String[] addresses = StringUtils.split(to, ",");
-                for (String address : addresses) {
-                    address = StringUtils.trimToNull(address);
-                    if (address != null) {
-                        helper.addTo(address);
-                    }
+            MimeMessage mimeMessage = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, false, "utf-8");
+            helper.setText(html, true);
+            String[] addresses = StringUtils.split(to, ",");
+            for (String address : addresses) {
+                address = StringUtils.trimToNull(address);
+                if (address != null) {
+                    helper.addTo(address);
                 }
-                helper.setSubject(subject);
-
-                mailSender.send(mimeMessage);
             }
-            else {
-                log.warn("Unable to send notification email.  Email settings not configured.");
-            }
+            helper.setSubject(subject);
+            mailSender.send(mimeMessage);
+            return true;
         } catch (MailException | MessagingException ex) {
             String message = String.format("Failed to notify user by email");
             log.error(message, ex);
             throw APIException.internalServerErrors.genericApisvcError(message, ex);
         }
-    }
-
-    private JavaMailSender getMailSender() {
-        if (smtpSettingsUpdated()) {
-            this.mailSender = createJavaMailSender();
-        }
-        return this.mailSender;
     }
 
     private boolean smtpSettingsUpdated() {

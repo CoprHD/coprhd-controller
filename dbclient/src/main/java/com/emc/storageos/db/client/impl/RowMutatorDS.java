@@ -36,7 +36,6 @@ public class RowMutatorDS {
     private PreparedStatement insertRecord;
     private PreparedStatement updateRecord;
     private PreparedStatement deleteRecord;
-    private PreparedStatement insertIndex;
 
 
     private BatchStatement recordAndIndexBatch;
@@ -75,16 +74,16 @@ public class RowMutatorDS {
     }
 
     public void addIndexColumn(String tableName, String indexRowKey, IndexColumnName column, Object val) {
-        log.info("hlj INDEX, rowKey={}, tableName={}, column={}, val={}, typeofval={}", indexRowKey, tableName, column, val, val.getClass());
+        log.info("hlj INDEX, rowKey={}, tableName={}, column={}, val={}, typeofval={}", indexRowKey, tableName, column, val, val != null ? val.getClass(): null);
         //todo move to constructed method
-        insertIndex = this.session.prepare(insertInto(String.format("\"%s\"", tableName))
+        PreparedStatement insertIndex = session.prepare(insertInto(String.format("\"%s\"", tableName))
                 .value("key", bindMarker())
                 .value("column1", bindMarker())
                 .value("column2", bindMarker())
                 .value("column3", bindMarker())
                 .value("column4", bindMarker())
                 .value("column5", bindMarker())
-                .value("value", bindMarker())).setConsistencyLevel(ConsistencyLevel.LOCAL_QUORUM);
+                .value("value", bindMarker()));
         BoundStatement insert = insertIndex.bind();
         insert.setString("key", indexRowKey);
         // For PRIMARY KEY (key, column1, column2, column3, column4, column5), the primary key cannot be null
@@ -100,9 +99,8 @@ public class RowMutatorDS {
     }
 
     public static ByteBuffer getByteBufferFromPrimitiveValue(Object val) {
-        log.info("hlj in convert={}, type={}", val, val.getClass());
         if (val == null) {
-            return null;// ByteBufferUtil.EMPTY_BYTE_BUFFER
+            return ByteBufferUtil.EMPTY_BYTE_BUFFER;
         }
         ByteBuffer blobVal = null;
         Class valClass = val.getClass();
@@ -144,9 +142,9 @@ public class RowMutatorDS {
     }
 
     public void execute() {
-        log.info("hlj in execute={}", recordAndIndexBatch);
+        log.info("hlj in execute={} size={}", recordAndIndexBatch, recordAndIndexBatch.size());
         session.execute(recordAndIndexBatch);
-        log.info("hlj in execute done.", recordAndIndexBatch);
+        log.info("hlj in execute done.");
     }
 
     public UUID getTimeUUID() {

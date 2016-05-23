@@ -124,7 +124,6 @@ public class VNXUnityCommunicationInterface extends ExtendedCommunicationInterfa
             if (apiClient != null) {
                 Map<String, StorageSystemViewObject> storageSystemsCache = accessProfile.getCache();
                 BasicSystemInfo unitySystem = apiClient.getBasicSystemInfo();
-                ;
 
                 String unityType = StorageSystem.Type.unity.name();
                 String version = unitySystem.getApiVersion();
@@ -200,9 +199,8 @@ public class VNXUnityCommunicationInterface extends ExtendedCommunicationInterfa
                 _logger.info("Discovering storage system properties.");
 
                 VNXeStorageSystem system = client.getStorageSystem();
-                boolean isFASTVPEnabled = false;
-                viprStorageSystem = discoverStorageSystemInfo(client, accessProfile, system, isFASTVPEnabled,
-                        viprStorageSystem);
+                boolean isFASTVPEnabled = client.isFASTVPEnabled();
+                viprStorageSystem = discoverStorageSystemInfo(client, accessProfile, system, isFASTVPEnabled, viprStorageSystem);
                 StringSet arraySupportedProtocols = new StringSet();
                 // Discover the NasServers
                 Map<String, URI> nasServerIdMap = new HashMap<String, URI>();
@@ -394,7 +392,6 @@ public class VNXUnityCommunicationInterface extends ExtendedCommunicationInterfa
 
             viprStorageSystem.setReachableStatus(true);
 
-            isFASTVPEnabled = client.isFASTVPEnabled();
             viprStorageSystem.setAutoTieringEnabled(isFASTVPEnabled);
 
             StringSet supportedActions = new StringSet();
@@ -528,8 +525,9 @@ public class VNXUnityCommunicationInterface extends ExtendedCommunicationInterfa
                 String poolNativeGuid = NativeGUIDGenerator.generateNativeGuid(system, vnxePool.getId(), NativeGUIDGenerator.POOL);
                 _dbClient.queryByConstraint(AlternateIdConstraint.Factory.getStoragePoolByNativeGuidConstraint(poolNativeGuid), results);
                 boolean isModified = false;
-                if (results.iterator().hasNext()) {
-                    StoragePool tmpPool = _dbClient.queryObject(StoragePool.class, results.iterator().next());
+                Iterator<URI> it = results.iterator();
+                if (it.hasNext()) {
+                    StoragePool tmpPool = _dbClient.queryObject(StoragePool.class, it.next());
 
                     if (tmpPool.getStorageDevice().equals(system.getId())) {
                         pool = tmpPool;
@@ -540,38 +538,19 @@ public class VNXUnityCommunicationInterface extends ExtendedCommunicationInterfa
                 if (pool == null) {
                     pool = new StoragePool();
                     pool.setId(URIUtil.createId(StoragePool.class));
-
                     pool.setLabel(poolNativeGuid);
                     pool.setNativeGuid(poolNativeGuid);
-                    Health poolHealth = vnxePool.getHealth();
-                    if (poolHealth != null) {
-                        int value = poolHealth.getValue();
-                        if (value == Health.HealthEnum.OK.getValue() || value == Health.HealthEnum.OK_BUT.getValue()) {
-                            pool.setOperationalStatus(StoragePool.PoolOperationalStatus.READY.name());
-                        } else {
-                            pool.setOperationalStatus(StoragePool.PoolOperationalStatus.NOTREADY.name());
-                        }
-                    }
-                    pool.setOperationalStatus(StoragePool.PoolOperationalStatus.READY.name());
                     pool.setPoolServiceType(PoolServiceType.block_file.toString());
                     pool.setStorageDevice(system.getId());
-                    pool.setProtocols(supportedProtocols);
                     pool.setNativeId(vnxePool.getId());
                     pool.setPoolName(vnxePool.getName());
                     pool.setCompatibilityStatus(DiscoveredDataObject.CompatibilityStatus.COMPATIBLE.name());
                     pool.setDiscoveryStatus(DiscoveredDataObject.DiscoveryStatus.VISIBLE.name());
-                    StringSet raidLevels = new StringSet();
-                    RaidTypeEnum raid = vnxePool.getRaidTypeEnum();
-                    if (raid != null) {
-                        raidLevels.add(vnxePool.getRaidTypeEnum().name());
-                        pool.setSupportedRaidLevels(raidLevels);
-                    }
                     // Supported resource type indicates what type of file
                     // systems are supported.
                     pool.setSupportedResourceTypes(StoragePool.SupportedResourceTypes.THIN_AND_THICK.toString());
                     pool.setPoolClassName(StoragePool.PoolClassNames.VNXe_Pool.name());
                     pool.setPoolServiceType(StoragePool.PoolServiceType.block_file.name());
-                    pool.setAutoTieringEnabled(getPoolAutoTieringEnabled(vnxePool, system));
 
                     pool.setRegistrationStatus(RegistrationStatus.REGISTERED.toString());
                     _logger.info("Creating new storage pool using NativeGuid : {}", poolNativeGuid);
@@ -579,8 +558,6 @@ public class VNXUnityCommunicationInterface extends ExtendedCommunicationInterfa
                 } else {
                     // update pool attributes
                     _logger.info("updating the pool: {}", poolNativeGuid);
-                    // pool.setOperationalStatus(vnxePool.getStatus());
-                    pool.setOperationalStatus(StoragePool.PoolOperationalStatus.READY.name());
                     if (ImplicitPoolMatcher.checkPoolPropertiesChanged(pool.getProtocols(), supportedProtocols)) {
                         isModified = true;
                     }
@@ -597,6 +574,23 @@ public class VNXUnityCommunicationInterface extends ExtendedCommunicationInterfa
                     existingPools.add(pool);
                 }
 
+                Health poolHealth = vnxePool.getHealth();
+                if (poolHealth != null) {
+                    int value = poolHealth.getValue();
+                    if (value == Health.HealthEnum.OK.getValue() || value == Health.HealthEnum.OK_BUT.getValue()) {
+                        pool.setOperationalStatus(StoragePool.PoolOperationalStatus.READY.name());
+                    } else {
+                        pool.setOperationalStatus(StoragePool.PoolOperationalStatus.NOTREADY.name());
+                    }
+                }
+                pool.setProtocols(supportedProtocols);
+                StringSet raidLevels = new StringSet();
+                RaidTypeEnum raid = vnxePool.getRaidTypeEnum();
+                if (raid != null) {
+                    raidLevels.add(vnxePool.getRaidTypeEnum().name());
+                    pool.setSupportedRaidLevels(raidLevels);
+                }
+                pool.setAutoTieringEnabled(getPoolAutoTieringEnabled(vnxePool, system));
                 List<PoolTier> poolTiers = vnxePool.getTiers();
                 StringSet diskTypes = new StringSet();
                 if (poolTiers != null) {
@@ -625,9 +619,7 @@ public class VNXUnityCommunicationInterface extends ExtendedCommunicationInterfa
 
                 double size = vnxePool.getSizeTotal();
                 if (size > 0) {
-                    pool.setTotalCapacity(VNXeUtils.convertDoubleSizeToViPRLong(size)); // convert
-                    // to
-                    // kb
+                    pool.setTotalCapacity(VNXeUtils.convertDoubleSizeToViPRLong(size)); // Convert to kb
                 }
 
                 long free = VNXeUtils.convertDoubleSizeToViPRLong(vnxePool.getSizeFree());
@@ -661,7 +653,7 @@ public class VNXUnityCommunicationInterface extends ExtendedCommunicationInterfa
             _logger.info("Old Storage Pool : " + pool);
             _logger.info("Old Storage Pool : {} : {}", pool.getNativeGuid(), pool.getId());
         }
-        // return storagePools;
+        
         storagePools.put(NEW, newPools);
         storagePools.put(EXISTING, existingPools);
         _logger.info("Number of pools found {} : ", storagePools.size());
@@ -726,8 +718,9 @@ public class VNXUnityCommunicationInterface extends ExtendedCommunicationInterfa
                     NativeGUIDGenerator.ADAPTER);
             _dbClient.queryByConstraint(AlternateIdConstraint.Factory.getStorageHADomainByNativeGuidConstraint(adapterNativeGuid), results);
 
-            if (results.iterator().hasNext()) {
-                StorageHADomain tmpDomain = _dbClient.queryObject(StorageHADomain.class, results.iterator().next());
+            Iterator<URI> it = results.iterator();
+            if (it.hasNext()) {
+                StorageHADomain tmpDomain = _dbClient.queryObject(StorageHADomain.class, it.next());
 
                 if (tmpDomain.getStorageDeviceURI().equals(system.getId())) {
                     haDomain = tmpDomain;
@@ -917,10 +910,11 @@ public class VNXUnityCommunicationInterface extends ExtendedCommunicationInterfa
 
             _dbClient.queryByConstraint(AlternateIdConstraint.Factory.getStoragePortByNativeGuidConstraint(portNativeGuid), results);
 
-            if (results.iterator().hasNext()) {
+            Iterator<URI> it = results.iterator();
+            if (it.hasNext()) {
                 _logger.info("cross verifying for duplicate port");
 
-                StoragePort tmpPort = _dbClient.queryObject(StoragePort.class, results.iterator().next());
+                StoragePort tmpPort = _dbClient.queryObject(StoragePort.class, it.next());
 
                 _logger.info(String.format(
                         "StorageDevice found for port %s - Actual StorageDevice %s : PortGroup found for port %s - Actual PortGroup %s",
@@ -1048,8 +1042,9 @@ public class VNXUnityCommunicationInterface extends ExtendedCommunicationInterfa
             String adapterNativeGuid = NativeGUIDGenerator.generateNativeGuid(system, sp.getId(), NativeGUIDGenerator.ADAPTER);
             _dbClient.queryByConstraint(AlternateIdConstraint.Factory.getStorageHADomainByNativeGuidConstraint(adapterNativeGuid), results);
 
-            if (results.iterator().hasNext()) {
-                StorageHADomain tmpDomain = _dbClient.queryObject(StorageHADomain.class, results.iterator().next());
+            Iterator<URI> it = results.iterator();
+            if (it.hasNext()) {
+                StorageHADomain tmpDomain = _dbClient.queryObject(StorageHADomain.class, it.next());
 
                 if (tmpDomain.getStorageDeviceURI().equals(system.getId())) {
                     haDomain = tmpDomain;
@@ -1139,11 +1134,11 @@ public class VNXUnityCommunicationInterface extends ExtendedCommunicationInterfa
             URIQueryResultList results = new URIQueryResultList();
 
             _dbClient.queryByConstraint(AlternateIdConstraint.Factory.getStoragePortByNativeGuidConstraint(portNativeGuid), results);
-
-            if (results.iterator().hasNext()) {
+            Iterator<URI> it = results.iterator();
+            if (it.hasNext()) {
                 _logger.info("cross verifying for duplicate port");
 
-                StoragePort tmpPort = _dbClient.queryObject(StoragePort.class, results.iterator().next());
+                StoragePort tmpPort = _dbClient.queryObject(StoragePort.class, it.next());
 
                 _logger.info(
                         String.format("Actual StorageDevice %s : PortGroup found for port %s - Actual PortGroup %s", system.getId(),
@@ -1245,11 +1240,11 @@ public class VNXUnityCommunicationInterface extends ExtendedCommunicationInterfa
             URIQueryResultList results = new URIQueryResultList();
 
             _dbClient.queryByConstraint(AlternateIdConstraint.Factory.getStoragePortByNativeGuidConstraint(portNativeGuid), results);
-
-            if (results.iterator().hasNext()) {
+            Iterator<URI> it = results.iterator();
+            if (it.hasNext()) {
                 _logger.debug("cross verifying for duplicate port");
 
-                StoragePort tmpPort = _dbClient.queryObject(StoragePort.class, results.iterator().next());
+                StoragePort tmpPort = _dbClient.queryObject(StoragePort.class, it.next());
 
                 _logger.info(String.format("Actual StorageDevice %s : PortGroup found for port %s - Actual PortGroup %s", system.getId(),
                         tmpPort.getPortNetworkId(), tmpPort.getPortGroup()));
@@ -1326,10 +1321,11 @@ public class VNXUnityCommunicationInterface extends ExtendedCommunicationInterfa
             URIQueryResultList results = new URIQueryResultList();
 
             _dbClient.queryByConstraint(AlternateIdConstraint.Factory.getStorageTierByIdConstraint(tierNativeGuid), results);
-            if (results.iterator().hasNext()) {
+            Iterator<URI> it = results.iterator();
+            if (it.hasNext()) {
                 _logger.info("Getting the storage tier.");
 
-                StorageTier tmpTier = _dbClient.queryObject(StorageTier.class, results.iterator().next());
+                StorageTier tmpTier = _dbClient.queryObject(StorageTier.class, it.next());
 
                 _logger.info(String.format("Actual StorageDevice %s : storage tier : %s", system.getId(), tmpTier.getNativeGuid()));
 
@@ -1437,11 +1433,7 @@ public class VNXUnityCommunicationInterface extends ExtendedCommunicationInterfa
                     }
                 }
             }
-            if (numOfTiers > 1) {
-                enabled = true;
-            } else {
-                enabled = false;
-            }
+            enabled = numOfTiers > 1;
         }
         return enabled;
     }

@@ -28,7 +28,7 @@
         <entry key="Discovery-vnxe-unmanaged_filesystems" value="discovery-vnxe-context.xml" />
 	    <entry key="Metering-vnxe" value="metering-vnxe-context.xml" />
 
-         <entry key="Discovery-unity-all" value="discovery-vnxunity-context.xml" />
+        <entry key="Discovery-unity-all" value="discovery-vnxunity-context.xml" />
         <entry key="Discovery-unity-unmanaged_volumes" value="discovery-vnxunity-context.xml" />
         <entry key="Discovery-unity-unmanaged_filesystems" value="discovery-vnxunity-context.xml" />
         <entry key="Metering-unity" value="metering-vnxunity-context.xml" />

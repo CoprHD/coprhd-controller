@@ -34,18 +34,20 @@
 #{DataTable.baseCrudTable id:'disasterRecovery',
 					dataTable:dataTable,
 					expandable: true}
-  #{if showPauseButton}
-	#{DataTable.buttonBar}
-      #{Form.button name:'disasterRecovery.pauseButton', icon:'pause', submit:'pauseForm', data:['enabled':'selected']/}
-      #{DataTable.formAction @pause(), id:'pauseForm', table:'disasterRecovery', confirm:messages.get('disasterRecovery.confirm.pause')/}
-	#{/DataTable.buttonBar}
-  #{/if}
-  #{else}
-  	#{deadbolt.restrict roles:[['SECURITY_ADMIN'], ['RESTRICTED_SECURITY_ADMIN']]}
-		#{DataTable.crudButtonBar table:'disasterRecovery', deleteConfirm:messages.get('disasterRecovery.deleteConfirm')}
-		#{/DataTable.crudButtonBar}
-	#{/deadbolt.restrict}
-  #{/else}
+	#{if isActiveSite}
+	  #{if showPauseButton}
+		#{DataTable.buttonBar}
+		  #{Form.button name:'disasterRecovery.pauseButton', icon:'pause', submit:'pauseForm', data:['enabled':'selected']/}
+		  #{DataTable.formAction @pause(), id:'pauseForm', table:'disasterRecovery', confirm:messages.get('disasterRecovery.confirm.pause')/}
+		#{/DataTable.buttonBar}
+	  #{/if}
+	  #{else}
+		#{deadbolt.restrict roles:[['SECURITY_ADMIN'], ['RESTRICTED_SECURITY_ADMIN']]}
+			#{DataTable.crudButtonBar table:'disasterRecovery', deleteConfirm:messages.get('disasterRecovery.deleteConfirm')}
+			#{/DataTable.crudButtonBar}
+		#{/deadbolt.restrict}
+	  #{/else}
+	#{/if}
 #{/DataTable.baseCrudTable}
 #{DataTable.expandHtml @errorDetails(':id'), table:'disasterRecovery' /}
 <br/>

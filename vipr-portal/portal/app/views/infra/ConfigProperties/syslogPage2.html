@@ -1,0 +1,61 @@
+#{set 'moreScripts'}
+#{get 'moreScripts'/}
+<script type="text/javascript">
+function addElement() {
+
+  var ni = document.getElementById('server-group');
+  var numi = document.getElementById('theValue');
+  var num = (document.getElementById('theValue').value -1)+ 2;
+  numi.value = num;
+  var newdiv = document.createElement('div');
+  var divIdName = 'server_'+num;
+  newdiv.setAttribute('id',divIdName);
+  newdiv.setAttribute('class','form-group');
+  newdiv.innerHTML = '<div class="control-label col-sm-2"><input type="checkbox" name="selected" parent="server_'+num+'"></div><label class="control-label col-sm-1" >Server:</label><div class="col-sm-3"><input type="text" class="form-control" value="" maxlength="253" data-originalvalue="" data-reboot="true" autocomplete="off"><p class="help-block clear">IP Address of syslog server</p>  </div><label class="control-label col-sm-1" >Port:</label><div class="col-sm-2"><input type="text" class="form-control" value="" maxlength="253" data-originalvalue="" data-reboot="true" autocomplete="off"><p class="help-block clear">Port of syslog server</p>  </div><div class="col-sm-3"><span class="help-inline clearfix"></span></div>';
+  ni.appendChild(newdiv);
+
+}
+
+function removeElement() {
+
+  var d = document.getElementById('server-group');
+
+  var checkboxes = document.getElementsByName('selected');
+  var i=checkboxes.length
+  while(i--) {
+    var olddiv = checkboxes[i].parentNode.parentNode;
+    if (checkboxes[i].checked) {
+        d.removeChild(olddiv);
+    }
+  }
+}
+</script>
+#{/set}
+
+<input type="hidden" value="0" id="theValue" />
+<br>
+<fieldset id="servers">
+    <legend>Remote Syslog Servers</legend>
+    <div id="server-group">
+    </div>
+
+    <div class="form-group button-bar">
+        <div class="col-sm-offset-3 col-sm-9">
+            <button type="button" class="btn btn-success " name="button.add" onclick="addElement();">
+                <span class="glyphicon glyphicon-plus "></span>
+                Add
+            </button>
+            <button type="button" class="btn btn-danger " name="button.delete" onclick="removeElement();">
+            <span class="glyphicon glyphicon-trash "></span>
+                Delete
+            </button>
+        </div>
+    </div>
+</fieldset>
+
+<fieldset id="services">
+    <legend>Service Logs</legend>
+    <control-group v-field="filterDialog.service" width="6"  type="array" >
+        <select-many id="services" class="max-height-5" options=[{"id":"sasvc","name":"sasvc"},{"id":"vasasvc","name":"vasasvc"},{"id":"portalsvc","name":"portalsvc"},{"id":"coordinatorsvc","name":"coordinatorsvc"},{"id":"geodbsvc","name":"geodbsvc"},{"id":"apisvc","name":"apisvc"},{"id":"geosvc","name":"geosvc"},{"id":"dbsvc","name":"dbsvc"},{"id":"syssvc","name":"syssvc"},{"id":"authsvc","name":"authsvc"},{"id":"controllersvc","name":"controllersvc"}]></select-many>
+    </control-group>
+</fieldset>

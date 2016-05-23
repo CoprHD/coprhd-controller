@@ -1,61 +1,68 @@
 #{set 'moreScripts'}
 #{get 'moreScripts'/}
 <script type="text/javascript">
-function addElement() {
+function addServer() {
 
   var ni = document.getElementById('server-group');
   var numi = document.getElementById('theValue');
   var num = (document.getElementById('theValue').value -1)+ 2;
   numi.value = num;
-  var newdiv = document.createElement('div');
+  var newdiv = document.createElement('tr');
   var divIdName = 'server_'+num;
   newdiv.setAttribute('id',divIdName);
-  newdiv.setAttribute('class','form-group');
-  newdiv.innerHTML = '<div class="control-label col-sm-2"><input type="checkbox" name="selected" parent="server_'+num+'"></div><label class="control-label col-sm-1" >Server:</label><div class="col-sm-3"><input type="text" class="form-control" value="" maxlength="253" data-originalvalue="" data-reboot="true" autocomplete="off"><p class="help-block clear">IP Address of syslog server</p>  </div><label class="control-label col-sm-1" >Port:</label><div class="col-sm-2"><input type="text" class="form-control" value="" maxlength="253" data-originalvalue="" data-reboot="true" autocomplete="off"><p class="help-block clear">Port of syslog server</p>  </div><div class="col-sm-3"><span class="help-inline clearfix"></span></div>';
+  //newdiv.setAttribute('class','form-group');
+  newdiv.innerHTML = '<td class="col-xs-8 ng-scope" v-field="config.value"> <input type="text" name="config.value" id="config_value" ng-model="field.value" class="form-control ng-scope ng-pristine ng-valid" autocomplete="off" ng-class="{errorMessage: config.error}" ng-change="config.dirty = true" ng-if="getSelectedConfigType().type !== \'Boolean\'" ng-readonly="config.systemDefault" ng-focus="config.focused = true" ng-blur="config.focused = false" style=""> <div class="text-info ng-hide" ng-show="config.focused &amp;&amp; (getSelectedConfigType().type === \'String\' || config.error)"> <small generate-preview="config" ng-class="{\'text-danger\': config.error}" class="text-danger">Required parameter value was missing or empty</small> </div> </td> <td class="col-xs-8 ng-scope" v-field="config.value"> <input type="text" name="config.value" id="config_value" ng-model="field.value" class="form-control ng-scope ng-pristine ng-valid" autocomplete="off" ng-class="{errorMessage: config.error}" ng-change="config.dirty = true" ng-if="getSelectedConfigType().type !== \'Boolean\'" ng-readonly="config.systemDefault" ng-focus="config.focused = true" ng-blur="config.focused = false" style=""> <div class="text-info ng-hide" ng-show="config.focused &amp;&amp; (getSelectedConfigType().type === \'String\' || config.error)"> <small generate-preview="config" ng-class="{\'text-danger\': config.error}" class="text-danger">Required parameter value was missing or empty</small> </div> </td> <td class="col-xs-1"> <button type="button" class="close" ng-hide="config.systemDefault" onClick="removeServer(\''+divIdName+'\')">×</button> </td>';
   ni.appendChild(newdiv);
 
 }
 
-function removeElement() {
+function removeServer(id) {
 
   var d = document.getElementById('server-group');
 
-  var checkboxes = document.getElementsByName('selected');
-  var i=checkboxes.length
-  while(i--) {
-    var olddiv = checkboxes[i].parentNode.parentNode;
-    if (checkboxes[i].checked) {
-        d.removeChild(olddiv);
-    }
-  }
+  var checkboxes = document.getElementById(id);
+
+  d.removeChild(checkboxes);
 }
 </script>
 #{/set}
 
 <input type="hidden" value="0" id="theValue" />
-    <br>
-    <fieldset id="servers">
-        <legend>Remote Syslog Servers</legend>
-        <div id="server-group">
-        </div>
+<br>
+<fieldset id="servers">
+    <legend>Remote Syslog Servers</legend>
+    <div id="backup_scheduler_enableControlGroup" class="form-group ">
+        <label class="control-label col-sm-3">Enable Scheduler:</label>
+        <div class="col-sm-6" z="">
+            <div class="dataTables_wrapper">
+                <table class="table table-hover table-condensed dataTable" style="table-layout: fixed;">
+                    <thead>
+                    <tr>
+                        <th style="width: 160px;">Server</th>
+                        <th style="width: 160px;">Port</th>
+                        <th style="width: 25px;"></th>
+                    </tr>
+                    </thead>
+                    <tbody id="server-group" >
 
-        <div class="form-group button-bar">
-            <div class="col-sm-offset-3 col-sm-9">
-                <button type="button" class="btn btn-success " name="button.add" onclick="addElement();">
-                    <span class="glyphicon glyphicon-plus "></span>
-                    Add
-                </button>
-                <button type="button" class="btn btn-danger " name="button.delete" onclick="removeElement();">
-                <span class="glyphicon glyphicon-trash "></span>
-                    Delete
-                </button>
+                    </tbody>
+                </table>
+
+            </div>
+            <div class="button-bar">
+                <div>
+                    <button type="button" class="btn btn-success" name="button.add" onclick="addServer();">
+                        <span class="glyphicon glyphicon-plus "></span> Add
+                    </button>
+                </div>
             </div>
         </div>
-    </fieldset>
+    </div>
+</fieldset>
 
-    <fieldset id="services">
-        <legend>Service Logs</legend>
-        <control-group v-field="filterDialog.service" width="6"  type="array" >
-            <select-many id="services" class="max-height-5" options=[{"id":"sasvc","name":"sasvc"},{"id":"vasasvc","name":"vasasvc"},{"id":"portalsvc","name":"portalsvc"},{"id":"coordinatorsvc","name":"coordinatorsvc"},{"id":"geodbsvc","name":"geodbsvc"},{"id":"apisvc","name":"apisvc"},{"id":"geosvc","name":"geosvc"},{"id":"dbsvc","name":"dbsvc"},{"id":"syssvc","name":"syssvc"},{"id":"authsvc","name":"authsvc"},{"id":"controllersvc","name":"controllersvc"}]></select-many>
-        </control-group>
-    </fieldset>
+<fieldset id="services">
+    <legend>Service Logs</legend>
+    <control-group v-field="filterDialog.service" width="6"  type="array" >
+        <select-many id="services" class="max-height-5" options=[{"id":"sasvc","name":"sasvc"},{"id":"vasasvc","name":"vasasvc"},{"id":"portalsvc","name":"portalsvc"},{"id":"coordinatorsvc","name":"coordinatorsvc"},{"id":"geodbsvc","name":"geodbsvc"},{"id":"apisvc","name":"apisvc"},{"id":"geosvc","name":"geosvc"},{"id":"dbsvc","name":"dbsvc"},{"id":"syssvc","name":"syssvc"},{"id":"authsvc","name":"authsvc"},{"id":"controllersvc","name":"controllersvc"}]></select-many>
+    </control-group>
+</fieldset>

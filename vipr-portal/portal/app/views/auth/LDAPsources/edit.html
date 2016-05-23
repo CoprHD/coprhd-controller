@@ -21,7 +21,7 @@
   var errors = #{get 'errors'/};
 
     function addTenants() {
-        if ($('#ldapSources_mode').val() == 'keystone') {
+        if ($('#ldapSources_mode').val() == 'keystone' && $('#ldapSources_autoRegCoprHDNImportOSProjects').is(':checked') == true) {
              $('#ldapSourceForm').submit(function(){
                 $.post($(this).attr('action'), $(this).serialize(), function(response){
                      table.tenants.dataTable.create();

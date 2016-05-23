@@ -2550,7 +2550,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             // fail if they have already extracted the volume data from the ViPR
             // database and then subsequently the deviceLabel for the volumes change.
             if (VPlexCustomNameUtils.isCustomNamingEnabled(customConfigHandler)) {
-                List<String> volumeLockNames = VPlexCustomNameUtils.getVolumeLockNames(vplex, blockObjectMap.keySet());
+                List<String> volumeLockNames = VPlexCustomNameUtils.getVolumeLockNames(vplex, new ArrayList<>(blockObjectMap.keySet()));
                 boolean volumeLocksAcquired = _workflowService.acquireWorkflowStepLocks(stepId, volumeLockNames,
                         LockTimeoutValue.get(LockType.VPLEX_API_LIB));
                 if (!volumeLocksAcquired) {
@@ -2893,7 +2893,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             }
             WorkflowStepCompleter.stepExecuting(stepId);
             VPlexApiClient client = getVPlexAPIClient(_vplexApiFactory, vplex, _dbClient);
-            Map<URI, Volume> userAddedVolumeMap = new HashMap<>();
+            List<URI> userAddedVolumeURIs = new ArrayList<>();
             if (exportMask != null) {
                 String vplexClusterName = VPlexUtil.getVplexClusterName(exportMask, vplexURI, client, _dbClient);
                 VPlexStorageViewInfo storageView = client.getStorageView(vplexClusterName, exportMask.getMaskName());
@@ -2922,7 +2922,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                     for (Entry<String, String> entry : volumeHLUMap.entrySet()) {
                         URI volumeURI = URI.create(entry.getValue());
                         Volume volume = _dbClient.queryObject(Volume.class, volumeURI);
-                        userAddedVolumeMap.put(volumeURI, volume);
+                        userAddedVolumeURIs.add(volumeURI);
                     }
                     
                     // If custom VPLEX volume naming is enabled, we need to lock the volumes
@@ -2932,7 +2932,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                     // fail if they have already extracted the volume data from the ViPR
                     // database and then subsequently the deviceLabel for the volumes change.
                     if (VPlexCustomNameUtils.isCustomNamingEnabled(customConfigHandler)) {
-                        List<String> volumeLockNames = VPlexCustomNameUtils.getVolumeLockNames(vplex, userAddedVolumeMap.keySet());
+                        List<String> volumeLockNames = VPlexCustomNameUtils.getVolumeLockNames(vplex, userAddedVolumeURIs);
                         boolean volumeLocksAcquired = _workflowService.acquireWorkflowStepLocks(stepId, volumeLockNames,
                                 LockTimeoutValue.get(LockType.VPLEX_API_LIB));
                         if (!volumeLocksAcquired) {
@@ -2970,12 +2970,13 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             // the volume will only be renamed if it has changed and should not cause
             // the workflow step to fail if the rename fails.
             if (VPlexCustomNameUtils.isCustomNamingEnabled(customConfigHandler)) {
-                for (Volume vplexVolume : userAddedVolumeMap.values()) {
+                for (URI vplexVolumeURI : userAddedVolumeURIs) {
                     try {
                         // We need to know if the volume is local or distributed.
                         // However, for an ingested volume, if the backend volumes
                         // were not ingested, we have no way of knowing this unless
                         // we find the volume on the VPLEX.
+                        Volume vplexVolume = _dbClient.queryObject(Volume.class, vplexVolumeURI);
                         boolean isDistributed = VPlexCustomNameUtils.isVolumeDistributed(vplexVolume, client);
 
                         // If the volume will still be exported after being removed
@@ -3001,7 +3002,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                         }
                     } catch (Exception e) {
                         _log.warn(String.format("Error attempting to rename volume %s on deletion of storage view %s",
-                                vplexVolume.getId(), exportMaskURI), e);
+                                vplexVolumeURI, exportMaskURI), e);
                     }
                 }
             }
@@ -3147,7 +3148,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             // fail if they have already extracted the volume data from the ViPR
             // database and then subsequently the deviceLabel for the volumes change.
             if (VPlexCustomNameUtils.isCustomNamingEnabled(customConfigHandler)) {
-                List<String> volumeLockNames = VPlexCustomNameUtils.getVolumeLockNames(vplex, volumeMap.keySet());
+                List<String> volumeLockNames = VPlexCustomNameUtils.getVolumeLockNames(vplex, new ArrayList<>(volumeMap.keySet()));
                 boolean volumeLocksAcquired = _workflowService.acquireWorkflowStepLocks(opId, volumeLockNames,
                         LockTimeoutValue.get(LockType.VPLEX_API_LIB));
                 if (!volumeLocksAcquired) {
@@ -3557,7 +3558,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
         try {
             if (VPlexCustomNameUtils.isCustomNamingEnabled(customConfigHandler)) {
                 new HashSet<URI>(volumeURIList);
-                volumeLockNames.addAll(VPlexCustomNameUtils.getVolumeLockNames(vplex, new HashSet<URI>(volumeURIList)));
+                volumeLockNames.addAll(VPlexCustomNameUtils.getVolumeLockNames(vplex, volumeURIList));
                 volumeLocksAcquired = doLockService.acquireLocks(volumeLockNames, lockOwner, LockTimeoutValue.get(LockType.VPLEX_API_LIB));
                 if (!volumeLocksAcquired) {
                     throw VPlexApiException.exceptions.couldNotObtainConcurrencyLock(vplex.getLabel());

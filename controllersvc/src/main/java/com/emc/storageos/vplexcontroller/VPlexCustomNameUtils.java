@@ -8,7 +8,6 @@ import java.net.URI;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Set;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -246,7 +245,7 @@ public class VPlexCustomNameUtils {
      * 
      * @return The list of unique lock names for these volumes.
      */
-    public static List<String> getVolumeLockNames(StorageSystem vplexSystem, Set<URI> volumeURIs) {
+    public static List<String> getVolumeLockNames(StorageSystem vplexSystem, List<URI> volumeURIs) {
         List<String> lockNames = new ArrayList<>();
         Iterator<URI> volumeURIsIter = volumeURIs.iterator();
         while (volumeURIsIter.hasNext()) {

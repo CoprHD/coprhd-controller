@@ -62,7 +62,6 @@ import com.emc.storageos.plugins.AccessProfile;
 import com.emc.storageos.plugins.BaseCollectionException;
 import com.emc.storageos.plugins.common.Constants;
 import com.emc.storageos.plugins.metering.netapp.NetAppFileCollectionException;
-import com.emc.storageos.plugins.metering.vnxfile.VNXFileCollectionException;
 import com.emc.storageos.util.VersionChecker;
 import com.emc.storageos.volumecontroller.FileControllerConstants;
 import com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator;
@@ -190,7 +189,7 @@ public class NetAppFileCommunicationInterface extends
             Map<String, Number> metrics = new ConcurrentHashMap<String, Number>();
 
             // Compute the load on each virtual servers!!
-            computeStaticLoanMetrics(NetAppArray);
+            computeStaticLoadMetrics(NetAppArray);
 
             List<URI> storageSystemIds = new ArrayList<URI>();
             storageSystemIds.add(storageSystemId);
@@ -2435,12 +2434,11 @@ public class NetAppFileCommunicationInterface extends
     }
 
     /**
-     * Create Physical NAS for the specified VNX File storage array
+     * Create Physical NAS for NetApp vFiler0
      * 
      * @param system storage system information including credentials.
-     * @param discovered DM of the specified VNX File storage array
+     * @param vFiler - vFiler information
      * @return Physical NAS Server
-     * @throws VNXFileCollectionException
      */
     private PhysicalNAS createPhysicalNas(StorageSystem system, VFilerInfo vFiler) {
 
@@ -2480,12 +2478,11 @@ public class NetAppFileCommunicationInterface extends
     }
 
     /**
-     * Create Virtual NAS for the specified VNX File storage array
+     * Create Virtual NAS for the NetApp vFiler
      * 
      * @param system storage system information including credentials.
-     * @param discovered VDM of the specified VNX File storage array
+     * @param vFiler vFiler information to create vNAS
      * @return Virtual NAS Server
-     * @throws VNXFileCollectionException
      */
     private VirtualNAS createVirtualNas(StorageSystem system, VFilerInfo vFiler) {
 
@@ -2566,7 +2563,7 @@ public class NetAppFileCommunicationInterface extends
         nasServer.setCifsServersMap(cifsServersMap);
     }
 
-    private void computeStaticLoanMetrics(StorageSystem system) {
+    private void computeStaticLoadMetrics(StorageSystem system) {
 
         _logger.info("computeStaticLoanMetrics started...");
         // 1. Get vfilers

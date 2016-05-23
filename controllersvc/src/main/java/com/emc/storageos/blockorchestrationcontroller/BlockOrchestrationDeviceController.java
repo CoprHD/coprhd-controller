@@ -672,6 +672,8 @@ public class BlockOrchestrationDeviceController implements BlockOrchestrationCon
             waitFor = _blockDeviceController.addStepsForCreateFullCopy(
                     workflow, waitFor, volumeDescriptors, taskId);
             
+            // post recoverpoint steps disables image access which should be done after the 
+            // create clone steps but before the vplex steps.
             s_logger.info("Adding steps for RecoverPoint post create full copy");
             // Call the RPDeviceController to add its methods if there are RP protections
             waitFor = _rpDeviceController.addStepsForPostCreateReplica(
@@ -688,7 +690,7 @@ public class BlockOrchestrationDeviceController implements BlockOrchestrationCon
             Object[] callbackArgs = new Object[] { volUris };
             workflow.executePlan(completer, successMessage, new WorkflowCallback(), callbackArgs, null, null);
         } catch (Exception ex) {
-            s_logger.error("Could not create volumes: " + volUris, ex);
+            s_logger.error("Could not create full copy volumes: " + volUris, ex);
             releaseWorkflowLocks(workflow);
             String opName = ResourceOperationTypeEnum.CREATE_BLOCK_VOLUME.getName();
             ServiceError serviceError = DeviceControllerException.errors.createVolumesFailed(

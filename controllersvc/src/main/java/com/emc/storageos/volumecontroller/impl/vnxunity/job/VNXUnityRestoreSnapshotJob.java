@@ -84,20 +84,12 @@ public class VNXUnityRestoreSnapshotJob extends VNXeJob {
                         volumeToSnapMap.put(parent.getNativeId(), newSnap);
                     }
                     List<Snap> snaps = vnxeApiClient.getSnapshotsBySnapGroup(backUpSnapId);
-                    Map<String, Snap> lunToSnapMap = new HashMap<String, Snap>();
                     for (Snap snap : snaps) {
                         String lunId = snap.getLun().getId();
-                        lunToSnapMap.put(lunId, snap);
-                    }
-                    // Add vnx unity information to the new snapshots
-                    for (Map.Entry<String, BlockSnapshot> entry : volumeToSnapMap.entrySet()) {
-                        BlockSnapshot snapshot = entry.getValue();
-                        String lunId = entry.getKey();
-                        Snap unitySnap = lunToSnapMap.get(lunId);
+                        BlockSnapshot snapshot = volumeToSnapMap.get(lunId);
                         snapshot.setReplicationGroupInstance(backUpSnapId);
-                        createSnapshot(snapshot, unitySnap, storage, dbClient);
+                        createSnapshot(snapshot, snap, storage, dbClient);
                     }
-
                 } else {
                     Volume vol = dbClient.queryObject(Volume.class, snapshotObj.getParent());
                     final BlockSnapshot newSnap = initSnapshot(vol, backupSnap.getName(), backupSnap.getName());

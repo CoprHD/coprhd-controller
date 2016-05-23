@@ -2815,5 +2815,14 @@ public class VNXeApiClient {
         req.createHostInitiator(initCreateParam);
 
     }
-
+    
+    /**
+     * Check if the lun exists in the array
+     * @param lunId
+     * @return
+     */
+    public boolean checkLunExists(String lunId) {
+        BlockLunRequests req = new BlockLunRequests(_khClient);
+        return req.checkLunExists(lunId);
+    }
 }

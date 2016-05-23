@@ -9,6 +9,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -58,6 +59,7 @@ import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValues
 import com.emc.storageos.volumecontroller.impl.vnxe.job.VNXeCreateVolumesJob;
 import com.emc.storageos.volumecontroller.impl.vnxe.job.VNXeDeleteVolumesJob;
 import com.emc.storageos.volumecontroller.impl.vnxe.job.VNXeExpandVolumeJob;
+import com.emc.storageos.volumecontroller.impl.vnxe.job.VNXeJob;
 
 public class VNXUnityBlockStorageDevice extends VNXUnityOperations
         implements BlockStorageDevice {
@@ -247,7 +249,14 @@ public class VNXUnityBlockStorageDevice extends VNXUnityOperations
         VNXeApiClient apiClient = getVnxUnityClient(storageSystem);
         Map<String, List<String>> cgNameMap = new HashMap<String, List<String>>();
         try {
+            Set<URI> updateStoragePools = new HashSet<URI>();
             for (Volume volume : volumes) {
+                String lunId = volume.getNativeId();
+                updateStoragePools.add(volume.getPool());
+                if (!apiClient.checkLunExists(lunId)) {
+                    logger.info(String.format("The volume %s does not exist in the array, do nothing", volume.getLabel()));
+                    continue;
+                }
                 String cgName = volume.getReplicationGroupInstance();
                 if (NullColumnValueGetter.isNotNullValue(cgName)) {
                     List<String> lunIds = cgNameMap.get(cgName);
@@ -271,6 +280,9 @@ public class VNXUnityBlockStorageDevice extends VNXUnityOperations
             for (Volume vol : volumes) {
                 vol.setInactive(true);
                 dbClient.updateObject(vol);
+            }
+            for (URI pool : updateStoragePools) {
+                VNXeJob.updateStoragePoolCapacity(dbClient, apiClient, pool);
             }
             completer.ready(dbClient);
 

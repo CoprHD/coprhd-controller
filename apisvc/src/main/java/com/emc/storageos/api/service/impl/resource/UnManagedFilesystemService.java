@@ -52,7 +52,6 @@ import com.emc.storageos.db.client.model.Operation.Status;
 import com.emc.storageos.db.client.model.PhysicalNAS;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.QuotaDirectory;
-import com.emc.storageos.db.client.model.QuotaDirectory.SecurityStyles;
 import com.emc.storageos.db.client.model.StorageHADomain;
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StoragePort;
@@ -412,7 +411,6 @@ public class UnManagedFilesystemService extends TaggedResource {
                 if (nasUri != null) {
                     filesystem.setVirtualNAS(URI.create(nasUri));
                 }
-                unManagedFSURIToFSMap.put(unManagedFileSystemUri, filesystem);
                 URI storageSystemUri = unManagedFileSystem.getStorageSystemUri();
                 StorageSystem system = _dbClient.queryObject(StorageSystem.class, storageSystemUri);
                 if (full_systems.contains(storageSystemUri)) {
@@ -462,8 +460,7 @@ public class UnManagedFilesystemService extends TaggedResource {
                  * If UMFS storage port is not part of the vArray then skip ingestion
                  */
                 if (sPort == null) {
-                    _logger.warn(
-                            "Storage port of UMFS {} doesn't belong to a matching NetWork. So skipping ingestion",
+                    _logger.warn("Storage port of UMFS {} doesn't belong to a matching NetWork. So skipping ingestion",
                             unManagedFileSystemUri);
                     continue;
                 }
@@ -488,7 +485,8 @@ public class UnManagedFilesystemService extends TaggedResource {
                         for (UnManagedFileExportRule rule : exports) {
                             // Step 2 : Convert them to File Export Rule
                             // Step 3 : Keep them as a list to store in db, down the line at a shot
-                            rule.setFileSystemId(filesystem.getId()); // Important to relate the exports to a FileSystem.
+                            rule.setFileSystemId(filesystem.getId()); // Important to relate the exports to a
+                                                                      // FileSystem.
                             createRule(rule, fsExportRules);
                             // Step 4: Update the UnManaged Exports : Set Inactive as true
                             rule.setInactive(true);
@@ -515,7 +513,8 @@ public class UnManagedFilesystemService extends TaggedResource {
                         for (UnManagedCifsShareACL umCifsAcl : cifsACLs) {
                             // Step 2 : Convert them to Cifs Share ACL
                             // Step 3 : Keep them as a list to store in db, down the line at a shot
-                            umCifsAcl.setFileSystemId(filesystem.getId()); // Important to relate the shares to a FileSystem.
+                            umCifsAcl.setFileSystemId(filesystem.getId()); // Important to relate the shares to a
+                                                                           // FileSystem.
                             createACL(umCifsAcl, fsCifsShareAcls, filesystem);
                             // Step 4: Update the UnManaged Share ACL : Set Inactive as true
                             umCifsAcl.setInactive(true);
@@ -532,7 +531,8 @@ public class UnManagedFilesystemService extends TaggedResource {
                         for (UnManagedNFSShareACL umNfsAcl : nfsACLs) {
                             // Step 2 : Convert them to nfs Share ACL
                             // Step 3 : Keep them as a list to store in db, down the line at a shot
-                            umNfsAcl.setFileSystemId(filesystem.getId()); // Important to relate the shares to a FileSystem.
+                            umNfsAcl.setFileSystemId(filesystem.getId()); // Important to relate the shares to a
+                                                                          // FileSystem.
                             if (umNfsAcl.getPermissions().isEmpty()) {
                                 continue;
                             }
@@ -564,6 +564,7 @@ public class UnManagedFilesystemService extends TaggedResource {
                         filesystem.getId(), filesystem.getNativeGuid()));
                 unManagedFileSystem.setInactive(true);
                 unManagedFileSystems.add(unManagedFileSystem);
+                unManagedFSURIToFSMap.put(unManagedFileSystemUri, filesystem);
             }
 
             int i = 0;
@@ -606,16 +607,16 @@ public class UnManagedFilesystemService extends TaggedResource {
                 ++i;
                 _logger.info("{} Updating UnManagedACL DB as InActive TRUE {}", acl);
             }
-            _dbClient.persistObject(inActiveUnManagedShareCifs);
+            _dbClient.updateObject(inActiveUnManagedShareCifs);
             // Step 7.2 : Update the same in DB & clean Unmanaged ExportRule
             i = 0;
             for (UnManagedFileExportRule rule : inActiveUnManagedExportRules) {
                 ++i;
                 _logger.info("{} Updating DB as InActive TRUE {}", rule);
             }
-            _dbClient.persistObject(inActiveUnManagedExportRules);
+            _dbClient.updateObject(inActiveUnManagedExportRules);
 
-            _dbClient.persistObject(unManagedFileSystems);
+            _dbClient.updateObject(unManagedFileSystems);
 
             // Step 8.1 : Update NFS Acls in DB & Add new ACLs
             if (fsNfsShareAcls != null && !fsNfsShareAcls.isEmpty()) {
@@ -689,18 +690,18 @@ public class UnManagedFilesystemService extends TaggedResource {
                 quotaDirectory.setOpLock(true);
             }
             quotaDirectory.setSize(unManagedFileQuotaDirectory.getSize());
-            quotaDirectory.setSecurityStyle(SecurityStyles.parent.toString());// TODO get it from feed
+            quotaDirectory.setSecurityStyle(unManagedFileQuotaDirectory.getSecurityStyle());
 
             quotaDirectories.add(quotaDirectory);
         }
 
         if (!quotaDirectories.isEmpty()) {
-            _dbClient.persistObject(quotaDirectories);
+            _dbClient.updateObject(quotaDirectories);
         }
 
         if (!unManagedFileQuotaDirectories.isEmpty()) {
             unManagedFileQuotaDirectories.forEach(unManagedFileQuotaDir -> unManagedFileQuotaDir.setInactive(true));
-            _dbClient.persistObject(unManagedFileQuotaDirectories);
+            _dbClient.updateObject(unManagedFileQuotaDirectories);
         }
         _logger.info("ingested {} quota directories for fs {}", unManagedFileQuotaDirectories.size(), parentFS.getId());
     }
@@ -857,8 +858,10 @@ public class UnManagedFilesystemService extends TaggedResource {
     /**
      * Checks if the given storage port is part of VArray
      * 
-     * @param umfsStoragePort storagePort of UMFS
-     * @param virtualArray the VirtualArray
+     * @param umfsStoragePort
+     *            storagePort of UMFS
+     * @param virtualArray
+     *            the VirtualArray
      * @return true if storagePort is part of varray; false otherwise
      */
 
@@ -1170,9 +1173,12 @@ public class UnManagedFilesystemService extends TaggedResource {
      * it return null, if any of the NAS server port is not part of given virtual array
      * 
      * 
-     * @param umfsStoragePort port which is assigned to file system while UMFS discovery
-     * @param nasUri NAS server URI
-     * @param virtualArray virtual array
+     * @param umfsStoragePort
+     *            port which is assigned to file system while UMFS discovery
+     * @param nasUri
+     *            NAS server URI
+     * @param virtualArray
+     *            virtual array
      */
     private StoragePort getIsilonStoragePort(StoragePort umfsStoragePort, String nasUri, URI virtualArray) {
         StoragePort sp = null;
@@ -1180,8 +1186,7 @@ public class UnManagedFilesystemService extends TaggedResource {
 
         if (StringUtils.equals("VirtualNAS", URIUtil.getTypeName(nasUri))) {
             nasServer = _dbClient.queryObject(VirtualNAS.class, URI.create(nasUri));
-        }
-        else {
+        } else {
             nasServer = _dbClient.queryObject(PhysicalNAS.class, URI.create(nasUri));
         }
         if (nasServer != null) {
@@ -1214,10 +1219,14 @@ public class UnManagedFilesystemService extends TaggedResource {
     /**
      * Record audit log for file service
      * 
-     * @param auditType Type of AuditLog
-     * @param operationalStatus Status of operation
-     * @param description Description for the AuditLog
-     * @param descparams Description paramters
+     * @param auditType
+     *            Type of AuditLog
+     * @param operationalStatus
+     *            Status of operation
+     * @param description
+     *            Description for the AuditLog
+     * @param descparams
+     *            Description paramters
      */
     public static void auditFile(DbClient dbClient, OperationTypeEnum auditType,
             boolean operationalStatus,

@@ -1498,8 +1498,16 @@ public class VNXUnityFileStorageDevice extends VNXUnityOperations
         try {
             Long softLimit = 0L;
             Long softGrace = 0L;
-            softLimit = Long.valueOf(qd.getSoftLimit() * qd.getSize() / 100);// conversion from percentage to bytes
-                                                                             // using hard limit
+            Long size = 0L;
+
+            if (qd.getSize() == 0) {
+                size = args.getFsCapacity(); // If quota directory has no size specified, inherit it from the parent fs
+                                             // for the calculation of limit sizes
+            } else {
+                size = qd.getSize();
+            }
+            softLimit = Long.valueOf(qd.getSoftLimit() * size / 100);// conversion from percentage to bytes
+                                                                     // using hard limit
             softGrace = Long.valueOf(qd.getSoftGrace() * 24 * 60 * 60); // conversion from days to seconds
             job = apiClient.createQuotaDirectory(args.getFsName(), qd.getName(), qd.getSize(), softLimit, softGrace);
 
@@ -1590,8 +1598,17 @@ public class VNXUnityFileStorageDevice extends VNXUnityOperations
         try {
             Long softLimit = 0L;
             Long softGrace = 0L;
-            softLimit = Long.valueOf(qd.getSoftLimit() * qd.getSize() / 100);// conversion from percentage to bytes
-                                                                             // using hard limit
+            Long size = 0L;
+
+            if (qd.getSize() == 0) {
+                size = args.getFsCapacity(); // If quota directory has no size specified, inherit it from the parent fs
+                                             // for the calculation of limit sizes
+            } else {
+                size = qd.getSize();
+            }
+
+            softLimit = Long.valueOf(qd.getSoftLimit() * size / 100);// conversion from percentage to bytes
+                                                                     // using hard limit
             softGrace = Long.valueOf(qd.getSoftGrace() * 24 * 60 * 60); // conversion from days to seconds
             job = apiClient.updateQuotaDirectory(qd.getNativeId(), qd.getSize(), softLimit, softGrace);
 

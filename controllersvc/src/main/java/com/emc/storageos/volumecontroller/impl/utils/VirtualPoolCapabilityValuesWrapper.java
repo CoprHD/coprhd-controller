@@ -62,6 +62,7 @@ public class VirtualPoolCapabilityValuesWrapper implements Serializable {
     
     // replica options
     public static final String REPLICA_CREATE_INACTIVE = "replicaActiveInactiveMode";
+    public static final String SNAPSHOT_SESSION_COPY_MODE = "snapshotSessionCopyMode";
 
     private final Map<String, Object> _vpoolCapabilities = new HashMap<String, Object>();
 
@@ -371,6 +372,11 @@ public class VirtualPoolCapabilityValuesWrapper implements Serializable {
 
     public String getReplicaCreateInactive() {
         Object value = _vpoolCapabilities.get(REPLICA_CREATE_INACTIVE);
+        return value != null ? (String) value : null;
+    }
+    
+    public String getSnapshotSessionCopyMode() {
+        Object value = _vpoolCapabilities.get(SNAPSHOT_SESSION_COPY_MODE);
         return value != null ? (String) value : null;
     }
 

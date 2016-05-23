@@ -97,4 +97,12 @@ public class BlockOrchestrationControllerImpl implements BlockOrchestrationContr
     public void createFullCopy(List<VolumeDescriptor> volumeDescriptors, String taskId) throws InternalException {
         execOrchestration("createFullCopy", volumeDescriptors, taskId);
     }
+
+    /* (non-Javadoc)
+     * @see com.emc.storageos.blockorchestrationcontroller.BlockOrchestrationController#createSnapshotSession(java.util.List, java.lang.String)
+     */
+    @Override
+    public void createSnapshotSession(List<VolumeDescriptor> volumeDescriptors, String taskId) throws InternalException {
+        execOrchestration("createSnapshotSession", volumeDescriptors, taskId);
+    }
 }

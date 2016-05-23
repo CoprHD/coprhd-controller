@@ -6994,11 +6994,6 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                         null, vplexURI, vplexSystem.getSystemType(), this.getClass(),
                         executeMethod, rollbackMethod, null);
 
-                List<VolumeDescriptor> importVolumeDescriptors = VolumeDescriptor
-                        .filterByType(volumeDescriptorsRG,
-                                new VolumeDescriptor.Type[] { Type.VPLEX_IMPORT_VOLUME },
-                                new VolumeDescriptor.Type[] {});
-
                 if (!vplexSrcVolumeDescrs.isEmpty()) {
                     // Find the backend volume that is the primary volume for one of
                     // the VPLEX volumes being copied. The primary backend volume is the

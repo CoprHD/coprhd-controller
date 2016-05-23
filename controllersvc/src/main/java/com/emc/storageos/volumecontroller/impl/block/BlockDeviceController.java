@@ -248,6 +248,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
     private static final String RESTORE_FROM_FULLCOPY_STEP = "restoreFromFullCopy";
     
     private static final String METHOD_CREATE_FULL_COPY_STEP = "createFullCopy";
+    private static final String METHOD_CREATE_SNAPSHOT_SESSION_STEP = "createSnapshotSession";
 
     public void setDbClient(DbClient dbc) {
         _dbClient = dbc;
@@ -3274,6 +3275,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
 
     static final String FULL_COPY_WORKFLOW = "fullCopyVolumes";
     static final String FULL_COPY_CREATE_STEP_GROUP = "createFullCopiesStepGroup";
+    static final String SNAPSHOT_SESSION_CREATE_STEP_GROUP = "createSnapshotSessionStepGroup";
     static final String FULL_COPY_WFS_STEP_GROUP = "waitForSyncStepGroup";
     static final String FULL_COPY_DETACH_STEP_GROUP = "detachFullCopyStepGroup";
     static final String FULL_COPY_FRACTURE_STEP_GROUP = "fractureFullCopyStepGroup";
@@ -3281,6 +3283,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
     static final String MIRROR_FRACTURE_STEP_GROUP = "fractureMirrorStepGroup";
     static final String MIRROR_DETACH_STEP_GROUP = "detachMirrorStepGroup";
     static final String FULL_COPY_CREATE_ORCHESTRATION_STEP = "createFullCopiesOrchestrationStep";
+    static final String SNAPSHOT_SESSION_CREATE_ORCHESTRATION_STEP = "createSnapshotSessionOrchestrationStep";
 
     @Override
     public void createFullCopy(URI storage, List<URI> fullCopyVolumes, Boolean createInactive,
@@ -6596,6 +6599,48 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
     public String addStepsForPostCreateReplica(Workflow workflow, String waitFor, List<VolumeDescriptor> volumeDescriptors,
             String taskId) throws InternalException {
         // nothing to do post create replica
+        return waitFor;
+    }
+
+    /**
+     * @param workflow
+     * @param waitFor
+     * @param volumeDescriptors
+     * @param taskId
+     * @return
+     */
+    public String addStepsForCreateSnapshotSession(Workflow workflow, String waitFor, List<VolumeDescriptor> volumeDescriptors,
+            String taskId) {
+        
+        List<VolumeDescriptor> blockVolmeDescriptors = VolumeDescriptor.filterByType(volumeDescriptors,
+                new VolumeDescriptor.Type[] { VolumeDescriptor.Type.BLOCK_SNAPSHOT_SESSION },
+                new VolumeDescriptor.Type[] {});
+        
+        // If no volumes to create, just return
+        if (blockVolmeDescriptors.isEmpty()) {
+            return waitFor;
+        }
+        
+        // we expect just one snapshot session volume descriptor
+        VolumeDescriptor descriptor = blockVolmeDescriptors.get(0);
+        BlockSnapshotSession session = _dbClient.queryObject(BlockSnapshotSession.class, descriptor.getVolumeURI());
+        if (session != null && !session.getInactive()) {
+            String stepId = workflow.createStepId();
+            // Now add the steps to create the snapshot session on the storage system
+            URI storageURI = session.getStorageController();
+            StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, storageURI);
+            Workflow.Method createSnapshotSessionMethod = new Workflow.Method(METHOD_CREATE_SNAPSHOT_SESSION_STEP, storageURI, 
+                    descriptor.getVolumeURI(),  
+                    descriptor.getSnapSessionSnapshotURIs(), 
+                    descriptor.getCapabilitiesValues().getSnapshotSessionCopyMode());
+            Workflow.Method nullRollbackMethod = new Workflow.Method(ROLLBACK_METHOD_NULL);
+
+            waitFor = workflow.createStep(SNAPSHOT_SESSION_CREATE_ORCHESTRATION_STEP, "Create Block Snapshot Session", waitFor, storageSystem.getId(),
+                    storageSystem.getSystemType(), this.getClass(), createSnapshotSessionMethod, nullRollbackMethod, stepId);
+            _log.info(String.format("Added %s step [%s] in workflow", SNAPSHOT_SESSION_CREATE_STEP_GROUP, stepId));
+            
+        }
+        
         return waitFor;
     }
 }

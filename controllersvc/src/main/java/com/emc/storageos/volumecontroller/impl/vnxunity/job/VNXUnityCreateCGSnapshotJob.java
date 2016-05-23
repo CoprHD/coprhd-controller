@@ -93,7 +93,7 @@ public class VNXUnityCreateCGSnapshotJob extends VNXeJob{
                 dbClient.updateObject(snapshots);
             }
         } catch (Exception e) {
-            _logger.error("Caught an exception while trying to updateStatus for VNXeBlockCreateCGSnapshotJob", e);
+            _logger.error("Caught an exception while trying to updateStatus for VNXUntiyCreateCGSnapshotJob", e);
             setErrorStatus("Encountered an internal error during group snapshot create job status processing : " + e.getMessage());
         } finally {
             super.updateStatus(jobContext);

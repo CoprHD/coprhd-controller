@@ -10,11 +10,13 @@ import com.emc.storageos.vnxe.VNXeException;
 import com.emc.storageos.vnxe.models.VNXeStorageSystem;
 
 public class StorageSystemRequest extends KHRequests<VNXeStorageSystem> {
-    private static final String URL = "/api/types/system/instances?fields=serialNumber,name,model";
+    private static final String URL = "/api/types/system/instances";
+    private static final String FIELDS = "serialNumber,name,model";
 
     public StorageSystemRequest(KHClient client) {
         super(client);
         _url = URL;
+        _fields = FIELDS;
     }
 
     /*

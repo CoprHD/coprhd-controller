@@ -1473,7 +1473,8 @@ public class VNXUnityCommunicationInterface extends ExtendedCommunicationInterfa
                         dbMetrics = new StringMap();
                     }
                     // process db metrics
-                    populateDbMetrics(nasServer, client, dbMetrics);
+                    StringMap tmpDbMetrics = populateDbMetrics(nasServer, client);
+                    dbMetrics.putAll(tmpDbMetrics);
 
                     // set dbMetrics in db
                     virtualNAS.setMetrics(dbMetrics);
@@ -1485,7 +1486,8 @@ public class VNXUnityCommunicationInterface extends ExtendedCommunicationInterfa
         }
     }
 
-    private void populateDbMetrics(final VNXeNasServer nasServer, VNXeApiClient client, StringMap dbMetrics) {
+    private StringMap populateDbMetrics(final VNXeNasServer nasServer, VNXeApiClient client) {
+        StringMap dbMetrics = new StringMap();
         long totalProvCap = 0L;
         long totalFsCount = 0L;
 
@@ -1532,12 +1534,9 @@ public class VNXUnityCommunicationInterface extends ExtendedCommunicationInterfa
         _logger.info("Total fs Count {} for nas server : {}", String.valueOf(totalFsCount), nasServer.getName());
         _logger.info("Total fs Capacity {} for nas server : {}", String.valueOf(totalProvCap), nasServer.getName());
 
-        if (dbMetrics == null) {
-            dbMetrics = new StringMap();
-        }
-
         // Set max limits in dbMetrics
-        setMaxDbMetrics(client, dbMetrics);
+        StringMap maxDbMetrics = getMaxDbMetrics(client);
+        dbMetrics.putAll(maxDbMetrics);
 
         // set total nfs and cifs exports for this nas server
         dbMetrics.put(MetricsKeys.totalNfsExports.name(), String.valueOf(nfsSharesCount));
@@ -1568,17 +1567,18 @@ public class VNXUnityCommunicationInterface extends ExtendedCommunicationInterfa
 
         dbMetrics.put(MetricsKeys.percentLoad.name(), String.valueOf(percentageLoad));
         dbMetrics.put(MetricsKeys.overLoaded.name(), overLoaded);
-        return;
+        return dbMetrics;
 
     }
 
     /**
-     * set the Max limits for static db metrics
+     * get the Max limits for static db metrics
      * 
      * @param system
-     * @param dbMetrics
+     * @return dbMetrics
      */
-    private void setMaxDbMetrics(final VNXeApiClient client, StringMap dbMetrics) {
+    private StringMap getMaxDbMetrics(final VNXeApiClient client) {
+        StringMap dbMetrics = new StringMap();
         // Set the Limit Metric keys!!
         dbMetrics.put(MetricsKeys.maxStorageObjects.name(), String.valueOf(MAX_STORAGE_OBJECTS));
 
@@ -1592,7 +1592,7 @@ public class VNXUnityCommunicationInterface extends ExtendedCommunicationInterfa
         // set the max capacity in bytes
         long MaxCapacity = MAX_CAPACITY;
         dbMetrics.put(MetricsKeys.maxStorageCapacity.name(), String.valueOf(MaxCapacity / KB_IN_BYTES));
-        return;
+        return dbMetrics;
     }
 
     /**

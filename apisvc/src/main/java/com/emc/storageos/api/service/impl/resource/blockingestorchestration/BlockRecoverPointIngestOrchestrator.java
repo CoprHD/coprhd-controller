@@ -766,25 +766,25 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
                 em = unManagedRPExportMasks.get(0);
             }
 
+            // If the mask for ingested volume is in a mask that contains JOURNAL keyword, make sure the ExportGroup created contains
+            // that internal flag.
+            boolean isJournalExport = false;
+            if (em.getMaskName().toLowerCase().contains("journal")) {
+                isJournalExport = true;
+            }
             String exportGroupGeneratedName = RPHelper.generateExportGroupName(protectionSystem, storageSystem, internalSiteName,
-                    virtualArray);
+                    virtualArray, isJournalExport);
 
             ExportGroup exportGroup = VolumeIngestionUtil.verifyExportGroupExists(
                     parentRequestContext, exportGroupGeneratedName, project.getId(),
                     em.getKnownInitiatorUris(), virtualArray.getId(), _dbClient);
+
             boolean exportGroupCreated = false;
+
             if (null == exportGroup) {
                 exportGroupCreated = true;
                 Integer numPaths = em.getZoningMap().size();
                 _logger.info("Creating Export Group with label {}", em.getMaskName());
-
-                // If the mask for ingested volume is in a mask that contains JOURNAL keyword, make sure the ExportGroup created contains
-                // that
-                // internal flag.
-                boolean isJournalExport = false;
-                if (em.getMaskName().toLowerCase().contains("journal")) {
-                    isJournalExport = true;
-                }
                 exportGroup = RPHelper.createRPExportGroup(exportGroupGeneratedName, virtualArray, project,
                         numPaths, isJournalExport);
             }

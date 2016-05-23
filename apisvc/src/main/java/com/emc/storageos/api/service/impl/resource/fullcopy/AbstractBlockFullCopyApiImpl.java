@@ -740,6 +740,10 @@ public abstract class AbstractBlockFullCopyApiImpl implements BlockFullCopyApi {
      * @return TaskList
      */
     protected TaskList getTasksForCreateFullCopy(BlockObject fcSourceObj, List<Volume> fullCopyVolumes, String taskId) {
+        
+        if (fcSourceObj == null) {
+            throw APIException.badRequests.fullCopyInternalError("create");
+        }
 
         TaskList taskList = new TaskList();
 
